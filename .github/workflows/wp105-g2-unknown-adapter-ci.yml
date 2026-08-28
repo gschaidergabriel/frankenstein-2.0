@@ -1,0 +1,78 @@
+name: Frankenstein 2.0 WP105 G2 UNKNOWN Adapter CI
+
+on:
+  pull_request:
+    paths:
+      - 'src/frankenstein2/effect_executor_interlock.py'
+      - 'src/frankenstein2/entityos_effect_gate_call_bridge.py'
+      - 'src/frankenstein2/entityos_unknown_outcome_adapter.py'
+      - 'tests/fixtures/entityos_effect_unknown_pr430_2f99/**'
+      - 'tests/fixtures/entityos_effect_authority_2b68/clayverse/store.py'
+      - 'tests/test_pr430_exact_candidate_unknown.py'
+      - 'tests/test_pr430_f2_interlock_unknown_integration.py'
+      - 'workpackages/active/F2-WP-105.json'
+      - 'workpackages/falsifiers/F2-WP-105_G2_UNKNOWN_OUTCOME_SOURCE_BINDING.json'
+      - '.github/workflows/wp105-g2-unknown-adapter-ci.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  wp105-g2-unknown-adapter:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    env:
+      PYTHONPATH: .:src
+    steps:
+      - name: Checkout exact candidate head
+        uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Verify authority and exact source bindings
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git hash-object workpackages/active/F2-WP-105.json)" = "bca34745c3a4a6c87ea4cd0ba8768515540a3545"
+          test "$(git hash-object src/frankenstein2/effect_executor_interlock.py)" = "552802db239589a2dac2414a206f452c671d88b6"
+          test "$(git hash-object src/frankenstein2/entityos_effect_gate_call_bridge.py)" = "d7266a4b9fa51b561bd02a64d32112d6b0059049"
+          test "$(git hash-object src/frankenstein2/entityos_unknown_outcome_adapter.py)" = "8c165e2b9147479c42247a3ac8cdaa98ffbf7e16"
+          test "$(git hash-object tests/fixtures/entityos_effect_unknown_pr430_2f99/clayverse/effects.py)" = "ae1b8db9111868374258435e97c7dfeda41bc318"
+          test "$(git hash-object tests/fixtures/entityos_effect_unknown_pr430_2f99/clayverse/effect_journal.py)" = "4615150638dc4409317550d44b84d942a260de58"
+          test "$(git hash-object tests/fixtures/entityos_effect_unknown_pr430_2f99/clayverse/entityos_bridge.py)" = "7781580f4e862c23491cc862e19c5d1f62b3ada6"
+          test "$(git hash-object tests/fixtures/entityos_effect_authority_2b68/clayverse/store.py)" = "a88d923ea3d0eab5847f304f35463e5a2b2c4acd"
+          test "$(git hash-object tests/test_pr430_exact_candidate_unknown.py)" = "743c68dc59646c267e1a875f963c51eb3c9f018d"
+          test "$(git hash-object tests/test_pr430_f2_interlock_unknown_integration.py)" = "4ba73809254417f5418055184af8c618396546f6"
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          binding = json.loads(Path('workpackages/falsifiers/F2-WP-105_G2_UNKNOWN_OUTCOME_SOURCE_BINDING.json').read_text())
+          claim = json.loads(Path('workpackages/active/F2-WP-105.json').read_text())
+          assert binding['authority_epoch'] == '9.13'
+          assert binding['authority_inbox_blob_sha'] == 'f77bed7d4394f418bdde9c5769a48c7824b5391a'
+          assert binding['authority_steering_blob_sha'] == 'f0e1ada88e6f0537cbf2083f4c50fdd336d27e9a'
+          assert binding['claim_id'] == claim['claim_id']
+          assert claim['generation'] == 2 and claim['state'] == 'ACTIVE'
+          assert binding['evidence_scope'] == 'REPOSITORY_HOSTED_NO_REAL_EFFECT_COMPONENT_ONLY'
+          assert binding['promotion_fences']['whole_frankenstein2_runtime_credit'] == 0
+          assert binding['promotion_fences']['canonical_semantics_promotion'] is False
+          PY
+
+      - name: Compile bound adapter and discriminators
+        run: >-
+          python -m py_compile
+          src/frankenstein2/entityos_unknown_outcome_adapter.py
+          tests/fixtures/entityos_effect_unknown_pr430_2f99/clayverse/effects.py
+          tests/fixtures/entityos_effect_unknown_pr430_2f99/clayverse/effect_journal.py
+          tests/fixtures/entityos_effect_unknown_pr430_2f99/clayverse/entityos_bridge.py
+          tests/test_pr430_exact_candidate_unknown.py
+          tests/test_pr430_f2_interlock_unknown_integration.py
+
+      - name: Execute exact PR430 no-real-effect discriminator
+        run: python tests/test_pr430_exact_candidate_unknown.py
+
+      - name: Execute F2 interlock UNKNOWN integration gate
+        run: python tests/test_pr430_f2_interlock_unknown_integration.py
