@@ -205,6 +205,48 @@ class BoundEntityOSEffectAuthorityMatrixTests(unittest.TestCase):
         ).fetchone()
         self.assertEqual(row["status"], "VERIFIED")
 
+    def test_same_session_ab_pending_bijection_survives_reverse_binding_order(self) -> None:
+        context_b = EntityOSEffectCallContext(
+            user_id=self.user_id,
+            session_id=self.session_id,
+            generation=self.generation,
+            argv=("deterministic-stub", "payload-B"),
+        )
+        intent_b = attach_entityos_request_identity(call_intent(suffix="B"), context_b)
+        request_a = self.intent.request
+        request_b = intent_b.request
+        assert request_a is not None and request_b is not None
+        gate = EffectGate(self.db)
+        effect_a = gate.journal.begin(
+            None,
+            self.session_id,
+            self.user_id,
+            "entityos.exec",
+            request_a.target,
+            self.generation,
+            list(request_a.argv or ()),
+        )
+        effect_b = gate.journal.begin(
+            None,
+            self.session_id,
+            self.user_id,
+            "entityos.exec",
+            request_b.target,
+            self.generation,
+            list(request_b.argv or ()),
+        )
+        rows = self._effect_rows()
+
+        # Bind B then A deliberately. No row order/timestamp heuristic is allowed.
+        bound_b = bind_unique_pending_entityos_effect(intent_b, context_b, rows)
+        bound_a = bind_unique_pending_entityos_effect(self.intent, self.context, rows)
+        self.assertEqual(bound_b.effect_id, effect_b)
+        self.assertEqual(bound_a.effect_id, effect_a)
+        self.assertEqual(bound_b.prepared.request_sha256, intent_b.request_sha256)
+        self.assertEqual(bound_a.prepared.request_sha256, self.intent.request_sha256)
+        self.assertNotEqual(bound_a.prepared.request_sha256, bound_b.prepared.request_sha256)
+        self.assertNotEqual(bound_a.effect_id, bound_b.effect_id)
+
     def test_semantic_request_substitution_fails_before_pending_binding(self) -> None:
         semantic = self.intent.request
         assert semantic is not None
