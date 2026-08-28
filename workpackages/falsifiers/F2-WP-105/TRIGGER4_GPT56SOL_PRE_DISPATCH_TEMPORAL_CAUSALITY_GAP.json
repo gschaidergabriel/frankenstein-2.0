@@ -1,0 +1,66 @@
+{
+  "schema": "FRANKENSTEIN2_CANDIDATE_FALSIFIER/v1",
+  "classification": "CANDIDATE_FALSIFIER",
+  "trigger": "4",
+  "workpackage_id": "F2-WP-105",
+  "active_generation_observed": 1,
+  "active_claim_id_observed": "F2-WP-105-G1-EXECUTION-COMPLETION-GPT56SOL-20260828T215528P0700",
+  "mutation_authority": "NOT_CLAIMED_BY_THIS_ORGAN",
+  "canonical_implementation_mutated": false,
+  "base_main_observed": "6d2a5d2c7e593094566a95e9a9d253ae8b666fdf",
+  "title": "PRE-dispatch effect binding API currently requires post-result/execution-recorded target",
+  "claim_under_test": "The current effect_invocation_correlation API can serve as the actual PRE-dispatch binding boundary required by the next fail-closed executor/enforcement gate.",
+  "observations": [
+    {
+      "path": "src/frankenstein2/effect_invocation_correlation.py",
+      "blob_sha": "45c1570a1e4a45a33c9ba555403f37677e77c8dc",
+      "fact": "prepare_effect_call() is documented as PRE-dispatch but accepts DeferredExecutionVerificationTarget."
+    },
+    {
+      "path": "src/frankenstein2/deferred_execution_verification.py",
+      "blob_sha": "3d74b80047cbacf112401bc6f9377db1ac1afbbc",
+      "fact": "DeferredExecutionVerificationTarget rejects bindings without a result and rejects lineage before EXECUTION_RECORDED."
+    },
+    {
+      "path": "tests/test_effect_invocation_correlation.py",
+      "blob_sha": "6024af23235ca9276cd0b599215640f9dac75d82",
+      "fact": "make_target() binds a result and applies AdmitExecution plus RecordExecution before setUp() calls prepare_effect_call()."
+    },
+    {
+      "receipt": "workpackages/receipts/F2-WP-105_EFFECT_INVOCATION_CORRELATION_GHA_33201281386.json",
+      "run_id": 33201281386,
+      "fact": "Repository CI successfully proves call-scoped cross-call correlation at its declared component scope; this falsifier does not revoke that PASS."
+    }
+  ],
+  "result": "STRONGER_PRE_DISPATCH_USABILITY_CLAIM_NOT_ESTABLISHED",
+  "reason": "The current constructor dependency graph is temporally inverted for a real executor boundary: the object required to create the PREPARED effect binding can only exist after a result is already bound and execution is already recorded. Therefore PREPARED currently means pre-verification within the tested fixture, not demonstrably pre-dispatch in the real causal sequence.",
+  "counterhypothesis": {
+    "statement": "PREPARED was intended to mean pre-verification rather than pre-dispatch.",
+    "implication": "If this is the intended contract, narrow the docstring/receipt language and add a separate true pre-dispatch identity type before executor integration; the current CI remains valid without promotion to executor-gate evidence."
+  },
+  "risk_if_unresolved": [
+    "An executor adapter may be forced to invent or reconstruct effect identity after dispatch.",
+    "A real external effect could occur before the exact effect_id/call lineage is durably or immutably bound.",
+    "UNKNOWN-outcome handling and no-blind-replay guarantees would then depend on post-hoc correlation rather than a pre-effect invariant."
+  ],
+  "successor_design_constraint": {
+    "required_pre_dispatch_input": "A result-free WP-102/native call binding plus explicit effect_id and the exact admitted execution identity available before dispatch.",
+    "required_pre_dispatch_output": "Immutable invocation/effect envelope that can exist before any external effect and before RecordExecution.",
+    "required_post_dispatch_rule": "The execution receipt/result must present the same effect_id + invocation_id + tool_use_id + delegation_id + binding/child identity; mismatch rejects before WP-105 mutation.",
+    "required_unknown_rule": "Transport loss or ambiguous executor return records UNKNOWN; it must not mint APPLIED/NOT_APPLIED and must not authorize blind replay.",
+    "required_world_rule": "VERIFIED_APPLIED/VERIFIED_NOT_APPLIED requires a separate world-verification transition, not executor success text."
+  },
+  "cheapest_high_information_discriminator": "Add a deterministic test that constructs the pre-dispatch envelope from a result-free NativeChildBinding and an ADMITTED (not EXECUTION_RECORDED) ExecutionLineage, then records an execution observation and separately verifies the world outcome. The test must fail if any PRE constructor requires result_id/result_sha256 or EXECUTION_RECORDED state.",
+  "credit_boundary": {
+    "existing_effect_invocation_component_ci": "PRESERVED_PASS_AT_DECLARED_SCOPE",
+    "true_pre_dispatch_effect_binding": 0,
+    "effect_enforcement_runtime": 0,
+    "real_effect_execution_runtime": 0,
+    "external_world_verification_runtime": 0,
+    "vps_runtime": 0,
+    "physical_grid10_runtime": 0,
+    "whole_frankenstein2_runtime": 0,
+    "whole_entityos_hcu_runtime": 0
+  },
+  "next_exact_action_for_active_mutation_authority": "Refactor or add a true result-free pre-dispatch effect envelope beneath the current effect correlation layer, bind it before execution, then make RecordExecution consume an exact typed execution receipt and keep world verification separate. Do not reopen WP-103 and do not create a duplicate WP-105 active claim or generation."
+}
