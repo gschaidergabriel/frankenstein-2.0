@@ -1,0 +1,54 @@
+name: F2 WP002 State Projection CI
+
+on:
+  push:
+    branches:
+      - main
+      - chatgpt/f2-wp-002-g5-state-projection-fusion-20260829
+    paths:
+      - 'workpackages/STATE.json'
+      - 'WORKPACKAGES.md'
+      - 'workpackages/active/F2-WP-200.json'
+      - 'workpackages/active/F2-WP-201.json'
+      - 'workpackages/active/F2-WP-203.json'
+      - 'workpackages/active/F2-WP-205.json'
+      - 'workpackages/active/F2-WP-206.json'
+      - 'workpackages/active/F2-WP-300.json'
+      - 'workpackages/active/F2-WP-301.json'
+      - 'workpackages/active/F2-WP-302.json'
+      - 'workpackages/active/F2-WP-303.json'
+      - 'tests/test_workpackage_state_projection.py'
+      - '.github/workflows/wp002-state-projection-ci.yml'
+  pull_request:
+    paths:
+      - 'workpackages/STATE.json'
+      - 'WORKPACKAGES.md'
+      - 'workpackages/active/F2-WP-200.json'
+      - 'workpackages/active/F2-WP-201.json'
+      - 'workpackages/active/F2-WP-203.json'
+      - 'workpackages/active/F2-WP-205.json'
+      - 'workpackages/active/F2-WP-206.json'
+      - 'workpackages/active/F2-WP-300.json'
+      - 'workpackages/active/F2-WP-301.json'
+      - 'workpackages/active/F2-WP-302.json'
+      - 'workpackages/active/F2-WP-303.json'
+      - 'tests/test_workpackage_state_projection.py'
+      - '.github/workflows/wp002-state-projection-ci.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  projection-consistency:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Compile projection regression
+        run: python -m py_compile tests/test_workpackage_state_projection.py
+      - name: Aggregate projection falsification suite
+        run: python tests/test_workpackage_state_projection.py -v
