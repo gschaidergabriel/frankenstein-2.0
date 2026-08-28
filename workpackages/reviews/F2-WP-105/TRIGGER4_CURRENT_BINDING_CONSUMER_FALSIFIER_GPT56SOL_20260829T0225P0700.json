@@ -1,0 +1,73 @@
+{
+  "schema": "FRANKENSTEIN2_WORKPACKAGE_REVIEW/v1",
+  "classification": "REVIEW_ONLY",
+  "trigger": "4",
+  "workpackage_id": "F2-WP-105",
+  "organ": "GPT-5.6 Sol / ChatGPT Triggerword-4 continuation organ",
+  "mutation_authority": false,
+  "canonical_wp105_implementation_modified": false,
+  "observed_frankenstein2_main": "0fdd7ec3603ae7b3720ab299b776b51b95ac2977",
+  "observed_research_main": "a88b143df7f7068812ca9da82aa124ef72baabe2",
+  "active_claim": "F2-WP-105-G1-EXECUTION-COMPLETION-GPT56SOL-20260828T215528P0700",
+  "result": "CURRENT_BINDING_CONSUMER_NOT_YET_ADMISSIBLE_FOR_PRODUCTION_EFFECT_INTEGRATION",
+  "falsifiers": [
+    {
+      "id": "REAL_ATTESTATION_SCHEMA_MISMATCH",
+      "severity": "BLOCKING",
+      "f2_source": "src/frankenstein2/current_entityos_effect_authority_binding.py",
+      "f2_blob_sha": "ea5ff6f4ebc7d6fb3ed7ca009b2636f6dc5843c3",
+      "f2_expected_attestation_schema": "ENTITYOS_EFFECT_AUTHORITY_CURRENT_EPOCH_ATTESTATION/v1",
+      "f2_expected_attestation_status": "CURRENT_EPOCH_COMPATIBILITY_ATTESTED_NO_AUTHORITY_CHANGE",
+      "canonical_attestation_path": "research_entity/continuity/ENTITYOS_EFFECT_AUTHORITY_IMPLEMENTATION_BINDING_9_13_COMPATIBILITY_V1.json",
+      "canonical_attestation_blob_sha": "7f3964ea60a8f30de382e82fef441148e30bab83",
+      "canonical_attestation_schema": "ENTITYOS_EFFECT_AUTHORITY_IMPLEMENTATION_BINDING_COMPATIBILITY/v1",
+      "canonical_attestation_status": "CURRENT_EPOCH_COMPATIBILITY_ATTESTATION_NO_NEW_AUTHORITY",
+      "finding": "The current F2 loader fail-closes before consuming the actual canonical compatibility record because both schema and status literals differ. A fixture using the F2-local literals would not prove cross-repository compatibility.",
+      "required_discriminator": "Test load_current_entityos_effect_authority_binding against the exact current canonical binding document plus exact current compatibility document bytes/fields, not only synthesized fixtures."
+    },
+    {
+      "id": "ONE_CALL_EFFECTGATE_VS_TWO_STAGE_F2_TOPOLOGY",
+      "severity": "BLOCKING",
+      "f2_bridge": "src/frankenstein2/canonical_effect_authority_bridge.py",
+      "f2_bridge_blob_sha": "3ac9ceb4d2399fa82eafacb24aca8b469cd246ec",
+      "canonical_effect_gate_path": "the artefact/clayverse/effects.py",
+      "canonical_effect_gate_blob_sha": "4a6413b3f3c752c6327e67233bdd8097f3cf0ba4",
+      "finding": "F2 dispatch_with_canonical_authority models authorize(intent)->ALLOW/PENDING followed by a separate executor dispatch. Canonical EffectGate.execute owns policy checks, EffectJournal.begin/PENDING, the EntityOS/state action, and journal finalization in one call. Treating EffectGate.execute as the F2 authorize callback risks a second dispatch; calling EffectJournal.begin directly bypasses EffectGate policy/lease/replay checks.",
+      "safe_direction": "Production integration should delegate the complete real-effect transaction to canonical EffectGate and consume correlated final journal/effect evidence afterward. If a prepare/dispatch/finalize split is required, it must be introduced by the canonical EntityOS effect-authority API, not invented by F2."
+    },
+    {
+      "id": "POST_LAUNCH_UNKNOWN_OUTCOME_NOT_IN_BOUND_SOURCE",
+      "severity": "BLOCKING_FOR_NONIDEMPOTENT_REAL_EFFECTS",
+      "canonical_entityos_bridge_path": "the artefact/clayverse/entityos_bridge.py",
+      "canonical_entityos_bridge_blob_sha": "3118cb6a6758ec1612a33ff3c6766c937d79d4ac",
+      "historical_receipt": "the artefact/receipts/2026-08-17_GO_1342_EFFECT_UNKNOWN_OUTCOME_GPT56SOL.json",
+      "retained_donor_pr": 430,
+      "retained_donor_pr_state": "OPEN_DRAFT_UNMERGED",
+      "finding": "Current bound EffectGate catches generic EntityOSBridge.run exceptions and journals FAILED, while subprocess.run(timeout=...) may raise TimeoutExpired only after child launch. A real external effect may therefore have happened. Historical retained PR 430 types this as UNKNOWN_OUTCOME and has bounded mechanism evidence, but that donor is not merged into the currently bound authority tuple.",
+      "required_rule": "Do not convert post-launch transport/timeout uncertainty into definite failure or permit blind retry. Reconcile the current canonical authority semantics with the retained UNKNOWN_OUTCOME donor before granting production non-idempotent effect credit."
+    },
+    {
+      "id": "NO_EXACT_HEAD_CI_YET",
+      "severity": "EVIDENCE_GAP",
+      "head": "0fdd7ec3603ae7b3720ab299b776b51b95ac2977",
+      "observed_workflow_runs": 0,
+      "finding": "No GitHub Actions run was visible for the exact F2 head when this review was written; source presence is not CI/runtime evidence."
+    }
+  ],
+  "counterhypothesis": "The F2 consumer may still be production-compatible because its local schema/status vocabulary is merely a transport normalization and the two-stage callback can be implemented without invoking EffectGate.execute.",
+  "counterhypothesis_status": "NOT_SUPPORTED_BY_CURRENT_SOURCE",
+  "counterhypothesis_reason": "The loader performs exact literal equality against the supplied attestation before any normalization, and dispatch_with_current_entityos_authority directly delegates to the existing two-stage dispatch_with_canonical_authority. No canonical prepare-only EffectGate API is present in the bound EntityOS API.",
+  "next_exact_action_for_active_mutation_authority": "First make the F2 loader consume the exact current ENTITYOS_EFFECT_AUTHORITY_IMPLEMENTATION_BINDING_COMPATIBILITY/v1 record and add a test using canonical document fixtures copied byte/field-faithfully from current research main. Then replace or bypass the two-stage real-effect dispatch path with a one-call canonical EffectGate transaction adapter that performs no second executor dispatch and reads/correlates canonical journal state after return. Before non-idempotent real-effect admission, reconcile the current bound authority with the retained UNKNOWN_OUTCOME semantics from PR 430. Keep all tests no-real-effect/deterministic until these source contracts close.",
+  "credit_boundary": {
+    "review_scope": "PASS",
+    "binding_consumer_cross_repo_compatibility": "FAIL_AT_CURRENT_SOURCE",
+    "canonical_effect_transaction_topology": "UNRESOLVED_IN_F2",
+    "unknown_outcome_safety": "UNRESOLVED_IN_CURRENT_BOUND_AUTHORITY",
+    "effect_runtime_credit": 0,
+    "real_effect_runtime_credit": 0,
+    "physical_grid10_runtime_credit": 0,
+    "whole_frankenstein2_runtime_credit": 0,
+    "whole_entityos_hcu_runtime_credit": 0,
+    "training_credit": 0
+  }
+}
