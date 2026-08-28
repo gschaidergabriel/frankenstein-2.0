@@ -1,0 +1,30 @@
+{
+  "schema": "FRANKENSTEIN2_WORKPACKAGE_CANDIDATE_FALSIFIER/v1",
+  "workpackage_id": "F2-WP-506",
+  "generation_under_review": 1,
+  "classification": "CANDIDATE_FALSIFIER",
+  "worker_id": "GPT-5.6-Sol",
+  "trigger": "4",
+  "authority_epoch": "9.13",
+  "reviewed_branch": "trigger4/wp506-gwt-selection-broadcast-20260829",
+  "reviewed_head_sha": "ca513acbf29d1111178d27d42d52d288d0c3dbbe",
+  "reviewed_source_blob_sha": "8babb109a2d9969fb35ebe6765e7f8d301b49931",
+  "hypothesis": "A BroadcastEnvelope can only be created from a WorkspaceSelection that was actually produced by the deterministic WP506 selection-policy path over admitted candidate inputs.",
+  "counterhypothesis": "WorkspaceSelection and SelectedCandidate are public directly constructible dataclasses. create_broadcast() verifies only isinstance plus the selection's self-computed digest, so a caller can synthesize arbitrary selected scores/policy identity/candidate digest, compute that synthetic selection's own digest, and obtain a BroadcastEnvelope without traversing build_workspace_selection().",
+  "discriminator": "Directly construct one syntactically valid WorkspaceSelection containing a synthetic SelectedCandidate and arbitrary policy identity, compute its self-digest, then require create_broadcast() to reject it despite the matching self-digest.",
+  "expected_pre_repair_result": "FAIL: GwtWorkspaceError is not raised, demonstrating that self-consistent digest binding is not producer/policy lineage.",
+  "distinct_from_existing_reviews": [
+    "PR151 tests candidate origin and alias amplification at build_workspace_selection() input.",
+    "PR154 tests candidate_id/payload_ref positional pair preservation in BroadcastEnvelope.",
+    "This discriminator tests direct construction of the selection output object itself as a downstream producer-lineage bypass."
+  ],
+  "owned_mutation_authority": false,
+  "implementation_change": false,
+  "runtime_execution": false,
+  "provider_execution": false,
+  "vps_execution": false,
+  "physical_grid10_credit": 0,
+  "gwt_runtime_credit": 0,
+  "whole_system_credit": 0,
+  "next_if_reproduced": "Do not patch production source from this review lane. The sole WP506 mutation owner should absorb this regression by making downstream broadcast admission prove a builder-issued/producer-bound selection identity or equivalent exact policy+candidates provenance, then rerun claim-scoped CI."
+}
