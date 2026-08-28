@@ -6,6 +6,11 @@ This component only evaluates explicitly caller-supplied observations against ex
 caller-supplied wake conditions. It has no clock, sensor, persistence, scheduler, goal,
 provider/tool, effect, or completion authority. Evaluation is fail-closed under exact
 state-id/generation/state-digest fences.
+
+Epistemic law:
+- missing evidence is UNKNOWN, not evidence of NO_MATCH;
+- contradictory same-key EQUALS observations are UNKNOWN, not existential MATCH;
+- WAKE_CONDITION_MATCH is only a non-authoritative candidate signal.
 """
 from __future__ import annotations
 
@@ -21,6 +26,11 @@ WAKE_ANY = "ANY"
 WAKE_ALL = "ALL"
 OP_EQUALS = "EQUALS"
 OP_PRESENT = "PRESENT"
+
+WAKE_MATCH = "WAKE_CONDITION_MATCH"
+HOLD_NO_MATCH = "HOLD_CONDITION_NOT_MATCHED"
+WAKE_UNKNOWN = "ABSTAIN_NOT_OBSERVED_OR_AMBIGUOUS"
+
 _ALLOWED_POLICIES = frozenset({WAKE_ANY, WAKE_ALL})
 _ALLOWED_OPERATORS = frozenset({OP_EQUALS, OP_PRESENT})
 _SHA256_RE = re.compile(r"^[0-9a-f]{64}$")
@@ -217,8 +227,9 @@ class WakeEvaluation:
     observation_ids: tuple[str, ...]
     matched_condition_ids: tuple[str, ...]
     unmatched_condition_ids: tuple[str, ...]
+    unknown_condition_ids: tuple[str, ...]
     classification: str
-    wake: bool
+    wake: bool | None
 
     def as_dict(self) -> dict[str, Any]:
         return asdict(self)
@@ -230,6 +241,23 @@ class WakeEvaluation:
         return _digest(self.as_dict())
 
 
+def _evaluate_condition(
+    condition: WakeCondition,
+    candidates: tuple[WakeObservation, ...],
+) -> str:
+    """Return MATCH, NO_MATCH, or UNKNOWN without reading external state."""
+    if not candidates:
+        return "UNKNOWN"
+    if condition.operator == OP_PRESENT:
+        return "MATCH"
+
+    observed_values = {item.value for item in candidates}
+    if len(observed_values) != 1:
+        return "UNKNOWN"
+    only_value = next(iter(observed_values))
+    return "MATCH" if only_value == condition.expected_value else "NO_MATCH"
+
+
 def evaluate_wake(
     checkpoint: HoldCheckpoint,
     *,
@@ -239,7 +267,7 @@ def evaluate_wake(
     observed_state_sha256: str,
     observations: Iterable[WakeObservation],
 ) -> WakeEvaluation:
-    """Pure evaluation of explicit observations; raises on any stale/mismatched state fence."""
+    """Pure 3-valued evaluation; raises on any stale/mismatched state fence."""
     if not isinstance(checkpoint, HoldCheckpoint):
         raise WakeHoldError("checkpoint must be a HoldCheckpoint")
     evaluation_id = _identifier("evaluation_id", evaluation_id)
@@ -262,15 +290,40 @@ def evaluate_wake(
 
     matched: list[str] = []
     unmatched: list[str] = []
+    unknown: list[str] = []
     for condition in checkpoint.wake_conditions:
-        candidates = by_key.get(condition.observation_key, ())
-        if condition.operator == OP_PRESENT:
-            is_match = bool(candidates)
+        result = _evaluate_condition(
+            condition,
+            by_key.get(condition.observation_key, ()),
+        )
+        if result == "MATCH":
+            matched.append(condition.condition_id)
+        elif result == "NO_MATCH":
+            unmatched.append(condition.condition_id)
         else:
-            is_match = any(item.value == condition.expected_value for item in candidates)
-        (matched if is_match else unmatched).append(condition.condition_id)
+            unknown.append(condition.condition_id)
 
-    wake = bool(matched) if checkpoint.wake_policy == WAKE_ANY else not unmatched
+    if checkpoint.wake_policy == WAKE_ANY:
+        if matched:
+            wake: bool | None = True
+            classification = WAKE_MATCH
+        elif unknown:
+            wake = None
+            classification = WAKE_UNKNOWN
+        else:
+            wake = False
+            classification = HOLD_NO_MATCH
+    else:
+        if unmatched:
+            wake = False
+            classification = HOLD_NO_MATCH
+        elif unknown:
+            wake = None
+            classification = WAKE_UNKNOWN
+        else:
+            wake = True
+            classification = WAKE_MATCH
+
     return WakeEvaluation(
         schema=WAKE_EVALUATION_SCHEMA,
         evaluation_id=evaluation_id,
@@ -282,6 +335,7 @@ def evaluate_wake(
         observation_ids=tuple(item.observation_id for item in explicit),
         matched_condition_ids=tuple(matched),
         unmatched_condition_ids=tuple(unmatched),
-        classification="WAKE_CONDITION_MATCH" if wake else "HOLD_CONDITION_NOT_MATCHED",
+        unknown_condition_ids=tuple(unknown),
+        classification=classification,
         wake=wake,
     )
