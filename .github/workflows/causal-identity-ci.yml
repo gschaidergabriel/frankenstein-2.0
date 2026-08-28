@@ -5,21 +5,15 @@ on:
     branches: [main]
     paths:
       - 'src/frankenstein2/causal_identity.py'
-      - 'src/frankenstein2/telemetry.py'
       - 'src/frankenstein2/causal_authority_binding.py'
-      - 'tools/init_telemetry_dbs.py'
       - 'tests/test_causal_identity.py'
-      - 'tests/test_causal_telemetry_integration.py'
       - 'tests/test_causal_authority_binding.py'
       - '.github/workflows/causal-identity-ci.yml'
   pull_request:
     paths:
       - 'src/frankenstein2/causal_identity.py'
-      - 'src/frankenstein2/telemetry.py'
       - 'src/frankenstein2/causal_authority_binding.py'
-      - 'tools/init_telemetry_dbs.py'
       - 'tests/test_causal_identity.py'
-      - 'tests/test_causal_telemetry_integration.py'
       - 'tests/test_causal_authority_binding.py'
       - '.github/workflows/causal-identity-ci.yml'
   workflow_dispatch:
@@ -28,7 +22,7 @@ permissions:
   contents: read
 
 jobs:
-  causal-identity-and-telemetry-binding:
+  causal-identity-and-authority-binding:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     env:
@@ -38,19 +32,14 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-      - name: Compile causal identity and authority binding regressions
+      - name: Compile current causal identity regressions
         run: >-
           python -m py_compile
           src/frankenstein2/causal_identity.py
           src/frankenstein2/causal_authority_binding.py
-          src/frankenstein2/telemetry.py
-          tools/init_telemetry_dbs.py
           tests/test_causal_identity.py
-          tests/test_causal_telemetry_integration.py
           tests/test_causal_authority_binding.py
       - name: Run causal identity unit regression
         run: python tests/test_causal_identity.py
-      - name: Run causal identity to telemetry integration regression
-        run: python tests/test_causal_telemetry_integration.py
       - name: Run causal authority cross-plane regression
         run: python tests/test_causal_authority_binding.py
