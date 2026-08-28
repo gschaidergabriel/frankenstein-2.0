@@ -1,0 +1,58 @@
+name: Frankenstein 2.0 Bound EntityOS Effect Runtime CI
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'src/frankenstein2/current_entityos_effect_authority_binding.py'
+      - 'tests/test_bound_entityos_effect_runtime.py'
+      - '.github/workflows/bound-entityos-effect-runtime-ci.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  exact-bound-zero-effect-runtime:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      PYTHONPATH: .:src
+      ENTITYOS_META_ROOT: ${{ github.workspace }}/_authority_meta
+      ENTITYOS_IMPL_ROOT: ${{ github.workspace }}/_entityos_impl
+    steps:
+      - name: Checkout Frankenstein 2.0 exact head
+        uses: actions/checkout@v4
+      - name: Checkout current-epoch authority metadata identity
+        uses: actions/checkout@v4
+        with:
+          repository: gschaidergabriel/clay-global-research-entity
+          ref: 60f3e77900721ffa1dea1211e8b035a0e42b7c2f
+          path: _authority_meta
+      - name: Checkout exact bound EntityOS implementation
+        uses: actions/checkout@v4
+        with:
+          repository: gschaidergabriel/clay-global-research-entity
+          ref: 2b68aad14bf7824d513b52898904909256e3522d
+          path: _entityos_impl
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Verify exact Git source identities before execution
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git -C _authority_meta rev-parse HEAD)" = "60f3e77900721ffa1dea1211e8b035a0e42b7c2f"
+          test "$(git -C _entityos_impl rev-parse HEAD)" = "2b68aad14bf7824d513b52898904909256e3522d"
+          test "$(git -C _authority_meta hash-object 'research_entity/continuity/ENTITYOS_EFFECT_AUTHORITY_IMPLEMENTATION_BINDING_V1.json')" = "b4d91a0dd233c9dc15ff8218feea9248ac1c13c5"
+          test "$(git -C _authority_meta hash-object 'research_entity/continuity/ENTITYOS_EFFECT_AUTHORITY_BINDING_9_13_CURRENT_EPOCH_ATTESTATION_2026-08-29.json')" = "deed9cfd3f8ff7a79998f02211251ef9f59ebe48"
+          test "$(git -C _entityos_impl hash-object 'the artefact/clayverse/effects.py')" = "4a6413b3f3c752c6327e67233bdd8097f3cf0ba4"
+          test "$(git -C _entityos_impl hash-object 'the artefact/clayverse/effect_journal.py')" = "cda63471f1467481f2ff79032d3931730a334a20"
+          test "$(git -C _entityos_impl hash-object 'the artefact/clayverse/store.py')" = "a88d923ea3d0eab5847f304f35463e5a2b2c4acd"
+      - name: Compile exact-bound runtime probe
+        run: >-
+          python -m py_compile
+          src/frankenstein2/current_entityos_effect_authority_binding.py
+          tests/test_bound_entityos_effect_runtime.py
+      - name: Execute exact bound zero-real-effect runtime probe
+        run: python tests/test_bound_entityos_effect_runtime.py
