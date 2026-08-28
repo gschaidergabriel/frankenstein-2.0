@@ -6,6 +6,8 @@ on:
     paths:
       - 'src/frankenstein2/current_entityos_effect_authority_binding.py'
       - 'tests/test_bound_entityos_effect_runtime.py'
+      - 'tests/fixtures/entityos_effect_authority_2b68/**'
+      - 'tests/fixtures/entityos_effect_authority_8_78/**'
       - '.github/workflows/bound-entityos-effect-runtime-ci.yml'
   workflow_dispatch:
 
@@ -23,32 +25,41 @@ jobs:
     steps:
       - name: Checkout Frankenstein 2.0 exact head
         uses: actions/checkout@v4
-      - name: Fetch exact public EntityOS source identities without cross-repo token
+      - name: Assemble exact vendored EntityOS source identities
         shell: bash
         run: |
           set -euo pipefail
-          git init _authority_meta
-          git -C _authority_meta remote add origin https://github.com/gschaidergabriel/clay-global-research-entity.git
-          git -C _authority_meta fetch --depth=1 origin 60f3e77900721ffa1dea1211e8b035a0e42b7c2f
-          git -C _authority_meta checkout --detach FETCH_HEAD
-          git init _entityos_impl
-          git -C _entityos_impl remote add origin https://github.com/gschaidergabriel/clay-global-research-entity.git
-          git -C _entityos_impl fetch --depth=1 origin 2b68aad14bf7824d513b52898904909256e3522d
-          git -C _entityos_impl checkout --detach FETCH_HEAD
+          mkdir -p "$ENTITYOS_META_ROOT/research_entity/continuity"
+          mkdir -p "$ENTITYOS_IMPL_ROOT/the artefact/clayverse"
+          cp tests/fixtures/entityos_effect_authority_2b68/ENTITYOS_EFFECT_AUTHORITY_IMPLEMENTATION_BINDING_V1.json \
+            "$ENTITYOS_META_ROOT/research_entity/continuity/ENTITYOS_EFFECT_AUTHORITY_IMPLEMENTATION_BINDING_V1.json"
+          cp tests/fixtures/entityos_effect_authority_8_78/ENTITYOS_EFFECT_AUTHORITY_BINDING_8_78_ADMITTED_AUTHORITY_REENTRY_2026-08-29.json \
+            "$ENTITYOS_META_ROOT/research_entity/continuity/ENTITYOS_EFFECT_AUTHORITY_BINDING_8_78_ADMITTED_AUTHORITY_REENTRY_2026-08-29.json"
+          cp tests/fixtures/entityos_effect_authority_2b68/clayverse/effects.py \
+            "$ENTITYOS_IMPL_ROOT/the artefact/clayverse/effects.py"
+          cp tests/fixtures/entityos_effect_authority_2b68/clayverse/effect_journal.py \
+            "$ENTITYOS_IMPL_ROOT/the artefact/clayverse/effect_journal.py"
+          cp tests/fixtures/entityos_effect_authority_2b68/clayverse/store.py \
+            "$ENTITYOS_IMPL_ROOT/the artefact/clayverse/store.py"
+          cp tests/fixtures/entityos_effect_authority_2b68/clayverse/entityos_bridge.py \
+            "$ENTITYOS_IMPL_ROOT/the artefact/clayverse/entityos_bridge.py"
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-      - name: Verify exact Git source identities before execution
+      - name: Verify exact Git blob identities before execution
         shell: bash
         run: |
           set -euo pipefail
-          test "$(git -C _authority_meta rev-parse HEAD)" = "60f3e77900721ffa1dea1211e8b035a0e42b7c2f"
-          test "$(git -C _entityos_impl rev-parse HEAD)" = "2b68aad14bf7824d513b52898904909256e3522d"
-          test "$(git -C _authority_meta hash-object 'research_entity/continuity/ENTITYOS_EFFECT_AUTHORITY_IMPLEMENTATION_BINDING_V1.json')" = "b4d91a0dd233c9dc15ff8218feea9248ac1c13c5"
-          test "$(git -C _authority_meta hash-object 'research_entity/continuity/ENTITYOS_EFFECT_AUTHORITY_BINDING_9_13_CURRENT_EPOCH_ATTESTATION_2026-08-29.json')" = "deed9cfd3f8ff7a79998f02211251ef9f59ebe48"
-          test "$(git -C _entityos_impl hash-object 'the artefact/clayverse/effects.py')" = "4a6413b3f3c752c6327e67233bdd8097f3cf0ba4"
-          test "$(git -C _entityos_impl hash-object 'the artefact/clayverse/effect_journal.py')" = "cda63471f1467481f2ff79032d3931730a334a20"
-          test "$(git -C _entityos_impl hash-object 'the artefact/clayverse/store.py')" = "a88d923ea3d0eab5847f304f35463e5a2b2c4acd"
+          test "$(git hash-object tests/fixtures/entityos_effect_authority_2b68/ENTITYOS_EFFECT_AUTHORITY_IMPLEMENTATION_BINDING_V1.json)" = "b4d91a0dd233c9dc15ff8218feea9248ac1c13c5"
+          test "$(git hash-object tests/fixtures/entityos_effect_authority_8_78/ENTITYOS_EFFECT_AUTHORITY_BINDING_8_78_ADMITTED_AUTHORITY_REENTRY_2026-08-29.json)" = "85c20e32013df297e185fa360e29dc0f4840f919"
+          test "$(git hash-object tests/fixtures/entityos_effect_authority_2b68/clayverse/effects.py)" = "4a6413b3f3c752c6327e67233bdd8097f3cf0ba4"
+          test "$(git hash-object tests/fixtures/entityos_effect_authority_2b68/clayverse/effect_journal.py)" = "cda63471f1467481f2ff79032d3931730a334a20"
+          test "$(git hash-object tests/fixtures/entityos_effect_authority_2b68/clayverse/store.py)" = "a88d923ea3d0eab5847f304f35463e5a2b2c4acd"
+          test "$(git hash-object tests/fixtures/entityos_effect_authority_2b68/clayverse/entityos_bridge.py)" = "3118cb6a6758ec1612a33ff3c6766c937d79d4ac"
+          cmp tests/fixtures/entityos_effect_authority_2b68/ENTITYOS_EFFECT_AUTHORITY_IMPLEMENTATION_BINDING_V1.json \
+            "$ENTITYOS_META_ROOT/research_entity/continuity/ENTITYOS_EFFECT_AUTHORITY_IMPLEMENTATION_BINDING_V1.json"
+          cmp tests/fixtures/entityos_effect_authority_8_78/ENTITYOS_EFFECT_AUTHORITY_BINDING_8_78_ADMITTED_AUTHORITY_REENTRY_2026-08-29.json \
+            "$ENTITYOS_META_ROOT/research_entity/continuity/ENTITYOS_EFFECT_AUTHORITY_BINDING_8_78_ADMITTED_AUTHORITY_REENTRY_2026-08-29.json"
       - name: Compile exact-bound runtime probe
         run: >-
           python -m py_compile
