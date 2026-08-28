@@ -1,0 +1,42 @@
+{
+  "schema": "FRANKENSTEIN2_WORKPACKAGE_DELTA/v1",
+  "workpackage_id": "F2-WP-200",
+  "generation": 2,
+  "claim_id": "F2-WP-200-G2-GPT56SOL-DECISION-CONSISTENCY-20260829",
+  "worker_id": "GPT-5.6-Sol-REVIEW",
+  "observed_main_commit": "d8bf1b571b5da8621f0f472537a4d16fbcf42637",
+  "owned_paths": [],
+  "result_class": "CANDIDATE_FALSIFIER",
+  "source_observation": {
+    "class": "CURRENT_SOURCE_REVIEW",
+    "source": "src/frankenstein2/persistent_pulse.py",
+    "source_blob_sha": "7082fa08a44e31e239587fbf9222a1b775a2cba9",
+    "finding": "PulseDecision is declared frozen and annotates eligible as tuple[PulseEligibility, ...], but __post_init__ does not require eligible to be a tuple. Direct construction with eligible=[] passes the current validation when the list is empty. The caller can then append a PulseEligibility to that same list after construction, changing PulseDecision.as_dict(), canonical_json() and sha256() without reconstructing the supposedly frozen decision."
+  },
+  "hypothesis": "A PulseDecision used as a deterministic receipt must be structurally immutable after successful construction; otherwise one logical object can present multiple receipt digests over time and exact decision identity is not stable across a persistence/serialization boundary.",
+  "counterhypothesis": "PulseDecision may only be trusted when produced by classify_pulse_eligibility, which always supplies a tuple. If arbitrary direct construction is outside the trust boundary, the exported constructor must be treated as non-authoritative and downstream consumers must bind to/recompute from PulseInput rather than trust a rehydrated PulseDecision object.",
+  "falsifiers": [
+    "DIRECT_PULSE_DECISION_REJECTS_NON_TUPLE_ELIGIBLE",
+    "PULSE_DECISION_DIGEST_CANNOT_CHANGE_AFTER_SUCCESSFUL_CONSTRUCTION"
+  ],
+  "source_level_reproduction": [
+    "Create a mutable Python list items = []",
+    "Direct-construct PulseDecision with eligible=items and suppressed_by_hold=() using otherwise valid identifiers/digests",
+    "Record decision.sha256()",
+    "Append PulseEligibility(action='ACT', basis_ref='a') to items",
+    "Record decision.sha256() again",
+    "Current source permits construction and the second digest is derived from the mutated eligible list; the two digests differ"
+  ],
+  "why_material": [
+    "F2-WP-200 explicitly preserves deterministic canonical ordering and exact input/state identity binding",
+    "frozen dataclass syntax does not deep-freeze caller-owned mutable containers",
+    "a later Stage-2 integration/persistence layer must not treat a mutable in-memory receipt as stable evidence"
+  ],
+  "preserved_boundaries": [
+    "REVIEW_ONLY: no F2-WP-200 source or active-claim mutation",
+    "no action selection, persistence, scheduler, provider/tool, effect or completion authority claimed",
+    "source-level falsifier only; no target-runtime, VPS, physical GRID10 or whole-system runtime credit"
+  ],
+  "next_exact_action": "After generation-2 reconciliation, either reject/coerce non-tuple eligible at construction and add a digest-stability regression, or explicitly forbid trusting directly constructed/rehydrated PulseDecision objects and bind downstream consumption to recomputation from immutable PulseInput.",
+  "created_at_utc": "2026-08-28T23:11:04Z"
+}
