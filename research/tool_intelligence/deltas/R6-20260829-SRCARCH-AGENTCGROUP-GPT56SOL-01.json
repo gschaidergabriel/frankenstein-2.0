@@ -1,0 +1,184 @@
+{
+  "schema": "FRANKENSTEIN2_TRIGGER6_ARCHITECTURE_DELTA_FUSION_AND_SOURCE_AUDIT/v1",
+  "research_id": "R6-SEED-006",
+  "receipt_id": "R6-20260829-SRCARCH-AGENTCGROUP-GPT56SOL-01",
+  "trigger": "6",
+  "slot": "SOURCE_ARCHAEOLOGIST",
+  "status": "E2_ARCHITECTURE_MAPPED_STATIC_ONLY",
+  "worker": "GPT-5.6-Sol",
+  "claim": {
+    "path": "research/tool_intelligence/claims/R6-SEED-006/E2_ARCHITECTURE_MAPPED.json",
+    "claim_commit": "5bf02182a5c5fab22439bbb5ca4c2ca543b24e4a",
+    "research_credit_from_claim": 0
+  },
+  "architecture_snapshot": {
+    "f2_main_reentered": "a40d1b8d7f945eb9d7b401ef63f619c677664366",
+    "research_entity_main_reentered": "76e2b8383e597be14af8210b3616c572bea3a934",
+    "research_entity_supervisor_inbox_schema": "9.13",
+    "research_entity_supervisor_delta": "9.13AL_NON_AUTHORITY",
+    "free_only": true,
+    "architecture_delta_fusion_basis": "R6-ADF-738df276-9d34ad07-GPT56SOL plus exact re-entry immediately before this write",
+    "reentry_change_assessment": "Concurrent AgentSight E3 and Trigger4 effect-authority work advanced main after this claim. Neither changed the target workpackages F2-WP-605/F2-WP-902/F2-WP-1000 or invalidated this AgentCgroup static source audit; no architecture/runtime credit is inferred."
+  },
+  "candidate": {
+    "seed_id": "R6-SEED-006",
+    "repository": "eunomia-bpf/agentcgroup",
+    "source_commit": "551ca1689b7d2d30db6b8a8613414750103cc68b",
+    "source_date": "2026-07-22",
+    "license": "GPL-2.0",
+    "upstream_paper": "arXiv:2602.09345",
+    "seed_targets": ["F2-WP-605", "F2-WP-902", "F2-WP-1000"]
+  },
+  "f2_target_state": {
+    "F2-WP-605": "NOT_STARTED / Child telemetry",
+    "F2-WP-902": "NOT_STARTED / Whole-system characterization",
+    "F2-WP-1000": "NOT_STARTED / Attack-surface inventory"
+  },
+  "source_observations": [
+    {
+      "id": "ACG-O1-TOOL-CGROUP-ENVELOPE",
+      "classification": "SOURCE_DIRECT",
+      "finding": "The production bash wrapper creates one ephemeral child cgroup for bash -c calls, records duration/memory fields/exit/hint to JSONL, then attempts cleanup.",
+      "value_to_f2": "The useful transferable mechanism is a tool-call-scoped resource measurement envelope, not the upstream authority model."
+    },
+    {
+      "id": "ACG-O2-RESOURCE-HINT-IS-UNTRUSTED-AUTHORITY",
+      "classification": "SOURCE_DIRECT_CONFLICT",
+      "finding": "AGENT_RESOURCE_HINT is parsed directly into memory.high. memory:low maps to 256 MiB, medium to 1 GiB, high to max, and arbitrary memory:<N>g/m values are accepted without a canonical authority clamp.",
+      "f2_implication": "Direct adoption would violate F2/EntityOS capability law. A model/agent hint may be candidate telemetry only; deterministic policy must authorize, clamp or reject the actual resource envelope."
+    },
+    {
+      "id": "ACG-O3-PID-TIME-IDENTITY-NOT-CAUSAL-IDENTITY",
+      "classification": "SOURCE_DIRECT_CONFLICT",
+      "finding": "Tool cgroup identity is tool_<wrapper-pid>_<timestamp>. It is not bound to F2 immutable causal_event_id, call/invocation id, canonical effect id or execution receipt identity.",
+      "f2_implication": "Any reuse must bind resource records to the existing F2 causal/effect spine; PID/time may remain metadata but cannot be the authoritative invocation identity."
+    },
+    {
+      "id": "ACG-O4-EXIT137-NOT-OOM-PROOF",
+      "classification": "SOURCE_DIRECT_CAUSAL_OVERCLAIM",
+      "finding": "The wrapper labels every exit code 137 as OOM and emits OOM semantic feedback. Exit 137 indicates SIGKILL-style termination and is not, by itself, proof that the kernel OOM killer caused the termination.",
+      "f2_implication": "OOM must remain a typed candidate cause until corroborated by cgroup/kernel memory.events or another exact evidence source."
+    },
+    {
+      "id": "ACG-O5-SILENT-COVERAGE-GAPS",
+      "classification": "SOURCE_DIRECT",
+      "finding": "Production wrapper cgroup mkdir/write/log/cleanup failures are broadly stderr-suppressed. If cgroup assignment fails, the command still executes and no tool-call resource JSONL record is emitted.",
+      "f2_implication": "F2 telemetry needs an explicit coverage state such as MEASURED/DEGRADED/UNKNOWN rather than silently converting missing instrumentation into missing events."
+    },
+    {
+      "id": "ACG-O6-JSONL-ESCAPING-RISK",
+      "classification": "SOURCE_DIRECT_RISK",
+      "finding": "Production JSONL construction replaces double quotes in the command preview but does not implement complete JSON string escaping for newlines, backslashes/control characters or all untrusted fields.",
+      "f2_implication": "Do not copy the shell JSON serializer. Use typed JSON serialization and preserve an exact command/effect digest separately from human-readable previews."
+    },
+    {
+      "id": "ACG-O7-PRIVILEGED-ENFORCEMENT-WEIGHT",
+      "classification": "SOURCE_DIRECT",
+      "finding": "Full controller use requires root, cgroup v2, a Linux kernel with sched_ext support, BPF build dependencies and optional/custom memcg BPF support. The daemon coordinates scheduler, memory controller and process monitor and can continue in degraded mode when scheduler or memcg attach fails.",
+      "f2_implication": "This is substantially heavier and more privileged than F2 currently needs for characterization. Measurement-only distillation has a better authority/portability surface."
+    },
+    {
+      "id": "ACG-O8-CGROUP-FALLBACK-NONTRANSACTIONAL",
+      "classification": "SOURCE_DIRECT_RISK",
+      "finding": "The standard cgroup-v2 memory fallback sets an internal protection-active state after write attempts, but cgroup write failures return booleans that are not composed into an applied-policy receipt. PSI 'some' total increasing by any positive amount can trigger a protection window.",
+      "f2_implication": "If F2 later experiments with enforcement, requested policy, observed kernel state and applied-policy receipt must be separated and verified."
+    },
+    {
+      "id": "ACG-O9-BPF-FALLBACK-SELECTION-GAP",
+      "classification": "SOURCE_DIRECT_RISK",
+      "finding": "Backend auto-selection chooses BPF when an executable binary exists. If that selected BPF backend later fails to attach, the daemon drops memory control instead of retrying the standard cgroup backend.",
+      "f2_implication": "Backend capability should be established by admitted attach/verification, not executable-file presence alone."
+    },
+    {
+      "id": "ACG-O10-EVENT-LOOP-BLOCKING-RISK",
+      "classification": "SOURCE_RISK_NOT_RUNTIME_REPRODUCED",
+      "finding": "The daemon comments that process-monitor reads are non-blocking, but the shown event loop calls proc.stdout.readline() without select/poll/nonblocking configuration before memory-pressure polling and health checks.",
+      "f2_implication": "Potential delayed pressure/health reaction under a quiet process monitor. This requires a separately claimed E3 executable discriminator before being called a reproduced bug."
+    },
+    {
+      "id": "ACG-O11-LOCAL-PEAK-MEMORY-VALIDATION-MISMATCH",
+      "classification": "SOURCE_DIRECT_COUNTEREVIDENCE",
+      "finding": "The local no-root wrapper computes peak memory as max(VmRSS_before, VmRSS_after) from /proc/$$/status of the wrapper process and stores that as memory.peak. It does not measure the child command's true peak RSS/cgroup memory.peak.",
+      "f2_implication": "Upstream local-validation statements about accurate per-tool-call peak memory are not established by this path. F2 must reproduce measurement accuracy against a known child-memory workload before E3/E4 credit."
+    },
+    {
+      "id": "ACG-O12-BASH-TEST-EVIDENCE-WEAKNESS",
+      "classification": "SOURCE_DIRECT_COUNTEREVIDENCE",
+      "finding": "Several bash tests validate copied snippets or simulated data rather than executing the production wrapper. The passthrough test explicitly tolerates the production wrapper failing because /usr/bin/real-bash is absent, and the JSON/OOM tests construct sample values independently.",
+      "f2_implication": "The upstream 14/14 bash-pass headline is unit-level design evidence, not production-wrapper acceptance evidence."
+    },
+    {
+      "id": "ACG-O13-LIVE-SEMANTIC-HINT-CLAIM-IS-PROMPT-CONDITIONED",
+      "classification": "SOURCE_DIRECT_COUNTEREVIDENCE",
+      "finding": "The live-agent test explicitly prompts the agent with memory:low for cat/git-diff and memory:high for pytest/unittest, then evaluates those same choices. It also states that native internal bash could not be transparently intercepted.",
+      "f2_implication": "The reported 5/5 hint selection is prompt-conditioned evidence, not proof of a general intrinsic resource-prediction capability."
+    },
+    {
+      "id": "ACG-O14-LICENSE",
+      "classification": "SOURCE_DIRECT",
+      "finding": "Repository license is GNU GPL version 2.",
+      "f2_implication": "Prefer mechanism distillation/reimplementation unless a deliberate GPL-compatible dependency decision is made separately."
+    }
+  ],
+  "upstream_claim_boundary": {
+    "reported_characterization": "README/paper describe 144 SWE-rebench tasks across two LLM models and tool-call-level resource dynamics; experiment notes report 57 tests, <5ms wrapper overhead, 5/5 prompted resource-hint choices and 8/8 semantic checks.",
+    "classification": "UPSTREAM_SOURCE_CLAIMS_ONLY",
+    "f2_credit": 0,
+    "reason": "No equivalent F2 workload, resource ground truth, latency distribution or F2 ablation was executed under this E2 claim."
+  },
+  "integration_assessment": {
+    "recommended_adoption_class": "CONCEPT_DISTILL_MEASUREMENT_ONLY__REJECT_DIRECT_CONTROLLER_ADOPTION_AT_E2",
+    "high_value_mechanisms": [
+      "tool/effect-call-scoped cgroup-v2 resource measurement envelope",
+      "memory.current/memory.peak/memory.events/PSI as independent system telemetry where available",
+      "typed resource-hint channel treated strictly as untrusted candidate input",
+      "explicit resource-feedback channel after evidence-backed pressure/OOM classification",
+      "resource characterization by effect/tool class for future adaptive-compute research"
+    ],
+    "must_not_copy_as_authority": [
+      "agent-provided resource hint directly setting enforcement limits",
+      "memory:high => max self-grant semantics",
+      "PID+timestamp as the only causal identity",
+      "exit 137 => OOM truth",
+      "silent instrumentation failure",
+      "shell-built JSON as canonical evidence",
+      "backend-executable presence as proof of attach capability"
+    ],
+    "thin_f2_design": "Add a read-only/measurement-first ResourceEnvelope keyed by existing immutable F2 call/effect identity. Populate duration, exit/signal, cgroup memory.current/peak/events, optional PSI and coverage status. Keep hints as CANDIDATE. Any future resource enforcement remains deterministic authority-owned and separately receipted. No second state/effect authority is introduced.",
+    "affected_workpackages": ["F2-WP-101", "F2-WP-105", "F2-WP-605", "F2-WP-902", "F2-WP-1000", "F2-WP-1001"]
+  },
+  "counterhypotheses": [
+    {
+      "id": "CH-ACG-1",
+      "text": "Standard cgroup-v2 read-only telemetry bound to existing F2 effect identity captures most useful characterization value without importing AgentCgroup's privileged eBPF enforcement stack.",
+      "falsifier": "A separately claimed E4 equivalent F2 workload demonstrates that the eBPF enforcement/observer path adds decision-critical coverage or isolation benefit that cannot be obtained from standard cgroup-v2 telemetry at acceptable overhead."
+    },
+    {
+      "id": "CH-ACG-2",
+      "text": "Agent-provided resource hints are too weak or gameable to justify an enforcement interface.",
+      "falsifier": "Held-out, counterbalanced F2 tasks show calibrated predictive value for signed/clamped candidate hints versus a deterministic baseline without authorization escalation or resource-regression failures."
+    },
+    {
+      "id": "CH-ACG-3",
+      "text": "Per-tool resource telemetry adds little beyond F2's full telemetry spine and whole-process metrics.",
+      "falsifier": "Equivalent workload shows effect-bound resource envelopes uniquely explain at least one latency/failure/resource anomaly that aggregate telemetry cannot localize."
+    }
+  ],
+  "next_discriminators_requiring_new_atomic_claims": [
+    "E3: prove or falsify exit-137-as-OOM classification with non-OOM SIGKILL and cgroup memory.events ground truth",
+    "E3: allocate a known large child working set and compare local-wrapper logged peak against child/cgroup ground truth",
+    "E3: validate production JSONL serialization against quotes/backslashes/newlines/control characters",
+    "E3: test daemon pressure/health-loop responsiveness while the process monitor emits no line",
+    "E4 later: F2-native ResourceEnvelope versus AgentCgroup sidecar/controller under equivalent child-agent workload"
+  ],
+  "promotion": {
+    "to_E3": false,
+    "to_E4": false,
+    "to_E5_BUILD_CANDIDATE": false,
+    "to_E6_ACCEPTED": false,
+    "architecture_credit": 0,
+    "runtime_credit": 0,
+    "integration_credit": 0
+  },
+  "db_sync": "PENDING_DERIVED_DB_MATERIALIZATION_OR_RECONCILIATION; this JSON receipt is source evidence and does not mutate UnifiedDB or mint Trigger6 DB runtime credit"
+}
