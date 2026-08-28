@@ -1,15 +1,16 @@
 """Current-authority admission gate for WP105 final completion evidence.
 
-A generic ``VerificationReceipt`` is only an evidence envelope.  It must not gain final
-completion power merely because its caller selected a finalizing enum.  This module
-narrows the current path to the one authority class that Frankenstein 2.0 can presently
-bind explicitly: the already-admitted canonical EntityOS EffectJournal implementation.
+A generic ``VerificationReceipt`` is only an evidence envelope. It must not gain final
+completion power merely because its caller selected a finalizing enum. This module
+narrows the current path to the one authority class Frankenstein 2.0 can presently bind
+explicitly: the already-admitted canonical EntityOS EffectJournal implementation.
 
 The gate does not read the journal, verify the world, execute an effect, persist state,
-or mint canonical authority.  It consumes a separately verified
+or mint canonical authority. It consumes a separately verified
 ``CurrentEntityOSEffectAuthorityBinding`` and binds that authority identity to the exact
-verification receipt and exact observed effect call.  Other final evidence classes fail
-closed until equivalent current-authority bindings exist for them.
+verification receipt and exact observed effect call. Other final evidence classes fail
+closed until equivalent current-authority bindings exist for them. The existing immutable
+WP105 transition remains the only completion state machine.
 """
 from __future__ import annotations
 
@@ -27,13 +28,13 @@ from .completion_evidence_types import (
     _mint_completion_evidence_admission,
 )
 from .current_entityos_effect_authority_binding import CurrentEntityOSEffectAuthorityBinding
-from .deferred_execution_verification import DeferredExecutionVerificationTarget
-from .effect_invocation_correlation import (
-    EffectCallBinding,
-    EffectCorrelationStage,
-    EffectInvocationCorrelationError,
-    apply_effect_bound_verification,
+from .deferred_execution_verification import (
+    CorrelatedVerification,
+    DeferredExecutionVerificationError,
+    DeferredExecutionVerificationTarget,
+    apply_correlated_verification,
 )
+from .effect_invocation_correlation import EffectCallBinding, EffectCorrelationStage
 
 
 class CompletionEvidenceGateError(RuntimeError):
@@ -74,11 +75,10 @@ def admit_current_effect_journal_verification(
         raise CompletionEvidenceGateError("CURRENT_EFFECT_AUTHORITY_BINDING_REQUIRED")
 
     # The generic state layer knows additional potentially-final evidence classes, but
-    # Frankenstein currently has an explicit current-authority binding only for the
-    # canonical EntityOS EffectJournal.  Fail closed rather than self-admitting the rest.
+    # F2 currently has an explicit current-authority binding only for the canonical
+    # EntityOS EffectJournal. Fail closed rather than self-admitting the rest.
     if receipt.evidence_kind is not VerificationEvidenceKind.EFFECT_JOURNAL_VERIFIED:
         raise CompletionEvidenceGateError("FINAL_EVIDENCE_AUTHORITY_CLASS_UNADMITTED")
-
     if receipt.verification_attempt_id != transition.verification_attempt_id:
         raise CompletionEvidenceGateError("VERIFICATION_ATTEMPT_ID_MISMATCH")
     if receipt.execution_attempt_id != transition.execution_attempt_id:
@@ -95,6 +95,60 @@ def admit_current_effect_journal_verification(
         )
     except CompletionEvidenceAdmissionError as exc:
         raise CompletionEvidenceGateError(f"ADMISSION_REJECTED:{exc}") from exc
+
+
+def _correlated_from_effect_call(
+    target: DeferredExecutionVerificationTarget,
+    observed: EffectCallBinding,
+    transition: VerifyExecution,
+) -> CorrelatedVerification:
+    if not isinstance(target, DeferredExecutionVerificationTarget):
+        raise CompletionEvidenceGateError("INVALID_VERIFICATION_TARGET")
+    if not isinstance(observed, EffectCallBinding):
+        raise CompletionEvidenceGateError("INVALID_OBSERVED_EFFECT_CALL")
+    if observed.stage is not EffectCorrelationStage.RESULT_OBSERVED:
+        raise CompletionEvidenceGateError("VERIFICATION_REQUIRES_POST_RESULT")
+    if observed.return_id is None:
+        raise CompletionEvidenceGateError("VERIFICATION_REQUIRES_RETURN_BINDING")
+    if not isinstance(transition, VerifyExecution):
+        raise CompletionEvidenceGateError("INVALID_VERIFICATION_TRANSITION")
+
+    binding = target.returned.binding
+    expected = {
+        "RETURN_ID": target.returned.return_id,
+        "BINDING_ID": binding.binding_id(),
+        "INVOCATION_ID": binding.invocation_id,
+        "TOOL_USE_ID": binding.tool_use_id,
+        "DELEGATION_ID": binding.delegation_id,
+        "CHILD_IDENTITY_SHA256": binding.child.sha256(),
+        "RESULT_ID": binding.result_id or "",
+        "RESULT_SHA256": binding.result_sha256 or "",
+    }
+    actual = {
+        "RETURN_ID": observed.return_id,
+        "BINDING_ID": observed.binding_id,
+        "INVOCATION_ID": observed.invocation_id,
+        "TOOL_USE_ID": observed.tool_use_id,
+        "DELEGATION_ID": observed.delegation_id,
+        "CHILD_IDENTITY_SHA256": observed.child_identity_sha256,
+        "RESULT_ID": observed.result_id or "",
+        "RESULT_SHA256": observed.result_sha256 or "",
+    }
+    for name, value in actual.items():
+        if value != expected[name]:
+            raise CompletionEvidenceGateError(f"{name}_MISMATCH")
+
+    return CorrelatedVerification(
+        return_id=observed.return_id,
+        binding_id=observed.binding_id,
+        invocation_id=observed.invocation_id,
+        tool_use_id=observed.tool_use_id,
+        delegation_id=observed.delegation_id,
+        child_identity_sha256=observed.child_identity_sha256,
+        result_id=observed.result_id or "",
+        result_sha256=observed.result_sha256 or "",
+        transition=transition,
+    )
 
 
 def apply_admitted_effect_bound_verification(
@@ -121,15 +175,16 @@ def apply_admitted_effect_bound_verification(
         admission.assert_matches_receipt(transition.receipt)
     except CompletionEvidenceAdmissionError as exc:
         raise CompletionEvidenceGateError(f"RECEIPT_ADMISSION_MISMATCH:{exc}") from exc
+
+    correlated = _correlated_from_effect_call(target, observed, transition)
     try:
-        return apply_effect_bound_verification(
+        return apply_correlated_verification(
             target,
-            observed,
-            transition,
+            correlated,
             completion_admission=admission,
         )
-    except EffectInvocationCorrelationError as exc:
-        raise CompletionEvidenceGateError(f"EFFECT_BOUND_VERIFICATION_REJECTED:{exc}") from exc
+    except DeferredExecutionVerificationError as exc:
+        raise CompletionEvidenceGateError(f"WP105_VERIFICATION_REJECTED:{exc}") from exc
 
 
 __all__ = [
