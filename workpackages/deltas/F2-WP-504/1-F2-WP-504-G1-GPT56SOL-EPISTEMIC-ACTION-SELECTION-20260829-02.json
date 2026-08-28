@@ -1,0 +1,41 @@
+{
+  "schema": "FRANKENSTEIN2_WORKPACKAGE_DELTA/v1",
+  "workpackage_id": "F2-WP-504",
+  "generation": 1,
+  "claim_id": "F2-WP-504-G1-GPT56SOL-EPISTEMIC-ACTION-SELECTION-20260829",
+  "worker_id": "GPT-5.6-Sol-review",
+  "base_commit": "ff166d3c3dd9437f0ab70b7ea8608e2f838d058c",
+  "observed_main_commit": "e4f0eb211855c01c0190e8cf54d29670210bdba0",
+  "owned_paths": [
+    "workpackages/deltas/F2-WP-504/1-F2-WP-504-G1-GPT56SOL-EPISTEMIC-ACTION-SELECTION-20260829-02.json"
+  ],
+  "result_class": "FALSIFIER",
+  "source_commits": [
+    "ff166d3c3dd9437f0ab70b7ea8608e2f838d058c",
+    "95ffc3519bb4c2991020d0a91f2d8e4498919d83"
+  ],
+  "receipts": [
+    {
+      "type": "GITHUB_ACTIONS_REVIEW_FALSIFIER",
+      "pull_request": 140,
+      "workflow": "F2 WP504 Zero GRID Budget Falsifier",
+      "run_id": 33221852671,
+      "job_id": 99017369646,
+      "tested_head": "95ffc3519bb4c2991020d0a91f2d8e4498919d83",
+      "compile_step": "success",
+      "falsifier_step": "failure",
+      "interpretation": "PRODUCT_COUNTEREXAMPLE_REPRODUCED_NOT_INFRASTRUCTURE_FAILURE"
+    }
+  ],
+  "falsifiers": [
+    "A candidate requesting zero work units is currently eligible when both its assigned cell max_work_units and plan max_total_work_units are zero; the selector can therefore emit SELECTED_PROPOSAL despite no GRID work budget being available.",
+    "The active claim explicitly requires fail-closed behavior on unavailable GRID work budget, so zero-capacity acceptance violates the declared component contract."
+  ],
+  "contradictions": [
+    "The implementation delta's repository CI passed its declared suite, but an independent post-implementation zero-budget test falsifies the broader claimed fail-closed budget invariant."
+  ],
+  "proposed_state_change": "DO_NOT_ACCEPT_GENERATION_1_UNCHANGED; repair through the existing F2-WP-504 mutation-authority lane, re-run the exact falsifier, then reconcile only if the counterexample is closed.",
+  "completion_deficit": "Zero-capacity GRID plans can still yield a selection proposal. No runtime/VPS/physical GRID10/GWT/effect/completion/whole-system credit is implicated.",
+  "next_exact_action": "The active F2-WP-504 mutation authority should make the smallest fail-closed repair so total/cell work budget unavailable at zero capacity cannot emit SELECTED_PROPOSAL, then execute both the canonical WP504 suite and PR140's exact zero-budget regression before reconciliation.",
+  "created_at_utc": "2026-08-28T23:53:28Z"
+}
