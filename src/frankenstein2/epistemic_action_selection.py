@@ -418,7 +418,13 @@ def select_epistemic_action(
             budget = plan.budget_for(candidate.cell_id)
         except Grid10InterfaceError as exc:
             raise EpistemicActionSelectionError(str(exc)) from exc
-        if candidate.work_units_requested > budget.max_work_units:
+        if plan.max_total_work_units == 0:
+            reason = "PLAN_TOTAL_WORK_BUDGET_UNAVAILABLE"
+            is_eligible = False
+        elif budget.max_work_units == 0:
+            reason = "CELL_WORK_BUDGET_UNAVAILABLE"
+            is_eligible = False
+        elif candidate.work_units_requested > budget.max_work_units:
             reason = "CELL_WORK_BUDGET_EXCEEDED"
             is_eligible = False
         elif candidate.work_units_requested > plan.max_total_work_units:

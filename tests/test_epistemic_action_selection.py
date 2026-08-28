@@ -309,6 +309,34 @@ class EpistemicActionSelectionTests(unittest.TestCase):
             "PLAN_TOTAL_WORK_BUDGET_EXCEEDED",
         )
 
+    def test_zero_plan_work_budget_is_unavailable_even_for_zero_work_candidate(self):
+        hp = hyperposition()
+        proposal = select(
+            hp,
+            grid_plan(cell_work=20, total_work=0),
+            (candidate(hp, "candidate:zero-plan", gain=1_000_000, cost=0, work=0),),
+        )
+        self.assertEqual(proposal.status, "NO_ELIGIBLE_CANDIDATE")
+        self.assertIsNone(proposal.selected_candidate_id)
+        self.assertEqual(
+            proposal.assessments[0].reason,
+            "PLAN_TOTAL_WORK_BUDGET_UNAVAILABLE",
+        )
+
+    def test_zero_cell_work_budget_is_unavailable_even_for_zero_work_candidate(self):
+        hp = hyperposition()
+        proposal = select(
+            hp,
+            grid_plan(cell_work=0, total_work=100),
+            (candidate(hp, "candidate:zero-cell", gain=1_000_000, cost=0, work=0),),
+        )
+        self.assertEqual(proposal.status, "NO_ELIGIBLE_CANDIDATE")
+        self.assertIsNone(proposal.selected_candidate_id)
+        self.assertEqual(
+            proposal.assessments[0].reason,
+            "CELL_WORK_BUDGET_UNAVAILABLE",
+        )
+
     def test_all_ineligible_returns_no_eligible_candidate_without_effect_authority(self):
         hp = hyperposition()
         proposal = select(
