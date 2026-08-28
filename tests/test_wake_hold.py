@@ -1,5 +1,6 @@
 import unittest
 from frankenstein2.wake_hold import (
+    ABSTAIN_CONFLICTING_OBSERVATIONS,
     ABSTAIN_NOT_OBSERVED,
     HOLD_CHECKPOINT_SCHEMA,
     HOLD_CONDITION_NOT_MATCHED,
@@ -150,6 +151,63 @@ class WakeHoldTests(unittest.TestCase):
         self.assertEqual(result.classification, HOLD_CONDITION_NOT_MATCHED)
         self.assertEqual(result.unmatched_condition_ids, ("c1",))
         self.assertEqual(result.unknown_condition_ids, ("c2",))
+
+    def test_conflicting_equals_observations_abstain_for_that_condition(self):
+        result = evaluate(
+            checkpoint(),
+            (
+                observation("o1", "job.status", "done"),
+                observation("o2", "job.status", "running"),
+            ),
+        )
+        self.assertFalse(result.wake)
+        self.assertEqual(result.classification, ABSTAIN_CONFLICTING_OBSERVATIONS)
+        self.assertEqual(result.matched_condition_ids, ())
+        self.assertEqual(result.unmatched_condition_ids, ())
+        self.assertEqual(result.unknown_condition_ids, ())
+        self.assertEqual(result.conflicting_condition_ids, ("c1",))
+
+    def test_any_policy_clean_match_is_decisive_over_other_condition_conflict(self):
+        cp = checkpoint(
+            policy=WAKE_ANY,
+            conditions=(
+                condition("c1", "job.status", OP_EQUALS, "done"),
+                condition("c2", "sensor.mode", OP_EQUALS, "ready"),
+            ),
+        )
+        result = evaluate(
+            cp,
+            (
+                observation("o1", "job.status", "done"),
+                observation("o2", "sensor.mode", "ready"),
+                observation("o3", "sensor.mode", "blocked"),
+            ),
+        )
+        self.assertTrue(result.wake)
+        self.assertEqual(result.classification, WAKE_CONDITION_MATCH)
+        self.assertEqual(result.matched_condition_ids, ("c1",))
+        self.assertEqual(result.conflicting_condition_ids, ("c2",))
+
+    def test_all_policy_explicit_nonmatch_is_decisive_over_other_condition_conflict(self):
+        cp = checkpoint(
+            policy=WAKE_ALL,
+            conditions=(
+                condition("c1", "job.status", OP_EQUALS, "done"),
+                condition("c2", "sensor.mode", OP_EQUALS, "ready"),
+            ),
+        )
+        result = evaluate(
+            cp,
+            (
+                observation("o1", "job.status", "running"),
+                observation("o2", "sensor.mode", "ready"),
+                observation("o3", "sensor.mode", "blocked"),
+            ),
+        )
+        self.assertFalse(result.wake)
+        self.assertEqual(result.classification, HOLD_CONDITION_NOT_MATCHED)
+        self.assertEqual(result.unmatched_condition_ids, ("c1",))
+        self.assertEqual(result.conflicting_condition_ids, ("c2",))
 
     def test_state_id_fence_fails_closed(self):
         with self.assertRaisesRegex(WakeHoldError, "state_id fence mismatch"):
