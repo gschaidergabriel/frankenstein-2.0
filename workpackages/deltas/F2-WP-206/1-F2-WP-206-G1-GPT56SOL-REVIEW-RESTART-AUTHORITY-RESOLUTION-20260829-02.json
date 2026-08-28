@@ -1,0 +1,43 @@
+{
+  "schema": "FRANKENSTEIN2_WORKPACKAGE_DELTA/v1",
+  "workpackage_id": "F2-WP-206",
+  "generation": 1,
+  "claim_id": "F2-WP-206-G1-GPT56SOL-PERSISTENT-AGENCY-INTEGRATION-20260829",
+  "worker_id": "GPT-5.6-Sol-REVIEW-RESTART-AUTHORITY",
+  "base_commit": "54f65a843f846e5007eac14a053fcdd03d759240",
+  "observed_main_commit": "834eb77bcd98f8c3cd3b4866d2551107167b3fb7",
+  "owned_paths": [],
+  "result_class": "REVIEW_ONLY",
+  "source_commits": [],
+  "receipts": [],
+  "source_refs": [
+    "workpackages/active/F2-WP-206.json@main",
+    "src/state/unifieddb_identity.py@main",
+    "src/state/delivery_store.py@main",
+    "workpackages/deltas/F2-WP-206/1-F2-WP-206-G1-GPT56SOL-REVIEW-WAL-CHECKPOINT-BOUNDARY-20260829-01.json@main"
+  ],
+  "observations": [
+    "F2-WP-100 resolve_unifieddb_path forbids relative explicit DB paths and resolves explicit pointer/environment authorities independently of process CWD.",
+    "F2-WP-100 fails closed when multiple explicit authorities select different canonical paths.",
+    "F2-WP-103 CanonicalDeliveryStore demonstrates the accepted writer pattern: an already-existing SQLite connection must bind to the exact resolution plus fingerprinted device/inode/real path, and the store never invents a second database path.",
+    "WP206 claims a real subprocess/process restart. A restart therefore crosses a fresh resolver/open boundary; persistence evidence is insufficient if process 2 merely reuses a path string supplied by process 1 without independently re-resolving current canonical authority.",
+    "The existing WP206 review delta 01 covers WAL/logical checkpoint identity. This review is intentionally nonduplicate: it covers cross-process authority re-resolution and path-drift/CWD/explicit-authority falsification."
+  ],
+  "falsifiers": [
+    "Start process A with one absolute explicit FRANKENSTEIN2_DB path, persist the typed Agency checkpoint, exit, then start process B from a different working directory with the same explicit authority. Process B must independently resolve the identical real path and recover the checkpoint; CWD must not influence durable truth.",
+    "Start process B with FRANKENSTEIN2_DB and pointer authority simultaneously selecting different files. Restart/replay must fail closed with UnifiedDBAuthorityConflict before any Agency checkpoint is read, written, replayed, or advanced.",
+    "Replace or redirect the selected SQLite file between process A and process B while preserving the old path spelling. Re-resolution plus fingerprint binding must reject file-identity drift before checkpoint replay.",
+    "Search the test sandbox after the restart path completes: no second .db file outside the independently resolved canonical path may contain WP206-owned Agency tables/rows.",
+    "Run the same restart test with process B launched under an unrelated CWD and without any relative-path fallback. A passing test that depends on repository CWD is a failure of the canonical persistence claim."
+  ],
+  "contradictions": [],
+  "required_boundary": "PROCESS_RESTART_REQUIRES_FRESH_UNIFIEDDB_AUTHORITY_RESOLUTION; PATH_STRING_REUSE_IS_NOT_AUTHORITY_REENTRY",
+  "proposed_state_change": "NO_CANONICAL_STATE_CHANGE_REVIEW_ONLY",
+  "completion_deficit": "WP206 repository-hosted restart acceptance should not be granted until the subprocess test proves fresh process-B UnifiedDB authority resolution/fingerprint binding and fail-closed authority/path drift in addition to the separate WAL/checkpoint-identity discriminators.",
+  "runtime_execution_observed": false,
+  "runtime_credit": 0,
+  "physical_grid10_credit": 0,
+  "whole_system_acceptance": false,
+  "next_exact_action": "Active F2-WP-206 mutation authority should incorporate the cross-process resolution/path-drift falsifiers into its deterministic subprocess CI without creating another DB/state authority.",
+  "created_at_utc": "2026-08-28T23:12:26Z"
+}
