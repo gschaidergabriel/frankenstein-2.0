@@ -1,7 +1,9 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://frank.ink/frankenstein-2.0/schemas/run_package_manifest.schema.json",
-  "title": "Frankenstein 2.0 Run Package Manifest",
+  "title": "RETIRED compatibility donor — Frankenstein 2.0 Run Package Manifest",
+  "$comment": "Historical/compatibility design donor only. Active canonical manifest ABI is runpackages/RUN_PACKAGE_SCHEMA_V1.json (FRANKENSTEIN2_IMMUTABLE_RUN_PACKAGE/v1) and is enforced by runpackages/verify_run_package.py. Do not use this schema as a competing acceptance authority.",
+  "deprecated": true,
   "type": "object",
   "additionalProperties": false,
   "required": [
@@ -64,9 +66,7 @@
         "properties": {
           "command_id": {"type": "string", "minLength": 1},
           "argv_or_description": {"type": "string", "minLength": 1},
-          "status": {
-            "enum": ["PLANNED", "EXECUTED_PASS", "EXECUTED_FAIL", "BLOCKED", "NOT_RUN"]
-          },
+          "status": {"enum": ["PLANNED", "EXECUTED_PASS", "EXECUTED_FAIL", "BLOCKED", "NOT_RUN"]},
           "exit_code": {"type": ["integer", "null"]},
           "receipt_ref": {"type": ["string", "null"]}
         }
@@ -78,17 +78,7 @@
       "additionalProperties": false,
       "required": ["classification", "runtime_execution_observed", "runtime_credit"],
       "properties": {
-        "classification": {
-          "enum": [
-            "SOURCE_ONLY",
-            "UNIT_RUNTIME",
-            "COMPONENT_RUNTIME",
-            "INTEGRATION_RUNTIME",
-            "WHOLE_SYSTEM_RUNTIME",
-            "NEGATIVE_RESULT",
-            "BLOCKED"
-          ]
-        },
+        "classification": {"enum": ["SOURCE_ONLY", "UNIT_RUNTIME", "COMPONENT_RUNTIME", "INTEGRATION_RUNTIME", "WHOLE_SYSTEM_RUNTIME", "NEGATIVE_RESULT", "BLOCKED"]},
         "runtime_execution_observed": {"type": "boolean"},
         "runtime_credit": {"type": "integer", "minimum": 0},
         "acceptance_scope": {"type": "string"},
@@ -100,30 +90,15 @@
       "minItems": 1,
       "items": {"$ref": "#/$defs/participant"}
     },
-    "hypothesis_ids": {
-      "type": "array",
-      "items": {"type": "string"},
-      "default": []
-    },
-    "bug_ids": {
-      "type": "array",
-      "items": {"type": "string"},
-      "default": []
-    },
-    "negative_result_paths": {
-      "type": "array",
-      "items": {"type": "string"},
-      "default": []
-    },
+    "hypothesis_ids": {"type": "array", "items": {"type": "string"}, "default": []},
+    "bug_ids": {"type": "array", "items": {"type": "string"}, "default": []},
+    "negative_result_paths": {"type": "array", "items": {"type": "string"}, "default": []},
     "artifacts_index": {"const": "ARTIFACTS.json"},
     "closure_receipt": {"const": "CLOSED.json"},
     "next_exact_action": {"type": "string"}
   },
   "$defs": {
-    "sha40": {
-      "type": "string",
-      "pattern": "^[0-9a-f]{40}$"
-    },
+    "sha40": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
     "participant": {
       "type": "object",
       "additionalProperties": false,
@@ -132,19 +107,12 @@
         "participant_id": {"type": "string", "minLength": 1},
         "component": {"type": "string", "minLength": 1},
         "observability": {"enum": ["OBSERVABLE", "NOT_OBSERVABLE"]},
-        "telemetry_refs": {
-          "type": "array",
-          "items": {"type": "string"},
-          "default": []
-        },
+        "telemetry_refs": {"type": "array", "items": {"type": "string"}, "default": []},
         "not_observable_reason": {"type": "string", "minLength": 1}
       },
       "allOf": [
         {
-          "if": {
-            "properties": {"observability": {"const": "NOT_OBSERVABLE"}},
-            "required": ["observability"]
-          },
+          "if": {"properties": {"observability": {"const": "NOT_OBSERVABLE"}}, "required": ["observability"]},
           "then": {"required": ["not_observable_reason"]}
         }
       ]
