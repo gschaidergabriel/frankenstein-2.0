@@ -1,20 +1,20 @@
-"""Canonical EffectGate/EffectJournal identity bridge for Frankenstein 2.0 Stage 1.
+"""Canonical effect-authority identity bridge for Frankenstein 2.0 Stage 1.
 
-This module closes one specific authority gap: Frankenstein must not invent an
-``effect_id`` before the canonical effect authority has admitted/journaled the
-request.  A caller first constructs an :class:`EffectCallIntent`, which contains
-only the already-bound WP-102/WP-104 invocation identity.  An external canonical
-authority port then returns :class:`CanonicalEffectAuthorityEvidence`.
+Frankenstein must not invent an ``effect_id`` before the canonical effect authority
+has admitted and journaled the request.  A caller therefore starts with an
+:class:`EffectCallIntent`, which deliberately has no effect id.  A separately
+resolved canonical authority implementation then returns typed evidence containing
+the authoritative effect id and exact call identity.
 
-Only an exact canonical ``ALLOW`` with a canonically minted ``effect_id`` in
-``PENDING`` journal state is converted into the existing immutable
-``EffectCallBinding`` and allowed to reach the policy-neutral executor interlock.
-Every other decision remains non-dispatching.  In particular, a pending/unknown
-restart outcome is never replayed automatically.
+This module does not decide which implementation is canonical.  The expected
+:class:`CanonicalEffectAuthorityIdentity` must come from a current-authority binding
+outside Frankenstein 2.0.  Merely constructing an identity object here cannot admit
+a compatibility/donor implementation.  The bridge only verifies that the authority
+response matches that already-resolved identity and the exact result-free call.
 
-This is an adapter contract, not a second EffectGate and not runtime proof that the
-current EntityOS EffectGate has been wired to this port.  Policy, canonical state,
-EffectJournal transitions and recovery authority remain external.
+Only exact ``ALLOW`` with a canonically minted ``effect_id`` in ``PENDING`` journal
+state becomes a dispatchable ``EffectCallBinding``.  Every other decision remains
+non-dispatching, and restart uncertainty is never replayed automatically.
 """
 from __future__ import annotations
 
@@ -36,7 +36,7 @@ class CanonicalEffectAuthorityBridgeError(RuntimeError):
 
 
 class CanonicalEffectAuthorityIdentityError(CanonicalEffectAuthorityBridgeError):
-    """The authority response is incomplete or belongs to another call."""
+    """The authority response is incomplete, stale, or belongs to another call."""
 
 
 def _token(name: str, value: object) -> str:
@@ -47,11 +47,46 @@ def _token(name: str, value: object) -> str:
     return value
 
 
+def _git_sha(name: str, value: object) -> str:
+    token = _token(name, value)
+    if len(token) != 40 or any(ch not in "0123456789abcdef" for ch in token):
+        raise CanonicalEffectAuthorityIdentityError(f"INVALID_{name.upper()}")
+    return token
+
+
+@dataclass(frozen=True, slots=True)
+class CanonicalEffectAuthorityIdentity:
+    """Exact executable identity resolved by current authority outside this module."""
+
+    repository: str
+    commit_sha: str
+    module_path: str
+    source_blob_sha: str
+    state_schema: str
+    api_version: str
+
+    def __post_init__(self) -> None:
+        _token("repository", self.repository)
+        _git_sha("commit_sha", self.commit_sha)
+        _token("module_path", self.module_path)
+        _git_sha("source_blob_sha", self.source_blob_sha)
+        _token("state_schema", self.state_schema)
+        _token("api_version", self.api_version)
+
+    def authority_ref(self) -> str:
+        """Stable transport reference; this string does not itself grant authority."""
+        return (
+            f"{self.repository}@{self.commit_sha}:"
+            f"{self.module_path}#{self.source_blob_sha}:"
+            f"{self.state_schema}:{self.api_version}"
+        )
+
+
 @dataclass(frozen=True, slots=True)
 class EffectCallIntent:
-    """Pre-authority call identity.  Deliberately has no ``effect_id`` field."""
+    """Pre-authority call identity. Deliberately has no ``effect_id`` field."""
 
-    return_id: str
+    return_id: str | None
     binding_id: str
     invocation_id: str
     tool_use_id: str
@@ -59,8 +94,9 @@ class EffectCallIntent:
     child_identity_sha256: str
 
     def __post_init__(self) -> None:
+        if self.return_id is not None:
+            _token("return_id", self.return_id)
         for name in (
-            "return_id",
             "binding_id",
             "invocation_id",
             "tool_use_id",
@@ -72,20 +108,20 @@ class EffectCallIntent:
 
 @dataclass(frozen=True, slots=True)
 class CanonicalEffectAuthorityEvidence:
-    """Typed result emitted by the canonical effect-authority adapter.
+    """Typed response from an already-resolved canonical effect-authority adapter.
 
     ``effect_id`` is optional for non-ALLOW decisions.  For ALLOW it is mandatory
-    and must refer to an already-created canonical ``PENDING`` EffectJournal row.
-    The correlation envelope is echoed by the authority adapter and checked before
-    an executor callable can be reached.
+    and must refer to a canonical ``PENDING`` journal row created before dispatch.
+    ``authority`` is checked against a separately supplied expected identity; a
+    caller-authored identity cannot self-grant canonical status.
     """
 
-    authority_ref: str
+    authority: CanonicalEffectAuthorityIdentity
     decision_id: str
     decision: ExternalGateDecision
     journal_state: str
     effect_id: str | None
-    return_id: str
+    return_id: str | None
     binding_id: str
     invocation_id: str
     tool_use_id: str
@@ -93,11 +129,11 @@ class CanonicalEffectAuthorityEvidence:
     child_identity_sha256: str
 
     def __post_init__(self) -> None:
+        if not isinstance(self.authority, CanonicalEffectAuthorityIdentity):
+            raise CanonicalEffectAuthorityIdentityError("INVALID_AUTHORITY_IDENTITY")
         for name in (
-            "authority_ref",
             "decision_id",
             "journal_state",
-            "return_id",
             "binding_id",
             "invocation_id",
             "tool_use_id",
@@ -105,6 +141,8 @@ class CanonicalEffectAuthorityEvidence:
             "child_identity_sha256",
         ):
             _token(name, getattr(self, name))
+        if self.return_id is not None:
+            _token("return_id", self.return_id)
         if not isinstance(self.decision, ExternalGateDecision):
             raise CanonicalEffectAuthorityIdentityError("INVALID_DECISION")
         if self.effect_id is not None:
@@ -121,7 +159,7 @@ class CanonicalEffectAuthorityEvidence:
 
 
 class CanonicalEffectAuthorityPort(Protocol):
-    """Production implementation must be backed by canonical EffectGate/Journal."""
+    """Production implementation must be backed by the admitted canonical authority."""
 
     def __call__(self, intent: EffectCallIntent) -> CanonicalEffectAuthorityEvidence: ...
 
@@ -152,12 +190,7 @@ class CanonicalDispatchResult:
 
 
 def intent_from_prepared_candidate(prepared: EffectCallBinding) -> EffectCallIntent:
-    """Migrate an existing call envelope while discarding its caller effect id.
-
-    The old/pre-canonical ``effect_id`` is intentionally not copied.  This permits
-    incremental migration of WP-105 call sites without granting the old value any
-    authority at the canonical boundary.
-    """
+    """Migrate an old PRE envelope while discarding its caller-authored effect id."""
     if not isinstance(prepared, EffectCallBinding):
         raise CanonicalEffectAuthorityIdentityError(
             "prepared must be an EffectCallBinding"
@@ -202,18 +235,24 @@ def _assert_same_call(
 def bind_canonical_effect(
     intent: EffectCallIntent,
     evidence: CanonicalEffectAuthorityEvidence,
+    *,
+    expected_authority: CanonicalEffectAuthorityIdentity,
 ) -> CanonicalEffectBinding:
-    """Bind only a canonically minted ALLOW effect id to the exact call intent."""
+    """Bind only a pending ALLOW from the separately resolved exact authority."""
     if not isinstance(intent, EffectCallIntent):
         raise CanonicalEffectAuthorityIdentityError("INVALID_EFFECT_CALL_INTENT")
     if not isinstance(evidence, CanonicalEffectAuthorityEvidence):
         raise CanonicalEffectAuthorityIdentityError("INVALID_CANONICAL_AUTHORITY_EVIDENCE")
+    if not isinstance(expected_authority, CanonicalEffectAuthorityIdentity):
+        raise CanonicalEffectAuthorityIdentityError("EXPECTED_AUTHORITY_UNRESOLVED")
+    if evidence.authority != expected_authority:
+        raise CanonicalEffectAuthorityIdentityError("AUTHORITY_IDENTITY_MISMATCH")
     _assert_same_call(intent, evidence)
 
     if evidence.decision is not ExternalGateDecision.ALLOW:
         return CanonicalEffectBinding(authority=evidence, prepared=None, gate=None)
 
-    assert evidence.effect_id is not None  # enforced by dataclass validation
+    assert evidence.effect_id is not None
     prepared = EffectCallBinding(
         effect_id=evidence.effect_id,
         return_id=intent.return_id,
@@ -225,7 +264,7 @@ def bind_canonical_effect(
         stage=EffectCorrelationStage.PREPARED,
     )
     gate = ExternalGateEvidence(
-        authority_ref=evidence.authority_ref,
+        authority_ref=expected_authority.authority_ref(),
         decision_id=evidence.decision_id,
         decision=evidence.decision,
         effect_id=evidence.effect_id,
@@ -241,18 +280,21 @@ def bind_canonical_effect(
 def dispatch_with_canonical_authority(
     intent: EffectCallIntent,
     *,
+    expected_authority: CanonicalEffectAuthorityIdentity,
     authorize: Callable[[EffectCallIntent], CanonicalEffectAuthorityEvidence],
     executor: EffectExecutor,
 ) -> CanonicalDispatchResult:
-    """Evaluate canonical authority once and dispatch only its exact pending ALLOW.
+    """Evaluate one exact authority and dispatch only its exact pending ALLOW.
 
-    The canonical adapter is called exactly once.  DENY, REQUIRE_CONFIRMATION,
-    DEGRADE_TO_PROPOSAL and UNKNOWN never invoke ``executor``.  For ALLOW, the
-    existing policy-neutral interlock performs the final identity check and POST
-    correlation.  Executor exceptions retain the existing UNKNOWN/no-replay law.
+    The expected authority identity must already have been resolved by current project
+    authority; this module cannot discover or admit it. DENY, REQUIRE_CONFIRMATION,
+    DEGRADE_TO_PROPOSAL, UNKNOWN, authority failure, source-identity mismatch and
+    call-identity mismatch all stop before the executor.
     """
     if not isinstance(intent, EffectCallIntent):
         raise CanonicalEffectAuthorityIdentityError("INVALID_EFFECT_CALL_INTENT")
+    if not isinstance(expected_authority, CanonicalEffectAuthorityIdentity):
+        raise CanonicalEffectAuthorityIdentityError("EXPECTED_AUTHORITY_UNRESOLVED")
     if not callable(authorize):
         raise CanonicalEffectAuthorityBridgeError("CANONICAL_AUTHORITY_NOT_CALLABLE")
     if not callable(executor):
@@ -263,7 +305,11 @@ def dispatch_with_canonical_authority(
         raise CanonicalEffectAuthorityBridgeError(
             "CANONICAL_EFFECT_AUTHORITY_FAILED"
         ) from exc
-    binding = bind_canonical_effect(intent, evidence)
+    binding = bind_canonical_effect(
+        intent,
+        evidence,
+        expected_authority=expected_authority,
+    )
     if not binding.dispatchable:
         return CanonicalDispatchResult(authority=evidence, interlock=None)
     assert binding.prepared is not None and binding.gate is not None
@@ -279,6 +325,7 @@ __all__ = [
     "CanonicalDispatchResult",
     "CanonicalEffectAuthorityBridgeError",
     "CanonicalEffectAuthorityEvidence",
+    "CanonicalEffectAuthorityIdentity",
     "CanonicalEffectAuthorityIdentityError",
     "CanonicalEffectAuthorityPort",
     "CanonicalEffectBinding",
