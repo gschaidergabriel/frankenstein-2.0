@@ -1,0 +1,259 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/gschaidergabriel/frankenstein-2.0/schemas/EVIDENCE_SPINE.schema.json",
+  "title": "Frankenstein 2.0 Evidence Spine v1",
+  "$defs": {
+    "id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256
+    },
+    "sha40": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{40}$"
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "evidence_ref": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "path_or_uri"],
+      "properties": {
+        "kind": {
+          "enum": ["SOURCE", "TEST", "RUNTIME", "METRIC", "TRACE", "LOG", "COMMUNICATION", "NEGATIVE_RESULT", "HYPOTHESIS", "BUG", "PROVENANCE"]
+        },
+        "path_or_uri": {
+          "type": "string",
+          "minLength": 1
+        },
+        "digest": {
+          "type": ["string", "null"]
+        },
+        "scope": {
+          "type": ["string", "null"]
+        }
+      }
+    },
+    "run_package": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema",
+        "run_id",
+        "workpackage_ids",
+        "generation",
+        "claim_id",
+        "worker_id",
+        "source_commit_before",
+        "source_commit_after",
+        "donor_source_refs",
+        "environment",
+        "commands_or_tests",
+        "started_at",
+        "finished_at",
+        "exit_status",
+        "metrics_paths",
+        "trace_paths",
+        "system_log_paths",
+        "communication_log_paths",
+        "grid10_log_paths",
+        "hypothesis_ids",
+        "bug_ids",
+        "negative_result_paths",
+        "acceptance_scope",
+        "completion_deficit",
+        "next_exact_action"
+      ],
+      "properties": {
+        "schema": {
+          "const": "FRANKENSTEIN2_RUN_PACKAGE/v1"
+        },
+        "run_id": {
+          "$ref": "#/$defs/id"
+        },
+        "workpackage_ids": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "pattern": "^F2-WP-[0-9]+$"
+          }
+        },
+        "generation": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "claim_id": {
+          "$ref": "#/$defs/id"
+        },
+        "worker_id": {
+          "$ref": "#/$defs/id"
+        },
+        "source_commit_before": {
+          "$ref": "#/$defs/sha40"
+        },
+        "source_commit_after": {
+          "$ref": "#/$defs/sha40"
+        },
+        "donor_source_refs": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "environment": {
+          "type": "object"
+        },
+        "commands_or_tests": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["kind", "name", "result"],
+            "properties": {
+              "kind": {
+                "enum": ["COMMAND", "STATIC_VALIDATION", "UNIT", "INTEGRATION", "RUNTIME", "FAILURE_INJECTION", "BENCHMARK"]
+              },
+              "name": {
+                "type": "string"
+              },
+              "result": {
+                "enum": ["PASS", "FAIL", "BLOCKED", "NOT_RUN"]
+              },
+              "details": {
+                "type": ["string", "null"]
+              }
+            }
+          }
+        },
+        "started_at": {
+          "$ref": "#/$defs/timestamp"
+        },
+        "finished_at": {
+          "$ref": "#/$defs/timestamp"
+        },
+        "exit_status": {
+          "enum": ["PASS_AT_SCOPE", "FAIL", "BLOCKED", "NONRUN"]
+        },
+        "metrics_paths": {
+          "type": "array",
+          "items": {"type": "string"}
+        },
+        "trace_paths": {
+          "type": "array",
+          "items": {"type": "string"}
+        },
+        "system_log_paths": {
+          "type": "array",
+          "items": {"type": "string"}
+        },
+        "communication_log_paths": {
+          "type": "array",
+          "items": {"type": "string"}
+        },
+        "grid10_log_paths": {
+          "type": "array",
+          "items": {"type": "string"}
+        },
+        "hypothesis_ids": {
+          "type": "array",
+          "items": {"type": "string"}
+        },
+        "bug_ids": {
+          "type": "array",
+          "items": {"type": "string"}
+        },
+        "negative_result_paths": {
+          "type": "array",
+          "items": {"type": "string"}
+        },
+        "acceptance_scope": {
+          "type": "string",
+          "minLength": 1
+        },
+        "completion_deficit": {
+          "type": "string",
+          "minLength": 1
+        },
+        "next_exact_action": {
+          "type": "string",
+          "minLength": 1
+        },
+        "evidence_refs": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/evidence_ref"
+          }
+        }
+      }
+    },
+    "telemetry_event": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["schema", "event_id", "run_id", "ts", "channel", "component", "event_type", "causal_id", "generation", "payload"],
+      "properties": {
+        "schema": {"const": "FRANKENSTEIN2_TELEMETRY_EVENT/v1"},
+        "event_id": {"$ref": "#/$defs/id"},
+        "run_id": {"$ref": "#/$defs/id"},
+        "ts": {"$ref": "#/$defs/timestamp"},
+        "channel": {
+          "enum": ["SYSTEM", "COMMUNICATION", "HYPOTHESIS", "BUG", "GRID10", "PERFORMANCE", "LATENCY", "PERCEPTION", "VOICE", "EFFECT", "COMPLETION"]
+        },
+        "component": {"type": "string", "minLength": 1},
+        "event_type": {"type": "string", "minLength": 1},
+        "session_id": {"type": ["string", "null"]},
+        "agent_id": {"type": ["string", "null"]},
+        "task_id": {"type": ["string", "null"]},
+        "turn_id": {"type": ["string", "null"]},
+        "causal_id": {"type": "string", "minLength": 1},
+        "generation": {"type": "integer", "minimum": 0},
+        "epistemic_status": {
+          "enum": ["OBSERVED", "INFERRED", "HYPOTHESIS", "SIMULATED", "UNKNOWN", "CONFLICT", "NOT_COMPUTED"]
+        },
+        "severity": {
+          "enum": ["DEBUG", "INFO", "NOTICE", "WARNING", "ERROR", "CRITICAL"]
+        },
+        "payload": {"type": "object"},
+        "provenance_refs": {
+          "type": "array",
+          "items": {"type": "string"}
+        }
+      }
+    },
+    "hypothesis_record": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["schema", "hypothesis_id", "run_id", "statement", "status", "confidence", "falsifier", "evidence_for", "evidence_against"],
+      "properties": {
+        "schema": {"const": "FRANKENSTEIN2_HYPOTHESIS/v1"},
+        "hypothesis_id": {"$ref": "#/$defs/id"},
+        "run_id": {"$ref": "#/$defs/id"},
+        "statement": {"type": "string", "minLength": 1},
+        "counterhypothesis_id": {"type": ["string", "null"]},
+        "status": {"enum": ["OPEN", "SUPPORTED", "FALSIFIED", "CONFLICT", "DEFERRED"]},
+        "confidence": {"type": "number", "minimum": 0, "maximum": 1},
+        "falsifier": {"type": "string", "minLength": 1},
+        "evidence_for": {"type": "array", "items": {"type": "string"}},
+        "evidence_against": {"type": "array", "items": {"type": "string"}}
+      }
+    },
+    "bug_record": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["schema", "bug_id", "status", "symptom", "root_cause_status", "root_cause_evidence", "fix_commit", "regression_test", "regression_receipt"],
+      "properties": {
+        "schema": {"const": "FRANKENSTEIN2_BUG/v1"},
+        "bug_id": {"$ref": "#/$defs/id"},
+        "status": {"enum": ["OPEN", "ROOT_CAUSE_CONFIRMED", "FIX_CANDIDATE", "REGRESSION_PENDING", "FIXED", "WONT_FIX"]},
+        "symptom": {"type": "string", "minLength": 1},
+        "root_cause_status": {"enum": ["UNKNOWN", "HYPOTHESIS", "CONFIRMED"]},
+        "root_cause_evidence": {"type": "array", "items": {"type": "string"}},
+        "fix_commit": {"type": ["string", "null"]},
+        "regression_test": {"type": ["string", "null"]},
+        "regression_receipt": {"type": ["string", "null"]}
+      }
+    }
+  },
+  "$ref": "#/$defs/run_package"
+}
