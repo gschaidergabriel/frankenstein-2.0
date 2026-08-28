@@ -1,6 +1,7 @@
-import hashlib
+from __future__ import annotations
 
-import pytest
+import hashlib
+import unittest
 
 from frankenstein2.emergent_retrieval import (
     AXIS_CAUSAL,
@@ -68,152 +69,159 @@ def _need(limit: int = 8) -> RetrievalNeed:
     )
 
 
-def test_multi_axis_overlap_beats_single_high_similarity():
-    semantic_only = _candidate(_memory("m:semantic"), 0, 10_000, 0, "one")
-    overlapping = _candidate(_memory("m:overlap"), 7_000, 7_000, 7_000, "many")
+class EmergentRetrievalTests(unittest.TestCase):
+    def test_multi_axis_overlap_beats_single_high_similarity(self) -> None:
+        semantic_only = _candidate(_memory("m:semantic"), 0, 10_000, 0, "one")
+        overlapping = _candidate(_memory("m:overlap"), 7_000, 7_000, 7_000, "many")
 
-    plan = build_retrieval_plan(_need(), (semantic_only, overlapping))
+        plan = build_retrieval_plan(_need(), (semantic_only, overlapping))
 
-    assert [result.memory_id for result in plan.selected] == ["m:overlap"]
-    rejected = {result.memory_id: result for result in plan.not_selected}
-    assert rejected["m:semantic"].classification == CLASSIFICATION_INSUFFICIENT
-    assert rejected["m:semantic"].payload_ref is None
-    assert rejected["m:semantic"].payload_sha256 is None
+        self.assertEqual([result.memory_id for result in plan.selected], ["m:overlap"])
+        rejected = {result.memory_id: result for result in plan.not_selected}
+        self.assertEqual(rejected["m:semantic"].classification, CLASSIFICATION_INSUFFICIENT)
+        self.assertIsNone(rejected["m:semantic"].payload_ref)
+        self.assertIsNone(rejected["m:semantic"].payload_sha256)
 
+    def test_rank_prefers_explicit_overlap_not_input_order(self) -> None:
+        weaker = _candidate(_memory("m:weaker"), 7_000, 7_000, 7_000, "weak")
+        stronger = _candidate(_memory("m:stronger"), 8_000, 8_000, 8_000, "strong")
 
-def test_rank_prefers_explicit_overlap_not_input_order():
-    weaker = _candidate(_memory("m:weaker"), 7_000, 7_000, 7_000, "weak")
-    stronger = _candidate(_memory("m:stronger"), 8_000, 8_000, 8_000, "strong")
+        forward = build_retrieval_plan(_need(), (weaker, stronger))
+        reverse = build_retrieval_plan(_need(), (stronger, weaker))
 
-    forward = build_retrieval_plan(_need(), (weaker, stronger))
-    reverse = build_retrieval_plan(_need(), (stronger, weaker))
+        self.assertEqual(
+            [item.memory_id for item in forward.selected],
+            ["m:stronger", "m:weaker"],
+        )
+        self.assertEqual(forward.as_dict(), reverse.as_dict())
+        self.assertEqual(forward.sha256(), reverse.sha256())
 
-    assert [item.memory_id for item in forward.selected] == ["m:stronger", "m:weaker"]
-    assert forward.as_dict() == reverse.as_dict()
-    assert forward.sha256() == reverse.sha256()
+    def test_equal_score_tie_break_is_stable_memory_identity(self) -> None:
+        a = _candidate(_memory("m:a"), 5_000, 5_000, 5_000, "a")
+        b = _candidate(_memory("m:b"), 5_000, 5_000, 5_000, "b")
 
+        plan = build_retrieval_plan(_need(), (b, a))
 
-def test_equal_score_tie_break_is_stable_memory_identity():
-    a = _candidate(_memory("m:a"), 5_000, 5_000, 5_000, "a")
-    b = _candidate(_memory("m:b"), 5_000, 5_000, 5_000, "b")
+        self.assertEqual([item.memory_id for item in plan.selected], ["m:a", "m:b"])
 
-    plan = build_retrieval_plan(_need(), (b, a))
+    def test_degraded_memory_is_not_deleted_or_silently_restored(self) -> None:
+        original = _memory("m:degraded")
+        transition = MemoryTransition.create(
+            transition_id="transition:degrade",
+            memory_id=original.memory_id,
+            expected_generation=original.generation,
+            expected_state_sha256=original.sha256(),
+            kind=TRANSITION_DEGRADE,
+            evidence_refs=("evidence:degrade",),
+        )
+        degraded, _ = apply_memory_transition(original, transition)
+        self.assertEqual(degraded.status, STATUS_DEGRADED)
 
-    assert [item.memory_id for item in plan.selected] == ["m:a", "m:b"]
+        result = build_retrieval_plan(
+            _need(), (_candidate(degraded, 6_000, 6_000, 6_000),)
+        ).selected[0]
 
+        self.assertEqual(result.lifecycle_status, STATUS_DEGRADED)
+        self.assertEqual(result.payload_ref, degraded.payload_ref)
+        self.assertEqual(result.payload_sha256, degraded.payload_sha256)
+        self.assertEqual(original.generation, 0)
+        self.assertEqual(degraded.generation, 1)
 
-def test_degraded_memory_is_not_deleted_or_silently_restored():
-    original = _memory("m:degraded")
-    transition = MemoryTransition.create(
-        transition_id="transition:degrade",
-        memory_id=original.memory_id,
-        expected_generation=original.generation,
-        expected_state_sha256=original.sha256(),
-        kind=TRANSITION_DEGRADE,
-        evidence_refs=("evidence:degrade",),
-    )
-    degraded, _ = apply_memory_transition(original, transition)
-    assert degraded.status == STATUS_DEGRADED
+    def test_superseded_memory_returns_redirect_only_and_never_payload(self) -> None:
+        original = _memory("m:old")
+        transition = MemoryTransition.create(
+            transition_id="transition:supersede",
+            memory_id=original.memory_id,
+            expected_generation=original.generation,
+            expected_state_sha256=original.sha256(),
+            kind=TRANSITION_SUPERSEDE,
+            evidence_refs=("evidence:supersede",),
+            successor_ref="m:new",
+        )
+        superseded, _ = apply_memory_transition(original, transition)
 
-    result = build_retrieval_plan(_need(), (_candidate(degraded, 6_000, 6_000, 6_000),)).selected[0]
-
-    assert result.lifecycle_status == STATUS_DEGRADED
-    assert result.payload_ref == degraded.payload_ref
-    assert result.payload_sha256 == degraded.payload_sha256
-    assert original.generation == 0
-    assert degraded.generation == 1
-
-
-def test_superseded_memory_returns_redirect_only_and_never_payload():
-    original = _memory("m:old")
-    transition = MemoryTransition.create(
-        transition_id="transition:supersede",
-        memory_id=original.memory_id,
-        expected_generation=original.generation,
-        expected_state_sha256=original.sha256(),
-        kind=TRANSITION_SUPERSEDE,
-        evidence_refs=("evidence:supersede",),
-        successor_ref="m:new",
-    )
-    superseded, _ = apply_memory_transition(original, transition)
-
-    plan = build_retrieval_plan(_need(), (_candidate(superseded, 10_000, 10_000, 10_000),))
-
-    assert plan.selected == ()
-    result = plan.not_selected[0]
-    assert result.classification == CLASSIFICATION_SUPERSEDED
-    assert result.successor_ref == "m:new"
-    assert result.payload_ref is None
-    assert result.payload_sha256 is None
-
-
-def test_required_signal_axis_must_be_explicit_not_inferred():
-    memory = _memory("m:missing")
-    candidate = RetrievalCandidate.create(
-        memory=memory,
-        signals=(
-            _signal(AXIS_GOAL, 9_000),
-            _signal(AXIS_SEMANTIC, 9_000),
-        ),
-        candidate_evidence_refs=("candidate:missing",),
-    )
-
-    with pytest.raises(EmergentRetrievalError, match="missing required signal axes"):
-        build_retrieval_plan(_need(), (candidate,))
-
-
-def test_single_axis_need_is_forbidden():
-    with pytest.raises(EmergentRetrievalError, match="at least 2"):
-        RetrievalNeed.create(
-            need_id="need:bad",
-            axis_weights_bp={AXIS_SEMANTIC: 10_000},
-            min_overlap_axes=1,
-            evidence_refs=("need:bad:evidence",),
+        plan = build_retrieval_plan(
+            _need(), (_candidate(superseded, 10_000, 10_000, 10_000),)
         )
 
+        self.assertEqual(plan.selected, ())
+        result = plan.not_selected[0]
+        self.assertEqual(result.classification, CLASSIFICATION_SUPERSEDED)
+        self.assertEqual(result.successor_ref, "m:new")
+        self.assertIsNone(result.payload_ref)
+        self.assertIsNone(result.payload_sha256)
 
-def test_duplicate_memory_candidates_fail_closed():
-    memory = _memory("m:duplicate")
-    first = _candidate(memory, 5_000, 5_000, 5_000, "first")
-    second = _candidate(memory, 8_000, 8_000, 8_000, "second")
+    def test_required_signal_axis_must_be_explicit_not_inferred(self) -> None:
+        memory = _memory("m:missing")
+        candidate = RetrievalCandidate.create(
+            memory=memory,
+            signals=(
+                _signal(AXIS_GOAL, 9_000),
+                _signal(AXIS_SEMANTIC, 9_000),
+            ),
+            candidate_evidence_refs=("candidate:missing",),
+        )
 
-    with pytest.raises(EmergentRetrievalError, match="duplicate memory_id"):
-        build_retrieval_plan(_need(), (first, second))
+        with self.assertRaisesRegex(EmergentRetrievalError, "missing required signal axes"):
+            build_retrieval_plan(_need(), (candidate,))
+
+    def test_single_axis_need_is_forbidden(self) -> None:
+        with self.assertRaisesRegex(EmergentRetrievalError, "at least 2"):
+            RetrievalNeed.create(
+                need_id="need:bad",
+                axis_weights_bp={AXIS_SEMANTIC: 10_000},
+                min_overlap_axes=1,
+                evidence_refs=("need:bad:evidence",),
+            )
+
+    def test_duplicate_memory_candidates_fail_closed(self) -> None:
+        memory = _memory("m:duplicate")
+        first = _candidate(memory, 5_000, 5_000, 5_000, "first")
+        second = _candidate(memory, 8_000, 8_000, 8_000, "second")
+
+        with self.assertRaisesRegex(EmergentRetrievalError, "duplicate memory_id"):
+            build_retrieval_plan(_need(), (first, second))
+
+    def test_limit_does_not_leak_payload_reference_for_unselected_overflow(self) -> None:
+        first = _candidate(_memory("m:first"), 9_000, 9_000, 9_000, "first")
+        second = _candidate(_memory("m:second"), 8_000, 8_000, 8_000, "second")
+
+        plan = build_retrieval_plan(_need(limit=1), (second, first))
+
+        self.assertEqual([result.memory_id for result in plan.selected], ["m:first"])
+        overflow = next(
+            result for result in plan.not_selected if result.memory_id == "m:second"
+        )
+        self.assertEqual(overflow.classification, CLASSIFICATION_LIMIT)
+        self.assertIsNone(overflow.payload_ref)
+        self.assertIsNone(overflow.payload_sha256)
+
+    def test_signal_scores_are_bounded_integer_evidence_not_floats(self) -> None:
+        with self.assertRaisesRegex(EmergentRetrievalError, "integer basis-point"):
+            RetrievalSignal.create(
+                axis=AXIS_GOAL, score_bp=0.5, evidence_refs=("e",)
+            )
+        with self.assertRaisesRegex(EmergentRetrievalError, "between"):
+            RetrievalSignal.create(
+                axis=AXIS_GOAL, score_bp=10_001, evidence_refs=("e",)
+            )
+
+    def test_plan_preserves_exact_memory_and_signal_provenance(self) -> None:
+        memory = _memory("m:provenance")
+        candidate = _candidate(memory, 7_000, 8_000, 9_000, "prov")
+
+        result = build_retrieval_plan(_need(), (candidate,)).selected[0]
+
+        self.assertEqual(result.memory_state_sha256, memory.sha256())
+        self.assertEqual(result.provenance_refs, memory.provenance_refs)
+        self.assertEqual(
+            dict(result.signal_scores_bp),
+            {AXIS_CAUSAL: 9_000, AXIS_GOAL: 7_000, AXIS_SEMANTIC: 8_000},
+        )
+        evidence = dict(result.signal_evidence_refs)
+        self.assertEqual(evidence[AXIS_CAUSAL], ("signal:causal:prov",))
+        self.assertEqual(result.candidate_sha256, candidate.sha256())
 
 
-def test_limit_does_not_leak_payload_reference_for_unselected_overflow():
-    first = _candidate(_memory("m:first"), 9_000, 9_000, 9_000, "first")
-    second = _candidate(_memory("m:second"), 8_000, 8_000, 8_000, "second")
-
-    plan = build_retrieval_plan(_need(limit=1), (second, first))
-
-    assert [result.memory_id for result in plan.selected] == ["m:first"]
-    overflow = next(result for result in plan.not_selected if result.memory_id == "m:second")
-    assert overflow.classification == CLASSIFICATION_LIMIT
-    assert overflow.payload_ref is None
-    assert overflow.payload_sha256 is None
-
-
-def test_signal_scores_are_bounded_integer_evidence_not_floats():
-    with pytest.raises(EmergentRetrievalError, match="integer basis-point"):
-        RetrievalSignal.create(axis=AXIS_GOAL, score_bp=0.5, evidence_refs=("e",))
-    with pytest.raises(EmergentRetrievalError, match="between"):
-        RetrievalSignal.create(axis=AXIS_GOAL, score_bp=10_001, evidence_refs=("e",))
-
-
-def test_plan_preserves_exact_memory_and_signal_provenance():
-    memory = _memory("m:provenance")
-    candidate = _candidate(memory, 7_000, 8_000, 9_000, "prov")
-
-    result = build_retrieval_plan(_need(), (candidate,)).selected[0]
-
-    assert result.memory_state_sha256 == memory.sha256()
-    assert result.provenance_refs == memory.provenance_refs
-    assert dict(result.signal_scores_bp) == {
-        AXIS_CAUSAL: 9_000,
-        AXIS_GOAL: 7_000,
-        AXIS_SEMANTIC: 8_000,
-    }
-    evidence = dict(result.signal_evidence_refs)
-    assert evidence[AXIS_CAUSAL] == ("signal:causal:prov",)
-    assert result.candidate_sha256 == candidate.sha256()
+if __name__ == "__main__":
+    unittest.main()
