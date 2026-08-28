@@ -1,0 +1,68 @@
+{
+  "schema": "FRANKENSTEIN2_REVIEW_ONLY/v1",
+  "trigger": "4",
+  "workpackage_id": "F2-WP-105",
+  "generation": 1,
+  "review_mode": "REVIEW_ONLY",
+  "worker_id": "GPT-5.6-Sol",
+  "observed_f2_main_before": "5bf02182a5c5fab22439bbb5ca4c2ca543b24e4a",
+  "active_mutation_pointer": "F2-WP-105-G1-EXECUTION-COMPLETION-GPT56SOL-20260828T215528P0700",
+  "mutation_authority_claimed_by_this_review": false,
+  "donor": {
+    "repository": "gschaidergabriel/clay-global-research-entity",
+    "pull_request": 430,
+    "state": "OPEN_DRAFT",
+    "observed_head": "2f99e400f1c0ea1b8598573ab0fab993885cba5e",
+    "title": "effects: preserve UNKNOWN outcome after EntityOS runtime exceptions"
+  },
+  "checkpoint_discriminator": "Falsify post-process-start outcome classification: timeout and non-timeout exceptions after successful child start must not be upgraded to definite non-application without authority-owned verification.",
+  "source_observation": {
+    "classification": "SOURCE_PRESENT_REVIEWED",
+    "bridge_semantics": [
+      "A successful subprocess.Popen return is treated as the observed child-start boundary.",
+      "Exceptions from proc.communicate after that boundary are converted to EntityOSOutcomeUnknown.",
+      "EntityOSOutcomeUnknown declares replay_permitted=false.",
+      "A successful communicate with unresolved returncode=None is also converted to EntityOSOutcomeUnknown.",
+      "Best-effort kill/wait cleanup is explicitly non-retroactive: it cannot prove that an external effect did not already occur."
+    ],
+    "tests_observed_in_pr_patch": [
+      "test_entityos_bridge_types_timeout_after_popen_as_unknown",
+      "test_entityos_bridge_types_other_return_path_error_after_popen_as_unknown",
+      "test_entityos_bridge_real_harmless_child_start_then_timeout_is_unknown"
+    ],
+    "non_timeout_case": "StartedProcess.communicate raises OSError('result channel lost') after Popen returned; expected EntityOSOutcomeUnknown with replay_permitted=false plus best-effort kill/wait.",
+    "review_conclusion": "The CURRENT F2 checkpoint's source-level timeout/non-timeout post-start discriminator is satisfied by the retained PR430 donor source/test patch at the observed head. This does not mean the donor is adopted into F2, merged, or runtime-accepted."
+  },
+  "hosted_execution_observation": {
+    "workflow_name": "Trigger4 Effect UNKNOWN Outcome CI",
+    "workflow_run_id": 33204977783,
+    "observed_head": "2f99e400f1c0ea1b8598573ab0fab993885cba5e",
+    "status": "completed",
+    "conclusion": "failure",
+    "job_id": 98963609693,
+    "job_name": "effect-unknown-outcome",
+    "steps": [],
+    "classification": "PRE_STEP_CONTROL_PLANE_FAILURE_NOT_PRODUCT_LOGIC_FAILURE",
+    "test_execution_credit": 0,
+    "runtime_credit": 0
+  },
+  "hypothesis": "Once a child has crossed the Popen-return boundary, a missing or exceptional result path cannot establish non-application; UNKNOWN is the fail-closed classification until authority-owned verification resolves it.",
+  "counterhypothesis": "Some post-Popen exceptions could be proven pre-effect by a stronger authority-owned execution protocol with an explicit commit/apply acknowledgment boundary; PR430 does not currently provide such proof, so treating those exceptions as definitely FAILED would be unsound.",
+  "evidence_scope": "RETAINED_DONOR_SOURCE_REVIEW_PLUS_ZERO_STEP_HOSTED_NEGATIVE_CONTROL_ONLY",
+  "credits": {
+    "f2_source_review": 1,
+    "f2_runtime": 0,
+    "physical_grid10": 0,
+    "vps_assembly": 0,
+    "whole_frankenstein2": 0,
+    "whole_entityos_hcu": 0,
+    "training": 0
+  },
+  "no_duplicate_work": {
+    "new_effect_adapter_created": false,
+    "wp105_canonical_source_mutated": false,
+    "second_effect_authority_created": false,
+    "new_actions_dispatch_created": false
+  },
+  "next_exact_action": "The WP105 mutation-authority owner may consume/adapt the retained PR430 UNKNOWN-outcome semantics into the single canonical F2 effect path if still needed after source comparison. Before any runtime credit, execute the exact adopted/pinned source on an admitted surface whose job actually enters test steps; keep UNKNOWN fail-closed and forbid blind replay. Recheck the existing blocked transport rather than stampeding duplicate runs."
+}
