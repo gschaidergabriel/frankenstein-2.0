@@ -101,7 +101,7 @@ def _validate_manifest(manifest: dict[str, Any]) -> None:
         spend = Decimal(str(manifest.get("paid_spend_usd")))
     except (InvalidOperation, ValueError):
         raise RunPackageError("INVALID_PAID_SPEND") from None
-    if spend < 0:
+    if not spend.is_finite() or spend < 0:
         raise RunPackageError("INVALID_PAID_SPEND")
 
     if not isinstance(manifest.get("external_effects_executed"), bool):
@@ -136,6 +136,8 @@ def _validate_manifest(manifest: dict[str, Any]) -> None:
 
 def verify_package(package_dir: Path) -> dict[str, Any]:
     package_dir = Path(package_dir)
+    if package_dir.is_symlink():
+        raise RunPackageError("PACKAGE_DIRECTORY_SYMLINK_FORBIDDEN")
     manifest_path = package_dir / MANIFEST_NAME
     if not package_dir.is_dir() or not manifest_path.is_file():
         raise RunPackageError("PACKAGE_OR_MANIFEST_MISSING")
@@ -150,10 +152,12 @@ def verify_package(package_dir: Path) -> dict[str, Any]:
     indexed: dict[str, str] = manifest["files"]
     observed: dict[str, str] = {}
     for path in sorted(package_dir.rglob("*")):
-        if path == manifest_path or path.is_dir():
+        if path == manifest_path:
             continue
         if path.is_symlink():
             raise RunPackageError(f"PAYLOAD_SYMLINK_FORBIDDEN:{path.relative_to(package_dir).as_posix()}")
+        if path.is_dir():
+            continue
         rel = path.relative_to(package_dir).as_posix()
         _safe_relpath(rel)
         observed[rel] = _file_digest(path)
