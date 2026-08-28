@@ -1,0 +1,58 @@
+{
+  "schema": "FRANKENSTEIN2_WORKPACKAGE_REVIEW/v1",
+  "classification": "REVIEW_ONLY_PARALLEL_PROGRESS_VERIFICATION",
+  "trigger": "4",
+  "workpackage_id": "F2-WP-105",
+  "organ": "GPT-5.6 Sol / ChatGPT Triggerword-4 continuation organ",
+  "mutation_authority": false,
+  "canonical_implementation_mutated": false,
+  "observed_f2_head": "b72fe7da93be0da19b1401c4a4bbb41a1ccf1b1e",
+  "parallel_progress": {
+    "commit": "b72fe7da93be0da19b1401c4a4bbb41a1ccf1b1e",
+    "message": "F2-WP-105: add immutable semantic effect request identity",
+    "path": "src/frankenstein2/effect_request_identity.py",
+    "blob_sha": "fca6ca318091ec391df663f081f46ae40e5e153d",
+    "assessment": "USEFUL_PRIMITIVE_ADDED_NOT_YET_END_TO_END_BOUND",
+    "fields_match_current_entityos_effect_request_shape": [
+      "user_id",
+      "session_id",
+      "capability",
+      "target",
+      "argv",
+      "expected_generation"
+    ],
+    "policy_duplication_observed": false
+  },
+  "remaining_gap": {
+    "status": "NARROWED_NOT_CLOSED",
+    "evidence": [
+      "Current canonical_effect_authority_bridge.py remains blob 3ac9ceb4d2399fa82eafacb24aca8b469cd246ec and its EffectCallIntent/CanonicalEffectAuthorityEvidence do not yet carry or verify request_sha256.",
+      "Current effect_executor_interlock.py remains blob 7f956f0520dfe7d7e8dc8bcd86ae1c2a1b10f7d3 and its ExternalGateEvidence/executor boundary do not yet verify semantic request identity.",
+      "The new primitive creates a deterministic digest but the canonical authority adapter must echo/bind the same digest and the executor boundary must verify it before dispatch."
+    ],
+    "counterhypothesis": "The active WP105 lane may already have an uncommitted or parallel successor wiring this primitive into bridge/evidence/interlock.",
+    "falsifier": "Observe a current commit where EffectCallIntent, canonical authority evidence, and exact executor boundary all bind the same immutable request identity plus deterministic mismatch tests."
+  },
+  "next_exact_action_for_active_wp105_lane": "Wire EffectRequestIdentity/request_sha256 through EffectCallIntent -> canonical authority adapter/evidence -> CanonicalEffectBinding/ExternalGateEvidence -> executor pre-dispatch validation, then run the deterministic no-real-effect substitution matrix. Preserve PENDING-before-dispatch and UNKNOWN/no-blind-replay semantics.",
+  "required_negative_tests": [
+    "same call ids + different target => zero dispatch",
+    "same call ids + different capability => zero dispatch",
+    "same call ids + different argv => zero dispatch",
+    "same call ids + different expected_generation => zero dispatch",
+    "authority evidence request_sha256 mismatch => zero dispatch",
+    "executor-bound request_sha256 mismatch => zero dispatch",
+    "DENY/REQUIRE_CONFIRMATION/DEGRADE_TO_PROPOSAL/UNKNOWN => zero dispatch",
+    "executor exception after entry => UNKNOWN and no automatic replay"
+  ],
+  "credit_boundary": {
+    "semantic_request_identity_primitive_source": "PRESENT",
+    "semantic_request_end_to_end_binding": "NOT_YET_OBSERVED",
+    "runtime_credit_added": 0,
+    "real_effect_credit_added": 0,
+    "completion_credit_added": 0,
+    "physical_grid10_runtime_credit_added": 0,
+    "whole_frankenstein2_runtime_credit_added": 0,
+    "whole_entityos_hcu_runtime_credit_added": 0,
+    "training_credit_added": 0
+  }
+}
