@@ -1,0 +1,47 @@
+name: Frankenstein 2.0 Structured Execution Receipt CI
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'src/frankenstein2/structured_execution_receipt.py'
+      - 'src/frankenstein2/effect_invocation_correlation.py'
+      - 'src/state/execution_completion.py'
+      - 'tests/test_structured_execution_receipt.py'
+      - '.github/workflows/structured-execution-receipt-ci.yml'
+  pull_request:
+    paths:
+      - 'src/frankenstein2/structured_execution_receipt.py'
+      - 'src/frankenstein2/effect_invocation_correlation.py'
+      - 'src/state/execution_completion.py'
+      - 'tests/test_structured_execution_receipt.py'
+      - '.github/workflows/structured-execution-receipt-ci.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  structured-execution-receipt:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      PYTHONPATH: .:src
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Compile structured receipt boundary
+        run: >-
+          python -m py_compile
+          src/frankenstein2/structured_execution_receipt.py
+          src/frankenstein2/effect_invocation_correlation.py
+          src/state/execution_completion.py
+          tests/test_structured_execution_receipt.py
+      - name: Run structured receipt and success-allowlist falsifiers
+        run: python tests/test_structured_execution_receipt.py
+      - name: Run execution lineage regressions
+        run: python tests/test_execution_completion.py
+      - name: Run effect correlation regressions
+        run: python tests/test_effect_invocation_correlation.py
