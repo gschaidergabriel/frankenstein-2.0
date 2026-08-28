@@ -26,6 +26,7 @@ from .effect_executor_interlock import EffectExecutor
 BINDING_SCHEMA = "ENTITYOS_EFFECT_AUTHORITY_IMPLEMENTATION_BINDING/v1"
 ATTESTATION_SCHEMA = "ENTITYOS_EFFECT_AUTHORITY_CURRENT_EPOCH_ATTESTATION/v1"
 ATTESTATION_STATUS = "CURRENT_EPOCH_COMPATIBILITY_ATTESTED_NO_AUTHORITY_CHANGE"
+ADMITTED_AUTHORITY_STATUS = "ADMITTED_STEERING_AUTHORITY"
 EXPECTED_API_VERSION = "ENTITYOS_EFFECT_AUTHORITY_PY_API/v1"
 EXPECTED_REPOSITORY = "gschaidergabriel/clay-global-research-entity"
 
@@ -134,7 +135,8 @@ def load_current_entityos_effect_authority_binding(
 
     The caller supplies documents read from the canonical research repository.  This
     function verifies their declared identity relationship; it does not discover or
-    self-select authority.
+    self-select authority.  An attestation sourced from a NON_AUTHORITY steering surface
+    is rejected even when that surface says authority_change=false.
     """
     binding = _object("binding_document", binding_document)
     attestation = _object("attestation_document", attestation_document)
@@ -215,6 +217,11 @@ def load_current_entityos_effect_authority_binding(
     ):
         _require_equal(key, actual, expected)
 
+    _require_equal(
+        "authority_status",
+        epoch.get("authority_status"),
+        ADMITTED_AUTHORITY_STATUS,
+    )
     if epoch.get("authority_change") is not False:
         raise CurrentEntityOSEffectAuthorityBindingError("CURRENT_EPOCH_AUTHORITY_CHANGED")
     if resolution.get("current_epoch_authority_binding_verified") is not True:
@@ -276,6 +283,7 @@ def dispatch_with_current_entityos_authority(
 
 
 __all__ = [
+    "ADMITTED_AUTHORITY_STATUS",
     "ATTESTATION_SCHEMA",
     "ATTESTATION_STATUS",
     "BINDING_SCHEMA",
