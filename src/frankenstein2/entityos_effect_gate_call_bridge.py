@@ -1,20 +1,25 @@
 """Call-identity handshake inside the bound canonical EntityOS EffectGate callback.
 
 The current canonical EffectGate is monolithic: it creates an EffectJournal ``PENDING``
-row and then calls its EntityOS bridge.  Frankenstein 2.0 therefore cannot safely mint
-or guess the effect id before the canonical gate.  This module provides a deterministic
+row and then calls its EntityOS bridge. Frankenstein 2.0 therefore cannot safely mint
+or guess the effect id before the canonical gate. This module provides a deterministic
 handshake for use *inside that bridge callback*: F2 encodes the exact result-free call
 identity and request context into the EffectRequest target, then resolves the unique
 canonical PENDING row whose redacted target/argv receipts match that exact request.
 
-A PENDING row alone is not policy authority.  Production callers must reach this code
+The exact semantic EntityOS request is also materialized as ``EffectRequestIdentity`` and
+bound through ``request_sha256`` into the PRE binding and gate evidence. That prevents a
+PENDING row for semantic request B from being attached to call A merely because other
+correlation identifiers happen to match.
+
+A PENDING row alone is not policy authority. Production callers must reach this code
 through the exact source-bound canonical EffectGate; direct ``EffectJournal.begin`` is
-not an authorization path.  The returned ExternalGateEvidence is correlation evidence
+not an authorization path. The returned ExternalGateEvidence is correlation evidence
 for the already-crossed canonical gate boundary, not a second policy decision.
 """
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 import hashlib
 import json
 from typing import Any, Iterable, Mapping, Sequence
@@ -22,6 +27,7 @@ from typing import Any, Iterable, Mapping, Sequence
 from .canonical_effect_authority_bridge import EffectCallIntent
 from .effect_executor_interlock import ExternalGateDecision, ExternalGateEvidence
 from .effect_invocation_correlation import EffectCallBinding, EffectCorrelationStage
+from .effect_request_identity import EffectRequestIdentity
 from .entityos_effect_authority_binding import (
     CURRENT_ENTITYOS_EFFECT_AUTHORITY_BINDING,
     EntityOSEffectAuthoritySourceBinding,
@@ -101,6 +107,53 @@ def canonical_entityos_call_target(
     )
 
 
+def attach_entityos_request_identity(
+    intent: EffectCallIntent,
+    context: EntityOSEffectCallContext,
+) -> EffectCallIntent:
+    """Attach the exact semantic request that the bound EffectGate will evaluate.
+
+    The canonical target is derived from immutable call/context identity first, avoiding
+    any self-referential request-digest construction. The resulting request digest then
+    binds that exact target, argv, owner, capability and generation end to end.
+    """
+    if not isinstance(intent, EffectCallIntent):
+        raise EntityOSEffectGateCallBridgeError("INVALID_EFFECT_CALL_INTENT")
+    if intent.request is not None:
+        raise EntityOSEffectGateCallBridgeError("EFFECT_REQUEST_IDENTITY_ALREADY_BOUND")
+    if not isinstance(context, EntityOSEffectCallContext):
+        raise EntityOSEffectGateCallBridgeError("INVALID_EFFECT_CALL_CONTEXT")
+    request = EffectRequestIdentity(
+        user_id=context.user_id,
+        session_id=context.session_id,
+        capability="entityos.exec",
+        target=canonical_entityos_call_target(intent, context),
+        argv=context.argv,
+        expected_generation=context.generation,
+    )
+    return replace(intent, request=request)
+
+
+def _validate_semantic_request(
+    intent: EffectCallIntent,
+    context: EntityOSEffectCallContext,
+) -> EffectRequestIdentity:
+    request = intent.request
+    if not isinstance(request, EffectRequestIdentity):
+        raise EntityOSEffectGateCallBridgeError("SEMANTIC_EFFECT_REQUEST_UNRESOLVED")
+    expected = EffectRequestIdentity(
+        user_id=context.user_id,
+        session_id=context.session_id,
+        capability="entityos.exec",
+        target=canonical_entityos_call_target(intent, context),
+        argv=context.argv,
+        expected_generation=context.generation,
+    )
+    if request != expected:
+        raise EntityOSEffectGateCallBridgeError("SEMANTIC_EFFECT_REQUEST_MISMATCH")
+    return request
+
+
 def _expected_target_receipt(target: str) -> dict[str, object]:
     raw = target.encode("utf-8")
     return {
@@ -152,8 +205,9 @@ def bind_unique_pending_entityos_effect(
         raise EntityOSEffectGateCallBridgeError("INVALID_EFFECT_CALL_CONTEXT")
     if not isinstance(binding, EntityOSEffectAuthoritySourceBinding):
         raise EntityOSEffectGateCallBridgeError("INVALID_AUTHORITY_BINDING")
+    request = _validate_semantic_request(intent, context)
 
-    target = canonical_entityos_call_target(intent, context)
+    target = request.target
     expected_target = _expected_target_receipt(target)
     expected_argv = _expected_argv_receipt(context.argv)
     matches: list[Mapping[str, Any]] = []
@@ -163,9 +217,9 @@ def bind_unique_pending_entityos_effect(
             raise EntityOSEffectGateCallBridgeError("INVALID_EFFECT_ROW")
         if row.get("status") != "PENDING":
             continue
-        if row.get("capability") != "entityos.exec":
+        if row.get("capability") != request.capability:
             continue
-        if row.get("user_id") != context.user_id:
+        if row.get("user_id") != request.user_id:
             continue
         if int(row.get("requested_generation", -1)) != context.generation:
             continue
@@ -195,6 +249,7 @@ def bind_unique_pending_entityos_effect(
         delegation_id=intent.delegation_id,
         child_identity_sha256=intent.child_identity_sha256,
         stage=EffectCorrelationStage.PREPARED,
+        request=request,
     )
     gate = ExternalGateEvidence(
         authority_ref=binding.authority_ref(),
@@ -206,6 +261,7 @@ def bind_unique_pending_entityos_effect(
         tool_use_id=intent.tool_use_id,
         delegation_id=intent.delegation_id,
         child_identity_sha256=intent.child_identity_sha256,
+        request_sha256=request.sha256(),
     )
     return PendingEntityOSEffectBinding(
         effect_id=effect_id,
@@ -218,6 +274,7 @@ __all__ = [
     "EntityOSEffectCallContext",
     "EntityOSEffectGateCallBridgeError",
     "PendingEntityOSEffectBinding",
+    "attach_entityos_request_identity",
     "bind_unique_pending_entityos_effect",
     "canonical_entityos_call_target",
 ]
