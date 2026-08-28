@@ -6,6 +6,8 @@ on:
     paths:
       - 'tools/validate_current_checkpoint.py'
       - 'tests/test_validate_current_checkpoint.py'
+      - 'tools/validate_checkpoint.py'
+      - 'tests/test_validate_checkpoint.py'
       - 'checkpoints/CURRENT.json'
       - 'workpackages/STATE.json'
       - 'workpackages/active/F2-WP-002.json'
@@ -25,14 +27,23 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-      - name: Compile validator
-        run: python -m py_compile tools/validate_current_checkpoint.py tests/test_validate_current_checkpoint.py
-      - name: Deterministic regression tests
+      - name: Compile validators
+        run: >-
+          python -m py_compile
+          tools/validate_current_checkpoint.py
+          tests/test_validate_current_checkpoint.py
+          tools/validate_checkpoint.py
+          tests/test_validate_checkpoint.py
+      - name: Core deterministic regression tests
         run: python tests/test_validate_current_checkpoint.py -v
-      - name: Validate canonical current checkpoint against claim, active pointer and state
+      - name: Repository-bound deterministic regression tests
+        run: python tests/test_validate_checkpoint.py -v
+      - name: Validate canonical current checkpoint against explicit claim, active pointer and state
         run: >-
           python tools/validate_current_checkpoint.py
           checkpoints/CURRENT.json
           --claim workpackages/claims/F2-WP-002_G2_GPT56SOL_cd0e056a.json
           --active workpackages/active/F2-WP-002.json
           --state workpackages/STATE.json
+      - name: Validate canonical current checkpoint through repository binding
+        run: python tools/validate_checkpoint.py --repo-root . --json
