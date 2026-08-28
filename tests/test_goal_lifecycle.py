@@ -28,8 +28,8 @@ class GoalLifecycleTests(unittest.TestCase):
             provenance_refs=(f"agency:{goal_id}",),
         )
 
-    def state(self, *goals: GoalRecord, generation: int = 0) -> GoalState:
-        return GoalState.create(state_id="goal-state-1", generation=generation, goals=goals)
+    def state(self, *goals: GoalRecord) -> GoalState:
+        return GoalState.create(state_id="goal-state-1", goals=goals)
 
     def patch(
         self,
@@ -60,13 +60,12 @@ class GoalLifecycleTests(unittest.TestCase):
         )
 
     def test_new_goal_is_candidate_only(self) -> None:
-        goal = self.candidate()
-        self.assertEqual(goal.status, GOAL_CANDIDATE)
-        state = self.state(goal)
+        state = self.state(self.candidate())
+        self.assertEqual(state.generation, 0)
         self.assertEqual(state.goals[0].status, GOAL_CANDIDATE)
         self.assertEqual(state.schema, GOAL_STATE_SCHEMA)
 
-    def test_generation_zero_rejects_pre_adopted_goal(self) -> None:
+    def test_public_create_rejects_pre_adopted_goal_at_generation_zero(self) -> None:
         active = GoalRecord(
             goal_id="goal-1",
             summary="caller tried to pre-adopt",
@@ -74,52 +73,80 @@ class GoalLifecycleTests(unittest.TestCase):
             provenance_refs=("source:1",),
             status=GOAL_ACTIVE,
         )
-        with self.assertRaisesRegex(GoalLifecycleError, "new goals must enter as CANDIDATE"):
-            self.state(active)
+        with self.assertRaisesRegex(GoalLifecycleError, "CANDIDATE"):
+            GoalState.create(state_id="goal-state-1", goals=(active,))
+
+    def test_public_create_rejects_arbitrary_nonzero_rehydration(self) -> None:
+        with self.assertRaisesRegex(GoalLifecycleError, "genesis-only"):
+            GoalState.create(
+                state_id="goal-state-1",
+                generation=2,
+                goals=(self.candidate(),),
+            )
+
+    def test_public_constructor_rejects_pre_adopted_goal(self) -> None:
+        active = GoalRecord(
+            goal_id="goal-1",
+            summary="caller tried constructor bypass",
+            priority_ppm=1,
+            provenance_refs=("source:1",),
+            status=GOAL_ACTIVE,
+        )
+        with self.assertRaisesRegex(GoalLifecycleError, "CANDIDATE"):
+            GoalState(
+                schema=GOAL_STATE_SCHEMA,
+                state_id="goal-state-1",
+                generation=0,
+                goals=(active,),
+            )
 
     def test_candidate_to_trial_is_explicit_transition(self) -> None:
         state = self.state(self.candidate())
         next_state, receipt = state.apply(
-            self.patch(state, status_changes=(self.change("goal-1", GOAL_CANDIDATE, GOAL_TRIAL),))
+            self.patch(
+                state,
+                status_changes=(self.change("goal-1", GOAL_CANDIDATE, GOAL_TRIAL),),
+            )
         )
         self.assertEqual(next_state.goals[0].status, GOAL_TRIAL)
         self.assertEqual(receipt.schema, GOAL_TRANSITION_SCHEMA)
-        self.assertEqual(receipt.changed_goal_ids, ("goal-1",))
 
     def test_candidate_to_active_is_explicit_adoption(self) -> None:
         state = self.state(self.candidate())
-        next_state, _ = state.apply(
-            self.patch(state, status_changes=(self.change("goal-1", GOAL_CANDIDATE, GOAL_ACTIVE),))
+        next_state, receipt = state.apply(
+            self.patch(
+                state,
+                status_changes=(self.change("goal-1", GOAL_CANDIDATE, GOAL_ACTIVE),),
+            )
         )
         self.assertEqual(next_state.goals[0].status, GOAL_ACTIVE)
+        self.assertEqual(receipt.changed_goal_ids, ("goal-1",))
 
-    def test_active_can_hold(self) -> None:
+    def test_active_hold_resume_requires_two_explicit_transitions(self) -> None:
         state0 = self.state(self.candidate())
         state1, _ = state0.apply(
-            self.patch(state0, status_changes=(self.change("goal-1", GOAL_CANDIDATE, GOAL_ACTIVE),))
+            self.patch(
+                state0,
+                transition_id="adopt",
+                status_changes=(self.change("goal-1", GOAL_CANDIDATE, GOAL_ACTIVE),),
+            )
         )
         state2, _ = state1.apply(
             self.patch(
                 state1,
-                transition_id="transition-2",
+                transition_id="hold",
                 status_changes=(self.change("goal-1", GOAL_ACTIVE, GOAL_HOLD),),
             )
         )
-        self.assertEqual(state2.goals[0].status, GOAL_HOLD)
-
-    def test_hold_can_resume_active(self) -> None:
-        held = GoalRecord(
-            goal_id="goal-1",
-            summary="held explicit goal",
-            priority_ppm=100,
-            provenance_refs=("source:1",),
-            status=GOAL_HOLD,
+        state3, _ = state2.apply(
+            self.patch(
+                state2,
+                transition_id="resume",
+                status_changes=(self.change("goal-1", GOAL_HOLD, GOAL_ACTIVE),),
+            )
         )
-        state = self.state(held, generation=2)
-        next_state, _ = state.apply(
-            self.patch(state, status_changes=(self.change("goal-1", GOAL_HOLD, GOAL_ACTIVE),))
-        )
-        self.assertEqual(next_state.goals[0].status, GOAL_ACTIVE)
+        self.assertEqual((state1.generation, state2.generation, state3.generation), (1, 2, 3))
+        self.assertEqual(state3.goals[0].status, GOAL_ACTIVE)
 
     def test_dropped_is_terminal(self) -> None:
         with self.assertRaisesRegex(GoalLifecycleError, "illegal goal transition"):
@@ -159,17 +186,15 @@ class GoalLifecycleTests(unittest.TestCase):
             )
 
     def test_empty_patch_rejected(self) -> None:
-        state = self.state()
         with self.assertRaisesRegex(GoalLifecycleError, "at least one explicit change"):
-            self.patch(state)
+            self.patch(self.state())
 
     def test_add_and_transition_same_goal_in_one_patch_rejected(self) -> None:
         state = self.state()
-        candidate = self.candidate()
         with self.assertRaisesRegex(GoalLifecycleError, "added and lifecycle-transitioned"):
             self.patch(
                 state,
-                add_candidates=(candidate,),
+                add_candidates=(self.candidate(),),
                 status_changes=(self.change("goal-1", GOAL_CANDIDATE, GOAL_ACTIVE),),
             )
 
@@ -200,7 +225,7 @@ class GoalLifecycleTests(unittest.TestCase):
             transition_refs=("decision:1",),
             status_changes=(self.change("goal-1", GOAL_CANDIDATE, GOAL_ACTIVE),),
         )
-        with self.assertRaisesRegex(GoalLifecycleError, "stale or mismatched goal-state digest"):
+        with self.assertRaisesRegex(GoalLifecycleError, "stale or mismatched"):
             state.apply(patch)
 
     def test_wrong_state_id_rejected(self) -> None:
@@ -232,7 +257,10 @@ class GoalLifecycleTests(unittest.TestCase):
         state = self.state(self.candidate())
         with self.assertRaisesRegex(GoalLifecycleError, "status mismatch"):
             state.apply(
-                self.patch(state, status_changes=(self.change("goal-1", GOAL_TRIAL, GOAL_ACTIVE),))
+                self.patch(
+                    state,
+                    status_changes=(self.change("goal-1", GOAL_TRIAL, GOAL_ACTIVE),),
+                )
             )
 
     def test_duplicate_goal_ids_rejected(self) -> None:
@@ -249,6 +277,14 @@ class GoalLifecycleTests(unittest.TestCase):
                     self.change("goal-1", GOAL_CANDIDATE, GOAL_ACTIVE),
                 ),
             )
+
+    def test_add_candidate_after_genesis_is_patch_only_and_stays_candidate(self) -> None:
+        state0 = self.state(self.candidate("existing"))
+        state1, _ = state0.apply(
+            self.patch(state0, add_candidates=(self.candidate("new"),))
+        )
+        statuses = {goal.goal_id: goal.status for goal in state1.goals}
+        self.assertEqual(statuses, {"existing": GOAL_CANDIDATE, "new": GOAL_CANDIDATE})
 
     def test_digest_and_receipt_are_deterministic_under_input_order(self) -> None:
         left = self.state(self.candidate("b"), self.candidate("a"))
