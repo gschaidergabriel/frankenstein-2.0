@@ -332,7 +332,7 @@ class PredictionContract:
             unexpected_paths=unexpected,
             type_mismatch_paths=type_mismatch,
             numeric_absolute_residuals=numeric,
-            numeric_l1=sum(value for _, value in numeric),
+            numeric_l1=float(sum(value for _, value in numeric)),
             mismatch_count=mismatch_count,
             expected_leaf_count=expected_leaf_count,
             observed_leaf_count=observed_leaf_count,
