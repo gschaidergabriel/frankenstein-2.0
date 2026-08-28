@@ -1,0 +1,35 @@
+name: F2 WP204 G2 Rehydration Fence CI
+
+on:
+  push:
+    branches:
+      - chatgpt/trigger4-wp204-g2-rehydration-fence-20260829
+    paths:
+      - 'src/frankenstein2/goal_lifecycle.py'
+      - 'tests/test_goal_lifecycle.py'
+      - '.github/workflows/wp204-g2-rehydration-fence-ci.yml'
+  pull_request:
+    paths:
+      - 'src/frankenstein2/goal_lifecycle.py'
+      - 'tests/test_goal_lifecycle.py'
+      - '.github/workflows/wp204-g2-rehydration-fence-ci.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  deterministic:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Compile
+        run: python -m py_compile src/frankenstein2/goal_lifecycle.py tests/test_goal_lifecycle.py
+      - name: Canonical Goal lifecycle suite including G2 constructor regressions
+        env:
+          PYTHONPATH: src
+        run: python tests/test_goal_lifecycle.py -v
