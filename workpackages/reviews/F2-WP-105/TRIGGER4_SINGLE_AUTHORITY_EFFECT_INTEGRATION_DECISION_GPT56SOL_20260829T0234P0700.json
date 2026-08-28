@@ -1,0 +1,83 @@
+{
+  "schema": "FRANKENSTEIN2_WORKPACKAGE_REVIEW/v1",
+  "trigger": "4",
+  "classification": "REVIEW_ONLY_ARCHITECTURE_DECISION_AND_FALSIFIER",
+  "workpackage_id": "F2-WP-105",
+  "generation": 1,
+  "organ": "GPT-5.6 Sol / ChatGPT Triggerword-4 continuation organ",
+  "observed_f2_main_before_write": "487dcf1b9d31480efdf09a3d3f1ab240184b3cc8",
+  "canonical_wp105_source_modified_by_this_review": false,
+  "new_mutation_authority_created": false,
+  "decision": {
+    "selected_shape": "B_SINGLE_CALL_ENTITYOS_TRANSACTION_OBSERVER",
+    "summary": "For EntityOS-backed effects, Frankenstein should delegate the whole canonical effect transaction exactly once to the bound EntityOS EffectGate.execute() path and observe/correlate its returned canonical effect_id and final journal evidence. Frankenstein must not perform a second executor dispatch for the same canonical effect transaction.",
+    "reason": [
+      "The exact bound EntityOS EffectGate.execute() already owns validation, EffectJournal.begin(), canonical effect_id allocation, PENDING persistence, the state.noop or EntityOSBridge execution boundary, and journal finalization.",
+      "The exact bound EntityOSBridge.run(argv) does not expose a separate pre-dispatch canonical handle carrying F2 call identities, so the current F2 authorize-then-separate-executor shape cannot be mapped directly without either changing canonical EntityOS or creating a second dispatch path.",
+      "Treating EffectGate.execute() as the whole canonical transaction preserves the existing EffectGate+EffectJournal authority and minimizes cross-repository authority surface.",
+      "The current F2 semantic EffectRequestIdentity/request_sha256, structured execution receipt, and completion lineage remain useful as observer/correlation evidence, but they do not become a second effect authority."
+    ]
+  },
+  "rejected_shortcuts": [
+    "scan the effects table for the newest PENDING row",
+    "infer effect ownership from timestamps or adjacency",
+    "synthesize or caller-author a canonical effect_id in Frankenstein",
+    "call EffectGate.execute() to obtain evidence and then dispatch the same effect again through the F2 executor",
+    "promote executor or transport success directly to verified world completion"
+  ],
+  "required_adapter_contract": {
+    "input": "immutable F2 EffectRequestIdentity plus exact current EntityOS authority binding",
+    "one_canonical_call": "construct the exact bound EntityOS EffectRequest and call the exact bound EffectGate.execute() once",
+    "correlation": "bind the returned canonical effect_id to the original request_sha256 and immutable F2 call lineage without database-neighbor inference",
+    "observation": "read only evidence belonging to that exact effect_id/call; preserve VERIFIED, DENIED, FAILED, STALE_OUTCOME and UNKNOWN_AFTER_RESTART distinctions",
+    "completion": "executor/call return remains EXECUTION_RECORDED until an admitted structured verification receipt promotes completion; UNKNOWN stays non-replayable",
+    "authority": "Frankenstein is adapter/observer lineage only; EffectGate+EffectJournal remain the sole canonical effect authority"
+  },
+  "highest_information_falsifier": {
+    "name": "OVERLAPPING_AB_SINGLE_CALL_BIJECTION_ZERO_EFFECT",
+    "effect_class": "state.noop only or equivalent zero-real-effect canonical boundary",
+    "steps": [
+      "Create two same-session semantic requests A and B with distinct request_sha256 and distinct immutable F2 call identities.",
+      "Submit each exactly once through the bound EntityOS EffectGate.execute() adapter; never query by latest-row or time proximity.",
+      "Prove each returned effect_id maps bijectively to its own request_sha256/call identity and exactly one canonical journal row.",
+      "Force or simulate overlapping execution scheduling where the observed completion order is B then A while preserving A/B identity.",
+      "Attempt to swap request_sha256, effect_id, or call identity during observation/completion and require fail-closed behavior with zero second dispatch.",
+      "Create/recover a PENDING journal case and prove UNKNOWN_AFTER_RESTART remains unknown and cannot authorize replay.",
+      "Require separate structured completion verification; an executor return by itself cannot mint VERIFIED_APPLIED."
+    ],
+    "acceptance": [
+      "exactly one canonical EffectGate.execute() call per admitted logical effect request",
+      "exactly one canonical effect_id/journal row per request",
+      "A/B bijection survives reversed completion order",
+      "all identity substitutions fail closed",
+      "UNKNOWN_AFTER_RESTART yields zero automatic replay",
+      "no second EffectGate/EffectJournal/effect database/effect executor authority is introduced"
+    ]
+  },
+  "current_evidence": {
+    "semantic_request_bridge_component_ci": "PASS",
+    "current_binding_matrix": {
+      "head": "487dcf1b9d31480efdf09a3d3f1ab240184b3cc8",
+      "workflow_run_id": 33204415861,
+      "job_id": 98961694600,
+      "conclusion": "success",
+      "scope": "F2 deterministic source/repository CI only"
+    },
+    "exact_bound_entityos_runtime": "NOT_YET_OBSERVED",
+    "runtime_source_access_blocker": "The current exact-source probe launched from public frankenstein-2.0 cannot read the private clay-global-research-entity repository with its default token or anonymous fetch. This is source-acquisition infrastructure evidence, not an EntityOS logic negative."
+  },
+  "counterhypothesis": "Shape A, an EntityOS-owned prepare/execute/finalize API exposing an immutable PENDING admission handle, may become preferable if overlapping-call or cancellation requirements cannot be represented safely by the single-call observer adapter without sacrificing pre-dispatch interlock semantics. The A/B falsifier should discriminate this before changing canonical EntityOS authority APIs.",
+  "credit_boundary": {
+    "architecture_decision_review": "PRESENT",
+    "component_source_ci": "PASS_AT_RECORDED_HEAD",
+    "exact_entityos_effectgate_runtime_credit_added": 0,
+    "exact_entityos_effectjournal_runtime_credit_added": 0,
+    "real_effect_runtime_credit_added": 0,
+    "physical_grid10_runtime_credit_added": 0,
+    "whole_frankenstein2_runtime_credit_added": 0,
+    "whole_entityos_hcu_runtime_credit_added": 0,
+    "jspace_model_runtime_credit_added": 0,
+    "training_credit_added": 0
+  },
+  "next_exact_action": "Under the already-active F2-WP-105 mutation authority, implement the minimal B_SINGLE_CALL_ENTITYOS_TRANSACTION_OBSERVER adapter without changing EffectGate+EffectJournal authority; then execute OVERLAPPING_AB_SINGLE_CALL_BIJECTION_ZERO_EFFECT from an authorized context that can access the exact private EntityOS source tuple. If the single-call shape cannot satisfy the A/B identity and pre-dispatch invariants, record that falsification and promote Shape A for explicit canonical API design rather than inventing a second dispatch path."
+}
