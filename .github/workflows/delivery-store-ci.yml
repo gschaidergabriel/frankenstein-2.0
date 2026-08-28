@@ -1,0 +1,31 @@
+name: F2 WP103 Delivery Store CI
+
+on:
+  push:
+    paths:
+      - 'src/state/delivery_lifecycle.py'
+      - 'src/state/delivery_store.py'
+      - 'src/state/unifieddb_identity.py'
+      - 'src/frankenstein2/causal_identity.py'
+      - 'tests/test_delivery_lifecycle.py'
+      - 'tests/test_delivery_store.py'
+      - '.github/workflows/delivery-store-ci.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  delivery-store:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+      - name: Run lifecycle and canonical-store falsifiers
+        run: |
+          python -m unittest -v \
+            tests/test_delivery_lifecycle.py \
+            tests/test_delivery_store.py
