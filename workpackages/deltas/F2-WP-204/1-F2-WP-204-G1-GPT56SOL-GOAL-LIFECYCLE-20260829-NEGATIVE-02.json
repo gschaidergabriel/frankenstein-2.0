@@ -1,0 +1,64 @@
+{
+  "schema": "FRANKENSTEIN2_WORKPACKAGE_DELTA/v1",
+  "workpackage_id": "F2-WP-204",
+  "generation": 1,
+  "claim_id": "F2-WP-204-G1-GPT56SOL-GOAL-LIFECYCLE-20260829",
+  "worker_id": "GPT-5.6-Sol-REVIEW",
+  "base_commit": "85ff9263f7ca51c54922d60f5a38bd8be766f4c6",
+  "observed_main_commit": "85ff9263f7ca51c54922d60f5a38bd8be766f4c6",
+  "owned_paths": [],
+  "result_class": "NEGATIVE_RESULT",
+  "source_commits": [
+    "485574e2612ba3150adf16b68a2ef1df568177df",
+    "22dc826208217ca48bf46dd56a8ca9ccf62de0f6",
+    "85ff9263f7ca51c54922d60f5a38bd8be766f4c6"
+  ],
+  "receipts": [],
+  "falsifiers": [
+    "DUPLICATE_EVIDENCE_REFERENCE_FAIL_CLOSED",
+    "SELF_OR_MODEL_DERIVED_ADOPTION_EVIDENCE_REJECTED",
+    "CROSS_GOAL_LIFECYCLE_TRANSITION_RECEIPT_REJECTED"
+  ],
+  "observations": [
+    {
+      "class": "CURRENT_SOURCE",
+      "source": "src/frankenstein2/goal_lifecycle.py",
+      "source_blob_sha": "47890545578d1bec2028b3071816e3cc64f1fbbc",
+      "finding": "_refs canonicalizes through a Python set and therefore silently collapses duplicate evidence/provenance references instead of rejecting ambiguous duplicate evidence."
+    },
+    {
+      "class": "CURRENT_SOURCE",
+      "source": "src/frankenstein2/goal_lifecycle.py",
+      "source_blob_sha": "47890545578d1bec2028b3071816e3cc64f1fbbc",
+      "finding": "GoalStatusChange accepts arbitrary non-empty evidence reference strings for CANDIDATE->ACTIVE adoption; no evidence-origin/authority discriminator rejects model/self-derived adoption evidence."
+    },
+    {
+      "class": "CURRENT_SOURCE_AND_TEST",
+      "source": "src/frankenstein2/goal_lifecycle.py + tests/test_goal_lifecycle.py",
+      "source_blob_sha": "47890545578d1bec2028b3071816e3cc64f1fbbc",
+      "test_blob_sha": "f3b6a2d64894b852ca0eba00568ac1b914211c99",
+      "finding": "GoalStatePatch permits multiple distinct goal status changes in one patch, and the deterministic-order test explicitly exercises a two-goal transition receipt. This conflicts with the admitted WP204 falsifier requiring cross-goal transition receipts to fail closed."
+    }
+  ],
+  "contradictions": [
+    "The admitted F2-WP-204 falsifier delta requires empty/malformed/ambiguous/self-derived promotion evidence to fail closed, but current _refs silently de-duplicates duplicates and GoalStatusChange does not discriminate evidence origin.",
+    "The admitted F2-WP-204 falsifier delta requires cross-goal transition receipts to fail closed, while the current canonical test suite treats a two-goal status-change receipt as a deterministic success case."
+  ],
+  "proposed_state_change": "Do not accept or terminalize F2-WP-204 yet. Repair the existing canonical source in the same generation rather than creating a competing implementation: reject duplicate refs before canonical sorting; add an explicit non-self/model adoption-authority discriminator; and either restrict each lifecycle transition receipt to one goal or emit separately bound per-goal receipts. Convert these three conditions into deterministic repository-CI tests.",
+  "completion_deficit": [
+    "current source/test semantics still contradict admitted WP204 authority falsifiers",
+    "repository-hosted CI success on the current suite would not falsify the three gaps recorded here",
+    "no accepted F2-WP-204 receipt",
+    "no UnifiedDB persistence integration credit",
+    "no F2-WP-205 wake integration credit",
+    "no Persistent Pulse integration credit",
+    "no VPS or physical GRID10 runtime credit",
+    "no whole Frankenstein 2.0 acceptance"
+  ],
+  "next_exact_action": "Mutation owner re-enters current main and active WP204 generation 1, repairs the three fail-closed gaps in-place, adds exact regression tests, then obtains repository-hosted CI before any acceptance reconciliation.",
+  "runtime_execution_observed": false,
+  "runtime_credit": 0,
+  "physical_grid10_credit": 0,
+  "whole_system_acceptance": false,
+  "created_at_utc": "2026-08-28T22:54:00Z"
+}
