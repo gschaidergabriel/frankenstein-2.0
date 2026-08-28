@@ -184,10 +184,47 @@ class WakeHoldTests(unittest.TestCase):
         self.assertEqual(result1.classification, ABSTAIN_NOT_OBSERVED)
         payload = result1.as_dict()
         self.assertIn("unknown_condition_ids", payload)
+        self.assertIn("observations_sha256", payload)
         self.assertNotIn("effect", payload)
         self.assertNotIn("completion", payload)
         self.assertNotIn("schedule", payload)
         self.assertNotIn("resume", payload)
+
+    def test_receipt_binds_observation_value_and_provenance_without_changing_semantics(self):
+        cp = checkpoint(
+            conditions=(WakeCondition("c1", "receipt.present", OP_PRESENT, ("spec:receipt",), None),)
+        )
+        base = WakeObservation("o1", "receipt.present", "alpha", ("observation:source-a",))
+        value_changed = WakeObservation("o1", "receipt.present", "beta", ("observation:source-a",))
+        provenance_changed = WakeObservation("o1", "receipt.present", "alpha", ("observation:source-b",))
+
+        base_result = evaluate(cp, (base,))
+        value_result = evaluate(cp, (value_changed,))
+        provenance_result = evaluate(cp, (provenance_changed,))
+
+        self.assertEqual(base_result.classification, WAKE_CONDITION_MATCH)
+        self.assertEqual(value_result.classification, WAKE_CONDITION_MATCH)
+        self.assertEqual(provenance_result.classification, WAKE_CONDITION_MATCH)
+        self.assertEqual(base_result.observation_ids, value_result.observation_ids)
+        self.assertEqual(base_result.observation_ids, provenance_result.observation_ids)
+        self.assertNotEqual(base_result.observations_sha256, value_result.observations_sha256)
+        self.assertNotEqual(base_result.observations_sha256, provenance_result.observations_sha256)
+        self.assertNotEqual(base_result.sha256(), value_result.sha256())
+        self.assertNotEqual(base_result.sha256(), provenance_result.sha256())
+
+    def test_observation_payload_digest_is_order_normalized(self):
+        cp = checkpoint(
+            conditions=(WakeCondition("c1", "receipt.present", OP_PRESENT, ("spec:receipt",), None),)
+        )
+        a = WakeObservation("o1", "receipt.present", "alpha", ("observation:source-a",))
+        b = WakeObservation("o2", "receipt.present", "beta", ("observation:source-b",))
+
+        left = evaluate(cp, (a, b))
+        right = evaluate(cp, (b, a))
+
+        self.assertEqual(left.observation_ids, ("o1", "o2"))
+        self.assertEqual(left.observations_sha256, right.observations_sha256)
+        self.assertEqual(left.sha256(), right.sha256())
 
 
 if __name__ == "__main__":
