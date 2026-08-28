@@ -1,0 +1,35 @@
+name: F2 WP202 Prediction Residual CI
+
+on:
+  push:
+    branches:
+      - chatgpt/trigger4-wp202-prediction-residual-20260829
+    paths:
+      - 'src/frankenstein2/prediction_contract.py'
+      - 'tests/test_prediction_contract.py'
+      - '.github/workflows/wp202-prediction-residual-ci.yml'
+  pull_request:
+    paths:
+      - 'src/frankenstein2/prediction_contract.py'
+      - 'tests/test_prediction_contract.py'
+      - '.github/workflows/wp202-prediction-residual-ci.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  deterministic:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Compile
+        run: python -m py_compile src/frankenstein2/prediction_contract.py tests/test_prediction_contract.py
+      - name: Prediction residual falsification suite
+        env:
+          PYTHONPATH: src
+        run: python tests/test_prediction_contract.py -v
