@@ -1,0 +1,51 @@
+name: Frankenstein 2.0 PR430 Exact Candidate UNKNOWN CI
+
+on:
+  pull_request:
+    paths:
+      - 'tests/fixtures/entityos_effect_unknown_pr430_2f99/**'
+      - 'tests/fixtures/entityos_effect_authority_2b68/clayverse/store.py'
+      - 'tests/test_pr430_exact_candidate_unknown.py'
+      - 'tests/test_pr430_f2_interlock_unknown_integration.py'
+      - 'src/frankenstein2/effect_executor_interlock.py'
+      - 'src/frankenstein2/entityos_effect_gate_call_bridge.py'
+      - 'src/frankenstein2/entityos_unknown_outcome_adapter.py'
+      - '.github/workflows/pr430-exact-candidate-unknown-ci.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  pr430-exact-candidate-unknown:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    env:
+      PYTHONPATH: .:src
+    steps:
+      - name: Checkout exact F2 candidate head
+        uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Verify PR430 candidate Git blob identities
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git hash-object tests/fixtures/entityos_effect_unknown_pr430_2f99/clayverse/effects.py)" = "ae1b8db9111868374258435e97c7dfeda41bc318"
+          test "$(git hash-object tests/fixtures/entityos_effect_unknown_pr430_2f99/clayverse/effect_journal.py)" = "4615150638dc4409317550d44b84d942a260de58"
+          test "$(git hash-object tests/fixtures/entityos_effect_unknown_pr430_2f99/clayverse/entityos_bridge.py)" = "7781580f4e862c23491cc862e19c5d1f62b3ada6"
+          test "$(git hash-object tests/fixtures/entityos_effect_authority_2b68/clayverse/store.py)" = "a88d923ea3d0eab5847f304f35463e5a2b2c4acd"
+      - name: Compile candidate discriminator
+        run: >-
+          python -m py_compile
+          src/frankenstein2/entityos_unknown_outcome_adapter.py
+          tests/fixtures/entityos_effect_unknown_pr430_2f99/clayverse/effects.py
+          tests/fixtures/entityos_effect_unknown_pr430_2f99/clayverse/effect_journal.py
+          tests/fixtures/entityos_effect_unknown_pr430_2f99/clayverse/entityos_bridge.py
+          tests/test_pr430_exact_candidate_unknown.py
+          tests/test_pr430_f2_interlock_unknown_integration.py
+      - name: Execute exact PR430 no-real-effect candidate discriminator
+        run: python tests/test_pr430_exact_candidate_unknown.py
+      - name: Execute F2 interlock to PR430 UNKNOWN integration gate
+        run: python tests/test_pr430_f2_interlock_unknown_integration.py
