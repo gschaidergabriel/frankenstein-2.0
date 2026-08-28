@@ -1,0 +1,38 @@
+name: F2 Checkpoint Continuity CI
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'tools/validate_current_checkpoint.py'
+      - 'tests/test_validate_current_checkpoint.py'
+      - 'checkpoints/CURRENT.json'
+      - 'workpackages/STATE.json'
+      - 'workpackages/active/F2-WP-002.json'
+      - 'workpackages/claims/F2-WP-002_G2_GPT56SOL_cd0e056a.json'
+      - '.github/workflows/checkpoint-continuity-ci.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  deterministic:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Compile validator
+        run: python -m py_compile tools/validate_current_checkpoint.py tests/test_validate_current_checkpoint.py
+      - name: Deterministic regression tests
+        run: python tests/test_validate_current_checkpoint.py -v
+      - name: Validate canonical current checkpoint against claim, active pointer and state
+        run: >-
+          python tools/validate_current_checkpoint.py
+          checkpoints/CURRENT.json
+          --claim workpackages/claims/F2-WP-002_G2_GPT56SOL_cd0e056a.json
+          --active workpackages/active/F2-WP-002.json
+          --state workpackages/STATE.json
