@@ -5,16 +5,19 @@ on:
     branches:
       - main
       - chatgpt/trigger4-wp205-wake-hold-20260829
+      - chatgpt/trigger4-wp205-g3-provenance-receipt-20260829
     paths:
       - 'src/frankenstein2/wake_hold.py'
       - 'tests/test_wake_hold.py'
       - 'tests/test_wake_hold_conflict.py'
+      - 'tests/test_wake_hold_provenance.py'
       - '.github/workflows/wp205-wake-hold-ci.yml'
   pull_request:
     paths:
       - 'src/frankenstein2/wake_hold.py'
       - 'tests/test_wake_hold.py'
       - 'tests/test_wake_hold_conflict.py'
+      - 'tests/test_wake_hold_provenance.py'
       - '.github/workflows/wp205-wake-hold-ci.yml'
   workflow_dispatch:
 
@@ -31,10 +34,11 @@ jobs:
         with:
           python-version: '3.12'
       - name: Compile
-        run: python -m py_compile src/frankenstein2/wake_hold.py tests/test_wake_hold.py tests/test_wake_hold_conflict.py
+        run: python -m py_compile src/frankenstein2/wake_hold.py tests/test_wake_hold.py tests/test_wake_hold_conflict.py tests/test_wake_hold_provenance.py
       - name: WAIT HOLD Wake falsification suite
         env:
           PYTHONPATH: src
         run: |
           python tests/test_wake_hold.py -v
           python tests/test_wake_hold_conflict.py -v
+          python tests/test_wake_hold_provenance.py -v
