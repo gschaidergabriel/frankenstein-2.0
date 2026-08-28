@@ -3,6 +3,7 @@ name: F2 WP202 Prediction Residual CI
 on:
   push:
     branches:
+      - main
       - chatgpt/trigger4-wp202-prediction-residual-20260829
       - chatgpt/trigger4-wp202-g2-statefingerprint-binding-20260829
     paths:
@@ -10,6 +11,7 @@ on:
       - 'src/frankenstein2/prediction_fingerprint_binding.py'
       - 'tests/test_prediction_contract.py'
       - 'tests/test_prediction_fingerprint_binding_provenance.py'
+      - 'tests/test_prediction_fingerprint_binding_nested_classification.py'
       - '.github/workflows/wp202-prediction-residual-ci.yml'
   pull_request:
     paths:
@@ -17,6 +19,7 @@ on:
       - 'src/frankenstein2/prediction_fingerprint_binding.py'
       - 'tests/test_prediction_contract.py'
       - 'tests/test_prediction_fingerprint_binding_provenance.py'
+      - 'tests/test_prediction_fingerprint_binding_nested_classification.py'
       - '.github/workflows/wp202-prediction-residual-ci.yml'
   workflow_dispatch:
 
@@ -39,9 +42,11 @@ jobs:
           src/frankenstein2/prediction_fingerprint_binding.py
           tests/test_prediction_contract.py
           tests/test_prediction_fingerprint_binding_provenance.py
+          tests/test_prediction_fingerprint_binding_nested_classification.py
       - name: Prediction residual falsification suite
         env:
           PYTHONPATH: src
         run: |
           python tests/test_prediction_contract.py -v
           python tests/test_prediction_fingerprint_binding_provenance.py -v
+          python tests/test_prediction_fingerprint_binding_nested_classification.py -v
