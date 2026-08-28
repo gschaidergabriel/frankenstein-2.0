@@ -5,14 +5,17 @@ on:
     branches:
       - main
       - chatgpt/trigger4-wp200-persistent-pulse-20260829
+      - chatgpt/trigger4-wp200-g3-receipt-immutability-20260829
     paths:
       - 'src/frankenstein2/persistent_pulse.py'
       - 'tests/test_persistent_pulse.py'
+      - 'tests/test_persistent_pulse_immutability.py'
       - '.github/workflows/wp200-persistent-pulse-ci.yml'
   pull_request:
     paths:
       - 'src/frankenstein2/persistent_pulse.py'
       - 'tests/test_persistent_pulse.py'
+      - 'tests/test_persistent_pulse_immutability.py'
       - '.github/workflows/wp200-persistent-pulse-ci.yml'
   workflow_dispatch:
 
@@ -29,8 +32,10 @@ jobs:
         with:
           python-version: '3.12'
       - name: Compile
-        run: python -m py_compile src/frankenstein2/persistent_pulse.py tests/test_persistent_pulse.py
+        run: python -m py_compile src/frankenstein2/persistent_pulse.py tests/test_persistent_pulse.py tests/test_persistent_pulse_immutability.py
       - name: Persistent Pulse falsification suite
         env:
           PYTHONPATH: src
-        run: python tests/test_persistent_pulse.py -v
+        run: |
+          python tests/test_persistent_pulse.py -v
+          python tests/test_persistent_pulse_immutability.py -v
