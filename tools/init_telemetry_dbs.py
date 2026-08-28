@@ -3,6 +3,7 @@
 
 Standard-library only. This creates schema, not runtime evidence.
 Existing databases are migrated idempotently by CREATE IF NOT EXISTS.
+Canonical project-level stores live under data/.
 """
 
 from __future__ import annotations
@@ -242,7 +243,7 @@ def init_db(path: Path, schema: str) -> None:
 
 def main() -> int:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--root", default="databases", help="directory for telemetry SQLite files")
+    parser.add_argument("--root", default="data", help="directory for canonical telemetry SQLite files (default: data)")
     args = parser.parse_args()
     root = Path(args.root)
     for name in DB_NAMES:
