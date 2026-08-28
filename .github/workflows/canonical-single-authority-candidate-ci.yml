@@ -1,0 +1,31 @@
+name: Frankenstein 2.0 Canonical Single Authority Candidate CI
+
+on:
+  pull_request:
+    paths:
+      - 'src/frankenstein2/canonical_single_authority_execution.py'
+      - 'tests/test_canonical_single_authority_execution.py'
+      - '.github/workflows/canonical-single-authority-candidate-ci.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  canonical-single-authority-candidate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      PYTHONPATH: .:src
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Compile candidate topology
+        run: >-
+          python -m py_compile
+          src/frankenstein2/canonical_single_authority_execution.py
+          tests/test_canonical_single_authority_execution.py
+      - name: Run deterministic single-authority falsifiers
+        run: python tests/test_canonical_single_authority_execution.py
