@@ -1,0 +1,57 @@
+{
+  "schema": "FRANKENSTEIN2_WORKPACKAGE_COMPONENT_INTEGRATION_RECEIPT/v1",
+  "workpackage_id": "F2-WP-101",
+  "generation": 3,
+  "claim_id": "F2-WP-101-G3-GPT56SOL-CAUSAL-AUTHORITY-BINDING-20260828T2208P0700",
+  "trigger": "4",
+  "status": "COMPONENT_INTEGRATION_CI_PASS",
+  "scope": "CAUSAL_IDENTITY_TO_UNIFIEDDB_AUTHORITY_AND_TELEMETRY_LINEAGE_BINDING_SOURCE_AND_CI_COMPONENT_ONLY",
+  "exact_ci_head": "0dd32c4605e92c23434cbfde7e3264b176bdd638",
+  "source_identity": {
+    "causal_identity": "src/frankenstein2/causal_identity.py",
+    "authority_binding": "src/frankenstein2/causal_authority_binding.py",
+    "unit_tests": "tests/test_causal_identity.py",
+    "binding_tests": "tests/test_causal_authority_binding.py",
+    "ci_workflow": ".github/workflows/causal-identity-ci.yml"
+  },
+  "unifieddb_authority_ref": "workpackages/receipts/F2-WP-100_G1_SOURCE_CI_ACCEPTANCE.json",
+  "telemetry_contract_ref": "schemas/EVIDENCE_SPINE.schema.json",
+  "github_actions": {
+    "run_id": 33184069783,
+    "job_id": 98892400478,
+    "runner": "GitHub-hosted ubuntu-24.04",
+    "python": "3.12.14",
+    "conclusion": "success",
+    "steps": {
+      "compile_current_causal_identity_regressions": "PASS",
+      "causal_identity_unit_regression": "7/7 PASS",
+      "causal_authority_cross_plane_regression": "8/8 PASS"
+    }
+  },
+  "verified_properties": [
+    "telemetry event_id and run_id are required for binding",
+    "session_id, agent_id, task_id, turn_id, causal_id and generation must exactly match the CausalIdentity",
+    "wrong-agent and wrong-generation attribution fail closed",
+    "missing causal identity fields fail closed",
+    "optional parent_causal_id must match exactly when present",
+    "the binding is tied to an accepted UnifiedDB v2 fingerprint receipt reference",
+    "the adapter performs no database mutation and grants no runtime/effect authority"
+  ],
+  "counterhypothesis_remaining": "The adapter proves a deterministic cross-plane identity check, not that all runtime producers invoke it, not that parent lineage is persisted by the current telemetry schema, and not that UnifiedDB/effect/replay paths are fully causally closed.",
+  "negative_evidence": [
+    {
+      "kind": "STALE_WORKFLOW_SOURCE_REFERENCE",
+      "detail": "The preceding CI invocation failed because its workflow still referenced missing src/frankenstein2/telemetry.py; the workflow was repaired to target the current canonical source set before the accepted run.",
+      "product_failure": false
+    }
+  ],
+  "runtime_execution_observed": true,
+  "runtime_execution_class": "GITHUB_ACTIONS_COMPONENT_INTEGRATION",
+  "vps_execution_observed": false,
+  "provider_execution_observed": false,
+  "grid10_runtime_credit": 0,
+  "entityos_hcu_runtime_credit": 0,
+  "whole_system_credit": 0,
+  "acceptance": "ACCEPTED_AT_COMPONENT_INTEGRATION_SCOPE_ONLY",
+  "next_exact_action": "Re-enter the current main and advance only the next non-overlapping causal seam: typed preservation of parent_causal_id across the canonical telemetry/persistent-state path, or a higher-information existing producer integration test. Do not claim whole runtime causal closure from this component pass."
+}
