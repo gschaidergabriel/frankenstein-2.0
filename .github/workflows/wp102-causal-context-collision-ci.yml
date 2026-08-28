@@ -1,0 +1,45 @@
+name: Frankenstein 2.0 WP102 Causal Context Collision CI
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'src/frankenstein2/causal_identity.py'
+      - 'src/frankenstein2/native_child_binding.py'
+      - 'tests/test_native_child_binding.py'
+      - 'tests/test_wp102_causal_context_collision.py'
+      - '.github/workflows/wp102-causal-context-collision-ci.yml'
+  pull_request:
+    paths:
+      - 'src/frankenstein2/causal_identity.py'
+      - 'src/frankenstein2/native_child_binding.py'
+      - 'tests/test_native_child_binding.py'
+      - 'tests/test_wp102_causal_context_collision.py'
+      - '.github/workflows/wp102-causal-context-collision-ci.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  wp102-causal-context-collision:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      PYTHONPATH: .:src
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Compile WP102 causal-context regression
+        run: >-
+          python -m py_compile
+          src/frankenstein2/causal_identity.py
+          src/frankenstein2/native_child_binding.py
+          tests/test_native_child_binding.py
+          tests/test_wp102_causal_context_collision.py
+      - name: Run canonical WP102 binding regression
+        run: python tests/test_native_child_binding.py
+      - name: Run WP102 causal-context collision falsifier
+        run: python tests/test_wp102_causal_context_collision.py
