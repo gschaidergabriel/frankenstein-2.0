@@ -1,0 +1,71 @@
+{
+  "schema": "FRANKENSTEIN2_WORKPACKAGE_FALSIFIER/v1",
+  "trigger": "4",
+  "classification": "SOURCE_LEVEL_API_SEAM_FALSIFIER_NO_RUNTIME_CREDIT",
+  "workpackage_id": "F2-WP-105",
+  "organ": "GPT-5.6 Sol / ChatGPT Triggerword-4 continuation organ",
+  "base_frankenstein2_main": "82dab8d7623e8e4a608487d80a93cf9b09a22397",
+  "canonical_research_main_observed": "af48d7068927adab2033baff4006e33f1140df1b",
+  "result": "CANONICAL_IDENTITY_AND_CURRENT_EPOCH_COMPATIBILITY_RESOLVED_BUT_SPLIT_PHASE_PREDISPATCH_ADMISSION_API_UNRESOLVED",
+  "observed": {
+    "binding_record": {
+      "repository": "gschaidergabriel/clay-global-research-entity",
+      "path": "research_entity/continuity/ENTITYOS_EFFECT_AUTHORITY_IMPLEMENTATION_BINDING_V1.json",
+      "blob_sha": "b4d91a0dd233c9dc15ff8218feea9248ac1c13c5",
+      "bound_commit": "2b68aad14bf7824d513b52898904909256e3522d",
+      "api_version": "ENTITYOS_EFFECT_AUTHORITY_PY_API/v1",
+      "declared_effect_gate_call": "EffectGate.execute(req, episode_id=None, lease=None) -> (effect_id, outcome)"
+    },
+    "current_epoch_compatibility": {
+      "path": "research_entity/continuity/ENTITYOS_EFFECT_AUTHORITY_IMPLEMENTATION_BINDING_9_13_COMPATIBILITY_V1.json",
+      "blob_sha": "7f3964ea60a8f30de382e82fef441148e30bab83",
+      "result": "CURRENT_9_13_COMPATIBLE_EXACT_SOURCE_IDENTITY",
+      "authority_change": false
+    },
+    "effect_gate": {
+      "path": "the artefact/clayverse/effects.py",
+      "blob_sha": "4a6413b3f3c752c6327e67233bdd8097f3cf0ba4",
+      "source_fact": "EffectGate.execute performs policy/generation/replay checks, creates the journal row via EffectJournal.begin(), then itself executes or resolves the effect path and finalizes the journal before returning."
+    },
+    "effect_journal": {
+      "path": "the artefact/clayverse/effect_journal.py",
+      "blob_sha": "cda63471f1467481f2ff79032d3931730a334a20",
+      "source_fact": "EffectJournal.begin() can create PENDING directly, but it is a journal primitive and does not independently reproduce the full EffectGate policy/cross-attempt replay admission semantics."
+    },
+    "f2_bridge": {
+      "path": "src/frankenstein2/canonical_effect_authority_bridge.py",
+      "blob_sha": "3ac9ceb4d2399fa82eafacb24aca8b469cd246ec",
+      "source_fact": "CanonicalEffectAuthorityEvidence requires ALLOW to carry a canonical effect_id with journal_state=PENDING before dispatch_through_external_gate invokes the Frankenstein executor."
+    },
+    "f2_interlock": {
+      "path": "src/frankenstein2/effect_executor_interlock.py",
+      "blob_sha": "7f956f0520dfe7d7e8dc8bcd86ae1c2a1b10f7d3",
+      "source_fact": "The executor callable is intentionally downstream of the external ALLOW and is treated as the boundary whose outcome may become UNKNOWN."
+    }
+  },
+  "falsified_naive_integration": "Calling bound EffectGate.execute() as the CanonicalEffectAuthorityPort cannot provide the required pre-dispatch PENDING evidence without already traversing/finalizing the canonical execution path; subsequently invoking the Frankenstein executor would risk duplicate execution. Calling EffectJournal.begin() directly instead would bypass EffectGate policy and therefore cannot be promoted as an equivalent canonical ALLOW.",
+  "hypothesis": "A split-phase canonical authority seam is required: admission performs all canonical pre-dispatch checks and journals PENDING without executing, then a separately correlated completion/recovery operation finalizes VERIFIED/FAILED/UNKNOWN after exactly one downstream execution attempt.",
+  "counterhypothesis": "No split-phase API is needed if Frankenstein delegates the actual effect entirely to EffectGate.execute() and removes its second executor boundary for canonical EntityOS effects; in that topology the F2 interlock becomes correlation/observation-only rather than an executor dispatcher.",
+  "cheapest_discriminator": "Choose one topology explicitly at current EntityOS authority level and make its API contract source-executable. For split-phase, expose and test a canonical admission method that preserves every EffectGate precondition and returns only a PENDING effect_id. For delegation, prove F2 never invokes a second executor and can still bind a typed execution/completion observation to the exact canonical effect_id without minting completion from the return value alone.",
+  "forbidden_shortcuts": [
+    "DO_NOT_CALL_EFFECTGATE_EXECUTE_AND_THEN_DISPATCH_A_SECOND_F2_EXECUTOR",
+    "DO_NOT_TREAT_EFFECTJOURNAL_BEGIN_AS_POLICY_EQUIVALENT_TO_EFFECTGATE",
+    "DO_NOT_MINT_ALLOW_IN_FRANKENSTEIN2",
+    "DO_NOT_AUTO_REPLAY_UNKNOWN_AFTER_RESTART",
+    "DO_NOT_PROMOTE_SOURCE_COMPATIBILITY_TO_RUNTIME_CREDIT"
+  ],
+  "credit_boundary": {
+    "canonical_effect_authority_source_identity_resolved": true,
+    "current_epoch_authority_binding_verified": true,
+    "split_phase_predispatch_authority_api_resolved": false,
+    "canonical_effectgate_integration_runtime": 0,
+    "effectjournal_integration_runtime": 0,
+    "real_effect_execution_runtime": 0,
+    "completion_promotion_runtime": 0,
+    "physical_grid10_runtime": 0,
+    "whole_frankenstein2_runtime": 0,
+    "whole_entityos_hcu_runtime": 0,
+    "training_credit": 0
+  },
+  "next_exact_action": "Do not implement the production CanonicalEffectAuthorityPort against ENTITYOS_EFFECT_AUTHORITY_PY_API/v1 until the topology discriminator is resolved. Prefer a minimal current-authority split-phase EffectGate admission/finalization contract if it can preserve all existing policy, replay, generation, lease, journal and unknown-outcome invariants without introducing a second authority."
+}
