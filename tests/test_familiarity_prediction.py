@@ -150,6 +150,25 @@ class FamiliarityPredictionTests(unittest.TestCase):
                 evidence_refs=("same", "same"),
             )
 
+    def test_unbound_caller_familiarity_cannot_mint_match_attention(self) -> None:
+        """Candidate falsifier for the current WP302 provenance boundary.
+
+        A syntactically valid evidence object with caller-chosen refs and score has no
+        exact WP301 RetrievalPlan / need / selected-result identity. It therefore must
+        not be sufficient to create MATCH or positive retrieval-attention support.
+        """
+        residual = _residual(mismatch=False)
+        forged = FamiliarityEvidence.create(
+            familiarity_score_bp=MAX_BASIS_POINTS,
+            evidence_refs=(
+                "retrieval:caller-forged-memory",
+                "familiarity:caller-asserted-score",
+            ),
+        )
+
+        with self.assertRaises(FamiliarityPredictionError):
+            _bind(residual, forged, contradiction=())
+
     def test_signal_preserves_exact_residual_and_familiarity_provenance(self) -> None:
         residual = _residual(mismatch=True)
         familiarity = _familiarity(4200)
