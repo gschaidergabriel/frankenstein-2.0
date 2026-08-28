@@ -14,6 +14,18 @@ sys.path.insert(0, str(ROOT / "tools"))
 from validate_checkpoint import CheckpointValidationError, validate_checkpoint
 
 
+COMPAT_ACTIVE_SCHEMAS = [
+    "FRANKENSTEIN2_ACTIVE_WORKPACKAGE/v1",
+    "FRANKENSTEIN2_ACTIVE_WORKPACKAGE_CLAIM/v1",
+    "FRANKENSTEIN2_ACTIVE_WORKPACKAGE_POINTER/v1",
+]
+
+GOOD_CONTRACT = {
+    "schema": "FRANKENSTEIN2_WORKPACKAGE_STATE_CONSISTENCY_CONTRACT/v1",
+    "canonical_repository": "gschaidergabriel/frankenstein-2.0",
+    "compatible_active_pointer_schemas": COMPAT_ACTIVE_SCHEMAS,
+}
+
 GOOD_CLAIM = {
     "schema": "FRANKENSTEIN2_WORKPACKAGE_CLAIM/v1",
     "workpackage_id": "F2-WP-002",
@@ -63,6 +75,7 @@ def write_fixture(
     cp: dict,
     claim: dict = GOOD_CLAIM,
     active: dict | None = GOOD_ACTIVE,
+    contract: dict = GOOD_CONTRACT,
 ) -> None:
     (root / "checkpoints").mkdir(parents=True)
     (root / "workpackages" / "claims").mkdir(parents=True)
@@ -74,6 +87,9 @@ def write_fixture(
             "workpackages": {"F2-WP-002": {"status": "IN_PROGRESS"}},
         }),
         encoding="utf-8",
+    )
+    (root / "workpackages" / "WORKPACKAGE_STATE_CONSISTENCY_CONTRACT_V1.json").write_text(
+        json.dumps(contract), encoding="utf-8"
     )
     (root / "workpackages" / "claims" / "claim.json").write_text(json.dumps(claim), encoding="utf-8")
     if active is not None:
@@ -91,6 +107,25 @@ class CheckpointValidatorTests(unittest.TestCase):
             self.assertTrue(result["pass"])
             self.assertEqual(result["runtime_credit"], 0)
             self.assertEqual(result["active_path"], "workpackages/active/F2-WP-002.json")
+
+    def test_accepts_each_contract_admitted_active_pointer_schema(self) -> None:
+        for schema in COMPAT_ACTIVE_SCHEMAS:
+            with self.subTest(schema=schema), tempfile.TemporaryDirectory() as td:
+                root = Path(td)
+                active = copy.deepcopy(GOOD_ACTIVE)
+                active["schema"] = schema
+                write_fixture(root, GOOD_CP, active=active)
+                result = validate_checkpoint(root)
+                self.assertTrue(result["pass"])
+
+    def test_rejects_active_pointer_schema_not_admitted_by_contract(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            active = copy.deepcopy(GOOD_ACTIVE)
+            active["schema"] = "FRANKENSTEIN2_ACTIVE_WORKPACKAGE_UNKNOWN/v1"
+            write_fixture(root, GOOD_CP, active=active)
+            with self.assertRaisesRegex(CheckpointValidationError, "schema not contract-admitted"):
+                validate_checkpoint(root)
 
     def test_rejects_claim_generation_mismatch(self) -> None:
         with tempfile.TemporaryDirectory() as td:
