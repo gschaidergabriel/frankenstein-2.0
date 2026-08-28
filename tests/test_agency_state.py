@@ -263,6 +263,41 @@ class AgencyStateTests(unittest.TestCase):
         self.assertEqual(receipt_a.canonical_json(), receipt_b.canonical_json())
         self.assertEqual(receipt_a.sha256(), receipt_b.sha256())
 
+    def test_state_rejects_duck_typed_interest_that_bypasses_item_validation(self):
+        class ForgedInterest:
+            interest_id = "forged-interest"
+
+            def as_dict(self):
+                return {
+                    "interest_id": self.interest_id,
+                    "label": "forged without validated provenance",
+                    "salience_ppm": 1,
+                    "provenance_refs": [],
+                }
+
+        with self.assertRaisesRegex(AgencyStateError, "Interest"):
+            AgencyState.create(
+                state_id="agency-main",
+                generation=0,
+                interests=(ForgedInterest(),),
+            )
+
+    def test_patch_rejects_duck_typed_interest_before_it_can_bypass_provenance(self):
+        class ForgedInterest:
+            interest_id = "forged-interest"
+
+            def as_dict(self):
+                return {
+                    "interest_id": self.interest_id,
+                    "label": "forged without validated provenance",
+                    "salience_ppm": 1,
+                    "provenance_refs": [],
+                }
+
+        state = AgencyState.create(state_id="agency-main", generation=0)
+        with self.assertRaisesRegex(AgencyStateError, "Interest"):
+            self.patch(state, upsert_interests=(ForgedInterest(),))
+
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)
