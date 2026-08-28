@@ -1,0 +1,35 @@
+name: F2 WP503 GRID10 Interface CI
+
+on:
+  push:
+    branches:
+      - chatgpt/f2-wp503-grid10-interface-g1-20260829
+    paths:
+      - 'src/frankenstein2/grid10_interface.py'
+      - 'tests/test_grid10_interface.py'
+      - '.github/workflows/wp503-grid10-interface-ci.yml'
+  pull_request:
+    paths:
+      - 'src/frankenstein2/grid10_interface.py'
+      - 'tests/test_grid10_interface.py'
+      - '.github/workflows/wp503-grid10-interface-ci.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  deterministic:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Compile
+        run: python -m py_compile src/frankenstein2/grid10_interface.py tests/test_grid10_interface.py
+      - name: GRID10 interface falsification suite
+        env:
+          PYTHONPATH: src
+        run: python tests/test_grid10_interface.py -v
