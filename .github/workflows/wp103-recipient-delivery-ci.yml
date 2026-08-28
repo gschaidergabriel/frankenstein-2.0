@@ -6,12 +6,20 @@ on:
       - chatgpt/trigger4-wp103-recipient-delivery-20260829
     paths:
       - 'src/frankenstein2/recipient_delivery.py'
+      - 'src/frankenstein2/recipient_delivery_binding.py'
+      - 'src/state/unifieddb_identity.py'
       - 'tests/test_recipient_delivery.py'
+      - 'tests/test_recipient_delivery_binding.py'
+      - 'tests/test_unifieddb_identity.py'
       - '.github/workflows/wp103-recipient-delivery-ci.yml'
   pull_request:
     paths:
       - 'src/frankenstein2/recipient_delivery.py'
+      - 'src/frankenstein2/recipient_delivery_binding.py'
+      - 'src/state/unifieddb_identity.py'
       - 'tests/test_recipient_delivery.py'
+      - 'tests/test_recipient_delivery_binding.py'
+      - 'tests/test_unifieddb_identity.py'
       - '.github/workflows/wp103-recipient-delivery-ci.yml'
   workflow_dispatch:
 
@@ -28,8 +36,23 @@ jobs:
         with:
           python-version: '3.12'
       - name: Compile
-        run: python -m py_compile src/frankenstein2/recipient_delivery.py tests/test_recipient_delivery.py
+        run: |
+          python -m py_compile \
+            src/state/unifieddb_identity.py \
+            src/frankenstein2/recipient_delivery.py \
+            src/frankenstein2/recipient_delivery_binding.py \
+            tests/test_unifieddb_identity.py \
+            tests/test_recipient_delivery.py \
+            tests/test_recipient_delivery_binding.py
+      - name: UnifiedDB authority regression
+        env:
+          PYTHONPATH: src
+        run: python tests/test_unifieddb_identity.py -v
       - name: Recipient delivery falsification suite
         env:
           PYTHONPATH: src
         run: python tests/test_recipient_delivery.py -v
+      - name: Canonical UnifiedDB binding falsification suite
+        env:
+          PYTHONPATH: src
+        run: python tests/test_recipient_delivery_binding.py -v
