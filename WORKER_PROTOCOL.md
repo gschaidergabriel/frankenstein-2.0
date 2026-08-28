@@ -8,14 +8,18 @@ Every Triggerword-4 worker doing Frankenstein-2.0 assembly must treat this repos
 REFRESH
 → SELECT/CLAIM WORKPACKAGE + GENERATION
 → INSPECT DONOR/DEPENDENCIES
+→ INSPECT NEWER CLAIM-SCOPED DELTAS / OVERLAP
 → BUILD SMALLEST COHERENT STEP
 → TEST
 → MEASURE + TRACE
 → RECORD NEGATIVE RESULTS / BUGS / HYPOTHESES
-→ COMMIT
-→ UPDATE WORKPACKAGE STATE
-→ WRITE CHECKPOINT + next_exact_action
+→ COMMIT OWNED SOURCE/TEST/EVIDENCE
+→ EMIT CLAIM-SCOPED DELTA
+→ RECONCILER UPDATES SHARED STATE/CHECKPOINTS
+→ next_exact_action
 ```
+
+High-fan-out runs must follow `workpackages/CONVERGENCE_PROTOCOL.md`. Normal workers do not repeatedly rewrite shared canonical ledgers merely to announce progress.
 
 ## Commit law
 
@@ -31,6 +35,8 @@ F2-WP-403: accept projection adapter scope
 
 A worker step is not finished if the only surviving evidence is chat text, terminal output or an uncommitted workspace.
 
+For coordination-only changes, prefer one coherent fusion commit over a chain of `restore` / `repair` / `rebind` bookkeeping commits when the same state can be represented atomically.
+
 ## Concurrency
 
 Stable work identity:
@@ -42,10 +48,12 @@ workpackage_id + generation + claim_id
 Before every write:
 
 1. refresh current `main`;
-2. inspect `workpackages/STATE.json`, `workpackages/CLAIM_PROTOCOL.md`, `workpackages/active/<workpackage_id>.json` when present, and `checkpoints/CURRENT.json` when present;
-3. detect overlapping/newer claims;
-4. never overwrite a newer accepted generation with stale state;
-5. if overlap is useful as an independent falsifier, label it explicitly rather than pretending it is independent by default.
+2. inspect `workpackages/STATE.json`, `workpackages/CLAIM_PROTOCOL.md`, `workpackages/CONVERGENCE_PROTOCOL.md`, `workpackages/active/<workpackage_id>.json` when present, and `checkpoints/CURRENT.json` when present;
+3. inspect newer claim-scoped deltas for the same workpackage/generation;
+4. detect overlapping/newer claims and exact owned-path overlap;
+5. never overwrite a newer accepted generation with stale state;
+6. if equivalent canonical work already landed, stop implementation and convert the result to `REVIEW_ONLY` / `CANDIDATE_FALSIFIER` instead of creating another adapter;
+7. if overlap is useful as an independent falsifier, label it explicitly rather than pretending it is independent by default.
 
 ### Mechanical mutation-authority lock
 
@@ -66,7 +74,7 @@ CLAIM_FILE != MUTATION_AUTHORITY
 ONE_WORKPACKAGE -> AT_MOST_ONE_ACTIVE_MUTATION_POINTER
 ```
 
-The detailed state/reconciliation rules are canonical in `workpackages/CLAIM_PROTOCOL.md`.
+The detailed state/reconciliation rules are canonical in `workpackages/CLAIM_PROTOCOL.md`; high-fan-out fusion and hot-file rules are canonical in `workpackages/CONVERGENCE_PROTOCOL.md`.
 
 ## Required receipt fields
 
