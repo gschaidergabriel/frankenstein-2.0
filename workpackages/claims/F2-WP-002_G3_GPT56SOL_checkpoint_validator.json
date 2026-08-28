@@ -1,0 +1,30 @@
+{
+  "schema": "FRANKENSTEIN2_WORKPACKAGE_CLAIM/v1",
+  "workpackage_id": "F2-WP-002",
+  "generation": 3,
+  "claim_id": "F2-WP-002-G3-GPT56SOL-checkpoint-validator",
+  "worker_id": "GPT-5.6-Sol",
+  "trigger": "4",
+  "status": "ACTIVE_CHECKPOINT_VALIDATOR",
+  "claimed_scope": "Add a fail-closed validator and deterministic regression tests for checkpoints/CURRENT.json identity, evidence-boundary and stale-checkpoint invariants. No runtime semantics, F2-WP-003/004/005 implementation, or product acceptance is claimed.",
+  "base_commit": "81bc36b17f3bd71ef8377ab80042b7905f40d92f",
+  "dependencies": [
+    "WORKER_PROTOCOL.md",
+    "workpackages/STATE.json",
+    "checkpoints/CURRENT.json",
+    "workpackages/claims/F2-WP-002_G2_GPT56SOL_cd0e056a.json"
+  ],
+  "non_overlap_note": "Generation 2 created the missing checkpoint surface. Generation 3 only validates that surface. Parallel F2-WP-003/004/005 lanes remain untouched.",
+  "acceptance_target": [
+    "reject missing required checkpoint fields",
+    "reject invalid workpackage/generation/claim identity joins",
+    "reject runtime_credit greater than zero when runtime_execution_observed is false",
+    "reject whole_system_acceptance true without runtime execution evidence",
+    "reject malformed source commit identities",
+    "optionally reject a checkpoint whose declared source identity is not an ancestor/equal of the supplied repository head",
+    "accept the current canonical checkpoint at source/continuity scope"
+  ],
+  "runtime_execution_observed": false,
+  "runtime_credit": 0,
+  "next_exact_action": "Implement tools/validate_current_checkpoint.py and deterministic tests, execute them without provider access, then archive exact scope evidence and update the canonical checkpoint."
+}
