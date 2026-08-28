@@ -4,6 +4,7 @@ from dataclasses import replace
 import unittest
 
 from frankenstein2.state_fingerprint import (
+    CLASSIFICATION,
     PROFILE,
     StateFingerprintError,
     canonical_projection_bytes,
@@ -92,7 +93,7 @@ class StateFingerprintTests(unittest.TestCase):
                     self.fp(generation=value)
 
     def test_projection_schema_is_explicit_trimmed_identifier(self):
-        for value in ("", " STATE/v1", "STATE/v1 "):
+        for value in ("", " STATE/v1", "STATE/v1 ", "STATE\n/v1"):
             with self.subTest(value=repr(value)):
                 with self.assertRaises(StateFingerprintError):
                     self.fp(schema=value)
@@ -104,16 +105,27 @@ class StateFingerprintTests(unittest.TestCase):
         with self.assertRaises(StateFingerprintError):
             identity_changed(object(), fp)
 
-    def test_fingerprint_dataclass_rejects_tampered_digests(self):
+    def test_fingerprint_dataclass_rejects_malformed_digests(self):
         fp = self.fp()
         with self.assertRaisesRegex(StateFingerprintError, "projection_sha256"):
             replace(fp, projection_sha256="not-a-hash")
         with self.assertRaisesRegex(StateFingerprintError, "identity_sha256"):
             replace(fp, identity_sha256="A" * 64)
 
+    def test_valid_format_but_inconsistent_identity_digest_fails_closed(self):
+        fp = self.fp(generation=7)
+        with self.assertRaisesRegex(StateFingerprintError, "does not match"):
+            replace(fp, identity_sha256="0" * 64)
+
+    def test_direct_reclassification_fails_closed(self):
+        fp = self.fp()
+        with self.assertRaisesRegex(StateFingerprintError, "classification mismatch"):
+            replace(fp, classification="WORLD_TRUTH")
+
     def test_profile_and_classification_are_explicit_and_non_authoritative(self):
         fp = self.fp()
         self.assertEqual(fp.profile, PROFILE)
+        self.assertEqual(fp.classification, CLASSIFICATION)
         self.assertEqual(
             fp.classification,
             "EXPLICIT_TYPED_PROJECTION_FINGERPRINT_NOT_WORLD_TRUTH",
