@@ -1,0 +1,55 @@
+{
+  "schema": "FRANKENSTEIN2_WORKPACKAGE_DELTA/v1",
+  "workpackage_id": "F2-WP-205",
+  "generation": 2,
+  "claim_id": "F2-WP-205-G2-GPT56SOL-UNKNOWN-WAKE-20260829",
+  "worker_id": "GPT-5.6-Sol-REVIEW",
+  "base_commit": "04e35e228ff858512b561a3ada770d00a3b96b58",
+  "observed_main_commit": "17699da26c25b4baab7dcce3983f8d8b68e2ef57",
+  "owned_paths": [],
+  "result_class": "FALSIFIER",
+  "source_commits": [
+    "17699da26c25b4baab7dcce3983f8d8b68e2ef57"
+  ],
+  "receipts": [],
+  "falsifiers": [
+    "CONFLICTING_EXPLICIT_VALUES_FOR_ONE_OBSERVATION_KEY_MUST_NOT_MINT_WAKE",
+    "WAKE_MATCH_REQUIRES_NONCONTRADICTORY_EXPLICIT_EVIDENCE_OR_AN_EXPLICIT_CONFLICT_POLICY",
+    "CONFLICT_OR_UNKNOWN_MUST_FAIL_CLOSED_BEFORE_AUTONOMOUS_WAKE"
+  ],
+  "observations": [
+    {
+      "class": "CURRENT_SOURCE_REVIEW",
+      "source_path": "src/frankenstein2/wake_hold.py",
+      "source_blob_sha": "f15466e873d8d152dab6b3713b76c46a310dc22b",
+      "finding": "evaluate_wake groups observations by observation_key. For an EQUALS condition it computes is_match = any(item.value == condition.expected_value for item in candidates). Therefore two explicit observations for the same key with conflicting values, for example job.status=done and job.status=running, still mark the condition matched when either candidate equals the expected value. Under WAKE_ANY this yields wake=true and WAKE_CONDITION_MATCH despite unresolved contradictory explicit evidence."
+    },
+    {
+      "class": "TEST_GAP",
+      "source_path": "tests/test_wake_hold.py",
+      "source_blob_sha": "aa577d2c54c92211e027f2b60688dc74c5fa4258",
+      "finding": "The current deterministic suite covers duplicate observation_id, empty observations, explicit nonmatch, explicit match, ANY/ALL and state/generation/digest fences, but does not cover multiple distinct observation IDs carrying contradictory values for the same observation_key."
+    },
+    {
+      "class": "INFRASTRUCTURE_NOTE",
+      "finding": "An auxiliary local clone/reproduction attempt was blocked by container DNS/network resolution and is not counted as product evidence. The falsifier is source-derived and should be reproduced by the mutation-authority worker in the repository-hosted deterministic suite."
+    }
+  ],
+  "counterhypothesis": "The intended semantics may be that multiple observations for one key represent independent reports and any positive report is sufficient to wake. If so, that policy must be explicit and provenance/authority-aware; otherwise a stale or contradictory report can override current negative evidence. The current contract does not encode such a conflict-resolution rule.",
+  "contradictions": [
+    "Generation-2 scope correctly repairs missing observation -> UNKNOWN, but does not yet state semantics for contradictory explicit observations on the same key.",
+    "Fail-closed wake semantics are weaker if CONFLICT is treated as MATCH whenever one candidate happens to equal the target."
+  ],
+  "proposed_state_change": "Do not open another mutation authority. The existing F2-WP-205 generation-2 owner should consume this falsifier before reconciliation. Add deterministic conflict detection per observation_key (or an explicit typed conflict-resolution contract); conflicting explicit values must classify UNKNOWN/CONFLICT and must not wake by default. Preserve distinct behavior for missing-key UNKNOWN, single explicit nonmatch HOLD, and unambiguous explicit match WAKE.",
+  "completion_deficit": [
+    "no deterministic regression currently proves contradictory same-key observations fail closed",
+    "generation-2 acceptance must cover missing, explicit nonmatch, unambiguous match, and conflicting explicit evidence as distinct epistemic cases",
+    "no VPS/physical-GRID10/whole-system credit"
+  ],
+  "next_exact_action": "Existing WP205 G2 mutation owner should add a same-key conflicting-observation regression before terminal acceptance, choose a typed CONFLICT/UNKNOWN classification that never mints wake by default, run exact-source repository CI, and include this falsifier in reconciliation evidence.",
+  "runtime_execution_observed": false,
+  "runtime_credit": 0,
+  "physical_grid10_credit": 0,
+  "whole_system_acceptance": false,
+  "created_at_utc": "2026-08-28T22:58:56Z"
+}
