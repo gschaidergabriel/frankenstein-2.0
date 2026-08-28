@@ -1,0 +1,88 @@
+{
+  "schema": "FRANKENSTEIN2_WORKPACKAGE_REVIEW/v1",
+  "workpackage_id": "F2-WP-100",
+  "review_class": "REVIEW_ONLY",
+  "reviewer": "GPT-5.6-Sol",
+  "trigger": "4",
+  "observed_main": "7c988387e641cc95da61159334c4710e6c42cc97",
+  "observed_active_pointer": {
+    "path": "workpackages/active/F2-WP-100.json",
+    "generation": 2,
+    "claim_id": "F2-WP-100-G2-UNIFIEDDB-RESOLVER-FINGERPRINT-GPT56SOL-20260828T2143P0700",
+    "state": "ACTIVE"
+  },
+  "verdict": "BLOCKING_CONVERGENCE_DEFECT_NOT_RUNTIME_FAILURE",
+  "observations": [
+    {
+      "id": "WP100-DUAL-IMPLEMENTATION-AUTHORITY",
+      "severity": "HIGH",
+      "evidence": [
+        "src/state/unifieddb_identity.py",
+        "state/unifieddb_identity.py"
+      ],
+      "finding": "Two materially different UnifiedDB resolver/fingerprint implementations are present on canonical main. Keeping both as live semantic implementations risks a second durable-state identity authority even though the active pointer permits only one mutation authority."
+    },
+    {
+      "id": "WP100-SRC-NOT-SQLITE-SCHEMA-FINGERPRINT",
+      "severity": "HIGH",
+      "evidence": [
+        "src/state/unifieddb_identity.py",
+        "tests/test_unifieddb_identity.py"
+      ],
+      "finding": "The src/state implementation hashes any regular file and does not validate the SQLite format-3 header or produce a schema digest. Its regression fixture intentionally uses merely a SQLite-header-looking byte string rather than a valid SQLite database. This establishes exact file identity but not the schema-fingerprint boundary named by F2-WP-100."
+    },
+    {
+      "id": "WP100-EXPLICIT-AUTHORITY-SEMANTICS-DIVERGE",
+      "severity": "HIGH",
+      "evidence": [
+        "src/state/unifieddb_identity.py",
+        "state/unifieddb_identity.py"
+      ],
+      "finding": "The src/state resolver silently gives AGENTZERO_DB precedence over UDB_DB_PATH when both are set; the state/ resolver rejects conflicting explicit authorities. The two files also use different default pointer/data locations and environment-name sets. These are policy differences, not packaging duplicates."
+    },
+    {
+      "id": "WP100-STATE-ACTIVE-MISMATCH",
+      "severity": "MEDIUM",
+      "evidence": [
+        "workpackages/active/F2-WP-100.json",
+        "workpackages/STATE.json"
+      ],
+      "finding": "The canonical active pointer is generation 2 ACTIVE while workpackages/STATE.json still labels F2-WP-100 NOT_STARTED with no evidence. This should remain an explicit in-progress/reconciliation mismatch rather than being silently interpreted."
+    }
+  ],
+  "counterhypotheses": [
+    "state/unifieddb_identity.py may be intended only as a donor/candidate artifact and never imported by the product.",
+    "F2-WP-100 may intentionally define file identity only, leaving SQLite/schema validation to a later workpackage despite the current resolver/fingerprint wording."
+  ],
+  "discriminators": [
+    "Declare one canonical import path in the active G2 scope and prove the other path is retired or a behavior-free compatibility shim.",
+    "Add a test that a non-SQLite regular file is rejected when claiming UnifiedDB/schema identity.",
+    "Add a valid SQLite fixture, mutate only sqlite_master/schema, and require deterministic schema identity to change.",
+    "Set AGENTZERO_DB and UDB_DB_PATH to different absolute paths and explicitly choose either fail-closed conflict semantics or documented donor precedence; do not leave two implementations disagreeing.",
+    "If WAL-bearing databases are admitted, bind WAL/journal identity or explicitly keep the receipt classified as non-state-snapshot."
+  ],
+  "fusion_recommendation": {
+    "canonical_mutation_authority": "Preserve the existing generation-2 active pointer; do not create a replacement generation merely because another Triggerword-4 worker arrived.",
+    "canonical_code_path_candidate": "src/state/unifieddb_identity.py",
+    "reason": "Current tests and the newest deterministic UnifiedDB identity CI commit target src/state, so it is the least disruptive convergence anchor.",
+    "salvage_from_parallel_variant": [
+      "SQLite format validation",
+      "deterministic sqlite_master schema digest",
+      "fail-closed conflicting explicit-authority handling or an explicit documented policy decision",
+      "journal/WAL observability classification"
+    ],
+    "retain_from_src_variant": [
+      "full-file SHA-256",
+      "nofollow regular-file boundary",
+      "inode/device replacement detection",
+      "mutation-during-hash rejection",
+      "donor-compatible fresh-XDG fallback"
+    ],
+    "retire_or_shim": "After fusion, state/unifieddb_identity.py should not remain a second semantic implementation. Retire it as historical/candidate evidence or reduce it to a behavior-free compatibility shim importing the canonical implementation."
+  },
+  "evidence_scope": "STATIC_SOURCE_AND_CANONICAL_REPOSITORY_REVIEW_ONLY",
+  "runtime_execution_observed": false,
+  "runtime_credit": 0,
+  "whole_system_credit": 0,
+  "next_exact_action": "Active F2-WP-100 generation 2 should fuse the strongest non-conflicting invariants into one canonical module, add the four discriminator tests, reconcile duplicate historical claims/implementation path, then update STATE.json to IN_PROGRESS or ACCEPTED_AT_SCOPE only with bounded evidence."
+}
