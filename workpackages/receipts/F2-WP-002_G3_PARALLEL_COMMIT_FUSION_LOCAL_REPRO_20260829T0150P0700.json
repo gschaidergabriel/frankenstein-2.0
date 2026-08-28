@@ -1,0 +1,89 @@
+{
+  "schema": "FRANKENSTEIN2_WORKPACKAGE_REPAIR_RECEIPT/v1",
+  "workpackage_id": "F2-WP-002",
+  "generation": 3,
+  "claim_id": "F2-WP-002-G3-GPT56SOL-cde53b3c",
+  "worker_id": "GPT-5.6-Sol",
+  "trigger": "4",
+  "recorded_at_utc": "2026-08-28T18:50:24Z",
+  "scope": "SOURCE_REGRESSION_FUSION_AND_LOCAL_COMPONENT_REPRODUCTION_ONLY",
+  "status": "REGRESSION_PENDING_REPOSITORY_BOUND_EXECUTION",
+  "source_regression": {
+    "confirmed": true,
+    "finding": "The prior generation-3 source receipt listed four commits as one implementation set, but the commits did not form one ancestry chain. The contract/validator lineage and the test/workflow lineage diverged, so current main retained tests/workflow while the contract and validator were absent.",
+    "ancestry_evidence": {
+      "contract_commit": "8402b114b6d726908b97ded2a1961478f1d8388f",
+      "contract_parent": "6abb0921bb595556c63fd22b78f9805fcf4b9015",
+      "validator_commit": "b70f04c5e680fb41c047f547838760f0990b46ec",
+      "validator_parent": "8402b114b6d726908b97ded2a1961478f1d8388f",
+      "test_commit": "4836ce1dae1c5f73e6bf46861d2bc72d25253ff6",
+      "test_parent": "6663320905d962660cfc965fd0c7a15283fd4085",
+      "workflow_commit": "7519182755f027e86f62e5292e18ddb477e8f3bc",
+      "workflow_parent": "4836ce1dae1c5f73e6bf46861d2bc72d25253ff6"
+    },
+    "deeper_mechanism": "HYPOTHESIS_CONCURRENT_WRITE_BRANCH_DIVERGENCE_NOT_YET_ROOT_CAUSE_CLOSED"
+  },
+  "fusion": {
+    "contract_path": "workpackages/F2-WP-002_STATE_CONTRACT.md",
+    "contract_original_blob": "40228a16a69dc7ac10ccd87ff2feb2732cf3bff8",
+    "contract_fusion_commit": "e6f164a3020178f76c424ab2e012fb023813de1f",
+    "validator_path": "tools/validate_wp_state_consistency_v1.py",
+    "validator_original_blob": "a01dd4c9ba6fa502b4e0332cfafbd4fe4ff0d8a1",
+    "validator_byte_equivalent_restore_commit": "292baf56f8ea7d8c6890fe3ec31cef4f62b52ddd",
+    "tests_path": "tests/test_validate_wp_state_consistency_v1.py",
+    "tests_blob_at_tested_head": "0dab1a10e7c70d0c5d0a855199aaaffd9c87fbdc",
+    "workflow_path": ".github/workflows/wp-state-consistency-ci.yml",
+    "workflow_historical_blob": "a73cee4b11e67be86703f298088ceb2eab4b6eb8"
+  },
+  "tested_source_identity": {
+    "repository": "gschaidergabriel/frankenstein-2.0",
+    "head_commit": "292baf56f8ea7d8c6890fe3ec31cef4f62b52ddd",
+    "active_pointer_blob": "aaa91e7cd24144c7768ca41ca8797e66a0c4a4be",
+    "active_claim_blob": "e165e7df5fdf1b3b3e4f0868a46e3f86a19175ac",
+    "state_blob": "871df3d23e58284c821312cd435ba6456da02bc4",
+    "observed_generation3_candidate_filenames": [
+      "F2-WP-002_G3_GPT56SOL_cde53b3c.json",
+      "F2-WP-002_G3_GPT56SOL_checkpoint_validator.json",
+      "F2-WP-002_G3_GPT56SOL_terminal_binding.json"
+    ],
+    "candidate_selection_note": "The active cde53b3c claim sorts first under the validator's deterministic filename ordering and is selected by exact claim_id."
+  },
+  "local_execution": {
+    "surface": "CHATGPT_ISOLATED_LOCAL_LINUX_COMPONENT_REPRODUCTION",
+    "python": "3.13.5",
+    "platform": "Linux-6.18.35-x86_64-with-glibc2.41",
+    "architecture": "x86_64",
+    "provider_model_execution": false,
+    "repository_checkout": false,
+    "state_projection": "Only the exact F2-WP-002 STATE row, exact active pointer, exact active claim and observed generation-3 candidate filenames were reconstructed because the validator does not inspect unrelated STATE rows. This is behaviorally bounded component reproduction, not a full repository checkout.",
+    "commands": [
+      "python tests/test_validate_wp_state_consistency_v1.py -v",
+      "python tools/validate_wp_state_consistency_v1.py . F2-WP-002"
+    ],
+    "results": {
+      "unit_tests": "5/5 PASS",
+      "unit_test_exit_code": 0,
+      "direct_validator": "PASS workpackage=F2-WP-002; generation=3; claim=F2-WP-002-G3-GPT56SOL-cde53b3c; state=IN_PROGRESS; runtime_credit=0",
+      "direct_validator_exit_code": 0
+    },
+    "non_product_noise": "Python startup emitted an artifact-tool spreadsheet warmup timeout on stderr; the target tests and validator still exited 0. This noise is not classified as Frankenstein product evidence."
+  },
+  "repository_bound_execution": {
+    "observed": false,
+    "actions_query_for_tested_head": "0 workflow runs observed for head 292baf56f8ea7d8c6890fe3ec31cef4f62b52ddd",
+    "manual_duplicate_dispatch": false
+  },
+  "credit": {
+    "f2_wp002_source_fusion": 1,
+    "local_component_reproduction": 1,
+    "repository_bound_runtime": 0,
+    "vps_runtime": 0,
+    "provider": 0,
+    "grid10_runtime": 0,
+    "hcu_runtime": 0,
+    "training": 0,
+    "whole_system": 0
+  },
+  "bug_status": "FIX_CANDIDATE_REGRESSION_PENDING",
+  "next_exact_action": "Obtain one exact repository-checkout non-provider execution receipt for .github/workflows/wp-state-consistency-ci.yml on a head containing contract blob 40228a16..., validator blob a01dd4c9..., test blob 0dab1a10... and the active generation-3 state; then reconcile F2-WP-002 generation 3 without granting broader runtime credit."
+}
