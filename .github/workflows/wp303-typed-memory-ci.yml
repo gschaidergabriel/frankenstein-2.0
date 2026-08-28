@@ -1,0 +1,38 @@
+name: F2 WP303 Typed Memory CI
+
+on:
+  push:
+    branches:
+      - main
+      - chatgpt/trigger4-wp303-typed-memory-split-20260829
+    paths:
+      - 'src/frankenstein2/typed_memory.py'
+      - 'src/frankenstein2/memory_lifecycle.py'
+      - 'tests/test_typed_memory.py'
+      - '.github/workflows/wp303-typed-memory-ci.yml'
+  pull_request:
+    paths:
+      - 'src/frankenstein2/typed_memory.py'
+      - 'src/frankenstein2/memory_lifecycle.py'
+      - 'tests/test_typed_memory.py'
+      - '.github/workflows/wp303-typed-memory-ci.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  deterministic:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Compile
+        run: python -m py_compile src/frankenstein2/memory_lifecycle.py src/frankenstein2/typed_memory.py tests/test_typed_memory.py
+      - name: Typed memory falsification suite
+        env:
+          PYTHONPATH: src
+        run: python tests/test_typed_memory.py -v
