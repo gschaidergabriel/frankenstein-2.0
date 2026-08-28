@@ -5,11 +5,16 @@ EntityOS binding record plus its current-epoch attestation, verifies the exact s
 tuple and epoch relationship, and then narrows the existing generic canonical-effect
 bridge to that verified tuple.
 
-No provider, VPS, external effect, UnifiedDB write, or world verification occurs here.
+The bijective dispatch variant additionally accepts a caller-supplied connection to the
+already-selected canonical UnifiedDB. It does not create a database, schema, effect id,
+provider route, external effect authority, or world fact. Its only added mutation is the
+pre-initialized immutable invocation-id <-> canonical-effect-id guard, durably persisted
+before executor entry by the bijective adapter.
 """
 from __future__ import annotations
 
 from dataclasses import dataclass
+import sqlite3
 from typing import Any, Callable, Mapping
 
 from .canonical_effect_authority_bridge import (
@@ -19,6 +24,9 @@ from .canonical_effect_authority_bridge import (
     CanonicalEffectAuthorityIdentityError,
     EffectCallIntent,
     dispatch_with_canonical_authority,
+)
+from .canonical_effect_bijective_dispatch import (
+    dispatch_with_canonical_authority_bijective,
 )
 from .effect_executor_interlock import EffectExecutor
 
@@ -264,6 +272,11 @@ def load_current_entityos_effect_authority_binding(
     )
 
 
+def _require_binding(binding: CurrentEntityOSEffectAuthorityBinding) -> None:
+    if not isinstance(binding, CurrentEntityOSEffectAuthorityBinding):
+        raise CanonicalEffectAuthorityIdentityError("CURRENT_ENTITYOS_BINDING_UNRESOLVED")
+
+
 def dispatch_with_current_entityos_authority(
     intent: EffectCallIntent,
     *,
@@ -271,14 +284,32 @@ def dispatch_with_current_entityos_authority(
     authorize: Callable[[EffectCallIntent], CanonicalEffectAuthorityEvidence],
     executor: EffectExecutor,
 ) -> CanonicalDispatchResult:
-    """Dispatch through the generic bridge only after current binding verification."""
-    if not isinstance(binding, CurrentEntityOSEffectAuthorityBinding):
-        raise CanonicalEffectAuthorityIdentityError("CURRENT_ENTITYOS_BINDING_UNRESOLVED")
+    """Dispatch through the existing generic bridge after current binding verification."""
+    _require_binding(binding)
     return dispatch_with_canonical_authority(
         intent,
         expected_authority=binding.bridge_identity(),
         authorize=authorize,
         executor=executor,
+    )
+
+
+def dispatch_with_current_entityos_authority_bijective(
+    intent: EffectCallIntent,
+    *,
+    binding: CurrentEntityOSEffectAuthorityBinding,
+    authorize: Callable[[EffectCallIntent], CanonicalEffectAuthorityEvidence],
+    executor: EffectExecutor,
+    bijection_connection: sqlite3.Connection,
+) -> CanonicalDispatchResult:
+    """Current assembly path with durable PRE-dispatch call/effect bijection."""
+    _require_binding(binding)
+    return dispatch_with_canonical_authority_bijective(
+        intent,
+        expected_authority=binding.bridge_identity(),
+        authorize=authorize,
+        executor=executor,
+        bijection_connection=bijection_connection,
     )
 
 
@@ -290,5 +321,6 @@ __all__ = [
     "CurrentEntityOSEffectAuthorityBinding",
     "CurrentEntityOSEffectAuthorityBindingError",
     "dispatch_with_current_entityos_authority",
+    "dispatch_with_current_entityos_authority_bijective",
     "load_current_entityos_effect_authority_binding",
 ]
