@@ -6,6 +6,7 @@ from frankenstein2.wake_hold import (
     OP_EQUALS,
     OP_PRESENT,
     WAKE_ANY,
+    WAKE_CONDITION_MATCH,
     HoldCheckpoint,
     WakeCondition,
     WakeObservation,
@@ -61,7 +62,7 @@ class WakeConflictTests(unittest.TestCase):
         self.assertEqual(result.unmatched_condition_ids, ())
         self.assertEqual(result.unknown_condition_ids, ())
 
-    def test_conflict_dominates_other_any_policy_match(self):
+    def test_clean_any_match_is_decisive_over_other_condition_conflict(self):
         cp = checkpoint(
             WakeCondition("c1", "door_state", OP_EQUALS, ("spec:door",), "open"),
             WakeCondition("c2", "receipt.present", OP_PRESENT, ("spec:receipt",), None),
@@ -74,8 +75,8 @@ class WakeConflictTests(unittest.TestCase):
                 observation("o3", "receipt.present", "yes"),
             ),
         )
-        self.assertFalse(result.wake)
-        self.assertEqual(result.classification, ABSTAIN_CONFLICTING_OBSERVATIONS)
+        self.assertTrue(result.wake)
+        self.assertEqual(result.classification, WAKE_CONDITION_MATCH)
         self.assertEqual(result.conflicting_condition_ids, ("c1",))
         self.assertEqual(result.matched_condition_ids, ("c2",))
 
