@@ -145,6 +145,24 @@ class WorkpackageStateValidatorTests(unittest.TestCase):
                 state_entry=valid_state()["workpackages"]["F2-WP-002"], contract=valid_contract()
             )
 
+    def test_claim_without_trigger_is_compatibility_admitted(self):
+        claim = valid_claim()
+        claim.pop("trigger")
+        result = mod.validate_pointer(
+            filename_stem="F2-WP-002", pointer=valid_pointer(), claim=claim,
+            state_entry=valid_state()["workpackages"]["F2-WP-002"], contract=valid_contract()
+        )
+        self.assertEqual(result["claim_id"], "F2-WP-002-G3-test")
+
+    def test_explicit_wrong_claim_trigger_fails_closed(self):
+        claim = valid_claim()
+        claim["trigger"] = "5"
+        with self.assertRaisesRegex(mod.ValidationError, "claim trigger must be '4' when present"):
+            mod.validate_pointer(
+                filename_stem="F2-WP-002", pointer=valid_pointer(), claim=claim,
+                state_entry=valid_state()["workpackages"]["F2-WP-002"], contract=valid_contract()
+            )
+
     def test_active_pointer_rejects_not_started_and_accepted_broad_state(self):
         for status in ("NOT_STARTED", "ACCEPTED_AT_SCOPE"):
             with self.subTest(status=status), self.assertRaisesRegex(mod.ValidationError, "nonterminal broad state"):
