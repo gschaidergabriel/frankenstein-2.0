@@ -5,30 +5,41 @@ import unittest
 from frankenstein2.canonical_effect_authority_bridge import (
     CanonicalEffectAuthorityBridgeError,
     CanonicalEffectAuthorityEvidence,
+    CanonicalEffectAuthorityIdentity,
     CanonicalEffectAuthorityIdentityError,
     EffectCallIntent,
     bind_canonical_effect,
     dispatch_with_canonical_authority,
     intent_from_prepared_candidate,
 )
-from frankenstein2.effect_executor_interlock import (
-    ExecutorObservation,
-    ExternalGateDecision,
-)
-from frankenstein2.effect_invocation_correlation import (
-    EffectCallBinding,
-    EffectCorrelationStage,
-)
+from frankenstein2.effect_executor_interlock import ExecutorObservation, ExternalGateDecision
+from frankenstein2.effect_invocation_correlation import EffectCallBinding, EffectCorrelationStage
 
 
 CHILD_A = "a" * 64
 CHILD_B = "b" * 64
 RESULT_SHA = "c" * 64
+AUTHORITY = CanonicalEffectAuthorityIdentity(
+    repository="example/canonical-authority",
+    commit_sha="1" * 40,
+    module_path="entityos/effects.py",
+    source_blob_sha="2" * 40,
+    state_schema="EffectJournal/v1",
+    api_version="CANONICAL_EFFECT_AUTHORITY_PORT/v1",
+)
+OTHER_AUTHORITY = CanonicalEffectAuthorityIdentity(
+    repository="example/other-authority",
+    commit_sha="3" * 40,
+    module_path="other/effects.py",
+    source_blob_sha="4" * 40,
+    state_schema="OtherJournal/v1",
+    api_version="OTHER_EFFECT_AUTHORITY/v1",
+)
 
 
-def intent(suffix: str) -> EffectCallIntent:
+def intent(suffix: str, *, return_bound: bool = False) -> EffectCallIntent:
     return EffectCallIntent(
-        return_id=f"return-{suffix}",
+        return_id=f"return-{suffix}" if return_bound else None,
         binding_id=f"binding-{suffix}",
         invocation_id=f"invocation-{suffix}",
         tool_use_id=f"tool-{suffix}",
@@ -41,6 +52,7 @@ def authority_for(
     call: EffectCallIntent,
     decision: ExternalGateDecision,
     *,
+    authority: CanonicalEffectAuthorityIdentity = AUTHORITY,
     effect_id: str | None = None,
     journal_state: str | None = None,
 ) -> CanonicalEffectAuthorityEvidence:
@@ -49,7 +61,7 @@ def authority_for(
     if decision is ExternalGateDecision.ALLOW and effect_id is None:
         effect_id = f"canonical-{call.tool_use_id}"
     return CanonicalEffectAuthorityEvidence(
-        authority_ref="entityos-effectgate:current",
+        authority=authority,
         decision_id=f"decision-{call.tool_use_id}-{decision.value}",
         decision=decision,
         journal_state=journal_state,
@@ -86,8 +98,17 @@ class CanonicalEffectAuthorityBridgeTests(unittest.TestCase):
         self.a = intent("A")
         self.b = intent("B")
 
-    def test_pre_authority_intent_has_no_effect_id(self) -> None:
+    def dispatch(self, call, authorize, executor):
+        return dispatch_with_canonical_authority(
+            call,
+            expected_authority=AUTHORITY,
+            authorize=authorize,
+            executor=executor,
+        )
+
+    def test_true_pre_authority_intent_has_neither_effect_nor_return_id(self) -> None:
         self.assertFalse(hasattr(self.a, "effect_id"))
+        self.assertIsNone(self.a.return_id)
 
     def test_canonical_allow_mints_effect_id_before_dispatch(self) -> None:
         executor = RecordingExecutor()
@@ -101,15 +122,12 @@ class CanonicalEffectAuthorityBridgeTests(unittest.TestCase):
                 effect_id="journal-effect-A",
             )
 
-        result = dispatch_with_canonical_authority(
-            self.a,
-            authorize=authorize,
-            executor=executor,
-        )
+        result = self.dispatch(self.a, authorize, executor)
         self.assertEqual(calls, [self.a])
         self.assertTrue(result.dispatched)
         self.assertEqual(len(executor.calls), 1)
         self.assertEqual(executor.calls[0].effect_id, "journal-effect-A")
+        self.assertIsNone(executor.calls[0].return_id)
         self.assertEqual(result.interlock.observed.effect_id, "journal-effect-A")
 
     def test_every_non_allow_decision_stops_before_executor(self) -> None:
@@ -121,10 +139,10 @@ class CanonicalEffectAuthorityBridgeTests(unittest.TestCase):
         ):
             with self.subTest(decision=decision.value):
                 executor = RecordingExecutor()
-                result = dispatch_with_canonical_authority(
+                result = self.dispatch(
                     self.a,
-                    authorize=lambda call, d=decision: authority_for(call, d),
-                    executor=executor,
+                    lambda call, d=decision: authority_for(call, d),
+                    executor,
                 )
                 self.assertFalse(result.dispatched)
                 self.assertIsNone(result.interlock)
@@ -132,15 +150,15 @@ class CanonicalEffectAuthorityBridgeTests(unittest.TestCase):
 
     def test_restart_unknown_with_existing_effect_never_replays(self) -> None:
         executor = RecordingExecutor()
-        result = dispatch_with_canonical_authority(
+        result = self.dispatch(
             self.a,
-            authorize=lambda call: authority_for(
+            lambda call: authority_for(
                 call,
                 ExternalGateDecision.UNKNOWN,
                 effect_id="journal-effect-prior",
                 journal_state="UNKNOWN_AFTER_RESTART",
             ),
-            executor=executor,
+            executor,
         )
         self.assertFalse(result.dispatched)
         self.assertEqual(result.authority.effect_id, "journal-effect-prior")
@@ -165,7 +183,7 @@ class CanonicalEffectAuthorityBridgeTests(unittest.TestCase):
             "CANONICAL_ALLOW_REQUIRES_EFFECT_ID",
         ):
             CanonicalEffectAuthorityEvidence(
-                authority_ref="entityos-effectgate:current",
+                authority=AUTHORITY,
                 decision_id="decision-A",
                 decision=ExternalGateDecision.ALLOW,
                 journal_state="PENDING",
@@ -178,6 +196,24 @@ class CanonicalEffectAuthorityBridgeTests(unittest.TestCase):
                 child_identity_sha256=self.a.child_identity_sha256,
             )
 
+    def test_unresolved_or_different_authority_cannot_self_grant(self) -> None:
+        executor = RecordingExecutor()
+        with self.assertRaisesRegex(
+            CanonicalEffectAuthorityIdentityError,
+            "AUTHORITY_IDENTITY_MISMATCH",
+        ):
+            self.dispatch(
+                self.a,
+                lambda call: authority_for(
+                    call,
+                    ExternalGateDecision.ALLOW,
+                    authority=OTHER_AUTHORITY,
+                    effect_id="other-effect-A",
+                ),
+                executor,
+            )
+        self.assertEqual(executor.calls, [])
+
     def test_allow_for_call_b_cannot_bind_call_a(self) -> None:
         evidence_b = authority_for(
             self.b,
@@ -186,9 +222,13 @@ class CanonicalEffectAuthorityBridgeTests(unittest.TestCase):
         )
         with self.assertRaisesRegex(
             CanonicalEffectAuthorityIdentityError,
-            "RETURN_ID_MISMATCH",
+            "BINDING_ID_MISMATCH",
         ):
-            bind_canonical_effect(self.a, evidence_b)
+            bind_canonical_effect(
+                self.a,
+                evidence_b,
+                expected_authority=AUTHORITY,
+            )
 
     def test_same_session_overlapping_calls_keep_distinct_canonical_effect_ids(self) -> None:
         executor = RecordingExecutor()
@@ -204,12 +244,8 @@ class CanonicalEffectAuthorityBridgeTests(unittest.TestCase):
                 effect_id=minted[call.tool_use_id],
             )
 
-        result_b = dispatch_with_canonical_authority(
-            self.b, authorize=authorize, executor=executor
-        )
-        result_a = dispatch_with_canonical_authority(
-            self.a, authorize=authorize, executor=executor
-        )
+        result_b = self.dispatch(self.b, authorize, executor)
+        result_a = self.dispatch(self.a, authorize, executor)
         self.assertTrue(result_a.dispatched)
         self.assertTrue(result_b.dispatched)
         self.assertEqual(
@@ -219,10 +255,10 @@ class CanonicalEffectAuthorityBridgeTests(unittest.TestCase):
         self.assertEqual(result_a.interlock.observed.tool_use_id, self.a.tool_use_id)
         self.assertEqual(result_b.interlock.observed.tool_use_id, self.b.tool_use_id)
 
-    def test_existing_prepared_candidate_effect_id_is_discarded(self) -> None:
+    def test_existing_candidate_effect_id_is_discarded_on_result_free_path(self) -> None:
         old = EffectCallBinding(
             effect_id="caller-authored-effect-id",
-            return_id=self.a.return_id,
+            return_id=None,
             binding_id=self.a.binding_id,
             invocation_id=self.a.invocation_id,
             tool_use_id=self.a.tool_use_id,
@@ -232,6 +268,7 @@ class CanonicalEffectAuthorityBridgeTests(unittest.TestCase):
         )
         migrated = intent_from_prepared_candidate(old)
         self.assertFalse(hasattr(migrated, "effect_id"))
+        self.assertIsNone(migrated.return_id)
         bound = bind_canonical_effect(
             migrated,
             authority_for(
@@ -239,6 +276,7 @@ class CanonicalEffectAuthorityBridgeTests(unittest.TestCase):
                 ExternalGateDecision.ALLOW,
                 effect_id="journal-effect-A",
             ),
+            expected_authority=AUTHORITY,
         )
         self.assertEqual(bound.prepared.effect_id, "journal-effect-A")
         self.assertNotEqual(bound.prepared.effect_id, old.effect_id)
@@ -253,11 +291,7 @@ class CanonicalEffectAuthorityBridgeTests(unittest.TestCase):
             CanonicalEffectAuthorityBridgeError,
             "CANONICAL_EFFECT_AUTHORITY_FAILED",
         ):
-            dispatch_with_canonical_authority(
-                self.a,
-                authorize=broken,
-                executor=executor,
-            )
+            self.dispatch(self.a, broken, executor)
         self.assertEqual(executor.calls, [])
 
 
