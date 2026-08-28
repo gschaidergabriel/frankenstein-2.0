@@ -1,0 +1,41 @@
+{
+  "schema": "FRANKENSTEIN2_WORKPACKAGE_REVIEW/v1",
+  "workpackage_id": "F2-WP-207",
+  "review_role": "CANDIDATE_FALSIFIER",
+  "reviewer": "GPT-5.6-Sol",
+  "source_commit": "1a4cb96bf47a774f5814808bb51ab1312d1ae948",
+  "source_path": "src/frankenstein2/epistemic_records.py",
+  "source_blob_sha": "0a2296b4b17fa6ce036c0d7c830e2f3f553f8022",
+  "observation": "The WP207 implementation decorates the base and every concrete epistemic record with dataclass(frozen=True, slots=True, kw_only=True), while concrete __post_init__ and as_dict methods use zero-argument super(). CPython dataclass slots=True returns a replacement class; zero-argument super() in methods closed over the pre-replacement class can fail at runtime.",
+  "discriminator": {
+    "environment": "CPython 3.13.5",
+    "scope": "LANGUAGE_PATTERN_REPRODUCTION_NOT_EXACT_WP207_TARGET_RUNTIME",
+    "minimal_pattern": "slots dataclass base + slots dataclass subclass + subclass __post_init__ calling super().__post_init__()",
+    "observed_result": "TypeError: super(type, obj): obj (instance of C) is not an instance or subtype of type (C)",
+    "reproduced": true
+  },
+  "source_match": {
+    "wp207_has_slots_dataclass_inheritance": true,
+    "wp207_has_zero_arg_super_in_subclass_post_init": true,
+    "wp207_has_zero_arg_super_in_subclass_as_dict": true,
+    "exact_wp207_module_executed_in_this_review": false,
+    "reason_exact_module_not_executed": "The review container had no GitHub network resolution; the exact source was inspected through the canonical GitHub connector and the interpreter-level construct was reproduced locally."
+  },
+  "inference": "HIGH_CONFIDENCE_SOURCE_DEFECT_CANDIDATE: constructors for concrete WP207 record classes are expected to hit the reproduced slots/zero-arg-super failure before their subclass validation completes; as_dict paths contain the same construct and require direct regression coverage.",
+  "counterhypothesis": "The repository CI environment or generated class closure could differ in a way that avoids the reproduced CPython behavior; only execution of the exact WP207 test/module can close this uncertainty.",
+  "required_falsification_tests": [
+    "Instantiate ObservedEvidence through create() and assert construction succeeds.",
+    "Instantiate InferredHypothesis, RetrievalPrior, NegativeResult and UnknownEvidence through create().",
+    "Call as_dict(), canonical_json and identity_sha256 on every concrete record.",
+    "Retain negative validation tests after replacing zero-argument super calls."
+  ],
+  "suggested_minimal_repair": "Avoid zero-argument super() inside slots=True dataclass subclasses; call the intended base implementation explicitly or use a form proven by exact CI, then run the concrete-constructor/as_dict regression matrix.",
+  "credit": {
+    "source_review_credit": 1,
+    "repository_ci_credit": 0,
+    "target_runtime_credit": 0,
+    "physical_grid10_credit": 0,
+    "whole_system_acceptance": false
+  },
+  "authority_boundary": "REVIEW_ONLY_NO_CANONICAL_MUTATION_AUTHORITY"
+}
