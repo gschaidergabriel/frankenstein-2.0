@@ -1,0 +1,47 @@
+{
+  "schema": "FRANKENSTEIN2_WORKPACKAGE_REVIEW/v1",
+  "classification": "CANDIDATE_FALSIFIER",
+  "trigger": "4",
+  "workpackage_id": "F2-WP-105",
+  "organ": "GPT-5.6 Sol / ChatGPT Triggerword-4 continuation organ",
+  "mutation_authority": false,
+  "canonical_wp105_implementation_modified": false,
+  "candidate_branch": "chatgpt/trigger4-wp105-bound-effect-topology-falsifier-20260829",
+  "base_main": "25528767ba45aec7e5d0727fe176fb2fd674e0cc",
+  "purpose": "Execute the cheapest exact-source no-real-external-effect discriminator for the current EffectGate topology before the active WP105 lane chooses a production adapter shape.",
+  "bound_entityos_identity": {
+    "binding_commit": "5638204026468b631de5e774e8403d7a6334021e",
+    "binding_path": "research_entity/continuity/ENTITYOS_EFFECT_AUTHORITY_IMPLEMENTATION_BINDING_V1.json",
+    "implementation_commit": "2b68aad14bf7824d513b52898904909256e3522d",
+    "effect_gate_blob": "4a6413b3f3c752c6327e67233bdd8097f3cf0ba4",
+    "effect_journal_blob": "cda63471f1467481f2ff79032d3931730a334a20",
+    "unifieddb_blob": "a88d923ea3d0eab5847f304f35463e5a2b2c4acd"
+  },
+  "hypothesis": "The admitted canonical EffectGate is a single authority-owned transaction: journal PENDING and lease are established before EntityOSBridge.run, EffectGate itself invokes at most one bridge action, then finalizes the journal and releases the lease. Therefore treating EffectGate.execute as an authorization-only callback followed by a separate Frankenstein executor is structurally unsafe.",
+  "counterhypothesis": "The bound implementation can be safely split into authorization and later Frankenstein dispatch without changing canonical authority semantics.",
+  "discriminator": {
+    "test": "tests/test_bound_entityos_effect_topology.py",
+    "workflow": ".github/workflows/bound-entityos-effect-topology-ci.yml",
+    "method": [
+      "checkout the exact binding commit and exact bound implementation commit",
+      "recompute Git blob identities for EffectGate, EffectJournal and UnifiedDB source",
+      "run the real bound EffectGate against a temporary UnifiedDB and an in-process fake EntityOS bridge",
+      "observe a PENDING journal row and live canonical lease inside bridge.run",
+      "require exactly one bridge.run call and VERIFIED journal state after return",
+      "retry the same canonical episode and require zero second dispatch",
+      "create a PENDING row, reopen the DB, recover it to UNKNOWN_AFTER_RESTART and require zero replay"
+    ],
+    "real_external_effect": false
+  },
+  "promotion_boundary": {
+    "source_identity_credit_if_pass": "EXACT_BOUND_SOURCE_TOPOLOGY_FALSIFIER_ONLY",
+    "canonical_effect_authority_runtime_credit": 0,
+    "real_effect_runtime_credit": 0,
+    "physical_grid10_runtime_credit": 0,
+    "whole_frankenstein2_runtime_credit": 0,
+    "whole_entityos_hcu_runtime_credit": 0,
+    "training_credit": 0
+  },
+  "decision_rule": "If the exact-source falsifier passes, prefer a single canonical EffectGate-owned execution port with F2 pre/post correlation and separate completion verification. Do not use the current two-stage authorize-then-F2-executor shape against EffectGate.execute. If the active lane still requires split control, obtain a canonical EntityOS-owned prepare/dispatch/finalize API including lease custody instead of inventing the split in F2.",
+  "status": "CANDIDATE_AWAITING_EXACT_SOURCE_CI"
+}
