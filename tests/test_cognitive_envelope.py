@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import dataclasses
 import unittest
 
 from frankenstein2.cognitive_envelope import (
@@ -69,6 +70,23 @@ class CognitiveEnvelopeTests(unittest.TestCase):
         self.assertEqual(snapshot.disposition, DISPOSITION_DEGRADED)
         self.assertEqual(snapshot.regulation_candidate, CANDIDATE_REDUCE)
         self.assertIn("NOT_CONTROL_WRITER_OR_EFFECT_AUTHORITY", snapshot.classification)
+
+    def test_candidate_falsifier_snapshot_authority_fields_cannot_be_forged(self):
+        snapshot = evaluate_control_snapshot(policy(band("rss")), (readout("rss", 50),))
+        with self.assertRaises(CognitiveEnvelopeError):
+            dataclasses.replace(snapshot, classification="FORGED_CONTROL_WRITER_EFFECT_AUTHORITY")
+        with self.assertRaises(CognitiveEnvelopeError):
+            dataclasses.replace(snapshot, disposition="FORGED_EFFECT_GRANTED")
+        with self.assertRaises(CognitiveEnvelopeError):
+            dataclasses.replace(snapshot, regulation_candidate="FORGED_APPLY_NOW")
+
+    def test_candidate_falsifier_signal_result_status_cannot_be_forged(self):
+        snapshot = evaluate_control_snapshot(policy(band("rss")), (readout("rss", 50),))
+        result = snapshot.signal_results[0]
+        with self.assertRaises(CognitiveEnvelopeError):
+            dataclasses.replace(result, status="FORGED_HARD_LIMIT_CLEAR")
+        with self.assertRaises(CognitiveEnvelopeError):
+            dataclasses.replace(result, schema="FORGED_SCHEMA")
 
     def test_hard_limit_dominates_degraded(self):
         snapshot = evaluate_control_snapshot(
