@@ -1,6 +1,13 @@
 """Deterministic Goal lifecycle primitive for Frankenstein 2.0.
 
-F2-WP-204 generation 1.
+F2-WP-204 generation 2.
+
+Generation 2 closes the generation-1 public-construction / rehydration gap: every
+public GoalState construction path admits CANDIDATE records only, regardless of
+state generation. Evolved lifecycle state is constructed only by GoalState.apply()
+through a private transition path. Generic persistence rehydration is deliberately
+not admitted here; a future rehydration contract must bind exact serialized-state
+identity, digest and provenance.
 
 The component stores only explicitly caller-supplied goal candidates and applies only
 explicit lifecycle transitions under an exact state-id/generation/digest fence. It does
@@ -86,7 +93,11 @@ def _sha256(name: str, value: Any) -> str:
 def _refs(name: str, values: Iterable[str], *, require_nonempty: bool = True) -> tuple[str, ...]:
     if isinstance(values, (str, bytes)):
         raise GoalLifecycleError(f"{name} must be an iterable of reference strings")
-    cleaned = tuple(sorted({_identifier(name, value) for value in values}))
+    try:
+        raw = tuple(values)
+    except TypeError as exc:
+        raise GoalLifecycleError(f"{name} must be an iterable of reference strings") from exc
+    cleaned = tuple(sorted({_identifier(name, value) for value in raw}))
     if require_nonempty and not cleaned:
         raise GoalLifecycleError(f"{name} must contain at least one explicit reference")
     return cleaned
@@ -141,13 +152,21 @@ class GoalRecord:
         return asdict(self)
 
 
-def _unique_goals(goals: Iterable[GoalRecord], *, candidates_only: bool = False) -> tuple[GoalRecord, ...]:
+def _unique_goals(
+    goals: Iterable[GoalRecord], *, candidates_only: bool = False
+) -> tuple[GoalRecord, ...]:
+    if isinstance(goals, (str, bytes)):
+        raise GoalLifecycleError("goals must be an iterable of GoalRecord values")
+    try:
+        raw = tuple(goals)
+    except TypeError as exc:
+        raise GoalLifecycleError("goals must be an iterable of GoalRecord values") from exc
     mapping: dict[str, GoalRecord] = {}
-    for goal in goals:
+    for goal in raw:
         if not isinstance(goal, GoalRecord):
             raise GoalLifecycleError("goals must contain GoalRecord values")
         if candidates_only and goal.status != GOAL_CANDIDATE:
-            raise GoalLifecycleError("new goals must enter as CANDIDATE")
+            raise GoalLifecycleError("public GoalState construction admits CANDIDATE records only")
         if goal.goal_id in mapping:
             raise GoalLifecycleError(f"duplicate goal_id: {goal.goal_id}")
         mapping[goal.goal_id] = goal
@@ -169,8 +188,7 @@ class GoalStatusChange:
             raise GoalLifecycleError(f"unsupported next_status: {self.next_status!r}")
         if self.next_status == self.expected_status:
             raise GoalLifecycleError("goal status change must change status")
-        allowed = _ALLOWED_TRANSITIONS[self.expected_status]
-        if self.next_status not in allowed:
+        if self.next_status not in _ALLOWED_TRANSITIONS[self.expected_status]:
             raise GoalLifecycleError(
                 f"illegal goal transition: {self.expected_status} -> {self.next_status}"
             )
@@ -231,7 +249,7 @@ class GoalStatePatch:
             tuple(changes_by_goal[key] for key in sorted(changes_by_goal)),
         )
 
-        if set(goal.goal_id for goal in candidates) & set(changes_by_goal):
+        if {goal.goal_id for goal in candidates} & set(changes_by_goal):
             raise GoalLifecycleError(
                 "a goal cannot be added and lifecycle-transitioned in the same patch"
             )
@@ -280,20 +298,33 @@ class GoalStateTransition:
         return hashlib.sha256(self.canonical_json().encode("utf-8")).hexdigest()
 
 
-@dataclass(frozen=True, slots=True)
 class GoalState:
-    schema: str
-    state_id: str
-    generation: int
-    goals: tuple[GoalRecord, ...]
-    classification: str = "EXPLICIT_GOAL_LIFECYCLE_STATE_NOT_WORLD_TRUTH_OR_COMPLETION"
+    """Immutable-by-convention lifecycle snapshot with a fail-closed public bootstrap.
 
-    def __post_init__(self) -> None:
-        if self.schema != GOAL_STATE_SCHEMA:
+    Public construction is candidate-only. Lifecycle-evolved states are produced only
+    by :meth:`apply`, which uses the private `_from_transition` constructor. This avoids
+    the generation-1 ambiguity where `create(generation>0)` doubled as undocumented
+    persistence rehydration.
+    """
+
+    __slots__ = ("schema", "state_id", "generation", "goals", "classification")
+
+    def __init__(
+        self,
+        *,
+        schema: str,
+        state_id: str,
+        generation: int,
+        goals: Iterable[GoalRecord],
+        classification: str = "EXPLICIT_GOAL_LIFECYCLE_STATE_NOT_WORLD_TRUTH_OR_COMPLETION",
+    ) -> None:
+        if schema != GOAL_STATE_SCHEMA:
             raise GoalLifecycleError("goal state schema mismatch")
-        object.__setattr__(self, "state_id", _identifier("state_id", self.state_id))
-        object.__setattr__(self, "generation", _generation(self.generation))
-        object.__setattr__(self, "goals", _unique_goals(self.goals))
+        self.schema = schema
+        self.state_id = _identifier("state_id", state_id)
+        self.generation = _generation(generation)
+        self.goals = _unique_goals(goals, candidates_only=True)
+        self.classification = _identifier("classification", classification)
 
     @classmethod
     def create(
@@ -303,15 +334,29 @@ class GoalState:
         generation: int = 0,
         goals: Iterable[GoalRecord] = (),
     ) -> "GoalState":
-        goals_tuple = tuple(goals)
-        if generation == 0:
-            _unique_goals(goals_tuple, candidates_only=True)
         return cls(
             schema=GOAL_STATE_SCHEMA,
             state_id=state_id,
             generation=generation,
-            goals=goals_tuple,
+            goals=goals,
         )
+
+    @classmethod
+    def _from_transition(
+        cls,
+        *,
+        state_id: str,
+        generation: int,
+        goals: Iterable[GoalRecord],
+    ) -> "GoalState":
+        """Internal transition-only construction; not a persistence rehydration API."""
+        obj = object.__new__(cls)
+        obj.schema = GOAL_STATE_SCHEMA
+        obj.state_id = _identifier("state_id", state_id)
+        obj.generation = _generation(generation)
+        obj.goals = _unique_goals(goals)
+        obj.classification = "EXPLICIT_GOAL_LIFECYCLE_STATE_NOT_WORLD_TRUTH_OR_COMPLETION"
+        return obj
 
     def as_dict(self) -> dict[str, Any]:
         return {
@@ -358,11 +403,10 @@ class GoalState:
             goals[change.goal_id] = replace(current, status=change.next_status)
             changed.append(change.goal_id)
 
-        next_state = GoalState(
-            schema=GOAL_STATE_SCHEMA,
+        next_state = GoalState._from_transition(
             state_id=self.state_id,
             generation=patch.next_generation,
-            goals=tuple(goals.values()),
+            goals=goals.values(),
         )
         after_sha = next_state.sha256()
         if after_sha == before_sha:
