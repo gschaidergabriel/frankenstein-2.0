@@ -184,6 +184,7 @@ class FingerprintBoundPrediction:
             ) from exc
         return FingerprintBoundResidual(
             schema=PREDICTION_FINGERPRINT_RESIDUAL_SCHEMA,
+            binding=self,
             binding_sha256=self.sha256(),
             basis_fingerprint=self.basis_fingerprint,
             observation_fingerprint=observed_fp,
@@ -194,6 +195,7 @@ class FingerprintBoundPrediction:
 @dataclass(frozen=True, slots=True)
 class FingerprintBoundResidual:
     schema: str
+    binding: FingerprintBoundPrediction
     binding_sha256: str
     basis_fingerprint: StateFingerprint
     observation_fingerprint: StateFingerprint
@@ -203,15 +205,43 @@ class FingerprintBoundResidual:
     def __post_init__(self) -> None:
         if self.schema != PREDICTION_FINGERPRINT_RESIDUAL_SCHEMA:
             raise PredictionFingerprintBindingError("bound residual schema mismatch")
-        if not isinstance(self.binding_sha256, str) or len(self.binding_sha256) != 64:
-            raise PredictionFingerprintBindingError("binding_sha256 must be a SHA-256")
+        if not isinstance(self.binding, FingerprintBoundPrediction):
+            raise PredictionFingerprintBindingError(
+                "binding must be a FingerprintBoundPrediction"
+            )
+        expected_binding_sha256 = self.binding.sha256()
+        if self.binding_sha256 != expected_binding_sha256:
+            raise PredictionFingerprintBindingError(
+                "binding_sha256 does not match FingerprintBoundPrediction identity"
+            )
         basis = _require_fingerprint("basis_fingerprint", self.basis_fingerprint)
         observed = _require_fingerprint(
             "observation_fingerprint", self.observation_fingerprint
         )
+        if basis != self.binding.basis_fingerprint:
+            raise PredictionFingerprintBindingError(
+                "bound residual basis fingerprint does not match prediction binding"
+            )
         if not isinstance(self.residual, PredictionResidual):
             raise PredictionFingerprintBindingError(
                 "residual must be a PredictionResidual"
+            )
+        contract = self.binding.contract
+        if self.residual.prediction_id != contract.prediction_id:
+            raise PredictionFingerprintBindingError(
+                "residual prediction_id does not match prediction binding"
+            )
+        if self.residual.target_id != contract.target_id:
+            raise PredictionFingerprintBindingError(
+                "residual target_id does not match prediction binding"
+            )
+        if self.residual.generation != contract.generation:
+            raise PredictionFingerprintBindingError(
+                "residual generation does not match prediction binding"
+            )
+        if self.residual.expected_projection_sha256 != contract.expected_projection_sha256:
+            raise PredictionFingerprintBindingError(
+                "residual expected projection does not match prediction binding"
             )
         if self.residual.basis_fingerprint_sha256 != basis.identity_sha256:
             raise PredictionFingerprintBindingError(
@@ -229,6 +259,7 @@ class FingerprintBoundResidual:
     def as_dict(self) -> dict[str, Any]:
         return {
             "schema": self.schema,
+            "binding": self.binding.as_dict(),
             "binding_sha256": self.binding_sha256,
             "basis_fingerprint": self.basis_fingerprint.as_dict(),
             "observation_fingerprint": self.observation_fingerprint.as_dict(),
