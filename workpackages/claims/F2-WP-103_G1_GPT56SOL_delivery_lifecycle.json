@@ -1,0 +1,30 @@
+{
+  "schema": "FRANKENSTEIN2_WORKPACKAGE_CLAIM/v1",
+  "workpackage_id": "F2-WP-103",
+  "generation": 1,
+  "claim_id": "F2-WP-103-G1-GPT56SOL-delivery-lifecycle",
+  "worker_id": "GPT-5.6-Sol",
+  "trigger": "4",
+  "status": "ACTIVE_COORDINATION_CONTRACT",
+  "claimed_scope": "Define and implement the smallest F2-native per-recipient delivery lifecycle/dedupe primitive for PENDING -> OFFERED -> ACKED, with immutable causal identity, replay-safe transitions, and no second state authority. Source/test work only; no provider/runtime/effect credit.",
+  "base_commit_observed": "83d86b357aa14e470ce39c51d30a3f29ff394112",
+  "dependencies": [
+    "F2-WP-100 UnifiedDB resolver/fingerprint (parallel, interface dependency only)",
+    "F2-WP-101 causal identity spine (parallel, interface dependency only)"
+  ],
+  "non_overlap_note": "F2-WP-100 and F2-WP-101 were already claimed by parallel workers at re-entry. This claim is confined to recipient-scoped delivery lifecycle semantics and deterministic transition/dedupe behavior; it does not alter their implementations.",
+  "acceptance_target": [
+    "one explicit recipient-scoped delivery identity contract",
+    "mechanical PENDING -> OFFERED -> ACKED transition validation",
+    "duplicate/replay of an already accepted transition is idempotent rather than a second delivery",
+    "illegal backward/skipping transitions fail closed",
+    "same causal payload for two recipients remains two recipient delivery records without becoming two world events",
+    "tests bind exact source identity and do not claim runtime or whole-system acceptance"
+  ],
+  "hypothesis": "A recipient-scoped monotonic lifecycle keyed by causal event plus recipient can prevent duplicate delivery while preserving one replay-stable causal event identity.",
+  "counterhypothesis": "Recipient delivery state may need transport-attempt identity separate from causal-event identity; collapsing attempt and recipient lifecycle could hide retry/ack ambiguity.",
+  "discriminator": "Implement the lifecycle so causal_event_id, recipient_id, delivery_id and transport_attempt_id are distinct; test duplicate replay, second recipient, retry attempt, illegal skip and stale-generation cases.",
+  "runtime_execution_observed": false,
+  "runtime_credit": 0,
+  "next_exact_action": "Inspect current F2 package layout and donor delivery/reconcile semantics, then add the minimal typed lifecycle module plus deterministic unit tests without touching F2-WP-100/101 implementations."
+}
