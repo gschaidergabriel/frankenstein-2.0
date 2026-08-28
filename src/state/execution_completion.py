@@ -17,6 +17,8 @@ from __future__ import annotations
 
 from dataclasses import dataclass, replace
 from enum import Enum
+import hashlib
+import json
 from typing import Tuple
 
 
@@ -82,6 +84,13 @@ def _all_distinct(named: dict[str, str | None]) -> None:
     )
 
 
+def _fingerprint_token(value: object) -> str:
+    token = _token("transition_fingerprint", value)
+    if len(token) != 64 or any(ch not in "0123456789abcdef" for ch in token):
+        raise ExecutionLineageError("INVALID_TRANSITION_FINGERPRINT")
+    return token
+
+
 @dataclass(frozen=True)
 class ExecutionLineage:
     schema: str
@@ -95,6 +104,7 @@ class ExecutionLineage:
     verification_attempt_ids: Tuple[str, ...] = ()
     verification_outcome: VerificationOutcome | None = None
     applied_transition_ids: Tuple[str, ...] = ()
+    applied_transition_fingerprints: Tuple[str, ...] = ()
 
     def __post_init__(self) -> None:
         if self.schema != EXECUTION_LINEAGE_SCHEMA:
@@ -110,6 +120,8 @@ class ExecutionLineage:
             _token("verification_attempt_id", attempt)
         for transition in self.applied_transition_ids:
             _token("transition_id", transition)
+        for fingerprint in self.applied_transition_fingerprints:
+            _fingerprint_token(fingerprint)
         _all_distinct(
             {
                 "causal_id": self.causal_id,
@@ -122,6 +134,8 @@ class ExecutionLineage:
             raise ExecutionLineageError("DUPLICATE_VERIFICATION_ATTEMPT_ID")
         if len(self.applied_transition_ids) != len(set(self.applied_transition_ids)):
             raise ExecutionLineageError("DUPLICATE_TRANSITION_ID")
+        if len(self.applied_transition_ids) != len(self.applied_transition_fingerprints):
+            raise ExecutionLineageError("TRANSITION_RECEIPT_CARDINALITY_MISMATCH")
         if self.stage == ExecutionStage.REQUESTED:
             if self.admission_id is not None or self.execution_attempt_id is not None:
                 raise ExecutionLineageError("REQUESTED_HAS_LATER_IDENTITY")
@@ -213,32 +227,87 @@ class VerifyExecution(ExecutionTransition):
     outcome: VerificationOutcome
 
 
-def _validate_base(record: ExecutionLineage, transition: ExecutionTransition) -> str:
+def _transition_payload(transition: ExecutionTransition) -> dict[str, object]:
+    payload: dict[str, object] = {
+        "type": type(transition).__name__,
+        "transition_id": transition.transition_id,
+        "causal_id": transition.causal_id,
+        "generation": transition.generation,
+        "request_id": transition.request_id,
+    }
+    if isinstance(transition, AdmitExecution):
+        payload["admission_id"] = transition.admission_id
+    elif isinstance(transition, RecordExecution):
+        payload.update(
+            {
+                "admission_id": transition.admission_id,
+                "execution_attempt_id": transition.execution_attempt_id,
+                "outcome": transition.outcome.value
+                if isinstance(transition.outcome, ExecutionOutcome)
+                else str(transition.outcome),
+            }
+        )
+    elif isinstance(transition, VerifyExecution):
+        payload.update(
+            {
+                "admission_id": transition.admission_id,
+                "execution_attempt_id": transition.execution_attempt_id,
+                "verification_attempt_id": transition.verification_attempt_id,
+                "outcome": transition.outcome.value
+                if isinstance(transition.outcome, VerificationOutcome)
+                else str(transition.outcome),
+            }
+        )
+    else:
+        raise ExecutionLineageError("UNKNOWN_TRANSITION_TYPE")
+    return payload
+
+
+def _transition_fingerprint(transition: ExecutionTransition) -> str:
+    canonical = json.dumps(
+        _transition_payload(transition),
+        sort_keys=True,
+        separators=(",", ":"),
+        ensure_ascii=False,
+        allow_nan=False,
+    ).encode("utf-8")
+    return hashlib.sha256(canonical).hexdigest()
+
+
+def _validate_base(
+    record: ExecutionLineage,
+    transition: ExecutionTransition,
+) -> tuple[str, str, bool]:
     transition_id = _token("transition_id", transition.transition_id)
-    if transition_id in record.applied_transition_ids:
-        return transition_id
     if transition.causal_id != record.causal_id:
         raise ExecutionLineageError("CAUSAL_ID_MISMATCH")
     if _generation(transition.generation) != record.generation:
         raise ExecutionLineageError("STALE_GENERATION")
     if transition.request_id != record.request_id:
         raise ExecutionLineageError("REQUEST_ID_MISMATCH")
-    return transition_id
+    fingerprint = _transition_fingerprint(transition)
+    if transition_id not in record.applied_transition_ids:
+        return transition_id, fingerprint, False
+    index = record.applied_transition_ids.index(transition_id)
+    if record.applied_transition_fingerprints[index] != fingerprint:
+        raise ExecutionLineageError("TRANSITION_ID_PAYLOAD_MISMATCH")
+    return transition_id, fingerprint, True
 
 
 def apply_execution_transition(
     record: ExecutionLineage,
     transition: ExecutionTransition,
 ) -> ExecutionLineage:
-    """Apply one immutable transition; exact transition-id replay is idempotent."""
+    """Apply one immutable transition; only exact payload replay is idempotent."""
     if not isinstance(record, ExecutionLineage):
         raise ExecutionLineageError("INVALID_RECORD")
     if not isinstance(transition, ExecutionTransition):
         raise ExecutionLineageError("INVALID_TRANSITION")
-    transition_id = _validate_base(record, transition)
-    if transition_id in record.applied_transition_ids:
+    transition_id, fingerprint, replayed = _validate_base(record, transition)
+    if replayed:
         return record
     applied = record.applied_transition_ids + (transition_id,)
+    fingerprints = record.applied_transition_fingerprints + (fingerprint,)
 
     if isinstance(transition, AdmitExecution):
         if record.stage != ExecutionStage.REQUESTED:
@@ -249,6 +318,7 @@ def apply_execution_transition(
             stage=ExecutionStage.ADMITTED,
             admission_id=admission_id,
             applied_transition_ids=applied,
+            applied_transition_fingerprints=fingerprints,
         )
 
     if isinstance(transition, RecordExecution):
@@ -267,6 +337,7 @@ def apply_execution_transition(
             execution_attempt_id=attempt_id,
             execution_outcome=transition.outcome,
             applied_transition_ids=applied,
+            applied_transition_fingerprints=fingerprints,
         )
 
     if isinstance(transition, VerifyExecution):
@@ -290,6 +361,7 @@ def apply_execution_transition(
                 verification_attempt_ids=attempts,
                 verification_outcome=VerificationOutcome.INDETERMINATE,
                 applied_transition_ids=applied,
+                applied_transition_fingerprints=fingerprints,
             )
         if transition.outcome == VerificationOutcome.APPLIED:
             return replace(
@@ -298,6 +370,7 @@ def apply_execution_transition(
                 verification_attempt_ids=attempts,
                 verification_outcome=VerificationOutcome.APPLIED,
                 applied_transition_ids=applied,
+                applied_transition_fingerprints=fingerprints,
             )
         if transition.outcome == VerificationOutcome.NOT_APPLIED:
             return replace(
@@ -306,6 +379,7 @@ def apply_execution_transition(
                 verification_attempt_ids=attempts,
                 verification_outcome=VerificationOutcome.NOT_APPLIED,
                 applied_transition_ids=applied,
+                applied_transition_fingerprints=fingerprints,
             )
         raise ExecutionLineageError("UNKNOWN_VERIFICATION_OUTCOME")
 
