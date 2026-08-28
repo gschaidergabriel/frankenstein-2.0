@@ -6,6 +6,7 @@ from frankenstein2.wake_hold import (
     OP_PRESENT,
     WAKE_ALL,
     WAKE_ANY,
+    WAKE_EVALUATION_SCHEMA,
     WAKE_MATCH,
     WAKE_UNKNOWN,
     HoldCheckpoint,
@@ -50,6 +51,13 @@ class WakeHoldTests(unittest.TestCase):
         self.assertEqual(cp1.schema, HOLD_CHECKPOINT_SCHEMA)
         self.assertEqual(cp1.wake_conditions, cp2.wake_conditions)
         self.assertEqual(cp1.sha256(), cp2.sha256())
+
+    def test_three_valued_evaluation_uses_successor_schema(self):
+        result = evaluate(checkpoint(), ())
+        self.assertEqual(WAKE_EVALUATION_SCHEMA, "FRANKENSTEIN2_WAKE_EVALUATION/v2")
+        self.assertEqual(result.schema, WAKE_EVALUATION_SCHEMA)
+        self.assertIsNone(result.wake)
+        self.assertEqual(result.unknown_condition_ids, ("c1",))
 
     def test_any_policy_wakes_only_from_explicit_match(self):
         result = evaluate(checkpoint(), (observation(),))
