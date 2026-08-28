@@ -1,0 +1,50 @@
+name: Frankenstein 2.0 Semantic Effect Request CI
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'src/frankenstein2/semantic_effect_request.py'
+      - 'src/frankenstein2/canonical_effect_authority_bridge.py'
+      - 'src/frankenstein2/effect_invocation_correlation.py'
+      - 'src/frankenstein2/effect_executor_interlock.py'
+      - 'tests/test_semantic_effect_request.py'
+      - 'tests/test_canonical_effect_authority_bridge.py'
+      - '.github/workflows/semantic-effect-request-ci.yml'
+  pull_request:
+    paths:
+      - 'src/frankenstein2/semantic_effect_request.py'
+      - 'src/frankenstein2/canonical_effect_authority_bridge.py'
+      - 'src/frankenstein2/effect_invocation_correlation.py'
+      - 'src/frankenstein2/effect_executor_interlock.py'
+      - 'tests/test_semantic_effect_request.py'
+      - 'tests/test_canonical_effect_authority_bridge.py'
+      - '.github/workflows/semantic-effect-request-ci.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  semantic-effect-request:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      PYTHONPATH: .:src
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Compile semantic effect-request binding
+        run: >-
+          python -m py_compile
+          src/frankenstein2/semantic_effect_request.py
+          src/frankenstein2/canonical_effect_authority_bridge.py
+          src/frankenstein2/effect_invocation_correlation.py
+          src/frankenstein2/effect_executor_interlock.py
+          tests/test_semantic_effect_request.py
+      - name: Run semantic request substitution falsifiers
+        run: python tests/test_semantic_effect_request.py
+      - name: Re-run canonical authority bridge regressions
+        run: python tests/test_canonical_effect_authority_bridge.py
