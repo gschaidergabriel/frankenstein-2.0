@@ -106,6 +106,15 @@ def _bind_claim(pointer: dict[str, Any], claim: dict[str, Any]) -> None:
     _require(claim.get("trigger") == "4", "claim trigger must be '4'")
 
 
+def _reconciliation_terminal_state(reconciliation: dict[str, Any]) -> str:
+    # Newer reconciliations use terminal_state. One admitted legacy generation used state.
+    # If terminal_state exists it remains authoritative even when a legacy descriptive state
+    # (for example SUPERSEDED_DUPLICATE) is also present.
+    if "terminal_state" in reconciliation:
+        return _string(reconciliation.get("terminal_state"), "reconciliation.terminal_state")
+    return _string(reconciliation.get("state"), "reconciliation.state")
+
+
 def _matching_reconciliations(root: Path, pointer: dict[str, Any]) -> list[tuple[Path, dict[str, Any]]]:
     wp_id = pointer["workpackage_id"]
     directory = root / "workpackages" / "reconciliations" / wp_id
@@ -114,12 +123,17 @@ def _matching_reconciliations(root: Path, pointer: dict[str, Any]) -> list[tuple
     matches: list[tuple[Path, dict[str, Any]]] = []
     for path in sorted(directory.glob("*.json")):
         reconciliation = load_json(path)
+        if reconciliation.get("schema") != RECON_SCHEMA:
+            continue
+        try:
+            terminal_state = _reconciliation_terminal_state(reconciliation)
+        except ValidationError:
+            continue
         if (
-            reconciliation.get("schema") == RECON_SCHEMA
-            and reconciliation.get("workpackage_id") == wp_id
+            reconciliation.get("workpackage_id") == wp_id
             and reconciliation.get("generation") == pointer.get("generation")
             and reconciliation.get("claim_id") == pointer.get("claim_id")
-            and reconciliation.get("terminal_state") == pointer.get("state")
+            and terminal_state == pointer.get("state")
         ):
             matches.append((path, reconciliation))
     return matches
@@ -133,7 +147,7 @@ def _bind_reconciliation(pointer: dict[str, Any], reconciliation: dict[str, Any]
     if "worker_id" in reconciliation and "worker_id" in pointer:
         _require(reconciliation.get("worker_id") == pointer.get("worker_id"),
                  "reconciliation/pointer identity mismatch: worker_id")
-    _require(reconciliation.get("terminal_state") == pointer.get("state"),
+    _require(_reconciliation_terminal_state(reconciliation) == pointer.get("state"),
              "reconciliation terminal_state mismatch")
 
     # Current receipts use the explicit boolean guard. Older admitted reconciliations used
