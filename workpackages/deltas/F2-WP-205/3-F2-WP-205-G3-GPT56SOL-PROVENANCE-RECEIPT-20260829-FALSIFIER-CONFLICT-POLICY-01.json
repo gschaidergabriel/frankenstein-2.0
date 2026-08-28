@@ -1,0 +1,37 @@
+{
+  "schema": "FRANKENSTEIN2_WORKPACKAGE_DELTA/v1",
+  "workpackage_id": "F2-WP-205",
+  "generation": 3,
+  "claim_id": "F2-WP-205-G3-GPT56SOL-PROVENANCE-RECEIPT-20260829",
+  "worker_id": "GPT-5.6-Sol-FALSIFIER",
+  "base_commit": "f355bbac1223d70cb3a90df96d02df4c5e8bd80e",
+  "observed_main_commit": "8c96e78df5c7c5a089f3703f4635f3f2481b10c6",
+  "owned_paths": [],
+  "result_class": "FALSIFIER",
+  "source_commits": [
+    "953e3f41152b77910314635d2cda11597661f9a2"
+  ],
+  "receipts": [
+    "PR#56",
+    "GITHUB_ACTIONS_RUN:33219209185",
+    "GITHUB_ACTIONS_JOB:99009493428"
+  ],
+  "falsifiers": [
+    "Current source correctly abstains when one EQUALS condition receives contradictory explicit same-key values; that condition must never mint a positive match.",
+    "For WAKE_ANY, a clean explicit MATCH on one independent condition must remain decisive even when another condition has conflicting explicit observations; a conflict in an irrelevant sibling must not suppress an already-established existential match.",
+    "For WAKE_ALL, an explicit NO_MATCH on one independent condition must remain decisive even when another condition has conflicting explicit observations; conflict in another sibling must not erase a known conjunction failure.",
+    "Conflict and missingness remain epistemic uncertainty only where the Boolean policy result is not already determined by decisive explicit evidence."
+  ],
+  "contradictions": [
+    "At observed main 8c96e78df5c7c5a089f3703f4635f3f2481b10c6, evaluate_wake globally checks `if conflicting` before WAKE_ANY/WAKE_ALL aggregation. This makes any conflict dominate a clean sibling MATCH under ANY and dominate a clean sibling NO_MATCH under ALL.",
+    "Independent PR #56 adds policy-precedence regressions without source mutation. GitHub Actions run 33219209185 compiled successfully but the WAIT HOLD Wake falsification suite failed, localizing the negative result to behavior rather than syntax/infrastructure. Exact failing assertion names were not available through the connector log surface in this run; the current source control flow directly predicts failures for the newly added ANY-match-vs-conflict and ALL-nonmatch-vs-conflict cases."
+  ],
+  "proposed_state_change": "Do not replace the active generation-3 mutation authority. Feed this falsifier into the active PROVENANCE_RECEIPT lane. Preserve per-condition ABSTAIN_CONFLICTING_OBSERVATIONS, but aggregate with decisive-policy precedence: WAKE_ANY => MATCH if any clean match exists; otherwise conflict/unknown abstains before pure nonmatch. WAKE_ALL => NO_MATCH if any clean explicit nonmatch exists; otherwise conflict/unknown abstains before all-match. Then rerun the full wake-hold suite plus conflict-policy regressions and keep all scheduler/resume/effect/completion authority boundaries unchanged.",
+  "completion_deficit": [
+    "No exact passing CI yet binds the active generation-3 provenance receipt change together with explicit conflict-policy precedence falsifiers.",
+    "The current generation-3 source still uses global conflict precedence before policy aggregation.",
+    "No autonomous wake/resume, UnifiedDB persistence, Persistent Pulse integration, VPS, physical GRID10, effect, completion, or whole-system credit is established by this falsifier."
+  ],
+  "next_exact_action": "Active F2-WP-205 generation-3 mutation owner should incorporate the two policy-precedence regressions (ANY clean match over sibling conflict; ALL explicit nonmatch over sibling conflict), patch only aggregation precedence, and obtain exact repository-hosted CI on the combined provenance-binding + conflict-policy source before reconciliation.",
+  "created_at_utc": "2026-08-28T23:07:40Z"
+}
