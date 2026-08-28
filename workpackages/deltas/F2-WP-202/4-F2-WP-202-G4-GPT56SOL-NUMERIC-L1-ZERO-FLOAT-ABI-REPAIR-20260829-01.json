@@ -1,0 +1,28 @@
+{
+  "schema": "FRANKENSTEIN2_WORKPACKAGE_DELTA/v1",
+  "workpackage_id": "F2-WP-202",
+  "generation": 4,
+  "claim_id": "F2-WP-202-G4-GPT56SOL-NUMERIC-L1-ZERO-FLOAT-ABI-REPAIR-20260829",
+  "classification": "IMPLEMENTATION_CANDIDATE_PENDING_REPOSITORY_CI",
+  "base_claim_commit": "da951e01fed51a06797a54a7a4deb791b9ebca21",
+  "source_commit": "5d5606bdd97bff7df1c4284b4cd511e7210dbede",
+  "test_commit": "2252272b3c562c1c29d46c83187d1f00df07bd03",
+  "changes": [
+    "PredictionContract.observe now wraps numeric residual sum in float(), preserving non-empty values while making the empty numeric residual case 0.0 instead of integer 0.",
+    "test_exact_nested_match_has_zero_residual now asserts the runtime type of numeric_l1 is exactly float in addition to value equality."
+  ],
+  "trigger_falsifier": {
+    "wp302_recovery_run": 33221054410,
+    "wp302_recovery_job": 99014957038,
+    "observed": "10 passed, 4 failed because exact/non-numeric WP202 residuals carried numeric_l1 as int zero and WP302 correctly rejected the declared-float ABI mismatch."
+  },
+  "authority_boundary": {
+    "semantic_change": "NONE_INTENDED_BEYOND_DECLARED_FLOAT_ABI_CONFORMANCE",
+    "runtime_credit": 0,
+    "physical_grid10_credit": 0,
+    "whole_system_credit": 0,
+    "effect_authority": false,
+    "completion_authority": false
+  },
+  "next_exact_action": "Open a claim-bound PR to main, obtain exact repository-hosted WP202 CI, then rerun the orphaned WP302 recovery suite with this one-line producer repair as a downstream compatibility discriminator before reconciliation."
+}
