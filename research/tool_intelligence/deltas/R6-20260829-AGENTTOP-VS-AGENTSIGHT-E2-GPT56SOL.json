@@ -1,0 +1,140 @@
+{
+  "schema": "FRANKENSTEIN2_TRIGGER6_COMPARATIVE_SOURCE_AUDIT/v1",
+  "research_id": "R6-SEED-008",
+  "claim_target": "E2_PORTABLE_WITNESS_COMPARISON_WITH_R6_SEED_005",
+  "claim_ref": "research/tool_intelligence/claims/R6-SEED-008/E2_PORTABLE_WITNESS_COMPARISON_WITH_R6_SEED_005.json",
+  "claim_commit": "f99bda58113fa2899d7c41a676b2b56f6f2efc95",
+  "slot": "DISCOVERY_SCOUT",
+  "status": "E2_COMPARATIVE_ARCHITECTURE_MAPPED_NOT_BUILD_CANDIDATE",
+  "created_at_local": "2026-08-29T04:04:30+07:00",
+  "source_snapshot": {
+    "f2_main_before_result": "b3a8b55eae264b2ecf16e7c61cd5ca47e1d88a15",
+    "research_entity_main_before_result": "9afad12608a4b59d887f9805cd80d92227546906",
+    "architecture_fusion_ref": "research/tool_intelligence/deltas/R6-ADF-SUCCESSOR-b4a3f0a5-66c875c9-GPT56SOL.json",
+    "authority_epoch": "9.13",
+    "mode": "FREE_ONLY"
+  },
+  "candidates": {
+    "agenttop": {
+      "seed_id": "R6-SEED-008",
+      "repo": "tech4242/agenttop",
+      "source_commit": "5e3929fe8d691b4a1e7b5975adb74091611e5e7b",
+      "version": "0.3.1",
+      "license": "MIT",
+      "observed_mechanisms": [
+        "Local OTLP/HTTP receiver on 127.0.0.1:4318 for metrics, logs and traces endpoints",
+        "Metrics and logs are parsed into local storage; current trace handler explicitly accepts trace payloads but does not use/store them",
+        "Provider-specific configuration enables OTLP export for supported agents",
+        "Claude tool_result/tool_decision streams are reconciled using upstream tool_use_id for approval-rate accounting",
+        "Local session/process scraping supplements telemetry for context usage, process state, RSS, ports and orphan detection",
+        "DuckDB is used as a seven-day local metrics store"
+      ],
+      "privilege_boundary": "No eBPF/root requirement for normal OTLP receiver operation; however setup mutates provider configuration and some local hooks/files, so it is lower-privilege rather than zero-intervention.",
+      "causal_boundary": "Most semantic evidence originates from provider-emitted telemetry or local scraping. It is not an independent system-boundary witness of file/network/process effects and cannot mint F2 causal_id, generation, effect_id or completion truth.",
+      "current_trace_gap": "The current /v1/traces handler is a no-op beyond accepting the request, so agenttop cannot presently supply a complete trace-based causal spine merely because upstream agents emit OTLP traces.",
+      "storage_boundary": "agenttop DuckDB is derived observability storage only; importing it as canonical F2 state would violate UnifiedDB authority."
+    },
+    "agentsight": {
+      "seed_id": "R6-SEED-005",
+      "repo": "eunomia-bpf/agentsight",
+      "source_commit": "934f441eff8ca210807333633f47b2efcb8cd020",
+      "version": "1.0.30",
+      "license": "MIT",
+      "current_evidence": "E2_ARCHITECTURE_MAPPED",
+      "strength": "Can observe process/file/network/resource activity from outside the application via eBPF/TLS/system capture and therefore can disagree with self-reported application telemetry.",
+      "costs": [
+        "Linux/kernel and privilege requirements for full eBPF capture",
+        "TLS attachment/version fragility and partial-visibility fallbacks",
+        "sensitive prompt/response/header/path/network capture surface",
+        "heuristic correlation cannot be upgraded to exact F2 causal identity"
+      ]
+    }
+  },
+  "external_standard_check": {
+    "otlp": {
+      "source": "OpenTelemetry OTLP specification 1.11.0",
+      "finding": "OTLP traces, metrics and logs are stable transport signals over gRPC or HTTP; OTLP/HTTP defines /v1/traces, /v1/metrics and /v1/logs and request/response delivery semantics.",
+      "f2_implication": "F2 can distill a small standards-based OTLP ingress without adopting agenttop's TUI or DuckDB, but transport acceptance is not semantic or causal truth."
+    },
+    "genai_semconv": {
+      "source": "OpenTelemetry semantic-conventions current registry / GenAI migration surface",
+      "finding": "GenAI attributes and tool-call semantics remain a moving compatibility surface and may carry sensitive content; tool call identifiers are useful source identifiers but do not equal F2 effect authority.",
+      "f2_implication": "Pin semantic-convention versions and keep raw provider identifiers as provenance fields unless exact F2 bindings exist."
+    }
+  },
+  "comparative_findings": [
+    {
+      "id": "CF-1",
+      "finding": "agenttop is materially lower privilege and more portable than AgentSight for provider-emitted telemetry, but it observes a weaker epistemic layer because its main semantic stream is emitted by the agent/provider itself.",
+      "classification": "SOURCE_GROUNDED_INFERENCE"
+    },
+    {
+      "id": "CF-2",
+      "finding": "AgentSight and agenttop are complementary rather than interchangeable: agenttop is strongest for low-friction tool/token/provider telemetry; AgentSight is strongest where independent system-boundary evidence is the discriminator.",
+      "classification": "COMPARATIVE_ARCHITECTURE_INFERENCE"
+    },
+    {
+      "id": "CF-3",
+      "finding": "The full agenttop application should not be imported merely to receive OTLP. A thin F2-native OTLP adapter can reuse the standard protocol/semantic ideas while preserving UnifiedDB and F2 evidence authority.",
+      "classification": "DISTILLATION_RECOMMENDATION"
+    },
+    {
+      "id": "CF-4",
+      "finding": "The current agenttop trace endpoint is not sufficient for F2 causal trace closure because it intentionally accepts traces without storing or processing them.",
+      "classification": "SOURCE_DIRECT"
+    },
+    {
+      "id": "CF-5",
+      "finding": "Neither observer may synthesize missing F2 causal_id/generation/effect_id from time proximity, PID, session identity, tool_use_id or correlation confidence. Missing exact bindings remain UNKNOWN/null and are declared in the run package.",
+      "classification": "F2_AUTHORITY_BOUNDARY"
+    }
+  ],
+  "proposed_two_tier_witness_pattern": {
+    "tier_0": "F2 native typed telemetry + UnifiedDB evidence + EffectGate/EffectJournal remain canonical authority.",
+    "tier_1_normal": "Minimal F2-native OTLP ingress for provider-emitted logs/metrics/traces where available, content-minimized by default, exact upstream ids preserved as provenance only.",
+    "tier_2_diagnostic": "Pinned AgentSight sidecar/offline witness only for controlled falsification/diagnostic runs that need independent process/file/network/system evidence; secret-free fixtures and explicit privilege/privacy fences required.",
+    "reason": "This preserves low operational cost for routine observation while retaining a genuinely independent witness when self-report disagreement is the question."
+  },
+  "counterhypotheses": [
+    {
+      "id": "CH-A",
+      "statement": "F2-native telemetry alone already provides all decision-relevant coverage, so both external witness tiers add only duplication.",
+      "falsifier": "A controlled workload where either OTLP-native or system-boundary witness detects a true event/root cause missing from F2-native telemetry."
+    },
+    {
+      "id": "CH-B",
+      "statement": "A thin native OTLP ingress is more maintenance burden than simply importing agenttop.",
+      "falsifier": "Source/build measurement shows direct agenttop adoption has lower dependency, compatibility and integration cost while preserving F2 authority and schema guarantees."
+    },
+    {
+      "id": "CH-C",
+      "statement": "AgentSight's privilege/privacy costs dominate its incremental independent evidence value.",
+      "falsifier": "E3/E4 diagnostic A/B shows unique high-value root-cause/effect observations at bounded overhead and with zero secret leakage under the controlled fixture."
+    }
+  ],
+  "next_discriminator": {
+    "objective": "E3 standards-native fixture before any build candidate",
+    "plan": "On an admitted FREE isolated surface, feed deterministic secret-free OTLP logs/metrics plus one trace fixture through a minimal parser/adapter and compare exact F2 event/provenance mapping against agenttop behavior; separately reserve AgentSight for a later independent-system-witness A/B. No real external effect is required.",
+    "measure": [
+      "exact field preservation",
+      "unknown-id preservation without synthetic causal joins",
+      "duplicate/replay handling",
+      "malformed/partial OTLP behavior",
+      "content-redaction fence",
+      "CPU/RSS/latency/storage overhead"
+    ],
+    "execution_performed_in_this_result": false
+  },
+  "evidence_ladder": {
+    "R6-SEED-008": "E2_COMPARATIVE_ARCHITECTURE_MAPPED",
+    "R6-SEED-005": "E2_ARCHITECTURE_MAPPED_PREEXISTING",
+    "E3": false,
+    "E4": false,
+    "E5": false,
+    "E6": false,
+    "architecture_credit": 0,
+    "runtime_credit": 0
+  },
+  "db_sync_status": "PENDING_RESEARCH_DB_SYNC",
+  "promotion": "NONE"
+}
