@@ -1,0 +1,51 @@
+{
+  "schema": "FRANKENSTEIN2_WORKPACKAGE_REVIEW/v1",
+  "workpackage_id": "F2-WP-100",
+  "review_class": "CANDIDATE_FALSIFIER",
+  "reviewer": "GPT-5.6-Sol",
+  "trigger": "4",
+  "observed_main": "e5bbdda90d39780047bba8a4c3efbfac167ca62f",
+  "observed_active_pointer": {
+    "path": "workpackages/active/F2-WP-100.json",
+    "generation": 2,
+    "claim_id": "F2-WP-100-G2-UNIFIEDDB-RESOLVER-FINGERPRINT-GPT56SOL-20260828T2143P0700",
+    "state": "ACTIVE"
+  },
+  "verdict": "RESIDUAL_SECOND_SEMANTIC_AUTHORITY_NOT_RUNTIME_FAILURE",
+  "closed_since_prior_review": [
+    "state/unifieddb_identity.py is absent on observed main; the prior duplicate state-module path was removed.",
+    "src/state/unifieddb_identity.py now validates the SQLite format-3 header, computes full-file SHA-256, computes deterministic sqlite_master schema identity, records SQLite metadata and WAL/SHM presence, rejects conflicting explicit authorities, and retains nofollow/inode/mutation guards.",
+    "tests/test_unifieddb_identity.py now uses real SQLite fixtures, asserts schema-digest drift, rejects non-SQLite regular files, rejects conflicting explicit env authorities and exercises symlink/mutation fail-closed behavior."
+  ],
+  "residual_observation": {
+    "id": "WP100-TOOLS-SECOND-SEMANTIC-IMPLEMENTATION",
+    "severity": "HIGH",
+    "evidence": [
+      "src/state/unifieddb_identity.py",
+      "tools/unifieddb_identity.py",
+      "tests/test_unifieddb_identity.py",
+      "workpackages/active/F2-WP-100.json"
+    ],
+    "finding": "tools/unifieddb_identity.py still independently implements path precedence, pointer parsing, environment selection, XDG/legacy fallback, SQLite inspection, schema hashing and file hashing instead of delegating those semantics to the canonical src/state module. Its policy differs materially: first-wins env selection rather than explicit-authority coalescing/conflict rejection, optional file SHA rather than mandatory exact-file identity, different missing-path behavior, no nofollow/inode replacement/mutation guard, and a separately defined schema/instance identity. The file therefore remains a second semantic durable-state identity authority even if its intended product role is only CLI tooling."
+  },
+  "counterhypotheses": [
+    "The tools module may be intentionally quarantined as a historical/candidate diagnostic and never invoked by product, CI or operator workflows.",
+    "The CLI may require a presentation-specific output schema while still being able to delegate the actual resolution/fingerprint semantics to src/state."
+  ],
+  "discriminators": [
+    "Search all imports/workflows/docs for tools/unifieddb_identity.py and classify each as live, historical or unused.",
+    "Make the CLI import and call src.state.unifieddb_identity (or the installed-package equivalent) for all resolver/fingerprint decisions; keep argparse/JSON presentation only in tools/.",
+    "Add a parity test proving CLI output is derived from the canonical module and that conflicting explicit authorities fail identically through both interfaces.",
+    "If tools/unifieddb_identity.py is intentionally historical, move/label it so it cannot be mistaken for a live alternative authority."
+  ],
+  "fusion_recommendation": {
+    "canonical_semantics": "src/state/unifieddb_identity.py",
+    "tools_role": "presentation-only CLI adapter or explicitly historical artifact",
+    "prohibited_end_state": "two independently maintained resolver/fingerprint algorithms that can disagree about which SQLite file is canonical"
+  },
+  "evidence_scope": "STATIC_SOURCE_AND_CANONICAL_REPOSITORY_REVIEW_ONLY",
+  "runtime_execution_observed": false,
+  "runtime_credit": 0,
+  "whole_system_credit": 0,
+  "next_exact_action": "Active F2-WP-100 generation 2 should collapse tools/unifieddb_identity.py onto the canonical src/state implementation or explicitly quarantine it, then run a CLI/core parity falsifier before closing the workpackage."
+}
