@@ -1,0 +1,55 @@
+{
+  "schema": "FRANKENSTEIN2_CANDIDATE_FALSIFIER/v1",
+  "classification": "CANDIDATE_FALSIFIER",
+  "target_workpackage": "F2-WP-302",
+  "target_generation": 1,
+  "target_claim_id": "F2-WP-302-G1-GPT56SOL-FAMILIARITY-PREDICTION-ERROR-20260829",
+  "falsifier_id": "F2-WP-302-UNBOUND-RETRIEVAL-RESULT-PROVENANCE-20260829T0633P0700-GPT56SOL",
+  "worker_id": "GPT-5.6-Sol",
+  "observed_branch": "chatgpt/trigger4-wp302-familiarity-prediction-error-20260829",
+  "observed_branch_sha": "31f62d7243e9f2022a3580d82fdfca3a7b509bf8",
+  "observed_source_path": "src/frankenstein2/familiarity_prediction_binding.py",
+  "observed_source_blob_sha": "28601d10ff2bd0c0ab03d58264ec84cde2ff4fcf",
+  "observed_test_path": "tests/test_familiarity_prediction_binding.py",
+  "observed_test_blob_sha": "454f3f197bf1727a1519526ceada67e9d7316273",
+  "hypothesis": "F2-WP-302 currently accepts a caller-constructed RetrievalResult as familiarity evidence without binding it to an exact F2-WP-301 RetrievalPlan/need identity or an upstream-issued result digest. Because RetrievalResult itself has no construction-time invariant validation, a caller can set selected=true and an arbitrary weighted_score_bp while bypassing WP-301 multi-axis selection/provenance semantics, thereby inflating familiarity/attention as if accepted retrieval evidence existed.",
+  "counterhypothesis": "All production callers are permanently guaranteed to pass only RetrievalResult objects returned by build_retrieval_plan, so an explicit cross-component provenance fence is unnecessary.",
+  "source_observation": {
+    "binding_checks": [
+      "isinstance(result, RetrievalResult)",
+      "memory_id format",
+      "memory_generation non-negative integer",
+      "memory_state_sha256 format",
+      "candidate_sha256 format",
+      "selected == true",
+      "weighted_score_bp in [0,10000]"
+    ],
+    "missing_cross_component_fences": [
+      "no RetrievalPlan identity",
+      "no need_id/need_sha256 binding",
+      "no expected result digest supplied by upstream plan",
+      "no validation that selected/classification follows WP-301 overlap policy",
+      "no validation of overlap_count/overlap_axes consistency",
+      "no validation that lifecycle/classification/payload/provenance fields are mutually consistent with a WP-301 result"
+    ],
+    "consumer_effect": "evaluate() sets familiarity_bp to max(weighted_score_bp) over accepted inputs and attention_priority_bp may therefore be caller-inflated even when no genuine WP-301 plan selected that memory. With no residual the epistemic status remains UNKNOWN, so this does not directly mint a fact/effect/completion, but it breaks retrieval-evidence provenance and can bias downstream attention."
+  },
+  "minimal_counterexample": {
+    "construction": "Directly instantiate a RetrievalResult with selected=true, weighted_score_bp=10000, syntactically valid SHA-256 fields, but overlap_count=0/empty overlap axes and no provenance from build_retrieval_plan; pass it to FamiliarityPredictionBinding.evaluate(residual=None).",
+    "expected_fail_closed_behavior": "Reject because selected familiarity evidence cannot be proven to come from an exact admitted WP-301 retrieval plan/result identity.",
+    "current_source_prediction": "The current validator accepts the object if its small checked field subset is syntactically valid, then emits familiarity_bp=10000 and attention_priority_bp=10000 with STATUS_UNKNOWN."
+  },
+  "test_gap": "The current WP-302 test helper creates every RetrievalResult through RetrievalCandidate + RetrievalNeed + build_retrieval_plan. Therefore the test suite does not exercise direct-constructor or cross-plan provenance forgery.",
+  "recommended_repair": [
+    "Prefer accepting an exact RetrievalPlan plus expected plan digest/need identity and derive familiarity inputs only from plan.selected inside the binding.",
+    "If result-level input must remain supported, require explicit upstream-issued expected result digests and validate schema/classification/lifecycle/selection/overlap/provenance consistency before scoring.",
+    "Add a deterministic regression that directly constructs an internally inconsistent selected RetrievalResult and requires fail-closed rejection.",
+    "Preserve FAMILIARITY != OBSERVATION, RETRIEVAL_SCORE != TRUTH, PREDICTION_MATCH != COMPLETION and all existing effect/completion boundaries."
+  ],
+  "evidence_scope": "SOURCE_REVIEW_AND_DETERMINISTIC_COUNTEREXAMPLE_DESIGN_ONLY",
+  "runtime_execution_observed": false,
+  "runtime_credit": 0,
+  "physical_grid10_credit": 0,
+  "whole_system_acceptance": false,
+  "next_exact_action": "The canonical F2-WP-302 mutation owner should add the forged-result regression, bind familiarity evidence to exact WP-301 plan/result provenance, run repository-hosted CI, and reconcile only at component scope."
+}
