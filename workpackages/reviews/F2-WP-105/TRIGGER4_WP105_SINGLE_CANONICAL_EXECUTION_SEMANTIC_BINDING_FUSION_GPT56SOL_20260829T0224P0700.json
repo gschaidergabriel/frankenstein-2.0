@@ -1,0 +1,136 @@
+{
+  "schema": "FRANKENSTEIN2_WORKPACKAGE_REVIEW/v1",
+  "classification": "REVIEW_ONLY_CONTRADICTION_FUSION_AND_CANDIDATE_CONTRACT",
+  "trigger": "4",
+  "workpackage_id": "F2-WP-105",
+  "organ": "GPT-5.6 Sol / ChatGPT Triggerword-4 continuation organ",
+  "mutation_authority": false,
+  "canonical_wp105_implementation_modified": false,
+  "frankenstein2_main_observed_before_write": "2ec19c3b8e0cc5e08bfa6e95921b995a3308f764",
+  "entityos_main_observed": "a4b2e137f4278c9dd49f6818864d053bfd3b983e",
+  "active_claim": "F2-WP-105-G1-EXECUTION-COMPLETION-GPT56SOL-20260828T215528P0700",
+  "coordination_reason": "The active generation-1 WP105 claim remains the sole canonical mutation authority. This file fuses contradictory review guidance and supplies a deterministic candidate contract only.",
+  "authority_binding": {
+    "status": "CURRENT_9_13_SOURCE_IDENTITY_RESOLVED_METADATA_SCOPE_ONLY",
+    "attestation_path": "research_entity/continuity/ENTITYOS_EFFECT_AUTHORITY_9_13_COMPATIBILITY_ATTESTATION_2026-08-29_TRIGGER4_GPT56SOL.json",
+    "attestation_blob_sha": "e42ededefc4d4efb9fc199470fb2a63d68b08456",
+    "effect_gate_path": "the artefact/clayverse/effects.py",
+    "effect_gate_blob_sha": "4a6413b3f3c752c6327e67233bdd8097f3cf0ba4",
+    "effect_journal_path": "the artefact/clayverse/effect_journal.py",
+    "effect_journal_blob_sha": "cda63471f1467481f2ff79032d3931730a334a20",
+    "unifieddb_path": "the artefact/clayverse/store.py",
+    "unifieddb_blob_sha": "a88d923ea3d0eab5847f304f35463e5a2b2c4acd",
+    "state_schema": "UnifiedDB/schema_version=6",
+    "api_version": "ENTITYOS_EFFECT_AUTHORITY_PY_API/v1"
+  },
+  "contradiction_fused": {
+    "review_a": "TRIGGER4_EFFECT_AUTHORITY_BINDING_API_TOPOLOGY_CORRECTION_GPT56SOL_20260829.json",
+    "review_a_finding": "The bound EffectGate.execute is one complete policy+journal+execution+finalization transaction. Treating it as a pre-dispatch authorizer followed by a second F2 executor risks double dispatch.",
+    "review_b": "TRIGGER4_CURRENT_EFFECT_AUTHORITY_BINDING_RESOLUTION_GPT56SOL_20260829.json",
+    "review_b_finding": "F2 call identity is strong but semantic EffectRequest identity is missing.",
+    "review_b_conflicting_next_step": "Its current next action still describes canonical PENDING evidence feeding a separate F2 executor input, which the admitted EntityOS API does not expose.",
+    "fusion_result": "SEMANTIC_REQUEST_BINDING_REQUIRED_BUT_PRODUCTION_TOPOLOGY_MUST_BE_SINGLE_CANONICAL_EFFECTGATE_EXECUTION_UNLESS_ENTITYOS_ITSELF_ADMITS_A_SPLIT_API"
+  },
+  "source_observation": {
+    "effect_gate_execute_semantics": [
+      "validates capability, session/generation, replay and lease constraints",
+      "calls EffectJournal.begin and creates PENDING before any state.noop or EntityOSBridge action",
+      "executes the effect itself inside the same EffectGate.execute call",
+      "finalizes VERIFIED, DENIED or FAILED before normal return",
+      "for entityos.exec acquires and releases the canonical lease inside execute"
+    ],
+    "effect_journal_recovery": "Residual PENDING rows become UNKNOWN_AFTER_RESTART; recovery never authorizes blind replay.",
+    "f2_current_gap": "EffectCallIntent and related PRE/POST correlation types bind call lineage but not EffectRequest(user_id, session_id, capability, target, argv, expected_generation)."
+  },
+  "candidate_production_contract": {
+    "name": "F2_WP105_SINGLE_CANONICAL_EFFECT_EXECUTION_BINDING/v0_CANDIDATE",
+    "authority_change": false,
+    "new_effect_authority": false,
+    "f2_executor_after_effectgate": "FORBIDDEN_FOR_BOUND_CURRENT_API",
+    "pre_call": {
+      "typed_semantic_fields": [
+        "user_id",
+        "session_id",
+        "capability",
+        "target",
+        "argv",
+        "expected_generation"
+      ],
+      "call_identity_fields": [
+        "binding_id",
+        "invocation_id",
+        "tool_use_id",
+        "delegation_id",
+        "child_identity_sha256",
+        "return_id_if_already_available"
+      ],
+      "digest_rule": "request_sha256 = SHA256(UTF8(canonical JSON of schema-tagged exact semantic fields)); object keys sorted, compact separators, UTF-8, no NaN; argv order preserved; null distinguished from absent; strings validated before hashing.",
+      "security_rule": "request_sha256 is correlation evidence, not policy authority. Semantic fields must originate from the typed non-model authority/request path required by EntityOS; F2 must not let model text self-grant capability or authority.",
+      "binding_rule": "Bind request_sha256 to the exact F2 call identity before invoking the canonical adapter. Any later semantic mutation with unchanged call IDs is a pre-call rejection."
+    },
+    "canonical_call": {
+      "operation": "Construct the exact EntityOS EffectRequest from the already-bound semantic object, then invoke the attested EffectGate.execute exactly once.",
+      "authority_identity_rule": "Verify the 9.13 attestation plus EffectGate, EffectJournal, UnifiedDB schema and API tuple before the call; a single-module authority_ref is insufficient if it can omit journal/store identity.",
+      "dispatch_count": "AT_MOST_ONE_CANONICAL_EFFECTGATE_EXECUTE_CALL",
+      "separate_f2_effect_executor": false
+    },
+    "post_call": {
+      "normal_return": "Bind returned canonical effect_id and a structured result/outcome receipt to the same request_sha256 and F2 call identity; do not mint external-world verification merely from normal return.",
+      "pre_journal_rejection": "A canonical policy/session/generation/replay rejection that occurs before EffectJournal.begin must remain a typed non-dispatch rejection with no invented effect_id.",
+      "journaled_denial_or_failure": "If the canonical call created an effect row and finalized DENIED/FAILED, preserve that exact canonical effect_id/status lineage; do not collapse it into a pre-journal rejection.",
+      "ambiguous_no_return": "If the canonical call may have crossed EffectJournal.begin/action boundaries but no correlated return is available, F2 outcome is UNKNOWN. Recovery owns reconciliation; no automatic retry."
+    }
+  },
+  "deterministic_no_real_effect_matrix": [
+    {
+      "case": "STATE_NOOP_EXACT_BINDING",
+      "expected": "one canonical EffectGate.execute call, one canonical effect_id, internal PENDING-before-noop ordering, VERIFIED journal finalization, exact request_sha256+call correlation, zero external effect credit"
+    },
+    {
+      "case": "SEMANTIC_FIELD_MUTATION_SAME_CALL_IDS",
+      "mutations": ["user_id", "session_id", "capability", "target", "argv", "expected_generation"],
+      "expected": "request digest mismatch rejected before canonical call; zero EffectGate invocation by the F2 adapter"
+    },
+    {
+      "case": "CALL_ID_MUTATION_SAME_SEMANTICS",
+      "mutations": ["binding_id", "invocation_id", "tool_use_id", "delegation_id", "child_identity_sha256"],
+      "expected": "correlation mismatch rejected before canonical call"
+    },
+    {
+      "case": "STALE_AUTHORITY_COMPONENT",
+      "mutations": ["attestation", "EffectGate blob", "EffectJournal blob", "UnifiedDB blob/schema", "API version"],
+      "expected": "fail closed before canonical call"
+    },
+    {
+      "case": "PRE_JOURNAL_GATE_REJECTION",
+      "expected": "typed rejection, no invented effect_id, no F2 executor dispatch"
+    },
+    {
+      "case": "PENDING_RECOVERY",
+      "expected": "residual canonical PENDING becomes UNKNOWN_AFTER_RESTART and remains non-replayable; no completion promotion"
+    }
+  ],
+  "acceptance_boundary": {
+    "source_design_acceptance": "The contract is internally consistent with the currently attested EntityOS API and removes the double-dispatch topology contradiction.",
+    "runtime_acceptance": "NOT_ESTABLISHED",
+    "whole_system_acceptance": false,
+    "important_distinction": "PENDING-before-action remains an internal canonical EffectGate/EffectJournal invariant for the admitted single-call API. F2 need not and cannot safely convert it into a separate pre-dispatch ALLOW token without a future EntityOS-owned prepare/dispatch/finalize API."
+  },
+  "counterhypothesis": {
+    "claim": "F2 must retain a separate executor after canonical authorization.",
+    "falsifier_or_requirement": "Produce a current EntityOS-owned prepare/dispatch/finalize API that preserves all EffectGate policy checks, canonical effect_id allocation, lease custody, PENDING-before-action ordering and restart recovery across the split. Without that source-authority API, the split is not admitted."
+  },
+  "next_exact_action_for_active_wp105": "Implement or test the single-canonical-call semantic request binding inside the existing active WP105 generation-1 lane without adding a second effect authority. First add an immutable typed EffectRequest/request_sha256 binding to the call lineage and a composite current-authority identity check. Then exercise only the deterministic no-real-effect matrix, preferably state.noop plus fail-closed mismatches. Keep the existing two-stage interlock as component/research evidence unless and until EntityOS itself admits a split effect API.",
+  "credit_boundary": {
+    "review_fusion": "PASS",
+    "canonical_effect_authority_source_identity": "RESOLVED_9_13_METADATA_SCOPE",
+    "semantic_effect_request_binding_runtime": 0,
+    "canonical_effectgate_integration_runtime": 0,
+    "real_effect_runtime": 0,
+    "external_world_verification_runtime": 0,
+    "physical_grid10_runtime": 0,
+    "whole_frankenstein2_runtime": 0,
+    "whole_entityos_hcu_runtime": 0,
+    "training_credit": 0
+  }
+}
