@@ -29,21 +29,22 @@ Status:
 
 ## Phase 2 — Persistent Pulse / Agency
 
-- [x] F2-WP-200 Persistent Pulse kernel — repository-hosted component CI accepted; no scheduler/effect/whole-system authority.
+- [x] F2-WP-200 Persistent Pulse kernel — generation-3 repository-hosted component CI accepted; no scheduler/effect/whole-system authority.
 - [x] F2-WP-201 StateFingerprint — hardened repository-hosted component CI accepted; no truth-equivalence or runtime authority.
 - [x] F2-WP-202 PredictionContract / residual — repository-hosted component CI accepted; no whole-system credit.
 - [x] F2-WP-203 AgencyState/interests/open loops/deferred intents — generation-2 item-type repair accepted at repository-hosted component-CI scope.
-- [x] F2-WP-204 Goal lifecycle — generation-2 fail-closed authority repair accepted with 27/27 hosted CI tests; no effect/completion authority.
-- [x] F2-WP-205 Wake/WAIT/HOLD semantics — generation-2 tri-state UNKNOWN repair accepted at repository-hosted component-CI scope; no autonomous resume authority.
+- [x] F2-WP-204 Goal lifecycle — generation-2 fail-closed authority repair accepted with hosted CI; no effect/completion authority.
+- [x] F2-WP-205 Wake/WAIT/HOLD semantics — generation-4 conflict-policy repair accepted at repository-hosted component-CI scope; no autonomous resume authority.
+- [x] F2-WP-206 Persistent Agency Kernel integration — fresh-process persistence/restart plus deterministic next-tick repository-hosted integration CI accepted; no VPS, physical GRID10, provider/effect/completion, or whole-system credit.
 
-Phase-2 component acceptance does **not** yet prove the directive-level Persistent Agency Kernel acceptance condition. A separate integration/runtime gate must still demonstrate durable goal survival across process/session restart plus deterministic next-tick checkpointing before broad autonomy is added.
+The directive-level Stage-2 persistence/restart discriminator is accepted only at the repository-hosted integration-CI scope captured by F2-WP-206. It does **not** establish target-VPS runtime, physical GRID10, provider/model, effect/completion, or whole-system acceptance.
 
 ## Phase 3 — Memory / Retrieval / Process Learning
 
-- [ ] F2-WP-300 Memory evolution/degradation without destructive forgetting.
-- [ ] F2-WP-301 Emergent retrieval.
-- [ ] F2-WP-302 Familiarity/prediction-error binding.
-- [ ] F2-WP-303 Fact/Episode/Method/Process-Policy separation.
+- [x] F2-WP-300 Memory evolution/degradation without destructive forgetting — deterministic repository-hosted component CI accepted; no persistence/runtime/whole-system credit.
+- [x] F2-WP-301 Emergent retrieval — deterministic multi-axis retrieval-planning component CI accepted; retrieval evidence is not truth and runtime credit remains zero.
+- [-] F2-WP-302 Familiarity/prediction-error binding — active generation-1 claim; terminal evidence pending.
+- [-] F2-WP-303 Fact/Episode/Method/Process-Policy separation — active generation-1 claim; terminal reconciliation pending.
 - [ ] F2-WP-304 Recursive Cognitive Process Distillation.
 - [ ] F2-WP-305 Processing credit + method ablations.
 - [ ] F2-WP-306 ContextCompiler / bounded ContextViews.
