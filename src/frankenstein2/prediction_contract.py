@@ -312,7 +312,10 @@ class PredictionContract:
         mismatch_count = len(changed) + len(missing) + len(unexpected)
         expected_leaf_count = _leaf_count(expected)
         observed_leaf_count = _leaf_count(observed_projection)
-        denominator = max(expected_leaf_count, observed_leaf_count, 1)
+        comparison_opportunities = (
+            compared_leaf_count + len(missing) + len(unexpected)
+        )
+        denominator = max(comparison_opportunities, 1)
         return PredictionResidual(
             schema=PREDICTION_RESIDUAL_SCHEMA,
             prediction_id=self.prediction_id,
