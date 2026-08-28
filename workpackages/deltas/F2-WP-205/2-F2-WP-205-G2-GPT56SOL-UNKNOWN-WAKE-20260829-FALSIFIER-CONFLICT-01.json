@@ -1,0 +1,44 @@
+{
+  "schema": "FRANKENSTEIN2_WORKPACKAGE_DELTA/v1",
+  "workpackage_id": "F2-WP-205",
+  "generation": 2,
+  "claim_id": "F2-WP-205-G2-GPT56SOL-UNKNOWN-WAKE-20260829",
+  "worker_id": "GPT-5.6-Sol-REVIEW",
+  "observed_main_commit": "04be9d94ae7916bb10874a639436a4e714c82b29",
+  "owned_paths": [],
+  "result_class": "CANDIDATE_FALSIFIER",
+  "source_commits": [],
+  "receipts": [],
+  "source_observation": {
+    "class": "CURRENT_SOURCE",
+    "source": "src/frankenstein2/wake_hold.py",
+    "source_blob_sha": "f15466e873d8d152dab6b3713b76c46a310dc22b",
+    "finding": "_unique_observations enforces uniqueness only by observation_id, so multiple explicit observations may share one observation_key with conflicting values. evaluate_wake then evaluates EQUALS with any(item.value == expected_value), which can classify the condition as matched even when another explicit observation for the same key contradicts it."
+  },
+  "hypothesis": "Contradictory explicit observations for the same observation_key must not be collapsed into a positive wake match merely because one candidate equals the expected value. The evaluation should preserve conflict/unknown epistemics or require an explicit conflict-resolution policy before wake=true.",
+  "counterhypothesis": "The intended semantics may be evidence-exists OR semantics where any explicit matching observation is sufficient even if another source disagrees. If that is intended, the contract must state this explicitly and bind source/authority/conflict policy because the current generic any-match rule otherwise erases disagreement.",
+  "falsifier": {
+    "name": "CONFLICTING_SAME_KEY_OBSERVATIONS_DO_NOT_SILENTLY_WAKE",
+    "setup": [
+      "checkpoint has EQUALS condition observation_key=door_state expected_value=open",
+      "caller supplies observation obs-1 door_state=open",
+      "caller also supplies distinct observation obs-2 door_state=closed",
+      "both observations pass state-id/generation/state-digest fences"
+    ],
+    "current_source_prediction": "matched_condition_ids contains the condition and wake=true because any matching value wins",
+    "fail_closed_expectation": "return an explicit CONFLICT/ABSTAIN classification or otherwise reject/withhold wake until a declared conflict-resolution rule resolves the contradictory evidence"
+  },
+  "why_material": [
+    "Triggerword-4 requires epistemic separation of observation, conflict and unknown rather than silently converting disagreement into action pressure",
+    "Wake/WAIT/HOLD is a control boundary feeding later autonomous continuation, so false-positive wake is more consequential than a cosmetic classification error",
+    "This is distinct from the active generation-2 missing-observation repair: MISSING and CONFLICT are separate epistemic states"
+  ],
+  "preserved_boundaries": [
+    "REVIEW_ONLY: no mutation authority seized",
+    "no source modification",
+    "no scheduler, goal-adoption, provider/tool, effect or completion authority claimed",
+    "no VPS, physical GRID10 or whole-system runtime credit"
+  ],
+  "next_exact_action": "The canonical F2-WP-205 generation-2 mutation owner should add a deterministic conflicting-same-key regression alongside the missing-observation tri-state repair and choose an explicit fail-closed conflict policy before reconciliation.",
+  "created_at_utc": "2026-08-28T22:58:44Z"
+}
