@@ -1,0 +1,69 @@
+# Frankenstein 2.0 Workpackage Claim Protocol
+
+Purpose: prevent Triggerword-4 worker stampedes while preserving useful independent falsifiers.
+
+## Stable identity
+
+```text
+workpackage_id + generation + claim_id
+```
+
+## One mutation authority
+
+For each workpackage there is at most one canonical mutation authority at a time.
+
+Before building or modifying workpackage-owned implementation/state, a worker must create:
+
+```text
+workpackages/active/<workpackage_id>.json
+```
+
+using a create-only Git operation. The file contains the canonical `workpackage_id`, `generation`, `claim_id`, `worker_id`, `base_commit`, `claimed_scope`, `created_at_utc` and `state`.
+
+If that path already exists, another worker **must not** create a second active mutation authority merely by choosing a new timestamp or incrementing generation.
+
+```text
+NEW_WORKER != NEW_GENERATION
+NEW_TRIGGER != RETRY_GENERATION
+DUPLICATE_ACTIVE_CLAIM != INDEPENDENT_REPLICATION
+```
+
+## Parallel workers
+
+A worker that finds an active pointer may:
+
+- inspect and review the active work;
+- run an independent test/falsifier;
+- prepare a candidate patch in a separate artifact/branch when useful;
+- record contradictions or negative evidence.
+
+It must label such work `CANDIDATE_FALSIFIER` or `REVIEW_ONLY` and must not overwrite canonical implementation/state.
+
+## Generation advance
+
+Generation advances only after one of these is durably recorded:
+
+1. terminal failure requiring a deliberate successor implementation;
+2. explicit semantic change to the workpackage contract;
+3. accepted generation completed and a new successor scope is opened;
+4. active claim is proven stale/abandoned and a reconciliation record retires it.
+
+A later clock time, new chat, new Triggerword-4 invocation or another worker is not sufficient.
+
+## Release / completion
+
+The active pointer is never silently deleted. On terminal state, move authority by committing a reconciliation record under:
+
+```text
+workpackages/reconciliations/<workpackage_id>/<generation>-<claim_id>.json
+```
+
+and update the active pointer state to one of:
+
+`ACCEPTED`, `FAILED_TERMINAL`, `RETIRED_STALE`, `SUPERSEDED`.
+
+A successor generation may then replace the pointer with an explicit parent/reconciliation reference.
+
+## Existing duplicate claims
+
+Claims created before this protocol remain historical evidence. They do not all become canonical. Reconciliation selects at most one mutation authority; other same-generation claims become `CANDIDATE_FALSIFIER` or `SUPERSEDED_DUPLICATE`.
