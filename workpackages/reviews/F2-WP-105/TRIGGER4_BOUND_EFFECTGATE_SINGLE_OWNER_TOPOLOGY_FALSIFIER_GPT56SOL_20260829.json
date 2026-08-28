@@ -1,0 +1,53 @@
+{
+  "schema": "FRANKENSTEIN2_WORKPACKAGE_REVIEW/v1",
+  "classification": "CANDIDATE_FALSIFIER_NO_MUTATION_AUTHORITY",
+  "trigger": "4",
+  "workpackage_id": "F2-WP-105",
+  "organ": "GPT-5.6 Sol / Triggerword-4 continuation organ",
+  "mutation_authority": false,
+  "canonical_wp105_implementation_modified": false,
+  "candidate_branch": "chatgpt/trigger4-wp105-bound-effectgate-topology-falsifier-20260829",
+  "base_main": "25528767ba45aec7e5d0727fe176fb2fd674e0cc",
+  "active_claim_observed": "F2-WP-105-G1-EXECUTION-COMPLETION-GPT56SOL-20260828T215528P0700",
+  "purpose": "Discriminate the production call topology against the exact bound EntityOS EffectGate/EffectJournal API without a real external effect or a second effect authority.",
+  "bound_authority": {
+    "repository": "gschaidergabriel/clay-global-research-entity",
+    "commit": "2b68aad14bf7824d513b52898904909256e3522d",
+    "effect_gate_path": "the artefact/clayverse/effects.py",
+    "effect_gate_blob_sha": "4a6413b3f3c752c6327e67233bdd8097f3cf0ba4",
+    "effect_journal_path": "the artefact/clayverse/effect_journal.py",
+    "effect_journal_blob_sha": "cda63471f1467481f2ff79032d3931730a334a20",
+    "unified_db_path": "the artefact/clayverse/store.py",
+    "unified_db_blob_sha": "a88d923ea3d0eab5847f304f35463e5a2b2c4acd",
+    "api_contract": "ENTITYOS_EFFECT_AUTHORITY_PY_API/v1"
+  },
+  "hypothesis": "The current two-stage F2 authorize-then-executor port is not truthfully compatible with the bound EffectGate.execute API because EffectGate.execute owns journal begin, action execution and finalization in one call. A single-owner topology can preserve one effect authority, but exact crash-safe F2 call correlation may still require an admitted canonical correlation surface.",
+  "counterhypotheses": [
+    "The bound EffectGate returns while the canonical journal is still PENDING and therefore can act as the current F2 pre-dispatch authorizer.",
+    "Recovery of a residual PENDING row can silently replay the action.",
+    "A separate F2 executor remains necessary after successful EffectGate.execute."
+  ],
+  "deterministic_probe": {
+    "test": "tests/candidate/test_bound_entityos_effectgate_topology.py",
+    "real_external_effect": false,
+    "capability": "state.noop",
+    "assertions": [
+      "one EffectGate.execute performs exactly one EffectJournal.begin and returns with the effect row VERIFIED",
+      "a truthful ALLOW evidence object using the post-return journal state is rejected by the current PENDING-only two-stage F2 bridge",
+      "EffectJournal.recover_pending changes PENDING to UNKNOWN_AFTER_RESTART and a second recovery adds no effect row"
+    ]
+  },
+  "credit_boundary": {
+    "candidate_source": "PRESENT",
+    "repository_ci": "PENDING",
+    "canonical_wp105_source_credit": 0,
+    "real_effect_runtime": 0,
+    "vps_runtime": 0,
+    "provider_runtime": 0,
+    "whole_frankenstein2_runtime": 0,
+    "whole_entityos_hcu_runtime": 0,
+    "physical_grid10_runtime": 0,
+    "training_credit": 0
+  },
+  "next_exact_action": "Run the pinned cross-repository deterministic CI. If it passes, hand the result to the active WP105 owner as a topology falsifier: retire direct EffectGate.execute-as-authorizer wiring, preserve single canonical execution ownership, and discriminate how exact F2 call identity is durably bound before a crash can lose the returned effect_id."
+}
