@@ -1,7 +1,7 @@
 """Deterministic epistemic record primitives for Frankenstein 2.0 Stage 3.
 
 These records preserve the distinction between observation, inference, retrieval prior,
-negative result and explicit unknown.  They are evidence/candidate metadata only.  They do
+negative result and explicit unknown. They are evidence/candidate metadata only. They do
 not grant canonical-state, world-truth, goal, scheduler, effect or completion authority.
 """
 from __future__ import annotations
@@ -67,7 +67,7 @@ def _validate_canonical_payload_json(value: Any) -> str:
     value = _require_text("payload_json", value)
     try:
         parsed = json.loads(value)
-    except (TypeError, ValueError, json.JSONDecodeError) as exc:
+    except (TypeError, ValueError) as exc:
         raise EpistemicRecordError("payload_json must contain valid JSON") from exc
     if _canonical_json(parsed) != value:
         raise EpistemicRecordError("payload_json must already be canonical JSON")
@@ -132,7 +132,7 @@ class ObservedEvidence(_EpistemicRecordBase):
     classification: ClassVar[str] = "OBSERVED_EVIDENCE_NOT_WORLD_TRUTH"
 
     def __post_init__(self) -> None:
-        super().__post_init__()
+        _EpistemicRecordBase.__post_init__(self)
         _require_text("observation_ref", self.observation_ref)
 
     @classmethod
@@ -156,7 +156,7 @@ class ObservedEvidence(_EpistemicRecordBase):
         )
 
     def as_dict(self) -> dict[str, Any]:
-        value = super().as_dict()
+        value = _EpistemicRecordBase.as_dict(self)
         value["observation_ref"] = self.observation_ref
         return value
 
@@ -169,7 +169,7 @@ class InferredHypothesis(_EpistemicRecordBase):
     classification: ClassVar[str] = "INFERRED_HYPOTHESIS_NOT_OBSERVATION_OR_WORLD_TRUTH"
 
     def __post_init__(self) -> None:
-        super().__post_init__()
+        _EpistemicRecordBase.__post_init__(self)
         _require_refs("support_refs", self.support_refs, allow_empty=False)
 
     @classmethod
@@ -193,7 +193,7 @@ class InferredHypothesis(_EpistemicRecordBase):
         )
 
     def as_dict(self) -> dict[str, Any]:
-        value = super().as_dict()
+        value = _EpistemicRecordBase.as_dict(self)
         value["support_refs"] = list(self.support_refs)
         return value
 
@@ -207,7 +207,7 @@ class RetrievalPrior(_EpistemicRecordBase):
     classification: ClassVar[str] = "RETRIEVAL_PRIOR_NOT_OBSERVATION_OR_WORLD_TRUTH"
 
     def __post_init__(self) -> None:
-        super().__post_init__()
+        _EpistemicRecordBase.__post_init__(self)
         _require_text("retrieval_ref", self.retrieval_ref)
         _require_sha256("query_sha256", self.query_sha256)
 
@@ -234,7 +234,7 @@ class RetrievalPrior(_EpistemicRecordBase):
         )
 
     def as_dict(self) -> dict[str, Any]:
-        value = super().as_dict()
+        value = _EpistemicRecordBase.as_dict(self)
         value.update(
             {
                 "retrieval_ref": self.retrieval_ref,
@@ -253,7 +253,7 @@ class NegativeResult(_EpistemicRecordBase):
     classification: ClassVar[str] = "NEGATIVE_RESULT_NOT_ABSENCE_OF_ALL_ALTERNATIVES"
 
     def __post_init__(self) -> None:
-        super().__post_init__()
+        _EpistemicRecordBase.__post_init__(self)
         _require_text("attempt_ref", self.attempt_ref)
         _require_text("falsifier_ref", self.falsifier_ref)
 
@@ -280,7 +280,7 @@ class NegativeResult(_EpistemicRecordBase):
         )
 
     def as_dict(self) -> dict[str, Any]:
-        value = super().as_dict()
+        value = _EpistemicRecordBase.as_dict(self)
         value.update(
             {
                 "attempt_ref": self.attempt_ref,
@@ -298,7 +298,7 @@ class UnknownEvidence(_EpistemicRecordBase):
     classification: ClassVar[str] = "UNKNOWN_NOT_FILLED_BY_INFERENCE_OR_RETRIEVAL"
 
     def __post_init__(self) -> None:
-        super().__post_init__()
+        _EpistemicRecordBase.__post_init__(self)
         _require_text("reason", self.reason)
 
     @classmethod
@@ -322,7 +322,7 @@ class UnknownEvidence(_EpistemicRecordBase):
         )
 
     def as_dict(self) -> dict[str, Any]:
-        value = super().as_dict()
+        value = _EpistemicRecordBase.as_dict(self)
         value["reason"] = self.reason
         return value
 
