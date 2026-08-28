@@ -31,12 +31,14 @@ class GoalLifecycleG2FailClosedTests(unittest.TestCase):
         before: str,
         after: str,
         *refs: str,
+        adoption_authority_ref: str | None = None,
     ) -> GoalStatusChange:
         return GoalStatusChange(
             goal_id=goal_id,
             expected_status=before,
             next_status=after,
             evidence_refs=refs,
+            adoption_authority_ref=adoption_authority_ref,
         )
 
     def test_duplicate_provenance_refs_fail_closed(self) -> None:
@@ -54,19 +56,33 @@ class GoalLifecycleG2FailClosedTests(unittest.TestCase):
                 "goal-1",
                 GOAL_CANDIDATE,
                 GOAL_ACTIVE,
-                "caller:adopt-1",
-                "caller:adopt-1",
+                "evidence:adopt-1",
+                "evidence:adopt-1",
+                adoption_authority_ref="caller-adoption:adopt-1",
             )
 
-    def test_model_or_untyped_evidence_cannot_adopt_goal(self) -> None:
-        for evidence_ref in ("model:proposal", "self:reflection", "evidence:generic"):
-            with self.subTest(evidence_ref=evidence_ref):
-                with self.assertRaisesRegex(GoalLifecycleError, "adoption-authority"):
+    def test_missing_or_untyped_authority_cannot_adopt_goal(self) -> None:
+        with self.assertRaisesRegex(GoalLifecycleError, "requires adoption_authority_ref"):
+            self.change(
+                "goal-1",
+                GOAL_CANDIDATE,
+                GOAL_ACTIVE,
+                "evidence:proposal",
+            )
+        for authority_ref in (
+            "model:proposal",
+            "self:reflection",
+            "evidence:generic",
+            "caller:untyped",
+        ):
+            with self.subTest(authority_ref=authority_ref):
+                with self.assertRaisesRegex(GoalLifecycleError, "must be typed"):
                     self.change(
                         "goal-1",
                         GOAL_CANDIDATE,
                         GOAL_ACTIVE,
-                        evidence_ref,
+                        "evidence:proposal",
+                        adoption_authority_ref=authority_ref,
                     )
 
     def test_explicit_control_plane_adoption_authority_is_admitted(self) -> None:
@@ -74,9 +90,14 @@ class GoalLifecycleG2FailClosedTests(unittest.TestCase):
             "goal-1",
             GOAL_CANDIDATE,
             GOAL_TRIAL,
-            "control-plane:adopt-1",
+            "evidence:proposal",
+            adoption_authority_ref="control-plane-adoption:adopt-1",
         )
-        self.assertEqual(change.evidence_refs, ("control-plane:adopt-1",))
+        self.assertEqual(change.evidence_refs, ("evidence:proposal",))
+        self.assertEqual(
+            change.adoption_authority_ref,
+            "control-plane-adoption:adopt-1",
+        )
 
     def test_cross_goal_patch_receipt_fails_closed(self) -> None:
         state = GoalState.create(
@@ -93,8 +114,20 @@ class GoalLifecycleG2FailClosedTests(unittest.TestCase):
                 next_generation=1,
                 transition_refs=("decision:explicit",),
                 status_changes=(
-                    self.change("a", GOAL_CANDIDATE, GOAL_TRIAL, "caller:a"),
-                    self.change("b", GOAL_CANDIDATE, GOAL_ACTIVE, "caller:b"),
+                    self.change(
+                        "a",
+                        GOAL_CANDIDATE,
+                        GOAL_TRIAL,
+                        "evidence:a",
+                        adoption_authority_ref="caller-adoption:a",
+                    ),
+                    self.change(
+                        "b",
+                        GOAL_CANDIDATE,
+                        GOAL_ACTIVE,
+                        "evidence:b",
+                        adoption_authority_ref="caller-adoption:b",
+                    ),
                 ),
             )
 
@@ -106,7 +139,7 @@ class GoalLifecycleG2FailClosedTests(unittest.TestCase):
             provenance_refs=("agency:1",),
             status=GOAL_ACTIVE,
         )
-        with self.assertRaisesRegex(GoalLifecycleError, "non-candidate state"):
+        with self.assertRaisesRegex(GoalLifecycleError, "genesis-only"):
             GoalState(
                 schema=lifecycle.GOAL_STATE_SCHEMA,
                 state_id="goal-state-1",
