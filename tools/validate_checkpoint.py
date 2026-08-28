@@ -16,6 +16,7 @@ from typing import Any
 
 CHECKPOINT_SCHEMA = "FRANKENSTEIN2_CURRENT_CHECKPOINT/v1"
 CLAIM_SCHEMA = "FRANKENSTEIN2_WORKPACKAGE_CLAIM/v1"
+ACTIVE_SCHEMA = "FRANKENSTEIN2_ACTIVE_WORKPACKAGE/v1"
 STATE_SCHEMA = "FRANKENSTEIN2_WORKPACKAGE_STATE/v1"
 CANONICAL_REPOSITORY = "gschaidergabriel/frankenstein-2.0"
 SHA40 = re.compile(r"^[0-9a-f]{40}$")
@@ -147,6 +148,32 @@ def validate_checkpoint(repo_root: Path, checkpoint_path: Path | None = None) ->
                 if actual != expected:
                     errors.append(f"claim binding mismatch {key}: claim={actual!r} checkpoint={expected!r}")
 
+    # CURRENT is a continuation authority surface, not merely a historical claim pointer.
+    # Bind it to the single mechanical active-workpackage pointer so an old, internally
+    # self-consistent claim cannot masquerade as the current mutation generation.
+    if workpackage_id:
+        active_path = repo_root / "workpackages" / "active" / f"{workpackage_id}.json"
+        try:
+            active = _load_json(active_path)
+        except CheckpointValidationError as exc:
+            errors.append(f"active pointer: {exc}")
+        else:
+            if active.get("schema") != ACTIVE_SCHEMA:
+                errors.append(f"active pointer schema mismatch: {active.get('schema')!r}")
+            active_bindings = {
+                "workpackage_id": (active.get("workpackage_id"), workpackage_id),
+                "generation": (active.get("generation"), generation),
+                "claim_id": (active.get("claim_id"), claim_id),
+                "worker_id": (active.get("worker_id"), worker_id),
+            }
+            for key, (actual, expected) in active_bindings.items():
+                if actual != expected:
+                    errors.append(
+                        f"active pointer binding mismatch {key}: active={actual!r} checkpoint={expected!r}"
+                    )
+            if active.get("state") != "ACTIVE":
+                errors.append(f"active pointer state: expected 'ACTIVE', got {active.get('state')!r}")
+
     if next_action and next_action.strip().lower() in {"none", "n/a", "done"}:
         errors.append("next_exact_action: must encode an executable continuation, not a terminal placeholder")
 
@@ -158,6 +185,7 @@ def validate_checkpoint(repo_root: Path, checkpoint_path: Path | None = None) ->
         "pass": True,
         "checkpoint": str(checkpoint_path.relative_to(repo_root)),
         "claim_path": str(claim_path.relative_to(repo_root)) if claim_path else None,
+        "active_path": f"workpackages/active/{workpackage_id}.json",
         "workpackage_id": workpackage_id,
         "generation": generation,
         "claim_id": claim_id,
