@@ -1,0 +1,46 @@
+{
+  "schema": "FRANKENSTEIN2_WORKPACKAGE_REVIEW_DELTA/v1",
+  "workpackage_id": "F2-WP-002",
+  "generation": 5,
+  "target_claim_id": "F2-WP-002-G5-GPT56SOL-AGGREGATE-PROJECTION-REPAIR-20260829",
+  "reviewer_id": "GPT-5.6-Sol",
+  "classification": "CANDIDATE_FALSIFIER",
+  "observed_f2_main_sha": "c22900881a9a5dec7572c2f376956818f7317148",
+  "scope": "SOURCE_AND_CONTINUITY_METADATA_ONLY",
+  "findings": [
+    {
+      "id": "ACTIVE_POINTER_STATE_ENUM_DRIFT",
+      "severity": "HIGH_CONTINUITY",
+      "observed": [
+        "workpackages/active/F2-WP-302.json state=IN_PROGRESS",
+        "workpackages/active/F2-WP-207.json state=CLAIMED",
+        "workpackages/active/F2-WP-303.json state=ACTIVE"
+      ],
+      "machine_contract": "workpackages/WORKPACKAGE_STATE_CONSISTENCY_CONTRACT_V1.json declares active_state=ACTIVE and terminal_states=ACCEPTED|FAILED_TERMINAL|RETIRED_STALE|SUPERSEDED",
+      "validator_behavior": "tools/validate_wp_state_consistency_v1.py rejects any pointer state that is neither the single contract active_state nor a terminal state before claim-file binding",
+      "impact": "Current legitimate-looking active pointers using IN_PROGRESS or CLAIMED cannot pass the declared v1 consistency validator. Aggregate projection repair alone cannot make these pointer generations validator-consistent.",
+      "credit_boundary": "CONTINUITY_VALIDATION_ONLY_NOT_RUNTIME"
+    },
+    {
+      "id": "MARKDOWN_VS_MACHINE_CONTRACT_DRIFT",
+      "severity": "MEDIUM_CONTINUITY",
+      "observed": "workpackages/STATE_CONSISTENCY_CONTRACT.md requires legacy_claim_ref on every active pointer, while WORKPACKAGE_STATE_CONSISTENCY_CONTRACT_V1.json and validate_wp_state_consistency_v1.py bind claim identity by workpackage_id+generation+claim_id and do not require legacy_claim_ref",
+      "impact": "Human and executable definitions disagree about the required pointer ABI; a green machine validator would not prove the Markdown contract as written.",
+      "credit_boundary": "DOCUMENTATION_ABI_CONTRADICTION_ONLY"
+    },
+    {
+      "id": "AGGREGATE_REPAIR_BRANCH_NOT_YET_APPLIED_AT_OBSERVATION",
+      "severity": "EXPECTED_IN_PROGRESS",
+      "observed": "On branch chatgpt/trigger4-wp002-g5-aggregate-projection-repair-20260829, workpackages/STATE.json still had WP300/WP301/WP302/WP303/WP304 as NOT_STARTED and omitted WP206 at the inspected source identity.",
+      "impact": "No failure is inferred merely from this in-progress snapshot; it is preserved so terminal reconciliation can prove the stale set was actually closed.",
+      "credit_boundary": "IN_PROGRESS_OBSERVATION_ONLY"
+    }
+  ],
+  "counterhypothesis": "IN_PROGRESS and CLAIMED may be intentionally admitted compatibility aliases for ACTIVE and legacy_claim_ref may have been deliberately retired; if so, the executable contract, Markdown contract and validator have not yet been successor-versioned to encode that policy.",
+  "cheapest_discriminator": "Before terminalizing WP002 G5, run validate_wp_state_consistency_v1.py against at least WP207, WP302, WP303 and one accepted terminal pointer at the exact candidate head. Require either canonical normalization to ACTIVE or an explicit successor contract/validator version that admits the intended nonterminal aliases, plus one synchronized human/machine contract definition.",
+  "recommended_owner_action": "Fold this contradiction into the existing WP002 G5 mutation lane; do not open a competing projection-repair authority.",
+  "runtime_execution_observed": false,
+  "runtime_credit": 0,
+  "physical_grid10_credit": 0,
+  "whole_system_acceptance": false
+}
