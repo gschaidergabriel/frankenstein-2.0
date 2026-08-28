@@ -9,7 +9,11 @@ from frankenstein2.persistent_agency_kernel import (
     PersistentAgencyIntegrationError,
     PersistentAgencyStore,
 )
-from state.unifieddb_identity import RESOLUTION_SCHEMA, UnifiedDBResolution
+from state.unifieddb_identity import (
+    RESOLUTION_SCHEMA,
+    UnifiedDBResolution,
+    fingerprint_unifieddb,
+)
 
 
 class PersistentAgencyUnifiedDBAdmissionFalsifier(unittest.TestCase):
@@ -26,8 +30,9 @@ class PersistentAgencyUnifiedDBAdmissionFalsifier(unittest.TestCase):
                 exists_at_resolution=False,
                 explicit_sources=(),
             )
+            fingerprint = fingerprint_unifieddb(path)
             with self.assertRaises(PersistentAgencyIntegrationError):
-                PersistentAgencyStore(resolution)
+                PersistentAgencyStore(resolution, fingerprint)
             self.assertFalse(path.exists(), "WP206 must never create a fresh canonical DB implicitly")
 
     def test_wrong_resolution_schema_must_fail_closed_even_for_existing_sqlite(self):
@@ -46,8 +51,9 @@ class PersistentAgencyUnifiedDBAdmissionFalsifier(unittest.TestCase):
                 exists_at_resolution=True,
                 explicit_sources=("TEST",),
             )
+            fingerprint = fingerprint_unifieddb(path)
             with self.assertRaises(PersistentAgencyIntegrationError):
-                PersistentAgencyStore(resolution)
+                PersistentAgencyStore(resolution, fingerprint)
 
 
 if __name__ == "__main__":
