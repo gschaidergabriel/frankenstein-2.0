@@ -1,0 +1,38 @@
+{
+  "schema": "FRANKENSTEIN2_WORKPACKAGE_DELTA/v1",
+  "workpackage_id": "F2-WP-206",
+  "generation": 1,
+  "claim_id": "F2-WP-206-G1-GPT56SOL-PERSISTENT-AGENCY-INTEGRATION-20260829",
+  "worker_id": "GPT-5.6-Sol",
+  "delta_type": "CANDIDATE_FALSIFIER",
+  "status": "NEGATIVE_RESULT_SOURCE_REVIEW",
+  "observed_branch": "chatgpt/trigger4-wp206-persistent-agency-integration-20260829",
+  "observed_head_sha": "186f8837ed2670bb26bdaa79f707186cd7c161ba",
+  "observed_source": "src/frankenstein2/persistent_agency_kernel.py",
+  "observed_source_blob_sha": "a6338b773da9c0b5fd1162864de5add5216d4bc2",
+  "observed_test": "tests/test_persistent_agency_kernel.py",
+  "observed_test_blob_sha": "0e8ad6272828c5fbf3fe7bc6d739c65eabf17756",
+  "finding": "PersistentAgencyStore accepts only UnifiedDBResolution, checks only that the selected path is absolute and its parent directory exists, and opens sqlite3.connect(path). A missing target is therefore created by SQLite. No UnifiedDBFingerprint is required or bound, resolution.exists_at_resolution is not required, and no file device/inode/path identity is revalidated before write. The current restart test intentionally resolves a previously missing tempfile/unified.db and fingerprints it only after PersistentAgencyStore.persist has created/written it. This proves restart persistence but does not prove that the writer was bound to a pre-existing fingerprinted canonical UnifiedDB identity.",
+  "canonical_precedent": {
+    "source": "src/state/delivery_store.py",
+    "source_blob_sha": "c49df878c0c129387e74d82536cacf3f8b035f15",
+    "contract": "CanonicalDeliveryStore requires both UnifiedDBResolution and UnifiedDBFingerprint, requires resolution.exists_at_resolution, requires fingerprint status SQLITE3_REGULAR_FILE, verifies resolved/fingerprinted real path plus device/inode identity, and opens with SQLite mode=rw so the writer never creates the database."
+  },
+  "hypothesis": "Without the same existing-file/fingerprint identity fence, WP206 can accidentally become an ad-hoc database bootstrap writer or write to a replaced/unfingerprinted SQLite target, weakening the single canonical UnifiedDB authority boundary.",
+  "counterhypothesis": "A missing resolver-selected XDG_FRESH_TARGET can legitimately be the canonical fresh-install location, so creation itself is not necessarily a second authority. This counterhypothesis would require an explicit admitted bootstrap/schema authority granting WP206 the right to initialize that fresh database and bind its created identity before durable checkpoint credit. No such authority is present in the observed WP206 claim/source.",
+  "discriminator": [
+    "Construct a UnifiedDBResolution whose target does not yet exist and whose exists_at_resolution is false; PersistentAgencyStore must fail closed unless a separately admitted canonical DB bootstrap contract is explicitly supplied.",
+    "For an existing target, require an exact UnifiedDBFingerprint and reject a path/file identity replacement between fingerprint and writer open.",
+    "Open the canonical writer with SQLite mode=rw rather than creation-capable sqlite3.connect(path), unless a distinct bootstrap authority is being tested.",
+    "Repeat the subprocess restart test against a pre-created/fingerprinted canonical test UnifiedDB and bind the fingerprint receipt identity into the integration evidence."
+  ],
+  "credit_boundary": {
+    "current_wp206_source_ready": true,
+    "restart_test_present": true,
+    "canonical_unifieddb_writer_identity_proven": false,
+    "runtime_credit": 0,
+    "physical_grid10_credit": 0,
+    "whole_system_acceptance": false
+  },
+  "recommended_action": "Treat this as a pre-acceptance fail-closed blocker for WP206 G1. Reuse the accepted CanonicalDeliveryStore identity-fence pattern or factor a shared canonical SQLite writer-open primitive; do not weaken F2-WP-100/F2-WP-103 authority boundaries merely to make the restart test green."
+}
