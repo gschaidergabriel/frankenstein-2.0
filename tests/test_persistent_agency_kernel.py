@@ -224,7 +224,23 @@ class PersistentAgencyKernelTests(unittest.TestCase):
                 provenance_refs=("integration:test",),
             )
 
-        bad_hold, _ = self.hold_and_wake(agency, digest="b" * 64)
+        bad_hold = HoldCheckpoint.create(
+            hold_id=f"hold-{agency.generation}-wrong-digest",
+            state_id=agency.state_id,
+            generation=agency.generation,
+            state_sha256="b" * 64,
+            wake_policy=WAKE_ANY,
+            wake_conditions=(
+                WakeCondition(
+                    "wake-1-wrong-digest",
+                    "receipt.status",
+                    OP_EQUALS,
+                    ("condition:explicit",),
+                    "done",
+                ),
+            ),
+            provenance_refs=("hold:explicit",),
+        )
         with self.assertRaisesRegex(PersistentAgencyIntegrationError, "hold/agency digest mismatch"):
             build_checkpoint(
                 kernel_id="kernel-main",
