@@ -4,14 +4,11 @@ F2-WP-202 generation 1.
 
 A PredictionContract freezes an explicitly supplied expected typed projection together
 with the fingerprint of the state from which that prediction was made. A later explicit
-observation can be compared deterministically. Nothing in this module predicts missing
-facts, decides actions, reads durable state, invokes a model, or promotes a prediction to
-truth.
+observation can be compared deterministically. Nothing here predicts missing facts,
+decides actions, reads durable state, invokes a model, or promotes a prediction to truth.
 
-Residuals are deliberately type-sensitive. ``1`` and ``1.0`` are not silently treated as
-the same state, and ``True`` is never treated as numeric ``1``. Numeric magnitudes are
-reported only where both leaves have the same numeric JSON type. Structural/type mismatch
-remains first-class evidence.
+Residuals are type-sensitive: ``1`` != ``1.0`` and ``True`` is never numeric ``1``.
+Numeric magnitudes are reported only when both leaves have the same numeric JSON type.
 """
 from __future__ import annotations
 
@@ -21,7 +18,6 @@ import json
 import math
 import re
 from typing import Any, Mapping
-
 
 PREDICTION_CONTRACT_SCHEMA = "FRANKENSTEIN2_PREDICTION_CONTRACT/v1"
 PREDICTION_RESIDUAL_SCHEMA = "FRANKENSTEIN2_PREDICTION_RESIDUAL/v1"
@@ -57,10 +53,12 @@ def _generation(value: Any) -> int:
     return value
 
 
+def _escape_pointer(value: str) -> str:
+    return value.replace("~", "~0").replace("/", "~1")
+
+
 def _validate_json(value: Any, path: str = "$") -> None:
-    if value is None or isinstance(value, (str, bool)):
-        return
-    if type(value) is int:
+    if value is None or isinstance(value, (str, bool)) or type(value) is int:
         return
     if type(value) is float:
         if not math.isfinite(value):
@@ -71,9 +69,8 @@ def _validate_json(value: Any, path: str = "$") -> None:
             _validate_json(item, f"{path}/{index}")
         return
     if isinstance(value, Mapping):
-        for key in value:
-            if not isinstance(key, str):
-                raise PredictionContractError(f"mapping key at {path} must be a string")
+        if any(not isinstance(key, str) for key in value):
+            raise PredictionContractError(f"mapping key at {path} must be a string")
         for key in sorted(value):
             _validate_json(value[key], f"{path}/{_escape_pointer(key)}")
         return
@@ -97,10 +94,6 @@ def _digest_json(value: Any) -> str:
     return hashlib.sha256(_canonical_json(value).encode("utf-8")).hexdigest()
 
 
-def _escape_pointer(value: str) -> str:
-    return value.replace("~", "~0").replace("/", "~1")
-
-
 def _json_type(value: Any) -> str:
     if value is None:
         return "null"
@@ -119,96 +112,67 @@ def _json_type(value: Any) -> str:
     raise PredictionContractError(f"unsupported JSON type: {type(value).__name__}")
 
 
-@dataclass(frozen=True, slots=True)
-class _DiffAccumulator:
-    changed_paths: list[str]
-    missing_paths: list[str]
-    unexpected_paths: list[str]
-    type_mismatch_paths: list[str]
-    numeric_absolute_residuals: dict[str, float]
-    expected_leaf_count: int = 0
-    observed_leaf_count: int = 0
-    compared_leaf_count: int = 0
-
-
 def _leaf_count(value: Any) -> int:
     if isinstance(value, Mapping):
-        if not value:
-            return 1
-        return sum(_leaf_count(value[key]) for key in value)
+        return 1 if not value else sum(_leaf_count(value[key]) for key in value)
     if isinstance(value, list):
-        if not value:
-            return 1
-        return sum(_leaf_count(item) for item in value)
+        return 1 if not value else sum(_leaf_count(item) for item in value)
     return 1
 
 
-def _record_missing(value: Any, path: str, acc: _DiffAccumulator) -> None:
+def _record_leaf_paths(value: Any, path: str, output: list[str]) -> None:
     if isinstance(value, Mapping) and value:
         for key in sorted(value):
-            _record_missing(value[key], f"{path}/{_escape_pointer(key)}", acc)
+            _record_leaf_paths(value[key], f"{path}/{_escape_pointer(key)}", output)
         return
     if isinstance(value, list) and value:
         for index, item in enumerate(value):
-            _record_missing(item, f"{path}/{index}", acc)
+            _record_leaf_paths(item, f"{path}/{index}", output)
         return
-    acc.missing_paths.append(path)
+    output.append(path)
 
 
-def _record_unexpected(value: Any, path: str, acc: _DiffAccumulator) -> None:
-    if isinstance(value, Mapping) and value:
-        for key in sorted(value):
-            _record_unexpected(value[key], f"{path}/{_escape_pointer(key)}", acc)
-        return
-    if isinstance(value, list) and value:
-        for index, item in enumerate(value):
-            _record_unexpected(item, f"{path}/{index}", acc)
-        return
-    acc.unexpected_paths.append(path)
-
-
-def _compare(expected: Any, observed: Any, path: str, acc: _DiffAccumulator) -> None:
+def _compare(expected: Any, observed: Any, path: str, out: dict[str, Any]) -> int:
+    """Populate diff lists and return count of directly compared leaves."""
     expected_type = _json_type(expected)
     observed_type = _json_type(observed)
     if expected_type != observed_type:
-        acc.type_mismatch_paths.append(path)
-        acc.changed_paths.append(path)
-        return
+        out["type_mismatch"].append(path)
+        out["changed"].append(path)
+        return 1
 
     if isinstance(expected, Mapping):
         expected_keys = set(expected)
         observed_keys = set(observed)
         for key in sorted(expected_keys - observed_keys):
-            _record_missing(expected[key], f"{path}/{_escape_pointer(key)}", acc)
+            _record_leaf_paths(expected[key], f"{path}/{_escape_pointer(key)}", out["missing"])
         for key in sorted(observed_keys - expected_keys):
-            _record_unexpected(observed[key], f"{path}/{_escape_pointer(key)}", acc)
-        for key in sorted(expected_keys & observed_keys):
-            _compare(
-                expected[key], observed[key], f"{path}/{_escape_pointer(key)}", acc
-            )
-        if not expected and not observed:
-            acc.compared_leaf_count += 1
-        return
+            _record_leaf_paths(observed[key], f"{path}/{_escape_pointer(key)}", out["unexpected"])
+        compared = sum(
+            _compare(expected[key], observed[key], f"{path}/{_escape_pointer(key)}", out)
+            for key in sorted(expected_keys & observed_keys)
+        )
+        return 1 if not expected and not observed else compared
 
     if isinstance(expected, list):
         common = min(len(expected), len(observed))
-        for index in range(common):
-            _compare(expected[index], observed[index], f"{path}/{index}", acc)
+        compared = sum(
+            _compare(expected[index], observed[index], f"{path}/{index}", out)
+            for index in range(common)
+        )
         for index in range(common, len(expected)):
-            _record_missing(expected[index], f"{path}/{index}", acc)
+            _record_leaf_paths(expected[index], f"{path}/{index}", out["missing"])
         for index in range(common, len(observed)):
-            _record_unexpected(observed[index], f"{path}/{index}", acc)
-        if not expected and not observed:
-            acc.compared_leaf_count += 1
-        return
+            _record_leaf_paths(observed[index], f"{path}/{index}", out["unexpected"])
+        return 1 if not expected and not observed else compared
 
-    acc.compared_leaf_count += 1
     if expected != observed:
-        acc.changed_paths.append(path)
+        out["changed"].append(path)
         if type(expected) is int and type(observed) is int:
-            acc.numeric_absolute_residuals[path] = float(abs(observed - expected))
+            out["numeric"][path] = float(abs(observed - expected))
         elif type(expected) is float and type(observed) is float:
-            acc.numeric_absolute_residuals[path] = abs(observed - expected)
+            out["numeric"][path] = abs(observed - expected)
+    return 1
 
 
 @dataclass(frozen=True, slots=True)
@@ -326,35 +290,29 @@ class PredictionContract:
         observation_fingerprint_sha256: str,
         observed_projection: Any,
     ) -> PredictionResidual:
-        """Compare one explicit observation with the frozen expected projection."""
         observation_id = _identifier("observation_id", observation_id)
         observation_fingerprint_sha256 = _sha256(
             "observation_fingerprint_sha256", observation_fingerprint_sha256
         )
         _validate_json(observed_projection)
         expected = self.expected_projection
-        accumulator = _DiffAccumulator(
-            changed_paths=[],
-            missing_paths=[],
-            unexpected_paths=[],
-            type_mismatch_paths=[],
-            numeric_absolute_residuals={},
-            expected_leaf_count=_leaf_count(expected),
-            observed_leaf_count=_leaf_count(observed_projection),
-        )
-        _compare(expected, observed_projection, "$", accumulator)
-
-        changed = tuple(sorted(set(accumulator.changed_paths)))
-        missing = tuple(sorted(set(accumulator.missing_paths)))
-        unexpected = tuple(sorted(set(accumulator.unexpected_paths)))
-        type_mismatch = tuple(sorted(set(accumulator.type_mismatch_paths)))
-        numeric = tuple(sorted(accumulator.numeric_absolute_residuals.items()))
+        out: dict[str, Any] = {
+            "changed": [],
+            "missing": [],
+            "unexpected": [],
+            "type_mismatch": [],
+            "numeric": {},
+        }
+        compared_leaf_count = _compare(expected, observed_projection, "$", out)
+        changed = tuple(sorted(set(out["changed"])))
+        missing = tuple(sorted(set(out["missing"])))
+        unexpected = tuple(sorted(set(out["unexpected"])))
+        type_mismatch = tuple(sorted(set(out["type_mismatch"])))
+        numeric = tuple(sorted(out["numeric"].items()))
         mismatch_count = len(changed) + len(missing) + len(unexpected)
-        denominator = max(
-            accumulator.expected_leaf_count,
-            accumulator.observed_leaf_count,
-            1,
-        )
+        expected_leaf_count = _leaf_count(expected)
+        observed_leaf_count = _leaf_count(observed_projection)
+        denominator = max(expected_leaf_count, observed_leaf_count, 1)
         return PredictionResidual(
             schema=PREDICTION_RESIDUAL_SCHEMA,
             prediction_id=self.prediction_id,
@@ -373,9 +331,9 @@ class PredictionContract:
             numeric_absolute_residuals=numeric,
             numeric_l1=sum(value for _, value in numeric),
             mismatch_count=mismatch_count,
-            expected_leaf_count=accumulator.expected_leaf_count,
-            observed_leaf_count=accumulator.observed_leaf_count,
-            compared_leaf_count=accumulator.compared_leaf_count,
+            expected_leaf_count=expected_leaf_count,
+            observed_leaf_count=observed_leaf_count,
+            compared_leaf_count=compared_leaf_count,
             mismatch_fraction=mismatch_count / denominator,
         )
 
