@@ -1,0 +1,73 @@
+{
+  "schema": "FRANKENSTEIN2_WORKPACKAGE_ACCEPTANCE_RECEIPT/v1",
+  "workpackage_id": "F2-WP-100",
+  "generation": 1,
+  "claim_id": "F2-WP-100-G1-GPT56SOL-unifieddb-identity",
+  "trigger": "4",
+  "acceptance_scope": "UNIFIEDDB_RESOLVER_FINGERPRINT_COMPONENT_SOURCE_AND_CI_ONLY",
+  "status": "ACCEPTED_AT_SCOPE",
+  "donor": {
+    "repository": "gschaidergabriel/frankenstein",
+    "commit": "5641dc6b2df6ebed1df246ee7533134324f6c427",
+    "source_path": "DEV_SOURCE_RESEARCH/repository/scripts/stern.py"
+  },
+  "canonical_source": {
+    "path": "src/state/unifieddb_identity.py",
+    "blob_sha": "ce88d1082d02aae90b00f3de994aa752dd49b500",
+    "initial_commit": "15d2c3c81ed2af5787a4e77038910ad290188f04",
+    "fail_closed_hardening_commit": "8bcb17076338113f97db090e465b489434e0d69b",
+    "resolution_schema": "FRANKENSTEIN2_UNIFIEDDB_RESOLUTION/v2",
+    "fingerprint_schema": "FRANKENSTEIN2_UNIFIEDDB_FINGERPRINT/v2"
+  },
+  "canonical_regression": {
+    "path": "tests/test_unifieddb_identity.py",
+    "blob_sha": "4a81ac5b60d011fa6cc66fe2747a1fd45fa602b2",
+    "passing_test_commit": "d75bba0de03596a0efea9f1b934f0264fb5df9e6"
+  },
+  "ci": {
+    "workflow_path": ".github/workflows/unifieddb-identity-ci.yml",
+    "workflow_blob_sha": "7ba9eba45ee3252013bba398038b920af94ee0c5",
+    "passing_run_id": 33182031525,
+    "passing_head_sha": "d75bba0de03596a0efea9f1b934f0264fb5df9e6",
+    "event": "push",
+    "runner": "ubuntu-latest",
+    "python": "3.12",
+    "conclusion": "success"
+  },
+  "verified_invariants": [
+    "pointer and explicit environment authorities that disagree fail closed",
+    "stale pointer target fails closed instead of silently selecting a second durable state",
+    "relative explicit durable-state paths fail closed; relative pointer text is anchored to the pointer file rather than process CWD",
+    "existing XDG state precedes explicitly supplied legacy compatibility state",
+    "fresh install targets XDG data and does not default into the replaceable plugin/source tree",
+    "missing DB state is represented explicitly rather than fabricated",
+    "symlink, directory and non-SQLite file identities are rejected",
+    "valid SQLite files bind content SHA-256 plus read-only SQLite schema/pragma identity",
+    "schema change alters the schema digest",
+    "mutation during file hashing fails closed",
+    "identity receipt remains classified as identity evidence, not a full runtime/state snapshot"
+  ],
+  "negative_evidence_preserved": [
+    {
+      "kind": "LOCAL_TEST_TRANSPORT_FAILURE",
+      "detail": "Local container could not resolve github.com before checkout; no source test executed and no product-negative credit was assigned."
+    },
+    {
+      "workflow_run_id": 33181876629,
+      "conclusion": "failure",
+      "classification": "TEST_HARNESS_IMPORT_FAILURE",
+      "detail": "Python 3.12 dataclass import failed because the manual importlib loader did not register the module in sys.modules. Compilation succeeded; no component logic was reached."
+    },
+    {
+      "workflow_run_id": 33181969214,
+      "conclusion": "failure",
+      "classification": "STALE_REGRESSION_VS_PARALLEL_HARDENING",
+      "detail": "Concurrent source hardening introduced explicit-authority conflict rejection and SQLite-only fingerprint semantics while the older tests still expected soft donor fallback and fake regular-file fixtures. Tests were updated to the stronger canonical v2 contract rather than source being weakened."
+    }
+  ],
+  "runtime_execution_observed": false,
+  "vps_runtime_observed": false,
+  "whole_frankenstein2_acceptance": false,
+  "runtime_credit": 0,
+  "next_exact_action": "Bind the accepted UnifiedDB identity receipt into F2-WP-101 causal identity so state reads/writes and later pulse/executor receipts can name one exact durable-state authority without treating this component CI pass as runtime binding evidence."
+}
