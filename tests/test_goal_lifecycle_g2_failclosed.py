@@ -54,8 +54,8 @@ class GoalLifecycleG2FailClosedTests(unittest.TestCase):
                 "goal-1",
                 GOAL_CANDIDATE,
                 GOAL_ACTIVE,
-                "owner:adopt-1",
-                "owner:adopt-1",
+                "caller:adopt-1",
+                "caller:adopt-1",
             )
 
     def test_model_or_untyped_evidence_cannot_adopt_goal(self) -> None:
@@ -69,14 +69,14 @@ class GoalLifecycleG2FailClosedTests(unittest.TestCase):
                         evidence_ref,
                     )
 
-    def test_explicit_external_adoption_authority_is_admitted(self) -> None:
+    def test_explicit_control_plane_adoption_authority_is_admitted(self) -> None:
         change = self.change(
             "goal-1",
             GOAL_CANDIDATE,
             GOAL_TRIAL,
-            "control:adopt-1",
+            "control-plane:adopt-1",
         )
-        self.assertEqual(change.evidence_refs, ("control:adopt-1",))
+        self.assertEqual(change.evidence_refs, ("control-plane:adopt-1",))
 
     def test_cross_goal_patch_receipt_fails_closed(self) -> None:
         state = GoalState.create(
@@ -93,8 +93,8 @@ class GoalLifecycleG2FailClosedTests(unittest.TestCase):
                 next_generation=1,
                 transition_refs=("decision:explicit",),
                 status_changes=(
-                    self.change("a", GOAL_CANDIDATE, GOAL_TRIAL, "owner:a"),
-                    self.change("b", GOAL_CANDIDATE, GOAL_ACTIVE, "owner:b"),
+                    self.change("a", GOAL_CANDIDATE, GOAL_TRIAL, "caller:a"),
+                    self.change("b", GOAL_CANDIDATE, GOAL_ACTIVE, "caller:b"),
                 ),
             )
 
@@ -115,20 +115,21 @@ class GoalLifecycleG2FailClosedTests(unittest.TestCase):
             )
 
     def test_internal_evolution_token_is_not_a_public_constructor_capability(self) -> None:
+        self.assertFalse(hasattr(lifecycle, "_EVOLUTION_TOKEN"))
         active = GoalRecord(
             goal_id="goal-1",
-            summary="private token must not become caller capability",
+            summary="caller token must not be part of constructor ABI",
             priority_ppm=1,
             provenance_refs=("agency:1",),
             status=GOAL_ACTIVE,
         )
-        with self.assertRaises((TypeError, GoalLifecycleError)):
+        with self.assertRaises(TypeError):
             GoalState(
                 schema=lifecycle.GOAL_STATE_SCHEMA,
                 state_id="goal-state-1",
                 generation=1,
                 goals=(active,),
-                _construction_token=lifecycle._EVOLUTION_TOKEN,
+                _construction_token=object(),
             )
 
 
