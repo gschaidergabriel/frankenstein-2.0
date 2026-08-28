@@ -23,7 +23,7 @@ Status:
 - [x] F2-WP-100 Canonical UnifiedDB schema/resolver/fingerprint — accepted at bounded repository evidence scope; no whole-system credit.
 - [-] F2-WP-101 Session/agent/task/turn/causal/generation identity spine.
 - [-] F2-WP-102 Workpackage → Agent tool-use → child agent → result binding.
-- [ ] F2-WP-103 Recipient delivery lifecycle and dedupe.
+- [-] F2-WP-103 Recipient delivery lifecycle and dedupe.
 - [-] F2-WP-104 Deferred causal-return envelope.
 - [-] F2-WP-105 Typed execution/completion outcome lineage.
 
