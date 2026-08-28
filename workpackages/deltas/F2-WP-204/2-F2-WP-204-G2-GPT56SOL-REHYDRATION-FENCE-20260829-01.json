@@ -1,0 +1,53 @@
+{
+  "schema": "FRANKENSTEIN2_WORKPACKAGE_DELTA/v1",
+  "workpackage_id": "F2-WP-204",
+  "generation": 2,
+  "claim_id": "F2-WP-204-G2-GPT56SOL-REHYDRATION-FENCE-20260829",
+  "worker_id": "GPT-5.6-Sol",
+  "base_commit": "b83f782fbb10fbe6c67da6d843eafba4494212be",
+  "observed_main_commit": "b83f782fbb10fbe6c67da6d843eafba4494212be",
+  "owned_paths": [
+    "src/frankenstein2/goal_lifecycle.py",
+    "tests/test_goal_lifecycle.py",
+    ".github/workflows/wp204-g2-rehydration-fence-ci.yml",
+    "workpackages/active/F2-WP-204.json"
+  ],
+  "result_class": "CORRECTIVE_IMPLEMENTATION_DELTA",
+  "source_commits": [
+    "e32531be8a51d0ee9d338bd7823f110855375aaf",
+    "4de53ca905f37f7dd972d997435d85dcc6aafb3e",
+    "c64c0a6a917791e1f03ef08d6e6cc87f04205aed",
+    "332d5630c4bc62bcd22234f9d793d5d27ae26d81",
+    "5abd5a2a8bf054c277c435b0687b2851cf4a2be2"
+  ],
+  "receipts": [
+    "workpackages/receipts/F2-WP-204_G2_REHYDRATION_FENCE_GHA_33218911745.json",
+    "github-actions-run:33218911745",
+    "github-actions-job:99008605950"
+  ],
+  "triggering_falsifiers": [
+    "PR35 demonstrated GoalState.create(generation>0, ACTIVE) bypass on generation-1 source",
+    "generation-2 successor claim additionally treats the exported direct GoalState constructor as public lifecycle input and therefore candidate-only"
+  ],
+  "resolved_falsifiers": [
+    "GoalState.create rejects non-CANDIDATE records at generation 0, 1 and later generations",
+    "exported direct GoalState constructor rejects non-CANDIDATE lifecycle records",
+    "GoalState.apply still emits evolved TRIAL/ACTIVE/HOLD/DROPPED state through a private transition-only constructor",
+    "HOLD->ACTIVE regression now reconstructs history through explicit ADOPT/HOLD/RESUME transitions rather than fixture rehydration"
+  ],
+  "contradictions": [
+    "Generation-1 reconciliation correctly described the intended boundary but its public constructor semantics were weaker than that prose. Generation 2 repairs executable semantics and preserves the generation-1 acceptance receipt as historical component evidence rather than rewriting it."
+  ],
+  "proposed_state_change": "After exact-head fusion, accept F2-WP-204 generation 2 only at repository-hosted component-CI scope as the fail-closed successor to generation 1. Public construction is candidate-only at every generation; lifecycle evolution remains receipt-bearing; persistence rehydration remains deliberately unimplemented and must receive a separate future contract.",
+  "completion_deficit": [
+    "generation-2 branch not yet fused into current main at delta creation",
+    "no generic serialized-state rehydration contract",
+    "no UnifiedDB persistence integration",
+    "no Persistent Pulse integration",
+    "no higher-scope F2-WP-205 scheduler/runtime integration",
+    "no EffectGate/executor integration",
+    "no completion verification integration",
+    "no VPS or physical GRID10 runtime execution"
+  ],
+  "next_exact_action": "Refresh main, active F2-WP-204 and F2-WP-205, open/fuse one survivor PR for this exact G2 head if non-overlapping, then reconcile generation 2 against the successful CI receipt. Close stale competing WP204 implementation PRs as duplicates only after the survivor is durably fused."
+}
