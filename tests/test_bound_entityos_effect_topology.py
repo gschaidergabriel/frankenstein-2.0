@@ -2,24 +2,30 @@ from __future__ import annotations
 
 import hashlib
 import json
-import os
 import sys
 import tempfile
 import time
+import types
 import unittest
 from pathlib import Path
 
-BINDING_ROOT = Path(os.environ["ENTITYOS_BINDING_ROOT"]).resolve()
-IMPL_ROOT = Path(os.environ["ENTITYOS_IMPL_ROOT"]).resolve()
-BINDING_PATH = BINDING_ROOT / "research_entity/continuity/ENTITYOS_EFFECT_AUTHORITY_IMPLEMENTATION_BINDING_V1.json"
-ARTEFACT_ROOT = IMPL_ROOT / "the artefact"
-sys.path.insert(0, str(ARTEFACT_ROOT))
+FIXTURE_ROOT = Path(__file__).resolve().parent / "fixtures/bound_entityos_effect_authority"
+BINDING_PATH = FIXTURE_ROOT / "ENTITYOS_EFFECT_AUTHORITY_IMPLEMENTATION_BINDING_V1.json"
+sys.path.insert(0, str(FIXTURE_ROOT))
+
+# effects.py imports the EntityOSBridge class only for its type/API dependency.  This
+# discriminator deliberately supplies an in-process FakeEntityOSBridge and executes no
+# external EntityOS binary.  The three authority-bound blobs themselves remain byte-exact
+# fixtures and are verified below before any semantic credit is allowed.
+_bridge_module = types.ModuleType("clayverse.entityos_bridge")
+_bridge_module.EntityOSBridge = object
+sys.modules["clayverse.entityos_bridge"] = _bridge_module
 
 from clayverse.effect_journal import EffectJournal
 from clayverse.effects import EffectGate, EffectRequest
 from clayverse.store import UnifiedDB
 
-EXPECTED_BINDING_COMMIT = "5638204026468b631de5e774e8403d7a6334021e"
+EXPECTED_BINDING_BLOB = "b4d91a0dd233c9dc15ff8218feea9248ac1c13c5"
 EXPECTED_IMPL_COMMIT = "2b68aad14bf7824d513b52898904909256e3522d"
 
 
@@ -82,20 +88,22 @@ class BoundEntityOSEffectTopologyTests(unittest.TestCase):
         return td, path, db, user_id, session_id, generation, episode_id
 
     def test_binding_record_losslessly_pins_all_bound_source_bytes(self) -> None:
+        self.assertEqual(git_blob_sha(BINDING_PATH), EXPECTED_BINDING_BLOB)
         self.assertEqual(self.binding["schema"], "ENTITYOS_EFFECT_AUTHORITY_IMPLEMENTATION_BINDING/v1")
         self.assertEqual(self.binding["status"], "CURRENT_EXACT_SOURCE_IDENTITY_BINDING_NO_NEW_AUTHORITY")
         identity = self.binding["implementation_identity"]
         self.assertEqual(identity["bound_commit"], EXPECTED_IMPL_COMMIT)
         self.assertEqual(self.binding["api_contract"]["version"], "ENTITYOS_EFFECT_AUTHORITY_PY_API/v1")
 
-        for key, blob_key in (
-            ("effect_gate", "blob_sha"),
-            ("effect_journal", "blob_sha"),
-            ("canonical_state_schema", "blob_sha"),
-        ):
+        fixture_paths = {
+            "effect_gate": FIXTURE_ROOT / "clayverse/effects.py",
+            "effect_journal": FIXTURE_ROOT / "clayverse/effect_journal.py",
+            "canonical_state_schema": FIXTURE_ROOT / "clayverse/store.py",
+        }
+        for key, path in fixture_paths.items():
             item = identity[key]
-            actual = git_blob_sha(IMPL_ROOT / item["path"])
-            self.assertEqual(actual, item[blob_key], f"bound blob mismatch for {key}")
+            actual = git_blob_sha(path)
+            self.assertEqual(actual, item["blob_sha"], f"bound blob mismatch for {key}")
 
     def test_bound_effectgate_owns_pending_dispatch_finalize_transaction_once(self) -> None:
         td, _path, db, user_id, session_id, generation, episode_id = self.new_fixture()
