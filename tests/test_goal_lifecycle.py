@@ -66,7 +66,7 @@ class GoalLifecycleTests(unittest.TestCase):
         self.assertEqual(state.goals[0].status, GOAL_CANDIDATE)
         self.assertEqual(state.schema, GOAL_STATE_SCHEMA)
 
-    def test_generation_zero_rejects_pre_adopted_goal(self) -> None:
+    def test_public_create_rejects_pre_adopted_goal_at_every_generation(self) -> None:
         active = GoalRecord(
             goal_id="goal-1",
             summary="caller tried to pre-adopt",
@@ -74,8 +74,32 @@ class GoalLifecycleTests(unittest.TestCase):
             provenance_refs=("source:1",),
             status=GOAL_ACTIVE,
         )
-        with self.assertRaisesRegex(GoalLifecycleError, "new goals must enter as CANDIDATE"):
-            self.state(active)
+        for generation in (0, 1, 7):
+            with self.subTest(generation=generation):
+                with self.assertRaisesRegex(
+                    GoalLifecycleError,
+                    "public GoalState construction admits CANDIDATE records only",
+                ):
+                    self.state(active, generation=generation)
+
+    def test_public_constructor_rejects_noncandidate_rehydration_bypass(self) -> None:
+        held = GoalRecord(
+            goal_id="goal-1",
+            summary="caller tried direct rehydration",
+            priority_ppm=1,
+            provenance_refs=("source:1",),
+            status=GOAL_HOLD,
+        )
+        with self.assertRaisesRegex(
+            GoalLifecycleError,
+            "public GoalState construction admits CANDIDATE records only",
+        ):
+            GoalState(
+                schema=GOAL_STATE_SCHEMA,
+                state_id="goal-state-1",
+                generation=2,
+                goals=(held,),
+            )
 
     def test_candidate_to_trial_is_explicit_transition(self) -> None:
         state = self.state(self.candidate())
@@ -107,19 +131,33 @@ class GoalLifecycleTests(unittest.TestCase):
         )
         self.assertEqual(state2.goals[0].status, GOAL_HOLD)
 
-    def test_hold_can_resume_active(self) -> None:
-        held = GoalRecord(
-            goal_id="goal-1",
-            summary="held explicit goal",
-            priority_ppm=100,
-            provenance_refs=("source:1",),
-            status=GOAL_HOLD,
+    def test_hold_can_resume_active_only_via_explicit_transition_lineage(self) -> None:
+        state0 = self.state(self.candidate())
+        state1, _ = state0.apply(
+            self.patch(
+                state0,
+                transition_id="transition-adopt",
+                status_changes=(self.change("goal-1", GOAL_CANDIDATE, GOAL_ACTIVE),),
+            )
         )
-        state = self.state(held, generation=2)
-        next_state, _ = state.apply(
-            self.patch(state, status_changes=(self.change("goal-1", GOAL_HOLD, GOAL_ACTIVE),))
+        state2, _ = state1.apply(
+            self.patch(
+                state1,
+                transition_id="transition-hold",
+                status_changes=(self.change("goal-1", GOAL_ACTIVE, GOAL_HOLD),),
+            )
         )
-        self.assertEqual(next_state.goals[0].status, GOAL_ACTIVE)
+        state3, receipt = state2.apply(
+            self.patch(
+                state2,
+                transition_id="transition-resume",
+                status_changes=(self.change("goal-1", GOAL_HOLD, GOAL_ACTIVE),),
+            )
+        )
+        self.assertEqual(state3.generation, 3)
+        self.assertEqual(state3.goals[0].status, GOAL_ACTIVE)
+        self.assertEqual(receipt.before_generation, 2)
+        self.assertEqual(receipt.after_generation, 3)
 
     def test_dropped_is_terminal(self) -> None:
         with self.assertRaisesRegex(GoalLifecycleError, "illegal goal transition"):
