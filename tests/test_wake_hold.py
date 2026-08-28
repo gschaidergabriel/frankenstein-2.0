@@ -1,7 +1,15 @@
 import unittest
 from frankenstein2.wake_hold import (
-    HOLD_CHECKPOINT_SCHEMA, OP_EQUALS, OP_PRESENT, WAKE_ALL, WAKE_ANY,
-    HoldCheckpoint, WakeCondition, WakeHoldError, WakeObservation, evaluate_wake,
+    HOLD_CHECKPOINT_SCHEMA,
+    OP_EQUALS,
+    OP_PRESENT,
+    WAKE_ALL,
+    WAKE_ANY,
+    HoldCheckpoint,
+    WakeCondition,
+    WakeHoldError,
+    WakeObservation,
+    evaluate_wake,
 )
 
 DIGEST = "a" * 64
@@ -13,20 +21,28 @@ def condition(cid="c1", key="job.status", operator=OP_EQUALS, expected="done"):
 
 def checkpoint(policy=WAKE_ANY, conditions=None):
     return HoldCheckpoint.create(
-        hold_id="hold-1", state_id="agency-1", generation=7, state_sha256=DIGEST,
-        wake_policy=policy, wake_conditions=conditions or (condition(),),
+        hold_id="hold-1",
+        state_id="agency-1",
+        generation=7,
+        state_sha256=DIGEST,
+        wake_policy=policy,
+        wake_conditions=conditions or (condition(),),
         provenance_refs=("state:agency-1",),
     )
 
 
-def observation(oid="o1", key="job.status", value="done"):
-    return WakeObservation(oid, key, value, ("observation:explicit",))
+def observation(oid="o1", key="job.status", value="done", refs=("observation:explicit",)):
+    return WakeObservation(oid, key, value, refs)
 
 
-def evaluate(cp, observations):
+def evaluate(cp, observations, evaluation_id="eval-1"):
     return evaluate_wake(
-        cp, evaluation_id="eval-1", observed_state_id="agency-1",
-        observed_generation=7, observed_state_sha256=DIGEST, observations=observations,
+        cp,
+        evaluation_id=evaluation_id,
+        observed_state_id="agency-1",
+        observed_generation=7,
+        observed_state_sha256=DIGEST,
+        observations=observations,
     )
 
 
@@ -45,19 +61,52 @@ class WakeHoldTests(unittest.TestCase):
         self.assertTrue(result.wake)
         self.assertEqual(result.classification, "WAKE_CONDITION_MATCH")
         self.assertEqual(result.matched_condition_ids, ("c1",))
+        self.assertEqual(result.unknown_condition_ids, ())
 
-    def test_empty_observation_set_remains_on_hold(self):
+    def test_empty_observation_set_is_unknown_not_nonmatch(self):
         result = evaluate(checkpoint(), ())
         self.assertFalse(result.wake)
+        self.assertEqual(result.classification, "ABSTAIN_NOT_OBSERVED")
         self.assertEqual(result.matched_condition_ids, ())
-        self.assertEqual(result.unmatched_condition_ids, ("c1",))
+        self.assertEqual(result.unmatched_condition_ids, ())
+        self.assertEqual(result.unknown_condition_ids, ("c1",))
 
-    def test_nonmatching_observation_stays_on_hold(self):
+    def test_explicit_nonmatching_observation_stays_on_hold(self):
         result = evaluate(checkpoint(), (observation(value="running"),))
         self.assertFalse(result.wake)
         self.assertEqual(result.classification, "HOLD_CONDITION_NOT_MATCHED")
+        self.assertEqual(result.unmatched_condition_ids, ("c1",))
+        self.assertEqual(result.unknown_condition_ids, ())
 
-    def test_all_policy_requires_all_conditions(self):
+    def test_any_policy_match_outweighs_unknown_sibling(self):
+        cp = checkpoint(
+            policy=WAKE_ANY,
+            conditions=(
+                condition("c1", "job.status", OP_EQUALS, "done"),
+                condition("c2", "receipt.status", OP_EQUALS, "present"),
+            ),
+        )
+        result = evaluate(cp, (observation(),))
+        self.assertTrue(result.wake)
+        self.assertEqual(result.classification, "WAKE_CONDITION_MATCH")
+        self.assertEqual(result.matched_condition_ids, ("c1",))
+        self.assertEqual(result.unknown_condition_ids, ("c2",))
+
+    def test_any_policy_without_match_abstains_if_a_sibling_is_unknown(self):
+        cp = checkpoint(
+            policy=WAKE_ANY,
+            conditions=(
+                condition("c1", "job.status", OP_EQUALS, "done"),
+                condition("c2", "receipt.status", OP_EQUALS, "present"),
+            ),
+        )
+        result = evaluate(cp, (observation(value="running"),))
+        self.assertFalse(result.wake)
+        self.assertEqual(result.classification, "ABSTAIN_NOT_OBSERVED")
+        self.assertEqual(result.unmatched_condition_ids, ("c1",))
+        self.assertEqual(result.unknown_condition_ids, ("c2",))
+
+    def test_all_policy_partial_observation_is_unknown(self):
         cp = checkpoint(
             policy=WAKE_ALL,
             conditions=(
@@ -65,23 +114,47 @@ class WakeHoldTests(unittest.TestCase):
                 WakeCondition("c2", "receipt.present", OP_PRESENT, ("spec:receipt",), None),
             ),
         )
-        self.assertFalse(evaluate(cp, (observation(),)).wake)
-        self.assertTrue(evaluate(cp, (observation(), observation("o2", "receipt.present", "yes"))).wake)
+        partial = evaluate(cp, (observation(),))
+        full = evaluate(cp, (observation(), observation("o2", "receipt.present", "yes")), "eval-2")
+        self.assertFalse(partial.wake)
+        self.assertEqual(partial.classification, "ABSTAIN_NOT_OBSERVED")
+        self.assertEqual(partial.unknown_condition_ids, ("c2",))
+        self.assertTrue(full.wake)
+
+    def test_all_policy_explicit_nonmatch_is_decisive_even_if_other_condition_unknown(self):
+        cp = checkpoint(
+            policy=WAKE_ALL,
+            conditions=(
+                condition("c1", "job.status", OP_EQUALS, "done"),
+                condition("c2", "receipt.status", OP_EQUALS, "present"),
+            ),
+        )
+        result = evaluate(cp, (observation(value="running"),))
+        self.assertFalse(result.wake)
+        self.assertEqual(result.classification, "HOLD_CONDITION_NOT_MATCHED")
+        self.assertEqual(result.unmatched_condition_ids, ("c1",))
+        self.assertEqual(result.unknown_condition_ids, ("c2",))
 
     def test_state_id_fence_fails_closed(self):
         with self.assertRaisesRegex(WakeHoldError, "state_id fence mismatch"):
-            evaluate_wake(checkpoint(), evaluation_id="eval-1", observed_state_id="other",
-                          observed_generation=7, observed_state_sha256=DIGEST, observations=(observation(),))
+            evaluate_wake(
+                checkpoint(), evaluation_id="eval-1", observed_state_id="other",
+                observed_generation=7, observed_state_sha256=DIGEST, observations=(observation(),),
+            )
 
     def test_generation_fence_fails_closed(self):
         with self.assertRaisesRegex(WakeHoldError, "generation fence mismatch"):
-            evaluate_wake(checkpoint(), evaluation_id="eval-1", observed_state_id="agency-1",
-                          observed_generation=8, observed_state_sha256=DIGEST, observations=(observation(),))
+            evaluate_wake(
+                checkpoint(), evaluation_id="eval-1", observed_state_id="agency-1",
+                observed_generation=8, observed_state_sha256=DIGEST, observations=(observation(),),
+            )
 
     def test_digest_fence_fails_closed(self):
         with self.assertRaisesRegex(WakeHoldError, "state_sha256 fence mismatch"):
-            evaluate_wake(checkpoint(), evaluation_id="eval-1", observed_state_id="agency-1",
-                          observed_generation=7, observed_state_sha256="b" * 64, observations=(observation(),))
+            evaluate_wake(
+                checkpoint(), evaluation_id="eval-1", observed_state_id="agency-1",
+                observed_generation=7, observed_state_sha256="b" * 64, observations=(observation(),),
+            )
 
     def test_duplicate_observation_identity_is_rejected(self):
         with self.assertRaisesRegex(WakeHoldError, "duplicate observation_id"):
@@ -93,6 +166,29 @@ class WakeHoldTests(unittest.TestCase):
         with self.assertRaisesRegex(WakeHoldError, "must not carry expected_value"):
             WakeCondition("c", "k", OP_PRESENT, ("p",), "x")
 
+    def test_receipt_binds_observation_provenance(self):
+        cp = checkpoint()
+        a = evaluate(cp, (observation(refs=("evidence:a",)),))
+        b = evaluate(cp, (observation(refs=("evidence:b",)),))
+        self.assertTrue(a.wake and b.wake)
+        self.assertNotEqual(a.observations_sha256, b.observations_sha256)
+        self.assertNotEqual(a.sha256(), b.sha256())
+
+    def test_order_normalized_observations_have_stable_receipt(self):
+        cp = checkpoint(
+            policy=WAKE_ANY,
+            conditions=(
+                condition("c1", "job.status", OP_EQUALS, "done"),
+                WakeCondition("c2", "receipt.present", OP_PRESENT, ("spec:receipt",), None),
+            ),
+        )
+        a = observation("a", "job.status", "done")
+        b = observation("b", "receipt.present", "yes")
+        left = evaluate(cp, (b, a))
+        right = evaluate(cp, (a, b))
+        self.assertEqual(left.canonical_json(), right.canonical_json())
+        self.assertEqual(left.sha256(), right.sha256())
+
     def test_deterministic_receipt_has_no_effect_completion_or_scheduler_authority(self):
         cp = checkpoint()
         result1 = evaluate(cp, (observation(),))
@@ -102,7 +198,8 @@ class WakeHoldTests(unittest.TestCase):
         self.assertNotIn("effect", payload)
         self.assertNotIn("completion", payload)
         self.assertNotIn("schedule", payload)
+        self.assertNotIn("resume", payload)
 
 
 if __name__ == "__main__":
-    unittest.main()
+    unittest.main(verbosity=2)
