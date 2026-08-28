@@ -14,11 +14,13 @@ from frankenstein2.canonical_effect_authority_bridge import (
 )
 from frankenstein2.effect_executor_interlock import ExecutorObservation, ExternalGateDecision
 from frankenstein2.effect_invocation_correlation import EffectCallBinding, EffectCorrelationStage
+from frankenstein2.effect_request_identity import EffectRequestIdentity
 
 
 CHILD_A = "a" * 64
 CHILD_B = "b" * 64
 RESULT_SHA = "c" * 64
+DEFAULT_REQUEST_SHA = object()
 AUTHORITY = CanonicalEffectAuthorityIdentity(
     repository="example/canonical-authority",
     commit_sha="1" * 40,
@@ -37,6 +39,17 @@ OTHER_AUTHORITY = CanonicalEffectAuthorityIdentity(
 )
 
 
+def request(suffix: str) -> EffectRequestIdentity:
+    return EffectRequestIdentity(
+        user_id="user-1",
+        session_id="shared-session",
+        capability="tool.exec",
+        target=f"/allowed/{suffix}",
+        argv=("--mode", suffix),
+        expected_generation=7,
+    )
+
+
 def intent(suffix: str, *, return_bound: bool = False) -> EffectCallIntent:
     return EffectCallIntent(
         return_id=f"return-{suffix}" if return_bound else None,
@@ -45,6 +58,7 @@ def intent(suffix: str, *, return_bound: bool = False) -> EffectCallIntent:
         tool_use_id=f"tool-{suffix}",
         delegation_id=f"delegation-{suffix}",
         child_identity_sha256=CHILD_A if suffix == "A" else CHILD_B,
+        request=request(suffix),
     )
 
 
@@ -55,11 +69,14 @@ def authority_for(
     authority: CanonicalEffectAuthorityIdentity = AUTHORITY,
     effect_id: str | None = None,
     journal_state: str | None = None,
+    request_sha256=DEFAULT_REQUEST_SHA,
 ) -> CanonicalEffectAuthorityEvidence:
     if journal_state is None:
         journal_state = "PENDING" if decision is ExternalGateDecision.ALLOW else "NO_EFFECT"
     if decision is ExternalGateDecision.ALLOW and effect_id is None:
         effect_id = f"canonical-{call.tool_use_id}"
+    if request_sha256 is DEFAULT_REQUEST_SHA:
+        request_sha256 = call.request_sha256
     return CanonicalEffectAuthorityEvidence(
         authority=authority,
         decision_id=f"decision-{call.tool_use_id}-{decision.value}",
@@ -72,6 +89,7 @@ def authority_for(
         tool_use_id=call.tool_use_id,
         delegation_id=call.delegation_id,
         child_identity_sha256=call.child_identity_sha256,
+        request_sha256=request_sha256,
     )
 
 
@@ -90,6 +108,7 @@ class RecordingExecutor:
             child_identity_sha256=call.child_identity_sha256,
             result_id=f"result-{call.tool_use_id}",
             result_sha256=RESULT_SHA,
+            request_sha256=call.request_sha256,
         )
 
 
@@ -106,11 +125,37 @@ class CanonicalEffectAuthorityBridgeTests(unittest.TestCase):
             executor=executor,
         )
 
-    def test_true_pre_authority_intent_has_neither_effect_nor_return_id(self) -> None:
+    def test_true_pre_authority_intent_has_request_but_neither_effect_nor_return_id(self) -> None:
         self.assertFalse(hasattr(self.a, "effect_id"))
         self.assertIsNone(self.a.return_id)
+        self.assertIsInstance(self.a.request, EffectRequestIdentity)
+        self.assertEqual(self.a.request_sha256, self.a.request.sha256())
 
-    def test_canonical_allow_mints_effect_id_before_dispatch(self) -> None:
+    def test_missing_semantic_request_fails_before_authority_and_executor(self) -> None:
+        legacy = EffectCallIntent(
+            return_id=None,
+            binding_id=self.a.binding_id,
+            invocation_id=self.a.invocation_id,
+            tool_use_id=self.a.tool_use_id,
+            delegation_id=self.a.delegation_id,
+            child_identity_sha256=self.a.child_identity_sha256,
+        )
+        authority_calls = []
+        executor = RecordingExecutor()
+
+        def authorize(call):
+            authority_calls.append(call)
+            return authority_for(self.a, ExternalGateDecision.ALLOW)
+
+        with self.assertRaisesRegex(
+            CanonicalEffectAuthorityIdentityError,
+            "CANONICAL_EFFECT_REQUEST_IDENTITY_REQUIRED",
+        ):
+            self.dispatch(legacy, authorize, executor)
+        self.assertEqual(authority_calls, [])
+        self.assertEqual(executor.calls, [])
+
+    def test_canonical_allow_mints_effect_id_and_preserves_request_before_dispatch(self) -> None:
         executor = RecordingExecutor()
         calls = []
 
@@ -128,7 +173,10 @@ class CanonicalEffectAuthorityBridgeTests(unittest.TestCase):
         self.assertEqual(len(executor.calls), 1)
         self.assertEqual(executor.calls[0].effect_id, "journal-effect-A")
         self.assertIsNone(executor.calls[0].return_id)
+        self.assertEqual(executor.calls[0].request, self.a.request)
+        self.assertEqual(executor.calls[0].request_sha256, self.a.request_sha256)
         self.assertEqual(result.interlock.observed.effect_id, "journal-effect-A")
+        self.assertEqual(result.interlock.observed.request_sha256, self.a.request_sha256)
 
     def test_every_non_allow_decision_stops_before_executor(self) -> None:
         for decision in (
@@ -147,6 +195,23 @@ class CanonicalEffectAuthorityBridgeTests(unittest.TestCase):
                 self.assertFalse(result.dispatched)
                 self.assertIsNone(result.interlock)
                 self.assertEqual(executor.calls, [])
+
+    def test_non_allow_still_requires_exact_request_digest(self) -> None:
+        executor = RecordingExecutor()
+        with self.assertRaisesRegex(
+            CanonicalEffectAuthorityIdentityError,
+            "REQUEST_SHA256_MISMATCH",
+        ):
+            self.dispatch(
+                self.a,
+                lambda call: authority_for(
+                    call,
+                    ExternalGateDecision.DENY,
+                    request_sha256="f" * 64,
+                ),
+                executor,
+            )
+        self.assertEqual(executor.calls, [])
 
     def test_restart_unknown_with_existing_effect_never_replays(self) -> None:
         executor = RecordingExecutor()
@@ -194,7 +259,25 @@ class CanonicalEffectAuthorityBridgeTests(unittest.TestCase):
                 tool_use_id=self.a.tool_use_id,
                 delegation_id=self.a.delegation_id,
                 child_identity_sha256=self.a.child_identity_sha256,
+                request_sha256=self.a.request_sha256,
             )
+
+    def test_missing_authority_request_digest_is_rejected_before_executor(self) -> None:
+        executor = RecordingExecutor()
+        with self.assertRaisesRegex(
+            CanonicalEffectAuthorityIdentityError,
+            "INVALID_REQUEST_SHA256",
+        ):
+            self.dispatch(
+                self.a,
+                lambda call: authority_for(
+                    call,
+                    ExternalGateDecision.ALLOW,
+                    request_sha256=None,
+                ),
+                executor,
+            )
+        self.assertEqual(executor.calls, [])
 
     def test_unresolved_or_different_authority_cannot_self_grant(self) -> None:
         executor = RecordingExecutor()
@@ -230,7 +313,32 @@ class CanonicalEffectAuthorityBridgeTests(unittest.TestCase):
                 expected_authority=AUTHORITY,
             )
 
-    def test_same_session_overlapping_calls_keep_distinct_canonical_effect_ids(self) -> None:
+    def test_same_call_identity_with_request_b_cannot_authorize_request_a(self) -> None:
+        same_call_request_b = EffectCallIntent(
+            return_id=self.a.return_id,
+            binding_id=self.a.binding_id,
+            invocation_id=self.a.invocation_id,
+            tool_use_id=self.a.tool_use_id,
+            delegation_id=self.a.delegation_id,
+            child_identity_sha256=self.a.child_identity_sha256,
+            request=request("B"),
+        )
+        evidence_b = authority_for(
+            same_call_request_b,
+            ExternalGateDecision.ALLOW,
+            effect_id="journal-effect-request-B",
+        )
+        with self.assertRaisesRegex(
+            CanonicalEffectAuthorityIdentityError,
+            "REQUEST_SHA256_MISMATCH",
+        ):
+            bind_canonical_effect(
+                self.a,
+                evidence_b,
+                expected_authority=AUTHORITY,
+            )
+
+    def test_same_session_overlapping_calls_keep_distinct_canonical_effect_ids_and_requests(self) -> None:
         executor = RecordingExecutor()
         minted = {
             self.a.tool_use_id: "journal-effect-A",
@@ -252,10 +360,14 @@ class CanonicalEffectAuthorityBridgeTests(unittest.TestCase):
             [call.effect_id for call in executor.calls],
             ["journal-effect-B", "journal-effect-A"],
         )
+        self.assertEqual(
+            [call.request_sha256 for call in executor.calls],
+            [self.b.request_sha256, self.a.request_sha256],
+        )
         self.assertEqual(result_a.interlock.observed.tool_use_id, self.a.tool_use_id)
         self.assertEqual(result_b.interlock.observed.tool_use_id, self.b.tool_use_id)
 
-    def test_existing_candidate_effect_id_is_discarded_on_result_free_path(self) -> None:
+    def test_existing_candidate_effect_id_is_discarded_but_request_is_preserved(self) -> None:
         old = EffectCallBinding(
             effect_id="caller-authored-effect-id",
             return_id=None,
@@ -265,10 +377,12 @@ class CanonicalEffectAuthorityBridgeTests(unittest.TestCase):
             delegation_id=self.a.delegation_id,
             child_identity_sha256=self.a.child_identity_sha256,
             stage=EffectCorrelationStage.PREPARED,
+            request=self.a.request,
         )
         migrated = intent_from_prepared_candidate(old)
         self.assertFalse(hasattr(migrated, "effect_id"))
         self.assertIsNone(migrated.return_id)
+        self.assertEqual(migrated.request, self.a.request)
         bound = bind_canonical_effect(
             migrated,
             authority_for(
@@ -280,6 +394,31 @@ class CanonicalEffectAuthorityBridgeTests(unittest.TestCase):
         )
         self.assertEqual(bound.prepared.effect_id, "journal-effect-A")
         self.assertNotEqual(bound.prepared.effect_id, old.effect_id)
+        self.assertEqual(bound.prepared.request, old.request)
+        self.assertEqual(bound.gate.request_sha256, self.a.request_sha256)
+
+    def test_legacy_candidate_without_request_cannot_gain_canonical_binding(self) -> None:
+        old = EffectCallBinding(
+            effect_id="caller-authored-effect-id",
+            return_id=None,
+            binding_id=self.a.binding_id,
+            invocation_id=self.a.invocation_id,
+            tool_use_id=self.a.tool_use_id,
+            delegation_id=self.a.delegation_id,
+            child_identity_sha256=self.a.child_identity_sha256,
+            stage=EffectCorrelationStage.PREPARED,
+        )
+        migrated = intent_from_prepared_candidate(old)
+        self.assertIsNone(migrated.request)
+        with self.assertRaisesRegex(
+            CanonicalEffectAuthorityIdentityError,
+            "CANONICAL_EFFECT_REQUEST_IDENTITY_REQUIRED",
+        ):
+            bind_canonical_effect(
+                migrated,
+                authority_for(self.a, ExternalGateDecision.ALLOW),
+                expected_authority=AUTHORITY,
+            )
 
     def test_authority_failure_stops_before_executor(self) -> None:
         executor = RecordingExecutor()
