@@ -2,9 +2,9 @@
 """Fail-closed validator for Frankenstein 2.0 checkpoints/CURRENT.json.
 
 This validates continuity/source-evidence invariants only. It never grants runtime
-or whole-system acceptance. When supplied, the create-only active pointer and
-machine-readable workpackage state are identity-bound to the checkpoint so stale
-or cross-generation continuation metadata fails closed.
+or whole-system acceptance. Active workpackage identity and machine-readable state
+are bound to the checkpoint. A terminal active pointer is accepted only when an
+exact matching reconciliation record is present.
 """
 from __future__ import annotations
 
@@ -16,6 +16,7 @@ from typing import Any
 
 SHA40 = re.compile(r"^[0-9a-f]{40}$")
 WP = re.compile(r"^F2-WP-[0-9]+$")
+TERMINAL_ACTIVE_STATES = {"ACCEPTED", "FAILED_TERMINAL", "RETIRED_STALE", "SUPERSEDED"}
 
 REQUIRED = {
     "schema", "canonical_repository", "trigger", "worker_id",
@@ -54,7 +55,6 @@ def load_json(path: Path) -> dict[str, Any]:
 def _validate_checkpoint_core(checkpoint: dict[str, Any]) -> None:
     missing = sorted(REQUIRED - checkpoint.keys())
     _require(not missing, f"missing required fields: {', '.join(missing)}")
-
     _require(checkpoint["schema"] == "FRANKENSTEIN2_CURRENT_CHECKPOINT/v1", "schema mismatch")
     _require(checkpoint["canonical_repository"] == "gschaidergabriel/frankenstein-2.0",
              "canonical_repository mismatch")
@@ -62,7 +62,6 @@ def _validate_checkpoint_core(checkpoint: dict[str, Any]) -> None:
 
     wp = _nonempty_string(checkpoint["current_workpackage"], "current_workpackage")
     _require(bool(WP.fullmatch(wp)), "current_workpackage malformed")
-
     generation = checkpoint["generation"]
     _require(type(generation) is int and generation >= 1, "generation must be integer >= 1")
     _nonempty_string(checkpoint["claim_id"], "claim_id")
@@ -91,12 +90,10 @@ def _validate_checkpoint_core(checkpoint: dict[str, Any]) -> None:
             _require(isinstance(commit, str) and bool(SHA40.fullmatch(commit)),
                      f"strongest_current_evidence[{idx}].commit malformed")
 
-    completed = checkpoint["completed_this_checkpoint"]
-    unresolved = checkpoint["unresolved"]
-    _require(isinstance(completed, list) and all(isinstance(x, str) and x.strip() for x in completed),
-             "completed_this_checkpoint must be a string list")
-    _require(isinstance(unresolved, list) and all(isinstance(x, str) and x.strip() for x in unresolved),
-             "unresolved must be a string list")
+    for field in ("completed_this_checkpoint", "unresolved"):
+        values = checkpoint[field]
+        _require(isinstance(values, list) and all(isinstance(x, str) and x.strip() for x in values),
+                 f"{field} must be a string list")
     _nonempty_string(checkpoint["evidence_scope"], "evidence_scope")
     _nonempty_string(checkpoint["next_exact_action"], "next_exact_action")
 
@@ -129,9 +126,29 @@ def _bind_legacy_claim(checkpoint: dict[str, Any], claim: dict[str, Any]) -> Non
              "source/continuity claim unexpectedly asserts runtime execution")
 
 
-def _bind_active_pointer(checkpoint: dict[str, Any], active: dict[str, Any]) -> None:
+def _bind_reconciliation(checkpoint: dict[str, Any], active: dict[str, Any], reconciliation: dict[str, Any]) -> None:
+    _require(reconciliation.get("schema") == "FRANKENSTEIN2_WORKPACKAGE_RECONCILIATION/v1",
+             "reconciliation schema mismatch")
+    for field, checkpoint_field in (
+        ("workpackage_id", "current_workpackage"),
+        ("generation", "generation"),
+        ("claim_id", "claim_id"),
+        ("worker_id", "worker_id"),
+    ):
+        _require(reconciliation.get(field) == checkpoint.get(checkpoint_field),
+                 f"reconciliation/checkpoint identity mismatch: {field}")
+    _require(reconciliation.get("terminal_state") == active.get("state"),
+             "reconciliation terminal_state does not match active pointer")
+    _require(reconciliation.get("whole_system_acceptance") is False,
+             "component reconciliation must not assert whole-system acceptance")
+
+
+def _bind_active_pointer(
+    checkpoint: dict[str, Any],
+    active: dict[str, Any],
+    reconciliation: dict[str, Any] | None,
+) -> None:
     _require(active.get("schema") == "FRANKENSTEIN2_ACTIVE_WORKPACKAGE/v1", "active schema mismatch")
-    _require(active.get("state") == "ACTIVE", "active pointer is not ACTIVE")
     for active_field, checkpoint_field in (
         ("workpackage_id", "current_workpackage"),
         ("generation", "generation"),
@@ -143,6 +160,15 @@ def _bind_active_pointer(checkpoint: dict[str, Any], active: dict[str, Any]) -> 
     base_commit = active.get("base_commit")
     _require(isinstance(base_commit, str) and bool(SHA40.fullmatch(base_commit)),
              "active base_commit malformed")
+
+    active_state = active.get("state")
+    if active_state == "ACTIVE":
+        _require(reconciliation is None,
+                 "terminal reconciliation supplied while active pointer is still ACTIVE")
+        return
+    _require(active_state in TERMINAL_ACTIVE_STATES, "active pointer has invalid state")
+    _require(reconciliation is not None, "terminal active pointer requires reconciliation")
+    _bind_reconciliation(checkpoint, active, reconciliation)
 
 
 def _bind_workpackage_state(checkpoint: dict[str, Any], state: dict[str, Any]) -> None:
@@ -162,12 +188,15 @@ def validate_checkpoint(
     claim: dict[str, Any] | None = None,
     active: dict[str, Any] | None = None,
     state: dict[str, Any] | None = None,
+    reconciliation: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     _validate_checkpoint_core(checkpoint)
     if claim is not None:
         _bind_legacy_claim(checkpoint, claim)
     if active is not None:
-        _bind_active_pointer(checkpoint, active)
+        _bind_active_pointer(checkpoint, active, reconciliation)
+    elif reconciliation is not None:
+        raise ValidationError("reconciliation supplied without active pointer")
     if state is not None:
         _bind_workpackage_state(checkpoint, state)
 
@@ -181,6 +210,8 @@ def validate_checkpoint(
         "legacy_claim_bound": claim is not None,
         "active_pointer_bound": active is not None,
         "workpackage_state_bound": state is not None,
+        "reconciliation_bound": reconciliation is not None,
+        "active_state": active.get("state") if active is not None else None,
     }
 
 
@@ -190,13 +221,23 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--claim", type=Path)
     parser.add_argument("--active", type=Path)
     parser.add_argument("--state", type=Path)
+    parser.add_argument("--reconciliation", type=Path)
     args = parser.parse_args(argv)
     try:
         checkpoint = load_json(args.checkpoint)
         claim = load_json(args.claim) if args.claim else None
         active = load_json(args.active) if args.active else None
         state = load_json(args.state) if args.state else None
-        result = validate_checkpoint(checkpoint, claim, active, state)
+        reconciliation = load_json(args.reconciliation) if args.reconciliation else None
+
+        # Terminal pointers carry their own canonical reconciliation reference so the
+        # existing CI command remains valid across ACTIVE -> terminal transition.
+        if active is not None and active.get("state") in TERMINAL_ACTIVE_STATES and reconciliation is None:
+            ref = _nonempty_string(active.get("reconciliation_ref"), "active.reconciliation_ref")
+            repo_root = args.checkpoint.resolve().parents[1]
+            reconciliation = load_json(repo_root / ref)
+
+        result = validate_checkpoint(checkpoint, claim, active, state, reconciliation)
     except ValidationError as exc:
         print(json.dumps({"pass": False, "error": str(exc)}, sort_keys=True))
         return 1
