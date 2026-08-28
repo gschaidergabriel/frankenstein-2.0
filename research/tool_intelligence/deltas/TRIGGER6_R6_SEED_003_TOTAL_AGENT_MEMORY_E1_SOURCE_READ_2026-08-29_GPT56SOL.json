@@ -1,0 +1,172 @@
+{
+  "schema": "FRANKENSTEIN2_TRIGGER6_SOURCE_READ_RECEIPT/v1",
+  "research_id": "R6-SEED-003",
+  "trigger": "6",
+  "slot": "SOURCE_ARCHAEOLOGIST",
+  "status": "E1_SOURCE_READ_COMPLETE_DONOR_PATTERN_ONLY",
+  "worker": {
+    "persistent_entity": "Clay",
+    "organ": "ChatGPT GPT-5.6 Sol"
+  },
+  "claim": {
+    "path": "research/tool_intelligence/claims/R6-SEED-003/E1_SOURCE_READ.json",
+    "observed_on_f2_main": "bb75355ab50737caf5ffe973ff49f4f3f334ac40",
+    "research_credit_from_claim": 0
+  },
+  "reentry_before_write": {
+    "f2_main_sha": "bb75355ab50737caf5ffe973ff49f4f3f334ac40",
+    "research_entity_main_sha": "9d2eb96937e77de0de6071c6aa5a6fc83306da0c",
+    "authority_epoch": "8.78",
+    "execution_mode": "FREE_ONLY",
+    "effect_authority": "EffectGate+EffectJournal"
+  },
+  "candidate": {
+    "seed_id": "R6-SEED-003",
+    "repository": "vbcherepanov/total-agent-memory",
+    "source_commit": "6279a90370d32b8af5311816919fb2a6f5f6948d",
+    "source_commit_date": "2026-08-28",
+    "declared_product_shape": "local-first persistent agent memory backed by SQLite/SQLCipher with semantic, episodic, procedural and working-memory features",
+    "evidence_ceiling_this_receipt": "STATIC_SOURCE_READ_E1_ONLY"
+  },
+  "source_files_read": [
+    {
+      "path": "README.md",
+      "purpose": "declared architecture/features only; benchmark and product claims remain upstream claims"
+    },
+    {
+      "path": "src/procedural.py",
+      "blob_sha": "c4ca5634b324820aac6bd2e879ff05b50e643929",
+      "purpose": "procedural workflow learning, outcome tracking and prediction"
+    },
+    {
+      "path": "src/temporal_kg.py",
+      "blob_sha": "59c5c5d022d25138fd12ef439819dad0598767bb",
+      "purpose": "temporal fact assertions, supersession and point-in-time reads"
+    },
+    {
+      "path": "tests/test_temporal_kg.py",
+      "blob_sha": "8b25c05843c83c1e23108a848acc1ca2d6fb1a6a",
+      "purpose": "declared intended temporal behavior; tests were inspected, not executed here"
+    },
+    {
+      "path": "src/graph/store.py",
+      "purpose": "graph indexing/coherence and optional projection behavior"
+    }
+  ],
+  "source_observations": [
+    {
+      "id": "TAM-E1-O1-PROCEDURAL-RUN-LEDGER",
+      "classification": "SOURCE_DIRECT",
+      "finding": "ProceduralMemory stores named workflows and append-like workflow_runs, then recomputes workflow aggregates from workflow_runs after each tracked outcome.",
+      "f2_value": "Useful donor pattern for derived MethodMemory: retain individual execution evidence and derive success/duration summaries instead of treating a learned method score as primitive truth."
+    },
+    {
+      "id": "TAM-E1-O2-PREDICTION-IS-OBSERVATIONAL",
+      "classification": "SOURCE_DIRECT_PLUS_INFERENCE",
+      "finding": "predict_outcome uses observed success counts with Laplace smoothing and a sample-count confidence heuristic; trigger lookup is substring matching ordered by historical success_rate/times_run.",
+      "f2_risk": "This is an observational ranking heuristic, not causal proof that a workflow will succeed. Selection effects, context shift and repeated correlated runs can inflate confidence.",
+      "required_boundary": "Expose as METHOD_CANDIDATE / prediction metadata only; never convert it into canonical fact, effect permission or completion authority."
+    },
+    {
+      "id": "TAM-E1-O3-WORKFLOW-IDENTITY-NOT-CAUSAL-IDENTITY",
+      "classification": "SOURCE_DIRECT_CONFLICT",
+      "finding": "Workflow/run identifiers are generated UUID-style IDs; the inspected procedural path does not bind a run to F2 causal_event_id, canonical effect id, generation, source artifact hash or EffectJournal receipt identity.",
+      "f2_implication": "Any donor mechanism must key derived method evidence from existing F2 causal/effect provenance rather than inventing a parallel run identity authority."
+    },
+    {
+      "id": "TAM-E1-O4-TEMPORAL-ASSERTION-HISTORY",
+      "classification": "SOURCE_DIRECT",
+      "finding": "TemporalKG preserves fact assertions with valid_from/valid_to, supports supersession links, point-in-time queries, timelines and diffs, and keeps closed assertions rather than deleting history.",
+      "f2_value": "The history-preserving assertion pattern is useful for derived temporal views over UnifiedDB evidence, especially when current projection and historical evidence must stay distinguishable."
+    },
+    {
+      "id": "TAM-E1-O5-BITEMPORAL-CLAIM-TOO-STRONG-FOR-INSPECTED-CODE",
+      "classification": "SOURCE_DIRECT_COUNTEREVIDENCE",
+      "finding": "The inspected TemporalKG has a validity interval and created_at, but add_fact sets created_at to the same value as valid_from (including caller-supplied backdated valid_from). No independent transaction-time interval/query was observed in this source path.",
+      "f2_implication": "Treat this source as temporal-validity history, not as demonstrated full bi-temporal semantics. F2 must keep observed/received/transaction identity and world-validity time independently bound if it needs true bitemporality."
+    },
+    {
+      "id": "TAM-E1-O6-AUTOMATIC-SUPERSESSION-CAN-MINT-FALSE-EXCLUSIVITY",
+      "classification": "SOURCE_DIRECT_RISK",
+      "finding": "By default, adding a new object for the same subject+predicate closes all current different objects in the same project.",
+      "f2_risk": "Many predicates are non-functional or unresolved. Automatic replacement can collapse legitimate alternatives into a false single truth.",
+      "required_boundary": "Hyperposition/unresolved alternatives must remain representable; supersession needs predicate policy plus evidence-bearing discriminator, not generic same-(subject,predicate) replacement."
+    },
+    {
+      "id": "TAM-E1-O7-PROVENANCE-ENVELOPE-TOO-THIN",
+      "classification": "SOURCE_DIRECT_CONFLICT",
+      "finding": "The inspected temporal write path accepts source/context/confidence/project fields, but no typed causal-event/admission/generation/artifact/effect provenance envelope is required before an assertion is stored.",
+      "f2_implication": "Do not transplant this fact-write API into canonical state. Typed Entry/UnifiedDB admission must remain upstream authority."
+    },
+    {
+      "id": "TAM-E1-O8-SECOND-STORE-CONFLICT",
+      "classification": "SOURCE_DIRECT_ARCHITECTURE_CONFLICT",
+      "finding": "ProceduralMemory and TemporalKG write directly through their supplied SQLite connection and the wider project advertises a dedicated SQLite/SQLCipher memory store.",
+      "f2_implication": "Wholesale adoption would risk a second durable truth/memory authority. Reuse only algorithms/schema ideas as derived views/tables inside canonical UnifiedDB or rebuildable projections."
+    },
+    {
+      "id": "TAM-E1-O9-GRAPH-CACHE-COHERENCE-IS-TIMESTAMP-POLLING",
+      "classification": "SOURCE_DIRECT_RISK",
+      "finding": "The inspected graph store maintains an in-memory index and refreshes it from SQLite using periodic timestamp-based change detection rather than an exact F2 generation/causal-event lease.",
+      "f2_implication": "Do not reuse timestamp polling as authoritative coherence. F2 projections should bind to deterministic generation/source identity and fail closed on stale generation where authority matters."
+    },
+    {
+      "id": "TAM-E1-O10-UPSTREAM-INTEGRATION-DEBT-SIGNAL",
+      "classification": "SOURCE_HISTORY_NEGATIVE_SIGNAL",
+      "finding": "The pinned upstream head includes recent fixes around benchmark access to SQLCipher-backed storage and dependency/version assumptions. These are useful maturity/integration signals, not a product failure proof.",
+      "f2_implication": "Do not grant portability/performance/reliability credit from README claims; any later E3 must reproduce only the narrow mechanism under F2-compatible storage boundaries."
+    }
+  ],
+  "hypothesis": {
+    "statement": "A thin derived procedural/temporal memory layer, implemented over existing UnifiedDB evidence identities, can improve F2 method reuse and historical state reasoning without becoming a second truth authority.",
+    "engineering_confidence": 0.72,
+    "basis": "Static donor source shows compact mechanisms for run-derived workflow statistics and history-preserving temporal assertions; both are separable from the donor's standalone database authority."
+  },
+  "counterhypotheses": [
+    {
+      "id": "CH1-SELECTION-BIAS",
+      "statement": "Historical workflow success rates mostly encode context/selection bias and correlated repetitions, so procedural ranking adds little or actively misleads.",
+      "falsifier": "Family-split replay comparing causal/context-matched method retrieval against a no-method baseline; duplicated genealogical runs must not count as independent evidence."
+    },
+    {
+      "id": "CH2-UNIFIEDDB-ALREADY-SUFFICIENT",
+      "statement": "Existing UnifiedDB/MethodMemory surfaces already contain equivalent run/evidence semantics, making a new adapter redundant complexity.",
+      "falsifier": "E2 map exact F2 tables/APIs against TAM-E1-O1/O4 and identify a concrete missing query or representation before any build handoff."
+    },
+    {
+      "id": "CH3-TEMPORAL-AUTO-SUPERSESSION-HARMS-HYPERPOSITION",
+      "statement": "Generic temporal supersession destroys unresolved multi-hypothesis state and therefore conflicts with F2 Hyperposition semantics.",
+      "falsifier": "E2 classify predicates by cardinality/authority and prove alternatives remain representable until an evidence-bearing discriminator closes them."
+    }
+  ],
+  "adoption_logic": {
+    "posture": "DONOR_PATTERN_ONLY_NOT_ADOPTED",
+    "positive_candidates": [
+      "append-like method-run evidence with recomputed derived statistics",
+      "history-preserving validity views and point-in-time queries",
+      "explicit supersession links when a typed predicate policy proves exclusivity",
+      "derived method success/duration estimates with visible sample count"
+    ],
+    "hard_rejections": [
+      "standalone TAM SQLite/SQLCipher as another canonical memory store",
+      "generic auto-supersession as truth resolution",
+      "workflow success probability as fact/effect/completion authority",
+      "freeform provenance fields as a replacement for Typed Entry/UnifiedDB causal identity",
+      "timestamp polling as canonical projection coherence"
+    ],
+    "f2_integration_boundary": "If E2 finds a real gap, implement only a thin derived adapter/table/view over existing UnifiedDB identities; EffectGate+EffectJournal and canonical evidence authority remain unchanged.",
+    "migration_reuse_score": "EASIER_IF_DERIVED_ONLY"
+  },
+  "promotion": {
+    "E1_SOURCE_READ": 1,
+    "E2_ARCHITECTURE_MAPPED": 0,
+    "E3_EXPERIMENTAL_FALSIFIER": 0,
+    "BUILD_CANDIDATE": 0,
+    "F2_ACCEPTED": 0,
+    "runtime_credit": 0,
+    "whole_product_credit": 0,
+    "training_credit": 0
+  },
+  "next_exact_action": "Claim R6-SEED-003 E2_ARCHITECTURE_MAPPED create-only, then map TAM-E1-O1/O4 against exact current F2 UnifiedDB/MethodMemory schemas and causal/effect identity paths. Advance only if a non-duplicate representational/query gap is demonstrated; otherwise close as donor-redundant.",
+  "trigger4_handoff": "NOT_YET_E1_ONLY"
+}
