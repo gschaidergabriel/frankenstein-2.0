@@ -1,0 +1,38 @@
+name: F2 WP301 Emergent Retrieval CI
+
+on:
+  push:
+    branches:
+      - main
+      - trigger4/wp301-emergent-retrieval-g1-gpt56sol
+    paths:
+      - 'src/frankenstein2/emergent_retrieval.py'
+      - 'src/frankenstein2/memory_lifecycle.py'
+      - 'tests/test_emergent_retrieval.py'
+      - '.github/workflows/wp301-emergent-retrieval-ci.yml'
+  pull_request:
+    paths:
+      - 'src/frankenstein2/emergent_retrieval.py'
+      - 'src/frankenstein2/memory_lifecycle.py'
+      - 'tests/test_emergent_retrieval.py'
+      - '.github/workflows/wp301-emergent-retrieval-ci.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  deterministic:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Compile
+        run: python -m py_compile src/frankenstein2/memory_lifecycle.py src/frankenstein2/emergent_retrieval.py tests/test_emergent_retrieval.py
+      - name: Emergent retrieval falsification suite
+        env:
+          PYTHONPATH: src
+        run: python tests/test_emergent_retrieval.py -v
