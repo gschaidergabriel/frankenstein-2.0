@@ -191,3 +191,39 @@ def test_broadcast_rejects_forged_selection_digest():
             expected_selection_sha256="d" * 64,
             recipient_cell_ids=("G1",),
         )
+
+
+def test_broadcast_preserves_candidate_id_payload_pairing():
+    first = WorkspaceCandidate(
+        candidate_id="a",
+        payload_ref="payload:z",
+        epistemic_class="INFERRED",
+        provenance_refs=("prov:a",),
+        salience_micros=500_000,
+        goal_relevance_micros=500_000,
+        uncertainty_micros=100_000,
+        information_gain_micros=500_000,
+        estimated_cost_units=1,
+    )
+    second = WorkspaceCandidate(
+        candidate_id="b",
+        payload_ref="payload:y",
+        epistemic_class="INFERRED",
+        provenance_refs=("prov:b",),
+        salience_micros=500_000,
+        goal_relevance_micros=500_000,
+        uncertainty_micros=100_000,
+        information_gain_micros=500_000,
+        estimated_cost_units=1,
+    )
+    value = selection((first, second))
+    broadcast = create_broadcast(
+        broadcast_id="pair-binding-falsifier",
+        generation=1,
+        selection=value,
+        expected_selection_sha256=value.sha256(),
+        recipient_cell_ids=("G1",),
+    )
+    expected_pairs = tuple((item.candidate_id, item.payload_ref) for item in value.selected)
+    observed_pairs = tuple(zip(broadcast.candidate_ids, broadcast.candidate_payload_refs))
+    assert observed_pairs == expected_pairs
