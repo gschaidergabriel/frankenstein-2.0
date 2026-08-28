@@ -1,0 +1,42 @@
+{
+  "schema": "FRANKENSTEIN2_WORKPACKAGE_DELTA/v1",
+  "workpackage_id": "F2-WP-206",
+  "generation": 1,
+  "claim_id": "F2-WP-206-G1-GPT56SOL-PERSISTENT-AGENCY-INTEGRATION-20260829",
+  "worker_id": "GPT-5.6-Sol-REVIEW",
+  "observed_main_commit": "834eb77bcd98f8c3cd3b4866d2551107167b3fb7",
+  "result_class": "REVIEW_ONLY",
+  "owned_paths": [],
+  "source_refs": [
+    "workpackages/active/F2-WP-206.json@main",
+    "src/frankenstein2/state_fingerprint.py@main",
+    "src/frankenstein2/persistent_pulse.py@main"
+  ],
+  "observations": [
+    "StateFingerprint deliberately exposes two non-equivalent predicates: projection_changed compares typed projection content while identity_changed includes generation/identity movement.",
+    "For identical typed projection bytes with generation advanced, projection_changed is false while identity_changed is true.",
+    "F2-WP-206 explicitly requires projection-change versus lineage-change policy to remain explicit across persistence/restart.",
+    "Persistent Pulse accepts explicit candidate references but does not itself know which fingerprint-change semantics produced them."
+  ],
+  "risk": "If WP206 persists only a boolean changed signal or a candidate reference while omitting the selected fingerprint-change policy from the checkpoint/replay identity, a restart can silently reinterpret the same fingerprint pair under different semantics. A generation-only transition can then change from no-change to changed (or vice versa) without any payload change, yielding false next-tick equivalence or wake eligibility. A generic changed=true signal could also be over-promoted into ACT/DELEGATE eligibility without preserving the caller's explicit semantic choice.",
+  "hypothesis": "Persist the selected change policy as a typed enum/value inside the canonical Agency checkpoint payload and include it in the checkpoint digest and next-tick identity. Recompute the predicate from the verified pre/post StateFingerprint pair after restart; do not persist or trust a free-floating changed boolean as authoritative. Keep any ACT/DELEGATE candidate reference separately caller-supplied and provenance-bound; fingerprint change alone is not effect authority.",
+  "counterhypothesis": "If WP206 never persists/replays a fingerprint-derived change decision and always reconstructs both policy and candidate references from a higher-level canonical policy object whose exact digest is already bound into the checkpoint, duplicating the policy inside the Agency checkpoint may be unnecessary. That higher-level binding must be explicit and tested before relying on it.",
+  "cheapest_discriminators": [
+    "Create two fingerprints with identical projection schema/content and generations N and N+1: projection_changed must be false and identity_changed true; restart replay must preserve whichever policy was selected before exit.",
+    "Keep the same fingerprint pair but mutate the persisted change-policy field between process runs: checkpoint digest/next-tick identity must change or replay must fail closed.",
+    "Persist only changed=true in a negative fixture and omit policy identity: loader/replay must reject it as ambiguous instead of defaulting to projection_changed or identity_changed.",
+    "A fingerprint-derived changed signal without an independently explicit ACT/DELEGATE candidate reference must never manufacture ACT/DELEGATE eligibility."
+  ],
+  "required_boundaries": [
+    "PROJECTION_CHANGED != IDENTITY_CHANGED",
+    "CHANGE_POLICY_IS_PART_OF_REPLAY_SEMANTICS",
+    "FINGERPRINT_CHANGE != ACTION_AUTHORITY",
+    "GENERATION_MOVEMENT != PROJECTION_CONTENT_CHANGE"
+  ],
+  "proposed_state_change": "NO_CANONICAL_STATE_CHANGE_REVIEW_ONLY",
+  "runtime_execution_observed": false,
+  "runtime_credit": 0,
+  "physical_grid10_credit": 0,
+  "whole_system_acceptance": false,
+  "next_exact_action": "Active F2-WP-206 mutation authority should bind the selected StateFingerprint change policy into the typed checkpoint/replay identity and add the generation-only discriminator before claiming restart/next-tick acceptance."
+}
