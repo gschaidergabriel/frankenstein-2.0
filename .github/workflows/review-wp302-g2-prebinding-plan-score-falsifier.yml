@@ -1,0 +1,30 @@
+name: Review WP302 G2 Prebinding Plan Score Falsifier
+
+on:
+  push:
+    branches:
+      - "review/wp302-g2-prebinding-plan-score-falsifier-20260829"
+    paths:
+      - "src/frankenstein2/familiarity_prediction_binding.py"
+      - "src/frankenstein2/emergent_retrieval.py"
+      - "tests/review_test_wp302_g2_prebinding_plan_score_falsifier.py"
+      - ".github/workflows/review-wp302-g2-prebinding-plan-score-falsifier.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  deterministic-review:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Compile review falsifier
+        run: python -m py_compile tests/review_test_wp302_g2_prebinding_plan_score_falsifier.py
+      - name: Run prebinding forged-plan score falsifier
+        env:
+          PYTHONPATH: src
+        run: python tests/review_test_wp302_g2_prebinding_plan_score_falsifier.py -v
