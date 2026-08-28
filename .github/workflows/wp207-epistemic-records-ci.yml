@@ -1,0 +1,38 @@
+name: F2 WP207 Epistemic Records CI
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'src/frankenstein2/epistemic_records.py'
+      - 'tests/test_epistemic_records.py'
+      - '.github/workflows/wp207-epistemic-records-ci.yml'
+  pull_request:
+    paths:
+      - 'src/frankenstein2/epistemic_records.py'
+      - 'tests/test_epistemic_records.py'
+      - '.github/workflows/wp207-epistemic-records-ci.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  deterministic:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Compile exact WP207 surface
+        run: >-
+          python -m py_compile
+          src/frankenstein2/epistemic_records.py
+          tests/test_epistemic_records.py
+      - name: Epistemic boundary falsification suite
+        env:
+          PYTHONPATH: src
+        run: python tests/test_epistemic_records.py -v
