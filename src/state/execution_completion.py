@@ -3,15 +3,20 @@
 
 F2-WP-105 generation 1.
 
-This module is deliberately persistence- and executor-agnostic.  It does not execute
-an effect, write UnifiedDB, infer success from transport, or authorize a retry.  It
+This module is deliberately persistence- and executor-agnostic. It does not execute
+an effect, write UnifiedDB, infer success from transport, or authorize a retry. It
 only validates immutable lineage transitions so that these claims remain distinct:
 
     request != admission != execution observation != verified completion
 
-An observed/reported execution result is not completion.  In particular, an UNKNOWN
+An observed/reported execution result is not completion. In particular, an UNKNOWN
 external outcome remains UNKNOWN until a separate verification transition establishes
-APPLIED or NOT_APPLIED.  Until that happens blind replay is forbidden.
+APPLIED or NOT_APPLIED. Until that happens blind replay is forbidden.
+
+Final completion promotion is additionally receipt-gated: APPLIED/NOT_APPLIED requires
+one structured VerificationReceipt whose evidence kind belongs to the narrow final
+verification allowlist. Executor reports and transport status may be recorded as typed
+verification evidence but can never mint final completion by themselves.
 """
 from __future__ import annotations
 
@@ -23,6 +28,7 @@ from typing import Tuple
 
 
 EXECUTION_LINEAGE_SCHEMA = "FRANKENSTEIN2_EXECUTION_COMPLETION_LINEAGE/v1"
+VERIFICATION_RECEIPT_SCHEMA = "FRANKENSTEIN2_VERIFICATION_RECEIPT/v1"
 
 
 class ExecutionLineageError(RuntimeError):
@@ -50,6 +56,31 @@ class VerificationOutcome(str, Enum):
     NOT_APPLIED = "NOT_APPLIED"
 
 
+class VerificationEvidenceKind(str, Enum):
+    """Typed provenance class for verification evidence.
+
+    The first two classes are deliberately non-finalizing. They are useful evidence,
+    but neither an executor self-report nor transport success proves the outside world
+    changed. The remaining classes may support a final verification transition when
+    all receipt identities also match the exact execution lineage.
+    """
+
+    EXECUTOR_REPORT = "EXECUTOR_REPORT"
+    TRANSPORT_STATUS = "TRANSPORT_STATUS"
+    EFFECT_JOURNAL_VERIFIED = "EFFECT_JOURNAL_VERIFIED"
+    EXTERNAL_OBSERVATION_VERIFIED = "EXTERNAL_OBSERVATION_VERIFIED"
+    DETERMINISTIC_STATE_VERIFIED = "DETERMINISTIC_STATE_VERIFIED"
+
+
+FINAL_VERIFICATION_EVIDENCE_ALLOWLIST = frozenset(
+    {
+        VerificationEvidenceKind.EFFECT_JOURNAL_VERIFIED,
+        VerificationEvidenceKind.EXTERNAL_OBSERVATION_VERIFIED,
+        VerificationEvidenceKind.DETERMINISTIC_STATE_VERIFIED,
+    }
+)
+
+
 class ReplayDisposition(str, Enum):
     NOT_APPLICABLE_PRE_EXECUTION = "NOT_APPLICABLE_PRE_EXECUTION"
     FORBIDDEN_UNVERIFIED_OUTCOME = "FORBIDDEN_UNVERIFIED_OUTCOME"
@@ -73,6 +104,13 @@ def _generation(value: object) -> int:
     return value
 
 
+def _sha256(name: str, value: object) -> str:
+    token = _token(name, value)
+    if len(token) != 64 or any(ch not in "0123456789abcdef" for ch in token):
+        raise ExecutionLineageError(f"INVALID_{name.upper()}")
+    return token
+
+
 def _all_distinct(named: dict[str, str | None]) -> None:
     present = [(name, value) for name, value in named.items() if value is not None]
     values = [value for _, value in present]
@@ -89,6 +127,45 @@ def _fingerprint_token(value: object) -> str:
     if len(token) != 64 or any(ch not in "0123456789abcdef" for ch in token):
         raise ExecutionLineageError("INVALID_TRANSITION_FINGERPRINT")
     return token
+
+
+@dataclass(frozen=True)
+class VerificationReceipt:
+    """Structured evidence bound to one exact verification attempt.
+
+    This receipt is an identity/evidence envelope, not a grant of authority by itself.
+    Upstream adapters remain responsible for admitting the cited canonical journal,
+    observation, or deterministic state checker. The lineage layer only accepts final
+    promotion when the receipt is structurally complete, matches the exact execution,
+    and uses a finalizing evidence class.
+    """
+
+    schema: str
+    receipt_id: str
+    verification_attempt_id: str
+    execution_attempt_id: str
+    execution_outcome: ExecutionOutcome
+    outcome: VerificationOutcome
+    evidence_kind: VerificationEvidenceKind
+    evidence_ref: str
+    evidence_sha256: str
+
+    def __post_init__(self) -> None:
+        if self.schema != VERIFICATION_RECEIPT_SCHEMA:
+            raise ExecutionLineageError("VERIFICATION_RECEIPT_SCHEMA_MISMATCH")
+        _token("receipt_id", self.receipt_id)
+        _token("verification_attempt_id", self.verification_attempt_id)
+        _token("execution_attempt_id", self.execution_attempt_id)
+        _token("evidence_ref", self.evidence_ref)
+        _sha256("evidence_sha256", self.evidence_sha256)
+        if not isinstance(self.execution_outcome, ExecutionOutcome):
+            raise ExecutionLineageError("INVALID_RECEIPT_EXECUTION_OUTCOME")
+        if self.execution_outcome is ExecutionOutcome.NOT_EXECUTED:
+            raise ExecutionLineageError("RECEIPT_CANNOT_VERIFY_NOT_EXECUTED")
+        if not isinstance(self.outcome, VerificationOutcome):
+            raise ExecutionLineageError("INVALID_RECEIPT_VERIFICATION_OUTCOME")
+        if not isinstance(self.evidence_kind, VerificationEvidenceKind):
+            raise ExecutionLineageError("INVALID_VERIFICATION_EVIDENCE_KIND")
 
 
 @dataclass(frozen=True)
@@ -225,6 +302,21 @@ class VerifyExecution(ExecutionTransition):
     execution_attempt_id: str
     verification_attempt_id: str
     outcome: VerificationOutcome
+    receipt: VerificationReceipt | None = None
+
+
+def _verification_receipt_payload(receipt: VerificationReceipt) -> dict[str, object]:
+    return {
+        "schema": receipt.schema,
+        "receipt_id": receipt.receipt_id,
+        "verification_attempt_id": receipt.verification_attempt_id,
+        "execution_attempt_id": receipt.execution_attempt_id,
+        "execution_outcome": receipt.execution_outcome.value,
+        "outcome": receipt.outcome.value,
+        "evidence_kind": receipt.evidence_kind.value,
+        "evidence_ref": receipt.evidence_ref,
+        "evidence_sha256": receipt.evidence_sha256,
+    }
 
 
 def _transition_payload(transition: ExecutionTransition) -> dict[str, object]:
@@ -256,6 +348,9 @@ def _transition_payload(transition: ExecutionTransition) -> dict[str, object]:
                 "outcome": transition.outcome.value
                 if isinstance(transition.outcome, VerificationOutcome)
                 else str(transition.outcome),
+                "receipt": _verification_receipt_payload(transition.receipt)
+                if isinstance(transition.receipt, VerificationReceipt)
+                else None,
             }
         )
     else:
@@ -292,6 +387,32 @@ def _validate_base(
     if record.applied_transition_fingerprints[index] != fingerprint:
         raise ExecutionLineageError("TRANSITION_ID_PAYLOAD_MISMATCH")
     return transition_id, fingerprint, True
+
+
+def _validate_verification_receipt(
+    record: ExecutionLineage,
+    transition: VerifyExecution,
+) -> None:
+    receipt = transition.receipt
+    if receipt is None:
+        if transition.outcome is VerificationOutcome.INDETERMINATE:
+            return
+        raise ExecutionLineageError("FINAL_VERIFICATION_REQUIRES_STRUCTURED_RECEIPT")
+    if not isinstance(receipt, VerificationReceipt):
+        raise ExecutionLineageError("INVALID_VERIFICATION_RECEIPT")
+    if receipt.verification_attempt_id != transition.verification_attempt_id:
+        raise ExecutionLineageError("VERIFICATION_RECEIPT_ATTEMPT_ID_MISMATCH")
+    if receipt.execution_attempt_id != transition.execution_attempt_id:
+        raise ExecutionLineageError("VERIFICATION_RECEIPT_EXECUTION_ID_MISMATCH")
+    if receipt.execution_outcome != record.execution_outcome:
+        raise ExecutionLineageError("VERIFICATION_RECEIPT_EXECUTION_OUTCOME_MISMATCH")
+    if receipt.outcome != transition.outcome:
+        raise ExecutionLineageError("VERIFICATION_RECEIPT_OUTCOME_MISMATCH")
+    if transition.outcome in (
+        VerificationOutcome.APPLIED,
+        VerificationOutcome.NOT_APPLIED,
+    ) and receipt.evidence_kind not in FINAL_VERIFICATION_EVIDENCE_ALLOWLIST:
+        raise ExecutionLineageError("FINAL_VERIFICATION_EVIDENCE_NOT_ALLOWLISTED")
 
 
 def apply_execution_transition(
@@ -354,6 +475,7 @@ def apply_execution_transition(
             raise ExecutionLineageError("VERIFICATION_ATTEMPT_REUSED")
         if not isinstance(transition.outcome, VerificationOutcome):
             raise ExecutionLineageError("INVALID_VERIFICATION_OUTCOME")
+        _validate_verification_receipt(record, transition)
         attempts = record.verification_attempt_ids + (verification_attempt_id,)
         if transition.outcome == VerificationOutcome.INDETERMINATE:
             return replace(
@@ -388,6 +510,8 @@ def apply_execution_transition(
 
 __all__ = [
     "EXECUTION_LINEAGE_SCHEMA",
+    "VERIFICATION_RECEIPT_SCHEMA",
+    "FINAL_VERIFICATION_EVIDENCE_ALLOWLIST",
     "AdmitExecution",
     "ExecutionLineage",
     "ExecutionLineageError",
@@ -396,7 +520,9 @@ __all__ = [
     "ExecutionTransition",
     "RecordExecution",
     "ReplayDisposition",
+    "VerificationEvidenceKind",
     "VerificationOutcome",
+    "VerificationReceipt",
     "VerifyExecution",
     "apply_execution_transition",
 ]
