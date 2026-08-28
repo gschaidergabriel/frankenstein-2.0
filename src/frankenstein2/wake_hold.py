@@ -1,6 +1,6 @@
 """Deterministic WAIT/HOLD/Wake contract for Frankenstein 2.0.
 
-F2-WP-205 generation 2.
+F2-WP-205 generation 3.
 
 This component only evaluates explicitly caller-supplied observations against explicitly
 caller-supplied wake conditions. It has no clock, sensor, persistence, scheduler, goal,
@@ -11,6 +11,10 @@ Generation 2 preserves absence of evidence and contradictory evidence as first-c
 states: missing observation keys classify ABSTAIN_NOT_OBSERVED, while conflicting explicit
 values for one EQUALS key classify ABSTAIN_CONFLICTING_OBSERVATIONS. Neither is silently
 coerced into a positive wake match.
+
+Generation 3 additionally binds each WakeEvaluation receipt to the canonical explicit
+observation payload (ids, keys, values, and provenance refs), so evidentially distinct
+packets cannot collapse to the same receipt merely because their ids/classification match.
 """
 from __future__ import annotations
 
@@ -224,6 +228,7 @@ class WakeEvaluation:
     observed_generation: int
     observed_state_sha256: str
     observation_ids: tuple[str, ...]
+    observations_sha256: str
     matched_condition_ids: tuple[str, ...]
     unmatched_condition_ids: tuple[str, ...]
     unknown_condition_ids: tuple[str, ...]
@@ -272,6 +277,7 @@ def evaluate_wake(
         raise WakeHoldError("state_sha256 fence mismatch")
 
     explicit = _unique_observations(observations)
+    observations_sha256 = _digest([item.as_dict() for item in explicit])
     by_key: dict[str, tuple[WakeObservation, ...]] = {}
     for observation in explicit:
         by_key.setdefault(observation.observation_key, ())
@@ -331,6 +337,7 @@ def evaluate_wake(
         observed_generation=observed_generation,
         observed_state_sha256=observed_state_sha256,
         observation_ids=tuple(item.observation_id for item in explicit),
+        observations_sha256=observations_sha256,
         matched_condition_ids=tuple(matched),
         unmatched_condition_ids=tuple(unmatched),
         unknown_condition_ids=tuple(unknown),
