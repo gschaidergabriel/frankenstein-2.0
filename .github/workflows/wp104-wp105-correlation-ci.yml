@@ -1,0 +1,64 @@
+name: Frankenstein 2.0 WP104-WP105 Identity Correlation CI
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'src/frankenstein2/causal_identity.py'
+      - 'src/frankenstein2/native_child_binding.py'
+      - 'src/frankenstein2/deferred_causal_return.py'
+      - 'src/frankenstein2/deferred_execution_verification.py'
+      - 'src/state/execution_completion.py'
+      - 'tests/test_native_child_binding.py'
+      - 'tests/test_deferred_causal_return.py'
+      - 'tests/test_execution_completion.py'
+      - 'tests/test_deferred_execution_verification.py'
+      - '.github/workflows/wp104-wp105-correlation-ci.yml'
+  pull_request:
+    paths:
+      - 'src/frankenstein2/causal_identity.py'
+      - 'src/frankenstein2/native_child_binding.py'
+      - 'src/frankenstein2/deferred_causal_return.py'
+      - 'src/frankenstein2/deferred_execution_verification.py'
+      - 'src/state/execution_completion.py'
+      - 'tests/test_native_child_binding.py'
+      - 'tests/test_deferred_causal_return.py'
+      - 'tests/test_execution_completion.py'
+      - 'tests/test_deferred_execution_verification.py'
+      - '.github/workflows/wp104-wp105-correlation-ci.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  wp104-wp105-identity-correlation:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      PYTHONPATH: .:src
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Compile Stage-1 correlation sources
+        run: >-
+          python -m py_compile
+          src/frankenstein2/causal_identity.py
+          src/frankenstein2/native_child_binding.py
+          src/frankenstein2/deferred_causal_return.py
+          src/frankenstein2/deferred_execution_verification.py
+          src/state/execution_completion.py
+          tests/test_native_child_binding.py
+          tests/test_deferred_causal_return.py
+          tests/test_execution_completion.py
+          tests/test_deferred_execution_verification.py
+      - name: Run WP102 identity regression
+        run: python tests/test_native_child_binding.py
+      - name: Run WP104 deferred-return regression
+        run: python tests/test_deferred_causal_return.py
+      - name: Run WP105 execution-completion regression
+        run: python tests/test_execution_completion.py
+      - name: Run WP104-WP105 same-session interleaving falsifier
+        run: python tests/test_deferred_execution_verification.py
