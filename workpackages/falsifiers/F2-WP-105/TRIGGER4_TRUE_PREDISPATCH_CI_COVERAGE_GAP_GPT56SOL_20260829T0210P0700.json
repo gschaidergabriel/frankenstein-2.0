@@ -1,0 +1,72 @@
+{
+  "schema": "FRANKENSTEIN2_CANDIDATE_FALSIFIER/v1",
+  "classification": "CANDIDATE_FALSIFIER",
+  "trigger": "4",
+  "workpackage_id": "F2-WP-105",
+  "mutation_authority": "NOT_CLAIMED_BY_THIS_ORGAN",
+  "canonical_implementation_mutated": false,
+  "frankenstein2_head_observed_before_write": "47460711220cc72953a8e3ce1121f90958f5951f",
+  "source_fix_commit": "e8b9088580dce7ce451fcf21a185792ed834c3c8",
+  "title": "Successful executor-interlock CI does not yet execute the newly added result-free true pre-dispatch constructor path",
+  "claim_under_test": "GitHub Actions run 33202612826 establishes executable repository-CI evidence for the new result-free NativeChildBinding -> PREPARED EffectCallBinding -> POST result -> return binding sequence introduced by e8b9088580dce7ce451fcf21a185792ed834c3c8.",
+  "observations": [
+    {
+      "path": "src/frankenstein2/effect_invocation_correlation.py",
+      "blob_sha": "83fd021689df55968eeab1c89cb00e1ccb685614",
+      "fact": "The source now accepts a result-free NativeChildBinding in prepare_effect_call(), emits return_id=None for true PRE-dispatch state, and adds bind_effect_return() for later WP-104 correlation."
+    },
+    {
+      "path": "tests/test_effect_invocation_correlation.py",
+      "blob_sha": "6024af23235ca9276cd0b599215640f9dac75d82",
+      "fact": "The test file is unchanged from the pre-fix version. setUp() still constructs DeferredExecutionVerificationTarget objects after result binding and RecordExecution, then calls prepare_effect_call(target,...). It does not call prepare_effect_call() with a result-free NativeChildBinding and does not call bind_effect_return()."
+    },
+    {
+      "path": "tests/test_effect_executor_interlock.py",
+      "blob_sha": "de82066cce751672b644af4e11ba3b9b601f959a",
+      "fact": "Executor-interlock tests construct EffectCallBinding directly. They validate gate/executor behavior but do not prove the new result-free constructor or later return-binding transition."
+    },
+    {
+      "workflow_run_id": 33202612826,
+      "job_id": 98955568104,
+      "head_sha": "e8b9088580dce7ce451fcf21a185792ed834c3c8",
+      "runner_id": 1000045742,
+      "runner_name": "GitHub Actions 1000045742",
+      "status": "completed",
+      "conclusion": "success",
+      "fact": "The hosted job materially executed setup, compile, PRE-POST regression, and executor-interlock falsifier steps; this is real repository-CI execution, but the executed tests above do not cover the new result-free path."
+    }
+  ],
+  "result": "TRUE_PREDISPATCH_SOURCE_PRESENT_CI_COVERAGE_NOT_ESTABLISHED",
+  "reason": "Compilation proves the new API is syntactically/import-valid and the unchanged legacy/result-bound correlation plus interlock regressions still pass. It does not prove that a result-free NativeChildBinding can traverse the intended PRE -> POST -> return-bound -> verification sequence or that the new rejection/ordering invariants behave correctly.",
+  "preserved_positive_evidence": {
+    "workflow_run_33202612826": "PASS_AT_EXECUTED_LEGACY_CORRELATION_AND_EXECUTOR_INTERLOCK_SCOPE",
+    "effect_executor_interlock_component": "PRESERVED_PASS_AT_DECLARED_SCOPE",
+    "legacy_result_bound_prepare_effect_call_compatibility": "PRESERVED_BY_EXECUTED_REGRESSION"
+  },
+  "required_deterministic_successor_tests": [
+    "Construct a result-free NativeChildBinding and prove prepare_effect_call(binding,effect_id) returns PREPARED with return_id=null before result_id/result_sha256 exist.",
+    "Reject prepare_effect_call() when NativeChildBinding already has a result on the true PRE-dispatch path.",
+    "Observe a typed POST result with exact effect/invocation/tool/delegation/binding/child identity and prove mismatches fail closed.",
+    "Construct the later result-bound DeferredExecutionVerificationTarget and prove bind_effect_return() attaches the exact return_id only after POST correlation.",
+    "Reject WP105 verification while return_id is absent even when a POST result exists.",
+    "After exact return binding, prove the existing separate VerifyExecution transition can proceed without collapsing reported execution into world verification.",
+    "Interleave two same-session calls A/B through PRE(A), PRE(B), POST(A), POST(B), bind-return(B), bind-return(A) and reject every swapped effect/call/result/return identity.",
+    "Exact replay of already observed POST and return binding remains idempotent; mutated replay fails closed."
+  ],
+  "counterhypothesis": "The compile step plus unchanged compatibility tests may be considered sufficient because the new path is a small type-generalization of already-tested logic.",
+  "falsifier_for_counterhypothesis": "A branch-specific semantic defect can exist only in the new NativeChildBinding path or bind_effect_return() while compilation and all legacy tests still pass. Direct deterministic tests of those branches are therefore required before granting true-pre-dispatch runtime/component credit.",
+  "credit_boundary": {
+    "source_level_true_predispatch_design": "PRESENT",
+    "true_predispatch_runtime_component_credit": 0,
+    "canonical_effect_authority_binding": 0,
+    "canonical_effectgate_integration_runtime": 0,
+    "effectjournal_integration_runtime": 0,
+    "real_effect_execution_runtime": 0,
+    "external_world_verification_runtime": 0,
+    "physical_grid10_runtime": 0,
+    "whole_frankenstein2_runtime": 0,
+    "whole_entityos_hcu_runtime": 0,
+    "training_credit": 0
+  },
+  "next_exact_action_for_active_mutation_authority": "Add the result-free PRE -> POST -> bind_effect_return -> VerifyExecution deterministic matrix to the existing effect-correlation CI, rerun on exact source, and emit a bounded receipt. After that, resolve the separate canonical EffectGate/EffectJournal executable implementation binding before production integration."
+}
