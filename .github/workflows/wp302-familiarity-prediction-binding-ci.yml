@@ -5,12 +5,14 @@ on:
     branches:
       - main
       - trigger4/wp302-g2-wp301-provenance-hardening-20260829
+      - trigger4/wp302-g2-derived-score-reconstruction-20260829
     paths:
       - 'src/frankenstein2/familiarity_prediction_binding.py'
       - 'src/frankenstein2/prediction_contract.py'
       - 'src/frankenstein2/emergent_retrieval.py'
       - 'src/frankenstein2/memory_lifecycle.py'
       - 'tests/test_familiarity_prediction_binding.py'
+      - 'tests/test_wp302_prebinding_derived_score_falsifier.py'
       - '.github/workflows/wp302-familiarity-prediction-binding-ci.yml'
   pull_request:
     paths:
@@ -19,6 +21,7 @@ on:
       - 'src/frankenstein2/emergent_retrieval.py'
       - 'src/frankenstein2/memory_lifecycle.py'
       - 'tests/test_familiarity_prediction_binding.py'
+      - 'tests/test_wp302_prebinding_derived_score_falsifier.py'
       - '.github/workflows/wp302-familiarity-prediction-binding-ci.yml'
   workflow_dispatch:
 
@@ -35,8 +38,19 @@ jobs:
         with:
           python-version: '3.12'
       - name: Compile
-        run: python -m py_compile src/frankenstein2/memory_lifecycle.py src/frankenstein2/emergent_retrieval.py src/frankenstein2/prediction_contract.py src/frankenstein2/familiarity_prediction_binding.py tests/test_familiarity_prediction_binding.py
-      - name: Familiarity / prediction-error provenance falsification suite
+        run: >-
+          python -m py_compile
+          src/frankenstein2/memory_lifecycle.py
+          src/frankenstein2/emergent_retrieval.py
+          src/frankenstein2/prediction_contract.py
+          src/frankenstein2/familiarity_prediction_binding.py
+          tests/test_familiarity_prediction_binding.py
+          tests/test_wp302_prebinding_derived_score_falsifier.py
+      - name: Familiarity / prediction-error provenance suite
         env:
           PYTHONPATH: src
         run: python tests/test_familiarity_prediction_binding.py -v
+      - name: Prebinding derived-score falsifier regression
+        env:
+          PYTHONPATH: src
+        run: python tests/test_wp302_prebinding_derived_score_falsifier.py -v

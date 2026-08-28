@@ -114,7 +114,12 @@ def _residual_error_bp(residual: PredictionResidual) -> int:
     return min(MAX_BASIS_POINTS, residual.mismatch_count * MAX_BASIS_POINTS // denominator)
 
 
-def _validate_retrieval_result(result: RetrievalResult, *, selected: bool) -> None:
+def _validate_retrieval_result(
+    result: RetrievalResult,
+    *,
+    selected: bool,
+    need: RetrievalNeed,
+) -> None:
     if not isinstance(result, RetrievalResult):
         raise FamiliarityPredictionBindingError(
             "retrieval plan must contain RetrievalResult values"
@@ -132,26 +137,95 @@ def _validate_retrieval_result(result: RetrievalResult, *, selected: bool) -> No
         raise FamiliarityPredictionBindingError(
             "retrieval result selected flag contradicts plan partition"
         )
-    if type(result.weighted_score_bp) is not int or not (
-        0 <= result.weighted_score_bp <= MAX_BASIS_POINTS
-    ):
+
+    score_pairs = result.signal_scores_bp
+    if not isinstance(score_pairs, tuple):
         raise FamiliarityPredictionBindingError(
-            "retrieval weighted_score_bp must be an integer in [0, 10000]"
+            "retrieval signal_scores_bp must be a canonical tuple"
         )
-    if type(result.bottleneck_score_bp) is not int or not (
-        0 <= result.bottleneck_score_bp <= MAX_BASIS_POINTS
-    ):
+    if len(score_pairs) != len(need.axes):
         raise FamiliarityPredictionBindingError(
-            "retrieval bottleneck_score_bp must be an integer in [0, 10000]"
+            "retrieval signal_scores_bp axes do not match retrieval need"
+        )
+    normalized_scores: list[tuple[str, int]] = []
+    seen_axes: set[str] = set()
+    for pair in score_pairs:
+        if not isinstance(pair, tuple) or len(pair) != 2:
+            raise FamiliarityPredictionBindingError(
+                "retrieval signal_scores_bp entries must be (axis, score) tuples"
+            )
+        axis, score = pair
+        if not isinstance(axis, str) or axis in seen_axes:
+            raise FamiliarityPredictionBindingError(
+                "retrieval signal_scores_bp contains invalid or duplicate axes"
+            )
+        if type(score) is not int or not (0 <= score <= MAX_BASIS_POINTS):
+            raise FamiliarityPredictionBindingError(
+                "retrieval signal score must be an integer in [0, 10000]"
+            )
+        seen_axes.add(axis)
+        normalized_scores.append((axis, score))
+    if tuple(axis for axis, _ in normalized_scores) != need.axes:
+        raise FamiliarityPredictionBindingError(
+            "retrieval signal_scores_bp axes/order do not match retrieval need"
+        )
+
+    evidence_pairs = result.signal_evidence_refs
+    if not isinstance(evidence_pairs, tuple) or len(evidence_pairs) != len(need.axes):
+        raise FamiliarityPredictionBindingError(
+            "retrieval signal_evidence_refs axes do not match retrieval need"
+        )
+    evidence_axes: list[str] = []
+    for pair in evidence_pairs:
+        if not isinstance(pair, tuple) or len(pair) != 2:
+            raise FamiliarityPredictionBindingError(
+                "retrieval signal_evidence_refs entries must be (axis, refs) tuples"
+            )
+        axis, refs = pair
+        evidence_axes.append(axis)
+        _refs(f"retrieval signal evidence_ref[{axis}]", refs)
+    if tuple(evidence_axes) != need.axes:
+        raise FamiliarityPredictionBindingError(
+            "retrieval signal_evidence_refs axes/order do not match retrieval need"
+        )
+
+    expected_overlap_axes = tuple(axis for axis, score in normalized_scores if score > 0)
+    if result.overlap_axes != expected_overlap_axes:
+        raise FamiliarityPredictionBindingError(
+            "retrieval overlap_axes is not derived from signal_scores_bp"
         )
     if type(result.overlap_count) is not int or result.overlap_count < 0:
-        raise FamiliarityPredictionBindingError("retrieval overlap_count must be non-negative integer")
-    if result.overlap_count != len(result.overlap_axes):
-        raise FamiliarityPredictionBindingError("retrieval overlap_count is internally inconsistent")
-    if type(result.rank_score) is not int or result.rank_score < 0:
-        raise FamiliarityPredictionBindingError("retrieval rank_score must be non-negative integer")
-    if result.rank_score != result.weighted_score_bp * result.overlap_count:
-        raise FamiliarityPredictionBindingError("retrieval rank_score is internally inconsistent")
+        raise FamiliarityPredictionBindingError(
+            "retrieval overlap_count must be non-negative integer"
+        )
+    if result.overlap_count != len(expected_overlap_axes):
+        raise FamiliarityPredictionBindingError(
+            "retrieval overlap_count is not derived from signal_scores_bp"
+        )
+
+    weights = dict(need.axis_weights_bp)
+    weight_total = sum(weights[axis] for axis in need.axes)
+    expected_weighted_score_bp = (
+        sum(score * weights[axis] for axis, score in normalized_scores) // weight_total
+    )
+    expected_bottleneck_score_bp = min(
+        (score for _, score in normalized_scores),
+        default=0,
+    )
+    expected_rank_score = expected_weighted_score_bp * len(expected_overlap_axes)
+
+    if result.weighted_score_bp != expected_weighted_score_bp:
+        raise FamiliarityPredictionBindingError(
+            "retrieval weighted_score_bp is not derived from signal_scores_bp and retrieval need"
+        )
+    if result.bottleneck_score_bp != expected_bottleneck_score_bp:
+        raise FamiliarityPredictionBindingError(
+            "retrieval bottleneck_score_bp is not derived from signal_scores_bp"
+        )
+    if result.rank_score != expected_rank_score:
+        raise FamiliarityPredictionBindingError(
+            "retrieval rank_score is not derived from weighted score and overlap"
+        )
 
 
 def _validate_retrieval_provenance(
@@ -179,23 +253,32 @@ def _validate_retrieval_provenance(
     if plan.need_id != need.need_id or plan.need_sha256 != actual_need_sha:
         raise FamiliarityPredictionBindingError("retrieval plan is not bound to supplied need")
     if type(plan.candidate_count) is not int or plan.candidate_count < 0:
-        raise FamiliarityPredictionBindingError("retrieval plan candidate_count must be non-negative integer")
+        raise FamiliarityPredictionBindingError(
+            "retrieval plan candidate_count must be non-negative integer"
+        )
     if plan.candidate_count != len(plan.selected) + len(plan.not_selected):
-        raise FamiliarityPredictionBindingError("retrieval plan candidate_count is internally inconsistent")
+        raise FamiliarityPredictionBindingError(
+            "retrieval plan candidate_count is internally inconsistent"
+        )
     if len(plan.selected) > need.limit:
-        raise FamiliarityPredictionBindingError("retrieval plan selected count exceeds need limit")
+        raise FamiliarityPredictionBindingError(
+            "retrieval plan selected count exceeds need limit"
+        )
 
-    all_results = tuple(plan.selected) + tuple(plan.not_selected)
     memory_ids: set[str] = set()
     for result in plan.selected:
-        _validate_retrieval_result(result, selected=True)
+        _validate_retrieval_result(result, selected=True, need=need)
         if result.memory_id in memory_ids:
-            raise FamiliarityPredictionBindingError("duplicate retrieval memory_id in plan")
+            raise FamiliarityPredictionBindingError(
+                "duplicate retrieval memory_id in plan"
+            )
         memory_ids.add(result.memory_id)
     for result in plan.not_selected:
-        _validate_retrieval_result(result, selected=False)
+        _validate_retrieval_result(result, selected=False, need=need)
         if result.memory_id in memory_ids:
-            raise FamiliarityPredictionBindingError("duplicate retrieval memory_id in plan")
+            raise FamiliarityPredictionBindingError(
+                "duplicate retrieval memory_id in plan"
+            )
         memory_ids.add(result.memory_id)
 
     expected_selected_order = tuple(
@@ -211,15 +294,23 @@ def _validate_retrieval_provenance(
         )
     )
     if tuple(plan.selected) != expected_selected_order:
-        raise FamiliarityPredictionBindingError("retrieval plan selected order is non-canonical")
+        raise FamiliarityPredictionBindingError(
+            "retrieval plan selected order is non-canonical"
+        )
     expected_rejected_order = tuple(
         sorted(
             plan.not_selected,
-            key=lambda result: (result.classification, result.memory_id, result.memory_state_sha256),
+            key=lambda result: (
+                result.classification,
+                result.memory_id,
+                result.memory_state_sha256,
+            ),
         )
     )
     if tuple(plan.not_selected) != expected_rejected_order:
-        raise FamiliarityPredictionBindingError("retrieval plan rejected order is non-canonical")
+        raise FamiliarityPredictionBindingError(
+            "retrieval plan rejected order is non-canonical"
+        )
 
     actual_plan_sha = plan.sha256()
     if actual_plan_sha != expected_plan_sha256:
@@ -301,8 +392,16 @@ class FamiliarityPredictionBinding:
         object.__setattr__(self, "prediction_id", prediction_id)
         object.__setattr__(self, "generation", generation)
         object.__setattr__(self, "retrieval_need_id", retrieval_need_id)
-        object.__setattr__(self, "expected_retrieval_need_sha256", expected_retrieval_need_sha256)
-        object.__setattr__(self, "expected_retrieval_plan_sha256", expected_retrieval_plan_sha256)
+        object.__setattr__(
+            self,
+            "expected_retrieval_need_sha256",
+            expected_retrieval_need_sha256,
+        )
+        object.__setattr__(
+            self,
+            "expected_retrieval_plan_sha256",
+            expected_retrieval_plan_sha256,
+        )
         object.__setattr__(self, "expected_residual_sha256", expected_residual_sha256)
         object.__setattr__(self, "evidence_refs", refs)
 
@@ -318,17 +417,33 @@ class FamiliarityPredictionBinding:
         evidence_refs: Iterable[str],
     ) -> "FamiliarityPredictionBinding":
         if not isinstance(retrieval_need, RetrievalNeed):
-            raise FamiliarityPredictionBindingError("retrieval_need must be RetrievalNeed")
+            raise FamiliarityPredictionBindingError(
+                "retrieval_need must be RetrievalNeed"
+            )
         if not isinstance(retrieval_plan, RetrievalPlan):
-            raise FamiliarityPredictionBindingError("retrieval_plan must be RetrievalPlan")
-        # Creation itself captures an exact identity fence; evaluate() revalidates all structure.
+            raise FamiliarityPredictionBindingError(
+                "retrieval_plan must be RetrievalPlan"
+            )
+
+        need_sha256 = retrieval_need.sha256()
+        plan_sha256 = retrieval_plan.sha256()
+        # Validate the full deterministic WP301-derived score structure before capturing
+        # the caller-supplied plan digest.  This prevents a self-consistent pre-binding
+        # forgery from becoming trusted merely because its forged digest was fenced.
+        _validate_retrieval_provenance(
+            need=retrieval_need,
+            plan=retrieval_plan,
+            expected_need_id=retrieval_need.need_id,
+            expected_need_sha256=need_sha256,
+            expected_plan_sha256=plan_sha256,
+        )
         return cls(
             schema=BINDING_SCHEMA,
             prediction_id=prediction_id,
             generation=generation,
             retrieval_need_id=retrieval_need.need_id,
-            expected_retrieval_need_sha256=retrieval_need.sha256(),
-            expected_retrieval_plan_sha256=retrieval_plan.sha256(),
+            expected_retrieval_need_sha256=need_sha256,
+            expected_retrieval_plan_sha256=plan_sha256,
             expected_residual_sha256=expected_residual_sha256,
             evidence_refs=evidence_refs,
         )
@@ -377,7 +492,9 @@ class FamiliarityPredictionBinding:
             if residual.prediction_id != self.prediction_id:
                 raise FamiliarityPredictionBindingError("prediction_id mismatch")
             if residual.generation != self.generation:
-                raise FamiliarityPredictionBindingError("prediction generation mismatch")
+                raise FamiliarityPredictionBindingError(
+                    "prediction generation mismatch"
+                )
             residual_sha256 = residual.sha256()
             if self.expected_residual_sha256 is None:
                 raise FamiliarityPredictionBindingError(
