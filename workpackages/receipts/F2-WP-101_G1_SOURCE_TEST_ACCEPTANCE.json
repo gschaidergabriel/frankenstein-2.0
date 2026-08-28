@@ -1,0 +1,61 @@
+{
+  "schema": "FRANKENSTEIN2_WORKPACKAGE_SOURCE_TEST_RECEIPT/v1",
+  "workpackage_id": "F2-WP-101",
+  "generation": 1,
+  "claim_id": "F2-WP-101-G1-GPT56SOL-3078d64d",
+  "trigger": "4",
+  "status": "SOURCE_LOCAL_DETERMINISTIC_PASS_RUNTIME_UNVERIFIED",
+  "scope": "CAUSAL_IDENTITY_SPINE_SOURCE_AND_LOCAL_DETERMINISTIC_TEST_ONLY",
+  "claim_commit": "ccd57465b492a49c8c108acbd81d0218334ab5a4",
+  "source_commit": "21ef138a66934fb6562c79967ec623364b7590eb",
+  "test_commit": "2f41584d52bdbef1639b115470735cb3865d9963",
+  "observed_main_before_receipt": "c8fe1da16b96f0ed9f81931968615a02e8b6c330",
+  "committed_files": [
+    {
+      "path": "src/frankenstein2/causal_identity.py",
+      "git_blob_sha": "e26c20fd8210c8c138d094d0e256df16f03651b0"
+    },
+    {
+      "path": "tests/test_causal_identity.py",
+      "git_blob_sha": "723c29ed7bde124b4c6ad4e1d8ad467fbd3ed4d4"
+    }
+  ],
+  "implemented_invariants": [
+    "session_id, agent_id, task_id, turn_id, causal_id and generation are explicit typed fields",
+    "generation accepts only a true non-negative integer and rejects bool/coerced values",
+    "missing, empty, whitespace-padded, control-character and unexpected identity fields fail closed",
+    "canonical JSON is deterministic by sorted keys and compact separators",
+    "derived causal steps require a caller-supplied new causal_id and record parent_causal_id explicitly",
+    "transport/admission fields are not silently admitted into the causal identity envelope",
+    "no identifier or generation is invented from wall-clock time, process state or current working directory"
+  ],
+  "local_test": {
+    "environment": "Linux 6.18.35 x86_64 / Python 3.13.5",
+    "command": "python -m unittest discover -s tests -v",
+    "tests_passed": 7,
+    "tests_failed": 0,
+    "elapsed_seconds_reported": 0.001,
+    "classification": "SOURCE_EQUIVALENT_LOCAL_DETERMINISTIC_TEST",
+    "note": "The connector-visible committed source and tests were inspected after commit. The execution container could not clone github.com due DNS resolution failure, so the local run is not represented as a byte-exact Git checkout replay or VPS runtime receipt."
+  },
+  "negative_evidence": [
+    {
+      "kind": "TEST_HARNESS_FAILURE_REPAIRED",
+      "detail": "The first local test harness used importlib.util.exec_module without registering the module in sys.modules; Python 3.13 dataclass processing failed before product tests. The harness was corrected to normal sys.path/import semantics and 7/7 tests then passed.",
+      "product_failure": false
+    },
+    {
+      "kind": "EXACT_HEAD_CLONE_BLOCKED",
+      "detail": "Independent git clone of the canonical repository from the execution container failed because github.com DNS could not be resolved.",
+      "product_failure": false
+    }
+  ],
+  "counterhypothesis": "A clean causal identity type alone does not prove end-to-end causal closure. Runtime writers/readers may still diverge, omit fields, reuse stale generations or bind effects to the wrong identity unless later UnifiedDB, Typed Entry, telemetry and effect-path integration enforce this envelope.",
+  "runtime_execution_observed": false,
+  "vps_execution_observed": false,
+  "whole_product_credit": 0,
+  "grid10_runtime_credit": 0,
+  "entityos_hcu_runtime_credit": 0,
+  "acceptance": "ACCEPTED_AT_SOURCE_LOCAL_TEST_SCOPE_ONLY",
+  "next_exact_action": "Bind CausalIdentity into the F2-WP-100 UnifiedDB/coordination layer and causal telemetry writer once their current interfaces stabilize, then execute an exact-repository integration test that proves event -> persisted identity -> telemetry lineage without field loss or generation drift."
+}
