@@ -12,7 +12,16 @@
     "research_entity_main_observed": "3e980fccc658bf8e652410b1cc76b5f85f7de924",
     "retained_entityos_pull_request": 430,
     "retained_entityos_head": "2f99e400f1c0ea1b8598573ab0fab993885cba5e",
-    "retained_entityos_head_message": "test(trigger4): align UNKNOWN falsifiers with Popen boundary"
+    "retained_entityos_head_message": "test(trigger4): align UNKNOWN falsifiers with Popen boundary",
+    "entityos_bridge_blob": "7781580f4e862c23491cc862e19c5d1f62b3ada6",
+    "unknown_outcome_test_blob": "67d40b2cb2b38540da8b03e25b37f9af8f69da3"
+  },
+  "static_source_falsifiers": {
+    "popen_constructor_failure": "DEFINITE_PRE_START_FAILURE",
+    "timeout_after_successful_popen": "TYPED_ENTITYOS_OUTCOME_UNKNOWN_REPLAY_FORBIDDEN",
+    "ordinary_oserror_after_successful_popen": "TYPED_ENTITYOS_OUTCOME_UNKNOWN_REPLAY_FORBIDDEN",
+    "real_harmless_child_start_then_timeout_marker": "SOURCE_TEST_PRESENT_AND_ASSERTS_PROCESS_STARTED_BEFORE_UNKNOWN",
+    "classification": "SOURCE_CLOSE_CANDIDATE_BRANCH_ONLY"
   },
   "observed_execution": {
     "targeted_workflow_name": "Trigger4 Effect UNKNOWN Outcome CI",
@@ -25,7 +34,7 @@
     "runner_name": "",
     "classification": "CONTROL_PLANE_ZERO_STEP_NO_RUNNER"
   },
-  "finding": "PR430 has advanced to an exact current head whose source/test intent aligns the UNKNOWN-outcome falsifier with the Popen child-start boundary, but the targeted private-repository workflow did not execute a single job step and acquired no runner. This is infrastructure/control-plane negative evidence, not product or mechanism failure, and it adds zero runtime credit.",
+  "finding": "PR430 has advanced to an exact current head whose source and tests close the requested code-level distinction at the Popen child-start boundary for both TimeoutExpired and ordinary post-Popen return-path exceptions. The targeted private-repository workflow nevertheless did not execute a single job step and acquired no runner. This is infrastructure/control-plane negative evidence, not product or mechanism failure, and it adds zero runtime credit.",
   "interaction_with_existing_wp105_gate": {
     "existing_gate": "TRIGGER4_RETAINED_PR430_UNKNOWN_STATUS_CONSUMPTION_GATE_GPT56SOL_20260829.json",
     "decision": "UNCHANGED_FAIL_CLOSED",
@@ -38,9 +47,11 @@
     "result": "REJECTED",
     "reason": "The job contains zero steps and runner_id=0, so no mechanism code or test assertion executed."
   },
-  "next_exact_action": "Do not spawn a duplicate dispatch or modify the F2 status vocabulary. Recheck the already-authorized PR430 exact-head execution path only after control-plane evidence changes; if a job actually starts, evaluate the deterministic pre-start versus post-start UNKNOWN/no-replay assertions, then require a canonical successor EffectGate/EffectJournal binding before F2 consumes UNKNOWN_OUTCOME.",
+  "next_exact_action": "Do not spawn a duplicate dispatch or modify the F2 status vocabulary. Recheck the already-authorized PR430 exact-head execution path only after control-plane evidence changes; if a job actually starts, evaluate the deterministic pre-start, timeout-after-start, ordinary-error-after-start and no-replay assertions. Only after that require a canonical successor EffectGate/EffectJournal binding before F2 consumes UNKNOWN_OUTCOME.",
   "credits": {
     "static_source_delta_observed": true,
+    "candidate_source_post_start_timeout_falsifier": "PASS_STATIC",
+    "candidate_source_post_start_non_timeout_falsifier": "PASS_STATIC",
     "pr430_exact_head_started_test_credit": 0,
     "entityos_live_unknown_runtime": 0,
     "f2_to_entityos_bound_runtime": 0,
