@@ -2,16 +2,15 @@
 """Initialize Frankenstein 2.0 telemetry SQLite databases.
 
 Standard-library only. This creates schema, not runtime evidence.
-Existing databases are migrated idempotently by CREATE IF NOT EXISTS.
-Canonical project-level stores live under data/.
+The canonical project-level telemetry path is ``data/``.
 """
-
 from __future__ import annotations
 
 import argparse
 import sqlite3
 from pathlib import Path
 
+SCHEMA_VERSION = 2
 DB_NAMES = (
     "system_telemetry.sqlite",
     "communications.sqlite",
@@ -43,6 +42,17 @@ COMMON_EVENT_COLUMNS = """
 
 SCHEMAS = {
     "system_telemetry.sqlite": f"""
+        CREATE TABLE IF NOT EXISTS sources (
+            source_id TEXT PRIMARY KEY,
+            run_id TEXT NOT NULL,
+            component TEXT NOT NULL,
+            instrumentation_status TEXT NOT NULL CHECK (
+                instrumentation_status IN ('INSTRUMENTED','NOT_INSTRUMENTABLE','NOT_OBSERVABLE')
+            ),
+            reason TEXT,
+            source_commit TEXT,
+            registered_at_utc TEXT NOT NULL
+        );
         CREATE TABLE IF NOT EXISTS system_events (
             {COMMON_EVENT_COLUMNS},
             component TEXT NOT NULL,
@@ -50,10 +60,8 @@ SCHEMAS = {
             event_type TEXT NOT NULL,
             payload_json TEXT NOT NULL CHECK (json_valid(payload_json))
         );
-        CREATE INDEX IF NOT EXISTS idx_system_events_run_time
-            ON system_events(run_id, recorded_at_utc);
-        CREATE INDEX IF NOT EXISTS idx_system_events_causal
-            ON system_events(causal_id);
+        CREATE INDEX IF NOT EXISTS idx_system_events_run_time ON system_events(run_id, recorded_at_utc);
+        CREATE INDEX IF NOT EXISTS idx_system_events_causal ON system_events(causal_id);
     """,
     "communications.sqlite": f"""
         CREATE TABLE IF NOT EXISTS communications (
@@ -64,12 +72,17 @@ SCHEMAS = {
             direction TEXT NOT NULL CHECK (direction IN ('IN','OUT','INTERNAL')),
             lifecycle_state TEXT NOT NULL CHECK (lifecycle_state IN ('PENDING','OFFERED','ACKED','FAILED','DROPPED')),
             message_digest TEXT NOT NULL,
-            payload_ref TEXT
+            payload_ref TEXT,
+            model TEXT,
+            provider TEXT,
+            latency_ms REAL,
+            interrupted INTEGER NOT NULL DEFAULT 0 CHECK(interrupted IN (0,1)),
+            cancelled INTEGER NOT NULL DEFAULT 0 CHECK(cancelled IN (0,1)),
+            completion_ref TEXT,
+            metadata_json TEXT NOT NULL DEFAULT '{{}}' CHECK(json_valid(metadata_json))
         );
-        CREATE UNIQUE INDEX IF NOT EXISTS ux_communications_delivery_identity
-            ON communications(event_id, COALESCE(recipient_id, ''));
-        CREATE INDEX IF NOT EXISTS idx_communications_delivery
-            ON communications(run_id, recipient_id, lifecycle_state);
+        CREATE UNIQUE INDEX IF NOT EXISTS ux_communications_delivery_identity ON communications(event_id, COALESCE(recipient_id, ''));
+        CREATE INDEX IF NOT EXISTS idx_communications_delivery ON communications(run_id, recipient_id, lifecycle_state);
     """,
     "hypotheses.sqlite": """
         CREATE TABLE IF NOT EXISTS hypotheses (
@@ -78,10 +91,18 @@ SCHEMAS = {
             workpackage_id TEXT,
             generation INTEGER,
             kind TEXT NOT NULL CHECK (kind IN ('HYPOTHESIS','COUNTERHYPOTHESIS')),
+            parent_id TEXT,
+            opponent_id TEXT,
             statement TEXT NOT NULL,
-            status TEXT NOT NULL CHECK (status IN ('OPEN','SUPPORTED','WEAKENED','FALSIFIED','UNRESOLVED')),
+            rationale TEXT,
+            status TEXT NOT NULL CHECK (status IN (
+                'OPEN','TEST_PLANNED','TESTING','SUPPORTED','REFUTED','INCONCLUSIVE','SUPERSEDED','RETIRED'
+            )),
             confidence REAL CHECK (confidence IS NULL OR (confidence >= 0.0 AND confidence <= 1.0)),
-            falsifier TEXT,
+            priority INTEGER,
+            falsification_criterion TEXT NOT NULL,
+            discriminator TEXT,
+            component TEXT,
             created_at_utc TEXT NOT NULL,
             updated_at_utc TEXT NOT NULL,
             source_refs_json TEXT NOT NULL DEFAULT '[]' CHECK (json_valid(source_refs_json))
@@ -92,19 +113,24 @@ SCHEMAS = {
             polarity TEXT NOT NULL CHECK (polarity IN ('FOR','AGAINST','NEUTRAL')),
             evidence_type TEXT NOT NULL,
             evidence_ref TEXT NOT NULL,
+            run_id TEXT,
             recorded_at_utc TEXT NOT NULL
         );
-        CREATE INDEX IF NOT EXISTS idx_hypothesis_evidence_h
-            ON hypothesis_evidence(hypothesis_id, polarity);
+        CREATE INDEX IF NOT EXISTS idx_hypothesis_state_priority ON hypotheses(status, priority);
+        CREATE INDEX IF NOT EXISTS idx_hypothesis_evidence_h ON hypothesis_evidence(hypothesis_id, polarity);
     """,
     "bugs.sqlite": """
         CREATE TABLE IF NOT EXISTS bugs (
             bug_id TEXT PRIMARY KEY,
             workpackage_id TEXT,
             generation INTEGER,
-            status TEXT NOT NULL CHECK (status IN ('OPEN','ROOT_CAUSE_CANDIDATE','FIX_CANDIDATE','REGRESSION_PENDING','FIXED','WONT_FIX')),
+            status TEXT NOT NULL CHECK (status IN (
+                'OPEN','REPRODUCED','ROOT_CAUSE_HYPOTHESIZED','ROOT_CAUSE_CONFIRMED',
+                'FIX_CANDIDATE','REGRESSION_PENDING','FIXED','REOPENED','WONT_FIX'
+            )),
             symptom TEXT NOT NULL,
             reproduction TEXT,
+            root_cause_hypothesis TEXT,
             root_cause TEXT,
             root_cause_evidence_ref TEXT,
             fix_commit TEXT,
@@ -115,31 +141,24 @@ SCHEMAS = {
         );
         CREATE TRIGGER IF NOT EXISTS bugs_fixed_requires_evidence_insert
         BEFORE INSERT ON bugs
-        WHEN NEW.status = 'FIXED'
-        AND (
+        WHEN NEW.status = 'FIXED' AND (
             NULLIF(TRIM(COALESCE(NEW.root_cause,'')), '') IS NULL OR
             NULLIF(TRIM(COALESCE(NEW.root_cause_evidence_ref,'')), '') IS NULL OR
             NULLIF(TRIM(COALESCE(NEW.fix_commit,'')), '') IS NULL OR
             NULLIF(TRIM(COALESCE(NEW.regression_test_ref,'')), '') IS NULL OR
             NULLIF(TRIM(COALESCE(NEW.regression_receipt_ref,'')), '') IS NULL
         )
-        BEGIN
-            SELECT RAISE(ABORT, 'FIXED requires root cause, evidence, fix commit, regression test and receipt');
-        END;
+        BEGIN SELECT RAISE(ABORT, 'FIXED requires root cause, evidence, fix commit, regression test and receipt'); END;
         CREATE TRIGGER IF NOT EXISTS bugs_fixed_requires_evidence_update
-        BEFORE UPDATE OF status, root_cause, root_cause_evidence_ref, fix_commit, regression_test_ref, regression_receipt_ref
-        ON bugs
-        WHEN NEW.status = 'FIXED'
-        AND (
+        BEFORE UPDATE OF status, root_cause, root_cause_evidence_ref, fix_commit, regression_test_ref, regression_receipt_ref ON bugs
+        WHEN NEW.status = 'FIXED' AND (
             NULLIF(TRIM(COALESCE(NEW.root_cause,'')), '') IS NULL OR
             NULLIF(TRIM(COALESCE(NEW.root_cause_evidence_ref,'')), '') IS NULL OR
             NULLIF(TRIM(COALESCE(NEW.fix_commit,'')), '') IS NULL OR
             NULLIF(TRIM(COALESCE(NEW.regression_test_ref,'')), '') IS NULL OR
             NULLIF(TRIM(COALESCE(NEW.regression_receipt_ref,'')), '') IS NULL
         )
-        BEGIN
-            SELECT RAISE(ABORT, 'FIXED requires root cause, evidence, fix commit, regression test and receipt');
-        END;
+        BEGIN SELECT RAISE(ABORT, 'FIXED requires root cause, evidence, fix commit, regression test and receipt'); END;
     """,
     "grid10_telemetry.sqlite": f"""
         CREATE TABLE IF NOT EXISTS grid_cycles (
@@ -148,67 +167,79 @@ SCHEMAS = {
             situation_frame_digest TEXT NOT NULL,
             control_snapshot_digest TEXT,
             hyperposition_digest TEXT,
-            completion_deficit_json TEXT NOT NULL DEFAULT '{{}}' CHECK (json_valid(completion_deficit_json))
+            completion_deficit_json TEXT NOT NULL DEFAULT '{{}}' CHECK (json_valid(completion_deficit_json)),
+            token_budget INTEGER,
+            time_budget_ms REAL,
+            branch_budget INTEGER,
+            recursion_route TEXT,
+            decision TEXT,
+            hold_reason TEXT
         );
         CREATE TABLE IF NOT EXISTS grid_cells (
-            cell_event_id TEXT PRIMARY KEY,
-            run_id TEXT NOT NULL,
-            cycle_id TEXT NOT NULL,
-            cell_id TEXT NOT NULL,
-            model_or_engine TEXT,
-            started_monotonic_ns INTEGER,
-            finished_monotonic_ns INTEGER,
-            input_digest TEXT,
-            output_digest TEXT,
+            cell_event_id TEXT PRIMARY KEY, run_id TEXT NOT NULL, cycle_id TEXT NOT NULL,
+            cell_id TEXT NOT NULL, model_or_engine TEXT, started_monotonic_ns INTEGER,
+            finished_monotonic_ns INTEGER, input_digest TEXT, output_digest TEXT,
+            salience REAL, confidence REAL, utility REAL, expected_information_gain REAL,
+            cost_estimate REAL,
             status TEXT NOT NULL CHECK (status IN ('NOT_STARTED','RUNNING','COMPLETE','FAILED','SKIPPED'))
         );
+        CREATE TABLE IF NOT EXISTS hyperposition_branches (
+            branch_id TEXT PRIMARY KEY, run_id TEXT NOT NULL, cycle_id TEXT NOT NULL,
+            hypothesis_ref TEXT, branch_weight REAL, status TEXT, discriminator_ref TEXT,
+            provenance_json TEXT NOT NULL DEFAULT '{{}}' CHECK(json_valid(provenance_json))
+        );
+        CREATE TABLE IF NOT EXISTS world_projections (
+            projection_id TEXT PRIMARY KEY, run_id TEXT NOT NULL, cycle_id TEXT NOT NULL,
+            projection_type TEXT NOT NULL CHECK(projection_type IN ('OBSERVATION','VECTOR','QUBO','NERD','MICROLAB')),
+            payload_digest TEXT NOT NULL, disagreement REAL, provenance_json TEXT NOT NULL DEFAULT '{{}}' CHECK(json_valid(provenance_json)),
+            recorded_at_utc TEXT NOT NULL
+        );
+        CREATE TABLE IF NOT EXISTS microlab_calls (
+            call_id TEXT PRIMARY KEY, run_id TEXT NOT NULL, cycle_id TEXT NOT NULL,
+            simulator_type TEXT NOT NULL, input_digest TEXT NOT NULL, result_digest TEXT,
+            cost_json TEXT NOT NULL DEFAULT '{{}}' CHECK(json_valid(cost_json)),
+            recorded_at_utc TEXT NOT NULL
+        );
         CREATE TABLE IF NOT EXISTS gwt_events (
-            gwt_event_id TEXT PRIMARY KEY,
-            run_id TEXT NOT NULL,
-            cycle_id TEXT NOT NULL,
+            gwt_event_id TEXT PRIMARY KEY, run_id TEXT NOT NULL, cycle_id TEXT NOT NULL,
             phase TEXT NOT NULL CHECK (phase IN ('CANDIDATE','SELECT','BROADCAST','UPTAKE','REENTRY')),
-            subject_id TEXT,
-            payload_digest TEXT NOT NULL,
+            subject_id TEXT, payload_digest TEXT NOT NULL,
             provenance_json TEXT NOT NULL DEFAULT '{{}}' CHECK (json_valid(provenance_json)),
-            recorded_at_utc TEXT NOT NULL,
-            monotonic_ns INTEGER
+            influenced_later_decision INTEGER CHECK(influenced_later_decision IN (0,1)),
+            downstream_ref TEXT, recorded_at_utc TEXT NOT NULL, monotonic_ns INTEGER
         );
         CREATE INDEX IF NOT EXISTS idx_grid_cells_cycle ON grid_cells(run_id, cycle_id, cell_id);
         CREATE INDEX IF NOT EXISTS idx_gwt_cycle_phase ON gwt_events(run_id, cycle_id, phase);
+        CREATE INDEX IF NOT EXISTS idx_hyperposition_cycle ON hyperposition_branches(run_id, cycle_id);
+        CREATE INDEX IF NOT EXISTS idx_world_projection_cycle ON world_projections(run_id, cycle_id, projection_type);
     """,
     "performance.sqlite": """
         CREATE TABLE IF NOT EXISTS spans (
-            span_id TEXT PRIMARY KEY,
-            run_id TEXT NOT NULL,
-            trace_id TEXT NOT NULL,
-            parent_span_id TEXT,
-            workpackage_id TEXT,
-            component TEXT NOT NULL,
-            operation TEXT NOT NULL,
-            start_utc TEXT NOT NULL,
-            end_utc TEXT,
-            start_monotonic_ns INTEGER NOT NULL,
-            end_monotonic_ns INTEGER,
+            span_id TEXT PRIMARY KEY, run_id TEXT NOT NULL, trace_id TEXT NOT NULL,
+            parent_span_id TEXT, workpackage_id TEXT, component TEXT NOT NULL,
+            operation TEXT NOT NULL, system_state TEXT,
+            start_utc TEXT NOT NULL, end_utc TEXT,
+            start_monotonic_ns INTEGER NOT NULL, end_monotonic_ns INTEGER,
+            queue_ns INTEGER, compute_ns INTEGER, io_ns INTEGER, network_ns INTEGER,
+            model_ns INTEGER, db_ns INTEGER, child_wait_ns INTEGER,
             status TEXT NOT NULL CHECK (status IN ('RUNNING','OK','ERROR','CANCELLED')),
             attributes_json TEXT NOT NULL DEFAULT '{}' CHECK (json_valid(attributes_json))
         );
         CREATE TABLE IF NOT EXISTS resource_samples (
-            sample_id TEXT PRIMARY KEY,
-            run_id TEXT NOT NULL,
-            component TEXT NOT NULL,
-            recorded_at_utc TEXT NOT NULL,
-            monotonic_ns INTEGER,
-            rss_bytes INTEGER,
-            pss_bytes INTEGER,
-            cpu_seconds REAL,
-            cpu_percent REAL,
-            gpu_memory_bytes INTEGER,
-            io_read_bytes INTEGER,
-            io_write_bytes INTEGER,
+            sample_id TEXT PRIMARY KEY, run_id TEXT NOT NULL, component TEXT NOT NULL,
+            system_state TEXT, recorded_at_utc TEXT NOT NULL, monotonic_ns INTEGER,
+            rss_bytes INTEGER, pss_bytes INTEGER, vms_bytes INTEGER, peak_rss_bytes INTEGER,
+            cpu_user_seconds REAL, cpu_system_seconds REAL, cpu_percent REAL,
+            gpu_percent REAL, gpu_memory_bytes INTEGER, io_read_bytes INTEGER,
+            io_write_bytes INTEGER, network_rx_bytes INTEGER, network_tx_bytes INTEGER,
+            fd_count INTEGER, thread_count INTEGER, queue_depth INTEGER,
+            sqlite_lock_wait_ns INTEGER, power_watts REAL, temperature_c REAL,
+            work_units_json TEXT NOT NULL DEFAULT '{}' CHECK(json_valid(work_units_json)),
             attributes_json TEXT NOT NULL DEFAULT '{}' CHECK (json_valid(attributes_json))
         );
         CREATE INDEX IF NOT EXISTS idx_spans_trace ON spans(run_id, trace_id, start_monotonic_ns);
         CREATE INDEX IF NOT EXISTS idx_resources_run_time ON resource_samples(run_id, monotonic_ns);
+        CREATE INDEX IF NOT EXISTS idx_resources_state ON resource_samples(run_id, system_state, monotonic_ns);
     """,
 }
 
@@ -225,13 +256,11 @@ def init_db(path: Path, schema: str) -> None:
     try:
         configure(conn)
         conn.executescript(schema)
+        conn.execute("CREATE TABLE IF NOT EXISTS schema_meta (schema_name TEXT PRIMARY KEY, schema_version INTEGER NOT NULL)")
         conn.execute(
-            "CREATE TABLE IF NOT EXISTS schema_meta (schema_name TEXT PRIMARY KEY, schema_version INTEGER NOT NULL)"
-        )
-        conn.execute(
-            "INSERT INTO schema_meta(schema_name, schema_version) VALUES (?, 1) "
+            "INSERT INTO schema_meta(schema_name, schema_version) VALUES (?, ?) "
             "ON CONFLICT(schema_name) DO UPDATE SET schema_version=excluded.schema_version",
-            (path.name,),
+            (path.name, SCHEMA_VERSION),
         )
         conn.commit()
         result = conn.execute("PRAGMA integrity_check").fetchone()[0]
@@ -243,14 +272,13 @@ def init_db(path: Path, schema: str) -> None:
 
 def main() -> int:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--root", default="data", help="directory for canonical telemetry SQLite files (default: data)")
+    parser.add_argument("--root", default="data", help="canonical directory for project-level telemetry SQLite files")
     args = parser.parse_args()
     root = Path(args.root)
     for name in DB_NAMES:
         init_db(root / name, SCHEMAS[name])
     print(f"initialized {len(DB_NAMES)} telemetry databases under {root}")
     return 0
-
 
 if __name__ == "__main__":
     raise SystemExit(main())
