@@ -1,10 +1,14 @@
-"""Call-scoped effect identity correlation for Frankenstein 2.0 Stage 1.
+"""Result-bound effect identity correlation for Frankenstein 2.0 Stage 1.
 
 This module is an identity/order guard only. It does not execute a tool, grant
 EffectGate authority, persist canonical state, infer an external-world outcome, or
-mint completion.  It binds an explicit ``effect_id`` at PRE-dispatch time to the
-already-authoritative WP-102/WP-104 call identity and requires the same identity at
-POST-result verification time.
+mint completion. It correlates an explicit ``effect_id`` with the already-result-bound
+WP-102/WP-104 verification target and requires the same identity at later verification.
+
+Important temporal boundary: ``prepare_effect_call()`` is a legacy result-bound
+PRE-verification adapter, not the true PRE-dispatch boundary. A real pre-dispatch
+identity must exist before result binding and before ``RecordExecution``; that contract
+is implemented by ``frankenstein2.pre_dispatch_effect``.
 
 Session context and result digests are deliberately insufficient correlation keys.
 """
@@ -25,7 +29,7 @@ from .deferred_execution_verification import (
 
 
 class EffectInvocationCorrelationError(ValueError):
-    """Raised when PRE/POST effect identity is incomplete or contradictory."""
+    """Raised when result-bound effect correlation is incomplete or contradictory."""
 
 
 class EffectCorrelationStage(str, Enum):
@@ -45,7 +49,7 @@ def _token(name: str, value: Any) -> str:
 
 @dataclass(frozen=True, slots=True)
 class EffectCallBinding:
-    """Immutable PRE->POST identity envelope for one candidate effect call."""
+    """Immutable result-bound correlation envelope for one candidate effect call."""
 
     effect_id: str
     return_id: str
@@ -86,7 +90,13 @@ def prepare_effect_call(
     *,
     effect_id: str,
 ) -> EffectCallBinding:
-    """Bind explicit PRE-dispatch effect identity to one exact Stage-1 call target."""
+    """Prepare legacy result-bound correlation before verification, not dispatch.
+
+    ``DeferredExecutionVerificationTarget`` already requires a bound result and an
+    execution-recorded-or-verified lineage. Callers that need a true pre-dispatch
+    boundary must use ``prepare_pre_dispatch_effect`` from
+    ``frankenstein2.pre_dispatch_effect``.
+    """
     if not isinstance(target, DeferredExecutionVerificationTarget):
         raise EffectInvocationCorrelationError(
             "target must be a DeferredExecutionVerificationTarget"
@@ -121,7 +131,7 @@ def observe_effect_result(
     result_id: str,
     result_sha256: str,
 ) -> EffectCallBinding:
-    """Bind POST-result identity only to the exact PRE-bound call.
+    """Bind an observed result only to the exact legacy correlation envelope.
 
     Exact replay of the already-observed POST record is idempotent. Any mutation or
     cross-call substitution fails closed.
@@ -170,7 +180,7 @@ def apply_effect_bound_verification(
     observed: EffectCallBinding,
     transition: VerifyExecution,
 ) -> DeferredExecutionVerificationTarget:
-    """Apply WP-105 verification only after exact PRE/POST effect correlation."""
+    """Apply WP-105 verification only after exact result-bound correlation."""
     if not isinstance(target, DeferredExecutionVerificationTarget):
         raise EffectInvocationCorrelationError(
             "target must be a DeferredExecutionVerificationTarget"
