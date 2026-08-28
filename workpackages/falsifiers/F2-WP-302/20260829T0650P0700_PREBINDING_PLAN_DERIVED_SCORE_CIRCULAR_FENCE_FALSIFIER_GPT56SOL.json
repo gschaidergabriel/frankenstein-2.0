@@ -1,0 +1,59 @@
+{
+  "schema": "FRANKENSTEIN2_WORKPACKAGE_FALSIFIER/v1",
+  "workpackage_id": "F2-WP-302",
+  "target_generation": 2,
+  "target_claim_id": "F2-WP-302-G2-GPT56SOL-WP301-PROVENANCE-HARDENING-20260829",
+  "classification": "CANDIDATE_FALSIFIER_REPOSITORY_HOSTED_REVIEW_CI",
+  "review_only": true,
+  "target_branch_head": "7a8d3308fdcb63b4b13665a5ae4b55e6333624af",
+  "target_source": "src/frankenstein2/familiarity_prediction_binding.py",
+  "target_source_blob_sha": "6249d32785687e8ff51233bb0a69c14d3d84a4b7",
+  "review_branch": "review/wp302-g2-prebinding-plan-score-falsifier-20260829",
+  "review_head": "9dfe417b5a5a36470b685dcbea149304b4e38b4c",
+  "review_test": "tests/review_test_wp302_g2_prebinding_plan_score_falsifier.py",
+  "review_workflow": ".github/workflows/review-wp302-g2-prebinding-plan-score-falsifier.yml",
+  "github_actions": {
+    "run_id": 33221717601,
+    "job_id": 99016955540,
+    "status": "completed",
+    "conclusion": "success",
+    "compile_review_falsifier": "success",
+    "run_prebinding_forged_plan_score_falsifier": "success",
+    "observed_tests": 1
+  },
+  "counterexample": {
+    "canonical_wp301_signal_score_bp": 1000,
+    "forged_weighted_score_bp": 10000,
+    "forged_rank_score_relation": "forged_weighted_score_bp * original_overlap_count",
+    "unchanged_low_signal_scores_bp": true,
+    "binding_created_after_forgery": true,
+    "forged_plan_digest_fenced_by_binding": true,
+    "evaluation_accepted": true,
+    "observed_signal_familiarity_bp": 10000
+  },
+  "falsified_assumption": "Fencing the digest of a caller-supplied RetrievalPlan is sufficient provenance hardening when derived RetrievalResult score fields can already be internally inconsistent before the fence is created.",
+  "mechanism": [
+    "FamiliarityPredictionBinding.create records retrieval_plan.sha256() from the supplied plan but does not independently validate that the plan was produced by the deterministic WP301 derivation.",
+    "G2 evaluate validates weighted_score_bp bounds, overlap_count length, and rank_score == weighted_score_bp * overlap_count, but does not reconstruct weighted_score_bp from signal_scores_bp and RetrievalNeed.axis_weights_bp.",
+    "It also does not reconstruct bottleneck_score_bp or overlap_axes from signal_scores_bp, so a self-consistent digest can preserve a pre-fencing derived-score forgery.",
+    "The review test leaves the original signal_scores_bp at 1000, inflates only weighted_score_bp/rank_score to 10000 before binding construction, and observes accepted familiarity_bp 10000."
+  ],
+  "recommended_smallest_repair": [
+    "During retrieval provenance validation, validate signal_scores_bp axes, uniqueness and basis-point bounds against the supplied RetrievalNeed axes.",
+    "Recompute overlap_axes/overlap_count from positive signal scores.",
+    "Recompute weighted_score_bp from signal_scores_bp and RetrievalNeed.axis_weights_bp and require exact equality.",
+    "Recompute bottleneck_score_bp and rank_score and require exact equality.",
+    "Preserve the existing exact plan digest/need digest fences; do not weaken them.",
+    "If true builder-origin provenance is required beyond internal derivation consistency, bind an independently supplied upstream WP301 plan receipt/digest rather than deriving both expected and observed identity from the same caller-supplied object."
+  ],
+  "authority_boundary": {
+    "canonical_wp302_source_mutated": false,
+    "duplicate_mutation_claim_created": false,
+    "runtime_execution_observed": false,
+    "runtime_credit": 0,
+    "vps_runtime_credit": 0,
+    "physical_grid10_credit": 0,
+    "whole_system_acceptance": false
+  },
+  "next_exact_action": "The sole WP302 G2 claimant should incorporate this counterexample into its existing provenance-hardening lane, add deterministic derived-score reconstruction/fail-closed checks, and rerun canonical plus adversarial repository CI before any G2 acceptance."
+}
