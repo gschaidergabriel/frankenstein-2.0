@@ -1,0 +1,60 @@
+{
+  "schema": "FRANKENSTEIN2_WORKPACKAGE_FALSIFIER/v1",
+  "workpackage_id": "F2-WP-506",
+  "generation": 1,
+  "classification": "REVIEW_ONLY_PREIMPLEMENTATION_FALSIFIER_SPEC",
+  "reviewer": "GPT-5.6-Sol Triggerword-4 review organ",
+  "created_for_trigger_local": "2026-08-29T06:51:00+07:00",
+  "base_commit": "e4f0eb211855c01c0190e8cf54d29670210bdba0",
+  "active_claim_id": "F2-WP-506-G1-GPT56SOL-GWT-SELECTION-BROADCAST-20260829",
+  "active_claim_branch": "trigger4/wp506-gwt-selection-broadcast-20260829",
+  "mutation_authority": false,
+  "implementation_observed_at_review_base": false,
+  "runtime_execution_observed": false,
+  "runtime_credit": 0,
+  "gwt_runtime_credit": 0,
+  "whole_system_acceptance": false,
+  "source_evidence": {
+    "situation_frame_blob": "68bd7423959b082461fa51782cba644a2f78435a",
+    "grid10_interface_blob": "7e641a3476a3c75e0bffba67fc150a03d1400109",
+    "hyperposition_blob": "ec9e426a81861fd9a8990312aff86b0c6d63eae9",
+    "claim_protocol_blob": "1411267dc1f058ca838d0c7860d78ad4e9ad5cae"
+  },
+  "review_question": "Does exact SituationFrame/Hyperposition/GRID10-plan binding also prove the origin and multiplicity of every candidate entering GWT selection, rather than only binding the surrounding envelope?",
+  "hypothesis": "If candidates carry only caller-supplied candidate_id/payload_ref and scalar scores while the GWT contract binds the GRID10 plan but not the exact producing CellOutput identity/digest, an otherwise valid selector can admit a candidate that was never produced by the bound GRID cycle. Distinct candidate IDs can also alias the same underlying payload/source and crowd out independent alternatives.",
+  "counterhypothesis": "The implementation may close this by binding each candidate to an exact producing input/output/provenance identity, or by an equivalent upstream candidate-admission receipt, and by making alias multiplicity weight-neutral or fail-closed.",
+  "falsification_cases": [
+    {
+      "id": "WP506-F1-FOREIGN-CANDIDATE-INJECTION",
+      "setup": "Create a valid SituationFrame and exact GRID10 plan. Supply a highest-scoring candidate whose payload/source is absent from every admitted producer output or equivalent bound candidate-admission receipt while all envelope digests remain valid.",
+      "required_result": "REJECT_FAIL_CLOSED unless the candidate carries an independently verifiable admitted producer binding explicitly permitted by the contract.",
+      "failure_meaning": "Envelope binding is not candidate-origin provenance; GWT can broadcast caller-injected cognition as if it belonged to the bound cycle."
+    },
+    {
+      "id": "WP506-F2-ALIAS-SYBIL-AMPLIFICATION",
+      "setup": "Supply multiple distinct candidate_ids that resolve to the same producing output/payload/provenance identity plus one genuinely independent alternative, with duplicate aliases assigned high scores.",
+      "required_result": "Duplicate aliases must be rejected, deterministically deduplicated, or otherwise proven weight-neutral so they cannot consume extra selection budget or displace independent alternatives merely by renaming.",
+      "failure_meaning": "Candidate identity multiplicity can amplify one evidence source and distort workspace competition."
+    },
+    {
+      "id": "WP506-F3-STALE-PRODUCER-OUTPUT",
+      "setup": "Bind the outer selection envelope to the current GRID10 plan, then supply a candidate referencing an output from an older plan generation/digest or different cell-input digest.",
+      "required_result": "REJECT_FAIL_CLOSED.",
+      "failure_meaning": "Current plan identity does not prevent stale cognition from crossing generations into the workspace."
+    },
+    {
+      "id": "WP506-F4-UNRESOLVED-EPISTEMIC-PRESERVATION",
+      "setup": "Use UNKNOWN/CONFLICT candidates and, when Hyperposition is present, branch-linked unresolved alternatives with otherwise valid provenance.",
+      "required_result": "Selection/broadcast may rank or omit by explicit bounded policy but must not relabel UNKNOWN/CONFLICT as stronger epistemic classes, collapse branch provenance, or report uptake/resolution that was not observed.",
+      "failure_meaning": "GWT coordination silently becomes epistemic truth/resolution authority."
+    }
+  ],
+  "acceptance_gate_recommendation": [
+    "Bind each WorkspaceCandidate to exact producer provenance at least as strong as GRID10 plan_id + generation + digest + cell_id + CellInput/CellOutput identity or an independently admitted equivalent receipt.",
+    "Make candidate alias multiplicity explicit and fail-closed or weight-neutral.",
+    "Test stale producer output independently from stale outer plan binding.",
+    "Preserve UNKNOWN/CONFLICT and Hyperposition branch provenance without claiming broadcast uptake or resolution."
+  ],
+  "credit_boundary": "This artifact is a preregistered review/falsifier specification only. It establishes no implementation defect until executed against candidate source, no CI/runtime PASS, and no GWT/GRID10/whole-system credit.",
+  "next_exact_action": "The sole WP506 mutation authority should either demonstrate an existing equivalent candidate-origin and alias fence in its implementation/tests or absorb F1-F4 into the claim-scoped fail-closed suite before repository-component acceptance."
+}
