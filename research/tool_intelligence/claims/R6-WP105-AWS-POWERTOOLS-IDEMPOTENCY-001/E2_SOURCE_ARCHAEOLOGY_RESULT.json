@@ -1,0 +1,119 @@
+{
+  "schema": "FRANKENSTEIN2_TRIGGER6_RESEARCH_DELTA/v1",
+  "trigger": "6",
+  "research_id": "R6-WP105-AWS-POWERTOOLS-IDEMPOTENCY-001",
+  "slot": "SOURCE_ARCHAEOLOGIST",
+  "status": "E2_ARCHITECTURE_MAPPED_WITH_DONOR_AND_REJECTION_BOUNDARIES",
+  "claim_commit": "08df15849faeb8e8e50f4ad80209268121e61fb3",
+  "architecture_delta_fusion": {
+    "f2_main_observed_before_result": "f0c3270f1e0efffac91d9d2a2d538470eab6ca13",
+    "research_entity_main_observed_at_claim": "9afad12608a4b59d887f9805cd80d92227546906",
+    "active_f2_workpackage": "F2-WP-105",
+    "current_checkpoint_fact": "EffectRequestIdentity plus canonical request_sha256 binding is already implemented and repository-CI-green at component scope; this result does not duplicate or reopen that closed semantic-binding work.",
+    "current_unresolved_target": "Post-process-start outcome classification and retry safety remain open while exact-bound runtime is blocked."
+  },
+  "source_pin": {
+    "repository": "aws-powertools/powertools-lambda-python",
+    "branch": "develop",
+    "commit": "a39e1018e36b7965b08313288bea3b7420df5220",
+    "commit_subject": "fix(idempotency): Redis persistence layer reclaims live in-progress records as orphans, allowing concurrent double-execution (#8387)",
+    "source_files": [
+      "aws_lambda_powertools/utilities/idempotency/persistence/datarecord.py",
+      "aws_lambda_powertools/utilities/idempotency/persistence/base.py",
+      "aws_lambda_powertools/utilities/idempotency/persistence/redis.py",
+      "tests/functional/idempotency/_redis/test_redis_layer.py",
+      "docs/utilities/idempotency.md"
+    ]
+  },
+  "source_grounded_findings": [
+    {
+      "id": "PW105-P01-RECORD-SHAPE",
+      "classification": "SOURCE_DIRECT",
+      "finding": "Powertools persists idempotency_key, status, expiry_timestamp, in_progress_expiry_timestamp, response_data and payload_hash; statuses include INPROGRESS, COMPLETED and EXPIRED."
+    },
+    {
+      "id": "PW105-P02-PAYLOAD-MISMATCH",
+      "classification": "SOURCE_DIRECT",
+      "finding": "The base layer can hash a selected validation payload and rejects a reused key when the stored payload hash differs. Hash input is deterministic sorted JSON, but the library default hash function is MD5 unless configured otherwise."
+    },
+    {
+      "id": "PW105-P03-CONCURRENT-FENCE-FIX",
+      "classification": "SOURCE_DIRECT_CURRENT_HEAD",
+      "finding": "The current head fixes a Redis path that could overwrite a live INPROGRESS record when in_progress_expiry_timestamp was absent. The repaired rule treats missing expiry as still active and fails closed instead of reclaiming it."
+    },
+    {
+      "id": "PW105-P04-CONCURRENCY-FALSIFIER",
+      "classification": "SOURCE_DIRECT_UPSTREAM_TEST",
+      "finding": "The added functional test starts one invocation, attempts the same idempotent function concurrently, requires IdempotencyAlreadyInProgressError, and asserts execution_count remains exactly 1. This is upstream evidence only, not Frankenstein-2.0 reproduction credit."
+    },
+    {
+      "id": "PW105-P05-EXCEPTION-DELETE",
+      "classification": "SOURCE_DIRECT_NEGATIVE_DONOR_BOUNDARY",
+      "finding": "Powertools delete_record clears the in-progress idempotency record when the protected function raises. That behavior is not safe to copy for arbitrary external effects because an exception after dispatch can leave world application UNKNOWN and deletion would reopen the retry path."
+    },
+    {
+      "id": "PW105-P06-TTL-RECLAIM",
+      "classification": "ARCHITECTURE_MAPPING_NEGATIVE_BOUNDARY",
+      "finding": "Time/TTL can bound an application-level idempotency lock, but elapsed time alone cannot prove a real external effect was not applied. F2 must not convert post-dispatch UNKNOWN into retryable merely because a lock or record expired."
+    }
+  ],
+  "f2_mapping": {
+    "target_workpackages": ["F2-WP-105", "F2-WP-904"],
+    "already_stronger_in_f2": [
+      "EffectRequestIdentity canonical JSON uses SHA-256 and binds user_id, session_id, capability, target, argv and expected_generation.",
+      "Canonical EntityOS EffectJournal owns effect_id and has PENDING plus explicit UNKNOWN_AFTER_RESTART; caller-supplied effect_id is forbidden.",
+      "Execution success and world/effect verification are distinct typed stages in current WP105."
+    ],
+    "adopt_as_structural_donor": [
+      "Fail closed when an in-progress ownership/freshness discriminator is missing rather than assuming orphanhood.",
+      "Keep semantic request digest beside idempotency/concurrency state and reject same operation identity with different semantic payload.",
+      "Add a deterministic concurrent-contender falsifier that proves one underlying dispatch at most at component scope.",
+      "Treat idempotency state as a typed lifecycle rather than a boolean duplicate flag."
+    ],
+    "do_not_adopt": [
+      "Do not replace UnifiedDB or EffectGate/EffectJournal with Powertools, DynamoDB, Redis or another persistence authority.",
+      "Do not adopt MD5 as the canonical request digest; retain F2 SHA-256 canonical semantic identity.",
+      "Do not delete/forget a post-dispatch PENDING record merely because the executor raised.",
+      "Do not let TTL expiry alone authorize replay after the effect boundary may have been crossed.",
+      "Do not reuse cached prior response as proof of current world state without canonical verification evidence."
+    ],
+    "proposed_state_discriminator": {
+      "pre_dispatch_failure": "SAFE_TO_RETRY_ONLY_IF_CANONICAL_JOURNAL_PROVES_NO_DISPATCH",
+      "dispatch_started_no_verified_outcome": "UNKNOWN_NO_AUTOMATIC_REPLAY",
+      "verified_applied": "VERIFIED_APPLIED",
+      "verified_not_applied_or_denied": "TERMINAL_NON_APPLIED_ONLY_WITH_AUTHORITY_OWNED_EVIDENCE"
+    }
+  },
+  "counterhypotheses": [
+    {
+      "claim": "F2's existing global EntityOS effect lease plus one-effect-per-episode gate may already make a separate in-progress contender fence redundant.",
+      "falsifier": "Construct two distinct episodes/call identities for the same immutable semantic request_sha256 and prove whether both can reach canonical dispatch before either finalizes."
+    },
+    {
+      "claim": "Any bridge exception can be safely classified FAILED because EntityOSBridge only throws before an external process starts.",
+      "falsifier": "Inspect and instrument the exact bound bridge/process boundary; inject a failure after process start but before verified return. If application cannot be disproved, FAILED is unsound and must remain UNKNOWN."
+    }
+  ],
+  "external_primary_mechanism_note": {
+    "source": "AWS Builders' Library, Making retries safe with idempotent APIs",
+    "mapping": "A unique caller/request intent identifier should not be replaced by parameter equality alone; same identifier with changed parameters should fail validation. For F2 this reinforces keeping causal/invocation intent identity distinct from request_sha256 while binding both."
+  },
+  "evidence_ladder": {
+    "E0_seed": true,
+    "E1_source_read": true,
+    "E2_architecture_mapped": true,
+    "E3_claim_reproduced_in_f2": false,
+    "E4_f2_ablation": false,
+    "E5_build_candidate": false,
+    "E6_f2_accepted": false
+  },
+  "credits": {
+    "external_tool_architecture_acceptance": 0,
+    "f2_runtime": 0,
+    "real_effect_runtime": 0,
+    "whole_f2": 0,
+    "entityos_hcu": 0,
+    "training": 0
+  },
+  "next_exact_gate": "Trigger6 EXPERIMENTAL_FALSIFIER should specify, and Trigger4 may execute at the admitted component surface, a same-request_sha256 concurrent-contender plus post-dispatch-exception matrix: prove only one canonical dispatch; prove missing ownership/expiry evidence fails closed; inject failure after dispatch-start and require UNKNOWN_NO_AUTOMATIC_REPLAY rather than FAILED/retryable. No real external effect is required for this discriminator."
+}
