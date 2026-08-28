@@ -13,6 +13,10 @@ import unittest
 from unittest.mock import patch
 
 from frankenstein2.effect_executor_interlock import ExecutorOutcomeUnknown
+from frankenstein2.entityos_unknown_outcome_adapter import (
+    EntityOSUnknownOutcomeAdapterError,
+    translate_executor_unknown_to_canonical,
+)
 
 
 FIXTURE = Path(__file__).parent / "fixtures" / "entityos_effect_unknown_pr430_2f99" / "clayverse"
@@ -177,6 +181,63 @@ class PR430ExactCandidateUnknownTests(unittest.TestCase):
         self.assertEqual(receipt["error"], "ExecutorOutcomeUnknown")
         self.assertEqual(receipt["reason"], "entityos_execution_failure")
         self.assertEqual(self.db.db.execute("SELECT COUNT(*) FROM leases").fetchone()[0], 0)
+
+    def test_adapter_translates_only_f2_unknown_into_candidate_canonical_unknown(self) -> None:
+        candidate_unknown = self.bridge_module.EntityOSOutcomeUnknown
+
+        class AdaptedF2UnknownBridge:
+            sha256 = "c" * 64
+
+            def run(self, _argv):
+                def dispatch():
+                    raise ExecutorOutcomeUnknown(
+                        "EXECUTOR_RETURN_UNKNOWN_NO_AUTOMATIC_REPLAY"
+                    )
+
+                return translate_executor_unknown_to_canonical(
+                    dispatch,
+                    canonical_unknown_type=candidate_unknown,
+                )
+
+        gate = self.effects.EffectGate(self.db, entityos_bridge=AdaptedF2UnknownBridge())
+        with self.assertRaises(candidate_unknown) as caught:
+            gate.execute(self.request())
+        self.assertFalse(caught.exception.replay_permitted)
+
+        row = self.latest_effect()
+        self.assertEqual(row["status"], "UNKNOWN_OUTCOME")
+        receipt = json.loads(row["outcome"])
+        self.assertEqual(receipt["certainty"], "unknown")
+        self.assertEqual(receipt["error"], "EntityOSOutcomeUnknown")
+        self.assertEqual(receipt["reason"], "entityos_outcome_unknown")
+        causal = self.db.db.execute(
+            "SELECT credit,reentered FROM causal_episodes WHERE effect_id=?",
+            (row["effect_id"],),
+        ).fetchone()
+        self.assertEqual(causal["credit"], 0.0)
+        self.assertEqual(causal["reentered"], 1)
+        self.assertEqual(self.db.db.execute("SELECT COUNT(*) FROM leases").fetchone()[0], 0)
+
+    def test_bad_canonical_unknown_contract_fails_before_dispatch(self) -> None:
+        calls = 0
+
+        class UnsafeUnknown(RuntimeError):
+            replay_permitted = True
+
+        def dispatch():
+            nonlocal calls
+            calls += 1
+            raise AssertionError("dispatch must not run")
+
+        with self.assertRaisesRegex(
+            EntityOSUnknownOutcomeAdapterError,
+            "CANONICAL_UNKNOWN_MUST_FORBID_REPLAY",
+        ):
+            translate_executor_unknown_to_canonical(
+                dispatch,
+                canonical_unknown_type=UnsafeUnknown,
+            )
+        self.assertEqual(calls, 0)
 
 
 if __name__ == "__main__":
