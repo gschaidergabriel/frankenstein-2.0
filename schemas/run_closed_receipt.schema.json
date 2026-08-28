@@ -1,0 +1,100 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://frank.ink/frankenstein-2.0/schemas/run_closed_receipt.schema.json",
+  "title": "Frankenstein 2.0 Run Closed Receipt",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "run_id",
+    "closed_at_utc",
+    "manifest_sha256",
+    "artifact_index_sha256",
+    "sha256sums_sha256",
+    "closure_status",
+    "evidence_classification",
+    "runtime_execution_observed",
+    "runtime_credit",
+    "acceptance_scope",
+    "completion_deficit"
+  ],
+  "properties": {
+    "schema": {"const": "FRANKENSTEIN2_RUN_CLOSED_RECEIPT/v1"},
+    "run_id": {"type": "string", "minLength": 1},
+    "closed_at_utc": {"type": "string", "format": "date-time"},
+    "manifest_sha256": {"$ref": "#/$defs/sha256"},
+    "artifact_index_sha256": {"$ref": "#/$defs/sha256"},
+    "sha256sums_sha256": {"$ref": "#/$defs/sha256"},
+    "closure_status": {
+      "enum": ["CLOSED_PASS_AT_SCOPE", "CLOSED_FAIL", "CLOSED_BLOCKED", "CLOSED_SOURCE_ONLY"]
+    },
+    "evidence_classification": {
+      "enum": [
+        "SOURCE_ONLY",
+        "UNIT_RUNTIME",
+        "COMPONENT_RUNTIME",
+        "INTEGRATION_RUNTIME",
+        "WHOLE_SYSTEM_RUNTIME",
+        "NEGATIVE_RESULT",
+        "BLOCKED"
+      ]
+    },
+    "runtime_execution_observed": {"type": "boolean"},
+    "runtime_credit": {"type": "integer", "minimum": 0},
+    "acceptance_scope": {"type": "string", "minLength": 1},
+    "completion_deficit": {"type": "string"},
+    "not_observable_participants": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["participant_id", "reason"],
+        "properties": {
+          "participant_id": {"type": "string", "minLength": 1},
+          "reason": {"type": "string", "minLength": 1}
+        }
+      },
+      "default": []
+    },
+    "source_commit_after": {
+      "oneOf": [
+        {"type": "string", "pattern": "^[0-9a-f]{40}$"},
+        {"type": "null"}
+      ]
+    },
+    "next_exact_action": {"type": "string"}
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {"runtime_execution_observed": {"const": false}},
+        "required": ["runtime_execution_observed"]
+      },
+      "then": {
+        "properties": {
+          "runtime_credit": {"const": 0},
+          "closure_status": {"enum": ["CLOSED_SOURCE_ONLY", "CLOSED_BLOCKED", "CLOSED_FAIL"]}
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {"evidence_classification": {"const": "SOURCE_ONLY"}},
+        "required": ["evidence_classification"]
+      },
+      "then": {
+        "properties": {
+          "runtime_execution_observed": {"const": false},
+          "runtime_credit": {"const": 0},
+          "closure_status": {"const": "CLOSED_SOURCE_ONLY"}
+        }
+      }
+    }
+  ],
+  "$defs": {
+    "sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    }
+  }
+}
