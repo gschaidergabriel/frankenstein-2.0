@@ -1,0 +1,72 @@
+{
+  "schema": "FRANKENSTEIN2_CANDIDATE_FALSIFIER/v1",
+  "classification": "CANDIDATE_FALSIFIER",
+  "workpackage_id": "F2-WP-102",
+  "observed_at_local": "2026-08-28T21:58:40+07:00",
+  "base_main": "2af40f0d9d1658a4aa4d88aab5b6658bb05ae719",
+  "mutation_authority": false,
+  "active_survivor_claim": "F2-WP-102-G1-WORKEXECUTION-BINDING-GPT56SOL-20260828T214737P0700",
+  "source_evidence": [
+    {
+      "path": "state/work_execution_binding.py",
+      "git_blob_sha": "b03035b48f66df81e6ae32c868d9e221626f6d0a",
+      "observation": "The deterministic WorkExecutionBinding preimage includes causal_id but does not include session_id, parent agent_id, task_id, turn_id, or causal generation. Its generation field is workpackage generation."
+    },
+    {
+      "path": "src/frankenstein2/causal_identity.py",
+      "git_blob_sha": "e26c20fd8210c8c138d094d0e256df16f03651b0",
+      "observation": "CausalIdentity explicitly distinguishes session_id + agent_id + task_id + turn_id + causal_id + generation and does not enforce repository-global uniqueness of causal_id by itself."
+    },
+    {
+      "path": "workpackages/reconciliations/F2-WP-102/1-F2-WP-102-G1-GPT56SOL-db4ddad2.json",
+      "git_blob_sha": "38bea2b2523f0bfd437bbb61e3a772c371c5c56b",
+      "observation": "The canonical reconciliation already requires preserving explicit CausalIdentity parent/child lineage and fusing it into the survivor."
+    }
+  ],
+  "hypothesis": "Until the reconciled CausalIdentity tuple is fused into the canonical WP-102 binding, the current deterministic binding projection is insufficient to distinguish two admissible causal contexts that share the same causal_id and the same work-execution fields but differ in omitted session/task/turn/causal-generation identity.",
+  "counterhypothesis": "A stronger upstream invariant may make causal_id globally unique across all sessions/tasks/turns and may be mechanically enforced before WP-102. If that invariant exists and is executable, causal_id-only projection could be sufficient at this boundary.",
+  "source_level_discriminator": {
+    "context_a": {
+      "session_id": "session:A",
+      "agent_id": "agent:parent",
+      "task_id": "task:A",
+      "turn_id": "turn:1",
+      "causal_id": "cause:shared",
+      "generation": 0
+    },
+    "context_b": {
+      "session_id": "session:B",
+      "agent_id": "agent:parent",
+      "task_id": "task:B",
+      "turn_id": "turn:1",
+      "causal_id": "cause:shared",
+      "generation": 0
+    },
+    "shared_active_binding_inputs": {
+      "schema": "FRANKENSTEIN2_WORK_EXECUTION_BINDING/v1",
+      "workpackage_id": "F2-WP-102",
+      "generation": 1,
+      "claim_id": "claim:demo",
+      "causal_id": "cause:shared",
+      "invocation_id": "invoke:1",
+      "tool_use_id": "tool:1",
+      "child_agent_id": "agent:child",
+      "child_execution_id": "exec:1",
+      "identity_provenance": "fixture"
+    },
+    "computed_binding_id_for_both_contexts": "wex:8df6fbe65000ae207e3b4fbdedd937db8d6a87cd61a016521f0dec7e2172e860",
+    "result": "SOURCE_LEVEL_PROJECTION_COLLISION_BY_OMITTED_CONTEXT",
+    "runtime_collision_observed": false
+  },
+  "falsification_or_fix_gate": [
+    "Either prove and cite an executable upstream invariant that makes causal_id globally unique at the WP-102 admission boundary,",
+    "or fuse the complete required CausalIdentity identity (or a deterministic digest that is collision-separating over that tuple) into the canonical WP-102 binding preimage,",
+    "and add a regression proving two admissible contexts that differ only in session/task/turn/causal-generation cannot collapse to one work-execution binding."
+  ],
+  "scope_boundary": "SOURCE_REVIEW_AND_DETERMINISTIC_PREIMAGE_ANALYSIS_ONLY",
+  "runtime_execution_observed": false,
+  "runtime_credit": 0,
+  "whole_system_credit": 0,
+  "stage2_promotion_credit": 0,
+  "next_exact_action": "Canonical WP-102 owner should resolve this falsifier during the already-required survivor/duplicate fusion before Stage-1 coordination acceptance; do not start a competing WP-102 implementation."
+}
