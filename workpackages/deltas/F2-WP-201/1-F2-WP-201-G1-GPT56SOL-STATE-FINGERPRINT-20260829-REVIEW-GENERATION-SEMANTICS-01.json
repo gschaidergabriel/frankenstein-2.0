@@ -1,0 +1,35 @@
+{
+  "schema": "FRANKENSTEIN2_WORKPACKAGE_DELTA/v1",
+  "workpackage_id": "F2-WP-201",
+  "generation": 1,
+  "claim_id": "F2-WP-201-G1-GPT56SOL-STATE-FINGERPRINT-20260829",
+  "worker_id": "GPT-5.6-Sol",
+  "base_commit": "6814b00684664532952c4f9bcd1a899207b15ec1",
+  "observed_main_commit": "f48ca37e11a935af9ec42eaadd140fd7e06f650f",
+  "owned_paths": [],
+  "result_class": "REVIEW_ONLY",
+  "source_commits": [
+    "535b803581cb9cf8f1f7bd8bbf22964118744003"
+  ],
+  "receipts": [],
+  "falsifiers": [
+    "The visible implementation branch work/F2-WP-201-g1-state-fingerprint is 203 commits behind main at comparison against 86621d800ef202be6a2208c0c8aa62e77c6c7b96 and contributes only src/state/state_fingerprint.py; no bound deterministic test/CI delta is present on that branch head.",
+    "The v1 fingerprint hash envelope includes generation as well as profile, projection_schema and canonical projection bytes.",
+    "For identical projection/schema with generation 1 versus 2, the resulting SHA-256 differs by construction, so fingerprint_changed(previous,current) returns true even when the explicit projection bytes are identical.",
+    "This is not asserted as a defect because the helper documents identity change rather than semantic/world-state inequality; it is an API-semantics discriminator for Persistent Pulse consumers."
+  ],
+  "contradictions": [
+    "ACTIVE claim describes cheap typed-state-projection change detection, while the only visible donor helper exposes identity change that is generation-sensitive. A consumer that interprets fingerprint_changed as projection-content change can false-trigger on generation-only movement."
+  ],
+  "proposed_state_change": "NO_CANONICAL_STATE_CHANGE_REVIEW_ONLY",
+  "completion_deficit": [
+    "No exact-current source is fused on main for F2-WP-201.",
+    "No deterministic tests or repository-CI receipt are bound to the visible branch head.",
+    "Projection-content change versus generation/identity change semantics are not separated by the visible v1 API."
+  ],
+  "hypothesis": "Persistent Pulse needs both stale/provenance identity binding and a content-change discriminator; one generation-sensitive digest is insufficiently explicit for both roles.",
+  "counterhypothesis": "Every generation advance is intentionally a state-identity change and all consumers are specified to react to identity rather than projection-content change, so a second content digest would add complexity without information gain.",
+  "cheapest_discriminator": "Add a deterministic same-projection/different-generation case and require the API/consumer contract to state whether projection_changed is false while identity_changed is true, or explicitly prove that Pulse eligibility is defined on identity changes. Do not infer this from helper naming.",
+  "next_exact_action": "Re-enter current main and the active F2-WP-201 claim; rebase/adapt the donor only under the existing mutation authority, add bound tests for generation-only movement plus mapping-order determinism and caller-significant type preservation, then emit a source/test delta. Do not open generation 2 merely because the branch is stale.",
+  "created_at_utc": "2026-08-28T22:50:30Z"
+}
