@@ -26,12 +26,16 @@ class DeferredReturnEnvelopeTests(unittest.TestCase):
         )
         pending = NativeChildBinding(
             workpackage_id="F2-WP-102",
+            workpackage_generation=1,
+            claim_id="F2-WP-102-G1-test",
             parent=self.parent,
+            invocation_id="invocation-7",
             tool_use_id="tool-use-7",
             delegation_id="delegation-7",
             child=self.child,
         )
         self.binding = pending.bind_result(
+            invocation_id="invocation-7",
             delegation_id="delegation-7",
             child_causal_id="causal-child",
             result_id="result-7",
@@ -58,11 +62,16 @@ class DeferredReturnEnvelopeTests(unittest.TestCase):
         self.assertEqual(envelope.result_sha256, "a" * 64)
         self.assertEqual(envelope.resume.parent_causal_id, self.child.causal_id)
         self.assertEqual(envelope.resume.agent_id, self.parent.agent_id)
+        self.assertEqual(envelope.binding.invocation_id, "invocation-7")
+        self.assertEqual(envelope.binding.claim_id, "F2-WP-102-G1-test")
 
     def test_unbound_child_result_is_rejected(self) -> None:
         pending = NativeChildBinding(
             workpackage_id="F2-WP-102",
+            workpackage_generation=1,
+            claim_id="F2-WP-102-G1-test",
             parent=self.parent,
+            invocation_id="invocation-7",
             tool_use_id="tool-use-7",
             delegation_id="delegation-7",
             child=self.child,
