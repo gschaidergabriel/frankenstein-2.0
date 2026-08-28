@@ -7,6 +7,7 @@ on:
       - 'src/frankenstein2/entityos_effect_gate_call_bridge.py'
       - 'src/frankenstein2/effect_executor_interlock.py'
       - 'src/frankenstein2/canonical_effect_authority_bridge.py'
+      - 'tests/fixtures/entityos_effect_authority_2b68/**'
       - 'tests/test_bound_entityos_effect_authority_matrix.py'
       - '.github/workflows/bound-entityos-effect-authority-matrix-ci.yml'
   push:
@@ -16,6 +17,7 @@ on:
       - 'src/frankenstein2/entityos_effect_gate_call_bridge.py'
       - 'src/frankenstein2/effect_executor_interlock.py'
       - 'src/frankenstein2/canonical_effect_authority_bridge.py'
+      - 'tests/fixtures/entityos_effect_authority_2b68/**'
       - 'tests/test_bound_entityos_effect_authority_matrix.py'
       - '.github/workflows/bound-entityos-effect-authority-matrix-ci.yml'
   workflow_dispatch:
@@ -33,16 +35,27 @@ jobs:
     steps:
       - name: Checkout Frankenstein 2.0 candidate
         uses: actions/checkout@v4
-      - name: Checkout exact canonical authority binding commit
-        uses: actions/checkout@v4
-        with:
-          repository: gschaidergabriel/clay-global-research-entity
-          ref: 5638204026468b631de5e774e8403d7a6334021e
-          path: canonical-clay
-          persist-credentials: false
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
+      - name: Materialize hash-verifiable exact-bound fixture repository
+        shell: bash
+        run: |
+          set -euo pipefail
+          fixture='tests/fixtures/entityos_effect_authority_2b68'
+          root="$ENTITYOS_CANONICAL_ROOT"
+          mkdir -p "$root/the artefact/clayverse" "$root/research_entity/continuity"
+          cp "$fixture/clayverse/effects.py" "$root/the artefact/clayverse/effects.py"
+          cp "$fixture/clayverse/effect_journal.py" "$root/the artefact/clayverse/effect_journal.py"
+          cp "$fixture/clayverse/store.py" "$root/the artefact/clayverse/store.py"
+          cp "$fixture/clayverse/entityos_bridge.py" "$root/the artefact/clayverse/entityos_bridge.py"
+          cp "$fixture/ENTITYOS_EFFECT_AUTHORITY_IMPLEMENTATION_BINDING_V1.json" \
+            "$root/research_entity/continuity/ENTITYOS_EFFECT_AUTHORITY_IMPLEMENTATION_BINDING_V1.json"
+          git -C "$root" init -q
+          git -C "$root" config user.name 'WP105 exact-bound fixture'
+          git -C "$root" config user.email 'wp105-fixture@example.invalid'
+          git -C "$root" add .
+          git -C "$root" commit -q -m 'materialize exact-bound test bytes'
       - name: Compile bound authority integration
         run: >-
           python -m py_compile
@@ -51,6 +64,10 @@ jobs:
           src/frankenstein2/effect_executor_interlock.py
           src/frankenstein2/canonical_effect_authority_bridge.py
           tests/test_bound_entityos_effect_authority_matrix.py
+          tests/fixtures/entityos_effect_authority_2b68/clayverse/effects.py
+          tests/fixtures/entityos_effect_authority_2b68/clayverse/effect_journal.py
+          tests/fixtures/entityos_effect_authority_2b68/clayverse/store.py
+          tests/fixtures/entityos_effect_authority_2b68/clayverse/entityos_bridge.py
       - name: Run exact-bound no-real-effect matrix
         run: python tests/test_bound_entityos_effect_authority_matrix.py
       - name: Run WP105 executor-interlock regressions
