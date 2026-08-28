@@ -1,0 +1,32 @@
+{
+  "schema": "FRANKENSTEIN2_WORKPACKAGE_DELTA/v1",
+  "workpackage_id": "F2-WP-205",
+  "generation": 4,
+  "claim_id": "F2-WP-205-G4-GPT56SOL-CONFLICT-POLICY-PRECEDENCE-20260829",
+  "worker_id": "GPT-5.6-Sol-REVIEW",
+  "result_class": "REVIEW_ONLY",
+  "owned_paths": [],
+  "observed_main_commit": "06bf2d998ff1ac280cee7cec9bc51747b0d88add",
+  "source_refs": [
+    "src/frankenstein2/wake_hold.py@ced7c585e8005af2a932ef4161df3eb4bcd34878",
+    "tests/test_wake_hold.py@662fdb2af477d0e25d7dc166d87ce371178eb282",
+    "tests/test_wake_hold_conflict.py@main",
+    "GITHUB_ACTIONS_RUN:33219487705",
+    "GITHUB_ACTIONS_RUN:33219574285"
+  ],
+  "observations": [
+    "The generation-4 source implements the claimed policy precedence: WAKE_ANY returns WAKE_CONDITION_MATCH when any clean matched condition exists even if an independent sibling condition is conflicting; WAKE_ALL returns HOLD_CONDITION_NOT_MATCHED when any clean explicit nonmatch exists even if an independent sibling condition is conflicting.",
+    "Commit 662fdb2af477d0e25d7dc166d87ce371178eb282 adds positive generation-4 regressions for both precedence rules plus same-condition conflict abstention.",
+    "The older tests/test_wake_hold_conflict.py still contains test_conflict_dominates_other_any_policy_match, which asserts wake=False and ABSTAIN_CONFLICTING_OBSERVATIONS for an independent clean PRESENT match plus a sibling EQUALS conflict. That expectation directly contradicts the generation-4 claim.",
+    "Repository-hosted CI run 33219487705 failed exactly at that legacy assertion after the source repair; run 33219574285 remained failure after the new generation-4 regressions were added because the legacy contradictory expectation was still present."
+  ],
+  "classification": "SOURCE_POLICY_AND_NEW_REGRESSIONS_ALIGNED__LEGACY_TEST_EXPECTATION_STALE",
+  "counterhypothesis": "If the intended policy is actually global conflict dominance rather than condition-local conflict with Boolean short-circuit precedence, then the generation-4 claim and new tests are wrong. The active claim explicitly states the opposite, so current evidence favors migrating the legacy test rather than reverting the source.",
+  "cheapest_discriminator": "Replace or reframe only the legacy test_conflict_dominates_other_any_policy_match expectation so it asserts the generation-4 ANY precedence while retaining test_conflicting_same_key_equals_observations_abstain as the same-condition fail-closed guard; rerun the full wake/provenance suite on the exact resulting head.",
+  "proposed_state_change": "NO_CANONICAL_STATE_CHANGE_REVIEW_ONLY",
+  "runtime_execution_observed": false,
+  "runtime_credit": 0,
+  "physical_grid10_credit": 0,
+  "whole_system_acceptance": false,
+  "next_exact_action": "Active F2-WP-205 generation-4 mutation authority should remove the contradictory legacy global-conflict expectation without weakening same-condition conflict abstention, obtain exact-head hosted CI PASS, then reconcile at component scope only."
+}
