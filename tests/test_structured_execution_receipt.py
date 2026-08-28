@@ -7,6 +7,7 @@ from frankenstein2.effect_invocation_correlation import (
     EffectCallBinding,
     EffectCorrelationStage,
 )
+from frankenstein2.effect_request_identity import EffectRequestIdentity
 from frankenstein2.structured_execution_receipt import (
     StructuredExecutionReceipt,
     StructuredExecutionReceiptError,
@@ -44,7 +45,18 @@ def admitted() -> ExecutionLineage:
     )
 
 
-def prepared() -> EffectCallBinding:
+def semantic_request(target: str = "target-A") -> EffectRequestIdentity:
+    return EffectRequestIdentity(
+        user_id="user-A",
+        session_id="session-A",
+        capability="entityos.exec",
+        target=target,
+        argv=("run", target),
+        expected_generation=7,
+    )
+
+
+def prepared(*, semantic: bool = False) -> EffectCallBinding:
     return EffectCallBinding(
         effect_id="canonical-effect-A",
         return_id=None,
@@ -54,10 +66,15 @@ def prepared() -> EffectCallBinding:
         delegation_id="delegation-A",
         child_identity_sha256=CHILD_SHA,
         stage=EffectCorrelationStage.PREPARED,
+        request=semantic_request() if semantic else None,
     )
 
 
-def receipt(*, raw_status: str = "SUCCEEDED") -> StructuredExecutionReceipt:
+def receipt(
+    *,
+    raw_status: str = "SUCCEEDED",
+    request_sha256: str | None = None,
+) -> StructuredExecutionReceipt:
     return StructuredExecutionReceipt(
         receipt_id="executor-receipt-A",
         effect_id="canonical-effect-A",
@@ -74,6 +91,7 @@ def receipt(*, raw_status: str = "SUCCEEDED") -> StructuredExecutionReceipt:
         raw_status=raw_status,
         result_id="result-A",
         result_sha256=RESULT_SHA,
+        request_sha256=request_sha256,
     )
 
 
@@ -96,6 +114,41 @@ class StructuredExecutionReceiptTests(unittest.TestCase):
             observed.observed_call.stage,
             EffectCorrelationStage.RESULT_OBSERVED,
         )
+
+    def test_semantic_request_digest_survives_structured_receipt(self) -> None:
+        call = prepared(semantic=True)
+        observed = apply_structured_execution_receipt(
+            call,
+            admitted(),
+            receipt(request_sha256=call.request_sha256),
+        )
+        self.assertEqual(observed.observed_call.request_sha256, call.request_sha256)
+        self.assertEqual(observed.receipt.request_sha256, call.request_sha256)
+
+    def test_missing_semantic_request_digest_is_rejected_before_lineage_replacement(self) -> None:
+        call = prepared(semantic=True)
+        line = admitted()
+        with self.assertRaisesRegex(
+            StructuredExecutionReceiptError, "REQUEST_SHA256_REQUIRED"
+        ):
+            apply_structured_execution_receipt(call, line, receipt())
+        self.assertEqual(line.stage, ExecutionStage.ADMITTED)
+        self.assertIsNone(line.execution_attempt_id)
+
+    def test_substituted_semantic_request_digest_is_rejected_before_lineage_replacement(self) -> None:
+        call = prepared(semantic=True)
+        line = admitted()
+        wrong = semantic_request("target-B").sha256()
+        with self.assertRaisesRegex(
+            StructuredExecutionReceiptError, "REQUEST_SHA256_MISMATCH"
+        ):
+            apply_structured_execution_receipt(
+                call,
+                line,
+                receipt(request_sha256=wrong),
+            )
+        self.assertEqual(line.stage, ExecutionStage.ADMITTED)
+        self.assertIsNone(line.execution_attempt_id)
 
     def test_success_like_strings_are_not_success(self) -> None:
         for status in (
@@ -162,14 +215,17 @@ class StructuredExecutionReceiptTests(unittest.TestCase):
                 replace(receipt(), admission_id="admission-B"),
             )
 
-    def test_receipt_payload_fingerprint_changes_with_result_or_status(self) -> None:
+    def test_receipt_payload_fingerprint_changes_with_result_status_or_semantic_request(self) -> None:
         base = receipt()
         changed_result = replace(base, result_sha256="c" * 64)
         changed_status = replace(base, raw_status="SUCCESS")
+        changed_request = replace(base, request_sha256="d" * 64)
         self.assertNotEqual(base.fingerprint(), changed_result.fingerprint())
         self.assertNotEqual(base.fingerprint(), changed_status.fingerprint())
+        self.assertNotEqual(base.fingerprint(), changed_request.fingerprint())
         self.assertNotEqual(base.transition_id(), changed_result.transition_id())
         self.assertNotEqual(base.transition_id(), changed_status.transition_id())
+        self.assertNotEqual(base.transition_id(), changed_request.transition_id())
 
     def test_exact_receipt_replay_is_idempotent_at_lineage_layer(self) -> None:
         call = prepared()
