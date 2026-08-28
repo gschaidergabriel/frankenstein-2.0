@@ -1,0 +1,129 @@
+{
+  "schema_version": 1,
+  "generated_at": "2026-08-28T21:03:00Z",
+  "summary": {
+    "source": "materialized_view",
+    "view_events": 3,
+    "llm_calls": 0,
+    "token_usage_rows": 0,
+    "audit_events": 1,
+    "sessions": 1,
+    "input_tokens": 0,
+    "output_tokens": 0,
+    "total_tokens": 0,
+    "start_timestamp_ms": 1000,
+    "end_timestamp_ms": 2000,
+    "audit_limit": 100
+  },
+  "token_summary": [],
+  "network_targets": [
+    {
+      "pid": 101,
+      "comm": "tool",
+      "host": "secret.example",
+      "path": "/token/SHOULD_NOT_LEAK",
+      "count": 1,
+      "error_count": 0,
+      "first_timestamp_ms": 1000,
+      "last_timestamp_ms": 1000
+    }
+  ],
+  "process_nodes": [
+    {
+      "id": "proc-1",
+      "pid": 101,
+      "ppid": 1,
+      "root_pid": 101,
+      "start_timestamp_ms": 1000,
+      "end_timestamp_ms": 2000,
+      "comm": "tool",
+      "command": "tool --token SUPERSECRET",
+      "argv": ["tool", "--token", "SUPERSECRET"],
+      "cwd": "/home/private",
+      "exit_code": 0,
+      "status": "exited",
+      "view_source": "view",
+      "confidence": 0.99
+    }
+  ],
+  "audit_events": [
+    {
+      "id": "audit-1",
+      "timestamp_ms": 1100,
+      "audit_type": "file_open",
+      "pid": 101,
+      "comm": "tool",
+      "subject": "private-subject",
+      "action": "read",
+      "target": "/secret/path",
+      "status": "ok",
+      "summary": "read /secret/path",
+      "details": {"token": "SUPERSECRET"},
+      "view_source": "view",
+      "confidence": 0.95
+    }
+  ],
+  "resource_samples": [
+    {
+      "timestamp_ms": 1200,
+      "pid": 101,
+      "comm": "tool",
+      "cpu_percent": 1.2,
+      "rss_mb": 12
+    }
+  ],
+  "sessions": [
+    {
+      "id": "sess-native",
+      "agent_type": "claude",
+      "start_timestamp_ms": 900,
+      "end_timestamp_ms": 2100,
+      "status": "completed",
+      "model": "model",
+      "input_tokens": 10,
+      "output_tokens": 5,
+      "total_tokens": 15,
+      "view_source": "agent_native_session",
+      "confidence": 0.6,
+      "attributes": {"secret": "SUPERSECRET"}
+    }
+  ],
+  "tool_calls": [
+    {
+      "id": "tc-view",
+      "session_id": "s1",
+      "conversation_id": "c1",
+      "timestamp_ms": 1300,
+      "tool_name": "Bash",
+      "tool_call_id": "foreign-tc-1",
+      "start_timestamp_ms": 1290,
+      "end_timestamp_ms": 1310,
+      "duration_ms": 20,
+      "status": "ok",
+      "input": {"cmd": "echo SUPERSECRET"},
+      "output": {"stdout": "SUPERSECRET"},
+      "related_pid": 101,
+      "related_event_id": "audit-1",
+      "view_source": "view",
+      "confidence": 0.9
+    },
+    {
+      "id": "tc-native",
+      "session_id": "sess-native",
+      "conversation_id": "c2",
+      "timestamp_ms": 1400,
+      "tool_name": "Read",
+      "tool_call_id": "foreign-tc-2",
+      "start_timestamp_ms": 1390,
+      "end_timestamp_ms": 1410,
+      "duration_ms": 20,
+      "status": "ok",
+      "input": {"file_path": "/secret/path"},
+      "output": {"text": "SUPERSECRET"},
+      "related_pid": null,
+      "related_event_id": null,
+      "view_source": "agent_native_session",
+      "confidence": 0.55
+    }
+  ]
+}

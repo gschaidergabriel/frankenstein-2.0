@@ -1,0 +1,30 @@
+name: Trigger 6 AgentSight E3 Fixture CI
+
+on:
+  pull_request:
+    paths:
+      - 'research/tool_intelligence/experiments/agentsight_e3_fixture_adapter.py'
+      - 'tests/fixtures/agentsight_schema_v1_mixed_provenance.json'
+      - 'tests/fixtures/f2_native_telemetry_baseline.json'
+      - 'tests/test_trigger6_agentsight_e3_fixture.py'
+      - '.github/workflows/trigger6-agentsight-e3-fixture-ci.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  provenance-boundary-fixture:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      PYTHONPATH: .
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Compile adapter and falsifier tests
+        run: python -m py_compile research/tool_intelligence/experiments/agentsight_e3_fixture_adapter.py tests/test_trigger6_agentsight_e3_fixture.py
+      - name: Run provenance-boundary fixture falsifiers
+        run: python tests/test_trigger6_agentsight_e3_fixture.py
