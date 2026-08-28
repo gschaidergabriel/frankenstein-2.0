@@ -1,0 +1,37 @@
+name: Frankenstein 2.0 WP501 Cognitive Envelope CI
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'src/frankenstein2/cognitive_envelope.py'
+      - 'tests/test_cognitive_envelope.py'
+      - '.github/workflows/wp501-cognitive-envelope-ci.yml'
+  pull_request:
+    paths:
+      - 'src/frankenstein2/cognitive_envelope.py'
+      - 'tests/test_cognitive_envelope.py'
+      - '.github/workflows/wp501-cognitive-envelope-ci.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  cognitive-envelope:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      PYTHONPATH: .:src
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Compile WP501 source and regressions
+        run: >-
+          python -m py_compile
+          src/frankenstein2/cognitive_envelope.py
+          tests/test_cognitive_envelope.py
+      - name: Run WP501 deterministic fail-closed regressions
+        run: python tests/test_cognitive_envelope.py
