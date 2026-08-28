@@ -1,0 +1,92 @@
+{
+  "schema": "ENTITYOS_EFFECT_AUTHORITY_IMPLEMENTATION_BINDING/v1",
+  "status": "CURRENT_EXACT_SOURCE_IDENTITY_BINDING_NO_NEW_AUTHORITY",
+  "trigger": "4",
+  "resolved_from_main": "2b68aad14bf7824d513b52898904909256e3522d",
+  "authority_basis": {
+    "canonical_repository": "gschaidergabriel/clay-global-research-entity",
+    "canonical_branch": "main",
+    "artifact_manifest_path": "the artefact/manifest.json",
+    "artifact_manifest_blob_sha": "c1969463d378f828bac7bbb44c55a2851b61c273",
+    "artifact_manifest_effect_authority": "EffectGate+EffectJournal",
+    "execution_authority_pointer_path": "CLAY_EXECUTION_AUTHORITY.md",
+    "execution_authority_pointer_blob_sha": "b850dbdf0ec5b4c04aa0c7f6e6a98a07f6f9d2f9",
+    "supervisor_path": "research_entity/claycode/autonomous/SUPERVISOR_STEERING_8_78.json",
+    "supervisor_blob_sha": "da92d51c52fcf1c4f965f89abae5c3866f0e10cc",
+    "supervisor_epoch": "8.78",
+    "resolution_rule": "This record narrows the already-admitted EffectGate+EffectJournal authority to exact executable source identities; it does not create, broaden, replace, or self-grant effect authority."
+  },
+  "implementation_identity": {
+    "repository": "gschaidergabriel/clay-global-research-entity",
+    "bound_commit": "2b68aad14bf7824d513b52898904909256e3522d",
+    "effect_gate": {
+      "path": "the artefact/clayverse/effects.py",
+      "blob_sha": "4a6413b3f3c752c6327e67233bdd8097f3cf0ba4",
+      "request_symbol": "EffectRequest",
+      "gate_symbol": "EffectGate"
+    },
+    "effect_journal": {
+      "path": "the artefact/clayverse/effect_journal.py",
+      "blob_sha": "cda63471f1467481f2ff79032d3931730a334a20",
+      "journal_symbol": "EffectJournal"
+    },
+    "canonical_state_schema": {
+      "path": "the artefact/clayverse/store.py",
+      "blob_sha": "a88d923ea3d0eab5847f304f35463e5a2b2c4acd",
+      "state_symbol": "UnifiedDB",
+      "schema_version": "6",
+      "effect_tables": [
+        "effects",
+        "causal_episodes",
+        "active_turns",
+        "leases"
+      ]
+    }
+  },
+  "api_contract": {
+    "version": "ENTITYOS_EFFECT_AUTHORITY_PY_API/v1",
+    "effect_gate_call": "EffectGate.execute(req, episode_id=None, lease=None) -> (effect_id, outcome)",
+    "journal_begin": "EffectJournal.begin(episode_id, session_id, user_id, capability, target, generation, argv=None, lease=None) -> effect_id",
+    "journal_finalizers": [
+      "EffectJournal.complete(effect_id, outcome, status)",
+      "EffectJournal.complete_verified(effect_id, outcome, session_id, user_id, generation, lease=None)",
+      "EffectJournal.recover_pending()"
+    ],
+    "journal_states": [
+      "PENDING",
+      "VERIFIED",
+      "DENIED",
+      "FAILED",
+      "STALE_OUTCOME",
+      "UNKNOWN_AFTER_RESTART"
+    ]
+  },
+  "required_fail_closed_invariants": [
+    "caller does not supply canonical effect_id; EffectJournal.begin allocates it",
+    "real or EntityOS-bound execution cannot precede journal PENDING creation",
+    "stale session/entity generation is rejected",
+    "stale lease is rejected where a lease applies",
+    "an episode cannot silently receive a second persisted effect",
+    "UNKNOWN_AFTER_RESTART remains unknown and cannot authorize automatic replay",
+    "model, executor, adapter, or caller text cannot choose a different canonical EffectGate/EffectJournal implementation",
+    "any repository/path/blob/schema/API mismatch against this binding fails closed before Frankenstein-2.0 dispatch integration"
+  ],
+  "frankenstein2_consumption": {
+    "target_workpackage": "F2-WP-105",
+    "rule": "The active Frankenstein-2.0 WP105 lane may consume this record only as exact external authority identity. The F2 adapter remains non-authoritative and must reject mismatched or caller-authored authority_ref/effect_id values.",
+    "mutation_of_active_wp105_by_this_record": false
+  },
+  "credit_boundary": {
+    "canonical_effect_authority_source_identity_resolved": true,
+    "effectgate_runtime_credit_added": 0,
+    "effectjournal_runtime_credit_added": 0,
+    "real_effect_runtime_credit_added": 0,
+    "external_world_verification_runtime_credit_added": 0,
+    "completion_runtime_credit_added": 0,
+    "physical_grid10_runtime_credit_added": 0,
+    "whole_frankenstein2_runtime_credit_added": 0,
+    "whole_entityos_hcu_runtime_credit_added": 0,
+    "training_credit_added": 0
+  },
+  "next_exact_gate": "In the already-active F2-WP-105 lane, consume this exact binding and run the deterministic no-real-effect matrix: exact request -> bound canonical authority -> journal PENDING -> executor stub -> VERIFIED-or-UNKNOWN journal transition -> separate completion verification; prove DENY/UNKNOWN and every authority/blob/call-identity mismatch produce zero executor dispatch, and prove restart uncertainty remains UNKNOWN without replay."
+}
