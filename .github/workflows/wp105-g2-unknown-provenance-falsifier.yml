@@ -1,0 +1,42 @@
+name: F2 WP105 G2 UNKNOWN provenance falsifier
+
+on:
+  push:
+    branches:
+      - trigger4/wp105-g2-unknown-provenance-falsifier-20260829
+    paths:
+      - 'src/frankenstein2/entityos_unknown_outcome_adapter.py'
+      - 'src/frankenstein2/effect_executor_interlock.py'
+      - 'tests/test_wp105_g2_unknown_provenance_falsifier.py'
+      - '.github/workflows/wp105-g2-unknown-provenance-falsifier.yml'
+  pull_request:
+    paths:
+      - 'src/frankenstein2/entityos_unknown_outcome_adapter.py'
+      - 'src/frankenstein2/effect_executor_interlock.py'
+      - 'tests/test_wp105_g2_unknown_provenance_falsifier.py'
+      - '.github/workflows/wp105-g2-unknown-provenance-falsifier.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  falsifier:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      PYTHONPATH: src
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Verify exact reviewed source blobs
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git hash-object src/frankenstein2/effect_executor_interlock.py)" = "552802db239589a2dac2414a206f452c671d88b6"
+          test "$(git hash-object src/frankenstein2/entityos_unknown_outcome_adapter.py)" = "8c165e2b9147479c42247a3ac8cdaa98ffbf7e16"
+      - name: Compile falsifier
+        run: python -m py_compile tests/test_wp105_g2_unknown_provenance_falsifier.py
+      - name: Require provenance-bound UNKNOWN translation
+        run: python tests/test_wp105_g2_unknown_provenance_falsifier.py
