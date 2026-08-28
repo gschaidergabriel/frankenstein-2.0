@@ -1,0 +1,31 @@
+{
+  "schema": "FRANKENSTEIN2_WORKPACKAGE_DELTA/v1",
+  "workpackage_id": "F2-WP-202",
+  "generation": 2,
+  "claim_id": "F2-WP-202-G2-GPT56SOL-STATEFINGERPRINT-BINDING-20260829",
+  "worker_id": "GPT-5.6-Sol-REVIEW",
+  "observed_main_commit": "f1e8d5b09048523215ef4c52d35954a8fe42b222",
+  "owned_paths": [],
+  "result_class": "REVIEW_ONLY",
+  "source_refs": [
+    "src/frankenstein2/state_fingerprint.py@main",
+    "src/frankenstein2/prediction_contract.py@main",
+    "workpackages/active/F2-WP-202.json@main"
+  ],
+  "observations": [
+    "Accepted StateFingerprint v2 deliberately rejects float projection values rather than coercing them.",
+    "PredictionContract generation 1 deliberately accepts finite float leaves and computes same-type numeric float residuals.",
+    "Therefore the new typed StateFingerprint binding path has a strictly narrower projection domain than the legacy PredictionContract projection domain unless generation 2 makes that boundary explicit.",
+    "F2-WP-202 generation 2 is forbidden from mutating F2-WP-201, so widening StateFingerprint's domain is not available inside this claim."
+  ],
+  "risk": "A silent typed-to-legacy fallback, coercion, or partial fingerprint can make a prediction appear StateFingerprint-bound when the exact projection was never admissible under the accepted fingerprint ABI.",
+  "hypothesis": "The typed binding path should explicitly fail closed for projections outside the accepted StateFingerprint domain while the separately named legacy explicit-hash compatibility path remains available; callers must be able to tell which path produced the contract/residual.",
+  "counterhypothesis": "Generation 2 may define the typed path only for the StateFingerprint-compatible subset and retain all float-bearing predictions exclusively on the legacy path, in which case no defect exists if the distinction is explicit, test-covered, and cannot silently downgrade.",
+  "cheapest_discriminator": "Regression: create a valid legacy PredictionContract whose projection contains finite float 1.5; prove that requesting typed StateFingerprint binding either rejects with an explicit domain error and no typed contract is produced, or follows an explicitly distinct compatibility route. Also prove no float->int/string coercion and no silent typed->legacy downgrade.",
+  "proposed_state_change": "NO_CANONICAL_STATE_CHANGE_REVIEW_ONLY",
+  "runtime_execution_observed": false,
+  "runtime_credit": 0,
+  "physical_grid10_credit": 0,
+  "whole_system_acceptance": false,
+  "next_exact_action": "Active F2-WP-202 mutation authority should include the cross-domain regression in its deterministic suite before component-CI reconciliation."
+}
