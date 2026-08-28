@@ -1,0 +1,30 @@
+name: WP301 cross-axis evidence aliasing falsifier
+
+on:
+  pull_request:
+    paths:
+      - 'src/frankenstein2/emergent_retrieval.py'
+      - 'src/frankenstein2/memory_lifecycle.py'
+      - 'workpackages/falsifiers/F2-WP-301/wp301_cross_axis_evidence_aliasing_falsifier.py'
+      - '.github/workflows/wp301-cross-axis-evidence-falsifier-ci.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  reproduce-negative-result:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Run accepted WP301 regression suite
+        env:
+          PYTHONPATH: src
+        run: python -m unittest tests/test_emergent_retrieval.py
+      - name: Reproduce cross-axis evidence aliasing counterexample
+        env:
+          PYTHONPATH: src
+        run: python workpackages/falsifiers/F2-WP-301/wp301_cross_axis_evidence_aliasing_falsifier.py
