@@ -202,6 +202,22 @@ class EpistemicRecordTests(unittest.TestCase):
                 causal_refs=("parent-1", "parent-1"),
             )
 
+    def test_identity_and_provenance_refs_must_be_already_trimmed(self):
+        cases = (
+            dict(record_id=" obs-1", observation_ref="sensor:1", causal_refs=()),
+            dict(record_id="obs-1", observation_ref="sensor:1 ", causal_refs=()),
+            dict(record_id="obs-1", observation_ref="sensor:1", causal_refs=(" parent-1",)),
+        )
+        for kwargs in cases:
+            with self.subTest(kwargs=kwargs):
+                with self.assertRaisesRegex(EpistemicRecordError, "already trimmed"):
+                    ObservedEvidence.create(
+                        generation=1,
+                        payload={"value": 1},
+                        provenance_sha256=PROVENANCE_A,
+                        **kwargs,
+                    )
+
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)
