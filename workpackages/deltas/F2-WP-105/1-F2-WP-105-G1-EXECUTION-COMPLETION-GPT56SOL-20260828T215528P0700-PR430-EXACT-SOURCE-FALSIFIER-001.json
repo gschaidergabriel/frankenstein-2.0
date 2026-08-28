@@ -1,0 +1,62 @@
+{
+  "schema": "FRANKENSTEIN2_WORKPACKAGE_DELTA/v1",
+  "workpackage_id": "F2-WP-105",
+  "generation": 1,
+  "claim_id": "F2-WP-105-G1-EXECUTION-COMPLETION-GPT56SOL-20260828T215528P0700",
+  "worker_id": "GPT-5.6-Sol",
+  "base_commit": "944ffcbb035a2e02397b6acb5e37d42db44b7816",
+  "observed_main_commit": "a01b5afb5c06db474b516e91bed0960f8a19276a",
+  "owned_paths": [],
+  "result_class": "FALSIFIER",
+  "source_commits": [
+    "gschaidergabriel/clay-global-research-entity@2f99e400f1c0ea1b8598573ab0fab993885cba5e",
+    "gschaidergabriel/frankenstein-2.0@a01b5afb5c06db474b516e91bed0960f8a19276a"
+  ],
+  "receipts": [
+    {
+      "type": "LOCAL_NORMAL_USER_EXACT_SOURCE_MECHANISM_PROBE",
+      "execution_authority": "SUPERVISOR_8_78_FREE_ONLY_ZERO_COST_LOCAL_NORMAL_USER",
+      "real_external_effect": false,
+      "provider_network_io": false,
+      "candidate_head": "2f99e400f1c0ea1b8598573ab0fab993885cba5e",
+      "verified_git_blobs": {
+        "the artefact/clayverse/entityos_bridge.py": "7781580f4e862c23491cc862e19c5d1f62b3ada6",
+        "the artefact/clayverse/effects.py": "ae1b8db9111868374258435e97c7dfeda41bc318",
+        "the artefact/clayverse/effect_journal.py": "4615150638dc4409317550d44b84d942a260de58"
+      },
+      "harness_sha256": "45644a3af8ea29100d0a1ae0d334eccec99f8470413dc1405cf4d2146b8152e3",
+      "command": "PYTHONPATH=candidate python -m pytest -q tests/test_pr430_exact_head_probe.py",
+      "observed_result": "7 passed in 0.21s",
+      "exit_code": 0,
+      "tested_semantics": [
+        "exact candidate source blob identity is verified before execution",
+        "real local child process starts before timeout and timeout becomes EntityOSOutcomeUnknown",
+        "EntityOSOutcomeUnknown.replay_permitted is false",
+        "generic communicate exception after successful Popen becomes EntityOSOutcomeUnknown",
+        "EffectGate maps EntityOSOutcomeUnknown to UNKNOWN_OUTCOME without false ok=false",
+        "EffectJournal admits UNKNOWN_OUTCOME as terminal and gives it zero causal credit",
+        "integrity and definite prelaunch/execution failures remain FAILED"
+      ],
+      "scope": "BOUNDED_EXACT_SOURCE_MECHANISM_RUNTIME_FALSIFIER_ONLY",
+      "limitations": [
+        "store.py was a deterministic import/type stub; no canonical UnifiedDB persistence path was exercised",
+        "EffectGate journal writes were observed through a deterministic fake journal for exception-classification tests",
+        "this is not an exact whole-branch pytest run and does not replace the retained PR430 hosted/runtime acceptance gates",
+        "no canonical EntityOS effect-authority binding changed"
+      ]
+    }
+  ],
+  "falsifiers": [
+    "If the exact candidate bridge failed to convert a post-Popen timeout/communication exception into EntityOSOutcomeUnknown, the successor mechanism would be rejected.",
+    "If EffectGate recorded UNKNOWN as FAILED or included ok=false, the successor mechanism would be rejected.",
+    "If UNKNOWN_OUTCOME received verified causal credit, the successor mechanism would be rejected.",
+    "If integrity/prelaunch failures were promoted to UNKNOWN without an observed child-start boundary, the successor mechanism would be rejected."
+  ],
+  "contradictions": [
+    "The retained PR430 prose contains older exact-source isolated evidence, while the current F2 checkpoint correctly withholds promotion because hosted exact-head/full integration execution and canonical successor binding are still absent. This new probe closes only a bounded current-head mechanism discriminator, not those promotion gates."
+  ],
+  "proposed_state_change": "NO_CANONICAL_STATE_CHANGE. Preserve PR430 as the single successor donor; upgrade only bounded exact-source mechanism evidence from source-only/zero-step-hosted uncertainty to locally executed current-head mechanism support.",
+  "completion_deficit": "Canonical 8.78 EffectGate/EffectJournal binding still points at the pre-successor implementation. Full promotion still requires exact persistent journal/store integration, current-authority successor binding/admission, and the appropriate exact-source integration/runtime acceptance without a real external effect unless separately authorized.",
+  "next_exact_action": "Run the retained PR430 exact effect/journal/store persistence tests at current head on an actually-started authorized zero-cost surface or reconstruct the exact store/identity dependencies byte-for-byte locally; then produce an explicit successor implementation-binding candidate for 8.78 authority review. Do not rebind Frankenstein 2.0 before that authority step.",
+  "created_at_utc": "2026-08-28T23:02:10Z"
+}
