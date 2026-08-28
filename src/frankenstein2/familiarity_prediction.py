@@ -2,20 +2,24 @@
 
 F2-WP-302 generation 1.
 
-This component binds an already-produced :class:`PredictionResidual` to explicit,
-caller-supplied familiarity evidence.  It never reads memory payloads, computes semantic
-similarity, observes the world, mutates durable state, invokes a model/provider/tool, or
-authorizes effects/completion.
+The component consumes an already-produced :class:`PredictionResidual` plus familiarity
+that is *derived from an exact F2-WP-301 RetrievalNeed/RetrievalPlan pair*.  It never
+accepts a free caller-supplied familiarity score and never accepts a bare RetrievalResult.
+That boundary prevents an internally inconsistent, directly constructed RetrievalResult
+from being promoted into familiarity/attention evidence without the WP-301 plan identity
+that selected it.
 
 Authority boundary::
 
     FAMILIARITY != OBSERVATION
     RETRIEVAL_REFERENCE != WORLD_FACT
+    RETRIEVAL_PLAN != CANONICAL_TRUTH
     PREDICTION_RESIDUAL != COMPLETION
 
 A contradictory residual always remains a contradiction regardless of familiarity.  The
-binding may only emit a candidate attention/retrieval signal for downstream Hyperposition
-or GWT handling.
+binding emits only a deterministic candidate attention signal for downstream
+Hyperposition/GWT handling.  It has no persistence, model/provider/tool, effect,
+completion, VPS, physical-GRID10, or whole-system authority.
 """
 from __future__ import annotations
 
@@ -25,10 +29,20 @@ import json
 import re
 from typing import Any, Iterable
 
+from .emergent_retrieval import (
+    CLASSIFICATION_SELECTED,
+    PLAN_CLASSIFICATION,
+    PLAN_SCHEMA,
+    RESULT_SCHEMA,
+    RetrievalNeed,
+    RetrievalPlan,
+    RetrievalResult,
+)
+from .memory_lifecycle import STATUS_ACTIVE, STATUS_DEGRADED
 from .prediction_contract import PredictionResidual
 
-FAMILIARITY_EVIDENCE_SCHEMA = "FRANKENSTEIN2_FAMILIARITY_EVIDENCE/v1"
-FAMILIARITY_PREDICTION_SIGNAL_SCHEMA = "FRANKENSTEIN2_FAMILIARITY_PREDICTION_SIGNAL/v1"
+FAMILIARITY_EVIDENCE_SCHEMA = "FRANKENSTEIN2_RETRIEVAL_BOUND_FAMILIARITY_EVIDENCE/v2"
+FAMILIARITY_PREDICTION_SIGNAL_SCHEMA = "FRANKENSTEIN2_FAMILIARITY_PREDICTION_SIGNAL/v2"
 
 RELATION_MATCH = "MATCH"
 RELATION_MISMATCH = "MISMATCH"
@@ -37,10 +51,14 @@ RELATION_UNKNOWN = "UNKNOWN"
 SIGNAL_CLASSIFICATION = (
     "EPISTEMIC_ATTENTION_CANDIDATE_NOT_OBSERVATION_TRUTH_EFFECT_OR_COMPLETION"
 )
+FAMILIARITY_CLASSIFICATION = (
+    "RETRIEVAL_PLAN_BOUND_FAMILIARITY_NOT_OBSERVATION_OR_WORLD_TRUTH"
+)
 
 MAX_BASIS_POINTS = 10_000
 _MAX_IDENTIFIER_LENGTH = 512
 _SHA256_RE = re.compile(r"^[0-9a-f]{64}$")
+_FAMILIARITY_TOKEN = object()
 
 
 class FamiliarityPredictionError(ValueError):
@@ -102,35 +120,214 @@ def _digest(value: Any) -> str:
     return hashlib.sha256(_canonical_json(value).encode("utf-8")).hexdigest()
 
 
-@dataclass(frozen=True, slots=True)
+def _validate_selected_result(result: RetrievalResult, need: RetrievalNeed) -> str:
+    """Validate the WP-301 invariants that WP-302 consumes from a selected result."""
+    if not isinstance(result, RetrievalResult):
+        raise FamiliarityPredictionError("retrieval plan selected entries must be RetrievalResult")
+    if result.schema != RESULT_SCHEMA:
+        raise FamiliarityPredictionError("retrieval result schema mismatch")
+    _identifier("retrieval memory_id", result.memory_id)
+    if type(result.memory_generation) is not int or result.memory_generation < 0:
+        raise FamiliarityPredictionError(
+            "retrieval memory_generation must be a non-negative integer"
+        )
+    _sha256("memory_state_sha256", result.memory_state_sha256)
+    _sha256("candidate_sha256", result.candidate_sha256)
+    if result.lifecycle_status not in {STATUS_ACTIVE, STATUS_DEGRADED}:
+        raise FamiliarityPredictionError(
+            "selected retrieval result must reference ACTIVE or DEGRADED memory"
+        )
+    if result.selected is not True or result.classification != CLASSIFICATION_SELECTED:
+        raise FamiliarityPredictionError(
+            "retrieval plan selected entry violates WP301 selection classification"
+        )
+    _identifier("payload_ref", result.payload_ref)
+    _sha256("payload_sha256", result.payload_sha256)
+    if result.successor_ref is not None:
+        raise FamiliarityPredictionError(
+            "selected retrieval result must not carry successor redirect metadata"
+        )
+    provenance_refs = _refs("retrieval provenance_ref", result.provenance_refs)
+    if provenance_refs != tuple(sorted(result.provenance_refs)):
+        raise FamiliarityPredictionError("retrieval provenance refs are not canonical")
+
+    overlap_axes = tuple(result.overlap_axes)
+    if len(set(overlap_axes)) != len(overlap_axes):
+        raise FamiliarityPredictionError("retrieval overlap_axes contain duplicates")
+    if result.overlap_count != len(overlap_axes):
+        raise FamiliarityPredictionError("retrieval overlap_count does not match overlap_axes")
+    if result.overlap_count < need.min_overlap_axes:
+        raise FamiliarityPredictionError(
+            "selected retrieval result does not satisfy retrieval need overlap threshold"
+        )
+    if any(axis not in need.axes for axis in overlap_axes):
+        raise FamiliarityPredictionError("retrieval overlap axis is outside the bound need")
+
+    score_pairs = tuple(result.signal_scores_bp)
+    if len({axis for axis, _ in score_pairs}) != len(score_pairs):
+        raise FamiliarityPredictionError("retrieval signal_scores contain duplicate axes")
+    score_map = dict(score_pairs)
+    if tuple(sorted(score_map)) != tuple(sorted(need.axes)):
+        raise FamiliarityPredictionError(
+            "retrieval signal score axes do not match the bound need"
+        )
+    for axis, score in score_pairs:
+        _identifier("retrieval signal axis", axis)
+        _basis_points(f"retrieval signal score[{axis}]", score)
+    computed_overlap = tuple(axis for axis in need.axes if score_map[axis] > 0)
+    if tuple(sorted(overlap_axes)) != tuple(sorted(computed_overlap)):
+        raise FamiliarityPredictionError(
+            "retrieval overlap axes are inconsistent with signal scores"
+        )
+
+    evidence_pairs = tuple(result.signal_evidence_refs)
+    if len({axis for axis, _ in evidence_pairs}) != len(evidence_pairs):
+        raise FamiliarityPredictionError("retrieval signal evidence contains duplicate axes")
+    evidence_map = dict(evidence_pairs)
+    if tuple(sorted(evidence_map)) != tuple(sorted(need.axes)):
+        raise FamiliarityPredictionError(
+            "retrieval signal evidence axes do not match the bound need"
+        )
+    for axis in need.axes:
+        _refs(f"retrieval signal evidence[{axis}]", evidence_map[axis])
+
+    weights = dict(need.axis_weights_bp)
+    weighted_numerator = sum(score_map[axis] * weights[axis] for axis in need.axes)
+    weight_total = sum(weights.values())
+    expected_weighted = weighted_numerator // weight_total
+    expected_bottleneck = min(score_map.values())
+    expected_rank = expected_weighted * result.overlap_count
+    if result.weighted_score_bp != expected_weighted:
+        raise FamiliarityPredictionError("retrieval weighted_score_bp is inconsistent")
+    if result.bottleneck_score_bp != expected_bottleneck:
+        raise FamiliarityPredictionError("retrieval bottleneck_score_bp is inconsistent")
+    if result.rank_score != expected_rank:
+        raise FamiliarityPredictionError("retrieval rank_score is inconsistent")
+
+    return _digest(result.as_dict())
+
+
+@dataclass(frozen=True, slots=True, init=False)
 class FamiliarityEvidence:
-    """Explicit bounded familiarity evidence supplied by an upstream adapter."""
+    """Familiarity derived only from one exact, caller-fenced WP-301 plan."""
 
     schema: str
+    retrieval_need_id: str
+    retrieval_need_sha256: str
+    retrieval_plan_sha256: str
     familiarity_score_bp: int
+    retrieval_memory_ids: tuple[str, ...]
+    retrieval_result_sha256s: tuple[str, ...]
     evidence_refs: tuple[str, ...]
+    classification: str
 
-    def __post_init__(self) -> None:
-        if self.schema != FAMILIARITY_EVIDENCE_SCHEMA:
+    def __init__(
+        self,
+        *,
+        schema: str,
+        retrieval_need_id: str,
+        retrieval_need_sha256: str,
+        retrieval_plan_sha256: str,
+        familiarity_score_bp: int,
+        retrieval_memory_ids: Iterable[str],
+        retrieval_result_sha256s: Iterable[str],
+        evidence_refs: Iterable[str],
+        classification: str,
+        _token: object | None = None,
+    ) -> None:
+        if _token is not _FAMILIARITY_TOKEN:
+            raise FamiliarityPredictionError(
+                "FamiliarityEvidence must be derived through from_retrieval_plan"
+            )
+        if schema != FAMILIARITY_EVIDENCE_SCHEMA:
             raise FamiliarityPredictionError("familiarity evidence schema mismatch")
-        object.__setattr__(
-            self,
-            "familiarity_score_bp",
-            _basis_points("familiarity_score_bp", self.familiarity_score_bp),
-        )
-        object.__setattr__(self, "evidence_refs", _refs("familiarity evidence_ref", self.evidence_refs))
+        if classification != FAMILIARITY_CLASSIFICATION:
+            raise FamiliarityPredictionError("familiarity evidence classification mismatch")
+        need_id = _identifier("retrieval_need_id", retrieval_need_id)
+        need_sha = _sha256("retrieval_need_sha256", retrieval_need_sha256)
+        plan_sha = _sha256("retrieval_plan_sha256", retrieval_plan_sha256)
+        score = _basis_points("familiarity_score_bp", familiarity_score_bp)
+        memory_ids = tuple(_identifier("retrieval_memory_id", value) for value in retrieval_memory_ids)
+        result_shas = tuple(_sha256("retrieval_result_sha256", value) for value in retrieval_result_sha256s)
+        if len(memory_ids) != len(result_shas):
+            raise FamiliarityPredictionError(
+                "retrieval memory/result identity cardinality mismatch"
+            )
+        if len(set(memory_ids)) != len(memory_ids):
+            raise FamiliarityPredictionError("duplicate retrieval memory identity")
+        refs = _refs("familiarity evidence_ref", evidence_refs)
+
+        object.__setattr__(self, "schema", schema)
+        object.__setattr__(self, "retrieval_need_id", need_id)
+        object.__setattr__(self, "retrieval_need_sha256", need_sha)
+        object.__setattr__(self, "retrieval_plan_sha256", plan_sha)
+        object.__setattr__(self, "familiarity_score_bp", score)
+        object.__setattr__(self, "retrieval_memory_ids", memory_ids)
+        object.__setattr__(self, "retrieval_result_sha256s", result_shas)
+        object.__setattr__(self, "evidence_refs", refs)
+        object.__setattr__(self, "classification", classification)
 
     @classmethod
-    def create(
+    def from_retrieval_plan(
         cls,
         *,
-        familiarity_score_bp: int,
-        evidence_refs: Iterable[str],
+        need: RetrievalNeed,
+        plan: RetrievalPlan,
+        expected_plan_sha256: str,
     ) -> "FamiliarityEvidence":
+        if not isinstance(need, RetrievalNeed):
+            raise FamiliarityPredictionError("need must be RetrievalNeed")
+        if not isinstance(plan, RetrievalPlan):
+            raise FamiliarityPredictionError("plan must be RetrievalPlan")
+        if plan.schema != PLAN_SCHEMA or plan.classification != PLAN_CLASSIFICATION:
+            raise FamiliarityPredictionError("retrieval plan schema/classification mismatch")
+
+        expected_plan_sha256 = _sha256("expected_plan_sha256", expected_plan_sha256)
+        actual_plan_sha256 = plan.sha256()
+        if actual_plan_sha256 != expected_plan_sha256:
+            raise FamiliarityPredictionError("retrieval plan digest fence mismatch")
+        need_sha256 = need.sha256()
+        if plan.need_id != need.need_id:
+            raise FamiliarityPredictionError("retrieval plan need_id fence mismatch")
+        if plan.need_sha256 != need_sha256:
+            raise FamiliarityPredictionError("retrieval plan need digest fence mismatch")
+        if type(plan.candidate_count) is not int or plan.candidate_count < 0:
+            raise FamiliarityPredictionError("retrieval plan candidate_count is invalid")
+        if plan.candidate_count != len(plan.selected) + len(plan.not_selected):
+            raise FamiliarityPredictionError(
+                "retrieval plan candidate_count does not cover selected/not_selected entries"
+            )
+        if len(plan.selected) > need.limit:
+            raise FamiliarityPredictionError("retrieval plan selected set exceeds need limit")
+
+        memory_ids: list[str] = []
+        result_shas: list[str] = []
+        all_refs: list[str] = list(need.evidence_refs)
+        familiarity_score_bp = 0
+        for result in plan.selected:
+            result_sha = _validate_selected_result(result, need)
+            if result.memory_id in memory_ids:
+                raise FamiliarityPredictionError("duplicate selected retrieval memory identity")
+            memory_ids.append(result.memory_id)
+            result_shas.append(result_sha)
+            familiarity_score_bp = max(familiarity_score_bp, result.weighted_score_bp)
+            all_refs.extend(result.provenance_refs)
+            for _, refs in result.signal_evidence_refs:
+                all_refs.extend(refs)
+
+        # Evidence refs are a set-like provenance envelope, not a ranking input.
+        canonical_refs = tuple(sorted(set(_refs("retrieval evidence_ref", all_refs))))
         return cls(
             schema=FAMILIARITY_EVIDENCE_SCHEMA,
+            retrieval_need_id=need.need_id,
+            retrieval_need_sha256=need_sha256,
+            retrieval_plan_sha256=actual_plan_sha256,
             familiarity_score_bp=familiarity_score_bp,
-            evidence_refs=tuple(evidence_refs),
+            retrieval_memory_ids=tuple(memory_ids),
+            retrieval_result_sha256s=tuple(result_shas),
+            evidence_refs=canonical_refs,
+            classification=FAMILIARITY_CLASSIFICATION,
+            _token=_FAMILIARITY_TOKEN,
         )
 
     def as_dict(self) -> dict[str, Any]:
@@ -152,6 +349,11 @@ class FamiliarityPredictionSignal:
     residual_mismatch_count: int
     familiarity_score_bp: int
     familiarity_evidence_sha256: str
+    retrieval_need_id: str
+    retrieval_need_sha256: str
+    retrieval_plan_sha256: str
+    retrieval_memory_ids: tuple[str, ...]
+    retrieval_result_sha256s: tuple[str, ...]
     relation: str
     attention_priority_bp: int
     familiarity_evidence_refs: tuple[str, ...]
@@ -174,16 +376,7 @@ def bind_familiarity_to_prediction_residual(
     familiarity: FamiliarityEvidence,
     contradiction_evidence_refs: Iterable[str] = (),
 ) -> FamiliarityPredictionSignal:
-    """Bind exact residual identity to explicit familiarity evidence.
-
-    Fail-closed fences prevent stale/mismatched residuals from being rebound.  A mismatch
-    is never suppressed by familiarity: it is emitted as ``MISMATCH`` with maximum candidate
-    attention priority and must retain explicit contradiction evidence.  An exact residual
-    with positive familiarity emits ``MATCH``.  An exact residual with zero familiarity
-    emits ``UNKNOWN`` rather than inventing familiarity support; the exact residual flag is
-    still preserved separately.
-    """
-
+    """Bind an exact residual to retrieval-plan-bound familiarity evidence."""
     if not isinstance(residual, PredictionResidual):
         raise FamiliarityPredictionError("residual must be a PredictionResidual")
     if not isinstance(familiarity, FamiliarityEvidence):
@@ -230,7 +423,7 @@ def bind_familiarity_to_prediction_residual(
                 "mismatching residual requires explicit contradiction evidence"
             )
         relation = RELATION_MISMATCH
-        # A current contradiction may not be down-ranked out of attention by stale familiarity.
+        # A current contradiction may never be down-ranked by familiar memory.
         attention_priority_bp = MAX_BASIS_POINTS
 
     return FamiliarityPredictionSignal(
@@ -244,6 +437,11 @@ def bind_familiarity_to_prediction_residual(
         residual_mismatch_count=residual.mismatch_count,
         familiarity_score_bp=familiarity.familiarity_score_bp,
         familiarity_evidence_sha256=familiarity.sha256(),
+        retrieval_need_id=familiarity.retrieval_need_id,
+        retrieval_need_sha256=familiarity.retrieval_need_sha256,
+        retrieval_plan_sha256=familiarity.retrieval_plan_sha256,
+        retrieval_memory_ids=familiarity.retrieval_memory_ids,
+        retrieval_result_sha256s=familiarity.retrieval_result_sha256s,
         relation=relation,
         attention_priority_bp=attention_priority_bp,
         familiarity_evidence_refs=familiarity.evidence_refs,
@@ -258,6 +456,7 @@ __all__ = [
     "RELATION_MISMATCH",
     "RELATION_UNKNOWN",
     "SIGNAL_CLASSIFICATION",
+    "FAMILIARITY_CLASSIFICATION",
     "MAX_BASIS_POINTS",
     "FamiliarityEvidence",
     "FamiliarityPredictionError",
