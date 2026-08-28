@@ -1,0 +1,37 @@
+{
+  "schema": "FRANKENSTEIN2_WORKPACKAGE_DELTA/v1",
+  "workpackage_id": "F2-WP-206",
+  "generation": 1,
+  "claim_id": "F2-WP-206-G1-GPT56SOL-PERSISTENT-AGENCY-INTEGRATION-20260829",
+  "worker_id": "GPT-5.6-Sol-REVIEW",
+  "observed_main_commit": "800d652ec3b5f8a25a09c90fdb824199e04070d7",
+  "result_class": "REVIEW_ONLY",
+  "owned_paths": [],
+  "source_refs": [
+    "workpackages/active/F2-WP-206.json@main",
+    "src/state/unifieddb_identity.py@main",
+    "src/state/delivery_store.py@main"
+  ],
+  "observations": [
+    "F2-WP-100 UnifiedDBFingerprint explicitly classifies itself as SQLITE_MAIN_FILE_IDENTITY_NOT_STATE_SNAPSHOT.",
+    "fingerprint_unifieddb explicitly reports WAL presence but does not fold uncheckpointed WAL state into its receipt; its own contract says full consistent state requires a separate snapshot/lease.",
+    "The accepted transactional delivery-store pattern binds a writer to an exact resolved/fingerprinted canonical DB file and serializes mutations with BEGIN IMMEDIATE, but its authority receipt is still DB-file identity evidence rather than application-state checkpoint identity.",
+    "F2-WP-206 requires deterministic agency checkpoint/replay identity across a real process restart, which is a stronger claim than canonical DB path/file identity."
+  ],
+  "risk": "If WP206 uses UnifiedDBFingerprint.receipt_sha256 or the SQLite main-file hash as the durable Agency checkpoint/state digest, WAL-backed committed state can be omitted from the claimed state identity, or a post-restart process can bind a stale authority receipt to a different logical DB state. That can yield false replay equality, stale-generation acceptance, or misleading restart evidence even though SQLite itself durably recovered the rows.",
+  "hypothesis": "WP206 should separate DB authority identity from Agency checkpoint identity. Persist a canonical typed checkpoint payload/digest inside the canonical UnifiedDB transaction, including exact AgencyState/Goal/HOLD/Pulse/StateFingerprint identities and a monotonically fenced revision/generation. On restart, re-resolve/refingerprint the canonical DB authority, read the committed typed checkpoint through SQLite's normal WAL-aware connection, recompute and verify the checkpoint digest, then derive the next-tick identity from that verified checkpoint rather than from the DB fingerprint receipt.",
+  "counterhypothesis": "If WP206 forces a durable WAL checkpoint before every Agency checkpoint identity operation and proves the exact main-file fingerprint after that checkpoint represents the committed logical state, a separate payload digest might be redundant. This is higher coordination cost and still conflates DB-wide mutation identity with the Agency substate, so it requires explicit evidence before adoption.",
+  "cheapest_discriminators": [
+    "Run the restart test with SQLite WAL mode and deliberately leave committed Agency rows in WAL before process exit; the new process must recover the exact typed checkpoint while the test proves the pre-exit UnifiedDB main-file fingerprint is not being treated as the Agency state digest.",
+    "Mutate an unrelated WP-owned table between two identical Agency checkpoints; Agency checkpoint identity should remain stable while DB authority identity may change.",
+    "Keep DB file/path/inode authority constant but alter one persisted Agency checkpoint field; the Agency checkpoint digest and next-tick identity must change.",
+    "Replace or redirect the DB between processes; re-resolution/re-fingerprinting must fail closed before checkpoint replay."
+  ],
+  "required_boundary": "UNIFIEDDB_AUTHORITY_IDENTITY != AGENCY_CHECKPOINT_STATE_IDENTITY",
+  "proposed_state_change": "NO_CANONICAL_STATE_CHANGE_REVIEW_ONLY",
+  "runtime_execution_observed": false,
+  "runtime_credit": 0,
+  "physical_grid10_credit": 0,
+  "whole_system_acceptance": false,
+  "next_exact_action": "Active F2-WP-206 mutation authority should encode and falsify the DB-authority-versus-Agency-checkpoint separation before claiming subprocess restart/replay acceptance."
+}
