@@ -1,0 +1,96 @@
+{
+  "schema": "FRANKENSTEIN2_WORKPACKAGE_REVIEW/v1",
+  "trigger": "4",
+  "workpackage_id": "F2-WP-105",
+  "review_mode": "REVIEW_ONLY",
+  "mutation_authority": false,
+  "base_main_sha": "e4db27fa3fec4dd98c94a8473b402f9b7cdf4512",
+  "current_runtime_receipt": "workpackages/receipts/F2-WP-105_EFFECT_INVOCATION_CORRELATION_GHA_33201281386.json",
+  "current_scope_observed": "CALL_SCOPED_EFFECT_ID_PRE_POST_CORRELATION_COMPONENT_ONLY",
+  "current_next_gate": "Integrate one fail-closed enforcement/executor boundary consuming the pre-bound call/effect identity and emitting a typed execution receipt, while preserving UNKNOWN external outcomes and separate world verification.",
+  "donors_reviewed": [
+    {
+      "repository": "gschaidergabriel/clay-global-research-entity",
+      "path": "research_entity/harness/reference_effect_authority.py",
+      "git_blob_sha": "5a62e04ade43c3978f07d6662b509b6e83312311",
+      "classification": "REFERENCE_DONOR_ONLY",
+      "salvage": [
+        "deterministic effect classes and decisions",
+        "unknown effect degrades instead of self-authorizing",
+        "confirmation binds exact request/actor/class/target/action",
+        "model confidence/GWT/salience are observational and do not mint authority"
+      ],
+      "do_not_copy_as_authority": [
+        "confirmation nonce replay state is process-memory local and is not restart-durable",
+        "the file is a reference harness, not the current F2 effect authority"
+      ]
+    },
+    {
+      "repository": "gschaidergabriel/clay-global-research-entity",
+      "path": "the artefact/clayverse/effect_journal.py",
+      "git_blob_sha": "cda63471f1467481f2ff79032d3931730a334a20",
+      "classification": "HISTORICAL_DONOR_ONLY",
+      "salvage": [
+        "journal intent before real action",
+        "generation and optional lease checks",
+        "single persisted effect per logical episode",
+        "pending effect recovery becomes UNKNOWN_AFTER_RESTART",
+        "automatic replay of unresolved effects is denied",
+        "outcome evidence is stored as a bounded audit receipt"
+      ],
+      "do_not_copy_as_authority": [
+        "identity is old episode/session/active_turn based rather than current invocation/tool-use/effect correlation",
+        "it depends on the historical ClayVerse UnifiedDB schema and must not create a second F2 state/effect authority"
+      ]
+    },
+    {
+      "repository": "gschaidergabriel/clay-global-research-entity",
+      "path": "the artefact/clayverse/effects.py",
+      "git_blob_sha": "4a6413b3f3c752c6327e67233bdd8097f3cf0ba4",
+      "classification": "HISTORICAL_DONOR_WITH_NEGATIVE_EDGE",
+      "salvage": [
+        "capability/generation checks happen before execution",
+        "generic host process execution is denied",
+        "cross-attempt autonomous replay is explicitly fenced",
+        "effect journal begin precedes bridge invocation"
+      ],
+      "negative_edge": "A generic bridge exception is finalized as FAILED. For a real external effect, an exception after dispatch does not by itself prove NOT_APPLIED. The F2 successor must classify such an outcome UNKNOWN unless the executor can prove no effect occurred."
+    }
+  ],
+  "candidate_successor_acceptance_contract": [
+    "1. One typed effect request binds effect_id plus the exact WP102/WP104 invocation/tool-use/delegation/child identity before dispatch.",
+    "2. Deterministic capability/permission and live-generation checks occur before any side-effecting executor call.",
+    "3. A durable or exact receipt-bearing PREPARED/DISPATCH_STARTED record exists before the external side effect can occur.",
+    "4. DENY/REQUIRE_CONFIRMATION/DEGRADE never calls the executor and cannot mint an execution_attempt_id.",
+    "5. An execution receipt echoes effect_id, request/admission/execution_attempt identity and the full call-scoped correlation tuple; digest equality is never sufficient identity.",
+    "6. An exception after possible dispatch produces ExecutionOutcome.UNKNOWN unless the executor supplies positive evidence that the effect definitely did not execute.",
+    "7. UNKNOWN, PENDING/dispatch-uncertain, and VERIFIED_APPLIED states forbid blind replay; retry requires explicit reconciliation/new request according to the typed lineage.",
+    "8. Reported executor success is not verified completion; APPLIED/NOT_APPLIED requires a separate world-verification transition.",
+    "9. Restart/recovery with an unresolved dispatched attempt preserves UNKNOWN rather than guessing success or failure.",
+    "10. Same-session overlapping calls with distinct tool_use_id/effect_id remain independent under PRE(A)->PRE(B)->POST(A)->POST(B) and adversarial cross-wiring.",
+    "11. Model/J-Space/GWT confidence or narrative cannot change an EffectGate decision or completion state.",
+    "12. The successor reuses the canonical F2 state/evidence path and must not introduce a second truth database, effect journal or generic host execution route."
+  ],
+  "cheapest_high_information_discriminator": {
+    "type": "DETERMINISTIC_FAKE_EXECUTOR_FAILURE_TIMING_MATRIX",
+    "cases": [
+      "denied before dispatch => executor call count 0",
+      "exception provably before dispatch => NOT_EXECUTED without replay ambiguity",
+      "exception after dispatch boundary => UNKNOWN + replay forbidden",
+      "reported success without world verification => EXECUTION_RECORDED only",
+      "separate verified NOT_APPLIED => new explicit request may become eligible",
+      "separate verified APPLIED => replay forbidden",
+      "same-session A/B interleaving plus swapped post receipt => rejected before lineage mutation"
+    ],
+    "promotion_boundary": "Repository-CI pass of this matrix would establish only the declared enforcement/executor component path. It would not establish a real external effect, VPS runtime, physical GRID10, whole Frankenstein 2.0, EntityOS or HCU acceptance."
+  },
+  "counterhypothesis": "A minimal executor adapter that treats every raised exception as REPORTED_FAILURE may look deterministic and pass happy-path tests while reintroducing blind-replay risk after an externally applied but unacknowledged effect.",
+  "falsifier_for_counterhypothesis": "Inject an executor that marks dispatch_started, applies a simulated external mutation, then raises before returning. Acceptance requires UNKNOWN plus replay forbidden until separate verification; FAILED/NOT_APPLIED or automatic retry is a failure.",
+  "recommended_action": "Do not reopen the already-passed effect-correlation component. Let the active F2-WP-105 mutation authority implement the successor enforcement boundary; use this review as donor constraints and a ready failure-timing discriminator.",
+  "credits": {
+    "new_runtime_credit": 0,
+    "effect_enforcement_runtime": 0,
+    "real_effect_runtime": 0,
+    "whole_frankenstein2_runtime": 0
+  }
+}
