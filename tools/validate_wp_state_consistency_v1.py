@@ -108,7 +108,7 @@ def validate(root: Path, workpackage: str) -> list[str]:
         if not isinstance(evidence, list) or not evidence or not all(isinstance(x, str) and x for x in evidence):
             raise ValidationError("ACCEPTED_AT_SCOPE requires non-empty evidence list")
     else:
-        if state_status == "IN_PROGRESS" and str(claim_status).startswith("ACCEPTED"):
+        if state_status == "IN_PROGRESS" and claim_status.startswith("ACCEPTED"):
             raise ValidationError("IN_PROGRESS STATE cannot point at terminal claim")
         if active.get("reconciliation_ref"):
             raise ValidationError("non-terminal ACTIVE pointer must not carry reconciliation_ref")
