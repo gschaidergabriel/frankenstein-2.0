@@ -5,30 +5,33 @@
   "claim_id": "F2-WP-101-G2-GPT56SOL-CAUSAL-TELEMETRY-944ffcbb",
   "worker_id": "GPT-5.6-Sol",
   "trigger": "4",
-  "status": "PROPOSED_SUCCESSOR_SCOPE_PENDING_ACTIVE_POINTER",
+  "status": "ACCEPTED_AT_COMPONENT_INTEGRATION_SCOPE",
   "base_commit": "944ffcbb035a2e02397b6acb5e37d42db44b7816",
   "parent_generation": 1,
   "parent_canonical_claim": "workpackages/claims/F2-WP-101_G1_GPT56SOL_3078d64d.json",
   "parent_receipt": "workpackages/receipts/F2-WP-101_G1_SOURCE_TEST_ACCEPTANCE.json",
   "parent_reconciliation": "workpackages/reconciliations/F2-WP-101/1-F2-WP-101-G1-CAUSAL-IDENTITY-GPT56SOL-20260828T2146P0700.json",
-  "claimed_scope": "Prove the canonical generation-1 CausalIdentity survives a concrete write into the existing Frankenstein-2.0 system telemetry schema without field loss or generation drift, and prove fail-closed rejection where the current telemetry schema cannot preserve parent_causal_id. Add only WP-101-owned integration tests and, if needed, WP-101-specific CI wiring; do not modify WP-005 telemetry implementation, UnifiedDB implementation, VPS runtime, provider routes, GRID10, effects, or whole-system semantics.",
+  "claimed_scope": "Prove the canonical generation-1 CausalIdentity survives a concrete write into the existing Frankenstein-2.0 system telemetry schema without field loss or generation drift, and prove fail-closed rejection where the current telemetry schema cannot preserve parent_causal_id. Add only WP-101-owned integration tests and WP-101-specific CI wiring; do not modify WP-005 telemetry implementation, UnifiedDB implementation, VPS runtime, provider routes, GRID10, effects, or whole-system semantics.",
   "observed_dependencies": {
-    "unifieddb": "F2-WP-100 ACCEPTED_AT_SCOPE in workpackages/STATE.json generation 5",
+    "unifieddb": "F2-WP-100 ACCEPTED_AT_SCOPE",
     "telemetry_writer": "src/frankenstein2/telemetry.py imports .causal_identity.CausalIdentity and rejects parent_causal_id because system_events lacks that column",
-    "telemetry_initializer": "tools/init_telemetry_dbs.py schema version 3 creates system_events with session_id/agent_id/task_id/turn_id/causal_id/generation",
-    "telemetry_ci_gap": ".github/workflows/telemetry-spine-ci.yml does not include src/frankenstein2/telemetry.py or a CausalIdentity-to-telemetry integration regression"
+    "telemetry_initializer": "tools/init_telemetry_dbs.py schema version 3 creates system_events with session_id/agent_id/task_id/turn_id/causal_id/generation"
   },
-  "acceptance_target": [
-    "initialize the canonical telemetry schema in a temporary isolated directory",
-    "emit one system event through TelemetryWriter with an explicit canonical CausalIdentity",
-    "read the persisted row back and assert exact session_id, agent_id, task_id, turn_id, causal_id and generation equality",
-    "assert deterministic payload JSON and explicit event/run metadata are preserved at the tested scope",
-    "assert a derived identity with parent_causal_id is rejected before persistence rather than silently losing lineage",
-    "assert malformed/non-CausalIdentity input cannot be written",
-    "archive source/test evidence without claiming VPS, provider, GRID10, EntityOS/HCU or whole-system runtime acceptance"
-  ],
-  "counterhypothesis": "The source-level import may look integrated while actual persistence drops, coerces or misbinds identity fields, or the telemetry schema may be incompatible with the generation-1 identity contract.",
-  "runtime_execution_observed": false,
-  "runtime_credit": 0,
-  "next_exact_action": "Advance the terminal WP-101 active pointer to generation 2 with explicit parent reconciliation, then add a bounded direct integration regression without modifying WP-005-owned telemetry source."
+  "acceptance_result": {
+    "exact_ci_head": "9432c8b50587581f65106415170632a99e778c3b",
+    "github_actions_run_id": 33182761384,
+    "github_actions_job_id": 98887893561,
+    "conclusion": "success",
+    "causal_identity_unit_regression": "7/7 PASS",
+    "causal_identity_to_telemetry_integration": "3/3 PASS",
+    "receipt": "workpackages/receipts/F2-WP-101_G2_CAUSAL_TELEMETRY_GHA_33182761384.json",
+    "reconciliation": "workpackages/reconciliations/F2-WP-101/2-F2-WP-101-G2-GPT56SOL-CAUSAL-TELEMETRY-944ffcbb.json"
+  },
+  "counterhypothesis_remaining": "Component persistence success does not establish that every runtime producer uses CausalIdentity or that parent lineage is preserved across telemetry, UnifiedDB, effects and replay. parent_causal_id remains deliberately fail-closed at the current telemetry schema boundary.",
+  "runtime_execution_observed": true,
+  "runtime_execution_class": "GITHUB_ACTIONS_COMPONENT_INTEGRATION",
+  "vps_execution_observed": false,
+  "runtime_credit": "COMPONENT_INTEGRATION_ONLY",
+  "whole_system_credit": 0,
+  "next_exact_action": "Do not reopen generation 2. A later successor may be opened only for a non-duplicative typed parent-lineage preservation contract across telemetry and relevant persistent state/effect paths, followed by actual runtime-producer tests."
 }
