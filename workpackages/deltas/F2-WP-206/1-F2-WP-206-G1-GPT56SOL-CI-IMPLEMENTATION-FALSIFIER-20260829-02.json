@@ -1,0 +1,66 @@
+{
+  "schema": "FRANKENSTEIN2_WORKPACKAGE_DELTA/v1",
+  "workpackage_id": "F2-WP-206",
+  "generation": 1,
+  "claim_id": "F2-WP-206-G1-GPT56SOL-PERSISTENT-AGENCY-INTEGRATION-20260829",
+  "worker_id": "GPT-5.6-Sol-REVIEW",
+  "observed_main_commit": "c6c395960fecc50351c6c0482aa9b97c7e179421",
+  "observed_candidate_branch": "chatgpt/trigger4-wp206-persistent-agency-integration-20260829",
+  "observed_candidate_head": "186f8837ed2670bb26bdaa79f707186cd7c161ba",
+  "result_class": "NEGATIVE_RESULT_IMPLEMENTATION_FALSIFIER",
+  "owned_paths": [],
+  "source_refs": [
+    "src/frankenstein2/persistent_agency_kernel.py@186f8837ed2670bb26bdaa79f707186cd7c161ba",
+    "tests/test_persistent_agency_kernel.py@186f8837ed2670bb26bdaa79f707186cd7c161ba",
+    ".github/workflows/wp206-persistent-agency-integration-ci.yml@186f8837ed2670bb26bdaa79f707186cd7c161ba",
+    "src/state/unifieddb_identity.py@c6c395960fecc50351c6c0482aa9b97c7e179421",
+    "src/frankenstein2/goal_lifecycle.py@c6c395960fecc50351c6c0482aa9b97c7e179421"
+  ],
+  "runtime_evidence": {
+    "github_actions_run_id": 33219715946,
+    "github_actions_job_id": 99011010625,
+    "source_head_sha": "186f8837ed2670bb26bdaa79f707186cd7c161ba",
+    "conclusion": "failure",
+    "tests_observed": 6,
+    "tests_passing": 0,
+    "primary_observed_failure": "StateFingerprint v2 rejects tuple-valued provenance_refs emitted by nested dataclass as_dict() payloads; integration projection is outside the accepted null/bool/int/string/list/string-keyed-dict ABI."
+  },
+  "falsifiers": [
+    {
+      "id": "WP206-F2-PROJECTION-ABI",
+      "severity": "BLOCKING",
+      "observation": "The candidate calls fingerprint_state_projection on AgencyState/GoalState dictionaries that still contain tuple-valued nested provenance_refs. Exact-head hosted CI fails before the integration checkpoint can be built.",
+      "required_repair": "Convert the integration projection through an explicit deterministic JSON-domain adapter without weakening StateFingerprint v2 or silently changing component digests."
+    },
+    {
+      "id": "WP206-F3-CANONICAL-DB-AUTHORITY",
+      "severity": "BLOCKING",
+      "observation": "PersistentAgencyStore accepts only UnifiedDBResolution and opens sqlite3.connect(str(path)); the test begins from a missing explicit path and the store creates that database. The store therefore does not require an existing fingerprinted canonical UnifiedDB and does not verify path/device/inode identity before writes or restart reads.",
+      "required_repair": "Bind the writer/reader to both exact UnifiedDBResolution and exact UnifiedDBFingerprint, require an existing SQLITE3_REGULAR_FILE, open mode=rw so missing targets fail closed, verify the live SQLite main connection path/device/inode, and keep DB authority receipt separate from Agency checkpoint state identity."
+    },
+    {
+      "id": "WP206-F4-NONCANDIDATE-GOAL-RESTART",
+      "severity": "BLOCKING",
+      "observation": "The subprocess promotes goal-1 from CANDIDATE to ACTIVE and persists the resulting GoalState, but rehydrate_candidate_goal_state intentionally rejects that persisted ACTIVE state. A second cognitive restart cannot reconstruct the active goal through the admitted public Goal lifecycle contract.",
+      "required_repair": "Persist candidate genesis plus ordered GoalStatePatch/GoalStateTransition lineage and reconstruct non-candidate state by deterministic public GoalState.apply replay, verifying every stored transition digest and final GoalState digest. Do not call the private _from_validated_transition persistence backdoor."
+    },
+    {
+      "id": "WP206-F5-WAL-DISCRIMINATOR-MISSING",
+      "severity": "BLOCKING",
+      "observation": "The candidate CI does not exercise the previously required WAL discriminator proving that committed Agency checkpoint state can be recovered from WAL while UnifiedDBFingerprint remains only DB-file authority identity rather than Agency state identity.",
+      "required_repair": "Add WAL-mode subprocess restart coverage with wal_autocheckpoint disabled/controlled, verify checkpoint payload digest through normal WAL-aware SQLite reads, and show that unrelated DB-table mutation can change DB authority identity without changing an identical Agency checkpoint identity."
+    }
+  ],
+  "preserved_boundary": "UNIFIEDDB_AUTHORITY_IDENTITY != AGENCY_CHECKPOINT_STATE_IDENTITY",
+  "credit": {
+    "source_ready": false,
+    "repository_hosted_ci": false,
+    "restart_integration": false,
+    "vps_runtime": false,
+    "physical_grid10": false,
+    "whole_system": false
+  },
+  "hypothesis": "A typed append-only checkpoint store can close Stage-2 restart persistence if it binds an existing canonical UnifiedDB authority separately from a canonical Agency payload digest and replays Goal lifecycle transitions instead of serializing privileged final GoalState authority.",
+  "counterhypothesis": "Persisting final component JSON blobs is sufficient because they already contain exact hashes. This is falsified for Goal lifecycle by the explicit non-candidate rehydration prohibition and for UnifiedDB by the WAL/file-identity distinction.",
+  "next_exact_action": "Repair the existing WP206 implementation lane, not a duplicate claim: close F2-F5, obtain exact-head repository-hosted CI, then reconcile only the bounded persistent-agency restart scope."
+}
