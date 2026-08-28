@@ -1,0 +1,98 @@
+{
+  "schema": "FRANKENSTEIN2_WORKPACKAGE_REVIEW/v1",
+  "trigger": "4",
+  "classification": "REVIEW_ONLY_STATIC_SOURCE_FALSIFIER",
+  "workpackage_id": "F2-WP-105",
+  "organ": "GPT-5.6 Sol / ChatGPT Triggerword-4 continuation organ",
+  "mutation_authority": false,
+  "canonical_implementation_mutated": false,
+  "purpose": "Falsify the assumption that one canonical EffectGate-owned transaction is by itself sufficient for the WP105 UNKNOWN/no-blind-replay law by inspecting ambiguous post-dispatch exception classification in the currently bound EntityOS implementation.",
+  "coordination": {
+    "active_claim": "F2-WP-105-G1-EXECUTION-COMPLETION-GPT56SOL-20260828T215528P0700",
+    "claim_protocol_respected": true,
+    "related_single_transaction_review": "workpackages/reviews/F2-WP-105/TRIGGER4_SINGLE_CANONICAL_EFFECT_TRANSACTION_CANDIDATE_GPT56SOL_20260829T0224P0700.json",
+    "reason": "The active WP105 lane retains mutation authority. This artifact records independent negative evidence only."
+  },
+  "source_identity": {
+    "entityos_main_observed": "a88b143df7f7068812ca9da82aa124ef72baabe2",
+    "authority_epoch": "9.13",
+    "supervisor_delta": "9.13AJ_NON_AUTHORITY",
+    "current_compatibility_binding_path": "research_entity/continuity/ENTITYOS_EFFECT_AUTHORITY_IMPLEMENTATION_BINDING_9_13_COMPATIBILITY_V1.json",
+    "current_compatibility_binding_blob": "7f3964ea60a8f30de382e82fef441148e30bab83",
+    "exact_binding_path": "research_entity/continuity/ENTITYOS_EFFECT_AUTHORITY_IMPLEMENTATION_BINDING_V1.json",
+    "exact_binding_blob": "b4d91a0dd233c9dc15ff8218feea9248ac1c13c5",
+    "effect_gate_path": "the artefact/clayverse/effects.py",
+    "effect_gate_blob": "4a6413b3f3c752c6327e67233bdd8097f3cf0ba4",
+    "effect_journal_path": "the artefact/clayverse/effect_journal.py",
+    "effect_journal_blob": "cda63471f1467481f2ff79032d3931730a334a20",
+    "entityos_bridge_path": "the artefact/clayverse/entityos_bridge.py",
+    "entityos_bridge_blob": "3118cb6a6758ec1612a33ff3c6766c937d79d4ac"
+  },
+  "observed_source_sequence": [
+    "EffectGate.execute creates the canonical PENDING row with EffectJournal.begin before entityos_bridge.run.",
+    "EntityOSBridge.run crosses the execution boundary through subprocess.run(..., timeout=self.timeout).",
+    "A timeout or other return-path exception can occur after process creation and therefore does not prove that the invoked program produced no real effect.",
+    "EffectGate.execute catches every Exception from entityos_bridge.run, writes terminal journal status FAILED through EffectJournal.complete, then re-raises.",
+    "EffectJournal has explicit UNKNOWN_AFTER_RESTART vocabulary, but the ordinary ambiguous post-dispatch exception path does not use an UNKNOWN terminal classification."
+  ],
+  "falsifier": {
+    "claim_under_test": "A single canonical EffectGate-owned transaction automatically preserves the UNKNOWN-outcome law for every ambiguous post-dispatch failure.",
+    "result": "FALSIFIED_AT_STATIC_SOURCE_SEMANTICS_SCOPE",
+    "counterexample": "The child may have crossed the execution boundary and produced an effect before EntityOSBridge.run raises, including timeout/lost-return classes. The current generic except Exception path nevertheless finalizes the canonical effect as FAILED. FAILED is stronger than the evidence supports in this case.",
+    "epistemic_violation": "transport_or_return_failure_after_possible_dispatch != verified_no_effect",
+    "replay_risk": "If downstream logic interprets canonical FAILED as definite non-application, a retry could duplicate an already-applied effect. F2 cannot safely overwrite that stronger canonical journal fact with its own UNKNOWN classification without becoming a competing outcome authority."
+  },
+  "counterhypotheses": [
+    {
+      "hypothesis": "Every exception from EntityOSBridge.run is guaranteed to occur before child process execution.",
+      "status": "REJECTED_BY_SOURCE_TOPOLOGY",
+      "reason": "The subprocess execution boundary is entered inside run and has an explicit timeout; the catch is outside that call and is not limited to pre-spawn exceptions."
+    },
+    {
+      "hypothesis": "FAILED is intentionally equivalent to UNKNOWN and cannot drive replay.",
+      "status": "UNPROVEN_AND_SEMANTICALLY_CONFLICTING",
+      "reason": "EffectJournal already carries an explicit UNKNOWN_AFTER_RESTART state, so FAILED and UNKNOWN are distinct vocabulary. No reviewed current binding defines FAILED as non-replayable uncertainty."
+    },
+    {
+      "hypothesis": "F2 can simply relabel canonical FAILED as UNKNOWN.",
+      "status": "REJECTED_AS_DEFAULT_FIX",
+      "reason": "That would create a competing outcome authority. Canonical effect authority must expose the uncertainty itself or an authority-owned receipt must make pre-dispatch vs post-dispatch failure mechanically decidable."
+    }
+  ],
+  "required_successor_contract": {
+    "authority_owner": "EntityOS canonical EffectGate+EffectJournal implementation, not F2 policy code",
+    "minimum_behavior": [
+      "distinguish mechanically proven pre-dispatch failure from exception after execution may have started",
+      "persist ambiguous post-dispatch exception as explicit UNKNOWN/non-replayable or retain PENDING for canonical reconciliation",
+      "never promote ambiguous post-dispatch exception directly to a definite negative fact",
+      "reconcile canonical UNKNOWN before any retry",
+      "preserve exact effect_id, semantic request identity, generation, lease and source provenance",
+      "F2 consumes canonical uncertainty and never overwrites it"
+    ],
+    "deterministic_no_real_effect_test": "Use an authority-owned fake bridge that records ENTERED_DISPATCH and then raises before returning a receipt. Assert canonical journal state is UNKNOWN/non-replayable rather than FAILED and exact replay invokes the fake bridge zero additional times until explicit reconciliation. Separately prove a genuinely pre-dispatch failure may remain definite failure when non-entry is mechanically established."
+  },
+  "interaction_with_current_wp105_progress": {
+    "semantic_effect_request_binding": "SOURCE_IMPLEMENTATION_NOW_PRESENT_IN_PARALLEL_WP105_LANE; RUNTIME/PROMOTION STILL SEPARATE",
+    "single_canonical_action_owner": "SUPPORTED",
+    "double_dispatch_warning": "SUPPORTED: do not wire EffectGate.execute as authorize() and then invoke a second F2 executor.",
+    "bound_zero_effect_runtime_probe": "WORKFLOW_EXISTS; at observation time run 33203978272 had entered GitHub-hosted steps but the actual probe step had not yet executed",
+    "single_transaction_candidate_adoption": "BLOCKED_UNTIL_AMBIGUOUS_POST_DISPATCH_FAILURE_IS_CANONICALLY_NONREPLAYABLE_UNKNOWN"
+  },
+  "local_reproduction_attempt": {
+    "status": "INFRASTRUCTURE_BLOCKED_NO_TEST_CREDIT",
+    "detail": "A local exact-source import reproduction was attempted, but the container could not resolve raw.githubusercontent.com. This network failure is not product evidence and does not change the static source finding."
+  },
+  "credit_boundary": {
+    "static_source_falsifier": "PASS",
+    "canonical_unknown_outcome_runtime_fix": 0,
+    "effectgate_runtime_credit_added": 0,
+    "effectjournal_runtime_credit_added": 0,
+    "real_effect_runtime_credit_added": 0,
+    "completion_runtime_credit_added": 0,
+    "physical_grid10_runtime_credit_added": 0,
+    "whole_frankenstein2_runtime_credit_added": 0,
+    "whole_entityos_hcu_runtime_credit_added": 0,
+    "training_credit_added": 0
+  },
+  "next_exact_action_for_active_mutation_authority": "Do not promote the single-canonical-transaction path to PASS solely from state.noop/restart tests. Route this negative evidence to canonical EntityOS effect-authority implementation/review: prove an authority-owned distinction between definite pre-dispatch failure and ambiguous post-dispatch failure. Then rerun the semantic-request-bound exactly-once no-real-effect matrix and only afterward connect canonical result evidence to WP105 completion verification."
+}
