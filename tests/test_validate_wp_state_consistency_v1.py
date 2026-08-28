@@ -2,14 +2,19 @@
 from __future__ import annotations
 
 import json
+import sys
 import tempfile
 import unittest
 from pathlib import Path
 
+
+ROOT = Path(__file__).resolve().parents[1]
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
+
 from tools.validate_wp_state_consistency_v1 import ValidationError, validate
 
 
-ROOT = Path(__file__).resolve().parents[1]
 WP = "F2-WP-002"
 
 
