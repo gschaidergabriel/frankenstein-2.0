@@ -1,0 +1,32 @@
+{
+  "schema": "FRANKENSTEIN2_CANDIDATE_FALSIFIER/v1",
+  "classification": "INTEGRATION_ABI_CANDIDATE_FALSIFIER",
+  "target_workpackage": "F2-WP-306",
+  "related_workpackage": "F2-WP-207",
+  "falsifier_id": "F2-WP-306-WP207-GENERATION-ZERO-ABI-20260829T0641P0700-GPT56SOL",
+  "worker_id": "GPT-5.6-Sol",
+  "observed_wp207_source": "src/frankenstein2/epistemic_records.py",
+  "observed_wp207_blob_sha": "229d54c9b17f4117af4b4b32aaf48d5ffe1a70e9",
+  "observed_wp306_source": "src/frankenstein2/context_compiler.py",
+  "observed_wp306_blob_sha": "53704b7f1ce043897954416468f635aca872dc24",
+  "hypothesis": "A valid F2-WP-207 EpistemicRecord with generation=0 cannot be represented losslessly as an F2-WP-306 ContextItem because WP-207 explicitly admits generation >= 0 while WP-306 source_generation requires a positive integer >= 1.",
+  "counterhypothesis": "F2-WP-306 source_generation is intentionally a wrapper/admission generation independent from the upstream record generation, so preserving the upstream WP-207 generation in that field is not required.",
+  "direct_source_evidence": [
+    "WP-207 _EpistemicRecordBase rejects only generation < 0 and therefore admits generation == 0.",
+    "WP-306 ContextItem.__post_init__ validates source_generation through _positive_int, which rejects values < 1.",
+    "WP-306 names the field source_generation and also carries source_ref/source_sha256/source_classification, making lossless upstream-source binding the natural integration interpretation unless another generation domain is explicitly specified."
+  ],
+  "minimal_counterexample": "Create any valid ObservedEvidence/UnknownEvidence/etc. with generation=0 under WP-207, then attempt to construct a WP-306 ContextItem using source_generation=record.generation. The adapter must reject 0. Mapping 0 to 1 would no longer preserve the source generation and would conflate two generation domains unless explicitly typed.",
+  "impact": "This does not invalidate standalone WP-306 repository-CI acceptance. It blocks a lossless direct WP-207 -> WP-306 adapter for the full admitted WP-207 domain and creates ambiguity about which generation domain source_generation represents.",
+  "recommended_repair": [
+    "Preferred if source_generation means upstream source generation: allow non-negative integers including 0 in ContextItem, keep bool rejected, and add zero/negative boundary regressions.",
+    "Alternative: explicitly rename/split the field so adapter/wrapper generation and upstream source generation are distinct, and bind the exact WP-207 record generation separately.",
+    "Do not silently translate 0 -> 1; that would manufacture a source-generation value.",
+    "After repair, implement the WP-207 typed-record adapter as a separate bounded component that preserves record identity digest and concrete classification while emitting canonical WP-306 ContextItem inputs."
+  ],
+  "evidence_scope": "EXACT_CURRENT_SOURCE_CROSS_COMPONENT_ABI_REVIEW_ONLY",
+  "runtime_execution_observed": false,
+  "runtime_credit": 0,
+  "physical_grid10_credit": 0,
+  "whole_system_acceptance": false
+}
