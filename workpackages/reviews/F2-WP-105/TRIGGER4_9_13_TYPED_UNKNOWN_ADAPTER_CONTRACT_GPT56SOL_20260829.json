@@ -1,0 +1,135 @@
+{
+  "schema": "FRANKENSTEIN2_WORKPACKAGE_REVIEW/v1",
+  "trigger": "4",
+  "classification": "REVIEW_ONLY_9_13_TYPED_UNKNOWN_ADAPTER_CONTRACT",
+  "workpackage_id": "F2-WP-105",
+  "organ": "GPT-5.6 Sol / ChatGPT Triggerword-4 continuation organ",
+  "created_at": "2026-08-29T05:54:00+07:00",
+  "mutation_authority": false,
+  "canonical_implementation_mutated": false,
+  "frankenstein2_source_mutated": false,
+  "coordination": {
+    "active_claim": "F2-WP-105-G1-EXECUTION-COMPLETION-GPT56SOL-20260828T215528P0700",
+    "claim_state_observed": "ACTIVE",
+    "rule": "Active WP105 owner retains source-mutation authority. This artifact is append-only review/hand-off evidence and must not be treated as a second implementation lane.",
+    "frankenstein2_main_observed": "accd95a0eb52b97c58ca7db279b4a31ee309859d",
+    "clay_main_observed": "d81d31b34d2abb98bf2f0bc80c46decbfd23c8b0"
+  },
+  "authority_basis": {
+    "supervisor_epoch": "9.13",
+    "selected_delta": "SUPERVISOR_STEERING_9_13AM_DELTA_2026-08-29T0440P0700_GPT56SOL",
+    "required_p1": "At the existing F2 callback-to-EffectGate boundary, define exactly one typed UNKNOWN_OUTCOME adapter mapping only already-observed post-dispatch ambiguous ExecutorOutcomeUnknown into canonical EntityOSOutcomeUnknown semantics; preserve request/call/effect identity and replay_permitted=false.",
+    "provider_mode": "FREE_ONLY_PROVIDER_CALL_GATE_HARD_OFF"
+  },
+  "observed_counterexample": {
+    "f2_exception_type": "frankenstein2.effect_executor_interlock.ExecutorOutcomeUnknown",
+    "canonical_candidate_exception_type": "clayverse.entityos_bridge.EntityOSOutcomeUnknown",
+    "f2_interlock_behavior": "Any exception after executor entry, invalid executor observation, or post-dispatch correlation failure is raised as ExecutorOutcomeUnknown and never automatically replayed.",
+    "current_exact_bound_result": "The F2 PostStartTimeoutBridge raises ExecutorOutcomeUnknown after confirmed executor entry, but the currently bound canonical EffectGate generic exception branch finalizes the journal row as FAILED.",
+    "required_canonical_result": "The same already-observed post-dispatch ambiguity must reach canonical EntityOSOutcomeUnknown semantics so EffectGate terminalizes UNKNOWN_OUTCOME/nonreplayable rather than FAILED.",
+    "status": "OPEN_EXECUTABLE_ABI_GAP"
+  },
+  "canonical_candidate_evidence": {
+    "retained_pr": 430,
+    "pr_state_observed": "OPEN_DRAFT",
+    "pr_title": "effects: preserve UNKNOWN outcome after EntityOS runtime exceptions",
+    "pr_head_observed": "2f99e400f1c0ea1b8598573ab0fab993885cba5e",
+    "semantics": [
+      "EntityOSOutcomeUnknown.replay_permitted is False",
+      "EffectGate catches EntityOSOutcomeUnknown before generic Exception",
+      "canonical journal terminal state is UNKNOWN_OUTCOME with certainty=unknown",
+      "pre-launch/integrity failures remain definite FAILED paths"
+    ],
+    "warning": "PR430 candidate semantics do not by themselves adapt the distinct F2 ExecutorOutcomeUnknown type."
+  },
+  "single_adapter_contract": {
+    "location_rule": "Exactly one translation seam at the existing F2 executor callback -> current-bound canonical EffectGate bridge boundary. Do not add another EffectGate, journal, executor, replay mechanism or completion authority.",
+    "input_type": "ExecutorOutcomeUnknown only",
+    "output_type": "the EntityOSOutcomeUnknown class exported by the exact current-bound canonical effect-authority implementation",
+    "translation_precondition": "The F2 exception must already mean dispatch may have started. No pre-dispatch exception may be translated.",
+    "identity_invariant": "The adapter must not alter EffectRequestIdentity, request_sha256, effect_id, binding_id, invocation_id, tool_use_id, delegation_id, child_identity_sha256, user/session/generation, or the existing canonical PENDING row.",
+    "replay_invariant": "Translated exception must preserve replay_permitted=false. No same-turn or restart retry may cause a second executor call before explicit canonical reconciliation.",
+    "authority_invariant": "Translation changes exception vocabulary only. F2 remains non-authoritative; canonical EffectGate+EffectJournal remains the sole outcome authority.",
+    "negative_type_fence": [
+      "ExecutorInterlockError before executor entry must not be translated",
+      "EntityOSEffectGateCallBridgeError before executor entry must not be translated",
+      "authority/path/blob/schema/API/request/call identity mismatch must not be translated",
+      "DENY/UNKNOWN preconditions must dispatch zero times",
+      "arbitrary RuntimeError/OSError before the F2 executor boundary must not be translated"
+    ]
+  },
+  "implementation_shape_for_active_owner": {
+    "preferred": "A tiny boundary wrapper owned by the WP105 integration seam catches exactly ExecutorOutcomeUnknown and raises the exact bound canonical EntityOSOutcomeUnknown from it. Keep imports/binding explicit enough that a stale or wrong canonical exception class fails closed rather than silently widening the catch.",
+    "do_not": [
+      "do not catch Exception and relabel it UNKNOWN",
+      "do not change effect_executor_interlock to depend directly on canonical EntityOS modules",
+      "do not let F2 write canonical journal terminal state itself",
+      "do not convert canonical FAILED rows after the fact",
+      "do not add a second retry ledger or executor",
+      "do not broaden PR430/canonical authority merely to make the adapter convenient"
+    ],
+    "likely_f2_surfaces": [
+      "src/frankenstein2/entityos_effect_gate_call_bridge.py",
+      "the WP105 bound bridge callback used by tests/test_bound_entityos_effect_poststart_timeout.py"
+    ]
+  },
+  "required_no_real_effect_tests": [
+    {
+      "id": "POSTSTART_TIMEOUT_TRANSLATES_TO_UNKNOWN_OUTCOME",
+      "setup": "Exact-bound canonical candidate plus F2 executor stub: bind one canonical PENDING row, confirm executor entry, then raise subprocess.TimeoutExpired inside F2 executor.",
+      "assert": [
+        "F2 emits ExecutorOutcomeUnknown internally",
+        "single adapter emits exact bound EntityOSOutcomeUnknown externally",
+        "canonical journal terminal status is UNKNOWN_OUTCOME, never FAILED",
+        "outcome certainty is unknown and contains no false ok=false world fact",
+        "executor call count is exactly 1",
+        "replay_permitted=false"
+      ]
+    },
+    {
+      "id": "POSTSTART_NON_TIMEOUT_ERROR_TRANSLATES_TO_UNKNOWN_OUTCOME",
+      "setup": "Confirm executor entry, then raise ordinary OSError/RuntimeError from the executor return path.",
+      "assert": [
+        "canonical terminal status is UNKNOWN_OUTCOME",
+        "executor call count is exactly 1",
+        "no second dispatch on identical retry before reconciliation"
+      ]
+    },
+    {
+      "id": "TRUE_PREDISPATCH_FAILURE_REMAINS_DEFINITE",
+      "setup": "Fail authority/call/request identity or fail before executor callable is entered.",
+      "assert": [
+        "adapter does not emit EntityOSOutcomeUnknown",
+        "executor call count is 0 where the failure precedes dispatch",
+        "no UNKNOWN promotion is minted from a definite pre-dispatch failure"
+      ]
+    },
+    {
+      "id": "TYPE_CONFUSION_FAILS_CLOSED",
+      "setup": "Present a same-message generic RuntimeError or a wrong/stale canonical exception type.",
+      "assert": [
+        "no broad exception translation",
+        "no second authority",
+        "source/binding mismatch blocks promotion"
+      ]
+    }
+  ],
+  "acceptance": {
+    "source_review": "PASS",
+    "typed_adapter_implemented": false,
+    "source_hash_bound_integration_executed": false,
+    "timeout_unknown_outcome_pass": false,
+    "non_timeout_unknown_outcome_pass": false,
+    "true_predispatch_fence_pass": false,
+    "real_external_effect_runtime_credit": 0,
+    "physical_grid10_runtime_credit": 0,
+    "whole_frankenstein2_runtime_credit": 0,
+    "whole_entityos_hcu_runtime_credit": 0
+  },
+  "counterhypothesis": {
+    "statement": "The adapter is unnecessary because canonical PR430 already catches every F2 ambiguity.",
+    "status": "FALSIFIED_BY_TYPE_IDENTITY",
+    "reason": "PR430 catches canonical EntityOSOutcomeUnknown, while the exact current F2 interlock raises a distinct ExecutorOutcomeUnknown. The current exact-bound timeout test demonstrates fallthrough to generic FAILED."
+  },
+  "next_exact_action_for_active_wp105_owner": "Implement the single narrow typed translation seam without changing authority ownership, then execute byte/source-bound no-real-effect tests for post-start timeout, post-start ordinary error, and true pre-dispatch failure against the exact canonical candidate/binding. Promote only the tested component scope."
+}
