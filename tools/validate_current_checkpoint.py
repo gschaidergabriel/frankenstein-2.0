@@ -2,7 +2,9 @@
 """Fail-closed validator for Frankenstein 2.0 checkpoints/CURRENT.json.
 
 This validates continuity/source-evidence invariants only. It never grants runtime
-or whole-system acceptance.
+or whole-system acceptance. When supplied, the create-only active pointer and
+machine-readable workpackage state are identity-bound to the checkpoint so stale
+or cross-generation continuation metadata fails closed.
 """
 from __future__ import annotations
 
@@ -49,7 +51,7 @@ def load_json(path: Path) -> dict[str, Any]:
     return value
 
 
-def validate_checkpoint(checkpoint: dict[str, Any], claim: dict[str, Any] | None = None) -> None:
+def _validate_checkpoint_core(checkpoint: dict[str, Any]) -> None:
     missing = sorted(REQUIRED - checkpoint.keys())
     _require(not missing, f"missing required fields: {', '.join(missing)}")
 
@@ -84,6 +86,10 @@ def validate_checkpoint(checkpoint: dict[str, Any], claim: dict[str, Any] | None
         _require(isinstance(item, dict), f"strongest_current_evidence[{idx}] must be object")
         _nonempty_string(item.get("type"), f"strongest_current_evidence[{idx}].type")
         _nonempty_string(item.get("path"), f"strongest_current_evidence[{idx}].path")
+        if "commit" in item:
+            commit = item["commit"]
+            _require(isinstance(commit, str) and bool(SHA40.fullmatch(commit)),
+                     f"strongest_current_evidence[{idx}].commit malformed")
 
     completed = checkpoint["completed_this_checkpoint"]
     unresolved = checkpoint["unresolved"]
@@ -105,43 +111,96 @@ def validate_checkpoint(checkpoint: dict[str, Any], claim: dict[str, Any] | None
     _require(observed or accepted is False,
              "whole_system_acceptance cannot be true without observed runtime execution")
 
+
+def _bind_legacy_claim(checkpoint: dict[str, Any], claim: dict[str, Any]) -> None:
+    _require(claim.get("schema") == "FRANKENSTEIN2_WORKPACKAGE_CLAIM/v1", "claim schema mismatch")
+    for claim_field, checkpoint_field in (
+        ("workpackage_id", "current_workpackage"),
+        ("generation", "generation"),
+        ("claim_id", "claim_id"),
+        ("worker_id", "worker_id"),
+        ("trigger", "trigger"),
+    ):
+        _require(claim.get(claim_field) == checkpoint.get(checkpoint_field),
+                 f"claim/checkpoint identity mismatch: {claim_field}")
+    _require(claim.get("runtime_credit") in (0, 0.0),
+             "claim itself carries non-zero runtime credit")
+    _require(claim.get("runtime_execution_observed") is False,
+             "source/continuity claim unexpectedly asserts runtime execution")
+
+
+def _bind_active_pointer(checkpoint: dict[str, Any], active: dict[str, Any]) -> None:
+    _require(active.get("schema") == "FRANKENSTEIN2_ACTIVE_WORKPACKAGE/v1", "active schema mismatch")
+    _require(active.get("state") == "ACTIVE", "active pointer is not ACTIVE")
+    for active_field, checkpoint_field in (
+        ("workpackage_id", "current_workpackage"),
+        ("generation", "generation"),
+        ("claim_id", "claim_id"),
+        ("worker_id", "worker_id"),
+    ):
+        _require(active.get(active_field) == checkpoint.get(checkpoint_field),
+                 f"active/checkpoint identity mismatch: {active_field}")
+    base_commit = active.get("base_commit")
+    _require(isinstance(base_commit, str) and bool(SHA40.fullmatch(base_commit)),
+             "active base_commit malformed")
+
+
+def _bind_workpackage_state(checkpoint: dict[str, Any], state: dict[str, Any]) -> None:
+    _require(state.get("schema") == "FRANKENSTEIN2_WORKPACKAGE_STATE/v1", "state schema mismatch")
+    _require(state.get("canonical_repository") == checkpoint["canonical_repository"],
+             "state canonical_repository mismatch")
+    workpackages = state.get("workpackages")
+    _require(isinstance(workpackages, dict), "state workpackages object required")
+    entry = workpackages.get(checkpoint["current_workpackage"])
+    _require(isinstance(entry, dict), "checkpoint workpackage absent from state")
+    _require(entry.get("status") in {"IN_PROGRESS", "HOLD", "BLOCKED", "ACCEPTED_AT_SCOPE"},
+             "checkpoint points to NOT_STARTED or invalid workpackage state")
+
+
+def validate_checkpoint(
+    checkpoint: dict[str, Any],
+    claim: dict[str, Any] | None = None,
+    active: dict[str, Any] | None = None,
+    state: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    _validate_checkpoint_core(checkpoint)
     if claim is not None:
-        _require(claim.get("schema") == "FRANKENSTEIN2_WORKPACKAGE_CLAIM/v1", "claim schema mismatch")
-        for claim_field, checkpoint_field in (
-            ("workpackage_id", "current_workpackage"),
-            ("generation", "generation"),
-            ("claim_id", "claim_id"),
-            ("worker_id", "worker_id"),
-            ("trigger", "trigger"),
-        ):
-            _require(claim.get(claim_field) == checkpoint.get(checkpoint_field),
-                     f"claim/checkpoint identity mismatch: {claim_field}")
-        _require(claim.get("runtime_credit") in (0, 0.0),
-                 "claim itself carries non-zero runtime credit")
-        _require(claim.get("runtime_execution_observed") is False,
-                 "source/continuity claim unexpectedly asserts runtime execution")
+        _bind_legacy_claim(checkpoint, claim)
+    if active is not None:
+        _bind_active_pointer(checkpoint, active)
+    if state is not None:
+        _bind_workpackage_state(checkpoint, state)
 
-
-def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser()
-    parser.add_argument("checkpoint", type=Path)
-    parser.add_argument("--claim", type=Path)
-    args = parser.parse_args(argv)
-    try:
-        checkpoint = load_json(args.checkpoint)
-        claim = load_json(args.claim) if args.claim else None
-        validate_checkpoint(checkpoint, claim)
-    except ValidationError as exc:
-        print(json.dumps({"pass": False, "error": str(exc)}, sort_keys=True))
-        return 1
-    print(json.dumps({
+    return {
         "pass": True,
         "scope": "SOURCE_AND_CONTINUITY_METADATA_ONLY",
         "runtime_credit_granted": 0,
         "workpackage": checkpoint["current_workpackage"],
         "generation": checkpoint["generation"],
         "claim_id": checkpoint["claim_id"],
-    }, sort_keys=True))
+        "legacy_claim_bound": claim is not None,
+        "active_pointer_bound": active is not None,
+        "workpackage_state_bound": state is not None,
+    }
+
+
+def main(argv: list[str] | None = None) -> int:
+    parser = argparse.ArgumentParser()
+    parser.add_argument("checkpoint", type=Path)
+    parser.add_argument("--claim", type=Path)
+    parser.add_argument("--active", type=Path)
+    parser.add_argument("--state", type=Path)
+    args = parser.parse_args(argv)
+    try:
+        checkpoint = load_json(args.checkpoint)
+        claim = load_json(args.claim) if args.claim else None
+        active = load_json(args.active) if args.active else None
+        state = load_json(args.state) if args.state else None
+        result = validate_checkpoint(checkpoint, claim, active, state)
+    except ValidationError as exc:
+        print(json.dumps({"pass": False, "error": str(exc)}, sort_keys=True))
+        return 1
+    print(json.dumps(result, sort_keys=True))
     return 0
 
 
