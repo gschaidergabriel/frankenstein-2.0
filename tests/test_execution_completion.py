@@ -165,6 +165,28 @@ class ExecutionCompletionLineageTests(unittest.TestCase):
         twice = mod.apply_execution_transition(once, transition)
         self.assertEqual(once, twice)
 
+    def test_same_transition_id_with_changed_payload_fails_closed(self):
+        record = requested()
+        original = mod.AdmitExecution(
+            transition_id="same-transition",
+            causal_id=record.causal_id,
+            generation=record.generation,
+            request_id=record.request_id,
+            admission_id="admission-17",
+        )
+        once = mod.apply_execution_transition(record, original)
+        mutated = mod.AdmitExecution(
+            transition_id="same-transition",
+            causal_id=record.causal_id,
+            generation=record.generation,
+            request_id=record.request_id,
+            admission_id="admission-18",
+        )
+        with self.assertRaisesRegex(
+            mod.ExecutionLineageError, "TRANSITION_ID_PAYLOAD_MISMATCH"
+        ):
+            mod.apply_execution_transition(once, mutated)
+
     def test_stale_generation_fails_closed(self):
         record = requested(generation=4)
         with self.assertRaisesRegex(mod.ExecutionLineageError, "STALE_GENERATION"):
