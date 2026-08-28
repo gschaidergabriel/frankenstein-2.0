@@ -26,16 +26,30 @@ def tables(path: Path) -> set[str]:
         con.close()
 
 
+def assert_expected_schema(dbroot: Path) -> None:
+    for name, required in EXPECTED.items():
+        path = dbroot / name
+        assert path.is_file(), path
+        got = tables(path)
+        assert required <= got, (name, required - got)
+
+
 def main() -> int:
     with tempfile.TemporaryDirectory() as td:
-        dbroot = Path(td) / "dbs"
-        # Idempotence is required because setup may be re-entered after restart.
+        td_path = Path(td)
+        dbroot = td_path / "dbs"
+
+        # Explicit-root setup is idempotent because setup may be re-entered after restart.
         for _ in range(2):
             subprocess.run([sys.executable, str(SCRIPT), "--root", str(dbroot)], check=True)
+        assert_expected_schema(dbroot)
 
-        for name, required in EXPECTED.items():
-            got = tables(dbroot / name)
-            assert required <= got, (name, required - got)
+        # The no-argument contract must materialize the owner-directed canonical data/ path,
+        # not the superseded databases/ path.
+        subprocess.run([sys.executable, str(SCRIPT)], cwd=td_path, check=True)
+        canonical_root = td_path / "data"
+        assert_expected_schema(canonical_root)
+        assert not (td_path / "databases").exists(), "superseded databases/ default reappeared"
 
         bugdb = sqlite3.connect(dbroot / "bugs.sqlite")
         try:
@@ -63,7 +77,7 @@ def main() -> int:
         finally:
             bugdb.close()
 
-    print("PASS: telemetry initializer idempotence, schema presence, FIXED fail-closed gate")
+    print("PASS: telemetry initializer idempotence, canonical data/ default, schema presence, FIXED fail-closed gate")
     return 0
 
 
