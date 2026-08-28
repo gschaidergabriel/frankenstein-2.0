@@ -1,0 +1,37 @@
+{
+  "schema": "FRANKENSTEIN2_WORKPACKAGE_CLAIM/v1",
+  "workpackage_id": "F2-WP-104",
+  "generation": 1,
+  "claim_id": "F2-WP-104-G1-GPT56SOL-f88052b2",
+  "worker_id": "GPT-5.6-Sol",
+  "trigger": "4",
+  "status": "ACTIVE_SOURCE_BUILD",
+  "claimed_scope": "Define the minimal deferred causal-return envelope that turns an already result-bound F2-WP-102 NativeChildBinding into an explicit causal re-entry identity for the semantic parent agent/task. This package defines return/re-entry provenance only. It does not implement recipient delivery/ACK/transport attempts (F2-WP-103), execution success/failure/completion semantics (F2-WP-105), child spawning/runtime (F2-WP-601+), UnifiedDB persistence, effects, or VPS execution.",
+  "base_commit": "f88052b2b358a96f829a4d9c796e2fde99fbe724",
+  "dependencies": [
+    "src/frankenstein2/causal_identity.py",
+    "src/frankenstein2/native_child_binding.py",
+    "F2-WP-102 accepted source-component binding",
+    "F2-WP-103 parallel recipient-delivery lifecycle (explicit non-overlap)"
+  ],
+  "non_overlap_note": "Exact-head claim inventory contained no F2-WP-104 claim. F2-WP-103 owns recipient/delivery/ACK/transport-attempt lifecycle and is not modified here.",
+  "return_invariants": [
+    "a deferred return may be formed only from a NativeChildBinding with an immutable result_id/result_sha256 already bound",
+    "return_id is explicit and independent of result_id, delegation_id, causal_id and transport identity",
+    "resume.parent_causal_id equals the child causal_id, making child result re-entry causal rather than temporal coincidence",
+    "resume generation is strictly greater than child generation",
+    "resume session_id equals the parent session_id and resume agent_id/task_id equal the semantic parent agent/task",
+    "no wall-clock time, process identity, recipient ACK or delivery attempt is used to infer causal return identity",
+    "serialization is deterministic and malformed/unknown fields fail closed"
+  ],
+  "acceptance_target": [
+    "typed deferred-return envelope binds return_id + result-bound child binding + explicit parent re-entry CausalIdentity",
+    "unbound child results cannot be returned",
+    "wrong parent causal linkage, stale generation, wrong parent agent/task or implicit session bridge are rejected",
+    "deterministic serialization/hash and strict mapping are tested",
+    "component tests do not mint runtime/whole-system credit"
+  ],
+  "runtime_execution_observed": false,
+  "runtime_credit": 0,
+  "next_exact_action": "Implement src/frankenstein2/deferred_causal_return.py and focused deterministic tests against exact current WP101/WP102 blobs, then record bounded source-component evidence."
+}
