@@ -1,0 +1,153 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://frank.ink/frankenstein-2.0/schemas/run_package_manifest.schema.json",
+  "title": "Frankenstein 2.0 Run Package Manifest",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "run_id",
+    "series",
+    "workpackage_id",
+    "generation",
+    "claim_id",
+    "worker_id",
+    "source_commit_before",
+    "started_at_utc",
+    "evidence_scope",
+    "participants",
+    "artifacts_index",
+    "closure_receipt"
+  ],
+  "properties": {
+    "schema": {"const": "FRANKENSTEIN2_RUN_PACKAGE_MANIFEST/v1"},
+    "run_id": {"type": "string", "minLength": 1},
+    "series": {"type": "string", "minLength": 1},
+    "workpackage_id": {"type": "string", "pattern": "^F2-WP-[0-9]+$"},
+    "generation": {"type": "integer", "minimum": 1},
+    "claim_id": {"type": "string", "minLength": 1},
+    "worker_id": {"type": "string", "minLength": 1},
+    "source_commit_before": {"$ref": "#/$defs/sha40"},
+    "source_commit_after": {
+      "oneOf": [
+        {"$ref": "#/$defs/sha40"},
+        {"type": "null"}
+      ]
+    },
+    "donor_source_refs": {
+      "type": "array",
+      "items": {"type": "string", "minLength": 1},
+      "default": []
+    },
+    "started_at_utc": {"type": "string", "format": "date-time"},
+    "finished_at_utc": {
+      "oneOf": [
+        {"type": "string", "format": "date-time"},
+        {"type": "null"}
+      ]
+    },
+    "environment": {
+      "type": "object",
+      "additionalProperties": true,
+      "properties": {
+        "runtime": {"type": "string"},
+        "host_fingerprint": {"type": "string"},
+        "container_or_runner": {"type": "string"}
+      }
+    },
+    "commands": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["command_id", "argv_or_description", "status"],
+        "properties": {
+          "command_id": {"type": "string", "minLength": 1},
+          "argv_or_description": {"type": "string", "minLength": 1},
+          "status": {
+            "enum": ["PLANNED", "EXECUTED_PASS", "EXECUTED_FAIL", "BLOCKED", "NOT_RUN"]
+          },
+          "exit_code": {"type": ["integer", "null"]},
+          "receipt_ref": {"type": ["string", "null"]}
+        }
+      },
+      "default": []
+    },
+    "evidence_scope": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["classification", "runtime_execution_observed", "runtime_credit"],
+      "properties": {
+        "classification": {
+          "enum": [
+            "SOURCE_ONLY",
+            "UNIT_RUNTIME",
+            "COMPONENT_RUNTIME",
+            "INTEGRATION_RUNTIME",
+            "WHOLE_SYSTEM_RUNTIME",
+            "NEGATIVE_RESULT",
+            "BLOCKED"
+          ]
+        },
+        "runtime_execution_observed": {"type": "boolean"},
+        "runtime_credit": {"type": "integer", "minimum": 0},
+        "acceptance_scope": {"type": "string"},
+        "completion_deficit": {"type": "string"}
+      }
+    },
+    "participants": {
+      "type": "array",
+      "minItems": 1,
+      "items": {"$ref": "#/$defs/participant"}
+    },
+    "hypothesis_ids": {
+      "type": "array",
+      "items": {"type": "string"},
+      "default": []
+    },
+    "bug_ids": {
+      "type": "array",
+      "items": {"type": "string"},
+      "default": []
+    },
+    "negative_result_paths": {
+      "type": "array",
+      "items": {"type": "string"},
+      "default": []
+    },
+    "artifacts_index": {"const": "ARTIFACTS.json"},
+    "closure_receipt": {"const": "CLOSED.json"},
+    "next_exact_action": {"type": "string"}
+  },
+  "$defs": {
+    "sha40": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{40}$"
+    },
+    "participant": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["participant_id", "component", "observability"],
+      "properties": {
+        "participant_id": {"type": "string", "minLength": 1},
+        "component": {"type": "string", "minLength": 1},
+        "observability": {"enum": ["OBSERVABLE", "NOT_OBSERVABLE"]},
+        "telemetry_refs": {
+          "type": "array",
+          "items": {"type": "string"},
+          "default": []
+        },
+        "not_observable_reason": {"type": "string", "minLength": 1}
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {"observability": {"const": "NOT_OBSERVABLE"}},
+            "required": ["observability"]
+          },
+          "then": {"required": ["not_observable_reason"]}
+        }
+      ]
+    }
+  }
+}
