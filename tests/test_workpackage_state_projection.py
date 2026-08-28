@@ -74,18 +74,28 @@ class WorkpackageStateProjectionTests(unittest.TestCase):
                 self.assertIn(workpackage_id, markers)
                 self.assertEqual(markers[workpackage_id], expected_marker)
 
-    def test_accepted_projection_has_granular_reconciliation_reference(self) -> None:
+    def test_accepted_projection_has_existing_granular_reconciliation(self) -> None:
         workpackages = _aggregate_state()["workpackages"]
         for workpackage_id in G5_RECONCILED_IDS:
             claim = _active_claim(workpackage_id)
             if claim["state"] != "ACCEPTED":
                 continue
             evidence = workpackages[workpackage_id].get("evidence", [])
+            reconciliation_refs = [
+                ref
+                for ref in evidence
+                if ref.startswith(f"workpackages/reconciliations/{workpackage_id}/")
+            ]
             with self.subTest(workpackage_id=workpackage_id):
                 self.assertIn(f"workpackages/active/{workpackage_id}.json", evidence)
+                self.assertEqual(
+                    len(reconciliation_refs),
+                    1,
+                    f"{workpackage_id} accepted projection must bind exactly one terminal reconciliation",
+                )
                 self.assertTrue(
-                    any(ref.startswith(f"workpackages/reconciliations/{workpackage_id}/") for ref in evidence),
-                    f"{workpackage_id} accepted projection lacks terminal reconciliation evidence",
+                    (ROOT / reconciliation_refs[0]).is_file(),
+                    f"{workpackage_id} reconciliation reference does not exist in this tree",
                 )
 
 
