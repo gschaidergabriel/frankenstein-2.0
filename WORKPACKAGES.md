@@ -16,20 +16,20 @@ Status:
 - [-] F2-WP-002 Machine-readable workpackage state/claims/generations.
 - [x] F2-WP-003 Research-Entity → F2 provenance mirror — exact source-reference scope accepted; runtime credit remains zero.
 - [x] F2-WP-004 Immutable per-test run-package format — source contract accepted; runtime credit remains zero.
-- [ ] F2-WP-005 Full telemetry/data spine and collectors.
+- [-] F2-WP-005 Full telemetry/data spine and collectors.
 
 ## Phase 1 — UnifiedDB / Causal Coordination
 
-- [ ] F2-WP-100 Canonical UnifiedDB schema/resolver/fingerprint.
-- [ ] F2-WP-101 Session/agent/task/turn/causal/generation identity spine.
-- [ ] F2-WP-102 Workpackage → Agent tool-use → child agent → result binding.
+- [x] F2-WP-100 Canonical UnifiedDB schema/resolver/fingerprint — accepted at bounded repository evidence scope; no whole-system credit.
+- [-] F2-WP-101 Session/agent/task/turn/causal/generation identity spine.
+- [-] F2-WP-102 Workpackage → Agent tool-use → child agent → result binding.
 - [ ] F2-WP-103 Recipient delivery lifecycle and dedupe.
-- [ ] F2-WP-104 Deferred causal-return envelope.
-- [ ] F2-WP-105 Typed execution/completion outcome lineage.
+- [-] F2-WP-104 Deferred causal-return envelope.
+- [-] F2-WP-105 Typed execution/completion outcome lineage.
 
 ## Phase 2 — Persistent Pulse / Agency
 
-- [ ] F2-WP-200 Persistent Pulse kernel.
+- [-] F2-WP-200 Persistent Pulse kernel.
 - [ ] F2-WP-201 StateFingerprint.
 - [ ] F2-WP-202 PredictionContract / residual.
 - [ ] F2-WP-203 AgencyState/interests/open loops/deferred intents.
