@@ -1,16 +1,19 @@
 """Deterministic WAIT/HOLD/Wake contract for Frankenstein 2.0.
 
-F2-WP-205 generation 2.
+F2-WP-205 generation 3.
 
 This component only evaluates explicitly caller-supplied observations against explicitly
 caller-supplied wake conditions. It has no clock, sensor, persistence, scheduler, goal,
 provider/tool, effect, or completion authority. Evaluation is fail-closed under exact
 state-id/generation/state-digest fences.
 
-Generation 2 preserves absence of evidence and contradictory evidence as first-class
+Generation 2 preserved absence of evidence and contradictory evidence as first-class
 states: missing observation keys classify ABSTAIN_NOT_OBSERVED, while conflicting explicit
 values for one EQUALS key classify ABSTAIN_CONFLICTING_OBSERVATIONS. Neither is silently
 coerced into a positive wake match.
+
+Generation 3 preserves those semantics and binds the canonical explicit observation payload,
+including values and provenance_refs, into every WakeEvaluation receipt.
 """
 from __future__ import annotations
 
@@ -21,7 +24,7 @@ import re
 from typing import Any, Iterable
 
 HOLD_CHECKPOINT_SCHEMA = "FRANKENSTEIN2_HOLD_CHECKPOINT/v1"
-WAKE_EVALUATION_SCHEMA = "FRANKENSTEIN2_WAKE_EVALUATION/v1"
+WAKE_EVALUATION_SCHEMA = "FRANKENSTEIN2_WAKE_EVALUATION/v2"
 WAKE_ANY = "ANY"
 WAKE_ALL = "ALL"
 OP_EQUALS = "EQUALS"
@@ -223,6 +226,7 @@ class WakeEvaluation:
     observed_state_id: str
     observed_generation: int
     observed_state_sha256: str
+    observations_sha256: str
     observation_ids: tuple[str, ...]
     matched_condition_ids: tuple[str, ...]
     unmatched_condition_ids: tuple[str, ...]
@@ -322,6 +326,7 @@ def evaluate_wake(
             classification = WAKE_CONDITION_MATCH
             wake = True
 
+    observation_payload = [item.as_dict() for item in explicit]
     return WakeEvaluation(
         schema=WAKE_EVALUATION_SCHEMA,
         evaluation_id=evaluation_id,
@@ -330,6 +335,7 @@ def evaluate_wake(
         observed_state_id=observed_state_id,
         observed_generation=observed_generation,
         observed_state_sha256=observed_state_sha256,
+        observations_sha256=_digest(observation_payload),
         observation_ids=tuple(item.observation_id for item in explicit),
         matched_condition_ids=tuple(matched),
         unmatched_condition_ids=tuple(unmatched),
