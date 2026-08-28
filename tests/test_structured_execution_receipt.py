@@ -19,6 +19,7 @@ from state.execution_completion import (
     ExecutionOutcome,
     ExecutionStage,
     ReplayDisposition,
+    VerificationOutcome,
     apply_execution_transition,
 )
 
@@ -246,6 +247,34 @@ class StructuredExecutionReceiptTests(unittest.TestCase):
         second = apply_structured_execution_receipt(call, first.lineage, receipt())
         self.assertEqual(first.lineage, second.lineage)
         self.assertEqual(first.observed_call, second.observed_call)
+
+    def test_final_verified_stage_cannot_be_directly_constructed_without_receipt_history(self) -> None:
+        """A caller must not mint final completion by bypassing VerifyExecution."""
+        for stage, verification_outcome, execution_outcome in (
+            (
+                ExecutionStage.VERIFIED_APPLIED,
+                VerificationOutcome.APPLIED,
+                ExecutionOutcome.REPORTED_SUCCESS,
+            ),
+            (
+                ExecutionStage.VERIFIED_NOT_APPLIED,
+                VerificationOutcome.NOT_APPLIED,
+                ExecutionOutcome.REPORTED_FAILURE,
+            ),
+        ):
+            with self.subTest(stage=stage):
+                with self.assertRaises(Exception):
+                    ExecutionLineage(
+                        schema="FRANKENSTEIN2_EXECUTION_COMPLETION_LINEAGE/v1",
+                        causal_id="cause-direct-mint",
+                        generation=7,
+                        request_id="request-direct-mint",
+                        stage=stage,
+                        admission_id="admission-direct-mint",
+                        execution_attempt_id="execution-direct-mint",
+                        execution_outcome=execution_outcome,
+                        verification_outcome=verification_outcome,
+                    )
 
 
 if __name__ == "__main__":
