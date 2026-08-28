@@ -177,7 +177,7 @@ class FingerprintUnifiedDBTests(unittest.TestCase):
         self.assertEqual(len(fp.sha256 or ""), 64)
         self.assertEqual(len(fp.sqlite_schema_sha256 or ""), 64)
         self.assertEqual(len(fp.receipt_sha256()), 64)
-        self.assertEqual(fp.classification, "SQLITE_IDENTITY_NOT_STATE_SNAPSHOT")
+        self.assertEqual(fp.classification, "SQLITE_MAIN_FILE_IDENTITY_NOT_STATE_SNAPSHOT")
 
     def test_schema_change_changes_schema_digest(self) -> None:
         target = self.make_sqlite(self.root / "unified.db")
@@ -227,6 +227,24 @@ class FingerprintUnifiedDBTests(unittest.TestCase):
 
         with mock.patch.object(uid, "_sha256_fd", side_effect=hash_then_mutate):
             with self.assertRaisesRegex(uid.UnifiedDBIdentityError, "MUTATED_DURING_FINGERPRINT"):
+                uid.fingerprint_unifieddb(target)
+
+    def test_mutation_during_sqlite_identity_fails_closed(self) -> None:
+        target = self.make_sqlite(self.root / "unified.db")
+        original_identity = uid._sqlite_schema_identity
+
+        def identity_then_mutate(path: Path):
+            result = original_identity(path)
+            with target.open("ab") as stream:
+                stream.write(b"-mutated-after-schema-query")
+                stream.flush()
+                os.fsync(stream.fileno())
+            return result
+
+        with mock.patch.object(uid, "_sqlite_schema_identity", side_effect=identity_then_mutate):
+            with self.assertRaisesRegex(
+                uid.UnifiedDBIdentityError, "MUTATED_DURING_SQLITE_IDENTITY"
+            ):
                 uid.fingerprint_unifieddb(target)
 
     def test_relative_fingerprint_path_is_forbidden(self) -> None:
