@@ -11,6 +11,7 @@ on:
     branches:
       - main
       - "chatgpt/trigger4-wp302-familiarity-prediction-error-20260829"
+      - "review/wp302-orphan-recovery-pytest-20260829"
     paths:
       - "src/frankenstein2/familiarity_prediction_error.py"
       - "src/frankenstein2/prediction_contract.py"
@@ -29,6 +30,8 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
+      - name: Install test dependency
+        run: python -m pip install --disable-pip-version-check pytest
       - name: Run WP302 deterministic falsification suite
         env:
           PYTHONPATH: src
