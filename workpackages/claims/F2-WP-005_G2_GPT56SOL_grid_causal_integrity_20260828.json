@@ -1,0 +1,22 @@
+{
+  "schema": "FRANKENSTEIN2_WORKPACKAGE_CLAIM/v1",
+  "workpackage_id": "F2-WP-005",
+  "generation": 2,
+  "claim_id": "F2-WP-005-G2-GPT56SOL-grid-causal-integrity-20260828",
+  "worker_id": "GPT-5.6-Sol:Triggerword-4-organ",
+  "trigger": "4",
+  "status": "ACTIVE_SUCCESSOR_REGRESSION",
+  "source_commit_before": "96bb277946a2e7928d36b38e287710ba0e190d06",
+  "scope": "Successor hardening only: fail closed when GRID child telemetry references a nonexistent or wrong-run GRID cycle. Preserve the canonical generation-1 telemetry initializer and data/ path; do not create a second telemetry authority.",
+  "observed_gap": "At source commit 96bb277946a2e7928d36b38e287710ba0e190d06, grid_cells, hyperposition_branches, world_projections, microlab_calls and gwt_events carry run_id/cycle_id but the schema contains no FK/trigger constraint binding those identities to grid_cycles.",
+  "acceptance_target": [
+    "orphan child telemetry for all five GRID child tables is rejected",
+    "child rows with an existing cycle_id but mismatched run_id are rejected",
+    "valid same-run child rows remain accepted",
+    "enforcement applies when the initializer re-enters an already-created schema-v2 database",
+    "telemetry CI passes at exact successor source identity"
+  ],
+  "runtime_credit": 0,
+  "whole_system_credit": 0,
+  "next_exact_action": "Add re-entry-safe causal-integrity triggers and deterministic regression coverage, then require GitHub Actions success before proposing merge."
+}
