@@ -1,0 +1,93 @@
+name: Frankenstein 2.0 WP105 G3 Completion Evidence Admission CI
+
+on:
+  pull_request:
+    paths:
+      - 'src/state/execution_completion.py'
+      - 'src/frankenstein2/deferred_execution_verification.py'
+      - 'src/frankenstein2/effect_invocation_correlation.py'
+      - 'src/frankenstein2/structured_execution_receipt.py'
+      - 'src/frankenstein2/current_entityos_effect_authority_binding.py'
+      - 'src/frankenstein2/completion_evidence_types.py'
+      - 'src/frankenstein2/completion_evidence_gate.py'
+      - 'tests/test_deferred_execution_verification.py'
+      - 'tests/test_effect_invocation_correlation.py'
+      - 'tests/test_structured_execution_receipt.py'
+      - 'tests/test_completion_evidence_gate.py'
+      - 'workpackages/active/F2-WP-105.json'
+      - 'workpackages/falsifiers/F2-WP-105_G3_COMPLETION_EVIDENCE_ADMISSION_SOURCE_BINDING.json'
+      - '.github/workflows/wp105-g3-completion-evidence-admission-ci.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  wp105-g3-completion-evidence-admission:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    env:
+      PYTHONPATH: .:src
+    steps:
+      - name: Checkout exact candidate head
+        uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Verify exact authority and source bindings
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git hash-object workpackages/active/F2-WP-105.json)" = "c1c48b54936ddaba471e788249ff583d5090337d"
+          test "$(git hash-object src/state/execution_completion.py)" = "5208772d091334c23c1c4d51c3d5bbb9dc77c272"
+          test "$(git hash-object src/frankenstein2/deferred_execution_verification.py)" = "ec307eed2b9432c088ff34abcbd998f9df055e95"
+          test "$(git hash-object src/frankenstein2/effect_invocation_correlation.py)" = "c1e7e22dcedcafe3836470d42c27721f6342bb65"
+          test "$(git hash-object src/frankenstein2/structured_execution_receipt.py)" = "f9655420e047f5a949196c37b4e7865b9faf7ba6"
+          test "$(git hash-object src/frankenstein2/current_entityos_effect_authority_binding.py)" = "e2df1a2f0b42d24ce68050d621f44e7c22a55622"
+          test "$(git hash-object src/frankenstein2/completion_evidence_types.py)" = "60061956cbd99cc9c80425d49ee34549caa2372e"
+          test "$(git hash-object src/frankenstein2/completion_evidence_gate.py)" = "27b615e8dade08ebeb580bd57f177711ac9a5e65"
+          test "$(git hash-object tests/test_deferred_execution_verification.py)" = "32f48f96b9d2007a7a9c4dc2473bcdfbb3d8fc5e"
+          test "$(git hash-object tests/test_effect_invocation_correlation.py)" = "876b01101624a369822cc6ef966b4c2881028e8d"
+          test "$(git hash-object tests/test_structured_execution_receipt.py)" = "d1c7bb58eb49cb31ae2460e4e28051724265da6a"
+          test "$(git hash-object tests/test_completion_evidence_gate.py)" = "aa068a040fe1ab503ed64e0a06b93dccc78c2166"
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          binding = json.loads(Path('workpackages/falsifiers/F2-WP-105_G3_COMPLETION_EVIDENCE_ADMISSION_SOURCE_BINDING.json').read_text())
+          claim = json.loads(Path('workpackages/active/F2-WP-105.json').read_text())
+          assert binding['authority_epoch'] == '9.13'
+          assert binding['authority_inbox_blob_sha'] == 'f77bed7d4394f418bdde9c5769a48c7824b5391a'
+          assert binding['authority_steering_blob_sha'] == 'f0e1ada88e6f0537cbf2083f4c50fdd336d27e9a'
+          assert claim['claim_id'] == binding['claim_id']
+          assert claim['generation'] == 3 and claim['state'] == 'ACTIVE'
+          assert binding['evidence_scope'] == 'REPOSITORY_HOSTED_NO_REAL_EFFECT_COMPONENT_ONLY'
+          assert binding['promotion_fences']['canonical_semantics_promotion'] is False
+          assert binding['promotion_fences']['whole_frankenstein2_runtime_credit'] == 0
+          PY
+
+      - name: Compile exact bound completion path
+        run: >-
+          python -m py_compile
+          src/state/execution_completion.py
+          src/frankenstein2/completion_evidence_types.py
+          src/frankenstein2/completion_evidence_gate.py
+          src/frankenstein2/deferred_execution_verification.py
+          src/frankenstein2/effect_invocation_correlation.py
+          src/frankenstein2/structured_execution_receipt.py
+          src/frankenstein2/current_entityos_effect_authority_binding.py
+          tests/test_completion_evidence_gate.py
+          tests/test_deferred_execution_verification.py
+          tests/test_effect_invocation_correlation.py
+          tests/test_structured_execution_receipt.py
+
+      - name: Execute completion-admission discriminator and regression set
+        run: >-
+          python -m unittest -v
+          tests.test_completion_evidence_gate
+          tests.test_deferred_execution_verification
+          tests.test_effect_invocation_correlation
+          tests.test_structured_execution_receipt
+          tests.test_execution_completion
+          tests.test_current_entityos_effect_authority_binding
