@@ -1,0 +1,76 @@
+name: F2 WP105 G2 Typed UNKNOWN_OUTCOME CI
+
+on:
+  push:
+    branches:
+      - chatgpt/trigger4-wp105-g2-typed-unknown-20260829
+    paths:
+      - 'src/frankenstein2/entityos_unknown_outcome_adapter.py'
+      - 'src/frankenstein2/effect_executor_interlock.py'
+      - 'src/frankenstein2/entityos_effect_gate_call_bridge.py'
+      - 'tests/test_pr430_f2_interlock_unknown_integration.py'
+      - 'tests/fixtures/entityos_effect_unknown_pr430_2f99/**'
+      - 'tests/fixtures/entityos_effect_authority_2b68/clayverse/store.py'
+      - 'tests/fixtures/wp105_g2_unknown_adapter_binding.json'
+      - '.github/workflows/wp105-g2-typed-unknown-ci.yml'
+  pull_request:
+    paths:
+      - 'src/frankenstein2/entityos_unknown_outcome_adapter.py'
+      - 'src/frankenstein2/effect_executor_interlock.py'
+      - 'src/frankenstein2/entityos_effect_gate_call_bridge.py'
+      - 'tests/test_pr430_f2_interlock_unknown_integration.py'
+      - 'tests/fixtures/entityos_effect_unknown_pr430_2f99/**'
+      - 'tests/fixtures/entityos_effect_authority_2b68/clayverse/store.py'
+      - 'tests/fixtures/wp105_g2_unknown_adapter_binding.json'
+      - '.github/workflows/wp105-g2-typed-unknown-ci.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  typed-unknown-outcome:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    env:
+      PYTHONPATH: .:src
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Verify exact F2 and donor source identities
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git hash-object src/frankenstein2/effect_executor_interlock.py)" = "552802db239589a2dac2414a206f452c671d88b6"
+          test "$(git hash-object src/frankenstein2/entityos_effect_gate_call_bridge.py)" = "d7266a4b9fa51b561bd02a64d32112d6b0059049"
+          test "$(git hash-object src/frankenstein2/entityos_unknown_outcome_adapter.py)" = "8c165e2b9147479c42247a3ac8cdaa98ffbf7e16"
+          test "$(git hash-object tests/test_pr430_f2_interlock_unknown_integration.py)" = "4ba73809254417f5418055184af8c618396546f6"
+          test "$(git hash-object tests/fixtures/entityos_effect_unknown_pr430_2f99/clayverse/effects.py)" = "ae1b8db9111868374258435e97c7dfeda41bc318"
+          test "$(git hash-object tests/fixtures/entityos_effect_unknown_pr430_2f99/clayverse/effect_journal.py)" = "4615150638dc4409317550d44b84d942a260de58"
+          test "$(git hash-object tests/fixtures/entityos_effect_unknown_pr430_2f99/clayverse/entityos_bridge.py)" = "7781580f4e862c23491cc862e19c5d1f62b3ada6"
+          test "$(git hash-object tests/fixtures/entityos_effect_authority_2b68/clayverse/store.py)" = "a88d923ea3d0eab5847f304f35463e5a2b2c4acd"
+      - name: Verify current 9.13 authority binding receipt
+        shell: python
+        run: |
+          import json
+          from pathlib import Path
+          p = Path('tests/fixtures/wp105_g2_unknown_adapter_binding.json')
+          d = json.loads(p.read_text(encoding='utf-8'))
+          assert d['authority_epoch'] == '9.13'
+          assert d['mode'] == 'FREE_ONLY_HARD_OFF'
+          assert d['authority_sources']['supervisor_inbox_blob_sha'] == 'f77bed7d4394f418bdde9c5769a48c7824b5391a'
+          assert d['authority_sources']['steering_blob_sha'] == 'f0e1ada88e6f0537cbf2083f4c50fdd336d27e9a'
+          assert d['required_semantics']['real_external_effect'] is False
+          assert d['required_semantics']['second_effect_authority'] is False
+          assert d['required_semantics']['canonical_semantics_promotion'] is False
+      - name: Compile exact adapter seam
+        run: >-
+          python -m py_compile
+          src/frankenstein2/entityos_unknown_outcome_adapter.py
+          src/frankenstein2/effect_executor_interlock.py
+          src/frankenstein2/entityos_effect_gate_call_bridge.py
+          tests/test_pr430_f2_interlock_unknown_integration.py
+      - name: Execute no-real-effect timeout and ordinary-error integration gates
+        run: python tests/test_pr430_f2_interlock_unknown_integration.py -v
