@@ -5,14 +5,17 @@ on:
     branches:
       - main
       - trigger4/wp504-epistemic-action-selection-g1-gpt56sol-20260829
+      - chatgpt/f2-wp504-zero-budget-repair-20260829
     paths:
       - 'src/frankenstein2/epistemic_action_selection.py'
       - 'tests/test_epistemic_action_selection.py'
+      - 'tests/test_wp504_zero_budget_regression.py'
       - '.github/workflows/wp504-epistemic-action-selection-ci.yml'
   pull_request:
     paths:
       - 'src/frankenstein2/epistemic_action_selection.py'
       - 'tests/test_epistemic_action_selection.py'
+      - 'tests/test_wp504_zero_budget_regression.py'
       - '.github/workflows/wp504-epistemic-action-selection-ci.yml'
   workflow_dispatch:
 
@@ -29,8 +32,10 @@ jobs:
         with:
           python-version: '3.12'
       - name: Compile
-        run: python -m py_compile src/frankenstein2/epistemic_action_selection.py tests/test_epistemic_action_selection.py
+        run: python -m py_compile src/frankenstein2/epistemic_action_selection.py tests/test_epistemic_action_selection.py tests/test_wp504_zero_budget_regression.py
       - name: Epistemic action selection falsification suite
         env:
           PYTHONPATH: src
-        run: python tests/test_epistemic_action_selection.py -v
+        run: |
+          python tests/test_epistemic_action_selection.py -v
+          python tests/test_wp504_zero_budget_regression.py -v
