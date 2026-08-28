@@ -1,0 +1,61 @@
+{
+  "schema": "FRANKENSTEIN2_WORKPACKAGE_SOURCE_COMPONENT_RECEIPT/v1",
+  "workpackage_id": "F2-WP-100",
+  "generation": 1,
+  "trigger": "4",
+  "worker": "GPT-5.6-Sol",
+  "date": "2026-08-28",
+  "scope": "SOURCE_COMPONENT_ONLY",
+  "status": "PASS_AT_LOCAL_COMPONENT_SCOPE",
+  "canonical_implementation": {
+    "path": "src/state/unifieddb_identity.py",
+    "git_blob_sha1": "ce88d1082d02aae90b00f3de994aa752dd49b500",
+    "raw_sha256": "c648426f2ccf8fd17c975710cad44b94628aad55c0e9cc0614a049514f216142",
+    "schemas": [
+      "FRANKENSTEIN2_UNIFIEDDB_RESOLUTION/v2",
+      "FRANKENSTEIN2_UNIFIEDDB_FINGERPRINT/v2"
+    ]
+  },
+  "tests": {
+    "path": "tests/test_unifieddb_identity.py",
+    "git_blob_sha1": "4a81ac5b60d011fa6cc66fe2747a1fd45fa602b2",
+    "raw_sha256": "eb8de710a767075745c063c3dc028787924a2283275f835d74ef0d9bd26e2563",
+    "runner_class": "CHATGPT_LOCAL_COMPONENT_TOOLING_NOT_VPS_NOT_F2_RUNTIME",
+    "command": "python3 -m unittest tests/test_unifieddb_identity.py -v",
+    "result": "17 tests PASS, process exit 0",
+    "notes": [
+      "An unrelated artifact/spreadsheet warmup emitted a timeout warning during Python startup; unittest execution continued and returned exit 0.",
+      "The reconstructed local files were independently checked to produce the exact Git blob IDs recorded above."
+    ]
+  },
+  "invariants_observed": [
+    "relative explicit durable-state paths fail closed instead of depending on process CWD",
+    "pointer and environment authorities must agree or resolution fails closed",
+    "stale pointer does not silently fall through to a second DB authority",
+    "fresh install target remains persistent XDG data rather than replaceable plugin/source tree",
+    "fingerprint rejects symlink, directory and non-SQLite regular file",
+    "fingerprint detects mutation during file hashing",
+    "fingerprint binds file identity plus SQLite schema digest and labels itself as identity-not-state-snapshot"
+  ],
+  "donor_provenance": {
+    "repository": "gschaidergabriel/frankenstein",
+    "commit": "5641dc6b2df6ebed1df246ee7533134324f6c427",
+    "resolver_policy_source": "DEV_SOURCE_RESEARCH/research/05_UNIFIEDDB_ARCHITECTURE.md",
+    "schema_source": "DEV_SOURCE_RESEARCH/repository/scripts/daten/schema_leer.sql",
+    "schema_blob_sha1": "12ad7f4511d365b327cdbee34f5471829198c203"
+  },
+  "negative_evidence": [
+    "A transient second implementation path state/unifieddb_identity.py existed during parallel assembly and was removed; src/state/unifieddb_identity.py is the retained source path.",
+    "An earlier concurrent test version accepted silent pointer/env precedence and non-SQLite regular files; those assertions were superseded by fail-closed tests.",
+    "Canonical F2 UnifiedDB schema admission is not yet complete; donor schema provenance is bound but not promoted as F2 canonical schema in this receipt."
+  ],
+  "credit": {
+    "source_component": 1,
+    "live_vps_runtime": 0,
+    "grid10_runtime": 0,
+    "whole_frankenstein2": 0,
+    "whole_entityos_hcu": 0,
+    "training": 0
+  },
+  "next_exact_action": "Admit a canonical F2 UnifiedDB schema artifact from the frozen donor schema with an explicit migration/version law, validate schema replay on an isolated temporary SQLite DB, then bind the authorized live-host DB path/fingerprint when runner transport is available."
+}
