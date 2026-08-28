@@ -135,8 +135,16 @@ def _bind_reconciliation(pointer: dict[str, Any], reconciliation: dict[str, Any]
                  "reconciliation/pointer identity mismatch: worker_id")
     _require(reconciliation.get("terminal_state") == pointer.get("state"),
              "reconciliation terminal_state mismatch")
-    _require(reconciliation.get("whole_system_acceptance") is False,
-             "component reconciliation must not assert whole-system acceptance")
+
+    # Current receipts use the explicit boolean guard. Older admitted reconciliations used
+    # whole_system_credit: 0. Preserve fail-closed semantics: exactly one explicit zero/false
+    # representation is required; absence, truthy acceptance, or nonzero credit is rejected.
+    if "whole_system_acceptance" in reconciliation:
+        _require(reconciliation.get("whole_system_acceptance") is False,
+                 "component reconciliation must not assert whole-system acceptance")
+    else:
+        _require(reconciliation.get("whole_system_credit") == 0,
+                 "component reconciliation requires explicit zero whole-system credit")
 
 
 def validate_pointer(
