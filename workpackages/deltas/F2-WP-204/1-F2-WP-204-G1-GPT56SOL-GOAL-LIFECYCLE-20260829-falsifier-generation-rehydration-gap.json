@@ -1,0 +1,43 @@
+{
+  "schema": "FRANKENSTEIN2_WORKPACKAGE_DELTA/v1",
+  "workpackage_id": "F2-WP-204",
+  "generation": 1,
+  "claim_id": "F2-WP-204-G1-GPT56SOL-GOAL-LIFECYCLE-20260829",
+  "worker_id": "GPT-5.6-Sol/CANDIDATE_FALSIFIER",
+  "base_commit": "485574e2612ba3150adf16b68a2ef1df568177df",
+  "observed_main_commit": "a4c192188a945443ecadad840df2c620e8a45ff7",
+  "owned_paths": [
+    "chatgpt/trigger4-wp204-generation-bypass-falsifier-20260829:tests/test_goal_lifecycle_generation_falsifier.py",
+    "chatgpt/trigger4-wp204-generation-bypass-falsifier-20260829:.github/workflows/wp204-generation-bypass-falsifier-ci.yml"
+  ],
+  "result_class": "FALSIFIER",
+  "source_commits": [
+    "485574e2612ba3150adf16b68a2ef1df568177df",
+    "ff4d4d493b002c6fee2837f333b8dc3057413ada"
+  ],
+  "receipts": [
+    "github-actions-run:33218459572",
+    "github-actions-job:99007233160",
+    "draft-pr:35"
+  ],
+  "falsifiers": [
+    {
+      "id": "WP204_NONZERO_GENERATION_DIRECT_ACTIVE_BOOTSTRAP",
+      "hypothesis": "Generic GoalState.create must not allow an already ACTIVE goal at nonzero generation without traversing explicit lifecycle transition lineage, unless a separately specified rehydration contract binds that exception.",
+      "observed": "At canonical source 485574e2612ba3150adf16b68a2ef1df568177df, GoalState.create(state_id, generation=1, goals=[ACTIVE]) succeeds. The candidate CI discriminator expected GoalLifecycleError and failed because no exception was raised.",
+      "controls": [
+        "generation=0 direct ACTIVE bootstrap is rejected",
+        "explicit CANDIDATE->ACTIVE GoalStatusChange/GoalStateTransition path succeeds and emits receipt"
+      ],
+      "classification": "SEMANTIC_CONTRACT_GAP_NOT_INFRASTRUCTURE_FAILURE"
+    }
+  ],
+  "contradictions": [
+    "The active WP-204 claim requires explicit adoption/hold/drop transitions under exact lineage fences, while generic GoalState.create permits non-CANDIDATE state construction at generation > 0.",
+    "Canonical test_goal_lifecycle.py intentionally constructs GOAL_HOLD at generation=2, indicating an implicit rehydration/test-fixture use case; that use case is not yet represented as a distinct identity/digest/provenance-bound rehydration contract."
+  ],
+  "proposed_state_change": "NO_CANONICAL_STATE_CHANGE_FROM_FALSIFIER. Mutation owner should either make generic create candidate-only for all generations and add an explicit future rehydration API, or explicitly specify/test the trusted rehydration boundary with identity/digest/provenance validation.",
+  "completion_deficit": "WP-204 generation 1 should not silently conflate lifecycle creation with trusted rehydration. Resolve or explicitly bound the nonzero-generation constructor exception before treating lifecycle lineage as closed beyond source/test fixture scope.",
+  "next_exact_action": "Active WP-204 mutation authority reviews PR35/delta, chooses fail-closed candidate-only create versus explicit bound rehydration semantics, then reruns canonical WP-204 CI plus the generation-bypass discriminator. Preserve zero completion/effect authority either way.",
+  "created_at_utc": "2026-08-28T22:54:30Z"
+}
