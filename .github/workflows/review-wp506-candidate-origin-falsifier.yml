@@ -1,0 +1,35 @@
+name: Review WP506 candidate-origin falsifier
+
+on:
+  push:
+    branches:
+      - review/wp506-producer-origin-executable-falsifier-20260829-0651
+    paths:
+      - 'src/frankenstein2/gwt_workspace.py'
+      - 'tests/test_wp506_candidate_origin_falsifier.py'
+      - '.github/workflows/review-wp506-candidate-origin-falsifier.yml'
+  pull_request:
+    paths:
+      - 'src/frankenstein2/gwt_workspace.py'
+      - 'tests/test_wp506_candidate_origin_falsifier.py'
+      - '.github/workflows/review-wp506-candidate-origin-falsifier.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  candidate-origin-falsifier:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Compile exact candidate source and review test
+        run: python -m py_compile src/frankenstein2/gwt_workspace.py tests/test_wp506_candidate_origin_falsifier.py
+      - name: Execute review-only falsifier
+        env:
+          PYTHONPATH: src
+        run: python tests/test_wp506_candidate_origin_falsifier.py -v
