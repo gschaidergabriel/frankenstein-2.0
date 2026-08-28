@@ -1,0 +1,40 @@
+{
+  "schema": "FRANKENSTEIN2_WORKPACKAGE_DELTA/v1",
+  "workpackage_id": "F2-WP-302",
+  "generation": 2,
+  "claim_id": "F2-WP-302-G2-GPT56SOL-WP301-PROVENANCE-HARDENING-20260829",
+  "worker_id": "GPT-5.6-Sol",
+  "base_commit": "28560f2238efb7ad287a8e86ee5803df2787b2ec",
+  "observed_main_commit": "28560f2238efb7ad287a8e86ee5803df2787b2ec",
+  "owned_paths": [
+    "src/frankenstein2/familiarity_prediction_binding.py",
+    "tests/test_familiarity_prediction_binding.py",
+    ".github/workflows/wp302-familiarity-prediction-binding-ci.yml",
+    "workpackages/deltas/F2-WP-302/2-F2-WP-302-G2-GPT56SOL-WP301-PROVENANCE-HARDENING-20260829-01.json"
+  ],
+  "result_class": "IMPLEMENTATION_DELTA",
+  "source_commits": [
+    "38d276730e272ec1e59fc93a3c147e5df0347065",
+    "1e185cddb73e97d75dcf18b77c0dbc7f4e3651b0",
+    "7a8d3308fdcb63b4b13665a5ae4b55e6333624af"
+  ],
+  "receipts": [],
+  "falsifiers": [
+    "workpackages/falsifiers/F2-WP-302/20260829T0633P0700_UNBOUND_RETRIEVAL_RESULT_PROVENANCE_CANDIDATE_FALSIFIER_GPT56SOL.json",
+    "workpackages/deltas/F2-WP-302/1-F2-WP-302-G1-GPT56SOL-FAMILIARITY-PREDICTION-ERROR-20260829-02.json"
+  ],
+  "contradictions": [
+    "G1 accepted standalone RetrievalResult values without exact WP301 RetrievalNeed/RetrievalPlan identity, so direct-constructor selected results could cross the familiarity boundary without an upstream plan digest fence."
+  ],
+  "changes": [
+    "BINDING_SCHEMA and SIGNAL_SCHEMA advance to v2 for the deliberate provenance contract change.",
+    "FamiliarityPredictionBinding captures exact RetrievalNeed and RetrievalPlan SHA-256 fences and evaluate requires those exact typed objects rather than standalone RetrievalResult inputs.",
+    "The evaluator validates plan/need identity, candidate cardinality, selected/not-selected partition flags, duplicate memory IDs, canonical ordering, local score/count invariants and exact plan digest before consuming selected results.",
+    "A direct-constructor forged selected RetrievalResult placed into a replacement plan is rejected because it changes the caller-fenced upstream RetrievalPlan digest.",
+    "Current observation mismatch remains unsuppressible by familiarity and no current residual remains UNKNOWN."
+  ],
+  "proposed_state_change": "Pending exact-head repository CI, reconcile G2 only as deterministic component provenance hardening. Preserve G1 historical receipt and contradiction history; do not mint runtime/VPS/physical-GRID10/GWT/effect/completion/training/whole-system credit.",
+  "completion_deficit": "No repository-CI receipt yet for G2 at this delta point. Exact caller-fenced digests establish interface identity but do not prove world truth or upstream authority by themselves. No target-VPS/physical-GRID10 runtime was executed.",
+  "next_exact_action": "Open one claim-bound PR to current main, require exact-head WP302 repository CI including the direct-constructor provenance regression, inspect the diff against moving main, then reconcile only at component scope if green and nonduplicated.",
+  "created_at_utc": "2026-08-28T23:47:30Z"
+}
