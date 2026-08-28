@@ -2,10 +2,13 @@
 
 This module is an identity/order guard only. It does not execute a tool, grant
 EffectGate authority, persist canonical state, infer an external-world outcome, or
-mint completion.  It binds an explicit ``effect_id`` at PRE-dispatch time to the
-already-authoritative WP-102/WP-104 call identity and requires the same identity at
-POST-result verification time.
+mint completion. It binds an explicit ``effect_id`` at true PRE-dispatch time to the
+already-authoritative result-free WP-102 call identity. After dispatch, the same
+identity may gain a typed result observation, then a WP-104 deferred-return identity,
+and only then participate in WP-105 verification.
 
+The legacy result-bound ``DeferredExecutionVerificationTarget`` constructor path is
+retained for compatibility, but it is not evidence of true pre-dispatch usability.
 Session context and result digests are deliberately insufficient correlation keys.
 """
 from __future__ import annotations
@@ -22,6 +25,7 @@ from .deferred_execution_verification import (
     DeferredExecutionVerificationTarget,
     apply_correlated_verification,
 )
+from .native_child_binding import NativeChildBinding
 
 
 class EffectInvocationCorrelationError(ValueError):
@@ -45,10 +49,15 @@ def _token(name: str, value: Any) -> str:
 
 @dataclass(frozen=True, slots=True)
 class EffectCallBinding:
-    """Immutable PRE->POST identity envelope for one candidate effect call."""
+    """Immutable PRE->POST identity envelope for one candidate effect call.
+
+    ``return_id`` is deliberately optional: a true PRE-dispatch envelope exists before
+    a WP-104 return can exist. Once a result-bound deferred return is available,
+    ``bind_effect_return`` attaches that identity after exact call/result correlation.
+    """
 
     effect_id: str
-    return_id: str
+    return_id: str | None
     binding_id: str
     invocation_id: str
     tool_use_id: str
@@ -61,7 +70,6 @@ class EffectCallBinding:
     def __post_init__(self) -> None:
         for name in (
             "effect_id",
-            "return_id",
             "binding_id",
             "invocation_id",
             "tool_use_id",
@@ -69,6 +77,8 @@ class EffectCallBinding:
             "child_identity_sha256",
         ):
             _token(name, getattr(self, name))
+        if self.return_id is not None:
+            _token("return_id", self.return_id)
         if not isinstance(self.stage, EffectCorrelationStage):
             raise EffectInvocationCorrelationError("INVALID_STAGE")
         if self.stage is EffectCorrelationStage.PREPARED:
@@ -82,19 +92,34 @@ class EffectCallBinding:
 
 
 def prepare_effect_call(
-    target: DeferredExecutionVerificationTarget,
+    target: DeferredExecutionVerificationTarget | NativeChildBinding,
     *,
     effect_id: str,
 ) -> EffectCallBinding:
-    """Bind explicit PRE-dispatch effect identity to one exact Stage-1 call target."""
-    if not isinstance(target, DeferredExecutionVerificationTarget):
+    """Bind explicit PRE-dispatch effect identity to one exact Stage-1 call.
+
+    The canonical true PRE-dispatch path consumes a result-free ``NativeChildBinding``.
+    It therefore exists before ``RecordExecution`` and before any WP-104 return. The
+    older ``DeferredExecutionVerificationTarget`` input remains accepted only as a
+    compatibility path for already-result-bound callers and existing receipts.
+    """
+    if isinstance(target, NativeChildBinding):
+        if target.has_result:
+            raise EffectInvocationCorrelationError(
+                "PRE_DISPATCH_BINDING_MUST_BE_RESULT_FREE"
+            )
+        binding = target
+        return_id = None
+    elif isinstance(target, DeferredExecutionVerificationTarget):
+        binding = target.returned.binding
+        return_id = target.returned.return_id
+    else:
         raise EffectInvocationCorrelationError(
-            "target must be a DeferredExecutionVerificationTarget"
+            "target must be a result-free NativeChildBinding or DeferredExecutionVerificationTarget"
         )
-    binding = target.returned.binding
     return EffectCallBinding(
         effect_id=_token("effect_id", effect_id),
-        return_id=target.returned.return_id,
+        return_id=return_id,
         binding_id=binding.binding_id(),
         invocation_id=binding.invocation_id,
         tool_use_id=binding.tool_use_id,
@@ -165,12 +190,60 @@ def observe_effect_result(
     )
 
 
+def bind_effect_return(
+    observed: EffectCallBinding,
+    target: DeferredExecutionVerificationTarget,
+) -> EffectCallBinding:
+    """Attach a WP-104 return only after exact POST result correlation.
+
+    This closes the temporal gap between a true result-free PRE-dispatch envelope and
+    the later result-bound WP-104/WP-105 target. It does not verify the external world
+    outcome and does not mint completion.
+    """
+    if not isinstance(observed, EffectCallBinding):
+        raise EffectInvocationCorrelationError("observed must be an EffectCallBinding")
+    if observed.stage is not EffectCorrelationStage.RESULT_OBSERVED:
+        raise EffectInvocationCorrelationError("RETURN_BINDING_REQUIRES_POST_RESULT")
+    if not isinstance(target, DeferredExecutionVerificationTarget):
+        raise EffectInvocationCorrelationError(
+            "target must be a DeferredExecutionVerificationTarget"
+        )
+
+    binding = target.returned.binding
+    expected = {
+        "BINDING_ID": binding.binding_id(),
+        "INVOCATION_ID": binding.invocation_id,
+        "TOOL_USE_ID": binding.tool_use_id,
+        "DELEGATION_ID": binding.delegation_id,
+        "CHILD_IDENTITY_SHA256": binding.child.sha256(),
+        "RESULT_ID": binding.result_id or "",
+        "RESULT_SHA256": binding.result_sha256 or "",
+    }
+    actual = {
+        "BINDING_ID": observed.binding_id,
+        "INVOCATION_ID": observed.invocation_id,
+        "TOOL_USE_ID": observed.tool_use_id,
+        "DELEGATION_ID": observed.delegation_id,
+        "CHILD_IDENTITY_SHA256": observed.child_identity_sha256,
+        "RESULT_ID": observed.result_id or "",
+        "RESULT_SHA256": observed.result_sha256 or "",
+    }
+    for name, value in actual.items():
+        _match(name, value, expected[name])
+
+    return_id = _token("return_id", target.returned.return_id)
+    if observed.return_id is not None:
+        _match("RETURN_ID", observed.return_id, return_id)
+        return observed
+    return replace(observed, return_id=return_id)
+
+
 def apply_effect_bound_verification(
     target: DeferredExecutionVerificationTarget,
     observed: EffectCallBinding,
     transition: VerifyExecution,
 ) -> DeferredExecutionVerificationTarget:
-    """Apply WP-105 verification only after exact PRE/POST effect correlation."""
+    """Apply WP-105 verification only after exact PRE/POST/return correlation."""
     if not isinstance(target, DeferredExecutionVerificationTarget):
         raise EffectInvocationCorrelationError(
             "target must be a DeferredExecutionVerificationTarget"
@@ -179,6 +252,8 @@ def apply_effect_bound_verification(
         raise EffectInvocationCorrelationError("observed must be an EffectCallBinding")
     if observed.stage is not EffectCorrelationStage.RESULT_OBSERVED:
         raise EffectInvocationCorrelationError("VERIFICATION_REQUIRES_POST_RESULT")
+    if observed.return_id is None:
+        raise EffectInvocationCorrelationError("VERIFICATION_REQUIRES_RETURN_BINDING")
     if not isinstance(transition, VerifyExecution):
         raise EffectInvocationCorrelationError("transition must be VerifyExecution")
 
@@ -228,6 +303,7 @@ __all__ = [
     "EffectCorrelationStage",
     "EffectInvocationCorrelationError",
     "apply_effect_bound_verification",
+    "bind_effect_return",
     "observe_effect_result",
     "prepare_effect_call",
 ]
