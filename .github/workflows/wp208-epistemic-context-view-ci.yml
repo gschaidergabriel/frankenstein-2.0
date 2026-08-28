@@ -1,0 +1,41 @@
+name: F2 WP208 Epistemic Context View CI
+
+on:
+  pull_request:
+    paths:
+      - 'src/frankenstein2/epistemic_context_view.py'
+      - 'src/frankenstein2/epistemic_records.py'
+      - 'tests/test_epistemic_context_view.py'
+      - '.github/workflows/wp208-epistemic-context-view-ci.yml'
+  push:
+    branches:
+      - main
+    paths:
+      - 'src/frankenstein2/epistemic_context_view.py'
+      - 'src/frankenstein2/epistemic_records.py'
+      - 'tests/test_epistemic_context_view.py'
+      - '.github/workflows/wp208-epistemic-context-view-ci.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  deterministic:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Compile exact WP208 surface
+        run: >-
+          python -m py_compile
+          src/frankenstein2/epistemic_records.py
+          src/frankenstein2/epistemic_context_view.py
+          tests/test_epistemic_context_view.py
+      - name: Epistemic ContextView falsification suite
+        env:
+          PYTHONPATH: src
+        run: python tests/test_epistemic_context_view.py -v
