@@ -6,6 +6,10 @@ checks that the decision is bound to the exact PRE-dispatch ``EffectCallBinding`
 Only an exact external ALLOW may cross the executor boundary; every other decision,
 authority failure, or identity mismatch stops before the executor callable is invoked.
 
+When the PRE binding carries semantic ``EffectRequestIdentity``, both the external
+authority evidence and executor observation must echo its exact SHA-256. This closes
+the request-substitution gap without moving policy into Frankenstein 2.0.
+
 The adapter also refuses to reinterpret an executor exception as a negative world
 fact.  If invocation may have started and no correlated POST observation is available,
 the outcome remains UNKNOWN to higher layers and must be reconciled by the canonical
@@ -43,6 +47,14 @@ class ExecutorOutcomeUnknown(ExecutorInterlockError):
     """Invocation may have crossed the boundary but no correlated result is known."""
 
 
+def _sha256_token(name: str, value: object) -> str:
+    if not isinstance(value, str) or len(value) != 64:
+        raise ExecutorInterlockError(f"INVALID_{name.upper()}")
+    if any(ch not in "0123456789abcdef" for ch in value):
+        raise ExecutorInterlockError(f"INVALID_{name.upper()}")
+    return value
+
+
 @dataclass(frozen=True, slots=True)
 class ExternalGateEvidence:
     """Decision evidence produced outside Frankenstein 2.0 policy code.
@@ -50,6 +62,8 @@ class ExternalGateEvidence:
     ``authority_ref`` and ``decision_id`` are provenance handles.  They are not proof
     by themselves; the production integration must obtain this object from the current
     canonical EffectGate/EffectJournal boundary rather than caller-authored model text.
+    ``request_sha256`` is mandatory when the prepared call carries semantic request
+    identity and must identify exactly the request evaluated by that external authority.
     """
 
     authority_ref: str
@@ -61,6 +75,7 @@ class ExternalGateEvidence:
     tool_use_id: str
     delegation_id: str
     child_identity_sha256: str
+    request_sha256: str | None = None
 
     def __post_init__(self) -> None:
         for name in (
@@ -76,6 +91,8 @@ class ExternalGateEvidence:
             value = getattr(self, name)
             if not isinstance(value, str) or not value or value != value.strip():
                 raise ExecutorInterlockError(f"INVALID_{name.upper()}")
+        if self.request_sha256 is not None:
+            _sha256_token("request_sha256", self.request_sha256)
         if not isinstance(self.decision, ExternalGateDecision):
             raise ExecutorInterlockError("INVALID_EXTERNAL_GATE_DECISION")
 
@@ -92,6 +109,11 @@ class ExecutorObservation:
     child_identity_sha256: str
     result_id: str
     result_sha256: str
+    request_sha256: str | None = None
+
+    def __post_init__(self) -> None:
+        if self.request_sha256 is not None:
+            _sha256_token("request_sha256", self.request_sha256)
 
 
 @dataclass(frozen=True, slots=True)
@@ -137,6 +159,11 @@ def _validate_gate_binding(
         "DELEGATION_ID": gate.delegation_id,
         "CHILD_IDENTITY_SHA256": gate.child_identity_sha256,
     }
+    if prepared.request is not None:
+        expected["REQUEST_SHA256"] = prepared.request.sha256()
+        actual["REQUEST_SHA256"] = _sha256_token(
+            "request_sha256", gate.request_sha256
+        )
     for name, value in actual.items():
         _match(name, value, expected[name])
 
@@ -170,7 +197,7 @@ def dispatch_through_external_gate(
         raise ExecutorInterlockError("EXTERNAL_EFFECT_AUTHORITY_RETURNED_INVALID_EVIDENCE")
 
     # Identity validation is deliberately before the decision check and before dispatch.
-    # A valid ALLOW for call B can never authorize call A.
+    # A valid ALLOW for call/request B can never authorize call/request A.
     _validate_gate_binding(prepared, gate)
 
     if gate.decision is not ExternalGateDecision.ALLOW:
@@ -207,6 +234,12 @@ def dispatch_through_external_gate(
             observation.child_identity_sha256,
             prepared.child_identity_sha256,
         )
+        if prepared.request is not None:
+            _match(
+                "POST_REQUEST_SHA256",
+                _sha256_token("request_sha256", observation.request_sha256),
+                prepared.request.sha256(),
+            )
         observed = observe_effect_result(
             prepared,
             effect_id=observation.effect_id,
@@ -217,6 +250,7 @@ def dispatch_through_external_gate(
             observed_child_identity_sha256=observation.child_identity_sha256,
             result_id=observation.result_id,
             result_sha256=observation.result_sha256,
+            observed_request_sha256=observation.request_sha256,
         )
     except (ExecutorInterlockError, EffectInvocationCorrelationError) as exc:
         raise ExecutorOutcomeUnknown(
