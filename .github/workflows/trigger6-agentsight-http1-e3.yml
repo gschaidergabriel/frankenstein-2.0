@@ -1,0 +1,48 @@
+name: Trigger6 AgentSight HTTP1 E3
+
+on:
+  push:
+    paths:
+      - 'research/tool_intelligence/experiments/R6-SEED-005/E3_HTTP1_CONTENT_LENGTH/**'
+      - '.github/workflows/trigger6-agentsight-http1-e3.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  reproduce-parser-claim:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout Frankenstein 2.0 experiment harness
+        uses: actions/checkout@v4
+
+      - name: Checkout exact AgentSight candidate
+        uses: actions/checkout@v4
+        with:
+          repository: eunomia-bpf/agentsight
+          ref: 934f441eff8ca210807333633f47b2efcb8cd020
+          path: _candidate/agentsight
+
+      - name: Verify source identity and inject bounded fixture
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git -C _candidate/agentsight rev-parse HEAD)" = "934f441eff8ca210807333633f47b2efcb8cd020"
+          python3 research/tool_intelligence/experiments/R6-SEED-005/E3_HTTP1_CONTENT_LENGTH/inject_fixture.py \
+            _candidate/agentsight/ext/analysis/src/analyzers/http_parser.rs
+          grep -F 'trigger6_http1_content_length_partial_acceptance' \
+            _candidate/agentsight/ext/analysis/src/analyzers/http_parser.rs
+
+      - name: Record toolchain
+        run: |
+          rustc --version
+          cargo --version
+
+      - name: Execute narrow source-pinned E3 regression
+        run: |
+          cargo test \
+            --manifest-path _candidate/agentsight/ext/analysis/Cargo.toml \
+            trigger6_http1_content_length_partial_acceptance \
+            -- --nocapture
