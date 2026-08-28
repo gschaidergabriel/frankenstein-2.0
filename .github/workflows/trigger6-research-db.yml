@@ -6,6 +6,8 @@ on:
     paths:
       - 'tools/trigger6_research_db.py'
       - 'research/tool_intelligence/SEED_MANIFEST_2026-08-29.json'
+      - 'research/tool_intelligence/deltas/R6-E3-AGENTSIGHT-HTTP1-CONTENT-LENGTH-20260829T040702P0700.json'
+      - 'research/tool_intelligence/deltas/R6-E3-AGENTSIGHT-HTTP1-CONTENT-LENGTH-20260829T040702P0700-AUTHORITY-ADDENDUM.json'
       - '.github/workflows/trigger6-research-db.yml'
 
 permissions:
@@ -26,8 +28,23 @@ jobs:
         run: |
           set -euo pipefail
           python3 tools/trigger6_research_db.py bootstrap
+          if [ "$(sqlite3 research/tool_intelligence/pending_research.sqlite "SELECT COUNT(*) FROM evidence WHERE evidence_id='R6-E3-AGENTSIGHT-HTTP1-CONTENT-LENGTH-20260829T040702P0700';")" = "0" ]; then
+            python3 tools/trigger6_research_db.py evidence \
+              --evidence-id R6-E3-AGENTSIGHT-HTTP1-CONTENT-LENGTH-20260829T040702P0700 \
+              --hypothesis-id R6-H-005 \
+              --source-repo eunomia-bpf/agentsight \
+              --source-sha 934f441eff8ca210807333633f47b2efcb8cd020 \
+              --artifact-ref research/tool_intelligence/deltas/R6-E3-AGENTSIGHT-HTTP1-CONTENT-LENGTH-20260829T040702P0700.json \
+              --evidence-type CLAIM_REPRODUCED \
+              --direction COUNTER \
+              --grade 3 \
+              --summary 'AgentSight 1.0.30 HTTPParser reproducibly accepts Content-Length 10 with only 3 available HTTP/1.1 body bytes; narrow parser-completeness counterevidence only.' \
+              --timestamp 2026-08-28T21:06:23Z
+          else
+            echo 'E3 evidence already materialized; preserving existing row'
+          fi
           python3 tools/trigger6_research_db.py verify
-          sqlite3 research/tool_intelligence/pending_research.sqlite 'PRAGMA quick_check; SELECT seed_id,repo,status,priority FROM seeds ORDER BY priority DESC;'
+          sqlite3 research/tool_intelligence/pending_research.sqlite "PRAGMA quick_check; SELECT seed_id,repo,status,priority FROM seeds ORDER BY priority DESC; SELECT evidence_id,hypothesis_id,evidence_type,direction,grade FROM evidence WHERE evidence_id='R6-E3-AGENTSIGHT-HTTP1-CONTENT-LENGTH-20260829T040702P0700';"
       - name: Persist database if changed
         run: |
           set -euo pipefail
