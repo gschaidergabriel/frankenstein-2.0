@@ -5,27 +5,31 @@
   "claim_id": "F2-WP-002-G3-GPT56SOL-terminal-binding",
   "worker_id": "GPT-5.6-Sol",
   "trigger": "4",
-  "status": "ACTIVE_POST_ACCEPTANCE_REPAIR",
-  "claimed_scope": "Repair the repository-bound continuation validator and CI so a terminal reconciled generation remains verifiable without weakening stale-generation or runtime-credit gates. Unify terminal pointer semantics across tools/validate_current_checkpoint.py and tools/validate_checkpoint.py. No cognitive/runtime semantics change.",
+  "status": "CANDIDATE_FALSIFIER",
+  "claimed_scope": "Review/falsifier only: verify terminal-reconciled checkpoint semantics and CI without becoming a second mutation authority. The canonical generation-3 mutation authority is the create-only active pointer F2-WP-002-G3-GPT56SOL-cde53b3c.",
   "base_commit": "6774ca4832892f9fa8f9f00e8a2fb898c07c7132",
   "parent_generation": 2,
   "parent_reconciliation_ref": "workpackages/reconciliations/F2-WP-002/2-F2-WP-002-G2-GPT56SOL-cd0e056a.json",
+  "canonical_active_claim_ref": "workpackages/claims/F2-WP-002_G3_GPT56SOL_cde53b3c.json",
+  "canonical_active_pointer_ref": "workpackages/active/F2-WP-002.json",
+  "duplicate_resolution": "A create-only generation-3 active pointer with a different claim_id was observed after this historical claim file was created. Per CLAIM_PROTOCOL.md, this claim is not mutation authority and is preserved only as review/negative-evidence provenance.",
   "triggering_negative_evidence": {
     "workflow_run_id": 33182290772,
     "job_id": 98886282731,
     "failed_step": "Validate canonical current checkpoint through repository binding",
     "failure": "tools/validate_checkpoint.py rejected terminal active pointer state ACCEPTED after generation-2 reconciliation"
   },
-  "acceptance_target": [
-    "both checkpoint validators admit exact terminal reconciled identity",
-    "terminal pointer without a matching reconciliation still fails closed",
-    "claim/generation/worker/workpackage mismatches still fail closed",
+  "review_targets": [
+    "canonical generation-3 repair preserves terminal reconciliation semantics",
+    "terminal pointer without matching reconciliation fails closed",
+    "claim/generation/worker/workpackage mismatches fail closed",
     "runtime_credit remains zero for continuity-only evidence",
-    "repository-bound GitHub Actions run passes all checkpoint validation steps"
+    "repository-bound CI returns to green"
   ],
   "runtime_execution_observed": false,
   "runtime_credit": 0,
   "whole_system_acceptance": false,
   "created_at_utc": "2026-08-28T14:52:57Z",
-  "next_exact_action": "Acquire generation-3 active mutation authority, update CURRENT.json to generation 3, then repair tools/validate_checkpoint.py terminal-reconciliation semantics and close with an exact repository-bound CI receipt."
+  "reclassified_reason": "DUPLICATE_ACTIVE_CLAIM_NOT_MUTATION_AUTHORITY",
+  "next_exact_action": "Observe and falsify the canonical F2-WP-002 generation-3 repair; do not modify workpackage-owned implementation/state unless that active authority is explicitly reconciled or transferred."
 }
