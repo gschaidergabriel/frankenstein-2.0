@@ -16,6 +16,7 @@ from frankenstein2.structured_execution_receipt import (
 from state.execution_completion import (
     AdmitExecution,
     ExecutionLineage,
+    ExecutionLineageError,
     ExecutionOutcome,
     ExecutionStage,
     ReplayDisposition,
@@ -263,7 +264,7 @@ class StructuredExecutionReceiptTests(unittest.TestCase):
             ),
         ):
             with self.subTest(stage=stage):
-                with self.assertRaises(Exception):
+                with self.assertRaises(ExecutionLineageError):
                     ExecutionLineage(
                         schema="FRANKENSTEIN2_EXECUTION_COMPLETION_LINEAGE/v1",
                         causal_id="cause-direct-mint",
