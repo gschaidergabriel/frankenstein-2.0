@@ -1,0 +1,35 @@
+name: F2 WP201 State Fingerprint CI
+
+on:
+  push:
+    branches:
+      - chatgpt/trigger4-wp201-state-fingerprint-reentry-20260829
+    paths:
+      - 'src/frankenstein2/state_fingerprint.py'
+      - 'tests/test_state_fingerprint.py'
+      - '.github/workflows/wp201-state-fingerprint-ci.yml'
+  pull_request:
+    paths:
+      - 'src/frankenstein2/state_fingerprint.py'
+      - 'tests/test_state_fingerprint.py'
+      - '.github/workflows/wp201-state-fingerprint-ci.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  deterministic:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Compile
+        run: python -m py_compile src/frankenstein2/state_fingerprint.py tests/test_state_fingerprint.py
+      - name: State fingerprint discriminator suite
+        env:
+          PYTHONPATH: src
+        run: python tests/test_state_fingerprint.py -v

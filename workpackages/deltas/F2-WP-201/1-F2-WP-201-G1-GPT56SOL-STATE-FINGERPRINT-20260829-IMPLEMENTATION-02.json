@@ -1,0 +1,58 @@
+{
+  "schema": "FRANKENSTEIN2_WORKPACKAGE_DELTA/v1",
+  "workpackage_id": "F2-WP-201",
+  "generation": 1,
+  "claim_id": "F2-WP-201-G1-GPT56SOL-STATE-FINGERPRINT-20260829",
+  "worker_id": "GPT-5.6-Sol",
+  "base_commit": "6814b00684664532952c4f9bcd1a899207b15ec1",
+  "reentry_base_commit": "04be9d94ae7916bb10874a639436a4e714c82b29",
+  "observed_main_commit": "6057706af58288536547a704ec03f35f707af24c",
+  "owned_paths": [
+    "src/frankenstein2/state_fingerprint.py",
+    "tests/test_state_fingerprint.py",
+    ".github/workflows/wp201-state-fingerprint-ci.yml"
+  ],
+  "result_class": "IMPLEMENTATION_DELTA",
+  "source_commits": [
+    "214ed6b7c4523d7d9cce15947747ae4a06dff1aa",
+    "1fdccf09ccbcc55a3f3003adccd6805e09548db0",
+    "e5b407850fa49ed74141835257228522a53f7836",
+    "b3203315bef7e1a4677470eceb6e8a20c225cd7f"
+  ],
+  "receipts": [
+    "workpackages/receipts/F2-WP-201_G1_STATE_FINGERPRINT_GHA_33218832955.json"
+  ],
+  "prior_review_delta": "workpackages/deltas/F2-WP-201/1-F2-WP-201-G1-GPT56SOL-STATE-FINGERPRINT-20260829-REVIEW-GENERATION-SEMANTICS-01.json",
+  "falsifiers": [
+    "same projection and same generation is exactly stable",
+    "same projection with generation-only movement keeps projection digest stable while identity digest changes",
+    "projection content change changes both surfaces",
+    "projection schema change counts as typed projection change",
+    "mapping order is deterministic",
+    "list order is caller-significant",
+    "bool and integer remain distinct",
+    "non-string mapping keys fail closed",
+    "float tuple bytes set and custom-object coercion fail closed",
+    "generation rejects negative bool and float values",
+    "projection schema requires explicit trimmed identifier",
+    "comparison helpers reject wrong runtime types",
+    "tampered digests fail closed",
+    "unicode canonical bytes are deterministic",
+    "serialized fingerprint has no Pulse wake effect completion or world-fact authority fields"
+  ],
+  "contradictions": [
+    "The donor v1 helper used one generation-sensitive digest for both identity and apparent change detection. The prior REVIEW_ONLY delta correctly identified that a generation-only increment can return fingerprint_changed=true with unchanged projection bytes. The reentry implementation resolves the ambiguity by exposing projection_changed and identity_changed separately rather than weakening generation binding."
+  ],
+  "hypothesis_result": "SUPPORTED_AT_COMPONENT_CI_SCOPE: Persistent Pulse consumers can retain exact generation/identity fencing while separately discriminating projection-content change.",
+  "counterhypothesis_result": "NOT_SELECTED_AS_API: treating every generation movement as projection-content change remains possible at a higher consumer policy layer, but the primitive no longer forces that interpretation.",
+  "proposed_state_change": "Accept F2-WP-201 generation 1 at repository-hosted component-CI scope after final current-main convergence. Preserve the old donor only as provenance and do not expose ambiguous fingerprint_changed as the canonical v2 API.",
+  "completion_deficit": [
+    "not yet fused into current main at delta creation",
+    "not wired into Persistent Pulse",
+    "no UnifiedDB state projection adapter",
+    "no target runtime or VPS execution",
+    "no physical GRID10 execution",
+    "no whole-system acceptance"
+  ],
+  "next_exact_action": "Refresh current main, F2-WP-201 pointer and newer deltas. If no competing exact-current implementation exists, open/fuse the reentry branch, run PR CI if triggered, then reconcile/terminalize WP-201 at component-CI scope."
+}
