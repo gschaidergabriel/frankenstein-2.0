@@ -1,11 +1,11 @@
 """Narrow uncertainty-type adapter for the existing canonical EntityOS EffectGate boundary.
 
 This module is not an effect authority, journal, executor, replay authority, or source of
-canonical EntityOS types. It only translates the F2 interlock's post-dispatch
+canonical EntityOS types.  It only translates the F2 interlock's post-dispatch
 ``ExecutorOutcomeUnknown`` into an already-supplied canonical unknown exception type.
 
 The canonical exception type is validated and instantiated *before* the dispatch callable
-is entered. A bad adapter configuration therefore fails before the executor can run.
+is entered.  A bad adapter configuration therefore fails before the executor can run.
 All exceptions other than ``ExecutorOutcomeUnknown`` propagate unchanged.
 """
 from __future__ import annotations
@@ -59,7 +59,7 @@ def translate_executor_unknown_to_canonical(
     ``ExecutorOutcomeUnknown`` is emitted by the F2 executor interlock only after the
     executor callable has been entered or after its return cannot be safely validated.
     The adapter deliberately does not catch pre-dispatch interlock failures or arbitrary
-    executor exceptions. The canonical EffectGate remains responsible for journaling.
+    executor exceptions.  The canonical EffectGate remains responsible for journaling.
     """
     if not callable(dispatch):
         raise EntityOSUnknownOutcomeAdapterError("DISPATCH_NOT_CALLABLE")
