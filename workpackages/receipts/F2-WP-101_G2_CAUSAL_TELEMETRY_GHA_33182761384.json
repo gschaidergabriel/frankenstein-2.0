@@ -1,0 +1,61 @@
+{
+  "schema": "FRANKENSTEIN2_WORKPACKAGE_COMPONENT_INTEGRATION_RECEIPT/v1",
+  "workpackage_id": "F2-WP-101",
+  "generation": 2,
+  "claim_id": "F2-WP-101-G2-GPT56SOL-CAUSAL-TELEMETRY-944ffcbb",
+  "trigger": "4",
+  "status": "COMPONENT_INTEGRATION_CI_PASS",
+  "scope": "CANONICAL_CAUSAL_IDENTITY_TO_SYSTEM_TELEMETRY_COMPONENT_INTEGRATION_ONLY",
+  "exact_ci_head": "9432c8b50587581f65106415170632a99e778c3b",
+  "source_identity": {
+    "causal_identity": "src/frankenstein2/causal_identity.py",
+    "telemetry_writer": "src/frankenstein2/telemetry.py",
+    "telemetry_initializer": "tools/init_telemetry_dbs.py",
+    "integration_test": "tests/test_causal_telemetry_integration.py",
+    "integration_test_blob": "c6b79b55010377169c446699e49a8769ce7a9e2f",
+    "ci_workflow": ".github/workflows/causal-identity-ci.yml"
+  },
+  "github_actions": {
+    "run_id": 33182761384,
+    "job_id": 98887893561,
+    "runner": "GitHub-hosted ubuntu-24.04",
+    "python": "3.12.14",
+    "head_sha_observed_by_checkout": "9432c8b50587581f65106415170632a99e778c3b",
+    "conclusion": "success",
+    "completed_at_utc": "2026-08-28T14:57:42Z",
+    "steps": {
+      "compile": "PASS",
+      "causal_identity_unit_regression": "7/7 PASS",
+      "causal_identity_to_telemetry_integration": "3/3 PASS"
+    }
+  },
+  "verified_properties": [
+    "a canonical CausalIdentity persists session_id, agent_id, task_id, turn_id, causal_id and generation exactly through TelemetryWriter into initialized system_events",
+    "deterministic payload JSON is persisted in canonical key order at the tested scope",
+    "a derived CausalIdentity carrying parent_causal_id is rejected before persistence because the current system_events schema cannot preserve that lineage field",
+    "a non-CausalIdentity input is rejected before persistence",
+    "the exact CI checkout SHA is bound to the successful component integration result"
+  ],
+  "negative_evidence": [
+    {
+      "kind": "MOVING_HEAD_WRITE_CONFLICT",
+      "detail": "The first integration-test create attempt returned HTTP 409 because concurrent workers advanced main between re-entry and write. The path was rechecked as absent and the write was retried from the new head.",
+      "product_failure": false
+    },
+    {
+      "kind": "ACTIONS_DEPRECATION_WARNING",
+      "detail": "GitHub Actions warned that actions/checkout@v4 and actions/setup-python@v5 target deprecated Node.js 20 metadata while the platform forced Node.js 24. The job still completed successfully.",
+      "product_failure": false
+    }
+  ],
+  "counterhypothesis_remaining": "This proves the isolated telemetry component path, not that every runtime producer uses the canonical identity or that identity is bound into UnifiedDB state/effect/replay paths. parent_causal_id remains intentionally unrepresentable in system_events and therefore blocks derived-event persistence rather than proving full lineage closure.",
+  "runtime_execution_observed": true,
+  "runtime_execution_class": "GITHUB_ACTIONS_COMPONENT_INTEGRATION",
+  "vps_execution_observed": false,
+  "provider_execution_observed": false,
+  "grid10_runtime_credit": 0,
+  "entityos_hcu_runtime_credit": 0,
+  "whole_system_credit": 0,
+  "acceptance": "ACCEPTED_AT_COMPONENT_INTEGRATION_SCOPE_ONLY",
+  "next_exact_action": "Close WP-101 generation 2 at component scope. A later non-overlapping successor should define typed parent_causal_id preservation across telemetry/UnifiedDB before derived causal events can be admitted, then test runtime producers against that schema rather than weakening the current fail-closed rejection."
+}
