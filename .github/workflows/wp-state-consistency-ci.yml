@@ -1,0 +1,30 @@
+name: Workpackage State Consistency CI
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'workpackages/F2-WP-002_STATE_CONTRACT.md'
+      - 'workpackages/STATE.json'
+      - 'workpackages/active/**'
+      - 'workpackages/claims/**'
+      - 'tools/validate_wp_state_consistency_v1.py'
+      - 'tests/test_validate_wp_state_consistency_v1.py'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Run deterministic tests
+        run: python tests/test_validate_wp_state_consistency_v1.py -v
+      - name: Validate canonical F2-WP-002
+        run: python tools/validate_wp_state_consistency_v1.py . F2-WP-002
