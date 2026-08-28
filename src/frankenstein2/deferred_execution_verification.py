@@ -1,15 +1,15 @@
 """Fail-closed F2-WP-104 -> F2-WP-105 verification correlation boundary.
 
 This module does not execute a child, perform an effect, write UnifiedDB, infer a
-world outcome, or mint completion.  It preserves the already-authoritative WP-102
-identity carried by a WP-104 ``DeferredCausalReturn`` while a WP-105 verification
-transition is applied.
+world outcome, or mint completion. It preserves the already-authoritative WP-102
+identity carried by the canonical WP-104 ``DeferredReturnEnvelope`` while a WP-105
+verification transition is applied.
 
 The purpose is narrow: a generic WP-105 ``ExecutionLineage`` intentionally carries a
-small execution state-machine identity.  Before a returned child observation may
-change that state, this adapter requires the exact return/binding/invocation/tool-use/
-delegation/result/child identity to match the target.  Digest equality alone is not a
-correlation key.
+small execution state-machine identity. Before a returned child observation may change
+that state, this adapter requires the exact return/binding/invocation/tool-use/delegation/
+result/child identity to match the target. Digest equality alone is not a correlation
+key.
 """
 from __future__ import annotations
 
@@ -22,7 +22,7 @@ from state.execution_completion import (
     apply_execution_transition,
 )
 
-from .deferred_causal_return import DeferredCausalReturn
+from .deferred_return import DeferredReturnEnvelope
 
 
 class DeferredExecutionVerificationError(ValueError):
@@ -31,14 +31,14 @@ class DeferredExecutionVerificationError(ValueError):
 
 @dataclass(frozen=True, slots=True)
 class DeferredExecutionVerificationTarget:
-    """One result-bound WP-104 return paired with its WP-105 execution record."""
+    """One result-bound canonical WP-104 return paired with its WP-105 execution record."""
 
-    returned: DeferredCausalReturn
+    returned: DeferredReturnEnvelope
     lineage: ExecutionLineage
 
     def __post_init__(self) -> None:
-        if not isinstance(self.returned, DeferredCausalReturn):
-            raise DeferredExecutionVerificationError("returned must be a DeferredCausalReturn")
+        if not isinstance(self.returned, DeferredReturnEnvelope):
+            raise DeferredExecutionVerificationError("returned must be a DeferredReturnEnvelope")
         if not isinstance(self.lineage, ExecutionLineage):
             raise DeferredExecutionVerificationError("lineage must be an ExecutionLineage")
         binding = self.returned.binding
@@ -113,7 +113,7 @@ def apply_correlated_verification(
     """Apply a WP-105 verification only after exact WP-102/WP-104 identity match.
 
     All correlation checks happen before the generic WP-105 transition function is
-    called.  Because both layers are immutable, rejection leaves the target unchanged.
+    called. Because both layers are immutable, rejection leaves the target unchanged.
     Exact transition replay remains idempotent through WP-105's payload fingerprint.
     """
     if not isinstance(target, DeferredExecutionVerificationTarget):
