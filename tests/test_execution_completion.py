@@ -16,6 +16,9 @@ sys.modules[SPEC.name] = mod
 SPEC.loader.exec_module(mod)
 
 
+RECEIPT_DIGEST = "b" * 64
+
+
 def requested(*, generation: int = 2):
     return mod.ExecutionLineage.requested(
         causal_id="cause-17",
@@ -51,6 +54,26 @@ def executed(*, outcome=mod.ExecutionOutcome.UNKNOWN):
             execution_attempt_id="exec-attempt-17",
             outcome=outcome,
         ),
+    )
+
+
+def receipt(
+    record,
+    *,
+    verification_attempt_id: str,
+    outcome,
+    kind=mod.VerificationEvidenceKind.EFFECT_JOURNAL_VERIFIED,
+):
+    return mod.VerificationReceipt(
+        schema=mod.VERIFICATION_RECEIPT_SCHEMA,
+        receipt_id=f"receipt-{verification_attempt_id}",
+        verification_attempt_id=verification_attempt_id,
+        execution_attempt_id=record.execution_attempt_id,
+        execution_outcome=record.execution_outcome,
+        outcome=outcome,
+        evidence_kind=kind,
+        evidence_ref=f"evidence/{verification_attempt_id}.json",
+        evidence_sha256=RECEIPT_DIGEST,
     )
 
 
@@ -108,8 +131,86 @@ class ExecutionCompletionLineageTests(unittest.TestCase):
             mod.ReplayDisposition.FORBIDDEN_UNVERIFIED_OUTCOME,
         )
 
+    def test_final_verification_without_structured_receipt_fails_closed(self):
+        record = executed(outcome=mod.ExecutionOutcome.REPORTED_SUCCESS)
+        with self.assertRaisesRegex(
+            mod.ExecutionLineageError,
+            "FINAL_VERIFICATION_REQUIRES_STRUCTURED_RECEIPT",
+        ):
+            mod.apply_execution_transition(
+                record,
+                mod.VerifyExecution(
+                    transition_id="transition-no-receipt",
+                    causal_id=record.causal_id,
+                    generation=record.generation,
+                    request_id=record.request_id,
+                    admission_id=record.admission_id,
+                    execution_attempt_id=record.execution_attempt_id,
+                    verification_attempt_id="verify-no-receipt",
+                    outcome=mod.VerificationOutcome.APPLIED,
+                ),
+            )
+        self.assertFalse(record.is_verified_complete)
+
+    def test_executor_report_receipt_cannot_mint_completion(self):
+        record = executed(outcome=mod.ExecutionOutcome.REPORTED_SUCCESS)
+        attempt = "verify-executor-report"
+        with self.assertRaisesRegex(
+            mod.ExecutionLineageError,
+            "FINAL_VERIFICATION_EVIDENCE_NOT_ALLOWLISTED",
+        ):
+            mod.apply_execution_transition(
+                record,
+                mod.VerifyExecution(
+                    transition_id="transition-executor-report",
+                    causal_id=record.causal_id,
+                    generation=record.generation,
+                    request_id=record.request_id,
+                    admission_id=record.admission_id,
+                    execution_attempt_id=record.execution_attempt_id,
+                    verification_attempt_id=attempt,
+                    outcome=mod.VerificationOutcome.APPLIED,
+                    receipt=receipt(
+                        record,
+                        verification_attempt_id=attempt,
+                        outcome=mod.VerificationOutcome.APPLIED,
+                        kind=mod.VerificationEvidenceKind.EXECUTOR_REPORT,
+                    ),
+                ),
+            )
+        self.assertFalse(record.is_verified_complete)
+
+    def test_transport_status_receipt_cannot_mint_completion(self):
+        record = executed(outcome=mod.ExecutionOutcome.REPORTED_SUCCESS)
+        attempt = "verify-transport"
+        with self.assertRaisesRegex(
+            mod.ExecutionLineageError,
+            "FINAL_VERIFICATION_EVIDENCE_NOT_ALLOWLISTED",
+        ):
+            mod.apply_execution_transition(
+                record,
+                mod.VerifyExecution(
+                    transition_id="transition-transport",
+                    causal_id=record.causal_id,
+                    generation=record.generation,
+                    request_id=record.request_id,
+                    admission_id=record.admission_id,
+                    execution_attempt_id=record.execution_attempt_id,
+                    verification_attempt_id=attempt,
+                    outcome=mod.VerificationOutcome.APPLIED,
+                    receipt=receipt(
+                        record,
+                        verification_attempt_id=attempt,
+                        outcome=mod.VerificationOutcome.APPLIED,
+                        kind=mod.VerificationEvidenceKind.TRANSPORT_STATUS,
+                    ),
+                ),
+            )
+        self.assertFalse(record.is_verified_complete)
+
     def test_verified_applied_blocks_replay(self):
         record = executed(outcome=mod.ExecutionOutcome.REPORTED_SUCCESS)
+        attempt = "verify-applied"
         verified = mod.apply_execution_transition(
             record,
             mod.VerifyExecution(
@@ -119,8 +220,13 @@ class ExecutionCompletionLineageTests(unittest.TestCase):
                 request_id=record.request_id,
                 admission_id=record.admission_id,
                 execution_attempt_id=record.execution_attempt_id,
-                verification_attempt_id="verify-applied",
+                verification_attempt_id=attempt,
                 outcome=mod.VerificationOutcome.APPLIED,
+                receipt=receipt(
+                    record,
+                    verification_attempt_id=attempt,
+                    outcome=mod.VerificationOutcome.APPLIED,
+                ),
             ),
         )
         self.assertTrue(verified.is_verified_complete)
@@ -132,6 +238,7 @@ class ExecutionCompletionLineageTests(unittest.TestCase):
 
     def test_verified_not_applied_only_allows_new_explicit_request(self):
         record = executed(outcome=mod.ExecutionOutcome.REPORTED_FAILURE)
+        attempt = "verify-not-applied"
         verified = mod.apply_execution_transition(
             record,
             mod.VerifyExecution(
@@ -141,8 +248,13 @@ class ExecutionCompletionLineageTests(unittest.TestCase):
                 request_id=record.request_id,
                 admission_id=record.admission_id,
                 execution_attempt_id=record.execution_attempt_id,
-                verification_attempt_id="verify-not-applied",
+                verification_attempt_id=attempt,
                 outcome=mod.VerificationOutcome.NOT_APPLIED,
+                receipt=receipt(
+                    record,
+                    verification_attempt_id=attempt,
+                    outcome=mod.VerificationOutcome.NOT_APPLIED,
+                ),
             ),
         )
         self.assertTrue(verified.is_verified_complete)
@@ -151,6 +263,32 @@ class ExecutionCompletionLineageTests(unittest.TestCase):
             verified.replay_disposition,
             mod.ReplayDisposition.ELIGIBLE_NEW_EXPLICIT_REQUEST,
         )
+
+    def test_receipt_outcome_must_match_transition(self):
+        record = executed(outcome=mod.ExecutionOutcome.REPORTED_SUCCESS)
+        attempt = "verify-outcome-mismatch"
+        with self.assertRaisesRegex(
+            mod.ExecutionLineageError,
+            "VERIFICATION_RECEIPT_OUTCOME_MISMATCH",
+        ):
+            mod.apply_execution_transition(
+                record,
+                mod.VerifyExecution(
+                    transition_id="transition-outcome-mismatch",
+                    causal_id=record.causal_id,
+                    generation=record.generation,
+                    request_id=record.request_id,
+                    admission_id=record.admission_id,
+                    execution_attempt_id=record.execution_attempt_id,
+                    verification_attempt_id=attempt,
+                    outcome=mod.VerificationOutcome.APPLIED,
+                    receipt=receipt(
+                        record,
+                        verification_attempt_id=attempt,
+                        outcome=mod.VerificationOutcome.NOT_APPLIED,
+                    ),
+                ),
+            )
 
     def test_exact_transition_replay_is_idempotent(self):
         record = requested()
