@@ -1,0 +1,38 @@
+name: Frankenstein 2.0 Deferred Return CI
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'src/frankenstein2/causal_identity.py'
+      - 'src/frankenstein2/native_child_binding.py'
+      - 'src/frankenstein2/deferred_return.py'
+      - 'tests/test_deferred_return.py'
+      - '.github/workflows/deferred-return-ci.yml'
+  pull_request:
+    paths:
+      - 'src/frankenstein2/causal_identity.py'
+      - 'src/frankenstein2/native_child_binding.py'
+      - 'src/frankenstein2/deferred_return.py'
+      - 'tests/test_deferred_return.py'
+      - '.github/workflows/deferred-return-ci.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  deterministic-deferred-return:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      PYTHONPATH: src
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Compile causal return component and regression
+        run: python -m py_compile src/frankenstein2/causal_identity.py src/frankenstein2/native_child_binding.py src/frankenstein2/deferred_return.py tests/test_deferred_return.py
+      - name: Run deferred causal return regression suite
+        run: python tests/test_deferred_return.py -v
