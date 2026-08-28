@@ -1,6 +1,6 @@
 """Deterministic Persistent Pulse eligibility kernel for Frankenstein 2.0.
 
-F2-WP-200 generation 1.
+F2-WP-200 generation 2 decision-consistency repair.
 
 The kernel consumes one explicit caller-supplied state/observation identity plus opaque
 eligibility references for ACT/ASK/OBSERVE/WAIT/HOLD/DELEGATE. It deterministically returns
@@ -10,7 +10,9 @@ mints completion.
 
 HOLD is a local fail-closed eligibility gate: when explicitly supplied it suppresses ACT and
 DELEGATE eligibility while preserving epistemic/non-effectful ASK/OBSERVE/WAIT/HOLD signals.
-No missing signal is invented.
+No missing signal is invented. PulseDecision also rejects contradictory direct construction:
+an action class cannot occur more than once in eligible and ACT/DELEGATE cannot be both
+eligible and suppressed by HOLD.
 """
 from __future__ import annotations
 
@@ -194,14 +196,22 @@ class PulseDecision:
         _sha256("input_sha256", self.input_sha256)
         if self.classification != "ELIGIBILITY_ONLY_NO_ACTION_SELECTION_OR_EFFECT_AUTHORITY":
             raise PersistentPulseError("pulse decision classification mismatch")
-        if tuple(item.action for item in self.eligible) != tuple(
-            sorted((item.action for item in self.eligible), key=PULSE_ACTION_ORDER.index)
-        ):
+
+        eligible_actions = tuple(item.action for item in self.eligible)
+        if eligible_actions != tuple(sorted(eligible_actions, key=PULSE_ACTION_ORDER.index)):
             raise PersistentPulseError("eligible actions are not canonically ordered")
+        if len(set(eligible_actions)) != len(eligible_actions):
+            raise PersistentPulseError("eligible actions contain duplicate action classes")
+
         if any(action not in {"ACT", "DELEGATE"} for action in self.suppressed_by_hold):
             raise PersistentPulseError("hold suppression may only contain ACT/DELEGATE")
         if tuple(sorted(set(self.suppressed_by_hold), key=PULSE_ACTION_ORDER.index)) != self.suppressed_by_hold:
             raise PersistentPulseError("hold suppression is not canonical")
+        overlap = set(eligible_actions) & set(self.suppressed_by_hold)
+        if overlap:
+            raise PersistentPulseError(
+                "eligible actions and hold suppression must be disjoint"
+            )
 
     @property
     def eligible_actions(self) -> tuple[str, ...]:
