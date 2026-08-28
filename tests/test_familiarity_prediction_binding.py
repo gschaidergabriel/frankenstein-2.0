@@ -196,9 +196,8 @@ class FamiliarityPredictionBindingTests(unittest.TestCase):
             candidate_count=canonical_plan.candidate_count,
             classification=PLAN_CLASSIFICATION,
         )
-        binding = _binding(residual, need, forged_plan)
         with self.assertRaisesRegex(FamiliarityPredictionBindingError, "weighted_score_bp"):
-            binding.evaluate(residual=residual, retrieval_need=need, retrieval_plan=forged_plan)
+            _binding(residual, need, forged_plan)
 
     def test_need_identity_and_digest_are_fenced(self) -> None:
         residual = _residual()
