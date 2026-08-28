@@ -1,0 +1,32 @@
+name: Trigger 4 Bound EntityOS Effect Topology Falsifier
+
+on:
+  pull_request:
+    paths:
+      - 'tests/test_bound_entityos_effect_topology.py'
+      - 'tests/fixtures/bound_entityos_effect_authority/**'
+      - '.github/workflows/bound-entityos-effect-topology-ci.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  deterministic-bound-topology:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout Frankenstein 2.0 candidate
+        uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Compile deterministic falsifier and bound fixtures
+        run: >-
+          python -m py_compile
+          tests/test_bound_entityos_effect_topology.py
+          tests/fixtures/bound_entityos_effect_authority/clayverse/effects.py
+          tests/fixtures/bound_entityos_effect_authority/clayverse/effect_journal.py
+          tests/fixtures/bound_entityos_effect_authority/clayverse/store.py
+      - name: Run exact bound no-real-effect topology falsifier
+        run: python tests/test_bound_entityos_effect_topology.py -v
