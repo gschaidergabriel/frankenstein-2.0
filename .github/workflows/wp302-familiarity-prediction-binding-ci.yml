@@ -1,0 +1,38 @@
+name: F2 WP302 Familiarity Prediction Binding CI
+
+on:
+  push:
+    branches:
+      - main
+      - chatgpt/wp302-g1-fusion-20260829
+    paths:
+      - 'src/frankenstein2/familiarity_prediction_binding.py'
+      - 'src/frankenstein2/prediction_contract.py'
+      - 'tests/test_familiarity_prediction_binding.py'
+      - '.github/workflows/wp302-familiarity-prediction-binding-ci.yml'
+  pull_request:
+    paths:
+      - 'src/frankenstein2/familiarity_prediction_binding.py'
+      - 'src/frankenstein2/prediction_contract.py'
+      - 'tests/test_familiarity_prediction_binding.py'
+      - '.github/workflows/wp302-familiarity-prediction-binding-ci.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  deterministic:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Compile
+        run: python -m py_compile src/frankenstein2/prediction_contract.py src/frankenstein2/familiarity_prediction_binding.py tests/test_familiarity_prediction_binding.py
+      - name: Falsification suite
+        env:
+          PYTHONPATH: src
+        run: python tests/test_familiarity_prediction_binding.py -v
