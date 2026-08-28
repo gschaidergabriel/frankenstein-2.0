@@ -1,0 +1,131 @@
+{
+  "schema": "FRANKENSTEIN2_TRIGGER6_DISCOVERY_SCOUT_RESULT/v1",
+  "trigger": "6",
+  "research_id": "R6-WP105-EFFECT-IDEMPOTENCY-SCOUT-001",
+  "slot": "DISCOVERY_SCOUT",
+  "evidence_level": "E1_SOURCE_READ",
+  "status": "SOURCE_SHORTLIST_COMPLETED_NO_ARCHITECTURE_CREDIT",
+  "claim": {
+    "path": "research/tool_intelligence/claims/R6-WP105-EFFECT-IDEMPOTENCY-SCOUT-001/E1_SOURCE_READ_STRUCTURAL_DONOR_SHORTLIST.json",
+    "claim_blob_sha": "a9610442501c2ee18e359ecccab6bc887f70e9b2",
+    "observed_on_f2_main": "18603ac6c4d03519ba210c5f585e3abbef7bf207"
+  },
+  "coordination_note": "Some primary-source reads began while the atomic claim law landed concurrently. No new Trigger-6 result was persisted before the canonical F2 create-only claim succeeded; synthesis and result persistence occurred after the claim.",
+  "architecture_frontier": {
+    "fusion_reconciliation": "research_entity/frankenstein2_tool_intelligence/reconciliations/20260829T0401P0700_TRIGGER6_PARALLEL_FUSION_RECONCILIATION_GPT56SOL.json@c0cb91ca8456023336ebf85984250752d9bd8ace",
+    "target_workpackage": "F2-WP-105",
+    "question": "Which minimal mechanisms best bind canonical semantic effect-request bytes/digest, immutable invocation/event identity, idempotency, append-only outcome state, and explicit ambiguous UNKNOWN handling without importing a second effect authority or truth store?"
+  },
+  "primary_source_shortlist": [
+    {
+      "candidate_id": "AWS_POWERTOOLS_IDEMPOTENCY_PATTERN",
+      "repository": "aws-powertools/powertools-lambda-python",
+      "source_pin": "a39e1018e36b7965b08313288bea3b7420df5220",
+      "source_level_findings": [
+        "Idempotency keys may be derived from a hash of the entire payload or selected payload fields.",
+        "A separate validation hash can detect payload mutation under the same idempotency identity.",
+        "The persistence model distinguishes INPROGRESS, COMPLETE and expiry-related states and uses conditional persistence for concurrency control.",
+        "The exact current develop head fixes a Redis path where missing in_progress_expiry_timestamp caused a live INPROGRESS record to be reclaimed as an orphan, enabling concurrent double execution."
+      ],
+      "f2_value": "HIGH_STRUCTURAL_DONOR",
+      "import_recommendation": "DO_NOT_IMPORT_AWS_PERSISTENCE_STACK",
+      "retain": [
+        "semantic payload digest distinct from transport identity",
+        "separate payload validation digest",
+        "fail-closed treatment of live/indeterminate INPROGRESS records",
+        "atomic create/conditional-write concurrency fence"
+      ],
+      "reject_or_modify": [
+        "Do not copy timeout-expiry re-execution semantics onto post-dispatch real effects: an expired/unknown attempt may already have changed the world.",
+        "Do not add DynamoDB/Redis as a second F2 authority store."
+      ]
+    },
+    {
+      "candidate_id": "CLOUDEVENTS_IDENTITY_ENVELOPE_PATTERN",
+      "repository": "cloudevents/spec",
+      "source_pin": "c2051019ea466f258d13d3a23686c099ff66ebd3",
+      "source_level_findings": [
+        "CloudEvents requires producer uniqueness for source+id and permits duplicate re-sends to retain the same id.",
+        "The spec distinguishes an occurrence from the event data structure describing it; one occurrence may result in more than one event.",
+        "The primer explicitly warns that event id is for uniqueness/deduplication and should not be overloaded with unrelated semantic meaning."
+      ],
+      "f2_value": "HIGH_IDENTITY_VOCABULARY_DONOR",
+      "import_recommendation": "STRUCTURAL_DISTILL_ONLY",
+      "retain": [
+        "separate occurrence/causal identity from concrete event/admission identity",
+        "source-scoped immutable event id for replay/deduplication",
+        "do not overload one id to mean semantic request, execution attempt and observed effect simultaneously"
+      ],
+      "reject_or_modify": [
+        "CloudEvents does not itself provide semantic request canonicalization, effect authorization, append-only outcome truth, or exactly-once external effects."
+      ]
+    },
+    {
+      "candidate_id": "RESTATE_DURABLE_INVOCATION_PATTERN",
+      "repository": "restatedev/restate",
+      "source_pin": "e8b0592c31b25f4fd00446bb44c68d0b8e3a8ed7",
+      "source_level_findings": [
+        "Restate gives invocations unique IDs and supports caller-supplied idempotency keys with retained results.",
+        "Its durable-execution model journals operations/results and replays around completed work after crashes.",
+        "Its attach/output model permits querying an existing invocation rather than blindly dispatching a new one.",
+        "External-event primitives use unique completion IDs and durable waiting rather than assuming immediate completion."
+      ],
+      "f2_value": "MEDIUM_HIGH_STRUCTURAL_DONOR",
+      "import_recommendation": "DO_NOT_IMPORT_RUNTIME_FOR_WP105",
+      "retain": [
+        "VERIFY_OR_ATTACH_TO_EXISTING_ATTEMPT before any replay of an ambiguous post-start action",
+        "separate invocation identity from idempotency identity",
+        "durable explicit waiting/unknown state until outcome evidence arrives"
+      ],
+      "reject_or_modify": [
+        "A Restate server/runtime/journal would introduce a large second durable execution authority next to UnifiedDB/EffectJournal.",
+        "Exactly-once or durable-platform claims cannot substitute for F2-specific effect verification evidence."
+      ]
+    }
+  ],
+  "internal_reuse_observation": {
+    "finding": "The Research-Entity archive already contains exact RFC8785/JCS canonicalization work and fail-closed canonicalization receipts. The highest-value F2 path is therefore likely to reuse/distill that method for semantic effect-request bytes rather than add another canonicalization dependency.",
+    "boundary": "Historical/component EntityOS JCS evidence is donor evidence only; F2-WP-105 receives no runtime or architecture credit until exact F2 source/tests bind the semantic effect request at its own current identity."
+  },
+  "generated_minimal_contract_candidate": {
+    "reality_level": "R2_GENERATED_NOT_ACCEPTED",
+    "fields": [
+      "semantic_request_schema",
+      "semantic_request_canonical_bytes",
+      "semantic_request_sha256",
+      "invocation_id",
+      "idempotency_key",
+      "attempt_id",
+      "journal_sequence",
+      "outcome_state",
+      "verification_evidence_ref"
+    ],
+    "proposed_outcome_states": [
+      "PENDING",
+      "DISPATCH_STARTED",
+      "VERIFIED_SUCCEEDED",
+      "VERIFIED_FAILED",
+      "UNKNOWN_POST_DISPATCH",
+      "REJECTED_PRE_DISPATCH"
+    ],
+    "critical_rule": "UNKNOWN_POST_DISPATCH is non-replayable by default. The next action is VERIFY/ATTACH/QUERY using the original attempt identity; replay is allowed only when the target effect has an independently proven stable idempotency contract or a newer explicit authority closes the uncertainty."
+  },
+  "ranking": [
+    "1 AWS Powertools idempotency pattern: strongest small concurrency/idempotency donor, especially its current fail-closed bug lesson.",
+    "2 CloudEvents identity envelope: strongest thin donor for separating occurrence/event/replay identities.",
+    "3 Restate durable invocation: strongest donor for attach/query-after-ambiguity, but direct runtime adoption is architecture-hostile for F2."
+  ],
+  "counterhypothesis": "A minimal F2-native JCS+SHA256 semantic-request binder plus existing EffectJournal transitions may outperform every external dependency; external systems may add more state ownership and failure modes than information or correctness.",
+  "next_discriminator": "Trigger-6 should claim E2 only for the smallest structural packet: map the proposed semantic_request_sha256 + invocation_id + attempt_id + append-only outcome transition ABI onto exact current F2-WP-105 source and identify whether any existing F2/EntityOS primitive already satisfies each field. Do not run real effects and do not import Restate/AWS storage.",
+  "credits": {
+    "research_source_read": 1,
+    "architecture_mapped": 0,
+    "claim_reproduced": 0,
+    "f2_ablation": 0,
+    "build_candidate": 0,
+    "f2_accepted": 0,
+    "whole_f2_runtime": 0,
+    "entityos_hcu_runtime": 0,
+    "training": 0
+  }
+}
