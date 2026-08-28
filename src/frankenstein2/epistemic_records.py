@@ -23,6 +23,8 @@ _SHA256_RE = re.compile(r"^[0-9a-f]{64}$")
 def _require_text(name: str, value: Any) -> str:
     if not isinstance(value, str) or not value.strip():
         raise EpistemicRecordError(f"{name} must be a non-empty string")
+    if value != value.strip():
+        raise EpistemicRecordError(f"{name} must be already trimmed")
     return value
 
 
