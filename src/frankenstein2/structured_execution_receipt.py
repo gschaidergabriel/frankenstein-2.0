@@ -1,19 +1,20 @@
 """Structured executor receipts for Frankenstein 2.0 WP105.
 
 This module narrows the boundary between an executor observation and the generic
-``ExecutionLineage`` state machine.  Raw executor status text is never interpreted as
-verified world truth.  Only one exact executor status is allowlisted as a reported
+``ExecutionLineage`` state machine. Raw executor status text is never interpreted as
+verified world truth. Only one exact executor status is allowlisted as a reported
 success, one exact status is allowlisted as a definite pre-effect failure, and every
 other syntactically valid status is translated to ``UNKNOWN``.
 
 Even an allowlisted ``SUCCEEDED`` receipt advances only to ``EXECUTION_RECORDED`` with
-``REPORTED_SUCCESS``.  It does not mint ``VERIFIED_APPLIED``.  Separate WP105 world
+``REPORTED_SUCCESS``. It does not mint ``VERIFIED_APPLIED``. Separate WP105 world
 verification remains mandatory and blind replay remains forbidden until that later
 transition resolves the outcome.
 
-The receipt binds the canonical effect/call identity, causal lineage, admission,
-execution attempt and result digest.  It is an adapter-level observation, not a new
-EffectGate, EffectJournal, canonical truth store or effect authority.
+The receipt binds canonical effect/call identity, immutable semantic request identity
+when present, causal lineage, admission, execution attempt and result digest. It is an
+adapter-level observation, not a new EffectGate, EffectJournal, canonical truth store
+or effect authority.
 """
 from __future__ import annotations
 
@@ -88,6 +89,7 @@ class StructuredExecutionReceipt:
     raw_status: str
     result_id: str
     result_sha256: str
+    request_sha256: str | None = None
 
     def __post_init__(self) -> None:
         for name in (
@@ -107,6 +109,8 @@ class StructuredExecutionReceipt:
             _token(name, getattr(self, name))
         _sha256_token("child_identity_sha256", self.child_identity_sha256)
         _sha256_token("result_sha256", self.result_sha256)
+        if self.request_sha256 is not None:
+            _sha256_token("request_sha256", self.request_sha256)
         _generation(self.generation)
 
     def fingerprint(self) -> str:
@@ -169,6 +173,13 @@ def _validate_call(
         "DELEGATION_ID": receipt.delegation_id,
         "CHILD_IDENTITY_SHA256": receipt.child_identity_sha256,
     }
+    if prepared.request is not None:
+        expected["REQUEST_SHA256"] = prepared.request.sha256()
+        if receipt.request_sha256 is None:
+            raise StructuredExecutionReceiptError("REQUEST_SHA256_REQUIRED")
+        actual["REQUEST_SHA256"] = _sha256_token(
+            "request_sha256", receipt.request_sha256
+        )
     for name, value in actual.items():
         _match(name, value, expected[name])
 
@@ -218,6 +229,7 @@ def apply_structured_execution_receipt(
             observed_child_identity_sha256=receipt.child_identity_sha256,
             result_id=receipt.result_id,
             result_sha256=receipt.result_sha256,
+            observed_request_sha256=receipt.request_sha256,
         )
     except EffectInvocationCorrelationError as exc:
         raise StructuredExecutionReceiptError(
