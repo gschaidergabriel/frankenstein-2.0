@@ -1,0 +1,123 @@
+{
+  "schema": "FRANKENSTEIN2_TRIGGER6_RESEARCH_DELTA/v1",
+  "trigger": "6",
+  "role": "SOURCE_ARCHAEOLOGIST",
+  "research_id": "R6-SEED-002",
+  "candidate": "Supercompress/Supercompress",
+  "status": "E2_ARCHITECTURE_MAPPED_NOT_REPRODUCED",
+  "recorded_at": "2026-08-29T04:10:00+07:00",
+  "atomic_claim": {
+    "path": "research/tool_intelligence/claims/R6-SEED-002/E2_ARCHITECTURE_MAPPED.json",
+    "claim_commit": "a59bda70247db76dd1248c0f65167fdafe84c2e3",
+    "claim_target": "E2_ARCHITECTURE_MAPPED"
+  },
+  "architecture_snapshot": {
+    "frankenstein2_main_before_result_write": "1e4f4fc6de1f6e0e879ae7e75bf9961420ec44d1",
+    "research_entity_main_before_result_write": "9d2eb96937e77de0de6071c6aa5a6fc83306da0c",
+    "execution_class": "SOURCE_ARCHAEOLOGY_ONLY_NO_PROVIDER_INVOCATION"
+  },
+  "source_lock": {
+    "repository": "Supercompress/Supercompress",
+    "commit_sha": "c84ef9a613ba0b6f6b9ccde8172a4697afaa8f63",
+    "tree_sha": "f4d262b7734fd9c77da14230ba8dfd39151ff7f3",
+    "license": "MIT",
+    "inspected_paths": [
+      "README.md",
+      "docs/API.md",
+      "supercompress/__init__.py",
+      "api/_lib/engine.js",
+      "api/_lib/neural-rerank.js",
+      "api/retrieve.js",
+      "packages/proxy/src/compressor.js"
+    ]
+  },
+  "evidence_ladder": {
+    "before": "E0_SEED",
+    "after": "E2_ARCHITECTURE_MAPPED",
+    "e3_claim_reproduced": false,
+    "e4_f2_ablation": false,
+    "e5_build_candidate": false,
+    "f2_acceptance": false
+  },
+  "source_observations": [
+    "The local Python compiler fallback is extractive: it segments source lines into blocks, scores them using query-term overlap plus structural heuristics, then returns selected original lines in source order.",
+    "The local query is used for retention scoring and is not appended to compressed_text.",
+    "The server JavaScript engine has a local default policy; optional neural reranking uses a BGE cross-encoder and can auto-enable outside Vercel when dependencies/model are available, so exact model/runtime identity becomes relevant if that path is ever tested.",
+    "CCR replaces removed blocks with retrieval markers and can retrieve original blocks; the hosted persistence path stores original removed text in owner-scoped Firestore records with TTL.",
+    "The hosted CCR marker helper simpleHash is a small non-cryptographic integer hash plus length, which is unsuitable as an F2 evidence identity/digest without replacement.",
+    "Hosted domain preprocessors are intentionally lossy transformations: documented behavior includes dropping JSON null/empty fields/timestamps, truncating long strings, stripping code comments/docstrings, collapsing stack traces, deduplicating log messages and conditionally filtering DEBUG/TRACE.",
+    "The coding-agent proxy preserves system/developer messages, avoids elevating compressed history to system role, preserves structured tool protocol/tail messages, and generally fails open to original context on network/5xx/rate/empty-compression failure.",
+    "Hosted precision/API paths require a key and expose paywall/credit behavior after free quota. No hosted/provider path was invoked in this research stage."
+  ],
+  "f2_mapping": {
+    "integration_verdict": "ADAPT_MECHANISM_NOT_WHOLE_SYSTEM",
+    "integration_class": "CONCEPT_DISTILL_FIRST",
+    "preferred_surface": "DERIVED_REBUILDABLE_CONTEXTVIEW_SELECTION_ADAPTER",
+    "target_workpackages": ["F2-WP-301", "F2-WP-306", "F2-WP-902"],
+    "transferable_mechanisms": [
+      "query-aware block segmentation and ranking",
+      "source-order-preserving extractive selection",
+      "explicit retention budget",
+      "structured-protocol preservation/fail-open behavior",
+      "CCR-style retrieval marker concept for omitted evidence"
+    ],
+    "do_not_transplant": [
+      "Firestore as a second truth/evidence store",
+      "TTL deletion as canonical evidence lifecycle",
+      "simpleHash as evidence identity",
+      "lossy domain preprocessing on canonical/evidence-bearing text",
+      "hosted API/paywall dependency for a core cognition path",
+      "neural relevance scores as truth or completion authority"
+    ],
+    "required_f2_adapter_contract": [
+      "ContextView remains derived/rebuildable; UnifiedDB/source artifacts remain canonical authority.",
+      "Every view binds query identity, source evidence IDs plus cryptographic digests, compressor source identity, policy/model identity, budget and deterministic kept/dropped decision metadata.",
+      "Omitted evidence is referenced back to canonical source rows/artifacts; do not copy it into a second mutable truth store merely to make retrieval possible.",
+      "Mandatory evidence classes must be pin-capable and non-droppable: negative results, UNKNOWN outcomes, contradictions/counterhypotheses, authority/effect receipts, causal ancestors and explicit safety/provenance boundaries.",
+      "Different GRID cells/queries receive separately identified ContextViews; one current-query view must not silently become global memory.",
+      "If any learned reranker is used, exact checkpoint/tokenizer/runtime/build identity and deterministic/replay behavior must be measured before credit."
+    ]
+  },
+  "strongest_positive_finding": "A deterministic extractive query-aware selector plus canonical-source retrieval references could reduce bounded F2 ContextViews without creating a second state authority, provided F2 adds stronger provenance, cryptographic identity and mandatory-evidence pinning than upstream exposes.",
+  "strongest_disconfirming_finding": "Upstream optimization is answer/query relevance, not F2 evidence-obligation completeness. Its documented lossy preprocessors can remove timestamps, nulls, comments, stack frames or DEBUG/TRACE records that may be exactly the negative/provenance/causal evidence needed by a counterhypothesis or later GRID cell.",
+  "counterhypotheses": [
+    "F2 Emergent Retrieval may already produce sufficiently bounded ContextViews, making a separate compression policy needless complexity.",
+    "Query-aware selection may improve immediate answer relevance while degrading cross-cell reasoning, counterhypothesis preservation or later causal reconstruction.",
+    "Simple deterministic pinning plus source-aware retrieval may outperform learned reranking once F2 measures evidence-obligation recall rather than answer-only recall.",
+    "A compression layer can increase total latency and verification cost enough that token savings do not improve whole-system efficiency."
+  ],
+  "upstream_claim_boundary": {
+    "claims_seen": [
+      "approximately 65 percent fewer input tokens",
+      "100 percent Oracle recall at a fixed 35 percent keep budget",
+      "66/66 real/OOD retention"
+    ],
+    "classification": "UPSTREAM_REPOSITORY_CLAIMS_NOT_F2_REPRODUCED",
+    "f2_credit": 0
+  },
+  "next_discriminator": {
+    "stage": "E3_CLAIM_REPRODUCED",
+    "requires_new_atomic_claim": true,
+    "experiment_class": "LOCAL_NO_PROVIDER_ADVERSARIAL_CONTEXT_FIXTURE",
+    "design": "Pin exact local source SHA and disable neural/hosted paths. Build a synthetic F2 evidence set containing query-relevant facts, a contradiction, an UNKNOWN effect outcome, authority/effect receipt text, causal ancestors and distractors. Compress at a bounded ratio for query A, repeat deterministically, then switch to query B/counterhypothesis. Measure mandatory-evidence recall, exact retained-byte equality, canonical-reference resolvability, deterministic repeat identity, query-switch recoverability and latency/token reduction.",
+    "acceptance_floor": [
+      "100 percent recall for explicitly mandatory F2 evidence obligations",
+      "zero invented or rewritten retained evidence on the extractive path",
+      "all omitted evidence resolvable to canonical source identity",
+      "repeat output identical under exact pinned engine/policy identity",
+      "query switch can recover previously omitted evidence without mutating canonical state",
+      "no second truth/effect/completion authority"
+    ]
+  },
+  "credits": {
+    "research_stage_credit": "E2_ARCHITECTURE_MAPPED_ONLY",
+    "architecture_promotion_credit": 0,
+    "runtime_credit": 0,
+    "f2_ablation_credit": 0,
+    "build_candidate_credit": 0,
+    "whole_system_credit": 0
+  },
+  "pending_research_sqlite_updated_by_this_organ": false,
+  "sqlite_sync_state": "PENDING_CANONICAL_RECONCILER",
+  "final_verdict": "PROMISING_DERIVED_CONTEXTVIEW_MECHANISM_REQUIRES_E3_FALSIFICATION_BEFORE_ANY_BUILD_PROMOTION"
+}
