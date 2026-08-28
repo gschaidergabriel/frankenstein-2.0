@@ -1,0 +1,33 @@
+{
+  "schema": "FRANKENSTEIN2_WORKPACKAGE_DELTA/v1",
+  "workpackage_id": "F2-WP-202",
+  "generation": 2,
+  "claim_id": "F2-WP-202-G2-GPT56SOL-STATEFINGERPRINT-BINDING-20260829",
+  "worker_id": "GPT-5.6-Sol-REVIEW",
+  "result_class": "POST_ACCEPTANCE_CONTRADICTION_REVIEW_ONLY",
+  "observed_main_head_before_write": "fe5cfb8cf270bdee9caeeaa62e7a2f3661ac8f9e",
+  "accepted_delta_ref": "workpackages/deltas/F2-WP-202/2-F2-WP-202-G2-GPT56SOL-STATEFINGERPRINT-BINDING-20260829-02.json",
+  "accepted_source_head": "179fe480ae3ea901414da732a0791badcddfd6a4",
+  "current_main_source": "src/frankenstein2/prediction_fingerprint_binding.py",
+  "current_main_source_blob_sha": "015f5f3392ef2c26696b7a48086d7208239bf414",
+  "hosted_ci_falsifier": {
+    "branch_base_sha": "bf06ff204ef626f4dd63395c346db3e805daad98",
+    "falsifier_head_sha": "df873f5f3b9ef2be7b5a99645a32310c974eb094",
+    "run_id": 33219962008,
+    "job_id": 99011735762,
+    "compile": "success",
+    "single_test": "test_inner_residual_world_truth_relabel_must_fail_closed",
+    "result": "failure",
+    "exact_failure": "AssertionError: PredictionFingerprintBindingError not raised"
+  },
+  "contradiction": "The acceptance delta lists RESIDUAL_REMAINS_NONAUTHORITATIVE_FOR_ACTION_EFFECT_WORLD_TRUTH_OR_COMPLETION, but the accepted/current FingerprintBoundResidual constructor validates only the OUTER residual classification. It does not validate residual.classification on the nested PredictionResidual. A legitimate typed residual can be dataclass-replaced so the nested residual says WORLD_TRUTH, then rehydrated through FingerprintBoundResidual with the exact legitimate binding/binding digest/fingerprint identities without rejection.",
+  "source_confirmation": "Current main source blob 015f5f3392ef2c26696b7a48086d7208239bf414 contains no check that self.residual.classification equals the accepted PredictionResidual non-authoritative classification.",
+  "hypothesis": "If FingerprintBoundResidual is a public/persistable typed receipt, nested authority-sensitive fixed fields must be revalidated during admission/rehydration; otherwise the outer non-authority label does not prevent a forged nested WORLD_TRUTH claim.",
+  "counterhypothesis": "If PredictionResidual is guaranteed to be unforgeable ephemeral in-process state and no consumer may deserialize or construct it, the nested check may be redundant. Current public frozen dataclass construction/replace semantics and typed receipt serialization do not establish that stronger boundary.",
+  "required_discriminator": "Add one regression on the mutation authority: replace only a legitimate nested PredictionResidual.classification with WORLD_TRUTH and prove FingerprintBoundResidual construction fails closed. Green canonical CI on that exact source is required before this contradiction is closed.",
+  "proposed_state_change": "DO_NOT_TERMINALIZE_G2_UNTIL_CONTRADICTION_RECONCILED_OR_EXPLICITLY_SCOPED_OUT_WITH_ENFORCED_NON_REHYDRATABLE_BOUNDARY",
+  "runtime_execution_observed": false,
+  "runtime_credit": 0,
+  "physical_grid10_credit": 0,
+  "whole_system_acceptance": false
+}
