@@ -230,10 +230,12 @@ def main(argv: list[str] | None = None) -> int:
         state = load_json(args.state) if args.state else None
         reconciliation = load_json(args.reconciliation) if args.reconciliation else None
 
-        # Terminal pointers carry their own canonical reconciliation reference so the
-        # existing CI command remains valid across ACTIVE -> terminal transition.
+        # Terminal pointers carry a canonical reconciliation reference. During
+        # protocol migration both names are admitted, with the explicit terminal
+        # name preferred. The referenced reconciliation is still fully identity-bound.
         if active is not None and active.get("state") in TERMINAL_ACTIVE_STATES and reconciliation is None:
-            ref = _nonempty_string(active.get("reconciliation_ref"), "active.reconciliation_ref")
+            ref_value = active.get("terminal_reconciliation_ref") or active.get("reconciliation_ref")
+            ref = _nonempty_string(ref_value, "active.terminal_reconciliation_ref")
             repo_root = args.checkpoint.resolve().parents[1]
             reconciliation = load_json(repo_root / ref)
 
