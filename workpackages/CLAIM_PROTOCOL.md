@@ -39,6 +39,8 @@ A worker that finds an active pointer may:
 
 It must label such work `CANDIDATE_FALSIFIER` or `REVIEW_ONLY` and must not overwrite canonical implementation/state.
 
+For high fan-out runs, parallel workers must also follow `workpackages/CONVERGENCE_PROTOCOL.md`. In particular, normal workers report progress through claim-scoped append-only deltas instead of repeatedly rewriting global state/ledger files. Shared canonical state is fused by one temporary reconciliation writer per fusion window.
+
 ## Generation advance
 
 Generation advances only after one of these is durably recorded:
@@ -63,6 +65,8 @@ and update the active pointer state to one of:
 `ACCEPTED`, `FAILED_TERMINAL`, `RETIRED_STALE`, `SUPERSEDED`.
 
 A successor generation may then replace the pointer with an explicit parent/reconciliation reference.
+
+When many workers are active, terminal bookkeeping should be fused coherently: active-pointer terminal state, reconciliation record, accepted receipt reference and global ledger/state update should be batched by the reconciliation writer rather than emitted as a chain of competing bookkeeping commits.
 
 ## Existing duplicate claims
 
