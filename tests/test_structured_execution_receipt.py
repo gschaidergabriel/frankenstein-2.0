@@ -172,6 +172,19 @@ class StructuredExecutionReceiptTests(unittest.TestCase):
                 )
                 self.assertFalse(observed.lineage.is_verified_complete)
 
+    def test_canonical_unknown_outcome_stays_unverified_and_nonreplayable(self) -> None:
+        """Consume EntityOS UNKNOWN_OUTCOME without upgrading it to failure or success."""
+        observed = apply_structured_execution_receipt(
+            prepared(), admitted(), receipt(raw_status="UNKNOWN_OUTCOME")
+        )
+        self.assertEqual(observed.lineage.stage, ExecutionStage.EXECUTION_RECORDED)
+        self.assertEqual(observed.lineage.execution_outcome, ExecutionOutcome.UNKNOWN)
+        self.assertFalse(observed.lineage.is_verified_complete)
+        self.assertEqual(
+            observed.lineage.replay_disposition,
+            ReplayDisposition.FORBIDDEN_UNVERIFIED_OUTCOME,
+        )
+
     def test_only_explicit_pre_effect_failure_maps_to_reported_failure(self) -> None:
         observed = apply_structured_execution_receipt(
             prepared(), admitted(), receipt(raw_status="FAILED_BEFORE_EFFECT")
