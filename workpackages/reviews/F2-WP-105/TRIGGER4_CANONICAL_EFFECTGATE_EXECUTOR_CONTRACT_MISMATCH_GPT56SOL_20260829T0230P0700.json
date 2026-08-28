@@ -1,0 +1,53 @@
+{
+  "schema": "FRANKENSTEIN2_WORKPACKAGE_REVIEW/v1",
+  "trigger": "4",
+  "classification": "SOURCE_LEVEL_INTEGRATION_CONTRACT_GAP",
+  "workpackage_id": "F2-WP-105",
+  "generation": 1,
+  "organ": "GPT-5.6 Sol / ChatGPT Triggerword-4 continuation organ",
+  "canonical_implementation_mutated": false,
+  "finding": "CANONICAL_EFFECTGATE_AND_F2_AUTHORIZE_THEN_EXECUTE_CONTRACTS_DO_NOT_YET_FORM_ONE_EXECUTABLE_BOUNDARY",
+  "observed_exact_entityos_authority": {
+    "repository": "gschaidergabriel/clay-global-research-entity",
+    "commit": "2b68aad14bf7824d513b52898904909256e3522d",
+    "effect_gate_path": "the artefact/clayverse/effects.py",
+    "effect_gate_blob_sha": "4a6413b3f3c752c6327e67233bdd8097f3cf0ba4",
+    "effect_journal_path": "the artefact/clayverse/effect_journal.py",
+    "effect_journal_blob_sha": "cda63471f1467481f2ff79032d3931730a334a20",
+    "entityos_bridge_path": "the artefact/clayverse/entityos_bridge.py",
+    "entityos_bridge_blob_sha": "3118cb6a6758ec1612a33ff3c6766c937d79d4ac"
+  },
+  "observed_f2_boundary": {
+    "canonical_bridge_path": "src/frankenstein2/canonical_effect_authority_bridge.py",
+    "canonical_bridge_blob_sha_observed": "1df782a7eb53adf068697df0461070a1f9475105",
+    "semantic_request_identity": "EffectRequestIdentity digest is now bound through authority evidence, PRE dispatch and POST observation",
+    "positive_delta": "The new semantic-request digest closes request-substitution ambiguity inside the F2 bridge and is orthogonal to this remaining source-contract gap."
+  },
+  "evidence": [
+    "Exact EntityOS EffectGate.execute() validates the request, calls EffectJournal.begin() to mint a canonical effect_id/PENDING row, then itself invokes state.noop or EntityOSBridge.run(argv), and only afterwards finalizes the journal.",
+    "Exact EntityOSBridge.run() accepts argv only; its API does not accept or return the already-minted canonical effect_id, F2 tool_use_id, invocation_id, binding_id, or request digest.",
+    "Current F2 CanonicalEffectAuthorityPort contract instead expects an authorize(intent) response containing canonical effect_id while journal_state is still PENDING, followed by a separate F2 executor invocation.",
+    "Therefore a direct adapter cannot call current EffectGate.execute() merely to obtain ALLOW/PENDING evidence without also crossing the canonical executor boundary, and it cannot safely invent a second dispatch after execute().",
+    "The deterministic F2 bridge CI proves internal fail-closed behavior for a supplied canonical evidence object, but not that the exact current EntityOS implementation can produce that pre-dispatch object through its public API."
+  ],
+  "hypothesis": "The cleanest convergence is a single canonical effect transaction boundary that exposes a typed pre-dispatch admission handle after EffectJournal.begin(), carrying canonical effect_id plus semantic request/call correlation, and then consumes that same handle exactly once for execution/finalization.",
+  "counterhypothesis": "No canonical API change is required if Frankenstein treats EffectGate.execute() as the entire canonical gate+journal+executor transaction and only observes its final receipt, abandoning the separate downstream F2 executor for EntityOS-backed effects.",
+  "forbidden_shortcut": "Do not scan/query the effects table for the newest PENDING row, infer effect ownership by time proximity, synthesize effect_id in F2, or dispatch again after EffectGate.execute(); any of those can misbind overlapping calls or create a second effect path.",
+  "highest_information_falsifier": "Run two same-session overlapping semantic requests A/B against an admitted exact-source adapter. Before any real effect, prove a bijection from each F2 request_sha256 + call identity to exactly one canonical effect_id/PENDING record, prove the executor receives or is intrinsically bound to that exact identity, reverse completion order, and demonstrate that swapping either request digest or canonical effect_id fails closed without a second dispatch. The test may use state.noop or an equivalent zero-real-effect boundary; no provider or production effect is required.",
+  "runtime_transport_note": {
+    "run_33203978272": "FAILED_BEFORE_TEST during cross-repository metadata checkout; no runtime scientific result",
+    "run_33204116039": "FAILED_BEFORE_TEST during unauthenticated public fetch of the authority repository; no runtime scientific result",
+    "classification": "CROSS_REPOSITORY_CI_SOURCE_ACCESS_BLOCKER_NOT_PRODUCT_NEGATIVE"
+  },
+  "credit_boundary": {
+    "semantic_request_binding_source_credit": "PRESENT",
+    "canonical_pre_dispatch_adapter_runtime_credit": 0,
+    "exact_entityos_effectgate_runtime_credit_added": 0,
+    "real_effect_runtime_credit_added": 0,
+    "physical_grid10_runtime_credit_added": 0,
+    "whole_frankenstein2_runtime_credit_added": 0,
+    "whole_entityos_hcu_runtime_credit_added": 0,
+    "training_credit_added": 0
+  },
+  "next_exact_action": "Choose and implement one single-authority integration shape under the existing active WP105 lane: either (A) an EntityOS-owned prepare/execute/finalize API that exposes an immutable pre-dispatch canonical handle, or (B) an F2 observer adapter that delegates the whole effect transaction to EffectGate.execute() and never performs a second executor dispatch. Then execute the overlapping A/B zero-real-effect falsifier at exact source identity."
+}
