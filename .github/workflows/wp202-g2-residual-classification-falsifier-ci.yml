@@ -1,0 +1,32 @@
+name: F2 WP202 G2 Residual Classification Falsifier CI
+
+on:
+  push:
+    branches:
+      - chatgpt/trigger4-wp202-g2-residual-classification-falsifier-20260829
+    paths:
+      - 'src/frankenstein2/prediction_contract.py'
+      - 'src/frankenstein2/prediction_fingerprint_binding.py'
+      - 'src/frankenstein2/state_fingerprint.py'
+      - 'tests/falsifiers/test_wp202_g2_residual_classification.py'
+      - '.github/workflows/wp202-g2-residual-classification-falsifier-ci.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  falsifier:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Compile falsifier
+        run: python -m py_compile src/frankenstein2/prediction_contract.py src/frankenstein2/prediction_fingerprint_binding.py src/frankenstein2/state_fingerprint.py tests/falsifiers/test_wp202_g2_residual_classification.py
+      - name: Residual classification falsifier
+        env:
+          PYTHONPATH: src
+        run: python tests/falsifiers/test_wp202_g2_residual_classification.py -v
