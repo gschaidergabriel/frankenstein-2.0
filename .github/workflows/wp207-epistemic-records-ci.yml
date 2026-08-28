@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - main
+      - chatgpt/trigger4-wp207-g1-epistemic-records-20260829
     paths:
       - 'src/frankenstein2/epistemic_records.py'
       - 'tests/test_epistemic_records.py'
@@ -27,12 +28,9 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-      - name: Compile exact WP207 surface
-        run: >-
-          python -m py_compile
-          src/frankenstein2/epistemic_records.py
-          tests/test_epistemic_records.py
-      - name: Epistemic boundary falsification suite
+      - name: Compile exact rebased WP207 surface
+        run: python -m py_compile src/frankenstein2/epistemic_records.py tests/test_epistemic_records.py
+      - name: Epistemic record falsification suite
         env:
           PYTHONPATH: src
         run: python tests/test_epistemic_records.py -v
