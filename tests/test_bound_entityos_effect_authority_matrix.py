@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import copy
+from dataclasses import replace
 import hashlib
 import json
 import os
@@ -24,8 +25,8 @@ from frankenstein2.entityos_effect_authority_binding import (
 from frankenstein2.entityos_effect_gate_call_bridge import (
     EntityOSEffectCallContext,
     EntityOSEffectGateCallBridgeError,
+    attach_entityos_request_identity,
     bind_unique_pending_entityos_effect,
-    canonical_entityos_call_target,
 )
 
 
@@ -42,7 +43,7 @@ else:  # pragma: no cover - dedicated CI always supplies the exact canonical che
 BINDING = CURRENT_ENTITYOS_EFFECT_AUTHORITY_BINDING
 
 
-def intent(*, suffix: str = "A") -> EffectCallIntent:
+def call_intent(*, suffix: str = "A") -> EffectCallIntent:
     return EffectCallIntent(
         return_id=None,
         binding_id=f"binding-{suffix}",
@@ -72,13 +73,13 @@ class BoundEntityOSEffectAuthorityMatrixTests(unittest.TestCase):
         self.session_id = self.db.ensure_session(self.user_id, "terminal-A")
         self.generation = self.db.session_generation(self.session_id)
         self.argv = ("deterministic-stub", "payload-A")
-        self.intent = intent()
         self.context = EntityOSEffectCallContext(
             user_id=self.user_id,
             session_id=self.session_id,
             generation=self.generation,
             argv=self.argv,
         )
+        self.intent = attach_entityos_request_identity(call_intent(), self.context)
 
     def tearDown(self) -> None:
         self.db.close()
@@ -93,14 +94,16 @@ class BoundEntityOSEffectAuthorityMatrixTests(unittest.TestCase):
             ).fetchall()
         ]
 
-    def _request(self, *, capability: str = "entityos.exec"):
+    def _request(self, *, capability: str | None = None):
+        semantic = self.intent.request
+        assert semantic is not None
         return EffectRequest(
-            user_id=self.user_id,
-            session_id=self.session_id,
-            capability=capability,
-            target=canonical_entityos_call_target(self.intent, self.context),
-            argv=list(self.argv),
-            expected_generation=self.generation,
+            user_id=semantic.user_id,
+            session_id=semantic.session_id,
+            capability=capability or semantic.capability,
+            target=semantic.target,
+            argv=list(semantic.argv) if semantic.argv is not None else None,
+            expected_generation=semantic.expected_generation,
         )
 
     def test_exact_external_binding_document_and_all_bound_blobs_match(self) -> None:
@@ -114,7 +117,10 @@ class BoundEntityOSEffectAuthorityMatrixTests(unittest.TestCase):
             git_blob(BINDING.effect_journal_path), BINDING.effect_journal_blob_sha
         )
         self.assertEqual(git_blob(BINDING.unified_db_path), BINDING.unified_db_blob_sha)
-        self.assertEqual(document["implementation_identity"]["bound_commit"], BINDING.implementation_commit)
+        self.assertEqual(
+            document["implementation_identity"]["bound_commit"],
+            BINDING.implementation_commit,
+        )
 
     def test_any_bound_source_identity_change_fails_closed(self) -> None:
         assert CANONICAL_ROOT is not None
@@ -127,7 +133,7 @@ class BoundEntityOSEffectAuthorityMatrixTests(unittest.TestCase):
         ):
             validate_current_binding_document(mutated)
 
-    def test_pending_row_binds_exact_f2_call_before_stub_executor_runs(self) -> None:
+    def test_pending_row_binds_exact_call_and_semantic_request_before_stub_executor_runs(self) -> None:
         test_case = self
 
         class CorrelatingBridge:
@@ -146,9 +152,21 @@ class BoundEntityOSEffectAuthorityMatrixTests(unittest.TestCase):
                     test_case.context,
                     test_case._effect_rows(),
                 )
+                test_case.assertEqual(
+                    self.pending.prepared.request_sha256,
+                    test_case.intent.request_sha256,
+                )
+                test_case.assertEqual(
+                    self.pending.gate.request_sha256,
+                    test_case.intent.request_sha256,
+                )
 
                 def executor(prepared):
                     test_case.assertEqual(prepared.effect_id, self.pending.effect_id)
+                    test_case.assertEqual(
+                        prepared.request_sha256,
+                        test_case.intent.request_sha256,
+                    )
                     digest = hashlib.sha256(
                         json.dumps(list(argv), separators=(",", ":")).encode("utf-8")
                     ).hexdigest()
@@ -161,6 +179,7 @@ class BoundEntityOSEffectAuthorityMatrixTests(unittest.TestCase):
                         child_identity_sha256=prepared.child_identity_sha256,
                         result_id="stub-result-A",
                         result_sha256=digest,
+                        request_sha256=prepared.request_sha256,
                     )
 
                 self.interlock = dispatch_through_external_gate(
@@ -169,6 +188,10 @@ class BoundEntityOSEffectAuthorityMatrixTests(unittest.TestCase):
                     executor=executor,
                 )
                 test_case.assertTrue(self.interlock.dispatched)
+                test_case.assertEqual(
+                    self.interlock.observed.request_sha256,
+                    test_case.intent.request_sha256,
+                )
                 return {"ok": True, "exit": 0}
 
         bridge = CorrelatingBridge()
@@ -182,8 +205,36 @@ class BoundEntityOSEffectAuthorityMatrixTests(unittest.TestCase):
         ).fetchone()
         self.assertEqual(row["status"], "VERIFIED")
 
+    def test_semantic_request_substitution_fails_before_pending_binding(self) -> None:
+        semantic = self.intent.request
+        assert semantic is not None
+        substituted = replace(
+            self.intent,
+            request=replace(semantic, argv=("deterministic-stub", "payload-B")),
+        )
+        gate = EffectGate(self.db)
+        gate.journal.begin(
+            None,
+            self.session_id,
+            self.user_id,
+            "entityos.exec",
+            semantic.target,
+            self.generation,
+            list(self.argv),
+        )
+        with self.assertRaisesRegex(
+            EntityOSEffectGateCallBridgeError,
+            "SEMANTIC_EFFECT_REQUEST_MISMATCH",
+        ):
+            bind_unique_pending_entityos_effect(
+                substituted,
+                self.context,
+                self._effect_rows(),
+            )
+
     def test_duplicate_identical_pending_rows_fail_closed_not_latest_row_wins(self) -> None:
-        target = canonical_entityos_call_target(self.intent, self.context)
+        semantic = self.intent.request
+        assert semantic is not None
         gate = EffectGate(self.db)
         for _ in range(2):
             gate.journal.begin(
@@ -191,7 +242,7 @@ class BoundEntityOSEffectAuthorityMatrixTests(unittest.TestCase):
                 self.session_id,
                 self.user_id,
                 "entityos.exec",
-                target,
+                semantic.target,
                 self.generation,
                 list(self.argv),
             )
@@ -226,14 +277,15 @@ class BoundEntityOSEffectAuthorityMatrixTests(unittest.TestCase):
         )
 
     def test_restart_recovery_preserves_pending_as_unknown_without_replay(self) -> None:
-        target = canonical_entityos_call_target(self.intent, self.context)
+        semantic = self.intent.request
+        assert semantic is not None
         gate = EffectGate(self.db)
         effect_id = gate.journal.begin(
             None,
             self.session_id,
             self.user_id,
             "entityos.exec",
-            target,
+            semantic.target,
             self.generation,
             list(self.argv),
         )
@@ -254,8 +306,8 @@ class BoundEntityOSEffectAuthorityMatrixTests(unittest.TestCase):
         """NEGATIVE_RESULT: this is the remaining canonical integration blocker.
 
         F2 correctly reports a possibly-started executor exception as
-        ExecutorOutcomeUnknown.  The currently bound EffectGate catches every bridge
-        exception and finalizes the journal as FAILED.  This test intentionally freezes
+        ExecutorOutcomeUnknown. The currently bound EffectGate catches every bridge
+        exception and finalizes the journal as FAILED. This test intentionally freezes
         that observed mismatch until the canonical effect authority gains an explicit
         live-UNKNOWN finalization contract; a future fix must change this assertion.
         """
