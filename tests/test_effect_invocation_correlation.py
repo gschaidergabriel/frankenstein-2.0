@@ -9,6 +9,7 @@ from frankenstein2.effect_invocation_correlation import (
     EffectCorrelationStage,
     EffectInvocationCorrelationError,
     apply_effect_bound_verification,
+    bind_effect_return,
     observe_effect_result,
     prepare_effect_call,
 )
@@ -29,7 +30,9 @@ SAME_RESULT_ID = "same-result-id"
 SAME_RESULT_DIGEST = "a" * 64
 
 
-def make_target(*, suffix: str, task_id: str, turn_id: str) -> DeferredExecutionVerificationTarget:
+def make_pending_call(
+    *, suffix: str, task_id: str, turn_id: str
+) -> tuple[NativeChildBinding, CausalIdentity, ExecutionLineage]:
     parent = CausalIdentity(
         session_id="shared-session",
         agent_id="parent-agent",
@@ -55,25 +58,6 @@ def make_target(*, suffix: str, task_id: str, turn_id: str) -> DeferredExecution
         delegation_id=f"delegation-{suffix}",
         child=child,
     )
-    bound = pending.bind_result(
-        invocation_id=pending.invocation_id,
-        delegation_id=pending.delegation_id,
-        child_causal_id=child.causal_id,
-        result_id=SAME_RESULT_ID,
-        result_sha256=SAME_RESULT_DIGEST,
-    )
-    resume = child.derive(
-        causal_id=f"resume-{suffix}",
-        generation=6,
-        agent_id=parent.agent_id,
-        task_id=parent.task_id,
-        turn_id=f"resume-turn-{suffix}",
-    )
-    returned = DeferredCausalReturn(
-        return_id=f"return-{suffix}",
-        binding=bound,
-        resume=resume,
-    )
     lineage = ExecutionLineage.requested(
         causal_id=child.causal_id,
         generation=child.generation,
@@ -88,6 +72,34 @@ def make_target(*, suffix: str, task_id: str, turn_id: str) -> DeferredExecution
             request_id=lineage.request_id,
             admission_id="shared-admission-id",
         ),
+    )
+    return pending, child, lineage
+
+
+def make_target(*, suffix: str, task_id: str, turn_id: str) -> DeferredExecutionVerificationTarget:
+    pending, child, lineage = make_pending_call(
+        suffix=suffix,
+        task_id=task_id,
+        turn_id=turn_id,
+    )
+    bound = pending.bind_result(
+        invocation_id=pending.invocation_id,
+        delegation_id=pending.delegation_id,
+        child_causal_id=child.causal_id,
+        result_id=SAME_RESULT_ID,
+        result_sha256=SAME_RESULT_DIGEST,
+    )
+    resume = child.derive(
+        causal_id=f"resume-{suffix}",
+        generation=6,
+        agent_id=pending.parent.agent_id,
+        task_id=pending.parent.task_id,
+        turn_id=f"resume-turn-{suffix}",
+    )
+    returned = DeferredCausalReturn(
+        return_id=f"return-{suffix}",
+        binding=bound,
+        resume=resume,
     )
     lineage = apply_execution_transition(
         lineage,
@@ -140,6 +152,83 @@ class EffectInvocationCorrelationTests(unittest.TestCase):
         self.pre_b = prepare_effect_call(self.target_b, effect_id="effect-B")
         self.post_a = observe(self.pre_a)
         self.post_b = observe(self.pre_b)
+
+    def test_true_pre_dispatch_binding_exists_before_result_and_record_execution(self) -> None:
+        pending, child, admitted = make_pending_call(
+            suffix="PRE",
+            task_id="task-PRE",
+            turn_id="turn-PRE",
+        )
+        self.assertFalse(pending.has_result)
+        self.assertEqual(admitted.stage, ExecutionStage.ADMITTED)
+        self.assertIsNone(admitted.execution_attempt_id)
+
+        prepared = prepare_effect_call(pending, effect_id="effect-PRE")
+        self.assertEqual(prepared.stage, EffectCorrelationStage.PREPARED)
+        self.assertIsNone(prepared.return_id)
+        self.assertEqual(prepared.binding_id, pending.binding_id())
+
+        observed = observe(prepared)
+        self.assertEqual(observed.stage, EffectCorrelationStage.RESULT_OBSERVED)
+        self.assertIsNone(observed.return_id)
+
+        bound = pending.bind_result(
+            invocation_id=pending.invocation_id,
+            delegation_id=pending.delegation_id,
+            child_causal_id=child.causal_id,
+            result_id=observed.result_id or "",
+            result_sha256=observed.result_sha256 or "",
+        )
+        resume = child.derive(
+            causal_id="resume-PRE",
+            generation=6,
+            agent_id=pending.parent.agent_id,
+            task_id=pending.parent.task_id,
+            turn_id="resume-turn-PRE",
+        )
+        returned = DeferredCausalReturn(
+            return_id="return-PRE",
+            binding=bound,
+            resume=resume,
+        )
+        recorded = apply_execution_transition(
+            admitted,
+            RecordExecution(
+                transition_id="pre-execution-transition",
+                causal_id=admitted.causal_id,
+                generation=admitted.generation,
+                request_id=admitted.request_id,
+                admission_id=admitted.admission_id,
+                execution_attempt_id="pre-execution-attempt",
+                outcome=ExecutionOutcome.REPORTED_SUCCESS,
+            ),
+        )
+        target = DeferredExecutionVerificationTarget(returned=returned, lineage=recorded)
+
+        with self.assertRaisesRegex(
+            EffectInvocationCorrelationError,
+            "VERIFICATION_REQUIRES_RETURN_BINDING",
+        ):
+            apply_effect_bound_verification(target, observed, verification(target))
+
+        return_bound = bind_effect_return(observed, target)
+        self.assertEqual(return_bound.return_id, returned.return_id)
+        verified = apply_effect_bound_verification(
+            target,
+            return_bound,
+            verification(target),
+        )
+        self.assertEqual(verified.lineage.stage, ExecutionStage.VERIFIED_APPLIED)
+
+    def test_true_pre_dispatch_path_rejects_already_result_bound_binding(self) -> None:
+        with self.assertRaisesRegex(
+            EffectInvocationCorrelationError,
+            "PRE_DISPATCH_BINDING_MUST_BE_RESULT_FREE",
+        ):
+            prepare_effect_call(
+                self.target_a.returned.binding,
+                effect_id="effect-too-late",
+            )
 
     def test_test_fixture_defeats_session_and_digest_only_correlation(self) -> None:
         self.assertEqual(self.target_a.lineage, self.target_b.lineage)
