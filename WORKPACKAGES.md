@@ -15,7 +15,7 @@ Status:
 - [-] F2-WP-001 Canonical README architecture/front page.
 - [-] F2-WP-002 Machine-readable workpackage state/claims/generations.
 - [ ] F2-WP-003 Research-Entity → F2 provenance mirror.
-- [ ] F2-WP-004 Immutable per-test run-package format.
+- [x] F2-WP-004 Immutable per-test run-package format — source contract accepted; runtime credit remains zero.
 - [ ] F2-WP-005 Full telemetry/data spine and collectors.
 
 ## Phase 1 — UnifiedDB / Causal Coordination
