@@ -1,0 +1,59 @@
+{
+  "schema": "FRANKENSTEIN2_WORKPACKAGE_DELTA/v1",
+  "workpackage_id": "F2-WP-204",
+  "generation": 2,
+  "claim_id": "F2-WP-204-G2-GPT56SOL-FAILCLOSED-REPAIR-20260829",
+  "worker_id": "GPT-5.6-Sol-REVIEW",
+  "result_class": "NEGATIVE_RESULT",
+  "source_commits": [
+    "71e699f4c542cff392452f0aa1d966a406edd83e",
+    "c7afde1fbed5a28474a4ed5dc5fe3b07f860b0a8",
+    "f33f25ac4ca6bba6b4934d7b16e1971923d36fa4",
+    "332d5630c4bc62bcd22234f9d793d5d27ae26d81"
+  ],
+  "receipts": [],
+  "falsifiers": [
+    "PRIVATE_EVOLUTION_TOKEN_MUST_NOT_BECOME_CALLER_CAPABILITY"
+  ],
+  "observations": [
+    {
+      "class": "CURRENT_SOURCE",
+      "source": "src/frankenstein2/goal_lifecycle.py@71e699f4c542cff392452f0aa1d966a406edd83e",
+      "finding": "Generation-2 hardening rejects duplicate references, requires typed owner:/control:/external: promotion evidence, restricts each patch/receipt to exactly one goal, and rejects ordinary public non-CANDIDATE construction."
+    },
+    {
+      "class": "CURRENT_SOURCE_NEGATIVE",
+      "source": "src/frankenstein2/goal_lifecycle.py@71e699f4c542cff392452f0aa1d966a406edd83e",
+      "finding": "GoalState exposes _construction_token as an init-enabled dataclass field while module-level _EVOLUTION_TOKEN is directly addressable. A caller importing the module can pass lifecycle._EVOLUTION_TOKEN into GoalState(..., _construction_token=...) and manufacture non-CANDIDATE evolved state without GoalState.apply() or a transition receipt."
+    },
+    {
+      "class": "REGRESSION_TEST",
+      "source": "tests/test_goal_lifecycle_g2_failclosed.py@c7afde1fbed5a28474a4ed5dc5fe3b07f860b0a8",
+      "finding": "Deterministic regression test_internal_evolution_token_is_not_a_public_constructor_capability preserves the escape as a fail-closed acceptance gate."
+    },
+    {
+      "class": "DONOR_SOURCE",
+      "source": "src/frankenstein2/goal_lifecycle.py@332d5630c4bc62bcd22234f9d793d5d27ae26d81",
+      "finding": "The separate G2 rehydration-fence donor avoids the token-capability class using candidate-only public construction plus object.__new__ in a private transition constructor. It is a constructor-pattern donor only because it does not cover the other G2 defects."
+    }
+  ],
+  "contradictions": [
+    "The G2 claim requires rejection of direct public construction/rehydration of non-CANDIDATE goal state, but the current failclosed-repair source exposes a caller-reachable token parameter that bypasses that fence."
+  ],
+  "proposed_state_change": "Keep F2-WP-204 generation 2 ACTIVE. Fuse only the constructor pattern from the rehydration-fence donor into the canonical G2 failclosed source: remove the init-enabled token capability and create evolved state internally without a caller-supplied constructor token. Preserve the other four G2 repairs and the new regression suite. Then run repository-hosted CI at the exact fused head before reconciliation.",
+  "completion_deficit": [
+    "caller-reachable evolution-token construction bypass remains",
+    "no exact fused-head repository-hosted CI receipt yet",
+    "no generation-2 terminal reconciliation",
+    "no UnifiedDB persistence integration credit",
+    "no wake/Pulse integration credit",
+    "no VPS or physical GRID10 runtime credit",
+    "no whole Frankenstein 2.0 acceptance"
+  ],
+  "next_exact_action": "Replace token-gated dataclass rehydration with a non-public internal construction path while retaining the four G2 fail-closed repairs, make test_internal_evolution_token_is_not_a_public_constructor_capability pass, then obtain exact-head repository CI.",
+  "runtime_execution_observed": false,
+  "runtime_credit": 0,
+  "physical_grid10_credit": 0,
+  "whole_system_acceptance": false,
+  "created_at_utc": "2026-08-28T23:02:30Z"
+}
