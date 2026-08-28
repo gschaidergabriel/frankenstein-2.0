@@ -1,0 +1,94 @@
+{
+  "schema": "FRANKENSTEIN2_TRIGGER6_EVIDENCE_DELTA/v1",
+  "evidence_id": "R6-E3-AGENTSIGHT-HTTP1-CONTENT-LENGTH-20260829T040702P0700",
+  "research_id": "R6-SEED-005",
+  "trigger": "6",
+  "slot": "EXPERIMENTAL_FALSIFIER",
+  "created_at": "2026-08-29T04:07:02+07:00",
+  "status": "E3_CLAIM_REPRODUCED_NARROW_SCOPE",
+  "architecture_snapshot": {
+    "frankenstein_2_main_before_receipt": "a2810659a0d2c9649c474d7578c6510dafa4d910",
+    "research_entity_main_before_receipt": "7574af426524480ebef6c88aff285820d136e26a",
+    "authority_epoch": "9.13",
+    "supervisor_delta": "9.13AL_NON_AUTHORITY",
+    "architecture_delta_fusion": "ADF-20260829T0401P0700-GPT56SOL-REENTRY1"
+  },
+  "atomic_claim": {
+    "path": "research/tool_intelligence/claims/R6-SEED-005/E3_CLAIM_REPRODUCED_HTTP1_CONTENT_LENGTH_PARTIAL_ACCEPTANCE.json",
+    "claim_commit": "63914b2422e6fdec54d0d6ed762b29c53e372946",
+    "research_credit_from_claim": 0
+  },
+  "candidate_pin": {
+    "repository": "eunomia-bpf/agentsight",
+    "commit_sha": "934f441eff8ca210807333633f47b2efcb8cd020",
+    "version": "1.0.30",
+    "source_file": "ext/analysis/src/analyzers/http_parser.rs",
+    "license": "MIT"
+  },
+  "upstream_negative_context": {
+    "issue": "eunomia-bpf/agentsight#185",
+    "issue_state_observed": "OPEN",
+    "issue_original_version": "1.0.20",
+    "issue_claim": "HTTP/1.1 request bodies split across SSL_write events can be emitted incompletely because Content-Length is not used as a completeness gate before HTTP event emission.",
+    "scope_note": "The full multi-SSL_write/eBPF path from issue #185 was NOT reproduced in this experiment."
+  },
+  "source_observation": {
+    "parse_http_message_behavior": "The current 1.0.30 parser collects all currently available bytes after CRLFCRLF as the body and returns Some(HTTPMessage) without comparing body length with the Content-Length header.",
+    "handle_ssl_event_behavior": "The current source calls parse_http_message on one SSL event and immediately constructs an HTTP event when parsing succeeds; no HTTP/1.1 accumulation state is visible in HTTPParser alongside its HTTP2 and WebSocket state.",
+    "classification": "SOURCE_DIRECT"
+  },
+  "execution": {
+    "workflow_path": ".github/workflows/trigger6-agentsight-http1-e3.yml",
+    "workflow_commit": "d0e26b8b3e67d6421e1a156cf794624b69de5997",
+    "run_id": 33211039334,
+    "job_id": 98984034545,
+    "repository_visibility": "PUBLIC",
+    "runner": "ubuntu-24.04",
+    "runner_version": "2.336.0",
+    "rustc": "1.98.0",
+    "cargo": "1.98.0",
+    "candidate_checkout_sha_verified": "934f441eff8ca210807333633f47b2efcb8cd020",
+    "test_name": "trigger6_http1_content_length_partial_acceptance",
+    "declared_content_length": 10,
+    "available_body_length": 3,
+    "test_result": "1 passed; 0 failed; 126 filtered out",
+    "job_conclusion": "SUCCESS",
+    "real_effects": 0,
+    "ebpf_or_root_required": false,
+    "sensitive_tls_capture": false
+  },
+  "finding": {
+    "claim": "AgentSight 1.0.30 HTTPParser accepts an intentionally incomplete HTTP/1.1 message with Content-Length 10 and only 3 available body bytes as a parsed message.",
+    "result": "REPRODUCED",
+    "evidence_level": "E3_CLAIM_REPRODUCED",
+    "scope": "NARROW_HTTP_PARSER_BEHAVIOR_ONLY"
+  },
+  "counterhypothesis_update": {
+    "statement": "The defect class does not invalidate AgentSight as a process/file/network/resource witness; it specifically weakens semantic completeness of reconstructed HTTP/LLM payload observations unless completeness is independently established.",
+    "status": "RETAINED"
+  },
+  "f2_implications": [
+    "AgentSight remains a bounded READ_ONLY_INDEPENDENT_OBSERVABILITY_WITNESS candidate, never canonical state or effect authority.",
+    "An F2 adapter must preserve capture source, confidence, completeness/partiality and raw-versus-derived provenance.",
+    "AgentSight HTTP payload absence or truncation must never prove absence of an effect, tool call, completion or causal event.",
+    "Do not feed reconstructed HTTP payload semantics into EffectGate/EffectJournal truth without an independently complete F2 causal binding.",
+    "Prefer process/file/network/resource witness dimensions for the first F2 ablation; gate HTTP semantic payload use behind explicit completeness checks or disable it."
+  ],
+  "promotion_fences": {
+    "agentsight_e3_narrow_claim_credit": 1,
+    "agentsight_full_runtime_credit": 0,
+    "f2_ablation_credit": 0,
+    "build_candidate_credit": 0,
+    "f2_acceptance_credit": 0,
+    "entityos_effect_authority_credit": 0,
+    "whole_f2_runtime_credit": 0,
+    "whole_entityos_hcu_credit": 0,
+    "training_credit": 0
+  },
+  "next_exact_gate": {
+    "slot": "EXPERIMENTAL_FALSIFIER_OR_INTEGRATION_DISTILLER_AFTER_E4",
+    "evidence_target": "E4_F2_ABLATION",
+    "test": "Run one no-real-effect equivalent workload under F2-native telemetry alone and F2-native plus AgentSight witness. Include a deliberately split HTTP/1.1 request and independently known process/file/network events. Measure incremental event recall, false/partial attribution, completeness flags, p50/p95/p99 latency, CPU, RSS, I/O, dependency/startup cost and privilege requirements.",
+    "acceptance_rule": "No E5 handoff unless AgentSight adds unique useful witness coverage or debugging value after accounting for telemetry overlap and parser incompleteness, while remaining structurally incapable of minting canonical state/effect/completion authority."
+  }
+}
