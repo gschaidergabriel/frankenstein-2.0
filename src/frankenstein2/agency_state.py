@@ -1,17 +1,17 @@
 """Deterministic AgencyState contract for Frankenstein 2.0.
 
-F2-WP-203 generation 1.
+F2-WP-203 generation 2.
 
-AgencyState is an immutable, persistence-agnostic projection of explicitly supplied:
-- interests,
-- unresolved/open loops,
-- deferred intents.
+Generation 2 preserves the generation-1 AgencyState semantics and closes one bounded
+admission bug proven by hosted CI: collection helpers must accept only the concrete
+validated Interest, OpenLoop, and DeferredIntent dataclasses. Duck-typed objects may not
+bypass item constructors, provenance validation, or bounded-field validation.
 
-The component deliberately does not infer any of those items, evaluate revisit conditions,
-select a Pulse action, read/write UnifiedDB, call a provider/tool, execute an effect, or
-mint completion. State evolution is a pure function guarded by exact state identity,
-generation and digest. Every accepted evolution returns a deterministic transition receipt
-that a future canonical persistence layer may store.
+AgencyState remains an immutable, persistence-agnostic projection of explicitly supplied
+interests, unresolved/open loops, and deferred intents. It does not infer any of those
+items, evaluate revisit conditions, select a Pulse action, read/write UnifiedDB, call a
+provider/tool, execute an effect, or mint completion. State evolution is a pure function
+guarded by exact state identity, generation, and digest.
 """
 from __future__ import annotations
 
@@ -19,7 +19,7 @@ from dataclasses import asdict, dataclass
 import hashlib
 import json
 import re
-from typing import Any, Iterable, Mapping
+from typing import Any, Iterable, Mapping, TypeVar
 
 AGENCY_STATE_SCHEMA = "FRANKENSTEIN2_AGENCY_STATE/v1"
 AGENCY_PATCH_SCHEMA = "FRANKENSTEIN2_AGENCY_STATE_PATCH/v1"
@@ -71,7 +71,12 @@ def _sha256(name: str, value: Any) -> str:
     return value
 
 
-def _refs(name: str, values: Iterable[str], *, require_nonempty: bool = True) -> tuple[str, ...]:
+def _refs(
+    name: str,
+    values: Iterable[str],
+    *,
+    require_nonempty: bool = True,
+) -> tuple[str, ...]:
     if isinstance(values, (str, bytes)):
         raise AgencyStateError(f"{name} must be an iterable of reference strings")
     cleaned = tuple(sorted({_identifier(name, value) for value in values}))
@@ -167,10 +172,28 @@ class DeferredIntent:
         return asdict(self)
 
 
-def _unique_by_id(items: Iterable[Any], id_attr: str, category: str) -> tuple[Any, ...]:
-    mapping: dict[str, Any] = {}
+_T = TypeVar("_T")
+
+
+def _unique_by_id(
+    items: Iterable[_T],
+    id_attr: str,
+    category: str,
+    expected_type: type[_T],
+) -> tuple[_T, ...]:
+    """Validate concrete item ABI first, then canonicalize by stable id.
+
+    Exact concrete type is intentional. A subclass or duck-typed object could override
+    serialization or skip the constructor invariants that make provenance and bounded
+    fields trustworthy at this component boundary.
+    """
+    mapping: dict[str, _T] = {}
     for item in items:
-        item_id = getattr(item, id_attr, None)
+        if type(item) is not expected_type:
+            raise AgencyStateError(
+                f"{category} item must be concrete {expected_type.__name__}"
+            )
+        item_id = getattr(item, id_attr)
         if item_id in mapping:
             raise AgencyStateError(f"duplicate {category} id: {item_id}")
         mapping[item_id] = item
@@ -218,7 +241,9 @@ class AgencyStatePatch:
             raise AgencyStateError("agency patch schema mismatch")
         object.__setattr__(self, "transition_id", _identifier("transition_id", self.transition_id))
         object.__setattr__(
-            self, "expected_state_id", _identifier("expected_state_id", self.expected_state_id)
+            self,
+            "expected_state_id",
+            _identifier("expected_state_id", self.expected_state_id),
         )
         object.__setattr__(self, "expected_generation", _generation(self.expected_generation))
         object.__setattr__(
@@ -229,24 +254,35 @@ class AgencyStatePatch:
         object.__setattr__(self, "next_generation", _generation(self.next_generation))
         if self.next_generation != self.expected_generation + 1:
             raise AgencyStateError("next_generation must equal expected_generation + 1")
-        object.__setattr__(
-            self, "transition_refs", _refs("transition_ref", self.transition_refs)
-        )
+        object.__setattr__(self, "transition_refs", _refs("transition_ref", self.transition_refs))
         object.__setattr__(
             self,
             "upsert_interests",
-            _unique_by_id(self.upsert_interests, "interest_id", "interest upsert"),
+            _unique_by_id(
+                self.upsert_interests,
+                "interest_id",
+                "interest upsert",
+                Interest,
+            ),
         )
         object.__setattr__(
             self,
             "upsert_open_loops",
-            _unique_by_id(self.upsert_open_loops, "loop_id", "open-loop upsert"),
+            _unique_by_id(
+                self.upsert_open_loops,
+                "loop_id",
+                "open-loop upsert",
+                OpenLoop,
+            ),
         )
         object.__setattr__(
             self,
             "upsert_deferred_intents",
             _unique_by_id(
-                self.upsert_deferred_intents, "intent_id", "deferred-intent upsert"
+                self.upsert_deferred_intents,
+                "intent_id",
+                "deferred-intent upsert",
+                DeferredIntent,
             ),
         )
         object.__setattr__(
@@ -351,9 +387,14 @@ class AgencyState:
             raise AgencyStateError("agency state schema mismatch")
         object.__setattr__(self, "state_id", _identifier("state_id", self.state_id))
         object.__setattr__(self, "generation", _generation(self.generation))
-        interests = _unique_by_id(self.interests, "interest_id", "interest")
-        loops = _unique_by_id(self.open_loops, "loop_id", "open loop")
-        intents = _unique_by_id(self.deferred_intents, "intent_id", "deferred intent")
+        interests = _unique_by_id(self.interests, "interest_id", "interest", Interest)
+        loops = _unique_by_id(self.open_loops, "loop_id", "open loop", OpenLoop)
+        intents = _unique_by_id(
+            self.deferred_intents,
+            "intent_id",
+            "deferred intent",
+            DeferredIntent,
+        )
         _assert_global_id_uniqueness(interests, loops, intents)
         object.__setattr__(self, "interests", interests)
         object.__setattr__(self, "open_loops", loops)
