@@ -1,0 +1,81 @@
+{
+  "schema": "FRANKENSTEIN2_WORKPACKAGE_RUNTIME_RECEIPT/v1",
+  "trigger": "4",
+  "workpackage_id": "F2-WP-105",
+  "classification": "EXACT_BOUND_SOURCE_DETERMINISTIC_COMPONENT_INTEGRATION_CI",
+  "result": "PASS",
+  "tested_repository": "gschaidergabriel/frankenstein-2.0",
+  "tested_candidate_head_sha": "8a3d4201d46bc2dc9acbf447b5c67942af36dc37",
+  "workflow": ".github/workflows/bound-entityos-effect-topology-ci.yml",
+  "workflow_run_id": 33204251444,
+  "workflow_job_id": 98961137076,
+  "runner_class": "github-hosted ubuntu-latest",
+  "python": "3.12.14",
+  "steps": {
+    "checkout_candidate": "PASS",
+    "compile_falsifier_and_bound_fixtures": "PASS",
+    "exact_bound_no_real_effect_topology_falsifier": "PASS"
+  },
+  "test_result": {
+    "tests_run": 3,
+    "tests_failed": 0,
+    "tests_errored": 0,
+    "elapsed_seconds_reported": 0.050,
+    "cases": [
+      "test_binding_record_losslessly_pins_all_bound_source_bytes",
+      "test_bound_effectgate_owns_pending_dispatch_finalize_transaction_once",
+      "test_pending_crash_recovery_becomes_unknown_and_cannot_replay"
+    ]
+  },
+  "authority_binding": {
+    "schema": "ENTITYOS_EFFECT_AUTHORITY_IMPLEMENTATION_BINDING/v1",
+    "binding_blob_sha": "b4d91a0dd233c9dc15ff8218feea9248ac1c13c5",
+    "binding_source_commit": "5638204026468b631de5e774e8403d7a6334021e",
+    "bound_implementation_commit": "2b68aad14bf7824d513b52898904909256e3522d",
+    "effect_gate_blob_sha": "4a6413b3f3c752c6327e67233bdd8097f3cf0ba4",
+    "effect_journal_blob_sha": "cda63471f1467481f2ff79032d3931730a334a20",
+    "unifieddb_blob_sha": "a88d923ea3d0eab5847f304f35463e5a2b2c4acd",
+    "unifieddb_schema_version": "6",
+    "api_version": "ENTITYOS_EFFECT_AUTHORITY_PY_API/v1"
+  },
+  "fixture_identity_law": "The vendored fixtures are non-authoritative test copies. The test grants semantic scope only after recomputing Git blob identities and proving byte equality to the canonical authority binding. Any byte mismatch fails before topology credit.",
+  "proved_at_scope": [
+    "The current binding record and all three authority-bound implementation blobs were byte-identical to the canonical Git blob identities before semantic assertions ran.",
+    "The exact bound EffectGate created a canonical EffectJournal PENDING row before the in-process EntityOSBridge test double was invoked.",
+    "The exact bound EffectGate held the canonical entityos.exec lease during the bridge call.",
+    "One canonical EffectGate.execute invocation caused exactly one bridge invocation, then produced VERIFIED journal state and released the lease.",
+    "Retrying the same canonical episode produced zero additional bridge invocations.",
+    "A residual exact-bound EffectJournal PENDING row recovered after database reopen to UNKNOWN_AFTER_RESTART.",
+    "Retry after UNKNOWN_AFTER_RESTART produced zero bridge invocations, proving no blind replay on that exact path."
+  ],
+  "topology_discriminator": {
+    "hypothesis": "The admitted EffectGate owns policy/journal/lease/action/finalization as one canonical transaction; Frankenstein must not treat EffectGate.execute as authorization-only before a second executor dispatch.",
+    "result": "SUPPORTED_BY_EXACT_BOUND_COMPONENT_EXECUTION",
+    "counterhypothesis": "The current bound EffectGate.execute can safely serve as authorization-only before a separate F2 executor without semantic duplication.",
+    "counterhypothesis_status": "FALSIFIED_FOR_THE_CURRENT_BOUND_API_TOPOLOGY",
+    "production_implication": "Prefer one canonical EffectGate-owned execution call with F2 semantic-request plus call-correlation binding before entry and completion correlation after canonical return. If a split prepare/dispatch/finalize topology is required, it must be owned/admitted by EntityOS and define lease custody/recovery rather than being invented by F2."
+  },
+  "not_proved": [
+    "The fake EntityOSBridge performed no real external effect and no EntityOS binary was executed.",
+    "This does not prove an external-world outcome or production-host behavior.",
+    "This does not establish the still-open immutable semantic effect_request_sha256 binding between F2 request correlation and canonical EffectRequest consumption.",
+    "This does not establish full F2-WP-105 acceptance, Stage-1 acceptance, physical GRID10, whole Frankenstein 2.0, EntityOS/HCU, J-Space model runtime, VPS/provider runtime, or training acceptance."
+  ],
+  "credit_boundary": {
+    "exact_bound_effectgate_effectjournal_unifieddb_no_real_effect_component": 1,
+    "canonical_effectgate_real_effect_runtime": 0,
+    "external_world_verification_runtime": 0,
+    "wp105_full_acceptance": 0,
+    "physical_grid10_runtime": 0,
+    "whole_frankenstein2_runtime": 0,
+    "whole_entityos_hcu_runtime": 0,
+    "jspace_model_runtime": 0,
+    "training_credit": 0
+  },
+  "coordination": {
+    "canonical_wp105_mutation_authority_changed": false,
+    "candidate_branch_only": true,
+    "active_wp105_lane_should_consume_as_donor_evidence": true
+  },
+  "next_exact_gate": "In the existing active F2-WP-105 mutation lane, bind one deterministic immutable semantic EffectRequest digest/typed identity to the existing F2 call-correlation identity before canonical authority entry; call the canonical EffectGate exactly once; then bind the returned canonical effect_id/journal evidence to structured execution/completion lineage while preserving separate world verification and UNKNOWN/no-replay semantics."
+}
