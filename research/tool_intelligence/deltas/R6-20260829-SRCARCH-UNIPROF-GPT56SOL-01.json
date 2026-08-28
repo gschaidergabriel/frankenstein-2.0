@@ -1,0 +1,253 @@
+{
+  "schema": "FRANKENSTEIN2_TRIGGER6_ARCHITECTURE_DELTA_FUSION_AND_SOURCE_AUDIT/v1",
+  "research_id": "R6-SEED-007",
+  "receipt_id": "R6-20260829-SRCARCH-UNIPROF-GPT56SOL-01",
+  "trigger": "6",
+  "slot": "SOURCE_ARCHAEOLOGIST",
+  "status": "E2_ARCHITECTURE_MAPPED_STATIC_ONLY",
+  "worker": "GPT-5.6-Sol",
+  "claim": {
+    "path": "research/tool_intelligence/claims/R6-SEED-007/E2_ARCHITECTURE_MAPPED.json",
+    "claim_commit": "e8a6c027d4103903d2501cb4195fea19534d9613",
+    "claim_reverified_on_current_main": true,
+    "research_credit_from_claim": 0
+  },
+  "architecture_snapshot": {
+    "f2_main_reentered_before_write": "bb75355ab50737caf5ffe973ff49f4f3f334ac40",
+    "research_entity_main_reentered_before_write": "9d2eb96937e77de0de6071c6aa5a6fc83306da0c",
+    "admitted_supervisor_epoch": "8.78",
+    "mode": "FREE_ONLY",
+    "non_authority_research_surface": "9.13AL_NON_AUTHORITY",
+    "architecture_delta_fusion_basis": "R6-ADF-SUCCESSOR-b4a3f0a5-66c875c9-GPT56SOL plus exact current re-entry",
+    "reentry_change_assessment": "Concurrent Trigger4/Trigger6 work advanced both repositories after this objective was claimed. No observed concurrent work superseded the R6-SEED-007 claim. The current F2 telemetry/performance target remains compatible with this static source audit; no runtime or integration credit is inferred."
+  },
+  "candidate": {
+    "seed_id": "R6-SEED-007",
+    "repository": "indragiek/uniprof",
+    "source_commit": "e0885475540fe8ff534393cdefda99ccdfeb545b",
+    "source_commit_date": "2025-09-13T20:34:52Z",
+    "package_version": "0.3.4",
+    "license_repository_code": "MIT",
+    "maintenance_signal": "Latest observed upstream commit is 2025-09-13; treat current maintenance/activity as limited until refreshed by a later upstream change.",
+    "seed_targets": ["F2-WP-005", "F2-WP-605", "F2-WP-902"]
+  },
+  "evidence_ladder": {
+    "E0_seed": "PASS_EXISTING",
+    "E1_source_read": "PASS_THIS_RUN_AFTER_ATOMIC_CLAIM",
+    "E2_architecture_mapped": "PASS_THIS_RUN_STATIC_ONLY",
+    "E3_claim_reproduced": "NOT_RUN",
+    "E4_f2_ablation": "NOT_RUN",
+    "E5_build_candidate": "NOT_GRANTED",
+    "E6_f2_accepted": "NOT_GRANTED_TRIGGER4_ONLY"
+  },
+  "f2_target_state": {
+    "F2-WP-005": "IN_PROGRESS / Full telemetry-data spine and collectors",
+    "F2-WP-605": "OPEN / child-performance telemetry target",
+    "F2-WP-902": "OPEN / whole-system characterization target"
+  },
+  "source_observations": [
+    {
+      "id": "UP-O1-ORCHESTRATOR-NOT-ONE-PROFILER",
+      "classification": "SOURCE_DIRECT",
+      "finding": "UniProf is a cross-runtime profiling orchestrator. It detects a target runtime, delegates to py-spy/0x/rbspy/Excimer/async-profiler/dotnet-trace/perf/Instruments, transforms their differing output formats and applies common hotspot analysis.",
+      "f2_implication": "The strongest transferable mechanism is a normalized measurement adapter contract across profilers, not a new canonical telemetry authority."
+    },
+    {
+      "id": "UP-O2-NORMALIZED-MEASUREMENT-SCHEMA",
+      "classification": "SOURCE_DIRECT",
+      "finding": "The PlatformPlugin/ProfileContext interfaces normalize raw artifact types, effective sampling frequency, runtime environment, temporary artifacts, profiler/exporter identity and a ProfileAnalysis summary with total samples/time, profile type, thread/event counts and hotspot self/total/sample/percentile data.",
+      "f2_implication": "F2 can distill a bounded ProfileObservation envelope from these dimensions for WP-005/WP-605/WP-902."
+    },
+    {
+      "id": "UP-O3-PROVENANCE-GAP",
+      "classification": "SOURCE_DIRECT_GAP",
+      "finding": "ProfileContext/finalizeProfile tracks paths and exporter name but does not bind an immutable F2 causal identity, upstream source commit, profiler binary/image digest, target executable digest, canonical command/effect identity, raw/final artifact digest, privilege mode or explicit uncertainty class.",
+      "f2_implication": "Raw UniProf output is measurement evidence only. An F2 adapter must add exact source/runtime/target/artifact identities and confidence/coverage semantics before admission."
+    },
+    {
+      "id": "UP-O4-MUTABLE-IMAGE-IDENTITY",
+      "classification": "SOURCE_DIRECT_REPRODUCIBILITY_RISK",
+      "finding": "Container image selection uses ghcr.io/indragiek/uniprof-<platform>:latest, and platform implementations such as Linux perf likewise default to :latest rather than an immutable digest.",
+      "f2_implication": "An E3/E4 experiment cannot earn exact-source runtime credit from :latest. Any evaluated image must be resolved and pinned by immutable digest/SBOM or rebuilt from exact source."
+    },
+    {
+      "id": "UP-O5-PRIVILEGE-SURFACE",
+      "classification": "SOURCE_DIRECT_RISK",
+      "finding": "The generic Docker runner adds requested Linux capabilities and escalates to --privileged when SYS_ADMIN is requested. The native Linux perf implementation requests SYS_ADMIN and SYS_PTRACE. The Python container path requests SYS_PTRACE.",
+      "f2_implication": "Default integration must not inherit UniProf privilege choices. Profiling is an explicitly bounded observer operation and must fail closed when required capability exceeds the admitted test surface."
+    },
+    {
+      "id": "UP-O6-WORKSPACE-AND-NETWORK-EFFECT-SURFACE",
+      "classification": "SOURCE_DIRECT_RISK",
+      "finding": "Container profiling mounts the host working directory at /workspace without a read-only qualifier. Optional host networking is supported. The profiled target itself is executed inside that environment.",
+      "f2_implication": "UniProf cannot be treated as harmless read-only telemetry by default. The target command still has effect potential; EffectGate/authorized test-harness authority must precede profiling, and workspace/network scope must be constrained independently."
+    },
+    {
+      "id": "UP-O7-MCP-IS-EXECUTION-CAPABLE",
+      "classification": "SOURCE_DIRECT_AUTHORITY_CONFLICT",
+      "finding": "The MCP run_profiler tool accepts an exact command string and cwd, translates them into UniProf record arguments and spawns the current runtime to execute the profiler/target workflow. It therefore has command-execution semantics even though its stated purpose is performance measurement.",
+      "f2_implication": "Do not expose UniProf MCP as an autonomous model-side executor. Any future adapter should receive an already-authorized immutable execution receipt/command identity or remain offline over pre-existing profile artifacts."
+    },
+    {
+      "id": "UP-O8-SAMPLING-OBSERVER-EFFECT",
+      "classification": "SOURCE_DIRECT_PLUS_INFERENCE",
+      "finding": "Several platforms default to approximately 999 Hz sampling, including Python and Linux perf. Sampling/event conversion perturbs execution and evented profilers are converted to synthetic weighted samples for common analysis.",
+      "f2_implication": "Cross-profiler numbers are not automatically causally or statistically equivalent. E3 must measure observer overhead and fidelity, and preserve profile_type/sampling_hz/profiler identity rather than flattening them into one unquestioned metric."
+    },
+    {
+      "id": "UP-O9-SYMBOL-AND-COVERAGE-UNCERTAINTY",
+      "classification": "SOURCE_DIRECT",
+      "finding": "Meaningful native attribution depends on debug information/frame pointers; perf symbol resolution is documented as best effort and some paths may remain unknown.",
+      "f2_implication": "F2 needs explicit coverage/symbol-resolution quality and UNKNOWN handling. Missing symbols cannot be interpreted as absence of cost."
+    },
+    {
+      "id": "UP-O10-CLEANUP-NOT-EVIDENCE-COMMIT",
+      "classification": "SOURCE_DIRECT",
+      "finding": "Temporary artifact cleanup is best-effort and finalizeProfile renames the final profile after exporter tagging without creating a cryptographic artifact receipt.",
+      "f2_implication": "F2 must hash and journal the final admitted profile artifact before cleanup/reuse, and preserve raw-artifact lineage when needed for reproducibility."
+    },
+    {
+      "id": "UP-O11-LICENSE-COMPOSITION",
+      "classification": "SOURCE_DIRECT",
+      "finding": "The UniProf repository code is MIT, but its Docker images bundle multiple third-party profilers governed by their own licenses and are explicitly not relicensed by UniProf.",
+      "f2_implication": "Thin contract/distillation is simpler than vendoring the full image stack; any runtime evaluation must record profiler/image component licenses and identities."
+    },
+    {
+      "id": "UP-O12-PORTABILITY-MAINTENANCE",
+      "classification": "SOURCE_DIRECT",
+      "finding": "Upstream says macOS and Linux are supported but development/testing has primarily occurred on macOS; Windows host mode is unsupported. The latest observed repository commit is from 2025-09-13.",
+      "f2_implication": "Linux F2 suitability is an E3 empirical question, not granted by README support claims."
+    }
+  ],
+  "architecture_mapping": {
+    "recommendation": "CONCEPT_DISTILL_PLUS_OPTIONAL_BOUND_PROFILE_ADAPTER",
+    "whole_runtime_import": "REJECT_AT_E2",
+    "mcp_tool_direct_adoption": "REJECT_AS_EXECUTOR_AUTHORITY",
+    "canonical_state_role": "NONE",
+    "effect_authority_role": "NONE",
+    "preferred_f2_shape": {
+      "name": "ProfileObservationEnvelope",
+      "role": "NONCANONICAL_MEASUREMENT_INPUT_TO_F2_TELEMETRY_SPINE",
+      "minimum_fields": [
+        "observation_id",
+        "causal_event_id_or_explicit_unknown",
+        "authorized_execution_receipt_ref",
+        "target_process_or_command_identity",
+        "target_artifact_sha256",
+        "observer_name",
+        "observer_source_commit",
+        "observer_package_version",
+        "profiler_name_and_version",
+        "mode_host_or_container",
+        "container_image_digest_or_none",
+        "capability_scope",
+        "sampling_hz_or_evented_mode",
+        "profile_type",
+        "raw_artifact_type",
+        "raw_artifact_sha256",
+        "final_profile_sha256",
+        "started_at",
+        "ended_at",
+        "coverage_state",
+        "symbol_resolution_state",
+        "analysis_parameters",
+        "hotspots",
+        "observer_overhead_measurements",
+        "provenance"
+      ],
+      "authority_rule": "The envelope can inform characterization and candidate decisions only. It cannot create canonical world facts, authorize target execution or bypass EffectGate/EffectJournal."
+    },
+    "reusable_mechanisms": [
+      "Runtime/platform plugin interface for profiler selection.",
+      "Typed raw-artifact classification before normalized profile conversion.",
+      "Common profile analysis contract for hotspot ranking and percentiles.",
+      "Explicit sampling-rate/profile-type preservation.",
+      "Offline analyze/visualize separation from record step."
+    ]
+  },
+  "counterhypotheses_and_risks": [
+    {
+      "id": "UP-CH1",
+      "claim": "F2-native telemetry may already provide sufficient CPU/latency/resource characterization, making UniProf-derived profiles redundant.",
+      "discriminator": "Compare diagnostic information gain on deterministic hotspot fixtures and real bounded F2 child workloads; retain only signals that materially improve localization beyond native telemetry."
+    },
+    {
+      "id": "UP-CH2",
+      "claim": "High-frequency profiling may change scheduler/timing behavior enough to distort the very workload being characterized.",
+      "discriminator": "Baseline vs multiple sampling rates with repeated trials; quantify wall/CPU/RSS and hotspot-rank stability."
+    },
+    {
+      "id": "UP-CH3",
+      "claim": "Container/privilege/image complexity may outweigh the value of a unified profiler wrapper for F2.",
+      "discriminator": "First E3 uses the lowest-privilege Python/py-spy path with immutable image identity; native perf remains blocked unless a separate benefit justifies broader privilege."
+    },
+    {
+      "id": "UP-CH4",
+      "claim": "Normalized Speedscope/common analysis may conceal profiler-specific semantics and make cross-runtime comparisons falsely precise.",
+      "discriminator": "Preserve profiler/profile_type/sampling_hz and compare normalized results against raw profiler artifacts for known deterministic workloads."
+    },
+    {
+      "id": "UP-CH5",
+      "claim": "Source paths/function symbols/profile artifacts can expose sensitive repository structure or content-derived names.",
+      "discriminator": "Run a profile artifact secret/path-sensitivity fence before persistence or cross-repo research ingestion; redact presentation without mutating canonical evidence digests."
+    }
+  ],
+  "next_exact_discriminator": {
+    "slot": "EXPERIMENTAL_FALSIFIER",
+    "claim_required_before_execution": "R6-SEED-007/E3_CLAIM_REPRODUCED_PYSPY_LOW_PRIVILEGE_FIXTURE",
+    "goal": "Determine whether UniProf's lowest-privilege practical path adds reproducible diagnostic value beyond F2 native telemetry at acceptable observer cost.",
+    "preconditions": [
+      "Create-only E3 claim succeeds.",
+      "Use an explicitly authorized zero-cost isolated Linux test surface.",
+      "No real external effect, no paid provider, no external network dependency.",
+      "Resolve exact UniProf source/package and py-spy/container image digest before run; do not use mutable :latest as evidence identity.",
+      "Do not grant SYS_ADMIN or --privileged. Start with Python/py-spy and only SYS_PTRACE if the admitted sandbox allows it.",
+      "Use a disposable/read-only source fixture plus explicitly writable temporary output area rather than a valuable workspace mount."
+    ],
+    "fixture": "Deterministic local Python program with two known CPU hotspots of intentionally different cost plus one child process, fixed inputs and no network/filesystem effects outside the temporary test directory.",
+    "comparison": [
+      "unprofiled baseline",
+      "UniProf Python profile at a lower sampling rate",
+      "UniProf Python profile at upstream default 999 Hz"
+    ],
+    "measure": [
+      "hotspot rank and share accuracy against known fixture structure",
+      "child-process attribution completeness",
+      "run-to-run ranking variance",
+      "p50/p95 wall-time overhead",
+      "CPU and RSS/PSS overhead",
+      "artifact size and processing time",
+      "symbol/path completeness",
+      "capability/privilege requirements",
+      "secret/path-sensitivity fence",
+      "failure behavior when SYS_PTRACE is unavailable"
+    ],
+    "promotion_rule": "E3 only if the exact-source/digest-bound run reproduces useful profiling with scoped privileges and explicit overhead. E4 requires comparison against exact F2 native telemetry. E5 requires reproducible net benefit and a minimal F2-owned adapter design. E6 remains Trigger4-only."
+  },
+  "credits": {
+    "research_source_read": 1,
+    "architecture_mapped": 1,
+    "claim_reproduced": 0,
+    "f2_ablation": 0,
+    "build_candidate": 0,
+    "f2_accepted": 0,
+    "runtime_credit": 0,
+    "whole_f2_runtime": 0,
+    "entityos_hcu_runtime": 0,
+    "training": 0
+  },
+  "execution": {
+    "source_only": true,
+    "provider_calls": 0,
+    "profiler_runs": 0,
+    "vps_runs": 0,
+    "docker_runs": 0,
+    "sudo_or_root": 0,
+    "real_external_effects": 0,
+    "unusual_experiment": false
+  },
+  "database_materialization": {
+    "pending_research_sqlite_updated": false,
+    "reason": "This text receipt is committed first. No direct binary SQLite rewrite is attempted through the source connector; canonical DB synchronization remains a separate admitted materialization step."
+  }
+}
