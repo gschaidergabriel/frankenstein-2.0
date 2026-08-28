@@ -1,0 +1,125 @@
+{
+  "schema": "FRANKENSTEIN2_TRIGGER6_ARCHITECTURE_DELTA_FUSION/v1",
+  "fusion_id": "ADF-20260829T0356P0700-GPT56SOL",
+  "trigger": "6",
+  "slot": "ARCHITECTURE_DELTA_FUSER",
+  "status": "COMPLETED_SOURCE_GROUNDED_NO_RUNTIME_PROMOTION",
+  "created_at_local": "2026-08-29T03:56:00+07:00",
+  "architecture_snapshot": {
+    "frankenstein_2_head": "738df2763bcb89d3d0386eb99cf2ec3c6bf664b5",
+    "research_entity_head": "9d34ad079a59a22ff1469d86b36a0f940c5a5efb",
+    "seed_snapshot_f2": "0b83d18c09bed3de2c575f917bd370b26c3dab8d",
+    "seed_snapshot_research_entity": "dd2868cb04b9ccce189f102ae8c45874d7da8357",
+    "f2_commits_since_seed": 7,
+    "research_entity_commits_since_seed": 7
+  },
+  "inputs": [
+    {
+      "kind": "F2_ARCHITECTURE",
+      "ref": "README.md",
+      "blob_sha": "bde703cb80a4ae246ca6f831bf24a70852e09ffa"
+    },
+    {
+      "kind": "TRIGGER6_PROTOCOL",
+      "ref": "research/tool_intelligence/TRIGGERWORD_6_PROTOCOL.md",
+      "source_commit": "573d933c03aeea8792f22ae52115caf172601af5"
+    },
+    {
+      "kind": "TRIGGER4_DELTA",
+      "ref": "research_entity/trigger_runs/4/2026-08-29T0240p0700_GPT56SOL_PR430_CAUSAL_BOUNDARY_REVIEW.json",
+      "blob_sha": "abd4c910199436b3b0c187edd26576f1336f4526"
+    },
+    {
+      "kind": "TRIGGER5_DELTA",
+      "ref": "research_entity/architecture_archaeology/triggerword5_runs/TRIGGERWORT5_STERN_EFFECT_PATH_AND_INGEST_DRIFT_2026-08-28_GPT56SOL.json",
+      "blob_sha": "832b73e69ea02e125599ba91399cd78447bacf36"
+    },
+    {
+      "kind": "SUPERVISOR",
+      "ref": "research_entity/claycode/autonomous/SUPERVISOR_INBOX.json",
+      "source_commit": "9d34ad079a59a22ff1469d86b36a0f940c5a5efb",
+      "authority_epoch": "9.13",
+      "supervisor_delta": "9.13AL_NON_AUTHORITY"
+    }
+  ],
+  "observed_deltas": [
+    {
+      "id": "ADF-D01-F2-TRIGGER6-SCAFFOLD",
+      "classification": "CURRENT_SOURCE",
+      "finding": "Between the seed F2 snapshot and current F2 HEAD, seven commits add the Trigger-6 protocol, seed manifest, deterministic research DB tooling, handoff contract, workflow and materialized pending_research.sqlite. The canonical architecture README itself is unchanged in that compare window.",
+      "affected_modules": ["TRIGGER6_RESEARCH_TOOLING"],
+      "architecture_credit": 0
+    },
+    {
+      "id": "ADF-D02-PUBLIC-F2-DB-MATERIALIZED",
+      "classification": "EXECUTABLE_CONTROL_PLANE_EVIDENCE",
+      "finding": "F2 contains a workflow-authored commit adding research/tool_intelligence/pending_research.sqlite after the seed materializer column-binding root cause was corrected.",
+      "source_commit": "738df2763bcb89d3d0386eb99cf2ec3c6bf664b5",
+      "affected_modules": ["TRIGGER6_PENDING_RESEARCH_DB"],
+      "scope": "RESEARCH_DB_COMPONENT_ONLY",
+      "architecture_credit": 0,
+      "whole_f2_runtime_credit": 0
+    },
+    {
+      "id": "ADF-D03-PRIVATE-MIRROR-ZERO-STEP",
+      "classification": "NEGATIVE_CONTROL_PLANE_EVIDENCE",
+      "finding": "The Research-Entity Trigger6 DB mirror workflow exists but run 33208832631/job 98976717560 failed before any executed step or retrievable job log. The mirror materializer therefore received zero runtime credit; this is not a semantic failure of materialize_pending_research_db.py.",
+      "affected_modules": ["TRIGGER6_RESEARCH_ENTITY_MIRROR", "PRIVATE_REPOSITORY_ACTIONS_ADMISSION"],
+      "architecture_credit": 0
+    },
+    {
+      "id": "ADF-D04-MIRROR-DIVERGENCE",
+      "classification": "CURRENT_STATE_CONTRADICTION",
+      "finding": "The two-repository persistence contract is currently divergent: canonical F2 has a materialized pending_research.sqlite while the Research-Entity mirror has no admitted runtime materialization evidence. This must be represented as MIRROR_DIVERGED_TRANSPORT_BLOCKED and never reconciled by silent last-writer-wins.",
+      "affected_modules": ["TRIGGER6_PENDING_RESEARCH_DB", "PROVENANCE_MIRROR"],
+      "resolution": "After private transport recovery, execute exact-bound mirror materialization with PRAGMA quick_check and row receipt, then record source/target SHAs and mirror epoch. Until then F2 is the canonical build consumer and the Research Entity remains provenance-side pending mirror."
+    },
+    {
+      "id": "ADF-D05-EFFECT-OUTCOME-BOUNDARY",
+      "classification": "TRIGGER4_RESEARCH_DELTA",
+      "finding": "Trigger-4 retains PR430 as the single UNKNOWN-outcome donor and identifies successful process start rather than TimeoutExpired class as the causal boundary. Fresh exact-head hosted test credit is still zero due the private-repository pre-step blocker.",
+      "affected_modules": ["F2-WP-105", "EFFECT_COMPLETION_CORRECTNESS"],
+      "crosscutting_constraints": [
+        "Observability donors may witness external effects but may not mint effect authority.",
+        "Post-process-start exception classes cannot be interpreted as definite non-application without authority-owned verification."
+      ]
+    },
+    {
+      "id": "ADF-D06-TRIGGER5-INGEST-DRIFT",
+      "classification": "TRIGGER5_OPEN_CONTRADICTION",
+      "finding": "Trigger-5 still has unresolved namespace/state drift between the design-declared frankenstein_architecture_ingest layout and the active architecture_archaeology feed. Trigger-6 must not treat one namespace as complete ingest authority until a migration/reconciliation receipt exists.",
+      "affected_modules": ["TRIGGER5_INGEST", "TRIGGER6_ARCHITECTURE_REFRESH"],
+      "architecture_credit": 0
+    }
+  ],
+  "seed_queue_effect": {
+    "seed_count": 9,
+    "evidence_level": "E0_SEED",
+    "architecture_credit": 0,
+    "promotion_allowed": false,
+    "rebind_rule": "Every subsequent Trigger-6 worker MUST bind evaluation evidence to the current architecture snapshot above or a newer refreshed snapshot.",
+    "specific_constraints": {
+      "R6-SEED-003": "Any procedural/temporal memory index must remain derived and noncanonical; UnifiedDB stays source of truth.",
+      "R6-SEED-004": "Any temporal graph must remain a rebuildable projection and may not become a second truth store.",
+      "R6-SEED-005": "AgentSight may be evaluated as an independent witness only; it cannot become effect authority.",
+      "R6-SEED-008": "agenttop/OTLP telemetry may improve observability but cannot establish semantic completion or effect truth by itself."
+    }
+  },
+  "unresolved_gaps": [
+    "PRIVATE_CLAY_REPOSITORY_ACTIONS_PRESTEP_ADMISSION_UNRESOLVED",
+    "TRIGGER6_RESEARCH_DB_MIRROR_DIVERGED_TRANSPORT_BLOCKED",
+    "TRIGGER5_INGEST_NAMESPACE_STATE_DRIFT_OPEN",
+    "PR430_POST_POPEN_NON_TIMEOUT_EXCEPTION_FALSIFIER_PENDING"
+  ],
+  "next_recommended_trigger6_slot": "DISCOVERY_SCOUT",
+  "next_information_target": "Search primary sources for candidates that attack the highest-value open F2 gaps without duplicating current donors; prioritize observability and exact-evidence/context-cost mechanisms, but preserve the new effect-authority and UnifiedDB fences.",
+  "credit_boundary": {
+    "trigger6_architecture_fusion_delta": 1,
+    "external_tool_architecture_credit": 0,
+    "build_candidate_credit": 0,
+    "f2_acceptance_credit": 0,
+    "physical_grid10_credit": 0,
+    "whole_entityos_hcu_credit": 0,
+    "training_credit": 0
+  }
+}
