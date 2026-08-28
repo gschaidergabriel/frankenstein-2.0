@@ -1,9 +1,13 @@
-"""Fail-closed workpackage -> tool-use -> native-child -> result identity binding.
+"""Canonical F2-WP-102 workpackage -> tool-use -> native-child -> result binding.
 
-F2-WP-102 is deliberately an identity/provenance component. It does not spawn a
-child, deliver messages, decide execution success, write UnifiedDB, or perform an
-effect. Those semantics belong to later workpackages. This module only makes it
-hard to attach a returned result to the wrong delegation or causal child.
+This is an identity/provenance component only. It does not spawn a child, deliver a
+message, persist canonical state, decide execution completion, authorize an effect, or
+convert UNKNOWN into success. It binds one explicit workpackage mutation generation and
+claim to one explicit causal parent, invocation/tool delegation, causal child and optional
+observed result identity.
+
+The workpackage generation is deliberately distinct from ``CausalIdentity.generation``:
+the former is coordination/mutation lineage, the latter is causal-event lineage.
 """
 from __future__ import annotations
 
@@ -17,7 +21,10 @@ from .causal_identity import CausalIdentity
 
 _REQUIRED_FIELDS = (
     "workpackage_id",
+    "workpackage_generation",
+    "claim_id",
     "parent",
+    "invocation_id",
     "tool_use_id",
     "delegation_id",
     "child",
@@ -29,7 +36,7 @@ _SHA256_RE = re.compile(r"^[0-9a-f]{64}$")
 
 
 class NativeChildBindingError(ValueError):
-    """Raised when native-child provenance is incomplete or contradictory."""
+    """Raised when work/native-child provenance is incomplete or contradictory."""
 
 
 def _identifier(name: str, value: Any) -> str:
@@ -44,6 +51,12 @@ def _identifier(name: str, value: Any) -> str:
     return value
 
 
+def _work_generation(value: Any) -> int:
+    if type(value) is not int or value < 1:
+        raise NativeChildBindingError("workpackage_generation must be a positive integer")
+    return value
+
+
 def _digest(value: Any) -> str:
     if not isinstance(value, str) or _SHA256_RE.fullmatch(value) is None:
         raise NativeChildBindingError("result_sha256 must be lowercase 64-hex SHA-256")
@@ -52,16 +65,13 @@ def _digest(value: Any) -> str:
 
 @dataclass(frozen=True, slots=True)
 class NativeChildBinding:
-    """Immutable identity binding for one explicitly delegated child.
-
-    ``parent`` is the Agent/tool caller's causal identity. ``child`` must be an
-    explicit causal descendant in the same session and at a strictly later
-    generation. A result is absent or fully bound as the pair
-    ``result_id`` + ``result_sha256``; partial result identity fails closed.
-    """
+    """Immutable binding for one explicitly delegated child execution lineage."""
 
     workpackage_id: str
+    workpackage_generation: int
+    claim_id: str
     parent: CausalIdentity
+    invocation_id: str
     tool_use_id: str
     delegation_id: str
     child: CausalIdentity
@@ -70,6 +80,9 @@ class NativeChildBinding:
 
     def __post_init__(self) -> None:
         _identifier("workpackage_id", self.workpackage_id)
+        _work_generation(self.workpackage_generation)
+        _identifier("claim_id", self.claim_id)
+        _identifier("invocation_id", self.invocation_id)
         _identifier("tool_use_id", self.tool_use_id)
         _identifier("delegation_id", self.delegation_id)
         if not isinstance(self.parent, CausalIdentity):
@@ -77,21 +90,13 @@ class NativeChildBinding:
         if not isinstance(self.child, CausalIdentity):
             raise NativeChildBindingError("child must be a CausalIdentity")
         if self.child.parent_causal_id != self.parent.causal_id:
-            raise NativeChildBindingError(
-                "child.parent_causal_id must equal parent.causal_id"
-            )
+            raise NativeChildBindingError("child.parent_causal_id must equal parent.causal_id")
         if self.child.generation <= self.parent.generation:
-            raise NativeChildBindingError(
-                "child generation must be greater than parent generation"
-            )
+            raise NativeChildBindingError("child generation must be greater than parent generation")
         if self.child.session_id != self.parent.session_id:
-            raise NativeChildBindingError(
-                "child session_id must equal parent session_id in F2-WP-102"
-            )
+            raise NativeChildBindingError("child session_id must equal parent session_id in F2-WP-102")
         if (self.result_id is None) != (self.result_sha256 is None):
-            raise NativeChildBindingError(
-                "result_id and result_sha256 must either both be absent or both be present"
-            )
+            raise NativeChildBindingError("result_id and result_sha256 must both be absent or both be present")
         if self.result_id is not None:
             _identifier("result_id", self.result_id)
             _digest(self.result_sha256)
@@ -104,13 +109,9 @@ class NativeChildBinding:
         unexpected = keys - _ALLOWED_FIELDS
         missing = set(_REQUIRED_FIELDS) - keys
         if unexpected:
-            raise NativeChildBindingError(
-                "unexpected binding field(s): " + ", ".join(sorted(map(str, unexpected)))
-            )
+            raise NativeChildBindingError("unexpected binding field(s): " + ", ".join(sorted(map(str, unexpected))))
         if missing:
-            raise NativeChildBindingError(
-                "missing binding field(s): " + ", ".join(sorted(missing))
-            )
+            raise NativeChildBindingError("missing binding field(s): " + ", ".join(sorted(missing)))
         try:
             parent = CausalIdentity.from_mapping(value["parent"])
             child = CausalIdentity.from_mapping(value["child"])
@@ -118,7 +119,10 @@ class NativeChildBinding:
             raise NativeChildBindingError(f"invalid causal identity: {exc}") from exc
         return cls(
             workpackage_id=value["workpackage_id"],
+            workpackage_generation=value["workpackage_generation"],
+            claim_id=value["claim_id"],
             parent=parent,
+            invocation_id=value["invocation_id"],
             tool_use_id=value["tool_use_id"],
             delegation_id=value["delegation_id"],
             child=child,
@@ -133,7 +137,10 @@ class NativeChildBinding:
     def as_dict(self) -> dict[str, Any]:
         return {
             "workpackage_id": self.workpackage_id,
+            "workpackage_generation": self.workpackage_generation,
+            "claim_id": self.claim_id,
             "parent": self.parent.as_dict(),
+            "invocation_id": self.invocation_id,
             "tool_use_id": self.tool_use_id,
             "delegation_id": self.delegation_id,
             "child": self.child.as_dict(),
@@ -142,36 +149,41 @@ class NativeChildBinding:
         }
 
     def canonical_json(self) -> str:
-        return json.dumps(
-            self.as_dict(),
-            sort_keys=True,
-            separators=(",", ":"),
-            ensure_ascii=False,
-            allow_nan=False,
-        )
+        return json.dumps(self.as_dict(), sort_keys=True, separators=(",", ":"), ensure_ascii=False, allow_nan=False)
+
+    def binding_id(self) -> str:
+        """Stable identity for the delegation, unchanged when a result is later attached."""
+        core = self.as_dict()
+        core["result_id"] = None
+        core["result_sha256"] = None
+        encoded = json.dumps(core, sort_keys=True, separators=(",", ":"), ensure_ascii=False, allow_nan=False)
+        return "wex:" + hashlib.sha256(encoded.encode("utf-8")).hexdigest()
 
     def sha256(self) -> str:
+        """Digest of the full current binding, including result identity when present."""
         return hashlib.sha256(self.canonical_json().encode("utf-8")).hexdigest()
 
     def bind_result(
         self,
         *,
+        invocation_id: str,
         delegation_id: str,
         child_causal_id: str,
         result_id: str,
         result_sha256: str,
     ) -> "NativeChildBinding":
-        """Bind an immutable returned-result identity to the expected child.
+        """Attach one observed result to the exact invocation/delegation/child tuple.
 
-        The caller must repeat the delegation and child causal identities. This
-        prevents a generic result object from being attached by positional or
-        temporal coincidence. Replaying the exact same binding is idempotent;
-        rebinding an already-bound result to different bytes or identity fails.
+        Exact replay is idempotent. Any positional/temporal cross-talk or replacement of an
+        already-bound result fails closed. This method does not claim completion or effects.
         """
+        _identifier("invocation_id", invocation_id)
         _identifier("delegation_id", delegation_id)
         _identifier("child_causal_id", child_causal_id)
         _identifier("result_id", result_id)
         _digest(result_sha256)
+        if invocation_id != self.invocation_id:
+            raise NativeChildBindingError("result invocation_id does not match binding")
         if delegation_id != self.delegation_id:
             raise NativeChildBindingError("result delegation_id does not match binding")
         if child_causal_id != self.child.causal_id:
