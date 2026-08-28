@@ -15,6 +15,10 @@ coerced into a positive wake match.
 Generation 3 additionally binds each WakeEvaluation receipt to the canonical explicit
 observation payload (ids, keys, values, and provenance refs), so evidentially distinct
 packets cannot collapse to the same receipt merely because their ids/classification match.
+Policy aggregation also preserves decisive explicit evidence: under ANY a clean match wins
+over ambiguity in an independent sibling condition; under ALL a clean explicit non-match
+wins over sibling ambiguity. Conflict or missingness controls the result only when the
+Boolean policy result is not already determined.
 """
 from __future__ import annotations
 
@@ -259,8 +263,9 @@ def evaluate_wake(
 
     Missing observation keys remain UNKNOWN/ABSTAIN_NOT_OBSERVED. An EQUALS condition is
     an explicit non-match only when observations for its exact key agree on one value that
-    differs from the expected value. Distinct explicit values for the same EQUALS key are
-    preserved as CONFLICT and fail closed rather than allowing an any-match wake.
+    differs from the expected value. Distinct explicit values for the same EQUALS key remain
+    CONFLICT for that condition. Policy aggregation resolves only what explicit evidence can
+    already decide; sibling ambiguity cannot erase a decisive ANY match or ALL non-match.
     """
     if not isinstance(checkpoint, HoldCheckpoint):
         raise WakeHoldError("checkpoint must be a HoldCheckpoint")
@@ -304,13 +309,13 @@ def evaluate_wake(
         else:
             unmatched.append(condition.condition_id)
 
-    if conflicting:
-        classification = ABSTAIN_CONFLICTING_OBSERVATIONS
-        wake = False
-    elif checkpoint.wake_policy == WAKE_ANY:
+    if checkpoint.wake_policy == WAKE_ANY:
         if matched:
             classification = WAKE_CONDITION_MATCH
             wake = True
+        elif conflicting:
+            classification = ABSTAIN_CONFLICTING_OBSERVATIONS
+            wake = False
         elif unknown:
             classification = ABSTAIN_NOT_OBSERVED
             wake = False
@@ -320,6 +325,9 @@ def evaluate_wake(
     else:
         if unmatched:
             classification = HOLD_CONDITION_NOT_MATCHED
+            wake = False
+        elif conflicting:
+            classification = ABSTAIN_CONFLICTING_OBSERVATIONS
             wake = False
         elif unknown:
             classification = ABSTAIN_NOT_OBSERVED
