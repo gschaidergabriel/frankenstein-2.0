@@ -21,7 +21,16 @@ def h(text: str) -> str:
     return hashlib.sha256(text.encode()).hexdigest()
 
 
-def item(item_id, channel, priority, cost, *, required=False, classification="CALLER_LABEL"):
+def item(
+    item_id,
+    channel,
+    priority,
+    cost,
+    *,
+    required=False,
+    classification="CALLER_LABEL",
+    source_generation=3,
+):
     return ContextItem.create(
         item_id=item_id,
         channel=channel,
@@ -29,7 +38,7 @@ def item(item_id, channel, priority, cost, *, required=False, classification="CA
         payload_sha256=h(f"payload:{item_id}"),
         source_ref=f"source:{item_id}",
         source_sha256=h(f"source:{item_id}"),
-        source_generation=3,
+        source_generation=source_generation,
         source_classification=classification,
         priority_bp=priority,
         cost_units=cost,
@@ -129,6 +138,55 @@ class ContextCompilerTests(unittest.TestCase):
         same = item("dup", CHANNEL_STATE, 10, 1)
         with self.assertRaisesRegex(ContextCompilerError, "duplicate context item_id"):
             compile_context(n, [same, same])
+
+    def test_source_generation_zero_is_admitted_and_preserved(self):
+        source = item(
+            "generation-zero",
+            CHANNEL_EVIDENCE,
+            5000,
+            1,
+            classification="UNKNOWN_NOT_FILLED_BY_INFERENCE_OR_RETRIEVAL",
+            source_generation=0,
+        )
+        self.assertEqual(source.source_generation, 0)
+        view = compile_context(
+            need(
+                max_items=1,
+                max_cost=1,
+                allowed=[CHANNEL_EVIDENCE],
+                required_channels=[CHANNEL_EVIDENCE],
+            ),
+            [source],
+        )
+        self.assertEqual(view.selected_count, 1)
+        self.assertEqual(view.selected[0].source_generation, 0)
+        self.assertEqual(view.selected[0].source_sha256, source.source_sha256)
+        self.assertEqual(view.selected[0].source_classification, source.source_classification)
+
+    def test_source_generation_negative_boolean_and_overflow_fail_closed(self):
+        for value in (-1, True, 2_147_483_648):
+            with self.subTest(value=value):
+                with self.assertRaisesRegex(
+                    ContextCompilerError,
+                    r"source_generation must be an integer in \[0,",
+                ):
+                    item(
+                        f"bad-generation-{value!r}",
+                        CHANNEL_EVIDENCE,
+                        1,
+                        1,
+                        source_generation=value,
+                    )
+
+    def test_source_generation_maximum_boundary_remains_admitted(self):
+        source = item(
+            "generation-max",
+            CHANNEL_EVIDENCE,
+            1,
+            1,
+            source_generation=2_147_483_647,
+        )
+        self.assertEqual(source.source_generation, 2_147_483_647)
 
     def test_invalid_digest_and_non_boolean_required_are_rejected(self):
         with self.assertRaisesRegex(ContextCompilerError, "payload_sha256"):
