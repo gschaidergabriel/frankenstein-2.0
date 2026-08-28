@@ -29,12 +29,16 @@ class DeferredCausalReturnTests(unittest.TestCase):
         )
         pending = NativeChildBinding(
             workpackage_id="F2-WP-102",
+            workpackage_generation=1,
+            claim_id="claim-wp102-g1",
             parent=self.parent,
+            invocation_id="invocation-7",
             tool_use_id="tool-use-7",
             delegation_id="delegation-7",
             child=child,
         )
         self.bound = pending.bind_result(
+            invocation_id="invocation-7",
             delegation_id="delegation-7",
             child_causal_id="causal-child",
             result_id="result-7",
@@ -66,7 +70,10 @@ class DeferredCausalReturnTests(unittest.TestCase):
     def test_unbound_child_result_cannot_form_return(self) -> None:
         pending = NativeChildBinding(
             workpackage_id="F2-WP-102",
+            workpackage_generation=1,
+            claim_id="claim-wp102-g1",
             parent=self.parent,
+            invocation_id="invocation-7",
             tool_use_id="tool-use-7",
             delegation_id="delegation-7",
             child=self.bound.child,
