@@ -1,0 +1,36 @@
+name: Frankenstein 2.0 Telemetry Spine CI
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'tools/init_telemetry_dbs.py'
+      - 'tests/test_init_telemetry_dbs.py'
+      - 'telemetry/**'
+      - 'schemas/**'
+      - '.github/workflows/telemetry-spine-ci.yml'
+  pull_request:
+    paths:
+      - 'tools/init_telemetry_dbs.py'
+      - 'tests/test_init_telemetry_dbs.py'
+      - 'telemetry/**'
+      - 'schemas/**'
+      - '.github/workflows/telemetry-spine-ci.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  deterministic-telemetry-spine:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Compile initializer and regression
+        run: python -m py_compile tools/init_telemetry_dbs.py tests/test_init_telemetry_dbs.py
+      - name: Run telemetry initializer regression
+        run: python tests/test_init_telemetry_dbs.py
