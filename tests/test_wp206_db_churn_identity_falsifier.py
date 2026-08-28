@@ -70,7 +70,7 @@ class WP206DBChurnIdentityFalsifier(unittest.TestCase):
         self.assertTrue(writer["wal_exists_before_exit"])
         self.assertGreater(writer["wal_size_before_exit"], 0)
 
-        before_replay = self._probe("read_one")
+        before_replay = self._probe("read")
         checkpoint_sha_before = before_replay["checkpoint_sha256"]
         self.assertEqual(before_replay["checkpoint_id"], "checkpoint-0")
         self.assertEqual(before_replay["goal_statuses"], ["ACTIVE"])
@@ -110,7 +110,7 @@ class WP206DBChurnIdentityFalsifier(unittest.TestCase):
             "the mutable UnifiedDB fingerprint receipt must observe checkpointed DB churn",
         )
 
-        after_replay = self._probe("read_one")
+        after_replay = self._probe("read")
         self.assertEqual(after_replay["checkpoint_id"], "checkpoint-0")
         self.assertEqual(after_replay["goal_statuses"], ["ACTIVE"])
         self.assertEqual(
