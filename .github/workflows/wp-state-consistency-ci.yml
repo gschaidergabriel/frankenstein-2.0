@@ -9,8 +9,9 @@ on:
       - 'workpackages/STATE.json'
       - 'workpackages/active/**'
       - 'workpackages/claims/**'
-      - 'tools/validate_wp_state_consistency_v1.py'
-      - 'tests/test_validate_wp_state_consistency_v1.py'
+      - 'workpackages/reconciliations/**'
+      - 'tools/validate_workpackage_state.py'
+      - 'tests/test_validate_workpackage_state.py'
       - '.github/workflows/wp-state-consistency-ci.yml'
   workflow_dispatch:
 
@@ -26,7 +27,7 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-      - name: Run deterministic tests
-        run: python -m unittest -v tests.test_validate_wp_state_consistency_v1
-      - name: Validate canonical F2-WP-002
-        run: python tools/validate_wp_state_consistency_v1.py . F2-WP-002
+      - name: Run canonical deterministic state-consistency regressions
+        run: python -m unittest -v tests.test_validate_workpackage_state
+      - name: Validate current repository workpackage state
+        run: python tools/validate_workpackage_state.py .
