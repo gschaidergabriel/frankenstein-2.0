@@ -49,12 +49,26 @@ from state.unifieddb_identity import fingerprint_unifieddb, resolve_unifieddb_pa
 
 
 class PersistentAgencyKernelTests(unittest.TestCase):
-    def resolution(self, db_path: Path):
+    def raw_resolution(self, db_path: Path):
         return resolve_unifieddb_path(
             env={"FRANKENSTEIN2_DB": str(db_path)},
             home=db_path.parent,
             pointer_path=db_path.parent / "no-pointer.txt",
         )
+
+    def resolution(self, db_path: Path):
+        if not db_path.exists():
+            with sqlite3.connect(db_path) as conn:
+                conn.execute(
+                    "CREATE TABLE IF NOT EXISTS f2_wp206_fixture(id INTEGER PRIMARY KEY)"
+                )
+        resolution = self.raw_resolution(db_path)
+        self.assertTrue(resolution.exists_at_resolution)
+        return resolution
+
+    def store(self, db_path: Path) -> PersistentAgencyStore:
+        resolution = self.resolution(db_path)
+        return PersistentAgencyStore(resolution, fingerprint_unifieddb(db_path))
 
     def agency(self, generation: int = 0) -> AgencyState:
         return AgencyState.create(
@@ -223,13 +237,27 @@ class PersistentAgencyKernelTests(unittest.TestCase):
                 provenance_refs=("integration:test",),
             )
 
+    def test_store_rejects_missing_unifieddb_and_does_not_create_it(self):
+        with tempfile.TemporaryDirectory() as td:
+            db_path = Path(td) / "missing-unified.db"
+            resolution = self.raw_resolution(db_path)
+            fingerprint = fingerprint_unifieddb(db_path)
+            self.assertFalse(resolution.exists_at_resolution)
+            self.assertFalse(fingerprint.exists)
+            with self.assertRaisesRegex(
+                PersistentAgencyIntegrationError,
+                "must exist before WP206 writer open",
+            ):
+                PersistentAgencyStore(resolution, fingerprint)
+            self.assertFalse(db_path.exists())
+
     def test_unifieddb_store_is_append_only_idempotent_and_fail_closed_on_skips(self):
         with tempfile.TemporaryDirectory() as td:
             db_path = Path(td) / "unified.db"
             resolution = self.resolution(db_path)
             self.assertEqual(Path(resolution.path), db_path)
             self.assertTrue(resolution.source.startswith("EXPLICIT_"))
-            store = PersistentAgencyStore(resolution)
+            store = PersistentAgencyStore(resolution, fingerprint_unifieddb(db_path))
             first = self.checkpoint()
             inserted = store.persist(first)
             self.assertEqual(inserted.status, "INSERTED")
@@ -245,10 +273,24 @@ class PersistentAgencyKernelTests(unittest.TestCase):
             with self.assertRaisesRegex(PersistentAgencyIntegrationError, "stale or skipped"):
                 store.persist(skipped)
 
+    def test_store_rejects_replaced_unifieddb_after_fingerprint(self):
+        with tempfile.TemporaryDirectory() as td:
+            db_path = Path(td) / "unified.db"
+            resolution = self.resolution(db_path)
+            store = PersistentAgencyStore(resolution, fingerprint_unifieddb(db_path))
+            db_path.unlink()
+            with sqlite3.connect(db_path) as conn:
+                conn.execute("CREATE TABLE replacement(id INTEGER PRIMARY KEY)")
+            with self.assertRaisesRegex(
+                PersistentAgencyIntegrationError,
+                "replaced after fingerprint",
+            ):
+                store.persist(self.checkpoint())
+
     def test_persisted_payload_tampering_is_detected(self):
         with tempfile.TemporaryDirectory() as td:
             db_path = Path(td) / "unified.db"
-            store = PersistentAgencyStore(self.resolution(db_path))
+            store = self.store(db_path)
             checkpoint = self.checkpoint()
             store.persist(checkpoint)
             with sqlite3.connect(db_path) as conn:
@@ -262,7 +304,7 @@ class PersistentAgencyKernelTests(unittest.TestCase):
     def test_real_subprocess_restart_can_replay_candidate_state_and_persist_next_tick(self):
         with tempfile.TemporaryDirectory() as td:
             db_path = Path(td) / "unified.db"
-            store = PersistentAgencyStore(self.resolution(db_path))
+            store = self.store(db_path)
             first = self.checkpoint()
             store.persist(first)
 
@@ -275,11 +317,11 @@ from frankenstein2.goal_lifecycle import GOAL_ACTIVE, GOAL_PATCH_SCHEMA, GoalSta
 from frankenstein2.persistent_agency_kernel import PersistentAgencyStore, build_checkpoint, rehydrate_agency_state, rehydrate_candidate_goal_state
 from frankenstein2.persistent_pulse import PulseInput, classify_pulse_eligibility
 from frankenstein2.wake_hold import OP_EQUALS, WAKE_ANY, HoldCheckpoint, WakeCondition, WakeObservation, evaluate_wake
-from state.unifieddb_identity import resolve_unifieddb_path
+from state.unifieddb_identity import fingerprint_unifieddb, resolve_unifieddb_path
 
 db = Path(sys.argv[1])
 resolution = resolve_unifieddb_path(env={"FRANKENSTEIN2_DB": str(db)}, home=db.parent, pointer_path=db.parent / "no-pointer.txt")
-store = PersistentAgencyStore(resolution)
+store = PersistentAgencyStore(resolution, fingerprint_unifieddb(db))
 prior = store.load_latest("kernel-main")
 agency0 = rehydrate_agency_state(prior)
 goal0 = rehydrate_candidate_goal_state(prior)
@@ -384,11 +426,11 @@ print(json.dumps({"sha": next_checkpoint.sha256(), "generation": next_checkpoint
 from pathlib import Path
 import sys
 from frankenstein2.persistent_agency_kernel import PersistentAgencyStore
-from state.unifieddb_identity import resolve_unifieddb_path
+from state.unifieddb_identity import fingerprint_unifieddb, resolve_unifieddb_path
 
 db = Path(sys.argv[1])
 resolution = resolve_unifieddb_path(env={"FRANKENSTEIN2_DB": str(db)}, home=db.parent, pointer_path=db.parent / "no-pointer.txt")
-print(PersistentAgencyStore(resolution).load_latest("kernel-main").sha256())
+print(PersistentAgencyStore(resolution, fingerprint_unifieddb(db)).load_latest("kernel-main").sha256())
 '''
             replay = subprocess.run(
                 [sys.executable, "-c", replay_script, str(db_path)],
