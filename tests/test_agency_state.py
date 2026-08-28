@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from dataclasses import replace
 import unittest
 
 from frankenstein2.agency_state import (
@@ -205,10 +206,7 @@ class AgencyStateTests(unittest.TestCase):
             )
         with self.assertRaisesRegex(AgencyStateError, "digest"):
             bad = self.patch(state, upsert_interests=(self.interest(label="changed"),))
-            bad = AgencyStatePatch(
-                **{**bad.__dict__, "expected_state_sha256": "0" * 64}
-            )
-            state.apply(bad)
+            state.apply(replace(bad, expected_state_sha256="0" * 64))
 
     def test_patch_generation_must_advance_exactly_one(self):
         state = self.state()
