@@ -1,0 +1,79 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://frank.ink/frankenstein-2.0/schemas/run_artifact_index.schema.json",
+  "title": "Frankenstein 2.0 Run Artifact Index",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema", "run_id", "generated_at_utc", "artifacts"],
+  "properties": {
+    "schema": {"const": "FRANKENSTEIN2_RUN_ARTIFACT_INDEX/v1"},
+    "run_id": {"type": "string", "minLength": 1},
+    "generated_at_utc": {"type": "string", "format": "date-time"},
+    "artifacts": {
+      "type": "array",
+      "items": {"$ref": "#/$defs/artifact"}
+    }
+  },
+  "$defs": {
+    "sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "artifact": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "path",
+        "sha256",
+        "size_bytes",
+        "role",
+        "provenance"
+      ],
+      "properties": {
+        "path": {
+          "type": "string",
+          "minLength": 1,
+          "pattern": "^(?!/)(?!.*(?:^|/)\\.\\.(?:/|$)).+$"
+        },
+        "sha256": {"$ref": "#/$defs/sha256"},
+        "size_bytes": {"type": "integer", "minimum": 0},
+        "role": {
+          "enum": [
+            "MANIFEST",
+            "LOG",
+            "GRID10",
+            "COMMUNICATION",
+            "MEASUREMENT",
+            "TRACE",
+            "DB_SNAPSHOT",
+            "RECEIPT",
+            "NEGATIVE_RESULT",
+            "SOURCE_SNAPSHOT",
+            "OTHER"
+          ]
+        },
+        "provenance": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["producer", "source_kind"],
+          "properties": {
+            "producer": {"type": "string", "minLength": 1},
+            "source_kind": {
+              "enum": [
+                "PROCESS_OUTPUT",
+                "TEST_HARNESS",
+                "DATABASE_SNAPSHOT",
+                "SOURCE_FILE",
+                "DERIVED_ANALYSIS",
+                "MANUAL_DECLARATION"
+              ]
+            },
+            "source_ref": {"type": ["string", "null"]},
+            "causal_id": {"type": ["string", "null"]},
+            "trace_id": {"type": ["string", "null"]}
+          }
+        }
+      }
+    }
+  }
+}
