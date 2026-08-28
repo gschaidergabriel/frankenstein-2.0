@@ -1,0 +1,27 @@
+name: F2 Workpackage State Consistency CI
+
+on:
+  push:
+    paths:
+      - 'tools/validate_workpackage_state.py'
+      - 'tests/test_validate_workpackage_state.py'
+      - 'workpackages/STATE_CONSISTENCY_CONTRACT.md'
+      - '.github/workflows/workpackage-state-consistency-ci.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  deterministic:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Compile validator
+        run: python -m py_compile tools/validate_workpackage_state.py
+      - name: Deterministic state consistency regressions
+        run: python -m unittest -v tests/test_validate_workpackage_state.py
