@@ -1,0 +1,62 @@
+{
+  "schema": "FRANKENSTEIN2_WORKPACKAGE_REVIEW/v1",
+  "workpackage_id": "F2-WP-100",
+  "review_class": "MEASURED_FALSIFIER_NON_ADMITTED_LOCAL_COMPONENT",
+  "reviewer": "GPT-5.6-Sol",
+  "trigger": "4",
+  "observed_main_before_write": "8968078ff333fab0b989630393183fc1f8d13f92",
+  "canonical_active_scope": "Preserve workpackages/active/F2-WP-100.json generation 2; this review does not claim mutation authority.",
+  "verdict": "CURRENT_FILE_SNAPSHOT_RECEIPT_CANNOT_BE_USED_AS_STABLE_DATABASE_INSTANCE_IDENTITY",
+  "measurements": [
+    {
+      "id": "SAME_DB_ORDINARY_WRITE",
+      "environment": "CHATGPT_LOCAL_CONTAINER_NON_ADMITTED_FOR_F2_RUNTIME_CREDIT",
+      "procedure": "Create a valid SQLite database with one table, record path/dev/inode/file SHA-256/schema digest/stat times, INSERT one ordinary row without schema change, then record again.",
+      "observed": {
+        "same_path": true,
+        "same_device_and_inode": true,
+        "same_sqlite_schema_digest": true,
+        "file_sha256_changed": true,
+        "mtime_ns_changed": true,
+        "ctime_ns_changed": true
+      },
+      "interpretation": "A receipt containing full-file SHA-256 and mutable stat fields changes during an ordinary write to the same durable database instance. It is therefore a snapshot/file-state receipt, not by itself a stable cross-participant database-instance identity."
+    },
+    {
+      "id": "DELETE_RECREATE_IDENTICAL_EMPTY_DB",
+      "environment": "CHATGPT_LOCAL_CONTAINER_NON_ADMITTED_FOR_F2_RUNTIME_CREDIT",
+      "procedure": "Eight times at one path: delete the SQLite file, recreate an empty database with the same single-table schema, close it, record inode and full-file SHA-256.",
+      "observed": {
+        "iterations": 8,
+        "same_inode_all_iterations": true,
+        "same_file_sha256_all_iterations": true,
+        "unique_inode_count": 1,
+        "unique_file_sha256_count": 1
+      },
+      "interpretation": "Filesystem inode and byte identity can both collide across distinct database lifetimes when the recreated database is byte-identical. Therefore path + inode + current bytes + schema cannot prove historical database-instance continuity."
+    }
+  ],
+  "source_crosscheck": {
+    "canonical_candidate": "src/state/unifieddb_identity.py",
+    "observed_contract": "Current v2 returns full-file SHA-256, mtime/ctime, inode/device and SQLite schema metadata and explicitly classifies itself as SQLITE_IDENTITY_NOT_STATE_SNAPSHOT, but receipt_sha256 hashes the entire returned structure.",
+    "consequence": "The full receipt is useful for exact observed file-state evidence, but its mutability means it must not be equated with the stable coordinator/target 'same UnifiedDB' key demanded by Triggerword 4."
+  },
+  "counterhypothesis": "A stable instance key could be reconstructed from path/inode/file bytes alone without storing any non-reused identity in the canonical database.",
+  "counterhypothesis_result": "FALSIFIED_FOR_GENERAL_CASE_BY_DELETE_RECREATE_COUNTEREXAMPLE",
+  "required_design_split": {
+    "snapshot_receipt": "May bind current path/file/stat/schema/WAL observations and is expected to change as database state changes.",
+    "database_instance_identity": "Must remain stable across ordinary transactions and must change across a newly initialized database lifetime. The strongest simple design is a random persistent database_instance_id stored inside canonical UnifiedDB and read by the fingerprint path without creating a second authority.",
+    "fail_closed_rule": "Until a persistent database_instance_id (or an equivalently strong canonical non-reused identity) exists and is verified, cross-agent same-UnifiedDB identity must be PROVISIONAL/UNVERIFIED rather than PASS."
+  },
+  "acceptance_discriminators_for_active_generation": [
+    "Same database + ordinary row write => stable database_instance_id unchanged while snapshot receipt may change.",
+    "Delete/reinitialize at identical path/schema, even if inode or bytes are reused => new database_instance_id.",
+    "Coordinator and target must compare the persistent database_instance_id plus resolved canonical path/generation, not only mutable file snapshot fields.",
+    "Fingerprint/read path remains read-only; initialization/migration of the persistent ID is a separately authorized deterministic schema operation.",
+    "No F2 runtime/whole-system credit is granted by this local component falsifier."
+  ],
+  "runtime_execution_observed": false,
+  "runtime_credit": 0,
+  "whole_system_credit": 0,
+  "next_exact_action": "Active F2-WP-100 generation 2 should add the persistent database-instance identity to the canonical UnifiedDB schema/contract, keep mutable snapshot evidence separate, and add the two stability/lifetime regressions before ACCEPTED_AT_SCOPE."
+}
