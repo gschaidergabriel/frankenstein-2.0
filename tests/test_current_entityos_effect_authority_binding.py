@@ -13,6 +13,7 @@ from frankenstein2.current_entityos_effect_authority_binding import (
     load_current_entityos_effect_authority_binding,
 )
 from frankenstein2.effect_executor_interlock import ExecutorObservation, ExternalGateDecision
+from frankenstein2.effect_request_identity import EffectRequestIdentity
 from frankenstein2.structured_execution_receipt import (
     StructuredExecutionReceipt,
     apply_structured_execution_receipt,
@@ -108,6 +109,17 @@ def load_binding(binding_doc=BINDING, attestation_doc=ATTESTATION):
     )
 
 
+def effect_request() -> EffectRequestIdentity:
+    return EffectRequestIdentity(
+        user_id="user-A",
+        session_id="session-A",
+        capability="entityos.exec",
+        target="target-A",
+        argv=("run", "payload-A"),
+        expected_generation=7,
+    )
+
+
 def intent() -> EffectCallIntent:
     return EffectCallIntent(
         return_id=None,
@@ -116,6 +128,7 @@ def intent() -> EffectCallIntent:
         tool_use_id="tool-A",
         delegation_id="delegation-A",
         child_identity_sha256=CHILD_SHA,
+        request=effect_request(),
     )
 
 
@@ -134,6 +147,7 @@ class RecordingExecutor:
             child_identity_sha256=prepared.child_identity_sha256,
             result_id="result-A",
             result_sha256=RESULT_SHA,
+            request_sha256=prepared.request_sha256,
         )
 
 
@@ -154,6 +168,7 @@ def evidence_for(call, binding, decision, *, journal_state=None, effect_id=None)
         tool_use_id=call.tool_use_id,
         delegation_id=call.delegation_id,
         child_identity_sha256=call.child_identity_sha256,
+        request_sha256=call.request_sha256,
     )
 
 
@@ -173,6 +188,7 @@ class CurrentEntityOSEffectAuthorityMatrixTests(unittest.TestCase):
         self.assertTrue(result.dispatched)
         self.assertEqual(len(executor.calls), 1)
         self.assertEqual(executor.calls[0].effect_id, "canonical-effect-A")
+        self.assertEqual(executor.calls[0].request_sha256, call.request_sha256)
         self.assertEqual(binding.supervisor_epoch, "9.13")
         self.assertEqual(binding.supervisor_delta, "9.13AJ_NON_AUTHORITY")
         self.assertEqual(
@@ -247,6 +263,7 @@ class CurrentEntityOSEffectAuthorityMatrixTests(unittest.TestCase):
         )
         self.assertTrue(result.dispatched)
         prepared = executor.calls[0]
+        self.assertEqual(prepared.request_sha256, call.request_sha256)
 
         lineage = ExecutionLineage.requested(
             causal_id="causal-A",
