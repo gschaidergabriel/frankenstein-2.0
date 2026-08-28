@@ -1,0 +1,87 @@
+{
+  "schema": "FRANKENSTEIN2_WORKPACKAGE_REVIEW/v1",
+  "classification": "REVIEW_ONLY_CORRECTION_AND_DISCRIMINATOR",
+  "trigger": "4",
+  "workpackage_id": "F2-WP-105",
+  "organ": "GPT-5.6 Sol / Triggerword-4 continuation organ",
+  "mutation_authority": false,
+  "canonical_wp105_implementation_modified": false,
+  "coordination": {
+    "active_claim_observed": "F2-WP-105-G1-EXECUTION-COMPLETION-GPT56SOL-20260828T215528P0700",
+    "claim_protocol_respected": true,
+    "reason": "The active WP105 lane owns canonical mutation. This record only corrects contradictory review evidence and identifies the next integration discriminator."
+  },
+  "observed_heads": {
+    "frankenstein2_main_before_write": "624afbb35e0566af4d927e1ed1ff7b0e3e540a52",
+    "entityos_research_main": "fe27ffb47db124e186ec321b92f171b2435b86af"
+  },
+  "correction": {
+    "corrected_review_commit": "624afbb35e0566af4d927e1ed1ff7b0e3e540a52",
+    "corrected_claim": "canonical_effect_authority_implementation_resolved=false",
+    "result": "EXACT_CURRENT_EFFECT_AUTHORITY_SOURCE_IDENTITY_BINDING_EXISTS",
+    "evidence": {
+      "path": "research_entity/continuity/ENTITYOS_EFFECT_AUTHORITY_IMPLEMENTATION_BINDING_V1.json",
+      "blob_sha": "b4d91a0dd233c9dc15ff8218feea9248ac1c13c5",
+      "schema": "ENTITYOS_EFFECT_AUTHORITY_IMPLEMENTATION_BINDING/v1",
+      "status": "CURRENT_EXACT_SOURCE_IDENTITY_BINDING_NO_NEW_AUTHORITY",
+      "bound_commit": "2b68aad14bf7824d513b52898904909256e3522d",
+      "effect_gate_path": "the artefact/clayverse/effects.py",
+      "effect_gate_blob_sha": "4a6413b3f3c752c6327e67233bdd8097f3cf0ba4",
+      "effect_journal_path": "the artefact/clayverse/effect_journal.py",
+      "effect_journal_blob_sha": "cda63471f1467481f2ff79032d3931730a334a20",
+      "unified_db_path": "the artefact/clayverse/store.py",
+      "unified_db_blob_sha": "a88d923ea3d0eab5847f304f35463e5a2b2c4acd",
+      "api_contract": "ENTITYOS_EFFECT_AUTHORITY_PY_API/v1"
+    },
+    "epistemic_note": "The later review omitted an already-present current-authority binding surface. Its historical-donor nonpromotion concern was valid before explicit re-entry, but the binding record itself supplies that exact re-entry without creating a second authority."
+  },
+  "new_blocker": {
+    "status": "CANONICAL_AUTHORITY_IDENTITY_RESOLVED_BUT_PRODUCTION_CALL_TOPOLOGY_INCOMPATIBLE_WITH_CURRENT_F2_TWO_STAGE_PORT",
+    "observed_effect_gate_semantics": [
+      "EffectGate.execute performs capability/session/generation/replay/lease checks.",
+      "EffectGate.execute then calls EffectJournal.begin, creating canonical PENDING before the action.",
+      "The same EffectGate.execute call then performs state.noop or EntityOSBridge.run itself and finalizes the journal VERIFIED/DENIED/FAILED before returning.",
+      "EffectJournal.recover_pending converts residual PENDING rows to UNKNOWN_AFTER_RESTART and never authorizes blind replay."
+    ],
+    "observed_f2_semantics": [
+      "CanonicalEffectAuthorityPort is currently modeled as an authorization call returning PENDING evidence before a separate F2 executor dispatch.",
+      "dispatch_with_canonical_authority therefore assumes the authority call itself has not already executed the real effect."
+    ],
+    "contradiction": "Calling the bound EffectGate.execute as CanonicalEffectAuthorityPort would execute and finalize the effect during the supposed authorization phase, after which the F2 executor path would risk a second dispatch. Calling EffectJournal.begin directly would avoid that double-dispatch but bypass EffectGate policy/replay/lease checks and therefore cannot be treated as canonical authorization.",
+    "additional_lease_constraint": "For entityos.exec the bound EffectGate acquires and releases its automatic lease inside execute(). Splitting authorization and execution across an external executor would require a new canonical lease-bearing protocol rather than an F2-local workaround."
+  },
+  "counterhypotheses": [
+    {
+      "hypothesis": "Reuse EffectJournal.begin directly as the production pre-dispatch authority adapter.",
+      "status": "REJECTED_AT_SOURCE_DESIGN_SCOPE",
+      "reason": "It journals identity but does not perform the full EffectGate capability/session/generation/replay/lease policy path."
+    },
+    {
+      "hypothesis": "Use EffectGate.execute as the current authorize callback and retain the F2 executor call afterward.",
+      "status": "REJECTED_AT_SOURCE_DESIGN_SCOPE",
+      "reason": "EffectGate.execute already performs the effect and finalizes the journal, creating double-dispatch risk."
+    },
+    {
+      "hypothesis": "Production F2 should delegate the complete real-effect transaction to the canonical EffectGate and treat F2 as correlation/completion consumer rather than a second dispatcher.",
+      "status": "PREFERRED_NEXT_DISCRIMINATOR",
+      "reason": "This preserves one effect authority, current lease lifetime, journal-before-effect ordering and no-blind-replay semantics without inventing a second policy path. It requires adapting the current F2 two-stage port/acceptance shape and proving exact call correlation around the single canonical execution call."
+    },
+    {
+      "hypothesis": "Extend canonical EntityOS authority with an explicit prepare/dispatch/finalize API.",
+      "status": "OPEN_ALTERNATIVE",
+      "reason": "Potentially valid only if the canonical source owns the split, preserves all current gate checks and defines lease custody/recovery across the split. This is a semantic authority/API change and must not be invented inside F2."
+    }
+  ],
+  "next_exact_action_for_active_wp105": "Do not wire the current two-stage CanonicalEffectAuthorityPort directly to EffectGate.execute. First discriminate the production topology with a deterministic no-real-effect integration harness against the bound API: preferred test = one canonical EffectGate-owned execution call with F2 request/tool/delegation correlation before entry and structured execution/completion correlation after return, proving one EffectJournal.begin, at most one action dispatch, exact effect_id lineage, and UNKNOWN_AFTER_RESTART no replay. If two-stage control is still required, obtain a canonical EntityOS-owned prepare/dispatch/finalize API including lease custody before implementing it in F2.",
+  "credit_boundary": {
+    "review_and_source_discriminator": "PASS",
+    "canonical_effect_authority_source_identity_resolved": true,
+    "canonical_effect_authority_production_adapter_runtime": 0,
+    "real_effect_runtime": 0,
+    "external_world_verification_runtime": 0,
+    "whole_frankenstein2_runtime": 0,
+    "whole_entityos_hcu_runtime": 0,
+    "physical_grid10_runtime": 0,
+    "training_credit": 0
+  }
+}
