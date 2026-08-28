@@ -5,8 +5,6 @@ on:
     paths:
       - 'src/frankenstein2/context_compiler.py'
       - 'tests/test_context_compiler.py'
-      - 'tests/test_context_compiler_generation_zero.py'
-      - '.github/workflows/wp306-context-compiler-ci.yml'
       - '.github/workflows/wp306-g2-source-generation-zero-ci.yml'
   push:
     branches:
@@ -14,8 +12,6 @@ on:
     paths:
       - 'src/frankenstein2/context_compiler.py'
       - 'tests/test_context_compiler.py'
-      - 'tests/test_context_compiler_generation_zero.py'
-      - '.github/workflows/wp306-context-compiler-ci.yml'
       - '.github/workflows/wp306-g2-source-generation-zero-ci.yml'
   workflow_dispatch:
 
@@ -36,12 +32,7 @@ jobs:
           python -m py_compile
           src/frankenstein2/context_compiler.py
           tests/test_context_compiler.py
-          tests/test_context_compiler_generation_zero.py
-      - name: Re-run full WP306 G1 falsification suite
+      - name: Full WP306 suite plus generation-zero ABI regressions
         env:
           PYTHONPATH: src
         run: python tests/test_context_compiler.py -v
-      - name: Source-generation ABI boundary regressions
-        env:
-          PYTHONPATH: src
-        run: python tests/test_context_compiler_generation_zero.py -v
