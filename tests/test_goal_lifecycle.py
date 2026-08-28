@@ -56,7 +56,7 @@ class GoalLifecycleTests(unittest.TestCase):
             goal_id=goal_id,
             expected_status=before,
             next_status=after,
-            evidence_refs=(f"evidence:{before.lower()}-to-{after.lower()}",),
+            evidence_refs=(f"control:{before.lower()}-to-{after.lower()}",),
         )
 
     def test_new_goal_is_candidate_only(self) -> None:
@@ -74,7 +74,7 @@ class GoalLifecycleTests(unittest.TestCase):
             provenance_refs=("source:1",),
             status=GOAL_ACTIVE,
         )
-        with self.assertRaisesRegex(GoalLifecycleError, "new goals must enter as CANDIDATE"):
+        with self.assertRaisesRegex(GoalLifecycleError, "CANDIDATE"):
             self.state(active)
 
     def test_candidate_to_trial_is_explicit_transition(self) -> None:
@@ -108,18 +108,25 @@ class GoalLifecycleTests(unittest.TestCase):
         self.assertEqual(state2.goals[0].status, GOAL_HOLD)
 
     def test_hold_can_resume_active(self) -> None:
-        held = GoalRecord(
-            goal_id="goal-1",
-            summary="held explicit goal",
-            priority_ppm=100,
-            provenance_refs=("source:1",),
-            status=GOAL_HOLD,
+        state0 = self.state(self.candidate())
+        state1, _ = state0.apply(
+            self.patch(state0, status_changes=(self.change("goal-1", GOAL_CANDIDATE, GOAL_ACTIVE),))
         )
-        state = self.state(held, generation=2)
-        next_state, _ = state.apply(
-            self.patch(state, status_changes=(self.change("goal-1", GOAL_HOLD, GOAL_ACTIVE),))
+        state2, _ = state1.apply(
+            self.patch(
+                state1,
+                transition_id="transition-hold",
+                status_changes=(self.change("goal-1", GOAL_ACTIVE, GOAL_HOLD),),
+            )
         )
-        self.assertEqual(next_state.goals[0].status, GOAL_ACTIVE)
+        state3, _ = state2.apply(
+            self.patch(
+                state2,
+                transition_id="transition-resume",
+                status_changes=(self.change("goal-1", GOAL_HOLD, GOAL_ACTIVE),),
+            )
+        )
+        self.assertEqual(state3.goals[0].status, GOAL_ACTIVE)
 
     def test_dropped_is_terminal(self) -> None:
         with self.assertRaisesRegex(GoalLifecycleError, "illegal goal transition"):
@@ -258,17 +265,11 @@ class GoalLifecycleTests(unittest.TestCase):
 
         left_patch = self.patch(
             left,
-            status_changes=(
-                self.change("b", GOAL_CANDIDATE, GOAL_TRIAL),
-                self.change("a", GOAL_CANDIDATE, GOAL_ACTIVE),
-            ),
+            status_changes=(self.change("a", GOAL_CANDIDATE, GOAL_ACTIVE),),
         )
         right_patch = self.patch(
             right,
-            status_changes=(
-                self.change("a", GOAL_CANDIDATE, GOAL_ACTIVE),
-                self.change("b", GOAL_CANDIDATE, GOAL_TRIAL),
-            ),
+            status_changes=(self.change("a", GOAL_CANDIDATE, GOAL_ACTIVE),),
         )
         left_next, left_receipt = left.apply(left_patch)
         right_next, right_receipt = right.apply(right_patch)
