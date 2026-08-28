@@ -2,20 +2,17 @@
 from __future__ import annotations
 
 import hashlib
-import importlib.util
 import os
 from pathlib import Path
+import sys
 import tempfile
 import unittest
 from unittest import mock
 
 
 ROOT = Path(__file__).resolve().parents[1]
-MODULE_PATH = ROOT / "src" / "state" / "unifieddb_identity.py"
-SPEC = importlib.util.spec_from_file_location("f2_unifieddb_identity", MODULE_PATH)
-assert SPEC and SPEC.loader
-uid = importlib.util.module_from_spec(SPEC)
-SPEC.loader.exec_module(uid)
+sys.path.insert(0, str(ROOT / "src"))
+from state import unifieddb_identity as uid  # noqa: E402
 
 
 class ResolveUnifiedDBTests(unittest.TestCase):
