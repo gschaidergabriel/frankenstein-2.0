@@ -35,8 +35,9 @@ Status:
 - [x] F2-WP-203 AgencyState/interests/open loops/deferred intents — generation-2 item-type repair accepted at repository-hosted component-CI scope.
 - [x] F2-WP-204 Goal lifecycle — generation-2 fail-closed authority repair accepted with 27/27 hosted CI tests; no effect/completion authority.
 - [x] F2-WP-205 Wake/WAIT/HOLD semantics — generation-2 tri-state UNKNOWN repair accepted at repository-hosted component-CI scope; no autonomous resume authority.
+- [x] F2-WP-206 Persistent Agency Kernel restart/next-tick integration — fresh-process restart, canonical-UnifiedDB checkpoint recovery and deterministic next-tick identity accepted at repository-hosted Stage-2 integration-CI scope; runtime/VPS/physical-GRID10/whole-system credit remains zero.
 
-Phase-2 component acceptance does **not** yet prove the directive-level Persistent Agency Kernel acceptance condition. A separate integration/runtime gate must still demonstrate durable goal survival across process/session restart plus deterministic next-tick checkpointing before broad autonomy is added.
+The directive-level Persistent Agency Kernel restart/next-tick gate is therefore closed **only at repository-hosted Stage-2 integration-CI scope** by F2-WP-206. This does not establish live target-runtime persistence, physical GRID10 execution, broad autonomy, effects, completion verification, or whole-system acceptance; those require their later explicit integration/runtime gates.
 
 ## Phase 3 — Memory / Retrieval / Process Learning
 
