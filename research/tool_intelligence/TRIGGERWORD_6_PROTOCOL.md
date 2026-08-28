@@ -51,6 +51,30 @@ Each exact `triggerwort 6` claims **one** specialized slot, chosen by current in
 
 Workers should use the largest useful reasoning/output budget available for their bounded task. More text is not evidence; source pins, reproducible tests and measured deltas are.
 
+## Atomic duplicate-work claim law
+
+Before material work that could create a new Trigger-6 evidence-stage result, the worker MUST acquire one create-only objective claim in the canonical F2 repository.
+
+Canonical coordination path:
+
+`research/tool_intelligence/claims/<research_id>/<claim_target>.json`
+
+Read `research/tool_intelligence/claims/README.md` before claiming.
+
+Rules:
+
+1. Refresh F2, Trigger-4, Trigger-5 and Research-Entity state first.
+2. Choose one bounded objective. `claim_target` is normally the next evidence objective (`E1_SOURCE_READ`, `E2_ARCHITECTURE_MAPPED`, a claim-specific E3, an experiment-specific E4, or `E5_BUILD_CANDIDATE`).
+3. Atomically CREATE the exact claim path before source archaeology, experiment execution or integration distillation.
+4. Only the successful create owns that bounded objective. If the path already exists, or create-only semantics cannot be established, DO NOT duplicate the work; consume the existing claim/result and select another useful objective or emit a coordination-blocked no-change result.
+5. A later architecture change requiring re-review gets a new explicit objective such as `E2_REVIEW_<architecture_delta_id>`; never overwrite/recycle the original claim.
+6. Claim existence grants zero evidence, architecture, runtime, integration, effect or completion credit.
+7. The claim is coordination metadata only. `pending_research.sqlite` remains the canonical Trigger-6 research database and UnifiedDB remains canonical Frankenstein state authority.
+8. Research-Entity may mirror an F2 claim after creation, but MUST NOT act as a competing claim authority. Cross-repo claim mirroring records source/target SHA and mirror epoch.
+9. On completion, preserve the claim and persist a separate evidence/reconciliation receipt; synchronize claim/result into the research DB when the admitted DB path is available.
+
+The 2026-08-29 concurrent `R6-SEED-005` AgentSight E2 audits are the motivating negative coordination result: same source + same objective + same architecture context is one research result with complementary receipts, not independent replication.
+
 ## Evidence ladder
 
 - `E0 SEED` — link/idea only; zero architecture credit.
@@ -116,5 +140,7 @@ DERIVED_INDEX != UNIFIEDDB_SOURCE_OF_TRUTH
 TRANSPORT/OBSERVABILITY_TOOL != COGNITIVE_TRUTH
 BUILD_CANDIDATE != INTEGRATED_COMPONENT
 ARCHITECTURE_CHANGE -> RECHECK_AFFECTED_RESEARCH
+CLAIM_EXISTS != RESEARCH_EVIDENCE
+FAILED_CREATE_ONLY_CLAIM -> DO_NOT_DUPLICATE_OBJECTIVE
 TRIGGER6_EVIDENCE -> TRIGGER4_BUILD -> MEASURED_RESULT -> TRIGGER6/RCPD_FEEDBACK
 ```
