@@ -1,0 +1,145 @@
+{
+  "schema": "FRANKENSTEIN2_TRIGGER6_ARCHITECTURE_DELTA_FUSION/v1",
+  "run_id": "trigger6-20260829T0356p0700-gpt56sol-agentsight-source-archaeology",
+  "slot": "SOURCE_ARCHAEOLOGIST",
+  "status": "E2_ARCHITECTURE_MAPPED_NOT_BUILD_CANDIDATE",
+  "seed_id": "R6-SEED-005",
+  "created_at_local": "2026-08-29T03:56:00+07:00",
+  "architecture_delta_fusion": {
+    "frankenstein_2_main_sha": "738df2763bcb89d3d0386eb99cf2ec3c6bf664b5",
+    "research_entity_main_sha": "9d34ad079a59a22ff1469d86b36a0f940c5a5efb",
+    "frankenstein_1_donor_sha": "5641dc6b2df6ebed1df246ee7533134324f6c427",
+    "authority_epoch": "9.13",
+    "supervisor_delta": "9.13AL_NON_AUTHORITY",
+    "execution_mode": "FREE_ONLY",
+    "trigger5_source_target_sha": "5641dc6b2df6ebed1df246ee7533134324f6c427",
+    "trigger4_relevant_frontier": [
+      "F2-WP-005 telemetry/data spine is IN_PROGRESS",
+      "F2-WP-605 child performance/latency/quality telemetry is NOT_STARTED",
+      "F2-WP-902 whole-system resource/latency/quality characterization is NOT_STARTED",
+      "F2-WP-904 failure injection/root-cause closure is NOT_STARTED",
+      "F2-WP-105 typed execution/completion lineage remains IN_PROGRESS/HOLD and requires exact invocation/outcome semantics",
+      "current EntityOS/Frankenstein effect authority remains single-lane; observability may witness effects but may not mint effect authority"
+    ],
+    "trigger6_feedback_surface": {
+      "expected_trigger4_inbox_path_observed": false,
+      "expected_trigger4_outcome_path_observed": false,
+      "note": "The canonical expected trigger4/inbox/tool_research and trigger4/outcomes/tool_research paths were not present at this F2 snapshot. This is path-level observation only, not proof that no feedback exists elsewhere."
+    },
+    "staleness_rule": "If F2-WP-005, F2-WP-105, F2-WP-605, F2-WP-902, F2-WP-904 or the effect/telemetry authority boundary materially changes, mark this delta STALE_REVIEW_REQUIRED before handoff."
+  },
+  "candidate": {
+    "repo": "eunomia-bpf/agentsight",
+    "default_branch": "master",
+    "commit_sha": "934f441eff8ca210807333633f47b2efcb8cd020",
+    "tree_sha": "08502f4a5dece20ed78ef9b52bf1b80d4ad140f5",
+    "release_at_head": "agentsight 1.0.30",
+    "license": "MIT",
+    "repository_language_label": "C",
+    "integration_class": "CONCEPT_DISTILL",
+    "proposed_f2_role": "READ_ONLY_INDEPENDENT_OBSERVABILITY_WITNESS",
+    "target_workpackages": ["F2-WP-005", "F2-WP-605", "F2-WP-902", "F2-WP-904"],
+    "architecture_observed": {
+      "pipeline": "eBPF programs -> JSON stdout -> capture core -> analysis extension -> output/web/files",
+      "capture_mechanisms": [
+        "SSL_read/SSL_write uprobes for TLS plaintext where attachable",
+        "process lifecycle tracepoints",
+        "stdio capture",
+        "agent-native session-file ingestion",
+        "/proc snapshots",
+        "saved SQLite session ingestion"
+      ],
+      "analysis_and_output": [
+        "normalized EventStream",
+        "pluggable analyzers",
+        "materialized view/row model",
+        "SQLite sink",
+        "OpenTelemetry sink",
+        "CLI/TUI/web output"
+      ],
+      "platform_boundary": "Portable top/bind/vis/report paths work without eBPF across major desktop OSes; eBPF record/debug capture is Linux-specific and privilege-sensitive.",
+      "timestamp_boundary": "Kernel events use nanoseconds since boot and are converted to wall time using boot time; direct F2 causal identity is not inherent."
+    },
+    "build_dependency_surface": {
+      "portable": ["Rust toolchain 1.88.0+"],
+      "ebpf_path": ["Linux eBPF support", "Node.js 18+", "clang/LLVM", "libelf development headers", "zlib development headers", "make/C build tools"],
+      "git_submodules": ["libbpf/libbpf", "libbpf/bpftool", "eunomia-bpf/agent-skills"]
+    },
+    "privilege_and_security_boundary": [
+      "eBPF capture requires sudo or CAP_BPF plus CAP_SYS_ADMIN according to upstream guidance",
+      "privileged Docker/host PID access may be required for container observation",
+      "captured session databases can contain prompts, responses, file paths, headers and network targets and must be treated as sensitive",
+      "TLS plaintext interception is an observability mechanism, not an authority mechanism"
+    ],
+    "known_visibility_gaps": [
+      "Electron IDE agents are not generally observable via the eBPF TLS path and use agent-native session fallbacks",
+      "statically linked SSL/BoringSSL/OpenSSL agents require binary discovery/attachment handling",
+      "protobuf/non-JSON traffic may produce no LLM event even when transport capture succeeds"
+    ]
+  },
+  "hypothesis": "A source-pinned, read-only AgentSight-derived witness can expose subprocess/file/network/resource evidence that F2 application telemetry may miss, improving failure diagnosis and telemetry ablations without becoming canonical state or effect authority.",
+  "counterhypotheses": [
+    "F2-native telemetry can cover the same discriminators with less privilege and dependency weight.",
+    "eBPF/TLS capture gaps and vendor-specific session fallbacks can create misleading partial visibility.",
+    "Importing AgentSight storage or analysis as mutable operational state could create a second truth store and violate UnifiedDB authority.",
+    "Boot-relative timestamps and independently inferred sessions may not bind cleanly to F2 causal_event_id/tool_use_id/effect_id without an explicit adapter.",
+    "TLS plaintext capture creates privacy and secret-handling risk that outweighs diagnostic value in routine operation.",
+    "The full upstream stack is heavier than the useful mechanism; a thin structural distillation may dominate direct adoption."
+  ],
+  "recommended_integration_boundary": {
+    "mode": "SIDE_CAR_OR_OFFLINE_WITNESS_ONLY",
+    "allowed": [
+      "read exported AgentSight SQLite/OTel/event artifacts as noncanonical evidence",
+      "bind imported witness rows to exact F2 run_id/process identity/time window/source pin",
+      "store only typed witness references/digests and reconciled observations in canonical F2 evidence tables",
+      "use witness disagreement as a trigger for investigation"
+    ],
+    "forbidden": [
+      "AgentSight database as canonical F2 truth",
+      "AgentSight observation minting EffectGate/EffectJournal outcomes",
+      "silent capture of secrets or TLS payloads in normal production mode",
+      "architecture promotion from README/upstream benchmark claims"
+    ]
+  },
+  "evidence_ladder": {
+    "current": "E2_ARCHITECTURE_MAPPED",
+    "E3_claim_reproduced": false,
+    "E4_f2_ablation": false,
+    "E5_build_candidate": false,
+    "E6_f2_accepted": false,
+    "architecture_credit": 0
+  },
+  "next_discriminator": {
+    "class": "E3_REPRODUCIBLE_NO_REAL_EFFECT_FIXTURE",
+    "goal": "Measure whether AgentSight adds independent observable events beyond F2-native telemetry under an exact-bound synthetic agent workload.",
+    "fixture": [
+      "one parent agent process",
+      "one child subprocess",
+      "controlled temp-file read/write/rename/delete",
+      "controlled localhost or test-endpoint TLS request with nonsecret payload",
+      "known CPU/RSS/I/O work segment",
+      "exact F2 run/call/effect candidate identities"
+    ],
+    "measurements": [
+      "event recall/precision against ground-truth fixture",
+      "cross-boundary subprocess/file/network coverage delta versus F2-native telemetry",
+      "causal identity binding success/failure",
+      "timestamp reconciliation error",
+      "CPU/RSS/I/O overhead",
+      "p50/p95/p99 latency overhead where sample size permits",
+      "sensitive-data exposure surface",
+      "failure behavior without eBPF privileges"
+    ],
+    "acceptance_for_E3": "At least one material upstream observability claim is reproduced at exact source identity with preserved raw evidence and no authority promotion.",
+    "reject_or_downgrade_rule": "If independent coverage gain is negligible, causal reconciliation is unreliable, privilege/sensitive-data cost is disproportionate, or F2-native telemetry already supplies the same discriminator, downgrade to METHOD/DESIGN_DONOR_ONLY."
+  },
+  "source_refs": [
+    "eunomia-bpf/agentsight@934f441eff8ca210807333633f47b2efcb8cd020:CLAUDE.md",
+    "eunomia-bpf/agentsight@934f441eff8ca210807333633f47b2efcb8cd020:docs/build.md",
+    "eunomia-bpf/agentsight@934f441eff8ca210807333633f47b2efcb8cd020:.gitmodules",
+    "gschaidergabriel/frankenstein-2.0@738df2763bcb89d3d0386eb99cf2ec3c6bf664b5:WORKPACKAGES.md",
+    "gschaidergabriel/frankenstein-2.0@738df2763bcb89d3d0386eb99cf2ec3c6bf664b5:DONOR_ADOPTION_MATRIX.md",
+    "gschaidergabriel/clay-global-research-entity@9d34ad079a59a22ff1469d86b36a0f940c5a5efb:research_entity/architecture_archaeology/TRIGGERWORD5_LIVE_FORENSIC_FEED.json",
+    "gschaidergabriel/clay-global-research-entity@9d34ad079a59a22ff1469d86b36a0f940c5a5efb:research_entity/claycode/autonomous/SUPERVISOR_INBOX.json"
+  ]
+}
