@@ -10,6 +10,7 @@ on:
       - 'schemas/run_closed_receipt.schema.json'
       - 'telemetry/RUN_PACKAGE_CONTRACT.md'
       - 'tests/test_verify_run_package.py'
+      - 'runs/wp004-runpackage-verifier-ci/**'
       - '.github/workflows/runpackage-verifier-ci.yml'
   pull_request:
     paths:
@@ -19,6 +20,7 @@ on:
       - 'schemas/run_closed_receipt.schema.json'
       - 'telemetry/RUN_PACKAGE_CONTRACT.md'
       - 'tests/test_verify_run_package.py'
+      - 'runs/wp004-runpackage-verifier-ci/**'
       - '.github/workflows/runpackage-verifier-ci.yml'
   workflow_dispatch:
 
@@ -43,3 +45,13 @@ jobs:
           python -m json.tool schemas/run_package_manifest.schema.json >/dev/null
           python -m json.tool schemas/run_artifact_index.schema.json >/dev/null
           python -m json.tool schemas/run_closed_receipt.schema.json >/dev/null
+      - name: Verify archived closed WP-004 run packages
+        shell: bash
+        run: |
+          set -euo pipefail
+          found=0
+          while IFS= read -r closed; do
+            found=1
+            python runpackages/verify_run_package.py "$(dirname "$closed")"
+          done < <(find runs/wp004-runpackage-verifier-ci -type f -name CLOSED.json -print | sort)
+          test "$found" -eq 1
