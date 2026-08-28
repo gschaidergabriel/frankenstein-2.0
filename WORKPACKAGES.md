@@ -43,8 +43,8 @@ The directive-level Stage-2 persistence/restart discriminator is accepted only a
 
 - [x] F2-WP-300 Memory evolution/degradation without destructive forgetting — deterministic repository-hosted component CI accepted; no persistence/runtime/whole-system credit.
 - [x] F2-WP-301 Emergent retrieval — deterministic multi-axis retrieval-planning component CI accepted; retrieval evidence is not truth and runtime credit remains zero.
-- [-] F2-WP-302 Familiarity/prediction-error binding — active generation-1 claim; terminal pointer/reconciliation pending.
-- [-] F2-WP-303 Fact/Episode/Method/Process-Policy separation — active generation-1 claim; terminal reconciliation pending.
+- [x] F2-WP-302 Familiarity/prediction-error binding — generation-1 deterministic repository-hosted component CI accepted; no runtime, physical GRID10, effect/completion, or whole-system credit.
+- [x] F2-WP-303 Fact/Episode/Method/Process-Policy separation — generation-1 typed-memory repository-hosted component CI accepted; memory typing does not mint truth and runtime/whole-system credit remains zero.
 - [ ] F2-WP-304 Recursive Cognitive Process Distillation.
 - [ ] F2-WP-305 Processing credit + method ablations.
 - [ ] F2-WP-306 ContextCompiler / bounded ContextViews.
