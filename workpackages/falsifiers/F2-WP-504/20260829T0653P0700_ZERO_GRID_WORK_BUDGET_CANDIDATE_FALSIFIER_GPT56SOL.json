@@ -1,0 +1,40 @@
+{
+  "schema": "FRANKENSTEIN2_WORKPACKAGE_FALSIFIER/v1",
+  "workpackage_id": "F2-WP-504",
+  "generation": 1,
+  "claim_id": "F2-WP-504-G1-GPT56SOL-EPISTEMIC-ACTION-SELECTION-20260829",
+  "worker_id": "GPT-5.6-Sol",
+  "classification": "EXECUTABLE_COMPONENT_COUNTEREXAMPLE",
+  "target_implementation_head": "ff166d3c3dd9437f0ab70b7ea8608e2f838d058c",
+  "target_source_path": "src/frankenstein2/epistemic_action_selection.py",
+  "target_source_blob_sha": "a539ce4a6fca30915407812c75553f7b1896e82e",
+  "target_test_path": "tests/test_epistemic_action_selection.py",
+  "target_test_blob_sha": "6b98079042faacd96f105a94d6dc2145096c9fc1",
+  "review_pr": 140,
+  "review_head_sha": "95ffc3519bb4c2991020d0a91f2d8e4498919d83",
+  "workflow_run_id": 33221852671,
+  "job_id": 99017369646,
+  "compile_step": "SUCCESS",
+  "falsifier_step": "FAILURE_EXPECTED_COUNTEREXAMPLE_REPRODUCED",
+  "observed_failure": "AssertionError: SELECTED_PROPOSAL != NO_ELIGIBLE_CANDIDATE",
+  "counterexample": {
+    "grid_plan_max_total_work_units": 0,
+    "target_cell_max_work_units": 0,
+    "candidate_work_units_requested": 0,
+    "candidate_expected_information_gain_micros": 900000,
+    "candidate_estimated_cost_micros": 0,
+    "observed_proposal_status": "SELECTED_PROPOSAL"
+  },
+  "claim_invariant_falsified": "The active WP504 G1 claim explicitly requires fail-closed behavior when GRID work budget is unavailable. A zero-total/zero-cell GRID plan is an unavailable work budget, yet a zero-work candidate is marked eligible and selected because eligibility rejects only requested work strictly greater than the cell/plan limits.",
+  "negative_evidence_scope": "WP504_G1_ZERO_GRID_WORK_BUDGET_ELIGIBILITY_ONLY",
+  "does_not_claim": [
+    "runtime failure",
+    "physical GRID10 failure",
+    "GWT runtime failure",
+    "effect/completion failure",
+    "whole Frankenstein 2.0 failure",
+    "whole EntityOS/HCU failure"
+  ],
+  "recommended_repair": "Within the existing WP504 mutation authority if still active, or otherwise a deliberate successor generation, make unavailable GRID work budget fail closed before candidate ranking. At minimum, a plan with max_total_work_units == 0 or a target cell with max_work_units == 0 must not emit a selected proposal. Preserve the possibility of work_units_requested == 0 only if a separately explicit non-GRID/no-work action class is designed and bound; do not silently treat zero work as available GRID execution capacity.",
+  "required_post_repair_evidence": "Re-run the canonical WP504 suite plus this exact zero-budget regression on the repaired exact head. Preserve the negative run 33221852671 in history. No acceptance credit until the recorded counterexample is closed."
+}
