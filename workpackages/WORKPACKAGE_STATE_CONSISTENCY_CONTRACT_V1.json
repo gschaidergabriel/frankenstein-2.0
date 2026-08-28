@@ -1,0 +1,38 @@
+{
+  "schema": "FRANKENSTEIN2_WORKPACKAGE_STATE_CONSISTENCY_CONTRACT/v1",
+  "canonical_repository": "gschaidergabriel/frankenstein-2.0",
+  "authority": "workpackages/CLAIM_PROTOCOL.md",
+  "scope": "SOURCE_AND_CONTINUITY_METADATA_ONLY",
+  "canonical_state_schema": "FRANKENSTEIN2_WORKPACKAGE_STATE/v1",
+  "compatible_active_pointer_schemas": [
+    "FRANKENSTEIN2_ACTIVE_WORKPACKAGE/v1",
+    "FRANKENSTEIN2_ACTIVE_WORKPACKAGE_CLAIM/v1",
+    "FRANKENSTEIN2_ACTIVE_WORKPACKAGE_POINTER/v1"
+  ],
+  "active_state": "ACTIVE",
+  "terminal_states": [
+    "ACCEPTED",
+    "FAILED_TERMINAL",
+    "RETIRED_STALE",
+    "SUPERSEDED"
+  ],
+  "state_values": [
+    "NOT_STARTED",
+    "IN_PROGRESS",
+    "HOLD",
+    "BLOCKED",
+    "ACCEPTED_AT_SCOPE"
+  ],
+  "invariants": [
+    "Every workpackages/active/<id>.json filename stem equals its workpackage_id and references an id present in workpackages/STATE.json.",
+    "Every active pointer has a positive integer generation, non-empty claim_id and worker_id, and a claim object with matching workpackage_id, generation and claim_id.",
+    "Pointer schema spelling is compatibility metadata only; all admitted v1 spellings share the same required core identity fields.",
+    "An ACTIVE pointer is inconsistent with STATE status ACCEPTED_AT_SCOPE or NOT_STARTED; active mutation authority requires a non-terminal machine state.",
+    "A terminal pointer requires exactly one matching reconciliation under workpackages/reconciliations/<id>/ whose workpackage_id, generation, claim_id and terminal_state match the pointer.",
+    "A STATE entry marked ACCEPTED_AT_SCOPE requires a non-empty evidence list with at least one repository-local evidence path that exists.",
+    "Terminal ACCEPTED is a scoped claim-generation result and does not force the broader STATE entry to ACCEPTED_AT_SCOPE; broader workpackage status may remain IN_PROGRESS when the reconciliation explicitly records a narrower accepted scope.",
+    "Historical duplicate claims are evidence only; the single file workpackages/active/<id>.json remains the mechanical mutation-authority pointer.",
+    "This contract cannot mint provider, VPS, GRID10, effect, training or whole-system runtime credit."
+  ],
+  "acceptance_boundary": "A PASS proves only repository-local consistency of the machine-readable workpackage state/claim/generation/reconciliation surfaces at one exact source identity."
+}
