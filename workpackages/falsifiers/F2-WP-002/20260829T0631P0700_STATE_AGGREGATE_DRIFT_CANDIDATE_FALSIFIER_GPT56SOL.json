@@ -1,0 +1,104 @@
+{
+  "schema": "FRANKENSTEIN2_CANDIDATE_FALSIFIER/v1",
+  "classification": "CANDIDATE_FALSIFIER",
+  "target_workpackage": "F2-WP-002",
+  "falsifier_id": "F2-WP-002-STATE-AGGREGATE-DRIFT-20260829T0631P0700-GPT56SOL",
+  "worker_id": "GPT-5.6-Sol",
+  "observed_at_utc": "2026-08-28T23:31:01Z",
+  "observed_main_sha": "0b6ce26c824263f14e9df5e8300b0f46c790d47d",
+  "aggregate_state_path": "workpackages/STATE.json",
+  "aggregate_state_blob_sha": "920e8df653d131d54ffae763f3a01d7e695874ac",
+  "aggregate_state_generation": 12,
+  "hypothesis": "The aggregate workpackage state cache is stale relative to exact granular active/reconciliation/acceptance evidence, so consumers that route from STATE.json alone can misclassify completed or active dependencies.",
+  "counterhypothesis": "The mismatches are intentional because STATE.json is merely historical and no current routing consumer treats it as current-facing state.",
+  "observed_contradictions": [
+    {
+      "workpackage_id": "F2-WP-200",
+      "aggregate_status": "IN_PROGRESS",
+      "granular_status": "ACCEPTED",
+      "granular_generation": 3,
+      "granular_ref": "workpackages/active/F2-WP-200.json",
+      "granular_blob_sha": "8a46e44ed9aa605443c038577a0b4cff6d64b604",
+      "accepted_scope": "PERSISTENT_PULSE_RECEIPT_IMMUTABILITY_REPOSITORY_HOSTED_CI_ONLY"
+    },
+    {
+      "workpackage_id": "F2-WP-201",
+      "aggregate_status": "IN_PROGRESS",
+      "granular_status": "ACCEPTED",
+      "granular_generation": 1,
+      "granular_ref": "workpackages/active/F2-WP-201.json",
+      "granular_blob_sha": "b02571790f1d0dab4efd7d1212a37d95a2af645f",
+      "accepted_scope": "STATE_FINGERPRINT_REPOSITORY_HOSTED_CI_ONLY"
+    },
+    {
+      "workpackage_id": "F2-WP-203",
+      "aggregate_status": "IN_PROGRESS",
+      "granular_status": "ACCEPTED",
+      "granular_generation": 2,
+      "granular_ref": "workpackages/active/F2-WP-203.json",
+      "granular_blob_sha": "991b8b63b8b47d4f23f8c64220518250ffba4f5a",
+      "accepted_scope": "AGENCY_STATE_G2_ITEM_TYPE_REPAIR_REPOSITORY_HOSTED_CI_ONLY"
+    },
+    {
+      "workpackage_id": "F2-WP-205",
+      "aggregate_status": "IN_PROGRESS",
+      "granular_status": "ACCEPTED",
+      "granular_generation": 4,
+      "granular_ref": "workpackages/active/F2-WP-205.json",
+      "granular_blob_sha": "b1d25d67a5bc22000667461febe7c55d1a820041",
+      "accepted_scope": "WAKE_HOLD_G4_CONFLICT_POLICY_PRECEDENCE_REPOSITORY_HOSTED_CI_ONLY"
+    },
+    {
+      "workpackage_id": "F2-WP-206",
+      "aggregate_status": "ABSENT",
+      "granular_status": "ACCEPTED",
+      "granular_generation": 1,
+      "granular_ref": "workpackages/active/F2-WP-206.json",
+      "granular_blob_sha": "7d9a7c160a6e88a4f7dbc078ed9583baeb77099f",
+      "accepted_scope": "PERSISTENT_AGENCY_KERNEL_STAGE2_REPOSITORY_HOSTED_INTEGRATION_CI_ONLY"
+    },
+    {
+      "workpackage_id": "F2-WP-300",
+      "aggregate_status": "NOT_STARTED",
+      "granular_status": "ACCEPTED",
+      "granular_generation": 1,
+      "granular_ref": "workpackages/active/F2-WP-300.json",
+      "granular_blob_sha": "04f597acd1a8ea64ecac193d5ec1af194271416a",
+      "accepted_scope": "MEMORY_EVOLUTION_NONDESTRUCTIVE_REPOSITORY_HOSTED_CI_ONLY"
+    },
+    {
+      "workpackage_id": "F2-WP-301",
+      "aggregate_status": "NOT_STARTED",
+      "granular_status": "ACCEPTED",
+      "granular_generation": 1,
+      "granular_ref": "workpackages/active/F2-WP-301.json",
+      "granular_blob_sha": "fc5b53b250274a31c82354797af6315bbd40373e",
+      "accepted_scope": "EMERGENT_RETRIEVAL_DETERMINISTIC_REPOSITORY_HOSTED_CI_ONLY"
+    },
+    {
+      "workpackage_id": "F2-WP-302",
+      "aggregate_status": "NOT_STARTED",
+      "granular_status": "IN_PROGRESS",
+      "granular_generation": 1,
+      "granular_ref": "workpackages/active/F2-WP-302.json",
+      "granular_blob_sha": "68f26d10d3e3babfb61e97c9bf94105c14c54e8c"
+    },
+    {
+      "workpackage_id": "F2-WP-303",
+      "aggregate_status": "NOT_STARTED",
+      "granular_status": "ACTIVE",
+      "granular_generation": 1,
+      "granular_ref": "workpackages/active/F2-WP-303.json",
+      "granular_blob_sha": "6d879ef2a21a1033b64cc72e684e84b46d94d26f"
+    }
+  ],
+  "acceptance_falsifier": "A current-facing aggregate state surface must not report NOT_STARTED/IN_PROGRESS/ABSENT when exact higher-precedence granular evidence at the same or newer repository history proves an ACTIVE/IN_PROGRESS/ACCEPTED state. If STATE.json is intentionally non-current, current routing documentation and machine consumers must explicitly reject it as an authority source.",
+  "recommended_reconciliation": [
+    "Have the canonical F2-WP-002 reconciliation writer refresh STATE.json from granular claim/reconciliation/receipt evidence instead of model narration.",
+    "Add F2-WP-206 to the aggregate ledger with its bounded accepted repository-hosted integration scope and zero runtime/physical-GRID10/whole-system credit.",
+    "Promote F2-WP-200/201/203/205/300/301 only to their exact accepted component scopes; do not infer runtime or whole-system acceptance.",
+    "Reflect F2-WP-302/F2-WP-303 as active/in-progress without granting completion.",
+    "Add a successor-dynamic consistency test that derives expected status from exact active/reconciliation evidence and fails on stale aggregate cache divergence."
+  ],
+  "authority_boundary": "This artifact records a review/falsifier only. It does not mutate canonical workpackage status, reopen accepted components, claim F2-WP-002 mutation authority, grant runtime credit, or imply whole-system acceptance."
+}
