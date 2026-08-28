@@ -15,12 +15,15 @@ from frankenstein2.effect_invocation_correlation import (
 )
 from frankenstein2.native_child_binding import NativeChildBinding
 from state.execution_completion import (
+    VERIFICATION_RECEIPT_SCHEMA,
     AdmitExecution,
     ExecutionLineage,
     ExecutionOutcome,
     ExecutionStage,
     RecordExecution,
+    VerificationEvidenceKind,
     VerificationOutcome,
+    VerificationReceipt,
     VerifyExecution,
     apply_execution_transition,
 )
@@ -28,6 +31,7 @@ from state.execution_completion import (
 
 SAME_RESULT_ID = "same-result-id"
 SAME_RESULT_DIGEST = "a" * 64
+VERIFICATION_DIGEST = "b" * 64
 
 
 def make_pending_call(
@@ -118,6 +122,7 @@ def make_target(*, suffix: str, task_id: str, turn_id: str) -> DeferredExecution
 
 def verification(target: DeferredExecutionVerificationTarget) -> VerifyExecution:
     record = target.lineage
+    attempt = "shared-verification-attempt"
     return VerifyExecution(
         transition_id="shared-verification-transition",
         causal_id=record.causal_id,
@@ -125,8 +130,19 @@ def verification(target: DeferredExecutionVerificationTarget) -> VerifyExecution
         request_id=record.request_id,
         admission_id=record.admission_id,
         execution_attempt_id=record.execution_attempt_id,
-        verification_attempt_id="shared-verification-attempt",
+        verification_attempt_id=attempt,
         outcome=VerificationOutcome.APPLIED,
+        receipt=VerificationReceipt(
+            schema=VERIFICATION_RECEIPT_SCHEMA,
+            receipt_id="shared-verification-receipt",
+            verification_attempt_id=attempt,
+            execution_attempt_id=record.execution_attempt_id,
+            execution_outcome=record.execution_outcome,
+            outcome=VerificationOutcome.APPLIED,
+            evidence_kind=VerificationEvidenceKind.EFFECT_JOURNAL_VERIFIED,
+            evidence_ref="evidence/shared-effect-journal.json",
+            evidence_sha256=VERIFICATION_DIGEST,
+        ),
     )
 
 
@@ -272,6 +288,31 @@ class EffectInvocationCorrelationTests(unittest.TestCase):
         self.assertEqual(self.target_a, before)
         self.assertEqual(self.target_a.lineage.stage, ExecutionStage.EXECUTION_RECORDED)
         self.assertFalse(self.target_a.lineage.is_verified_complete)
+
+    def test_same_session_interleaving_b_then_a_preserves_call_lineage(self) -> None:
+        # Explicit overlapping-call falsifier: both calls share the same session and
+        # deliberately identical generic execution/result identities, then complete in
+        # reverse order. Exact call identity must still keep B from contaminating A.
+        verified_b = apply_effect_bound_verification(
+            self.target_b,
+            self.post_b,
+            verification(self.target_b),
+        )
+        with self.assertRaises(EffectInvocationCorrelationError):
+            apply_effect_bound_verification(
+                self.target_a,
+                self.post_b,
+                verification(self.target_a),
+            )
+        verified_a = apply_effect_bound_verification(
+            self.target_a,
+            self.post_a,
+            verification(self.target_a),
+        )
+        self.assertEqual(verified_b.lineage.stage, ExecutionStage.VERIFIED_APPLIED)
+        self.assertEqual(verified_a.lineage.stage, ExecutionStage.VERIFIED_APPLIED)
+        self.assertNotEqual(self.post_a.effect_id, self.post_b.effect_id)
+        self.assertNotEqual(self.post_a.tool_use_id, self.post_b.tool_use_id)
 
     def test_prepared_only_cannot_verify(self) -> None:
         with self.assertRaisesRegex(
