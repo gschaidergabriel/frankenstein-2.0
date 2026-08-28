@@ -1,0 +1,37 @@
+name: F2 WP206 F5 DB Churn Falsifier CI
+
+on:
+  push:
+    branches:
+      - chatgpt/trigger4-wp206-f5-db-churn-falsifier-20260829
+    paths:
+      - 'tests/test_wp206_db_churn_identity_falsifier.py'
+      - '.github/workflows/wp206-f5-db-churn-falsifier-ci.yml'
+  pull_request:
+    paths:
+      - 'tests/test_wp206_db_churn_identity_falsifier.py'
+      - '.github/workflows/wp206-f5-db-churn-falsifier-ci.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  f5-db-churn-identity:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Compile exact F5 review surface
+        run: >-
+          python -m py_compile
+          src/frankenstein2/persistent_agency_kernel.py
+          tests/wp206_restart_probe.py
+          tests/test_wp206_db_churn_identity_falsifier.py
+      - name: Unrelated DB churn must not rewrite Agency checkpoint identity
+        env:
+          PYTHONPATH: src
+        run: python tests/test_wp206_db_churn_identity_falsifier.py -v
