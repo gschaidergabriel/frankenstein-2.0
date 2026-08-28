@@ -1,0 +1,37 @@
+{
+  "schema": "FRANKENSTEIN2_WORKPACKAGE_DELTA/v1",
+  "workpackage_id": "F2-WP-205",
+  "generation": 1,
+  "claim_id": "F2-WP-205-G1-GPT56SOL-WAKE-HOLD-20260829",
+  "worker_id": "GPT-5.6-Sol-FALSIFIER",
+  "base_commit": "44cdf74357be01cc36d71568f4a6ab1894b3b43e",
+  "observed_main_commit": "44cdf74357be01cc36d71568f4a6ab1894b3b43e",
+  "owned_paths": [],
+  "result_class": "FALSIFIER",
+  "source_commits": [],
+  "receipts": [],
+  "falsifiers": [
+    "A missing observation required by a wake condition must classify as UNKNOWN/ABSTAIN_NOT_OBSERVED, not silently as NO_MATCH and never as MATCH.",
+    "Wake matching must be a pure function over explicit caller-supplied condition and observation values; reading wall clock, sensors, UnifiedDB, environment state or network state inside the component violates the workpackage boundary.",
+    "A matched wake condition may emit only an explicit match/resume-candidate receipt. It must not mutate Goal lifecycle state, schedule a process, invoke Persistent Pulse, or resume execution itself.",
+    "Time-based conditions, if supported, must compare against an explicit observed-time value supplied in the observation packet rather than calling a clock API internally.",
+    "Every evaluation must reject stale or mismatched hold/state identity, generation and state-digest fences; a valid evaluation cannot silently bind to a newer checkpoint.",
+    "Unknown condition types, malformed observations, ambiguous duplicate observation identities and type-mismatched comparison operands must fail closed or classify UNKNOWN, never be coerced into a positive match.",
+    "An unrelated observation or state change must not wake a hold merely because it is newer; the explicit condition identity and typed predicate must match.",
+    "Condition matching must preserve type semantics: boolean/integer/string/time/event identifiers cannot be silently normalized across types to create a match.",
+    "Wake/hold receipts must deterministically bind hold identity, prior state generation/digest, condition identity, observation identity/provenance, evaluation result and non-authoritative classification.",
+    "A wake MATCH must not grant goal adoption, effect authorization, completion verification, provider/tool authority or world-truth status."
+  ],
+  "contradictions": [],
+  "proposed_state_change": "No mutation-authority change. Feed these falsifiers into the active F2-WP-205 implementation/test lane. Preserve UNKNOWN as a first-class result so absence of evidence is never converted into evidence of no wake event.",
+  "completion_deficit": [
+    "F2-WP-205 canonical source is not yet observed on current main",
+    "no F2-WP-205 repository-hosted CI receipt is observed",
+    "F2-WP-204 Goal lifecycle remains active and not accepted",
+    "no Persistent Pulse scheduler integration credit",
+    "no UnifiedDB persistence credit",
+    "no VPS or physical GRID10 runtime credit"
+  ],
+  "next_exact_action": "The active F2-WP-205 mutation owner should implement the smallest immutable HoldCheckpoint/WakeCondition evaluation primitive and encode these UNKNOWN/purity/non-resume boundaries as deterministic tests before repository-CI acceptance.",
+  "created_at_utc": "2026-08-28T22:52:00Z"
+}
