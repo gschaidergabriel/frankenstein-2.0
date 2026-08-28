@@ -46,6 +46,12 @@ class WakeHoldTests(unittest.TestCase):
         self.assertEqual(result.classification, "WAKE_CONDITION_MATCH")
         self.assertEqual(result.matched_condition_ids, ("c1",))
 
+    def test_empty_observation_set_remains_on_hold(self):
+        result = evaluate(checkpoint(), ())
+        self.assertFalse(result.wake)
+        self.assertEqual(result.matched_condition_ids, ())
+        self.assertEqual(result.unmatched_condition_ids, ("c1",))
+
     def test_nonmatching_observation_stays_on_hold(self):
         result = evaluate(checkpoint(), (observation(value="running"),))
         self.assertFalse(result.wake)
