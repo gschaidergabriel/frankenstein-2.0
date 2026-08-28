@@ -167,6 +167,13 @@ class TelemetryWriter:
     ) -> None:
         if not isinstance(identity, CausalIdentity):
             raise TelemetryWriteError("identity must be an explicit CausalIdentity")
+        # The current system_events schema has causal_id but no parent_causal_id.
+        # Silently dropping derived lineage would turn correlation into false causal
+        # closure, so derived events remain blocked until the typed schema migrates.
+        if identity.parent_causal_id is not None:
+            raise TelemetryWriteError(
+                "system_events schema cannot preserve parent_causal_id; derived causal event rejected"
+            )
         event_id = _strict_text("event_id", event_id)
         run_id = _strict_text("run_id", run_id)
         workpackage_id = _optional_text("workpackage_id", workpackage_id)
