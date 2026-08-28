@@ -1,0 +1,36 @@
+name: F2 WP304 Process Distillation CI
+
+on:
+  push:
+    branches:
+      - main
+      - trigger4/wp304-process-distillation-g1
+    paths:
+      - 'src/frankenstein2/process_distillation.py'
+      - 'tests/test_process_distillation.py'
+      - '.github/workflows/wp304-process-distillation-ci.yml'
+  pull_request:
+    paths:
+      - 'src/frankenstein2/process_distillation.py'
+      - 'tests/test_process_distillation.py'
+      - '.github/workflows/wp304-process-distillation-ci.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  deterministic:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Compile
+        run: python -m py_compile src/frankenstein2/process_distillation.py tests/test_process_distillation.py
+      - name: Process distillation falsification suite
+        env:
+          PYTHONPATH: src
+        run: python tests/test_process_distillation.py -v
