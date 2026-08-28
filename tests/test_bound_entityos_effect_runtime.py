@@ -17,11 +17,11 @@ BINDING_PATH = Path(
 )
 ATTESTATION_PATH = Path(
     "research_entity/continuity/"
-    "ENTITYOS_EFFECT_AUTHORITY_BINDING_9_13_CURRENT_EPOCH_ATTESTATION_2026-08-29.json"
+    "ENTITYOS_EFFECT_AUTHORITY_BINDING_8_78_ADMITTED_AUTHORITY_REENTRY_2026-08-29.json"
 )
 BINDING_BLOB = "b4d91a0dd233c9dc15ff8218feea9248ac1c13c5"
 BINDING_COMMIT = "5638204026468b631de5e774e8403d7a6334021e"
-ATTESTATION_COMMIT = "60f3e77900721ffa1dea1211e8b035a0e42b7c2f"
+ATTESTATION_COMMIT = "76e2b8383e597be14af8210b3616c572bea3a934"
 IMPLEMENTATION_COMMIT = "2b68aad14bf7824d513b52898904909256e3522d"
 
 
@@ -81,7 +81,8 @@ class ExactBoundEntityOSEffectRuntimeTests(unittest.TestCase):
             self.binding.unifieddb_blob_sha,
             "a88d923ea3d0eab5847f304f35463e5a2b2c4acd",
         )
-        self.assertEqual(self.binding.supervisor_epoch, "9.13")
+        self.assertEqual(self.binding.supervisor_epoch, "8.78")
+        self.assertEqual(self.binding.supervisor_delta, "SUPERVISOR_STEERING_8_78")
 
     def test_exact_effectgate_state_noop_journals_pending_then_verified(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
