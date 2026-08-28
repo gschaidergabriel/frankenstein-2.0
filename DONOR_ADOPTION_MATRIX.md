@@ -2,6 +2,18 @@
 
 This matrix separates **source availability** from **Frankenstein-2.0 completion**.
 
+## Exact Frankenstein 1.x donor freeze
+
+The current primary donor baseline for this assembly generation is frozen as:
+
+- repository: `gschaidergabriel/frankenstein`
+- branch: `main`
+- commit: `5641dc6b2df6ebed1df246ee7533134324f6c427`
+- tree: `9f529a1ea8896cf9988298ea58e827c241d6949f`
+- immutable provenance manifest: `provenance/frankenstein1-donor-freeze-20260828T2139P0700.json`
+
+This is a **source-provenance freeze only**. It does not grant runtime, integration, GRID10, provider-path or whole-system credit. Any later donor synchronization requires a new deliberate receipt; this freeze remains historical evidence for the exact source used by this assembly generation.
+
 Adoption classes:
 
 - `DIRECT_ADOPT` — move source with minor packaging/interface changes.
