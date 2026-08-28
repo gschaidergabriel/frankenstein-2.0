@@ -10,7 +10,7 @@ import argparse
 import sqlite3
 from pathlib import Path
 
-SCHEMA_VERSION = 2
+SCHEMA_VERSION = 3
 DB_NAMES = (
     "system_telemetry.sqlite",
     "communications.sqlite",
@@ -18,6 +18,13 @@ DB_NAMES = (
     "bugs.sqlite",
     "grid10_telemetry.sqlite",
     "performance.sqlite",
+)
+GRID_CHILD_TABLES = (
+    "grid_cells",
+    "hyperposition_branches",
+    "world_projections",
+    "microlab_calls",
+    "gwt_events",
 )
 
 COMMON_EVENT_COLUMNS = """
@@ -250,12 +257,91 @@ def configure(conn: sqlite3.Connection) -> None:
     conn.execute("PRAGMA synchronous=NORMAL")
 
 
+def enforce_grid_cycle_integrity(conn: sqlite3.Connection) -> None:
+    """Bind every GRID child row to one existing cycle in the same run.
+
+    Triggers are used rather than CREATE TABLE foreign keys so a re-entry over an
+    already materialized schema-v2 database gains the guard without table rebuilds.
+    Existing orphan rows fail closed before schema metadata is promoted to v3.
+    """
+    for table in GRID_CHILD_TABLES:
+        orphan = conn.execute(
+            f"""
+            SELECT child.rowid, child.run_id, child.cycle_id
+            FROM {table} AS child
+            LEFT JOIN grid_cycles AS cycle
+              ON cycle.run_id = child.run_id AND cycle.cycle_id = child.cycle_id
+            WHERE cycle.cycle_id IS NULL
+            LIMIT 1
+            """
+        ).fetchone()
+        if orphan is not None:
+            raise RuntimeError(
+                f"grid10 causal integrity failure: {table} contains orphan "
+                f"rowid={orphan[0]} run_id={orphan[1]!r} cycle_id={orphan[2]!r}"
+            )
+
+        conn.execute(
+            f"""
+            CREATE TRIGGER IF NOT EXISTS enforce_{table}_grid_cycle_insert
+            BEFORE INSERT ON {table}
+            WHEN NOT EXISTS (
+                SELECT 1 FROM grid_cycles
+                WHERE run_id = NEW.run_id AND cycle_id = NEW.cycle_id
+            )
+            BEGIN
+                SELECT RAISE(ABORT, 'GRID child requires existing same-run GRID cycle');
+            END
+            """
+        )
+        conn.execute(
+            f"""
+            CREATE TRIGGER IF NOT EXISTS enforce_{table}_grid_cycle_update
+            BEFORE UPDATE OF run_id, cycle_id ON {table}
+            WHEN NOT EXISTS (
+                SELECT 1 FROM grid_cycles
+                WHERE run_id = NEW.run_id AND cycle_id = NEW.cycle_id
+            )
+            BEGIN
+                SELECT RAISE(ABORT, 'GRID child requires existing same-run GRID cycle');
+            END
+            """
+        )
+
+    child_refs = " OR ".join(
+        f"EXISTS (SELECT 1 FROM {table} WHERE run_id = OLD.run_id AND cycle_id = OLD.cycle_id)"
+        for table in GRID_CHILD_TABLES
+    )
+    conn.execute(
+        f"""
+        CREATE TRIGGER IF NOT EXISTS protect_grid_cycle_delete
+        BEFORE DELETE ON grid_cycles
+        WHEN {child_refs}
+        BEGIN
+            SELECT RAISE(ABORT, 'GRID cycle has child telemetry');
+        END
+        """
+    )
+    conn.execute(
+        f"""
+        CREATE TRIGGER IF NOT EXISTS protect_grid_cycle_identity_update
+        BEFORE UPDATE OF run_id, cycle_id ON grid_cycles
+        WHEN (NEW.run_id != OLD.run_id OR NEW.cycle_id != OLD.cycle_id) AND ({child_refs})
+        BEGIN
+            SELECT RAISE(ABORT, 'GRID cycle identity is referenced by child telemetry');
+        END
+        """
+    )
+
+
 def init_db(path: Path, schema: str) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     conn = sqlite3.connect(path)
     try:
         configure(conn)
         conn.executescript(schema)
+        if path.name == "grid10_telemetry.sqlite":
+            enforce_grid_cycle_integrity(conn)
         conn.execute("CREATE TABLE IF NOT EXISTS schema_meta (schema_name TEXT PRIMARY KEY, schema_version INTEGER NOT NULL)")
         conn.execute(
             "INSERT INTO schema_meta(schema_name, schema_version) VALUES (?, ?) "
