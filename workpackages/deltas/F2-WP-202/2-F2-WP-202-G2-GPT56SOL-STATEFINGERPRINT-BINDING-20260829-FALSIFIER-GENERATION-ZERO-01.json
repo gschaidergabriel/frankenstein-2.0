@@ -1,0 +1,45 @@
+{
+  "schema": "FRANKENSTEIN2_WORKPACKAGE_DELTA/v1",
+  "workpackage_id": "F2-WP-202",
+  "generation": 2,
+  "claim_id": "F2-WP-202-G2-GPT56SOL-STATEFINGERPRINT-BINDING-20260829",
+  "worker_id": "GPT-5.6-Sol-REVIEW",
+  "observed_main_commit": "06bf2d998ff1ac280cee7cec9bc51747b0d88add",
+  "owned_paths": [],
+  "result_class": "CANDIDATE_FALSIFIER",
+  "source_observation": {
+    "class": "CURRENT_CROSS_COMPONENT_SOURCE_REVIEW",
+    "sources": [
+      "src/frankenstein2/state_fingerprint.py",
+      "src/frankenstein2/prediction_contract.py"
+    ],
+    "source_blob_shas": {
+      "state_fingerprint.py": "c275e51710a1da58af8842d2a986fe850210c555",
+      "prediction_contract.py": "a83d8b5bce2135b72d5083db492b23e52e80ec0d"
+    },
+    "finding": "StateFingerprint generation validation accepts every non-negative integer, including generation=0. PredictionContract generation validation accepts only positive integers (generation>=1). Therefore a valid accepted WP201 StateFingerprint at generation 0 cannot be represented by the existing PredictionContract generation field without either rejecting an otherwise valid fingerprint, changing its generation, or introducing a typed binding path that separates the fingerprint generation from the legacy PredictionContract generation semantics."
+  },
+  "hypothesis": "F2-WP-202 generation 2 cannot claim exact lossless StateFingerprint binding across the full accepted WP201 domain unless generation=0 is explicitly supported or explicitly excluded at the integration boundary with a fail-closed compatibility rule.",
+  "counterhypothesis": "PredictionContract may intentionally define a lifecycle whose first usable prediction generation is 1 while StateFingerprint generation 0 represents pre-prediction/bootstrap state. If so, generation-0 fingerprints should be rejected explicitly by the typed binding API as an intentional domain restriction rather than failing indirectly through the legacy PredictionContract validator.",
+  "falsifiers": [
+    "STATEFINGERPRINT_GENERATION_ZERO_BINDING_HAS_EXPLICIT_POLICY",
+    "NO_VALID_WP201_FINGERPRINT_IS_SILENTLY_RENUMBERED_OR_LOSES_IDENTITY_DURING_WP202_BINDING"
+  ],
+  "source_level_reproduction": [
+    "fingerprint_state_projection(projection_schema='x', generation=0, projection={}) is admitted by the WP201 generation validator",
+    "PredictionContract.create(..., generation=0, ...) is rejected by the existing WP202 generation validator",
+    "A typed WP201->WP202 binding therefore needs an explicit compatibility decision for generation 0"
+  ],
+  "why_material": [
+    "The active WP202-G2 claim explicitly requires exact fingerprint profile/schema/generation/content/identity binding",
+    "silent renumbering would break exact causal identity",
+    "implicit rejection by a legacy validator obscures whether the domain restriction is intentional or accidental"
+  ],
+  "preserved_boundaries": [
+    "REVIEW_ONLY: no F2-WP-202/F2-WP-201 source or active-claim mutation",
+    "no residual-to-action authority, world-fact inference, persistence, scheduler, provider/tool, effect or completion authority claimed",
+    "source-level falsifier only; no target-runtime, VPS, physical GRID10 or whole-system runtime credit"
+  ],
+  "next_exact_action": "In the generation-2 typed binding tests, include an accepted StateFingerprint with generation=0. Either support it while preserving the exact fingerprint generation/identity, or reject it with a dedicated explicit typed-binding policy/error documenting that bootstrap fingerprints are outside PredictionContract's admissible domain; never renumber it silently.",
+  "created_at_utc": "2026-08-28T23:12:05Z"
+}
