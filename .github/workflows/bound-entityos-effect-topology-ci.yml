@@ -4,6 +4,7 @@ on:
   pull_request:
     paths:
       - 'tests/test_bound_entityos_effect_topology.py'
+      - 'tests/fixtures/bound_entityos_effect_authority/**'
       - '.github/workflows/bound-entityos-effect-topology-ci.yml'
   workflow_dispatch:
 
@@ -14,28 +15,18 @@ jobs:
   deterministic-bound-topology:
     runs-on: ubuntu-latest
     timeout-minutes: 5
-    env:
-      ENTITYOS_BINDING_ROOT: ${{ github.workspace }}/_entityos_binding
-      ENTITYOS_IMPL_ROOT: ${{ github.workspace }}/_entityos_impl
     steps:
       - name: Checkout Frankenstein 2.0 candidate
         uses: actions/checkout@v4
-      - name: Checkout exact current binding record
-        uses: actions/checkout@v4
-        with:
-          repository: gschaidergabriel/clay-global-research-entity
-          ref: 5638204026468b631de5e774e8403d7a6334021e
-          path: _entityos_binding
-      - name: Checkout exact bound EffectGate implementation
-        uses: actions/checkout@v4
-        with:
-          repository: gschaidergabriel/clay-global-research-entity
-          ref: 2b68aad14bf7824d513b52898904909256e3522d
-          path: _entityos_impl
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-      - name: Compile deterministic falsifier
-        run: python -m py_compile tests/test_bound_entityos_effect_topology.py
+      - name: Compile deterministic falsifier and bound fixtures
+        run: >-
+          python -m py_compile
+          tests/test_bound_entityos_effect_topology.py
+          tests/fixtures/bound_entityos_effect_authority/clayverse/effects.py
+          tests/fixtures/bound_entityos_effect_authority/clayverse/effect_journal.py
+          tests/fixtures/bound_entityos_effect_authority/clayverse/store.py
       - name: Run exact bound no-real-effect topology falsifier
         run: python tests/test_bound_entityos_effect_topology.py -v
