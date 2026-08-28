@@ -1,0 +1,59 @@
+name: Frankenstein 2.0 Bound EntityOS Effect Authority Matrix CI
+
+on:
+  pull_request:
+    paths:
+      - 'src/frankenstein2/entityos_effect_authority_binding.py'
+      - 'src/frankenstein2/entityos_effect_gate_call_bridge.py'
+      - 'src/frankenstein2/effect_executor_interlock.py'
+      - 'src/frankenstein2/canonical_effect_authority_bridge.py'
+      - 'tests/test_bound_entityos_effect_authority_matrix.py'
+      - '.github/workflows/bound-entityos-effect-authority-matrix-ci.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'src/frankenstein2/entityos_effect_authority_binding.py'
+      - 'src/frankenstein2/entityos_effect_gate_call_bridge.py'
+      - 'src/frankenstein2/effect_executor_interlock.py'
+      - 'src/frankenstein2/canonical_effect_authority_bridge.py'
+      - 'tests/test_bound_entityos_effect_authority_matrix.py'
+      - '.github/workflows/bound-entityos-effect-authority-matrix-ci.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  bound-entityos-effect-authority-matrix:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    env:
+      PYTHONPATH: .:src
+      ENTITYOS_CANONICAL_ROOT: ${{ github.workspace }}/canonical-clay
+    steps:
+      - name: Checkout Frankenstein 2.0 candidate
+        uses: actions/checkout@v4
+      - name: Checkout exact canonical authority binding commit
+        uses: actions/checkout@v4
+        with:
+          repository: gschaidergabriel/clay-global-research-entity
+          ref: 5638204026468b631de5e774e8403d7a6334021e
+          path: canonical-clay
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Compile bound authority integration
+        run: >-
+          python -m py_compile
+          src/frankenstein2/entityos_effect_authority_binding.py
+          src/frankenstein2/entityos_effect_gate_call_bridge.py
+          src/frankenstein2/effect_executor_interlock.py
+          src/frankenstein2/canonical_effect_authority_bridge.py
+          tests/test_bound_entityos_effect_authority_matrix.py
+      - name: Run exact-bound no-real-effect matrix
+        run: python tests/test_bound_entityos_effect_authority_matrix.py
+      - name: Run WP105 executor-interlock regressions
+        run: python tests/test_effect_executor_interlock.py
+      - name: Run WP105 structured-receipt regressions
+        run: python tests/test_structured_execution_receipt.py
