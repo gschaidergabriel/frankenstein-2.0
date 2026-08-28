@@ -1,0 +1,42 @@
+{
+  "schema": "FRANKENSTEIN2_DUPLICATE_RECONCILIATION_RECEIPT/v1",
+  "workpackage_id": "F2-WP-101",
+  "claim_id": "F2-WP-101-G1-GPT56SOL-causal-identity",
+  "trigger": "4",
+  "status": "DUPLICATE_REMOVED_CANONICAL_G1_PRESERVED",
+  "cause": "Repository search/state lag hid a pre-existing WP101 implementation that had already been committed before this claim. A later create-file collision on tests/test_causal_identity.py exposed the overlap.",
+  "canonical_preexisting_lane": {
+    "source_path": "src/frankenstein2/causal_identity.py",
+    "source_commit": "21ef138a66934fb6562c79967ec623364b7590eb",
+    "source_blob_sha": "e26c20fd8210c8c138d094d0e256df16f03651b0",
+    "test_path": "tests/test_causal_identity.py",
+    "test_commit": "2f41584d52bdbef1639b115470735cb3865d9963",
+    "test_blob_sha": "723c29ed7bde124b4c6ad4e1d8ad467fbd3ed4d4",
+    "acceptance_receipt": "workpackages/receipts/F2-WP-101_G1_SOURCE_TEST_ACCEPTANCE.json",
+    "acceptance_receipt_blob_sha": "c2519fe9b593f071a0f4e2bd47a99e665d7cbd39"
+  },
+  "duplicate_lane": {
+    "claim_path": "workpackages/claims/F2-WP-101_G1_GPT56SOL_causal_identity.json",
+    "duplicate_source_path": "src/coordination/causal_identity.py",
+    "duplicate_source_creation_commit": "23b4cb79499b903cfb9cf7a29f175e225f1804fb",
+    "duplicate_source_blob_sha": "27aea7e432e78bb7f4586cb85698948780271b3a",
+    "duplicate_source_removal_commit": "f6aec708ea8bb3b280c3703bd0089f86cd02e39a",
+    "duplicate_test_commit": null,
+    "duplicate_test_write_result": "NOT_WRITTEN_CREATE_COLLISION_422"
+  },
+  "reconciliation_decision": [
+    "Preserve src/frankenstein2/causal_identity.py as the sole WP101 causal identity type instead of creating a competing authority.",
+    "Do not reinterpret the existing source-local acceptance receipt as runtime or end-to-end causal closure.",
+    "Carry event/admission identity separation and UnifiedDB receipt binding into the integration layer named by the canonical WP101 receipt rather than forcing a second causal identity implementation.",
+    "Treat repository search/index absence as insufficient evidence that a workpackage is unclaimed; future collision checks should include exact current tree/known canonical paths where possible."
+  ],
+  "remaining_integration_gates": [
+    "bind CausalIdentity to accepted WP100 UnifiedDB identity without making transport/admission metadata causal authority",
+    "prove telemetry event_id and causal_id remain distinct and joinable through persistence",
+    "prove stale generation and wrong-agent/effect attribution fail closed under concurrent workers",
+    "obtain exact repository/runtime evidence before any end-to-end causal closure claim"
+  ],
+  "runtime_execution_observed": false,
+  "runtime_credit": 0,
+  "whole_product_credit": 0
+}
