@@ -1,0 +1,146 @@
+{
+  "schema": "FRANKENSTEIN2_WORKPACKAGE_REVIEW/v1",
+  "classification": "REVIEW_ONLY_SUCCESSOR_FALSIFIER",
+  "trigger": "4",
+  "workpackage_id": "F2-WP-105",
+  "organ": "GPT-5.6 Sol / ChatGPT Triggerword-4 continuation organ",
+  "mutation_authority": false,
+  "canonical_implementation_mutated": false,
+  "coordination": {
+    "active_claim_id": "F2-WP-105-G1-EXECUTION-COMPLETION-GPT56SOL-20260828T215528P0700",
+    "active_claim_state": "ACTIVE",
+    "active_pointer_blob_sha": "a9416215676f6ce4bf9b0fa55bc0a23bc695ee53",
+    "rule": "This review is advisory/falsifying evidence only. The existing active WP105 claim remains the sole mutation authority."
+  },
+  "reentry": {
+    "entityos_main": "a88b143df7f7068812ca9da82aa124ef72baabe2",
+    "frankenstein2_main_before_review": "2ec19c3b8e0cc5e08bfa6e95921b995a3308f764",
+    "supervisor_epoch": "9.13",
+    "selected_delta": "9.13AJ_NON_AUTHORITY"
+  },
+  "authority_pointer_drift_repair": {
+    "observation": "The immediately preceding WP105 reentry review referenced ENTITYOS_EFFECT_AUTHORITY_9_13_COMPATIBILITY_ATTESTATION_2026-08-29_TRIGGER4_GPT56SOL.json, which central main a88b143 removed as redundant.",
+    "surviving_canonical_compatibility_record": {
+      "path": "research_entity/continuity/ENTITYOS_EFFECT_AUTHORITY_IMPLEMENTATION_BINDING_9_13_COMPATIBILITY_V1.json",
+      "blob_sha": "7f3964ea60a8f30de382e82fef441148e30bab83",
+      "status": "CURRENT_EPOCH_COMPATIBILITY_ATTESTATION_NO_NEW_AUTHORITY",
+      "api_version": "ENTITYOS_EFFECT_AUTHORITY_PY_API/v1"
+    },
+    "prior_exact_binding": {
+      "path": "research_entity/continuity/ENTITYOS_EFFECT_AUTHORITY_IMPLEMENTATION_BINDING_V1.json",
+      "blob_sha": "b4d91a0dd233c9dc15ff8218feea9248ac1c13c5"
+    },
+    "effect_gate_blob_sha": "4a6413b3f3c752c6327e67233bdd8097f3cf0ba4",
+    "effect_journal_blob_sha": "cda63471f1467481f2ff79032d3931730a334a20",
+    "unifieddb_store_blob_sha": "a88d923ea3d0eab5847f304f35463e5a2b2c4acd",
+    "unifieddb_schema_version": "6",
+    "decision": "SOURCE_AUTHORITY_IDENTITY_REMAINS_RESOLVED; ONLY_THE_REVIEW_REFERENCE_DRIFTED"
+  },
+  "current_f2_abi_observation": {
+    "canonical_effect_authority_bridge": {
+      "path": "src/frankenstein2/canonical_effect_authority_bridge.py",
+      "blob_sha": "3ac9ceb4d2399fa82eafacb24aca8b469cd246ec",
+      "effect_call_intent_fields": [
+        "return_id",
+        "binding_id",
+        "invocation_id",
+        "tool_use_id",
+        "delegation_id",
+        "child_identity_sha256"
+      ],
+      "canonical_evidence_additional_fields": [
+        "authority",
+        "decision_id",
+        "decision",
+        "journal_state",
+        "effect_id"
+      ]
+    },
+    "effect_executor_interlock": {
+      "path": "src/frankenstein2/effect_executor_interlock.py",
+      "blob_sha": "7f956f0520dfe7d7e8dc8bcd86ae1c2a1b10f7d3",
+      "pre_dispatch_identity_checks": [
+        "effect_id",
+        "binding_id",
+        "invocation_id",
+        "tool_use_id",
+        "delegation_id",
+        "child_identity_sha256"
+      ]
+    },
+    "repository_search_request_sha256_count": 0
+  },
+  "open_gap": {
+    "id": "WP105_SEMANTIC_EFFECT_REQUEST_SUBSTITUTION_GAP",
+    "severity": "P1_BEFORE_REAL_EFFECT_INTEGRATION",
+    "observed": "The F2 bridge strongly binds correlation identity and canonical effect_id, but it does not bind the immutable semantic EffectRequest that canonical EffectGate evaluates. The canonical API requires EffectRequest(user_id, session_id, capability, target, argv, expected_generation), while EffectCallIntent and ExternalGateEvidence do not carry an effect_request_id/request_sha256 or those canonical policy inputs.",
+    "risk": "A canonical ALLOW for semantic request B can remain correlated to call identity A unless both authority evidence and executor input verify the same immutable semantic request identity before dispatch. Correlation identity alone is insufficient to prove semantic authorization identity.",
+    "counterhypothesis": "One existing correlation identifier may already resolve deterministically to an immutable typed EffectRequest outside the reviewed ABI.",
+    "counterhypothesis_status": "NOT_PROVEN; repository search found no request_sha256 surface and the reviewed bridge/interlock types contain no resolver identity or semantic request digest.",
+    "falsifier": "Produce exact current source and deterministic tests showing that one already-bound identifier resolves to one immutable typed EffectRequest and that the canonical authority response plus exact executor invocation verify that same request identity before any dispatch."
+  },
+  "minimal_successor_contract_for_active_wp105_lane": {
+    "preferred_shape": "BIND_DIGEST_NOT_DUPLICATE_POLICY",
+    "requirements": [
+      "Create or resolve an immutable canonical effect_request_id plus request_sha256 before authority evaluation.",
+      "Canonicalize the exact policy-bearing request fields required by ENTITYOS_EFFECT_AUTHORITY_PY_API/v1; model-authored classifications cannot grant capability/effect authority.",
+      "Bind request_sha256 into EffectCallIntent before authorize(intent).",
+      "Require CanonicalEffectAuthorityEvidence to echo the same request_sha256 together with decision_id/effect_id/PENDING.",
+      "Carry or verify the same request_sha256 at the executor boundary before executor(prepared).",
+      "Reject any request digest or semantic-field mismatch before executor invocation with dispatch_count=0.",
+      "Preserve canonical PENDING-before-dispatch and UNKNOWN/no-blind-replay after ambiguous post-dispatch failure.",
+      "Do not duplicate EffectGate policy inside Frankenstein 2.0; F2 remains a verifier/transport/interlock only."
+    ]
+  },
+  "deterministic_no_real_effect_matrix": [
+    {
+      "case": "MATCHING_REQUEST_ALLOW_PENDING",
+      "expected": "exactly one executor-stub dispatch; later completion remains separate from execution observation"
+    },
+    {
+      "case": "REQUEST_SHA256_MISMATCH",
+      "expected": "fail closed before executor; dispatch_count=0"
+    },
+    {
+      "case": "TARGET_OR_ARGV_SUBSTITUTION_WITH_SAME_CALL_IDS",
+      "expected": "fail closed before executor; dispatch_count=0"
+    },
+    {
+      "case": "CALL_ID_MATCH_BUT_REQUEST_ID_DIFFERS",
+      "expected": "fail closed before executor; dispatch_count=0"
+    },
+    {
+      "case": "ALLOW_WITHOUT_PENDING_EFFECT_ID",
+      "expected": "fail closed before executor; dispatch_count=0"
+    },
+    {
+      "case": "DENY_REQUIRE_CONFIRMATION_DEGRADE_UNKNOWN",
+      "expected": "dispatch_count=0"
+    },
+    {
+      "case": "AUTHORITY_PATH_BLOB_SCHEMA_API_EPOCH_MISMATCH",
+      "expected": "fail closed before executor; dispatch_count=0"
+    },
+    {
+      "case": "EXECUTOR_EXCEPTION_AFTER_ENTRY",
+      "expected": "outcome UNKNOWN; no automatic replay; canonical journal/recovery required"
+    },
+    {
+      "case": "POST_CORRELATION_MISMATCH",
+      "expected": "outcome UNKNOWN; no automatic replay; no false negative world fact"
+    }
+  ],
+  "next_exact_action": "The sole active WP105 mutation authority should implement the smallest digest-binding ABI extension or prove the counterhypothesis with an existing immutable resolver, then run the matrix with an executor stub only. No provider call, VPS effect execution, real external effect, GRID10 runtime or whole-system acceptance is required for this discriminator.",
+  "credit_boundary": {
+    "source_authority_identity": "RESOLVED_AT_METADATA_SOURCE_SCOPE",
+    "semantic_effect_request_binding": "OPEN",
+    "effectgate_runtime_credit_added": 0,
+    "effectjournal_runtime_credit_added": 0,
+    "real_effect_runtime_credit_added": 0,
+    "completion_runtime_credit_added": 0,
+    "physical_grid10_runtime_credit_added": 0,
+    "whole_frankenstein2_runtime_credit_added": 0,
+    "whole_entityos_hcu_runtime_credit_added": 0,
+    "training_credit_added": 0
+  }
+}
