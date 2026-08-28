@@ -159,6 +159,31 @@ class DeferredReturnEnvelopeTests(unittest.TestCase):
                 resume=reused,
             )
 
+    def test_return_id_is_strict_and_cannot_be_implicit(self) -> None:
+        for invalid in ("", " return-7", "return-7 ", "return\n7", 7, None):
+            with self.subTest(invalid=invalid), self.assertRaises(DeferredReturnError):
+                DeferredReturnEnvelope(
+                    return_id=invalid,  # type: ignore[arg-type]
+                    binding=self.binding,
+                    resume=self.resume,
+                )
+
+    def test_mapping_requires_exact_top_level_fields(self) -> None:
+        raw = self.make().as_dict()
+        for missing in ("return_id", "binding", "resume"):
+            mutated = dict(raw)
+            mutated.pop(missing)
+            with self.subTest(missing=missing), self.assertRaises(DeferredReturnError):
+                DeferredReturnEnvelope.from_mapping(mutated)
+
+    def test_mapping_rejects_non_mapping_nested_identity_or_binding(self) -> None:
+        raw = self.make().as_dict()
+        for key, invalid in (("binding", "not-a-binding"), ("resume", "not-a-resume")):
+            mutated = dict(raw)
+            mutated[key] = invalid
+            with self.subTest(key=key), self.assertRaises(DeferredReturnError):
+                DeferredReturnEnvelope.from_mapping(mutated)
+
     def test_canonical_serialization_is_stable(self) -> None:
         envelope = self.make()
         raw = envelope.as_dict()
@@ -174,11 +199,31 @@ class DeferredReturnEnvelopeTests(unittest.TestCase):
 
     def test_completion_effect_or_delivery_claims_fail_closed(self) -> None:
         raw = self.make().as_dict()
-        for forbidden in ("completion", "effect_id", "delivery_state", "transport_attempt_id"):
+        for forbidden in (
+            "completion",
+            "effect_id",
+            "delivery_state",
+            "transport_attempt_id",
+            "execution_success",
+            "verified_outcome",
+        ):
             mutated = dict(raw)
             mutated[forbidden] = "claimed"
             with self.subTest(forbidden=forbidden), self.assertRaises(DeferredReturnError):
                 DeferredReturnEnvelope.from_mapping(mutated)
+
+    def test_envelope_exposes_identity_only_not_delivery_or_success_authority(self) -> None:
+        fields = self.make().as_dict()
+        self.assertEqual(set(fields), {"return_id", "binding", "resume"})
+        for forbidden in (
+            "delivered",
+            "acknowledged",
+            "execution_success",
+            "effect",
+            "completion",
+            "verified_outcome",
+        ):
+            self.assertNotIn(forbidden, fields)
 
 
 if __name__ == "__main__":
