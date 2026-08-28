@@ -36,6 +36,7 @@ class GoalLifecycleTests(unittest.TestCase):
         state: GoalState,
         *,
         transition_id: str = "transition-1",
+        transition_refs: tuple[str, ...] = ("decision:explicit",),
         add_candidates: tuple[GoalRecord, ...] = (),
         status_changes: tuple[GoalStatusChange, ...] = (),
     ) -> GoalStatePatch:
@@ -46,17 +47,30 @@ class GoalLifecycleTests(unittest.TestCase):
             expected_generation=state.generation,
             expected_state_sha256=state.sha256(),
             next_generation=state.generation + 1,
-            transition_refs=("decision:explicit",),
+            transition_refs=transition_refs,
             add_candidates=add_candidates,
             status_changes=status_changes,
         )
 
-    def change(self, goal_id: str, before: str, after: str) -> GoalStatusChange:
+    def change(
+        self,
+        goal_id: str,
+        before: str,
+        after: str,
+        *,
+        evidence_refs: tuple[str, ...] | None = None,
+        adoption_authority_ref: str | None = None,
+    ) -> GoalStatusChange:
+        if evidence_refs is None:
+            evidence_refs = (f"evidence:{before.lower()}-to-{after.lower()}",)
+        if adoption_authority_ref is None and after in {GOAL_TRIAL, GOAL_ACTIVE}:
+            adoption_authority_ref = "caller:explicit-adoption"
         return GoalStatusChange(
             goal_id=goal_id,
             expected_status=before,
             next_status=after,
-            evidence_refs=(f"evidence:{before.lower()}-to-{after.lower()}",),
+            evidence_refs=evidence_refs,
+            adoption_authority_ref=adoption_authority_ref,
         )
 
     def test_new_goal_is_candidate_only(self) -> None:
@@ -66,7 +80,7 @@ class GoalLifecycleTests(unittest.TestCase):
         self.assertEqual(state.goals[0].status, GOAL_CANDIDATE)
         self.assertEqual(state.schema, GOAL_STATE_SCHEMA)
 
-    def test_generation_zero_rejects_pre_adopted_goal(self) -> None:
+    def test_public_state_construction_rejects_pre_adopted_goal_at_every_generation(self) -> None:
         active = GoalRecord(
             goal_id="goal-1",
             summary="caller tried to pre-adopt",
@@ -74,8 +88,29 @@ class GoalLifecycleTests(unittest.TestCase):
             provenance_refs=("source:1",),
             status=GOAL_ACTIVE,
         )
-        with self.assertRaisesRegex(GoalLifecycleError, "new goals must enter as CANDIDATE"):
-            self.state(active)
+        for generation in (0, 1, 7):
+            with self.subTest(generation=generation):
+                with self.assertRaisesRegex(GoalLifecycleError, "CANDIDATE goals only"):
+                    self.state(active, generation=generation)
+                with self.assertRaisesRegex(GoalLifecycleError, "CANDIDATE goals only"):
+                    GoalState(
+                        schema=GOAL_STATE_SCHEMA,
+                        state_id="direct-state",
+                        generation=generation,
+                        goals=(active,),
+                    )
+
+    def test_valid_transition_can_produce_non_candidate_successor_state(self) -> None:
+        state = self.state(self.candidate())
+        next_state, receipt = state.apply(
+            self.patch(
+                state,
+                status_changes=(self.change("goal-1", GOAL_CANDIDATE, GOAL_ACTIVE),),
+            )
+        )
+        self.assertEqual(next_state.goals[0].status, GOAL_ACTIVE)
+        self.assertEqual(next_state.generation, 1)
+        self.assertEqual(receipt.changed_goal_ids, ("goal-1",))
 
     def test_candidate_to_trial_is_explicit_transition(self) -> None:
         state = self.state(self.candidate())
@@ -86,12 +121,52 @@ class GoalLifecycleTests(unittest.TestCase):
         self.assertEqual(receipt.schema, GOAL_TRANSITION_SCHEMA)
         self.assertEqual(receipt.changed_goal_ids, ("goal-1",))
 
-    def test_candidate_to_active_is_explicit_adoption(self) -> None:
+    def test_candidate_to_active_requires_typed_adoption_authority(self) -> None:
         state = self.state(self.candidate())
+        with self.assertRaisesRegex(GoalLifecycleError, "requires explicit adoption_authority_ref"):
+            GoalStatusChange(
+                goal_id="goal-1",
+                expected_status=GOAL_CANDIDATE,
+                next_status=GOAL_ACTIVE,
+                evidence_refs=("model:proposed-goal",),
+            )
+
+        for invalid in ("model:approve", "self:approve", "evidence:approve", "caller:"):
+            with self.subTest(invalid=invalid):
+                with self.assertRaisesRegex(GoalLifecycleError, "typed caller:"):
+                    GoalStatusChange(
+                        goal_id="goal-1",
+                        expected_status=GOAL_CANDIDATE,
+                        next_status=GOAL_ACTIVE,
+                        evidence_refs=("evidence:reviewed",),
+                        adoption_authority_ref=invalid,
+                    )
+
         next_state, _ = state.apply(
-            self.patch(state, status_changes=(self.change("goal-1", GOAL_CANDIDATE, GOAL_ACTIVE),))
+            self.patch(
+                state,
+                status_changes=(
+                    GoalStatusChange(
+                        goal_id="goal-1",
+                        expected_status=GOAL_CANDIDATE,
+                        next_status=GOAL_ACTIVE,
+                        evidence_refs=("model:proposed-goal", "evidence:reviewed"),
+                        adoption_authority_ref="control-plane:goal-adoption-42",
+                    ),
+                ),
+            )
         )
         self.assertEqual(next_state.goals[0].status, GOAL_ACTIVE)
+
+    def test_non_promotion_rejects_adoption_authority_ref(self) -> None:
+        with self.assertRaisesRegex(GoalLifecycleError, "only valid for promotion"):
+            GoalStatusChange(
+                goal_id="goal-1",
+                expected_status=GOAL_ACTIVE,
+                next_status=GOAL_HOLD,
+                evidence_refs=("evidence:hold",),
+                adoption_authority_ref="caller:not-needed",
+            )
 
     def test_active_can_hold(self) -> None:
         state0 = self.state(self.candidate())
@@ -107,19 +182,26 @@ class GoalLifecycleTests(unittest.TestCase):
         )
         self.assertEqual(state2.goals[0].status, GOAL_HOLD)
 
-    def test_hold_can_resume_active(self) -> None:
-        held = GoalRecord(
-            goal_id="goal-1",
-            summary="held explicit goal",
-            priority_ppm=100,
-            provenance_refs=("source:1",),
-            status=GOAL_HOLD,
+    def test_hold_can_resume_active_with_new_adoption_authority(self) -> None:
+        state0 = self.state(self.candidate())
+        active, _ = state0.apply(
+            self.patch(state0, status_changes=(self.change("goal-1", GOAL_CANDIDATE, GOAL_ACTIVE),))
         )
-        state = self.state(held, generation=2)
-        next_state, _ = state.apply(
-            self.patch(state, status_changes=(self.change("goal-1", GOAL_HOLD, GOAL_ACTIVE),))
+        held, _ = active.apply(
+            self.patch(
+                active,
+                transition_id="transition-2",
+                status_changes=(self.change("goal-1", GOAL_ACTIVE, GOAL_HOLD),),
+            )
         )
-        self.assertEqual(next_state.goals[0].status, GOAL_ACTIVE)
+        resumed, _ = held.apply(
+            self.patch(
+                held,
+                transition_id="transition-3",
+                status_changes=(self.change("goal-1", GOAL_HOLD, GOAL_ACTIVE),),
+            )
+        )
+        self.assertEqual(resumed.goals[0].status, GOAL_ACTIVE)
 
     def test_dropped_is_terminal(self) -> None:
         with self.assertRaisesRegex(GoalLifecycleError, "illegal goal transition"):
@@ -135,6 +217,33 @@ class GoalLifecycleTests(unittest.TestCase):
                 status="COMPLETED",
             )
 
+    def test_duplicate_provenance_refs_fail_closed(self) -> None:
+        with self.assertRaisesRegex(GoalLifecycleError, "duplicate references"):
+            GoalRecord.candidate(
+                goal_id="goal-1",
+                summary="duplicate provenance",
+                priority_ppm=1,
+                provenance_refs=("source:1", "source:1"),
+            )
+
+    def test_duplicate_transition_evidence_refs_fail_closed(self) -> None:
+        with self.assertRaisesRegex(GoalLifecycleError, "duplicate references"):
+            self.change(
+                "goal-1",
+                GOAL_CANDIDATE,
+                GOAL_ACTIVE,
+                evidence_refs=("evidence:1", "evidence:1"),
+            )
+
+    def test_duplicate_patch_transition_refs_fail_closed(self) -> None:
+        state = self.state(self.candidate())
+        with self.assertRaisesRegex(GoalLifecycleError, "duplicate references"):
+            self.patch(
+                state,
+                transition_refs=("decision:1", "decision:1"),
+                status_changes=(self.change("goal-1", GOAL_CANDIDATE, GOAL_ACTIVE),),
+            )
+
     def test_transition_requires_evidence_refs(self) -> None:
         with self.assertRaises(GoalLifecycleError):
             GoalStatusChange(
@@ -142,6 +251,7 @@ class GoalLifecycleTests(unittest.TestCase):
                 expected_status=GOAL_CANDIDATE,
                 next_status=GOAL_ACTIVE,
                 evidence_refs=(),
+                adoption_authority_ref="caller:explicit-adoption",
             )
 
     def test_patch_requires_transition_refs(self) -> None:
@@ -160,7 +270,7 @@ class GoalLifecycleTests(unittest.TestCase):
 
     def test_empty_patch_rejected(self) -> None:
         state = self.state()
-        with self.assertRaisesRegex(GoalLifecycleError, "at least one explicit change"):
+        with self.assertRaisesRegex(GoalLifecycleError, "exactly one goal"):
             self.patch(state)
 
     def test_add_and_transition_same_goal_in_one_patch_rejected(self) -> None:
@@ -172,6 +282,22 @@ class GoalLifecycleTests(unittest.TestCase):
                 add_candidates=(candidate,),
                 status_changes=(self.change("goal-1", GOAL_CANDIDATE, GOAL_ACTIVE),),
             )
+
+    def test_cross_goal_status_changes_fail_closed(self) -> None:
+        state = self.state(self.candidate("a"), self.candidate("b"))
+        with self.assertRaisesRegex(GoalLifecycleError, "exactly one goal"):
+            self.patch(
+                state,
+                status_changes=(
+                    self.change("a", GOAL_CANDIDATE, GOAL_TRIAL),
+                    self.change("b", GOAL_CANDIDATE, GOAL_ACTIVE),
+                ),
+            )
+
+    def test_multi_candidate_addition_fail_closed(self) -> None:
+        state = self.state()
+        with self.assertRaisesRegex(GoalLifecycleError, "exactly one goal"):
+            self.patch(state, add_candidates=(self.candidate("a"), self.candidate("b")))
 
     def test_stale_generation_rejected(self) -> None:
         state = self.state(self.candidate())
@@ -250,31 +376,43 @@ class GoalLifecycleTests(unittest.TestCase):
                 ),
             )
 
-    def test_digest_and_receipt_are_deterministic_under_input_order(self) -> None:
+    def test_digest_and_receipt_are_deterministic_under_unordered_refs(self) -> None:
         left = self.state(self.candidate("b"), self.candidate("a"))
         right = self.state(self.candidate("a"), self.candidate("b"))
         self.assertEqual(left.canonical_json(), right.canonical_json())
         self.assertEqual(left.sha256(), right.sha256())
 
+        left_change = GoalStatusChange(
+            goal_id="a",
+            expected_status=GOAL_CANDIDATE,
+            next_status=GOAL_ACTIVE,
+            evidence_refs=("evidence:z", "evidence:a"),
+            adoption_authority_ref="external:owner-decision",
+        )
+        right_change = GoalStatusChange(
+            goal_id="a",
+            expected_status=GOAL_CANDIDATE,
+            next_status=GOAL_ACTIVE,
+            evidence_refs=("evidence:a", "evidence:z"),
+            adoption_authority_ref="external:owner-decision",
+        )
         left_patch = self.patch(
             left,
-            status_changes=(
-                self.change("b", GOAL_CANDIDATE, GOAL_TRIAL),
-                self.change("a", GOAL_CANDIDATE, GOAL_ACTIVE),
-            ),
+            transition_refs=("decision:z", "decision:a"),
+            status_changes=(left_change,),
         )
         right_patch = self.patch(
             right,
-            status_changes=(
-                self.change("a", GOAL_CANDIDATE, GOAL_ACTIVE),
-                self.change("b", GOAL_CANDIDATE, GOAL_TRIAL),
-            ),
+            transition_refs=("decision:a", "decision:z"),
+            status_changes=(right_change,),
         )
         left_next, left_receipt = left.apply(left_patch)
         right_next, right_receipt = right.apply(right_patch)
         self.assertEqual(left_next.canonical_json(), right_next.canonical_json())
         self.assertEqual(left_receipt.canonical_json(), right_receipt.canonical_json())
         self.assertEqual(left_receipt.sha256(), right_receipt.sha256())
+        self.assertEqual(left_receipt.changed_goal_ids, ("a",))
+        self.assertEqual(left_receipt.added_goal_ids, ())
         self.assertEqual(
             left_receipt.classification,
             "PURE_GOAL_LIFECYCLE_TRANSITION_NOT_EFFECT_OR_COMPLETION",
