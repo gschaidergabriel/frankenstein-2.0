@@ -1,0 +1,36 @@
+{
+  "schema": "FRANKENSTEIN2_WORKPACKAGE_DELTA/v1",
+  "workpackage_id": "F2-WP-206",
+  "generation": 1,
+  "claim_id": "F2-WP-206-G1-GPT56SOL-PERSISTENT-AGENCY-INTEGRATION-20260829",
+  "worker_id": "GPT-5.6-Sol",
+  "delta_type": "CANDIDATE_FALSIFIER",
+  "status": "NEGATIVE_RESULT_SOURCE_AND_TEST_REVIEW",
+  "observed_branch": "chatgpt/trigger4-wp206-persistent-agency-integration-20260829",
+  "observed_head_sha": "186f8837ed2670bb26bdaa79f707186cd7c161ba",
+  "observed_source": "src/frankenstein2/persistent_agency_kernel.py",
+  "observed_source_blob_sha": "a6338b773da9c0b5fd1162864de5add5216d4bc2",
+  "observed_test": "tests/test_persistent_agency_kernel.py",
+  "observed_test_blob_sha": "0e8ad6272828c5fbf3fe7bc6d739c65eabf17756",
+  "finding": "The integration can persist a non-CANDIDATE GoalState but deliberately cannot rehydrate it through a validated lifecycle contract. The restart test rehydrates an initial CANDIDATE state, transitions that goal to ACTIVE, persists the generation-1 checkpoint, then explicitly asserts that rehydrate_candidate_goal_state(latest) raises NONCANDIDATE_GOAL_REHYDRATION_REQUIRES_SEPARATE_CONTRACT. Its second subprocess only loads and prints the latest checkpoint SHA; it does not reconstruct the ACTIVE GoalState and execute another deterministic next tick. Therefore raw checkpoint survival is demonstrated, but continued persistent agency after a restart with an already-adopted/ACTIVE goal is not yet demonstrated.",
+  "hypothesis": "Without an admitted non-CANDIDATE GoalState rehydration path owned by the Goal lifecycle authority, the persistent agency loop necessarily halts after a restart once any goal has left CANDIDATE, so the directive-level invariant that goals survive restarts and next ticks continue is not closed.",
+  "counterhypothesis": "WP206 could intentionally accept only candidate-goal restart scope and defer active-goal continuation to a later contract. That would be a valid bounded component result, but it cannot satisfy the claimed Stage-2 Persistent Agency Kernel integration/restart acceptance condition and must not be promoted as such.",
+  "discriminator": [
+    "Persist a checkpoint containing at least one ACTIVE goal produced by the admitted Goal lifecycle transition path.",
+    "Terminate the process and start a fresh subprocess.",
+    "Rehydrate that ACTIVE GoalState through an explicit admitted lifecycle rehydration contract, not private constructor bypass or raw JSON trust.",
+    "Generate and persist the next deterministic integration checkpoint with exact prior checkpoint parent, generation and digest fences.",
+    "Restart once more and prove the same ACTIVE goal identity/status plus new checkpoint lineage are reproducibly available for continued operation."
+  ],
+  "credit_boundary": {
+    "candidate_goal_first_restart_observed_in_test": true,
+    "active_goal_raw_json_persisted_in_test": true,
+    "active_goal_validated_rehydration_observed": false,
+    "second_restart_next_tick_observed": false,
+    "persistent_agency_kernel_acceptance": false,
+    "runtime_credit": 0,
+    "physical_grid10_credit": 0,
+    "whole_system_acceptance": false
+  },
+  "recommended_action": "Keep WP206 G1 blocked at the Persistent Agency Kernel acceptance gate until F2-WP-204 (or another explicitly admitted Goal lifecycle rehydration surface) can reconstruct non-CANDIDATE states without creating a second transition authority, then extend the subprocess test across an ACTIVE-goal restart and one additional next tick."
+}
