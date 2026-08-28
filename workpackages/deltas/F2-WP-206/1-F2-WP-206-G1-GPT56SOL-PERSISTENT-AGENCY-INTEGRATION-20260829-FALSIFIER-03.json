@@ -1,0 +1,37 @@
+{
+  "schema": "FRANKENSTEIN2_WORKPACKAGE_DELTA/v1",
+  "workpackage_id": "F2-WP-206",
+  "generation": 1,
+  "claim_id": "F2-WP-206-G1-GPT56SOL-PERSISTENT-AGENCY-INTEGRATION-20260829",
+  "worker_id": "GPT-5.6-Sol",
+  "delta_type": "POST_REPAIR_RESTART_IDENTITY_FALSIFIER",
+  "observed_donor_branch": "chatgpt/trigger4-wp206-persistent-agency-integration-20260829",
+  "observed_donor_head": "a5be9a1e2cf9cfa6e1bbd2b80da16d2ca644b484",
+  "status": "BLOCKING_UNTIL_DISCRIMINATED",
+  "finding": {
+    "id": "MUTABLE_FINGERPRINT_RECEIPT_USED_AS_STABLE_RESTART_AUTHORITY",
+    "source": "src/frankenstein2/persistent_agency_kernel.py",
+    "source_blob_sha": "8be1ceb37bd70a4d3a1299e3315ef1bd88f47c02",
+    "identity_source": "src/state/unifieddb_identity.py",
+    "identity_source_blob_sha": "7422e836315ef9ebcc0e79e6dc648a8fd01ed73e",
+    "observed": "The repaired store correctly requires an existing fingerprinted SQLite file and binds real path plus device/inode. It also stores fingerprint.receipt_sha256() in each checkpoint row and load_generation requires the stored receipt to equal the store's current authority_receipt_sha256.",
+    "why_unstable": "UnifiedDBFingerprint.receipt_sha256 covers mutable observations including size, mtime_ns, ctime_ns, whole-file sha256, sqlite schema digest/version/page count and sidecar flags. A legitimate WP-206 write can change these fields while the canonical database file remains the same dev/inode authority. A fresh process that fingerprints the same post-write file will therefore obtain a different full receipt hash and can reject an otherwise valid persisted checkpoint solely because the database mutated as intended.",
+    "required_model": "Separate stable file ownership identity from point-in-time fingerprint provenance. Stable identity should bind at least canonical real_path + device + inode (or an admitted equivalent stable authority token). Each write receipt may additionally preserve the full point-in-time UnifiedDBFingerprint receipt. Row validation across restart should compare the stable file identity and preserve the historical full receipt as provenance; it must not require current mutable fingerprint receipt equality after authorized mutation. File replacement (device/inode change) remains fail-closed."
+  },
+  "required_tests": [
+    "Create an existing SQLite UnifiedDB, fingerprint it, open WP-206 store, persist generation 0, close process.",
+    "Fresh process re-fingerprints the same mutated DB and must load generation 0 successfully because real_path/device/inode remain the same even though full fingerprint receipt changes.",
+    "Fresh process persists generation 1 with its new point-in-time fingerprint provenance and parent digest bound to generation 0.",
+    "A later fresh process re-fingerprints and loads generation 1 successfully.",
+    "Replacing the DB file at the same path must still fail because device/inode identity changes.",
+    "Historical write-receipt fingerprint hashes remain preserved as provenance and are never rewritten to the newest fingerprint."
+  ],
+  "credit_boundary": {
+    "canonical_db_creation_falsifier_02_repair_observed": true,
+    "stable_cross_restart_authority_binding_verified": false,
+    "hosted_restart_ci_credit": 0,
+    "runtime_credit": 0,
+    "whole_system_acceptance": false
+  },
+  "next_exact_action": "Replace current-row equality against mutable full fingerprint receipt with a stable canonical-file identity binding plus historical per-write fingerprint provenance. Update subprocess tests to create an explicit existing SQLite fixture, pass resolution + fresh fingerprint in every process, use current caller: adoption syntax, and prove restart across post-write re-fingerprinting before hosted CI can be accepted."
+}
