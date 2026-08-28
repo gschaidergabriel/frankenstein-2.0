@@ -23,6 +23,18 @@ GOOD_CLAIM = {
     "trigger": "4",
 }
 
+GOOD_ACTIVE = {
+    "schema": "FRANKENSTEIN2_ACTIVE_WORKPACKAGE/v1",
+    "workpackage_id": "F2-WP-002",
+    "generation": 2,
+    "claim_id": "F2-WP-002-G2-GPT56SOL-test",
+    "worker_id": "GPT-5.6-Sol",
+    "base_commit": "c" * 40,
+    "claimed_scope": "checkpoint validator test",
+    "created_at_utc": "2026-08-28T14:00:00Z",
+    "state": "ACTIVE",
+}
+
 GOOD_CP = {
     "schema": "FRANKENSTEIN2_CURRENT_CHECKPOINT/v1",
     "canonical_repository": "gschaidergabriel/frankenstein-2.0",
@@ -46,9 +58,15 @@ GOOD_CP = {
 }
 
 
-def write_fixture(root: Path, cp: dict, claim: dict = GOOD_CLAIM) -> None:
+def write_fixture(
+    root: Path,
+    cp: dict,
+    claim: dict = GOOD_CLAIM,
+    active: dict | None = GOOD_ACTIVE,
+) -> None:
     (root / "checkpoints").mkdir(parents=True)
     (root / "workpackages" / "claims").mkdir(parents=True)
+    (root / "workpackages" / "active").mkdir(parents=True)
     (root / "checkpoints" / "CURRENT.json").write_text(json.dumps(cp), encoding="utf-8")
     (root / "workpackages" / "STATE.json").write_text(
         json.dumps({
@@ -58,6 +76,10 @@ def write_fixture(root: Path, cp: dict, claim: dict = GOOD_CLAIM) -> None:
         encoding="utf-8",
     )
     (root / "workpackages" / "claims" / "claim.json").write_text(json.dumps(claim), encoding="utf-8")
+    if active is not None:
+        (root / "workpackages" / "active" / "F2-WP-002.json").write_text(
+            json.dumps(active), encoding="utf-8"
+        )
 
 
 class CheckpointValidatorTests(unittest.TestCase):
@@ -68,6 +90,7 @@ class CheckpointValidatorTests(unittest.TestCase):
             result = validate_checkpoint(root)
             self.assertTrue(result["pass"])
             self.assertEqual(result["runtime_credit"], 0)
+            self.assertEqual(result["active_path"], "workpackages/active/F2-WP-002.json")
 
     def test_rejects_claim_generation_mismatch(self) -> None:
         with tempfile.TemporaryDirectory() as td:
@@ -94,6 +117,33 @@ class CheckpointValidatorTests(unittest.TestCase):
             bad_cp["next_exact_action"] = "done"
             write_fixture(root, bad_cp)
             with self.assertRaisesRegex(CheckpointValidationError, "executable continuation"):
+                validate_checkpoint(root)
+
+    def test_rejects_missing_active_pointer(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            write_fixture(root, GOOD_CP, active=None)
+            with self.assertRaisesRegex(CheckpointValidationError, "active pointer"):
+                validate_checkpoint(root)
+
+    def test_rejects_historical_claim_when_active_generation_differs(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            stale_active = copy.deepcopy(GOOD_ACTIVE)
+            stale_active["generation"] = 3
+            stale_active["claim_id"] = "F2-WP-002-G3-other-worker"
+            stale_active["worker_id"] = "other-worker"
+            write_fixture(root, GOOD_CP, active=stale_active)
+            with self.assertRaisesRegex(CheckpointValidationError, "active pointer binding mismatch generation"):
+                validate_checkpoint(root)
+
+    def test_rejects_non_active_pointer_state(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            terminal_active = copy.deepcopy(GOOD_ACTIVE)
+            terminal_active["state"] = "SUPERSEDED"
+            write_fixture(root, GOOD_CP, active=terminal_active)
+            with self.assertRaisesRegex(CheckpointValidationError, "active pointer state"):
                 validate_checkpoint(root)
 
 
