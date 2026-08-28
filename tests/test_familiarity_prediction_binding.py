@@ -9,6 +9,7 @@ from frankenstein2.emergent_retrieval import (
     AXIS_SEMANTIC,
     RetrievalCandidate,
     RetrievalNeed,
+    RetrievalResult,
     RetrievalSignal,
     build_retrieval_plan,
 )
@@ -169,6 +170,44 @@ class FamiliarityPredictionBindingTests(unittest.TestCase):
         )
         with self.assertRaisesRegex(FamiliarityPredictionBindingError, "only selected retrieval"):
             binding.evaluate(residual=None, retrieval_results=(_result("m:weak", 9_000, selected=False),))
+
+    def test_directly_forged_selected_retrieval_result_fails_closed(self) -> None:
+        """Executable counterexample for exact WP301 provenance binding.
+
+        RetrievalResult currently has no constructor-time invariant validation. A caller
+        therefore must not be able to forge selected=True / weighted_score_bp=10000 while
+        providing zero overlap axes and no exact RetrievalPlan/need identity.
+        """
+        binding = FamiliarityPredictionBinding.create(
+            prediction_id="prediction:pending",
+            generation=1,
+            expected_residual_sha256=None,
+            evidence_refs=("binding:forged-result-falsifier",),
+        )
+        forged = RetrievalResult(
+            schema="FRANKENSTEIN2_RETRIEVAL_RESULT/v1",
+            memory_id="m:caller-forged",
+            memory_generation=0,
+            memory_state_sha256=_sha("forged-memory-state"),
+            lifecycle_status="ACTIVE",
+            selected=True,
+            classification="RETRIEVAL_REFERENCE_CANDIDATE_NOT_TRUTH",
+            payload_ref="payload:m:caller-forged",
+            payload_sha256=_sha("forged-payload"),
+            provenance_refs=("evidence:caller-forged",),
+            successor_ref=None,
+            overlap_axes=(),
+            overlap_count=0,
+            weighted_score_bp=10_000,
+            bottleneck_score_bp=0,
+            rank_score=0,
+            signal_scores_bp=(),
+            signal_evidence_refs=(),
+            candidate_sha256=_sha("forged-candidate"),
+        )
+
+        with self.assertRaises(FamiliarityPredictionBindingError):
+            binding.evaluate(residual=None, retrieval_results=(forged,))
 
     def test_duplicate_memory_identity_fails_closed(self) -> None:
         residual = _residual()
