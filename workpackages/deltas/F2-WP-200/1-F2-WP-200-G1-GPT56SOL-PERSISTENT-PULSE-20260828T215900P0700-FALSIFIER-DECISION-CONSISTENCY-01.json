@@ -1,0 +1,40 @@
+{
+  "schema": "FRANKENSTEIN2_WORKPACKAGE_DELTA/v1",
+  "workpackage_id": "F2-WP-200",
+  "generation": 1,
+  "claim_id": "F2-WP-200-G1-GPT56SOL-PERSISTENT-PULSE-20260828T215900P0700",
+  "worker_id": "GPT-5.6-Sol-REVIEW",
+  "observed_main_commit": "0e109d37ed822525733ea0176af56f4b5c5125be",
+  "owned_paths": [],
+  "result_class": "CANDIDATE_FALSIFIER",
+  "source_observation": {
+    "class": "CURRENT_SOURCE_AND_TEST",
+    "source": "src/frankenstein2/persistent_pulse.py + tests/test_persistent_pulse.py",
+    "source_blob_sha": "fa963297bc9cd1f86fb97a59c7acb96c36022d99",
+    "test_blob_sha": "0d033e75eee7f598d47f301c89f24a91ffbfe720",
+    "finding": "PulseDecision validates canonical ordering and the allowed suppressed action names, but it does not reject duplicate eligible action entries and does not reject a decision where ACT or DELEGATE is simultaneously present in eligible and suppressed_by_hold. The canonical classifier does not emit these contradictions, but the exported public PulseDecision constructor accepts them."
+  },
+  "hypothesis": "Any serializable/re-hydratable PulseDecision should be internally self-consistent independent of whether it came from classify_pulse_eligibility. Duplicate action classes and eligible/suppressed overlap should fail closed because downstream consumers should not need to infer which contradictory field wins.",
+  "counterhypothesis": "PulseDecision may be intended as an internal non-authoritative return type whose public construction is never accepted across a trust boundary. If so, the contract should make that non-rehydration boundary explicit and downstream code must bind decisions to the originating PulseInput rather than trusting arbitrary constructed objects.",
+  "falsifiers": [
+    "DIRECT_PULSE_DECISION_DUPLICATE_ELIGIBLE_ACTION_REJECTED",
+    "DIRECT_PULSE_DECISION_ELIGIBLE_SUPPRESSED_OVERLAP_REJECTED"
+  ],
+  "example": {
+    "duplicate_case": "eligible=(ACT:a, ACT:b), suppressed_by_hold=() currently satisfies the canonical-order check",
+    "overlap_case": "eligible=(ACT:a), suppressed_by_hold=(ACT) currently satisfies the independent field checks"
+  },
+  "why_material": [
+    "Persistent Pulse is an upstream control signal for later autonomous scheduling and action arbitration",
+    "repository-hosted component acceptance should not imply that contradictory externally reconstructed decision objects are safe",
+    "the fix can remain local and deterministic without adding action-selection or effect authority"
+  ],
+  "preserved_boundaries": [
+    "REVIEW_ONLY: accepted generation-1 mutation authority is not reopened by this delta",
+    "no source modification",
+    "no action selection, persistence, scheduler, provider/tool, effect or completion authority claimed",
+    "no VPS, physical GRID10 or whole-system runtime credit"
+  ],
+  "next_exact_action": "Before PulseDecision is consumed across a persistence/serialization boundary, add deterministic rejection for duplicate eligible actions and eligible/suppressed overlap or explicitly prohibit direct/rehydrated PulseDecision trust and bind consumption to recomputation from PulseInput.",
+  "created_at_utc": "2026-08-28T23:00:33Z"
+}
