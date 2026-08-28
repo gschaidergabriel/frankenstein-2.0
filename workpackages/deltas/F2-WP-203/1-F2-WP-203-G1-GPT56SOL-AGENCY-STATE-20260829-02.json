@@ -1,0 +1,36 @@
+{
+  "schema": "FRANKENSTEIN2_WORKPACKAGE_DELTA/v1",
+  "workpackage_id": "F2-WP-203",
+  "generation": 1,
+  "claim_id": "F2-WP-203-G1-GPT56SOL-AGENCY-STATE-20260829",
+  "worker_id": "GPT-5.6-Sol",
+  "base_commit": "249689b363a5152b4be96a99142f965caff1a226",
+  "observed_main_commit": "0933c241c814f741b02ad9979b97a254401e0c67",
+  "owned_paths": [
+    "tests/test_agency_state.py on candidate-falsifier branch only",
+    ".github/workflows/wp203-item-type-falsifier-ci.yml on candidate-falsifier branch only"
+  ],
+  "result_class": "FALSIFIER",
+  "source_commits": [
+    "e184129ec07a0581a1301e1eae7ba0c1690d01e8",
+    "4c64c89e519d29d7de69a674765155c85499d986"
+  ],
+  "receipts": [
+    "draft PR #32",
+    "GitHub Actions run 33218453151",
+    "GitHub Actions job 99007212027"
+  ],
+  "falsifiers": [
+    "AgencyState.create must reject a duck-typed object supplied in interests when it is not a concrete validated Interest",
+    "AgencyStatePatch must reject a duck-typed object supplied in upsert_interests before it can bypass Interest provenance/field validation"
+  ],
+  "contradictions": [
+    "Generation-1 acceptance states INTEREST_OPEN_LOOP_AND_DEFERRED_INTENT_REQUIRE_EXPLICIT_PROVENANCE, but current _unique_by_id checks identifier attributes rather than concrete item type; the added type-confusion suite compiles successfully and the AgencyState falsification step fails in hosted CI."
+  ],
+  "proposed_state_change": "Do not erase generation-1 historical acceptance. Open a narrowly scoped successor generation that enforces concrete item types for state and patch collections and re-runs the original suite plus the new type-confusion falsifiers.",
+  "completion_deficit": "Exact failing test names are encoded in PR #32 source; GitHub Actions step evidence establishes compile PASS plus falsification-suite FAIL. No whole-system/runtime credit changes.",
+  "next_exact_action": "If no competing successor claim exists, create F2-WP-203 generation 2 limited to concrete AgencyState item-type admission; fix all three item categories in state and patch paths; require hosted CI with old tests plus duck-type negative tests before reconciliation.",
+  "evidence_scope": "REPOSITORY_HOSTED_COMPONENT_FALSIFIER_ONLY",
+  "credit_effect": "GEN1_PROVENANCE_INVARIANT_CONTRADICTED_AT_COMPONENT_SCOPE; WHOLE_SYSTEM_AND_RUNTIME_CREDITS_UNCHANGED",
+  "created_at_utc": "2026-08-28T22:54:10Z"
+}
