@@ -1,0 +1,32 @@
+name: F2 WP102 Native Child Binding CI
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'src/frankenstein2/causal_identity.py'
+      - 'src/frankenstein2/native_child_binding.py'
+      - 'tests/test_native_child_binding.py'
+      - '.github/workflows/wp102-native-child-binding-ci.yml'
+  pull_request:
+    paths:
+      - 'src/frankenstein2/causal_identity.py'
+      - 'src/frankenstein2/native_child_binding.py'
+      - 'tests/test_native_child_binding.py'
+      - '.github/workflows/wp102-native-child-binding-ci.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  deterministic:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Compile causal and native-child binding
+        run: python -m py_compile src/frankenstein2/causal_identity.py src/frankenstein2/native_child_binding.py tests/test_native_child_binding.py
+      - name: Native-child binding falsification suite
+        run: PYTHONPATH=src python tests/test_native_child_binding.py -v
