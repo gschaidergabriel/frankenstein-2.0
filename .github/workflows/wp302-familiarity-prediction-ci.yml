@@ -7,12 +7,16 @@ on:
     paths:
       - 'src/frankenstein2/familiarity_prediction.py'
       - 'src/frankenstein2/prediction_contract.py'
+      - 'src/frankenstein2/emergent_retrieval.py'
+      - 'src/frankenstein2/memory_lifecycle.py'
       - 'tests/test_familiarity_prediction.py'
       - '.github/workflows/wp302-familiarity-prediction-ci.yml'
   pull_request:
     paths:
       - 'src/frankenstein2/familiarity_prediction.py'
       - 'src/frankenstein2/prediction_contract.py'
+      - 'src/frankenstein2/emergent_retrieval.py'
+      - 'src/frankenstein2/memory_lifecycle.py'
       - 'tests/test_familiarity_prediction.py'
       - '.github/workflows/wp302-familiarity-prediction-ci.yml'
   workflow_dispatch:
@@ -29,13 +33,15 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-      - name: Compile exact WP302 surface
+      - name: Compile exact WP302 and bound WP301 surface
         run: >-
           python -m py_compile
+          src/frankenstein2/memory_lifecycle.py
+          src/frankenstein2/emergent_retrieval.py
           src/frankenstein2/prediction_contract.py
           src/frankenstein2/familiarity_prediction.py
           tests/test_familiarity_prediction.py
-      - name: Familiarity prediction-error falsification suite
+      - name: Familiarity prediction-error provenance falsification suite
         env:
           PYTHONPATH: src
         run: python tests/test_familiarity_prediction.py -v
