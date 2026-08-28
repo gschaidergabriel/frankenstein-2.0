@@ -10,6 +10,7 @@ on:
       - 'src/frankenstein2/canonical_effect_authority_bridge.py'
       - 'tests/fixtures/entityos_effect_authority_2b68/**'
       - 'tests/test_bound_entityos_effect_authority_matrix.py'
+      - 'tests/test_bound_entityos_effect_poststart_timeout.py'
       - '.github/workflows/bound-entityos-effect-authority-matrix-ci.yml'
   push:
     branches: [main]
@@ -21,6 +22,7 @@ on:
       - 'src/frankenstein2/canonical_effect_authority_bridge.py'
       - 'tests/fixtures/entityos_effect_authority_2b68/**'
       - 'tests/test_bound_entityos_effect_authority_matrix.py'
+      - 'tests/test_bound_entityos_effect_poststart_timeout.py'
       - '.github/workflows/bound-entityos-effect-authority-matrix-ci.yml'
   workflow_dispatch:
 
@@ -67,12 +69,15 @@ jobs:
           src/frankenstein2/effect_executor_interlock.py
           src/frankenstein2/canonical_effect_authority_bridge.py
           tests/test_bound_entityos_effect_authority_matrix.py
+          tests/test_bound_entityos_effect_poststart_timeout.py
           tests/fixtures/entityos_effect_authority_2b68/clayverse/effects.py
           tests/fixtures/entityos_effect_authority_2b68/clayverse/effect_journal.py
           tests/fixtures/entityos_effect_authority_2b68/clayverse/store.py
           tests/fixtures/entityos_effect_authority_2b68/clayverse/entityos_bridge.py
       - name: Run exact-bound no-real-effect matrix
         run: python tests/test_bound_entityos_effect_authority_matrix.py
+      - name: Run exact-bound post-start timeout falsifier
+        run: python tests/test_bound_entityos_effect_poststart_timeout.py
       - name: Run WP105 executor-interlock regressions
         run: python tests/test_effect_executor_interlock.py
       - name: Run WP105 structured-receipt regressions
