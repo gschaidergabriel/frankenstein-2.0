@@ -1,0 +1,35 @@
+name: F2 WP204 Goal Lifecycle CI
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'src/frankenstein2/goal_lifecycle.py'
+      - 'tests/test_goal_lifecycle.py'
+      - '.github/workflows/wp204-goal-lifecycle-ci.yml'
+  pull_request:
+    paths:
+      - 'src/frankenstein2/goal_lifecycle.py'
+      - 'tests/test_goal_lifecycle.py'
+      - '.github/workflows/wp204-goal-lifecycle-ci.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  deterministic:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Compile
+        run: python -m py_compile src/frankenstein2/goal_lifecycle.py tests/test_goal_lifecycle.py
+      - name: Goal lifecycle falsification suite
+        env:
+          PYTHONPATH: src
+        run: python tests/test_goal_lifecycle.py -v
