@@ -42,10 +42,31 @@ workpackage_id + generation + claim_id
 Before every write:
 
 1. refresh current `main`;
-2. inspect `workpackages/STATE.json` and `checkpoints/CURRENT.json`;
+2. inspect `workpackages/STATE.json`, `workpackages/CLAIM_PROTOCOL.md`, `workpackages/active/<workpackage_id>.json` when present, and `checkpoints/CURRENT.json` when present;
 3. detect overlapping/newer claims;
 4. never overwrite a newer accepted generation with stale state;
 5. if overlap is useful as an independent falsifier, label it explicitly rather than pretending it is independent by default.
+
+### Mechanical mutation-authority lock
+
+A claim file under `workpackages/claims/` is historical/work evidence; by itself it is **not** mutation authority.
+
+Before mutating workpackage-owned canonical source/state, the worker must own the create-only pointer:
+
+```text
+workpackages/active/<workpackage_id>.json
+```
+
+There may be at most one active pointer per workpackage. If the path already exists for another claim, the new worker must not manufacture authority by incrementing generation, changing timestamp or opening a second claim. It may operate only as `CANDIDATE_FALSIFIER` / `REVIEW_ONLY` until reconciliation explicitly transfers authority.
+
+```text
+NEW_WORKER != NEW_GENERATION
+NEW_TRIGGER != RETRY_GENERATION
+CLAIM_FILE != MUTATION_AUTHORITY
+ONE_WORKPACKAGE -> AT_MOST_ONE_ACTIVE_MUTATION_POINTER
+```
+
+The detailed state/reconciliation rules are canonical in `workpackages/CLAIM_PROTOCOL.md`.
 
 ## Required receipt fields
 
