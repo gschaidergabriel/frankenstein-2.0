@@ -1,0 +1,55 @@
+{
+  "schema": "F2_WORKPACKAGE_CANDIDATE_FALSIFIER/v1",
+  "workpackage_id": "F2-WP-205",
+  "tested_generation": 3,
+  "canonical_mutation_claim": "F2-WP-205-G3-GPT56SOL-PROVENANCE-RECEIPT-20260829",
+  "classification": "CANDIDATE_FALSIFIER_REVIEW_ONLY",
+  "title": "WAKE_ANY/WAKE_ALL conflict-policy precedence defect",
+  "source_pr": 56,
+  "falsifier_branch": "chatgpt/trigger4-wp205-g3-conflict-policy-falsifier-20260829",
+  "falsifier_head_sha": "953e3f41152b77910314635d2cda11597661f9a2",
+  "tested_merge_sha": "826716839070ae81170d0b992a8ea2723aa2cb5c",
+  "github_actions": {
+    "run_id": 33219209185,
+    "job_id": 99009493428,
+    "status": "completed",
+    "conclusion": "failure_as_expected_negative_evidence",
+    "compile": "success",
+    "tests_total": 20,
+    "tests_passed": 18,
+    "tests_failed": 2
+  },
+  "observed_failures": [
+    {
+      "test": "test_any_policy_clean_match_is_decisive_over_other_condition_conflict",
+      "observed": "wake=false under ABSTAIN_CONFLICTING_OBSERVATIONS",
+      "expected": "clean explicit match remains decisive for WAKE_ANY"
+    },
+    {
+      "test": "test_all_policy_explicit_nonmatch_is_decisive_over_other_condition_conflict",
+      "observed": "ABSTAIN_CONFLICTING_OBSERVATIONS",
+      "expected": "HOLD_CONDITION_NOT_MATCHED because one explicit nonmatch already falsifies WAKE_ALL"
+    }
+  ],
+  "control_pass": "same-condition conflicting EQUALS observations remain ABSTAIN_CONFLICTING_OBSERVATIONS",
+  "current_g3_crosscheck": {
+    "source_head": "a72b145746df6b035196fbeb338d5f69ae95d29d",
+    "source_path": "src/frankenstein2/wake_hold.py",
+    "observation": "Generation-3 provenance receipt source still globally checks `if conflicting` before WAKE_ANY/WAKE_ALL aggregation, so the policy-precedence defect remains applicable at that inspected G3 head.",
+    "g3_provenance_ci_run": 33219261472,
+    "g3_provenance_ci_conclusion": "success_at_provenance_receipt_scope_only"
+  },
+  "hypothesis": "Global conflict precedence is too coarse. Policy aggregation should allow already-decisive clean evidence to dominate ambiguity on other conditions.",
+  "recommended_semantics": {
+    "WAKE_ANY": "if any explicit match => WAKE_CONDITION_MATCH; else if any conflict => ABSTAIN_CONFLICTING_OBSERVATIONS; else if any unknown => ABSTAIN_NOT_OBSERVED; else HOLD_CONDITION_NOT_MATCHED",
+    "WAKE_ALL": "if any explicit nonmatch => HOLD_CONDITION_NOT_MATCHED; else if any conflict => ABSTAIN_CONFLICTING_OBSERVATIONS; else if any unknown => ABSTAIN_NOT_OBSERVED; else WAKE_CONDITION_MATCH"
+  },
+  "scope_boundary": [
+    "NO_CANONICAL_MUTATION_AUTHORITY",
+    "NO_SCHEDULER_OR_AUTO_RESUME_CREDIT",
+    "NO_EFFECT_OR_COMPLETION_CREDIT",
+    "NO_VPS_OR_PHYSICAL_GRID10_CREDIT",
+    "NO_WHOLE_SYSTEM_CREDIT"
+  ],
+  "next_exact_gate": "The active F2-WP-205 generation-3 mutation owner must re-enter this negative evidence before terminal reconciliation. If generation 3 terminalizes without absorbing it, preserve generation-3 provenance acceptance at its exact scope and open a separately reconciled successor generation only after confirming no existing successor owns the policy-precedence repair."
+}
