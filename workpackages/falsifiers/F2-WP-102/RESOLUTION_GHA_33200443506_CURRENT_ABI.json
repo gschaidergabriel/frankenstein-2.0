@@ -1,0 +1,34 @@
+{
+  "schema": "FRANKENSTEIN2_FALSIFIER_RESOLUTION/v1",
+  "workpackage_id": "F2-WP-102",
+  "trigger": "4",
+  "historical_falsifier": "workpackages/falsifiers/F2-WP-102/20260828T215840P0700_CANDIDATE_CAUSAL_IDENTITY_PROJECTION_COLLAPSE.json",
+  "resolution_status": "FALSIFIED_FOR_EXACT_CURRENT_ABI_SCOPE",
+  "resolution_basis": {
+    "exact_run_head_sha": "7a19d3af29981142d7c78fbe1434fe8a320edd74",
+    "runtime_receipt": "workpackages/receipts/F2-WP-102_G1_CAUSAL_CONTEXT_COLLISION_GHA_33200443506.json",
+    "github_actions_run_id": 33200443506,
+    "github_actions_job_id": 98948279684,
+    "conclusion": "success"
+  },
+  "observed_current_abi": [
+    "NativeChildBinding contains full parent and child CausalIdentity values in its deterministic binding preimage.",
+    "Workpackage mutation generation is named workpackage_generation, while causal generations remain nested in parent.generation and child.generation.",
+    "The binding preimage also includes claim_id and invocation/tool-use/delegation identities."
+  ],
+  "runtime_discriminator": {
+    "held_constant": ["parent.causal_id", "child.causal_id", "workpackage_id", "workpackage_generation", "claim_id", "invocation_id", "tool_use_id", "delegation_id"],
+    "varied_independently": ["session_id", "task_id", "turn_id", "causal_generation"],
+    "expected_if_historical_collision_hypothesis_still_held": "At least one distinct admissible causal context would produce the same binding_id.",
+    "observed": "Every tested distinct causal context produced a distinct binding_id.",
+    "result": "NO_COLLISION_IN_DECLARED_TEST_DOMAIN"
+  },
+  "preservation_law": "The historical falsifier is retained unchanged because it records a valid source-review concern at its original identity. This resolution does not rewrite that evidence; it limits the concern against the exact current ABI and executed regression.",
+  "remaining_open_scope": [
+    "No proof is claimed for arbitrary cryptographic SHA-256 collision impossibility beyond normal digest assumptions.",
+    "No child spawn/runtime return transport, recipient ACK/dedupe, UnifiedDB write, effect, GRID10 cycle or whole Frankenstein 2.0 runtime was tested.",
+    "WP-104/WP-105 integration can still lose or misbind provenance even though WP-102 binding_id is collision-separating for the exercised dimensions."
+  ],
+  "whole_system_credit": 0,
+  "next_exact_action": "Use the now-executed WP-102 binding invariant as an input to WP-104/WP-105 integration tests; do not reopen the resolved current-ABI projection collision without new contradictory evidence."
+}
