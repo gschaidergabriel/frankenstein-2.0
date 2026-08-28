@@ -1,0 +1,80 @@
+{
+  "schema": "FRANKENSTEIN2_WORKPACKAGE_DELTA/v1",
+  "workpackage_id": "F2-WP-206",
+  "generation": 1,
+  "claim_id": "F2-WP-206-G1-GPT56SOL-PERSISTENT-AGENCY-INTEGRATION-20260829",
+  "worker_id": "GPT-5.6-Sol",
+  "delta_type": "PRE_IMPLEMENTATION_ACCEPTANCE_DISCRIMINATOR",
+  "observed_against_f2_main": "834eb77bcd98f8c3cd3b4866d2551107167b3fb7",
+  "observations": [
+    {
+      "id": "UNIFIEDDB_IDENTITY_IS_NOT_WRITE_AUTHORITY",
+      "source": "src/state/unifieddb_identity.py",
+      "source_blob_sha": "7422e836315ef9ebcc0e79e6dc648a8fd01ed73e",
+      "fact": "The accepted F2-WP-100 surface resolves and fingerprints the sole UnifiedDB path but explicitly creates, migrates, repairs and mutates nothing.",
+      "consequence": "F2-WP-206 may use the resolved canonical path but must not claim the resolver itself supplies persistence semantics. Any checkpoint writer must be a separately explicit namespaced integration surface inside the same canonical UnifiedDB, or reuse an already admitted writer if one exists. A second SQLite database is forbidden."
+    },
+    {
+      "id": "ADOPTED_GOAL_PUBLIC_REHYDRATION_IS_NOT_ADMITTED",
+      "source": "src/frankenstein2/goal_lifecycle.py",
+      "fact": "Generation-2 Goal lifecycle intentionally rejects ordinary public construction/rehydration of non-CANDIDATE GoalState/GoalRecord values; only the validated in-module lifecycle transition path may construct successor adopted state under the current contract.",
+      "consequence": "F2-WP-206 must not import or bypass a module-private construction authority merely to make restart tests green. Persisted adopted-goal payload may be integrity-verified as a replay envelope, but full typed GoalState rehydration requires an explicit admitted replay contract before it receives adopted-goal restart credit."
+    },
+    {
+      "id": "AGENCY_STATE_REPLAY_IS_PUBLIC_BUT_TYPED",
+      "source": "src/frankenstein2/agency_state.py",
+      "source_blob_sha": "a9c929fe1661340ee333cb26e40750686e5ff4e3",
+      "fact": "AgencyState permits public reconstruction from concrete validated Interest, OpenLoop and DeferredIntent values and evolves only under state-id/generation/digest fenced patches.",
+      "consequence": "AgencyState restart credit may be tested directly, but replay must reconstruct the concrete typed item ABI and re-check canonical state digest."
+    },
+    {
+      "id": "WAKE_RECEIPT_IS_EPISTEMIC_NOT_SCHEDULER_AUTHORITY",
+      "source": "src/frankenstein2/wake_hold.py",
+      "source_blob_sha": "b0aaf8c0e645ff97dd3b4931ee399d69f4d3fe33",
+      "fact": "Wake/HOLD generation 3 binds explicit observation payload/provenance and fail-closes state identity, but has no clock, sensor, persistence, scheduler or auto-resume authority.",
+      "consequence": "Restart must preserve HOLD/UNKNOWN. Missing observations after restart may not be converted into resume. A positive WakeEvaluation remains evidence/candidate input to a higher integration policy, not an effect or scheduler command."
+    },
+    {
+      "id": "PULSE_DECISION_IS_ELIGIBILITY_ONLY",
+      "source": "src/frankenstein2/persistent_pulse.py",
+      "source_blob_sha": "7082fa08a44e31e239587fbf9222a1b775a2cba9",
+      "fact": "Persistent Pulse returns explicitly supplied action-class eligibility only; HOLD suppresses ACT/DELEGATE and the component neither selects nor executes actions.",
+      "consequence": "A deterministic next tick may prove eligibility replay but cannot be reported as autonomous action execution or effect authority."
+    },
+    {
+      "id": "STATE_FINGERPRINT_SEPARATES_PROJECTION_FROM_LINEAGE",
+      "source": "src/frankenstein2/state_fingerprint.py",
+      "source_blob_sha": "c275e51710a1da58af8842d2a986fe850210c555",
+      "fact": "StateFingerprint exposes projection_changed separately from identity_changed, with generation included only in exact state identity.",
+      "consequence": "WP-206 restart/next-tick tests must distinguish unchanged projection with moved lineage/generation from actual projection-content change."
+    }
+  ],
+  "required_acceptance_gates": [
+    "Resolve one canonical absolute UnifiedDB path and fail closed on explicit authority conflict; do not create a second truth database.",
+    "Use a Frankenstein-2 namespaced integration table or an already-admitted canonical writer; document writer ownership separately from F2-WP-100 read-only identity authority.",
+    "Persist one canonical checkpoint envelope binding checkpoint identity, generation, exact component schemas, canonical component payload digests, provenance references, and prior/parent checkpoint identity where applicable.",
+    "Use transactional write semantics such that an existing checkpoint identity with different bytes/digest fails closed; an exact-byte idempotent replay may be explicitly classified but must not silently replace history.",
+    "Process A writes and exits; a distinct subprocess/process B opens the same resolved UnifiedDB and verifies the checkpoint without inherited in-memory objects.",
+    "AgencyState is reconstructed through its public typed ABI and its state digest must match the persisted digest.",
+    "Do not grant adopted GoalState typed rehydration credit until a public admitted replay contract exists. If generation-1 WP-206 stores adopted goal state, classify it as integrity-verified persisted goal snapshot/envelope rather than reconstructed live GoalState.",
+    "A restart with missing wake observations remains ABSTAIN/HOLD and never auto-resumes.",
+    "A positive explicit WakeEvaluation may affect only a typed integration eligibility decision; it cannot directly execute, schedule, authorize an effect or mint completion.",
+    "Next-tick Pulse output remains eligibility-only and must bind the exact checkpoint/state identity used as input.",
+    "StateFingerprint tests separately prove projection_changed and identity_changed behavior across restart and next-generation evolution.",
+    "Corrupt payload, mismatched digest, stale generation, wrong state id, wrong parent identity or provenance mismatch fail closed before producing next-tick credit.",
+    "Repository-hosted CI must execute the subprocess restart test at exact source head; source inspection alone is insufficient."
+  ],
+  "counterhypothesis": "A minimal JSON/SQLite snapshot plus restart may look deterministic and survive a process boundary while still bypassing component reconstruction invariants, creating a second persistence authority, or falsely upgrading an integrity-checked goal payload into an admitted adopted GoalState. Such a test would demonstrate byte survival only, not the claimed persistent-agency integration contract.",
+  "cheapest_high_information_discriminator": "Before implementation acceptance, run one hosted-CI subprocess test that writes an AgencyState plus an adopted-goal snapshot and HOLD checkpoint through the canonical resolved DB path, exits, then reopens in a fresh process. Require typed AgencyState reconstruction, verified-but-not-live adopted-goal classification unless a replay ABI is added, HOLD preservation under zero observations, exact StateFingerprint projection/lineage assertions, and corruption/stale-generation rejection.",
+  "credit_boundary": {
+    "source_credit": "PRE_IMPLEMENTATION_DISCRIMINATOR_ONLY",
+    "component_integration_credit": 0,
+    "subprocess_restart_credit": 0,
+    "vps_runtime_credit": 0,
+    "physical_grid10_credit": 0,
+    "effect_credit": 0,
+    "completion_credit": 0,
+    "whole_frankenstein2_acceptance": false
+  },
+  "next_exact_action": "Inspect current canonical UnifiedDB writer/table ownership. If no admitted namespaced writer exists, implement the smallest F2-WP-206-owned namespaced checkpoint writer in the same resolved UnifiedDB, plus a public replay envelope that refuses to forge adopted GoalState rehydration. Add deterministic fresh-process restart/failure-path CI before reconciliation."
+}
