@@ -7,18 +7,28 @@ on:
     paths:
       - 'src/frankenstein2/recipient_delivery.py'
       - 'src/frankenstein2/recipient_delivery_binding.py'
+      - 'src/frankenstein2/deferred_return_delivery.py'
+      - 'src/frankenstein2/deferred_return.py'
+      - 'src/frankenstein2/native_child_binding.py'
+      - 'src/frankenstein2/causal_identity.py'
       - 'src/state/unifieddb_identity.py'
       - 'tests/test_recipient_delivery.py'
       - 'tests/test_recipient_delivery_binding.py'
+      - 'tests/test_deferred_return_delivery.py'
       - 'tests/test_unifieddb_identity.py'
       - '.github/workflows/wp103-recipient-delivery-ci.yml'
   pull_request:
     paths:
       - 'src/frankenstein2/recipient_delivery.py'
       - 'src/frankenstein2/recipient_delivery_binding.py'
+      - 'src/frankenstein2/deferred_return_delivery.py'
+      - 'src/frankenstein2/deferred_return.py'
+      - 'src/frankenstein2/native_child_binding.py'
+      - 'src/frankenstein2/causal_identity.py'
       - 'src/state/unifieddb_identity.py'
       - 'tests/test_recipient_delivery.py'
       - 'tests/test_recipient_delivery_binding.py'
+      - 'tests/test_deferred_return_delivery.py'
       - 'tests/test_unifieddb_identity.py'
       - '.github/workflows/wp103-recipient-delivery-ci.yml'
   workflow_dispatch:
@@ -39,11 +49,16 @@ jobs:
         run: |
           python -m py_compile \
             src/state/unifieddb_identity.py \
+            src/frankenstein2/causal_identity.py \
+            src/frankenstein2/native_child_binding.py \
+            src/frankenstein2/deferred_return.py \
             src/frankenstein2/recipient_delivery.py \
             src/frankenstein2/recipient_delivery_binding.py \
+            src/frankenstein2/deferred_return_delivery.py \
             tests/test_unifieddb_identity.py \
             tests/test_recipient_delivery.py \
-            tests/test_recipient_delivery_binding.py
+            tests/test_recipient_delivery_binding.py \
+            tests/test_deferred_return_delivery.py
       - name: UnifiedDB authority regression
         env:
           PYTHONPATH: src
@@ -56,3 +71,7 @@ jobs:
         env:
           PYTHONPATH: src
         run: python tests/test_recipient_delivery_binding.py -v
+      - name: Deferred parent-return delivery falsification suite
+        env:
+          PYTHONPATH: src
+        run: python tests/test_deferred_return_delivery.py -v
