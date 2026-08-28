@@ -17,6 +17,9 @@ Authority invariants:
 
 All inputs remain caller supplied. Digest binding proves identity/equality at this interface;
 it does not turn the caller, memory, retrieval plan, or model output into canonical truth.
+Derived WP301 result fields are independently reconstructed from the exact supplied need and
+signal scores before any familiarity value is consumed; a digest never authenticates an
+already-forged derivation by itself.
 """
 from __future__ import annotations
 
@@ -114,7 +117,88 @@ def _residual_error_bp(residual: PredictionResidual) -> int:
     return min(MAX_BASIS_POINTS, residual.mismatch_count * MAX_BASIS_POINTS // denominator)
 
 
-def _validate_retrieval_result(result: RetrievalResult, *, selected: bool) -> None:
+def _validate_signal_scores(
+    result: RetrievalResult,
+    *,
+    need: RetrievalNeed,
+) -> tuple[tuple[str, int], ...]:
+    raw_scores = result.signal_scores_bp
+    if not isinstance(raw_scores, tuple):
+        raise FamiliarityPredictionBindingError("retrieval signal_scores_bp must be a tuple")
+
+    scores: list[tuple[str, int]] = []
+    seen_axes: set[str] = set()
+    for pair in raw_scores:
+        if not isinstance(pair, tuple) or len(pair) != 2:
+            raise FamiliarityPredictionBindingError(
+                "retrieval signal_scores_bp must contain (axis, score) pairs"
+            )
+        axis, score = pair
+        if not isinstance(axis, str) or axis not in need.axes:
+            raise FamiliarityPredictionBindingError("retrieval signal score axis is not in need")
+        if axis in seen_axes:
+            raise FamiliarityPredictionBindingError("duplicate retrieval signal score axis")
+        if type(score) is not int or not (0 <= score <= MAX_BASIS_POINTS):
+            raise FamiliarityPredictionBindingError(
+                "retrieval signal score must be an integer in [0, 10000]"
+            )
+        seen_axes.add(axis)
+        scores.append((axis, score))
+
+    canonical_scores = tuple(sorted(scores, key=lambda pair: pair[0]))
+    if tuple(raw_scores) != canonical_scores:
+        raise FamiliarityPredictionBindingError("retrieval signal score order is non-canonical")
+    if tuple(axis for axis, _ in canonical_scores) != need.axes:
+        raise FamiliarityPredictionBindingError(
+            "retrieval signal score axes do not exactly match need axes"
+        )
+    return canonical_scores
+
+
+def _validate_signal_evidence(
+    result: RetrievalResult,
+    *,
+    need: RetrievalNeed,
+) -> None:
+    raw_evidence = result.signal_evidence_refs
+    if not isinstance(raw_evidence, tuple):
+        raise FamiliarityPredictionBindingError("retrieval signal_evidence_refs must be a tuple")
+
+    normalized: list[tuple[str, tuple[str, ...]]] = []
+    seen_axes: set[str] = set()
+    for pair in raw_evidence:
+        if not isinstance(pair, tuple) or len(pair) != 2:
+            raise FamiliarityPredictionBindingError(
+                "retrieval signal_evidence_refs must contain (axis, refs) pairs"
+            )
+        axis, refs = pair
+        if not isinstance(axis, str) or axis not in need.axes:
+            raise FamiliarityPredictionBindingError("retrieval signal evidence axis is not in need")
+        if axis in seen_axes:
+            raise FamiliarityPredictionBindingError("duplicate retrieval signal evidence axis")
+        normalized_refs = _refs("retrieval signal evidence_ref", refs)
+        if not isinstance(refs, tuple) or refs != normalized_refs:
+            raise FamiliarityPredictionBindingError(
+                "retrieval signal evidence refs are non-canonical"
+            )
+        seen_axes.add(axis)
+        normalized.append((axis, normalized_refs))
+
+    canonical = tuple(sorted(normalized, key=lambda pair: pair[0]))
+    if tuple(raw_evidence) != canonical:
+        raise FamiliarityPredictionBindingError("retrieval signal evidence order is non-canonical")
+    if tuple(axis for axis, _ in canonical) != need.axes:
+        raise FamiliarityPredictionBindingError(
+            "retrieval signal evidence axes do not exactly match need axes"
+        )
+
+
+def _validate_retrieval_result(
+    result: RetrievalResult,
+    *,
+    selected: bool,
+    need: RetrievalNeed,
+) -> None:
     if not isinstance(result, RetrievalResult):
         raise FamiliarityPredictionBindingError(
             "retrieval plan must contain RetrievalResult values"
@@ -132,26 +216,39 @@ def _validate_retrieval_result(result: RetrievalResult, *, selected: bool) -> No
         raise FamiliarityPredictionBindingError(
             "retrieval result selected flag contradicts plan partition"
         )
-    if type(result.weighted_score_bp) is not int or not (
-        0 <= result.weighted_score_bp <= MAX_BASIS_POINTS
-    ):
+
+    score_pairs = _validate_signal_scores(result, need=need)
+    _validate_signal_evidence(result, need=need)
+    weights = dict(need.axis_weights_bp)
+    weight_total = sum(weights[axis] for axis in need.axes)
+    derived_overlap_axes = tuple(axis for axis, score in score_pairs if score > 0)
+    derived_overlap_count = len(derived_overlap_axes)
+    derived_weighted_score = (
+        sum(score * weights[axis] for axis, score in score_pairs) // weight_total
+    )
+    derived_bottleneck_score = min((score for _, score in score_pairs), default=0)
+    derived_rank_score = derived_weighted_score * derived_overlap_count
+
+    if result.overlap_axes != derived_overlap_axes:
         raise FamiliarityPredictionBindingError(
-            "retrieval weighted_score_bp must be an integer in [0, 10000]"
+            "retrieval overlap_axes do not match deterministic derivation"
         )
-    if type(result.bottleneck_score_bp) is not int or not (
-        0 <= result.bottleneck_score_bp <= MAX_BASIS_POINTS
-    ):
+    if type(result.overlap_count) is not int or result.overlap_count != derived_overlap_count:
         raise FamiliarityPredictionBindingError(
-            "retrieval bottleneck_score_bp must be an integer in [0, 10000]"
+            "retrieval overlap_count does not match deterministic derivation"
         )
-    if type(result.overlap_count) is not int or result.overlap_count < 0:
-        raise FamiliarityPredictionBindingError("retrieval overlap_count must be non-negative integer")
-    if result.overlap_count != len(result.overlap_axes):
-        raise FamiliarityPredictionBindingError("retrieval overlap_count is internally inconsistent")
-    if type(result.rank_score) is not int or result.rank_score < 0:
-        raise FamiliarityPredictionBindingError("retrieval rank_score must be non-negative integer")
-    if result.rank_score != result.weighted_score_bp * result.overlap_count:
-        raise FamiliarityPredictionBindingError("retrieval rank_score is internally inconsistent")
+    if type(result.weighted_score_bp) is not int or result.weighted_score_bp != derived_weighted_score:
+        raise FamiliarityPredictionBindingError(
+            "retrieval weighted_score_bp does not match deterministic derivation"
+        )
+    if type(result.bottleneck_score_bp) is not int or result.bottleneck_score_bp != derived_bottleneck_score:
+        raise FamiliarityPredictionBindingError(
+            "retrieval bottleneck_score_bp does not match deterministic derivation"
+        )
+    if type(result.rank_score) is not int or result.rank_score != derived_rank_score:
+        raise FamiliarityPredictionBindingError(
+            "retrieval rank_score does not match deterministic derivation"
+        )
 
 
 def _validate_retrieval_provenance(
@@ -185,15 +282,14 @@ def _validate_retrieval_provenance(
     if len(plan.selected) > need.limit:
         raise FamiliarityPredictionBindingError("retrieval plan selected count exceeds need limit")
 
-    all_results = tuple(plan.selected) + tuple(plan.not_selected)
     memory_ids: set[str] = set()
     for result in plan.selected:
-        _validate_retrieval_result(result, selected=True)
+        _validate_retrieval_result(result, selected=True, need=need)
         if result.memory_id in memory_ids:
             raise FamiliarityPredictionBindingError("duplicate retrieval memory_id in plan")
         memory_ids.add(result.memory_id)
     for result in plan.not_selected:
-        _validate_retrieval_result(result, selected=False)
+        _validate_retrieval_result(result, selected=False, need=need)
         if result.memory_id in memory_ids:
             raise FamiliarityPredictionBindingError("duplicate retrieval memory_id in plan")
         memory_ids.add(result.memory_id)
@@ -321,7 +417,6 @@ class FamiliarityPredictionBinding:
             raise FamiliarityPredictionBindingError("retrieval_need must be RetrievalNeed")
         if not isinstance(retrieval_plan, RetrievalPlan):
             raise FamiliarityPredictionBindingError("retrieval_plan must be RetrievalPlan")
-        # Creation itself captures an exact identity fence; evaluate() revalidates all structure.
         return cls(
             schema=BINDING_SCHEMA,
             prediction_id=prediction_id,
