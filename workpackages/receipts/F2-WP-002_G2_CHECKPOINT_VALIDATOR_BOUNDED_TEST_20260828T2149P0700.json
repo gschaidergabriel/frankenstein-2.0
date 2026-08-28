@@ -1,0 +1,70 @@
+{
+  "schema": "FRANKENSTEIN2_WORKPACKAGE_ACCEPTANCE_RECEIPT/v1",
+  "run_id": "F2-WP-002-G2-checkpoint-validator-bounded-20260828T2149P0700",
+  "trigger": "4",
+  "workpackage_id": "F2-WP-002",
+  "generation": 2,
+  "claim_id": "F2-WP-002-G2-GPT56SOL-cd0e056a",
+  "worker_id": "GPT-5.6-Sol",
+  "canonical_repository": "gschaidergabriel/frankenstein-2.0",
+  "source_commit_tested": "e95f6f765f4ce7c71c32e92284ad9e4819b47e48",
+  "source_commit_observed_before_receipt": "4fe8f950d097d034ce16b7b4deaab842f60f5509",
+  "tested_artifacts": [
+    {
+      "path": "tools/validate_current_checkpoint.py",
+      "git_blob_sha": "531b33ceffe575972d5d2f9fb6008839098a352f"
+    },
+    {
+      "path": "tests/test_validate_current_checkpoint.py",
+      "git_blob_sha": "1e26a4595eb868b4858dbfeef4cbf76c157a09e2"
+    }
+  ],
+  "environment": {
+    "execution_class": "BOUNDED_NON_PROVIDER_LOCAL_SANDBOX",
+    "os": "Linux 6.18.35 x86_64",
+    "python": "3.13.5",
+    "provider_calls": 0,
+    "paid_fallback": false,
+    "secrets_consumed": false
+  },
+  "commands": [
+    "git hash-object tools/validate_current_checkpoint.py",
+    "git hash-object tests/test_validate_current_checkpoint.py",
+    "python3 -m unittest -v tests/test_validate_current_checkpoint.py"
+  ],
+  "results": {
+    "source_blob_exact_match": true,
+    "test_blob_exact_match": true,
+    "tests_run": 12,
+    "tests_passed": 12,
+    "tests_failed": 0,
+    "exit_status": 0,
+    "validator_positive_path": "PASS",
+    "fail_closed_cases": [
+      "missing required field",
+      "malformed worker claim commit",
+      "malformed evidence commit",
+      "runtime credit without runtime evidence",
+      "whole-system acceptance without runtime evidence",
+      "claim generation mismatch",
+      "claim asserting runtime execution",
+      "active generation mismatch",
+      "terminal/non-ACTIVE pointer",
+      "NOT_STARTED workpackage state",
+      "missing workpackage state entry"
+    ]
+  },
+  "hypothesis": "Binding checkpoint identity to the active mutation pointer and machine-readable workpackage state prevents stale or cross-generation continuation metadata from being accepted as current.",
+  "counterhypothesis": "Core checkpoint shape validation alone is sufficient and active/state binding adds no useful discriminator.",
+  "discriminator_result": "COUNTERHYPOTHESIS_REJECTED_AT_UNIT_SCOPE: explicit mismatch and inactive/state-invalid cases fail closed while the valid bound case passes.",
+  "acceptance_scope": "SOURCE_AND_CONTINUITY_METADATA_ONLY",
+  "runtime_execution_observed": false,
+  "runtime_credit_granted": 0,
+  "whole_system_acceptance": false,
+  "negative_evidence": [
+    "This execution does not exercise Frankenstein 2.0 runtime cognition, GRID10, UnifiedDB persistence, effects, Voice, or VPS behavior.",
+    "It does not establish whole-system or component runtime acceptance beyond checkpoint-validator source/continuity semantics."
+  ],
+  "completion_deficit": "No runtime credit is requested or implied. F2-WP-002 may be accepted only at its source/continuity metadata scope.",
+  "next_exact_action": "Close F2-WP-002 generation 2 at SOURCE_AND_CONTINUITY_METADATA_ONLY scope, mark the active pointer ACCEPTED with reconciliation evidence, refresh main and active claims, then select the highest-priority non-overlapping Phase-1 causal-state workpackage."
+}
