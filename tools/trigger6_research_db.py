@@ -4,7 +4,7 @@
 Stdlib-only by design. The DB is a research/evidence index, not canonical world truth.
 """
 from __future__ import annotations
-import argparse, datetime as dt, hashlib, json, pathlib, sqlite3
+import argparse, datetime as dt, json, pathlib, sqlite3
 
 SCHEMA = r'''
 PRAGMA foreign_keys=ON;
@@ -78,7 +78,7 @@ def bootstrap(db, manifest):
     for s in manifest['seeds']:
         stmt=s['hypothesis']; counter=s['counterhypothesis']; targets=s.get('targets',[])
         src=s.get('initial_source',{})
-        db.execute('''INSERT INTO seeds VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+        db.execute('''INSERT INTO seeds VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)
           ON CONFLICT(seed_id) DO UPDATE SET repo=excluded.repo,url=excluded.url,user_hypothesis=excluded.user_hypothesis,
           counterhypothesis=excluded.counterhypothesis,initial_source_type=excluded.initial_source_type,
           initial_source_sha=excluded.initial_source_sha,targets_json=excluded.targets_json,priority=excluded.priority,
@@ -112,11 +112,11 @@ def add_delta(db,args):
     db.execute('INSERT INTO architecture_deltas VALUES(?,?,?,?,?,?,?,?,?)',(
       args.delta_id,args.snapshot_id,args.source_stream,args.source_ref,json.dumps(args.module),args.delta_class,args.summary,args.impact,args.timestamp or utcnow()))
     if args.mark_stale:
-        for module in args.module:
-            rows=db.execute("SELECT hypothesis_id,affected_modules_json FROM hypotheses WHERE status NOT IN ('REJECTED','F2_ACCEPTED')").fetchall()
-            for hid,mods in rows:
-                if module in json.loads(mods):
-                    db.execute("UPDATE hypotheses SET status='STALE_REVIEW_REQUIRED',updated_at_utc=? WHERE hypothesis_id=?",(utcnow(),hid))
+        rows=db.execute("SELECT hypothesis_id,affected_modules_json FROM hypotheses WHERE status NOT IN ('REJECTED','F2_ACCEPTED')").fetchall()
+        touched=set(args.module)
+        for hid,mods in rows:
+            if touched.intersection(json.loads(mods)):
+                db.execute("UPDATE hypotheses SET status='STALE_REVIEW_REQUIRED',updated_at_utc=? WHERE hypothesis_id=?",(utcnow(),hid))
     db.commit()
 
 def add_evidence(db,args):
@@ -137,7 +137,7 @@ def claim(db,args):
 def verify(db):
     qc=db.execute('PRAGMA quick_check').fetchone()[0]
     bad=db.execute("SELECT COUNT(*) FROM build_candidates WHERE status='F2_ACCEPTED' AND trigger4_inbox_ref IS NULL").fetchone()[0]
-    print(json.dumps({'quick_check':qc,'invalid_accepted_candidates':bad,'sha256':None}))
+    print(json.dumps({'quick_check':qc,'invalid_accepted_candidates':bad}))
     if qc!='ok' or bad: raise SystemExit(2)
 
 def main():
