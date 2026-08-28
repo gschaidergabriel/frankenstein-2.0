@@ -36,6 +36,27 @@ class PredictionFingerprintBindingProvenanceTests(unittest.TestCase):
             observed_projection=observed_projection,
         )
 
+    def test_generation_zero_statefingerprint_is_bound_without_renumbering(self):
+        basis = self.fp({"bootstrap": True}, generation=0)
+        bound = FingerprintBoundPrediction.create(
+            prediction_id="prediction-from-bootstrap-state",
+            target_id="agency-state",
+            generation=1,
+            basis_fingerprint=basis,
+            expected_projection={"bootstrap": False},
+        )
+        self.assertEqual(bound.basis_fingerprint.generation, 0)
+        self.assertEqual(bound.basis_fingerprint.identity_sha256, basis.identity_sha256)
+        self.assertEqual(bound.contract.generation, 1)
+        self.assertEqual(
+            bound.contract.basis_fingerprint_sha256,
+            basis.identity_sha256,
+        )
+        self.assertEqual(
+            bound.as_dict()["basis_fingerprint"],
+            basis.as_dict(),
+        )
+
     def test_nonhex_or_arbitrary_binding_digest_cannot_be_asserted(self):
         bound = self.bound(expected_projection={"counter": 2})
         receipt = self.receipt(bound, {"counter": 2})
