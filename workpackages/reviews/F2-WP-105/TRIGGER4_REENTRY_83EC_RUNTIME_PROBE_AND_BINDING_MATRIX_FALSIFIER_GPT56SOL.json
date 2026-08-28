@@ -1,0 +1,137 @@
+{
+  "schema": "FRANKENSTEIN2_WORKPACKAGE_REVIEW/v1",
+  "classification": "REVIEW_ONLY_POST_IMPLEMENTATION_REENTRY_FALSIFIER",
+  "trigger": "4",
+  "workpackage_id": "F2-WP-105",
+  "organ": "GPT-5.6 Sol / ChatGPT Triggerword-4 continuation organ",
+  "mutation_authority": false,
+  "canonical_wp105_implementation_modified": false,
+  "observed_frankenstein2_main": "83ec5e537a6b496453d0b67faba55aac4236c68e",
+  "observed_research_main": "5531c8699cb7c53ff97bd37f92fe037b1fad1e71",
+  "active_claim": "F2-WP-105-G1-EXECUTION-COMPLETION-GPT56SOL-20260828T215528P0700",
+  "result": "SEMANTIC_REQUEST_COMPONENT_ADVANCED_BUT_CURRENT_ENTITYOS_BINDING_AND_SINGLE_TRANSACTION_PRODUCTION_PATH_REMAIN_OPEN",
+  "observed_advances": [
+    {
+      "source": "src/frankenstein2/effect_request_identity.py",
+      "claim": "Immutable typed semantic EffectRequest identity exists and hashes user_id/session_id/capability/target/argv/expected_generation deterministically."
+    },
+    {
+      "source": "src/frankenstein2/effect_invocation_correlation.py",
+      "claim": "PRE/POST correlation can now carry EffectRequestIdentity and request_sha256; legacy correlation-only envelopes remain compatibility-only."
+    },
+    {
+      "source": "src/frankenstein2/effect_executor_interlock.py",
+      "claim": "Gate and POST observations can be required to echo the exact semantic request digest; post-dispatch digest mismatch becomes UNKNOWN/no automatic replay."
+    },
+    {
+      "source_commit": "f83c818f378d4c2b8646200418d6c145645ef40c",
+      "claim": "Canonical bridge was extended so canonical binding/dispatch fails closed without semantic EffectRequestIdentity and authority evidence must echo request_sha256."
+    },
+    {
+      "workflow_run_id": 33203978946,
+      "head": "83ec5e537a6b496453d0b67faba55aac4236c68e",
+      "workflow": "Frankenstein 2.0 Canonical Effect Authority Bridge CI",
+      "result": "SUCCESS",
+      "scope": "semantic-request/canonical-bridge component CI only"
+    }
+  ],
+  "current_falsifiers": [
+    {
+      "id": "CURRENT_COMPATIBILITY_RECORD_LITERAL_MISMATCH",
+      "severity": "BLOCKING_FOR_CURRENT_AUTHORITY_CONSUMPTION",
+      "f2_source": "src/frankenstein2/current_entityos_effect_authority_binding.py",
+      "f2_expected_schema": "ENTITYOS_EFFECT_AUTHORITY_CURRENT_EPOCH_ATTESTATION/v1",
+      "f2_expected_status": "CURRENT_EPOCH_COMPATIBILITY_ATTESTED_NO_AUTHORITY_CHANGE",
+      "current_research_path": "research_entity/continuity/ENTITYOS_EFFECT_AUTHORITY_IMPLEMENTATION_BINDING_9_13_COMPATIBILITY_V1.json",
+      "current_research_blob_sha": "7f3964ea60a8f30de382e82fef441148e30bab83",
+      "current_research_schema": "ENTITYOS_EFFECT_AUTHORITY_IMPLEMENTATION_BINDING_COMPATIBILITY/v1",
+      "current_research_status": "CURRENT_EPOCH_COMPATIBILITY_ATTESTATION_NO_NEW_AUTHORITY",
+      "finding": "The F2 loader still cannot consume the surviving current 9.13 compatibility record byte/field-faithfully."
+    },
+    {
+      "id": "CURRENT_BINDING_MATRIX_RED_AFTER_SEMANTIC_ABI_CHANGE",
+      "severity": "BLOCKING_COMPONENT_REGRESSION",
+      "workflow_run_id": 33203926325,
+      "head": "f83c818f378d4c2b8646200418d6c145645ef40c",
+      "result": "FAILURE",
+      "failed_step": "Run current binding no-real-effect matrix",
+      "source_observation": "tests/test_current_entityos_effect_authority_binding.py still constructs EffectCallIntent without EffectRequestIdentity/request_sha256 and still contains a receipt-less final APPLIED verification path even though newer WP105 contracts require typed final verification evidence.",
+      "classification": "PRODUCT_INTEGRATION_TEST_REGRESSION_NOT_INFRASTRUCTURE"
+    },
+    {
+      "id": "TWO_STAGE_F2_DISPATCH_STILL_NOT_CURRENT_EFFECTGATE_TOPOLOGY",
+      "severity": "BLOCKING_FOR_PRODUCTION_EFFECT_PATH",
+      "source": "src/frankenstein2/current_entityos_effect_authority_binding.py",
+      "finding": "dispatch_with_current_entityos_authority still delegates to dispatch_with_canonical_authority(authorize, executor). The currently bound EntityOS EffectGate.execute owns policy checks, journal begin/PENDING, action execution and journal finalization in one canonical call. Using that API as an authorize callback and then calling a separate F2 executor risks duplicate effect execution.",
+      "required_direction": "Use one canonical EntityOS EffectGate.execute transaction and correlate its canonical effect/journal result afterward. Any prepare/dispatch/finalize split must be introduced by canonical EntityOS authority, not invented by F2."
+    },
+    {
+      "id": "BOUND_ZERO_EFFECT_RUNTIME_PROBE_DID_NOT_EXECUTE",
+      "severity": "EVIDENCE_BLOCKER",
+      "workflow_run_id": 33203978272,
+      "head": "55845ed20dd67db1d3bbe522533c086b2522bd6b",
+      "result": "FAILURE_BEFORE_EXECUTION",
+      "failed_step": "Checkout current-epoch authority metadata identity",
+      "skipped": [
+        "Checkout exact bound EntityOS implementation",
+        "Verify exact Git source identities before execution",
+        "Compile exact-bound runtime probe",
+        "Execute exact bound zero-real-effect runtime probe"
+      ],
+      "classification": "INFRASTRUCTURE_OR_SOURCE_REENTRY_FAILURE_NOT_EFFECTGATE_NEGATIVE_RESULT",
+      "credit": 0
+    },
+    {
+      "id": "BOUND_RUNTIME_PROBE_SCOPE_IS_NOT_F2_END_TO_END",
+      "severity": "CLAIM_SCOPE_GUARD",
+      "test": "tests/test_bound_entityos_effect_runtime.py",
+      "finding": "The probe directly loads the bound EntityOS EffectGate/EffectJournal/UnifiedDB and calls state.noop; it does not traverse the new F2 semantic-request/current-binding/bridge integration. Even a future PASS is only exact-bound EntityOS component runtime evidence unless the F2 adapter path is included."
+    },
+    {
+      "id": "POST_LAUNCH_UNKNOWN_OUTCOME_SEMANTICS_STILL_OPEN",
+      "severity": "BLOCKING_FOR_NONIDEMPOTENT_REAL_EFFECTS",
+      "finding": "The currently bound EffectGate/EntityOS bridge may classify a post-launch transport/timeout exception as FAILED even when the external effect outcome can be unknown. Preserve UNKNOWN/no blind replay and reconcile retained UNKNOWN_OUTCOME donor semantics before non-idempotent real-effect admission."
+    },
+    {
+      "id": "CURRENT_CHECKPOINT_LAGS_LIVE_WP105_SOURCE",
+      "severity": "CONTINUITY_DRIFT",
+      "path": "checkpoints/CURRENT.json",
+      "finding": "CURRENT still describes semantic EffectRequest binding as wholly unresolved even though semantic request identity, PRE/POST digest correlation, executor digest checks and canonical-bridge digest binding have landed. It should be reconciled by the active mutation authority only after the current red binding matrix and production-topology blockers are resolved or explicitly recorded."
+    }
+  ],
+  "counterhypotheses": [
+    {
+      "hypothesis": "The two-stage F2 bridge can safely remain if authorize is implemented without calling EffectGate.execute.",
+      "status": "NOT_SUPPORTED_BY_CURRENT_ADMITTED_ENTITYOS_API",
+      "falsifier": "Produce a current canonical EntityOS prepare-only API that performs policy/journal admission without executing the action and preserves the same effect authority/effect journal semantics."
+    },
+    {
+      "hypothesis": "The bound zero-effect runtime failure is an EffectGate regression.",
+      "status": "FALSIFIED_BY_JOB_STEP_ORDER",
+      "reason": "The job failed during authority-metadata checkout and never loaded or executed EffectGate."
+    }
+  ],
+  "next_exact_actions_for_active_mutation_authority": [
+    "Make load_current_entityos_effect_authority_binding consume the surviving current ENTITYOS_EFFECT_AUTHORITY_IMPLEMENTATION_BINDING_COMPATIBILITY/v1 record and exact status/field shape, with byte/field-faithful cross-repository fixtures.",
+    "Update the current-binding no-real-effect matrix to construct EffectRequestIdentity, echo request_sha256 in canonical evidence/observation, and satisfy the newer typed final VerificationReceipt requirement; retain mutation/semantic mismatch zero-dispatch tests.",
+    "Replace or bypass the production two-stage authorize->F2 executor topology with one canonical EffectGate.execute transaction adapter and post-return correlation. Do not invoke a second effect executor after canonical EffectGate.execute.",
+    "Repair the exact-bound state.noop workflow reentry so current authority metadata and exact implementation bytes are checkout-resolvable, then rerun; classify any PASS at its actual component scope.",
+    "Add one deterministic no-real-effect F2 integration capsule that binds current 9.13 compatibility record -> semantic request digest -> exact canonical EffectGate state.noop call -> canonical effect/journal outcome -> F2 correlation -> typed completion verification, while semantic/call/authority mismatch causes zero canonical call and post-call uncertainty never replays automatically.",
+    "Before non-idempotent effect credit, reconcile canonical post-launch UNKNOWN_OUTCOME semantics with the retained donor mechanism."
+  ],
+  "credit_boundary": {
+    "review_scope": "PASS",
+    "semantic_request_identity_component_source": "PRESENT",
+    "semantic_request_bridge_component_ci": "PASS_AT_HEAD_83EC5E5",
+    "current_binding_matrix": "FAIL_AT_HEAD_F83C818",
+    "bound_zero_effect_runtime_probe": "NOT_EXECUTED_CHECKOUT_FAILURE",
+    "current_authority_cross_repo_consumer": "NOT_YET_CURRENT_RECORD_COMPATIBLE",
+    "production_single_transaction_effect_path": "UNRESOLVED",
+    "effect_runtime_credit": 0,
+    "real_effect_runtime_credit": 0,
+    "physical_grid10_runtime_credit": 0,
+    "whole_frankenstein2_runtime_credit": 0,
+    "whole_entityos_hcu_runtime_credit": 0,
+    "training_credit": 0
+  }
+}
