@@ -64,6 +64,18 @@ def valid_active():
     }
 
 
+def valid_reconciliation():
+    return {
+        "schema": "FRANKENSTEIN2_WORKPACKAGE_RECONCILIATION/v1",
+        "workpackage_id": "F2-WP-002",
+        "generation": 2,
+        "claim_id": "F2-WP-002-G2-GPT56SOL-cd0e056a",
+        "worker_id": "GPT-5.6-Sol",
+        "terminal_state": "ACCEPTED",
+        "whole_system_acceptance": False,
+    }
+
+
 def valid_state():
     return {
         "schema": "FRANKENSTEIN2_WORKPACKAGE_STATE/v1",
@@ -80,7 +92,18 @@ class CheckpointValidatorTests(unittest.TestCase):
         self.assertTrue(result["pass"])
         self.assertTrue(result["active_pointer_bound"])
         self.assertTrue(result["workpackage_state_bound"])
+        self.assertFalse(result["reconciliation_bound"])
         self.assertEqual(result["runtime_credit_granted"], 0)
+
+    def test_accepts_terminal_pointer_with_matching_reconciliation(self):
+        active = valid_active()
+        active["state"] = "ACCEPTED"
+        result = mod.validate_checkpoint(
+            valid_checkpoint(), valid_claim(), active, valid_state(), valid_reconciliation()
+        )
+        self.assertTrue(result["pass"])
+        self.assertTrue(result["reconciliation_bound"])
+        self.assertEqual(result["active_state"], "ACCEPTED")
 
     def test_rejects_missing_required_field(self):
         cp = valid_checkpoint()
@@ -130,11 +153,19 @@ class CheckpointValidatorTests(unittest.TestCase):
         with self.assertRaises(mod.ValidationError):
             mod.validate_checkpoint(valid_checkpoint(), valid_claim(), active, valid_state())
 
-    def test_rejects_terminal_active_pointer(self):
+    def test_rejects_terminal_active_pointer_without_reconciliation(self):
         active = valid_active()
         active["state"] = "ACCEPTED"
         with self.assertRaises(mod.ValidationError):
             mod.validate_checkpoint(valid_checkpoint(), valid_claim(), active, valid_state())
+
+    def test_rejects_wrong_terminal_reconciliation(self):
+        active = valid_active()
+        active["state"] = "ACCEPTED"
+        reconciliation = valid_reconciliation()
+        reconciliation["terminal_state"] = "SUPERSEDED"
+        with self.assertRaises(mod.ValidationError):
+            mod.validate_checkpoint(valid_checkpoint(), valid_claim(), active, valid_state(), reconciliation)
 
     def test_rejects_not_started_state(self):
         state = valid_state()
