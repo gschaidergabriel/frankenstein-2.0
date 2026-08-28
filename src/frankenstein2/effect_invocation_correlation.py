@@ -7,6 +7,12 @@ already-authoritative result-free WP-102 call identity. After dispatch, the same
 identity may gain a typed result observation, then a WP-104 deferred-return identity,
 and only then participate in WP-105 verification.
 
+The canonical path may additionally carry an immutable semantic ``EffectRequestIdentity``.
+When present, its digest is part of PRE/POST correlation so an executor observation for
+semantic request B cannot be attached to an ALLOW prepared for request A. Legacy callers
+without semantic identity remain representable for compatibility, but they do not gain
+canonical semantic-request-binding credit.
+
 The legacy result-bound ``DeferredExecutionVerificationTarget`` constructor path is
 retained for compatibility, but it is not evidence of true pre-dispatch usability.
 Session context and result digests are deliberately insufficient correlation keys.
@@ -25,6 +31,7 @@ from .deferred_execution_verification import (
     DeferredExecutionVerificationTarget,
     apply_correlated_verification,
 )
+from .effect_request_identity import EffectRequestIdentity
 from .native_child_binding import NativeChildBinding
 
 
@@ -54,6 +61,10 @@ class EffectCallBinding:
     ``return_id`` is deliberately optional: a true PRE-dispatch envelope exists before
     a WP-104 return can exist. Once a result-bound deferred return is available,
     ``bind_effect_return`` attaches that identity after exact call/result correlation.
+
+    ``request`` is optional only for legacy compatibility. The canonical EntityOS
+    authority path requires it and verifies its digest before dispatch and after the
+    executor observation.
     """
 
     effect_id: str
@@ -64,6 +75,7 @@ class EffectCallBinding:
     delegation_id: str
     child_identity_sha256: str
     stage: EffectCorrelationStage
+    request: EffectRequestIdentity | None = None
     result_id: str | None = None
     result_sha256: str | None = None
 
@@ -81,6 +93,8 @@ class EffectCallBinding:
             _token("return_id", self.return_id)
         if not isinstance(self.stage, EffectCorrelationStage):
             raise EffectInvocationCorrelationError("INVALID_STAGE")
+        if self.request is not None and not isinstance(self.request, EffectRequestIdentity):
+            raise EffectInvocationCorrelationError("INVALID_EFFECT_REQUEST_IDENTITY")
         if self.stage is EffectCorrelationStage.PREPARED:
             if self.result_id is not None or self.result_sha256 is not None:
                 raise EffectInvocationCorrelationError("PREPARED_CANNOT_HAVE_RESULT")
@@ -90,11 +104,16 @@ class EffectCallBinding:
             _token("result_id", self.result_id)
             _token("result_sha256", self.result_sha256)
 
+    @property
+    def request_sha256(self) -> str | None:
+        return self.request.sha256() if self.request is not None else None
+
 
 def prepare_effect_call(
     target: DeferredExecutionVerificationTarget | NativeChildBinding,
     *,
     effect_id: str,
+    request: EffectRequestIdentity | None = None,
 ) -> EffectCallBinding:
     """Bind explicit PRE-dispatch effect identity to one exact Stage-1 call.
 
@@ -117,6 +136,8 @@ def prepare_effect_call(
         raise EffectInvocationCorrelationError(
             "target must be a result-free NativeChildBinding or DeferredExecutionVerificationTarget"
         )
+    if request is not None and not isinstance(request, EffectRequestIdentity):
+        raise EffectInvocationCorrelationError("INVALID_EFFECT_REQUEST_IDENTITY")
     return EffectCallBinding(
         effect_id=_token("effect_id", effect_id),
         return_id=return_id,
@@ -126,6 +147,7 @@ def prepare_effect_call(
         delegation_id=binding.delegation_id,
         child_identity_sha256=binding.child.sha256(),
         stage=EffectCorrelationStage.PREPARED,
+        request=request,
     )
 
 
@@ -145,11 +167,13 @@ def observe_effect_result(
     observed_child_identity_sha256: str,
     result_id: str,
     result_sha256: str,
+    observed_request_sha256: str | None = None,
 ) -> EffectCallBinding:
     """Bind POST-result identity only to the exact PRE-bound call.
 
     Exact replay of the already-observed POST record is idempotent. Any mutation or
-    cross-call substitution fails closed.
+    cross-call substitution fails closed. When the PRE binding carries semantic request
+    identity, the executor must echo that exact request digest.
     """
     if not isinstance(prepared, EffectCallBinding):
         raise EffectInvocationCorrelationError("prepared must be an EffectCallBinding")
@@ -171,6 +195,11 @@ def observe_effect_result(
         "BINDING_ID": prepared.binding_id,
         "CHILD_IDENTITY_SHA256": prepared.child_identity_sha256,
     }
+    if prepared.request is not None:
+        values["REQUEST_SHA256"] = _token(
+            "observed_request_sha256", observed_request_sha256
+        )
+        expected["REQUEST_SHA256"] = prepared.request.sha256()
     for name, value in values.items():
         _match(name, value, expected[name])
     result_id = _token("result_id", result_id)
