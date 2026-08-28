@@ -1,0 +1,60 @@
+{
+  "schema": "F2_WORKPACKAGE_ACCEPTANCE_RECEIPT/v1",
+  "workpackage": "F2-WP-105",
+  "generation": 1,
+  "claim_id": "F2-WP-105-G1-EXECUTION-COMPLETION-GPT56SOL-20260828T215528P0700",
+  "status": "ACCEPTED_AT_SCOPE",
+  "evidence_scope": "TYPED_EXECUTION_COMPLETION_AND_CANONICAL_WP104_CORRELATION_REPOSITORY_HOSTED_CI_ONLY",
+  "repository": "gschaidergabriel/frankenstein-2.0",
+  "branch": "main",
+  "source_head_sha": "f8a9660429f5e8933d4be332b8104cb2108f6548",
+  "source": {
+    "execution_completion": "src/state/execution_completion.py",
+    "canonical_deferred_return": "src/frankenstein2/deferred_return.py",
+    "correlation_adapter": "src/frankenstein2/deferred_execution_verification.py",
+    "execution_tests": "tests/test_execution_completion.py",
+    "canonical_return_tests": "tests/test_deferred_return.py",
+    "correlation_tests": "tests/test_deferred_execution_verification.py",
+    "workflow": ".github/workflows/wp104-wp105-correlation-ci.yml"
+  },
+  "convergence_commits": {
+    "correlation_adapter_to_canonical_wp104": "c6c395960fecc50351c6c0482aa9b97c7e179421",
+    "correlation_falsifier_to_canonical_wp104": "882f341f0f91483550fa7a453466b202200f554b",
+    "ci_to_canonical_wp104": "f8a9660429f5e8933d4be332b8104cb2108f6548"
+  },
+  "github_actions": {
+    "run_id": 33219867560,
+    "job_id": 99011457494,
+    "run_status": "completed",
+    "run_conclusion": "success",
+    "compile": "success",
+    "wp102_identity_regression": {"tests": 9, "passed": 9},
+    "canonical_wp104_return_regression": {"tests": 12, "passed": 12},
+    "wp105_execution_completion_regression": {"tests": 18, "passed": 18},
+    "canonical_wp104_wp105_interleaving_falsifier": {"tests": 6, "passed": 6},
+    "tests_observed_total": 45,
+    "tests_passed_total": 45
+  },
+  "accepted_invariants": [
+    "request admission execution observation external outcome and verified completion remain distinct states",
+    "reported executor success and transport status cannot mint verified completion",
+    "UNKNOWN external outcome remains unverified and forbids blind replay",
+    "final APPLIED or NOT_APPLIED promotion requires a structured receipt with finalizing evidence kind bound to the exact execution attempt",
+    "transition replay is idempotent only when transition_id and payload fingerprint both match",
+    "same-session calls with deliberately identical generic WP105 records cannot cross-verify because canonical WP102/WP104 return binding identity is matched first",
+    "the WP104-WP105 correlation seam now consumes the canonical accepted WP104 source src/frankenstein2/deferred_return.py rather than the stale parallel deferred_causal_return surface"
+  ],
+  "preserved_negative_evidence": [
+    "historical correlation run 33200864578 failed because its stale WP104 test surface no longer matched the NativeChildBinding identity contract; this failure is preserved as the discriminator that forced convergence"
+  ],
+  "non_credit": [
+    "NO_EXTERNAL_EFFECT_EXECUTION_CREDIT",
+    "NO_TRANSPORT_DELIVERY_OR_ACK_CREDIT_BEYOND_REFERENCED_COMPONENTS",
+    "NO_UNIFIEDDB_PERSISTENCE_CREDIT",
+    "NO_PROVIDER_OR_MODEL_CALL_CREDIT",
+    "NO_VPS_RUNTIME_CREDIT",
+    "NO_PHYSICAL_GRID10_RUNTIME_CREDIT",
+    "NO_WHOLE_FRANKENSTEIN2_ACCEPTANCE"
+  ],
+  "next_exact_gate": "Reconcile and terminalize WP-105 generation 1 at repository-hosted Stage-1 component/integration-CI scope only, then re-enter current main to locate the already-defined dependency-correct Stage-1-to-Stage-2 persistent Agency integration/restart-survival frontier."
+}
