@@ -1,0 +1,56 @@
+name: Frankenstein 2.0 Current EntityOS Effect Authority Binding CI
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'src/frankenstein2/current_entityos_effect_authority_binding.py'
+      - 'src/frankenstein2/canonical_effect_authority_bridge.py'
+      - 'src/frankenstein2/structured_execution_receipt.py'
+      - 'src/frankenstein2/effect_executor_interlock.py'
+      - 'src/frankenstein2/effect_invocation_correlation.py'
+      - 'src/state/execution_completion.py'
+      - 'tests/test_current_entityos_effect_authority_binding.py'
+      - '.github/workflows/current-entityos-effect-authority-binding-ci.yml'
+  pull_request:
+    paths:
+      - 'src/frankenstein2/current_entityos_effect_authority_binding.py'
+      - 'src/frankenstein2/canonical_effect_authority_bridge.py'
+      - 'src/frankenstein2/structured_execution_receipt.py'
+      - 'src/frankenstein2/effect_executor_interlock.py'
+      - 'src/frankenstein2/effect_invocation_correlation.py'
+      - 'src/state/execution_completion.py'
+      - 'tests/test_current_entityos_effect_authority_binding.py'
+      - '.github/workflows/current-entityos-effect-authority-binding-ci.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  deterministic-current-binding-matrix:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      PYTHONPATH: .:src
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Compile current binding boundary
+        run: >-
+          python -m py_compile
+          src/frankenstein2/current_entityos_effect_authority_binding.py
+          src/frankenstein2/canonical_effect_authority_bridge.py
+          src/frankenstein2/structured_execution_receipt.py
+          src/state/execution_completion.py
+          tests/test_current_entityos_effect_authority_binding.py
+      - name: Run current binding no-real-effect matrix
+        run: python tests/test_current_entityos_effect_authority_binding.py
+      - name: Run canonical bridge regressions
+        run: python tests/test_canonical_effect_authority_bridge.py
+      - name: Run structured execution receipt regressions
+        run: python tests/test_structured_execution_receipt.py
+      - name: Run execution completion regressions
+        run: python tests/test_execution_completion.py
