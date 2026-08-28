@@ -9,6 +9,13 @@ from frankenstein2.prediction_contract import (
     PredictionContract,
     PredictionContractError,
 )
+from frankenstein2.prediction_fingerprint_binding import (
+    BINDING_CLASSIFICATION,
+    RESIDUAL_CLASSIFICATION,
+    FingerprintBoundPrediction,
+    PredictionFingerprintBindingError,
+)
+from frankenstein2.state_fingerprint import fingerprint_state_projection
 
 
 class PredictionContractTests(unittest.TestCase):
@@ -182,6 +189,159 @@ class PredictionContractTests(unittest.TestCase):
         self.assertEqual(first.canonical_json(), second.canonical_json())
         self.assertEqual(first.sha256(), second.sha256())
         self.assertEqual(len(first.sha256()), 64)
+
+
+class PredictionFingerprintBindingTests(unittest.TestCase):
+    def fp(self, projection, *, generation=1, schema="AGENCY_STATE/v1"):
+        return fingerprint_state_projection(
+            projection_schema=schema,
+            generation=generation,
+            projection=projection,
+        )
+
+    def bound(self, *, basis_projection=None, expected_projection=None):
+        if basis_projection is None:
+            basis_projection = {"goal": "continue", "counter": 1}
+        if expected_projection is None:
+            expected_projection = {"goal": "continue", "counter": 2}
+        basis = self.fp(basis_projection, generation=7)
+        return FingerprintBoundPrediction.create(
+            prediction_id="prediction-bound-1",
+            target_id="agency-state",
+            generation=3,
+            basis_fingerprint=basis,
+            expected_projection=expected_projection,
+        )
+
+    def test_binding_carries_full_basis_statefingerprint_identity(self):
+        bound = self.bound()
+        payload = bound.as_dict()
+        self.assertEqual(bound.classification, BINDING_CLASSIFICATION)
+        self.assertEqual(
+            bound.contract.basis_fingerprint_sha256,
+            bound.basis_fingerprint.identity_sha256,
+        )
+        self.assertEqual(
+            payload["basis_fingerprint"]["projection_sha256"],
+            bound.basis_fingerprint.projection_sha256,
+        )
+        self.assertEqual(
+            payload["basis_fingerprint"]["projection_schema"],
+            "AGENCY_STATE/v1",
+        )
+        self.assertEqual(payload["basis_fingerprint"]["generation"], 7)
+
+    def test_observation_projection_must_reproduce_supplied_fingerprint(self):
+        bound = self.bound()
+        supplied = self.fp({"goal": "continue", "counter": 2}, generation=8)
+        with self.assertRaisesRegex(
+            PredictionFingerprintBindingError,
+            "does not reproduce supplied StateFingerprint",
+        ):
+            bound.observe(
+                observation_id="obs-1",
+                observation_fingerprint=supplied,
+                observed_projection={"goal": "continue", "counter": 999},
+            )
+
+    def test_valid_typed_observation_produces_bound_zero_residual(self):
+        expected = {"goal": "continue", "counter": 2}
+        bound = self.bound(expected_projection=expected)
+        observed = self.fp(expected, generation=8)
+        receipt = bound.observe(
+            observation_id="obs-1",
+            observation_fingerprint=observed,
+            observed_projection=expected,
+        )
+        self.assertTrue(receipt.residual.exact_match)
+        self.assertEqual(receipt.classification, RESIDUAL_CLASSIFICATION)
+        self.assertEqual(
+            receipt.residual.observation_fingerprint_sha256,
+            observed.identity_sha256,
+        )
+        self.assertEqual(
+            receipt.residual.basis_fingerprint_sha256,
+            bound.basis_fingerprint.identity_sha256,
+        )
+
+    def test_typed_observation_residual_preserves_explicit_mismatch(self):
+        bound = self.bound(expected_projection={"counter": 2})
+        observed_projection = {"counter": 5}
+        observed = self.fp(observed_projection, generation=8)
+        receipt = bound.observe(
+            observation_id="obs-1",
+            observation_fingerprint=observed,
+            observed_projection=observed_projection,
+        )
+        self.assertFalse(receipt.residual.exact_match)
+        self.assertEqual(receipt.residual.changed_paths, ("$/counter",))
+        self.assertEqual(receipt.residual.numeric_l1, 3.0)
+
+    def test_mapping_order_is_deterministic_across_typed_binding(self):
+        left = self.bound(
+            basis_projection={"b": 2, "a": 1},
+            expected_projection={"y": 2, "x": 1},
+        )
+        right = self.bound(
+            basis_projection={"a": 1, "b": 2},
+            expected_projection={"x": 1, "y": 2},
+        )
+        self.assertEqual(left.sha256(), right.sha256())
+        observed_left = self.fp({"y": 2, "x": 1}, generation=9)
+        observed_right = self.fp({"x": 1, "y": 2}, generation=9)
+        receipt_left = left.observe(
+            observation_id="obs-1",
+            observation_fingerprint=observed_left,
+            observed_projection={"y": 2, "x": 1},
+        )
+        receipt_right = right.observe(
+            observation_id="obs-1",
+            observation_fingerprint=observed_right,
+            observed_projection={"x": 1, "y": 2},
+        )
+        self.assertEqual(receipt_left.sha256(), receipt_right.sha256())
+
+    def test_wrong_binding_type_fails_closed(self):
+        with self.assertRaisesRegex(
+            PredictionFingerprintBindingError, "basis_fingerprint"
+        ):
+            FingerprintBoundPrediction.create(
+                prediction_id="p",
+                target_id="t",
+                generation=1,
+                basis_fingerprint="not-a-fingerprint",
+                expected_projection={},
+            )
+
+    def test_typed_binding_refuses_projection_outside_statefingerprint_domain(self):
+        bound = self.bound(expected_projection={"x": 1.0})
+        basis_compatible_observed = self.fp({"x": 1}, generation=8)
+        with self.assertRaisesRegex(
+            PredictionFingerprintBindingError,
+            "outside the accepted StateFingerprint domain",
+        ):
+            bound.observe(
+                observation_id="obs-1",
+                observation_fingerprint=basis_compatible_observed,
+                observed_projection={"x": 1.0},
+            )
+
+    def test_bound_receipt_exposes_no_action_effect_or_completion_authority(self):
+        expected = {"counter": 2}
+        bound = self.bound(expected_projection=expected)
+        observed = self.fp(expected, generation=8)
+        receipt = bound.observe(
+            observation_id="obs-1",
+            observation_fingerprint=observed,
+            observed_projection=expected,
+        )
+        payload = receipt.as_dict()
+        flat = str(payload).lower()
+        self.assertNotIn("act_candidate", flat)
+        self.assertNotIn("delegate_candidate", flat)
+        self.assertNotIn("effect_authorized", flat)
+        self.assertNotIn("completion_verified", flat)
+        self.assertNotIn("world_fact", payload.keys())
 
 
 if __name__ == "__main__":
