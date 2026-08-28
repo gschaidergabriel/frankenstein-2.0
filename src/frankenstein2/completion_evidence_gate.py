@@ -2,17 +2,24 @@
 
 A generic ``VerificationReceipt`` is only an evidence envelope. It must not gain final
 completion power merely because its caller selected a finalizing enum. This module
-narrows the current path to the one authority class Frankenstein 2.0 can presently bind
-explicitly: the already-admitted canonical EntityOS EffectJournal implementation.
+narrows the current path to the one success authority class Frankenstein 2.0 can
+presently bind explicitly: a VERIFIED observation from the already-admitted canonical
+EntityOS EffectJournal implementation.
+
+Three identities stay separate and must agree before finalization:
+
+1. the separately resolved current EffectGate/EffectJournal/UnifiedDB authority binding;
+2. an independently supplied typed journal-success observation for the exact effect;
+3. the WP105 VerificationReceipt that cites that exact observation.
 
 The gate does not read the journal, verify the world, execute an effect, persist state,
-or mint canonical authority. It consumes a separately verified
-``CurrentEntityOSEffectAuthorityBinding`` and binds that authority identity to the exact
-verification receipt and exact observed effect call. Other final evidence classes fail
-closed until equivalent current-authority bindings exist for them. The existing immutable
-WP105 transition remains the only completion state machine.
+or mint canonical authority. It only admits an already-observed VERIFIED journal result
+into the existing immutable WP105 completion state machine. Other final evidence classes
+and NOT_APPLIED promotion fail closed until equivalent current-authority adapters exist.
 """
 from __future__ import annotations
+
+from dataclasses import dataclass
 
 from state.execution_completion import (
     VerificationEvidenceKind,
@@ -41,6 +48,42 @@ class CompletionEvidenceGateError(RuntimeError):
     """Final evidence is not admitted for this exact current call."""
 
 
+def _token(name: str, value: object) -> str:
+    if not isinstance(value, str) or not value or value != value.strip():
+        raise CompletionEvidenceGateError(f"INVALID_{name.upper()}")
+    if len(value) > 1024 or any(ord(ch) < 0x20 or ord(ch) == 0x7F for ch in value):
+        raise CompletionEvidenceGateError(f"INVALID_{name.upper()}")
+    return value
+
+
+def _sha256(name: str, value: object) -> str:
+    token = _token(name, value)
+    if len(token) != 64 or any(ch not in "0123456789abcdef" for ch in token):
+        raise CompletionEvidenceGateError(f"INVALID_{name.upper()}")
+    return token
+
+
+@dataclass(frozen=True, slots=True)
+class EffectJournalSuccessEvidence:
+    """Typed observation supplied by the canonical-journal consumer, not by the receipt."""
+
+    effect_id: str
+    journal_status: str
+    execution_attempt_id: str
+    verification_attempt_id: str
+    evidence_ref: str
+    evidence_sha256: str
+
+    def __post_init__(self) -> None:
+        _token("effect_id", self.effect_id)
+        _token("execution_attempt_id", self.execution_attempt_id)
+        _token("verification_attempt_id", self.verification_attempt_id)
+        _token("evidence_ref", self.evidence_ref)
+        _sha256("evidence_sha256", self.evidence_sha256)
+        if self.journal_status != "VERIFIED":
+            raise CompletionEvidenceGateError("JOURNAL_SUCCESS_REQUIRES_VERIFIED_STATUS")
+
+
 def _effect_journal_authority_ref(binding: CurrentEntityOSEffectAuthorityBinding) -> str:
     return (
         f"{binding.binding_repository}@{binding.implementation_commit_sha}:"
@@ -55,36 +98,50 @@ def admit_current_effect_journal_verification(
     transition: VerifyExecution,
     *,
     authority_binding: CurrentEntityOSEffectAuthorityBinding,
+    journal_evidence: EffectJournalSuccessEvidence,
 ) -> CompletionEvidenceAdmission:
-    """Admit one final receipt only against the resolved current EffectJournal tuple."""
+    """Admit one APPLIED receipt against current authority + exact VERIFIED journal evidence."""
     if not isinstance(observed, EffectCallBinding):
         raise CompletionEvidenceGateError("INVALID_OBSERVED_EFFECT_CALL")
     if observed.stage is not EffectCorrelationStage.RESULT_OBSERVED:
         raise CompletionEvidenceGateError("FINAL_ADMISSION_REQUIRES_OBSERVED_RESULT")
     if not isinstance(transition, VerifyExecution):
         raise CompletionEvidenceGateError("INVALID_VERIFICATION_TRANSITION")
-    if transition.outcome not in (
-        VerificationOutcome.APPLIED,
-        VerificationOutcome.NOT_APPLIED,
-    ):
-        raise CompletionEvidenceGateError("FINAL_ADMISSION_REQUIRES_FINAL_OUTCOME")
+    if transition.outcome is not VerificationOutcome.APPLIED:
+        raise CompletionEvidenceGateError("ONLY_VERIFIED_APPLIED_SUCCESS_IS_CURRENTLY_ADMITTED")
     receipt = transition.receipt
     if not isinstance(receipt, VerificationReceipt):
         raise CompletionEvidenceGateError("FINAL_ADMISSION_REQUIRES_STRUCTURED_RECEIPT")
     if not isinstance(authority_binding, CurrentEntityOSEffectAuthorityBinding):
         raise CompletionEvidenceGateError("CURRENT_EFFECT_AUTHORITY_BINDING_REQUIRED")
+    if not isinstance(journal_evidence, EffectJournalSuccessEvidence):
+        raise CompletionEvidenceGateError("TYPED_JOURNAL_SUCCESS_EVIDENCE_REQUIRED")
 
-    # The generic state layer knows additional potentially-final evidence classes, but
-    # F2 currently has an explicit current-authority binding only for the canonical
-    # EntityOS EffectJournal. Fail closed rather than self-admitting the rest.
     if receipt.evidence_kind is not VerificationEvidenceKind.EFFECT_JOURNAL_VERIFIED:
         raise CompletionEvidenceGateError("FINAL_EVIDENCE_AUTHORITY_CLASS_UNADMITTED")
+    expected = {
+        "EFFECT_ID": observed.effect_id,
+        "EXECUTION_ATTEMPT_ID": transition.execution_attempt_id,
+        "VERIFICATION_ATTEMPT_ID": transition.verification_attempt_id,
+        "EVIDENCE_REF": receipt.evidence_ref,
+        "EVIDENCE_SHA256": receipt.evidence_sha256,
+    }
+    actual = {
+        "EFFECT_ID": journal_evidence.effect_id,
+        "EXECUTION_ATTEMPT_ID": journal_evidence.execution_attempt_id,
+        "VERIFICATION_ATTEMPT_ID": journal_evidence.verification_attempt_id,
+        "EVIDENCE_REF": journal_evidence.evidence_ref,
+        "EVIDENCE_SHA256": journal_evidence.evidence_sha256,
+    }
+    for name, value in actual.items():
+        if value != expected[name]:
+            raise CompletionEvidenceGateError(f"JOURNAL_{name}_MISMATCH")
     if receipt.verification_attempt_id != transition.verification_attempt_id:
-        raise CompletionEvidenceGateError("VERIFICATION_ATTEMPT_ID_MISMATCH")
+        raise CompletionEvidenceGateError("RECEIPT_VERIFICATION_ATTEMPT_ID_MISMATCH")
     if receipt.execution_attempt_id != transition.execution_attempt_id:
-        raise CompletionEvidenceGateError("EXECUTION_ATTEMPT_ID_MISMATCH")
+        raise CompletionEvidenceGateError("RECEIPT_EXECUTION_ATTEMPT_ID_MISMATCH")
     if receipt.outcome is not transition.outcome:
-        raise CompletionEvidenceGateError("VERIFICATION_OUTCOME_MISMATCH")
+        raise CompletionEvidenceGateError("RECEIPT_VERIFICATION_OUTCOME_MISMATCH")
 
     try:
         return _mint_completion_evidence_admission(
@@ -189,6 +246,7 @@ def apply_admitted_effect_bound_verification(
 
 __all__ = [
     "CompletionEvidenceGateError",
+    "EffectJournalSuccessEvidence",
     "admit_current_effect_journal_verification",
     "apply_admitted_effect_bound_verification",
 ]
