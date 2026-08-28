@@ -1,0 +1,36 @@
+name: F2 WP005 Telemetry Spine
+
+on:
+  push:
+    branches:
+      - trigger4/wp005-telemetry-executable-spine-20260828
+    paths:
+      - 'tools/init_telemetry_dbs.py'
+      - 'tests/test_init_telemetry_dbs.py'
+      - '.github/workflows/f2-wp005-telemetry-ci.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  deterministic:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Compile initializer and tests
+        run: |
+          python -m py_compile tools/init_telemetry_dbs.py tests/test_init_telemetry_dbs.py
+      - name: Run deterministic falsification suite
+        run: |
+          python tests/test_init_telemetry_dbs.py
+      - name: CLI initialize and verify smoke
+        run: |
+          TD=$(mktemp -d)
+          python tools/init_telemetry_dbs.py --root "$TD"
+          python tools/init_telemetry_dbs.py --root "$TD" --verify-only
+          test "$(find "$TD/databases" -maxdepth 1 -name '*.sqlite' | wc -l)" -eq 6
