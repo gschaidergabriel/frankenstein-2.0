@@ -29,12 +29,14 @@ Status:
 
 ## Phase 2 — Persistent Pulse / Agency
 
-- [-] F2-WP-200 Persistent Pulse kernel.
-- [ ] F2-WP-201 StateFingerprint.
-- [ ] F2-WP-202 PredictionContract / residual.
-- [ ] F2-WP-203 AgencyState/interests/open loops/deferred intents.
-- [ ] F2-WP-204 Goal lifecycle.
-- [ ] F2-WP-205 Wake/WAIT/HOLD semantics.
+- [x] F2-WP-200 Persistent Pulse kernel — repository-hosted component CI accepted; no scheduler/effect/whole-system authority.
+- [x] F2-WP-201 StateFingerprint — hardened repository-hosted component CI accepted; no truth-equivalence or runtime authority.
+- [x] F2-WP-202 PredictionContract / residual — repository-hosted component CI accepted; no whole-system credit.
+- [x] F2-WP-203 AgencyState/interests/open loops/deferred intents — generation-2 item-type repair accepted at repository-hosted component-CI scope.
+- [x] F2-WP-204 Goal lifecycle — generation-2 fail-closed authority repair accepted with 27/27 hosted CI tests; no effect/completion authority.
+- [x] F2-WP-205 Wake/WAIT/HOLD semantics — generation-2 tri-state UNKNOWN repair accepted at repository-hosted component-CI scope; no autonomous resume authority.
+
+Phase-2 component acceptance does **not** yet prove the directive-level Persistent Agency Kernel acceptance condition. A separate integration/runtime gate must still demonstrate durable goal survival across process/session restart plus deterministic next-tick checkpointing before broad autonomy is added.
 
 ## Phase 3 — Memory / Retrieval / Process Learning
 
