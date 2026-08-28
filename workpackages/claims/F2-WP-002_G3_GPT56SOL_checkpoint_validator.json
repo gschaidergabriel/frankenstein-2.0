@@ -5,26 +5,25 @@
   "claim_id": "F2-WP-002-G3-GPT56SOL-checkpoint-validator",
   "worker_id": "GPT-5.6-Sol",
   "trigger": "4",
-  "status": "ACTIVE_CHECKPOINT_VALIDATOR",
-  "claimed_scope": "Add a fail-closed validator and deterministic regression tests for checkpoints/CURRENT.json identity, evidence-boundary and stale-checkpoint invariants. No runtime semantics, F2-WP-003/004/005 implementation, or product acceptance is claimed.",
+  "status": "SUPERSEDED_DUPLICATE",
+  "claimed_scope": "Historical candidate checkpoint-validator lane only. It is not a canonical mutation authority.",
   "base_commit": "81bc36b17f3bd71ef8377ab80042b7905f40d92f",
   "dependencies": [
     "WORKER_PROTOCOL.md",
-    "workpackages/STATE.json",
+    "workpackages/CLAIM_PROTOCOL.md",
+    "workpackages/active/F2-WP-002.json",
     "checkpoints/CURRENT.json",
     "workpackages/claims/F2-WP-002_G2_GPT56SOL_cd0e056a.json"
   ],
-  "non_overlap_note": "Generation 2 created the missing checkpoint surface. Generation 3 only validates that surface. Parallel F2-WP-003/004/005 lanes remain untouched.",
-  "acceptance_target": [
-    "reject missing required checkpoint fields",
-    "reject invalid workpackage/generation/claim identity joins",
-    "reject runtime_credit greater than zero when runtime_execution_observed is false",
-    "reject whole_system_acceptance true without runtime execution evidence",
-    "reject malformed source commit identities",
-    "optionally reject a checkpoint whose declared source identity is not an ancestor/equal of the supplied repository head",
-    "accept the current canonical checkpoint at source/continuity scope"
+  "reconciliation_note": "After re-entry, the canonical create-once active pointer selected F2-WP-002 generation 2. Per CLAIM_PROTOCOL.md, a new worker/trigger does not justify a generation advance. This G3 record is therefore retired as a duplicate authority claim. Its validator/test commits remain historical candidate/falsifier evidence and have already been fused into the active G2 implementation lineage.",
+  "historical_candidate_evidence": [
+    "cc9e0b113b9b81af1253af5d55a6d096d3a59ffa",
+    "f9bb8e206d4fa2a2f02f54ac69e8e8e98a9933ef",
+    "tools/validate_current_checkpoint.py",
+    "tests/test_validate_current_checkpoint.py"
   ],
   "runtime_execution_observed": false,
   "runtime_credit": 0,
-  "next_exact_action": "Implement tools/validate_current_checkpoint.py and deterministic tests, execute them without provider access, then archive exact scope evidence and update the canonical checkpoint."
+  "whole_system_acceptance": false,
+  "next_exact_action": "Follow workpackages/active/F2-WP-002.json generation 2; review or falsify that lane without creating a second mutation authority."
 }
