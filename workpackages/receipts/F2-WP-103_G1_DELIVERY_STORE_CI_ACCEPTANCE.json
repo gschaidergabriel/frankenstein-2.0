@@ -1,0 +1,80 @@
+{
+  "schema": "FRANKENSTEIN2_WORKPACKAGE_ACCEPTANCE_RECEIPT/v1",
+  "workpackage_id": "F2-WP-103",
+  "generation": 1,
+  "claim_id": "F2-WP-103-G1-GPT56SOL-delivery-lifecycle",
+  "trigger": "4",
+  "acceptance_scope": "RECIPIENT_DELIVERY_LIFECYCLE_CANONICAL_UNIFIEDDB_STORE_SOURCE_AND_REPOSITORY_CI_ONLY",
+  "status": "ACCEPTED_AT_SCOPE",
+  "donor": {
+    "repository": "gschaidergabriel/frankenstein",
+    "commit": "5641dc6b2df6ebed1df246ee7533134324f6c427",
+    "classification": "READ_ONLY_DONOR_BASELINE"
+  },
+  "historical_source_component": {
+    "source_path": "src/state/delivery_lifecycle.py",
+    "source_blob_sha": "0f43d6b0a26dfafe15bdb4b915171f03d9603f1b",
+    "test_path": "tests/test_delivery_lifecycle.py",
+    "test_blob_sha": "068e5166f0bff65d4a2e132c4ee0ec271b671ff1",
+    "historical_test_count": 8
+  },
+  "canonical_store_delta": {
+    "source_path": "src/state/delivery_store.py",
+    "source_blob_sha": "c49df878c0c129387e74d82536cacf3f8b035f15",
+    "source_commit": "2af4b81b71852154e0d96f8b19ee21be1f7c5819",
+    "test_path": "tests/test_delivery_store.py",
+    "test_blob_sha": "3f1f4e542f8a1f3ea996ac7bd8a10aa69a734c10",
+    "test_commit": "124b3b1fa5af6003b302084c8cfd0fdef9ecd8d0",
+    "workflow_path": ".github/workflows/delivery-store-ci.yml",
+    "workflow_blob_sha": "6c7c2759cf1ae15160973f79e298cadeecec3dd1",
+    "workflow_commit": "95a1d427b9dc82d28ca41cb00731c6a23e30e43d"
+  },
+  "repository_ci": {
+    "run_id": 33200977958,
+    "job_id": 98950062511,
+    "head_sha": "95a1d427b9dc82d28ca41cb00731c6a23e30e43d",
+    "event": "push",
+    "runner_label": "ubuntu-latest",
+    "runner_id": 1000045675,
+    "runner_image": "ubuntu-24.04",
+    "python": "3.13.15",
+    "test_count": 16,
+    "duration_seconds_reported_by_unittest": 0.542,
+    "conclusion": "success",
+    "checkout_step": "success",
+    "setup_python_step": "success",
+    "test_step": "success"
+  },
+  "verified_invariants": [
+    "recipient delivery identity remains stable for one causal_event_id plus recipient_id and does not collapse recipient identity into world-event identity",
+    "PENDING -> OFFERED -> ACKED remains monotone and ACK binds to an observed transport attempt",
+    "exact transition replay remains idempotent",
+    "retry uses a new transport_attempt_id without minting a second recipient delivery",
+    "stale generation and causal/recipient/delivery identity mixups fail closed",
+    "the writer requires an existing F2-WP-100 UnifiedDBResolution plus UnifiedDBFingerprint and verifies that the opened SQLite main file is the same real device/inode/path identity",
+    "the writer never invents or creates a competing durable-state path",
+    "each mutation binds to the exact F2-WP-101 CausalIdentity and stores its deterministic digest/json identity",
+    "BEGIN IMMEDIATE plus row revision prevents silent lost updates between competing SQLite writers",
+    "two spawned processes replaying the same OFFER converge to one persisted transition",
+    "two spawned processes racing retry against ACK cannot lose a committed ACK; a retry after ACK fails closed while retry-before-ACK remains a legal observed attempt"
+  ],
+  "negative_evidence_preserved": [
+    {
+      "kind": "HISTORICAL_RUN_PACKAGE_ABI_CONFLICT",
+      "detail": "The original WP-103 G1 package used MANIFEST.json and did not satisfy the later canonical F2-WP-004 manifest.json + ARTIFACTS.json + SHA256SUMS + CLOSED.json ABI. That historical package remains evidence and is not retroactively relabeled canonical."
+    },
+    {
+      "kind": "LOCAL_CONTAINER_NETWORK_FAILURE",
+      "detail": "The local container could not resolve github.com. This was classified as tool transport failure, not product failure. A source-equivalent local interface test passed before repository CI, but acceptance is grounded in the hosted exact-source run above."
+    }
+  ],
+  "component_test_execution_observed": true,
+  "runtime_execution_observed": false,
+  "vps_runtime_observed": false,
+  "effect_execution_observed": false,
+  "grid10_runtime_observed": false,
+  "whole_frankenstein2_acceptance": false,
+  "whole_entityos_hcu_acceptance": false,
+  "runtime_credit": 0,
+  "next_exact_action": "Consume this accepted recipient-delivery store from F2-WP-104/F2-WP-105 only through typed causal envelopes; then add a canonical F2-WP-004 run package for the next integrated delivery->deferred-return->execution/completion slice. Do not infer VPS, effect, GRID10, or whole-system acceptance from this component CI."
+}
