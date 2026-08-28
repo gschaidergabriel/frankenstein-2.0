@@ -45,6 +45,7 @@ class PredictionContractTests(unittest.TestCase):
         self.assertTrue(residual.exact_match)
         self.assertEqual(residual.mismatch_count, 0)
         self.assertEqual(residual.numeric_l1, 0.0)
+        self.assertEqual(residual.mismatch_fraction, 0.0)
         self.assertEqual(residual.expected_projection_sha256, residual.observed_projection_sha256)
         self.assertEqual(residual.classification, "EXPLICIT_OBSERVATION_RESIDUAL_NOT_WORLD_TRUTH")
 
@@ -59,6 +60,7 @@ class PredictionContractTests(unittest.TestCase):
         )
         self.assertEqual(residual.numeric_l1, 3.5)
         self.assertEqual(residual.mismatch_count, 2)
+        self.assertEqual(residual.mismatch_fraction, 1.0)
 
     def test_missing_and_unexpected_nested_leaves_are_preserved(self) -> None:
         contract = self.contract({"a": {"x": 1, "y": 2}, "keep": 9})
@@ -67,12 +69,24 @@ class PredictionContractTests(unittest.TestCase):
         self.assertEqual(residual.unexpected_paths, ("$/a/z",))
         self.assertEqual(residual.changed_paths, ())
         self.assertEqual(residual.mismatch_count, 2)
+        self.assertGreaterEqual(residual.mismatch_fraction, 0.0)
+        self.assertLessEqual(residual.mismatch_fraction, 1.0)
+
+    def test_fully_disjoint_structures_have_bounded_unit_mismatch_fraction(self) -> None:
+        residual = self.observe(self.contract({"expected": 1}), {"observed": 2})
+        self.assertEqual(residual.missing_paths, ("$/expected",))
+        self.assertEqual(residual.unexpected_paths, ("$/observed",))
+        self.assertEqual(residual.compared_leaf_count, 0)
+        self.assertEqual(residual.mismatch_count, 2)
+        self.assertEqual(residual.mismatch_fraction, 1.0)
 
     def test_list_length_residual_is_leaf_precise(self) -> None:
         contract = self.contract({"cells": [{"v": 1}, {"v": 2}]})
         residual = self.observe(contract, {"cells": [{"v": 1}, {"v": 2}, {"v": 3}]})
         self.assertEqual(residual.unexpected_paths, ("$/cells/2/v",))
         self.assertEqual(residual.mismatch_count, 1)
+        self.assertGreaterEqual(residual.mismatch_fraction, 0.0)
+        self.assertLessEqual(residual.mismatch_fraction, 1.0)
 
     def test_integer_float_type_change_is_not_silently_normalized(self) -> None:
         residual = self.observe(self.contract({"value": 1}), {"value": 1.0})
@@ -80,6 +94,7 @@ class PredictionContractTests(unittest.TestCase):
         self.assertEqual(residual.changed_paths, ("$/value",))
         self.assertEqual(residual.numeric_absolute_residuals, ())
         self.assertFalse(residual.exact_match)
+        self.assertEqual(residual.mismatch_fraction, 1.0)
 
     def test_boolean_integer_type_change_is_not_numeric(self) -> None:
         residual = self.observe(self.contract({"value": True}), {"value": 1})
@@ -90,6 +105,7 @@ class PredictionContractTests(unittest.TestCase):
         residual = self.observe(self.contract({"value": {"x": 1}}), {"value": [1]})
         self.assertEqual(residual.type_mismatch_paths, ("$/value",))
         self.assertEqual(residual.mismatch_count, 1)
+        self.assertEqual(residual.mismatch_fraction, 1.0)
 
     def test_canonical_order_makes_contract_digest_mapping_order_independent(self) -> None:
         left = self.contract({"b": 2, "a": 1})
