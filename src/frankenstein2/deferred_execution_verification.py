@@ -49,9 +49,13 @@ class DeferredExecutionVerificationTarget:
             raise DeferredExecutionVerificationError("lineage causal_id must equal bound child causal_id")
         if self.lineage.generation != child.generation:
             raise DeferredExecutionVerificationError("lineage generation must equal bound child generation")
-        if self.lineage.stage != ExecutionStage.EXECUTION_RECORDED:
+        if self.lineage.stage not in (
+            ExecutionStage.EXECUTION_RECORDED,
+            ExecutionStage.VERIFIED_APPLIED,
+            ExecutionStage.VERIFIED_NOT_APPLIED,
+        ):
             raise DeferredExecutionVerificationError(
-                "target lineage must be EXECUTION_RECORDED before verification correlation"
+                "target lineage must be execution-recorded or verified"
             )
 
 
