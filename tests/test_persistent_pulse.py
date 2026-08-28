@@ -167,6 +167,37 @@ class PersistentPulseTests(unittest.TestCase):
                 suppressed_by_hold=(),
             )
 
+    def test_direct_decision_rejects_duplicate_eligible_action_classes(self) -> None:
+        with self.assertRaisesRegex(PersistentPulseError, "duplicate action classes"):
+            PulseDecision(
+                schema=PULSE_DECISION_SCHEMA,
+                pulse_id="p",
+                observation_id="o",
+                state_id="s",
+                generation=0,
+                state_digest_sha256=self.state_digest,
+                input_sha256="0" * 64,
+                eligible=(
+                    PulseEligibility(action="ACT", basis_ref="a-1"),
+                    PulseEligibility(action="ACT", basis_ref="a-2"),
+                ),
+                suppressed_by_hold=(),
+            )
+
+    def test_direct_decision_rejects_eligible_suppressed_overlap(self) -> None:
+        with self.assertRaisesRegex(PersistentPulseError, "must be disjoint"):
+            PulseDecision(
+                schema=PULSE_DECISION_SCHEMA,
+                pulse_id="p",
+                observation_id="o",
+                state_id="s",
+                generation=0,
+                state_digest_sha256=self.state_digest,
+                input_sha256="0" * 64,
+                eligible=(PulseEligibility(action="ACT", basis_ref="a"),),
+                suppressed_by_hold=("ACT",),
+            )
+
     def test_hold_suppression_receipt_rejects_impossible_action(self) -> None:
         with self.assertRaisesRegex(PersistentPulseError, "only contain ACT/DELEGATE"):
             PulseDecision(
