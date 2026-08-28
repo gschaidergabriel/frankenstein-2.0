@@ -191,3 +191,25 @@ def test_broadcast_rejects_forged_selection_digest():
             expected_selection_sha256="d" * 64,
             recipient_cell_ids=("G1",),
         )
+
+
+def test_broadcast_preserves_candidate_to_payload_pairing_in_selection_order():
+    a = WorkspaceCandidate(
+        candidate_id="z-id", payload_ref="payload:a", epistemic_class="INFERRED",
+        provenance_refs=("prov:z",), salience_micros=900_000, goal_relevance_micros=0,
+        uncertainty_micros=0, information_gain_micros=0, estimated_cost_units=1,
+    )
+    b = WorkspaceCandidate(
+        candidate_id="a-id", payload_ref="payload:z", epistemic_class="INFERRED",
+        provenance_refs=("prov:a",), salience_micros=100_000, goal_relevance_micros=0,
+        uncertainty_micros=0, information_gain_micros=0, estimated_cost_units=1,
+    )
+    value = selection((b, a), p=policy(goal_relevance_weight=0, uncertainty_weight=0, information_gain_weight=0, cost_weight=0))
+    broadcast = create_broadcast(
+        broadcast_id="b-pair", generation=1, selection=value,
+        expected_selection_sha256=value.sha256(), recipient_cell_ids=("G1",),
+    )
+    assert list(zip(broadcast.candidate_ids, broadcast.candidate_payload_refs)) == [
+        ("z-id", "payload:a"),
+        ("a-id", "payload:z"),
+    ]
