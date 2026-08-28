@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from dataclasses import replace
 import hashlib
 import unittest
 
@@ -7,8 +8,11 @@ from frankenstein2.emergent_retrieval import (
     AXIS_CAUSAL,
     AXIS_GOAL,
     AXIS_SEMANTIC,
+    PLAN_CLASSIFICATION,
+    PLAN_SCHEMA,
     RetrievalCandidate,
     RetrievalNeed,
+    RetrievalPlan,
     RetrievalSignal,
     build_retrieval_plan,
 )
@@ -43,7 +47,7 @@ def _residual(*, prediction_id: str = "prediction:1", generation: int = 3, expec
     )
 
 
-def _result(memory_id: str, score: int, *, selected: bool = True):
+def _candidate(memory_id: str, score: int, *, selected: bool = True) -> RetrievalCandidate:
     memory = create_memory(
         memory_id=memory_id,
         payload_ref=f"payload:{memory_id}",
@@ -52,35 +56,55 @@ def _result(memory_id: str, score: int, *, selected: bool = True):
     )
     signals = (
         RetrievalSignal.create(axis=AXIS_GOAL, score_bp=score, evidence_refs=(f"goal:{memory_id}",)),
-        RetrievalSignal.create(axis=AXIS_SEMANTIC, score_bp=score if selected else 0, evidence_refs=(f"semantic:{memory_id}",)),
-        RetrievalSignal.create(axis=AXIS_CAUSAL, score_bp=score if selected else 0, evidence_refs=(f"causal:{memory_id}",)),
+        RetrievalSignal.create(
+            axis=AXIS_SEMANTIC,
+            score_bp=score if selected else 0,
+            evidence_refs=(f"semantic:{memory_id}",),
+        ),
+        RetrievalSignal.create(
+            axis=AXIS_CAUSAL,
+            score_bp=score if selected else 0,
+            evidence_refs=(f"causal:{memory_id}",),
+        ),
     )
-    candidate = RetrievalCandidate.create(
+    return RetrievalCandidate.create(
         memory=memory,
         signals=signals,
         candidate_evidence_refs=(f"candidate:{memory_id}",),
     )
+
+
+def _retrieval_context(*items: tuple[str, int, bool], limit: int = 4):
     need = RetrievalNeed.create(
-        need_id=f"need:{memory_id}",
+        need_id="need:familiarity",
         axis_weights_bp={AXIS_GOAL: 10_000, AXIS_SEMANTIC: 10_000, AXIS_CAUSAL: 10_000},
         min_overlap_axes=2,
-        limit=4,
-        evidence_refs=(f"need-evidence:{memory_id}",),
+        limit=limit,
+        evidence_refs=("need-evidence:familiarity",),
     )
-    plan = build_retrieval_plan(need, (candidate,))
-    return plan.selected[0] if selected else plan.not_selected[0]
+    candidates = tuple(_candidate(memory_id, score, selected=selected) for memory_id, score, selected in items)
+    return need, build_retrieval_plan(need, candidates)
+
+
+def _binding(residual, need, plan, *, prediction_id=None, generation=None, expected_residual="auto"):
+    expected = residual.sha256() if expected_residual == "auto" and residual is not None else expected_residual
+    return FamiliarityPredictionBinding.create(
+        prediction_id=prediction_id or (residual.prediction_id if residual is not None else "prediction:pending"),
+        generation=generation or (residual.generation if residual is not None else 4),
+        retrieval_need=need,
+        retrieval_plan=plan,
+        expected_residual_sha256=expected,
+        evidence_refs=("binding:evidence",),
+    )
 
 
 class FamiliarityPredictionBindingTests(unittest.TestCase):
-    def test_exact_residual_match_stays_match_and_preserves_identity(self) -> None:
+    def test_exact_residual_match_stays_match_and_preserves_full_provenance(self) -> None:
         residual = _residual(expected=7, observed=7)
-        binding = FamiliarityPredictionBinding.create(
-            prediction_id=residual.prediction_id,
-            generation=residual.generation,
-            expected_residual_sha256=residual.sha256(),
-            evidence_refs=("binding:evidence",),
-        )
-        signal = binding.evaluate(residual=residual, retrieval_results=(_result("m:known", 8_000),))
+        need, plan = _retrieval_context(("m:known", 8_000, True))
+        binding = _binding(residual, need, plan)
+        signal = binding.evaluate(residual=residual, retrieval_need=need, retrieval_plan=plan)
+
         self.assertEqual(signal.status, STATUS_MATCH)
         self.assertEqual(signal.residual_sha256, residual.sha256())
         self.assertEqual(signal.observation_id, residual.observation_id)
@@ -88,30 +112,26 @@ class FamiliarityPredictionBindingTests(unittest.TestCase):
         self.assertEqual(signal.prediction_error_bp, 0)
         self.assertEqual(signal.familiarity_bp, 8_000)
         self.assertEqual(signal.attention_priority_bp, 8_000)
+        self.assertEqual(signal.retrieval_need_id, need.need_id)
+        self.assertEqual(signal.retrieval_need_sha256, need.sha256())
+        self.assertEqual(signal.retrieval_plan_sha256, plan.sha256())
         self.assertEqual(signal.classification, CLASSIFICATION)
 
     def test_high_familiarity_cannot_suppress_current_mismatch(self) -> None:
         residual = _residual(expected=1, observed=2)
-        binding = FamiliarityPredictionBinding.create(
-            prediction_id=residual.prediction_id,
-            generation=residual.generation,
-            expected_residual_sha256=residual.sha256(),
-            evidence_refs=("binding:mismatch",),
+        need, plan = _retrieval_context(("m:familiar", 10_000, True))
+        signal = _binding(residual, need, plan).evaluate(
+            residual=residual, retrieval_need=need, retrieval_plan=plan
         )
-        signal = binding.evaluate(residual=residual, retrieval_results=(_result("m:familiar", 10_000),))
         self.assertEqual(signal.status, STATUS_MISMATCH)
         self.assertEqual(signal.prediction_error_bp, 10_000)
         self.assertEqual(signal.familiarity_bp, 10_000)
         self.assertEqual(signal.attention_priority_bp, 10_000)
 
     def test_no_current_residual_is_unknown_even_with_strong_memory(self) -> None:
-        binding = FamiliarityPredictionBinding.create(
-            prediction_id="prediction:pending",
-            generation=4,
-            expected_residual_sha256=None,
-            evidence_refs=("binding:unknown",),
-        )
-        signal = binding.evaluate(residual=None, retrieval_results=(_result("m:prior", 9_000),))
+        need, plan = _retrieval_context(("m:prior", 9_000, True))
+        binding = _binding(None, need, plan, expected_residual=None)
+        signal = binding.evaluate(residual=None, retrieval_need=need, retrieval_plan=plan)
         self.assertEqual(signal.status, STATUS_UNKNOWN)
         self.assertIsNone(signal.residual_sha256)
         self.assertIsNone(signal.observation_id)
@@ -119,82 +139,120 @@ class FamiliarityPredictionBindingTests(unittest.TestCase):
         self.assertEqual(signal.familiarity_bp, 9_000)
         self.assertEqual(signal.attention_priority_bp, 9_000)
 
-    def test_missing_residual_fails_closed_when_digest_was_expected(self) -> None:
+    def test_unselected_result_is_not_consumed_as_familiarity(self) -> None:
+        need, plan = _retrieval_context(("m:strong", 8_000, True), ("m:weak", 8_000, False))
         residual = _residual()
-        binding = FamiliarityPredictionBinding.create(
-            prediction_id=residual.prediction_id,
-            generation=residual.generation,
-            expected_residual_sha256=residual.sha256(),
-            evidence_refs=("binding:fence",),
+        signal = _binding(residual, need, plan).evaluate(
+            residual=residual, retrieval_need=need, retrieval_plan=plan
         )
-        with self.assertRaisesRegex(FamiliarityPredictionBindingError, "residual is unavailable"):
-            binding.evaluate(residual=None)
+        self.assertEqual(signal.retrieval_memory_ids, ("m:strong",))
+        self.assertNotIn("m:weak", signal.retrieval_memory_ids)
 
-    def test_present_residual_requires_explicit_digest_fence(self) -> None:
+    def test_direct_retrieval_result_injection_surface_is_removed(self) -> None:
         residual = _residual()
-        binding = FamiliarityPredictionBinding.create(
-            prediction_id=residual.prediction_id,
-            generation=residual.generation,
-            expected_residual_sha256=None,
-            evidence_refs=("binding:no-fence",),
-        )
-        with self.assertRaisesRegex(FamiliarityPredictionBindingError, "requires expected_residual_sha256"):
-            binding.evaluate(residual=residual)
+        need, plan = _retrieval_context(("m:known", 8_000, True))
+        binding = _binding(residual, need, plan)
+        with self.assertRaises(TypeError):
+            binding.evaluate(  # type: ignore[call-arg]
+                residual=residual,
+                retrieval_need=need,
+                retrieval_plan=plan,
+                retrieval_results=plan.selected,
+            )
 
-    def test_prediction_identity_generation_and_digest_mismatch_fail_closed(self) -> None:
-        residual = _residual(prediction_id="prediction:source", generation=5)
-        wrong_id = FamiliarityPredictionBinding.create(
-            prediction_id="prediction:other", generation=5,
-            expected_residual_sha256=residual.sha256(), evidence_refs=("binding:id",),
-        )
-        with self.assertRaisesRegex(FamiliarityPredictionBindingError, "prediction_id mismatch"):
-            wrong_id.evaluate(residual=residual)
-        wrong_generation = FamiliarityPredictionBinding.create(
-            prediction_id=residual.prediction_id, generation=6,
-            expected_residual_sha256=residual.sha256(), evidence_refs=("binding:generation",),
-        )
-        with self.assertRaisesRegex(FamiliarityPredictionBindingError, "generation mismatch"):
-            wrong_generation.evaluate(residual=residual)
-        wrong_digest = FamiliarityPredictionBinding.create(
-            prediction_id=residual.prediction_id, generation=residual.generation,
-            expected_residual_sha256=_sha("wrong"), evidence_refs=("binding:digest",),
-        )
-        with self.assertRaisesRegex(FamiliarityPredictionBindingError, "residual digest mismatch"):
-            wrong_digest.evaluate(residual=residual)
-
-    def test_unselected_retrieval_cannot_be_promoted_to_familiarity_evidence(self) -> None:
-        binding = FamiliarityPredictionBinding.create(
-            prediction_id="prediction:pending", generation=1,
-            expected_residual_sha256=None, evidence_refs=("binding:reject",),
-        )
-        with self.assertRaisesRegex(FamiliarityPredictionBindingError, "only selected retrieval"):
-            binding.evaluate(residual=None, retrieval_results=(_result("m:weak", 9_000, selected=False),))
-
-    def test_duplicate_memory_identity_fails_closed(self) -> None:
+    def test_forged_selected_result_cannot_replace_fenced_wp301_plan(self) -> None:
         residual = _residual()
-        binding = FamiliarityPredictionBinding.create(
-            prediction_id=residual.prediction_id, generation=residual.generation,
-            expected_residual_sha256=residual.sha256(), evidence_refs=("binding:duplicate",),
+        need, canonical_plan = _retrieval_context(("m:known", 8_000, True))
+        binding = _binding(residual, need, canonical_plan)
+        original = canonical_plan.selected[0]
+        forged_score = 9_000
+        forged = replace(
+            original,
+            weighted_score_bp=forged_score,
+            rank_score=forged_score * original.overlap_count,
+            candidate_sha256=_sha("forged-direct-constructor-result"),
         )
-        first = _result("m:duplicate", 7_000)
-        second = _result("m:duplicate", 8_000)
+        forged_plan = RetrievalPlan(
+            schema=PLAN_SCHEMA,
+            need_id=canonical_plan.need_id,
+            need_sha256=canonical_plan.need_sha256,
+            selected=(forged,),
+            not_selected=canonical_plan.not_selected,
+            candidate_count=canonical_plan.candidate_count,
+            classification=PLAN_CLASSIFICATION,
+        )
+
+        with self.assertRaisesRegex(FamiliarityPredictionBindingError, "retrieval plan digest mismatch"):
+            binding.evaluate(residual=residual, retrieval_need=need, retrieval_plan=forged_plan)
+
+    def test_need_identity_and_digest_are_fenced(self) -> None:
+        residual = _residual()
+        need, plan = _retrieval_context(("m:known", 8_000, True))
+        binding = _binding(residual, need, plan)
+        other_need = RetrievalNeed.create(
+            need_id="need:other",
+            axis_weights_bp={AXIS_GOAL: 10_000, AXIS_SEMANTIC: 10_000, AXIS_CAUSAL: 10_000},
+            min_overlap_axes=2,
+            limit=4,
+            evidence_refs=("need-evidence:other",),
+        )
+        with self.assertRaisesRegex(FamiliarityPredictionBindingError, "need_id mismatch"):
+            binding.evaluate(residual=residual, retrieval_need=other_need, retrieval_plan=plan)
+
+    def test_plan_need_binding_is_fenced(self) -> None:
+        residual = _residual()
+        need, plan = _retrieval_context(("m:known", 8_000, True))
+        binding = _binding(residual, need, plan)
+        forged_plan = replace(plan, need_sha256=_sha("wrong-need"))
+        with self.assertRaisesRegex(FamiliarityPredictionBindingError, "not bound to supplied need"):
+            binding.evaluate(residual=residual, retrieval_need=need, retrieval_plan=forged_plan)
+
+    def test_plan_candidate_count_and_duplicate_memory_fail_closed(self) -> None:
+        residual = _residual()
+        need, plan = _retrieval_context(("m:a", 8_000, True), ("m:b", 7_000, True))
+        binding = _binding(residual, need, plan)
+        bad_count = replace(plan, candidate_count=99)
+        with self.assertRaisesRegex(FamiliarityPredictionBindingError, "candidate_count"):
+            binding.evaluate(residual=residual, retrieval_need=need, retrieval_plan=bad_count)
+        duplicate = replace(plan, selected=(plan.selected[0], plan.selected[0]), candidate_count=2)
         with self.assertRaisesRegex(FamiliarityPredictionBindingError, "duplicate retrieval memory_id"):
-            binding.evaluate(residual=residual, retrieval_results=(first, second))
+            binding.evaluate(residual=residual, retrieval_need=need, retrieval_plan=duplicate)
 
-    def test_result_is_deterministic_across_retrieval_input_order(self) -> None:
+    def test_missing_and_present_residual_digest_fences_fail_closed(self) -> None:
+        residual = _residual()
+        need, plan = _retrieval_context(("m:known", 8_000, True))
+        expected = _binding(residual, need, plan)
+        with self.assertRaisesRegex(FamiliarityPredictionBindingError, "residual is unavailable"):
+            expected.evaluate(residual=None, retrieval_need=need, retrieval_plan=plan)
+
+        no_expected = _binding(residual, need, plan, expected_residual=None)
+        with self.assertRaisesRegex(FamiliarityPredictionBindingError, "requires expected_residual_sha256"):
+            no_expected.evaluate(residual=residual, retrieval_need=need, retrieval_plan=plan)
+
+        wrong = _binding(residual, need, plan, expected_residual=_sha("wrong"))
+        with self.assertRaisesRegex(FamiliarityPredictionBindingError, "residual digest mismatch"):
+            wrong.evaluate(residual=residual, retrieval_need=need, retrieval_plan=plan)
+
+    def test_prediction_identity_and_generation_fail_closed(self) -> None:
+        residual = _residual(prediction_id="prediction:source", generation=5)
+        need, plan = _retrieval_context(("m:known", 8_000, True))
+        wrong_id = _binding(residual, need, plan, prediction_id="prediction:other")
+        with self.assertRaisesRegex(FamiliarityPredictionBindingError, "prediction_id mismatch"):
+            wrong_id.evaluate(residual=residual, retrieval_need=need, retrieval_plan=plan)
+        wrong_generation = _binding(residual, need, plan, generation=6)
+        with self.assertRaisesRegex(FamiliarityPredictionBindingError, "generation mismatch"):
+            wrong_generation.evaluate(residual=residual, retrieval_need=need, retrieval_plan=plan)
+
+    def test_signal_digest_is_deterministic_for_exact_same_fenced_plan(self) -> None:
         residual = _residual(expected=3, observed=4)
-        binding = FamiliarityPredictionBinding.create(
-            prediction_id=residual.prediction_id, generation=residual.generation,
-            expected_residual_sha256=residual.sha256(), evidence_refs=("binding:deterministic",),
-        )
-        a = _result("m:a", 6_000)
-        b = _result("m:b", 9_000)
-        forward = binding.evaluate(residual=residual, retrieval_results=(a, b))
-        reverse = binding.evaluate(residual=residual, retrieval_results=(b, a))
-        self.assertEqual(forward.as_dict(), reverse.as_dict())
-        self.assertEqual(forward.sha256(), reverse.sha256())
-        self.assertEqual(forward.retrieval_memory_ids, ("m:a", "m:b"))
-        self.assertEqual(forward.familiarity_bp, 9_000)
+        need, plan = _retrieval_context(("m:a", 6_000, True), ("m:b", 9_000, True))
+        binding = _binding(residual, need, plan)
+        first = binding.evaluate(residual=residual, retrieval_need=need, retrieval_plan=plan)
+        second = binding.evaluate(residual=residual, retrieval_need=need, retrieval_plan=plan)
+        self.assertEqual(first.as_dict(), second.as_dict())
+        self.assertEqual(first.sha256(), second.sha256())
+        self.assertEqual(first.retrieval_memory_ids, ("m:a", "m:b"))
+        self.assertEqual(first.familiarity_bp, 9_000)
 
 
 if __name__ == "__main__":
