@@ -1,6 +1,6 @@
 """Deterministic bounded context compilation for Frankenstein 2.0.
 
-F2-WP-306 generation 1.
+F2-WP-306 generation 2.
 
 The compiler operates on caller-supplied references and metadata only. It never reads
 payload bytes, infers relevance or truth, mutates upstream state, or authorizes effects.
@@ -77,6 +77,12 @@ def _positive_int(name: str, value: Any, *, maximum: int) -> int:
     return value
 
 
+def _nonnegative_int(name: str, value: Any, *, maximum: int) -> int:
+    if type(value) is not int or value < 0 or value > maximum:
+        raise ContextCompilerError(f"{name} must be an integer in [0, {maximum}]")
+    return value
+
+
 def _basis_points(name: str, value: Any) -> int:
     if type(value) is not int or value < 0 or value > 10_000:
         raise ContextCompilerError(f"{name} must be an integer in [0, 10000]")
@@ -143,7 +149,7 @@ class ContextItem:
         _sha256("payload_sha256", self.payload_sha256)
         _identifier("source_ref", self.source_ref)
         _sha256("source_sha256", self.source_sha256)
-        _positive_int("source_generation", self.source_generation, maximum=2_147_483_647)
+        _nonnegative_int("source_generation", self.source_generation, maximum=2_147_483_647)
         _identifier("source_classification", self.source_classification)
         _basis_points("priority_bp", self.priority_bp)
         _positive_int("cost_units", self.cost_units, maximum=_MAX_COST_UNITS)
