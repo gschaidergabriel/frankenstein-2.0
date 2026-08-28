@@ -1,0 +1,82 @@
+{
+  "schema": "FRANKENSTEIN2_WORKPACKAGE_SOURCE_REVIEW_RECEIPT/v1",
+  "workpackage_id": "F2-WP-105",
+  "generation": 1,
+  "claim_id": "F2-WP-105-G1-EXECUTION-COMPLETION-GPT56SOL-20260828T215528P0700",
+  "trigger": "4",
+  "status": "SOURCE_SCOPE_COMPLETE_RUNTIME_UNVERIFIED",
+  "scope": "TYPED_EXECUTION_COMPLETION_LINEAGE_SOURCE_AND_FOCUSED_LOCAL_REPRODUCTION_ONLY",
+  "claim_commit": "2c54407e3413604049893897d977e3612fd66b69",
+  "source_commits": [
+    "773608fe7c8a73514c17c79bd5e0b736e8fdd599",
+    "921e43f8d1ce1d65c45127d67ae8b7fac0739545"
+  ],
+  "test_commits": [
+    "8afa5ba9d362c94f068c4e732c1cbc9727042b96",
+    "1a073df9b79a7cd64632bba40fbe69d10775041e"
+  ],
+  "committed_files": [
+    {
+      "path": "src/state/execution_completion.py",
+      "git_blob_sha": "d2e1a411c069269ce89f9718c94cab7f24303c69"
+    },
+    {
+      "path": "tests/test_execution_completion.py",
+      "git_blob_sha": "7ac42873e19757ffa3499e1c8326543a9adcc426"
+    }
+  ],
+  "implemented_invariants": [
+    "request is not admission, execution observation or verified completion",
+    "REPORTED_SUCCESS does not mint completion without separate verification",
+    "UNKNOWN external outcome remains UNKNOWN and blocks blind replay",
+    "INDETERMINATE verification does not mint completion",
+    "VERIFIED_APPLIED forbids replay because the effect is already verified applied",
+    "VERIFIED_NOT_APPLIED only makes a new explicit request eligible; it does not replay automatically",
+    "stale generation and causal/request/execution-attempt identity mismatch fail closed",
+    "exact transition replay is idempotent only when the complete transition payload fingerprint matches",
+    "same transition_id with changed payload fails closed",
+    "source component performs no UnifiedDB mutation and no real effect"
+  ],
+  "local_reproduction": {
+    "environment": "Linux 6.18.35 x86_64 / Python 3.13.5",
+    "classification": "SOURCE_EQUIVALENT_LOCAL_DETERMINISTIC_REPRODUCTION",
+    "focused_checks_passed": 10,
+    "focused_checks_failed": 0,
+    "checks": [
+      "request_not_complete",
+      "reported_success_not_complete",
+      "unknown_blocks_replay",
+      "indeterminate_not_complete",
+      "verified_applied_blocks_replay",
+      "verified_not_applied_new_explicit_only",
+      "exact_replay_idempotent",
+      "mutated_replay_rejected",
+      "stale_generation_rejected",
+      "bool_generation_rejected"
+    ],
+    "limitation": "The local runner could not resolve github.com, so this was not an exact git-checkout replay. The connector-visible committed source was reproduced locally for focused deterministic checks; the committed 14-test unittest file itself was not executed in an exact repository checkout."
+  },
+  "negative_evidence": [
+    {
+      "kind": "EXACT_HEAD_CLONE_BLOCKED",
+      "detail": "git clone failed with: Could not resolve host: github.com",
+      "product_failure": false
+    },
+    {
+      "kind": "REPLAY_IDEMPOTENCE_ALIAS_BUG_REPAIRED",
+      "detail": "Initial source treated transition_id presence alone as idempotent. Static falsifier review showed a mutated payload could reuse an old transition_id. Source was hardened to bind each applied transition_id to a SHA-256 payload fingerprint and reject mismatches.",
+      "product_failure": true,
+      "repaired": true
+    }
+  ],
+  "counterhypothesis": "A correct in-memory lineage state machine does not prove that live executors, UnifiedDB writers, telemetry collectors, delivery lifecycle or EffectGate persist and re-enter the same identities. Integration can still lose fields, reuse stale generations, or misclassify transport success as completion.",
+  "runtime_execution_observed": false,
+  "vps_execution_observed": false,
+  "provider_execution_observed": false,
+  "effect_execution_observed": false,
+  "whole_product_credit": 0,
+  "grid10_runtime_credit": 0,
+  "entityos_hcu_runtime_credit": 0,
+  "acceptance": "ACCEPTED_AT_SOURCE_LOCAL_REPRODUCTION_SCOPE_ONLY",
+  "next_exact_action": "After WP-102 and WP-104 interfaces stabilize, bind WP-101 causal identity + WP-103 delivery + WP-104 deferred return + WP-105 execution/completion into one UnifiedDB-backed causal integration path, then execute an exact-source isolated integration test proving request -> admission -> execution observation -> verification -> completion/re-entry without field loss, generation drift, duplicate delivery or blind replay."
+}
