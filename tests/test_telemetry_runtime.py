@@ -1,9 +1,14 @@
 #!/usr/bin/env python3
 import json
 import sqlite3
+import sys
 import tempfile
 import time
 from pathlib import Path
+
+ROOT = Path(__file__).resolve().parents[1]
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
 
 from tools.telemetry_runtime import CausalContext, TelemetryRuntime, finalize_run
 
@@ -161,7 +166,6 @@ def main() -> int:
         metrics = json.loads((run_root / "metrics.json").read_text())
         assert metrics["run_id"] == "RUN-1"
 
-        # Fail closed: a missing expected source must prevent CLOSED.json creation.
         failed_root = root / "runs" / "RUN-MISSING"
         try:
             finalize_run(
@@ -177,7 +181,6 @@ def main() -> int:
             raise AssertionError("missing expected telemetry source did not fail closed")
         assert not (failed_root / "CLOSED.json").exists()
 
-        # Non-instrumented dispositions require an explicit reason.
         try:
             telemetry.register_source("bad-source", "bad", "NOT_OBSERVABLE")
         except ValueError as exc:
