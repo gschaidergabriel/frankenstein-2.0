@@ -1,0 +1,199 @@
+{
+  "schema": "FRANKENSTEIN2_TRIGGER6_SOURCE_ARCHAEOLOGY_DELTA/v1",
+  "trigger": "6",
+  "research_id": "R6-SEED-003",
+  "slot": "SOURCE_ARCHAEOLOGIST",
+  "worker": "GPT-5.6-Sol",
+  "created_at_local": "2026-08-29T04:09:00+07:00",
+  "status": "E2_ARCHITECTURE_MAPPED_NOT_BUILD_CANDIDATE",
+  "evidence_ladder": {
+    "before": "E0_SEED",
+    "after": "E2_ARCHITECTURE_MAPPED",
+    "source_read": 1,
+    "architecture_mapped": 1,
+    "claim_reproduced_E3": 0,
+    "f2_ablation_E4": 0,
+    "build_candidate_E5": 0,
+    "f2_accepted_E6": 0
+  },
+  "coordination": {
+    "atomic_claim_path": "research/tool_intelligence/claims/R6-SEED-003/E2_ARCHITECTURE_MAPPED.json",
+    "atomic_claim_commit": "716ad52075e170756426b5d9ab3bf176a478e1a9",
+    "claim_was_acquired_before_credit_bearing_source_archaeology": true,
+    "duplicate_objective_observed_after_claim": false,
+    "research_credit_from_claim_itself": 0
+  },
+  "architecture_delta_fusion": {
+    "f2_main_at_write_reentry": "9fec890e132b27b743e926782ddd93a2bd3e21de",
+    "research_entity_main_at_write_reentry": "9d2eb96937e77de0de6071c6aa5a6fc83306da0c",
+    "admitted_supervisor_epoch": "8.78",
+    "admitted_supervisor_path": "research_entity/claycode/autonomous/SUPERVISOR_STEERING_8_78.json",
+    "mode": "FREE_ONLY",
+    "newer_non_authority_surface": "9.13AL_NON_AUTHORITY",
+    "authority_note": "Numeric recency does not promote a NON_AUTHORITY research surface. This result is rebound to admitted 8.78 authority.",
+    "effect_authority": "EffectGate+EffectJournal",
+    "unifieddb_role": "SOLE_CANONICAL_F2_STATE_AND_EVIDENCE_SUBSTRATE",
+    "current_trigger4_delta": "WP105 effect authority work was rebound to admitted 8.78 authority; that reentry does not change this memory/retrieval source mapping.",
+    "staleness_check": "No current F2 delta observed during this owned E2 objective invalidates the memory/retrieval authority conclusions. A later change to UnifiedDB, retrieval, memory-evolution or canonical admission semantics requires explicit E2 review rather than silent reuse."
+  },
+  "candidate": {
+    "repository": "vbcherepanov/total-agent-memory",
+    "upstream_default_branch": "main",
+    "upstream_commit": "6279a90370d32b8af5311816919fb2a6f5f6948d",
+    "upstream_version": "13.0.1",
+    "license": "MIT",
+    "source_class": "PUBLIC_EXTERNAL_REPOSITORY",
+    "runtime_stack": [
+      "Python>=3.10",
+      "SQLite",
+      "ChromaDB",
+      "sentence-transformers",
+      "transformers",
+      "FlagEmbedding",
+      "PEFT",
+      "FastEmbed",
+      "tree-sitter-language-pack",
+      "NumPy",
+      "MCP"
+    ]
+  },
+  "source_findings": [
+    {
+      "classification": "SOURCE_DIRECT",
+      "finding": "TemporalKG keeps an append-oriented fact_assertions history with valid_from/valid_to, superseded_by and invalidation_reason, supports point-in-time queries and diffs, and returns an existing id for a currently-valid exact (subject,predicate,object) duplicate."
+    },
+    {
+      "classification": "SOURCE_DIRECT",
+      "finding": "TemporalKG.add_fact defaults invalidate_previous=true: a new object for the same subject/predicate can close currently-valid older assertions and commit the change directly to its SQLite database; source defaults source='auto'."
+    },
+    {
+      "classification": "SOURCE_DIRECT",
+      "finding": "SkillStore keeps procedural steps, anti-patterns, learned_from lineage, versions and usage metrics, but record_use accepts a caller-supplied success boolean and automatically promotes a skill to active/mastered from usage count and success rate."
+    },
+    {
+      "classification": "SOURCE_DIRECT",
+      "finding": "Episodic linking creates entity -> event -> knowledge graph structure around saves, but its documented failure mode is best-effort: graph errors are swallowed so the underlying knowledge save can proceed without the episodic projection."
+    },
+    {
+      "classification": "SOURCE_DIRECT",
+      "finding": "GraphStore uses UUID ids and mutable reinforcement counters/weights; repeated node/edge observations increase mention/reinforcement state and cross-type name disagreements may reuse an existing node instead of forking a duplicate."
+    },
+    {
+      "classification": "SOURCE_DIRECT",
+      "finding": "The quality gate uses an LLM-based specificity/actionability/verifiability score, but skip/error decisions are explicitly fail-open and allow the underlying save to proceed."
+    },
+    {
+      "classification": "SOURCE_DIRECT",
+      "finding": "Vector storage is split between a Chroma adapter and a SQLite binary adapter; embedding provider/model/dimension/space/project identity is carried with vector records, while current SQLiteBinaryVectorStore writes remain routed through legacy Store code."
+    },
+    {
+      "classification": "SOURCE_DIRECT",
+      "finding": "FactIndex is explicitly a structured/semantic retrieval prefilter over graph-derived data rather than an authority layer; it can embed graph triples into a derived semantic index."
+    },
+    {
+      "classification": "UPSTREAM_MEASUREMENT_NOT_F2_REPRODUCED",
+      "finding": "The v13.0.1 release records a fixed write-path scaling defect: a ConceptExtractor was recreated on every save, causing one full graph_nodes read per save; upstream reports 1000 full reads per 1000 saves before and 1 after the fix."
+    },
+    {
+      "classification": "UPSTREAM_MEASUREMENT_NOT_F2_REPRODUCED",
+      "finding": "The same release records BEAM-1M R@5=0.448 over 625 probes/74,630 messages and an unfixed search scaling issue where p50 grew to 411 ms because _binary_search is linear in active store size."
+    },
+    {
+      "classification": "NEGATIVE_UPSTREAM_EVIDENCE",
+      "finding": "On exact upstream commit 6279a90370d32b8af5311816919fb2a6f5f6948d, GitHub Actions shows at least the push-triggered docker workflow completed with failure. No whole-upstream PASS is credited from workflow definitions or other runs."
+    }
+  ],
+  "f2_mechanism_map": {
+    "whole_repo_adoption": "REJECT_AT_E2",
+    "preferred_adoption_class": "CONCEPT_DISTILL_AND_REIMPLEMENT_INSIDE_UNIFIEDDB_DERIVED_PROJECTIONS",
+    "donor_primitives": [
+      {
+        "mechanism": "temporal assertion lineage",
+        "decision": "DISTILL",
+        "f2_shape": "Keep valid_from/valid_to/superseded_by/invalidation_reason-style lineage, but derive changes only from admitted canonical evidence/events; never let a generated or auto-extracted assertion make itself current."
+      },
+      {
+        "mechanism": "procedural method memory",
+        "decision": "DISTILL",
+        "f2_shape": "Store procedure version, learned_from provenance, anti-patterns and usage evidence as method memory; promotion/mastery requires verified outcome evidence or admitted evaluation, never an unverified caller boolean."
+      },
+      {
+        "mechanism": "entity-event-knowledge episodic projection",
+        "decision": "DISTILL",
+        "f2_shape": "Use as a rebuildable graph/read projection derived from stable UnifiedDB causal/event identities. Projection failure may be nonblocking only when completeness is observable and deterministic rebuild is possible."
+      },
+      {
+        "mechanism": "embedding-space identity",
+        "decision": "DISTILL",
+        "f2_shape": "Preserve embedding provider/model/dimension/space and project/generation scope on derived index records so mixed embeddings cannot silently compare as one space."
+      },
+      {
+        "mechanism": "structured fact prefilter plus semantic retrieval",
+        "decision": "DISTILL",
+        "f2_shape": "Use graph/semantic indexes only to rank candidate evidence references. Retrieval score, edge weight and reinforcement count never promote a fact."
+      },
+      {
+        "mechanism": "LLM quality scoring",
+        "decision": "DO_NOT_USE_AS_FACT_ADMISSION_AUTHORITY",
+        "f2_shape": "May annotate candidate utility/quality. It cannot fail-open into canonical fact admission and cannot substitute typed provenance/evidence validation."
+      }
+    ]
+  },
+  "hard_integration_fences": [
+    "NO_SECOND_TRUTH_STORE",
+    "NO_CHROMA_OR_DONOR_SQLITE_AS_CANONICAL_F2_STATE",
+    "AUTO_EXTRACTED_ASSERTION_CANNOT_INVALIDATE_CANONICAL_FACT",
+    "LATEST_ASSERTION_WINS_IS_NOT_TRUTH",
+    "RETRIEVAL_SCORE_OR_REINFORCEMENT_IS_NOT_EVIDENCE",
+    "CALLER_SUPPLIED_SUCCESS_CANNOT_PROMOTE_PROCEDURAL_MASTERY",
+    "LLM_QUALITY_GATE_CANNOT_MINT_OR_DELETE_CANONICAL_FACTS",
+    "DERIVED_EPISODIC_GRAPH_MUST_BE_REBUILDABLE",
+    "RANDOM_UUID_OR_TIMESTAMP_IS_NOT_REPLAY_STABLE_CAUSAL_IDENTITY",
+    "MISSING_PROJECTION_OR_CAUSAL_JOIN_REMAINS_UNKNOWN",
+    "EMBEDDING_SPACE_AND_GENERATION_MUST_BE_EXPLICIT",
+    "UPSTREAM_BENCHMARK_IS_NOT_F2_BENCHMARK",
+    "UPSTREAM_CI_DEFINITION_IS_NOT_WHOLE_RUNTIME_PASS"
+  ],
+  "hypothesis": "F2 can gain useful temporal, episodic and procedural memory behavior by distilling total-agent-memory's data-model ideas into typed UnifiedDB-backed canonical evidence plus disposable/rebuildable retrieval projections, without adopting its independent memory stores or its self-mutating truth/mastery semantics.",
+  "counterhypotheses": [
+    "Existing F2 UnifiedDB plus Emergent Retrieval may already contain enough typed dimensions to implement these behaviors directly, making even a donor-shaped compatibility layer unnecessary.",
+    "The donor's benchmark gains may depend on graph extraction, embedding and benchmark-specific heuristics that do not transfer under F2's stricter causal/provenance constraints.",
+    "Temporal supersession and procedural promotion may add harmful false certainty if evidence authority is not explicitly separated from candidate memory representation.",
+    "At F2 scale, linear vector search and graph/retrieval maintenance cost may erase retrieval gains unless the derived index is replaced by a bounded scalable implementation."
+  ],
+  "cheapest_high_information_next_discriminator": {
+    "class": "E3_REFERENCE_SEMANTICS_REPRODUCTION_THEN_E4_F2_ABLATION",
+    "execution_status": "NOT_RUN",
+    "proposal": "Use a synthetic, nonsecret, deterministic memory fixture containing fact supersessions, contradictions, repeated but false statements, verified/unverified procedure outcomes, project/generation boundaries and deletable derived indexes. First reproduce the narrow donor temporal/procedural behavior in an isolated temporary store; then compare against an F2-native UnifiedDB-derived projection on the identical fixture.",
+    "required_measurements": [
+      "point-in-time fact precision and supersession correctness",
+      "false promotion rate from repeated but unverified observations",
+      "procedure mastery precision when outcomes are VERIFIED versus UNKNOWN",
+      "cross-project and cross-generation retrieval leakage",
+      "projection deletion + deterministic rebuild equivalence",
+      "candidate retrieval recall/precision",
+      "p50/p95/p99 query latency and CPU/RSS/I/O at increasing store sizes",
+      "behavior when quality/enrichment providers fail"
+    ],
+    "acceptance_signal": "A distilled F2 projection improves retrieval or temporal/procedural usability while canonical UnifiedDB truth remains byte/identity stable under generated candidates, repeated false observations, projection deletion and provider failure.",
+    "falsifier": "No measurable retrieval/temporal benefit, any canonical-state mutation caused by derived memory, unresolved provenance leakage, unverified success causing mastery, non-rebuildable projection state, or unacceptable scaling overhead."
+  },
+  "promotion": {
+    "to_E3": false,
+    "to_E4": false,
+    "to_E5_trigger4_handoff": false,
+    "to_E6": false,
+    "reason": "Exact source architecture is mapped and integration fences are defined, but no donor claim reproduction or F2 ablation has been executed in this Trigger-6 objective."
+  },
+  "credits": {
+    "trigger6_E2": 1,
+    "donor_runtime": 0,
+    "f2_runtime": 0,
+    "f2_build_candidate": 0,
+    "f2_acceptance": 0,
+    "entityos_hcu_whole_system": 0,
+    "jspace_model": 0,
+    "training": 0
+  },
+  "next_exact_action": "Acquire a new atomic E3 objective for one narrow total-agent-memory temporal/procedural claim, reproduce it on a synthetic isolated fixture, and only after positive E3 create a separate E4 F2 ablation claim."
+}
