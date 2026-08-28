@@ -1,0 +1,55 @@
+{
+  "schema": "FRANKENSTEIN2_WORKPACKAGE_DELTA/v1",
+  "workpackage_id": "F2-WP-501",
+  "generation": 1,
+  "claim_id": "F2-WP-501-G1-GPT56SOL-COGNITIVE-ENVELOPE-CONTROL-SNAPSHOT-20260829",
+  "worker_id": "GPT-5.6-Sol",
+  "base_commit": "a8bb3529559c8f23530557b0e9a46c11d122722b",
+  "observed_main_commit": "66caa507481c666be4805f7b3cfa6b5dcb52e3cd",
+  "owned_paths": [
+    "src/frankenstein2/cognitive_envelope.py",
+    "tests/test_cognitive_envelope.py",
+    ".github/workflows/wp501-cognitive-envelope-ci.yml",
+    "workpackages/deltas/F2-WP-501/1-F2-WP-501-G1-GPT56SOL-COGNITIVE-ENVELOPE-CONTROL-SNAPSHOT-20260829-01.json"
+  ],
+  "result_class": "IMPLEMENTATION_DELTA",
+  "source_commits": [
+    "224ba5d4c42b1e5d460bcb0797d859b8f951776b"
+  ],
+  "source_sha256": {
+    "src/frankenstein2/cognitive_envelope.py": "9668f2e74ebf4afae89f6882274cee11ff0a261d2f6cef3d0c56bfbc8f703f2c",
+    "tests/test_cognitive_envelope.py": "f828317a43b829e6e396d80b230caa26d10b7d5e96ace1035f6ce539be2379f3",
+    ".github/workflows/wp501-cognitive-envelope-ci.yml": "b9b20d21eccdf124eccc06b31bf2c89e078cf4a57176e94d0ea4da28b42c25c4"
+  },
+  "receipts": [],
+  "falsifiers": [
+    "readout input order does not change assessment ordering or snapshot digest",
+    "missing required readout produces UNKNOWN and FAIL_CLOSED_HOLD",
+    "missing evidence or provenance produces UNKNOWN rather than inferred truth",
+    "non-finite value produces UNKNOWN and remains deterministically digestable",
+    "hard-limit evidence outranks simultaneous UNKNOWN and requests containment",
+    "soft-band exceedance produces DEGRADED candidate only",
+    "duplicate signal readouts are rejected as ambiguous",
+    "unexpected unbound signal identities are rejected",
+    "invalid or duplicate policy bands are rejected",
+    "readout generation and policy generation changes alter bound snapshot identity",
+    "ControlSnapshot is immutable",
+    "snapshot mechanically exposes no effect, completion or state-mutation authority"
+  ],
+  "local_test_evidence": {
+    "commands": [
+      "python -m py_compile src/frankenstein2/cognitive_envelope.py tests/test_cognitive_envelope.py",
+      "PYTHONPATH=src python tests/test_cognitive_envelope.py"
+    ],
+    "result": "10/10 PASS",
+    "scope": "LOCAL_DETERMINISTIC_SOURCE_UNIT_ONLY",
+    "runtime_credit": 0,
+    "physical_grid10_credit": 0,
+    "whole_system_credit": 0
+  },
+  "contradictions": [],
+  "proposed_state_change": "Keep F2-WP-501 ACTIVE until exact PR-head repository CI is observed and reconciliation terminalizes the claim. Do not update hot aggregate state from this worker delta.",
+  "completion_deficit": "Repository-hosted CI has not yet been observed at exact branch/source identity; no integration, target-runtime, physical GRID10 or whole-system evidence exists.",
+  "next_exact_action": "Observe repository-hosted CI for PR 119 on the exact updated branch head, then reconcile at bounded CognitiveEnvelope/ControlSnapshot component scope only if CI is green; otherwise preserve the exact failure as negative evidence and repair only the failing invariant.",
+  "created_at_utc": "2026-08-28T23:42:30Z"
+}
