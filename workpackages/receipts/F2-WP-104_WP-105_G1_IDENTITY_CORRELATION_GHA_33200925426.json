@@ -1,0 +1,73 @@
+{
+  "schema": "FRANKENSTEIN2_MULTI_COMPONENT_RUNTIME_RECEIPT/v1",
+  "trigger": "4",
+  "workpackages": ["F2-WP-102", "F2-WP-104", "F2-WP-105"],
+  "evidence_scope": "WP102_WP104_WP105_TYPED_IDENTITY_CORRELATION_COMPONENT_PATH_ONLY",
+  "repository": "gschaidergabriel/frankenstein-2.0",
+  "exact_run_head_sha": "b76f562f3f86fa022001bea02fccf5c7c650ada6",
+  "github_actions": {
+    "run_id": 33200925426,
+    "job_id": 98949889517,
+    "workflow": ".github/workflows/wp104-wp105-correlation-ci.yml",
+    "workflow_blob_sha": "38b9570e45802f4449443f5ac15b2ff87b5eb724",
+    "runner_label": "ubuntu-latest",
+    "runner_id": 1000045673,
+    "runner_name": "GitHub Actions 1000045673",
+    "status": "completed",
+    "conclusion": "success"
+  },
+  "exact_inputs": {
+    "src/frankenstein2/causal_identity.py": "e26c20fd8210c8c138d094d0e256df16f03651b0",
+    "src/frankenstein2/native_child_binding.py": "bfa2706d2196f4eb13761614d79695f646ec847b",
+    "src/frankenstein2/deferred_causal_return.py": "fa068b7ab1e54efb7bb7944fdac8caa630dd69d7",
+    "src/frankenstein2/deferred_execution_verification.py": "3d74b80047cbacf112401bc6f9377db1ac1afbbc",
+    "src/state/execution_completion.py": "d2e1a411c069269ce89f9718c94cab7f24303c69",
+    "tests/test_native_child_binding.py": "5b12ab998d88a1bbdeb4e7a7408e2f0a9110cd56",
+    "tests/test_deferred_causal_return.py": "f2d13a9395a0456cb5eca05652e87164e62501c2",
+    "tests/test_execution_completion.py": "7ac42873e19757ffa3499e1c8326543a9adcc426",
+    "tests/test_deferred_execution_verification.py": "98dae9dd99d64b2fde2ca935f3e5a9a4b78d9b09"
+  },
+  "executed_steps": [
+    "Compile Stage-1 correlation sources",
+    "Run WP102 identity regression",
+    "Run WP104 deferred-return regression",
+    "Run WP105 execution-completion regression",
+    "Run WP104-WP105 same-session interleaving falsifier"
+  ],
+  "discriminator": {
+    "same_session": true,
+    "same_parent_causal_id": true,
+    "same_child_causal_id_and_generation": true,
+    "same_generic_wp105_lineage": true,
+    "same_result_id": true,
+    "same_result_sha256": true,
+    "different_task_turn_context": true,
+    "different_invocation_tool_use_delegation_identity": true,
+    "call_b_observation_to_call_a_target": "REJECTED_BEFORE_WP105_MUTATION",
+    "call_a_to_call_a": "PASS",
+    "call_b_to_call_b": "PASS",
+    "exact_correlated_replay": "IDEMPOTENT",
+    "result": "CURRENT_TYPED_ADAPTER_PREVENTS_DECLARED_SAME_SESSION_CROSS_TALK"
+  },
+  "negative_predecessor": {
+    "run_id": 33200864578,
+    "job_id": 98949688559,
+    "conclusion": "failure",
+    "classification": "STALE_WP104_TEST_ABI_INTEGRATION_DRIFT",
+    "observation": "WP102 regression passed; WP104 tests errored before semantics because they instantiated the superseded NativeChildBinding ABI without workpackage_generation, claim_id and invocation_id.",
+    "repair_commit": "b76f562f3f86fa022001bea02fccf5c7c650ada6",
+    "negative_evidence_preserved": true
+  },
+  "credit": {
+    "multi_component_runtime": "PASS_AT_DECLARED_SCOPE",
+    "effect_invocation_runtime": 0,
+    "effect_enforcement_runtime": 0,
+    "vps_runtime": 0,
+    "physical_grid10_runtime": 0,
+    "whole_frankenstein2_runtime": 0,
+    "entityos_whole_runtime": 0,
+    "hcu_full_runtime": 0
+  },
+  "boundary": "The adapter validates identity correlation before a generic WP105 verification transition. It does not execute an effect, establish effect_id correlation, write UnifiedDB, verify an external world outcome, run a child process, execute physical GRID10, or establish whole-system acceptance.",
+  "next_exact_action": "Fuse explicit effect invocation/effect_id correlation into the same call-scoped identity path and execute the required overlapping-call pre/post-order falsifier before granting any effect invocation or containment credit."
+}
