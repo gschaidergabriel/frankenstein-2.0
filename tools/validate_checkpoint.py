@@ -16,8 +16,9 @@ from typing import Any
 
 CHECKPOINT_SCHEMA = "FRANKENSTEIN2_CURRENT_CHECKPOINT/v1"
 CLAIM_SCHEMA = "FRANKENSTEIN2_WORKPACKAGE_CLAIM/v1"
-ACTIVE_SCHEMA = "FRANKENSTEIN2_ACTIVE_WORKPACKAGE/v1"
 STATE_SCHEMA = "FRANKENSTEIN2_WORKPACKAGE_STATE/v1"
+STATE_CONSISTENCY_CONTRACT_SCHEMA = "FRANKENSTEIN2_WORKPACKAGE_STATE_CONSISTENCY_CONTRACT/v1"
+STATE_CONSISTENCY_CONTRACT_REL = Path("workpackages/WORKPACKAGE_STATE_CONSISTENCY_CONTRACT_V1.json")
 CANONICAL_REPOSITORY = "gschaidergabriel/frankenstein-2.0"
 SHA40 = re.compile(r"^[0-9a-f]{40}$")
 
@@ -58,6 +59,37 @@ def _find_claim(repo_root: Path, claim_id: str) -> tuple[Path | None, dict[str, 
         if claim.get("claim_id") == claim_id:
             return path, claim
     return None, None
+
+
+def _active_pointer_schemas(repo_root: Path) -> frozenset[str]:
+    """Read the canonical active-pointer compatibility set from the state contract.
+
+    CURRENT and the repository state validator must share one schema-admission surface.
+    Reading the contract here avoids a stale private constant silently rejecting a schema
+    that the canonical workpackage-state contract already admits.
+    """
+
+    contract = _load_json(repo_root / STATE_CONSISTENCY_CONTRACT_REL)
+    if contract.get("schema") != STATE_CONSISTENCY_CONTRACT_SCHEMA:
+        raise CheckpointValidationError(
+            "state consistency contract schema mismatch: "
+            f"{contract.get('schema')!r}"
+        )
+    if contract.get("canonical_repository") != CANONICAL_REPOSITORY:
+        raise CheckpointValidationError(
+            "state consistency contract canonical_repository mismatch: "
+            f"{contract.get('canonical_repository')!r}"
+        )
+    schemas = contract.get("compatible_active_pointer_schemas")
+    if (
+        not isinstance(schemas, list)
+        or not schemas
+        or any(not isinstance(item, str) or not item.strip() for item in schemas)
+    ):
+        raise CheckpointValidationError(
+            "state consistency contract compatible_active_pointer_schemas must be a non-empty string list"
+        )
+    return frozenset(schemas)
 
 
 def validate_checkpoint(repo_root: Path, checkpoint_path: Path | None = None) -> dict[str, Any]:
@@ -150,16 +182,22 @@ def validate_checkpoint(repo_root: Path, checkpoint_path: Path | None = None) ->
 
     # CURRENT is a continuation authority surface, not merely a historical claim pointer.
     # Bind it to the single mechanical active-workpackage pointer so an old, internally
-    # self-consistent claim cannot masquerade as the current mutation generation.
+    # self-consistent claim cannot masquerade as the current mutation generation. Schema
+    # admission comes from the same canonical state-consistency contract used by the
+    # repository workpackage-state validator; an unknown schema still fails closed.
     if workpackage_id:
         active_path = repo_root / "workpackages" / "active" / f"{workpackage_id}.json"
         try:
             active = _load_json(active_path)
+            admitted_active_schemas = _active_pointer_schemas(repo_root)
         except CheckpointValidationError as exc:
             errors.append(f"active pointer: {exc}")
         else:
-            if active.get("schema") != ACTIVE_SCHEMA:
-                errors.append(f"active pointer schema mismatch: {active.get('schema')!r}")
+            if active.get("schema") not in admitted_active_schemas:
+                errors.append(
+                    "active pointer schema not contract-admitted: "
+                    f"{active.get('schema')!r}"
+                )
             active_bindings = {
                 "workpackage_id": (active.get("workpackage_id"), workpackage_id),
                 "generation": (active.get("generation"), generation),
