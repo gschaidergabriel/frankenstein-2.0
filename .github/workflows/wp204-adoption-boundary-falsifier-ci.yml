@@ -1,0 +1,35 @@
+name: F2 WP204 Adoption Boundary Falsifier
+
+on:
+  push:
+    branches:
+      - chatgpt/trigger4-wp204-adoption-boundary-falsifier-20260829
+    paths:
+      - 'src/frankenstein2/goal_lifecycle.py'
+      - 'tests/falsifiers/test_wp204_goal_adoption_boundary.py'
+      - '.github/workflows/wp204-adoption-boundary-falsifier-ci.yml'
+  pull_request:
+    paths:
+      - 'src/frankenstein2/goal_lifecycle.py'
+      - 'tests/falsifiers/test_wp204_goal_adoption_boundary.py'
+      - '.github/workflows/wp204-adoption-boundary-falsifier-ci.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  counterexample:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Compile counterexample
+        run: python -m py_compile src/frankenstein2/goal_lifecycle.py tests/falsifiers/test_wp204_goal_adoption_boundary.py
+      - name: Reproduce adoption-boundary counterexample
+        env:
+          PYTHONPATH: src
+        run: python tests/falsifiers/test_wp204_goal_adoption_boundary.py -v
