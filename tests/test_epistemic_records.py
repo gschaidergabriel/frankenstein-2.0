@@ -202,6 +202,38 @@ class EpistemicRecordTests(unittest.TestCase):
                 causal_refs=("parent-1", "parent-1"),
             )
 
+    def test_payload_mapping_keys_must_be_strings_recursively(self):
+        for payload in (
+            {1: "x"},
+            {"outer": {2: "x"}},
+            {"outer": [{3: "x"}]},
+        ):
+            with self.subTest(payload=payload):
+                with self.assertRaisesRegex(EpistemicRecordError, "object key .* must be a string"):
+                    ObservedEvidence.create(
+                        record_id="obs-nonstring-key",
+                        generation=1,
+                        payload=payload,
+                        provenance_sha256=PROVENANCE_A,
+                        observation_ref="sensor:1",
+                    )
+
+    def test_identity_and_reference_text_must_be_canonical(self):
+        invalid_cases = (
+            {"record_id": " obs-space ", "observation_ref": "sensor:1", "causal_refs": ()},
+            {"record_id": "obs-control", "observation_ref": "sensor:\n1", "causal_refs": ()},
+            {"record_id": "obs-causal", "observation_ref": "sensor:1", "causal_refs": (" parent-1",)},
+        )
+        for case in invalid_cases:
+            with self.subTest(case=case):
+                with self.assertRaises(EpistemicRecordError):
+                    ObservedEvidence.create(
+                        generation=1,
+                        payload={"value": 1},
+                        provenance_sha256=PROVENANCE_A,
+                        **case,
+                    )
+
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)
