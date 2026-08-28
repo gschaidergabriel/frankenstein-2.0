@@ -1,0 +1,34 @@
+name: F2 WP206 Parent Digest Falsifier CI
+
+on:
+  pull_request:
+    paths:
+      - 'src/frankenstein2/persistent_agency_kernel.py'
+      - 'src/state/unifieddb_identity.py'
+      - 'tests/wp206_restart_probe.py'
+      - 'tests/test_wp206_parent_digest_falsifier.py'
+      - '.github/workflows/wp206-parent-digest-falsifier-ci.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  parent-checkpoint-integrity:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Compile exact review surface
+        run: >-
+          python -m py_compile
+          src/frankenstein2/persistent_agency_kernel.py
+          tests/wp206_restart_probe.py
+          tests/test_wp206_parent_digest_falsifier.py
+      - name: Corrupt-parent successor falsifier
+        env:
+          PYTHONPATH: src
+        run: python tests/test_wp206_parent_digest_falsifier.py -v
