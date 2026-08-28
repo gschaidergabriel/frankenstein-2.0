@@ -18,13 +18,20 @@ Every participating component emits or routes typed records into one or more cha
 - `EFFECT` — request/admission/execution identity. Never interpreted as completion by itself.
 - `COMPLETION` — typed verification outcome and completion deficit closure.
 
-The common schema is `schemas/EVIDENCE_SPINE.schema.json`.
+Typed event records use `schemas/EVIDENCE_SPINE.schema.json`.
+
+Immutable per-test package authority is separate and newer:
+
+- `runpackages/RUN_PACKAGE_SCHEMA_V1.json`
+- `runpackages/verify_run_package.py`
+
+The telemetry schema must not become a second run-package authority.
 
 ## Causal minimum
 
-A telemetry record must carry a stable `event_id`, `run_id`, timestamp, component, event type, `causal_id`, and `generation`. Where the surface supports them, it must also carry `session_id`, `agent_id`, `task_id`, and `turn_id`.
+A telemetry record must carry a stable `event_id`, `run_id`, timestamp, component, event type, `causal_id`, and `generation`. Where the surface supports them, it also carries `session_id`, `agent_id`, `task_id`, `turn_id`, `tool_use_id`, and `effect_id`.
 
-Missing identity is not silently guessed. A collector that cannot bind a field leaves it `null` and the test manifest must declare the limitation.
+Missing identity is not silently guessed. A collector that cannot bind a field leaves it `null` and the run package must declare the limitation.
 
 ## Epistemic typing
 
@@ -34,13 +41,9 @@ Telemetry can say what was observed by the instrument, but it cannot promote mod
 
 ## Run packages
 
-Every material test series lives under:
+Every material test series uses the immutable package contract under `runpackages/`. A closed package is verified with `runpackages/verify_run_package.py`; corrections become successor packages rather than history rewrites.
 
-`runs/<series>/<run_id>/`
-
-At minimum the package contains a schema-valid `manifest.json`. Optional files may include telemetry JSONL/SQLite, traces, metrics, system logs, communication slices, GRID10 slices, hypotheses, bugs and negative results.
-
-Paths are immutable by convention once the run is closed. Corrections are new run IDs or explicit successor receipts; do not rewrite old failures into passes.
+Telemetry payloads referenced by a run package may include JSONL/SQLite, traces, metrics, system logs, communication slices, GRID10 slices, hypotheses, bugs and negative results.
 
 ## Promotion boundary
 
