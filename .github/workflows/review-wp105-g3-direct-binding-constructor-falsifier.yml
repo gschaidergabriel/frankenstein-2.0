@@ -1,0 +1,42 @@
+name: Review WP105 G3 Direct Binding Constructor Falsifier
+
+on:
+  pull_request:
+    paths:
+      - 'tests/falsifiers/test_wp105_g3_direct_binding_constructor_falsifier.py'
+      - 'workpackages/falsifiers/F2-WP-105/20260829T0655P0700_DIRECT_BINDING_CONSTRUCTOR_CANDIDATE_FALSIFIER_GPT56SOL.json'
+      - '.github/workflows/review-wp105-g3-direct-binding-constructor-falsifier.yml'
+      - 'src/frankenstein2/completion_evidence_gate.py'
+      - 'src/frankenstein2/current_entityos_effect_authority_binding.py'
+      - 'tests/test_completion_evidence_gate.py'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  reproduce:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      PYTHONPATH: .:src
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Bind reviewed source identity
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git hash-object src/frankenstein2/completion_evidence_gate.py)" = "27b615e8dade08ebeb580bd57f177711ac9a5e65"
+          test "$(git hash-object src/frankenstein2/current_entityos_effect_authority_binding.py)" = "e2df1a2f0b42d24ce68050d621f44e7c22a55622"
+          test "$(git hash-object tests/test_completion_evidence_gate.py)" = "aa068a040fe1ab503ed64e0a06b93dccc78c2166"
+      - name: Compile falsifier
+        run: >-
+          python -m py_compile
+          tests/falsifiers/test_wp105_g3_direct_binding_constructor_falsifier.py
+      - name: Reproduce no-real-effect authority-construction gap
+        run: >-
+          python -m unittest -v
+          tests.falsifiers.test_wp105_g3_direct_binding_constructor_falsifier
