@@ -27,8 +27,10 @@ def checkpoint(*conditions):
     )
 
 
-def observation(oid, key, value):
-    return WakeObservation(oid, key, value, (f"observation:{oid}",))
+def observation(oid, key, value, provenance_refs=None):
+    if provenance_refs is None:
+        provenance_refs = (f"observation:{oid}",)
+    return WakeObservation(oid, key, value, provenance_refs)
 
 
 def evaluate(cp, observations):
@@ -99,6 +101,40 @@ class WakeConflictTests(unittest.TestCase):
         self.assertEqual(left.as_dict(), right.as_dict())
         self.assertEqual(left.schema, "FRANKENSTEIN2_WAKE_EVALUATION/v1")
         self.assertEqual(cp.schema, HOLD_CHECKPOINT_SCHEMA)
+
+    def test_receipt_digest_changes_when_observation_value_changes(self):
+        cp = checkpoint(WakeCondition("c1", "door_state", OP_PRESENT, ("spec:door",), None))
+        left = evaluate(cp, (observation("o1", "door_state", "open"),))
+        right = evaluate(cp, (observation("o1", "door_state", "closed"),))
+        self.assertEqual(left.observation_ids, right.observation_ids)
+        self.assertEqual(left.classification, right.classification)
+        self.assertNotEqual(left.observations_sha256, right.observations_sha256)
+        self.assertNotEqual(left.sha256(), right.sha256())
+
+    def test_receipt_digest_changes_when_observation_provenance_changes(self):
+        cp = checkpoint(WakeCondition("c1", "door_state", OP_PRESENT, ("spec:door",), None))
+        left = evaluate(
+            cp,
+            (observation("o1", "door_state", "open", ("sensor:left", "packet:1")),),
+        )
+        right = evaluate(
+            cp,
+            (observation("o1", "door_state", "open", ("sensor:right", "packet:1")),),
+        )
+        self.assertEqual(left.observation_ids, right.observation_ids)
+        self.assertEqual(left.classification, right.classification)
+        self.assertNotEqual(left.observations_sha256, right.observations_sha256)
+        self.assertNotEqual(left.sha256(), right.sha256())
+
+    def test_observation_payload_digest_is_order_normalized(self):
+        cp = checkpoint(WakeCondition("c1", "door_state", OP_PRESENT, ("spec:door",), None))
+        a = observation("o1", "door_state", "open", ("packet:1", "sensor:left"))
+        b = observation("o2", "door_state", "closed", ("packet:2", "sensor:right"))
+        left = evaluate(cp, (a, b))
+        right = evaluate(cp, (b, a))
+        self.assertEqual(left.observations_sha256, right.observations_sha256)
+        self.assertEqual(left.sha256(), right.sha256())
+        self.assertEqual(len(left.observations_sha256), 64)
 
 
 if __name__ == "__main__":
