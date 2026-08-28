@@ -115,3 +115,27 @@ regression receipt
 ```
 
 Patching around a symptom remains `FIX_CANDIDATE` or `REGRESSION_PENDING`.
+
+## Canonical-build priority after repository materialization
+
+The canonical `gschaidergabriel/frankenstein-2.0` repository now exists. From this point forward, Triggerword-4 assembly is **F2-repository-first**.
+
+Research-Entity, controller, VPS and historical repositories remain valid donor/evidence/execution surfaces, but they are not the canonical product state. A useful result produced elsewhere must be materialized here as source, test, measurement, receipt, provenance record or explicitly linked external evidence before it earns Frankenstein-2.0 build credit.
+
+Queued or unavailable self-hosted runner gates are side-fronts unless the selected workpackage truly depends on them. In particular:
+
+```text
+QUEUED_RUNNER_GATE != BLOCKED_FRANKENSTEIN2_PROJECT
+OLD_ENTITYOS_HCU_P0 != AUTOMATIC_F2_GLOBAL_P0
+RESEARCH_STAGING_PROGRESS != F2_IMPLEMENTATION_PROGRESS
+```
+
+Required behavior while a runner-dependent discriminator is nonterminal:
+
+1. preserve the existing singleton/claim and do not stampede duplicate dispatches;
+2. record the exact blocked discriminator and required runtime receipt;
+3. continue independent Frankenstein-2.0 workpackages in this repository;
+4. prioritize evidence/data spine, causal identity, donor migration, GRID/GWT interfaces, memory, world-model, child ABI, Retina/Voice and cognitive-test work that can proceed without that runner;
+5. consume the runner result when it becomes terminal and then update only the workpackages whose acceptance actually depends on it.
+
+A stale external supervisor state written before the canonical F2 repository existed must not override this repository's current `workpackages/STATE.json`, README, checkpoints or accepted evidence.
