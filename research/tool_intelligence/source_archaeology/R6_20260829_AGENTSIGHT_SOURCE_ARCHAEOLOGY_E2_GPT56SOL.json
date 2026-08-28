@@ -1,0 +1,164 @@
+{
+  "schema": "F2_TRIGGER6_SOURCE_ARCHAEOLOGY/v1",
+  "research_id": "R6-20260829-AGENTSIGHT-E2-GPT56SOL",
+  "mirror_epoch": "trigger6-20260829-agentsight-e2-01",
+  "trigger": "6",
+  "slot": "SOURCE_ARCHAEOLOGIST",
+  "status": "E2_ARCHITECTURE_MAPPED",
+  "recorded_at_local": "2026-08-29T03:57:00+07:00",
+  "candidate": {
+    "seed_id": "R6-SEED-005",
+    "repository": "eunomia-bpf/agentsight",
+    "upstream_branch": "master",
+    "upstream_commit": "934f441eff8ca210807333633f47b2efcb8cd020",
+    "upstream_release_observed": "1.0.30",
+    "license": "MIT",
+    "seed_priority": 99
+  },
+  "snapshot_binding": {
+    "f2_repository": "gschaidergabriel/frankenstein-2.0",
+    "f2_main": "738df2763bcb89d3d0386eb99cf2ec3c6bf664b5",
+    "research_repository": "gschaidergabriel/clay-global-research-entity",
+    "research_main_before_this_lane": "c962733653b718fe4ec3dc91fa5efa9a26e31aa5",
+    "concurrent_architecture_fusion": "research_entity/frankenstein2_tool_intelligence/deltas/ARCHITECTURE_DELTA_FUSION_20260829T0357P0700_GPT56SOL.json",
+    "trigger5_source_delta": "research_entity/architecture_archaeology/triggerword5_runs/TRIGGERWORT5_STERN_EFFECT_PATH_AND_INGEST_DRIFT_2026-08-28_GPT56SOL.json",
+    "seed_manifest_f2_blob": "db4f86dac633aefbff44024cde23191ffe56ee8a",
+    "f2_workpackages_blob": "403a57059b34609e9a09875d08bf4f33337b6d96",
+    "f2_donor_matrix_blob": "e880a72ab8f979ed00d9887c831566de66b9d2e0",
+    "f2_current_checkpoint_blob": "5102efb82bd456d1fead08b075d73a5e686880fa"
+  },
+  "evidence_ladder": {
+    "E0_seed": "PASS_EXISTING",
+    "E1_source_read": "PASS_THIS_RUN",
+    "E2_architecture_mapped": "PASS_THIS_RUN",
+    "E3_claim_reproduced": "NOT_RUN",
+    "E4_f2_ablation": "NOT_RUN",
+    "E5_build_candidate": "NOT_GRANTED",
+    "E6_f2_accepted": "NOT_GRANTED"
+  },
+  "source_observations": [
+    {
+      "classification": "SOURCE_DIRECT",
+      "claim": "AgentSight is a system-level observability stack whose source architecture separates eBPF/native capture, normalized event streams, analysis/materialized views, SQLite/OTel sinks, protocol surfaces and CLI/web presentation.",
+      "refs": ["eunomia-bpf/agentsight@934f441eff8ca210807333633f47b2efcb8cd020:CLAUDE.md"]
+    },
+    {
+      "classification": "SOURCE_DIRECT",
+      "claim": "Linux eBPF capture observes process lifecycle and SSL/TLS plaintext boundaries; privileged capture requires sudo/root-equivalent eBPF capability, while some top/report/native-session paths can operate without eBPF.",
+      "refs": ["eunomia-bpf/agentsight@934f441eff8ca210807333633f47b2efcb8cd020:README.md", "eunomia-bpf/agentsight@934f441eff8ca210807333633f47b2efcb8cd020:CLAUDE.md"]
+    },
+    {
+      "classification": "SOURCE_DIRECT",
+      "claim": "The AgentSight materialized SQLite view stores independent rows for LLM calls, tool calls, process nodes, audit events, resource samples, token usage and network targets, including view_source/confidence fields on relevant rows.",
+      "refs": ["eunomia-bpf/agentsight@934f441eff8ca210807333633f47b2efcb8cd020:ext/analysis/src/sinks/sqlite.rs"]
+    },
+    {
+      "classification": "SOURCE_DIRECT",
+      "claim": "AgentSight can export captured LLM calls as OpenTelemetry GenAI spans over OTLP/HTTP; prompt/completion content export is opt-in and off by default. Tool/workflow spans are explicitly not emitted yet and AgentSight-specific provenance remains in its own rows.",
+      "refs": ["eunomia-bpf/agentsight@934f441eff8ca210807333633f47b2efcb8cd020:docs/otel.md"]
+    },
+    {
+      "classification": "SOURCE_DIRECT",
+      "claim": "The full collector is a nontrivial Rust/eBPF/web stack (Rust 1.87, internal capture/protocol/session/visualization crates, rusqlite, Tokio, Hyper and other dependencies), so wholesale embedding would materially enlarge the F2 runtime/dependency surface.",
+      "refs": ["eunomia-bpf/agentsight@934f441eff8ca210807333633f47b2efcb8cd020:collector/Cargo.toml"]
+    },
+    {
+      "classification": "UPSTREAM_CLAIM_NOT_REPRODUCED",
+      "claim": "The upstream README reports less than 3 percent CPU overhead for typical traced agent workloads. This run did not reproduce that number and grants it zero F2 performance credit.",
+      "refs": ["eunomia-bpf/agentsight@934f441eff8ca210807333633f47b2efcb8cd020:README.md"]
+    }
+  ],
+  "f2_architecture_mapping": {
+    "primary_target": "F2-WP-005",
+    "secondary_targets": ["F2-WP-605", "F2-WP-902", "F2-WP-904"],
+    "current_f2_gap": "F2-WP-005 Full telemetry/data spine and collectors remains IN_PROGRESS; child performance telemetry and whole-system characterization/failure-injection work remain open.",
+    "recommended_role": "EXTERNAL_READ_ONLY_SYSTEM_WITNESS",
+    "recommended_integration_shape": "SIDECAR_OR_OFFLINE_WITNESS_ADAPTER",
+    "recommended_boundary": [
+      "Keep UnifiedDB as the sole canonical state/evidence authority.",
+      "Keep EffectGate/EffectJournal as the sole real-effect authority.",
+      "Treat AgentSight SQLite as an external derived/materialized observer store, never a second truth database.",
+      "Import only typed observations into F2 through a provenance-bound TelemetryWitnessEnvelope or equivalent adapter.",
+      "Prefer metadata-only OTLP/JSON/SQLite read-only ingestion first; do not enable captured prompt/completion content unless a bounded experiment explicitly needs it and sanitization is proven.",
+      "Bind observer version/commit, collection mode, privilege mode, target process identity/tree, source timestamps, F2 causal IDs when available, event/content digest, view_source and confidence.",
+      "Preserve unmatched or ambiguous correlations as UNKNOWN rather than inventing causal linkage."
+    ],
+    "why_not_wholesale_import": "F2 already requires its own canonical telemetry/data spine and causal identity. AgentSight's largest unique value is an observer outside application-controlled logging. Its separate database, web UI and full capture stack are useful as a witness but would create duplication and authority confusion if treated as canonical F2 state."
+  },
+  "candidate_mechanisms_to_distill": [
+    "Independent process-tree and system-boundary observation outside agent self-report.",
+    "Explicit view_source/confidence on materialized observer rows.",
+    "Read-only/offline querying of recorded observer SQLite.",
+    "Metadata-first OpenTelemetry GenAI export with content capture disabled by default.",
+    "Correlation of model traffic with process/file/network/resource evidence while preserving observer provenance.",
+    "Fallback modes using native agent session data when privileged eBPF capture is unavailable."
+  ],
+  "counterhypotheses_and_risks": [
+    {
+      "id": "R6-AS-CH1",
+      "claim": "F2-native telemetry may already provide enough causal evidence; AgentSight could duplicate signals without improving error detection or falsification power.",
+      "falsifier": "A controlled A/B workload where AgentSight catches material subprocess/file/network/resource effects or attribution errors missed by the F2 telemetry spine at acceptable overhead."
+    },
+    {
+      "id": "R6-AS-CH2",
+      "claim": "Privileged eBPF/TLS tracing may be operationally too expensive or unsafe for default deployment.",
+      "falsifier": "A bounded Linux experiment showing required capture completeness with acceptable privileges, isolation, privacy controls and overhead; otherwise retain only unprivileged/native-session mechanisms."
+    },
+    {
+      "id": "R6-AS-CH3",
+      "claim": "A second mutable observer database can become a de facto competing truth store and create stale/conflicting state.",
+      "falsifier": "Adapter tests prove one-way provenance-bound observation ingestion, no authority writes from AgentSight state, deterministic dedupe and explicit disagreement/UNKNOWN handling."
+    },
+    {
+      "id": "R6-AS-CH4",
+      "claim": "Boot-relative timestamps, provider/session grouping and external process correlation may not align reliably with F2 causal identities.",
+      "falsifier": "Exact-bound test fixtures show stable event alignment across process spawn, tool invocation, observer timestamps and F2 causal IDs, including negative mismatches that fail closed."
+    },
+    {
+      "id": "R6-AS-CH5",
+      "claim": "TLS plaintext capture can collect prompts, responses, paths, headers or other sensitive material beyond what F2 needs.",
+      "falsifier": "Metadata-only capture/export proves sufficient for the target telemetry hypotheses; content remains disabled and temporary artifacts pass a secret/sensitive-data fence."
+    }
+  ],
+  "next_exact_discriminator": {
+    "slot": "EXPERIMENTAL_FALSIFIER",
+    "goal": "Determine whether AgentSight adds independent falsification power beyond F2-native telemetry at acceptable operational cost.",
+    "experiment": "On an explicitly authorized isolated Linux test surface, run a deterministic no-real-external-effect fixture that spawns child processes, writes only inside a temporary directory, performs loopback-only network I/O and emits known F2 internal telemetry. Compare AgentSight disabled vs enabled and reconcile both evidence streams.",
+    "measure": [
+      "capture completeness and false-positive rate for known process/file/loopback events",
+      "correlation accuracy against immutable F2 causal/tool/child IDs",
+      "p50/p95/p99 wall latency delta",
+      "CPU, RSS/PSS and I/O overhead",
+      "startup and teardown cost",
+      "privilege/capability requirements",
+      "observer DB/artifact size",
+      "privacy/secret-fence result",
+      "behavior when eBPF is unavailable or correlation is ambiguous"
+    ],
+    "promotion_rule": "Only reproducible net evidence benefit can advance to E3/E4. E5 additionally requires an exact integration plan and measured F2 benefit; E6 remains Trigger-4-only."
+  },
+  "mirror_state": {
+    "research_entity_path": "research_entity/frankenstein2_tool_intelligence/deltas/R6_20260829_AGENTSIGHT_SOURCE_ARCHAEOLOGY_E2_GPT56SOL.json",
+    "f2_path": "research/tool_intelligence/source_archaeology/R6_20260829_AGENTSIGHT_SOURCE_ARCHAEOLOGY_E2_GPT56SOL.json",
+    "pending_research_sqlite_update": "NOT_ATTEMPTED_BINARY_DB_RECONCILIATION_REQUIRED",
+    "reason": "Persist the source-grounded research packet without treating a binary DB rewrite or private Actions transport as implicitly safe/atomic."
+  },
+  "credits": {
+    "source_read": 1,
+    "architecture_mapping": 1,
+    "upstream_claim_reproduction": 0,
+    "f2_ablation": 0,
+    "build_candidate": 0,
+    "f2_integration_acceptance": 0,
+    "runtime_credit": 0,
+    "whole_system_credit": 0
+  },
+  "execution": {
+    "provider_calls": 0,
+    "vps_execution": 0,
+    "root_or_sudo_execution": 0,
+    "real_external_effect_experiment": 0,
+    "unusual_experiment": false,
+    "work_kind": "SOURCE_ARCHAEOLOGY_AND_ARCHITECTURE_MAPPING"
+  }
+}
