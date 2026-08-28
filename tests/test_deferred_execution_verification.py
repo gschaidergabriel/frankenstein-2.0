@@ -3,7 +3,7 @@ from __future__ import annotations
 import unittest
 
 from frankenstein2.causal_identity import CausalIdentity
-from frankenstein2.deferred_causal_return import DeferredCausalReturn
+from frankenstein2.deferred_return import DeferredReturnEnvelope
 from frankenstein2.deferred_execution_verification import (
     CorrelatedVerification,
     DeferredExecutionVerificationError,
@@ -30,7 +30,7 @@ RESULT_DIGEST = "a" * 64
 VERIFICATION_DIGEST = "b" * 64
 
 
-def make_return(*, suffix: str, task_id: str, turn_id: str) -> DeferredCausalReturn:
+def make_return(*, suffix: str, task_id: str, turn_id: str) -> DeferredReturnEnvelope:
     parent = CausalIdentity(
         session_id="shared-session",
         agent_id="parent-agent",
@@ -70,14 +70,14 @@ def make_return(*, suffix: str, task_id: str, turn_id: str) -> DeferredCausalRet
         task_id=parent.task_id,
         turn_id=f"resume-turn-{suffix}",
     )
-    return DeferredCausalReturn(
+    return DeferredReturnEnvelope(
         return_id=f"return-{suffix}",
         binding=bound,
         resume=resume,
     )
 
 
-def execution_record(returned: DeferredCausalReturn) -> ExecutionLineage:
+def execution_record(returned: DeferredReturnEnvelope) -> ExecutionLineage:
     child = returned.binding.child
     record = ExecutionLineage.requested(
         causal_id=child.causal_id,
