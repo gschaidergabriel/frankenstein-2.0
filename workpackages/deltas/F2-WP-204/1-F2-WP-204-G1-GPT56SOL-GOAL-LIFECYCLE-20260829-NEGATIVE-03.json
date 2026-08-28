@@ -1,0 +1,71 @@
+{
+  "schema": "FRANKENSTEIN2_WORKPACKAGE_DELTA/v1",
+  "workpackage_id": "F2-WP-204",
+  "generation": 1,
+  "claim_id": "F2-WP-204-G1-GPT56SOL-GOAL-LIFECYCLE-20260829",
+  "worker_id": "GPT-5.6-Sol-REVIEW",
+  "base_commit": "485574e2612ba3150adf16b68a2ef1df568177df",
+  "observed_main_commit": "d78c936cb7b771a40564f55ae9ba1ef100116ab1",
+  "owned_paths": [],
+  "result_class": "NEGATIVE_RESULT",
+  "source_commits": [
+    "485574e2612ba3150adf16b68a2ef1df568177df",
+    "22dc826208217ca48bf46dd56a8ca9ccf62de0f6",
+    "85ff9263f7ca51c54922d60f5a38bd8be766f4c6",
+    "d78c936cb7b771a40564f55ae9ba1ef100116ab1"
+  ],
+  "receipts": [
+    "GitHub Actions run 33218486259 / job 99007307846",
+    "draft PR 33"
+  ],
+  "falsifiers": [
+    "GENESIS_ACTIVE_GOAL_WITHOUT_ADOPTION_TRANSITION_MUST_FAIL_CLOSED",
+    "REHYDRATED_NONCANDIDATE_STATE_REQUIRES_EXPLICIT_TRUSTED_REPLAY_OR_TRANSITION_EVIDENCE_BOUNDARY"
+  ],
+  "observations": [
+    {
+      "class": "CURRENT_SOURCE",
+      "source": "src/frankenstein2/goal_lifecycle.py",
+      "source_blob_sha": "47890545578d1bec2028b3071816e3cc64f1fbbc",
+      "finding": "GoalRecord publicly accepts status=ACTIVE/TRIAL/HOLD/DROPPED. GoalState.create enforces candidate-only input only when generation==0; for generation>0 it accepts a pre-adopted ACTIVE/HOLD state without any GoalStatusChange, patch, transition receipt, or adoption evidence. The exported GoalState constructor bypasses even the generation-zero candidate-only check."
+    },
+    {
+      "class": "CURRENT_TEST",
+      "source": "tests/test_goal_lifecycle.py",
+      "test_blob_sha": "f3b6a2d64894b852ca0eba00568ac1b914211c99",
+      "finding": "The canonical suite explicitly seeds a GOAL_HOLD GoalRecord into GoalState.create at generation=2 to test resume. This demonstrates that noncandidate rehydration is an intended reachable API path, but the current contract carries no typed distinction between trusted replay/rehydration and arbitrary caller-supplied pre-adopted state."
+    },
+    {
+      "class": "REPOSITORY_HOSTED_COUNTEREXAMPLE_CI",
+      "head_sha": "2ed90edeb8eef323e600a96e4c1b96459ca07b05",
+      "workflow_run_id": 33218486259,
+      "job_id": 99007307846,
+      "runner": "ubuntu-latest",
+      "conclusion": "success",
+      "meaning": "PASS means the negative counterexample reproduced: GoalState.create(generation=1, ACTIVE goal) and direct GoalState(generation=0, ACTIVE goal) both construct successfully without adoption-transition evidence. This is NOT component acceptance evidence."
+    }
+  ],
+  "counterhypothesis": "Allowing noncandidate states at generation>0 may be intentional to rehydrate a previously validated lifecycle snapshot. That can be valid, but the current API does not bind such construction to trusted replay identity, a prior state digest, an admitted transition chain, or a separate rehydration type. Therefore arbitrary caller construction and trusted rehydration are observationally identical at this boundary.",
+  "contradictions": [
+    "The active WP204 claim says caller-supplied goal candidates plus explicit adoption/hold/drop transitions, while current public construction can start from ACTIVE/HOLD state without an adoption/hold transition receipt.",
+    "GOAL_GENERATION != GOAL_ADOPTION is stated as a hard boundary, but the current constructor surface can materialize post-adoption state without proving the adoption operation."
+  ],
+  "proposed_state_change": "Do not terminalize F2-WP-204 until genesis versus trusted rehydration is explicit. Keep ordinary creation candidate-only at every generation, or introduce a separately typed/fenced rehydration path that requires exact prior state identity/digest and admitted lifecycle evidence. Convert PR33 counterexamples into rejection regressions after repair.",
+  "completion_deficit": [
+    "adoption/rehydration authority boundary is not explicit in current source",
+    "repository-CI success on the current canonical suite does not falsify this counterexample",
+    "no accepted F2-WP-204 receipt yet",
+    "no UnifiedDB persistence or replay-chain integration credit",
+    "no F2-WP-205 wake integration credit",
+    "no Persistent Pulse integration credit",
+    "no VPS or physical GRID10 runtime credit",
+    "no whole Frankenstein 2.0 acceptance"
+  ],
+  "next_exact_action": "WP204 mutation owner re-enters current main, chooses and documents candidate-only genesis plus explicit trusted-rehydration semantics, adds rejection regressions for arbitrary pre-adopted construction, then reruns repository CI before any acceptance reconciliation.",
+  "runtime_execution_observed": false,
+  "component_ci_counterexample_execution_observed": true,
+  "runtime_credit": 0,
+  "physical_grid10_credit": 0,
+  "whole_system_acceptance": false,
+  "created_at_utc": "2026-08-28T22:54:30Z"
+}
