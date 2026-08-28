@@ -2,102 +2,63 @@
 
 Workpackage: `F2-WP-004`
 
-This contract defines package identity and closure only. It does **not** grant runtime, instrumentation-coverage, GRID10, whole-system, or scientific acceptance credit by itself.
+This document describes the canonical package authority; it does **not** grant runtime, instrumentation-coverage, GRID10, whole-system, or scientific acceptance credit by itself.
+
+## Canonical authority
+
+There is exactly one active run-package manifest ABI:
+
+- `runpackages/RUN_PACKAGE_SCHEMA_V1.json`
+- schema id: `FRANKENSTEIN2_IMMUTABLE_RUN_PACKAGE/v1`
+- fail-closed implementation: `runpackages/verify_run_package.py`
+- deterministic regression: `tests/test_verify_run_package.py`
+- repository CI: `.github/workflows/runpackage-verifier-ci.yml`
+
+Files below `schemas/run_package_manifest.schema.json`, `schemas/run_artifact_index.schema.json`, and `schemas/run_closed_receipt.schema.json` are retained as historical/compatibility design donors. They are **not** a second active manifest authority and must not be used to mint acceptance for a package that fails the canonical verifier.
 
 ## Canonical package shape
 
-```text
-runs/<series>/<run_id>/
-  manifest.json
-  ARTIFACTS.json
-  logs/
-  grid10/
-  communications/
-  measurements/
-  traces/
-  db_snapshots/
-  receipts/
-  negative_results/
-  SHA256SUMS
-  CLOSED.json
-```
-
-Schemas:
-
-- `schemas/run_package_manifest.schema.json`
-- `schemas/run_artifact_index.schema.json`
-- `schemas/run_closed_receipt.schema.json`
-
-## Identity
-
-A run is identified by `run_id` and is bound to a `workpackage_id + generation + claim_id` tuple. The manifest records the source commit before execution and, when known, the source commit after the bounded step.
-
-A reused human-readable series name never means a reused run identity.
-
-## Observability law
-
-Every component/process participating in the claimed test scope must appear in `manifest.json.participants` as either:
-
-- `OBSERVABLE`, with telemetry references where available; or
-- `NOT_OBSERVABLE`, with a non-empty reason.
-
-Absence from telemetry is not silently interpreted as success, idleness, or non-participation.
-
-## Artifact index
-
-`ARTIFACTS.json` records immutable payload artifacts with:
-
-- relative path;
-- SHA-256 digest;
-- byte size;
-- role;
-- producer/source provenance;
-- optional causal/trace identity.
-
-Paths are repository-package relative and may not escape the run directory.
-
-## Closure order — avoids circular hashes
-
-Closure is deterministic and intentionally excludes self-referential files from their own digest sets:
-
-1. Finish all payload files and `manifest.json`.
-2. Create `ARTIFACTS.json` over payload files plus `manifest.json`. Do **not** index `ARTIFACTS.json`, `SHA256SUMS`, or `CLOSED.json` inside `ARTIFACTS.json`.
-3. Create `SHA256SUMS` over payload files, `manifest.json`, and `ARTIFACTS.json`. Do **not** include `SHA256SUMS` or `CLOSED.json` in `SHA256SUMS`.
-4. Create `CLOSED.json` last. It binds the SHA-256 digests of `manifest.json`, `ARTIFACTS.json`, and `SHA256SUMS` and declares the exact evidence classification/scope.
-5. After `CLOSED.json` exists, the run directory is immutable. Any correction creates a new run identity; it never edits a closed run in place.
-
-`CLOSED.json` is therefore a terminal closure receipt, not a file that recursively hashes itself.
-
-## Evidence classification
-
-Permitted classifications are deliberately explicit:
-
-- `SOURCE_ONLY`
-- `UNIT_RUNTIME`
-- `COMPONENT_RUNTIME`
-- `INTEGRATION_RUNTIME`
-- `WHOLE_SYSTEM_RUNTIME`
-- `NEGATIVE_RESULT`
-- `BLOCKED`
-
-The close schema mechanically requires `SOURCE_ONLY` to carry:
+A package is an immutable directory below `runs/` containing:
 
 ```text
-runtime_execution_observed = false
-runtime_credit = 0
-closure_status = CLOSED_SOURCE_ONLY
+<run-package>/
+  MANIFEST.json
+  <one or more payload files/directories>
 ```
 
-Likewise, any receipt with `runtime_execution_observed=false` is forbidden from claiming positive runtime credit.
+`MANIFEST.json.files` is the complete SHA-256 index of every payload file. The canonical verifier rejects missing payloads, unindexed extra payloads, path traversal, payload/package symlinks, payload digest mutation, invalid package digest, malformed source identity, impossible PASS/NOT_RUN execution claims, and invalid/non-finite spend values.
 
-## Immutability and promotion
+The package digest is SHA-256 over canonical JSON of the manifest with `package_digest` removed. `MANIFEST.json` never self-hashes.
 
-A closed package may support promotion only at the exact scope its evidence establishes. A source-only package can establish that a contract/file exists at a commit; it cannot establish that the contract was executed correctly on any runtime.
+## Identity and evidence ceiling
+
+The canonical manifest binds at minimum:
+
+- package/workpackage/generation identity;
+- exact source repository/ref/commit/tree;
+- declared claim scope and runtime-credit ceiling;
+- command vector and typed outcome;
+- start/complete/exit fields when execution is claimed;
+- provider-call count, paid-spend amount and external-effect flag;
+- complete payload path→digest map;
+- package digest.
+
+`PASS` requires observed start/completion timestamps and zero exit code. `NOT_RUN` is forbidden from carrying execution-result fields. These gates prevent a source-only package from impersonating an executed result.
+
+## Historical closure donors
+
+The earlier `ARTIFACTS.json` / `SHA256SUMS` / `CLOSED.json` design remains useful as a possible future richer finalizer and as historical provenance. It is not currently the canonical manifest ABI unless and until a successor workpackage deliberately migrates it into the verifier and its regression suite.
+
+Do not delete historical schemas merely to make the repository look cleaner; label and preserve them as donor evidence.
+
+## Promotion boundary
+
+A package can support promotion only at the exact scope its contents and separately observed execution establish.
 
 `COMPONENT_PASS != WHOLE_SYSTEM_PASS`
 
 `SOURCE_PRESENCE != RUNTIME_PASS`
 
-`NOT_OBSERVABLE != PASS`
+`MODEL_OUTPUT != COMPLETION`
 
-`CLOSED != ACCEPTED_BEYOND_DECLARED_SCOPE`
+`PACKAGE_VERIFIED != CLAIM_PROVED_BEYOND_DECLARED_SCOPE`
