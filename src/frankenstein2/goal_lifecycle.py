@@ -1,6 +1,6 @@
 """Deterministic Goal lifecycle primitive for Frankenstein 2.0.
 
-F2-WP-204 generation 1.
+F2-WP-204 generation 2 hardening.
 
 The component stores only explicitly caller-supplied goal candidates and applies only
 explicit lifecycle transitions under an exact state-id/generation/digest fence. It does
@@ -12,7 +12,7 @@ GOAL_GENERATION != GOAL_ADOPTION != EFFECT_AUTHORIZATION != COMPLETION_VERIFICAT
 """
 from __future__ import annotations
 
-from dataclasses import asdict, dataclass, replace
+from dataclasses import asdict, dataclass, field, replace
 import hashlib
 import json
 import re
@@ -37,6 +37,8 @@ _ALLOWED_TRANSITIONS = {
     GOAL_HOLD: frozenset({GOAL_TRIAL, GOAL_ACTIVE, GOAL_DROPPED}),
     GOAL_DROPPED: frozenset(),
 }
+_ADOPTION_REF_PREFIXES = ("owner:", "control:", "external:")
+_EVOLUTION_TOKEN = object()
 _SHA256_RE = re.compile(r"^[0-9a-f]{64}$")
 _MAX_ID_LEN = 512
 _MAX_TEXT_LEN = 4096
@@ -83,13 +85,38 @@ def _sha256(name: str, value: Any) -> str:
     return value
 
 
-def _refs(name: str, values: Iterable[str], *, require_nonempty: bool = True) -> tuple[str, ...]:
+def _refs(
+    name: str,
+    values: Iterable[str],
+    *,
+    require_nonempty: bool = True,
+) -> tuple[str, ...]:
     if isinstance(values, (str, bytes)):
         raise GoalLifecycleError(f"{name} must be an iterable of reference strings")
-    cleaned = tuple(sorted({_identifier(name, value) for value in values}))
+    raw = tuple(_identifier(name, value) for value in values)
+    if len(raw) != len(set(raw)):
+        raise GoalLifecycleError(f"{name} contains duplicate references")
+    cleaned = tuple(sorted(raw))
     if require_nonempty and not cleaned:
         raise GoalLifecycleError(f"{name} must contain at least one explicit reference")
     return cleaned
+
+
+def _require_adoption_authority(
+    expected_status: str,
+    next_status: str,
+    evidence_refs: tuple[str, ...],
+) -> None:
+    if next_status not in {GOAL_TRIAL, GOAL_ACTIVE}:
+        return
+    invalid = tuple(
+        ref for ref in evidence_refs if not ref.startswith(_ADOPTION_REF_PREFIXES)
+    )
+    if invalid:
+        raise GoalLifecycleError(
+            "promotion into TRIAL/ACTIVE requires typed owner:/control:/external: "
+            "adoption-authority evidence; self/model/untyped evidence is forbidden"
+        )
 
 
 def _canonical_json(value: Any) -> str:
@@ -141,13 +168,20 @@ class GoalRecord:
         return asdict(self)
 
 
-def _unique_goals(goals: Iterable[GoalRecord], *, candidates_only: bool = False) -> tuple[GoalRecord, ...]:
+def _unique_goals(
+    goals: Iterable[GoalRecord],
+    *,
+    candidates_only: bool = False,
+) -> tuple[GoalRecord, ...]:
     mapping: dict[str, GoalRecord] = {}
     for goal in goals:
         if not isinstance(goal, GoalRecord):
             raise GoalLifecycleError("goals must contain GoalRecord values")
         if candidates_only and goal.status != GOAL_CANDIDATE:
-            raise GoalLifecycleError("new goals must enter as CANDIDATE")
+            raise GoalLifecycleError(
+                "public GoalState construction accepts CANDIDATE goals only; "
+                "non-candidate state requires admitted lifecycle evolution"
+            )
         if goal.goal_id in mapping:
             raise GoalLifecycleError(f"duplicate goal_id: {goal.goal_id}")
         mapping[goal.goal_id] = goal
@@ -174,11 +208,9 @@ class GoalStatusChange:
             raise GoalLifecycleError(
                 f"illegal goal transition: {self.expected_status} -> {self.next_status}"
             )
-        object.__setattr__(
-            self,
-            "evidence_refs",
-            _refs("goal transition evidence_ref", self.evidence_refs),
-        )
+        refs = _refs("goal transition evidence_ref", self.evidence_refs)
+        _require_adoption_authority(self.expected_status, self.next_status, refs)
+        object.__setattr__(self, "evidence_refs", refs)
 
     def as_dict(self) -> dict[str, Any]:
         return asdict(self)
@@ -235,8 +267,13 @@ class GoalStatePatch:
             raise GoalLifecycleError(
                 "a goal cannot be added and lifecycle-transitioned in the same patch"
             )
-        if not candidates and not changes_by_goal:
+        affected_goal_count = len(candidates) + len(changes_by_goal)
+        if affected_goal_count == 0:
             raise GoalLifecycleError("goal patch must contain at least one explicit change")
+        if affected_goal_count != 1:
+            raise GoalLifecycleError(
+                "each goal lifecycle patch/receipt must bind exactly one goal"
+            )
 
     def as_dict(self) -> dict[str, Any]:
         return {
@@ -287,13 +324,28 @@ class GoalState:
     generation: int
     goals: tuple[GoalRecord, ...]
     classification: str = "EXPLICIT_GOAL_LIFECYCLE_STATE_NOT_WORLD_TRUTH_OR_COMPLETION"
+    _construction_token: object | None = field(
+        default=None,
+        repr=False,
+        compare=False,
+    )
 
     def __post_init__(self) -> None:
         if self.schema != GOAL_STATE_SCHEMA:
             raise GoalLifecycleError("goal state schema mismatch")
         object.__setattr__(self, "state_id", _identifier("state_id", self.state_id))
         object.__setattr__(self, "generation", _generation(self.generation))
-        object.__setattr__(self, "goals", _unique_goals(self.goals))
+        goals = _unique_goals(self.goals)
+        if (
+            any(goal.status != GOAL_CANDIDATE for goal in goals)
+            and self._construction_token is not _EVOLUTION_TOKEN
+        ):
+            raise GoalLifecycleError(
+                "public GoalState construction accepts CANDIDATE goals only; "
+                "non-candidate state requires admitted lifecycle evolution"
+            )
+        object.__setattr__(self, "goals", goals)
+        object.__setattr__(self, "_construction_token", None)
 
     @classmethod
     def create(
@@ -303,14 +355,28 @@ class GoalState:
         generation: int = 0,
         goals: Iterable[GoalRecord] = (),
     ) -> "GoalState":
-        goals_tuple = tuple(goals)
-        if generation == 0:
-            _unique_goals(goals_tuple, candidates_only=True)
+        goals_tuple = _unique_goals(tuple(goals), candidates_only=True)
         return cls(
             schema=GOAL_STATE_SCHEMA,
             state_id=state_id,
             generation=generation,
             goals=goals_tuple,
+        )
+
+    @classmethod
+    def _from_evolution(
+        cls,
+        *,
+        state_id: str,
+        generation: int,
+        goals: Iterable[GoalRecord],
+    ) -> "GoalState":
+        return cls(
+            schema=GOAL_STATE_SCHEMA,
+            state_id=state_id,
+            generation=generation,
+            goals=tuple(goals),
+            _construction_token=_EVOLUTION_TOKEN,
         )
 
     def as_dict(self) -> dict[str, Any]:
@@ -358,8 +424,7 @@ class GoalState:
             goals[change.goal_id] = replace(current, status=change.next_status)
             changed.append(change.goal_id)
 
-        next_state = GoalState(
-            schema=GOAL_STATE_SCHEMA,
+        next_state = GoalState._from_evolution(
             state_id=self.state_id,
             generation=patch.next_generation,
             goals=tuple(goals.values()),
