@@ -4,12 +4,14 @@ on:
   push:
     branches: [main]
     paths:
-      - 'workpackages/F2-WP-002_STATE_CONTRACT.md'
+      - 'workpackages/STATE_CONSISTENCY_CONTRACT.md'
+      - 'workpackages/WORKPACKAGE_STATE_CONSISTENCY_CONTRACT_V1.json'
       - 'workpackages/STATE.json'
       - 'workpackages/active/**'
       - 'workpackages/claims/**'
       - 'tools/validate_wp_state_consistency_v1.py'
       - 'tests/test_validate_wp_state_consistency_v1.py'
+      - '.github/workflows/wp-state-consistency-ci.yml'
   workflow_dispatch:
 
 permissions:
@@ -25,6 +27,6 @@ jobs:
         with:
           python-version: '3.12'
       - name: Run deterministic tests
-        run: python tests/test_validate_wp_state_consistency_v1.py -v
+        run: python -m unittest -v tests.test_validate_wp_state_consistency_v1
       - name: Validate canonical F2-WP-002
         run: python tools/validate_wp_state_consistency_v1.py . F2-WP-002
