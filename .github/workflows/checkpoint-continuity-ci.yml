@@ -10,8 +10,9 @@ on:
       - 'tests/test_validate_checkpoint.py'
       - 'checkpoints/CURRENT.json'
       - 'workpackages/STATE.json'
-      - 'workpackages/active/F2-WP-002.json'
-      - 'workpackages/claims/F2-WP-002_G2_GPT56SOL_cd0e056a.json'
+      - 'workpackages/active/**'
+      - 'workpackages/claims/**'
+      - 'workpackages/reconciliations/**'
       - '.github/workflows/checkpoint-continuity-ci.yml'
   workflow_dispatch:
 
@@ -38,12 +39,5 @@ jobs:
         run: python tests/test_validate_current_checkpoint.py -v
       - name: Repository-bound deterministic regression tests
         run: python tests/test_validate_checkpoint.py -v
-      - name: Validate canonical current checkpoint against explicit claim, active pointer and state
-        run: >-
-          python tools/validate_current_checkpoint.py
-          checkpoints/CURRENT.json
-          --claim workpackages/claims/F2-WP-002_G2_GPT56SOL_cd0e056a.json
-          --active workpackages/active/F2-WP-002.json
-          --state workpackages/STATE.json
-      - name: Validate canonical current checkpoint through repository binding
+      - name: Validate canonical current checkpoint through successor-dynamic repository binding
         run: python tools/validate_checkpoint.py --repo-root . --json
