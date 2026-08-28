@@ -1,0 +1,125 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/gschaidergabriel/frankenstein-2.0/schemas/run-package-manifest.schema.json",
+  "title": "Frankenstein 2.0 immutable run package manifest",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "run_id",
+    "series",
+    "workpackage_id",
+    "generation",
+    "claim_id",
+    "worker_id",
+    "source_commit_before",
+    "started_at",
+    "environment",
+    "commands",
+    "observability",
+    "artifact_index_path",
+    "closure_path",
+    "acceptance_scope",
+    "runtime_credit_requested"
+  ],
+  "properties": {
+    "schema": {"const": "FRANKENSTEIN2_RUN_PACKAGE_MANIFEST/v1"},
+    "run_id": {"type": "string", "minLength": 8},
+    "series": {"type": "string", "minLength": 1},
+    "workpackage_id": {"type": "string", "pattern": "^F2-WP-[0-9]+$"},
+    "generation": {"type": "integer", "minimum": 1},
+    "claim_id": {"type": "string", "minLength": 1},
+    "worker_id": {"type": "string", "minLength": 1},
+    "source_commit_before": {"$ref": "#/$defs/gitSha"},
+    "source_commit_after": {"$ref": "#/$defs/gitSha"},
+    "donor_source_refs": {
+      "type": "array",
+      "items": {"$ref": "#/$defs/sourceRef"},
+      "default": []
+    },
+    "started_at": {"type": "string", "format": "date-time"},
+    "finished_at": {"type": "string", "format": "date-time"},
+    "environment": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["environment_class", "runtime_identity"],
+      "properties": {
+        "environment_class": {"type": "string", "minLength": 1},
+        "runtime_identity": {"type": "string", "minLength": 1},
+        "host_fingerprint_ref": {"type": ["string", "null"]},
+        "db_fingerprint_ref": {"type": ["string", "null"]},
+        "provider_calls": {"type": "integer", "minimum": 0},
+        "secret_lookups": {"type": "integer", "minimum": 0}
+      }
+    },
+    "commands": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["command_id", "kind", "argv_or_description", "expected_scope"],
+        "properties": {
+          "command_id": {"type": "string", "minLength": 1},
+          "kind": {"enum": ["TEST", "BENCHMARK", "FUZZ", "STATIC_CHECK", "MIGRATION_CHECK", "OTHER"]},
+          "argv_or_description": {"type": "string", "minLength": 1},
+          "expected_scope": {"type": "string", "minLength": 1}
+        }
+      }
+    },
+    "observability": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["participants"],
+      "properties": {
+        "participants": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["component", "status"],
+            "properties": {
+              "component": {"type": "string", "minLength": 1},
+              "status": {"enum": ["OBSERVABLE", "NOT_OBSERVABLE", "NOT_APPLICABLE"]},
+              "telemetry_paths": {"type": "array", "items": {"type": "string"}, "default": []},
+              "reason": {"type": ["string", "null"]}
+            },
+            "allOf": [
+              {
+                "if": {"properties": {"status": {"const": "NOT_OBSERVABLE"}}, "required": ["status"]},
+                "then": {"required": ["reason"]}
+              }
+            ]
+          }
+        }
+      }
+    },
+    "artifact_index_path": {"const": "artifact_index.json"},
+    "closure_path": {"const": "CLOSED.json"},
+    "hypothesis_ids": {"type": "array", "items": {"type": "string"}, "default": []},
+    "bug_ids": {"type": "array", "items": {"type": "string"}, "default": []},
+    "negative_result_paths": {"type": "array", "items": {"type": "string"}, "default": []},
+    "acceptance_scope": {"type": "string", "minLength": 1},
+    "completion_deficit": {"type": ["string", "null"]},
+    "next_exact_action": {"type": ["string", "null"]},
+    "runtime_credit_requested": {"type": "boolean"},
+    "notes": {"type": ["string", "null"]}
+  },
+  "$defs": {
+    "gitSha": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
+    "sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "sourceRef": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["repository", "commit"],
+      "properties": {
+        "repository": {"type": "string", "minLength": 1},
+        "commit": {"$ref": "#/$defs/gitSha"},
+        "tree": {"type": ["string", "null"], "pattern": "^[0-9a-f]{40}$"},
+        "path": {"type": ["string", "null"]},
+        "sha256": {"type": ["string", "null"], "pattern": "^[0-9a-f]{64}$"}
+      }
+    }
+  }
+}
