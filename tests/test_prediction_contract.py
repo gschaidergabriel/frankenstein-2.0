@@ -52,6 +52,7 @@ class PredictionContractTests(unittest.TestCase):
         self.assertTrue(residual.exact_match)
         self.assertEqual(residual.mismatch_count, 0)
         self.assertEqual(residual.numeric_l1, 0.0)
+        self.assertIs(type(residual.numeric_l1), float)
         self.assertEqual(residual.mismatch_fraction, 0.0)
         self.assertEqual(residual.expected_projection_sha256, residual.observed_projection_sha256)
         self.assertEqual(residual.classification, "EXPLICIT_OBSERVATION_RESIDUAL_NOT_WORLD_TRUTH")
