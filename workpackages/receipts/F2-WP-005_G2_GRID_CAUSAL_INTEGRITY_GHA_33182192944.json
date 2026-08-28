@@ -1,0 +1,59 @@
+{
+  "schema": "FRANKENSTEIN2_WORKPACKAGE_RECEIPT/v1",
+  "workpackage_id": "F2-WP-005",
+  "generation": 2,
+  "claim_id": "F2-WP-005-G2-GPT56SOL-grid-causal-integrity-20260828",
+  "trigger": "4",
+  "worker_id": "GPT-5.6-Sol:Triggerword-4-organ",
+  "result": "PASS_COMPONENT_SCOPE",
+  "accepted_scope": "GRID10_TELEMETRY_CHILD_TO_CYCLE_CAUSAL_INTEGRITY_COMPONENT_ONLY",
+  "source": {
+    "pr": 4,
+    "tested_head_sha": "709d71a7c427417d5d43c7ef4e7843d4af535040",
+    "merge_sha": "d8013d4c5bcec43700b48c37faee4fdda317666f",
+    "reentered_main_sha": "6774ca4832892f9fa8f9f00e8a2fb898c07c7132",
+    "initializer_blob_sha": "01ae78db7b8620d7ba97509293a9a48cb8878e52",
+    "schema_version": 3
+  },
+  "execution_evidence": {
+    "provider": "GitHub Actions",
+    "workflow": "Frankenstein 2.0 Telemetry Spine CI",
+    "pull_request_run_id": 33182192944,
+    "job_id": 98885947290,
+    "job_name": "deterministic-telemetry-spine",
+    "conclusion": "success",
+    "completed_at_utc": "2026-08-28T14:50:53Z",
+    "steps": [
+      "Compile initializer and regression: success",
+      "Run telemetry initializer regression: success"
+    ],
+    "post_merge_main_evidence": {
+      "run_id": 33182360702,
+      "head_sha": "6b99d73b4b74f9aeb17e58034e15fc7d98c03f72",
+      "conclusion": "success",
+      "note": "This later main run includes the merged causal-integrity source plus a subsequent telemetry runtime-regression import-root fix."
+    }
+  },
+  "verified_invariants": [
+    "all five GRID child telemetry tables reject nonexistent cycle_id references",
+    "all five GRID child telemetry tables reject an existing cycle_id paired with the wrong run_id",
+    "valid same-run child rows are accepted",
+    "a referenced GRID cycle cannot be deleted or have its run_id/cycle_id identity mutated",
+    "schema-v2 re-entry with pre-existing orphan child rows fails closed instead of silently promoting schema metadata",
+    "after orphan repair, re-entry installs all causal-integrity triggers and promotes schema metadata to v3"
+  ],
+  "negative_and_coordination_evidence": [
+    "Initial broad F2-WP-005 draft PR #2 was closed unmerged after canonical generation-1 work landed independently; no competing telemetry authority was preserved.",
+    "A stale-SHA 409 on the test file was treated as concurrent movement; the latest branch file was re-read and the regression was fused instead of overwritten.",
+    "No VPS, model/provider, production-host, or whole Frankenstein-2.0 runtime was exercised by this acceptance."
+  ],
+  "credits": {
+    "telemetry_causal_integrity_component": 1,
+    "grid10_runtime": 0,
+    "frankenstein2_whole_runtime": 0,
+    "vps_runtime": 0,
+    "model_runtime": 0,
+    "entityos_hcu_runtime": 0
+  },
+  "next_exact_gate": "Leave F2-WP-005 schema hardening closed at component scope unless a new telemetry falsifier appears; continue Triggerword-4 in the current nonduplicate Phase-1/GRID cognitive-runtime frontier and require exact runtime receipts before any broader acceptance claim."
+}
