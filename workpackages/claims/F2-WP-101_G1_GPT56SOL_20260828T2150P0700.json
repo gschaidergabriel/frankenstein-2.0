@@ -5,7 +5,7 @@
   "claim_id": "F2-WP-101-G1-GPT56SOL-20260828T2150P0700",
   "worker_id": "GPT-5.6-Sol",
   "trigger": "4",
-  "status": "ACTIVE_SOURCE_BUILD",
+  "status": "RETIRED_DUPLICATE_CLAIM",
   "base_commit": "c98d219826783eccb6489320212353daa4adbf38",
   "claimed_scope": "Build only the Frankenstein-2.0 causal identity spine contract and deterministic fail-closed validator for session_id + agent_id + task_id + turn_id + causal_id + generation. Preserve donor lineage and optional parent/effect references without implementing UnifiedDB resolution, delivery lifecycle, runtime execution, GRID10, HCU, provider, VPS, or whole-system semantics.",
   "dependencies": [
@@ -23,15 +23,24 @@
     "turns": ["turn_id", "session_id", "ordinal", "causal_refs"],
     "migration_gap": ["agent_id", "task_id"]
   },
-  "acceptance_target": [
-    "required identity tuple is exactly session_id + agent_id + task_id + turn_id + causal_id + generation",
-    "all string identity components are non-empty normalized strings and generation is a positive integer",
-    "optional parent identity cannot partially specify lineage",
-    "optional effect identity remains per-effect and cannot replace causal identity",
-    "unknown or malformed identity fails closed with deterministic reason codes",
-    "source/component tests do not mint runtime or whole-system credit"
-  ],
+  "retirement": {
+    "reason": "A prior generation-1 WP-101 lane had already been claimed and implemented before this claim was created; pre-claim repository search returned no WP-101 hit because the rapidly moving commits were not yet discoverable through that search surface.",
+    "prior_claim_commits_observed": [
+      "ccd57465b492a49c8c108acbd81d0218334ab5a4",
+      "9093bd81e0a162ec278afb6dcc06b3f636da2647"
+    ],
+    "canonical_source_commit_observed": "21ef138a66934fb6562c79967ec623364b7590eb",
+    "canonical_test_commit_observed": "2f41584d52bdbef1639b115470735cb3865d9963",
+    "canonical_source_test_receipt_commit_observed": "891802aafd21ccff3e5163bff9a9eac7176c849d",
+    "duplicate_implementation_attempted": false,
+    "runtime_credit": 0
+  },
+  "review_observation": {
+    "canonical_implementation_fields": ["session_id", "agent_id", "task_id", "turn_id", "causal_id", "generation", "parent_causal_id"],
+    "canonical_generation_rule_observed": "non-negative exact integer",
+    "note": "This retired claim originally proposed a positive-integer generation rule. The already-canonical implementation and its receipt explicitly use a non-negative exact integer. No competing semantic authority is introduced here; later integration must resolve generation-zero semantics against the authoritative runtime protocol before tightening the invariant."
+  },
   "runtime_execution_observed": false,
   "runtime_credit": 0,
-  "next_exact_action": "Materialize a versioned causal identity contract, fail-closed validator, and bounded source-level falsification tests; archive only source/component evidence."
+  "next_exact_action": "Do not duplicate WP-101 generation 1. Continue with the canonical WP-101 source/test lane and bind it into stabilized UnifiedDB/coordination plus telemetry in a later non-overlapping integration generation."
 }
