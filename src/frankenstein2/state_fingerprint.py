@@ -16,6 +16,7 @@ import re
 from typing import Any
 
 PROFILE = "FRANKENSTEIN2_STATE_FINGERPRINT/v2"
+CLASSIFICATION = "EXPLICIT_TYPED_PROJECTION_FINGERPRINT_NOT_WORLD_TRUTH"
 _SHA256_RE = re.compile(r"^[0-9a-f]{64}$")
 _MAX_SCHEMA_LEN = 512
 
@@ -92,6 +93,16 @@ def _digest_parts(*parts: bytes) -> str:
     return hashlib.sha256(b"\x00".join(parts)).hexdigest()
 
 
+def _expected_identity_sha256(*, projection_schema: str, generation: int, projection_sha256: str) -> str:
+    return _digest_parts(
+        PROFILE.encode("utf-8"),
+        b"identity",
+        projection_schema.encode("utf-8"),
+        str(generation).encode("ascii"),
+        projection_sha256.encode("ascii"),
+    )
+
+
 @dataclass(frozen=True, slots=True)
 class StateFingerprint:
     profile: str
@@ -100,7 +111,7 @@ class StateFingerprint:
     projection_sha256: str
     identity_sha256: str
     canonical_bytes: int
-    classification: str = "EXPLICIT_TYPED_PROJECTION_FINGERPRINT_NOT_WORLD_TRUTH"
+    classification: str = CLASSIFICATION
 
     def __post_init__(self) -> None:
         if self.profile != PROFILE:
@@ -111,6 +122,15 @@ class StateFingerprint:
         object.__setattr__(self, "identity_sha256", _sha256("identity_sha256", self.identity_sha256))
         if type(self.canonical_bytes) is not int or self.canonical_bytes < 0:
             raise StateFingerprintError("canonical_bytes must be a non-negative integer")
+        if self.classification != CLASSIFICATION:
+            raise StateFingerprintError("state fingerprint classification mismatch")
+        expected_identity = _expected_identity_sha256(
+            projection_schema=self.projection_schema,
+            generation=self.generation,
+            projection_sha256=self.projection_sha256,
+        )
+        if self.identity_sha256 != expected_identity:
+            raise StateFingerprintError("identity_sha256 does not match fingerprint fields")
 
     @property
     def projection_identity(self) -> tuple[str, str]:
@@ -146,12 +166,10 @@ def fingerprint_state_projection(
         schema.encode("utf-8"),
         payload,
     )
-    identity_sha = _digest_parts(
-        PROFILE.encode("utf-8"),
-        b"identity",
-        schema.encode("utf-8"),
-        str(gen).encode("ascii"),
-        projection_sha.encode("ascii"),
+    identity_sha = _expected_identity_sha256(
+        projection_schema=schema,
+        generation=gen,
+        projection_sha256=projection_sha,
     )
     return StateFingerprint(
         profile=PROFILE,
@@ -180,6 +198,7 @@ def identity_changed(previous: StateFingerprint, current: StateFingerprint) -> b
 
 
 __all__ = [
+    "CLASSIFICATION",
     "PROFILE",
     "StateFingerprint",
     "StateFingerprintError",
