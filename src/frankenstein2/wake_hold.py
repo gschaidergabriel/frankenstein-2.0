@@ -7,9 +7,10 @@ caller-supplied wake conditions. It has no clock, sensor, persistence, scheduler
 provider/tool, effect, or completion authority. Evaluation is fail-closed under exact
 state-id/generation/state-digest fences.
 
-Generation 2 preserves absence of evidence as first-class UNKNOWN:
-missing observation keys classify ABSTAIN_NOT_OBSERVED rather than being silently coerced
-into an explicit non-match.
+Generation 2 preserves absence of evidence and contradictory evidence as first-class
+states: missing observation keys classify ABSTAIN_NOT_OBSERVED, while conflicting explicit
+values for one EQUALS key classify ABSTAIN_CONFLICTING_OBSERVATIONS. Neither is silently
+coerced into a positive wake match.
 """
 from __future__ import annotations
 
@@ -28,6 +29,7 @@ OP_PRESENT = "PRESENT"
 WAKE_CONDITION_MATCH = "WAKE_CONDITION_MATCH"
 HOLD_CONDITION_NOT_MATCHED = "HOLD_CONDITION_NOT_MATCHED"
 ABSTAIN_NOT_OBSERVED = "ABSTAIN_NOT_OBSERVED"
+ABSTAIN_CONFLICTING_OBSERVATIONS = "ABSTAIN_CONFLICTING_OBSERVATIONS"
 _ALLOWED_POLICIES = frozenset({WAKE_ANY, WAKE_ALL})
 _ALLOWED_OPERATORS = frozenset({OP_EQUALS, OP_PRESENT})
 _SHA256_RE = re.compile(r"^[0-9a-f]{64}$")
@@ -225,6 +227,7 @@ class WakeEvaluation:
     matched_condition_ids: tuple[str, ...]
     unmatched_condition_ids: tuple[str, ...]
     unknown_condition_ids: tuple[str, ...]
+    conflicting_condition_ids: tuple[str, ...]
     classification: str
     wake: bool
 
@@ -247,11 +250,12 @@ def evaluate_wake(
     observed_state_sha256: str,
     observations: Iterable[WakeObservation],
 ) -> WakeEvaluation:
-    """Pure tri-state evaluation over explicit observations.
+    """Pure epistemic evaluation over explicit observations.
 
-    Missing observation keys remain UNKNOWN/ABSTAIN_NOT_OBSERVED. A condition is an
-    explicit non-match only when at least one observation with its exact key is present
-    and the typed-as-stored string predicate is observed not to match.
+    Missing observation keys remain UNKNOWN/ABSTAIN_NOT_OBSERVED. An EQUALS condition is
+    an explicit non-match only when observations for its exact key agree on one value that
+    differs from the expected value. Distinct explicit values for the same EQUALS key are
+    preserved as CONFLICT and fail closed rather than allowing an any-match wake.
     """
     if not isinstance(checkpoint, HoldCheckpoint):
         raise WakeHoldError("checkpoint must be a HoldCheckpoint")
@@ -276,6 +280,7 @@ def evaluate_wake(
     matched: list[str] = []
     unmatched: list[str] = []
     unknown: list[str] = []
+    conflicting: list[str] = []
     for condition in checkpoint.wake_conditions:
         candidates = by_key.get(condition.observation_key, ())
         if not candidates:
@@ -284,12 +289,19 @@ def evaluate_wake(
         if condition.operator == OP_PRESENT:
             matched.append(condition.condition_id)
             continue
-        if any(item.value == condition.expected_value for item in candidates):
+
+        observed_values = {item.value for item in candidates}
+        if len(observed_values) > 1:
+            conflicting.append(condition.condition_id)
+        elif next(iter(observed_values)) == condition.expected_value:
             matched.append(condition.condition_id)
         else:
             unmatched.append(condition.condition_id)
 
-    if checkpoint.wake_policy == WAKE_ANY:
+    if conflicting:
+        classification = ABSTAIN_CONFLICTING_OBSERVATIONS
+        wake = False
+    elif checkpoint.wake_policy == WAKE_ANY:
         if matched:
             classification = WAKE_CONDITION_MATCH
             wake = True
@@ -322,6 +334,7 @@ def evaluate_wake(
         matched_condition_ids=tuple(matched),
         unmatched_condition_ids=tuple(unmatched),
         unknown_condition_ids=tuple(unknown),
+        conflicting_condition_ids=tuple(conflicting),
         classification=classification,
         wake=wake,
     )
