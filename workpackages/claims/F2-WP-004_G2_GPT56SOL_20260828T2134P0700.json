@@ -5,22 +5,28 @@
   "claim_id": "F2-WP-004-G2-GPT56SOL-20260828T2134P0700",
   "worker_id": "GPT-5.6-Sol",
   "trigger": "4",
-  "status": "ACTIVE_SOURCE_BUILD",
+  "status": "FUSED_RETIRED_NO_RUNTIME_CREDIT",
   "claimed_scope": "Define the immutable per-test run-package contract and artifact index only. No runtime, instrumentation-coverage, GRID10, HCU, EntityOS, or whole-system credit may be minted by this claim.",
   "base_commit": "7951687e7b157795c2440e0afaae8f22800ad8a0",
   "dependencies": [
     "WORKER_PROTOCOL.md",
     "telemetry/README.md"
   ],
-  "non_overlap_note": "F2-WP-005 telemetry spine is being developed separately; this claim defines package identity, closure, hashes and observability declarations without creating a second telemetry authority.",
-  "acceptance_target": [
-    "machine-readable run package schema exists",
-    "CLOSED receipt schema binds manifest and artifact index hashes",
-    "NOT_OBSERVABLE declarations are explicit rather than silent",
-    "immutable artifact index has digest, size, role and provenance fields",
-    "no source-only file claims runtime PASS"
+  "parallel_reentry": {
+    "canonical_base_schema": "runpackages/RUN_PACKAGE_SCHEMA_V1.json",
+    "verifier": "runpackages/verify_run_package.py",
+    "artifact_index_schema": "schemas/run_artifact_index.schema.json",
+    "closed_receipt_schema": "schemas/run_closed_receipt.schema.json",
+    "parallel_manifest_schema": "schemas/run_package_manifest.schema.json"
+  },
+  "fusion_actions": [
+    "Detected parallel WP-004 implementation before adding further overlapping files.",
+    "Retired and deleted this claim's duplicate schemas/run-package-manifest.schema.json in commit 9898f9e5bec645e00b2b89a612935e348e5fc971.",
+    "Preserved the parallel canonical runpackages schema/verifier path instead of creating a competing authority."
   ],
   "runtime_execution_observed": false,
   "runtime_credit": 0,
-  "next_exact_action": "Create the run-package and close-receipt schemas, then archive a source-only checkpoint. Runtime validation remains a separate later run."
+  "acceptance_credit": "NONE_FROM_THIS_CLAIM",
+  "completion_deficit": "WP-004 requires one consolidated authoritative schema surface plus repository-bound verifier execution and archived immutable example run before ACCEPTED_AT_SCOPE.",
+  "next_exact_action": "Consolidate remaining parallel manifest/schema variants into one named authoritative WP-004 contract, execute runpackages/verify_run_package.py against valid and tampered fixtures, archive the immutable run receipt, then update workpackages/STATE.json only at that proven scope."
 }
