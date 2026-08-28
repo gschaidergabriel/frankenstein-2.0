@@ -1,0 +1,68 @@
+name: Trigger4 Bound EntityOS EffectGate Topology Falsifier
+
+on:
+  push:
+    branches:
+      - chatgpt/trigger4-wp105-bound-effectgate-topology-falsifier-20260829
+    paths:
+      - 'tests/candidate/test_bound_entityos_effectgate_topology.py'
+      - 'workpackages/reviews/F2-WP-105/TRIGGER4_BOUND_EFFECTGATE_SINGLE_OWNER_TOPOLOGY_FALSIFIER_GPT56SOL_20260829.json'
+      - '.github/workflows/candidate-bound-entityos-effectgate-topology.yml'
+  pull_request:
+    paths:
+      - 'tests/candidate/test_bound_entityos_effectgate_topology.py'
+      - '.github/workflows/candidate-bound-entityos-effectgate-topology.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  bound-effectgate-topology:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      PYTHONPATH: .:src
+      BOUND_ENTITYOS_ROOT: ${{ github.workspace }}/_entityos_bound
+    steps:
+      - name: Checkout Frankenstein 2.0 candidate
+        uses: actions/checkout@v4
+
+      - name: Checkout exact bound EntityOS authority source
+        uses: actions/checkout@v4
+        with:
+          repository: gschaidergabriel/clay-global-research-entity
+          ref: 2b68aad14bf7824d513b52898904909256e3522d
+          path: _entityos_bound
+          fetch-depth: 1
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Assert bound source identities
+        shell: bash
+        run: |
+          test "$(git -C _entityos_bound rev-parse HEAD)" = "2b68aad14bf7824d513b52898904909256e3522d"
+          python - <<'PY'
+          import hashlib
+          from pathlib import Path
+
+          expected = {
+              Path("_entityos_bound/the artefact/clayverse/effects.py"): "4a6413b3f3c752c6327e67233bdd8097f3cf0ba4",
+              Path("_entityos_bound/the artefact/clayverse/effect_journal.py"): "cda63471f1467481f2ff79032d3931730a334a20",
+              Path("_entityos_bound/the artefact/clayverse/store.py"): "a88d923ea3d0eab5847f304f35463e5a2b2c4acd",
+          }
+          # Git blob SHA-1 = sha1(b"blob <len>\\0" + content), not content SHA-1.
+          for path, expected_blob in expected.items():
+              data = path.read_bytes()
+              actual = hashlib.sha1(b"blob " + str(len(data)).encode() + b"\0" + data).hexdigest()
+              if actual != expected_blob:
+                  raise SystemExit(f"bound blob mismatch: {path}: {actual} != {expected_blob}")
+          PY
+
+      - name: Compile topology falsifier
+        run: python -m py_compile tests/candidate/test_bound_entityos_effectgate_topology.py
+
+      - name: Run no-real-effect topology falsifier
+        run: python tests/candidate/test_bound_entityos_effectgate_topology.py
