@@ -21,8 +21,12 @@ _SHA256_RE = re.compile(r"^[0-9a-f]{64}$")
 
 
 def _require_text(name: str, value: Any) -> str:
-    if not isinstance(value, str) or not value.strip():
+    if not isinstance(value, str) or not value:
         raise EpistemicRecordError(f"{name} must be a non-empty string")
+    if value != value.strip():
+        raise EpistemicRecordError(f"{name} must already be trimmed")
+    if any(ord(ch) < 0x20 or ord(ch) == 0x7F for ch in value):
+        raise EpistemicRecordError(f"{name} must not contain control characters")
     return value
 
 
@@ -46,7 +50,24 @@ def _require_refs(name: str, value: Any, *, allow_empty: bool) -> tuple[str, ...
     return tuple(normalized)
 
 
+def _validate_json_object_keys(value: Any, path: str = "$") -> None:
+    """Reject Python mappings that JSON would silently alias by coercing object keys."""
+    if isinstance(value, dict):
+        for key, item in value.items():
+            if not isinstance(key, str):
+                raise EpistemicRecordError(
+                    f"payload object key at {path} must be a string"
+                )
+            escaped = key.replace("~", "~0").replace("/", "~1")
+            _validate_json_object_keys(item, f"{path}/{escaped}")
+        return
+    if isinstance(value, (list, tuple)):
+        for index, item in enumerate(value):
+            _validate_json_object_keys(item, f"{path}/{index}")
+
+
 def _canonical_json(value: Any) -> str:
+    _validate_json_object_keys(value)
     try:
         return json.dumps(
             value,
