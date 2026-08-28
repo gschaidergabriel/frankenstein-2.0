@@ -1,0 +1,69 @@
+{
+  "schema": "FRANKENSTEIN2_WORKER_CHECKPOINT/v1",
+  "trigger": "4",
+  "worker_id": "GPT-5.6-Sol",
+  "workpackage_id": "F2-WP-103",
+  "generation": 1,
+  "claim_id": "F2-WP-103-G1-GPT56SOL-delivery-lifecycle",
+  "status": "SOURCE_COMPONENT_PASS_CANONICAL_RUNPACKAGE_VERIFICATION_BLOCKED_BY_ABI_CONFLICT",
+  "claim_commit": "a4bf87d58a3b9b8021f53bb3275c27482a9fa04e",
+  "source_commit": "87d484fd0f10d0acb711df03b514c01bbc79df19",
+  "test_commit": "7c988387e641cc95da61159334c4710e6c42cc97",
+  "source_tree_at_test_commit": "35c1c2eff7af50ffe67dc00df6b2fdfbfcf9c598",
+  "run_package_manifest_commit": "866bffa2df8bb15833fd2f9a48b7290a26709f1d",
+  "source_files": [
+    "src/state/delivery_lifecycle.py",
+    "tests/test_delivery_lifecycle.py"
+  ],
+  "source_hashes": {
+    "src/state/delivery_lifecycle.py": "9ca4d6f82a1f1eb5f7505a1e6d9760ab45f6e4da1432a25d438e1b8297052dec",
+    "tests/test_delivery_lifecycle.py": "7fc5fcfbc99e41b7dd0b4c482f7067e02ac496541cc08c3fc613b47c3e4d484d"
+  },
+  "deterministic_test": {
+    "command": ["python3", "-m", "unittest", "-v", "tests/test_delivery_lifecycle.py"],
+    "python": "3.13.5",
+    "started_at": "2026-08-28T14:48:38.299158036Z",
+    "completed_at": "2026-08-28T14:48:39.444556667Z",
+    "exit_code": 0,
+    "tests": 8,
+    "passed": 8,
+    "failed": 0,
+    "evidence_scope": "SOURCE_EQUIVALENT_LOCAL_COMPONENT_TEST_ONLY"
+  },
+  "implemented_semantics": [
+    "stable delivery_id is scoped to causal_event_id + recipient_id and excludes retries/generation",
+    "causal_event_id, recipient_id, delivery_id and transport_attempt_id remain distinct",
+    "PENDING -> OFFERED -> ACKED is monotone",
+    "OFFER retry uses a new transport_attempt_id without minting a new delivery_id",
+    "exact transition replay is idempotent",
+    "reused transport attempt with changed transition fails closed",
+    "ACK before OFFER, ACK of unknown attempt, stale generation and identity mismatch fail closed",
+    "module is persistence-agnostic so UnifiedDB remains the only canonical state authority"
+  ],
+  "negative_results": [
+    {
+      "classification": "TEST_HARNESS_IMPORT_FAILURE_NOT_PRODUCT_SEMANTIC_FAILURE",
+      "result": "initial dynamic-import harness failed before lifecycle tests; repaired by registering the module in sys.modules before exec_module; retest 8/8 PASS"
+    },
+    {
+      "classification": "RUN_PACKAGE_AUTHORITY_SURFACE_CONFLICT",
+      "result": "RUN_PACKAGE_CONTRACT.md and RUN_PACKAGE_SCHEMA_V1.json specify FRANKENSTEIN2_IMMUTABLE_RUN_PACKAGE/v1 with MANIFEST.json, while current runpackages/verify_run_package.py validates an older manifest.json/ARTIFACTS.json/SHA256SUMS/CLOSED.json ABI. Existing F2-WP-004 verifier-hardening owner must resolve; this worker does not overwrite that lane."
+    }
+  ],
+  "run_package": {
+    "path": "runs/F2-WP-103/F2-WP-103-G1-20260828T214838Z",
+    "declared_schema": "FRANKENSTEIN2_IMMUTABLE_RUN_PACKAGE/v1",
+    "declared_package_digest": "f2fd51ec22bae566e202749d0ef22d402797e884ad41c9de0da5425176f8b01f",
+    "canonical_verifier_status": "BLOCKED_BY_CURRENT_ABI_CONFLICT_NOT_VERIFIED"
+  },
+  "runtime_execution_observed": false,
+  "runtime_credit": 0,
+  "whole_system_acceptance": false,
+  "state_sync": "PENDING_REENTRY_REFRESH_DUE_PARALLEL_MAIN_CHURN",
+  "dependencies": {
+    "F2-WP-100": "parallel active; persistence substrate/interface not yet treated as stable by this worker",
+    "F2-WP-101": "parallel active; causal identity interface dependency",
+    "F2-WP-004": "parallel verifier-hardening owner; must resolve run-package ABI conflict"
+  },
+  "next_exact_action": "On reentry, refresh main and F2-WP-004 verifier authority. If the canonical verifier now matches the declared immutable package ABI, verify the existing F2-WP-103 run package rather than regenerating it. Then bind RecipientDelivery persistence transactionally into the canonical UnifiedDB/causal identity interfaces from F2-WP-100/101, with uniqueness on causal-event+recipient and a cross-process concurrent OFFER/ACK/retry falsifier. Do not mark F2-WP-103 ACCEPTED_AT_SCOPE before those persistence/concurrency and canonical package-verification gates close."
+}
