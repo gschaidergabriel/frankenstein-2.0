@@ -254,6 +254,21 @@ class CurrentEntityOSEffectAuthorityMatrixTests(unittest.TestCase):
         ):
             load_binding(attestation_doc=bad_attestation)
 
+        non_authority = copy.deepcopy(ATTESTATION)
+        non_authority["current_epoch_basis"].update(
+            {
+                "schema_version": "9.13",
+                "selected_delta": "9.13AL_NON_AUTHORITY",
+                "authority_status": "NON_AUTHORITY",
+                "authority_change": False,
+            }
+        )
+        with self.assertRaisesRegex(
+            CurrentEntityOSEffectAuthorityBindingError,
+            "AUTHORITY_STATUS_MISMATCH",
+        ):
+            load_binding(attestation_doc=non_authority)
+
     def test_executor_success_still_requires_separate_world_verification(self) -> None:
         binding = load_binding()
         call = intent()
