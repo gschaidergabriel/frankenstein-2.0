@@ -1,0 +1,40 @@
+name: F2 WP306 G3 Epistemic Context Adapter CI
+
+on:
+  push:
+    branches:
+      - main
+      - chatgpt/trigger4-wp306-g3-epistemic-context-adapter-20260829
+    paths:
+      - 'src/frankenstein2/epistemic_context_adapter.py'
+      - 'src/frankenstein2/epistemic_records.py'
+      - 'src/frankenstein2/context_compiler.py'
+      - 'tests/test_epistemic_context_adapter.py'
+      - '.github/workflows/wp306-epistemic-context-adapter-ci.yml'
+  pull_request:
+    paths:
+      - 'src/frankenstein2/epistemic_context_adapter.py'
+      - 'src/frankenstein2/epistemic_records.py'
+      - 'src/frankenstein2/context_compiler.py'
+      - 'tests/test_epistemic_context_adapter.py'
+      - '.github/workflows/wp306-epistemic-context-adapter-ci.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  deterministic:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Compile
+        run: python -m py_compile src/frankenstein2/epistemic_context_adapter.py tests/test_epistemic_context_adapter.py
+      - name: Adapter falsification suite
+        env:
+          PYTHONPATH: src
+        run: python tests/test_epistemic_context_adapter.py -v
