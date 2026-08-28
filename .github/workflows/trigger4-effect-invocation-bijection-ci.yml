@@ -1,0 +1,56 @@
+name: Trigger 4 Effect Invocation Bijection CI
+
+on:
+  pull_request:
+    paths:
+      - 'src/frankenstein2/effect_invocation_bijection.py'
+      - 'src/frankenstein2/canonical_effect_bijective_dispatch.py'
+      - 'src/frankenstein2/current_entityos_effect_authority_binding.py'
+      - 'tests/test_effect_invocation_bijection.py'
+      - 'tests/test_current_entityos_effect_bijective_dispatch.py'
+      - '.github/workflows/trigger4-effect-invocation-bijection-ci.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'src/frankenstein2/effect_invocation_bijection.py'
+      - 'src/frankenstein2/canonical_effect_bijective_dispatch.py'
+      - 'src/frankenstein2/current_entityos_effect_authority_binding.py'
+      - 'tests/test_effect_invocation_bijection.py'
+      - 'tests/test_current_entityos_effect_bijective_dispatch.py'
+      - '.github/workflows/trigger4-effect-invocation-bijection-ci.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  bijection-integration:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      PYTHONPATH: .:src
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Compile exact source boundary
+        run: >-
+          python -m py_compile
+          src/frankenstein2/effect_invocation_bijection.py
+          src/frankenstein2/canonical_effect_bijective_dispatch.py
+          src/frankenstein2/current_entityos_effect_authority_binding.py
+          tests/test_effect_invocation_bijection.py
+          tests/test_current_entityos_effect_bijective_dispatch.py
+      - name: Run low-level call-effect bijection falsifiers
+        run: python tests/test_effect_invocation_bijection.py
+      - name: Run current EntityOS bijective dispatch falsifier
+        run: python tests/test_current_entityos_effect_bijective_dispatch.py
+      - name: Run current authority regression matrix
+        run: python tests/test_current_entityos_effect_authority_binding.py
+      - name: Run canonical effect bridge regressions
+        run: python tests/test_canonical_effect_authority_bridge.py
+      - name: Run structured execution receipt regressions
+        run: python tests/test_structured_execution_receipt.py
+      - name: Run execution completion regressions
+        run: python tests/test_execution_completion.py
