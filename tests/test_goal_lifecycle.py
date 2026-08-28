@@ -51,12 +51,24 @@ class GoalLifecycleTests(unittest.TestCase):
             status_changes=status_changes,
         )
 
-    def change(self, goal_id: str, before: str, after: str) -> GoalStatusChange:
+    def change(
+        self,
+        goal_id: str,
+        before: str,
+        after: str,
+        *,
+        evidence_refs: tuple[str, ...] | None = None,
+    ) -> GoalStatusChange:
+        if evidence_refs is None:
+            if after in {GOAL_TRIAL, GOAL_ACTIVE}:
+                evidence_refs = (f"caller:adopt:{goal_id}:{before.lower()}-to-{after.lower()}",)
+            else:
+                evidence_refs = (f"evidence:{before.lower()}-to-{after.lower()}",)
         return GoalStatusChange(
             goal_id=goal_id,
             expected_status=before,
             next_status=after,
-            evidence_refs=(f"evidence:{before.lower()}-to-{after.lower()}",),
+            evidence_refs=evidence_refs,
         )
 
     def test_new_goal_is_candidate_only(self) -> None:
@@ -66,7 +78,7 @@ class GoalLifecycleTests(unittest.TestCase):
         self.assertEqual(state.goals[0].status, GOAL_CANDIDATE)
         self.assertEqual(state.schema, GOAL_STATE_SCHEMA)
 
-    def test_generation_zero_rejects_pre_adopted_goal(self) -> None:
+    def test_public_bootstrap_rejects_pre_adopted_goal_at_all_generations(self) -> None:
         active = GoalRecord(
             goal_id="goal-1",
             summary="caller tried to pre-adopt",
@@ -74,8 +86,26 @@ class GoalLifecycleTests(unittest.TestCase):
             provenance_refs=("source:1",),
             status=GOAL_ACTIVE,
         )
+        for generation in (0, 1, 9):
+            with self.subTest(generation=generation):
+                with self.assertRaisesRegex(GoalLifecycleError, "new goals must enter as CANDIDATE"):
+                    self.state(active, generation=generation)
+
+    def test_direct_public_constructor_rejects_pre_adopted_goal(self) -> None:
+        active = GoalRecord(
+            goal_id="goal-1",
+            summary="direct constructor bypass",
+            priority_ppm=1,
+            provenance_refs=("source:1",),
+            status=GOAL_ACTIVE,
+        )
         with self.assertRaisesRegex(GoalLifecycleError, "new goals must enter as CANDIDATE"):
-            self.state(active)
+            GoalState(
+                schema=GOAL_STATE_SCHEMA,
+                state_id="goal-state-direct",
+                generation=0,
+                goals=(active,),
+            )
 
     def test_candidate_to_trial_is_explicit_transition(self) -> None:
         state = self.state(self.candidate())
@@ -93,7 +123,31 @@ class GoalLifecycleTests(unittest.TestCase):
         )
         self.assertEqual(next_state.goals[0].status, GOAL_ACTIVE)
 
-    def test_active_can_hold(self) -> None:
+    def test_promotion_requires_typed_external_adoption_authority(self) -> None:
+        for evidence_ref in ("model:proposal", "self:adopt", "evidence:untyped"):
+            with self.subTest(evidence_ref=evidence_ref):
+                with self.assertRaisesRegex(GoalLifecycleError, "authority namespace"):
+                    self.change(
+                        "goal-1",
+                        GOAL_CANDIDATE,
+                        GOAL_ACTIVE,
+                        evidence_refs=(evidence_ref,),
+                    )
+        for evidence_ref in (
+            "caller:owner-approved",
+            "control-plane:policy-7",
+            "external:adoption-token-9",
+        ):
+            with self.subTest(evidence_ref=evidence_ref):
+                change = self.change(
+                    "goal-1",
+                    GOAL_CANDIDATE,
+                    GOAL_ACTIVE,
+                    evidence_refs=(evidence_ref,),
+                )
+                self.assertEqual(change.evidence_refs, (evidence_ref,))
+
+    def test_active_can_hold_and_hold_can_resume_active(self) -> None:
         state0 = self.state(self.candidate())
         state1, _ = state0.apply(
             self.patch(state0, status_changes=(self.change("goal-1", GOAL_CANDIDATE, GOAL_ACTIVE),))
@@ -106,20 +160,14 @@ class GoalLifecycleTests(unittest.TestCase):
             )
         )
         self.assertEqual(state2.goals[0].status, GOAL_HOLD)
-
-    def test_hold_can_resume_active(self) -> None:
-        held = GoalRecord(
-            goal_id="goal-1",
-            summary="held explicit goal",
-            priority_ppm=100,
-            provenance_refs=("source:1",),
-            status=GOAL_HOLD,
+        state3, _ = state2.apply(
+            self.patch(
+                state2,
+                transition_id="transition-3",
+                status_changes=(self.change("goal-1", GOAL_HOLD, GOAL_ACTIVE),),
+            )
         )
-        state = self.state(held, generation=2)
-        next_state, _ = state.apply(
-            self.patch(state, status_changes=(self.change("goal-1", GOAL_HOLD, GOAL_ACTIVE),))
-        )
-        self.assertEqual(next_state.goals[0].status, GOAL_ACTIVE)
+        self.assertEqual(state3.goals[0].status, GOAL_ACTIVE)
 
     def test_dropped_is_terminal(self) -> None:
         with self.assertRaisesRegex(GoalLifecycleError, "illegal goal transition"):
@@ -142,6 +190,22 @@ class GoalLifecycleTests(unittest.TestCase):
                 expected_status=GOAL_CANDIDATE,
                 next_status=GOAL_ACTIVE,
                 evidence_refs=(),
+            )
+
+    def test_duplicate_provenance_and_evidence_refs_fail_closed(self) -> None:
+        with self.assertRaisesRegex(GoalLifecycleError, "duplicate references"):
+            GoalRecord.candidate(
+                goal_id="goal-1",
+                summary="duplicate provenance",
+                priority_ppm=1,
+                provenance_refs=("source:1", "source:1"),
+            )
+        with self.assertRaisesRegex(GoalLifecycleError, "duplicate references"):
+            self.change(
+                "goal-1",
+                GOAL_CANDIDATE,
+                GOAL_ACTIVE,
+                evidence_refs=("caller:approved", "caller:approved"),
             )
 
     def test_patch_requires_transition_refs(self) -> None:
@@ -171,6 +235,26 @@ class GoalLifecycleTests(unittest.TestCase):
                 state,
                 add_candidates=(candidate,),
                 status_changes=(self.change("goal-1", GOAL_CANDIDATE, GOAL_ACTIVE),),
+            )
+
+    def test_cross_goal_transition_receipt_rejected(self) -> None:
+        state = self.state(self.candidate("a"), self.candidate("b"))
+        with self.assertRaisesRegex(GoalLifecycleError, "exactly one goal"):
+            self.patch(
+                state,
+                status_changes=(
+                    self.change("a", GOAL_CANDIDATE, GOAL_TRIAL),
+                    self.change("b", GOAL_CANDIDATE, GOAL_ACTIVE),
+                ),
+            )
+
+    def test_cross_goal_add_and_transition_rejected(self) -> None:
+        state = self.state(self.candidate("a"))
+        with self.assertRaisesRegex(GoalLifecycleError, "exactly one goal"):
+            self.patch(
+                state,
+                add_candidates=(self.candidate("b"),),
+                status_changes=(self.change("a", GOAL_CANDIDATE, GOAL_ACTIVE),),
             )
 
     def test_stale_generation_rejected(self) -> None:
@@ -256,20 +340,20 @@ class GoalLifecycleTests(unittest.TestCase):
         self.assertEqual(left.canonical_json(), right.canonical_json())
         self.assertEqual(left.sha256(), right.sha256())
 
-        left_patch = self.patch(
-            left,
-            status_changes=(
-                self.change("b", GOAL_CANDIDATE, GOAL_TRIAL),
-                self.change("a", GOAL_CANDIDATE, GOAL_ACTIVE),
-            ),
+        left_change = self.change(
+            "a",
+            GOAL_CANDIDATE,
+            GOAL_ACTIVE,
+            evidence_refs=("external:z", "caller:a"),
         )
-        right_patch = self.patch(
-            right,
-            status_changes=(
-                self.change("a", GOAL_CANDIDATE, GOAL_ACTIVE),
-                self.change("b", GOAL_CANDIDATE, GOAL_TRIAL),
-            ),
+        right_change = self.change(
+            "a",
+            GOAL_CANDIDATE,
+            GOAL_ACTIVE,
+            evidence_refs=("caller:a", "external:z"),
         )
+        left_patch = self.patch(left, status_changes=(left_change,))
+        right_patch = self.patch(right, status_changes=(right_change,))
         left_next, left_receipt = left.apply(left_patch)
         right_next, right_receipt = right.apply(right_patch)
         self.assertEqual(left_next.canonical_json(), right_next.canonical_json())
