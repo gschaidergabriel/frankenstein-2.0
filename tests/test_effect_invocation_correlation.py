@@ -122,9 +122,24 @@ def make_target(*, suffix: str, task_id: str, turn_id: str) -> DeferredExecution
 
 def verification(target: DeferredExecutionVerificationTarget) -> VerifyExecution:
     record = target.lineage
-    attempt = "shared-verification-attempt"
     return VerifyExecution(
-        transition_id="shared-verification-transition",
+        transition_id="shared-indeterminate-transition",
+        causal_id=record.causal_id,
+        generation=record.generation,
+        request_id=record.request_id,
+        admission_id=record.admission_id,
+        execution_attempt_id=record.execution_attempt_id,
+        verification_attempt_id="shared-indeterminate-attempt",
+        outcome=VerificationOutcome.INDETERMINATE,
+        receipt=None,
+    )
+
+
+def final_verification(target: DeferredExecutionVerificationTarget) -> VerifyExecution:
+    record = target.lineage
+    attempt = "shared-final-verification-attempt"
+    return VerifyExecution(
+        transition_id="shared-final-verification-transition",
         causal_id=record.causal_id,
         generation=record.generation,
         request_id=record.request_id,
@@ -134,13 +149,13 @@ def verification(target: DeferredExecutionVerificationTarget) -> VerifyExecution
         outcome=VerificationOutcome.APPLIED,
         receipt=VerificationReceipt(
             schema=VERIFICATION_RECEIPT_SCHEMA,
-            receipt_id="shared-verification-receipt",
+            receipt_id="shared-final-verification-receipt",
             verification_attempt_id=attempt,
             execution_attempt_id=record.execution_attempt_id,
             execution_outcome=record.execution_outcome,
             outcome=VerificationOutcome.APPLIED,
             evidence_kind=VerificationEvidenceKind.EFFECT_JOURNAL_VERIFIED,
-            evidence_ref="evidence/shared-effect-journal.json",
+            evidence_ref="evidence/self-classified-effect-journal.json",
             evidence_sha256=VERIFICATION_DIGEST,
         ),
     )
@@ -229,12 +244,13 @@ class EffectInvocationCorrelationTests(unittest.TestCase):
 
         return_bound = bind_effect_return(observed, target)
         self.assertEqual(return_bound.return_id, returned.return_id)
-        verified = apply_effect_bound_verification(
+        checked = apply_effect_bound_verification(
             target,
             return_bound,
             verification(target),
         )
-        self.assertEqual(verified.lineage.stage, ExecutionStage.VERIFIED_APPLIED)
+        self.assertEqual(checked.lineage.stage, ExecutionStage.EXECUTION_RECORDED)
+        self.assertFalse(checked.lineage.is_verified_complete)
 
     def test_true_pre_dispatch_path_rejects_already_result_bound_binding(self) -> None:
         with self.assertRaisesRegex(
@@ -246,7 +262,7 @@ class EffectInvocationCorrelationTests(unittest.TestCase):
                 effect_id="effect-too-late",
             )
 
-    def test_test_fixture_defeats_session_and_digest_only_correlation(self) -> None:
+    def test_fixture_defeats_session_and_digest_only_correlation(self) -> None:
         self.assertEqual(self.target_a.lineage, self.target_b.lineage)
         self.assertEqual(
             self.target_a.returned.binding.result_sha256,
@@ -277,7 +293,7 @@ class EffectInvocationCorrelationTests(unittest.TestCase):
         self.assertEqual(self.pre_a, before)
         self.assertEqual(self.pre_a.stage, EffectCorrelationStage.PREPARED)
 
-    def test_call_b_post_cannot_verify_call_a(self) -> None:
+    def test_call_b_post_cannot_correlate_call_a(self) -> None:
         before = self.target_a
         with self.assertRaises(EffectInvocationCorrelationError):
             apply_effect_bound_verification(
@@ -287,13 +303,9 @@ class EffectInvocationCorrelationTests(unittest.TestCase):
             )
         self.assertEqual(self.target_a, before)
         self.assertEqual(self.target_a.lineage.stage, ExecutionStage.EXECUTION_RECORDED)
-        self.assertFalse(self.target_a.lineage.is_verified_complete)
 
     def test_same_session_interleaving_b_then_a_preserves_call_lineage(self) -> None:
-        # Explicit overlapping-call falsifier: both calls share the same session and
-        # deliberately identical generic execution/result identities, then complete in
-        # reverse order. Exact call identity must still keep B from contaminating A.
-        verified_b = apply_effect_bound_verification(
+        checked_b = apply_effect_bound_verification(
             self.target_b,
             self.post_b,
             verification(self.target_b),
@@ -304,13 +316,13 @@ class EffectInvocationCorrelationTests(unittest.TestCase):
                 self.post_b,
                 verification(self.target_a),
             )
-        verified_a = apply_effect_bound_verification(
+        checked_a = apply_effect_bound_verification(
             self.target_a,
             self.post_a,
             verification(self.target_a),
         )
-        self.assertEqual(verified_b.lineage.stage, ExecutionStage.VERIFIED_APPLIED)
-        self.assertEqual(verified_a.lineage.stage, ExecutionStage.VERIFIED_APPLIED)
+        self.assertEqual(checked_b.lineage.stage, ExecutionStage.EXECUTION_RECORDED)
+        self.assertEqual(checked_a.lineage.stage, ExecutionStage.EXECUTION_RECORDED)
         self.assertNotEqual(self.post_a.effect_id, self.post_b.effect_id)
         self.assertNotEqual(self.post_a.tool_use_id, self.post_b.tool_use_id)
 
@@ -328,21 +340,23 @@ class EffectInvocationCorrelationTests(unittest.TestCase):
         replay = observe(self.post_a)
         self.assertIs(replay, self.post_a)
 
-    def test_matched_pre_post_calls_verify_independently(self) -> None:
-        verified_a = apply_effect_bound_verification(
+    def test_matched_pre_post_calls_correlate_independently_without_finalizing(self) -> None:
+        checked_a = apply_effect_bound_verification(
             self.target_a,
             self.post_a,
             verification(self.target_a),
         )
-        verified_b = apply_effect_bound_verification(
+        checked_b = apply_effect_bound_verification(
             self.target_b,
             self.post_b,
             verification(self.target_b),
         )
-        self.assertEqual(verified_a.lineage.stage, ExecutionStage.VERIFIED_APPLIED)
-        self.assertEqual(verified_b.lineage.stage, ExecutionStage.VERIFIED_APPLIED)
+        self.assertEqual(checked_a.lineage.stage, ExecutionStage.EXECUTION_RECORDED)
+        self.assertEqual(checked_b.lineage.stage, ExecutionStage.EXECUTION_RECORDED)
+        self.assertFalse(checked_a.lineage.is_verified_complete)
+        self.assertFalse(checked_b.lineage.is_verified_complete)
 
-    def test_exact_verified_transition_replay_remains_idempotent(self) -> None:
+    def test_exact_nonfinal_transition_replay_remains_idempotent(self) -> None:
         once = apply_effect_bound_verification(
             self.target_a,
             self.post_a,
@@ -354,6 +368,18 @@ class EffectInvocationCorrelationTests(unittest.TestCase):
             verification(self.target_a),
         )
         self.assertEqual(once, twice)
+
+    def test_legacy_effect_bound_finalization_requires_completion_admission_gate(self) -> None:
+        with self.assertRaisesRegex(
+            EffectInvocationCorrelationError,
+            "FINAL_VERIFICATION_AUTHORITY_ADMISSION_REQUIRED",
+        ):
+            apply_effect_bound_verification(
+                self.target_a,
+                self.post_a,
+                final_verification(self.target_a),
+            )
+        self.assertFalse(self.target_a.lineage.is_verified_complete)
 
 
 if __name__ == "__main__":

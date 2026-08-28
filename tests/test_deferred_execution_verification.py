@@ -108,7 +108,7 @@ def execution_record(returned: DeferredReturnEnvelope) -> ExecutionLineage:
     )
 
 
-def verification(record: ExecutionLineage) -> VerifyExecution:
+def final_verification(record: ExecutionLineage) -> VerifyExecution:
     attempt = "shared-verification-attempt"
     return VerifyExecution(
         transition_id="shared-verification-transition",
@@ -127,9 +127,23 @@ def verification(record: ExecutionLineage) -> VerifyExecution:
             execution_outcome=record.execution_outcome,
             outcome=VerificationOutcome.APPLIED,
             evidence_kind=VerificationEvidenceKind.EFFECT_JOURNAL_VERIFIED,
-            evidence_ref="evidence/shared-effect-journal.json",
+            evidence_ref="evidence/self-claimed-effect-journal.json",
             evidence_sha256=VERIFICATION_DIGEST,
         ),
+    )
+
+
+def indeterminate_verification(record: ExecutionLineage) -> VerifyExecution:
+    return VerifyExecution(
+        transition_id="shared-indeterminate-transition",
+        causal_id=record.causal_id,
+        generation=record.generation,
+        request_id=record.request_id,
+        admission_id=record.admission_id,
+        execution_attempt_id=record.execution_attempt_id,
+        verification_attempt_id="shared-indeterminate-attempt",
+        outcome=VerificationOutcome.INDETERMINATE,
+        receipt=None,
     )
 
 
@@ -145,11 +159,11 @@ class DeferredExecutionVerificationTests(unittest.TestCase):
             returned=self.return_b,
             lineage=execution_record(self.return_b),
         )
-        self.observed_a = CorrelatedVerification.for_target(
-            self.target_a, verification(self.target_a.lineage)
+        self.final_a = CorrelatedVerification.for_target(
+            self.target_a, final_verification(self.target_a.lineage)
         )
-        self.observed_b = CorrelatedVerification.for_target(
-            self.target_b, verification(self.target_b.lineage)
+        self.final_b = CorrelatedVerification.for_target(
+            self.target_b, final_verification(self.target_b.lineage)
         )
 
     def test_generic_wp105_records_are_deliberately_identical(self) -> None:
@@ -171,35 +185,43 @@ class DeferredExecutionVerificationTests(unittest.TestCase):
     def test_call_b_observation_cannot_mutate_call_a(self) -> None:
         before = self.target_a
         with self.assertRaises(DeferredExecutionVerificationError):
-            apply_correlated_verification(self.target_a, self.observed_b)
+            apply_correlated_verification(self.target_a, self.final_b)
         self.assertEqual(self.target_a, before)
         self.assertEqual(self.target_a.lineage.stage, ExecutionStage.EXECUTION_RECORDED)
         self.assertFalse(self.target_a.lineage.is_verified_complete)
 
-    def test_matched_calls_verify_independently(self) -> None:
-        verified_a = apply_correlated_verification(self.target_a, self.observed_a)
-        verified_b = apply_correlated_verification(self.target_b, self.observed_b)
-        self.assertEqual(verified_a.lineage.stage, ExecutionStage.VERIFIED_APPLIED)
-        self.assertEqual(verified_b.lineage.stage, ExecutionStage.VERIFIED_APPLIED)
-        self.assertTrue(verified_a.lineage.is_verified_complete)
-        self.assertTrue(verified_b.lineage.is_verified_complete)
+    def test_self_classified_final_receipt_cannot_mint_completion(self) -> None:
+        before = self.target_a
+        with self.assertRaisesRegex(
+            DeferredExecutionVerificationError,
+            "FINAL_VERIFICATION_AUTHORITY_ADMISSION_REQUIRED",
+        ):
+            apply_correlated_verification(self.target_a, self.final_a)
+        self.assertEqual(self.target_a, before)
+        self.assertEqual(self.target_a.lineage.stage, ExecutionStage.EXECUTION_RECORDED)
+        self.assertFalse(self.target_a.lineage.is_verified_complete)
 
-    def test_exact_correlated_replay_is_idempotent(self) -> None:
-        once = apply_correlated_verification(self.target_a, self.observed_a)
-        twice = apply_correlated_verification(once, self.observed_a)
+    def test_indeterminate_verification_remains_nonfinal_and_idempotent(self) -> None:
+        observed = CorrelatedVerification.for_target(
+            self.target_a, indeterminate_verification(self.target_a.lineage)
+        )
+        once = apply_correlated_verification(self.target_a, observed)
+        twice = apply_correlated_verification(once, observed)
         self.assertEqual(once, twice)
+        self.assertEqual(once.lineage.stage, ExecutionStage.EXECUTION_RECORDED)
+        self.assertFalse(once.lineage.is_verified_complete)
 
     def test_copied_return_id_still_cannot_hide_binding_mismatch(self) -> None:
         forged = CorrelatedVerification(
-            return_id=self.observed_a.return_id,
-            binding_id=self.observed_b.binding_id,
-            invocation_id=self.observed_b.invocation_id,
-            tool_use_id=self.observed_b.tool_use_id,
-            delegation_id=self.observed_b.delegation_id,
-            child_identity_sha256=self.observed_b.child_identity_sha256,
-            result_id=self.observed_b.result_id,
-            result_sha256=self.observed_b.result_sha256,
-            transition=self.observed_b.transition,
+            return_id=self.final_a.return_id,
+            binding_id=self.final_b.binding_id,
+            invocation_id=self.final_b.invocation_id,
+            tool_use_id=self.final_b.tool_use_id,
+            delegation_id=self.final_b.delegation_id,
+            child_identity_sha256=self.final_b.child_identity_sha256,
+            result_id=self.final_b.result_id,
+            result_sha256=self.final_b.result_sha256,
+            transition=self.final_b.transition,
         )
         with self.assertRaisesRegex(
             DeferredExecutionVerificationError, "BINDING_ID_MISMATCH"

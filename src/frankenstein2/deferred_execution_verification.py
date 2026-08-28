@@ -10,6 +10,10 @@ small execution state-machine identity. Before a returned child observation may 
 that state, this adapter requires the exact return/binding/invocation/tool-use/delegation/
 result/child identity to match the target. Digest equality alone is not a correlation
 key.
+
+Final APPLIED/NOT_APPLIED transitions additionally require a separately minted
+``CompletionEvidenceAdmission``. A caller-authored ``VerificationReceipt`` cannot gain
+final completion power merely by selecting a finalizing evidence-kind enum.
 """
 from __future__ import annotations
 
@@ -18,10 +22,15 @@ from dataclasses import dataclass, replace
 from state.execution_completion import (
     ExecutionLineage,
     ExecutionStage,
+    VerificationOutcome,
     VerifyExecution,
     apply_execution_transition,
 )
 
+from .completion_evidence_types import (
+    CompletionEvidenceAdmission,
+    CompletionEvidenceAdmissionError,
+)
 from .deferred_return import DeferredReturnEnvelope
 
 
@@ -106,15 +115,47 @@ def _require_equal(name: str, observed: str, expected: str) -> None:
         raise DeferredExecutionVerificationError(f"{name}_MISMATCH")
 
 
+def _require_final_evidence_admission(
+    transition: VerifyExecution,
+    completion_admission: CompletionEvidenceAdmission | None,
+) -> None:
+    if transition.outcome not in (
+        VerificationOutcome.APPLIED,
+        VerificationOutcome.NOT_APPLIED,
+    ):
+        if completion_admission is not None:
+            raise DeferredExecutionVerificationError(
+                "COMPLETION_EVIDENCE_ADMISSION_ONLY_FOR_FINAL_OUTCOME"
+            )
+        return
+    if not isinstance(completion_admission, CompletionEvidenceAdmission):
+        raise DeferredExecutionVerificationError(
+            "FINAL_VERIFICATION_AUTHORITY_ADMISSION_REQUIRED"
+        )
+    if transition.receipt is None:
+        raise DeferredExecutionVerificationError(
+            "FINAL_VERIFICATION_STRUCTURED_RECEIPT_REQUIRED"
+        )
+    try:
+        completion_admission.assert_matches_receipt(transition.receipt)
+    except CompletionEvidenceAdmissionError as exc:
+        raise DeferredExecutionVerificationError(
+            f"FINAL_VERIFICATION_ADMISSION_MISMATCH:{exc}"
+        ) from exc
+
+
 def apply_correlated_verification(
     target: DeferredExecutionVerificationTarget,
     observed: CorrelatedVerification,
+    *,
+    completion_admission: CompletionEvidenceAdmission | None = None,
 ) -> DeferredExecutionVerificationTarget:
-    """Apply a WP-105 verification only after exact WP-102/WP-104 identity match.
+    """Apply WP-105 verification only after exact WP-102/WP-104 identity match.
 
-    All correlation checks happen before the generic WP-105 transition function is
-    called. Because both layers are immutable, rejection leaves the target unchanged.
-    Exact transition replay remains idempotent through WP-105's payload fingerprint.
+    All correlation and final-evidence admission checks happen before the generic
+    WP-105 transition function is called. Because all layers are immutable, rejection
+    leaves the target unchanged. Exact transition replay remains idempotent through
+    WP-105's payload fingerprint once the same admission is supplied again.
     """
     if not isinstance(target, DeferredExecutionVerificationTarget):
         raise DeferredExecutionVerificationError(
@@ -135,6 +176,7 @@ def apply_correlated_verification(
     _require_equal("CHILD_IDENTITY_SHA256", observed.child_identity_sha256, binding.child.sha256())
     _require_equal("RESULT_ID", observed.result_id, binding.result_id)
     _require_equal("RESULT_SHA256", observed.result_sha256, binding.result_sha256)
+    _require_final_evidence_admission(observed.transition, completion_admission)
 
     next_lineage = apply_execution_transition(target.lineage, observed.transition)
     return replace(target, lineage=next_lineage)
