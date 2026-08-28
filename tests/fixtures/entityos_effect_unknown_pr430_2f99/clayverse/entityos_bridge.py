@@ -27,6 +27,10 @@ class EntityOSBridge:
     sha256: str
     timeout: float = 10.0
 
+    # Linux UAPI value from include/uapi/linux/memfd.h. Python does not expose
+    # MFD_EXEC on every build. New kernels need the explicit flag when
+    # vm.memfd_noexec hardening is enabled; old kernels reject the unknown flag
+    # with EINVAL, where the historical executable default is safe to retry.
     _MFD_EXEC = 0x0010
     _EXEC_PATH = "/usr/bin:/bin"
 
@@ -64,6 +68,8 @@ class EntityOSBridge:
         try:
             return os.memfd_create("EntityOS-verified", os.MFD_ALLOW_SEALING | cls._MFD_EXEC)
         except OSError as exc:
+            # MFD_EXEC was added after memfd_create. EINVAL means an older
+            # kernel that used executable memfd semantics by default.
             if exc.errno != errno.EINVAL:
                 raise EntityOSIntegrityError(f"EntityOS executable memfd failed: {exc}") from exc
             try:
@@ -100,6 +106,9 @@ class EntityOSBridge:
             if digest.hexdigest().lower() != self.sha256.lower():
                 raise EntityOSIntegrityError("EntityOS digest mismatch")
 
+            # Freeze the exact bytes before returning the executable object.
+            # Later writes/replacements of self.path therefore cannot alter
+            # the object that crosses the ClayVerse -> EntityOS boundary.
             os.fchmod(snapshot_fd, 0o500)
             self._seal_snapshot(snapshot_fd)
             os.lseek(snapshot_fd, 0, os.SEEK_SET)
@@ -146,6 +155,10 @@ class EntityOSBridge:
         fd = self._open_verified()
         try:
             executable = f"/proc/self/fd/{fd}"
+            # Popen construction is the observed child-start boundary. Failure before
+            # it returns means no child process was observed. Once it returns, any
+            # exceptional or missing terminal return is outcome uncertainty: the child
+            # may already have produced an external effect.
             proc = subprocess.Popen(
                 [executable, *argv],
                 executable=executable,
