@@ -1,0 +1,37 @@
+{
+  "schema": "FRANKENSTEIN2_WORKPACKAGE_CLAIM/v1",
+  "workpackage_id": "F2-WP-101",
+  "generation": 1,
+  "claim_id": "F2-WP-101-G1-GPT56SOL-20260828T2150P0700",
+  "worker_id": "GPT-5.6-Sol",
+  "trigger": "4",
+  "status": "ACTIVE_SOURCE_BUILD",
+  "base_commit": "c98d219826783eccb6489320212353daa4adbf38",
+  "claimed_scope": "Build only the Frankenstein-2.0 causal identity spine contract and deterministic fail-closed validator for session_id + agent_id + task_id + turn_id + causal_id + generation. Preserve donor lineage and optional parent/effect references without implementing UnifiedDB resolution, delivery lifecycle, runtime execution, GRID10, HCU, provider, VPS, or whole-system semantics.",
+  "dependencies": [
+    "provenance/frankenstein1-donor-freeze-20260828T2139P0700.json",
+    "WORKER_PROTOCOL.md",
+    "workpackages/STATE.json"
+  ],
+  "donor_refs": [
+    "gschaidergabriel/frankenstein@5641dc6b2df6ebed1df246ee7533134324f6c427:DEV_SOURCE_RESEARCH/repository/scripts/daten/schema_leer.sql",
+    "gschaidergabriel/frankenstein@5641dc6b2df6ebed1df246ee7533134324f6c427:DEV_SOURCE_RESEARCH/repository/scripts/stern.py"
+  ],
+  "observed_donor_identity": {
+    "active_turns": ["session_id", "turn_id", "causal_id", "generation", "effect_id"],
+    "sessions": ["session_id", "generation"],
+    "turns": ["turn_id", "session_id", "ordinal", "causal_refs"],
+    "migration_gap": ["agent_id", "task_id"]
+  },
+  "acceptance_target": [
+    "required identity tuple is exactly session_id + agent_id + task_id + turn_id + causal_id + generation",
+    "all string identity components are non-empty normalized strings and generation is a positive integer",
+    "optional parent identity cannot partially specify lineage",
+    "optional effect identity remains per-effect and cannot replace causal identity",
+    "unknown or malformed identity fails closed with deterministic reason codes",
+    "source/component tests do not mint runtime or whole-system credit"
+  ],
+  "runtime_execution_observed": false,
+  "runtime_credit": 0,
+  "next_exact_action": "Materialize a versioned causal identity contract, fail-closed validator, and bounded source-level falsification tests; archive only source/component evidence."
+}
