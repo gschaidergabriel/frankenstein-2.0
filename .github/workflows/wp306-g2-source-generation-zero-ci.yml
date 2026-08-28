@@ -1,0 +1,38 @@
+name: F2 WP306 G2 Source Generation Zero CI
+
+on:
+  pull_request:
+    paths:
+      - 'src/frankenstein2/context_compiler.py'
+      - 'tests/test_context_compiler.py'
+      - '.github/workflows/wp306-g2-source-generation-zero-ci.yml'
+  push:
+    branches:
+      - main
+    paths:
+      - 'src/frankenstein2/context_compiler.py'
+      - 'tests/test_context_compiler.py'
+      - '.github/workflows/wp306-g2-source-generation-zero-ci.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  deterministic:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Compile exact WP306 G2 surface
+        run: >-
+          python -m py_compile
+          src/frankenstein2/context_compiler.py
+          tests/test_context_compiler.py
+      - name: Full WP306 suite plus generation-zero ABI regressions
+        env:
+          PYTHONPATH: src
+        run: python tests/test_context_compiler.py -v
