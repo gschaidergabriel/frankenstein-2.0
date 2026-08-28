@@ -69,7 +69,7 @@ class UnifiedDBFingerprint:
     sqlite_journal_mode: Optional[str] = None
     wal_present: Optional[bool] = None
     shm_present: Optional[bool] = None
-    classification: str = "SQLITE_IDENTITY_NOT_STATE_SNAPSHOT"
+    classification: str = "SQLITE_MAIN_FILE_IDENTITY_NOT_STATE_SNAPSHOT"
 
     def to_dict(self) -> dict:
         return asdict(self)
@@ -252,7 +252,9 @@ def _sha256_fd(fd: int, chunk_size: int = 1024 * 1024) -> str:
 
 
 def _sqlite_schema_identity(path: Path) -> tuple[str, int, int, int, int, int, str]:
-    uri = path.as_uri() + "?mode=ro"
+    # immutable=1 prevents this identity probe from creating SQLite lock/WAL sidecars.
+    # It intentionally fingerprints the main DB file, not uncheckpointed WAL state.
+    uri = path.as_uri() + "?mode=ro&immutable=1"
     try:
         conn = sqlite3.connect(uri, uri=True)
     except sqlite3.Error as exc:
@@ -290,11 +292,12 @@ def _sqlite_schema_identity(path: Path) -> tuple[str, int, int, int, int, int, s
 
 
 def fingerprint_unifieddb(path: Path | str) -> UnifiedDBFingerprint:
-    """Fingerprint an exact SQLite file and detect replacement/mutation.
+    """Fingerprint an exact SQLite main file and detect replacement/mutation.
 
     Missing fresh-install targets are represented explicitly. Symlinks, non-regular
-    files, non-SQLite content and files changing during the file-hash phase fail closed.
-    The result is an identity receipt; WAL/runtime binding still needs separate evidence.
+    files, non-SQLite content and files changing during either hash or SQLite identity
+    inspection fail closed. WAL presence is reported but WAL state is deliberately not
+    folded into this receipt; full consistent state requires a separate snapshot/lease.
     """
     selected = _expand_without_cwd(path, label="UNIFIEDDB")
     try:
@@ -340,15 +343,18 @@ def fingerprint_unifieddb(path: Path | str) -> UnifiedDBFingerprint:
             raise UnifiedDBIdentityError("UNIFIEDDB_NOT_SQLITE3")
 
         digest = _sha256_fd(fd)
-        after_fd = os.fstat(fd)
-        if _stat_signature(before_fd) != _stat_signature(after_fd):
+        after_hash_fd = os.fstat(fd)
+        if _stat_signature(before_fd) != _stat_signature(after_hash_fd):
             raise UnifiedDBIdentityError("UNIFIEDDB_MUTATED_DURING_FINGERPRINT")
 
         try:
-            after_path = os.lstat(selected)
+            after_hash_path = os.lstat(selected)
         except FileNotFoundError as exc:
             raise UnifiedDBIdentityError("UNIFIEDDB_REPLACED_DURING_FINGERPRINT") from exc
-        if (after_path.st_dev, after_path.st_ino) != (after_fd.st_dev, after_fd.st_ino):
+        if (after_hash_path.st_dev, after_hash_path.st_ino) != (
+            after_hash_fd.st_dev,
+            after_hash_fd.st_ino,
+        ):
             raise UnifiedDBIdentityError("UNIFIEDDB_REPLACED_DURING_FINGERPRINT")
 
         real = Path(os.path.realpath(selected))
@@ -361,17 +367,28 @@ def fingerprint_unifieddb(path: Path | str) -> UnifiedDBFingerprint:
             page_count,
             journal_mode,
         ) = _sqlite_schema_identity(real)
+
+        final_fd = os.fstat(fd)
+        if _stat_signature(after_hash_fd) != _stat_signature(final_fd):
+            raise UnifiedDBIdentityError("UNIFIEDDB_MUTATED_DURING_SQLITE_IDENTITY")
+        try:
+            final_path = os.lstat(selected)
+        except FileNotFoundError as exc:
+            raise UnifiedDBIdentityError("UNIFIEDDB_REPLACED_DURING_SQLITE_IDENTITY") from exc
+        if (final_path.st_dev, final_path.st_ino) != (final_fd.st_dev, final_fd.st_ino):
+            raise UnifiedDBIdentityError("UNIFIEDDB_REPLACED_DURING_SQLITE_IDENTITY")
+
         return UnifiedDBFingerprint(
             FINGERPRINT_SCHEMA,
             str(selected),
             str(real),
             "SQLITE3_REGULAR_FILE",
             True,
-            after_fd.st_size,
-            after_fd.st_dev,
-            after_fd.st_ino,
-            after_fd.st_mtime_ns,
-            after_fd.st_ctime_ns,
+            final_fd.st_size,
+            final_fd.st_dev,
+            final_fd.st_ino,
+            final_fd.st_mtime_ns,
+            final_fd.st_ctime_ns,
             digest,
             schema_digest,
             schema_version,
