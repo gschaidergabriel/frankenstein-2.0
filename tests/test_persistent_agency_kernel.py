@@ -208,6 +208,82 @@ class PersistentAgencyIntegrationTests(unittest.TestCase):
         self.assertNotEqual(reader.returncode, 0)
         self.assertIn("CHECKPOINT_DIGEST_MISMATCH", reader.stderr)
 
+    def test_corrupt_parent_digest_blocks_successor_write(self) -> None:
+        self._write_process_a()
+        store = self._open_store_current_process()
+        try:
+            parent = store.load_checkpoint("checkpoint-0")
+            child = advance_checkpoint(
+                parent,
+                checkpoint_id="checkpoint-1",
+                pulse_id="pulse-1",
+                observation_id="observation-none-1",
+            )
+        finally:
+            store.close()
+
+        connection = sqlite3.connect(self.db)
+        try:
+            row = connection.execute(
+                """SELECT checkpoint_sha256, checkpoint_json
+                   FROM f2_persistent_agency_checkpoints
+                   WHERE checkpoint_id='checkpoint-0'"""
+            ).fetchone()
+            self.assertIsNotNone(row)
+            expected_sha, raw_json = row
+            payload = json.loads(raw_json)
+            self.assertEqual(
+                payload["agency_state"]["interests"][0]["label"],
+                "Preserve explicit restart state",
+            )
+            payload["agency_state"]["interests"][0]["label"] = (
+                "Corrupted but schema-valid parent payload"
+            )
+            connection.execute(
+                """UPDATE f2_persistent_agency_checkpoints
+                   SET checkpoint_json=?
+                   WHERE checkpoint_id='checkpoint-0'""",
+                (
+                    json.dumps(
+                        payload,
+                        ensure_ascii=False,
+                        sort_keys=True,
+                        separators=(",", ":"),
+                        allow_nan=False,
+                    ),
+                ),
+            )
+            connection.commit()
+            unchanged_sha = connection.execute(
+                """SELECT checkpoint_sha256
+                   FROM f2_persistent_agency_checkpoints
+                   WHERE checkpoint_id='checkpoint-0'"""
+            ).fetchone()[0]
+            self.assertEqual(unchanged_sha, expected_sha)
+        finally:
+            connection.close()
+
+        store = self._open_store_current_process()
+        try:
+            with self.assertRaises(PersistentAgencyError):
+                store.write_checkpoint(child)
+        finally:
+            store.close()
+
+        connection = sqlite3.connect(self.db)
+        try:
+            child_count = connection.execute(
+                """SELECT COUNT(*) FROM f2_persistent_agency_checkpoints
+                   WHERE checkpoint_id='checkpoint-1'"""
+            ).fetchone()[0]
+            self.assertEqual(
+                child_count,
+                0,
+                "a corrupt parent must never acquire a persisted descendant",
+            )
+        finally:
+            connection.close()
+
     def test_wrong_parent_identity_is_rejected_transactionally(self) -> None:
         self._write_process_a()
         store = self._open_store_current_process()
