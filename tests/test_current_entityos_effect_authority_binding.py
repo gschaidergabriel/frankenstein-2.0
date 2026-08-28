@@ -38,9 +38,9 @@ BINDING_BLOB = "b4d91a0dd233c9dc15ff8218feea9248ac1c13c5"
 BINDING_COMMIT = "5638204026468b631de5e774e8403d7a6334021e"
 ATTESTATION_PATH = (
     "research_entity/continuity/"
-    "ENTITYOS_EFFECT_AUTHORITY_BINDING_9_13_CURRENT_EPOCH_ATTESTATION_2026-08-29.json"
+    "ENTITYOS_EFFECT_AUTHORITY_BINDING_8_78_ADMITTED_AUTHORITY_REENTRY_2026-08-29.json"
 )
-ATTESTATION_COMMIT = "60f3e77900721ffa1dea1211e8b035a0e42b7c2f"
+ATTESTATION_COMMIT = "76e2b8383e597be14af8210b3616c572bea3a934"
 CHILD_SHA = "a" * 64
 RESULT_SHA = "b" * 64
 VERIFICATION_SHA = "c" * 64
@@ -88,8 +88,9 @@ ATTESTATION = {
         "api_version": "ENTITYOS_EFFECT_AUTHORITY_PY_API/v1",
     },
     "current_epoch_basis": {
-        "schema_version": "9.13",
-        "selected_delta": "9.13AJ_NON_AUTHORITY",
+        "schema_version": "8.78",
+        "selected_delta": "SUPERVISOR_STEERING_8_78",
+        "authority_status": "ADMITTED_STEERING_AUTHORITY",
         "authority_change": False,
     },
     "resolution": {
@@ -193,8 +194,8 @@ class CurrentEntityOSEffectAuthorityMatrixTests(unittest.TestCase):
         self.assertEqual(len(executor.calls), 1)
         self.assertEqual(executor.calls[0].effect_id, "canonical-effect-A")
         self.assertEqual(executor.calls[0].request_sha256, call.request_sha256)
-        self.assertEqual(binding.supervisor_epoch, "9.13")
-        self.assertEqual(binding.supervisor_delta, "9.13AJ_NON_AUTHORITY")
+        self.assertEqual(binding.supervisor_epoch, "8.78")
+        self.assertEqual(binding.supervisor_delta, "SUPERVISOR_STEERING_8_78")
         self.assertEqual(
             binding.effect_journal_blob_sha,
             "cda63471f1467481f2ff79032d3931730a334a20",
