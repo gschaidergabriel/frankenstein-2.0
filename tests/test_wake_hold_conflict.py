@@ -6,6 +6,7 @@ from frankenstein2.wake_hold import (
     OP_EQUALS,
     OP_PRESENT,
     WAKE_ANY,
+    WAKE_EVALUATION_SCHEMA,
     HoldCheckpoint,
     WakeCondition,
     WakeObservation,
@@ -97,7 +98,8 @@ class WakeConflictTests(unittest.TestCase):
         right = evaluate(cp, (b, a))
         self.assertEqual(left.sha256(), right.sha256())
         self.assertEqual(left.as_dict(), right.as_dict())
-        self.assertEqual(left.schema, "FRANKENSTEIN2_WAKE_EVALUATION/v1")
+        self.assertEqual(left.schema, WAKE_EVALUATION_SCHEMA)
+        self.assertEqual(left.schema, "FRANKENSTEIN2_WAKE_EVALUATION/v2")
         self.assertEqual(cp.schema, HOLD_CHECKPOINT_SCHEMA)
 
 
