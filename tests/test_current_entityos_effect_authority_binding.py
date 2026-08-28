@@ -19,12 +19,15 @@ from frankenstein2.structured_execution_receipt import (
     apply_structured_execution_receipt,
 )
 from state.execution_completion import (
+    VERIFICATION_RECEIPT_SCHEMA,
     AdmitExecution,
     ExecutionLineage,
     ExecutionOutcome,
     ExecutionStage,
     ReplayDisposition,
+    VerificationEvidenceKind,
     VerificationOutcome,
+    VerificationReceipt,
     VerifyExecution,
     apply_execution_transition,
 )
@@ -40,6 +43,7 @@ ATTESTATION_PATH = (
 ATTESTATION_COMMIT = "60f3e77900721ffa1dea1211e8b035a0e42b7c2f"
 CHILD_SHA = "a" * 64
 RESULT_SHA = "b" * 64
+VERIFICATION_SHA = "c" * 64
 
 BINDING = {
     "schema": "ENTITYOS_EFFECT_AUTHORITY_IMPLEMENTATION_BINDING/v1",
@@ -327,6 +331,17 @@ class CurrentEntityOSEffectAuthorityMatrixTests(unittest.TestCase):
         self.assertEqual(indeterminate.stage, ExecutionStage.EXECUTION_RECORDED)
         self.assertFalse(indeterminate.is_verified_complete)
 
+        final_receipt = VerificationReceipt(
+            schema=VERIFICATION_RECEIPT_SCHEMA,
+            receipt_id="verification-receipt-A-2",
+            verification_attempt_id="verification-A-2",
+            execution_attempt_id="execution-attempt-A",
+            execution_outcome=ExecutionOutcome.REPORTED_SUCCESS,
+            outcome=VerificationOutcome.APPLIED,
+            evidence_kind=VerificationEvidenceKind.EFFECT_JOURNAL_VERIFIED,
+            evidence_ref="canonical-effect-A:VERIFIED",
+            evidence_sha256=VERIFICATION_SHA,
+        )
         verified = apply_execution_transition(
             indeterminate,
             VerifyExecution(
@@ -338,6 +353,7 @@ class CurrentEntityOSEffectAuthorityMatrixTests(unittest.TestCase):
                 execution_attempt_id="execution-attempt-A",
                 verification_attempt_id="verification-A-2",
                 outcome=VerificationOutcome.APPLIED,
+                receipt=final_receipt,
             ),
         )
         self.assertEqual(verified.stage, ExecutionStage.VERIFIED_APPLIED)
