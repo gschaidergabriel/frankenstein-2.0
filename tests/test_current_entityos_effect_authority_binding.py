@@ -296,8 +296,10 @@ class CurrentEntityOSEffectAuthorityMatrixTests(unittest.TestCase):
             raw_status="SUCCEEDED",
             result_id="result-A",
             result_sha256=RESULT_SHA,
+            request_sha256=prepared.request_sha256,
         )
         observed = apply_structured_execution_receipt(prepared, lineage, receipt)
+        self.assertEqual(observed.observed_call.request_sha256, prepared.request_sha256)
         self.assertEqual(observed.lineage.stage, ExecutionStage.EXECUTION_RECORDED)
         self.assertEqual(
             observed.lineage.execution_outcome,
