@@ -41,6 +41,7 @@ BINDING_CLASSIFICATION = (
 RESIDUAL_CLASSIFICATION = (
     "TYPED_FINGERPRINT_BOUND_RESIDUAL_NOT_WORLD_TRUTH_OR_ACTION_AUTHORITY"
 )
+NESTED_RESIDUAL_CLASSIFICATION = "EXPLICIT_OBSERVATION_RESIDUAL_NOT_WORLD_TRUTH"
 
 
 class PredictionFingerprintBindingError(ValueError):
@@ -226,6 +227,10 @@ class FingerprintBoundResidual:
             raise PredictionFingerprintBindingError(
                 "residual must be a PredictionResidual"
             )
+        if self.residual.classification != NESTED_RESIDUAL_CLASSIFICATION:
+            raise PredictionFingerprintBindingError(
+                "nested residual classification mismatch"
+            )
         contract = self.binding.contract
         if self.residual.prediction_id != contract.prediction_id:
             raise PredictionFingerprintBindingError(
@@ -276,6 +281,7 @@ class FingerprintBoundResidual:
 
 __all__ = [
     "BINDING_CLASSIFICATION",
+    "NESTED_RESIDUAL_CLASSIFICATION",
     "PREDICTION_FINGERPRINT_BINDING_SCHEMA",
     "PREDICTION_FINGERPRINT_RESIDUAL_SCHEMA",
     "RESIDUAL_CLASSIFICATION",
