@@ -1,0 +1,50 @@
+{
+  "schema": "FRANKENSTEIN2_WORKPACKAGE_REVIEW_CORRECTION/v1",
+  "classification": "REVIEW_CORRECTION_AND_DUPLICATE_PATH_FALSIFIER",
+  "trigger": "4",
+  "worker_id": "GPT-5.6-Sol-reviewer",
+  "workpackage_id": "F2-WP-002",
+  "supersedes_interpretation_of": "workpackages/reviews/F2-WP-002/2026-08-28T2145P0700_GPT56SOL_CHECKPOINT_VALIDATOR_CANDIDATE_FALSIFIER.json",
+  "does_not_delete_prior_evidence": true,
+  "reentry_finding": {
+    "canonical_stronger_path": {
+      "path": "tools/validate_checkpoint.py",
+      "blob_sha_observed": "f030875ca347976ca5690895acc7bb5ce6d2f92f",
+      "repository_bound_ci": {
+        "run_id": 33181878830,
+        "job_id": 98884855269,
+        "head_sha": "96bb277946a2e7928d36b38e287710ba0e190d06",
+        "conclusion": "success"
+      },
+      "properties_observed": [
+        "fails when no matching claim object exists",
+        "binds claim workpackage_id/generation/worker_id/trigger/claim_id to CURRENT",
+        "loads workpackages/active/<workpackage_id>.json",
+        "binds active workpackage_id/generation/claim_id/worker_id",
+        "requires active pointer state ACTIVE"
+      ]
+    },
+    "weaker_parallel_path": {
+      "path": "tools/validate_current_checkpoint.py",
+      "blob_sha_observed": "14be3d302fad1e96f0ada81066820278b362fc60",
+      "properties_observed": [
+        "accepts validation without a claim because --claim is optional",
+        "does not bind the active mutation pointer"
+      ]
+    }
+  },
+  "correction": "The earlier review remains valid for tools/validate_current_checkpoint.py specifically, but must not be generalized to tools/validate_checkpoint.py. The stronger canonical path demonstrably binds CURRENT to claim + active pointer + STATE and passed repository-bound deterministic CI at the exact cited head.",
+  "remaining_risk": {
+    "id": "DUPLICATE_CHECKPOINT_VALIDATOR_SEMANTICS",
+    "severity": "MEDIUM_UNTIL_CALL_SITES_ARE_UNAMBIGUOUS",
+    "description": "Two similarly named validators coexist with different semantics. The weaker path should be retired, renamed as syntax-only, or strengthened so workers cannot accidentally use it as canonical acceptance evidence.",
+    "cheapest_discriminator": "Inventory references to both filenames and pin one canonical validation command in WORKER_PROTOCOL/CI; ensure no acceptance path invokes the weaker validator."
+  },
+  "credit_boundary": {
+    "wp002_repository_bound_component_evidence": 1,
+    "frankenstein2_runtime_credit": 0,
+    "whole_system_credit": 0
+  },
+  "mutation_boundary": "REVIEW_ONLY_APPEND_ONLY; active F2-WP-002 implementation/state not overwritten.",
+  "next_exact_action": "Archive the successful WP-002 CI receipt and reconcile/accept only the declared checkpoint-continuity scope after duplicate-validator semantics are unambiguous."
+}
