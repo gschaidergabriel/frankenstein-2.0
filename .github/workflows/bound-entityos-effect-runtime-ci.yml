@@ -23,18 +23,18 @@ jobs:
     steps:
       - name: Checkout Frankenstein 2.0 exact head
         uses: actions/checkout@v4
-      - name: Checkout current-epoch authority metadata identity
-        uses: actions/checkout@v4
-        with:
-          repository: gschaidergabriel/clay-global-research-entity
-          ref: 60f3e77900721ffa1dea1211e8b035a0e42b7c2f
-          path: _authority_meta
-      - name: Checkout exact bound EntityOS implementation
-        uses: actions/checkout@v4
-        with:
-          repository: gschaidergabriel/clay-global-research-entity
-          ref: 2b68aad14bf7824d513b52898904909256e3522d
-          path: _entityos_impl
+      - name: Fetch exact public EntityOS source identities without cross-repo token
+        shell: bash
+        run: |
+          set -euo pipefail
+          git init _authority_meta
+          git -C _authority_meta remote add origin https://github.com/gschaidergabriel/clay-global-research-entity.git
+          git -C _authority_meta fetch --depth=1 origin 60f3e77900721ffa1dea1211e8b035a0e42b7c2f
+          git -C _authority_meta checkout --detach FETCH_HEAD
+          git init _entityos_impl
+          git -C _entityos_impl remote add origin https://github.com/gschaidergabriel/clay-global-research-entity.git
+          git -C _entityos_impl fetch --depth=1 origin 2b68aad14bf7824d513b52898904909256e3522d
+          git -C _entityos_impl checkout --detach FETCH_HEAD
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
