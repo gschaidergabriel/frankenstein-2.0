@@ -1,0 +1,43 @@
+{
+  "schema": "FRANKENSTEIN2_WORKPACKAGE_DELTA/v1",
+  "workpackage_id": "F2-WP-302",
+  "generation": 1,
+  "claim_id": "F2-WP-302-G1-GPT56SOL-FAMILIARITY-PREDICTION-ERROR-20260829",
+  "worker_id": "GPT-5.6-Sol",
+  "base_commit": "da951e01fed51a06797a54a7a4deb791b9ebca21",
+  "observed_main_commit": "da951e01fed51a06797a54a7a4deb791b9ebca21",
+  "owned_paths": [
+    "workpackages/deltas/F2-WP-302/1-F2-WP-302-G1-GPT56SOL-FAMILIARITY-PREDICTION-ERROR-20260829-02.json"
+  ],
+  "result_class": "RECONCILIATION_CANDIDATE",
+  "source_commits": [
+    "90712bdb314b262dc8634c7cbd3123bbb3bd0358"
+  ],
+  "receipts": [
+    "workpackages/receipts/F2-WP-302_G1_FAMILIARITY_PREDICTION_GHA_33221047315.json"
+  ],
+  "falsifiers": [
+    "workpackages/falsifiers/F2-WP-302/20260829T0633P0700_UNBOUND_RETRIEVAL_RESULT_PROVENANCE_CANDIDATE_FALSIFIER_GPT56SOL.json"
+  ],
+  "contradictions": [
+    {
+      "type": "ACCEPTANCE_VS_PREEXISTING_EXACT_SOURCE_FALSIFIER",
+      "severity": "HIGH",
+      "accepted_source_blob_sha": "28601d10ff2bd0c0ab03d58264ec84cde2ff4fcf",
+      "falsifier_target_source_blob_sha": "28601d10ff2bd0c0ab03d58264ec84cde2ff4fcf",
+      "accepted_test_blob_sha": "915682cefd0e7be9544544b890ac48fa5c6f3705",
+      "acceptance_run_id": 33221047315,
+      "accepted_tests": "9/9 PASS",
+      "finding": "The accepted canonical WP302 source is byte-identical to the source targeted by the already-recorded unbound RetrievalResult provenance falsifier. The accepted test suite constructs retrieval results through build_retrieval_plan and does not include the direct-constructor forgery regression required by that falsifier. Therefore CI success demonstrates the nine exercised invariants only; it does not close the recorded provenance counterexample."
+    },
+    {
+      "type": "CLAIMED_WP301_COMPOSITION_VS_ENFORCED_IDENTITY",
+      "severity": "HIGH",
+      "finding": "The canonical binding accepts an iterable of RetrievalResult values and validates local fields only. It does not require an exact RetrievalPlan identity, RetrievalNeed identity/digest, or caller-fenced upstream result digest. A syntactically selected direct RetrievalResult can therefore bypass the causal identity of the WP301 plan that is supposed to authorize familiarity evidence."
+    }
+  ],
+  "proposed_state_change": "Do not delete or rewrite the historical G1 acceptance receipt. Mark the G1 accepted scope as CONTRADICTED_PENDING_RECONCILIATION for any downstream provenance claim. Open a deliberate successor hardening generation only through the claim/reconciliation protocol, bind familiarity evidence to exact WP301 RetrievalPlan/Need identity (or equivalent exact upstream result digest plus full invariant validation), add the recorded direct-constructor forgery regression, run exact-head repository CI, and only then issue a successor bounded acceptance receipt.",
+  "completion_deficit": "F2-WP-302 G1 has repository-hosted CI evidence for nine tests but lacks closure of the pre-existing exact-source provenance falsifier. No UnifiedDB/runtime/VPS/physical-GRID10/model/effect/completion/training/whole-system credit exists or is implied.",
+  "next_exact_action": "Temporary reconciliation writer should re-enter current main, preserve both the G1 acceptance receipt and falsifier, reconcile the contradiction without erasing history, then authorize at most one successor WP302 hardening mutation authority. The successor must reproduce the direct-constructor forged selected RetrievalResult counterexample before repair and prove it fails closed after exact WP301 plan/need provenance binding. Do not duplicate active F2-WP-209 or F2-WP-202 successor work while this reconciliation is pending.",
+  "created_at_utc": "2026-08-28T23:42:00Z"
+}
