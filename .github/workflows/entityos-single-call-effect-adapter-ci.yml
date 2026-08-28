@@ -1,0 +1,47 @@
+name: Frankenstein 2.0 EntityOS Single-Call Effect Adapter CI
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'src/frankenstein2/entityos_single_call_effect_adapter.py'
+      - 'src/frankenstein2/effect_request_identity.py'
+      - 'src/frankenstein2/canonical_effect_authority_bridge.py'
+      - 'tests/test_entityos_single_call_effect_adapter.py'
+      - '.github/workflows/entityos-single-call-effect-adapter-ci.yml'
+  pull_request:
+    paths:
+      - 'src/frankenstein2/entityos_single_call_effect_adapter.py'
+      - 'src/frankenstein2/effect_request_identity.py'
+      - 'src/frankenstein2/canonical_effect_authority_bridge.py'
+      - 'tests/test_entityos_single_call_effect_adapter.py'
+      - '.github/workflows/entityos-single-call-effect-adapter-ci.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  deterministic-single-call-observer:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      PYTHONPATH: .:src
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Compile single-call adapter boundary
+        run: >-
+          python -m py_compile
+          src/frankenstein2/entityos_single_call_effect_adapter.py
+          src/frankenstein2/effect_request_identity.py
+          src/frankenstein2/canonical_effect_authority_bridge.py
+          tests/test_entityos_single_call_effect_adapter.py
+      - name: Run single-call A B bijection and no-replay falsifiers
+        run: python tests/test_entityos_single_call_effect_adapter.py
+      - name: Run canonical semantic request regressions
+        run: python tests/test_canonical_effect_authority_bridge.py
+      - name: Run structured execution receipt regressions
+        run: python tests/test_structured_execution_receipt.py
