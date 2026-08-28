@@ -2,25 +2,21 @@
 
 F2-WP-206 generation 1.
 
-This module composes already-bounded component contracts without creating a new truth or
-effect authority. It persists one typed integration checkpoint into the canonical UnifiedDB
-path selected by ``state.unifieddb_identity`` and preserves exact component payloads plus
-component digests. It deliberately does not infer goals/world facts, choose an action,
-auto-resume, invoke a model/provider/tool, authorize an effect, or mint completion.
+The kernel composes accepted persistent-agency components and stores typed checkpoints only
+inside an already-existing, fingerprint-bound canonical UnifiedDB. It does not create a DB,
+infer goals/world facts, select an action, auto-resume, invoke providers/tools, authorize an
+effect, or mint completion.
 
-A checkpoint may contain a non-CANDIDATE GoalState produced by the validated Goal lifecycle,
-but this module does not invent a privileged GoalState rehydration backdoor. Public replay of
-such a goal fails closed until a separately admitted lifecycle rehydration contract exists.
-
-Projection change and lineage change are distinct: StateFingerprint hashes component content
-with component generation fields removed, while integration generation is carried by the
-fingerprint identity and exact component generations remain bound by the checkpoint payload.
+A checkpoint may preserve a non-CANDIDATE GoalState produced by validated lifecycle evolution,
+but public replay of such a goal deliberately fails closed until a separate admitted goal
+rehydration contract exists.
 """
 from __future__ import annotations
 
 from dataclasses import asdict, dataclass
 import hashlib
 import json
+import os
 from pathlib import Path
 import re
 import sqlite3
@@ -42,7 +38,12 @@ from frankenstein2.goal_lifecycle import (
 from frankenstein2.persistent_pulse import PulseDecision
 from frankenstein2.state_fingerprint import StateFingerprint, fingerprint_state_projection
 from frankenstein2.wake_hold import HoldCheckpoint, WakeEvaluation
-from state.unifieddb_identity import UnifiedDBResolution
+from state.unifieddb_identity import (
+    FINGERPRINT_SCHEMA,
+    RESOLUTION_SCHEMA,
+    UnifiedDBFingerprint,
+    UnifiedDBResolution,
+)
 
 CHECKPOINT_SCHEMA = "FRANKENSTEIN2_PERSISTENT_AGENCY_CHECKPOINT/v1"
 WRITE_RECEIPT_SCHEMA = "FRANKENSTEIN2_PERSISTENT_AGENCY_WRITE_RECEIPT/v1"
@@ -99,13 +100,21 @@ def _refs(values: Iterable[str]) -> tuple[str, ...]:
 
 
 def _canonical_json(value: Any) -> str:
-    return json.dumps(value, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
+    return json.dumps(
+        value,
+        sort_keys=True,
+        separators=(",", ":"),
+        ensure_ascii=False,
+        allow_nan=False,
+    )
 
 
 def _digest_json_text(text: str) -> str:
+    if not isinstance(text, str):
+        raise PersistentAgencyIntegrationError("checkpoint component payload must be JSON text")
     try:
         value = json.loads(text)
-    except (TypeError, json.JSONDecodeError) as exc:
+    except json.JSONDecodeError as exc:
         raise PersistentAgencyIntegrationError("checkpoint component payload is not valid JSON") from exc
     canonical = _canonical_json(value)
     if canonical != text:
@@ -113,11 +122,13 @@ def _digest_json_text(text: str) -> str:
     return hashlib.sha256(text.encode("utf-8")).hexdigest()
 
 
-def _digest(value: Any) -> str:
-    return hashlib.sha256(_canonical_json(value).encode("utf-8")).hexdigest()
+def _same_real_path(left: str, right: str) -> bool:
+    return os.path.normcase(os.path.realpath(left)) == os.path.normcase(os.path.realpath(right))
 
 
-def _projection_without_generation(agency_payload: dict[str, Any], goal_payload: dict[str, Any]) -> dict[str, Any]:
+def _projection_without_generation(
+    agency_payload: dict[str, Any], goal_payload: dict[str, Any]
+) -> dict[str, Any]:
     agency_projection = dict(agency_payload)
     goal_projection = dict(goal_payload)
     agency_projection.pop("generation", None)
@@ -212,7 +223,6 @@ class PersistentAgencyCheckpoint:
         goal = json.loads(self.goal_state_json)
         fingerprint = json.loads(self.state_fingerprint_json)
         pulse = json.loads(self.pulse_decision_json)
-
         if agency.get("schema") != AGENCY_STATE_SCHEMA:
             raise PersistentAgencyIntegrationError("persisted agency state schema mismatch")
         if goal.get("schema") != GOAL_STATE_SCHEMA:
@@ -257,25 +267,47 @@ class PersistentAgencyCheckpoint:
     def from_dict(cls, value: dict[str, Any]) -> "PersistentAgencyCheckpoint":
         if not isinstance(value, dict):
             raise PersistentAgencyIntegrationError("checkpoint payload must be an object")
+        expected = {
+            "schema",
+            "kernel_id",
+            "integration_generation",
+            "parent_checkpoint_sha256",
+            "agency_state_json",
+            "agency_state_sha256",
+            "goal_state_json",
+            "goal_state_sha256",
+            "state_fingerprint_json",
+            "state_fingerprint_sha256",
+            "pulse_decision_json",
+            "pulse_decision_sha256",
+            "hold_checkpoint_json",
+            "hold_checkpoint_sha256",
+            "wake_evaluation_json",
+            "wake_evaluation_sha256",
+            "provenance_refs",
+            "classification",
+        }
+        if set(value) != expected:
+            raise PersistentAgencyIntegrationError("checkpoint payload field set mismatch")
         return cls(
-            schema=value.get("schema"),
-            kernel_id=value.get("kernel_id"),
-            integration_generation=value.get("integration_generation"),
-            parent_checkpoint_sha256=value.get("parent_checkpoint_sha256"),
-            agency_state_json=value.get("agency_state_json"),
-            agency_state_sha256=value.get("agency_state_sha256"),
-            goal_state_json=value.get("goal_state_json"),
-            goal_state_sha256=value.get("goal_state_sha256"),
-            state_fingerprint_json=value.get("state_fingerprint_json"),
-            state_fingerprint_sha256=value.get("state_fingerprint_sha256"),
-            pulse_decision_json=value.get("pulse_decision_json"),
-            pulse_decision_sha256=value.get("pulse_decision_sha256"),
-            hold_checkpoint_json=value.get("hold_checkpoint_json"),
-            hold_checkpoint_sha256=value.get("hold_checkpoint_sha256"),
-            wake_evaluation_json=value.get("wake_evaluation_json"),
-            wake_evaluation_sha256=value.get("wake_evaluation_sha256"),
-            provenance_refs=tuple(value.get("provenance_refs", ())),
-            classification=value.get("classification", CLASSIFICATION),
+            schema=value["schema"],
+            kernel_id=value["kernel_id"],
+            integration_generation=value["integration_generation"],
+            parent_checkpoint_sha256=value["parent_checkpoint_sha256"],
+            agency_state_json=value["agency_state_json"],
+            agency_state_sha256=value["agency_state_sha256"],
+            goal_state_json=value["goal_state_json"],
+            goal_state_sha256=value["goal_state_sha256"],
+            state_fingerprint_json=value["state_fingerprint_json"],
+            state_fingerprint_sha256=value["state_fingerprint_sha256"],
+            pulse_decision_json=value["pulse_decision_json"],
+            pulse_decision_sha256=value["pulse_decision_sha256"],
+            hold_checkpoint_json=value["hold_checkpoint_json"],
+            hold_checkpoint_sha256=value["hold_checkpoint_sha256"],
+            wake_evaluation_json=value["wake_evaluation_json"],
+            wake_evaluation_sha256=value["wake_evaluation_sha256"],
+            provenance_refs=tuple(value["provenance_refs"]),
+            classification=value["classification"],
         )
 
     def as_dict(self) -> dict[str, Any]:
@@ -299,11 +331,37 @@ class CheckpointWriteReceipt:
     checkpoint_sha256: str
     db_path: str
     resolution_source: str
+    unifieddb_authority_receipt_sha256: str
     status: str
     classification: str = "SQLITE_CHECKPOINT_WRITE_RECEIPT_NOT_EFFECT_OR_COMPLETION"
 
+    def __post_init__(self) -> None:
+        if self.schema != WRITE_RECEIPT_SCHEMA:
+            raise PersistentAgencyIntegrationError("checkpoint write receipt schema mismatch")
+        object.__setattr__(self, "kernel_id", _identifier("kernel_id", self.kernel_id))
+        object.__setattr__(self, "integration_generation", _generation(self.integration_generation))
+        object.__setattr__(self, "checkpoint_sha256", _sha256("checkpoint_sha256", self.checkpoint_sha256))
+        if not isinstance(self.db_path, str) or not Path(self.db_path).is_absolute():
+            raise PersistentAgencyIntegrationError("write receipt db_path must be absolute")
+        object.__setattr__(self, "resolution_source", _identifier("resolution_source", self.resolution_source))
+        object.__setattr__(
+            self,
+            "unifieddb_authority_receipt_sha256",
+            _sha256("unifieddb_authority_receipt_sha256", self.unifieddb_authority_receipt_sha256),
+        )
+        if self.status not in {"INSERTED", "IDEMPOTENT_ALREADY_PRESENT"}:
+            raise PersistentAgencyIntegrationError("unsupported checkpoint write status")
+        if self.classification != "SQLITE_CHECKPOINT_WRITE_RECEIPT_NOT_EFFECT_OR_COMPLETION":
+            raise PersistentAgencyIntegrationError("checkpoint write receipt classification mismatch")
+
     def as_dict(self) -> dict[str, Any]:
         return asdict(self)
+
+    def canonical_json(self) -> str:
+        return _canonical_json(self.as_dict())
+
+    def sha256(self) -> str:
+        return hashlib.sha256(self.canonical_json().encode("utf-8")).hexdigest()
 
 
 def build_checkpoint(
@@ -361,7 +419,9 @@ def build_checkpoint(
         if wake_evaluation.observed_state_sha256 != agency_sha:
             raise PersistentAgencyIntegrationError("wake/agency digest mismatch")
 
-    projection = _projection_without_generation(agency_state.as_dict(), goal_state.as_dict())
+    agency_payload = json.loads(agency_json)
+    goal_payload = json.loads(goal_json)
+    projection = _projection_without_generation(agency_payload, goal_payload)
     fingerprint = fingerprint_state_projection(
         projection_schema=PROJECTION_SCHEMA,
         generation=integration_generation,
@@ -414,11 +474,7 @@ def rehydrate_agency_state(checkpoint: PersistentAgencyCheckpoint) -> AgencyStat
 
 
 def rehydrate_candidate_goal_state(checkpoint: PersistentAgencyCheckpoint) -> GoalState:
-    """Replay only candidate-only GoalState through the public lifecycle constructor.
-
-    Non-candidate replay intentionally fails closed. Calling the lifecycle's private transition
-    constructor here would create a second rehydration authority and violate F2-WP-204.
-    """
+    """Replay candidate-only GoalState through the public lifecycle constructor."""
     if not isinstance(checkpoint, PersistentAgencyCheckpoint):
         raise PersistentAgencyIntegrationError("checkpoint must be PersistentAgencyCheckpoint")
     payload = json.loads(checkpoint.goal_state_json)
@@ -447,38 +503,92 @@ def rehydrate_candidate_goal_state(checkpoint: PersistentAgencyCheckpoint) -> Go
 
 
 class PersistentAgencyStore:
-    """Append-only typed checkpoint lane inside the resolved canonical UnifiedDB file."""
+    """Append-only checkpoint lane inside one fingerprint-bound canonical UnifiedDB."""
 
-    def __init__(self, resolution: UnifiedDBResolution):
+    def __init__(
+        self,
+        resolution: UnifiedDBResolution,
+        fingerprint: UnifiedDBFingerprint,
+    ) -> None:
         if not isinstance(resolution, UnifiedDBResolution):
             raise PersistentAgencyIntegrationError("resolution must be UnifiedDBResolution")
-        path = Path(resolution.path)
-        if not path.is_absolute():
-            raise PersistentAgencyIntegrationError("resolved UnifiedDB path must be absolute")
-        if not path.parent.is_dir():
-            raise PersistentAgencyIntegrationError("resolved UnifiedDB parent directory does not exist")
+        if not isinstance(fingerprint, UnifiedDBFingerprint):
+            raise PersistentAgencyIntegrationError("fingerprint must be UnifiedDBFingerprint")
+        if resolution.schema != RESOLUTION_SCHEMA:
+            raise PersistentAgencyIntegrationError("UnifiedDB resolution schema mismatch")
+        if fingerprint.schema != FINGERPRINT_SCHEMA:
+            raise PersistentAgencyIntegrationError("UnifiedDB fingerprint schema mismatch")
+        if not resolution.exists_at_resolution:
+            raise PersistentAgencyIntegrationError("canonical UnifiedDB must exist before WP206 writer open")
+        if not fingerprint.exists or fingerprint.status != "SQLITE3_REGULAR_FILE":
+            raise PersistentAgencyIntegrationError("UnifiedDB fingerprint is not an existing SQLite identity")
+        if not fingerprint.real_path:
+            raise PersistentAgencyIntegrationError("UnifiedDB fingerprint real_path missing")
+        if not _same_real_path(resolution.path, fingerprint.real_path):
+            raise PersistentAgencyIntegrationError("UnifiedDB resolution/fingerprint path mismatch")
+        if fingerprint.device is None or fingerprint.inode is None:
+            raise PersistentAgencyIntegrationError("UnifiedDB fingerprint file identity missing")
+
         self.resolution = resolution
-        self.path = path
+        self.fingerprint = fingerprint
+        self.path = Path(fingerprint.real_path)
+        self.authority_receipt_sha256 = fingerprint.receipt_sha256()
+        self._assert_current_file_identity()
+
+    def _assert_current_file_identity(self) -> None:
+        try:
+            current = self.path.stat()
+        except OSError as exc:
+            raise PersistentAgencyIntegrationError("canonical UnifiedDB missing at WP206 access") from exc
+        if (current.st_dev, current.st_ino) != (self.fingerprint.device, self.fingerprint.inode):
+            raise PersistentAgencyIntegrationError("canonical UnifiedDB replaced after fingerprint")
 
     def _connect(self) -> sqlite3.Connection:
-        conn = sqlite3.connect(str(self.path), timeout=5.0)
-        conn.execute("PRAGMA foreign_keys=ON")
-        return conn
+        self._assert_current_file_identity()
+        uri = self.path.as_uri() + "?mode=rw"
+        try:
+            conn = sqlite3.connect(uri, uri=True, timeout=5.0)
+        except sqlite3.Error as exc:
+            raise PersistentAgencyIntegrationError("canonical UnifiedDB read/write open failed") from exc
+        try:
+            rows = conn.execute("PRAGMA database_list").fetchall()
+            main_paths = [row[2] for row in rows if len(row) >= 3 and row[1] == "main"]
+            if len(main_paths) != 1 or not main_paths[0]:
+                raise PersistentAgencyIntegrationError("SQLite main database path unavailable")
+            if not _same_real_path(main_paths[0], str(self.path)):
+                raise PersistentAgencyIntegrationError("SQLite connection not bound to fingerprinted UnifiedDB")
+            self._assert_current_file_identity()
+            conn.execute("PRAGMA foreign_keys=ON")
+            return conn
+        except Exception:
+            conn.close()
+            raise
+
+    @staticmethod
+    def _schema_statement() -> str:
+        return f"""
+            CREATE TABLE IF NOT EXISTS {TABLE_NAME} (
+                kernel_id TEXT NOT NULL,
+                integration_generation INTEGER NOT NULL CHECK (integration_generation >= 0),
+                checkpoint_sha256 TEXT NOT NULL UNIQUE,
+                parent_checkpoint_sha256 TEXT,
+                payload_json TEXT NOT NULL,
+                unifieddb_authority_receipt_sha256 TEXT NOT NULL,
+                PRIMARY KEY (kernel_id, integration_generation)
+            )
+        """
 
     def initialize(self) -> None:
-        with self._connect() as conn:
-            conn.execute(
-                f"""
-                CREATE TABLE IF NOT EXISTS {TABLE_NAME} (
-                    kernel_id TEXT NOT NULL,
-                    integration_generation INTEGER NOT NULL CHECK (integration_generation >= 0),
-                    checkpoint_sha256 TEXT NOT NULL UNIQUE,
-                    parent_checkpoint_sha256 TEXT,
-                    payload_json TEXT NOT NULL,
-                    PRIMARY KEY (kernel_id, integration_generation)
-                )
-                """
-            )
+        conn = self._connect()
+        try:
+            conn.execute("BEGIN IMMEDIATE")
+            conn.execute(self._schema_statement())
+            conn.commit()
+        except Exception:
+            conn.rollback()
+            raise
+        finally:
+            conn.close()
 
     def persist(self, checkpoint: PersistentAgencyCheckpoint) -> CheckpointWriteReceipt:
         if not isinstance(checkpoint, PersistentAgencyCheckpoint):
@@ -488,36 +598,19 @@ class PersistentAgencyStore:
         conn = self._connect()
         try:
             conn.execute("BEGIN IMMEDIATE")
-            conn.execute(
-                f"""
-                CREATE TABLE IF NOT EXISTS {TABLE_NAME} (
-                    kernel_id TEXT NOT NULL,
-                    integration_generation INTEGER NOT NULL CHECK (integration_generation >= 0),
-                    checkpoint_sha256 TEXT NOT NULL UNIQUE,
-                    parent_checkpoint_sha256 TEXT,
-                    payload_json TEXT NOT NULL,
-                    PRIMARY KEY (kernel_id, integration_generation)
-                )
-                """
-            )
+            conn.execute(self._schema_statement())
             existing = conn.execute(
-                f"SELECT checkpoint_sha256,payload_json FROM {TABLE_NAME} "
-                "WHERE kernel_id=? AND integration_generation=?",
+                f"SELECT checkpoint_sha256,payload_json,unifieddb_authority_receipt_sha256 "
+                f"FROM {TABLE_NAME} WHERE kernel_id=? AND integration_generation=?",
                 (checkpoint.kernel_id, checkpoint.integration_generation),
             ).fetchone()
             if existing is not None:
-                if existing == (checkpoint_sha, payload):
+                if existing == (checkpoint_sha, payload, self.authority_receipt_sha256):
                     conn.commit()
-                    return CheckpointWriteReceipt(
-                        WRITE_RECEIPT_SCHEMA,
-                        checkpoint.kernel_id,
-                        checkpoint.integration_generation,
-                        checkpoint_sha,
-                        str(self.path),
-                        self.resolution.source,
-                        "IDEMPOTENT_ALREADY_PRESENT",
-                    )
-                raise PersistentAgencyIntegrationError("checkpoint generation already exists with different payload")
+                    return self._receipt(checkpoint, checkpoint_sha, "IDEMPOTENT_ALREADY_PRESENT")
+                raise PersistentAgencyIntegrationError(
+                    "checkpoint generation already exists with different payload or authority"
+                )
 
             latest = conn.execute(
                 f"SELECT integration_generation,checkpoint_sha256 FROM {TABLE_NAME} "
@@ -526,24 +619,31 @@ class PersistentAgencyStore:
             ).fetchone()
             if latest is None:
                 if checkpoint.integration_generation != 0 or checkpoint.parent_checkpoint_sha256 is not None:
-                    raise PersistentAgencyIntegrationError("first persisted checkpoint must be generation zero without parent")
+                    raise PersistentAgencyIntegrationError(
+                        "first persisted checkpoint must be generation zero without parent"
+                    )
             else:
                 latest_generation, latest_sha = int(latest[0]), str(latest[1])
                 if checkpoint.integration_generation != latest_generation + 1:
-                    raise PersistentAgencyIntegrationError("checkpoint integration generation is stale or skipped")
+                    raise PersistentAgencyIntegrationError(
+                        "checkpoint integration generation is stale or skipped"
+                    )
                 if checkpoint.parent_checkpoint_sha256 != latest_sha:
-                    raise PersistentAgencyIntegrationError("checkpoint parent digest does not match latest persisted checkpoint")
+                    raise PersistentAgencyIntegrationError(
+                        "checkpoint parent digest does not match latest persisted checkpoint"
+                    )
 
             conn.execute(
                 f"INSERT INTO {TABLE_NAME} "
-                "(kernel_id,integration_generation,checkpoint_sha256,parent_checkpoint_sha256,payload_json) "
-                "VALUES (?,?,?,?,?)",
+                "(kernel_id,integration_generation,checkpoint_sha256,parent_checkpoint_sha256,"
+                "payload_json,unifieddb_authority_receipt_sha256) VALUES (?,?,?,?,?,?)",
                 (
                     checkpoint.kernel_id,
                     checkpoint.integration_generation,
                     checkpoint_sha,
                     checkpoint.parent_checkpoint_sha256,
                     payload,
+                    self.authority_receipt_sha256,
                 ),
             )
             conn.commit()
@@ -552,34 +652,53 @@ class PersistentAgencyStore:
             raise
         finally:
             conn.close()
+        return self._receipt(checkpoint, checkpoint_sha, "INSERTED")
 
+    def _receipt(
+        self,
+        checkpoint: PersistentAgencyCheckpoint,
+        checkpoint_sha: str,
+        status: str,
+    ) -> CheckpointWriteReceipt:
         return CheckpointWriteReceipt(
-            WRITE_RECEIPT_SCHEMA,
-            checkpoint.kernel_id,
-            checkpoint.integration_generation,
-            checkpoint_sha,
-            str(self.path),
-            self.resolution.source,
-            "INSERTED",
+            schema=WRITE_RECEIPT_SCHEMA,
+            kernel_id=checkpoint.kernel_id,
+            integration_generation=checkpoint.integration_generation,
+            checkpoint_sha256=checkpoint_sha,
+            db_path=str(self.path),
+            resolution_source=self.resolution.source,
+            unifieddb_authority_receipt_sha256=self.authority_receipt_sha256,
+            status=status,
         )
 
-    def load_generation(self, kernel_id: str, integration_generation: int) -> PersistentAgencyCheckpoint:
+    def load_generation(
+        self, kernel_id: str, integration_generation: int
+    ) -> PersistentAgencyCheckpoint:
         kernel = _identifier("kernel_id", kernel_id)
         generation = _generation(integration_generation)
-        with self._connect() as conn:
+        conn = self._connect()
+        try:
             row = conn.execute(
-                f"SELECT checkpoint_sha256,payload_json FROM {TABLE_NAME} "
-                "WHERE kernel_id=? AND integration_generation=?",
+                f"SELECT checkpoint_sha256,payload_json,unifieddb_authority_receipt_sha256 "
+                f"FROM {TABLE_NAME} WHERE kernel_id=? AND integration_generation=?",
                 (kernel, generation),
             ).fetchone()
+        except sqlite3.Error as exc:
+            raise PersistentAgencyIntegrationError("WP206 checkpoint schema unavailable") from exc
+        finally:
+            conn.close()
         if row is None:
             raise PersistentAgencyIntegrationError("checkpoint not found")
-        expected_sha, payload_json = str(row[0]), str(row[1])
+        expected_sha, payload_json, authority_sha = str(row[0]), str(row[1]), str(row[2])
+        if authority_sha != self.authority_receipt_sha256:
+            raise PersistentAgencyIntegrationError("persisted checkpoint authority receipt mismatch")
         try:
             payload = json.loads(payload_json)
         except json.JSONDecodeError as exc:
             raise PersistentAgencyIntegrationError("persisted checkpoint JSON is invalid") from exc
         checkpoint = PersistentAgencyCheckpoint.from_dict(payload)
+        if checkpoint.kernel_id != kernel or checkpoint.integration_generation != generation:
+            raise PersistentAgencyIntegrationError("persisted checkpoint row/payload identity mismatch")
         if checkpoint.canonical_json() != payload_json:
             raise PersistentAgencyIntegrationError("persisted checkpoint JSON is not canonical")
         if checkpoint.sha256() != expected_sha:
@@ -588,12 +707,17 @@ class PersistentAgencyStore:
 
     def load_latest(self, kernel_id: str) -> PersistentAgencyCheckpoint:
         kernel = _identifier("kernel_id", kernel_id)
-        with self._connect() as conn:
+        conn = self._connect()
+        try:
             row = conn.execute(
                 f"SELECT integration_generation FROM {TABLE_NAME} "
                 "WHERE kernel_id=? ORDER BY integration_generation DESC LIMIT 1",
                 (kernel,),
             ).fetchone()
+        except sqlite3.Error as exc:
+            raise PersistentAgencyIntegrationError("WP206 checkpoint schema unavailable") from exc
+        finally:
+            conn.close()
         if row is None:
             raise PersistentAgencyIntegrationError("checkpoint not found")
         return self.load_generation(kernel, int(row[0]))
