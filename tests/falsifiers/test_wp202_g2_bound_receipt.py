@@ -48,6 +48,7 @@ class PredictionFingerprintBoundReceiptFalsifier(unittest.TestCase):
         with self.assertRaises(PredictionFingerprintBindingError):
             FingerprintBoundResidual(
                 schema=PREDICTION_FINGERPRINT_RESIDUAL_SCHEMA,
+                binding=receipt.binding,
                 binding_sha256="z" * 64,
                 basis_fingerprint=receipt.basis_fingerprint,
                 observation_fingerprint=receipt.observation_fingerprint,
@@ -63,6 +64,7 @@ class PredictionFingerprintBoundReceiptFalsifier(unittest.TestCase):
         with self.assertRaises(PredictionFingerprintBindingError):
             FingerprintBoundResidual(
                 schema=PREDICTION_FINGERPRINT_RESIDUAL_SCHEMA,
+                binding=receipt.binding,
                 binding_sha256=receipt.binding_sha256,
                 basis_fingerprint=receipt.basis_fingerprint,
                 observation_fingerprint=receipt.observation_fingerprint,
