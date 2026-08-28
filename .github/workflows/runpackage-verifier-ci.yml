@@ -1,0 +1,34 @@
+name: Frankenstein 2.0 Run Package Verifier CI
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'runpackages/**'
+      - 'tests/test_verify_run_package.py'
+      - '.github/workflows/runpackage-verifier-ci.yml'
+  pull_request:
+    paths:
+      - 'runpackages/**'
+      - 'tests/test_verify_run_package.py'
+      - '.github/workflows/runpackage-verifier-ci.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  deterministic-runpackage-verifier:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Compile verifier and regression
+        run: python -m py_compile runpackages/verify_run_package.py tests/test_verify_run_package.py
+      - name: Run verifier regression suite
+        run: python tests/test_verify_run_package.py
+      - name: Parse canonical run-package schema
+        run: python -m json.tool runpackages/RUN_PACKAGE_SCHEMA_V1.json >/dev/null
