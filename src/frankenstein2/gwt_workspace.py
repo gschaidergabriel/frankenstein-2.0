@@ -393,10 +393,18 @@ class BroadcastEnvelope:
         if any(cell_id not in _GRID10_CELL_SET for cell_id in self.recipient_cell_ids):
             raise GwtWorkspaceError("recipient_cell_ids must contain only logical G1..G10 ids")
         object.__setattr__(self, "recipient_cell_ids", tuple(sorted(self.recipient_cell_ids, key=GRID10_CELL_IDS.index)))
-        object.__setattr__(self, "candidate_ids", _unique_sorted_refs("candidate_ids", self.candidate_ids, allow_empty=False))
-        object.__setattr__(self, "candidate_payload_refs", _unique_sorted_refs("candidate_payload_refs", self.candidate_payload_refs, allow_empty=False))
-        if len(self.candidate_ids) != len(self.candidate_payload_refs):
+        if not isinstance(self.candidate_ids, tuple) or not self.candidate_ids:
+            raise GwtWorkspaceError("candidate_ids must be a non-empty immutable tuple")
+        if not isinstance(self.candidate_payload_refs, tuple) or not self.candidate_payload_refs:
+            raise GwtWorkspaceError("candidate_payload_refs must be a non-empty immutable tuple")
+        candidate_ids = tuple(_text("candidate_ids item", item) for item in self.candidate_ids)
+        payload_refs = tuple(_text("candidate_payload_refs item", item) for item in self.candidate_payload_refs)
+        if len(set(candidate_ids)) != len(candidate_ids):
+            raise GwtWorkspaceError("candidate_ids must not contain duplicates")
+        if len(candidate_ids) != len(payload_refs):
             raise GwtWorkspaceError("candidate_ids and candidate_payload_refs must have equal length")
+        object.__setattr__(self, "candidate_ids", candidate_ids)
+        object.__setattr__(self, "candidate_payload_refs", payload_refs)
 
     def as_dict(self) -> dict[str, Any]:
         return {
