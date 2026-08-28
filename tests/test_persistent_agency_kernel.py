@@ -301,7 +301,7 @@ goal_change = GoalStatusChange(
     expected_status="CANDIDATE",
     next_status=GOAL_ACTIVE,
     evidence_refs=("evidence:explicit-adoption",),
-    adoption_authority_ref="caller-adoption:restart-test",
+    adoption_authority_ref="caller:restart-test",
 )
 goal_patch = GoalStatePatch(
     schema=GOAL_PATCH_SCHEMA,
