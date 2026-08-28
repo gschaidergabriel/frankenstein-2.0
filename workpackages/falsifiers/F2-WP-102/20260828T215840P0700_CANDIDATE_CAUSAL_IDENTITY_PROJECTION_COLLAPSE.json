@@ -18,13 +18,24 @@
       "observation": "CausalIdentity explicitly distinguishes session_id + agent_id + task_id + turn_id + causal_id + generation and does not enforce repository-global uniqueness of causal_id by itself."
     },
     {
+      "path": "src/frankenstein2/telemetry.py",
+      "git_blob_sha": "b08898aa193f7f063242fa898bf6aeca430fa3c8",
+      "observation": "TelemetryWriter stores identity.generation into system_events.generation, so this column carries causal generation, not workpackage generation. The same bare field name therefore denotes two distinct generation domains across current Stage-1 sources."
+    },
+    {
       "path": "workpackages/reconciliations/F2-WP-102/1-F2-WP-102-G1-GPT56SOL-db4ddad2.json",
       "git_blob_sha": "38bea2b2523f0bfd437bbb61e3a772c371c5c56b",
       "observation": "The canonical reconciliation already requires preserving explicit CausalIdentity parent/child lineage and fusing it into the survivor."
     }
   ],
-  "hypothesis": "Until the reconciled CausalIdentity tuple is fused into the canonical WP-102 binding, the current deterministic binding projection is insufficient to distinguish two admissible causal contexts that share the same causal_id and the same work-execution fields but differ in omitted session/task/turn/causal-generation identity.",
-  "counterhypothesis": "A stronger upstream invariant may make causal_id globally unique across all sessions/tasks/turns and may be mechanically enforced before WP-102. If that invariant exists and is executable, causal_id-only projection could be sufficient at this boundary.",
+  "hypotheses": [
+    "Until the reconciled CausalIdentity tuple is fused into the canonical WP-102 binding, the current deterministic binding projection is insufficient to distinguish two admissible causal contexts that share the same causal_id and the same work-execution fields but differ in omitted session/task/turn/causal-generation identity.",
+    "Cross-component integration is vulnerable to generation-domain confusion because telemetry generation is causal generation while WorkExecutionBinding generation is workpackage generation."
+  ],
+  "counterhypotheses": [
+    "A stronger upstream invariant may make causal_id globally unique across all sessions/tasks/turns and may be mechanically enforced before WP-102. If that invariant exists and is executable, causal_id-only projection could be sufficient at this boundary.",
+    "All integrations may already carry schema-qualified field meaning and never join or compare the two bare generation fields. If executable tests prove that, the naming overlap is cosmetic rather than causal."
+  ],
   "source_level_discriminator": {
     "context_a": {
       "session_id": "session:A",
@@ -58,15 +69,22 @@
     "result": "SOURCE_LEVEL_PROJECTION_COLLISION_BY_OMITTED_CONTEXT",
     "runtime_collision_observed": false
   },
+  "generation_domain_discriminator": {
+    "telemetry_generation_semantics": "CausalIdentity.generation",
+    "work_execution_binding_generation_semantics": "workpackage generation",
+    "same_field_name": "generation",
+    "result": "SEMANTIC_DOMAIN_OVERLOAD_OBSERVED_IN_CURRENT_SOURCE",
+    "runtime_misattribution_observed": false
+  },
   "falsification_or_fix_gate": [
-    "Either prove and cite an executable upstream invariant that makes causal_id globally unique at the WP-102 admission boundary,",
-    "or fuse the complete required CausalIdentity identity (or a deterministic digest that is collision-separating over that tuple) into the canonical WP-102 binding preimage,",
-    "and add a regression proving two admissible contexts that differ only in session/task/turn/causal-generation cannot collapse to one work-execution binding."
+    "Either prove and cite an executable upstream invariant that makes causal_id globally unique at the WP-102 admission boundary, or fuse the complete required CausalIdentity identity (or a deterministic collision-separating digest over that tuple) into the canonical WP-102 binding preimage.",
+    "Make generation domains explicit at integration boundaries (for example causal_generation versus work_generation, or typed nested identities) or prove with executable schema-qualified integration tests that the current bare names cannot be confused.",
+    "Add a regression proving two admissible contexts that differ only in session/task/turn/causal-generation cannot collapse to one work-execution binding unless a mechanically enforced global causal_id uniqueness invariant makes the case inadmissible."
   ],
   "scope_boundary": "SOURCE_REVIEW_AND_DETERMINISTIC_PREIMAGE_ANALYSIS_ONLY",
   "runtime_execution_observed": false,
   "runtime_credit": 0,
   "whole_system_credit": 0,
   "stage2_promotion_credit": 0,
-  "next_exact_action": "Canonical WP-102 owner should resolve this falsifier during the already-required survivor/duplicate fusion before Stage-1 coordination acceptance; do not start a competing WP-102 implementation."
+  "next_exact_action": "Canonical WP-102 owner should resolve this falsifier during the already-required survivor/duplicate fusion and Stage-1 coordination tests; do not start a competing WP-102 implementation."
 }
