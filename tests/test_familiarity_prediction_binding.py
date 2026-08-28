@@ -104,7 +104,6 @@ class FamiliarityPredictionBindingTests(unittest.TestCase):
         need, plan = _retrieval_context(("m:known", 8_000, True))
         binding = _binding(residual, need, plan)
         signal = binding.evaluate(residual=residual, retrieval_need=need, retrieval_plan=plan)
-
         self.assertEqual(signal.status, STATUS_MATCH)
         self.assertEqual(signal.residual_sha256, residual.sha256())
         self.assertEqual(signal.observation_id, residual.observation_id)
@@ -160,17 +159,33 @@ class FamiliarityPredictionBindingTests(unittest.TestCase):
                 retrieval_results=plan.selected,
             )
 
-    def test_forged_selected_result_cannot_replace_fenced_wp301_plan(self) -> None:
+    def test_postbinding_result_mutation_is_rejected_by_plan_digest(self) -> None:
         residual = _residual()
         need, canonical_plan = _retrieval_context(("m:known", 8_000, True))
         binding = _binding(residual, need, canonical_plan)
         original = canonical_plan.selected[0]
-        forged_score = 9_000
+        forged = replace(original, candidate_sha256=_sha("forged-direct-constructor-result"))
+        forged_plan = RetrievalPlan(
+            schema=PLAN_SCHEMA,
+            need_id=canonical_plan.need_id,
+            need_sha256=canonical_plan.need_sha256,
+            selected=(forged,),
+            not_selected=canonical_plan.not_selected,
+            candidate_count=canonical_plan.candidate_count,
+            classification=PLAN_CLASSIFICATION,
+        )
+        with self.assertRaisesRegex(FamiliarityPredictionBindingError, "retrieval plan digest mismatch"):
+            binding.evaluate(residual=residual, retrieval_need=need, retrieval_plan=forged_plan)
+
+    def test_prebinding_derived_score_forgery_is_reconstructed_and_rejected(self) -> None:
+        residual = _residual()
+        need, canonical_plan = _retrieval_context(("m:known", 1_000, True))
+        original = canonical_plan.selected[0]
+        forged_score = 10_000
         forged = replace(
             original,
             weighted_score_bp=forged_score,
             rank_score=forged_score * original.overlap_count,
-            candidate_sha256=_sha("forged-direct-constructor-result"),
         )
         forged_plan = RetrievalPlan(
             schema=PLAN_SCHEMA,
@@ -181,8 +196,8 @@ class FamiliarityPredictionBindingTests(unittest.TestCase):
             candidate_count=canonical_plan.candidate_count,
             classification=PLAN_CLASSIFICATION,
         )
-
-        with self.assertRaisesRegex(FamiliarityPredictionBindingError, "retrieval plan digest mismatch"):
+        binding = _binding(residual, need, forged_plan)
+        with self.assertRaisesRegex(FamiliarityPredictionBindingError, "weighted_score_bp"):
             binding.evaluate(residual=residual, retrieval_need=need, retrieval_plan=forged_plan)
 
     def test_need_identity_and_digest_are_fenced(self) -> None:
@@ -224,11 +239,9 @@ class FamiliarityPredictionBindingTests(unittest.TestCase):
         expected = _binding(residual, need, plan)
         with self.assertRaisesRegex(FamiliarityPredictionBindingError, "residual is unavailable"):
             expected.evaluate(residual=None, retrieval_need=need, retrieval_plan=plan)
-
         no_expected = _binding(residual, need, plan, expected_residual=None)
         with self.assertRaisesRegex(FamiliarityPredictionBindingError, "requires expected_residual_sha256"):
             no_expected.evaluate(residual=residual, retrieval_need=need, retrieval_plan=plan)
-
         wrong = _binding(residual, need, plan, expected_residual=_sha("wrong"))
         with self.assertRaisesRegex(FamiliarityPredictionBindingError, "residual digest mismatch"):
             wrong.evaluate(residual=residual, retrieval_need=need, retrieval_plan=plan)
