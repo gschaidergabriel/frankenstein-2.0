@@ -2,7 +2,7 @@
 """Fail-closed validator for Frankenstein 2.0 machine-readable workpackage state.
 
 Scope is source/continuity metadata only. This validator never grants cognitive-runtime,
-GRID10, provider, VPS, effect, or whole-system acceptance.
+GRID10, provider, VPS, effect, training, or whole-system acceptance.
 """
 from __future__ import annotations
 
@@ -13,16 +13,13 @@ from pathlib import Path
 from typing import Any
 
 REPO = "gschaidergabriel/frankenstein-2.0"
+CONTRACT_SCHEMA = "FRANKENSTEIN2_WORKPACKAGE_STATE_CONSISTENCY_CONTRACT/v1"
 STATE_SCHEMA = "FRANKENSTEIN2_WORKPACKAGE_STATE/v1"
-ACTIVE_SCHEMA = "FRANKENSTEIN2_ACTIVE_WORKPACKAGE/v1"
 CLAIM_SCHEMA = "FRANKENSTEIN2_WORKPACKAGE_CLAIM/v1"
 RECON_SCHEMA = "FRANKENSTEIN2_WORKPACKAGE_RECONCILIATION/v1"
 WP = re.compile(r"^F2-WP-[0-9]+$")
 SHA40 = re.compile(r"^[0-9a-f]{40}$")
-STATE_VALUES = {"NOT_STARTED", "IN_PROGRESS", "HOLD", "BLOCKED", "ACCEPTED_AT_SCOPE"}
-ACTIVE_VALUES = {"ACTIVE", "ACCEPTED", "FAILED_TERMINAL", "RETIRED_STALE", "SUPERSEDED"}
-TERMINAL_ACTIVE_VALUES = ACTIVE_VALUES - {"ACTIVE"}
-OPEN_STATE_VALUES = {"IN_PROGRESS", "HOLD", "BLOCKED"}
+CONTRACT_REL = Path("workpackages/WORKPACKAGE_STATE_CONSISTENCY_CONTRACT_V1.json")
 
 
 class ValidationError(ValueError):
@@ -48,7 +45,23 @@ def load_json(path: Path) -> dict[str, Any]:
     return value
 
 
-def validate_state(state: dict[str, Any]) -> dict[str, dict[str, Any]]:
+def load_contract(root: Path) -> dict[str, Any]:
+    contract = load_json(root / CONTRACT_REL)
+    _require(contract.get("schema") == CONTRACT_SCHEMA, "contract schema mismatch")
+    _require(contract.get("canonical_repository") == REPO, "contract canonical_repository mismatch")
+    _require(contract.get("canonical_state_schema") == STATE_SCHEMA, "contract state schema mismatch")
+    for field in ("compatible_active_pointer_schemas", "terminal_states", "state_values"):
+        value = contract.get(field)
+        _require(isinstance(value, list) and value and all(isinstance(x, str) and x for x in value),
+                 f"contract {field} must be non-empty string list")
+    _string(contract.get("active_state"), "contract.active_state")
+    return contract
+
+
+def validate_state(state: dict[str, Any], contract: dict[str, Any] | None = None) -> dict[str, dict[str, Any]]:
+    state_values = set((contract or {}).get("state_values") or [
+        "NOT_STARTED", "IN_PROGRESS", "HOLD", "BLOCKED", "ACCEPTED_AT_SCOPE"
+    ])
     _require(state.get("schema") == STATE_SCHEMA, "state schema mismatch")
     _require(state.get("canonical_repository") == REPO, "state canonical_repository mismatch")
     generation = state.get("generation")
@@ -60,7 +73,7 @@ def validate_state(state: dict[str, Any]) -> dict[str, dict[str, Any]]:
                  f"malformed state workpackage id: {workpackage_id}")
         _require(isinstance(entry, dict), f"state entry must be object: {workpackage_id}")
         status = entry.get("status")
-        _require(status in STATE_VALUES, f"invalid state status for {workpackage_id}: {status}")
+        _require(status in state_values, f"invalid state status for {workpackage_id}: {status}")
         evidence = entry.get("evidence")
         _require(isinstance(evidence, list) and all(isinstance(x, str) and x.strip() for x in evidence),
                  f"state evidence must be string list: {workpackage_id}")
@@ -69,18 +82,57 @@ def validate_state(state: dict[str, Any]) -> dict[str, dict[str, Any]]:
     return workpackages
 
 
+def _claims_by_id(root: Path) -> dict[str, dict[str, Any]]:
+    claims: dict[str, dict[str, Any]] = {}
+    directory = root / "workpackages" / "claims"
+    _require(directory.is_dir(), "workpackages/claims directory missing")
+    for path in sorted(directory.glob("*.json")):
+        claim = load_json(path)
+        claim_id = claim.get("claim_id")
+        if not isinstance(claim_id, str) or not claim_id:
+            continue  # historical/noncanonical objects are not selectable by an active pointer
+        _require(claim_id not in claims, f"duplicate claim_id: {claim_id}")
+        claims[claim_id] = claim
+    return claims
+
+
 def _bind_claim(pointer: dict[str, Any], claim: dict[str, Any]) -> None:
     _require(claim.get("schema") == CLAIM_SCHEMA, "claim schema mismatch")
-    for field in ("workpackage_id", "generation", "claim_id", "worker_id"):
+    for field in ("workpackage_id", "generation", "claim_id"):
         _require(claim.get(field) == pointer.get(field), f"claim/pointer identity mismatch: {field}")
+    # Historical worker spellings are provenance; exact worker identity is required when present on both.
+    if "worker_id" in claim and "worker_id" in pointer:
+        _require(claim.get("worker_id") == pointer.get("worker_id"), "claim/pointer identity mismatch: worker_id")
     _require(claim.get("trigger") == "4", "claim trigger must be '4'")
+
+
+def _matching_reconciliations(root: Path, pointer: dict[str, Any]) -> list[tuple[Path, dict[str, Any]]]:
+    wp_id = pointer["workpackage_id"]
+    directory = root / "workpackages" / "reconciliations" / wp_id
+    if not directory.is_dir():
+        return []
+    matches: list[tuple[Path, dict[str, Any]]] = []
+    for path in sorted(directory.glob("*.json")):
+        reconciliation = load_json(path)
+        if (
+            reconciliation.get("schema") == RECON_SCHEMA
+            and reconciliation.get("workpackage_id") == wp_id
+            and reconciliation.get("generation") == pointer.get("generation")
+            and reconciliation.get("claim_id") == pointer.get("claim_id")
+            and reconciliation.get("terminal_state") == pointer.get("state")
+        ):
+            matches.append((path, reconciliation))
+    return matches
 
 
 def _bind_reconciliation(pointer: dict[str, Any], reconciliation: dict[str, Any]) -> None:
     _require(reconciliation.get("schema") == RECON_SCHEMA, "reconciliation schema mismatch")
-    for field in ("workpackage_id", "generation", "claim_id", "worker_id"):
+    for field in ("workpackage_id", "generation", "claim_id"):
         _require(reconciliation.get(field) == pointer.get(field),
                  f"reconciliation/pointer identity mismatch: {field}")
+    if "worker_id" in reconciliation and "worker_id" in pointer:
+        _require(reconciliation.get("worker_id") == pointer.get("worker_id"),
+                 "reconciliation/pointer identity mismatch: worker_id")
     _require(reconciliation.get("terminal_state") == pointer.get("state"),
              "reconciliation terminal_state mismatch")
     _require(reconciliation.get("whole_system_acceptance") is False,
@@ -93,9 +145,24 @@ def validate_pointer(
     pointer: dict[str, Any],
     claim: dict[str, Any],
     state_entry: dict[str, Any] | None,
+    contract: dict[str, Any] | None = None,
     reconciliation: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
-    _require(pointer.get("schema") == ACTIVE_SCHEMA, "active pointer schema mismatch")
+    compatible_schemas = set((contract or {}).get("compatible_active_pointer_schemas") or [
+        "FRANKENSTEIN2_ACTIVE_WORKPACKAGE/v1",
+        "FRANKENSTEIN2_ACTIVE_WORKPACKAGE_CLAIM/v1",
+        "FRANKENSTEIN2_ACTIVE_WORKPACKAGE_POINTER/v1",
+    ])
+    active_state = (contract or {}).get("active_state", "ACTIVE")
+    terminal_values = set((contract or {}).get("terminal_states") or [
+        "ACCEPTED", "FAILED_TERMINAL", "RETIRED_STALE", "SUPERSEDED"
+    ])
+    state_values = set((contract or {}).get("state_values") or [
+        "NOT_STARTED", "IN_PROGRESS", "HOLD", "BLOCKED", "ACCEPTED_AT_SCOPE"
+    ])
+
+    _require(pointer.get("schema") in compatible_schemas,
+             f"active pointer schema not contract-admitted: {pointer.get('schema')}")
     workpackage_id = _string(pointer.get("workpackage_id"), "pointer.workpackage_id")
     _require(bool(WP.fullmatch(workpackage_id)), "pointer workpackage_id malformed")
     _require(filename_stem == workpackage_id, "active filename/workpackage mismatch")
@@ -108,17 +175,17 @@ def validate_pointer(
     base_commit = pointer.get("base_commit")
     _require(isinstance(base_commit, str) and bool(SHA40.fullmatch(base_commit)),
              "pointer base_commit malformed")
-    _string(pointer.get("legacy_claim_ref"), "pointer.legacy_claim_ref")
     _bind_claim(pointer, claim)
 
     pointer_state = pointer.get("state")
-    _require(pointer_state in ACTIVE_VALUES, f"invalid active pointer state: {pointer_state}")
+    _require(pointer_state == active_state or pointer_state in terminal_values,
+             f"invalid active pointer state: {pointer_state}")
     broad_status = state_entry.get("status")
-    _require(broad_status in STATE_VALUES, f"invalid broad workpackage status: {broad_status}")
+    _require(broad_status in state_values, f"invalid broad workpackage status: {broad_status}")
 
-    if pointer_state == "ACTIVE":
-        _require(broad_status in OPEN_STATE_VALUES,
-                 f"ACTIVE pointer requires open broad state, got {broad_status}")
+    if pointer_state == active_state:
+        _require(broad_status not in {"NOT_STARTED", "ACCEPTED_AT_SCOPE"},
+                 f"ACTIVE pointer requires nonterminal broad state, got {broad_status}")
         _require(reconciliation is None, "ACTIVE pointer must not bind terminal reconciliation")
     else:
         _require(reconciliation is not None, "terminal active pointer requires reconciliation")
@@ -128,14 +195,15 @@ def validate_pointer(
             if broader == "IN_PROGRESS":
                 _require(broad_status == "IN_PROGRESS",
                          "scoped ACCEPTED reconciliation requires broad IN_PROGRESS")
-            else:
+            elif broader == "ACCEPTED_AT_SCOPE":
                 _require(broad_status == "ACCEPTED_AT_SCOPE",
-                         "terminal ACCEPTED requires broad ACCEPTED_AT_SCOPE unless explicitly scoped IN_PROGRESS")
+                         "terminal ACCEPTED reconciliation requires broad ACCEPTED_AT_SCOPE")
 
     return {
         "workpackage_id": workpackage_id,
         "generation": generation,
         "claim_id": pointer["claim_id"],
+        "pointer_schema": pointer["schema"],
         "pointer_state": pointer_state,
         "broad_status": broad_status,
         "reconciliation_bound": reconciliation is not None,
@@ -143,37 +211,46 @@ def validate_pointer(
 
 
 def validate_repository(root: Path) -> dict[str, Any]:
-    state_path = root / "workpackages" / "STATE.json"
-    state = load_json(state_path)
-    workpackages = validate_state(state)
+    contract = load_contract(root)
+    state = load_json(root / "workpackages" / "STATE.json")
+    workpackages = validate_state(state, contract)
     active_dir = root / "workpackages" / "active"
     _require(active_dir.is_dir(), "workpackages/active directory missing")
+    claims = _claims_by_id(root)
+
+    # ACCEPTED_AT_SCOPE is only meaningful with repository-local evidence that actually exists.
+    for workpackage_id, entry in workpackages.items():
+        if entry.get("status") == "ACCEPTED_AT_SCOPE":
+            evidence = entry["evidence"]
+            _require(any((root / item).exists() for item in evidence),
+                     f"ACCEPTED_AT_SCOPE has no existing repository-local evidence: {workpackage_id}")
 
     validated: list[dict[str, Any]] = []
     for path in sorted(active_dir.glob("*.json")):
         pointer = load_json(path)
-        workpackage_id = pointer.get("workpackage_id")
-        legacy_ref = _string(pointer.get("legacy_claim_ref"), f"{path}.legacy_claim_ref")
-        claim = load_json(root / legacy_ref)
+        claim_id = _string(pointer.get("claim_id"), f"{path}.claim_id")
+        claim = claims.get(claim_id)
+        _require(claim is not None, f"{path}: no matching claim object for {claim_id}")
         reconciliation = None
-        if pointer.get("state") in TERMINAL_ACTIVE_VALUES:
-            reconciliation_ref = _string(
-                pointer.get("terminal_reconciliation_ref"),
-                f"{path}.terminal_reconciliation_ref",
-            )
-            reconciliation = load_json(root / reconciliation_ref)
+        if pointer.get("state") in set(contract["terminal_states"]):
+            matches = _matching_reconciliations(root, pointer)
+            _require(len(matches) == 1,
+                     f"{path}: terminal pointer requires exactly one matching reconciliation; found {len(matches)}")
+            reconciliation = matches[0][1]
         validated.append(validate_pointer(
             filename_stem=path.stem,
             pointer=pointer,
             claim=claim,
-            state_entry=workpackages.get(workpackage_id),
+            state_entry=workpackages.get(pointer.get("workpackage_id")),
+            contract=contract,
             reconciliation=reconciliation,
         ))
 
     return {
         "pass": True,
-        "scope": "SOURCE_AND_CONTINUITY_METADATA_ONLY",
+        "scope": contract.get("scope"),
         "runtime_credit_granted": 0,
+        "whole_system_acceptance": False,
         "state_generation": state["generation"],
         "active_pointers_validated": len(validated),
         "validated": validated,
@@ -187,7 +264,7 @@ def main(argv: list[str] | None = None) -> int:
     try:
         result = validate_repository(args.root.resolve())
     except ValidationError as exc:
-        print(json.dumps({"pass": False, "error": str(exc)}, sort_keys=True))
+        print(json.dumps({"pass": False, "error": str(exc), "runtime_credit_granted": 0}, sort_keys=True))
         return 1
     print(json.dumps(result, sort_keys=True))
     return 0
