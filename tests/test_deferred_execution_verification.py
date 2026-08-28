@@ -12,18 +12,22 @@ from frankenstein2.deferred_execution_verification import (
 )
 from frankenstein2.native_child_binding import NativeChildBinding
 from state.execution_completion import (
+    VERIFICATION_RECEIPT_SCHEMA,
     AdmitExecution,
     ExecutionLineage,
     ExecutionOutcome,
     ExecutionStage,
     RecordExecution,
+    VerificationEvidenceKind,
     VerificationOutcome,
+    VerificationReceipt,
     VerifyExecution,
     apply_execution_transition,
 )
 
 
 RESULT_DIGEST = "a" * 64
+VERIFICATION_DIGEST = "b" * 64
 
 
 def make_return(*, suffix: str, task_id: str, turn_id: str) -> DeferredCausalReturn:
@@ -105,6 +109,7 @@ def execution_record(returned: DeferredCausalReturn) -> ExecutionLineage:
 
 
 def verification(record: ExecutionLineage) -> VerifyExecution:
+    attempt = "shared-verification-attempt"
     return VerifyExecution(
         transition_id="shared-verification-transition",
         causal_id=record.causal_id,
@@ -112,8 +117,19 @@ def verification(record: ExecutionLineage) -> VerifyExecution:
         request_id=record.request_id,
         admission_id=record.admission_id,
         execution_attempt_id=record.execution_attempt_id,
-        verification_attempt_id="shared-verification-attempt",
+        verification_attempt_id=attempt,
         outcome=VerificationOutcome.APPLIED,
+        receipt=VerificationReceipt(
+            schema=VERIFICATION_RECEIPT_SCHEMA,
+            receipt_id="shared-verification-receipt",
+            verification_attempt_id=attempt,
+            execution_attempt_id=record.execution_attempt_id,
+            execution_outcome=record.execution_outcome,
+            outcome=VerificationOutcome.APPLIED,
+            evidence_kind=VerificationEvidenceKind.EFFECT_JOURNAL_VERIFIED,
+            evidence_ref="evidence/shared-effect-journal.json",
+            evidence_sha256=VERIFICATION_DIGEST,
+        ),
     )
 
 
