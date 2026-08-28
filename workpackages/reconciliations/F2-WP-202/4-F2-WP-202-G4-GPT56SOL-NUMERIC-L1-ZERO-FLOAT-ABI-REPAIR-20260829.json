@@ -1,0 +1,52 @@
+{
+  "schema": "FRANKENSTEIN2_WORKPACKAGE_RECONCILIATION/v1",
+  "workpackage_id": "F2-WP-202",
+  "generation": 4,
+  "claim_id": "F2-WP-202-G4-GPT56SOL-NUMERIC-L1-ZERO-FLOAT-ABI-REPAIR-20260829",
+  "worker_id": "GPT-5.6-Sol",
+  "state": "ACCEPTED",
+  "accepted_scope": "PREDICTION_RESIDUAL_NUMERIC_L1_FLOAT_ABI_REPOSITORY_HOSTED_CI_ONLY",
+  "parent_generation": 3,
+  "parent_reconciliation_ref": "workpackages/reconciliations/F2-WP-202/3-F2-WP-202-G3-GPT56SOL-NESTED-RESIDUAL-CLASSIFICATION-REPAIR-20260829.json",
+  "trigger_falsifier_ref": "research_entity/trigger_runs/4/2026-08-29T0639p0700_GPT56SOL_F2_WP302_WP202_NUMERIC_L1_ABI_FALSIFIER.json",
+  "canonical_source": "src/frankenstein2/prediction_contract.py",
+  "canonical_source_blob_sha": "a955ae23e8a39fcdf7910f44bdf000d6560f538c",
+  "canonical_tests": [
+    "tests/test_prediction_contract.py",
+    "tests/test_prediction_fingerprint_binding_provenance.py",
+    "tests/test_prediction_fingerprint_binding_nested_classification.py"
+  ],
+  "canonical_regression_blob_sha": "b24fbcdf6fe49276671acad3bf9010f79966cd85",
+  "canonical_ci": ".github/workflows/wp202-prediction-residual-ci.yml",
+  "acceptance_receipt": "workpackages/receipts/F2-WP-202_G4_NUMERIC_L1_ZERO_FLOAT_ABI_GHA_33221426518.json",
+  "source_ci_head_sha": "5c1ef488e4aadf32778598e1b10cafeca32876c7",
+  "passing_run_id": 33221426518,
+  "passing_job_id": 99016070563,
+  "downstream_wp302_compatibility_run_id": 33221426429,
+  "downstream_wp302_compatibility_job_id": 99016069971,
+  "evidence": [
+    "The new WP302 consumer falsifier exposed that PredictionResidual.numeric_l1 was declared float but PredictionContract.observe emitted integer 0 when no numeric residual entries existed because sum(empty) returns int zero.",
+    "Generation 4 changes only the producer assignment to float(sum(...)) and adds a type-sharp regression asserting an exact zero residual is runtime type float.",
+    "GitHub Actions main-push run 33221426518 job 99016070563 completed success on exact merged main head 5c1ef488e4aadf32778598e1b10cafeca32876c7: compile succeeded and all 30 canonical WP202 tests passed (23 base/typed-binding, 5 provenance, 2 nested-classification).",
+    "GitHub Actions main-push downstream compatibility run 33221426429 job 99016069971 completed success on the same exact merged main head without weakening the WP302 residual fences.",
+    "Independent REVIEW_ONLY recovery of the orphaned WP302 familiarity_prediction_error suite changed from 10/14 before the producer repair to 14/14 after the same one-line repair (run 33221389605 job 99015954472)."
+  ],
+  "negative_evidence": [
+    "The pre-repair WP302 recovery suite produced 10 pass / 4 fail after pytest was installed, establishing a component interaction failure rather than another CI bootstrap failure.",
+    "The earlier original WP302 workflow failure caused by missing pytest remains infrastructure/harness evidence only.",
+    "This repair does not establish VPS/runtime/physical GRID10 or whole-system behavior."
+  ],
+  "preserved_boundaries": [
+    "no residual semantic widening beyond declared float ABI conformance",
+    "no missing-observation inference",
+    "no residual-to-action or delegation authority",
+    "no UnifiedDB persistence/replay authority",
+    "no provider/model/tool/effect authority",
+    "no world-truth or completion authority"
+  ],
+  "runtime_execution_observed": false,
+  "runtime_credit": 0,
+  "physical_grid10_credit": 0,
+  "whole_system_acceptance": false,
+  "next_exact_action": "Keep WP-202 generation 4 closed unless a new exact falsifier appears. Re-enter the sole active WP302 generation 1 lane and reconcile/rebase it on exact post-G4 main evidence without creating a duplicate mutation authority."
+}
