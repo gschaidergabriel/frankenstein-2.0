@@ -419,6 +419,8 @@ def build_checkpoint(
         if wake_evaluation.observed_state_sha256 != agency_sha:
             raise PersistentAgencyIntegrationError("wake/agency digest mismatch")
 
+    # Canonical JSON round-trip deliberately normalizes dataclass tuple fields into the
+    # restricted JSON projection domain accepted by StateFingerprint v2.
     agency_payload = json.loads(agency_json)
     goal_payload = json.loads(goal_json)
     projection = _projection_without_generation(agency_payload, goal_payload)
@@ -573,7 +575,9 @@ class PersistentAgencyStore:
                 checkpoint_sha256 TEXT NOT NULL UNIQUE,
                 parent_checkpoint_sha256 TEXT,
                 payload_json TEXT NOT NULL,
-                unifieddb_authority_receipt_sha256 TEXT NOT NULL,
+                db_device INTEGER NOT NULL,
+                db_inode INTEGER NOT NULL,
+                writer_authority_receipt_sha256 TEXT NOT NULL,
                 PRIMARY KEY (kernel_id, integration_generation)
             )
         """
@@ -600,20 +604,25 @@ class PersistentAgencyStore:
             conn.execute("BEGIN IMMEDIATE")
             conn.execute(self._schema_statement())
             existing = conn.execute(
-                f"SELECT checkpoint_sha256,payload_json,unifieddb_authority_receipt_sha256 "
-                f"FROM {TABLE_NAME} WHERE kernel_id=? AND integration_generation=?",
+                f"SELECT checkpoint_sha256,payload_json,db_device,db_inode FROM {TABLE_NAME} "
+                "WHERE kernel_id=? AND integration_generation=?",
                 (checkpoint.kernel_id, checkpoint.integration_generation),
             ).fetchone()
             if existing is not None:
-                if existing == (checkpoint_sha, payload, self.authority_receipt_sha256):
+                same_payload = existing[0] == checkpoint_sha and existing[1] == payload
+                same_file = (int(existing[2]), int(existing[3])) == (
+                    self.fingerprint.device,
+                    self.fingerprint.inode,
+                )
+                if same_payload and same_file:
                     conn.commit()
                     return self._receipt(checkpoint, checkpoint_sha, "IDEMPOTENT_ALREADY_PRESENT")
                 raise PersistentAgencyIntegrationError(
-                    "checkpoint generation already exists with different payload or authority"
+                    "checkpoint generation already exists with different payload or DB identity"
                 )
 
             latest = conn.execute(
-                f"SELECT integration_generation,checkpoint_sha256 FROM {TABLE_NAME} "
+                f"SELECT integration_generation,checkpoint_sha256,db_device,db_inode FROM {TABLE_NAME} "
                 "WHERE kernel_id=? ORDER BY integration_generation DESC LIMIT 1",
                 (checkpoint.kernel_id,),
             ).fetchone()
@@ -624,6 +633,11 @@ class PersistentAgencyStore:
                     )
             else:
                 latest_generation, latest_sha = int(latest[0]), str(latest[1])
+                if (int(latest[2]), int(latest[3])) != (
+                    self.fingerprint.device,
+                    self.fingerprint.inode,
+                ):
+                    raise PersistentAgencyIntegrationError("checkpoint lineage belongs to another DB identity")
                 if checkpoint.integration_generation != latest_generation + 1:
                     raise PersistentAgencyIntegrationError(
                         "checkpoint integration generation is stale or skipped"
@@ -636,13 +650,15 @@ class PersistentAgencyStore:
             conn.execute(
                 f"INSERT INTO {TABLE_NAME} "
                 "(kernel_id,integration_generation,checkpoint_sha256,parent_checkpoint_sha256,"
-                "payload_json,unifieddb_authority_receipt_sha256) VALUES (?,?,?,?,?,?)",
+                "payload_json,db_device,db_inode,writer_authority_receipt_sha256) VALUES (?,?,?,?,?,?,?,?)",
                 (
                     checkpoint.kernel_id,
                     checkpoint.integration_generation,
                     checkpoint_sha,
                     checkpoint.parent_checkpoint_sha256,
                     payload,
+                    self.fingerprint.device,
+                    self.fingerprint.inode,
                     self.authority_receipt_sha256,
                 ),
             )
@@ -679,8 +695,9 @@ class PersistentAgencyStore:
         conn = self._connect()
         try:
             row = conn.execute(
-                f"SELECT checkpoint_sha256,payload_json,unifieddb_authority_receipt_sha256 "
-                f"FROM {TABLE_NAME} WHERE kernel_id=? AND integration_generation=?",
+                f"SELECT checkpoint_sha256,payload_json,db_device,db_inode,"
+                f"writer_authority_receipt_sha256 FROM {TABLE_NAME} "
+                "WHERE kernel_id=? AND integration_generation=?",
                 (kernel, generation),
             ).fetchone()
         except sqlite3.Error as exc:
@@ -689,9 +706,13 @@ class PersistentAgencyStore:
             conn.close()
         if row is None:
             raise PersistentAgencyIntegrationError("checkpoint not found")
-        expected_sha, payload_json, authority_sha = str(row[0]), str(row[1]), str(row[2])
-        if authority_sha != self.authority_receipt_sha256:
-            raise PersistentAgencyIntegrationError("persisted checkpoint authority receipt mismatch")
+        expected_sha, payload_json = str(row[0]), str(row[1])
+        if (int(row[2]), int(row[3])) != (
+            self.fingerprint.device,
+            self.fingerprint.inode,
+        ):
+            raise PersistentAgencyIntegrationError("persisted checkpoint DB identity mismatch")
+        _sha256("writer_authority_receipt_sha256", str(row[4]))
         try:
             payload = json.loads(payload_json)
         except json.JSONDecodeError as exc:
