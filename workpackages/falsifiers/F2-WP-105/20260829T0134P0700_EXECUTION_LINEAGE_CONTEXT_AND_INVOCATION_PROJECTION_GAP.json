@@ -1,0 +1,77 @@
+{
+  "schema": "FRANKENSTEIN2_CANDIDATE_FALSIFIER/v1",
+  "classification": "CANDIDATE_FALSIFIER",
+  "workpackage_id": "F2-WP-105",
+  "trigger": "4",
+  "worker_id": "GPT-5.6-Sol",
+  "observed_at_local": "2026-08-29T01:34:00+07:00",
+  "base_f2_main": "ab89a43caabf5ab21c5016628c8cb2b49ad63d58",
+  "mutation_authority": false,
+  "current_authority_binding": {
+    "research_repository": "gschaidergabriel/clay-global-research-entity",
+    "research_main": "5e2e37d11b9757c862ff03009f20f5247c22a601",
+    "supervisor_schema": "9.13",
+    "supervisor_delta": "9.13AJ_NON_AUTHORITY",
+    "supervisor_steering_path": "research_entity/claycode/autonomous/SUPERVISOR_STEERING_9_13AJ_DELTA_2026-08-29T0038P0700_GPT56SOL.json",
+    "supervisor_steering_blob_sha": "9ae9dd8e0c21d1171e0d986ee6a4e901d1dc40c4",
+    "mode": "FREE_ONLY"
+  },
+  "source_evidence": [
+    {
+      "path": "src/state/execution_completion.py",
+      "git_blob_sha": "d2e1a411c069269ce89f9718c94cab7f24303c69",
+      "observation": "ExecutionLineage and ExecutionTransition bind causal_id + generation + request_id, plus later admission/execution/verification identities, but do not carry the canonical session_id + agent_id + task_id + turn_id CausalIdentity tuple and do not carry invocation_id/tool_use_id/effect_id."
+    },
+    {
+      "path": "src/frankenstein2/native_child_binding.py",
+      "git_blob_sha": "bfa2706d2196f4eb13761614d79695f646ec847b",
+      "observation": "The current WP-102 survivor already carries full parent/child CausalIdentity and explicit invocation_id + tool_use_id + delegation_id, demonstrating that those dimensions exist immediately upstream of the WP-105 execution/completion boundary."
+    },
+    {
+      "path": "workpackages/falsifiers/F2-WP-102/20260828T215840P0700_CANDIDATE_CAUSAL_IDENTITY_PROJECTION_COLLAPSE.json",
+      "git_blob_sha": "6ae4609db02d9f27094fa92f5b6844f6c7c73a85",
+      "observation": "The earlier Stage-1 review already identified omitted causal context and generation-domain ambiguity as a projection-collapse class. Current WP-102 source has since fused the full parent/child identity into its binding preimage, but WP-105 still exposes a narrower execution projection."
+    },
+    {
+      "repository": "gschaidergabriel/clay-global-research-entity",
+      "ref": "chatgpt/grid10-cognitive-envelope-control-20260828",
+      "path": "tools/frankenstein2_effect_invocation_binding_v1.py",
+      "git_blob_sha": "1c44c89e62148878476d25ca0c24192af12ab9b1",
+      "observation": "The Triggerword-4 donor branch contains a deterministic call-scoped result re-entry guard whose explicit purpose is preventing mutable session-scoped routing from attaching one interleaved call's result to another call."
+    },
+    {
+      "repository": "gschaidergabriel/clay-global-research-entity",
+      "ref": "chatgpt/grid10-cognitive-envelope-control-20260828",
+      "path": "tests/test_frankenstein2_effect_invocation_binding_v1.py",
+      "git_blob_sha": "f2c21b81494fd026776f596f6270c4d00edb081e",
+      "observation": "The donor regression constructs two calls in one session with the same result digest and requires mismatched observed/target invocation identity to fail before store mutation. This is source/component evidence only and does not supply Frankenstein-2.0 runtime credit."
+    }
+  ],
+  "hypotheses": [
+    "If two admissible Stage-1 execution lineages can share causal_id + causal generation + request_id while differing in canonical session/agent/task/turn context, the current WP-105 projection cannot distinguish them and can accept a transition against the wrong semantic context.",
+    "Even when causal_id is unique, a later adapter that maps call-scoped tool/effect observations into WP-105 using session/current-row state rather than an explicit invocation/tool-use binding can reintroduce cross-talk between overlapping calls. Equal result digests are insufficient to detect that error."
+  ],
+  "counterhypotheses": [
+    "A mechanically enforced upstream invariant may make the tuple (causal_id, generation, request_id) globally unique and may bind every WP-105 transition to the exact WP-102 invocation/tool-use identity before admission. If executable tests prove that boundary, expanding WP-105 itself may be unnecessary.",
+    "WP-105 may intentionally remain a narrow generic state machine while a separate typed adapter owns canonical CausalIdentity plus invocation/tool-use/effect correlation. If so, that adapter must be explicit, fail closed, and executable; implicit session routing is not sufficient."
+  ],
+  "cheapest_high_information_discriminator": {
+    "type": "DETERMINISTIC_SAME_SESSION_TWO_CALL_INTERLEAVING_REGRESSION",
+    "requirements": [
+      "Construct two distinct canonical CausalIdentity contexts in the same session with different task_id/turn_id and distinct invocation_id/tool_use_id.",
+      "Drive both through the same execution/completion adapter with deliberately equal result digests.",
+      "Attempt to apply call-B's observed result/effect identity to call-A's execution lineage.",
+      "Require rejection before any persistence/effect/completion mutation and prove call-A remains unchanged.",
+      "Require exact call-A -> call-A and call-B -> call-B replay to remain deterministic/idempotent.",
+      "Bind the test to exact source blobs and preserve source-only scope while GitHub Actions remains in the current zero-step pre-admission failure class."
+    ],
+    "promotion_condition": "Either prove an executable uniqueness/adapter invariant that makes the collision inadmissible, or add an explicit typed CausalIdentity + invocation/tool-use/effect correlation boundary before WP-105 transitions can mutate execution/completion state."
+  },
+  "non_overlap_decision": "DO_NOT_MODIFY_ACTIVE_WP105_OWNER_SOURCE_IN_THIS_REVIEW. Record the falsifier only. The existing Triggerword-4 effect-invocation primitive is treated as donor evidence rather than duplicated implementation.",
+  "runtime_execution_observed": false,
+  "runtime_credit": 0,
+  "whole_system_credit": 0,
+  "physical_grid10_credit": 0,
+  "stage2_promotion_credit": 0,
+  "next_exact_action": "WP-105 owner should either cite and execute a mechanically enforced full-identity adapter invariant or add the deterministic same-session two-call interleaving regression at the exact WP-102/WP-105 boundary. Do not duplicate the donor effect-invocation primitive; fuse its call-scoped identity invariant into the canonical Stage-1 path."
+}
