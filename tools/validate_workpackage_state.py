@@ -103,7 +103,11 @@ def _bind_claim(pointer: dict[str, Any], claim: dict[str, Any]) -> None:
     # Historical worker spellings are provenance; exact worker identity is required when present on both.
     if "worker_id" in claim and "worker_id" in pointer:
         _require(claim.get("worker_id") == pointer.get("worker_id"), "claim/pointer identity mismatch: worker_id")
-    _require(claim.get("trigger") == "4", "claim trigger must be '4'")
+    # CLAIM_PROTOCOL.md does not require a trigger field on every admitted v1 claim.
+    # Preserve compatibility for claims that omit it, while fail-closing any explicit
+    # trigger value that would bind this Triggerword-4 repository state to another trigger.
+    if "trigger" in claim:
+        _require(claim.get("trigger") == "4", "claim trigger must be '4' when present")
 
 
 def _reconciliation_terminal_state(reconciliation: dict[str, Any]) -> str:
