@@ -4,6 +4,7 @@ on:
   push:
     paths:
       - 'tools/validate_workpackage_state.py'
+      - 'tools/rebuild_workpackage_state_projection.py'
       - 'tests/test_validate_workpackage_state.py'
       - 'tests/test_wp002_aggregate_projection_gate.py'
       - 'tests/test_wp002_reconciliation_chain.py'
@@ -18,6 +19,7 @@ on:
     branches: [main]
     paths:
       - 'tools/validate_workpackage_state.py'
+      - 'tools/rebuild_workpackage_state_projection.py'
       - 'tests/test_validate_workpackage_state.py'
       - 'tests/test_wp002_aggregate_projection_gate.py'
       - 'tests/test_wp002_reconciliation_chain.py'
@@ -42,10 +44,21 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-      - name: Compile validator
-        run: python -m py_compile tools/validate_workpackage_state.py
+      - name: Compile projection tooling
+        run: python -m py_compile tools/validate_workpackage_state.py tools/rebuild_workpackage_state_projection.py
       - name: Deterministic state consistency regressions
         run: python -m unittest -v tests.test_validate_workpackage_state tests.test_wp002_aggregate_projection_gate tests.test_wp002_reconciliation_chain
+      - name: Build conservative current aggregate projection candidate
+        run: python tools/rebuild_workpackage_state_projection.py . --output /tmp/STATE.generated.json --report /tmp/STATE.projection-report.json
+      - name: Upload projection candidate
+        uses: actions/upload-artifact@v4
+        with:
+          name: wp002-g5-projection-candidate
+          path: |
+            /tmp/STATE.generated.json
+            /tmp/STATE.projection-report.json
+          if-no-files-found: error
+          retention-days: 1
       - name: Diagnose aggregate projection drift
         shell: bash
         run: |
