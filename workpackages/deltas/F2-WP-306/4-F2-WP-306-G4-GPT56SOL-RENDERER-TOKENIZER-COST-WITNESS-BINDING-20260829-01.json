@@ -1,0 +1,66 @@
+{
+  "schema": "FRANKENSTEIN2_WORKPACKAGE_DELTA/v1",
+  "workpackage_id": "F2-WP-306",
+  "generation": 4,
+  "claim_id": "F2-WP-306-G4-GPT56SOL-RENDERER-TOKENIZER-COST-WITNESS-BINDING-20260829",
+  "worker_id": "GPT-5.6-Sol-TRIGGER4",
+  "base_commit": "e076547c42d17739fd0f1790b5892973340fb582",
+  "review_falsifier": {
+    "pull_request": 519,
+    "head_sha": "c54eb106b5ab55b3c3822cd76bb34614d9c144b9",
+    "workflow_run_id": 33259578848,
+    "job_id": 99119099009,
+    "result": "FAILURE_AS_EXPECTED",
+    "scope": "REPOSITORY_HOSTED_REVIEW_ONLY_NEGATIVE_EVIDENCE"
+  },
+  "claim_merge": {
+    "pull_request": 525,
+    "merge_commit": "312c333cf7ea3e2366df46134932aa88597d3a17"
+  },
+  "owned_paths": [
+    "src/frankenstein2/context_compiler.py",
+    "tests/test_context_compiler.py",
+    "tests/test_wp306_renderer_tokenizer_cost_binding_falsifier.py",
+    ".github/workflows/wp306-context-compiler-ci.yml",
+    "workpackages/deltas/F2-WP-306/4-F2-WP-306-G4-GPT56SOL-RENDERER-TOKENIZER-COST-WITNESS-BINDING-20260829-01.json"
+  ],
+  "result_class": "IMPLEMENTATION_DELTA_PENDING_REPOSITORY_HOSTED_CI",
+  "implementation": [
+    "add exact typed ContextCostWitness bound to payload_sha256, renderer identity/version, tokenizer identity/version, measured cost units, generation, measurement reference and provenance",
+    "require exactly one witness for every selectable payload before budget accounting",
+    "fail closed on missing, duplicate, unbound, subtype-forged or declared-vs-measured cost mismatch",
+    "charge selection from the validated measured cost only after equality with declared cost_units is established",
+    "surface exact cost-witness digest and renderer/tokenizer/measurement identities in SelectedContextItem for audit",
+    "preserve ContextItem schema/constructor so the G3 epistemic adapter remains structurally compatible",
+    "preserve reference-only ContextView: no payload bytes are read or emitted by the compiler"
+  ],
+  "falsifiers": [
+    "PR519 64-vs-1 underdeclared concrete cost now fails closed",
+    "missing witness fails closed",
+    "witness for wrong payload digest fails closed",
+    "duplicate witness for one payload fails closed",
+    "ContextCostWitness subtype fails closed at public boundary",
+    "selected view carries exact witness digest plus renderer/tokenizer identities",
+    "legacy deterministic required/optional/channel budget semantics remain green",
+    "disallowed optional payload reference remains unexposed"
+  ],
+  "local_deterministic_test_evidence": {
+    "command": "PYTHONPATH=. python -m unittest tests.test_context_compiler tests.test_wp306_renderer_tokenizer_cost_binding_falsifier -v",
+    "result": "21/21 PASS",
+    "scope": "LOCAL_DETERMINISTIC_SOURCE_UNIT_ONLY",
+    "runtime_credit": 0
+  },
+  "epistemic_boundary": "ContextCostWitness is typed measurement/admission evidence, not proof that the upstream renderer/tokenizer measurement source is truthful. The compiler validates identity/binding/integrity relationships but still does not read payload bytes or independently tokenize them.",
+  "credits": {
+    "target_runtime": 0,
+    "physical_grid10": 0,
+    "semantic_gwt": 0,
+    "jspace": 0,
+    "provider_model": 0,
+    "effect": 0,
+    "completion": 0,
+    "training": 0,
+    "whole_system": 0
+  },
+  "next_exact_action": "Open implementation PR from trigger4/wp306-g4-cost-witness-binding-impl-20260829-gpt56sol, observe exact PR-head F2 WP306 Context Compiler CI, repair only exact failing regressions, then merge and require a successful merged-main run before terminal G4 reconciliation."
+}
