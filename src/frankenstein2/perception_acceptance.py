@@ -7,10 +7,11 @@ perform capture, dereference external receipt bytes, call a model/provider, pers
 frames, mutate UnifiedDB/world truth, or mint effect/completion/whole-system authority.
 
 Generation 2 closes a successor-staleness gap discovered after F2-WP-711 generation 1 was
-superseded by generation 2. Required upstream evidence is now bound to the exact current
-accepted generation/claim/scope/receipt reference. Final-review eligibility also requires a
-non-synthetic clock-alignment-witness evidence-dereference case in addition to the existing
-non-synthetic local real-device / OS-permission case.
+superseded and deliberately re-enters each accepted WP711 successor. Required upstream
+evidence is bound to the exact current accepted generation/claim/scope/receipt reference.
+Final-review eligibility also requires a non-synthetic clock-alignment-witness evidence-
+dereference case in addition to the existing non-synthetic local real-device / OS-permission
+case. At this revision the current temporal prerequisite is WP711 generation 3.
 """
 from __future__ import annotations
 
@@ -38,8 +39,9 @@ REQUIRED_UPSTREAM_WORKPACKAGES = (
 )
 
 # Generation-specific acceptance prerequisites. A future accepted successor must deliberately
-# update this table through a new WP714 generation; otherwise the preparation harness fails
-# closed rather than silently accepting a superseded receipt.
+# update this table through the existing active WP714 generation while it remains open, or a
+# successor WP714 generation after closure; otherwise the harness fails closed rather than
+# silently accepting a superseded receipt.
 EXPECTED_UPSTREAM_ACCEPTANCES: dict[str, dict[str, Any]] = {
     "F2-WP-708": {
         "generation": 1,
@@ -54,10 +56,10 @@ EXPECTED_UPSTREAM_ACCEPTANCES: dict[str, dict[str, Any]] = {
         "receipt_ref": "workpackages/receipts/F2-WP-710_G1_DYNAMIC_PERCEPTION_SCHEDULER_MAIN_CI_33249974788.json",
     },
     "F2-WP-711": {
-        "generation": 2,
-        "claim_id": "F2-WP-711-G2-GPT56SOL-CLOCK-ALIGNMENT-WITNESS-REPAIR-20260829",
-        "accepted_scope": "TEMPORAL_OBSERVATION_WINDOW_PROVENANCE_BOUND_CLOCK_ALIGNMENT_REPAIR_REPOSITORY_HOSTED_COMPONENT_CI_ONLY",
-        "receipt_ref": "workpackages/receipts/F2-WP-711_G2_CLOCK_ALIGNMENT_WITNESS_MAIN_CI_33250544513.json",
+        "generation": 3,
+        "claim_id": "F2-WP-711-G3-GPT56SOL-WITNESS-ADMISSION-FENCE-20260829",
+        "accepted_scope": "TEMPORAL_OBSERVATION_WINDOW_SEPARATELY_ADMITTED_CLOCK_WITNESS_REPOSITORY_HOSTED_COMPONENT_CI_ONLY",
+        "receipt_ref": "workpackages/receipts/F2-WP-711_G3_WITNESS_ADMISSION_MAIN_CI_33253196613.json",
     },
     "F2-WP-712": {
         "generation": 1,
