@@ -1,0 +1,44 @@
+{
+  "schema": "FRANKENSTEIN2_TRIGGER6_INTEGRATION_DISTILLATION/v1",
+  "research_id": "R6-20260829-SRCARCH-CITCOM-CAUSALTEST-GPT56SOL-01",
+  "claim_ref": "research/tool_intelligence/claims/R6-20260829-SRCARCH-CITCOM-CAUSALTEST-GPT56SOL-01/E2_F2_DELTA_VALIDATED.json",
+  "status": "E2_F2_DELTA_VALIDATED",
+  "created_at": "2026-08-29T15:08:00+07:00",
+  "source_pr": {
+    "number": 226,
+    "head_sha": "1c2037e97c9c6cf2c909764e142538028abc6e52",
+    "title": "Trigger4: WP507 G3 recipient-scoped uptake and causal evidence"
+  },
+  "source_files": [
+    "src/frankenstein2/gwt_uptake.py",
+    "tests/test_gwt_uptake.py"
+  ],
+  "validation": {
+    "mismatched_nonbroadcast_digest": "ALREADY_COVERED: test_unmatched_nonbroadcast_input_is_unknown",
+    "incomplete_recipient_uptake": "ALREADY_COVERED: test_incomplete_uptake_blocks_causal_positive plus subset-recipient incomplete coverage",
+    "explicit_no_broadcast_control": "ALREADY_STRUCTURALLY_ENFORCED: CausalProbeArm.control emits CONTROL_NO_BROADCAST and rejects broadcast binding on control arm",
+    "same_output_control": "ALREADY_COVERED: test_same_downstream_output_is_no_observed_influence",
+    "probe_identity_mismatch": "ALREADY_COVERED: test_different_probe_ids_are_unmatched",
+    "order_state_seed_baseline_stability": "NOT_COVERED_BY_PR226_SOURCE_TESTS_OBSERVED: CausalProbeArm binds nonbroadcast input digest and output digest but carries no run-order, seed, initial-state digest, attempt identity, or repeated-control stability receipt"
+  },
+  "correction_to_prior_delta": {
+    "prior_proposal": "four false-positive cases",
+    "corrected_assessment": "three proposed classes were already materially represented by current WP507 G3 source/tests; the genuinely useful residual from CITCOM is run/order/state/seed or repeated-control baseline stability, especially for future nondeterministic/stateful execution layers",
+    "effect_on_adoption": "strengthens CONCEPT_DISTILL_ONLY_NOW and weakens justification for any direct dependency or broad E3 fixture"
+  },
+  "new_minimal_discriminator": {
+    "scope": "WP507 FUTURE RUNTIME/NONDETERMINISTIC LAYER, NOT CURRENT CONTRACT CI",
+    "hypothesis": "A matched causal arm can report a contract-scope difference even when an unbound initial state, run order, random seed, or baseline drift caused the difference rather than the broadcast intervention.",
+    "counterhypothesis": "Current deterministic repository component scope intentionally excludes runtime nondeterminism, so adding these fields now would overfit a future concern and increase ABI surface without current evidence.",
+    "cheapest_falsifier": "Before extending the ABI, construct a bounded deterministic stateful fixture where identical declared nonbroadcast_input_sha256 values conceal different mutable initial state between control/intervention. If current contract can falsely return CAUSAL_INFLUENCE_OBSERVED_AT_CONTRACT_SCOPE, record the limitation; only add a state/attempt/seed binding when a target runtime producer can actually supply trustworthy identities.",
+    "promotion": "NO_AUTOMATIC_E3; requires a separate atomic claim and exact scope decision"
+  },
+  "credits": {
+    "research_source_mapping": "E2_ONLY",
+    "runtime": 0,
+    "gwt_runtime": 0,
+    "jspace_runtime": 0,
+    "whole_system": 0
+  },
+  "evidence_boundary": "Exact PR226 source/test comparison only. No code change, no test execution, no runtime promotion."
+}
