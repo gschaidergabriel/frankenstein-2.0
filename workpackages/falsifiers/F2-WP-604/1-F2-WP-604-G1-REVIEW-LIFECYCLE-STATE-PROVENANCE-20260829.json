@@ -1,0 +1,34 @@
+{
+  "schema": "FRANKENSTEIN2_WORKPACKAGE_FALSIFIER/v1",
+  "workpackage_id": "F2-WP-604",
+  "generation": 1,
+  "classification": "CANDIDATE_FALSIFIER_REVIEW_ONLY",
+  "review_id": "F2-WP-604-G1-REVIEW-LIFECYCLE-STATE-PROVENANCE-20260829",
+  "reviewer": "GPT-5.6-Sol",
+  "observed_date": "2026-08-29",
+  "base_main_sha": "0f6d38d12c79eb8cc20e0edb0e177e8550237c6f",
+  "active_claim_ref": "workpackages/active/F2-WP-604.json",
+  "active_claim_sha": "9c19f4b7b89adcd7ebeaf59da472763701faf418",
+  "implementation_ref": "trigger4/wp604-child-lifecycle-20260829:src/frankenstein2/child_lifecycle.py",
+  "implementation_blob_sha": "d3b90f12655bb6ba58524013304e25ba27a7818c",
+  "test_ref": "trigger4/wp604-child-lifecycle-20260829:tests/test_child_lifecycle.py",
+  "test_blob_sha": "413d6680df8d08ff4775e0db97d4cf87fa5856b2",
+  "finding": "CALLER_ASSERTED_LIFECYCLE_STATE_NOT_PROVENANCE_BOUND",
+  "observed_mechanism": [
+    "ChildLifecycleCandidate.current_state is a bare admitted enum string supplied by the caller.",
+    "The candidate carries no current-state evidence identity, digest, generation, reconciliation reference or producer binding that proves WAITING/RUNNING/TERMINAL for the exact child.",
+    "RESUME, REPLACE and NESTED_SPAWN decisions are gated directly on that unverified string after exact NativeChildRequest validation.",
+    "The test named terminal-child-never-resumes proves only that an explicitly supplied TERMINAL string is rejected for RESUME; it does not prove that an actually terminal child cannot be presented as WAITING and admitted as a RESUME candidate."
+  ],
+  "scope_conflict": "The active claim correctly calls lifecycle state caller-supplied input, but also says the component enforces terminal-child non-resume. Without an exact state-evidence binding, that stronger invariant is not established for actual child lifecycle state; only caller-declared-state consistency is established.",
+  "counterhypothesis": "WP604 may intentionally be only a declaration candidate and may never intend current_state to be authoritative. If so, the implementation can remain structurally similar, but acceptance language and field naming must stay explicitly caller-declared/untrusted and must not receive actual terminal-child state credit.",
+  "required_discriminator": [
+    "Before WP604 acceptance, choose one explicit boundary: either narrow the claim to caller-declared lifecycle-state consistency, or bind current_state to exact prior lifecycle/reconcile/state evidence and revalidate that evidence at the consumer boundary.",
+    "If the narrow candidate-only option is retained, name/document current_state as caller-declared untrusted input and state that RESUME rejection applies only when the declared state is not WAITING.",
+    "If actual terminal-child non-resume is claimed, require an exact state evidence ref/id/digest/generation whose producer lineage binds to the same child/request identity before a RESUME candidate can be admitted.",
+    "Add a regression demonstrating that a terminal-state evidence object cannot be relabeled WAITING by caller input while preserving a positive RESUME candidate.",
+    "Do not infer child state, success, completion or world facts from this review or from the existing declaration-only candidate."
+  ],
+  "non_authority_statement": "This review does not mutate the active WP604 implementation or claim, does not spawn/resume/replace a child, does not invoke a provider/model/tool, does not mutate UnifiedDB/DeliveryStore, and grants no runtime/VPS/physical-GRID10/GWT/J-Space/training/effect/completion/whole-system credit.",
+  "status": "OPEN_REVIEW_BLOCKER_UNTIL_SCOPE_NARROWED_OR_STATE_PROVENANCE_BOUND"
+}
