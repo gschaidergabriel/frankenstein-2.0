@@ -184,13 +184,18 @@ class CognitiveLesionRescueTests(unittest.TestCase):
         normal, _, _ = conditions(f)
         action = choose_action_public(obs, capabilities=capabilities(), condition=normal)
         self.assertEqual(action, "right")
-        public_blob = {"observation": obs.as_dict(), "condition": normal.as_dict(), "capabilities": [c.as_dict() for c in capabilities()]}
+        public_blob = {
+            "observation": obs.as_dict(),
+            "condition": normal.as_dict(),
+            "capabilities": [c.as_dict() for c in capabilities()],
+        }
         rendered = repr(public_blob)
         self.assertNotIn("current_node_id", rendered)
-        self.assertNotIn("fixture_sha256", rendered)
+        self.assertNotIn("'fixture_sha256':", rendered)
         self.assertNotIn("evaluator_score", rendered)
         self.assertNotIn("hidden_ground_truth", rendered)
         self.assertNotIn("transition_ref", rendered)
+        self.assertIn("public_fixture_sha256", rendered)
 
     def test_exact_concrete_observation_and_capability_types_are_required(self) -> None:
         class EvilObservation(ObservationView):
@@ -295,7 +300,10 @@ class CognitiveLesionRescueTests(unittest.TestCase):
         f2 = replace(f1, nodes=tuple(nodes))
         self.assertEqual(f1.public_sha256(), f2.public_sha256())
         self.assertNotEqual(f1.sha256(), f2.sha256())
-        with self.assertRaisesRegex(CognitiveLesionRescueError, "does not match exact fixture/provenance binding"):
+        with self.assertRaisesRegex(
+            CognitiveLesionRescueError,
+            "does not match exact fixture/provenance binding",
+        ):
             run_condition(
                 f2,
                 run=normal_run,
