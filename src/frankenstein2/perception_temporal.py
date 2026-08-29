@@ -1,8 +1,11 @@
 """Temporal observation-window contracts for the Frankenstein 2.0 Perception Fabric.
 
-The module binds exact OBSERVED percept claims to source/clock identity and constructs a
-bounded current observation window. It does not infer truth, resolve semantic disagreement,
-read sensors, or execute bridge/network I/O.
+This module binds exact OBSERVED percept claims to source/clock identity and constructs a
+bounded, deterministic observation window. Temporal admissibility is explicit: CURRENT,
+STALE, and UNALIGNED are distinct. The module never treats arrival order, a shared GRID
+cycle, model agreement, or semantic agreement as evidence of real-world simultaneity.
+It does not read sensors, persist raw frames, invoke providers, resolve semantic disagreement,
+or mint world-truth/effect/completion authority.
 """
 from __future__ import annotations
 
@@ -15,7 +18,7 @@ from typing import Any, ClassVar
 from .epistemic_perception import EpistemicPerceptClaim
 
 TEMPORAL_REF_SCHEMA = "FRANKENSTEIN2_TEMPORAL_PERCEPT_REF/v1"
-OBSERVATION_WINDOW_SCHEMA = "FRANKENSTEIN2_OBSERVATION_WINDOW/v1"
+OBSERVATION_WINDOW_SCHEMA = "FRANKENSTEIN2_OBSERVATION_WINDOW/v2"
 _SHA256_RE = re.compile(r"^[0-9a-f]{64}$")
 
 
@@ -139,6 +142,7 @@ class ObservationWindow:
     stale_ref_ids: tuple[str, ...]
     source_refs: tuple[tuple[str, str, str], ...]
     provenance_refs: tuple[str, ...]
+    unaligned_ref_ids: tuple[str, ...] = ()
 
     schema: ClassVar[str] = OBSERVATION_WINDOW_SCHEMA
     classification: ClassVar[str] = "TEMPORAL_FUSION_WINDOW_NOT_WORLD_TRUTH_OR_DISAGREEMENT_RESOLUTION"
@@ -150,8 +154,10 @@ class ObservationWindow:
         _nonnegative("max_clock_uncertainty_ns", self.max_clock_uncertainty_ns)
         object.__setattr__(self, "current_ref_ids", _refs("current_ref_ids", self.current_ref_ids, allow_empty=True))
         object.__setattr__(self, "stale_ref_ids", _refs("stale_ref_ids", self.stale_ref_ids, allow_empty=True))
-        if set(self.current_ref_ids).intersection(self.stale_ref_ids):
-            raise PerceptionTemporalError("current and stale refs must be disjoint")
+        object.__setattr__(self, "unaligned_ref_ids", _refs("unaligned_ref_ids", self.unaligned_ref_ids, allow_empty=True))
+        groups = (set(self.current_ref_ids), set(self.stale_ref_ids), set(self.unaligned_ref_ids))
+        if groups[0] & groups[1] or groups[0] & groups[2] or groups[1] & groups[2]:
+            raise PerceptionTemporalError("current, stale and unaligned refs must be disjoint")
         if type(self.source_refs) is not tuple:
             raise PerceptionTemporalError("source_refs must be an immutable tuple")
         checked: list[tuple[str, str, str]] = []
@@ -162,8 +168,19 @@ class ObservationWindow:
             checked.append((_text("source_id", source_id), _text("ref_id", ref_id), _sha256("ref_sha256", ref_sha)))
         if len({ref_id for _, ref_id, _ in checked}) != len(checked):
             raise PerceptionTemporalError("source_refs must not repeat ref_id")
+        all_ids = groups[0] | groups[1] | groups[2]
+        if all_ids != {ref_id for _, ref_id, _ in checked}:
+            raise PerceptionTemporalError("every source ref must have exactly one temporal disposition")
         object.__setattr__(self, "source_refs", tuple(sorted(checked)))
         object.__setattr__(self, "provenance_refs", _refs("provenance_refs", self.provenance_refs))
+
+    @property
+    def alignment_status(self) -> str:
+        if not self.unaligned_ref_ids:
+            return "ALIGNED"
+        if self.current_ref_ids or self.stale_ref_ids:
+            return "PARTIAL_UNALIGNED"
+        return "UNALIGNED"
 
     def as_dict(self) -> dict[str, Any]:
         return {
@@ -173,13 +190,17 @@ class ObservationWindow:
             "reference_now_ns": self.reference_now_ns,
             "max_join_skew_ns": self.max_join_skew_ns,
             "max_clock_uncertainty_ns": self.max_clock_uncertainty_ns,
+            "alignment_status": self.alignment_status,
             "current_ref_ids": list(self.current_ref_ids),
             "stale_ref_ids": list(self.stale_ref_ids),
+            "unaligned_ref_ids": list(self.unaligned_ref_ids),
             "source_refs": [
                 {"source_id": source_id, "ref_id": ref_id, "ref_sha256": ref_sha}
                 for source_id, ref_id, ref_sha in self.source_refs
             ],
             "arrival_order_is_event_time": False,
+            "same_grid_cycle_is_same_real_world_time": False,
+            "unknown_or_unaligned_preserved": True,
             "resolves_semantic_disagreement": False,
             "world_truth_authority": "NONE",
             "effect_authority": "NONE",
@@ -229,6 +250,19 @@ def bind_observed_claim(
     )
 
 
+def _pair_is_admissible(a: TemporalPerceptRef, b: TemporalPerceptRef, *, max_join_skew_ns: int) -> bool:
+    if a.source_id == b.source_id:
+        return True
+    # Conservative bound: even the worst-case separation permitted by both clock-error
+    # intervals must fit the declared join-skew budget.
+    worst_case_separation = (
+        abs(a.reference_time_ns - b.reference_time_ns)
+        + a.clock_uncertainty_ns
+        + b.clock_uncertainty_ns
+    )
+    return worst_case_separation <= max_join_skew_ns
+
+
 def build_observation_window(
     *,
     refs: tuple[TemporalPerceptRef, ...],
@@ -237,7 +271,7 @@ def build_observation_window(
     max_clock_uncertainty_ns: int,
     provenance_refs: tuple[str, ...],
 ) -> ObservationWindow:
-    """Build a current/stale partition and reject temporally incoherent current joins."""
+    """Partition refs into CURRENT, STALE and UNALIGNED without inventing simultaneity."""
     if type(refs) is not tuple or any(type(item) is not TemporalPerceptRef for item in refs):
         raise PerceptionTemporalError("refs must be an immutable tuple of concrete TemporalPerceptRef values")
     _nonnegative("reference_now_ns", reference_now_ns)
@@ -252,28 +286,41 @@ def build_observation_window(
         by_source.setdefault(item.source_id, []).append(item)
     for source_id, source_items in by_source.items():
         ordered = sorted(source_items, key=lambda item: item.source_sequence)
-        for previous, current in zip(ordered, ordered[1:]):
-            if current.source_sequence <= previous.source_sequence:
+        for previous, current_item in zip(ordered, ordered[1:]):
+            if current_item.source_sequence <= previous.source_sequence:
                 raise PerceptionTemporalError(f"source sequence must strictly increase for {source_id!r}")
-            if current.source_time_ns < previous.source_time_ns:
+            if current_item.source_time_ns < previous.source_time_ns:
                 raise PerceptionTemporalError(f"source time regressed for {source_id!r}")
 
     current: list[TemporalPerceptRef] = []
     stale: list[TemporalPerceptRef] = []
+    unaligned: list[TemporalPerceptRef] = []
     for item in refs:
         if item.clock_uncertainty_ns > max_clock_uncertainty_ns:
-            stale.append(item)
+            unaligned.append(item)
             continue
         age = reference_now_ns - item.reference_time_ns
-        if age < 0 or age > item.max_freshness_ns:
+        if age < 0:
+            unaligned.append(item)
+        elif age > item.max_freshness_ns:
             stale.append(item)
         else:
             current.append(item)
 
-    if len(current) >= 2:
-        times = [item.reference_time_ns for item in current]
-        if max(times) - min(times) > max_join_skew_ns:
-            raise PerceptionTemporalError("current observations exceed max_join_skew_ns")
+    incompatible_ids: set[str] = set()
+    for index, left in enumerate(current):
+        for right in current[index + 1 :]:
+            if not _pair_is_admissible(left, right, max_join_skew_ns=max_join_skew_ns):
+                incompatible_ids.add(left.ref_id)
+                incompatible_ids.add(right.ref_id)
+    if incompatible_ids:
+        retained: list[TemporalPerceptRef] = []
+        for item in current:
+            if item.ref_id in incompatible_ids:
+                unaligned.append(item)
+            else:
+                retained.append(item)
+        current = retained
 
     provenance = set(_refs("provenance_refs", provenance_refs))
     source_refs: list[tuple[str, str, str]] = []
@@ -287,6 +334,7 @@ def build_observation_window(
         "max_clock_uncertainty_ns": max_clock_uncertainty_ns,
         "current_ref_ids": sorted(item.ref_id for item in current),
         "stale_ref_ids": sorted(item.ref_id for item in stale),
+        "unaligned_ref_ids": sorted(item.ref_id for item in unaligned),
         "source_refs": sorted(source_refs),
     }
     window_id = "observation-window:" + _digest(payload)[:24]
@@ -297,6 +345,7 @@ def build_observation_window(
         max_clock_uncertainty_ns=max_clock_uncertainty_ns,
         current_ref_ids=tuple(item.ref_id for item in current),
         stale_ref_ids=tuple(item.ref_id for item in stale),
+        unaligned_ref_ids=tuple(item.ref_id for item in unaligned),
         source_refs=tuple(source_refs),
         provenance_refs=tuple(sorted(provenance)),
     )
