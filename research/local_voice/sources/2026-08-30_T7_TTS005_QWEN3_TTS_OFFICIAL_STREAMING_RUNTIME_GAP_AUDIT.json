@@ -1,0 +1,40 @@
+{
+  "schema": "T7_SOURCE_AUDIT/v1",
+  "trigger": "7",
+  "date": "2026-08-30",
+  "research_id": "T7-TTS-005",
+  "objective": "V1_QWEN3_TTS_OFFICIAL_STREAMING_RUNTIME_GAP_SOURCE_AUDIT",
+  "semantic_key": "3f58fd7a1eab0d653880efc365ef21c77fa630866ad06afdf9bc338c59b5c0a5",
+  "classification": "SOURCE_CAPABILITY_RUNTIME_INTERFACE_GAP",
+  "official_source_pin": {
+    "repo": "QwenLM/Qwen3-TTS",
+    "revision": "022e286b98fbec7e1e916cb940cdf532cd9f488e",
+    "license": "Apache-2.0"
+  },
+  "official_model_ids": [
+    "Qwen/Qwen3-TTS-12Hz-0.6B-Base",
+    "Qwen/Qwen3-TTS-12Hz-1.7B-Base",
+    "Qwen/Qwen3-TTS-12Hz-0.6B-CustomVoice",
+    "Qwen/Qwen3-TTS-12Hz-1.7B-CustomVoice"
+  ],
+  "observed_source_facts": [
+    "The official Qwen3-TTS README at the pinned source revision labels the released 12Hz 0.6B and 1.7B models as Streaming-capable and describes a dual-track hybrid streaming architecture.",
+    "The official technical report states that the 12Hz tokenizer/model architecture supports immediate first-packet emission with reported end-to-end synthesis latency as low as 97 ms.",
+    "The official 0.6B and 1.7B model cards include German among the ten supported languages.",
+    "The official repository quickstart exposes generate_custom_voice, generate_voice_design and generate_voice_clone style calls that return generated waveforms; repository search at the pinned head did not surface a documented stream_generate-style API.",
+    "Therefore model-level streaming capability is source-supported, while a currently exposed official local incremental-audio API suitable for Frankenstein cancellation/barge-in is not established by this source audit."
+  ],
+  "epistemic_boundary": {
+    "model_streaming_capability": "SOURCE_SUPPORTED",
+    "official_local_incremental_audio_api": "NOT_SOURCE_PROVEN_BY_THIS_AUDIT",
+    "97ms_on_clay_direct_dev": "NOT_MEASURED",
+    "german_voice_quality_on_f2": "NOT_MEASURED",
+    "barge_in_cancellation_correctness": "NOT_MEASURED",
+    "runtime_credit": 0,
+    "german_quality_credit": 0,
+    "trigger4_acceptance_credit": 0
+  },
+  "architecture_consequence": "Do not use the upstream 97 ms model claim as Frankenstein first-audible latency. The existing T7-TTS-001 0.6B-vs-1.7B target benchmark must explicitly record API/runtime identity, first actual PCM chunk time, chunk cadence, cancellation drain behavior, and unheard-audio suppression. A separate streaming runtime/fork may be benchmarked only as a distinct provenance-controlled challenger.",
+  "counterhypothesis_status": "NOT_CONFIRMED: no official incremental stream_generate-style public API was identified at the pinned repository head, but absence from this audit is not proof that no supported serving path exists elsewhere.",
+  "next_exact_action": "Keep T7-TTS-001 queued behind valid clay-direct-dev hardware headroom. On target execution, compare official qwen-tts/vLLM-supported path and any separately pinned streaming challenger under identical German prompts, measuring first emitted PCM, first audible audio, RTF, p95 chunk gaps, cancellation-to-silence latency, residual unheard audio, RAM/VRAM and long-turn prosody. Do not infer target latency from 97 ms upstream architecture evidence."
+}
