@@ -1,0 +1,135 @@
+{
+  "schema": "FRANKENSTEIN2_TRIGGER6_RESEARCH_DELTA/v1",
+  "research_id": "R6-20260829-WP1208-CHAOS-MATRIX-EVAL-GPT56SOL-03",
+  "evidence_stage": "E1_SOURCE_READ",
+  "status": "E1_COMPLETE_NO_ARCHITECTURE_CREDIT",
+  "created_at": "2026-08-29T20:18:00+07:00",
+  "worker": "GPT-5.6-Sol-TRIGGER6",
+  "claim_ref": "research/tool_intelligence/claims/R6-20260829-WP1208-CHAOS-MATRIX-EVAL-GPT56SOL-03/E1_SOURCE_READ.json",
+  "f2_scope_ref": "workpackages/active/F2-WP-1208.json",
+  "f2_source_ref": "src/frankenstein2/target_hostile_chaos_matrix.py",
+  "f2_source_blob_sha": "651393c89995a10a58be51261add38a3538bb67c",
+  "observed_f2_scope": "HOSTILE_CHAOS_MATRIX_G1_REPOSITORY_HOSTED_COMPONENT_CI_ONLY; target-twin runtime, sustained chaos, physical host and completion credit remain zero",
+  "primary_and_official_sources": [
+    {
+      "id": "NIST_COMBINATORIAL_TESTING_2012",
+      "type": "government_primary",
+      "title": "Combinatorial Testing",
+      "authors": "Kuhn, Kacker, Lei",
+      "finding": "Interaction failures are often caused by relatively few parameter interactions; t-way covering designs can compress large test spaces while preserving explicit interaction coverage."
+    },
+    {
+      "id": "NISTIR_7878_COMBINATORIAL_COVERAGE",
+      "type": "government_primary",
+      "title": "Combinatorial Coverage Measurement",
+      "doi": "10.6028/NIST.IR.7878",
+      "finding": "Any test suite can be measured for t-way combinatorial coverage; scenario count alone is not a coverage measure."
+    },
+    {
+      "id": "NIST_EVENT_SEQUENCE_2012",
+      "type": "government_primary",
+      "title": "Combinatorial Methods for Event Sequence Testing",
+      "doi": "10.1109/ICST.2012.147",
+      "finding": "When ordering matters, sequence covering arrays can cover every t-event order with far fewer than all permutations; this is directly relevant to lifecycle/permission/session/network recovery ordering."
+    },
+    {
+      "id": "ALVARO_ROSEN_HELLERSTEIN_LDFI_2015",
+      "type": "peer_reviewed_primary",
+      "title": "Lineage-driven Fault Injection",
+      "doi": "10.1145/2723372.2723711",
+      "finding": "LDFI reasons backward from a known-good outcome to choose only failures capable of invalidating its causal support, reducing redundant random injections and producing bounded counterexample reasoning."
+    },
+    {
+      "id": "AWS_FIS_STOP_CONDITIONS",
+      "type": "vendor_primary",
+      "title": "AWS Fault Injection Service stop conditions and experiment templates",
+      "finding": "Fault experiments should bind explicit targets/actions and stop conditions; stop conditions halt a run when predefined unacceptable thresholds are reached."
+    },
+    {
+      "id": "AWS_FIS_TEMPLATE_SNAPSHOT",
+      "type": "vendor_primary",
+      "title": "Start an experiment from a template",
+      "finding": "AWS FIS snapshots the experiment template at start so later template edits do not alter the running experiment; this is a useful provenance rule for exact hostile-matrix execution identity."
+    },
+    {
+      "id": "BURROWS_CHUBBY_2006",
+      "type": "peer_reviewed_primary",
+      "title": "The Chubby lock service for loosely-coupled distributed systems",
+      "venue": "OSDI 2006",
+      "finding": "Sequencers bind lock generation to protected operations so recipients can reject delayed/stale authority; lock-delay is a weaker compatibility fallback. This directly supports WP1208 stale-authority non-revival tests."
+    },
+    {
+      "id": "CHAOS_ENGINEERING_PRINCIPLES",
+      "type": "practice_primary",
+      "title": "Principles of Chaos Engineering",
+      "finding": "Define measurable steady state, formulate a falsifiable hypothesis, inject realistic faults, compare control/experiment behavior, and minimize blast radius."
+    }
+  ],
+  "source_code_pin": {
+    "repository": "palvaro/molly",
+    "commit": "a3a6d7950814e1154253357a03e7d64754c464b8",
+    "role": "historical executable LDFI research prototype reference only; not imported and not F2 evidence"
+  },
+  "observed_wp1208_strengths": [
+    "deterministic case/matrix digesting binds scenario identity",
+    "every case must include all five declared fault families",
+    "cross-family concurrency is mandatory at one or more offsets",
+    "generation-invalidating events are explicitly identified",
+    "authority rebind policy already requires re-observation/rebind after generation change",
+    "protected cognition/canonical-state prefixes are rejected as direct chaos targets",
+    "source-level objects mechanically refuse runtime/physical/completion credit"
+  ],
+  "research_gaps_against_sources": [
+    "CASE_COUNT_NEQ_COVERAGE: MAX_CASES and unique case IDs bound quantity/identity but do not quantify t-way fault-parameter coverage.",
+    "CONCURRENCY_NEQ_SEQUENCE_COVERAGE: at least one cross-family concurrent offset does not test ordering-sensitive fault/recovery interactions.",
+    "ALL_FAMILIES_PER_CASE_MAY_OVERCONSTRAIN: forcing every case to contain all five families can waste budget on broad but causally irrelevant combinations and can make minimal counterexamples harder to isolate.",
+    "NO_CAUSAL_TARGETING: current planner composes supplied FaultSpec values but does not use outcome/evidence lineage to prioritize combinations capable of violating a declared invariant.",
+    "NO_EXPERIMENT_STOP_CONDITION_IN_PLAN: static bounds exist, but a later executable target-twin matrix needs explicit measured abort/stop conditions separate from case-size ceilings.",
+    "NO_TEMPLATE_SNAPSHOT_EXECUTION_BINDING_YET: source-level matrix digest is strong, but later runtime evidence must prove the executed run used an immutable snapshot of exact matrix/target-profile/source identities.",
+    "FENCE_PRESENT_NEQ_FENCE_ENFORCED: authority_fence_event_ids show generation changes, but later runtime acceptance must verify stale operations are actually rejected after the new generation becomes authoritative.",
+    "SCENARIO_COUNT_NEQ_INFORMATION_GAIN: there is no prioritization signal for previously uncovered t-way interactions, uncovered event orders, invariant-support lineage or prior negative evidence."
+  ],
+  "distilled_invariants": [
+    "MEASURE_COVERAGE_NOT_VOLUME: report t-way interaction coverage and relevant event-order coverage, not only case/event counts.",
+    "USE_CONSTRAINED_COVERING_DESIGNS: generate compact scenario sets over fault factors subject to impossible/unsafe-combination constraints; do not Cartesian-product every family.",
+    "SEQUENCE_IS_A_SEPARATE_DIMENSION: explicitly cover recovery/failure order where authority/lifecycle semantics depend on order.",
+    "LINEAGE_PRIORITIZATION_IS_OPTIONAL_BUT_HIGH_VALUE: once an executable good outcome has typed evidence lineage, prioritize minimal fault cuts that could invalidate its mandatory support; never claim LDFI-style completeness without a sound bounded model.",
+    "IMMUTABLE_RUN_SNAPSHOT: execution receipt must bind the exact matrix digest, target-profile digest, source/tree identity, generation, stop-condition set and resolved scenario before intervention.",
+    "STOP_CONDITIONS_ARE_RUNTIME_GUARDS: distinguish static planning ceilings from dynamic measured abort thresholds; activation must be fail-closed and independently observable.",
+    "FENCING_REQUIRES_REJECTION_EVIDENCE: a generation change is not enough; the acceptance test must show stale sequencer/generation operations are rejected after recovery.",
+    "MINIMIZE_BLAST_RADIUS: start with the smallest target-twin scope and fault cut that can falsify the declared invariant; broaden only when coverage debt/information gain justifies it.",
+    "CONTROL_VS_EXPERIMENT: where feasible, match a no-fault/control run to the faulted run at exact source/target identity so degradation is attributable to the intervention rather than drift."
+  ],
+  "candidate_efficiency_metrics": [
+    "cases executed per newly covered t-way interaction",
+    "events injected per newly covered event-order tuple",
+    "counterexamples per execution",
+    "duplicate/redundant scenario ratio by normalized fault-cut identity",
+    "time-to-first invariant violation",
+    "runtime cost per unique coverage increment",
+    "minimal counterexample fault-set size after reduction",
+    "abort/stop-condition activations with reason and exact threshold",
+    "stale-authority rejection count versus stale-authority attempts",
+    "control-versus-intervention delta under matched source/target identity"
+  ],
+  "counterhypotheses": [
+    "The existing five-family-per-case rule may already be cheap enough at F2 scale; adding t-way generation could complicate a deliberately bounded planner without discovering additional faults.",
+    "LDFI's benefits may not transfer because WP1208 currently lacks a sound causal-lineage model of target-twin outcomes; naïve pseudo-lineage would be worse than deterministic covering arrays.",
+    "Pairwise/t-way coverage can miss high-order faults; it is a search-efficiency heuristic and coverage metric, not proof of absence unless a stronger bounded model supplies that guarantee.",
+    "Dynamic stop conditions can themselves be stale or blind under the same fault being injected; the stop signal therefore needs an independent or explicitly degraded evidence path."
+  ],
+  "recommended_next_stage": {
+    "stage": "E2_ARCHITECTURE_MAPPED",
+    "objective": "Map t-way/sequence coverage, optional causal-lineage prioritization, immutable run snapshot, dynamic stop-condition and stale-generation rejection evidence onto the exact WP1208 HostileChaosCase/HostileChaosMatrix fields and the later executable target-twin consumer without mutating accepted WP1208 source.",
+    "requires_new_atomic_claim": true
+  },
+  "credit": {
+    "research": "E1_SOURCE_READ_ONLY",
+    "repository_ci_new": 0,
+    "target_twin_runtime": 0,
+    "sustained_chaos_runtime": 0,
+    "physical_host": 0,
+    "completion": 0,
+    "whole_system": 0
+  }
+}
