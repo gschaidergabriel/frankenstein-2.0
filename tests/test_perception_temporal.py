@@ -231,7 +231,7 @@ class PerceptionTemporalTests(unittest.TestCase):
         self.assertEqual(window.alignment_witness_refs, ())
         self.assertEqual(window.alignment_status, "UNALIGNED")
 
-    def test_reference_clock_offset_requires_and_records_alignment_witness(self):
+    def test_reference_clock_offset_requires_separate_admission_and_records_witness(self):
         local = bind(
             claim("c1", 980),
             ref_id="local",
@@ -256,6 +256,8 @@ class PerceptionTemporalTests(unittest.TestCase):
             left_uncertainty=5,
             right_uncertainty=5,
         )
+        alignment_sha = alignment.sha256()
+
         without_witness = build_observation_window(
             refs=(local, remote),
             reference_now_ns=1_000,
@@ -266,7 +268,7 @@ class PerceptionTemporalTests(unittest.TestCase):
         self.assertEqual(without_witness.current_ref_ids, ())
         self.assertEqual(set(without_witness.unaligned_ref_ids), {"local", "remote"})
 
-        window = build_observation_window(
+        raw_witness_only = build_observation_window(
             refs=(local, remote),
             reference_now_ns=1_000,
             max_join_skew_ns=30,
@@ -274,17 +276,64 @@ class PerceptionTemporalTests(unittest.TestCase):
             provenance_refs=P,
             alignment_witnesses=(alignment,),
         )
+        self.assertEqual(raw_witness_only.current_ref_ids, ())
+        self.assertEqual(set(raw_witness_only.unaligned_ref_ids), {"local", "remote"})
+        self.assertEqual(raw_witness_only.alignment_witness_refs, ())
+        self.assertEqual(raw_witness_only.alignment_admission_sha256s, ())
+
+        window = build_observation_window(
+            refs=(local, remote),
+            reference_now_ns=1_000,
+            max_join_skew_ns=30,
+            max_clock_uncertainty_ns=10,
+            provenance_refs=P,
+            alignment_witnesses=(alignment,),
+            admitted_alignment_witness_sha256s=(alignment_sha,),
+        )
         self.assertEqual(set(window.current_ref_ids), {"local", "remote"})
         self.assertEqual(window.unaligned_ref_ids, ())
         self.assertEqual(window.alignment_status, "ALIGNED")
         self.assertEqual(
             window.alignment_witness_refs,
-            ((alignment.alignment_id, alignment.sha256()),),
+            ((alignment.alignment_id, alignment_sha),),
         )
+        self.assertEqual(window.alignment_admission_sha256s, (alignment_sha,))
         self.assertIn(
-            f"clock-alignment-witness-sha256:{alignment.sha256()}",
+            f"clock-alignment-witness-sha256:{alignment_sha}",
             window.provenance_refs,
         )
+        self.assertIn(
+            f"admitted-clock-alignment-witness-sha256:{alignment_sha}",
+            window.provenance_refs,
+        )
+
+    def test_unknown_admitted_witness_digest_fails_closed(self):
+        local = bind(
+            claim("c1", 980),
+            ref_id="local",
+            source_id="screen:1",
+            sequence=1,
+            clock_domain="clock:local",
+        )
+        remote = bind(
+            claim("c2", 480),
+            ref_id="remote",
+            source_id="camera:remote",
+            sequence=1,
+            offset=500,
+            clock_domain="clock:remote",
+        )
+        alignment = witness(local, remote)
+        with self.assertRaisesRegex(PerceptionTemporalError, "no supplied exact witness"):
+            build_observation_window(
+                refs=(local, remote),
+                reference_now_ns=1_000,
+                max_join_skew_ns=30,
+                max_clock_uncertainty_ns=5,
+                provenance_refs=P,
+                alignment_witnesses=(alignment,),
+                admitted_alignment_witness_sha256s=("2" * 64,),
+            )
 
     def test_wrong_offset_alignment_witness_cannot_authorize_comparison(self):
         local = bind(
@@ -310,10 +359,12 @@ class PerceptionTemporalTests(unittest.TestCase):
             max_clock_uncertainty_ns=5,
             provenance_refs=P,
             alignment_witnesses=(wrong,),
+            admitted_alignment_witness_sha256s=(wrong.sha256(),),
         )
         self.assertEqual(window.current_ref_ids, ())
         self.assertEqual(set(window.unaligned_ref_ids), {"local", "remote"})
         self.assertEqual(window.alignment_witness_refs, ())
+        self.assertEqual(window.alignment_admission_sha256s, ())
 
     def test_expired_alignment_witness_cannot_authorize_comparison(self):
         local = bind(
@@ -339,9 +390,11 @@ class PerceptionTemporalTests(unittest.TestCase):
             max_clock_uncertainty_ns=5,
             provenance_refs=P,
             alignment_witnesses=(expired,),
+            admitted_alignment_witness_sha256s=(expired.sha256(),),
         )
         self.assertEqual(window.current_ref_ids, ())
         self.assertEqual(set(window.unaligned_ref_ids), {"local", "remote"})
+        self.assertEqual(window.alignment_admission_sha256s, ())
 
     def test_ambiguous_multiple_alignment_witnesses_fail_closed(self):
         local = bind(
@@ -368,10 +421,12 @@ class PerceptionTemporalTests(unittest.TestCase):
             max_clock_uncertainty_ns=5,
             provenance_refs=P,
             alignment_witnesses=(first, second),
+            admitted_alignment_witness_sha256s=(first.sha256(), second.sha256()),
         )
         self.assertEqual(window.current_ref_ids, ())
         self.assertEqual(set(window.unaligned_ref_ids), {"local", "remote"})
         self.assertEqual(window.alignment_witness_refs, ())
+        self.assertEqual(window.alignment_admission_sha256s, ())
 
     def test_source_generation_change_is_unaligned_without_relation(self):
         first = bind(
@@ -498,6 +553,8 @@ class PerceptionTemporalTests(unittest.TestCase):
         self.assertFalse(payload["resolves_semantic_disagreement"])
         self.assertTrue(payload["unproven_cross_clock_is_unaligned"])
         self.assertFalse(payload["numeric_reference_offset_self_attests_alignment"])
+        self.assertFalse(payload["raw_clock_alignment_witness_is_admission_authority"])
+        self.assertTrue(payload["requires_separate_witness_admission"])
 
 
 if __name__ == "__main__":
