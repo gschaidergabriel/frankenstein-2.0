@@ -1,0 +1,74 @@
+{
+  "schema": "FRANKENSTEIN2_TRIGGER6_RESEARCH_DELTA/v1",
+  "research_id": "R6-SEED-006",
+  "trigger": "6",
+  "stage": "E2_ARCHITECTURE_REVIEW",
+  "review_objective": "CGROUP_OBJECT_INCARNATION_BINDING_AFTER_9_13BA_REENTRY",
+  "created_at": "2026-08-30T00:25:35+07:00",
+  "worker": "GPT-5.6-Sol-TRIGGER6",
+  "claim_ref": "research/tool_intelligence/claims/R6-SEED-006/E2_REVIEW_9_13BA_TRIGGER7_VPS_CGROUP_WITNESS.json",
+  "bound_heads": {
+    "frankenstein_2_main_before_write": "2077d982e041c59d806a64b6867ba63cd1a718fd",
+    "clay_research_entity_main": "6f4b116a9985ca7752ca499de6fc16bad98cb1e4",
+    "supervisor": "9.13BA_NON_AUTHORITY"
+  },
+  "reentry_findings": {
+    "existing_contract_retained": [
+      "R6-SEED-006 CgroupWitness/v1-candidate remains the single resource-witness design lane",
+      "observer cgroup namespace identity is already required",
+      "cgroup.type-aware recursive subtree membership is already required",
+      "independent Podman host-PID-set comparison is already required",
+      "pre/post or generation fencing is already required",
+      "readable counters without exact scope and coverage remain non-promoting"
+    ],
+    "duplicate_idea_closed": "A new subtree-membership or namespace-binding v2 would duplicate existing E2/fusion work and is rejected.",
+    "current_runtime_observation": "Supervisor 9.13BA reports target host liveness but podman top rc125/no cgroup for clay-direct-dev; container isolation telemetry remains UNKNOWN, not healthy and not target-runtime credit."
+  },
+  "primary_source_observations": [
+    {
+      "source": "Linux kernel Control Group v2 documentation",
+      "observation": "A cgroup can be removed when empty; a zombie process may retain a /proc/PID/cgroup path marked '(deleted)'. cgroup.stat exposes nr_dying_descendants and deleted cgroups may remain in dying state for an undefined period before destruction."
+    },
+    {
+      "source": "Linux kernel BPF_MAP_TYPE_CGROUP_STORAGE documentation",
+      "observation": "The documented cgroup storage key includes cgroup_inode_id, defined as the inode id of the cgroup directory, demonstrating an object-level cgroup identifier distinct from a pathname string."
+    },
+    {
+      "source": "Linux name_to_handle_at/open_by_handle_at documentation",
+      "observation": "File handles can become stale when the referenced object is deleted; pathname/content/inode-number coincidence after recreation does not by itself prove the old object still exists. Support and privilege requirements vary, so file-handle use cannot be mandatory without capability probing."
+    }
+  ],
+  "architecture_hypothesis": {
+    "statement": "For EXACT_CANDIDATE container-resource attribution, path identity plus namespace/topology/membership equality is insufficient if the measured cgroup object can be deleted and recreated at the same path during the bounded observation. CgroupWitness should bind a capability-probed cgroup object-incarnation identity before and after metric collection and require equality under the same container/process-generation fence.",
+    "epistemic_status": "INFERENCE_FROM_PRIMARY_KERNEL_OBJECT_LIFECYCLE_SEMANTICS",
+    "counterhypothesis": "The existing exact container identity, process-incarnation binding, complete membership equality and pre/post generation fence may already make same-path cgroup delete/recreate impossible or independently detectable in the admitted target runtime, making a separate object-incarnation witness redundant.",
+    "cheapest_falsifier": "In a bounded non-production fixture, create a cgroup, record path and object identity, delete/recreate the same path between pre/post observations, and determine whether the existing CgroupWitness fence rejects the transition without using the object identity. If existing fences always reject it at the claimed scope, do not add the extra binding."
+  },
+  "architecture_effect": {
+    "decision": "STRENGTHEN_EXISTING_CGROUPWITNESS_V1_CANDIDATE_CONDITIONALLY_NO_NEW_SCHEMA_AUTHORITY",
+    "candidate_bindings": [
+      "cgroup_object_identity_method",
+      "cgroup_object_identity_pre",
+      "cgroup_object_identity_post",
+      "cgroup_object_identity_status",
+      "nr_dying_descendants_pre",
+      "nr_dying_descendants_post"
+    ],
+    "preferred_method_law": "Use the least-privileged capability-probed host-observer mechanism that binds the cgroup object itself. A cgroup/file-handle or kernel-exposed cgroup ID may qualify if available and source-bound; BPF is not required. Plain pathname equality, mount ID alone, or an unqualified inode-number string is not sufficient by itself.",
+    "acceptance_rule": "EXACT_CANDIDATE requires stable object-incarnation identity across the fenced metric snapshot, in addition to the existing namespace/type/topology/membership/runtime-PID-set gates. Object-identity change, stale/deleted handle, unbound observer perspective, or unavailable identity when exact attribution is required fails closed to DEGRADED/UNKNOWN rather than promoting container telemetry.",
+    "churn_signal_law": "nr_dying_descendants may be retained as a churn/sanity signal only; it cannot identify the measured cgroup or prove attribution by itself.",
+    "no_duplicate_workpackage": true,
+    "trigger4_effect": "Evaluate and, only if nonredundant under an executable fixture, integrate this binding inside the existing WP605/CgroupWitness successor lane. Do not create a second WP605 or resource-witness authority."
+  },
+  "credits": {
+    "e2_architecture_review": 1,
+    "e3_fixture": 0,
+    "e4_f2_ablation": 0,
+    "e5_build_candidate": 0,
+    "e6_trigger4_adoption": 0,
+    "target_runtime": 0,
+    "container_total": 0,
+    "whole_system": 0
+  },
+  "next_exact_action": "Trigger4 re-enters the existing WP605/CgroupWitness lane and executes the same-path delete/recreate nonredundancy falsifier before any implementation or promotion claim."
+}
