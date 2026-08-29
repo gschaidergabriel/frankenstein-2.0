@@ -1,0 +1,74 @@
+{
+  "schema": "FRANKENSTEIN2_TRIGGER6_EVIDENCE_RECEIPT/v1",
+  "research_id": "R6-20260829-HOST-REALITY-COMPLETION-GPT56SOL-01",
+  "evidence_stage": "E1_SOURCE_READ",
+  "status": "SOURCE_READ_COMPLETE_NO_ARCHITECTURE_CREDIT",
+  "completed_at": "2026-08-29T19:40:00+07:00",
+  "claim_commit": "e4d42cf43ebc040920ece0d46839be3b25041d38",
+  "architecture_binding": "HOST_REALITY_TWIN_AND_UNIFIEDDB_COMPLETION_ESTIMATOR_2026-08-29 + active F2-WP-1201-G1 target-host fingerprint",
+  "f2_heads": {
+    "claim_bound_main": "32ef31041884d7183dec7840af2587d336ceb6fd",
+    "latest_reentered_main_before_receipt": "f3ac1554b5ce9e31c3b03a15fc4aa1f50cbfce75",
+    "research_entity_main_observed": "5529d48d52d77872478d2c0e2c2aea42ab29a67a"
+  },
+  "external_sources": [
+    {
+      "repo": "systemd/systemd",
+      "commit": "048970650ce5d50bceffff97442c4a90c1cf0572",
+      "files": ["man/machine-id.xml", "man/sd_id128_get_machine.xml", "man/loginctl.xml"],
+      "role": "host/boot/application-specific identity and machine-readable login/session inspection"
+    },
+    {
+      "repo": "qemu/qemu",
+      "commit": "d2e570cc0f97b936902a5b1b86b73c0f5998b475",
+      "role": "virtualization/device-emulation comparator; simulation cannot establish exact physical-host identity"
+    },
+    {
+      "repo": "linuxhw/hw-probe",
+      "commit": "cb7902a902c0ac33c84214a750a8388643b34af2",
+      "file": "README.md",
+      "role": "broad hardware inventory/privacy comparator"
+    }
+  ],
+  "source_findings": [
+    "systemd documents /etc/machine-id as stable across subsequent boots and independent of local/network configuration or hardware replacement; therefore it is useful as an installation lineage input but cannot by itself prove exact current hardware identity.",
+    "systemd explicitly classifies the raw machine ID as confidential and says it must not be exposed directly to untrusted environments. Application-specific machine IDs should be derived irreversibly; sd_id128_get_machine_app_specific() uses an application-specific derivation built from HMAC-SHA256 semantics.",
+    "systemd exposes a boot ID that changes per running kernel instance, and separate invocation/session identity surfaces. Stable host lineage, boot epoch, service invocation and desktop/login session are therefore distinct scopes and should not be collapsed into one fingerprint.",
+    "loginctl provides machine-readable show-session/show-user properties, supporting explicit desktop/login-session proof obligations rather than inferring them from a live process or environment variable alone.",
+    "QEMU/KVM provides valuable userspace, lifecycle and fault-surface testing, but emulated/passthrough devices and approximated CPU/device models do not establish silicon/firmware/peripheral identity of the final Minisforum host. SIMULATED_HOST_VERIFIED must remain below EXACT_HOST_BOUND.",
+    "hw-probe demonstrates the breadth possible in hardware inventory, but its normal workflow can collect logs, use elevated access, and upload an anonymized probe. That is materially broader than F2-WP-1201's privacy-bounded read-only identity need; its own README notes anonymization may fail in edge cases.",
+    "The strongest F2 design is therefore a thin native allowlisted collector, not importing a broad inventory/upload framework."
+  ],
+  "f2_distillation": {
+    "recommended": true,
+    "import_external_framework": false,
+    "identity_model": {
+      "host_scope_id": "application-specific derived machine identifier; never persist/export raw /etc/machine-id",
+      "boot_scope_id": "boot-specific identifier kept separate from host_scope_id",
+      "session_or_invocation_scope": "explicit login/session/service invocation identity when the requirement depends on it",
+      "profile_generation_digest": "deterministic digest over an allowlisted canonical projection of observed technical facts plus explicit UNKNOWN states"
+    },
+    "minimum_rules": [
+      "Separate stable installation/host lineage from mutable hardware/capability profile; a stable host_scope_id must not mask hardware or driver changes.",
+      "Never collect or persist raw serial numbers, MAC addresses, raw machine-id, credentials, clipboard, user documents, raw camera frames or raw microphone audio in the baseline fingerprint.",
+      "If a requirement truly needs stable per-device continuity, derive a local application-scoped pseudonymous identifier and keep raw identifiers outside receipts/export surfaces.",
+      "Every probe is read-only by default, independently timeout-bounded, records command/tool/version/status/provenance, and maps unavailable/permission-denied/parse-failed to typed UNKNOWN rather than false/pass.",
+      "Bind host-specific evidence to profile generation/digest and boot scope where relevant; profile changes stale dependent host evidence instead of silently reusing it.",
+      "Represent virtualization/twin identity explicitly. Simulated profiles can support SIMULATED_HOST_VERIFIED but can never satisfy EXACT_HOST_BOUND or REAL_READBACK_VERIFIED for the physical target.",
+      "Prefer requirement-specific probe bundles over one ever-growing global fingerprint so privacy, churn and invalidation scope remain bounded."
+    ]
+  },
+  "counterhypotheses": [
+    "A very detailed host fingerprint may cause needless invalidation from benign changes and may become a privacy liability; a coarser stable identity plus requirement-specific capability proofs may be superior.",
+    "Application-specific machine identity still follows /etc/machine-id semantics and therefore does not prove unchanged hardware; hardware-sensitive acceptance must depend on the mutable profile digest and direct capability/readback evidence, not host_scope_id alone.",
+    "A broad inventory tool could reduce implementation effort, but its dependency, privilege, collection and upload surface may exceed the small deterministic F2 acceptance contract and obscure exact evidence provenance."
+  ],
+  "next_falsifier": "For the F2-WP-1201 implementation, test deterministic profile behavior across repeated same-boot runs, reboot, benign package/tool-version change, kernel/driver change, USB hotplug/removal, missing permissions, VM/container execution and synthetic hardware change. Verify forbidden raw identifiers never enter output; verify required profile changes invalidate dependent host evidence while stable host lineage remains separate.",
+  "architecture_delta": "E1 supports a candidate split between HostScopeIdentity, BootScopeIdentity and TargetEnvironmentProfileDigest, plus requirement-specific HostCapabilityWitnesses. E2 mapping is required before architecture credit or Trigger-4 handoff.",
+  "research_credit": "E1_SOURCE_READ_ONLY",
+  "runtime_credit": 0,
+  "physical_host_credit": 0,
+  "architecture_acceptance_credit": 0,
+  "whole_system_credit": 0,
+  "pending_research_db_sync": "PENDING_BINARY_DB_PATH_NOT_MUTATED_BY_THIS_WORKER"
+}
