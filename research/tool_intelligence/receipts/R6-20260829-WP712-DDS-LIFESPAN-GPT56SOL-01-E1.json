@@ -1,0 +1,68 @@
+{
+  "schema": "FRANKENSTEIN2_TRIGGER6_EVIDENCE_RECEIPT/v1",
+  "research_id": "R6-20260829-WP712-DDS-LIFESPAN-GPT56SOL-01",
+  "claim_target": "E1_SOURCE_READ",
+  "status": "E1_SOURCE_READ_COMPLETE",
+  "worker": "GPT-5.6-Sol",
+  "claim_commit": "210794eccc691121a14f7dd4f1f650ac4039d199",
+  "target_workpackage": "F2-WP-712",
+  "source_snapshot": {
+    "wp712_claim_commit": "0dede55baaff67a9ba435e839d46c01ed505b953",
+    "research_entity_main": "d9d4fea68eafe7148678f003b932f7bfbbf34acc"
+  },
+  "sources": [
+    {
+      "id": "OMG-DDS-1.4",
+      "type": "EXTERNAL_PRIMARY",
+      "url": "https://www.omg.org/spec/DDS/1.4/PDF",
+      "observations": [
+        "LIFESPAN exists specifically to avoid delivery of stale data; expiration is source timestamp plus configured lifespan.",
+        "Expired samples are removed from reader/transient/persistent caches rather than delivered later.",
+        "The specification states that lifespan based on source timestamps relies on sufficiently synchronized sender/receiver clocks; reception time may be substituted when the service can detect clock problems.",
+        "DESTINATION_ORDER distinguishes reception-order from source-timestamp order; source timestamp can provide a consistent final order across subscribers under its stated assumptions.",
+        "HISTORY KEEP_LAST is a bounded latest-values mechanism but does not itself prove freshness or authorization."
+      ]
+    },
+    {
+      "id": "ROS2-QOS",
+      "type": "EXTERNAL_PRIMARY",
+      "url": "https://docs.ros.org/en/humble/Concepts/Intermediate/About-Quality-of-Service-Settings.html",
+      "observations": [
+        "ROS 2 documents lifespan as the maximum publish-to-receive age before a message is stale/expired and silently dropped.",
+        "Deadline and liveliness are separate concepts: expected message interval and publisher-aliveness detection do not prove event freshness by themselves."
+      ]
+    },
+    {
+      "id": "ROS2-RMW-IMPLEMENTATION",
+      "type": "EXTERNAL_PRIMARY",
+      "url": "https://docs.ros.org/en/ros2_documentation/rolling/Tutorials/Advanced/Creating-An-RMW-Implementation.html",
+      "observations": [
+        "ROS 2 middleware implementations may ignore advanced QoS policies; the documentation explicitly gives rmw_zenoh_cpp deadline/lifespan as an example.",
+        "Therefore a safety/epistemic invariant such as WP712 stale-event rejection cannot be delegated solely to transport QoS."
+      ]
+    }
+  ],
+  "f2_mapping": [
+    "WP712 already requires typed percept events with exact source/generation/epistemic/time/provenance identity and forbids late stale remote events from becoming current world truth.",
+    "DDS LIFESPAN is a useful donor semantic for explicit expiry, not a justified dependency or authority layer.",
+    "F2 clock_domain identity is more explicit than assuming globally synchronized source clocks; cross-clock comparison must therefore be proven or fail closed.",
+    "Bridge reconnect must not replay retained transport samples merely because the middleware considers them deliverable; F2 generation, permission snapshot and explicit freshness fences still decide admission.",
+    "Transport deadline/liveliness can be diagnostic evidence of stream health but neither authorizes sensor access nor proves observation truth."
+  ],
+  "hypothesis": "WP712 should adopt DDS-like explicit lifespan/source-order semantics inside its own typed envelope, bound to F2 clock-domain/generation identity, while treating transport QoS only as optional lower-layer assistance.",
+  "counterhypothesis": "WP712's existing generation/monotonic timestamps and ObserveIntent expiry already fully encode the necessary freshness invariant; adding explicit event lifespan/source-order fields duplicates state and increases mismatch risk.",
+  "source_read_conclusion": "PROMOTE_TO_E2_ARCHITECTURE_MAPPING_WITH_NO_IMPORT_BIAS",
+  "candidate_falsifiers": [
+    "disconnect -> producer advances generation -> reconnect -> retained old event arrives: must be rejected regardless of transport delivery",
+    "source and receiver clock domains are incomparable: event must not be accepted as fresh from raw timestamp arithmetic alone",
+    "same generation but event age exceeds declared freshness/lifespan: must be stale",
+    "deadline/liveliness healthy but permission snapshot revoked: event/RAW/VLM path must still fail capability validation",
+    "middleware ignores lifespan: WP712's own contract must still reject stale delivery deterministically"
+  ],
+  "evidence_scope": "E1_SOURCE_READ_ONLY",
+  "research_credit": "E1_ONLY",
+  "architecture_credit": 0,
+  "runtime_credit": 0,
+  "integration_credit": 0,
+  "next_exact_gate": "Acquire E2 claim and decide whether explicit bridge lifespan/source-sequence fields add information beyond existing generation, clock_domain, event timestamps and ObserveIntent expiry; preserve only the minimum nonduplicative freshness contract."
+}
