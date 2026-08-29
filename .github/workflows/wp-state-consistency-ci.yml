@@ -1,3 +1,4 @@
+# F2-WP-002 G5: validate the effective v2 state view, not the lagging snapshot alone.
 name: Workpackage State Consistency CI
 
 on:
@@ -6,13 +7,40 @@ on:
     paths:
       - 'workpackages/STATE_CONSISTENCY_CONTRACT.md'
       - 'workpackages/WORKPACKAGE_STATE_CONSISTENCY_CONTRACT_V1.json'
+      - 'workpackages/STATE_VIEW_CONTRACT_V2.json'
+      - 'workpackages/STATE_CONCURRENCY_PROTOCOL_V2.md'
       - 'workpackages/F2-WP-002_STATE_CONTRACT.md'
       - 'workpackages/STATE.json'
+      - 'workpackages/state_events/**'
       - 'workpackages/active/**'
       - 'workpackages/claims/**'
       - 'workpackages/reconciliations/**'
       - 'tools/validate_workpackage_state.py'
+      - 'tools/validate_effective_workpackage_state.py'
+      - 'tools/resolve_workpackage_state_v2.py'
       - 'tests/test_validate_workpackage_state.py'
+      - 'tests/test_resolve_workpackage_state_v2.py'
+      - 'tools/validate_wp_state_consistency_v1.py'
+      - 'tests/test_validate_wp_state_consistency_v1.py'
+      - '.github/workflows/wp-state-consistency-ci.yml'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'workpackages/STATE_CONSISTENCY_CONTRACT.md'
+      - 'workpackages/WORKPACKAGE_STATE_CONSISTENCY_CONTRACT_V1.json'
+      - 'workpackages/STATE_VIEW_CONTRACT_V2.json'
+      - 'workpackages/STATE_CONCURRENCY_PROTOCOL_V2.md'
+      - 'workpackages/F2-WP-002_STATE_CONTRACT.md'
+      - 'workpackages/STATE.json'
+      - 'workpackages/state_events/**'
+      - 'workpackages/active/**'
+      - 'workpackages/claims/**'
+      - 'workpackages/reconciliations/**'
+      - 'tools/validate_workpackage_state.py'
+      - 'tools/validate_effective_workpackage_state.py'
+      - 'tools/resolve_workpackage_state_v2.py'
+      - 'tests/test_validate_workpackage_state.py'
+      - 'tests/test_resolve_workpackage_state_v2.py'
       - 'tools/validate_wp_state_consistency_v1.py'
       - 'tests/test_validate_wp_state_consistency_v1.py'
       - '.github/workflows/wp-state-consistency-ci.yml'
@@ -31,9 +59,11 @@ jobs:
         with:
           python-version: '3.12'
       - name: Run canonical deterministic state-consistency regressions
-        run: python -m unittest -v tests.test_validate_workpackage_state
-      - name: Validate current repository workpackage state
-        run: python tools/validate_workpackage_state.py .
+        run: python -m unittest -v tests.test_validate_workpackage_state tests.test_resolve_workpackage_state_v2
+      - name: Validate effective current repository workpackage state
+        run: python tools/validate_effective_workpackage_state.py .
+      - name: Validate v2 event bindings directly
+        run: python tools/resolve_workpackage_state_v2.py . --check-active
       - name: Run F2-WP-002 generation-consistency regressions
         run: python -m unittest -v tests.test_validate_wp_state_consistency_v1
       - name: Validate active F2-WP-002 generation
