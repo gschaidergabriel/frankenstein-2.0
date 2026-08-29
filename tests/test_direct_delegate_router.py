@@ -160,6 +160,14 @@ def test_candidate_identity_is_deterministic_and_changes_with_policy_or_task_sha
     assert changed.candidate_id != first.candidate_id
 
 
+def test_candidate_id_tampering_fails_closed_at_the_candidate_boundary():
+    cycle = make_cycle()
+    candidate = route_task(cycle_contract=cycle, request=make_request(cycle), policy=make_policy())
+
+    with pytest.raises(DirectDelegateRouterError, match="candidate_id does not bind exact route candidate content"):
+        replace(candidate, candidate_id="route:" + "f" * 64)
+
+
 def test_candidate_classification_cannot_be_rewritten_into_authority():
     cycle = make_cycle()
     candidate = route_task(cycle_contract=cycle, request=make_request(cycle), policy=make_policy())
