@@ -120,6 +120,13 @@ class TargetUserspaceTwinTests(unittest.TestCase):
         with self.assertRaises(TargetUserspaceTwinError):
             plan_from_json("[]")
 
+    def test_missing_profile_schema_fails_closed_review_falsifier(self):
+        """REVIEW_ONLY: exact profile identity must not be minted from an absent schema."""
+        profile = _profile()
+        del profile["schema"]
+        with self.assertRaises(TargetUserspaceTwinError):
+            build_t1_userspace_plan(profile)
+
 
 if __name__ == "__main__":
     unittest.main()
