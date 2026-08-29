@@ -1,0 +1,123 @@
+{
+  "schema": "F2_TRIGGER6_SOURCE_READ_EVIDENCE/v1",
+  "research_id": "R6-SEED-009",
+  "claim_target": "E1_SOURCE_READ",
+  "slot": "SOURCE_ARCHAEOLOGIST",
+  "status": "E1_SOURCE_READ_COMPLETED_SOURCE_SCOPE_ONLY",
+  "trigger": "6",
+  "created_at_local": "2026-08-29T15:01:00+07:00",
+  "coordination": {
+    "canonical_claim_path": "research/tool_intelligence/claims/R6-SEED-009/E1_SOURCE_READ.json",
+    "canonical_claim_commit": "4dd582bd8377ea3af21f55fa015421ecfa5db2f5",
+    "claim_was_create_only_before_material_source_read": true,
+    "parallel_saturation_reconciliation": "clay-global-research-entity@18c89c1bd06acaa735ac6084ac7e5f279b3d0559:research_entity/frankenstein2_tool_intelligence/reconciliations/20260829T1459P0700_TRIGGER6_PARALLEL_CLAIM_SATURATION_GPT56SOL.json"
+  },
+  "architecture_snapshot": {
+    "f2_main_before_claim": "46aee3bf37a938dbea5936b9c935ffb7bd74cdf3",
+    "f2_main_reentry_before_result": "a0b7696c31af77e4ef9f42d26c7b3699d3c90c49",
+    "research_entity_main_reentry_before_result": "3e0248589c770ca45abe8d204a57445989210890",
+    "architecture_delta_fusion": "clay-global-research-entity@8f56b151c918034beead3a1085aeecf5d119f6b7:research_entity/frankenstein2_tool_intelligence/deltas/ADF-20260829T1455P0700-GPT56SOL.json",
+    "supervisor": "9.13AQ_NON_AUTHORITY",
+    "mode": "FREE_ONLY"
+  },
+  "candidate": {
+    "repo": "QAInsights/perf-skills",
+    "source_commit": "e73a9c817422b61c161e9ef4d79d2d6d636f8526",
+    "source_commit_time_utc": "2026-08-29T07:36:04Z",
+    "license": "MIT",
+    "package_version_observed": "4.1.0",
+    "seed_hypothesis": "Routed performance-testing knowledge may be a low-token MethodMemory/skill donor for F2 performance experiments.",
+    "seed_counterhypothesis": "A static skill corpus may add stale or generic guidance without measurable gain over RCPD and live research."
+  },
+  "source_reads": [
+    {
+      "path": "skills/perf/SKILL.md",
+      "finding": "The repository implements explicit selective loading: tool-specific questions load the tool reference, strategy questions load a topic reference, mixed questions load topic then tool, and the instruction says never to load all references at once and to select one or two relevant files. This is concrete source structure, not a README-only claim."
+    },
+    {
+      "path": ".claude/CLAUDE.md",
+      "finding": "The evaluation design compares with-skill and without-skill agents, records per-assertion grades plus timing, and aggregates a benchmark. The eval-output workspace is intentionally gitignored, so the committed guide describes the method but does not itself reproduce benchmark outcomes."
+    },
+    {
+      "path": "skills/perf/evals/evals.json",
+      "finding": "Twelve committed eval prompts contain explicit objectively checkable assertions across tool selection, common failure diagnosis, LLM inference and SLO/capacity topics. This is a reusable ablation/evaluation schema candidate, not F2 performance evidence."
+    },
+    {
+      "path": "skills/perf/references/topics/llm-inference.md",
+      "finding": "The source distinguishes TTFT, TPOT/ITL, end-to-end latency, token throughput, request throughput, goodput and p50/p95/p99, and emphasizes workload-shape controls. These are candidate measurement dimensions for later F2 characterization, not validated F2 thresholds or benchmark results."
+    },
+    {
+      "path": "package.json",
+      "finding": "Observed package metadata identifies version 4.1.0, main skills/perf/SKILL.md, Node >=14 and MIT licensing; no dependency section is declared in this package metadata. This does not prove the entire referenced tool ecosystem has zero dependencies."
+    },
+    {
+      "path": "LICENSE.md",
+      "finding": "MIT permission text is present; copying substantial source/text would still require preservation of the copyright and permission notice."
+    }
+  ],
+  "evidence_classification": {
+    "selective_reference_router": "SOURCE_DIRECT_E1",
+    "with_skill_without_skill_eval_method": "SOURCE_DIRECT_E1",
+    "committed_eval_specification": "SOURCE_DIRECT_E1",
+    "upstream_eval_quality_numbers": "NOT_REPRODUCED_IN_THIS_E1",
+    "llm_performance_metric_taxonomy": "SOURCE_DIRECT_E1_METHOD_DONOR_ONLY",
+    "f2_benchmark_gain": "UNKNOWN",
+    "f2_runtime_behavior": "UNKNOWN"
+  },
+  "falsifiers_and_risks": [
+    "A F2-native bounded ContextView/RCPD route may already achieve equal or better token efficiency, making the donor redundant.",
+    "Static performance guidance can age as tools and serving stacks change; method facts require provenance/version binding and should not become canonical world facts.",
+    "The upstream eval outputs are not committed in the inspected source, so claimed quality uplift is not reproduced here.",
+    "A live external catalog route can introduce network/recency dependence; F2 FREE_ONLY/offline-safe operation must not depend on it as runtime authority.",
+    "Importing the full knowledge corpus would increase context and maintenance burden; a thin structural distillation may dominate wholesale adoption."
+  ],
+  "f2_mapping": {
+    "seed_targets": ["F2-WP-304", "F2-WP-305", "F2-WP-902"],
+    "adjacent_inferred_overlap": ["F2-WP-306"],
+    "candidate_reuse": [
+      "WP304: store reusable measurement procedures as provenance-bound methods rather than facts.",
+      "WP305: use paired with-method/without-method assertion-based ablations and record timing/token deltas.",
+      "WP902: borrow metric categories and workload-shape discipline, then calibrate thresholds on F2-specific evidence rather than importing upstream values.",
+      "WP306 adjacent hypothesis: use a small router/index to load only the one or two method references required by the current task."
+    ]
+  },
+  "decision": {
+    "e1_result": "PASS_AT_SOURCE_SCOPE",
+    "adoption": "DO_NOT_IMPORT_WHOLESALE",
+    "preferred_direction": "THIN_STRUCTURAL_DONOR",
+    "architecture_credit": 0,
+    "next_stage_recommendation": "E2_ARCHITECTURE_MAPPED_METHOD_ROUTER_ABLATION",
+    "next_question": "Can a provenance-bound method router plus paired method/no-method eval contract measurably improve F2-WP-304/WP-305 while reducing loaded context and without creating a second memory/truth authority?"
+  },
+  "required_e2_checks": [
+    "Map method objects to the existing Fact/Episode/Method/Process-Policy separation rather than adding a new truth store.",
+    "Bind every routed method reference to source/version/provenance and allow stale-method invalidation.",
+    "Define a fixed F2-native task set and paired method/no-method assertions before any performance claim.",
+    "Measure prompt/input tokens, output correctness/assertion pass, latency and method-selection overhead.",
+    "Prove that unavailable live catalog/network access degrades to pinned local references rather than blocking cognition.",
+    "Keep F2 thresholds and capacity claims unpromoted until measured on actual F2 workloads."
+  ],
+  "execution": {
+    "provider_calls": 0,
+    "paid_execution": false,
+    "vps_execution": 0,
+    "real_effect_experiment": false,
+    "upstream_benchmark_reproduction": false
+  },
+  "credits": {
+    "trigger6_e1_source_read": 1,
+    "trigger6_e2_architecture_mapped": 0,
+    "trigger6_e3_claim_reproduced": 0,
+    "trigger6_e4_f2_ablation": 0,
+    "trigger6_e5_build_candidate": 0,
+    "trigger6_e6_f2_accepted": 0,
+    "whole_f2_runtime": 0,
+    "entityos_hcu_runtime": 0,
+    "physical_grid10": 0,
+    "training": 0
+  },
+  "mirror": {
+    "research_entity_status": "PENDING_AFTER_F2_WRITE",
+    "pending_research_sqlite_sync": "NOT_ATTEMPTED_BINARY_SAFE_SYNC_SURFACE_NOT_USED"
+  }
+}
