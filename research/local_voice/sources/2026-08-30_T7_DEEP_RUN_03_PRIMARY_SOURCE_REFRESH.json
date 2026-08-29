@@ -1,0 +1,70 @@
+{
+  "schema_version": 2,
+  "trigger": "7",
+  "run": "DEEP_RUN_03",
+  "date_local": "2026-08-30",
+  "worker": "GPT-5.6-Sol-TRIGGER7",
+  "scope": "Primary-source refresh for German-first local realtime voice. Source evidence only; no target-runtime, German E2E, Trigger4, or acceptance credit.",
+  "canonical_f2_base_sha": "c860cfdcac509e6b741401b32938436e23677802",
+  "parallel_state_reconciled": {
+    "official_qwen35_baseline_pin": "research/local_voice/models/T7_QWEN35_4B_OFFICIAL_BASELINE_PIN_2026-08-30.json",
+    "source_revision": "851bf6e806efd8d0a36b00ddf55e13ccb7b8cd0a",
+    "community_q4_candidate_revision": "5520227b6782610f3e8e080edd1867558d3856f1",
+    "reported_q4_sha256": "f987bfd0fccb9bfb76e0926eb05f34ba96401f901b0204b7043608488f4f7422",
+    "target_status": "PINNED_SOURCE_ONLY_NOT_TARGET_VERIFIED"
+  },
+  "findings": [
+    {
+      "id": "TURN_FASTTURN_2026",
+      "classification": "SOURCE_DIRECT_PLUS_ARCHITECTURE_INFERENCE",
+      "sources": ["https://arxiv.org/abs/2604.01897", "https://github.com/ASLP-lab/FastTurn"],
+      "observed": [
+        "FastTurn combines acoustic cues with streaming CTC-derived semantic cues for low-latency turn detection.",
+        "Its released evaluation material explicitly includes overlap, backchannels, pauses, pitch variation and environmental noise."
+      ],
+      "project_delta": "Promote FastTurn from generic literature reference to a high-value T7-TURN-001 discriminator/dataset-method donor for Frankenstein false-endpoint, overlap, backchannel and interruption tests.",
+      "negative_space": "No German-specific endpoint quality, target-host latency, cancellation correctness, or Frankenstein ABI integration was observed here."
+    },
+    {
+      "id": "QWEN3_TTS_CURRENT_SOURCE_REFRESH",
+      "classification": "SOURCE_DIRECT_WITH_OPEN_RUNTIME_RISK",
+      "sources": ["https://github.com/QwenLM/Qwen3-TTS", "https://github.com/QwenLM/Qwen3-TTS/blob/main/pyproject.toml", "https://github.com/QwenLM/Qwen3-TTS/issues"],
+      "observed": [
+        "Official Qwen3-TTS exposes 0.6B/1.7B models, Apache-2.0 source, German support, streaming speech generation, voice design and voice cloning.",
+        "Current package metadata and issue traffic show nontrivial runtime/streaming dependency and compatibility risk."
+      ],
+      "project_delta": "Keep Qwen3-TTS first in the expressive German TTS benchmark order, but gate streaming credit on target-host TTFA/RTF/cancellation reproduction. Piper/Thorsten remains the tiny deterministic latency floor.",
+      "negative_space": "No local target-host execution, male identity stability, ExpressionVector control, German pronunciation score, TTFA, RTF or long-session evidence was observed in this run."
+    },
+    {
+      "id": "PIPER_THORSTEN_BASELINE_REFRESH",
+      "classification": "SOURCE_DIRECT",
+      "sources": ["https://huggingface.co/Thorsten-Voice/Piper", "https://huggingface.co/Thorsten-Voice/Piper/blob/main/de_DE-thorsten-high.onnx"],
+      "observed": ["German Thorsten Piper ONNX artifacts remain available under MIT metadata; the high model is approximately 114 MB and has a published SHA-256."],
+      "project_delta": "Retain Piper/Thorsten as the low-footprint deterministic German TTS latency/resource floor for the same host and sentence corpus used by expressive challengers.",
+      "negative_space": "No claim that Piper matches the desired conversational naturalness or state-driven expressive control."
+    },
+    {
+      "id": "QWEN3_ASR_CURRENT_REFRESH",
+      "classification": "SOURCE_DIRECT",
+      "sources": ["https://huggingface.co/Qwen/Qwen3-ASR-0.6B", "https://huggingface.co/docs/transformers/main/model_doc/qwen3_asr"],
+      "observed": ["Qwen3-ASR-0.6B remains an Apache-2.0 multilingual ASR candidate with explicit German support; the current model tree reports a roughly 1.88 GB safetensors artifact."],
+      "project_delta": "No ranking promotion beyond existing T7-ASR-001. The decisive test remains identical real German room audio against donor Whisper and Nemotron 3.5 Streaming under measured endpoint/partial-transcript latency.",
+      "negative_space": "No target-host WER/CER/latency evidence in this run."
+    },
+    {
+      "id": "QWEN35_4B_PARALLEL_PIN_RECONCILIATION",
+      "classification": "CURRENT_REPOSITORY_SOURCE",
+      "observed": [
+        "Parallel Trigger-7 work pinned Qwen/Qwen3.5-4B at revision 851bf6e806efd8d0a36b00ddf55e13ccb7b8cd0a.",
+        "SandLogicTechnologies/Qwen3.5-4B-GGUF Q4_K_M is pinned at revision 5520227b6782610f3e8e080edd1867558d3856f1 with reported SHA-256 f987bfd0fccb9bfb76e0926eb05f34ba96401f901b0204b7043608488f4f7422."
+      ],
+      "project_delta": "The official-family Q4 control is no longer a source-pinning blocker. The next gate is clay-direct-dev quarantine download, recomputed hash, load identity and German baseline-vs-abliterated A/B.",
+      "negative_space": "The community Q4 has not been target-downloaded, hash-verified or executed; benchmark/runtime credit remains zero."
+    }
+  ],
+  "hypothesis_update": "Lane A remains favored. The strongest near-term improvement is tighter causal turn control: streaming ASR plus acoustic-semantic endpoint intelligence feeding cancellation-safe local inference and expressive streaming TTS.",
+  "counterhypothesis": "FastTurn-like semantic endpointing may add model/ASR latency and complexity without improving German Frankenstein turn behavior enough to beat tuned acoustic VAD plus a simpler endpoint heuristic.",
+  "cheapest_high_information_discriminator": "After the already-dispatched hardware roundtrip reaches a terminal executable state, replay a pinned German pause/backchannel/overlap corpus on clay-direct-dev through donor endpointing versus a FastTurn-derived or equivalent acoustic-semantic controller while holding audio transport and ASR fixed; compare false endpoints, late endpoints and barge-in cancellation latency.",
+  "credit": {"source": "OBSERVED", "runtime": 0, "german_e2e": 0, "trigger4_acceptance": 0, "whole_system": 0}
+}
