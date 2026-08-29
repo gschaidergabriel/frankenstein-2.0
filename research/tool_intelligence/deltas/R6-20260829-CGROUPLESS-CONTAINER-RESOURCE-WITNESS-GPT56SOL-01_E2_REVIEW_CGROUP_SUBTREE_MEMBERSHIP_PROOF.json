@@ -1,0 +1,76 @@
+{
+  "schema": "FRANKENSTEIN2_TRIGGER6_RESEARCH_DELTA/v1",
+  "research_id": "R6-20260829-CGROUPLESS-CONTAINER-RESOURCE-WITNESS-GPT56SOL-01",
+  "trigger": "6",
+  "stage": "E2_ARCHITECTURE_REVIEW",
+  "review_objective": "CGROUP_SUBTREE_MEMBERSHIP_PROOF_AFTER_E3",
+  "claim_ref": "research/tool_intelligence/claims/R6-20260829-CGROUPLESS-CONTAINER-RESOURCE-WITNESS-GPT56SOL-01/E2_REVIEW_CGROUP_SUBTREE_MEMBERSHIP_PROOF_AFTER_E3.json",
+  "preceding_e2_ref": "research/tool_intelligence/deltas/R6-20260829-CGROUPLESS-CONTAINER-RESOURCE-WITNESS-GPT56SOL-01_E2_ARCHITECTURE_MAP.json",
+  "existing_trigger4_handoff": "trigger4/inbox/tool_research/R6-CGROUPLESS-RESOURCE-WITNESS-E2-FUSION-TRIGGER4-HANDOFF-GPT56SOL.json",
+  "primary_source_findings": [
+    {
+      "mechanism": "cgroup.procs",
+      "finding": "For a normal domain cgroup, cgroup.procs enumerates processes belonging to that cgroup and is not a recursive membership proof for descendant cgroups. A subtree proof therefore requires recursive descendant-cgroup enumeration or an equivalent independently complete membership source."
+    },
+    {
+      "mechanism": "cgroup.type / threaded domains",
+      "finding": "Threaded-domain semantics differ from ordinary domain semantics. The thread-root cgroup.procs may represent processes across the threaded subtree, while threaded children cannot be treated as ordinary domain cgroups. The witness must bind and branch on cgroup.type rather than applying one membership algorithm universally."
+    },
+    {
+      "mechanism": "cgroup.events populated",
+      "finding": "populated is recursively true when the cgroup or descendants contain live processes, but it is liveness evidence, not process-identity or completeness evidence. populated=1 cannot prove dedicated ownership."
+    },
+    {
+      "mechanism": "/proc/<pid>/cgroup and cgroup namespaces",
+      "finding": "The displayed cgroup path is relative to the reader's cgroup namespace root. A host-side resource witness must therefore bind the observer cgroup-namespace identity or otherwise prove it is reading from the intended host perspective before treating the path as an exact host cgroup identity."
+    },
+    {
+      "mechanism": "cgroup.stat nr_descendants",
+      "finding": "Topology counters may be retained as sanity evidence, but descendant counts do not identify member processes and cannot replace explicit membership proof."
+    }
+  ],
+  "refined_dedicated_subtree_gate": [
+    "bind exact F2 execution/container identity",
+    "obtain trusted runtime-reported host main PID and bind its process incarnation",
+    "bind observer cgroup namespace identity/perspective",
+    "resolve exact cgroup-v2 path from that bound observer perspective",
+    "read and bind cgroup.type",
+    "snapshot descendant cgroup topology and digest it; use type-correct recursive membership semantics",
+    "snapshot the process membership across the complete measured subtree",
+    "derive the expected container/workload process set from an independent trusted runtime/PID-namespace surface when available; do not infer completeness from one main PID",
+    "repeat or generation-fence membership around metric collection so migration/race cannot silently relabel counters",
+    "only after dedicatedness and coverage are proven may readable cgroup counters be classified EXACT_CANDIDATE; otherwise preserve SUPERSET, PROCESS_SCOPED_DEGRADED, or UNKNOWN"
+  ],
+  "falsifiers": [
+    "any unrelated process anywhere in the measured subtree falsifies exact container attribution",
+    "omitting a descendant cgroup falsifies complete subtree membership proof",
+    "unbound observer cgroup namespace leaves /proc/<pid>/cgroup path identity ambiguous",
+    "handling a threaded cgroup as a normal domain cgroup invalidates the membership proof",
+    "using cgroup.events populated=1 as process identity or completeness evidence invalidates the proof",
+    "a readable counter without exact scope/coverage remains non-promoting evidence"
+  ],
+  "architecture_effect": {
+    "decision": "STRENGTHEN_EXISTING_CGROUPWITNESS_V1_CANDIDATE_NO_NEW_SCHEMA",
+    "required_additional_bindings": [
+      "observer_cgroup_namespace_identity",
+      "cgroup_type",
+      "descendant_topology_digest",
+      "membership_snapshot_digest",
+      "membership_algorithm_or_mode",
+      "membership_coverage_status",
+      "pre_post_or_generation_fence"
+    ],
+    "trigger4_effect": "Existing Trigger4 discriminator remains the sole target-runtime lane; consume this review as a contract refinement rather than creating a duplicate handoff."
+  },
+  "unresolved": "Exact independent full-container process-set derivation on the target Podman/runtime surface remains a Trigger4 runtime discriminator; main-PID discovery alone is insufficient.",
+  "credits": {
+    "e2_architecture_review": 1,
+    "e3_local_procfs_reproduction": "EXISTS_SEPARATELY",
+    "e4_f2_ablation": 0,
+    "e5_build_candidate": 0,
+    "e6_trigger4_adoption": 0,
+    "target_runtime": 0,
+    "container_total": 0,
+    "whole_system": 0
+  }
+}
