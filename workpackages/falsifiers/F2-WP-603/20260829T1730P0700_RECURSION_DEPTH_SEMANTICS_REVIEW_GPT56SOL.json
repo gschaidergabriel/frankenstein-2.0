@@ -1,0 +1,38 @@
+{
+  "schema": "FRANKENSTEIN2_WORKPACKAGE_FALSIFIER/v1",
+  "workpackage_id": "F2-WP-603",
+  "generation": 1,
+  "claim_id": "F2-WP-603-G1-GPT56SOL-RECURSION-ROUTER-20260829",
+  "worker_id": "GPT-5.6-Sol-review-organ",
+  "classification": "REVIEW_ONLY_CANDIDATE_FALSIFIER",
+  "target_claim_head": "fd78d2898aec011922d8f6cd97c581abae382982",
+  "target_claim_path": "workpackages/active/F2-WP-603.json",
+  "dependency_source_path": "src/frankenstein2/native_child_abi.py",
+  "dependency_source_blob_sha": "fbaba3705d6ac1337fe3a4ab8a44d5020e789695",
+  "review_question": "WP603 must make the recursion-depth origin unambiguous. F2-WP-601 exposes ChildResourceBudget.max_nested_depth as a non-negative integer but does not itself define whether the first delegated child consumes depth 1 or whether max_nested_depth counts only descendants spawned by that child. The WP603 claim names R0 as no child recursion and R1/R2/R3 as recursion depth 1/2/3. Without an explicit mapping, a formally deterministic router can still admit an off-by-one recursion budget or unnecessarily require a NativeChildRequest on DIRECT_SMALL/R0.",
+  "counterhypotheses": [
+    "R0 means a delegated child may run but may not spawn descendants; then DELEGATE_BUILD+R0 is valid and max_nested_depth=0 is sufficient.",
+    "R0 means no child exists at all; then DELEGATE_BUILD+R0 is contradictory and the first delegated child is R1.",
+    "DIRECT_SMALL+R0 should not require any NativeChildRequest identity because no child boundary is consumed; requiring one would couple the direct path to an irrelevant downstream authority."
+  ],
+  "required_discriminator": [
+    "Define in the WP603 source contract exactly what depth zero is relative to the root task and delegated child.",
+    "Test DELEGATE_BUILD with selected R0 and ChildResourceBudget.max_nested_depth=0 against the chosen definition.",
+    "Test the R1/R2/R3 boundary at exactly-equal budget and one-below budget to expose off-by-one admission.",
+    "Test DIRECT_SMALL+R0 without a NativeChildRequest if the design intends the direct path to remain independent of child identity; otherwise document and test why a child request is required even though no delegation occurs.",
+    "Keep DIRECT_SMALL+R1/R2/R3 fail-closed as already required by the active claim."
+  ],
+  "status": "OPEN_REVIEW_GATE_NOT_YET_EXECUTABLE",
+  "negative_evidence_scope": "NONE_YET_IMPLEMENTATION_NOT_PRESENT_AT_REVIEW_TIME",
+  "does_not_claim": [
+    "WP603 implementation failure",
+    "repository CI failure",
+    "runtime failure",
+    "physical GRID10 failure",
+    "child execution failure",
+    "effect/completion failure",
+    "whole Frankenstein 2.0 failure"
+  ],
+  "recommended_resolution": "The active WP603 mutation owner should absorb this as explicit source-level terminology plus boundary tests before acceptance. If the implementation already chooses one semantic mapping, preserve that choice in canonical constants/docstrings and tests so later WP604 nested-spawn handling cannot reinterpret depth differently.",
+  "next_exact_action": "When recursion_router.py lands on the active WP603 branch, review the exact R0/R1/R2/R3-to-max_nested_depth mapping and convert this review gate into an executable counterexample only if the source leaves an off-by-one or irrelevant-dependency path open."
+}
