@@ -1,0 +1,130 @@
+{
+  "schema": "FRANKENSTEIN2_TRIGGER6_ARCHITECTURE_DELTA/v1",
+  "research_id": "R6-20260829-HRT-NAMESPACE-VS-VM-GPT56SOL-01",
+  "evidence_stage": "E2_ARCHITECTURE_MAPPED",
+  "status": "PROPOSED_EVIDENCE_BOUND_ARCHITECTURE_DELTA",
+  "created_at": "2026-08-29T19:40:00+07:00",
+  "live_architecture_binding": {
+    "host_reality_packet": "workpackages/research_inbox/HOST_REALITY_TWIN_AND_UNIFIEDDB_COMPLETION_ESTIMATOR_2026-08-29.json",
+    "wp1201_source_commit": "be16a7752d92207055c469e0ac707de7060b83d3",
+    "wp1201_test_commit": "86ffdf763346f96efb15714e7efce97fc61f42c0",
+    "trigger6_e1_receipt": "research/tool_intelligence/receipts/R6-20260829-HRT-NAMESPACE-VS-VM-GPT56SOL-01_E1_SOURCE_READ.json"
+  },
+  "problem": "The Host Reality Twin packet correctly demands interface/failure-surface fidelity rather than silicon-identical emulation, but does not yet make the cheapest execution substrate and escalation boundary explicit. Treating every scenario as a full VM would consume more startup/RAM/coordination budget and still would not reproduce the physical UM790 board; treating every scenario as a namespace container would miss separate-kernel, boot and kernel-driver behavior.",
+  "architecture_delta": {
+    "name": "HRT_THREE_TIER_ESCALATION_FABRIC",
+    "decision": "ADOPT_AS_DESIGN_INPUT_NOT_RUNTIME_ACCEPTANCE",
+    "tiers": [
+      {
+        "id": "HRT-TIER-A",
+        "name": "FAST_USERSPACE_TWIN",
+        "default_substrate": "systemd-nspawn namespace OS container",
+        "purpose": [
+          "systemd service lifecycle",
+          "non-root filesystem/XDG ownership",
+          "user/session-shaped failure handling where reproducible in the container harness",
+          "network namespace/veth detach, rename, reconnect and impairment",
+          "bounded CPU/memory/IO pressure",
+          "isolated storage latency/failure injection",
+          "clean-state and dirty-state replay"
+        ],
+        "mechanisms": [
+          "Boot=yes/--boot",
+          "Ephemeral=yes or volatile image state",
+          "network namespaces + veth",
+          "systemd/cgroup-v2 resource controls",
+          "tc-netem with recorded parameters and seed",
+          "dm-delay/dm-flakey only on dedicated disposable test storage"
+        ],
+        "hard_limit": "Shares the host kernel and deliberately restricts kernel/device authority; cannot prove a target kernel, AMD Phoenix firmware, Radeon 780M, USB4, Secure Boot or physical-device behavior.",
+        "evidence_ceiling": "SIMULATED_HOST_VERIFIED"
+      },
+      {
+        "id": "HRT-TIER-B",
+        "name": "KERNEL_BOOT_TWIN",
+        "default_substrate": "QEMU/KVM guest",
+        "escalate_when": [
+          "the requirement depends on a separate kernel version/configuration",
+          "boot/reboot/initramfs/module/udev behavior is material",
+          "a fault must cross a guest-kernel boundary",
+          "Tier A cannot reproduce the relevant lifecycle without sharing the host kernel"
+        ],
+        "device_policy": "Prefer generic VirtIO for generic OS/device-lifecycle tests. A VirtIO PASS must never be narrated as proof of UM790-specific hardware-driver behavior.",
+        "cpu_policy": "Host CPU passthrough may increase CPU feature similarity but cannot create motherboard/GPU/USB4/firmware identity.",
+        "evidence_ceiling": "SIMULATED_HOST_VERIFIED"
+      },
+      {
+        "id": "HRT-TIER-C",
+        "name": "PHYSICAL_TARGET_WITNESS",
+        "substrate": "exact owner target host bound by TargetHostProfile generation/digest",
+        "entry_dependency": "F2-WP-1201 TargetHostProfile or successor exact host-identity contract",
+        "purpose": [
+          "bind real target environment identity",
+          "real device/session/permission readback",
+          "host-specific restart/recovery",
+          "physical acceptance and soak where required"
+        ],
+        "evidence_ceiling": "MAY_REACH_EXACT_HOST_BOUND/REAL_READBACK_VERIFIED/RESTART_RECOVERY_VERIFIED/SOAK_VERIFIED_ONLY_WITH_MATCHING_REAL_RECEIPTS"
+      }
+    ],
+    "escalation_contract": [
+      "Run the lowest-cost tier capable of falsifying the current requirement.",
+      "Escalate A->B only when the unresolved proof obligation materially depends on a separate kernel/boot/device-model boundary.",
+      "Escalate A/B->C whenever the requirement minimum maturity is exact-host/real-readback/restart-recovery/soak or the suspected defect is physical-host-specific.",
+      "A PASS at a lower tier never satisfies a requirement whose minimum evidence maturity is above that tier's ceiling.",
+      "A failure at Tier A/B is useful pre-handoff negative evidence; a PASS is robustness evidence, not proof of absence of target-host defects."
+    ]
+  },
+  "wp1201_fusion": {
+    "finding": "The new WP-1201 primitive already supplies the correct Tier-C identity anchor: fixed allow-listed read-only technical probes, deterministic generation-bound digest, explicit OBSERVED/UNKNOWN records, and no completion credit by itself.",
+    "required_follow_on": [
+      "Every Tier-A/B scenario receipt should record the simulated profile/image/kernel identity separately from the physical TargetHostProfile.",
+      "Every Tier-C host-specific receipt should bind TargetHostProfile generation + profile_digest_sha256.",
+      "When the target profile generation/digest changes materially, affected host-specific evidence must be re-evaluated rather than silently reused."
+    ]
+  },
+  "scenario_routing_examples": {
+    "Tier_A_first": [
+      "service crash/restart",
+      "network delay/loss/disconnect/reconnect",
+      "bounded CPU/memory pressure",
+      "disposable storage delay/flakey behavior",
+      "reinstall/update against existing simulated state"
+    ],
+    "Tier_B_first_or_escalated": [
+      "kernel-line mismatch",
+      "boot/reboot/initramfs path",
+      "kernel module availability semantics",
+      "guest udev/device-model behavior requiring an independent kernel"
+    ],
+    "Tier_C_mandatory": [
+      "Radeon 780M/amdgpu reset or display-loss class",
+      "USB4 firmware/enumeration behavior",
+      "Secure-Boot-dependent real module behavior",
+      "real PipeWire/Wayland permission/readback on the owner host",
+      "final clean-machine physical acceptance",
+      "physical restart/recovery/soak requirements"
+    ]
+  },
+  "counterhypothesis": "Maintaining two simulated substrates may create enough orchestration complexity that a single QEMU/KVM baseline is operationally cheaper overall.",
+  "next_discriminator": {
+    "stage": "E3_OR_E4_NOT_YET_EXECUTED",
+    "experiment": "Run the same bounded fault subset in Tier A and Tier B using fixed images and identical pass/fail contracts; collect cold-start latency, steady RSS, setup LOC/config surface, deterministic replay rate, scenario coverage and defect discrimination. Collapse Tier A into Tier B if the cost/complexity advantage is not material.",
+    "required_owner": "Trigger-4 build/test lane or a separately claimed Trigger-6 reproducibility objective with an admitted execution surface",
+    "current_credit": 0
+  },
+  "non_import_decision": "Do not import a large orchestration framework at E2. Use thin native wrappers around systemd-nspawn/QEMU/ip/tc/systemd/device-mapper primitives so receipts can bind exact command/config/image identities and the project keeps one completion/evidence authority.",
+  "routing": {
+    "primary_workpackage": "F2-WP-1108",
+    "supporting": ["F2-WP-1105", "F2-WP-1106", "F2-WP-1107", "F2-WP-1109", "F2-WP-1201", "CompletionGate", "UnifiedDB", "PerceptionFabric", "Voice"]
+  },
+  "credit": {
+    "research": "E2_ARCHITECTURE_MAPPED",
+    "source": true,
+    "runtime": 0,
+    "physical_host": 0,
+    "architecture_acceptance": 0,
+    "completion": 0,
+    "whole_system": 0
+  }
+}
