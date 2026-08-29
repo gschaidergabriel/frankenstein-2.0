@@ -1,0 +1,41 @@
+name: WP710 Perception Scheduler
+
+on:
+  pull_request:
+    paths:
+      - 'src/frankenstein2/perception_scheduler.py'
+      - 'src/frankenstein2/perception_fabric.py'
+      - 'tests/test_perception_scheduler.py'
+      - 'architecture/PERCEPTION_FABRIC.md'
+      - 'architecture/PERCEPTION_FABRIC_HARDENING_20260829.md'
+      - 'workpackages/PERCEPTION_FABRIC_PHASE.json'
+      - '.github/workflows/wp710-perception-scheduler-ci.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'src/frankenstein2/perception_scheduler.py'
+      - 'src/frankenstein2/perception_fabric.py'
+      - 'tests/test_perception_scheduler.py'
+      - 'architecture/PERCEPTION_FABRIC.md'
+      - 'architecture/PERCEPTION_FABRIC_HARDENING_20260829.md'
+      - 'workpackages/PERCEPTION_FABRIC_PHASE.json'
+      - '.github/workflows/wp710-perception-scheduler-ci.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  wp710-scheduler:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Compile scheduler and dependency contracts
+        run: python -m py_compile src/frankenstein2/perception_fabric.py src/frankenstein2/perception_scheduler.py
+      - name: Run deterministic WP710 falsifiers
+        env:
+          PYTHONPATH: .
+        run: python -m unittest tests.test_perception_scheduler -v
