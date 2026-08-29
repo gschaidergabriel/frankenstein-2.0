@@ -1,0 +1,53 @@
+{
+  "schema": "FRANKENSTEIN2_TRIGGER6_EVIDENCE_RECEIPT/v1",
+  "research_id": "R6-WP509-BUDGETGUARD-PROGRESS-STOP-001",
+  "claim_target": "E1_SOURCE_READ",
+  "status": "E1_SOURCE_READ_COMPLETE",
+  "created_at": "2026-08-29T16:21:10+07:00",
+  "worker": "GPT-5.6-Sol",
+  "claim_path": "research/tool_intelligence/claims/R6-WP509-BUDGETGUARD-PROGRESS-STOP-001/E1_SOURCE_READ.json",
+  "claim_commit": "7d429765359f07dd135f447d881a57f0b934d9c5",
+  "architecture_snapshot": {
+    "f2_main_observed_after_claim": "00cc0c3e9ac6941794a78d2ddd5947f624df580c",
+    "research_entity_main_observed": "eda5efe0b76efb4f2208717bdcfa3d69dc896e3f"
+  },
+  "external_source": {
+    "repo": "major-matters/budget-guard",
+    "commit": "0442a8facb623deee6de3374e18c97e5f36f88cc",
+    "license": "MIT",
+    "source_refs": {
+      "python_guard_blob": "88af91f735e6ca97836f891f538f83474a8b0424",
+      "python_policy_blob": "231f6eadf5130fe8a7b28278e4c79fd6fa8e1042",
+      "python_tests_blob": "aabbd6e1ae827436673f81847c93d235a64822a1",
+      "python_property_tests_blob": "96a67b72ad8fa0785bcf90e5dfad48bf01819d11",
+      "security_blob": "cde4b648900004039ee5264de478427ca5d1d120",
+      "license_blob": "50570642d47f77f3f1a59dc3ca2a425f91d96926"
+    }
+  },
+  "source_observations": [
+    "BudgetGuard separates pre-call check from post-call record and fail-closes budget violations.",
+    "It supports max calls, token caps, optional USD caps, per-task/global kill switch and sliding-window repeated-signature rejection.",
+    "Loop detection counts identical supplied signatures; the upstream security document explicitly warns that perturbed or interleaved loops can evade raw signatures and recommends semantic normalization.",
+    "The ledger and kill switches are in-memory and do not survive process restart or span processes/machines.",
+    "The upstream security document identifies check-then-act concurrency as a known overshoot race until a future reserve/commit API exists.",
+    "The inspected tests and property-test source exercise cap enforcement, repeated-signature rejection and fail-closed malformed-token handling; this run did not execute upstream tests, so no runtime/reproduction credit is granted."
+  ],
+  "initial_f2_relevance": {
+    "target": "F2-WP-509",
+    "disposition": "STRUCTURAL_FALSIFICATION_DONOR_ONLY_PENDING_E2",
+    "reason": "Current F2 WP509 already has bounded iteration, unchanged-state, remaining-work and typed-exit semantics. BudgetGuard may still provide an independent adversarial lens on repetition signatures and pre-call admission, but importing its in-memory ledger would duplicate authority and weaken restart/causal boundaries."
+  },
+  "counterhypotheses": [
+    "A semantic action signature may catch loop classes that F2 unchanged-state counters miss.",
+    "Conversely, signature repetition may falsely stop valid repeated actions that produce changing evidence; result/progress identity must be separated from action identity before adoption."
+  ],
+  "next_evidence_objective": "E2_ARCHITECTURE_MAPPED",
+  "credits": {
+    "research_evidence_stage": "E1",
+    "architecture_credit": 0,
+    "f2_ablation": 0,
+    "build_candidate": 0,
+    "runtime": 0,
+    "whole_system": 0
+  }
+}
