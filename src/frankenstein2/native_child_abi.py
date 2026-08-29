@@ -40,16 +40,39 @@ def _identifier(name: str, value: Any) -> str:
     return value
 
 
+def _canonical_json_integer(name: str, value: int) -> int:
+    """Require admission into the same JSON integer domain used by request hashing.
+
+    This is deliberately not an application resource-policy ceiling.  It only closes
+    the G1 gap where a constructor-valid Python integer could later fail inside the
+    exact ``json.dumps`` canonicalization path used by ``NativeChildRequest.sha256``.
+    """
+
+    try:
+        json.dumps(
+            value,
+            sort_keys=True,
+            separators=(",", ":"),
+            ensure_ascii=False,
+            allow_nan=False,
+        )
+    except (TypeError, ValueError) as exc:
+        raise NativeChildABIError(
+            f"{name} is outside the canonical JSON integer domain"
+        ) from exc
+    return value
+
+
 def _positive_int(name: str, value: Any) -> int:
     if type(value) is not int or value < 1:
         raise NativeChildABIError(f"{name} must be a positive integer")
-    return value
+    return _canonical_json_integer(name, value)
 
 
 def _nonnegative_int(name: str, value: Any) -> int:
     if type(value) is not int or value < 0:
         raise NativeChildABIError(f"{name} must be a non-negative integer")
-    return value
+    return _canonical_json_integer(name, value)
 
 
 def _digest(name: str, value: Any) -> str:
