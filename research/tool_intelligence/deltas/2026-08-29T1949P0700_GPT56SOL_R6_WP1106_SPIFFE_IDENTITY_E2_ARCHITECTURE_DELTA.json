@@ -1,0 +1,52 @@
+{
+  "schema": "FRANKENSTEIN2_TRIGGER6_ARCHITECTURE_DELTA/v1",
+  "delta_id": "F2-WP1106-REMOTE-PEER-IDENTITY-EVIDENCE-v1",
+  "research_id": "R6-WP1106-SPIFFE-WORKLOAD-IDENTITY-001",
+  "created_at": "2026-08-29T19:49:45+07:00",
+  "status": "RESEARCH_DELTA_FOR_TRIGGER4_REVIEW_NOT_ACCEPTED_ARCHITECTURE",
+  "architecture_snapshot": "1aae03500f9af2d32557cd167d6a5ec802d191c4",
+  "affected_workpackages": ["F2-WP-1106"],
+  "affected_paths": ["src/frankenstein2/optional_vps_bridge.py", "tests/test_optional_vps_bridge.py"],
+  "evidence_refs": [
+    "research/tool_intelligence/receipts/R6-WP1106-SPIFFE-WORKLOAD-IDENTITY-001_E1_SOURCE_READ.json",
+    "research/tool_intelligence/receipts/R6-WP1106-SPIFFE-WORKLOAD-IDENTITY-001_E2_ARCHITECTURE_MAPPED.json",
+    "spiffe/spiffe@dc4e9d9b4eff8aa181a54cd330ff9f877186060e",
+    "spiffe/spire@66f6029f508bac63008045522642bb952376868c"
+  ],
+  "observed_gap": "Current RemoteEndpointEvidence deterministically hashes caller-supplied endpoint/capability/availability fields but has no explicit cryptographically verified peer-identity evidence, trust-root/issuer/credential generation or freshness/replay binding. Therefore current source validates field consistency and authority separation, not live peer authenticity.",
+  "proposed_change": {
+    "strategy": "THIN_NATIVE_SPIFFE_INSPIRED_IDENTITY_EVIDENCE_NOT_FULL_SPIRE",
+    "minimum_fields_or_equivalent_contract": [
+      "peer_identity_namespace",
+      "peer_id",
+      "credential_or_public_key_fingerprint",
+      "issuer_or_trust_root_fingerprint",
+      "credential_generation",
+      "identity_evidence_state",
+      "identity_evidence_ref",
+      "capability_digest_bound_to_peer_and_protocol",
+      "request_session_nonce_or_transcript_digest"
+    ],
+    "optional_when_temporal_credentials_used": ["valid_from", "valid_until", "revocation_or_rotation_state"],
+    "explicit_non_goals": ["SPIRE server", "SPIRE agent", "new identity truth store", "new capability authority", "new state authority", "new effect authority"]
+  },
+  "expected_benefit": [
+    "distinguish named endpoint evidence from authenticated peer evidence",
+    "fail closed on wrong/expired/stale peer credential instead of accepting syntactically valid endpoint fields",
+    "bind capability evidence to the authenticated peer and bridge protocol",
+    "make replay/freshness a testable invariant while preserving local canonical state/effect authority",
+    "retain optional local-first operation with substantially less runtime/dependency weight than full SPIRE"
+  ],
+  "token_resource_implication": "Expected negligible model-token impact; small deterministic schema/hash/test overhead. Full SPIRE is rejected at current scale because server+agent+registry+plugin lifecycle would add persistent CPU/RAM/ops/dependency surface without demonstrated F2 value.",
+  "counterhypothesis": "An exact lower-layer bridge contract may already cryptographically authenticate/freshness-bind the endpoint and capability report. If found and source/receipt-bound, F2-WP-1106 should reference that contract rather than duplicate credential semantics.",
+  "falsifier_acceptance_gate": [
+    "Locate an existing exact upstream contract that already binds live peer identity + credential freshness + capability evidence; if present, this delta collapses to a reference/integration test only.",
+    "Otherwise add the minimum native identity evidence contract and prove wrong peer, wrong root, stale/expired credential, capability mismatch and replayed session fail closed.",
+    "Prove DETACH/local boot remain independent of remote identity availability.",
+    "Prove successful peer authentication still grants zero canonical truth/effect/whole-system credit."
+  ],
+  "evidence_scope": "E2_ARCHITECTURE_MAPPED_ONLY",
+  "architecture_acceptance_credit": 0,
+  "runtime_credit": 0,
+  "whole_system_credit": 0
+}
