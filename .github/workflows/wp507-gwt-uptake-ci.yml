@@ -4,14 +4,17 @@ on:
   push:
     branches:
       - chatgpt/f2-wp507-gwt-uptake-g1-20260829
+      - review/wp507-subset-recipient-uptake-falsifier-20260829
     paths:
       - 'src/frankenstein2/gwt_uptake.py'
       - 'tests/test_gwt_uptake.py'
+      - 'tests/test_wp507_subset_recipient_falsifier.py'
       - '.github/workflows/wp507-gwt-uptake-ci.yml'
   pull_request:
     paths:
       - 'src/frankenstein2/gwt_uptake.py'
       - 'tests/test_gwt_uptake.py'
+      - 'tests/test_wp507_subset_recipient_falsifier.py'
       - '.github/workflows/wp507-gwt-uptake-ci.yml'
   workflow_dispatch:
 
@@ -28,8 +31,10 @@ jobs:
         with:
           python-version: '3.12'
       - name: Compile
-        run: python -m py_compile src/frankenstein2/gwt_uptake.py tests/test_gwt_uptake.py
+        run: python -m py_compile src/frankenstein2/gwt_uptake.py tests/test_gwt_uptake.py tests/test_wp507_subset_recipient_falsifier.py
       - name: GWT uptake causal-influence falsification suite
         env:
           PYTHONPATH: src
-        run: python tests/test_gwt_uptake.py -v
+        run: |
+          python tests/test_gwt_uptake.py -v
+          python tests/test_wp507_subset_recipient_falsifier.py -v
