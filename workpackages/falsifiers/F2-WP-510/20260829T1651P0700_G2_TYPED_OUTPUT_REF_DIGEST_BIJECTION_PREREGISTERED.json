@@ -1,0 +1,40 @@
+{
+  "schema": "FRANKENSTEIN2_WORKPACKAGE_FALSIFIER/v1",
+  "workpackage_id": "F2-WP-510",
+  "generation": 2,
+  "classification": "CANDIDATE_FALSIFIER_PREREGISTERED_NOT_EXECUTED",
+  "reviewer": "GPT-5.6-Sol / Triggerword-4 review organ",
+  "recorded_at": "2026-08-29T16:51:00+07:00",
+  "active_claim_id": "F2-WP-510-G2-GPT56SOL-TYPED-DOWNSTREAM-LINEAGE-REPAIR-20260829",
+  "claim_scope_ref": "workpackages/active/F2-WP-510.json",
+  "source_abi_ref": "src/frankenstein2/grid10_interface.py",
+  "hypothesis": "A G2 repair may validate the concrete CellOutput against the exact Grid10Plan and re-entry CellInput and compare only downstream_sha256, while leaving downstream_ref independently caller-supplied. That would preserve an alias-substitution gap despite adding typed output lineage.",
+  "counterhypothesis": "Positive G2 sealing requires a bijective typed-output binding: the concrete CellOutput validates against the exact plan/input; the receipt/binding downstream digest equals CellOutput.sha256(); and the receipt/binding downstream_ref resolves to an exact member of that CellOutput.output_refs (or an equally explicit canonical output-identity field if the ABI is extended).",
+  "preregistered_discriminator": {
+    "setup": [
+      "Build one exact positive WP510 fixture with one UPTAKEN recipient and its exact re-entry CellInput.",
+      "Create a concrete CellOutput through CellOutput.for_input(plan, same_reentry_input, ...) with output_refs containing only downstream:real and record CellOutput.sha256().",
+      "Bind receipt/binding downstream_sha256 to that exact CellOutput.sha256() but set downstream_ref to downstream:alias, which is not present in CellOutput.output_refs.",
+      "All other G1/G2 identities remain exact."
+    ],
+    "required_result": "FAIL_CLOSED",
+    "required_reason_class": "DOWNSTREAM_REFERENCE_NOT_RESOLVED_BY_TYPED_CELL_OUTPUT",
+    "control": "The same fixture with downstream_ref=downstream:real and downstream_sha256=CellOutput.sha256() must remain admissible at repository-component scope."
+  },
+  "secondary_falsifiers": [
+    "Concrete CellOutput from the same plan/cell but a different CellInput must fail through Grid10Plan.validate_output because input_sha256 does not close to the exact re-entry input.",
+    "Concrete CellOutput whose output_refs match but whose canonical CellOutput.sha256 differs from receipt/binding downstream_sha256 must fail closed.",
+    "UNKNOWN/NOT_UPTAKEN/no-causal paths must not be forced to manufacture a positive downstream CellOutput merely to satisfy the positive-only repair."
+  ],
+  "evidence_boundary": "Preregistration only; no executed evidence yet. The current CellOutput ABI exposes exact plan/input/cell lineage, canonical CellOutput.sha256(), and opaque output_refs, so G2 must make the reference-resolution rule explicit rather than treating digest equality as sufficient by implication.",
+  "credits": {
+    "executed": false,
+    "runtime_credit": 0,
+    "physical_grid10_credit": 0,
+    "gwt_runtime_credit": 0,
+    "jspace_runtime_credit": 0,
+    "training_credit": 0,
+    "whole_system_acceptance": false
+  },
+  "next_exact_action": "After the sole G2 mutation branch publishes implementation source, run this discriminator REVIEW_ONLY against that exact head without mutating G2-owned paths. If reproduced, route the repair to the sole G2 owner; if not reproduced, record NOT_REPRODUCED_AT_TESTED_IDENTITY."
+}
