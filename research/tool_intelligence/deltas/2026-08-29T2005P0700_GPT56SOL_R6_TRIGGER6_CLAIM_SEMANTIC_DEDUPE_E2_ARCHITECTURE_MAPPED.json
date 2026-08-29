@@ -1,0 +1,64 @@
+{
+  "schema": "FRANKENSTEIN2_TRIGGER6_RESEARCH_DELTA/v1",
+  "research_id": "R6-20260829-CLAIM-SEMANTIC-DEDUPE-GPT56SOL-01",
+  "evidence_stage": "E2_ARCHITECTURE_MAPPED",
+  "created_at": "2026-08-29T20:05:00+07:00",
+  "worker": "GPT-5.6-Sol-TRIGGER6",
+  "architecture_delta_fusion_identity": "ADF-TRIGGER6-CLAIM-SEMANTIC-DEDUPE-20260829T2005P0700-GPT56SOL",
+  "observed_evidence": [
+    {
+      "ref": "research/tool_intelligence/claims/R6-20260829-WP803-SELECTIVE-PREDICTION-GPT56SOL-01/E1_SOURCE_READ.json",
+      "claimed_at": "2026-08-29T20:03:00+07:00",
+      "objective_class": "WP803 held-out prediction evaluation / external primary-source audit / leakage+abstention+public baselines"
+    },
+    {
+      "ref": "research/tool_intelligence/claims/R6-20260829-WP803-PREDICTION-BENCH-GPT56SOL-01/E1_SOURCE_READ.json",
+      "claimed_at": "2026-08-29T20:04:00+07:00",
+      "objective_class": "WP803 held-out prediction evaluation / external primary-source discovery+audit"
+    },
+    {
+      "ref": "git parent 31b2f0c8c1fe13e2e3962c6cdabb9e2f61b57c53 of second claim commit 22c0bc98e32641057658ba1f74b042f45840eb2a",
+      "finding": "The first claim is present at the second claim's parent ref. Therefore the duplicate is not explained by eventual visibility of the first claim; the coordination key itself permits semantic duplication when workers choose different research_id values."
+    }
+  ],
+  "problem": "Current Trigger-6 create-only coordination keys the mutex by <research_id>/<claim_target>.json. research_id is worker-selected/provenance-like and is not a canonical semantic objective identity. Two workers can therefore create different paths for the same target workpackage, evidence stage and materially overlapping objective even when the earlier claim is already visible.",
+  "architecture_delta": {
+    "name": "TRIGGER6_CANONICAL_OBJECTIVE_KEY/v1",
+    "principle": "Separate provenance identity from coordination identity.",
+    "canonical_mutex_key_inputs": [
+      "architecture_snapshot_or_reentry_identity",
+      "target_project/workpackage/module set in canonical sorted form",
+      "evidence_stage",
+      "normalized objective class",
+      "external source pin or upstream claim id when the objective is source-specific",
+      "experiment/discriminator id when the objective is experiment-specific"
+    ],
+    "recommended_path": "research/tool_intelligence/objective_claims/<objective_key>.json",
+    "research_id_role": "Provenance and lineage only; stored inside the claim but excluded from mutex-path uniqueness.",
+    "normalization_requirements": [
+      "sorted canonical target refs",
+      "versioned objective taxonomy instead of free-text-only similarity",
+      "canonical JSON serialization before digest",
+      "explicit architecture snapshot binding",
+      "stage-specific discriminator/source pin fields",
+      "fail closed when an objective cannot be normalized with sufficient specificity"
+    ],
+    "compatibility": "Existing per-research-id claims remain historical provenance. New objective claims should be additive and authoritative for duplicate-work exclusion; no second truth/state authority is introduced."
+  },
+  "required_negative_tests": [
+    "Two different research_id values with same WP803 targets, E1 stage and same normalized objective class produce the same objective_key and second create fails.",
+    "Same research_id with E1 vs E2 produces different objective_key.",
+    "Same WP but different external source pins produce different source-specific objective_key when both are legitimately distinct.",
+    "Architecture snapshot change produces a distinct review objective only when marked as explicit stale re-review rather than silently duplicating the original.",
+    "Free-text wording changes do not bypass a canonical objective taxonomy key.",
+    "Ambiguous objective normalization fails closed rather than minting a fresh mutex path."
+  ],
+  "counterhypothesis": "A central semantic objective registry may add coordination overhead and false-positive blocking between legitimately distinct research angles. The fix should therefore use typed objective classes and explicit source/discriminator pins, not fuzzy text similarity as authority.",
+  "expected_benefit": "Prevent duplicate expensive Trigger-6 research while preserving independent objectives, reducing source-reading/tool/token duplication and avoiding false independent-replication counts.",
+  "expected_runtime_effect": "No Frankenstein runtime/model token impact; coordination-only development overhead.",
+  "next_stage": "E3_CLAIM_REPRODUCED_OBJECTIVE_KEY_COLLISION",
+  "research_credit": "E2_ARCHITECTURE_MAPPED_PROJECT_EVIDENCE",
+  "runtime_credit": 0,
+  "architecture_acceptance_credit": 0,
+  "whole_system_credit": 0
+}
