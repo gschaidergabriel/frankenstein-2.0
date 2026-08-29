@@ -1,0 +1,40 @@
+{
+  "schema": "FRANKENSTEIN2_CANDIDATE_FALSIFIER/v1",
+  "classification": "CANDIDATE_FALSIFIER_CONFIRMED",
+  "workpackage_id": "F2-WP-803",
+  "accepted_generation_under_test": 1,
+  "accepted_claim_id": "F2-WP-803-G1-GPT56SOL-HELDOUT-WORLD-MODEL-PREDICTION-20260829",
+  "authority_epoch": "8.78",
+  "review_branch": "review/f2-wp803-run-identity-falsifier-20260829",
+  "review_base_main_sha": "33d900a80ba98d4fbd57a24aa7e8b4a52a26f4e2",
+  "canonical_source_blob_under_test": "76e1a625e69c909bcf077826997dd00f635b68af",
+  "contract_requirement": "Bind prediction, episode, fixture, generation and run identities before evaluator-side benchmark evidence can be treated as provenance-sealed component evidence.",
+  "observation": "PredictionCandidate accepts caller-supplied benchmark_run_id and benchmark_generation. evaluate_next_observation_prediction does not accept or validate an exact WP800 RunDescriptor, and PredictionEvaluation copies the candidate-supplied benchmark_run_id/generation into evaluator-only evidence.",
+  "counterexample": {
+    "canonical_run_id": "run/canonical",
+    "candidate_self_attested_run_id": "run/FORGED-BY-CANDIDATE",
+    "candidate_self_attested_benchmark_generation": 999999,
+    "expected_fail_closed_behavior": "reject before evaluator evidence is minted because the candidate run identity is not bound to the canonical RunDescriptor",
+    "observed_behavior": "repository test reaches evaluator output carrying the self-attested candidate run identity; the fail-closed assertion therefore fails"
+  },
+  "repository_ci": {
+    "workflow": "F2 WP803 Run Identity Falsifier",
+    "run_id": 33254718909,
+    "job_id": 99106322323,
+    "head_sha": "467ecc34d178b2436568f07fe607c23a2d4f2978",
+    "compile_step": "PASS",
+    "run_identity_gate": "FAIL_AS_EXPECTED_FALSIFIER_CONFIRMED",
+    "workflow_conclusion": "failure"
+  },
+  "epistemic_scope": "NEGATIVE_REPOSITORY_CI_EVIDENCE_AGAINST_WP803_RUN_IDENTITY_BINDING_ONLY",
+  "runtime_credit": 0,
+  "physical_grid10_credit": 0,
+  "gwt_runtime_credit": 0,
+  "jspace_runtime_credit": 0,
+  "training_credit": 0,
+  "effect_credit": 0,
+  "completion_credit": 0,
+  "whole_system_acceptance": false,
+  "recommended_successor_scope": "A successor WP803 generation should require evaluator-side exact RunDescriptor input, verify RunDescriptor.assert_matches_fixture(fixture), bind prediction.benchmark_run_id to run.run_id before step_episode, and include run_descriptor_sha256 in evaluator evidence. Preserve the public prediction-construction boundary so hidden fixture/run provenance never becomes policy input.",
+  "coordination_note": "This record is review-only candidate-falsifier evidence. It does not overwrite the accepted active pointer or mint a successor generation by itself. Generation advance must follow CLAIM_PROTOCOL.md and state-concurrency reconciliation."
+}
