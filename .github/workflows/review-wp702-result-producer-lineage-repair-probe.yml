@@ -1,0 +1,85 @@
+name: Review WP702 Result Producer Lineage Repair Probe
+
+# REVIEW_ONLY discriminator. Production source is modified only inside this CI workspace.
+on:
+  push:
+    branches:
+      - review/wp702-result-producer-lineage-falsifier-20260829
+    paths:
+      - '.github/workflows/review-wp702-result-producer-lineage-repair-probe.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  ephemeral-repair-probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Apply evaluator-origin fence ephemerally
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          path = Path('src/frankenstein2/perception_control.py')
+          text = path.read_text(encoding='utf-8')
+
+          old_import = 'from dataclasses import dataclass\n'
+          if text.count(old_import) != 1:
+              raise SystemExit(f'expected one dataclass import, got {text.count(old_import)}')
+          text = text.replace(old_import, 'from dataclasses import InitVar, dataclass\n', 1)
+
+          anchor = '_SHA256_RE = re.compile(r"^[0-9a-f]{64}$")\n'
+          if text.count(anchor) != 1:
+              raise SystemExit(f'expected one sha anchor, got {text.count(anchor)}')
+          text = text.replace(anchor, anchor + '_EVALUATOR_ORIGIN = object()\n', 1)
+
+          class_marker = 'class PerceptionControlResult:\n'
+          before, sep, after = text.partition(class_marker)
+          if not sep:
+              raise SystemExit('PerceptionControlResult class marker not found')
+          classification = '    classification: ClassVar[str] = "PERCEPTION_CONTROL_READOUT_NOT_WORLD_TRUTH_GWT_EFFECT_OR_COMPLETION_AUTHORITY"\n'
+          if after.count(classification) != 1:
+              raise SystemExit(f'expected one result classification, got {after.count(classification)}')
+          after = after.replace(classification, classification + '    _evaluator_origin: InitVar[object | None] = None\n', 1)
+
+          old_post = '    def __post_init__(self) -> None:\n'
+          if old_post not in after:
+              raise SystemExit('result __post_init__ marker not found')
+          after = after.replace(old_post, '    def __post_init__(self, _evaluator_origin: object | None) -> None:\n', 1)
+          guard_anchor = '        object.__setattr__(self, "evaluation_id", _text("evaluation_id", self.evaluation_id))\n'
+          if after.count(guard_anchor) != 1:
+              raise SystemExit(f'expected one result guard anchor, got {after.count(guard_anchor)}')
+          after = after.replace(
+              guard_anchor,
+              '        if _evaluator_origin is not _EVALUATOR_ORIGIN:\n'
+              '            raise PerceptionControlError("PerceptionControlResult must be created by evaluate_perception_head")\n'
+              + guard_anchor,
+              1,
+          )
+          text = before + sep + after
+
+          evaluator_marker = 'def evaluate_perception_head('
+          prefix, sep, evaluator = text.partition(evaluator_marker)
+          if not sep:
+              raise SystemExit('evaluate_perception_head marker not found')
+          count = evaluator.count('return PerceptionControlResult(')
+          if count != 5:
+              raise SystemExit(f'expected five evaluator result constructors, got {count}')
+          evaluator = evaluator.replace(
+              'return PerceptionControlResult(',
+              'return PerceptionControlResult(_evaluator_origin=_EVALUATOR_ORIGIN, ',
+          )
+          path.write_text(prefix + sep + evaluator, encoding='utf-8')
+          PY
+      - name: Compile ephemeral repair and falsifier
+        run: python -m py_compile src/frankenstein2/perception_control.py tests/test_wp702_result_producer_lineage_falsifier.py
+      - name: Run same producer-lineage falsifier after ephemeral repair
+        env:
+          PYTHONPATH: src
+        run: python tests/test_wp702_result_producer_lineage_falsifier.py -v
