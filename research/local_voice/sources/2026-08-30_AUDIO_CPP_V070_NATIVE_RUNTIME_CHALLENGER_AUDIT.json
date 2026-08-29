@@ -1,0 +1,67 @@
+{
+  "schema_version": 1,
+  "trigger": "7",
+  "research_id": "T7-SYS-004",
+  "objective": "E2_AUDIO_CPP_NATIVE_RUNTIME_CHALLENGER_AUDIT",
+  "date": "2026-08-30",
+  "classification": "SOURCE_AUDIT_ONLY_NO_TARGET_RUNTIME_CREDIT",
+  "candidate": {
+    "repository": "0xShug0/audio.cpp",
+    "release": "v0.7.0",
+    "release_commit": "d2ff37009c69d464bcab6aa4a44a13746e84a914",
+    "release_published_at": "2026-08-27T01:49:56Z",
+    "main_observed_after_release": "e73c980fe259aa2b3931c8b6ea53517e769877ec",
+    "license": "Apache-2.0 for the runtime; individual model/artifact licenses remain separately binding",
+    "architecture": "native C++ runtime on ggml with CPU/CUDA/HIP-ROCm/Vulkan/Metal backends and GGUF-oriented model packaging"
+  },
+  "source_observations": {
+    "released_voice_relevant_surface": [
+      "Qwen3-ASR-0.6B and 1.7B: German listed; GGUF 16/Q8; Stream",
+      "Nemotron 3.5 ASR Streaming 0.6B: GGUF 16/Q8; Stream",
+      "Voxtral-Mini-4B-Realtime-2602: GGUF 16/Q8/Q4; Stream",
+      "Qwen3-TTS 0.6B/1.7B variants: German listed; GGUF 16/Q8; not marked Stream in v0.7.0 table",
+      "Supertonic 3: German listed; Stream",
+      "PocketTTS-100M: German listed",
+      "MagpieTTS Multilingual 357M: German listed",
+      "Silero VAD: bundled; Stream"
+    ],
+    "release_scope": "v0.7.0 reports 62 model families and 85+ variants and provides a common native framework plus comparison/Arena tooling.",
+    "performance_boundary": "Upstream reports substantial speed/VRAM gains on selected model paths, but these are upstream measurements and grant zero Frankenstein latency, residency, German-quality or acceptance credit."
+  },
+  "comparison_to_existing_trigger7_runtime_candidates": {
+    "CrispASR": "audio.cpp is broader: it exposes several ASR, TTS and VAD families behind one native framework rather than serving only as the already-audited Qwen-oriented consolidated C++/GGUF challenger. The prior CrispASR source audit already falsified the stronger assumption that one process implies one shared simultaneously resident ASR/TTS model instance; audio.cpp receives no such memory-sharing assumption.",
+    "NeMo-Speech.cpp": "audio.cpp is a useful counter-runtime because its released surface directly includes Qwen3-ASR plus multiple German TTS candidates, while NeMo-Speech.cpp remains the existing NVIDIA-native ASR/VAD/TTS substrate candidate. Source breadth alone does not establish lower jitter, lower residency or better German quality."
+  },
+  "important_negative_or_open_points": [
+    "Qwen3-TTS is not marked Stream in the v0.7.0 support table, so audio.cpp v0.7.0 cannot be credited as a complete low-latency Qwen3-ASR+Qwen3-TTS Frankenstein voice path from source claims alone.",
+    "A shared runtime does not prove shared model weights, shared KV/cache memory, lower combined RSS/VRAM, or safe concurrent ASR+TTS execution.",
+    "Runtime Apache-2.0 does not override model-specific licenses or redistribution constraints.",
+    "No clay-direct-dev build, model download, hash verification, component benchmark, German corpus run or end-to-end voice run was executed by this audit."
+  ],
+  "hypothesis": "If audio.cpp can host the German ASR/TTS candidates needed by Frankenstein with less framework duplication and lower concurrent resident/tail cost than the best NeMo-Speech.cpp/CrispASR paths while preserving the VoiceIntent/GWT/state/effect boundary, it may become the preferred low-level native speech substrate.",
+  "counterhypothesis": "Model-specific runtimes remain superior; audio.cpp breadth adds integration convenience but no target p95/p99 or resident-resource benefit, or its current streaming gaps force a mixed runtime anyway.",
+  "next_target_discriminator": {
+    "precondition": "T7-SYS-002 must first produce a real post-repair clay-direct-dev hardware/resource receipt.",
+    "first_pin": "Benchmark the released audio.cpp v0.7.0 commit d2ff37009c69d464bcab6aa4a44a13746e84a914 before using moving main/dev.",
+    "comparison": "Run audio.cpp versus the already pinned NeMo-Speech.cpp and CrispASR/reference paths using equivalent model/artifact identities where possible.",
+    "measure": [
+      "build/startup/warmup",
+      "combined resident RSS/VRAM with ASR and TTS active",
+      "German ASR WER/CER and partial stability",
+      "TTS TTFA/RTF and German listening quality",
+      "p50/p95/p99 stage and end-to-end latency",
+      "ASR/TTS concurrency contention",
+      "barge-in/cancellation and unheard-output correctness",
+      "network-blocked operation"
+    ],
+    "promotion_rule": "Only real E3/V4 target evidence may enter the Trigger-4 build-candidate lane; this source audit grants zero V6 credit."
+  },
+  "credit": {
+    "vps_execution": 0,
+    "model_download": 0,
+    "runtime": 0,
+    "german_component_benchmark": 0,
+    "german_e2e_voice": 0,
+    "trigger4_acceptance": 0
+  }
+}
