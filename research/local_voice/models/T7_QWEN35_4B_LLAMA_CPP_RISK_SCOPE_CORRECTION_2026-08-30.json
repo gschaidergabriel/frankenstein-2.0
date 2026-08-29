@@ -1,0 +1,55 @@
+{
+  "schema_version": 1,
+  "trigger": "7",
+  "research_id": "T7-LLM-003",
+  "objective": "E2_QWEN35_4B_LLAMA_CPP_RISK_SCOPE_CORRECTION",
+  "date": "2026-08-30",
+  "status": "SOURCE_CORRECTION_NO_RUNTIME_CREDIT",
+  "corrects": "research/local_voice/models/T7_QWEN35_4B_OFFICIAL_BASELINE_CONFOUND_CONTROL_DELTA_2026-08-30.json",
+  "official_source": {
+    "repo_id": "Qwen/Qwen3.5-4B",
+    "verified_main_revision_at_research_time": "851bf6e806efd8d0a36b00ddf55e13ccb7b8cd0a",
+    "license": "Apache-2.0",
+    "format": "Transformers safetensors",
+    "primary_source": "https://huggingface.co/Qwen/Qwen3.5-4B/commits/main"
+  },
+  "corrections": [
+    {
+      "source": "https://github.com/ggml-org/llama.cpp/issues/23589",
+      "previous_scope_problem": "The prior risk register wording could be read as evidence that Qwen3.5-4B itself reproduces the reported cache regression.",
+      "corrected_observation": "Issue #23589 reports the regression on Qwen3.6-35B-A3B. Its published cross-model test explicitly lists Qwen3.5-4B as clean in that tested build/scenario (16-token miss), so #23589 is not direct negative evidence against Qwen3.5-4B.",
+      "classification": "UPSTREAM_CACHE_REGRESSION_GUARD_WITH_QWEN35_4B_COUNTEREVIDENCE_IN_REPORTED_SCENARIO",
+      "required_test": "Still measure repeated and mutated multi-turn VoiceSessionCapsule TTFT, cached/prefill token counts and prompt re-evaluation on the exact pinned Qwen3.5-4B artifact and exact llama.cpp build because absence in one upstream scenario is not a universal guarantee."
+    },
+    {
+      "source": "https://github.com/ggml-org/llama.cpp/issues/20003",
+      "previous_scope_problem": "The prior text generalized a Qwen3.5-35B-A3B hybrid-model report to Qwen3.5-4B.",
+      "corrected_observation": "Issue #20003 is specifically a Qwen3.5-35B-A3B prompt re-processing report. It motivates a family-level recurrent/cache falsifier but is not model-specific evidence for the 4B baseline.",
+      "classification": "ARCHITECTURE_FAMILY_RISK_NOT_QWEN35_4B_DIRECT_EVIDENCE",
+      "required_test": "Keep long-context tool-schema/history mutation cases in the 4B benchmark, but do not pre-label 4B as affected."
+    },
+    {
+      "source": "https://github.com/ggml-org/llama.cpp/issues/26916",
+      "previous_scope_problem": "The prior wording used a qwen3_5-derived 9B conversion/load failure as if it established a 4B conversion defect.",
+      "corrected_observation": "Issue #26916 concerns ShaoShuai0605/Harness-R1 9B with qwen3_5 architecture. It establishes that successful conversion plus quantization does not guarantee loadability for every qwen3_5-derived artifact, but it is not direct evidence that official Qwen3.5-4B fails to load.",
+      "classification": "QWEN3_5_FAMILY_CONVERSION_GUARD_NOT_QWEN35_4B_DIRECT_FAILURE",
+      "required_test": "For the official 4B chain, require exact converter/build pinning, post-conversion load test, post-quantization load test, GGUF metadata receipt and only then benchmark credit."
+    }
+  ],
+  "benchmark_policy": {
+    "baseline_chain": "official pinned safetensors -> exact pinned converter/build -> self-derived GGUF -> load test -> self-quantized Q4_K_M -> load test -> German VoiceSessionCapsule benchmark",
+    "abliterated_gate": "Do not benchmark/promote an abliterated derivative before the official baseline behavior and runtime are measured on the same hardware/build/settings.",
+    "cache_policy": "Treat cache/recurrent behavior as an empirical benchmark dimension, not a presumed Qwen3.5-4B defect.",
+    "credit": "SOURCE_RESEARCH_ONLY"
+  },
+  "evidence_credit": {
+    "source_correction": true,
+    "target_download_observed": false,
+    "target_conversion_observed": false,
+    "target_model_load_observed": false,
+    "target_benchmark_observed": false,
+    "runtime_credit": 0,
+    "trigger4_acceptance_credit": 0,
+    "whole_system_acceptance": false
+  }
+}
