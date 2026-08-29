@@ -168,6 +168,14 @@ def test_candidate_classification_cannot_be_rewritten_into_authority():
         replace(candidate, classification="EFFECT_AUTHORITY")
 
 
+def test_candidate_id_cannot_be_rewritten_away_from_candidate_content():
+    cycle = make_cycle()
+    candidate = route_task(cycle_contract=cycle, request=make_request(cycle), policy=make_policy())
+
+    with pytest.raises(DirectDelegateRouterError, match="candidate id"):
+        replace(candidate, candidate_id="route:" + "f" * 64)
+
+
 def test_boolean_and_digest_fields_fail_closed_instead_of_accepting_python_coercions():
     cycle = make_cycle()
 
