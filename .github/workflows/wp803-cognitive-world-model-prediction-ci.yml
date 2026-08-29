@@ -1,0 +1,42 @@
+name: F2 WP803 Cognitive World-Model Prediction CI
+
+on:
+  push:
+    branches:
+      - main
+      - trigger4/wp803-world-model-prediction-20260829
+    paths:
+      - 'src/frankenstein2/cognitive_microworld.py'
+      - 'src/frankenstein2/cognitive_world_model_prediction_benchmark.py'
+      - 'tests/test_cognitive_world_model_prediction_benchmark.py'
+      - '.github/workflows/wp803-cognitive-world-model-prediction-ci.yml'
+  pull_request:
+    paths:
+      - 'src/frankenstein2/cognitive_microworld.py'
+      - 'src/frankenstein2/cognitive_world_model_prediction_benchmark.py'
+      - 'tests/test_cognitive_world_model_prediction_benchmark.py'
+      - '.github/workflows/wp803-cognitive-world-model-prediction-ci.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  deterministic:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Compile
+        run: >-
+          python -m py_compile
+          src/frankenstein2/cognitive_microworld.py
+          src/frankenstein2/cognitive_world_model_prediction_benchmark.py
+          tests/test_cognitive_world_model_prediction_benchmark.py
+      - name: Held-out prediction falsification suite
+        env:
+          PYTHONPATH: src
+        run: python -m unittest tests.test_cognitive_world_model_prediction_benchmark -v
