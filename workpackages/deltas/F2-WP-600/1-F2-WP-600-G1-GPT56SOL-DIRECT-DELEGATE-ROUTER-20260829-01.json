@@ -1,0 +1,47 @@
+{
+  "schema": "FRANKENSTEIN2_WORKPACKAGE_DELTA/v1",
+  "workpackage_id": "F2-WP-600",
+  "generation": 1,
+  "claim_id": "F2-WP-600-G1-GPT56SOL-DIRECT-DELEGATE-ROUTER-20260829",
+  "worker_id": "GPT-5.6-Sol",
+  "base_commit": "b71419604d367c2f41c1a679469fda2714af370b",
+  "authority_epoch": "8.78",
+  "result_class": "IMPLEMENTED_TESTED_FALSIFIED_REPAIRED_RETESTED",
+  "source_commits": ["276cb8eedea8eadaeca852ab57dd2fb2445e0807", "7520ebdf9d0460b41b1d6b947c41546ea29e2be3"],
+  "test_commits": ["78c290f0d7142d22ff5e588b20fa33f53a57f7fe", "135ace19a650ff1fac7041b1544d5f1f33a9ba17"],
+  "workflow_commit": "1b91c0bdacb297f5953eb11e9043b8e70bd2942c",
+  "initial_ci": {"run_id": 33245996954, "job_id": 99083426362, "head_sha": "1b91c0bdacb297f5953eb11e9043b8e70bd2942c", "conclusion": "success", "tests": "10 passed in 0.04s"},
+  "absorbed_negative_evidence": {
+    "delta_ref": "workpackages/deltas/F2-WP-600/1-F2-WP-600-G1-REVIEW-ROUTECANDIDATE-IDENTITY-BINDING-20260829T1640P0700-01.json",
+    "commit": "e5d1552aabcfea544921e399b2ef8e8f9994ec2f",
+    "falsifier_id": "WP600_ROUTE_CANDIDATE_ID_SELF_BINDING",
+    "result": "VALID_FALSIFIER_ABSORBED",
+    "finding": "RouteCandidate accepted a syntactically valid forged candidate_id because constructor validation did not recompute the identity digest from the exact remaining candidate fields."
+  },
+  "repair": [
+    "factor one canonical route-candidate identity payload/digest constructor shared by route_task and RouteCandidate validation",
+    "recompute expected candidate_id in RouteCandidate.__post_init__ after field normalization",
+    "fail closed when candidate_id diverges from exact task/request/cycle/policy/route/reason content",
+    "add direct dataclasses.replace tampering regression"
+  ],
+  "final_ci": {"run_id": 33246122734, "job_id": 99083768310, "head_sha": "135ace19a650ff1fac7041b1544d5f1f33a9ba17", "conclusion": "success", "tests": "11 passed in 0.06s"},
+  "canonical_artifacts": {
+    "source": "src/frankenstein2/direct_delegate_router.py",
+    "source_blob_sha": "f403f4893769bf08812eec5e53a455a267274cf4",
+    "test": "tests/test_direct_delegate_router.py",
+    "test_blob_sha": "ef2717b2cdcbf782d30ec2d42c180f5b70b123dd",
+    "workflow": ".github/workflows/wp600-direct-delegate-router-ci.yml",
+    "workflow_blob_sha": "01744a2f1ccfbebfc7ce73cdf31a53c793f86f07"
+  },
+  "scope_boundary": "DIRECT_DELEGATE_ROUTER_G1_REPOSITORY_HOSTED_COMPONENT_CI_ONLY",
+  "runtime_execution_observed": false,
+  "runtime_credit": 0,
+  "physical_grid10_credit": 0,
+  "gwt_runtime_credit": 0,
+  "jspace_runtime_credit": 0,
+  "training_credit": 0,
+  "effect_credit": 0,
+  "completion_credit": 0,
+  "whole_system_acceptance": false,
+  "next_exact_action": "Reconcile WP600 at component-CI scope only after confirming the exact final artifacts remain unchanged on current main. Then re-enter Stage 6 and do not duplicate any active F2-WP-601 or later claim."
+}
