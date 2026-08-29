@@ -1,0 +1,51 @@
+{
+  "schema_version": 1,
+  "trigger": "7",
+  "date": "2026-08-30",
+  "evidence_class": "SOURCE_PIN_ONLY_NO_RUNTIME_CREDIT",
+  "sources": [
+    {
+      "id": "nemo_speech_cpp",
+      "upstream": "NVIDIA/NeMo-Speech.cpp",
+      "revision": "4f9676226f667d14608487df744f375db87127f8",
+      "release": "v0.1.0",
+      "observed_capabilities": [
+        "Nemotron 3.5 ASR",
+        "MagpieTTS/NanoCodec TTS",
+        "VAD and endpointing",
+        "local HTTP API",
+        "realtime WebSocket transcription",
+        "native C API",
+        "CPU/CUDA/Vulkan/Metal backends"
+      ],
+      "credit_boundary": "upstream source capability only; no Frankenstein target execution observed"
+    },
+    {
+      "id": "nemotron35_asr_q8",
+      "upstream": "nvidia/nemotron-3.5-asr-streaming-0.6b",
+      "revision": "2e83bd1da4f3e470babc6711d6ce7f9436dced74",
+      "artifact": "nemotron-3.5-asr-streaming-0.6b.q8_0.gguf",
+      "size_bytes_claim": "742 MB upstream display",
+      "sha256": "a5c435f294eea8f88ce68dd27b8c3bfea7f777cb2fbba04fcd30eaa555f429ae",
+      "license": "openmdw-1.1",
+      "credit_boundary": "artifact pin only; not downloaded or hashed on clay-direct-dev"
+    },
+    {
+      "id": "nemotron35_german_negative_evidence",
+      "upstream": "Hugging Face discussion nvidia/nemotron-3.5-asr-streaming-0.6b#11",
+      "observed": "German user report documents substantial word/compound/terminology errors even at 1120 ms; NVIDIA response recommends context biasing/word boosting, n-gram LM fusion, or fine-tuning.",
+      "classification": "UPSTREAM_COMMUNITY_NEGATIVE_EVIDENCE_WITH_VENDOR_RESPONSE_NOT_F2_BENCHMARK"
+    },
+    {
+      "id": "dualturn_endpointing_streaming_fix",
+      "upstream": "anyreach-ai/dualturn-endpointing",
+      "observed_revision": "c3860ed",
+      "fix_revision": "213dae6",
+      "observed": "streaming documentation corrected bit-exact claim to strictly causal/decision-equivalent; earlier streaming ONNX initialization caused 0.17-0.66 divergence and was rebuilt to approximately 0.019 offline residual",
+      "runtime_rule": "pin corrected streaming graphs/helper before any German benchmark; earlier graph identity receives no benchmark comparability credit"
+    }
+  ],
+  "architectural_interpretation": "NeMo-Speech.cpp is promoted as a unified local speech runtime substrate candidate, not as a model-quality winner. Frankenstein VoiceIntent/GWT/state/memory/effect authority remains outside this runtime.",
+  "runtime_credit": 0,
+  "acceptance_credit": 0
+}
