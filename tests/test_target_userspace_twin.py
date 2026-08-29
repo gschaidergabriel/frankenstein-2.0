@@ -1,11 +1,14 @@
+import copy
 import json
 import unittest
 
+from frankenstein2.target_host_profile import collect_target_host_profile
 from frankenstein2.target_userspace_twin import (
     FIDELITY,
     ONE_HANDOFF_ENTRY,
     PLAN_SCHEMA,
     PROFILE_SCHEMA,
+    PROJECTION_SCHEMA,
     UNKNOWN,
     TargetUserspaceTwinError,
     build_t1_userspace_plan,
@@ -13,108 +16,150 @@ from frankenstein2.target_userspace_twin import (
 )
 
 
-DIGEST = "a" * 64
+def _command_runner(argv):
+    values = {
+        ("uname", "-r"): "6.8.0-target",
+        ("uname", "-m"): "x86_64",
+        ("systemctl", "--user", "is-system-running"): "running",
+        ("pipewire", "--version"): "pipewire 1.0",
+        ("wireplumber", "--version"): "wireplumber 0.5",
+    }
+    key = tuple(argv)
+    if key in values:
+        return True, values[key], ""
+    return False, "", "TEST_NOT_OBSERVED"
 
 
-def _profile(**overrides):
-    fields = {
-        "os_release": "Ubuntu 24.04.3 LTS",
-        "kernel_release": "6.8.0-test",
-        "architecture": "x86_64",
-        "uid": "1000",
-        "session_type": "wayland",
-        "xdg_runtime_dir": "/run/user/1000",
-        "session_dbus": "reachable",
-        "systemd_user": "running",
-        "pipewire_version": "1.0-observed",
-        "wireplumber_version": "0.5-observed",
-        "portal_backend": "xdg-desktop-portal-gnome",
-        "browser_package_form": "snap",
-    }
-    fields.update(overrides.pop("fields", {}))
-    return {
-        "schema": PROFILE_SCHEMA,
-        "profile_generation": overrides.pop("profile_generation", 7),
-        "profile_sha256": overrides.pop("profile_sha256", DIGEST),
-        "fields": fields,
-        **overrides,
-    }
+def _file_reader(path):
+    if path == "/etc/os-release":
+        return True, "Ubuntu 24.04.3 LTS", ""
+    return False, "", "TEST_NOT_OBSERVED"
+
+
+def _profile():
+    return collect_target_host_profile(
+        generation=7,
+        command_runner=_command_runner,
+        file_reader=_file_reader,
+        environ={
+            "XDG_SESSION_TYPE": "wayland",
+            "XDG_CURRENT_DESKTOP": "GNOME",
+        },
+        collector_uid=1000,
+    )
 
 
 class TargetUserspaceTwinTests(unittest.TestCase):
-    def test_complete_observed_profile_produces_t1_plan_without_gaps(self):
-        plan = build_t1_userspace_plan(_profile())
+    def test_canonical_wp1201_object_produces_digest_bound_t1_projection(self):
+        profile = _profile()
+        plan = build_t1_userspace_plan(profile)
+        observed = dict(plan.observed_shape)
+        bindings = dict(plan.source_fact_bindings)
+
         self.assertEqual(plan.schema, PLAN_SCHEMA)
         self.assertEqual(plan.fidelity, FIDELITY)
-        self.assertEqual(plan.source_profile_generation, 7)
-        self.assertEqual(plan.source_profile_sha256, DIGEST)
-        self.assertEqual(plan.fidelity_gaps, ())
-        self.assertEqual(dict(plan.observed_shape)["session_type"], "wayland")
+        self.assertEqual(plan.projection_schema, PROJECTION_SCHEMA)
+        self.assertEqual(plan.source_profile_generation, profile.generation)
+        self.assertEqual(plan.source_profile_sha256, profile.profile_digest_sha256)
+        self.assertEqual(observed["os_release"], "Ubuntu 24.04.3 LTS")
+        self.assertEqual(observed["kernel_release"], "6.8.0-target")
+        self.assertEqual(observed["architecture"], "x86_64")
+        self.assertEqual(observed["uid"], "1000")
+        self.assertEqual(observed["session_type"], "wayland")
+        self.assertEqual(observed["systemd_user"], "running")
+        self.assertEqual(observed["pipewire_version"], "pipewire 1.0")
+        self.assertEqual(observed["wireplumber_version"], "wireplumber 0.5")
+        self.assertEqual(bindings["uid"], "collector_uid")
+        self.assertEqual(bindings["systemd_user"], "systemd_user_state")
         self.assertEqual(plan.one_handoff_installer_entry, ONE_HANDOFF_ENTRY)
-        self.assertIn("one-handoff-installer-entry-is-used", plan.required_runtime_checks)
         self.assertEqual(
             plan.classification,
             "T1_PREHANDOFF_PLAN_NO_PHYSICAL_OR_COMPLETION_CREDIT",
         )
 
-    def test_missing_target_facts_remain_unknown_and_are_not_guessed(self):
-        profile = _profile(
-            fields={"os_release": None, "kernel_release": None, "session_type": None}
-        )
-        plan = build_t1_userspace_plan(profile)
+    def test_uncollected_t1_facts_remain_unknown_instead_of_being_guessed(self):
+        plan = build_t1_userspace_plan(_profile())
         observed = dict(plan.observed_shape)
         gap_fields = {gap.field for gap in plan.fidelity_gaps}
-        self.assertEqual(observed["os_release"], UNKNOWN)
-        self.assertEqual(observed["kernel_release"], UNKNOWN)
-        self.assertEqual(observed["session_type"], UNKNOWN)
-        self.assertTrue(
-            {"os_release", "kernel_release", "session_type"}.issubset(gap_fields)
-        )
-        serialized = json.dumps(plan.as_dict(), sort_keys=True)
-        self.assertNotIn("24.04", serialized)
-        self.assertNotIn("6.8.0-test", serialized)
-        self.assertNotIn("wayland", serialized)
 
-    def test_unrecognized_or_sensitive_profile_fields_are_not_forwarded(self):
-        profile = _profile()
-        profile["fields"]["clipboard"] = "must-not-propagate"
-        profile["fields"]["credential"] = "must-not-propagate"
-        plan = build_t1_userspace_plan(profile)
-        output = json.dumps(plan.as_dict(), sort_keys=True)
-        self.assertNotIn("clipboard", output)
-        self.assertNotIn("must-not-propagate", output)
-        self.assertNotIn("credential", output)
-
-    def test_plan_is_deterministic_across_mapping_order_and_json_adapter(self):
-        left = _profile()
-        right = {
-            "fields": dict(reversed(list(left["fields"].items()))),
-            "profile_sha256": left["profile_sha256"],
-            "profile_generation": left["profile_generation"],
-            "schema": left["schema"],
-        }
-        left_plan = build_t1_userspace_plan(left)
-        right_plan = build_t1_userspace_plan(right)
-        self.assertEqual(left_plan.as_dict(), right_plan.as_dict())
-        self.assertEqual(left_plan.sha256(), right_plan.sha256())
+        for field in (
+            "xdg_runtime_dir",
+            "session_dbus",
+            "portal_backend",
+            "browser_package_form",
+        ):
+            self.assertEqual(observed[field], UNKNOWN)
+            self.assertIn(field, gap_fields)
         self.assertEqual(
-            plan_from_json(json.dumps(left)), plan_from_json(json.dumps(right))
+            dict(plan.source_fact_bindings)["portal_backend"],
+            "NOT_COLLECTED_BY_CANONICAL_WP1201_G1",
         )
 
-    def test_invalid_identity_or_schema_fails_closed(self):
-        mutations = (
-            {"schema": "WRONG"},
-            {"profile_generation": -1},
-            {"profile_generation": True},
-            {"profile_sha256": "A" * 64},
-            {"profile_sha256": "abc"},
+    def test_canonical_wp1201_as_dict_and_json_adapter_are_accepted(self):
+        profile = _profile()
+        object_plan = build_t1_userspace_plan(profile)
+        mapping_plan = build_t1_userspace_plan(profile.as_dict())
+        self.assertEqual(object_plan, mapping_plan)
+        self.assertEqual(
+            plan_from_json(profile.canonical_json()),
+            json.dumps(
+                object_plan.as_dict(),
+                ensure_ascii=False,
+                sort_keys=True,
+                separators=(",", ":"),
+                allow_nan=False,
+            )
+            + "\n",
         )
-        for mutation in mutations:
-            with self.subTest(mutation=mutation):
-                profile = _profile()
-                profile.update(mutation)
-                with self.assertRaises(TargetUserspaceTwinError):
-                    build_t1_userspace_plan(profile)
+
+    def test_old_parallel_profile_shape_is_rejected_even_with_valid_hex_digest(self):
+        legacy = {
+            "schema": PROFILE_SCHEMA,
+            "profile_generation": 7,
+            "profile_sha256": "a" * 64,
+            "fields": {"os_release": "Ubuntu"},
+        }
+        with self.assertRaises(TargetUserspaceTwinError):
+            build_t1_userspace_plan(legacy)
+
+    def test_fact_mutation_with_stale_digest_fails_closed(self):
+        raw = _profile().as_dict()
+        raw["facts"]["session_type"]["value"] = "x11"
+        with self.assertRaises(TargetUserspaceTwinError):
+            build_t1_userspace_plan(raw)
+
+    def test_two_different_fact_sets_cannot_share_one_attested_source_digest(self):
+        first = _profile().as_dict()
+        second = copy.deepcopy(first)
+        second["facts"]["kernel_release"]["value"] = "6.9.0-forged"
+        self.assertEqual(first["profile_digest_sha256"], second["profile_digest_sha256"])
+        build_t1_userspace_plan(first)
+        with self.assertRaises(TargetUserspaceTwinError):
+            build_t1_userspace_plan(second)
+
+    def test_derived_profile_metadata_is_revalidated(self):
+        raw = _profile().as_dict()
+        raw["observed_field_count"] += 1
+        with self.assertRaises(TargetUserspaceTwinError):
+            build_t1_userspace_plan(raw)
+
+    def test_unrecognized_or_sensitive_fact_cannot_enter_projection(self):
+        raw = _profile().as_dict()
+        raw["facts"]["credential"] = {
+            "status": "OBSERVED",
+            "source": "forbidden",
+            "value": "must-not-propagate",
+        }
+        with self.assertRaises(TargetUserspaceTwinError):
+            build_t1_userspace_plan(raw)
+
+    def test_plan_is_deterministic_across_canonical_mapping_order(self):
+        raw = _profile().as_dict()
+        reordered = dict(reversed(list(raw.items())))
+        left = build_t1_userspace_plan(raw)
+        right = build_t1_userspace_plan(reordered)
+        self.assertEqual(left.as_dict(), right.as_dict())
+        self.assertEqual(left.sha256(), right.sha256())
 
     def test_profile_json_must_be_an_object(self):
         with self.assertRaises(TargetUserspaceTwinError):

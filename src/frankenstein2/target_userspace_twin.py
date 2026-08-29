@@ -2,11 +2,10 @@
 
 F2-WP-1202 generation 1.
 
-This module builds a deterministic *T1 userspace* bootstrap plan from an observed target
-profile. It deliberately does not infer missing distro, kernel, package, session, device,
-or permission facts. Unknown target facts remain UNKNOWN fidelity gaps.
-
-The plan is a pre-handoff engineering artifact only:
+This module consumes the canonical F2-WP-1201 TargetHostProfile/v1 boundary and derives
+a deterministic T1 userspace projection. It never accepts a second caller-defined profile
+shape under the canonical schema name, never trusts a detached profile digest, and never
+invents target facts that WP1201 did not observe.
 
     SIMULATION_PASS != PHYSICAL_PASS
     REPOSITORY_PASS != TARGET_PASS
@@ -21,25 +20,35 @@ import hashlib
 import json
 from typing import Any, Mapping
 
-PROFILE_SCHEMA = "FRANKENSTEIN2_TARGET_HOST_PROFILE/v1"
+from .target_host_profile import (
+    OBSERVED as PROFILE_OBSERVED,
+    TARGET_HOST_PROFILE_SCHEMA,
+    UNKNOWN as PROFILE_UNKNOWN,
+    TargetHostProfile,
+    TargetHostProfileError,
+)
+
+PROFILE_SCHEMA = TARGET_HOST_PROFILE_SCHEMA
+PROJECTION_SCHEMA = "FRANKENSTEIN2_TARGET_HOST_PROFILE_T1_PROJECTION/v1"
 PLAN_SCHEMA = "FRANKENSTEIN2_T1_USERSPACE_TWIN_PLAN/v1"
 FIDELITY = "T1_UBUNTU_USERSPACE"
 UNKNOWN = "UNKNOWN"
 ONE_HANDOFF_ENTRY = "AI_START_HERE_DO_NOT_SCAN_REPO"
+_UNAVAILABLE = "NOT_COLLECTED_BY_CANONICAL_WP1201_G1"
 
-_REQUIRED_PROFILE_FIELDS = (
-    "os_release",
-    "kernel_release",
-    "architecture",
-    "uid",
-    "session_type",
-    "xdg_runtime_dir",
-    "session_dbus",
-    "systemd_user",
-    "pipewire_version",
-    "wireplumber_version",
-    "portal_backend",
-    "browser_package_form",
+_T1_FACT_BINDINGS: tuple[tuple[str, str | None], ...] = (
+    ("os_release", "os_release"),
+    ("kernel_release", "kernel_release"),
+    ("architecture", "architecture"),
+    ("uid", "collector_uid"),
+    ("session_type", "session_type"),
+    ("xdg_runtime_dir", None),
+    ("session_dbus", None),
+    ("systemd_user", "systemd_user_state"),
+    ("pipewire_version", "pipewire_version"),
+    ("wireplumber_version", "wireplumber_version"),
+    ("portal_backend", None),
+    ("browser_package_form", None),
 )
 
 
@@ -62,7 +71,7 @@ def _sha256(value: Any) -> str:
 
 
 def _string(name: str, value: Any) -> str:
-    if not isinstance(value, str):
+    if type(value) is not str:
         raise TargetUserspaceTwinError(f"{name} must be a string")
     if value != value.strip() or not value:
         raise TargetUserspaceTwinError(f"{name} must be non-empty and already trimmed")
@@ -71,57 +80,124 @@ def _string(name: str, value: Any) -> str:
     return value
 
 
-def _digest(value: Any) -> str:
-    text = _string("profile_sha256", value)
-    if len(text) != 64 or any(ch not in "0123456789abcdef" for ch in text):
-        raise TargetUserspaceTwinError("profile_sha256 must be lowercase 64-hex SHA-256")
-    return text
+def _projection_scalar(name: str, value: Any) -> str:
+    if type(value) is str:
+        return _string(name, value)
+    if type(value) is int:
+        return str(value)
+    if type(value) is bool:
+        return "true" if value else "false"
+    raise TargetUserspaceTwinError(
+        f"{name} canonical observed value is not a supported T1 scalar"
+    )
 
 
-def _generation(value: Any) -> int:
-    if type(value) is not int or value < 0:
-        raise TargetUserspaceTwinError("profile_generation must be a non-negative integer")
-    return value
+def _canonical_profile(raw: Mapping[str, Any] | TargetHostProfile) -> TargetHostProfile:
+    """Reconstruct the exact canonical WP1201 profile before consuming any fact."""
+
+    if type(raw) is TargetHostProfile:
+        raw_dict = raw.as_dict()
+    elif type(raw) is dict:
+        raw_dict = raw
+    else:
+        raise TargetUserspaceTwinError(
+            "target profile must be exact TargetHostProfile or canonical dict"
+        )
+
+    expected_top_level = {
+        "schema",
+        "collector_version",
+        "generation",
+        "facts",
+        "profile_digest_sha256",
+        "observed_field_count",
+        "unknown_field_count",
+        "unknown_fields",
+        "epistemic_scope",
+    }
+    if set(raw_dict) != expected_top_level:
+        raise TargetUserspaceTwinError(
+            "target profile must use the exact canonical WP1201 wire shape"
+        )
+    if type(raw_dict.get("facts")) is not dict:
+        raise TargetUserspaceTwinError("target profile facts must be an exact dict")
+    if any(type(record) is not dict for record in raw_dict["facts"].values()):
+        raise TargetUserspaceTwinError("target profile fact records must be exact dicts")
+
+    try:
+        rebuilt = TargetHostProfile(
+            schema=raw_dict["schema"],
+            collector_version=raw_dict["collector_version"],
+            generation=raw_dict["generation"],
+            facts={
+                key: dict(raw_dict["facts"][key])
+                for key in sorted(raw_dict["facts"])
+            },
+            profile_digest_sha256=raw_dict["profile_digest_sha256"],
+        )
+    except (KeyError, TypeError, ValueError, TargetHostProfileError) as exc:
+        raise TargetUserspaceTwinError(
+            f"invalid canonical WP1201 target profile: {exc}"
+        ) from exc
+
+    if rebuilt.as_dict() != raw_dict:
+        raise TargetUserspaceTwinError(
+            "target profile derived metadata does not match canonical WP1201 reconstruction"
+        )
+    return rebuilt
 
 
-def _observed_or_unknown(name: str, value: Any) -> str:
-    if value is None:
+def _fact_to_projection_value(
+    profile: TargetHostProfile, *, output_field: str, source_fact: str | None
+) -> str:
+    if source_fact is None:
         return UNKNOWN
-    text = _string(name, value)
-    return text
+    record = profile.facts[source_fact]
+    if record["status"] == PROFILE_UNKNOWN:
+        return UNKNOWN
+    if record["status"] != PROFILE_OBSERVED:
+        raise TargetUserspaceTwinError(
+            f"{source_fact} has noncanonical epistemic status"
+        )
+    return _projection_scalar(output_field, record["value"])
 
 
 @dataclass(frozen=True, slots=True)
 class TargetProfileProjection:
-    """Minimal non-secret profile projection required for a T1 userspace twin."""
+    """Reduced T1 view derived only from one validated canonical WP1201 profile."""
 
     schema: str
     profile_generation: int
     profile_sha256: str
     fields: tuple[tuple[str, str], ...]
+    source_fact_bindings: tuple[tuple[str, str], ...]
 
     @classmethod
-    def from_mapping(cls, raw: Mapping[str, Any]) -> "TargetProfileProjection":
-        if not isinstance(raw, Mapping):
-            raise TargetUserspaceTwinError("target profile must be a mapping")
-        schema = raw.get("schema", PROFILE_SCHEMA)
-        if schema != PROFILE_SCHEMA:
-            raise TargetUserspaceTwinError("target profile schema mismatch")
-        generation = _generation(raw.get("profile_generation"))
-        digest = _digest(raw.get("profile_sha256"))
-        fields_raw = raw.get("fields")
-        if not isinstance(fields_raw, Mapping):
-            raise TargetUserspaceTwinError("target profile fields must be a mapping")
-
+    def from_mapping(
+        cls, raw: Mapping[str, Any] | TargetHostProfile
+    ) -> "TargetProfileProjection":
+        profile = _canonical_profile(raw)
         normalized = tuple(
-            (name, _observed_or_unknown(name, fields_raw.get(name)))
-            for name in _REQUIRED_PROFILE_FIELDS
+            (
+                output_field,
+                _fact_to_projection_value(
+                    profile,
+                    output_field=output_field,
+                    source_fact=source_fact,
+                ),
+            )
+            for output_field, source_fact in _T1_FACT_BINDINGS
+        )
+        bindings = tuple(
+            (output_field, source_fact if source_fact is not None else _UNAVAILABLE)
+            for output_field, source_fact in _T1_FACT_BINDINGS
         )
         return cls(
-            schema=PROFILE_SCHEMA,
-            profile_generation=generation,
-            profile_sha256=digest,
+            schema=PROJECTION_SCHEMA,
+            profile_generation=profile.generation,
+            profile_sha256=profile.profile_digest_sha256,
             fields=normalized,
+            source_fact_bindings=bindings,
         )
 
     def field_map(self) -> dict[str, str]:
@@ -148,9 +224,11 @@ class FidelityGap:
 class TwinBootstrapPlan:
     schema: str
     fidelity: str
+    projection_schema: str
     source_profile_generation: int
     source_profile_sha256: str
     observed_shape: tuple[tuple[str, str], ...]
+    source_fact_bindings: tuple[tuple[str, str], ...]
     fidelity_gaps: tuple[FidelityGap, ...]
     required_runtime_checks: tuple[str, ...]
     one_handoff_installer_entry: str
@@ -160,9 +238,11 @@ class TwinBootstrapPlan:
         return {
             "schema": self.schema,
             "fidelity": self.fidelity,
+            "projection_schema": self.projection_schema,
             "source_profile_generation": self.source_profile_generation,
             "source_profile_sha256": self.source_profile_sha256,
             "observed_shape": dict(self.observed_shape),
+            "source_fact_bindings": dict(self.source_fact_bindings),
             "fidelity_gaps": [gap.as_dict() for gap in self.fidelity_gaps],
             "required_runtime_checks": list(self.required_runtime_checks),
             "one_handoff_installer_entry": self.one_handoff_installer_entry,
@@ -202,15 +282,12 @@ _RUNTIME_CHECKS = (
 )
 
 
-def build_t1_userspace_plan(profile: Mapping[str, Any]) -> TwinBootstrapPlan:
-    """Create a deterministic T1 plan while preserving every unknown input as UNKNOWN.
-
-    The function never substitutes a plausible Ubuntu/kernel/session default for missing
-    target evidence. That would collapse target reality into builder assumptions.
-    """
+def build_t1_userspace_plan(
+    profile: Mapping[str, Any] | TargetHostProfile,
+) -> TwinBootstrapPlan:
+    """Create a deterministic T1 plan from exact WP1201 evidence only."""
 
     projection = TargetProfileProjection.from_mapping(profile)
-    observed = projection.field_map()
     gaps = tuple(
         FidelityGap(
             field=name,
@@ -223,9 +300,11 @@ def build_t1_userspace_plan(profile: Mapping[str, Any]) -> TwinBootstrapPlan:
     return TwinBootstrapPlan(
         schema=PLAN_SCHEMA,
         fidelity=FIDELITY,
+        projection_schema=projection.schema,
         source_profile_generation=projection.profile_generation,
         source_profile_sha256=projection.profile_sha256,
-        observed_shape=tuple(sorted(observed.items())),
+        observed_shape=tuple(sorted(projection.fields)),
+        source_fact_bindings=projection.source_fact_bindings,
         fidelity_gaps=gaps,
         required_runtime_checks=_RUNTIME_CHECKS,
         one_handoff_installer_entry=ONE_HANDOFF_ENTRY,
@@ -233,14 +312,14 @@ def build_t1_userspace_plan(profile: Mapping[str, Any]) -> TwinBootstrapPlan:
 
 
 def plan_from_json(text: str) -> str:
-    """Pure JSON-in/JSON-out adapter for deterministic CI and installer tooling."""
+    """Pure canonical WP1201 JSON-in / T1-plan JSON-out adapter."""
 
-    if not isinstance(text, str):
+    if type(text) is not str:
         raise TargetUserspaceTwinError("profile JSON must be text")
     try:
         raw = json.loads(text)
     except json.JSONDecodeError as exc:
         raise TargetUserspaceTwinError("invalid target profile JSON") from exc
-    if not isinstance(raw, dict):
+    if type(raw) is not dict:
         raise TargetUserspaceTwinError("target profile JSON must contain an object")
     return _canonical_json(build_t1_userspace_plan(raw).as_dict()) + "\n"
