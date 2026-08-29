@@ -1,0 +1,39 @@
+{
+  "schema": "FRANKENSTEIN2_WORKPACKAGE_DELTA/v1",
+  "workpackage_id": "F2-WP-603",
+  "generation": 1,
+  "claim_id": "F2-WP-603-G1-GPT56SOL-RECURSION-ROUTER-20260829",
+  "worker_id": "GPT-5.6-Sol-review-organ",
+  "base_commit": "4b8a9acab8ea36431bd2b8e122b9863f82ad5348",
+  "owned_paths": [],
+  "result_class": "CANDIDATE_FALSIFIER_REVIEW_ONLY",
+  "falsifiers": [
+    {
+      "id": "WP603_ROUTE_CHILD_REQUEST_CROSSPRODUCT_BINDING",
+      "evidence_class": "CURRENT_SOURCE_CAUSAL_BINDING_GAP",
+      "severity": "HIGH_UNTIL_EXACT_HANDOFF_IS_CONSUMED_OR_REPRODUCED",
+      "statement": "A recursion/adaptive-selection candidate that consumes an individually valid F2-WP-600 RouteCandidate and an individually valid F2-WP-601 NativeChildRequest must not accept an unrelated cross-product pair. F2-WP-602 exists specifically to bind the routed task identity/digest to the child request parent task and payload digest. If WP603 validates only the two inputs independently, RouteCandidate A plus NativeChildRequest B can satisfy local type/hash/depth checks while representing different tasks.",
+      "source_basis": [
+        "src/frankenstein2/child_handoff_reconcile.py: ChildHandoffEvidence requires exact concrete RouteCandidate and NativeChildRequest, DELEGATE_BUILD, route_candidate.task_id == child_request.binding.parent.task_id, route_candidate.task_sha256 == child_request.payload_sha256, and a content-bound handoff_id",
+        "src/frankenstein2/native_child_abi.py: verify_native_child_request proves the child request's own request/binding/content identity but does not prove relation to an external WP600 route candidate",
+        "src/frankenstein2/direct_delegate_router.py: RouteCandidate self-binds its own task/cycle/policy/route content but does not identify a later child request",
+        "workpackages/active/F2-WP-603.json currently treats WP602 as a separate downstream layer while proposing to use WP600 and WP601 directly"
+      ],
+      "counterexample": "Construct valid DELEGATE_BUILD RouteCandidate A for task_id=task-A/task_sha256=A and valid pending NativeChildRequest B whose binding.parent.task_id=task-B and payload_sha256=B, with B.resource_budget.max_nested_depth sufficient for the requested recursion mechanism. Both objects can pass their own validators. A WP603 router that checks route, request, depth and policy independently can emit a candidate for the mismatched A/B pair unless it consumes an exact WP602 ChildHandoffEvidence or reproduces the same relation checks before candidate creation.",
+      "risk": "The resulting recursion/adaptive-selection evidence would be internally well-hashed but causally attributed to the wrong task/child request. Later WP604 child lifecycle, GWT re-entry and completion provenance could then inherit a valid-looking cross-task lineage error.",
+      "required_discriminator": "Before WP603 bounded acceptance, add a negative test using two separately valid but mutually unrelated route/request objects. The router must fail closed. The strongest design is to consume exact verified ChildHandoffEvidence for any child-harness path. If the implementation intentionally does not depend on WP602, it must reproduce and content-bind at least the exact task_id and task_sha256/payload_sha256 relation plus route/request digests into the WP603 candidate identity.",
+      "minimum_tests": [
+        "valid RouteCandidate A + valid NativeChildRequest B with mismatched parent task_id fails closed",
+        "valid RouteCandidate A + valid NativeChildRequest B with matching task_id but mismatched route task_sha256 vs child payload_sha256 fails closed",
+        "tampering or swapping the child request after WP603 candidate creation invalidates candidate verification",
+        "the WP603 candidate identity/digest changes when the bound handoff/request identity changes",
+        "exact concrete dependency types are revalidated at the WP603 consumer boundary"
+      ]
+    }
+  ],
+  "relationship_to_existing_reviews": "ORTHOGONAL. The existing canonical R0-R3 semantics contradiction and recursion-depth budget-consumption falsifier remain valid and higher-level. This review addresses a separate causal cross-binding seam that still matters after the R0/R1/R2/R3 semantic contract is corrected.",
+  "proposed_state_change": "NONE_BY_REVIEWER. Keep the sole WP603 mutation authority. Require the active owner to absorb or executable-refute this cross-binding falsifier before accepting any child-harness path.",
+  "authority_boundary": "REVIEW_ONLY. No WP603 owned implementation path, active claim, child execution, provider/tool call, UnifiedDB state, effect/completion authority, runtime credit, GRID/GWT/J-Space credit, training credit or whole-system credit is modified or granted.",
+  "next_exact_action": "Active WP603 owner should first resolve the canonical R0/R1/R2/R3 semantic contradiction. For any resulting R2 child-harness or adaptive R3 path that consumes a child request, require exact WP602 handoff evidence or equivalent relation-level cross-binding and regress the mismatched-route/request counterexample before repository-hosted acceptance CI.",
+  "created_at_utc": "2026-08-29T10:35:00Z"
+}
