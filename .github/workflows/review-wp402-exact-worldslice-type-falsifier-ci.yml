@@ -1,0 +1,37 @@
+name: Review WP402 Exact WorldSlice Type Falsifier
+
+on:
+  push:
+    branches:
+      - chatgpt/review-wp402-exact-worldslice-type-falsifier-20260829
+    paths:
+      - 'src/frankenstein2/qubo_projection.py'
+      - 'src/frankenstein2/sparse_world_basis.py'
+      - 'tests/test_wp402_exact_worldslice_type_falsifier.py'
+      - '.github/workflows/review-wp402-exact-worldslice-type-falsifier-ci.yml'
+  pull_request:
+    paths:
+      - 'src/frankenstein2/qubo_projection.py'
+      - 'src/frankenstein2/sparse_world_basis.py'
+      - 'tests/test_wp402_exact_worldslice_type_falsifier.py'
+      - '.github/workflows/review-wp402-exact-worldslice-type-falsifier-ci.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  candidate-falsifier:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Compile exact candidate source and falsifier
+        run: python -m py_compile src/frankenstein2/sparse_world_basis.py src/frankenstein2/qubo_projection.py tests/test_wp402_exact_worldslice_type_falsifier.py
+      - name: Run exact-type provenance falsifier
+        env:
+          PYTHONPATH: src
+        run: python tests/test_wp402_exact_worldslice_type_falsifier.py -v
