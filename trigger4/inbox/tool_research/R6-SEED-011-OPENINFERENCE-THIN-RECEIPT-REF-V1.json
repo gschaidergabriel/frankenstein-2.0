@@ -1,0 +1,91 @@
+{
+  "schema": "FRANKENSTEIN2_TRIGGER6_TO_TRIGGER4_BUILD_CANDIDATE/v1",
+  "candidate_id": "R6-SEED-011-OPENINFERENCE-THIN-RECEIPT-REF-V1",
+  "hypothesis_id": "R6-SEED-011",
+  "architecture_snapshot_id": "F2@fe8b1e7d80242cdb49433173621234003035b6cb",
+  "research_entity_source_sha": "e9cf3dc5e15b708e3f062be70c03e920fe353212",
+  "frankenstein_2_source_sha": "764f14be2827e6cb3de4625957c76a812aa40457",
+  "external_repo": "Arize-ai/openinference",
+  "external_repo_commit_sha": "d773c1ac1c7bcfef565e6280932af68d388531e7",
+  "external_repo_tree_sha": "2665957765e703b668c6c55fadaefb13873e6bb7",
+  "license": "Apache-2.0",
+  "integration_class": "CONCEPT_DISTILL",
+  "f2_target_workpackages": ["F2-WP-005", "F2-WP-902"],
+  "f2_target_modules": ["telemetry/EVIDENCE_SPINE.md", "schemas/EVIDENCE_SPINE.schema.json", "new pure observer projection adapter selected by Trigger-4"],
+  "problem_or_gap": "F2 has strong canonical receipt/runpackage identity and a telemetry spine, but lacks a measured standard-compatible observer projection for cross-tool trace inspection and append-only post-hoc evaluation provenance. A full OpenInference import is too broad for the current need.",
+  "proposed_delta": "Implement the smallest pure one-way observer adapter: admitted immutable F2 receipt ref+SHA-256 plus a minimal allowlisted query index -> OpenInference-compatible evaluator/span attributes and optional single post-hoc Span Link. Observer IDs remain correlation only. No reverse flow to UnifiedDB, GWT, effects, completion, goals or world truth. Do not import provider instrumentors or external blob upload machinery.",
+  "counterhypotheses": [
+    "Native F2 receipts/telemetry already provide sufficient inspection value, making compatibility projection net-negative after maintenance cost.",
+    "Exporter/processor/collector/storage overhead can erase the local thin-shape advantage.",
+    "OpenInference convention churn may cost more than a stable F2-native observer schema.",
+    "Span-link visualization may add little decision-relevant value beyond immutable receipt refs."
+  ],
+  "evidence_refs": [
+    "research/tool_intelligence/deltas/2026-08-29T1506P0700_GPT56SOL_R6_SEED011_OPENINFERENCE_E2_ARCHITECTURE_MAPPED.json",
+    "research/tool_intelligence/receipts/R6-SEED-011_E3_OPENINFERENCE_PROJECTION_IDENTITY_PRIVACY_20260829T1619P0700.json",
+    "research/tool_intelligence/receipts/R6-SEED-011_E4_OPENINFERENCE_PROJECTION_COST_20260829T1623P0700.json",
+    "research/tool_intelligence/receipts/R6-SEED-011_E4_OPENINFERENCE_THIN_REF_20260829T1626P0700.json",
+    "research/tool_intelligence/receipts/R6-SEED-011_E4_OPENINFERENCE_OTLP_PROTOBUF_20260829T1629P0700.json",
+    "research/tool_intelligence/deltas/2026-08-29T1632P0700_GPT56SOL_R6_SEED011_OPENINFERENCE_E5_BUILD_CANDIDATE.json"
+  ],
+  "upstream_claims_reproduced": [
+    "OpenInference-compatible post-hoc evaluation can be represented as a separate evaluator carrier linked to a target observer span.",
+    "A strict allowlisted one-way projection can preserve canonical F2 receipt identity without making observer IDs authoritative.",
+    "The distilled thin shape remains smaller and faster than the full-field projection under local OTel 1.42.1 OTLP protobuf encoding."
+  ],
+  "upstream_claims_not_reproduced": [
+    "No upstream end-to-end performance benchmark was adopted.",
+    "No collector/exporter/network/storage/query backend claim was reproduced.",
+    "No claim that OpenInference establishes causality, truth, completion or GWT uptake was accepted.",
+    "No full OpenInference framework/provider instrumentor integration was tested."
+  ],
+  "baseline_definition": "Compare adapter-disabled/native F2 receipt path against thin projection enabled for the same immutable receipt workload; separately retain the Trigger-6 full-field projection as a negative/overbuilt comparison, not as the intended build.",
+  "required_tests": [
+    "Exact receipt_ref and receipt_sha256 preservation.",
+    "Source receipt/runpackage object remains unchanged.",
+    "Observer trace/span IDs can vary without changing exported canonical F2 refs/digests.",
+    "Positive export allowlist excludes prompt/output/tool definitions/secrets/free-form metadata.",
+    "Malformed canonical digest or ambiguous receipt identity fails closed.",
+    "Observer-disabled/sampled/suppressed path yields no telemetry and does not mint a negative F2 fact.",
+    "No reverse-write surface to UnifiedDB/GWT/effect/completion authority.",
+    "If post-hoc evaluation is represented, exactly one intended Span Link is bound to the target observer span.",
+    "Repository-hosted deterministic regression for serialization shape and privacy fence."
+  ],
+  "required_ablations": [
+    "adapter disabled/native receipt vs thin receipt-ref adapter",
+    "thin receipt-ref adapter vs full-field projection",
+    "with and without optional post-hoc observer link where applicable"
+  ],
+  "required_measurements": [
+    "serialized OTLP bytes per representative receipt/event",
+    "adapter build/encode p50/p95/p99 latency",
+    "end-to-end observer-path p50/p95/p99 latency when an exporter/processor is included",
+    "CPU and RSS/PSS overhead at representative event rate",
+    "drop/sampling/suppression behavior and explicit UNKNOWN handling",
+    "inspection/query task success compared with native receipts alone",
+    "dependency/startup overhead if OpenTelemetry SDK becomes a runtime dependency"
+  ],
+  "expected_token_delta": "0 model-facing tokens by design; observer telemetry must not expand model context unless separately authorized by a later retrieval path.",
+  "expected_latency_delta": "Local OTel 1.42.1 build+OTLP encode: thin p50 62.440 us vs full 83.398 us; actual F2 observer-path delta remains UNKNOWN until Trigger-4 measurement.",
+  "expected_resource_delta": "Thin OTLP fixture 1018 bytes vs full 1674 bytes (-656 bytes, -39.2%); target CPU/RSS/I/O/network impact remains UNKNOWN.",
+  "quality_success_metric": "Cross-tool/post-hoc trace inspection gains useful receipt-level correlation/evaluation provenance while canonical F2 evidence, privacy, UNKNOWN semantics and authority boundaries remain unchanged; otherwise reject as unnecessary observer complexity.",
+  "rollback_or_reject_rule": "Reject/disable if the implementation requires full framework/provider instrumentation, leaks non-allowlisted content, creates reverse authority, cannot keep observer IDs noncanonical, shows no material inspection/query value, or fails bounded-overhead tests versus native receipts.",
+  "known_failure_modes": [
+    "observer sampling/suppression creates gaps that can be misread as event absence",
+    "random trace/span IDs accidentally treated as causal identity",
+    "privacy regression through broad attribute capture",
+    "semantic-convention version churn",
+    "collector/exporter overhead dominating the thin adapter",
+    "duplicate telemetry schema becoming a second evidence authority",
+    "post-hoc evaluator output incorrectly treated as world fact"
+  ],
+  "source_archive_ref": "research/tool_intelligence/promoted_repos/R6-SEED-011-OPENINFERENCE-THIN-RECEIPT-REF-V1/SOURCE_LOCK.json",
+  "research_db_row_ids": [],
+  "trigger6_evidence_ceiling": "E5_BUILD_CANDIDATE_ONLY",
+  "trigger4_required_for_e6": true,
+  "runtime_credit": 0,
+  "gwt_causal_credit": 0,
+  "effect_credit": 0,
+  "completion_credit": 0,
+  "whole_system_credit": 0
+}
