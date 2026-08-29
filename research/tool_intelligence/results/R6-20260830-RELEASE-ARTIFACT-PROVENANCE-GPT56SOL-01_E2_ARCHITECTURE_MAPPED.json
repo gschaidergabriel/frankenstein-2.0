@@ -1,0 +1,100 @@
+{
+  "schema": "F2_TRIGGER6_RESEARCH_RESULT/v1",
+  "research_id": "R6-20260830-RELEASE-ARTIFACT-PROVENANCE-GPT56SOL-01",
+  "evidence_stage": "E2_ARCHITECTURE_MAPPED",
+  "status": "COMPLETE_AT_SCOPE",
+  "recorded_at": "2026-08-30T01:09:00+07:00",
+  "worker": "GPT-5.6-Sol",
+  "claim_ref": "research/tool_intelligence/claims/R6-20260830-RELEASE-ARTIFACT-PROVENANCE-GPT56SOL-01/E2_ARCHITECTURE_MAPPED.json",
+  "prior_e1_ref": "research/tool_intelligence/results/R6-20260830-RELEASE-ARTIFACT-PROVENANCE-GPT56SOL-01_E1_SOURCE_READ.json",
+  "f2_observed_source": {
+    "clean_machine_acceptance": {
+      "path": "src/frankenstein2/clean_machine_acceptance.py",
+      "blob_sha": "5b44e0be5ac73210820cc9777956ce6f6a6ccfbd",
+      "observed_binding": [
+        "release_manifest_sha256",
+        "prehandoff_receipt_ref"
+      ],
+      "outer_archive_sha256_binding_observed": false
+    },
+    "release_integrity": "src/frankenstein2/release_integrity.py",
+    "pre_handoff_release": "src/frankenstein2/pre_handoff_release.py"
+  },
+  "static_falsifier": {
+    "scope": "LOCAL_STATIC_DISCRIMINATOR_ONLY_NOT_F2_RUNTIME",
+    "construction": "two ZIP archives contain the same two payload files with identical extracted byte content, file sizes and SHA-256 values; archive entry order/timestamps/comment differ",
+    "zip_a_sha256": "3dbe30b86947dd751e077bb3779d92dff1dc5e942b765ead46ab9f7a8fc885bf",
+    "zip_b_sha256": "bc09704166b3b551ed81fb6e67a1d7306830216d10690b5720df824967f1a66e",
+    "zip_a_size": 220,
+    "zip_b_size": 220,
+    "extracted_inventory_equal": true,
+    "conclusion": "extracted payload manifest identity does not imply exact outer ZIP byte identity"
+  },
+  "architecture_gap": {
+    "name": "OUTER_RELEASE_ARTIFACT_SUBJECT_UNBOUND",
+    "scope": "WP1110_PREHANDOFF_TO_CLEAN_MACHINE_EVIDENCE_PATH",
+    "description": "The current static handoff/clean-machine evidence chain binds the extracted release manifest digest and external receipt reference but does not bind the SHA-256 of the unopened distributed final ZIP. This is a claim/evidence gap specifically because the WP1110 frontier calls for the exact final deterministic release ZIP; it is not evidence that extracted payload validation is incorrect."
+  },
+  "smallest_reusable_mechanism": {
+    "name": "ReleaseArtifactSubject/v1",
+    "role": "EVIDENCE_SUBJECT_ONLY_NOT_TRUTH_AUTHORITY",
+    "placement": "extend the existing external prehandoff receipt; do not put final ZIP digest inside the ZIP-resident release manifest because that creates a self-reference problem",
+    "required_fields": [
+      "artifact_filename",
+      "artifact_sha256",
+      "artifact_size_bytes",
+      "release_manifest_sha256",
+      "source_commit",
+      "source_tree",
+      "release_id",
+      "build_id"
+    ],
+    "clean_machine_order": [
+      "hash exact unopened ZIP before extraction",
+      "fail closed unless filename/size/SHA-256 match ReleaseArtifactSubject/v1",
+      "reject unsafe ZIP member topology before extraction (duplicate names, absolute paths, parent traversal or noncanonical separators)",
+      "extract to controlled temporary root",
+      "run existing release-manifest validation against extracted payload",
+      "bind accepted clean-machine observation to both artifact_sha256 and release_manifest_sha256 plus prehandoff_receipt_ref"
+    ]
+  },
+  "deterministic_zip_constraints": [
+    "stable sorted canonical relative member paths",
+    "normalized timestamps or one source-derived epoch policy",
+    "fixed compression method and compression level",
+    "normalized external attributes/file mode and creator-system semantics",
+    "stable archive comment/extra-field policy",
+    "no duplicate canonical member names",
+    "byte-identical double-build test for the same source/material inputs"
+  ],
+  "negative_tests": [
+    "same extracted payload with changed ZIP metadata/order must fail artifact subject digest binding",
+    "archive digest mismatch must fail before extraction",
+    "duplicate member names must fail before extraction",
+    "absolute or parent-traversal member path must fail before extraction",
+    "receipt artifact filename/size mismatch must fail",
+    "clean-machine observation artifact digest mismatch must fail",
+    "same source/material deterministic double build must produce the same archive digest"
+  ],
+  "external_mechanism_basis": [
+    "in-toto ResourceDescriptor/Statement artifact subject digest binding",
+    "SLSA provenance concept of verifiable artifact origin/build relationship",
+    "Reproducible Builds stable input ordering and timestamp normalization",
+    "Python zipfile ZipInfo demonstrates ZIP container metadata distinct from extracted payload bytes"
+  ],
+  "counterhypothesis_resolution": "PARTIALLY_REJECTED_AT_E2: current manifest+receipt semantics are adequate for the extracted payload predicate they implement, but current clean-machine source does not bind the unopened exact ZIP identity required by the stated deterministic-final-ZIP frontier.",
+  "adoption_decision": "PROPOSED_RESEARCH_ONLY_NOT_BUILD_PROMOTED",
+  "promotion_blockers": [
+    "no E3 candidate implementation observed",
+    "no E4 integrated F2 lane observation",
+    "no E5 verified promotion packet requirements satisfied",
+    "canonical pending_research.sqlite synchronization remains pending where an admitted binary DB write path is unavailable"
+  ],
+  "rollback": "If a later exact-current source shows the final ZIP digest is already bound before extraction through an authoritative equivalent field, retire this delta as redundant and preserve this receipt as historical falsifier scope only.",
+  "research_credit": "E2_ARCHITECTURE_MAPPED_ONLY",
+  "runtime_credit": 0,
+  "physical_host_credit": 0,
+  "effect_credit": 0,
+  "completion_credit": 0,
+  "whole_system_credit": 0
+}
