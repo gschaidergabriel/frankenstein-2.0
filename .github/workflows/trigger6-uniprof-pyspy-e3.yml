@@ -68,6 +68,7 @@ jobs:
             code=$?
             echo "$code" > ".e3-out/${label}.rc"
             echo "${label}_rc=${code}"
+            if [ "$code" -ne 0 ]; then sed -n '1,20p' ".e3-out/${label}.stderr"; fi
           }
           for r in 1 2 3; do
             run_timed "baseline_${r}" python "$fixture" --parent-iterations 25000000 --child-iterations 20000000
@@ -106,18 +107,27 @@ jobs:
           import json, pathlib, statistics, os, hashlib
           root = pathlib.Path('.e3-out')
           def t(label):
-              return json.loads((root/f'{label}.time.json').read_text())
+              text=(root/f'{label}.time.json').read_text(errors='replace')
+              for line in reversed(text.splitlines()):
+                  line=line.strip()
+                  if line.startswith('{'):
+                      return json.loads(line)
+              return {"wall":None,"user":None,"sys":None,"rss_kb":None,"time_raw":text[:500]}
           def rc(label):
               return int((root/f'{label}.rc').read_text().strip())
           def profile(path):
               p=pathlib.Path(path)
               if not p.exists(): return {"exists":False}
-              data=json.loads(p.read_text())
+              try:
+                  data=json.loads(p.read_text())
+              except Exception as e:
+                  return {"exists":True,"valid_json":False,"bytes":p.stat().st_size,"parse_error":repr(e)}
               frames=data.get('shared',{}).get('frames',[])
               names=[str(f.get('name','')) for f in frames]
               files=[str(f.get('file','')) for f in frames if f.get('file')]
               return {
                 "exists": True,
+                "valid_json": True,
                 "bytes": p.stat().st_size,
                 "profiles": len(data.get('profiles',[])),
                 "frame_count": len(frames),
@@ -132,9 +142,11 @@ jobs:
               for r in range(1,4):
                   label=f'{mode}_{r}'
                   row={"run":r,"rc":rc(label),**t(label)}
+                  err=(root/f'{label}.stderr').read_text(errors='replace')[:1200]
+                  if err: row['stderr_prefix']=err
                   if mode!='baseline': row['profile']=profile(root/f'{label}.speedscope.json')
                   rows.append(row)
-              walls=[x['wall'] for x in rows if x['rc']==0]
+              walls=[x['wall'] for x in rows if x['rc']==0 and isinstance(x.get('wall'),(int,float))]
               modes[mode]={"runs":rows,"wall_median":statistics.median(walls) if walls else None}
           base=modes['baseline']['wall_median']
           overhead={}
@@ -161,13 +173,14 @@ jobs:
             "wall_overhead_percent_vs_baseline_median":overhead,
             "attach_existing_sibling":{"rc":attach_rc,"stderr_prefix":attach_err},
           }
-          successful_profiles=[x['profile'] for m in ('rate100','rate999') for x in modes[m]['runs'] if x.get('profile',{}).get('exists')]
+          successful_profiles=[x['profile'] for m in ('rate100','rate999') for x in modes[m]['runs'] if x.get('rc')==0 and x.get('profile',{}).get('valid_json')]
           result['falsifiers']={
-            "launch_mode_profiles_without_root": all(x['rc']==0 for m in ('rate100','rate999') for x in modes[m]['runs']),
-            "parent_hotspot_observed": bool(successful_profiles) and all(p['parent_hotspot_seen'] for p in successful_profiles),
-            "child_hotspot_observed": bool(successful_profiles) and all(p['child_hotspot_seen'] for p in successful_profiles),
-            "absolute_source_paths_exposed": any(p['absolute_path_frames']>0 for p in successful_profiles),
-            "github_workspace_path_exposed": any(p['workspace_path_exposed'] for p in successful_profiles),
+            "launch_mode_all_runs_succeed_without_root": all(x['rc']==0 for m in ('rate100','rate999') for x in modes[m]['runs']),
+            "launch_mode_any_run_succeeds_without_root": any(x['rc']==0 for m in ('rate100','rate999') for x in modes[m]['runs']),
+            "parent_hotspot_observed": bool(successful_profiles) and all(p.get('parent_hotspot_seen') for p in successful_profiles),
+            "child_hotspot_observed": bool(successful_profiles) and all(p.get('child_hotspot_seen') for p in successful_profiles),
+            "absolute_source_paths_exposed": any(p.get('absolute_path_frames',0)>0 for p in successful_profiles),
+            "github_workspace_path_exposed": any(p.get('workspace_path_exposed',False) for p in successful_profiles),
             "sibling_attach_without_extra_privilege_succeeded": attach_rc==0,
             "uniprof_doc_1_to_2_percent_overhead_consistent_at_100hz": overhead['rate100'] is not None and overhead['rate100'] <= 2.0,
             "uniprof_doc_1_to_2_percent_overhead_consistent_at_999hz": overhead['rate999'] is not None and overhead['rate999'] <= 2.0,
