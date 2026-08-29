@@ -144,6 +144,20 @@ class AgenticCoreFalsifierTests(unittest.TestCase):
         self.assertEqual(report.verdict, FALSIFIED)
         self.assertIn(f"DELTA_BELOW_BASELINE_FLOOR:{PLANNING_EXECUTION}", report.reasons)
 
+    def test_action_count_is_observational_not_an_efficiency_gate(self):
+        low_action = complete_evidence()
+        high_action = tuple(
+            evidence(capability, actions=200_000_000)
+            for capability in (EXPLORATION, MODELING, GOAL_SETTING, PLANNING_EXECUTION)
+        )
+        low_report = evaluate_agentic_core(low_action, policy=policy(), report_id="report-low-action")
+        high_report = evaluate_agentic_core(high_action, policy=policy(), report_id="report-high-action")
+        self.assertEqual(low_report.verdict, SUPPORTED_AT_COMPONENT_SCOPE)
+        self.assertEqual(high_report.verdict, SUPPORTED_AT_COMPONENT_SCOPE)
+        self.assertEqual(low_report.total_action_count, 240)
+        self.assertEqual(high_report.total_action_count, 800_000_000)
+        self.assertEqual(low_report.reasons, high_report.reasons)
+
     def test_capability_cannot_be_bound_to_wrong_workpackage(self):
         with self.assertRaisesRegex(AgenticCoreFalsifierError, "canonical source workpackage F2-WP-803"):
             CapabilityEvidence(
