@@ -1,0 +1,46 @@
+{
+  "schema": "FRANKENSTEIN2_WORKPACKAGE_DELTA/v1",
+  "workpackage_id": "F2-WP-509",
+  "generation": 2,
+  "claim_id": "F2-WP-509-G2-GPT56SOL-EVALUATOR-LINEAGE-REPAIR-20260829",
+  "worker_id": "GPT-5.6-Sol",
+  "canonical_claim_merge": "28edd96f1ebc3366ca03c1e5d5773584ea97cb80",
+  "trigger_negative_evidence": {
+    "review_pr": 183,
+    "review_head_sha": "0386a95a109d3a1780cfff9e65a6928eb7c4f060",
+    "workflow_run_id": 33222691650,
+    "result": "FAILURE_AS_EXPECTED"
+  },
+  "result_class": "IMPLEMENTED_PENDING_EXACT_HEAD_AND_MERGED_MAIN_CI",
+  "source": "src/frankenstein2/rumination_control.py",
+  "source_blob_sha": "a805c3efda35ceba509894e465e62a1348449a3a",
+  "test": "tests/test_rumination_control.py",
+  "test_blob_sha": "1ee9faa84e2de470ab406bea7e9c27d920848e06",
+  "workflow": ".github/workflows/wp509-rumination-control-ci.yml",
+  "workflow_blob_sha": "da19ef34638a325f37efdfe87b4fd261b0023e9f",
+  "mechanism": [
+    "RuminationExitDecision carries a non-serialized InitVar evaluator-origin token.",
+    "The public constructor defaults that token to None and fails closed after normal structural field validation unless the exact module-private evaluator sentinel is supplied.",
+    "evaluate_rumination_exit supplies the exact sentinel only after all accepted G1 snapshot/policy/cycle/wake/budget/unchanged-state/UNKNOWN-CONFLICT transition logic has run.",
+    "The evaluator-origin token is excluded from dataclass serialization/digest material, so canonical decision identity remains a function of semantic decision fields rather than process-local object identity.",
+    "The exact PR #183 direct-constructor bypass is absorbed into tests/test_rumination_control.py."
+  ],
+  "boundary": "This is an internal Python ABI producer-lineage fence, not a cryptographic capability or hostile same-process security boundary. Arbitrary code that deliberately reaches module-private internals is outside this bounded component claim and would require a stronger downstream recomputation/admission boundary if treated as adversarial code.",
+  "preserved_non_authority": [
+    "no world-fact/goal/causality/completion inference",
+    "no wake scheduling or autonomous resume",
+    "no UnifiedDB write",
+    "no GRID/GWT mutation",
+    "no effect authority",
+    "no provider/model invocation",
+    "no runtime/physical GRID10/GWT/J-Space/training/whole-system credit"
+  ],
+  "runtime_execution_observed": false,
+  "runtime_credit": 0,
+  "physical_grid10_credit": 0,
+  "gwt_runtime_credit": 0,
+  "jspace_runtime_credit": 0,
+  "training_credit": 0,
+  "whole_system_acceptance": false,
+  "next_exact_action": "Observe the raw branch-head WP509 workflow triggered by this delta commit. If green, open the bounded implementation PR, require its exact associated CI, inspect diff for WP509-only scope, merge, then require merged-main WP509 CI before terminal G2 receipt/reconciliation."
+}
