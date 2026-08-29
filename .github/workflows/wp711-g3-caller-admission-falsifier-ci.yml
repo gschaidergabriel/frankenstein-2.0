@@ -1,0 +1,29 @@
+name: WP711 G3 caller-supplied admission falsifier
+
+on:
+  pull_request:
+    paths:
+      - 'src/frankenstein2/perception_temporal.py'
+      - 'tests/test_wp711_g3_caller_supplied_admission_falsifier.py'
+      - '.github/workflows/wp711-g3-caller-admission-falsifier-ci.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  wp711-g3-caller-admission-falsifier:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      PYTHONPATH: src
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Compile reviewed temporal module and falsifier
+        run: |
+          python -m py_compile src/frankenstein2/perception_temporal.py
+          python -m py_compile tests/test_wp711_g3_caller_supplied_admission_falsifier.py
+      - name: Execute caller-supplied admission falsifier
+        run: python -m unittest tests.test_wp711_g3_caller_supplied_admission_falsifier -v
