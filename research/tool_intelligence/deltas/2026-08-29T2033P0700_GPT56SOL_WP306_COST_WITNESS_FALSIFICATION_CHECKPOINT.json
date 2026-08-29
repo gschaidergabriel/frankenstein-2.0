@@ -1,0 +1,35 @@
+{
+  "schema": "F2_TRIGGER6_FALSIFICATION_CHECKPOINT/v1",
+  "research_id": "R6-20260829-WP306-CONTEXT-COMPILER-GPT56SOL-01",
+  "created_at_local": "2026-08-29T20:33:00+07:00",
+  "status": "OPEN_UNRESOLVED_NOT_PROVEN_ABSENT",
+  "f2_main_observed_before_write": "0b3d15e76199dcacc81c13df64cb50dfff6f11bc",
+  "question": "Does current F2 already bind ContextItem.cost_units to exact rendered payload/token/byte/latency cost through a separate trusted witness or renderer contract?",
+  "checks": [
+    {
+      "surface": "architecture/TOKEN_AND_RESOURCE_EFFICIENCY_POLICY.md",
+      "result": "Policy requires measuring input/output tokens, prompt/context bytes/tokens, retrieved payload size, cache/reuse hit rate and latency, but does not itself define a ContextItem cost-unit witness."
+    },
+    {
+      "surface": "current src/frankenstein2 module inventory",
+      "result": "No filename-level dedicated token/context cost-witness module was identified; context_compiler.py remains the visible bounded-selection core. Filename inventory is not proof of absence from all source bodies."
+    },
+    {
+      "surface": "GitHub indexed source search",
+      "queries": ["cost_units", "tokenizer prompt_tokens input_tokens rendered_tokens payload_bytes", "ContextCostWitness cost witness token budget context render"],
+      "result": "No indexed results returned. Because GitHub indexing previously failed to surface known current ContextCompiler content, these misses are classified INDEX_INCOMPLETE_OR_NEGATIVE_SIGNAL, not absence evidence."
+    },
+    {
+      "surface": "GitHub commit search",
+      "queries": ["token cost context budget", "cost_units"],
+      "result": "No matching commits returned; classified weak negative signal only."
+    }
+  ],
+  "conclusion": {
+    "cost_witness_gap": "OPEN_UNRESOLVED",
+    "absence_claim": false,
+    "e2_delta_change": "NO_RETRACTION; narrow wording remains correct because E2 stated that the binding was not established in that source read, not that no such mechanism exists anywhere.",
+    "next_exact_discriminator": "Trigger 4 or a later nonduplicate Trigger 6 should bind an actual ContextView dereference/render path and measure payload bytes plus tokenizer-specific rendered input tokens against declared cost_units. A mismatched cheap-declared/large-rendered fixture is the highest-information falsifier.",
+    "credit": "ZERO_NEW_RUNTIME_OR_ARCHITECTURE_CREDIT"
+  }
+}
