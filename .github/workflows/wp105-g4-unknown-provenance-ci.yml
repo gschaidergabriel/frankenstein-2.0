@@ -1,10 +1,10 @@
 name: F2 WP105 G4 UNKNOWN provenance structural CI
-# Rebased onto F2 main 9293965b342c75f60a79b2e3b7b0cda46bf1cca6 before final G4 evidence.
 
 on:
   push:
     branches:
       - trigger4/wp105-g4-unknown-provenance-structural-20260829
+      - main
     paths:
       - 'src/frankenstein2/entityos_unknown_outcome_adapter.py'
       - 'src/frankenstein2/effect_executor_interlock.py'
@@ -26,6 +26,12 @@ permissions:
 
 jobs:
   structural-unknown-provenance:
+    # On main this generation is executable only for the exact canonical fusion commit.
+    # Future successors may change the same files without being misclassified by stale G4 hashes.
+    if: >-
+      github.event_name != 'push' ||
+      github.ref != 'refs/heads/main' ||
+      github.event.head_commit.message == 'trigger4: fuse WP105 G4 structural UNKNOWN provenance hardening'
     runs-on: ubuntu-latest
     timeout-minutes: 8
     env:
