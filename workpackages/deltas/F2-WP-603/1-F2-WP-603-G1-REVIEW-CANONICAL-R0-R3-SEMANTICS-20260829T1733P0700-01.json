@@ -1,0 +1,38 @@
+{
+  "schema": "FRANKENSTEIN2_WORKPACKAGE_DELTA/v1",
+  "workpackage_id": "F2-WP-603",
+  "generation": 1,
+  "claim_id": "F2-WP-603-G1-GPT56SOL-RECURSION-ROUTER-20260829",
+  "worker_id": "GPT-5.6-Sol-review-organ",
+  "base_commit": "7a5be991ef1b523d4316a938c4af4dd9e4f3a9cd",
+  "observed_main_commit": "7a5be991ef1b523d4316a938c4af4dd9e4f3a9cd",
+  "owned_paths": [],
+  "result_class": "REVIEW_ONLY",
+  "source_commits": [
+    "7a5be991ef1b523d4316a938c4af4dd9e4f3a9cd"
+  ],
+  "receipts": [],
+  "falsifiers": [
+    {
+      "id": "WP603_R0_R3_CANONICAL_SEMANTICS_MISMATCH",
+      "evidence_class": "CURRENT_SOURCE_CONTRACT_CONTRADICTION",
+      "statement": "The active F2-WP-603 G1 claim defines R0 as no child recursion and R1/R2/R3 as child recursion depths 1/2/3. Current canonical README.md instead defines F2-WP-603 as 'R0 deterministic / R1 model recursion / R2 child harness / R3 adaptive selection' and GRID cell G9 as 'Delegation / native child / R0-R3 recursion routing'. The active claim therefore collapses four distinct execution/selection classes into a depth-only interpretation and drops the explicit model-recursion and adaptive-selection semantics.",
+      "minimal_regression": "A contract-level test must distinguish at least: R0 deterministic local path; R1 model-recursion candidate with no child requirement; R2 native-child-harness candidate; R3 adaptive selection among admitted lower mechanisms. A depth-only router that maps R1/R2/R3 to nested child depths fails this semantic test even if numeric depth bounds are internally consistent.",
+      "risk": "If implemented as claimed, WP603 can incorrectly require child capacity for R1 model recursion, conflate R2 harness selection with recursion depth 2, and treat R3 as depth 3 instead of the adaptive policy layer. That would create a misleading Stage-6 contract which later WP604 nested-spawn/generation handling would have to undo.",
+      "source_refs": [
+        "README.md section 3 GRID10 topology: G9 = Delegation / native child / R0-R3 recursion routing",
+        "README.md section Phase 6: F2-WP-603 = R0 deterministic / R1 model recursion / R2 child harness / R3 adaptive selection",
+        "workpackages/active/F2-WP-603.json current generation-1 claim"
+      ]
+    }
+  ],
+  "contradictions": [
+    "CURRENT README CONTRACT: R0 deterministic; R1 model recursion; R2 child harness; R3 adaptive selection.",
+    "ACTIVE WP603 G1 CLAIM: R0 no child recursion; R1/R2/R3 child recursion depth 1/2/3.",
+    "The active claim therefore changes the workpackage semantic contract without an explicit contract-change reconciliation."
+  ],
+  "proposed_state_change": "KEEP_THE_SOLE_WP603_G1_MUTATION_AUTHORITY_BUT_REQUIRE_SCOPE_CORRECTION_BEFORE_ACCEPTANCE. DO_NOT CREATE A SECOND IMPLEMENTATION CLAIM. PRESERVE DEPTH AS AN ORTHOGONAL POLICY/RESOURCE FIELD (e.g. NativeChildRequest.max_nested_depth) RATHER THAN USING DEPTH TO DEFINE R0/R1/R2/R3.",
+  "completion_deficit": "The active WP603 worker must re-enter current main and either (a) correct the G1 implementation/claim to preserve the canonical four-class semantics while retaining explicit nested-depth bounds as a separate dimension, or (b) produce an explicit owner/contract authority that supersedes README.md before accepting a depth-only design. Until then, withhold bounded WP603 acceptance even if repository CI is green.",
+  "next_exact_action": "Active WP603 mutation authority should absorb this review before source acceptance: model R0/R1/R2 as distinct candidate mechanisms, model R3 as adaptive selection policy, keep recursion depth orthogonal and bounded by the accepted Native Child ABI, add regressions proving R1 does not require a child and R3 is not equivalent to depth 3, then run exact PR-head and merged-main repository-hosted CI.",
+  "created_at_utc": "2026-08-29T10:33:00Z"
+}
