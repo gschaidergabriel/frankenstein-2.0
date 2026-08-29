@@ -1,0 +1,75 @@
+{
+  "schema": "FRANKENSTEIN2_TRIGGER6_EVIDENCE_RECEIPT/v1",
+  "research_id": "R6-HOST-SYSTEMD-USER-READINESS-001",
+  "evidence_stage": "E2_ARCHITECTURE_MAPPED",
+  "status": "ARCHITECTURE_MAPPED_NO_RUNTIME_OR_ACCEPTANCE_CREDIT",
+  "completed_at": "2026-08-29T19:42:00+07:00",
+  "architecture_binding": {
+    "research_packet": "workpackages/research_inbox/HOST_REALITY_TWIN_AND_UNIFIEDDB_COMPLETION_ESTIMATOR_2026-08-29.json",
+    "wp1200_source": "src/frankenstein2/target_completion_epistemics.py@a26b8795225157e1cfd642b6db67f0bf43e2bb5b",
+    "wp1202_source": "src/frankenstein2/target_userspace_twin.py@0dcc94903924256980bfabc924941b49d19cc787",
+    "trigger4_lane_status": "ACTIVE_AND_MOVING_DO_NOT_DUPLICATE"
+  },
+  "external_source": {
+    "repo": "systemd/systemd",
+    "commit": "048970650ce5d50bceffff97442c4a90c1cf0572",
+    "files": [
+      "man/systemd.service.xml",
+      "man/sd_notify.xml",
+      "man/org.freedesktop.systemd1.xml"
+    ]
+  },
+  "mapped_gap": "WP-1202 currently plans for systemd user-manager reachability and WP-1200 correctly requires independent positive readback/counterevidence, but neither current source surface defines a typed host-service lifecycle witness that binds manager-observed state to exact target profile, UID/manager scope and service InvocationID. Opaque evidence refs must not let READY=1 or active/running self-promote into target completion.",
+  "architecture_delta": {
+    "name": "HostServiceLifecycleWitness",
+    "schema_proposal": "FRANKENSTEIN2_HOST_SERVICE_LIFECYCLE_WITNESS/v1",
+    "authority": "DERIVED_EVIDENCE_ONLY",
+    "producer": "target-host adapter over read-only systemd user-manager D-Bus/systemctl-show properties",
+    "required_fields": [
+      "target_profile_sha256",
+      "target_profile_generation",
+      "target_id",
+      "uid",
+      "manager_scope",
+      "unit_name",
+      "unit_fragment_identity_or_digest",
+      "invocation_id",
+      "active_state",
+      "sub_state",
+      "result",
+      "exec_main_status_if_applicable",
+      "n_restarts",
+      "ready_signal_observed_if_applicable",
+      "watchdog_configured_if_applicable",
+      "observed_monotonic_or_boot_relative_time",
+      "producer_receipt_ref"
+    ],
+    "non_authority_fields": [
+      "READY=1",
+      "STATUS=freeform",
+      "WATCHDOG=1"
+    ],
+    "completion_mapping": {
+      "EXACT_HOST_BOUND": "eligible only when target profile generation/digest, user-manager scope and unit invocation are independently observed and match",
+      "REAL_READBACK_VERIFIED": "requires a separate external function-readback witness; lifecycle witness alone can never satisfy this maturity",
+      "RESTART_RECOVERY_VERIFIED": "requires a transition that invalidates the prior invocation, a new InvocationID, and fresh external function readback bound to the new invocation",
+      "SOAK_VERIFIED": "requires bounded observation over time with restart/watchdog/counterevidence statistics; final active state alone is insufficient"
+    }
+  },
+  "integration_rule": "Do not add this as a second truth store and do not change the occupied WP-1202 generation-1 lane. Feed it through the existing typed evidence/admission boundary used by CompletionGate; if no such producer-admission identity exists at the host-evidence boundary, create a successor workpackage rather than stuffing structured facts into opaque evidence-ref strings.",
+  "falsifiers": [
+    "ActiveState=active, READY=1, Result=success, but external application readback missing -> completion must remain UNKNOWN.",
+    "Old witness InvocationID reused after service restart -> reject as stale and grant zero restart-recovery credit.",
+    "Witness target_profile_sha256 or UID/manager scope differs from current target -> reject.",
+    "NRestarts rises while final state returns active -> preserve crash/rework counterevidence; do not collapse to PASS.",
+    "systemd --user manager is live but desktop-session/XDG/PipeWire/portal identity differs or is UNKNOWN -> do not infer desktop-host completion.",
+    "Type=oneshot active/dead semantics differ from long-running services -> judge the declared service contract, not a universal active-state predicate."
+  ],
+  "counterhypothesis": "A generic TargetEvidenceWitness abstraction may already be the correct home and a systemd-specific type could overfit one host mechanism. Trigger 4 should implement the smallest typed abstraction that preserves invocation/profile provenance and use systemd only as one producer adapter.",
+  "next_stage": "E3 is not claimed. Before E3, Trigger 4 or a dedicated research falsifier should expose the current target-evidence admission surface and prove that a green lifecycle witness cannot mint positive function readback.",
+  "research_credit": "E2_ARCHITECTURE_MAPPED_ONLY",
+  "runtime_credit": 0,
+  "physical_host_credit": 0,
+  "architecture_acceptance_credit": 0,
+  "whole_system_credit": 0
+}
