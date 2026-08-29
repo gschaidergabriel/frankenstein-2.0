@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import dataclasses
 import unittest
 
 from frankenstein2.retina_fanin import (
@@ -49,7 +48,9 @@ class RetinaFanInTests(unittest.TestCase):
             provenance_refs=("dashboard:receipt-7",),
         )
 
-    def policy(self, priority: tuple[str, ...], *, max_workers: int = 4) -> RetinaFanInPolicy:
+    def policy(
+        self, priority: tuple[str, ...], *, max_workers: int = 4
+    ) -> RetinaFanInPolicy:
         return RetinaFanInPolicy(
             policy_id="fanin-policy-1",
             generation=1,
@@ -74,6 +75,39 @@ class RetinaFanInTests(unittest.TestCase):
             provenance_refs=("cycle:7",),
         )
 
+    def test_zero_source_snapshot_and_zero_worker_policy_produce_empty_plan(self) -> None:
+        snapshot = self.snapshot()
+        policy = self.policy((), max_workers=0)
+        plan = self.plan(snapshot, policy, ())
+        self.assertEqual(plan.requested_source_ids, ())
+        self.assertEqual(plan.worker_slots, ())
+        self.assertEqual(plan.deferred_source_ids, ())
+        self.assertEqual(plan.denied_source_ids, ())
+        self.assertEqual(plan.as_dict()["planned_parallel_workers"], 0)
+        self.assertEqual(plan.as_dict()["workers_spawned"], 0)
+        self.assertEqual(plan.as_dict()["sensors_opened"], 0)
+
+    def test_zero_worker_policy_with_admitted_sources_defers_without_fabrication(self) -> None:
+        cam = self.permission("cam-front", "CAMERA")
+        screen = self.permission("screen-main", "SCREEN")
+        snapshot = self.snapshot(cam, screen)
+        policy = self.policy(("cam-front", "screen-main"), max_workers=0)
+        plan = self.plan(snapshot, policy, ("screen-main", "cam-front"))
+        self.assertEqual(plan.worker_slots, ())
+        self.assertEqual(plan.deferred_source_ids, ("cam-front", "screen-main"))
+        self.assertEqual(plan.denied_source_ids, ())
+        self.assertEqual(plan.as_dict()["planned_parallel_workers"], 0)
+
+    def test_empty_requested_set_is_deterministic_with_nonempty_snapshot(self) -> None:
+        snapshot = self.snapshot(self.permission("cam-front", "CAMERA"))
+        policy = self.policy(("cam-front",), max_workers=4)
+        first = self.plan(snapshot, policy, ())
+        second = self.plan(snapshot, policy, ())
+        self.assertEqual(first.sha256(), second.sha256())
+        self.assertEqual(first.worker_slots, ())
+        self.assertEqual(first.deferred_source_ids, ())
+        self.assertEqual(first.denied_source_ids, ())
+
     def test_four_parallel_permitted_sources_map_to_r1_through_r4(self) -> None:
         permissions = (
             self.permission("cam-front", "CAMERA", persistence=True),
@@ -82,9 +116,18 @@ class RetinaFanInTests(unittest.TestCase):
             self.permission("activity-local", "USER_ACTIVITY"),
         )
         snapshot = self.snapshot(*permissions)
-        policy = self.policy(("cam-front", "screen-main", "page-work", "activity-local"))
-        plan = self.plan(snapshot, policy, ("activity-local", "page-work", "cam-front", "screen-main"))
-        self.assertEqual(tuple(slot.slot_id for slot in plan.worker_slots), ("R1", "R2", "R3", "R4"))
+        policy = self.policy(
+            ("cam-front", "screen-main", "page-work", "activity-local")
+        )
+        plan = self.plan(
+            snapshot,
+            policy,
+            ("activity-local", "page-work", "cam-front", "screen-main"),
+        )
+        self.assertEqual(
+            tuple(slot.slot_id for slot in plan.worker_slots),
+            ("R1", "R2", "R3", "R4"),
+        )
         self.assertEqual(
             tuple(slot.source_id for slot in plan.worker_slots),
             ("cam-front", "screen-main", "page-work", "activity-local"),
@@ -117,14 +160,26 @@ class RetinaFanInTests(unittest.TestCase):
         snapshot = self.snapshot(denied, allowed)
         policy = self.policy(("screen-private", "cam-front"))
         plan = self.plan(snapshot, policy, ("screen-private", "cam-front"))
-        self.assertEqual(tuple(slot.source_id for slot in plan.worker_slots), ("cam-front",))
+        self.assertEqual(
+            tuple(slot.source_id for slot in plan.worker_slots), ("cam-front",)
+        )
         self.assertEqual(plan.denied_source_ids, ("screen-private",))
         self.assertFalse(plan.as_dict()["permission_broadening"])
 
     def test_cognition_false_denies_retina_slot_even_when_capture_is_allowed(self) -> None:
-        capture_only = self.permission("cam-record-only", "CAMERA", capture=True, cognition=False, persistence=True)
+        capture_only = self.permission(
+            "cam-record-only",
+            "CAMERA",
+            capture=True,
+            cognition=False,
+            persistence=True,
+        )
         snapshot = self.snapshot(capture_only)
-        plan = self.plan(snapshot, self.policy(("cam-record-only",)), ("cam-record-only",))
+        plan = self.plan(
+            snapshot,
+            self.policy(("cam-record-only",)),
+            ("cam-record-only",),
+        )
         self.assertEqual(plan.worker_slots, ())
         self.assertEqual(plan.denied_source_ids, ("cam-record-only",))
 
@@ -147,17 +202,24 @@ class RetinaFanInTests(unittest.TestCase):
         first = self.plan(snapshot, policy, ("a", "b", "c"))
         second = self.plan(snapshot, policy, ("c", "b", "a"))
         self.assertEqual(first.sha256(), second.sha256())
-        self.assertEqual(tuple(slot.source_id for slot in first.worker_slots), ("c", "a"))
+        self.assertEqual(
+            tuple(slot.source_id for slot in first.worker_slots), ("c", "a")
+        )
         self.assertEqual(first.deferred_source_ids, ("b",))
 
     def test_unknown_requested_source_fails_closed(self) -> None:
         snapshot = self.snapshot(self.permission("cam", "CAMERA"))
         policy = self.policy(("cam",))
-        with self.assertRaisesRegex(RetinaFanInError, "absent from exact permission snapshot"):
+        with self.assertRaisesRegex(
+            RetinaFanInError, "absent from exact permission snapshot"
+        ):
             self.plan(snapshot, policy, ("cam", "unknown"))
 
     def test_requested_source_missing_from_priority_fails_closed(self) -> None:
-        snapshot = self.snapshot(self.permission("cam", "CAMERA"), self.permission("screen", "SCREEN"))
+        snapshot = self.snapshot(
+            self.permission("cam", "CAMERA"),
+            self.permission("screen", "SCREEN"),
+        )
         policy = self.policy(("cam",))
         with self.assertRaisesRegex(RetinaFanInError, "priority order"):
             self.plan(snapshot, policy, ("cam", "screen"))
@@ -171,7 +233,9 @@ class RetinaFanInTests(unittest.TestCase):
     def test_snapshot_and_policy_digest_binding_is_exact(self) -> None:
         snapshot = self.snapshot(self.permission("cam", "CAMERA"))
         policy = self.policy(("cam",))
-        with self.assertRaisesRegex(RetinaFanInError, "permission snapshot digest mismatch"):
+        with self.assertRaisesRegex(
+            RetinaFanInError, "permission snapshot digest mismatch"
+        ):
             build_retina_fanin_plan(
                 plan_id="fanin-plan-1",
                 permission_snapshot=snapshot,
@@ -217,10 +281,12 @@ class RetinaFanInTests(unittest.TestCase):
         with self.assertRaisesRegex(RetinaFanInError, "locator_ref must be unique"):
             self.snapshot(one, duplicate_locator)
 
-    def test_max_parallel_worker_ceiling_is_one_through_four(self) -> None:
-        with self.assertRaisesRegex(RetinaFanInError, "\[1, 4\]"):
-            self.policy(("cam",), max_workers=0)
-        with self.assertRaisesRegex(RetinaFanInError, "\[1, 4\]"):
+    def test_max_parallel_worker_ceiling_is_zero_through_four(self) -> None:
+        self.policy((), max_workers=0)
+        self.policy(("cam",), max_workers=4)
+        with self.assertRaisesRegex(RetinaFanInError, r"\[0, 4\]"):
+            self.policy(("cam",), max_workers=-1)
+        with self.assertRaisesRegex(RetinaFanInError, r"\[0, 4\]"):
             self.policy(("cam",), max_workers=5)
 
     def test_exact_concrete_snapshot_type_is_required(self) -> None:
@@ -233,7 +299,9 @@ class RetinaFanInTests(unittest.TestCase):
             provenance_refs=("forge",),
         )
         policy = self.policy(("cam",))
-        with self.assertRaisesRegex(RetinaFanInError, "concrete RetinaPermissionSnapshot"):
+        with self.assertRaisesRegex(
+            RetinaFanInError, "concrete RetinaPermissionSnapshot"
+        ):
             build_retina_fanin_plan(
                 plan_id="fanin-plan-1",
                 permission_snapshot=forged,
