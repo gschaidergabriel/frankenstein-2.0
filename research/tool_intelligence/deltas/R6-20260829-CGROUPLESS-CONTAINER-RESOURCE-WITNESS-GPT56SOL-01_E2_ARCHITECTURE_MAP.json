@@ -1,0 +1,105 @@
+{
+  "schema": "FRANKENSTEIN2_TRIGGER6_RESEARCH_DELTA/v1",
+  "research_id": "R6-20260829-CGROUPLESS-CONTAINER-RESOURCE-WITNESS-GPT56SOL-01",
+  "trigger": "6",
+  "stage": "E2_ARCHITECTURE_MAPPED",
+  "status": "E2_COMPLETE_FUSED_NO_DUPLICATE_LANE",
+  "created_at": "2026-08-29T22:18:00+07:00",
+  "worker": "GPT-5.6-Sol-TRIGGER6",
+  "claim_ref": "research/tool_intelligence/claims/R6-20260829-CGROUPLESS-CONTAINER-RESOURCE-WITNESS-GPT56SOL-01/E2_ARCHITECTURE_MAPPED.json",
+  "e1_ref": "research/tool_intelligence/deltas/R6-20260829-CGROUPLESS-CONTAINER-RESOURCE-WITNESS-GPT56SOL-01_E1_SOURCE_AUDIT.json",
+  "reentry": {
+    "f2_main_reviewed": "63bba779b2623cde7dd99365b3c4fd03973982be",
+    "research_entity_main_reviewed": "559386d6867a17079a2a8c40d35d065fba3ab8e4",
+    "admitted_supervisor": "8.78_FREE_ONLY",
+    "authority_sources": [
+      "research_entity/continuity/BOOTSTRAP_MINIMAL.json@559386d6867a17079a2a8c40d35d065fba3ab8e4",
+      "research_entity/claycode/autonomous/SUPERVISOR_STEERING_8_78.json@559386d6867a17079a2a8c40d35d065fba3ab8e4"
+    ],
+    "authority_correction": "9.13AY target-VPS material is observation delta/non-authority under current admitted 8.78; it may constrain evidence but does not supersede execution authority"
+  },
+  "parallel_fusion": {
+    "parallel_research_id": "R6-SEED-006",
+    "parallel_result": "research/tool_intelligence/deltas/2026-08-29T2214P0700_GPT56SOL_R6_SEED006_PARENT_SYSTEMD_CGROUP_E2_REVIEW.json",
+    "parallel_result_commit": "17989e96b60745eeece36f0321ce9fa96eeeffa3",
+    "overlap_resolution": "FUSE_NOT_DUPLICATE",
+    "reason": "The parallel E2 result independently reached the host-PID -> host cgroup path -> membership -> scoped counters discriminator and already named CgroupWitness/v1-candidate. This research therefore maps integration boundaries and contributes negative schema-placement evidence instead of opening another implementation lane."
+  },
+  "exact_source_mapping": [
+    {
+      "path": "src/frankenstein2/target_host_profile.py",
+      "reviewed_ref": "63bba779b2623cde7dd99365b3c4fd03973982be",
+      "role": "HOST_FINGERPRINT_ONLY",
+      "observed": "TargetHostProfile uses a fixed allow-list of host facts with explicit OBSERVED/UNKNOWN records and explicitly states it is read-only technical fingerprint evidence, not completion evidence.",
+      "decision": "DO_NOT_PUT_CONTAINER_RESOURCE_ACCOUNTING_HERE. Container/process/cgroup observations have different causal scope and identity from host facts."
+    },
+    {
+      "path": "src/frankenstein2/child_telemetry.py",
+      "reviewed_ref": "63bba779b2623cde7dd99365b3c4fd03973982be",
+      "role": "EXACT_CHILD_RECONCILIATION_TELEMETRY_ONLY",
+      "observed": "ChildTelemetrySample binds caller-supplied cpu_time_ns and peak_rss_bytes as non-negative integers to one exact ChildReconcileEvidence. The constructor defaults both resource fields to 0 and the schema has no typed UNKNOWN/UNAVAILABLE/SUPERSET resource state or observer-scope identity.",
+      "decision": "DO_NOT_USE_ZERO_AS_UNKNOWN_AND_DO_NOT_STRETCH_CHILD_SCOPE_TO_CONTAINER_SCOPE. Existing provenance_refs are opaque and do not by themselves encode observer coverage semantics."
+    },
+    {
+      "path": "research/tool_intelligence/deltas/2026-08-29T2214P0700_GPT56SOL_R6_SEED006_PARENT_SYSTEMD_CGROUP_E2_REVIEW.json",
+      "reviewed_ref": "63bba779b2623cde7dd99365b3c4fd03973982be",
+      "role": "RETAINED_SHARED_CGROUP_WITNESS_DESIGN_LANE",
+      "observed": "Parallel Trigger6 review already defines CgroupWitness/v1-candidate with dedicated/shared/root/unresolved scope and exact/superset/unavailable/unknown coverage semantics.",
+      "decision": "REUSE_THIS_CANDIDATE; NO SECOND RESOURCE-WITNESS SCHEMA OR AUTHORITY."
+    }
+  ],
+  "architecture_decision": {
+    "decision": "FUSE_INTO_R6_SEED006_CGROUPWITNESS_V1_CANDIDATE",
+    "new_competing_schema": false,
+    "new_truth_store": false,
+    "mutate_target_host_profile": false,
+    "reinterpret_child_telemetry_zero_as_unknown": false,
+    "core_law": "resource value and resource observation scope/coverage are separate facts; a numeric value is promotion-bearing only when an exact observer binding establishes what population/subtree it measures",
+    "witness_ladder": [
+      "DEDICATED_SUBTREE + stable membership + readable cgroup-v2 counter => EXACT_CANDIDATE container/workload resource evidence",
+      "SHARED_PARENT_SUPERSET => SUPERSET evidence only; never exact container usage/isolation",
+      "identified process set without exact container membership => PROCESS_SCOPED_DEGRADED only",
+      "HOST_ONLY => zero container-resource/isolation credit",
+      "ROOT/UNRESOLVED/UNAVAILABLE => UNKNOWN; never synthetic zero"
+    ],
+    "preferred_integration_boundary": "target-runtime/read-only execution evidence path that can bind container/execution identity, host payload PID/process incarnation, host cgroup path, membership snapshot/digest, exact metric file/value, scope_class, coverage_status, observed_at and provenance_ref; keep this observation non-authoritative and non-completing"
+  },
+  "counterhypothesis_resolution": {
+    "counterhypothesis": "Existing WP1201 OBSERVED/UNKNOWN facts plus WP605 provenance_refs are sufficient; no typed witness object is needed.",
+    "result": "REJECTED_AT_SOURCE_SCHEMA_SCOPE",
+    "why": [
+      "WP1201 is intentionally host-fact scoped and its fixed probe allow-list contains no container/workload identity binding.",
+      "WP605 resource fields are integers and cannot natively distinguish measured zero from unavailable/unknown/superset evidence.",
+      "WP605 provenance_refs are opaque references, while the promotion discriminator requires explicit observer scope/coverage semantics at the consumer boundary.",
+      "Reusing the already-created R6-SEED-006 CgroupWitness candidate avoids schema proliferation while closing this expressivity gap."
+    ]
+  },
+  "falsifiers_and_negative_results": [
+    "If Trigger4 can prove an existing target-runtime receipt schema already carries all CgroupWitness identity/scope/coverage fields as mandatory digest-bound fields, CgroupWitness should collapse into that existing schema rather than survive as a distinct object.",
+    "A shared-parent cgroup with unrelated members falsifies exact-container attribution even if counters are readable.",
+    "A process-tree walk that cannot prove complete membership remains degraded and cannot rescue exact container telemetry.",
+    "Host-profile success does not repair container resource telemetry.",
+    "Source cleanliness/exact SHA does not repair observer scope; provenance and measurement coverage are orthogonal gates."
+  ],
+  "next_high_information_discriminator": {
+    "owner": "Trigger4 authorized target-runtime lane",
+    "action": "Perform one non-destructive read-only witness probe: Podman inspect running payload PID -> host /proc/<pid>/cgroup -> resolve host cgroup-v2 path -> snapshot membership -> classify DEDICATED_SUBTREE|SHARED_PARENT_SUPERSET|ROOT|UNRESOLVED -> read only present cpu.stat/memory.current/memory.peak/memory.events/io.stat/pids.current -> persist raw values with exact scope/coverage. Do not mutate cgroups for this discriminator.",
+    "success": "Dedicated/uniquely bounded subtree plus stable membership and readable counters.",
+    "partial": "Shared parent/scope gives SUPERSET evidence only.",
+    "fail_closed": "Unresolved/root/unreadable/ambiguous membership preserves UNKNOWN.",
+    "why_not_e3_here": "Current Trigger6 has no target-runtime execution surface in this organ and a parallel lane already owns the same discriminator. Running a local synthetic process-tree experiment would add lower information than handing the exact target-runtime discriminator to Trigger4."
+  },
+  "credits": {
+    "e1_source_read_credit": 1,
+    "e2_architecture_mapped_credit": 1,
+    "e3_counterexample_target_runtime_credit": 0,
+    "e4_f2_ablation_credit": 0,
+    "e5_build_candidate_credit": 0,
+    "e6_trigger4_adoption_credit": 0,
+    "target_runtime_credit": 0,
+    "physical_grid10_credit": 0,
+    "gwt_jspace_credit": 0,
+    "training_credit": 0,
+    "whole_system_credit": 0
+  }
+}
