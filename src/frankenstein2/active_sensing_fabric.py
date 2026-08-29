@@ -17,6 +17,10 @@ from .perception_fabric import (
     PerceptionFabricError,
     PerceptionSource,
 )
+from .perception_host_permissions import (
+    PerceptionHostPermissionError,
+    require_effective_host_bound_snapshot,
+)
 from .visual_need import VisualNeed
 
 
@@ -75,13 +79,17 @@ def compile_observe_intent(
     allow_external_vlm: bool = False,
     provenance_refs: tuple[str, ...],
 ) -> ObserveIntent:
-    """Compile one exact VisualNeed into one source-specific permission-bound request."""
+    """Compile one exact VisualNeed into one source-specific effective-permission request."""
     if type(visual_need) is not VisualNeed:
         raise ActiveSensingFabricError("visual_need must be a concrete VisualNeed")
     if type(source) is not PerceptionSource:
         raise ActiveSensingFabricError("source must be a concrete PerceptionSource")
     if type(permission_snapshot) is not PerceptionCapabilitySnapshot:
         raise ActiveSensingFabricError("permission_snapshot must be a concrete PerceptionCapabilitySnapshot")
+    try:
+        require_effective_host_bound_snapshot(permission_snapshot)
+    except PerceptionHostPermissionError as exc:
+        raise ActiveSensingFabricError(str(exc)) from exc
     if permission_snapshot.source_id != source.source_id:
         raise ActiveSensingFabricError("source and permission snapshot source_id mismatch")
     heads = _refs("requested_head_ids", requested_head_ids, allow_empty=True)
