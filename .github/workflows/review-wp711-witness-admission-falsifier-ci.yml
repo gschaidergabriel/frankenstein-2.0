@@ -1,0 +1,29 @@
+name: REVIEW WP711 witness admission falsifier
+
+on:
+  pull_request:
+    paths:
+      - 'src/frankenstein2/perception_temporal.py'
+      - 'tests/test_wp711_unadmitted_clock_witness_falsifier.py'
+      - '.github/workflows/review-wp711-witness-admission-falsifier-ci.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  falsifier:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      PYTHONPATH: src
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Compile temporal contract and review falsifier
+        run: |
+          python -m py_compile src/frankenstein2/perception_temporal.py
+          python -m py_compile tests/test_wp711_unadmitted_clock_witness_falsifier.py
+      - name: Run fail-closed witness admission falsifier
+        run: python -m unittest tests.test_wp711_unadmitted_clock_witness_falsifier -v
