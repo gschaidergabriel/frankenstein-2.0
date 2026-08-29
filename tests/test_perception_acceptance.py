@@ -16,7 +16,6 @@ from frankenstein2.perception_acceptance import (
     assess_perception_acceptance,
 )
 
-
 H = "1" * 64
 
 
@@ -88,10 +87,24 @@ class PerceptionAcceptanceTests(unittest.TestCase):
             cases=cases(),
         )
         self.assertEqual(assessment.assessment, ASSESSMENT_BLOCKED)
-        self.assertIn(
-            "F2-WP-711:CURRENT_ACCEPTANCE_IDENTITY_MISMATCH",
-            assessment.dependency_blockers,
+        self.assertIn("F2-WP-711:CURRENT_ACCEPTANCE_IDENTITY_MISMATCH", assessment.dependency_blockers)
+
+    def test_superseded_wp711_generation_two_receipt_cannot_satisfy_generation_three_dependency(self):
+        assessment = assess_perception_acceptance(
+            upstream_acceptances=upstreams(
+                overrides={
+                    "F2-WP-711": {
+                        "generation": 2,
+                        "claim_id": "F2-WP-711-G2-GPT56SOL-CLOCK-ALIGNMENT-WITNESS-REPAIR-20260829",
+                        "accepted_scope": "TEMPORAL_OBSERVATION_WINDOW_PROVENANCE_BOUND_CLOCK_ALIGNMENT_REPAIR_REPOSITORY_HOSTED_COMPONENT_CI_ONLY",
+                        "receipt_ref": "workpackages/receipts/F2-WP-711_G2_CLOCK_ALIGNMENT_WITNESS_MAIN_CI_33250544513.json",
+                    }
+                }
+            ),
+            cases=cases(),
         )
+        self.assertEqual(assessment.assessment, ASSESSMENT_BLOCKED)
+        self.assertIn("F2-WP-711:CURRENT_ACCEPTANCE_IDENTITY_MISMATCH", assessment.dependency_blockers)
 
     def test_caller_invented_scope_cannot_self_admit_current_workpackage(self):
         assessment = assess_perception_acceptance(
@@ -101,10 +114,7 @@ class PerceptionAcceptanceTests(unittest.TestCase):
             cases=cases(),
         )
         self.assertEqual(assessment.assessment, ASSESSMENT_BLOCKED)
-        self.assertIn(
-            "F2-WP-710:CURRENT_ACCEPTANCE_IDENTITY_MISMATCH",
-            assessment.dependency_blockers,
-        )
+        self.assertIn("F2-WP-710:CURRENT_ACCEPTANCE_IDENTITY_MISMATCH", assessment.dependency_blockers)
 
     def test_not_run_case_blocks(self):
         assessment = assess_perception_acceptance(
@@ -146,10 +156,7 @@ class PerceptionAcceptanceTests(unittest.TestCase):
             cases=cases(overrides={"RESOURCE_PRESSURE_DEGRADES_PERCEPTION_FIRST": CASE_RESULT_FAIL}),
         )
         self.assertEqual(assessment.assessment, ASSESSMENT_FAIL_CLOSED)
-        self.assertEqual(
-            assessment.failed_cases,
-            ("RESOURCE_PRESSURE_DEGRADES_PERCEPTION_FIRST",),
-        )
+        self.assertEqual(assessment.failed_cases, ("RESOURCE_PRESSURE_DEGRADES_PERCEPTION_FIRST",))
         self.assertFalse(assessment.terminal_acceptance_minted)
 
     def test_complete_evidence_is_only_eligible_for_final_review(self):
@@ -170,10 +177,7 @@ class PerceptionAcceptanceTests(unittest.TestCase):
     def test_case_order_does_not_change_provenance_digest(self):
         ordered = cases()
         reversed_cases = tuple(reversed(ordered))
-        a = assess_perception_acceptance(
-            upstream_acceptances=upstreams(),
-            cases=ordered,
-        )
+        a = assess_perception_acceptance(upstream_acceptances=upstreams(), cases=ordered)
         b = assess_perception_acceptance(
             upstream_acceptances=tuple(reversed(upstreams())),
             cases=reversed_cases,
@@ -184,10 +188,7 @@ class PerceptionAcceptanceTests(unittest.TestCase):
     def test_duplicate_case_ids_fail_closed(self):
         duplicate = cases() + (cases()[0],)
         with self.assertRaises(PerceptionAcceptanceError):
-            assess_perception_acceptance(
-                upstream_acceptances=upstreams(),
-                cases=duplicate,
-            )
+            assess_perception_acceptance(upstream_acceptances=upstreams(), cases=duplicate)
 
     def test_unknown_case_id_rejected_at_construction(self):
         with self.assertRaises(PerceptionAcceptanceError):
@@ -210,15 +211,19 @@ class PerceptionAcceptanceTests(unittest.TestCase):
             ),
         )
         with self.assertRaises(PerceptionAcceptanceError):
-            assess_perception_acceptance(
-                upstream_acceptances=unexpected,
-                cases=cases(),
-            )
+            assess_perception_acceptance(upstream_acceptances=unexpected, cases=cases())
 
     def test_current_upstream_identity_table_covers_exact_required_set(self):
         self.assertEqual(set(EXPECTED_UPSTREAM_ACCEPTANCES), set(REQUIRED_UPSTREAM_WORKPACKAGES))
-        self.assertEqual(EXPECTED_UPSTREAM_ACCEPTANCES["F2-WP-711"]["generation"], 2)
-        self.assertIn("CLOCK_ALIGNMENT_WITNESS", EXPECTED_UPSTREAM_ACCEPTANCES["F2-WP-711"]["accepted_scope"])
+        self.assertEqual(EXPECTED_UPSTREAM_ACCEPTANCES["F2-WP-711"]["generation"], 3)
+        self.assertEqual(
+            EXPECTED_UPSTREAM_ACCEPTANCES["F2-WP-711"]["claim_id"],
+            "F2-WP-711-G3-GPT56SOL-WITNESS-ADMISSION-FENCE-20260829",
+        )
+        self.assertIn(
+            "SEPARATELY_ADMITTED_CLOCK_WITNESS",
+            EXPECTED_UPSTREAM_ACCEPTANCES["F2-WP-711"]["accepted_scope"],
+        )
 
 
 if __name__ == "__main__":
