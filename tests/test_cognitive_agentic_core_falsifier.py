@@ -17,6 +17,7 @@ from frankenstein2.cognitive_agentic_core_falsifier import (
     AgenticCoreReport,
     CapabilityEvidence,
     FalsifierPolicy,
+    derive_family_binding_sha256,
     evaluate_agentic_core,
 )
 
@@ -45,6 +46,7 @@ def evidence(
     state: str = ACCEPTED,
     holdout: str = "heldout-family-A",
     benchmark: str | None = None,
+    family_sha: str = sha(900),
     baseline: int = 300_000,
     intervention: int = 700_000,
     samples: int = 20,
@@ -53,18 +55,32 @@ def evidence(
     receipt_override: str | None = None,
 ) -> CapabilityEvidence:
     index = CAP_INDEX[capability]
+    workpackage_id = CAP_TO_WP[capability]
+    claim_id = f"claim-{capability.lower()}"
+    reconciliation_sha = sha(index)
+    receipt_sha = receipt_override or sha(index + 100)
+    family_binding_sha = derive_family_binding_sha256(
+        source_workpackage_id=workpackage_id,
+        source_generation=1,
+        source_claim_id=claim_id,
+        source_reconciliation_sha256=reconciliation_sha,
+        source_receipt_sha256=receipt_sha,
+        shared_fixture_family_sha256=family_sha,
+    )
     return CapabilityEvidence(
         CAPABILITY_EVIDENCE_SCHEMA,
         capability,
-        CAP_TO_WP[capability],
+        workpackage_id,
         1,
-        f"claim-{capability.lower()}",
+        claim_id,
         state,
         f"{capability}_REPOSITORY_HOSTED_COMPONENT_CI_ONLY",
-        sha(index),
-        receipt_override or sha(index + 100),
+        reconciliation_sha,
+        receipt_sha,
         benchmark or f"benchmark-{capability.lower()}",
         holdout,
+        family_sha,
+        family_binding_sha,
         f"baseline-{capability.lower()}",
         baseline,
         intervention,
@@ -130,21 +146,22 @@ class AgenticCoreFalsifierTests(unittest.TestCase):
         self.assertEqual(report.verdict, FALSIFIED)
         self.assertIn("MIXED_HOLDOUT_SET", report.reasons)
 
-    def test_pre_fix_same_text_holdout_alias_can_mask_distinct_benchmark_families(self):
+    def test_same_text_holdout_alias_is_rejected_by_provenance_family(self):
         values = tuple(
             evidence(
                 capability,
                 holdout="ALIASED_SHARED_HOLDOUT",
                 benchmark=f"UNRELATED_BENCHMARK_FAMILY_{index}",
+                family_sha=sha(900 + index),
             )
             for index, capability in enumerate(
                 (EXPLORATION, MODELING, GOAL_SETTING, PLANNING_EXECUTION),
                 start=1,
             )
         )
-        report = evaluate_agentic_core(values, policy=policy(), report_id="report-family-alias-pre-fix")
-        self.assertEqual(report.verdict, SUPPORTED_AT_COMPONENT_SCOPE)
-        self.assertEqual(report.reasons, ())
+        report = evaluate_agentic_core(values, policy=policy(), report_id="report-family-alias-fixed")
+        self.assertEqual(report.verdict, FALSIFIED)
+        self.assertIn("MIXED_PROVENANCE_FAMILY", report.reasons)
 
     def test_duplicate_receipt_falsifies_independence(self):
         values = list(complete_evidence())
@@ -161,6 +178,37 @@ class AgenticCoreFalsifierTests(unittest.TestCase):
         self.assertEqual(report.verdict, FALSIFIED)
         self.assertIn(f"DELTA_BELOW_BASELINE_FLOOR:{PLANNING_EXECUTION}", report.reasons)
 
+    def test_family_binding_cannot_be_relabelled_without_rebinding(self):
+        with self.assertRaisesRegex(AgenticCoreFalsifierError, "family binding digest mismatch"):
+            CapabilityEvidence(
+                CAPABILITY_EVIDENCE_SCHEMA,
+                EXPLORATION,
+                "F2-WP-802",
+                1,
+                "claim-exploration",
+                ACCEPTED,
+                "scope",
+                sha(1),
+                sha(101),
+                "benchmark",
+                "holdout",
+                sha(999),
+                derive_family_binding_sha256(
+                    source_workpackage_id="F2-WP-802",
+                    source_generation=1,
+                    source_claim_id="claim-exploration",
+                    source_reconciliation_sha256=sha(1),
+                    source_receipt_sha256=sha(101),
+                    shared_fixture_family_sha256=sha(900),
+                ),
+                "baseline",
+                1,
+                2,
+                1,
+                1,
+                1,
+            )
+
     def test_capability_cannot_be_bound_to_wrong_workpackage(self):
         with self.assertRaisesRegex(AgenticCoreFalsifierError, "canonical source workpackage F2-WP-803"):
             CapabilityEvidence(
@@ -175,6 +223,8 @@ class AgenticCoreFalsifierTests(unittest.TestCase):
                 sha(2),
                 "benchmark",
                 "holdout",
+                sha(900),
+                sha(901),
                 "baseline",
                 1,
                 2,
