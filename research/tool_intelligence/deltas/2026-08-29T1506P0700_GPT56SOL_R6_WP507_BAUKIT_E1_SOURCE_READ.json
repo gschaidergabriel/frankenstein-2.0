@@ -1,0 +1,72 @@
+{
+  "schema": "FRANKENSTEIN2_TRIGGER6_RESEARCH_DELTA/v1",
+  "research_id": "R6-WP507-BAUKIT-INPLACE-HOOKS-001",
+  "trigger": "6",
+  "slot": "SOURCE_ARCHAEOLOGIST",
+  "evidence_stage": "E1_SOURCE_READ",
+  "status": "SOURCE_READ_COMPLETE_PATTERN_DONOR_ONLY",
+  "created_at": "2026-08-29T15:06:30+07:00",
+  "architecture_snapshot": {
+    "f2_main_sha_before_result": "623b7d65888442a4c1100418a46a51deb6bb12e0",
+    "research_entity_main_sha_before_result": "31be9f85db5dafbe7dc52b515240813c3e5de0c4",
+    "wp507_active_claim": "F2-WP-507-G3-GPT56SOL-GWT-UPTAKE-CAUSAL-EVIDENCE-20260829",
+    "fusion_ref": "research/tool_intelligence/deltas/ADF-20260829T1500P0700-GPT56SOL-WP507-RESEARCH-REENTRY.json"
+  },
+  "claim_ref": "research/tool_intelligence/claims/R6-WP507-BAUKIT-INPLACE-HOOKS-001/E1_SOURCE_READ.json",
+  "candidate": {
+    "repo": "davidbau/baukit",
+    "head": "9d51abd51ebf29769aecc38c4cbef459b731a36e",
+    "head_date_utc": "2024-02-22T14:24:02Z",
+    "repo_size_kb_observed": 119,
+    "package_version": "0.0.1",
+    "python_requires": ">=3.7",
+    "declared_install_requires": ["numpy", "torch", "torchvision"],
+    "license_observation": "setup.cfg classifier declares MIT; GitHub repository metadata reports license=null and root listing contains no LICENSE file, so direct vendoring/dependency adoption requires license clarification",
+    "source_refs": [
+      "https://github.com/davidbau/baukit/tree/9d51abd51ebf29769aecc38c4cbef459b731a36e",
+      "https://github.com/davidbau/baukit/blob/9d51abd51ebf29769aecc38c4cbef459b731a36e/baukit/nethook.py",
+      "https://github.com/davidbau/baukit/blob/9d51abd51ebf29769aecc38c4cbef459b731a36e/setup.cfg"
+    ]
+  },
+  "source_observations": [
+    "Trace accepts an existing torch module or dotted layer name and installs module.register_forward_hook directly on that object.",
+    "The hook can retain input/output, optionally clone/detach/retain gradients, and can return an edit_output replacement into the same forward pass.",
+    "Trace.close removes the registered hook; TraceDict composes multiple Trace hooks and removes them in reverse order.",
+    "The mechanism does not require converting the target model into a separate model class before interception.",
+    "The full package declares torchvision in addition to torch/numpy even though WP507 only needs the nethook-style mechanism.",
+    "No repository-level test or CI surface was observed in the pinned root listing; the candidate head has not moved since 2024-02-22."
+  ],
+  "hypothesis": "For later WP507/J-Space model-internal matched intervention/control measurements, the highest resource-efficiency path is likely an F2-native, provenance-bound activation tap inspired by baukit's context-managed direct forward-hook pattern, rather than adopting baukit as a runtime dependency or converting the model into a separate interpretability abstraction.",
+  "counterhypothesis": "Direct forward hooks may be too weak for reliable multi-token generation, shared-module/re-entrant execution, compiled runtimes, distributed models or exact cross-layer causal patching; a maintained intervention framework such as NNsight/TransformerLens/pyvene may justify its additional machinery once those requirements are measured.",
+  "resource_reasoning": {
+    "positive": [
+      "reuses already-loaded torch model object",
+      "instrument only selected modules",
+      "no second model copy required by the observed Trace path",
+      "capture can be disabled or detached to limit graph/VRAM retention",
+      "hooks are scoped and removable"
+    ],
+    "negative": [
+      "retaining activations can still consume substantial VRAM",
+      "full baukit package adds unnecessary torchvision dependency for this use",
+      "stale maintenance and missing visible tests increase compatibility risk",
+      "raw layer-name hooks do not themselves bind F2 causal/provenance identities"
+    ]
+  },
+  "distilled_integration_hypothesis": {
+    "dependency_policy": "DO_NOT_ADD_BAUKIT_RUNTIME_DEPENDENCY_YET",
+    "donor_scope": "mechanism/pattern only: context-managed direct torch forward-hook capture/edit/cleanup",
+    "f2_native_contract_candidate": "ActivationTap binds exact loader/model digest + layer path + intervention_id/control_id + cycle/broadcast/selection/plan identities; it records activation/output digests and immediate cleanup receipts but cannot mint world truth or GWT causal credit.",
+    "measurement_shape": "matched control/intervention runs over identical non-broadcast input digest; intervention only changes the declared activation or broadcast-derived vector; compare downstream output digest/metric while preserving UNKNOWN on incomplete evidence",
+    "next_stage": "E2_ARCHITECTURE_MAPPED only after a fresh create-only claim; map failure modes for module reuse, generate(), torch.compile, quantized/offloaded modules and memory overhead before any E3 reproduction"
+  },
+  "credits": {
+    "research_credit": "E1_SOURCE_READ_ONLY",
+    "architecture_credit": 0,
+    "runtime_credit": 0,
+    "gwt_runtime_credit": 0,
+    "jspace_runtime_credit": 0,
+    "training_credit": 0,
+    "whole_system_credit": 0
+  }
+}
