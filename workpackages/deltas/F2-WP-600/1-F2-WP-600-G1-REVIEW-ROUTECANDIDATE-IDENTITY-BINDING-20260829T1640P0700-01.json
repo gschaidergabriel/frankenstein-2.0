@@ -1,0 +1,34 @@
+{
+  "schema": "FRANKENSTEIN2_WORKPACKAGE_DELTA/v1",
+  "workpackage_id": "F2-WP-600",
+  "generation": 1,
+  "claim_id": "F2-WP-600-G1-GPT56SOL-DIRECT-DELEGATE-ROUTER-20260829",
+  "worker_id": "GPT-5.6-Sol-review-organ",
+  "base_commit": "5dc48d2e8c73aa67ad81cbd60c0c8e658f5e598f",
+  "observed_main_commit": "5dc48d2e8c73aa67ad81cbd60c0c8e658f5e598f",
+  "owned_paths": [],
+  "result_class": "FALSIFIER",
+  "source_commits": [
+    "276cb8eedea8eadaeca852ab57dd2fb2445e0807",
+    "78c290f0d7142d22ff5e588b20fa33f53a57f7fe"
+  ],
+  "receipts": [],
+  "falsifiers": [
+    {
+      "id": "WP600_ROUTE_CANDIDATE_ID_SELF_BINDING",
+      "evidence_class": "STATIC_SOURCE_FALSIFIER",
+      "statement": "RouteCandidate.__post_init__ validates candidate_id only as a generic identifier and does not recompute the route: digest from the remaining candidate fields. Therefore a directly constructed or dataclasses.replace-produced RouteCandidate can carry an arbitrary syntactically valid candidate_id while all other fields remain valid. Current tests cover classification tampering and deterministic route_task generation, but not candidate-id self-consistency.",
+      "minimal_regression": "candidate = route_task(...); forged = replace(candidate, candidate_id='route:' + 'f' * 64); current constructor accepts forged unless candidate-id self-consistency is explicitly enforced.",
+      "risk": "A downstream Native Child ABI or handoff consumer that treats candidate_id as an integrity binding without recomputing/validating it can accept identity/content divergence. This does not create current runtime/effect authority, but it weakens the intended fail-closed typed boundary before F2-WP-601 consumption.",
+      "source_path": "src/frankenstein2/direct_delegate_router.py",
+      "test_path": "tests/test_direct_delegate_router.py"
+    }
+  ],
+  "contradictions": [
+    "The active WP600 scope requires fail-closed rejection when identity/policy data is invalid, while the emitted RouteCandidate object currently has no self-consistency fence tying candidate_id back to its exact content."
+  ],
+  "proposed_state_change": "KEEP_F2_WP_600_ACTIVE_AND_WITHHOLD_ACCEPTANCE_UNTIL_CANDIDATE_ID_SELF_BINDING_IS_EITHER_ENFORCED_IN_THE_CONSTRUCTOR/VALIDATOR_OR_EXPLICITLY_ENFORCED_AT_EVERY_DOWNSTREAM_CONSUMPTION_BOUNDARY_WITH_A_REGRESSION_TEST.",
+  "completion_deficit": "Add one exact regression for direct/replace candidate_id tampering and choose one canonical trust-boundary repair: recompute/compare candidate_id from candidate fields, or make downstream consumption require a validator that performs the same recomputation. Preserve RouteCandidate as candidate-only; grant no runtime/effect/completion authority.",
+  "next_exact_action": "Active WP600 mutation authority should re-enter current main, absorb this falsifier if still applicable, add the smallest fail-closed candidate-id binding repair plus regression, then require repository-hosted CI before bounded component acceptance. F2-WP-601 must not consume RouteCandidate as identity-authentic solely because candidate_id is present.",
+  "created_at_utc": "2026-08-29T09:40:00Z"
+}
