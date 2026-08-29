@@ -1,0 +1,29 @@
+name: REVIEW WP507 selection-lineage falsifier
+
+on:
+  pull_request:
+    paths:
+      - 'src/frankenstein2/gwt_workspace.py'
+      - 'src/frankenstein2/gwt_uptake.py'
+      - 'tests/test_wp507_selection_lineage_falsifier.py'
+      - '.github/workflows/review-wp507-selection-lineage-falsifier.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  falsifier:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Compile exact WP506/WP507 falsifier surface
+        run: python -m py_compile src/frankenstein2/gwt_workspace.py src/frankenstein2/gwt_uptake.py tests/test_wp507_selection_lineage_falsifier.py
+      - name: Run detached-selection causal-lineage falsifier
+        env:
+          PYTHONPATH: src
+        run: python tests/test_wp507_selection_lineage_falsifier.py -v
