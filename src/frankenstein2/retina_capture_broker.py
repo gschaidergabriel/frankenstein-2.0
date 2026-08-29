@@ -3,7 +3,8 @@
 The broker stores only immutable frame/sample references, never raw bytes. Host-specific
 camera/display/browser capture code supplies those references. Exactly one declared owner may
 publish for a source; any number of downstream readers may inspect the bounded ring state.
-Both the live ring and retained drop metadata are bounded.
+Live refs, retained drop diagnostics and runtime provenance are all bounded. Long history is
+represented by a rolling prior-state digest rather than an ever-growing in-memory list.
 """
 from __future__ import annotations
 
@@ -14,7 +15,7 @@ import re
 from typing import Any, ClassVar
 
 FRAME_REF_SCHEMA = "FRANKENSTEIN2_CAPTURE_FRAME_REF/v1"
-BROKER_STATE_SCHEMA = "FRANKENSTEIN2_CAPTURE_BROKER_STATE/v2"
+BROKER_STATE_SCHEMA = "FRANKENSTEIN2_CAPTURE_BROKER_STATE/v3"
 _SHA256_RE = re.compile(r"^[0-9a-f]{64}$")
 
 
@@ -51,6 +52,16 @@ def _refs(name: str, value: Any, *, allow_empty: bool = False) -> tuple[str, ...
     if len(refs) != len(set(refs)):
         raise CaptureBrokerError(f"{name} must not contain duplicates")
     return tuple(sorted(refs))
+
+
+def _ordered_refs(name: str, value: Any, *, allow_empty: bool = False) -> tuple[str, ...]:
+    if type(value) is not tuple or (not allow_empty and not value):
+        suffix = "immutable tuple" if allow_empty else "non-empty immutable tuple"
+        raise CaptureBrokerError(f"{name} must be a {suffix}")
+    refs = tuple(_text(f"{name} item", item) for item in value)
+    if len(refs) != len(set(refs)):
+        raise CaptureBrokerError(f"{name} must not contain duplicates")
+    return refs
 
 
 def _canonical_json(value: Any) -> str:
@@ -109,6 +120,7 @@ class CaptureBrokerState:
     frame_refs: tuple[CaptureFrameRef, ...]
     dropped_frame_count: int
     dropped_frame_ref_ids: tuple[str, ...]
+    origin_provenance_refs: tuple[str, ...]
     provenance_refs: tuple[str, ...]
 
     schema: ClassVar[str] = BROKER_STATE_SCHEMA
@@ -134,13 +146,18 @@ class CaptureBrokerState:
         if sequences != sorted(sequences) or len(sequences) != len(set(sequences)):
             raise CaptureBrokerError("broker ring source_sequence must be unique and increasing")
         _nonnegative("dropped_frame_count", self.dropped_frame_count)
-        recent_drops = _refs("dropped_frame_ref_ids", self.dropped_frame_ref_ids, allow_empty=True)
+        recent_drops = _ordered_refs("dropped_frame_ref_ids", self.dropped_frame_ref_ids, allow_empty=True)
         if len(recent_drops) > self.capacity:
             raise CaptureBrokerError("retained dropped_frame_ref_ids exceed bounded broker capacity")
         if self.dropped_frame_count < len(recent_drops):
             raise CaptureBrokerError("dropped_frame_count cannot be smaller than retained drop ids")
         object.__setattr__(self, "dropped_frame_ref_ids", recent_drops)
-        object.__setattr__(self, "provenance_refs", _refs("provenance_refs", self.provenance_refs))
+        object.__setattr__(self, "origin_provenance_refs", _refs("origin_provenance_refs", self.origin_provenance_refs))
+        current_provenance = _refs("provenance_refs", self.provenance_refs)
+        # Origin + one prior-state link + one current-frame link is the intended constant-size form.
+        if len(current_provenance) > len(self.origin_provenance_refs) + 2:
+            raise CaptureBrokerError("runtime provenance exceeds bounded rolling-chain form")
+        object.__setattr__(self, "provenance_refs", current_provenance)
 
     def as_dict(self) -> dict[str, Any]:
         return {
@@ -155,10 +172,12 @@ class CaptureBrokerState:
             "dropped_frame_count": self.dropped_frame_count,
             "recent_dropped_frame_ref_ids": list(self.dropped_frame_ref_ids),
             "retained_drop_metadata_bound": self.capacity,
+            "origin_provenance_refs": list(self.origin_provenance_refs),
+            "runtime_provenance_refs": list(self.provenance_refs),
+            "runtime_provenance_bound": len(self.origin_provenance_refs) + 2,
             "raw_frame_persistence": False,
             "consumer_count_limit": None,
             "world_truth_authority": "NONE",
-            "provenance_refs": list(self.provenance_refs),
         }
 
     def sha256(self) -> str:
@@ -174,6 +193,7 @@ def create_capture_broker(
     provenance_refs: tuple[str, ...],
 ) -> CaptureBrokerState:
     """Create an empty bounded ring for one source and one declared capture owner."""
+    origin = _refs("provenance_refs", provenance_refs)
     return CaptureBrokerState(
         broker_id=broker_id,
         source_id=source_id,
@@ -183,7 +203,8 @@ def create_capture_broker(
         frame_refs=(),
         dropped_frame_count=0,
         dropped_frame_ref_ids=(),
-        provenance_refs=provenance_refs,
+        origin_provenance_refs=origin,
+        provenance_refs=origin,
     )
 
 
@@ -193,7 +214,7 @@ def publish_frame_ref(
     publisher_owner_id: str,
     frame_ref: CaptureFrameRef,
 ) -> CaptureBrokerState:
-    """Return the next immutable state; overflow drops oldest and bounds drop metadata."""
+    """Return the next immutable state; overflow drops oldest with bounded metadata."""
     if type(state) is not CaptureBrokerState:
         raise CaptureBrokerError("state must be a concrete CaptureBrokerState")
     publisher_owner_id = _text("publisher_owner_id", publisher_owner_id)
@@ -217,10 +238,9 @@ def publish_frame_ref(
     while len(ring) > state.capacity:
         recent_drops.append(ring.pop(0).frame_ref_id)
         dropped_count += 1
-    # Keep only a bounded recent-drop diagnostic window. Total count remains exact.
     recent_drops = recent_drops[-state.capacity :]
-    provenance = set(state.provenance_refs)
-    provenance.update(frame_ref.provenance_refs)
+    # Rolling provenance: keep immutable origin refs plus exact previous-state and new-frame digests.
+    provenance = set(state.origin_provenance_refs)
     provenance.add(f"prior-broker-sha256:{state.sha256()}")
     provenance.add(f"frame-ref-sha256:{frame_ref.sha256()}")
     return CaptureBrokerState(
@@ -232,6 +252,7 @@ def publish_frame_ref(
         frame_refs=tuple(ring),
         dropped_frame_count=dropped_count,
         dropped_frame_ref_ids=tuple(recent_drops),
+        origin_provenance_refs=state.origin_provenance_refs,
         provenance_refs=tuple(sorted(provenance)),
     )
 
