@@ -1,0 +1,38 @@
+{
+  "schema": "F2_TRIGGER4_REVIEW_ONLY/v1",
+  "trigger": "4",
+  "classification": "REVIEW_ONLY_CANDIDATE_FALSIFIER",
+  "workpackage_id": "F2-WP-1110",
+  "reviewed_generation": 2,
+  "reviewed_claim_id": "F2-WP-1110-G2-GPT56SOL-OUTER-ARTIFACT-SUBJECT-20260829T1902Z",
+  "review_base_main": "35ab109f886cac8c6a36e317b9ae7518b6982206",
+  "active_pointer_blob_sha": "789801f0cc756f1e0afb92420e23a89df18d4acf",
+  "finding": "MUTABLE_PREHANDOFF_RECEIPT_REFERENCE_CONTENT_UNBOUND",
+  "severity": "HIGH_FOR_EVIDENCE_LINEAGE_BUT_REVIEW_ONLY_UNTIL_EXECUTABLY_REPRODUCED",
+  "observed_source": {
+    "pre_handoff_release": "src/frankenstein2/pre_handoff_release.py@eea9150785f3fbad18360779a32bef0fb5000838",
+    "clean_machine_acceptance": "src/frankenstein2/clean_machine_acceptance.py@5b44e0be5ac73210820cc9777956ce6f6a6ccfbd",
+    "release_archive": "src/frankenstein2/release_archive.py",
+    "clean_machine_test": "tests/test_clean_machine_acceptance.py@cc06ff317a85dd4de9af886883596b0b03404460"
+  },
+  "observation": "Current pre-handoff and clean-machine APIs carry prehandoff_receipt_ref as a non-empty textual string but do not carry or verify an immutable digest of the external receipt content. The release manifest can therefore bind the name/reference while later clean-machine evidence still lacks a source-level content identity for the external receipt object itself.",
+  "counterhypothesis": "If every admitted prehandoff_receipt_ref is already guaranteed by an external canonical store to be immutable/content-addressed and that guarantee is enforced before clean-machine validation, an additional receipt digest field may be redundant.",
+  "discriminator": "Prove one of: (A) prehandoff_receipt_ref is mechanically content-addressed/immutable at the admitted storage boundary and clean-machine dereference verifies that invariant, or (B) add a canonical prehandoff_receipt_sha256/equivalent subject digest at matrix and per-observation level and reject same-ref/different-content substitution.",
+  "candidate_falsifier_test": "tests/review_only/test_wp1110_prehandoff_receipt_content_binding.py",
+  "expected_current_result": "FAIL_BECAUSE_PREHANDOFF_RECEIPT_CONTENT_IDENTITY_IS_NOT_IN_THE_CLEAN_MACHINE_API",
+  "scope_boundary": [
+    "does not modify WP1110 active pointer",
+    "does not modify canonical WP1110 implementation paths",
+    "does not mint a successor generation",
+    "does not claim target runtime or clean-machine failure",
+    "does not invalidate outer ZIP digest binding; it identifies an adjacent evidence-lineage requirement"
+  ],
+  "credits": {
+    "repository_runtime": 0,
+    "target_runtime": 0,
+    "physical_host": 0,
+    "effect": 0,
+    "completion": 0,
+    "whole_system": 0
+  }
+}
