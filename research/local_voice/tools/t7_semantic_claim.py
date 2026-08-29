@@ -69,6 +69,9 @@ SUBJECT_ALIASES = {
     "nvidia-magpietts-multilingual-357m": "MAGPIETTS_MULTILINGUAL_357M",
     "supertonic-3": "SUPERTONIC_3_99M",
     "supertone-supertonic-3": "SUPERTONIC_3_99M",
+    "fun-cosyvoice3-0.5b-2512": "FUN_COSYVOICE3_0_5B_2512",
+    "cosyvoice3-0.5b-2512": "FUN_COSYVOICE3_0_5B_2512",
+    "funaudiollm-fun-cosyvoice3-0.5b-2512": "FUN_COSYVOICE3_0_5B_2512",
 }
 
 EVIDENCE_SCOPE_ALIASES = {
