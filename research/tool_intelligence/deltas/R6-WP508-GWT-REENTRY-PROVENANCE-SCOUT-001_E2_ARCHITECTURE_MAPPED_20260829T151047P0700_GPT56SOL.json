@@ -1,0 +1,220 @@
+{
+  "schema": "F2_TRIGGER6_ARCHITECTURE_DELTA/v1",
+  "research_id": "R6-WP508-GWT-REENTRY-PROVENANCE-SCOUT-001",
+  "trigger": "6",
+  "slot": "SOURCE_ARCHAEOLOGIST",
+  "evidence_level": "E2_ARCHITECTURE_MAPPED",
+  "status": "COMPLETE_AT_E2_ONLY",
+  "observed_at": "2026-08-29T15:10:47+07:00",
+  "claim": {
+    "path": "research/tool_intelligence/claims/R6-WP508-GWT-REENTRY-PROVENANCE-SCOUT-001/E2_ARCHITECTURE_MAPPED_OTEL_OPENLINEAGE_REENTRY_PROVENANCE.json",
+    "commit": "c10b2b02691ff3e4580c7c67f441feacf133a3e4",
+    "claim_target": "E2_ARCHITECTURE_MAPPED_OTEL_OPENLINEAGE_REENTRY_PROVENANCE"
+  },
+  "live_reentry": {
+    "pre_result_main": "69efa41f028a41674c472b63fd658ad4923d294c",
+    "pre_result_main_message": "trigger6: persist DoWhy WP507 native placebo E3 result",
+    "duplicate_e2_search": "NO_OTHER_WP508_E2_COMMIT_FOUND",
+    "parallel_wp507_activity": "HEAVY; ROUTED_AWAY",
+    "wp508_hypothesis_source_audit": "PARALLEL_DISTINCT_E1_LANE; NOT_DUPLICATED"
+  },
+  "authority_boundary": {
+    "current_supervisor_observed_via_e1": "9.13AQ_NON_AUTHORITY under 9.13 FREE_ONLY",
+    "whole_system_runtime_credit": 0,
+    "gwt_runtime_credit": 0,
+    "jspace_runtime_credit": 0,
+    "training_credit": 0,
+    "rule": "EXTERNAL_TRACE_OR_LINEAGE_IDENTIFIERS_ARE_NONCANONICAL_WITNESSES_ONLY"
+  },
+  "source_pins": [
+    {
+      "repo": "open-telemetry/opentelemetry-specification",
+      "commit": "8057bf6d5cf0ab10891b9e6f7b928cded76ab2f7",
+      "path": "specification/trace/api.md",
+      "blob_sha": "46773ab44d73b034b2ed843c28f402e21096ab59",
+      "license": "Apache-2.0",
+      "observed_concepts": [
+        "SpanContext is immutable and carries TraceId/SpanId plus trace metadata",
+        "a span has zero or one semantic parent",
+        "Links may reference one or many causally related SpanContexts, including across traces",
+        "parent/context propagation and application truth are separate concerns"
+      ]
+    },
+    {
+      "repo": "OpenLineage/OpenLineage",
+      "commit": "b995ee00c10e12ce3b535eeecb2a0a2affe86b7b",
+      "path": "spec/facets/ParentRunFacet.json",
+      "blob_sha": "b56de2b80c03e28117b5accf06da4821d30e8ba8",
+      "license": "Apache-2.0",
+      "observed_concepts": [
+        "parent runId is globally unique",
+        "optional root run/job preserves chain origin",
+        "forwarded parent/root facets are convenience copies and source event remains full-information authority"
+      ]
+    }
+  ],
+  "current_f2_source_map": [
+    {
+      "path": "src/frankenstein2/situation_frame.py",
+      "blob_sha": "93da6f9b265de5d51cc44a648b8cd969f00306e7",
+      "maps": [
+        "SituationFrame.frame_id -> canonical frame identity",
+        "SituationFrame.generation -> fail-closed frame generation",
+        "SituationFrame.sha256() -> canonical frame digest",
+        "SituationFrame.cycle_id -> cycle scope",
+        "SituationFrame.provenance_refs -> existing provenance anchors"
+      ]
+    },
+    {
+      "path": "src/frankenstein2/grid10_interface.py",
+      "blob_sha": "7e641a3476a3c75e0bffba67fc150a03d1400109",
+      "maps": [
+        "Grid10Plan plan_id/generation/sha256 -> exact execution-plan envelope",
+        "Grid10Plan frame_id/frame_generation/frame_sha256 -> frame fence",
+        "CellInput cell_id -> recipient identity",
+        "CellInput reentry_depth -> bounded re-entry depth already present",
+        "CellInput sha256 -> concrete input identity",
+        "CellOutput input_sha256/cell_id/plan envelope -> return binding"
+      ]
+    },
+    {
+      "path": "src/frankenstein2/gwt_workspace.py",
+      "blob_sha": "82566e26988abad3f3a18dde0a9864972fe79abe",
+      "maps": [
+        "WorkspaceSelection selection_id/generation/sha256 -> exact selected-workspace identity",
+        "WorkspaceSelection frame and GRID plan triples -> existing version/digest fences",
+        "BroadcastEnvelope broadcast_id/generation/sha256 -> broadcast-offer identity",
+        "BroadcastEnvelope recipient_cell_ids -> only valid recipient set",
+        "BroadcastEnvelope candidate_ids/payload_refs -> offered candidate lineage",
+        "BroadcastEnvelope is explicitly OFFERED_NOT_ACKED and not uptake/causal authority"
+      ]
+    },
+    {
+      "path": "tests/test_gwt_workspace.py",
+      "blob_sha": "7325fb167e6a53e64fb772cb0cb9e91f965d4015",
+      "maps": [
+        "existing tests already reject stale frame digest",
+        "existing tests reject duplicate/unknown recipients",
+        "existing tests preserve broadcast as offer rather than uptake/effect authority"
+      ]
+    }
+  ],
+  "architecture_mapping": {
+    "decision": "DISTILL_CONCEPTS_ONLY; DO_NOT_IMPORT_OTEL_OR_OPENLINEAGE_RUNTIME",
+    "why": [
+      "F2 already has exact canonical frame, plan, selection, broadcast, cell and digest identities",
+      "WP508 needs a fail-closed re-entry provenance witness, not a second trace or lineage truth store",
+      "OTel contributes the useful one-parent-plus-many-links shape",
+      "OpenLineage contributes the useful parent/root authority rule and convenience-copy boundary"
+    ],
+    "proposed_f2_native_witness": {
+      "name": "GwtReentryProvenanceWitness",
+      "classification": "DERIVED_REENTRY_PROVENANCE_WITNESS_NOT_TRUTH_UPTAKE_CAUSAL_EFFECT_OR_COMPLETION_AUTHORITY",
+      "canonical_required_bindings": [
+        "cycle_id",
+        "frame_id",
+        "frame_generation",
+        "frame_sha256",
+        "grid_plan_id",
+        "grid_plan_generation",
+        "grid_plan_sha256",
+        "selection_id",
+        "selection_generation",
+        "selection_sha256",
+        "broadcast_id",
+        "broadcast_generation",
+        "broadcast_sha256",
+        "recipient_cell_id",
+        "reentry_depth",
+        "reentry_input_sha256"
+      ],
+      "optional_return_bindings": [
+        "reentry_output_sha256",
+        "evidence_refs",
+        "provenance_refs"
+      ],
+      "lineage_shape": {
+        "parent_ref": "exact immediate F2 predecessor witness/broadcast-recipient binding; at most one",
+        "root_ref": "exact canonical chain-origin F2 event/frame witness; optional but immutable when present",
+        "link_refs": "zero or more additional exact F2 predecessor/contributor refs; never a substitute for parent/root",
+        "external_trace_witness": "optional opaque trace_id/span_id metadata for correlation only; no authority"
+      },
+      "identity_rule": "canonical F2 IDs/digests determine validity; external trace/lineage IDs never repair, override, or mint a failed/missing canonical binding",
+      "copy_rule": "forwarded parent/root summaries are projections for convenience; the referenced canonical F2 source object remains authority"
+    }
+  },
+  "fail_closed_test_matrix_for_next_stage": [
+    {
+      "case": "POSITIVE_EXACT_REENTRY",
+      "mutation": "none",
+      "expected": "ACCEPT_WITNESS_AT_COMPONENT_SCOPE_ONLY"
+    },
+    {
+      "case": "STALE_GENERATION",
+      "mutation": "frame_generation or plan/broadcast generation differs while IDs remain plausible",
+      "expected": "REJECT"
+    },
+    {
+      "case": "WRONG_FRAME_DIGEST",
+      "mutation": "frame_id/generation retained but frame_sha256 differs",
+      "expected": "REJECT"
+    },
+    {
+      "case": "CROSS_RECIPIENT",
+      "mutation": "recipient_cell_id not in exact BroadcastEnvelope.recipient_cell_ids or input belongs to another cell",
+      "expected": "REJECT"
+    },
+    {
+      "case": "ORPHAN_LINK",
+      "mutation": "parent/link/root ref cannot be resolved to an exact compatible canonical predecessor",
+      "expected": "REJECT_OR_MARK_UNRESOLVED_WITH_ZERO_UPTAKE_CAUSAL_CREDIT"
+    },
+    {
+      "case": "REPLAY_ALIAS",
+      "mutation": "same canonical re-entry observation is replayed under a fresh external trace/span ID",
+      "expected": "DO_NOT_MINT_NEW_CAUSAL_EVENT_OR_EXTRA_UPTAKE_CREDIT"
+    },
+    {
+      "case": "TRACE_ID_OVERRIDE_ATTACK",
+      "mutation": "syntactically valid external trace/span lineage conflicts with canonical F2 generation/digest",
+      "expected": "REJECT_CANONICAL_BINDING; EXTERNAL_WITNESS_CANNOT_RESCUE"
+    },
+    {
+      "case": "FORWARDED_ROOT_COPY_DIVERGENCE",
+      "mutation": "copied root/parent summary differs from referenced canonical root/parent object",
+      "expected": "REJECT_COPY_AS_AUTHORITY; RESOLVE_FROM_CANONICAL_SOURCE"
+    }
+  ],
+  "counterhypothesis": {
+    "statement": "Adding explicit parent/root/link witness structure merely duplicates existing F2 identifiers and increases schema surface without increasing discriminative power.",
+    "cheapest_falsifier": "At E3, implement only a deterministic fixture/schema validator and show at least one WP508 negative case (cross-recipient, replay alias, or orphan-link) that current broadcast/selection validation alone cannot distinguish but the proposed witness can reject without external runtime dependencies. If no such case exists, retire the extra witness layer."
+  },
+  "resource_assessment": {
+    "full_otel_sdk_or_backend": "NOT_RECOMMENDED_FOR_WP508_AT_E2; dependency/runtime/serialization/export overhead would be introduced and is unmeasured here",
+    "full_openlineage_runtime": "NOT_RECOMMENDED_FOR_WP508_AT_E2; would duplicate provenance transport/state concerns",
+    "concept_distillation": "PREFERRED; zero new runtime dependency by design, but latency/RSS/PSS/CPU/I/O impact is NOT_MEASURED_AT_E2",
+    "license_risk": "LOW_FOR_CONCEPT_DISTILL; both inspected upstream sources are Apache-2.0, but no upstream code is copied in this delta"
+  },
+  "hypothesis_fusion": {
+    "preferred_hypothesis": "A thin F2-native immutable re-entry witness using canonical F2 version/digest identities plus one-parent/many-links/root provenance semantics can improve WP508 falsifiability while preserving UnifiedDB/EntityOS authority and avoiding a second observability/lineage substrate.",
+    "confidence": 0.84,
+    "evidence_scope": "SOURCE_PLUS_ARCHITECTURE_MAPPING_ONLY",
+    "falsifier": "E3 fixture cannot reject any material WP508 negative that current canonical bindings cannot already reject, or requires external IDs to establish correctness."
+  },
+  "next_exact_gate": "E3_CLAIM_REPRODUCED: deterministic F2-native fixture/schema validator for the seven-case fail-closed matrix, with no OTEL/OpenLineage runtime dependency and zero runtime/GWT/J-Space credit until separately observed.",
+  "credits": {
+    "E0_SEED": true,
+    "E1_SOURCE_READ": true,
+    "E2_ARCHITECTURE_MAPPED": true,
+    "E3_CLAIM_REPRODUCED": false,
+    "E4_F2_ABLATION": false,
+    "E5_BUILD_CANDIDATE": false,
+    "E6_F2_ACCEPTED": false,
+    "whole_entityos_hcu": 0,
+    "gwt_runtime": 0,
+    "jspace_model": 0,
+    "training": 0
+  },
+  "db_sync": "PENDING_NO_BINARY_SQLITE_MUTATION_PERFORMED",
+  "note": "This result completes only the claimed E2 mapping. It does not implement WP508, run a target runtime, prove semantic uptake or causal influence, or authorize effects."
+}
