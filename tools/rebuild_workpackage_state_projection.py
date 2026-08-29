@@ -3,12 +3,12 @@
 
 This is a metadata projection tool, not an acceptance authority. It never modifies active
 pointers, claims or reconciliations and never mints runtime/physical/model/effect credit.
-Accepted pointers become ACCEPTED_AT_SCOPE only when their selected reconciliation
-explicitly declares broader_workpackage_status=ACCEPTED_AT_SCOPE. Otherwise the tool
-fails conservative to IN_PROGRESS. Reconciliation ambiguity is recorded as unresolved and
-also projects conservatively to IN_PROGRESS; the hard repository validator remains free to
-reject that ambiguity. Non-success terminal pointers project to HOLD unless an existing
-non-NOT_STARTED broad state is already present.
+Accepted pointers become ACCEPTED_AT_SCOPE when their selected reconciliation explicitly
+requires that broad status. Otherwise existing non-NOT_STARTED aggregate status is preserved;
+missing/NOT_STARTED aggregate state is raised conservatively to IN_PROGRESS. Reconciliation
+ambiguity is recorded as unresolved and follows the same preserve-or-IN_PROGRESS rule; the
+hard repository validator remains free to reject that ambiguity. Non-success terminal pointers
+project to HOLD unless an existing non-NOT_STARTED broad state is already present.
 """
 from __future__ import annotations
 
@@ -28,6 +28,7 @@ except ModuleNotFoundError:
 ACTIVE = "ACTIVE"
 ACCEPTED = "ACCEPTED"
 NON_SUCCESS_TERMINALS = {"FAILED_TERMINAL", "RETIRED_STALE", "SUPERSEDED"}
+PRESERVABLE_BROAD = {"IN_PROGRESS", "HOLD", "BLOCKED", "ACCEPTED_AT_SCOPE"}
 
 
 def _phase_from_workpackage_id(workpackage_id: str) -> int:
@@ -40,6 +41,12 @@ def _fallback_title(pointer: dict[str, Any]) -> str:
         if isinstance(value, str) and value.strip():
             return value.strip()
     return "Current granular workpackage projection"
+
+
+def _preserve_or_in_progress(existing_status: str | None, preserve_basis: str, fallback_basis: str) -> tuple[str, str]:
+    if existing_status in PRESERVABLE_BROAD:
+        return existing_status, preserve_basis
+    return "IN_PROGRESS", fallback_basis
 
 
 def _project_status(
@@ -57,15 +64,25 @@ def _project_status(
                 root, matches, context=f"projection:{pointer.get('workpackage_id')}"
             )
         except validator.ValidationError as exc:
-            return "IN_PROGRESS", "AMBIGUOUS_RECONCILIATION_CONSERVATIVE_FALLBACK", str(exc)
+            status, basis = _preserve_or_in_progress(
+                existing_status,
+                "PRESERVE_EXISTING_ACCEPTED_PROJECTION_UNDER_UNRESOLVED_RECONCILIATION",
+                "UNRESOLVED_RECONCILIATION_CONSERVATIVE_IN_PROGRESS",
+            )
+            return status, basis, str(exc)
         broader = reconciliation.get("broader_workpackage_status")
         if broader == "ACCEPTED_AT_SCOPE":
             return "ACCEPTED_AT_SCOPE", "EXPLICIT_RECONCILIATION_BROAD_ACCEPTANCE", None
         if broader in {"IN_PROGRESS", "HOLD", "BLOCKED"}:
             return broader, "EXPLICIT_RECONCILIATION_BROAD_STATUS", None
-        return "IN_PROGRESS", "CONSERVATIVE_ACCEPTED_POINTER_FALLBACK", None
+        status, basis = _preserve_or_in_progress(
+            existing_status,
+            "PRESERVE_EXISTING_ACCEPTED_PROJECTION",
+            "CONSERVATIVE_ACCEPTED_POINTER_IN_PROGRESS",
+        )
+        return status, basis, None
     if pointer_state in NON_SUCCESS_TERMINALS:
-        if existing_status in {"IN_PROGRESS", "HOLD", "BLOCKED", "ACCEPTED_AT_SCOPE"}:
+        if existing_status in PRESERVABLE_BROAD:
             return existing_status, "PRESERVE_EXISTING_NON_NOT_STARTED_TERMINAL_PROJECTION", None
         return "HOLD", "CONSERVATIVE_NON_SUCCESS_TERMINAL_FALLBACK", None
     raise validator.ValidationError(
