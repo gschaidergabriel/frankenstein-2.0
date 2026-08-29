@@ -1,5 +1,5 @@
 {
-  "schema_version": 6,
+  "schema_version": 7,
   "trigger": "7",
   "status": "ACTIVE_RESEARCH",
   "language_priority": "de",
@@ -26,10 +26,12 @@
     "research/local_voice/frontier/2026-08-30_TRIGGER7_DEEP_RUN_03.md",
     "research/local_voice/models/T7_QWEN35_4B_LOCAL_PROVIDER_FRONTIER_2026-08-29.json",
     "research/local_voice/models/T7_QWEN35_4B_OFFICIAL_BASELINE_PIN_2026-08-30.json",
+    "research/local_voice/models/T7_QWEN35_4B_OFFICIAL_BASELINE_CONFOUND_CONTROL_DELTA_2026-08-30.json",
     "research/local_voice/models/T7_LOCAL_VOICE_CANDIDATE_MATRIX_2026-08-29.json",
-    "research/local_voice/benchmarks/T7_GERMAN_REALTIME_VOICE_BENCHMARK_V1.md"
+    "research/local_voice/benchmarks/T7_GERMAN_REALTIME_VOICE_BENCHMARK_V1.md",
+    "research/local_voice/negative_results/T7_SYS_002_RUN_33265258658_RUNNER_VS_SANDBOX_SCOPE_MISMATCH_2026-08-30.json"
   ],
-  "evidence_level": "V1_SOURCE_PINNED_EXTENDED_HARNESS_READY_VPS_RUNNER_QUEUED_NO_TARGET_RUNTIME",
+  "evidence_level": "V1_SOURCE_PINNED_EXTENDED_HARNESS_READY_CORRECTED_VPS_SANDBOX_WORKFLOW_PENDING_NO_TARGET_RUNTIME",
   "runtime_acceptance_credit": false,
   "external_reference_parity_credit": false,
   "vps_hardware_receipt_observed": false,
@@ -38,16 +40,28 @@
     "claim": "T7-SYS-002/E3_VPS_HARDWARE_ROUNDTRIP",
     "controller_repository": "gschaidergabriel/Dr.-Unterweger",
     "workflow": ".github/workflows/trigger7-vps-hardware-roundtrip.yml",
-    "workflow_head_sha": "f5e0851abbfbb1c580a5d9ea1adf77d9dbd21225",
-    "github_run_id": 33265258658,
-    "job_id": 99134091520,
-    "observed_status": "queued",
-    "conclusion": null,
-    "source_f2_sha": "2bc56f9909c1d71174e4cb686e6630e9e3b6686a",
-    "hardware_inventory_blob_sha": "a553a995d4fd8e50be2801eec68caacfe1b2a0bb",
-    "execution_observed": false,
-    "hardware_receipt_observed": false,
-    "credit": "NONE_UNTIL_JOB_EXECUTES_AND_RECEIPT_IS_FETCHED"
+    "invalid_pre_repair_run": {
+      "workflow_run_id": 33265258658,
+      "job_id": 99134091520,
+      "observed_status": "queued",
+      "execution_observed": false,
+      "hardware_receipt_observed": false,
+      "workflow_blob": "5fc1d299f685dbdaf6180c39b8ef79162ab94b74",
+      "scope_problem": "workflow executed t7_hardware_inventory.py on the self-hosted runner itself rather than inside clay-direct-dev",
+      "credit": "ZERO_CLAY_DIRECT_DEV_HARDWARE_CREDIT_EVEN_IF_LATER_SUCCESS"
+    },
+    "repair": {
+      "controller_commit": "97fc5a69f7f2dc2cb56700a34daa0453eed95d92",
+      "workflow_blob": "44e88575d0bbfe993898689c61cdc8f7a4f88e6e",
+      "source_f2_sha": "d927d4f6933fe5cb4c9e9f535d29a739dade82ff",
+      "hardware_inventory_blob_sha": "a553a995d4fd8e50be2801eec68caacfe1b2a0bb",
+      "required_target_environment": "clay-direct-dev",
+      "required_execution_scope": "CLAY_DIRECT_DEV_SANDBOX_HARDWARE_INVENTORY_ONLY",
+      "replacement_run_id": null,
+      "replacement_execution_observed": false,
+      "replacement_hardware_receipt_observed": false,
+      "credit": "NONE_UNTIL_POST_REPAIR_RECEIPT"
+    }
   },
   "official_qwen35_4b_baseline": {
     "source_repo": "Qwen/Qwen3.5-4B",
@@ -58,7 +72,8 @@
     "community_quant_file": "Qwen3.5-4B_Q4_k_m.gguf",
     "community_quant_reported_sha256": "f987bfd0fccb9bfb76e0926eb05f34ba96401f901b0204b7043608488f4f7422",
     "status": "PINNED_SOURCE_ONLY_NOT_TARGET_VERIFIED",
-    "benchmark_credit": 0
+    "benchmark_credit": 0,
+    "confound_control": "derive the primary Q4_K_M baseline from the exact official safetensors pin using one exact pinned llama.cpp converter/quantizer before comparing third-party abliterated/community GGUFs; community quant remains a later equivalence/deployment-shortcut challenger"
   },
   "benchmark_harness_ready": true,
   "benchmark_harness_repository_ci_verified": true,
@@ -67,9 +82,12 @@
   "new_high_value_findings": [
     "final voice selection must fit inside the resident resource envelope of the complete installed Frankenstein, not merely fit ASR/LLM/TTS in isolation",
     "official Qwen3.5-4B must be benchmarked before the abliterated 4B variant so alignment intervention effects can be isolated from baseline German voice quality",
-    "Qwen/Qwen3.5-4B is now immutably source-pinned at 851bf6e806efd8d0a36b00ddf55e13ccb7b8cd0a; the upstream official repository is safetensors rather than an official GGUF release",
-    "SandLogicTechnologies/Qwen3.5-4B-GGUF Q4_K_M is pinned only as a community quantization candidate; its reported SHA-256 must be recomputed inside clay-direct-dev quarantine before benchmark use",
-    "the exact-source clay-direct-dev hardware roundtrip is dispatched through the owner-authorized self-hosted runner and was observed queued; queued transport is not runtime evidence",
+    "Qwen/Qwen3.5-4B is immutably source-pinned at 851bf6e806efd8d0a36b00ddf55e13ccb7b8cd0a; the upstream official repository is safetensors rather than an official GGUF release",
+    "the provenance-clean primary Qwen baseline should be self-converted/self-quantized from the official pin with an exact llama.cpp build before third-party GGUF comparison; otherwise model intervention is confounded with uploader/converter/quantizer variation",
+    "llama.cpp upstream negative evidence for Qwen3.5 hybrid models makes multi-turn prompt-cache/reprocessing and post-conversion load validation mandatory benchmark dimensions, not optional diagnostics",
+    "SandLogicTechnologies/Qwen3.5-4B-GGUF Q4_K_M remains pinned only as a community quantization candidate; its reported SHA-256 must be recomputed inside clay-direct-dev quarantine before benchmark use",
+    "the pre-repair Trigger-7 hardware workflow measured the self-hosted runner by construction rather than clay-direct-dev; run 33265258658 is therefore ineligible for clay-direct-dev hardware credit even if it later exits successfully",
+    "controller commit 97fc5a69f7f2dc2cb56700a34daa0453eed95d92 repairs the hardware workflow to discover and execute inside clay-direct-dev and to record runner vs sandbox identity separately; the repair itself has zero target-runtime credit until a post-repair receipt exists",
     "NVIDIA NeMo-Speech.cpp v0.1.0 at 4f9676226f667d14608487df744f375db87127f8 is promoted as a unified native speech-runtime substrate candidate for ASR/VAD/endpointing/TTS transport, but it receives no Frankenstein authority or target-runtime credit from source capability alone",
     "fresh upstream German negative evidence lowers source-only confidence in Nemotron 3.5 ASR as the presumptive German winner; benchmark it unassisted and with separately labelled context biasing against Qwen3-ASR and donor Whisper on identical F2 audio",
     "Nemotron 3.5 Q8_0 GGUF is source-pinned at model revision 2e83bd1da4f3e470babc6711d6ce7f9436dced74 with upstream SHA-256 a5c435f294eea8f88ce68dd27b8c3bfea7f777cb2fbba04fcd30eaa555f429ae; local download/hash verification remains absent",
@@ -83,7 +101,7 @@
     "current owner execution authority explicitly authorizes and expects clay-direct-dev VPS execution, local-model downloads and benchmarks; missing direct ChatGPT SSH is not NO_EXECUTOR",
     "the transient ChatGPT container is not the owner VPS sandbox; missing SSH keys/config or normal DNS there must be routed around using the established bridge/self-hosted runner rather than stopping Trigger 7"
   ],
-  "current_primary_hypothesis": "The best near-term production path is a capability-adaptive, fully local German modular voice organ: streaming ASR + two-channel/semantic endpoint intelligence + speculative but cancellation-safe inference + official Qwen3.5-4B-class local baseline + measured expressive streaming TTS. A unified native speech runtime such as NeMo-Speech.cpp may reduce framework/residency/jitter cost below the semantic VoiceIntent/GWT boundary if target measurements support it. Model bundles must coexist with the entire installed Frankenstein resident body. Native full-duplex remains a parallel architecture lane until German quality, tool/state boundaries and target hardware fit are demonstrated.",
+  "current_primary_hypothesis": "The best near-term production path is a capability-adaptive, fully local German modular voice organ: streaming ASR + two-channel/semantic endpoint intelligence + speculative but cancellation-safe inference + provenance-controlled official Qwen3.5-4B local baseline + measured expressive streaming TTS. A unified native speech runtime such as NeMo-Speech.cpp may reduce framework/residency/jitter cost below the semantic VoiceIntent/GWT boundary if target measurements support it. Model bundles must coexist with the entire installed Frankenstein resident body. Native full-duplex remains a parallel architecture lane until German quality, tool/state boundaries and target hardware fit are demonstrated.",
   "active_claims": [
     "T7-ASR-001/E2_SOURCE_AUDIT_QWEN3_ASR_06B",
     "T7-TTS-001/E2_SOURCE_AUDIT_REALTIME_TTS_FRONTIER",
@@ -94,14 +112,16 @@
   ],
   "completed_claims": [
     "T7-SYS-001/E2_DEEP_RUN02_LOCAL_RUNTIME_BENCHMARK_CONTRACT",
-    "T7-SYS-002/E2_NEMO_SPEECH_CPP_AND_GERMAN_ASR_RISK_AUDIT"
+    "T7-SYS-002/E2_NEMO_SPEECH_CPP_AND_GERMAN_ASR_RISK_AUDIT",
+    "T7-LLM-003/E2_OFFICIAL_QWEN35_4B_BASELINE_PROVENANCE_PIN"
   ],
   "next_exact_actions": [
-    "observe GitHub Actions run 33265258658 to terminal state; if it executes, fetch the persisted hardware receipt and compute whole-Frankenstein RAM/VRAM headroom; if it remains queued, classify runner transport availability without inventing runtime evidence",
-    "quarantine-download pinned Qwen3.5-4B Q4_K_M baseline into clay-direct-dev only after target hardware/disk receipt; recompute SHA-256 and bind exact runtime identity",
-    "benchmark pinned baseline and pinned abliterated Q4 under identical German VoiceSessionCapsule prompts, tool schemas and context settings",
+    "do not grant clay-direct-dev hardware credit to pre-repair run 33265258658; resolve the first post-repair workflow run from controller commit 97fc5a69f7f2dc2cb56700a34daa0453eed95d92 and accept only a receipt with target_environment=clay-direct-dev and execution_scope=CLAY_DIRECT_DEV_SANDBOX_HARDWARE_INVENTORY_ONLY",
+    "after a valid sandbox hardware/disk receipt, quarantine-download the exact official Qwen3.5-4B safetensors pin and derive the primary Q4_K_M baseline with one exact pinned llama.cpp converter/quantizer; post-conversion and post-quantization load tests are mandatory",
+    "measure Qwen3.5 multi-turn prompt reprocessing/cache behavior plus TTFT p50/p95 on the German VoiceSessionCapsule workload before long-session voice promotion",
+    "only after the self-derived official baseline is established, compare the pinned community baseline quant and pinned abliterated Q4 under identical hardware, llama.cpp build, prompts, tool schemas and context settings",
     "quarantine-download and locally verify the pinned Nemotron 3.5 Q8_0 GGUF, then sweep 80/160/320/560 ms right-context against Qwen3-ASR and donor Whisper on identical real German room audio; run Nemotron unassisted first and context-biasing as a separate condition",
-    "benchmark Qwen3-TTS first, then footprint-compatible Fun-CosyVoice3, Chatterbox, dots.tts, MOSS-TTS-Realtime and Magpie candidates with stable male identity/ExpressionVector tests",
+    "benchmark Qwen3-TTS first, then footprint-compatible Fun-CosyVoice3, Chatterbox, dots.tts, MOSS-TTS-Realtime, Magpie, CuteTTS and VibeVoice challengers with stable male identity/ExpressionVector tests",
     "pin only the corrected current DualTurn streaming ONNX graph/helper before German mid-sentence pause/backchannel/overlap benchmarking",
     "feed every executed run through t7_voice_receipt.py and preserve raw receipts plus negative results",
     "route only real E3/V4 evidence-bearing candidate bundles to Trigger 4; no V6 self-promotion"
