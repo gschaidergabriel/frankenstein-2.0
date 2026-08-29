@@ -1,0 +1,39 @@
+{
+  "schema": "FRANKENSTEIN2_WORKPACKAGE_DELTA/v1",
+  "workpackage_id": "F2-WP-507",
+  "generation": 4,
+  "claim_id": "F2-WP-507-G4-GPT56SOL-OFFERED-STATE-REPAIR-20260829",
+  "worker_id": "GPT-5.6-Sol",
+  "delta_type": "BOUNDED_REPAIR_CANDIDATE",
+  "triggering_falsifier": {
+    "pull_request": 229,
+    "workflow_run_id": 33242815767,
+    "job_id": 99074936645,
+    "head_sha": "690110deb70eb4e075656a170dd2f7004dc99fe1",
+    "observed_result": "FAILURE",
+    "failure_scope": "G3 contract requires OFFERED distinct from DELIVERED/UPTAKEN but canonical _DELIVERY rejected OFFERED"
+  },
+  "repair": {
+    "source": "src/frankenstein2/gwt_uptake.py",
+    "source_blob_after": "f25c03d4e4e49c4fed44acd0c5c96edfb40f664e",
+    "test": "tests/test_gwt_uptake.py",
+    "test_blob_after": "cee30dcbcca1e670e3e21fd8d253f6346821905d",
+    "mechanism": "admit explicit OFFERED delivery_status; retain existing non-DELIVERED => UNKNOWN rule; summarize OFFERED as not delivered, not uptaken, still unknown",
+    "new_regressions": [
+      "OFFERED is representable with UNKNOWN uptake and no downstream evidence",
+      "OFFERED is excluded from delivered_cell_ids and uptaken_cell_ids",
+      "OFFERED remains UNKNOWN_INCOMPLETE_RECEIPTS",
+      "OFFERED cannot claim NOT_UPTAKEN or UPTAKEN"
+    ]
+  },
+  "scope_boundary": {
+    "runtime_execution_observed": false,
+    "runtime_credit": 0,
+    "physical_grid10_credit": 0,
+    "gwt_runtime_credit": 0,
+    "jspace_runtime_credit": 0,
+    "training_credit": 0,
+    "whole_system_acceptance": false
+  },
+  "next_exact_action": "Require fresh pull-request CI on exact G4 head. If green, merge, require merged-main CI, reconcile G4 terminally at repository-hosted component-CI scope, and close PR #229 as absorbed falsifier."
+}

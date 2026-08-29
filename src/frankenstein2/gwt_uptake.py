@@ -1,6 +1,6 @@
 """Deterministic GWT uptake and matched causal-influence evidence primitives.
 
-F2-WP-507 generation 2.
+F2-WP-507 generation 4.
 
 This component consumes the accepted WP506 BroadcastEnvelope ABI and explicit
 caller-supplied observations. It distinguishes broadcast offer, delivery, semantic
@@ -23,7 +23,7 @@ UPTAKE_SUMMARY_SCHEMA = "FRANKENSTEIN2_GWT_UPTAKE_SUMMARY/v2"
 CAUSAL_PROBE_ARM_SCHEMA = "FRANKENSTEIN2_GWT_CAUSAL_PROBE_ARM/v2"
 CAUSAL_INFLUENCE_RESULT_SCHEMA = "FRANKENSTEIN2_GWT_CAUSAL_INFLUENCE_RESULT/v2"
 
-_DELIVERY = frozenset({"DELIVERED", "NOT_OBSERVED"})
+_DELIVERY = frozenset({"OFFERED", "DELIVERED", "NOT_OBSERVED"})
 _UPTAKE = frozenset({"UPTAKEN", "NOT_UPTAKEN", "UNKNOWN"})
 _CONDITIONS = frozenset({"INTERVENTION_BROADCAST", "CONTROL_NO_BROADCAST"})
 _SHA256_RE = re.compile(r"^[0-9a-f]{64}$")
