@@ -1,59 +1,70 @@
 {
-  "schema_version": 3,
+  "schema_version": 4,
   "producer": "TRIGGER7",
   "consumer": "TRIGGER4",
   "date": "2026-08-30",
-  "status": "PRE_RUNTIME_HANDOFF_DEDUPLICATED",
+  "status": "PRE_RUNTIME_HANDOFF_DEDUPLICATED_POST_REPAIR_REQUIRED",
+  "current_checkpoint": "research/local_voice/checkpoints/CURRENT.json",
   "research_claims": [
     "research/local_voice/claims/T7-LLM-003/E2_SOURCE_PIN_RECONCILIATION_2026-08-30.json",
     "research/local_voice/claims/T7-LLM-002/E3_VPS_QWEN35_4B_ABLITERATED_BENCHMARK.json",
     "research/local_voice/claims/T7-SYS-002/E3_VPS_HARDWARE_ROUNDTRIP_2026-08-30.json"
   ],
-  "objective": "Execute one causally interpretable Qwen3.5-4B local provider A/B on clay-direct-dev: target hardware receipt first, official-source-derived aligned Q4 baseline second, then the abliterated challenger under identical German VoiceSessionCapsule conditions.",
-  "baseline": {
+  "objective": "Execute one provenance-clean Qwen3.5-4B local provider A/B on clay-direct-dev: valid post-repair sandbox hardware receipt first; self-derived Q4_K_M from the exact official safetensors pin second; community quant equivalence third; abliterated challenger only after the aligned baseline is established.",
+  "hardware_gate": {
+    "invalid_pre_repair_run_id": 33265258658,
+    "invalid_pre_repair_credit": 0,
+    "reason": "pre-repair workflow measured the self-hosted runner by construction rather than clay-direct-dev",
+    "repair_controller_commit": "97fc5a69f7f2dc2cb56700a34daa0453eed95d92",
+    "required_target_environment": "clay-direct-dev",
+    "required_execution_scope": "CLAY_DIRECT_DEV_SANDBOX_HARDWARE_INVENTORY_ONLY",
+    "replacement_receipt_observed": false
+  },
+  "primary_baseline": {
     "official_base_repo": "Qwen/Qwen3.5-4B",
     "official_base_revision": "851bf6e806efd8d0a36b00ddf55e13ccb7b8cd0a",
-    "runtime_artifact_repo": "SandLogicTechnologies/Qwen3.5-4B-GGUF",
-    "runtime_artifact_classification": "COMMUNITY_QUANTIZATION_OF_OFFICIAL_QWEN_BASE",
-    "runtime_artifact_revision": "5520227b6782610f3e8e080edd1867558d3856f1",
-    "quant": "Q4_K_M",
-    "file": "Qwen3.5-4B_Q4_k_m.gguf",
-    "reported_sha256": "f987bfd0fccb9bfb76e0926eb05f34ba96401f901b0204b7043608488f4f7422",
-    "reported_size_gb": 2.71,
-    "target_hash_status": "NOT_YET_RECOMPUTED",
+    "source_format": "safetensors",
+    "derivation": "quarantine-download exact official pin, bind one exact pinned llama.cpp converter/quantizer build, convert and quantize locally to Q4_K_M, then load-test the produced artifact before benchmark",
+    "purpose": "control uploader/converter/quantizer confounds before attribution to abliteration",
+    "target_artifact_hash": "TO_BE_COMPUTED_FROM_SELF_DERIVED_BYTES",
     "serve_runtime": "llama-server",
     "initial_context": 4096,
-    "realtime_thinking": "disabled / held constant for baseline",
-    "source_pin": "research/local_voice/models/T7_QWEN35_4B_OFFICIAL_BASELINE_PIN_2026-08-30.json"
+    "realtime_thinking": "disabled / held constant for baseline"
   },
-  "alternate_baseline_donor": {
+  "community_equivalence_candidate": {
+    "repo_id": "SandLogicTechnologies/Qwen3.5-4B-GGUF",
+    "revision": "5520227b6782610f3e8e080edd1867558d3856f1",
+    "file": "Qwen3.5-4B_Q4_k_m.gguf",
+    "reported_sha256": "f987bfd0fccb9bfb76e0926eb05f34ba96401f901b0204b7043608488f4f7422",
+    "role": "later equivalence/deployment-shortcut challenger, not the provenance-clean primary baseline",
+    "target_hash_status": "NOT_YET_RECOMPUTED"
+  },
+  "alternate_community_donor": {
     "repo_id": "bartowski/Qwen_Qwen3.5-4B-GGUF",
     "file": "Qwen_Qwen3.5-4B-Q4_K_M.gguf",
     "revision": "ba06320255db2dbec194dad738d066be90dabf29",
     "sha256": "13c16f426047e2de38cd075bdade4a7bcbc8c774384876f677740cda65f8a983",
-    "role": "fallback donor only after a declared preferred-pin target gate failure; do not run as a parallel default lane"
+    "role": "source-grounded alternate donor only; no parallel default execution lane"
   },
-  "challenger": {
+  "abliterated_challenger": {
     "repo_id": "kaineone/Qwen3.5-4B-abliterated-GGUF",
     "revision": "551991a575c1d4221ca0f0cfca74037d26268411",
     "file": "KAINE-Qwen3.5-4B-abliterated.Q4_K_M.gguf",
-    "local_name": "qwen35-4b-kaine-abliterated-q4km-r551991a",
     "serve_runtime": "llama-server",
     "initial_context": 4096,
     "realtime_thinking": "disabled / held identical to baseline"
   },
   "ordered_actions": [
-    "reuse the single retained T7-SYS-002 hardware roundtrip lane; do not create another semantically duplicate self-hosted workflow",
-    "obtain and persist the real clay-direct-dev hardware inventory receipt and compute whole-Frankenstein RAM/VRAM/disk headroom",
-    "fail closed if the resident voice bundle cannot coexist safely",
-    "quarantine-download the preferred baseline artifact and recompute SHA-256 on clay-direct-dev; do not treat repository metadata as consumed-byte attestation",
-    "bind exact llama.cpp build/runtime identity and serve on localhost only",
-    "run the pinned German VoiceSessionCapsule corpus and measure cold/warm TTFT, time-to-first-speakable-clause, tokens/s, RSS/VRAM, interruption response, tool/state adherence and long-turn behavior",
-    "only after the aligned baseline receipt exists, quarantine-download and execute the abliterated challenger",
-    "run the identical corpus, tool schemas, generation controls, runtime build and context settings against the challenger",
-    "attribute any delta to the intervention only after verifying artifact/runtime/config equality outside the model artifact",
-    "preserve negative results and any load/backend incompatibility",
-    "return bounded Trigger4 outcome receipts; do not mint whole-system acceptance"
+    "reuse the repaired single retained T7-SYS-002 hardware roundtrip lane; do not create another semantically duplicate self-hosted workflow",
+    "accept hardware evidence only from a post-repair receipt whose target_environment is clay-direct-dev and execution_scope is CLAY_DIRECT_DEV_SANDBOX_HARDWARE_INVENTORY_ONLY",
+    "compute whole-Frankenstein RAM/VRAM/disk headroom and fail closed if the resident voice bundle cannot coexist safely",
+    "quarantine-download the exact official Qwen3.5-4B safetensors revision",
+    "bind one exact llama.cpp converter/quantizer build and self-derive Q4_K_M; record source, converter, quantizer and produced-byte hashes",
+    "perform post-conversion and post-quantization load validation before dialogue benchmarking",
+    "run the pinned German VoiceSessionCapsule corpus; measure cold/warm TTFT, TTFT p50/p95 across multi-turn prompt reprocessing/cache behavior, time-to-first-speakable-clause, tokens/s, RSS/VRAM, interruption response, tool/state adherence and long-turn behavior",
+    "only after the self-derived official baseline exists, compare the pinned community Q4 under identical hardware/runtime/settings to test equivalence/deployment shortcut",
+    "only after the aligned baseline is established, quarantine-download and execute the abliterated challenger under identical settings",
+    "preserve every negative result and backend/load incompatibility; no whole-system acceptance from component evidence"
   ],
   "authority": {
     "execution_surface": "clay-direct-dev via established bridge/self-hosted runner",
@@ -65,7 +76,8 @@
   "coordination": {
     "semantic_duplicate_negative_result": "research/local_voice/negative_results/2026-08-30_T7_SEMANTIC_DUPLICATE_CLAIM_MUTEX_FAILURE.md",
     "new_hardware_lane_authorized": false,
-    "current_runtime_credit": 0
-  },
-  "credit_before_execution": 0
+    "runtime_credit": 0,
+    "benchmark_credit": 0,
+    "acceptance_credit": 0
+  }
 }
