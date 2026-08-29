@@ -1,0 +1,86 @@
+{
+  "schema": "F2_TRIGGER6_ARCHITECTURE_MAP/v1",
+  "research_id": "R6-20260829-PYTORCH-NATIVE-HOOKS-WP507-GPT56SOL-01",
+  "claim_target": "E2_ARCHITECTURE_MAPPED",
+  "status": "E2_SOURCE_ARCHITECTURE_MAPPED_NO_RUNTIME_CREDIT",
+  "mapped_at": "2026-08-29T15:06:00+07:00",
+  "worker": "GPT-5.6-Sol:Triggerword-6-organ",
+  "architecture_snapshot": {
+    "f2_main_observed_before_write": "c54f0a8a50be60e2128d27e1e7c4bcf643f0c480",
+    "wp507_candidate_pr": 226,
+    "wp507_candidate_head": "1c2037e97c9c6cf2c909764e142538028abc6e52",
+    "wp507_source_blob": "381493eb916cd734341c1c64caf520085bde4ef1",
+    "wp507_source_on_canonical_main_observed": false,
+    "authority_epoch": "9.13"
+  },
+  "candidate_basis": {
+    "repo": "pytorch/pytorch",
+    "commit": "0cfc9e7c89f705d8a39fcedc7a4570c559ddd0d4",
+    "source": "torch/nn/modules/module.py",
+    "observed_primitives": [
+      "Module.register_forward_pre_hook can return modified positional input or modified args/kwargs",
+      "Module.register_forward_hook can return a modified module output",
+      "both return RemovableHandle for explicit hook removal",
+      "Module._call_impl bypasses hook machinery when no local/global hooks are present",
+      "hook order is explicit through prepend and local/global hook ordering"
+    ]
+  },
+  "mapping": [
+    {
+      "f2_need": "low-cost reversible model-internal intervention",
+      "pytorch_native_shape": "targeted module pre-hook or forward-hook returning a modified activation only for the declared intervention arm",
+      "f2_requirement": "wrap the hook in an F2-owned adapter that binds probe_id, broadcast id/digest/generation, exact module path, hook kind, intervention transform digest, model/checkpoint/tokenizer/runtime/build identity, seed/determinism controls and raw downstream output digest",
+      "fit": "HIGH_IF_EXACT_TARGET_RUNTIME_IS_PYTORCH"
+    },
+    {
+      "f2_need": "control/intervention reversibility",
+      "pytorch_native_shape": "RemovableHandle.remove plus an unmodified control arm on the same exact module path",
+      "f2_requirement": "verify the handle is removed and run a post-removal baseline-equivalence check; never infer removal from object lifetime alone",
+      "fit": "GOOD_WITH_EXPLICIT_TEARDOWN_RECEIPT"
+    },
+    {
+      "f2_need": "preserve WP507 causal evidence boundaries",
+      "pytorch_native_shape": "hooks can perturb/observe tensors but provide no GWT recipient semantics, no probe identity, no truth authority and no effect authority",
+      "f2_requirement": "keep WP507 deterministic receipt/summary/causal-arm layer authoritative for contract-scope uptake; native-hook evidence is a separate model-internal measurement channel only",
+      "fit": "COMPLEMENT_NOT_REPLACEMENT"
+    },
+    {
+      "f2_need": "resource efficiency",
+      "pytorch_native_shape": "no separate interpretability framework is required if the exact local model runtime already depends on PyTorch",
+      "f2_requirement": "do not claim dependency savings until exact model runtime is known; if the target is not PyTorch-native, this advantage disappears",
+      "fit": "CONDITIONAL"
+    }
+  ],
+  "risks_and_fences": [
+    "Global module hooks add global state and are documented mainly for debugging/profiling; use specific-module hooks only.",
+    "Historical PyTorch issues show hooks and torch.compile have had compatibility/visibility edge cases; the E3 test must run against the exact target runtime/build and should prefer eager mode for the causal probe unless compiled-mode equivalence is separately proven.",
+    "Some submodules may not execute through the apparent Python module boundary; hook target presence must be proven by a no-op observation receipt before intervention.",
+    "Retaining activation tensors in hook closures can retain memory; capture only bounded detached digests/projections unless the experiment explicitly needs the tensor and then release it deterministically.",
+    "An activation difference is not semantic GWT uptake, world truth or effect evidence.",
+    "Exact checkpoint/tokenizer/runtime/build and consumed-model identity remain external prerequisites."
+  ],
+  "architecture_hypothesis": {
+    "statement": "For the first exact-model GWT/J-Space lesion-rescue falsifier, a thin F2-owned adapter over PyTorch specific-module forward/pre-forward hooks is likely lower-risk and lower-resource than importing full TransformerLens or pyvene, provided the exact ~0.8B target is already executed through a compatible PyTorch eager module path.",
+    "counterhypothesis": "The exact target may use a compiled/fused execution path where Python module hooks are incomplete, perturb execution semantics, or add enough overhead/identity ambiguity that a dedicated intervention framework such as TransformerLens/pyvene/NNsight is safer and more reproducible.",
+    "why_this_is_nonduplicate": "Existing Trigger-6 lanes audited full intervention/tracing frameworks; this result isolates the zero/near-zero-extra-dependency native primitive explicitly recommended as the comparator in the TransformerLens E1/E2 work.",
+    "evidence_ceiling": "SOURCE_ARCHITECTURE_MAPPING_ONLY"
+  },
+  "next_gate": {
+    "target": "E3_CLAIM_REPRODUCED_NATIVE_HOOK_REVERSIBILITY",
+    "requires_new_atomic_claim": true,
+    "cheap_discriminator": "On the exact intended local model runtime/build, bind one module path; run baseline, no-op-hook baseline, one declared activation lesion/rescue, remove hook, then post-removal baseline. Require target hook firing, exact non-intervention input identity, bounded raw-output digest receipt, post-removal equivalence and zero F2 state/effect writes.",
+    "prefer": "eager execution for first falsifier unless compiled-mode hook equivalence is already exact-source tested",
+    "promotion_rule": "Only if this E3 discriminator passes should Trigger-6 consider an E4 F2 ablation against TransformerLens/pyvene; no E5 build candidate from E2 alone."
+  },
+  "credits": {
+    "research_stage": "E2_ARCHITECTURE_MAPPED_SOURCE_ONLY",
+    "architecture_credit": "MAPPING_ONLY",
+    "runtime_credit": 0,
+    "gwt_runtime_credit": 0,
+    "jspace_runtime_credit": 0,
+    "physical_grid10_credit": 0,
+    "effect_credit": 0,
+    "training_credit": 0,
+    "whole_system_credit": 0
+  }
+}
