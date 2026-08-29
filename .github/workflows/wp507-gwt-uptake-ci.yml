@@ -1,0 +1,35 @@
+name: F2 WP507 G2 GWT Uptake CI
+
+on:
+  push:
+    branches:
+      - trigger4/wp507-g2-gwt-uptake-20260829
+    paths:
+      - 'src/frankenstein2/gwt_uptake.py'
+      - 'tests/test_gwt_uptake.py'
+      - '.github/workflows/wp507-gwt-uptake-ci.yml'
+  pull_request:
+    paths:
+      - 'src/frankenstein2/gwt_uptake.py'
+      - 'tests/test_gwt_uptake.py'
+      - '.github/workflows/wp507-gwt-uptake-ci.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  deterministic:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Compile
+        run: python -m py_compile src/frankenstein2/gwt_uptake.py tests/test_gwt_uptake.py
+      - name: GWT uptake and causal-influence falsification suite
+        env:
+          PYTHONPATH: src
+        run: python -m pytest -q tests/test_gwt_uptake.py
