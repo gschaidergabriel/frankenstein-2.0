@@ -1,0 +1,41 @@
+name: Review WP804 Pre-Seal Choice Mutation Falsifier
+
+on:
+  push:
+    branches:
+      - review/wp804-preseal-choice-mutation-falsifier-20260829
+    paths:
+      - 'src/frankenstein2/cognitive_goal_inference_benchmark.py'
+      - 'src/frankenstein2/cognitive_microworld.py'
+      - 'tests/test_cognitive_goal_inference_benchmark.py'
+      - 'tests/test_wp804_preseal_choice_mutation_falsifier.py'
+      - '.github/workflows/review-wp804-preseal-choice-mutation.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  preregistered-falsifier:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Compile exact review target
+        run: >-
+          python -m py_compile
+          src/frankenstein2/cognitive_microworld.py
+          src/frankenstein2/cognitive_goal_inference_benchmark.py
+          tests/test_cognitive_goal_inference_benchmark.py
+          tests/test_wp804_preseal_choice_mutation_falsifier.py
+      - name: Existing WP804 tests remain green
+        env:
+          PYTHONPATH: src:.
+        run: python -m unittest -v tests.test_cognitive_goal_inference_benchmark
+      - name: Preregistered pre-seal mutation discriminator
+        env:
+          PYTHONPATH: src:.
+        run: python -m unittest -v tests.test_wp804_preseal_choice_mutation_falsifier
