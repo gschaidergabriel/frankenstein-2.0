@@ -1,0 +1,32 @@
+name: F2 WP505 Current-Main ControlSnapshot Falsifier CI
+
+on:
+  push:
+    branches:
+      - chatgpt/review-wp505-control-snapshot-binding-currentmain-20260829
+    paths:
+      - 'tests/test_wp505_control_snapshot_binding_currentmain_falsifier.py'
+      - '.github/workflows/wp505-control-snapshot-binding-currentmain-falsifier-ci.yml'
+      - 'src/frankenstein2/adaptive_compute.py'
+      - 'src/frankenstein2/cognitive_envelope.py'
+      - 'tests/test_adaptive_compute.py'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  falsifier:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Compile current-main falsifier
+        run: python -m py_compile tests/test_wp505_control_snapshot_binding_currentmain_falsifier.py
+      - name: Run current-main ControlSnapshot admission falsifiers
+        env:
+          PYTHONPATH: src:tests
+        run: python tests/test_wp505_control_snapshot_binding_currentmain_falsifier.py -v
