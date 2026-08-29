@@ -1,0 +1,66 @@
+{
+  "schema": "FRANKENSTEIN2_WORKPACKAGE_DELTA/v1",
+  "workpackage_id": "F2-WP-804",
+  "generation": 3,
+  "claim_id": "F2-WP-804-G3-GPT56SOL-PUBLIC-SIGNAL-DIGEST-BINDING-20260829",
+  "worker_id": "GPT-5.6-Sol-TRIGGER4",
+  "authority_epoch": "8.78",
+  "classification": "BOUNDED_IMPLEMENTATION_DELTA",
+  "falsifier_source": {
+    "record": "workpackages/falsifiers/F2-WP-804/20260829T133609Z_REF_ALIAS_PAYLOAD_DIGEST_REPRODUCED_GPT56SOL_TRIGGER4.json",
+    "review_branch": "review/wp804-ref-alias-payload-digest-falsifier-20260829",
+    "review_head": "2ef6d055d107b13c44a1acae5a386b25ff3c0b07",
+    "workflow_run_id": 33255427837,
+    "workflow_job_id": 99108158163,
+    "result": "POSITIVE_REF_ALIAS_PAYLOAD_DIGEST_COUNTEREXAMPLE_REPRODUCED"
+  },
+  "implementation": {
+    "source_path": "src/frankenstein2/cognitive_goal_inference_benchmark.py",
+    "source_blob_sha": "d53633f2918d84f5a00961803368980fd54121af",
+    "change": "CandidateGoal now binds each public_signal_ref to an aligned exact lowercase SHA-256 payload digest. Policy-side public_signal_matches requires both ref and digest. Evaluator sealing/scoring reconstructs the same match set independently through a separate evaluator helper and derives its identifiability digest from that independently reconstructed match set.",
+    "evidence_boundary": "Repository benchmark provenance binding only. This does not establish world truth, goal authority, runtime behavior, physical GRID10, GWT/J-Space, training or effects."
+  },
+  "regressions": {
+    "generation_1_test_path": "tests/test_cognitive_goal_inference_benchmark.py",
+    "generation_1_test_blob_sha": "062ce4eb1f9a7b275a495d5c2a877b8eeb3095bb",
+    "generation_2_test_path": "tests/test_wp804_g2_producer_lineage_repair.py",
+    "generation_3_test_path": "tests/test_wp804_g3_public_signal_digest_binding.py",
+    "generation_3_test_blob_sha": "91defc9224e9c9b3b4c64b5d99008ecfffa8695b",
+    "generation_3_cases": [
+      "same observation_ref plus changed observation_sha256 makes stale candidate binding ABSTAIN and prevents exact GOAL evaluator label",
+      "candidate ref/digest arrays must have equal length and exact SHA-256 values",
+      "evaluator sealing/scoring remains correct when policy public_signal_matches and public_identifiability_digest are patched to raise, proving independent evaluator reconstruction"
+    ]
+  },
+  "workflow": {
+    "path": ".github/workflows/wp804-g3-public-signal-digest-binding-ci.yml",
+    "blob_sha": "89f648394c53fd19d8fb3ee799f83adf4e4d0ac6"
+  },
+  "branch_ci": {
+    "head_sha": "ff1d0c0d2eafb3a6ee42f47a1381be8453d51c56",
+    "workflow_run_id": 33255780810,
+    "workflow_job_id": 99109107526,
+    "conclusion": "SUCCESS",
+    "steps": [
+      "compile exact generation-3 target PASS",
+      "generation-1 WP804 regression suite PASS",
+      "generation-2 producer-lineage regression suite PASS",
+      "generation-3 public-signal digest binding regressions PASS"
+    ]
+  },
+  "credits": {
+    "repository_component_branch_ci": 1,
+    "runtime": 0,
+    "vps_runtime": 0,
+    "physical_grid10": 0,
+    "gwt": 0,
+    "jspace": 0,
+    "provider_model": 0,
+    "training": 0,
+    "goal_authority": 0,
+    "effects": 0,
+    "completion": 0,
+    "whole_system": 0
+  },
+  "next_exact_action": "Open one PR from the generation-3 build branch, require exact PR-head repository-hosted CI, merge only if current main remains compatible, then require merged-main generation-3 CI before terminal bounded reconciliation."
+}
