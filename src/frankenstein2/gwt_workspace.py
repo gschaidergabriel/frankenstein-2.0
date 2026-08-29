@@ -709,13 +709,14 @@ def build_workspace_selection(
     normalized_grid_plan_id = _text("grid_plan_id", grid_plan_id)
     normalized_grid_plan_generation = _generation("grid_plan_generation", grid_plan_generation)
     normalized_grid_plan_sha256 = _sha256("grid_plan_sha256", grid_plan_sha256)
+    canonical_candidates = tuple(sorted(candidates, key=lambda item: item.candidate_id))
     _validate_candidate_origins(
-        candidates,
+        canonical_candidates,
         grid_plan_id=normalized_grid_plan_id,
         grid_plan_generation=normalized_grid_plan_generation,
         grid_plan_sha256=normalized_grid_plan_sha256,
     )
-    selected, deferred = _rank_candidates(policy, candidates)
+    selected, deferred = _rank_candidates(policy, canonical_candidates)
     value = WorkspaceSelection(
         selection_id=selection_id,
         cycle_id=cycle_id,
@@ -735,7 +736,7 @@ def build_workspace_selection(
         hyperposition_generation=hyperposition_generation,
         hyperposition_sha256=hyperposition_sha256,
         selection_policy=policy,
-        source_candidates=candidates,
+        source_candidates=canonical_candidates,
     )
     _assert_selection_build_lineage(value)
     return value
