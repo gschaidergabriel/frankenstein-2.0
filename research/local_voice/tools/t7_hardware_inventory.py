@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+import glob
 import json
 import os
 import platform
@@ -53,6 +54,10 @@ def disk(path):
     }
 
 
+def device_paths(pattern):
+    return sorted(glob.glob(pattern))[:256]
+
+
 def main():
     root = Path(
         os.environ.get(
@@ -65,15 +70,32 @@ def main():
         "schema_version": 1,
         "host": platform.node(),
         "platform": platform.platform(),
+        "system": platform.system(),
+        "release": platform.release(),
         "machine": platform.machine(),
+        "processor": platform.processor(),
         "python": sys.version,
         "cpu_count_logical": os.cpu_count(),
         "memory": meminfo(),
         "model_root": str(root),
         "disk": disk(disk_probe),
+        "device_paths": {
+            "linux_dri_render": device_paths("/dev/dri/renderD*"),
+            "linux_dri_cards": device_paths("/dev/dri/card*"),
+            "linux_audio": device_paths("/dev/snd/*"),
+        },
         "commands": {
             "lscpu": run(["lscpu"]),
+            "free": run(["free", "-b"]),
+            "lspci": run(["lspci", "-nnk"]),
             "nvidia_smi": run(["nvidia-smi"]),
+            "rocm_smi": run(["rocm-smi"]),
+            "rocminfo": run(["rocminfo"]),
+            "vulkaninfo": run(["vulkaninfo", "--summary"]),
+            "clinfo": run(["clinfo", "--raw"]),
+            "system_profiler_hardware": run(["system_profiler", "SPHardwareDataType"]),
+            "system_profiler_graphics": run(["system_profiler", "SPDisplaysDataType"]),
+            "sysctl_memsize": run(["sysctl", "-n", "hw.memsize"]),
             "ffmpeg": run(["ffmpeg", "-version"]),
             "aplay": run(["aplay", "--version"]),
             "arecord": run(["arecord", "--version"]),
