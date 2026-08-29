@@ -1,0 +1,65 @@
+{
+  "schema": "FRANKENSTEIN2_WORKPACKAGE_ACCEPTANCE_RECEIPT/v1",
+  "workpackage_id": "F2-WP-705",
+  "generation": 1,
+  "claim_id": "F2-WP-705-G1-GPT56SOL-REALTIME-REENTRY-20260829",
+  "acceptance_scope": "REALTIME_REENTRY_EVIDENCE_REPOSITORY_HOSTED_COMPONENT_CI_ONLY",
+  "authority_epoch": "8.78",
+  "implementation_evidence": {
+    "pull_request": 369,
+    "pr_head": "d4d68b34a354c649224f7eaa560d45b5d3961949",
+    "merge_commit": "40bfeff183e804a60254b458a0afde5dfe3991da"
+  },
+  "repository_hosted_ci": {
+    "pr_head_run_id": 33248443040,
+    "pr_head_job_id": 99089844091,
+    "pr_head_sha": "d4d68b34a354c649224f7eaa560d45b5d3961949",
+    "pr_head_conclusion": "success",
+    "merged_main_run_id": 33248484760,
+    "merged_main_job_id": 99089952989,
+    "merged_main_head_sha": "40bfeff183e804a60254b458a0afde5dfe3991da",
+    "merged_main_conclusion": "success",
+    "compile": "PASS",
+    "tests": "16/16 PASS"
+  },
+  "artifacts": {
+    "source": "src/frankenstein2/realtime_reentry.py",
+    "source_blob_sha": "a63409424188e01755738eeab58e44b8ba6709ee",
+    "test": "tests/test_realtime_reentry.py",
+    "test_blob_sha": "20db9eab29b09dca6235792f08d6dec93a21035a",
+    "workflow": ".github/workflows/wp705-realtime-reentry-ci.yml",
+    "workflow_blob_sha": "b3cf7f7d7d410b166020637b10e8a03477ac840f",
+    "delta": "workpackages/deltas/F2-WP-705/1-F2-WP-705-G1-GPT56SOL-REALTIME-REENTRY-20260829-01.json",
+    "delta_blob_sha": "976c1cb50795377c1f34082b6576449b93f4d89d"
+  },
+  "verified_invariants": [
+    "BARGE_IN, BILATERAL_SILENCE and TOOL_RETURN are the only admitted event types",
+    "each event is bound to an exact caller-supplied voice-session identity and SHA-256 digest",
+    "event sequence and causal generation advance exactly one step from the bound predecessor cursor",
+    "successor evidence requires exact predecessor identity and digest and observed time cannot regress",
+    "BARGE_IN requires an explicit input-activity identity and cannot smuggle silence or tool-return evidence",
+    "BILATERAL_SILENCE requires both local and remote caller-supplied silence measurements to meet an explicit policy threshold",
+    "TOOL_RETURN requires exact tool-call identity and tool-result digest and cannot smuggle barge-in or silence-window evidence",
+    "unknown mapping fields, cross-session consumer binding and content tampering fail closed",
+    "the component records evidence only and does not infer semantic success, user presence, world facts, goals or completion"
+  ],
+  "commands": [
+    "python -m py_compile src/frankenstein2/realtime_reentry.py tests/test_realtime_reentry.py",
+    "PYTHONPATH=src python tests/test_realtime_reentry.py -v"
+  ],
+  "environment": "github-actions ubuntu-latest; python 3.12",
+  "runtime_execution_observed": false,
+  "realtime_provider_execution_observed": false,
+  "vps_runtime_observed": false,
+  "runtime_credit": 0,
+  "target_vps_runtime_credit": 0,
+  "physical_grid10_credit": 0,
+  "gwt_runtime_credit": 0,
+  "jspace_runtime_credit": 0,
+  "training_credit": 0,
+  "effect_credit": 0,
+  "completion_credit": 0,
+  "whole_system_acceptance": false,
+  "completion_deficit": "No microphone/VAD/ASR/TTS path, OpenAI Realtime/provider/model/tool invocation, live barge-in or silence timing, target VPS runtime, UnifiedDB re-entry, physical GRID10/GWT/J-Space behavior, effects, completion verification, training or whole-system evidence was produced.",
+  "next_exact_action": "Terminally reconcile WP705 generation 1 at repository-hosted component-CI scope, leave hot global ledgers to the current fusion writer, then integrate concrete WP704 VoiceSessionCapsule binding only after WP704 survives its own acceptance/counterevidence gates."
+}
