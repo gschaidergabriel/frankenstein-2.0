@@ -1,0 +1,64 @@
+{
+  "schema_version": 1,
+  "trigger": "7",
+  "research_id": "T7-TTS-006",
+  "objective": "E2_CHATTERBOX_MULTILINGUAL_V3_SOURCE_PIN",
+  "semantic_key": "361e9713e4e7b14e2361379e8120ad0199c3a0145cb59263baea5f4e3c7ff512",
+  "status": "SOURCE_PINNED_TERMINAL_AT_SCOPE",
+  "scope": "SOURCE_PIN_ONLY",
+  "upstream": {
+    "code_repository": "resemble-ai/chatterbox",
+    "code_ref": "master",
+    "code_commit": "5de7a54aa4e5e2baadb0182dde554908b48b85c2",
+    "model_repository": "ResembleAI/chatterbox",
+    "model_variant": "Chatterbox Multilingual V3",
+    "model_size_upstream": "500M",
+    "license": "MIT",
+    "german_supported_upstream": true,
+    "supported_language_id": "de"
+  },
+  "pinned_artifact": {
+    "name": "t3_mtl23ls_v3.safetensors",
+    "size_bytes_displayed_upstream": "2.14 GB",
+    "sha256": "5abca8321ede76f8e61f1cc0d19aea6c946b28871017ce8726f8a69203f05953",
+    "xet_hash": "dcf1bc111ebd06124f5162a7ad8ed07d19756a8aff4f5c8df6a7f13e1c293fa9",
+    "artifact_commit_short": "e2d6902",
+    "format": "safetensors"
+  },
+  "source_observations": [
+    "Official model card identifies Multilingual V3 as the current general-purpose multilingual 500M variant and explicitly includes German among 23+ languages.",
+    "Official implementation maps t3_model='v3' to t3_mtl23ls_v3.safetensors.",
+    "The public local quickstart exposes generate(...) returning a waveform; no source-grounded incremental local audio streaming ABI was observed in the pinned quickstart/source surface.",
+    "The upstream sub-200ms statement on the model card is attached to Resemble AI's commercial TTS service and is not evidence for local Chatterbox V3 TTFA, RTF, end-to-end turn latency or Frankenstein behavior.",
+    "The V3 T3 artifact is safetensors, reducing pickle risk for that artifact; complete runtime dependency/artifact auditing is still required before target execution."
+  ],
+  "frankenstein_interpretation": {
+    "candidate_role": "GERMAN_EXPRESSIVE_TTS_CHALLENGER",
+    "strengths_to_test": [
+      "German support",
+      "500M-class model size",
+      "voice cloning / speaker identity",
+      "expression/exaggeration control",
+      "reported V3 stability improvements"
+    ],
+    "highest_risk": "LOCAL_REALTIME_STREAMING_UNPROVEN",
+    "reason": "A full-waveform generate API can still be useful for quality comparison, but it does not by itself satisfy Frankenstein's incremental cancellable realtime TTS requirement."
+  },
+  "required_target_runtime_falsifiers": [
+    "German TTFA p50/p95",
+    "real-time factor",
+    "RSS/VRAM and warmup",
+    "stable male speaker identity over long sessions",
+    "German names/numbers/technical vocabulary",
+    "chunkability or genuinely incremental synthesis without prosody collapse",
+    "barge-in cancellation behavior and no false spoken-state commit",
+    "network-blocked local operation"
+  ],
+  "evidence_credit": 1,
+  "runtime_credit": 0,
+  "german_tts_component_credit": 0,
+  "german_e2e_credit": 0,
+  "trigger4_acceptance_credit": 0,
+  "whole_system_credit": 0,
+  "next_exact_action": "After the first terminal clay-direct-dev hardware receipt is admitted, benchmark Chatterbox Multilingual V3 against Qwen3-TTS, MagpieTTS and Piper/Thorsten on German TTFA/RTF/resources/voice stability/cancellation. Treat failure to produce usable incremental audio as a realtime-production falsifier, while preserving offline/high-quality TTS donor value."
+}
