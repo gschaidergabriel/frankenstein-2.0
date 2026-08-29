@@ -1,0 +1,42 @@
+{
+  "schema": "FRANKENSTEIN2_WORKPACKAGE_DELTA/v1",
+  "workpackage_id": "F2-WP-402",
+  "generation": 2,
+  "classification": "CANDIDATE_FALSIFIER_REPAIR_PROBE",
+  "review_id": "F2-WP-402-G2-REVIEW-EXACT-WORLDSLICE-TYPE-FALSIFIER-20260829",
+  "review_worker": "GPT-5.6-Sol",
+  "active_claim_id": "F2-WP-402-G2-GPT56SOL-DIRECT-CONSTRUCTOR-BINDING-REPAIR-20260829",
+  "exact_current_main_observed": "c6d0747b3957ca9d03da70dcdbe50b749c89ffd1",
+  "exact_current_qubo_source_sha": "d6f2290d683508882b280a1b3f2a47e5544abc24",
+  "finding": "The exact-current build_qubo_projection boundary accepts WorldSlice subclasses via isinstance and compares expected_slice_sha256 against the polymorphic world_slice.sha256() method. A subtype can override sha256(), supply the same forged expected digest, and pass the claimed exact WorldSlice binding boundary.",
+  "counterhypothesis": "The current accepted WorldSlice implementation or frozen/slots dataclass semantics prevent a subtype from overriding sha256() in the repository-hosted Python runtime.",
+  "falsifier_branch": "chatgpt/review-wp402-g2-exact-worldslice-type-falsifier-20260829",
+  "falsifier_head": "22db266d08a23003fd8b14177b4d49928fdc3a9c",
+  "falsifier_run_id": 33243147692,
+  "falsifier_job_id": 99075830878,
+  "falsifier_compile": "PASS",
+  "falsifier_result": "FAIL_AS_EXPECTED_FOR_VULNERABLE_SOURCE",
+  "observed_failure": "AssertionError: QuboProjectionError not raised",
+  "ephemeral_repair": "Replace `if not isinstance(world_slice, WorldSlice):` with `if type(world_slice) is not WorldSlice:` at the build_qubo_projection source admission boundary.",
+  "repair_probe_head": "a1933c5ded5af4e76ff4c34f3774889a9b581456",
+  "repair_probe_run_id": 33243177105,
+  "repair_probe_job_id": 99075908845,
+  "repair_probe_steps": {
+    "ephemeral_exact_type_repair": "PASS",
+    "compile_repaired_source_and_all_relevant_tests": "PASS",
+    "canonical_wp402_regression_suite": "PASS",
+    "exact_current_subtype_regression": "PASS"
+  },
+  "interpretation": "Executable repository-hosted counterevidence proves the exact-current accepted G1 source/G2 base has a subtype-forgeable WorldSlice digest boundary. The one-line exact concrete-type guard closes this tested exploit without regressing the current canonical WP402 test suite. This evidence is complementary to, not a replacement for, the active G2 direct-constructor scoring hardening claim.",
+  "canonical_mutation_authority": "UNCHANGED_ACTIVE_WP402_G2_OWNER",
+  "recommended_absorption": "Canonical G2 owner should absorb the exact-type guard and regression while implementing the already-claimed independent scoring revalidation, then rerun canonical WP402 CI before reconciliation.",
+  "credit": {
+    "wp402_acceptance": false,
+    "runtime_credit": 0,
+    "physical_grid10_credit": 0,
+    "gwt_runtime_credit": 0,
+    "jspace_runtime_credit": 0,
+    "training_credit": 0,
+    "whole_system_acceptance": false
+  }
+}
