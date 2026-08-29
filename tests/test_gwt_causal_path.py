@@ -123,7 +123,7 @@ def make_fixture(
     *,
     delivery="DELIVERED",
     uptake="UPTAKEN",
-    intervention_output=C,
+    intervention_output=None,
     control_output=F,
 ):
     plan = make_plan()
@@ -149,6 +149,17 @@ def make_fixture(
         broadcast=broadcast,
         cell_input=cell_input,
     )
+    downstream_output = None
+    if uptake == "UPTAKEN":
+        downstream_output = CellOutput.for_input(
+            plan,
+            cell_input,
+            status="COMPLETE",
+            work_units_used=1,
+            output_refs=("downstream:wp510",),
+            evidence_refs=("evidence:downstream-wp510",),
+            provenance_refs=("prov:downstream-output-wp510",),
+        )
     receipt = CellUptakeReceipt.observe(
         receipt_id="receipt:G1:wp510",
         broadcast=broadcast,
@@ -156,7 +167,7 @@ def make_fixture(
         delivery_status=delivery,
         uptake_status=uptake,
         downstream_ref="downstream:wp510" if uptake == "UPTAKEN" else None,
-        downstream_sha256=C if uptake == "UPTAKEN" else None,
+        downstream_sha256=downstream_output.sha256() if downstream_output is not None else None,
         provenance_refs=("prov:wp507-receipt",),
     )
     summary = summarize_uptake(
@@ -165,12 +176,17 @@ def make_fixture(
         receipts=(receipt,),
         provenance_refs=("prov:wp507-summary",),
     )
+    effective_intervention_output = (
+        downstream_output.sha256()
+        if intervention_output is None and downstream_output is not None
+        else (C if intervention_output is None else intervention_output)
+    )
     intervention = CausalProbeArm.intervention(
         arm_id="arm:intervention:wp510",
         probe_id="probe:wp510",
         broadcast=broadcast,
         nonbroadcast_input_sha256=D,
-        downstream_output_sha256=intervention_output,
+        downstream_output_sha256=effective_intervention_output,
         provenance_refs=("prov:intervention",),
     )
     control = CausalProbeArm.control(
@@ -203,6 +219,7 @@ def make_fixture(
         witness=witness,
         uptake_receipt=receipt,
         cell_input=cell_input,
+        downstream_output=downstream_output,
     )
     return {
         "plan": plan,
@@ -229,8 +246,12 @@ def seal(fx, **overrides):
 
 def test_positive_exact_chain_seals_without_minting_runtime_or_truth_credit():
     fx = make_fixture()
+    bundle = fx["reentry_bundles"][0]
     observed = seal(fx)
     payload = observed.as_dict()
+    assert bundle.downstream_output is not None
+    assert bundle.uptake_receipt.downstream_ref in bundle.downstream_output.output_refs
+    assert bundle.uptake_receipt.downstream_sha256 == bundle.downstream_output.sha256()
     assert observed.path_status == "CONTRACT_SCOPE_CAUSAL_PATH_SEALED"
     assert observed.causal_status == "CAUSAL_INFLUENCE_OBSERVED_AT_CONTRACT_SCOPE"
     assert observed.uptaken_cell_ids == ("G1",)
@@ -243,6 +264,32 @@ def test_positive_exact_chain_seals_without_minting_runtime_or_truth_credit():
     assert payload["jspace_runtime_credit"] == 0
     assert payload["training_credit"] == 0
     assert payload["whole_system_acceptance"] is False
+
+
+def test_pr325_positive_uptake_requires_concrete_typed_downstream_lineage():
+    fx = make_fixture()
+    bundle = fx["reentry_bundles"][0]
+    detached = replace(bundle, downstream_output=None)
+    with pytest.raises(GwtCausalPathError, match="concrete downstream CellOutput"):
+        seal(fx, reentry_bundles=(detached,))
+
+
+def test_downstream_output_must_close_to_exact_reentry_cell_input():
+    fx = make_fixture()
+    bundle = fx["reentry_bundles"][0]
+    forged_output = replace(bundle.downstream_output, input_sha256=E)
+    forged_bundle = replace(bundle, downstream_output=forged_output)
+    with pytest.raises(GwtCausalPathError, match="exact re-entry CellInput"):
+        seal(fx, reentry_bundles=(forged_bundle,))
+
+
+def test_downstream_reference_must_resolve_to_typed_cell_output():
+    fx = make_fixture()
+    bundle = fx["reentry_bundles"][0]
+    forged_output = replace(bundle.downstream_output, output_refs=("downstream:other",))
+    forged_bundle = replace(bundle, downstream_output=forged_output)
+    with pytest.raises(GwtCausalPathError, match="reference does not resolve"):
+        seal(fx, reentry_bundles=(forged_bundle,))
 
 
 def test_forged_broadcast_payload_lineage_fails_closed_before_positive_path():
@@ -290,9 +337,24 @@ def test_delivered_not_uptaken_path_remains_unknown_insufficient_uptake():
 
 
 def test_same_downstream_output_preserves_explicit_no_causal_influence():
-    fx = make_fixture(control_output=C)
-    observed = seal(fx)
-    assert fx["causal_result"].status == "NO_CAUSAL_INFLUENCE_OBSERVED"
+    fx = make_fixture()
+    control = CausalProbeArm.control(
+        arm_id="arm:control:wp510",
+        probe_id="probe:wp510",
+        nonbroadcast_input_sha256=D,
+        downstream_output_sha256=fx["intervention"].downstream_output_sha256,
+        provenance_refs=("prov:control",),
+    )
+    causal = evaluate_causal_influence(
+        result_id="causal:wp510",
+        broadcast=fx["broadcast"],
+        uptake_summary=fx["uptake_summary"],
+        intervention=fx["intervention"],
+        control=control,
+        provenance_refs=("prov:causal",),
+    )
+    observed = seal(fx, control=control, causal_result=causal)
+    assert causal.status == "NO_CAUSAL_INFLUENCE_OBSERVED"
     assert observed.path_status == "NO_CAUSAL_INFLUENCE_PATH_SEALED"
 
 

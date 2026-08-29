@@ -1,10 +1,13 @@
 """Fail-closed Stage-5 GWT causal-path integration seal.
 
-F2-WP-510 generation 1 repository-component scope only.
+F2-WP-510 generation 2 repository-component scope only.
 
 The seal does not create observations or causal evidence. It revalidates already
 constructed WP506 selection/broadcast lineage, WP507 uptake/causal-probe evidence,
-and WP508 re-entry/uptake bindings as one exact coherent component path.
+and WP508 re-entry/uptake bindings as one exact coherent component path. Positive
+UPTAKEN admission additionally requires a concrete GRID10 CellOutput whose plan/input
+lineage closes to the exact re-entry CellInput and whose ref/digest match the WP507/
+WP508 downstream evidence.
 """
 from __future__ import annotations
 
@@ -13,7 +16,12 @@ import hashlib
 import json
 from typing import Any, Iterable
 
-from frankenstein2.grid10_interface import CellInput, Grid10Plan
+from frankenstein2.grid10_interface import (
+    CellInput,
+    CellOutput,
+    Grid10InterfaceError,
+    Grid10Plan,
+)
 from frankenstein2.gwt_reentry_provenance import GwtReentryProvenanceWitness
 from frankenstein2.gwt_reentry_uptake_binding import (
     GwtReentryUptakeBinding,
@@ -96,6 +104,7 @@ class ReentryEvidenceBundle:
     witness: GwtReentryProvenanceWitness
     uptake_receipt: CellUptakeReceipt
     cell_input: CellInput
+    downstream_output: CellOutput | None = None
     known_lineage_refs: tuple[str, ...] = ()
 
     def __post_init__(self) -> None:
@@ -107,6 +116,8 @@ class ReentryEvidenceBundle:
             raise GwtCausalPathError("bundle uptake_receipt must be concrete CellUptakeReceipt")
         if type(self.cell_input) is not CellInput:
             raise GwtCausalPathError("bundle cell_input must be concrete CellInput")
+        if self.downstream_output is not None and type(self.downstream_output) is not CellOutput:
+            raise GwtCausalPathError("bundle downstream_output must be concrete CellOutput or None")
         if not isinstance(self.known_lineage_refs, tuple):
             raise GwtCausalPathError("known_lineage_refs must be an immutable tuple")
         refs = tuple(_text("known_lineage_ref", value) for value in self.known_lineage_refs)
@@ -348,14 +359,44 @@ def seal_gwt_causal_path(
         if binding.uptake_receipt_sha256 != bundle.uptake_receipt.sha256():
             raise GwtCausalPathError("binding uptake receipt digest mismatch")
         if binding.uptake_status == "UPTAKEN":
-            if binding.downstream_sha256 is None:
+            if binding.downstream_ref is None or binding.downstream_sha256 is None:
                 raise GwtCausalPathError(
-                    "UPTAKEN re-entry binding lacks downstream digest"
+                    "UPTAKEN re-entry binding lacks downstream evidence"
+                )
+            downstream_output = bundle.downstream_output
+            if type(downstream_output) is not CellOutput:
+                raise GwtCausalPathError(
+                    "UPTAKEN re-entry bundle lacks concrete downstream CellOutput"
+                )
+            try:
+                plan.validate_output(downstream_output, cell_input=bundle.cell_input)
+            except Grid10InterfaceError as exc:
+                raise GwtCausalPathError(
+                    "downstream CellOutput does not close to exact re-entry CellInput"
+                ) from exc
+            if bundle.uptake_receipt.downstream_ref not in downstream_output.output_refs:
+                raise GwtCausalPathError(
+                    "downstream reference does not resolve to typed CellOutput"
+                )
+            downstream_sha256 = downstream_output.sha256()
+            if bundle.uptake_receipt.downstream_sha256 != downstream_sha256:
+                raise GwtCausalPathError(
+                    "downstream digest does not match typed CellOutput"
+                )
+            if binding.downstream_ref != bundle.uptake_receipt.downstream_ref:
+                raise GwtCausalPathError(
+                    "binding downstream reference does not match uptake receipt"
+                )
+            if binding.downstream_sha256 != downstream_sha256:
+                raise GwtCausalPathError(
+                    "binding downstream digest does not match typed CellOutput"
                 )
             bound_uptaken.add(binding.recipient_cell_id)
-            bound_uptaken_downstream[
-                binding.recipient_cell_id
-            ] = binding.downstream_sha256
+            bound_uptaken_downstream[binding.recipient_cell_id] = downstream_sha256
+        elif bundle.downstream_output is not None:
+            raise GwtCausalPathError(
+                "non-UPTAKEN re-entry bundle must not carry downstream CellOutput"
+            )
         binding_ids.append(binding.binding_id)
         binding_sha256s.append(binding.sha256())
 
