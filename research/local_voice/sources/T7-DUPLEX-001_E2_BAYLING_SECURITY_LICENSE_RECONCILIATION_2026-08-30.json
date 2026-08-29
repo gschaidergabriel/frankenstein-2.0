@@ -17,7 +17,8 @@
     "bayling_code_revision": "41669ac04bbcbfaf5b1be3a2cc563e4b3752d041",
     "bayling_hf_model_revision_observed": "b314288d7fc545cdac3b2fe0c4caeb9084c5526b",
     "glm4_voice_tokenizer_hf_revision_observed": "a5f2404e63c84e92f5238908e1706316324ebafa",
-    "glm4_voice_decoder_hf_revision": "UNRESOLVED_FULL_40_HEX_IN_THIS_AUDIT"
+    "glm4_voice_decoder_hf_revision_observed": "464b9254a357f33cf2afee4dcc18343cbf31f99a",
+    "glm4_voice_decoder_weight_upload_revision": "9cc290e62f6390a789c722a61aba295ec24395a7"
   },
   "artifact_footprint_source_observed": {
     "bayling_main_checkpoint_tree": "approximately 19.1 GB",
@@ -25,6 +26,11 @@
     "glm4_voice_decoder_tree": "approximately 527 MB",
     "minimum_visible_download_tree_sum": "approximately 21.087 GB before Python/runtime dependencies and caches",
     "warning": "Download footprint is not VRAM/RAM runtime footprint and grants no target-hardware-fit credit."
+  },
+  "published_decoder_weight_hashes": {
+    "flow.pt_sha256": "450f52ba9cbea63757914e72b42ac5af21509a2767de0b18b4694546fd1d30ed",
+    "hift.pt_sha256": "91e679b6ca1eff71187ffb4f3ab0444935594cdcc20a9bd12afad111ef8d6012",
+    "status": "UPSTREAM_METADATA_ONLY_RECOMPUTE_AFTER_QUARANTINE_DOWNLOAD"
   },
   "security_findings": [
     {
@@ -41,7 +47,7 @@
     },
     {
       "severity": "MEDIUM_HIGH",
-      "finding": "Decoder config is interpreted through hyperpyyaml and upstream config uses object/application tags.",
+      "finding": "Decoder config is interpreted through hyperpyyaml and upstream config uses !apply/!new object-construction tags.",
       "consequence": "Config plus local runtime code form an executable construction surface; pin and inspect the exact decoder config before execution."
     },
     {
@@ -88,16 +94,16 @@
     "runtime_credit": 0,
     "classification": "RUNNER_TRANSPORT_OR_AVAILABILITY_PENDING; not a Trigger-7 model negative result"
   },
-  "decision": "Keep the modular German-first voice organ as production-leading hypothesis. Preserve BayLing-Duplex as a high-information native-duplex falsifier, but do not download/execute/promote it until the target hardware receipt arrives and exact model/decoder revisions plus custom-code/pickle/config surfaces are quarantined and audited.",
+  "decision": "Keep the modular German-first voice organ as production-leading hypothesis. Preserve BayLing-Duplex as a high-information native-duplex falsifier, but do not execute/promote it until the target hardware receipt arrives and exact model/decoder revisions plus custom-code/pickle/config surfaces are quarantined and audited.",
   "next_exact_actions": [
     "Observe run 33265258658 to terminal state and fetch its hardware receipt if execution occurs.",
-    "Resolve an immutable 40-hex Hugging Face revision for glm-4-voice-decoder before any downloader invocation.",
-    "If target whole-Frankenstein headroom is plausible, quarantine-download exact BayLing model/tokenizer/decoder artifacts without execution and hash every artifact.",
+    "If target whole-Frankenstein headroom is plausible, quarantine-download exact BayLing model/tokenizer/decoder artifacts without execution and recompute all published/manifest hashes.",
     "Audit exact HF custom Python against pinned BayLing code and isolate decoder pickle/config loading before any local run.",
     "Only then run a German-only smoke falsifier covering interruption, mid-sentence pause, overlap and backchannel; keep all production/runtime credits at zero until measured."
   ],
   "credits": {
     "source_security_audit": 1,
+    "immutable_artifact_pin_readiness": 1,
     "model_download": 0,
     "execution": 0,
     "german_e2e_benchmark": 0,
