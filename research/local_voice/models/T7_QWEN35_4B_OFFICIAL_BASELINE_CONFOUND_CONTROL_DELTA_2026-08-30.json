@@ -1,0 +1,88 @@
+{
+  "schema_version": 1,
+  "trigger": "7",
+  "research_id": "T7-LLM-003",
+  "objective": "E2_OFFICIAL_QWEN35_4B_BASELINE_PROVENANCE_PIN",
+  "date": "2026-08-30",
+  "status": "ADDITIVE_SOURCE_RESEARCH_DELTA_NO_RUNTIME_CREDIT",
+  "claim_path": "research/local_voice/claims/T7-LLM-003/E2_OFFICIAL_QWEN35_4B_BASELINE_PROVENANCE_PIN.json",
+  "predecessor": "research/local_voice/models/T7_QWEN35_4B_OFFICIAL_BASELINE_PIN_2026-08-30.json",
+  "observed_correction": {
+    "statement": "The existing baseline pin correctly binds the official Qwen source but also names a community GGUF as the baseline quant candidate. That still confounds model provenance with third-party conversion/quantization provenance if compared directly against an abliterated community GGUF.",
+    "classification": "SOURCE_RESEARCH_INFERENCE",
+    "scope": "benchmark attribution design only"
+  },
+  "official_source": {
+    "repo_id": "Qwen/Qwen3.5-4B",
+    "revision": "851bf6e806efd8d0a36b00ddf55e13ccb7b8cd0a",
+    "license": "Apache-2.0",
+    "format": "Transformers safetensors",
+    "architecture": "qwen3_5",
+    "current_commit_history_observed": "The upstream commit-history page exposed 851bf6e as the latest verified commit at research time.",
+    "primary_sources": [
+      "https://huggingface.co/Qwen/Qwen3.5-4B/commits/main",
+      "https://huggingface.co/Qwen/Qwen3.5-4B/blob/851bf6e806efd8d0a36b00ddf55e13ccb7b8cd0a/config.json"
+    ]
+  },
+  "recommended_baseline_chain": {
+    "decision": "OFFICIAL_PIN_TO_SELF_CONVERTED_GGUF_TO_SELF_QUANTIZED_Q4_K_M",
+    "sequence": [
+      "quarantine-download exact official safetensors revision",
+      "record exact downloaded file identities and SHA-256",
+      "pin one exact llama.cpp source/build revision",
+      "convert official source to GGUF with the pinned converter",
+      "load-test converted high-precision GGUF before quantization credit",
+      "quantize the same converted bytes to Q4_K_M",
+      "hash the quantized output",
+      "run identical German VoiceSessionCapsule benchmark",
+      "only then compare the pinned abliterated/community variant"
+    ],
+    "why": [
+      "separates model-weight intervention from uploader/converter/quantizer variation",
+      "makes an official-vs-abliterated causal comparison reproducible",
+      "permits a later community-GGUF convenience comparison without letting convenience define baseline truth"
+    ]
+  },
+  "llama_cpp_risk_register": [
+    {
+      "issue": "ggml-org/llama.cpp#23589",
+      "classification": "UPSTREAM_NEGATIVE_EVIDENCE_NOT_F2_FAILURE",
+      "finding": "A reported hybrid-model cache regression explicitly includes Qwen3.5-4B and can cause cached tokens to be recomputed on multi-turn requests.",
+      "required_falsifier": "Measure prompt tokens re-evaluated and TTFT across repeated/mutated multi-turn VoiceSessionCapsule prompts; one-turn tokens/s is insufficient."
+    },
+    {
+      "issue": "ggml-org/llama.cpp#26916",
+      "classification": "UPSTREAM_NEGATIVE_EVIDENCE_NOT_F2_FAILURE",
+      "finding": "A recent qwen3_5-derived conversion report demonstrates that successful conversion and quantization do not by themselves prove a loadable artifact; tensor/block expectations can still fail at load.",
+      "required_falsifier": "Require post-conversion and post-quantization load tests plus GGUF metadata/block-structure receipt before benchmark credit."
+    },
+    {
+      "issue": "ggml-org/llama.cpp#20003",
+      "classification": "UPSTREAM_PERFORMANCE_RISK_NOT_F2_FAILURE",
+      "finding": "Hybrid Qwen3.5 prompt-cache behavior has been reported to force full prompt reprocessing in long changing tool-oriented conversations.",
+      "required_falsifier": "Include long-context tool-schema/history mutation cases because Frankenstein voice sessions are multi-turn and stateful."
+    }
+  ],
+  "counterhypothesis": {
+    "statement": "A reputable community Q4_K_M quant is equivalent enough that self-conversion adds work without changing the measured frontier.",
+    "test": "After the self-derived official Q4_K_M passes load and benchmark gates, compare one pinned community Q4 under the exact same llama.cpp build, prompt corpus and hardware receipt.",
+    "decision_rule": "If quality/latency/cache behavior and metadata are equivalent within declared tolerances, community quantization may be admitted as a deployment shortcut; it must not retroactively replace provenance-controlled baseline evidence."
+  },
+  "runtime_gate": {
+    "target": "clay-direct-dev",
+    "first_step": "run research/local_voice/tools/t7_hardware_inventory.py and persist whole-Frankenstein RAM/VRAM headroom",
+    "second_step": "download and verify the official source pin before any abliterated model",
+    "bridge_state": "CURRENTLY_NO_NEW_SUCCESS_RECEIPT_OBSERVED_IN_THIS_TRIGGER7_RUN",
+    "known_negative_transport_evidence": "Dr.-Unterweger workflow run 33247601069 previously failed before any job was assigned; this is transport/runner negative evidence, not a model or F2 runtime failure."
+  },
+  "credit": {
+    "source_research_delta": true,
+    "target_download_observed": false,
+    "target_conversion_observed": false,
+    "target_model_load_observed": false,
+    "target_benchmark_observed": false,
+    "runtime_credit": 0,
+    "trigger4_acceptance_credit": 0,
+    "whole_system_acceptance": false
+  }
+}
