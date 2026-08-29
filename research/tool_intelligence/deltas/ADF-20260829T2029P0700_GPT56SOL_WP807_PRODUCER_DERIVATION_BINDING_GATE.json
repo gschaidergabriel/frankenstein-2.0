@@ -1,0 +1,79 @@
+{
+  "schema": "FRANKENSTEIN2_ARCHITECTURE_DELTA_FUSION/v1",
+  "fusion_id": "ADF-20260829T2029P0700-GPT56SOL-WP807-PRODUCER-DERIVATION-BINDING-GATE",
+  "created_at": "2026-08-29T20:29:00+07:00",
+  "worker": "GPT-5.6 Sol",
+  "trigger": "6",
+  "research_id": "R6-20260829-WP807-SCORE-SUCCESS-DERIVATION-GPT56SOL-01",
+  "claim_ref": "research/tool_intelligence/claims/R6-20260829-WP807-SCORE-SUCCESS-DERIVATION-GPT56SOL-01/E2_ARCHITECTURE_MAPPED_SCORE_SUCCESS_DERIVATION.json",
+  "evidence_stage": "E2_ARCHITECTURE_MAPPED",
+  "observed_source_blobs": {
+    "wp802_information_seeking": "55f08d4f8bd4d691e96ede1d9439fa9683ca6980",
+    "wp803_world_model_prediction": "5fd9e0b0cf1f40ca9fe1c6709dd47749af342d8d",
+    "wp804_goal_inference": "6afe19c24f5abb60196cdeab334827204d2a73ae",
+    "wp805_transfer_recovery": "5a41760f21eeb6efdb6faf12f2e33b2dfca9d7b3",
+    "wp807_agentic_core": "6ea004126f9d39e428141703ea49aa3090b9994e",
+    "wp807_tests": "11f74cd42c9efcf60841170122b76783cbe3e590"
+  },
+  "source_findings": {
+    "wp802": "Produces evaluator-origin PolicyEpisodeResult values with terminal, step_count, cumulative_score, probe_count, action_ids and exact fixture/policy/run/episode digests; MatchedInformationSeekingResult derives score_delta directly from intervention.cumulative_score - baseline.cumulative_score.",
+    "wp803": "Produces evaluator-origin PredictionEvaluation values whose outcome is CORRECT/INCORRECT/ABSTAINED and whose benchmark_score_delta is constructor-enforced to +1/-1/0 from that outcome.",
+    "wp804": "Produces evaluator-origin GoalInferenceScore values with an evaluator-derived boolean correct after exact inference/label/run/fixture/state/observation/candidate bindings.",
+    "wp805": "Produces evaluator-origin EvaluatorRunMeasurement values with final_evaluator_score, terminal, actions_executed, replayed_steps and repeated_work_steps; EfficiencySummary derives deltas from an exact matched cold-restart/checkpoint-resume comparison.",
+    "wp807": "CapabilityEvidence accepts baseline_score_ppm, intervention_score_ppm, sample_count, success_count and action_count as caller-supplied scalar fields plus generic source receipt/reconciliation hashes. evaluate_agentic_core does not consume the exact WP802-WP805 result objects or result digests and does not establish how their heterogeneous native metrics become the generic PPM/success fields.",
+    "wp807_test_path": "The canonical unit-test helper constructs generic CapabilityEvidence directly from arbitrary integer baseline/intervention/samples/successes/actions values; it is not an adapter from WP802-WP805 result objects."
+  },
+  "counterhypothesis_resolution": {
+    "counterhypothesis": "Upstream WP802-WP805 producer contracts make a high intervention_score_ppm mathematically impossible when success_count is zero, so WP807's missing success gate is redundant.",
+    "status": "NOT_ESTABLISHED_AND_NOT_BOUND_AT_WP807_BOUNDARY",
+    "reason": "The upstream modules do contain stronger native evaluator-derived measurements, but WP807 does not consume those typed results or bind a canonical conversion/derivation identity. Therefore no source-level proof currently connects WP807's free-form PPM/success scalars to the upstream result semantics."
+  },
+  "architecture_delta": {
+    "decision": "ADD_PRODUCER_SPECIFIC_DERIVATION_ADAPTERS_OR_BOUND_DERIVATION_RECEIPTS",
+    "preferred_minimal_form": "Do not add a generic success_count>0 heuristic as the primary repair. Define one deterministic adapter/derivation contract per capability family that consumes an exact accepted WP802/WP803/WP804/WP805 result or canonical result digest + producer/evaluator identity and derives the generic comparison fields internally.",
+    "required_adapter_output_bindings": [
+      "capability",
+      "source_workpackage_id + source_generation + terminal acceptance/reconciliation identity",
+      "native_result_schema + native_result_sha256",
+      "producer_source_blob/evaluator_policy identity",
+      "heldout fixture/family identity available from the native result lineage",
+      "baseline/intervention identity",
+      "derived score numerator/denominator or explicit deterministic transform to ppm",
+      "derived sample_count",
+      "derived success/completion count where semantically defined",
+      "derived external action count where semantically defined",
+      "derivation_schema + derivation_sha256"
+    ],
+    "fail_closed_law": "Generic CapabilityEvidence whose acceptance-relevant scalar cannot be recomputed from a bound native producer result/derivation receipt is NOT_EVALUABLE, not supported.",
+    "heterogeneous_metric_law": "Do not pretend WP802 cumulative_score, WP803 correct/incorrect prediction score, WP804 goal correctness and WP805 recovery/terminal/efficiency metrics are naturally one common scalar. Each adapter must declare the exact normalization semantics; unsupported cross-capability scalar comparison stays unavailable.",
+    "completion_law": "Terminal/completion evidence should remain typed and capability-specific. A generic success_count may be retained for diagnostics only after its derivation is exact; integrated end-to-end completion remains the separate trajectory gate from ADF-20260829T2021P0700-GPT56SOL-WP807-INTEGRATED-AGENTIC-TRAJECTORY-GATE.",
+    "migration_rule": "Preserve current CapabilityEvidence as a compatibility/data-transfer shape if needed, but prevent direct constructor-origin arbitrary metrics from satisfying a supported verdict unless a trusted adapter/derivation receipt is bound."
+  },
+  "cheap_fail_closed_tests_for_trigger4": [
+    "Directly constructed high-score/zero-success CapabilityEvidence without native_result_sha256/derivation_sha256 => NOT_EVALUABLE.",
+    "WP803 adapter: alter submitted score while keeping PredictionEvaluation outcome/digest fixed => reject derivation mismatch.",
+    "WP804 adapter: claim success where GoalInferenceScore.correct=false => reject.",
+    "WP805 adapter: claim terminal success where bound EvaluatorRunMeasurement.terminal=false => reject.",
+    "WP802 adapter: claim a score delta inconsistent with bound MatchedInformationSeekingResult.score_delta => reject.",
+    "Same native result digest with a different derivation schema/version => fail closed unless explicitly migrated."
+  ],
+  "nonduplicate_boundary": {
+    "this_delta": "producer-result-to-WP807 metric derivation/provenance binding",
+    "integrated_trajectory_delta": "same-agent/same-episode end-to-end composition and completion",
+    "parallel_internal_compute_delta": "internal model/tool/token efficiency",
+    "parallel_crossbench_delta": "holdout-family/cross-benchmark generalization"
+  },
+  "handoff": {
+    "to": "TRIGGERWORD_4_ACTIVE_F2_WP_807_OWNER",
+    "priority": "HIGH",
+    "next_exact_action": "Before widening WP807 acceptance, implement the smallest typed derivation boundary that makes supported evidence recomputable from exact WP802-WP805 producer results. Add the zero-success/high-score negative control and per-producer tamper tests. Keep E4/E5/E6 credit with Trigger 4."
+  },
+  "credits": {
+    "trigger6_research": "E2_ARCHITECTURE_MAPPED",
+    "e4_ablation": 0,
+    "build_candidate": 0,
+    "runtime": 0,
+    "physical_grid10": 0,
+    "whole_system": 0
+  }
+}
