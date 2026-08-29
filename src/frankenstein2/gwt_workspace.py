@@ -649,6 +649,10 @@ class WorkspaceSelection:
 
 
 def _assert_selection_build_lineage(selection: WorkspaceSelection) -> None:
+    if not isinstance(selection.selected, tuple) or not all(
+        type(item) is SelectedCandidate for item in selection.selected
+    ):
+        raise GwtWorkspaceError("selection selected candidates must be concrete SelectedCandidate")
     resolved_hyperposition = _resolve_hyperposition_binding(
         frame_id=selection.frame_id,
         frame_generation=selection.frame_generation,
