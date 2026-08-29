@@ -5,11 +5,14 @@ import unittest
 
 from frankenstein2.rumination_control import (
     CONTINUE,
+    EXIT_ACT,
     EXIT_ASK,
     EXIT_DEFER_HOLD,
     EXIT_OBSERVE,
     EXIT_WAIT,
+    RUMINATION_DECISION_SCHEMA,
     RuminationControlError,
+    RuminationExitDecision,
     RuminationExitPolicy,
     RuminationSnapshot,
     evaluate_rumination_exit,
@@ -79,6 +82,7 @@ class RuminationControlTests(unittest.TestCase):
         self.assertEqual(decision.as_dict()["effect_authority"], "NONE")
         self.assertFalse(decision.as_dict()["wake_scheduled"])
         self.assertEqual(decision.as_dict()["runtime_credit"], 0)
+        self.assertNotIn("_evaluator_origin", decision.as_dict())
 
     def test_explicit_hold_forces_defer_hold_and_never_completion(self) -> None:
         decision = decide(snapshot(explicit_hold=True, wake=True), wake=True)
@@ -190,6 +194,45 @@ class RuminationControlTests(unittest.TestCase):
         second = decide(value)
         self.assertEqual(first.sha256(), second.sha256())
         self.assertEqual(first.snapshot_sha256, value.sha256())
+
+    def test_direct_decision_constructor_cannot_bypass_exit_evaluator(self) -> None:
+        value = snapshot()
+        current_policy = RuminationExitPolicy.create(
+            policy_id="policy-review",
+            generation=3,
+            max_iterations=5,
+            max_unchanged_iterations=3,
+            allowed_exits=(EXIT_ACT, EXIT_ASK, EXIT_DEFER_HOLD, EXIT_OBSERVE, EXIT_WAIT),
+            provenance_refs=("review-policy",),
+        )
+        evaluated = evaluate_rumination_exit(
+            decision_id="evaluated-decision",
+            snapshot=value,
+            policy=current_policy,
+            expected_cycle_id="cycle-1",
+            expected_cycle_generation=3,
+            expected_cycle_sha256=H64,
+            provenance_refs=("review-evaluator",),
+        )
+        self.assertEqual(evaluated.transition, CONTINUE)
+
+        with self.assertRaisesRegex(
+            RuminationControlError,
+            "must be created by evaluate_rumination_exit",
+        ):
+            RuminationExitDecision(
+                schema=RUMINATION_DECISION_SCHEMA,
+                decision_id="forged-act-decision",
+                snapshot_sha256=value.sha256(),
+                policy_id=current_policy.policy_id,
+                policy_generation=current_policy.generation,
+                policy_sha256=current_policy.sha256(),
+                transition=EXIT_ACT,
+                reasons=("CALLER_FORGED_TRANSITION",),
+                can_continue=False,
+                unresolved_preserved=False,
+                provenance_refs=("caller-supplied",),
+            )
 
     def test_decision_object_rejects_forged_continuation_flag(self) -> None:
         decision = decide(snapshot())
