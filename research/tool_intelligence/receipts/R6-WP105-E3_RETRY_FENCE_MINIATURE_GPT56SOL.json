@@ -1,0 +1,90 @@
+{
+  "claim": {
+    "commit": "48ee1d8e365c305f39323f894427caaca6950b4d",
+    "path": "research/tool_intelligence/claims/R6-WP105-EFFECT-IDEMPOTENCY-SCOUT-001/E3_CLAIM_REPRODUCED_FAIL_CLOSED_RETRY_FENCE.json"
+  },
+  "counterhypothesis": "The identity separation is insufficient even in the minimal persistence model: after DB reopen a fresh attempt can dispatch again, payload substitution can pass, or semantic equality is mistakenly deduplicated across distinct logical operation ids.",
+  "created_at": "2026-08-29T15:02:38+07:00",
+  "credits": {
+    "build_candidate": 0,
+    "entityos_canonical_semantics": 0,
+    "f2_accepted": 0,
+    "f2_e4_ablation": 0,
+    "physical_grid10": 0,
+    "real_effect_runtime": 0,
+    "training": 0,
+    "trigger6_e3_research_claim_reproduced": 1,
+    "whole_system_runtime": 0
+  },
+  "e2_input": "research/tool_intelligence/deltas/R6-WP105-EFFECT-IDEMPOTENCY-SCOUT-001_E2_ARCHITECTURE_MAPPED_RETRY_IDENTITY_ABI_20260829T1455P0700_GPT56SOL.json",
+  "evidence_level": "E3_CLAIM_REPRODUCED",
+  "experiment": {
+    "environment": {
+      "platform": "Linux-6.18.35-x86_64-with-glibc2.41",
+      "python": "3.13.5",
+      "python_full": "3.13.5 (main, Jul 15 2026, 20:25:40) [GCC 14.2.0]",
+      "sqlite_version": "3.46.1"
+    },
+    "network_calls": 0,
+    "path": "research/tool_intelligence/experiments/R6-WP105-E3_RETRY_FENCE_MINIATURE_GPT56SOL.py",
+    "provider_calls": 0,
+    "real_external_effect": false,
+    "restart_boundary": "close SQLite connection after first unresolved attempt, reopen same DB before second attempt",
+    "script_commit": "3c0005756739f8812320af91646f304c6493ddfd",
+    "script_sha256": "8a697fde2ac9fb53e684ca4a246585ebdc69c0dd66834e336c8b5611c6aa7367",
+    "test_store": "temporary SQLite file; deterministic zero-real-effect child_mutations proxy",
+    "vps_execution": false
+  },
+  "hypothesis": "A durable logical operation_retry_id plus a retry-stable operation_payload_sha256, kept distinct from fresh attempt identity, is sufficient in a deterministic persistence miniature to deny a second dispatch after restart while an original attempt remains unresolved, reject same-operation payload substitution before dispatch, and still permit an intentional distinct operation with identical semantics.",
+  "interpretation": {
+    "counterhypothesis_at_miniature_scope": "NOT_OBSERVED",
+    "hypothesis_at_miniature_scope": "SUPPORTED",
+    "important_boundary": "This proves only the proposed identity/state pattern in a standalone deterministic SQLite research miniature. It does not prove current F2/EntityOS has the fence, does not execute current EffectGate/EffectJournal, and does not promote canonical semantics.",
+    "new_information": "The proposed three-way separation is internally sufficient for the core restart duplicate-suppression cases without conflating semantic equality with operation identity. Therefore the next useful discriminator is an E4-style ablation/adaptation against exact current F2/EntityOS source, not more generic donor discovery."
+  },
+  "observed": {
+    "attempt_rows": [
+      ["attempt-A1", "op-A", "DISPATCH_ALLOWED"],
+      ["attempt-A2", "op-A", "DENY_DUPLICATE_UNRESOLVED"],
+      ["attempt-A3", "op-A", "REJECT_PAYLOAD_MISMATCH"],
+      ["attempt-B1", "op-B", "DISPATCH_ALLOWED"]
+    ],
+    "checks": {
+      "first_attempt_dispatches_once": true,
+      "intentional_identical_semantics_distinct_operation_is_admissible": true,
+      "same_operation_after_reopen_dispatches_zero_children": true,
+      "same_operation_changed_payload_rejects_pre_dispatch": true
+    },
+    "counts": {
+      "after_distinct_operation": 2,
+      "after_first": 1,
+      "after_payload_mismatch": 1,
+      "after_restart_duplicate": 1
+    },
+    "operation_rows": [
+      ["op-A", "e749cfad8e83f8ad5d88d2f0ae83a6514d696b6f373103f657781ff7f1600820", "UNRESOLVED", "attempt-A1"],
+      ["op-B", "e749cfad8e83f8ad5d88d2f0ae83a6514d696b6f373103f657781ff7f1600820", "UNRESOLVED", "attempt-B1"]
+    ],
+    "pass": true,
+    "results": {
+      "distinct_operation": {"child_mutation": 1, "disposition": "DISPATCH_ALLOWED", "payload_sha256": "e749cfad8e83f8ad5d88d2f0ae83a6514d696b6f373103f657781ff7f1600820"},
+      "first": {"child_mutation": 1, "disposition": "DISPATCH_ALLOWED", "payload_sha256": "e749cfad8e83f8ad5d88d2f0ae83a6514d696b6f373103f657781ff7f1600820"},
+      "payload_mismatch": {"child_mutation": 0, "disposition": "REJECT_PAYLOAD_MISMATCH", "payload_sha256": "211aa0feccae68a1ea039a125c282849ebf11f140be0094a36d024fe044b284c"},
+      "restart_duplicate": {"child_mutation": 0, "disposition": "DENY_DUPLICATE_UNRESOLVED", "payload_sha256": "e749cfad8e83f8ad5d88d2f0ae83a6514d696b6f373103f657781ff7f1600820"}
+    },
+    "schema": "R6_WP105_E3_RETRY_FENCE_MINIATURE_RESULT/v1"
+  },
+  "required_next_cases": [
+    "bind the same operation_retry_id/payload discipline to the exact current F2->EntityOS call path without adding a second effect journal",
+    "reproduce episode_id=null direct-call restart/reopen behavior on exact source: second logical attempt executes zero child effects while unresolved",
+    "preserve post-dispatch UNKNOWN as nonreplayable until authority-owned verification or proven idempotency",
+    "prove pre-dispatch/integrity failure remains FAILED and does not contaminate UNKNOWN semantics",
+    "test concurrent duplicate attempts, not only sequential restart attempts"
+  ],
+  "research_id": "R6-WP105-EFFECT-IDEMPOTENCY-SCOUT-001",
+  "result_sha256": "2c0c0291b82ef7e367310ace56661b39005cfeaec6ca3038daa2c4ed19920de5",
+  "schema": "FRANKENSTEIN2_TRIGGER6_E3_CLAIM_REPRODUCED/v1",
+  "slot": "EXPERIMENTAL_FALSIFIER",
+  "status": "PASS_AT_RESEARCH_MINIATURE_SCOPE",
+  "trigger": "6"
+}
