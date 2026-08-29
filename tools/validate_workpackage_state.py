@@ -20,6 +20,7 @@ RECON_SCHEMA = "FRANKENSTEIN2_WORKPACKAGE_RECONCILIATION/v1"
 WP = re.compile(r"^F2-WP-[0-9]+$")
 SHA40 = re.compile(r"^[0-9a-f]{40}$")
 CONTRACT_REL = Path("workpackages/WORKPACKAGE_STATE_CONSISTENCY_CONTRACT_V1.json")
+LEGACY_WHOLE_SYSTEM_NON_CREDIT = "NO_WHOLE_FRANKENSTEIN2_ACCEPTANCE"
 
 
 class ValidationError(ValueError):
@@ -149,12 +150,26 @@ def _bind_reconciliation(pointer: dict[str, Any], reconciliation: dict[str, Any]
     _require(_reconciliation_terminal_state(reconciliation) == pointer.get("state"),
              f"{wp_id}: reconciliation terminal_state mismatch")
 
+    # Current reconciliations use an explicit boolean guard; another admitted generation
+    # used whole_system_credit: 0. A small set of older terminal records predates both
+    # fields but carries an exact machine-readable non_credit token. Admit only that exact
+    # token as a legacy zero-equivalent; descriptive prose or a generic non_credit list is
+    # insufficient. This preserves fail-closed whole-system semantics without rewriting
+    # immutable historical reconciliation evidence.
     if "whole_system_acceptance" in reconciliation:
         _require(reconciliation.get("whole_system_acceptance") is False,
                  f"{wp_id}: component reconciliation must not assert whole-system acceptance")
-    else:
+    elif "whole_system_credit" in reconciliation:
         _require(reconciliation.get("whole_system_credit") == 0,
                  f"{wp_id}: component reconciliation requires explicit zero whole-system credit")
+    else:
+        non_credit = reconciliation.get("non_credit")
+        _require(
+            isinstance(non_credit, list)
+            and all(isinstance(item, str) for item in non_credit)
+            and LEGACY_WHOLE_SYSTEM_NON_CREDIT in non_credit,
+            f"{wp_id}: component reconciliation requires explicit zero whole-system credit",
+        )
 
 
 def validate_pointer(
