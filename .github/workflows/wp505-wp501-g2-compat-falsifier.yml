@@ -1,0 +1,27 @@
+name: F2 WP505 Current-WP501-G2 Compatibility Falsifier
+
+on:
+  push:
+    branches:
+      - 'chatgpt/wp505-wp501-g2-compat-falsifier-20260829'
+    paths:
+      - '.github/workflows/wp505-wp501-g2-compat-falsifier.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  falsifier:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Compile current WP501 and WP505 surfaces
+        run: python -m py_compile src/frankenstein2/cognitive_envelope.py src/frankenstein2/adaptive_compute.py tests/test_adaptive_compute.py
+      - name: Execute current-main WP505 suite against current WP501 G2
+        env:
+          PYTHONPATH: src
+        run: python tests/test_adaptive_compute.py -v
