@@ -1,0 +1,110 @@
+{
+  "schema": "FRANKENSTEIN2_TRIGGER6_EVIDENCE_RECEIPT/v1",
+  "trigger": "6",
+  "research_id": "R6-SEED-008",
+  "claim_target": "E3_CLAIM_REPRODUCED_OTLP_INGRESS_CONTRACT",
+  "slot": "EXPERIMENTAL_FALSIFIER",
+  "status": "E3_COMPONENT_FIXTURE_PASS_WITH_PROTOBUF_COMPATIBILITY_GAP_NOT_BUILD_CANDIDATE",
+  "created_at_local": "2026-08-29T14:55:00+07:00",
+  "worker": "GPT-5.6-Sol",
+  "claim": {
+    "path": "research/tool_intelligence/claims/R6-SEED-008/E3_CLAIM_REPRODUCED_OTLP_INGRESS_CONTRACT.json",
+    "claim_commit": "f6f70001f9e0df12b9f71110cce501164e81550e",
+    "create_only_verified_by_successful_create": true
+  },
+  "architecture_fusion": {
+    "source": "research_entity/frankenstein2_tool_intelligence/deltas/ADF-20260829T1455P0700-GPT56SOL.json",
+    "research_entity_commit": "8f56b151c918034beead3a1085aeecf5d119f6b7",
+    "selected_objective_matches_fusion": true,
+    "authority_note": "9.13AQ is NON_AUTHORITY; this receipt does not alter admitted effect authority or FREE_ONLY execution law."
+  },
+  "external_source_pins": [
+    {
+      "repo": "tech4242/agenttop",
+      "commit": "5e3929fe8d691b4a1e7b5975adb74091611e5e7b",
+      "otlp_router_blob": "2be5e05ad049cda5432cf8534326888c2c0a17bd",
+      "otlp_parser_blob": "f7a3b9dd34661b1ac841143d522872e352ad1d3e",
+      "finding": "Agenttop binds /v1/metrics, /v1/logs and /v1/traces on 127.0.0.1:4318; metrics/logs are parsed, while traces are currently accepted without parsing/storage. Its parser supports protobuf first and JSON fallback and stores all log attributes."
+    },
+    {
+      "source": "OpenTelemetry OTLP Specification 1.11.0",
+      "finding": "OTLP/HTTP permits both binary Protobuf and JSON-encoded Protobuf and defines /v1/traces, /v1/metrics and /v1/logs."
+    },
+    {
+      "source": "OpenTelemetry GenAI semantic-convention registry/current semantic conventions",
+      "finding": "GenAI semantic attributes are an evolving compatibility surface and content-bearing fields such as system instructions/tool arguments can be sensitive."
+    }
+  ],
+  "experiment": {
+    "source_path": "research/tool_intelligence/experiments/R6-SEED-008/E3_OTLP_INGRESS_CONTRACT_FALSIFIER.py",
+    "source_commit": "806832f30a8847a178b0c5ed873a25689ff77bb5",
+    "source_git_blob": "29947ee39d7faac201d5c93796f49b74197e7d6c",
+    "executed_local_source_sha256": "f2680f2b4814c809bee27c3659b37414acfe9c3c5ed1be99ea0ec6b275fbc365",
+    "result_path": "research/tool_intelligence/experiments/R6-SEED-008/E3_OTLP_INGRESS_CONTRACT_RESULT.json",
+    "result_commit": "fcf6073002f58ae86a11d0bd2e857cf663a4a809",
+    "result_git_blob": "0fe160e28b022642e858364377c11ff9c35f690d",
+    "executed_local_result_sha256": "1e926e58ca725d269366fe43dfd64b3de56418ed98060591d01ef77765040863",
+    "environment": {
+      "surface": "LOCAL_DETERMINISTIC_RESEARCH_FIXTURE_ONLY",
+      "python": "3.13.5",
+      "kernel": "Linux 6.18.35 x86_64",
+      "provider_calls": 0,
+      "vps_execution": 0,
+      "real_external_effects": 0,
+      "network_receiver_execution": 0
+    }
+  },
+  "results": {
+    "tests_passed": 10,
+    "tests_total": 10,
+    "validated": [
+      "Missing exact F2 causal_id/generation/effect_id remains UNKNOWN and is not synthesized from session/tool/trace fields.",
+      "A complete explicit F2 identity tuple is preserved exactly.",
+      "Partial F2 identity fails closed.",
+      "Wrong OTLP signal roots and malformed attributes fail closed.",
+      "Sensitive GenAI tool arguments/system instructions are removed from normalized attributes and only redacted-key names remain.",
+      "Identical input maps to the same deterministic ingress_event_sha256; this digest is explicitly not a causal_id.",
+      "JSON fixtures for logs, metrics and traces are normalized; traces are not silently discarded."
+    ],
+    "falsified_or_open": [
+      "The stdlib-only JSON fixture is not a complete OTLP/HTTP receiver because binary Protobuf is valid OTLP and is intentionally rejected by this fixture.",
+      "No network receiver, protobuf decoder, storage path, concurrency path or agenttop-vs-F2 A/B was executed, so receiver/storage/production overhead is unmeasured.",
+      "No actual GWT uptake, WP507 causal influence, child-agent runtime or effect truth was measured.",
+      "Semantic-convention version migration remains an explicit compatibility risk."
+    ],
+    "microbenchmark": {
+      "iterations": 20000,
+      "fixture": "one small JSON log record; in-process normalization only",
+      "median_us": 11.377,
+      "p95_us": 11.808,
+      "p99_us": 22.184,
+      "max_us": 714.947,
+      "ru_maxrss_delta_kib": 640,
+      "scope_warning": "Local parser microbenchmark only; not an F2 runtime, OTLP receiver, network, storage, agenttop comparative or whole-system benchmark."
+    }
+  },
+  "hypothesis_update": {
+    "supported": "A thin F2-native normalization/fence layer can preserve explicit upstream provenance while refusing synthetic F2 causal closure and minimizing sensitive content at very small in-process JSON-fixture cost.",
+    "counterhypothesis_supported": "A zero-dependency JSON-only implementation is insufficient for standards-complete OTLP/HTTP ingestion; full compatibility needs a pinned Protobuf path or a deliberate JSON-only transport contract that must not be mislabeled as general OTLP.",
+    "preferred_direction": "DISTILL_IDENTITY_AND_REDACTION_FENCES; DO_NOT_IMPORT_AGENTTOP_WHOLE; DO_NOT_PROMOTE_JSON_FIXTURE_TO_BUILD_CANDIDATE_YET"
+  },
+  "evidence_ladder": {
+    "E0_seed": true,
+    "E1_source_read": true,
+    "E2_architecture_mapped": true,
+    "E3_component_fixture": true,
+    "E4_f2_ablation": false,
+    "E5_build_candidate": false,
+    "E6_f2_accepted": false
+  },
+  "credit_boundary": {
+    "new_component_research_evidence": 1,
+    "f2_runtime_credit": 0,
+    "wp507_actual_uptake_credit": 0,
+    "whole_f2_runtime_credit": 0,
+    "entityos_hcu_runtime_credit": 0,
+    "physical_grid10_credit": 0,
+    "training_credit": 0
+  },
+  "next_exact_gate": "A successor Trigger-6 objective should test a pinned spec-compatible dual-codec (protobuf plus JSON) adapter on secret-free fixtures and compare it against the pinned agenttop parser for parse fidelity, malformed-payload behavior, duplicate semantics, CPU/RSS/latency and dependency weight. Only after that should Trigger 6 consider E5 handoff; Trigger 4 remains the only lane that can build/test/measure F2 acceptance."
+}
