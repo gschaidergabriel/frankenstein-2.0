@@ -1,0 +1,39 @@
+name: F2 WP1200 Target Completion Epistemics CI
+
+on:
+  push:
+    branches:
+      - main
+      - chatgpt/trigger4-wp1200-target-completion-epistemics-g1
+    paths:
+      - 'src/frankenstein2/target_completion_epistemics.py'
+      - 'tests/test_target_completion_epistemics.py'
+      - '.github/workflows/wp1200-target-completion-epistemics-ci.yml'
+  pull_request:
+    paths:
+      - 'src/frankenstein2/target_completion_epistemics.py'
+      - 'tests/test_target_completion_epistemics.py'
+      - '.github/workflows/wp1200-target-completion-epistemics-ci.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  falsification:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Compile
+        run: >-
+          python -m py_compile
+          src/frankenstein2/target_completion_epistemics.py
+          tests/test_target_completion_epistemics.py
+      - name: Target completion falsification suite
+        env:
+          PYTHONPATH: src
+        run: python tests/test_target_completion_epistemics.py -v
