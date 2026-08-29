@@ -1,0 +1,38 @@
+name: Review WP403 G3 exact-type closure
+
+on:
+  pull_request:
+    branches:
+      - 'trigger4/wp403-g3-exact-concrete-type-repair-20260829'
+    paths:
+      - 'src/frankenstein2/physics_projection.py'
+      - 'src/frankenstein2/sparse_world_basis.py'
+      - 'tests/test_physics_projection.py'
+      - 'tests/review/test_wp403_g3_exact_type_closure.py'
+      - '.github/workflows/review-wp403-g3-exact-type-closure.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  closure:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: Compile exact G3 source and review tests
+        run: |
+          python -m py_compile \
+            src/frankenstein2/sparse_world_basis.py \
+            src/frankenstein2/physics_projection.py \
+            tests/test_physics_projection.py \
+            tests/review/test_wp403_g3_exact_type_closure.py
+      - name: Existing WP403 regression suite
+        env:
+          PYTHONPATH: src
+        run: python tests/test_physics_projection.py -v
+      - name: Known subtype attacks must fail closed on G3
+        env:
+          PYTHONPATH: src
+        run: python tests/review/test_wp403_g3_exact_type_closure.py -v
