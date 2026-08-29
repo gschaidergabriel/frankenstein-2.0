@@ -1,0 +1,114 @@
+{
+  "schema": "FRANKENSTEIN2_TRIGGER6_ARCHITECTURE_DELTA/v1",
+  "research_id": "R6-20260829-WP804-GOAL-INFERENCE-GPT56SOL-01",
+  "evidence_stage": "E2_ARCHITECTURE_MAPPED",
+  "created_at": "2026-08-29T20:10:54+07:00",
+  "worker": "GPT-5.6-Sol-TRIGGER6",
+  "authority_epoch": "8.78",
+  "architecture_delta_id": "WP804_PUBLIC_BEHAVIOR_HISTORY_AND_CONSUMER_REVALIDATION/v1",
+  "snapshot": {
+    "e1_commit": "7f028db0c82ac729f0c11ea018dc0bae8fdb3347",
+    "e2_claim_commit": "06da280de1ea54c91c88ef3bfcbbfde37b5017d8",
+    "wp804_active_claim_commit": "d6cef32b1c5fa158bf415517eb37424a17dfe0d9",
+    "wp804_branch": "chatgpt/wp804-goal-inference-20260829",
+    "wp804_branch_observed_head": "ec3ece5840dcbde56165cb0b111a450c721c56e2",
+    "wp804_source_blob_sha": "32de8f83d5e3f7f78a61f0c4051598221c378b8c",
+    "wp804_test_blob_sha": "33b10ffa96351d6e2acca904124880f07354af59",
+    "wp800_main_source_blob_sha": "18d3a12c65d00024c190e561450ca8184518d1c9",
+    "parallel_identifiability_delta_commit": "6ffd28a295004e14367e69fa20d00ded7b599482"
+  },
+  "coordination": {
+    "consumed_parallel_delta": "WP804_IDENTIFIABILITY_GATED_SCORING/v1",
+    "not_duplicated": [
+      "non-identifying versus discriminating matched pairs",
+      "hidden-label permutation anti-leak",
+      "evaluator-private identifiability metadata fence",
+      "planner/rationality assumption digest fence"
+    ],
+    "this_delta_only_adds": [
+      "explicit public behavior/familiarization history boundary",
+      "family-level holdout and history/test provenance binding",
+      "baseline/lesion structure that distinguishes history-based goal inference from single-frame signal matching",
+      "consumer-side current-content revalidation against post-construction mutation"
+    ]
+  },
+  "external_evidence": [
+    {
+      "source": "Baker, Saxe & Tenenbaum 2009, DOI 10.1016/j.cognition.2009.07.005",
+      "finding": "Goal inference is an inverse problem over observed actions under a planning model; sparse behavior can support multiple latent goals."
+    },
+    {
+      "source": "Baker et al. 2017, DOI 10.1038/s41562-017-0064",
+      "finding": "Beliefs, desires and percepts are jointly inferred under partial observability, and lesioned/non-mentalistic alternatives are compared to isolate contribution."
+    },
+    {
+      "source": "Shu et al. 2021 AGENT, PMLR 139:9614-9625 / arXiv:2102.12321",
+      "finding": "Goal-preference tests use familiarization plus held-out test situations and emphasize generalization across scenario variation rather than one-frame label lookup."
+    },
+    {
+      "source": "Rabinowitz et al. 2018 ToMnet, arXiv:1802.07740",
+      "finding": "Prior observed behavior and the current situation are distinct evidence inputs for later mental-state/behavior inference."
+    }
+  ],
+  "exact_current_source_findings": [
+    {
+      "id": "WP804_SINGLE_OBSERVATION_ONLY",
+      "severity": "HIGH_FOR_GOAL_PREFERENCE_SCOPE",
+      "observation": "run_goal_inference currently calls Policy as Callable[[ObservationView, tuple[CandidateGoal,...]], GoalChoice]. GoalInference binds one observation_sha256 but no public behavior/familiarization trace identity. The current tests likewise infer from one initial ObservationView.",
+      "why_it_matters": "The current surface can test candidate classification from a present public signal, but cannot yet distinguish a policy that infers a persistent preference from prior behavior from a policy that maps the current observation_ref directly to CandidateGoal.public_signal_refs.",
+      "counterhypothesis": "Generation 1 may intentionally define goal inference as single-observation inference only, with history deferred to a later workpackage.",
+      "falsifier": "If the intended WP804 acceptance claim is only one-observation candidate inference, explicitly narrow the workpackage language and do not claim preference/history inference. If it intends goal preference from behavior, add a provenance-bound public history and a matched test where current ObservationView alone is non-identifying but prior public behavior discriminates."
+    },
+    {
+      "id": "WP804_PUBLIC_SIGNAL_SHORTCUT_BASELINE",
+      "severity": "MEDIUM",
+      "observation": "unique_public_signal_policy selects a goal when observation.observation_ref occurs in exactly one CandidateGoal.public_signal_refs. The test suite demonstrates this baseline can beat canonical-first on the current synthetic fixture.",
+      "why_it_matters": "This is a useful explicit shortcut baseline, but acceptance must include families where the shortcut is intentionally non-identifying; otherwise benchmark success can collapse to direct public-signal lookup rather than goal inference over behavior.",
+      "counterhypothesis": "The public-signal mapping is deliberately the complete task definition for generation 1.",
+      "falsifier": "Run family-held-out matched fixtures with identical current observation_ref/candidate signal structure but different prior public behavior. If the target policy cannot beat the public-signal baseline, no history-based goal-inference credit should be claimed."
+    },
+    {
+      "id": "WP804_CONSUMER_CURRENT_CONTENT_NOT_SEALED",
+      "severity": "HIGH_FAIL_CLOSED",
+      "observation": "score_goal_inference validates fixture/episode/observation/candidate bindings, but consumes inference.choice.decision and inference.choice.goal_id directly and then hashes the current inference. GoalChoice/GoalInference are frozen dataclasses but carry no producer-origin token or previously sealed content digest checked at the consumer boundary.",
+      "cross_project_precedent": "WP801 already produced executable negative evidence that object.__setattr__ can mutate a frozen result after factory construction and cross a consumer boundary when current content is not reconstructed/revalidated.",
+      "counterhypothesis": "No code path will mutate frozen GoalInference/GoalChoice objects after production, so source-level risk may be unreachable in normal operation.",
+      "falsifier": "Produce a valid inference through run_goal_inference, mutate nested GoalChoice.goal_id or decision with object.__setattr__, then call score_goal_inference. The consumer must fail closed before comparing label fields. If it scores the mutated content, bind/reconstruct producer content at the scoring boundary."
+    }
+  ],
+  "smallest_f2_native_delta": {
+    "do_not_import": [
+      "AGENT dataset or TDW simulator",
+      "full Bayesian inverse-planning stack",
+      "ToMnet neural architecture",
+      "new runtime cognition subsystem"
+    ],
+    "add_or_narrow": [
+      "If WP804 claims goal preference from behavior, introduce one immutable PUBLIC_GOAL_EVIDENCE_TRACE/v1 containing ordered public evidence events and an exact digest. Each event should bind only SUT-visible ObservationView identity/content plus the public observed action/event identity; evaluator nodes/transitions/scores/hidden labels remain absent.",
+      "Bind GoalInference to evidence_trace_sha256 in addition to current observation/candidate/run identities. The policy receives the trace or its exact public events, never evaluator history state.",
+      "Define holdout_family_id/familiarization_family_id separately from row/episode identity so train/test-like fixture generation cannot leak through near-duplicate rows.",
+      "Require a CURRENT_ONLY lesion and a PUBLIC_SIGNAL_LOOKUP baseline on the exact same public budget. A history-aware policy gets goal-inference credit only when it beats these on predeclared matched families.",
+      "At score_goal_inference, revalidate current inference/choice concrete content against runner-produced lineage or a sealed producer digest before consuming decision/goal_id, following the lesson from the WP801 mutation falsifier.",
+      "Consume the already-committed WP804_IDENTIFIABILITY_GATED_SCORING/v1 delta for ambiguous prefixes; do not reimplement a second identifiability authority."
+    ]
+  },
+  "mandatory_falsifiers_recommended": [
+    "HISTORY_REQUIRED_PAIR: identical current ObservationView and candidate descriptors, different public familiarization histories, different evaluator goal labels; a current-only/public-signal baseline must tie or abstain while a valid history-aware policy may discriminate.",
+    "HISTORY_LABEL_PERMUTATION: permuting evaluator-hidden labels with fixed public history must not change policy output except through public candidate descriptor permutation.",
+    "FAMILY_HOLDOUT_LEAK: near-duplicate fixture rows sharing a causal/familiarization family must not land on opposite sides of the held-out family boundary.",
+    "HISTORY_LESION: remove familiarization trace while keeping current observation constant; score delta quantifies what history contributed rather than assuming it.",
+    "POST_INIT_CHOICE_MUTATION_FAILS: mutate a valid runner-produced GoalChoice/GoalInference after construction; scorer must reject current-content mismatch before label comparison.",
+    "IDENTIFIABILITY_DELTA_EQUIVALENCE: preserve the six existing WP804_IDENTIFIABILITY_GATED_SCORING/v1 falsifiers rather than creating divergent versions."
+  ],
+  "acceptance_boundary": {
+    "research_credit": "E2_ARCHITECTURE_MAPPED_ONLY",
+    "architecture_credit": 0,
+    "repository_component_runtime": 0,
+    "target_runtime": 0,
+    "goal_authority": 0,
+    "gwt_jspace": 0,
+    "training": 0,
+    "whole_system": 0,
+    "next_stage": "E3 only after Trigger4 owns and exposes exact source/tests for the chosen history scope or explicitly narrows WP804 to single-observation inference"
+  }
+}
