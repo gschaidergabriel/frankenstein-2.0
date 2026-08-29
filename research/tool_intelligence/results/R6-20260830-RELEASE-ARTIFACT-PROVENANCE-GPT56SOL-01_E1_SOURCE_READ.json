@@ -1,0 +1,68 @@
+{
+  "schema": "F2_TRIGGER6_RESEARCH_RESULT/v1",
+  "research_id": "R6-20260830-RELEASE-ARTIFACT-PROVENANCE-GPT56SOL-01",
+  "evidence_stage": "E1_SOURCE_READ",
+  "status": "COMPLETE_AT_SCOPE",
+  "recorded_at": "2026-08-30T01:04:00+07:00",
+  "worker": "GPT-5.6-Sol",
+  "claim_ref": "research/tool_intelligence/claims/R6-20260830-RELEASE-ARTIFACT-PROVENANCE-GPT56SOL-01/E1_SOURCE_READ.json",
+  "claim_commit": "80bc0988431ec5ddb0c3ceb48f6c10925bfaeaaf",
+  "architecture_fusion_ref": "research/tool_intelligence/deltas/ADF-20260830T0057P0700-GPT56SOL-TRIGGER6-RELEASE-PROVENANCE-FUSION.json",
+  "f2_source_observed": {
+    "release_integrity": "src/frankenstein2/release_integrity.py",
+    "pre_handoff_release": "src/frankenstein2/pre_handoff_release.py",
+    "release_integrity_tests": "tests/test_release_integrity.py",
+    "pre_handoff_tests": "tests/test_pre_handoff_release.py",
+    "wp1110_scope": "PORTABLE_ONE_HANDOFF_STATIC_GATE_REPOSITORY_HOSTED_CI_ONLY",
+    "runtime_credit": 0
+  },
+  "external_primary_sources": [
+    {
+      "source": "in-toto Attestation ResourceDescriptor v1",
+      "url": "https://github.com/in-toto/attestation/blob/main/spec/v1/resource_descriptor.md",
+      "relevant_mechanism": "immutable artifact/resource identity by cryptographic digest; stable name may accompany digest"
+    },
+    {
+      "source": "in-toto Statement v1",
+      "url": "https://github.com/in-toto/attestation/blob/main/spec/v1/statement.md",
+      "relevant_mechanism": "attestation subject is bound to artifact digest"
+    },
+    {
+      "source": "SLSA Provenance v1.2",
+      "url": "https://slsa.dev/spec/v1.2/provenance",
+      "relevant_mechanism": "verifiable provenance connects produced artifact to where/when/how it was built"
+    },
+    {
+      "source": "Reproducible Builds stable input ordering",
+      "url": "https://reproducible-builds.org/docs/stable-inputs/",
+      "relevant_mechanism": "archive inputs require stable ordering independent of filesystem/locale"
+    },
+    {
+      "source": "Reproducible Builds timestamps",
+      "url": "https://reproducible-builds.org/docs/timestamps/",
+      "relevant_mechanism": "timestamps are a major source of build nondeterminism"
+    },
+    {
+      "source": "Python zipfile documentation",
+      "url": "https://docs.python.org/3/library/zipfile.html",
+      "relevant_mechanism": "ZIP entries carry container metadata beyond extracted payload bytes"
+    }
+  ],
+  "source_level_findings": [
+    "Current F2 release manifest cryptographically binds the extracted file inventory, file sizes and file SHA-256 values plus source/release/build metadata.",
+    "Current external prehandoff receipt binds the release-manifest SHA-256 but does not bind the SHA-256 or byte length of the outer distributed ZIP artifact.",
+    "Current clean-machine observation binds the manifest digest and receipt reference but does not recompute/bind the pre-extraction archive digest.",
+    "Therefore extracted payload equivalence and exact distributed archive identity are distinct evidence predicates.",
+    "The smallest reusable external mechanism is artifact-subject digest binding; full SLSA/in-toto adoption is not justified by this E1 result."
+  ],
+  "hypothesis_status": "SUPPORTED_AT_SOURCE_READ_SCOPE",
+  "counterhypothesis_status": "PARTIALLY_SUPPORTED_FOR_EXTRACTED_PAYLOAD_ONLY",
+  "counterhypothesis_note": "Existing manifest+receipt is sufficient to protect the extracted payload relation currently tested, but not sufficient to establish byte identity/reproducibility of the exact final ZIP named by the WP1110 frontier.",
+  "recommended_next_stage": "E2_ARCHITECTURE_MAPPED",
+  "research_credit": "E1_SOURCE_READ_ONLY",
+  "runtime_credit": 0,
+  "physical_host_credit": 0,
+  "effect_credit": 0,
+  "whole_system_credit": 0,
+  "pending_research_sqlite_sync": "PENDING_ADMITTED_BINARY_DB_PATH"
+}
