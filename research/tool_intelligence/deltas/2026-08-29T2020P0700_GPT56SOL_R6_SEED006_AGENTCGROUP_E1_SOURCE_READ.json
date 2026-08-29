@@ -1,0 +1,88 @@
+{
+  "schema": "FRANKENSTEIN2_TRIGGER6_RESEARCH_RESULT/v1",
+  "trigger": "6",
+  "research_id": "R6-SEED-006",
+  "slot": "SOURCE_ARCHAEOLOGIST",
+  "evidence_stage": "E1_SOURCE_READ",
+  "status": "COMPLETED_E1_NO_BUILD_OR_RUNTIME_CREDIT",
+  "created_at": "2026-08-29T20:20:00+07:00",
+  "worker": "GPT-5.6-Sol-TRIGGER6",
+  "claim_path": "research/tool_intelligence/claims/R6-SEED-006/E1_SOURCE_READ.json",
+  "claim_commit": "be6bb0e76809af788c1916aa520288f4aedea9fa",
+  "f2_live_fusion_head_before_result": "086293f7e10c4fbe2896edd48b39c7953a0f8396",
+  "external_source": {
+    "repo": "eunomia-bpf/agentcgroup",
+    "commit": "551ca1689b7d2d30db6b8a8613414750103cc68b",
+    "license": "GPL-2.0",
+    "paper": "arXiv:2602.09345",
+    "source_surfaces_read": [
+      "README.md",
+      "agentcg/README.md",
+      "docs/REPRODUCING.md",
+      "arXiv abstract"
+    ]
+  },
+  "observed_source_claims": [
+    "AgentCgroup studies OS-level resource behavior across 144 SWE-rebench software-engineering tasks and two LLM models.",
+    "The paper reports OS-level execution as 56-74 percent of end-to-end task latency, memory as the principal concurrency bottleneck in the studied setting, and tool-call-driven memory spikes up to 15.4x peak-to-average.",
+    "The implementation aligns ephemeral child cgroups with tool-call boundaries and combines cgroup-v2 hierarchy with sched_ext CPU control and memcg_bpf_ops memory control.",
+    "The bash wrapper can associate each command with a tool-call resource domain, record duration/peak memory/exit/hint fields, clean up the child cgroup, and expose an OOM/resource-pressure signal back to the agent.",
+    "Real control experiments require Linux/cgroup/eBPF capabilities including root access; the source documents Linux 6.12+ sched_ext and cgroup v2, while some memory-control mechanisms have stronger kernel coupling than ordinary portable user-space telemetry.",
+    "The repository also contains trace replay and analysis paths, so characterization can be separated from live enforcement."
+  ],
+  "f2_architecture_implications": [
+    {
+      "id": "SEED006-H1-TOOLCALL-RECEIPT",
+      "hypothesis": "F2 should measure resource use at exact tool-call/effect-attempt identity rather than relying only on aggregate session averages.",
+      "candidate_native_distillation": "A typed ToolResourceReceipt bound to run/session/tool_call/generation/provenance with start/end time, exit class, peak/current memory, CPU time where available, I/O/network counters where available, declared resource request, admitted budget decision, and OOM/kill/throttle observations.",
+      "reason": "The external evidence indicates highly bursty per-tool-call resource behavior; a typed receipt can preserve the useful granularity without importing AgentCgroup as a second control authority."
+    },
+    {
+      "id": "SEED006-H2-HINT-NOT-AUTHORITY",
+      "hypothesis": "Agent-declared resource hints may be useful predictions but must never self-grant resources or canonical capability.",
+      "candidate_native_distillation": "Treat a resource hint as untrusted candidate input; deterministic F2 budget/capability authority validates, narrows or rejects it and records the decision separately from the hint."
+    },
+    {
+      "id": "SEED006-H3-TYPED-PRESSURE-FEEDBACK",
+      "hypothesis": "Resource pressure should re-enter cognition as typed observed evidence, not as free-form textual authority.",
+      "candidate_native_distillation": "Canonical receipt records observed OOM/kill/throttle/limit event; any natural-language recovery suggestion is a projection/candidate strategy only."
+    },
+    {
+      "id": "SEED006-H4-MEASURE-BEFORE-ENFORCE",
+      "hypothesis": "A measurement-only phase has higher portability and lower architecture risk than immediately adopting an eBPF resource scheduler/controller.",
+      "candidate_native_distillation": "First bind tool-call resource telemetry and replayable receipts to existing F2 effect/tool identities; only consider active resource enforcement after native traces show a material bottleneck that simpler cgroup/user-space controls cannot handle."
+    }
+  ],
+  "negative_adoption_decisions": [
+    "Do not import AgentCgroup, sched_ext policy, memcg_bpf_ops controller, daemon, or bash replacement as F2 canonical resource authority from E1 evidence.",
+    "Do not grant F2 performance, portability, isolation or overhead credit from AgentCgroup's upstream measurements.",
+    "Do not treat agent-generated AGENT_RESOURCE_HINT values as authoritative budgets or capabilities.",
+    "Do not treat upstream README experiment counts or preliminary paper evaluation as independent F2 reproduction.",
+    "Do not execute privileged eBPF/cgroup experiments under the current Clay FREE_ONLY execution boundary."
+  ],
+  "counterhypotheses": [
+    "F2 may not need tool-call-level resource enforcement at its target deployment; ordinary process/container telemetry may already be sufficient for diagnosis and capacity planning.",
+    "The bookkeeping cost of a rich ToolResourceReceipt may outweigh value for very short tool calls unless sampling and field requirements are bounded.",
+    "Memory burstiness measured on SWE-rebench coding agents may not transfer to F2 workloads, so F2 must measure its own distributions before changing scheduling architecture.",
+    "A standard cgroup-v2 or process-level observer may reproduce most useful measurement value without eBPF or custom-kernel coupling."
+  ],
+  "e2_discriminator": {
+    "question": "Can existing F2 telemetry/effect identities support a minimal tool-call resource receipt without a new authority or privileged controller?",
+    "method": "Static architecture map current F2 telemetry/effect/resource paths against the minimal ToolResourceReceipt fields; identify reusable identities and missing fields. No runtime/eBPF execution.",
+    "pass_for_build_candidate": "A thin derived/native receipt can bind exact tool/effect attempt identity, generation/provenance and observed resource outcomes while preserving existing deterministic authority boundaries.",
+    "reject_or_defer": "If existing telemetry already provides equivalent exact fields, record redundancy; if resource identity cannot bind cleanly without a second authority, defer and repair identity first."
+  },
+  "efficiency_note": "The strongest transferable idea is granularity and evidence binding, not the full controller. Prefer a small F2-native receipt/observer over a privileged daemon plus scheduler unless later F2 measurements falsify that simpler design.",
+  "credits": {
+    "trigger6_research": "E1_SOURCE_READ",
+    "architecture": 0,
+    "repository_component": 0,
+    "target_runtime": 0,
+    "physical_grid10": 0,
+    "gwt_jspace": 0,
+    "training": 0,
+    "effects": 0,
+    "whole_system": 0
+  },
+  "next_exact_action": "Acquire a create-only R6-SEED-006/E2_ARCHITECTURE_MAPPED claim if absent, then statically map the minimal ToolResourceReceipt onto current F2 tool/effect/telemetry/resource identities and emit either a thin build candidate or an explicit redundancy/defer result."
+}
