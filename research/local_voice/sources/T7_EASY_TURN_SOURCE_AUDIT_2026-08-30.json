@@ -1,0 +1,63 @@
+{
+  "schema_version": 1,
+  "trigger": "7",
+  "research_id": "T7-TURN-003",
+  "objective": "E2_EASY_TURN_SOURCE_AUDIT",
+  "epistemic_scope": "SOURCE_ONLY",
+  "date_local": "2026-08-30",
+  "upstream": {
+    "repository": "ASLP-lab/Easy-Turn",
+    "main_sha_observed": "fe175eaa8442c9a0834acf29f8640ee74c2aceca",
+    "readme_blob_sha": "a7251c0d7bdcd96572006b74f5bae68ff1dad091",
+    "license_blob_sha": "261eeb9e9f8b2b4b0d119366dda99c6fd7d35c64",
+    "license": "Apache-2.0",
+    "paper": "arXiv:2509.23938"
+  },
+  "primary_source_observations": {
+    "architecture_claim": "open-source modular acoustic+linguistic bimodal turn-taking detector",
+    "turn_states": ["complete", "incomplete", "backchannel", "wait"],
+    "trainset_hours_breakdown": {
+      "complete": 580,
+      "incomplete": 532,
+      "backchannel": 10,
+      "wait": 23,
+      "sum": 1145
+    },
+    "readme_total_wording": "approximately 1,100 hours despite the listed components summing to 1,145 hours",
+    "reported_benchmark_hardware": "single NVIDIA RTX 4090",
+    "reported_easy_turn": {
+      "params_mb": 850,
+      "latency_ms": 263,
+      "memory_mb": 2559,
+      "acc_complete_pct": 96.33,
+      "acc_incomplete_pct": 97.67,
+      "acc_backchannel_pct": 91,
+      "acc_wait_pct": 98
+    },
+    "reported_smart_turn_v2_comparator": {
+      "params_mb": 95,
+      "latency_ms": 27,
+      "memory_mb": 370,
+      "acc_complete_pct": 78.67,
+      "acc_incomplete_pct": 62
+    },
+    "streaming_evidence": "NOT_ESTABLISHED_BY_AUDITED_PRIMARY_README; published inference example is dataset/decode oriented rather than a frame-synchronous realtime contract",
+    "german_support": "NOT_ESTABLISHED_BY_AUDITED_PRIMARY_SOURCE"
+  },
+  "frankenstein_interpretation": {
+    "promotion": "TURN_TAKING_QUALITY_DISCRIMINATOR_AND_STATE_TAXONOMY_DONOR",
+    "production_credit": 0,
+    "reason": "The four-state taxonomy maps unusually well to Frankenstein WAIT/backchannel/continue/respond control, but German calibration and realtime streaming behavior are unproven and the reported latency/resource footprint is much heavier than the lightweight comparator.",
+    "highest_value_test_after_target_headroom": "Replay the pinned German pause/backchannel/overlap corpus with a common decision mapping: complete->RESPOND, incomplete->HOLD, backchannel->KEEP_LISTENING_OR_NONINTERRUPTIVE_ACK, wait->WAIT; compare against silence/VAD, Smart Turn/DualTurn/Next-Turn/FastTurn candidates using false-interrupt rate, missed-turn rate, decision latency, and resource cost.",
+    "counterhypothesis": "Easy Turn's high reported state accuracy may not transfer to German and its heavier post-segment acoustic+linguistic path may add enough latency that a lighter streaming detector wins the actual Frankenstein Pareto frontier."
+  },
+  "credit": {
+    "source_pin": "OBSERVED",
+    "local_component_run": 0,
+    "german_replay": 0,
+    "target_runtime": 0,
+    "german_e2e": 0,
+    "trigger4_acceptance": 0,
+    "whole_system": 0
+  }
+}
