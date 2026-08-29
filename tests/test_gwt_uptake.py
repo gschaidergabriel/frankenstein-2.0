@@ -8,6 +8,8 @@ from frankenstein2.gwt_uptake import (
     CausalProbeArm,
     CellUptakeReceipt,
     GWTUptakeError,
+    UPTAKE_SUMMARY_SCHEMA,
+    UptakeSummary,
     evaluate_causal_influence,
     summarize_uptake,
 )
@@ -255,6 +257,51 @@ class GWTUptakeTests(unittest.TestCase):
         )
         self.assertEqual(result.status, "CAUSAL_INFLUENCE_OBSERVED_AT_CONTRACT_SCOPE")
         self.assertIn("NOT_HIDDEN_STATE", result.classification)
+
+    def test_forged_positive_uptake_summary_without_receipts_cannot_mint_causal_influence(self) -> None:
+        broadcast = make_broadcast()
+        forged = UptakeSummary(
+            schema=UPTAKE_SUMMARY_SCHEMA,
+            summary_id="summary-forged",
+            broadcast_id=broadcast.broadcast_id,
+            broadcast_sha256=broadcast.sha256(),
+            selection_id=broadcast.selection_id,
+            plan_id=broadcast.plan_id,
+            plan_generation=broadcast.plan_generation,
+            plan_sha256=broadcast.plan_sha256,
+            receipt_ids=(),
+            delivered_cell_ids=(),
+            uptaken_cell_ids=("G3",),
+            unknown_cell_ids=(),
+            status="UPTAKE_OBSERVED",
+            provenance_refs=("forged-summary-source",),
+        )
+        intervention = CausalProbeArm.intervention(
+            arm_id="intervention-forged",
+            broadcast=broadcast,
+            nonbroadcast_input_sha256=A64,
+            downstream_output_sha256=D64,
+            provenance_refs=("intervention-source",),
+        )
+        control = CausalProbeArm.control(
+            arm_id="control-forged",
+            nonbroadcast_input_sha256=A64,
+            downstream_output_sha256=E64,
+            provenance_refs=("control-source",),
+        )
+        result = evaluate_causal_influence(
+            result_id="result-forged-summary",
+            broadcast=broadcast,
+            uptake_summary=forged,
+            intervention=intervention,
+            control=control,
+            provenance_refs=("probe-source",),
+        )
+        self.assertNotEqual(
+            result.status,
+            "CAUSAL_INFLUENCE_OBSERVED_AT_CONTRACT_SCOPE",
+            "caller-forged UPTAKE_OBSERVED summary with zero receipts must not mint positive causal credit",
+        )
 
     def test_incomplete_uptake_blocks_positive_causal_result(self) -> None:
         broadcast = make_broadcast()
