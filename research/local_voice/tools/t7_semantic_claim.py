@@ -72,6 +72,8 @@ SUBJECT_ALIASES = {
     "fun-cosyvoice3-0.5b-2512": "FUN_COSYVOICE3_0_5B_2512",
     "cosyvoice3-0.5b-2512": "FUN_COSYVOICE3_0_5B_2512",
     "funaudiollm-fun-cosyvoice3-0.5b-2512": "FUN_COSYVOICE3_0_5B_2512",
+    "gepard-1.0": "GEPARD_1_0",
+    "nineninesix-gepard-1.0": "GEPARD_1_0",
 }
 
 EVIDENCE_SCOPE_ALIASES = {
