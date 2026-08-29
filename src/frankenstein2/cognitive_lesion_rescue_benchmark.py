@@ -5,9 +5,14 @@ explicit immutable public capability/condition configuration. The evaluator may 
 full WP800 fixture to advance and score an episode, but evaluator-only nodes,
 transitions, scores and hidden-ground-truth fields never enter policy input.
 
+Generation 2 hardens experiment identity and interpretation. Matched rescue must act in
+the exact declared lesion universe, score/operator semantics are first-class sealed
+identity, and positive language is derived only from measured deltas using conservative
+bounded labels.
+
 This is repository evaluation infrastructure only. A lesion/rescue delta is a benchmark
 measurement; it grants no runtime, physical GRID10, GWT/J-Space, training, effect,
-completion, causal or whole-system authority.
+completion, causal-localization or whole-system authority.
 """
 from __future__ import annotations
 
@@ -32,12 +37,30 @@ from .cognitive_microworld import (
 CAPABILITY_SCHEMA = "FRANKENSTEIN2_COGNITIVE_PUBLIC_CAPABILITY/v1"
 CONDITION_SCHEMA = "FRANKENSTEIN2_COGNITIVE_LESION_CONDITION/v1"
 RESULT_SCHEMA = "FRANKENSTEIN2_COGNITIVE_LESION_RUN_RESULT/v1"
-COMPARISON_SCHEMA = "FRANKENSTEIN2_COGNITIVE_LESION_RESCUE_COMPARISON/v1"
+COMPARISON_SCHEMA = "FRANKENSTEIN2_COGNITIVE_LESION_RESCUE_COMPARISON/v2"
 
 NORMAL = "NORMAL"
 LESION = "LESION"
 RESCUE = "RESCUE"
 _ALLOWED_KINDS = frozenset((NORMAL, LESION, RESCUE))
+
+TESTED_INTERVENTION_DEPENDENCE = "TESTED_INTERVENTION_DEPENDENCE"
+TARGET_SPECIFIC_RESTORATION_AT_SCOPE = "TARGET_SPECIFIC_RESTORATION_AT_SCOPE"
+REDUNDANCY_OR_INTERACTION_UNKNOWN = "REDUNDANCY_OR_INTERACTION_UNKNOWN"
+NO_RESTORATION_AT_SCOPE = "NO_RESTORATION_AT_SCOPE"
+_ALLOWED_INTERPRETATIONS = frozenset(
+    (
+        TESTED_INTERVENTION_DEPENDENCE,
+        TARGET_SPECIFIC_RESTORATION_AT_SCOPE,
+        REDUNDANCY_OR_INTERACTION_UNKNOWN,
+        NO_RESTORATION_AT_SCOPE,
+    )
+)
+
+DEFAULT_SCORE_METRIC_ID = "evaluator-final-score-delta"
+DEFAULT_SCORE_METRIC_VERSION = "1"
+DEFAULT_LESION_OPERATOR_ID = "public-capability-disable/v1"
+DEFAULT_RESCUE_OPERATOR_ID = "public-capability-restore-subset/v1"
 
 PUBLIC_POLICY_CLASSIFICATION = "PUBLIC_POLICY_CONFIG_NO_EVALUATOR_GROUND_TRUTH"
 EVALUATOR_RESULT_CLASSIFICATION = "EVALUATOR_MEASUREMENT_NOT_RUNTIME_OR_CAUSAL_CREDIT"
@@ -71,7 +94,9 @@ def _sha(name: str, value: Any) -> str:
 
 def _nint(name: str, value: Any, *, maximum: int = _MAX_STEPS) -> int:
     if type(value) is not int or not 0 <= value <= maximum:
-        raise CognitiveLesionRescueError(f"{name} must be a non-negative integer in [0, {maximum}]")
+        raise CognitiveLesionRescueError(
+            f"{name} must be a non-negative integer in [0, {maximum}]"
+        )
     return value
 
 
@@ -89,7 +114,13 @@ def _refs(name: str, values: Any) -> tuple[str, ...]:
 
 
 def _json(value: Any) -> str:
-    return json.dumps(value, sort_keys=True, separators=(",", ":"), ensure_ascii=False, allow_nan=False)
+    return json.dumps(
+        value,
+        sort_keys=True,
+        separators=(",", ":"),
+        ensure_ascii=False,
+        allow_nan=False,
+    )
 
 
 def _digest(value: Any) -> str:
@@ -105,8 +136,13 @@ class PublicCapability:
     classification: str = PUBLIC_POLICY_CLASSIFICATION
 
     def __post_init__(self) -> None:
-        if self.schema != CAPABILITY_SCHEMA or self.classification != PUBLIC_POLICY_CLASSIFICATION:
-            raise CognitiveLesionRescueError("public capability schema/classification mismatch")
+        if (
+            self.schema != CAPABILITY_SCHEMA
+            or self.classification != PUBLIC_POLICY_CLASSIFICATION
+        ):
+            raise CognitiveLesionRescueError(
+                "public capability schema/classification mismatch"
+            )
         _id("capability_id", self.capability_id)
         _id("action_id", self.action_id)
         _nint("rank", self.rank, maximum=1_000_000)
@@ -130,27 +166,42 @@ class CognitiveCondition:
     _origin: InitVar[object | None] = None
 
     def __post_init__(self, _origin: object | None) -> None:
-        if self.schema != CONDITION_SCHEMA or self.classification != PUBLIC_POLICY_CLASSIFICATION:
+        if (
+            self.schema != CONDITION_SCHEMA
+            or self.classification != PUBLIC_POLICY_CLASSIFICATION
+        ):
             raise CognitiveLesionRescueError("condition schema/classification mismatch")
         _id("condition_id", self.condition_id)
         if self.condition_kind not in _ALLOWED_KINDS:
-            raise CognitiveLesionRescueError("condition_kind must be NORMAL, LESION or RESCUE")
+            raise CognitiveLesionRescueError(
+                "condition_kind must be NORMAL, LESION or RESCUE"
+            )
         _id("fixture_id", self.fixture_id)
         _nint("fixture_generation", self.fixture_generation)
         _sha("public_fixture_sha256", self.public_fixture_sha256)
         disabled = _refs("disabled_capability_ids", self.disabled_capability_ids)
         rescued = _refs("rescued_capability_ids", self.rescued_capability_ids)
         if not set(rescued).issubset(disabled):
-            raise CognitiveLesionRescueError("rescued capabilities must be a subset of explicitly lesioned capabilities")
+            raise CognitiveLesionRescueError(
+                "rescued capabilities must be a subset of explicitly lesioned capabilities"
+            )
         if self.condition_kind == NORMAL and (disabled or rescued):
-            raise CognitiveLesionRescueError("NORMAL cannot disable or rescue capabilities")
+            raise CognitiveLesionRescueError(
+                "NORMAL cannot disable or rescue capabilities"
+            )
         if self.condition_kind == LESION and (not disabled or rescued):
-            raise CognitiveLesionRescueError("LESION requires disabled capabilities and no rescue")
+            raise CognitiveLesionRescueError(
+                "LESION requires disabled capabilities and no rescue"
+            )
         if self.condition_kind == RESCUE and (not disabled or not rescued):
-            raise CognitiveLesionRescueError("RESCUE requires an explicit lesion and explicit rescued subset")
+            raise CognitiveLesionRescueError(
+                "RESCUE requires an explicit lesion and explicit rescued subset"
+            )
         expected = "condition:" + _digest(self._identity_payload())
         if self.condition_id != expected:
-            raise CognitiveLesionRescueError("condition_id does not seal exact public condition identity")
+            raise CognitiveLesionRescueError(
+                "condition_id does not seal exact public condition identity"
+            )
         object.__setattr__(self, "_builder_verified", _origin is _CONDITION_ORIGIN)
 
     def _identity_payload(self) -> dict[str, Any]:
@@ -175,7 +226,9 @@ class CognitiveCondition:
         rescued_capability_ids: tuple[str, ...] = (),
     ) -> "CognitiveCondition":
         if type(observation) is not ObservationView:
-            raise CognitiveLesionRescueError("observation must be exact concrete ObservationView")
+            raise CognitiveLesionRescueError(
+                "observation must be exact concrete ObservationView"
+            )
         payload = {
             "schema": CONDITION_SCHEMA,
             "condition_kind": condition_kind,
@@ -200,9 +253,13 @@ class CognitiveCondition:
 
     def assert_matches_observation(self, observation: ObservationView) -> None:
         if type(observation) is not ObservationView:
-            raise CognitiveLesionRescueError("observation must be exact concrete ObservationView")
+            raise CognitiveLesionRescueError(
+                "observation must be exact concrete ObservationView"
+            )
         if not self._builder_verified:
-            raise CognitiveLesionRescueError("condition must originate from CognitiveCondition.for_observation")
+            raise CognitiveLesionRescueError(
+                "condition must originate from CognitiveCondition.for_observation"
+            )
         if (
             self.fixture_id,
             self.fixture_generation,
@@ -212,7 +269,9 @@ class CognitiveCondition:
             observation.fixture_generation,
             observation.public_fixture_sha256,
         ):
-            raise CognitiveLesionRescueError("condition does not match exact public fixture identity")
+            raise CognitiveLesionRescueError(
+                "condition does not match exact public fixture identity"
+            )
 
     def as_dict(self) -> dict[str, Any]:
         return {
@@ -250,7 +309,10 @@ class ConditionRunResult:
     _origin: InitVar[object | None] = None
 
     def __post_init__(self, _origin: object | None) -> None:
-        if self.schema != RESULT_SCHEMA or self.classification != EVALUATOR_RESULT_CLASSIFICATION:
+        if (
+            self.schema != RESULT_SCHEMA
+            or self.classification != EVALUATOR_RESULT_CLASSIFICATION
+        ):
             raise CognitiveLesionRescueError("result schema/classification mismatch")
         _id("condition_id", self.condition_id)
         if self.condition_kind not in _ALLOWED_KINDS:
@@ -270,20 +332,33 @@ class ConditionRunResult:
             ("evaluator_step_sha256s", self.evaluator_step_sha256s),
         ):
             if type(group) is not tuple:
-                raise CognitiveLesionRescueError(f"{group_name} must be immutable tuple")
+                raise CognitiveLesionRescueError(
+                    f"{group_name} must be immutable tuple"
+                )
             for value in group:
                 _sha(f"{group_name} item", value)
         if type(self.final_score) is not int:
-            raise CognitiveLesionRescueError("final_score must be an integer evaluator measurement")
+            raise CognitiveLesionRescueError(
+                "final_score must be an integer evaluator measurement"
+            )
         _nint("step_count", self.step_count)
         if type(self.terminal) is not bool or type(self.abstained) is not bool:
             raise CognitiveLesionRescueError("terminal/abstained must be booleans")
-        if len(self.action_request_sha256s) != self.step_count or len(self.evaluator_step_sha256s) != self.step_count:
-            raise CognitiveLesionRescueError("step_count does not bind request/evaluator evidence lengths")
+        if (
+            len(self.action_request_sha256s) != self.step_count
+            or len(self.evaluator_step_sha256s) != self.step_count
+        ):
+            raise CognitiveLesionRescueError(
+                "step_count does not bind request/evaluator evidence lengths"
+            )
         if len(self.observation_sha256s) != self.step_count + 1:
-            raise CognitiveLesionRescueError("observation evidence must include initial plus every resulting observation")
+            raise CognitiveLesionRescueError(
+                "observation evidence must include initial plus every resulting observation"
+            )
         if _origin is not _RESULT_ORIGIN:
-            raise CognitiveLesionRescueError("ConditionRunResult must be created by run_condition")
+            raise CognitiveLesionRescueError(
+                "ConditionRunResult must be created by run_condition"
+            )
 
     def as_dict(self) -> dict[str, Any]:
         return {
@@ -313,24 +388,43 @@ class ConditionRunResult:
         return _digest(self.as_dict())
 
 
-def _validate_capabilities(observation: ObservationView, capabilities: tuple[PublicCapability, ...]) -> tuple[PublicCapability, ...]:
+def _validate_capabilities(
+    observation: ObservationView,
+    capabilities: tuple[PublicCapability, ...],
+) -> tuple[PublicCapability, ...]:
     if type(observation) is not ObservationView:
-        raise CognitiveLesionRescueError("observation must be exact concrete ObservationView")
+        raise CognitiveLesionRescueError(
+            "observation must be exact concrete ObservationView"
+        )
     if type(capabilities) is not tuple or not capabilities:
-        raise CognitiveLesionRescueError("capabilities must be a non-empty immutable tuple")
-    if len(capabilities) > _MAX_CAPABILITIES or any(type(item) is not PublicCapability for item in capabilities):
-        raise CognitiveLesionRescueError("capabilities must contain exact concrete PublicCapability values")
-    if capabilities != tuple(sorted(capabilities, key=lambda x: (x.rank, x.capability_id, x.action_id))):
-        raise CognitiveLesionRescueError("capabilities must be in canonical rank/capability/action order")
+        raise CognitiveLesionRescueError(
+            "capabilities must be a non-empty immutable tuple"
+        )
+    if len(capabilities) > _MAX_CAPABILITIES or any(
+        type(item) is not PublicCapability for item in capabilities
+    ):
+        raise CognitiveLesionRescueError(
+            "capabilities must contain exact concrete PublicCapability values"
+        )
+    if capabilities != tuple(
+        sorted(capabilities, key=lambda x: (x.rank, x.capability_id, x.action_id))
+    ):
+        raise CognitiveLesionRescueError(
+            "capabilities must be in canonical rank/capability/action order"
+        )
     capability_ids = tuple(item.capability_id for item in capabilities)
     action_ids = tuple(item.action_id for item in capabilities)
     if len(capability_ids) != len(set(capability_ids)):
         raise CognitiveLesionRescueError("capability_id values must be unique")
     if len(action_ids) != len(set(action_ids)):
-        raise CognitiveLesionRescueError("public benchmark capability actions must be unique")
+        raise CognitiveLesionRescueError(
+            "public benchmark capability actions must be unique"
+        )
     available = set(observation.available_action_ids)
     if any(action_id not in available for action_id in action_ids):
-        raise CognitiveLesionRescueError("capability references action unavailable in public ObservationView")
+        raise CognitiveLesionRescueError(
+            "capability references action unavailable in public ObservationView"
+        )
     return capabilities
 
 
@@ -346,18 +440,26 @@ def choose_action_public(
 ) -> str | None:
     """Return an action using public inputs only, or ``None`` for explicit abstention."""
     if type(observation) is not ObservationView:
-        raise CognitiveLesionRescueError("observation must be exact concrete ObservationView")
+        raise CognitiveLesionRescueError(
+            "observation must be exact concrete ObservationView"
+        )
     if type(condition) is not CognitiveCondition:
-        raise CognitiveLesionRescueError("condition must be exact concrete CognitiveCondition")
+        raise CognitiveLesionRescueError(
+            "condition must be exact concrete CognitiveCondition"
+        )
     condition.assert_matches_observation(observation)
     caps = _validate_capabilities(observation, capabilities)
     known = {item.capability_id for item in caps}
     disabled = set(condition.disabled_capability_ids)
     rescued = set(condition.rescued_capability_ids)
     if not disabled.issubset(known):
-        raise CognitiveLesionRescueError("condition disables unknown public capability")
+        raise CognitiveLesionRescueError(
+            "condition disables unknown public capability"
+        )
     if not rescued.issubset(known):
-        raise CognitiveLesionRescueError("condition rescues unknown public capability")
+        raise CognitiveLesionRescueError(
+            "condition rescues unknown public capability"
+        )
     for item in caps:
         enabled = item.capability_id not in disabled or item.capability_id in rescued
         if enabled:
@@ -375,11 +477,17 @@ def run_condition(
     episode_generation: int,
 ) -> ConditionRunResult:
     if type(fixture) is not MicroWorldFixture:
-        raise CognitiveLesionRescueError("fixture must be exact concrete MicroWorldFixture")
+        raise CognitiveLesionRescueError(
+            "fixture must be exact concrete MicroWorldFixture"
+        )
     if type(run) is not RunDescriptor:
-        raise CognitiveLesionRescueError("run must be exact concrete RunDescriptor")
+        raise CognitiveLesionRescueError(
+            "run must be exact concrete RunDescriptor"
+        )
     if type(condition) is not CognitiveCondition:
-        raise CognitiveLesionRescueError("condition must be exact concrete CognitiveCondition")
+        raise CognitiveLesionRescueError(
+            "condition must be exact concrete CognitiveCondition"
+        )
     _id("episode_id", episode_id)
     _nint("episode_generation", episode_generation)
     try:
@@ -387,9 +495,13 @@ def run_condition(
     except CognitiveMicroWorldError as exc:
         raise CognitiveLesionRescueError(str(exc)) from exc
     if condition.condition_kind == NORMAL and run.condition != BASELINE:
-        raise CognitiveLesionRescueError("NORMAL requires a BASELINE run descriptor")
+        raise CognitiveLesionRescueError(
+            "NORMAL requires a BASELINE run descriptor"
+        )
     if condition.condition_kind in (LESION, RESCUE) and run.condition != INTERVENTION:
-        raise CognitiveLesionRescueError("LESION/RESCUE require INTERVENTION run descriptors")
+        raise CognitiveLesionRescueError(
+            "LESION/RESCUE require INTERVENTION run descriptors"
+        )
 
     state, observation = begin_episode(
         fixture,
@@ -404,13 +516,21 @@ def run_condition(
     abstained = False
 
     while not observation.terminal and state.step_index < fixture.max_steps:
-        action_id = choose_action_public(observation, capabilities=caps, condition=condition)
+        action_id = choose_action_public(
+            observation,
+            capabilities=caps,
+            condition=condition,
+        )
         if action_id is None:
             abstained = True
             break
         request = ActionRequest.for_observation(observation, action_id=action_id)
         try:
-            state, observation, evaluator_step = step_episode(fixture, state=state, request=request)
+            state, observation, evaluator_step = step_episode(
+                fixture,
+                state=state,
+                request=request,
+            )
         except CognitiveMicroWorldError as exc:
             raise CognitiveLesionRescueError(str(exc)) from exc
         requests.append(request.sha256())
@@ -441,6 +561,28 @@ def run_condition(
     )
 
 
+def _interpret_measured_deltas(
+    *,
+    lesion_delta: int,
+    rescue_delta: int,
+    restoration_gap: int,
+) -> str:
+    """Return a deliberately bounded interpretation from measured score deltas only."""
+    if (
+        type(lesion_delta) is not int
+        or type(rescue_delta) is not int
+        or type(restoration_gap) is not int
+    ):
+        raise CognitiveLesionRescueError("measured deltas must be exact integers")
+    if lesion_delta == 0:
+        return REDUNDANCY_OR_INTERACTION_UNKNOWN
+    if restoration_gap == 0 and rescue_delta == -lesion_delta:
+        return TARGET_SPECIFIC_RESTORATION_AT_SCOPE
+    if abs(restoration_gap) < abs(lesion_delta):
+        return TESTED_INTERVENTION_DEPENDENCE
+    return NO_RESTORATION_AT_SCOPE
+
+
 @dataclass(frozen=True, slots=True)
 class LesionRescueComparison:
     schema: str
@@ -448,40 +590,100 @@ class LesionRescueComparison:
     normal: ConditionRunResult
     lesion: ConditionRunResult
     rescue: ConditionRunResult
+    score_metric_id: str
+    score_metric_version: str
+    lesion_operator_id: str
+    rescue_operator_id: str
     lesion_delta: int
     rescue_delta: int
     restoration_gap: int
+    interpretation: str
     classification: str = EVALUATOR_RESULT_CLASSIFICATION
     _origin: InitVar[object | None] = None
 
     def __post_init__(self, _origin: object | None) -> None:
-        if self.schema != COMPARISON_SCHEMA or self.classification != EVALUATOR_RESULT_CLASSIFICATION:
+        if (
+            self.schema != COMPARISON_SCHEMA
+            or self.classification != EVALUATOR_RESULT_CLASSIFICATION
+        ):
             raise CognitiveLesionRescueError("comparison schema/classification mismatch")
         _id("comparison_id", self.comparison_id)
-        if type(self.normal) is not ConditionRunResult or type(self.lesion) is not ConditionRunResult or type(self.rescue) is not ConditionRunResult:
-            raise CognitiveLesionRescueError("comparison requires exact concrete run results")
-        if (self.normal.condition_kind, self.lesion.condition_kind, self.rescue.condition_kind) != (NORMAL, LESION, RESCUE):
-            raise CognitiveLesionRescueError("comparison result order must be NORMAL, LESION, RESCUE")
-        identity = lambda r: (r.fixture_id, r.fixture_generation, r.fixture_sha256, r.public_fixture_sha256, r.capability_set_sha256)
-        if identity(self.normal) != identity(self.lesion) or identity(self.normal) != identity(self.rescue):
-            raise CognitiveLesionRescueError("comparison results are not matched on exact fixture/capability identity")
+        for name in (
+            "score_metric_id",
+            "score_metric_version",
+            "lesion_operator_id",
+            "rescue_operator_id",
+        ):
+            _id(name, getattr(self, name))
+        if self.interpretation not in _ALLOWED_INTERPRETATIONS:
+            raise CognitiveLesionRescueError(
+                "unknown bounded comparison interpretation"
+            )
+        if (
+            type(self.normal) is not ConditionRunResult
+            or type(self.lesion) is not ConditionRunResult
+            or type(self.rescue) is not ConditionRunResult
+        ):
+            raise CognitiveLesionRescueError(
+                "comparison requires exact concrete run results"
+            )
+        if (
+            self.normal.condition_kind,
+            self.lesion.condition_kind,
+            self.rescue.condition_kind,
+        ) != (NORMAL, LESION, RESCUE):
+            raise CognitiveLesionRescueError(
+                "comparison result order must be NORMAL, LESION, RESCUE"
+            )
+        identity = lambda r: (
+            r.fixture_id,
+            r.fixture_generation,
+            r.fixture_sha256,
+            r.public_fixture_sha256,
+            r.capability_set_sha256,
+        )
+        if (
+            identity(self.normal) != identity(self.lesion)
+            or identity(self.normal) != identity(self.rescue)
+        ):
+            raise CognitiveLesionRescueError(
+                "comparison results are not matched on exact fixture/capability identity"
+            )
         if self.lesion_delta != self.lesion.final_score - self.normal.final_score:
             raise CognitiveLesionRescueError("lesion_delta mismatch")
         if self.rescue_delta != self.rescue.final_score - self.lesion.final_score:
             raise CognitiveLesionRescueError("rescue_delta mismatch")
         if self.restoration_gap != self.rescue.final_score - self.normal.final_score:
             raise CognitiveLesionRescueError("restoration_gap mismatch")
-        expected = "comparison:" + _digest(
-            {
-                "normal": self.normal.sha256(),
-                "lesion": self.lesion.sha256(),
-                "rescue": self.rescue.sha256(),
-            }
+        expected_interpretation = _interpret_measured_deltas(
+            lesion_delta=self.lesion_delta,
+            rescue_delta=self.rescue_delta,
+            restoration_gap=self.restoration_gap,
         )
+        if self.interpretation != expected_interpretation:
+            raise CognitiveLesionRescueError(
+                "interpretation does not match measured-delta semantics"
+            )
+        expected = "comparison:" + _digest(self._identity_payload())
         if self.comparison_id != expected:
-            raise CognitiveLesionRescueError("comparison_id does not bind exact run results")
+            raise CognitiveLesionRescueError(
+                "comparison_id does not bind exact run and experiment semantics"
+            )
         if _origin is not _COMPARISON_ORIGIN:
-            raise CognitiveLesionRescueError("comparison must be created by run_matched_lesion_rescue")
+            raise CognitiveLesionRescueError(
+                "comparison must be created by run_matched_lesion_rescue"
+            )
+
+    def _identity_payload(self) -> dict[str, Any]:
+        return {
+            "normal": self.normal.sha256(),
+            "lesion": self.lesion.sha256(),
+            "rescue": self.rescue.sha256(),
+            "score_metric_id": self.score_metric_id,
+            "score_metric_version": self.score_metric_version,
+            "lesion_operator_id": self.lesion_operator_id,
+            "rescue_operator_id": self.rescue_operator_id,
+        }
 
     def as_dict(self) -> dict[str, Any]:
         return {
@@ -490,9 +692,14 @@ class LesionRescueComparison:
             "normal": self.normal.as_dict(),
             "lesion": self.lesion.as_dict(),
             "rescue": self.rescue.as_dict(),
+            "score_metric_id": self.score_metric_id,
+            "score_metric_version": self.score_metric_version,
+            "lesion_operator_id": self.lesion_operator_id,
+            "rescue_operator_id": self.rescue_operator_id,
             "lesion_delta": self.lesion_delta,
             "rescue_delta": self.rescue_delta,
             "restoration_gap": self.restoration_gap,
+            "interpretation": self.interpretation,
             "classification": self.classification,
         }
 
@@ -500,18 +707,33 @@ class LesionRescueComparison:
         return _digest(self.as_dict())
 
 
-def _assert_matched_runs(normal: RunDescriptor, lesion: RunDescriptor, rescue: RunDescriptor, fixture: MicroWorldFixture) -> None:
+def _assert_matched_runs(
+    normal: RunDescriptor,
+    lesion: RunDescriptor,
+    rescue: RunDescriptor,
+    fixture: MicroWorldFixture,
+) -> None:
     if any(type(run) is not RunDescriptor for run in (normal, lesion, rescue)):
-        raise CognitiveLesionRescueError("matched runs require exact concrete RunDescriptor values")
+        raise CognitiveLesionRescueError(
+            "matched runs require exact concrete RunDescriptor values"
+        )
     try:
         for run in (normal, lesion, rescue):
             run.assert_matches_fixture(fixture)
     except CognitiveMicroWorldError as exc:
         raise CognitiveLesionRescueError(str(exc)) from exc
-    if normal.condition != BASELINE or lesion.condition != INTERVENTION or rescue.condition != INTERVENTION:
-        raise CognitiveLesionRescueError("matched run conditions must be BASELINE, INTERVENTION, INTERVENTION")
+    if (
+        normal.condition != BASELINE
+        or lesion.condition != INTERVENTION
+        or rescue.condition != INTERVENTION
+    ):
+        raise CognitiveLesionRescueError(
+            "matched run conditions must be BASELINE, INTERVENTION, INTERVENTION"
+        )
     if len({normal.run_id, lesion.run_id, rescue.run_id}) != 3:
-        raise CognitiveLesionRescueError("matched runs require three distinct run_id values")
+        raise CognitiveLesionRescueError(
+            "matched runs require three distinct run_id values"
+        )
     for field_name in (
         "fixture_id",
         "fixture_generation",
@@ -524,7 +746,10 @@ def _assert_matched_runs(normal: RunDescriptor, lesion: RunDescriptor, rescue: R
         "communication_before_result",
         "independent_reproduction",
     ):
-        if getattr(normal, field_name) != getattr(lesion, field_name) or getattr(normal, field_name) != getattr(rescue, field_name):
+        if (
+            getattr(normal, field_name) != getattr(lesion, field_name)
+            or getattr(normal, field_name) != getattr(rescue, field_name)
+        ):
             raise CognitiveLesionRescueError(f"matched runs differ on {field_name}")
 
 
@@ -539,14 +764,46 @@ def run_matched_lesion_rescue(
     rescue_condition: CognitiveCondition,
     capabilities: tuple[PublicCapability, ...],
     episode_generation: int,
+    score_metric_id: str = DEFAULT_SCORE_METRIC_ID,
+    score_metric_version: str = DEFAULT_SCORE_METRIC_VERSION,
+    lesion_operator_id: str = DEFAULT_LESION_OPERATOR_ID,
+    rescue_operator_id: str = DEFAULT_RESCUE_OPERATOR_ID,
 ) -> LesionRescueComparison:
     if type(fixture) is not MicroWorldFixture:
-        raise CognitiveLesionRescueError("fixture must be exact concrete MicroWorldFixture")
+        raise CognitiveLesionRescueError(
+            "fixture must be exact concrete MicroWorldFixture"
+        )
     _assert_matched_runs(normal_run, lesion_run, rescue_run, fixture)
-    if any(type(c) is not CognitiveCondition for c in (normal_condition, lesion_condition, rescue_condition)):
-        raise CognitiveLesionRescueError("matched conditions require exact concrete CognitiveCondition values")
-    if (normal_condition.condition_kind, lesion_condition.condition_kind, rescue_condition.condition_kind) != (NORMAL, LESION, RESCUE):
-        raise CognitiveLesionRescueError("matched conditions must be NORMAL, LESION, RESCUE")
+    if any(
+        type(c) is not CognitiveCondition
+        for c in (normal_condition, lesion_condition, rescue_condition)
+    ):
+        raise CognitiveLesionRescueError(
+            "matched conditions require exact concrete CognitiveCondition values"
+        )
+    if (
+        normal_condition.condition_kind,
+        lesion_condition.condition_kind,
+        rescue_condition.condition_kind,
+    ) != (NORMAL, LESION, RESCUE):
+        raise CognitiveLesionRescueError(
+            "matched conditions must be NORMAL, LESION, RESCUE"
+        )
+    if (
+        rescue_condition.disabled_capability_ids
+        != lesion_condition.disabled_capability_ids
+    ):
+        raise CognitiveLesionRescueError(
+            "matched rescue must use the same disabled capability universe as lesion"
+        )
+    for name, value in (
+        ("score_metric_id", score_metric_id),
+        ("score_metric_version", score_metric_version),
+        ("lesion_operator_id", lesion_operator_id),
+        ("rescue_operator_id", rescue_operator_id),
+    ):
+        _id(name, value)
+
     normal_id = f"{normal_run.episode_family_id}:normal"
     lesion_id = f"{normal_run.episode_family_id}:lesion"
     rescue_id = f"{normal_run.episode_family_id}:rescue"
@@ -574,21 +831,37 @@ def run_matched_lesion_rescue(
         episode_id=rescue_id,
         episode_generation=episode_generation,
     )
-    comparison_id = "comparison:" + _digest(
-        {
-            "normal": normal_result.sha256(),
-            "lesion": lesion_result.sha256(),
-            "rescue": rescue_result.sha256(),
-        }
+    lesion_delta = lesion_result.final_score - normal_result.final_score
+    rescue_delta = rescue_result.final_score - lesion_result.final_score
+    restoration_gap = rescue_result.final_score - normal_result.final_score
+    interpretation = _interpret_measured_deltas(
+        lesion_delta=lesion_delta,
+        rescue_delta=rescue_delta,
+        restoration_gap=restoration_gap,
     )
+    identity_payload = {
+        "normal": normal_result.sha256(),
+        "lesion": lesion_result.sha256(),
+        "rescue": rescue_result.sha256(),
+        "score_metric_id": score_metric_id,
+        "score_metric_version": score_metric_version,
+        "lesion_operator_id": lesion_operator_id,
+        "rescue_operator_id": rescue_operator_id,
+    }
+    comparison_id = "comparison:" + _digest(identity_payload)
     return LesionRescueComparison(
         COMPARISON_SCHEMA,
         comparison_id,
         normal_result,
         lesion_result,
         rescue_result,
-        lesion_result.final_score - normal_result.final_score,
-        rescue_result.final_score - lesion_result.final_score,
-        rescue_result.final_score - normal_result.final_score,
+        score_metric_id,
+        score_metric_version,
+        lesion_operator_id,
+        rescue_operator_id,
+        lesion_delta,
+        rescue_delta,
+        restoration_gap,
+        interpretation,
         _origin=_COMPARISON_ORIGIN,
     )
