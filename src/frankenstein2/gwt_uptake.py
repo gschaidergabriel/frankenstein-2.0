@@ -73,13 +73,27 @@ def _refs(name: str, values: Iterable[str]) -> tuple[str, ...]:
 
 def _canonical_json(value: Any) -> str:
     try:
-        return json.dumps(value, sort_keys=True, separators=(",", ":"), ensure_ascii=False, allow_nan=False)
+        return json.dumps(
+            value,
+            sort_keys=True,
+            separators=(",", ":"),
+            ensure_ascii=False,
+            allow_nan=False,
+        )
     except (TypeError, ValueError) as exc:
         raise GWTUptakeError("value must be canonical-JSON encodable") from exc
 
 
 def _digest(value: Any) -> str:
     return hashlib.sha256(_canonical_json(value).encode("utf-8")).hexdigest()
+
+
+def _grid_order(values: Iterable[str]) -> tuple[str, ...]:
+    """Return logical cell identities in the canonical G1..G10 ABI order."""
+    value_set = set(values)
+    if not value_set.issubset(set(GRID10_CELL_IDS)):
+        raise GWTUptakeError("cell collection contains non-GRID10 identity")
+    return tuple(cell_id for cell_id in GRID10_CELL_IDS if cell_id in value_set)
 
 
 @dataclass(frozen=True, slots=True)
@@ -105,8 +119,16 @@ class CellUptakeReceipt:
             raise GWTUptakeError("cell uptake receipt schema mismatch")
         for name in ("receipt_id", "broadcast_id", "selection_id", "plan_id"):
             object.__setattr__(self, name, _identifier(name, getattr(self, name)))
-        object.__setattr__(self, "broadcast_sha256", _sha256("broadcast_sha256", self.broadcast_sha256))
-        object.__setattr__(self, "plan_generation", _generation("plan_generation", self.plan_generation))
+        object.__setattr__(
+            self,
+            "broadcast_sha256",
+            _sha256("broadcast_sha256", self.broadcast_sha256),
+        )
+        object.__setattr__(
+            self,
+            "plan_generation",
+            _generation("plan_generation", self.plan_generation),
+        )
         object.__setattr__(self, "plan_sha256", _sha256("plan_sha256", self.plan_sha256))
         if self.cell_id not in GRID10_CELL_IDS:
             raise GWTUptakeError("cell_id must be one logical GRID10 identity G1..G10")
@@ -120,11 +142,25 @@ class CellUptakeReceipt:
             if self.downstream_ref is None or self.downstream_sha256 is None:
                 raise GWTUptakeError("UPTAKEN requires explicit downstream evidence")
         if (self.downstream_ref is None) != (self.downstream_sha256 is None):
-            raise GWTUptakeError("downstream_ref and downstream_sha256 must be present together")
+            raise GWTUptakeError(
+                "downstream_ref and downstream_sha256 must be present together"
+            )
         if self.downstream_ref is not None:
-            object.__setattr__(self, "downstream_ref", _identifier("downstream_ref", self.downstream_ref))
-            object.__setattr__(self, "downstream_sha256", _sha256("downstream_sha256", self.downstream_sha256))
-        object.__setattr__(self, "provenance_refs", _refs("provenance_refs", self.provenance_refs))
+            object.__setattr__(
+                self,
+                "downstream_ref",
+                _identifier("downstream_ref", self.downstream_ref),
+            )
+            object.__setattr__(
+                self,
+                "downstream_sha256",
+                _sha256("downstream_sha256", self.downstream_sha256),
+            )
+        object.__setattr__(
+            self,
+            "provenance_refs",
+            _refs("provenance_refs", self.provenance_refs),
+        )
 
     @classmethod
     def observe(
@@ -180,7 +216,9 @@ class CellUptakeReceipt:
             self.plan_sha256,
         )
         if observed != expected:
-            raise GWTUptakeError("cell receipt broadcast/selection/GRID10 binding mismatch")
+            raise GWTUptakeError(
+                "cell receipt broadcast/selection/GRID10 binding mismatch"
+            )
         if self.cell_id not in broadcast.recipient_cell_ids:
             raise GWTUptakeError("cell receipt recipient binding mismatch")
 
@@ -213,15 +251,39 @@ class UptakeSummary:
         if self.schema != UPTAKE_SUMMARY_SCHEMA:
             raise GWTUptakeError("uptake summary schema mismatch")
         object.__setattr__(self, "summary_id", _identifier("summary_id", self.summary_id))
-        object.__setattr__(self, "broadcast_id", _identifier("broadcast_id", self.broadcast_id))
-        object.__setattr__(self, "broadcast_sha256", _sha256("broadcast_sha256", self.broadcast_sha256))
-        object.__setattr__(self, "selection_id", _identifier("selection_id", self.selection_id))
+        object.__setattr__(
+            self,
+            "broadcast_id",
+            _identifier("broadcast_id", self.broadcast_id),
+        )
+        object.__setattr__(
+            self,
+            "broadcast_sha256",
+            _sha256("broadcast_sha256", self.broadcast_sha256),
+        )
+        object.__setattr__(
+            self,
+            "selection_id",
+            _identifier("selection_id", self.selection_id),
+        )
         object.__setattr__(self, "plan_id", _identifier("plan_id", self.plan_id))
-        object.__setattr__(self, "plan_generation", _generation("plan_generation", self.plan_generation))
+        object.__setattr__(
+            self,
+            "plan_generation",
+            _generation("plan_generation", self.plan_generation),
+        )
         object.__setattr__(self, "plan_sha256", _sha256("plan_sha256", self.plan_sha256))
-        if self.status not in {"UPTAKE_OBSERVED", "NO_UPTAKE_OBSERVED", "UNKNOWN_INCOMPLETE_RECEIPTS"}:
+        if self.status not in {
+            "UPTAKE_OBSERVED",
+            "NO_UPTAKE_OBSERVED",
+            "UNKNOWN_INCOMPLETE_RECEIPTS",
+        }:
             raise GWTUptakeError("unsupported uptake summary status")
-        object.__setattr__(self, "provenance_refs", _refs("provenance_refs", self.provenance_refs))
+        object.__setattr__(
+            self,
+            "provenance_refs",
+            _refs("provenance_refs", self.provenance_refs),
+        )
 
     def as_dict(self) -> dict[str, Any]:
         return asdict(self)
@@ -241,7 +303,9 @@ def summarize_uptake(
         raise GWTUptakeError("broadcast must be concrete BroadcastEnvelope")
     values = tuple(receipts)
     if any(type(item) is not CellUptakeReceipt for item in values):
-        raise GWTUptakeError("receipts must contain concrete CellUptakeReceipt values")
+        raise GWTUptakeError(
+            "receipts must contain concrete CellUptakeReceipt values"
+        )
     receipt_ids = tuple(item.receipt_id for item in values)
     cell_ids = tuple(item.cell_id for item in values)
     if len(receipt_ids) != len(set(receipt_ids)):
@@ -251,10 +315,17 @@ def summarize_uptake(
     for item in values:
         item.assert_broadcast_binding(broadcast)
 
-    delivered = tuple(sorted(item.cell_id for item in values if item.delivery_status == "DELIVERED"))
-    uptaken = tuple(sorted(item.cell_id for item in values if item.uptake_status == "UPTAKEN"))
+    delivered_set = {
+        item.cell_id for item in values if item.delivery_status == "DELIVERED"
+    }
+    uptaken_set = {item.cell_id for item in values if item.uptake_status == "UPTAKEN"}
     observed_cells = set(cell_ids)
-    unknown = tuple(sorted(set(GRID10_CELL_IDS) - observed_cells | {item.cell_id for item in values if item.uptake_status == "UNKNOWN"}))
+    unknown_set = (set(GRID10_CELL_IDS) - observed_cells) | {
+        item.cell_id for item in values if item.uptake_status == "UNKNOWN"
+    }
+    delivered = _grid_order(delivered_set)
+    uptaken = _grid_order(uptaken_set)
+    unknown = _grid_order(unknown_set)
     if unknown:
         status = "UNKNOWN_INCOMPLETE_RECEIPTS"
     elif uptaken:
@@ -297,16 +368,38 @@ class CausalProbeArm:
         object.__setattr__(self, "arm_id", _identifier("arm_id", self.arm_id))
         if self.condition not in _CONDITIONS:
             raise GWTUptakeError(f"condition must be one of {sorted(_CONDITIONS)}")
-        object.__setattr__(self, "nonbroadcast_input_sha256", _sha256("nonbroadcast_input_sha256", self.nonbroadcast_input_sha256))
-        object.__setattr__(self, "downstream_output_sha256", _sha256("downstream_output_sha256", self.downstream_output_sha256))
+        object.__setattr__(
+            self,
+            "nonbroadcast_input_sha256",
+            _sha256("nonbroadcast_input_sha256", self.nonbroadcast_input_sha256),
+        )
+        object.__setattr__(
+            self,
+            "downstream_output_sha256",
+            _sha256("downstream_output_sha256", self.downstream_output_sha256),
+        )
         if self.condition == "INTERVENTION_BROADCAST":
             if self.broadcast_id is None or self.broadcast_sha256 is None:
-                raise GWTUptakeError("intervention arm requires exact broadcast binding")
-            object.__setattr__(self, "broadcast_id", _identifier("broadcast_id", self.broadcast_id))
-            object.__setattr__(self, "broadcast_sha256", _sha256("broadcast_sha256", self.broadcast_sha256))
+                raise GWTUptakeError(
+                    "intervention arm requires exact broadcast binding"
+                )
+            object.__setattr__(
+                self,
+                "broadcast_id",
+                _identifier("broadcast_id", self.broadcast_id),
+            )
+            object.__setattr__(
+                self,
+                "broadcast_sha256",
+                _sha256("broadcast_sha256", self.broadcast_sha256),
+            )
         elif self.broadcast_id is not None or self.broadcast_sha256 is not None:
             raise GWTUptakeError("control arm must not carry a broadcast binding")
-        object.__setattr__(self, "provenance_refs", _refs("provenance_refs", self.provenance_refs))
+        object.__setattr__(
+            self,
+            "provenance_refs",
+            _refs("provenance_refs", self.provenance_refs),
+        )
 
     @classmethod
     def intervention(
@@ -377,6 +470,21 @@ class CausalInfluenceResult:
     def __post_init__(self) -> None:
         if self.schema != CAUSAL_INFLUENCE_RESULT_SCHEMA:
             raise GWTUptakeError("causal influence result schema mismatch")
+        for name in (
+            "result_id",
+            "broadcast_id",
+            "uptake_summary_id",
+            "intervention_arm_id",
+            "control_arm_id",
+        ):
+            object.__setattr__(self, name, _identifier(name, getattr(self, name)))
+        for name in (
+            "broadcast_sha256",
+            "uptake_summary_sha256",
+            "intervention_arm_sha256",
+            "control_arm_sha256",
+        ):
+            object.__setattr__(self, name, _sha256(name, getattr(self, name)))
         if self.status not in {
             "CAUSAL_INFLUENCE_OBSERVED_AT_CONTRACT_SCOPE",
             "NO_CAUSAL_INFLUENCE_OBSERVED",
@@ -384,7 +492,11 @@ class CausalInfluenceResult:
             "UNKNOWN_UNMATCHED_CONTROL",
         }:
             raise GWTUptakeError("unsupported causal influence result status")
-        object.__setattr__(self, "provenance_refs", _refs("provenance_refs", self.provenance_refs))
+        object.__setattr__(
+            self,
+            "provenance_refs",
+            _refs("provenance_refs", self.provenance_refs),
+        )
 
     def as_dict(self) -> dict[str, Any]:
         return asdict(self)
@@ -407,12 +519,23 @@ def evaluate_causal_influence(
     if type(uptake_summary) is not UptakeSummary:
         raise GWTUptakeError("uptake_summary must be concrete UptakeSummary")
     if type(intervention) is not CausalProbeArm or type(control) is not CausalProbeArm:
-        raise GWTUptakeError("intervention and control must be concrete CausalProbeArm values")
-    if intervention.condition != "INTERVENTION_BROADCAST" or control.condition != "CONTROL_NO_BROADCAST":
+        raise GWTUptakeError(
+            "intervention and control must be concrete CausalProbeArm values"
+        )
+    if (
+        intervention.condition != "INTERVENTION_BROADCAST"
+        or control.condition != "CONTROL_NO_BROADCAST"
+    ):
         raise GWTUptakeError("causal probe requires intervention and control conditions")
-    if uptake_summary.broadcast_id != broadcast.broadcast_id or uptake_summary.broadcast_sha256 != broadcast.sha256():
+    if (
+        uptake_summary.broadcast_id != broadcast.broadcast_id
+        or uptake_summary.broadcast_sha256 != broadcast.sha256()
+    ):
         raise GWTUptakeError("uptake summary broadcast binding mismatch")
-    if intervention.broadcast_id != broadcast.broadcast_id or intervention.broadcast_sha256 != broadcast.sha256():
+    if (
+        intervention.broadcast_id != broadcast.broadcast_id
+        or intervention.broadcast_sha256 != broadcast.sha256()
+    ):
         raise GWTUptakeError("intervention broadcast binding mismatch")
 
     if uptake_summary.status != "UPTAKE_OBSERVED":
@@ -426,7 +549,7 @@ def evaluate_causal_influence(
 
     return CausalInfluenceResult(
         schema=CAUSAL_INFLUENCE_RESULT_SCHEMA,
-        result_id=_identifier("result_id", result_id),
+        result_id=result_id,
         broadcast_id=broadcast.broadcast_id,
         broadcast_sha256=broadcast.sha256(),
         uptake_summary_id=uptake_summary.summary_id,
