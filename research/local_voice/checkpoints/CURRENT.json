@@ -1,5 +1,5 @@
 {
-  "schema_version": 5,
+  "schema_version": 6,
   "trigger": "7",
   "status": "ACTIVE_RESEARCH",
   "language_priority": "de",
@@ -26,7 +26,9 @@
     "research/local_voice/models/T7_QWEN35_4B_LOCAL_PROVIDER_FRONTIER_2026-08-29.json",
     "research/local_voice/models/T7_LOCAL_VOICE_CANDIDATE_MATRIX_2026-08-29.json",
     "research/local_voice/benchmarks/T7_GERMAN_REALTIME_VOICE_BENCHMARK_V1.md",
-    "research/local_voice/sources/T7_ASR_001_QWEN3_ASR_06B_GERMAN_SOURCE_AUDIT_2026-08-30.md"
+    "research/local_voice/sources/T7_ASR_001_QWEN3_ASR_06B_GERMAN_SOURCE_AUDIT_2026-08-30.md",
+    "research/local_voice/sources/2026-08-30_QWEN35_4B_OFFICIAL_BASELINE_PIN.json",
+    "research/local_voice/negative_results/2026-08-30_T7_SYS_002_SELF_HOSTED_RUNNER_QUEUE_BLOCKED.json"
   ],
   "evidence_level": "V1_SOURCE_PINNED_EXTENDED_HARNESS_READY_NO_TARGET_RUNTIME",
   "runtime_acceptance_credit": false,
@@ -37,9 +39,20 @@
   "benchmark_harness_repository_ci_verified": true,
   "benchmark_harness_ci_run": 33263014399,
   "benchmark_harness_ci_conclusion": "success",
+  "vps_executor_state": {
+    "research_id": "T7-SYS-002",
+    "objective": "E3_VPS_HARDWARE_INVENTORY",
+    "workflow_run_id": 33265274949,
+    "workflow_head_sha": "0a7603bdad2bccdfebcbe58ca5490a67039e473c",
+    "observed_status": "queued",
+    "hardware_receipt_observed": false,
+    "classification": "INFRASTRUCTURE_TRANSPORT_BLOCKED_NOT_PRODUCT_NEGATIVE",
+    "coordination": "parallel Trigger-7 executor work observed; fuse first real exact receipt and do not add another executor lane"
+  },
   "new_high_value_findings": [
     "final voice selection must fit inside the resident resource envelope of the complete installed Frankenstein, not merely fit ASR/LLM/TTS in isolation",
     "official Qwen3.5-4B must be benchmarked before the abliterated 4B variant so alignment intervention effects can be isolated from baseline German voice quality",
+    "the official Qwen/Qwen3.5-4B reference was pinned at observed repository head 851bf6e806efd8d0a36b00ddf55e13ccb7b8cd0a; current official-Qwen search did not reveal a Qwen3.5-4B GGUF, so any quantized or abliterated derivative requires separate provenance, hashes, runtime and parity evidence",
     "Qwen3-ASR-0.6B source audit now has an exact observed model.safetensors SHA-256 79d6cbd4c98c7bbffe9db2edac07f56cd6637d0d5944b27f6c2b8353840323ea and explicit German plus unified offline/streaming support",
     "Nemotron 3.5 ASR Streaming 0.6B remains a required comparator with 80/160/320/560/1120 ms right-context sweep, but a current German underperformance community report means it is no longer assumed to be the default German winner before target measurement",
     "DualTurn-style causal two-channel EOT/VAD/FVAD is a high-value local turn-controller candidate but its current metadata is English-oriented, so German endpoint quality is unproven",
@@ -50,7 +63,9 @@
     "a common causal JSONL receipt now measures speech-end-to-first-audio, TTFT, TTFA, barge-in stop, duplicate/replay, unheard-output commit and outbound inference counters",
     "deployment candidate selection now tracks license/dependency/security/offline gates separately from quality and latency",
     "current owner execution authority explicitly authorizes and expects clay-direct-dev VPS execution, local-model downloads and benchmarks; missing direct ChatGPT SSH is not NO_EXECUTOR",
-    "the transient ChatGPT container is not the owner VPS sandbox; missing SSH keys/config or normal DNS there must be routed around using the established bridge/self-hosted runner rather than stopping Trigger 7"
+    "the transient ChatGPT container is not the owner VPS sandbox; missing SSH keys/config or normal DNS there must be routed around using the established bridge/self-hosted runner rather than stopping Trigger 7",
+    "the current self-hosted Trigger-7 hardware inventory dispatch is queued and has produced no target receipt; this is infrastructure/runner availability evidence only, not a negative result about hardware, model behavior or German voice quality",
+    "parallel Trigger-7 executor commits appeared during T7-SYS-002, so duplication pressure is now an explicit coordination constraint: the first exact source/hash-bound real receipt wins and later lanes must fuse rather than multiply"
   ],
   "current_primary_hypothesis": "The best near-term production path is a capability-adaptive, fully local German modular voice organ: streaming ASR + two-channel/semantic endpoint intelligence + speculative but cancellation-safe inference + official Qwen3.5-4B-class local baseline + measured expressive streaming TTS. Model bundles must coexist with the entire installed Frankenstein resident body. Native full-duplex remains a parallel architecture lane until German quality, tool/state boundaries and target hardware fit are demonstrated.",
   "active_claims": [
@@ -62,12 +77,13 @@
   ],
   "completed_claims": [
     "T7-SYS-001/E2_DEEP_RUN02_LOCAL_RUNTIME_BENCHMARK_CONTRACT",
-    "T7-ASR-001/E2_SOURCE_AUDIT_QWEN3_ASR_06B"
+    "T7-ASR-001/E2_SOURCE_AUDIT_QWEN3_ASR_06B",
+    "T7-LLM-003/E2_OFFICIAL_QWEN35_4B_BASELINE_PIN"
   ],
   "next_exact_actions": [
-    "complete the already-claimed T7-SYS-002 bridge roundtrip and t7_hardware_inventory.py execution inside clay-direct-dev; do not duplicate this objective",
-    "compute whole-Frankenstein RAM/VRAM headroom from the T7-SYS-002 receipt before selecting resident model bundles",
-    "resolve and immutably pin an official Qwen3.5-4B local quantization/reference and quarantine-download it in clay-direct-dev before the abliterated controlled variant",
+    "re-enter the already-existing T7-SYS-002 or equivalent nonduplicate authorized executor and fuse the first exact source/hash-bound clay-direct-dev hardware receipt; do not create another executor workflow merely because the current self-hosted job is queued",
+    "compute whole-Frankenstein RAM/VRAM headroom from the first valid hardware receipt before selecting or downloading resident model bundles",
+    "use pinned official Qwen/Qwen3.5-4B head 851bf6e806efd8d0a36b00ddf55e13ccb7b8cd0a as the reference baseline; quarantine-download and hash exact bytes in clay-direct-dev before any abliterated controlled variant",
     "benchmark official Qwen3.5-4B and pinned abliterated Q4 under identical German VoiceSessionCapsule prompts, tool schemas and context settings",
     "run the predeclared E3 German ASR comparison: Qwen3-ASR-0.6B vs Nemotron 3.5 0.6B at 80/160/320/560 ms vs donor Whisper on identical real room audio",
     "benchmark Qwen3-TTS first, then footprint-compatible Fun-CosyVoice3, Chatterbox, dots.tts, MOSS-TTS-Realtime and Magpie candidates with stable male identity/ExpressionVector tests",
