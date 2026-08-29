@@ -1,0 +1,41 @@
+name: WP708 ObserveIntent Binding
+
+on:
+  pull_request:
+    paths:
+      - 'src/frankenstein2/observe_intent.py'
+      - 'src/frankenstein2/retina_fanin.py'
+      - 'tests/test_observe_intent.py'
+      - 'architecture/PERCEPTION_FABRIC.md'
+      - 'architecture/PERCEPTION_FABRIC_HARDENING_20260829.md'
+      - 'workpackages/PERCEPTION_FABRIC_PHASE.json'
+      - '.github/workflows/wp708-observe-intent-ci.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'src/frankenstein2/observe_intent.py'
+      - 'src/frankenstein2/retina_fanin.py'
+      - 'tests/test_observe_intent.py'
+      - 'architecture/PERCEPTION_FABRIC.md'
+      - 'architecture/PERCEPTION_FABRIC_HARDENING_20260829.md'
+      - 'workpackages/PERCEPTION_FABRIC_PHASE.json'
+      - '.github/workflows/wp708-observe-intent-ci.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  wp708-observe-intent:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Compile ObserveIntent boundary
+        run: python -m py_compile src/frankenstein2/observe_intent.py
+      - name: Run deterministic WP708 falsifiers
+        env:
+          PYTHONPATH: src
+        run: python -m unittest tests.test_observe_intent -v
