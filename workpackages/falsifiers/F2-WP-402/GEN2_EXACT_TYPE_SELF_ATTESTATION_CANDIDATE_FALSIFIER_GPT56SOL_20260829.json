@@ -1,0 +1,60 @@
+{
+  "schema": "FRANKENSTEIN2_WORKPACKAGE_DELTA/v1",
+  "workpackage_id": "F2-WP-402",
+  "generation": 2,
+  "classification": "CANDIDATE_FALSIFIER",
+  "review_id": "F2-WP-402-G2-REVIEW-EXACT-TYPE-SELF-ATTESTATION-20260829",
+  "review_worker": "GPT-5.6-Sol",
+  "authority_epoch": "9.13",
+  "active_claim_id": "F2-WP-402-G2-GPT56SOL-DIRECT-CONSTRUCTOR-BINDING-REPAIR-20260829",
+  "tested_source_base_commit": "e633ecb9b5b4883ec2ecb26dd2b9ee96c23104e4",
+  "tested_source_path": "src/frankenstein2/qubo_projection.py",
+  "tested_source_blob_sha": "e376d06e20c8335f2f81fad5acda3e9215647b4c",
+  "accepted_g2_source_blob_sha_observed_on_main": "e376d06e20c8335f2f81fad5acda3e9215647b4c",
+  "finding": "Generation-2 build and score admission use isinstance() at WorldSlice and QuboProjection trust boundaries. A WorldSlice subtype can override sha256(), self-attest an attacker-selected digest through build_qubo_projection(), and pass the generation-2 score revalidation path because score_assignment() and _validate_projection_against_slice() accept the subtype and call its overridden sha256().",
+  "counterhypothesis": "Generation-2 independent scoring revalidation might be sufficient even when Python subclasses are admitted because the frozen WorldSlice data fields remain immutable.",
+  "discriminator": "Subclass WorldSlice, override sha256() to return 64 zero hex characters, supply that same digest as expected_slice_sha256, build a projection from a selected atom, then require the build-and-score path to reject the subtype before accepting its self-attested digest.",
+  "falsifier": {
+    "branch": "chatgpt/review-wp402-g2-exact-type-falsifier-20260829",
+    "test": "tests/test_wp402_g2_exact_type_falsifier.py",
+    "workflow": ".github/workflows/review-wp402-g2-exact-type-falsifier-ci.yml",
+    "head_sha": "cc68773980b5123e0f87d2516f90e57a0c0e1280",
+    "run_id": 33243245819,
+    "conclusion": "failure",
+    "interpretation": "FAIL_AS_EXPECTED_FOR_VULNERABLE_SOURCE: the semantic assertRaises(QuboProjectionError) was not satisfied by the exact tested generation-2 source path. This invalidates the claimed exact-source trust boundary at repository-hosted component scope; it does not imply target-runtime or whole-system failure."
+  },
+  "repair_probe": {
+    "workflow": ".github/workflows/review-wp402-g2-exact-type-repair-probe-ci.yml",
+    "head_sha": "e6558da6da812379c501258998404a9060c5101f",
+    "run_id": 33243253498,
+    "job_id": 99076112529,
+    "conclusion": "success",
+    "ephemeral_repair": "Replace both WorldSlice isinstance admission guards with type(world_slice) is WorldSlice and the QuboProjection score admission guard with type(projection) is QuboProjection.",
+    "steps": {
+      "apply_exact_type_guards_ephemerally": "PASS",
+      "compile_repaired_source_and_falsifier": "PASS",
+      "exact_type_build_and_score_falsifier_after_repair": "PASS"
+    },
+    "interpretation": "Exact concrete-type admission is sufficient to close this specific subtype self-attestation exploit at the reviewed repository-hosted component scope. This is not proof that all WP402 provenance or scoring boundaries are closed."
+  },
+  "main_acceptance_conflict_observed": {
+    "state": "ACCEPTED",
+    "terminal_scope": "QUBO_SCORING_EXACT_WORLDSLICE_REVALIDATION_REPOSITORY_HOSTED_COMPONENT_CI_ONLY",
+    "canonical_source_blob_sha": "e376d06e20c8335f2f81fad5acda3e9215647b4c",
+    "passing_run_id": 33243165119,
+    "tests": "10/10 PASS",
+    "conflict": "The accepted source blob is byte-identical to the blob falsified by this review, so the bounded G2 acceptance has new executable counterevidence and should be reopened/superseded rather than treated as closed."
+  },
+  "recommended_owner_action": "The canonical WP402 mutation owner should supersede/reopen generation 2, absorb exact concrete-type guards plus the subtype regression into the canonical owned source/tests, rerun canonical repository CI at exact head, and only then issue a successor reconciliation. Do not merge a stale generation-1 implementation branch over generation 2.",
+  "canonical_mutation_authority": "UNCHANGED_REVIEW_ONLY_EVIDENCE",
+  "credit": {
+    "wp402_generation2_acceptance": false,
+    "runtime_credit": 0,
+    "physical_grid10_credit": 0,
+    "gwt_runtime_credit": 0,
+    "jspace_runtime_credit": 0,
+    "training_credit": 0,
+    "whole_system_acceptance": false
+  },
+  "authority_note": "Append-only review evidence only. No solver/provider/model/tool/effect/VPS runtime was invoked; Supervisor 9.13 FREE_ONLY/HARD_OFF provider authority remains unchanged."
+}
