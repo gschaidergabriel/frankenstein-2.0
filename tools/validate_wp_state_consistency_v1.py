@@ -107,17 +107,15 @@ def _bind_terminal_reconciliation(
 def _claim_lifecycle_status(claim: dict, path: Path):
     """Read admitted v1 claim lifecycle spelling without rewriting provenance.
 
-    Historical/current v1 claims exist with either ``status`` or ``state``. If both
-    are present they must agree; otherwise the single present field is authoritative
-    for this compatibility validator.
+    Historical v1 claims may contain both a pointer-like ``state`` and a distinct
+    lifecycle ``status``. When ``status`` exists it is authoritative for this check;
+    current claims that omit it may use ``state`` as the compatibility spelling.
     """
-    status = claim.get("status")
-    state = claim.get("state")
-    if status is None and state is None:
-        raise ValidationError(f"missing 'status' or 'state': {path}")
-    if status is not None and state is not None and status != state:
-        raise ValidationError(f"claim status/state mismatch: {path}")
-    return status if status is not None else state
+    if "status" in claim:
+        return claim["status"]
+    if "state" in claim:
+        return claim["state"]
+    raise ValidationError(f"missing 'status' or 'state': {path}")
 
 
 def validate(root: Path, workpackage: str) -> list[str]:
