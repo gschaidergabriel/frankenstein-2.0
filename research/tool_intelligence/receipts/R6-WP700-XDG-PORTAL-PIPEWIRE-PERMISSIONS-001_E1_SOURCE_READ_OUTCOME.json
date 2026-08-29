@@ -1,0 +1,84 @@
+{
+  "schema": "FRANKENSTEIN2_TRIGGER6_E1_SOURCE_READ_OUTCOME/v1",
+  "research_id": "R6-WP700-XDG-PORTAL-PIPEWIRE-PERMISSIONS-001",
+  "claim_target": "E1_SOURCE_READ",
+  "status": "E1_SOURCE_READ_COMPLETE_NO_ARCHITECTURE_OR_RUNTIME_CREDIT",
+  "completed_at": "2026-08-29T18:23:30+07:00",
+  "worker": "GPT-5.6-Sol:Triggerword-6-organ",
+  "claim_ref": "research/tool_intelligence/claims/R6-WP700-XDG-PORTAL-PIPEWIRE-PERMISSIONS-001/E1_SOURCE_READ.json",
+  "f2_architecture_context": {
+    "current_gap_source": "src/frankenstein2/perception_host_permissions.py",
+    "current_gap_blob_sha_observed": "940b95efcce3b64fff59764da7f5c2e0f0da6dc7",
+    "finding": "F2 already distinguishes dashboard intent from host-produced permission evidence, but the source explicitly delegates actual OS/native checks to a not-yet-proven host adapter. HostPermissionGrant.native_permission_ref is structurally only a non-empty string and the effective-host-permission marker is derived at resolution time; no portal session liveness/revocation witness is represented by this module alone."
+  },
+  "upstream_pins": [
+    {
+      "project": "flatpak/xdg-desktop-portal",
+      "commit": "8b8138a9651a54903daee1ade31d9b5634cd8042",
+      "path": "data/org.freedesktop.portal.ScreenCast.xml",
+      "blob_sha": "ddec479990535855f26b267747cb02de5499dbb1",
+      "spdx": "LGPL-2.1-or-later"
+    },
+    {
+      "project": "flatpak/xdg-desktop-portal",
+      "commit": "8b8138a9651a54903daee1ade31d9b5634cd8042",
+      "path": "data/org.freedesktop.portal.Camera.xml",
+      "blob_sha": "b50e0ca7ff65a49946316888f3ee052cfdb56429",
+      "spdx": "LGPL-2.1-or-later"
+    },
+    {
+      "project": "flatpak/xdg-desktop-portal",
+      "commit": "8b8138a9651a54903daee1ade31d9b5634cd8042",
+      "path": "data/org.freedesktop.portal.Session.xml",
+      "blob_sha": "6bbbd9f136fb29cda157434560d6b55150e3daa5",
+      "spdx": "LGPL-2.1-or-later"
+    },
+    {
+      "project": "PipeWire/pipewire",
+      "commit_observed": "adad3f54dab7474a0448b1cfe4dacc2dedf71126",
+      "official_docs_surface": "PipeWire 1.6.8 Portal Access Control / Access Control",
+      "scope_note": "Documentation establishes portal-managed restricted PipeWire connections and dynamic per-object permission revocation; the documentation deployment is not claimed byte-identical to the observed GitHub mirror commit."
+    }
+  ],
+  "source_findings": [
+    {
+      "id": "E1-PORTAL-SESSION-LIVENESS",
+      "finding": "ScreenCast uses an explicit long-lived portal Session. A session can be closed by the client or portal at any time; Session.Closed signals closure, and disappearance of the D-Bus client is equivalent to closing its active sessions.",
+      "f2_implication_hypothesis": "A static grant marker cannot by itself prove continued authorization after session closure."
+    },
+    {
+      "id": "E1-RESTORE-TOKEN-NOT-LIVE-GRANT",
+      "finding": "ScreenCast restore tokens are single-use persistence/restore tokens. Withdrawal of stored permission can make restoration fail and prompt again. persist_mode describes persistence, not proof that an already compiled ObserveIntent remains currently executable.",
+      "f2_implication_hypothesis": "Never use restore_token as a current-permission/liveness credential."
+    },
+    {
+      "id": "E1-STABLE-STREAM-IDENTITY",
+      "finding": "ScreenCast interface version 6 deprecates the returned PipeWire node ID for targeting because node IDs can be reused after node destruction. It directs consumers to pipewire-serial/object.serial plus PW_KEY_TARGET_OBJECT. Stream id is opaque/session-local and may persist across restored sessions.",
+      "f2_implication_hypothesis": "F2 capture identity should not authorize or causally bind a stream by reusable node ID alone."
+    },
+    {
+      "id": "E1-RESTRICTED-REMOTE-CAPABILITY",
+      "finding": "OpenPipeWireRemote yields a file descriptor for a portal-configured PipeWire remote. ScreenCast exposes only the selected screencast nodes; Camera OpenPipeWireRemote succeeds only after camera permission and exposes camera nodes.",
+      "f2_implication_hypothesis": "The live remote/session is an execution capability and should remain ephemeral; durable state should store typed digests/receipts, not a raw file descriptor."
+    },
+    {
+      "id": "E1-DYNAMIC-PIPEWIRE-PERMISSIONS",
+      "finding": "PipeWire portal access starts from a restricted connection; the session manager grants visibility/interaction on permitted objects and can remove permissions when permission state changes. PipeWire permissions are per client/object and can change during a client lifetime.",
+      "f2_implication_hypothesis": "Execution-time permission revalidation or a revocation-aware lease is required if F2 wants current host-authorization evidence rather than only compile-time evidence."
+    },
+    {
+      "id": "E1-SOURCE-SPECIFIC-LIFECYCLE",
+      "finding": "ScreenCast is explicitly session-oriented with source selection and Start/OpenPipeWireRemote. Camera uses AccessCamera then OpenPipeWireRemote and is not described by the same ScreenCast session protocol.",
+      "f2_implication_hypothesis": "Do not force one fake universal portal-session shape across all PerceptionSource kinds; use a common typed host-permission ABI with source-specific native evidence adapters."
+    }
+  ],
+  "hypothesis": "For Linux visual capture, F2 should structurally distill portal/PipeWire semantics into a thin source-specific host adapter that binds user policy to fresh native permission/session evidence, stable stream identity and revocation-aware execution validation, while retaining UnifiedDB/F2 as the only canonical state authority.",
+  "counterhypothesis": "The existing monotonic HostPermissionGrant expiry plus effective marker could be sufficient if every actual capture invocation unconditionally reacquires native permission and never relies on a previously compiled ObserveIntent. Current inspected F2 source does not yet establish that execution-time reacquisition invariant.",
+  "recommended_next_discriminator": "E2 map the exact minimal adapter/lease boundary against current F2 perception source and prove whether compile-time effective permission can remain valid after an external session closes. Do not import portal or PipeWire frameworks merely to copy their policy layer.",
+  "evidence_ceiling": "E1_SOURCE_READ",
+  "research_credit": 1,
+  "architecture_credit": 0,
+  "runtime_credit": 0,
+  "vps_credit": 0,
+  "whole_system_credit": 0
+}
