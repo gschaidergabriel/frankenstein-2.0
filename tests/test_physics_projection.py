@@ -8,8 +8,10 @@ import unittest
 from frankenstein2.physics_projection import (
     INTEGRATION_RULE,
     MAX_STEPS,
+    PhysicsProjection,
     PhysicsProjectionError,
     project_rudimentary_kinematics,
+    validate_physics_projection_binding,
 )
 from frankenstein2.sparse_world_basis import (
     EpistemicOrigin,
@@ -179,6 +181,99 @@ class RudimentaryPhysicsProjectionTests(unittest.TestCase):
         self.assertEqual(result.source_atom_digests, (p.sha256(), v.sha256(), a.sha256()))
         with self.assertRaises(FrozenInstanceError):
             result.steps = 3  # type: ignore[misc]
+
+    def test_exact_source_revalidation_accepts_only_independently_rebuilt_projection(self):
+        s = world_slice()
+        p = atom("pos", (0, 0))
+        v = atom("vel", (1, 2))
+        a = atom("acc", (1, -1))
+        result = project(slice_obj=s, position=p, velocity=v, acceleration=a)
+        admitted = validate_physics_projection_binding(
+            projection=result,
+            world_slice=s,
+            position_atom=p,
+            velocity_atom=v,
+            acceleration_atom=a,
+            expected_projection_sha256=result.sha256(),
+        )
+        self.assertIs(admitted, result)
+
+    def test_direct_constructor_forged_source_binding_self_hash_is_not_admission(self):
+        s = world_slice()
+        p = atom("pos", (0, 0))
+        v = atom("vel", (1, 2))
+        a = atom("acc", (1, -1))
+        valid = project(slice_obj=s, position=p, velocity=v, acceleration=a)
+        forged = PhysicsProjection(
+            projection_id=valid.projection_id,
+            slice_id=valid.slice_id,
+            slice_digest=valid.slice_digest,
+            need_id=valid.need_id,
+            cycle_id=valid.cycle_id,
+            generation=valid.generation,
+            vector_space_version=valid.vector_space_version,
+            position_atom_id=valid.position_atom_id,
+            velocity_atom_id=valid.velocity_atom_id,
+            acceleration_atom_id="atom:not-selected",
+            source_atom_digests=valid.source_atom_digests,
+            dt_ticks=valid.dt_ticks,
+            steps=valid.steps,
+            position_trajectory=valid.position_trajectory,
+            velocity_trajectory=valid.velocity_trajectory,
+        )
+        forged_self_hash = forged.sha256()
+        self.assertEqual(forged.sha256(), forged_self_hash)
+        with self.assertRaisesRegex(PhysicsProjectionError, "independently rebuilt"):
+            validate_physics_projection_binding(
+                projection=forged,
+                world_slice=s,
+                position_atom=p,
+                velocity_atom=v,
+                acceleration_atom=a,
+                expected_projection_sha256=forged_self_hash,
+            )
+
+    def test_direct_constructor_forged_trajectory_and_wrong_expected_digest_fail_closed(self):
+        s = world_slice()
+        p = atom("pos", (0, 0))
+        v = atom("vel", (1, 2))
+        a = atom("acc", (1, -1))
+        valid = project(slice_obj=s, position=p, velocity=v, acceleration=a)
+        forged = PhysicsProjection(
+            projection_id=valid.projection_id,
+            slice_id=valid.slice_id,
+            slice_digest=valid.slice_digest,
+            need_id=valid.need_id,
+            cycle_id=valid.cycle_id,
+            generation=valid.generation,
+            vector_space_version=valid.vector_space_version,
+            position_atom_id=valid.position_atom_id,
+            velocity_atom_id=valid.velocity_atom_id,
+            acceleration_atom_id=valid.acceleration_atom_id,
+            source_atom_digests=valid.source_atom_digests,
+            dt_ticks=valid.dt_ticks,
+            steps=valid.steps,
+            position_trajectory=((0, 0), (999, 999), (999, 999)),
+            velocity_trajectory=valid.velocity_trajectory,
+        )
+        with self.assertRaisesRegex(PhysicsProjectionError, "independently rebuilt"):
+            validate_physics_projection_binding(
+                projection=forged,
+                world_slice=s,
+                position_atom=p,
+                velocity_atom=v,
+                acceleration_atom=a,
+                expected_projection_sha256=forged.sha256(),
+            )
+        with self.assertRaisesRegex(PhysicsProjectionError, "does not match expected"):
+            validate_physics_projection_binding(
+                projection=valid,
+                world_slice=s,
+                position_atom=p,
+                velocity_atom=v,
+                acceleration_atom=a,
+                expected_projection_sha256="0" * 64,
+            )
 
 
 if __name__ == "__main__":
