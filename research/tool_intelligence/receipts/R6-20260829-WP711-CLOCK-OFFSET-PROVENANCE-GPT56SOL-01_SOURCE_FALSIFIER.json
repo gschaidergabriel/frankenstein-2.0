@@ -1,0 +1,62 @@
+{
+  "schema": "FRANKENSTEIN2_TRIGGER6_FALSIFIER_RECEIPT/v1",
+  "research_id": "R6-20260829-WP711-CLOCK-OFFSET-PROVENANCE-GPT56SOL-01",
+  "status": "SOURCE_GROUNDED_COUNTEREXAMPLE_OPEN_TRIGGER4_REPAIR",
+  "observed_f2_source": {
+    "merge_commit": "30b3a1a4e99f412c0a954b1bd9317ff4b26d8446",
+    "implementation": "src/frankenstein2/perception_temporal.py",
+    "tests": "tests/test_perception_temporal.py",
+    "workpackage": "F2-WP-711"
+  },
+  "finding": "reference_offset_ns is a caller-supplied integer that directly participates in reference_time_ns and therefore cross-source admissibility, but the merged TemporalPerceptRef has no required calibration/synchronization evidence identity, calibration generation, reference-clock identity, validity interval, or offset-evidence digest. clock_domain is persisted but does not by itself authorize or validate the supplied offset. Consequently ALIGNED/CURRENT is evidence-bounded to the caller's numeric normalization assertion, not to independently bound clock-synchronization provenance.",
+  "source_counterexample": {
+    "local": {"source_id":"screen:1","clock_domain":"clock:screen:1","source_time_ns":980,"reference_offset_ns":0,"clock_uncertainty_ns":0},
+    "remote": {"source_id":"camera:remote","clock_domain":"clock:camera:remote","source_time_ns":480,"reference_offset_ns":500,"clock_uncertainty_ns":5},
+    "window": {"reference_now_ns":1000,"max_join_skew_ns":30,"max_clock_uncertainty_ns":10},
+    "observed_contract_behavior": "The repository test test_reference_clock_offset_enables_bounded_cross_host_join requires both refs to be CURRENT/ALIGNED. The same API permits the remote offset value to be supplied without a machine-enforced calibration provenance object.",
+    "falsified_stronger_interpretation": "ObservationWindow.alignment_status=ALIGNED cannot be interpreted as proof that distinct clock domains were actually synchronized to the claimed offset."
+  },
+  "external_primary_support": {
+    "source": "ROS 2 Clock and Time design",
+    "relevance": [
+      "Distributed robotics timing assumes synchronized clocks when accurate event timestamps are required.",
+      "ROS time can jump and explicitly requires handling time-source discontinuities rather than assuming monotonic continuity.",
+      "Different time abstractions have compatibility constraints; clock identity therefore carries semantic weight beyond a numeric timestamp."
+    ]
+  },
+  "severity": "P1_TEMPORAL_PROVENANCE_GAP_BEFORE_STRONGER_RUNTIME_CREDIT",
+  "not_claimed": [
+    "No world-truth minting was reproduced.",
+    "No runtime/device/VPS/GRID10/GWT/J-Space behavior was executed.",
+    "No claim is made that the current component CI is invalid at its declared source/unit scope.",
+    "No claim is made that every caller will provide a false offset; the gap is that the contract does not machine-bind the offset to evidence."
+  ],
+  "recommended_native_repair": {
+    "new_or_extended_contract": "ClockAlignmentEvidence",
+    "minimum_fields": [
+      "source_clock_domain",
+      "reference_clock_domain",
+      "offset_ns",
+      "uncertainty_ns",
+      "alignment_evidence_id_or_sha256",
+      "alignment_generation_or_epoch",
+      "observed_at_ns",
+      "valid_until_ns_or_max_age_ns",
+      "provenance_refs"
+    ],
+    "admission_rule": "A non-zero or cross-domain reference offset may affect CURRENT/ALIGNED only when bound to exact, non-stale ClockAlignmentEvidence whose offset/uncertainty/clock identities match the TemporalPerceptRef. Missing, stale, mismatched or superseded alignment evidence yields UNALIGNED rather than caller-normalized CURRENT.",
+    "time_jump_rule": "Clock reset/jump or alignment-generation change invalidates prior cross-domain normalization until re-established.",
+    "same_domain_fast_path": "Same-domain observations may use the native clock relation without manufacturing cross-domain calibration evidence, subject to existing freshness/uncertainty rules."
+  },
+  "trigger4_falsifiers": [
+    "Cross-domain ref with arbitrary offset and no calibration evidence must be UNALIGNED.",
+    "Correct offset but stale calibration generation must be UNALIGNED.",
+    "Correct numeric offset with wrong source/reference clock-domain binding must be rejected.",
+    "Clock-jump/new epoch must invalidate old alignment evidence.",
+    "Changing only untrusted reference_offset_ns must not convert an otherwise UNALIGNED pair into ALIGNED."
+  ],
+  "downstream_note": "F2-WP-712 is building a typed PerceptionWorldBridge with exact time/provenance identity. Before stronger bridge/runtime credit, its temporal provenance should not treat an unbound WP-711 reference offset as authenticated clock-alignment evidence.",
+  "research_credit": "SOURCE_GROUNDED_FALSIFIER_ONLY",
+  "component_runtime_credit_change": 0,
+  "whole_system_credit": 0
+}
