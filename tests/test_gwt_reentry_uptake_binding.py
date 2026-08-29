@@ -245,3 +245,66 @@ def test_direct_binding_constructor_bypass_is_rejected_on_validation():
             broadcast=broadcast,
             cell_input=cell_input,
         )
+
+
+def test_detached_wp506_builder_lineage_is_rejected_at_g3_binding_boundary():
+    plan = make_plan()
+    valid_selection = make_selection(plan)
+    valid_broadcast = create_broadcast(
+        broadcast_id="broadcast:wp508-g3-detached",
+        generation=3,
+        selection=valid_selection,
+        expected_selection_sha256=valid_selection.sha256(),
+        recipient_cell_ids=("G1",),
+    )
+    detached_selection = replace(valid_selection, selection_policy=None, source_candidates=())
+    detached_broadcast = replace(
+        valid_broadcast,
+        selection_sha256=detached_selection.sha256(),
+    )
+    cell_input = CellInput.for_plan(
+        plan,
+        cell_id="G1",
+        work_units_requested=2,
+        reentry_depth=1,
+        input_refs=("payload:candidate",),
+        provenance_refs=("prov:g3-detached-reentry",),
+    )
+    witness = build_reentry_witness(
+        plan=plan,
+        selection=detached_selection,
+        broadcast=detached_broadcast,
+        cell_input=cell_input,
+    )
+    receipt = make_receipt(detached_broadcast)
+    with pytest.raises(GwtReentryUptakeBindingError, match="invalid WP506 selection builder lineage"):
+        bind(witness, receipt, plan, detached_selection, detached_broadcast, cell_input)
+
+
+def test_reentry_without_any_broadcast_payload_ref_is_rejected_at_g3_boundary():
+    plan = make_plan()
+    selection = make_selection(plan)
+    broadcast = create_broadcast(
+        broadcast_id="broadcast:wp508-g3-payload",
+        generation=3,
+        selection=selection,
+        expected_selection_sha256=selection.sha256(),
+        recipient_cell_ids=("G1",),
+    )
+    unrelated_input = CellInput.for_plan(
+        plan,
+        cell_id="G1",
+        work_units_requested=2,
+        reentry_depth=1,
+        input_refs=("local:unrelated",),
+        provenance_refs=("prov:g3-unrelated-reentry",),
+    )
+    witness = build_reentry_witness(
+        plan=plan,
+        selection=selection,
+        broadcast=broadcast,
+        cell_input=unrelated_input,
+    )
+    receipt = make_receipt(broadcast)
+    with pytest.raises(GwtReentryUptakeBindingError, match="lacks bound broadcast candidate payload reference"):
+        bind(witness, receipt, plan, selection, broadcast, unrelated_input)
