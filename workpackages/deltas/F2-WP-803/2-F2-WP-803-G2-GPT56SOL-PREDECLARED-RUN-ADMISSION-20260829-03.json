@@ -1,0 +1,62 @@
+{
+  "schema": "FRANKENSTEIN2_WORKPACKAGE_DELTA/v1",
+  "workpackage_id": "F2-WP-803",
+  "generation": 2,
+  "claim_id": "F2-WP-803-G2-GPT56SOL-RUN-DESCRIPTOR-BINDING-20260829",
+  "worker_id": "GPT-5.6-Sol-TRIGGER4",
+  "authority_epoch": "8.78",
+  "classification": "SOURCE_AND_REGRESSION_REPAIR_PENDING_REPOSITORY_CI_NO_RUNTIME_CREDIT",
+  "refresh_base_main": "60ba69809a65fcc9026c31e9c4889fee81bdbc11",
+  "opened_from_falsifier": {
+    "main_delta": "workpackages/deltas/F2-WP-803/2-F2-WP-803-G2-GPT56SOL-RUN-DESCRIPTOR-BINDING-20260829-02.json",
+    "review_pr": 481,
+    "review_head_sha": "c50a39384c7e0de28b79893272183bbc9e920cf9",
+    "review_run_id": 33254898298,
+    "observed_failures": [
+      "PredictionCandidate.benchmark_generation remained candidate-self-attested and was copied into evaluation without an independent evaluator binding.",
+      "benchmark_run_id plus policy_id could be co-forged together with a fresh builder-originated matching RunDescriptor because no independently pinned predeclared run-admission digest existed."
+    ]
+  },
+  "repair_branch": "trigger4/wp803-g2-predeclared-run-admission-20260829",
+  "repair_commits": {
+    "admission_source": "02a88347461acb59dee41ade822e0ea8c010313f",
+    "regression_tests": "f991aa99c6bacfae1ba2804f2c40206ed29d208f",
+    "ci": "1ab7a2fad7884e270d0d1d22b50caccaa854e7a7"
+  },
+  "repair": {
+    "source": "src/frankenstein2/cognitive_world_model_run_admission.py",
+    "test": "tests/test_cognitive_world_model_run_admission.py",
+    "workflow": ".github/workflows/wp803-run-admission-ci.yml",
+    "mechanism": [
+      "BenchmarkRunAdmission.predeclare accepts only exact evaluator-side MicroWorldFixture plus builder-originated WP800 RunDescriptor and benchmark_generation; it accepts no PredictionCandidate.",
+      "The admission seals run_id, benchmark_generation, exact RunDescriptor digest, SUT identity and exact fixture identity into a deterministic digest.",
+      "evaluate_admitted_next_observation_prediction requires an independently supplied expected_run_admission_sha256 before any underlying benchmark step.",
+      "Candidate benchmark_generation must equal the predeclared admission generation.",
+      "Candidate run_id/SUT and supplied RunDescriptor must match the exact predeclared admission.",
+      "A freshly compatible forged descriptor plus freshly compatible forged admission fails when the evaluator retains the original predeclared expected admission digest."
+    ],
+    "threat_boundary": "UNTRUSTED_PREDICTION_CANDIDATE_VS_EVALUATOR_PREDECLARED_PINNED_RUN_ADMISSION",
+    "explicit_nonclaim": "This does not cryptographically authenticate an evaluator that intentionally discards/replaces its own predeclared expected digest. Outer run-package/manifest persistence must pin the expected admission digest before candidate scoring."
+  },
+  "tests_added": [
+    "exact intended run passes through the admitted wrapper",
+    "benchmark generation relabel fails before step",
+    "run-id plus SUT co-forge fails against original admission before step",
+    "fresh post-hoc compatible admission fails against the retained predeclared expected digest",
+    "plain dataclass reconstruction of the admission is rejected"
+  ],
+  "repository_ci_observed": false,
+  "runtime_execution_observed": false,
+  "vps_runtime_observed": false,
+  "runtime_credit": 0,
+  "physical_grid10_credit": 0,
+  "gwt_runtime_credit": 0,
+  "jspace_runtime_credit": 0,
+  "provider_model_credit": 0,
+  "training_credit": 0,
+  "effect_credit": 0,
+  "completion_credit": 0,
+  "whole_system_acceptance": false,
+  "state_decision": "KEEP_GENERATION_2_NONTERMINAL_UNTIL_EXACT_PR_HEAD_AND_MERGED_MAIN_CI",
+  "next_exact_action": "Open the repair PR from the exact branch, require the new WP803 admission CI on the exact PR head, inspect failures or PASS, then if merged rerun/observe merged-main CI. Only after both positive path and the two PR481 negative controls pass on the exact admitted source may reconciliation narrow/replace the stale G2 terminal acceptance record. Runtime/GRID10/GWT/J-Space/training/effect/completion/whole-system credit remains zero."
+}
