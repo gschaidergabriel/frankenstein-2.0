@@ -1,0 +1,32 @@
+name: Review WP405 G1 Exact Slice Subtype Falsifier
+
+on:
+  push:
+    branches:
+      - chatgpt/review-wp405-g1-exact-slice-subtype-falsifier-20260829
+    paths:
+      - 'src/frankenstein2/sparse_world_basis.py'
+      - 'src/frankenstein2/world_multiview.py'
+      - 'tests/test_wp405_g1_exact_slice_subtype_falsifier.py'
+      - 'workpackages/falsifiers/F2-WP-405/EXACT_SLICE_SUBTYPE_SELF_ATTESTATION_CANDIDATE_FALSIFIER_GPT56SOL_20260829.json'
+      - '.github/workflows/review-wp405-g1-exact-slice-subtype-falsifier-ci.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  candidate-falsifier:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Compile exact source and falsifier
+        run: python -m py_compile src/frankenstein2/sparse_world_basis.py src/frankenstein2/world_multiview.py tests/test_wp405_g1_exact_slice_subtype_falsifier.py
+      - name: Require duplicate exact WorldSlice subtype rejection
+        env:
+          PYTHONPATH: src
+        run: python tests/test_wp405_g1_exact_slice_subtype_falsifier.py -v

@@ -1,0 +1,27 @@
+{
+  "schema": "FRANKENSTEIN2_CANDIDATE_FALSIFIER/v1",
+  "workpackage_id": "F2-WP-405",
+  "review_scope": "REVIEW_ONLY_EXECUTABLE_COUNTEREVIDENCE",
+  "base_main_commit": "66567be427c6b6470efa5a909a636087536bcf2d",
+  "reviewed_source": "src/frankenstein2/world_multiview.py",
+  "reviewed_source_blob_sha": "79d9a962d949a714ac61fd4d9860954cab8dd0a5",
+  "accepted_generation_reviewed": 1,
+  "accepted_scope_reviewed": "SPARSE_WORLD_MULTIVIEW_DISAGREEMENT_REPOSITORY_HOSTED_COMPONENT_CI_ONLY",
+  "hypothesis": "WP405 generation 1 can admit two canonically identical WorldSlice values as distinct exact slices when WorldSlice subclasses override sha256(), because WorldView and compare_world_views accept subclasses with isinstance() and duplicate-exact-slice detection trusts polymorphic slice_sha256().",
+  "counterhypothesis": "The existing WorldView validation plus duplicate slice guard rejects two canonically identical WorldSlice subtype instances even when their overridden sha256() methods return different attacker-selected digests.",
+  "discriminator": "Construct two WorldSlice subclasses with identical canonical fields and equal base WorldSlice.sha256() values but different overridden sha256() values; bind them to two WorldView values and require compare_world_views() to reject them as the same exact WorldSlice.",
+  "expected_secure_result": "MultiViewError with duplicate exact WorldSlice rejection",
+  "vulnerable_result_if_confirmed": "compare_world_views returns a MultiViewOverlay because the two overridden sha256 values bypass duplicate-exact-slice detection",
+  "claim_boundary": {
+    "runtime_execution_observed": false,
+    "runtime_credit": 0,
+    "physical_grid10_credit": 0,
+    "gwt_runtime_credit": 0,
+    "jspace_runtime_credit": 0,
+    "training_credit": 0,
+    "whole_system_acceptance": false
+  },
+  "mutation_authority": "NONE_REVIEW_ONLY",
+  "canonical_wp405_source_or_test_mutation": false,
+  "created_at_utc": "2026-08-29T08:59:00Z"
+}
