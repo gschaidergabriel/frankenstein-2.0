@@ -1,0 +1,175 @@
+{
+  "schema": "FRANKENSTEIN2_TRIGGER6_SOURCE_READ_E1/v1",
+  "research_id": "R6-WP509-LANGGRAPH-STOP-001",
+  "trigger": "6",
+  "slot": "SOURCE_ARCHAEOLOGIST",
+  "status": "E1_SOURCE_READ_COMPLETE",
+  "created_at": "2026-08-29T15:08:50+07:00",
+  "claim": {
+    "path": "research/tool_intelligence/claims/R6-WP509-LANGGRAPH-STOP-001/E1_SOURCE_READ.json",
+    "commit": "cd4ddd20828a80e541b2301aec2d8f07341339f3",
+    "credit_from_claim": 0
+  },
+  "architecture_delta_fusion": {
+    "f2_main_at_result_start": "ea7ac24cc0ae2c83568a3011a9974bb34b909bed",
+    "research_entity_main_observed": "abe7f2f9fd34a0dc4652ed0055e820e3a81cc727",
+    "supervisor": "9.13 / 9.13AQ_NON_AUTHORITY / FREE_ONLY",
+    "supervisor_source": "research_entity/claycode/autonomous/SUPERVISOR_INBOX.json",
+    "trigger6_parent_fusion": "R6-WP509-RUMINATION-STOPPING-SCOUT-001@9ed69237f0c994d0dd712d99ae0504178d066a28",
+    "current_wp509_evidence": "F2-WP-509 generation 1 repository-component CI accepted; target-runtime/physical-GRID10/whole-loop credit remains zero",
+    "wp509_source": "src/frankenstein2/rumination_control.py",
+    "wp509_source_blob_sha": "b03e2a36518307de24ae10462457bda88d752ce7",
+    "current_relevant_supervisor_frontier": "WP507 repository component CI passes but actual GWT uptake/hidden-state causality remains unproven; all provider routes remain unadmitted; non-provider local/sandbox validation remains allowed",
+    "staleness_rule": "If WP509 policy/ABI or owner/supervisor authority changes, mark this source-fit conclusion STALE_REVIEW_REQUIRED before E2/E3 handoff."
+  },
+  "external_source": {
+    "repository": "langchain-ai/langgraph",
+    "source_commit": "11ee185999b86bfea2d8c0e69cef9a5e37acf686",
+    "source_commit_date": "2026-08-28T13:05:04Z",
+    "repository_archived": false,
+    "license": "MIT",
+    "package_version_observed": "1.2.11",
+    "package_classifier": "Development Status :: 5 - Production/Stable",
+    "files_read": [
+      {"path": "libs/langgraph/langgraph/errors.py", "blob_sha": "65b57d61e44ce4faed08d9ac244bd8a128239bad"},
+      {"path": "libs/langgraph/langgraph/managed/is_last_step.py", "blob_sha": "e53058db3660bca50e4c93ba4438ea02e25e1a07"},
+      {"path": "libs/prebuilt/langgraph/prebuilt/chat_agent_executor.py", "blob_sha": "6c11c8847febbafd2b4fb3634868d40636c3b53b"},
+      {"path": "libs/langgraph/langgraph/runtime.py", "blob_sha": "9e6d32bf84e36015a8813d01e021da2b9874e0b1"},
+      {"path": "libs/langgraph/langgraph/_internal/_config.py", "blob_sha": "b79b24c26663278d60eebeb4004867e0d8a413ba"},
+      {"path": "libs/langgraph/pyproject.toml", "blob_sha": "e3d95cfec83fb9ce4a887c264a060f4513be2e9d"},
+      {"path": "LICENSE", "blob_sha": "fc0602feecdd6748623c852ab534e1ca612673c7"}
+    ]
+  },
+  "observed_mechanisms": [
+    {
+      "id": "LANGGRAPH-HARD-STEP-BUDGET",
+      "source": "errors.py + _config.py",
+      "observation": "LangGraph exposes a configurable recursion_limit with a dedicated GraphRecursionError when the maximum graph-step budget is exhausted. The default is injected through runtime configuration rather than inferred from model behavior.",
+      "f2_fit": "MEDIUM_ALREADY_MOSTLY_PRESENT",
+      "reason": "WP509 already has explicit max_iterations and remaining_work_units, so the hard-budget idea is not a missing primitive."
+    },
+    {
+      "id": "LANGGRAPH-READONLY-REMAINING-STEPS",
+      "source": "managed/is_last_step.py",
+      "observation": "RemainingSteps is a managed read-only value computed as stop minus current step; IsLastStep is similarly derived from execution scratchpad rather than model text.",
+      "f2_fit": "HIGH_AS_THIN_DONOR_PATTERN",
+      "reason": "F2 has a remaining_work_units input but no evidenced runtime-managed, provenance-bound remaining-budget view exposed to cognition/policy. A derived read-only budget view could reduce self-estimated budget drift without creating new state authority."
+    },
+    {
+      "id": "LANGGRAPH-PRECALL-BUDGET-GATE",
+      "source": "prebuilt/chat_agent_executor.py",
+      "observation": "The prebuilt agent checks remaining_steps before allowing further tool-call progression; with too few steps it substitutes a terminal assistant message instead of proceeding into a tool cycle.",
+      "f2_fit": "MEDIUM_PATTERN_ONLY",
+      "reason": "The pre-call resource gate is useful, but F2 must not copy the natural-language fallback or let an assistant message become control/completion authority. The transferable mechanism is a deterministic typed pre-dispatch budget gate."
+    },
+    {
+      "id": "LANGGRAPH-COOPERATIVE-DRAIN",
+      "source": "runtime.py + errors.py",
+      "observation": "RunControl provides a run-scoped cooperative drain request, while GraphDrained is documented as an early graph exit at a superstep boundary with checkpoint save/resume semantics.",
+      "f2_fit": "HIGH_AS_CONTROL-SEPARATION_PATTERN",
+      "reason": "F2 WP509 already distinguishes typed exits from completion; a resumable drain/HOLD transition is structurally aligned and can make resource/shutdown stops explicit without destroying work or minting COMPLETE."
+    }
+  ],
+  "negative_evidence_and_transfer_limits": [
+    {
+      "id": "LANGGRAPH-FULL-IMPORT-DUPLICATES-ORCHESTRATION",
+      "severity": "HIGH",
+      "finding": "The langgraph package is a stateful orchestration framework with its own graph runtime, checkpoint package, SDK, prebuilt agent layer, configuration and persistence abstractions.",
+      "f2_consequence": "Do not import LangGraph as the WP509 control plane. That would add a competing orchestration/checkpoint substrate around F2 instead of strengthening the existing deterministic control component."
+    },
+    {
+      "id": "LANGGRAPH-DEPENDENCY-SURFACE",
+      "severity": "MEDIUM_HIGH",
+      "finding": "Observed core dependencies include langchain-core, langgraph-checkpoint, langgraph-sdk, langgraph-prebuilt, xxhash and pydantic.",
+      "f2_consequence": "For the narrow WP509 blocker, concept distillation is materially cheaper than runtime dependency adoption."
+    },
+    {
+      "id": "LANGGRAPH-TEXT-FALLBACK-NOT-AUTHORITY",
+      "severity": "CRITICAL_FOR_F2",
+      "finding": "The prebuilt agent can replace a budget-insufficient tool-call response with a natural-language assistant message saying more steps are needed.",
+      "f2_consequence": "F2 must instead emit a typed, digest-bound EXIT/ASK/HOLD/WAIT decision; model text cannot become loop-control or completion authority."
+    },
+    {
+      "id": "LANGGRAPH-RECURSION-LIMIT-IS-NOT-RUMINATION-DETECTION",
+      "severity": "MEDIUM",
+      "finding": "A hard step ceiling prevents infinite loops but does not by itself distinguish useful continued cognition from repeated-state rumination or premature stopping.",
+      "f2_consequence": "Keep WP509 unchanged-state and epistemic-state logic; use remaining-step exposure only as an additional bounded signal, not as the sole stop policy."
+    }
+  ],
+  "f2_distillation": {
+    "verdict": "DISTILL_THREE_SMALL_PATTERNS; REJECT_FULL_LANGGRAPH_IMPORT_FOR_WP509",
+    "patterns": [
+      {
+        "name": "ManagedRemainingBudgetView",
+        "shape": "Pure derived read-only view of exact caller/runtime-owned budget: total_limit, consumed_steps, remaining_steps, budget_generation, budget_digest.",
+        "authority": "MEASUREMENT_ONLY_NOT_WORLD_TRUTH_OR_COMPLETION",
+        "integration_target": "WP509 snapshot construction / future runtime envelope"
+      },
+      {
+        "name": "TypedPreDispatchBudgetGate",
+        "shape": "Before an expensive model/tool/effect-candidate stage, deterministically reject or reroute when the exact remaining budget cannot accommodate the next bounded step; emit ASK/WAIT/DEFER_HOLD/OBSERVE rather than text fallback.",
+        "authority": "CONTROL_POLICY_ONLY; DOES_NOT_AUTHORIZE_EFFECTS_OR_COMPLETE_TASKS",
+        "integration_target": "WP509 + WP505 adaptive-compute boundary"
+      },
+      {
+        "name": "ResumableDrainTransition",
+        "shape": "Represent shutdown/resource-pressure/maintenance exit as a typed HOLD/drain state bound to a resumable checkpoint/reference, separate from terminal completion and from hard-failure exhaustion.",
+        "authority": "TRANSITION_ONLY; CHECKPOINT/UNIFIEDDB AUTHORITY REMAINS EXISTING F2/CANONICAL PATH",
+        "integration_target": "WP509 + persistence/reentry layer; no second checkpointer"
+      }
+    ],
+    "do_not_adopt": [
+      "LangGraph graph runtime as a second control plane",
+      "LangGraph checkpoint/store as a second canonical state substrate",
+      "natural-language budget exhaustion messages as control state",
+      "GraphRecursionError semantics as proof of rumination or task completion"
+    ]
+  },
+  "hypothesis": {
+    "statement": "WP509 can become more resource-efficient and more resumable by distilling LangGraph's runtime-managed remaining-step view and cooperative-drain separation into F2-native typed metadata, while retaining WP509's stronger unchanged-state/epistemic-state logic and canonical authority fences.",
+    "confidence": 0.88,
+    "expected_gain": "Reduce self-estimated budget drift and avoid destructive hard-stop behavior with negligible dependency cost; preserve explicit ASK/HOLD/WAIT/OBSERVE exits."
+  },
+  "counterhypotheses": [
+    {
+      "id": "CH-LANGGRAPH-WP509-1",
+      "statement": "WP509's existing remaining_work_units plus max_iterations is already sufficient; a separate managed remaining-step view adds duplicate fields and binding complexity without reducing errors.",
+      "discriminator": "At E2/E3, construct stale/mismatched budget-generation fixtures. If the existing snapshot can already reject all stale/misaligned budget cases with equal clarity and fewer fields, reject ManagedRemainingBudgetView."
+    },
+    {
+      "id": "CH-LANGGRAPH-WP509-2",
+      "statement": "Resumable drain belongs entirely in persistence/runtime orchestration, not WP509, and adding it to the rumination contract would blur responsibilities.",
+      "discriminator": "Map the current reentry/checkpoint boundary. Keep WP509 limited to a typed DEFER_HOLD reason if a dedicated runtime layer can bind checkpoint/resume identity without adding a second authority."
+    },
+    {
+      "id": "CH-LANGGRAPH-WP509-3",
+      "statement": "Pre-dispatch budget gating can prematurely suppress a high-value final action when budget accounting is too conservative.",
+      "discriminator": "Use deterministic boundary fixtures where exactly-one-step completion-candidate work remains; require the gate to distinguish bounded next-step cost classes and route uncertainty to ASK/HOLD rather than silently dropping work."
+    }
+  ],
+  "recommended_next_trigger6_objective": {
+    "slot": "SOURCE_ARCHAEOLOGIST",
+    "research_id": "R6-WP509-LANGGRAPH-STOP-001",
+    "claim_target": "E2_ARCHITECTURE_MAPPED",
+    "task": "Map ManagedRemainingBudgetView, TypedPreDispatchBudgetGate and ResumableDrainTransition against exact current WP509/WP505/reentry interfaces. Prove that the mapping adds no second state/checkpoint/effect authority and identify the smallest exact ABI delta or reject it as redundant.",
+    "evidence_ceiling": "E2_ARCHITECTURE_MAPPED"
+  },
+  "execution": {
+    "external_provider_calls": 0,
+    "paid_execution": 0,
+    "vps_execution": 0,
+    "runtime_experiments": 0,
+    "evidence_scope": "SOURCE_READ_AND_ARCHITECTURE_HYPOTHESIS_ONLY"
+  },
+  "credits": {
+    "trigger6_evidence_stage": "E1_SOURCE_READ",
+    "architecture_acceptance_credit": 0,
+    "runtime_credit": 0,
+    "physical_grid10_credit": 0,
+    "gwt_runtime_credit": 0,
+    "jspace_runtime_credit": 0,
+    "integration_credit": 0,
+    "whole_system_credit": 0,
+    "training_credit": 0
+  }
+}
