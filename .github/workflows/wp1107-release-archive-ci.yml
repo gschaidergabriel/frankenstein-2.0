@@ -9,6 +9,7 @@ on:
       - 'src/frankenstein2/release_archive.py'
       - 'tests/test_release_archive.py'
       - 'tests/test_release_archive_metadata_perimeter.py'
+      - 'tests/release_archive_golden_vector.py'
       - '.github/workflows/wp1107-release-archive-ci.yml'
       - 'workpackages/active/F2-WP-1107.json'
       - 'workpackages/state_events/F2-WP-1107/**'
@@ -20,6 +21,7 @@ on:
       - 'src/frankenstein2/release_archive.py'
       - 'tests/test_release_archive.py'
       - 'tests/test_release_archive_metadata_perimeter.py'
+      - 'tests/release_archive_golden_vector.py'
       - '.github/workflows/wp1107-release-archive-ci.yml'
   workflow_dispatch:
 
@@ -42,6 +44,7 @@ jobs:
           src/frankenstein2/release_archive.py
           tests/test_release_archive.py
           tests/test_release_archive_metadata_perimeter.py
+          tests/release_archive_golden_vector.py
       - name: Run deterministic archive variance and negative-control suite
         env:
           PYTHONPATH: src
@@ -52,3 +55,20 @@ jobs:
         run: python tests/test_release_archive_metadata_perimeter.py -v
       - name: Validate migrated workpackage state chain
         run: python tools/resolve_workpackage_state_v2.py --check-active
+
+  cross-runtime-byte-vector:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ['3.11', '3.12', '3.13']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Emit exact deterministic archive vector
+        env:
+          PYTHONPATH: src
+        run: python tests/release_archive_golden_vector.py
