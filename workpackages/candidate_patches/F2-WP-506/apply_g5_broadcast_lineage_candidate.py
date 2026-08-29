@@ -58,4 +58,30 @@ uptake = replace_once(
 )
 uptake_path.write_text(uptake, encoding="utf-8")
 
-print("WP506 G5 candidate applied deterministically")
+workspace_test_path = Path("tests/test_gwt_workspace.py")
+workspace_test = workspace_test_path.read_text(encoding="utf-8")
+workspace_test = replace_once(
+    workspace_test,
+    "    assert isinstance(broadcast, BroadcastEnvelope)\n    assert broadcast.recipient_cell_ids == (\"G1\", \"G10\")\n",
+    "    assert isinstance(broadcast, BroadcastEnvelope)\n    broadcast.assert_builder_lineage()\n    assert broadcast.recipient_cell_ids == (\"G1\", \"G10\")\n",
+    label="builder lineage regression",
+)
+workspace_test_path.write_text(workspace_test, encoding="utf-8")
+
+uptake_test_path = Path("tests/test_gwt_uptake.py")
+uptake_test = uptake_test_path.read_text(encoding="utf-8")
+uptake_test = replace_once(
+    uptake_test,
+    "from frankenstein2.gwt_workspace import BroadcastEnvelope\n",
+    "from frankenstein2.gwt_workspace import BroadcastEnvelope, _BROADCAST_FACTORY_SEAL\n",
+    label="WP507 valid fixture lineage import",
+)
+uptake_test = replace_once(
+    uptake_test,
+    "        recipient_cell_ids=tuple(recipients), candidate_ids=(\"c1\",),\n        candidate_payload_refs=(\"p1\",),\n    )\n",
+    "        recipient_cell_ids=tuple(recipients), candidate_ids=(\"c1\",),\n        candidate_payload_refs=(\"p1\",),\n        _factory_seal=_BROADCAST_FACTORY_SEAL,\n    )\n",
+    label="WP507 valid builder fixture seal",
+)
+uptake_test_path.write_text(uptake_test, encoding="utf-8")
+
+print("WP506/WP507 G5 candidate applied deterministically")
