@@ -1,9 +1,11 @@
 """Deterministic rudimentary physics projection for Frankenstein 2.0.
 
-F2-WP-403 is deliberately narrow: it projects caller-admitted, exact WorldSlice
-state with a bounded integer semi-implicit Euler rule.  The result is a
-noncanonical candidate projection.  It does not infer a physical law, observe the
-world, select an action, authorize an effect, or mint completion/truth authority.
+F2-WP-403 generation 3 preserves the bounded integer semi-implicit Euler candidate
+projection while hardening every public source-binding trust boundary to exact concrete
+WorldSlice, WorldAtom and PhysicsProjection types before caller-provided polymorphic
+methods can attest identity. The result remains a noncanonical candidate projection. It
+does not infer a physical law, observe the world, select an action, authorize an effect,
+or mint completion/truth authority.
 """
 from __future__ import annotations
 
@@ -66,8 +68,8 @@ def _validate_source_atom(
     role: str,
     world_slice: WorldSlice,
 ) -> None:
-    if not isinstance(atom, WorldAtom):
-        raise PhysicsProjectionError(f"{role} must be a WorldAtom")
+    if type(atom) is not WorldAtom:
+        raise PhysicsProjectionError(f"{role} must be exact WorldAtom")
     if atom.atom_id not in world_slice.selected_atom_ids:
         raise PhysicsProjectionError(f"{role} atom must be selected by the exact WorldSlice")
     if atom.atom_id in world_slice.tainted_atom_ids:
@@ -151,12 +153,12 @@ def project_rudimentary_kinematics(
         velocity[t+1] = velocity[t] + acceleration * dt_ticks
         position[t+1] = position[t] + velocity[t+1] * dt_ticks
 
-    All quantities are opaque integer units.  No unit conversion, learned law,
+    All quantities are opaque integer units. No unit conversion, learned law,
     parameter inference, external observation, or action semantics are implied.
     """
 
-    if not isinstance(world_slice, WorldSlice):
-        raise PhysicsProjectionError("world_slice must be a WorldSlice")
+    if type(world_slice) is not WorldSlice:
+        raise PhysicsProjectionError("world_slice must be exact WorldSlice")
 
     _validate_source_atom(atom=position_atom, role="position", world_slice=world_slice)
     _validate_source_atom(atom=velocity_atom, role="velocity", world_slice=world_slice)
@@ -249,6 +251,7 @@ def project_rudimentary_kinematics(
         velocity_trajectory=tuple(velocity_trajectory),
     )
 
+
 def _require_sha256_hex(name: str, value: Any) -> str:
     if (
         not isinstance(value, str)
@@ -268,15 +271,25 @@ def validate_physics_projection_binding(
     acceleration_atom: WorldAtom,
     expected_projection_sha256: str,
 ) -> PhysicsProjection:
-    """Fail closed unless a projection exactly replays from its claimed sources.
+    """Fail closed unless an exact concrete projection replays from exact sources.
 
-    A projection self-hash is only an integrity digest over caller-visible data;
-    it is not evidence that the object crossed the validated builder.  This
-    boundary therefore requires the exact WorldSlice and source WorldAtoms and
-    independently rebuilds the candidate before admitting equality.
+    A projection self-hash is only an integrity digest over caller-visible data; it is not
+    evidence that an arbitrary subtype crossed the validated builder. Exact concrete types
+    are therefore required before any instance-provided hash/canonicalization method is
+    invoked. The candidate is then independently rebuilt from the exact WorldSlice and
+    source WorldAtoms and compared byte-for-byte.
     """
-    if not isinstance(projection, PhysicsProjection):
-        raise PhysicsProjectionError("projection must be a PhysicsProjection")
+    if type(projection) is not PhysicsProjection:
+        raise PhysicsProjectionError("projection must be exact PhysicsProjection")
+    if type(world_slice) is not WorldSlice:
+        raise PhysicsProjectionError("world_slice must be exact WorldSlice")
+    if type(position_atom) is not WorldAtom:
+        raise PhysicsProjectionError("position must be exact WorldAtom")
+    if type(velocity_atom) is not WorldAtom:
+        raise PhysicsProjectionError("velocity must be exact WorldAtom")
+    if type(acceleration_atom) is not WorldAtom:
+        raise PhysicsProjectionError("acceleration must be exact WorldAtom")
+
     expected_projection_sha256 = _require_sha256_hex(
         "expected_projection_sha256", expected_projection_sha256
     )

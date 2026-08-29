@@ -90,6 +90,19 @@ def project(
     )
 
 
+class SelfAttestingPhysicsProjection(PhysicsProjection):
+    """Adversarial subtype used to prove exact-concrete-type admission."""
+
+    attested_json = ""
+    attested_sha256 = ""
+
+    def canonical_json(self) -> str:
+        return type(self).attested_json
+
+    def sha256(self) -> str:
+        return type(self).attested_sha256
+
+
 class RudimentaryPhysicsProjectionTests(unittest.TestCase):
     def test_bounded_integer_kinematics_is_exact_and_candidate_only(self):
         result = project()
@@ -273,6 +286,41 @@ class RudimentaryPhysicsProjectionTests(unittest.TestCase):
                 velocity_atom=v,
                 acceleration_atom=a,
                 expected_projection_sha256="0" * 64,
+            )
+
+    def test_self_attesting_projection_subclass_fails_closed_before_polymorphic_attestation(self):
+        s = world_slice()
+        p = atom("pos", (0, 0))
+        v = atom("vel", (1, 2))
+        a = atom("acc", (1, -1))
+        valid = project(slice_obj=s, position=p, velocity=v, acceleration=a)
+        SelfAttestingPhysicsProjection.attested_json = valid.canonical_json()
+        SelfAttestingPhysicsProjection.attested_sha256 = valid.sha256()
+        forged = SelfAttestingPhysicsProjection(
+            projection_id=valid.projection_id,
+            slice_id=valid.slice_id,
+            slice_digest=valid.slice_digest,
+            need_id=valid.need_id,
+            cycle_id=valid.cycle_id,
+            generation=valid.generation,
+            vector_space_version=valid.vector_space_version,
+            position_atom_id=valid.position_atom_id,
+            velocity_atom_id=valid.velocity_atom_id,
+            acceleration_atom_id="atom:not-selected",
+            source_atom_digests=valid.source_atom_digests,
+            dt_ticks=valid.dt_ticks,
+            steps=valid.steps,
+            position_trajectory=((999, 999),),
+            velocity_trajectory=((999, 999),),
+        )
+        with self.assertRaisesRegex(PhysicsProjectionError, "exact PhysicsProjection"):
+            validate_physics_projection_binding(
+                projection=forged,
+                world_slice=s,
+                position_atom=p,
+                velocity_atom=v,
+                acceleration_atom=a,
+                expected_projection_sha256=valid.sha256(),
             )
 
 
