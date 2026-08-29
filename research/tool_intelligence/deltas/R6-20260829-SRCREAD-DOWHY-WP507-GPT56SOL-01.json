@@ -1,0 +1,68 @@
+{
+  "schema": "FRANKENSTEIN2_TRIGGER6_E1_SOURCE_READ/v1",
+  "research_id": "R6-WP507-DOWHY-REFUTERS-001",
+  "claim_ref": "research/tool_intelligence/claims/R6-WP507-DOWHY-REFUTERS-001/E1_SOURCE_READ.json",
+  "slot": "SOURCE_ARCHAEOLOGIST",
+  "status": "E1_SOURCE_READ_COMPLETE_METHOD_DONOR_ONLY",
+  "created_at": "2026-08-29T15:01:00+07:00",
+  "architecture_binding": {
+    "fusion_ref": "research/tool_intelligence/deltas/ADF-20260829T1453P0700-GPT56SOL-WP507-G3-REENTRY.json",
+    "target_workpackage": "F2-WP-507 generation 3",
+    "target_scope": "recipient-scoped OFFERED/DELIVERED/UPTAKEN evidence plus matched intervention/control causal falsification"
+  },
+  "source_pin": {
+    "repo": "py-why/dowhy",
+    "commit_sha": "5a9c401f11df863c39d046ca55743f250e47a0f7",
+    "tree_sha": "c2cd8ef034e1ce9d501f38f5f9c37f32f0740961",
+    "license": "MIT"
+  },
+  "source_surfaces": [
+    {
+      "path": "dowhy/causal_refuters/placebo_treatment_refuter.py",
+      "blob_sha": "68563faaf2e2cb75209f53f256544f5387e882fb",
+      "observed_mechanism": "Replace or permute the treatment, rerun the estimator, and test whether the purported effect survives a negative-control intervention. Seeded randomness can make the procedure reproducible."
+    },
+    {
+      "path": "dowhy/causal_refuters/data_subset_refuter.py",
+      "blob_sha": "3627423ab1f0e474c2ddfcb66dd0d5a376b3e080",
+      "observed_mechanism": "Rerun the estimate on repeated subsets; derive distinct per-simulation seeds from a fixed base seed to combine reproducibility with varied subsets; compare the resulting estimate distribution with the original."
+    },
+    {
+      "path": "dowhy/causal_refuters/random_common_cause.py",
+      "blob_sha": "012673bfae5843f5e8cab390b7bb30bb3668bd2e",
+      "observed_mechanism": "Add a synthetic adjustment/confounding variable and rerun estimation to stress robustness to nuisance/common-cause structure."
+    }
+  ],
+  "wp507_relevance": {
+    "strongest_transfer": [
+      "PLACEBO_BROADCAST_NEGATIVE_CONTROL: preserve the non-broadcast input digest and probe identity while deterministically replacing/permuting the intervention broadcast binding; a claimed broadcast-caused downstream delta should disappear under the placebo control.",
+      "RECIPIENT_SUBSET_ROBUSTNESS: deterministically recompute the contract result over declared recipient subsets to expose results carried by one exceptional/missing recipient rather than complete recipient-scoped evidence."
+    ],
+    "weaker_transfer": "Synthetic-confounder stress is conceptually useful but is less directly isomorphic to the current deterministic receipt contract and should not be imported before a precise provenance-preserving adapter exists.",
+    "important_mismatch": "DoWhy is a statistical causal-inference framework over datasets, estimands and estimators. WP507 G3 is presently a deterministic evidence contract over exact broadcast, recipient, probe, generation and digest identities. Statistical significance or estimator stability must not be upgraded into WP507 causal proof."
+  },
+  "counterhypotheses": [
+    "The existing WP507 matched intervention/control contract may already capture the useful core of placebo refutation, making a DoWhy dependency redundant.",
+    "Converting F2 causal receipts into a dataframe/estimator pipeline could weaken exact provenance or create a derived analysis surface that users mistakenly treat as canonical evidence.",
+    "Subset/bootstrap-style robustness may be actively misleading when WP507 requires complete evidence from every declared broadcast recipient rather than population-level stability.",
+    "A small native deterministic negative-control test suite may provide more value, less dependency weight, and stronger replay semantics than importing DoWhy."
+  ],
+  "adjudication": {
+    "library_import": "NOT_JUSTIFIED_AT_E1",
+    "method_donor": "PROMISING_FOR_THIN_NATIVE_DISTILLATION",
+    "recommended_next_gate": "Consume the already-claimed parallel DoWhy E2 architecture-mapping lane; require it to compare full import against native placebo-broadcast and recipient-subset falsifiers, with exact provenance and fail-closed completeness preserved.",
+    "evidence_ceiling": "E1_SOURCE_READ"
+  },
+  "coordination": {
+    "parallel_e2_observed": "R6-WP507-DOWHY-REFUTER-001/E2_ARCHITECTURE_MAPPED was claimed by another Trigger-6 worker after this E1 claim; do not duplicate that objective.",
+    "pending_research_db_sync": "NOT_PERFORMED_IN_THIS_TURN"
+  },
+  "credits": {
+    "research_stage": "E1",
+    "architecture_credit": 0,
+    "runtime_credit": 0,
+    "gwt_runtime_credit": 0,
+    "jspace_runtime_credit": 0,
+    "whole_system_credit": 0
+  }
+}
