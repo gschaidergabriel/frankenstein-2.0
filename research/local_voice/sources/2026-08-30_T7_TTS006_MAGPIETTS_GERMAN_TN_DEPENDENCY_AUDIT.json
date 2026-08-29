@@ -1,0 +1,64 @@
+{
+  "schema": "T7_SOURCE_AUDIT/v1",
+  "trigger": "7",
+  "research_id": "T7-TTS-006",
+  "objective": "E2_MAGPIETTS_GERMAN_TEXT_NORMALIZATION_DEPENDENCY_AUDIT",
+  "semantic_key": "f80bff0dbad5ed66ef6a8ebc7cd32cb4776551df0dbed617805f90371854336b",
+  "evidence_scope": "SOURCE_ONLY",
+  "runtime_credit": 0,
+  "hardware_credit": 0,
+  "german_listening_credit": 0,
+  "acceptance_credit": 0,
+  "pins": {
+    "nemo_speech_cpp": {
+      "repo": "NVIDIA/NeMo-Speech.cpp",
+      "commit": "4f9676226f667d14608487df744f375db87127f8"
+    },
+    "nemo_text_processing": {
+      "repo": "NVIDIA/NeMo-text-processing",
+      "commit": "acacc21b1cb7916b10558855bc4f85957a0b2fde"
+    },
+    "nemo_speech_itn_openfst": {
+      "repo": "sarane22/openfst",
+      "commit": "fc23b4cf529429284b874a26f28b15c6cc94f404"
+    },
+    "nemo_speech_itn_sparrowhawk": {
+      "repo": "sarane22/sparrowhawk",
+      "commit": "8b082acc507312077a096be8398584a13832c490"
+    }
+  },
+  "observed": [
+    "NeMo-Speech.cpp supports German in the Magpie tokenizer path but text normalization is an optional preprocessing layer.",
+    "The pinned NeMo-Speech.cpp build leaves NEMO_SPEECH_WITH_NORM disabled by default; when TN is unavailable or the requested language grammar is absent, text can pass through unchanged with a warning rather than causing a hard failure.",
+    "The pinned NeMo-Speech.cpp repository contains the Sparrowhawk/OpenFST runtime integration and build script but does not vendor German TN FAR assets in its models tree.",
+    "NeMo-Speech.cpp requires a tokenizer FAR and verbalizer FAR staged as tokenize_and_classify.far and verbalize.far before Sparrowhawk setup.",
+    "The official NVIDIA/NeMo-text-processing source contains German TN grammars covering cardinal, date, decimal, electronic, fraction, measure, money, ordinal, telephone, time, whitelist and word classes.",
+    "The German NeMo-text-processing ClassifyFst emits a cache FAR named _<input_case>_de_tn_<deterministic>_deterministic<whitelist>.far with archive entry tokenize_and_classify.",
+    "The German NeMo-text-processing VerbalizeFinalFst emits de_tn_<deterministic>_deterministic_verbalizer.far with archive entry verbalize.",
+    "Those official German cache filenames are not directly among the exact filenames NeMo-Speech.cpp requires; its generic tokenizer scan also requires the filename to contain tokenize, which the German ClassifyFst cache filename does not. Its verbalizer lookup is exact rather than generic.",
+    "Therefore the pinned local path is not grammar-artifact-self-contained: a reproducible generation plus explicit staging/rename step is required before German TN can be treated as closed for benchmarking."
+  ],
+  "inference": {
+    "status": "SOURCE_SUPPORTED_NOT_RUNTIME_VERIFIED",
+    "statement": "The generated German FAR contents appear structurally bridgeable because their archive entry names match the classifier/verbalizer roles expected by Sparrowhawk, but binary/runtime compatibility and exact staging correctness are not yet proven.",
+    "counterhypothesis": "The NeMo-text-processing-generated FARs may fail in the pinned NeMo-Speech.cpp Sparrowhawk/OpenFST stack despite matching semantic archive entries, for example because of OpenFST/Pynini serialization/version or deployment-format differences.",
+    "falsifier": "Generate the two German FARs from the pinned NeMo-text-processing commit, stage copies under a de_tn_... directory as tokenize_and_classify.far and verbalize.far, build pinned NeMo-Speech.cpp with NEMO_SPEECH_WITH_NORM=ON against its pinned OpenFST/Sparrowhawk dependencies, and run the source-bound text-normalizer test corpus. Any load/setup/rewrite incompatibility falsifies direct bridgeability."
+  },
+  "benchmark_consequence": {
+    "risk": "Without an explicit TN cell, German TTS tests containing 12, 30.08.2026, 19,99 EUR, 3,5 km, phone numbers or technical mixed text can silently measure tokenizer/model behavior on raw written forms rather than a production-quality German text pipeline.",
+    "required_cells": [
+      "RAW_TEXT_NO_TN",
+      "PINNED_GERMAN_TN"
+    ],
+    "compare": [
+      "numeric/date/money/measure/telephone normalization correctness",
+      "German ASR-backtranscription CER/WER on synthesized speech",
+      "TTFA/RTF overhead",
+      "failure/pass-through count",
+      "naturalness/prosody impact",
+      "cancellation behavior unchanged"
+    ]
+  },
+  "next_exact_gate": "SOURCE-BOUND_GERMAN_FAR_GENERATION_AND_NEMO_SPEECH_CPP_NORMALIZER_SMOKE_TEST",
+  "created_date_local": "2026-08-30"
+}
