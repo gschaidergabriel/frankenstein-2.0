@@ -115,7 +115,18 @@ def _validate_wp506_reentry_lineage(
             f"invalid WP506 selection builder lineage: {exc}"
         ) from exc
 
-    broadcast_payload_refs = set(broadcast.candidate_payload_refs)
+    expected_candidate_ids = tuple(candidate.candidate_id for candidate in selection.selected)
+    expected_payload_refs = tuple(candidate.payload_ref for candidate in selection.selected)
+    if broadcast.candidate_ids != expected_candidate_ids:
+        raise GwtReentryUptakeBindingError(
+            "broadcast candidate-id lineage does not match exact WorkspaceSelection.selected"
+        )
+    if broadcast.candidate_payload_refs != expected_payload_refs:
+        raise GwtReentryUptakeBindingError(
+            "broadcast payload lineage does not match exact WorkspaceSelection.selected"
+        )
+
+    broadcast_payload_refs = set(expected_payload_refs)
     if not broadcast_payload_refs.intersection(cell_input.input_refs):
         raise GwtReentryUptakeBindingError(
             "re-entry CellInput lacks bound broadcast candidate payload reference"
