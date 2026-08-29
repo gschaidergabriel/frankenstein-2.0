@@ -1,0 +1,209 @@
+{
+  "schema": "FRANKENSTEIN2_TRIGGER6_E2_ARCHITECTURE_MAPPED/v1",
+  "trigger": "6",
+  "research_id": "R6-WP105-EFFECT-IDEMPOTENCY-SCOUT-001",
+  "slot": "SOURCE_ARCHAEOLOGIST",
+  "evidence_level": "E2_ARCHITECTURE_MAPPED",
+  "status": "COMPLETED_SOURCE_GROUNDED_NO_RUNTIME_PROMOTION",
+  "created_at": "2026-08-29T14:55:00+07:00",
+  "claim": {
+    "path": "research/tool_intelligence/claims/R6-WP105-EFFECT-IDEMPOTENCY-SCOUT-001/E2_ARCHITECTURE_MAPPED_RETRY_IDENTITY_ABI.json",
+    "claim_commit": "d59281bbca61af19d05025ee4b4e1af8faaeac41",
+    "research_credit_before_result": 0
+  },
+  "architecture_snapshot": {
+    "f2_preclaim_main": "46aee3bf37a938dbea5936b9c935ffb7bd74cdf3",
+    "f2_claim_commit": "d59281bbca61af19d05025ee4b4e1af8faaeac41",
+    "research_entity_main": "5f14068837cd5b3ed389f88891cacb46fee4c588",
+    "supervisor": "9.13AQ_NON_AUTHORITY",
+    "supervisor_frontier": "episode_id=null direct effects lack durable cross-attempt replay fencing; exact semantic request digest, logical operation retry identity, execution attempt identity, canonical effect id, dispatch-start evidence and verification evidence must remain distinct"
+  },
+  "inputs": [
+    {
+      "kind": "F2_SOURCE",
+      "path": "src/frankenstein2/effect_request_identity.py",
+      "finding": "EffectRequestIdentity hashes the exact EffectRequest policy input projection. In the current EntityOS bridge, its target is itself derived from call-scoped binding/invocation/tool/delegation/child identity. Therefore request_sha256 is an exact authority-request digest, but it is not proven stable semantic equality across fresh retry attempts."
+    },
+    {
+      "kind": "F2_SOURCE",
+      "path": "src/frankenstein2/native_child_binding.py",
+      "finding": "invocation_id is a required identity for one delegated native-child execution lineage. binding_id is a hash over the result-free binding including invocation/tool/delegation/child identity and is stable only while the same binding later gains a result. Neither source contract proves cross-restart logical-operation stability."
+    },
+    {
+      "kind": "F2_SOURCE",
+      "path": "src/frankenstein2/effect_invocation_correlation.py",
+      "finding": "EffectCallBinding preserves effect_id + binding_id + invocation_id + tool_use_id + delegation_id + child identity through PRE/POST correlation. Exact POST replay is idempotent only for the already-observed same result; there is no logical retry identity or attempt ordinal in this ABI."
+    },
+    {
+      "kind": "F2_SOURCE",
+      "path": "src/frankenstein2/effect_executor_interlock.py",
+      "finding": "Once executor entry may have occurred, any executor exception or invalid/mismatched POST observation is surfaced as ExecutorOutcomeUnknown and no automatic replay is performed. This is the correct occurrence-level uncertainty boundary."
+    },
+    {
+      "kind": "F2_SOURCE",
+      "path": "src/frankenstein2/entityos_effect_gate_call_bridge.py",
+      "finding": "canonical_entityos_call_target includes return_id, binding_id, invocation_id, tool_use_id, delegation_id, child identity, owner/session/generation and argv digest. Consequently the existing request_sha256 intentionally binds a specific call occurrence and cannot by itself serve as cross-attempt payload-equivalence evidence."
+    },
+    {
+      "kind": "ENTITYOS_CURRENT_SOURCE",
+      "path": "the artefact/clayverse/effects.py",
+      "finding": "EffectGate's cross-attempt durable replay fence is autonomy-episode specific. episode_id=null returns no autonomy identity and bypasses that fence. EffectJournal.begin then allocates a fresh effect UUID; duplicate episode denial is only applied when episode_id is non-null."
+    },
+    {
+      "kind": "ENTITYOS_CURRENT_SOURCE",
+      "path": "the artefact/clayverse/effect_journal.py",
+      "finding": "EffectJournal state is PENDING then one of VERIFIED/DENIED/FAILED/STALE_OUTCOME/UNKNOWN_AFTER_RESTART. There is no distinct DISPATCH_STARTED or UNKNOWN_POST_DISPATCH state. recover_pending converts still-PENDING rows to UNKNOWN_AFTER_RESTART, but live bridge exceptions are finalized by EffectGate as FAILED."
+    },
+    {
+      "kind": "F2_NEGATIVE_TEST",
+      "path": "tests/test_bound_entityos_effect_poststart_timeout.py",
+      "finding": "A deterministic bounded test proves executor entry can occur before TimeoutExpired while F2 surfaces ExecutorOutcomeUnknown and the bound canonical EffectGate records FAILED. This is component-level negative evidence for the missing canonical post-dispatch UNKNOWN state, not a real-effect execution proof."
+    },
+    {
+      "kind": "EXTERNAL_SOURCE_PIN",
+      "repository": "aws-powertools/powertools-lambda-python",
+      "commit": "a39e1018e36b7965b08313288bea3b7420df5220",
+      "license": "MIT-0",
+      "paths": [
+        "aws_lambda_powertools/utilities/idempotency/persistence/base.py",
+        "aws_lambda_powertools/utilities/idempotency/persistence/redis.py",
+        "tests/functional/idempotency/_redis/test_redis_layer.py"
+      ],
+      "finding": "Powertools structurally separates idempotency key from optional payload validation hash, persists INPROGRESS/COMPLETED state, and uses conditional exclusion so a competing invocation cannot proceed. Commit a39e101 fixed a Redis path where missing in-progress expiry was incorrectly treated as reclaimable; the repair fails closed when active-vs-orphan status cannot be distinguished."
+    }
+  ],
+  "identity_role_mapping": {
+    "request_sha256_existing": {
+      "role": "EXACT_AUTHORITY_REQUEST_DIGEST_PER_CALL",
+      "cross_attempt_retry_key": false,
+      "cross_attempt_payload_equivalence": "NOT_PROVEN_AND_CURRENT_TARGET_IS_CALL_SCOPED"
+    },
+    "binding_id_existing": {
+      "role": "DELEGATION_BINDING_IDENTITY",
+      "cross_attempt_retry_key": false
+    },
+    "invocation_id_existing": {
+      "role": "CALL_OR_EXECUTION_OCCURRENCE_IDENTITY",
+      "recommended_reuse": "MAY_SERVE_AS_ATTEMPT_ID_ONLY_AFTER_EXPLICIT_CONTRACT; MUST_NOT_BE_SILENTLY_REDEFINED_AS_LOGICAL_RETRY_ID"
+    },
+    "effect_id_existing": {
+      "role": "CANONICAL_EFFECT_JOURNAL_ROW_ID",
+      "minted_by": "EffectJournal.begin uuid4",
+      "cross_attempt_retry_key": false
+    },
+    "operation_retry_id": {
+      "current_source": "ABSENT",
+      "required_semantics": "stable durable logical-operation identity across admissible retries; distinct intentional duplicate operations receive distinct ids"
+    },
+    "operation_payload_sha256": {
+      "current_source": "ABSENT_AS_RETRY_STABLE_DIGEST",
+      "required_semantics": "retry-stable digest of effect semantics excluding fresh occurrence/call identifiers; used only for same-operation mismatch rejection, never as the operation id itself"
+    },
+    "dispatch_started_evidence": {
+      "current_source": "NOT_CANONICALLY_PERSISTED_AS_DISTINCT_STATE",
+      "required_semantics": "authority-owned evidence that executor boundary was crossed or may have been crossed"
+    },
+    "verification_evidence_ref": {
+      "current_source": "PARTIAL_CAUSAL_OUTCOME_RECEIPTS_ONLY",
+      "required_semantics": "authority-owned evidence resolving UNKNOWN to VERIFIED_APPLIED or VERIFIED_NOT_APPLIED"
+    }
+  },
+  "material_new_finding": {
+    "classification": "CURRENT_SOURCE_CONTRADICTION_WITH_E1_SIMPLIFICATION",
+    "finding": "The E1 shorthand treated request_sha256 as semantic equality suitable for pairing with a retry id. Exact current F2 source shows that the request target contains call-scoped invocation/binding/delegation identity. Therefore request_sha256 must remain the exact per-call authority-request digest. A separate retry-stable operation_payload_sha256 is required if retries may use fresh attempt identities.",
+    "confidence": 0.99,
+    "falsifier": "A newer admitted F2 contract proves all call-scoped fields are stable across retries and still distinguishes intentional identical operations, or replaces the target construction with a retry-stable semantic envelope without losing exact call binding."
+  },
+  "minimal_native_abi_candidate": {
+    "classification": "R2_GENERATED_NOT_BUILD_CANDIDATE",
+    "no_external_runtime_import": true,
+    "no_second_truth_store": true,
+    "fields": [
+      "operation_retry_id",
+      "operation_payload_sha256",
+      "attempt_id (or explicitly contracted current invocation_id)",
+      "request_sha256 (existing exact per-call authority request digest)",
+      "effect_id (canonical journal id)",
+      "dispatch_state",
+      "outcome_certainty",
+      "verification_evidence_ref"
+    ],
+    "state_constraints": [
+      "same operation_retry_id + different operation_payload_sha256 => reject before EffectJournal.begin and before dispatch",
+      "same operation_retry_id + unresolved PENDING/DISPATCH_STARTED/UNKNOWN_POST_DISPATCH => zero second dispatch",
+      "UNKNOWN_POST_DISPATCH + non-idempotent or unverified destination => no automatic replay",
+      "only authority-owned VERIFIED_NOT_APPLIED or an independently proven destination idempotency contract can permit a fresh attempt",
+      "fresh retry attempt gets a fresh attempt_id and, if admitted, a fresh canonical effect_id while retaining operation_retry_id",
+      "intentional second semantically identical operation uses a distinct operation_retry_id and remains independently executable",
+      "all durable fencing remains in UnifiedDB/EffectJournal rather than a Powertools/Redis/DynamoDB side store"
+    ]
+  },
+  "external_donor_decision": {
+    "aws_powertools": "DISTILL_STRUCTURE_ONLY_DO_NOT_IMPORT_RUNTIME",
+    "retained_mechanisms": [
+      "stable idempotency/logical-operation key distinct from payload validation hash",
+      "INPROGRESS exclusion before duplicate execution",
+      "fail closed when active-vs-orphan state is uncertain",
+      "same-key changed-payload mismatch rejection",
+      "completed-result reuse only after authoritative completion"
+    ],
+    "rejected_mechanisms": [
+      "new Redis/DynamoDB persistence authority",
+      "payload hash as logical operation identity",
+      "time-based orphan reclaim without authority-owned certainty for arbitrary external effects"
+    ]
+  },
+  "counterhypotheses": [
+    {
+      "id": "E2-CH1",
+      "claim": "invocation_id can already be the stable operation_retry_id",
+      "status": "NOT_SUPPORTED_BY_CURRENT_SOURCE",
+      "reason": "NativeChildBinding contracts it as part of one delegated execution lineage and no durable cross-attempt reuse rule was observed."
+    },
+    {
+      "id": "E2-CH2",
+      "claim": "request_sha256 alone can deduplicate retries",
+      "status": "REJECTED_FOR_CURRENT_F2_ABI",
+      "reason": "The hashed request target includes call-scoped identities; fresh retries can legitimately change the digest, while intentionally separate identical operations must not collapse."
+    },
+    {
+      "id": "E2-CH3",
+      "claim": "the existing autonomy goal_id + step_id replay fence is sufficient",
+      "status": "REJECTED_AS_GENERAL_COVERAGE",
+      "reason": "Current EffectGate explicitly returns no autonomy identity for episode_id=null direct callers."
+    },
+    {
+      "id": "E2-CH4",
+      "claim": "FAILED is sufficient for post-start exceptions",
+      "status": "REJECTED_AS_WORLD_FACT",
+      "reason": "F2 has deterministic component evidence that executor entry precedes TimeoutExpired; failure to return an observation does not prove non-application."
+    }
+  ],
+  "next_discriminator": {
+    "recommended_slot": "EXPERIMENTAL_FALSIFIER",
+    "evidence_target": "E3_CLAIM_REPRODUCED_FAIL_CLOSED_RETRY_FENCE",
+    "task": "On an admitted zero-cost non-real-effect surface, build a deterministic UnifiedDB-only miniature that models two fresh attempt identities under one operation_retry_id. Reopen the DB between attempts. The second attempt must execute zero child mutations while the first remains unresolved; changed operation_payload_sha256 must reject before dispatch. Separately verify intentional identical semantics with a distinct operation_retry_id remains admissible. Do not use a real external effect and do not promote canonical semantics from this research experiment.",
+    "expected_information_gain": "Distinguishes whether the proposed operation/retry/attempt separation is sufficient for restart-safe duplicate suppression before Trigger-4 considers a native patch."
+  },
+  "credits": {
+    "E2_architecture_mapped": 1,
+    "E3_claim_reproduced": 0,
+    "E4_f2_ablation": 0,
+    "E5_build_candidate": 0,
+    "E6_f2_accepted": 0,
+    "F2_runtime_credit": 0,
+    "EntityOS_runtime_credit": 0,
+    "physical_grid10_credit": 0,
+    "whole_system_credit": 0,
+    "training_credit": 0
+  },
+  "execution_receipt": {
+    "source_inspection_only": true,
+    "external_primary_source_pin_inspected": true,
+    "provider_calls": 0,
+    "vps_execution": 0,
+    "real_effect_execution": 0,
+    "unusual_experiment": false,
+    "pending_research_sqlite_sync": "NOT_PERFORMED_BINARY_DB_WRITE_SURFACE_NOT_USED"
+  }
+}
