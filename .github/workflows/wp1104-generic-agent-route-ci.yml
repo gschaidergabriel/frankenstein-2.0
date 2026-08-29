@@ -1,0 +1,35 @@
+name: F2-WP-1104 Generic Agent Route CI
+
+on:
+  push:
+    branches:
+      - main
+      - chatgpt/f2-wp-1104-generic-agent-route-20260829
+    paths:
+      - 'src/frankenstein2/generic_agent_route.py'
+      - 'src/frankenstein2/host_adapter_abi.py'
+      - 'tests/test_generic_agent_route.py'
+      - '.github/workflows/wp1104-generic-agent-route-ci.yml'
+  pull_request:
+    paths:
+      - 'src/frankenstein2/generic_agent_route.py'
+      - 'src/frankenstein2/host_adapter_abi.py'
+      - 'tests/test_generic_agent_route.py'
+      - '.github/workflows/wp1104-generic-agent-route-ci.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Run WP1104 deterministic tests
+        env:
+          PYTHONPATH: src
+        run: python -m unittest discover -s tests -p 'test_generic_agent_route.py' -v
