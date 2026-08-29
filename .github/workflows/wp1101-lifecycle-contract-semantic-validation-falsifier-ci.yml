@@ -1,0 +1,38 @@
+name: WP1101 lifecycle-contract REVIEW_ONLY falsifier
+
+on:
+  pull_request:
+    paths:
+      - 'review_falsifiers/wp1101_lifecycle_contract_semantic_validation_falsifier.py'
+      - '.github/workflows/wp1101-lifecycle-contract-semantic-validation-falsifier-ci.yml'
+      - 'src/frankenstein2/host_adapter_abi.py'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  falsifier:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Compile reviewed source and falsifier
+        run: |
+          python -m py_compile src/frankenstein2/host_adapter_abi.py
+          python -m py_compile review_falsifiers/wp1101_lifecycle_contract_semantic_validation_falsifier.py
+      - name: Preregistered discriminator
+        shell: bash
+        run: |
+          set +e
+          PYTHONPATH=src python review_falsifiers/wp1101_lifecycle_contract_semantic_validation_falsifier.py
+          rc=$?
+          set -e
+          if [ "$rc" -eq 42 ]; then
+            echo 'REVIEW_ONLY_NEGATIVE_EVIDENCE: preregistered WP1101 lifecycle-contract gap reproduced.'
+            exit 0
+          fi
+          echo "Discriminator did not reproduce the preregistered gap; exit=$rc"
+          exit 1
