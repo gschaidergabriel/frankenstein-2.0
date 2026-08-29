@@ -5,7 +5,26 @@ on:
     paths:
       - 'tools/validate_workpackage_state.py'
       - 'tests/test_validate_workpackage_state.py'
+      - 'tests/test_wp002_aggregate_projection_gate.py'
       - 'workpackages/STATE_CONSISTENCY_CONTRACT.md'
+      - 'workpackages/WORKPACKAGE_STATE_CONSISTENCY_CONTRACT_V1.json'
+      - 'workpackages/STATE.json'
+      - 'workpackages/active/**'
+      - 'workpackages/claims/**'
+      - 'workpackages/reconciliations/**'
+      - '.github/workflows/workpackage-state-consistency-ci.yml'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'tools/validate_workpackage_state.py'
+      - 'tests/test_validate_workpackage_state.py'
+      - 'tests/test_wp002_aggregate_projection_gate.py'
+      - 'workpackages/STATE_CONSISTENCY_CONTRACT.md'
+      - 'workpackages/WORKPACKAGE_STATE_CONSISTENCY_CONTRACT_V1.json'
+      - 'workpackages/STATE.json'
+      - 'workpackages/active/**'
+      - 'workpackages/claims/**'
+      - 'workpackages/reconciliations/**'
       - '.github/workflows/workpackage-state-consistency-ci.yml'
   workflow_dispatch:
 
@@ -24,6 +43,6 @@ jobs:
       - name: Compile validator
         run: python -m py_compile tools/validate_workpackage_state.py
       - name: Deterministic state consistency regressions
-        run: python -m unittest -v tests/test_validate_workpackage_state.py
+        run: python -m unittest -v tests.test_validate_workpackage_state tests.test_wp002_aggregate_projection_gate
       - name: Validate checked-out repository state
         run: python tools/validate_workpackage_state.py .
