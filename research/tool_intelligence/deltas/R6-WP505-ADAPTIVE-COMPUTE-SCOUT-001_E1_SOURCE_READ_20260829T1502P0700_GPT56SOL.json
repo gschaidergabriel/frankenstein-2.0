@@ -1,0 +1,107 @@
+{
+  "schema": "FRANKENSTEIN2_TRIGGER6_RESEARCH_DELTA/v1",
+  "research_id": "R6-WP505-ADAPTIVE-COMPUTE-SCOUT-001",
+  "trigger": "6",
+  "slot": "DISCOVERY_SCOUT",
+  "evidence_stage": "E1_SOURCE_READ",
+  "status": "COMPLETED_SOURCE_READ_NO_ARCHITECTURE_PROMOTION",
+  "created_at": "2026-08-29T15:02:00+07:00",
+  "claim_ref": "research/tool_intelligence/claims/R6-WP505-ADAPTIVE-COMPUTE-SCOUT-001/E1_SOURCE_READ_BUDGET_ALLOCATION_DONORS.json",
+  "architecture_binding": {
+    "architecture_delta_fusion": "research/tool_intelligence/deltas/ADF-20260829T1453P0700-GPT56SOL-WP507-G3-REENTRY.json",
+    "claim_prework_f2_sha": "7f6763de1e2d9131fdd3c240c28ae6a94b713f5d",
+    "latest_f2_sha_observed_before_result_write": "a6c3fb4e1822a8b18cc011dfebe0b84ff1751508",
+    "research_entity_sha_observed": "5f14068837cd5b3ed389f88891cacb46fee4c588",
+    "target_workpackage": "F2-WP-505",
+    "target_title": "Adaptive compute allocation"
+  },
+  "objective": "Find source-grounded mechanisms for adaptive per-cell compute allocation under a hard deterministic budget, with explicit stopping and without granting model/reward signals canonical state, effect or completion authority.",
+  "sources": [
+    {
+      "candidate_id": "MABWISER_UCB1_THIN_DONOR",
+      "kind": "OPEN_SOURCE_REPOSITORY",
+      "repo": "fidelity/mabwiser",
+      "commit": "b104071351d532aae977955d19b83872a9c1b1e3",
+      "source_files": [
+        {"path": "mabwiser/ucb.py", "blob_sha": "548ea5bc3a9bba4203bf1a56b1f612b280bc91f1"},
+        {"path": "mabwiser/utils.py", "blob_sha": "8e379ed1bb81ab1f40497a9584c02f4952761cac"},
+        {"path": "README.md", "blob_sha": "ab2e7f114838dfdd9c5461c7544ba65fd1f69f0b"},
+        {"path": "LICENSE", "blob_sha": "f49a4e16e68b128803cc2dcea614603632b04eac"}
+      ],
+      "license": "Apache-2.0",
+      "source_observations": [
+        "UCB1 maintains per-arm count, sum, mean and expectation and scores a trained arm as mean + alpha * sqrt((2 * log(total_count)) / arm_count).",
+        "Prediction selects argmax expectation; the utility explicitly returns the first key with the maximum value, so a canonical arm ordering can make score ties deterministic.",
+        "The library exposes simulation and multiple contextual/non-contextual policies; importing the full library would be substantially broader than the WP505 primitive requires."
+      ],
+      "f2_hypothesis": "A very thin deterministic UCB-style exploration bonus can allocate bounded extra compute among GRID cells using only admitted historical evaluation signals while preserving a hard total budget.",
+      "counterhypotheses": [
+        "Bandit reward proxies can Goodhart the allocator and create self-reinforcing starvation of rarely selected cells.",
+        "Nonstationary cognitive workloads violate simple stationary-bandit assumptions.",
+        "A full MABWiser dependency is unnecessary; the useful mechanism may be a tiny auditable equation plus deterministic tie-break and decay/reset policy."
+      ],
+      "current_judgment": "STRONGEST_E1_STRUCTURAL_CODE_DONOR; THIN_DISTILLATION_PREFERRED_OVER_IMPORT"
+    },
+    {
+      "candidate_id": "MIXTURE_OF_DEPTHS_HARD_CAP_PATTERN",
+      "kind": "PRIMARY_PAPER",
+      "source": "Raposo et al., Mixture-of-Depths: Dynamically allocating compute in transformer-based language models, arXiv:2404.02258",
+      "source_observations": [
+        "The method fixes a total layer compute capacity k in advance while dynamically choosing which tokens consume that capacity via top-k routing.",
+        "Total compute is predictable while allocation is context-sensitive."
+      ],
+      "f2_hypothesis": "WP505 should separate a deterministic hard compute envelope from adaptive allocation inside that envelope: dynamic distribution must never be allowed to expand the total budget.",
+      "counterhypotheses": [
+        "MoD routing is learned and model-internal; copying its router would blur the deterministic control-plane boundary.",
+        "Token-level routing economics may not transfer to heterogeneous GRID cell workloads."
+      ],
+      "current_judgment": "STRONG_INVARIANT_DONOR_NOT_CODE_DONOR"
+    },
+    {
+      "candidate_id": "PONDERNET_STOPPING_PATTERN",
+      "kind": "PRIMARY_PAPER",
+      "source": "Banino, Balaguer, Blundell, PonderNet: Learning to Ponder, arXiv:2107.05407",
+      "source_observations": [
+        "PonderNet adapts the number of computation steps to problem complexity and explicitly trades predictive objective against computational cost."
+      ],
+      "f2_hypothesis": "WP505 needs an explicit marginal-value-versus-cost stop rule so extra cell compute terminates when expected information gain no longer justifies budget use.",
+      "counterhypotheses": [
+        "A learned halting policy is not suitable as deterministic F2 authority.",
+        "The useful transfer may be only the stop-cost decomposition, not the training algorithm."
+      ],
+      "current_judgment": "STOPPING_CONCEPT_DONOR_ONLY"
+    }
+  ],
+  "cross_source_fusion": {
+    "candidate_pattern": "HARD_TOTAL_BUDGET + DETERMINISTIC_PER_CELL_SCORE + EXPLICIT_STOP_CONDITION",
+    "proposed_noncanonical_score_shape_for_future_E2_ONLY": "priority(cell) = admitted_task_value + uncertainty_bonus + bounded_exploration_bonus - measured_cost_penalty - starvation_guard_penalty_or_floor",
+    "mandatory_fences": [
+      "The hard cycle/token/time/resource envelope is deterministic authority and cannot be enlarged by a model or bandit score.",
+      "Scores are scheduling candidates, not facts, goals, completion or effect authority.",
+      "Tie-breaking must be canonical and replay-stable.",
+      "Reward/evaluation inputs require typed provenance and generation binding; self-reported model success is insufficient.",
+      "Unknown evaluation remains UNKNOWN; missing reward must not silently become zero/negative truth.",
+      "A starvation floor or scheduled exploration test is required before any adoption because pure exploitation can suppress under-observed cells.",
+      "Any adaptive state must be rebuildable from canonical admitted history or otherwise remain explicitly noncanonical controller state."
+    ],
+    "why_not_build_yet": "E1 establishes source relevance only. No current-F2 architecture mapping, baseline, ablation, latency/resource measurement or fail-closed implementation test has been performed."
+  },
+  "next_recommended_objective": {
+    "slot": "SOURCE_ARCHAEOLOGIST",
+    "research_id": "R6-WP505-ADAPTIVE-COMPUTE-SCOUT-001",
+    "claim_target": "E2_ARCHITECTURE_MAPPED_UCB_HARD_CAP_STOP",
+    "goal": "Map the thin UCB/hard-cap/stop pattern onto current WP500/501/505 interfaces, identify the exact admitted signals and canonical budget owner, and design deterministic replay/starvation/nonstationarity falsifiers before any code import or build handoff."
+  },
+  "credits": {
+    "research_evidence": "E1_SOURCE_READ_ONLY",
+    "architecture_credit": 0,
+    "build_candidate_credit": 0,
+    "runtime_credit": 0,
+    "physical_grid10_credit": 0,
+    "gwt_runtime_credit": 0,
+    "jspace_runtime_credit": 0,
+    "effect_credit": 0,
+    "training_credit": 0,
+    "whole_frankenstein2_credit": 0
+  }
+}
