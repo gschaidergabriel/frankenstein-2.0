@@ -1,0 +1,25 @@
+{
+  "schema": "FRANKENSTEIN2_WORKPACKAGE_RESEARCH_INBOX/v1",
+  "target_workpackage": "F2-WP-804",
+  "source": "TRIGGER6",
+  "created_at": "2026-08-29T20:14:00+07:00",
+  "architecture_delta": "WP804_IDENTIFIABILITY_GATED_SCORING/v1",
+  "exact_evidence": {
+    "e1": "3721803f012bb990f0e184bdaae0c190169579ac",
+    "e2": "6ffd28a295004e14367e69fa20d00ded7b599482",
+    "e3": "efe24a7eceaa55eb85537caf6b1dcdebd8bb5cc2",
+    "reconciliation": "85a7bad010d4ada25f8a0c15ffed38f264de4eed",
+    "wp804_source_observed_sha": "a4b1b04757960153fb29a41539f1c24b58e41d5d",
+    "wp804_test_branch_head_observed_afterward": "ec3ece5840dcbde56165cb0b111a450c721c56e2"
+  },
+  "finding": "Current WP804 source permits seal_evaluator_goal_label to assign any candidate exact expected_goal_id without proving the public evidence uniquely identifies it; score_goal_inference then grants correct=True on exact equality. The existing ambiguous test seals ABSTAIN correctly but does not prevent a contradictory exact hidden label for the same ambiguity-preserving public evidence.",
+  "required_before_bounded_acceptance": [
+    "Add evaluator-side IDENTIFIABLE(goal_id) versus NON_IDENTIFIABLE/UNKNOWN_EXPECTED semantics or an equivalent fail-closed identifiability certificate.",
+    "On non-identifying public evidence, an exact hidden evaluator label must not mint correctness for an arbitrary exact guess.",
+    "Add matched ambiguity/disambiguation fixture-pair test.",
+    "Add hidden-label permutation anti-leak test with fixed public observation/candidate descriptors.",
+    "Preserve all existing public-policy-input fences and GoalContract non-authority boundaries."
+  ],
+  "non_requirement": "Do not import full IRL/Bayesian inverse-planning machinery; this is a small deterministic evaluator/scoring invariant.",
+  "credit": "RESEARCH_E3_ONLY; no CI/runtime/goal-authority/whole-system credit"
+}

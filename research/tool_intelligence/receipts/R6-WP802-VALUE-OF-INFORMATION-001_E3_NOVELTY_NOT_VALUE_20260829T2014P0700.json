@@ -1,0 +1,63 @@
+{
+  "schema": "FRANKENSTEIN2_TRIGGER6_RESEARCH_RECEIPT/v1",
+  "trigger": "6",
+  "research_id": "R6-WP802-VALUE-OF-INFORMATION-001",
+  "evidence_stage": "E3_CLAIM_REPRODUCED_SOURCE_SEMANTIC_LEVEL",
+  "experiment_id": "WP802_NOVELTY_NOT_DECISION_VALUE_NEGATIVE_CONTROL/v1",
+  "created_at": "2026-08-29T20:13:59+07:00",
+  "worker": "GPT-5.6-Sol-TRIGGER6",
+  "claim": "research/tool_intelligence/claims/R6-WP802-VALUE-OF-INFORMATION-001/E3_CLAIM_REPRODUCED_NOVELTY_NOT_VALUE.json@6a5e8284d5a9e6389981890755dddc9257052e4a",
+  "source_identity": {
+    "wp802_merge": "8d9deb90fa7765b803986ef45de9d6b0ddf824e2",
+    "wp802_source_blob": "55f08d4f8bd4d691e96ede1d9439fa9683ca6980",
+    "wp800_semantic": "step_episode: total = state.cumulative_score + next_node.evaluator_score",
+    "wp802_semantic": "score_delta = intervention.cumulative_score - baseline.cumulative_score; novelty_delta = intervention.unique_public_payload_count - baseline.unique_public_payload_count"
+  },
+  "hypothesis": "Positive probe activity and public-observation novelty are not sufficient evidence of positive decision value in the merged WP802 semantics.",
+  "counterhypothesis": "Because useful probing increases public novelty in the canonical fixture, novelty/probe activity necessarily co-varies with positive score_delta in WP802.",
+  "reproduction": {
+    "method": "Deterministic arithmetic reproduction of exact observed WP800/WP802 source equations using the existing canonical baseline score and bounded hypothetical intermediate evaluator costs. No hidden policy input and no product runtime execution.",
+    "baseline": {
+      "scores": [-5],
+      "cumulative_score": -5,
+      "probe_count": 0,
+      "unique_public_payload_count": 2
+    },
+    "neutral_probe": {
+      "scores": [-15, 10],
+      "cumulative_score": -5,
+      "score_delta": 0,
+      "probe_delta": 1,
+      "public_payload_novelty_delta": 1
+    },
+    "harmful_probe": {
+      "scores": [-20, 10],
+      "cumulative_score": -10,
+      "score_delta": -5,
+      "probe_delta": 1,
+      "public_payload_novelty_delta": 1
+    },
+    "reproduction_payload_sha256": "157539800fd3724f1d66b1e81b3c3517049b46848391a6c933e4b52ac3567b5c"
+  },
+  "result": "HYPOTHESIS_REPRODUCED_AT_SOURCE_SEMANTIC_LEVEL",
+  "interpretation": "The current schema already permits novelty/probing to increase while net evaluator utility is neutral or harmful. Therefore novelty/probe count must remain diagnostic and must not be promoted into a success predicate independent of score_delta.",
+  "exact_source_execution_attempt": {
+    "attempted": true,
+    "method": "local git clone of exact merge followed by existing unittest module",
+    "result": "BLOCKED_TRANSPORT_DNS",
+    "error_class": "INFRASTRUCTURE_NETWORK_RESOLUTION_FAILURE",
+    "scientific_interpretation": "NO_PRODUCT_NEGATIVE_RESULT",
+    "exact_source_execution_credit": 0
+  },
+  "architecture_implication": "No scoring-architecture rewrite is supported. The strongest justified delta is one repository regression/negative-control test that instantiates the neutral or harmful probe case and asserts score_delta <= 0 while novelty_delta/probe_delta remain positive.",
+  "evidence_credit": {
+    "e3_claim_reproduction": "SOURCE_SEMANTIC_FORMULA_REPRODUCTION_ONLY",
+    "e4_f2_ablation": 0,
+    "e5_build_candidate": 0,
+    "repository_ci": 0,
+    "runtime": 0,
+    "physical_host": 0,
+    "whole_system": 0
+  },
+  "next_exact_gate": "Trigger-4 or an admitted exact-source repository CI lane should add the minimal WP802 negative-control regression and prove it on exact PR-head plus merged-main CI. Until that happens, do not promote this research to E5/E6."
+}

@@ -1,0 +1,125 @@
+{
+  "schema": "FRANKENSTEIN2_TRIGGER6_RESEARCH_RESULT/v1",
+  "trigger": "6",
+  "research_id": "R6-20260829-WP805-REPLAN-RECOVERY-EFFICIENCY-GPT56SOL-01",
+  "slot": "DISCOVERY_SCOUT",
+  "evidence_stage": "E1_SOURCE_READ",
+  "status": "COMPLETED_E1_NO_BUILD_CREDIT",
+  "created_at": "2026-08-29T20:15:00+07:00",
+  "worker": "GPT-5.6-Sol-TRIGGER6",
+  "claim_path": "research/tool_intelligence/claims/R6-20260829-WP805-REPLAN-RECOVERY-EFFICIENCY-GPT56SOL-01/E1_SOURCE_READ.json",
+  "claim_commit": "8daae04dee6c5ced9d42df6cf666c6e0024bc066",
+  "objective": "Find benchmark/evaluation mechanisms for transfer, recovery and efficient replanning after controlled change without turning an external planner, model or repair graph into F2 authority.",
+  "primary_sources": [
+    {
+      "source": "Koenig, Likhachev, Furcy — Lifelong Planning A*",
+      "type": "PRIMARY_CLASSICAL_PLANNING_PAPER",
+      "doi": "10.1016/j.artint.2003.12.001",
+      "year": 2004,
+      "observed_claim_scope": "Incremental heuristic search reuses unaffected portions of prior search information across related planning problems and can solve changed problems faster than repeated planning from scratch while retaining shortest-path guarantees under its declared assumptions."
+    },
+    {
+      "source": "Koenig & Likhachev — D* Lite",
+      "type": "PRIMARY_CLASSICAL_PLANNING_PAPER",
+      "venue": "AAAI",
+      "observed_claim_scope": "Incremental replanning combines heuristic focus with reuse of prior search information for changing/partially unknown terrain; useful as a baseline concept for measuring reuse versus from-scratch replanning, not as an F2 implementation mandate."
+    },
+    {
+      "source": "Song & Cai — Repair the Amplifier, Not the Symptom: Stable World-Model Correction for Agent Rollouts",
+      "type": "PRIMARY_CURRENT_RESEARCH",
+      "paper": "arXiv:2607.01767",
+      "year": 2026,
+      "observed_claim_scope": "For long planning graphs, whole-graph replay can be costly; their WM-SAR work targets compact causally relevant subgraph repair and evaluates stabilization under token budgets. This is evidence for measuring repair locality/resource use, not evidence that F2 should import WM-SAR or LLM repair."
+    },
+    {
+      "source": "Emami, Qiang, Graf — A Close Look At World Model Recovery In Supervised Fine-Tuned LLM Planners",
+      "type": "PRIMARY_CURRENT_RESEARCH",
+      "paper": "arXiv:2606.03685",
+      "year": 2026,
+      "observed_claim_scope": "Broader planning-state coverage such as random-walk data improved recovery of underlying world-model structure in their experiments. For F2 this supports explicit family/coverage-aware transfer splits as a hypothesis, not training/runtime credit."
+    },
+    {
+      "source": "Gan et al. — ActSWM: Action-Sensitive World Models for Long-Horizon Planning in Open-World Games",
+      "type": "PRIMARY_CURRENT_RESEARCH",
+      "paper": "arXiv:2607.26712",
+      "year": 2026,
+      "observed_claim_scope": "Planning-useful predictive dynamics should preserve distinctions between alternative action-conditioned futures; action sensitivity and action recovery can expose context-collapse failures that ordinary prediction similarity misses."
+    }
+  ],
+  "f2_research_implications": [
+    {
+      "id": "WP805-E1-H1",
+      "hypothesis": "Recovery quality should be evaluated jointly with recovery cost; success alone cannot distinguish efficient repair from full restart.",
+      "candidate_measurements": [
+        "post-change goal success",
+        "recovery action count / excess path cost",
+        "planner/model calls and tokens after change",
+        "latency/CPU/RSS where applicable",
+        "amount of pre-change plan/state retained versus discarded",
+        "invalid/stale action attempts after change"
+      ]
+    },
+    {
+      "id": "WP805-E1-H2",
+      "hypothesis": "Plan reuse should earn credit only when preserved material remains valid under the changed problem; maximal reuse is not itself good.",
+      "candidate_falsifier": "Create a perturbation that invalidates an early dependency. A system that preserves a large stale suffix but incurs wrong actions must score worse than one that discards the invalid region and repairs correctly."
+    },
+    {
+      "id": "WP805-E1-H3",
+      "hypothesis": "A useful recovery benchmark needs a from-scratch replan baseline and, where deterministically obtainable, an oracle/shortest valid post-change plan baseline.",
+      "candidate_measurements": [
+        "recovery cost delta versus full replan",
+        "path/action regret versus post-change oracle",
+        "retained-valid-prefix/suffix or dependency-region fraction"
+      ]
+    },
+    {
+      "id": "WP805-E1-H4",
+      "hypothesis": "Transfer must be defined by explicit held-out structure, not merely a new random seed.",
+      "candidate_split_axes": [
+        "fixture/evidence_source_family",
+        "method_family",
+        "donor_path_family",
+        "topology/transition motif",
+        "goal/constraint family"
+      ],
+      "note": "WP800 already carries several family identifiers that may support this without a new truth store. Exact WP805 mapping remains E2 work."
+    },
+    {
+      "id": "WP805-E1-H5",
+      "hypothesis": "Recovery tests should localize the perturbation and its causal dependency footprint so selective repair can be compared fairly with full replanning.",
+      "candidate_perturbations": [
+        "one previously valid action becomes unavailable",
+        "one observed transition outcome changes after a declared generation boundary",
+        "goal/constraint changes while unrelated state remains stable",
+        "new public evidence invalidates one planning assumption"
+      ],
+      "authority_boundary": "The evaluator owns the perturbation and ground truth; the system under test receives only the admitted public change/observation."
+    }
+  ],
+  "counterhypotheses": [
+    "For very small WP800 micro-worlds, from-scratch replanning may be cheaper and more reliable than maintaining reuse machinery; if so, WP805 should record NEUTRAL/NEGATIVE benefit rather than force plan-repair complexity.",
+    "Plan edit distance is not a reliable efficiency metric by itself because two semantically equivalent plans can differ syntactically; execution cost/regret and validated retained dependencies are stronger.",
+    "External LLM graph-repair results may not transfer to F2 deterministic typed planning; treat repair-locality as evaluation inspiration only until a native ablation exists.",
+    "Broad training-state coverage improving internal world-model recovery does not prove better behavioral transfer; F2 must measure held-out behavioral recovery directly."
+  ],
+  "negative_adoption_decisions": [
+    "Do not import LPA*, D* Lite or WM-SAR as canonical F2 planning authority based on E1.",
+    "Do not equate fewer edits with better recovery without validity/outcome evidence.",
+    "Do not score a hidden evaluator perturbation as if the agent had observed it before an admitted public signal.",
+    "Do not count training/world-model-recovery paper results as F2 training or model credit."
+  ],
+  "next_exact_action": "Under a separate create-only E2 claim, map a minimal WP805 held-out perturbation/recovery contract onto accepted WP800/WP802/WP803 and emerging WP804 interfaces, including explicit full-replan and post-change oracle baselines, transfer-family splits, and fail-closed generation/provenance boundaries. Do not duplicate active WP804/WP806 research.",
+  "credits": {
+    "trigger6_E1": 1,
+    "trigger6_E2": 0,
+    "trigger6_E3": 0,
+    "trigger6_E4": 0,
+    "trigger6_E5": 0,
+    "trigger6_E6": 0,
+    "architecture_acceptance_credit": 0,
+    "runtime_credit": 0,
+    "whole_system_credit": 0,
+    "training_credit": 0
+  }
+}
