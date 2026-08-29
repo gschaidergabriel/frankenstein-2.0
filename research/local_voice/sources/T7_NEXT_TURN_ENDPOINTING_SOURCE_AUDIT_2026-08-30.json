@@ -1,0 +1,57 @@
+{
+  "schema": "FRANKENSTEIN2_TRIGGER7_EXTERNAL_SOURCE_AUDIT/v1",
+  "trigger": "7",
+  "research_id": "T7-TURN-001",
+  "objective": "E2_SEMANTIC_ENDPOINT_INTERRUPT_FRONTIER",
+  "recorded_date": "2026-08-30",
+  "epistemic_scope": "EXTERNAL_PRIMARY_SOURCE_PLUS_ARCHITECTURE_INFERENCE_ONLY",
+  "runtime_credit": 0,
+  "integration_credit": 0,
+  "acceptance_credit": 0,
+  "source": {
+    "title": "Next-Turn: Duration-Aware Streaming Endpoint Detection via Time-to-Next-Speech-Onset Prediction",
+    "arxiv_id": "2606.18094",
+    "source_url": "https://arxiv.org/abs/2606.18094",
+    "published_utc_date": "2026-06-16",
+    "authors": [
+      "Tristan Tsoi",
+      "Jiajun Deng",
+      "Yingke Zhu",
+      "Huu Quyen Dang",
+      "Tianxiang Cao",
+      "Nikita Kuzmin",
+      "Tao Zhong",
+      "Simon Lui"
+    ]
+  },
+  "source_direct_findings": [
+    "Next-Turn predicts time-to-next-speech-onset as a duration-aware streaming endpoint-detection objective.",
+    "Its targets are derived from speech timestamps and require no additional endpoint annotation.",
+    "The paper reports a 25.9 percentage-point absolute endpoint-accuracy improvement within 320 ms over its strongest reported baseline.",
+    "The paper reports that joint training with the duration-aware objective complements binary endpoint detection and that gains increase with longer pauses."
+  ],
+  "frankenstein_inference": {
+    "role": "candidate complement/falsifier for DualTurn-style two-channel turn prediction, especially for distinguishing within-turn hesitation from actual endpoint",
+    "why_high_value": "It attacks the exact mid-utterance-pause failure mode that fixed silence timers create, while using a directly timestamp-derived target that is simpler to audit than semantic endpoint labels.",
+    "non_equivalence": "Next-Turn endpoint detection is not a replacement for DualTurn's full two-channel action/state vocabulary (EOT/HOLD/BOT/BC/VAD/FVAD). The two mechanisms should be compared and may be complementary.",
+    "german_status": "UNPROVEN_FROM_SOURCE_AUDIT",
+    "local_runtime_status": "NOT_OBSERVED",
+    "artifact_status": "NO_RUNTIME_ARTIFACT_PINNED_IN_THIS_RECEIPT"
+  },
+  "required_discriminator": {
+    "dataset": "identical real German room-audio scenarios with mid-sentence hesitation, clause-final pause, backchannel, overlap and barge-in",
+    "compare": [
+      "current silence/VAD baseline",
+      "DualTurn endpointing candidate",
+      "Next-Turn-style duration-aware endpoint predictor"
+    ],
+    "metrics": [
+      "false endpoint rate on within-turn pauses",
+      "endpoint accuracy at <=320 ms",
+      "median and p95 end-of-user-speech to decision latency",
+      "barge-in false-positive/false-negative rate",
+      "CPU/RAM/VRAM footprint inside whole-Frankenstein resident envelope"
+    ],
+    "promotion_rule": "No production preference until German target-runtime evidence is observed and receipt-bound."
+  }
+}
