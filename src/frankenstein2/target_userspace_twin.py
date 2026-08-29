@@ -70,19 +70,26 @@ def _sha256(value: Any) -> str:
     return hashlib.sha256(_canonical_json(value).encode("utf-8")).hexdigest()
 
 
-def _string(name: str, value: Any) -> str:
+def _string(name: str, value: Any, *, allow_lf: bool = False) -> str:
     if type(value) is not str:
         raise TargetUserspaceTwinError(f"{name} must be a string")
     if value != value.strip() or not value:
         raise TargetUserspaceTwinError(f"{name} must be non-empty and already trimmed")
-    if any(ord(ch) < 0x20 or ord(ch) == 0x7F for ch in value):
+    if any(
+        ((ord(ch) < 0x20) and not (allow_lf and ch == "\n")) or ord(ch) == 0x7F
+        for ch in value
+    ):
         raise TargetUserspaceTwinError(f"{name} contains control characters")
     return value
 
 
 def _projection_scalar(name: str, value: Any) -> str:
     if type(value) is str:
-        return _string(name, value)
+        # WP1201's canonical os_release fact is the bounded text of /etc/os-release,
+        # which is newline-delimited by definition. Preserve LF only for this exact
+        # digest-bound field; all other control characters and all other T1 fields
+        # remain fail-closed.
+        return _string(name, value, allow_lf=name == "os_release")
     if type(value) is int:
         return str(value)
     if type(value) is bool:
