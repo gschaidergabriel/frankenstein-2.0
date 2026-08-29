@@ -1,4 +1,4 @@
-name: WP714 Perception Acceptance Harness
+name: WP714 G2 Perception Acceptance Harness
 
 on:
   pull_request:
@@ -14,6 +14,7 @@ on:
       - 'workpackages/active/F2-WP-711.json'
       - 'workpackages/active/F2-WP-712.json'
       - 'workpackages/active/F2-WP-713.json'
+      - 'workpackages/deltas/F2-WP-714/**'
       - '.github/workflows/wp714-perception-acceptance-ci.yml'
   push:
     branches: [main]
@@ -29,13 +30,14 @@ on:
       - 'workpackages/active/F2-WP-711.json'
       - 'workpackages/active/F2-WP-712.json'
       - 'workpackages/active/F2-WP-713.json'
+      - 'workpackages/deltas/F2-WP-714/**'
       - '.github/workflows/wp714-perception-acceptance-ci.yml'
 
 permissions:
   contents: read
 
 jobs:
-  wp714-acceptance-harness:
+  wp714-g2-acceptance-harness:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
@@ -43,11 +45,11 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-      - name: Compile acceptance harness
-        run: python -m py_compile src/frankenstein2/perception_acceptance.py
-      - name: Validate receipt schema JSON
+      - name: Compile G2 harness and falsifiers
+        run: python -m py_compile src/frankenstein2/perception_acceptance.py tests/test_perception_acceptance.py
+      - name: Validate G2 receipt schema JSON
         run: python -m json.tool schemas/PERCEPTION_ACCEPTANCE_RECEIPT.schema.json >/dev/null
-      - name: Run deterministic WP714 falsifiers
+      - name: Run WP714 G2 successor and clock-evidence falsifiers
         env:
           PYTHONPATH: src
         run: python -m unittest tests.test_perception_acceptance -v
