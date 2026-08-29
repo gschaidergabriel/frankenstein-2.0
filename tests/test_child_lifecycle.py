@@ -106,6 +106,16 @@ class ChildLifecycleTests(unittest.TestCase):
                 with self.assertRaisesRegex(ChildLifecycleError, "stale or mismatched"):
                     self.build(expected_current_generation=generation)
 
+    def test_malformed_generation_and_depth_inputs_fail_inside_lifecycle_boundary(self) -> None:
+        for generation in (True, "4", 4.0, None):
+            with self.subTest(generation=generation):
+                with self.assertRaisesRegex(ChildLifecycleError, "expected_current_generation"):
+                    self.build(expected_current_generation=generation)
+        for depth in (True, "1", 1.0, None, -1):
+            with self.subTest(depth=depth):
+                with self.assertRaisesRegex(ChildLifecycleError, "requested_nested_depth"):
+                    self.build(requested_nested_depth=depth)
+
     def test_resume_is_waiting_only_and_terminal_child_never_resumes(self) -> None:
         for state in (RUNNING, TERMINAL):
             with self.subTest(state=state):
