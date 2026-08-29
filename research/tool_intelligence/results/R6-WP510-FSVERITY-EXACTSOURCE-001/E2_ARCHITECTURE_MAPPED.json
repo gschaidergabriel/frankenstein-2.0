@@ -1,0 +1,68 @@
+{
+  "schema": "FRANKENSTEIN2_TRIGGER6_RESEARCH_RESULT/v1",
+  "research_id": "R6-WP510-FSVERITY-EXACTSOURCE-001",
+  "evidence_stage": "E2_ARCHITECTURE_MAPPED",
+  "status": "COMPLETE_AT_E2",
+  "target_workpackage": "F2-WP-1207",
+  "existing_authorities_reused": [
+    "FRANKENSTEIN2_RELEASE_MANIFEST/v1",
+    "FRANKENSTEIN2_PORTABLE_RELEASE_IDENTITY/v1",
+    "FRANKENSTEIN2_PORTABLE_RELEASE_READBACK_RECEIPT/v1"
+  ],
+  "proposed_delta": {
+    "name": "ReleaseConsumptionWitness",
+    "schema": "FRANKENSTEIN2_RELEASE_CONSUMPTION_WITNESS/v1",
+    "role": "candidate evidence layer only; never canonical release/state/effect authority",
+    "required_release_binding": [
+      "release_manifest_sha256",
+      "release_id",
+      "source_commit",
+      "source_tree",
+      "active_release_digest"
+    ],
+    "required_process_binding": [
+      "run_id",
+      "process_id",
+      "process_start_identity",
+      "python_executable_identity",
+      "argv_allowlist_digest",
+      "environment_allowlist_digest"
+    ],
+    "per_consumed_release_file": [
+      "manifest_path",
+      "expected_sha256",
+      "observed_sha256_from_same_bytes",
+      "observed_size",
+      "acquisition_identity",
+      "consumption_mode",
+      "optional_fs_verity_digest"
+    ],
+    "python_same_bytes_algorithm": [
+      "anchor the active release root",
+      "acquire only a manifest-listed canonical relative path; use openat2-style no-escape semantics when available",
+      "read exact bytes once from the acquired object",
+      "hash that exact byte buffer and compare to the manifest entry",
+      "compile/execute that same verified byte buffer rather than reopening by path",
+      "append a deterministic per-file witness entry",
+      "fail closed on missing manifest entry, digest/size mismatch, path escape, acquisition identity drift, or reopened-path substitution"
+    ],
+    "native_binary_variant": "For a native executable, an already-open verified fd may be executed with execveat(AT_EMPTY_PATH) where supported; this does not replace the Python import witness.",
+    "cross_process_variant": "If verified bytes must cross a process boundary, a sealed memfd may be used to prevent mutation after verification; avoid it for ordinary in-process Python imports when immutable bytes already provide the same-byte property.",
+    "fs_verity_policy": "OPTIONAL_DEFENSE_IN_DEPTH_IF_ALREADY_SUPPORTED_AND_NONDISRUPTIVE; never a mandatory promotion prerequisite without target-host capability evidence."
+  },
+  "invariants": [
+    "PRELOAD_HASH != CONSUMED_BYTE_PROOF",
+    "PATH_IDENTITY != BYTE_IDENTITY",
+    "ACTIVE_RELEASE_DIGEST != MODULE_CONSUMPTION_PROOF",
+    "FS_VERITY_DIGEST != PROCESS_CONSUMPTION_PROOF",
+    "WITNESS != TARGET_RUNTIME_CREDIT_UNTIL_OBSERVED_ON_ADMITTED_CLEAN_EXACT_SOURCE_TARGET"
+  ],
+  "why_this_is_minimal": "F2 already has deterministic release manifests and exact active-release readback. The missing discriminator is only the bridge from manifest-listed bytes to the exact bytes consumed by the runtime. Adding another release manifest, package database, truth store, or privileged integrity subsystem would duplicate existing authority and add complexity.",
+  "next_discriminator": "Reproduce path-hash TOCTOU versus same-open-object/same-byte consumption locally, then hand the mapped witness to Trigger4 for an F2-WP-1207 implementation/ablation on a clean exact-source target.",
+  "credit": {
+    "target_runtime": 0,
+    "physical_target": 0,
+    "whole_system": 0,
+    "training": 0
+  }
+}
