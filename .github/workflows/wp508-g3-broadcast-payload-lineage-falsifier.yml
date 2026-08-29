@@ -1,0 +1,41 @@
+name: F2 WP508 G3 Broadcast Payload Lineage Falsifier
+
+on:
+  push:
+    branches:
+      - review/wp508-g3-broadcast-payload-lineage-falsifier-20260829
+    paths:
+      - 'src/frankenstein2/gwt_workspace.py'
+      - 'src/frankenstein2/gwt_reentry_provenance.py'
+      - 'src/frankenstein2/gwt_reentry_uptake_binding.py'
+      - 'src/frankenstein2/gwt_uptake.py'
+      - 'tests/test_wp508_g3_broadcast_payload_lineage_falsifier.py'
+      - '.github/workflows/wp508-g3-broadcast-payload-lineage-falsifier.yml'
+  pull_request:
+    paths:
+      - 'src/frankenstein2/gwt_workspace.py'
+      - 'src/frankenstein2/gwt_reentry_provenance.py'
+      - 'src/frankenstein2/gwt_reentry_uptake_binding.py'
+      - 'src/frankenstein2/gwt_uptake.py'
+      - 'tests/test_wp508_g3_broadcast_payload_lineage_falsifier.py'
+      - '.github/workflows/wp508-g3-broadcast-payload-lineage-falsifier.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  falsifier:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Compile review-only falsifier
+        run: python -m py_compile tests/test_wp508_g3_broadcast_payload_lineage_falsifier.py
+      - name: Run WP508 G3 broadcast payload lineage falsifier
+        env:
+          PYTHONPATH: src
+        run: python -m pytest tests/test_wp508_g3_broadcast_payload_lineage_falsifier.py -q
