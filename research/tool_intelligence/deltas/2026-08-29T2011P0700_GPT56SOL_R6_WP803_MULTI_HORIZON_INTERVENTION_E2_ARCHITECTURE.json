@@ -1,0 +1,170 @@
+{
+  "schema": "FRANKENSTEIN2_TRIGGER6_RESEARCH_DELTA/v1",
+  "research_id": "R6-20260829-WP803-PREDICTION-BENCH-GPT56SOL-01",
+  "evidence_stage": "E2_ARCHITECTURE_MAPPED",
+  "created_at": "2026-08-29T20:11:00+07:00",
+  "worker": "GPT-5.6-Sol-TRIGGER6",
+  "trigger": "6",
+  "status": "COMPLETED_E2_NO_BUILD_OR_RUNTIME_CREDIT",
+  "snapshot": {
+    "f2_main_before_claim": "449485f050efee4b8ea15fb2d76b2f7e7ed9af97",
+    "e2_claim_commit": "9ad4dd10ca26d66e6e8ec856974d7b28623b1857",
+    "wp803_build_claim_commit": "1ae3834d37f100447409946f0eda03dbd56a2225",
+    "wp803_active_branch": "trigger4/wp803-world-model-prediction-20260829",
+    "wp803_branch_head_observed": "bd401c26cb8e90dadcc2da7e81bdc23c626c8ba3",
+    "wp800_source_ref": "src/frankenstein2/cognitive_microworld.py@main",
+    "consumed_e1_result": "research/tool_intelligence/deltas/R6-20260829-WP803-PREDICTION-BENCH-GPT56SOL-01_E1_SOURCE_READ.json",
+    "excluded_parallel_e2": "research/tool_intelligence/deltas/2026-08-29T2005P0700_GPT56SOL_R6_WP803_PROPER_SCORING_E2_ARCHITECTURE.json"
+  },
+  "objective": "Map the smallest F2-native follow-on contract that measures bounded multi-horizon action-conditioned world prediction and controlled intervention sensitivity without duplicating WP803 proper-scoring/calibration research or weakening WP800/WP803 public/evaluator-private boundaries.",
+  "evidence_consumed": [
+    {
+      "type": "F2_CURRENT_BUILD_SOURCE",
+      "ref": "trigger4/wp803-world-model-prediction-20260829@bd401c26cb8e90dadcc2da7e81bdc23c626c8ba3",
+      "scope": "Generation-1 candidate is action-bound before evaluator step, public ObservationView only, exact next-observation scoring, explicit ABSTAIN, deterministic replay and hidden-state leakage falsifiers."
+    },
+    {
+      "type": "F2_CURRENT_HARNESS_SOURCE",
+      "ref": "src/frankenstein2/cognitive_microworld.py@main plus tests/test_cognitive_microworld.py@main",
+      "scope": "Deterministic evaluator-private transition engine, public ObservationView, bounded max_steps, deterministic replay, and baseline/intervention SUT run-pair provenance already exist."
+    },
+    {
+      "type": "EXTERNAL_PRIMARY_CODE_AND_PAPER",
+      "source": "Electronic Arts AutoWorldModel-Bench",
+      "repo": "electronicarts/AutoWorldModelBench",
+      "commit": "906c5bf99c745e1163c78dda122eb9b520f4059f",
+      "paper": "arXiv:2608.11216",
+      "scope": "Separates one-step teacher-forced quality from open-loop multi-horizon rollout quality; source evaluator reports metrics per horizon and uses an architecture adapter boundary."
+    },
+    {
+      "type": "EXTERNAL_PRIMARY_PAPER",
+      "source": "How Should World Models Be Evaluated? A Decision-Making-Centric Position",
+      "paper": "arXiv:2606.15032",
+      "scope": "Evaluation should be use-dependent; action-conditioned/interventional fidelity and closed-loop consequences are distinct from perceptual plausibility."
+    },
+    {
+      "type": "EXTERNAL_PRIMARY_PAPER",
+      "source": "ForecastBench-Sim",
+      "paper": "arXiv:2606.18686",
+      "scope": "Structured simulated worlds support arbitrary forecast horizons and paired interventions with immediately resolvable ground truth. Used as evaluation-geometry evidence, not as an F2 runtime donor."
+    },
+    {
+      "type": "PARALLEL_TRIGGER6_E2",
+      "ref": "research/tool_intelligence/deltas/2026-08-29T2005P0700_GPT56SOL_R6_WP803_PROPER_SCORING_E2_ARCHITECTURE.json",
+      "scope": "Owns abstention coverage/selective risk and optional proper probabilistic scoring. This result does not duplicate those mechanisms."
+    }
+  ],
+  "architecture_findings": [
+    {
+      "id": "WP803-MH-E2-01",
+      "finding": "Keep current generation-1 exact next-observation prediction as the one-step primitive; do not expand it in-place merely to copy long-horizon benchmarks.",
+      "reason": "The active Trigger-4 lane is intentionally narrow, action-bound and fail-closed. Multi-horizon evaluation is additive and can be built as a later generation/follow-on over the same primitive and WP800 transition authority.",
+      "impact": "SCOPE_PRESERVATION"
+    },
+    {
+      "id": "WP803-MH-E2-02",
+      "finding": "A genuine multi-horizon world prediction must precommit the full predicted public-observation sequence before the first WP800 evaluator transition.",
+      "reason": "If the predictor sees each realized intermediate ObservationView before predicting the next step, the benchmark collapses to repeated h=1 prediction and cannot expose compounding model error.",
+      "impact": "CAUSAL_ORDERING"
+    },
+    {
+      "id": "WP803-MH-E2-03",
+      "finding": "Condition the rollout on an evaluator-declared public action sequence and bind that sequence into the candidate digest.",
+      "reason": "This measures transition/world-model fidelity rather than confounding it with policy/action-selection quality. The predictor may consume only the initial public ObservationView, immutable policy/config state, and the public planned action sequence; hidden transition structure remains evaluator-only.",
+      "impact": "MODEL_VS_POLICY_DISENTANGLEMENT"
+    },
+    {
+      "id": "WP803-MH-E2-04",
+      "finding": "Use fixture-relative bounded horizons, not copied fixed horizons such as 10/20.",
+      "reason": "F2 WP800 fixtures have explicit max_steps and may terminate early. The admitted horizon domain should be 1 <= h <= remaining evaluator step budget, with per-horizon results and no cross-fixture assumption that a fixed physical horizon exists.",
+      "impact": "F2_NATIVE_EVALUATION_GEOMETRY"
+    },
+    {
+      "id": "WP803-MH-E2-05",
+      "finding": "For discrete F2 public observations, report exact per-step/endpoint sequence agreement and first-divergence information rather than importing continuous-state L1 metrics.",
+      "reason": "AutoWorldModel-Bench position L1 is meaningful for continuous entity state. F2 WP800 observations are typed public refs/digests; the native signal is exact observed-sequence fidelity. Proper probabilistic scoring, if later present, stays owned by the parallel proper-scoring lane.",
+      "impact": "METRIC_DISTILLATION"
+    },
+    {
+      "id": "WP803-MH-E2-06",
+      "finding": "Controlled action-intervention discrimination can be tested without a second world-state authority by replaying the same initial evaluator state under two distinct public action sequences.",
+      "reason": "Two sealed rollout candidates share the same initial public ObservationView and fixture identity but bind different evaluator-declared action sequences. WP800 deterministically resolves both branches from the same initial evaluator state. The benchmark then tests whether the candidate forecasts the correct public divergence. No model-generated transition or shadow state becomes authoritative.",
+      "impact": "INTERVENTIONAL_FIDELITY"
+    },
+    {
+      "id": "WP803-MH-E2-07",
+      "finding": "Do not equate existing WP800 MatchedRunPair with paired counterfactual worlds.",
+      "reason": "MatchedRunPair currently pairs BASELINE versus INTERVENTION systems under matched fixture/evidence ancestry. It is useful provenance machinery, but it does not itself authorize two different hidden world fixtures. A same-fixture action-sequence intervention needs no new hidden fixture pair and is the cheaper first discriminator.",
+      "impact": "ANTI_OVERCLAIM_BOUNDARY"
+    },
+    {
+      "id": "WP803-MH-E2-08",
+      "finding": "A hidden-parameter paired-world benchmark should remain a later hypothesis, not part of the minimal follow-on.",
+      "reason": "Although two fixtures can share a public interface while differing in evaluator-private transitions, introducing a cross-fixture counterfactual-pair identity adds new leakage/provenance questions. Action-sequence interventions already test a high-value causal property with less architecture.",
+      "impact": "COMPLEXITY_REDUCTION"
+    }
+  ],
+  "minimal_f2_native_follow_on": {
+    "recommended_classification": "WP803_FOLLOW_ON_OR_GENERATION_2_NOT_WP806_LESION_SUITE",
+    "candidate_types": [
+      "RolloutPredictionCandidate: initial ObservationView digest + action_sequence tuple/digest + horizon + ordered predicted public observation refs/digests + policy/config identity",
+      "RolloutPredictionEvaluation: candidate digest + evaluator-produced ordered ObservationView digests + per-step exact outcomes + endpoint outcome + first_divergence_step + completed_horizon + evaluator provenance"
+    ],
+    "construction_law": "Construct and seal the complete candidate before the first evaluator transition. Reject future-step observation input, hidden fixture fields, transition refs, evaluator scores, stale generation, action-sequence mutation, horizon overflow and post-step rewrite.",
+    "evaluation_law": "Clone/replay only canonical WP800 evaluator state as allowed by deterministic benchmark infrastructure, then apply the sealed public action sequence through WP800 step_episode. Compare only public ObservationViews produced after each step.",
+    "metrics": [
+      "per_horizon_exact_endpoint_match",
+      "sequence_step_match_count / resolved_steps",
+      "first_divergence_step or NONE",
+      "resolved_horizon versus requested_horizon when terminal occurs",
+      "baseline-relative delta reported separately",
+      "abstention/coverage metrics consumed from the parallel proper-scoring E2 rather than redefined here"
+    ],
+    "intervention_test": "From one identical initial state, seal candidate A for public action sequence A and candidate B for public action sequence B before either branch resolves. Replay the canonical evaluator state independently, execute both sequences, and score whether each predicted public sequence matches its own realized branch. This is action-conditioned interventional fidelity, not proof of general causality.",
+    "dependency_policy": "NO_NEW_EXTERNAL_RUNTIME_DEPENDENCY_NO_MODEL_CALL_REQUIRED_FOR_HARNESS",
+    "external_code_adoption": "REJECT_WHOLE_FRAMEWORK_IMPORT; DISTILL_EVALUATION_GEOMETRY_ONLY"
+  },
+  "falsifiers": [
+    "INTERMEDIATE_OBSERVATION_LEAK: any API lets the predictor observe realized step k before the precommitted prediction for k+1; reject as repeated h=1, not open-loop multi-horizon evidence.",
+    "ACTION_SEQUENCE_REWRITE: mutate an action after candidate sealing; evaluator must reject digest mismatch before scoring.",
+    "HORIZON_OVERFLOW: request horizon beyond remaining fixture max_steps; reject or deterministically bound according to one declared rule before prediction, never silently truncate after seeing outcomes.",
+    "TERMINAL_EARLY: branch terminates before requested horizon; result must expose resolved_horizon and terminal outcome rather than pretending full-horizon success/failure.",
+    "HIDDEN_TRANSITION_SENTINEL: changing evaluator-private transition refs/ground truth while keeping the public initial interface identical must not change the deterministic predictor input/candidate unless the public action sequence/config changes.",
+    "POLICY_CONFOUND: if an evaluation lets the SUT choose actions while also grading world prediction, classify it separately because world-model error and policy error are entangled.",
+    "INTERVENTION_NONDISCRIMINATING_FIXTURE: two action sequences resolve to the same public sequence; such a pair gives zero intervention-discrimination information and must not count as a causal-fidelity challenge."
+  ],
+  "counterhypotheses": [
+    {
+      "statement": "Generation-1 h=1 prediction is sufficient for WP803 and any h>1 work should wait until whole-system evaluation.",
+      "falsifier": "If held-out fixtures contain transition chains where two predictors tie at h=1 but diverge over sealed h>1 forecasts, multi-horizon evaluation adds discrimination without requiring whole-system runtime."
+    },
+    {
+      "statement": "Repeated one-step predictions after each realized observation are equivalent to open-loop rollout for this benchmark.",
+      "falsifier": "Construct a fixture where an early prediction error would alter the model's internally predicted next context; repeated teacher-forced h=1 can remain correct at every real state while a sealed rollout diverges."
+    },
+    {
+      "statement": "A second hidden-world fixture pair is necessary to test intervention sensitivity.",
+      "falsifier": "A same-fixture initial state with two public evaluator-controlled action sequences that deterministically diverge provides an intervention test without a second fixture authority."
+    }
+  ],
+  "coordination": {
+    "proper_scoring_family": "CONSUME_NOT_DUPLICATE",
+    "wp806_boundary": "WP806 lesion/rescue should test causal contribution of cognitive mechanisms; this E2 only evaluates predictive dynamics and action-conditioned forecast fidelity.",
+    "trigger4_handoff": "NOT_YET_E5. Trigger-4 may consume this as research input but no build-candidate or acceptance credit is minted by E2."
+  },
+  "resource_decision": "THIN_F2_NATIVE_TYPED_EXTENSION; NO_EXTERNAL_FRAMEWORK_IMPORT; NO_VPS; NO_PROVIDER; NO_PAID_EXECUTION",
+  "credits": {
+    "trigger6_E2": 1,
+    "trigger6_E3": 0,
+    "trigger6_E4": 0,
+    "trigger6_E5": 0,
+    "trigger6_E6": 0,
+    "architecture_acceptance_credit": 0,
+    "f2_runtime_credit": 0,
+    "physical_grid10_credit": 0,
+    "gwt_jspace_credit": 0,
+    "training_credit": 0,
+    "whole_system_credit": 0
+  },
+  "next_exact_action": "After current WP803 generation-1 result is reconciled/accepted or explicitly superseded, acquire a separate E3 or E4 claim only if a reproducible discriminator is needed; otherwise hand this E2 mapping to the appropriate Trigger-4 follow-on workpackage without mutating the active generation-1 scope."
+}
