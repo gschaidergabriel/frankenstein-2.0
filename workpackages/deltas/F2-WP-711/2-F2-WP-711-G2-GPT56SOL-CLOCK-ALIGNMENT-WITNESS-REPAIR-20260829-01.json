@@ -1,0 +1,91 @@
+{
+  "schema": "FRANKENSTEIN2_WORKPACKAGE_DELTA/v1",
+  "workpackage_id": "F2-WP-711",
+  "generation": 2,
+  "claim_id": "F2-WP-711-G2-GPT56SOL-CLOCK-ALIGNMENT-WITNESS-REPAIR-20260829",
+  "worker_id": "GPT-5.6-Sol",
+  "authority_epoch": "8.78",
+  "base_commit": "42bdfec07a49809d33978866718a467f5e8dba1e",
+  "status": "IMPLEMENTED_AND_ACCEPTED_AT_REPOSITORY_COMPONENT_CI_SCOPE",
+  "scope": "Fail-closed provenance-bound cross-clock alignment contract repair for the Temporal ObservationWindow",
+  "parent_generation": 1,
+  "parent_claim_id": "F2-WP-711-G1-GPT56SOL-TEMPORAL-OBSERVATION-WINDOW-20260829",
+  "counterevidence_absorbed": {
+    "review_pr": 398,
+    "falsifier_run_id": 33250070189,
+    "falsifier_result": "FAILURE_AS_PREDICTED_AGAINST_G1",
+    "reproduction_run_id": 33250158881,
+    "reproduction_result": "FAILURE_AS_PREDICTED_AGAINST_G1",
+    "mirror_pr": 405,
+    "falsified_g1_scope": "UNPROVEN_CROSS_CLOCK_ALIGNMENT_ONLY"
+  },
+  "changes": [
+    "added ClockAlignmentWitness as an explicit evidence/provenance-bearing cross-clock relation contract",
+    "bound exact left/right clock-domain identities and source-generation fences",
+    "bound exact per-side reference offsets plus bounded uncertainty limits",
+    "bound witness generation, validity interval, evidence sha256 identity and immutable provenance refs",
+    "required exactly one matching witness before distinct clock identities may be compared",
+    "made zero or ambiguous matching witnesses fail closed to UNALIGNED",
+    "prevented caller-supplied numeric reference_offset_ns from self-attesting cross-domain alignment",
+    "made same-source generation/clock-transform changes fail closed rather than silently compare",
+    "included actually-used witness identity/provenance in ObservationWindow digest/provenance",
+    "preserved generation-1 exact OBSERVED binding, freshness, monotonicity, arrival-order non-authority, same-GRID-cycle non-authority, disagreement preservation and zero truth/effect/completion authority",
+    "promoted the independent PR398 counterexample into a permanent deterministic regression",
+    "added positive witness-bound cross-host alignment plus wrong-offset, expired, ambiguous and generation-change negative regressions"
+  ],
+  "canonical_source": {
+    "path": "src/frankenstein2/perception_temporal.py",
+    "blob_sha": "c01391ba7eec3634277c495a65ac8dd9a9da17b7"
+  },
+  "canonical_test": {
+    "path": "tests/test_perception_temporal.py",
+    "blob_sha": "51a866212011c944ddad18f66e77f89b7a082bb9"
+  },
+  "canonical_workflow": {
+    "path": ".github/workflows/perception-fabric-ci.yml",
+    "blob_sha": "b3c8cb2dab6a145e6ff4ae503fa4634788a1e219"
+  },
+  "evidence": {
+    "pull_request": 407,
+    "pr_head_sha": "8bd077a8ebdebfa12b1ce302b8685ce9ebf72740",
+    "pr_head_ci_run_id": 33250496725,
+    "pr_head_ci_job_id": 99095228135,
+    "pr_head_ci_conclusion": "success",
+    "merge_sha": "1442a9741a41c6828858cd68fc5dacf491674b4e",
+    "merged_main_ci_run_id": 33250544513,
+    "merged_main_ci_job_id": 99095351312,
+    "merged_main_ci_conclusion": "success"
+  },
+  "limitations": [
+    "repository component CI verifies the fail-closed contract and deterministic regressions, not physical clock synchronization",
+    "ClockAlignmentWitness.evidence_sha256 is an evidence identity binding at this layer; this component does not dereference or independently attest external evidence bytes",
+    "source_generation is used as a rebind/generation fence for temporal refs; this scope does not claim an independently measured OS clock-daemon generation",
+    "a later execution/acceptance boundary must verify real local/remote clock evidence before granting physical perception runtime credit"
+  ],
+  "negative_claims": [
+    "does not open physical camera/display/browser devices",
+    "does not invoke NTP/PTP/system clock synchronization",
+    "does not persist raw frame bytes",
+    "does not invoke providers or VLMs",
+    "does not resolve semantic disagreement into canonical world truth",
+    "does not execute VPS perception runtime",
+    "does not establish physical GRID10/GWT/J-Space execution",
+    "does not mint effect, training, completion or whole-system acceptance credit"
+  ],
+  "credit": {
+    "repository_component_source_and_ci": "ACCEPTED_AT_SCOPE",
+    "physical_clock_alignment": 0,
+    "physical_device_runtime": 0,
+    "perception_runtime": 0,
+    "vps_runtime": 0,
+    "physical_grid10": 0,
+    "gwt_runtime": 0,
+    "jspace_runtime": 0,
+    "provider_model": 0,
+    "training": 0,
+    "effect": 0,
+    "completion": 0,
+    "whole_system": 0
+  },
+  "next_exact_action": "Keep generation 2 closed at repository-hosted component-CI scope absent new executable counterevidence. Downstream physical acceptance must resolve a ClockAlignmentWitness to real evidence and preserve UNALIGNED when that evidence is absent, stale, ambiguous or invalid."
+}
