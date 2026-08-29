@@ -1,0 +1,63 @@
+{
+  "schema": "FRANKENSTEIN2_TRIGGER6_RESEARCH_OUTCOME/v1",
+  "research_id": "R6-20260829-WP807-AGENTBOARD-PROGRESS-METRICS-GPT56SOL-01",
+  "claim_target": "E1_SOURCE_READ",
+  "status": "E1_SOURCE_READ_COMPLETED",
+  "recorded_at": "2026-08-29T13:20:10Z",
+  "worker": "GPT-5.6-Sol / Trigger-6 organ",
+  "architecture_snapshot": {
+    "f2_main_before_outcome": "f4e8be7cd8c9ab038fd1622be1eb478f1643bcfc",
+    "wp807_implementation_commit": "4a6c401a279798008aad199107b3f1b801802ed0",
+    "wp807_module": "src/frankenstein2/cognitive_agentic_core_falsifier.py",
+    "trigger6_claim_commit": "33d900a80ba98d4fbd57a24aa7e8b4a52a26f4e2"
+  },
+  "external_source": {
+    "repo": "hkust-nlp/AgentBoard",
+    "commit": "bb7255e2daf1989069a186dad9e53f70680961db",
+    "paper": "AgentBoard: An Analytical Evaluation Board of Multi-turn LLM Agents",
+    "paper_id": "arXiv:2401.13178"
+  },
+  "source_findings": [
+    "AgentBoard separates binary success rate, fine-grained progress rate, grounding accuracy, trajectory, difficulty slices and long-range behavior instead of collapsing all agent behavior into final success.",
+    "At the inspected source pin, eval_main.py aggregates success_rate, progress_rate and grounding_acc independently across nine heterogeneous tasks.",
+    "BabyAI and AlfWorld task evaluators record environment-derived reward as per-step Progress Rate, keep success/done separate, and count action grounding/validity separately.",
+    "BabyAI loads manually annotated subgoals/difficulty into environment configuration; progress semantics therefore depend on task-specific evaluator annotations rather than a universal model-generated score.",
+    "The paper defines progress as a running maximum over continuous state-goal matching or completed subgoal matching. This makes the metric monotonic and intentionally hides later regressions in the reported progress value.",
+    "The current WP807 component instead carries one baseline/intervention score per capability plus sample/success/action counts and evaluates minimum score, minimum delta and shared holdout constraints. It does not yet encode progress, grounding, regression or recovery as orthogonal dimensions."
+  ],
+  "negative_evidence_and_cautions": [
+    "AgentBoard progress cannot be imported as a universal scalar without preserving each task evaluator's scoring provenance; heterogeneous reward/subgoal scales are not automatically commensurate.",
+    "Running-max progress is unsuitable as the sole WP807 recovery signal because a perturbation-induced regression can disappear from the metric once an earlier high-water mark has been reached.",
+    "Grounding/valid-action rate is necessary diagnostic evidence but not sufficient competence: valid actions can still be irrelevant or wasteful.",
+    "Manual subgoal labels must remain sealed from the acting agent in a held-out F2 falsifier or they risk evaluator-to-policy leakage.",
+    "The full AgentBoard harness carries environment, model/provider, visualization and logging dependencies that are unnecessary for a small deterministic F2 component. Structural metric distillation is favored over wholesale import.",
+    "Source inspection found a cached-result path in eval_main.py that passes success_rate_hard for both hard and easy success-rate arguments; this is a concrete reason to avoid adopting the harness as evidence authority without independent tests."
+  ],
+  "wp807_research_hypothesis": "WP807 should preserve its receipt-bound fail-closed capability envelope but eventually distinguish at least task success, evaluator-derived progress, action grounding/validity, regression/recovery and resource/action efficiency as separately provenance-bound measurements. The general-agentic verdict should remain fail-closed and should not be minted by a model self-score.",
+  "counterhypothesis": "The accepted/current WP802-WP805 benchmark scores may already encode sufficient task progress and recovery semantics, in which case adding orthogonal WP807 metric fields would duplicate evidence, enlarge schema cost and increase aggregation ambiguity without improving falsification power.",
+  "next_discriminator": "Map AgentBoard-derived metric semantics against exact current WP802-WP805 evidence schemas and WP807 tests. Add no new field unless it detects a failure mode that current score/delta/sample/action-count evidence cannot distinguish on a sealed held-out fixture.",
+  "recommended_nonbinding_delta": {
+    "type": "THIN_METRIC_DISTILLATION_NOT_FRAMEWORK_IMPORT",
+    "candidate_measurements": [
+      "success_or_completion_evidence",
+      "normalized_evaluator_progress",
+      "grounding_or_valid_action_ratio",
+      "regression_depth_or_area",
+      "recovery_after_perturbation",
+      "actions_or_model_calls_or_tokens_per_net_progress"
+    ],
+    "aggregation_rule": "Do not average heterogeneous dimensions into one architecture-credit scalar by default; preserve per-capability and per-family values plus explicit worst-case/fail-closed gates.",
+    "authority_rule": "All progress/grounding labels remain external evaluator measurements with exact fixture/evaluator provenance; no model self-report can mint them."
+  },
+  "evidence_ceiling": "E1_SOURCE_READ_ONLY",
+  "credits": {
+    "research_source_delta": 1,
+    "architecture_credit": 0,
+    "runtime_credit": 0,
+    "integration_credit": 0,
+    "external_agentboard_benchmark_credit": 0,
+    "whole_system_credit": 0,
+    "entityos_hcu_credit": 0,
+    "training_credit": 0
+  }
+}
