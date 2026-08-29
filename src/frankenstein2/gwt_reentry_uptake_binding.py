@@ -1,6 +1,6 @@
 """Deterministic binding between accepted WP508 re-entry provenance and WP507 uptake evidence.
 
-F2-WP-508 generation 3 component scope only.
+F2-WP-508 generation 4 component scope only; generation 3 remains historical falsifier lineage.
 
 This module does not observe or infer uptake. It verifies that one already-valid WP508
 re-entry witness and one already-valid WP507 CellUptakeReceipt refer to the same exact
@@ -37,7 +37,7 @@ _BINDING_SEAL = object()
 
 
 class GwtReentryUptakeBindingError(ValueError):
-    """Fail-closed WP508 generation-3 integration error."""
+    """Fail-closed WP508 generation-4 integration error."""
 
 
 def _text(name: str, value: Any) -> str:
