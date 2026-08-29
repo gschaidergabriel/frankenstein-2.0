@@ -5,7 +5,15 @@ on:
     paths:
       - "src/frankenstein2/pre_handoff_release.py"
       - "src/frankenstein2/release_integrity.py"
+      - "src/frankenstein2/release_archive.py"
+      - "src/frankenstein2/release_artifact_subject.py"
+      - "src/frankenstein2/clean_machine_acceptance.py"
+      - "src/frankenstein2/artifact_bound_clean_machine.py"
       - "tests/test_pre_handoff_release.py"
+      - "tests/test_release_archive.py"
+      - "tests/test_release_artifact_subject.py"
+      - "tests/test_clean_machine_acceptance.py"
+      - "tests/test_artifact_bound_clean_machine.py"
       - ".github/workflows/wp1110-pre-handoff-release-ci.yml"
       - "AI_START_HERE_DO_NOT_SCAN_REPO/**"
   push:
@@ -13,7 +21,15 @@ on:
     paths:
       - "src/frankenstein2/pre_handoff_release.py"
       - "src/frankenstein2/release_integrity.py"
+      - "src/frankenstein2/release_archive.py"
+      - "src/frankenstein2/release_artifact_subject.py"
+      - "src/frankenstein2/clean_machine_acceptance.py"
+      - "src/frankenstein2/artifact_bound_clean_machine.py"
       - "tests/test_pre_handoff_release.py"
+      - "tests/test_release_archive.py"
+      - "tests/test_release_artifact_subject.py"
+      - "tests/test_clean_machine_acceptance.py"
+      - "tests/test_artifact_bound_clean_machine.py"
       - ".github/workflows/wp1110-pre-handoff-release-ci.yml"
       - "AI_START_HERE_DO_NOT_SCAN_REPO/**"
   workflow_dispatch:
@@ -30,11 +46,26 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-      - name: Compile bounded source and test
+      - name: Compile bounded source and tests
         run: |
-          python -m py_compile src/frankenstein2/pre_handoff_release.py tests/test_pre_handoff_release.py
-      - name: Run fail-closed pre-handoff release tests
+          python -m py_compile \
+            src/frankenstein2/pre_handoff_release.py \
+            src/frankenstein2/release_integrity.py \
+            src/frankenstein2/release_archive.py \
+            src/frankenstein2/release_artifact_subject.py \
+            src/frankenstein2/clean_machine_acceptance.py \
+            src/frankenstein2/artifact_bound_clean_machine.py \
+            tests/test_pre_handoff_release.py \
+            tests/test_release_archive.py \
+            tests/test_release_artifact_subject.py \
+            tests/test_clean_machine_acceptance.py \
+            tests/test_artifact_bound_clean_machine.py
+      - name: Run fail-closed pre-handoff and artifact-lineage tests
         env:
           PYTHONPATH: src
         run: |
           python tests/test_pre_handoff_release.py -v
+          python tests/test_release_archive.py -v
+          python tests/test_release_artifact_subject.py -v
+          python tests/test_clean_machine_acceptance.py -v
+          python tests/test_artifact_bound_clean_machine.py -v
