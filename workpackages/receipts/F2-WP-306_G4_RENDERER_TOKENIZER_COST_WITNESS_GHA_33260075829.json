@@ -1,0 +1,97 @@
+{
+  "schema": "FRANKENSTEIN2_WORKPACKAGE_ACCEPTANCE_RECEIPT/v1",
+  "workpackage_id": "F2-WP-306",
+  "generation": 4,
+  "claim_id": "F2-WP-306-G4-GPT56SOL-RENDERER-TOKENIZER-COST-WITNESS-BINDING-20260829",
+  "authority_epoch": "8.78",
+  "scope": "RENDERER_TOKENIZER_COST_WITNESS_BINDING_REPOSITORY_HOSTED_COMPONENT_CI_ONLY",
+  "repository": "gschaidergabriel/frankenstein-2.0",
+  "implementation_pull_request": 545,
+  "implementation_pr_head_sha": "ecf5acd7f55e7c8c3818f8bf432604e20157040a",
+  "merged_main_sha": "63a273905964ce6b4735d1d1077cb3b2f83c1344",
+  "claim_pull_request": 525,
+  "claim_merge_sha": "312c333cf7ea3e2366df46134932aa88597d3a17",
+  "review_only_falsifier": {
+    "pull_request": 519,
+    "head_sha": "c54eb106b5ab55b3c3822cd76bb34614d9c144b9",
+    "run_id": 33259578848,
+    "job_id": 99119099009,
+    "conclusion": "failure_as_preregistered_negative_evidence",
+    "observed_setup_compile": "success",
+    "observed_discriminator": "failure_as_expected"
+  },
+  "workflow": ".github/workflows/wp306-context-compiler-ci.yml",
+  "workflow_blob_sha": "0b6c16c068f8a82153800fbd8a6a437bde04f8e4",
+  "source": "src/frankenstein2/context_compiler.py",
+  "source_blob_sha": "a8cf88735e0ba6d01cdd3a1e9440a860f8e3eeea",
+  "tests": [
+    {
+      "path": "tests/test_context_compiler.py",
+      "blob_sha": "2e33d5a2ffb687e23edd72292ca55004c708c1f6"
+    },
+    {
+      "path": "tests/test_wp306_renderer_tokenizer_cost_binding_falsifier.py",
+      "blob_sha": "b00c0c9a58b610a0ffe7771f422b8dce01ea38fd"
+    }
+  ],
+  "pull_request_runs": [
+    {
+      "workflow": "F2 WP306 Context Compiler CI",
+      "run_id": 33260049443,
+      "job_id": 99120313000,
+      "head_sha": "ecf5acd7f55e7c8c3818f8bf432604e20157040a",
+      "conclusion": "success"
+    },
+    {
+      "workflow": "F2 WP306 G2 Source Generation Zero CI",
+      "run_id": 33260049493,
+      "head_sha": "ecf5acd7f55e7c8c3818f8bf432604e20157040a",
+      "conclusion": "success"
+    },
+    {
+      "workflow": "F2 WP306 G3 Epistemic Context Adapter CI",
+      "run_id": 33260049517,
+      "head_sha": "ecf5acd7f55e7c8c3818f8bf432604e20157040a",
+      "conclusion": "success"
+    }
+  ],
+  "exact_main_run": {
+    "workflow": "F2 WP306 Context Compiler CI",
+    "run_id": 33260075829,
+    "job_id": 99120379138,
+    "head_sha": "63a273905964ce6b4735d1d1077cb3b2f83c1344",
+    "conclusion": "success",
+    "observed_steps": [
+      "checkout success",
+      "python setup success",
+      "source and test compile success",
+      "context compiler and cost-witness falsification suite success"
+    ]
+  },
+  "accepted_invariants": [
+    "every selectable context payload requires one exact typed ContextCostWitness before budget accounting",
+    "cost witness binds exact payload SHA-256, renderer identity/version, tokenizer identity/version, measured cost units, witness generation, measurement reference and provenance",
+    "missing witness fails closed",
+    "unbound payload witness fails closed",
+    "duplicate witness for one payload fails closed",
+    "ContextCostWitness subtype fails closed at the public compilation boundary",
+    "declared ContextItem cost_units must exactly equal witness measured_cost_units before charging budget",
+    "selected view carries exact witness digest and renderer/tokenizer/measurement identities",
+    "ContextItem schema and constructor remain unchanged from accepted G2/G3 compatibility surface",
+    "reference-only compiler still does not read, render, tokenize or emit payload bytes",
+    "legacy required-item, required-channel, optional-priority and omission semantics remain deterministic"
+  ],
+  "epistemic_boundary": "The accepted component proves exact typed binding and deterministic budget admission against a supplied measurement witness. It does not prove that an upstream renderer/tokenizer measurement source is truthful, does not define a production tokenizer, and does not convert measurement metadata into world truth.",
+  "excluded_credit": {
+    "target_runtime_execution_observed": false,
+    "vps_runtime_credit": 0,
+    "physical_grid10_credit": 0,
+    "gwt_runtime_credit": 0,
+    "jspace_runtime_credit": 0,
+    "provider_model_runtime_credit": 0,
+    "effect_credit": 0,
+    "completion_credit": 0,
+    "training_credit": 0,
+    "whole_system_acceptance": false
+  }
+}

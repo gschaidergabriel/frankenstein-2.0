@@ -1,0 +1,83 @@
+{
+  "schema": "FRANKENSTEIN2_TRIGGER6_RESEARCH_DELTA/v1",
+  "target_id": "R6-20260829-PYTHON-SQLITE-TXN-ABI-GPT56SOL-01",
+  "stage": "E1_SOURCE_READ",
+  "status": "COMPLETED_AT_SCOPE",
+  "created_at": "2026-08-29T22:37:00+07:00",
+  "claimed_by": "gpt-5.6-sol-trigger6-organ",
+  "research_question": "Does F2's omission of sqlite3.connect(autocommit=...) make its explicit BEGIN IMMEDIATE transaction contract depend on a Python default that is documented to change?",
+  "external_primary_sources": [
+    {
+      "name": "Python 3.13 sqlite3 documentation",
+      "url": "https://docs.python.org/3.13/library/sqlite3.html",
+      "observed": "connect() exposes autocommit added in 3.12; current default is sqlite3.LEGACY_TRANSACTION_CONTROL and documentation says the default will change to False in a future release."
+    },
+    {
+      "name": "Python 3.14 sqlite3 documentation",
+      "url": "https://docs.python.org/3/library/sqlite3.html",
+      "observed": "autocommit=False is recommended PEP-249 behavior and means sqlite3 keeps a transaction open, opening BEGIN DEFERRED on connect and immediately after commit/rollback. LEGACY_TRANSACTION_CONTROL retains pre-3.12 behavior."
+    },
+    {
+      "name": "Python 3.15.0rc1 sqlite3 documentation",
+      "url": "https://docs.python.org/3.15/library/sqlite3.html",
+      "observed": "As of the current 3.15 release-candidate documentation, autocommit still defaults to LEGACY_TRANSACTION_CONTROL and still carries the future-change warning. Therefore the risk is prospective/ABI-drift, not evidence of a Python-3.15 break today."
+    }
+  ],
+  "exact_project_sources": [
+    {
+      "path": "src/frankenstein2/persistent_agency_kernel.py",
+      "blob_sha": "351545cc18931a04a68b7deb834783f1907c9295",
+      "observed": "CanonicalPersistentAgencyStore.open calls sqlite3.connect(uri, uri=True, timeout=timeout) without autocommit/isolation_level. __init__ rejects connection.in_transaction, while initialize_schema/write_checkpoint explicitly issue BEGIN IMMEDIATE then use Connection.commit()/rollback()."
+    },
+    {
+      "path": "architecture/PORTABLE_HOST_HARNESS_AND_DISTRIBUTION_CONTRACT.md",
+      "blob_sha": "81569e52844794a1dc664239b61b6680bc57954c",
+      "observed": "Release artifacts must declare minimum runtime dependencies and support clean-machine/restart acceptance; dependency ABI drift is therefore part of product portability evidence."
+    }
+  ],
+  "findings": [
+    {
+      "id": "P1_DEFAULT_IS_NOT_STABLE_CONTRACT",
+      "status": "SOURCE_VERIFIED",
+      "finding": "F2 currently inherits Python sqlite3's LEGACY_TRANSACTION_CONTROL because it omits autocommit=. Python documents that this default will change to False in a future release.",
+      "impact": "Current behavior is version-default dependent rather than fully declared by F2 source."
+    },
+    {
+      "id": "P2_FUTURE_FALSE_CHANGES_TRANSACTION_LIFECYCLE",
+      "status": "SOURCE_VERIFIED_PLUS_CODE_INFERENCE",
+      "finding": "Under autocommit=False, Python ensures a transaction is always open and uses BEGIN DEFERRED when opening one. F2 currently rejects an already-open transaction at store construction and later issues its own BEGIN IMMEDIATE.",
+      "impact": "If the Python default flips while F2 source remains unchanged, writer open is expected to fail closed at CALLER_TRANSACTION_ALREADY_OPEN; absent that guard, explicit BEGIN IMMEDIATE would be at risk of nested-transaction failure. This is an inference from the two explicit contracts, not a target-runtime observation."
+    },
+    {
+      "id": "P3_NOT_A_315_CURRENT_BREAK",
+      "status": "SOURCE_VERIFIED_NEGATIVE",
+      "finding": "Python 3.15.0rc1 documentation still shows LEGACY_TRANSACTION_CONTROL as the default.",
+      "impact": "Do not report this as a present 3.15 incompatibility. The defect class is unpinned ABI/default dependence."
+    },
+    {
+      "id": "P4_TRANSACTION_STYLE_MUST_BE_CHOSEN_EXPLICITLY",
+      "status": "ARCHITECTURE_CANDIDATE",
+      "finding": "F2 should choose and test one transaction-control model rather than inherit the interpreter default: either preserve the existing explicit-SQL BEGIN IMMEDIATE style with an explicitly pinned compatible sqlite3 transaction mode, or refactor to PEP-249 autocommit=False semantics and remove assumptions that no transaction is open before each explicit BEGIN.",
+      "impact": "No recommendation to change product code is promoted until E2/E3 distinguishes the lowest-risk behavior-preserving option."
+    }
+  ],
+  "counterhypothesis": {
+    "statement": "The omitted autocommit parameter is harmless because Python sqlite3 defaults are stable enough for F2's portable lifetime.",
+    "assessment": "COUNTERED_BY_OFFICIAL_FUTURE_CHANGE_NOTICE",
+    "remaining_uncertainty": "The exact Python release that will flip the default is not specified by the current documentation."
+  },
+  "candidate_delta": {
+    "status": "E1_CANDIDATE_ONLY",
+    "proposal": "Bind Python version plus sqlite3 transaction-control mode into the runtime dependency receipt and make sqlite3.connect transaction mode explicit in the writer boundary. Preserve BEGIN IMMEDIATE semantics or deliberately migrate them; never allow an interpreter default change to select the concurrency contract silently.",
+    "expected_benefit": "Portable deterministic transaction semantics and fail-closed dependency drift.",
+    "runtime_cost": "Negligible; one explicit connection parameter/contract plus capability readback/tests.",
+    "authority_change": "NONE"
+  },
+  "negative_evidence": [
+    "No current F2 target/VPS Python interpreter version was observed in this research stage.",
+    "No Python 3.15 current default break was found; current RC1 documentation retains LEGACY_TRANSACTION_CONTROL.",
+    "No production code was changed or runtime acceptance executed.",
+    "The exact future Python release changing the default remains unspecified."
+  ],
+  "next_discriminator": "E2 map the smallest behavior-preserving explicit transaction-mode contract onto CanonicalPersistentAgencyStore, then E3 locally compare current omitted-default behavior with explicit LEGACY/manual and autocommit=False modes."
+}
