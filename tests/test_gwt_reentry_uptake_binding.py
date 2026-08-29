@@ -3,7 +3,10 @@ from dataclasses import replace
 import pytest
 
 from frankenstein2.grid10_interface import CellBudget, CellInput, CellOutput, Grid10Plan
-from frankenstein2.gwt_reentry_provenance import build_reentry_witness
+from frankenstein2.gwt_reentry_provenance import (
+    GwtReentryProvenanceError,
+    build_reentry_witness,
+)
 from frankenstein2.gwt_reentry_uptake_binding import (
     GwtReentryUptakeBindingError,
     bind_reentry_to_uptake,
@@ -223,7 +226,7 @@ def test_stale_wp508_witness_lineage_fails_before_binding():
     plan, selection, broadcast, cell_input, witness = make_fixture()
     forged = replace(witness, broadcast_sha256="f" * 64)
     receipt = make_receipt(broadcast)
-    with pytest.raises(Exception, match="broadcast digest mismatch"):
+    with pytest.raises(GwtReentryProvenanceError, match="broadcast digest mismatch"):
         bind(forged, receipt, plan, selection, broadcast, cell_input)
 
 
