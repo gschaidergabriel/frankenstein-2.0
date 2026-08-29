@@ -1,8 +1,8 @@
 """Deterministic rudimentary physics projection for Frankenstein 2.0.
 
 F2-WP-403 is deliberately narrow: it projects caller-admitted, exact WorldSlice
-state with a bounded integer semi-implicit Euler rule. The result is a
-noncanonical candidate projection. It does not infer a physical law, observe the
+state with a bounded integer semi-implicit Euler rule.  The result is a
+noncanonical candidate projection.  It does not infer a physical law, observe the
 world, select an action, authorize an effect, or mint completion/truth authority.
 """
 from __future__ import annotations
@@ -12,7 +12,11 @@ import hashlib
 import json
 from typing import Any, ClassVar
 
-from frankenstein2.sparse_world_basis import KnowledgeState, WorldAtom, WorldSlice
+from frankenstein2.sparse_world_basis import (
+    KnowledgeState,
+    WorldAtom,
+    WorldSlice,
+)
 
 
 PHYSICS_PROJECTION_SCHEMA = "FRANKENSTEIN2_RUDIMENTARY_PHYSICS_PROJECTION/v1"
@@ -56,7 +60,12 @@ def _bounded_state_value(value: int, *, role: str) -> int:
     return value
 
 
-def _validate_source_atom(*, atom: WorldAtom, role: str, world_slice: WorldSlice) -> None:
+def _validate_source_atom(
+    *,
+    atom: WorldAtom,
+    role: str,
+    world_slice: WorldSlice,
+) -> None:
     if not isinstance(atom, WorldAtom):
         raise PhysicsProjectionError(f"{role} must be a WorldAtom")
     if atom.atom_id not in world_slice.selected_atom_ids:
@@ -137,13 +146,15 @@ def project_rudimentary_kinematics(
 ) -> PhysicsProjection:
     """Project bounded discrete kinematics from exact selected WorldAtom inputs.
 
-    Numerical rule:
+    The numerical rule is intentionally explicit and primitive:
+
         velocity[t+1] = velocity[t] + acceleration * dt_ticks
         position[t+1] = position[t] + velocity[t+1] * dt_ticks
 
-    Quantities are opaque integer units. No unit conversion, learned law,
+    All quantities are opaque integer units.  No unit conversion, learned law,
     parameter inference, external observation, or action semantics are implied.
     """
+
     if not isinstance(world_slice, WorldSlice):
         raise PhysicsProjectionError("world_slice must be a WorldSlice")
 
@@ -151,7 +162,11 @@ def project_rudimentary_kinematics(
     _validate_source_atom(atom=velocity_atom, role="velocity", world_slice=world_slice)
     _validate_source_atom(atom=acceleration_atom, role="acceleration", world_slice=world_slice)
 
-    role_ids = (position_atom.atom_id, velocity_atom.atom_id, acceleration_atom.atom_id)
+    role_ids = (
+        position_atom.atom_id,
+        velocity_atom.atom_id,
+        acceleration_atom.atom_id,
+    )
     if len(set(role_ids)) != len(role_ids):
         raise PhysicsProjectionError("position, velocity and acceleration atoms must be distinct")
 
@@ -233,3 +248,51 @@ def project_rudimentary_kinematics(
         position_trajectory=tuple(position_trajectory),
         velocity_trajectory=tuple(velocity_trajectory),
     )
+
+def _require_sha256_hex(name: str, value: Any) -> str:
+    if (
+        not isinstance(value, str)
+        or len(value) != 64
+        or any(ch not in "0123456789abcdef" for ch in value)
+    ):
+        raise PhysicsProjectionError(f"{name} must be lowercase sha256 hex")
+    return value
+
+
+def validate_physics_projection_binding(
+    *,
+    projection: PhysicsProjection,
+    world_slice: WorldSlice,
+    position_atom: WorldAtom,
+    velocity_atom: WorldAtom,
+    acceleration_atom: WorldAtom,
+    expected_projection_sha256: str,
+) -> PhysicsProjection:
+    """Fail closed unless a projection exactly replays from its claimed sources.
+
+    A projection self-hash is only an integrity digest over caller-visible data;
+    it is not evidence that the object crossed the validated builder.  This
+    boundary therefore requires the exact WorldSlice and source WorldAtoms and
+    independently rebuilds the candidate before admitting equality.
+    """
+    if not isinstance(projection, PhysicsProjection):
+        raise PhysicsProjectionError("projection must be a PhysicsProjection")
+    expected_projection_sha256 = _require_sha256_hex(
+        "expected_projection_sha256", expected_projection_sha256
+    )
+    if projection.sha256() != expected_projection_sha256:
+        raise PhysicsProjectionError("projection sha256 does not match expected digest")
+
+    rebuilt = project_rudimentary_kinematics(
+        world_slice=world_slice,
+        position_atom=position_atom,
+        velocity_atom=velocity_atom,
+        acceleration_atom=acceleration_atom,
+        dt_ticks=projection.dt_ticks,
+        steps=projection.steps,
+    )
+    if projection.canonical_json() != rebuilt.canonical_json():
+        raise PhysicsProjectionError(
+            "projection does not match independently rebuilt exact WorldSlice/source binding"
+        )
+    return projection
