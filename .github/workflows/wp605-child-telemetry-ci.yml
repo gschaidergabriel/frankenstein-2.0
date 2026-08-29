@@ -1,0 +1,50 @@
+name: F2 WP605 Child Telemetry CI
+
+on:
+  push:
+    branches:
+      - main
+      - trigger4/wp605-child-telemetry-20260829
+    paths:
+      - 'src/frankenstein2/child_telemetry.py'
+      - 'src/frankenstein2/child_handoff_reconcile.py'
+      - 'src/frankenstein2/native_child_abi.py'
+      - 'src/frankenstein2/native_child_binding.py'
+      - 'src/frankenstein2/deferred_return.py'
+      - 'src/frankenstein2/direct_delegate_router.py'
+      - 'src/frankenstein2/causal_identity.py'
+      - 'src/frankenstein2/situation_frame.py'
+      - 'tests/test_child_telemetry.py'
+      - '.github/workflows/wp605-child-telemetry-ci.yml'
+  pull_request:
+    paths:
+      - 'src/frankenstein2/child_telemetry.py'
+      - 'src/frankenstein2/child_handoff_reconcile.py'
+      - 'src/frankenstein2/native_child_abi.py'
+      - 'src/frankenstein2/native_child_binding.py'
+      - 'src/frankenstein2/deferred_return.py'
+      - 'src/frankenstein2/direct_delegate_router.py'
+      - 'src/frankenstein2/causal_identity.py'
+      - 'src/frankenstein2/situation_frame.py'
+      - 'tests/test_child_telemetry.py'
+      - '.github/workflows/wp605-child-telemetry-ci.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  deterministic:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Compile
+        run: python -m py_compile src/frankenstein2/child_telemetry.py tests/test_child_telemetry.py
+      - name: Child telemetry falsification suite
+        env:
+          PYTHONPATH: src
+        run: python tests/test_child_telemetry.py -v
