@@ -1,0 +1,46 @@
+name: F2 WP602 Child Handoff Reconcile CI
+
+on:
+  push:
+    branches:
+      - main
+      - trigger4/wp602-handoff-reconcile-20260829
+    paths:
+      - 'src/frankenstein2/child_handoff_reconcile.py'
+      - 'src/frankenstein2/direct_delegate_router.py'
+      - 'src/frankenstein2/native_child_abi.py'
+      - 'src/frankenstein2/native_child_binding.py'
+      - 'src/frankenstein2/deferred_return.py'
+      - 'src/frankenstein2/causal_identity.py'
+      - 'tests/test_child_handoff_reconcile.py'
+      - '.github/workflows/wp602-child-handoff-reconcile-ci.yml'
+  pull_request:
+    paths:
+      - 'src/frankenstein2/child_handoff_reconcile.py'
+      - 'src/frankenstein2/direct_delegate_router.py'
+      - 'src/frankenstein2/native_child_abi.py'
+      - 'src/frankenstein2/native_child_binding.py'
+      - 'src/frankenstein2/deferred_return.py'
+      - 'src/frankenstein2/causal_identity.py'
+      - 'tests/test_child_handoff_reconcile.py'
+      - '.github/workflows/wp602-child-handoff-reconcile-ci.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  deterministic:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Compile
+        run: python -m py_compile src/frankenstein2/child_handoff_reconcile.py tests/test_child_handoff_reconcile.py
+      - name: Child handoff/reconcile falsification suite
+        env:
+          PYTHONPATH: src
+        run: python tests/test_child_handoff_reconcile.py -v
