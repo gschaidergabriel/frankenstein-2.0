@@ -1,9 +1,10 @@
 """F2-WP-803 held-out next-observation prediction benchmark.
 
 This module is repository evaluation infrastructure only. A prediction candidate is
-formed from an exact public ``ObservationView``. Hidden ``MicroWorldFixture`` nodes,
-transition rules, evaluator scores, and ground-truth references are used only after the
-candidate exists, on the evaluator side, through the canonical F2-WP-800 step boundary.
+formed from an exact public ``ObservationView`` and an exact publicly available action.
+Hidden ``MicroWorldFixture`` nodes, transition rules, evaluator scores, and ground-truth
+references are used only after the candidate exists, on the evaluator side, through the
+canonical F2-WP-800 step boundary.
 
 A benchmark score is a measurement on a synthetic held-out fixture. It is not world
 truth, causal credit, cognition superiority, transfer evidence, runtime acceptance,
@@ -99,6 +100,7 @@ class PredictionCandidate:
     public_fixture_sha256: str
     step_index: int
     observation_sha256: str
+    action_id: str
     prediction_kind: str
     predicted_observation_ref: str | None
     predicted_observation_sha256: str | None
@@ -113,6 +115,7 @@ class PredictionCandidate:
             ("policy_id", self.policy_id),
             ("episode_id", self.episode_id),
             ("fixture_id", self.fixture_id),
+            ("action_id", self.action_id),
         ):
             _id(name, value)
         _generation("benchmark_generation", self.benchmark_generation)
@@ -200,9 +203,20 @@ class PredictionEvaluation:
         return _digest(self.as_dict())
 
 
+def _assert_public_prediction_target(observation: ObservationView, action_id: str) -> None:
+    if type(observation) is not ObservationView:
+        raise WorldModelPredictionBenchmarkError("observation must be exact concrete ObservationView")
+    _id("action_id", action_id)
+    if observation.terminal:
+        raise WorldModelPredictionBenchmarkError("terminal observation has no next-observation prediction target")
+    if action_id not in set(observation.available_action_ids):
+        raise WorldModelPredictionBenchmarkError("prediction action_id is not public-available")
+
+
 def prediction_for_observation(
     observation: ObservationView,
     *,
+    action_id: str,
     prediction_id: str,
     benchmark_run_id: str,
     benchmark_generation: int,
@@ -212,9 +226,8 @@ def prediction_for_observation(
     predicted_observation_ref: str,
     predicted_observation_sha256: str,
 ) -> PredictionCandidate:
-    """Create an untrusted next-observation candidate from an exact public view only."""
-    if type(observation) is not ObservationView:
-        raise WorldModelPredictionBenchmarkError("observation must be exact concrete ObservationView")
+    """Create an untrusted next-observation candidate from exact public inputs only."""
+    _assert_public_prediction_target(observation, action_id)
     return PredictionCandidate(
         PREDICTION_SCHEMA,
         prediction_id,
@@ -230,6 +243,7 @@ def prediction_for_observation(
         observation.public_fixture_sha256,
         observation.step_index,
         observation.sha256(),
+        action_id,
         NEXT_OBSERVATION,
         predicted_observation_ref,
         predicted_observation_sha256,
@@ -239,6 +253,7 @@ def prediction_for_observation(
 def abstain_for_observation(
     observation: ObservationView,
     *,
+    action_id: str,
     prediction_id: str,
     benchmark_run_id: str,
     benchmark_generation: int,
@@ -247,8 +262,7 @@ def abstain_for_observation(
     policy_state_sha256: str,
 ) -> PredictionCandidate:
     """Represent insufficient public evidence without forcing a prediction."""
-    if type(observation) is not ObservationView:
-        raise WorldModelPredictionBenchmarkError("observation must be exact concrete ObservationView")
+    _assert_public_prediction_target(observation, action_id)
     return PredictionCandidate(
         PREDICTION_SCHEMA,
         prediction_id,
@@ -264,6 +278,7 @@ def abstain_for_observation(
         observation.public_fixture_sha256,
         observation.step_index,
         observation.sha256(),
+        action_id,
         ABSTAIN,
         None,
         None,
@@ -273,6 +288,7 @@ def abstain_for_observation(
 def persistence_baseline(
     observation: ObservationView,
     *,
+    action_id: str,
     prediction_id: str,
     benchmark_run_id: str,
     benchmark_generation: int,
@@ -281,10 +297,10 @@ def persistence_baseline(
     policy_state_sha256: str = "0" * 64,
 ) -> PredictionCandidate:
     """Public-only baseline: predict that the current public observation persists."""
-    if type(observation) is not ObservationView:
-        raise WorldModelPredictionBenchmarkError("observation must be exact concrete ObservationView")
+    _assert_public_prediction_target(observation, action_id)
     return prediction_for_observation(
         observation,
+        action_id=action_id,
         prediction_id=prediction_id,
         benchmark_run_id=benchmark_run_id,
         benchmark_generation=benchmark_generation,
@@ -299,6 +315,7 @@ def persistence_baseline(
 def _assert_prediction_matches_public_view(prediction: PredictionCandidate, observation: ObservationView) -> None:
     if type(prediction) is not PredictionCandidate:
         raise WorldModelPredictionBenchmarkError("prediction must be exact concrete PredictionCandidate")
+    _assert_public_prediction_target(observation, prediction.action_id)
     expected = (
         observation.episode_id,
         observation.episode_generation,
@@ -328,16 +345,18 @@ def evaluate_next_observation_prediction(
     action_id: str,
     prediction: PredictionCandidate,
 ) -> tuple[EpisodeState, ObservationView, EvaluatorStep, PredictionEvaluation]:
-    """Advance with WP800, then score a pre-existing candidate on evaluator side.
+    """Advance with WP800, then score a pre-existing action-bound candidate.
 
-    The prediction is validated against the exact current public observation before the
-    evaluator sees the transition outcome. This function never feeds fixture nodes,
-    transitions, evaluator scores, or hidden-ground-truth references into a policy.
+    The prediction is validated against the exact current public observation and exact
+    public action target before the evaluator sees the transition outcome. Hidden fixture
+    state never enters the public candidate-construction path.
     """
     if type(fixture) is not MicroWorldFixture or type(state) is not EpisodeState:
         raise WorldModelPredictionBenchmarkError("fixture/state must be exact concrete WP800 values")
     observation = observation_for_state(fixture, state)
     _assert_prediction_matches_public_view(prediction, observation)
+    if prediction.action_id != action_id:
+        raise WorldModelPredictionBenchmarkError("prediction/action target mismatch")
     request = ActionRequest.for_observation(observation, action_id=action_id)
     prior_state_sha256 = state.sha256()
     next_state, next_observation, evaluator_step = step_episode(fixture, state=state, request=request)
