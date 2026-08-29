@@ -1,0 +1,64 @@
+{
+  "schema": "FRANKENSTEIN2_WORKPACKAGE_ACCEPTANCE_RECEIPT/v1",
+  "workpackage_id": "F2-WP-600",
+  "generation": 1,
+  "claim_id": "F2-WP-600-G1-GPT56SOL-DIRECT-DELEGATE-ROUTER-20260829",
+  "acceptance_scope": "DIRECT_DELEGATE_ROUTER_G1_REPOSITORY_HOSTED_COMPONENT_CI_ONLY",
+  "authority_epoch": "8.78",
+  "triggering_negative_evidence": {
+    "delta_ref": "workpackages/deltas/F2-WP-600/1-F2-WP-600-G1-REVIEW-ROUTECANDIDATE-IDENTITY-BINDING-20260829T1640P0700-01.json",
+    "commit": "e5d1552aabcfea544921e399b2ef8e8f9994ec2f",
+    "falsifier_id": "WP600_ROUTE_CANDIDATE_ID_SELF_BINDING",
+    "conclusion": "valid_static_source_falsifier",
+    "meaning": "The initial RouteCandidate constructor did not bind candidate_id back to exact candidate content, so a forged syntactically valid route id could survive direct construction or dataclasses.replace."
+  },
+  "repair_evidence": {
+    "initial_source_commit": "276cb8eedea8eadaeca852ab57dd2fb2445e0807",
+    "initial_test_commit": "78c290f0d7142d22ff5e588b20fa33f53a57f7fe",
+    "initial_workflow_commit": "1b91c0bdacb297f5953eb11e9043b8e70bd2942c",
+    "initial_ci_run_id": 33245996954,
+    "initial_ci_job_id": 99083426362,
+    "initial_ci_conclusion": "success",
+    "initial_tests": "10 passed in 0.04s",
+    "identity_binding_repair_commit": "7520ebdf9d0460b41b1d6b947c41546ea29e2be3",
+    "identity_binding_regression_commit": "135ace19a650ff1fac7041b1544d5f1f33a9ba17",
+    "final_ci_run_id": 33246122734,
+    "final_ci_job_id": 99083768310,
+    "final_ci_head_sha": "135ace19a650ff1fac7041b1544d5f1f33a9ba17",
+    "final_ci_conclusion": "success",
+    "final_tests": "11 passed in 0.06s"
+  },
+  "artifacts": {
+    "source": "src/frankenstein2/direct_delegate_router.py",
+    "source_blob_sha": "f403f4893769bf08812eec5e53a455a267274cf4",
+    "test": "tests/test_direct_delegate_router.py",
+    "test_blob_sha": "ef2717b2cdcbf782d30ec2d42c180f5b70b123dd",
+    "workflow": ".github/workflows/wp600-direct-delegate-router-ci.yml",
+    "workflow_blob_sha": "01744a2f1ccfbebfc7ce73cdf31a53c793f86f07"
+  },
+  "verified_invariants": [
+    "route request binds exact caller-supplied task identity/generation/digest to exact F2-WP-500 CycleContract id/generation/digest",
+    "DIRECT_SMALL is emitted only when every explicit direct-work bound is satisfied and no explicit child-isolation, parallelism, or long-horizon requirement is asserted",
+    "otherwise DELEGATE_BUILD is emitted only when policy-admitted, and required delegation with a policy-forbidden delegate route fails closed",
+    "RouteCandidate remains explicitly classified as a candidate and not child/effect/completion authority",
+    "RouteCandidate.candidate_id is recomputed from exact normalized task/request/cycle/policy/route/reason fields and forged id/content divergence fails closed",
+    "routing remains deterministic for identical request/cycle/policy identities"
+  ],
+  "commands": [
+    "python -m py_compile src/frankenstein2/direct_delegate_router.py tests/test_direct_delegate_router.py",
+    "PYTHONPATH=src python -m pytest -q tests/test_direct_delegate_router.py"
+  ],
+  "environment": "github-actions ubuntu-24.04; python 3.12.14",
+  "runtime_execution_observed": false,
+  "runtime_credit": 0,
+  "physical_grid10_credit": 0,
+  "gwt_runtime_credit": 0,
+  "jspace_runtime_credit": 0,
+  "training_credit": 0,
+  "effect_credit": 0,
+  "completion_credit": 0,
+  "whole_system_acceptance": false,
+  "negative_evidence_preserved": "The initial 10/10 CI remains historical evidence but does not establish acceptance because the independent WP600_ROUTE_CANDIDATE_ID_SELF_BINDING falsifier exposed an identity/content divergence. The final acceptance evidence is the repaired 11/11 run 33246122734 at exact head 135ace19a650ff1fac7041b1544d5f1f33a9ba17.",
+  "completion_deficit": "Repository-hosted deterministic component CI proves only the WP600 direct/delegate route-candidate boundary. No child spawning, child ABI execution, handoff/reconcile execution, target runtime, VPS, physical GRID10, GWT/J-Space causal runtime, effects, completion loop, training, or whole-system evidence was executed.",
+  "next_exact_action": "Keep WP600 generation 1 closed absent a new executable falsifier. Re-enter current main and only then select the first unclaimed dependency-correct Stage-6 successor; do not duplicate an active F2-WP-601 or later lane."
+}
