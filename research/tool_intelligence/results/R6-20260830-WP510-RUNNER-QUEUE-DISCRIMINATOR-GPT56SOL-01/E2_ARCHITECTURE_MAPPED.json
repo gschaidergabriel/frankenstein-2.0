@@ -1,0 +1,61 @@
+{
+  "schema": "FRANKENSTEIN2_TRIGGER6_RESEARCH_RESULT/v1",
+  "research_id": "R6-20260830-WP510-RUNNER-QUEUE-DISCRIMINATOR-GPT56SOL-01",
+  "evidence_stage": "E2_ARCHITECTURE_MAPPED",
+  "status": "ARCHITECTURE_BOUNDARY_MAPPED_NO_PRODUCT_DELTA",
+  "architecture_snapshot": {
+    "f2_branch_base_sha": "8b8edb7929851990dd76468b02e70866e2d07400",
+    "research_entity_sha": "aa7b2e1b72b639b31e92f335c8c3100af41e008e",
+    "controller_sha": "2b2aaca5750a7da135fef92cf6611995d117fbe2",
+    "wp510_exact_source_sha": "656b57bded655e64a25d7e205b599becce3d4989",
+    "run_id": 33265772059,
+    "job_id": 99135457584
+  },
+  "mapped_boundary": {
+    "product_semantics": "WP510 exact-source probe semantics remain unchallenged by the queue evidence.",
+    "controller_transport": "The V2 push-triggered controller workflow exists and materializes one queued self-hosted job.",
+    "runner_assignment": "UNRESOLVED_BLOCKER: queued job has runner_id=0, empty runner identity, zero steps.",
+    "target_environment": "UNOBSERVED in this run; clay-direct-dev health is not established or falsified by the queue state.",
+    "runtime_credit": 0
+  },
+  "evidence_progression": [
+    {
+      "state": "PRIOR",
+      "run": 33247601069,
+      "observation": "transport/runner-assignment failure before executable job; jobs observed = 0"
+    },
+    {
+      "state": "CURRENT",
+      "run": 33265772059,
+      "job": 99135457584,
+      "observation": "one job exists but is queued with no assigned runner and zero executed steps"
+    }
+  ],
+  "primary_source_constraints": [
+    "All runs-on labels are conjunctive for self-hosted routing.",
+    "GitHub requires an online and idle matching runner before assignment.",
+    "If no matching online+idle runner exists, the job remains queued.",
+    "If an assigned runner fails to pick up within 60 seconds, the job is re-queued.",
+    "A job remaining queued for more than 24 hours fails.",
+    "Self-hosted runner labels are case-insensitive, so Linux/X64 capitalization alone is not a supported root-cause hypothesis."
+  ],
+  "hypothesis": "The remaining WP510 gate is runner availability/eligibility/communication rather than F2 product semantics.",
+  "counterhypotheses": [
+    "A runner may be registered and label-compatible but temporarily busy.",
+    "A runner may be registered but offline because its host, runner service, or GitHub connectivity is unavailable.",
+    "A runner access/group policy may prevent assignment despite matching labels.",
+    "The connector-visible runner_id=0 may not identify the exact subreason until the runner inventory is observed."
+  ],
+  "cheapest_falsifier": "Observe the registered runner inventory for the controller repository: status, labels and access/group eligibility. If an online+idle runner matching self-hosted+Linux+X64 is present while the job stays unassigned, the simple availability hypothesis is falsified and routing/access/service diagnostics become the next gate.",
+  "architecture_delta_decision": "NO_F2_PRODUCT_ARCHITECTURE_DELTA. Do not alter WP510 loader/probe design, exact-source identity or F2 semantics based on a pre-execution queue blocker. The only warranted delta is evidence/control-plane bookkeeping: explicitly model RUNNER_ASSIGNMENT_PENDING as a non-semantic transport state with zero runtime credit.",
+  "trigger4_handoff": "Re-enter run 33265772059/job 99135457584; do not dispatch a duplicate while unresolved. If execution begins, persist exact runner/runtime/source/tree/dirty-state and bounded target-runtime receipt. If the job reaches the documented queue timeout without assignment, terminalize it as transport/runner-assignment negative evidence only.",
+  "credit": {
+    "research_e2": 1,
+    "f2_ablation": 0,
+    "target_runtime": 0,
+    "physical_target": 0,
+    "semantic_gwt_runtime": 0,
+    "whole_system": 0,
+    "training": 0
+  }
+}
