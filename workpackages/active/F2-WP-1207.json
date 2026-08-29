@@ -16,7 +16,14 @@
     "workpackages/deltas/F2-WP-1207/1-F2-WP-1207-G1-GPT56SOL-HOSTILE-TWIN-TRANSACTION-20260829-01.json"
   ],
   "created_at_utc": "2026-08-29T12:45:59Z",
-  "state": "ACTIVE",
+  "state": "ACCEPTED",
+  "accepted_scope": "HOSTILE_TWIN_RELEASE_TRANSACTION_DETERMINISTIC_REPOSITORY_HOSTED_CI_ONLY",
+  "delta_ref": "workpackages/deltas/F2-WP-1207/1-F2-WP-1207-G1-GPT56SOL-HOSTILE-TWIN-TRANSACTION-20260829-01.json",
+  "acceptance_receipt": "workpackages/receipts/F2-WP-1207_G1_HOSTILE_TWIN_TRANSACTION_GHA_33253539715.json",
+  "reconciliation_ref": "workpackages/reconciliations/F2-WP-1207/1-F2-WP-1207-G1-GPT56SOL-HOSTILE-TWIN-TRANSACTION-20260829.json",
+  "passing_run_id": 33253539715,
+  "passing_job_id": 99103220932,
+  "passing_head_sha": "523250f8728fbb427ef82975c7fe21f5169abf84",
   "required_invariants": [
     "release identity and state-lineage identity are explicit and deterministic",
     "update requires an exact predecessor generation and state digest rather than inferred continuity",
@@ -35,5 +42,14 @@
     "training credit",
     "whole-system acceptance"
   ],
-  "next_exact_action": "Implement the deterministic portable release transaction/state-lineage core and fail-closed regression tests, then require repository-hosted CI before any bounded reconciliation; retain full WP1207 acceptance as open until the exact release ZIP is exercised in the hostile twin."
+  "negative_evidence": {
+    "run_id": 33253489238,
+    "conclusion": "failure",
+    "classification": "TEST_FIXTURE_ISOLATION_DEFECT",
+    "resolution": "isolated mutable fixtures without weakening the product gate"
+  },
+  "runtime_execution_observed": false,
+  "runtime_credit": 0,
+  "full_wp1207_target_acceptance": false,
+  "next_exact_action": "Exercise the exact release ZIP and accepted transaction/state-lineage contract inside an admitted hostile target twin, inject update failure, verify exact rollback/readback to the pre-attempt lineage, and persist exact-source runtime receipts before any target-runtime or T-level promotion."
 }
