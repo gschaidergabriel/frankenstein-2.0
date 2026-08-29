@@ -10,6 +10,7 @@ from frankenstein2.context_compiler import (
     CHANNEL_RETRIEVAL_REFERENCE,
     CHANNEL_STATE,
     ContextCompilerError,
+    ContextCostWitness,
     ContextItem,
     ContextNeed,
     VIEW_CLASSIFICATION,
@@ -48,6 +49,33 @@ def item(
     )
 
 
+def witness(source: ContextItem, *, measured_cost=None, generation=1):
+    if measured_cost is None:
+        measured_cost = source.cost_units
+    return ContextCostWitness.create(
+        payload_sha256=source.payload_sha256,
+        renderer_id="test-renderer",
+        renderer_version="1",
+        tokenizer_id="test-tokenizer",
+        tokenizer_version="1",
+        measured_cost_units=measured_cost,
+        generation=generation,
+        measurement_ref=f"measurement:{source.item_id}:g{generation}",
+        provenance_refs=[f"cost-provenance:{source.item_id}:g{generation}"],
+    )
+
+
+def compile_bound(n: ContextNeed, sources):
+    sources = tuple(sources)
+    return compile_context(
+        n,
+        sources,
+        cost_witnesses=[
+            witness(source) for source in sources if source.channel in n.allowed_channels
+        ],
+    )
+
+
 def need(*, max_items=4, max_cost=10, allowed=None, required_channels=()):
     if allowed is None:
         allowed = [CHANNEL_STATE, CHANNEL_GOAL, CHANNEL_EVIDENCE, CHANNEL_COUNTEREVIDENCE]
@@ -69,25 +97,26 @@ class ContextCompilerTests(unittest.TestCase):
         a = item("a", CHANNEL_STATE, 100, 2, required=True, classification="OBSERVED_EVIDENCE")
         b = item("b", CHANNEL_EVIDENCE, 9000, 3)
         c = item("c", CHANNEL_COUNTEREVIDENCE, 8000, 2)
-        view1 = compile_context(n, [a, b, c])
-        view2 = compile_context(n, [c, a, b])
+        view1 = compile_bound(n, [a, b, c])
+        view2 = compile_bound(n, [c, a, b])
         self.assertEqual(view1.sha256(), view2.sha256())
         self.assertEqual([x.item_id for x in view1.selected], ["a", "b", "c"])
         self.assertEqual(view1.classification, VIEW_CLASSIFICATION)
 
     def test_required_item_over_budget_fails_closed(self):
         n = need(max_cost=1)
+        must = item("must", CHANNEL_STATE, 100, 2, required=True)
         with self.assertRaisesRegex(ContextCompilerError, "required context items exceed"):
-            compile_context(n, [item("must", CHANNEL_STATE, 100, 2, required=True)])
+            compile_bound(n, [must])
 
     def test_required_item_in_disallowed_channel_fails_closed(self):
         n = need(allowed=[CHANNEL_STATE])
         with self.assertRaisesRegex(ContextCompilerError, "disallowed channel"):
-            compile_context(n, [item("must", CHANNEL_AUTHORITY, 100, 1, required=True)])
+            compile_bound(n, [item("must", CHANNEL_AUTHORITY, 100, 1, required=True)])
 
     def test_required_channel_is_reserved_before_optional_priority(self):
         n = need(max_items=1, max_cost=2, required_channels=[CHANNEL_EVIDENCE])
-        view = compile_context(
+        view = compile_bound(
             n,
             [
                 item("state", CHANNEL_STATE, 9000, 1),
@@ -100,11 +129,11 @@ class ContextCompilerTests(unittest.TestCase):
     def test_required_channel_without_candidate_fails_closed(self):
         n = need(required_channels=[CHANNEL_EVIDENCE])
         with self.assertRaisesRegex(ContextCompilerError, "required channel has no candidate"):
-            compile_context(n, [item("state", CHANNEL_STATE, 9000, 1)])
+            compile_bound(n, [item("state", CHANNEL_STATE, 9000, 1)])
 
     def test_optional_oversized_item_does_not_block_lower_priority_item_that_fits(self):
         n = need(max_items=2, max_cost=3)
-        view = compile_context(
+        view = compile_bound(
             n,
             [
                 item("big", CHANNEL_EVIDENCE, 9000, 4),
@@ -118,7 +147,7 @@ class ContextCompilerTests(unittest.TestCase):
     def test_caller_classification_is_preserved_not_relabelled(self):
         label = "RETRIEVAL_REFERENCE_CANDIDATE_NOT_TRUTH"
         n = need(allowed=[CHANNEL_RETRIEVAL_REFERENCE], max_cost=2)
-        view = compile_context(
+        view = compile_bound(
             n,
             [item("retrieved", CHANNEL_RETRIEVAL_REFERENCE, 5000, 1, classification=label)],
         )
@@ -127,7 +156,8 @@ class ContextCompilerTests(unittest.TestCase):
     def test_disallowed_optional_item_is_omitted_without_payload_exposure(self):
         n = need(allowed=[CHANNEL_STATE], max_cost=2)
         hidden = item("hidden", CHANNEL_AUTHORITY, 9999, 1)
-        view = compile_context(n, [item("state", CHANNEL_STATE, 1, 1), hidden])
+        state = item("state", CHANNEL_STATE, 1, 1)
+        view = compile_context(n, [state, hidden], cost_witnesses=[witness(state)])
         self.assertEqual([x.item_id for x in view.selected], ["state"])
         self.assertEqual(view.omitted[0].item_id, "hidden")
         rendered = view.canonical_json()
@@ -137,7 +167,7 @@ class ContextCompilerTests(unittest.TestCase):
         n = need()
         same = item("dup", CHANNEL_STATE, 10, 1)
         with self.assertRaisesRegex(ContextCompilerError, "duplicate context item_id"):
-            compile_context(n, [same, same])
+            compile_context(n, [same, same], cost_witnesses=[witness(same)])
 
     def test_source_generation_zero_is_admitted_and_preserved(self):
         source = item(
@@ -149,7 +179,7 @@ class ContextCompilerTests(unittest.TestCase):
             source_generation=0,
         )
         self.assertEqual(source.source_generation, 0)
-        view = compile_context(
+        view = compile_bound(
             need(
                 max_items=1,
                 max_cost=1,
@@ -230,12 +260,13 @@ class ContextCompilerTests(unittest.TestCase):
     def test_view_is_reference_only_and_hash_stable(self):
         n = need(max_items=1, max_cost=1)
         source = item("x", CHANNEL_STATE, 1, 1, classification="UNKNOWN")
-        view = compile_context(n, [source])
+        view = compile_bound(n, [source])
         data = json.loads(view.canonical_json())
         selected = data["selected"][0]
         self.assertEqual(selected["payload_ref"], "payload:x")
         self.assertEqual(selected["payload_sha256"], h("payload:x"))
         self.assertNotIn("payload", selected)
+        self.assertEqual(selected["cost_witness_sha256"], witness(source).sha256())
         self.assertEqual(view.sha256(), hashlib.sha256(view.canonical_json().encode()).hexdigest())
 
 

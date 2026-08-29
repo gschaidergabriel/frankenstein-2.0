@@ -1,9 +1,14 @@
 """Deterministic bounded context compilation for Frankenstein 2.0.
 
-F2-WP-306 generation 2.
+F2-WP-306 generation 4.
 
 The compiler operates on caller-supplied references and metadata only. It never reads
 payload bytes, infers relevance or truth, mutates upstream state, or authorizes effects.
+
+Generation 4 closes one bounded accounting gap: a selectable ContextItem must have an
+exact typed cost witness for its payload digest, and the witness's measured cost must
+match the item's declared cost_units before budget accounting can use that value.
+The witness is measurement/admission evidence only; it is not world-truth authority.
 """
 from __future__ import annotations
 
@@ -16,6 +21,7 @@ from typing import Any, Iterable
 CONTEXT_ITEM_SCHEMA = "FRANKENSTEIN2_CONTEXT_ITEM/v1"
 CONTEXT_NEED_SCHEMA = "FRANKENSTEIN2_CONTEXT_NEED/v1"
 CONTEXT_VIEW_SCHEMA = "FRANKENSTEIN2_CONTEXT_VIEW/v1"
+CONTEXT_COST_WITNESS_SCHEMA = "FRANKENSTEIN2_CONTEXT_COST_WITNESS/v1"
 
 CHANNEL_STATE = "STATE"
 CHANNEL_GOAL = "GOAL"
@@ -120,6 +126,84 @@ def _canonical_json(value: Any) -> str:
 
 def _digest(value: Any) -> str:
     return hashlib.sha256(_canonical_json(value).encode("utf-8")).hexdigest()
+
+
+@dataclass(frozen=True, slots=True)
+class ContextCostWitness:
+    """Typed measurement witness consumed by ContextCompiler budget admission.
+
+    The compiler deliberately does not create this witness because it never reads
+    payload bytes and therefore cannot itself render/tokenize the payload. Upstream
+    measurement code must produce the witness. This type binds the exact payload digest
+    to explicit renderer/tokenizer identities, an exact measured cost, generation,
+    measurement reference and provenance. It does not by itself assert that the
+    measurement source is truthful beyond those bound inputs.
+    """
+
+    schema: str
+    payload_sha256: str
+    renderer_id: str
+    renderer_version: str
+    tokenizer_id: str
+    tokenizer_version: str
+    measured_cost_units: int
+    generation: int
+    measurement_ref: str
+    provenance_refs: tuple[str, ...]
+
+    def __post_init__(self) -> None:
+        if self.schema != CONTEXT_COST_WITNESS_SCHEMA:
+            raise ContextCompilerError("context cost witness schema mismatch")
+        _sha256("cost witness payload_sha256", self.payload_sha256)
+        _identifier("renderer_id", self.renderer_id)
+        _identifier("renderer_version", self.renderer_version)
+        _identifier("tokenizer_id", self.tokenizer_id)
+        _identifier("tokenizer_version", self.tokenizer_version)
+        _positive_int(
+            "measured_cost_units",
+            self.measured_cost_units,
+            maximum=_MAX_COST_UNITS,
+        )
+        _nonnegative_int("cost witness generation", self.generation, maximum=2_147_483_647)
+        _identifier("measurement_ref", self.measurement_ref)
+        object.__setattr__(
+            self,
+            "provenance_refs",
+            _refs("cost witness provenance_ref", self.provenance_refs),
+        )
+
+    @classmethod
+    def create(
+        cls,
+        *,
+        payload_sha256: str,
+        renderer_id: str,
+        renderer_version: str,
+        tokenizer_id: str,
+        tokenizer_version: str,
+        measured_cost_units: int,
+        generation: int,
+        measurement_ref: str,
+        provenance_refs: Iterable[str],
+    ) -> "ContextCostWitness":
+        return cls(
+            schema=CONTEXT_COST_WITNESS_SCHEMA,
+            payload_sha256=payload_sha256,
+            renderer_id=renderer_id,
+            renderer_version=renderer_version,
+            tokenizer_id=tokenizer_id,
+            tokenizer_version=tokenizer_version,
+            measured_cost_units=measured_cost_units,
+            generation=generation,
+            measurement_ref=measurement_ref,
+            provenance_refs=tuple(provenance_refs),
+        )
+
+    def as_dict(self) -> dict[str, Any]:
+        return asdict(self)
+
+    def sha256(self) -> str:
+        return _digest(self.as_dict())
 
 
 @dataclass(frozen=True, slots=True)
@@ -276,6 +360,14 @@ class SelectedContextItem:
     required: bool
     provenance_refs: tuple[str, ...]
     evidence_refs: tuple[str, ...]
+    cost_witness_sha256: str
+    cost_renderer_id: str
+    cost_renderer_version: str
+    cost_tokenizer_id: str
+    cost_tokenizer_version: str
+    cost_witness_generation: int
+    cost_measurement_ref: str
+    cost_witness_provenance_refs: tuple[str, ...]
     selection_reason: str
 
     def as_dict(self) -> dict[str, Any]:
@@ -319,7 +411,11 @@ class ContextView:
         return hashlib.sha256(self.canonical_json().encode("utf-8")).hexdigest()
 
 
-def _selected(item: ContextItem, reason: str) -> SelectedContextItem:
+def _selected(
+    item: ContextItem,
+    reason: str,
+    cost_witness: ContextCostWitness,
+) -> SelectedContextItem:
     return SelectedContextItem(
         item_id=item.item_id,
         item_sha256=item.sha256(),
@@ -331,10 +427,18 @@ def _selected(item: ContextItem, reason: str) -> SelectedContextItem:
         source_generation=item.source_generation,
         source_classification=item.source_classification,
         priority_bp=item.priority_bp,
-        cost_units=item.cost_units,
+        cost_units=cost_witness.measured_cost_units,
         required=item.required,
         provenance_refs=item.provenance_refs,
         evidence_refs=item.evidence_refs,
+        cost_witness_sha256=cost_witness.sha256(),
+        cost_renderer_id=cost_witness.renderer_id,
+        cost_renderer_version=cost_witness.renderer_version,
+        cost_tokenizer_id=cost_witness.tokenizer_id,
+        cost_tokenizer_version=cost_witness.tokenizer_version,
+        cost_witness_generation=cost_witness.generation,
+        cost_measurement_ref=cost_witness.measurement_ref,
+        cost_witness_provenance_refs=cost_witness.provenance_refs,
         selection_reason=reason,
     )
 
@@ -351,8 +455,51 @@ def _omitted(item: ContextItem, reason: str) -> OmittedContextItem:
     )
 
 
-def compile_context(need: ContextNeed, items: Iterable[ContextItem]) -> ContextView:
-    """Compile one deterministic bounded reference-only context view."""
+def _bind_cost_witnesses(
+    selectable: tuple[ContextItem, ...],
+    cost_witnesses: Iterable[ContextCostWitness],
+) -> dict[str, ContextCostWitness]:
+    if isinstance(cost_witnesses, (str, bytes)):
+        raise ContextCompilerError("cost_witnesses must be an iterable of ContextCostWitness values")
+    witnesses = tuple(cost_witnesses)
+    if any(type(witness) is not ContextCostWitness for witness in witnesses):
+        raise ContextCompilerError("cost_witnesses must contain only exact ContextCostWitness values")
+
+    selectable_payloads = {item.payload_sha256 for item in selectable}
+    by_payload: dict[str, ContextCostWitness] = {}
+    for witness in witnesses:
+        if witness.payload_sha256 not in selectable_payloads:
+            raise ContextCompilerError("unbound context cost witness payload_sha256")
+        if witness.payload_sha256 in by_payload:
+            raise ContextCompilerError("duplicate context cost witness for payload_sha256")
+        by_payload[witness.payload_sha256] = witness
+
+    bound: dict[str, ContextCostWitness] = {}
+    for item in selectable:
+        witness = by_payload.get(item.payload_sha256)
+        if witness is None:
+            raise ContextCompilerError(f"missing cost witness for context item {item.item_id!r}")
+        if witness.measured_cost_units != item.cost_units:
+            raise ContextCompilerError(
+                f"cost witness does not match declared cost_units for context item {item.item_id!r}"
+            )
+        bound[item.item_id] = witness
+    return bound
+
+
+def compile_context(
+    need: ContextNeed,
+    items: Iterable[ContextItem],
+    *,
+    cost_witnesses: Iterable[ContextCostWitness] = (),
+) -> ContextView:
+    """Compile one deterministic bounded reference-only context view.
+
+    Every selectable item must have one exact typed cost witness bound to its
+    payload digest. Budget accounting uses the measured cost only after proving
+    it equals the item's declared cost_units. The compiler still never reads or
+    renders payload bytes.
+    """
     if not isinstance(need, ContextNeed):
         raise ContextCompilerError("need must be a ContextNeed")
     candidates = tuple(items)
@@ -379,19 +526,22 @@ def compile_context(need: ContextNeed, items: Iterable[ContextItem]) -> ContextV
             )
         omitted.append(_omitted(item, "CHANNEL_NOT_ALLOWED"))
 
-    selectable = [item for item in candidates if item.channel in allowed]
+    selectable = tuple(item for item in candidates if item.channel in allowed)
+    cost_by_item = _bind_cost_witnesses(selectable, cost_witnesses)
+
     explicit_required = sorted(
         (item for item in selectable if item.required),
         key=lambda item: (-item.priority_bp, item.item_id),
     )
     for item in explicit_required:
+        measured_cost = cost_by_item[item.item_id].measured_cost_units
         if len(selected) + 1 > need.max_items:
             raise ContextCompilerError("required context items exceed max_items")
-        if used_cost + item.cost_units > need.max_cost_units:
+        if used_cost + measured_cost > need.max_cost_units:
             raise ContextCompilerError("required context items exceed max_cost_units")
-        selected.append(_selected(item, "EXPLICIT_REQUIRED"))
+        selected.append(_selected(item, "EXPLICIT_REQUIRED", cost_by_item[item.item_id]))
         selected_ids.add(item.item_id)
-        used_cost += item.cost_units
+        used_cost += measured_cost
 
     # Satisfy declared channel requirements before spending remaining budget on
     # ordinary optional items. This is a structural requirement, not inferred relevance.
@@ -409,28 +559,32 @@ def compile_context(need: ContextNeed, items: Iterable[ContextItem]) -> ContextV
         if not channel_candidates:
             raise ContextCompilerError(f"required channel has no candidate: {channel!r}")
         chosen = channel_candidates[0]
+        measured_cost = cost_by_item[chosen.item_id].measured_cost_units
         if len(selected) + 1 > need.max_items:
             raise ContextCompilerError("required channels exceed max_items")
-        if used_cost + chosen.cost_units > need.max_cost_units:
+        if used_cost + measured_cost > need.max_cost_units:
             raise ContextCompilerError("required channels exceed max_cost_units")
-        selected.append(_selected(chosen, "REQUIRED_CHANNEL"))
+        selected.append(_selected(chosen, "REQUIRED_CHANNEL", cost_by_item[chosen.item_id]))
         selected_ids.add(chosen.item_id)
-        used_cost += chosen.cost_units
+        used_cost += measured_cost
 
     optional = sorted(
         (item for item in selectable if not item.required and item.item_id not in selected_ids),
         key=lambda item: (-item.priority_bp, item.item_id),
     )
     for item in optional:
+        measured_cost = cost_by_item[item.item_id].measured_cost_units
         if len(selected) >= need.max_items:
             omitted.append(_omitted(item, "ITEM_LIMIT"))
             continue
-        if used_cost + item.cost_units > need.max_cost_units:
+        if used_cost + measured_cost > need.max_cost_units:
             omitted.append(_omitted(item, "COST_LIMIT"))
             continue
-        selected.append(_selected(item, "EXPLICIT_PRIORITY_WITHIN_BUDGET"))
+        selected.append(
+            _selected(item, "EXPLICIT_PRIORITY_WITHIN_BUDGET", cost_by_item[item.item_id])
+        )
         selected_ids.add(item.item_id)
-        used_cost += item.cost_units
+        used_cost += measured_cost
 
     selected_channels = {item.channel for item in selected}
     missing_required_channels = tuple(sorted(required_channels - selected_channels))
@@ -465,10 +619,12 @@ __all__ = [
     "CHANNEL_METHOD",
     "CHANNEL_RETRIEVAL_REFERENCE",
     "CHANNEL_STATE",
+    "CONTEXT_COST_WITNESS_SCHEMA",
     "CONTEXT_ITEM_SCHEMA",
     "CONTEXT_NEED_SCHEMA",
     "CONTEXT_VIEW_SCHEMA",
     "ContextCompilerError",
+    "ContextCostWitness",
     "ContextItem",
     "ContextNeed",
     "ContextView",

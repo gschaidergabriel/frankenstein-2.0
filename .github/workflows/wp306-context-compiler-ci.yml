@@ -4,15 +4,17 @@ on:
   push:
     branches:
       - main
-      - trigger4/wp306-context-compiler-g1-gpt56sol-20260829
+      - trigger4/wp306-g4-cost-witness-binding-impl-20260829-gpt56sol
     paths:
       - 'src/frankenstein2/context_compiler.py'
       - 'tests/test_context_compiler.py'
+      - 'tests/test_wp306_renderer_tokenizer_cost_binding_falsifier.py'
       - '.github/workflows/wp306-context-compiler-ci.yml'
   pull_request:
     paths:
       - 'src/frankenstein2/context_compiler.py'
       - 'tests/test_context_compiler.py'
+      - 'tests/test_wp306_renderer_tokenizer_cost_binding_falsifier.py'
       - '.github/workflows/wp306-context-compiler-ci.yml'
   workflow_dispatch:
 
@@ -29,8 +31,16 @@ jobs:
         with:
           python-version: '3.12'
       - name: Compile
-        run: python -m py_compile src/frankenstein2/context_compiler.py tests/test_context_compiler.py
-      - name: Context compiler falsification suite
+        run: >-
+          python -m py_compile
+          src/frankenstein2/context_compiler.py
+          tests/test_context_compiler.py
+          tests/test_wp306_renderer_tokenizer_cost_binding_falsifier.py
+      - name: Context compiler and cost-witness falsification suite
         env:
           PYTHONPATH: src
-        run: python tests/test_context_compiler.py -v
+        run: >-
+          python -m unittest
+          tests.test_context_compiler
+          tests.test_wp306_renderer_tokenizer_cost_binding_falsifier
+          -v
