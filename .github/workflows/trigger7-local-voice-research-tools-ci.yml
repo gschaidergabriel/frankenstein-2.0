@@ -1,0 +1,26 @@
+name: Trigger 7 Local Voice Research Tools CI
+
+on:
+  pull_request:
+    paths:
+      - "research/local_voice/tools/**"
+      - "research/local_voice/tests/**"
+      - ".github/workflows/trigger7-local-voice-research-tools-ci.yml"
+  push:
+    branches: [main]
+    paths:
+      - "research/local_voice/tools/**"
+      - "research/local_voice/tests/**"
+      - ".github/workflows/trigger7-local-voice-research-tools-ci.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  stdlib-tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run Trigger 7 research tool tests
+        run: python3 -m unittest discover -s research/local_voice/tests -p 'test_*.py' -v
