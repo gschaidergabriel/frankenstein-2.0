@@ -1,0 +1,53 @@
+{
+  "schema": "FRANKENSTEIN2_WORKPACKAGE_DELTA/v1",
+  "workpackage_id": "F2-WP-702",
+  "generation": 4,
+  "claim_id": "F2-WP-702-G4-GPT56SOL-EVALUATOR-PRODUCER-LINEAGE-20260829",
+  "classification": "IMPLEMENTED_AWAITING_REPOSITORY_HOSTED_CI",
+  "authority_epoch": "8.78",
+  "base_commit": "39d56858b7ac1cf671eebf4bccd2746a10a664c3",
+  "claim_commit": "2534c3967a6f68b79ce8c3c7b2cb8e19afe47109",
+  "implementation_head_before_delta": "631e476771b9249f81bb5b993b3709d7eef62542",
+  "trigger_counterevidence": {
+    "review_prs": [366, 378],
+    "finding": "Exact valid registry/policy digests can be copied into a directly constructed OK PerceptionControlResult without traversing evaluate_perception_head; digest presence is not producer lineage.",
+    "hosted_falsifier_run": 33248421121,
+    "hosted_ephemeral_repair_probe_run": 33248477487,
+    "repair_probe_scope": "SUFFICIENT_FOR_THIS_SPECIFIC_DIRECT_CONSTRUCTOR_EXPLOIT_ONLY"
+  },
+  "implementation": {
+    "source": "src/frankenstein2/perception_control.py",
+    "source_blob_sha256_git": "2e348765a921c3dbdeb67fa48cacc62003bf799a",
+    "test": "tests/test_perception_control.py",
+    "test_blob_sha256_git": "cabaeb467aba268745d6f5b7c49df4c79ebf3c63",
+    "mechanism": "dataclasses.InitVar evaluator-origin sentinel; PerceptionControlResult rejects construction without the module-private evaluator token; all six canonical evaluate_perception_head result construction paths supply the token",
+    "regression": "test_direct_result_constructor_cannot_launder_compute_off_policy"
+  },
+  "diff_scope": {
+    "source_additions": 12,
+    "source_deletions": 8,
+    "test_additions": 29,
+    "other_production_files_changed": 0
+  },
+  "preserved_invariants": [
+    "COMPUTE_OFF remains NOT_COMPUTED and never invokes compute",
+    "OUTPUT_OFF remains internal-only and non-persistent",
+    "MEMORY_OFF remains same-cycle egress only and non-persistent",
+    "transitive compute taint remains fail-closed",
+    "upstream memory/persistence taint remains propagated",
+    "policy/registry digests remain exact identity metadata but are not treated as producer-lineage proof",
+    "PerceptionControlResult remains candidate/readout only with no world-truth, GWT, effect or completion authority"
+  ],
+  "credit": {
+    "repository_source_repair_present": true,
+    "repository_hosted_ci_pass": false,
+    "perception_runtime_credit": 0,
+    "vps_runtime_credit": 0,
+    "physical_grid10_credit": 0,
+    "gwt_runtime_credit": 0,
+    "jspace_runtime_credit": 0,
+    "training_credit": 0,
+    "whole_system_acceptance": false
+  },
+  "next_exact_action": "Open one canonical implementation PR for generation 4, require wp702-perception-control-ci on the exact PR head, then merge only if the full canonical test file plus the direct-constructor regression pass."
+}
