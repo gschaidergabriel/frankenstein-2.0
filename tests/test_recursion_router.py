@@ -657,6 +657,31 @@ class RecursionRouterTests(unittest.TestCase):
                 provenance_refs=("need:bool-depth",),
             )
 
+    def test_consumer_revalidates_need_content_bound_identity_after_post_init_drift(self) -> None:
+        route = make_route(selected=DELEGATE_BUILD)
+        need = RecursionNeed.create(
+            route_candidate=route,
+            requested_mode=R1,
+            generation=1,
+            provenance_refs=("need:consumer-revalidation",),
+        )
+        object.__setattr__(need, "generation", 2)
+        with self.assertRaisesRegex(RecursionRouterError, "need_id does not bind exact recursion need content"):
+            route_recursion(route_candidate=route, need=need, policy=make_policy())
+
+    def test_consumer_revalidates_policy_invariants_after_post_init_drift(self) -> None:
+        route = make_route(selected=DIRECT_SMALL)
+        need = RecursionNeed.create(
+            route_candidate=route,
+            requested_mode=R0,
+            generation=1,
+            provenance_refs=("need:policy-revalidation",),
+        )
+        policy = make_policy()
+        object.__setattr__(policy, "admitted_modes", (R0, R2, R1, R3))
+        with self.assertRaisesRegex(RecursionRouterError, "admitted_modes must be unique canonical"):
+            route_recursion(route_candidate=route, need=need, policy=policy)
+
     def test_policy_modes_are_canonical_and_r3_preference_has_no_duplicates(self) -> None:
         with self.assertRaises(RecursionRouterError):
             make_policy(admitted_modes=(R0, R2, R1, R3))
