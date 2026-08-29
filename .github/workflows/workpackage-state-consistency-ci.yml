@@ -4,8 +4,37 @@ on:
   push:
     paths:
       - 'tools/validate_workpackage_state.py'
+      - 'tools/resolve_workpackage_state_v2.py'
       - 'tests/test_validate_workpackage_state.py'
+      - 'tests/test_wp002_state_v2_successor.py'
+      - 'workpackages/F2-WP-002_STATE_CONTRACT.md'
+      - 'workpackages/STATE_CONCURRENCY_PROTOCOL_V2.md'
+      - 'workpackages/STATE_VIEW_CONTRACT_V2.json'
       - 'workpackages/STATE_CONSISTENCY_CONTRACT.md'
+      - 'workpackages/WORKPACKAGE_STATE_CONSISTENCY_CONTRACT_V1.json'
+      - 'workpackages/STATE.json'
+      - 'workpackages/state_events/**'
+      - 'workpackages/active/**'
+      - 'workpackages/claims/**'
+      - 'workpackages/reconciliations/**'
+      - '.github/workflows/workpackage-state-consistency-ci.yml'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'tools/validate_workpackage_state.py'
+      - 'tools/resolve_workpackage_state_v2.py'
+      - 'tests/test_validate_workpackage_state.py'
+      - 'tests/test_wp002_state_v2_successor.py'
+      - 'workpackages/F2-WP-002_STATE_CONTRACT.md'
+      - 'workpackages/STATE_CONCURRENCY_PROTOCOL_V2.md'
+      - 'workpackages/STATE_VIEW_CONTRACT_V2.json'
+      - 'workpackages/STATE_CONSISTENCY_CONTRACT.md'
+      - 'workpackages/WORKPACKAGE_STATE_CONSISTENCY_CONTRACT_V1.json'
+      - 'workpackages/STATE.json'
+      - 'workpackages/state_events/**'
+      - 'workpackages/active/**'
+      - 'workpackages/claims/**'
+      - 'workpackages/reconciliations/**'
       - '.github/workflows/workpackage-state-consistency-ci.yml'
   workflow_dispatch:
 
@@ -21,9 +50,11 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-      - name: Compile validator
-        run: python -m py_compile tools/validate_workpackage_state.py
+      - name: Compile state validators
+        run: python -m py_compile tools/validate_workpackage_state.py tools/resolve_workpackage_state_v2.py
       - name: Deterministic state consistency regressions
-        run: python -m unittest -v tests/test_validate_workpackage_state.py
-      - name: Validate checked-out repository state
+        run: python -m unittest -v tests.test_validate_workpackage_state tests.test_wp002_state_v2_successor
+      - name: Validate canonical v2 event chains and bound projections
+        run: python tools/resolve_workpackage_state_v2.py . --check-active
+      - name: Validate successor-dynamic repository state
         run: python tools/validate_workpackage_state.py .
