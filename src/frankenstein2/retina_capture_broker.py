@@ -3,6 +3,7 @@
 The broker stores only immutable frame/sample references, never raw bytes. Host-specific
 camera/display/browser capture code supplies those references. Exactly one declared owner may
 publish for a source; any number of downstream readers may inspect the bounded ring state.
+Both the live ring and retained drop metadata are bounded.
 """
 from __future__ import annotations
 
@@ -13,7 +14,7 @@ import re
 from typing import Any, ClassVar
 
 FRAME_REF_SCHEMA = "FRANKENSTEIN2_CAPTURE_FRAME_REF/v1"
-BROKER_STATE_SCHEMA = "FRANKENSTEIN2_CAPTURE_BROKER_STATE/v1"
+BROKER_STATE_SCHEMA = "FRANKENSTEIN2_CAPTURE_BROKER_STATE/v2"
 _SHA256_RE = re.compile(r"^[0-9a-f]{64}$")
 
 
@@ -106,6 +107,7 @@ class CaptureBrokerState:
     capacity: int
     generation: int
     frame_refs: tuple[CaptureFrameRef, ...]
+    dropped_frame_count: int
     dropped_frame_ref_ids: tuple[str, ...]
     provenance_refs: tuple[str, ...]
 
@@ -131,7 +133,13 @@ class CaptureBrokerState:
         sequences = [item.source_sequence for item in self.frame_refs]
         if sequences != sorted(sequences) or len(sequences) != len(set(sequences)):
             raise CaptureBrokerError("broker ring source_sequence must be unique and increasing")
-        object.__setattr__(self, "dropped_frame_ref_ids", _refs("dropped_frame_ref_ids", self.dropped_frame_ref_ids, allow_empty=True))
+        _nonnegative("dropped_frame_count", self.dropped_frame_count)
+        recent_drops = _refs("dropped_frame_ref_ids", self.dropped_frame_ref_ids, allow_empty=True)
+        if len(recent_drops) > self.capacity:
+            raise CaptureBrokerError("retained dropped_frame_ref_ids exceed bounded broker capacity")
+        if self.dropped_frame_count < len(recent_drops):
+            raise CaptureBrokerError("dropped_frame_count cannot be smaller than retained drop ids")
+        object.__setattr__(self, "dropped_frame_ref_ids", recent_drops)
         object.__setattr__(self, "provenance_refs", _refs("provenance_refs", self.provenance_refs))
 
     def as_dict(self) -> dict[str, Any]:
@@ -144,7 +152,9 @@ class CaptureBrokerState:
             "capacity": self.capacity,
             "generation": self.generation,
             "frame_refs": [item.as_dict() for item in self.frame_refs],
-            "dropped_frame_ref_ids": list(self.dropped_frame_ref_ids),
+            "dropped_frame_count": self.dropped_frame_count,
+            "recent_dropped_frame_ref_ids": list(self.dropped_frame_ref_ids),
+            "retained_drop_metadata_bound": self.capacity,
             "raw_frame_persistence": False,
             "consumer_count_limit": None,
             "world_truth_authority": "NONE",
@@ -171,6 +181,7 @@ def create_capture_broker(
         capacity=capacity,
         generation=0,
         frame_refs=(),
+        dropped_frame_count=0,
         dropped_frame_ref_ids=(),
         provenance_refs=provenance_refs,
     )
@@ -182,7 +193,7 @@ def publish_frame_ref(
     publisher_owner_id: str,
     frame_ref: CaptureFrameRef,
 ) -> CaptureBrokerState:
-    """Return the next immutable broker state; overflow deterministically drops oldest refs."""
+    """Return the next immutable state; overflow drops oldest and bounds drop metadata."""
     if type(state) is not CaptureBrokerState:
         raise CaptureBrokerError("state must be a concrete CaptureBrokerState")
     publisher_owner_id = _text("publisher_owner_id", publisher_owner_id)
@@ -201,9 +212,13 @@ def publish_frame_ref(
         if frame_ref.captured_monotonic_ns < latest.captured_monotonic_ns:
             raise CaptureBrokerError("new frame captured_monotonic_ns must not regress")
     ring = list(state.frame_refs) + [frame_ref]
-    dropped = list(state.dropped_frame_ref_ids)
+    recent_drops = list(state.dropped_frame_ref_ids)
+    dropped_count = state.dropped_frame_count
     while len(ring) > state.capacity:
-        dropped.append(ring.pop(0).frame_ref_id)
+        recent_drops.append(ring.pop(0).frame_ref_id)
+        dropped_count += 1
+    # Keep only a bounded recent-drop diagnostic window. Total count remains exact.
+    recent_drops = recent_drops[-state.capacity :]
     provenance = set(state.provenance_refs)
     provenance.update(frame_ref.provenance_refs)
     provenance.add(f"prior-broker-sha256:{state.sha256()}")
@@ -215,7 +230,8 @@ def publish_frame_ref(
         capacity=state.capacity,
         generation=state.generation + 1,
         frame_refs=tuple(ring),
-        dropped_frame_ref_ids=tuple(dropped),
+        dropped_frame_count=dropped_count,
+        dropped_frame_ref_ids=tuple(recent_drops),
         provenance_refs=tuple(sorted(provenance)),
     )
 
