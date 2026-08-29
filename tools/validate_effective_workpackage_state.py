@@ -53,8 +53,6 @@ def validate_repository(root: Path) -> dict[str, Any]:
     root = root.resolve()
     contract = legacy.load_contract(root)
 
-    # The snapshot remains structurally validated, but it is not current-state authority
-    # for rows that have migrated to append-only state events.
     snapshot = legacy.load_json(root / "workpackages" / "STATE.json")
     legacy.validate_state(snapshot, contract)
 
@@ -77,14 +75,19 @@ def validate_repository(root: Path) -> dict[str, Any]:
     missing_effective: list[str] = []
     for path, pointer in pointers:
         workpackage_id = pointer.get("workpackage_id")
-        if workpackage_id not in workpackages:
-            missing_effective.append(f"{path.name}:{workpackage_id}")
+        if workpackage_id in workpackages:
+            continue
+        claim_id = pointer.get("claim_id")
+        recon_count = len(legacy._matching_reconciliations(root, pointer))
+        missing_effective.append(
+            f"{workpackage_id}[state={pointer.get('state')},generation={pointer.get('generation')},"
+            f"claim={'present' if claim_id in claims else 'missing'},reconciliations={recon_count}]"
+        )
     _require(
         not missing_effective,
         "active pointer workpackages absent from effective state: " + ", ".join(missing_effective),
     )
 
-    # ACCEPTED_AT_SCOPE still requires at least one concrete repository-local evidence ref.
     for workpackage_id, entry in workpackages.items():
         if entry.get("status") == "ACCEPTED_AT_SCOPE":
             evidence = entry["evidence"]
@@ -103,9 +106,6 @@ def validate_repository(root: Path) -> dict[str, Any]:
         reconciliation = None
         if pointer.get("state") in set(contract["terminal_states"]):
             if workpackage_id in migrated:
-                # The v2 resolver already bound the event head to the exact active-pointer
-                # and reconciliation Git blobs. Re-use that one causal reconciliation rather
-                # than treating append-only historical reconciliations as parallel authorities.
                 reconciliation = _terminal_reconciliation_for_migrated(root, workpackage_id)
             else:
                 matches = legacy._matching_reconciliations(root, pointer)
@@ -145,12 +145,7 @@ def main(argv: list[str] | None = None) -> int:
     try:
         result = validate_repository(args.root)
     except (ValidationError, legacy.ValidationError) as exc:
-        print(
-            json.dumps(
-                {"pass": False, "error": str(exc), "runtime_credit_granted": 0},
-                sort_keys=True,
-            )
-        )
+        print(json.dumps({"pass": False, "error": str(exc), "runtime_credit_granted": 0}, sort_keys=True))
         return 1
     print(json.dumps(result, sort_keys=True))
     return 0
