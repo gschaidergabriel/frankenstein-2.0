@@ -1,0 +1,46 @@
+{
+  "schema": "TRIGGER6_TO_TRIGGER4_HANDOFF/v1",
+  "research_id": "R6-20260830-QWEN35-RECURRENT-RESTORE-VALIDITY-GPT56SOL-01",
+  "source_delta": "research/tool_intelligence/deltas/2026-08-30_GPT56SOL_R6_QWEN35_RECURRENT_RESTORE_RECEIPT_VALIDITY_E2_ARCHITECTURE_MAPPED.json",
+  "status": "BUILD_FALSIFIER_CANDIDATE",
+  "production_adoption": false,
+  "runtime_credit": 0,
+  "problem": "llama.cpp slot restore may report n_restored/n_read without effective restored recurrent compute state on hybrid Qwen3.5; receipt-only recovery acceptance can therefore be falsely positive.",
+  "required_invariant": "RESTORE_HTTP_200 + N_RESTORED_GT_0 != COMPUTE_STATE_RESTORED",
+  "authority_rule": "Canonical transcript/state remains the correctness recovery source. llama.cpp KV/SSM/DeltaNet slot state is rebuildable accelerator state only.",
+  "minimum_test_matrix": {
+    "model": "exact Trigger-7 Qwen3.5-4B provenance-controlled baseline artifact",
+    "runtime": "one exact pinned llama.cpp build",
+    "history_lengths": ["short", "medium", "long"],
+    "cases": [
+      "cold first run",
+      "same-process cached continuation",
+      "save -> restart -> restore -> identical continuation",
+      "restart -> canonical transcript replay -> identical continuation"
+    ],
+    "measure": [
+      "slot artifact SHA-256",
+      "n_saved/n_written",
+      "n_restored/n_read",
+      "prompt_n/cache_n or exact-current equivalent metrics",
+      "TTFT/prefill time",
+      "full-reprocessing/cache warnings",
+      "deterministic next-turn output digest where technically stable"
+    ]
+  },
+  "acceptance_split": {
+    "serialization_receipt": "API/file operation completed and identities are bound",
+    "logical_recovery": "canonical replay reconstructs an admissible next turn",
+    "compute_state_restore": "restored run demonstrates real reusable compute state rather than full re-prefill",
+    "latency_recovery": "restored/replayed run meets declared voice-session latency budget"
+  },
+  "counterhypothesis_test": "If canonical transcript replay on exact target hardware stays within latency budget at required voice-history lengths, disable or demote slot persistence instead of making correctness depend on it.",
+  "external_evidence": [
+    "ggml-org/llama.cpp#26676",
+    "ggml-org/llama.cpp#25913",
+    "ggml-org/llama.cpp#24043",
+    "ggml-org/llama.cpp tools/server slot save/restore API documentation"
+  ],
+  "scope": "TEST/HARNESS_HANDOFF_ONLY_NO_IMPLEMENTATION_AUTHORITY",
+  "next_exact_gate": "Trigger 4 or the current authorized runtime owner binds exact Qwen3.5-4B + llama.cpp + chat-template + hardware identities and executes the four-case restore/replay matrix; preserve a failed restore as upstream/runtime negative evidence rather than F2 logic failure."
+}
