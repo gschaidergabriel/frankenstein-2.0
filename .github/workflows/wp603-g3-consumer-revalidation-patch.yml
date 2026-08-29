@@ -1,0 +1,212 @@
+name: F2 WP603 G3 Consumer Revalidation Patch
+
+on:
+  push:
+    branches:
+      - trigger4/wp603-g3-consumer-revalidation-20260829
+    paths:
+      - .github/workflows/wp603-g3-consumer-revalidation-patch.yml
+
+permissions:
+  contents: write
+
+jobs:
+  patch-and-verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: trigger4/wp603-g3-consumer-revalidation-20260829
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Apply exact WP603 G3 consumer-boundary repair
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          source_path = Path('src/frankenstein2/recursion_router.py')
+          test_path = Path('tests/test_recursion_router.py')
+          source = source_path.read_text()
+          tests = test_path.read_text()
+
+          policy_old = '''        return cls(
+              schema=RECURSION_POLICY_SCHEMA,
+              policy_id=policy_id,
+              generation=generation,
+              admitted_modes=tuple(admitted_modes),
+              r3_preference_order=tuple(r3_preference_order),
+              max_nested_child_edges=max_nested_child_edges,
+              provenance_refs=tuple(provenance_refs),
+          )
+
+          def as_dict(self) -> dict[str, Any]:
+          '''
+          policy_new = '''        return cls(
+              schema=RECURSION_POLICY_SCHEMA,
+              policy_id=policy_id,
+              generation=generation,
+              admitted_modes=tuple(admitted_modes),
+              r3_preference_order=tuple(r3_preference_order),
+              max_nested_child_edges=max_nested_child_edges,
+              provenance_refs=tuple(provenance_refs),
+          )
+
+          @classmethod
+          def from_mapping(cls, value: Mapping[str, Any]) -> "RecursionPolicy":
+              if not isinstance(value, Mapping):
+                  raise RecursionRouterError("recursion policy input must be a mapping")
+              expected = {
+                  "schema",
+                  "policy_id",
+                  "generation",
+                  "admitted_modes",
+                  "r3_preference_order",
+                  "max_nested_child_edges",
+                  "provenance_refs",
+              }
+              if set(value.keys()) != expected:
+                  raise RecursionRouterError("recursion policy fields are not exact")
+              admitted_modes = value["admitted_modes"]
+              r3_preference_order = value["r3_preference_order"]
+              provenance_refs = value["provenance_refs"]
+              if type(admitted_modes) is list:
+                  admitted_modes = tuple(admitted_modes)
+              if type(r3_preference_order) is list:
+                  r3_preference_order = tuple(r3_preference_order)
+              if type(provenance_refs) is list:
+                  provenance_refs = tuple(provenance_refs)
+              try:
+                  return cls(
+                      schema=value["schema"],
+                      policy_id=value["policy_id"],
+                      generation=value["generation"],
+                      admitted_modes=admitted_modes,
+                      r3_preference_order=r3_preference_order,
+                      max_nested_child_edges=value["max_nested_child_edges"],
+                      provenance_refs=provenance_refs,
+                  )
+              except (TypeError, ValueError) as exc:
+                  raise RecursionRouterError(f"invalid recursion policy: {exc}") from exc
+
+          def as_dict(self) -> dict[str, Any]:
+          '''
+
+          need_old = '''        return cls(schema=RECURSION_NEED_SCHEMA, need_id=_need_id(**identity), **identity)
+
+          def as_dict(self) -> dict[str, Any]:
+          '''
+          need_new = '''        return cls(schema=RECURSION_NEED_SCHEMA, need_id=_need_id(**identity), **identity)
+
+          @classmethod
+          def from_mapping(cls, value: Mapping[str, Any]) -> "RecursionNeed":
+              if not isinstance(value, Mapping):
+                  raise RecursionRouterError("recursion need input must be a mapping")
+              expected = {field.name for field in cls.__dataclass_fields__.values()}
+              if set(value.keys()) != expected:
+                  raise RecursionRouterError("recursion need fields are not exact")
+              r3_available_modes = value["r3_available_modes"]
+              provenance_refs = value["provenance_refs"]
+              if type(r3_available_modes) is list:
+                  r3_available_modes = tuple(r3_available_modes)
+              if type(provenance_refs) is list:
+                  provenance_refs = tuple(provenance_refs)
+              try:
+                  return cls(
+                      **{
+                          **dict(value),
+                          "r3_available_modes": r3_available_modes,
+                          "provenance_refs": provenance_refs,
+                      }
+                  )
+              except (TypeError, ValueError) as exc:
+                  raise RecursionRouterError(f"invalid recursion need: {exc}") from exc
+
+          def as_dict(self) -> dict[str, Any]:
+          '''
+
+          route_old = '''    if type(need) is not RecursionNeed:
+              raise RecursionRouterError("need must be exact concrete RecursionNeed")
+          if type(policy) is not RecursionPolicy:
+              raise RecursionRouterError("policy must be exact concrete RecursionPolicy")
+          if need.route_candidate_id != route_candidate.candidate_id:
+          '''
+          route_new = '''    if type(need) is not RecursionNeed:
+              raise RecursionRouterError("need must be exact concrete RecursionNeed")
+          if type(policy) is not RecursionPolicy:
+              raise RecursionRouterError("policy must be exact concrete RecursionPolicy")
+
+          # Consumer-boundary reconstruction is mandatory.  Frozen dataclasses can still be
+          # mutated by a hostile/buggy caller via object.__setattr__; reconstructing through
+          # the canonical constructors re-runs all invariants and rechecks need_id against
+          # the exact current RecursionNeed content before any routing field is consumed.
+          need = RecursionNeed.from_mapping(need.as_dict())
+          policy = RecursionPolicy.from_mapping(policy.as_dict())
+
+          if need.route_candidate_id != route_candidate.candidate_id:
+          '''
+
+          test_anchor = '''    def test_policy_modes_are_canonical_and_r3_preference_has_no_duplicates(self) -> None:
+          '''
+          test_insert = '''    def test_consumer_revalidates_need_content_bound_identity_after_post_init_drift(self) -> None:
+              route = make_route(selected=DELEGATE_BUILD)
+              need = RecursionNeed.create(
+                  route_candidate=route,
+                  requested_mode=R1,
+                  generation=1,
+                  provenance_refs=("need:consumer-revalidation",),
+              )
+              object.__setattr__(need, "generation", 2)
+              with self.assertRaisesRegex(RecursionRouterError, "need_id does not bind exact recursion need content"):
+                  route_recursion(route_candidate=route, need=need, policy=make_policy())
+
+          def test_consumer_revalidates_policy_invariants_after_post_init_drift(self) -> None:
+              route = make_route(selected=DIRECT_SMALL)
+              need = RecursionNeed.create(
+                  route_candidate=route,
+                  requested_mode=R0,
+                  generation=1,
+                  provenance_refs=("need:policy-revalidation",),
+              )
+              policy = make_policy()
+              object.__setattr__(policy, "admitted_modes", (R0, R2, R1, R3))
+              with self.assertRaisesRegex(RecursionRouterError, "admitted_modes must be unique canonical"):
+                  route_recursion(route_candidate=route, need=need, policy=policy)
+
+          def test_policy_modes_are_canonical_and_r3_preference_has_no_duplicates(self) -> None:
+          '''
+
+          replacements = [
+              (policy_old, policy_new, 'policy reconstruction'),
+              (need_old, need_new, 'need reconstruction'),
+              (route_old, route_new, 'consumer invocation'),
+          ]
+          for old, new, label in replacements:
+              count = source.count(old)
+              if count != 1:
+                  raise SystemExit(f'{label}: expected exact replacement count 1, got {count}')
+              source = source.replace(old, new, 1)
+
+          count = tests.count(test_anchor)
+          if count != 1:
+              raise SystemExit(f'test anchor: expected exact replacement count 1, got {count}')
+          tests = tests.replace(test_anchor, test_insert, 1)
+
+          source_path.write_text(source)
+          test_path.write_text(tests)
+          PY
+      - name: Compile and run canonical WP603 suite
+        run: |
+          python -m py_compile src/frankenstein2/recursion_router.py tests/test_recursion_router.py
+          PYTHONPATH=src python tests/test_recursion_router.py -v
+      - name: Commit exact repair to G3 branch
+        shell: bash
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add src/frankenstein2/recursion_router.py tests/test_recursion_router.py
+          git diff --cached --check
+          git commit -m 'trigger4(WP603 G3): revalidate need and policy at consumer boundary'
+          git push origin HEAD:trigger4/wp603-g3-consumer-revalidation-20260829
