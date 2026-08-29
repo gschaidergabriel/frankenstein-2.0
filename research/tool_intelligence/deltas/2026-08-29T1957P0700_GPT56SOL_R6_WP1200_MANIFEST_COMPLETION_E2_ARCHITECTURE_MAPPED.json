@@ -1,0 +1,85 @@
+{
+  "schema": "FRANKENSTEIN2_TRIGGER6_RESEARCH_DELTA/v1",
+  "research_id": "R6-20260829-WP1200-MANIFEST-COMPLETION-GPT56SOL-01",
+  "evidence_stage": "E2_ARCHITECTURE_MAPPED",
+  "created_at": "2026-08-29T19:57:00+07:00",
+  "worker": "GPT-5.6-Sol",
+  "f2_ref": "4f9398c39b3aa81cf961ead8d1390e8e0fcacfd8",
+  "exact_current_source": {
+    "path": "src/frankenstein2/target_completion_epistemics.py",
+    "blob_sha": "b8856516b3c2988a54a38ae20845846c1f2412f9",
+    "observed_boundary": "TargetCompletionReport receives only target_id, evaluated_fidelity and caller-supplied obligations. Duplicate supplied IDs and target mismatch are rejected; status is computed only across supplied mandatory obligations in scope. There is no expected-obligation-universe identity, manifest generation/digest, or coverage comparison. physical_credit is already hard false and physical_completion_candidate requires a supplied T4 mandatory obligation."
+  },
+  "owner_architecture_alignment": {
+    "contract": "architecture/TARGET_HOST_REALITY_TWIN_AND_COMPLETION_EPISTEMICS.md",
+    "phase": "workpackages/TARGET_HOST_REALITY_TWIN_PHASE.json",
+    "laws_preserved": [
+      "MISSING_EVIDENCE=>UNKNOWN",
+      "TARGET_COMPLETION_IS_OBLIGATION_BASED_NOT_ARTIFACT_BASED",
+      "NEGATIVE_SPACE_SCAN_REQUIRED",
+      "COUNTEREVIDENCE_PROBE_REQUIRED",
+      "PHYSICAL_HOST_CREDIT_REQUIRES_PHYSICAL_HOST_EVIDENCE"
+    ],
+    "key_dependency": "The architecture explicitly diagnoses a closed-world completion fallacy and requires TARGET OBLIGATIONS before implementation/readback. WP1206 is intended to compare desired target obligations against observed target state."
+  },
+  "proposed_successor_boundary": {
+    "name": "TargetObligationManifest + manifest-bound TargetCompletionReport",
+    "minimal_manifest_fields": [
+      "schema",
+      "target_id",
+      "target_profile_identity_or_explicit_unknown",
+      "manifest_generation",
+      "manifest_digest_sha256",
+      "obligation_entries[]: {obligation_id, required_fidelity, mandatory, applicability}"
+    ],
+    "admission_fields_or_external_binding": [
+      "manifest_producer_identity",
+      "manifest_admission_identity",
+      "authority/provenance reference sufficient to reject caller-minted arbitrary universes"
+    ],
+    "coverage_algorithm": [
+      "Verify manifest schema, target binding, generation and canonical digest before status evaluation.",
+      "Resolve applicable mandatory IDs for the report's evaluated fidelity from the manifest, not from the supplied result tuple.",
+      "Reject supplied obligation IDs absent from the manifest and reject semantic mutation of manifest-declared target/fidelity/mandatory/applicability attributes.",
+      "Reject duplicate supplied IDs (already present in G1).",
+      "Compute missing_required_ids = expected_applicable_mandatory_ids - supplied_validated_ids.",
+      "Materialize every missing required ID as UNKNOWN in the report/negative-space ledger; any such ID prevents COMPLETE.",
+      "Require supplied evidence/result generation to be bound to the manifest generation or a stricter current evidence epoch; stale generation cannot satisfy the current manifest.",
+      "Keep optional/non-applicable obligations explicit in the manifest policy so exact-set closure does not accidentally require irrelevant obligations.",
+      "Keep physical_credit outside this deterministic source-level report unless independently admitted physical evidence authority later grants it."
+    ]
+  },
+  "why_digest_alone_is_insufficient": [
+    "Bazel-style content addressing binds a result to whatever input tree was declared; it cannot prove an omitted real dependency belonged in that tree.",
+    "A manifest digest proves identity/integrity of the manifest, not completeness of a caller-minted manifest.",
+    "Therefore F2 needs both deterministic manifest identity and an admission/producer authority boundary for the obligation universe."
+  ],
+  "falsifiers_required_before_trigger4_acceptance": [
+    "SPARSE_SUBSET: manifest declares mandatory T0..T4, caller supplies only passing T0 => UNKNOWN, never COMPLETE.",
+    "MISSING_MIDDLE: caller supplies T0,T2,T3,T4 but omits mandatory T1 => UNKNOWN with exact missing ID.",
+    "STALE_GENERATION: evidence/report bound to manifest generation N-1 against manifest N => reject or UNKNOWN, never COMPLETE.",
+    "DIGEST_MISMATCH: manifest fields mutate after digest => fail closed.",
+    "CALLER_MINTED_UNIVERSE: syntactically valid but unadmitted manifest cannot authorize COMPLETE.",
+    "SEMANTIC_DOWNGRADE: caller changes a manifest-declared mandatory T4 obligation to T0 or optional => fail closed.",
+    "DUPLICATE_REQUIRED: same mandatory ID supplied twice => fail closed.",
+    "UNKNOWN_EVIDENCE: expected ID present but positive or counterevidence is UNKNOWN => report UNKNOWN.",
+    "OPTIONAL_ABSENT: absent optional/non-applicable obligation does not block COMPLETE if all applicable mandatory obligations close.",
+    "PHYSICAL_SEPARATION: repository/synthetic closure never sets physical_credit true."
+  ],
+  "resource_effect": {
+    "expected_runtime_cost": "LOW; set/digest comparisons over bounded obligation IDs",
+    "expected_token_cost": "LOW; report need only emit manifest identity plus missing/failed IDs rather than replay full requirement prose",
+    "expected_dependency_cost": "LOW; stdlib-compatible deterministic structure; no Bazel/Kubernetes/TUF dependency import proposed"
+  },
+  "handoff": {
+    "owner": "TRIGGER4_EXISTING_F2_WP_1200_G1_OR_EXPLICIT_SUCCESSOR_ONLY",
+    "mutation_by_trigger6": false,
+    "recommended_change": "Absorb manifest-bound closed-world coverage as the next repair/reconciliation of WP1200; retain PR415 sparse-subset counterexample and add the listed regressions. Do not duplicate the active G1 mutation lane."
+  },
+  "research_credit": "E2_ARCHITECTURE_MAPPED",
+  "runtime_credit": 0,
+  "physical_host_credit": 0,
+  "architecture_acceptance_credit": 0,
+  "whole_system_credit": 0,
+  "next_stage": "E3_SYNTHETIC_CLAIM_REPRODUCTION"
+}
