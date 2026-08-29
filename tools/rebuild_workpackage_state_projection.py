@@ -13,10 +13,17 @@ from __future__ import annotations
 import argparse
 import copy
 import json
+import sys
 from pathlib import Path
 from typing import Any
 
-from tools import validate_workpackage_state as validator
+try:
+    from tools import validate_workpackage_state as validator
+except ModuleNotFoundError:
+    # Direct script execution sets sys.path[0] to tools/ rather than repository root.
+    # Import the sibling module without changing repository semantics.
+    sys.path.insert(0, str(Path(__file__).resolve().parent))
+    import validate_workpackage_state as validator
 
 ACTIVE = "ACTIVE"
 ACCEPTED = "ACCEPTED"
