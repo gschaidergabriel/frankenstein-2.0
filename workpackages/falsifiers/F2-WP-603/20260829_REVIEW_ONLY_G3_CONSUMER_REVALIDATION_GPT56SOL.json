@@ -1,0 +1,21 @@
+{
+  "schema": "FRANKENSTEIN2_WORKPACKAGE_FALSIFIER/v1",
+  "workpackage_id": "F2-WP-603",
+  "generation_under_review": 3,
+  "classification": "REVIEW_ONLY",
+  "worker_id": "GPT-5.6-Sol-TRIGGER4-REVIEW",
+  "active_claim_ref": "workpackages/active/F2-WP-603.json",
+  "review_base_branch": "trigger4/wp603-g3-consumer-revalidation-20260829",
+  "review_base_sha": "1c49b5e7f70c2057b4b6e8c11f8b2fc1707e305b",
+  "review_branch": "review/wp603-g3-consumer-revalidation-falsifier-20260829",
+  "hypothesis": "route_recursion still consumes post-construction-drifted RecursionNeed and RecursionPolicy objects without reconstructing their exact current content through the canonical validators.",
+  "counterhypothesis": "the active G3 branch already reconstructs and revalidates both objects at the consumer boundary, so the review regressions pass.",
+  "discriminator": "Run tests/review_only/test_wp603_g3_consumer_revalidation_falsifier.py against the active G3 branch merge result. The need-generation test mutates a content field so need_id becomes stale; the policy test mutates r3_preference_order into a state RecursionPolicy.__post_init__ rejects. Both must be rejected by route_recursion before field consumption.",
+  "expected_on_unrepaired_source": "FAILURE_AS_EXPECTED: at least one regression observes route_recursion returning a candidate instead of raising RecursionRouterError.",
+  "expected_after_correct_repair": "PASS: both drift families fail closed before routing semantics are consumed.",
+  "mutation_authority": false,
+  "runtime_credit": 0,
+  "physical_grid10_credit": 0,
+  "gwt_jspace_credit": 0,
+  "whole_system_credit": 0
+}
