@@ -1,0 +1,53 @@
+{
+  "schema": "FRANKENSTEIN2_WORKPACKAGE_DELTA/v1",
+  "workpackage_id": "F2-WP-709",
+  "generation": 1,
+  "claim_id": "F2-WP-709-G1-GPT56SOL-CAPTURE-BROKER-20260829",
+  "worker_id": "GPT-5.6-Sol",
+  "authority_epoch": "8.78",
+  "base_commit": "0113443c9d62f57ab8b20c7c96148e8801656c00",
+  "status": "IMPLEMENTED_PENDING_EXACT_CI",
+  "scope": "Hardware-independent RetinaCaptureBroker / single-owner-multiple-reader repository component",
+  "changes": [
+    "added deterministic CaptureBroker policy with bounded per-source frame count/age/read-window limits",
+    "added exact PerceptionSource generation and canonical capture-owner binding",
+    "added idempotent same-owner acquisition so repeated broker access does not imply a second physical open",
+    "added fail-closed competing/wrong owner and stale generation handling",
+    "added RAM-only CaptureFrameRef metadata with monotonic per-source sequence and capture time",
+    "added deterministic age/capacity eviction and explicit consumer gap signalling",
+    "added read-only multi-consumer fan-out that never opens the underlying device",
+    "added source release/rebind generation transition and stale-generation rejection",
+    "added regression falsifiers for duplicate ownership/device-busy class, bounded RAM, raw-payload absence, source count > four and rebind behavior",
+    "added dedicated repository-hosted CI"
+  ],
+  "owned_paths": [
+    "src/frankenstein2/perception_capture_broker.py",
+    "tests/test_perception_capture_broker.py",
+    ".github/workflows/wp709-perception-capture-broker-ci.yml",
+    "workpackages/deltas/F2-WP-709/1-F2-WP-709-G1-GPT56SOL-CAPTURE-BROKER-20260829-01.json"
+  ],
+  "negative_claims": [
+    "does not open any physical camera/display/browser device",
+    "does not store raw frame bytes",
+    "does not persist capture state",
+    "does not execute Retina/Cortex semantic perception",
+    "does not execute VPS/bridge/network I/O",
+    "does not invoke provider/model/VLM",
+    "does not mint observation/world/GWT/effect/completion authority"
+  ],
+  "credit": {
+    "repository_component_source": "CANDIDATE_PENDING_CI",
+    "physical_device_runtime": 0,
+    "perception_runtime": 0,
+    "vps_runtime": 0,
+    "physical_grid10": 0,
+    "gwt_runtime": 0,
+    "jspace_runtime": 0,
+    "provider_model": 0,
+    "training": 0,
+    "effect": 0,
+    "completion": 0,
+    "whole_system": 0
+  },
+  "next_exact_action": "Open a PR from the exact implementation head, require dedicated WP709 PR-head CI success, refresh main/compare for concurrent changes, merge only with exact expected head, then require merged-main WP709 CI before receipt/reconciliation/active-pointer acceptance."
+}
