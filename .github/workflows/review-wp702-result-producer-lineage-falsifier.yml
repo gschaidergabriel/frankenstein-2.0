@@ -1,0 +1,33 @@
+name: Review WP702 Result Producer Lineage Falsifier
+
+on:
+  push:
+    branches:
+      - review/wp702-result-producer-lineage-falsifier-20260829
+    paths:
+      - 'tests/test_wp702_result_producer_lineage_falsifier.py'
+      - '.github/workflows/review-wp702-result-producer-lineage-falsifier.yml'
+  pull_request:
+    paths:
+      - 'tests/test_wp702_result_producer_lineage_falsifier.py'
+      - '.github/workflows/review-wp702-result-producer-lineage-falsifier.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  falsifier:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Compile reviewed source and falsifier
+        run: python -m py_compile src/frankenstein2/perception_control.py tests/test_wp702_result_producer_lineage_falsifier.py
+      - name: Require evaluator-bound result producer lineage
+        env:
+          PYTHONPATH: src
+        run: python tests/test_wp702_result_producer_lineage_falsifier.py -v
