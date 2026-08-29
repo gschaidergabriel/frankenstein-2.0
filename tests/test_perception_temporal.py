@@ -138,6 +138,38 @@ class PerceptionTemporalTests(unittest.TestCase):
         self.assertEqual(window.unaligned_ref_ids, ())
         self.assertEqual(window.alignment_status, "ALIGNED")
 
+    def test_distinct_clock_domains_without_alignment_evidence_fail_closed(self):
+        """CANDIDATE_FALSIFIER: numeric offset is not proof of clock alignment."""
+        local = bind(
+            claim("c-local", 980),
+            ref_id="local-unproven",
+            source_id="screen:local",
+            sequence=1,
+            offset=0,
+            uncertainty=0,
+            freshness=100,
+        )
+        remote = bind(
+            claim("c-remote", 980),
+            ref_id="remote-unproven",
+            source_id="camera:remote-unproven",
+            sequence=1,
+            offset=0,
+            uncertainty=0,
+            freshness=100,
+        )
+        self.assertNotEqual(local.clock_domain, remote.clock_domain)
+        window = build_observation_window(
+            refs=(local, remote),
+            reference_now_ns=1_000,
+            max_join_skew_ns=20,
+            max_clock_uncertainty_ns=5,
+            provenance_refs=P,
+        )
+        self.assertEqual(window.current_ref_ids, ())
+        self.assertEqual(set(window.unaligned_ref_ids), {"local-unproven", "remote-unproven"})
+        self.assertEqual(window.alignment_status, "UNALIGNED")
+
     def test_future_reference_time_is_unaligned_not_current_or_stale(self):
         future = bind(
             claim("c1", 1_010),
