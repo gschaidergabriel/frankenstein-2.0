@@ -1,0 +1,137 @@
+{
+  "schema": "FRANKENSTEIN2_TRIGGER6_E5_BUILD_CANDIDATE/v1",
+  "trigger": "6",
+  "research_id": "R6-SEED-012",
+  "candidate_id": "R6-SEED-012-PROBE-EXECUTION-CONTEXT-v1",
+  "status": "E5_BUILD_CANDIDATE_READY_FOR_TRIGGER4",
+  "created_at": "2026-08-29T22:34:00+07:00",
+  "worker": "GPT-5.6-Sol:Triggerword-6-organ",
+  "claim_commit": "bf2eca288e647f72928da2d7f0a5cbd3b92c749d",
+  "architecture_snapshot": {
+    "f2_main_at_e5_claim": "e5757fa74e4837537d10e4355f4cf85fa4ea2dfd",
+    "wp507_path": "src/frankenstein2/gwt_uptake.py",
+    "wp507_blob_sha": "f25c03d4e4e49c4fed44acd0c5c96edfb40f664e",
+    "wp507_generation": 4,
+    "wp510_path": "src/frankenstein2/gwt_causal_path.py",
+    "wp510_blob_sha": "aa24abf742612240ef3acf117962fc03958f9787",
+    "wp510_generation": 3,
+    "wp510_g3_merge_commit": "656b57bded655e64a25d7e205b599becce3d4989"
+  },
+  "external_source_pin": {
+    "repo": "UKGovernmentBEIS/inspect_ai",
+    "commit": "3712507590dc4e6e678114194ac9844fd3a6fd6c",
+    "tree": "703fa9fd107962f98bdefe01b2b7c24d460a7609",
+    "license": "MIT",
+    "adoption": "STRUCTURAL_PATTERN_ONLY_NO_RUNTIME_LIBRARY_IMPORT"
+  },
+  "problem": {
+    "id": "WP507_MATCHED_CONTROL_EXECUTION_CONFIG_CONFOUND",
+    "statement": "Current WP507 can declare CAUSAL_INFLUENCE_OBSERVED_AT_CONTRACT_SCOPE when intervention and control share probe_id and nonbroadcast_input_sha256 but differ in an execution/model/config/environment context that is not represented in CausalProbeArm. A downstream-output difference can therefore be attributed to the broadcast intervention even though an unbound execution-context difference is an alternative explanation.",
+    "e3_reproduction_ref": "research/tool_intelligence/deltas/R6-SEED-012_E3_MATCHED_CONTROL_EXECUTION_CONFIG_CONFOUND_20260829T2226P0700_GPT56SOL.json"
+  },
+  "candidate": {
+    "name": "ProbeExecutionContext",
+    "schema": "FRANKENSTEIN2_GWT_PROBE_EXECUTION_CONTEXT/v1",
+    "role": "Typed immutable matched-experiment witness whose canonical digest commits to the non-intervention execution conditions that must be equal between WP507 intervention and control arms.",
+    "preferred_integration_surface": "WP507/evidence-admission boundary",
+    "do_not_create_second_authority": true,
+    "suggested_fields": [
+      "context_id",
+      "generation",
+      "runner_or_harness_identity",
+      "code_or_artifact_sha256",
+      "engine_identity",
+      "execution_config_sha256",
+      "environment_or_dependency_sha256",
+      "sample_case_id",
+      "attempt_policy_id",
+      "provenance_refs"
+    ],
+    "canonical_rules": [
+      "All fields are deterministic canonical-JSON inputs to context.sha256().",
+      "The broadcast intervention identity is excluded from the shared context digest because it is the declared manipulated dimension.",
+      "CausalProbeArm factories consume a concrete ProbeExecutionContext and serialize execution_context_sha256; do not accept an arbitrary naked digest as the only construction input.",
+      "Intervention and control must bind the same execution_context_sha256 for matched-control classification. A mismatch returns UNKNOWN_UNMATCHED_CONTROL.",
+      "WP510 revalidates the existing WP507 arm/context binding rather than defining a duplicate context schema.",
+      "The witness proves only equality of declared context fields; it does not establish hidden-state causality, world truth, semantic uptake, runtime success, effect authority or completion."
+    ]
+  },
+  "why_this_candidate": {
+    "opaque_digest_candidate": "Rejected at E4 because it adds only a caller-controlled equality token without defining/verifying the digest preimage semantics.",
+    "typed_shared_context_candidate": "Preferred because it rejects the reproduced confound while making the digest meaning deterministic and replayable without adding model calls or a heavyweight framework dependency.",
+    "full_inspect_import": "Rejected as disproportionate. The pinned Inspect distribution has a broad general evaluation dependency surface; F2 needs only the run-manifest identity pattern."
+  },
+  "research_measurements": {
+    "scope": "LOCAL_DETERMINISTIC_RESEARCH_ABLATION_NOT_TARGET_RUNTIME",
+    "baseline_pair_serialized_bytes": 968,
+    "opaque_digest_pair_serialized_bytes": 1172,
+    "typed_context_serialized_bytes": 438,
+    "typed_shared_context_matched_pair_plus_one_context_bytes": 1594,
+    "typed_shared_context_added_bytes_vs_baseline": 626,
+    "local_digest_equality_ns_per_op_median": 37.30702500035932,
+    "local_typed_context_sha256_us_per_op_median": 5.176630605000128,
+    "added_model_calls": 0,
+    "added_model_tokens": 0,
+    "target_runtime_latency_cpu_rss_io": "UNMEASURED_REQUIRES_TRIGGER4_ADMITTED_SURFACE"
+  },
+  "implementation_hypothesis": {
+    "new_or_refactored_surface": "Prefer one small F2-native typed object near gwt_uptake/evidence admission; exact file placement is Trigger-4 design authority after inspecting current source.",
+    "wp507_changes": [
+      "Introduce/reuse concrete ProbeExecutionContext with canonical validation and digest.",
+      "CausalProbeArm gains execution_context_sha256 and its intervention/control factories require the concrete context object.",
+      "evaluate_causal_influence returns UNKNOWN_UNMATCHED_CONTROL when arm context digests differ.",
+      "Preserve existing probe_id, nonbroadcast-input, broadcast and downstream-output checks exactly."
+    ],
+    "wp510_changes": [
+      "Revalidate the WP507 context-bound arm/result chain without duplicating the context definition.",
+      "Preserve generation-3 NOT_COMPUTED positive-seal fence and all existing typed downstream/re-entry lineage checks."
+    ]
+  },
+  "acceptance_tests": [
+    "Negative regression: same probe_id and nonbroadcast input but different typed execution contexts must yield UNKNOWN_UNMATCHED_CONTROL even when downstream output digests differ.",
+    "Preservation: same typed execution context with different downstream output digest preserves the current contract-scope causal result when all existing prerequisites hold.",
+    "Preservation: same typed execution context with same downstream output digest remains NO_CAUSAL_INFLUENCE_OBSERVED.",
+    "Wrong/stale context generation or digest fails closed.",
+    "Nominal/fake object cannot satisfy factories if exact concrete-type/factory validation is the current local ABI pattern.",
+    "Broadcast identity must not be part of the shared context digest; the intervention/control difference remains explicit in CausalProbeArm.condition/broadcast fields.",
+    "Existing WP507 suite passes unchanged or with successor-compatible expected schema update.",
+    "Existing WP510 G3 suite including NOT_COMPUTED regression passes.",
+    "WP510 must reject any causal result whose source arms/context binding cannot be revalidated exactly."
+  ],
+  "trigger4_measurements_required": [
+    "serialized/persisted bytes added per matched probe pair and reuse behavior",
+    "context construction/hash validation p50/p95/p99 on admitted build/test surface",
+    "CPU and RSS delta",
+    "I/O/storage delta if context objects are persisted",
+    "model-call and token delta, expected exactly zero",
+    "regression and failure-mode counts",
+    "source/test/CI identity and exact acceptance scope"
+  ],
+  "counterhypotheses": [
+    "A higher-level canonical execution manifest may already bind all required fields and could be reused instead of adding a new object; Trigger 4 should search exact current source before implementation.",
+    "Some suggested fields may be irrelevant for a deterministic non-model probe and should be omitted when they do not vary or cannot confound the experiment.",
+    "Attempt/epoch identity may need to be represented as policy identity rather than concrete attempt number if repeated trials are intentionally aggregated.",
+    "If model stochasticity is material, equal configuration does not make outputs deterministic; the candidate controls known configuration confounds but does not eliminate stochastic variance."
+  ],
+  "falsifiers": [
+    "Find an already-mandatory typed execution-context object whose canonical digest is consumed and compared by both WP507 probe arms; if present, retire this candidate as duplicate and wire the existing object instead.",
+    "Show under an equivalent deterministic regression that context mismatch cannot reach current WP507 contract-scope causal status; if so, the E3 reproduction assumption was incomplete.",
+    "Show that the candidate's matched-context fields necessarily include the intervention dimension, making equality impossible without erasing the experiment; if so, redesign the field boundary."
+  ],
+  "handoff": {
+    "consumer": "Triggerword-4 build/test lane",
+    "required_packet": "trigger4/inbox/tool_research/R6-SEED-012-PROBE-EXECUTION-CONTEXT-v1.json",
+    "e6_requirement": "Only Trigger 4 implementation plus exact admitted test/runtime evidence may promote to E6/F2 accepted scope."
+  },
+  "credits": {
+    "e5_build_candidate_credit": 1,
+    "f2_integration_credit": 0,
+    "target_runtime_credit": 0,
+    "physical_grid10_credit": 0,
+    "gwt_runtime_credit": 0,
+    "jspace_runtime_credit": 0,
+    "effect_credit": 0,
+    "training_credit": 0,
+    "whole_system_credit": 0
+  }
+}
