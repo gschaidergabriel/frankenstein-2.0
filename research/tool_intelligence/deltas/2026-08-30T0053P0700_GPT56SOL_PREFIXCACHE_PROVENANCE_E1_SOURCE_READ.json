@@ -1,0 +1,88 @@
+{
+  "schema": "FRANKENSTEIN2_TRIGGER6_SOURCE_READ_DELTA/v1",
+  "trigger": "6",
+  "research_id": "R6-20260830-PREFIXCACHE-PROVENANCE-GPT56SOL-01",
+  "claim_target": "E1_SOURCE_READ",
+  "status": "E1_SOURCE_READ_COMPLETE",
+  "created_at_local": "2026-08-30T00:53:00+07:00",
+  "worker": "GPT-5.6 Sol / ChatGPT Trigger-6 organ",
+  "claim_commit": "77940d2130252c479ee703a3f4fda92dceee1626",
+  "architecture_fusion_commit": "e426eca7149b61d84397cb7c381a0780b74fc408",
+  "source_identities": {
+    "vllm": {
+      "repo": "vllm-project/vllm",
+      "commit": "fe755c88995ad468882517b6c4bdd60138d46a3a",
+      "audited_source": "vllm/v1/core/kv_cache_utils.py",
+      "current_docs": ["Automatic Prefix Caching", "Security / Prefix Cache Timing Side-Channel Mitigation", "CacheConfig / prefix hashing"]
+    },
+    "sglang": {
+      "repo": "sgl-project/sglang",
+      "commit": "6afb5e17712e2e90b60ba8456ca893e529316869",
+      "audited_sources": ["python/sglang/srt/mem_cache/radix_cache.py", "docs/docs/advanced_features/session_radix_cache.mdx"],
+      "paper": "SGLang: Efficient Execution of Structured Language Model Programs, arXiv:2312.07104"
+    },
+    "llama_cpp": {
+      "repo": "ggml-org/llama.cpp",
+      "commit": "c841aeeb8bb2fe417038dadfa9b007cf1a9ef950",
+      "audited_source": "tools/server/README.md"
+    },
+    "position_independent_research": [
+      "Irminsul: MLA-Native Position-Independent Caching for Agentic LLM Serving, arXiv:2605.05696",
+      "HijackKV: New Threat in Position-Independent KV Cache Reuse, arXiv:2607.19957"
+    ]
+  },
+  "source_direct_findings": [
+    {
+      "id": "E1-VLLM-CHAINED-CONTENT-IDENTITY",
+      "finding": "vLLM hashes each cache block from the parent-block hash, current token IDs, and optional extra keys. Current extra keys include LoRA identity, multimodal identity/offset, request cache_salt on the first block, and prompt-embedding hashes. This is materially stronger than token-prefix-only identity and demonstrates that cache correctness depends on non-token execution context."
+    },
+    {
+      "id": "E1-VLLM-HASH-AND-ISOLATION",
+      "finding": "Current vLLM exposes SHA-256-based prefix-cache hashing as the secure default, offers canonical-CBOR variants for reproducible cross-language hashing, and documents cache_salt as a first-block namespace barrier. The current security guide explicitly treats shared prefix caching as a timing side channel in multi-tenant deployments and recommends per-user/per-group unpredictable salts according to the intended isolation boundary."
+    },
+    {
+      "id": "E1-VLLM-HIT-GRANULARITY",
+      "finding": "vLLM cache hits are contiguous prefixes from block 0; current configuration separates cache matching granularity from physical cache block size through prefix_match_unit/hash_block_size, subject to divisibility and model-cache constraints."
+    },
+    {
+      "id": "E1-SGLANG-RADIX-IDENTITY",
+      "finding": "SGLang RadixKey currently carries token_ids plus caller extra_key and a distinct cache_salt; compatibility checks require matching extra_key and cache_salt. Source comments state cache_salt namespaces the in-process radix tree and external KV events, while external L3/remote storage keys are token-only and explicitly outside that contract."
+    },
+    {
+      "id": "E1-SGLANG-SESSION-EVICTION",
+      "finding": "SGLang session-aware radix caching is an eviction-priority mechanism, not conversation reconstruction: requests must still send the full intended prompt. Session references are soft protection, can still be evicted, and closing a session removes references without immediately destroying reusable KV."
+    },
+    {
+      "id": "E1-SGLANG-PAPER-CEILING",
+      "finding": "The SGLang paper reports up to 6.4x throughput improvement for the whole system across evaluated workloads and identifies RadixAttention as one optimization. That number must not be attributed to prefix caching alone."
+    },
+    {
+      "id": "E1-LLAMACPP-CACHE-SURFACE",
+      "finding": "Current llama.cpp server documentation exposes prompt caching, optional cache reuse via KV shifting, context checkpoints, a RAM cache budget, idle-slot prompt-cache persistence, and optional slot KV-cache saving. The inspected public server README does not by itself establish a cross-request cryptographic provenance contract equivalent to vLLM's chained block hash plus extra-key semantics."
+    },
+    {
+      "id": "E1-POSITION-INDEPENDENT-UPSIDE-RISK",
+      "finding": "Recent position-independent cache research targets a real agentic-workload limitation of exact-prefix caches. Irminsul reports substantial recovered prompt-token reuse and prefill-energy savings for specific MLA deployments, while HijackKV demonstrates that context-bearing KV reused by content match can become an integrity attack surface. These papers support treating position-independent reuse as a separate high-risk research lane, not as a default F2 optimization."
+    }
+  ],
+  "preliminary_nonpromoting_implications": [
+    "Cache identity should be derived from exact execution inputs/configuration rather than an opaque runtime cache handle.",
+    "Cache state must remain disposable accelerator state and never become canonical world/memory/effect evidence.",
+    "Isolation namespace belongs in the cache key/identity boundary, not merely in application bookkeeping.",
+    "Exact-prefix reuse is the safer initial mechanism class; position-independent reuse requires a separate causal/integrity falsification program.",
+    "Any performance credit must be measured on F2 target traces; external throughput numbers are not transferable architecture credit."
+  ],
+  "open_questions_for_e2": [
+    "Which exact F2 identities must participate in a cache key: model bytes, tokenizer, chat template, rendered prompt/context digest, LoRA/control-vector state, multimodal inputs, generation/runtime ABI, isolation namespace, and deterministic preprocessing version?",
+    "Should F2 expose only cache hit/miss evidence and identity metadata while leaving physical KV ownership entirely inside the chosen inference runtime?",
+    "How should cache events bind to model-call receipts without allowing cache hit state to influence truth/completion authority?",
+    "What invalidation boundary is required across model reload, tokenizer/template change, context mutation, generation change, adapter/control-vector change, and privacy-domain change?"
+  ],
+  "evidence_ceiling": {
+    "level": "E1_SOURCE_READ",
+    "architecture_credit": 0,
+    "runtime_credit": 0,
+    "performance_credit": 0,
+    "whole_system_credit": 0
+  }
+}
