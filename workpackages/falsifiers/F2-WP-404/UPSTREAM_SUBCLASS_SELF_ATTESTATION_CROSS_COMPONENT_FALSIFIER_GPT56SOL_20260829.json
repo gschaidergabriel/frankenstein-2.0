@@ -1,0 +1,41 @@
+{
+  "schema": "FRANKENSTEIN2_WORKPACKAGE_FALSIFIER/v1",
+  "workpackage_id": "F2-WP-404",
+  "target_generation": 1,
+  "target_claim_id": "F2-WP-404-G1-GPT56SOL-COGNITIVE-MICRO-LAB-20260829",
+  "classification": "CANDIDATE_FALSIFIER_REVIEW_ONLY_CROSS_COMPONENT_DISCRIMINATOR",
+  "review_only": true,
+  "authority_epoch": "8.78",
+  "observed_f2_base_commit": "796dc0e42c226758d1c1129f5b76d7b23f123f34",
+  "upstream_exact_source": {
+    "wp400_world_slice": "src/frankenstein2/sparse_world_basis.py",
+    "wp402_qubo_projection": "src/frankenstein2/qubo_projection.py",
+    "wp403_physics_projection": "src/frankenstein2/physics_projection.py"
+  },
+  "finding": "WP404 correctly requires independent source revalidation rather than trusting projection self-hashes. The strongest pre-implementation boundary discriminator is subtype self-attestation across the mixed Stage-4 inputs. WP402 generation 3 explicitly uses exact concrete type checks for WorldSlice, QuboProjection, QuboVariable and QuboCoupling. The current WP403 generation-2 source still accepts PhysicsProjection, WorldSlice and WorldAtom inputs with isinstance checks in validate_physics_projection_binding/project_rudimentary_kinematics/_validate_source_atom. A Python subclass can therefore remain isinstance-compatible while overriding caller-visible methods or attributes such as sha256/canonical_json and potentially create a self-consistent but non-exact upstream identity. This is not yet evidence that WP404 is vulnerable because its implementation does not exist at this observation. It is a concrete acceptance falsifier: a Micro-Lab consumer that merely calls the upstream WP403 validator without first requiring exact concrete input types may inherit a trust-boundary gap that WP402 generation 3 deliberately closed.",
+  "counterhypothesis": "The WP404 implementation may independently require type(world_slice) is WorldSlice, type(qubo_projection) is QuboProjection, type(physics_projection) is PhysicsProjection, and exact WorldAtom source types before calling upstream revalidation. If it does so and the executable subtype-forgery cases fail closed, the mixed upstream boundary is adequately contained at WP404 even if WP403 is later hardened separately.",
+  "required_acceptance_discriminators": [
+    "reject a WorldSlice subclass before either QUBO or physics projection admission",
+    "reject a QuboProjection subclass before Micro-Lab consumption",
+    "reject a PhysicsProjection subclass even when its overridden sha256/canonical_json is self-consistent",
+    "reject WorldAtom subclasses used as WP403 position/velocity/acceleration source inputs",
+    "reject QUBO and physics projections that individually self-hash but bind to different WorldSlice digest/generation/cycle/vector-space identities",
+    "reject cross-slice source-atom mixing even when atom ids are locally plausible",
+    "accept only when both projections independently replay/revalidate against the same exact concrete WorldSlice and exact source objects",
+    "preserve UNKNOWN/alternatives and emit candidate measurements only; no truth/effect/completion promotion"
+  ],
+  "smallest_safe_implementation_rule": "At the WP404 public trust boundary, require exact concrete Stage-4 input types before invoking their validators, bind one exact WorldSlice identity shared by all consumed projections, independently replay/revalidate WP402 and WP403 against that slice and their exact source objects, and only then construct baseline-versus-single-perturbation candidate measurements. Never use self-hash equality as admission evidence.",
+  "upstream_followup_if_executable_falsifier_passes": "If an executable subtype-forgery test demonstrates that validate_physics_projection_binding accepts a non-exact subclass path, open a deliberate WP403 successor hardening generation rather than silently weakening WP404 tests or rewriting historical WP403 G2 evidence.",
+  "authority_boundary": {
+    "runtime_execution_observed": false,
+    "provider_or_model_called": false,
+    "effect_executed": false,
+    "runtime_credit": 0,
+    "physical_grid10_credit": 0,
+    "gwt_runtime_credit": 0,
+    "jspace_runtime_credit": 0,
+    "training_credit": 0,
+    "whole_system_acceptance": false
+  },
+  "next_exact_action": "The active WP404 builder should encode these subtype and mixed-source cases in tests/test_cognitive_micro_lab.py before component acceptance. If WP403 itself is shown executable-vulnerable, preserve this artifact as cross-component negative evidence and route a separate WP403 successor repair without transferring any runtime or whole-system credit."
+}
