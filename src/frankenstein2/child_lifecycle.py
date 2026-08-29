@@ -282,6 +282,13 @@ def build_child_lifecycle_candidate(
         raise ChildLifecycleError("request must be exact concrete NativeChildRequest")
     if type(policy) is not ChildLifecyclePolicy:
         raise ChildLifecycleError("policy must be exact concrete ChildLifecyclePolicy")
+    # Validate all arithmetic inputs before computing derived values.  This keeps malformed
+    # booleans/strings/objects inside the WP604 fail-closed error surface rather than leaking
+    # a raw Python TypeError before the dataclass boundary can validate them.
+    current_generation = _json_int(
+        "expected_current_generation", expected_current_generation, minimum=1
+    )
+    nested_depth = _json_int("requested_nested_depth", requested_nested_depth)
     return ChildLifecycleCandidate(
         lifecycle_version=LIFECYCLE_VERSION,
         operation=operation,
@@ -292,9 +299,9 @@ def build_child_lifecycle_candidate(
         request_sha256=request.sha256(),
         binding_id=request.binding_id,
         binding_sha256=request.binding_sha256,
-        expected_current_generation=expected_current_generation,
-        next_generation=expected_current_generation + 1,
-        requested_nested_depth=requested_nested_depth,
+        expected_current_generation=current_generation,
+        next_generation=current_generation + 1,
+        requested_nested_depth=nested_depth,
         replacement_binding_id=replacement_binding_id,
         policy=policy,
     )
