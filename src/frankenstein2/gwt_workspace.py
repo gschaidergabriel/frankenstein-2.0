@@ -21,6 +21,7 @@ import re
 from typing import Any, Iterable
 
 from frankenstein2.grid10_interface import CellInput, CellOutput, Grid10InterfaceError, Grid10Plan
+from frankenstein2.hyperposition import Hyperposition
 
 GWT_PRODUCER_ADMISSION_SCHEMA = "FRANKENSTEIN2_GWT_CANDIDATE_PRODUCER_ADMISSION/v1"
 GWT_CANDIDATE_SCHEMA = "FRANKENSTEIN2_GWT_CANDIDATE/v1"
@@ -414,6 +415,10 @@ class SelectedCandidate:
 def _validate_candidate_origins(
     candidates: tuple[WorkspaceCandidate, ...],
     *,
+    cycle_id: str,
+    frame_id: str,
+    frame_generation: int,
+    frame_sha256: str,
     grid_plan_id: str,
     grid_plan_generation: int,
     grid_plan_sha256: str,
@@ -437,6 +442,14 @@ def _validate_candidate_origins(
             or admission.plan_sha256 != grid_plan_sha256
         ):
             raise GwtWorkspaceError("candidate producer GRID10 plan binding mismatch")
+        if admission.plan.cycle_id != cycle_id:
+            raise GwtWorkspaceError("candidate producer cycle binding mismatch")
+        if (
+            admission.plan.frame_id != frame_id
+            or admission.plan.frame_generation != frame_generation
+            or admission.plan.frame_sha256 != frame_sha256
+        ):
+            raise GwtWorkspaceError("candidate producer SituationFrame binding mismatch")
         if item.payload_ref not in admission.output_refs:
             raise GwtWorkspaceError("candidate payload_ref is not present in producer output_refs")
         producer_payload = (admission.output_sha256, item.payload_ref)
@@ -486,6 +499,44 @@ def _rank_candidates(
     return tuple(selected), tuple(sorted(deferred))
 
 
+def _resolve_hyperposition_binding(
+    *,
+    frame_id: str,
+    hyperposition: Hyperposition | None,
+    hyperposition_id: str | None,
+    hyperposition_generation: int | None,
+    hyperposition_sha256: str | None,
+) -> tuple[str | None, int | None, str | None]:
+    fields = (hyperposition_id, hyperposition_generation, hyperposition_sha256)
+    if hyperposition is None:
+        if any(value is not None for value in fields):
+            raise GwtWorkspaceError(
+                "hyperposition object required to verify situation frame binding"
+            )
+        return None, None, None
+    if type(hyperposition) is not Hyperposition:
+        raise GwtWorkspaceError("hyperposition must be concrete Hyperposition or None")
+    normalized_frame_id = _text("frame_id", frame_id)
+    if hyperposition.situation_frame_ref != normalized_frame_id:
+        raise GwtWorkspaceError("hyperposition situation frame binding mismatch")
+    expected = (
+        hyperposition.hyperposition_id,
+        hyperposition.generation,
+        hyperposition.sha256(),
+    )
+    if any(value is not None for value in fields):
+        if not all(value is not None for value in fields):
+            raise GwtWorkspaceError("hyperposition binding must be all-present or all-absent")
+        normalized = (
+            _text("hyperposition_id", hyperposition_id),
+            _generation("hyperposition_generation", hyperposition_generation),
+            _sha256("hyperposition_sha256", hyperposition_sha256),
+        )
+        if normalized != expected:
+            raise GwtWorkspaceError("hyperposition identity binding mismatch")
+    return expected
+
+
 @dataclass(frozen=True, slots=True, kw_only=True)
 class WorkspaceSelection:
     selection_id: str
@@ -505,6 +556,7 @@ class WorkspaceSelection:
     hyperposition_id: str | None = None
     hyperposition_generation: int | None = None
     hyperposition_sha256: str | None = None
+    hyperposition: Hyperposition | None = None
     selection_policy: SelectionPolicy | None = None
     source_candidates: tuple[WorkspaceCandidate, ...] = ()
 
@@ -536,13 +588,18 @@ class WorkspaceSelection:
         )
         if set(selected_ids).intersection(self.deferred_candidate_ids):
             raise GwtWorkspaceError("selected and deferred candidates must be disjoint")
-        hyper_fields = (self.hyperposition_id, self.hyperposition_generation, self.hyperposition_sha256)
-        if any(value is not None for value in hyper_fields) and not all(value is not None for value in hyper_fields):
-            raise GwtWorkspaceError("hyperposition binding must be all-present or all-absent")
-        if self.hyperposition_id is not None:
-            object.__setattr__(self, "hyperposition_id", _text("hyperposition_id", self.hyperposition_id))
-            _generation("hyperposition_generation", self.hyperposition_generation)
-            object.__setattr__(self, "hyperposition_sha256", _sha256("hyperposition_sha256", self.hyperposition_sha256))
+        resolved_hyperposition_id, resolved_hyperposition_generation, resolved_hyperposition_sha256 = (
+            _resolve_hyperposition_binding(
+                frame_id=self.frame_id,
+                hyperposition=self.hyperposition,
+                hyperposition_id=self.hyperposition_id,
+                hyperposition_generation=self.hyperposition_generation,
+                hyperposition_sha256=self.hyperposition_sha256,
+            )
+        )
+        object.__setattr__(self, "hyperposition_id", resolved_hyperposition_id)
+        object.__setattr__(self, "hyperposition_generation", resolved_hyperposition_generation)
+        object.__setattr__(self, "hyperposition_sha256", resolved_hyperposition_sha256)
         if self.selection_policy is not None and type(self.selection_policy) is not SelectionPolicy:
             raise GwtWorkspaceError("selection_policy must be SelectionPolicy or None")
         if not isinstance(self.source_candidates, tuple) or not all(type(item) is WorkspaceCandidate for item in self.source_candidates):
@@ -567,6 +624,7 @@ class WorkspaceSelection:
             "hyperposition_id": self.hyperposition_id,
             "hyperposition_generation": self.hyperposition_generation,
             "hyperposition_sha256": self.hyperposition_sha256,
+            "hyperposition": None if self.hyperposition is None else self.hyperposition.as_dict(),
             "selection_policy": None if self.selection_policy is None else self.selection_policy.as_dict(),
             "source_candidates": [item.as_dict() for item in self.source_candidates],
             "selected": [item.as_dict() for item in self.selected],
@@ -581,6 +639,19 @@ class WorkspaceSelection:
 
 
 def _assert_selection_build_lineage(selection: WorkspaceSelection) -> None:
+    resolved_hyperposition = _resolve_hyperposition_binding(
+        frame_id=selection.frame_id,
+        hyperposition=selection.hyperposition,
+        hyperposition_id=selection.hyperposition_id,
+        hyperposition_generation=selection.hyperposition_generation,
+        hyperposition_sha256=selection.hyperposition_sha256,
+    )
+    if resolved_hyperposition != (
+        selection.hyperposition_id,
+        selection.hyperposition_generation,
+        selection.hyperposition_sha256,
+    ):
+        raise GwtWorkspaceError("selection hyperposition lineage mismatch")
     policy = selection.selection_policy
     candidates = selection.source_candidates
     if policy is None or not candidates:
@@ -593,6 +664,10 @@ def _assert_selection_build_lineage(selection: WorkspaceSelection) -> None:
         raise GwtWorkspaceError("selection policy lineage mismatch")
     _validate_candidate_origins(
         candidates,
+        cycle_id=selection.cycle_id,
+        frame_id=selection.frame_id,
+        frame_generation=selection.frame_generation,
+        frame_sha256=selection.frame_sha256,
         grid_plan_id=selection.grid_plan_id,
         grid_plan_generation=selection.grid_plan_generation,
         grid_plan_sha256=selection.grid_plan_sha256,
@@ -696,6 +771,7 @@ def build_workspace_selection(
     grid_plan_sha256: str,
     policy: SelectionPolicy,
     candidates: tuple[WorkspaceCandidate, ...],
+    hyperposition: Hyperposition | None = None,
     hyperposition_id: str | None = None,
     hyperposition_generation: int | None = None,
     hyperposition_sha256: str | None = None,
@@ -706,12 +782,20 @@ def build_workspace_selection(
         raise GwtWorkspaceError("candidates must be a non-empty immutable tuple")
     if len(candidates) > _MAX_ITEMS or not all(type(item) is WorkspaceCandidate for item in candidates):
         raise GwtWorkspaceError("candidates contain invalid values or exceed limit")
+    normalized_cycle_id = _text("cycle_id", cycle_id)
+    normalized_frame_id = _text("frame_id", frame_id)
+    normalized_frame_generation = _generation("frame_generation", frame_generation)
+    normalized_frame_sha256 = _sha256("frame_sha256", frame_sha256)
     normalized_grid_plan_id = _text("grid_plan_id", grid_plan_id)
     normalized_grid_plan_generation = _generation("grid_plan_generation", grid_plan_generation)
     normalized_grid_plan_sha256 = _sha256("grid_plan_sha256", grid_plan_sha256)
     canonical_candidates = tuple(sorted(candidates, key=lambda item: item.candidate_id))
     _validate_candidate_origins(
         canonical_candidates,
+        cycle_id=normalized_cycle_id,
+        frame_id=normalized_frame_id,
+        frame_generation=normalized_frame_generation,
+        frame_sha256=normalized_frame_sha256,
         grid_plan_id=normalized_grid_plan_id,
         grid_plan_generation=normalized_grid_plan_generation,
         grid_plan_sha256=normalized_grid_plan_sha256,
@@ -719,11 +803,11 @@ def build_workspace_selection(
     selected, deferred = _rank_candidates(policy, canonical_candidates)
     value = WorkspaceSelection(
         selection_id=selection_id,
-        cycle_id=cycle_id,
+        cycle_id=normalized_cycle_id,
         generation=generation,
-        frame_id=frame_id,
-        frame_generation=frame_generation,
-        frame_sha256=frame_sha256,
+        frame_id=normalized_frame_id,
+        frame_generation=normalized_frame_generation,
+        frame_sha256=normalized_frame_sha256,
         grid_plan_id=normalized_grid_plan_id,
         grid_plan_generation=normalized_grid_plan_generation,
         grid_plan_sha256=normalized_grid_plan_sha256,
@@ -735,6 +819,7 @@ def build_workspace_selection(
         hyperposition_id=hyperposition_id,
         hyperposition_generation=hyperposition_generation,
         hyperposition_sha256=hyperposition_sha256,
+        hyperposition=hyperposition,
         selection_policy=policy,
         source_candidates=canonical_candidates,
     )
