@@ -1,0 +1,107 @@
+{
+  "schema": "F2_TRIGGER6_ARCHITECTURE_DELTA_FUSION/v1",
+  "research_id": "R6-20260829-WP306-RENDERER-TOKENIZER-COST-WITNESS-GPT56SOL-01",
+  "recorded_at": "2026-08-29T22:15:48+07:00",
+  "slot": "INTEGRATION_DISTILLER",
+  "baseline": {
+    "wp306_source_generation_observed": 2,
+    "source_path": "src/frankenstein2/context_compiler.py",
+    "source_contract": "reference-only deterministic compiler; caller supplies cost_units; compiler does not read payload bytes",
+    "prior_trigger6_mapping": "R6-20260829-WP306-CONTEXT-COMPILER-GPT56SOL-01",
+    "current_parallel_e3": "PR #519 REVIEW_ONLY renderer/tokenizer cost-binding falsifier",
+    "current_trigger4_owner": "F2-WP-306 generation-4 renderer/tokenizer cost-witness binding claim",
+    "owner_commit_observed": "312c333cf7ea3e2366df46134932aa88597d3a17"
+  },
+  "architecture_delta": {
+    "decision": "KEEP_CONTEXT_COMPILER_REFERENCE_ONLY_AND_SEPARATE_ABSTRACT_COST_UNITS_FROM_EXACT_MODEL_CONTEXT_COST",
+    "reason": "PR #519 falsifies naked caller cost_units as exact rendered/tokenized-cost evidence; external primary docs show rendering template, special-token policy and tokenizer artifacts determine the actual token sequence.",
+    "typed_witness_minimum": {
+      "schema": "F2_CONTEXT_RENDER_TOKEN_COST_WITNESS/v1",
+      "binds": [
+        "context_view_sha256",
+        "resolved_payload_set_sha256_or_equivalent_exact_input_digest",
+        "renderer_id",
+        "renderer_artifact_or_source_sha256",
+        "renderer_config_sha256",
+        "tokenizer_id",
+        "tokenizer_artifact_set_sha256",
+        "tokenizer_runtime_or_implementation_id",
+        "rendered_bytes_sha256",
+        "rendered_byte_count",
+        "token_ids_sha256",
+        "token_count",
+        "generation",
+        "provenance_refs"
+      ],
+      "renderer_config_must_bind_when_applicable": [
+        "chat_template identity/digest",
+        "add_generation_prompt",
+        "continue_final_message or equivalent mutually-exclusive mode",
+        "special-token policy",
+        "tool/schema inputs or their digest when template-visible"
+      ],
+      "tokenizer_artifact_set_examples_not_exhaustive": [
+        "tokenizer_config.json digest",
+        "tokenizer.json OR vocab/merges/model files digests",
+        "special_tokens_map/config digest when separately materialized"
+      ]
+    },
+    "fail_closed_invariants": [
+      "No exact renderer identity => no exact token-cost witness.",
+      "No exact tokenizer artifact identity => no exact token-cost witness.",
+      "Rendered bytes digest mismatch => reject witness.",
+      "Token-id digest/count not reproducible under bound tokenizer/runtime => reject witness.",
+      "Witness generation/provenance mismatch => reject witness.",
+      "Naked cost_units never self-promotes to token_count.",
+      "A model/provider/runtime may consume the witness only at the exact bound scope; witness existence does not mint model-quality or runtime acceptance."
+    ],
+    "recommended_semantics": {
+      "cost_units": "retain as abstract caller/admission scheduling quantity unless a future owner-approved migration explicitly changes its contract",
+      "token_count": "separate measured quantity with exact renderer/tokenizer provenance",
+      "selection_integration": "Trigger-4 generation-4 owner chooses whether to require/revalidate the witness at admission or downstream model-context assembly; Trigger-6 does not mutate implementation."
+    }
+  },
+  "external_primary_evidence": [
+    {
+      "url": "https://huggingface.co/docs/transformers/chat_templating",
+      "claim": "structured chat messages are converted through model-specific templates to actual token sequences; direct tokenize=True avoids special-token duplication hazards"
+    },
+    {
+      "url": "https://huggingface.co/docs/transformers/en/chat_templating_writing",
+      "claim": "chat_template is renderer logic associated with the tokenizer and receives template-visible configuration/inputs"
+    },
+    {
+      "url": "https://huggingface.co/Qwen/Qwen2-0.5B-Instruct/blob/c540970f9e29518b1d8f06ab8b24cba66ad77b6d/tokenizer_config.json",
+      "claim": "concrete pinned tokenizer configuration includes model-specific chat_template and explicit special tokens; example only, not F2 target selection"
+    }
+  ],
+  "counterhypotheses": [
+    {
+      "statement": "A fixed character/byte heuristic could be enough and exact tokenization is unnecessary.",
+      "status": "REJECTED_FOR_EXACT_TOKEN_COST_CLAIMS; MAY_SURVIVE_AS_HEURISTIC_ONLY",
+      "falsifier": "renderer/tokenizer-bound measurement disagrees with heuristic while exact budget matters"
+    },
+    {
+      "statement": "The witness should be embedded directly into ContextCompiler and make it read payload bytes.",
+      "status": "NOT_ADOPTED",
+      "reason": "would erase the current reference-only authority boundary; cheaper design is a separate typed witness/admission boundary"
+    },
+    {
+      "statement": "Renderer identity alone is enough.",
+      "status": "REJECTED",
+      "reason": "tokenizer normalization/model/post-processing and special-token configuration also determine token IDs/count"
+    }
+  ],
+  "credits": {
+    "trigger6_external_research": "E2_PRIMARY_SOURCE_REFINEMENT",
+    "executable_falsifier": "CONSUMED_FROM_EXISTING_PARALLEL_PR519_E3",
+    "implementation": 0,
+    "target_runtime": 0,
+    "physical_grid10": 0,
+    "model": 0,
+    "training": 0,
+    "effects": 0,
+    "whole_system": 0
+  },
+  "next_exact_gate": "Trigger-4 F2-WP-306 generation-4 owner should bind its proposed witness to exact renderer/tokenizer artifact identities and add positive + negative tests: valid exact witness admitted; changed payload/render config/tokenizer artifact/generation rejected; naked scalar rejected wherever exact token budget is asserted. Production token-cost credit remains blocked until the actual F2 target renderer/tokenizer identity is selected and reproduced."
+}

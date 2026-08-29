@@ -9,5 +9,27 @@
   "objective": "Verify SQLite WAL concurrency and durability boundaries from primary documentation, then extract a bounded architecture delta for Frankenstein 2.0 canonical-state write arbitration without implementation or runtime claims.",
   "stage_policy": "pointwise evidence claim only; external primary-source research; no production implementation; no runtime/integration credit",
   "created_at": "2026-08-29T22:10:00+07:00",
-  "claim_status": "CLAIMED"
+  "claim_status": "COMPLETED_AT_SCOPE",
+  "completed_at": "2026-08-29T22:14:00+07:00",
+  "result": {
+    "status": "COMPLETED_AT_SCOPE",
+    "evidence_scope": "SQLite primary documentation plus exact-current Frankenstein 2.0 workpackage/portable-host/research-DB source inspection; no runtime execution",
+    "key_findings": [
+      "WAL still permits only one writer at a time; canonical writers must not be modeled as parallel simply because readers and writers can overlap.",
+      "WAL readers use snapshot isolation; a long-lived read transaction can be stale and read-to-write escalation can fail with SQLITE_BUSY_SNAPSHOT.",
+      "Long-lived/overlapping readers can starve checkpoints and grow the WAL; reader lifetime and checkpoint progress should be observable.",
+      "WAL is same-host shared-memory coordination, not a distributed/multi-host state mechanism.",
+      "synchronous=NORMAL weakens power-loss durability relative to FULL and must not silently receive stronger canonical-state durability credit.",
+      "SQLite documents a rare concurrent WAL reset/checkpoint corruption race affecting 3.7.0 through 3.51.2, fixed in 3.51.3+ and listed fixed backports 3.44.6/3.50.7; actual target runtime SQLite version remains unobserved."
+    ],
+    "consumer_class": "F2-WP-100 canonical UnifiedDB, causal/restart consumers F2-WP-101/F2-WP-206/F2-WP-901, and portable-host runtime dependency evidence",
+    "architecture_delta_status": "E1_CANDIDATE_ONLY_REQUIRES_E2_MAPPING",
+    "runtime_credit": 0,
+    "integration_credit": 0,
+    "whole_system_credit": 0
+  },
+  "result_artifact": {
+    "path": "research/tool_intelligence/deltas/2026-08-29T2214P0700_GPT56SOL_SQLITE_WAL_WRITER_CONTENTION_E1_SOURCE_READ.json",
+    "commit": "03e601f92a0beae40985ff8d0eaf5f3ce8f01e3b"
+  }
 }

@@ -1,0 +1,64 @@
+{
+  "schema": "FRANKENSTEIN2_TRIGGER6_E3_CLAIM_REPRODUCTION/v1",
+  "trigger": "6",
+  "research_id": "R6-SEED-013",
+  "claim_target": "E3_OBSERVER_METHOD_ALIASING_COLLISION",
+  "status": "E3_REPRODUCED_AT_SOURCE_SCHEMA_SCOPE",
+  "created_at": "2026-08-29T22:16:00+07:00",
+  "worker": "GPT-5.6-Sol:Triggerword-6-organ",
+  "claim_commit": "7d3a6a6265dfde366e96b5619ca591ca8e194c7c",
+  "claim_path": "research/tool_intelligence/claims/R6-SEED-013/E3_OBSERVER_METHOD_ALIASING_COLLISION.json",
+  "experiment_commit": "7534ca6a80bacb994ddd1c1f003124664232e729",
+  "experiment_path": "research/tool_intelligence/experiments/r6_seed_013_observer_aliasing_collision_v1.py",
+  "source_under_test": {
+    "path": "src/frankenstein2/gwt_uptake.py",
+    "blob_sha": "f25c03d4e4e49c4fed44acd0c5c96edfb40f664e",
+    "schema": "FRANKENSTEIN2_GWT_CELL_UPTAKE_RECEIPT/v2",
+    "method_boundary": "CellUptakeReceipt.as_dict()/sha256()"
+  },
+  "execution": {
+    "surface": "LOCAL_DETERMINISTIC_FIXTURE_EXECUTION_NOT_F2_TARGET_RUNTIME",
+    "command": "python e3_observer_aliasing.py",
+    "fixture_semantics": "Byte-equivalent logic to the committed self-contained experiment: exact current CellUptakeReceipt serialized field set plus the same canonical JSON SHA-256 rule; no network/provider/model/tool/runtime observer invocation.",
+    "result": {
+      "current_receipt_digest_sync_observer": "8b1007504aea4a54153ab9ab42a4fac7353f25f084e4a7056289b56197553bad",
+      "current_receipt_digest_async_observer": "8b1007504aea4a54153ab9ab42a4fac7353f25f084e4a7056289b56197553bad",
+      "current_collision": true,
+      "observer_sync_digest": "5e854309e41f04952d22296f2b67bdb85662932d87e7e0de4cd644d42a8faafb",
+      "observer_async_digest": "d75aba3c756af88dac27161e0e7c6d0c1cc4dc0c3d9c91b3a412d1ff4811efac",
+      "bound_receipt_digest_sync": "20fa0a0400930508531588466009b6dab64f5b0f57af4d0815cd515e599dcca2",
+      "bound_receipt_digest_async": "1f593ac1c5efc9c3287d290358de1a6cddaa28bc8bcf3d5b0975e6b89c40c9d1",
+      "bound_collision": false
+    }
+  },
+  "interpretation": {
+    "observed": "Two distinct observer descriptions are invisible to the current canonical receipt payload and therefore cannot alter its digest. Adding only the digest of an explicit observer binding deterministically distinguishes the two otherwise identical receipts.",
+    "causal_scope": "This reproduces a schema-level identity aliasing property only. It does not prove event loss, false uptake, or any real runtime observer defect.",
+    "root_cause": "Observer identity/configuration/evidence method are not mandatory serialized inputs to CellUptakeReceipt.sha256().",
+    "counterhypothesis_status": {
+      "PROVENANCE_REFS_SUFFICIENT": "NOT_SUPPORTED_BY_CURRENT_SCHEMA; refs are opaque strings and can be held identical across observer methods",
+      "FACTORY_SEAL_IS_OBSERVER_IDENTITY": "FALSIFIED_AT_SCHEMA_SCOPE; seal controls construction path but is not serialized observer provenance",
+      "NO_RUNTIME_CREDIT_SO_NO_NEED": "REMAINS_POLICY_ARGUMENT_NOT_SCHEMA_FALSIFIER"
+    }
+  },
+  "recommended_architecture_delta": {
+    "decision": "OPEN_REVIEW_FALSIFIER_FOR_FUTURE_WP507_PROMOTION_PATH; DO_NOT_DIRECTLY_MUTATE_ACCEPTED_WP507_FROM_TRIGGER6",
+    "minimal_change_hypothesis": "Introduce one immutable typed ObserverBinding with exact source/artifact/config/method identity, include observer_binding_sha256 in CellUptakeReceipt canonical payload, and require evidence-strength class to remain non-promoting by itself.",
+    "why_thin": "One digest-bearing binding preserves existing F2 receipt structure and avoids importing in-toto runtime libraries or creating a second provenance database.",
+    "acceptance_gate": "A Trigger-4/review worker should first encode this exact collision as a failing regression against current WP507. Only after the negative test is admitted should source mutation be considered.",
+    "runtime_gate": "Later real GWT/J-Space promotion still requires independently admitted target-runtime observer evidence; source repair alone grants zero runtime credit."
+  },
+  "credits": {
+    "e1_source_read_credit": 1,
+    "e2_architecture_mapped_credit": 1,
+    "e3_source_schema_reproduction_credit": 1,
+    "e4_f2_ablation_credit": 0,
+    "e5_build_candidate_credit": 0,
+    "f2_integration_credit": 0,
+    "target_runtime_credit": 0,
+    "gwt_runtime_credit": 0,
+    "jspace_runtime_credit": 0,
+    "effect_credit": 0,
+    "whole_system_credit": 0
+  }
+}

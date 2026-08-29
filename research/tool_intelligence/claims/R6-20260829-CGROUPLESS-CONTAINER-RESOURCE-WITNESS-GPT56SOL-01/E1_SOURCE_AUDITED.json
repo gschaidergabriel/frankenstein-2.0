@@ -1,0 +1,26 @@
+{
+  "schema": "FRANKENSTEIN2_TRIGGER6_SOURCE_AUDIT/v1",
+  "research_id": "R6-20260829-CGROUPLESS-CONTAINER-RESOURCE-WITNESS-GPT56SOL-01",
+  "evidence_stage": "E1_SOURCE_AUDITED",
+  "source_inputs": [
+    {"id":"linux-cgroup-v2","url":"https://www.kernel.org/doc/html/latest/admin-guide/cgroup-v2.html","role":"primary kernel cgroup semantics"},
+    {"id":"proc-pid-stat","url":"https://man7.org/linux/man-pages/man5/proc_pid_stat.5.html","role":"process CPU/starttime identity fields"},
+    {"id":"proc-pid-status","url":"https://man7.org/linux/man-pages/man5/proc_pid_status.5.html","role":"process memory/status counters with documented RSS caveat"},
+    {"id":"proc-pid-io","url":"https://man7.org/linux/man-pages/man5/proc_pid_io.5.html","role":"process I/O counters and caveats"},
+    {"id":"pidfd-open","url":"https://man7.org/linux/man-pages/man2/pidfd_open.2.html","role":"stable task reference / exit observation"},
+    {"id":"podman-inspect","url":"https://docs.podman.io/en/latest/markdown/podman-inspect.1.html","role":"trusted external container metadata resolver"},
+    {"id":"podman-stats","url":"https://docs.podman.io/en/latest/markdown/podman-stats.1.html","role":"container stats convenience surface, not independent kernel authority"}
+  ],
+  "findings": [
+    {"claim":"cgroup v2 cpu.stat accounts CPU for processes in the cgroup; memory.current/memory.peak and io.stat are cgroup-level kernel interfaces.","assessment":"SUPPORTED_PRIMARY"},
+    {"claim":"/proc/<pid>/stat exposes utime, stime and starttime; starttime can bind samples to one PID lifetime.","assessment":"SUPPORTED_PRIMARY"},
+    {"claim":"/proc/<pid>/status exposes VmRSS/VmHWM but kernel documentation explicitly calls these values inaccurate.","assessment":"SUPPORTED_WITH_CAVEAT"},
+    {"claim":"/proc/<pid>/io exposes process I/O counters; counters have documented caveats and access controls.","assessment":"SUPPORTED_WITH_CAVEAT"},
+    {"claim":"pidfd_open gives a stable descriptor for an existing task and can be observed for exit; it complements but does not turn procfs process metrics into container totals.","assessment":"SUPPORTED_PRIMARY"},
+    {"claim":"Podman inspect/stats are useful resolver/convenience surfaces but do not erase the evidence-scope distinction between one host PID and a whole container/cgroup.","assessment":"SUPPORTED_INFERENCE_FROM_PRIMARY_INTERFACES"}
+  ],
+  "rejected_inference": "INIT_PID_METRICS_EQUAL_CONTAINER_TOTAL",
+  "counterhypothesis": "If substantial work executes in child/sibling processes, init-process CPU/RSS/I/O can materially undercount the container.",
+  "conclusion": "Use a tiered witness. Prefer independently bound exact container cgroup metrics. If unavailable, emit only INIT_PROCESS_ONLY procfs evidence; container total remains UNKNOWN.",
+  "credits": {"runtime":0,"target_vps":0,"container_total":0,"whole_system":0}
+}

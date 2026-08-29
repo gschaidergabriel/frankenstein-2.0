@@ -1,0 +1,27 @@
+{
+  "schema": "FRANKENSTEIN2_TRIGGER6_RESEARCH_DELTA/v1",
+  "research_id": "R6-20260829-CGROUPLESS-CONTAINER-RESOURCE-WITNESS-GPT56SOL-01",
+  "evidence_stage": "E2_ARCHITECTURE_MAPPED",
+  "trigger": "6",
+  "f2_live_reentry_sha": "c6ab2838a2dcbb747f7bcf6cfd35a823b8417658",
+  "architecture_delta": {
+    "name": "TIERED_RESOURCE_WITNESS",
+    "selection_order": ["EXACT_CONTAINER_CGROUP_V2_IF_INDEPENDENTLY_BOUND", "PROCFS_INIT_PROCESS_FALLBACK", "UNKNOWN"],
+    "invariants": [
+      "No inferred cgroup/container identity from a PID alone",
+      "PROCFS fallback always scope=INIT_PROCESS_ONLY",
+      "PID lifetime bound by starttime; pidfd used when available",
+      "Process exit/reuse/permission failure fails closed",
+      "Container-total promotion requires independent exact cgroup or complete process-set binding",
+      "No resource witness mints effect/completion authority"
+    ]
+  },
+  "f2_mapping": [
+    {"surface":"F2-WP-005 Full telemetry/data spine","delta":"accept typed resource witness with explicit scope/provenance"},
+    {"surface":"F2-WP-605 Child telemetry","delta":"future consumer; do not conflate per-child/tool telemetry with container aggregate"},
+    {"surface":"Trigger4 VPS exact-source runtime packet","delta":"resolve container->host PID externally, run read-only fallback witness around exact-source probe, retain UNKNOWN for container total unless cgroup proof exists"}
+  ],
+  "trigger5": "NO_FORENSIC_ARTIFACT_WITH_REASON: primary Linux/Podman interfaces are sufficient; no donor architecture import is needed.",
+  "counterhypothesis_result": "SUPPORTED: procfs fallback is useful only when its scope remains narrower than container accounting.",
+  "credits": {"runtime":0,"target_vps":0,"container_total":0,"whole_system":0}
+}
