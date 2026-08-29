@@ -1,0 +1,42 @@
+{
+  "schema": "FRANKENSTEIN2_WORKPACKAGE_FALSIFIER/v1",
+  "workpackage_id": "F2-WP-603",
+  "generation": 1,
+  "claim_id": "F2-WP-603-G1-GPT56SOL-RECURSION-ROUTER-20260829",
+  "worker_id": "GPT-5.6-Sol-review-organ",
+  "classification": "REVIEW_ONLY_EXECUTABLE_CANDIDATE_FALSIFIER",
+  "target_source_path": "src/frankenstein2/recursion_router.py",
+  "target_source_blob_sha": "dde04941f461602164fee08016639d53cce13cc3",
+  "review_branch": "review/wp603-need-content-id-falsifier-20260829",
+  "review_head_sha": "26e81d8aa9994e1abde0191015c5ecaabcda0dea",
+  "review_pull_request": 355,
+  "workflow_run_id": 33248264714,
+  "workflow_job_id": 99089381113,
+  "result": "FAILURE_AS_PREREGISTERED",
+  "hypothesis": "RecursionNeed.need_id is content-bound at construction, but route_recursion does not reconstruct or revalidate that identity against the exact current RecursionNeed content before consuming requested_depth. A post-construction mutation can therefore split declared need_id lineage from the content used for routing.",
+  "reproduction": {
+    "setup": "Create a canonical DELEGATE_BUILD RouteCandidate, exact NativeChildRequest, policy admitting R0-R3, and a valid R1 RecursionNeed.",
+    "intervention": "Use object.__setattr__(need, 'requested_depth', 2) while retaining the original need_id.",
+    "expected_fail_closed_behavior": "route_recursion rejects the mutated RecursionNeed because need_id no longer binds its exact current content.",
+    "observed_behavior": "route_recursion accepts the mutated RecursionNeed and emits an R2 route candidate while carrying the original R1-bound need_id.",
+    "terminal_assertion": "WP603 accepted a post-construction-mutated RecursionNeed whose need_id still binds the original R1 content while requested_depth now requests R2"
+  },
+  "ci_evidence": {
+    "compile_step": "PASS",
+    "discriminator_step": "FAILURE_AS_EXPECTED",
+    "runner_scope": "GITHUB_HOSTED_UBUNTU_PYTHON_3_12_REPOSITORY_COMPONENT_REVIEW"
+  },
+  "negative_evidence_scope": "REPOSITORY_HOSTED_COMPONENT_CONSUMER_CONTENT_ID_BOUNDARY_ONLY",
+  "does_not_claim": [
+    "WP603 target-runtime failure",
+    "Native Child execution failure",
+    "physical GRID10 failure",
+    "GWT/J-Space failure",
+    "effect/completion failure",
+    "training failure",
+    "whole Frankenstein 2.0 failure"
+  ],
+  "recommended_resolution": "The sole active WP603 mutation owner should reconstruct/revalidate the exact RecursionNeed content-bound identity at the route_recursion consumer boundary before consuming requested_depth or other direct fields, then absorb the review regression and rerun exact repository-hosted CI.",
+  "mutation_authority": "NONE_REVIEW_ONLY_DO_NOT_MODIFY_WP603_OWNED_SOURCE_FROM_THIS_RECORD",
+  "next_exact_action": "Re-enter current WP603 owner branch/main, apply the narrow consumer-boundary identity repair under the active mutation claim, absorb the PR355 regression, require the discriminator to pass, then reassess bounded component acceptance without minting runtime or whole-system credit."
+}
