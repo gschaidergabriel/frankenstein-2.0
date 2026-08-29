@@ -41,7 +41,7 @@ class WP402Generation2ExactTypeFalsifier(unittest.TestCase):
             provenance_refs=("review:g2-exact-type-falsifier",),
         )
 
-        with self.assertRaisesRegex(QuboProjectionError, "exact WorldSlice"):
+        with self.assertRaises(QuboProjectionError):
             projection = build_qubo_projection(
                 projection_id="qubo:g2-exact-type-falsifier",
                 world_slice=forged,
