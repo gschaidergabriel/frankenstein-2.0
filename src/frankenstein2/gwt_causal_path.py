@@ -1,13 +1,14 @@
 """Fail-closed Stage-5 GWT causal-path integration seal.
 
-F2-WP-510 generation 2 repository-component scope only.
+F2-WP-510 generation 3 repository-component scope only.
 
 The seal does not create observations or causal evidence. It revalidates already
 constructed WP506 selection/broadcast lineage, WP507 uptake/causal-probe evidence,
 and WP508 re-entry/uptake bindings as one exact coherent component path. Positive
 UPTAKEN admission additionally requires a concrete GRID10 CellOutput whose plan/input
 lineage closes to the exact re-entry CellInput and whose ref/digest match the WP507/
-WP508 downstream evidence.
+WP508 downstream evidence. A positive causal seal cannot use NOT_COMPUTED as evidence
+of downstream computation.
 """
 from __future__ import annotations
 
@@ -324,6 +325,7 @@ def seal_gwt_causal_path(
     seen_recipients: set[str] = set()
     bound_uptaken: set[str] = set()
     bound_uptaken_downstream: dict[str, str] = {}
+    bound_uptaken_status: dict[str, str] = {}
     binding_ids: list[str] = []
     binding_sha256s: list[str] = []
     for bundle in reentry_bundles:
@@ -393,6 +395,7 @@ def seal_gwt_causal_path(
                 )
             bound_uptaken.add(binding.recipient_cell_id)
             bound_uptaken_downstream[binding.recipient_cell_id] = downstream_sha256
+            bound_uptaken_status[binding.recipient_cell_id] = downstream_output.status
         elif bundle.downstream_output is not None:
             raise GwtCausalPathError(
                 "non-UPTAKEN re-entry bundle must not carry downstream CellOutput"
@@ -413,6 +416,10 @@ def seal_gwt_causal_path(
                 "positive causal path requires exactly one UPTAKEN recipient under the v1 probe ABI"
             )
         recipient = next(iter(expected_uptaken))
+        if bound_uptaken_status[recipient] == "NOT_COMPUTED":
+            raise GwtCausalPathError(
+                "positive causal path cannot use NOT_COMPUTED downstream output"
+            )
         if bound_uptaken_downstream[recipient] != intervention.downstream_output_sha256:
             raise GwtCausalPathError(
                 "positive causal probe downstream digest does not match UPTAKEN re-entry evidence"
