@@ -1,0 +1,88 @@
+{
+  "schema_version": 1,
+  "trigger": "7",
+  "research_id": "T7-ASR-003",
+  "date_local": "2026-08-30",
+  "worker": "GPT-5.6-Sol-TRIGGER7",
+  "status": "SOURCE_PINNED_RESEARCH_ONLY",
+  "scope": "German-first fully local realtime ASR challenger. Source evidence only; no clay-direct-dev hardware, model-runtime, German benchmark, E2E, Trigger-4 acceptance, or whole-system credit.",
+  "f2_main_observed_before_write": "91a896548dbb2ea76ce4b6399e8db523cdf5086a",
+  "coordination_check": {
+    "speechcatcher_named_commit_hits_before_write": 0,
+    "interpretation": "No Speechcatcher-named F2 commit was found immediately before this write. This is a duplicate-risk check, not proof of complete semantic absence."
+  },
+  "candidate": {
+    "name": "Speechcatcher German streaming ASR",
+    "source_repository": "speechcatcher-asr/speechcatcher",
+    "source_repository_main_sha_observed": "1f647a43105b7167b6a47e7b2af2ef3c4ff53a2b",
+    "preferred_first_accuracy_cell": "de_streaming_transformer_xl",
+    "preferred_low-cost_bracketing_cell": "de_streaming_transformer_m",
+    "xl_model_id": "speechcatcher/speechcatcher_german_espnet_streaming_transformer_26k_train_size_xl_raw_de_bpe1024",
+    "xl_model_card_revision_observed": "469c3474c28025d77cd7c1e1671638b56de53c2d"
+  },
+  "source_observations": [
+    "The Speechcatcher project exposes local file and live-microphone transcription and states that it runs fast on CPUs without requiring a GPU.",
+    "The current CLI defaults to the German de_streaming_transformer_xl model and also exposes German m and l streaming variants.",
+    "The project includes a Vosk-compatible websocket server for live transcription and documents improved dynamic endpointing plus an experimental native decoder in later releases.",
+    "The project reports German TUDA-de-raw results without an LM of WER/CER 11.57/3.38 for m, 9.65/2.76 for l, and 8.5/2.44 for xl.",
+    "The project explicitly warns that TUDA-de-raw uses raw lowercased utterances without normalization, so those numbers are not directly comparable to regular TUDA-de results or Frankenstein corpus measurements.",
+    "The current XL Hugging Face model card is German, streaming-oriented, and reports MIT metadata plus 8.5% WER and 2.4% CER on TUDA-de-raw without an LM.",
+    "The XL model configuration uses a contextual_block_transformer with block_size 40, hop_size 16 and look_ahead 16. This establishes a source-level streaming architecture property, not target-host latency.",
+    "Speechcatcher project material states that its models were trained using Whisper large as a teacher."
+  ],
+  "license_provenance_warning": {
+    "state": "REVISION_SENSITIVE_CONFLICT_PRESERVED",
+    "current_xl_model_card_revision": "469c3474c28025d77cd7c1e1671638b56de53c2d",
+    "current_metadata_observed": "MIT",
+    "older_xl_model_card_revision": "89eeb5ce44e46c6e8ed57042268bc608fbe1cdec",
+    "older_metadata_observed": "CC-BY-4.0",
+    "required_before_artifact_admission": "Pin the exact downloadable artifact revision and license/provenance files together; do not infer artifact license solely from the current README metadata."
+  },
+  "project_delta": {
+    "classification": "NEW_GERMAN_SPECIALIST_STREAMING_ASR_CHALLENGER",
+    "reason": "Speechcatcher is a useful falsifier for the assumption that a newer general multilingual ASR family must dominate a German-specialist streaming CPU path. It should be evaluated only on the same pinned German room/overlap/backchannel corpus and target host as Qwen3-ASR, Nemotron streaming and donor Whisper.",
+    "benchmark_cells_after_hardware_unlock": [
+      "de_streaming_transformer_m",
+      "de_streaming_transformer_xl"
+    ],
+    "measurements": [
+      "WER/CER under one normalization contract",
+      "first partial transcript latency",
+      "final transcript latency",
+      "false/late endpoint rate",
+      "CPU utilization and RSS",
+      "startup/model-load time",
+      "overlap/backchannel robustness",
+      "cancellation/backpressure behavior",
+      "network-blocked/offline operation after a provenance-clean local cache is prepared"
+    ]
+  },
+  "hypothesis": "A German-specialized contextual-block streaming model can provide a materially cheaper CPU latency floor and useful endpoint behavior while retaining sufficient conversational German accuracy for Frankenstein 2.0.",
+  "counterhypothesis": "The reported TUDA-de-raw accuracy may not transfer to noisy conversational German, overlap, room acoustics or barge-in, and modern multilingual Qwen3-ASR/Nemotron/Whisper paths may dominate once identical target-host conditions are measured.",
+  "current_runtime_gate": {
+    "canonical_post_repair_hardware_run": 33265598243,
+    "latest_observed_status": "pending",
+    "latest_observed_jobs": 0,
+    "execution_observed": false,
+    "hardware_receipt_observed": false,
+    "classification": "CONTROL_PLANE_PENDING_OR_UNASSIGNED_NO_RUNTIME_CREDIT",
+    "dispatch_policy": "DO_NOT_DUPLICATE_THE_EXISTING_HARDWARE_LANE"
+  },
+  "next_exact_action": "Keep this candidate source-only while run 33265598243 has zero jobs. When a valid exact-source clay-direct-dev hardware receipt exists, admit only artifacts whose exact revision/license/hash provenance is closed, then run Speechcatcher m/xl on the identical pinned German corpus beside Qwen3-ASR, Nemotron streaming and Whisper; no ranking promotion before measured target-host evidence.",
+  "primary_sources": [
+    "https://github.com/speechcatcher-asr/speechcatcher",
+    "https://huggingface.co/speechcatcher/speechcatcher_german_espnet_streaming_transformer_26k_train_size_xl_raw_de_bpe1024",
+    "https://huggingface.co/speechcatcher/speechcatcher_german_espnet_streaming_transformer_26k_train_size_xl_raw_de_bpe1024/blob/469c3474c28025d77cd7c1e1671638b56de53c2d/README.md",
+    "https://huggingface.co/speechcatcher/speechcatcher_german_espnet_streaming_transformer_26k_train_size_xl_raw_de_bpe1024/blob/89eeb5ce44e46c6e8ed57042268bc608fbe1cdec/README.md"
+  ],
+  "credit": {
+    "source_pin": 1,
+    "target_hardware": 0,
+    "model_download": 0,
+    "model_runtime": 0,
+    "german_asr_component": 0,
+    "german_e2e": 0,
+    "trigger4_acceptance": 0,
+    "whole_system": 0
+  }
+}
