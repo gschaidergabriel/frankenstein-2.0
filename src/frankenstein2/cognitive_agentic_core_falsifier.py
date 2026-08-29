@@ -12,6 +12,11 @@ source reconciliation/receipt identities. The outer binder still has to verify t
 upstream evidence actually attests the supplied family digest; this component does not
 turn caller input into source truth.
 
+A supported report also requires a frozen per-capability external-action budget. This is
+a bounded falsification fence, not ARC scoring and not a claim that internal compute is
+measured. Baseline-relative external-action efficiency and internal-compute efficiency
+remain separate successor gates.
+
 A supported report is therefore repository-component measurement only: no runtime,
 GRID10, GWT/J-Space, model, training, effect, completion, world-truth, causal, or
 whole-system credit is granted.
@@ -25,7 +30,7 @@ import re
 from typing import Any
 
 CAPABILITY_EVIDENCE_SCHEMA = "FRANKENSTEIN2_AGENTIC_CORE_CAPABILITY_EVIDENCE/v2"
-POLICY_SCHEMA = "FRANKENSTEIN2_AGENTIC_CORE_FALSIFIER_POLICY/v1"
+POLICY_SCHEMA = "FRANKENSTEIN2_AGENTIC_CORE_FALSIFIER_POLICY/v2"
 REPORT_SCHEMA = "FRANKENSTEIN2_AGENTIC_CORE_FALSIFIER_REPORT/v1"
 FAMILY_BINDING_SCHEMA = "FRANKENSTEIN2_AGENTIC_CORE_FAMILY_BINDING/v1"
 
@@ -224,6 +229,7 @@ class FalsifierPolicy:
     min_intervention_score_ppm: int
     min_delta_over_baseline_ppm: int
     min_sample_count_per_capability: int
+    max_action_count_per_capability: int
     require_shared_holdout_set: bool = True
 
     def __post_init__(self) -> None:
@@ -234,6 +240,7 @@ class FalsifierPolicy:
         _bounded_int("min_intervention_score_ppm", self.min_intervention_score_ppm, 0, _PPM)
         _bounded_int("min_delta_over_baseline_ppm", self.min_delta_over_baseline_ppm, 0, _PPM)
         _bounded_int("min_sample_count_per_capability", self.min_sample_count_per_capability, 1, _MAX_COUNT)
+        _bounded_int("max_action_count_per_capability", self.max_action_count_per_capability, 1, _MAX_COUNT)
         _bool("require_shared_holdout_set", self.require_shared_holdout_set)
 
     def as_dict(self) -> dict[str, Any]:
@@ -326,9 +333,9 @@ def evaluate_agentic_core(
     """Evaluate a matched four-capability evidence set with fail-closed semantics.
 
     Missing or non-terminal upstream evidence is NOT_EVALUABLE. Accepted evidence that
-    violates matched holdout/family lineage, independence, score, delta, or sample criteria
-    is FALSIFIED. Only a complete set satisfying every criterion is
-    SUPPORTED_AT_COMPONENT_SCOPE.
+    violates matched holdout/family lineage, independence, score, delta, sample, or frozen
+    external-action-budget criteria is FALSIFIED. Only a complete set satisfying every
+    criterion is SUPPORTED_AT_COMPONENT_SCOPE.
     """
     if type(policy) is not FalsifierPolicy:
         raise AgenticCoreFalsifierError("policy must be exact concrete FalsifierPolicy")
@@ -379,6 +386,9 @@ def evaluate_agentic_core(
             if item.delta_ppm < policy.min_delta_over_baseline_ppm:
                 verdict = FALSIFIED
                 reasons.append(f"DELTA_BELOW_BASELINE_FLOOR:{item.capability}")
+            if item.action_count > policy.max_action_count_per_capability:
+                verdict = FALSIFIED
+                reasons.append(f"EXTERNAL_ACTION_BUDGET_EXCEEDED:{item.capability}")
 
     min_score = min((x.intervention_score_ppm for x in ordered), default=None)
     min_delta = min((x.delta_ppm for x in ordered), default=None)
