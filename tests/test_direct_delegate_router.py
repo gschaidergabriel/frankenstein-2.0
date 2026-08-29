@@ -193,3 +193,18 @@ def test_policy_route_set_and_bounds_are_validated_deterministically():
             max_direct_context_tokens=1,
             provenance_refs=("policy-source:1",),
         )
+
+
+def test_route_candidate_rejects_candidate_id_reconstruction_divergence():
+    """REVIEW_ONLY: candidate_id must stay bound to the exact route-candidate content."""
+    cycle = make_cycle()
+    candidate = route_task(cycle_contract=cycle, request=make_request(cycle), policy=make_policy())
+
+    # The producer creates route:<sha256(identity_payload)>. A public reconstructed candidate
+    # carrying a different syntactically-valid route id must not look equivalent to an admitted
+    # producer result. Current G1 is expected to accept this, reproducing the preregistered
+    # identity/content-divergence falsifier.
+    forged_id = "route:" + "f" * 64
+    assert forged_id != candidate.candidate_id
+    with pytest.raises(DirectDelegateRouterError):
+        replace(candidate, candidate_id=forged_id)
