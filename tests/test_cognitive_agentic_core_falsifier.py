@@ -129,6 +129,14 @@ class AgenticCoreFalsifierTests(unittest.TestCase):
         self.assertEqual(report.verdict, FALSIFIED)
         self.assertIn("MIXED_HOLDOUT_SET", report.reasons)
 
+    def test_same_holdout_label_across_distinct_benchmark_families_reproduces_alias(self):
+        values = complete_evidence()
+        self.assertEqual(len({item.holdout_set_id for item in values}), 1)
+        self.assertEqual(len({item.benchmark_id for item in values}), 4)
+        report = evaluate_agentic_core(values, policy=policy(), report_id="report-family-alias")
+        self.assertEqual(report.verdict, SUPPORTED_AT_COMPONENT_SCOPE)
+        self.assertEqual(report.reasons, ())
+
     def test_duplicate_receipt_falsifies_independence(self):
         values = list(complete_evidence())
         duplicate = values[0].source_receipt_sha256
