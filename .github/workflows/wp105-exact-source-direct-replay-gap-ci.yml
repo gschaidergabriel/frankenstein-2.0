@@ -19,12 +19,16 @@ jobs:
     steps:
       - name: Checkout Frankenstein 2.0 candidate
         uses: actions/checkout@v4
-      - name: Checkout exact EntityOS source
+      - name: Checkout exact EntityOS source subtree
         uses: actions/checkout@v4
         with:
           repository: gschaidergabriel/clay-global-research-entity
           ref: 2ffe209471efb71140d87e62aa1f9ea52695c2aa
           path: _entityos_exact
+          fetch-depth: 1
+          sparse-checkout: |
+            the artefact/clayverse
+          sparse-checkout-cone-mode: false
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
