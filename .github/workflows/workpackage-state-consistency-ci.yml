@@ -46,6 +46,28 @@ jobs:
         run: python -m py_compile tools/validate_workpackage_state.py
       - name: Deterministic state consistency regressions
         run: python -m unittest -v tests.test_validate_workpackage_state tests.test_wp002_aggregate_projection_gate tests.test_wp002_reconciliation_chain
+      - name: Diagnose aggregate projection drift
+        shell: bash
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+
+          state = json.loads(Path("workpackages/STATE.json").read_text())["workpackages"]
+          for pointer_path in sorted(Path("workpackages/active").glob("*.json")):
+              pointer = json.loads(pointer_path.read_text())
+              wp = pointer.get("workpackage_id")
+              pointer_state = pointer.get("state")
+              entry = state.get(wp)
+              if entry is None:
+                  print(f"MISSING_FROM_STATE {wp} pointer_state={pointer_state} pointer={pointer_path}")
+                  continue
+              broad = entry.get("status")
+              if pointer_state == "ACTIVE" and broad in {"NOT_STARTED", "ACCEPTED_AT_SCOPE"}:
+                  print(f"STALE_ACTIVE_PROJECTION {wp} pointer_state={pointer_state} broad={broad} pointer={pointer_path}")
+              if pointer_state == "ACCEPTED" and broad == "NOT_STARTED":
+                  print(f"STALE_ACCEPTED_PROJECTION {wp} pointer_state={pointer_state} broad={broad} pointer={pointer_path}")
+          PY
       - name: Diagnose terminal reconciliation credit boundaries
         shell: bash
         run: |
