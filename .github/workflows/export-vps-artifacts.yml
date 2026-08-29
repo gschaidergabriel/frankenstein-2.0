@@ -1,0 +1,74 @@
+name: Export frozen VPS artifacts snapshot
+
+on:
+  push:
+    branches:
+      - artifact/export-vps-f2-42300d3-20260829
+
+permissions:
+  contents: read
+
+jobs:
+  export:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout export branch
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Build frozen artifact payload
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf export_stage
+          mkdir -p export_stage/FRANKENSTEIN2_VPS_ARTIFACTS_42300d3
+          rsync -a ./ export_stage/FRANKENSTEIN2_VPS_ARTIFACTS_42300d3/ \
+            --exclude '.git/' \
+            --exclude 'export_stage/' \
+            --exclude '.github/workflows/export-vps-artifacts.yml'
+          python - <<'PY'
+          from __future__ import annotations
+          import hashlib, json, os
+          from pathlib import Path
+          root = Path('export_stage/FRANKENSTEIN2_VPS_ARTIFACTS_42300d3')
+          rows = []
+          for p in sorted(x for x in root.rglob('*') if x.is_file()):
+              data = p.read_bytes()
+              rows.append({
+                  'path': p.relative_to(root).as_posix(),
+                  'size_bytes': len(data),
+                  'sha256': hashlib.sha256(data).hexdigest(),
+              })
+          manifest = {
+              'schema': 'FRANKENSTEIN2_VPS_ARTIFACT_EXPORT/v1',
+              'canonical_repository': 'gschaidergabriel/frankenstein-2.0',
+              'frozen_source_commit': '42300d307d047df13d0ef70ee336e6773e94fabf',
+              'source_commit_message': 'trigger4: merge WP707 g2 zero-source semantics',
+              'export_branch': 'artifact/export-vps-f2-42300d3-20260829',
+              'export_workflow_commit': os.environ.get('GITHUB_SHA'),
+              'scope': 'ALL_FILES_PRESENT_IN_FROZEN_SOURCE_COMMIT_EXCEPT_GIT_METADATA; export workflow itself excluded; manifest added',
+              'warning': 'Does not claim access to uncommitted files that existed only on an inaccessible VPS filesystem.',
+              'file_count_before_manifest': len(rows),
+              'total_bytes_before_manifest': sum(r['size_bytes'] for r in rows),
+              'files': rows,
+          }
+          (root / 'VPS_ARTIFACT_MANIFEST.json').write_text(
+              json.dumps(manifest, indent=2, sort_keys=True) + '\n', encoding='utf-8'
+          )
+          print(json.dumps({
+              'file_count': len(rows),
+              'total_bytes': manifest['total_bytes_before_manifest'],
+              'source_commit': manifest['frozen_source_commit'],
+          }, sort_keys=True))
+          PY
+
+      - name: Upload frozen VPS artifacts ZIP
+        uses: actions/upload-artifact@v4
+        with:
+          name: FRANKENSTEIN2_VPS_ARTIFACTS_42300d3
+          path: export_stage/FRANKENSTEIN2_VPS_ARTIFACTS_42300d3
+          include-hidden-files: true
+          if-no-files-found: error
+          compression-level: 6
+          retention-days: 30
