@@ -1,0 +1,38 @@
+name: REVIEW WP807 Shared-Family Alias Falsifier
+
+on:
+  push:
+    branches:
+      - trigger4/wp807-family-provenance-binding-20260829
+    paths:
+      - 'src/frankenstein2/cognitive_agentic_core_falsifier.py'
+      - 'tests/review/test_wp807_shared_family_alias_falsifier.py'
+      - '.github/workflows/review-wp807-shared-family-alias-falsifier-ci.yml'
+  pull_request:
+    paths:
+      - 'src/frankenstein2/cognitive_agentic_core_falsifier.py'
+      - 'tests/review/test_wp807_shared_family_alias_falsifier.py'
+      - '.github/workflows/review-wp807-shared-family-alias-falsifier-ci.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  negative-control:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Compile current WP807 source and review witness
+        run: |
+          python -m py_compile \
+            src/frankenstein2/cognitive_agentic_core_falsifier.py \
+            tests/review/test_wp807_shared_family_alias_falsifier.py
+      - name: Reproduce current same-label family-alias behavior
+        env:
+          PYTHONPATH: src
+        run: python -m unittest -v tests.review.test_wp807_shared_family_alias_falsifier
