@@ -1,10 +1,10 @@
 name: F2 WP506 G5 Broadcast Lineage Candidate CI
 
-# Triggerword-4 G5 candidate: apply patch only in disposable CI before source promotion.
+# Triggerword-4 G5 candidate: mutate only the disposable CI checkout before source promotion.
 on:
   pull_request:
     paths:
-      - 'workpackages/candidate_patches/F2-WP-506/G5_BROADCAST_CONSTRUCTION_LINEAGE.patch'
+      - 'workpackages/candidate_patches/F2-WP-506/apply_g5_broadcast_lineage_candidate.py'
       - 'tests/test_wp506_g5_broadcast_lineage.py'
       - '.github/workflows/wp506-g5-broadcast-lineage-candidate-ci.yml'
       - 'workpackages/active/F2-WP-506.json'
@@ -24,8 +24,8 @@ jobs:
           python-version: '3.12'
       - name: Install test dependency
         run: python -m pip install pytest
-      - name: Apply exact candidate patch in disposable CI workspace
-        run: git apply --check workpackages/candidate_patches/F2-WP-506/G5_BROADCAST_CONSTRUCTION_LINEAGE.patch && git apply workpackages/candidate_patches/F2-WP-506/G5_BROADCAST_CONSTRUCTION_LINEAGE.patch
+      - name: Apply exact candidate transform in disposable CI workspace
+        run: python workpackages/candidate_patches/F2-WP-506/apply_g5_broadcast_lineage_candidate.py
       - name: Compile patched WP506/WP507 surfaces
         run: python -m py_compile src/frankenstein2/gwt_workspace.py src/frankenstein2/gwt_uptake.py tests/test_gwt_workspace.py tests/test_gwt_uptake.py tests/test_wp506_g5_broadcast_lineage.py
       - name: Run existing regressions plus unchanged detached-broadcast discriminator
