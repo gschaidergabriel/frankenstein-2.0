@@ -6,11 +6,13 @@
   "worker_id": "GPT-5.6-Sol",
   "authority_epoch": "8.78",
   "stage": "STAGE8_COGNITIVE_UNIT_TEST_SUITE",
-  "status": "SOURCE_READY_AWAITING_REPOSITORY_HOSTED_CI",
+  "status": "REPAIRED_AFTER_FIRST_EXECUTABLE_CI_FALSIFIER_AWAITING_EXACT_HEAD_CI",
   "branch": "trigger4/wp800-heldout-microworld-20260829",
   "base_commit": "7743364cd24e5ab921afa5c5bd4ebfdf3ff98525",
+  "pull_request": 429,
   "source_ref": "src/frankenstein2/micro_world.py",
-  "source_blob_sha": "cd14a2d8734455212adccd17dc84349b7f259bfd",
+  "source_blob_sha": "56331bd6f38b2974c4fa1ce09b25beefb85587eb",
+  "repair_commit": "5258a5e010b36998799df1a830c77ec384ea02e3",
   "test_ref": "tests/test_micro_world.py",
   "workflow_ref": ".github/workflows/wp800-micro-world-ci.yml",
   "implemented_invariants": [
@@ -24,11 +26,17 @@
     "unknown actions/state keys and malformed integer domains fail closed",
     "the harness has no model/provider/tool/UnifiedDB/effect/completion authority"
   ],
-  "planned_falsification_tests": 11,
+  "falsification_tests": 11,
   "negative_or_hardening_findings": [
-    "Exact scenario digest alone would not detect a renamed cross-split semantic duplicate because split/scenario_id participate in that digest. Added identity-independent content_sha256 and partition overlap rejection before CI promotion."
+    "Exact scenario digest alone would not detect a renamed cross-split semantic duplicate because split/scenario_id participate in that digest; identity-independent content_sha256 was added before promotion.",
+    "PR-head GitHub Actions run 33253102342 compiled successfully but failed the deterministic suite on source commit 079064bba15908143b080d54ab77e9a3a83ed979. The content_sha256 path passed nested ActionSpec/Condition dataclass objects directly to canonical JSON, which is not serializable. The repair converts nested dataclasses with asdict before hashing; the failure remains preserved as negative executable evidence."
   ],
-  "evidence_scope": "SOURCE_AND_TEST_DEFINITION_ONLY_UNTIL_EXACT_HEAD_CI_PASSES",
+  "first_ci_run_id": 33253102342,
+  "first_ci_job_id": 99102062147,
+  "first_ci_compile": "PASS",
+  "first_ci_suite": "FAIL",
+  "local_repair_sanity": "11/11 PASS in an isolated non-authoritative local reproduction; repository-hosted exact-head CI remains required",
+  "evidence_scope": "REPAIR_SOURCE_PLUS_NEGATIVE_EXECUTABLE_CI_EVIDENCE_AWAITING_EXACT_REPAIRED_HEAD_CI",
   "runtime_execution_observed": false,
   "target_runtime_credit": 0,
   "physical_grid10_credit": 0,
@@ -38,5 +46,5 @@
   "effect_credit": 0,
   "completion_credit": 0,
   "whole_system_acceptance": false,
-  "next_exact_action": "Open one PR from the owned branch, require exact PR-head repository-hosted WP800 CI, repair any executable falsifier, then merge and require merged-main CI before bounded terminal reconciliation."
+  "next_exact_action": "Require exact repaired PR-head WP800 GitHub Actions CI. If PASS, merge PR 429 and require merged-main CI before bounded terminal reconciliation; if FAIL, preserve and repair only the new executable falsifier."
 }
