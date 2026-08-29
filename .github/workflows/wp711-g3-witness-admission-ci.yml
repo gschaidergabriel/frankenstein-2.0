@@ -1,0 +1,37 @@
+name: WP711 G3 witness admission fence
+
+on:
+  pull_request:
+    paths:
+      - 'src/frankenstein2/perception_temporal.py'
+      - 'tests/test_perception_temporal.py'
+      - 'tests/test_wp711_unadmitted_clock_witness_falsifier.py'
+      - '.github/workflows/wp711-g3-witness-admission-ci.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'src/frankenstein2/perception_temporal.py'
+      - 'tests/test_perception_temporal.py'
+      - 'tests/test_wp711_unadmitted_clock_witness_falsifier.py'
+      - '.github/workflows/wp711-g3-witness-admission-ci.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  wp711-g3:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      PYTHONPATH: src
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Compile temporal contract
+        run: python -m py_compile src/frankenstein2/perception_temporal.py
+      - name: Run canonical temporal regressions
+        run: python -m unittest tests.test_perception_temporal -v
+      - name: Run permanent PR409 witness-admission falsifier
+        run: python -m unittest tests.test_wp711_unadmitted_clock_witness_falsifier -v
