@@ -1,0 +1,38 @@
+name: F2 WP402 QUBO Projection CI
+
+on:
+  push:
+    branches:
+      - main
+      - trigger4/wp402-qubo-projection-g1-20260829
+    paths:
+      - 'src/frankenstein2/qubo_projection.py'
+      - 'src/frankenstein2/sparse_world_basis.py'
+      - 'tests/test_qubo_projection.py'
+      - '.github/workflows/wp402-qubo-projection-ci.yml'
+  pull_request:
+    paths:
+      - 'src/frankenstein2/qubo_projection.py'
+      - 'src/frankenstein2/sparse_world_basis.py'
+      - 'tests/test_qubo_projection.py'
+      - '.github/workflows/wp402-qubo-projection-ci.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  falsification:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Compile exact WP400/WP402 source and tests
+        run: python -m py_compile src/frankenstein2/sparse_world_basis.py src/frankenstein2/qubo_projection.py tests/test_qubo_projection.py
+      - name: QUBO projection falsification suite
+        env:
+          PYTHONPATH: src
+        run: python tests/test_qubo_projection.py -v
