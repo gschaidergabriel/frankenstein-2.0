@@ -1,0 +1,41 @@
+{
+  "acceptance": {
+    "e3_runtime_credit": false,
+    "recommended_f2_admission": "ADAPT_ONLY_WITH_FAIL_CLOSED_RECOVERY_COMMIT_AND_DIGEST_PROVENANCE_FENCE",
+    "source_claim_reversibility_is_conditional": true,
+    "upstream_runtime_reproduced": false
+  },
+  "basis": {
+    "execution_note": "Deterministic source-derived semantic fixture, not execution of upstream Rust code; Rust toolchain unavailable in the local tool surface.",
+    "local_fixture_script_sha256": "c6f66ba76b95c65416e7d3f7daa4bb7a87fa1650f371a7911e23d32f6c4433bd",
+    "local_fixture_result_sha256": "c58c5e1f83e838c4e3a24cc04939d392ff36d7a0f9869280d2aa46fdecb8e1c6",
+    "source_files": [
+      "crates/headroom-core/src/ccr/mod.rs@213b37158fb9fa7287d7d5884c7df43800821995",
+      "crates/headroom-core/src/ccr/backends/sqlite.rs@213b37158fb9fa7287d7d5884c7df43800821995"
+    ],
+    "upstream_commit": "213b37158fb9fa7287d7d5884c7df43800821995"
+  },
+  "cases": [
+    {
+      "case": "PUT_FAILURE_AFTER_MARKER",
+      "f2_fail_closed_required": true,
+      "marker_emitted": true,
+      "put_ok": false,
+      "retrievable": false
+    },
+    {
+      "case": "RECOVERY_TTL_EXPIRY",
+      "f2_long_horizon_reversibility_falsified": true,
+      "marker_still_exists": true,
+      "post_expiry_retrievable": false,
+      "pre_expiry_retrievable": true
+    },
+    {
+      "case": "SAME_KEY_OVERWRITE",
+      "f2_requires_digest_and_provenance_revalidation": true,
+      "original_a_preserved": false,
+      "retrieved": "PAYLOAD_B"
+    }
+  ],
+  "schema": "R6_HEADROOM_SOURCE_DERIVED_CONTRACT_FALSIFIER/v1"
+}
