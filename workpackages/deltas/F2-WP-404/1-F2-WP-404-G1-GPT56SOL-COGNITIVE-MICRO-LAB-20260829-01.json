@@ -1,0 +1,61 @@
+{
+  "schema": "FRANKENSTEIN2_WORKPACKAGE_DELTA/v1",
+  "workpackage_id": "F2-WP-404",
+  "generation": 1,
+  "claim_id": "F2-WP-404-G1-GPT56SOL-COGNITIVE-MICRO-LAB-20260829",
+  "worker_id": "GPT-5.6-Sol",
+  "authority_epoch": "8.78",
+  "state": "IMPLEMENTED_COMPONENT_CI_GREEN_PENDING_PR_INTEGRATION",
+  "branch": "chatgpt/trigger4-wp404-cognitive-micro-lab-20260829",
+  "head_sha_with_ci": "544e9dda2e9458118373a1d41d50f7e53ee7bcfe",
+  "implementation": {
+    "source": "src/frankenstein2/cognitive_micro_lab.py",
+    "tests": "tests/test_cognitive_micro_lab.py",
+    "workflow": ".github/workflows/wp404-cognitive-micro-lab-ci.yml",
+    "contract": "One explicit QUBO baseline versus one explicit single-bit perturbation composed with an independently replay-validated rudimentary-physics context. Both alternatives remain unresolved candidate measurements; no winner/action/effect/completion is selected."
+  },
+  "source_bindings": {
+    "wp400_world_slice": "exact WorldSlice required at lab boundary",
+    "wp402_qubo": "score_assignment independently revalidates exact QuboProjection against exact WorldSlice for baseline and perturbation",
+    "wp403_physics": "validate_physics_projection_binding independently rebuilds projection from exact WorldSlice plus exact position/velocity/acceleration WorldAtoms",
+    "consumer_hardening": "lab additionally requires exact WorldSlice/QuboProjection/PhysicsProjection/WorldAtom concrete types before invoking upstream validators"
+  },
+  "falsifiers": [
+    "WorldSlice subtype rejected at WP404 boundary",
+    "QUBO projection rejected when consumed against a changed exact WorldSlice digest",
+    "direct-constructor PhysicsProjection with a forged trajectory remains self-hashable but is rejected by independent source replay",
+    "unknown perturbation variable rejected",
+    "stale expected_from_bit rejected",
+    "noncanonical assignment ordering rejected",
+    "no-op bit perturbation rejected"
+  ],
+  "repository_ci": {
+    "run_id": 33244287183,
+    "job_id": 99078929552,
+    "head_sha": "544e9dda2e9458118373a1d41d50f7e53ee7bcfe",
+    "status": "COMPLETED_SUCCESS",
+    "compile": "PASS",
+    "tests": "8/8 PASS",
+    "runner": "ubuntu-latest",
+    "python": "3.12"
+  },
+  "negative_evidence": [
+    "No target-runtime execution was performed.",
+    "No VPS/physical GRID10 execution was performed.",
+    "No provider/model/solver/tool was invoked by the component.",
+    "No GWT/J-Space/training/effect/completion/whole-system credit is established.",
+    "Local container cloning was unavailable due DNS/network isolation; this was not classified as a product failure and no local runtime credit was claimed."
+  ],
+  "credits": {
+    "repository_component_ci": 1,
+    "target_runtime": 0,
+    "physical_grid10": 0,
+    "gwt_runtime": 0,
+    "jspace_runtime": 0,
+    "training": 0,
+    "effect": 0,
+    "completion": 0,
+    "whole_system": 0
+  },
+  "next_exact_action": "Open a PR onto refreshed main, require PR-head WP404 CI, then merge only if the exact current base is conflict-free and CI remains green. After merge, require exact merged-main WP404 CI before terminal reconciliation."
+}
