@@ -1,0 +1,87 @@
+{
+  "schema": "FRANKENSTEIN2_TRIGGER6_ARCHITECTURE_DELTA/v1",
+  "delta_id": "R6-20260829-WP710-PSI-BROWNOUT-GPT56SOL-01-E2",
+  "research_id": "R6-20260829-WP710-PSI-BROWNOUT-GPT56SOL-01",
+  "stage": "E2_ARCHITECTURE_MAPPED",
+  "status": "NO_IMPORT_ARCHITECTURE_DELTA",
+  "worker": "GPT-5.6-Sol",
+  "claim_commit": "623e999dd24aafaea3a6f71c8b2b174cf609970e",
+  "e1_receipt_commit": "03b22e77979f451b25c7007237235727e827dd5d",
+  "source_architecture_snapshot": {
+    "wp710_core_commit": "63731075d7e74fd87a327c09059d0b5082d6d709",
+    "perception_compute_binding_commit": "7a13353162165d2f6a88eb54b566e9d4bca6d7c6",
+    "research_entity_main": "d9d4fea68eafe7148678f003b932f7bfbbf34acc"
+  },
+  "evidence_refs": [
+    "Linux kernel PSI documentation: https://docs.kernel.org/accounting/psi.html",
+    "Linux cgroup v2 documentation: https://www.kernel.org/doc/html/latest/admin-guide/cgroup-v2.html",
+    "Catan IROS 2022: https://arxiv.org/abs/2207.13280",
+    "Brownout overload control: https://arxiv.org/abs/1608.02707",
+    "src/frankenstein2/cognitive_envelope.py",
+    "src/frankenstein2/adaptive_compute.py",
+    "src/frankenstein2/perception_compute_binding.py",
+    "src/frankenstein2/perception_scheduler.py"
+  ],
+  "observed_architecture": [
+    "CognitiveEnvelope already accepts explicit generation-bound SignalReadout values, evaluates configured bands, fails required missing evidence to UNKNOWN, and emits an immutable ControlSnapshot only.",
+    "AdaptiveCompute already maps ControlSnapshot dispositions WITHIN/DEGRADED/HARD_LIMIT/UNKNOWN to bounded GRID work ceilings.",
+    "PerceptionComputeBinding explicitly states that Perception must not create an independent resource governor and derives PerceptionWorkerPolicy from the exact ControlSnapshot plus exact AdaptiveCompute allocation.",
+    "WP710 currently defines a second PerceptionSchedulerPolicy containing max_active_workers and max_perception_work_units and additionally derives pressure_degraded from available_compute_units <= control_reserve_units."
+  ],
+  "architecture_problem": "Adding a direct PSI ResourcePressureSnapshot input plus independent pressure thresholds to WP710 would duplicate the existing CognitiveEnvelope resource-governance path and create two potentially divergent authorities for perception compute ceilings.",
+  "best_supported_delta": {
+    "decision": "REUSE_EXISTING_COGNITIVE_ENVELOPE; DO_NOT_IMPORT_PSI_FRAMEWORK_OR_CATAN; DO_NOT_CREATE_SECOND_RESOURCE_GOVERNOR",
+    "signal_ingress": [
+      "A host adapter outside pure cognition/scheduler code reads Linux PSI when supported.",
+      "Emit ordinary CognitiveEnvelope SignalReadout values with exact generation, evidence_refs and provenance_refs, e.g. bounded integer stall-pressure measures for cpu.some, memory.some/full and io.some/full. Exact metric set and policy thresholds remain to be calibrated; they are not established by this E2 result.",
+      "Prefer a dedicated F2/perception cgroup scope when available; system-wide PSI is lower-specificity evidence because unrelated host workloads contribute."
+    ],
+    "control_path": "PSI host adapter -> CognitiveEnvelope SignalReadout -> ControlSnapshot -> AdaptiveCompute allocation -> PerceptionComputeBinding -> PerceptionWorkerPolicy -> WP710 queue/dispatch planner",
+    "wp710_policy_repair": [
+      "Do not allow WP710 to independently expand worker/work ceilings beyond PerceptionWorkerPolicy.",
+      "Prefer splitting scheduler-only queue semantics (max_queue_items, coalescing/drop policy, pressure_drop_below_priority_micros) from compute ceilings, or deterministically clamping any retained scheduler ceilings by the exact PerceptionWorkerPolicy.",
+      "Bind the exact PerceptionWorkerPolicy digest/generation into the schedule plan provenance so stale or mismatched resource authority fails closed."
+    ],
+    "brownout_semantics": [
+      "Use existing CognitiveEnvelope dispositions as the primary degradation state rather than inventing a second pressure-level enum.",
+      "DEGRADED may shed low-value optional perception; HARD_LIMIT and UNKNOWN must be no less conservative than DEGRADED, consistent with existing PerceptionComputeBinding invariants.",
+      "Never consume or reduce the caller-declared cognition/control reserve to preserve perception work."
+    ],
+    "telemetry_failure": "Missing/stale PSI evidence must remain explicit UNKNOWN if configured required; if PSI is optional/unsupported, the existing non-PSI envelope signals and compute-reserve path continue without fabricating a healthy PSI reading.",
+    "effects_boundary": "Reading PSI is measurement ingress only. cgroup quota/memory.high writes are resource-control effects outside WP710 and receive no authority from this delta."
+  },
+  "expected_benefits": [
+    "Uses experienced stall pressure rather than raw utilization as an additional overload discriminator.",
+    "Preserves one deterministic resource-governance authority chain instead of duplicating it inside Perception.",
+    "Reuses existing UNKNOWN/degraded/hard-limit fail-closed semantics and exact provenance machinery.",
+    "Requires only a thin host adapter plus policy/readout wiring; no external runtime framework import is justified."
+  ],
+  "costs_and_risks": [
+    "PSI is Linux-specific and host/system scope can couple unrelated workload pressure into F2 decisions.",
+    "Thresholds can oscillate; calibration/hysteresis must be validated before runtime promotion.",
+    "PSI stall evidence may be redundant with existing CognitiveEnvelope signals and caller compute availability.",
+    "Additional readouts increase policy/configuration complexity and can cause conservative UNKNOWN states if marked required on unsupported hosts."
+  ],
+  "counterhypothesis": "Existing CognitiveEnvelope inputs plus available_compute_units/control_reserve_units already protect cognition/control adequately; PSI yields no measurable improvement in missed-deadline, queue-age, control-reserve or quality metrics and should therefore not be added.",
+  "falsifier": {
+    "next_stage": "E4_F2_ABLATION after a bounded E3 source/contract fixture if needed",
+    "compare": "same deterministic synthetic pressure/recovery workload with PSI-derived envelope signals disabled versus enabled",
+    "must_measure": [
+      "control-reserve violations (must remain zero)",
+      "perception queue age and drop/coalescing counts",
+      "selected worker/work-unit ceilings",
+      "CognitiveEnvelope disposition transitions including UNKNOWN",
+      "hysteresis/flap rate",
+      "added CPU/RSS/I/O and scheduling latency",
+      "task/perception quality proxy under equivalent workload"
+    ],
+    "reject_delta_if": "PSI path does not improve overload discrimination or graceful degradation enough to justify complexity, or causes stale/noisy host pressure to suppress valuable perception without protecting control/cognition."
+  },
+  "evidence_scope": "SOURCE_AND_ARCHITECTURE_MAPPING_ONLY",
+  "research_credit": "E2_ONLY",
+  "architecture_credit": 0,
+  "runtime_credit": 0,
+  "integration_credit": 0,
+  "trigger4_handoff": "NOT_YET_E5",
+  "next_exact_action": "Validate the proposed one-governor bridge contract against the latest WP710 scheduler integration and create a deterministic source-level regression/ablation design; no Trigger4 E5 handoff until measured benefit exists."
+}
