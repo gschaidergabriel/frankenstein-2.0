@@ -84,7 +84,7 @@ class WP804G2ProducerLineageRepairTests(unittest.TestCase):
             observation=obs,
             candidates=candidates,
             inference=inference,
-            expected_goal_id=None,
+            expected_goal_id="goal-blue",
             label_ref="label:g2-postseal-mutation",
             label_sha256=h("label-g2-postseal-mutation"),
         )
