@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import replace
+import sys
 import unittest
 
 from frankenstein2.causal_identity import CausalIdentity
@@ -219,6 +220,22 @@ class NativeChildABITests(unittest.TestCase):
                 values.update(override)
                 with self.assertRaises(NativeChildABIError):
                     ChildResourceBudget(**values)
+
+    def test_resource_budget_rejects_integer_outside_canonical_json_domain(self) -> None:
+        max_digits = sys.get_int_max_str_digits()
+        self.assertGreater(
+            max_digits,
+            0,
+            "WP601 G2 regression requires the admitted finite CPython integer digit limit",
+        )
+        huge_work_units = 10 ** (max_digits + 1)
+        values = self.budget.as_dict()
+        values["max_work_units"] = huge_work_units
+        with self.assertRaisesRegex(
+            NativeChildABIError,
+            "outside the canonical JSON integer domain",
+        ):
+            ChildResourceBudget(**values)
 
     def test_request_generation_and_digest_formats_are_strict(self) -> None:
         for invalid in (0, -1, True, "1"):
