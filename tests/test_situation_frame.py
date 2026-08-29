@@ -46,6 +46,25 @@ class SituationFrameTests(unittest.TestCase):
         self.assertEqual(frame.schema, SITUATION_FRAME_SCHEMA)
         self.assertIn("NOT_WORLD_TRUTH", frame.classification)
 
+    def test_candidate_falsifier_frame_classification_cannot_be_forged(self):
+        frame = make_frame()
+        with self.assertRaises(SituationFrameError):
+            dataclasses.replace(frame, classification="FORGED_WORLD_TRUTH_AUTHORITY")
+
+    def test_candidate_falsifier_contract_classification_cannot_be_forged(self):
+        frame = make_frame()
+        contract = CycleContract.for_frame(
+            frame,
+            contract_id="contract-1",
+            cycle_generation=4,
+            max_grid_cells=4,
+            allowed_exits=("WAIT",),
+            continuation_refs=("checkpoint:1",),
+            provenance_refs=("policy:1",),
+        )
+        with self.assertRaises(SituationFrameError):
+            dataclasses.replace(contract, classification="FORGED_EFFECT_AUTHORITY")
+
     def test_canonicalization_is_order_independent(self):
         a = make_frame()
         b = make_frame(
