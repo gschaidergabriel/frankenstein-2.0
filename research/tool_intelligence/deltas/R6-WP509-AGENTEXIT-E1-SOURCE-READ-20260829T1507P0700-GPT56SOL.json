@@ -1,0 +1,120 @@
+{
+  "schema": "FRANKENSTEIN2_TRIGGER6_E1_SOURCE_READ/v1",
+  "trigger": "6",
+  "slot": "SOURCE_ARCHAEOLOGIST",
+  "research_id": "R6-WP509-RUMINATION-STOPPING-SCOUT-001",
+  "candidate_id": "R6-WP509-CAND-AGENTEXIT",
+  "status": "E1_SOURCE_READ_COMPLETE",
+  "created_at": "2026-08-29T15:07:00+07:00",
+  "claim": {
+    "path": "research/tool_intelligence/claims/R6-WP509-RUMINATION-STOPPING-SCOUT-001/E1_SOURCE_READ_AGENTEXIT_PIN_9747F023.json",
+    "commit": "134b1dbacd67544e119882e0caa3e4e589dbf7f9",
+    "credit": 0
+  },
+  "snapshot": {
+    "f2_main_observed_before_result_write": "4e8e9a9ee9138e10f718bacb648bacb651a35624",
+    "research_entity_main_observed": "98c7204fc21b81b7f113f556b4f71136ccaf4379",
+    "supervisor": "9.13 / 9.13AQ_NON_AUTHORITY / FREE_ONLY",
+    "provider_routes": "ALL_UNADMITTED",
+    "together": "FORBIDDEN",
+    "paid_fallback": "FORBIDDEN"
+  },
+  "external_source": {
+    "repo": "Coldmist-Lu/AgentExit",
+    "commit": "9747f0237fc91aa0445d4cc8630bf0fa4c22022c",
+    "commit_verified_signature": true,
+    "commit_tree": "6f969af47c35f27688cb4f187b1e101f1d548fcb",
+    "license_observed": "Apache-2.0",
+    "paper": "Runaway is Ashamed, But Helpful: On the Early-Exit Behavior of Large Language Model-based Agents in Embodied Environments",
+    "paper_id": "arXiv:2505.17616 / Findings of EMNLP 2025"
+  },
+  "source_files_read": [
+    "agentboard/agents/verify_utils.py",
+    "agentboard/agents/react_style_agent_extrinsic_intrinsic.py",
+    "README.md",
+    "repository tree at pinned commit"
+  ],
+  "observed_mechanism": {
+    "intrinsic_exit": "Prompt-level instruction asks the acting model to emit EXIT when it believes the task/environment is complete or further progress is unlikely.",
+    "extrinsic_exit": "A verifier LLM periodically reads task/goal/history and emits free-form text; any response containing the substring YES sets an exit_flag.",
+    "coupling": "The combined agent does not directly halt on verifier YES. On the next run it enables the intrinsic exit prompt, asking the acting model to emit EXIT.",
+    "verifier_independence": "The same llm_model object is used for acting and verification in the inspected implementation.",
+    "measurement_concept": "The project/paper separates saved redundant steps from progress degradation rather than treating early exit as an unqualified success.",
+    "continuation_concept": "The paper/repository reports a stronger-agent continuation after early exit as a bounded recovery/escalation strategy."
+  },
+  "static_negative_findings": [
+    {
+      "id": "AE-E1-N1",
+      "finding": "Verifier parsing is not structured: `if \"YES\" in response` accepts any free-form response containing YES, so negated/quoted/incidental YES can statically satisfy the stop condition.",
+      "scope": "SOURCE_STATIC_ONLY",
+      "runtime_reproduced": false
+    },
+    {
+      "id": "AE-E1-N2",
+      "finding": "The combined agent defines INTRINSIC_PROMPT key `short_thought` but the non-exit branch indexes `thought_short`. This is a static key mismatch on an ordinary prompt-construction path.",
+      "scope": "SOURCE_STATIC_ONLY",
+      "runtime_reproduced": false
+    },
+    {
+      "id": "AE-E1-N3",
+      "finding": "`intrinsic_using_flag` is initialized in reset only when extrinsic_exit is enabled, while run/make_prompt references it for non-None intrinsic_exit. The default intrinsic configuration therefore has a source-visible initialization hazard unless another unobserved path sets it.",
+      "scope": "SOURCE_STATIC_ONLY",
+      "runtime_reproduced": false
+    },
+    {
+      "id": "AE-E1-N4",
+      "finding": "The verifier collapses qualitatively different reasons—stuck loop, task complete, infeasible/deviated—into the same YES bit. That is incompatible with F2 authority boundaries if copied literally because HOLD/ASK/DELEGATE and COMPLETE must remain distinct.",
+      "scope": "ARCHITECTURE_TRANSFER_RISK",
+      "runtime_reproduced": false
+    },
+    {
+      "id": "AE-E1-N5",
+      "finding": "Repository hygiene is research-grade rather than product-grade at the pin: the tree includes an `.env` path and committed `__pycache__` artifacts. No secret value was consumed or promoted by this audit.",
+      "scope": "PACKAGING_HYGIENE",
+      "runtime_reproduced": false
+    }
+  ],
+  "f2_hypothesis": {
+    "statement": "AgentExit should be distilled as a measurement/control pattern, not imported as a controller. A low-cost F2 WP509 stop controller can use deterministic repetition/progress/resource signals to create a typed StopCandidate, with any semantic verifier only advisory. The candidate should route to HOLD/ASK/DELEGATE/REOBSERVE; canonical COMPLETE remains separately evidenced and gated.",
+    "engineering_confidence": 0.84,
+    "why": [
+      "The external mechanism directly targets repetitive/no-progress loops.",
+      "The paired redundancy-vs-progress-loss framing matches F2's need to avoid trading quality for fewer steps.",
+      "The inspected implementation's free-form verifier and control conflation are too weak for direct authority adoption.",
+      "Deterministic first-line signals are cheaper and avoid an extra provider/model call under current FREE_ONLY/provider-unadmitted authority."
+    ]
+  },
+  "counterhypothesis": {
+    "statement": "WP509 may not need a semantic verifier at all: deterministic loop signatures, state-fingerprint repetition, prediction residuals, progress deltas and resource budgets may detect most harmful rumination more reliably and cheaply than a model-based stop judge.",
+    "discriminator": "On replayable F2 traces, compare deterministic-only vs deterministic+advisory-semantic StopCandidate generation for redundant-step reduction, false early stops, progress degradation, latency/tokens and reason-calibration."
+  },
+  "proposed_f2_distillation": {
+    "new_authority": false,
+    "new_truth_store": false,
+    "new_effect_path": false,
+    "typed_output": "StopCandidate",
+    "reason_enum": ["REPETITION", "NO_PROGRESS", "BUDGET_EXHAUSTION", "LOW_EXPECTED_VALUE", "AMBIGUOUS_COMPLETION", "NEEDS_HELP"],
+    "suggested_transition": ["HOLD", "ASK", "DELEGATE", "REOBSERVE"],
+    "required_fields": ["frame_id", "state_fingerprint", "generation", "reason", "evidence_refs", "progress_delta", "redundancy_score", "resource_cost_since_progress", "confidence", "suggested_transition"],
+    "completion_rule": "StopCandidate MUST NOT mint COMPLETE, task success, effect success or world truth.",
+    "resource_policy": "Use deterministic local signals first; semantic verifier only for unresolved cases and only on an admitted zero-cost route."
+  },
+  "next_evidence_objective": {
+    "stage": "E2_ARCHITECTURE_MAPPED",
+    "recommendation": "Map the distilled typed StopCandidate contract to current WP509/WP505/WP800 interfaces; do not import AgentExit execution code.",
+    "requires_new_atomic_claim": true
+  },
+  "promotion": {
+    "evidence_stage": "E1_SOURCE_READ_ONLY",
+    "to_E2": false,
+    "to_E3": false,
+    "to_E4": false,
+    "to_E5_BUILD_CANDIDATE": false,
+    "to_E6_ACCEPTED": false,
+    "architecture_credit": 0,
+    "runtime_credit": 0,
+    "integration_credit": 0,
+    "effect_credit": 0,
+    "completion_credit": 0
+  }
+}
