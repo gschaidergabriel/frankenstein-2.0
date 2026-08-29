@@ -28,6 +28,15 @@ class SelfAttestingWorkspaceSelection(WorkspaceSelection):
         return FORGED_SELECTION_SHA256
 
 
+class ForgedSelectedCandidate(SelectedCandidate):
+    """Expose a forged direct payload while self-reporting canonical lineage."""
+
+    def as_dict(self):
+        payload = super().as_dict()
+        payload["payload_ref"] = "payload:selected-subtype"
+        return payload
+
+
 def make_grid_plan(*, plan_id="grid-plan-1", generation=3):
     cells = tuple(
         CellBudget(
@@ -285,6 +294,58 @@ def test_create_broadcast_rejects_digest_self_attesting_selection_subtype():
             generation=1,
             selection=adversarial,
             expected_selection_sha256=FORGED_SELECTION_SHA256,
+            recipient_cell_ids=("G1",),
+        )
+
+
+def test_selected_candidate_subtype_lineage_split_fails_closed_at_constructor_and_consumer():
+    canonical = selection((candidate("selected-subtype"),))
+    expected_digest = canonical.sha256()
+    original = canonical.selected[0]
+    forged = ForgedSelectedCandidate(
+        candidate_id=original.candidate_id,
+        candidate_sha256=original.candidate_sha256,
+        payload_ref="payload:forged",
+        epistemic_class=original.epistemic_class,
+        provenance_refs=original.provenance_refs,
+        alternative_refs=original.alternative_refs,
+        score=original.score,
+        estimated_cost_units=original.estimated_cost_units,
+        producer_admission_sha256=original.producer_admission_sha256,
+        producer_cell_id=original.producer_cell_id,
+        producer_output_sha256=original.producer_output_sha256,
+    )
+    with pytest.raises(GwtWorkspaceError, match="concrete SelectedCandidate"):
+        WorkspaceSelection(
+            selection_id=canonical.selection_id,
+            cycle_id=canonical.cycle_id,
+            generation=canonical.generation,
+            frame_id=canonical.frame_id,
+            frame_generation=canonical.frame_generation,
+            frame_sha256=canonical.frame_sha256,
+            grid_plan_id=canonical.grid_plan_id,
+            grid_plan_generation=canonical.grid_plan_generation,
+            grid_plan_sha256=canonical.grid_plan_sha256,
+            policy_id=canonical.policy_id,
+            policy_generation=canonical.policy_generation,
+            policy_sha256=canonical.policy_sha256,
+            selected=(forged,),
+            deferred_candidate_ids=canonical.deferred_candidate_ids,
+            hyperposition_id=canonical.hyperposition_id,
+            hyperposition_generation=canonical.hyperposition_generation,
+            hyperposition_sha256=canonical.hyperposition_sha256,
+            hyperposition=canonical.hyperposition,
+            selection_policy=canonical.selection_policy,
+            source_candidates=canonical.source_candidates,
+        )
+    object.__setattr__(canonical, "selected", (forged,))
+    assert canonical.sha256() == expected_digest
+    with pytest.raises(GwtWorkspaceError, match="selected members must be concrete SelectedCandidate"):
+        create_broadcast(
+            broadcast_id="b-selected-subtype",
+            generation=1,
+            selection=canonical,
+            expected_selection_sha256=expected_digest,
             recipient_cell_ids=("G1",),
         )
 
