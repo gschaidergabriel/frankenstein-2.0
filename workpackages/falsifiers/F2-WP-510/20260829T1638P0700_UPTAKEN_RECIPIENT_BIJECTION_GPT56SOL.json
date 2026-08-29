@@ -1,0 +1,38 @@
+{
+  "schema": "FRANKENSTEIN2_WORKPACKAGE_FALSIFIER/v1",
+  "workpackage_id": "F2-WP-510",
+  "generation": 1,
+  "reviewer": "GPT-5.6-Sol",
+  "classification": "CANDIDATE_FALSIFIER_PREREGISTERED_NOT_EXECUTED",
+  "recorded_at": "2026-08-29T16:38:00+07:00",
+  "observed_claim_ref": "workpackages/active/F2-WP-510.json",
+  "observed_claim_sha256_scope": "claim F2-WP-510-G1-GPT56SOL-GWT-CAUSAL-PATH-SEAL-20260829 at main commit 5824592122277f2daaafaef3619c92db268a0929",
+  "hypothesis": "The WP510 implementation may incorrectly establish recipient completeness by comparing only the count of UPTAKEN recipients to the count of supplied re-entry bindings, allowing duplicate bindings for one recipient to mask a missing binding for another UPTAKEN recipient.",
+  "counterhypothesis": "The implementation derives a canonical recipient->binding map, rejects duplicate recipient bindings, and requires exact set equality between UptakeSummary.uptaken_cell_ids and the recipient_cell_id set of validated WP508 bindings.",
+  "why_high_information": "WP507 and WP508 validate individual receipt/binding lineage, but the WP510 claim adds a new cross-recipient completeness invariant. Cardinality-only aggregation is a common integration failure that component-local tests cannot falsify.",
+  "preregistered_discriminator": {
+    "fixture": [
+      "Build one exact WP506 selection/broadcast addressed to G1 and G2.",
+      "Create valid WP507 DELIVERED+UPTAKEN receipts for both G1 and G2 and a canonical UptakeSummary whose uptaken_cell_ids is exactly [G1,G2].",
+      "Create valid WP508 re-entry witness/binding A for G1.",
+      "Create a second individually valid but distinct WP508 re-entry witness/binding B that is also for G1, using a distinct binding_id/provenance where the upstream ABI permits it.",
+      "Supply bindings [A,B] to the WP510 seal while omitting every G2 binding."
+    ],
+    "required_result": "FAIL_CLOSED",
+    "required_reason_class": "DUPLICATE_REENTRY_RECIPIENT_AND_OR_MISSING_UPTAKEN_RECIPIENT",
+    "forbidden_result": "Any accepted causal-path seal, even if len(bindings)==len(uptaken_cell_ids).",
+    "secondary_assertion": "A control fixture with exactly one valid binding for each UPTAKEN recipient must remain admissible at repository-integration scope."
+  },
+  "additional_boundary": "Set equality must be checked after validating each concrete binding against its exact witness, WP507 receipt, plan, selection, broadcast and CellInput. Caller-supplied recipient labels or binding object counts are not sufficient lineage evidence.",
+  "credit_boundary": {
+    "executed": false,
+    "negative_evidence_credit": 0,
+    "runtime_credit": 0,
+    "physical_grid10_credit": 0,
+    "gwt_runtime_credit": 0,
+    "jspace_runtime_credit": 0,
+    "training_credit": 0,
+    "whole_system_acceptance": false
+  },
+  "next_exact_action": "When the canonical WP510 implementation branch appears, implement this discriminator as REVIEW_ONLY without modifying WP510-owned source. Run exact-head repository CI. If it fails as preregistered, preserve the run/job/head as negative evidence and hand the repair to the sole WP510 mutation authority; if it passes, record the falsifier as NOT_REPRODUCED_AT_TESTED_IDENTITY."
+}
