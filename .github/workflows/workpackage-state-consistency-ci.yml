@@ -33,7 +33,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
   deterministic:
@@ -112,31 +112,3 @@ jobs:
           PY
       - name: Validate checked-out repository state
         run: python tools/validate_workpackage_state.py .
-
-  apply_projection_once:
-    if: github.event_name == 'push' && github.ref == 'refs/heads/chatgpt/trigger4-wp002-g5-fresh-projection-20260829-2206'
-    runs-on: ubuntu-24.04
-    timeout-minutes: 5
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 1
-      - uses: actions/setup-python@v5
-        with:
-          python-version: '3.12'
-      - name: Rebuild only STATE.json from checked-out granular evidence
-        run: |
-          python tools/rebuild_workpackage_state_projection.py . --output /tmp/STATE.generated.json --report /tmp/STATE.projection-report.json
-          cp /tmp/STATE.generated.json workpackages/STATE.json
-      - name: Commit projection iff changed
-        shell: bash
-        run: |
-          if git diff --quiet -- workpackages/STATE.json; then
-            echo 'STATE projection already current on this branch.'
-            exit 0
-          fi
-          git config user.name 'github-actions[bot]'
-          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add workpackages/STATE.json
-          git commit -m 'trigger4(WP002 G5): apply conservative aggregate projection'
-          git push origin HEAD:${GITHUB_REF_NAME}
