@@ -1,0 +1,40 @@
+name: REVIEW ONLY WP804 Ref Alias Payload Digest Falsifier
+
+on:
+  push:
+    branches:
+      - review/wp804-ref-alias-payload-digest-falsifier-20260829
+    paths:
+      - 'tests/test_wp804_ref_alias_payload_digest_candidate_falsifier.py'
+      - '.github/workflows/review-wp804-ref-alias-payload-digest-falsifier.yml'
+      - 'src/frankenstein2/cognitive_goal_inference_benchmark.py'
+      - 'src/frankenstein2/cognitive_microworld.py'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  reproduce:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Compile reviewed target and falsifier
+        run: >-
+          python -m py_compile
+          src/frankenstein2/cognitive_microworld.py
+          src/frankenstein2/cognitive_goal_inference_benchmark.py
+          tests/test_cognitive_goal_inference_benchmark.py
+          tests/test_wp804_ref_alias_payload_digest_candidate_falsifier.py
+      - name: Preserve canonical WP804 suite
+        env:
+          PYTHONPATH: src:.
+        run: python -m unittest -v tests.test_cognitive_goal_inference_benchmark
+      - name: Run positive ref-alias payload-digest reproducer
+        env:
+          PYTHONPATH: src:.
+        run: python -m unittest -v tests.test_wp804_ref_alias_payload_digest_candidate_falsifier
