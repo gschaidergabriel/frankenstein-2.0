@@ -1,0 +1,75 @@
+{
+  "schema_version": 1,
+  "trigger": "7",
+  "research_id": "T7-TTS-001",
+  "objective": "E2_SOURCE_AUDIT_REALTIME_TTS_FRONTIER",
+  "subobjective": "CUTETTS_02B_STREAMING_GERMAN_CHALLENGER",
+  "created_date": "2026-08-30",
+  "worker": "GPT-5.6-Sol-TRIGGER7",
+  "coordination": {
+    "claim": "research/local_voice/claims/T7-TTS-001/E2_SOURCE_AUDIT_REALTIME_TTS_FRONTIER.json",
+    "claim_relationship": "CONTINUATION_UNDER_EXISTING_ACTIVE_SOURCE_AUDIT; no new VPS/runtime lane opened",
+    "f2_main_observed_before_persist": "ff3a6f79083f50e3a6be0ae39223570c19a1b743"
+  },
+  "source_pins": {
+    "code_repository": "OPPO-Mente-Lab/CuteTTS",
+    "code_revision": "ca9dbd3b82c05f5b067466088449b93ee2aa5a0c",
+    "code_license": "Apache-2.0",
+    "paper": "arXiv:2608.08638v2",
+    "paper_revision_date": "2026-08-26",
+    "model_repository": "OPPOer/CuteTTS",
+    "model_upload_revision_observed": "5104922b7631ad1b02100b2d1149f044cecd9e58",
+    "model_license": "apache-2.0",
+    "model_format": "safetensors",
+    "base_weight_lfs": {
+      "weights/audio_vae/model.safetensors": {
+        "sha256": "687ea1bf0f056cae594853dab2207fb113c3b34ba4120a715a941b365b0cab7e",
+        "bytes": 511572144
+      },
+      "weights/speaker_encoder/model.safetensors": {
+        "sha256": "d6e108014acef5063f47ad572395bac4d9b90c9c0fffc4a5b871d8b4b6ce51a7",
+        "bytes": 104787416
+      },
+      "weights/tts/model.safetensors": {
+        "sha256": "195e9bc799297a21b32a9ef3de226e8b7291b76f1df9c0280507ccdf25616155",
+        "bytes": 598219052
+      }
+    }
+  },
+  "source_observations": {
+    "approx_parameters": 230000000,
+    "declared_languages": ["en", "zh", "fr", "de", "es"],
+    "streaming_api": "generate_stream yields decoded CPU float32 PCM chunks incrementally",
+    "voice_cloning": true,
+    "upstream_first_audio_claim": "approximately 40 ms first audio on NVIDIA RTX 4090",
+    "upstream_throughput_claim": "approximately 9x realtime on NVIDIA RTX 4090",
+    "runtime_dependencies": [
+      "python>=3.10",
+      "torch==2.5.1",
+      "torchaudio==2.5.1",
+      "transformers==4.51.0",
+      "safetensors>=0.4.5,<1",
+      "sentencepiece>=0.2,<1",
+      "soundfile>=0.12,<1"
+    ],
+    "remote_code_required_by_declared_install": false,
+    "arbitrary_install_script_required_by_declared_install": false
+  },
+  "evidence_boundaries": {
+    "german_declared_supported": true,
+    "german_objective_quality_benchmark_in_paper_observed": false,
+    "f2_target_download_observed": false,
+    "f2_target_runtime_observed": false,
+    "f2_german_audio_benchmark_observed": false,
+    "stable_frankenstein_male_voice_observed": false,
+    "expression_vector_control_observed": false,
+    "barge_in_cancellation_observed": false,
+    "runtime_credit": 0,
+    "german_quality_credit": 0,
+    "voice_acceptance_credit": 0,
+    "trigger4_acceptance_credit": 0
+  },
+  "hypothesis": "CuteTTS-base and especially CuteTTS-distill may improve the resident-footprint/first-audio Pareto frontier versus larger German streaming TTS candidates while preserving zero-shot voice cloning, but declared German support is insufficient to establish German naturalness, pronunciation, stable male identity, chunk-boundary prosody, cancellation behavior or whole-Frankenstein resource fit.",
+  "counterhypothesis": "The small model and upstream RTX4090 latency may not transfer to the clay-direct-dev hardware or to German; voice cloning and streaming may regress naturalness, technical-name pronunciation, prosody continuity or p95/p99 latency enough that Qwen3-TTS/CosyVoice/Piper-class candidates remain preferable.",
+  "next_discriminator": "Under the existing Trigger-7 VPS execution lane, quarantine-download the exact pinned CuteTTS base artifacts only after whole-Frankenstein hardware headroom is known; verify all three safetensors SHA-256 values; then run the common German TTS corpus and t7_voice_receipt pipeline against Qwen3-TTS and footprint-compatible challengers. Evaluate base and distill separately, with TTFA p50/p95/p99, RTF, German names/numbers/technical terms, male speaker identity, chunk continuity, ExpressionVector mapping feasibility, cancellation and resident RAM/VRAM. No promotion before local measured evidence."
+}
