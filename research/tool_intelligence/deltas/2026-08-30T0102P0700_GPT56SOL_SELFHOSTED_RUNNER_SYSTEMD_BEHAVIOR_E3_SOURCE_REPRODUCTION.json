@@ -1,0 +1,54 @@
+{
+  "schema": "FRANKENSTEIN2_TRIGGER6_RESEARCH_DELTA/v1",
+  "research_id": "R6-20260830-SELFHOSTED-RUNNER-PERSISTENCE-SERVICE-GPT56SOL-01",
+  "evidence_stage": "E3_CLAIM_REPRODUCED_SYSTEMD_SERVICE_BEHAVIOR",
+  "status": "E3_COMPLETE_PARTIAL_FALSIFICATION",
+  "worker_id": "GPT-5.6-Sol",
+  "trigger": "6",
+  "recorded_at": "2026-08-30T01:02:43+07:00",
+  "claim_commit": "3e2be5bdb9ee47e0fb8aad0621341f2125bd5c93",
+  "upstream_pin": {
+    "repo": "actions/runner",
+    "commit": "fb64b9b20d56951bf30c5b7333a128bc25c2d923",
+    "files": [
+      "src/Misc/layoutbin/systemd.svc.sh.template",
+      "src/Misc/layoutbin/actions.runner.service.template",
+      "src/Misc/layoutbin/runsvc.sh",
+      "src/Misc/layoutbin/RunnerService.js"
+    ]
+  },
+  "reproduced_findings": [
+    "The Linux svc.sh install path writes a systemd unit, performs daemon-reload, enables the service with systemctl enable, and records the service name. This supports boot-time persistence when the service is installed and subsequently started.",
+    "The upstream systemd unit uses WantedBy=multi-user.target and After=network-online.target, but contains no Restart= directive.",
+    "runsvc.sh launches RunnerService.js and waits for that wrapper process; runsvc.sh itself contains no relaunch loop.",
+    "RunnerService.js does contain a listener-level relaunch policy: exit codes 2, 3 and 4 are retried after 5 seconds, with a stop after 10 consecutive retriable failures; many undefined nonzero exit codes are retried after 5 seconds, optionally capped by GITHUB_ACTIONS_SERVICE_EXIT_AFTER_N_FAILURES.",
+    "RunnerService.js intentionally stops retrying for listener exit codes 0, 1 and 5 (including session conflict for code 5). A successful 'Listening for Jobs' observation resets retry counters.",
+    "Therefore the upstream service supplies two different resilience layers: boot enablement by systemd plus selected child-listener relaunch inside RunnerService.js. It does not establish unconditional whole-service crash recovery."
+  ],
+  "hypothesis_result": {
+    "original_assumption": "Installing the runner as the official Linux service supplies boot persistence and crash recovery appropriate to a persistent WP510 runner.",
+    "verdict": "PARTIALLY_FALSIFIED",
+    "supported": "BOOT_PERSISTENCE_AND_SELECTED_LISTENER_RETRY",
+    "falsified": "UNCONDITIONAL_SYSTEMD_LEVEL_CRASH_RECOVERY",
+    "reason": "The unit is enabled at boot but has no Restart= policy; recovery of the child listener is conditional and implemented by RunnerService.js, with explicit no-retry and retry-cap cases."
+  },
+  "architecture_consequence": [
+    "Do not describe svc.sh installation as proof of an always-self-healing runner.",
+    "Do not naively add Restart=always to a custom unit without an explicit policy test: doing so could override upstream intentional no-retry semantics such as session conflict and normal/terminated exits.",
+    "A future persistent-runner readiness design should separately witness: systemd enabled, service active, listener reached 'Listening for Jobs', GitHub-side eligibility/assignment, and job execution.",
+    "Automatic repair, if desired, should be condition-aware and must preserve upstream stop semantics rather than blindly forcing restarts."
+  ],
+  "counterhypothesis": "The upstream RunnerService.js listener-level retry behavior is sufficient for the actual WP510 host failure modes, making any additional watchdog unnecessary. This can only be decided from target-host service/log evidence and observed failure classes.",
+  "next_discriminator": "Observe the intended target runner's actual lifecycle and failure mode without mutation: whether service is installed/enabled/active, whether logs reached 'Listening for Jobs', and whether the host is intended persistent. Until then, keep E5 blocked.",
+  "promotion_decision": "E5_BLOCKED_TARGET_LIFECYCLE_UNKNOWN",
+  "credits": {
+    "runtime": 0,
+    "target_environment": 0,
+    "physical_grid10": 0,
+    "semantic_gwt": 0,
+    "jspace": 0,
+    "effect": 0,
+    "training": 0,
+    "whole_system": 0
+  }
+}
