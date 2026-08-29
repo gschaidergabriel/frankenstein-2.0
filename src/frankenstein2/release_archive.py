@@ -1,8 +1,10 @@
 """Deterministic release-candidate ZIP construction and verification.
 
 F2-WP-1107 generation 2. Ambient filesystem metadata is excluded from archive identity:
-member order, timestamp, POSIX mode, compression, comments and extra fields are explicit
-policy. The embedded accepted WP1107 manifest remains the payload-integrity authority.
+member order, timestamp, POSIX mode, ZIP version, compression, comments and extra fields are
+explicit policy. V1 forbids ZIP64 and non-ASCII member names so the builder cannot emit a
+container that its verifier rejects or whose filename flags depend on runtime encoding paths.
+The embedded accepted WP1107 manifest remains the payload-integrity authority.
 
 REPRODUCIBLE_ARCHIVE_COMPONENT != INSTALLATION != TARGET_RUNTIME != COMPLETION
 """
@@ -27,6 +29,8 @@ DEFAULT_POLICY_ID = "f2-release-zip-stored-posix-v1"
 _MIN_ZIP_EPOCH = 315532800
 _MAX_ZIP_EPOCH = 4354819198
 _REGULAR_TYPE = stat.S_IFREG
+_ZIP20 = 20
+_MAX_CLASSIC_ZIP_MEMBERS = 65535
 
 
 class ReleaseArchiveError(ValueError):
@@ -60,6 +64,10 @@ def _relpath(value: Any) -> str:
     value = _text(value, "archive path")
     if "\\" in value or "\x00" in value:
         raise ReleaseArchiveError(f"non-canonical archive path: {value!r}")
+    try:
+        value.encode("ascii")
+    except UnicodeEncodeError as exc:
+        raise ReleaseArchiveError("generation-2 archive paths must be ASCII") from exc
     path = PurePosixPath(value)
     if path.is_absolute() or not path.parts or any(p in {"", ".", ".."} for p in path.parts):
         raise ReleaseArchiveError(f"unsafe archive path: {value!r}")
@@ -85,6 +93,8 @@ class ReleaseArchivePolicy:
     regular_mode: int = 0o644
     executable_mode: int = 0o755
     create_system: int = 3
+    create_version: int = _ZIP20
+    extract_version: int = _ZIP20
     compression: int = zipfile.ZIP_STORED
     schema: str = ARCHIVE_POLICY_SCHEMA
 
@@ -102,11 +112,13 @@ class ReleaseArchivePolicy:
                 raise ReleaseArchiveError(f"{name} must be a permission mode in 000..777")
         if self.create_system != 3:
             raise ReleaseArchiveError("generation-2 policy requires POSIX create_system=3")
+        if self.create_version != _ZIP20 or self.extract_version != _ZIP20:
+            raise ReleaseArchiveError("generation-2 policy requires explicit classic ZIP version 2.0")
         if self.compression != zipfile.ZIP_STORED:
             raise ReleaseArchiveError("generation-2 policy requires ZIP_STORED")
 
     def as_dict(self) -> dict[str, Any]:
-        return {"schema": self.schema, "policy_id": self.policy_id, "source_date_epoch": self.source_date_epoch, "zip_datetime": list(_zip_datetime(self.source_date_epoch)), "executable_paths": list(self.executable_paths), "regular_mode": self.regular_mode, "executable_mode": self.executable_mode, "create_system": self.create_system, "compression": self.compression, "member_comment": "", "member_extra": "", "archive_comment": "", "directory_entries": False}
+        return {"schema": self.schema, "policy_id": self.policy_id, "source_date_epoch": self.source_date_epoch, "zip_datetime": list(_zip_datetime(self.source_date_epoch)), "executable_paths": list(self.executable_paths), "regular_mode": self.regular_mode, "executable_mode": self.executable_mode, "create_system": self.create_system, "create_version": self.create_version, "extract_version": self.extract_version, "compression": self.compression, "filename_encoding": "ASCII_ONLY", "zip64": False, "member_comment": "", "member_extra": "", "archive_comment": "", "directory_entries": False}
 
     def digest(self) -> str:
         return _sha256(_json_bytes(self.as_dict()))
@@ -168,6 +180,8 @@ def _mode(path: str, policy: ReleaseArchivePolicy) -> int:
 def _zip_info(path: str, policy: ReleaseArchivePolicy) -> zipfile.ZipInfo:
     info = zipfile.ZipInfo(path, date_time=_zip_datetime(policy.source_date_epoch))
     info.create_system = policy.create_system
+    info.create_version = policy.create_version
+    info.extract_version = policy.extract_version
     info.compress_type = policy.compression
     info.flag_bits = 0
     info.internal_attr = 0
@@ -180,13 +194,14 @@ def _zip_info(path: str, policy: ReleaseArchivePolicy) -> zipfile.ZipInfo:
 def _read_bound_payload(root: Path, manifest: ReleaseManifest) -> dict[str, bytes]:
     payload: dict[str, bytes] = {}
     for entry in manifest.files:
-        candidate = root.joinpath(*PurePosixPath(entry.path).parts)
+        path = _relpath(entry.path)
+        candidate = root.joinpath(*PurePosixPath(path).parts)
         if candidate.is_symlink() or not candidate.is_file():
-            raise ReleaseArchiveError(f"manifest member is not regular non-symlink: {entry.path}")
+            raise ReleaseArchiveError(f"manifest member is not regular non-symlink: {path}")
         data = candidate.read_bytes()
         if len(data) != entry.size or _sha256(data) != entry.sha256:
-            raise ReleaseArchiveError(f"payload mutated after manifest construction: {entry.path}")
-        payload[entry.path] = data
+            raise ReleaseArchiveError(f"payload mutated after manifest construction: {path}")
+        payload[path] = data
     return payload
 
 
@@ -202,11 +217,16 @@ def build_release_archive(package_root: str | Path, *, release_id: str, source_c
         raise ReleaseArchiveError(f"executable policy references absent payload: {unknown_exec}")
     members = dict(payload)
     members[manifest_path] = manifest.canonical_bytes()
+    if len(members) > _MAX_CLASSIC_ZIP_MEMBERS:
+        raise ReleaseArchiveError("archive member count requires forbidden ZIP64")
     stream = io.BytesIO()
-    with zipfile.ZipFile(stream, "w", compression=zipfile.ZIP_STORED, allowZip64=True) as archive:
-        archive.comment = b""
-        for path in sorted(members):
-            archive.writestr(_zip_info(path, policy), members[path])
+    try:
+        with zipfile.ZipFile(stream, "w", compression=zipfile.ZIP_STORED, allowZip64=False) as archive:
+            archive.comment = b""
+            for path in sorted(members):
+                archive.writestr(_zip_info(path, policy), members[path])
+    except zipfile.LargeZipFile as exc:
+        raise ReleaseArchiveError("archive size/offset requires forbidden ZIP64") from exc
     archive_bytes = stream.getvalue()
     receipt = ReleaseArchiveReceipt(release_id=manifest.release_id, source_commit=manifest.source_commit, source_tree=manifest.source_tree, build_id=manifest.build_id, archive_policy_id=policy.policy_id, archive_policy_sha256=policy.digest(), manifest_path=manifest_path, manifest_sha256=manifest.sha256(), archive_sha256=_sha256(archive_bytes), archive_size=len(archive_bytes), member_count=len(members))
     return ReleaseArchiveBuild(archive_bytes, manifest, receipt)
@@ -230,18 +250,20 @@ def verify_release_archive(archive_bytes: bytes, *, policy: ReleaseArchivePolicy
         raise ReleaseArchiveError("archive_bytes must be non-empty bytes")
     manifest_path = _relpath(manifest_path)
     try:
-        archive = zipfile.ZipFile(io.BytesIO(archive_bytes), "r")
-    except zipfile.BadZipFile as exc:
-        raise ReleaseArchiveError("invalid release ZIP") from exc
+        archive = zipfile.ZipFile(io.BytesIO(archive_bytes), "r", allowZip64=False)
+    except (zipfile.BadZipFile, zipfile.LargeZipFile) as exc:
+        raise ReleaseArchiveError("invalid or ZIP64 release ZIP") from exc
     with archive:
         if archive.comment:
             raise ReleaseArchiveError("archive comment must be empty")
         infos = archive.infolist()
         names = [info.filename for info in infos]
+        if len(infos) > _MAX_CLASSIC_ZIP_MEMBERS:
+            raise ReleaseArchiveError("archive member count requires forbidden ZIP64")
         if len(set(names)) != len(names):
             raise ReleaseArchiveError("duplicate archive member")
         if names != sorted(names) or [_relpath(name) for name in names] != names:
-            raise ReleaseArchiveError("archive members must be canonical and sorted")
+            raise ReleaseArchiveError("archive members must be canonical sorted ASCII POSIX paths")
         if manifest_path not in names:
             raise ReleaseArchiveError("embedded canonical release manifest missing")
         expected_dt = _zip_datetime(policy.source_date_epoch)
@@ -252,8 +274,10 @@ def verify_release_archive(archive_bytes: bytes, *, policy: ReleaseArchivePolicy
                 raise ReleaseArchiveError(f"unexpected compression for {info.filename}")
             if info.date_time != expected_dt:
                 raise ReleaseArchiveError(f"unexpected timestamp for {info.filename}")
-            if info.create_system != policy.create_system:
-                raise ReleaseArchiveError(f"unexpected create_system for {info.filename}")
+            if info.create_system != policy.create_system or info.create_version != policy.create_version or info.extract_version != policy.extract_version:
+                raise ReleaseArchiveError(f"unexpected ZIP system/version fields for {info.filename}")
+            if info.flag_bits != 0:
+                raise ReleaseArchiveError(f"unexpected ZIP flag bits for {info.filename}")
             if info.external_attr != _expected_attr(info.filename, policy):
                 raise ReleaseArchiveError(f"unexpected file mode for {info.filename}")
             if info.comment or info.extra:
@@ -265,7 +289,7 @@ def verify_release_archive(archive_bytes: bytes, *, policy: ReleaseArchivePolicy
             raise ReleaseArchiveError("embedded manifest is invalid") from exc
         if manifest_raw != manifest.canonical_bytes():
             raise ReleaseArchiveError("embedded manifest is not canonical byte form")
-        expected_names = sorted([entry.path for entry in manifest.files] + [manifest_path])
+        expected_names = sorted([_relpath(entry.path) for entry in manifest.files] + [manifest_path])
         if names != expected_names:
             missing = sorted(set(expected_names) - set(names))
             extra = sorted(set(names) - set(expected_names))
