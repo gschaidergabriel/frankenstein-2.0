@@ -1,0 +1,55 @@
+{
+  "schema": "FRANKENSTEIN2_TRIGGER6_RESEARCH_DELTA/v1",
+  "research_id": "R6-20260829-WP804-GOAL-INFERENCE-GPT56SOL-01",
+  "evidence_stage": "E3_CLAIM_REPRODUCED",
+  "created_at": "2026-08-29T20:21:00+07:00",
+  "worker": "GPT-5.6-Sol-TRIGGER6",
+  "claim": "On the green WP804 generation-1 branch, a runner-produced ABSTAIN GoalInference can be mutated after run_goal_inference and before seal_evaluator_goal_label; the evaluator then seals the mutated inference hash and score_goal_inference can mark the mutated exact goal correct.",
+  "exact_target": {
+    "active_wp804_branch": "chatgpt/wp804-goal-inference-20260829",
+    "source_test_head": "815bc6c22deb69ed0f47434f13212f8d54647a7b",
+    "review_branch": "review/wp804-preseal-choice-mutation-falsifier-20260829",
+    "review_head": "89b0f574ce42492e678b76a2c3d3f0b722d4e0b6",
+    "review_test": "tests/test_wp804_preseal_choice_mutation_falsifier.py",
+    "review_workflow": ".github/workflows/review-wp804-preseal-choice-mutation.yml"
+  },
+  "execution_evidence": {
+    "github_actions_run": 33254735360,
+    "github_actions_job": 99106364612,
+    "run_conclusion": "success",
+    "steps": {
+      "compile_exact_review_target": "success",
+      "existing_wp804_tests_remain_green": "success",
+      "positive_preseal_mutation_reproducer": "success"
+    },
+    "scope": "REPOSITORY_HOSTED_REVIEW_CI_EXACT_BRANCH_HEAD_ONLY"
+  },
+  "reproduced_sequence": [
+    "always_abstain_policy returns a runner-produced GoalChoice with decision=ABSTAIN and goal_id=null",
+    "object.__setattr__ mutates the nested frozen GoalChoice to decision=GOAL and goal_id=goal-blue before evaluator label sealing",
+    "the current GoalInference SHA changes after mutation",
+    "seal_evaluator_goal_label accepts the mutated current inference and stores that mutated SHA as sealed_inference_sha256",
+    "score_goal_inference accepts the label/inference binding and returns correct=true for goal-blue"
+  ],
+  "interpretation": {
+    "what_is_proven": "The new sealed_inference_sha256 fence protects against mutation after label sealing but does not preserve the original runner-produced policy output across the pre-seal interval.",
+    "what_is_not_proven": "This does not establish hostile-process security failure, target-runtime exploitability, autonomous goal corruption, real effects, world-fact corruption, GWT/J-Space failure or whole-system failure.",
+    "threat_scope": "same-process object mutation / producer-to-evaluator handoff integrity at repository-component semantics"
+  },
+  "recommended_successor": {
+    "minimum": "Capture a producer-time choice/inference content digest inside the runner-produced result and revalidate current choice content against that digest before evaluator sealing and again before scoring. Prefer a factory-only result construction pattern plus current-content validation; state explicitly that this is not cryptographic protection against arbitrary hostile same-process Python capable of mutating all fields.",
+    "test": "Produce ABSTAIN, mutate nested choice before seal, require fail-closed producer-content mismatch. Preserve all existing identifiability, hidden-state, generation, run and candidate-set fences."
+  },
+  "history_scope_status": "SEPARATE_CONDITIONAL_E2: public familiarization/history remains required only if WP804 claims goal preference from prior behavior; otherwise generation-1 acceptance wording should remain single-observation candidate inference.",
+  "credits": {
+    "research": "E3_CLAIM_REPRODUCED",
+    "repository_component_acceptance": 0,
+    "target_runtime": 0,
+    "goal_authority": 0,
+    "physical_grid10": 0,
+    "gwt_jspace": 0,
+    "training": 0,
+    "whole_system": 0
+  },
+  "handoff": "TRIGGER4 active WP804 owner: add the producer-time content seal/current-content revalidation falsifier before bounded acceptance; do not merge the review reproducer as desired behavior."
+}
