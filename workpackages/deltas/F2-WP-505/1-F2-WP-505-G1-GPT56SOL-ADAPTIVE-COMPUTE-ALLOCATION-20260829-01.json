@@ -1,0 +1,55 @@
+{
+  "schema": "FRANKENSTEIN2_WORKPACKAGE_DELTA/v1",
+  "workpackage_id": "F2-WP-505",
+  "generation": 1,
+  "claim_id": "F2-WP-505-G1-GPT56SOL-ADAPTIVE-COMPUTE-ALLOCATION-20260829",
+  "state": "READY_FOR_RECONCILIATION",
+  "base_commit": "06e56c77bae7fbb72429f432d1d9f14b973ce09c",
+  "tested_head_sha": "9b335a53524d28541175c85030a152e21fe98184",
+  "paths": {
+    "source": "src/frankenstein2/adaptive_compute.py",
+    "tests": "tests/test_adaptive_compute.py",
+    "workflow": ".github/workflows/wp505-adaptive-compute-ci.yml"
+  },
+  "evidence": {
+    "local_unit_suite": {
+      "tests_passed": 13,
+      "tests_failed": 0,
+      "py_compile": "PASS",
+      "scope": "LOCAL_ISOLATED_UNIT_WITH_WP501_COMPATIBILITY_STUB"
+    },
+    "repository_hosted_ci": {
+      "run_id": 33221706539,
+      "job_id": 99016920366,
+      "head_sha": "9b335a53524d28541175c85030a152e21fe98184",
+      "status": "completed",
+      "conclusion": "success",
+      "compile": "success",
+      "falsification_suite": "success",
+      "integration_note": "Hosted CI exercised the actual repository WP501 ControlSnapshot and WP503 Grid10Plan modules."
+    }
+  },
+  "verified_invariants": [
+    "allocation policy contains exactly one explicit rule for each known WP501 envelope disposition",
+    "HARD_LIMIT_BREACH and UNKNOWN_REQUIRED_EVIDENCE cannot allocate more active cells or total work than DEGRADED",
+    "Grid10Plan and ControlSnapshot policy id/generation/digest mismatch fails closed",
+    "cell priority is caller supplied and deterministic across exactly G1..G10",
+    "per-cell allocations are clipped to both WP503 cell budgets and explicit allocation-policy caps",
+    "global work allocation never exceeds either the disposition rule cap or WP503 global cap",
+    "zero-cap cells remain deferred rather than minting work",
+    "candidate binds exact Grid10Plan, ControlSnapshot and AdaptiveComputePolicy digests",
+    "allocation output is immutable and explicitly not GRID writer, physical concurrency, effect or completion authority"
+  ],
+  "credit_boundary": {
+    "repository_component_ci_credit": 1,
+    "target_runtime_credit": 0,
+    "vps_runtime_credit": 0,
+    "physical_grid10_credit": 0,
+    "gwt_jspace_causal_credit": 0,
+    "effect_authority_credit": 0,
+    "completion_authority_credit": 0,
+    "whole_system_acceptance": false,
+    "training_credit": 0
+  },
+  "next_exact_gate": "Merge only after exact-current ownership/conflict check; reconciliation writer may terminalize F2-WP-505 generation 1 at component-CI scope. F2-WP-504 remains dependency-blocked until the active Hyperposition generation is reconciled; the next unowned Phase-5 lane should be selected only after current ownership re-entry."
+}

@@ -1,0 +1,35 @@
+name: F2 WP505 Adaptive Compute CI
+
+on:
+  push:
+    branches:
+      - chatgpt/f2-wp505-adaptive-compute-g1-20260829
+    paths:
+      - 'src/frankenstein2/adaptive_compute.py'
+      - 'tests/test_adaptive_compute.py'
+      - '.github/workflows/wp505-adaptive-compute-ci.yml'
+  pull_request:
+    paths:
+      - 'src/frankenstein2/adaptive_compute.py'
+      - 'tests/test_adaptive_compute.py'
+      - '.github/workflows/wp505-adaptive-compute-ci.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  deterministic:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Compile
+        run: python -m py_compile src/frankenstein2/adaptive_compute.py tests/test_adaptive_compute.py
+      - name: Adaptive compute falsification suite
+        env:
+          PYTHONPATH: src
+        run: python tests/test_adaptive_compute.py -v
