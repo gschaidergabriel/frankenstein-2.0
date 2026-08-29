@@ -431,7 +431,6 @@ def _validate_candidate_origins(
         admission = item.producer_admission
         if admission is None:
             raise GwtWorkspaceError("candidate requires exact GRID10 producer_admission")
-        # Re-run the structural WP503 binding at the consuming boundary.
         try:
             admission.plan.validate_output(admission.cell_output, cell_input=admission.cell_input)
         except Grid10InterfaceError as exc:
@@ -476,7 +475,7 @@ def _rank_candidates(
             deferred.append(item.candidate_id)
             continue
         admission = item.producer_admission
-        if admission is None:  # guarded by _validate_candidate_origins; keep fail-closed locally.
+        if admission is None:
             raise GwtWorkspaceError("candidate requires exact GRID10 producer_admission")
         selected.append(
             SelectedCandidate(
@@ -649,6 +648,8 @@ class WorkspaceSelection:
 
 
 def _assert_selection_build_lineage(selection: WorkspaceSelection) -> None:
+    if not all(type(item) is SelectedCandidate for item in selection.selected):
+        raise GwtWorkspaceError("selection selected must contain concrete SelectedCandidate values")
     resolved_hyperposition = _resolve_hyperposition_binding(
         frame_id=selection.frame_id,
         frame_generation=selection.frame_generation,
