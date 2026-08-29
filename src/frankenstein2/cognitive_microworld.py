@@ -6,7 +6,7 @@ completion, training or world-truth authority.
 """
 from __future__ import annotations
 
-from dataclasses import InitVar, asdict, dataclass
+from dataclasses import InitVar, asdict, dataclass, field
 import hashlib
 import json
 import re
@@ -535,6 +535,7 @@ class RunDescriptor:
     communication_before_result: bool
     independent_reproduction: bool
     classification: str = RUN_CLASSIFICATION
+    _builder_verified: bool = field(init=False, repr=False, compare=False)
     _origin: InitVar[object | None] = None
 
     def __post_init__(self, _origin: object | None) -> None:
@@ -554,8 +555,7 @@ class RunDescriptor:
         _id("method_family", self.method_family)
         _bool("communication_before_result", self.communication_before_result)
         _bool("independent_reproduction", self.independent_reproduction)
-        if _origin is not _RUN_ORIGIN:
-            raise CognitiveMicroWorldError("RunDescriptor must be created by RunDescriptor.for_fixture")
+        object.__setattr__(self, "_builder_verified", _origin is _RUN_ORIGIN)
 
     @classmethod
     def for_fixture(cls, fixture: MicroWorldFixture, *, run_id: str, condition: str, episode_family_id: str, system_under_test_ref: str, communication_before_result: bool, independent_reproduction: bool) -> "RunDescriptor":
@@ -593,7 +593,23 @@ class RunDescriptor:
             raise CognitiveMicroWorldError("run descriptor does not match exact fixture/provenance binding")
 
     def as_dict(self) -> dict[str, Any]:
-        return asdict(self)
+        return {
+            "schema": self.schema,
+            "run_id": self.run_id,
+            "condition": self.condition,
+            "fixture_id": self.fixture_id,
+            "fixture_generation": self.fixture_generation,
+            "fixture_sha256": self.fixture_sha256,
+            "episode_family_id": self.episode_family_id,
+            "system_under_test_ref": self.system_under_test_ref,
+            "evidence_source_family": self.evidence_source_family,
+            "primary_source_ids": list(self.primary_source_ids),
+            "donor_path_family": self.donor_path_family,
+            "method_family": self.method_family,
+            "communication_before_result": self.communication_before_result,
+            "independent_reproduction": self.independent_reproduction,
+            "classification": self.classification,
+        }
 
     def sha256(self) -> str:
         return _digest(self.as_dict())
@@ -618,21 +634,26 @@ class MatchedRunPair:
             raise CognitiveMicroWorldError("matched pair must contain BASELINE then INTERVENTION")
         if self.baseline.run_id == self.intervention.run_id:
             raise CognitiveMicroWorldError("matched runs must have distinct run_id values")
-        for field in ("fixture_id", "fixture_generation", "fixture_sha256", "episode_family_id", "evidence_source_family", "primary_source_ids", "donor_path_family", "method_family"):
-            if getattr(self.baseline, field) != getattr(self.intervention, field):
-                raise CognitiveMicroWorldError(f"matched pair differs on {field}")
+        for field_name in ("fixture_id", "fixture_generation", "fixture_sha256", "episode_family_id", "evidence_source_family", "primary_source_ids", "donor_path_family", "method_family"):
+            if getattr(self.baseline, field_name) != getattr(self.intervention, field_name):
+                raise CognitiveMicroWorldError(f"matched pair differs on {field_name}")
         expected = "pair:" + _digest({"baseline_sha256": self.baseline.sha256(), "intervention_sha256": self.intervention.sha256()})
         if self.pair_id != expected:
             raise CognitiveMicroWorldError("pair_id does not bind exact matched run descriptors")
+        if not self.baseline._builder_verified or not self.intervention._builder_verified:
+            raise CognitiveMicroWorldError("matched runs must originate from RunDescriptor.for_fixture")
         if _origin is not _PAIR_ORIGIN:
             raise CognitiveMicroWorldError("MatchedRunPair must be created by MatchedRunPair.create")
 
     @classmethod
-    def create(cls, *, fixture: MicroWorldFixture, baseline: RunDescriptor, intervention: RunDescriptor) -> "MatchedRunPair":
-        if type(fixture) is not MicroWorldFixture or type(baseline) is not RunDescriptor or type(intervention) is not RunDescriptor:
-            raise CognitiveMicroWorldError("matched pair requires exact concrete fixture/run values")
-        baseline.assert_matches_fixture(fixture)
-        intervention.assert_matches_fixture(fixture)
+    def create(cls, *, baseline: RunDescriptor, intervention: RunDescriptor, fixture: MicroWorldFixture | None = None) -> "MatchedRunPair":
+        if type(baseline) is not RunDescriptor or type(intervention) is not RunDescriptor:
+            raise CognitiveMicroWorldError("matched pair requires exact concrete RunDescriptor values")
+        if fixture is not None:
+            if type(fixture) is not MicroWorldFixture:
+                raise CognitiveMicroWorldError("fixture must be exact concrete MicroWorldFixture")
+            baseline.assert_matches_fixture(fixture)
+            intervention.assert_matches_fixture(fixture)
         pair_id = "pair:" + _digest({"baseline_sha256": baseline.sha256(), "intervention_sha256": intervention.sha256()})
         return cls(MATCHED_PAIR_SCHEMA, pair_id, baseline, intervention, _origin=_PAIR_ORIGIN)
 
