@@ -1,0 +1,33 @@
+name: Trigger 7 German ASR Scoring Harness
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'research/local_voice/tools/t7_asr_score.py'
+      - 'research/local_voice/tests/test_t7_asr_score.py'
+      - '.github/workflows/trigger7-asr-scoring-harness.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  deterministic-scoring-tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+          persist-credentials: false
+      - name: Bind exact source
+        run: |
+          set -euo pipefail
+          echo "tested_sha=$(git rev-parse HEAD)"
+          sha256sum research/local_voice/tools/t7_asr_score.py research/local_voice/tests/test_t7_asr_score.py
+          python3 -m py_compile research/local_voice/tools/t7_asr_score.py research/local_voice/tests/test_t7_asr_score.py
+      - name: Run deterministic scorer tests
+        run: |
+          set -euo pipefail
+          python3 -m unittest research/local_voice/tests/test_t7_asr_score.py -v
