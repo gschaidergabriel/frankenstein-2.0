@@ -1,0 +1,75 @@
+{
+  "schema": "FRANKENSTEIN2_WORKPACKAGE_RECONCILIATION/v1",
+  "workpackage_id": "F2-WP-508",
+  "generation": 4,
+  "claim_id": "F2-WP-508-G4-GPT56SOL-BROADCAST-BUILDER-LINEAGE-REPAIR-20260829",
+  "authority_epoch": "8.78",
+  "terminal_state": "ACCEPTED",
+  "terminal_scope": "GWT_REENTRY_UPTAKE_BINDING_G4_BROADCAST_BUILDER_LINEAGE_REPOSITORY_HOSTED_COMPONENT_CI_ONLY",
+  "parent_failure_reconciliation": "workpackages/reconciliations/F2-WP-508/3-F2-WP-508-G3-FORGED-BROADCAST-PAYLOAD-LINEAGE-FAILURE-20260829.json",
+  "triggering_falsifier": "workpackages/falsifiers/F2-WP-508/20260829T1557P0700_G3_FORGED_BROADCAST_PAYLOAD_LINEAGE_GPT56SOL.json",
+  "review_pr": 257,
+  "review_run_id": 33244351377,
+  "review_job_id": 99079105335,
+  "implementation_equivalence_note": "The current G4 claim was opened after the G3 broadcast-payload-lineage failure was terminally reconciled. A parallel Trigger-4 lane independently produced the same exact repair semantics under the historical G3 lane name. Convergence law therefore reuses that already-merged canonical implementation instead of merging the later duplicate PR #269.",
+  "canonical_implementation": {
+    "pr": 268,
+    "head_sha": "ae4089082c235a469f1a5e433ea55651a4d0f894",
+    "merge_sha": "74d68f4a32754ecc4a2cdd05e3760a28fdeafc38",
+    "source_path": "src/frankenstein2/gwt_reentry_uptake_binding.py",
+    "source_blob_sha_at_merge": "07e45d46f80e7853f3c73466e09ee81dda171a84",
+    "test_path": "tests/test_gwt_reentry_uptake_binding.py",
+    "test_blob_sha_at_merge": "20e3df69745cbda32cc663d8ad0edad2e8f7beff",
+    "repair": [
+      "derive canonical candidate_ids from exact WorkspaceSelection.selected",
+      "derive canonical candidate_payload_refs from exact WorkspaceSelection.selected",
+      "reject BroadcastEnvelope candidate_ids not equal to the canonical tuple",
+      "reject BroadcastEnvelope candidate_payload_refs not equal to the canonical tuple",
+      "perform material re-entry overlap against the canonical selected payload refs rather than reconstructed broadcast metadata"
+    ],
+    "canonical_regressions": [
+      "forged BroadcastEnvelope candidate_payload_refs detached from exact selection must fail closed",
+      "forged BroadcastEnvelope candidate_ids detached from exact selection must fail closed",
+      "all prior WP508 G2/G3 lineage and WP507 uptake-preservation regressions remain in the same suite"
+    ]
+  },
+  "pr_head_ci": {
+    "run_id": 33244777457,
+    "job_id": 99080261350,
+    "head_sha": "ae4089082c235a469f1a5e433ea55651a4d0f894",
+    "conclusion": "success",
+    "compile": "PASS",
+    "falsification_suite": "PASS"
+  },
+  "merged_main_ci": {
+    "run_id": 33244808806,
+    "job_id": 99080343182,
+    "head_sha": "74d68f4a32754ecc4a2cdd05e3760a28fdeafc38",
+    "conclusion": "success",
+    "compile": "PASS",
+    "falsification_suite": "PASS"
+  },
+  "duplicate_lane": {
+    "pr": 269,
+    "head_sha": "f6eb4a06218a0c9fd2ac3cdd3b24363c0d65d79f",
+    "state": "CLOSED_STALE_SEMANTIC_DUPLICATE",
+    "reason": "canonical main already contained the same repair with successful exact-main CI; no second implementation merge was needed"
+  },
+  "later_upstream_negative_evidence": {
+    "workpackage": "F2-WP-506",
+    "generation_under_test": 2,
+    "falsifier": "workpackages/falsifiers/F2-WP-506/20260829T1608P0700_G2_WORKSPACE_SELECTION_SUBTYPE_DIGEST_SELF_ATTESTATION_GPT56SOL.json",
+    "scope": "WP506 public WorkspaceSelection exact-digest trust boundary",
+    "effect_on_this_reconciliation": "DOES_NOT_INVALIDATE_DECLARED_WP508_G4_BROADCAST_BUILDER_LINEAGE_SCOPE",
+    "reason": "The WP506 falsifier explicitly reports no end-to-end WP508 bypass because WP508 re-entry provenance independently requires concrete WorkspaceSelection. The WP506 G3 repair remains independently necessary before restoring WP506's own public exact-digest boundary."
+  },
+  "runtime_execution_observed": false,
+  "runtime_credit": 0,
+  "physical_grid10_credit": 0,
+  "gwt_runtime_credit": 0,
+  "jspace_runtime_credit": 0,
+  "training_credit": 0,
+  "whole_system_acceptance": false,
+  "resolution": "Accept F2-WP-508 generation 4 only at repository-hosted component-CI scope for the broadcast builder-lineage repair. This acceptance proves neither recipient causal influence nor target runtime execution; WP507 remains the sole uptake evidence authority and all real effect/completion authority remains outside this component.",
+  "next_exact_action": "Keep WP508 G4 closed unless a new executable end-to-end falsifier invalidates this bounded scope. Re-enter current main, respect the active WP506 G3 single-writer repair lane, and require fresh dependency-correct evidence before any broader GWT/runtime/J-Space promotion."
+}
