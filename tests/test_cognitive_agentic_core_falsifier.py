@@ -102,6 +102,7 @@ def policy(**overrides) -> FalsifierPolicy:
         min_intervention_score_ppm=600_000,
         min_delta_over_baseline_ppm=100_000,
         min_sample_count_per_capability=10,
+        max_action_count_per_capability=1_000,
         require_shared_holdout_set=True,
     )
     values.update(overrides)
@@ -177,6 +178,26 @@ class AgenticCoreFalsifierTests(unittest.TestCase):
         report = evaluate_agentic_core(tuple(values), policy=policy(), report_id="report-floor")
         self.assertEqual(report.verdict, FALSIFIED)
         self.assertIn(f"DELTA_BELOW_BASELINE_FLOOR:{PLANNING_EXECUTION}", report.reasons)
+
+    def test_action_budget_is_policy_bound_and_fail_closed(self):
+        high_action = tuple(
+            evidence(capability, actions=200_000_000)
+            for capability in (EXPLORATION, MODELING, GOAL_SETTING, PLANNING_EXECUTION)
+        )
+        report = evaluate_agentic_core(high_action, policy=policy(), report_id="report-action-budget")
+        self.assertEqual(report.verdict, FALSIFIED)
+        self.assertEqual(report.total_action_count, 800_000_000)
+        for capability in (EXPLORATION, MODELING, GOAL_SETTING, PLANNING_EXECUTION):
+            self.assertIn(f"ACTION_BUDGET_EXCEEDED:{capability}", report.reasons)
+
+    def test_action_budget_boundary_is_inclusive(self):
+        values = tuple(
+            evidence(capability, actions=1_000)
+            for capability in (EXPLORATION, MODELING, GOAL_SETTING, PLANNING_EXECUTION)
+        )
+        report = evaluate_agentic_core(values, policy=policy(), report_id="report-action-boundary")
+        self.assertEqual(report.verdict, SUPPORTED_AT_COMPONENT_SCOPE)
+        self.assertNotIn("ACTION_BUDGET_EXCEEDED", "|".join(report.reasons))
 
     def test_family_binding_cannot_be_relabelled_without_rebinding(self):
         with self.assertRaisesRegex(AgenticCoreFalsifierError, "family binding digest mismatch"):
@@ -254,6 +275,8 @@ class AgenticCoreFalsifierTests(unittest.TestCase):
     def test_boolean_is_not_accepted_as_integer_threshold(self):
         with self.assertRaises(AgenticCoreFalsifierError):
             policy(min_intervention_score_ppm=True)
+        with self.assertRaises(AgenticCoreFalsifierError):
+            policy(max_action_count_per_capability=True)
 
     def test_input_order_does_not_change_evidence_binding(self):
         values = complete_evidence()
