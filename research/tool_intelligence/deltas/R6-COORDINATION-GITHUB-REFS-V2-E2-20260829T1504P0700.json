@@ -1,0 +1,72 @@
+{
+  "schema": "FRANKENSTEIN2_TRIGGER6_E2_ARCHITECTURE_MAP/v1",
+  "research_id": "R6-COORDINATION-GITHUB-REFS-V2",
+  "claim_target": "E2_ARCHITECTURE_MAPPED",
+  "status": "E2_SOURCE_ARCHITECTURE_MAPPED_NO_RUNTIME_CREDIT",
+  "created_at": "2026-08-29T15:04:03+07:00",
+  "claim_commit": "7b077fa16ef759d92ab2033aae2d52127e68c50d",
+  "bound_architecture_snapshot": {
+    "f2_main_preclaim": "a49f284fd26edc1c030a1bb88fdc11569088afa4",
+    "research_entity_main_preclaim": "4aac1bb9a906d9658f91ce5db1b561923e057906",
+    "coordination_negative_result": "R6-MAIN-CAS-STARVATION-001"
+  },
+  "observed_problem": {
+    "mechanism": "Trigger-6 objective claims are immutable create-only files committed through the GitHub Contents API onto one hot main branch.",
+    "negative_result": "Two nonoverlapping claim attempts observed HTTP 409 because main moved between compare-and-swap attempts; no claim-path collision was observed.",
+    "classification": "BRANCH_WIDE_CAS_CONTENTION_NOT_SEMANTIC_CLAIM_COLLISION"
+  },
+  "primary_source_findings": [
+    {
+      "source": "https://docs.github.com/en/graphql/reference/git",
+      "finding": "GitHub GraphQL updateRefs performs a list of ref updates atomically; RefUpdate.beforeOid can be all-zero to require that a ref does not already exist; RefUpdate.name is a fully-qualified ref name.",
+      "relevance": "A per-objective ref can encode the create-only mutex without committing a file to hot main."
+    },
+    {
+      "source": "https://docs.github.com/en/rest/git/refs",
+      "finding": "GitHub exposes create-reference directly against the Git ref database and returns Created/Conflict/Validation outcomes.",
+      "relevance": "Single-ref create is a simpler fallback when GraphQL updateRefs is unavailable."
+    },
+    {
+      "source": "https://git-scm.com/docs/git-push",
+      "finding": "git push --force-with-lease=<ref>:<expect> supports an empty expected value meaning the remote ref must not already exist; --atomic provides all-or-none multi-ref update when supported by the server.",
+      "relevance": "Native Git transport provides a dependency-light fallback with explicit nonexistence lease semantics."
+    },
+    {
+      "source": "https://docs.github.com/en/rest/repos/contents",
+      "finding": "GitHub documents conflict behavior for concurrent mutative repository-content operations and recommends serializing concurrent REST mutations in API best practices.",
+      "relevance": "This is consistent with observed hot-main contention and argues against using main-commit creation as the mutex primitive under high fan-out."
+    }
+  ],
+  "distilled_design_hypothesis": {
+    "name": "OBJECTIVE_REF_SEMAPHORE_V2",
+    "semantic_key": "sha256(canonical_json({research_id, claim_target, architecture_scope_or_fusion_id}))",
+    "ref_namespace": "refs/heads/r6-claims-v2/<semantic_key>",
+    "preferred_acquire": "GraphQL updateRefs with name=<objective-ref>, beforeOid=0000000000000000000000000000000000000000, afterOid=<bound F2 commit>, force=false",
+    "success": "Ref created => worker owns only that objective.",
+    "duplicate": "Nonexistence precondition fails => consume existing result; do not duplicate.",
+    "materialization": "After acquisition, write the existing immutable claim JSON and result receipts to main as audit/provenance materialization; main materialization is not the mutex and may be retried/reconciled.",
+    "authority_boundary": "The ref is coordination metadata only. pending_research.sqlite remains Trigger-6 research authority and UnifiedDB remains Frankenstein canonical state authority.",
+    "expiry_policy": "No lock expiry for evidence objectives; objective ownership is create-once. Architecture-triggered re-review uses a new semantic key/objective rather than recycling the ref."
+  },
+  "fallbacks_ranked": [
+    "REST createRef for one objective ref",
+    "git push with explicit empty force-with-lease expectation against the objective ref",
+    "bounded re-entry retry on current file-claim protocol only as compatibility fallback"
+  ],
+  "rejected_or_deferred": [
+    "Redis/etcd/ZooKeeper distributed-lock dependencies: add infrastructure and a competing coordination store for a problem Git already models as refs.",
+    "GitHub Issues as mutex: semantic uniqueness is weak and prior issue-trigger fan-out already produced stampede behavior.",
+    "GitHub Actions concurrency as primary mutex: private Actions admission is currently a separate blocker and it couples research ownership to workflow execution.",
+    "last-writer-wins claim files: violates fail-closed duplicate prevention."
+  ],
+  "counterhypothesis": "The observed 409s are transient and bounded retry is sufficient; per-objective refs would add cleanup/discoverability complexity without materially improving acquisition success.",
+  "next_falsifier": "E3 no-effect coordination fixture: under controlled fan-out, compare N independent objective acquisitions plus one deliberate duplicate using current Contents-API file claims versus per-objective ref creation. Measure acquisition success, p50/p95 latency, API calls/retries, duplicate exclusion, main-head writes and stale-artifact reconciliation. No provider/model/VPS/effect execution is needed.",
+  "promotion_decision": "E2_KEEP_AS_PROTOCOL_V2_CANDIDATE; DO_NOT_REPLACE_CURRENT_CLAIM_PROTOCOL_UNTIL_E3_COORDINATION_FIXTURE",
+  "credits": {
+    "research_evidence": "E2_SOURCE_ARCHITECTURE_MAPPED",
+    "architecture_credit": 0,
+    "runtime_credit": 0,
+    "integration_credit": 0,
+    "whole_system_credit": 0
+  }
+}
