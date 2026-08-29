@@ -1,0 +1,68 @@
+{
+  "schema": "FRANKENSTEIN2_TRIGGER6_CLAIM_REPRODUCTION/v1",
+  "trigger": "6",
+  "research_id": "R6-20260829-WP807-CROSSBENCH-GENERALIZATION-GPT56SOL-01",
+  "claim_target": "E3_CLAIM_REPRODUCED_BENCHMARK_ID_FAMILY_ALIAS",
+  "evidence_stage": "E3_CLAIM_REPRODUCED_SOURCE_LOGIC_ONLY",
+  "created_at": "2026-08-29T20:24:00+07:00",
+  "worker": "GPT-5.6 Sol / Trigger-6 organ",
+  "claim_commit": "565bc47491d5f247f29d2589d7bee2d6e5e2354f",
+  "exact_source": {
+    "path": "src/frankenstein2/cognitive_agentic_core_falsifier.py",
+    "blob_sha": "6ea004126f9d39e428141703ea49aa3090b9994e",
+    "implementation_delta_commit": "9dd565e5fae80795b0f84a4dfd7aa8c6b2e195e9"
+  },
+  "reproduced_source_logic": [
+    "CapabilityEvidence.__post_init__ validates benchmark_id only as a non-empty bounded identifier; it does not bind benchmark_id to holdout_set_id, source receipt content, fixture family or evaluator lineage.",
+    "evaluate_agentic_core requires one record per canonical capability, ACCEPTED source state, unique receipt/reconciliation hashes, threshold compliance, and—when require_shared_holdout_set is true—only equality of the caller-supplied holdout_set_id strings.",
+    "evaluate_agentic_core never compares benchmark_id across capability records and never derives holdout_set_id from source receipt/reconciliation content.",
+    "Therefore four records can declare four mutually different benchmark_id values while sharing one arbitrary holdout_set_id label and still satisfy every currently encoded family-matching condition."
+  ],
+  "constructive_counterexample": {
+    "policy": {
+      "require_shared_holdout_set": true,
+      "all_existing_score_and_sample_thresholds": "SATISFIED"
+    },
+    "capability_records": [
+      {"capability": "EXPLORATION", "benchmark_id": "BENCHMARK_EXPLORE", "holdout_set_id": "ALIASED_SHARED_HOLDOUT", "source_state": "ACCEPTED", "receipt_and_reconciliation_hashes": "UNIQUE_VALID_SHA256"},
+      {"capability": "MODELING", "benchmark_id": "BENCHMARK_MODEL", "holdout_set_id": "ALIASED_SHARED_HOLDOUT", "source_state": "ACCEPTED", "receipt_and_reconciliation_hashes": "UNIQUE_VALID_SHA256"},
+      {"capability": "GOAL_SETTING", "benchmark_id": "BENCHMARK_GOAL", "holdout_set_id": "ALIASED_SHARED_HOLDOUT", "source_state": "ACCEPTED", "receipt_and_reconciliation_hashes": "UNIQUE_VALID_SHA256"},
+      {"capability": "PLANNING_EXECUTION", "benchmark_id": "BENCHMARK_PLAN", "holdout_set_id": "ALIASED_SHARED_HOLDOUT", "source_state": "ACCEPTED", "receipt_and_reconciliation_hashes": "UNIQUE_VALID_SHA256"}
+    ],
+    "source_semantic_result": "NO_CURRENT_VERDICT_BRANCH_REJECTS_THIS_CONFIGURATION_FOR_BENCHMARK_OR_FAMILY_MISMATCH; WITH_ALL_OTHER_THRESHOLDS_SATISFIED THE VERDICT REMAINS SUPPORTED_AT_COMPONENT_SCOPE",
+    "classification": "STRUCTURAL_SOURCE_COUNTEREXAMPLE_NOT_EXECUTED_RUNTIME"
+  },
+  "what_this_proves": [
+    "The current shared-holdout check is label equality, not provenance-bound shared-family identity.",
+    "Current WP807 source cannot mechanically distinguish a genuinely shared underlying fixture family from four unrelated benchmark families that reuse the same holdout_set_id string."
+  ],
+  "what_this_does_not_prove": [
+    "It does not show that any canonical accepted WP802-WP805 receipt currently contains mismatched families.",
+    "It does not show that an end-to-end canonical WP807 report has been falsely promoted.",
+    "It does not grant runtime, model, ARC-AGI-3, GRID10, GWT/J-Space, effect, completion or whole-system credit.",
+    "The ChatGPT local container could not clone GitHub because DNS resolution was unavailable; that infrastructure failure is not product evidence and no execution credit is claimed for this counterexample."
+  ],
+  "architecture_correction": {
+    "do_not_fix_with": "blind benchmark_id equality across all four capabilities, because distinct capability-specific benchmark contracts may legitimately have different benchmark_id values",
+    "minimal_fix": "introduce one provenance-bound shared fixture/task-family identity whose digest is derived from or mechanically checked against each exact upstream reconciliation/receipt/run descriptor, then require exact equality of that digest across the four CapabilityEvidence records",
+    "candidate_field": "shared_fixture_family_sha256",
+    "fail_closed_rule": "if a capability source cannot prove the common family digest from its admitted evidence, WP807 is NOT_EVALUABLE rather than caller-label-supported",
+    "cross_family_extension": "after the inner common-family binding is repaired, the E2 GeneralizationBundleEvidence proposal can evaluate multiple independently bound family digests without weakening the inner four-capability match"
+  },
+  "counterhypothesis": "The canonical upstream receipts may already contain enough exact fixture/run lineage that a future binder can prove shared family identity outside WP807, making this only a missing local enforcement check rather than an exploitable canonical path.",
+  "discriminator": "Add a repository-hosted negative control that constructs four otherwise-valid CapabilityEvidence records with distinct provenance-bound family digests (or distinct benchmark/fixture lineage where current receipts expose it) but the same text holdout_set_id. The current source should reproduce support; the repaired source must deterministically reject/NOT_EVALUABLE before score evaluation.",
+  "promotion": {
+    "current_ceiling": "E3_SOURCE_LOGIC_ONLY",
+    "next_stage": "E4_F2_ABLATION_REPOSITORY_HOSTED_NEGATIVE_CONTROL",
+    "trigger4_inbox_write_now": false,
+    "reason": "Trigger-6 protocol promotes to Trigger-4 only at E5; repository-hosted negative control has not yet executed."
+  },
+  "credits": {
+    "E3_claim_reproduced_source_logic": 1,
+    "repository_execution_credit": 0,
+    "f2_ablation_credit": 0,
+    "build_candidate_credit": 0,
+    "runtime_credit": 0,
+    "whole_system_credit": 0
+  }
+}
