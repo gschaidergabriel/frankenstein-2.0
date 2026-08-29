@@ -193,6 +193,32 @@ class GenericAgentRouteTests(unittest.TestCase):
         route = plan_generic_agent_route(**plan_kwargs(env, blocked))
         self.assertIs(route.classification, AdapterClass.BLOCKED)
 
+    def test_missing_required_capability_cannot_arrive_as_adapted(self):
+        env, capability_report = report(native=False)
+        forged = replace(
+            capability_report,
+            classification=AdapterClass.ADAPTED,
+            missing_required_capabilities=("DURABLE_STATE_PATH",),
+        )
+        with self.assertRaisesRegex(
+            GenericAgentRouteError,
+            "CAPABILITY_REPORT_REQUIRED_DEFICIT_CLASSIFICATION_MISMATCH",
+        ):
+            plan_generic_agent_route(**plan_kwargs(env, forged))
+
+    def test_unverified_required_lifecycle_role_cannot_arrive_as_adapted(self):
+        env, capability_report = report(native=False)
+        forged = replace(
+            capability_report,
+            classification=AdapterClass.ADAPTED,
+            unverified_required_roles=("PRE_EFFECT",),
+        )
+        with self.assertRaisesRegex(
+            GenericAgentRouteError,
+            "CAPABILITY_REPORT_REQUIRED_DEFICIT_CLASSIFICATION_MISMATCH",
+        ):
+            plan_generic_agent_route(**plan_kwargs(env, forged))
+
     def test_disposable_or_unknown_state_root_fails_closed(self):
         env, capability_report = report(native=False)
         for state_root_class in (
