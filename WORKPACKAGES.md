@@ -119,6 +119,10 @@ Phase-3 acceptance is bounded to the granular repository-hosted evidence referen
 - [ ] F2-WP-1002 Secret/supply-chain hardening.
 - [ ] F2-WP-1003 Adversarial security acceptance.
 
+## Phase 11 — Portable Host Harness
+
+- [-] F2-WP-1101 Host capability discovery / semantic lifecycle ABI — active source/tests-only claim; no physical-host or installer-runtime credit.
+
 ## Completion law
 
 A checkmark means the acceptance evidence is in this repository. Donor code, design prose, source presence, a queued runtime job, or a symptom disappearing is never sufficient by itself.
