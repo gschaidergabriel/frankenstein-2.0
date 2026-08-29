@@ -200,6 +200,15 @@ class OrientationBenchmarkTests(unittest.TestCase):
         with self.assertRaisesRegex(OrientationBenchmarkError, "must be created by run_orientation_policy"):
             replace(baseline, evaluator_score=999)
 
+    def test_post_init_result_mutation_must_fail_closed_at_comparison_boundary(self) -> None:
+        f, baseline, intervention = run_pair()
+        object.__setattr__(intervention, "evaluator_score", 999)
+        with self.assertRaisesRegex(
+            OrientationBenchmarkError,
+            "result|producer|lineage|revalid|digest|score",
+        ):
+            compare_orientation_runs(f, baseline=baseline, intervention=intervention)
+
     def test_policy_modes_and_history_bounds_fail_closed(self) -> None:
         with self.assertRaisesRegex(OrientationBenchmarkError, "mode must be one of"):
             OrientationPolicy(
@@ -208,7 +217,7 @@ class OrientationBenchmarkTests(unittest.TestCase):
                 mode="USES_HIDDEN_GROUND_TRUTH",
                 max_public_history_entries=1,
             )
-        with self.assertRaisesRegex(OrientationBenchmarkError, "integer in \[1"):
+        with self.assertRaisesRegex(OrientationBenchmarkError, "integer in \\[1"):
             OrientationPolicy.bounded_exploration(max_public_history_entries=0)
 
     def test_conditions_are_explicit_and_not_inferred_from_policy_name(self) -> None:
