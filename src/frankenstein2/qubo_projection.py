@@ -1,7 +1,7 @@
 """Deterministic solver-neutral QUBO projection for Frankenstein 2.0.
 
 This module projects an exact noncanonical ``WorldSlice`` into an immutable binary
-quadratic objective supplied by the caller.  It does not invent an objective, run a
+quadratic objective supplied by the caller. It does not invent an objective, run a
 solver, infer world truth, authorize effects, or mint completion.
 """
 from __future__ import annotations
@@ -149,15 +149,10 @@ class QuboCoupling:
 
 @dataclass(frozen=True, slots=True, kw_only=True)
 class QuboProjection:
-    """Immutable QUBO objective bound to one exact source ``WorldSlice`` digest."""
+    """Immutable QUBO objective bound to one exact source ``WorldSlice`` object."""
 
     projection_id: str
-    source_slice_id: str
-    source_need_id: str
-    source_cycle_id: str
-    source_generation: int
-    source_vector_space_version: str
-    source_slice_sha256: str
+    source_slice: WorldSlice
     variables: tuple[QuboVariable, ...]
     couplings: tuple[QuboCoupling, ...]
     offset_bias: int
@@ -168,27 +163,14 @@ class QuboProjection:
 
     def __post_init__(self) -> None:
         object.__setattr__(self, "projection_id", _require_text("projection_id", self.projection_id))
-        object.__setattr__(self, "source_slice_id", _require_text("source_slice_id", self.source_slice_id))
-        object.__setattr__(self, "source_need_id", _require_text("source_need_id", self.source_need_id))
-        object.__setattr__(self, "source_cycle_id", _require_text("source_cycle_id", self.source_cycle_id))
-        if isinstance(self.source_generation, bool) or not isinstance(self.source_generation, int) or self.source_generation < 0:
-            raise QuboProjectionError("source_generation must be an integer >= 0")
-        object.__setattr__(
-            self,
-            "source_vector_space_version",
-            _require_text("source_vector_space_version", self.source_vector_space_version),
-        )
-        object.__setattr__(
-            self,
-            "source_slice_sha256",
-            _require_sha256("source_slice_sha256", self.source_slice_sha256),
-        )
+        if type(self.source_slice) is not WorldSlice:
+            raise QuboProjectionError("source_slice must be an exact WorldSlice")
         if not isinstance(self.variables, tuple) or not self.variables:
             raise QuboProjectionError("variables must be a non-empty immutable tuple")
         if len(self.variables) > _MAX_VARIABLES:
             raise QuboProjectionError(f"variables exceed bounded maximum {_MAX_VARIABLES}")
-        if not all(isinstance(item, QuboVariable) for item in self.variables):
-            raise QuboProjectionError("variables must contain only QuboVariable objects")
+        if not all(type(item) is QuboVariable for item in self.variables):
+            raise QuboProjectionError("variables must contain only exact QuboVariable objects")
         if tuple(sorted(self.variables, key=lambda item: item.variable_id)) != self.variables:
             raise QuboProjectionError("variables must be in canonical variable_id order")
         variable_ids = tuple(item.variable_id for item in self.variables)
@@ -197,12 +179,19 @@ class QuboProjection:
             raise QuboProjectionError("duplicate variable_id")
         if len(set(atom_ids)) != len(atom_ids):
             raise QuboProjectionError("duplicate atom_id binding")
+        selected_atoms = set(self.source_slice.selected_atom_ids)
+        tainted_atoms = set(self.source_slice.tainted_atom_ids)
+        for variable in self.variables:
+            if variable.atom_id not in selected_atoms:
+                raise QuboProjectionError("QUBO variable atom_id is not selected in source WorldSlice")
+            if variable.atom_id in tainted_atoms:
+                raise QuboProjectionError("QUBO variable must not bind a tainted source atom")
         if not isinstance(self.couplings, tuple):
             raise QuboProjectionError("couplings must be an immutable tuple")
         if len(self.couplings) > _MAX_COUPLINGS:
             raise QuboProjectionError(f"couplings exceed bounded maximum {_MAX_COUPLINGS}")
-        if not all(isinstance(item, QuboCoupling) for item in self.couplings):
-            raise QuboProjectionError("couplings must contain only QuboCoupling objects")
+        if not all(type(item) is QuboCoupling for item in self.couplings):
+            raise QuboProjectionError("couplings must contain only exact QuboCoupling objects")
         if tuple(sorted(self.couplings, key=lambda item: item.pair)) != self.couplings:
             raise QuboProjectionError("couplings must be in canonical pair order")
         pairs = tuple(item.pair for item in self.couplings)
@@ -218,6 +207,30 @@ class QuboProjection:
             "provenance_refs",
             _require_refs("provenance_refs", self.provenance_refs, allow_empty=False),
         )
+
+    @property
+    def source_slice_id(self) -> str:
+        return self.source_slice.slice_id
+
+    @property
+    def source_need_id(self) -> str:
+        return self.source_slice.need_id
+
+    @property
+    def source_cycle_id(self) -> str:
+        return self.source_slice.cycle_id
+
+    @property
+    def source_generation(self) -> int:
+        return self.source_slice.generation
+
+    @property
+    def source_vector_space_version(self) -> str:
+        return self.source_slice.vector_space_version
+
+    @property
+    def source_slice_sha256(self) -> str:
+        return self.source_slice.sha256()
 
     def as_dict(self) -> dict[str, Any]:
         return {
@@ -311,7 +324,7 @@ def compile_qubo_projection(
 ) -> QuboProjection:
     """Compile caller-supplied QUBO terms against one exact ``WorldSlice`` identity."""
 
-    if not isinstance(source_slice, WorldSlice):
+    if type(source_slice) is not WorldSlice:
         raise QuboProjectionError("source_slice must be an exact WorldSlice")
     projection_id = _require_text("projection_id", projection_id)
     if not isinstance(variables, tuple) or not variables:
@@ -322,10 +335,10 @@ def compile_qubo_projection(
         raise QuboProjectionError(f"variables exceed bounded maximum {_MAX_VARIABLES}")
     if len(couplings) > _MAX_COUPLINGS:
         raise QuboProjectionError(f"couplings exceed bounded maximum {_MAX_COUPLINGS}")
-    if not all(isinstance(item, QuboVariable) for item in variables):
-        raise QuboProjectionError("variables must contain only QuboVariable objects")
-    if not all(isinstance(item, QuboCoupling) for item in couplings):
-        raise QuboProjectionError("couplings must contain only QuboCoupling objects")
+    if not all(type(item) is QuboVariable for item in variables):
+        raise QuboProjectionError("variables must contain only exact QuboVariable objects")
+    if not all(type(item) is QuboCoupling for item in couplings):
+        raise QuboProjectionError("couplings must contain only exact QuboCoupling objects")
     provenance_refs = _require_refs("provenance_refs", provenance_refs, allow_empty=False)
     offset_bias = _require_bias("offset_bias", offset_bias)
 
@@ -356,12 +369,7 @@ def compile_qubo_projection(
 
     return QuboProjection(
         projection_id=projection_id,
-        source_slice_id=source_slice.slice_id,
-        source_need_id=source_slice.need_id,
-        source_cycle_id=source_slice.cycle_id,
-        source_generation=source_slice.generation,
-        source_vector_space_version=source_slice.vector_space_version,
-        source_slice_sha256=source_slice.sha256(),
+        source_slice=source_slice,
         variables=canonical_variables,
         couplings=canonical_couplings,
         offset_bias=offset_bias,
@@ -376,7 +384,7 @@ def evaluate_qubo_assignment(
 ) -> QuboEvaluation:
     """Evaluate ``offset + linear + quadratic`` for one complete binary assignment."""
 
-    if not isinstance(projection, QuboProjection):
+    if type(projection) is not QuboProjection:
         raise QuboProjectionError("projection must be an exact QuboProjection")
     if not isinstance(assignment, tuple):
         raise QuboProjectionError("assignment must be an immutable tuple")
