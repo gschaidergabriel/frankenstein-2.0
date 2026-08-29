@@ -1,0 +1,90 @@
+{
+  "schema": "FRANKENSTEIN2_TRIGGER6_WORK_OUTCOME/v1",
+  "research_id": "R6-20260829-SRCARCH-NNSIGHT-GPT56SOL-01",
+  "claim_target": "E1_SOURCE_READ",
+  "slot": "SOURCE_ARCHAEOLOGIST",
+  "status": "COMPLETED_E1_SOURCE_READ",
+  "completed_at": "2026-08-29T15:06:00+07:00",
+  "claim_ref": "research/tool_intelligence/claims/R6-20260829-SRCARCH-NNSIGHT-GPT56SOL-01/E1_SOURCE_READ.json",
+  "architecture_delta_fusion": "research/tool_intelligence/deltas/ADF-20260829T150330P0700-GPT56SOL-NNSIGHT-REENTRY.json",
+  "external_source": {
+    "repo": "ndif-team/nnsight",
+    "commit": "87f4dadaae254c6d36e8820cc83a251623b8dda7",
+    "source_pin_status": "EXACT_COMMIT_PINNED",
+    "license": "MIT"
+  },
+  "classification": "PROMISING_ISOLATED_CAUSAL_INTERVENTION_DONOR_NOT_CORE_DEPENDENCY_YET",
+  "source_observations": [
+    "The base NNsight wrapper accepts an already-instantiated arbitrary torch.nn.Module and recursively exposes its module tree through Envoy wrappers; this avoids a TransformerLens-style architecture conversion requirement for basic module-level intervention.",
+    "Local execution is the default: RemoteableMixin.trace(remote=False) leaves the backend local; NDIF remote execution is only selected explicitly and its remote backend imports are lazy.",
+    "model.trace executes one real forward pass while allowing intermediate activations to be read and replaced; direct output assignment is propagated back into downstream computation through swap/hook machinery.",
+    "The current implementation uses captured/compiled with-block code, one worker thread per invoke, mediator queues, sentinel hooks and lazily installed one-shot PyTorch hooks. This is richer and more invasive than a minimal native forward-hook harness.",
+    "The package dependency surface includes torch>=2.4, transformers, accelerate, pydantic, httpx, python-socketio/engineio, ipython, rich, cloudpickle and zstandard. Remote imports are lazy, but installation is not minimal.",
+    "Module access must follow forward-pass order within an invoke; out-of-order access is an explicit failure mode. This affects deterministic intervention-plan design.",
+    "NNsight can expose and modify actual runtime tensors without a proxy-unwrapping layer and can wrap an existing model object, making exact model-loader ownership easier to preserve than frameworks that convert weights into a parallel model representation."
+  ],
+  "f2_relevance": {
+    "wp507_gwt_uptake": "METHOD_DONOR_AND_FUTURE_MODEL_INTERNAL_FALSIFIER_ONLY",
+    "global_jspace_model_causality": "HIGH_AFTER_EXACT_LOCAL_MODEL_JSPACE_ABI_EXISTS",
+    "wp806_lesion_rescue": "HIGH_POTENTIAL_FIT",
+    "canonical_state_authority": "NONE",
+    "effect_authority": "NONE",
+    "remote_ndif_path": "OUT_OF_SCOPE_NOT_USED"
+  },
+  "comparative_assessment": {
+    "vs_transformerlens": "NNsight has a cleaner path for arbitrary already-loaded torch.nn.Module intervention because basic wrapping does not require TransformerLens architecture conversion; its dependency surface also omits several TransformerLens-heavy analysis dependencies noted in the current F2 audit, but NNsight still carries substantial tracing/runtime machinery.",
+    "vs_pyvene": "NNsight avoids pyvene-style model-component mapping for basic module-tree access and appears lighter on scientific/data dependencies, while pyvene offers a richer explicit catalog of intervention types and experiment semantics.",
+    "vs_native_pytorch_hooks": "Native hooks remain the lowest-dependency and most identity-transparent baseline. NNsight earns adoption only if its intervention ergonomics, deterministic matched controls, or reproducibility materially outperform the native baseline at acceptable latency/RAM/VRAM cost."
+  },
+  "hypothesis_update": "SUPPORTED_AT_E1: for a future exact local approximately-0.8B J-Space causal experiment, wrapping the already-attested torch model object with NNsight could provide controlled lesion/rescue and activation replacement without requiring a second model conversion or remote provider path.",
+  "counterhypotheses": [
+    "NNsight's AST capture, worker-thread interleaver and hook orchestration may add enough perturbation and maintenance surface that a thin F2-native hook harness is scientifically cleaner.",
+    "Wrapping the same torch object does not itself prove consumed checkpoint-byte identity; F2 must bind loader attestation before NNsight wrapping and preserve that identity in intervention receipts.",
+    "Output deltas after activation replacement may be generic model damage rather than GWT/J-Space-specific causal influence; sham/random-layer/equal-norm controls and rescue are mandatory.",
+    "Forward-order constraints and framework-specific module paths may create brittle experiment plans on the exact target architecture."
+  ],
+  "non_inference_boundaries": [
+    "No NNsight runtime experiment was executed.",
+    "No NDIF or remote provider path was invoked.",
+    "No exact target approximately-0.8B model compatibility was demonstrated.",
+    "No loader-consumed-byte identity was proven by NNsight.",
+    "No actual F2 GWT semantic uptake, hidden-state causal influence, physical GRID10, whole-F2, EntityOS/HCU or training credit is granted."
+  ],
+  "recommended_next_discriminator": {
+    "stage": "E2_ARCHITECTURE_MAPPED_COMPARATIVE_DESIGN",
+    "compare": ["NNsight", "pyvene", "TransformerLens", "minimal native PyTorch hooks"],
+    "criteria": [
+      "exact target model wraps without conversion",
+      "loader-consumed-byte and tokenizer identity preservation",
+      "single-layer activation collect/zero/swap/rescue",
+      "sham/random-layer/equal-norm controls",
+      "deterministic event+generation+vector provenance binding",
+      "forward-order failure handling",
+      "p50/p95 latency and CPU/RSS/GPU/VRAM overhead",
+      "dependency/install/reproducibility surface",
+      "fail-closed behavior on missing module path, shape mismatch or stale generation"
+    ],
+    "promotion_gate": "Do not claim E3 or E5 until the exact local target-model/J-Space ABI exists and one source-pinned deterministic local fixture shows net value over native hooks."
+  },
+  "evidence_refs": [
+    "ndif-team/nnsight@87f4dadaae254c6d36e8820cc83a251623b8dda7:pyproject.toml",
+    "ndif-team/nnsight@87f4dadaae254c6d36e8820cc83a251623b8dda7:src/nnsight/modeling/base.py",
+    "ndif-team/nnsight@87f4dadaae254c6d36e8820cc83a251623b8dda7:src/nnsight/modeling/mixins/remoteable.py",
+    "ndif-team/nnsight@87f4dadaae254c6d36e8820cc83a251623b8dda7:docs/usage/trace.md",
+    "ndif-team/nnsight@87f4dadaae254c6d36e8820cc83a251623b8dda7:docs/usage/access-and-modify.md",
+    "ndif-team/nnsight@87f4dadaae254c6d36e8820cc83a251623b8dda7:docs/developing/architecture-overview.md",
+    "F2 TransformerLens E1 outcome commit 25ea1e0aaa2d07bae3174e2e0663fa95622b123e",
+    "F2 pyvene E2 mapping commit a0b7696c31af77e4ef9f42d26c7b3699d3c90c49"
+  ],
+  "credits": {
+    "research_source_delta": 1,
+    "architecture_credit": 0,
+    "runtime_credit": 0,
+    "f2_wp507_actual_uptake_credit": 0,
+    "jspace_model_runtime_credit": 0,
+    "physical_grid10_credit": 0,
+    "whole_f2_credit": 0,
+    "whole_entityos_hcu_credit": 0,
+    "training_credit": 0
+  }
+}
