@@ -1,3 +1,4 @@
+import dataclasses
 import pathlib
 import sys
 import unittest
@@ -5,6 +6,7 @@ import unittest
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
+import frankenstein2.perception_control as perception_control  # noqa: E402
 from frankenstein2.perception_control import (  # noqa: E402
     PerceptionControlError,
     PerceptionControlResult,
@@ -12,6 +14,7 @@ from frankenstein2.perception_control import (  # noqa: E402
     PerceptionHeadPolicy,
     PerceptionPolicyRegistry,
     evaluate_perception_head,
+    validate_perception_control_result,
 )
 
 REFS = ("test:wp702",)
@@ -35,6 +38,15 @@ def registry(*heads, deps=None):
 def evaluate(reg, head_id, fn):
     return evaluate_perception_head(evaluation_id=f"eval-{head_id}", registry=reg,
         expected_registry_sha256=reg.sha256(), head_id=head_id, compute_fn=fn, provenance_refs=REFS)
+
+
+def validate(result, reg, *, expected_result_sha256=None, expected_registry_sha256=None):
+    return validate_perception_control_result(
+        result=result,
+        expected_result_sha256=expected_result_sha256 or result.sha256(),
+        registry=reg,
+        expected_registry_sha256=expected_registry_sha256 or reg.sha256(),
+    )
 
 
 class PerceptionControlTests(unittest.TestCase):
@@ -86,6 +98,73 @@ class PerceptionControlTests(unittest.TestCase):
                 provenance_refs=("caller:self-attested",),
             )
 
+    def test_factory_only_result_has_no_reusable_origin_token_and_cannot_replace(self):
+        reg = registry(policy("head"))
+        result = evaluate(reg, "head", lambda: ({"ok": True}, 800000))
+        self.assertFalse(hasattr(perception_control, "_EVALUATOR_ORIGIN"))
+        with self.assertRaises(PerceptionControlError):
+            dataclasses.replace(result, persistence_allowed=False)
+        with self.assertRaises(PerceptionControlError):
+            PerceptionControlResult(_evaluator_origin=object())
+
+    def test_consumer_revalidation_accepts_exact_canonical_result(self):
+        reg = registry(policy("head"))
+        result = evaluate(reg, "head", lambda: ({"ok": True}, 800000))
+        expected = result.sha256()
+        self.assertIs(validate(result, reg, expected_result_sha256=expected), result)
+
+    def test_consumer_revalidation_rejects_post_evaluation_digest_drift(self):
+        reg = registry(policy("sensitive.head", "MEMORY_OFF"))
+        result = evaluate(reg, "sensitive.head", lambda: ({"same_cycle": True}, 900000))
+        expected = result.sha256()
+        self.assertFalse(result.memory_match_allowed)
+        self.assertFalse(result.persistence_allowed)
+        object.__setattr__(result, "memory_match_allowed", True)
+        object.__setattr__(result, "persistence_allowed", True)
+        object.__setattr__(result, "reason", "post_evaluation_drift")
+        with self.assertRaisesRegex(PerceptionControlError, "result digest mismatch"):
+            validate(result, reg, expected_result_sha256=expected)
+
+    def test_consumer_revalidation_rejects_policy_forgery_even_with_recomputed_digest(self):
+        reg = registry(policy("sensitive.head", "MEMORY_OFF"))
+        result = evaluate(reg, "sensitive.head", lambda: ({"same_cycle": True}, 900000))
+        object.__setattr__(result, "memory_match_allowed", True)
+        object.__setattr__(result, "persistence_allowed", True)
+        object.__setattr__(result, "reason", "policy_allows_egress")
+        forged_digest = result.sha256()
+        with self.assertRaisesRegex(PerceptionControlError, "memory/persistence authority mismatches"):
+            validate(result, reg, expected_result_sha256=forged_digest)
+
+    def test_consumer_revalidation_rejects_result_bound_to_different_registry(self):
+        reg = registry(policy("head"))
+        result = evaluate(reg, "head", lambda: (True, 800000))
+        other = PerceptionPolicyRegistry(
+            registry_id="registry-2", generation=1,
+            heads=(policy("head"),),
+            dependencies=(PerceptionDependency(head_id="head", depends_on=()),),
+            provenance_refs=REFS,
+        )
+        with self.assertRaisesRegex(PerceptionControlError, "registry identity mismatch"):
+            validate_perception_control_result(
+                result=result,
+                expected_result_sha256=result.sha256(),
+                registry=other,
+                expected_registry_sha256=other.sha256(),
+            )
+
+    def test_consumer_revalidation_rejects_current_policy_semantic_drift(self):
+        original = policy("head")
+        reg = registry(original)
+        result = evaluate(reg, "head", lambda: (True, 800000))
+        changed = registry(policy("head", "MEMORY_OFF"))
+        with self.assertRaisesRegex(PerceptionControlError, "policy identity mismatch"):
+            validate_perception_control_result(
+                result=result,
+                expected_result_sha256=result.sha256(),
+                registry=changed,
+                expected_registry_sha256=changed.sha256(),
+            )
+
     def test_disabled_is_equivalent_to_compute_off_for_execution(self):
         calls = []
         reg = registry(policy("head", "ON", enabled=False))
@@ -102,6 +181,7 @@ class PerceptionControlTests(unittest.TestCase):
         self.assertEqual(result.status, "NOT_COMPUTED")
         self.assertEqual(result.blocked_by, "a")
         self.assertEqual(result.reason, "taint_blocked_by:a")
+        self.assertIs(validate(result, reg), result)
 
     def test_output_off_computes_once_but_blocks_all_egress_and_persistence(self):
         calls = []
@@ -115,6 +195,7 @@ class PerceptionControlTests(unittest.TestCase):
         self.assertFalse(result.egress_allowed)
         self.assertFalse(result.persistence_allowed)
         self.assertNotIn("sensitive", result.as_dict().values())
+        self.assertIs(validate(result, reg), result)
 
     def test_memory_off_egresses_same_cycle_but_cannot_match_or_persist(self):
         reg = registry(policy("person.pose", "MEMORY_OFF"))
@@ -124,6 +205,7 @@ class PerceptionControlTests(unittest.TestCase):
         self.assertTrue(result.egress_allowed)
         self.assertFalse(result.memory_match_allowed)
         self.assertFalse(result.persistence_allowed)
+        self.assertIs(validate(result, reg), result)
 
     def test_upstream_memory_off_taints_derived_memory_and_persistence(self):
         reg = registry(policy("sensitive.source", "MEMORY_OFF"), policy("derived.summary"),
@@ -135,6 +217,7 @@ class PerceptionControlTests(unittest.TestCase):
         self.assertFalse(result.memory_match_allowed)
         self.assertFalse(result.persistence_allowed)
         self.assertEqual(result.reason, "upstream_memory_or_persistence_taint")
+        self.assertIs(validate(result, reg), result)
 
     def test_transitive_upstream_memory_off_cannot_be_laundered(self):
         reg = registry(policy("a", "MEMORY_OFF"), policy("b"), policy("c"),
@@ -145,6 +228,7 @@ class PerceptionControlTests(unittest.TestCase):
         self.assertFalse(result.memory_match_allowed)
         self.assertFalse(result.persistence_allowed)
         self.assertEqual(result.reason, "upstream_memory_or_persistence_taint")
+        self.assertIs(validate(result, reg), result)
 
     def test_upstream_memory_allowed_false_taints_derived_persistence(self):
         reg = registry(policy("a", "ON", memory_allowed=False), policy("b"),
@@ -155,6 +239,7 @@ class PerceptionControlTests(unittest.TestCase):
         self.assertFalse(result.memory_match_allowed)
         self.assertFalse(result.persistence_allowed)
         self.assertEqual(result.reason, "upstream_memory_or_persistence_taint")
+        self.assertIs(validate(result, reg), result)
 
     def test_output_off_upstream_also_cannot_launder_memory_or_persistence(self):
         reg = registry(policy("a", "OUTPUT_OFF"), policy("b"),
@@ -164,6 +249,7 @@ class PerceptionControlTests(unittest.TestCase):
         self.assertEqual(result.value, "derived")
         self.assertFalse(result.memory_match_allowed)
         self.assertFalse(result.persistence_allowed)
+        self.assertIs(validate(result, reg), result)
 
     def test_on_with_memory_disallowed_has_same_cycle_egress_only(self):
         reg = registry(policy("face.presence", "ON", memory_allowed=False))
@@ -172,6 +258,7 @@ class PerceptionControlTests(unittest.TestCase):
         self.assertTrue(result.value)
         self.assertFalse(result.memory_match_allowed)
         self.assertFalse(result.persistence_allowed)
+        self.assertIs(validate(result, reg), result)
 
     def test_unknown_head_fails_closed_without_compute(self):
         calls = []
@@ -180,16 +267,20 @@ class PerceptionControlTests(unittest.TestCase):
         self.assertEqual(calls, [])
         self.assertEqual(result.status, "NOT_COMPUTED")
         self.assertEqual(result.reason, "unknown_head_not_in_registry")
+        self.assertIs(validate(result, reg), result)
 
     def test_compute_error_is_typed_non_evidence(self):
         reg = registry(policy("head"))
+
         def boom():
             raise RuntimeError("secret detail")
+
         result = evaluate(reg, "head", boom)
         self.assertEqual(result.status, "COMPUTE_ERROR")
         self.assertIsNone(result.value)
         self.assertEqual(result.reason, "compute_error:RuntimeError")
         self.assertNotIn("secret detail", result.reason)
+        self.assertIs(validate(result, reg), result)
 
     def test_registry_digest_is_order_independent_after_canonicalization(self):
         a = policy("a")
@@ -207,6 +298,12 @@ class PerceptionControlTests(unittest.TestCase):
             evaluate_perception_head(evaluation_id="eval", registry=reg, expected_registry_sha256="0" * 64,
                 head_id="head", compute_fn=lambda: (calls.append(1) or True, 1), provenance_refs=REFS)
         self.assertEqual(calls, [])
+
+    def test_consumer_expected_result_digest_mismatch_fails_closed(self):
+        reg = registry(policy("head"))
+        result = evaluate(reg, "head", lambda: (True, 800000))
+        with self.assertRaisesRegex(PerceptionControlError, "result digest mismatch"):
+            validate(result, reg, expected_result_sha256="0" * 64)
 
     def test_cycle_and_unknown_dependency_rejected(self):
         a = policy("a")
