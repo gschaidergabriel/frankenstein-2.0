@@ -1,37 +1,56 @@
 {
-  "schema_version": 1,
+  "schema_version": 2,
   "producer": "TRIGGER7",
   "consumer": "TRIGGER4",
-  "date": "2026-08-29",
+  "date": "2026-08-30",
   "status": "PRE_RUNTIME_HANDOFF",
-  "research_claim": "research/local_voice/claims/T7-LLM-002/E3_VPS_QWEN35_4B_ABLITERATED_BENCHMARK.json",
-  "objective": "Execute the first pinned local Qwen3.5-4B abliterated provider benchmark on the authorized Frankenstein VPS/target-class host.",
-  "candidate": {
+  "research_claims": [
+    "research/local_voice/claims/T7-LLM-003/E2_QWEN35_4B_BASELINE_PIN_AND_LLAMA_COMPAT_AUDIT.json",
+    "research/local_voice/claims/T7-LLM-002/E3_VPS_QWEN35_4B_ABLITERATED_BENCHMARK.json"
+  ],
+  "objective": "Execute a causally interpretable Qwen3.5-4B local provider A/B on clay-direct-dev: official-base behavior baseline first, then the abliterated challenger under identical German VoiceSessionCapsule conditions.",
+  "baseline": {
+    "official_base_repo": "Qwen/Qwen3.5-4B",
+    "runtime_artifact_repo": "bartowski/Qwen_Qwen3.5-4B-GGUF",
+    "runtime_artifact_classification": "COMMUNITY_QUANTIZATION_OF_OFFICIAL_QWEN_BASE",
+    "quant": "Q4_K_M",
+    "file": "Qwen_Qwen3.5-4B-Q4_K_M.gguf",
+    "file_upload_revision": "ba06320255db2dbec194dad738d066be90dabf29",
+    "sha256": "13c16f426047e2de38cd075bdade4a7bcbc8c774384876f677740cda65f8a983",
+    "bytes": 3013027808,
+    "serve_runtime": "llama-server",
+    "initial_context": 4096,
+    "realtime_thinking": "disabled / held constant for baseline"
+  },
+  "challenger": {
     "repo_id": "kaineone/Qwen3.5-4B-abliterated-GGUF",
     "revision": "551991a575c1d4221ca0f0cfca74037d26268411",
     "file": "KAINE-Qwen3.5-4B-abliterated.Q4_K_M.gguf",
     "local_name": "qwen35-4b-kaine-abliterated-q4km-r551991a",
     "serve_runtime": "llama-server",
     "initial_context": 4096,
-    "realtime_thinking": "disabled / reasoning budget 0"
+    "realtime_thinking": "disabled / held identical to baseline"
   },
   "ordered_actions": [
-    "run research/local_voice/tools/t7_hardware_inventory.py and persist the complete receipt",
-    "fail closed if memory/disk/runtime requirements are not satisfied",
-    "download the candidate only with research/local_voice/tools/t7_hf_quarantine_download.py and the immutable revision above",
+    "run research/local_voice/tools/t7_hardware_inventory.py inside clay-direct-dev and persist the complete receipt",
+    "compute whole-Frankenstein RAM/VRAM/disk headroom and fail closed if the resident bundle cannot coexist safely",
+    "quarantine-download the baseline artifact first using research/local_voice/tools/t7_hf_quarantine_download.py with the immutable file revision and verify SHA-256 13c16f426047e2de38cd075bdade4a7bcbc8c774384876f677740cda65f8a983",
     "persist T7_SHA256_MANIFEST.json and inspect repository artifacts before execution",
-    "serve on localhost only; do not expose unauthenticated llama-server publicly",
-    "run identical German VoiceSessionCapsule prompts against the local model",
-    "measure cold/warm TTFT, time-to-first-speakable-clause, tokens/s, RSS/VRAM, interruption response and long-turn behavior",
-    "compare with official Qwen3.5-4B Q4 before attributing any benefit to abliteration",
-    "preserve negative results",
-    "return a bounded Trigger4 outcome; do not mint whole-system acceptance"
+    "serve baseline on localhost only; do not expose unauthenticated llama-server publicly",
+    "run the pinned German VoiceSessionCapsule corpus and measure cold/warm TTFT, time-to-first-speakable-clause, tokens/s, RSS/VRAM, interruption response, tool/state adherence and long-turn behavior",
+    "only after the baseline receipt exists, quarantine-download and execute the abliterated challenger",
+    "run the identical corpus, tool schemas, generation controls and context settings against the challenger",
+    "attribute any delta to the intervention only after verifying artifact/runtime/config equality outside the model artifact",
+    "preserve negative results and any load/backend incompatibility",
+    "return bounded Trigger4 outcome receipts; do not mint whole-system acceptance"
   ],
   "authority": {
+    "execution_surface": "clay-direct-dev via established bridge/self-hosted runner",
     "claude_code_optional_provider_allowed": true,
     "local_solo_path_required": true,
     "model_output_is_candidate_only": true,
     "effect_authority": "Frankenstein EffectGate/EffectJournal only"
   },
+  "tool_envelope_note": "A Trigger-7 chat organ lacking a workflow_dispatch action must not classify this as NO_EXECUTOR. The build/runtime action remains routed to Trigger4 or another authorized organ with the established bridge/runner control surface.",
   "credit_before_execution": 0
 }
