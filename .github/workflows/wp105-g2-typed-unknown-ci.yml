@@ -30,6 +30,13 @@ permissions:
 
 jobs:
   typed-unknown-outcome:
+    # This workflow is an immutable G2 reproducibility capsule, not a successor gate.
+    # Preserve its exact historical blob hashes while refusing to classify later
+    # generations as G2 regressions merely because their source identities changed.
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      github.ref == 'refs/heads/chatgpt/trigger4-wp105-g2-typed-unknown-20260829' ||
+      github.head_ref == 'chatgpt/trigger4-wp105-g2-typed-unknown-20260829'
     runs-on: ubuntu-latest
     timeout-minutes: 8
     env:

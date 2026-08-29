@@ -1,0 +1,56 @@
+name: F2 WP105 G4 UNKNOWN provenance structural CI
+
+on:
+  push:
+    branches:
+      - trigger4/wp105-g4-unknown-provenance-structural-20260829
+    paths:
+      - 'src/frankenstein2/entityos_unknown_outcome_adapter.py'
+      - 'src/frankenstein2/effect_executor_interlock.py'
+      - 'tests/test_pr430_f2_interlock_unknown_integration.py'
+      - 'tests/test_wp105_g4_unknown_provenance_structural.py'
+      - '.github/workflows/wp105-g2-typed-unknown-ci.yml'
+      - '.github/workflows/wp105-g4-unknown-provenance-ci.yml'
+  pull_request:
+    paths:
+      - 'src/frankenstein2/entityos_unknown_outcome_adapter.py'
+      - 'src/frankenstein2/effect_executor_interlock.py'
+      - 'tests/test_pr430_f2_interlock_unknown_integration.py'
+      - 'tests/test_wp105_g4_unknown_provenance_structural.py'
+      - '.github/workflows/wp105-g2-typed-unknown-ci.yml'
+      - '.github/workflows/wp105-g4-unknown-provenance-ci.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  structural-unknown-provenance:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    env:
+      PYTHONPATH: .:src
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Verify exact repair source identities
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git hash-object src/frankenstein2/entityos_unknown_outcome_adapter.py)" = "14df82d7a7dc1aefa875305521513f9ecfae08fd"
+          test "$(git hash-object src/frankenstein2/effect_executor_interlock.py)" = "552802db239589a2dac2414a206f452c671d88b6"
+          test "$(git hash-object tests/test_pr430_f2_interlock_unknown_integration.py)" = "bd6c73ed218daa0fd294fb6f2c5ee4075c439dbd"
+          test "$(git hash-object tests/test_wp105_g4_unknown_provenance_structural.py)" = "71057fc183b810910080c5e45e346fcdea4656cf"
+          test "$(git hash-object .github/workflows/wp105-g2-typed-unknown-ci.yml)" = "c886d25e7a848a5f83b87ccb4e68f96b18190537"
+      - name: Compile repaired boundary
+        run: >-
+          python -m py_compile
+          src/frankenstein2/entityos_unknown_outcome_adapter.py
+          src/frankenstein2/effect_executor_interlock.py
+          tests/test_pr430_f2_interlock_unknown_integration.py
+          tests/test_wp105_g4_unknown_provenance_structural.py
+      - name: Execute nominal-exception provenance regression
+        run: python tests/test_wp105_g4_unknown_provenance_structural.py
+      - name: Execute no-real-effect F2 to EntityOS UNKNOWN integration suite
+        run: python tests/test_pr430_f2_interlock_unknown_integration.py
