@@ -1,0 +1,69 @@
+{
+  "schema_version": 1,
+  "trigger": "7",
+  "research_id": "T7-AUDIO-001",
+  "objective": "E2_LOCAL_AEC_DENOISE_DUPLEX_FRONTIER",
+  "observed_date": "2026-08-30",
+  "evidence_scope": "SOURCE_ONLY_NO_TARGET_RUNTIME",
+  "sources": [
+    {
+      "id": "PIPEWIRE_WEBRTC_ECHO_CANCEL",
+      "upstream": "PipeWire",
+      "surface": "libpipewire-module-echo-cancel / spa-aec-webrtc",
+      "observed_documentation_version": "1.6.8",
+      "role": "HOST_NATIVE_AEC_BASELINE",
+      "source_facts": [
+        "The echo-cancel module exposes capture/source and sink/playback stream topology.",
+        "The WebRTC SPA AEC backend is an available/default echo-cancel engine surface.",
+        "The playback/render signal and microphone/capture signal are both inputs to echo cancellation rather than denoising being treated as echo cancellation."
+      ],
+      "target_pin_status": "UNRESOLVED_UNTIL_CLAY_DIRECT_DEV_INVENTORY"
+    },
+    {
+      "id": "WEBRTC_AEC3",
+      "upstream": "WebRTC AudioProcessing / EchoCanceller3",
+      "surface": "EchoCanceller3 render-analysis + capture-processing path",
+      "role": "EMBEDDED_PRODUCT_OWNED_AEC_CANDIDATE",
+      "source_facts": [
+        "AEC3 analyzes/stores the far-end render stream and processes the near-end capture stream to remove echo.",
+        "WebRTC AudioProcessing models reverse/render and primary/capture streams explicitly."
+      ],
+      "exact_target_checkout": "UNRESOLVED"
+    },
+    {
+      "id": "WEBRTC_AUDIO_PROCESSING_FREEDESKTOP",
+      "upstream": "freedesktop/webrtc-audio-processing",
+      "observed_release": "2.1",
+      "observed_release_commit": "846fe90a289f58b7c9303a635142aa2c7caa93e5",
+      "role": "AUDITABLE_LINUX_APM_PACKAGING_CANDIDATE",
+      "note": "Target distro/package/runtime version must be measured on clay-direct-dev rather than inferred from upstream release state."
+    },
+    {
+      "id": "RNNOISE",
+      "upstream": "Xiph RNNoise",
+      "observed_github_mirror_commit": "70f1d256acd4b34a572f999a05c87bf00b67730d",
+      "role": "LIGHTWEIGHT_POST_AEC_DENOISE_BASELINE",
+      "classification": "DENOISER_NOT_ACOUSTIC_ECHO_CANCELLER",
+      "note": "GitHub is a convenience mirror; canonical latest-source identity should be resolved from the upstream Xiph source before target execution."
+    },
+    {
+      "id": "DEEPFILTERNET",
+      "upstream": "Rikorose/DeepFilterNet",
+      "observed_commit": "d375b2d8309e0935d165700c91da9de862a99c31",
+      "role": "HIGHER_QUALITY_POST_AEC_DENOISE_CHALLENGER",
+      "classification": "DENOISER_NOT_ACOUSTIC_ECHO_CANCELLER",
+      "source_facts": [
+        "Real-time speech enhancement/noise suppression is the project role.",
+        "A PipeWire/LADSPA integration path is documented.",
+        "The documented operating sample rate is 48 kHz."
+      ]
+    }
+  ],
+  "evidence_law": [
+    "SOURCE_PIN != TARGET_RUNTIME",
+    "DENOISER != AEC",
+    "AEC_COMPONENT_PASS != DUPLEX_CONVERSATION_PASS",
+    "HOST_AUDIO_GRAPH_EXISTENCE != CORRECT_CAUSAL_PLAYBACK_REFERENCE",
+    "TRIGGER7_SOURCE_RESULT != TRIGGER4_ACCEPTANCE"
+  ]
+}
