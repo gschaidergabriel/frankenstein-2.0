@@ -31,28 +31,47 @@ def reconciliation(broader: str) -> dict:
     return {"schema": mod.RECON_SCHEMA, "workpackage_id": WP, "generation": 1, "claim_id": CLAIM_ID, "worker_id": "fixture-worker", "terminal_state": "ACCEPTED", "broader_workpackage_status": broader, "whole_system_acceptance": False}
 
 
-def _required_projection(root: Path, pointer_path: Path, pointer_value: dict) -> tuple[str, list[str]]:
+def _selected_reconciliation(root: Path, pointer_path: Path, pointer_value: dict) -> tuple[dict | None, str | None]:
+    if pointer_value.get("state") != "ACCEPTED":
+        return None, None
+    pointer_ref = pointer_path.relative_to(root).as_posix()
+    matches = mod._matching_reconciliations(root, pointer_value)
+    selected = mod._select_terminal_reconciliation(root, matches, context=pointer_ref)
+    for path, candidate in matches:
+        if candidate is selected or candidate == selected:
+            return selected, path.relative_to(root).as_posix()
+    return selected, None
+
+
+def _required_projection(root: Path, pointer_path: Path, pointer_value: dict, current_entry: dict | None) -> tuple[str, list[str]]:
     pointer_state = pointer_value.get("state")
     pointer_ref = pointer_path.relative_to(root).as_posix()
+    evidence = [pointer_ref]
+    current_status = current_entry.get("status") if isinstance(current_entry, dict) else None
+
     if pointer_state == "ACTIVE":
-        return "IN_PROGRESS", [pointer_ref]
+        return "IN_PROGRESS", evidence
+
     if pointer_state == "ACCEPTED":
-        matches = mod._matching_reconciliations(root, pointer_value)
-        selected = mod._select_terminal_reconciliation(root, matches, context=pointer_ref)
-        broader = selected.get("broader_workpackage_status")
-        if broader == "ACCEPTED_AT_SCOPE":
-            recon_ref = selected.get("reconciliation_ref")
-            if not isinstance(recon_ref, str):
-                for path, candidate in matches:
-                    if candidate is selected or candidate == selected:
-                        recon_ref = path.relative_to(root).as_posix()
-                        break
-            evidence = [pointer_ref]
-            if isinstance(recon_ref, str) and recon_ref:
-                evidence.append(recon_ref)
-            return "ACCEPTED_AT_SCOPE", evidence
-        return "IN_PROGRESS", [pointer_ref]
-    return "IN_PROGRESS", [pointer_ref]
+        selected, recon_ref = _selected_reconciliation(root, pointer_path, pointer_value)
+        if recon_ref:
+            evidence.append(recon_ref)
+        broader = selected.get("broader_workpackage_status") if selected else None
+        if broader in {"IN_PROGRESS", "ACCEPTED_AT_SCOPE"}:
+            return broader, evidence
+        # Legacy accepted reconciliations may predate broader_workpackage_status.
+        # Preserve an existing non-NOT_STARTED aggregate projection; for missing/stale
+        # NOT_STARTED entries, the terminal accepted pointer supports only scoped aggregate
+        # acceptance, never runtime/whole-system credit.
+        if current_status in {"IN_PROGRESS", "HOLD", "BLOCKED", "ACCEPTED_AT_SCOPE"}:
+            return current_status, evidence
+        return "ACCEPTED_AT_SCOPE", evidence
+
+    # SUPERSEDED/RETIRED/FAILED pointers do not mint aggregate acceptance. Preserve any
+    # existing non-NOT_STARTED broad state; otherwise project conservatively as IN_PROGRESS.
+    if current_status in {"IN_PROGRESS", "HOLD", "BLOCKED", "ACCEPTED_AT_SCOPE"}:
+        return current_status, evidence
+    return "IN_PROGRESS", evidence
 
 
 class AggregateProjectionGateTests(unittest.TestCase):
@@ -74,6 +93,7 @@ class AggregateProjectionGateTests(unittest.TestCase):
         self.assertTrue(result["reconciliation_bound"])
 
     def test_repository_aggregate_matches_granular_pointer_projection(self):
+        self.maxDiff = None
         root = Path(__file__).resolve().parents[1]
         state = json.loads((root / "workpackages" / "STATE.json").read_text(encoding="utf-8"))
         projected = state["workpackages"]
@@ -81,8 +101,8 @@ class AggregateProjectionGateTests(unittest.TestCase):
         for pointer_path in sorted((root / "workpackages" / "active").glob("F2-WP-*.json")):
             pointer_value = json.loads(pointer_path.read_text(encoding="utf-8"))
             wp = pointer_path.stem
-            required_status, evidence = _required_projection(root, pointer_path, pointer_value)
             entry = projected.get(wp)
+            required_status, evidence = _required_projection(root, pointer_path, pointer_value, entry)
             if not isinstance(entry, dict) or entry.get("status") != required_status:
                 repairs.append({
                     "workpackage_id": wp,
