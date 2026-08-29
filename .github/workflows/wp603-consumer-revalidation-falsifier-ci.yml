@@ -1,0 +1,31 @@
+name: F2 WP603 Consumer Revalidation Falsifier CI
+
+on:
+  push:
+    branches:
+      - review/wp603-consumer-revalidation-falsifier-20260829
+    paths:
+      - 'src/frankenstein2/recursion_router.py'
+      - 'tests/test_recursion_router.py'
+      - 'tests/test_wp603_consumer_revalidation_falsifier.py'
+      - '.github/workflows/wp603-consumer-revalidation-falsifier-ci.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  falsifier:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Compile review falsifier
+        run: python -m py_compile src/frankenstein2/recursion_router.py tests/test_recursion_router.py tests/test_wp603_consumer_revalidation_falsifier.py
+      - name: Consumer-boundary revalidation falsifiers
+        env:
+          PYTHONPATH: src
+        run: python tests/test_wp603_consumer_revalidation_falsifier.py -v
