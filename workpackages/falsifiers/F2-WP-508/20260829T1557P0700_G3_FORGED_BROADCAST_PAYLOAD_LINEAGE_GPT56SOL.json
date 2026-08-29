@@ -1,0 +1,40 @@
+{
+  "schema": "FRANKENSTEIN2_WORKPACKAGE_FALSIFIER/v1",
+  "workpackage_id": "F2-WP-508",
+  "generation_under_test": 3,
+  "result_class": "NEGATIVE_RESULT",
+  "review_only_source": true,
+  "mutation_authority": false,
+  "falsifier_id": "F2-WP-508-G3-FORGED-BROADCAST-PAYLOAD-LINEAGE-GPT56SOL-20260829",
+  "created_at_utc": "2026-08-29T08:57:54Z",
+  "tested_candidate_pr": 253,
+  "tested_candidate_head_sha": "cec2f11750854d9ff0ae0a6bf14a32d04c023df0",
+  "tested_candidate_merged_as": "0148f137cc4c5bbd1886e3f1ec36f578daaecf4d",
+  "review_pr": 257,
+  "review_head_sha": "bfeab357e8419556406470658ddbc96a7c4f5a84",
+  "workflow_run_id": 33244351377,
+  "job_id": 99079105335,
+  "workflow_status": "completed",
+  "workflow_conclusion": "failure",
+  "failed_step": "G3 must reject forged BroadcastEnvelope payload lineage",
+  "pre_discriminator_setup": "checkout/setup-python/pytest-install all succeeded",
+  "hypothesis": "WP508 G3 must reject a BroadcastEnvelope whose selection/plan identity fields remain exact but whose candidate_payload_refs were directly reconstructed to a payload absent from exact WorkspaceSelection.selected lineage.",
+  "observed_result": "The hosted discriminator reached the exact test and failed because the G3 candidate did not reject the forged BroadcastEnvelope payload lineage.",
+  "mechanism": "G3 revalidates WorkspaceSelection builder lineage, then tests CellInput.input_refs against BroadcastEnvelope.candidate_payload_refs. BroadcastEnvelope can be directly reconstructed with the exact selection/plan identity fields but substituted candidate_payload_refs and a newly self-consistent digest. Current witness/binding checks bind that reconstructed broadcast identity yet do not independently require broadcast candidate_ids/candidate_payload_refs to equal the tuples derived from selection.selected. A CellInput carrying only the substituted payload therefore satisfies the new overlap gate without selected-payload re-entry.",
+  "smallest_repair_condition": "After exact selection verification, independently require concrete BroadcastEnvelope candidate_ids and candidate_payload_refs to equal the canonical tuples derived from exact selection.selected, or use an equivalent deterministic broadcast-builder-lineage verifier. Retain the review discriminator as a regression and require exact-head hosted CI before terminal acceptance.",
+  "scope_invalidated": "F2-WP-508_GENERATION_3_BROADCAST_PAYLOAD_REENTRY_LINEAGE_CANDIDATE_AT_CEC2F117",
+  "scope_preserved": [
+    "F2-WP-506 prior accepted repository-component scope",
+    "F2-WP-507 prior accepted repository-component scope",
+    "all target-runtime/physical-GRID10/GWT-causal/J-Space/training/effect/completion/whole-system claims remain unpromoted"
+  ],
+  "credits": {
+    "runtime_credit": 0,
+    "physical_grid10_credit": 0,
+    "gwt_runtime_credit": 0,
+    "jspace_runtime_credit": 0,
+    "training_credit": 0,
+    "whole_system_acceptance": false
+  },
+  "next_exact_action": "Do not terminally accept WP508 generation 3 at the current merged source scope. The single WP508 mutation authority should absorb the broadcast-builder-lineage guard and this regression, rerun exact-head hosted CI, then reconcile only at repository-component scope if all prior and new falsifiers pass."
+}
