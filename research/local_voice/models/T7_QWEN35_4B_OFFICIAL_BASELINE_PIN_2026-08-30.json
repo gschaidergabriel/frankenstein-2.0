@@ -1,0 +1,36 @@
+{
+  "schema_version": 1,
+  "trigger": "7",
+  "date": "2026-08-30",
+  "purpose": "Pin the official Qwen3.5-4B source model before any abliterated/local-provider comparison.",
+  "evidence_scope": "SOURCE_PIN_ONLY_NO_TARGET_RUNTIME_CREDIT",
+  "official_source": {
+    "repo_id": "Qwen/Qwen3.5-4B",
+    "revision": "851bf6e806efd8d0a36b00ddf55e13ccb7b8cd0a",
+    "license": "Apache-2.0",
+    "format": "safetensors",
+    "reported_repository_size_gb": 9.34,
+    "architecture": "qwen3_5",
+    "local_runtime_paths_documented": ["Transformers", "vLLM", "SGLang"],
+    "note": "This is the canonical upstream model source, not a GGUF quantization."
+  },
+  "baseline_quant_candidate": {
+    "repo_id": "SandLogicTechnologies/Qwen3.5-4B-GGUF",
+    "revision": "5520227b6782610f3e8e080edd1867558d3856f1",
+    "file": "Qwen3.5-4B_Q4_k_m.gguf",
+    "format": "GGUF",
+    "quantization": "Q4_K_M",
+    "reported_size_gb": 2.71,
+    "reported_sha256": "f987bfd0fccb9bfb76e0926eb05f34ba96401f901b0204b7043608488f4f7422",
+    "xet_hash": "fed99d7b57a3dcc7b296d8ebd9201aabd94f6ec613d7649064c34f5bd79473a0",
+    "runtime": "llama.cpp / llama-server",
+    "status": "PINNED_NOT_DOWNLOADED_NOT_VERIFIED_ON_TARGET",
+    "trust_boundary": "Community quantization of the official family; target quarantine download must recompute SHA-256 before use."
+  },
+  "comparison_order": [
+    "official-source-derived Q4_K_M baseline",
+    "kaineone/Qwen3.5-4B-abliterated-GGUF Q4_K_M",
+    "optional Claude-distilled/abliterated challenger only after baseline measurements"
+  ],
+  "acceptance_rule": "No benchmark, runtime, quality or acceptance credit is granted by this source pin. Target hardware receipt and quarantine hash verification remain mandatory."
+}
