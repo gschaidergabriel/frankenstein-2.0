@@ -63,6 +63,8 @@ SUBJECT_ALIASES = {
     "qwen35-4b": "QWEN3_5_4B",
     "qwen3-asr": "QWEN3_ASR",
     "nemotron-3.5-asr-streaming-0.6b": "NEMOTRON_3_5_ASR_STREAMING_0_6B",
+    "qwen3-tts-12hz-0.6b-vs-1.7b": "QWEN3_TTS_12HZ_0_6B_VS_1_7B",
+    "qwen3-tts-12hz-size-ab": "QWEN3_TTS_12HZ_0_6B_VS_1_7B",
 }
 
 EVIDENCE_SCOPE_ALIASES = {
