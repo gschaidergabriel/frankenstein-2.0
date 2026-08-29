@@ -89,6 +89,10 @@ def validate_repository(root: Path) -> dict[str, Any]:
         _require(claim is not None, f"{path}: no matching claim object for {claim_id}")
 
         workpackage_id = pointer.get("workpackage_id")
+        _require(
+            workpackage_id in workpackages,
+            f"{path}: active pointer workpackage absent from effective state: {workpackage_id}",
+        )
         reconciliation = None
         if pointer.get("state") in set(contract["terminal_states"]):
             if workpackage_id in migrated:
@@ -109,7 +113,7 @@ def validate_repository(root: Path) -> dict[str, Any]:
                 filename_stem=path.stem,
                 pointer=pointer,
                 claim=claim,
-                state_entry=workpackages.get(workpackage_id),
+                state_entry=workpackages[workpackage_id],
                 contract=contract,
                 reconciliation=reconciliation,
             )
