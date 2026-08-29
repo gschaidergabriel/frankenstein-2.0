@@ -1,0 +1,30 @@
+name: Trigger 7 Semantic Claim Mutex CI
+
+on:
+  pull_request:
+    paths:
+      - 'research/local_voice/tools/t7_semantic_claim.py'
+      - 'research/local_voice/tests/test_t7_semantic_claim.py'
+      - 'research/local_voice/SEMANTIC_CLAIM_MUTEX_V1.md'
+      - 'research/local_voice/semantic_claims/**'
+      - '.github/workflows/trigger7-semantic-claim-mutex-ci.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'research/local_voice/tools/t7_semantic_claim.py'
+      - 'research/local_voice/tests/test_t7_semantic_claim.py'
+      - 'research/local_voice/SEMANTIC_CLAIM_MUTEX_V1.md'
+      - 'research/local_voice/semantic_claims/**'
+      - '.github/workflows/trigger7-semantic-claim-mutex-ci.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  semantic-claim-falsifiers:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run Trigger 7 semantic claim mutex tests
+        run: python3 research/local_voice/tests/test_t7_semantic_claim.py -v
