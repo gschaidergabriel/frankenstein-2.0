@@ -1,0 +1,64 @@
+{
+  "schema_version": 1,
+  "trigger": "7",
+  "research_id": "T7-TTS-001",
+  "objective": "E2_QWEN3_TTS_GERMAN_RELEASE_GAP_AND_12HZ_SIZE_DISCRIMINATOR",
+  "worker": "GPT-5.6-Sol-TRIGGER7",
+  "date": "2026-08-30",
+  "epistemic_scope": "PRIMARY_SOURCE_AUDIT_ONLY",
+  "runtime_credit": 0,
+  "quality_acceptance_credit": 0,
+  "sources": [
+    {
+      "type": "EXTERNAL_PRIMARY",
+      "url": "https://github.com/QwenLM/Qwen3-TTS",
+      "observed": [
+        "Current official release table lists only Qwen3-TTS-Tokenizer-12Hz and 12Hz 0.6B/1.7B model variants as released/downloadable.",
+        "The README states other models mentioned in the technical report will be released in the future.",
+        "Released 12Hz models list German among ten supported languages and mark streaming support.",
+        "The project describes the 12Hz dual-track architecture as capable of first audio after one input character and reports end-to-end synthesis latency as low as 97 ms; this is an upstream claim, not Frankenstein target-runtime evidence.",
+        "The vLLM-Omni section currently states offline inference only, with online serving to be supported later."
+      ]
+    },
+    {
+      "type": "EXTERNAL_PRIMARY",
+      "url": "https://huggingface.co/Qwen/Qwen3-TTS-12Hz-0.6B-CustomVoice",
+      "observed": [
+        "Official 12Hz 0.6B CustomVoice checkpoint is Apache-2.0, German-capable, and currently available.",
+        "The checkpoint tree is approximately 2.5 GB total; model.safetensors is approximately 1.81 GB.",
+        "Official model card reports streaming-oriented low-latency capability but does not establish latency on clay-direct-dev."
+      ]
+    }
+  ],
+  "upstream_german_customvoice_wer": {
+    "metric": "WER lower is better",
+    "source": "Qwen3-TTS official README evaluation table",
+    "values": {
+      "25Hz_0.6B": 0.990,
+      "25Hz_1.7B": 0.634,
+      "12Hz_0.6B": 2.722,
+      "12Hz_1.7B": 1.057
+    },
+    "interpretation_boundary": "These are upstream benchmark values, not measurements on Frankenstein prompts, voices, audio transport, hardware, or target runtime."
+  },
+  "finding": {
+    "status": "SOURCE_SUPPORTED",
+    "statement": "The lowest-size currently released official Qwen3-TTS path for Frankenstein is 12Hz 0.6B, but Qwen's own German evaluation shows a substantial content-consistency gap versus 12Hz 1.7B, while the report's 25Hz variants score better on German but are not in the current official released-model table. Therefore model size/tokenizer frequency cannot be selected from latency claims alone."
+  },
+  "counterhypotheses": [
+    "The upstream German WER gap may not reproduce on Frankenstein's short conversational German prompts.",
+    "12Hz 0.6B may still win system utility if its target-hardware first-audio latency and memory footprint materially beat 1.7B while remaining intelligible.",
+    "A Base voice-clone checkpoint may better satisfy stable German male acoustic identity than CustomVoice despite similar parameter count; this requires a separate controlled target-runtime test.",
+    "Future official 25Hz releases may change the frontier and should be re-entered when weights are actually available."
+  ],
+  "next_discriminator": {
+    "gate": "TARGET_RUNTIME_QWEN3_TTS_12HZ_06B_VS_17B_GERMAN_AB",
+    "prerequisite": "Obtain a real clay-direct-dev hardware/runtime receipt; do not infer target compatibility from queued GitHub Actions or source availability.",
+    "fixed_test": [
+      "Same German prompt set and speaker condition for both checkpoints.",
+      "Measure cold/warm load, peak RSS/VRAM, TTFA p50/p95, RTF, complete-wave latency, cancellation/stop behavior, and German intelligibility/content consistency.",
+      "Use the existing Trigger-7 conversation/evaluation protocol; preserve failures and OOM/timeout as bounded negative evidence.",
+      "No Trigger-4 V6 promotion from this source audit alone."
+    ]
+  }
+}
