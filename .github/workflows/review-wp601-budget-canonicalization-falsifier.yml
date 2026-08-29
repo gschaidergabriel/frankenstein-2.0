@@ -1,0 +1,33 @@
+name: REVIEW ONLY WP601 Budget Canonicalization Falsifier
+
+on:
+  push:
+    branches:
+      - review/wp601-budget-canonicalization-falsifier-20260829
+    paths:
+      - 'tests/review/test_wp601_budget_canonicalization_falsifier.py'
+      - '.github/workflows/review-wp601-budget-canonicalization-falsifier.yml'
+  pull_request:
+    paths:
+      - 'tests/review/test_wp601_budget_canonicalization_falsifier.py'
+      - '.github/workflows/review-wp601-budget-canonicalization-falsifier.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  falsifier:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Compile review discriminator
+        run: python -m py_compile tests/review/test_wp601_budget_canonicalization_falsifier.py
+      - name: Run review discriminator
+        env:
+          PYTHONPATH: src
+        run: python tests/review/test_wp601_budget_canonicalization_falsifier.py -v
