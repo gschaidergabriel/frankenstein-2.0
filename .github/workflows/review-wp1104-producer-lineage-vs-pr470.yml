@@ -1,0 +1,27 @@
+name: REVIEW WP1104 producer-lineage vs PR470
+
+on:
+  push:
+    branches:
+      - 'review/wp1104-producer-lineage-vs-pr470-20260829'
+    paths:
+      - 'tests/review_only/test_wp1104_producer_lineage_vs_pr470.py'
+      - '.github/workflows/review-wp1104-producer-lineage-vs-pr470.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  reproduce:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Reproduce producer-lineage gap after PR470 consistency guard
+        env:
+          PYTHONPATH: src
+        run: python -m unittest -v tests.review_only.test_wp1104_producer_lineage_vs_pr470
