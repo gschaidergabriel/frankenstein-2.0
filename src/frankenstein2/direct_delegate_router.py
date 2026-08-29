@@ -92,6 +92,42 @@ def _digest(value: Any) -> str:
     return hashlib.sha256(_canonical_json(value).encode("utf-8")).hexdigest()
 
 
+def _route_candidate_identity_payload(
+    *,
+    task_id: str,
+    task_generation: int,
+    task_sha256: str,
+    request_sha256: str,
+    cycle_contract_id: str,
+    cycle_generation: int,
+    cycle_contract_sha256: str,
+    policy_id: str,
+    policy_generation: int,
+    policy_sha256: str,
+    selected_route: str,
+    reason_codes: Iterable[str],
+) -> dict[str, Any]:
+    """Return the exact immutable content bound by ``RouteCandidate.candidate_id``."""
+    return {
+        "task_id": task_id,
+        "task_generation": task_generation,
+        "task_sha256": task_sha256,
+        "request_sha256": request_sha256,
+        "cycle_contract_id": cycle_contract_id,
+        "cycle_generation": cycle_generation,
+        "cycle_contract_sha256": cycle_contract_sha256,
+        "policy_id": policy_id,
+        "policy_generation": policy_generation,
+        "policy_sha256": policy_sha256,
+        "selected_route": selected_route,
+        "reason_codes": list(reason_codes),
+    }
+
+
+def _route_candidate_id(**identity_fields: Any) -> str:
+    return "route:" + _digest(_route_candidate_identity_payload(**identity_fields))
+
+
 @dataclass(frozen=True, slots=True)
 class TaskRouteRequest:
     """Explicit task-shape claims bound to one exact cognitive cycle contract.
@@ -285,6 +321,22 @@ class RouteCandidate:
         if self.selected_route not in _ALLOWED_ROUTES:
             raise DirectDelegateRouterError("selected_route is invalid")
         object.__setattr__(self, "reason_codes", _refs("reason_codes", self.reason_codes, require_nonempty=True))
+        expected_candidate_id = _route_candidate_id(
+            task_id=self.task_id,
+            task_generation=self.task_generation,
+            task_sha256=self.task_sha256,
+            request_sha256=self.request_sha256,
+            cycle_contract_id=self.cycle_contract_id,
+            cycle_generation=self.cycle_generation,
+            cycle_contract_sha256=self.cycle_contract_sha256,
+            policy_id=self.policy_id,
+            policy_generation=self.policy_generation,
+            policy_sha256=self.policy_sha256,
+            selected_route=self.selected_route,
+            reason_codes=self.reason_codes,
+        )
+        if self.candidate_id != expected_candidate_id:
+            raise DirectDelegateRouterError("candidate_id does not bind exact route candidate content")
 
     def as_dict(self) -> dict[str, Any]:
         return asdict(self)
@@ -343,21 +395,20 @@ def route_task(
     request_sha = request.sha256()
     cycle_sha = cycle_contract.sha256()
     policy_sha = policy.sha256()
-    identity_payload = {
-        "task_id": request.task_id,
-        "task_generation": request.task_generation,
-        "task_sha256": request.task_sha256,
-        "request_sha256": request_sha,
-        "cycle_contract_id": cycle_contract.contract_id,
-        "cycle_generation": cycle_contract.cycle_generation,
-        "cycle_contract_sha256": cycle_sha,
-        "policy_id": policy.policy_id,
-        "policy_generation": policy.generation,
-        "policy_sha256": policy_sha,
-        "selected_route": selected_route,
-        "reason_codes": list(reasons),
-    }
-    candidate_id = "route:" + _digest(identity_payload)
+    candidate_id = _route_candidate_id(
+        task_id=request.task_id,
+        task_generation=request.task_generation,
+        task_sha256=request.task_sha256,
+        request_sha256=request_sha,
+        cycle_contract_id=cycle_contract.contract_id,
+        cycle_generation=cycle_contract.cycle_generation,
+        cycle_contract_sha256=cycle_sha,
+        policy_id=policy.policy_id,
+        policy_generation=policy.generation,
+        policy_sha256=policy_sha,
+        selected_route=selected_route,
+        reason_codes=reasons,
+    )
     return RouteCandidate(
         schema=ROUTE_CANDIDATE_SCHEMA,
         candidate_id=candidate_id,
