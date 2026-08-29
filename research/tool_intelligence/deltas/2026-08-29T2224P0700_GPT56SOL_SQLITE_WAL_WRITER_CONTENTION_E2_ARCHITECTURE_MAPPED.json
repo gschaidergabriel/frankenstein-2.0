@@ -1,0 +1,151 @@
+{
+  "schema": "FRANKENSTEIN2_TRIGGER6_RESEARCH_DELTA/v1",
+  "target_id": "R6-20260829-SQLITE-WAL-WRITER-CONTENTION-GPT56SOL-01",
+  "stage": "E2_ARCHITECTURE_MAPPED",
+  "status": "COMPLETED_AT_SCOPE",
+  "created_at": "2026-08-29T22:24:00+07:00",
+  "claimed_by": "gpt-5.6-sol-trigger6-organ",
+  "mapping_base_observed_main": "63a273905964ce6b4735d1d1077cb3b2f83c1344",
+  "e1_result": {
+    "path": "research/tool_intelligence/deltas/2026-08-29T2214P0700_GPT56SOL_SQLITE_WAL_WRITER_CONTENTION_E1_SOURCE_READ.json",
+    "commit": "03e601f92a0beae40985ff8d0eaf5f3ce8f01e3b"
+  },
+  "exact_project_sources": [
+    {
+      "path": "src/state/unifieddb_identity.py",
+      "blob_sha": "7422e836315ef9ebcc0e79e6dc648a8fd01ed73e",
+      "observed_contract": "Resolver/fingerprint is read-only identity evidence. Fingerprint reports journal_mode and WAL/SHM presence, explicitly does not fold uncheckpointed WAL state into the receipt, and states that full consistent state requires a separate snapshot/lease."
+    },
+    {
+      "path": "workpackages/receipts/F2-WP-100_G1_SOURCE_CI_ACCEPTANCE.json",
+      "blob_sha": "cebbf210d312ac172de72b91c3dd7cbc85b94fe2",
+      "observed_contract": "Acceptance scope is UNIFIEDDB_RESOLVER_FINGERPRINT_COMPONENT_SOURCE_AND_CI_ONLY; runtime_execution_observed=false and runtime_credit=0."
+    },
+    {
+      "path": "src/frankenstein2/persistent_agency_kernel.py",
+      "blob_sha": "351545cc18931a04a68b7deb834783f1907c9295",
+      "observed_contract": "CanonicalPersistentAgencyStore writes inside the existing canonical UnifiedDB, rejects pre-open/replaced-file authority drift, opens sqlite3 with caller timeout default 5.0, uses BEGIN IMMEDIATE for schema and checkpoint writes, and commits/rolls back transactionally. Product module does not itself set journal_mode, synchronous, wal_autocheckpoint, or a SQLite library-version capability fence."
+    },
+    {
+      "path": "tests/wp206_restart_probe.py",
+      "blob_sha": "a28084d15945feac2dc9b393a56a97d2efcc149d",
+      "observed_contract": "Hosted-CI restart probe explicitly switches its connection to WAL, disables wal_autocheckpoint, exits without clean connection close, then verifies fresh-process recovery. This is a strong bounded recovery falsifier, not a production runtime configuration contract."
+    },
+    {
+      "path": "tests/test_persistent_agency_kernel.py",
+      "blob_sha": "bed2e65d49aa3b1cc039c8fd35daca4260113953",
+      "observed_contract": "Tests verify WAL survives abrupt process exit/restart, canonical authority conflict fails closed, same-path inode replacement fails closed, checkpoint tamper fails digest validation, and wrong-parent writes roll back."
+    },
+    {
+      "path": "workpackages/receipts/F2-WP-206_G1_PERSISTENT_AGENCY_INTEGRATION_GHA_33220512537.json",
+      "blob_sha": "0115492ee42ee16fe4c522f153ca9d6bba0206b6",
+      "observed_contract": "WP206 has repository-hosted integration CI credit including WAL recovery but target_runtime_execution=false, effect_credit=0, whole_system_acceptance=false."
+    },
+    {
+      "path": "workpackages/STATE_CONCURRENCY_PROTOCOL_V2.md",
+      "blob_sha": "cdc75989abfb7c6c68a3ce5e8d1a1623cc944df5",
+      "observed_contract": "This protocol solves Git workpackage-state concurrency using append-only state events and Git CAS. It is not a SQLite connection/write/checkpoint/snapshot concurrency protocol."
+    }
+  ],
+  "architecture_mapping": [
+    {
+      "id": "A1_IDENTITY_VS_STATE_SNAPSHOT",
+      "consumer": "F2-WP-100 and every UnifiedDB consumer",
+      "observed": "The current UnifiedDB fingerprint deliberately fingerprints the main SQLite file and metadata while excluding uncheckpointed WAL state from full state identity.",
+      "delta": "Preserve WP100 as authority-path/main-file identity. Introduce a separate bounded consistent-state snapshot/lease concept when a consumer needs a read view that can authorize later mutation; never upgrade the WP100 receipt into full live-state identity.",
+      "falsifier": "A test that changes committed WAL-visible state without checkpointing must demonstrate that WP100 identity can remain unchanged or incomplete for state semantics; downstream logic must therefore reject treating it as a complete state snapshot."
+    },
+    {
+      "id": "A2_SINGLE_WRITER_ARBITRATION",
+      "consumer": "Persistent writers including WP206 and later memory/effect-journal writers",
+      "observed": "Current WP206 uses BEGIN IMMEDIATE and sqlite3 timeout=5.0; SQLite primary docs still permit only one writer at a time in WAL.",
+      "delta": "Treat writer acquisition as an explicit control state: ACQUIRED, BUSY_TIMEOUT, BUSY_SNAPSHOT, or ERROR. Bounded retry/backpressure may exist, but no invisible unbounded retry loop and no claim that multiple canonical writers execute concurrently.",
+      "authority_boundary": "Any writer queue/arbitrator sequences access only; it must not become a second truth store or completion/effect authority.",
+      "falsifier": "Two independently opened canonical connections race BEGIN IMMEDIATE under bounded timing; exactly one acquires while the other emits a typed measured contention outcome and no partial checkpoint row appears."
+    },
+    {
+      "id": "A3_SHORT_READ_TRANSACTION_REENTRY",
+      "consumer": "Pulse/Agency/GRID/model/tool paths that can spend nontrivial time outside SQLite",
+      "observed": "WAL read transactions use snapshot isolation and can remain stale; current persistent-agency objects are already serializable immutable values, so cognition need not retain an open DB read transaction.",
+      "delta": "Extract the smallest typed immutable state projection inside a short read transaction, close the transaction before model/tool/network latency, carry generation/digest/provenance, then re-read/revalidate the required canonical generation/state before any authority-sensitive write.",
+      "falsifier": "Connection A reads generation N and releases its read transaction; connection B commits N+1; A's later write using N must fail a generation/digest fence rather than silently act on stale state."
+    },
+    {
+      "id": "A4_CHECKPOINT_HEALTH_OBSERVABILITY",
+      "consumer": "Runtime telemetry, stress/recovery acceptance, portable host",
+      "observed": "SQLite WAL checkpoint completion can be blocked by long-lived readers. WP206 proves restart recovery with wal_autocheckpoint disabled but does not characterize reader-age/checkpoint starvation under sustained concurrency.",
+      "delta": "Expose at minimum effective journal_mode, WAL byte size, checkpoint attempt/result, busy-reader signal where available, and oldest long-running DB-operation age. Define bounded warning/fail criteria during stress acceptance instead of assuming WAL auto-checkpoint is sufficient.",
+      "falsifier": "Hold a read snapshot while a writer grows WAL; verify checkpoint cannot fully advance, the condition is observable, and releasing the reader permits bounded recovery/checkpoint progress."
+    },
+    {
+      "id": "A5_RUNTIME_SQLITE_CAPABILITY_BINDING",
+      "consumer": "Portable host/release/runtime evidence",
+      "observed": "Product source does not currently bind the loaded SQLite library version. SQLite primary documentation in E1 reports a rare concurrent WAL reset/checkpoint corruption race in vulnerable versions/topologies.",
+      "delta": "Runtime capability evidence must record the actually loaded SQLite library version plus journal_mode, synchronous, connection/process topology, and relevant checkpoint policy. If concurrent WAL connections are admitted, reject versions in the documented vulnerable range unless the exact loaded build is a verified fixed backport.",
+      "falsifier": "Capability probe against a deliberately disallowed version/topology must fail closed before concurrency credit; a permitted fixed version must still pass contention/recovery tests rather than receiving credit from version string alone."
+    },
+    {
+      "id": "A6_DURABILITY_TIER_EXPLICIT",
+      "consumer": "Canonical state/evidence writers and recovery claims",
+      "observed": "WP206 product code does not explicitly set synchronous. SQLite durability differs materially between FULL and NORMAL for power-loss/hard-reset behavior.",
+      "delta": "Declare and receipt the intended synchronous/durability tier per canonical deployment. Do not infer power-loss durability from transaction commit alone. Configuration drift from the admitted tier must invalidate that durability claim.",
+      "falsifier": "Runtime evidence reads back effective PRAGMA synchronous and refuses to mint the stronger durability class when the setting is weaker or unknown."
+    },
+    {
+      "id": "A7_WAL_BACKUP_AND_MIGRATION_BOUNDARY",
+      "consumer": "Installer, migration, release packaging, disaster recovery",
+      "observed": "WAL is part of persistent database state while present; WP100 main-file fingerprint intentionally does not make it a full live-state snapshot.",
+      "delta": "Any active-database backup/migration path must use an SQLite-supported consistent backup or an explicitly quiesced/checkpointed procedure. Raw-copying only unified.db while writers/readers may be active is not an accepted state transfer.",
+      "falsifier": "A fixture with committed but uncheckpointed WAL content must show the admitted backup path preserves it while a raw main-file-only copy is rejected as insufficient evidence."
+    },
+    {
+      "id": "A8_SAME_HOST_AUTHORITY_BOUNDARY",
+      "consumer": "VPS/remote organs/portable deployment",
+      "observed": "WAL shared-memory coordination is same-host; the portable-host contract requires one canonical installed-state lineage.",
+      "delta": "Remote organs communicate through typed causal requests/results/projections. They do not mount/share local SQLite WAL as a distributed multi-host authority and do not create peer truth databases to work around the limitation.",
+      "falsifier": "Any proposed multi-host design that requires two hosts to participate directly in one WAL locking domain or permits both to mint canonical successors fails architecture review."
+    },
+    {
+      "id": "A9_GIT_CONCURRENCY_IS_ORTHOGONAL",
+      "consumer": "Coordination model",
+      "observed": "STATE_CONCURRENCY_PROTOCOL_V2 uses append-only workpackage events and Git CAS to resolve repository worker races.",
+      "delta": "Keep Git workpackage-state concurrency and SQLite runtime concurrency as separate mechanisms. Success of one gives zero credit to the other; they may share the method principle of create-only/CAS/fail-closed contention but not the same state or locking implementation.",
+      "falsifier": "A review that cites Git CAS as proof of SQLite writer/snapshot safety, or SQLite locking as proof of workpackage Git-state correctness, is rejected as cross-layer evidence substitution."
+    }
+  ],
+  "architecture_conclusion": {
+    "status": "BOUNDED_DELTA_READY_FOR_TRIGGER4_FALSIFICATION",
+    "summary": "Frankenstein 2.0 already has strong UnifiedDB identity boundaries and a real repository-hosted WAL restart-recovery falsifier. The missing layer is an explicit runtime concurrency/durability capability contract: one-writer arbitration, short read-snapshot lifetime with generation reentry, checkpoint-health observability, loaded-SQLite version/config binding, and safe WAL-aware backup/migration. These additions strengthen the one-authority design; they do not introduce a queue/database/ledger with competing truth authority.",
+    "novelty_boundary": "Does not replace WP100 identity, WP206 restart integration, or Git STATE_CONCURRENCY_PROTOCOL_V2; it specifies the runtime contract those existing components do not currently establish."
+  },
+  "trigger4_handoff": {
+    "priority": "HIGH_BECAUSE_CORRUPTION/FRESHNESS/DURABILITY_BOUNDARY_BUT_NO_RUNTIME_NEGATIVE_OBSERVED",
+    "smallest_high_information_probe": [
+      "Record sqlite3.sqlite_version (or equivalent loaded-library identity), PRAGMA journal_mode, PRAGMA synchronous, process/connection count and checkpoint policy at exact target runtime identity.",
+      "Open two canonical connections. Hold one bounded reader snapshot while another performs repeated BEGIN IMMEDIATE writes.",
+      "Attempt a checkpoint during the held reader; measure WAL size/progress and typed busy/result outcomes.",
+      "Release reader; require checkpoint progress/recovery.",
+      "Attempt a stale-generation mutation through the F2 state-generation fence; require rejection.",
+      "Restart in a fresh process and verify persisted checkpoint lineage and canonical DB authority remain intact.",
+      "Grant only the scope actually observed; do not infer target/VPS/whole-system credit from repository CI."
+    ],
+    "implementation_owner": "TRIGGERWORD_4_BUILD_TEST_REPAIR_LANE",
+    "research_owner": "TRIGGERWORD_6_FOR_FURTHER_EXTERNAL_FALSIFICATION_ONLY"
+  },
+  "credits": {
+    "research_source": 1,
+    "architecture_mapping": 1,
+    "new_production_implementation": 0,
+    "target_runtime": 0,
+    "vps_runtime": 0,
+    "effect": 0,
+    "whole_system": 0
+  },
+  "negative_evidence": [
+    "No target host/runtime SQLite library version was observed.",
+    "No production runtime evidence established effective journal_mode, synchronous, connection topology, checkpoint policy or WAL pressure behavior.",
+    "No multi-writer, long-reader, checkpoint-starvation, power-loss or backup/migration runtime probe was executed by Trigger 6.",
+    "WP206 WAL restart CI is valuable component/integration evidence but does not establish sustained runtime contention safety or target-host durability.",
+    "The documented SQLite WAL race is external primary-source evidence about affected SQLite versions/topologies, not evidence that Frankenstein 2.0 has experienced corruption."
+  ]
+}

@@ -1,0 +1,113 @@
+{
+  "schema": "FRANKENSTEIN2_TRIGGER6_RESEARCH_DELTA/v1",
+  "target_id": "R6-20260829-SQLITE-WAL-WRITER-CONTENTION-GPT56SOL-01",
+  "stage": "E3_CLAIM_REPRODUCED",
+  "status": "COMPLETED_AT_SCOPE",
+  "created_at": "2026-08-29T22:30:00+07:00",
+  "claimed_by": "gpt-5.6-sol-trigger6-organ",
+  "classification": "LOCAL_RESEARCH_REPRODUCTION_ONLY_NOT_F2_RUNTIME_EVIDENCE",
+  "upstream_evidence": {
+    "e1_source_result": "research/tool_intelligence/deltas/2026-08-29T2214P0700_GPT56SOL_SQLITE_WAL_WRITER_CONTENTION_E1_SOURCE_READ.json",
+    "e2_mapping_result": "research/tool_intelligence/deltas/2026-08-29T2224P0700_GPT56SOL_SQLITE_WAL_WRITER_CONTENTION_E2_ARCHITECTURE_MAPPED.json"
+  },
+  "harness": {
+    "path": "research/tool_intelligence/experiments/sqlite_wal_semantics_repro_v1.py",
+    "blob_sha": "fc97f33073294ba2c6a582047bd7eda265c4acfc",
+    "creation_commit": "7d1229dc2ca74269f8a86acd3af2f65dc58905ab"
+  },
+  "research_environment": {
+    "python": "3.13.5 (main, Jul 15 2026, 20:25:40) [GCC 14.2.0]",
+    "platform": "Linux-6.18.35-x86_64-with-glibc2.41",
+    "python_sqlite_version": "3.46.1",
+    "sqlite_threadsafety": 3,
+    "relevant_compile_options": [
+      "DEFAULT_SYNCHRONOUS=2",
+      "DEFAULT_WAL_AUTOCHECKPOINT=1000",
+      "DEFAULT_WAL_SYNCHRONOUS=2",
+      "THREADSAFE=1",
+      "MUTEX_PTHREADS",
+      "USE_URI"
+    ]
+  },
+  "protocol": {
+    "database": "temporary isolated SQLite database",
+    "journal_mode": "WAL",
+    "wal_autocheckpoint": 0,
+    "connection_timeout_seconds": 0,
+    "writer_contention": "connection A holds BEGIN IMMEDIATE while connection B attempts BEGIN IMMEDIATE",
+    "stale_snapshot": "reader A begins and materializes value a; writer B commits value b; reader A rereads then attempts UPDATE without restarting its read transaction",
+    "checkpoint_blockage": "reader holds a read snapshot while writer commits 200 one-row transactions; third connection attempts PRAGMA wal_checkpoint(TRUNCATE), then repeats after reader release"
+  },
+  "observed_results": {
+    "journal_mode": "wal",
+    "single_writer_second_begin": "BUSY",
+    "single_writer_error": "database is locked",
+    "single_writer_errorcode": 5,
+    "single_writer_errorname": "SQLITE_BUSY",
+    "snapshot_initial": "a",
+    "writer_committed_value": "b",
+    "snapshot_still_sees": "a",
+    "stale_snapshot_write": "REJECTED",
+    "stale_snapshot_error": "database is locked",
+    "stale_snapshot_errorcode": 517,
+    "stale_snapshot_errorname": "SQLITE_BUSY_SNAPSHOT",
+    "wal_size_with_reader_bytes": 824032,
+    "checkpoint_while_reader": [1, 200, 0],
+    "wal_size_after_blocked_checkpoint_bytes": 824032,
+    "checkpoint_after_reader_release": [0, 0, 0],
+    "wal_size_after_release_checkpoint_bytes": 0
+  },
+  "claim_assessment": [
+    {
+      "claim": "WAL still serializes writers",
+      "status": "REPRODUCED",
+      "evidence": "Second BEGIN IMMEDIATE failed with SQLITE_BUSY while first writer held the write transaction."
+    },
+    {
+      "claim": "A WAL reader retains its old snapshot and cannot safely upgrade after a conflicting commit",
+      "status": "REPRODUCED",
+      "evidence": "Reader continued to observe a after another connection committed b; attempted UPDATE failed with SQLITE_BUSY_SNAPSHOT (517)."
+    },
+    {
+      "claim": "A long-lived reader can block a truncating checkpoint and retain WAL growth",
+      "status": "REPRODUCED",
+      "evidence": "With reader held, WAL reached 824032 bytes and wal_checkpoint(TRUNCATE) returned [1,200,0]; after reader release it returned [0,0,0] and WAL size became 0."
+    },
+    {
+      "claim": "SQLite 3.7.0-3.51.2 WAL reset/checkpoint race can corrupt a database",
+      "status": "NOT_REPRODUCED",
+      "evidence": "No attempt was made to trigger the rare corruption race. This remains EXTERNAL_PRIMARY evidence from E1, not local reproduction."
+    }
+  ],
+  "counterhypothesis_update": {
+    "before": "SQLite locking may make explicit F2 contention/snapshot/checkpoint contracts unnecessary.",
+    "after": "COUNTERED_MORE_STRONGLY",
+    "reason": "The research harness directly observed typed contention and stale-snapshot failure modes plus checkpoint blockage under ordinary documented operations. Product-level handling remains necessary even when SQLite correctly enforces its own lock semantics."
+  },
+  "architecture_impact": {
+    "status": "E2_DELTA_STRENGTHENED_NOT_EXPANDED",
+    "confirmed_priorities": [
+      "typed one-writer contention outcomes",
+      "short read transactions plus generation/digest reentry",
+      "checkpoint/WAL-health observability",
+      "exact loaded SQLite version/config/topology binding before concurrency or durability credit"
+    ],
+    "new_authority": "NONE"
+  },
+  "credits": {
+    "external_source_claim_reproduction": 1,
+    "f2_component_runtime": 0,
+    "f2_target_runtime": 0,
+    "vps_runtime": 0,
+    "integration": 0,
+    "effect": 0,
+    "whole_system": 0
+  },
+  "negative_evidence": [
+    "Harness ran against local research SQLite 3.46.1, not the target F2 host/runtime dependency identity.",
+    "The 2026 WAL reset/checkpoint corruption race was not reproduced.",
+    "No power-loss durability experiment was run.",
+    "No F2 production module was modified or executed by this Trigger-6 experiment."
+  ],
+  "next_gate": "E4_F2_ABLATION belongs only if a bounded F2 comparison can be designed without Trigger 6 implementing the product. Current best handoff is the E2 Trigger-4 contention/snapshot/checkpoint/version-capability probe; do not self-promote to E6."
+}

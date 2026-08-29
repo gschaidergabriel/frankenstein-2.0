@@ -1,0 +1,57 @@
+{
+  "schema": "FRANKENSTEIN2_TRIGGER6_E3_CLAIM_REPRODUCTION/v1",
+  "trigger": "6",
+  "research_id": "R6-SEED-012",
+  "claim_target": "E3_MATCHED_CONTROL_EXECUTION_CONFIG_CONFOUND",
+  "status": "E3_REPRODUCED_AT_SOURCE_DECISION_SCOPE",
+  "created_at": "2026-08-29T22:26:00+07:00",
+  "worker": "GPT-5.6-Sol:Triggerword-6-organ",
+  "claim_commit": "ab70547193adbe9304653745facc49f61abfc163",
+  "experiment_commit": "fa1c52d98dafac24b676be33b7bcca1a5ca54fcd",
+  "experiment_path": "research/tool_intelligence/experiments/r6_seed_012_matched_control_execution_context_v1.py",
+  "source_under_test": {
+    "path": "src/frankenstein2/gwt_uptake.py",
+    "blob_sha": "f25c03d4e4e49c4fed44acd0c5c96edfb40f664e",
+    "decision": "evaluate_causal_influence"
+  },
+  "execution": {
+    "surface": "LOCAL_DETERMINISTIC_SOURCE_LOGIC_FIXTURE_NOT_F2_TARGET_RUNTIME",
+    "provider_or_model_execution": false,
+    "result": {
+      "intervention_arm_sha256": "bfbafbb3e557f4fd5c4c274a0924ecb79839fb63c800990041b1f4bb57d9f036",
+      "control_arm_sha256": "42eeaf93b6172d82f6b64426c66cb7fa9cad03b2c491bfaa1c3bfa6ab6be1b11",
+      "intervention_execution_context_sha256": "2e42431f5faa3a04f18486e9f76444982cb08653dd157c59fcd94f5a83ffc101",
+      "control_execution_context_sha256": "0fb39452f8aa1baeadc1297a0b8d77db8018ccdde1b68174af9e9d0bf46c0bfc",
+      "execution_contexts_match": false,
+      "current_wp507_status": "CAUSAL_INFLUENCE_OBSERVED_AT_CONTRACT_SCOPE",
+      "status_with_context_match_gate": "UNKNOWN_UNMATCHED_CONTROL"
+    }
+  },
+  "reproduction_logic": "The intervention and control satisfy every current WP507 matching condition represented in CausalProbeArm: same probe_id and same nonbroadcast_input_sha256; intervention carries the exact broadcast; uptake precondition is held as observed; downstream output digests differ. Their intentionally different runner/model/config contexts exist outside the current arm schema and cannot participate in evaluate_causal_influence. Therefore current logic admits contract-scope causal influence. A hypothetical equality gate over one canonical execution-context digest changes only the confound-control dimension and returns UNKNOWN_UNMATCHED_CONTROL.",
+  "interpretation": {
+    "observed": "Current WP507 matched-control identity is insufficient to reject at least one class of execution-configuration confound that is invisible to the arm schema.",
+    "not_observed": "No historical F2 result was shown to be confounded; no real GWT/model execution occurred; no hidden-state causality claim was tested.",
+    "root_cause": "Matched causal arms commit to probe/input/output/broadcast/provenance strings but not to a canonical shared execution-context identity."
+  },
+  "counterhypothesis_status": {
+    "PROBE_ID_IMPLICITLY_IDENTIFIES_CONFIG": "FALSIFIED_AT_FAIL_CLOSED_SCHEMA_SCOPE; arbitrary identical probe_id survives distinct external contexts",
+    "PROVENANCE_REFS_CAN_ENCODE_CONFIG": "NOT_A_FAIL_CLOSED_GUARANTEE; identical generic refs can be supplied while contexts differ",
+    "WP510_DOWNSTREAM_CLOSURE_REMOVES_CONFOUND": "NOT_SUPPORTED; output lineage closure does not compare intervention/control execution context"
+  },
+  "recommended_next_gate": {
+    "stage": "E4_F2_ABLATION",
+    "objective": "Compare two thin placements under equivalent deterministic fixtures: A) add matched_execution_context_sha256 directly to CausalProbeArm and enforce equality in evaluate_causal_influence; B) introduce one upstream typed ProbeExecutionContext/RunManifest object and require both arms to consume the same digest. Measure validation complexity, serialized bytes/hash work, duplication/drift risk and preservation of WP510 lineage semantics.",
+    "do_not_promote": "No E5 BUILD_CANDIDATE until one placement wins the ablation and all existing WP507/WP510 fail-closed tests remain preserved."
+  },
+  "credits": {
+    "e1_source_read_credit": 1,
+    "e2_architecture_mapped_credit": 1,
+    "e3_source_decision_reproduction_credit": 1,
+    "e4_f2_ablation_credit": 0,
+    "e5_build_candidate_credit": 0,
+    "runtime_credit": 0,
+    "gwt_runtime_credit": 0,
+    "jspace_runtime_credit": 0,
+    "whole_system_credit": 0
+  }
+}

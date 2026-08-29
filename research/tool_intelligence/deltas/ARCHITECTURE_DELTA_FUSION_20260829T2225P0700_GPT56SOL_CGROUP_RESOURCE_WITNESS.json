@@ -1,0 +1,69 @@
+{
+  "schema": "ARCHITECTURE_DELTA_FUSION/v1",
+  "architecture_delta_id": "ADF-20260829T2225P0700-GPT56SOL-CGROUP-RESOURCE-WITNESS",
+  "trigger": "6",
+  "research_id": "R6-20260829-CGROUPLESS-CONTAINER-RESOURCE-WITNESS-GPT56SOL-01",
+  "status": "RESEARCH_FUSION_COMPLETE_TRIGGER4_RUNTIME_GATE_PENDING",
+  "bound_heads": {
+    "f2_main_before_fusion_write": "c315b3acd82cabb7085137584706912a96fc7b90",
+    "research_entity_main": "5e1689b9cd16ec419c29fa9b2aa7c466394d34a1",
+    "admitted_supervisor": "8.78_FREE_ONLY"
+  },
+  "fused_evidence": {
+    "e2_live_architecture_map": "research/tool_intelligence/deltas/R6-20260829-CGROUPLESS-CONTAINER-RESOURCE-WITNESS-GPT56SOL-01_E2_ARCHITECTURE_MAP.json",
+    "e3_local_process_tree_reproduction": "research/tool_intelligence/deltas/R6-20260829-CGROUPLESS-CONTAINER-RESOURCE-WITNESS-GPT56SOL-01_E3_PROCFS_PARENT_UNDERCOUNT_REPRODUCTION.json",
+    "e2_membership_review": "research/tool_intelligence/deltas/R6-20260829-CGROUPLESS-CONTAINER-RESOURCE-WITNESS-GPT56SOL-01_E2_REVIEW_CGROUP_SUBTREE_MEMBERSHIP_PROOF.json",
+    "existing_trigger4_handoff": "trigger4/inbox/tool_research/R6-CGROUPLESS-RESOURCE-WITNESS-E2-FUSION-TRIGGER4-HANDOFF-GPT56SOL.json"
+  },
+  "architecture_conclusion": {
+    "reuse": "R6-SEED-006 CgroupWitness/v1-candidate remains the single resource-witness design lane",
+    "no_new_schema": true,
+    "observer_ladder": [
+      "EXACT_CANDIDATE only after exact container/runtime identity + host observer cgroup namespace + type-correct complete cgroup subtree membership + independently observed Podman host-PID set + stable/fenced equivalence + readable cgroup-v2 counters",
+      "SHARED_PARENT_SUPERSET remains SUPERSET",
+      "PID/procfs fallback remains PROCESS_SCOPED_DEGRADED / INIT_PROCESS_ONLY",
+      "HOST_ONLY has zero container-resource credit",
+      "ROOT/UNRESOLVED/UNAVAILABLE remains UNKNOWN"
+    ],
+    "critical_no_promotion_law": "READABLE_RESOURCE_VALUE_WITHOUT_EXACT_OBSERVER_SCOPE_AND_COVERAGE_DOES_NOT_PROMOTE_CONTAINER_TELEMETRY"
+  },
+  "reproduced_counterexample": {
+    "claim": "one valid process witness may undercount descendant work",
+    "fresh_runs": [
+      {"parent_cpu_seconds":0.0,"child_cpu_seconds":0.44},
+      {"parent_cpu_seconds":0.0,"child_cpu_seconds":0.45}
+    ],
+    "local_regression": "4/4 PASS",
+    "scope": "LOCAL_NON_F2_E3_ONLY"
+  },
+  "trigger4_next_exact_gate": [
+    "bind exact F2 execution/container identity and exact source/run-package identity",
+    "obtain runtime host main PID and Podman full host-PID set via podman top <container> hpid",
+    "bind host observer cgroup namespace identity and main process incarnation",
+    "resolve cgroup-v2 path; read cgroup.type",
+    "enumerate type-correct descendant topology and complete cgroup membership set",
+    "compare runtime host-PID set and cgroup membership set under a pre/post or generation fence",
+    "classify DEDICATED_SUBTREE|SHARED_PARENT_SUPERSET|PROCESS_SCOPED_DEGRADED|ROOT|UNRESOLVED",
+    "read only present cpu.stat, memory.current, memory.peak, memory.events, io.stat, pids.current",
+    "persist raw path/value/time/scope/coverage/provenance and all membership digests",
+    "fail closed to SUPERSET/DEGRADED/UNKNOWN on mismatch, race, unreadable path, namespace ambiguity or unexpected member"
+  ],
+  "coordination": {
+    "duplicate_trigger4_handoff_created": false,
+    "reason": "existing handoff 865969047c3608a961ac623bdbacdf6b97baf56b remains sole target-runtime discriminator lane; this fusion refines its acceptance contract",
+    "trigger5_change": "NO_CHANGE_WITH_REASON: no donor-forensics artifact is needed for Linux/Podman observer semantics"
+  },
+  "credits": {
+    "e1_source_read": 1,
+    "e2_architecture_mapped": 1,
+    "e2_membership_review": 1,
+    "e3_local_claim_reproduction": 1,
+    "e4_f2_ablation": 0,
+    "e5_build_candidate": 0,
+    "e6_f2_accepted": 0,
+    "target_runtime": 0,
+    "container_total": 0,
+    "whole_system": 0
+  },
+  "next_owner": "TRIGGER4_BUILD_TEST_MEASURE_TARGET_RUNTIME_DISCRIMINATOR"
+}
