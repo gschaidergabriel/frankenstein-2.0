@@ -1,0 +1,149 @@
+{
+  "schema": "FRANKENSTEIN2_TRIGGER6_E2_ARCHITECTURE_MAP/v1",
+  "research_id": "R6-COORDINATION-SEMANTIC-OBJECTIVE-FINGERPRINT-V1",
+  "claim_target": "E2_ARCHITECTURE_MAPPED",
+  "slot": "INTEGRATION_DISTILLER",
+  "status": "E2_SOURCE_ARCHITECTURE_MAPPED_NO_RUNTIME_CREDIT",
+  "created_at": "2026-08-29T15:09:05+07:00",
+  "claim": {
+    "path": "research/tool_intelligence/claims/R6-COORDINATION-SEMANTIC-OBJECTIVE-FINGERPRINT-V1/E2_ARCHITECTURE_MAPPED.json",
+    "commit": "ea7ac24cc0ae2c83568a3011a9974bb34b909bed",
+    "credit": 0
+  },
+  "architecture_snapshot": {
+    "f2_main_observed_before_result_write": "bf8a8f19609b989720a9093f317ea45506618112",
+    "research_entity_main_at_claim": "55afb96f11a9c6e9de0b051c2224b1cd874e21ac",
+    "supervisor": "9.13 / 9.13AQ_NON_AUTHORITY / FREE_ONLY",
+    "trigger6_protocol": "research/tool_intelligence/TRIGGERWORD_6_PROTOCOL.md",
+    "aggregate_state_note": "workpackages/STATE.json is generation 12 and stale for several granular phase-5 claims/results; granular exact receipts and claims outrank it"
+  },
+  "observed_negative_evidence": [
+    {
+      "id": "AGENTEXIT_ALIAS_DUPLICATE",
+      "evidence": "research/tool_intelligence/reconciliations/R6-WP509-AGENTEXIT-E1-DUPLICATE-CLAIM-RECONCILIATION-20260829T1508P0700.json@ecca1f8a92dad9e703673b18cac3db9c5ac54b1b",
+      "finding": "Two different research_id/claim path names represented the same AgentExit repo pin and E1 source-read objective. Exact-path create-only semantics did not collide; reconciliation later collapsed them to one result."
+    },
+    {
+      "id": "PYVENE_ALIAS_DUPLICATE",
+      "evidence": "research/tool_intelligence/reconciliations/R6-WP507-PYVENE-001_DUPLICATE_DISCOVERED_20260829T1507P0700.json@09d25dd80319f06584e41dcd0749185419bd4cfb",
+      "finding": "A new pyvene E1 claim was created under a new research ID even though an older pyvene E2 result already existed; duplicate work stopped only after commit-history discovery."
+    },
+    {
+      "id": "HOT_MAIN_CAS_CONTENTION",
+      "evidence": "research/tool_intelligence/deltas/R6-COORDINATION-GITHUB-REFS-V2-E2-20260829T1504P0700.json@a8ecf3b76a84ae6fff750c93c98d5b730875347a",
+      "finding": "File-based claim creation on one fast-moving main branch can conflict even for non-overlapping claim paths; Git refs were mapped as a lower-contention create-only coordination primitive."
+    }
+  ],
+  "external_primitive": {
+    "tool": "Git / GitHub Git references",
+    "integration_class": "CONCEPT_DISTILL_NATIVE_PROTOCOL",
+    "new_runtime_dependency": false,
+    "primary_source": "GitHub REST Git references API",
+    "verified_behavior": "create-reference is an explicit Git-database operation with 201 Created, 409 Conflict and 422 Validation responses; fully qualified refs are supported",
+    "fallback_source": "git push --force-with-lease=<ref>:<expect>",
+    "fallback_verified_behavior": "an empty explicit <expect> requires that the named remote ref not already exist",
+    "why_resource_lean": "uses the repository's existing Git coordination substrate; avoids Redis/etcd/ZooKeeper/Temporal-style second coordination infrastructure"
+  },
+  "gap_in_existing_ref_hypothesis": {
+    "existing_e2_key": "sha256(canonical_json({research_id, claim_target, architecture_scope_or_fusion_id}))",
+    "problem": "research_id and free-form claim_target are aliases chosen by workers, so semantically identical work can intentionally or accidentally hash differently; including a whole moving main SHA would also create false distinctions after unrelated commits",
+    "required_change": "derive coordination identity from normalized research semantics, not worker-selected naming or unrelated repository motion"
+  },
+  "distilled_design_hypothesis": {
+    "name": "SEMANTIC_OBJECTIVE_REF_SEMAPHORE_V1",
+    "two_level_identity": {
+      "semantic_subject_key": "sha256(JCS(subject_payload))",
+      "objective_key": "sha256(JCS(objective_payload))"
+    },
+    "subject_payload": {
+      "subject_kind": "EXTERNAL_REPO | INTERNAL_CAPABILITY",
+      "external_source_identity": "for external tools: provider + stable repo identity when available + normalized full_name + exact source pin/tree pin; omit worker research_id",
+      "f2_target_scope": "sorted canonical workpackage IDs plus sorted affected module/contract identities",
+      "relevant_architecture_digest": "digest only the target-relevant contracts/source identities, not the entire moving F2 main SHA"
+    },
+    "objective_payload": {
+      "semantic_subject_key": "<subject key>",
+      "objective_kind": "SOURCE_READ | ARCHITECTURE_MAP | UPSTREAM_CLAIM_REPRO | F2_ABLATION | BUILD_CANDIDATE",
+      "evidence_stage": "E1 | E2 | E3 | E4 | E5",
+      "stage_discriminator": "E3 includes upstream claim identity; E4 includes fixture/ablation digest; E5 includes candidate-plan digest",
+      "mode": "PRIMARY | REVIEW | REPLICATION",
+      "parent_objective_key": "required for REVIEW/REPLICATION"
+    },
+    "canonicalization": "reuse the project's existing RFC8785/JCS-style canonical JSON discipline plus SHA-256; do not add a hashing/canonicalization dependency",
+    "coordination_ref": "refs/heads/r6-objectives/v1/<first-two-hex>/<objective_key>",
+    "acquire": "create the objective ref create-only against the bound F2 commit; then materialize normal claim JSON on main asynchronously/retriably",
+    "duplicate_handling": "if ref creation returns conflict, fetch the exact ref. Existing ref => consume/wait on that semantic objective. Missing ref => classify transport/concurrency uncertainty and fail closed or bounded-retry; do not silently assume ownership.",
+    "authority_boundary": "Git ref is mutex metadata only; pending_research.sqlite remains Trigger-6 research authority; UnifiedDB remains canonical F2 state authority"
+  },
+  "stage_dominance_rule": {
+    "reason": "Exact stage equality is insufficient: the pyvene negative result shows that a pre-existing E2 can subsume a later attempted E1 under another ID.",
+    "rule": [
+      "Before claiming, resolve all active/terminal objective records for semantic_subject_key.",
+      "A terminal result at a strictly higher evidence stage subsumes a lower requested prerequisite stage when source pin, target scope and relevant architecture digest match.",
+      "An active prerequisite stage blocks dependent higher-stage work until its terminal result is consumed unless the protocol explicitly admits parallelism.",
+      "E3 upstream-claim identities and E4 fixture digests remain distinct; stage rank alone must not collapse different claims or experiments.",
+      "A relevant architecture digest change creates REVIEW with parent_objective_key; unrelated main commits do not create a new semantic objective.",
+      "REPLICATION is never inferred from a new research_id; it requires explicit parent_objective_key plus declared replication purpose."
+    ]
+  },
+  "predicted_replay_on_observed_failures": {
+    "AgentExit": "both alias claims map to one subject/objective key and the second create-only ref acquisition loses before source archaeology",
+    "pyvene": "the later E1 resolves the same subject key and sees an already-terminal E2 that subsumes E1, so no duplicate source read starts",
+    "hot_main": "ownership acquisition touches an objective-specific Git ref instead of committing the mutex to the shared main head; claim/result materialization can reconcile later"
+  },
+  "serious_counterhypotheses": [
+    "Semantic normalization can over-collapse genuinely different research questions if target scope or stage discriminators are too coarse.",
+    "Maintaining both ref coordination and pending_research.sqlite discovery may cost more complexity than the duplicate work it saves at low concurrency.",
+    "Repository renames, forks and moving default branches can destabilize string-based source identity; stable repository IDs should be preferred where obtainable, while exact commit/tree pins remain mandatory for source evidence.",
+    "Relevant-architecture digests can miss an indirect dependency unless the dependency closure is explicit; fail closed to STALE_REVIEW_REQUIRED when impact cannot be bounded."
+  ],
+  "cheapest_high_information_falsifier": {
+    "evidence_target": "E3_COORDINATION_FIXTURE_ONLY",
+    "requires_unusual_experiment_lease": true,
+    "do_not_execute_in_this_run": true,
+    "fixture": [
+      "replay the two observed AgentExit alias claims",
+      "replay the pyvene E1-after-E2 case",
+      "include one legitimate E3 pair with different upstream claim IDs",
+      "include one legitimate E4 pair with different fixture digests",
+      "include one unrelated F2-main commit while target-relevant digest stays constant",
+      "include one relevant target-module change requiring REVIEW",
+      "include deliberate REPLICATION with explicit parent key"
+    ],
+    "acceptance": [
+      "100% of semantic duplicates collapse before material work",
+      "0 legitimate distinct E3/E4 objectives collapse",
+      "unrelated main movement does not create a new key",
+      "relevant architecture movement forces REVIEW",
+      "one winner per PRIMARY objective under create-only acquisition",
+      "no new canonical state/effect authority"
+    ],
+    "measure": [
+      "claim API/ref calls",
+      "retry count",
+      "duplicate work started",
+      "main-head writes attributable to mutex acquisition",
+      "p50/p95 acquisition latency",
+      "false-merge and false-split counts"
+    ]
+  },
+  "promotion_decision": "E2_KEEP_AS_PROTOCOL_REFINEMENT_HYPOTHESIS; NO E3/E4/E5 PROMOTION IN THIS RUN",
+  "credits": {
+    "research_evidence": "E2_SOURCE_ARCHITECTURE_MAPPED",
+    "architecture_credit": 0,
+    "runtime_credit": 0,
+    "integration_credit": 0,
+    "effect_credit": 0,
+    "whole_system_credit": 0
+  },
+  "execution": {
+    "provider_calls": 0,
+    "vps_execution": 0,
+    "runtime_experiments": 0,
+    "real_effects": 0,
+    "paid_fallback": false,
+    "unusual_experiment": false,
+    "pending_research_sqlite_sync": "SYNC_PENDING"
+  },
+  "next_exact_action": "After canonical unusual-experiment lease is available for the same immutable trigger identity, run the bounded no-effect E3 semantic-coordination fixture; until then Trigger-6 workers should at minimum search semantic subject aliases before claiming and preserve duplicate reconciliations as negative evidence."
+}
