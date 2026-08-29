@@ -431,7 +431,6 @@ def _validate_candidate_origins(
         admission = item.producer_admission
         if admission is None:
             raise GwtWorkspaceError("candidate requires exact GRID10 producer_admission")
-        # Re-run the structural WP503 binding at the consuming boundary.
         try:
             admission.plan.validate_output(admission.cell_output, cell_input=admission.cell_input)
         except Grid10InterfaceError as exc:
@@ -476,7 +475,7 @@ def _rank_candidates(
             deferred.append(item.candidate_id)
             continue
         admission = item.producer_admission
-        if admission is None:  # guarded by _validate_candidate_origins; keep fail-closed locally.
+        if admission is None:
             raise GwtWorkspaceError("candidate requires exact GRID10 producer_admission")
         selected.append(
             SelectedCandidate(
@@ -584,8 +583,8 @@ class WorkspaceSelection:
         object.__setattr__(self, "policy_id", _text("policy_id", self.policy_id))
         _generation("policy_generation", self.policy_generation)
         object.__setattr__(self, "policy_sha256", _sha256("policy_sha256", self.policy_sha256))
-        if not isinstance(self.selected, tuple) or not all(isinstance(item, SelectedCandidate) for item in self.selected):
-            raise GwtWorkspaceError("selected must be an immutable tuple of SelectedCandidate")
+        if not isinstance(self.selected, tuple) or not all(type(item) is SelectedCandidate for item in self.selected):
+            raise GwtWorkspaceError("selected must be an immutable tuple of concrete SelectedCandidate")
         selected_ids = tuple(item.candidate_id for item in self.selected)
         if len(set(selected_ids)) != len(selected_ids):
             raise GwtWorkspaceError("selected contains duplicate candidate_id")
