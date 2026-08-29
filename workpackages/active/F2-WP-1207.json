@@ -13,25 +13,33 @@
   "parent_reconciliation_ref": "workpackages/reconciliations/F2-WP-1207/1-F2-WP-1207-G1-GPT56SOL-HOSTILE-TWIN-TRANSACTION-20260829.json",
   "parent_acceptance_receipt": "workpackages/receipts/F2-WP-1207_G1_HOSTILE_TWIN_TRANSACTION_GHA_33253539715.json",
   "trigger_falsifier_ref": "workpackages/deltas/F2-WP-1207/1-F2-WP-1207-G1-GPT56SOL-HOSTILE-TWIN-TRANSACTION-20260829-02_ABI_COLLISION_REVIEW.json",
-  "claimed_scope": "Strengthen the accepted deterministic WP1207 transaction/receipt ABI so release activation readback is fail-closed: bind the source active release identity into the plan, require every attempt receipt to carry explicit observed active release identity (or explicit absence for a failed fresh install), require SUCCEEDED to match the planned target release digest, require FAILED_NO_MUTATION and ROLLED_BACK to match the exact pre-attempt active release, and add adversarial mismatch tests. Repository source/tests/CI only. This successor does not execute a release ZIP, mutate a host/twin, invoke package/network operations, or grant hostile-twin runtime, T1-T4, physical, EffectGate, CompletionGate, GRID/GWT/J-Space, training or whole-system credit.",
+  "claimed_scope": "Add a fail-closed successor release-readback fence over the accepted byte-identical G1 transaction ABI instead of reopening G1 source. The fence revalidates the exact original transaction request/plan and base attempt receipt, requires explicit observed active release identity (or explicit absence for a failed fresh install), requires SUCCEEDED to match the planned target release digest, and requires FAILED_NO_MUTATION/ROLLED_BACK to match the exact pre-attempt active release. Add adversarial mismatch tests and repository CI. Repository source/tests/CI only. No release ZIP execution, host/twin mutation, package/network operation, hostile-twin runtime credit, T1-T4/physical/effect/completion/GRID/GWT/J-Space/training or whole-system credit.",
   "owned_scope": [
+    "src/frankenstein2/portable_release_readback.py",
+    "tests/test_portable_release_readback.py",
+    ".github/workflows/wp1207-release-readback-ci.yml",
+    "workpackages/deltas/F2-WP-1207/2-F2-WP-1207-G2-GPT56SOL-RELEASE-READBACK-BINDING-20260829-01.json"
+  ],
+  "preserved_parent_paths": [
     "src/frankenstein2/portable_release_transaction.py",
     "tests/test_portable_release_transaction.py",
-    ".github/workflows/wp1207-portable-release-transaction-ci.yml",
-    "workpackages/deltas/F2-WP-1207/2-F2-WP-1207-G2-GPT56SOL-RELEASE-READBACK-BINDING-20260829-01.json"
+    ".github/workflows/wp1207-portable-release-transaction-ci.yml"
   ],
   "created_at_utc": "2026-08-29T12:56:29Z",
   "state": "ACTIVE",
   "required_invariants": [
-    "SUCCEEDED cannot be recorded unless observed active release identity exactly matches TransactionPlan.target_release_digest",
-    "FAILED_NO_MUTATION with an existing lineage cannot be recorded unless observed active release identity exactly matches the pre-attempt source active release",
-    "ROLLED_BACK cannot be recorded unless observed active release identity exactly matches the pre-attempt source active release",
-    "a failed fresh INSTALL cannot invent either durable lineage or active release identity",
+    "accepted G1 source/test/workflow remain byte-identical",
+    "SUCCEEDED cannot pass the readback fence unless observed active release identity exactly matches the planned target release digest",
+    "FAILED_NO_MUTATION with an existing lineage cannot pass unless observed active release identity exactly matches the pre-attempt source active release",
+    "ROLLED_BACK cannot pass unless observed active release identity exactly matches the pre-attempt source active release",
+    "failed fresh INSTALL cannot invent durable lineage or active release identity",
     "correct generation/state with wrong active release is rejected",
+    "base G1 record_attempt validation is reused rather than weakened or reimplemented as a looser path",
     "same normalized input remains deterministic",
-    "receipt and plan remain explicitly non-runtime/noncanonical preparatory evidence"
+    "readback receipt remains explicitly non-runtime/noncanonical preparatory evidence"
   ],
   "forbidden": [
+    "mutation of accepted G1 portable_release_transaction source/test/workflow under this narrowed successor scope",
     "production installer selection or execution",
     "release ZIP installation or package-manager/network side effects",
     "VPS or physical target mutation/runtime credit",
@@ -41,5 +49,5 @@
     "training credit",
     "whole-system acceptance"
   ],
-  "next_exact_action": "Patch the exact current-main transaction/receipt ABI and regression suite with active-release readback binding, run deterministic local/static tests, publish source/tests/workflow without weakening G1 invariants, then require exact-source repository-hosted CI before bounded G2 reconciliation."
+  "next_exact_action": "Implement the isolated release-readback fence and regression suite over the exact accepted G1 ABI, run deterministic local/static tests, publish the new adapter/tests/workflow, then require exact-source repository-hosted CI before bounded G2 reconciliation."
 }
