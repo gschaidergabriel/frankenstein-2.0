@@ -6,12 +6,32 @@ on:
       - main
     paths:
       - 'src/frankenstein2/cognitive_agentic_core_falsifier.py'
+      - 'src/frankenstein2/cognitive_agentic_core_source_attestation.py'
       - 'tests/test_cognitive_agentic_core_falsifier.py'
+      - 'tests/test_cognitive_agentic_core_source_attestation.py'
+      - 'workpackages/reconciliations/F2-WP-802/**'
+      - 'workpackages/reconciliations/F2-WP-803/**'
+      - 'workpackages/reconciliations/F2-WP-804/**'
+      - 'workpackages/reconciliations/F2-WP-805/**'
+      - 'workpackages/receipts/F2-WP-802*'
+      - 'workpackages/receipts/F2-WP-803*'
+      - 'workpackages/receipts/F2-WP-804*'
+      - 'workpackages/receipts/F2-WP-805*'
       - '.github/workflows/wp807-agentic-core-falsifier-ci.yml'
   pull_request:
     paths:
       - 'src/frankenstein2/cognitive_agentic_core_falsifier.py'
+      - 'src/frankenstein2/cognitive_agentic_core_source_attestation.py'
       - 'tests/test_cognitive_agentic_core_falsifier.py'
+      - 'tests/test_cognitive_agentic_core_source_attestation.py'
+      - 'workpackages/reconciliations/F2-WP-802/**'
+      - 'workpackages/reconciliations/F2-WP-803/**'
+      - 'workpackages/reconciliations/F2-WP-804/**'
+      - 'workpackages/reconciliations/F2-WP-805/**'
+      - 'workpackages/receipts/F2-WP-802*'
+      - 'workpackages/receipts/F2-WP-803*'
+      - 'workpackages/receipts/F2-WP-804*'
+      - 'workpackages/receipts/F2-WP-805*'
       - '.github/workflows/wp807-agentic-core-falsifier-ci.yml'
   workflow_dispatch:
 
@@ -31,8 +51,10 @@ jobs:
         run: >-
           python -m py_compile
           src/frankenstein2/cognitive_agentic_core_falsifier.py
+          src/frankenstein2/cognitive_agentic_core_source_attestation.py
           tests/test_cognitive_agentic_core_falsifier.py
-      - name: Agentic-core falsification suite
+          tests/test_cognitive_agentic_core_source_attestation.py
+      - name: Agentic-core falsification and source-attestation suite
         env:
           PYTHONPATH: src
-        run: python -m unittest discover -s tests -p 'test_cognitive_agentic_core_falsifier.py' -v
+        run: python -m unittest discover -s tests -p 'test_cognitive_agentic_core*.py' -v
