@@ -35,6 +35,28 @@ On an exact `4`, `triggerword 4`, or `triggerwort 4` invocation, subject to hard
 
 Maximum useful effort never overrides hard authority, safety, provider or spending restrictions and never creates duplicate mutation authority.
 
+## Trigger-4 VPS parallel capacity envelope
+
+Maximum engineering effort does not mean uncoordinated machine saturation.
+
+Trigger-4 workers may run useful build/test/benchmark/falsification jobs in parallel on the authorized VPS and may use up to approximately **70% aggregate usable VPS compute capacity**, provided the load is centrally coordinated and the machine remains healthy and recoverable.
+
+```text
+SUM(TRIGGER4_ADMITTED_VPS_LOAD) <= 70% OF CURRENT USABLE VPS COMPUTE CAPACITY
+```
+
+The 70% ceiling is shared across all Trigger-4 workers, not granted independently to each worker, and it is not a target when lower parallelism is sufficient.
+
+Use one shared capacity authority/view. Prefer progressive admission (for example ~40% -> observe -> ~55% -> observe -> <=70%) and automatically throttle, serialize or abort expendable test load when memory pressure, swap/OOM evidence, I/O or DB/WAL stalls, runner/heartbeat/control-loop degradation, repeated crashes or another recovery signal appears.
+
+The first constraining resource wins: a memory- or I/O-heavy workload may require substantially less than 70% CPU concurrency.
+
+Keep reserve for OS, database, coordination/control plane, runners/bridges, monitoring/evidence persistence and emergency recovery.
+
+Canonical detailed policy:
+
+`architecture/TRIGGER4_VPS_PARALLEL_CAPACITY_POLICY.md`
+
 ## Priority order
 
 Efficiency optimization of Frankenstein 2.0 must preserve the following order:
@@ -93,7 +115,9 @@ Treat the following as explicit optimization targets:
 - verbose inter-module natural-language protocols where compact typed packets suffice;
 - context compression that destroys provenance, uncertainty or causal identity;
 - saving runtime tokens by hiding evidence or silently dropping unresolved contradictions;
-- saving Trigger-4 engineering resources by under-testing, under-measuring or stopping before another high-value non-duplicate discriminator.
+- saving Trigger-4 engineering resources by under-testing, under-measuring or stopping before another high-value non-duplicate discriminator;
+- treating the shared 70% VPS envelope as a per-worker quota;
+- maximizing parallelism without central admission/backpressure or recovery headroom.
 
 ## Architecture-delta rule
 
@@ -124,10 +148,15 @@ Trigger 4 owns actual build/integration/runtime measurement and also uses maximu
 
 `research_entity/global/TRIGGERWORD_4_MAXIMUM_EXECUTION_BUDGET_BINDING.md`
 
+The F2-side VPS execution envelope is:
+
+`architecture/TRIGGER4_VPS_PARALLEL_CAPACITY_POLICY.md`
+
 Runtime efficiency claims remain component- or workload-scoped until exact F2 evidence exists.
 
 ```text
 TRIGGER4_WORK_BUDGET != FRANKENSTEIN2_RUNTIME_BUDGET
 TRIGGER6_RESEARCH_BUDGET != FRANKENSTEIN2_RUNTIME_BUDGET
 SPEND ENGINEERING/RESEARCH RESOURCES TO PROVE A CHEAPER, BETTER RUNTIME
+TRIGGER4_VPS_PARALLELISM = AGGRESSIVE_WHEN_USEFUL + CENTRALLY_COORDINATED + RECOVERABLE <=70% COMPUTE
 ```
