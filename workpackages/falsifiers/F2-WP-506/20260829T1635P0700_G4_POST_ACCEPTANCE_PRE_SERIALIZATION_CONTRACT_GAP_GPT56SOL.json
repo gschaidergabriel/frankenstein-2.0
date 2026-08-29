@@ -1,0 +1,43 @@
+{
+  "schema": "FRANKENSTEIN2_WORKPACKAGE_FALSIFIER/v1",
+  "workpackage_id": "F2-WP-506",
+  "generation_under_test": 4,
+  "result_class": "NEGATIVE_RESULT",
+  "review_only_source": true,
+  "mutation_authority": false,
+  "falsifier_id": "F2-WP-506-G4-POST-ACCEPTANCE-PRE-SERIALIZATION-CONTRACT-GAP-GPT56SOL-20260829",
+  "created_at_utc": "2026-08-29T09:35:00Z",
+  "canonical_main_observed": "688ff40b9064f15adb8208c7435832e227656335",
+  "active_pointer_ref": "workpackages/active/F2-WP-506.json",
+  "accepted_claim_id": "F2-WP-506-G4-GPT56SOL-EXACT-SELECTED-CANDIDATE-TYPE-REPAIR-20260829",
+  "accepted_terminal_scope": "GWT_SELECTION_BROADCAST_G4_SELECTEDCANDIDATE_SERIALIZATION_TO_CONSUMPTION_LINEAGE_REPOSITORY_HOSTED_COMPONENT_CI_ONLY",
+  "canonical_source_blob_sha": "30025e44722036cb186dd0fad8073681887a828d",
+  "canonical_test_blob_sha": "10da18f7385576d4475720023b332498a9779414",
+  "hypothesis": "The accepted G4 contract requires exact concrete SelectedCandidate members at the WorkspaceSelection trust boundary before any lineage serialization, not merely before downstream broadcast consumption.",
+  "observed_result": "Canonical WorkspaceSelection.__post_init__ still admits SelectedCandidate subclasses using isinstance(). The canonical PR281 regression deliberately constructs such a subclass with direct payload_ref='payload:forged', overrides as_dict() to serialize the canonical payload, constructs WorkspaceSelection successfully, and asserts forged.sha256() == canonical.sha256() before create_broadcast later rejects it through _assert_selection_build_lineage().",
+  "contract_mismatch": "G4's claimed_scope says exact concrete SelectedCandidate members are required at the WorkspaceSelection trust boundary before any lineage serialization or downstream direct attribute consumption. The accepted source closes the downstream consumption path but still permits polymorphic WorkspaceSelection lineage serialization before that validator runs.",
+  "counterevidence": "PR281 plus exact merged-main CI proves the downstream create_broadcast path fails closed; this negative result does not revoke that bounded consumption-path evidence. It narrows the accepted claim to what the code actually enforces and opens a successor scope for constructor-level admission.",
+  "donor_patch": {
+    "pr": 289,
+    "head_sha": "0644633a4c3b306d9c93cfd5232ace66d5f45878",
+    "workflow_run_id": 33245791156,
+    "workflow_job_id": 99082887754,
+    "job_conclusion": "success",
+    "suite_result": "30 passed in 0.10s",
+    "status": "DONOR_ONLY_UNTIL_SUCCESSOR_CLAIM_IS_CANONICAL"
+  },
+  "scope_invalidated": "G4 terminal wording cannot be read as proof of constructor-level pre-serialization exact-type admission.",
+  "scope_preserved": [
+    "PR281 exact-head and merged-main repository-hosted CI remain valid for the downstream selection/broadcast consumption boundary.",
+    "No target/VPS runtime, physical GRID10, semantic GWT causal influence, J-Space, provider/model, effect/completion, training or whole-system credit is created or revoked by this source-level contradiction."
+  ],
+  "smallest_successor_condition": "Open deliberate WP506 generation 5 from the accepted G4 reconciliation; require type(item) is SelectedCandidate in WorkspaceSelection.__post_init__, retain the existing downstream exact-member guard as defense-in-depth, convert the PR281 subtype regression into constructor-admission failure coverage, and require exact-head plus merged-main repository-hosted CI before bounded G5 acceptance.",
+  "credits": {
+    "runtime_credit": 0,
+    "physical_grid10_credit": 0,
+    "gwt_runtime_credit": 0,
+    "jspace_runtime_credit": 0,
+    "training_credit": 0,
+    "whole_system_acceptance": false
+  }
+}
