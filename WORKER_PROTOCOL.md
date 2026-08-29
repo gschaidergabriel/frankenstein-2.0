@@ -8,6 +8,7 @@ Every Triggerword-4 worker doing Frankenstein-2.0 assembly must treat this repos
 REFRESH
 → SELECT/CLAIM WORKPACKAGE + GENERATION
 → INSPECT DONOR/DEPENDENCIES
+→ INSPECT ACTIVE RESEARCH PACKETS RELEVANT TO CLAIM
 → INSPECT NEWER CLAIM-SCOPED DELTAS / OVERLAP
 → BUILD SMALLEST COHERENT STEP
 → TEST
@@ -20,6 +21,8 @@ REFRESH
 ```
 
 High-fan-out runs must follow `workpackages/CONVERGENCE_PROTOCOL.md`. Normal workers do not repeatedly rewrite shared canonical ledgers merely to announce progress.
+
+Active cross-workpackage research/falsification input lives under `workpackages/research_inbox/`. A research packet is evidence/input only, never mutation authority. On refresh, workers must inspect active packets, consume only items routed to their current claim, preserve source ancestry, and convert overlap with already-landed work to `REVIEW_ONLY` / `CANDIDATE_FALSIFIER` rather than creating duplicate implementation authority.
 
 ## Commit law
 
@@ -48,12 +51,13 @@ workpackage_id + generation + claim_id
 Before every write:
 
 1. refresh current `main`;
-2. inspect `workpackages/STATE.json`, `workpackages/CLAIM_PROTOCOL.md`, `workpackages/CONVERGENCE_PROTOCOL.md`, `workpackages/active/<workpackage_id>.json` when present, and `checkpoints/CURRENT.json` when present;
+2. inspect `workpackages/STATE.json`, `workpackages/CLAIM_PROTOCOL.md`, `workpackages/CONVERGENCE_PROTOCOL.md`, `workpackages/active/<workpackage_id>.json` when present, `workpackages/research_inbox/` active packets relevant to the claim, and `checkpoints/CURRENT.json` when present;
 3. inspect newer claim-scoped deltas for the same workpackage/generation;
 4. detect overlapping/newer claims and exact owned-path overlap;
 5. never overwrite a newer accepted generation with stale state;
 6. if equivalent canonical work already landed, stop implementation and convert the result to `REVIEW_ONLY` / `CANDIDATE_FALSIFIER` instead of creating another adapter;
-7. if overlap is useful as an independent falsifier, label it explicitly rather than pretending it is independent by default.
+7. if overlap is useful as an independent falsifier, label it explicitly rather than pretending it is independent by default;
+8. do not multiply epistemic confidence by raw worker count: preserve primary-source, donor-path and method ancestry when a research packet defines them, because many workers may share one underlying evidence source.
 
 ### Mechanical mutation-authority lock
 
