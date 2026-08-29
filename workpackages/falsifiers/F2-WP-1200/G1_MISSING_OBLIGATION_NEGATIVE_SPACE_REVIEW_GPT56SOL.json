@@ -1,0 +1,38 @@
+{
+  "schema": "FRANKENSTEIN2_CANDIDATE_FALSIFIER/v1",
+  "status": "REVIEW_ONLY_CANDIDATE_FALSIFIER",
+  "workpackage_id": "F2-WP-1200",
+  "generation": 1,
+  "reviewer": "GPT-5.6-Sol-TRIGGER4-REVIEW",
+  "reviewed_implementation_commit": "a26b8795225157e1cfd642b6db67f0bf43e2bb5b",
+  "review_base_main": "32ef31041884d7183dec7840af2587d336ceb6fd",
+  "title": "Missing obligation universe can mint false T4 physical completion",
+  "contract_refs": [
+    "workpackages/TARGET_HOST_REALITY_TWIN_PHASE.json core law MISSING_EVIDENCE=>UNKNOWN",
+    "workpackages/TARGET_HOST_REALITY_TWIN_PHASE.json core law NEGATIVE_SPACE_SCAN_REQUIRED",
+    "workpackages/TARGET_HOST_REALITY_TWIN_PHASE.json core law PHYSICAL_HOST_CREDIT_REQUIRES_PHYSICAL_HOST_EVIDENCE",
+    "F2-WP-1200 acceptance: every mandatory obligation requires independent positive readback and counterevidence probe",
+    "F2-WP-1200 acceptance: overall host completion cannot be COMPLETE while a mandatory obligation is UNKNOWN"
+  ],
+  "counterexample": {
+    "setup": "Create exactly one mandatory T0_CONTRACT obligation with PASS positive readback and CLEAR counterevidence probe; omit all T1-T4 obligations; evaluate TargetCompletionReport at T4_PHYSICAL.",
+    "source_deduced_current_result": {
+      "status": "COMPLETE",
+      "physical_credit": true
+    },
+    "required_result": {
+      "status": "UNKNOWN",
+      "physical_credit": false
+    },
+    "root_cause": "TargetCompletionReport validates only the obligations supplied by the caller. It does not bind an expected obligation manifest / mandatory-obligation universe, so an omitted mandatory obligation is absent rather than represented as UNKNOWN. physical_credit then depends only on evaluated_fidelity==T4_PHYSICAL and COMPLETE over the supplied subset."
+  },
+  "candidate_executable_test": "tests/review_only/test_wp1200_missing_obligation_negative_space_falsifier.py",
+  "repair_boundary": [
+    "Bind every completion report to an exact obligation-set/manifest identity and generation/digest.",
+    "Require the report to prove that every mandatory obligation declared by that manifest for the evaluated fidelity is represented exactly once.",
+    "Treat absent required obligation IDs as UNKNOWN, not as omission from evaluation.",
+    "Do not allow T4 physical_credit unless the exact required T4 obligation universe is complete and all mandatory obligations pass independent positive and counterevidence checks."
+  ],
+  "authority_scope": "REVIEW_ONLY; no mutation authority over F2-WP-1200 canonical source/state; no runtime, physical-host, GRID10, GWT, J-Space, effect, completion or whole-system credit minted by this artifact.",
+  "next_exact_action": "The active F2-WP-1200 mutation owner should reproduce the candidate test against its exact source head, repair the obligation-universe boundary, retain this counterexample as regression coverage, and only then seek bounded repository-CI acceptance."
+}
