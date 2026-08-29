@@ -1,0 +1,64 @@
+{
+  "schema": "FRANKENSTEIN2_TRIGGER6_RESEARCH_RESULT/v1",
+  "trigger": "6",
+  "research_id": "R6-20260829-WP805-REPLAN-RECOVERY-EFFICIENCY-GPT56SOL-01",
+  "slot": "EXPERIMENTAL_FALSIFIER",
+  "evidence_stage": "E3_CLAIM_REPRODUCED",
+  "status": "COMPLETED_E3_TRACE_COUNT_TAMPER_REPRODUCED_NO_RUNTIME_CREDIT",
+  "created_at": "2026-08-29T20:27:00+07:00",
+  "worker": "GPT-5.6-Sol-TRIGGER6",
+  "claim": {
+    "path": "research/tool_intelligence/claims/R6-20260829-WP805-REPLAN-RECOVERY-EFFICIENCY-GPT56SOL-01/E3_CLAIM_REPRODUCED_TRACE_COUNT_TAMPER_GAP.json",
+    "commit": "884c0e7b7c93516b1cfa6b1d162041c54e16d533"
+  },
+  "source_identity": {
+    "wp805_source_blob_sha": "5a41760f21eeb6efdb6faf12f2e33b2dfca9d7b3",
+    "experiment_commit": "29d7da1c0c42d1f58a366dbdbc65ae42e86abd60",
+    "experiment_blob_sha": "1d5a276d4ea2280f4bcbb822b4b69f9cb45846f4"
+  },
+  "repository_execution": {
+    "provider": "GITHUB_ACTIONS_REPOSITORY_HOSTED_CI",
+    "workflow": "Trigger6 WP805 Matching Validity Falsifier",
+    "workflow_run_id": 33255035993,
+    "job_id": 99107133258,
+    "checked_out_commit": "29d7da1c0c42d1f58a366dbdbc65ae42e86abd60",
+    "runner": "ubuntu-24.04",
+    "python": "3.12.14",
+    "compile": "PASS",
+    "counterexample_job": "PASS",
+    "scope": "RESEARCH_FALSIFIER_EXECUTION_ON_REPOSITORY_SOURCE_NOT_F2_TARGET_RUNTIME"
+  },
+  "reproduced_claim": {
+    "id": "WP805-E3-R3-TRACE-COUNT-SELF-AUTHENTICATION-GAP",
+    "result": "REPRODUCED",
+    "observation": "Two EvaluatorRunMeasurement values with the same opaque run_id, same transfer case, same target fixture, same action budget, same actions_executed, same final evaluator score and same terminal state both validated while carrying different replayed_steps and repeated_work_steps. No execution_trace_sha256 is present in the measurement contract.",
+    "same_run_id": true,
+    "same_case_target_budget_outcome": true,
+    "receipt_a_sha256": "e39aa2d3afae8bbbf36f762b24b0b5bff8112151484a99abaf97e989f9d5c1d8",
+    "receipt_b_sha256": "7fd57ed358c446a8024fb3008c25a8bf2d7e7cc92db3dd4c4a12ee2705f8821a",
+    "replayed_steps": [0, 2],
+    "repeated_work_steps": [0, 3],
+    "contract_binds_execution_trace": false,
+    "inference_boundary": "This proves the current receipt schema cannot independently authenticate replay/repeated-work counts. It does not prove the existing evaluator implementation lies about counts, and current bounded component CI remains valid. The finding blocks promotion of those counters to stronger measured runtime-efficiency evidence unless an external trace/receipt is bound."
+  },
+  "counterhypothesis": {
+    "statement": "Evaluator ownership makes a trace digest unnecessary because callers are trusted.",
+    "assessment": "SUFFICIENT_FOR_BOUNDED_COMPONENT_TESTS_BUT_INSUFFICIENT_FOR_STRONG_PERSISTED_MEASUREMENT_CREDIT",
+    "reason": "Trust in the immediate evaluator can be a local assumption, but after the measurement is persisted or fused across workers the present receipt has no causal identity proving which execution produced its work counts."
+  },
+  "architecture_delta": {
+    "id": "WP805-HARDENING-TRACE-DERIVED-EFFICIENCY-v1",
+    "requirement": "Before replayed_steps/repeated_work_steps/actions_executed are used as strong recovery-efficiency evidence, bind an exact evaluator execution/work trace identity (or equivalent immutable work receipt) and deterministically derive or cross-check counts from it. Fail closed when supplied counts disagree with the bound trace.",
+    "preserve": "Do not weaken current public/evaluator separation, checkpoint provenance, budget fences or zero-credit boundaries.",
+    "priority": "HIGH_FOR_E4_OR_RUNTIME_EFFICIENCY_PROMOTION; NONBLOCKING_FOR_CURRENT_COMPONENT_SCOPE"
+  },
+  "next_exact_action": "Fuse the three reproduced WP805 E3 gaps (matched-start identity, structural transfer-family identity, trace-derived work counts) into one bounded Trigger-4 validation-handoff recommendation. Do not require universal oracle regret until stable WP804 goal semantics exist. Do not modify WP805 product source from Trigger-6.",
+  "credits": {
+    "trigger6_E3_trace_claim": 1,
+    "trigger6_E4": 0,
+    "trigger6_E5": 0,
+    "trigger6_E6": 0,
+    "f2_target_runtime": 0,
+    "whole_system": 0
+  }
+}

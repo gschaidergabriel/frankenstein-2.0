@@ -1,7 +1,7 @@
 """Trigger-6 WP805 matching-validity falsifier.
 
-Research-only executable counterexample. It imports the canonical F2 WP800/WP805 source
-and demonstrates two contract-level gaps without mutating product source or granting runtime,
+Research-only executable counterexamples. They import canonical F2 WP800/WP805 source
+and demonstrate contract-level gaps without mutating product source or granting runtime,
 GRID/GWT/J-Space, effect, cognition-superiority, completion or whole-system credit.
 """
 from __future__ import annotations
@@ -9,7 +9,6 @@ from __future__ import annotations
 import hashlib
 
 from frankenstein2.cognitive_microworld import (
-    ACTION_REQUEST_SCHEMA,
     FIXTURE_SCHEMA,
     OBSERVATION_SCHEMA,
     ActionSpec,
@@ -49,8 +48,8 @@ def obs(*, step: int, episode: str = "ep-target", episode_generation: int = 7) -
     )
 
 
-def reproduce_g1_unbound_matched_start() -> dict[str, object]:
-    case = TransferCase.create(
+def base_case() -> TransferCase:
+    return TransferCase.create(
         source_fixture_id="source-fixture",
         source_fixture_generation=1,
         source_holdout_set_id="source-holdout",
@@ -62,7 +61,10 @@ def reproduce_g1_unbound_matched_start() -> dict[str, object]:
         episode_family_id="family-1",
         action_budget=8,
     )
-    policy = PublicPolicyState(
+
+
+def base_policy() -> PublicPolicyState:
+    return PublicPolicyState(
         POLICY_STATE_SCHEMA,
         "policy:source",
         1,
@@ -73,6 +75,10 @@ def reproduce_g1_unbound_matched_start() -> dict[str, object]:
         ("go",),
         8,
     )
+
+
+def reproduce_g1_unbound_matched_start() -> dict[str, object]:
+    case, policy = base_case(), base_policy()
     cold_public_start = obs(step=0, episode="ep-cold")
     resume_public_start = obs(step=2, episode="ep-resume")
     assert cold_public_start.sha256() != resume_public_start.sha256()
@@ -176,6 +182,52 @@ def reproduce_g3_structural_family_relabeling() -> dict[str, object]:
     }
 
 
+def reproduce_trace_count_tamper_gap() -> dict[str, object]:
+    case = base_case()
+    fixed = dict(
+        run_id="same-run-id",
+        mode=COLD_RESTART,
+        case=case,
+        target_fixture_sha256=h("hidden-target-fixture"),
+        checkpoint=None,
+        actions_executed=6,
+        final_evaluator_score=4,
+        terminal=True,
+    )
+    receipt_a = EvaluatorRunMeasurement.measure_run(
+        **fixed,
+        replayed_steps=0,
+        repeated_work_steps=0,
+    )
+    receipt_b = EvaluatorRunMeasurement.measure_run(
+        **fixed,
+        replayed_steps=2,
+        repeated_work_steps=3,
+    )
+    assert receipt_a.run_id == receipt_b.run_id
+    assert receipt_a.transfer_case_sha256 == receipt_b.transfer_case_sha256
+    assert receipt_a.target_fixture_sha256 == receipt_b.target_fixture_sha256
+    assert receipt_a.actions_executed == receipt_b.actions_executed
+    assert receipt_a.final_evaluator_score == receipt_b.final_evaluator_score
+    assert receipt_a.terminal == receipt_b.terminal
+    assert receipt_a.replayed_steps != receipt_b.replayed_steps
+    assert receipt_a.repeated_work_steps != receipt_b.repeated_work_steps
+    assert "execution_trace_sha256" not in receipt_a.as_dict()
+    return {
+        "reproduced": True,
+        "same_run_id": receipt_a.run_id == receipt_b.run_id,
+        "same_case_target_budget_outcome": True,
+        "receipt_a_sha256": receipt_a.sha256(),
+        "receipt_b_sha256": receipt_b.sha256(),
+        "replayed_steps_a": receipt_a.replayed_steps,
+        "replayed_steps_b": receipt_b.replayed_steps,
+        "repeated_work_steps_a": receipt_a.repeated_work_steps,
+        "repeated_work_steps_b": receipt_b.repeated_work_steps,
+        "contract_binds_execution_trace": False,
+    }
+
+
 if __name__ == "__main__":
     print(reproduce_g1_unbound_matched_start())
     print(reproduce_g3_structural_family_relabeling())
+    print(reproduce_trace_count_tamper_gap())
