@@ -1,0 +1,67 @@
+{
+  "schema": "FRANKENSTEIN2_TRIGGER6_ARCHITECTURE_DELTA/v1",
+  "research_id": "R6-WP1107-REPROTEST-ZIP-001",
+  "evidence_stage": "E2_ARCHITECTURE_MAPPED",
+  "status": "BUILDABLE_DELTA_MAPPED",
+  "f2_baseline_sha": "d6b67b034fd5732f5954b4372104a881381eff70",
+  "source": {
+    "candidate": "reprotest 0.7.32 + Reproducible Builds variance/archive/SOURCE_DATE_EPOCH methods",
+    "source_stage": "E1_SOURCE_READ_COMPLETE"
+  },
+  "mechanism": "Deterministic release archive construction followed by a bounded environment-variance replay matrix. Archive creation must consume only canonical payload bytes, canonical paths, explicit archive policy and source-derived timestamp; no ambient filesystem metadata may silently affect bytes.",
+  "exact_f2_mapping": {
+    "primary_workpackage": "F2-WP-1107",
+    "existing_source": "src/frankenstein2/release_integrity.py",
+    "existing_source_blob": "b6e492532714546dc87d719c29b349a187eccfca",
+    "existing_authority_preserved": "ReleaseManifest/build_release_manifest/verify_release_manifest remain the payload integrity authority.",
+    "proposed_next_generation_surface": "src/frankenstein2/release_integrity.py or a narrowly imported src/frankenstein2/release_archive.py",
+    "downstream_gate": "exact release-candidate ZIP builder -> pre-handoff archive receipt -> clean-machine testing"
+  },
+  "build_candidate": {
+    "name": "DETERMINISTIC_RELEASE_ZIP_AND_VARIANCE_FALSIFIER/v1",
+    "archive_rules": [
+      "walk only canonical regular payload files; reject symlinks and noncanonical paths using the existing WP1107 path fence",
+      "write ZIP members in canonical POSIX path order; do not emit ambient directory entries",
+      "set every ZipInfo.date_time from one source-bound SOURCE_DATE_EPOCH-equivalent value, clamped to ZIP's representable range",
+      "set create_system and external attributes explicitly rather than inheriting host defaults",
+      "define deterministic file mode policy; executable semantics must be explicit and bound, never inherited from umask",
+      "clear comments and extra fields unless an explicitly versioned policy requires them",
+      "prefer ZIP_STORED for the first acceptance generation to eliminate compressor/version nondeterminism; compression may be added later only with toolchain identity and reproducibility evidence",
+      "write the canonical WP1107 manifest into the archive and bind archive_sha256 + manifest_sha256 + source_commit + source_tree + build_id + archive_policy_id in a pre-handoff receipt"
+    ],
+    "variance_matrix": [
+      "payload filesystem mtime perturbation",
+      "source/build directory path perturbation",
+      "input creation/readdir order perturbation",
+      "TZ perturbation",
+      "locale perturbation",
+      "umask/permission-environment perturbation"
+    ],
+    "acceptance_rule": "For the same source_commit/source_tree/build_id/payload bytes/archive policy, every bounded variance case must yield the same full archive SHA-256. Any mismatch is a release-integrity failure with the responsible variance dimension reported.",
+    "negative_controls": [
+      "mutating one payload byte must change manifest and archive identity",
+      "changing explicit archive policy must change policy identity and therefore release receipt identity",
+      "unbound executable-bit differences must fail closed rather than silently enter the archive",
+      "unexpected extra ZIP member must fail post-build verification"
+    ]
+  },
+  "expected_benefit": "Closes the gap between payload-level integrity and the actual handed-off ZIP bytes, exposes hidden environmental inputs before clean-machine/VPS work, and makes release replay independently hash-comparable.",
+  "failure_modes": [
+    "ZIP DOS timestamps have a 1980 lower bound and two-second granularity; timestamp normalization must be explicit.",
+    "If compressed members are introduced, compressor/library-version changes can break byte reproducibility even with identical payloads.",
+    "Blindly forcing every file to mode 0644 can break executable entrypoints; mode semantics require an explicit policy.",
+    "Testing too many reprotest dimensions would waste CI/runtime budget; only dimensions that can reach archive bytes belong in the first matrix.",
+    "Byte-identical ZIP does not prove installation or runtime correctness."
+  ],
+  "counterhypothesis": "WP1107's existing canonical manifest is sufficient because it already binds every payload file byte; archive byte reproducibility is unnecessary packaging aesthetics.",
+  "falsifier": "Construct two ZIP containers from the same WP1107-equivalent payload and manifest while varying only ambient file mtimes/metadata. If archive hashes differ while extracted payload hashes and manifest remain identical, the current manifest gate does not bind the actual handed-off container bytes and the new property is distinct.",
+  "recommendation": "ADOPT_STRUCTURAL_PRIMITIVE_NOT_WHOLE_TOOL",
+  "next_exact_action": "Claim E3 and run a tiny local research-only ZIP fixture demonstrating whether identical payload/manifest bytes can produce different container hashes under ambient metadata, then if reproduced hand the deterministic builder specification to Trigger 4 as the next WP1107 generation.",
+  "credit": {
+    "research": "E2_ARCHITECTURE_MAPPED",
+    "source_ready": false,
+    "repository_ci": false,
+    "release_runtime": false,
+    "whole_system": false
+  }
+}
