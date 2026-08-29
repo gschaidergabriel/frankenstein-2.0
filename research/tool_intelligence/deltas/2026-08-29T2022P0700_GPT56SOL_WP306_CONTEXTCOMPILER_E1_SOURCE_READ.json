@@ -1,0 +1,138 @@
+{
+  "schema": "F2_TRIGGER6_RESEARCH_DELTA/v1",
+  "research_id": "R6-20260829-WP306-CONTEXT-COMPILER-GPT56SOL-01",
+  "evidence_stage": "E1_SOURCE_READ",
+  "status": "SOURCE_READ_COMPLETE_NO_ARCHITECTURE_CREDIT",
+  "created_at_local": "2026-08-29T20:22:00+07:00",
+  "architecture_fusion": "research/tool_intelligence/deltas/2026-08-29T2012P0700_GPT56SOL_ARCHITECTURE_DELTA_FUSION_WP306_CONTEXTCOMPILER.json",
+  "claim": "research/tool_intelligence/claims/R6-20260829-WP306-CONTEXT-COMPILER-GPT56SOL-01/E1_SOURCE_READ.json",
+  "target_workpackages": ["F2-WP-300", "F2-WP-301", "F2-WP-303", "F2-WP-304", "F2-WP-305", "F2-WP-306", "F2-WP-500", "F2-WP-501", "F2-WP-505", "F2-WP-509", "F2-WP-902"],
+  "source_pins": [
+    {
+      "class": "PRIMARY_PROVIDER_DOC",
+      "name": "Anthropic Effective Context Engineering for AI Agents",
+      "url": "https://www.anthropic.com/engineering/effective-context-engineering-for-ai-agents",
+      "observed": "Context is finite; context engineering optimizes utility of tokens rather than maximizing raw history."
+    },
+    {
+      "class": "PRIMARY_PROVIDER_DOC",
+      "name": "Anthropic Compaction",
+      "url": "https://platform.claude.com/docs/en/build-with-claude/compaction",
+      "observed": "Server-side compaction summarizes older context as windows grow; useful as evidence that long active contexts degrade, but summarization is lossy/provider-specific."
+    },
+    {
+      "class": "PRIMARY_PROVIDER_DOC",
+      "name": "OpenAI Prompt Caching",
+      "url": "https://developers.openai.com/api/docs/guides/prompt-caching",
+      "observed": "Exact rendered-prefix reuse stores/reuses KV states, reduces repeated prefill work and latency, but does not remove tokens from the logical context and cached input tokens still count toward rate limits."
+    },
+    {
+      "class": "PINNED_REPOSITORY_SOURCE",
+      "name": "vLLM Automatic Prefix Caching",
+      "repo": "vllm-project/vllm",
+      "commit": "fd5d3aea9470bb92376eb2d9f5d64cd8f23de31b",
+      "path": "docs/design/prefix_caching.md",
+      "observed": "Hash-bound full-block KV reuse; supports deterministic/cross-language hash serialization and cache salts. The mechanism is output-neutral compute reuse, not semantic context reduction."
+    },
+    {
+      "class": "PRIMARY_PAPER",
+      "name": "LongLLMLingua",
+      "doi": "10.18653/v1/2024.acl-long.91",
+      "observed": "Upstream reports 2x-6x prompt compression with 1.4x-2.6x end-to-end latency acceleration on about-10k-token prompts and task-specific quality gains; these are upstream claims only, not F2 evidence."
+    },
+    {
+      "class": "PRIMARY_PAPER",
+      "name": "LLMLingua-2",
+      "doi": "10.18653/v1/2024.findings-acl.57",
+      "observed": "Uses token classification / extractive compression to improve faithfulness and reports 1.6x-2.9x end-to-end speedups at 2x-5x compression; still requires a learned compressor model."
+    },
+    {
+      "class": "PINNED_REPOSITORY_SOURCE",
+      "name": "Microsoft LLMLingua",
+      "repo": "microsoft/LLMLingua",
+      "commit": "e0e9d99beb94098bbd924aa53c2c112eac41c758",
+      "paths": ["llmlingua/prompt_compressor.py", "setup.py"],
+      "source_blob": "84e390e557b031b553c372e661af63f9d5aedfc3",
+      "observed": "Central compressor source is about 110 kB and package dependencies include transformers, accelerate, torch, tiktoken, nltk and numpy. Direct import is materially heavier than a native deterministic selector."
+    },
+    {
+      "class": "PINNED_REPOSITORY_SOURCE",
+      "name": "LangChain SummarizationMiddleware",
+      "repo": "langchain-ai/langchain",
+      "commit": "5893459c4f2bfac6c8d3262cae1e3f2246d9287f",
+      "path": "libs/langchain_v1/langchain/agents/middleware/summarization.py",
+      "observed": "Summarization is threshold-driven, uses a separate model call, keeps a recent tail and replaces older history with generated summary state. Useful pattern for trigger/keep budgets, unsafe as canonical F2 evidence without provenance and loss accounting."
+    },
+    {
+      "class": "PRIMARY_PAPER",
+      "name": "Lost in the Middle",
+      "arxiv": "2307.03172",
+      "observed": "Long-context models can use evidence non-uniformly by position; larger context is not automatically better context."
+    },
+    {
+      "class": "PRIMARY_PAPER",
+      "name": "SCBench",
+      "arxiv": "2412.10319",
+      "observed": "Evaluates generation/compression/retrieval/loading across shared-context workloads; warns that long-context/KV optimizations are workload-sensitive and that aggressive sub-O(n) memory methods can degrade multi-turn robustness."
+    },
+    {
+      "class": "PINNED_REPOSITORY_SOURCE",
+      "name": "LMCache",
+      "repo": "LMCache/LMCache",
+      "commit": "ca2f474412e3b881c2f39e62561414c9676653dc",
+      "observed": "Persistent/tiered KV reuse can reduce repeated prefill cost but introduces a serving/cache layer and is orthogonal to semantic evidence selection. Treat as later runtime optimization, not WP306 canonical context authority."
+    }
+  ],
+  "findings": [
+    {
+      "id": "F1",
+      "claim": "WP306 must distinguish semantic context selection from inference-cache reuse.",
+      "confidence": 0.99,
+      "falsifier": "A candidate demonstrates that its cache layer changes the selected evidence set while preserving exact F2 provenance; no current source supports that."
+    },
+    {
+      "id": "F2",
+      "claim": "The lowest-risk first implementation is a deterministic typed selector with explicit budgets, stable ordering and provenance-preserving omission receipts.",
+      "confidence": 0.88,
+      "falsifier": "An external framework wins an F2-equivalent ablation on tokens/latency/quality/provenance with lower complexity and no second state authority."
+    },
+    {
+      "id": "F3",
+      "claim": "Lossy summarization/compression must be downstream and optional, never allowed to overwrite canonical evidence or hide omitted source identities.",
+      "confidence": 0.97,
+      "falsifier": "A formally lossless compressor with exact invertibility and provenance coverage is demonstrated at F2 scope."
+    },
+    {
+      "id": "F4",
+      "claim": "Direct LLMLingua import is not justified at E1 because its model/dependency footprint is large relative to the native WP306 baseline hypothesis.",
+      "confidence": 0.93,
+      "falsifier": "F2 E4 ablation shows a net quality/resource win that exceeds dependency/resident-model overhead."
+    }
+  ],
+  "architecture_direction": {
+    "decision": "STRUCTURAL_DISTILLATION_ONLY_AT_E1",
+    "proposed_layers": [
+      "L0 canonical evidence remains in UnifiedDB/current F2 canonical substrate",
+      "L1 deterministic candidate retrieval/filtering by type, provenance, generation, causal relevance and policy",
+      "L2 deterministic budget allocator with stable token/byte/item caps and priority tiers",
+      "L3 ContextView manifest containing included source identities plus explicit omitted/deferred identities and reason codes",
+      "L4 optional extractive/lossy compressor only for non-authoritative payload text, never identity/provenance fields",
+      "L5 provider/runtime prefix-KV cache adapter outside semantic selection"
+    ],
+    "do_not_import_yet": ["LLMLingua runtime", "LangChain state/memory runtime", "LMCache as semantic context authority", "MemGPT/Letta memory authority"],
+    "reuse_as_patterns": ["LangChain trigger/keep threshold forms", "vLLM canonical hash/salt separation", "LLMLingua extractive importance concept", "SCBench workload-aware evaluation", "provider prompt-cache static-prefix layout"]
+  },
+  "required_e2_questions": [
+    "What exact ContextView schema preserves included/omitted evidence identity and generation?",
+    "What deterministic ranking function can be evaluated without model self-scoring becoming authority?",
+    "Which payload classes may be compressed and which must remain byte/exact-identity preserved?",
+    "How should static prompt/tool/schema prefixes be separated from volatile evidence to maximize cache hits without corrupting semantics?",
+    "What ablation fixture proves token reduction does not remove the decisive negative/contradictory evidence item?"
+  ],
+  "credits": {
+    "evidence_stage": "E1",
+    "external_architecture_credit": 0,
+    "f2_runtime_credit": 0,
+    "whole_system_credit": 0
+  }
+}
