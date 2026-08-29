@@ -13,6 +13,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 import hashlib
+import json
 from typing import Any, ClassVar
 
 from .active_sensing_fabric import compile_observe_intent
@@ -25,6 +26,7 @@ from .perception_bridge import (
     build_audit_receipt,
     build_bridge_envelope,
 )
+from .perception_capture_broker import CaptureBrokerPolicy, RetinaCaptureBroker
 from .perception_control import (
     PerceptionDependency,
     PerceptionHeadPolicy,
@@ -55,12 +57,6 @@ from .perception_temporal import (
     ObservationWindow,
     bind_observed_claim,
     build_observation_window,
-)
-from .retina_capture_broker import (
-    CaptureBrokerState,
-    CaptureFrameRef,
-    create_capture_broker,
-    publish_frame_ref,
 )
 from .retina_pipeline import (
     RetinaAssessment,
@@ -94,6 +90,17 @@ class PerceptionFabricSimulationError(RuntimeError):
 
 def _sha(label: str) -> str:
     return hashlib.sha256(label.encode("utf-8")).hexdigest()
+
+
+def _canonical_sha(value: Any) -> str:
+    payload = json.dumps(
+        value,
+        sort_keys=True,
+        separators=(",", ":"),
+        ensure_ascii=False,
+        allow_nan=False,
+    )
+    return hashlib.sha256(payload.encode("utf-8")).hexdigest()
 
 
 @dataclass(frozen=True, slots=True, kw_only=True)
@@ -230,7 +237,7 @@ def _dashboard_and_snapshots(
 
 def _capture_and_retina(
     sources: tuple[PerceptionSource, ...],
-) -> tuple[tuple[CaptureBrokerState, ...], tuple[RetinaAssessment, ...]]:
+) -> tuple[tuple[str, ...], tuple[RetinaAssessment, ...]]:
     retina_policy = RetinaPolicy(
         policy_id="retina:sim-policy",
         generation=1,
@@ -239,52 +246,57 @@ def _capture_and_retina(
         max_interframe_gap_ns=1_000,
         provenance_refs=PROVENANCE,
     )
-    brokers: list[CaptureBrokerState] = []
+    capture_policy = CaptureBrokerPolicy(
+        policy_id="capture-broker:sim-policy",
+        generation=1,
+        max_frames_per_source=2,
+        max_frame_age_ns=10_000,
+        max_read_window_frames=2,
+        provenance_refs=PROVENANCE,
+    )
+    broker_state_sha256s: list[str] = []
     assessments: list[RetinaAssessment] = []
     for index, source in enumerate(sources):
         baseline_payload = _sha(f"{source.source_id}:baseline")
         changed_payload = _sha(f"{source.source_id}:changed")
-        broker = create_capture_broker(
-            broker_id=f"broker:{source.source_id}",
+        broker = RetinaCaptureBroker(policy=capture_policy)
+        broker.register_source(source=source, generation=1)
+        lease = broker.acquire_owner(
             source_id=source.source_id,
+            source_generation=1,
             capture_owner_id=source.capture_owner_id,
-            capacity=2,
+            opened_monotonic_ns=90,
             provenance_refs=PROVENANCE,
         )
-        baseline_ref = CaptureFrameRef(
-            frame_ref_id=f"{source.source_id}:frame:0",
+        baseline_ref = broker.publish_frame(
             source_id=source.source_id,
-            source_sequence=0,
-            captured_monotonic_ns=100,
-            payload_sha256=baseline_payload,
+            source_generation=1,
+            capture_owner_id=source.capture_owner_id,
+            lease_id=lease.lease_id,
+            capture_monotonic_ns=100,
+            frame_sha256=baseline_payload,
+            payload_size_bytes=0,
             provenance_refs=PROVENANCE,
         )
-        current_ref = CaptureFrameRef(
-            frame_ref_id=f"{source.source_id}:frame:1",
+        current_ref = broker.publish_frame(
             source_id=source.source_id,
-            source_sequence=1,
-            captured_monotonic_ns=200,
-            payload_sha256=changed_payload,
+            source_generation=1,
+            capture_owner_id=source.capture_owner_id,
+            lease_id=lease.lease_id,
+            capture_monotonic_ns=200,
+            frame_sha256=changed_payload,
+            payload_size_bytes=0,
             provenance_refs=PROVENANCE,
         )
-        broker = publish_frame_ref(
-            state=broker,
-            publisher_owner_id=source.capture_owner_id,
-            frame_ref=baseline_ref,
-        )
-        broker = publish_frame_ref(
-            state=broker,
-            publisher_owner_id=source.capture_owner_id,
-            frame_ref=current_ref,
-        )
-        brokers.append(broker)
+        snapshot = broker.snapshot(source_id=source.source_id, source_generation=1)
+        broker_state_sha256s.append(_canonical_sha(snapshot.as_dict()))
 
         previous = RetinaFrameSignal(
             frame_id=baseline_ref.frame_ref_id,
             stream_id=source.source_id,
             generation=0,
-            captured_monotonic_ns=baseline_ref.captured_monotonic_ns,
-            frame_sha256=baseline_ref.payload_sha256,
+            captured_monotonic_ns=baseline_ref.capture_monotonic_ns,
+            frame_sha256=baseline_ref.frame_sha256,
             continuity_epoch="sim:epoch:1",
             quality_micros=900_000,
             delta_micros=None,
@@ -296,13 +308,13 @@ def _capture_and_retina(
             frame_id=current_ref.frame_ref_id,
             stream_id=source.source_id,
             generation=1,
-            captured_monotonic_ns=current_ref.captured_monotonic_ns,
-            frame_sha256=current_ref.payload_sha256,
+            captured_monotonic_ns=current_ref.capture_monotonic_ns,
+            frame_sha256=current_ref.frame_sha256,
             continuity_epoch="sim:epoch:1",
             quality_micros=900_000,
             delta_micros=300_000 + index,
             delta_reference_frame_id=baseline_ref.frame_ref_id,
-            delta_reference_frame_sha256=baseline_ref.payload_sha256,
+            delta_reference_frame_sha256=baseline_ref.frame_sha256,
             provenance_refs=PROVENANCE,
         )
         assessments.append(
@@ -317,7 +329,7 @@ def _capture_and_retina(
                 provenance_refs=PROVENANCE,
             )
         )
-    return tuple(brokers), tuple(assessments)
+    return tuple(broker_state_sha256s), tuple(assessments)
 
 
 def _perception_registry() -> PerceptionPolicyRegistry:
@@ -606,7 +618,7 @@ def run_four_source_perception_simulation() -> PerceptionFabricSimulationReport:
     """Execute the deterministic host-independent four-source Perception Fabric loop."""
     sources = _sources()
     dashboard, snapshots = _dashboard_and_snapshots(sources)
-    brokers, assessments = _capture_and_retina(sources)
+    broker_state_sha256s, assessments = _capture_and_retina(sources)
     claims = _claims(sources, assessments)
     window = _temporal_window(sources, claims)
     if len(window.current_ref_ids) != 4 or window.stale_ref_ids:
@@ -631,7 +643,7 @@ def run_four_source_perception_simulation() -> PerceptionFabricSimulationReport:
         source_ids=tuple(source.source_id for source in sources),
         dashboard_state_sha256=dashboard.sha256(),
         permission_snapshot_sha256s=tuple(snapshot.sha256() for snapshot in snapshots),
-        broker_state_sha256s=tuple(broker.sha256() for broker in brokers),
+        broker_state_sha256s=broker_state_sha256s,
         retina_assessment_sha256s=tuple(item.sha256() for item in assessments),
         observed_claim_sha256s=tuple(item.sha256() for item in claims),
         observation_window_sha256=window.sha256(),
