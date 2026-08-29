@@ -1,0 +1,63 @@
+{
+  "schema": "FRANKENSTEIN2_WORKPACKAGE_FALSIFIER/v1",
+  "workpackage_id": "F2-WP-711",
+  "generation": 1,
+  "falsifier_id": "F2-WP-711-G1-UNPROVEN-CROSS-CLOCK-ALIGNMENT-GPT56SOL-20260829T182637P0700",
+  "created_at": "2026-08-29T18:26:37+07:00",
+  "organ": "GPT-5.6 Sol",
+  "role": "CANDIDATE_FALSIFIER",
+  "mutation_authority": "REVIEW_ONLY_NO_CANONICAL_WP711_MUTATION_AUTHORITY",
+  "claim_pointer_ref": "workpackages/active/F2-WP-711.json@8058ca798ba7696c71beec08cc3bbfd472c7ae65",
+  "claimed_scope_under_test": "TEMPORAL_OBSERVATION_WINDOW_AND_CROSS_SOURCE_FUSION_REPOSITORY_COMPONENT_SCOPE",
+  "source_binding": {
+    "owner_branch": "trigger4/wp711-temporal-observation-window-20260829",
+    "owner_branch_head_under_test": "8058ca798ba7696c71beec08cc3bbfd472c7ae65",
+    "canonical_source_ref": "src/frankenstein2/perception_temporal.py",
+    "test_ref": "tests/test_perception_temporal.py",
+    "workflow": ".github/workflows/perception-fabric-ci.yml",
+    "review_branch": "review/wp711-unproven-clock-alignment-falsifier-20260829",
+    "review_test_commit": "d503854808ea4744c4b6ea323b7f20446ece0081",
+    "pull_request": 398
+  },
+  "hypothesis": "Distinct clock domains must remain UNKNOWN/UNALIGNED unless a bounded provenance-bearing alignment relation establishes comparability. A caller-supplied numeric reference_offset_ns and clock_uncertainty_ns are measurements/claims, not by themselves proof that the domains are aligned.",
+  "counterhypothesis": "The existing TemporalPerceptRef contract already carries sufficient evidence to establish cross-domain comparability, so two distinct clock domains with numerically compatible normalized times can be safely admitted without any separate alignment witness.",
+  "discriminator": "Add exactly one negative regression with two distinct clock_domain values, equal numeric times, offset=0, uncertainty=0, and no cross-domain alignment evidence. Require both refs to be UNALIGNED. Compare the exact owner-head baseline CI with the review-head CI.",
+  "observed": {
+    "baseline": {
+      "head_sha": "8058ca798ba7696c71beec08cc3bbfd472c7ae65",
+      "workflow_run_id": 33250024966,
+      "workflow": "Perception Fabric CI",
+      "event": "pull_request",
+      "conclusion": "success"
+    },
+    "falsifier": {
+      "head_sha": "d503854808ea4744c4b6ea323b7f20446ece0081",
+      "workflow_run_id": 33250070189,
+      "workflow_job_id": 99094124521,
+      "workflow": "Perception Fabric CI",
+      "event": "pull_request",
+      "conclusion": "failure",
+      "setup": "success",
+      "checkout": "success",
+      "python_setup": "success",
+      "compile_perception_fabric": "success",
+      "deterministic_perception_falsifiers": "failure",
+      "failing_test": "PerceptionTemporalTests.test_distinct_clock_domains_without_alignment_evidence_fail_closed"
+    },
+    "source_mechanism": "_pair_is_admissible() treats different source_id values as cross-source and computes admissibility only from abs(reference_time_ns difference) + both clock_uncertainty_ns values <= max_join_skew_ns. It does not require same clock_domain or verify a cross-domain alignment witness before using reference_offset_ns.",
+    "observed_result": "The exact WP711 owner-head baseline is green, while the one-test review delta fails specifically in the deterministic falsifier test step. This is bounded repository-CI negative evidence that the current candidate contract can classify unproven distinct clock domains as temporally admissible."
+  },
+  "result": "NEGATIVE_RESULT",
+  "scope_invalidated": "WP711 cross-source temporal admissibility is not yet fail-closed for distinct unproven clock domains; repository-component reconciliation should not promote this invariant until repaired.",
+  "scope_preserved": [
+    "WP709 RetinaCaptureBroker accepted repository-hosted component-CI scope remains unchanged",
+    "WP711 source may still preserve source-local monotonic ordering, stale partitioning, arrival-order non-authority, same-GRID-cycle non-simultaneity, and uncertainty/skew bounds outside this falsified cross-domain proof gap",
+    "No runtime, device, VPS, physical GRID10, GWT, J-Space, effect, training, or whole-system claim is evaluated by this falsifier"
+  ],
+  "evidence_credit": "REPOSITORY_CI_NEGATIVE_EVIDENCE_ONLY",
+  "runtime_credit": 0,
+  "physical_grid10_credit": 0,
+  "whole_system_credit": 0,
+  "followup": "Owner WP711 lane should introduce an explicit provenance-bound clock-alignment relation/witness for clock_domain mismatches (binding source/target domains, transform or offset, bounded uncertainty, validity/generation, and evidence identity), or fail closed to UNALIGNED. A raw numeric offset must not self-attest the relation. Re-run the negative regression and the full Perception Fabric CI before reconciliation.",
+  "reasoning_note": "This artifact records observable discriminator design and CI outcomes only. It does not infer runtime behavior beyond the tested source/CI scope and must not be merged as a competing WP711 implementation authority."
+}
