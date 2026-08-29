@@ -1,0 +1,61 @@
+{
+  "schema": "FRANKENSTEIN2_TRIGGER6_SEMANTIC_CLAIM_COLLISION_RECONCILIATION/v1",
+  "trigger": "6",
+  "status": "RECONCILED_ONE_E1_RESULT_COMPLEMENTARY_EVIDENCE_NO_DUPLICATE_CREDIT",
+  "created_at": "2026-08-29T15:08:00+07:00",
+  "worker": "ChatGPT GPT-5.6 Sol Trigger-6 organ",
+  "architecture_snapshot": {
+    "f2_main_observed_before_reconciliation": "0d18de7f091b1f52a2c0597290f01017bf8677b6",
+    "research_entity_main_observed": "3a22abcc77162a60a7687e481fda5c49e646ad2f",
+    "target_workpackage": "F2-WP-507 generation 3"
+  },
+  "collision": {
+    "candidate_repo": "ndif-team/nnsight",
+    "evidence_objective": "E1_SOURCE_READ",
+    "canonical_completed_result_commit": "d1b85acaae95cb1a628a4c3bf63fc95314c4b245",
+    "canonical_completed_result_ref": "research/tool_intelligence/claims/R6-20260829-SRCARCH-NNSIGHT-GPT56SOL-01/E1_SOURCE_READ_OUTCOME.json",
+    "this_worker_claim_commit": "d76cc3e9bf71778e232af4c63491bf0e8205e0b8",
+    "this_worker_claim_ref": "research/tool_intelligence/claims/R6-WP507-NNSIGHT-001/E1_SOURCE_READ.json",
+    "adjudication": "SAME_CANDIDATE_SAME_EVIDENCE_STAGE_SAME_WP507_PURPOSE_IS_ONE_RESEARCH_RESULT_NOT_INDEPENDENT_REPLICATION",
+    "root_cause_hypothesis": "Create-only path uniqueness is scoped by caller-chosen research_id, so parallel workers can atomically create different paths for the same semantic candidate/objective before search/index visibility converges.",
+    "coordination_implication": "The deterministic semantic-objective fingerprint hypothesis in R6-BLOCKER-REUSE-HYPOTHESIS-HANDOFF remains strongly supported as a coordination design target; this reconciliation does not itself promote that hypothesis to implementation credit."
+  },
+  "complementary_source_evidence": [
+    {
+      "source": "ndif-team/nnsight@87f4dadaae254c6d36e8820cc83a251623b8dda7:NNsight.md",
+      "finding": "The backwards-compatible obj.save() path uses a C extension that mutates Python's base object type globally and remains mounted for the process lifetime. NNsight itself recommends the plain nnsight.save() function; CONFIG.APP.PYMOUNT=False can disable the global method injection.",
+      "f2_transfer": "If NNsight reaches a later isolated local fixture, disable PYMOUNT and prefer nnsight.save() so the intervention harness changes less interpreter-global state."
+    },
+    {
+      "source": "ndif-team/nnsight@87f4dadaae254c6d36e8820cc83a251623b8dda7:tests/performance/README.md",
+      "finding": "The upstream repository contains a benchmark harness explicitly comparing NNsight intervention/save overhead against raw PyTorch register_forward_hook across layer count, token count and module type.",
+      "f2_transfer": "Reuse the benchmark shape only. Upstream timings are not F2 evidence; a later E3/E4 fixture must compare pinned NNsight against a minimal native-hook baseline on the exact target model/runtime."
+    },
+    {
+      "source": "ndif-team/nnsight@87f4dadaae254c6d36e8820cc83a251623b8dda7:pyproject.toml",
+      "finding": "The base install pulls torch, transformers, accelerate, HTTP/socket clients, pydantic, IPython, rich, cloudpickle and zstandard among other dependencies.",
+      "f2_transfer": "Treat full-library adoption as resource-expensive relative to a narrow WP507 falsifier; structural/native distillation remains the baseline competitor."
+    }
+  ],
+  "fused_adjudication": {
+    "e1_source_read_credit_total": 1,
+    "this_reconciliation_additional_e1_credit": 0,
+    "full_library_import": "NOT_JUSTIFIED_AT_E1",
+    "local_intervention_harness_donor": "PROMISING_FOR_LATER_COMPARATIVE_E2_E3",
+    "remote_ndif": "OUT_OF_SCOPE_NOT_USED",
+    "pymount_default_for_f2_fixture": "DISABLE",
+    "native_pytorch_hooks": "MANDATORY_LOW_DEPENDENCY_BASELINE",
+    "next_discriminator": "Under an independently non-colliding E2 objective, compare pinned NNsight, pyvene, TransformerLens and minimal native PyTorch hooks against the exact WP507 G3 identity/provenance contract; require loader identity preservation, sham/random-layer/equal-norm/rescue controls, fail-closed shape/path/generation errors, and resource/latency measurements before any E3/E4/E5 promotion."
+  },
+  "credit_boundary": {
+    "architecture_credit": 0,
+    "runtime_credit": 0,
+    "gwt_runtime_credit": 0,
+    "jspace_runtime_credit": 0,
+    "physical_grid10_credit": 0,
+    "whole_f2_credit": 0,
+    "whole_entityos_hcu_credit": 0,
+    "training_credit": 0
+  },
+  "pending_research_sqlite_sync": "NOT_PERFORMED_IN_THIS_RECONCILIATION"
+}
