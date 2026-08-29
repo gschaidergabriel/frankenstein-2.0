@@ -1,0 +1,29 @@
+name: F2 WP603 G2 Policy Revalidation Falsifier
+
+on:
+  push:
+    branches:
+      - review/wp603-g2-policy-revalidation-falsifier-20260829
+    paths:
+      - 'tests/review/test_wp603_g2_policy_revalidation_falsifier.py'
+      - '.github/workflows/review-wp603-g2-policy-revalidation-falsifier.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  policy-falsifier:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Compile isolated G2 policy falsifier
+        run: python -m py_compile tests/review/test_wp603_g2_policy_revalidation_falsifier.py
+      - name: Run isolated G2 policy consumer-boundary falsifier
+        env:
+          PYTHONPATH: src:tests
+        run: python tests/review/test_wp603_g2_policy_revalidation_falsifier.py -v
