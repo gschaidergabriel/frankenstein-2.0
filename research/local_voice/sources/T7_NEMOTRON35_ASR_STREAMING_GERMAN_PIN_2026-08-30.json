@@ -1,0 +1,78 @@
+{
+  "schema_version": 1,
+  "trigger": "7",
+  "research_id": "T7-ASR-003",
+  "objective": "E2_NEMOTRON35_STREAMING_GERMAN_SOURCE_PIN",
+  "observed_date": "2026-08-30",
+  "evidence_class": "SOURCE_PINNED_NO_TARGET_RUNTIME",
+  "source": {
+    "publisher": "NVIDIA",
+    "repo_id": "nvidia/nemotron-3.5-asr-streaming-0.6b",
+    "revision": "1c8deaecc64b91f034d73e08dd8b64625eb3395d",
+    "license": "OpenMDW-1.1",
+    "architecture": "cache-aware FastConformer-RNNT",
+    "parameter_class": "0.6B",
+    "model_card_language_scope": "40 language-locales",
+    "huggingface_metadata_language_count": 35,
+    "german_locale": "de-DE",
+    "german_tier": "transcription-ready"
+  },
+  "local_artifact": {
+    "file": "nemotron-3.5-asr-streaming-0.6b.q8_0.gguf",
+    "format": "GGUF",
+    "quantization": "Q8_0",
+    "reported_size": "742 MB",
+    "sha256": "a5c435f294eea8f88ce68dd27b8c3bfea7f777cb2fbba04fcd30eaa555f429ae",
+    "xet_hash": "f01b59f39469308f0d5621999a050abcfcc205bf82dd091042e1eeaf06746745",
+    "documented_runtime": "NeMo-Speech.cpp"
+  },
+  "streaming_control": {
+    "left_context_frames": 56,
+    "frame_ms": 80,
+    "right_context_frames": [0, 1, 3, 6, 13],
+    "derived_chunk_ms": [80, 160, 320, 560, 1120],
+    "language_conditioning": ["de-DE", "auto"],
+    "interpretation": "The same model can be swept across a controlled latency/accuracy frontier without retraining, making it a high-information German streaming ASR falsifier."
+  },
+  "trigger7_benchmark_contract": {
+    "target_sandbox": "clay-direct-dev",
+    "comparison_set": [
+      "Nemotron 3.5 ASR Streaming 0.6B Q8_0",
+      "Qwen3-ASR 0.6B pinned local candidate",
+      "donor Whisper baseline"
+    ],
+    "audio_requirement": "identical real German room audio including mid-sentence pauses, backchannels, overlap, numbers, names and punctuation-sensitive phrases",
+    "sweep": [
+      "de-DE right_context=0",
+      "de-DE right_context=1",
+      "de-DE right_context=3",
+      "de-DE right_context=6",
+      "de-DE right_context=13",
+      "auto at the best de-DE operating point"
+    ],
+    "measure": [
+      "WER/CER after one fixed normalization policy",
+      "partial-hypothesis stability",
+      "speech-end-to-final-transcript latency p50/p95/p99",
+      "real-time factor",
+      "CPU/RAM/GPU/VRAM",
+      "endpoint interaction with turn controller",
+      "language-ID errors in auto mode"
+    ],
+    "promotion_gate": "No preference over Qwen3-ASR or Whisper until identical target-runtime German audio measurements exist."
+  },
+  "target_runtime_gate": {
+    "download_observed": false,
+    "downloaded_artifact_sha256_verified": false,
+    "runtime_observed": false,
+    "benchmark_observed": false,
+    "next_gate": "After the active VPS hardware roundtrip yields capacity evidence, quarantine-download this exact GGUF revision in clay-direct-dev, verify SHA-256, bind exact NeMo-Speech.cpp build identity, then execute the five-point de-DE right-context sweep."
+  },
+  "credits": {
+    "source_pin": 1,
+    "target_runtime": 0,
+    "benchmark": 0,
+    "voice_acceptance": 0,
+    "trigger4_acceptance": 0
+  }
+}
