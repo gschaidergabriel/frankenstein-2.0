@@ -241,10 +241,15 @@ class PerceptionControlResult:
         object.__setattr__(self, "evaluation_id", _text("evaluation_id", self.evaluation_id))
         object.__setattr__(self, "head_id", _text("head_id", self.head_id))
         _sha256("registry_sha256", self.registry_sha256)
-        if self.policy_sha256 is not None:
-            _sha256("policy_sha256", self.policy_sha256)
         if self.status not in _STATUSES:
             raise PerceptionControlError("unsupported result status")
+        if self.policy_sha256 is None:
+            if self.status != "NOT_COMPUTED":
+                raise PerceptionControlError("evidence-bearing result requires policy_sha256")
+            if self.reason != "unknown_head_not_in_registry":
+                raise PerceptionControlError("policy-less NOT_COMPUTED is reserved for unknown registry heads")
+        else:
+            _sha256("policy_sha256", self.policy_sha256)
         if not all(isinstance(item, bool) for item in (self.computed, self.internal_computed, self.egress_allowed,
                                                        self.memory_match_allowed, self.persistence_allowed)):
             raise PerceptionControlError("result control flags must be bool")
