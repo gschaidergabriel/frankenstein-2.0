@@ -1,0 +1,57 @@
+{
+  "schema_version": 1,
+  "trigger": "7",
+  "research_id": "T7-LLM-003",
+  "objective": "E2_OFFICIAL_QWEN35_4B_Q4_BASELINE_PIN",
+  "observed_date": "2026-08-30",
+  "evidence_class": "SOURCE_PINNED_NO_TARGET_RUNTIME",
+  "official_base_model": {
+    "repo_id": "Qwen/Qwen3.5-4B",
+    "revision": "851bf6e806efd8d0a36b00ddf55e13ccb7b8cd0a",
+    "license": "apache-2.0",
+    "format": "safetensors",
+    "role": "official post-trained unmodified behavioral baseline",
+    "observed_runtime_docs": [
+      "Transformers",
+      "vLLM",
+      "SGLang"
+    ]
+  },
+  "preferred_local_q4_artifact": {
+    "repo_id": "lmstudio-community/Qwen3.5-4B-GGUF",
+    "repo_revision_observed": "f9f88ac3e234be915e23811a6d28ea287bdb927e",
+    "file_revision_observed": "e52a809eba94f740f51bdd80a73f189d06ac9347",
+    "file": "Qwen3.5-4B-Q4_K_M.gguf",
+    "format": "GGUF",
+    "quantization": "Q4_K_M",
+    "size_bytes": 2707513696,
+    "sha256": "25082a7dd3776cc3c741c6347d3bd04523f05796607b3fbc32fa3a25dfa1418c",
+    "xet_hash": "6baadd46ef9f38e7e856ca377f8e57a6577ee128a3861c6951058ecebd00dea1",
+    "documented_runtime": "llama.cpp",
+    "provenance_note": "Third-party community GGUF quantization of the official post-trained Qwen3.5-4B lineage. This GGUF is not itself an official Qwen artifact and must not be described as such."
+  },
+  "decision": {
+    "benchmark_order": [
+      "unmodified Qwen3.5-4B Q4_K_M baseline",
+      "abliterated Qwen3.5-4B Q4-class controlled challenger",
+      "other distilled/abliterated challengers only after baseline"
+    ],
+    "reason": "Baseline-first isolates behavioral/latency effects of alignment modification from model-family and runtime effects.",
+    "comparison_requirement": "Use identical German VoiceSessionCapsule prompts, tool schemas, context settings, runtime build, sampling controls and receipt schema where technically possible."
+  },
+  "target_runtime_gate": {
+    "sandbox": "clay-direct-dev",
+    "download_observed": false,
+    "downloaded_artifact_sha256_verified": false,
+    "runtime_observed": false,
+    "benchmark_observed": false,
+    "next_gate": "Quarantine-download the pinned Q4_K_M artifact inside clay-direct-dev, verify SHA-256 equals the source pin, bind exact llama.cpp build/runtime identity, then run the German baseline before any abliterated A/B claim."
+  },
+  "credits": {
+    "source_pin": 1,
+    "target_runtime": 0,
+    "benchmark": 0,
+    "voice_acceptance": 0,
+    "trigger4_acceptance": 0
+  }
+}
