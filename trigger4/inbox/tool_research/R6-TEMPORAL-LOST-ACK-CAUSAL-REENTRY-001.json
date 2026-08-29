@@ -1,0 +1,102 @@
+{
+  "schema": "FRANKENSTEIN2_TRIGGER6_BUILD_CANDIDATE/v1",
+  "candidate_id": "R6-TEMPORAL-LOST-ACK-CAUSAL-REENTRY-001",
+  "hypothesis_id": "R6-20260829-TEMPORAL-DURABLE-HISTORY-EFFECT-BOUNDARY-GPT56SOL-01",
+  "architecture_snapshot_id": "0d1c01d7c3d5794e114caa2fb09b08427a225b96",
+  "research_entity_source_sha": "559386d6867a17079a2a8c40d35d065fba3ab8e4",
+  "frankenstein_2_source_sha": "0d1c01d7c3d5794e114caa2fb09b08427a225b96",
+  "external_repo": "temporalio/documentation",
+  "external_repo_commit_sha": "19b968f5bc30b331063ffb762e2542be88d84c52",
+  "external_repo_tree_sha": "e580f11e6f227589beeb118bda76ad7630bc523d",
+  "license": "NOASSERTION_FROM_GITHUB_METADATA; CONCEPT_DISTILL_ONLY; NO_SOURCE_COPY",
+  "integration_class": "CONCEPT_DISTILL",
+  "f2_target_workpackages": ["F2-WP-004", "F2-WP-103", "F2-WP-104", "F2-WP-105", "F2-WP-901", "F2-WP-904"],
+  "f2_target_modules": [
+    "src/state/delivery_lifecycle.py",
+    "src/state/delivery_store.py",
+    "src/frankenstein2/deferred_return.py",
+    "src/frankenstein2/entityos_unknown_outcome_adapter.py",
+    "src/frankenstein2/effect_executor_interlock.py"
+  ],
+  "problem_or_gap": "WP103, WP104 and WP105 each have bounded accepted component evidence, but there is no exact cross-layer run package proving that a lost acknowledgement followed by retry preserves one logical result/delivery identity while keeping recipient ACK, parent causal re-entry, external-effect outcome and task completion as separate authorities.",
+  "proposed_delta": "Add exactly one deterministic integration falsifier and canonical F2-WP-004 run package. Scenario: one immutable child result is offered as transport attempt A; acknowledgement is absent/ambiguous; recovery offers attempt B under the same logical delivery/result identity; ACK is accepted only for an observed attempt; parent re-entry preserves the exact result digest while using a fresh causal id and later generation; no delivery/ACK/re-entry event may mint external-effect success or task completion; an UNKNOWN external effect may be verified but never blindly replayed. Do not add Temporal, another database, another event-history authority, or another effect path.",
+  "counterhypotheses": [
+    "Existing component tests already imply the cross-layer invariant, so the new integration test adds no information.",
+    "The layers are individually correct but compose incorrectly under lost-ACK recovery, allowing identity drift or authority leakage.",
+    "The test can only pass by coupling delivery ACK to consumption/effect/completion semantics, which would reveal an architectural defect rather than justify a workaround."
+  ],
+  "evidence_refs": [
+    "research/tool_intelligence/deltas/2026-08-29T2214P0700_GPT56SOL_TEMPORAL_DURABLE_HISTORY_EFFECT_BOUNDARY_E1_SOURCE_READ.json",
+    "research/tool_intelligence/deltas/2026-08-29T2217P0700_GPT56SOL_TEMPORAL_F2_DURABLE_RETURN_MAPPING_E2.json",
+    "workpackages/active/F2-WP-103.json",
+    "workpackages/active/F2-WP-104.json",
+    "workpackages/active/F2-WP-105.json",
+    "src/state/delivery_lifecycle.py",
+    "src/state/delivery_store.py",
+    "src/frankenstein2/deferred_return.py",
+    "https://docs.temporal.io/encyclopedia/event-history",
+    "https://docs.temporal.io/activity-definition",
+    "https://docs.temporal.io/activity-execution"
+  ],
+  "upstream_claims_reproduced": [
+    "F2 keeps stable recipient-delivery identity separate from concrete transport-attempt identity.",
+    "F2 deferred-return construction proves identity/provenance eligibility only and does not prove transport delivery, parent consumption, external effect or completion.",
+    "Temporal documentation explicitly treats Activity retry/idempotency as distinct from exactly-once physical external execution."
+  ],
+  "upstream_claims_not_reproduced": [
+    "No cross-layer WP103->WP104->WP105 lost-ACK integration execution was performed by Trigger6 in this research pass.",
+    "No target-runtime, VPS, real-effect, physical GRID10, GWT/J-Space, training or whole-system claim was reproduced."
+  ],
+  "baseline_definition": "Current main component evidence: WP103 delivery lifecycle/store accepted at repository component-CI scope, WP104 deferred-return accepted at repository-hosted CI scope, WP105 unknown-provenance/effect interlock accepted at repository-hosted no-real-effect scope. Existing unit tests cover retry and deferred-return authority separately; baseline has no exact integrated lost-ACK run package across the three boundaries.",
+  "required_tests": [
+    "Create one immutable NativeChildBinding result_id/result_sha256 and retain it across the whole scenario.",
+    "Apply OFFER attempt A, then model missing/ambiguous ACK without changing logical delivery identity.",
+    "Apply OFFER attempt B with a fresh transport_attempt_id; assert exactly one delivery_id and two distinct offered attempt identities.",
+    "Reject ACK for an unknown/non-offered attempt; accept ACK only for an actually offered attempt.",
+    "Assert ACK changes recipient-delivery state only and cannot populate or imply parent-consumed/effect-success/task-complete fields.",
+    "Construct DeferredReturnEnvelope from the same exact bound result; assert fresh resume causal_id, later generation, same parent session/agent/task and exact result digest preservation.",
+    "Attempt to inject delivery/effect/completion assertions into DeferredReturnEnvelope and require fail-closed rejection.",
+    "Exercise WP105 UNKNOWN interlock with an ambiguous post-dispatch outcome and require no blind replay/no completion promotion.",
+    "Run all existing WP103, WP104 and WP105 regressions unchanged.",
+    "Package exact source hashes, test command, result and negative evidence using F2-WP-004 run-package format."
+  ],
+  "required_ablations": [
+    "A1: replace attempt B with reused attempt A under a new transition and require failure.",
+    "A2: ACK an unobserved attempt and require failure.",
+    "A3: mutate result_sha256 between delivery retry and parent re-entry and require failure.",
+    "A4: reuse child or parent causal_id for resume and require failure.",
+    "A5: force UNKNOWN external-effect outcome then request automatic retry; require the effect path to remain non-replayable until independently verified."
+  ],
+  "required_measurements": [
+    "logical_delivery_count must equal 1",
+    "distinct_transport_attempt_count must equal 2 in the positive lost-ACK recovery case",
+    "accepted_ack_count must equal 1",
+    "logical_child_result_identity_count must equal 1",
+    "parent_resume_identity_count must equal 1 and be fresh",
+    "effect_success_credit_from_delivery_or_ack must equal 0",
+    "completion_credit_from_delivery_or_ack must equal 0",
+    "UNKNOWN blind-replay count must equal 0",
+    "existing WP103/WP104/WP105 regression failures must equal 0"
+  ],
+  "expected_token_delta": "NEGLIGIBLE; test-only delta, measure exactly in Trigger4 outcome if model/tool calls are used",
+  "expected_latency_delta": "NO_PRODUCTION_RUNTIME_DELTA_EXPECTED; deterministic test execution only",
+  "expected_resource_delta": "NEGLIGIBLE; SQLite/test-process bounded, measure run package wall/cpu/rss if available",
+  "quality_success_metric": "The positive lost-ACK recovery case completes its delivery/re-entry trace with one logical result/delivery and two attempts, while every authority-confusion ablation fails closed and no effect/completion credit is minted.",
+  "rollback_or_reject_rule": "Reject the candidate if it requires Temporal or any second durable truth/effect authority, if the test cannot distinguish recipient ACK from parent consumption/effect/completion, if existing accepted regressions break, or if the only way to pass is to weaken UNKNOWN/no-blind-replay semantics.",
+  "known_failure_modes": [
+    "stale architecture snapshot due fast-moving main; Trigger4 must refresh and reject/hold if affected modules changed",
+    "test accidentally proves only in-memory objects rather than canonical UnifiedDB transition persistence",
+    "ACK interpreted as parent consumption",
+    "retry mints a new logical result/delivery identity",
+    "cross-layer fixture bypasses WP105 interlock and gives a false green",
+    "run-package source hash does not bind the actually tested bytes"
+  ],
+  "source_archive_ref": "temporalio/documentation@19b968f5bc30b331063ffb762e2542be88d84c52 tree e580f11e6f227589beeb118bda76ad7630bc523d; public documentation only; no source copying",
+  "research_db_row_ids": [],
+  "research_evidence_stage": "E5_BUILD_CANDIDATE_WITH_E4_PENDING_TRIGGER4",
+  "trigger6_e4_execution_observed": false,
+  "runtime_credit": 0,
+  "real_effect_credit": 0,
+  "whole_system_credit": 0,
+  "status": "READY_FOR_TRIGGER4_REFRESH_AND_ABLATION"
+}
