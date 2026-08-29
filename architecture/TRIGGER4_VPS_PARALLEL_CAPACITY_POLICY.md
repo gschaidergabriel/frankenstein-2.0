@@ -8,6 +8,10 @@ Applies to: exact `4`, `triggerword 4`, `triggerwort 4`
 
 Trigger-4 engineering is allowed to use substantial VPS compute for parallel build, test, benchmark, falsification and measurement work. The goal is high engineering throughput and strong evidence without destabilizing the server.
 
+Trigger-4 does not merely prepare concepts for later local implementation. It is expected to drive Frankenstein 2.0 as far toward a reproducible release candidate as the VPS/bridge environment can honestly prove, leaving the final local Claude Code/Opus lane primarily real-host/device/permission binding and physical acceptance.
+
+See `architecture/VPS_BUILD_TO_LOCAL_ACCEPTANCE_CONTRACT.md`.
+
 ## Shared 70% envelope
 
 The owner authorizes coordinated Trigger-4 work to use up to approximately **70% of current usable VPS compute capacity** when useful.
@@ -78,6 +82,50 @@ Serialize or isolate work sharing destructive fixtures, mutable canonical state,
 
 Claim and mutation ownership rules remain unchanged.
 
+## Engineering-to-release obligation
+
+The VPS is the main Frankenstein-2.0 construction and integration workshop. Before handing a package to the final local acceptance lane, Trigger-4 engineering should complete every non-physical layer that can be implemented and falsified without the user's exact devices/OS permissions.
+
+This includes, as applicable:
+
+- cognitive/state architecture;
+- GRID10/GWT/Hyperposition integration;
+- persistence/restart/recovery;
+- memory/world-model paths;
+- executor/effect/completion contracts;
+- installer/host semantic ABI;
+- package/release manifest and verifier;
+- synthetic/mock host tests;
+- failure/concurrency/soak tests;
+- optional VPS bridge implementation;
+- the Perception Fabric core architecture and synthetic/mocked multi-source acceptance.
+
+`LOCAL_ACCEPTANCE != DEFERRED_ARCHITECTURE_IMPLEMENTATION`
+
+If a local Claude Code/Opus acceptance run must invent major missing modules, that is evidence of a failed VPS handoff gate. Prefer returning a minimal failure receipt to canonical VPS engineering, repairing once, adding a regression test, and rebuilding the release candidate.
+
+## Perception Fabric obligation
+
+Trigger-4 must treat the Perception Fabric as a core architecture requirement, not a later optional feature. Consult:
+
+- `architecture/PERCEPTION_FABRIC.md`;
+- `architecture/PERCEPTION_FABRIC_HARDENING_20260829.md`;
+- `workpackages/PERCEPTION_FABRIC_PHASE.json`.
+
+Important execution laws include:
+
+```text
+CONFIGURED_PERCEPTION_SOURCES = 0..N
+ACTIVE_RETINA_CORTEX_ANALYSIS_WORKERS = 0..4 initially
+ONE_CAPTURE_OWNER_PER_SOURCE
+OBSERVE_INTENT_REQUIRES_CURRENT_PERMISSION_SNAPSHOT
+ARRIVAL_ORDER != EVENT_TIME_ORDER
+BASELINE_CONTINUOUS_PERCEPTION_REQUIRES_NO_LLM_TOKENS
+PERCEPTION_MUST_NOT_STARVE_COGNITION
+```
+
+The VPS side builds/tests the source registry, permission model, CaptureOwner/Broker state machine, token-free Retina L0 path, ObserveIntent, worker scheduler, temporal fusion, epistemic world ingress, bridge and dashboard API contract. The final local lane binds those prebuilt mechanisms to actual OS/device permission surfaces and performs real-device acceptance.
+
 ## Telemetry/evidence
 
 Material high-load runs should record enough evidence to reconstruct:
@@ -91,6 +139,8 @@ Material high-load runs should record enough evidence to reconstruct:
 - throttling or abort decisions;
 - failures/retries;
 - whether the shared 70% envelope and recovery reserve were preserved.
+
+Perception stress runs should additionally record source cardinality, active capture owners, active analysis workers, queue/drop/backpressure behavior, source/clock-domain timing, general-VLM invocation count, raw-frame persistence count and cognitive/control latency impact.
 
 ## Budget separation
 
