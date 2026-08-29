@@ -1,6 +1,6 @@
 """Read-only T1 userspace runtime readbacks for Frankenstein 2.0.
 
-This module continues the accepted F2-WP-1202 boundary.  It consumes one exact
+This module continues the accepted F2-WP-1202 boundary. It consumes one exact
 canonical F2-WP-1201 TargetHostProfile through ``build_t1_userspace_plan`` and
 collects only bounded post-materialization userspace observations:
 
@@ -10,7 +10,7 @@ collects only bounded post-materialization userspace observations:
 * XDG session type consistency,
 * one explicitly named systemd user service state.
 
-The collector is evidence-only.  It never starts/stops/enables services, never
+The collector is evidence-only. It never starts/stops/enables services, never
 uses a shell, never invokes providers or networking, and never grants T4 physical
 host, effect, completion, GRID10, GWT, J-Space, model, or training credit.
 
@@ -247,20 +247,42 @@ def _command_check(
     )
 
 
-def _service_state(output: str) -> tuple[str, str, str] | None:
+def _parse_exact_properties(output: str, expected_keys: set[str]) -> dict[str, str] | None:
     fields: dict[str, str] = {}
     for line in output.splitlines():
         if "=" not in line:
             return None
         key, value = line.split("=", 1)
-        if key not in {"LoadState", "ActiveState", "SubState"} or key in fields:
+        if key not in expected_keys or key in fields:
             return None
         if not value or any(ord(ch) < 0x20 or ord(ch) == 0x7F for ch in value):
             return None
         fields[key] = value
-    if set(fields) != {"LoadState", "ActiveState", "SubState"}:
+    if set(fields) != expected_keys:
+        return None
+    return fields
+
+
+def _service_state(output: str) -> tuple[str, str, str] | None:
+    fields = _parse_exact_properties(output, {"LoadState", "ActiveState", "SubState"})
+    if fields is None:
         return None
     return fields["LoadState"], fields["ActiveState"], fields["SubState"]
+
+
+def _completed_oneshot_state(output: str) -> tuple[str, str, str, str] | None:
+    fields = _parse_exact_properties(
+        output,
+        {"Result", "ExecMainCode", "ExecMainStatus", "ExecMainExitTimestampMonotonic"},
+    )
+    if fields is None:
+        return None
+    return (
+        fields["Result"],
+        fields["ExecMainCode"],
+        fields["ExecMainStatus"],
+        fields["ExecMainExitTimestampMonotonic"],
+    )
 
 
 def _critical_plan_value(plan: TwinBootstrapPlan, field: str) -> str:
@@ -284,9 +306,9 @@ def collect_t1_userspace_runtime_readback(
 ) -> TargetUserspaceRuntimeReadback:
     """Collect bounded T1 userspace observations without changing target state.
 
-    The canonical WP1201 profile remains the only host-capability input.  Direct
+    The canonical WP1201 profile remains the only host-capability input. Direct
     readbacks below are post-materialization evidence and do not mutate or extend
-    that profile.  A PASS therefore means only that this T1 readback predicate was
+    that profile. A PASS therefore means only that this T1 readback predicate was
     observed; every broader credit remains explicitly zero.
     """
 
@@ -481,25 +503,70 @@ def collect_t1_userspace_runtime_readback(
                 "service_state",
                 ok=False,
                 observed="UNAVAILABLE_OR_INVALID",
-                expected="LoadState=loaded;ActiveState=active;SubState!=failed/dead",
+                expected="LOADED_ACTIVE_HEALTHY_OR_PROVEN_COMPLETED_ONESHOT",
                 reason=service_reason or "INVALID_SERVICE_READBACK",
             )
         )
     else:
         load_state, active_state, sub_state = parsed_service
+        observed_service = (
+            f"LoadState={load_state};ActiveState={active_state};SubState={sub_state}"
+        )
         service_pass = (
             load_state == "loaded"
             and active_state == "active"
             and sub_state not in {"failed", "dead"}
         )
+        service_reason_text = "ACTIVE_SERVICE_MATCH" if service_pass else "SERVICE_STATE_MISMATCH"
+
+        # Successful Type=oneshot units without RemainAfterExit legitimately return
+        # to inactive/dead. Never accept that ambiguous shape by itself: collect a
+        # second read-only proof that an ExecMain instance actually exited cleanly.
+        if load_state == "loaded" and active_state == "inactive" and sub_state == "dead":
+            oneshot_argv = (
+                "systemctl",
+                "--user",
+                "show",
+                service_unit,
+                "--property=Result",
+                "--property=ExecMainCode",
+                "--property=ExecMainStatus",
+                "--property=ExecMainExitTimestampMonotonic",
+                "--no-pager",
+            )
+            oneshot_ok, oneshot_output, oneshot_reason = command_runner(oneshot_argv)
+            parsed_oneshot = (
+                _completed_oneshot_state(oneshot_output) if oneshot_ok else None
+            )
+            if parsed_oneshot is not None:
+                result, exec_code, exec_status, exit_ts = parsed_oneshot
+                exit_observed = exit_ts.isdigit() and int(exit_ts) > 0
+                service_pass = (
+                    result == "success"
+                    and exec_code == "exited"
+                    and exec_status == "0"
+                    and exit_observed
+                )
+                observed_service += (
+                    f";Result={result};ExecMainCode={exec_code};"
+                    f"ExecMainStatus={exec_status};"
+                    f"ExecMainExitTimestampMonotonic={exit_ts}"
+                )
+                service_reason_text = (
+                    "COMPLETED_ONESHOT_PROVEN"
+                    if service_pass
+                    else "ONESHOT_COMPLETION_PROOF_MISMATCH"
+                )
+            else:
+                service_reason_text = oneshot_reason or "ONESHOT_COMPLETION_PROOF_UNAVAILABLE"
+
         checks.append(
             _check(
                 "service_state",
                 ok=service_pass,
-                observed=(
-                    f"LoadState={load_state};ActiveState={active_state};SubState={sub_state}"
-                ),
-                expected="LoadState=loaded;ActiveState=active;SubState!=failed/dead",
+                observed=observed_service,
+                expected="LOADED_ACTIVE_HEALTHY_OR_PROVEN_COMPLETED_ONESHOT",
+                reason=service_reason_text,
             )
         )
 
