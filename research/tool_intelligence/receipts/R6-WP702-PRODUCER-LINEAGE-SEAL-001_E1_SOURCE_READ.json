@@ -1,0 +1,51 @@
+{
+  "schema": "FRANKENSTEIN2_TRIGGER6_EVIDENCE_RECEIPT/v1",
+  "research_id": "R6-WP702-PRODUCER-LINEAGE-SEAL-001",
+  "evidence_level": "E1_SOURCE_READ",
+  "status": "SOURCE_READ_COMPLETE",
+  "observed_at": "2026-08-29T18:23:00+07:00",
+  "worker": "gpt-5.6-sol",
+  "claim_commit_sha": "528ddc80b441476a689367238d8f7863bee08f73",
+  "f2_source_observed_sha": "bc072bfb2f64b02669013b4147c3670b410f7faf",
+  "research_entity_observed_sha": "d9d4fea68eafe7148678f003b932f7bfbbf34acc",
+  "target_source": "src/frankenstein2/perception_control.py",
+  "target_observation": "PerceptionControlResult is a public frozen slots kw-only dataclass with generated __init__; __post_init__ validates field consistency and digests but cannot establish that evaluate_perception_head() produced the instance. evaluate_perception_head() directly constructs the public result type on all branches.",
+  "local_structural_donor": {
+    "source": "src/frankenstein2/retina_pipeline.py",
+    "evidence_commit": "c2b55c0886982bd3a5ee7f59422fd040f69fe7a1",
+    "mechanism": "WP700 G2 converted RetinaAssessment to dataclass(init=False), made public direct construction fail closed, and centralized canonical output construction in module-private _produce_retina_assessment() using object.__new__ followed by produced-instance validation.",
+    "scope_statement": "The donor explicitly calls this a typed provenance fence, not cryptographic unforgeability against a hostile Python process.",
+    "transfer_fit": "HIGH: same repository, same perception layer, same public-result-constructor laundering class, already accepted at repository-component CI scope. Transfer must preserve WP702-specific OFF/taint/policy semantics and requires its own falsifier/CI."
+  },
+  "external_primary_sources": [
+    {
+      "source": "https://slsa.dev/spec/v1.2/provenance",
+      "finding": "Provenance is verifiable information describing where, when, and how an artifact was produced; value/digest identity alone is not producer lineage."
+    },
+    {
+      "source": "https://slsa.dev/spec/v1.2-rc2/build-provenance",
+      "finding": "The provenance model separates the produced subject from builder identity and run/invocation details; structurally useful as a lineage model, but full supply-chain attestation is too heavy for this in-process WP702 component boundary."
+    },
+    {
+      "source": "https://in-toto.io/docs/specs/",
+      "finding": "in-toto provides an attestation framework for provenance-style claims; useful external architecture reference, not a justified dependency for the narrow current defect."
+    },
+    {
+      "source": "https://peps.python.org/pep-0008/",
+      "finding": "Python non-public/private naming is conventional; even name-mangled attributes remain accessible to determined callers. A factory-only repair is therefore a repository correctness/provenance fence, not a hostile-same-process security proof."
+    },
+    {
+      "source": "https://docs.python.org/3/library/dataclasses.html",
+      "finding": "dataclass(init=False) suppresses the generated initializer and is compatible with alternate/custom construction; frozen emulates read-only fields but does not itself establish producer origin."
+    },
+    {
+      "source": "https://docs.python.org/3/reference/datamodel.html",
+      "finding": "Python __new__ controls instance creation and may be used for custom construction, matching the already-adopted WP700 producer pattern."
+    }
+  ],
+  "hypothesis": "WP702 can close the ordinary direct-constructor producer-lineage defect with the already-admitted F2-native factory-only result pattern, without importing a provenance/security framework or adding cryptographic state.",
+  "counterhypothesis": "Factory-only construction is insufficient if the declared adversary includes arbitrary hostile Python code in the same interpreter, because Python does not provide a hard private boundary and object.__new__/introspection can bypass conventions.",
+  "discriminator": "At WP702's current deterministic repository-component threat model, add a direct-constructor laundering falsifier and dataclasses.replace falsifier, convert PerceptionControlResult to factory-only construction, and require exact successor CI. Escalate to keyed/signed cross-process attestation only if a later boundary explicitly requires verification across mutually untrusted processes.",
+  "decision": "DISTILL_EXISTING_F2_NATIVE_PATTERN; DO_NOT_IMPORT_SLSA_IN_TOTO_OR_CRYPTO_LIBRARY_FOR_CURRENT_SCOPE",
+  "research_credit": "E1_ONLY_NO_ARCHITECTURE_RUNTIME_OR_ACCEPTANCE_CREDIT"
+}
