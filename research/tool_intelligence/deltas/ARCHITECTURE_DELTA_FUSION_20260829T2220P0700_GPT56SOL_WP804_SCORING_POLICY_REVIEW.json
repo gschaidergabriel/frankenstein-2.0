@@ -1,0 +1,82 @@
+{
+  "schema": "ARCHITECTURE_DELTA_FUSION/v1",
+  "architecture_delta_id": "ADF-20260829T2220P0700-GPT56SOL-WP804-SCORING-POLICY-REVIEW",
+  "trigger": "6",
+  "research_id": "R6-20260829-GOAL-INFERENCE-IDENTIFIABILITY-GPT56SOL-01",
+  "evidence_slot": "E2_ARCHITECTURE_MAPPED",
+  "status": "REVIEW_COMPLETE_RESEARCH_ONLY",
+  "claim_ref": "research/tool_intelligence/claims/R6-20260829-GOAL-INFERENCE-IDENTIFIABILITY-GPT56SOL-01/E2_REVIEW_WP804_DISCRIMINATOR_SCORING_POLICY_AFTER_E4.json@1718070e3d50975515ab1c95c0c044989034c78b",
+  "bound_inputs": {
+    "f2_claim_snapshot": "51315772e2c55355217e64d8e7fb223373649341",
+    "research_entity_snapshot": "645f049f9b53e77bf6cbf998c38c2f3c140cc097",
+    "e4_tested_head": "6a75346c6f78066a67ac59b793dc2e1972b14438",
+    "e4_ci_run_id": 33259754825,
+    "e4_result_branch_commit": "95be68abbf238433f6758e20f75de1b1c1d4bb59",
+    "preceding_delta_branch_commit": "bc8e2d0c9ac90d47f071f49b32cbd6abe837e772"
+  },
+  "source_observation": {
+    "hyperposition_unknown_semantics": "UNKNOWN alternatives do not carry a ranking score; no calibrated prior probability is represented by the current Hyperposition ABI.",
+    "eas_semantics": "Epistemic Action Selection consumes expected_information_gain_micros supplied by each DiscriminatorCandidate and ranks it deterministically; it does not define the prior, likelihood model or score derivation."
+  },
+  "external_primary_mapping": [
+    {
+      "ref": "arXiv:2106.03498",
+      "finding": "IRL reward reconstruction is generally non-identifiable; multiple reward functions may be compatible with observed optimal behavior."
+    },
+    {
+      "ref": "arXiv:1606.03137",
+      "finding": "CIRL models the robot as uncertain about human reward parameters and derives active-learning/information-seeking behavior through a partial-information/POMDP formulation."
+    },
+    {
+      "ref": "arXiv:2411.08390",
+      "finding": "Bayesian experimental-design EIG is mutual information from prior to posterior and therefore presupposes a probabilistic prior/likelihood model."
+    },
+    {
+      "ref": "arXiv:2205.09914",
+      "finding": "Experiment ranking by EIG is sensitive to prior perturbation, motivating explicit prior semantics rather than an invisible default."
+    },
+    {
+      "ref": "Tong-Koller JMLR 2001",
+      "finding": "Pool-based active learning can be motivated by splitting a version space as evenly as possible, demonstrating a useful hypothesis-set criterion that need not be presented as calibrated Bayesian EIG."
+    },
+    {
+      "ref": "Hanneke JMLR 2012",
+      "finding": "Disagreement-based active learning operates over a remaining version space and requests evidence in regions where candidate hypotheses disagree."
+    }
+  ],
+  "decision": {
+    "hardcode_implicit_uniform_eig": "REJECT",
+    "generalize_epistemic_action_selector_now": "REJECT_FOR_NOW",
+    "selected_minimal_delta": "KEEP_EXISTING_EAS_AND_EXPECTED_INFORMATION_GAIN_FIELD; REQUIRE_A_TYPED_SCORE_DERIVATION_BINDING_WITH_EXPLICIT_SCORING_POLICY_AND_MODEL_IDENTITY_BEFORE_CONSTRUCTING_DISCRIMINATOR_CANDIDATES"
+  },
+  "required_policy_semantics": {
+    "initial_deterministic_policy_candidate": "UNIFORM_COMPATIBLE_SET_SHANNON_EIG",
+    "meaning": "Uniformity is an explicit policy assumption used only when no calibrated belief exists; it is not inferred probability or world truth.",
+    "future_policy_examples": [
+      "CALIBRATED_BAYESIAN_EIG",
+      "ROBUST_EIG_WITH_EXPLICIT_AMBIGUITY_SET",
+      "VERSION_SPACE_SPLIT_OR_MINIMAX_REDUCTION"
+    ],
+    "abi_rule": "A non-EIG criterion must not be silently encoded as expected_information_gain_micros; it requires either an explicitly defined transformation whose semantics remain truthful or a future ABI generation."
+  },
+  "minimal_binding_fields": [
+    "hyperposition_ref + generation + sha256",
+    "probe/action candidate identities",
+    "outcome/likelihood model ref + generation + sha256",
+    "scoring_policy_ref + generation + sha256",
+    "prior_mode and prior identity when probabilistic",
+    "derived expected_information_gain_micros",
+    "derivation/provenance digest"
+  ],
+  "counterhypothesis_result": "The claim that one hardcoded EIG metric with an implicit uniform prior is sufficient is rejected at architecture-review scope because uniformity is a substantive modeling assumption and established non-Bayesian version-space criteria provide a distinct legitimate mechanism class.",
+  "next_exact_gate": "E3/E4 falsify a typed score-derivation receipt: same bound model/policy/state must reproduce identical score; any mutation of state/model/policy must change binding or fail closed; missing prior in Bayesian mode must fail; uniform-compatible-set mode must be explicit; existing EAS output must remain deterministic and authority-neutral.",
+  "credits": {
+    "architecture_review": "E2_COMPLETE",
+    "e4_repository_ablation": "EXISTS_ON_PR530_TESTED_HEAD_6a75346c6f78066a67ac59b793dc2e1972b14438",
+    "e5_build_candidate": 0,
+    "target_runtime": 0,
+    "physical_grid10": 0,
+    "whole_system": 0,
+    "training": 0
+  }
+}
