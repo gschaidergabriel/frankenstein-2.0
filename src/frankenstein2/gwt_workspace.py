@@ -502,6 +502,8 @@ def _rank_candidates(
 def _resolve_hyperposition_binding(
     *,
     frame_id: str,
+    frame_generation: int,
+    frame_sha256: str,
     hyperposition: Hyperposition | None,
     hyperposition_id: str | None,
     hyperposition_generation: int | None,
@@ -517,7 +519,13 @@ def _resolve_hyperposition_binding(
     if type(hyperposition) is not Hyperposition:
         raise GwtWorkspaceError("hyperposition must be concrete Hyperposition or None")
     normalized_frame_id = _text("frame_id", frame_id)
-    if hyperposition.situation_frame_ref != normalized_frame_id:
+    normalized_frame_generation = _generation("frame_generation", frame_generation)
+    normalized_frame_sha256 = _sha256("frame_sha256", frame_sha256)
+    if (
+        hyperposition.situation_frame_ref != normalized_frame_id
+        or hyperposition.situation_frame_generation != normalized_frame_generation
+        or hyperposition.situation_frame_sha256 != normalized_frame_sha256
+    ):
         raise GwtWorkspaceError("hyperposition situation frame binding mismatch")
     expected = (
         hyperposition.hyperposition_id,
@@ -591,6 +599,8 @@ class WorkspaceSelection:
         resolved_hyperposition_id, resolved_hyperposition_generation, resolved_hyperposition_sha256 = (
             _resolve_hyperposition_binding(
                 frame_id=self.frame_id,
+                frame_generation=self.frame_generation,
+                frame_sha256=self.frame_sha256,
                 hyperposition=self.hyperposition,
                 hyperposition_id=self.hyperposition_id,
                 hyperposition_generation=self.hyperposition_generation,
@@ -641,6 +651,8 @@ class WorkspaceSelection:
 def _assert_selection_build_lineage(selection: WorkspaceSelection) -> None:
     resolved_hyperposition = _resolve_hyperposition_binding(
         frame_id=selection.frame_id,
+        frame_generation=selection.frame_generation,
+        frame_sha256=selection.frame_sha256,
         hyperposition=selection.hyperposition,
         hyperposition_id=selection.hyperposition_id,
         hyperposition_generation=selection.hyperposition_generation,

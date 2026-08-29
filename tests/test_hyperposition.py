@@ -53,6 +53,8 @@ def state() -> object:
         ),
         provenance_refs=("source:z", "source:a"),
         situation_frame_ref="situation:42",
+        situation_frame_generation=5,
+        situation_frame_sha256="a" * 64,
         policy_ref="policy:bounded",
     )
 
@@ -79,6 +81,8 @@ class HyperpositionTests(unittest.TestCase):
             ),
             provenance_refs=("source:a", "source:z"),
             situation_frame_ref="situation:42",
+            situation_frame_generation=5,
+            situation_frame_sha256="a" * 64,
             policy_ref="policy:bounded",
         )
         comparable = create_hyperposition(
@@ -90,6 +94,8 @@ class HyperpositionTests(unittest.TestCase):
             ),
             provenance_refs=("source:z", "source:a"),
             situation_frame_ref="situation:42",
+            situation_frame_generation=5,
+            situation_frame_sha256="a" * 64,
             policy_ref="policy:bounded",
         )
         self.assertEqual(right.canonical_json(), comparable.canonical_json())
@@ -269,6 +275,32 @@ class HyperpositionTests(unittest.TestCase):
         hp = state()
         with self.assertRaises(FrozenInstanceError):
             hp.generation = 4
+
+
+    def test_situation_frame_binding_is_exact_and_all_or_none(self):
+        base = dict(
+            hyperposition_id="hyper:frame-bound",
+            generation=3,
+            alternatives=(alt("alt:a", "hypothesis:a"), alt("alt:b", "hypothesis:b")),
+            provenance_refs=("source:test",),
+        )
+        with self.assertRaisesRegex(HyperpositionError, "ref, generation, and sha256 together"):
+            create_hyperposition(**base, situation_frame_ref="situation:42")
+        current = create_hyperposition(
+            **base,
+            situation_frame_ref="situation:42",
+            situation_frame_generation=5,
+            situation_frame_sha256="a" * 64,
+        )
+        stale = create_hyperposition(
+            **base,
+            situation_frame_ref="situation:42",
+            situation_frame_generation=4,
+            situation_frame_sha256="b" * 64,
+        )
+        self.assertEqual(current.as_dict()["situation_frame_generation"], 5)
+        self.assertEqual(current.as_dict()["situation_frame_sha256"], "a" * 64)
+        self.assertNotEqual(current.sha256(), stale.sha256())
 
 
 if __name__ == "__main__":
