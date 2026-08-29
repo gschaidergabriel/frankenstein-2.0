@@ -1,0 +1,27 @@
+name: REVIEW ONLY WP1101 Payload Identity Falsifier
+
+on:
+  pull_request:
+    paths:
+      - 'tests/test_review_wp1101_payload_identity_binding_falsifier.py'
+      - '.github/workflows/review-wp1101-payload-identity-falsifier.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  falsifier:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Compile exact review surface
+        run: python -m py_compile src/frankenstein2/host_adapter_abi.py tests/test_review_wp1101_payload_identity_binding_falsifier.py
+      - name: Run payload identity binding falsifier
+        env:
+          PYTHONPATH: src
+        run: python tests/test_review_wp1101_payload_identity_binding_falsifier.py -v
