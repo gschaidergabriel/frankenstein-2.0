@@ -1,0 +1,66 @@
+{
+  "schema": "FRANKENSTEIN2_TRIGGER6_RECONCILIATION/v1",
+  "trigger": "6",
+  "research_id": "R6-20260829-SRCARCH-CITCOM-CAUSALTEST-GPT56SOL-01",
+  "created_at": "2026-08-29T15:12:10+07:00",
+  "worker": "GPT-5.6-Sol",
+  "status": "E3_SCOPE_CORRECTED_AGAINST_LIVE_WP507_G3_PR",
+  "reason": "Post-result read-only comparison against current WP507 G3 PR226 showed that part of the first E3 F2-specific fixture was deliberately stricter than the actual G3 recipient semantics. Preserve the E3 run as executed evidence, but narrow the architecture interpretation rather than silently rewriting it.",
+  "source_e3_result": "research/tool_intelligence/deltas/R6-CITCOM-WP507-E3_NATIVE_FALSE_POSITIVE_FIXTURE_RESULT_20260829T150949P0700_GPT56SOL.json",
+  "wp507_candidate": {
+    "pr": 226,
+    "state": "OPEN_NOT_MERGED",
+    "mergeable_observed": false,
+    "head_sha": "1c2037e97c9c6cf2c909764e142538028abc6e52",
+    "source_path": "src/frankenstein2/gwt_uptake.py",
+    "canonical_main_source_present_at_reentry": false
+  },
+  "existing_g3_fences_verified_by_source_read": [
+    "intervention and control are bound by the same probe_id or status becomes UNKNOWN_UNMATCHED_CONTROL",
+    "nonbroadcast_input_sha256 must match or status becomes UNKNOWN_UNMATCHED_CONTROL",
+    "intervention arm is bound to the exact BroadcastEnvelope identity and digest",
+    "missing recipient receipts or UNKNOWN uptake produce UNKNOWN_INCOMPLETE_RECEIPTS and block causal-positive evaluation",
+    "same downstream output digest produces NO_CAUSAL_INFLUENCE_OBSERVED",
+    "receipt, summary and arm factory seals plus source-receipt rebuilding reject constructor/tamper bypasses"
+  ],
+  "correction": {
+    "superseded_interpretation": "All broadcast recipients must individually be UPTAKEN before a positive contract-scope result.",
+    "correct_current_g3_interpretation": "All declared recipients need determinate receipt coverage; at least one recipient may be UPTAKEN while others are validly NOT_UPTAKEN. This is distinct from missing/UNKNOWN receipt coverage.",
+    "impact_on_e3_fixture": "The fixture case named incomplete_recipient_uptake remains a valid conservative synthetic policy test, but it is NOT evidence of a current PR226 gap and must not be promoted as a mandatory all-recipient-uptake requirement.",
+    "credit_change": "NONE; E3 remains narrow source-derived reproduction/falsification with zero F2 ablation/runtime credit."
+  },
+  "incremental_candidate_gaps_still_not_present_in_pr226_source": [
+    {
+      "id": "ORDER_OR_PRESTATE_WITNESS",
+      "finding": "CausalProbeArm binds probe/input/output/broadcast identity but does not carry an explicit pre-state digest, run-order witness, seed or equivalent state-equivalence witness between control and intervention arms.",
+      "why_it_matters": "The E3 deterministic stateful counterexample showed that block order can turn a true treatment contribution of 2.0 into an observed naive difference of 5.0 when state drifts between arms.",
+      "status": "E3_SUPPORTED_CANDIDATE_GAP_NOT_E4_PROVEN"
+    },
+    {
+      "id": "SHAM_CONTROL_STABILITY_WITNESS",
+      "finding": "PR226 has CONTROL_NO_BROADCAST and matched input digest, but no independent sham/no-broadcast repeat or stability witness proving that the control outcome itself is stable under the matched probe conditions.",
+      "why_it_matters": "A changing output under an unchanged/no-broadcast arm is a direct warning that treatment attribution is underdetermined.",
+      "status": "E3_SUPPORTED_CANDIDATE_GAP_NOT_E4_PROVEN"
+    }
+  ],
+  "non_gap_or_already_covered_items": [
+    "probe pair identity",
+    "frozen non-broadcast input digest",
+    "exact intervention broadcast identity",
+    "recipient receipt completeness",
+    "basic uptake-vs-delivery separation",
+    "same-output negative result"
+  ],
+  "additional_source_consistency_note": "The PR226 source docstring still says F2-WP-507 generation 2 while PR226 is the generation-3 transplant lane. Treat this as a source-facing stale-generation marker to reconcile before canonical merge; it does not by itself grant or revoke semantic credit.",
+  "next_exact_action": "Do not claim E4 while PR226 remains open/not merged and canonical main lacks src/frankenstein2/gwt_uptake.py. After canonical reconciliation, claim a bounded E4 ablation that tests only the two incremental candidates: pre-state/order equivalence and sham-control stability. Reject either addition if current canonical tests already cover it or if it adds no discriminatory value.",
+  "credits": {
+    "E3_narrow_reproduction": 1,
+    "F2_ablation": 0,
+    "build_candidate": 0,
+    "runtime": 0,
+    "gwt_runtime": 0,
+    "jspace_runtime": 0,
+    "whole_system": 0
+  },
+  "evidence_boundary": "Read-only reconciliation against open PR226 source. No canonical merge, E4 ablation, runtime or whole-system promotion."
+}
