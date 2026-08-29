@@ -1,0 +1,29 @@
+{
+  "schema_version": 1,
+  "trigger": "7",
+  "worker": "GPT-5.6-Sol-TRIGGER7",
+  "research_id": "T7-AUDIO-002",
+  "status": "E2_SOURCE_RESULT_PERSISTED",
+  "date": "2026-08-30",
+  "completed": [
+    "research/local_voice/frontier/2026-08-30_T7_AUDIO_002_CANCELLABLE_PIPEWIRE_ALSA_TRANSPORT_AUDIT.md",
+    "research/local_voice/claims/T7-AUDIO-002/E2_CANCELLABLE_PIPEWIRE_ALSA_TRANSPORT_AUDIT.json"
+  ],
+  "observed_result": "PipeWire native playback is the primary build falsifier because its stream API exposes deactivate, non-draining flush and timing/queue introspection; direct ALSA is a fallback whose cancellation primitive is snd_pcm_drop(), not snd_pcm_drain(). A monotonic playback_generation fence is required so late TTS/audio chunks from an interrupted utterance cannot re-enter playback or become spoken-history evidence.",
+  "current_f2_voice_contract": {
+    "observed_main": "aaaf7257b47bbabf4fde617a8aebfe9bd32bbbc9",
+    "path": "src/frankenstein2/voice_contract.py",
+    "blob": "ad639b02ea69771014a2cad5b38103036b35bdfb",
+    "constraint": "VoiceIntent/VoiceSessionCapsule/VoiceOutcome are causal identity contracts only; playback must remain subordinate evidence and must not mint memory/effect/completion authority."
+  },
+  "runtime_observed": false,
+  "runtime_credit": 0,
+  "trigger4_acceptance_credit": 0,
+  "coordination": {
+    "vps_hardware_reentry": "OWNED_BY_ACTIVE_T7_SYS_002_CLAIM_DO_NOT_DUPLICATE",
+    "aec_denoise": "PARALLEL_T7_AUDIO_001_E2_COMPLETE",
+    "full_duplex_source_audit": "PARALLEL_TRIGGER7_LANE_ADVANCED",
+    "playback_transport": "E2_COMPLETE_PROMOTED_TO_TRIGGER4_BUILD_FALSIFIER"
+  },
+  "next_exact_action": "After consuming the T7-SYS-002 target hardware/audio inventory, implement or claim a nonduplicate Trigger-4 playback transport falsifier with exact voice_session binding, playback_generation cancellation fence, PipeWire deactivate+flush(false), ALSA drop fallback, deterministic stale-chunk rejection and loopback measurement of barge-in-detected to last audible old-generation sample."
+}
