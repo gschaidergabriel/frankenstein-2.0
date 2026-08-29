@@ -7,6 +7,10 @@ acceptance risks after the strategy/depth repair:
    scalar-boundary lesson already promoted in WP600 generation 2;
 2. positive G2 child-harness fixtures must bind WP603 generation 2 / G2 claim identity,
    not silently keep proving the positive path with a generation-1 binding.
+
+The probe follows the current v3 `requested_strategy` ABI. A red run caused only by
+using a superseded review-probe field name is infrastructure/test staleness, not product
+counterevidence.
 """
 from dataclasses import replace
 import pathlib
@@ -49,7 +53,7 @@ class WP603G2ExactScalarAndProvenanceFalsifier(unittest.TestCase):
         route = make_route(selected=DIRECT_SMALL)
         need = RecursionNeed.create(
             route_candidate=route,
-            requested_mode=R0,
+            requested_strategy=R0,
             generation=2,
             provenance_refs=("review:wp603-g2-need-schema",),
         )
@@ -60,7 +64,7 @@ class WP603G2ExactScalarAndProvenanceFalsifier(unittest.TestCase):
         route = make_route(selected=DIRECT_SMALL)
         need = RecursionNeed.create(
             route_candidate=route,
-            requested_mode=R0,
+            requested_strategy=R0,
             generation=2,
             provenance_refs=("review:wp603-g2-candidate-schema",),
         )
@@ -71,7 +75,6 @@ class WP603G2ExactScalarAndProvenanceFalsifier(unittest.TestCase):
             replace(candidate, classification=EqualityForgedStr("EFFECT_AUTHORITY"))
 
     def test_positive_g2_child_fixture_must_bind_generation_two_claim(self) -> None:
-        route = make_route(selected=DELEGATE_BUILD)
         child = make_child_request(max_nested_depth=0)
         self.assertEqual(child.binding.workpackage_id, "F2-WP-603")
         self.assertEqual(child.binding.workpackage_generation, 2)
