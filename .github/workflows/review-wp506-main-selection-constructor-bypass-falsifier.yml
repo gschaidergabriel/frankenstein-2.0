@@ -1,0 +1,33 @@
+name: Review WP506 Main Selection Constructor Bypass Falsifier
+
+on:
+  pull_request:
+    paths:
+      - 'tests/falsifiers/test_wp506_main_selection_constructor_bypass_falsifier.py'
+      - '.github/workflows/review-wp506-main-selection-constructor-bypass-falsifier.yml'
+      - 'src/frankenstein2/gwt_workspace.py'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  falsify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      PYTHONPATH: src
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Bind canonical-main WP506 source
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git hash-object src/frankenstein2/gwt_workspace.py)" = "7949c2981c502526291538af49c29e8703b23a23"
+      - name: Compile falsifier
+        run: python -m py_compile tests/falsifiers/test_wp506_main_selection_constructor_bypass_falsifier.py
+      - name: Require direct-constructor selection rejection
+        run: python -m unittest -v tests.falsifiers.test_wp506_main_selection_constructor_bypass_falsifier
