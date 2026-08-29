@@ -1,0 +1,54 @@
+{
+  "schema": "FRANKENSTEIN2_TRIGGER6_REPRODUCTION_EVIDENCE/v1",
+  "research_id": "R6-WP1107-REPROTEST-ZIP-001",
+  "evidence_stage": "E3_CLAIM_REPRODUCED",
+  "status": "COUNTERHYPOTHESIS_FALSIFIED_IN_LOCAL_RESEARCH_FIXTURE",
+  "executed_at": "2026-08-29T19:50:57+07:00",
+  "execution_scope": "LOCAL_RESEARCH_FIXTURE_ONLY_ZERO_F2_RUNTIME_CREDIT",
+  "hypothesis": "The actual handed-off ZIP container has a reproducibility property not covered by WP1107's payload hash manifest; ambient ZIP metadata can alter container bytes while all payload file bytes remain identical.",
+  "counterhypothesis": "WP1107's payload manifest is sufficient, so container-level byte reproducibility adds no distinct integrity property.",
+  "fixture": {
+    "payload": [
+      "bin/start.sh",
+      "data.txt",
+      "manifest/release-manifest.json"
+    ],
+    "case_a": "same file bytes; mtime 2025-01-02T03:04:06; file mode 0644",
+    "case_b": "same file bytes; mtime 2026-07-08T09:10:12; file mode 0600",
+    "naive_builder": "Python zipfile.ZipFile.write with ZIP_STORED and sorted member names; ambient stat metadata retained",
+    "deterministic_builder": "sorted files + explicit ZipInfo date_time=(2020,1,1,0,0,0) + create_system=3 + external_attr regular-file 0644 + empty extra/comment + ZIP_STORED"
+  },
+  "observed": {
+    "payload_hashes_equal": true,
+    "naive_zip_equal": false,
+    "naive_zip_sha_a": "cfc1c1b7db30704685423e88b8b8c3da992a1bb3a64b3739a6c6368cc8d3f403",
+    "naive_zip_sha_b": "11672f116307ab1a7ccf5dc501c3dc256868e1baef83bbe4f389594b142f85f5",
+    "ambient_metadata_difference": {
+      "case_a_member_time": "2025-01-02 03:04:06",
+      "case_a_member_mode": "0100644",
+      "case_b_member_time": "2026-07-08 09:10:12",
+      "case_b_member_mode": "0100600"
+    },
+    "deterministic_zip_equal": true,
+    "deterministic_zip_sha_a": "bb6c96f0f1800cf7757b561270703f78055b605fc6d7dfa7e83d1076a7e9c7a2",
+    "deterministic_zip_sha_b": "bb6c96f0f1800cf7757b561270703f78055b605fc6d7dfa7e83d1076a7e9c7a2"
+  },
+  "interpretation": "The counterhypothesis is falsified at fixture scope. File-content integrity and archive-container identity are distinct: identical payload bytes can produce different ZIP bytes solely from unbound ambient metadata. Explicit normalization removes the demonstrated variance.",
+  "architecture_consequence": "Trigger 4 should add a deterministic archive-builder generation behind WP1107 and bind archive_sha256 plus archive-policy identity before clean-machine handoff. The accepted manifest verifier remains authoritative for extracted payload integrity.",
+  "limitations": [
+    "Fixture is not the F2 release builder because that builder does not yet exist.",
+    "Only mtime and file-mode variance were reproduced here; build-path, TZ, locale, readdir ordering and umask remain future F2-specific ablation dimensions.",
+    "ZIP_STORED was used; no claim is made about reproducibility across zlib/compressor versions.",
+    "No installation, host lifecycle, VPS, physical GRID10, GWT/J-Space, effects or whole-system execution occurred."
+  ],
+  "recommendation": "QUEUE_TRIGGER4_WP1107_NEXT_GENERATION_DETERMINISTIC_RELEASE_ZIP",
+  "next_exact_action": "Build the smallest WP1107 next-generation deterministic ZIP primitive with explicit archive policy, repository tests for the demonstrated mtime/mode false-green, and bounded variance replay; then require repository CI before any release-runtime credit.",
+  "credit": {
+    "research": "E3_CLAIM_REPRODUCED_AT_LOCAL_FIXTURE_SCOPE",
+    "f2_source": false,
+    "repository_ci": false,
+    "release_runtime": false,
+    "clean_machine": false,
+    "whole_system": false
+  }
+}
