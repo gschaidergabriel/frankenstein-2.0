@@ -1,0 +1,59 @@
+{
+  "schema": "FRANKENSTEIN2_WORKPACKAGE_DELTA/v1",
+  "workpackage_id": "F2-WP-602",
+  "generation": 1,
+  "claim_id": "F2-WP-602-G1-GPT56SOL-HANDOFF-RECONCILE-EVIDENCE-20260829",
+  "worker_id": "GPT-5.6-Sol",
+  "base_commit": "ac33691fb63e50d8af54828428fe7987c2b1e751",
+  "observed_main_commit": "6664b73d3a7a0d226b4e2fe1630d88582d13c0c0",
+  "result_class": "IMPLEMENTATION_DELTA_DEPENDENCY_REBOUND",
+  "source_commit": "c14a06dd4e896e8f759a1c0b62d69ce2c07fded8",
+  "branch_pre_pr_head": "cacbf53238c7a34d817bec0713853912ac0cb9fd",
+  "dependency_reconciliation": {
+    "wp601_generation_at_claim": 1,
+    "wp601_post_claim_counterevidence": "WP601_ACCEPTED_BUDGET_OUTSIDE_CANONICAL_HASH_DOMAIN",
+    "wp601_current_generation": 2,
+    "wp601_current_state": "ACCEPTED",
+    "wp601_terminal_reconciliation": "workpackages/reconciliations/F2-WP-601/2-F2-WP-601-G2-GPT56SOL-CANONICAL-BUDGET-DOMAIN-20260829.json",
+    "wp601_merge_commit": "8a32617f60d825fe2b48bb23e2680c984c963a44",
+    "wp601_merged_main_ci_run": 33246590728,
+    "required_wp602_rebind": "PR merge-ref CI against current main must pass; branch-only G1-parent CI is insufficient for acceptance"
+  },
+  "implemented_path": [
+    "exact F2-WP-600 DELEGATE_BUILD RouteCandidate",
+    "exact F2-WP-601 NativeChildRequest",
+    "exact F2-WP-102 pending->result-bound NativeChildBinding with stable binding_id",
+    "exact F2-WP-104 DeferredReturnEnvelope"
+  ],
+  "falsifiers": [
+    "DIRECT_SMALL route rejected as child handoff",
+    "routed task id must equal child binding parent task id",
+    "routed task digest must equal child request payload digest",
+    "handoff id and nested digests are content-bound",
+    "exact concrete dependency types required",
+    "noncanonical route reason sequences rejected on mapping ingress",
+    "result-bound binding required for reconcile",
+    "WP102 stable binding identity must survive pending->result transition",
+    "different result for the same stable binding is rejected when deferred return binds another exact result",
+    "different binding lineage is rejected",
+    "reconcile id and all nested digests fail closed on tamper",
+    "evidence classifications do not mint delivery/execution/effect/completion authority"
+  ],
+  "branch_hosted_ci": {
+    "run_id": 33246486875,
+    "job_id": 99084734562,
+    "head_sha": "cacbf53238c7a34d817bec0713853912ac0cb9fd",
+    "conclusion": "success",
+    "tests": "15/15 PASS",
+    "scope_note": "pre-PR branch evidence only; predates accepted WP601 G2 dependency"
+  },
+  "owned_paths": [
+    "src/frankenstein2/child_handoff_reconcile.py",
+    "tests/test_child_handoff_reconcile.py",
+    ".github/workflows/wp602-child-handoff-reconcile-ci.yml",
+    "workpackages/deltas/F2-WP-602/1-F2-WP-602-G1-GPT56SOL-HANDOFF-RECONCILE-EVIDENCE-20260829-01.json"
+  ],
+  "completion_deficit": "Exact PR merge-ref CI against current main/WP601 G2 plus merged-main CI are still required. No child spawn/execution, transport/ACK, UnifiedDB delivery mutation, result-success semantics, effects, completion, target runtime, physical GRID10, GWT/J-Space, training or whole-system evidence exists.",
+  "next_exact_action": "Open one WP602 PR to current main, require exact PR merge-ref hosted CI with WP601 G2 present, merge only if green and nonconflicting, then require exact merged-main WP602 CI before bounded terminal reconciliation.",
+  "created_at_utc": "2026-08-29T09:57:10Z"
+}
