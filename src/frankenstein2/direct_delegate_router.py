@@ -1,6 +1,6 @@
 """Deterministic DIRECT_SMALL vs DELEGATE_BUILD routing candidate for Frankenstein 2.0.
 
-F2-WP-600 generation 1.
+F2-WP-600 generation 2.
 
 This component is deliberately persistence-agnostic and authority-free. It binds one
 explicit caller-supplied task profile to one exact F2-WP-500 CycleContract and one explicit
@@ -38,14 +38,29 @@ class DirectDelegateRouterError(ValueError):
 
 
 def _identifier(name: str, value: Any) -> str:
-    if not isinstance(value, str):
-        raise DirectDelegateRouterError(f"{name} must be a string")
+    # Exact concrete strings are a trust boundary.  A str subclass can override
+    # equality while json.dumps still serializes its actual text, splitting direct
+    # comparisons from the canonical evidence/hash surface.
+    if type(value) is not str:
+        raise DirectDelegateRouterError(f"{name} must be an exact concrete string")
     if not value or value != value.strip():
         raise DirectDelegateRouterError(f"{name} must be non-empty and already trimmed")
     if len(value) > _MAX_ID_LEN:
         raise DirectDelegateRouterError(f"{name} exceeds {_MAX_ID_LEN} characters")
     if any(ord(ch) < 0x20 or ord(ch) == 0x7F for ch in value):
         raise DirectDelegateRouterError(f"{name} contains control characters")
+    return value
+
+
+def _literal(name: str, value: Any, expected: str) -> str:
+    if type(value) is not str or value != expected:
+        raise DirectDelegateRouterError(f"{name} mismatch")
+    return value
+
+
+def _route(name: str, value: Any) -> str:
+    if type(value) is not str or value not in _ALLOWED_ROUTES:
+        raise DirectDelegateRouterError(f"{name} is invalid")
     return value
 
 
@@ -68,8 +83,8 @@ def _boolean(name: str, value: Any) -> bool:
 
 
 def _sha256(name: str, value: Any) -> str:
-    if not isinstance(value, str) or _SHA256_RE.fullmatch(value) is None:
-        raise DirectDelegateRouterError(f"{name} must be lowercase 64-hex SHA-256")
+    if type(value) is not str or _SHA256_RE.fullmatch(value) is None:
+        raise DirectDelegateRouterError(f"{name} must be exact concrete lowercase 64-hex SHA-256 text")
     return value
 
 
@@ -152,8 +167,7 @@ class TaskRouteRequest:
     provenance_refs: tuple[str, ...]
 
     def __post_init__(self) -> None:
-        if self.schema != TASK_ROUTE_REQUEST_SCHEMA:
-            raise DirectDelegateRouterError("task route request schema mismatch")
+        _literal("task route request schema", self.schema, TASK_ROUTE_REQUEST_SCHEMA)
         object.__setattr__(self, "task_id", _identifier("task_id", self.task_id))
         object.__setattr__(self, "task_generation", _generation("task_generation", self.task_generation))
         object.__setattr__(self, "task_sha256", _sha256("task_sha256", self.task_sha256))
@@ -237,17 +251,14 @@ class RoutingPolicy:
     provenance_refs: tuple[str, ...]
 
     def __post_init__(self) -> None:
-        if self.schema != ROUTING_POLICY_SCHEMA:
-            raise DirectDelegateRouterError("routing policy schema mismatch")
+        _literal("routing policy schema", self.schema, ROUTING_POLICY_SCHEMA)
         object.__setattr__(self, "policy_id", _identifier("policy_id", self.policy_id))
         object.__setattr__(self, "generation", _generation("policy generation", self.generation))
         object.__setattr__(self, "max_direct_work_units", _bounded_int("max_direct_work_units", self.max_direct_work_units, _MAX_WORK_UNITS))
         object.__setattr__(self, "max_direct_context_tokens", _bounded_int("max_direct_context_tokens", self.max_direct_context_tokens, _MAX_CONTEXT_TOKENS))
-        routes = tuple(self.allowed_routes)
+        routes = tuple(_route("allowed_routes item", route) for route in self.allowed_routes)
         if not routes:
             raise DirectDelegateRouterError("allowed_routes must contain at least one route")
-        if any(route not in _ALLOWED_ROUTES for route in routes):
-            raise DirectDelegateRouterError(f"allowed_routes must be a subset of {list(_ROUTE_ORDER)}")
         object.__setattr__(self, "allowed_routes", tuple(route for route in _ROUTE_ORDER if route in set(routes)))
         object.__setattr__(self, "provenance_refs", _refs("provenance_refs", self.provenance_refs, require_nonempty=True))
 
@@ -303,10 +314,8 @@ class RouteCandidate:
     classification: str = ROUTE_CANDIDATE_CLASSIFICATION
 
     def __post_init__(self) -> None:
-        if self.schema != ROUTE_CANDIDATE_SCHEMA:
-            raise DirectDelegateRouterError("route candidate schema mismatch")
-        if self.classification != ROUTE_CANDIDATE_CLASSIFICATION:
-            raise DirectDelegateRouterError("route candidate classification mismatch")
+        _literal("route candidate schema", self.schema, ROUTE_CANDIDATE_SCHEMA)
+        _literal("route candidate classification", self.classification, ROUTE_CANDIDATE_CLASSIFICATION)
         object.__setattr__(self, "candidate_id", _identifier("candidate_id", self.candidate_id))
         object.__setattr__(self, "task_id", _identifier("task_id", self.task_id))
         object.__setattr__(self, "task_generation", _generation("task_generation", self.task_generation))
@@ -318,8 +327,7 @@ class RouteCandidate:
         object.__setattr__(self, "policy_id", _identifier("policy_id", self.policy_id))
         object.__setattr__(self, "policy_generation", _generation("policy_generation", self.policy_generation))
         object.__setattr__(self, "policy_sha256", _sha256("policy_sha256", self.policy_sha256))
-        if self.selected_route not in _ALLOWED_ROUTES:
-            raise DirectDelegateRouterError("selected_route is invalid")
+        object.__setattr__(self, "selected_route", _route("selected_route", self.selected_route))
         object.__setattr__(self, "reason_codes", _refs("reason_codes", self.reason_codes, require_nonempty=True))
         expected_candidate_id = _route_candidate_id(
             task_id=self.task_id,
