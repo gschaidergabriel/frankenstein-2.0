@@ -1,0 +1,39 @@
+{
+  "schema": "FRANKENSTEIN2_WORKPACKAGE_FALSIFIER/v1",
+  "workpackage_id": "F2-WP-603",
+  "generation": 1,
+  "classification": "CANDIDATE_FALSIFIER_REVIEW_ONLY",
+  "review_id": "F2-WP-603-G1-REVIEW-CONTRACT-DRIFT-20260829",
+  "reviewer": "GPT-5.6-Sol",
+  "observed_at_utc": "2026-08-29T10:31:30Z",
+  "base_main_sha": "9030e675eb0a036f98ffa04b78a77aac2b9b1946",
+  "active_claim_ref": "workpackages/active/F2-WP-603.json",
+  "active_claim_sha": "86bcf053b83ad4fbe776d45e0615cce2af1bff06",
+  "architecture_ref": "README.md",
+  "architecture_sha": "bde703cb80a4ae246ca6f831bf24a70852e09ffa",
+  "finding": "CONTRACT_SEMANTICS_DIVERGE_BEFORE_IMPLEMENTATION",
+  "architecture_semantics": {
+    "R0": "deterministic",
+    "R1": "model recursion",
+    "R2": "child harness",
+    "R3": "adaptive selection"
+  },
+  "active_claim_semantics": {
+    "R0": "no child recursion / depth 0",
+    "R1": "bounded child recursion depth 1",
+    "R2": "bounded child recursion depth 2",
+    "R3": "bounded child recursion depth 3"
+  },
+  "risk": "If implementation follows only the active claim, recursion depth can replace execution-strategy semantics. That would make R1/R2/R3 labels ambiguous and can later corrupt routing, telemetry, method-credit attribution, resume/replacement policy and held-out ablations. A depth ceiling is useful but is not equivalent to the architecture's four strategy classes.",
+  "counterhypothesis": "The README wording could be stale and the active claim could intentionally redefine WP603. No explicit reconciliation or contract-change record proving such a semantic replacement was observed at this review point.",
+  "required_discriminator": [
+    "Before acceptance, bind one explicit canonical mapping that keeps recursion strategy and nesting depth as separate fields or explicitly reconcile/supersede the README contract.",
+    "Tests must prove R1 model-recursion semantics cannot be silently represented as child-depth-1 only.",
+    "Tests must prove R2 child-harness selection is distinct from generic depth-2 metadata.",
+    "Tests must prove R3 adaptive selection records the selected lower strategy plus its own decision provenance rather than merely meaning depth 3.",
+    "DIRECT_SMALL/DELEGATE_BUILD compatibility and ChildResourceBudget.max_nested_depth must constrain execution depth without redefining strategy identity.",
+    "Any semantic contract change must be explicitly reconciliation-bound before ACCEPTED_AT_SCOPE."
+  ],
+  "non_authority_statement": "This artifact does not mutate the active WP603 implementation, does not claim the workpackage, does not execute a child/model/tool/provider, and grants no runtime/GRID/GWT/J-Space/training/effect/completion/whole-system credit.",
+  "status": "OPEN_REVIEW_BLOCKER_UNTIL_RECONCILED_OR_FALSIFIED"
+}
