@@ -1,0 +1,38 @@
+{
+  "schema": "T7_SOURCE_REFRESH_RESULT/v1",
+  "trigger": "7",
+  "research_id": "T7-LLM-003",
+  "objective": "V2_QWEN35_LLAMA_CPP_SUPPORT_REFRESH",
+  "semantic_key": "d24d9b30b20b6d4d46ecbb18b01bbeed5f1bbd75627db68d4bb1e804e204767e",
+  "semantic_generation": 2,
+  "date": "2026-08-30",
+  "scope": "SOURCE_ONLY",
+  "official_model_pin": "Qwen/Qwen3.5-4B@851bf6e806efd8d0a36b00ddf55e13ccb7b8cd0a",
+  "llama_cpp_observed_master": "c841aeeb8bb2fe417038dadfa9b007cf1a9ef950",
+  "direct_source_observations": [
+    {"type":"CURRENT_SOURCE","ref":"ggml-org/llama.cpp@c841aeeb8bb2fe417038dadfa9b007cf1a9ef950:conversion/__init__.py","observation":"Current converter registry maps Qwen3_5ForCausalLM and Qwen3_5ForConditionalGeneration to the qwen conversion module."},
+    {"type":"CURRENT_SOURCE","ref":"ggml-org/llama.cpp@c841aeeb8bb2fe417038dadfa9b007cf1a9ef950:conversion/qwen.py","observation":"Current source contains Qwen3_5TextModel/Qwen3_5MoeTextModel and explicit Qwen3.5 MRoPE handling; source-level Qwen3.5 conversion support is present."},
+    {"type":"UPSTREAM_NEGATIVE_RESULT","ref":"ggml-org/llama.cpp#26916","state":"OPEN","model_scope":"Qwen3.5 hybrid 9B derivative, not pinned official 4B","observation":"Reported conversion and quantization succeed but final model load fails; converter+quantizer success alone cannot mint runnable-artifact credit."},
+    {"type":"UPSTREAM_NEGATIVE_RESULT","ref":"ggml-org/llama.cpp#27019","state":"OPEN","model_scope":"Qwen/Qwen3.5-9B, not pinned official 4B","observation":"Reported hybrid linear-attention conversion failure; report also says an existing third-party GGUF runs, separating converter risk from generic runtime risk."},
+    {"type":"UPSTREAM_REPRODUCTION_BOUNDARY","ref":"ggml-org/llama.cpp#23589","state":"CLOSED","model_scope":"cross-model cache test included Qwen3.5-4B","observation":"Reported cache regression affected Qwen3.6-35B-A3B; reporter explicitly did not reproduce it on Qwen3.5-4B. Do not transfer the larger-model failure to 4B without target evidence."},
+    {"type":"UPSTREAM_NEGATIVE_RESULT","ref":"ggml-org/llama.cpp#26209","state":"OPEN","model_scope":"Qwen3.5-4B GGUF on ROCm/Vulkan agent-like use","observation":"Bug-unconfirmed report describes infinite slash-token generation in agent-mode-like execution. This makes backend-specific tool/agent smoke testing mandatory if the target resolves to affected backends."}
+  ],
+  "hypothesis": "A provenance-clean Qwen3.5-4B Q4_K_M baseline can be derived from the exact official safetensors pin using a pinned current llama.cpp build and can serve Trigger-7 local dialogue if exact post-conversion and target-backend gates pass.",
+  "counterhypothesis": "Converter/loader or backend-specific agent regressions make the self-derived artifact unusable or less reliable than a source-pinned community GGUF on clay-direct-dev.",
+  "result": "SOURCE_SUPPORT_PRESENT_TARGET_REPRODUCIBILITY_UNPROVEN",
+  "decision": "KEEP_OFFICIAL_SELF_DERIVED_BASELINE_AS_PRIMARY_PROVENANCE_PATH_BUT_REQUIRE_FAIL_CLOSED_RUNTIME_GATES",
+  "required_target_gates": [
+    "valid clay-direct-dev hardware/disk receipt",
+    "pin exact llama.cpp commit/build and conversion dependencies",
+    "convert exact official safetensors pin and hash artifact",
+    "quantize exact declared Q4_K_M recipe and hash artifact",
+    "post-quant llama-cli/llama-server model-load smoke",
+    "short deterministic German generation smoke with zero external model API calls",
+    "multi-turn VoiceSessionCapsule cache/reprocessing measurement with TTFT p50/p95 and cached-token accounting",
+    "tool-schema/agent-mode smoke",
+    "backend-specific regression check after hardware topology is known",
+    "network-blocked local inference confirmation"
+  ],
+  "credits": {"source_refresh":1,"target_download":0,"target_runtime":0,"german_benchmark":0,"german_e2e_voice":0,"trigger4_acceptance":0},
+  "next_exact_action": "Obtain canonical clay-direct-dev hardware receipt, then execute official pin -> pinned llama.cpp conversion -> Q4_K_M quantization -> post-quant load/German/cache/tool gates as one provenance-bound target capsule before community or abliterated comparisons."
+}
