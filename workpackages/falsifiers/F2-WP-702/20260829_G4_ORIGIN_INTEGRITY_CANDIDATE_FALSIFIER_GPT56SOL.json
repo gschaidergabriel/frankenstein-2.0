@@ -1,0 +1,47 @@
+{
+  "schema": "FRANKENSTEIN2_CANDIDATE_FALSIFIER/v1",
+  "workpackage_id": "F2-WP-702",
+  "classification": "REVIEW_ONLY_CANDIDATE_FALSIFIER",
+  "worker_id": "GPT-5.6-Sol",
+  "canonical_mutation_authority_claim": "F2-WP-702-G4-GPT56SOL-EVALUATOR-PRODUCER-LINEAGE-20260829",
+  "mutation_authority_taken": false,
+  "review_target": {
+    "pull_request": 395,
+    "head_branch": "trigger4/wp702-g4-evaluator-lineage-20260829",
+    "head_sha": "64e3da037ad710ec6771cca8d531e5aae1892a2b",
+    "source_path": "src/frankenstein2/perception_control.py",
+    "mechanism_under_review": "module-level _EVALUATOR_ORIGIN object passed through public PerceptionControlResult InitVar plus frozen dataclass result"
+  },
+  "counterexamples": [
+    {
+      "id": "WP702-G4-F1-MODULE-ORIGIN-REUSE",
+      "hypothesis": "A module-private evaluator-origin sentinel is sufficient to prevent a same-process caller from directly minting a downstream-consumable policy-looking PerceptionControlResult.",
+      "counterhypothesis": "Python module privacy is conventional; a caller can read frankenstein2.perception_control._EVALUATOR_ORIGIN and pass the exact object through the public constructor, preserving the direct-constructor laundering class.",
+      "discriminator": "Create a real COMPUTE_OFF policy/registry, verify canonical evaluator returns NOT_COMPUTED, then directly construct an OK persistent result with the exact real policy/registry digests and the module's exact origin object. The constructor must fail closed for the hypothesis to survive.",
+      "expected_on_review_target_if_counterexample_survives": "NO_EXCEPTION_THUS_FALSIFIED"
+    },
+    {
+      "id": "WP702-G4-F2-POST-EVALUATION-CONTENT-DRIFT",
+      "hypothesis": "Evaluator-origin plus frozen dataclass is sufficient to bind downstream authority-relevant fields to the evaluator-validated content.",
+      "counterhypothesis": "frozen=True is not a same-process integrity seal; object.__setattr__ can mutate memory_match_allowed/persistence_allowed/reason after evaluator validation while retaining evaluator provenance convention.",
+      "discriminator": "Evaluate a MEMORY_OFF head to a legitimate non-persistent OK result, capture its digest, mutate authority-relevant fields with object.__setattr__, and require the result to remain non-persistent/content-identical. Any escalation or digest drift is a bounded content-integrity falsifier.",
+      "expected_on_review_target_if_counterexample_survives": "POST_EVALUATION_ESCALATION_THUS_FALSIFIED"
+    }
+  ],
+  "review_test": "tests/test_wp702_g4_origin_integrity_falsifier.py",
+  "review_workflow": ".github/workflows/review-wp702-g4-origin-integrity-falsifier.yml",
+  "evidence_status": "HOSTED_CI_PENDING",
+  "evidence_ceiling": "REPOSITORY_HOSTED_REVIEW_ONLY_COMPONENT_FALSIFIER",
+  "scope_note": "This review does not require that hostile arbitrary Python code be made impossible. It tests the narrower declared producer-lineage/content-integrity meaning of a downstream-consumable result under the same object-construction and object.__setattr__ threat model already used by current Frankenstein 2.0 successor hardening. If the project instead defines module-private sentinels and frozen dataclasses as cooperative-convention fences only, that threat-model limitation must be explicit and no stronger lineage/authenticity claim should be minted from the mechanism.",
+  "proposed_resolution_if_confirmed": "Do not create a second WP702 mutation authority. The active G4 owner should either (a) narrow acceptance explicitly to cooperative accidental-constructor prevention, or (b) bind downstream acceptance to exact current content/evaluator evidence through an equivalently stronger consumer-boundary mechanism. Preserve the falsifier even if G4 is accepted at the narrower declared scope.",
+  "runtime_execution_observed": false,
+  "target_runtime_credit": 0,
+  "perception_runtime_credit": 0,
+  "physical_grid10_credit": 0,
+  "gwt_runtime_credit": 0,
+  "jspace_runtime_credit": 0,
+  "training_credit": 0,
+  "effect_credit": 0,
+  "completion_credit": 0,
+  "whole_system_acceptance": false
+}
