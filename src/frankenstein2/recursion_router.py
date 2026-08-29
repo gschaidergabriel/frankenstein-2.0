@@ -375,6 +375,35 @@ class RecursionPolicy:
             provenance_refs=tuple(provenance_refs),
         )
 
+    @classmethod
+    def from_mapping(cls, value: Mapping[str, Any]) -> "RecursionPolicy":
+        if not isinstance(value, Mapping):
+            raise RecursionRouterError("recursion policy input must be a mapping")
+        expected = {field.name for field in cls.__dataclass_fields__.values()}
+        if set(value.keys()) != expected:
+            raise RecursionRouterError("recursion policy fields are not exact")
+        admitted_modes = value["admitted_modes"]
+        r3_preference_order = value["r3_preference_order"]
+        provenance_refs = value["provenance_refs"]
+        if type(admitted_modes) is list:
+            admitted_modes = tuple(admitted_modes)
+        if type(r3_preference_order) is list:
+            r3_preference_order = tuple(r3_preference_order)
+        if type(provenance_refs) is list:
+            provenance_refs = tuple(provenance_refs)
+        try:
+            return cls(
+                schema=value["schema"],
+                policy_id=value["policy_id"],
+                generation=value["generation"],
+                admitted_modes=admitted_modes,
+                r3_preference_order=r3_preference_order,
+                max_nested_child_edges=value["max_nested_child_edges"],
+                provenance_refs=provenance_refs,
+            )
+        except (TypeError, ValueError) as exc:
+            raise RecursionRouterError(f"invalid recursion policy: {exc}") from exc
+
     def as_dict(self) -> dict[str, Any]:
         return _policy_identity_payload(
             policy_id=self.policy_id,
@@ -670,6 +699,24 @@ class RecursionNeed:
         }
         return cls(schema=RECURSION_NEED_SCHEMA, need_id=_need_id(**identity), **identity)
 
+    @classmethod
+    def from_mapping(cls, value: Mapping[str, Any]) -> "RecursionNeed":
+        if not isinstance(value, Mapping):
+            raise RecursionRouterError("recursion need input must be a mapping")
+        expected = {field.name for field in cls.__dataclass_fields__.values()}
+        if set(value.keys()) != expected:
+            raise RecursionRouterError("recursion need fields are not exact")
+        r3_available_modes = value["r3_available_modes"]
+        provenance_refs = value["provenance_refs"]
+        if type(r3_available_modes) is list:
+            r3_available_modes = tuple(r3_available_modes)
+        if type(provenance_refs) is list:
+            provenance_refs = tuple(provenance_refs)
+        try:
+            return cls(**{**dict(value), "r3_available_modes": r3_available_modes, "provenance_refs": provenance_refs})
+        except (TypeError, ValueError) as exc:
+            raise RecursionRouterError(f"invalid recursion need: {exc}") from exc
+
     def as_dict(self) -> dict[str, Any]:
         value = asdict(self)
         value["r3_available_modes"] = list(self.r3_available_modes)
@@ -753,6 +800,11 @@ def route_recursion(
         raise RecursionRouterError("need must be exact concrete RecursionNeed")
     if type(policy) is not RecursionPolicy:
         raise RecursionRouterError("policy must be exact concrete RecursionPolicy")
+    # Reconstruct at the consumer boundary before any need/policy field is read.
+    # Frozen dataclasses are still mutable via object.__setattr__; canonical
+    # reconstruction re-runs identity and policy invariants fail-closed.
+    need = RecursionNeed.from_mapping(need.as_dict())
+    policy = RecursionPolicy.from_mapping(policy.as_dict())
     if need.route_candidate_id != route_candidate.candidate_id:
         raise RecursionRouterError("recursion need route candidate id mismatch")
     if need.route_candidate_sha256 != route_sha:
