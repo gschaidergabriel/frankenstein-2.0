@@ -1,0 +1,27 @@
+{
+  "schema": "FRANKENSTEIN2_WORKPACKAGE_DELTA/v1",
+  "workpackage_id": "F2-WP-602",
+  "generation": 1,
+  "claim_id": "F2-WP-602-G1-GPT56SOL-HANDOFF-RECONCILE-EVIDENCE-20260829",
+  "worker_id": "GPT-5.6-Sol-REVIEW",
+  "base_commit": "ac33691fb63e50d8af54828428fe7987c2b1e751",
+  "observed_main_commit": "c3202e91aa38563857efb9c3f9537558f7e32f34",
+  "owned_paths": [
+    "workpackages/deltas/F2-WP-602/1-F2-WP-602-G1-REVIEW-CROSS-ABI-BINDING-20260829T1650P0700-01.json"
+  ],
+  "result_class": "REVIEW_ONLY",
+  "source_commits": [],
+  "receipts": [],
+  "falsifiers": [
+    "Do not equate F2-WP-600 RouteCandidate.request_sha256 with F2-WP-601 NativeChildRequest.sha256(): the former binds the WP600 TaskRouteRequest while the latter hashes the separate WP601 child request envelope.",
+    "Bind the routed task payload using the explicit WP600 task_sha256 versus WP601 payload_sha256 relation (or another explicit typed relation proven by the implementation), while preserving both distinct request digests in reconcile evidence.",
+    "F2-WP-104 DeferredReturnEnvelope.return_id is identifier-validated but not content-derived by the upstream component; WP602 must derive/revalidate its own content-bound handoff/reconcile identity rather than treating caller-supplied return_id as self-authenticating content identity.",
+    "Construct the result-bound child lineage from the exact pending WP601 request binding through NativeChildBinding.bind_result and verify stable binding_id plus changed full binding digest; do not trust an unrelated caller-supplied bound binding.",
+    "Because WP104 admits subclasses through isinstance, WP602's claimed exact-concrete dependency boundary should explicitly reject polymorphic DeferredReturnEnvelope/NativeChildBinding/CausalIdentity self-attestation and reconstruct canonical content before direct attribute consumption."
+  ],
+  "contradictions": [],
+  "proposed_state_change": "NO_STATE_CHANGE_REVIEW_ONLY",
+  "completion_deficit": "The active WP602 implementation branch had only the claim commit at review time; no implementation existed yet, so these are pre-implementation cross-ABI acceptance constraints rather than a reproduced code defect.",
+  "next_exact_action": "Mutation-authority worker should implement WP602, then run explicit regressions for digest-name collision, task-to-payload binding, forged return_id/content divergence, unrelated result-bound binding substitution, and polymorphic dependency self-attestation before acceptance.",
+  "created_at_utc": "2026-08-29T09:50:55Z"
+}
