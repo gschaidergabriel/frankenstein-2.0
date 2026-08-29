@@ -1,0 +1,66 @@
+{
+  "schema": "FRANKENSTEIN2_TRIGGER6_RESEARCH_RESULT/v1",
+  "trigger": "6",
+  "research_id": "R6-SEED-006",
+  "slot": "EXPERIMENTAL_FALSIFIER",
+  "evidence_stage": "E3_CLAIM_REPRODUCED",
+  "status": "COMPLETED_EXTERNAL_DONOR_FALSIFIER_NO_F2_RUNTIME_CREDIT",
+  "created_at": "2026-08-29T20:27:00+07:00",
+  "worker": "GPT-5.6-Sol-TRIGGER6",
+  "claim_path": "research/tool_intelligence/claims/R6-SEED-006/E3_LOCAL_PEAK_MEMORY_FALSIFIER.json",
+  "claim_commit": "42ca6e30766240d3cc078c2dc2f6c2defcd7a810",
+  "f2_live_fusion_head_before_result": "a71005e634f6d30d9f9cc5eacbe7efce4ecaed00",
+  "upstream": {
+    "repo": "eunomia-bpf/agentcgroup",
+    "commit": "551ca1689b7d2d30db6b8a8613414750103cc68b",
+    "path": "agentcg/bash_wrapper_local.sh",
+    "observed_formula": "MEM_BEFORE and MEM_AFTER are VmRSS samples from /proc/$$/status of the wrapper shell; memory.peak is max(MEM_BEFORE, MEM_AFTER), not a sampled child-command peak."
+  },
+  "hypothesis_under_test": "bash_wrapper_local.sh memory.peak is a valid measurement of child tool-call peak memory.",
+  "counterexample": {
+    "environment": "isolated local deterministic Linux container; donor falsifier only",
+    "experiment_spec": "Parent shell records its own VmRSS before/after. A child Python process touches a 192 MiB bytearray, records its own VmRSS while allocation is live, then exits. Apply the audited local-wrapper max(parent_before,parent_after) formula.",
+    "experiment_spec_sha256": "259dc39afa09bd60009588309400111e032838813265206995992918bd0b29a5",
+    "observed_parent_before_kb": 3380,
+    "observed_parent_after_kb": 3384,
+    "audited_formula_peak_kb": 3384,
+    "observed_child_rss_during_allocation_kb": 306724,
+    "child_to_formula_ratio": 90.64,
+    "result_sha256": "fc45323ef3c93de4a4d02e181f7efc0ca33248b98fa17ab46bea8467c88fec57"
+  },
+  "result": {
+    "hypothesis": "FALSIFIED",
+    "finding": "The no-root local wrapper's peak field measures endpoint RSS of the wrapper process, not the child command's true peak. A short-lived high-memory child can be missed by roughly two orders of magnitude in this controlled example.",
+    "scope_note": "The numeric ratio is environment/example-specific. The reproduced structural failure is that the formula cannot observe a child's transient peak because it samples the parent only before and after child execution.",
+    "upstream_risk_reproduced": "YES_AT_LOCAL_MEASUREMENT_LOGIC_SCOPE_ONLY"
+  },
+  "f2_architecture_delta": {
+    "type": "RESOURCE_MEASUREMENT_VALIDITY_RULE",
+    "recommended_rule": "Never label parent endpoint RSS as child/effect peak memory. Resource receipts must bind measurement provenance and metric semantics; child peak requires a measurement source that actually covers the child execution interval, such as admitted cgroup memory.peak or an equivalent verified observer.",
+    "recommended_fields": [
+      "metric_name",
+      "metric_semantics",
+      "measurement_scope",
+      "observer_identity",
+      "coverage_start_end",
+      "coverage_status",
+      "value_unit",
+      "evidence_ref"
+    ],
+    "authority_boundary": "A fallback estimator must be explicitly typed ESTIMATE/DEGRADED, never silently upgraded to OBSERVED_CHILD_PEAK."
+  },
+  "counterhypothesis_remaining": "A portable non-cgroup sampler could estimate child peaks sufficiently well if it follows the child/process tree at adequate sampling frequency and quantifies missed-burst error; that mechanism was not tested here.",
+  "credits": {
+    "trigger6_research": "E3_CLAIM_REPRODUCED_EXTERNAL_DONOR_MEASUREMENT_FALSIFIER",
+    "architecture": 0,
+    "repository_component": 0,
+    "target_runtime": 0,
+    "resource_controller": 0,
+    "physical_grid10": 0,
+    "gwt_jspace": 0,
+    "training": 0,
+    "effects": 0,
+    "whole_system": 0
+  },
+  "next_exact_action": "Fuse the three AgentCgroup donor falsifiers into one Trigger4 handoff for future F2-WP-605 Child telemetry: typed resource receipt, explicit coverage/metric semantics, corroborated OOM classification, typed serializer, and no direct agent resource self-grant. Do not open WP605 from Trigger6 if Trigger4 has not claimed it."
+}
