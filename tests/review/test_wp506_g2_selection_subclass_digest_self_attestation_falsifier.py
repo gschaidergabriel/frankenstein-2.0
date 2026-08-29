@@ -147,9 +147,6 @@ def test_verify_selection_binding_must_reject_digest_self_attesting_subtype():
     assert adversarial.selected == canonical.selected
     assert adversarial.source_candidates == canonical.source_candidates
 
-    # The builder state is deliberately unchanged. Only the concrete runtime type and
-    # polymorphic digest method differ. An exact-source identity validator must reject
-    # before trusting the subtype-provided digest.
     with pytest.raises(GwtWorkspaceError, match="concrete|WorkspaceSelection|type"):
         verify_selection_binding(
             adversarial,
@@ -169,10 +166,6 @@ def test_create_broadcast_must_not_mint_from_digest_self_attesting_selection_sub
     canonical = make_selection(plan)
     adversarial = subtype_with_identical_builder_state(canonical)
 
-    # Keep candidate ids/payload refs canonical; this intentionally does NOT exercise the
-    # already-known forged BroadcastEnvelope payload-lineage defect. The sole discriminator
-    # is whether create_broadcast accepts a WorkspaceSelection subtype whose sha256() is
-    # attacker-controlled.
     with pytest.raises(GwtWorkspaceError, match="concrete|WorkspaceSelection|type"):
         create_broadcast(
             broadcast_id="broadcast:review-wp506-g2-selection-subtype",
@@ -181,3 +174,34 @@ def test_create_broadcast_must_not_mint_from_digest_self_attesting_selection_sub
             expected_selection_sha256=FORGED_SELECTION_SHA256,
             recipient_cell_ids=("G1",),
         )
+
+
+def test_positive_reproduction_probe_current_wp506_accepts_self_attested_digest():
+    """PASS means the exact current WP506 subtype/digest weakness is reproduced."""
+    plan = make_plan()
+    canonical = make_selection(plan)
+    adversarial = subtype_with_identical_builder_state(canonical)
+
+    verify_selection_binding(
+        adversarial,
+        expected_generation=adversarial.generation,
+        expected_selection_sha256=FORGED_SELECTION_SHA256,
+        frame_id=plan.frame_id,
+        frame_generation=plan.frame_generation,
+        frame_sha256=plan.frame_sha256,
+        grid_plan_id=plan.plan_id,
+        grid_plan_generation=plan.generation,
+        grid_plan_sha256=plan.sha256(),
+    )
+    broadcast = create_broadcast(
+        broadcast_id="broadcast:review-wp506-g2-selection-subtype-positive-probe",
+        generation=3,
+        selection=adversarial,
+        expected_selection_sha256=FORGED_SELECTION_SHA256,
+        recipient_cell_ids=("G1",),
+    )
+
+    assert broadcast.selection_sha256 == FORGED_SELECTION_SHA256
+    assert broadcast.selection_sha256 != canonical.sha256()
+    assert broadcast.candidate_ids == tuple(item.candidate_id for item in canonical.selected)
+    assert broadcast.candidate_payload_refs == tuple(item.payload_ref for item in canonical.selected)
