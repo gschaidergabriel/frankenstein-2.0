@@ -1,0 +1,122 @@
+{
+  "schema": "FRANKENSTEIN2_TRIGGER6_SOURCE_ARCHAEOLOGY/v1",
+  "research_id": "R6-20260829-SRCARCH-CITCOM-CAUSALTEST-GPT56SOL-01",
+  "trigger": "6",
+  "slot": "SOURCE_ARCHAEOLOGIST",
+  "status": "E2_ARCHITECTURE_MAPPED",
+  "created_at": "2026-08-29T15:02:00+07:00",
+  "claim_ref": "research/tool_intelligence/claims/R6-20260829-SRCARCH-CITCOM-CAUSALTEST-GPT56SOL-01/E2_ARCHITECTURE_MAPPED.json",
+  "architecture_delta_fusion_basis": "research/tool_intelligence/deltas/ADF-20260829T1453P0700-GPT56SOL-WP507-G3-REENTRY.json",
+  "f2_main_reentry_before_result": "be6710141b4f4b4b1dbbf4417eee0200d238b9e0",
+  "promotion": {
+    "to_E3": false,
+    "to_E4": false,
+    "to_E5_BUILD_CANDIDATE": false,
+    "to_E6_ACCEPTED": false,
+    "architecture_credit": 0,
+    "runtime_credit": 0,
+    "gwt_runtime_credit": 0,
+    "jspace_runtime_credit": 0,
+    "whole_system_credit": 0
+  },
+  "candidate": {
+    "repo": "CITCOM-project/CausalTestingFramework",
+    "source_commit": "9ee3e7c92d07a682a4caf16e2ca98c484c80ac65",
+    "source_commit_observed_at": "2026-08-29",
+    "license": "MIT",
+    "python": ">=3.11,<3.15",
+    "declared_purpose": "causal inference-driven functional black-box testing using causal DAGs and intervention-to-outcome test cases",
+    "paper": {
+      "title": "Testing Causality in Scientific Modelling Software",
+      "doi": "10.1145/3607184"
+    }
+  },
+  "observed_source_architecture": [
+    "CausalTestingFramework loads a causal DAG, runtime data and causal test cases, then executes configured estimators and expected causal effects.",
+    "CausalTestCase separates treatment variable, outcome variable, expected causal effect, effect measure and estimator, and records PASS/FAIL/INESTIMABLE outcomes.",
+    "ExperimentalEstimator exposes a run_system(configuration) seam for black-box interaction with the system under test.",
+    "ExperimentalEstimator constructs control_configuration and treatment_configuration from the same adjustment configuration and changes only the treatment variable.",
+    "ExperimentalEstimator can estimate average treatment effect and risk ratio by repeated control/treatment executions.",
+    "The upstream experimental-estimator unit test demonstrates the black-box seam on a deterministic SystemUnderTest and checks exact effect estimates.",
+    "The package uses plugin entry points for estimators, expected causal effects and causal discovery mechanisms.",
+    "The core dependency surface is scientific-Python heavy: networkx, numpy, pandas, scikit-learn, scipy, statsmodels, lifelines, pyarrow/fastparquet, sympy and additional search/graph packages."
+  ],
+  "wp507_fit": {
+    "recommended_adoption_class": "CONCEPT_DISTILL_ONLY_NOW",
+    "direct_dependency_now": false,
+    "strong_fit": [
+      "explicit treatment-vs-control semantics map naturally to broadcast-intervention vs matched control",
+      "run_system is a useful abstraction for keeping the causal test outside the internal implementation of the subject under test",
+      "explicit expected-effect and INESTIMABLE outcomes support fail-closed causal adjudication instead of treating every difference as causal success",
+      "adjustment configuration is conceptually compatible with freezing non-broadcast inputs across matched runs"
+    ],
+    "required_f2_extensions": [
+      "exact causal_probe_id shared across control/intervention pair",
+      "identical non_broadcast_input_digest across the pair",
+      "exact BroadcastEnvelope identity on the intervention arm and explicit no-broadcast/sham identity on control",
+      "complete recipient-scoped OFFERED/DELIVERED/UPTAKEN receipt set bound to broadcast.recipient_cell_ids",
+      "exact downstream_output_digest for each arm",
+      "generation/frame-version/provenance fences from accepted WP502/WP506 contracts",
+      "order/seed/nondeterminism controls where runtime is not deterministic",
+      "authority fence preventing statistical estimates or DAG assumptions from minting canonical truth/effects/completion"
+    ]
+  },
+  "limitations_and_negative_evidence": [
+    "Upstream treatment/control series are not intrinsically bound by an F2-style immutable pair identity or per-pair input digest.",
+    "The experimental estimator performs repeated control executions followed by repeated treatment executions; without an additional pairing/order/seed contract, time/order effects can masquerade as treatment effects in a stateful or stochastic target.",
+    "A causal DAG is an asserted model of expected relationships; its presence is not evidence that the asserted edge is correct.",
+    "The generic framework supports statistical inference from runtime data, whereas current WP507 G3 requires a stricter deterministic matched intervention/control contract at repository-component scope.",
+    "The dependency surface is too broad for a justified WP507 core dependency absent an E4 ablation showing benefit over a thin native comparator.",
+    "No source inspection performed here demonstrates Frankenstein 2.0 runtime integration, target-runtime execution, physical GRID10 behavior, J-Space causality or effect authority."
+  ],
+  "donor_distillation": {
+    "keep": [
+      "treatment/control/outcome vocabulary",
+      "black-box run_system seam",
+      "expected-effect object separated from measurement",
+      "explicit PASS/FAIL/INESTIMABLE adjudication",
+      "declared modelling assumptions",
+      "optional adequacy/confidence machinery for a later nondeterministic runtime layer"
+    ],
+    "reject_for_core": [
+      "full scientific-Python dependency graph",
+      "DAG-as-truth semantics",
+      "unbound aggregate treatment/control series as sufficient causal evidence",
+      "statistical significance as a substitute for exact F2 causal/provenance identity"
+    ],
+    "minimal_f2_native_shape": "MatchedCausalProbe(control, intervention) -> verify frozen-input identity -> verify intervention identity -> verify recipient uptake completeness -> compare downstream output -> return POSITIVE|NEGATIVE|INESTIMABLE with exact receipt refs"
+  },
+  "hypotheses": [
+    {
+      "id": "H-CITCOM-WP507-1",
+      "statement": "Distilling CITCOM's explicit treatment/control/expected-effect abstraction into a thin F2-native matched-causal-probe contract will make WP507 falsification clearer without importing hidden-state machinery.",
+      "confidence": 0.82,
+      "falsifier": "A direct WP507 test matrix shows no reduction in ambiguity, no new rejected false-positive class, and no improvement in reproducibility relative to the current native contract."
+    },
+    {
+      "id": "CH-CITCOM-WP507-1",
+      "statement": "WP507 G3 already contains all useful treatment/control semantics, so CITCOM adds naming only and should not influence implementation.",
+      "confidence": 0.55,
+      "discriminator": "Diff the accepted future WP507 test matrix against current G3 requirements and count whether explicit INESTIMABLE/order/nondeterminism/model-assumption cases add a genuinely new fail-closed class."
+    },
+    {
+      "id": "CH-CITCOM-WP507-2",
+      "statement": "Statistical causal machinery is actively harmful at the current deterministic contract layer because it can weaken exact provenance requirements.",
+      "confidence": 0.78,
+      "discriminator": "Attempt a thin native probe design and reject any variant that permits an effect estimate when pair identity, frozen-input digest, broadcast identity or uptake completeness is missing."
+    }
+  ],
+  "next_discriminator": {
+    "target": "F2-WP-507",
+    "type": "E3_CONCEPT_FIXTURE_NOT_UPSTREAM_RUNTIME",
+    "proposal": "Add a tiny deterministic fixture around the native WP507 contract with at least four false-positive cases: mismatched non-broadcast digest, incomplete recipient uptake, changed output under sham/no-broadcast arm, and order/state contamination. Only consider an E4 integration ablation if that fixture exposes a real current gap.",
+    "claim_required": true,
+    "paid_or_remote_execution_required": false
+  },
+  "database_sync": {
+    "pending_research_sqlite_modified": false,
+    "reason": "Current GitHub connector cannot safely rewrite the canonical binary research DB in this turn; this source-bound delta is durable evidence but does not claim DB synchronization.",
+    "status": "DB_SYNC_PENDING"
+  },
+  "evidence_boundary": "E2 architecture/source mapping only. No reproduction, F2 ablation, integration, runtime, GWT/J-Space causal or whole-system credit."
+}
