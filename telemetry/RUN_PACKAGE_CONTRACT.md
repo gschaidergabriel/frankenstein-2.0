@@ -6,50 +6,73 @@ This document describes the canonical package authority; it does **not** grant r
 
 ## Canonical authority
 
-There is exactly one active run-package manifest ABI:
+There is exactly one active run-package ABI: the closure-style multi-file package already accepted by F2-WP-004 generation 2 and enforced by the current verifier.
 
-- `runpackages/RUN_PACKAGE_SCHEMA_V1.json`
-- schema id: `FRANKENSTEIN2_IMMUTABLE_RUN_PACKAGE/v1`
-- fail-closed implementation: `runpackages/verify_run_package.py`
-- deterministic regression: `tests/test_verify_run_package.py`
-- repository CI: `.github/workflows/runpackage-verifier-ci.yml`
+Canonical surfaces:
 
-Files below `schemas/run_package_manifest.schema.json`, `schemas/run_artifact_index.schema.json`, and `schemas/run_closed_receipt.schema.json` are retained as historical/compatibility design donors. They are **not** a second active manifest authority and must not be used to mint acceptance for a package that fails the canonical verifier.
+- `schemas/run_package_manifest.schema.json` — `FRANKENSTEIN2_RUN_PACKAGE_MANIFEST/v1`
+- `schemas/run_artifact_index.schema.json` — `FRANKENSTEIN2_RUN_ARTIFACT_INDEX/v1`
+- `schemas/run_closed_receipt.schema.json` — `FRANKENSTEIN2_RUN_CLOSED_RECEIPT/v1`
+- `runpackages/verify_run_package.py`
+- `tests/test_verify_run_package.py`
+- `.github/workflows/runpackage-verifier-ci.yml`
+- `runpackages/README.md`
+
+`runpackages/RUN_PACKAGE_SCHEMA_V1.json` and the single-manifest schema id `FRANKENSTEIN2_IMMUTABLE_RUN_PACKAGE/v1` are retired historical design forms. The file is intentionally absent and MUST NOT be recreated as a competing current authority.
+
+The executable verifier is the fail-closed admission implementation for the schema set above. Documentation or schema metadata that disagrees with the verifier and accepted F2-WP-004 reconciliation is stale and cannot create a second ABI.
 
 ## Canonical package shape
 
-A package is an immutable directory below `runs/` containing:
+A package is an immutable closure directory below `runs/` with this shape:
 
 ```text
-<run-package>/
-  MANIFEST.json
-  <one or more payload files/directories>
+runs/<series>/<run_id>/
+  manifest.json
+  ARTIFACTS.json
+  SHA256SUMS
+  CLOSED.json
+  <typed payload directories/files>
 ```
 
-`MANIFEST.json.files` is the complete SHA-256 index of every payload file. The canonical verifier rejects missing payloads, unindexed extra payloads, path traversal, payload/package symlinks, payload digest mutation, invalid package digest, malformed source identity, impossible PASS/NOT_RUN execution claims, and invalid/non-finite spend values.
+`manifest.json` binds the run/workpackage/generation/claim identity, source commit identity, evidence scope, participant observability, and the fixed closure filenames.
 
-The package digest is SHA-256 over canonical JSON of the manifest with `package_digest` removed. `MANIFEST.json` never self-hashes.
+`ARTIFACTS.json` indexes payload files plus `manifest.json`, but never indexes itself, `SHA256SUMS`, or `CLOSED.json`.
+
+`SHA256SUMS` covers payload files, `manifest.json`, and `ARTIFACTS.json`, but never itself or `CLOSED.json`.
+
+`CLOSED.json` is written last and binds the SHA-256 digests of `manifest.json`, `ARTIFACTS.json`, and `SHA256SUMS` together with the closure status and evidence ceiling.
+
+The canonical verifier rejects missing closure files, package/file symlinks, unsafe paths, unindexed or missing payloads, digest mutation, schema/identity mismatches, inconsistent evidence classification, and closure-digest mismatches.
 
 ## Identity and evidence ceiling
 
 The canonical manifest binds at minimum:
 
-- package/workpackage/generation identity;
-- exact source repository/ref/commit/tree;
-- declared claim scope and runtime-credit ceiling;
-- command vector and typed outcome;
-- start/complete/exit fields when execution is claimed;
-- provider-call count, paid-spend amount and external-effect flag;
-- complete payload path→digest map;
-- package digest.
+- run/workpackage/generation/claim identity;
+- exact source commit before execution and optional source commit after execution;
+- declared evidence classification, observed-runtime flag, and runtime-credit ceiling;
+- participant identity and observability;
+- artifact-index and closure-receipt bindings.
 
-`PASS` requires observed start/completion timestamps and zero exit code. `NOT_RUN` is forbidden from carrying execution-result fields. These gates prevent a source-only package from impersonating an executed result.
+The closed receipt must agree with the manifest evidence classification and runtime fields. A source-only package cannot impersonate runtime evidence, and a verified package cannot promote evidence beyond its declared and separately observed scope.
 
-## Historical closure donors
+## Historical donor forms
 
-The earlier `ARTIFACTS.json` / `SHA256SUMS` / `CLOSED.json` design remains useful as a possible future richer finalizer and as historical provenance. It is not currently the canonical manifest ABI unless and until a successor workpackage deliberately migrates it into the verifier and its regression suite.
+The earlier single-manifest package shape using `MANIFEST.json`, embedded `files`, `package_digest`, or `FRANKENSTEIN2_IMMUTABLE_RUN_PACKAGE/v1` remains historical provenance only. It is not a current package ABI and must not be revived by documentation drift.
 
-Do not delete historical schemas merely to make the repository look cleaner; label and preserve them as donor evidence.
+Historical evidence may be preserved for reproducibility, but compatibility history never outranks the accepted current F2-WP-004 closure ABI.
+
+## Authority singleton invariant
+
+Current-facing WP004 documentation, JSON-schema metadata, verifier constants, regression tests, and CI must agree on the same closure-style ABI.
+
+```text
+MISSING_RETIRED_SCHEMA_REFERENCE != ACTIVE_AUTHORITY
+DOCUMENTATION_DRIFT != NEW_ABI
+VERIFIER_AND_ACCEPTED_RECONCILIATION > STALE_PROSE
+ONE_WP004_RUN_PACKAGE_AUTHORITY_ONLY
+```
 
 ## Promotion boundary
 
