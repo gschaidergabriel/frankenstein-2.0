@@ -308,3 +308,53 @@ def test_reentry_without_any_broadcast_payload_ref_is_rejected_at_g3_boundary():
     receipt = make_receipt(broadcast)
     with pytest.raises(GwtReentryUptakeBindingError, match="lacks bound broadcast candidate payload reference"):
         bind(witness, receipt, plan, selection, broadcast, unrelated_input)
+
+
+def test_forged_broadcast_payload_lineage_is_rejected_at_g4_boundary():
+    plan = make_plan()
+    selection = make_selection(plan)
+    valid_broadcast = create_broadcast(
+        broadcast_id="broadcast:wp508-g4-payload",
+        generation=4,
+        selection=selection,
+        expected_selection_sha256=selection.sha256(),
+        recipient_cell_ids=("G1",),
+    )
+    forged_broadcast = replace(
+        valid_broadcast,
+        candidate_payload_refs=("payload:forged-not-selected",),
+    )
+    forged_input = CellInput.for_plan(
+        plan,
+        cell_id="G1",
+        work_units_requested=2,
+        reentry_depth=1,
+        input_refs=("payload:forged-not-selected",),
+        provenance_refs=("prov:g4-forged-payload-reentry",),
+    )
+    witness = build_reentry_witness(
+        plan=plan,
+        selection=selection,
+        broadcast=forged_broadcast,
+        cell_input=forged_input,
+    )
+    receipt = make_receipt(forged_broadcast)
+    with pytest.raises(GwtReentryUptakeBindingError, match="invalid WP506 broadcast builder lineage"):
+        bind(witness, receipt, plan, selection, forged_broadcast, forged_input)
+
+
+def test_forged_broadcast_candidate_id_lineage_is_rejected_at_g4_boundary():
+    plan, selection, valid_broadcast, cell_input, _ = make_fixture(recipients=("G1",))
+    forged_broadcast = replace(
+        valid_broadcast,
+        candidate_ids=("candidate:forged-not-selected",),
+    )
+    witness = build_reentry_witness(
+        plan=plan,
+        selection=selection,
+        broadcast=forged_broadcast,
+        cell_input=cell_input,
+    )
+    receipt = make_receipt(forged_broadcast)
+    with pytest.raises(GwtReentryUptakeBindingError, match="invalid WP506 broadcast builder lineage"):
+        bind(witness, receipt, plan, selection, forged_broadcast, cell_input)
