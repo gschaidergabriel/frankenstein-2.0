@@ -1,0 +1,209 @@
+{
+  "schema": "FRANKENSTEIN2_TRIGGER6_SOURCE_ARCHAEOLOGY_E2/v1",
+  "trigger": "6",
+  "slot": "SOURCE_ARCHAEOLOGIST",
+  "research_id": "R6-SEED-011",
+  "claim_target": "E2_ARCHITECTURE_MAPPED",
+  "status": "E2_ARCHITECTURE_MAPPED_COMPLETE_NO_BUILD_PROMOTION",
+  "completed_at": "2026-08-29T15:06:31+07:00",
+  "worker": "GPT-5.6 Sol / ChatGPT Trigger-6 organ",
+  "claims": {
+    "e1": "research/tool_intelligence/claims/R6-SEED-011/E1_SOURCE_READ.json@96e507f8bef245a9ee864ed760325820339cb6bc",
+    "e2": "research/tool_intelligence/claims/R6-SEED-011/E2_ARCHITECTURE_MAPPED.json@ceaafd303d828c1ee5044631a5b4415216918caf"
+  },
+  "e1_result": "research/tool_intelligence/deltas/2026-08-29T1503P0700_GPT56SOL_R6_SEED011_OPENINFERENCE_E1_SOURCE_READ.json@63f4d5318250545ee34eb57577d2be624e7c0807",
+  "source_lock": {
+    "repository": "Arize-ai/openinference",
+    "commit": "d773c1ac1c7bcfef565e6280932af68d388531e7",
+    "tree": "2665957765e703b668c6c55fadaefb13873e6bb7",
+    "license": "Apache-2.0",
+    "source_surfaces_mapped": [
+      "spec/README.md",
+      "spec/traces.md",
+      "spec/annotations.md",
+      "spec/configuration.md",
+      "python/openinference-instrumentation/pyproject.toml",
+      "python/openinference-instrumentation/src/openinference/instrumentation/__init__.py",
+      "python/openinference-instrumentation/src/openinference/instrumentation/_tracers.py",
+      "python/openinference-instrumentation/tests/",
+      "python/instrumentation/",
+      "LICENSE"
+    ]
+  },
+  "f2_mapping_lock": {
+    "f2_main_observed_pre_e2_claim": "7b077fa16ef759d92ab2033aae2d52127e68c50d",
+    "wp507_generation3_claim_merge": "46aee3bf37a938dbea5936b9c935ffb7bd74cdf3",
+    "wp507_component_source_ref": "1c2037e97c9c6cf2c909764e142538028abc6e52",
+    "wp507_source": "src/frankenstein2/gwt_uptake.py",
+    "wp507_tests": "tests/test_gwt_uptake.py",
+    "scope_note": "The inspected WP507 source is repository-component evidence from the bound PR head, not target-runtime evidence."
+  },
+  "upstream_architecture": {
+    "layers": [
+      {
+        "name": "SPECIFICATION",
+        "shape": "OpenTelemetry-compatible trace model plus AI-specific semantic conventions for spans, attributes, evaluations and privacy configuration."
+      },
+      {
+        "name": "PYTHON_CORE",
+        "shape": "openinference-instrumentation exposes OITracer, TraceConfig, typed attribute builders, context helpers, capture helpers and optional blob-upload plumbing."
+      },
+      {
+        "name": "SEMANTIC_CONVENTIONS_PACKAGE",
+        "shape": "separate package supplies canonical OpenInference attribute/span-kind names used by the core."
+      },
+      {
+        "name": "FRAMEWORK_PROVIDER_ADAPTERS",
+        "shape": "many separately located integration packages instrument specific agent/model/framework ecosystems; this is a broad adapter surface rather than one compact runtime."
+      }
+    ],
+    "python_core_dependencies": [
+      "opentelemetry-api",
+      "opentelemetry-sdk",
+      "openinference-semantic-conventions>=0.1.33",
+      "wrapt>=1.14.0,<3"
+    ],
+    "test_dependencies_observed": [
+      "jsonschema",
+      "openai",
+      "pydantic>=2.0.0",
+      "pytest-asyncio",
+      "pytest-recording",
+      "types-jsonschema"
+    ],
+    "test_surfaces_observed_not_executed": [
+      "annotation attributes",
+      "blob upload",
+      "TraceConfig/redaction",
+      "context managers",
+      "GenAI conversion",
+      "ID generation"
+    ],
+    "important_source_mechanics": [
+      "OITracer wraps an OpenTelemetry Tracer via wrapt.ObjectProxy.",
+      "OITracer creates trace/span IDs with a randomness source isolated from user application random seeds when the wrapped tracer uses RandomIdGenerator.",
+      "TraceConfig masking is applied before attributes are passed to the sampler so samplers do not see values that policy says to hide.",
+      "Instrumentation suppression can produce an invalid/non-recording span path.",
+      "OITracer exposes semantic decorators/helpers for AGENT, CHAIN, RETRIEVER, RERANKER, GUARDRAIL, EVALUATOR and TOOL-like operations.",
+      "Post-hoc evaluation is represented by a new evaluator carrier linked to an immutable ended target span/trace."
+    ]
+  },
+  "mapping": [
+    {
+      "openinference_surface": "trace_id/span_id/parent_id",
+      "f2_target": "NONE_AS_AUTHORITY; observer correlation only",
+      "decision": "DO_NOT_MAP_TO_CANONICAL_IDENTITY",
+      "reason": "WP507 already binds broadcast, selection and GRID10 plan IDs, generations and SHA-256 digests plus cell/provenance/downstream evidence. OpenInference IDs are generated observability identifiers and are weaker than F2 causal identity."
+    },
+    {
+      "openinference_surface": "openinference.span.kind",
+      "f2_target": "optional observer-side semantic label",
+      "decision": "DISTILL_OPTIONALLY",
+      "reason": "AGENT/TOOL/LLM/EVALUATOR/CHAIN labels can improve trace readability but must not redefine F2 workpackage, GWT or effect semantics. F2-specific operations such as broadcast/uptake should remain explicit F2 attributes rather than being forced into misleading generic kinds."
+    },
+    {
+      "openinference_surface": "typed attributes",
+      "f2_target": "projection of exact F2 receipt IDs/digests into telemetry attributes",
+      "decision": "DISTILL_WITH_PREFIX_AND_ONE_WAY_FLOW",
+      "reason": "A projection can carry f2.broadcast_id, generation, digest, selection identity, plan identity, cell identity and receipt digest for search/visualization while the authoritative objects remain F2-native."
+    },
+    {
+      "openinference_surface": "post-hoc EVALUATOR carrier + Span Link",
+      "f2_target": "append-only observer projection for later evaluation of an immutable F2 receipt/runpackage",
+      "decision": "HIGH_VALUE_STRUCTURAL_DONOR",
+      "reason": "It preserves historical execution records instead of mutating them and gives late judgments an explicit target link. The F2 target ref/hash must remain authoritative; the span link is correlation metadata."
+    },
+    {
+      "openinference_surface": "annotation/evaluation annotator_kind + identifier",
+      "f2_target": "evaluation provenance",
+      "decision": "DISTILL",
+      "reason": "Explicit HUMAN/LLM/CODE producer classes and stable producer identifiers fit F2 epistemic separation. LLM evaluations remain candidate judgments only."
+    },
+    {
+      "openinference_surface": "TraceConfig privacy masking before sampling",
+      "f2_target": "observer privacy boundary",
+      "decision": "DISTILL_PATTERN_NOT_DEFAULTS",
+      "reason": "Mask-before-sampler is a strong pattern because hidden content is not leaked to sampling logic; upstream hide switches mostly default false, so F2 should use a fail-closed allowlist or stricter defaults instead of copying defaults."
+    },
+    {
+      "openinference_surface": "external blob uploader",
+      "f2_target": "NONE_INITIAL",
+      "decision": "EXCLUDE",
+      "reason": "It is experimental and introduces an asynchronous external storage/effect path. Trigger-6 source archaeology grants no effect authorization and F2 does not need it for the current causal-evidence frontier."
+    }
+  ],
+  "critical_mismatches": [
+    {
+      "id": "M1_RANDOM_OBSERVER_IDS",
+      "finding": "OpenInference/OpenTelemetry trace/span IDs are observer IDs and may be randomly generated; deterministic replay-stable F2 causal identity must never depend on them."
+    },
+    {
+      "id": "M2_SAMPLING_OR_SUPPRESSION_GAPS",
+      "finding": "The wrapped OpenTelemetry path can be sampled or suppressed. Therefore missing telemetry cannot establish non-delivery, non-uptake or absence of a real event. Authoritative F2 evidence must exist independently of observer completeness."
+    },
+    {
+      "id": "M3_CORRELATION_NOT_CAUSALITY",
+      "finding": "Parent-child traces and span links encode correlation/structure, not matched intervention causal influence. WP507's intervention/control invariants remain required."
+    },
+    {
+      "id": "M4_PRIVACY_DEFAULT_MISMATCH",
+      "finding": "Many upstream hide switches default false. Direct instrumentation could record prompts, outputs, tool definitions and model parameters that F2 should not export by default."
+    },
+    {
+      "id": "M5_TAXONOMY_LOSS",
+      "finding": "Generic AI span kinds do not encode F2-specific BroadcastEnvelope, semantic uptake, Hyperposition frame version, EffectGate or receipt authority distinctions; those must remain explicit F2 fields."
+    },
+    {
+      "id": "M6_DEPENDENCY_COST",
+      "finding": "Full runtime adoption adds OpenTelemetry SDK/API, semantic-conventions and wrapper dependencies plus potential integration packages, while the highest-value mechanisms can be represented by a thin F2-native projection contract."
+    }
+  ],
+  "proposed_f2_shape": {
+    "name": "F2_NONAUTHORITATIVE_OPENINFERENCE_PROJECTION/v0",
+    "flow": "F2 authoritative receipt/runpackage -> pure projection adapter -> OpenInference/OTel-compatible span attributes/links -> optional exporter",
+    "reverse_flow": "FORBIDDEN_FOR_CANONICAL_STATE_EFFECT_OR_COMPLETION",
+    "required_invariants": [
+      "F2-native causal IDs/digests remain primary and are copied as attributes, never replaced by trace/span IDs.",
+      "Observer output cannot mint UnifiedDB state, GWT uptake, causal influence, completion or effect authority.",
+      "Missing sampled/suppressed telemetry is UNKNOWN, never negative evidence about the underlying F2 event.",
+      "Post-hoc evaluator records bind target F2 ref + digest and producer class/identifier.",
+      "LLM evaluator output remains judgment telemetry, not fact.",
+      "Sensitive content uses fail-closed allowlisting/redaction before any sampler/exporter sees it.",
+      "No experimental blob uploader or external storage effect is part of the initial shape.",
+      "Projection must be rebuildable from existing admitted F2 evidence."
+    ]
+  },
+  "hypothesis": {
+    "statement": "A tiny one-way OpenInference-compatible projection over existing F2 receipts will improve cross-tool observability and post-hoc evaluator provenance without weakening F2 causal identity, provided the adapter exports only allowlisted metadata and never feeds canonical state/effect decisions.",
+    "confidence": 0.9
+  },
+  "counterhypothesis": {
+    "statement": "F2-native evidence is already sufficiently searchable and semantically explicit, so even a thin compatibility projection may add schema/version/privacy burden with little information gain.",
+    "confidence": 0.76,
+    "falsifier": "A next Trigger-6 EXPERIMENTAL_FALSIFIER should implement no production integration: use a deterministic local fixture that projects representative WP507 receipt/probe data into an OpenInference-compatible shape, then measure identity preservation, redaction behavior, payload overhead and whether any query/evaluation task becomes materially easier than using the native receipt alone. If not, retire the candidate at E2."
+  },
+  "adoption_decision": {
+    "full_library_import": "DEFER_NOT_JUSTIFIED",
+    "provider_framework_instrumentors": "REJECT_FOR_CURRENT_FRONTIER",
+    "structural_semantic_projection": "PROMOTE_TO_FALSIFICATION_CANDIDATE",
+    "build_candidate": false,
+    "trigger4_handoff": false
+  },
+  "evidence_ceiling": {
+    "level": "E2_ARCHITECTURE_MAPPED",
+    "source_read": true,
+    "architecture_mapping": true,
+    "tests_observed": true,
+    "upstream_tests_executed": false,
+    "f2_ablation_executed": false,
+    "architecture_credit": 0,
+    "runtime_credit": 0,
+    "physical_grid10_credit": 0,
+    "gwt_actual_uptake_credit": 0,
+    "whole_system_credit": 0,
+    "training_credit": 0
+  },
+  "next_recommended_trigger6_slot": "EXPERIMENTAL_FALSIFIER",
+  "next_recommended_objective": "E3_CLAIM_REPRODUCED_OPENINFERENCE_PROJECTION_IDENTITY_PRIVACY",
+  "pending_research_sqlite_sync": "PENDING"
+}
