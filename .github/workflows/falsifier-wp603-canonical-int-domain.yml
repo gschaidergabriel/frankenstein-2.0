@@ -1,0 +1,33 @@
+name: Falsifier WP603 Canonical Integer Domain
+
+on:
+  push:
+    branches:
+      - falsifier/wp603-canonical-int-domain-20260829
+    paths:
+      - 'tests/falsifiers/test_wp603_canonical_integer_domain.py'
+      - '.github/workflows/falsifier-wp603-canonical-int-domain.yml'
+      - 'src/frankenstein2/recursion_router.py'
+  pull_request:
+    paths:
+      - 'tests/falsifiers/test_wp603_canonical_integer_domain.py'
+      - '.github/workflows/falsifier-wp603-canonical-int-domain.yml'
+      - 'src/frankenstein2/recursion_router.py'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  falsifier:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Candidate falsifier
+        env:
+          PYTHONPATH: src
+        run: python tests/falsifiers/test_wp603_canonical_integer_domain.py -v
