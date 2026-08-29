@@ -176,6 +176,7 @@ class GoalInference(_Digestible):
     episode_generation: int
     observation_sha256: str
     candidate_set_sha256: str
+    producer_choice_sha256: str
     choice: GoalChoice
     classification: str = POLICY_OUTPUT_CLASSIFICATION
 
@@ -192,8 +193,11 @@ class GoalInference(_Digestible):
             raise GoalInferenceBenchmarkError("episode_generation must be a non-negative integer")
         _sha("observation_sha256", self.observation_sha256)
         _sha("candidate_set_sha256", self.candidate_set_sha256)
+        _sha("producer_choice_sha256", self.producer_choice_sha256)
         if type(self.choice) is not GoalChoice:
             raise GoalInferenceBenchmarkError("choice must be exact concrete GoalChoice")
+        if self.producer_choice_sha256 != self.choice.sha256():
+            raise GoalInferenceBenchmarkError("choice does not match producer-bound digest")
 
 
 Policy = Callable[[ObservationView, tuple[CandidateGoal, ...]], GoalChoice]
@@ -233,6 +237,7 @@ def run_goal_inference(*, policy: Policy, run: RunDescriptor, fixture: MicroWorl
         observation.episode_generation,
         observation.sha256(),
         candidate_digest,
+        choice.sha256(),
         choice,
     )
 
@@ -280,6 +285,8 @@ def _assert_inference_binding(*, run: RunDescriptor, fixture: MicroWorldFixture,
         raise GoalInferenceBenchmarkError("inference episode identity/generation mismatch")
     if (inference.observation_sha256, inference.candidate_set_sha256) != (observation.sha256(), candidate_digest):
         raise GoalInferenceBenchmarkError("inference observation/candidate binding mismatch")
+    if inference.producer_choice_sha256 != inference.choice.sha256():
+        raise GoalInferenceBenchmarkError("inference choice producer binding mismatch")
 
 
 @dataclass(frozen=True, slots=True)
