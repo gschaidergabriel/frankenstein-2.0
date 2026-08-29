@@ -1,0 +1,51 @@
+{
+  "schema": "FRANKENSTEIN2_WORKPACKAGE_FALSIFIER/v1",
+  "workpackage_id": "F2-WP-402",
+  "target_generation": 1,
+  "target_claim_id": "F2-WP-402-G1-GPT56SOL-QUBO-PROJECTION-20260829",
+  "classification": "CANDIDATE_FALSIFIER_REVIEW_ONLY_SOURCE_DISCRIMINATOR",
+  "review_only": true,
+  "target_main_head_observed": "191620c56d8f91531396a08741a998168845ac05",
+  "target_source": "src/frankenstein2/qubo_projection.py",
+  "target_source_blob_sha_observed": "d6f2290d683508882b280a1b3f2a47e5544abc24",
+  "target_test": "tests/test_qubo_projection.py",
+  "target_test_blob_sha_observed": "36f1c42ff7b2886e5f057247f2442ea5fb6ac3ce",
+  "accepted_reconciliation": "workpackages/reconciliations/F2-WP-402/1-F2-WP-402-G1-GPT56SOL-QUBO-PROJECTION-20260829.json",
+  "accepted_scope_observed": "QUBO_PROJECTION_ADAPTER_REPOSITORY_HOSTED_COMPONENT_CI_ONLY",
+  "finding": "Source inspection shows that build_qubo_projection validates each QuboVariable.source_ref against the selected WorldSlice and its tainted_atom_ids, but the public QuboProjection dataclass constructor itself has no WorldSlice object or admission token and therefore cannot enforce those same slice-membership and taint invariants. score_assignment accepts any QuboProjection instance whose self-derived sha256 matches expected_projection_sha256. Consequently a caller can construct a syntactically valid QuboProjection directly with arbitrary valid slice identity fields and a variable whose source_ref was never admitted from that slice, hash that forged projection, and present the matching self-hash to score_assignment. This is a source-level candidate counterexample to fail-closed exact slice binding at the public object/scoring boundary. It is not yet executable falsification evidence.",
+  "counterhypothesis": "The intended ABI may define build_qubo_projection as the sole admissible constructor and treat direct QuboProjection instantiation as non-admissible raw data. If so, that restriction is not enforced by the currently observed public dataclass/scoring boundary. The counterexample is closed only if admissibility is made mechanically unforgeable or score_assignment independently verifies a trusted binding to the actual WorldSlice/admission evidence.",
+  "proposed_exact_source_falsifier": {
+    "fixture": "Create a real WorldSlice selecting only atom:a, with known slice sha256/generation/cycle/vector-space identity.",
+    "forgery": "Directly instantiate QuboProjection using that real slice_id and slice_sha256 but a QuboVariable(source_ref='atom:not-selected', ...) while keeping all constructor-local structural constraints valid.",
+    "step_3": "Compute forged_projection.sha256().",
+    "step_4": "Call score_assignment(projection=forged_projection, assignment=((variable_id, 1),), expected_projection_sha256=forged_projection.sha256()).",
+    "current_source_predicted_result": "Construction and scoring succeed because neither QuboProjection.__post_init__ nor score_assignment can reconstruct selected/tainted membership from the claimed slice digest alone.",
+    "safe_expected_result": "Fail closed before a score is admitted unless the projection carries unforgeable evidence that its variables were validated against the exact bound WorldSlice."
+  },
+  "existing_suite_gap": "The observed 8-test suite checks out-of-slice and tainted source_ref rejection through build_qubo_projection, but does not exercise direct QuboProjection construction followed by score_assignment.",
+  "recommended_smallest_repair": [
+    "Add the direct-constructor forged-slice-binding case to the canonical adversarial suite before retaining generation-1 acceptance against this falsifier.",
+    "Prefer one mechanically enforced admission boundary: either make raw QuboProjection construction non-admissible/private and require a non-forgeable validated-construction marker, or make score_assignment require/revalidate the exact WorldSlice (or an independently trusted admission receipt) instead of trusting projection self-hash alone.",
+    "Do not use a marker that callers can freely supply as another dataclass field; that would move rather than close the forgery boundary.",
+    "Preserve existing exact slice digest/generation, taint, canonical-order and authority-none checks."
+  ],
+  "local_execution": {
+    "status": "NOT_EXECUTED_EXACT_SOURCE",
+    "reason": "The local container checkout attempt could not resolve github.com. This is an infrastructure/network failure and is not semantic pass/fail evidence.",
+    "runtime_credit": 0
+  },
+  "authority_boundary": {
+    "canonical_wp402_source_mutated": false,
+    "duplicate_mutation_claim_created": false,
+    "provider_or_model_called": false,
+    "effect_executed": false,
+    "runtime_execution_observed": false,
+    "vps_runtime_credit": 0,
+    "physical_grid10_credit": 0,
+    "gwt_runtime_credit": 0,
+    "jspace_runtime_credit": 0,
+    "training_credit": 0,
+    "whole_system_acceptance": false
+  },
+  "next_exact_action": "The canonical WP402 owner/reconciliation lane should run the proposed exact-source direct-constructor forgery test. If it reproduces, reopen/harden WP402 through an explicit successor or accepted-generation repair according to CLAIM_PROTOCOL; if it does not reproduce because an enforced admission boundary exists, record that executable discriminator and retire this candidate falsifier."
+}
