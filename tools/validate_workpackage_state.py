@@ -90,7 +90,7 @@ def _claims_by_id(root: Path) -> dict[str, dict[str, Any]]:
         claim = load_json(path)
         claim_id = claim.get("claim_id")
         if not isinstance(claim_id, str) or not claim_id:
-            continue  # historical/noncanonical objects are not selectable by an active pointer
+            continue
         _require(claim_id not in claims, f"duplicate claim_id: {claim_id}")
         claims[claim_id] = claim
     return claims
@@ -100,20 +100,13 @@ def _bind_claim(pointer: dict[str, Any], claim: dict[str, Any]) -> None:
     _require(claim.get("schema") == CLAIM_SCHEMA, "claim schema mismatch")
     for field in ("workpackage_id", "generation", "claim_id"):
         _require(claim.get(field) == pointer.get(field), f"claim/pointer identity mismatch: {field}")
-    # Historical worker spellings are provenance; exact worker identity is required when present on both.
     if "worker_id" in claim and "worker_id" in pointer:
         _require(claim.get("worker_id") == pointer.get("worker_id"), "claim/pointer identity mismatch: worker_id")
-    # CLAIM_PROTOCOL.md does not require a trigger field on every admitted v1 claim.
-    # Preserve compatibility for claims that omit it, while fail-closing any explicit
-    # trigger value that would bind this Triggerword-4 repository state to another trigger.
     if "trigger" in claim:
         _require(claim.get("trigger") == "4", "claim trigger must be '4' when present")
 
 
 def _reconciliation_terminal_state(reconciliation: dict[str, Any]) -> str:
-    # Newer reconciliations use terminal_state. One admitted legacy generation used state.
-    # If terminal_state exists it remains authoritative even when a legacy descriptive state
-    # (for example SUPERSEDED_DUPLICATE) is also present.
     if "terminal_state" in reconciliation:
         return _string(reconciliation.get("terminal_state"), "reconciliation.terminal_state")
     return _string(reconciliation.get("state"), "reconciliation.state")
@@ -143,6 +136,77 @@ def _matching_reconciliations(root: Path, pointer: dict[str, Any]) -> list[tuple
     return matches
 
 
+def _same_reconciliation_identity(lhs: dict[str, Any], rhs: dict[str, Any]) -> bool:
+    return (
+        lhs.get("schema") == RECON_SCHEMA
+        and rhs.get("schema") == RECON_SCHEMA
+        and lhs.get("workpackage_id") == rhs.get("workpackage_id")
+        and lhs.get("generation") == rhs.get("generation")
+        and lhs.get("claim_id") == rhs.get("claim_id")
+        and _reconciliation_terminal_state(lhs) == _reconciliation_terminal_state(rhs)
+    )
+
+
+def _select_terminal_reconciliation(
+    root: Path,
+    matches: list[tuple[Path, dict[str, Any]]],
+    *,
+    context: str,
+) -> dict[str, Any]:
+    """Select one append-only terminal reconciliation without accepting parallel authorities.
+
+    A single matching reconciliation keeps historical behavior. Multiple same-identity
+    reconciliations are admitted only when explicit parent_reconciliation_ref links form one
+    acyclic chain with exactly one leaf. A parent outside the same-identity match set may be
+    an older-generation lineage predecessor, but it must exist and must not secretly be an
+    omitted same-identity reconciliation.
+    """
+    _require(bool(matches), f"{context}: terminal pointer requires a matching reconciliation")
+    if len(matches) == 1:
+        return matches[0][1]
+
+    by_ref: dict[str, tuple[Path, dict[str, Any]]] = {}
+    for path, reconciliation in matches:
+        try:
+            ref = path.relative_to(root).as_posix()
+        except ValueError as exc:
+            raise ValidationError(f"{context}: reconciliation path escapes repository root: {path}") from exc
+        _require(ref not in by_ref, f"{context}: duplicate reconciliation path in match set: {ref}")
+        by_ref[ref] = (path, reconciliation)
+
+    sample = matches[0][1]
+    parent_of: dict[str, str] = {}
+    for ref, (_, reconciliation) in by_ref.items():
+        parent_ref = reconciliation.get("parent_reconciliation_ref")
+        _require(isinstance(parent_ref, str) and bool(parent_ref.strip()),
+                 f"{context}: multiple matching reconciliations require explicit parent_reconciliation_ref: {ref}")
+        parent_ref = parent_ref.strip()
+        if parent_ref in by_ref:
+            parent_of[ref] = parent_ref
+            continue
+
+        external_parent_path = root / parent_ref
+        _require(external_parent_path.is_file(),
+                 f"{context}: reconciliation chain references unknown parent: {parent_ref}")
+        external_parent = load_json(external_parent_path)
+        _require(not _same_reconciliation_identity(sample, external_parent),
+                 f"{context}: same-identity parent omitted from reconciliation match set: {parent_ref}")
+
+    for start in by_ref:
+        seen: set[str] = set()
+        current = start
+        while current in parent_of:
+            _require(current not in seen, f"{context}: reconciliation parent cycle detected")
+            seen.add(current)
+            current = parent_of[current]
+
+    internal_parents = set(parent_of.values())
+    leaves = [ref for ref in by_ref if ref not in internal_parents]
+    _require(len(leaves) == 1,
+             f"{context}: multiple matching reconciliations do not form one unique append-only chain leaf; found {len(leaves)}")
+    return by_ref[leaves[0]][1]
+
+
 def _bind_reconciliation(pointer: dict[str, Any], reconciliation: dict[str, Any]) -> None:
     _require(reconciliation.get("schema") == RECON_SCHEMA, "reconciliation schema mismatch")
     for field in ("workpackage_id", "generation", "claim_id"):
@@ -153,10 +217,6 @@ def _bind_reconciliation(pointer: dict[str, Any], reconciliation: dict[str, Any]
                  "reconciliation/pointer identity mismatch: worker_id")
     _require(_reconciliation_terminal_state(reconciliation) == pointer.get("state"),
              "reconciliation terminal_state mismatch")
-
-    # Current receipts use the explicit boolean guard. Older admitted reconciliations used
-    # whole_system_credit: 0. Preserve fail-closed semantics: exactly one explicit zero/false
-    # representation is required; absence, truthy acceptance, or nonzero credit is rejected.
     if "whole_system_acceptance" in reconciliation:
         _require(reconciliation.get("whole_system_acceptance") is False,
                  "component reconciliation must not assert whole-system acceptance")
@@ -244,7 +304,6 @@ def validate_repository(root: Path) -> dict[str, Any]:
     _require(active_dir.is_dir(), "workpackages/active directory missing")
     claims = _claims_by_id(root)
 
-    # ACCEPTED_AT_SCOPE is only meaningful with repository-local evidence that actually exists.
     for workpackage_id, entry in workpackages.items():
         if entry.get("status") == "ACCEPTED_AT_SCOPE":
             evidence = entry["evidence"]
@@ -260,9 +319,7 @@ def validate_repository(root: Path) -> dict[str, Any]:
         reconciliation = None
         if pointer.get("state") in set(contract["terminal_states"]):
             matches = _matching_reconciliations(root, pointer)
-            _require(len(matches) == 1,
-                     f"{path}: terminal pointer requires exactly one matching reconciliation; found {len(matches)}")
-            reconciliation = matches[0][1]
+            reconciliation = _select_terminal_reconciliation(root, matches, context=str(path))
         validated.append(validate_pointer(
             filename_stem=path.stem,
             pointer=pointer,
