@@ -1,0 +1,85 @@
+{
+  "schema": "FRANKENSTEIN_TRIGGER7_NEGATIVE_RESULT/v1",
+  "trigger": "7",
+  "organ": "GPT-5.6-Sol",
+  "local_date": "2026-08-30",
+  "objective": "T7-SYS-002/E3_VPS_HARDWARE_ROUNDTRIP",
+  "classification": "CONTROL_PLANE_SELF_HOSTED_RUNNER_ASSIGNMENT_BLOCKER",
+  "controller_repository": "gschaidergabriel/Dr.-Unterweger",
+  "controller_head_observed": "4886bb4e559ba824efc686350ba1aa12d65ba325",
+  "controller_change_observed": "trigger7: unblock corrected VPS hardware roundtrip concurrency",
+  "trigger7_run": {
+    "run_id": 33266856557,
+    "job_id": 99138324275,
+    "status": "queued",
+    "conclusion": null,
+    "labels": ["self-hosted", "Linux", "X64"],
+    "runner_id": 0,
+    "runner_name": "",
+    "runner_group_id": 0,
+    "steps": [],
+    "execution_observed": false,
+    "target_hardware_receipt_observed": false
+  },
+  "cross_workflow_controls": [
+    {
+      "workflow": "Frank SQLite productive path readonly v1",
+      "run_id": 33266856623,
+      "job_id": 99138325012,
+      "status": "queued",
+      "labels": ["self-hosted", "Linux", "X64"],
+      "runner_id": 0,
+      "runner_name": "",
+      "runner_group_id": 0,
+      "steps": []
+    },
+    {
+      "workflow": "Frank SQLite published patchset readonly v1",
+      "run_id": 33266856626,
+      "job_id": 99138324803,
+      "status": "queued",
+      "labels": ["self-hosted", "Linux", "X64"],
+      "runner_id": 0,
+      "runner_name": "",
+      "runner_group_id": 0,
+      "steps": []
+    },
+    {
+      "workflow": "Frank SQLite package provenance readonly v1",
+      "run_id": 33266856606,
+      "job_id": 99138324451,
+      "status": "queued",
+      "labels": ["self-hosted", "Linux", "X64"],
+      "runner_id": 0,
+      "runner_name": "",
+      "runner_group_id": 0,
+      "steps": []
+    }
+  ],
+  "observed": [
+    "The corrected Trigger-7 hardware workflow has created a real hardware-roundtrip job, so the previous no-job/cancellation condition is no longer the active discriminator.",
+    "The Trigger-7 job and three independent controller workflows all remain queued with the same self-hosted/Linux/X64 label set, runner_id=0, empty runner_name and zero executed steps.",
+    "No clay-direct-dev command, hardware inventory, model download, model inference or German voice runtime execution is observed."
+  ],
+  "inference": {
+    "statement": "Cross-workflow agreement makes a Trigger-7-specific workflow defect substantially less likely and localizes the current blocker to the shared self-hosted runner assignment/availability layer before step execution.",
+    "confidence": "HIGH_FOR_SHARED_RUNNER_ASSIGNMENT_LAYER_NOT_FOR_ROOT_CAUSE",
+    "root_cause_not_yet_distinguished": [
+      "no matching self-hosted runner currently online",
+      "matching runner registered but unavailable/busy",
+      "runner registration or label configuration drift",
+      "runner-group/access routing mismatch"
+    ]
+  },
+  "counterhypothesis": "A Trigger-7-specific target-sandbox defect could still exist after runner assignment, but current evidence cannot test it because no job step has executed.",
+  "falsifier": "Observe any one of the queued self-hosted/Linux/X64 jobs acquire a nonzero runner_id and begin steps. For T7-SYS-002 promotion specifically, require run 33266856557 or an exact nonduplicate successor to execute inside target_environment=clay-direct-dev and emit an exact-source hardware receipt.",
+  "credits": {
+    "control_plane_diagnosis": "CROSS_WORKFLOW_OBSERVED",
+    "clay_direct_dev_hardware": 0,
+    "model_runtime": 0,
+    "german_voice_e2e": 0,
+    "whole_system": 0
+  },
+  "next_exact_action": "Restore or verify one matching self-hosted Linux/X64 runner at the controller layer, then re-enter the already queued Trigger-7 job before creating another duplicate hardware objective. Only executed steps plus the bound clay-direct-dev receipt may advance runtime credit.",
+  "promotion": "NONE"
+}
