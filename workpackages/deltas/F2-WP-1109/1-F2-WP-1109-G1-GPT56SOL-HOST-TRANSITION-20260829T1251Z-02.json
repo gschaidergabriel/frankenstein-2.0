@@ -1,0 +1,40 @@
+{
+  "schema": "FRANKENSTEIN2_WORKPACKAGE_DELTA/v1",
+  "workpackage_id": "F2-WP-1109",
+  "generation": 1,
+  "claim_id": "F2-WP-1109-G1-GPT56SOL-HOST-TRANSITION-20260829T1251Z",
+  "worker_id": "GPT-5.6-Sol-TRIGGER4-FALSIFIER",
+  "base_commit": "cb824c76d24214ad560c43a716efb2a38e67cd7a",
+  "observed_main_commit": "cb824c76d24214ad560c43a716efb2a38e67cd7a",
+  "owned_paths": [
+    "tests/falsifiers/test_wp1109_successor_state_lineage_binding.py",
+    ".github/workflows/wp1109-successor-lineage-falsifier.yml",
+    "workpackages/deltas/F2-WP-1109/1-F2-WP-1109-G1-GPT56SOL-HOST-TRANSITION-20260829T1251Z-02.json"
+  ],
+  "result_class": "FALSIFIER",
+  "source_commits": [
+    "febaa938a49a37fb700097333839672ec5a126ae",
+    "1d368b98b3c93ffb39a6db54af0645bb4b736b45"
+  ],
+  "receipts": [],
+  "falsifiers": [
+    {
+      "id": "SUCCESSOR_STATE_READBACK_NOT_TYPED_BOUND_TO_CANONICAL_STATE_IDENTITY",
+      "severity": "HIGH",
+      "observation": "HostRouteEvidence carries state_readback_evidence_ref only as an opaque non-empty string. It has no typed lineage_id, state generation, state digest, or canonical-state-binding digest. HostTransitionRequest.assert_ready therefore proves presence of a readback reference but cannot prove that the successor readback corresponds to the request's canonical state identity.",
+      "counterexample": "A SWITCH_HOST request for lineage-A generation 7 accepts successor state_readback_evidence_ref='receipt:readback-for-lineage-B-generation-99' because the current ABI cannot represent or compare the referenced state identity.",
+      "probe": "tests/falsifiers/test_wp1109_successor_state_lineage_binding.py",
+      "ci": ".github/workflows/wp1109-successor-lineage-falsifier.yml"
+    }
+  ],
+  "contradictions": [
+    "The WP1109 required invariant says one canonical durable state lineage must survive host switch, but the current successor-route evidence ABI cannot establish exact successor readback identity against that lineage."
+  ],
+  "proposed_state_change": "KEEP_F2_WP_1109_GENERATION_1_ACTIVE_UNTIL_FALSIFIER_IS_CLOSED",
+  "completion_deficit": "Introduce a typed successor/rollback state-readback identity carrying at minimum lineage_id, generation and state digest or exact CanonicalStateBinding digest, and require exact match to request.state before SWITCH_HOST/REENABLE planning can become PLAN_READY.",
+  "runtime_execution_observed": false,
+  "physical_host_credit": 0,
+  "whole_system_acceptance": false,
+  "next_exact_action": "Active WP1109 mutation authority should extend HostRouteEvidence or add a typed StateReadbackEvidence object bound to the canonical state identity, add a negative mismatch test, rerun exact repository CI, and only then reconcile generation 1. This falsifier lane must not mutate WP1109-owned source/test/workflow paths.",
+  "created_at_utc": "2026-08-29T12:56:00Z"
+}
