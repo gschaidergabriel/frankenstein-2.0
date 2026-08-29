@@ -1,0 +1,60 @@
+{
+  "schema": "FRANKENSTEIN2_TRIGGER6_RESEARCH_DELTA/v1",
+  "research_id": "R6-20260829-TEMPORAL-DURABLE-HISTORY-EFFECT-BOUNDARY-GPT56SOL-01",
+  "evidence_stage": "E2_ARCHITECTURE_MAPPED",
+  "worker_id": "GPT-5.6-Sol",
+  "trigger": "6",
+  "source_inputs": {
+    "external_e1": "research/tool_intelligence/deltas/2026-08-29T2214P0700_GPT56SOL_TEMPORAL_DURABLE_HISTORY_EFFECT_BOUNDARY_E1_SOURCE_READ.json",
+    "f2_delivery_lifecycle": "src/state/delivery_lifecycle.py",
+    "f2_delivery_store": "src/state/delivery_store.py",
+    "f2_deferred_return": "src/frankenstein2/deferred_return.py",
+    "f2_wp105_active": "workpackages/active/F2-WP-105.json"
+  },
+  "architecture_mapping": [
+    {
+      "temporal_mechanism": "stable logical Activity identity across retries plus attempt-specific execution/task identity",
+      "f2_equivalent": "RecipientDelivery.delivery_id is derived from causal_event_id+recipient_id while transport_attempt_id is intentionally excluded and each retry gets a distinct attempt id",
+      "assessment": "ALREADY_PRESENT_STRONGLY"
+    },
+    {
+      "temporal_mechanism": "deterministic workflow replay separated from non-deterministic external Activity execution",
+      "f2_equivalent": "DeferredReturnEnvelope only proves child-result re-entry eligibility and explicitly does not prove delivery, consumption, external effect, or completion; WP105 keeps external effect outcome authority separate",
+      "assessment": "ALREADY_PRESENT_STRONGLY"
+    },
+    {
+      "temporal_mechanism": "activity completion may be observed exactly once even when underlying execution is repeated/partial",
+      "f2_equivalent": "delivery ACK is transport-recipient lifecycle state only; WP105 UNKNOWN/effect interlocks prevent transport or orchestration state from minting external-effect success",
+      "assessment": "SEMANTICALLY_ALIGNED_BUT_CROSS_LAYER_INTEGRATION_NOT_YET_PROVEN"
+    },
+    {
+      "temporal_mechanism": "attempt-scoped Task Token can become stale; stable logical identity is preferable for external completion",
+      "f2_equivalent": "transport_attempt_id is attempt-scoped while stable delivery/result/causal identities survive retry",
+      "assessment": "ALREADY_PRESENT_STRONGLY"
+    }
+  ],
+  "architecture_delta": {
+    "type": "TEST_FIRST_CROSS_LAYER_INVARIANT_NOT_NEW_AUTHORITY",
+    "name": "LOST_ACK_DURABLE_RETURN_CAUSAL_REENTRY_FALSIFIER",
+    "reason": "Individual WP103/WP104/WP105 components encode the desired separations, but current evidence does not prove their integrated behavior under an ambiguous/lost acknowledgement recovery path.",
+    "required_trace": [
+      "one immutable child result_id + result_sha256",
+      "one stable recipient delivery_id",
+      "OFFER attempt A",
+      "acknowledgement for A absent/unknown",
+      "OFFER attempt B with a fresh transport_attempt_id but unchanged logical delivery/result identity",
+      "ACK bound to an actually offered attempt",
+      "ACK changes delivery state only and does not itself prove parent consumption",
+      "parent causal re-entry uses a fresh resume.causal_id and strictly later generation while preserving exact bound child result digest",
+      "no delivery/retry transition may mint effect success, task completion, or whole-system completion",
+      "if any external effect outcome is UNKNOWN, recovery may verify but may not blindly replay the effect"
+    ],
+    "acceptance_shape": "canonical F2-WP-004 run package around a deterministic repository-hosted integration test; source/CI evidence first, runtime credit remains zero until a later admitted target-runtime gate"
+  },
+  "import_decision": "DO_NOT_ADOPT_TEMPORAL_AS_RUNTIME_AUTHORITY",
+  "reuse_decision": "REUSE_SEPARATION_INVARIANTS_AND_LOST_ACK_FALSIFIER_ONLY",
+  "counterhypothesis_result": "The counterhypothesis is largely correct: F2 already implements most useful Temporal-style separation. The novel value is an integrated lost-ack falsifier, not a new subsystem.",
+  "expected_information_gain": "HIGH because a failure would reveal cross-layer authority leakage despite individually green components; a pass would close a concrete integration gap without adding a second state/effect authority.",
+  "credits": {"runtime":0,"real_effect":0,"vps":0,"physical_grid10":0,"gwt_jspace":0,"training":0,"whole_system":0},
+  "status": "E2_COMPLETE"
+}
