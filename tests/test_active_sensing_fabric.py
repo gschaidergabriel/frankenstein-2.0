@@ -10,6 +10,10 @@ from src.frankenstein2.perception_fabric import (
     PerceptionSource,
     SourceKind,
 )
+from src.frankenstein2.perception_host_permissions import (
+    HostPermissionGrant,
+    resolve_effective_perception_snapshot,
+)
 from src.frankenstein2.visual_need import VisualNeed, VisualReason, VisualTarget
 
 
@@ -34,21 +38,21 @@ def need():
     )
 
 
-def source():
+def source(source_id="screen:1"):
     return PerceptionSource(
-        source_id="screen:1",
+        source_id=source_id,
         kind=SourceKind.DISPLAY,
         clock_domain="local-monotonic",
-        capture_owner_id="capture-owner:screen:1",
+        capture_owner_id=f"capture-owner:{source_id}",
         provenance_refs=P,
     )
 
 
-def permissions(caps):
+def requested_permissions(caps, source_id="screen:1"):
     return PerceptionCapabilitySnapshot(
-        snapshot_id="permission:screen:1:1",
+        snapshot_id=f"requested:{source_id}:1",
         generation=1,
-        source_id="screen:1",
+        source_id=source_id,
         capabilities=caps,
         valid_from_monotonic_ns=10,
         expires_monotonic_ns=1_000,
@@ -56,8 +60,29 @@ def permissions(caps):
     )
 
 
+def permissions(caps, source_id="screen:1"):
+    requested = requested_permissions(caps, source_id)
+    grant = HostPermissionGrant(
+        grant_id=f"host-grant:{source_id}:1",
+        source_id=source_id,
+        generation=1,
+        granted_capabilities=caps,
+        valid_from_monotonic_ns=10,
+        expires_monotonic_ns=1_000,
+        host_adapter_id="host-adapter:test",
+        native_permission_ref=f"native-permission:{source_id}",
+        provenance_refs=P,
+    )
+    return resolve_effective_perception_snapshot(
+        requested_snapshot=requested,
+        host_grant=grant,
+        now_monotonic_ns=100,
+        provenance_refs=P,
+    )
+
+
 class ActiveSensingFabricTests(unittest.TestCase):
-    def test_visual_need_compiles_to_permission_bound_observe_intent(self):
+    def test_visual_need_compiles_to_effective_permission_bound_observe_intent(self):
         s = source()
         p = permissions((PerceptionCapability.SEE, PerceptionCapability.ANALYZE))
         i = compile_observe_intent(
@@ -77,6 +102,17 @@ class ActiveSensingFabricTests(unittest.TestCase):
         self.assertEqual(i.target_atom_ids, ("ui.status",))
         self.assertFalse(i.allow_external_vlm)
         self.assertEqual(i.as_dict()["perception_execution_authority"], "NONE")
+
+    def test_dashboard_or_requested_policy_alone_cannot_compile_observe_intent(self):
+        s = source()
+        requested = requested_permissions((PerceptionCapability.SEE, PerceptionCapability.ANALYZE))
+        with self.assertRaisesRegex(ActiveSensingFabricError, "dashboard policy alone"):
+            compile_observe_intent(
+                visual_need=need(), source=s, permission_snapshot=requested,
+                requested_head_ids=("ocr",), roi_ref=None,
+                required_freshness_ns=100, expires_monotonic_ns=900,
+                priority_micros=100_000, max_work_units=5, provenance_refs=P,
+            )
 
     def test_missing_see_permission_blocks_compilation(self):
         s = source()
@@ -119,15 +155,10 @@ class ActiveSensingFabricTests(unittest.TestCase):
             )
 
     def test_source_permission_identity_mismatch_fails_closed(self):
-        s = source()
-        p = PerceptionCapabilitySnapshot(
-            snapshot_id="permission:camera:1:1",
-            generation=1,
+        s = source("screen:1")
+        p = permissions(
+            (PerceptionCapability.SEE, PerceptionCapability.ANALYZE),
             source_id="camera:1",
-            capabilities=(PerceptionCapability.SEE, PerceptionCapability.ANALYZE),
-            valid_from_monotonic_ns=10,
-            expires_monotonic_ns=1_000,
-            provenance_refs=P,
         )
         with self.assertRaisesRegex(ActiveSensingFabricError, "source_id mismatch"):
             compile_observe_intent(
