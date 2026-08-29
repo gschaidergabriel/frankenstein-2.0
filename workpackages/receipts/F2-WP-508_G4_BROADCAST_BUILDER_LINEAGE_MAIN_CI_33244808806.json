@@ -1,0 +1,63 @@
+{
+  "schema": "FRANKENSTEIN2_WORKPACKAGE_ACCEPTANCE_RECEIPT/v1",
+  "workpackage_id": "F2-WP-508",
+  "generation": 4,
+  "claim_id": "F2-WP-508-G4-GPT56SOL-BROADCAST-BUILDER-LINEAGE-REPAIR-20260829",
+  "acceptance_scope": "GWT_REENTRY_G4_BROADCAST_BUILDER_LINEAGE_REPAIR_REPOSITORY_HOSTED_COMPONENT_CI_ONLY",
+  "triggering_negative_evidence": {
+    "falsifier_ref": "workpackages/falsifiers/F2-WP-508/20260829T1557P0700_G3_FORGED_BROADCAST_PAYLOAD_LINEAGE_GPT56SOL.json",
+    "review_pr": 257,
+    "workflow_run_id": 33244351377,
+    "job_id": 99079105335,
+    "head_sha": "bfeab357e8419556406470658ddbc96a7c4f5a84",
+    "conclusion": "failure",
+    "meaning": "Generation 3 trusted reconstructible BroadcastEnvelope candidate lineage after exact WorkspaceSelection validation, allowing a self-consistent forged payload lineage to satisfy re-entry overlap."
+  },
+  "convergence_evidence": {
+    "active_generation_4_base_commit": "e6478b808ba5115ff017668cd6465085c760ee07",
+    "overlapping_implementation_pr": 268,
+    "overlapping_pr_generation_label": "G3",
+    "overlapping_pr_head_sha": "ae4089082c235a469f1a5e433ea55651a4d0f894",
+    "overlapping_pr_ci_run_id": 33244777457,
+    "overlapping_pr_ci_job_id": 99080261350,
+    "overlapping_pr_ci_conclusion": "success",
+    "source_merge_commit": "74d68f4a32754ecc4a2cdd05e3760a28fdeafc38",
+    "merged_main_ci_run_id": 33244808806,
+    "merged_main_ci_job_id": 99080343182,
+    "merged_main_ci_conclusion": "success",
+    "reconciliation_observed_main": "70d01d3b310e5720f0e041f8ab1d0118a3f0e46c",
+    "generation_label_note": "PR 268 retained a historical G3 label although the canonical G3 scope had already been terminally failed and the G4 successor claim existed. No second implementation was created. Acceptance is bound to the exact current source semantics and exact merged-main CI that satisfy the G4 claimed repair; the PR label is preserved as provenance and does not mint generation authority."
+  },
+  "artifacts": {
+    "source": "src/frankenstein2/gwt_reentry_uptake_binding.py",
+    "source_blob_sha": "07e45d46f80e7853f3c73466e09ee81dda171a84",
+    "test": "tests/test_gwt_reentry_uptake_binding.py",
+    "test_blob_sha": "20e3df69745cbda32cc663d8ad0edad2e8f7beff",
+    "workflow": ".github/workflows/wp508-g2-uptake-reentry-binding-ci.yml",
+    "workflow_blob_sha": "f3e9e316a52c170a797e6ae28c7a64203db9b74b"
+  },
+  "verified_invariants": [
+    "WorkspaceSelection builder lineage is revalidated against exact GRID10/selection identity before re-entry admission",
+    "BroadcastEnvelope candidate_ids must equal the exact tuple derived from WorkspaceSelection.selected",
+    "BroadcastEnvelope candidate_payload_refs must equal the exact tuple derived from WorkspaceSelection.selected",
+    "material re-entry overlap is evaluated against the exact selected payload tuple rather than caller-reconstructed broadcast payload metadata",
+    "the forged BroadcastEnvelope payload-lineage counterexample from PR 257 is retained as a canonical regression",
+    "forged candidate-id lineage is rejected independently",
+    "accepted WP507 delivery/uptake semantics and prior WP508 fail-closed lineage checks remain within the tested component surface"
+  ],
+  "commands": [
+    "python -m py_compile src/frankenstein2/grid10_interface.py src/frankenstein2/gwt_workspace.py src/frankenstein2/gwt_uptake.py src/frankenstein2/gwt_reentry_provenance.py src/frankenstein2/gwt_reentry_uptake_binding.py tests/test_gwt_reentry_uptake_binding.py",
+    "PYTHONPATH=src python -m pytest -q tests/test_gwt_reentry_uptake_binding.py"
+  ],
+  "environment": "github-actions ubuntu-latest; python 3.12",
+  "runtime_execution_observed": false,
+  "runtime_credit": 0,
+  "physical_grid10_credit": 0,
+  "gwt_runtime_credit": 0,
+  "jspace_runtime_credit": 0,
+  "training_credit": 0,
+  "effect_credit": 0,
+  "whole_system_acceptance": false,
+  "completion_deficit": "This receipt proves only the deterministic WP508 G4 repository-component lineage repair at exact source/test/workflow identity plus exact merged-main hosted CI. It does not prove target runtime, physical GRID10, model-internal J-Space, real GWT causal influence, UnifiedDB integration, effects, training or whole-system acceptance.",
+  "next_exact_action": "Keep WP508 generation 4 closed absent a new falsifier. Re-enter current main and select the next dependency-correct nonduplicate Stage-5 integration/runtime discriminator; do not promote this component receipt to GWT/J-Space/runtime/whole-system credit."
+}
