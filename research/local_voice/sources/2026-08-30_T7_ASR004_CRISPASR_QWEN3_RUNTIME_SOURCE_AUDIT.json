@@ -1,0 +1,102 @@
+{
+  "schema_version": 1,
+  "trigger": "7",
+  "research_id": "T7-ASR-004",
+  "objective": "E2_QWEN3_ASR_CRISPASR_RUNTIME_SOURCE_AUDIT",
+  "semantic_key": "7ab6c40b611d83aaefe590cfedf168ffc4e26875f6a62ab6a13eb17e91d5be12",
+  "classification": "SOURCE_AUDIT_TERMINAL_AT_SCOPE_NO_TARGET_RUNTIME_CREDIT",
+  "observed_date_local": "2026-08-30",
+  "candidate": {
+    "repository": "CrispStrobe/CrispASR",
+    "current_main_observed": "1edcc63c830523ec33bdedfe54f338ac56019207",
+    "latest_release": "v0.8.30",
+    "latest_release_commit": "f632edf30e7a5dcafd60fda073c563b2eedec309",
+    "license": "MIT",
+    "architecture_role": "single C++/ggml/GGUF speech-engine challenger for the already admitted Qwen3-ASR family",
+    "target_backend": "qwen3"
+  },
+  "source_observations": [
+    {
+      "type": "SOURCE_DIRECT",
+      "finding": "CrispASR presents a single C++ binary with multiple ASR/TTS backends, includes a Qwen3 backend, GGUF loading and auto-download support; this is source capability only and not Frankenstein runtime evidence."
+    },
+    {
+      "type": "SOURCE_DIRECT",
+      "finding": "The Qwen3 CLI adapter implements a full transcription path around mel extraction, encoder execution, ChatML/audio-token injection, KV prefill and greedy/beam decoding, so the source surface is materially beyond the stale Stage-1 file-header comment in src/qwen3_asr.cpp."
+    },
+    {
+      "type": "NEGATIVE_RESULT",
+      "finding": "The generated CrispASR feature matrix does not declare the qwen3 or qwen3-1.7b backend with the Streaming capability bit, while nemotron is explicitly marked Streaming. Therefore native/stateful Qwen3-ASR streaming must not be claimed from source."
+    },
+    {
+      "type": "SOURCE_DIRECT",
+      "finding": "CrispASR's generic --stream/--mic/--live front-end is documented to work with every supported backend by sliding-window chunking. Default pipe streaming uses a 10 s rolling window with a 3 s step; structured finalization can re-decode buffered utterance PCM. This can provide realtime wrapper behavior without proving backend-native streaming."
+    },
+    {
+      "type": "SOURCE_DIRECT",
+      "finding": "The structured streaming path supports explicit partial/final/silence events and final-on-silence timing; redecode is the default finalization mode and adds an extra backend pass, creating a latency/compute tradeoff that must be measured on clay-direct-dev."
+    },
+    {
+      "type": "SOURCE_DIRECT",
+      "finding": "Strict-pipeline logic exists for explicitly requested VAD, word-timestamp and punctuation stages: default behavior may degrade gracefully when a stage fails, while strict mode turns requested-stage failure into an error. Trigger-7 evidence runs should use explicit strict requirements for any post-processing stage that is part of acceptance."
+    },
+    {
+      "type": "SOURCE_QUALITY_RISK",
+      "finding": "src/qwen3_asr.cpp retains a top-of-file comment describing only a Stage-1 conv-front-end implementation even though the current adapter invokes encoder and LLM/KV functions. This is a documentation/source-coherence warning, not proof that the runtime is incomplete; exact executable target tests outrank the stale comment."
+    }
+  ],
+  "trigger7_interpretation": {
+    "positive": [
+      "CrispASR is worth retaining as a low-integration-cost C++/GGUF Qwen3-ASR challenger because one binary can expose file, live, JSON-stream and server surfaces.",
+      "Its generic streaming wrapper provides a concrete path to partial/final utterance events without requiring a Python model stack.",
+      "The explicit strict-stage controls are useful for fail-closed benchmark receipts."
+    ],
+    "negative_or_unproven": [
+      "Qwen3-ASR native/stateful streaming is not source-proven and is explicitly absent from the current backend capability matrix.",
+      "German WER, German code-switch accuracy, TTFA, p95/p99 latency, RSS, sustained realtime factor, cancellation behavior and long-session stability are unobserved on Frankenstein hardware.",
+      "Generic sliding-window streaming may repeatedly decode overlapping context and the default redecode finalization adds work; source presence alone cannot establish a low-latency Pareto win.",
+      "Auto-download is convenient but must not be used as provenance for an evidence-bearing target run; model/runtime artifacts need exact revision/hash pins before execution."
+    ]
+  },
+  "hypothesis": "On the measured clay-direct-dev resource envelope, CrispASR plus a pinned Qwen3-ASR GGUF may reduce integration complexity and still achieve acceptable German partial/final responsiveness despite lacking backend-native streaming.",
+  "counterhypothesis": "The chunked/redecode wrapper cost makes Qwen3-ASR too slow or jittery for conversational Trigger-7 targets, while a backend with declared native streaming such as the already-pinned Nemotron streaming candidate wins latency and stability; CrispASR/Qwen3 then remains useful only for offline/final-quality ASR.",
+  "next_target_discriminator": {
+    "precondition": "Do not dispatch a duplicate generation-1 hardware inventory. First consume a terminal exact clay-direct-dev hardware/resource receipt from the existing T7-SYS-002 lane.",
+    "runtime_pin": "Prefer stable CrispASR v0.8.30 at commit f632edf30e7a5dcafd60fda073c563b2eedec309 for the first reproducible target benchmark; preserve current-main 1edcc63c830523ec33bdedfe54f338ac56019207 only as source-audit provenance unless a newer exact reason selects it.",
+    "cells": [
+      "CrispASR v0.8.30 + exact pinned Qwen3-ASR 0.6B GGUF, file/final baseline",
+      "same CrispASR/Qwen3 cell under --stream-json with fixed VAD boundaries and fixed stream step/length",
+      "already source-pinned Nemotron 3.5 streaming German candidate",
+      "existing Qwen3-ASR alternative runtime path(s) already admitted by Trigger 7"
+    ],
+    "measure": [
+      "German WER/CER on the hidden fixed corpus",
+      "partial TTFA p50/p95/p99",
+      "finalization latency p50/p95/p99",
+      "real-time factor and CPU/RSS/VRAM",
+      "partial revision/churn rate",
+      "redecode overhead",
+      "code-switch and names/numbers robustness",
+      "cancellation/stop latency",
+      "30+ minute sustained-session jitter and memory growth",
+      "network-blocked local operation after all artifacts are pre-pinned"
+    ],
+    "fail_closed_flags": [
+      "disable opportunistic auto-download after provenance pinning",
+      "use explicit language de where appropriate",
+      "require any requested VAD/punctuation/timestamp stages rather than allowing graceful degradation",
+      "record exact binary/model/hash/flags/corpus identity"
+    ]
+  },
+  "credits": {
+    "semantic_claim": 1,
+    "source_audit": 1,
+    "target_download": 0,
+    "target_runtime": 0,
+    "native_streaming": 0,
+    "german_component_benchmark": 0,
+    "german_e2e_voice": 0,
+    "trigger4_acceptance": 0,
+    "whole_system": 0
+  }
+}
