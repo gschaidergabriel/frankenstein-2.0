@@ -188,7 +188,41 @@ def main() -> int:
         else:
             raise AssertionError("NOT_OBSERVABLE without reason was accepted")
 
-    print("PASS: telemetry emitters, causal GRID/performance records, snapshots, hashes, and fail-closed source completeness")
+    # REVIEW_ONLY falsifier 1: source_id is currently a global primary key.
+    # Registering the same logical source in a later run rewrites the older run's
+    # provenance instead of preserving a distinct (run_id, source_id) identity.
+    with tempfile.TemporaryDirectory() as td:
+        root = Path(td)
+        data_root = root / "data"
+        run_a = TelemetryRuntime(data_root, CausalContext(run_id="RUN-A", workpackage_id="F2-WP-005", generation=2))
+        run_b = TelemetryRuntime(data_root, CausalContext(run_id="RUN-B", workpackage_id="F2-WP-005", generation=2))
+        run_a.register_source("shared-source", "component-a", source_commit="commit-a")
+        run_b.register_source("shared-source", "component-b", source_commit="commit-b")
+        with sqlite3.connect(data_root / "system_telemetry.sqlite") as conn:
+            rows = conn.execute(
+                "SELECT run_id,source_id,component,source_commit FROM sources WHERE source_id=?",
+                ("shared-source",),
+            ).fetchall()
+        assert rows == [("RUN-B", "shared-source", "component-b", "commit-b")], rows
+
+    # REVIEW_ONLY falsifier 2: finalize_run() currently backs up the complete
+    # longitudinal project DB. A RUN-A package therefore contains RUN-B rows.
+    with tempfile.TemporaryDirectory() as td:
+        root = Path(td)
+        data_root = root / "data"
+        out = root / "runs" / "RUN-A"
+        run_a = TelemetryRuntime(data_root, CausalContext(run_id="RUN-A", workpackage_id="F2-WP-005", generation=2))
+        run_b = TelemetryRuntime(data_root, CausalContext(run_id="RUN-B", workpackage_id="F2-WP-005", generation=2))
+        run_a.register_source("source-a", "component-a")
+        run_b.register_source("source-b", "component-b")
+        run_a.emit_system_event("component-a", "RUN_A_EVENT", {"marker": "RUN-A-ONLY"}, event_id="evt-run-a")
+        run_b.emit_system_event("component-b", "RUN_B_EVENT", {"marker": "RUN-B-SHOULD-NOT-BE-IN-RUN-A"}, event_id="evt-run-b")
+        finalize_run(data_root, out, "RUN-A", ["source-a"], grid_participated=False)
+        with sqlite3.connect(out / "system_telemetry.sqlite") as conn:
+            snapshot_runs = [row[0] for row in conn.execute("SELECT run_id FROM system_events ORDER BY run_id")]
+        assert snapshot_runs == ["RUN-A", "RUN-B"], snapshot_runs
+
+    print("PASS: telemetry baseline plus REVIEW_ONLY WP005-G2 run-isolation falsifiers reproduced")
     return 0
 
 
