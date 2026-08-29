@@ -20,6 +20,28 @@ from frankenstein2.sparse_world_basis import WorldSlice
 PROVENANCE_DIGEST = "0" * 64
 
 
+class ForgedWorldSlice(WorldSlice):
+    """Adversarial subtype able to self-attest an attacker-selected digest."""
+
+    def sha256(self) -> str:
+        return "0" * 64
+
+
+class ForgedQuboProjection(QuboProjection):
+    """Adversarial subtype able to self-attest an attacker-selected projection digest."""
+
+    def sha256(self) -> str:
+        return "0" * 64
+
+
+class ForgedQuboVariable(QuboVariable):
+    """Adversarial subtype crossing a projection-input trust boundary."""
+
+
+class ForgedQuboCoupling(QuboCoupling):
+    """Adversarial subtype crossing a projection-input trust boundary."""
+
+
 def world_slice(*, tainted: tuple[str, ...] = ()) -> WorldSlice:
     return WorldSlice(
         slice_id="slice:1",
@@ -35,6 +57,24 @@ def world_slice(*, tainted: tuple[str, ...] = ()) -> WorldSlice:
         stopped_reason="MAX_DEPTH_REACHED",
         evidence_refs=("evidence:slice",),
         provenance_digest=PROVENANCE_DIGEST,
+    )
+
+
+def forged_world_slice() -> ForgedWorldSlice:
+    return ForgedWorldSlice(
+        slice_id="slice:forged-subtype",
+        need_id="need:forged-subtype",
+        cycle_id="cycle:forged-subtype",
+        generation=7,
+        vector_space_version="vs:1",
+        selected_atom_ids=("atom:a",),
+        selected_operator_ids=(),
+        unresolved_target_atom_ids=(),
+        tainted_atom_ids=(),
+        depth_reached=0,
+        stopped_reason="BOUNDED_FALSIFIER",
+        evidence_refs=("evidence:forged-subtype",),
+        provenance_digest="1" * 64,
     )
 
 
@@ -260,6 +300,104 @@ class QuboProjectionTests(unittest.TestCase):
                 projection=item, world_slice=ws,
                 assignment=(("x:a", 1), ("x:b", 1), ("x:op", 0), ("x:extra", 0)),
                 expected_projection_sha256=item.sha256(),
+            )
+
+    def test_worldslice_subtype_self_attestation_is_rejected_at_build_and_score(self):
+        forged_ws = forged_world_slice()
+        self.assertEqual(forged_ws.sha256(), "0" * 64)
+        exact_variable = variable("x:a", "atom:a", 1)
+
+        with self.assertRaises(QuboProjectionError):
+            build_qubo_projection(
+                projection_id="qubo:forged-worldslice-build",
+                world_slice=forged_ws,
+                expected_slice_sha256="0" * 64,
+                expected_generation=7,
+                variables=(exact_variable,),
+                couplings=(),
+                offset=0,
+                provenance_refs=("g3:falsifier:worldslice-build",),
+            )
+
+        direct_projection = QuboProjection(
+            projection_id="qubo:forged-worldslice-score",
+            slice_id=forged_ws.slice_id,
+            slice_sha256="0" * 64,
+            cycle_id=forged_ws.cycle_id,
+            generation=forged_ws.generation,
+            vector_space_version=forged_ws.vector_space_version,
+            variables=(exact_variable,),
+            couplings=(),
+            offset=0,
+            provenance_refs=("g3:falsifier:worldslice-score",),
+        )
+        with self.assertRaises(QuboProjectionError):
+            score_assignment(
+                projection=direct_projection,
+                world_slice=forged_ws,
+                assignment=(("x:a", 1),),
+                expected_projection_sha256=direct_projection.sha256(),
+            )
+
+    def test_projection_subtype_self_attestation_is_rejected_at_score(self):
+        exact = projection()
+        forged = ForgedQuboProjection(
+            projection_id=exact.projection_id,
+            slice_id=exact.slice_id,
+            slice_sha256=exact.slice_sha256,
+            cycle_id=exact.cycle_id,
+            generation=exact.generation,
+            vector_space_version=exact.vector_space_version,
+            variables=exact.variables,
+            couplings=exact.couplings,
+            offset=exact.offset,
+            provenance_refs=exact.provenance_refs,
+        )
+        self.assertEqual(forged.sha256(), "0" * 64)
+        with self.assertRaises(QuboProjectionError):
+            score_assignment(
+                projection=forged,
+                world_slice=world_slice(),
+                assignment=(("x:a", 1), ("x:b", 1), ("x:op", 0)),
+                expected_projection_sha256="0" * 64,
+            )
+
+    def test_variable_and_coupling_subtypes_are_rejected_at_projection_admission(self):
+        ws = world_slice()
+        forged_variable = ForgedQuboVariable(
+            variable_id="x:forged-var",
+            source_ref="atom:a",
+            linear_bias=1,
+            provenance_refs=("g3:falsifier:variable-subtype",),
+        )
+        with self.assertRaises(QuboProjectionError):
+            build_qubo_projection(
+                projection_id="qubo:forged-variable",
+                world_slice=ws,
+                expected_slice_sha256=ws.sha256(),
+                expected_generation=ws.generation,
+                variables=(forged_variable,),
+                couplings=(),
+                provenance_refs=("g3:falsifier:variable-subtype",),
+            )
+
+        left = variable("x:a", "atom:a", 1)
+        right = variable("x:b", "atom:b", 2)
+        forged_coupling = ForgedQuboCoupling(
+            left_variable_id="x:a",
+            right_variable_id="x:b",
+            weight=3,
+            provenance_refs=("g3:falsifier:coupling-subtype",),
+        )
+        with self.assertRaises(QuboProjectionError):
+            build_qubo_projection(
+                projection_id="qubo:forged-coupling",
+                world_slice=ws,
+                expected_slice_sha256=ws.sha256(),
+                expected_generation=ws.generation,
+                variables=(left, right),
+                couplings=(forged_coupling,),
+                provenance_refs=("g3:falsifier:coupling-subtype",),
             )
 
     def test_structures_are_frozen_and_authority_is_explicitly_none(self):

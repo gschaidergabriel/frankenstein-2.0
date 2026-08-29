@@ -1,11 +1,13 @@
 """Deterministic QUBO projection adapter for Frankenstein 2.0.
 
-F2-WP-402 generation 2. This module projects an exact noncanonical WorldSlice into a
+F2-WP-402 generation 3. This module projects an exact noncanonical WorldSlice into a
 bounded quadratic unconstrained binary-optimization (QUBO) problem using only explicit
-caller-supplied coefficients. Generation 2 hardens the public scoring boundary: scoring
-must independently revalidate the exact WorldSlice rather than trusting a projection
-self-hash. Nothing here infers coefficients, chooses an action, invokes a solver/model/
-provider/tool, mutates world state, or grants truth/effect/completion authority.
+caller-supplied coefficients. Generation 3 preserves generation-2 independent scoring
+revalidation while sealing public trust boundaries to the exact concrete WorldSlice,
+QuboProjection, QuboVariable and QuboCoupling types so Python subclasses cannot self-attest
+identity through overridden methods. Nothing here infers coefficients, chooses an action,
+invokes a solver/model/provider/tool, mutates world state, or grants truth/effect/completion
+authority.
 """
 from __future__ import annotations
 
@@ -167,10 +169,10 @@ class QuboProjection:
         object.__setattr__(self, "cycle_id", _text("cycle_id", self.cycle_id))
         _generation("generation", self.generation)
         object.__setattr__(self, "vector_space_version", _text("vector_space_version", self.vector_space_version))
-        if not isinstance(self.variables, tuple) or not self.variables or not all(isinstance(v, QuboVariable) for v in self.variables):
-            raise QuboProjectionError("variables must be a non-empty immutable tuple of QuboVariable")
-        if not isinstance(self.couplings, tuple) or not all(isinstance(c, QuboCoupling) for c in self.couplings):
-            raise QuboProjectionError("couplings must be an immutable tuple of QuboCoupling")
+        if not isinstance(self.variables, tuple) or not self.variables or not all(type(v) is QuboVariable for v in self.variables):
+            raise QuboProjectionError("variables must be a non-empty immutable tuple of exact QuboVariable")
+        if not isinstance(self.couplings, tuple) or not all(type(c) is QuboCoupling for c in self.couplings):
+            raise QuboProjectionError("couplings must be an immutable tuple of exact QuboCoupling")
         variable_ids = tuple(v.variable_id for v in self.variables)
         if len(set(variable_ids)) != len(variable_ids):
             raise QuboProjectionError("duplicate variable_id")
@@ -268,8 +270,10 @@ class QuboAssignmentScore:
 
 def _validate_projection_against_slice(*, projection: QuboProjection, world_slice: WorldSlice) -> None:
     """Revalidate exact upstream WorldSlice identity and source membership at consumption."""
-    if not isinstance(world_slice, WorldSlice):
-        raise QuboProjectionError("world_slice must be WorldSlice")
+    if type(projection) is not QuboProjection:
+        raise QuboProjectionError("projection must be exact QuboProjection")
+    if type(world_slice) is not WorldSlice:
+        raise QuboProjectionError("world_slice must be exact WorldSlice")
     if world_slice.sha256() != projection.slice_sha256:
         raise QuboProjectionError("projection WorldSlice digest mismatch")
     if world_slice.slice_id != projection.slice_id:
@@ -301,18 +305,18 @@ def build_qubo_projection(
     provenance_refs: tuple[str, ...],
 ) -> QuboProjection:
     """Bind explicit QUBO terms to one exact bounded WorldSlice."""
-    if not isinstance(world_slice, WorldSlice):
-        raise QuboProjectionError("world_slice must be WorldSlice")
+    if type(world_slice) is not WorldSlice:
+        raise QuboProjectionError("world_slice must be exact WorldSlice")
     expected_sha = _sha256("expected_slice_sha256", expected_slice_sha256)
     generation = _generation("expected_generation", expected_generation)
     if world_slice.sha256() != expected_sha:
         raise QuboProjectionError("world_slice digest mismatch")
     if world_slice.generation != generation:
         raise QuboProjectionError("world_slice generation mismatch")
-    if not isinstance(variables, tuple) or not variables or not all(isinstance(v, QuboVariable) for v in variables):
-        raise QuboProjectionError("variables must be a non-empty immutable tuple of QuboVariable")
-    if not isinstance(couplings, tuple) or not all(isinstance(c, QuboCoupling) for c in couplings):
-        raise QuboProjectionError("couplings must be an immutable tuple of QuboCoupling")
+    if not isinstance(variables, tuple) or not variables or not all(type(v) is QuboVariable for v in variables):
+        raise QuboProjectionError("variables must be a non-empty immutable tuple of exact QuboVariable")
+    if not isinstance(couplings, tuple) or not all(type(c) is QuboCoupling for c in couplings):
+        raise QuboProjectionError("couplings must be an immutable tuple of exact QuboCoupling")
 
     variable_ids = tuple(v.variable_id for v in variables)
     if len(set(variable_ids)) != len(variable_ids):
@@ -363,8 +367,8 @@ def score_assignment(
     expected_projection_sha256: str,
 ) -> QuboAssignmentScore:
     """Score one explicit assignment only after independent exact-slice revalidation."""
-    if not isinstance(projection, QuboProjection):
-        raise QuboProjectionError("projection must be QuboProjection")
+    if type(projection) is not QuboProjection:
+        raise QuboProjectionError("projection must be exact QuboProjection")
     expected_sha = _sha256("expected_projection_sha256", expected_projection_sha256)
     if projection.sha256() != expected_sha:
         raise QuboProjectionError("projection digest mismatch")
