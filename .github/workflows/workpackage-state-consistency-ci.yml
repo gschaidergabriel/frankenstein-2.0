@@ -46,5 +46,34 @@ jobs:
         run: python -m py_compile tools/validate_workpackage_state.py
       - name: Deterministic state consistency regressions
         run: python -m unittest -v tests.test_validate_workpackage_state tests.test_wp002_aggregate_projection_gate tests.test_wp002_reconciliation_chain
+      - name: Diagnose terminal reconciliation credit boundaries
+        shell: bash
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+
+          terminals = {"ACCEPTED", "FAILED_TERMINAL", "RETIRED_STALE", "SUPERSEDED"}
+          for pointer_path in sorted(Path("workpackages/active").glob("*.json")):
+              pointer = json.loads(pointer_path.read_text())
+              if pointer.get("state") not in terminals:
+                  continue
+              wp = pointer.get("workpackage_id")
+              matches = []
+              for recon_path in sorted((Path("workpackages/reconciliations") / wp).glob("*.json")):
+                  recon = json.loads(recon_path.read_text())
+                  terminal = recon.get("terminal_state", recon.get("state"))
+                  if (recon.get("schema") == "FRANKENSTEIN2_WORKPACKAGE_RECONCILIATION/v1"
+                      and recon.get("workpackage_id") == wp
+                      and recon.get("generation") == pointer.get("generation")
+                      and recon.get("claim_id") == pointer.get("claim_id")
+                      and terminal == pointer.get("state")):
+                      matches.append((recon_path, recon))
+              for recon_path, recon in matches:
+                  explicit_zero = (recon.get("whole_system_acceptance") is False
+                                   or recon.get("whole_system_credit") == 0)
+                  if not explicit_zero:
+                      print(f"MISSING_EXPLICIT_WHOLE_SYSTEM_ZERO pointer={pointer_path} reconciliation={recon_path}")
+          PY
       - name: Validate checked-out repository state
         run: python tools/validate_workpackage_state.py .
