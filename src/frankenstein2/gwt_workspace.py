@@ -415,6 +415,10 @@ class SelectedCandidate:
 def _validate_candidate_origins(
     candidates: tuple[WorkspaceCandidate, ...],
     *,
+    cycle_id: str,
+    frame_id: str,
+    frame_generation: int,
+    frame_sha256: str,
     grid_plan_id: str,
     grid_plan_generation: int,
     grid_plan_sha256: str,
@@ -438,6 +442,14 @@ def _validate_candidate_origins(
             or admission.plan_sha256 != grid_plan_sha256
         ):
             raise GwtWorkspaceError("candidate producer GRID10 plan binding mismatch")
+        if admission.plan.cycle_id != cycle_id:
+            raise GwtWorkspaceError("candidate producer cycle binding mismatch")
+        if (
+            admission.plan.frame_id != frame_id
+            or admission.plan.frame_generation != frame_generation
+            or admission.plan.frame_sha256 != frame_sha256
+        ):
+            raise GwtWorkspaceError("candidate producer SituationFrame binding mismatch")
         if item.payload_ref not in admission.output_refs:
             raise GwtWorkspaceError("candidate payload_ref is not present in producer output_refs")
         producer_payload = (admission.output_sha256, item.payload_ref)
@@ -652,6 +664,10 @@ def _assert_selection_build_lineage(selection: WorkspaceSelection) -> None:
         raise GwtWorkspaceError("selection policy lineage mismatch")
     _validate_candidate_origins(
         candidates,
+        cycle_id=selection.cycle_id,
+        frame_id=selection.frame_id,
+        frame_generation=selection.frame_generation,
+        frame_sha256=selection.frame_sha256,
         grid_plan_id=selection.grid_plan_id,
         grid_plan_generation=selection.grid_plan_generation,
         grid_plan_sha256=selection.grid_plan_sha256,
@@ -766,12 +782,20 @@ def build_workspace_selection(
         raise GwtWorkspaceError("candidates must be a non-empty immutable tuple")
     if len(candidates) > _MAX_ITEMS or not all(type(item) is WorkspaceCandidate for item in candidates):
         raise GwtWorkspaceError("candidates contain invalid values or exceed limit")
+    normalized_cycle_id = _text("cycle_id", cycle_id)
+    normalized_frame_id = _text("frame_id", frame_id)
+    normalized_frame_generation = _generation("frame_generation", frame_generation)
+    normalized_frame_sha256 = _sha256("frame_sha256", frame_sha256)
     normalized_grid_plan_id = _text("grid_plan_id", grid_plan_id)
     normalized_grid_plan_generation = _generation("grid_plan_generation", grid_plan_generation)
     normalized_grid_plan_sha256 = _sha256("grid_plan_sha256", grid_plan_sha256)
     canonical_candidates = tuple(sorted(candidates, key=lambda item: item.candidate_id))
     _validate_candidate_origins(
         canonical_candidates,
+        cycle_id=normalized_cycle_id,
+        frame_id=normalized_frame_id,
+        frame_generation=normalized_frame_generation,
+        frame_sha256=normalized_frame_sha256,
         grid_plan_id=normalized_grid_plan_id,
         grid_plan_generation=normalized_grid_plan_generation,
         grid_plan_sha256=normalized_grid_plan_sha256,
@@ -779,11 +803,11 @@ def build_workspace_selection(
     selected, deferred = _rank_candidates(policy, canonical_candidates)
     value = WorkspaceSelection(
         selection_id=selection_id,
-        cycle_id=cycle_id,
+        cycle_id=normalized_cycle_id,
         generation=generation,
-        frame_id=frame_id,
-        frame_generation=frame_generation,
-        frame_sha256=frame_sha256,
+        frame_id=normalized_frame_id,
+        frame_generation=normalized_frame_generation,
+        frame_sha256=normalized_frame_sha256,
         grid_plan_id=normalized_grid_plan_id,
         grid_plan_generation=normalized_grid_plan_generation,
         grid_plan_sha256=normalized_grid_plan_sha256,

@@ -385,6 +385,37 @@ def test_direct_workspace_selection_constructor_cannot_bypass_builder_lineage_be
         )
 
 
+@pytest.mark.parametrize(
+    ("field", "foreign_value", "message"),
+    (
+        ("cycle_id", "cycle-foreign", "producer cycle binding mismatch"),
+        ("frame_id", "frame-foreign", "producer SituationFrame binding mismatch"),
+        ("frame_generation", 999, "producer SituationFrame binding mismatch"),
+        ("frame_sha256", "d" * 64, "producer SituationFrame binding mismatch"),
+    ),
+)
+def test_selection_requires_exact_producer_cycle_and_situation_frame_binding(
+    field, foreign_value, message
+):
+    source = candidate("bound-envelope")
+    kwargs = dict(
+        selection_id="sel-envelope",
+        cycle_id=GRID_PLAN.cycle_id,
+        generation=7,
+        frame_id=GRID_PLAN.frame_id,
+        frame_generation=GRID_PLAN.frame_generation,
+        frame_sha256=GRID_PLAN.frame_sha256,
+        grid_plan_id=GRID_PLAN.plan_id,
+        grid_plan_generation=GRID_PLAN.generation,
+        grid_plan_sha256=GRID_PLAN.sha256(),
+        policy=policy(),
+        candidates=(source,),
+    )
+    kwargs[field] = foreign_value
+    with pytest.raises(GwtWorkspaceError, match=message):
+        build_workspace_selection(**kwargs)
+
+
 def test_selected_candidate_retains_exact_producer_digest_binding():
     source = candidate("bound")
     value = selection((source,))
