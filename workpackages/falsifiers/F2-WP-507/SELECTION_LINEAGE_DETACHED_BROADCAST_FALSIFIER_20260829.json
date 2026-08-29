@@ -1,0 +1,46 @@
+{
+  "schema": "FRANKENSTEIN2_WP507_SELECTION_LINEAGE_FALSIFIER/v1",
+  "workpackage_id": "F2-WP-507",
+  "generation_under_test": 4,
+  "review_mode": "REVIEW_ONLY_CANDIDATE_FALSIFIER",
+  "trigger": "4",
+  "authority_epoch": "8.78",
+  "status": "EXECUTED_COUNTEREVIDENCE",
+  "hypothesis": "WP507 positive causal-influence credit must require a broadcast that descends from the accepted WP506 build_workspace_selection -> create_broadcast lineage.",
+  "counterhypothesis": "The observed failure could be an artifact of a stale PR base rather than current WP506/WP507 source.",
+  "discriminator": {
+    "pull_request": 299,
+    "pr_head_sha": "b1c882c4f5e54e6899ed123ee6808688d7cb15dc",
+    "pr_merge_sha_observed": "b570e5794d836566d967cdf78c6c0f91cf03e70b",
+    "workflow_run_id": 33245983103,
+    "workflow_job_id": 99083389710,
+    "workflow_conclusion": "failure",
+    "failing_test": "test_positive_causal_influence_rejects_direct_unverified_broadcast_envelope",
+    "observed_failure": "AssertionError: GWTUptakeError not raised"
+  },
+  "current_main_reentry": {
+    "main_sha": "de939341df776a4bcf5c9f790a3db3499799e175",
+    "pr_base_sha": "78c290f0d7142d22ff5e588b20fa33f53a57f7fe",
+    "compare_ahead_by": 6,
+    "gwt_workspace_changed_between_base_and_current_main": false,
+    "gwt_uptake_changed_between_base_and_current_main": false,
+    "counterhypothesis_status": "NOT_SUPPORTED_BY_COMPARE"
+  },
+  "source_observation": {
+    "wp506_broadcast_envelope": "BroadcastEnvelope is directly constructible and carries no factory-only lineage seal.",
+    "wp506_create_broadcast": "create_broadcast validates WorkspaceSelection lineage but returns an otherwise ordinary BroadcastEnvelope.",
+    "wp507_binding": "_broadcast_binding requires exact BroadcastEnvelope type and reuses envelope identity/digest fields, but cannot distinguish factory-produced from detached direct construction.",
+    "consequence": "A structurally valid detached BroadcastEnvelope can reach evaluate_causal_influence and permit CAUSAL_INFLUENCE_OBSERVED_AT_CONTRACT_SCOPE when matched downstream outputs differ."
+  },
+  "scope_invalidation": "WP507 generation-4 positive causal-influence claim is contradicted at repository-hosted contract scope until WP506 broadcast-construction lineage is made non-self-attestable and the same falsifier passes.",
+  "preserved_scope": "This counterevidence does not by itself invalidate non-positive uptake bookkeeping that does not mint causal-positive credit.",
+  "credits": {
+    "target_runtime": 0,
+    "physical_grid10": 0,
+    "gwt_runtime": 0,
+    "jspace_runtime": 0,
+    "training": 0,
+    "whole_system": false
+  },
+  "next_exact_action": "Open the smallest nonduplicate WP506 successor repair for factory-bound BroadcastEnvelope lineage, keep PR #299's falsifier unchanged as the acceptance discriminator, and do not restore WP507 positive causal-influence credit until that discriminator passes on the exact repaired source."
+}
