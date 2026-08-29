@@ -1,9 +1,10 @@
 """Deterministic four-source Perception Fabric integration simulation.
 
 This module is an executable repository/VPS-side integration harness, not physical sensor
-runtime. It composes the real F2 contracts from source permission through capture references,
-Retina, perception control, observed claims, temporal fusion, world multi-view disagreement,
-VisualNeed, ObserveIntent, worker allocation and typed bridge/audit output.
+runtime. It composes the real F2 contracts from dashboard policy + simulated host grants
+through capture references, Retina, perception control, observed claims, temporal fusion,
+world multi-view disagreement, VisualNeed, ObserveIntent, worker allocation and typed
+bridge/audit output.
 
 No raw frame bytes, VLM/model/provider/network call, physical device access, canonical world
 truth, effect, completion, VPS-runtime or whole-system credit is produced here.
@@ -46,6 +47,10 @@ from .perception_fabric import (
     SourceKind,
     allocate_perception_workers,
 )
+from .perception_host_permissions import (
+    HostPermissionGrant,
+    resolve_effective_perception_snapshot,
+)
 from .perception_temporal import (
     ObservationWindow,
     bind_observed_claim,
@@ -80,7 +85,7 @@ from .world_multiview import (
 )
 
 SIMULATION_REPORT_SCHEMA = "FRANKENSTEIN2_PERCEPTION_FABRIC_SIMULATION_REPORT/v1"
-PROVENANCE = ("simulation:perception-fabric-four-source-v1",)
+PROVENANCE = ("simulation:perception-fabric-four-source-v2",)
 
 
 class PerceptionFabricSimulationError(RuntimeError):
@@ -151,41 +156,28 @@ class PerceptionFabricSimulationReport:
 
 
 def _sources() -> tuple[PerceptionSource, ...]:
-    return (
+    specs = (
+        ("camera:front", SourceKind.CAMERA),
+        ("display:1", SourceKind.DISPLAY),
+        ("browser:rendered", SourceKind.BROWSER_RENDERED),
+        ("browser:structural", SourceKind.BROWSER_STRUCTURAL),
+    )
+    return tuple(
         PerceptionSource(
-            source_id="camera:front",
-            kind=SourceKind.CAMERA,
+            source_id=source_id,
+            kind=kind,
             clock_domain="sim:local",
-            capture_owner_id="capture-owner:camera:front",
+            capture_owner_id=f"capture-owner:{source_id}",
             provenance_refs=PROVENANCE,
-        ),
-        PerceptionSource(
-            source_id="display:1",
-            kind=SourceKind.DISPLAY,
-            clock_domain="sim:local",
-            capture_owner_id="capture-owner:display:1",
-            provenance_refs=PROVENANCE,
-        ),
-        PerceptionSource(
-            source_id="browser:rendered",
-            kind=SourceKind.BROWSER_RENDERED,
-            clock_domain="sim:local",
-            capture_owner_id="capture-owner:browser:rendered",
-            provenance_refs=PROVENANCE,
-        ),
-        PerceptionSource(
-            source_id="browser:structural",
-            kind=SourceKind.BROWSER_STRUCTURAL,
-            clock_domain="sim:local",
-            capture_owner_id="capture-owner:browser:structural",
-            provenance_refs=PROVENANCE,
-        ),
+        )
+        for source_id, kind in specs
     )
 
 
 def _dashboard_and_snapshots(
     sources: tuple[PerceptionSource, ...],
 ) -> tuple[PerceptionDashboardState, tuple[PerceptionCapabilitySnapshot, ...]]:
+    """Resolve user dashboard policy AND simulated host grants into effective snapshots."""
     state = create_dashboard_state(
         state_id="dashboard:perception-fabric-sim",
         max_active_cortex_workers=4,
@@ -204,17 +196,36 @@ def _dashboard_and_snapshots(
             capabilities=caps,
             provenance_refs=PROVENANCE,
         )
-    snapshots = tuple(
-        capability_snapshot_from_dashboard(
+
+    effective: list[PerceptionCapabilitySnapshot] = []
+    for source in sources:
+        requested = capability_snapshot_from_dashboard(
             state=state,
             source_id=source.source_id,
             valid_from_monotonic_ns=10,
             expires_monotonic_ns=10_000,
             provenance_refs=PROVENANCE,
         )
-        for source in sources
-    )
-    return state, snapshots
+        grant = HostPermissionGrant(
+            grant_id=f"host-grant:{source.source_id}:sim",
+            source_id=source.source_id,
+            generation=1,
+            granted_capabilities=caps,
+            valid_from_monotonic_ns=10,
+            expires_monotonic_ns=10_000,
+            host_adapter_id=f"sim-adapter:{source.kind.value.lower()}",
+            native_permission_ref=f"sim-native-permission:{source.source_id}",
+            provenance_refs=PROVENANCE,
+        )
+        effective.append(
+            resolve_effective_perception_snapshot(
+                requested_snapshot=requested,
+                host_grant=grant,
+                now_monotonic_ns=100,
+                provenance_refs=PROVENANCE,
+            )
+        )
+    return state, tuple(effective)
 
 
 def _capture_and_retina(
@@ -318,15 +329,11 @@ def _perception_registry() -> PerceptionPolicyRegistry:
         memory_allowed=True,
         provenance_refs=PROVENANCE,
     )
-    dependency = PerceptionDependency(
-        head_id="local-semantic-head",
-        depends_on=(),
-    )
     return PerceptionPolicyRegistry(
         registry_id="perception-registry:sim",
         generation=1,
         heads=(head,),
-        dependencies=(dependency,),
+        dependencies=(PerceptionDependency(head_id="local-semantic-head", depends_on=()),),
         provenance_refs=PROVENANCE,
     )
 
@@ -352,9 +359,7 @@ def _claims(
     claims: list[EpistemicPerceptClaim] = []
     for index, (source, assessment) in enumerate(zip(sources, assessments)):
         if not assessment.percept_event_candidate:
-            raise PerceptionFabricSimulationError(
-                f"expected salient Retina event for {source.source_id}"
-            )
+            raise PerceptionFabricSimulationError(f"expected salient Retina event for {source.source_id}")
         result = evaluate_perception_head(
             evaluation_id=f"perception-eval:{source.source_id}:1",
             registry=registry,
@@ -367,9 +372,7 @@ def _claims(
             ),
         )
         if result.status != "OK" or not result.egress_allowed:
-            raise PerceptionFabricSimulationError(
-                f"expected allowed perception result for {source.source_id}"
-            )
+            raise PerceptionFabricSimulationError(f"expected allowed perception result for {source.source_id}")
         claims.append(
             EpistemicPerceptClaim(
                 claim_id=f"observed:{source.source_id}:1",
@@ -436,7 +439,6 @@ def _world_and_visual_need(
         evidence_refs=(),
         confidence_micros=None,
     )
-
     rendered_atom = WorldAtom(
         atom_id="ui.submit",
         generation=1,
@@ -468,10 +470,7 @@ def _world_and_visual_need(
         target_atom_ids=("ui.actionable",),
         max_depth=0,
         max_atoms=2,
-        provenance_refs=(
-            *PROVENANCE,
-            f"claim-sha256:{rendered_claim.sha256()}",
-        ),
+        provenance_refs=(*PROVENANCE, f"claim-sha256:{rendered_claim.sha256()}"),
     )
     structural_need = WorldNeed(
         need_id="world-need:structural",
@@ -482,22 +481,13 @@ def _world_and_visual_need(
         target_atom_ids=("ui.actionable",),
         max_depth=0,
         max_atoms=2,
-        provenance_refs=(
-            *PROVENANCE,
-            f"claim-sha256:{structural_claim.sha256()}",
-        ),
+        provenance_refs=(*PROVENANCE, f"claim-sha256:{structural_claim.sha256()}"),
     )
     rendered_slice = materialize_world_slice(
-        atoms=(rendered_atom, target),
-        operators=(),
-        activations=(),
-        need=rendered_need,
+        atoms=(rendered_atom, target), operators=(), activations=(), need=rendered_need
     )
     structural_slice = materialize_world_slice(
-        atoms=(structural_atom, target),
-        operators=(),
-        activations=(),
-        need=structural_need,
+        atoms=(structural_atom, target), operators=(), activations=(), need=structural_need
     )
     rendered_view = WorldView(
         view_id="view:browser-rendered",
@@ -634,7 +624,9 @@ def run_four_source_perception_simulation() -> PerceptionFabricSimulationReport:
     raw_persist = sum(1 for receipt in receipts if receipt.raw_payload_persisted)
     raw_remote = sum(1 for receipt in receipts if receipt.remote_raw_payload_sent)
     if generic_vlm_calls or raw_persist or raw_remote:
-        raise PerceptionFabricSimulationError("default simulation must remain typed/local with zero VLM/raw persistence/remote raw")
+        raise PerceptionFabricSimulationError(
+            "default simulation must remain typed/local with zero VLM/raw persistence/remote raw"
+        )
     return PerceptionFabricSimulationReport(
         source_ids=tuple(source.source_id for source in sources),
         dashboard_state_sha256=dashboard.sha256(),
