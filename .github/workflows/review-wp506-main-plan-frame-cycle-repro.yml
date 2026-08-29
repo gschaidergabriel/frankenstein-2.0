@@ -1,0 +1,29 @@
+name: Review WP506 Main Plan Frame Cycle Repro
+
+on:
+  push:
+    branches:
+      - review/wp506-main-plan-frame-cycle-repro-20260829
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  falsifier:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install test dependency
+        run: python -m pip install pytest
+      - name: Compile
+        run: python -m py_compile src/frankenstein2/gwt_workspace.py src/frankenstein2/grid10_interface.py tests/falsifiers/test_wp506_plan_frame_cycle_binding_falsifier.py
+      - name: Execute exact-main plan/frame/cycle falsifier
+        env:
+          PYTHONPATH: src
+        run: python -m pytest -q tests/falsifiers/test_wp506_plan_frame_cycle_binding_falsifier.py
