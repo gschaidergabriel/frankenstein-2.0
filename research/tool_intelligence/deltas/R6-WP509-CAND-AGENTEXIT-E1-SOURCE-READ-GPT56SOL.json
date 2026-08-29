@@ -1,0 +1,111 @@
+{
+  "schema": "FRANKENSTEIN2_TRIGGER6_SOURCE_READ_E1/v1",
+  "research_id": "R6-WP509-CAND-AGENTEXIT",
+  "trigger": "6",
+  "slot": "SOURCE_ARCHAEOLOGIST",
+  "status": "E1_SOURCE_READ_COMPLETE_PATTERN_DONOR_ONLY",
+  "created_at": "2026-08-29T15:12:00+07:00",
+  "claim": {
+    "path": "research/tool_intelligence/claims/R6-WP509-CAND-AGENTEXIT/E1_SOURCE_READ_AGENTEXIT_PIN_9747F023.json",
+    "commit": "28edf97782f7760af6167c2aeafb61a2fad6c066",
+    "credit_from_claim": 0
+  },
+  "architecture_delta_fusion": {
+    "f2_main_at_result_start": "5d86fe32668efa790333ec5ca7d1c8117b6f937e",
+    "research_entity_main_observed": "cf5f433597b419278fb2b3e07575e90edef597a8",
+    "supervisor": "9.13 / 9.13AQ_NON_AUTHORITY / FREE_ONLY",
+    "supervisor_source": "research_entity/claycode/autonomous/SUPERVISOR_INBOX.json",
+    "trigger6_parent_fusion": "R6-WP509-RUMINATION-STOPPING-SCOUT-001@9ed69237f0c994d0dd712d99ae0504178d066a28",
+    "parallel_wp509_e1": "R6-WP509-LANGGRAPH-STOP-001@12560047d720b36308153a2e2e250878d694efba",
+    "collision_adjudication": "NON_DUPLICATE_DONOR_MECHANISM: LangGraph contributes runtime-managed step budget/pre-dispatch gate/cooperative drain; AgentExit contributes expected-failure early handoff/delegation after observed trajectory accumulation.",
+    "staleness_rule": "If WP509 ABI/policy or owner/supervisor authority changes, mark this fit conclusion STALE_REVIEW_REQUIRED before E2/E3 work."
+  },
+  "external_source": {
+    "repository": "Coldmist-Lu/AgentExit",
+    "source_commit": "9747f0237fc91aa0445d4cc8630bf0fa4c22022c",
+    "source_commit_date": "2025-04-17",
+    "repository_archived": false,
+    "license": "MIT",
+    "files_read": [
+      "README.md",
+      "LICENSE",
+      "agentboard/agents/react_style_agent_extrinsic_intrinsic.py",
+      "agentboard/agents/verify_utils.py",
+      "agentboard/agents/react_style_agent_verify.py",
+      "agentboard/agents/react_style_agent_history.py",
+      "agentboard/eval_main_agentexit.py",
+      "agentboard/tasks/alfworld.py",
+      "agentboard/environment/alfworld/alfworld_env.py"
+    ],
+    "packaging_observation": "No requirements, pyproject or setup.py path was observed in the pinned recursive tree search despite README guidance to run pip install -e agentboard; treat packaging/reproduction hygiene as unresolved until independently reproduced."
+  },
+  "observed_mechanisms": [
+    {
+      "id": "AGENTEXIT-TRAJECTORY-CONDITIONED-EARLY-HANDOFF",
+      "observation": "The extrinsic+intrinsic agent accumulates a trajectory, invokes a verifier after a fixed action-count threshold, and if predicted failure is returned, switches the prompt into an intrinsic capability check that permits an explicit EXIT action.",
+      "f2_fit": "HIGH_AS_PATTERN_ONLY",
+      "reason": "This is a distinct control idea from a hard iteration ceiling: stop/delegate when marginal expected progress is poor, while preserving the trajectory for a stronger/alternate continuation path."
+    },
+    {
+      "id": "AGENTEXIT-EXPLICIT-EXIT-ACTION",
+      "observation": "EXIT is represented as an explicit action and terminates the weak-agent loop while retaining history.",
+      "f2_fit": "MEDIUM_HIGH_AS_TYPED_CONTROL_PATTERN",
+      "reason": "F2 can map the principle to typed CONTINUE/HOLD/ASK/DELEGATE/STOP candidates without treating natural-language completion or model self-report as authority."
+    },
+    {
+      "id": "AGENTEXIT-LLM-SUCCESS-VERIFIER",
+      "observation": "verify_utils.Verify asks a provider-backed LLM whether the current trajectory is likely to finish in the next k steps and interprets the Yes/No response as a failure signal.",
+      "f2_fit": "REJECT_AS_AUTHORITY",
+      "reason": "Provider/model judgment cannot mint control truth, completion or world fact under F2/EntityOS evidence law, and current FREE_ONLY authority keeps provider routes unadmitted."
+    },
+    {
+      "id": "AGENTEXIT-HISTORY-RETRIEVAL-VARIANT",
+      "observation": "The history variant adds FAISS, transformers, InstructorEmbedding, Hugging Face model loading and CUDA use for trajectory similarity.",
+      "f2_fit": "LOW_FOR_WP509_CORE",
+      "reason": "It is resource-heavy relative to the narrow anti-rumination blocker and introduces unnecessary model/dependency surface."
+    }
+  ],
+  "source_static_risks": [
+    {
+      "severity": "MEDIUM",
+      "finding": "react_style_agent_extrinsic_intrinsic.py initializes intrinsic_using_flag only when extrinsic_exit is configured while make_prompt reads the flag generally.",
+      "classification": "SOURCE_STATIC_RISK_ONLY_NOT_RUNTIME_REPRODUCED"
+    },
+    {
+      "severity": "HIGH_ON_SHORT_THOUGHT_PATH",
+      "finding": "The intrinsic prompt map defines short_thought while one short-thought access uses thought_short, a source-level key mismatch.",
+      "classification": "SOURCE_STATIC_DEFECT_CANDIDATE_NOT_RUNTIME_REPRODUCED"
+    },
+    {
+      "severity": "MEDIUM",
+      "finding": "Observed action-count trigger thresholds differ across agent variants (>15 vs >5), indicating benchmark policy rather than a reusable invariant.",
+      "classification": "TRANSFER_LIMIT"
+    }
+  ],
+  "negative_evidence_and_transfer_limits": [
+    "AgentExit is a benchmark/evaluation codebase, not a narrow WP509 control library.",
+    "Its core success/failure decision is model/provider mediated rather than deterministic evidence-bound progress measurement.",
+    "Fixed action thresholds are not task-independent rumination semantics.",
+    "Full import would bring benchmark orchestration, environment and optional heavy retrieval dependencies that F2 does not need.",
+    "No AgentExit runtime behavior was executed in this Trigger-6 invocation; E1 source read is the evidence ceiling."
+  ],
+  "distilled_integration_hypothesis": {
+    "dependency_policy": "DO_NOT_IMPORT_AGENTEXIT_RUNTIME",
+    "donor_scope": "pattern only: explicit early handoff/delegation when evidence indicates poor marginal progress, with trajectory/state preserved for continuation",
+    "f2_native_contract_candidate": "ProgressAwareExitGate consumes provenance-bound deterministic deltas from StateFingerprint, PredictionContract residual/change, AgencyState open-loop age/change, newly admitted observations/effect receipts and repetition/novelty counters; it emits a candidate CONTINUE|HOLD|ASK|DELEGATE|STOP decision plus evidence digest and generation. It cannot mint COMPLETE, world truth, effects or canonical state.",
+    "relationship_to_langgraph_wp509_e1": "Complementary: LangGraph supplies read-only remaining-budget and cooperative drain patterns; AgentExit supplies expected-poor-progress handoff semantics. A future native gate should combine deterministic budget exhaustion with evidence-backed progress stagnation, not import either orchestration framework.",
+    "counterhypothesis": "A deterministic progress/stagnation gate may terminate productive long-horizon reasoning whose useful evidence arrives sparsely or after long plateaus; fixed-window novelty/residual metrics may reward superficial churn or punish deliberate waiting.",
+    "falsifier": "On matched synthetic/replayed trajectories, reject or redesign the gate if it stops/delegates trajectories that subsequently recover measurable task-state progress at a rate that materially outweighs saved compute/loop budget, or if superficial state churn can systematically evade the stop condition.",
+    "next_stage": "E2_ISOLATED_MECHANISM_REPRODUCED only after a fresh create-only claim: reproduce the pinned AgentExit early-exit control semantics locally with a pure stub verifier and no network/provider/model dependency, proving continue-before-threshold, failure-triggered exit eligibility, explicit EXIT termination and trajectory preservation. Then compare against the existing F2 WP509 native controller before any E3 wrapper proposal."
+  },
+  "credits": {
+    "research_credit": "E1_SOURCE_READ_ONLY",
+    "architecture_credit": 0,
+    "integration_credit": 0,
+    "runtime_credit": 0,
+    "provider_credit": 0,
+    "physical_grid10_credit": 0,
+    "training_credit": 0,
+    "whole_system_credit": 0
+  }
+}
