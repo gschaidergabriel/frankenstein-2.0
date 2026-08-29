@@ -1,33 +1,48 @@
 #!/usr/bin/env python3
 """Deterministic generic coding-agent install-route planner.
 
-F2-WP-1104 generation 1.
+F2-WP-1104 generation 2.
 
-This module is deliberately thin. It consumes the generic semantic host capability
-report produced by :mod:`frankenstein2.host_adapter_abi` and turns that evidence into
-a route candidate for an otherwise-unrecognized local coding-agent host.
+The route planner consumes a semantic host capability report plus a WP1104-owned
+producer-bound assessment envelope. Positive generic-host routing is permitted only
+when the report can be deterministically recomputed by the canonical WP1101
+``assess_host_adapter`` producer from explicit environment/lifecycle/capability inputs.
+A report digest or internally self-consistent report fields are not producer lineage.
 
-It does not probe a host, install a package, touch the filesystem, call a provider,
-or grant physical-host / completion credit. Generic product-name recognition is not
-compatibility evidence: NATIVE is available only when the exact release and exact
-host-environment have an independently VERIFIED native-support record.
+This module does not probe a host, install a package, touch the filesystem, call a
+provider, or grant physical-host / completion credit. Generic product-name recognition
+is not compatibility evidence: NATIVE is available only when the exact release and
+exact host-environment have independently VERIFIED native-support evidence.
 """
 from __future__ import annotations
 
-from dataclasses import asdict, dataclass
+from dataclasses import asdict, dataclass, field
 from enum import Enum
 import hashlib
 import json
 import re
+from typing import Iterable
 
-from .host_adapter_abi import AdapterClass, CAPABILITY_REPORT_SCHEMA, HostCapabilityReport
+from .host_adapter_abi import (
+    AdapterClass,
+    CAPABILITY_REPORT_SCHEMA,
+    DEFAULT_REQUIRED_CAPABILITIES,
+    DEFAULT_REQUIRED_ROLES,
+    CapabilityObservation,
+    HostCapabilityReport,
+    LifecycleBinding,
+    TargetEnvironmentBinding,
+    assess_host_adapter,
+)
 
 
-ROUTE_SCHEMA = "FRANKENSTEIN2_GENERIC_AGENT_ROUTE/v1"
+ROUTE_SCHEMA = "FRANKENSTEIN2_GENERIC_AGENT_ROUTE/v2"
 RELEASE_SCHEMA = "FRANKENSTEIN2_GENERIC_AGENT_RELEASE_BINDING/v1"
 NATIVE_SUPPORT_SCHEMA = "FRANKENSTEIN2_GENERIC_AGENT_NATIVE_SUPPORT/v1"
+ASSESSMENT_EVIDENCE_SCHEMA = "FRANKENSTEIN2_GENERIC_AGENT_ASSESSMENT_EVIDENCE/v1"
 SHA256_RE = re.compile(r"^[0-9a-f]{64}$")
 GIT_OBJECT_RE = re.compile(r"^[0-9a-f]{40,64}$")
+_ASSESSMENT_ORIGIN = object()
 
 
 class GenericAgentRouteError(ValueError):
@@ -78,17 +93,7 @@ def _require_git_object(value: str, label: str) -> str:
 
 
 def _validate_capability_report_consistency(report: HostCapabilityReport) -> None:
-    """Reject caller-forged report states before WP1104 consumes direct fields.
-
-    ``HostCapabilityReport`` is a frozen dataclass, but frozen does not make a value
-    provenance-authenticated: callers can directly construct or ``replace`` instances.
-    WP1104 therefore revalidates the classification-deficit relationship that the
-    canonical ``assess_host_adapter`` factory establishes.
-
-    This guard intentionally does not recompute host observations or mint runtime
-    evidence. It only rejects impossible report combinations at this trust boundary.
-    """
-
+    """Reject impossible caller-supplied report states before field consumption."""
     if type(report) is not HostCapabilityReport:
         raise GenericAgentRouteError("CAPABILITY_REPORT_EXACT_TYPE_REQUIRED")
     if report.schema != CAPABILITY_REPORT_SCHEMA:
@@ -137,6 +142,95 @@ def _validate_capability_report_consistency(report: HostCapabilityReport) -> Non
         raise GenericAgentRouteError("CAPABILITY_REPORT_NATIVE_WITHOUT_COMPLETE_NATIVE_SURFACE")
     if report.classification is AdapterClass.ADAPTED and report.native_surface_complete:
         raise GenericAgentRouteError("CAPABILITY_REPORT_ADAPTED_WITH_NATIVE_COMPLETE_SURFACE")
+
+
+@dataclass(frozen=True)
+class AssessedHostCapabilityEvidence:
+    """WP1104 producer-bound envelope around canonical WP1101 assessment inputs.
+
+    The public ``HostCapabilityReport`` remains directly constructible by design in its
+    owning WP1101 ABI. WP1104 therefore does not treat that object or its digest as proof
+    that assessment occurred. This envelope is created only by ``from_observations`` and
+    stores the exact inputs required to recompute the canonical report at consumption.
+
+    Runtime authenticity of ``evidence_ref`` values remains a later host/clean-machine
+    acceptance question; this component only closes the deterministic producer boundary.
+    """
+
+    schema: str
+    environment: TargetEnvironmentBinding
+    lifecycle_bindings: tuple[LifecycleBinding, ...]
+    capabilities: tuple[CapabilityObservation, ...]
+    declared_mode: AdapterClass
+    optional_roles: tuple[str, ...]
+    optional_capabilities: tuple[str, ...]
+    report: HostCapabilityReport
+    _origin: object = field(repr=False, compare=False)
+
+    def __post_init__(self) -> None:
+        if self.schema != ASSESSMENT_EVIDENCE_SCHEMA:
+            raise GenericAgentRouteError("ASSESSMENT_EVIDENCE_SCHEMA_MISMATCH")
+        if self._origin is not _ASSESSMENT_ORIGIN:
+            raise GenericAgentRouteError("ASSESSMENT_EVIDENCE_PRODUCER_ORIGIN_REQUIRED")
+        if type(self.environment) is not TargetEnvironmentBinding:
+            raise GenericAgentRouteError("ASSESSMENT_ENVIRONMENT_EXACT_TYPE_REQUIRED")
+        if type(self.report) is not HostCapabilityReport:
+            raise GenericAgentRouteError("ASSESSMENT_REPORT_EXACT_TYPE_REQUIRED")
+
+    @classmethod
+    def from_observations(
+        cls,
+        *,
+        environment: TargetEnvironmentBinding,
+        lifecycle_bindings: Iterable[LifecycleBinding],
+        capabilities: Iterable[CapabilityObservation],
+        declared_mode: AdapterClass,
+        optional_roles: Iterable[str] = ("BACKGROUND_WAKE",),
+        optional_capabilities: Iterable[str] = (),
+    ) -> "AssessedHostCapabilityEvidence":
+        lifecycle_tuple = tuple(lifecycle_bindings)
+        capability_tuple = tuple(capabilities)
+        optional_role_tuple = tuple(optional_roles)
+        optional_capability_tuple = tuple(optional_capabilities)
+        report = assess_host_adapter(
+            environment=environment,
+            lifecycle_bindings=lifecycle_tuple,
+            capabilities=capability_tuple,
+            declared_mode=declared_mode,
+            required_roles=DEFAULT_REQUIRED_ROLES,
+            required_capabilities=DEFAULT_REQUIRED_CAPABILITIES,
+            optional_roles=optional_role_tuple,
+            optional_capabilities=optional_capability_tuple,
+        )
+        return cls(
+            schema=ASSESSMENT_EVIDENCE_SCHEMA,
+            environment=environment,
+            lifecycle_bindings=lifecycle_tuple,
+            capabilities=capability_tuple,
+            declared_mode=declared_mode,
+            optional_roles=optional_role_tuple,
+            optional_capabilities=optional_capability_tuple,
+            report=report,
+            _origin=_ASSESSMENT_ORIGIN,
+        )
+
+    def recompute_report(self) -> HostCapabilityReport:
+        """Re-run the canonical producer and require exact report equality."""
+        if self._origin is not _ASSESSMENT_ORIGIN:
+            raise GenericAgentRouteError("ASSESSMENT_EVIDENCE_PRODUCER_ORIGIN_REQUIRED")
+        recomputed = assess_host_adapter(
+            environment=self.environment,
+            lifecycle_bindings=self.lifecycle_bindings,
+            capabilities=self.capabilities,
+            declared_mode=self.declared_mode,
+            required_roles=DEFAULT_REQUIRED_ROLES,
+            required_capabilities=DEFAULT_REQUIRED_CAPABILITIES,
+            optional_roles=self.optional_roles,
+            optional_capabilities=self.optional_capabilities,
+        )
+        if recomputed.canonical_json() != self.report.canonical_json():
+            raise GenericAgentRouteError("ASSESSMENT_EVIDENCE_REPORT_RECOMPUTE_MISMATCH")
+        return recomputed
 
 
 @dataclass(frozen=True)
@@ -266,6 +360,30 @@ class GenericAgentRouteCandidate:
         return hashlib.sha256(self.canonical_json().encode("utf-8")).hexdigest()
 
 
+def _verify_positive_report_producer_lineage(
+    *,
+    report: HostCapabilityReport,
+    evidence: AssessedHostCapabilityEvidence | None,
+    environment_binding_digest: str,
+    state_lineage_id: str,
+) -> None:
+    """Require exact canonical producer re-entry for any non-BLOCKED route."""
+    if report.classification is AdapterClass.BLOCKED:
+        return
+    if evidence is None:
+        raise GenericAgentRouteError("CAPABILITY_REPORT_PRODUCER_LINEAGE_REQUIRED")
+    if type(evidence) is not AssessedHostCapabilityEvidence:
+        raise GenericAgentRouteError("ASSESSMENT_EVIDENCE_EXACT_TYPE_REQUIRED")
+
+    recomputed = evidence.recompute_report()
+    if recomputed.canonical_json() != report.canonical_json():
+        raise GenericAgentRouteError("CAPABILITY_REPORT_PRODUCER_LINEAGE_MISMATCH")
+    if evidence.environment.binding_digest() != environment_binding_digest:
+        raise GenericAgentRouteError("ASSESSMENT_EVIDENCE_ENVIRONMENT_MISMATCH")
+    if evidence.environment.state_lineage_id != state_lineage_id:
+        raise GenericAgentRouteError("ASSESSMENT_EVIDENCE_STATE_LINEAGE_MISMATCH")
+
+
 def plan_generic_agent_route(
     *,
     host_family: str,
@@ -276,14 +394,14 @@ def plan_generic_agent_route(
     state_lineage_id: str,
     durable_state_root: str,
     state_root_class: StateRootClass,
+    capability_evidence: AssessedHostCapabilityEvidence | None = None,
     native_support: NativeSupportEvidence | None = None,
 ) -> GenericAgentRouteCandidate:
     """Plan one generic coding-agent route from explicit evidence only.
 
-    The capability report remains the authority for lifecycle/capability readiness.
-    This function cannot upgrade a BLOCKED or DEGRADED report. A report that says
-    NATIVE is deliberately reduced to ADAPTED unless exact release-specific native
-    support is independently VERIFIED for the same environment and host family.
+    Positive ADAPTED/DEGRADED/NATIVE routing requires a producer-bound assessment
+    envelope whose stored report is recomputed at this consumer boundary. BLOCKED is
+    allowed without producer proof because it grants no positive compatibility route.
     """
 
     host_family = _require_nonempty(host_family, "HOST_FAMILY")
@@ -308,6 +426,13 @@ def plan_generic_agent_route(
         raise GenericAgentRouteError("CAPABILITY_REPORT_MUST_NOT_HAVE_COMPLETION_AUTHORITY")
     if capability_report.physical_host_credit:
         raise GenericAgentRouteError("CAPABILITY_REPORT_MUST_NOT_HAVE_PHYSICAL_HOST_CREDIT")
+
+    _verify_positive_report_producer_lineage(
+        report=capability_report,
+        evidence=capability_evidence,
+        environment_binding_digest=environment_binding_digest,
+        state_lineage_id=state_lineage_id,
+    )
 
     release_digest = release.binding_digest()
     limitations = list(capability_report.limitations)
