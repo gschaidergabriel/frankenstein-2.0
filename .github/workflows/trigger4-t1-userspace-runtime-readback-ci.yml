@@ -1,0 +1,57 @@
+name: Trigger4 T1 Userspace Runtime Readback CI
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'src/frankenstein2/target_host_profile.py'
+      - 'src/frankenstein2/target_userspace_twin.py'
+      - 'src/frankenstein2/target_userspace_readback.py'
+      - 'tests/test_target_host_profile.py'
+      - 'tests/test_target_userspace_twin.py'
+      - 'tests/test_target_userspace_readback.py'
+      - 'tests/test_target_userspace_readback_oneshot.py'
+      - '.github/workflows/trigger4-t1-userspace-runtime-readback-ci.yml'
+  pull_request:
+    paths:
+      - 'src/frankenstein2/target_host_profile.py'
+      - 'src/frankenstein2/target_userspace_twin.py'
+      - 'src/frankenstein2/target_userspace_readback.py'
+      - 'tests/test_target_host_profile.py'
+      - 'tests/test_target_userspace_twin.py'
+      - 'tests/test_target_userspace_readback.py'
+      - 'tests/test_target_userspace_readback_oneshot.py'
+      - '.github/workflows/trigger4-t1-userspace-runtime-readback-ci.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  deterministic-t1-runtime-readback:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Compile exact T1 readback surface
+        run: >-
+          python -m py_compile
+          src/frankenstein2/target_host_profile.py
+          src/frankenstein2/target_userspace_twin.py
+          src/frankenstein2/target_userspace_readback.py
+          tests/test_target_host_profile.py
+          tests/test_target_userspace_twin.py
+          tests/test_target_userspace_readback.py
+          tests/test_target_userspace_readback_oneshot.py
+      - name: Run WP1201/WP1202 dependency suites and T1 readback falsifiers
+        env:
+          PYTHONPATH: src
+        run: |
+          python tests/test_target_host_profile.py -v
+          python tests/test_target_userspace_twin.py -v
+          python tests/test_target_userspace_readback.py -v
+          python tests/test_target_userspace_readback_oneshot.py -v
