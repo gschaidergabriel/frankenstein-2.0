@@ -7,6 +7,7 @@ from frankenstein2.cognitive_goal_inference_benchmark import (
     GoalInferenceBenchmarkError,
     always_abstain_policy,
     run_goal_inference,
+    score_goal_inference,
     seal_evaluator_goal_label,
 )
 from frankenstein2.cognitive_microworld import begin_episode
@@ -61,6 +62,45 @@ class WP804G2ProducerLineageRepairTests(unittest.TestCase):
                 expected_goal_id="goal-blue",
                 label_ref="label:g2-preseal-mutation",
                 label_sha256=h("label-g2-preseal-mutation"),
+            )
+
+    def test_postseal_choice_mutation_is_rejected_before_scoring(self) -> None:
+        """The scorer must revalidate the runner-produced choice, not trust the seal alone."""
+        f = fixture()
+        state, obs = begin_episode(f, episode_id="ep-g2-postseal-mutation", episode_generation=0)
+        candidates = goals()
+        r = run(f, sut="sut:g2-postseal-repair", run_id="run:wp804:g2-postseal-repair")
+        inference = run_goal_inference(
+            policy=always_abstain_policy,
+            run=r,
+            fixture=f,
+            observation=obs,
+            candidates=candidates,
+        )
+        label = seal_evaluator_goal_label(
+            run=r,
+            fixture=f,
+            state=state,
+            observation=obs,
+            candidates=candidates,
+            inference=inference,
+            expected_goal_id=None,
+            label_ref="label:g2-postseal-mutation",
+            label_sha256=h("label-g2-postseal-mutation"),
+        )
+
+        object.__setattr__(inference.choice, "decision", GOAL)
+        object.__setattr__(inference.choice, "goal_id", "goal-blue")
+
+        with self.assertRaisesRegex(GoalInferenceBenchmarkError, "inference choice producer binding mismatch"):
+            score_goal_inference(
+                run=r,
+                fixture=f,
+                state=state,
+                observation=obs,
+                candidates=candidates,
+                inference=inference,
+                label=label,
             )
 
 
