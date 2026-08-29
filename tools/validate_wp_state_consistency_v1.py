@@ -104,6 +104,20 @@ def _bind_terminal_reconciliation(
     return reconciliation
 
 
+def _claim_lifecycle_status(claim: dict, path: Path):
+    """Read admitted v1 claim lifecycle spelling without rewriting provenance.
+
+    Historical v1 claims may contain both a pointer-like ``state`` and a distinct
+    lifecycle ``status``. When ``status`` exists it is authoritative for this check;
+    current claims that omit it may use ``state`` as the compatibility spelling.
+    """
+    if "status" in claim:
+        return claim["status"]
+    if "state" in claim:
+        return claim["state"]
+    raise ValidationError(f"missing 'status' or 'state': {path}")
+
+
 def validate(root: Path, workpackage: str) -> list[str]:
     m = ACTIVE_RE.fullmatch(workpackage)
     if not m:
@@ -166,7 +180,7 @@ def validate(root: Path, workpackage: str) -> list[str]:
             raise ValidationError(f"active/claim mismatch: {field}")
 
     state_status = require(state_row, "status", state_path)
-    claim_status = require(claim, "status", matching)
+    claim_status = _claim_lifecycle_status(claim, matching)
     if state_status not in ALLOWED_STATES:
         raise ValidationError(f"unsupported STATE status: {state_status}")
 
