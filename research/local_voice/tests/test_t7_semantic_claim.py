@@ -149,6 +149,27 @@ class SemanticClaimTests(unittest.TestCase):
                 generation=1,
             )
 
+    def test_magpietts_subject_alias_is_precise_and_stable(self):
+        a = SemanticObjective.from_inputs(
+            family="german tts benchmark",
+            target_surface="source-only",
+            subject="magpietts-multilingual-357m",
+            evidence_scope="source-pin",
+            generation=1,
+        )
+        b = SemanticObjective.from_inputs(
+            family="german tts benchmark",
+            target_surface="source-only",
+            subject="nvidia-magpietts-multilingual-357m",
+            evidence_scope="source-pin",
+            generation=1,
+        )
+        self.assertEqual(a.semantic_key(), b.semantic_key())
+        self.assertEqual(
+            a.semantic_key(),
+            "b276dc6794c8a85989a3dad568a2d7db7cc38a3a14f2349a31a22f35f81e3657",
+        )
+
 
 if __name__ == "__main__":
     unittest.main()
