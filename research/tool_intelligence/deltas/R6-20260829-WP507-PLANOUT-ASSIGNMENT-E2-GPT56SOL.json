@@ -1,0 +1,177 @@
+{
+  "schema": "FRANKENSTEIN2_TRIGGER6_SOURCE_ARCHAEOLOGY_E2/v1",
+  "research_id": "R6-WP507-PLANOUT-ASSIGNMENT-001",
+  "trigger": "6",
+  "slot": "SOURCE_ARCHAEOLOGIST",
+  "status": "E2_ARCHITECTURE_MAPPED",
+  "created_at": "2026-08-29T15:03:00+07:00",
+  "claim": {
+    "path": "research/tool_intelligence/claims/R6-WP507-PLANOUT-ASSIGNMENT-001/E2_ARCHITECTURE_MAPPED.json",
+    "commit": "b51bdae9f220a2ee27da084056e294c04f1b74cc",
+    "credit_from_claim": 0
+  },
+  "architecture_snapshot": {
+    "f2_main_observed_before_result": "be6710141b4f4b4b1dbbf4417eee0200d238b9e0",
+    "wp507_claim_path": "workpackages/active/F2-WP-507.json",
+    "wp507_generation": 3,
+    "wp507_state": "CLAIMED",
+    "wp507_runtime_credit": 0,
+    "wp507_gwt_runtime_credit": 0,
+    "wp507_whole_system_acceptance": false,
+    "wp507_owned_source_observed_on_main": false,
+    "wp507_owned_source_probe": "src/frankenstein2/gwt_uptake.py returned 404 at current main during this archaeology"
+  },
+  "external_source": {
+    "repository": "facebookarchive/planout",
+    "repository_archived": true,
+    "source_commit": "eee764781054abb39f003133b00b88a73c8f8982",
+    "source_tree": "371e6f47424bff01359c675e98271d48a981b299",
+    "source_commit_date": "2020-04-19T18:06:05Z",
+    "files": [
+      {"path": "python/planout/ops/random.py", "blob_sha": "e076dad1659326c04e92a7770aa883cfe566825f"},
+      {"path": "python/planout/assignment.py", "blob_sha": "0818fa3050331098c67ae4b10774760eaa0bd01e"},
+      {"path": "python/planout/namespace.py", "blob_sha": "f832ca1345c8341374e7b2246f3a6e610ff4ba85"},
+      {"path": "python/planout/experiment.py", "blob_sha": "91cbcf56f9cba12b6680231fcbbd4b2bb9b972e1"},
+      {"path": "python/docs/04-logging.md", "blob_sha": "e33534d109754eeff4cb210a5e4ed0e0a9ce9fee"},
+      {"path": "python/docs/05.1-simple-namespaces.md", "blob_sha": "4015fef4fb1e3c58fed4743de20bd19e8249392e"},
+      {"path": "python/planout/test/test_random_ops.py", "blob_sha": "e54f175ea01859854e4eae858dcda7a12b9ad2a1"},
+      {"path": "python/planout/test/test_namespace.py", "blob_sha": "f172308640aae8ca2c31fd648d9e82da90903519"}
+    ]
+  },
+  "observed_mechanisms": [
+    {
+      "id": "PLANOUT-DETERMINISTIC-DOMAIN-SEPARATED-ASSIGNMENT",
+      "observation": "PlanOut random operators are deterministic functions of experiment salt, operator/variable salt and unit identity. The pinned Python implementation builds a salt-plus-unit string, hashes it with SHA-1, truncates the digest and derives deterministic integers/floats/choices from it.",
+      "transfer_fit": "HIGH_AS_PATTERN_ONLY"
+    },
+    {
+      "id": "PLANOUT-VARIABLE-SALT-AUTOBINDING",
+      "observation": "Assignment automatically uses the assigned variable name as an operator salt when no explicit salt is supplied; tests verify that changing variable or assignment salt changes assignments while an explicit full salt can deliberately equalize assignments across Assignment objects.",
+      "transfer_fit": "MEDIUM_PATTERN_FOR_EXPLICIT_DOMAIN_BINDING"
+    },
+    {
+      "id": "PLANOUT-NAMESPACE-NONOVERLAP",
+      "observation": "SimpleNamespace allocates sampled segments from an available-segment set, removes allocated segments, maps each segment to one experiment name and deterministically maps a primary unit to a segment.",
+      "transfer_fit": "HIGH_FOR_MUTUALLY_EXCLUSIVE_INTERVENTION_CLASSES"
+    },
+    {
+      "id": "PLANOUT-EXPOSURE-LOGGING",
+      "observation": "Experiment parameter access can lazily trigger a one-per-instance exposure log. The log binds experiment name, time, salt, inputs, assigned params and a source checksum; logging can also be made explicit/manual.",
+      "transfer_fit": "LOW_AS_SEMANTICS_HIGH_AS_WARNING"
+    }
+  ],
+  "negative_evidence_and_transfer_limits": [
+    {
+      "id": "PLANOUT-NAMESPACE-HISTORY-DRIFT",
+      "severity": "HIGH",
+      "finding": "The SimpleNamespace documentation states that allocation state is not stored and is dependent on the full setup history; inserting earlier add/remove calls can move segments between experiments.",
+      "f2_consequence": "Do not transplant SimpleNamespace state or append-order semantics. F2 assignment must bind a versioned immutable experiment plan/assignment identity so later plan edits cannot silently reinterpret old units."
+    },
+    {
+      "id": "PLANOUT-EXPOSURE-IS-NOT-UPTAKE",
+      "severity": "CRITICAL_FOR_WP507",
+      "finding": "PlanOut auto-exposure can be emitted when a parameter is fetched; its own documentation distinguishes preparation/assignment from actual exposure and supports manual logging when the parameter may not yet affect the user.",
+      "f2_consequence": "Never map PlanOut exposure directly to WP507 UPTAKEN or causal influence. F2 must preserve ASSIGNED/OFFERED/DELIVERED/UPTAKEN/DOWNSTREAM_DELTA as separate evidence states."
+    },
+    {
+      "id": "PLANOUT-HASH-ALGORITHM-NOT-A-DONOR-ABI",
+      "severity": "HIGH",
+      "finding": "The pinned runtime uses SHA-1 plus string concatenation and truncated digest arithmetic for deterministic randomization.",
+      "f2_consequence": "Reuse only deterministic domain separation. Do not adopt SHA-1/string concatenation as the F2 ABI. Use F2 canonical serialization plus an explicit digest algorithm/domain/version bound into the assignment receipt."
+    },
+    {
+      "id": "PLANOUT-DOC-CODE-CHECKSUM-CONTRADICTION",
+      "severity": "MEDIUM",
+      "finding": "The pinned logging documentation describes an MD5 code checksum, while the pinned Python Experiment implementation computes a truncated SHA-1 checksum of assignment source/script.",
+      "f2_consequence": "Do not rely on prose labels for reproducibility identity. Bind exact source/artifact digest and algorithm in machine-readable receipts."
+    },
+    {
+      "id": "PLANOUT-ARCHIVED-RUNTIME",
+      "severity": "HIGH",
+      "finding": "The upstream repository is archived and read-only.",
+      "f2_consequence": "Reject direct runtime dependency adoption for this gate; concept distillation only."
+    }
+  ],
+  "f2_distillation": {
+    "verdict": "CONCEPT_DISTILL_RECOMMENDED_NO_LIBRARY_IMPORT",
+    "proposed_primitive": "DeterministicInterventionAssignment",
+    "purpose": "Generate a replay-stable assignment for WP507 matched intervention/control probes without becoming evidence or effect authority.",
+    "minimum_input_identity": [
+      "assignment_schema_version",
+      "experiment_or_probe_id",
+      "matched_pair_id",
+      "unit_or_recipient_identity",
+      "intervention_domain_version",
+      "candidate_treatment_classes_digest",
+      "canonical_non_broadcast_input_digest"
+    ],
+    "candidate_treatment_classes": [
+      "REAL_BROADCAST",
+      "WITHHELD_BROADCAST",
+      "SHUFFLED_RECIPIENT_BROADCAST",
+      "SEMANTIC_PLACEBO_BROADCAST"
+    ],
+    "required_output": [
+      "assignment_id",
+      "assignment_digest",
+      "selected_treatment_class",
+      "assignment_algorithm_id",
+      "assignment_domain_version",
+      "input_identity_digest"
+    ],
+    "invariants": [
+      "Same canonical assignment identity and version must replay to the same treatment class.",
+      "Changing experiment domain/version must deliberately change assignment identity rather than silently reinterpret prior evidence.",
+      "Mutually exclusive treatment classes must never overlap for one assignment identity.",
+      "Assignment is not delivery, uptake, downstream influence, world truth or effect success.",
+      "Assignment output is candidate experiment-control metadata only and cannot bypass UnifiedDB/evidence authority or EffectGate/EffectJournal.",
+      "Historical assignment receipts must remain interpretable after later experiment-plan edits."
+    ],
+    "recommended_architecture_shape": "Pure deterministic F2-native function plus immutable/versioned assignment receipt; no second mutable allocation database, no PlanOut runtime dependency, and no PlanOut exposure semantics imported into GWT evidence states."
+  },
+  "hypothesis": {
+    "statement": "A versioned deterministic assignment primitive distilled from PlanOut's salt/unit namespace pattern can reduce allocation drift and treatment overlap in WP507 matched intervention/control tests while preserving F2 evidence authority boundaries.",
+    "confidence": 0.86
+  },
+  "counterhypotheses": [
+    {
+      "id": "CH-PLANOUT-WP507-1",
+      "statement": "A direct fixed alternation or explicit caller-supplied treatment class is simpler and equally reproducible; hash/domain assignment adds no information.",
+      "discriminator": "E3 fixture should compare replay stability, accidental overlap, order sensitivity and plan-edit behavior for explicit alternation versus a versioned canonical-digest assignment. If explicit assignment preserves all invariants with lower complexity, reject the digest allocator."
+    },
+    {
+      "id": "CH-PLANOUT-WP507-2",
+      "statement": "Deterministic assignment can create hidden confounding if the unit identity or domain is correlated with downstream recipient behavior.",
+      "discriminator": "Use paired controls and assignment-balance diagnostics; treatment assignment alone must never be taken as causal proof."
+    },
+    {
+      "id": "CH-PLANOUT-WP507-3",
+      "statement": "Namespace segmentation is unnecessary for the immediate two-run WP507 matched-pair gate and adds avoidable machinery.",
+      "discriminator": "Keep E3 scoped to a minimal pure assignment function; only add namespace allocation if concurrent/multi-treatment experiments demonstrate a concrete collision/isolation failure."
+    }
+  ],
+  "recommended_next_trigger6_objective": {
+    "slot": "EXPERIMENTAL_FALSIFIER",
+    "research_id": "R6-WP507-PLANOUT-ASSIGNMENT-001",
+    "claim_target": "E3_CLAIM_REPRODUCED_ASSIGNMENT_STABILITY",
+    "task": "Build a source-equivalent deterministic fixture that reproduces the pinned PlanOut salt/unit assignment invariants, then compare them against a minimal F2-native canonical-digest assignment under replay, treatment-set reorder, plan-version change and historical-receipt re-entry. Do not grant WP507 causal or runtime credit from the fixture.",
+    "evidence_ceiling": "E3_CLAIM_REPRODUCED"
+  },
+  "trigger4_handoff": {
+    "status": "NOT_YET_ELIGIBLE",
+    "reason": "This result is E2 only. Trigger-4 build/integration inbox handoff requires a later E5 BUILD_CANDIDATE."
+  },
+  "database_sync": {
+    "pending_research_sqlite": "SYNC_PENDING",
+    "reason": "No conflict-safe admitted binary SQLite update was performed by this organ; this append-only source result does not pretend database synchronization."
+  },
+  "credits": {
+    "research_stage": "E2_ARCHITECTURE_MAPPED",
+    "architecture_acceptance_credit": 0,
+    "runtime_credit": 0,
+    "gwt_runtime_credit": 0,
+    "jspace_runtime_credit": 0,
+    "integration_credit": 0,
+    "whole_system_credit": 0
+  }
+}
