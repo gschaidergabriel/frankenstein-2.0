@@ -1,0 +1,113 @@
+{
+  "schema": "FRANKENSTEIN2_TRIGGER6_RESEARCH_RESULT/v1",
+  "research_id": "R6-20260829-EXACT-SOURCE-VPS-HYGIENE-GPT56SOL-01",
+  "evidence_stage": "E2_ARCHITECTURE_MAPPED",
+  "status": "PASS_AT_E2_SCOPE",
+  "created_at": "2026-08-29T22:21:00+07:00",
+  "worker": "GPT-5.6 Sol / ChatGPT organ",
+  "architecture_snapshot": {
+    "f2_head_before_final_distillation": "e076547c42d17739fd0f1790b5892973340fb582",
+    "research_entity_head_observed": "559386d6867a17079a2a8c40d35d065fba3ab8e4",
+    "canonical_supervisor": "8.78",
+    "supplemental_counterevidence": "research_entity/claycode/autonomous/SUPERVISOR_STEERING_9_13AY_DELTA_2026-08-29T2142P0700_GPT56SOL.json"
+  },
+  "problem": "The owner-VPS is alive, but the observed /workspace checkout is stale and dirty. Current supervisor counterevidence forbids promotion-bearing runtime credit from that checkout and explicitly requires a clean exact-source disposable worktree/container or byte-identical source proof while preserving the dirty worker workspace.",
+  "source_archaeology": {
+    "f2_wp004_runtime_contract": "telemetry/RUN_PACKAGE_CONTRACT.md",
+    "f2_wp004_runtime_verifier": "runpackages/verify_run_package.py",
+    "f2_wp004_runtime_tests": "tests/test_verify_run_package.py",
+    "f2_wp004_runpackages_readme": "runpackages/README.md",
+    "observed_authority_drift": [
+      "telemetry/RUN_PACKAGE_CONTRACT.md says the active ABI is runpackages/RUN_PACKAGE_SCHEMA_V1.json / FRANKENSTEIN2_IMMUTABLE_RUN_PACKAGE/v1 and describes closure-style schemas as historical donors",
+      "at F2 commit 068f4551d1a7f1318e7ea39721772f155f48c6dc the runpackages directory contains README.md and verify_run_package.py but no RUN_PACKAGE_SCHEMA_V1.json",
+      "runpackages/README.md says the opposite: manifest.json + ARTIFACTS.json + SHA256SUMS + CLOSED.json is canonical and the single-MANIFEST immutable package is historical",
+      "runpackages/verify_run_package.py actually enforces FRANKENSTEIN2_RUN_PACKAGE_MANIFEST/v1 plus ARTIFACTS/SHA256SUMS/CLOSED and validates source_commit_before/source_commit_after, but has no source-tree or execution-root byte-manifest field",
+      "tests/test_verify_run_package.py exercise the closure-style verifier with source_commit_before/source_commit_after rather than the prose-described missing ABI"
+    ],
+    "consequence": "Trigger4 must reconcile the WP004 authority surfaces against the executable verifier before extending the run-package ABI. Trigger6 must not create a competing package authority."
+  },
+  "primary_external_sources": [
+    {
+      "source": "Git worktree documentation",
+      "url": "https://git-scm.com/docs/git-worktree",
+      "mapped_mechanism": "git worktree add --detach <path> <commit-ish> creates a separate detached checkout suitable for testing without disturbing an existing dirty worktree"
+    },
+    {
+      "source": "Git status documentation",
+      "url": "https://git-scm.com/docs/git-status.html",
+      "mapped_mechanism": "--porcelain=v2 is script-oriented and stable; --untracked-files=all enumerates individual untracked files; --ignore-submodules=none avoids silently hiding dirty submodule state"
+    },
+    {
+      "source": "Git attributes documentation",
+      "url": "https://git-scm.com/docs/gitattributes",
+      "mapped_mechanism": "checkout clean/smudge/text/ident transformations mean Git object/tree identity and a clean status do not by themselves prove raw worktree byte identity"
+    },
+    {
+      "source": "SLSA provenance v1 model (analogy only, not a compliance claim)",
+      "url": "https://slsa.dev/spec/v1.1/provenance",
+      "mapped_mechanism": "bind execution inputs/dependencies and digests into explicit provenance rather than infer them from a path name"
+    }
+  ],
+  "hypothesis": "A non-destructive disposable detached worktree plus explicit commit/tree equality, machine-readable dirty-state exclusion, and a deterministic manifest over the actual runtime source bytes can close the execution-root identity gap without resetting the existing dirty workspace or importing a heavyweight integrity framework.",
+  "counterhypotheses": [
+    {
+      "claim": "Recording a Git commit in the existing run package is already enough.",
+      "resolution": "FALSIFIED_AT_ARCHITECTURE_SCOPE: current supervisor evidence observed a stale dirty execution checkout while F2 evidence surfaces can still carry source commit strings. The verifier does not bind the actual executing worktree tree/bytes."
+    },
+    {
+      "claim": "A clean Git status plus HEAD commit is byte-identity proof.",
+      "resolution": "REJECTED_AS_TOO_STRONG: Git attributes can transform checkout bytes; therefore actual source bytes must be digested separately when byte identity matters."
+    },
+    {
+      "claim": "Mandatory fs-verity is the right baseline solution.",
+      "resolution": "NOT_SELECTED: concurrent Trigger6 evidence R6-WP510-FSVERITY-EXACTSOURCE-001 reached E3 and concluded fs-verity should remain optional defense-in-depth; process consumption binding belongs in the separate WP1207 ReleaseConsumptionWitness."
+    }
+  ],
+  "layering": {
+    "layer_1_execution_root": "This research: requested commit/tree -> separate detached worktree -> clean-state proof -> actual source-byte manifest before/after -> run receipt.",
+    "layer_2_consumed_bytes": "Concurrent R6-WP510-FSVERITY-EXACTSOURCE-001: acquire once, hash and consume the same bytes at loader/import boundary. This is complementary, not duplicated authority.",
+    "layer_3_run_package": "F2-WP-004 packages the evidence at declared scope after its current authority drift is reconciled."
+  },
+  "candidate_execution_proof": {
+    "schema_candidate": "FRANKENSTEIN2_SOURCE_EXECUTION_PROOF/v1",
+    "authority_role": "NONCANONICAL_EVIDENCE_WITNESS_ONLY",
+    "required_fields": [
+      "requested_commit",
+      "requested_tree",
+      "actual_head_commit",
+      "actual_head_tree",
+      "worktree_status_porcelain_v2_sha256",
+      "worktree_clean",
+      "source_manifest_sha256_pre",
+      "source_manifest_sha256_post",
+      "source_manifest_algorithm_version",
+      "submodule_policy_and_observations",
+      "checkout_filter_policy_and_observations",
+      "original_workspace_preserved",
+      "execution_root",
+      "run_identity",
+      "cleanup_status"
+    ],
+    "source_manifest_rules": [
+      "hash deterministic path/type/mode/size/SHA-256 records for actual runtime-relevant files, excluding only explicitly declared Git administrative metadata/output roots",
+      "record symlink targets and reject or separately authorize paths that escape the execution root",
+      "treat submodules and checkout/content filters as explicit identity surfaces rather than silently inheriting parent-tree credit",
+      "keep writable outputs/logs/state outside the source root when feasible",
+      "recompute after execution; any mismatch taints promotion credit"
+    ]
+  },
+  "limitations_and_falsifiers": [
+    "Pre/post manifests bound the source state before and after the run but do not by themselves exclude a transient mid-run mutation; stronger same-object consumption or an actually read-only source mount is needed for that stronger claim.",
+    "This execution-root proof does not prove that a model/loader consumed the verified bytes; the concurrent ReleaseConsumptionWitness addresses that separate layer.",
+    "If Trigger4 discovers an already-current executable F2 primitive that proves requested commit/tree, clean-state exclusion and actual source bytes at the exact execution root, reduce this candidate to receipt/schema reconciliation instead of adding a duplicate runner.",
+    "If WP004 canonical authority is repaired to a different successor ABI before integration, this result becomes STALE_REVIEW_REQUIRED and must be remapped rather than force-fitted."
+  ],
+  "credit": {
+    "research_stage": "E2_ARCHITECTURE_MAPPED",
+    "f2_ablation": 0,
+    "target_runtime": 0,
+    "physical_target": 0,
+    "whole_system": 0,
+    "training": 0
+  }
+}
