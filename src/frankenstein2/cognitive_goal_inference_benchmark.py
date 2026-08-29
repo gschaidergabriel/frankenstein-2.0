@@ -1,9 +1,10 @@
 """F2-WP-804 deterministic held-out goal-inference benchmark.
 
 Policy input is restricted to exact public ObservationView values and immutable public
-CandidateGoal values. Evaluator labels are sealed only after policy output exists.
-Agreement is benchmark evidence only; it never grants goal-adoption, effect,
-completion, runtime, GRID/GWT/J-Space, training or world-truth authority.
+CandidateGoal values. Evaluator labels require a sealed policy inference and are constrained
+by identifiability from the same declared public evidence. Agreement is benchmark evidence
+only; it never grants goal-adoption, effect, completion, runtime, GRID/GWT/J-Space, training
+or world-truth authority.
 """
 from __future__ import annotations
 
@@ -33,7 +34,10 @@ EVALUATOR_CLASSIFICATION = "EVALUATOR_ONLY_NOT_POLICY_INPUT_OR_GOAL_AUTHORITY"
 SCORE_CLASSIFICATION = "BENCHMARK_MEASUREMENT_ONLY_NO_GOAL_ADOPTION_AUTHORITY"
 GOAL = "GOAL"
 ABSTAIN = "ABSTAIN"
+IDENTIFIABLE = "IDENTIFIABLE_FROM_DECLARED_PUBLIC_SIGNAL"
+NON_IDENTIFIABLE = "NON_IDENTIFIABLE_FROM_DECLARED_PUBLIC_SIGNAL"
 _ALLOWED_DECISIONS = frozenset((GOAL, ABSTAIN))
+_ALLOWED_IDENTIFIABILITY = frozenset((IDENTIFIABLE, NON_IDENTIFIABLE))
 _SHA256_RE = re.compile(r"^[0-9a-f]{64}$")
 _LABEL_ORIGIN = object()
 _SCORE_ORIGIN = object()
@@ -114,6 +118,25 @@ def candidate_set_digest(candidates: tuple[CandidateGoal, ...]) -> str:
     return _digest([item.as_dict() for item in candidates])
 
 
+def public_signal_matches(observation: ObservationView, candidates: tuple[CandidateGoal, ...]) -> tuple[str, ...]:
+    if type(observation) is not ObservationView:
+        raise GoalInferenceBenchmarkError("observation must be exact concrete ObservationView")
+    candidate_set_digest(candidates)
+    return tuple(item.goal_id for item in candidates if observation.observation_ref in item.public_signal_refs)
+
+
+def public_identifiability_digest(observation: ObservationView, candidates: tuple[CandidateGoal, ...]) -> str:
+    matches = public_signal_matches(observation, candidates)
+    return _digest(
+        {
+            "observation_sha256": observation.sha256(),
+            "candidate_set_sha256": candidate_set_digest(candidates),
+            "matching_goal_ids": list(matches),
+            "identifiability": IDENTIFIABLE if len(matches) == 1 else NON_IDENTIFIABLE,
+        }
+    )
+
+
 @dataclass(frozen=True, slots=True)
 class GoalChoice(_Digestible):
     schema: str
@@ -148,6 +171,7 @@ class GoalInference(_Digestible):
     run_descriptor_sha256: str
     fixture_id: str
     fixture_generation: int
+    public_fixture_sha256: str
     episode_id: str
     episode_generation: int
     observation_sha256: str
@@ -160,9 +184,10 @@ class GoalInference(_Digestible):
             raise GoalInferenceBenchmarkError("goal-inference schema/classification mismatch")
         _sha("run_descriptor_sha256", self.run_descriptor_sha256)
         _id("fixture_id", self.fixture_id)
-        _id("episode_id", self.episode_id)
         if type(self.fixture_generation) is not int or self.fixture_generation < 0:
             raise GoalInferenceBenchmarkError("fixture_generation must be a non-negative integer")
+        _sha("public_fixture_sha256", self.public_fixture_sha256)
+        _id("episode_id", self.episode_id)
         if type(self.episode_generation) is not int or self.episode_generation < 0:
             raise GoalInferenceBenchmarkError("episode_generation must be a non-negative integer")
         _sha("observation_sha256", self.observation_sha256)
@@ -199,8 +224,16 @@ def run_goal_inference(*, policy: Policy, run: RunDescriptor, fixture: MicroWorl
     if choice.goal_id is not None and choice.goal_id not in {item.goal_id for item in candidates}:
         raise GoalInferenceBenchmarkError("policy selected goal outside candidate set")
     return GoalInference(
-        GOAL_INFERENCE_SCHEMA, run.sha256(), observation.fixture_id, observation.fixture_generation,
-        observation.episode_id, observation.episode_generation, observation.sha256(), candidate_digest, choice,
+        GOAL_INFERENCE_SCHEMA,
+        run.sha256(),
+        observation.fixture_id,
+        observation.fixture_generation,
+        observation.public_fixture_sha256,
+        observation.episode_id,
+        observation.episode_generation,
+        observation.sha256(),
+        candidate_digest,
+        choice,
     )
 
 
@@ -219,38 +252,76 @@ def always_abstain_policy(observation: ObservationView, candidates: tuple[Candid
 
 
 def unique_public_signal_policy(observation: ObservationView, candidates: tuple[CandidateGoal, ...]) -> GoalChoice:
-    if type(observation) is not ObservationView:
-        raise GoalInferenceBenchmarkError("observation must be exact concrete ObservationView")
-    candidate_set_digest(candidates)
-    matches = tuple(item.goal_id for item in candidates if observation.observation_ref in item.public_signal_refs)
+    matches = public_signal_matches(observation, candidates)
     if len(matches) == 1:
         return GoalChoice.goal(matches[0], public_reason_refs=(observation.observation_ref,))
     return GoalChoice.abstain(public_reason_refs=(observation.observation_ref,))
 
 
+def _assert_inference_binding(*, run: RunDescriptor, fixture: MicroWorldFixture, state: EpisodeState,
+                              observation: ObservationView, candidates: tuple[CandidateGoal, ...],
+                              inference: GoalInference) -> None:
+    if type(run) is not RunDescriptor or type(inference) is not GoalInference:
+        raise GoalInferenceBenchmarkError("run/inference must be exact concrete benchmark values")
+    try:
+        run.assert_matches_fixture(fixture)
+    except CognitiveMicroWorldError as exc:
+        raise GoalInferenceBenchmarkError(str(exc)) from exc
+    candidate_digest = candidate_set_digest(candidates)
+    if inference.run_descriptor_sha256 != run.sha256():
+        raise GoalInferenceBenchmarkError("inference run descriptor binding mismatch")
+    if (inference.fixture_id, inference.fixture_generation, inference.public_fixture_sha256) != (
+        fixture.fixture_id,
+        fixture.generation,
+        fixture.public_sha256(),
+    ):
+        raise GoalInferenceBenchmarkError("inference fixture identity/generation mismatch")
+    if (inference.episode_id, inference.episode_generation) != (state.episode_id, state.episode_generation):
+        raise GoalInferenceBenchmarkError("inference episode identity/generation mismatch")
+    if (inference.observation_sha256, inference.candidate_set_sha256) != (observation.sha256(), candidate_digest):
+        raise GoalInferenceBenchmarkError("inference observation/candidate binding mismatch")
+
+
 @dataclass(frozen=True, slots=True)
 class EvaluatorGoalLabel(_Digestible):
     schema: str
+    run_descriptor_sha256: str
     fixture_sha256: str
     state_sha256: str
     observation_sha256: str
     candidate_set_sha256: str
+    public_identifiability_sha256: str
+    identifiability: str
     expected_decision: str
     expected_goal_id: str | None
     label_ref: str
     label_sha256: str
+    sealed_inference_sha256: str
     classification: str = EVALUATOR_CLASSIFICATION
     _origin: InitVar[object | None] = None
 
     def __post_init__(self, _origin: object | None) -> None:
         if self.schema != GOAL_LABEL_SCHEMA or self.classification != EVALUATOR_CLASSIFICATION:
             raise GoalInferenceBenchmarkError("evaluator label schema/classification mismatch")
-        for name in ("fixture_sha256", "state_sha256", "observation_sha256", "candidate_set_sha256", "label_sha256"):
+        for name in (
+            "run_descriptor_sha256",
+            "fixture_sha256",
+            "state_sha256",
+            "observation_sha256",
+            "candidate_set_sha256",
+            "public_identifiability_sha256",
+            "label_sha256",
+            "sealed_inference_sha256",
+        ):
             _sha(name, getattr(self, name))
+        if self.identifiability not in _ALLOWED_IDENTIFIABILITY:
+            raise GoalInferenceBenchmarkError("identifiability domain mismatch")
         if self.expected_decision not in _ALLOWED_DECISIONS:
             raise GoalInferenceBenchmarkError("expected_decision must be GOAL or ABSTAIN")
         if self.expected_decision == GOAL:
             _id("expected_goal_id", self.expected_goal_id)
+            if self.identifiability != IDENTIFIABLE:
+                raise GoalInferenceBenchmarkError("exact GOAL label requires public identifiability")
         elif self.expected_goal_id is not None:
             raise GoalInferenceBenchmarkError("ABSTAIN label must not carry expected_goal_id")
         _id("label_ref", self.label_ref)
@@ -258,21 +329,49 @@ class EvaluatorGoalLabel(_Digestible):
             raise GoalInferenceBenchmarkError("EvaluatorGoalLabel must be created by seal_evaluator_goal_label")
 
 
-def seal_evaluator_goal_label(*, fixture: MicroWorldFixture, state: EpisodeState,
-                              candidates: tuple[CandidateGoal, ...], expected_goal_id: str | None,
+def seal_evaluator_goal_label(*, run: RunDescriptor, fixture: MicroWorldFixture, state: EpisodeState,
+                              observation: ObservationView, candidates: tuple[CandidateGoal, ...],
+                              inference: GoalInference, expected_goal_id: str | None,
                               label_ref: str, label_sha256: str) -> EvaluatorGoalLabel:
     if type(fixture) is not MicroWorldFixture or type(state) is not EpisodeState:
         raise GoalInferenceBenchmarkError("fixture/state must be exact concrete evaluator values")
+    if type(observation) is not ObservationView:
+        raise GoalInferenceBenchmarkError("observation must be exact concrete ObservationView")
     try:
-        observation = observation_for_state(fixture, state)
+        expected_observation = observation_for_state(fixture, state)
     except CognitiveMicroWorldError as exc:
         raise GoalInferenceBenchmarkError(str(exc)) from exc
-    candidate_digest = candidate_set_digest(candidates)
-    if expected_goal_id is not None and expected_goal_id not in {item.goal_id for item in candidates}:
-        raise GoalInferenceBenchmarkError("expected goal is outside candidate set")
+    if observation != expected_observation:
+        raise GoalInferenceBenchmarkError("observation is stale or not evaluator-derived from state")
+    _assert_inference_binding(
+        run=run,
+        fixture=fixture,
+        state=state,
+        observation=observation,
+        candidates=candidates,
+        inference=inference,
+    )
+    matches = public_signal_matches(observation, candidates)
+    identifiability = IDENTIFIABLE if len(matches) == 1 else NON_IDENTIFIABLE
+    if identifiability == IDENTIFIABLE:
+        if expected_goal_id != matches[0]:
+            raise GoalInferenceBenchmarkError("exact evaluator goal label contradicts uniquely identifying public evidence")
+    elif expected_goal_id is not None:
+        raise GoalInferenceBenchmarkError("ambiguous public evidence cannot mint exact evaluator goal label")
     return EvaluatorGoalLabel(
-        GOAL_LABEL_SCHEMA, fixture.sha256(), state.sha256(), observation.sha256(), candidate_digest,
-        GOAL if expected_goal_id is not None else ABSTAIN, expected_goal_id, label_ref, label_sha256,
+        GOAL_LABEL_SCHEMA,
+        run.sha256(),
+        fixture.sha256(),
+        state.sha256(),
+        observation.sha256(),
+        candidate_set_digest(candidates),
+        public_identifiability_digest(observation, candidates),
+        identifiability,
+        GOAL if expected_goal_id is not None else ABSTAIN,
+        expected_goal_id,
+        label_ref,
+        label_sha256,
+        inference.sha256(),
         _origin=_LABEL_ORIGIN,
     )
 
@@ -282,6 +381,7 @@ class GoalInferenceScore(_Digestible):
     schema: str
     inference_sha256: str
     label_sha256: str
+    identifiability: str
     decision: str
     inferred_goal_id: str | None
     expected_decision: str
@@ -295,6 +395,8 @@ class GoalInferenceScore(_Digestible):
             raise GoalInferenceBenchmarkError("score schema/classification mismatch")
         _sha("inference_sha256", self.inference_sha256)
         _sha("label_sha256", self.label_sha256)
+        if self.identifiability not in _ALLOWED_IDENTIFIABILITY:
+            raise GoalInferenceBenchmarkError("score identifiability domain mismatch")
         if self.decision not in _ALLOWED_DECISIONS or self.expected_decision not in _ALLOWED_DECISIONS:
             raise GoalInferenceBenchmarkError("score decision domain mismatch")
         if type(self.correct) is not bool:
@@ -303,9 +405,9 @@ class GoalInferenceScore(_Digestible):
             raise GoalInferenceBenchmarkError("GoalInferenceScore must be created by score_goal_inference")
 
 
-def score_goal_inference(*, fixture: MicroWorldFixture, state: EpisodeState, observation: ObservationView,
-                         candidates: tuple[CandidateGoal, ...], inference: GoalInference,
-                         label: EvaluatorGoalLabel) -> GoalInferenceScore:
+def score_goal_inference(*, run: RunDescriptor, fixture: MicroWorldFixture, state: EpisodeState,
+                         observation: ObservationView, candidates: tuple[CandidateGoal, ...],
+                         inference: GoalInference, label: EvaluatorGoalLabel) -> GoalInferenceScore:
     if type(fixture) is not MicroWorldFixture or type(state) is not EpisodeState:
         raise GoalInferenceBenchmarkError("fixture/state must be exact concrete evaluator values")
     if type(observation) is not ObservationView:
@@ -315,19 +417,43 @@ def score_goal_inference(*, fixture: MicroWorldFixture, state: EpisodeState, obs
     expected_observation = observation_for_state(fixture, state)
     if observation != expected_observation:
         raise GoalInferenceBenchmarkError("observation is stale or not evaluator-derived from state")
+    _assert_inference_binding(
+        run=run,
+        fixture=fixture,
+        state=state,
+        observation=observation,
+        candidates=candidates,
+        inference=inference,
+    )
     candidate_digest = candidate_set_digest(candidates)
-    if (inference.fixture_id, inference.fixture_generation) != (fixture.fixture_id, fixture.generation):
-        raise GoalInferenceBenchmarkError("inference fixture identity/generation mismatch")
-    if (inference.episode_id, inference.episode_generation) != (state.episode_id, state.episode_generation):
-        raise GoalInferenceBenchmarkError("inference episode identity/generation mismatch")
-    if (inference.observation_sha256, inference.candidate_set_sha256) != (observation.sha256(), candidate_digest):
-        raise GoalInferenceBenchmarkError("inference observation/candidate binding mismatch")
+    ident_digest = public_identifiability_digest(observation, candidates)
+    matches = public_signal_matches(observation, candidates)
+    expected_identifiability = IDENTIFIABLE if len(matches) == 1 else NON_IDENTIFIABLE
+    if label.run_descriptor_sha256 != run.sha256():
+        raise GoalInferenceBenchmarkError("label run descriptor binding mismatch")
     if (label.fixture_sha256, label.state_sha256) != (fixture.sha256(), state.sha256()):
         raise GoalInferenceBenchmarkError("label evaluator fixture/state binding mismatch")
     if (label.observation_sha256, label.candidate_set_sha256) != (observation.sha256(), candidate_digest):
         raise GoalInferenceBenchmarkError("label observation/candidate binding mismatch")
+    if (label.public_identifiability_sha256, label.identifiability) != (ident_digest, expected_identifiability):
+        raise GoalInferenceBenchmarkError("label public-identifiability binding mismatch")
+    if label.sealed_inference_sha256 != inference.sha256():
+        raise GoalInferenceBenchmarkError("label is not bound to sealed inference")
+    if expected_identifiability == IDENTIFIABLE:
+        if label.expected_decision != GOAL or label.expected_goal_id != matches[0]:
+            raise GoalInferenceBenchmarkError("identifiable label does not match unique public evidence")
+    elif label.expected_decision != ABSTAIN or label.expected_goal_id is not None:
+        raise GoalInferenceBenchmarkError("non-identifiable label must remain ABSTAIN")
     correct = inference.choice.decision == label.expected_decision and inference.choice.goal_id == label.expected_goal_id
     return GoalInferenceScore(
-        GOAL_SCORE_SCHEMA, inference.sha256(), label.sha256(), inference.choice.decision,
-        inference.choice.goal_id, label.expected_decision, label.expected_goal_id, correct, _origin=_SCORE_ORIGIN,
+        GOAL_SCORE_SCHEMA,
+        inference.sha256(),
+        label.sha256(),
+        label.identifiability,
+        inference.choice.decision,
+        inference.choice.goal_id,
+        label.expected_decision,
+        label.expected_goal_id,
+        correct,
+        _origin=_SCORE_ORIGIN,
     )
