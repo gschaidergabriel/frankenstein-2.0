@@ -1,0 +1,37 @@
+name: F2 WP803 Run Provenance Falsifier
+
+on:
+  push:
+    branches:
+      - trigger4/review-wp803-run-provenance-20260829
+    paths:
+      - 'tests/test_cognitive_world_model_prediction_run_provenance_falsifier.py'
+      - '.github/workflows/wp803-run-provenance-falsifier-ci.yml'
+  pull_request:
+    paths:
+      - 'tests/test_cognitive_world_model_prediction_run_provenance_falsifier.py'
+      - '.github/workflows/wp803-run-provenance-falsifier-ci.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  falsifier:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Compile falsifier
+        run: >-
+          python -m py_compile
+          src/frankenstein2/cognitive_microworld.py
+          src/frankenstein2/cognitive_world_model_prediction_benchmark.py
+          tests/test_cognitive_world_model_prediction_run_provenance_falsifier.py
+      - name: Execute exact run-provenance falsifier
+        env:
+          PYTHONPATH: src
+        run: python -m unittest -v tests.test_cognitive_world_model_prediction_run_provenance_falsifier
