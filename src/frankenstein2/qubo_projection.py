@@ -1,9 +1,11 @@
 """Deterministic QUBO projection adapter for Frankenstein 2.0.
 
-F2-WP-402 generation 1. This module projects an exact noncanonical WorldSlice into a
+F2-WP-402 generation 2. This module projects an exact noncanonical WorldSlice into a
 bounded quadratic unconstrained binary-optimization (QUBO) problem using only explicit
-caller-supplied coefficients. It never infers coefficients, chooses an action, invokes a
-solver/model/provider/tool, mutates world state, or grants truth/effect/completion authority.
+caller-supplied coefficients. Generation 2 hardens the public scoring boundary: scoring
+must independently revalidate the exact WorldSlice rather than trusting a projection
+self-hash. Nothing here infers coefficients, chooses an action, invokes a solver/model/
+provider/tool, mutates world state, or grants truth/effect/completion authority.
 """
 from __future__ import annotations
 
@@ -264,6 +266,29 @@ class QuboAssignmentScore:
         return _digest(self.as_dict())
 
 
+def _validate_projection_against_slice(*, projection: QuboProjection, world_slice: WorldSlice) -> None:
+    """Revalidate exact upstream WorldSlice identity and source membership at consumption."""
+    if not isinstance(world_slice, WorldSlice):
+        raise QuboProjectionError("world_slice must be WorldSlice")
+    if world_slice.sha256() != projection.slice_sha256:
+        raise QuboProjectionError("projection WorldSlice digest mismatch")
+    if world_slice.slice_id != projection.slice_id:
+        raise QuboProjectionError("projection WorldSlice slice_id mismatch")
+    if world_slice.cycle_id != projection.cycle_id:
+        raise QuboProjectionError("projection WorldSlice cycle_id mismatch")
+    if world_slice.generation != projection.generation:
+        raise QuboProjectionError("projection WorldSlice generation mismatch")
+    if world_slice.vector_space_version != projection.vector_space_version:
+        raise QuboProjectionError("projection WorldSlice vector_space_version mismatch")
+    selected_refs = set(world_slice.selected_atom_ids) | set(world_slice.selected_operator_ids)
+    tainted_refs = set(world_slice.tainted_atom_ids)
+    for variable in projection.variables:
+        if variable.source_ref not in selected_refs:
+            raise QuboProjectionError("QUBO variable source_ref is outside selected WorldSlice")
+        if variable.source_ref in tainted_refs:
+            raise QuboProjectionError("QUBO variable source_ref is tainted/NOT_COMPUTED")
+
+
 def build_qubo_projection(
     *,
     projection_id: str,
@@ -333,15 +358,17 @@ def build_qubo_projection(
 def score_assignment(
     *,
     projection: QuboProjection,
+    world_slice: WorldSlice,
     assignment: tuple[tuple[str, int], ...],
     expected_projection_sha256: str,
 ) -> QuboAssignmentScore:
-    """Score one complete explicit binary assignment; never selects or executes it."""
+    """Score one explicit assignment only after independent exact-slice revalidation."""
     if not isinstance(projection, QuboProjection):
         raise QuboProjectionError("projection must be QuboProjection")
     expected_sha = _sha256("expected_projection_sha256", expected_projection_sha256)
     if projection.sha256() != expected_sha:
         raise QuboProjectionError("projection digest mismatch")
+    _validate_projection_against_slice(projection=projection, world_slice=world_slice)
     if not isinstance(assignment, tuple) or not assignment:
         raise QuboProjectionError("assignment must be a non-empty immutable tuple")
 
