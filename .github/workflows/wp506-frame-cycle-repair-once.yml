@@ -1,0 +1,78 @@
+name: F2 WP506 Frame Cycle Repair Once
+
+on:
+  push:
+    branches:
+      - 'trigger4/wp506-gwt-selection-broadcast-20260829'
+    paths:
+      - '.github/workflows/wp506-frame-cycle-repair-once.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  repair:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: 'trigger4/wp506-gwt-selection-broadcast-20260829'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Bind producer plan to selection cycle and SituationFrame
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          path = Path('src/frankenstein2/gwt_workspace.py')
+          source = path.read_text()
+
+          old_sig = '''def _validate_candidate_origins(\n    candidates: tuple[WorkspaceCandidate, ...],\n    *,\n    grid_plan_id: str,\n    grid_plan_generation: int,\n    grid_plan_sha256: str,\n) -> None:\n'''
+          new_sig = '''def _validate_candidate_origins(\n    candidates: tuple[WorkspaceCandidate, ...],\n    *,\n    cycle_id: str,\n    frame_id: str,\n    frame_generation: int,\n    frame_sha256: str,\n    grid_plan_id: str,\n    grid_plan_generation: int,\n    grid_plan_sha256: str,\n) -> None:\n'''
+          if source.count(old_sig) != 1:
+              raise SystemExit('expected _validate_candidate_origins signature not found exactly once')
+          source = source.replace(old_sig, new_sig, 1)
+
+          old_guard = '''        if (\n            admission.plan_id != grid_plan_id\n            or admission.plan_generation != grid_plan_generation\n            or admission.plan_sha256 != grid_plan_sha256\n        ):\n            raise GwtWorkspaceError("candidate producer GRID10 plan binding mismatch")\n        if item.payload_ref not in admission.output_refs:\n'''
+          new_guard = '''        if (\n            admission.plan_id != grid_plan_id\n            or admission.plan_generation != grid_plan_generation\n            or admission.plan_sha256 != grid_plan_sha256\n        ):\n            raise GwtWorkspaceError("candidate producer GRID10 plan binding mismatch")\n        if admission.plan.cycle_id != _text("cycle_id", cycle_id):\n            raise GwtWorkspaceError("candidate producer cycle binding mismatch")\n        if admission.plan.frame_id != _text("frame_id", frame_id):\n            raise GwtWorkspaceError("candidate producer frame_id binding mismatch")\n        if admission.plan.frame_generation != _generation("frame_generation", frame_generation):\n            raise GwtWorkspaceError("candidate producer frame generation binding mismatch")\n        if admission.plan.frame_sha256 != _sha256("frame_sha256", frame_sha256):\n            raise GwtWorkspaceError("candidate producer frame digest binding mismatch")\n        if item.payload_ref not in admission.output_refs:\n'''
+          if source.count(old_guard) != 1:
+              raise SystemExit('expected producer plan guard not found exactly once')
+          source = source.replace(old_guard, new_guard, 1)
+
+          old_lineage_call = '''    _validate_candidate_origins(\n        candidates,\n        grid_plan_id=selection.grid_plan_id,\n        grid_plan_generation=selection.grid_plan_generation,\n        grid_plan_sha256=selection.grid_plan_sha256,\n    )\n'''
+          new_lineage_call = '''    _validate_candidate_origins(\n        candidates,\n        cycle_id=selection.cycle_id,\n        frame_id=selection.frame_id,\n        frame_generation=selection.frame_generation,\n        frame_sha256=selection.frame_sha256,\n        grid_plan_id=selection.grid_plan_id,\n        grid_plan_generation=selection.grid_plan_generation,\n        grid_plan_sha256=selection.grid_plan_sha256,\n    )\n'''
+          if source.count(old_lineage_call) != 1:
+              raise SystemExit('expected builder-lineage origin call not found exactly once')
+          source = source.replace(old_lineage_call, new_lineage_call, 1)
+
+          old_build_call = '''    _validate_candidate_origins(\n        canonical_candidates,\n        grid_plan_id=normalized_grid_plan_id,\n        grid_plan_generation=normalized_grid_plan_generation,\n        grid_plan_sha256=normalized_grid_plan_sha256,\n    )\n'''
+          new_build_call = '''    _validate_candidate_origins(\n        canonical_candidates,\n        cycle_id=cycle_id,\n        frame_id=frame_id,\n        frame_generation=frame_generation,\n        frame_sha256=frame_sha256,\n        grid_plan_id=normalized_grid_plan_id,\n        grid_plan_generation=normalized_grid_plan_generation,\n        grid_plan_sha256=normalized_grid_plan_sha256,\n    )\n'''
+          if source.count(old_build_call) != 1:
+              raise SystemExit('expected build origin call not found exactly once')
+          path.write_text(source.replace(old_build_call, new_build_call, 1))
+
+          test_path = Path('tests/test_gwt_workspace.py')
+          tests = test_path.read_text()
+          marker = 'def test_producer_plan_cycle_and_frame_chain_is_fail_closed():'
+          if marker not in tests:
+              tests += r'''\n\ndef test_producer_plan_cycle_and_frame_chain_is_fail_closed():\n    source = candidate("frame-bound")\n    cases = (\n        dict(cycle_id="cycle-other", frame_id="frame-1", frame_generation=4, frame_sha256=D),\n        dict(cycle_id="cycle-1", frame_id="frame-other", frame_generation=4, frame_sha256=D),\n        dict(cycle_id="cycle-1", frame_id="frame-1", frame_generation=5, frame_sha256=D),\n        dict(cycle_id="cycle-1", frame_id="frame-1", frame_generation=4, frame_sha256="d" * 64),\n    )\n    for envelope in cases:\n        with pytest.raises(GwtWorkspaceError, match="candidate producer"):\n            build_workspace_selection(\n                selection_id="sel-frame-chain",\n                generation=7,\n                grid_plan_id=GRID_PLAN.plan_id,\n                grid_plan_generation=GRID_PLAN.generation,\n                grid_plan_sha256=GRID_PLAN.sha256(),\n                policy=policy(),\n                candidates=(source,),\n                **envelope,\n            )\n\n'''\n              test_path.write_text(tests)
+          PY
+      - name: Compile
+        run: python -m py_compile src/frankenstein2/gwt_workspace.py tests/test_gwt_workspace.py
+      - name: Install pytest
+        run: python -m pip install pytest
+      - name: Run complete WP506 regression suite
+        env:
+          PYTHONPATH: src
+        run: python -m pytest -q tests/test_gwt_workspace.py
+      - name: Commit exact repair
+        shell: bash
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add src/frankenstein2/gwt_workspace.py tests/test_gwt_workspace.py
+          git commit -m 'trigger4: close WP506 producer frame-cycle chain'
+          git push origin HEAD:trigger4/wp506-gwt-selection-broadcast-20260829
