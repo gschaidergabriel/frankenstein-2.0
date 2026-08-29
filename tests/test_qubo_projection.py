@@ -7,6 +7,7 @@ import unittest
 
 from frankenstein2.qubo_projection import (
     QuboCoupling,
+    QuboProjection,
     QuboProjectionError,
     QuboVariable,
     compile_qubo_projection,
@@ -51,7 +52,7 @@ def coupling(left: str, right: str, bias: int) -> QuboCoupling:
     )
 
 
-def projection(*, reverse: bool = False):
+def projection(*, reverse: bool = False) -> QuboProjection:
     variables = (
         variable("x:a", "a", 3),
         variable("x:b", "b", -2),
@@ -92,6 +93,9 @@ class QuboProjectionTests(unittest.TestCase):
             couplings=(),
             provenance_refs=("objective:caller",),
         )
+        self.assertIs(bound.source_slice, source)
+        self.assertEqual(bound.source_slice_id, source.slice_id)
+        self.assertEqual(bound.source_generation, source.generation)
         self.assertEqual(bound.source_slice_sha256, source.sha256())
 
         changed = world_slice(evidence=("evidence:changed",), provenance_digest="1" * 64)
@@ -104,6 +108,30 @@ class QuboProjectionTests(unittest.TestCase):
         )
         self.assertNotEqual(bound.source_slice_sha256, rebound.source_slice_sha256)
         self.assertNotEqual(bound.sha256(), rebound.sha256())
+
+    def test_public_projection_constructor_cannot_accept_forged_slice_digest(self):
+        source = world_slice()
+        kwargs = {
+            "projection_id": "qubo:constructor",
+            "source_slice": source,
+            "variables": (variable("x:a", "a", 1),),
+            "couplings": (),
+            "offset_bias": 0,
+            "provenance_refs": ("objective:caller",),
+            "source_slice_sha256": "f" * 64,
+        }
+        with self.assertRaises(TypeError):
+            QuboProjection(**kwargs)  # type: ignore[arg-type]
+
+        direct = QuboProjection(
+            projection_id="qubo:constructor",
+            source_slice=source,
+            variables=(variable("x:a", "a", 1),),
+            couplings=(),
+            offset_bias=0,
+            provenance_refs=("objective:caller",),
+        )
+        self.assertEqual(direct.source_slice_sha256, source.sha256())
 
     def test_variable_must_reference_selected_and_untainted_atom(self):
         with self.assertRaisesRegex(QuboProjectionError, "not selected"):
@@ -249,6 +277,8 @@ class QuboProjectionTests(unittest.TestCase):
             item.projection_id = "mutated"  # type: ignore[misc]
         with self.assertRaises(FrozenInstanceError):
             item.variables[0].linear_bias = 99  # type: ignore[misc]
+        with self.assertRaises(FrozenInstanceError):
+            item.source_slice.slice_id = "mutated"  # type: ignore[misc]
         self.assertEqual(item.as_dict()["solver_authority"], "NONE")
         self.assertEqual(item.as_dict()["truth_authority"], "NONE")
         self.assertEqual(item.as_dict()["effect_authority"], "NONE")
