@@ -1,0 +1,29 @@
+name: F2 WP803 Run Identity Falsifier
+
+on:
+  push:
+    branches:
+      - review/f2-wp803-run-identity-falsifier-20260829
+    paths:
+      - 'tests/test_wp803_run_identity_falsifier.py'
+      - '.github/workflows/wp803-run-identity-falsifier.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  falsifier:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Compile candidate falsifier
+        run: python -m py_compile tests/test_wp803_run_identity_falsifier.py
+      - name: Require canonical run identity binding
+        env:
+          PYTHONPATH: src
+        run: python tests/test_wp803_run_identity_falsifier.py -v
