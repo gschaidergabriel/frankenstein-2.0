@@ -1,0 +1,51 @@
+{
+  "schema": "FRANKENSTEIN2_WORKPACKAGE_REVIEW/v1",
+  "review_id": "F2-WP-1200-SCHEMA-IDENTITY-COLLISION-FALSIFIER-20260829-GPT56SOL",
+  "workpackage_id": "F2-WP-1200",
+  "mode": "CANDIDATE_FALSIFIER",
+  "status": "OPEN_CONTRADICTION",
+  "created_at_utc": "2026-08-29T12:36:00Z",
+  "worker": "GPT-5.6-Sol-TRIGGER4-REVIEW",
+  "observed_main_sha": "89da7aa4c97a0ba944f274bf0837d7837f2f7db7",
+  "active_claim_ref": "workpackages/active/F2-WP-1200.json",
+  "evidence": {
+    "python_source": {
+      "path": "src/frankenstein2/target_completion_epistemics.py",
+      "git_blob_sha": "63fa1fb0810fe5437594661b30d43c9ee4a7e264",
+      "observation": "TargetObligation emits schema FRANKENSTEIN2_TARGET_OBLIGATION/v1 with fields obligation_id,target_id,required_fidelity,mandatory,positive_readback,positive_evidence_refs,counterevidence_probe,counterevidence_refs,status."
+    },
+    "canonical_json_schema": {
+      "path": "schemas/TARGET_OBLIGATION.schema.json",
+      "git_blob_sha": "d46a4f4efbb3c0a88083b382bfe201987bf93eb0",
+      "observation": "The same schema identifier FRANKENSTEIN2_TARGET_OBLIGATION/v1 requires target_profile_digest,scope,description,preconditions,action,expected_observation,positive_probe,counterevidence_probes,restart_requirements,fault_scenarios,minimum_fidelity,physical_required,status,evidence_refs, and forbids additional properties."
+    },
+    "test_commit": "89da7aa4c97a0ba944f274bf0837d7837f2f7db7"
+  },
+  "contradiction": {
+    "type": "SCHEMA_IDENTIFIER_SEMANTIC_COLLISION",
+    "severity": "HIGH",
+    "statement": "Two incompatible TargetObligation wire/data contracts currently claim the identical v1 schema identity. Python canonical_json output cannot validate against the canonical JSON schema, and its target binding lacks the required target_profile_digest field.",
+    "risk": [
+      "host-specific evidence can be represented without exact target-profile digest binding",
+      "consumers may accept one v1 interpretation while validators enforce another",
+      "serialized reports can look schema-versioned while being invalid under the repository schema",
+      "target environment generation changes can leave apparently valid Python obligations attached only to a free-form target_id"
+    ]
+  },
+  "required_falsifiers": [
+    "Serialize a Python TargetObligation via as_dict and validate it against schemas/TARGET_OBLIGATION.schema.json; current expectation: validation FAIL.",
+    "Attempt to bind otherwise identical positive/counterevidence results to two different target-profile digests; completion evidence must not be reusable across the digest boundary.",
+    "Change target profile generation/digest while keeping target_id constant; stale host-specific evidence must fail closed or become UNKNOWN.",
+    "Assert that only one semantic contract owns FRANKENSTEIN2_TARGET_OBLIGATION/v1 after repair. If a distinct internal evaluation object is retained, give it a distinct schema/type identity."
+  ],
+  "repair_options": [
+    "Preferred: align the Python TargetObligation model with schemas/TARGET_OBLIGATION.schema.json and bind target_profile_digest plus observed target generation where applicable.",
+    "Alternative: rename the Python internal object/schema to a distinct non-wire evaluation type and add an explicit validated conversion from canonical TargetObligation/v1."
+  ],
+  "acceptance_boundary": {
+    "wp1200_should_not_be_reconciled_accepted_until": "schema identity collision is removed and target-profile-bound stale-evidence falsifier passes",
+    "runtime_credit": 0,
+    "physical_host_credit": 0,
+    "whole_system_credit": 0
+  }
+}
