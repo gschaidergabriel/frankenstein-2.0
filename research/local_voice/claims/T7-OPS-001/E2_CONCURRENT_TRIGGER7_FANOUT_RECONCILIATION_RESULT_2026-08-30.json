@@ -1,23 +1,28 @@
 {
-  "schema_version": 1,
+  "schema_version": 2,
   "trigger": "7",
   "research_id": "T7-OPS-001",
   "objective": "E2_CONCURRENT_TRIGGER7_FANOUT_RECONCILIATION",
   "worker": "GPT-5.6-Sol-TRIGGER7",
-  "state": "RECONCILED_AT_OBSERVED_SCOPE",
+  "state": "SUPERSEDED_DONOR_OBSERVATION_ONLY",
   "observed_date": "2026-08-30",
   "observed_f2_main": "3ebd8b35d41b9010531f3e0976e96cf0247b8e17",
   "observed_controller_main": "2b2aaca5750a7da135fef92cf6611995d117fbe2",
+  "canonical_coordination_lanes": [
+    "T7-COORD-001/E2_SEMANTIC_DUPLICATE_CLAIM_MUTEX_FAILURE",
+    "T7-COORD-002/E2_SEMANTIC_CLAIM_MUTEX_IMPLEMENTATION"
+  ],
   "findings": [
     "Multiple near-simultaneous Trigger-7 sessions created semantically overlapping VPS hardware re-entry claims and controller workflow variants.",
     "Controller-side cleanup converged the hardware lane instead of preserving every duplicate executor.",
     "The surviving observed hardware execution identity is GitHub Actions run 33265598243, workflow .github/workflows/trigger7-vps-hardware-roundtrip.yml, bound to controller head ba9d5682227372bf84ed3bd35654a2a861892c56.",
-    "At reconciliation time run 33265598243 remains status=pending with conclusion=null.",
-    "The expected committed hardware receipt runtime/trigger7_vps_hardware_roundtrip/E3_VPS_HARDWARE_ROUNDTRIP_2026-08-30.json is not present at current controller main.",
+    "At the final observation made by this superseded lane, run 33265598243 remained status=pending with conclusion=null.",
+    "The expected committed hardware receipt runtime/trigger7_vps_hardware_roundtrip/E3_VPS_HARDWARE_ROUNDTRIP_2026-08-30.json was not present at the observed controller main.",
     "This worker intentionally launched no additional hardware executor after detecting semantic duplication.",
-    "The earlier runner-shell startup failure is transport evidence, not a local voice/model/hardware scientific negative result."
+    "The earlier runner-shell startup failure is transport evidence, not a local voice/model/hardware scientific negative result.",
+    "A deeper full claim-directory scan then established that this T7-OPS-001 lane itself duplicated existing T7-COORD-001/T7-COORD-002 coordination scope; it is therefore demoted to donor observation only."
   ],
-  "canonical_executor_observed": {
+  "observed_executor": {
     "repository": "gschaidergabriel/Dr.-Unterweger",
     "workflow": ".github/workflows/trigger7-vps-hardware-roundtrip.yml",
     "run_id": 33265598243,
@@ -27,17 +32,10 @@
     "expected_receipt": "runtime/trigger7_vps_hardware_roundtrip/E3_VPS_HARDWARE_ROUNDTRIP_2026-08-30.json"
   },
   "evidence_boundary": "Claim, source, workflow definition, dispatch marker, pending run, or repository CI do not grant target-hardware runtime credit. Only an exact committed receipt bound to source/workflow/sandbox/command/result identity can grant bounded E3 hardware-inventory credit. No Trigger-4 or whole-system credit can be minted by Trigger-7.",
-  "complementary_lanes_preserved": [
-    "German ASR evaluation",
-    "exact local LLM/Qwen artifact provenance and component benchmark",
-    "local TTS evaluation",
-    "audio transport/AEC/cancellation",
-    "German end-to-end interruption and barge-in evaluation",
-    "native audio.cpp runtime challenger audit"
-  ],
-  "next_gate": "Consume exactly one verified clay-direct-dev hardware receipt if/when present; derive actual CPU/RAM/GPU headroom; then bind an exact official/local model artifact revision/hash/runtime and run component benchmarks before German end-to-end cancellation-safe voice evaluation and Trigger-4 handoff.",
+  "routing": "Do not continue T7-OPS-001 as an active coordination lane. Route semantic duplicate-mutex diagnosis to T7-COORD-001 and implementation/repair to T7-COORD-002. Preserve this file only for the newer executor/run observation and self-correction evidence.",
   "credits": {
-    "coordination_reconciliation": 1,
+    "coordination_reconciliation": 0,
+    "donor_observation": 1,
     "target_hardware": 0,
     "local_model_runtime": 0,
     "benchmark": 0,
