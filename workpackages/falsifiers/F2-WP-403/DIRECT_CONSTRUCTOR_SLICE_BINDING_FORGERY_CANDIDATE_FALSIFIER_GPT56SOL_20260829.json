@@ -1,0 +1,25 @@
+{
+  "schema": "FRANKENSTEIN2_WORKPACKAGE_FALSIFIER/v1",
+  "workpackage_id": "F2-WP-403",
+  "target_generation": 1,
+  "target_claim_id": "F2-WP-403-G1-GPT56SOL-RUDIMENTARY-PHYSICS-PROJECTION-20260829",
+  "classification": "CANDIDATE_FALSIFIER_REVIEW_ONLY_CROSS_COMPONENT_DISCRIMINATOR",
+  "review_only": true,
+  "target_accepted_scope": "RUDIMENTARY_PHYSICS_PROJECTION_REPOSITORY_HOSTED_COMPONENT_CI_ONLY",
+  "triggering_cross_evidence": "F2-WP-402 generation-2 direct-constructor slice-binding repair exposed the same generic self-hash-vs-admission boundary class.",
+  "finding": "PhysicsProjection is a public directly constructible frozen dataclass. project_rudimentary_kinematics correctly validates exact WorldSlice membership, taint, generation and vector-space identity before producing it, but a caller can instantiate PhysicsProjection directly with caller-chosen slice/source identity fields and then compute a perfectly self-consistent sha256 over that forged object. WP403 currently has no downstream scoring/admission function, so this is not evidence that a forged projection has already crossed a canonical consumer. It is a source-level boundary risk: future WP404/WP405 consumers must not treat projection self-hash as evidence that the object came through the validated builder.",
+  "counterhypothesis": "WP403 generation 1 may be sufficient if its ABI explicitly defines PhysicsProjection instances as raw candidate data and every future consumer independently revalidates against the exact WorldSlice and source WorldAtoms. That restriction is not mechanically provided by the current module, so downstream code could accidentally trust self-hash alone.",
+  "smallest_repair": "Add a public fail-closed validation/admission function that requires the exact WorldSlice plus the exact position/velocity/acceleration WorldAtoms and independently rebuilds the bounded projection before accepting canonical equality and expected hash. Add direct-constructor forged slice/source/trajectory cases to the canonical executable suite. Self-hash alone remains insufficient.",
+  "authority_boundary": {
+    "runtime_execution_observed": false,
+    "provider_or_model_called": false,
+    "effect_executed": false,
+    "runtime_credit": 0,
+    "physical_grid10_credit": 0,
+    "gwt_runtime_credit": 0,
+    "jspace_runtime_credit": 0,
+    "training_credit": 0,
+    "whole_system_acceptance": false
+  },
+  "next_exact_action": "Open an explicit WP403 successor hardening generation, add exact-slice independent revalidation at the public consumer boundary, run the forged direct-constructor cases, and re-accept only at repository-hosted component-CI scope if they fail closed."
+}
