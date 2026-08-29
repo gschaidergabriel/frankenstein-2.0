@@ -1,0 +1,36 @@
+{
+  "schema": "FRANKENSTEIN2_WORKPACKAGE_DELTA/v1",
+  "workpackage_id": "F2-WP-004",
+  "generation": 3,
+  "claim_id": "F2-WP-004-G3-GPT56SOL-ABI-AUTHORITY-SINGLETON-20260829",
+  "worker_id": "GPT-5.6-Sol-TRIGGER4",
+  "delta_id": "F2-WP-004-G3-ABI-AUTHORITY-SINGLETON-01",
+  "trigger_handoff": "trigger4/inbox/tool_research/R6-20260829-EXACT-SOURCE-VPS-HYGIENE-GPT56SOL-01.json",
+  "observed_contradiction": {
+    "telemetry_contract": "named missing runpackages/RUN_PACKAGE_SCHEMA_V1.json plus FRANKENSTEIN2_IMMUTABLE_RUN_PACKAGE/v1 as the active ABI",
+    "missing_path_observed": true,
+    "runpackages_readme": "declared closure-style manifest.json + ARTIFACTS.json + SHA256SUMS + CLOSED.json as current",
+    "executable_verifier": "enforces FRANKENSTEIN2_RUN_PACKAGE_MANIFEST/v1 + FRANKENSTEIN2_RUN_ARTIFACT_INDEX/v1 + FRANKENSTEIN2_RUN_CLOSED_RECEIPT/v1 closure ABI",
+    "manifest_schema_metadata": "self-deprecated in favor of the same missing single-manifest path despite structurally describing the closure manifest"
+  },
+  "hypothesis": "WP004 authority drift is documentation/schema-metadata drift around an already executable generation-2 closure verifier, not evidence that a second single-manifest ABI should be materialized.",
+  "counterhypothesis": "The missing RUN_PACKAGE_SCHEMA_V1.json was intended to be current and the closure verifier/README are stale; if so, archived accepted CLOSED packages and the executable generation-2 verifier should not remain the accepted authority.",
+  "discriminator": "Preserve verifier code and existing verifier tests byte-identically, align current-facing docs/schema metadata to that executable closure ABI, and add a regression that imports verifier constants and cross-checks all three JSON schema IDs plus package-shape declarations while requiring the competing schema path to remain absent.",
+  "changes": [
+    "telemetry/RUN_PACKAGE_CONTRACT.md now names only the closure-style ABI as current and scopes the single-manifest design to historical donor provenance",
+    "runpackages/README.md now explicitly identifies the executable verifier as fail-closed authority for the same three closure schema IDs",
+    "schemas/run_package_manifest.schema.json no longer self-deprecates in favor of a missing competing ABI; structural fields remain unchanged",
+    "tests/test_wp004_authority_singleton.py fails closed on missing-authority resurrection, schema/verifier ID drift, closure-shape drift, or manifest-schema self-retirement",
+    ".github/workflows/runpackage-verifier-ci.yml executes both the unchanged verifier regression and the new authority-singleton regression and watches WP004 terminal metadata paths"
+  ],
+  "preserved": [
+    "runpackages/verify_run_package.py",
+    "tests/test_verify_run_package.py",
+    "accepted generation-2 archived CLOSED run packages"
+  ],
+  "evidence_scope": "SOURCE_READY_PENDING_REPOSITORY_HOSTED_CI",
+  "runtime_execution_observed": false,
+  "target_runtime_credit": 0,
+  "whole_system_credit": 0,
+  "next_exact_action": "Open the G3 implementation PR, require exact PR-head CI for the unchanged verifier regression, authority-singleton regression, schema parse, and archived CLOSED-package verification; merge only if all pass, then require merged-main CI before bounded G3 reconciliation."
+}

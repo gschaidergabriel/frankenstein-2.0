@@ -2,63 +2,65 @@
 
 Workpackage: `F2-WP-004`
 
-This document describes the canonical package authority; it does **not** grant runtime, instrumentation-coverage, GRID10, whole-system, or scientific acceptance credit by itself.
+This document describes the single current run-package ABI. It does **not** grant runtime, instrumentation-coverage, GRID10, whole-system, or scientific acceptance credit by itself.
 
 ## Canonical authority
 
-There is exactly one active run-package manifest ABI:
+There is exactly one active run-package ABI, and its current-facing surfaces must agree:
 
-- `runpackages/RUN_PACKAGE_SCHEMA_V1.json`
-- schema id: `FRANKENSTEIN2_IMMUTABLE_RUN_PACKAGE/v1`
-- fail-closed implementation: `runpackages/verify_run_package.py`
-- deterministic regression: `tests/test_verify_run_package.py`
+- descriptive contract: `telemetry/RUN_PACKAGE_CONTRACT.md`
+- package index/readme: `runpackages/README.md`
+- manifest schema: `schemas/run_package_manifest.schema.json`
+  - schema id: `FRANKENSTEIN2_RUN_PACKAGE_MANIFEST/v1`
+- artifact-index schema: `schemas/run_artifact_index.schema.json`
+  - schema id: `FRANKENSTEIN2_RUN_ARTIFACT_INDEX/v1`
+- closed-receipt schema: `schemas/run_closed_receipt.schema.json`
+  - schema id: `FRANKENSTEIN2_RUN_CLOSED_RECEIPT/v1`
+- fail-closed executable authority: `runpackages/verify_run_package.py`
+- deterministic verifier regression: `tests/test_verify_run_package.py`
+- authority-singleton regression: `tests/test_wp004_authority_singleton.py`
 - repository CI: `.github/workflows/runpackage-verifier-ci.yml`
 
-Files below `schemas/run_package_manifest.schema.json`, `schemas/run_artifact_index.schema.json`, and `schemas/run_closed_receipt.schema.json` are retained as historical/compatibility design donors. They are **not** a second active manifest authority and must not be used to mint acceptance for a package that fails the canonical verifier.
+The executable verifier is the fail-closed acceptance implementation for this ABI. The JSON schemas describe its three typed JSON records; they are not independent authorities that can override a verifier failure.
+
+`runpackages/RUN_PACKAGE_SCHEMA_V1.json` is **not** part of the current ABI. It does not exist on current `main`. Any historical single-`MANIFEST.json` / embedded-`files` / `package_digest` / `FRANKENSTEIN2_IMMUTABLE_RUN_PACKAGE/v1` design is superseded donor provenance only and cannot mint current acceptance.
 
 ## Canonical package shape
 
-A package is an immutable directory below `runs/` containing:
+A closed package is an immutable directory below `runs/` with the closure-style layout:
 
 ```text
-<run-package>/
-  MANIFEST.json
-  <one or more payload files/directories>
+runs/<series>/<run_id>/
+  manifest.json
+  ARTIFACTS.json
+  SHA256SUMS
+  CLOSED.json
+  <typed payload directories/files>
 ```
 
-`MANIFEST.json.files` is the complete SHA-256 index of every payload file. The canonical verifier rejects missing payloads, unindexed extra payloads, path traversal, payload/package symlinks, payload digest mutation, invalid package digest, malformed source identity, impossible PASS/NOT_RUN execution claims, and invalid/non-finite spend values.
+The closure files have distinct roles:
 
-The package digest is SHA-256 over canonical JSON of the manifest with `package_digest` removed. `MANIFEST.json` never self-hashes.
+- `manifest.json` carries run/workpackage/generation/claim/worker/source identity, evidence scope, participants and typed command/result metadata.
+- `ARTIFACTS.json` indexes payload files plus `manifest.json`; it never indexes itself, `SHA256SUMS`, or `CLOSED.json`.
+- `SHA256SUMS` covers payload files, `manifest.json`, and `ARTIFACTS.json`; it never covers itself or `CLOSED.json`.
+- `CLOSED.json` is written last and binds the manifest, artifact-index, and SHA256SUMS digests together with closure status, evidence classification, runtime-execution observation, runtime-credit ceiling, acceptance scope, and completion deficit.
+
+The canonical verifier rejects missing closure files, malformed schema identities, unsafe/traversing paths, payload or package symlink bypasses, unindexed payloads, digest mismatches, invalid source/workpackage/generation identity, invalid evidence classifications, inconsistent closure metadata, and other declared ABI violations.
 
 ## Identity and evidence ceiling
 
-The canonical manifest binds at minimum:
+A package can support promotion only at the exact scope its verified contents and separately observed execution establish. Structural closure proves package integrity and evidence binding; it does not create facts that are absent from the payload/receipts.
 
-- package/workpackage/generation identity;
-- exact source repository/ref/commit/tree;
-- declared claim scope and runtime-credit ceiling;
-- command vector and typed outcome;
-- start/complete/exit fields when execution is claimed;
-- provider-call count, paid-spend amount and external-effect flag;
-- complete payload path→digest map;
-- package digest.
+In particular:
 
-`PASS` requires observed start/completion timestamps and zero exit code. `NOT_RUN` is forbidden from carrying execution-result fields. These gates prevent a source-only package from impersonating an executed result.
+- `COMPONENT_PASS != WHOLE_SYSTEM_PASS`
+- `SOURCE_PRESENCE != RUNTIME_PASS`
+- `MODEL_OUTPUT != COMPLETION`
+- `PACKAGE_VERIFIED != CLAIM_PROVED_BEYOND_DECLARED_SCOPE`
+- `PRELOAD_OR_MANIFEST_HASH != SAME_BYTES_PROCESS_CONSUMPTION_PROOF`
 
-## Historical closure donors
+Higher claims such as exact-source target/VPS execution must add their own admitted evidence while remaining inside this one package authority rather than inventing a second run-package ABI.
 
-The earlier `ARTIFACTS.json` / `SHA256SUMS` / `CLOSED.json` design remains useful as a possible future richer finalizer and as historical provenance. It is not currently the canonical manifest ABI unless and until a successor workpackage deliberately migrates it into the verifier and its regression suite.
+## Historical preservation
 
-Do not delete historical schemas merely to make the repository look cleaner; label and preserve them as donor evidence.
-
-## Promotion boundary
-
-A package can support promotion only at the exact scope its contents and separately observed execution establish.
-
-`COMPONENT_PASS != WHOLE_SYSTEM_PASS`
-
-`SOURCE_PRESENCE != RUNTIME_PASS`
-
-`MODEL_OUTPUT != COMPLETION`
-
-`PACKAGE_VERIFIED != CLAIM_PROVED_BEYOND_DECLARED_SCOPE`
+Historical package forms, schemas, receipts, and archived runs remain evidence/provenance. Do not rewrite old evidence merely because the current ABI changed. Historical material may be consumed only at the scope its own verifier/receipt establishes and must never compete with this current executable authority.
