@@ -116,6 +116,11 @@ class TargetUserspaceTwinTests(unittest.TestCase):
                 with self.assertRaises(TargetUserspaceTwinError):
                     build_t1_userspace_plan(profile)
 
+    def test_control_characters_in_observed_target_fields_fail_closed(self):
+        profile = _profile(fields={"session_type": "wayland\nspoofed"})
+        with self.assertRaises(TargetUserspaceTwinError):
+            build_t1_userspace_plan(profile)
+
     def test_profile_json_must_be_an_object(self):
         with self.assertRaises(TargetUserspaceTwinError):
             plan_from_json("[]")
