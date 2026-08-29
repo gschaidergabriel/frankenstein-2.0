@@ -191,6 +191,27 @@ class SemanticClaimTests(unittest.TestCase):
             "140e6517287f351e96ba7571ff06bf7a8ffb44d0029b49ced88eaddb5ce6144c",
         )
 
+    def test_canary_180m_flash_subject_alias_is_precise_and_stable(self):
+        a = SemanticObjective.from_inputs(
+            family="german asr benchmark",
+            target_surface="source-only",
+            subject="canary-180m-flash",
+            evidence_scope="source-pin",
+            generation=1,
+        )
+        b = SemanticObjective.from_inputs(
+            family="german asr benchmark",
+            target_surface="source-only",
+            subject="nvidia-canary-180m-flash",
+            evidence_scope="source-pin",
+            generation=1,
+        )
+        self.assertEqual(a.semantic_key(), b.semantic_key())
+        self.assertEqual(
+            a.semantic_key(),
+            "6bef6a827ecf833143e414d9fd59a0c12eaa301267a09f781303dc807f1f2f60",
+        )
+
 
 if __name__ == "__main__":
     unittest.main()
