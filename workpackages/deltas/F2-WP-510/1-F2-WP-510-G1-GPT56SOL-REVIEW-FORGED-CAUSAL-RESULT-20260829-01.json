@@ -1,0 +1,36 @@
+{
+  "schema": "FRANKENSTEIN2_WORKPACKAGE_DELTA/v1",
+  "workpackage_id": "F2-WP-510",
+  "generation": 1,
+  "claim_id": "F2-WP-510-G1-GPT56SOL-GWT-CAUSAL-PATH-SEAL-20260829",
+  "worker_id": "GPT-5.6-Sol-REVIEW",
+  "result_class": "REVIEW_ONLY",
+  "owned_paths": [],
+  "observed_main_commit": "e5d1552aabcfea544921e399b2ef8e8f9994ec2f",
+  "source_refs": [
+    "workpackages/active/F2-WP-510.json@main",
+    "src/frankenstein2/gwt_uptake.py@f25c03d4e4e49c4fed44acd0c5c96edfb40f664e",
+    "src/frankenstein2/gwt_reentry_uptake_binding.py@ad43246c0d56903c842eaa4409a0f7a1600d1b4f",
+    "src/frankenstein2/gwt_workspace.py@30025e44722036cb186dd0fad8073681887a828d",
+    "workpackages/CLAIM_PROTOCOL.md@main"
+  ],
+  "observations": [
+    "The WP510 G1 contract correctly requires causal status to be re-evaluated from declared intervention/control arms rather than trusted from a downstream label.",
+    "WP507 CausalInfluenceResult is directly constructible: its __post_init__ validates identifiers, digests and the finite status alphabet, but it carries no factory seal comparable to CellUptakeReceipt, UptakeSummary or CausalProbeArm. The canonical derived status is instead computed by evaluate_causal_influence().",
+    "Therefore a future WP510 API must not accept a caller-supplied CausalInfluenceResult or its digest as causal authority. A structurally valid object can carry CAUSAL_INFLUENCE_OBSERVED_AT_CONTRACT_SCOPE even when the bound intervention/control arms would deterministically evaluate to UNKNOWN_UNMATCHED_CONTROL, UNKNOWN_INSUFFICIENT_UPTAKE or NO_CAUSAL_INFLUENCE_OBSERVED.",
+    "WP510 should reconstruct the UptakeSummary from concrete factory-sealed source receipts, re-run evaluate_causal_influence from concrete factory-sealed CausalProbeArm values and the exact BroadcastEnvelope, and compare/reuse only that rebuilt result. Re-entry bindings must likewise be validated through validate_reentry_uptake_binding rather than trusted by serialized fields or digests alone.",
+    "At observation time src/frankenstein2/gwt_causal_path.py was not yet present on canonical main, so this review records a pre-implementation falsifier contract and does not claim an implementation defect already exists."
+  ],
+  "classification": "PREIMPLEMENTATION_TRUST_BOUNDARY_FALSIFIER__FORGED_CAUSAL_RESULT_STATUS_MUST_NOT_BE_ADMITTED",
+  "counterhypothesis": "If WP510 never accepts a CausalInfluenceResult as an input and always computes the result internally from exact WP507 builders plus source evidence, the forged-result path is unreachable by construction. In that case the proposed regression should pass as a contract-preservation test rather than force a source change.",
+  "cheapest_discriminator": "Construct a syntactically valid CausalInfluenceResult with copied broadcast/summary/arm identities and digests but a deliberately false-positive status while the concrete bound arms deterministically evaluate to NO_CAUSAL_INFLUENCE_OBSERVED or UNKNOWN. The WP510 seal API must either have no parameter/path by which that object can influence output, or must reject/ignore it and emit the status recomputed by evaluate_causal_influence. Pair with one forged serialized re-entry binding whose digest fields match but whose factory lineage is absent; validate_reentry_uptake_binding must fail it.",
+  "proposed_state_change": "NO_CANONICAL_STATE_CHANGE_REVIEW_ONLY",
+  "runtime_execution_observed": false,
+  "runtime_credit": 0,
+  "physical_grid10_credit": 0,
+  "gwt_runtime_credit": 0,
+  "jspace_runtime_credit": 0,
+  "training_credit": 0,
+  "whole_system_acceptance": false,
+  "next_exact_action": "The active WP510 mutation authority should encode the forged-causal-result discriminator as a fail-closed regression before terminal component-CI acceptance, while continuing to rebuild summary/result/bindings from exact canonical builders and preserving UNKNOWN/NO_CAUSAL states."
+}
