@@ -1,6 +1,10 @@
 #!/usr/bin/env python3
 """Fail-closed validator for Frankenstein 2.0 machine-readable workpackage state.
 
+State Concurrency Protocol v2 makes validated per-workpackage state-event chains the
+current authority for migrated rows. Legacy STATE/claim/reconciliation validation remains
+mandatory only for workpackages without an admitted event chain.
+
 Scope is source/continuity metadata only. This validator never grants cognitive-runtime,
 GRID10, provider, VPS, effect, training, or whole-system acceptance.
 """
@@ -12,6 +16,11 @@ import re
 from pathlib import Path
 from typing import Any
 
+try:
+    from tools import resolve_workpackage_state_v2 as state_v2
+except ModuleNotFoundError:  # direct `python tools/validate_workpackage_state.py`
+    import resolve_workpackage_state_v2 as state_v2
+
 REPO = "gschaidergabriel/frankenstein-2.0"
 CONTRACT_SCHEMA = "FRANKENSTEIN2_WORKPACKAGE_STATE_CONSISTENCY_CONTRACT/v1"
 STATE_SCHEMA = "FRANKENSTEIN2_WORKPACKAGE_STATE/v1"
@@ -20,6 +29,7 @@ RECON_SCHEMA = "FRANKENSTEIN2_WORKPACKAGE_RECONCILIATION/v1"
 WP = re.compile(r"^F2-WP-[0-9]+$")
 SHA40 = re.compile(r"^[0-9a-f]{40}$")
 CONTRACT_REL = Path("workpackages/WORKPACKAGE_STATE_CONSISTENCY_CONTRACT_V1.json")
+STATE_VIEW_V2_REL = Path("workpackages/STATE_VIEW_CONTRACT_V2.json")
 
 
 class ValidationError(ValueError):
@@ -82,6 +92,29 @@ def validate_state(state: dict[str, Any], contract: dict[str, Any] | None = None
     return workpackages
 
 
+def _validated_v2_event_heads(root: Path) -> dict[str, str]:
+    """Return successor-dynamic migrated rows after validating v2 chains/bindings.
+
+    Migration is never hardcoded: a row is migrated iff the current v2 resolver reports a
+    validated event head. If the v2 contract is present, any resolver failure is a repository
+    consistency failure rather than permission to fall back to stale legacy state.
+    """
+    if not (root / STATE_VIEW_V2_REL).is_file():
+        return {}
+    try:
+        resolved = state_v2.resolve_effective_state(root, check_active=True)
+    except state_v2.ValidationError as exc:
+        raise ValidationError(f"state-v2 validation failed: {exc}") from exc
+    migrated = resolved.get("migrated_event_heads")
+    _require(isinstance(migrated, dict), "state-v2 resolver returned malformed migrated_event_heads")
+    for workpackage_id, event_head in migrated.items():
+        _require(isinstance(workpackage_id, str) and bool(WP.fullmatch(workpackage_id)),
+                 f"state-v2 resolver returned malformed workpackage id: {workpackage_id}")
+        _require(isinstance(event_head, str) and bool(event_head),
+                 f"state-v2 resolver returned malformed event head: {workpackage_id}")
+    return migrated
+
+
 def _claims_by_id(root: Path) -> dict[str, dict[str, Any]]:
     claims: dict[str, dict[str, Any]] = {}
     directory = root / "workpackages" / "claims"
@@ -90,7 +123,7 @@ def _claims_by_id(root: Path) -> dict[str, dict[str, Any]]:
         claim = load_json(path)
         claim_id = claim.get("claim_id")
         if not isinstance(claim_id, str) or not claim_id:
-            continue  # historical/noncanonical objects are not selectable by an active pointer
+            continue
         _require(claim_id not in claims, f"duplicate claim_id: {claim_id}")
         claims[claim_id] = claim
     return claims
@@ -100,20 +133,13 @@ def _bind_claim(pointer: dict[str, Any], claim: dict[str, Any]) -> None:
     _require(claim.get("schema") == CLAIM_SCHEMA, "claim schema mismatch")
     for field in ("workpackage_id", "generation", "claim_id"):
         _require(claim.get(field) == pointer.get(field), f"claim/pointer identity mismatch: {field}")
-    # Historical worker spellings are provenance; exact worker identity is required when present on both.
     if "worker_id" in claim and "worker_id" in pointer:
         _require(claim.get("worker_id") == pointer.get("worker_id"), "claim/pointer identity mismatch: worker_id")
-    # CLAIM_PROTOCOL.md does not require a trigger field on every admitted v1 claim.
-    # Preserve compatibility for claims that omit it, while fail-closing any explicit
-    # trigger value that would bind this Triggerword-4 repository state to another trigger.
     if "trigger" in claim:
         _require(claim.get("trigger") == "4", "claim trigger must be '4' when present")
 
 
 def _reconciliation_terminal_state(reconciliation: dict[str, Any]) -> str:
-    # Newer reconciliations use terminal_state. One admitted legacy generation used state.
-    # If terminal_state exists it remains authoritative even when a legacy descriptive state
-    # (for example SUPERSEDED_DUPLICATE) is also present.
     if "terminal_state" in reconciliation:
         return _string(reconciliation.get("terminal_state"), "reconciliation.terminal_state")
     return _string(reconciliation.get("state"), "reconciliation.state")
@@ -153,10 +179,6 @@ def _bind_reconciliation(pointer: dict[str, Any], reconciliation: dict[str, Any]
                  "reconciliation/pointer identity mismatch: worker_id")
     _require(_reconciliation_terminal_state(reconciliation) == pointer.get("state"),
              "reconciliation terminal_state mismatch")
-
-    # Current receipts use the explicit boolean guard. Older admitted reconciliations used
-    # whole_system_credit: 0. Preserve fail-closed semantics: exactly one explicit zero/false
-    # representation is required; absence, truthy acceptance, or nonzero credit is rejected.
     if "whole_system_acceptance" in reconciliation:
         _require(reconciliation.get("whole_system_acceptance") is False,
                  "component reconciliation must not assert whole-system acceptance")
@@ -232,28 +254,50 @@ def validate_pointer(
         "pointer_schema": pointer["schema"],
         "pointer_state": pointer_state,
         "broad_status": broad_status,
+        "authority": "LEGACY_V1",
         "reconciliation_bound": reconciliation is not None,
     }
 
 
 def validate_repository(root: Path) -> dict[str, Any]:
+    root = root.resolve()
     contract = load_contract(root)
     state = load_json(root / "workpackages" / "STATE.json")
     workpackages = validate_state(state, contract)
     active_dir = root / "workpackages" / "active"
     _require(active_dir.is_dir(), "workpackages/active directory missing")
+
+    migrated_event_heads = _validated_v2_event_heads(root)
+    migrated = set(migrated_event_heads)
     claims = _claims_by_id(root)
 
-    # ACCEPTED_AT_SCOPE is only meaningful with repository-local evidence that actually exists.
+    # The legacy snapshot remains a cache for migrated rows. Do not reject stale cache evidence
+    # for a row whose validated v2 event chain already supplies current authority.
     for workpackage_id, entry in workpackages.items():
+        if workpackage_id in migrated:
+            continue
         if entry.get("status") == "ACCEPTED_AT_SCOPE":
             evidence = entry["evidence"]
             _require(any((root / item).exists() for item in evidence),
                      f"ACCEPTED_AT_SCOPE has no existing repository-local evidence: {workpackage_id}")
 
     validated: list[dict[str, Any]] = []
+    legacy_count = 0
+    delegated_count = 0
     for path in sorted(active_dir.glob("*.json")):
         pointer = load_json(path)
+        workpackage_id = pointer.get("workpackage_id")
+
+        if workpackage_id in migrated:
+            validated.append({
+                "workpackage_id": workpackage_id,
+                "authority": "STATE_EVENT_V2",
+                "event_head": migrated_event_heads[workpackage_id],
+                "runtime_credit_granted": 0,
+            })
+            delegated_count += 1
+            continue
+
         claim_id = _string(pointer.get("claim_id"), f"{path}.claim_id")
         claim = claims.get(claim_id)
         _require(claim is not None, f"{path}: no matching claim object for {claim_id}")
@@ -267,10 +311,11 @@ def validate_repository(root: Path) -> dict[str, Any]:
             filename_stem=path.stem,
             pointer=pointer,
             claim=claim,
-            state_entry=workpackages.get(pointer.get("workpackage_id")),
+            state_entry=workpackages.get(workpackage_id),
             contract=contract,
             reconciliation=reconciliation,
         ))
+        legacy_count += 1
 
     return {
         "pass": True,
@@ -278,6 +323,9 @@ def validate_repository(root: Path) -> dict[str, Any]:
         "runtime_credit_granted": 0,
         "whole_system_acceptance": False,
         "state_generation": state["generation"],
+        "v2_migrated_workpackages_validated": len(migrated_event_heads),
+        "v2_active_pointers_delegated": delegated_count,
+        "legacy_active_pointers_validated": legacy_count,
         "active_pointers_validated": len(validated),
         "validated": validated,
     }
