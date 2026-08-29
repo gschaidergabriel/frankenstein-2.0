@@ -1,0 +1,34 @@
+name: Review WP404 subtype and mixed-source gates
+
+on:
+  pull_request:
+    paths:
+      - 'src/frankenstein2/cognitive_micro_lab.py'
+      - 'src/frankenstein2/physics_projection.py'
+      - 'src/frankenstein2/qubo_projection.py'
+      - 'src/frankenstein2/sparse_world_basis.py'
+      - 'tests/review/test_wp404_subtype_mixed_source_gates.py'
+      - '.github/workflows/review-wp404-subtype-mixed-source-gates.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  falsifier:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: Compile reviewed sources and falsifier
+        run: |
+          python -m py_compile \
+            src/frankenstein2/sparse_world_basis.py \
+            src/frankenstein2/qubo_projection.py \
+            src/frankenstein2/physics_projection.py \
+            src/frankenstein2/cognitive_micro_lab.py \
+            tests/review/test_wp404_subtype_mixed_source_gates.py
+      - name: Execute subtype and mixed-source falsifiers
+        env:
+          PYTHONPATH: src
+        run: python -m unittest tests.review.test_wp404_subtype_mixed_source_gates -v
