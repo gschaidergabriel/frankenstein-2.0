@@ -1,0 +1,26 @@
+{
+  "schema_version": 1,
+  "trigger": "7",
+  "worker": "GPT-5.6-Sol-TRIGGER7",
+  "date": "2026-08-30",
+  "base_cursor_schema_observed": 6,
+  "base_cursor_evidence_level": "V1_SOURCE_PINNED_EXTENDED_HARNESS_READY_VPS_RUNNER_QUEUED_NO_TARGET_RUNTIME",
+  "delta_claim": "T7-ASR-002/E2_OPENASR_QWEN3_06B_Q8_PACKAGING_AUDIT",
+  "delta_result": "research/local_voice/sources/2026-08-30_OPENASR_QWEN3_ASR_06B_Q8_PACKAGING_AUDIT.md",
+  "state": "SOURCE_AUDIT_COMPLETE_CONDITIONAL_VPS_CHALLENGER",
+  "high_value_findings": [
+    "OpenASR q8 is a distinct challenger, not a proven quantization of the current F2 Qwen/Qwen3-ASR-0.6B-hf baseline: OpenASR declares Qwen/Qwen3-ASR-0.6B as its conversion source, and the two current official Qwen model artifacts have different surfaced sizes and SHA-256 identities.",
+    "OpenASR's registry explicitly includes German and defaults the published 0.6B pack to q8_0; upstream reports approximately 1.01 GB pack and 2.86 GB isolated RAM peak, but those performance/quantization numbers are M1/JFK source evidence only.",
+    "OpenASR's own Qwen audit verifies CPU/Metal on its cited M1 evidence while marking CUDA/Vulkan/HIP untested for this family; target hardware/backend correctness must precede any performance credit on those paths.",
+    "OpenASR runtime development is moving rapidly in GPU residency/KV/decode/resource admission; any F2 test must pin exact runtime build/commit and model pack digest rather than use latest."
+  ],
+  "decision": "CONDITIONAL_PROMOTE_TO_LATER_VPS_CHALLENGER",
+  "promotion_gate": "VPS_HARDWARE_RECEIPT + BACKEND_COMPATIBILITY + EXACT_RUNTIME_PIN + PACK_DIGEST + GERMAN_TARGET_BENCHMARK",
+  "vps_roundtrip_run_id_observed": 33265258658,
+  "vps_roundtrip_status_observed": "queued",
+  "vps_execution_observed": false,
+  "runtime_credit": 0,
+  "benchmark_credit": 0,
+  "acceptance_credit": 0,
+  "continuation": "Do not duplicate the active hardware-roundtrip claim. When its real hardware receipt lands, decide CPU versus verified target backend before opening a separate OpenASR E3 benchmark claim."
+}
