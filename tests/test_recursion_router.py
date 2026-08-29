@@ -31,6 +31,7 @@ from frankenstein2.situation_frame import CycleContract, SituationFrame
 
 TASK_DIGEST = "a" * 64
 NESTED_DIGEST = "d" * 64
+DECISION_DIGEST = "e" * 64
 
 
 def make_cycle(*, suffix: str = "root") -> CycleContract:
@@ -82,7 +83,7 @@ def make_route(
         max_direct_work_units=8,
         max_direct_context_tokens=4096,
         allowed_routes=(DIRECT_SMALL, DELEGATE_BUILD),
-        provenance_refs=(f"policy-source:wp600:{suffix}",),
+        provenance_refs=(f"policy-source:wp600-g2:{suffix}",),
     )
     candidate = route_task(cycle_contract=cycle, request=request, policy=policy)
     assert candidate.selected_route == selected
@@ -114,8 +115,8 @@ def make_child_request(
     )
     binding = NativeChildBinding(
         workpackage_id="F2-WP-603",
-        workpackage_generation=1,
-        claim_id="F2-WP-603-G1-GPT56SOL-RECURSION-ROUTER-20260829",
+        workpackage_generation=2,
+        claim_id="F2-WP-603-G2-GPT56SOL-STRATEGY-DEPTH-CONTRACT-20260829",
         parent=parent,
         invocation_id=f"invocation-{safe_id}",
         tool_use_id=f"tool-use-{safe_id}",
@@ -147,33 +148,58 @@ def make_child_request(
 
 def make_policy(
     *,
-    admitted_modes: tuple[str, ...] = (R0, R1, R2, R3),
-    r3_preference_order: tuple[str, ...] = (R2, R1, R0),
+    admitted_strategies: tuple[str, ...] = (R0, R1, R2, R3),
     max_nested_child_edges: int = 3,
+    generation: int = 2,
 ) -> RecursionPolicy:
     return RecursionPolicy.create(
-        policy_id="recursion-policy-wp603",
-        generation=1,
-        admitted_modes=admitted_modes,
-        r3_preference_order=r3_preference_order,
+        policy_id="recursion-policy-wp603-g2",
+        generation=generation,
+        admitted_strategies=admitted_strategies,
         max_nested_child_edges=max_nested_child_edges,
-        provenance_refs=("policy-source:wp603",),
+        provenance_refs=("policy-source:wp603-g2",),
     )
 
 
-class RecursionRouterTests(unittest.TestCase):
+def make_r3_need(
+    *,
+    route: RouteCandidate,
+    selected_strategy: str,
+    available: tuple[str, ...],
+    provenance: str,
+    child: NativeChildRequest | None = None,
+    remaining: int = 0,
+    decision_sha: str = DECISION_DIGEST,
+    parent_candidate: RecursionRouteCandidate | None = None,
+) -> RecursionNeed:
+    return RecursionNeed.create(
+        route_candidate=route,
+        requested_strategy=R3,
+        r3_available_strategies=available,
+        r3_selected_strategy=selected_strategy,
+        r3_decision_id=f"decision:{provenance}",
+        r3_decision_sha256=decision_sha,
+        r3_decision_provenance_refs=(f"decision-source:{provenance}",),
+        child_request=child,
+        remaining_nested_child_edges=remaining,
+        parent_candidate=parent_candidate,
+        generation=2,
+        provenance_refs=(f"need:{provenance}",),
+    )
+
+
+class RecursionRouterG2Tests(unittest.TestCase):
     def test_r0_is_deterministic_local_and_candidate_only(self) -> None:
         route = make_route(selected=DIRECT_SMALL)
         need = RecursionNeed.create(
             route_candidate=route,
-            requested_mode=R0,
-            generation=1,
+            requested_strategy=R0,
+            generation=2,
             provenance_refs=("need:r0",),
         )
         candidate = route_recursion(route_candidate=route, need=need, policy=make_policy())
-
-        self.assertEqual(candidate.requested_mode, R0)
-        self.assertEqual(candidate.selected_mechanism, R0)
+        self.assertEqual(candidate.requested_strategy, R0)
+        self.assertEqual(candidate.selected_strategy, R0)
         self.assertEqual(candidate.remaining_nested_child_edges, 0)
         self.assertIsNone(candidate.child_request_id)
         self.assertIsNone(candidate.child_remaining_nested_child_edges)
@@ -184,14 +210,13 @@ class RecursionRouterTests(unittest.TestCase):
         route = make_route(selected=DELEGATE_BUILD)
         need = RecursionNeed.create(
             route_candidate=route,
-            requested_mode=R1,
-            generation=1,
+            requested_strategy=R1,
+            generation=2,
             provenance_refs=("need:r1-model",),
         )
         candidate = route_recursion(route_candidate=route, need=need, policy=make_policy())
-
-        self.assertEqual(candidate.requested_mode, R1)
-        self.assertEqual(candidate.selected_mechanism, R1)
+        self.assertEqual(candidate.requested_strategy, R1)
+        self.assertEqual(candidate.selected_strategy, R1)
         self.assertIsNone(candidate.child_request_id)
         self.assertEqual(candidate.reason_codes, ("R1_MODEL_RECURSION_CANDIDATE_ADMITTED",))
 
@@ -201,9 +226,9 @@ class RecursionRouterTests(unittest.TestCase):
         need = RecursionNeed.create(
             route_candidate=route,
             child_request=child,
-            requested_mode=R2,
+            requested_strategy=R2,
             remaining_nested_child_edges=0,
-            generation=1,
+            generation=2,
             provenance_refs=("need:r2-immediate",),
         )
         candidate = route_recursion(
@@ -212,9 +237,7 @@ class RecursionRouterTests(unittest.TestCase):
             need=need,
             policy=make_policy(),
         )
-
-        self.assertEqual(candidate.requested_mode, R2)
-        self.assertEqual(candidate.selected_mechanism, R2)
+        self.assertEqual(candidate.selected_strategy, R2)
         self.assertEqual(candidate.child_request_id, child.request_id)
         self.assertEqual(candidate.child_remaining_nested_child_edges, 0)
         self.assertEqual(candidate.reason_codes, ("R2_NATIVE_CHILD_HARNESS_ADMITTED",))
@@ -225,9 +248,9 @@ class RecursionRouterTests(unittest.TestCase):
         need = RecursionNeed.create(
             route_candidate=route,
             child_request=child,
-            requested_mode=R2,
+            requested_strategy=R2,
             remaining_nested_child_edges=1,
-            generation=1,
+            generation=2,
             provenance_refs=("need:r2-over-child-budget",),
         )
         with self.assertRaisesRegex(RecursionRouterError, "exceed NativeChildRequest max_nested_depth"):
@@ -238,75 +261,107 @@ class RecursionRouterTests(unittest.TestCase):
                 policy=make_policy(),
             )
 
-    def test_r3_is_adaptive_selection_not_depth_three(self) -> None:
+    def test_r3_is_explicit_adaptive_strategy_not_depth_three(self) -> None:
         route = make_route(selected=DELEGATE_BUILD)
-        child = make_child_request(max_nested_depth=0)
-        need = RecursionNeed.create(
-            route_candidate=route,
-            child_request=child,
-            requested_mode=R3,
-            r3_available_modes=(R1, R2),
-            remaining_nested_child_edges=0,
-            generation=1,
-            provenance_refs=("need:r3-select-r1",),
+        need = make_r3_need(
+            route=route,
+            selected_strategy=R1,
+            available=(R1, R2),
+            provenance="r3-select-r1",
         )
-        policy = make_policy(r3_preference_order=(R1, R2, R0))
-        candidate = route_recursion(
-            route_candidate=route,
-            child_request=child,
-            need=need,
-            policy=policy,
-        )
-
-        self.assertEqual(candidate.requested_mode, R3)
-        self.assertEqual(candidate.selected_mechanism, R1)
+        candidate = route_recursion(route_candidate=route, need=need, policy=make_policy())
+        self.assertEqual(candidate.requested_strategy, R3)
+        self.assertEqual(candidate.selected_strategy, R1)
         self.assertEqual(candidate.remaining_nested_child_edges, 0)
-        self.assertIsNone(candidate.child_remaining_nested_child_edges)
+        self.assertEqual(candidate.r3_decision_id, "decision:r3-select-r1")
+        self.assertEqual(candidate.r3_decision_sha256, DECISION_DIGEST)
+        self.assertEqual(
+            candidate.r3_decision_provenance_refs,
+            ("decision-source:r3-select-r1",),
+        )
         self.assertEqual(candidate.reason_codes, ("R3_ADAPTIVE_SELECTED_R1",))
 
-    def test_r3_can_select_r2_from_explicit_available_mechanisms(self) -> None:
+    def test_r3_can_explicitly_select_r2_with_exact_child_evidence(self) -> None:
         route = make_route(selected=DELEGATE_BUILD)
         child = make_child_request(max_nested_depth=1)
-        need = RecursionNeed.create(
-            route_candidate=route,
-            child_request=child,
-            requested_mode=R3,
-            r3_available_modes=(R1, R2),
-            remaining_nested_child_edges=1,
-            generation=1,
-            provenance_refs=("need:r3-select-r2",),
+        need = make_r3_need(
+            route=route,
+            selected_strategy=R2,
+            available=(R1, R2),
+            provenance="r3-select-r2",
+            child=child,
+            remaining=1,
         )
         candidate = route_recursion(
             route_candidate=route,
             child_request=child,
             need=need,
-            policy=make_policy(r3_preference_order=(R2, R1, R0)),
+            policy=make_policy(),
         )
-
-        self.assertEqual(candidate.requested_mode, R3)
-        self.assertEqual(candidate.selected_mechanism, R2)
+        self.assertEqual(candidate.requested_strategy, R3)
+        self.assertEqual(candidate.selected_strategy, R2)
+        self.assertEqual(candidate.child_request_id, child.request_id)
         self.assertEqual(candidate.child_remaining_nested_child_edges, 1)
         self.assertEqual(candidate.reason_codes, ("R3_ADAPTIVE_SELECTED_R2",))
 
-    def test_r3_on_direct_route_can_only_adapt_to_r0(self) -> None:
+    def test_r3_on_direct_route_can_explicitly_select_only_r0(self) -> None:
         route = make_route(selected=DIRECT_SMALL)
-        need = RecursionNeed.create(
-            route_candidate=route,
-            requested_mode=R3,
-            r3_available_modes=(R0,),
-            generation=1,
-            provenance_refs=("need:r3-direct",),
+        need = make_r3_need(
+            route=route,
+            selected_strategy=R0,
+            available=(R0,),
+            provenance="r3-direct-r0",
         )
         candidate = route_recursion(route_candidate=route, need=need, policy=make_policy())
-        self.assertEqual(candidate.selected_mechanism, R0)
+        self.assertEqual(candidate.selected_strategy, R0)
         self.assertEqual(candidate.reason_codes, ("R3_ADAPTIVE_SELECTED_R0",))
 
-    def test_route_mechanism_contradictions_fail_closed(self) -> None:
+    def test_r3_requires_selected_strategy_and_decision_evidence(self) -> None:
+        route = make_route(selected=DELEGATE_BUILD)
+        with self.assertRaises(RecursionRouterError):
+            RecursionNeed.create(
+                route_candidate=route,
+                requested_strategy=R3,
+                r3_available_strategies=(R1,),
+                generation=2,
+                provenance_refs=("need:r3-missing-decision",),
+            )
+        with self.assertRaisesRegex(RecursionRouterError, "explicitly present"):
+            make_r3_need(
+                route=route,
+                selected_strategy=R2,
+                available=(R1,),
+                provenance="r3-selected-not-available",
+            )
+
+    def test_r3_decision_digest_is_content_bound(self) -> None:
+        route = make_route(selected=DELEGATE_BUILD)
+        first_need = make_r3_need(
+            route=route,
+            selected_strategy=R1,
+            available=(R1,),
+            provenance="r3-decision-a",
+            decision_sha="e" * 64,
+        )
+        second_need = make_r3_need(
+            route=route,
+            selected_strategy=R1,
+            available=(R1,),
+            provenance="r3-decision-a",
+            decision_sha="f" * 64,
+        )
+        policy = make_policy()
+        first = route_recursion(route_candidate=route, need=first_need, policy=policy)
+        second = route_recursion(route_candidate=route, need=second_need, policy=policy)
+        self.assertNotEqual(first_need.need_id, second_need.need_id)
+        self.assertNotEqual(first.candidate_id, second.candidate_id)
+
+    def test_route_strategy_contradictions_fail_closed(self) -> None:
         direct = make_route(selected=DIRECT_SMALL)
         r1_need = RecursionNeed.create(
             route_candidate=direct,
-            requested_mode=R1,
-            generation=1,
+            requested_strategy=R1,
+            generation=2,
             provenance_refs=("need:bad-direct-r1",),
         )
         with self.assertRaisesRegex(RecursionRouterError, "contradicts upstream route"):
@@ -315,54 +370,61 @@ class RecursionRouterTests(unittest.TestCase):
         delegate = make_route(selected=DELEGATE_BUILD, suffix="delegate-r0")
         r0_need = RecursionNeed.create(
             route_candidate=delegate,
-            requested_mode=R0,
-            generation=1,
+            requested_strategy=R0,
+            generation=2,
             provenance_refs=("need:bad-delegate-r0",),
         )
         with self.assertRaisesRegex(RecursionRouterError, "contradicts upstream route"):
             route_recursion(route_candidate=delegate, need=r0_need, policy=make_policy())
 
-    def test_r3_rejects_declared_mechanism_incompatible_with_upstream_route(self) -> None:
+    def test_r3_rejects_available_strategy_incompatible_with_upstream_route(self) -> None:
         route = make_route(selected=DELEGATE_BUILD)
-        need = RecursionNeed.create(
-            route_candidate=route,
-            requested_mode=R3,
-            r3_available_modes=(R0, R1),
-            generation=1,
-            provenance_refs=("need:r3-incompatible",),
+        need = make_r3_need(
+            route=route,
+            selected_strategy=R1,
+            available=(R0, R1),
+            provenance="r3-incompatible-available",
         )
         with self.assertRaisesRegex(RecursionRouterError, "incompatible with upstream route"):
             route_recursion(route_candidate=route, need=need, policy=make_policy())
 
-    def test_policy_admission_and_nested_depth_ceiling_are_independent(self) -> None:
+    def test_policy_must_admit_r3_and_its_selected_lower_strategy(self) -> None:
         route = make_route(selected=DELEGATE_BUILD)
-        r1_need = RecursionNeed.create(
-            route_candidate=route,
-            requested_mode=R1,
-            generation=1,
-            provenance_refs=("need:r1-denied",),
+        need = make_r3_need(
+            route=route,
+            selected_strategy=R1,
+            available=(R1,),
+            provenance="r3-policy",
         )
-        with self.assertRaisesRegex(RecursionRouterError, "not policy-admitted"):
+        with self.assertRaisesRegex(RecursionRouterError, "R3 adaptive selection is not policy-admitted"):
             route_recursion(
                 route_candidate=route,
-                need=r1_need,
-                policy=make_policy(admitted_modes=(R0, R2, R3)),
+                need=need,
+                policy=make_policy(admitted_strategies=(R0, R1, R2)),
+            )
+        with self.assertRaisesRegex(RecursionRouterError, "selected lower strategy is not policy-admitted"):
+            route_recursion(
+                route_candidate=route,
+                need=need,
+                policy=make_policy(admitted_strategies=(R0, R2, R3)),
             )
 
+    def test_policy_nested_depth_ceiling_is_independent_of_strategy(self) -> None:
+        route = make_route(selected=DELEGATE_BUILD)
         child = make_child_request(max_nested_depth=2)
-        r2_need = RecursionNeed.create(
+        need = RecursionNeed.create(
             route_candidate=route,
             child_request=child,
-            requested_mode=R2,
+            requested_strategy=R2,
             remaining_nested_child_edges=2,
-            generation=1,
+            generation=2,
             provenance_refs=("need:r2-policy-depth",),
         )
         with self.assertRaisesRegex(RecursionRouterError, "exceed policy ceiling"):
             route_recursion(
                 route_candidate=route,
                 child_request=child,
-                need=r2_need,
+                need=need,
                 policy=make_policy(max_nested_child_edges=1),
             )
 
@@ -372,8 +434,8 @@ class RecursionRouterTests(unittest.TestCase):
         need = RecursionNeed.create(
             route_candidate=route,
             child_request=child,
-            requested_mode=R2,
-            generation=1,
+            requested_strategy=R2,
+            generation=2,
             provenance_refs=("need:cross-task",),
         )
         with self.assertRaisesRegex(RecursionRouterError, "task_id does not match"):
@@ -390,8 +452,8 @@ class RecursionRouterTests(unittest.TestCase):
         need = RecursionNeed.create(
             route_candidate=route,
             child_request=child,
-            requested_mode=R2,
-            generation=1,
+            requested_strategy=R2,
+            generation=2,
             provenance_refs=("need:cross-payload",),
         )
         with self.assertRaisesRegex(RecursionRouterError, "task digest does not match"):
@@ -409,8 +471,8 @@ class RecursionRouterTests(unittest.TestCase):
         need = RecursionNeed.create(
             route_candidate=route,
             child_request=first,
-            requested_mode=R2,
-            generation=1,
+            requested_strategy=R2,
+            generation=2,
             provenance_refs=("need:child-binding",),
         )
         with self.assertRaisesRegex(RecursionRouterError, "child request id mismatch"):
@@ -427,9 +489,9 @@ class RecursionRouterTests(unittest.TestCase):
         root_need = RecursionNeed.create(
             route_candidate=root_route,
             child_request=root_child,
-            requested_mode=R2,
+            requested_strategy=R2,
             remaining_nested_child_edges=2,
-            generation=1,
+            generation=2,
             provenance_refs=("need:nested-root",),
         )
         root_candidate = route_recursion(
@@ -454,10 +516,10 @@ class RecursionRouterTests(unittest.TestCase):
         nested_need = RecursionNeed.create(
             route_candidate=nested_route,
             child_request=nested_child,
-            requested_mode=R2,
+            requested_strategy=R2,
             remaining_nested_child_edges=1,
             parent_candidate=root_candidate,
-            generation=2,
+            generation=3,
             provenance_refs=("need:nested-child",),
         )
         nested_candidate = route_recursion(
@@ -474,10 +536,10 @@ class RecursionRouterTests(unittest.TestCase):
             RecursionNeed.create(
                 route_candidate=nested_route,
                 child_request=nested_child,
-                requested_mode=R2,
+                requested_strategy=R2,
                 remaining_nested_child_edges=2,
                 parent_candidate=root_candidate,
-                generation=2,
+                generation=3,
                 provenance_refs=("need:depth-reset",),
             )
 
@@ -487,9 +549,9 @@ class RecursionRouterTests(unittest.TestCase):
         need = RecursionNeed.create(
             route_candidate=route,
             child_request=child,
-            requested_mode=R2,
+            requested_strategy=R2,
             remaining_nested_child_edges=0,
-            generation=1,
+            generation=2,
             provenance_refs=("need:zero-parent",),
         )
         parent_candidate = route_recursion(
@@ -514,11 +576,65 @@ class RecursionRouterTests(unittest.TestCase):
             RecursionNeed.create(
                 route_candidate=nested_route,
                 child_request=nested_child,
-                requested_mode=R2,
+                requested_strategy=R2,
                 remaining_nested_child_edges=0,
                 parent_candidate=parent_candidate,
-                generation=2,
+                generation=3,
                 provenance_refs=("need:nested-zero",),
+            )
+
+    def test_consumer_revalidates_post_construction_mutated_need(self) -> None:
+        route = make_route(selected=DELEGATE_BUILD)
+        need = RecursionNeed.create(
+            route_candidate=route,
+            requested_strategy=R1,
+            generation=2,
+            provenance_refs=("need:content-id-falsifier",),
+        )
+        original_need_id = need.need_id
+        object.__setattr__(need, "requested_strategy", R2)
+        self.assertEqual(need.need_id, original_need_id)
+        with self.assertRaises(RecursionRouterError):
+            route_recursion(route_candidate=route, need=need, policy=make_policy())
+
+    def test_consumer_revalidation_catches_stale_need_id_after_generation_mutation(self) -> None:
+        route = make_route(selected=DELEGATE_BUILD)
+        need = RecursionNeed.create(
+            route_candidate=route,
+            requested_strategy=R1,
+            generation=2,
+            provenance_refs=("need:content-id-generation",),
+        )
+        object.__setattr__(need, "generation", 3)
+        with self.assertRaisesRegex(RecursionRouterError, "need_id does not bind"):
+            route_recursion(route_candidate=route, need=need, policy=make_policy())
+
+    def test_consumer_revalidation_catches_mutated_r3_decision_digest(self) -> None:
+        route = make_route(selected=DELEGATE_BUILD)
+        need = make_r3_need(
+            route=route,
+            selected_strategy=R1,
+            available=(R1,),
+            provenance="r3-mutation",
+        )
+        object.__setattr__(need, "r3_decision_sha256", "f" * 64)
+        with self.assertRaisesRegex(RecursionRouterError, "need_id does not bind"):
+            route_recursion(route_candidate=route, need=need, policy=make_policy())
+
+    def test_policy_generation_outside_canonical_json_integer_domain_fails_closed(self) -> None:
+        pathological_generation = 10 ** 5000
+        with self.assertRaises(RecursionRouterError):
+            make_policy(generation=pathological_generation)
+
+    def test_need_generation_outside_canonical_json_integer_domain_fails_closed(self) -> None:
+        route = make_route(selected=DELEGATE_BUILD)
+        pathological_generation = 10 ** 5000
+        with self.assertRaises(RecursionRouterError):
+            RecursionNeed.create(
+                route_candidate=route,
+                requested_strategy=R1,
+                generation=pathological_generation,
+                provenance_refs=("need:huge-generation",),
             )
 
     def test_candidate_mapping_roundtrip_and_display_tampering_fail_closed(self) -> None:
@@ -527,8 +643,8 @@ class RecursionRouterTests(unittest.TestCase):
         need = RecursionNeed.create(
             route_candidate=route,
             child_request=child,
-            requested_mode=R2,
-            generation=1,
+            requested_strategy=R2,
+            generation=2,
             provenance_refs=("need:mapping",),
         )
         candidate = route_recursion(
@@ -542,16 +658,16 @@ class RecursionRouterTests(unittest.TestCase):
         self.assertEqual(rebuilt.sha256(), candidate.sha256())
 
         forged = candidate.as_dict()
-        forged["selected_mechanism"] = R1
+        forged["selected_strategy"] = R1
         with self.assertRaises(RecursionRouterError):
             RecursionRouteCandidate.from_mapping(forged)
 
-    def test_candidate_identity_changes_with_mechanism_or_depth_evidence(self) -> None:
+    def test_candidate_identity_changes_with_strategy_or_depth_evidence(self) -> None:
         route = make_route(selected=DELEGATE_BUILD)
         r1_need = RecursionNeed.create(
             route_candidate=route,
-            requested_mode=R1,
-            generation=1,
+            requested_strategy=R1,
+            generation=2,
             provenance_refs=("need:id-r1",),
         )
         r1 = route_recursion(route_candidate=route, need=r1_need, policy=make_policy())
@@ -560,17 +676,17 @@ class RecursionRouterTests(unittest.TestCase):
         r2_zero_need = RecursionNeed.create(
             route_candidate=route,
             child_request=child,
-            requested_mode=R2,
+            requested_strategy=R2,
             remaining_nested_child_edges=0,
-            generation=1,
+            generation=2,
             provenance_refs=("need:id-r2-zero",),
         )
         r2_one_need = RecursionNeed.create(
             route_candidate=route,
             child_request=child,
-            requested_mode=R2,
+            requested_strategy=R2,
             remaining_nested_child_edges=1,
-            generation=1,
+            generation=2,
             provenance_refs=("need:id-r2-one",),
         )
         r2_zero = route_recursion(
@@ -592,8 +708,8 @@ class RecursionRouterTests(unittest.TestCase):
         route = make_route(selected=DELEGATE_BUILD)
         need = RecursionNeed.create(
             route_candidate=route,
-            requested_mode=R1,
-            generation=1,
+            requested_strategy=R1,
+            generation=2,
             provenance_refs=("need:determinism",),
         )
         policy = make_policy()
@@ -617,30 +733,30 @@ class RecursionRouterTests(unittest.TestCase):
         )
         need = RecursionNeed.create(
             route_candidate=route,
-            requested_mode=R0,
-            generation=1,
+            requested_strategy=R0,
+            generation=2,
             provenance_refs=("need:exact-type",),
         )
         with self.assertRaisesRegex(RecursionRouterError, "exact concrete RouteCandidate"):
             route_recursion(route_candidate=forged_route, need=need, policy=make_policy())
 
-    def test_non_r2_need_cannot_smuggle_child_or_depth_evidence(self) -> None:
+    def test_non_r2_selected_strategy_cannot_smuggle_child_or_depth_evidence(self) -> None:
         route = make_route(selected=DELEGATE_BUILD)
         child = make_child_request(max_nested_depth=1)
-        with self.assertRaisesRegex(RecursionRouterError, "non-R2-capable need must not carry child"):
+        with self.assertRaisesRegex(RecursionRouterError, "non-R2 selected strategy must not carry child"):
             RecursionNeed.create(
                 route_candidate=route,
                 child_request=child,
-                requested_mode=R1,
-                generation=1,
+                requested_strategy=R1,
+                generation=2,
                 provenance_refs=("need:r1-smuggle-child",),
             )
         with self.assertRaisesRegex(RecursionRouterError, "zero nested-child edges"):
             RecursionNeed.create(
                 route_candidate=route,
-                requested_mode=R1,
+                requested_strategy=R1,
                 remaining_nested_child_edges=1,
-                generation=1,
+                generation=2,
                 provenance_refs=("need:r1-smuggle-depth",),
             )
 
@@ -651,19 +767,29 @@ class RecursionRouterTests(unittest.TestCase):
             RecursionNeed.create(
                 route_candidate=route,
                 child_request=child,
-                requested_mode=R2,
+                requested_strategy=R2,
                 remaining_nested_child_edges=False,
-                generation=1,
+                generation=2,
                 provenance_refs=("need:bool-depth",),
             )
 
-    def test_policy_modes_are_canonical_and_r3_preference_has_no_duplicates(self) -> None:
+    def test_policy_strategies_must_be_canonical_and_exact_strings(self) -> None:
         with self.assertRaises(RecursionRouterError):
-            make_policy(admitted_modes=(R0, R2, R1, R3))
+            make_policy(admitted_strategies=(R0, R2, R1, R3))
         with self.assertRaises(RecursionRouterError):
-            make_policy(admitted_modes=(R0, R1, R1, R3))
+            make_policy(admitted_strategies=(R0, R1, R1, R3))
+
+        class StringSubclass(str):
+            pass
+
         with self.assertRaises(RecursionRouterError):
-            make_policy(r3_preference_order=(R2, R2, R1))
+            RecursionPolicy.create(
+                policy_id=StringSubclass("policy-subclass"),
+                generation=2,
+                admitted_strategies=(R0, R1),
+                max_nested_child_edges=1,
+                provenance_refs=("policy-source:subclass",),
+            )
 
 
 if __name__ == "__main__":
