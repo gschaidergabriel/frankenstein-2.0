@@ -1,0 +1,66 @@
+{
+  "schema": "TRIGGER7_SOURCE_DELTA/v1",
+  "research_id": "T7-TTS-003",
+  "objective": "E2_QWEN3_TTS_GERMAN_VARIANT_DISCRIMINATOR_SOURCE_AUDIT",
+  "date": "2026-08-30",
+  "status": "SOURCE_AUDIT_COMPLETE_RUNTIME_UNTESTED",
+  "source": {
+    "repository": "QwenLM/Qwen3-TTS",
+    "revision": "022e286b98fbec7e1e916cb940cdf532cd9f488e",
+    "model_family": "Qwen3-TTS",
+    "license": "Apache-2.0 as published for the current Hugging Face checkpoints",
+    "evidence_scope": "official upstream README/model-card claims and evaluation only"
+  },
+  "observed_source_facts": {
+    "released_12hz_06b_variants": [
+      "Qwen/Qwen3-TTS-12Hz-0.6B-Base",
+      "Qwen/Qwen3-TTS-12Hz-0.6B-CustomVoice"
+    ],
+    "released_12hz_06b_streaming": true,
+    "german_supported": true,
+    "upstream_minimum_reported_streaming_latency_ms": 97,
+    "base_role": "3-second voice clone from reference audio; fine-tuning-capable",
+    "customvoice_role": "preset timbres; 0.6B has no instruction-control field in the released-model table",
+    "customvoice_preset_native_languages": {
+      "male": ["Chinese", "Chinese Beijing", "Chinese Sichuan", "English", "English"],
+      "german_native_preset_observed": false
+    },
+    "upstream_german_multilingual_eval": {
+      "base_content_wer_lower_is_better": {
+        "25Hz_0.6B_Base": 1.501,
+        "25Hz_1.7B_Base": 0.960,
+        "12Hz_0.6B_Base": 1.089,
+        "12Hz_1.7B_Base": 1.235
+      },
+      "base_speaker_similarity_higher_is_better": {
+        "25Hz_0.6B_Base": 0.749,
+        "25Hz_1.7B_Base": 0.737,
+        "12Hz_0.6B_Base": 0.769,
+        "12Hz_1.7B_Base": 0.775
+      },
+      "customvoice_content_wer_lower_is_better": {
+        "25Hz_0.6B_CustomVoice": 0.990,
+        "25Hz_1.7B_CustomVoice": 0.634,
+        "12Hz_0.6B_CustomVoice": 2.722,
+        "12Hz_1.7B_CustomVoice": 1.057
+      }
+    },
+    "release_availability_note": "The current official repository release/download table exposes the 12Hz checkpoints; 25Hz values remain useful as upstream evaluation references but are not treated here as an immediately downloadable production candidate."
+  },
+  "interpretation": {
+    "finding": "Do not collapse Qwen3-TTS 0.6B into one benchmark condition. Tokenizer rate and model role materially change the upstream German evaluation, and the currently released 12Hz Base and CustomVoice have different identity/quality tradeoffs.",
+    "near_term_f2_priority": "Benchmark Qwen3-TTS-12Hz-0.6B-Base first with a fixed male German reference clip and exact streaming settings; benchmark 12Hz-0.6B-CustomVoice separately rather than substituting its preset male voices as an equivalent condition.",
+    "reason": "At source level, the released 12Hz 0.6B Base has substantially lower reported German content WER than the released 12Hz 0.6B CustomVoice (1.089 vs 2.722) and supports reference-audio voice cloning, which maps more directly to Frankenstein's stable male acoustic-identity requirement. This is not local perceptual or runtime evidence.",
+    "counterhypothesis": "On F2's real German conversational corpus, the CustomVoice path may still win naturalness, chunk continuity, TTFA or operational simplicity; upstream WER does not measure the whole voice-organ objective.",
+    "falsifier": "Run both released 12Hz 0.6B variants on identical pinned German F2 text/audio conditions and compare intelligibility/WER, blind naturalness, male identity stability, TTFA/p95, chunk continuity, ExpressionVector compatibility, cancellation and resident footprint."
+  },
+  "credit": {
+    "source_pin": true,
+    "local_download_verified": false,
+    "local_hash_verified": false,
+    "local_component_run": false,
+    "german_f2_benchmark": false,
+    "runtime_credit": 0,
+    "trigger4_acceptance_credit": 0
+  }
+}
