@@ -1,0 +1,176 @@
+name: Trigger6 UniProf py-spy E3 low-privilege fixture
+
+on:
+  push:
+    branches:
+      - trigger6/uniprof-e3-pyspy-lowpriv-20260829
+    paths:
+      - research/tool_intelligence/fixtures/uniprof_pyspy_e3_fixture.py
+      - .github/workflows/trigger6-uniprof-pyspy-e3.yml
+
+permissions:
+  contents: read
+
+jobs:
+  e3-falsifier:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - name: Checkout exact branch source
+        uses: actions/checkout@v4
+
+      - name: Environment fence
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "head_sha=${GITHUB_SHA}"
+          echo "runner_os=${RUNNER_OS}"
+          id
+          uname -a
+          python3 --version
+          printf 'ptrace_scope='; cat /proc/sys/kernel/yama/ptrace_scope 2>/dev/null || echo unavailable
+          if [ "$(id -u)" -eq 0 ]; then
+            echo 'LOW_PRIVILEGE_FENCE_FAILED_UID0'
+            exit 2
+          fi
+          if command -v docker >/dev/null; then echo 'docker_present_but_forbidden=true'; else echo 'docker_present_but_forbidden=false'; fi
+
+      - name: Install exact py-spy wheel with digest fence
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m venv .e3-venv
+          . .e3-venv/bin/activate
+          python -m pip download --disable-pip-version-check --no-deps --only-binary=:all: py-spy==0.4.2 -d .e3-wheelhouse
+          wheel="$(find .e3-wheelhouse -type f -name 'py_spy-0.4.2-*.whl' | head -1)"
+          test -n "$wheel"
+          actual="$(sha256sum "$wheel" | awk '{print $1}')"
+          expected='aeb0323409199c785f730645e9f4bb7a7b9ca2c481f2c331a55642b5d13fa52f'
+          echo "wheel=$wheel"
+          echo "wheel_sha256=$actual"
+          test "$actual" = "$expected"
+          python -m pip install --disable-pip-version-check --no-deps "$wheel"
+          py-spy --version
+          sha256sum "$(command -v py-spy)" | tee pyspy_binary.sha256
+
+      - name: Run baseline and profiling matrix
+        shell: bash
+        run: |
+          set -u
+          . .e3-venv/bin/activate
+          mkdir -p .e3-out
+          fixture='research/tool_intelligence/fixtures/uniprof_pyspy_e3_fixture.py'
+          sha256sum "$fixture" | tee .e3-out/fixture.sha256
+          run_timed() {
+            label="$1"; shift
+            /usr/bin/time -f '{"wall":%e,"user":%U,"sys":%S,"rss_kb":%M}' -o ".e3-out/${label}.time.json" "$@" >".e3-out/${label}.stdout" 2>".e3-out/${label}.stderr"
+            echo $? > ".e3-out/${label}.rc"
+          }
+          for r in 1 2 3; do
+            run_timed "baseline_${r}" python "$fixture" --parent-iterations 25000000 --child-iterations 20000000
+          done
+          for r in 1 2 3; do
+            run_timed "rate100_${r}" py-spy record --subprocesses --rate 100 --format speedscope -o ".e3-out/rate100_${r}.speedscope.json" -- python "$fixture" --parent-iterations 25000000 --child-iterations 20000000
+          done
+          for r in 1 2 3; do
+            run_timed "rate999_${r}" py-spy record --subprocesses --rate 999 --format speedscope -o ".e3-out/rate999_${r}.speedscope.json" -- python "$fixture" --parent-iterations 25000000 --child-iterations 20000000
+          done
+          exit 0
+
+      - name: Sibling attach permission discriminator
+        shell: bash
+        run: |
+          set +e
+          . .e3-venv/bin/activate
+          fixture='research/tool_intelligence/fixtures/uniprof_pyspy_e3_fixture.py'
+          python "$fixture" --attach-seconds 5 >.e3-out/attach_target.stdout 2>.e3-out/attach_target.stderr &
+          target_pid=$!
+          sleep 0.5
+          py-spy record --pid "$target_pid" --duration 1 --format speedscope -o .e3-out/attach.speedscope.json >.e3-out/attach.stdout 2>.e3-out/attach.stderr
+          rc=$?
+          echo "$rc" > .e3-out/attach.rc
+          wait "$target_pid"
+          echo "attach_rc=$rc"
+          sed -n '1,20p' .e3-out/attach.stderr
+          exit 0
+
+      - name: Adjudicate E3 fixture
+        shell: bash
+        run: |
+          set -euo pipefail
+          . .e3-venv/bin/activate
+          python - <<'PY'
+          import json, pathlib, statistics, os, hashlib
+          root = pathlib.Path('.e3-out')
+          def t(label):
+              return json.loads((root/f'{label}.time.json').read_text())
+          def rc(label):
+              return int((root/f'{label}.rc').read_text().strip())
+          def profile(path):
+              p=pathlib.Path(path)
+              if not p.exists(): return {"exists":False}
+              data=json.loads(p.read_text())
+              frames=data.get('shared',{}).get('frames',[])
+              names=[str(f.get('name','')) for f in frames]
+              files=[str(f.get('file','')) for f in frames if f.get('file')]
+              return {
+                "exists": True,
+                "bytes": p.stat().st_size,
+                "profiles": len(data.get('profiles',[])),
+                "frame_count": len(frames),
+                "parent_hotspot_seen": any('parent_hotspot' in n for n in names),
+                "child_hotspot_seen": any('child_hotspot' in n for n in names),
+                "absolute_path_frames": sum(1 for f in files if f.startswith('/')),
+                "workspace_path_exposed": any('/home/runner/work/' in f for f in files),
+              }
+          modes={}
+          for mode in ('baseline','rate100','rate999'):
+              rows=[]
+              for r in range(1,4):
+                  label=f'{mode}_{r}'
+                  row={"run":r,"rc":rc(label),**t(label)}
+                  if mode!='baseline': row['profile']=profile(root/f'{label}.speedscope.json')
+                  rows.append(row)
+              walls=[x['wall'] for x in rows if x['rc']==0]
+              modes[mode]={"runs":rows,"wall_median":statistics.median(walls) if walls else None}
+          base=modes['baseline']['wall_median']
+          overhead={}
+          for mode in ('rate100','rate999'):
+              w=modes[mode]['wall_median']
+              overhead[mode]=None if base is None or w is None else (w/base-1)*100
+          attach_rc=int((root/'attach.rc').read_text().strip())
+          attach_err=(root/'attach.stderr').read_text(errors='replace')[:2000]
+          pyspy_bin=pathlib.Path('.e3-venv/bin/py-spy')
+          result={
+            "schema":"TRIGGER6_UNIPROF_PYSPY_E3_FIXTURE_RESULT/v1",
+            "github_sha":os.environ['GITHUB_SHA'],
+            "uid":os.getuid(),
+            "python":os.popen('python --version 2>&1').read().strip(),
+            "pyspy_version":os.popen('py-spy --version 2>&1').read().strip(),
+            "pyspy_binary_sha256":hashlib.sha256(pyspy_bin.read_bytes()).hexdigest(),
+            "wheel_expected_sha256":"aeb0323409199c785f730645e9f4bb7a7b9ca2c481f2c331a55642b5d13fa52f",
+            "fixture_sha256":(root/'fixture.sha256').read_text().split()[0],
+            "privileged_or_sudo_used":False,
+            "sys_admin_used":False,
+            "docker_used":False,
+            "network_effect_under_test":False,
+            "modes":modes,
+            "wall_overhead_percent_vs_baseline_median":overhead,
+            "attach_existing_sibling":{"rc":attach_rc,"stderr_prefix":attach_err},
+          }
+          successful_profiles=[x['profile'] for m in ('rate100','rate999') for x in modes[m]['runs'] if x.get('profile',{}).get('exists')]
+          result['falsifiers']={
+            "launch_mode_profiles_without_root": all(x['rc']==0 for m in ('rate100','rate999') for x in modes[m]['runs']),
+            "parent_hotspot_observed": bool(successful_profiles) and all(p['parent_hotspot_seen'] for p in successful_profiles),
+            "child_hotspot_observed": bool(successful_profiles) and all(p['child_hotspot_seen'] for p in successful_profiles),
+            "absolute_source_paths_exposed": any(p['absolute_path_frames']>0 for p in successful_profiles),
+            "github_workspace_path_exposed": any(p['workspace_path_exposed'] for p in successful_profiles),
+            "sibling_attach_without_extra_privilege_succeeded": attach_rc==0,
+            "uniprof_doc_1_to_2_percent_overhead_consistent_at_100hz": overhead['rate100'] is not None and overhead['rate100'] <= 2.0,
+            "uniprof_doc_1_to_2_percent_overhead_consistent_at_999hz": overhead['rate999'] is not None and overhead['rate999'] <= 2.0,
+          }
+          pathlib.Path('.e3-out/E3_RESULT.json').write_text(json.dumps(result,indent=2,sort_keys=True)+'\n')
+          print('E3_RESULT_JSON_BEGIN')
+          print(json.dumps(result,indent=2,sort_keys=True))
+          print('E3_RESULT_JSON_END')
+          PY
