@@ -1,0 +1,32 @@
+name: REVIEW_ONLY WP1104 Capability Report Consistency
+
+on:
+  pull_request:
+    paths:
+      - 'src/frankenstein2/generic_agent_route.py'
+      - 'src/frankenstein2/host_adapter_abi.py'
+      - 'tests/review_only/test_wp1104_capability_report_consistency_falsifier.py'
+      - '.github/workflows/review-wp1104-capability-report-consistency.yml'
+  push:
+    branches:
+      - 'chatgpt/review-wp1104-capability-report-consistency-20260829'
+    paths:
+      - 'tests/review_only/test_wp1104_capability_report_consistency_falsifier.py'
+      - '.github/workflows/review-wp1104-capability-report-consistency.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  falsifier:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Run REVIEW_ONLY WP1104 consistency falsifier
+        env:
+          PYTHONPATH: src
+        run: python -m unittest discover -s tests/review_only -p 'test_wp1104_capability_report_consistency_falsifier.py' -v
