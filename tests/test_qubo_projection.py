@@ -8,6 +8,7 @@ import unittest
 from frankenstein2.qubo_projection import (
     COEFFICIENT_ABS_MAX,
     QuboCoupling,
+    QuboProjection,
     QuboProjectionError,
     QuboVariable,
     build_qubo_projection,
@@ -99,78 +100,53 @@ class QuboProjectionTests(unittest.TestCase):
         ws = world_slice()
         with self.assertRaisesRegex(QuboProjectionError, "digest mismatch"):
             build_qubo_projection(
-                projection_id="q",
-                world_slice=ws,
-                expected_slice_sha256="1" * 64,
-                expected_generation=7,
-                variables=(variable("x", "atom:a", 1),),
-                couplings=(),
-                provenance_refs=("p",),
+                projection_id="q", world_slice=ws, expected_slice_sha256="1" * 64,
+                expected_generation=7, variables=(variable("x", "atom:a", 1),),
+                couplings=(), provenance_refs=("p",),
             )
         with self.assertRaisesRegex(QuboProjectionError, "generation mismatch"):
             build_qubo_projection(
-                projection_id="q",
-                world_slice=ws,
-                expected_slice_sha256=ws.sha256(),
-                expected_generation=8,
-                variables=(variable("x", "atom:a", 1),),
-                couplings=(),
-                provenance_refs=("p",),
+                projection_id="q", world_slice=ws, expected_slice_sha256=ws.sha256(),
+                expected_generation=8, variables=(variable("x", "atom:a", 1),),
+                couplings=(), provenance_refs=("p",),
             )
 
     def test_variable_must_reference_selected_non_tainted_local_slice_item(self):
         ws = world_slice()
         with self.assertRaisesRegex(QuboProjectionError, "outside selected WorldSlice"):
             build_qubo_projection(
-                projection_id="q",
-                world_slice=ws,
-                expected_slice_sha256=ws.sha256(),
-                expected_generation=7,
-                variables=(variable("x", "atom:not-selected", 1),),
-                couplings=(),
-                provenance_refs=("p",),
+                projection_id="q", world_slice=ws, expected_slice_sha256=ws.sha256(),
+                expected_generation=7, variables=(variable("x", "atom:not-selected", 1),),
+                couplings=(), provenance_refs=("p",),
             )
         tainted_ws = world_slice(tainted=("atom:b",))
         with self.assertRaisesRegex(QuboProjectionError, "tainted/NOT_COMPUTED"):
             build_qubo_projection(
-                projection_id="q",
-                world_slice=tainted_ws,
-                expected_slice_sha256=tainted_ws.sha256(),
-                expected_generation=7,
-                variables=(variable("x", "atom:b", 1),),
-                couplings=(),
-                provenance_refs=("p",),
+                projection_id="q", world_slice=tainted_ws,
+                expected_slice_sha256=tainted_ws.sha256(), expected_generation=7,
+                variables=(variable("x", "atom:b", 1),), couplings=(), provenance_refs=("p",),
             )
 
     def test_duplicate_variable_coupling_self_pair_and_unknown_variable_fail_closed(self):
         ws = world_slice()
         with self.assertRaisesRegex(QuboProjectionError, "duplicate variable_id"):
             build_qubo_projection(
-                projection_id="q",
-                world_slice=ws,
-                expected_slice_sha256=ws.sha256(),
+                projection_id="q", world_slice=ws, expected_slice_sha256=ws.sha256(),
                 expected_generation=7,
                 variables=(variable("x", "atom:a", 1), variable("x", "atom:b", 2)),
-                couplings=(),
-                provenance_refs=("p",),
+                couplings=(), provenance_refs=("p",),
             )
         with self.assertRaisesRegex(QuboProjectionError, "distinct variables"):
             coupling("x", "x", 1)
         with self.assertRaisesRegex(QuboProjectionError, "unknown variable"):
             build_qubo_projection(
-                projection_id="q",
-                world_slice=ws,
-                expected_slice_sha256=ws.sha256(),
-                expected_generation=7,
-                variables=(variable("x:a", "atom:a", 1),),
-                couplings=(coupling("x:a", "x:missing", 1),),
-                provenance_refs=("p",),
+                projection_id="q", world_slice=ws, expected_slice_sha256=ws.sha256(),
+                expected_generation=7, variables=(variable("x:a", "atom:a", 1),),
+                couplings=(coupling("x:a", "x:missing", 1),), provenance_refs=("p",),
             )
         with self.assertRaisesRegex(QuboProjectionError, "duplicate QUBO coupling pair"):
             build_qubo_projection(
-                projection_id="q",
-                world_slice=ws,
-                expected_slice_sha256=ws.sha256(),
+                projection_id="q", world_slice=ws, expected_slice_sha256=ws.sha256(),
                 expected_generation=7,
                 variables=(variable("x:a", "atom:a", 1), variable("x:b", "atom:b", 2)),
                 couplings=(coupling("x:a", "x:b", 1), coupling("x:b", "x:a", 2)),
@@ -188,8 +164,10 @@ class QuboProjectionTests(unittest.TestCase):
 
     def test_explicit_complete_assignment_is_scored_without_selection(self):
         item = projection()
+        ws = world_slice()
         scored = score_assignment(
             projection=item,
+            world_slice=ws,
             assignment=(("x:op", 0), ("x:b", 1), ("x:a", 1)),
             expected_projection_sha256=item.sha256(),
         )
@@ -198,35 +176,88 @@ class QuboProjectionTests(unittest.TestCase):
         self.assertEqual(scored.as_dict()["selected_as_action"], False)
         self.assertEqual(scored.as_dict()["effect_authority"], "NONE")
 
+    def test_direct_constructor_slice_binding_forgery_is_rejected_at_scoring_boundary(self):
+        ws = world_slice()
+        forged = QuboProjection(
+            projection_id="qubo:forged",
+            slice_id=ws.slice_id,
+            slice_sha256=ws.sha256(),
+            cycle_id=ws.cycle_id,
+            generation=ws.generation,
+            vector_space_version=ws.vector_space_version,
+            variables=(variable("x:forged", "atom:not-selected", 3),),
+            couplings=(),
+            offset=0,
+            provenance_refs=("forgery:test",),
+        )
+        with self.assertRaisesRegex(QuboProjectionError, "outside selected WorldSlice"):
+            score_assignment(
+                projection=forged,
+                world_slice=ws,
+                assignment=(("x:forged", 1),),
+                expected_projection_sha256=forged.sha256(),
+            )
+
+    def test_scoring_revalidates_exact_slice_identity_and_taint(self):
+        item = projection()
+        wrong_cycle = WorldSlice(
+            slice_id="slice:1", need_id="need:1", cycle_id="cycle:other", generation=7,
+            vector_space_version="vs:1", selected_atom_ids=("atom:a", "atom:b", "atom:c"),
+            selected_operator_ids=("op:ab",), unresolved_target_atom_ids=("atom:target",),
+            tainted_atom_ids=(), depth_reached=1, stopped_reason="MAX_DEPTH_REACHED",
+            evidence_refs=("evidence:slice",), provenance_digest=PROVENANCE_DIGEST,
+        )
+        with self.assertRaisesRegex(QuboProjectionError, "digest mismatch"):
+            score_assignment(
+                projection=item, world_slice=wrong_cycle,
+                assignment=(("x:a", 1), ("x:b", 1), ("x:op", 0)),
+                expected_projection_sha256=item.sha256(),
+            )
+
+        tainted = world_slice(tainted=("atom:b",))
+        forged_taint_bound = QuboProjection(
+            projection_id="qubo:taint", slice_id=tainted.slice_id,
+            slice_sha256=tainted.sha256(), cycle_id=tainted.cycle_id,
+            generation=tainted.generation, vector_space_version=tainted.vector_space_version,
+            variables=(variable("x:b", "atom:b", 1),), couplings=(), offset=0,
+            provenance_refs=("forgery:taint",),
+        )
+        with self.assertRaisesRegex(QuboProjectionError, "tainted/NOT_COMPUTED"):
+            score_assignment(
+                projection=forged_taint_bound, world_slice=tainted,
+                assignment=(("x:b", 1),),
+                expected_projection_sha256=forged_taint_bound.sha256(),
+            )
+
     def test_assignment_fails_closed_on_digest_bit_duplicates_missing_or_extra(self):
         item = projection()
+        ws = world_slice()
         with self.assertRaisesRegex(QuboProjectionError, "projection digest mismatch"):
             score_assignment(
-                projection=item,
+                projection=item, world_slice=ws,
                 assignment=(("x:a", 1), ("x:b", 1), ("x:op", 0)),
                 expected_projection_sha256="1" * 64,
             )
         with self.assertRaisesRegex(QuboProjectionError, "integer 0 or 1"):
             score_assignment(
-                projection=item,
+                projection=item, world_slice=ws,
                 assignment=(("x:a", 2), ("x:b", 1), ("x:op", 0)),
                 expected_projection_sha256=item.sha256(),
             )
         with self.assertRaisesRegex(QuboProjectionError, "duplicate variable_id"):
             score_assignment(
-                projection=item,
+                projection=item, world_slice=ws,
                 assignment=(("x:a", 1), ("x:a", 0), ("x:op", 0)),
                 expected_projection_sha256=item.sha256(),
             )
         with self.assertRaisesRegex(QuboProjectionError, "variable set mismatch"):
             score_assignment(
-                projection=item,
-                assignment=(("x:a", 1), ("x:b", 1)),
+                projection=item, world_slice=ws, assignment=(("x:a", 1), ("x:b", 1)),
                 expected_projection_sha256=item.sha256(),
             )
         with self.assertRaisesRegex(QuboProjectionError, "variable set mismatch"):
             score_assignment(
-                projection=item,
+                projection=item, world_slice=ws,
                 assignment=(("x:a", 1), ("x:b", 1), ("x:op", 0), ("x:extra", 0)),
                 expected_projection_sha256=item.sha256(),
             )
