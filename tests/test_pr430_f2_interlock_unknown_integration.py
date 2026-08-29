@@ -14,7 +14,6 @@ from frankenstein2.canonical_effect_authority_bridge import EffectCallIntent
 from frankenstein2.effect_executor_interlock import (
     ExecutorInterlockError,
     ExecutorOutcomeUnknown,
-    dispatch_through_external_gate,
 )
 from frankenstein2.effect_invocation_correlation import EffectCorrelationStage
 from frankenstein2.entityos_effect_gate_call_bridge import (
@@ -172,15 +171,10 @@ class PR430F2InterlockUnknownIntegrationTests(unittest.TestCase):
                     marker["request_sha256"] = prepared.request.sha256()
                     raise executor_error
 
-                def dispatch():
-                    return dispatch_through_external_gate(
-                        pending.prepared,
-                        authorize=lambda _prepared: pending.gate,
-                        executor=executor,
-                    )
-
                 return translate_executor_unknown_to_canonical(
-                    dispatch,
+                    pending.prepared,
+                    authorize=lambda _prepared: pending.gate,
+                    executor=executor,
                     canonical_unknown_type=candidate_unknown,
                 )
 
@@ -254,15 +248,10 @@ class PR430F2InterlockUnknownIntegrationTests(unittest.TestCase):
                     marker["executor_calls"] += 1
                     raise AssertionError("predispatch failure must not execute")
 
-                def dispatch():
-                    return dispatch_through_external_gate(
-                        already_observed,
-                        authorize=lambda _prepared: pending.gate,
-                        executor=executor,
-                    )
-
                 return translate_executor_unknown_to_canonical(
-                    dispatch,
+                    already_observed,
+                    authorize=lambda _prepared: pending.gate,
+                    executor=executor,
                     canonical_unknown_type=candidate_unknown,
                 )
 

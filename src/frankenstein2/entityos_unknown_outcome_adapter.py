@@ -1,26 +1,35 @@
-"""Narrow uncertainty-type adapter for the existing canonical EntityOS EffectGate boundary.
+"""Provenance-bound uncertainty adapter for the canonical EntityOS EffectGate boundary.
+
+F2-WP-105 generation 4.
 
 This module is not an effect authority, journal, executor, replay authority, or source of
-canonical EntityOS types.  It only translates the F2 interlock's post-dispatch
-``ExecutorOutcomeUnknown`` into an already-supplied canonical unknown exception type.
+canonical EntityOS types. It translates only uncertainty emitted by the real F2
+``dispatch_through_external_gate`` path that this adapter invokes itself.
 
-The canonical exception type is validated and instantiated *before* the dispatch callable
-is entered.  A bad adapter configuration therefore fails before the executor can run.
-All exceptions other than ``ExecutorOutcomeUnknown`` propagate unchanged.
+The previous generation accepted an arbitrary zero-argument ``dispatch`` callable and
+therefore could not distinguish a genuine post-dispatch ``ExecutorOutcomeUnknown`` from
+the same public exception class raised directly by caller code. Generation 4 removes
+that nominal-type-only boundary. Callers must supply an exact prepared EffectCallBinding,
+authorizer, and executor; the adapter enters the F2 interlock itself. Pre-dispatch errors
+remain definite interlock errors. Only an ``ExecutorOutcomeUnknown`` emitted from inside
+that structural path is translated to the already-supplied canonical UNKNOWN type.
 """
 from __future__ import annotations
 
 from collections.abc import Callable
-from typing import TypeVar
 
-from .effect_executor_interlock import ExecutorOutcomeUnknown
-
-
-_T = TypeVar("_T")
+from .effect_executor_interlock import (
+    ExecutorObservation,
+    ExecutorOutcomeUnknown,
+    ExternalGateEvidence,
+    InterlockResult,
+    dispatch_through_external_gate,
+)
+from .effect_invocation_correlation import EffectCallBinding
 
 
 class EntityOSUnknownOutcomeAdapterError(RuntimeError):
-    """The caller did not provide a safe canonical UNKNOWN exception contract."""
+    """Fail-closed adapter configuration or boundary error."""
 
 
 def _prepared_canonical_unknown(canonical_unknown_type: object) -> BaseException:
@@ -50,22 +59,37 @@ def _prepared_canonical_unknown(canonical_unknown_type: object) -> BaseException
 
 
 def translate_executor_unknown_to_canonical(
-    dispatch: Callable[[], _T],
+    prepared: EffectCallBinding,
     *,
+    authorize: Callable[[EffectCallBinding], ExternalGateEvidence],
+    executor: Callable[[EffectCallBinding], ExecutorObservation],
     canonical_unknown_type: type[BaseException],
-) -> _T:
-    """Translate only a post-dispatch F2 uncertainty into canonical UNKNOWN semantics.
+) -> InterlockResult:
+    """Run the exact F2 interlock and translate only its post-dispatch UNKNOWN result.
 
-    ``ExecutorOutcomeUnknown`` is emitted by the F2 executor interlock only after the
-    executor callable has been entered or after its return cannot be safely validated.
-    The adapter deliberately does not catch pre-dispatch interlock failures or arbitrary
-    executor exceptions.  The canonical EffectGate remains responsible for journaling.
+    An arbitrary callable is deliberately not accepted. This makes the provenance of the
+    translated uncertainty structural: ``dispatch_through_external_gate`` validates the
+    PRE binding and gate identity before it invokes ``executor``; it emits
+    ``ExecutorOutcomeUnknown`` only after executor entry or when a returned POST
+    observation cannot be safely correlated. Its pre-dispatch failures remain
+    ``ExecutorInterlockError`` and are not translated here.
     """
-    if not callable(dispatch):
-        raise EntityOSUnknownOutcomeAdapterError("DISPATCH_NOT_CALLABLE")
+    if not isinstance(prepared, EffectCallBinding):
+        raise EntityOSUnknownOutcomeAdapterError("PREPARED_EFFECT_CALL_REQUIRED")
+    if not callable(authorize):
+        raise EntityOSUnknownOutcomeAdapterError("AUTHORIZE_NOT_CALLABLE")
+    if not callable(executor):
+        raise EntityOSUnknownOutcomeAdapterError("EXECUTOR_NOT_CALLABLE")
+
+    # Validate the target canonical UNKNOWN contract before crossing the interlock so a
+    # malformed adapter configuration cannot turn an attempted effect into uncertainty.
     prepared_unknown = _prepared_canonical_unknown(canonical_unknown_type)
     try:
-        return dispatch()
+        return dispatch_through_external_gate(
+            prepared,
+            authorize=authorize,
+            executor=executor,
+        )
     except ExecutorOutcomeUnknown as exc:
         raise prepared_unknown from exc
 

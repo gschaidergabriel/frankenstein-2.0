@@ -1,0 +1,52 @@
+{
+  "schema": "FRANKENSTEIN2_WORKPACKAGE_DELTA/v1",
+  "workpackage_id": "F2-WP-105",
+  "generation": 4,
+  "claim_id": "F2-WP-105-G4-GPT56SOL-UNKNOWN-PROVENANCE-STRUCTURAL-INTERLOCK-20260829",
+  "worker_id": "GPT-5.6-Sol",
+  "classification": "SUCCESSOR_HARDENING_IMPLEMENTED_PENDING_REPOSITORY_CI",
+  "base_claim_commit": "c2319df9a741142dcb4fbf5c662856e6219435e9",
+  "triggering_negative_evidence": {
+    "pull_request": 105,
+    "head_sha": "9ea8a7e5de1066f96db51d59593abfe6e772f998",
+    "workflow_run_id": 33221070877,
+    "job_id": 99015006305,
+    "finding": "The accepted G2 adapter could translate a caller-forged public ExecutorOutcomeUnknown raised by an arbitrary supplied callable without structural F2 interlock or executor-entry provenance."
+  },
+  "implementation": {
+    "adapter": "src/frankenstein2/entityos_unknown_outcome_adapter.py",
+    "adapter_blob_sha": "14df82d7a7dc1aefa875305521513f9ecfae08fd",
+    "unchanged_interlock": "src/frankenstein2/effect_executor_interlock.py",
+    "interlock_blob_sha": "552802db239589a2dac2414a206f452c671d88b6",
+    "integration_test": "tests/test_pr430_f2_interlock_unknown_integration.py",
+    "integration_test_blob_sha": "bd6c73ed218daa0fd294fb6f2c5ee4075c439dbd",
+    "provenance_regression": "tests/test_wp105_g4_unknown_provenance_structural.py",
+    "provenance_regression_blob_sha": "71057fc183b810910080c5e45e346fcdea4656cf",
+    "workflow": ".github/workflows/wp105-g4-unknown-provenance-ci.yml"
+  },
+  "repair_semantics": [
+    "remove arbitrary zero-argument dispatch callable from the UNKNOWN translation boundary",
+    "require exact EffectCallBinding plus explicit authorizer and executor inputs",
+    "invoke dispatch_through_external_gate inside the adapter itself",
+    "translate only ExecutorOutcomeUnknown emitted from that structural interlock path",
+    "preserve pre-dispatch ExecutorInterlockError as definite and untranslated",
+    "validate canonical non-replayable UNKNOWN type before interlock entry",
+    "preserve EffectGate+EffectJournal as sole real-effect authority"
+  ],
+  "expected_regressions": [
+    "post-start timeout remains canonical UNKNOWN_OUTCOME with zero causal credit and no replay",
+    "post-start ordinary return-path OSError remains canonical UNKNOWN_OUTCOME with zero causal credit and no replay",
+    "pre-dispatch failure remains FAILED with executor call count zero",
+    "PR105 arbitrary callable nominal-exception forgery is rejected before the forged callable executes"
+  ],
+  "credit_boundary": {
+    "repository_ci_observed": false,
+    "runtime_execution_observed": false,
+    "real_external_effect": false,
+    "physical_grid10_credit": 0,
+    "gwt_runtime_credit": 0,
+    "training_credit": 0,
+    "whole_system_acceptance": false
+  },
+  "next_exact_action": "Open the claim-scoped PR, require exact-head repository-hosted CI success for hash fences + compile + PR105 regression + no-real-effect integration suite, then reconcile G4 only at that bounded component scope."
+}
