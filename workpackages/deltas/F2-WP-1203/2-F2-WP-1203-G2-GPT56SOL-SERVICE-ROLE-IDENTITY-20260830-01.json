@@ -1,0 +1,25 @@
+{
+  "schema": "FRANKENSTEIN2_WORKPACKAGE_DELTA/v1",
+  "workpackage_id": "F2-WP-1203",
+  "generation": 2,
+  "claim_id": "F2-WP-1203-G2-GPT56SOL-SERVICE-ROLE-IDENTITY-20260830",
+  "base_commit": "c8d8327c9e6586a9f95a39a9125c51dc06b7a7c0",
+  "trigger_counterevidence": {
+    "review_pr": 563,
+    "review_head_sha": "74a79c2bc3dc135e048c830f765c24fbbd04aa18",
+    "run_id": 33265528442,
+    "job_id": 99134798771,
+    "compile": "PASS",
+    "discriminator": "FAIL"
+  },
+  "observed_defect": "MultimediaTopologySnapshot.as_dict() keyed structural service state by caller-controlled ServiceState.name. Colliding names could overwrite earlier role entries and collapse distinct PipeWire state into the same canonical serialization/digest.",
+  "repair": "Require exact canonical names for the three structural service roles during MultimediaTopologySnapshot construction: pipewire, wireplumber, portal. Reject mismatches before serialization.",
+  "compatibility_reasoning": "The accepted G1 valid topology fixtures already use exactly these role names. The repair therefore preserves the existing valid serialization shape and digest semantics while making the counterexample fail closed instead of changing the canonical wire format.",
+  "regression": "tests/test_target_multimedia_twin.py::test_structural_service_roles_require_canonical_names",
+  "evidence_scope": "SOURCE_AND_REPOSITORY_CI_ONLY_PENDING_PR_HEAD_CI",
+  "runtime_execution_observed": false,
+  "target_t2_runtime_credit": 0,
+  "physical_target_credit": 0,
+  "completion_credit": 0,
+  "whole_system_acceptance": false
+}
