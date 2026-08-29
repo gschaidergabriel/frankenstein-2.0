@@ -1,0 +1,93 @@
+{
+  "schema_version": 1,
+  "trigger": "7",
+  "run": "DEEP_RUN_03",
+  "date_local": "2026-08-30",
+  "worker": "GPT-5.6-Sol-TRIGGER7",
+  "scope": "Primary-source refresh for German-first local realtime voice. Source evidence only; no target-runtime, German E2E, Trigger4, or acceptance credit.",
+  "canonical_f2_base_sha": "2bc56f9909c1d71174e4cb686e6630e9e3b6686a",
+  "findings": [
+    {
+      "id": "TURN_FASTTURN_2026",
+      "classification": "SOURCE_DIRECT_PLUS_ARCHITECTURE_INFERENCE",
+      "sources": [
+        "https://arxiv.org/abs/2604.01897",
+        "https://github.com/ASLP-lab/FastTurn"
+      ],
+      "observed": [
+        "FastTurn combines acoustic cues with streaming CTC-derived semantic cues for low-latency turn detection.",
+        "Its released test set explicitly includes overlap, backchannels, pauses, pitch variation and environmental noise."
+      ],
+      "project_delta": "Promote FastTurn from generic literature reference to a high-value T7-TURN-001 discriminator/dataset-method donor. It is especially relevant to Frankenstein's false-endpoint, overlap, backchannel and interruption tests.",
+      "negative_space": "No German-specific endpoint quality, target-host latency, cancellation correctness, or Frankenstein ABI integration was observed here. Do not promote to V3/V4/V5 from paper/repo evidence."
+    },
+    {
+      "id": "QWEN3_TTS_CURRENT_SOURCE_REFRESH",
+      "classification": "SOURCE_DIRECT_WITH_OPEN_RUNTIME_RISK",
+      "sources": [
+        "https://github.com/QwenLM/Qwen3-TTS",
+        "https://github.com/QwenLM/Qwen3-TTS/blob/main/pyproject.toml",
+        "https://github.com/QwenLM/Qwen3-TTS/issues"
+      ],
+      "observed": [
+        "Official Qwen3-TTS exposes 0.6B/1.7B models, Apache-2.0 source, German support, streaming speech generation, voice design and voice cloning.",
+        "Current package metadata pins transformers 4.57.3 and includes accelerate, torchaudio, onnxruntime and other runtime dependencies.",
+        "Open issue traffic includes streaming-mode/runtime and FlashAttention/compatibility problems, so advertised streaming capability is not equivalent to reproducible Frankenstein target-runtime behavior."
+      ],
+      "project_delta": "Keep Qwen3-TTS first in the expressive German TTS benchmark order, but explicitly gate its streaming claim on target-host TTFA/RTF/cancellation reproduction. Piper/Thorsten remains the tiny deterministic latency floor rather than the quality winner by assumption.",
+      "negative_space": "No local Frankenstein target-host execution, male-voice identity stability, ExpressionVector control, German pronunciation score, TTFA, RTF or long-session evidence was observed in this run."
+    },
+    {
+      "id": "PIPER_THORSTEN_BASELINE_REFRESH",
+      "classification": "SOURCE_DIRECT",
+      "sources": [
+        "https://huggingface.co/Thorsten-Voice/Piper",
+        "https://huggingface.co/Thorsten-Voice/Piper/blob/main/de_DE-thorsten-high.onnx"
+      ],
+      "observed": [
+        "German Thorsten Piper ONNX artifacts remain available under MIT metadata.",
+        "The high model is approximately 114 MB and exposes a published SHA-256 on Hugging Face."
+      ],
+      "project_delta": "Retain Piper/Thorsten as the low-footprint deterministic German TTS latency/resource floor for the same host and sentence corpus used by expressive challengers.",
+      "negative_space": "No claim that Piper matches the desired conversational naturalness or state-driven expressive control."
+    },
+    {
+      "id": "QWEN3_ASR_CURRENT_REFRESH",
+      "classification": "SOURCE_DIRECT",
+      "sources": [
+        "https://huggingface.co/Qwen/Qwen3-ASR-0.6B",
+        "https://huggingface.co/docs/transformers/main/model_doc/qwen3_asr"
+      ],
+      "observed": [
+        "Qwen3-ASR-0.6B remains an Apache-2.0 multilingual ASR candidate with explicit German support.",
+        "The current Hugging Face model tree reports a roughly 1.88 GB safetensors model artifact."
+      ],
+      "project_delta": "No ranking promotion beyond existing T7-ASR-001. The decisive test remains identical real German room audio against donor Whisper and Nemotron 3.5 Streaming under measured endpoint/partial-transcript latency.",
+      "negative_space": "No target-host WER/CER/latency evidence in this run."
+    },
+    {
+      "id": "QWEN35_4B_CURRENT_REFRESH",
+      "classification": "SOURCE_DIRECT",
+      "sources": [
+        "https://huggingface.co/Qwen/Qwen3.5-4B",
+        "https://huggingface.co/Qwen/Qwen3.5-4B/tree/main"
+      ],
+      "observed": [
+        "Official Qwen3.5-4B remains available under Apache-2.0 with local Transformers/vLLM/SGLang serving guidance.",
+        "The current unquantized safetensors repository is materially larger than the desired resident Q4 voice-brain deployment, reinforcing the need for an immutable quantized reference before comparing the abliterated Q4."
+      ],
+      "project_delta": "Preserve checkpoint order: official Qwen3.5-4B quantized reference first, then abliterated controlled variant under identical German VoiceSessionCapsule prompts.",
+      "negative_space": "No immutable official Q4 artifact was pinned by this source-only refresh and no VPS model load occurred."
+    }
+  ],
+  "hypothesis_update": "Lane A remains favored. The strongest near-term improvement is not another model swap but tighter causal turn control: streaming ASR plus acoustic-semantic endpoint intelligence feeding cancellation-safe local inference and expressive streaming TTS.",
+  "counterhypothesis": "FastTurn-like semantic endpointing may add model/ASR latency and complexity without improving German Frankenstein turn behavior enough to beat a tuned acoustic VAD plus simpler endpoint heuristic.",
+  "cheapest_high_information_discriminator": "On clay-direct-dev, replay a pinned German pause/backchannel/overlap corpus through donor VAD/endpoint logic versus a FastTurn-derived or equivalent acoustic-semantic controller while holding ASR/audio transport fixed; compare false endpoints, late endpoints and barge-in cancellation latency.",
+  "credit": {
+    "source": "OBSERVED",
+    "runtime": 0,
+    "german_e2e": 0,
+    "trigger4_acceptance": 0,
+    "whole_system": 0
+  }
+}
