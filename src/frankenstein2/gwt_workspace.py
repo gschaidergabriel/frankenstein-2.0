@@ -851,8 +851,8 @@ def verify_selection_binding(
     grid_plan_generation: int,
     grid_plan_sha256: str,
 ) -> None:
-    if not isinstance(selection, WorkspaceSelection):
-        raise GwtWorkspaceError("selection must be WorkspaceSelection")
+    if type(selection) is not WorkspaceSelection:
+        raise GwtWorkspaceError("selection must be concrete WorkspaceSelection")
     _assert_selection_build_lineage(selection)
     if selection.generation != _generation("expected_generation", expected_generation):
         raise GwtWorkspaceError("selection generation mismatch")
@@ -880,8 +880,8 @@ def create_broadcast(
     expected_selection_sha256: str,
     recipient_cell_ids: tuple[str, ...],
 ) -> BroadcastEnvelope:
-    if not isinstance(selection, WorkspaceSelection):
-        raise GwtWorkspaceError("selection must be WorkspaceSelection")
+    if type(selection) is not WorkspaceSelection:
+        raise GwtWorkspaceError("selection must be concrete WorkspaceSelection")
     _assert_selection_build_lineage(selection)
     if selection.sha256() != _sha256("expected_selection_sha256", expected_selection_sha256):
         raise GwtWorkspaceError("selection digest mismatch")
