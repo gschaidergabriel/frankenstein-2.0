@@ -5,8 +5,10 @@ This is a metadata projection tool, not an acceptance authority. It never modifi
 pointers, claims or reconciliations and never mints runtime/physical/model/effect credit.
 Accepted pointers become ACCEPTED_AT_SCOPE only when their selected reconciliation
 explicitly declares broader_workpackage_status=ACCEPTED_AT_SCOPE. Otherwise the tool
-fails conservative to IN_PROGRESS. Non-success terminal pointers project to HOLD unless
-an existing non-NOT_STARTED broad state is already present.
+fails conservative to IN_PROGRESS. Reconciliation ambiguity is recorded as unresolved and
+also projects conservatively to IN_PROGRESS; the hard repository validator remains free to
+reject that ambiguity. Non-success terminal pointers project to HOLD unless an existing
+non-NOT_STARTED broad state is already present.
 """
 from __future__ import annotations
 
@@ -20,8 +22,6 @@ from typing import Any
 try:
     from tools import validate_workpackage_state as validator
 except ModuleNotFoundError:
-    # Direct script execution sets sys.path[0] to tools/ rather than repository root.
-    # Import the sibling module without changing repository semantics.
     sys.path.insert(0, str(Path(__file__).resolve().parent))
     import validate_workpackage_state as validator
 
@@ -42,25 +42,32 @@ def _fallback_title(pointer: dict[str, Any]) -> str:
     return "Current granular workpackage projection"
 
 
-def _project_status(root: Path, pointer: dict[str, Any], existing_status: str | None) -> tuple[str, str]:
+def _project_status(
+    root: Path,
+    pointer: dict[str, Any],
+    existing_status: str | None,
+) -> tuple[str, str, str | None]:
     pointer_state = pointer.get("state")
     if pointer_state == ACTIVE:
-        return "IN_PROGRESS", "ACTIVE_POINTER"
+        return "IN_PROGRESS", "ACTIVE_POINTER", None
     if pointer_state == ACCEPTED:
         matches = validator._matching_reconciliations(root, pointer)
-        reconciliation = validator._select_terminal_reconciliation(
-            root, matches, context=f"projection:{pointer.get('workpackage_id')}"
-        )
+        try:
+            reconciliation = validator._select_terminal_reconciliation(
+                root, matches, context=f"projection:{pointer.get('workpackage_id')}"
+            )
+        except validator.ValidationError as exc:
+            return "IN_PROGRESS", "AMBIGUOUS_RECONCILIATION_CONSERVATIVE_FALLBACK", str(exc)
         broader = reconciliation.get("broader_workpackage_status")
         if broader == "ACCEPTED_AT_SCOPE":
-            return "ACCEPTED_AT_SCOPE", "EXPLICIT_RECONCILIATION_BROAD_ACCEPTANCE"
+            return "ACCEPTED_AT_SCOPE", "EXPLICIT_RECONCILIATION_BROAD_ACCEPTANCE", None
         if broader in {"IN_PROGRESS", "HOLD", "BLOCKED"}:
-            return broader, "EXPLICIT_RECONCILIATION_BROAD_STATUS"
-        return "IN_PROGRESS", "CONSERVATIVE_ACCEPTED_POINTER_FALLBACK"
+            return broader, "EXPLICIT_RECONCILIATION_BROAD_STATUS", None
+        return "IN_PROGRESS", "CONSERVATIVE_ACCEPTED_POINTER_FALLBACK", None
     if pointer_state in NON_SUCCESS_TERMINALS:
         if existing_status in {"IN_PROGRESS", "HOLD", "BLOCKED", "ACCEPTED_AT_SCOPE"}:
-            return existing_status, "PRESERVE_EXISTING_NON_NOT_STARTED_TERMINAL_PROJECTION"
-        return "HOLD", "CONSERVATIVE_NON_SUCCESS_TERMINAL_FALLBACK"
+            return existing_status, "PRESERVE_EXISTING_NON_NOT_STARTED_TERMINAL_PROJECTION", None
+        return "HOLD", "CONSERVATIVE_NON_SUCCESS_TERMINAL_FALLBACK", None
     raise validator.ValidationError(
         f"projection:{pointer.get('workpackage_id')}: unsupported pointer state {pointer_state!r}"
     )
@@ -75,6 +82,7 @@ def rebuild(root: Path) -> tuple[dict[str, Any], dict[str, Any]]:
     rebuilt = copy.deepcopy(original)
     workpackages = rebuilt["workpackages"]
     changes: list[dict[str, Any]] = []
+    unresolved: list[dict[str, Any]] = []
 
     for pointer_path in sorted((root / "workpackages" / "active").glob("*.json")):
         pointer = validator.load_json(pointer_path)
@@ -83,7 +91,7 @@ def rebuild(root: Path) -> tuple[dict[str, Any], dict[str, Any]]:
             raise validator.ValidationError(f"{pointer_path}: missing workpackage_id")
         existing = workpackages.get(workpackage_id)
         existing_status = existing.get("status") if isinstance(existing, dict) else None
-        projected_status, basis = _project_status(root, pointer, existing_status)
+        projected_status, basis, unresolved_reason = _project_status(root, pointer, existing_status)
 
         if existing is None:
             existing = {
@@ -102,6 +110,15 @@ def rebuild(root: Path) -> tuple[dict[str, Any], dict[str, Any]]:
         if pointer_ref not in evidence:
             evidence.append(pointer_ref)
         existing["evidence"] = sorted(set(evidence))
+
+        if unresolved_reason is not None:
+            unresolved.append({
+                "workpackage_id": workpackage_id,
+                "pointer_state": pointer.get("state"),
+                "basis": basis,
+                "reason": unresolved_reason,
+                "pointer_ref": pointer_ref,
+            })
 
         if before != existing:
             changes.append({
@@ -124,6 +141,8 @@ def rebuild(root: Path) -> tuple[dict[str, Any], dict[str, Any]]:
         "changed": bool(changes),
         "change_count": len(changes),
         "changes": changes,
+        "unresolved_reconciliation_count": len(unresolved),
+        "unresolved_reconciliations": unresolved,
         "runtime_credit": 0,
         "physical_grid10_credit": 0,
         "whole_system_acceptance": False,
