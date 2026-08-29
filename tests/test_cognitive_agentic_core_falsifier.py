@@ -18,6 +18,7 @@ from frankenstein2.cognitive_agentic_core_falsifier import (
     CapabilityEvidence,
     FalsifierPolicy,
     evaluate_agentic_core,
+    fixture_family_binding_sha256,
 )
 
 
@@ -50,19 +51,37 @@ def evidence(
     successes: int = 14,
     actions: int = 60,
     receipt_override: str | None = None,
+    family_override: str | None = None,
+    prove_family: bool = True,
+    binding_override: str | None = None,
 ) -> CapabilityEvidence:
     index = CAP_INDEX[capability]
+    workpackage = CAP_TO_WP[capability]
+    reconciliation = sha(index)
+    receipt = receipt_override or sha(index + 100)
+    benchmark = f"benchmark-{capability.lower()}"
+    family = (family_override or sha(900)) if prove_family else None
+    binding = None
+    if family is not None:
+        binding = binding_override or fixture_family_binding_sha256(
+            shared_fixture_family_sha256=family,
+            source_workpackage_id=workpackage,
+            source_reconciliation_sha256=reconciliation,
+            source_receipt_sha256=receipt,
+            benchmark_id=benchmark,
+            holdout_set_id=holdout,
+        )
     return CapabilityEvidence(
         CAPABILITY_EVIDENCE_SCHEMA,
         capability,
-        CAP_TO_WP[capability],
+        workpackage,
         1,
         f"claim-{capability.lower()}",
         state,
         f"{capability}_REPOSITORY_HOSTED_COMPONENT_CI_ONLY",
-        sha(index),
-        receipt_override or sha(index + 100),
-        f"benchmark-{capability.lower()}",
+        reconciliation,
+        receipt,
+        benchmark,
         holdout,
         f"baseline-{capability.lower()}",
         baseline,
@@ -70,6 +89,8 @@ def evidence(
         samples,
         successes,
         actions,
+        family,
+        binding,
     )
 
 
@@ -93,7 +114,10 @@ def policy(**overrides) -> FalsifierPolicy:
 
 class AgenticCoreFalsifierTests(unittest.TestCase):
     def test_complete_matched_four_capability_set_is_supported_only_at_component_scope(self):
-        report = evaluate_agentic_core(complete_evidence(), policy=policy(), report_id="report-1")
+        values = complete_evidence()
+        self.assertEqual(len({item.shared_fixture_family_sha256 for item in values}), 1)
+        self.assertEqual(len({item.source_fixture_family_binding_sha256 for item in values}), 4)
+        report = evaluate_agentic_core(values, policy=policy(), report_id="report-1")
         self.assertEqual(report.verdict, SUPPORTED_AT_COMPONENT_SCOPE)
         self.assertEqual(report.reasons, ())
         self.assertEqual(report.min_capability_score_ppm, 700_000)
@@ -129,13 +153,28 @@ class AgenticCoreFalsifierTests(unittest.TestCase):
         self.assertEqual(report.verdict, FALSIFIED)
         self.assertIn("MIXED_HOLDOUT_SET", report.reasons)
 
-    def test_same_holdout_label_across_distinct_benchmark_families_reproduces_alias(self):
-        values = complete_evidence()
+    def test_same_holdout_label_with_distinct_provenance_families_is_not_evaluable(self):
+        values = tuple(
+            evidence(capability, family_override=sha(900 + CAP_INDEX[capability]))
+            for capability in (EXPLORATION, MODELING, GOAL_SETTING, PLANNING_EXECUTION)
+        )
         self.assertEqual(len({item.holdout_set_id for item in values}), 1)
         self.assertEqual(len({item.benchmark_id for item in values}), 4)
+        self.assertEqual(len({item.shared_fixture_family_sha256 for item in values}), 4)
         report = evaluate_agentic_core(values, policy=policy(), report_id="report-family-alias")
-        self.assertEqual(report.verdict, SUPPORTED_AT_COMPONENT_SCOPE)
-        self.assertEqual(report.reasons, ())
+        self.assertEqual(report.verdict, NOT_EVALUABLE)
+        self.assertIn("SHARED_FIXTURE_FAMILY_MISMATCH", report.reasons)
+
+    def test_missing_provenance_family_proof_is_not_evaluable(self):
+        values = list(complete_evidence())
+        values[1] = evidence(MODELING, prove_family=False)
+        report = evaluate_agentic_core(tuple(values), policy=policy(), report_id="report-unproven-family")
+        self.assertEqual(report.verdict, NOT_EVALUABLE)
+        self.assertIn(f"UNPROVEN_SHARED_FIXTURE_FAMILY:{MODELING}", report.reasons)
+
+    def test_fixture_family_binding_cannot_be_reused_after_source_identity_change(self):
+        with self.assertRaisesRegex(AgenticCoreFalsifierError, "binding does not match exact evidence identity"):
+            evidence(MODELING, binding_override=sha(999))
 
     def test_duplicate_receipt_falsifies_independence(self):
         values = list(complete_evidence())
