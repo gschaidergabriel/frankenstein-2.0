@@ -4,10 +4,17 @@ This module enforces mechanically distinct COMPUTE_OFF, OUTPUT_OFF and
 MEMORY_OFF semantics over caller-supplied compute functions. It does not
 read pixels, open cameras, invoke models/providers/tools, persist state, or
 mint world/effect/completion authority.
+
+Generation 5 preserves the accepted OFF/taint/policy semantics while closing two
+post-G4 counterexamples: ordinary result construction is factory-only, and a
+consumer can revalidate exact current result content against an externally latched
+result digest plus the exact current policy registry before authority-relevant
+fields are consumed. This is an in-process correctness/provenance fence, not a
+cryptographic claim against arbitrary hostile code in the same Python process.
 """
 from __future__ import annotations
 
-from dataclasses import InitVar, dataclass
+from dataclasses import dataclass
 import hashlib
 import json
 import re
@@ -20,7 +27,6 @@ RESULT_SCHEMA = "FRANKENSTEIN2_PERCEPTION_CONTROL_RESULT/v1"
 TIERS = frozenset({"ON", "COMPUTE_OFF", "OUTPUT_OFF", "MEMORY_OFF"})
 _STATUSES = frozenset({"OK", "NOT_COMPUTED", "OUTPUT_BLOCKED", "COMPUTE_ERROR"})
 _SHA256_RE = re.compile(r"^[0-9a-f]{64}$")
-_EVALUATOR_ORIGIN = object()
 
 
 class PerceptionControlError(ValueError):
@@ -218,8 +224,17 @@ class PerceptionPolicyRegistry:
         return binding.depends_on
 
 
-@dataclass(frozen=True, slots=True, kw_only=True)
+@dataclass(frozen=True, slots=True, kw_only=True, init=False)
 class PerceptionControlResult:
+    """Factory-only deterministic control readout.
+
+    The ordinary constructor fails closed so no caller-readable constructor token is used as
+    authority. This remains a cooperative in-process provenance fence, not cryptographic
+    hostile-same-process security. Consumers that use authority-relevant fields must call
+    validate_perception_control_result() with an externally latched result digest and exact
+    registry identity.
+    """
+
     evaluation_id: str
     head_id: str
     registry_sha256: str
@@ -237,11 +252,13 @@ class PerceptionControlResult:
     provenance_refs: tuple[str, ...]
     schema: ClassVar[str] = RESULT_SCHEMA
     classification: ClassVar[str] = "PERCEPTION_CONTROL_READOUT_NOT_WORLD_TRUTH_GWT_EFFECT_OR_COMPLETION_AUTHORITY"
-    _evaluator_origin: InitVar[object | None] = None
 
-    def __post_init__(self, _evaluator_origin: object | None) -> None:
-        if _evaluator_origin is not _EVALUATOR_ORIGIN:
-            raise PerceptionControlError("PerceptionControlResult must be created by evaluate_perception_head")
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
+        raise PerceptionControlError(
+            "PerceptionControlResult is factory-only; use evaluate_perception_head()"
+        )
+
+    def _validate_produced(self) -> None:
         object.__setattr__(self, "evaluation_id", _text("evaluation_id", self.evaluation_id))
         object.__setattr__(self, "head_id", _text("head_id", self.head_id))
         _sha256("registry_sha256", self.registry_sha256)
@@ -299,6 +316,22 @@ class PerceptionControlResult:
         return _digest(self.as_dict())
 
 
+def _produce_perception_control_result(**fields: Any) -> PerceptionControlResult:
+    """Module-private producer used only after deterministic evaluator decisions."""
+    result = object.__new__(PerceptionControlResult)
+    expected_fields = (
+        "evaluation_id", "head_id", "registry_sha256", "policy_sha256", "status", "value",
+        "confidence_micros", "computed", "internal_computed", "egress_allowed",
+        "memory_match_allowed", "persistence_allowed", "blocked_by", "reason", "provenance_refs",
+    )
+    if tuple(fields.keys()) != expected_fields:
+        raise PerceptionControlError("internal result producer field contract mismatch")
+    for name, value in fields.items():
+        object.__setattr__(result, name, value)
+    result._validate_produced()
+    return result
+
+
 def _verify_registry(registry: PerceptionPolicyRegistry, expected_sha256: str) -> None:
     if type(registry) is not PerceptionPolicyRegistry:
         raise PerceptionControlError("registry must be a concrete PerceptionPolicyRegistry")
@@ -332,11 +365,7 @@ def _first_compute_blocker(registry: PerceptionPolicyRegistry, head_id: str) -> 
 def _effective_memory_permissions(
     registry: PerceptionPolicyRegistry, head_id: str, policy: PerceptionHeadPolicy
 ) -> tuple[bool, bool]:
-    """Propagate upstream memory/persistence denial through the acyclic dependency graph.
-
-    Same-cycle egress is deliberately independent: MEMORY_OFF may still be used in the
-    moment, while any value derived from it remains non-matchable and non-persistable.
-    """
+    """Propagate upstream memory/persistence denial through the acyclic dependency graph."""
     memory_match_allowed = policy.memory_match_allowed
     persistence_allowed = policy.persistence_allowed
     seen: set[str] = set()
@@ -362,6 +391,114 @@ def _effective_memory_permissions(
     return memory_match_allowed, persistence_allowed
 
 
+def validate_perception_control_result(*, result: PerceptionControlResult,
+    expected_result_sha256: str, registry: PerceptionPolicyRegistry,
+    expected_registry_sha256: str) -> PerceptionControlResult:
+    """Admit one current result for downstream use without rerunning caller compute.
+
+    The expected result digest must be latched outside the mutable result object. Registry and
+    policy semantics are re-derived so a caller cannot make a drifted/self-constructed readout
+    authoritative merely by recomputing its own digest. This function does not mint world/effect
+    authority and does not prove hostile-same-process authenticity.
+    """
+    if type(result) is not PerceptionControlResult:
+        raise PerceptionControlError("result must be a concrete PerceptionControlResult")
+    _sha256("expected_result_sha256", expected_result_sha256)
+    _verify_registry(registry, expected_registry_sha256)
+    if result.sha256() != expected_result_sha256:
+        raise PerceptionControlError("result digest mismatch at consumer boundary")
+    result._validate_produced()
+    registry_sha = registry.sha256()
+    if result.registry_sha256 != registry_sha:
+        raise PerceptionControlError("result registry identity mismatch")
+
+    policy = registry.head(result.head_id)
+    if policy is None:
+        expected = (
+            result.policy_sha256 is None
+            and result.status == "NOT_COMPUTED"
+            and not result.computed
+            and not result.internal_computed
+            and not result.egress_allowed
+            and not result.memory_match_allowed
+            and not result.persistence_allowed
+            and result.blocked_by is None
+            and result.reason == "unknown_head_not_in_registry"
+        )
+        if not expected:
+            raise PerceptionControlError("unknown-head result mismatches current registry semantics")
+        return result
+
+    policy_sha = policy.sha256()
+    if result.policy_sha256 != policy_sha:
+        raise PerceptionControlError("result policy identity mismatch")
+    if not policy.compute_allowed:
+        expected = (
+            result.status == "NOT_COMPUTED"
+            and not result.computed
+            and not result.internal_computed
+            and not result.egress_allowed
+            and not result.memory_match_allowed
+            and not result.persistence_allowed
+            and result.blocked_by == result.head_id
+            and result.reason == "compute_off_or_disabled"
+        )
+        if not expected:
+            raise PerceptionControlError("result mismatches current compute-off policy")
+        return result
+
+    blocked_by = _first_compute_blocker(registry, result.head_id)
+    if blocked_by is not None:
+        expected = (
+            result.status == "NOT_COMPUTED"
+            and not result.computed
+            and not result.internal_computed
+            and not result.egress_allowed
+            and not result.memory_match_allowed
+            and not result.persistence_allowed
+            and result.blocked_by == blocked_by
+            and result.reason == f"taint_blocked_by:{blocked_by}"
+        )
+        if not expected:
+            raise PerceptionControlError("result mismatches current transitive compute taint")
+        return result
+
+    if result.status == "COMPUTE_ERROR":
+        if not result.reason.startswith("compute_error:"):
+            raise PerceptionControlError("compute error result has invalid reason")
+        return result
+
+    if policy.tier == "OUTPUT_OFF":
+        expected = (
+            result.status == "OUTPUT_BLOCKED"
+            and result.computed
+            and result.internal_computed
+            and not result.egress_allowed
+            and not result.memory_match_allowed
+            and not result.persistence_allowed
+            and result.blocked_by is None
+            and result.reason == "output_off_transient_internal_only"
+        )
+        if not expected:
+            raise PerceptionControlError("result mismatches current output-off policy")
+        return result
+
+    if result.status != "OK":
+        raise PerceptionControlError("result status mismatches current executable policy")
+    memory_match_allowed, persistence_allowed = _effective_memory_permissions(registry, result.head_id, policy)
+    if policy.tier == "MEMORY_OFF":
+        expected_reason = "memory_off_no_persistence"
+    elif memory_match_allowed != policy.memory_match_allowed or persistence_allowed != policy.persistence_allowed:
+        expected_reason = "upstream_memory_or_persistence_taint"
+    else:
+        expected_reason = "policy_allows_egress"
+    if result.memory_match_allowed != memory_match_allowed or result.persistence_allowed != persistence_allowed:
+        raise PerceptionControlError("result memory/persistence authority mismatches current policy graph")
+    if result.reason != expected_reason:
+        raise PerceptionControlError("result reason mismatches current policy graph")
+    return result
+
+
 def evaluate_perception_head(*, evaluation_id: str, registry: PerceptionPolicyRegistry,
     expected_registry_sha256: str, head_id: str, compute_fn: Callable[[], tuple[Any, int]],
     provenance_refs: tuple[str, ...]) -> PerceptionControlResult:
@@ -374,26 +511,30 @@ def evaluate_perception_head(*, evaluation_id: str, registry: PerceptionPolicyRe
     registry_sha = registry.sha256()
     policy = registry.head(head_id)
     if policy is None:
-        return PerceptionControlResult(_evaluator_origin=_EVALUATOR_ORIGIN, evaluation_id=evaluation_id, head_id=head_id, registry_sha256=registry_sha,
+        return _produce_perception_control_result(
+            evaluation_id=evaluation_id, head_id=head_id, registry_sha256=registry_sha,
             policy_sha256=None, status="NOT_COMPUTED", value=None, confidence_micros=None, computed=False,
             internal_computed=False, egress_allowed=False, memory_match_allowed=False, persistence_allowed=False,
             blocked_by=None, reason="unknown_head_not_in_registry", provenance_refs=provenance_refs)
     policy_sha = policy.sha256()
     if not policy.compute_allowed:
-        return PerceptionControlResult(_evaluator_origin=_EVALUATOR_ORIGIN, evaluation_id=evaluation_id, head_id=head_id, registry_sha256=registry_sha,
+        return _produce_perception_control_result(
+            evaluation_id=evaluation_id, head_id=head_id, registry_sha256=registry_sha,
             policy_sha256=policy_sha, status="NOT_COMPUTED", value=None, confidence_micros=None, computed=False,
             internal_computed=False, egress_allowed=False, memory_match_allowed=False, persistence_allowed=False,
             blocked_by=head_id, reason="compute_off_or_disabled", provenance_refs=provenance_refs)
     blocked_by = _first_compute_blocker(registry, head_id)
     if blocked_by is not None:
-        return PerceptionControlResult(_evaluator_origin=_EVALUATOR_ORIGIN, evaluation_id=evaluation_id, head_id=head_id, registry_sha256=registry_sha,
+        return _produce_perception_control_result(
+            evaluation_id=evaluation_id, head_id=head_id, registry_sha256=registry_sha,
             policy_sha256=policy_sha, status="NOT_COMPUTED", value=None, confidence_micros=None, computed=False,
             internal_computed=False, egress_allowed=False, memory_match_allowed=False, persistence_allowed=False,
             blocked_by=blocked_by, reason=f"taint_blocked_by:{blocked_by}", provenance_refs=provenance_refs)
     try:
         raw = compute_fn()
     except Exception as exc:
-        return PerceptionControlResult(_evaluator_origin=_EVALUATOR_ORIGIN, evaluation_id=evaluation_id, head_id=head_id, registry_sha256=registry_sha,
+        return _produce_perception_control_result(
+            evaluation_id=evaluation_id, head_id=head_id, registry_sha256=registry_sha,
             policy_sha256=policy_sha, status="COMPUTE_ERROR", value=None, confidence_micros=None, computed=True,
             internal_computed=False, egress_allowed=False, memory_match_allowed=False, persistence_allowed=False,
             blocked_by=None, reason=f"compute_error:{type(exc).__name__}", provenance_refs=provenance_refs)
@@ -403,7 +544,8 @@ def evaluate_perception_head(*, evaluation_id: str, registry: PerceptionPolicyRe
     value = _json_value(value)
     _confidence(confidence_micros)
     if policy.tier == "OUTPUT_OFF":
-        return PerceptionControlResult(_evaluator_origin=_EVALUATOR_ORIGIN, evaluation_id=evaluation_id, head_id=head_id, registry_sha256=registry_sha,
+        return _produce_perception_control_result(
+            evaluation_id=evaluation_id, head_id=head_id, registry_sha256=registry_sha,
             policy_sha256=policy_sha, status="OUTPUT_BLOCKED", value=None, confidence_micros=None, computed=True,
             internal_computed=True, egress_allowed=False, memory_match_allowed=False, persistence_allowed=False,
             blocked_by=None, reason="output_off_transient_internal_only", provenance_refs=provenance_refs)
@@ -414,7 +556,8 @@ def evaluate_perception_head(*, evaluation_id: str, registry: PerceptionPolicyRe
         reason = "upstream_memory_or_persistence_taint"
     else:
         reason = "policy_allows_egress"
-    return PerceptionControlResult(_evaluator_origin=_EVALUATOR_ORIGIN, evaluation_id=evaluation_id, head_id=head_id, registry_sha256=registry_sha,
+    return _produce_perception_control_result(
+        evaluation_id=evaluation_id, head_id=head_id, registry_sha256=registry_sha,
         policy_sha256=policy_sha, status="OK", value=value, confidence_micros=confidence_micros, computed=True,
         internal_computed=True, egress_allowed=True, memory_match_allowed=memory_match_allowed,
         persistence_allowed=persistence_allowed, blocked_by=None, reason=reason,
