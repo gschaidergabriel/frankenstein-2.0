@@ -1,0 +1,57 @@
+{
+  "schema": "FRANKENSTEIN2_WORKPACKAGE_DELTA/v1",
+  "workpackage_id": "F2-WP-804",
+  "generation": 2,
+  "claim_id": "F2-WP-804-G2-GPT56SOL-PRODUCER-LINEAGE-REPAIR-20260829",
+  "worker_id": "GPT-5.6-Sol-TRIGGER4",
+  "authority_epoch": "8.78",
+  "classification": "BOUNDED_IMPLEMENTATION_DELTA",
+  "falsifier_source": {
+    "review_branch": "review/wp804-preseal-choice-mutation-falsifier-20260829",
+    "review_head": "89b0f574ce42492e678b76a2c3d3f0b722d4e0b6",
+    "workflow_run_id": 33254735360,
+    "workflow_job_id": 99106364612,
+    "result": "POSITIVE_PRESEAL_MUTATION_REPRODUCED"
+  },
+  "implementation": {
+    "source_path": "src/frankenstein2/cognitive_goal_inference_benchmark.py",
+    "source_blob_sha": "f45557581d75d82a37f2f303cfdd4f7daec28ccc",
+    "change": "GoalInference now stores producer_choice_sha256 at run_goal_inference creation and validates the exact current GoalChoice digest both at construction and on every evaluator consumer boundary through _assert_inference_binding.",
+    "evidence_boundary": "Tamper-evident producer/current-content binding inside the benchmark contract. This does not claim cryptographic integrity against an attacker able to rewrite both the nested choice and producer digest in-process."
+  },
+  "regression": {
+    "test_path": "tests/test_wp804_g2_producer_lineage_repair.py",
+    "test_blob_sha": "09175f61c1c5423c9a2532aa218be12735d6fe9e",
+    "cases": [
+      "runner-produced choice digest equals producer_choice_sha256",
+      "preregistered ABSTAIN-to-GOAL mutation before evaluator seal fails closed"
+    ]
+  },
+  "branch_ci": {
+    "head_sha_before_delta": "b42538e1479c9580870b9b8f70d41651f81a64c5",
+    "workflow_run_id": 33254997711,
+    "workflow_job_id": 99106930487,
+    "conclusion": "SUCCESS",
+    "steps": [
+      "compile exact generation-2 target PASS",
+      "generation-1 WP804 regression suite PASS",
+      "generation-2 producer-lineage falsifier regression PASS"
+    ]
+  },
+  "credits": {
+    "repository_component_branch_ci": 1,
+    "runtime": 0,
+    "vps_runtime": 0,
+    "physical_grid10": 0,
+    "gwt": 0,
+    "jspace": 0,
+    "provider_model": 0,
+    "training": 0,
+    "goal_authority": 0,
+    "effects": 0,
+    "completion": 0,
+    "whole_system": 0
+  },
+  "open_candidate_falsifier": "workpackages/falsifiers/F2-WP-804/REF_ALIAS_PAYLOAD_DIGEST_BINDING_CANDIDATE_FALSIFIER_GPT56SOL_TRIGGER4.json",
+  "next_exact_action": "Obtain exact PR-head CI for this generation-2 repair; merge only if current main remains compatible, then require merged-main generation-2 CI before terminal bounded reconciliation. After that, separately reproduce or close the ref-alias/payload-digest candidate falsifier without inflating generation-2 producer-lineage scope."
+}
