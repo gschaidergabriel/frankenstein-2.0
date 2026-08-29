@@ -1,0 +1,28 @@
+name: REVIEW ONLY WP1200 negative-space falsifier
+
+on:
+  pull_request:
+    paths:
+      - 'src/frankenstein2/target_completion_epistemics.py'
+      - 'tests/review_only/test_wp1200_missing_obligation_negative_space_falsifier.py'
+      - '.github/workflows/review-only-wp1200-negative-space-falsifier-ci.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  candidate-falsifier:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Compile exact source and candidate falsifier
+        run: python -m py_compile src/frankenstein2/target_completion_epistemics.py tests/review_only/test_wp1200_missing_obligation_negative_space_falsifier.py
+      - name: Execute REVIEW_ONLY negative-space falsifier
+        env:
+          PYTHONPATH: src
+        run: python -m pytest -q tests/review_only/test_wp1200_missing_obligation_negative_space_falsifier.py
