@@ -1,0 +1,57 @@
+{
+  "schema": "FRANKENSTEIN2_TRIGGER6_RESEARCH_DELTA/v1",
+  "research_id": "R6-20260830-SELFHOSTED-RUNNER-PERSISTENCE-SERVICE-GPT56SOL-01",
+  "evidence_stage": "E1_SOURCE_READ",
+  "status": "E1_COMPLETE",
+  "worker_id": "GPT-5.6-Sol",
+  "trigger": "6",
+  "claim_commit": "67610c5fed365af69182cb15473ccefe8b727823",
+  "architecture_snapshot_at_claim": {
+    "frankenstein_2_main": "69cf171069530db205b28c940f3f366244c162ae",
+    "research_entity_main": "153b44cb454abcf6ff4db2365bf04160c44f1ade",
+    "wp510_run": 33265772059,
+    "wp510_job": 99135457584,
+    "wp510_state_at_orientation": "QUEUED_ZERO_STEPS_RUNNER_ID_0"
+  },
+  "primary_sources": [
+    "https://docs.github.com/en/actions/reference/runners/self-hosted-runners",
+    "https://docs.github.com/en/actions/how-tos/manage-runners/self-hosted-runners/use-in-a-workflow",
+    "https://docs.github.com/en/enterprise-cloud@latest/actions/how-tos/manage-runners/self-hosted-runners/configure-the-application",
+    "https://docs.github.com/en/enterprise-cloud@latest/actions/how-tos/manage-runners/self-hosted-runners/monitor-and-troubleshoot"
+  ],
+  "source_direct_findings": [
+    "GitHub routes a self-hosted job only to an online and idle runner matching the job's runs-on labels and groups; otherwise the job remains queued until a matching runner comes online.",
+    "If an assigned runner does not pick up the job within 60 seconds, GitHub re-queues the job, so queue state alone cannot identify one unique root cause.",
+    "Self-hosted runner labels are cumulative for eligibility: a runner must satisfy every requested label, and group constraints are additional when used.",
+    "On Linux systems using systemd, the GitHub Actions runner can be installed and managed as a boot-persistent service with the runner-provided svc.sh install/start/status/stop lifecycle.",
+    "GitHub documents runner service logs through journalctl, including listener startup, connection, listening-for-jobs, job execution and completion events; these are stronger operational liveness witnesses than queued-job metadata alone but still are not product-runtime evidence.",
+    "GitHub documents an Ubuntu/Debian needrestart interaction and provides a configuration that prevents needrestart from restarting the Actions runner service during a workflow job.",
+    "Replacing a runner can require labels to be re-assigned; therefore service liveness and routing eligibility are separate properties."
+  ],
+  "f2_interpretation": {
+    "supported": [
+      "A thin runner-service liveness prerequisite is technically supported for the Linux/X64 WP510 transport surface.",
+      "Runner service liveness, runner registration/online state, label/group eligibility, job assignment, step execution and target-runtime receipt must remain separate evidence stages.",
+      "For an Ubuntu target, needrestart-induced runner restarts are a concrete operational failure mode worth explicitly fencing if the target uses needrestart."
+    ],
+    "not_supported": [
+      "svc.sh status PASS does not prove GitHub-side online/idle eligibility.",
+      "GitHub-side online eligibility does not prove a job executed.",
+      "A queued job does not prove an F2 semantic failure.",
+      "Runner/service evidence cannot mint WP510 target-runtime, GWT, GRID10, J-Space, effect, training or whole-system credit."
+    ]
+  },
+  "counterhypothesis": "The current WP510 runner was intentionally ephemeral or manually launched and no durable systemd service is desired; in that case a service prerequisite would add operational coupling without improving the product. E2 must inspect the actual controller/target runner lifecycle before recommending any build change.",
+  "next_discriminator": "E2 architecture mapping: inspect the current WP510 controller workflow and available runner-lifecycle evidence for whether service persistence is intended, whether online/label eligibility is observable, and whether an Ubuntu needrestart fence is actually applicable. Do not modify the target or dispatch a new run in E2.",
+  "evidence_ceiling": "E1_SOURCE_READ_ONLY_NO_BUILD_RUNTIME_EFFECT_OR_TARGET_ENVIRONMENT_CREDIT",
+  "credits": {
+    "runtime": 0,
+    "target_environment": 0,
+    "physical_grid10": 0,
+    "semantic_gwt": 0,
+    "jspace": 0,
+    "effect": 0,
+    "training": 0,
+    "whole_system": 0
+  }
+}
