@@ -1,0 +1,55 @@
+{
+  "schema": "FRANKENSTEIN2_WORKPACKAGE_DELTA/v1",
+  "workpackage_id": "F2-WP-506",
+  "generation": 1,
+  "claim_id": "F2-WP-506-G1-GPT56SOL-GWT-SELECTION-BROADCAST-20260829",
+  "worker_id": "GPT-5.6-Sol",
+  "base_commit": "3b2d3d603972f6259c75cd003b26b0ef64dbe1f7",
+  "observed_main_commit": "01c5fe7006d0dcc36d79db494ab6c29330de0f5e",
+  "owned_paths": [],
+  "result_class": "REVIEW_ONLY",
+  "source_commits": [
+    "3daf91bbd3a7d9f61d15ab4c2cf9fd17c082258b",
+    "04041766dd8282f45c2a79da8bd9959453346d32",
+    "b3a2984797d0ce45876a0b339532e895b811976e",
+    "6e361784c5a002b2b10b7f2236dee3ebd8fe0ea2",
+    "dd9febd559ebb717de410e4c39d370a6adf5593d"
+  ],
+  "receipts": [
+    {
+      "kind": "REPOSITORY_HOSTED_COMPONENT_CI",
+      "run_id": 33222409064,
+      "head_sha": "3daf91bbd3a7d9f61d15ab4c2cf9fd17c082258b",
+      "conclusion": "success",
+      "credit_scope": "WP506_EXISTING_COMPONENT_SUITE_ONLY"
+    },
+    {
+      "kind": "CANDIDATE_ORIGIN_FALSIFIER",
+      "run_id": 33222050630,
+      "head_sha": "43f25ef1eda3b99329caf8834ca371cf4217f0a2",
+      "conclusion": "failure",
+      "interpretation": "compile succeeded; review-only test requiring producer-bound candidate admission failed against the reviewed WP506 branch"
+    },
+    {
+      "kind": "SELECTION_CONSTRUCTOR_BYPASS_FALSIFIER",
+      "run_id": 33222194773,
+      "head_sha": "f14fca402eb15f0a194dc0608810be5dff61855d",
+      "conclusion": "failure",
+      "interpretation": "exact source binding and compile succeeded; review-only test requiring downstream rejection of a directly constructed WorkspaceSelection failed as preregistered"
+    }
+  ],
+  "falsifiers": [
+    "PR151: candidate producer-origin and alias-amplification review",
+    "PR162: direct WorkspaceSelection constructor / self-digest lineage-bypass review"
+  ],
+  "contradictions": [
+    "PR155 duplicate implementation was merged before overlap was recognized even though F2-WP-506 already had a sole active mutation lane; the duplicate source/tests were subsequently removed from main and the shared CI workflow was aligned to the canonical branch.",
+    "PR149 had been closed as superseded by PR155; after duplicate-source removal it was reopened as the intended mutation lane.",
+    "The active F2-WP-506 claim explicitly consumes caller-supplied candidate identities/payload refs and grants zero GWT runtime/causal credit, while review PR151 asks for stronger producer-admission lineage. This negative evidence therefore requires explicit scope reconciliation rather than silent promotion to either ACCEPTED or FAILED.",
+    "The existing component suite is green at exact canonical head 3daf91bbd3a7d9f61d15ab4c2cf9fd17c082258b while stronger review-only falsifiers remain red; green component CI must not erase those negative results."
+  ],
+  "proposed_state_change": "NO_CANONICAL_STATE_CHANGE_FROM_THIS_REVIEW. Keep F2-WP-506 generation 1 CLAIMED until the sole mutation/reconciliation authority explicitly classifies PR151/PR162 against the written caller-supplied component contract and either repairs in-scope invariants or records them as successor/causal-lineage gates without inflating credit.",
+  "completion_deficit": "No claim-scoped owner delta/reconciliation yet binds the green component suite and the two stronger negative reviews into one explicit acceptance boundary. No runtime, VPS, physical GRID10, broadcast-uptake, causal-influence, effect, completion, training, or whole-system evidence exists here.",
+  "next_exact_action": "The sole F2-WP-506 mutation authority should re-read this delta plus PR151 and PR162 against the exact active claim. If producer-admission or builder-issued lineage is declared in-scope, repair only on the canonical branch and rerun both falsifiers. If those properties are successor requirements beyond the explicit caller-supplied component contract, preserve them as named next-gate deficits and keep all higher runtime/causal credits at zero before any component-scope reconciliation.",
+  "created_at_utc": "2026-08-29T00:05:30Z"
+}
