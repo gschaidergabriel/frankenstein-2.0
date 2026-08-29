@@ -3,7 +3,7 @@
 F2-WP-509 generation 1.
 
 This component decides only whether a caller-supplied cognitive cycle may continue or must
-leave the current rumination loop through an explicit typed transition.  It does not infer
+leave the current rumination loop through an explicit typed transition. It does not infer
 world facts, goals, causality or completion; schedule wakeups; call models/providers/tools;
 read or write UnifiedDB; mutate GRID/GWT state; authorize effects; or mint runtime credit.
 """
@@ -18,6 +18,10 @@ from typing import Any, Iterable
 RUMINATION_SNAPSHOT_SCHEMA = "FRANKENSTEIN2_RUMINATION_SNAPSHOT/v1"
 RUMINATION_POLICY_SCHEMA = "FRANKENSTEIN2_RUMINATION_EXIT_POLICY/v1"
 RUMINATION_DECISION_SCHEMA = "FRANKENSTEIN2_RUMINATION_EXIT_DECISION/v1"
+
+SNAPSHOT_CLASSIFICATION = "LOOP_CONTROL_INPUT_NOT_WORLD_TRUTH_EFFECT_OR_COMPLETION_AUTHORITY"
+POLICY_CLASSIFICATION = "EXPLICIT_LOOP_EXIT_POLICY_NOT_EFFECT_OR_COMPLETION_AUTHORITY"
+DECISION_CLASSIFICATION = "LOOP_EXIT_DECISION_NOT_WORLD_TRUTH_EFFECT_OR_COMPLETION_AUTHORITY"
 
 EXIT_ACT = "ACT"
 EXIT_ASK = "ASK"
@@ -112,11 +116,13 @@ class RuminationSnapshot:
     wake_hold_ref: str | None
     wake_hold_sha256: str | None
     provenance_refs: tuple[str, ...]
-    classification: str = "LOOP_CONTROL_INPUT_NOT_WORLD_TRUTH_EFFECT_OR_COMPLETION_AUTHORITY"
+    classification: str = SNAPSHOT_CLASSIFICATION
 
     def __post_init__(self) -> None:
         if self.schema != RUMINATION_SNAPSHOT_SCHEMA:
             raise RuminationControlError("rumination snapshot schema mismatch")
+        if self.classification != SNAPSHOT_CLASSIFICATION:
+            raise RuminationControlError("rumination snapshot classification mismatch")
         object.__setattr__(self, "cycle_id", _identifier("cycle_id", self.cycle_id))
         object.__setattr__(self, "cycle_generation", _generation("cycle_generation", self.cycle_generation))
         object.__setattr__(self, "cycle_sha256", _sha256("cycle_sha256", self.cycle_sha256))
@@ -201,11 +207,13 @@ class RuminationExitPolicy:
     max_unchanged_iterations: int
     allowed_exits: tuple[str, ...]
     provenance_refs: tuple[str, ...]
-    classification: str = "EXPLICIT_LOOP_EXIT_POLICY_NOT_EFFECT_OR_COMPLETION_AUTHORITY"
+    classification: str = POLICY_CLASSIFICATION
 
     def __post_init__(self) -> None:
         if self.schema != RUMINATION_POLICY_SCHEMA:
             raise RuminationControlError("rumination policy schema mismatch")
+        if self.classification != POLICY_CLASSIFICATION:
+            raise RuminationControlError("rumination policy classification mismatch")
         object.__setattr__(self, "policy_id", _identifier("policy_id", self.policy_id))
         object.__setattr__(self, "generation", _generation("generation", self.generation))
         _counter("max_iterations", self.max_iterations)
@@ -265,11 +273,13 @@ class RuminationExitDecision:
     can_continue: bool
     unresolved_preserved: bool
     provenance_refs: tuple[str, ...]
-    classification: str = "LOOP_EXIT_DECISION_NOT_WORLD_TRUTH_EFFECT_OR_COMPLETION_AUTHORITY"
+    classification: str = DECISION_CLASSIFICATION
 
     def __post_init__(self) -> None:
         if self.schema != RUMINATION_DECISION_SCHEMA:
             raise RuminationControlError("rumination decision schema mismatch")
+        if self.classification != DECISION_CLASSIFICATION:
+            raise RuminationControlError("rumination decision classification mismatch")
         object.__setattr__(self, "decision_id", _identifier("decision_id", self.decision_id))
         object.__setattr__(self, "snapshot_sha256", _sha256("snapshot_sha256", self.snapshot_sha256))
         object.__setattr__(self, "policy_id", _identifier("policy_id", self.policy_id))
@@ -388,11 +398,13 @@ def evaluate_rumination_exit(
 
 __all__ = [
     "CONTINUE",
+    "DECISION_CLASSIFICATION",
     "EXIT_ACT",
     "EXIT_ASK",
     "EXIT_DEFER_HOLD",
     "EXIT_OBSERVE",
     "EXIT_WAIT",
+    "POLICY_CLASSIFICATION",
     "RUMINATION_DECISION_SCHEMA",
     "RUMINATION_POLICY_SCHEMA",
     "RUMINATION_SNAPSHOT_SCHEMA",
@@ -400,5 +412,6 @@ __all__ = [
     "RuminationExitDecision",
     "RuminationExitPolicy",
     "RuminationSnapshot",
+    "SNAPSHOT_CLASSIFICATION",
     "evaluate_rumination_exit",
 ]
