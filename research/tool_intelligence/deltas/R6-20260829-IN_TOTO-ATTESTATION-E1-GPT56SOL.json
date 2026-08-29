@@ -1,0 +1,128 @@
+{
+  "schema": "FRANKENSTEIN2_TRIGGER6_SOURCE_ARCHAEOLOGY_E1/v1",
+  "research_id": "R6-SEED-013",
+  "trigger": "6",
+  "slot": "SOURCE_ARCHAEOLOGIST",
+  "claim_target": "E1_SOURCE_READ",
+  "status": "E1_SOURCE_READ_COMPLETE_NOT_BUILD_CANDIDATE",
+  "completed_at_local": "2026-08-29T15:03:00+07:00",
+  "claim_ref": "research/tool_intelligence/claims/R6-SEED-013/E1_SOURCE_READ.json",
+  "claim_commit": "e0f1e8a27bc8e51f1f0114cfff044a033e4610b7",
+  "architecture_snapshot": {
+    "f2_main_observed_before_result": "fcf6073002f58ae86a11d0bd2e857cf663a4a809",
+    "research_entity_main_observed_before_result": "88844d2a2d5aebe894573ffff5ce01144b92f198",
+    "supervisor_epoch": "9.13AQ_NON_AUTHORITY",
+    "mode": "FREE_ONLY"
+  },
+  "candidate": {
+    "repo": "in-toto/attestation",
+    "source_commit": "2dcd055e9f72e746687c306e35f4e59720ff45be",
+    "source_commit_date": "2026-08-24T19:07:51Z",
+    "repository_archived": false,
+    "license": "Apache-2.0",
+    "primary_surfaces_read": [
+      "README.md",
+      "spec/v1/statement.md",
+      "spec/v1/envelope.md",
+      "spec/v1/bundle.md",
+      "spec/predicates/link.md",
+      "spec/predicates/runtime-trace.md",
+      "LICENSE"
+    ]
+  },
+  "source_observations": [
+    {
+      "id": "R6-013-E1-O1",
+      "classification": "SOURCE_DIRECT",
+      "finding": "Statement/v1 binds an attestation to one or more immutable subjects identified by digest and separately identifies predicateType; subject matching is digest-based rather than inferred from names or content semantics."
+    },
+    {
+      "id": "R6-013-E1-O2",
+      "classification": "SOURCE_DIRECT",
+      "finding": "The Link predicate models one executed step with subject as products/outputs and materials as input ResourceDescriptors, while name/command/byproducts/environment describe the step context."
+    },
+    {
+      "id": "R6-013-E1-O3",
+      "classification": "SOURCE_DIRECT",
+      "finding": "The Runtime Trace predicate identifies the monitor instance/configuration and monitored process separately from the trace log; it is monitor-technology agnostic and explicitly warns that asynchronous eBPF file-access observation provides weaker digest guarantees than synchronous tracing."
+    },
+    {
+      "id": "R6-013-E1-O4",
+      "classification": "SOURCE_DIRECT",
+      "finding": "The Envelope layer recommends authenticated payload plus payloadType via DSSE-like envelopes; consumers must verify the payload/signature rather than trusting media type metadata."
+    },
+    {
+      "id": "R6-013-E1-O5",
+      "classification": "SOURCE_DIRECT_NEGATIVE",
+      "finding": "An attestation Bundle is not authenticated as a whole; the specification explicitly calls out deletion, replay of obsolete attestations and injection of invalid/irrelevant attestations as threats. Bundle order must not carry semantics."
+    }
+  ],
+  "f2_relevance_hypothesis": {
+    "classification": "E1_INFERENCE_ONLY",
+    "fit": "HIGH_AS_SCHEMA_AND_EVIDENCE-STRENGTH_DISTILLATION_DONOR",
+    "preferred_direction": "Distill, do not import wholesale at E1.",
+    "candidate_structural_mapping": [
+      "F2 exact output/artifact/state digest <-> in-toto subject digest",
+      "F2 exact source/input/plan/frame/model identities <-> materials",
+      "F2 receipt/evidence class <-> predicateType",
+      "F2 observer/tool/config identity <-> runtime-trace monitor + tracePolicy",
+      "F2 bounded execution/effect/test identity <-> monitoredProcess event",
+      "F2 measured trace refs <-> monitorLog"
+    ],
+    "required_f2_only_fields_not_supplied_by_in_toto": [
+      "canonical causal_event_id/admission identity",
+      "generation and stale-generation fence",
+      "EffectGate/EffectJournal authority identity",
+      "UNKNOWN outcome semantics",
+      "recipient-scoped GWT broadcast/uptake identities",
+      "explicit observer guarantee/epistemic-strength class appropriate to the measurement technique"
+    ]
+  },
+  "counterhypotheses": [
+    {
+      "id": "CH-R6-013-1",
+      "statement": "Existing F2 receipts already bind inputs, outputs, provenance and generations sufficiently; an in-toto-inspired layer would add schema complexity without detecting new failures.",
+      "next_falsifier": "At E2, map current high-value WP507/WP105 receipts field-by-field and test whether an in-toto-style subject/material/predicate envelope catches any replay, wrong-input, wrong-output or observer-strength ambiguity not already rejected."
+    },
+    {
+      "id": "CH-R6-013-2",
+      "statement": "Cryptographic envelope signing is unnecessary inside the current single-authority repository evidence path and would add cost without increasing useful assurance.",
+      "next_falsifier": "Identify a concrete threat or cross-boundary handoff where source/hash binding alone cannot distinguish tampering or provenance substitution; otherwise keep signing out of the immediate F2 path."
+    },
+    {
+      "id": "CH-R6-013-3",
+      "statement": "Generic runtime-trace predicates are too supply-chain-specific to help GWT causal evidence.",
+      "next_falsifier": "Map only monitor/config/process/log identity semantics onto one WP507 matched-pair receipt and check whether they improve independent-witness attribution without claiming causal influence."
+    }
+  ],
+  "hard_fences": [
+    "ATTESTATION_PRESENT != WORLD_FACT",
+    "TRACE_PRESENT != CAUSALITY",
+    "SIGNED_PAYLOAD != CORRECT_SEMANTICS",
+    "BUNDLE_MEMBERSHIP != FRESHNESS_OR_COMPLETENESS",
+    "OBSERVER_OUTPUT_STRENGTH_DEPENDS_ON_OBSERVER_TECHNIQUE",
+    "IN_TOTO_MUST_NOT_BECOME_A_SECOND_TRUTH_STORE_OR_EFFECT_AUTHORITY",
+    "E1_SOURCE_READ != E2_ARCHITECTURE_MAPPED != E5_BUILD_CANDIDATE != F2_ACCEPTED"
+  ],
+  "recommended_next_objective": {
+    "slot": "SOURCE_ARCHAEOLOGIST",
+    "research_id": "R6-SEED-013",
+    "claim_target": "E2_ARCHITECTURE_MAPPED",
+    "task": "Map current F2 WP507/WP105 receipt schemas against the minimal subject/material/predicate/observer model; measure overlap and identify one concrete ambiguity newly rejected by the distillation before considering any implementation.",
+    "evidence_ceiling": "E2_ARCHITECTURE_MAPPED"
+  },
+  "database_sync": {
+    "pending_research_sqlite": "SYNC_PENDING",
+    "reason": "This E1 result is persisted as an exact-source JSON delta; the binary canonical Trigger-6 database was not rewritten in this bounded source-read action."
+  },
+  "credit_boundary": {
+    "e1_source_read": 1,
+    "architecture_credit": 0,
+    "build_candidate_credit": 0,
+    "f2_runtime_credit": 0,
+    "gwt_causal_credit": 0,
+    "whole_f2_runtime_credit": 0,
+    "whole_entityos_hcu_credit": 0,
+    "training_credit": 0
+  }
+}
