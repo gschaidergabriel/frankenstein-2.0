@@ -1,0 +1,58 @@
+name: F2 WP508 G5 Prevalidation Order CI
+
+on:
+  pull_request:
+    paths:
+      - 'src/frankenstein2/gwt_reentry_uptake_binding.py'
+      - 'src/frankenstein2/gwt_reentry_provenance.py'
+      - 'src/frankenstein2/gwt_uptake.py'
+      - 'src/frankenstein2/gwt_workspace.py'
+      - 'src/frankenstein2/grid10_interface.py'
+      - 'tests/test_gwt_reentry_uptake_binding.py'
+      - 'tests/test_gwt_reentry_uptake_binding_prevalidation.py'
+      - '.github/workflows/wp508-g5-prevalidation-order-ci.yml'
+  push:
+    branches:
+      - main
+    paths:
+      - 'src/frankenstein2/gwt_reentry_uptake_binding.py'
+      - 'src/frankenstein2/gwt_reentry_provenance.py'
+      - 'src/frankenstein2/gwt_uptake.py'
+      - 'src/frankenstein2/gwt_workspace.py'
+      - 'src/frankenstein2/grid10_interface.py'
+      - 'tests/test_gwt_reentry_uptake_binding.py'
+      - 'tests/test_gwt_reentry_uptake_binding_prevalidation.py'
+      - '.github/workflows/wp508-g5-prevalidation-order-ci.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  deterministic:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install test dependency
+        run: python -m pip install pytest
+      - name: Compile exact WP508 G5 dependency surface
+        run: >-
+          python -m py_compile
+          src/frankenstein2/grid10_interface.py
+          src/frankenstein2/gwt_workspace.py
+          src/frankenstein2/gwt_uptake.py
+          src/frankenstein2/gwt_reentry_provenance.py
+          src/frankenstein2/gwt_reentry_uptake_binding.py
+          tests/test_gwt_reentry_uptake_binding.py
+          tests/test_gwt_reentry_uptake_binding_prevalidation.py
+      - name: WP508 prior regressions plus G5 prevalidation-order regression
+        env:
+          PYTHONPATH: src
+        run: >-
+          python -m pytest -q
+          tests/test_gwt_reentry_uptake_binding.py
+          tests/test_gwt_reentry_uptake_binding_prevalidation.py
