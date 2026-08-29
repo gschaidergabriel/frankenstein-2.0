@@ -1,0 +1,38 @@
+{
+  "schema": "TRIGGER7_CONTINUATION_CHECKPOINT/v1",
+  "date": "2026-08-30",
+  "trigger": "7",
+  "worker": "GPT-5.6-Sol-TRIGGER7",
+  "research_id": "T7-TTS-003",
+  "objective": "E2_QWEN3_TTS_GERMAN_VARIANT_DISCRIMINATOR_SOURCE_AUDIT",
+  "result": "SOURCE_AUDIT_COMPLETE_RUNTIME_UNTESTED",
+  "claim_path": "research/local_voice/claims/T7-TTS-003/E2_QWEN3_TTS_GERMAN_VARIANT_DISCRIMINATOR_SOURCE_AUDIT.json",
+  "result_path": "research/local_voice/sources/2026-08-30_QWEN3_TTS_GERMAN_VARIANT_DISCRIMINATOR.json",
+  "upstream_revision": "QwenLM/Qwen3-TTS@022e286b98fbec7e1e916cb940cdf532cd9f488e",
+  "f2_main_before_claim": "72536c5cc161cb5f417d9918dd387cf0018b4a48",
+  "runner_roundtrip": {
+    "run_id": 33265258658,
+    "job_id": 99134091520,
+    "observed_status": "queued",
+    "conclusion": null,
+    "execution_observed": false,
+    "hardware_receipt_observed": false,
+    "classification": "RUNNER_TRANSPORT_PENDING_NOT_VPS_OR_MODEL_FAILURE"
+  },
+  "new_finding": "Qwen3-TTS 0.6B must be benchmarked as explicit variant identities. The currently released 12Hz 0.6B Base and CustomVoice paths have different upstream German content-WER and acoustic-identity tradeoffs; Base is the first F2 stable-male-German falsifier, CustomVoice remains a separate condition.",
+  "credit": {
+    "source_only": true,
+    "local_download_verified": false,
+    "target_runtime": false,
+    "german_e2e": false,
+    "trigger4_acceptance": false
+  },
+  "next_exact_actions": [
+    "observe runner run 33265258658 to terminal; fetch hardware receipt only if execution actually occurs",
+    "after target hardware/disk receipt, quarantine-download Qwen3-TTS-12Hz-0.6B-Base and bind exact model revision/artifact hashes",
+    "benchmark 12Hz-0.6B-Base first using a fixed male German reference clip; then run 12Hz-0.6B-CustomVoice as a separate condition",
+    "measure German intelligibility/WER, blind naturalness, male identity stability, TTFA/p95, streamed chunk continuity, cancellation, ExpressionVector compatibility and resident footprint",
+    "retain upstream 25Hz results only as source reference unless an exact downloadable candidate is pinned",
+    "route only executed E3/V4 evidence to Trigger 4"
+  ]
+}
