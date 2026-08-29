@@ -7,37 +7,65 @@
   "base_commit": "40fbf222dc908b9a81aefb5ae79fe183aab4a7fc",
   "claim_commit": "fd78d2898aec011922d8f6cd97c581abae382982",
   "authority_epoch": "8.78",
-  "result_class": "IMPLEMENTED_TESTED_REPOSITORY_CI_GREEN",
-  "source_commits": ["316e6293b39fc95c95999ed54b7366464b54c6c4"],
-  "test_commits": ["f15c595822f929b86fe805e6b752672d17b66f20"],
-  "workflow_commit": "9ae0ce24409ce37727b5f9374a4f865ea077d349",
+  "result_class": "CANONICAL_SEMANTICS_REPAIRED_REPOSITORY_CI_GREEN",
+  "supersedes_initial_depth_only_evidence": true,
+  "initial_depth_only_attempt": {
+    "source_commit": "316e6293b39fc95c95999ed54b7366464b54c6c4",
+    "test_commit": "f15c595822f929b86fe805e6b752672d17b66f20",
+    "workflow_commit": "9ae0ce24409ce37727b5f9374a4f865ea077d349",
+    "ci_run_id": 33248185420,
+    "ci_conclusion": "success",
+    "acceptance_credit": 0,
+    "reason": "The suite was internally green but tested the contradicted depth-alias contract; canonical F2 Stage-6 semantics define R0 deterministic, R1 model recursion, R2 child harness, and R3 adaptive selection."
+  },
+  "semantic_review_falsifier": {
+    "review_commit": "117e50783ebfa81f22a93f2285433a6f8a1d9fb7",
+    "required_regressions": [
+      "R1 is representable without NativeChildRequest",
+      "R2 is the Native Child harness while nested-child depth remains an orthogonal resource field",
+      "R3 adaptively selects among admitted lower mechanisms rather than meaning numeric depth 3"
+    ]
+  },
+  "repair_source_commit": "9fb3729f96fd67e7b603e958444f60c3accca55c",
+  "repair_test_commit": "e24cfb4ed846b94d986d4f79946fe90dbf20ad8e",
+  "repair_negative_ci": {
+    "run_id": 33248314626,
+    "job_id": 99089510450,
+    "head_sha": "9fb3729f96fd67e7b603e958444f60c3accca55c",
+    "conclusion": "failure",
+    "meaning": "Expected transition failure after source semantics changed while the old depth-only tests were still present; preserved as negative evidence."
+  },
   "repository_ci": {
-    "run_id": 33248185420,
-    "job_id": 99089176030,
-    "head_sha": "9ae0ce24409ce37727b5f9374a4f865ea077d349",
+    "run_id": 33248403010,
+    "job_id": 99089741895,
+    "head_sha": "e24cfb4ed846b94d986d4f79946fe90dbf20ad8e",
     "status": "completed",
     "conclusion": "success",
     "workflow": "F2 WP603 Recursion Router CI",
     "job": "deterministic",
-    "command": "PYTHONPATH=src python tests/test_recursion_router.py -v"
+    "steps": [
+      "python -m py_compile src/frankenstein2/recursion_router.py tests/test_recursion_router.py",
+      "PYTHONPATH=src python tests/test_recursion_router.py -v"
+    ]
   },
   "implemented_contract": [
-    "caller-supplied R0/R1/R2/R3 recursion need only; no payload-text inference",
-    "exact RouteCandidate concrete-type reconstruction plus candidate identity/digest binding",
-    "exact NativeChildRequest concrete-type verification plus request identity/generation/digest binding",
-    "R0 is the no-child-recursion route; DIRECT_SMALL rejects nonzero recursion and child-request smuggling",
-    "DELEGATE_BUILD requires an admitted nonzero child depth and exact NativeChildRequest",
-    "policy ceiling and explicit admitted-depth set fail closed",
-    "NativeChildRequest resource_budget.max_nested_depth must cover the selected depth",
-    "route task identity/payload digest are bound to the same explicit child handoff surfaces already enforced by F2-WP-602",
-    "RecursionNeed and RecursionRouteCandidate identities recompute from exact canonical content",
-    "outputs remain evidence/provenance candidates only"
+    "R0 = deterministic local path",
+    "R1 = model-recursion candidate and does not require NativeChildRequest",
+    "R2 = exact Native Child harness candidate",
+    "R3 = adaptive selection among explicitly declared and policy-admitted R0/R1/R2 mechanisms",
+    "nested-child depth is orthogonal to R0/R1/R2/R3 mechanism class",
+    "remaining_nested_child_edges is bounded by policy and NativeChildRequest max_nested_depth for R2-capable paths",
+    "nested R2 reroute consumes exactly one remaining child edge from the exact parent recursion candidate",
+    "exact RouteCandidate and NativeChildRequest identities/digests remain fail-closed trust boundaries",
+    "route task identity/payload digest remain cross-bound to the explicit child handoff relation used by F2-WP-602",
+    "no payload-text task-semantic inference",
+    "outputs are evidence/provenance candidates only and never model/child execution, effect, completion, runtime or whole-system authority"
   ],
   "canonical_artifacts": {
     "source": "src/frankenstein2/recursion_router.py",
-    "source_blob_sha": "dde04941f461602164fee08016639d53cce13cc3",
+    "source_blob_sha": "9a6edc823eea6fe641bd7f2cfab87891aa213435",
     "test": "tests/test_recursion_router.py",
-    "test_blob_sha": "3d982233456e20bdaa6940fe4e78bf5fe352cf8c",
+    "test_blob_sha": "3f163fb32f11c8f5c297a69602b8129a70e4cd91",
     "workflow": ".github/workflows/wp603-recursion-router-ci.yml",
     "workflow_blob_sha": "3e4529d9cbe0eae19c9093f56ac8e7ecf276d858"
   },
@@ -51,5 +79,5 @@
   "effect_credit": 0,
   "completion_credit": 0,
   "whole_system_acceptance": false,
-  "next_exact_action": "Open one WP603 pull request from trigger4/wp603-recursion-router-20260829 to current main, require pull_request merge-ref CI, then reconcile only at repository-component scope if exact artifacts and CI remain green."
+  "next_exact_action": "Re-enter current main, open exactly one WP603 repair pull request from trigger4/wp603-recursion-router-20260829, require pull_request merge-ref CI against current main, then merge/reconcile only at repository-component scope if the exact repaired artifacts remain green."
 }
