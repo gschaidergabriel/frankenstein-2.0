@@ -1,0 +1,55 @@
+name: WP506 Producer Frame Cycle Binding Falsifier
+
+on:
+  push:
+    branches:
+      - 'review/wp506-producer-frame-cycle-binding-falsifier-20260829'
+    paths:
+      - '.github/workflows/wp506-producer-frame-cycle-binding-falsifier.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  falsifier:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Compile current WP506 and WP503 surfaces
+        run: python -m py_compile src/frankenstein2/gwt_workspace.py src/frankenstein2/grid10_interface.py
+      - name: Require exact producer plan cycle and SituationFrame binding
+        env:
+          PYTHONPATH: src
+        run: |
+          python - <<'PY'
+          from frankenstein2.grid10_interface import CellBudget, CellInput, CellOutput, Grid10Plan
+          from frankenstein2.gwt_workspace import CandidateProducerAdmission, GwtWorkspaceError, SelectionPolicy, WorkspaceCandidate, build_workspace_selection
+
+          D = 'a' * 64
+          G = 'e' * 64
+          cells = tuple(CellBudget(cell_id=f'G{i}', role_label=f'role-{i}', max_input_refs=8, max_output_refs=8, max_work_units=8, max_reentry_depth=2) for i in range(1, 11))
+          plan = Grid10Plan.create(plan_id='grid-plan-1', cycle_id='cycle-1', generation=3, frame_id='frame-1', frame_generation=4, frame_sha256=D, policy_id='grid-policy-1', policy_generation=1, policy_sha256=G, cells=cells, max_total_work_units=80, provenance_refs=('prov:grid',))
+          cell_input = CellInput.for_plan(plan, cell_id='G1', work_units_requested=2, input_refs=('input:a',), provenance_refs=('prov:input',))
+          cell_output = CellOutput.for_input(plan, cell_input, status='COMPLETE', work_units_used=1, output_refs=('payload:a',), evidence_refs=('evidence:a',), provenance_refs=('prov:output',))
+          admission = CandidateProducerAdmission(plan=plan, cell_input=cell_input, cell_output=cell_output)
+          candidate = WorkspaceCandidate(candidate_id='a', payload_ref='payload:a', epistemic_class='INFERRED', provenance_refs=('prov:a',), salience_micros=500000, goal_relevance_micros=500000, uncertainty_micros=100000, information_gain_micros=500000, estimated_cost_units=1, producer_admission=admission)
+          policy = SelectionPolicy(policy_id='gwt-policy-1', generation=1, max_selected_candidates=1, max_total_cost_units=5, salience_weight=1, goal_relevance_weight=1, uncertainty_weight=1, information_gain_weight=1, cost_weight=1)
+
+          def must_reject(**overrides):
+              kwargs = dict(selection_id='sel-1', cycle_id=plan.cycle_id, generation=7, frame_id=plan.frame_id, frame_generation=plan.frame_generation, frame_sha256=plan.frame_sha256, grid_plan_id=plan.plan_id, grid_plan_generation=plan.generation, grid_plan_sha256=plan.sha256(), policy=policy, candidates=(candidate,))
+              kwargs.update(overrides)
+              try:
+                  build_workspace_selection(**kwargs)
+              except GwtWorkspaceError:
+                  return
+              raise AssertionError(f'WP506 accepted producer-plan causal mismatch: {overrides!r}')
+
+          must_reject(cycle_id='cycle-foreign')
+          must_reject(frame_id='frame-foreign')
+          must_reject(frame_generation=999)
+          must_reject(frame_sha256='d' * 64)
+          PY
