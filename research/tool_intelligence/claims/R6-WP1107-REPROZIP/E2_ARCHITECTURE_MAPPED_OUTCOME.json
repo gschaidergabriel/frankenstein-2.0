@@ -1,0 +1,100 @@
+{
+  "schema": "FRANKENSTEIN2_TRIGGER6_EVIDENCE/v1",
+  "research_id": "R6-WP1107-REPROZIP",
+  "evidence_stage": "E2_ARCHITECTURE_MAPPED",
+  "status": "POST_IMPLEMENTATION_G2_AUDIT_COMPLETE",
+  "observed_at": "2026-08-29T13:06:00Z",
+  "authority_epoch": "8.78",
+  "f2_target": {
+    "workpackage": "F2-WP-1107",
+    "implementation_commit": "f9a1b7a8c9a8492655323e8ddb7556910587eeeb",
+    "source_path": "src/frankenstein2/release_archive.py",
+    "scope": "generation-2 deterministic release ZIP repository component"
+  },
+  "predecessor_research": {
+    "commit": "c079fcafb875c334bf834b1b86436b16991aa628",
+    "research_id": "R6-WP1107-REPROTEST-ZIP-001",
+    "relationship": "The earlier E1-E3 research established SOURCE_DATE_EPOCH / archive-normalization / variance-testing direction. This outcome does not repeat that work; it audits the newly implemented generation-2 builder against the resulting source boundary."
+  },
+  "external_primary_or_authoritative_sources": [
+    {
+      "source": "Reproducible Builds definition",
+      "url": "https://reproducible-builds.org/docs/definition/",
+      "finding": "Reproducibility means bit-for-bit identical specified artifacts given the same declared source, build environment and instructions."
+    },
+    {
+      "source": "Reproducible Builds stable inputs",
+      "url": "https://reproducible-builds.org/docs/stable-inputs/",
+      "finding": "Archive input ordering must be stable and must not inherit filesystem/locale ordering."
+    },
+    {
+      "source": "Reproducible Builds SOURCE_DATE_EPOCH",
+      "url": "https://reproducible-builds.org/docs/source-date-epoch/",
+      "finding": "ZIP member timestamps can be normalized from a source-bound epoch rather than wall clock."
+    },
+    {
+      "source": "Python 3.13 zipfile documentation",
+      "url": "https://docs.python.org/3.13/library/zipfile.html",
+      "finding": "ZIP entries expose/serialize date_time, create_system, create_version, extract_version, flag_bits, internal_attr, external_attr, extra and comments; archive order is observable in infolist()."
+    },
+    {
+      "source": "CPython zipfile implementation",
+      "url": "https://github.com/python/cpython/blob/main/Lib/zipfile/__init__.py",
+      "finding": "ZipInfo initializes create_version and extract_version from CPython DEFAULT_VERSION and serializes them; ZIP64 can append extra metadata even when caller-provided ZipInfo.extra starts empty."
+    }
+  ],
+  "observed_g2_strengths": [
+    "member names are canonical POSIX relative paths and output members are sorted",
+    "source_date_epoch is explicitly normalized to ZIP's two-second timestamp resolution",
+    "create_system is fixed to POSIX and regular/executable modes are policy controlled",
+    "ZIP_STORED removes compressor-version/level variability",
+    "member/archive comments and caller extra fields are empty",
+    "payload bytes are hash/size rechecked after manifest construction",
+    "verifier checks sorted unique names, timestamp, create_system, compression, mode, comments/extra, canonical embedded manifest and payload hashes"
+  ],
+  "remaining_architecture_gaps": [
+    {
+      "id": "ZIP_POLICY_VERSION_FIELDS_NOT_EXPLICIT",
+      "severity": "MEDIUM",
+      "observation": "_zip_info() fixes create_system/compression/flag_bits/internal_attr/external_attr but leaves create_version and extract_version at ZipInfo runtime defaults even though those fields are serialized into ZIP headers.",
+      "counterhypothesis": "Supported CPython versions may keep the same defaults forever, making the omission harmless in the supported environment.",
+      "falsifier": "Build identical fixture under every supported interpreter/runtime; any archive SHA or raw central/local header difference attributable to version fields falsifies runtime-independent byte identity.",
+      "smallest_delta": "Make serialized ZIP-version fields explicit policy or explicitly bind the supported builder runtime/version in the reproducibility perimeter; verifier should assert the selected values."
+    },
+    {
+      "id": "ZIP64_POLICY_VERIFIER_MISMATCH",
+      "severity": "MEDIUM",
+      "observation": "builder opens ZipFile with allowZip64=True while verifier forbids any member extra metadata. CPython may generate ZIP64 extra records when size/count/offset thresholds require them, so a sufficiently large archive can conflict with the stated no-extra policy.",
+      "counterhypothesis": "F2 release payload bounds may guarantee ZIP64 is unreachable.",
+      "falsifier": "Prove a canonical maximum payload/member/count bound below ZIP64 thresholds, or construct a boundary fixture and show builder+verifier behavior.",
+      "smallest_delta": "Choose one explicit v1 policy: (A) fail closed before ZIP64 and use allowZip64=False with documented bounds, preferred for the minimal release surface; or (B) admit and canonically verify only the exact required ZIP64 extra records. Do not leave builder acceptance broader than verifier acceptance."
+    },
+    {
+      "id": "CROSS_RUNTIME_FILENAME_ENCODING_FALSIFIER",
+      "severity": "LOW",
+      "observation": "filename encoding/UTF-8 flag generation is performed by the zipfile runtime. Current canonical path validation permits non-ASCII names.",
+      "counterhypothesis": "The supported path set may be ASCII-only or all supported runtimes may emit identical flags/bytes.",
+      "falsifier": "Include at least one non-ASCII canonical path in a supported-runtime cross-host reproducibility fixture, or formally restrict v1 archive member names to a proven canonical encoding subset.",
+      "smallest_delta": "Test first; restrict/bind only if the matrix falsifies byte identity."
+    }
+  ],
+  "recommended_trigger4_feed": {
+    "priority": "ZIP64_POLICY_VERIFIER_MISMATCH then ZIP_POLICY_VERSION_FIELDS_NOT_EXPLICIT",
+    "implementation_shape": "small fail-closed policy/test hardening inside existing WP1107 generation-2 lane; no new subsystem",
+    "acceptance": [
+      "same bound fixture => identical archive SHA across declared supported builder environments",
+      "verifier accepts every archive the builder is allowed to produce",
+      "boundary that would require unadmitted ZIP64 fails before artifact handoff",
+      "serialized metadata fields covered by policy/verifier or by an explicit supported-runtime perimeter"
+    ]
+  },
+  "explicit_nonclaims": [
+    "No F2 target/VPS runtime was executed by this research outcome.",
+    "No whole-system, installation, physical GRID10, GWT/J-Space or completion credit is minted.",
+    "The identified gaps are source-level reproducibility risks until Trigger 4 reproduces/falsifies them in the owned implementation/test lane."
+  ],
+  "research_credit": "E2_ARCHITECTURE_MAPPED_ONLY",
+  "architecture_credit": 0,
+  "runtime_credit": 0,
+  "whole_system_credit": 0
+}
