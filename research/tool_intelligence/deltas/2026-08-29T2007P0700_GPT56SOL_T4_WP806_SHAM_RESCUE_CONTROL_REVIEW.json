@@ -1,0 +1,65 @@
+{
+  "schema": "FRANKENSTEIN2_TRIGGER4_REVIEW_DELTA/v1",
+  "review_id": "T4-20260829-WP806-SHAM-RESCUE-CONTROL-GPT56SOL-01",
+  "status": "REVIEW_ONLY",
+  "created_at": "2026-08-29T20:07:00+07:00",
+  "worker": "GPT-5.6-Sol-TRIGGER4",
+  "authority_epoch": "8.78",
+  "base_main": "77778eb5ec5c127f8a532aa8cf80ad453017642d",
+  "target": {
+    "workpackage": "F2-WP-806",
+    "active_claim_blob_sha": "d35060628bb60911e03b0e3dc008a45a479235d8",
+    "active_claim_id": "F2-WP-806-G1-GPT56SOL-COGNITIVE-LESION-RESCUE-20260829",
+    "mutation_authority": "OTHER_ACTIVE_OWNER_DO_NOT_OVERWRITE"
+  },
+  "observed_inputs": [
+    {
+      "ref": "workpackages/active/F2-WP-806.json",
+      "observation": "The active claim specifies matched NORMAL/LESION/RESCUE conditions and correctly bounds score interpretation, but it does not explicitly require a SHAM_RESCUE or UNRELATED_MODULE_RESCUE negative control."
+    },
+    {
+      "ref": "src/frankenstein2/cognitive_microworld.py",
+      "observation": "WP800 mechanically separates evaluator-only state from ObservationView and its native matched-run primitive is pairwise BASELINE/INTERVENTION; a multi-condition lesion suite therefore needs explicit condition identity and pair-composition rules rather than assuming three-condition matching is inherited automatically."
+    },
+    {
+      "ref": "workpackages/research_inbox/GRID10_DEEP_FALSIFICATION_FUSION_2026-08-29.json",
+      "observation": "The current research packet requires strong simpler ablations/placebos and warns that intervention/coherence alone must not mint causal credit."
+    }
+  ],
+  "finding": {
+    "severity": "HIGH_INFORMATION_DESIGN_GAP_NOT_PRODUCT_FAILURE",
+    "statement": "NORMAL->LESION->RESCUE alone cannot distinguish restoration of the declared lesioned capability from generic restart/reinitialization, extra-compute, condition-label or intervention-attention effects. A successful rescue delta is therefore non-identifying unless matched sham and unrelated-module rescue controls are present.",
+    "epistemic_scope": "SOURCE_REVIEW_ONLY_NO_RUNTIME_CREDIT"
+  },
+  "candidate_falsifier": {
+    "name": "SHAM_AND_UNRELATED_RESCUE_NEGATIVE_CONTROL",
+    "conditions": [
+      "NORMAL",
+      "LESION_TARGET",
+      "RESCUE_TARGET",
+      "SHAM_RESCUE_NO_TARGET_RESTORE",
+      "RESCUE_UNRELATED_MODULE"
+    ],
+    "matching_requirements": [
+      "same fixture family and exact public fixture identity where pairwise comparison requires it",
+      "same episode generation and public ObservationView ancestry",
+      "same action/step/compute budget",
+      "condition identity sealed before evaluator scoring",
+      "no evaluator-only state in rescue configuration"
+    ],
+    "acceptance_logic": "A target rescue is informative only when LESION_TARGET degrades the declared metric relative to NORMAL, RESCUE_TARGET reverses that lesion-associated deficit under matched budget, and neither SHAM_RESCUE_NO_TARGET_RESTORE nor RESCUE_UNRELATED_MODULE produces an equivalent recovery. Otherwise retain UNKNOWN/non-identifying result.",
+    "pairing_note": "Because WP800's native matched primitive is BASELINE/INTERVENTION, encode the multi-condition suite as sealed pairwise comparisons with one shared intervention-family identity or introduce an WP806-local immutable condition-set descriptor; do not mutate WP800 solely to support this test."
+  },
+  "counterhypothesis": "The eventual WP806 implementation may already add sham/unrelated rescue controls even though the active claim does not enumerate them. If exact-current source and tests prove those controls with sealed identities and matched budgets, this review is satisfied without widening architecture.",
+  "recommended_action_for_active_owner": "Add SHAM_RESCUE and UNRELATED_MODULE_RESCUE controls plus fail-closed tests before bounded WP806 acceptance. Keep all credit at repository-hosted benchmark scope.",
+  "credits": {
+    "source_review": 1,
+    "component_runtime": 0,
+    "physical_grid10": 0,
+    "gwt_jspace": 0,
+    "training": 0,
+    "effect": 0,
+    "completion": 0,
+    "whole_system": 0
+  }
+}
