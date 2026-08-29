@@ -1,0 +1,71 @@
+{
+  "schema": "FRANKENSTEIN2_TRIGGER6_RESEARCH_DELTA/v1",
+  "research_id": "R6-20260830-SELFHOSTED-RUNNER-PERSISTENCE-SERVICE-GPT56SOL-01",
+  "evidence_stage": "E2_ARCHITECTURE_MAPPED",
+  "status": "E2_COMPLETE_CONDITIONAL_ARCHITECTURE_DELTA",
+  "worker_id": "GPT-5.6-Sol",
+  "trigger": "6",
+  "recorded_at": "2026-08-30T01:00:36+07:00",
+  "claim_commit": "e3342736a616dedc76d7d3ad44a734ddbd19263e",
+  "source_e1": "research/tool_intelligence/deltas/2026-08-30T0059P0700_GPT56SOL_SELFHOSTED_RUNNER_PERSISTENCE_SERVICE_E1_SOURCE_READ.json@acf207b58bf31ed97e8131319278d38cb72ae508",
+  "controller_source": {
+    "repo": "gschaidergabriel/Dr.-Unterweger",
+    "head_observed": "4886bb4e559ba824efc686350ba1aa12d65ba325",
+    "workflow": ".github/workflows/trigger4-wp510-target-runtime-v2.yml",
+    "workflow_runs_on": ["self-hosted", "Linux", "X64"],
+    "workflow_permissions": ["contents:write"],
+    "exact_f2_source_bound_by_workflow": "656b57bded655e64a25d7e205b599becce3d4989"
+  },
+  "current_and_historical_transport_evidence": [
+    "run 33247601069 completed failure with jobs=[] and no target execution; classified transport/runner-assignment failure before job execution",
+    "run 33265772059/job 99135457584 exists but remains queued with zero observed steps and runner_id=0 at re-entry; no target-runtime receipt",
+    "the current workflow cannot execute any liveness check until a matching self-hosted runner is already assigned, because all workflow steps are inside the self-hosted job"
+  ],
+  "primary_source_mapping": [
+    "GitHub supports boot-persistent Linux runner operation through the runner-provided systemd service lifecycle (svc.sh install/start/status).",
+    "GitHub scheduler eligibility requires an online idle runner matching all requested labels/groups; the current labels are self-hosted + Linux + X64.",
+    "GitHub exposes repository self-hosted runner status/busy/labels through the REST API, but listing repository runners requires repository admin access / fine-grained Administration(read).",
+    "The current WP510 workflow declares contents:write only; adding a control-plane runner-roster preflight inside that workflow would require a different credential/permission surface and would still not solve the circular fact that a self-hosted job cannot run a pre-assignment check on itself."
+  ],
+  "architecture_delta": {
+    "id": "ADF-WP510-RUNNER-LIVENESS-OUTOFBAND-v1",
+    "classification": "CONDITIONAL_CONTROLLER_HARNESS_DELTA_NOT_PRODUCT_COGNITION",
+    "problem": "WP510 target-runtime evidence is currently gated by self-hosted runner assignment, while the workflow's evidence logic begins only after assignment. Scheduler/runner availability can therefore block the experiment before the product source executes.",
+    "preferred_minimal_mechanism": [
+      "Keep scheduler/runner readiness outside F2 canonical product truth and outside WP510 runtime credit.",
+      "If the target runner is intended to be persistent, operate the GitHub runner as a host service and preserve a bounded host-local service/listener liveness receipt before a singleton dispatch.",
+      "Treat GitHub-side runner online/busy/labels as separate optional control-plane evidence when an already-authorized admin read surface exists; do not add a high-privilege PAT/App secret solely to make this preflight green.",
+      "Preserve the existing singleton/no-duplicate dispatch law. A readiness witness may block a dispatch but may never mint execution, target-environment, semantic GWT or completion credit.",
+      "For Ubuntu/Debian targets using needrestart, fence the documented runner-service restart interaction so package maintenance cannot silently kill the listener during a job."
+    ],
+    "rejected_overbuild": [
+      "Do not import another scheduler/orchestrator.",
+      "Do not add a second truth store for runner status.",
+      "Do not treat svc.sh status, REST online status, queue assignment or job creation as product execution evidence.",
+      "Do not widen repository credentials merely to query runner status unless a later owner/security decision explicitly justifies that surface."
+    ],
+    "expected_benefit": "Reduce avoidable WP510 transport-only failures and distinguish host-listener readiness from scheduler assignment and from actual target-runtime execution, without changing product semantics.",
+    "runtime_token_effect": "NONE_EXPECTED_IN_F2_PRODUCT_PATH; controller/host readiness metadata only",
+    "counterhypothesis": "The runner is intentionally ephemeral/manual and persistent service operation is undesirable. If so, service installation would be the wrong mechanism; preserve only the evidence-stage split and provide an explicit manual readiness gate.",
+    "falsifier": "Inspect the actual target runner lifecycle/configuration. If the runner is intentionally ephemeral or an existing boot-persistent listener with verified liveness already exists, retire the service-install portion of this delta. If a persistent runner is intended and service/listener liveness is absent, the delta remains a viable build candidate."
+  },
+  "observability_boundary": {
+    "runner_roster_api_attempt_from_current_connector": "UNAVAILABLE_TOOL_SURFACE_NOT_NEGATIVE_RUNTIME_EVIDENCE",
+    "repo_service_config_search": "NO_SVC_SH_OR_ACTIONS_RUNNER_SERVICE_SURFACE_FOUND_IN_CONTROLLER_REPO_SEARCH; DOES_NOT_PROVE_HOST_NOT_CONFIGURED",
+    "host_service_state": "UNKNOWN",
+    "github_runner_online_state": "UNKNOWN",
+    "wp510_execution_observed": false
+  },
+  "promotion_decision": "DO_NOT_PROMOTE_TO_E5_YET; TARGET_RUNNER_LIFECYCLE_INTENT_AND_HOST_SERVICE_STATE_REQUIRED",
+  "next_exact_action": "Obtain non-mutating evidence of the target runner lifecycle (persistent service vs intentional ephemeral/manual listener) from an authorized host/controller surface. If persistent is intended and liveness is absent, create a narrow E5 build candidate for a runner-readiness bootstrap/receipt. Otherwise retain only the scheduler-vs-runtime evidence split.",
+  "credits": {
+    "runtime": 0,
+    "target_environment": 0,
+    "physical_grid10": 0,
+    "semantic_gwt": 0,
+    "jspace": 0,
+    "effect": 0,
+    "training": 0,
+    "whole_system": 0
+  }
+}
