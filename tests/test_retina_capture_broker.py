@@ -12,12 +12,12 @@ from src.frankenstein2.retina_capture_broker import (
 P = ("test:capture-broker",)
 
 
-def frame(seq, time_ns=None):
+def frame(seq, time_ns=None, source_id="camera:front"):
     if time_ns is None:
         time_ns = 100 + seq
     return CaptureFrameRef(
         frame_ref_id=f"frame:{seq}",
-        source_id="camera:front",
+        source_id=source_id,
         source_sequence=seq,
         captured_monotonic_ns=time_ns,
         payload_sha256=(f"{seq:x}" * 64)[:64],
@@ -56,8 +56,10 @@ class RetinaCaptureBrokerTests(unittest.TestCase):
                 frame_ref=frame(seq),
             )
         self.assertEqual(tuple(item.frame_ref_id for item in state.frame_refs), ("frame:2", "frame:3"))
+        self.assertEqual(state.dropped_frame_count, 1)
         self.assertEqual(state.dropped_frame_ref_ids, ("frame:1",))
         self.assertEqual(len(state.frame_refs), 2)
+        self.assertLessEqual(len(state.provenance_refs), len(state.origin_provenance_refs) + 2)
         self.assertFalse(state.as_dict()["raw_frame_persistence"])
 
     def test_source_sequence_regression_fails_closed(self):
@@ -142,6 +144,40 @@ class RetinaCaptureBrokerTests(unittest.TestCase):
                 publisher_owner_id="owner:camera:front",
                 frame_ref=wrong,
             )
+
+    def test_long_run_state_metadata_remains_bounded(self):
+        capacity = 4
+        total_frames = 1_024
+        state = create_capture_broker(
+            broker_id="broker:camera:front",
+            source_id="camera:front",
+            capture_owner_id="owner:camera:front",
+            capacity=capacity,
+            provenance_refs=P,
+        )
+        for seq in range(1, total_frames + 1):
+            state = publish_frame_ref(
+                state=state,
+                publisher_owner_id="owner:camera:front",
+                frame_ref=frame(seq),
+            )
+            self.assertLessEqual(len(state.frame_refs), capacity)
+            self.assertLessEqual(len(state.dropped_frame_ref_ids), capacity)
+            self.assertLessEqual(
+                len(state.provenance_refs),
+                len(state.origin_provenance_refs) + 2,
+            )
+        self.assertEqual(state.generation, total_frames)
+        self.assertEqual(state.dropped_frame_count, total_frames - capacity)
+        self.assertEqual(
+            tuple(item.source_sequence for item in state.frame_refs),
+            tuple(range(total_frames - capacity + 1, total_frames + 1)),
+        )
+        self.assertEqual(
+            state.dropped_frame_ref_ids,
+            tuple(f"frame:{seq}" for seq in range(total_frames - (2 * capacity) + 1, total_frames - capacity + 1)),
+        )
+        self.assertFalse(state.as_dict()["raw_frame_persistence"])
 
 
 if __name__ == "__main__":
