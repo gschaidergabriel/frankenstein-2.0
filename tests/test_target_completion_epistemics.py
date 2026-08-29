@@ -233,6 +233,32 @@ class TargetCompletionEpistemicsTests(unittest.TestCase):
         with self.assertRaises(CompletionEpistemicsError):
             TargetObligation(obligation_id="no-probe-ref", target_id="host-a", required_fidelity=FidelityLevel.T1_UBUNTU_USERSPACE, mandatory=True, counterevidence_probe=CounterevidenceProbe.CLEAR)
 
+    def test_positive_and_counterevidence_refs_must_be_independent(self) -> None:
+        shared_ref = "evidence:single-self-confirming-observation"
+        with self.assertRaises(CompletionEpistemicsError):
+            TargetObligation(
+                obligation_id="independent-readback-and-probe",
+                target_id="host-a",
+                required_fidelity=FidelityLevel.T1_UBUNTU_USERSPACE,
+                mandatory=True,
+                positive_readback=PositiveReadback.PASS,
+                positive_evidence_refs=(shared_ref,),
+                counterevidence_probe=CounterevidenceProbe.CLEAR,
+                counterevidence_refs=(shared_ref,),
+            )
+
+        valid = TargetObligation(
+            obligation_id="independent-readback-and-probe-valid",
+            target_id="host-a",
+            required_fidelity=FidelityLevel.T1_UBUNTU_USERSPACE,
+            mandatory=True,
+            positive_readback=PositiveReadback.PASS,
+            positive_evidence_refs=("evidence:readback",),
+            counterevidence_probe=CounterevidenceProbe.CLEAR,
+            counterevidence_refs=("evidence:counterprobe",),
+        )
+        self.assertIs(valid.status, ObligationStatus.PASS)
+
     def test_target_mismatch_and_duplicate_ids_fail_closed(self) -> None:
         good = obligation("a", positive=PositiveReadback.PASS, counter=CounterevidenceProbe.CLEAR)
         wrong_target = TargetObligation(obligation_id="b", target_id="host-b", required_fidelity=FidelityLevel.T1_UBUNTU_USERSPACE, mandatory=True)
