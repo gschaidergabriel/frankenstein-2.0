@@ -6,9 +6,12 @@ It is inspired by the capability decomposition used by interactive ARC-AGI-3-sty
 benchmarks, but it is NOT an ARC-AGI-3 implementation and cannot mint an ARC score.
 
 Inputs remain measurement claims until independently bound to their exact workpackage
-reconciliation/receipt identities. A supported report is therefore repository-component
-measurement only: no runtime, GRID10, GWT/J-Space, model, training, effect, completion,
-world-truth, causal, or whole-system credit is granted.
+reconciliation/receipt identities. A shared holdout label is not sufficient evidence of a
+shared underlying fixture/task family: each capability record must also carry a provenance-
+bound shared family digest, and a matched report fails closed when that proof is absent or
+mixed. A supported report is therefore repository-component measurement only: no runtime,
+GRID10, GWT/J-Space, model, training, effect, completion, world-truth, causal, or whole-
+system credit is granted.
 """
 from __future__ import annotations
 
@@ -18,7 +21,7 @@ import json
 import re
 from typing import Any
 
-CAPABILITY_EVIDENCE_SCHEMA = "FRANKENSTEIN2_AGENTIC_CORE_CAPABILITY_EVIDENCE/v1"
+CAPABILITY_EVIDENCE_SCHEMA = "FRANKENSTEIN2_AGENTIC_CORE_CAPABILITY_EVIDENCE/v2"
 POLICY_SCHEMA = "FRANKENSTEIN2_AGENTIC_CORE_FALSIFIER_POLICY/v1"
 REPORT_SCHEMA = "FRANKENSTEIN2_AGENTIC_CORE_FALSIFIER_REPORT/v1"
 
@@ -119,6 +122,7 @@ class CapabilityEvidence:
     sample_count: int
     success_count: int
     action_count: int
+    shared_fixture_family_sha256: str | None = None
     classification: str = MEASUREMENT_CLASSIFICATION
 
     def __post_init__(self) -> None:
@@ -144,6 +148,8 @@ class CapabilityEvidence:
             raise AgenticCoreFalsifierError("source_terminal_state is not admitted")
         _sha("source_reconciliation_sha256", self.source_reconciliation_sha256)
         _sha("source_receipt_sha256", self.source_receipt_sha256)
+        if self.shared_fixture_family_sha256 is not None:
+            _sha("shared_fixture_family_sha256", self.shared_fixture_family_sha256)
         _bounded_int("baseline_score_ppm", self.baseline_score_ppm, 0, _PPM)
         _bounded_int("intervention_score_ppm", self.intervention_score_ppm, 0, _PPM)
         _bounded_int("sample_count", self.sample_count, 1, _MAX_COUNT)
@@ -270,9 +276,10 @@ def evaluate_agentic_core(
 ) -> AgenticCoreReport:
     """Evaluate a matched four-capability evidence set with fail-closed semantics.
 
-    Missing or non-terminal upstream evidence is NOT_EVALUABLE. Accepted evidence that
-    violates the declared matched-holdout, independence, score, delta, or sample criteria
-    is FALSIFIED. Only a complete set satisfying every criterion is
+    Missing/non-terminal upstream evidence or missing provenance-bound shared-family proof
+    is NOT_EVALUABLE. Accepted evidence that violates independence, the declared text
+    holdout match, the provenance-bound shared-family match, score, delta, or sample
+    criteria is FALSIFIED. Only a complete set satisfying every criterion is
     SUPPORTED_AT_COMPONENT_SCOPE.
     """
     if type(policy) is not FalsifierPolicy:
@@ -300,27 +307,42 @@ def evaluate_agentic_core(
         reasons.extend(f"SOURCE_NOT_ACCEPTED:{capability}" for capability in sorted(nonaccepted))
 
     if verdict != NOT_EVALUABLE:
-        receipt_shas = tuple(x.source_receipt_sha256 for x in ordered)
-        reconciliation_shas = tuple(x.source_reconciliation_sha256 for x in ordered)
-        if len(set(receipt_shas)) != len(receipt_shas):
-            verdict = FALSIFIED
-            reasons.append("NONINDEPENDENT_DUPLICATE_RECEIPT")
-        if len(set(reconciliation_shas)) != len(reconciliation_shas):
-            verdict = FALSIFIED
-            reasons.append("NONINDEPENDENT_DUPLICATE_RECONCILIATION")
-        if policy.require_shared_holdout_set and len({x.holdout_set_id for x in ordered}) != 1:
-            verdict = FALSIFIED
-            reasons.append("MIXED_HOLDOUT_SET")
-        for item in ordered:
-            if item.sample_count < policy.min_sample_count_per_capability:
+        unproven_family = sorted(
+            x.capability for x in ordered if x.shared_fixture_family_sha256 is None
+        )
+        if unproven_family:
+            verdict = NOT_EVALUABLE
+            reasons.extend(
+                f"UNPROVEN_SHARED_FIXTURE_FAMILY:{capability}"
+                for capability in unproven_family
+            )
+        else:
+            receipt_shas = tuple(x.source_receipt_sha256 for x in ordered)
+            reconciliation_shas = tuple(x.source_reconciliation_sha256 for x in ordered)
+            if len(set(receipt_shas)) != len(receipt_shas):
                 verdict = FALSIFIED
-                reasons.append(f"INSUFFICIENT_SAMPLE:{item.capability}")
-            if item.intervention_score_ppm < policy.min_intervention_score_ppm:
+                reasons.append("NONINDEPENDENT_DUPLICATE_RECEIPT")
+            if len(set(reconciliation_shas)) != len(reconciliation_shas):
                 verdict = FALSIFIED
-                reasons.append(f"INTERVENTION_BELOW_FLOOR:{item.capability}")
-            if item.delta_ppm < policy.min_delta_over_baseline_ppm:
+                reasons.append("NONINDEPENDENT_DUPLICATE_RECONCILIATION")
+            if policy.require_shared_holdout_set and len({x.holdout_set_id for x in ordered}) != 1:
                 verdict = FALSIFIED
-                reasons.append(f"DELTA_BELOW_BASELINE_FLOOR:{item.capability}")
+                reasons.append("MIXED_HOLDOUT_SET")
+            if policy.require_shared_holdout_set and len(
+                {x.shared_fixture_family_sha256 for x in ordered}
+            ) != 1:
+                verdict = FALSIFIED
+                reasons.append("MIXED_SHARED_FIXTURE_FAMILY")
+            for item in ordered:
+                if item.sample_count < policy.min_sample_count_per_capability:
+                    verdict = FALSIFIED
+                    reasons.append(f"INSUFFICIENT_SAMPLE:{item.capability}")
+                if item.intervention_score_ppm < policy.min_intervention_score_ppm:
+                    verdict = FALSIFIED
+                    reasons.append(f"INTERVENTION_BELOW_FLOOR:{item.capability}")
+                if item.delta_ppm < policy.min_delta_over_baseline_ppm:
+                    verdict = FALSIFIED
+                    reasons.append(f"DELTA_BELOW_BASELINE_FLOOR:{item.capability}")
 
     min_score = min((x.intervention_score_ppm for x in ordered), default=None)
     min_delta = min((x.delta_ppm for x in ordered), default=None)
