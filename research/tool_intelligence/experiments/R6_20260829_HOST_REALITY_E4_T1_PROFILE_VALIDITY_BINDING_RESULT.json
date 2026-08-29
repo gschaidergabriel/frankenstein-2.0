@@ -1,0 +1,48 @@
+{
+  "schema": "FRANKENSTEIN2_TRIGGER6_E4_T1_BINDING_RESULT/v1",
+  "research_id": "R6-20260829-HOST-REALITY-COMPLETION-GPT56SOL-01",
+  "claim_target": "E4_F2_ABLATION_REQUIREMENT_SCOPED_PROFILE_INVALIDATION",
+  "created_at_local": "2026-08-29T22:06:00+07:00",
+  "experiment_source": "research/tool_intelligence/experiments/R6_20260829_HOST_REALITY_E4_T1_PROFILE_VALIDITY_BINDING.py",
+  "experiment_source_blob_sha": "089dc0f3d59ae530c66e6ec603dd4056473943a1",
+  "wp1201_source_blob_sha": "f0b528956c5dab6cd58f93b1d3a6851c1adcb07a",
+  "wp1202_source": "src/frankenstein2/target_userspace_twin.py",
+  "wp1202_source_blob_sha": "d87a17ec92d8dd8d0fe6583496635445b83a5cfd",
+  "execution_surface": "CHATGPT_PYTHON_ANALYSIS_DETERMINISTIC_REPOSITORY_CONTRACT_ABLATION",
+  "evidence_ceiling": "E4_F2_ABLATION_REPOSITORY_CONTRACT_ONLY",
+  "observed_contract": {
+    "wp1201_allowed_fact_count": 24,
+    "wp1202_t1_source_fact_count": 8,
+    "wp1202_t1_source_facts": ["architecture","collector_uid","kernel_release","os_release","pipewire_version","session_type","systemd_user_state","wireplumber_version"],
+    "important_coupling": "TargetProfileProjection carries the complete WP1201 profile_sha256 even though observed_shape consumes only the eight listed source facts. TwinBootstrapPlan serializes source_profile_sha256, so unrelated WP1201 changes alter the plan identity."
+  },
+  "result": {
+    "relevant_cases": 16,
+    "irrelevant_cases": 32,
+    "relevant_projection_changes": 16,
+    "relevant_current_plan_identity_changes": 16,
+    "relevant_candidate_semantic_binding_changes": 16,
+    "irrelevant_projection_changes": 0,
+    "irrelevant_current_plan_identity_changes": 32,
+    "irrelevant_candidate_semantic_binding_changes": 0,
+    "irrelevant_cases_where_full_profile_digest_alone_forces_current_plan_identity_change": 32,
+    "direct_finding": "For every single-field irrelevant perturbation tested (value change and OBSERVED->UNKNOWN), T1 semantics were unchanged while current plan identity changed solely because full profile provenance digest participates in the serialized plan."
+  },
+  "interpretation": {
+    "supported": "Separate immutable provenance identity from semantic validity/revalidation identity.",
+    "not_supported": "Removing the full source profile digest from receipts or canonical provenance.",
+    "minimal_delta": "Keep source_profile_sha256. Add a projection_input_binding_sha256 derived mechanically from _T1_FACT_BINDINGS and the corresponding canonical fact records; use this scoped digest for T1 semantic cache/revalidation decisions, while plan/full profile hashes remain receipt/provenance identities.",
+    "dependency_safety": "The binding source set must be derived from _T1_FACT_BINDINGS rather than duplicated by hand, and tests must fail if a bound source fact is omitted."
+  },
+  "counterhypotheses": [
+    "Any change to the full source profile may intentionally require a new immutable plan receipt even when T1 semantics are unchanged. This is compatible with the proposed split because receipt identity stays full-profile-bound.",
+    "The eight current T1 source facts may be semantically incomplete for real userspace fidelity. The scoped binding must not be treated as evidence that the current projection is sufficient.",
+    "A downstream consumer may currently use plan sha as both receipt and validity key. The implementation must split those roles explicitly rather than silently changing existing receipt semantics."
+  ],
+  "negative_space": {
+    "boot_scope": "Still absent from WP1201 G1; this E4 does not solve boot-epoch identity.",
+    "runtime_topology": "pipewire_topology is not consumed by current T1 projection even though runtime checks later inspect multimedia state; that gap should be handled as runtime witness/fidelity evidence rather than silently added to stable T1 input without measurement."
+  },
+  "decision": "E4_DIRECT_F2_COUPLING_REPRODUCED_SUPPORT_E5_MINIMAL_BINDING_SPLIT",
+  "credits": {"trigger6_research":"E4_F2_ABLATION_REPOSITORY_CONTRACT_ONLY","f2_runtime":0,"physical_target":0,"completion":0,"architecture_acceptance":0,"whole_system":0}
+}
