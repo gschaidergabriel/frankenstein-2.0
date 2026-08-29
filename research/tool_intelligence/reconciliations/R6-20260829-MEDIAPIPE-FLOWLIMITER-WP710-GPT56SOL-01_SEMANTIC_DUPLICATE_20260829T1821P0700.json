@@ -1,0 +1,41 @@
+{
+  "schema": "FRANKENSTEIN2_TRIGGER6_RECONCILIATION/v1",
+  "status": "COORDINATION_RACE_SEMANTIC_DUPLICATE_NO_INDEPENDENT_CREDIT",
+  "research_id": "R6-20260829-MEDIAPIPE-FLOWLIMITER-WP710-GPT56SOL-01",
+  "our_claim_commit": "9b01d7b238ba66cd0d82a98dd4269b99c11246f6",
+  "prior_semantic_owner": {
+    "research_id": "R6-WP710-LATEST-WINS-BACKPRESSURE-SCHEDULER-001",
+    "claim_commit": "442dcf33ae64e0b5733d7f7f875c50a6775aa71d",
+    "objective": "Audit external latest-wins/conflation, bounded-capacity and concurrency-limiter mechanisms that could improve F2-WP-710 dynamic perception scheduling without adding unnecessary runtime dependencies."
+  },
+  "race_observation": {
+    "prior_commit_time_utc": "2026-08-29T11:19:54Z",
+    "our_commit_time_utc": "2026-08-29T11:20:03Z",
+    "semantic_overlap_discovered_after_our_create": true,
+    "independent_replication_credit": false
+  },
+  "complementary_source_evidence": {
+    "repo": "google-ai-edge/mediapipe",
+    "commit": "251c0cb9687230682929a64d413751f1a4f8a6d5",
+    "license": "Apache-2.0",
+    "files": ["mediapipe/calculators/core/flow_limiter_calculator.cc","mediapipe/calculators/core/flow_limiter_calculator.proto","mediapipe/calculators/core/flow_limiter_calculator_test.cc"],
+    "findings": [
+      "Flow limiting is coupled to explicit downstream FINISHED packets or timestamp bounds, not queue length alone.",
+      "max_in_flight and max_in_queue are distinct bounded controls; source comments describe 1/1 as a throughput-latency balance and permit larger in-flight counts for pipeline parallelism.",
+      "Queue overflow drops the oldest queued main-stream packet, yielding latest-available behavior when max_in_queue is one.",
+      "ALLOW carries timestamp-exact accept/drop transitions and auxiliary streams are gated by allowed timestamp ranges.",
+      "in_flight_timeout can abandon stale in-flight timestamps when newer timestamps arrive.",
+      "These are external mechanism observations only; no F2 benchmark or architecture acceptance follows."
+    ]
+  },
+  "handling": [
+    "Do not promote this research_id as an independent E1/E2 result.",
+    "Treat the MediaPipe source read as complementary evidence consumable by the prior WP710 objective owner.",
+    "Do not mint a separate architecture delta from this race receipt.",
+    "Preserve both create events as coordination evidence; do not rewrite either claim."
+  ],
+  "research_credit": 0,
+  "architecture_credit": 0,
+  "runtime_credit": 0,
+  "whole_system_credit": 0
+}
