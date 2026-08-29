@@ -21,7 +21,7 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-      - name: Apply exact current-main WP603 G3 repair
+      - name: Apply indentation-stable WP603 G3 repair
         shell: bash
         run: |
           python - <<'PY'
@@ -32,161 +32,111 @@ jobs:
           source = source_path.read_text()
           tests = test_path.read_text()
 
-          policy_anchor = '''        return cls(
-              schema=RECURSION_POLICY_SCHEMA,
-              policy_id=policy_id,
-              generation=generation,
-              admitted_modes=tuple(admitted_modes),
-              r3_preference_order=tuple(r3_preference_order),
-              max_nested_child_edges=max_nested_child_edges,
-              provenance_refs=tuple(provenance_refs),
-          )
+          policy_marker = "\n    def as_dict(self) -> dict[str, Any]:\n        return _policy_identity_payload("
+          if source.count(policy_marker) != 1:
+              raise SystemExit(f'policy marker expected exactly once, got {source.count(policy_marker)}')
+          policy_lines = [
+              "    @classmethod",
+              "    def from_mapping(cls, value: Mapping[str, Any]) -> \"RecursionPolicy\":",
+              "        if not isinstance(value, Mapping):",
+              "            raise RecursionRouterError(\"recursion policy input must be a mapping\")",
+              "        expected = {field.name for field in cls.__dataclass_fields__.values()}",
+              "        if set(value.keys()) != expected:",
+              "            raise RecursionRouterError(\"recursion policy fields are not exact\")",
+              "        admitted_modes = value[\"admitted_modes\"]",
+              "        r3_preference_order = value[\"r3_preference_order\"]",
+              "        provenance_refs = value[\"provenance_refs\"]",
+              "        if type(admitted_modes) is list:",
+              "            admitted_modes = tuple(admitted_modes)",
+              "        if type(r3_preference_order) is list:",
+              "            r3_preference_order = tuple(r3_preference_order)",
+              "        if type(provenance_refs) is list:",
+              "            provenance_refs = tuple(provenance_refs)",
+              "        try:",
+              "            return cls(",
+              "                schema=value[\"schema\"],",
+              "                policy_id=value[\"policy_id\"],",
+              "                generation=value[\"generation\"],",
+              "                admitted_modes=admitted_modes,",
+              "                r3_preference_order=r3_preference_order,",
+              "                max_nested_child_edges=value[\"max_nested_child_edges\"],",
+              "                provenance_refs=provenance_refs,",
+              "            )",
+              "        except (TypeError, ValueError) as exc:",
+              "            raise RecursionRouterError(f\"invalid recursion policy: {exc}\") from exc",
+              "",
+          ]
+          source = source.replace(policy_marker, "\n" + "\n".join(policy_lines) + policy_marker, 1)
 
-          def as_dict(self) -> dict[str, Any]:
-              return _policy_identity_payload(
-          '''
-          policy_replacement = '''        return cls(
-              schema=RECURSION_POLICY_SCHEMA,
-              policy_id=policy_id,
-              generation=generation,
-              admitted_modes=tuple(admitted_modes),
-              r3_preference_order=tuple(r3_preference_order),
-              max_nested_child_edges=max_nested_child_edges,
-              provenance_refs=tuple(provenance_refs),
-          )
+          need_marker = "\n    def as_dict(self) -> dict[str, Any]:\n        value = asdict(self)\n        value[\"r3_available_modes\"] = list(self.r3_available_modes)"
+          if source.count(need_marker) != 1:
+              raise SystemExit(f'need marker expected exactly once, got {source.count(need_marker)}')
+          need_lines = [
+              "    @classmethod",
+              "    def from_mapping(cls, value: Mapping[str, Any]) -> \"RecursionNeed\":",
+              "        if not isinstance(value, Mapping):",
+              "            raise RecursionRouterError(\"recursion need input must be a mapping\")",
+              "        expected = {field.name for field in cls.__dataclass_fields__.values()}",
+              "        if set(value.keys()) != expected:",
+              "            raise RecursionRouterError(\"recursion need fields are not exact\")",
+              "        r3_available_modes = value[\"r3_available_modes\"]",
+              "        provenance_refs = value[\"provenance_refs\"]",
+              "        if type(r3_available_modes) is list:",
+              "            r3_available_modes = tuple(r3_available_modes)",
+              "        if type(provenance_refs) is list:",
+              "            provenance_refs = tuple(provenance_refs)",
+              "        try:",
+              "            return cls(**{**dict(value), \"r3_available_modes\": r3_available_modes, \"provenance_refs\": provenance_refs})",
+              "        except (TypeError, ValueError) as exc:",
+              "            raise RecursionRouterError(f\"invalid recursion need: {exc}\") from exc",
+              "",
+          ]
+          source = source.replace(need_marker, "\n" + "\n".join(need_lines) + need_marker, 1)
 
-          @classmethod
-          def from_mapping(cls, value: Mapping[str, Any]) -> "RecursionPolicy":
-              if not isinstance(value, Mapping):
-                  raise RecursionRouterError("recursion policy input must be a mapping")
-              expected = {field.name for field in cls.__dataclass_fields__.values()}
-              if set(value.keys()) != expected:
-                  raise RecursionRouterError("recursion policy fields are not exact")
-              admitted_modes = value["admitted_modes"]
-              r3_preference_order = value["r3_preference_order"]
-              provenance_refs = value["provenance_refs"]
-              if type(admitted_modes) is list:
-                  admitted_modes = tuple(admitted_modes)
-              if type(r3_preference_order) is list:
-                  r3_preference_order = tuple(r3_preference_order)
-              if type(provenance_refs) is list:
-                  provenance_refs = tuple(provenance_refs)
-              try:
-                  return cls(
-                      schema=value["schema"],
-                      policy_id=value["policy_id"],
-                      generation=value["generation"],
-                      admitted_modes=admitted_modes,
-                      r3_preference_order=r3_preference_order,
-                      max_nested_child_edges=value["max_nested_child_edges"],
-                      provenance_refs=provenance_refs,
-                  )
-              except (TypeError, ValueError) as exc:
-                  raise RecursionRouterError(f"invalid recursion policy: {exc}") from exc
+          route_marker = "    if need.route_candidate_id != route_candidate.candidate_id:\n"
+          if source.count(route_marker) != 1:
+              raise SystemExit(f'route marker expected exactly once, got {source.count(route_marker)}')
+          route_lines = [
+              "    # Reconstruct at the consumer boundary before any need/policy field is read.",
+              "    # Frozen dataclasses are still mutable via object.__setattr__; canonical",
+              "    # reconstruction re-runs identity and policy invariants fail-closed.",
+              "    need = RecursionNeed.from_mapping(need.as_dict())",
+              "    policy = RecursionPolicy.from_mapping(policy.as_dict())",
+              "",
+          ]
+          source = source.replace(route_marker, "\n".join(route_lines) + route_marker, 1)
 
-          def as_dict(self) -> dict[str, Any]:
-              return _policy_identity_payload(
-          '''
-
-          need_anchor = '''        return cls(schema=RECURSION_NEED_SCHEMA, need_id=_need_id(**identity), **identity)
-
-          def as_dict(self) -> dict[str, Any]:
-              value = asdict(self)
-          '''
-          need_replacement = '''        return cls(schema=RECURSION_NEED_SCHEMA, need_id=_need_id(**identity), **identity)
-
-          @classmethod
-          def from_mapping(cls, value: Mapping[str, Any]) -> "RecursionNeed":
-              if not isinstance(value, Mapping):
-                  raise RecursionRouterError("recursion need input must be a mapping")
-              expected = {field.name for field in cls.__dataclass_fields__.values()}
-              if set(value.keys()) != expected:
-                  raise RecursionRouterError("recursion need fields are not exact")
-              r3_available_modes = value["r3_available_modes"]
-              provenance_refs = value["provenance_refs"]
-              if type(r3_available_modes) is list:
-                  r3_available_modes = tuple(r3_available_modes)
-              if type(provenance_refs) is list:
-                  provenance_refs = tuple(provenance_refs)
-              try:
-                  return cls(
-                      **{
-                          **dict(value),
-                          "r3_available_modes": r3_available_modes,
-                          "provenance_refs": provenance_refs,
-                      }
-                  )
-              except (TypeError, ValueError) as exc:
-                  raise RecursionRouterError(f"invalid recursion need: {exc}") from exc
-
-          def as_dict(self) -> dict[str, Any]:
-              value = asdict(self)
-          '''
-
-          route_anchor = '''    if type(need) is not RecursionNeed:
-              raise RecursionRouterError("need must be exact concrete RecursionNeed")
-          if type(policy) is not RecursionPolicy:
-              raise RecursionRouterError("policy must be exact concrete RecursionPolicy")
-          if need.route_candidate_id != route_candidate.candidate_id:
-          '''
-          route_replacement = '''    if type(need) is not RecursionNeed:
-              raise RecursionRouterError("need must be exact concrete RecursionNeed")
-          if type(policy) is not RecursionPolicy:
-              raise RecursionRouterError("policy must be exact concrete RecursionPolicy")
-
-          # Consumer-boundary reconstruction mirrors RouteCandidate verification. Frozen
-          # dataclasses can still be altered via object.__setattr__; rebuild before reading
-          # any routing field so current content must satisfy the canonical constructors.
-          need = RecursionNeed.from_mapping(need.as_dict())
-          policy = RecursionPolicy.from_mapping(policy.as_dict())
-
-          if need.route_candidate_id != route_candidate.candidate_id:
-          '''
-
-          test_anchor = '''    def test_policy_modes_are_canonical_and_r3_preference_has_no_duplicates(self) -> None:
-          '''
-          test_replacement = '''    def test_consumer_revalidates_need_content_bound_identity_after_post_init_drift(self) -> None:
-              route = make_route(selected=DELEGATE_BUILD)
-              need = RecursionNeed.create(
-                  route_candidate=route,
-                  requested_mode=R1,
-                  generation=1,
-                  provenance_refs=("need:consumer-revalidation",),
-              )
-              object.__setattr__(need, "generation", 2)
-              with self.assertRaisesRegex(RecursionRouterError, "need_id does not bind exact recursion need content"):
-                  route_recursion(route_candidate=route, need=need, policy=make_policy())
-
-          def test_consumer_revalidates_policy_invariants_after_post_init_drift(self) -> None:
-              route = make_route(selected=DIRECT_SMALL)
-              need = RecursionNeed.create(
-                  route_candidate=route,
-                  requested_mode=R0,
-                  generation=1,
-                  provenance_refs=("need:policy-revalidation",),
-              )
-              policy = make_policy()
-              object.__setattr__(policy, "admitted_modes", (R0, R2, R1, R3))
-              with self.assertRaisesRegex(RecursionRouterError, "admitted_modes must be unique canonical"):
-                  route_recursion(route_candidate=route, need=need, policy=policy)
-
-          def test_policy_modes_are_canonical_and_r3_preference_has_no_duplicates(self) -> None:
-          '''
-
-          for old, new, label in (
-              (policy_anchor, policy_replacement, 'policy'),
-              (need_anchor, need_replacement, 'need'),
-              (route_anchor, route_replacement, 'route'),
-          ):
-              count = source.count(old)
-              if count != 1:
-                  raise SystemExit(f'{label} anchor expected exactly once, got {count}')
-              source = source.replace(old, new, 1)
-
-          count = tests.count(test_anchor)
-          if count != 1:
-              raise SystemExit(f'test anchor expected exactly once, got {count}')
-          tests = tests.replace(test_anchor, test_replacement, 1)
+          test_marker = "    def test_policy_modes_are_canonical_and_r3_preference_has_no_duplicates(self) -> None:\n"
+          if tests.count(test_marker) != 1:
+              raise SystemExit(f'test marker expected exactly once, got {tests.count(test_marker)}')
+          test_lines = [
+              "    def test_consumer_revalidates_need_content_bound_identity_after_post_init_drift(self) -> None:",
+              "        route = make_route(selected=DELEGATE_BUILD)",
+              "        need = RecursionNeed.create(",
+              "            route_candidate=route,",
+              "            requested_mode=R1,",
+              "            generation=1,",
+              "            provenance_refs=(\"need:consumer-revalidation\",),",
+              "        )",
+              "        object.__setattr__(need, \"generation\", 2)",
+              "        with self.assertRaisesRegex(RecursionRouterError, \"need_id does not bind exact recursion need content\"):",
+              "            route_recursion(route_candidate=route, need=need, policy=make_policy())",
+              "",
+              "    def test_consumer_revalidates_policy_invariants_after_post_init_drift(self) -> None:",
+              "        route = make_route(selected=DIRECT_SMALL)",
+              "        need = RecursionNeed.create(",
+              "            route_candidate=route,",
+              "            requested_mode=R0,",
+              "            generation=1,",
+              "            provenance_refs=(\"need:policy-revalidation\",),",
+              "        )",
+              "        policy = make_policy()",
+              "        object.__setattr__(policy, \"admitted_modes\", (R0, R2, R1, R3))",
+              "        with self.assertRaisesRegex(RecursionRouterError, \"admitted_modes must be unique canonical\"):",
+              "            route_recursion(route_candidate=route, need=need, policy=policy)",
+              "",
+          ]
+          tests = tests.replace(test_marker, "\n".join(test_lines) + test_marker, 1)
 
           source_path.write_text(source)
           test_path.write_text(tests)
