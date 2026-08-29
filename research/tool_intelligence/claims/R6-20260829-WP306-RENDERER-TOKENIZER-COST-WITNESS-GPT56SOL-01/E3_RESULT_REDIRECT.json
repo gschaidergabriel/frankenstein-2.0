@@ -1,0 +1,53 @@
+{
+  "schema": "F2_TRIGGER6_RESEARCH_RESULT/v1",
+  "research_id": "R6-20260829-WP306-RENDERER-TOKENIZER-COST-WITNESS-GPT56SOL-01",
+  "claim_target": "E3_EXECUTABLE_COST_WITNESS",
+  "status": "SATISFIED_BY_PARALLEL_E3_REDIRECTED_TO_TRIGGER4_G4",
+  "recorded_at": "2026-08-29T22:15:48+07:00",
+  "worker": {"model": "GPT-5.6 Sol", "provenance": "ChatGPT Trigger-6 organ"},
+  "coordination": {
+    "trigger6_claim_commit": "7db1204bd640120c5f4c6a1837b3a0275bff3c03",
+    "parallel_review_pr": 519,
+    "parallel_review_head": "c54eb106b5ab55b3c3822cd76bb34614d9c144b9",
+    "trigger4_generation4_claim_observed_at_main": "312c333cf7ea3e2366df46134932aa88597d3a17",
+    "decision": "DO_NOT_DUPLICATE_EXECUTABLE_FALSIFIER; CONSUME_EXISTING_E3; PROVIDE_EXTERNAL_PRIMARY-SOURCE IDENTITY REFINEMENT ONLY"
+  },
+  "parallel_e3_observation": {
+    "fixture_tokens_independently_measured": 64,
+    "caller_cost_units": 1,
+    "compiler_selected_cost_units": 1,
+    "expected_negative_result": "desired invariant fails because independently measured rendered/tokenized cost is 64 > max_cost_units 1",
+    "scope": "REVIEW_ONLY_REPOSITORY_EXECUTABLE_FALSIFIER_NOT_PRODUCTION_TOKENIZER_NOT_TARGET_RUNTIME"
+  },
+  "local_scratch_corroboration_not_promoted": {
+    "same_context_view_digest": true,
+    "same_selected_cost_units": 7,
+    "synthetic_byte_tokenizer": true,
+    "raw_frame_token_count": 22,
+    "chat_control_frame_token_count": 48,
+    "delta": 26,
+    "missing_renderer_identity_failed_closed": true,
+    "credit": "NONE; scratch corroboration only because parallel PR 519 already owns the executable falsifier lane"
+  },
+  "external_primary_findings": [
+    {
+      "source": "https://huggingface.co/docs/transformers/chat_templating",
+      "classification": "EXTERNAL_PRIMARY_VENDOR_DOC",
+      "finding": "Chat models consume token sequences produced from role/content structures through model-specific chat templates; Transformers recommends apply_chat_template(..., tokenize=True) for direct tokenization and warns that special-token handling changes the sequence."
+    },
+    {
+      "source": "https://huggingface.co/docs/transformers/en/chat_templating_writing",
+      "classification": "EXTERNAL_PRIMARY_VENDOR_DOC",
+      "finding": "The chat template is renderer logic stored on the tokenizer; template inputs/flags and special tokens participate in rendering, so renderer identity/configuration is part of cost provenance."
+    },
+    {
+      "source": "https://huggingface.co/Qwen/Qwen2-0.5B-Instruct/blob/c540970f9e29518b1d8f06ab8b24cba66ad77b6d/tokenizer_config.json",
+      "classification": "EXTERNAL_PRIMARY_MODEL_ARTIFACT_EXAMPLE_NOT_F2_TARGET_SELECTION",
+      "finding": "A concrete model artifact carries explicit chat_template plus special token IDs, demonstrating that tokenizer/template artifacts are model-specific cost inputs. Qwen2-0.5B-Instruct is only an example, not a canonical Frankenstein 2.0 model selection."
+    }
+  ],
+  "falsified_claim": "ContextCompiler caller-supplied cost_units alone are sufficient evidence of exact rendered/tokenized model-context cost.",
+  "surviving_claim": "cost_units may remain an abstract deterministic scheduling/admission unit, but exact model-context token cost requires a separate typed witness bound to exact rendered bytes and tokenizer/renderer identities.",
+  "promotion_blocker": "No exact Frankenstein 2.0 target renderer/tokenizer artifact identity was established in this Trigger-6 pass; therefore no production token-cost, target-runtime, model, provider, GRID10, GWT, J-Space, training, effect, completion, or whole-system credit is granted.",
+  "handoff": "Trigger-4 F2-WP-306 generation-4 owner should consume the companion Trigger-6 identity-refinement delta; Trigger-6 must not mutate WP306 implementation while that claim is active."
+}
