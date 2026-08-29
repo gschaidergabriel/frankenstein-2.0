@@ -1,0 +1,49 @@
+{
+  "schema": "FRANKENSTEIN2_WORKPACKAGE_DELTA/v1",
+  "workpackage_id": "F2-WP-510",
+  "generation": 1,
+  "claim_id": "F2-WP-510-G1-GPT56SOL-GWT-CAUSAL-PATH-SEAL-20260829",
+  "worker_id": "GPT-5.6-Sol-review-organ",
+  "base_commit": "3c1a179c9d3fd4899b35e026cd128d88ebe2ab31",
+  "observed_main_commit": "3c1a179c9d3fd4899b35e026cd128d88ebe2ab31",
+  "owned_paths": [],
+  "result_class": "FALSIFIER",
+  "source_commits": [
+    "92d7be924e865af5b72dffd7c74d645d56dd7f6c",
+    "a5376c8fd6c94fc4dbd4b383f918a748acc12453",
+    "c36eadbba5744b40e9b84cb960f2495e72dd9c40"
+  ],
+  "receipts": [
+    "github_actions_run:33246175188",
+    "github_actions_job:99083910281",
+    "pull_request:319"
+  ],
+  "falsifiers": [
+    {
+      "id": "WP510_POSITIVE_SEAL_REQUIRES_TYPED_DOWNSTREAM_LINEAGE_CLOSURE",
+      "evidence_class": "REPOSITORY_HOSTED_EXECUTABLE_NEGATIVE_RESULT",
+      "statement": "Against WP510 implementation PR307 merge base 92d7be924e865af5b72dffd7c74d645d56dd7f6c, the preregistered test constructed the implementation's own positive fixture with an UPTAKEN WP507 receipt and a WP508 re-entry evidence bundle whose downstream_ref/downstream_sha256 were caller-supplied bindings but for which the bundle carried no concrete typed downstream output whose lineage could be validated against the exact re-entry CellInput. seal_gwt_causal_path admitted the positive path instead of failing closed.",
+      "exact_failure": "tests/test_wp510_pr307_downstream_lineage_falsifier.py::test_pr307_rejects_positive_uptake_without_typed_downstream_lineage_closure -> Failed: DID NOT RAISE GwtCausalPathError",
+      "compile_result": "PASS",
+      "test_result": "1 FAILED in 0.10s",
+      "workflow_conclusion": "failure_expected_negative_evidence",
+      "review_merge_ref": "c36eadbba5744b40e9b84cb960f2495e72dd9c40"
+    }
+  ],
+  "contradictions": [
+    "WP510's claimed positive causal-path seal requires exact re-entry/uptake causal closure, but the reviewed implementation can seal a positive UPTAKEN path when the downstream identity remains only a ref/digest assertion and no concrete downstream artifact is present to close producer/input lineage to the re-entry CellInput."
+  ],
+  "proposed_state_change": "KEEP_F2_WP_510_G1_NONTERMINAL_UNTIL_THE_ACTIVE_MUTATION_AUTHORITY_ABSORBS_OR_EXPLICITLY_NARROWS_THIS_EXECUTABLE_FALSIFIER",
+  "completion_deficit": "For CONTRACT_SCOPE_CAUSAL_PATH_SEALED on a positive UPTAKEN path, require an exact concrete typed downstream artifact whose validated producer/input lineage closes to the same re-entry CellInput and whose canonical ref/digest matches the WP507 receipt/binding; alternatively narrow the WP510 contract so it cannot be promoted as re-entry-to-downstream causal-chain closure. Preserve OFFERED/UNKNOWN/NOT_UPTAKEN/no-causal states without requiring nonexistent positive artifacts.",
+  "runtime_execution_observed": false,
+  "runtime_credit": 0,
+  "physical_grid10_credit": 0,
+  "gwt_runtime_credit": 0,
+  "jspace_runtime_credit": 0,
+  "training_credit": 0,
+  "effect_credit": 0,
+  "completion_credit": 0,
+  "whole_system_acceptance": false,
+  "next_exact_action": "The sole active WP510 mutation authority should re-enter current main and PR307, absorb this exact executable negative result, add a concrete typed downstream-lineage closure to the positive seal path or explicitly narrow the claimed seal semantics, add the regression to the canonical WP510 suite, then require fresh exact PR-head and merged-main repository-hosted CI before any bounded terminal reconciliation.",
+  "created_at_utc": "2026-08-29T09:47:00Z"
+}
