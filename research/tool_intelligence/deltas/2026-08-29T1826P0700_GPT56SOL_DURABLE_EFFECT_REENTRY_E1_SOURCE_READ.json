@@ -1,0 +1,150 @@
+{
+  "schema": "FRANKENSTEIN2_TRIGGER6_RESEARCH_DELTA/v1",
+  "research_id": "R6-20260829-DURABLE-EFFECT-REENTRY-GPT56SOL-01",
+  "trigger": "6",
+  "slot": "SOURCE_ARCHAEOLOGIST",
+  "evidence_stage": "E1_SOURCE_READ",
+  "status": "COMPLETED_EXTERNAL_PRIMARY_SOURCE_READ_WITH_F2_MAPPING_NO_ARCHITECTURE_PROMOTION",
+  "completed_at": "2026-08-29T18:26:03+07:00",
+  "worker": "GPT-5.6 Sol / ChatGPT Trigger-6 organ",
+  "claim": {
+    "path": "research/tool_intelligence/claims/R6-20260829-DURABLE-EFFECT-REENTRY-GPT56SOL-01/E1_SOURCE_READ.json",
+    "claim_commit": "9b971fd5c9539b2d88c552c93849ddfc52253d01",
+    "research_credit_at_claim": 0
+  },
+  "f2_snapshot": {
+    "preclaim_main_sha": "71ddfb9d04896ce7dfbe27f035e7f6bbeb854aa9",
+    "claim_commit": "9b971fd5c9539b2d88c552c93849ddfc52253d01",
+    "readme_blob_sha": "5eb079fd906f4042223b9012de2d90ddd8b7301c",
+    "workpackages_blob_sha": "8de9711dd6f2f310d594b4c244b2639d1ebd37f6",
+    "workpackage_state_generation": 15,
+    "observed_architecture_laws": [
+      "EXECUTION != COMPLETION",
+      "goal adoption does not grant effect authorization",
+      "effects and completion must be verified from evidence rather than executor assertion",
+      "EffectGate / CompletionGate boundaries are required before product handoff"
+    ],
+    "relevant_workpackages": {
+      "F2-WP-105": "IN_PROGRESS; Typed execution/completion lineage; aggregate evidence list empty at observed snapshot",
+      "F2-WP-901": "NOT_STARTED; Restart/recovery",
+      "F2-WP-1001": "NOT_STARTED; Authorization/effect hardening"
+    }
+  },
+  "external_source_pins": [
+    {
+      "source": "Restate",
+      "kind": "PRIMARY_IMPLEMENTATION",
+      "repo": "restatedev/restate",
+      "source_pin": "e8b0592c31b25f4fd00446bb44c68d0b8e3a8ed7",
+      "paths": [
+        "crates/types/src/journal_v2/mod.rs",
+        "crates/types/src/journal_v2/command.rs"
+      ],
+      "observed_mechanism": "Journal v2 explicitly models commands and notifications/completions with stable entry/command/completion identities; the runtime separates command recording from completion observation."
+    },
+    {
+      "source": "Restate durable-execution documentation",
+      "kind": "EXTERNAL_PRIMARY",
+      "urls": [
+        "https://restate.dev/what-is-durable-execution",
+        "https://www.restate.dev/blog/every-system-is-a-log-avoiding-coordination-in-distributed-applications",
+        "https://restate.dev/blog/why-we-built-restate"
+      ],
+      "observed_mechanism": "Completed durable steps are journaled and replayed from stored results; however a side-effect can execute more than once when failure occurs before its result becomes durable."
+    },
+    {
+      "source": "Temporal",
+      "kind": "PRIMARY_IMPLEMENTATION_AND_DOCUMENTATION",
+      "repo": "temporalio/temporal",
+      "main_sha_observed": "c044bf16b1cc47a4db80669a987484dba6145331",
+      "path": "docs/architecture/README.md",
+      "blob_sha": "fe736fd49b7f9386601b0f9d3f61e49432473782",
+      "observed_mechanism": "Workflow state is reconstructed from append-only Event History; workflow logic must be deterministic and side-effect-free while Activities are separated and must be idempotent or deliberately non-retryable."
+    },
+    {
+      "source": "Stripe API",
+      "kind": "EXTERNAL_PRIMARY",
+      "url": "https://docs.stripe.com/api/idempotent_requests",
+      "observed_mechanism": "A stable Idempotency-Key lets the receiver recognize retries of one logical write request; parameter mismatch is rejected and key retention is finite/provider-specific."
+    },
+    {
+      "source": "IETF HTTPAPI Idempotency-Key draft",
+      "kind": "EXTERNAL_PRIMARY_NEGATIVE_BOUNDARY",
+      "url": "https://datatracker.ietf.org/doc/draft-ietf-httpapi-idempotency-key-header/",
+      "observed_state": "draft-ietf-httpapi-idempotency-key-header-07 is expired as of 2026-04-18; therefore generic HTTP Idempotency-Key support must be capability-detected per adapter/provider rather than assumed as a universal standards guarantee."
+    }
+  ],
+  "synthesis": {
+    "hypothesis": "Before F2 admits a real write-side tool/effect executor, WP105 should encode a crash-safe effect lineage that preserves one stable logical effect identity across retries/re-entry and refuses to convert transport failure or missing acknowledgement into a known world outcome.",
+    "counterhypothesis": "The eventual native EffectGate/CompletionGate plus existing causal identity may already provide these guarantees without any additional effect-attempt state machine. Adding a workflow-style abstraction early could duplicate authority and increase coordination/storage cost.",
+    "decision": "DISTILL_SEMANTICS_ONLY; DO_NOT_IMPORT_RESTATE_OR_TEMPORAL_RUNTIME; REQUIRE_E2_MAPPING_BEFORE_BUILD_CANDIDATE",
+    "proposed_native_contract_not_yet_canonical": {
+      "identity_bindings": [
+        "stable logical effect_operation_id",
+        "parent causal identity",
+        "generation",
+        "authorization/permission snapshot identity",
+        "canonical request digest",
+        "adapter/provider identity",
+        "external idempotency key when actually supported",
+        "external request/result identity when observable"
+      ],
+      "minimum_outcome_distinction": [
+        "NOT_SUBMITTED_OR_PREPARED",
+        "SUBMITTED_OUTCOME_UNKNOWN",
+        "VERIFIED_SUCCEEDED",
+        "VERIFIED_FAILED",
+        "VERIFICATION_BLOCKED"
+      ],
+      "reentry_rule": "A crash after possible submission but before a durable verified terminal receipt must re-enter as SUBMITTED_OUTCOME_UNKNOWN. Blindly issuing a fresh logical effect is forbidden. Reconcile using the same receiver idempotency key, provider readback/query, or explicit human/HOLD path according to adapter capability.",
+      "completion_rule": "Executor return, transport ACK, model statement, or process survival is insufficient to mint completion; terminal completion is bound to declared verification evidence."
+    }
+  },
+  "crash_window_falsifier_for_trigger4": {
+    "status": "PROPOSED_TEST_DELTA_E2_MAPPING_REQUIRED_FIRST",
+    "target_workpackages": ["F2-WP-105", "F2-WP-901", "F2-WP-1001"],
+    "adapter_classes": [
+      "receiver supports stable idempotency key",
+      "receiver lacks idempotency key but supports authoritative readback/reconciliation",
+      "receiver supports neither safe dedupe nor authoritative readback"
+    ],
+    "injection_windows": [
+      "before durable preparation",
+      "after durable preparation before external submission",
+      "after external submission before response",
+      "after response before durable terminal receipt",
+      "after durable terminal receipt before caller observes completion"
+    ],
+    "acceptance_invariants": [
+      "same logical effect identity survives process restart",
+      "no second real-world mutation is created for one logical effect when the adapter contract provides dedupe/readback",
+      "submission-with-uncertain-outcome remains UNKNOWN until evidence resolves it",
+      "non-deduplicable/non-queryable write-side effects fail closed into HOLD/manual resolution rather than blind replay",
+      "stale generation or authorization snapshot cannot resume an effect",
+      "verified terminal receipt re-entry does not re-submit the effect",
+      "execution evidence and completion evidence remain separately typed"
+    ],
+    "measurement": [
+      "real mutation count in deterministic fake adapter",
+      "journal/UnifiedDB lineage transitions",
+      "recovery decision for every injected crash window",
+      "duplicate suppression/reconciliation path",
+      "false-success and false-failure counts"
+    ]
+  },
+  "architecture_delta": {
+    "classification": "E1_DIRECTIONAL_DELTA_ONLY",
+    "affected_workpackages": ["F2-WP-105", "F2-WP-901", "F2-WP-1001"],
+    "recommended_order": "Bind the crash/unknown-outcome semantics into WP105 before any write-side executor; later require the crash-window matrix in WP901 and authorization/effect hardening in WP1001.",
+    "dependency_policy": "Prefer a small F2-native typed ledger in the existing canonical state/evidence substrate. Do not add a second workflow database, Restate server, Temporal cluster, or competing completion authority merely to obtain replay semantics.",
+    "expected_benefit": "Prevents duplicate or falsely-completed real effects across process/network failure while preserving F2's one-state-lineage architecture.",
+    "resource_effect": "Expected lower than embedding a full durable-execution runtime; exact storage/latency overhead must be measured by Trigger4 before promotion."
+  },
+  "credits": {
+    "research_credit": 1,
+    "architecture_credit": 0,
+    "runtime_credit": 0,
+    "whole_system_credit": 0
+  },
+  "next_exact_action": "Acquire a separate E2_ARCHITECTURE_MAPPED claim, inspect the exact source/schema that becomes F2-WP-105 authority, map or reject the proposed states against existing native types, then emit a bounded Trigger4 build/test packet only if the crash-window invariant is not already enforced."
+}
