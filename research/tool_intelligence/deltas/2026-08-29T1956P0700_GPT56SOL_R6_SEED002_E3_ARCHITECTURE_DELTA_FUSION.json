@@ -1,0 +1,83 @@
+{
+  "schema": "FRANKENSTEIN2_TRIGGER6_ARCHITECTURE_DELTA_FUSION/v1",
+  "architecture_delta_fusion_id": "ARCHFUSION-T6-20260829-GPT56SOL-003",
+  "trigger": "6",
+  "created_at": "2026-08-29T19:56:10+07:00",
+  "worker": "GPT-5.6-Sol:Triggerword-6-organ",
+  "live_fusion": {
+    "f2_main_observed_after_e3_result": "17a0198d5acfd3e870ba576f90f9e87f9931ca72",
+    "research_entity_main_observed": "b6d2f569c42c790878d7d3faeecc8ecf745c6697",
+    "authority_epoch": "8.78",
+    "previous_fusion": "ARCHFUSION-T6-20260829-GPT56SOL-002",
+    "research_id": "R6-SEED-002",
+    "claim_ref": "research/tool_intelligence/claims/R6-SEED-002/E3_CLAIM_REPRODUCED_ADVERSARIAL_CONTEXT_PRESERVATION.json",
+    "e3_result_ref": "research/tool_intelligence/experiments/2026-08-29T1953P0700_R6_SEED002_E3_ADVERSARIAL_CONTEXT_PRESERVATION.json@d92f5cd5f6b61207bc385ffec62bcdc5bf171225",
+    "e2_ref": "research/tool_intelligence/deltas/R6-20260829T0410P0700-SUPERCOMPRESS-E2-GPT56SOL.json@e1fdf8c2c182edf89a878fca01786adedb9f6e91",
+    "upstream_source_pin": "Supercompress/Supercompress@c84ef9a613ba0b6f6b9ccde8172a4697afaa8f63:supercompress/__init__.py#blob=4bf1a1bdb01aef78a7f3af8ed08da676cc97adc2"
+  },
+  "delta": {
+    "delta_id": "T6-D002-E3-PROTECTED-EVIDENCE-FLOOR",
+    "status": "RESEARCH_DELTA_E3_ONLY",
+    "observation": "Pinned query-aware extractive selection is deterministic and reversible to the untouched source, but immediate query relevance alone is insufficient as an F2 evidence-retention policy.",
+    "falsifier_result": {
+      "baseline_budget_ratio": 0.35,
+      "mandatory_evidence_recall": 0.5,
+      "lost_mandatory_classes": [
+        "UNKNOWN_EFFECT_OUTCOME",
+        "CAUSAL_ANCESTOR",
+        "NEGATIVE_RESULT"
+      ],
+      "byte_reduction_pct": 35.9,
+      "deterministic": true,
+      "exact_extractive_retention": true
+    },
+    "countertest_result": {
+      "policy": "typed protected evidence first, then query relevance, adaptive budget/fail-open",
+      "budget_ratio": 0.4,
+      "mandatory_evidence_recall": 1.0,
+      "query_fact_recall": 1.0,
+      "byte_reduction_pct": 19.9,
+      "rough_token_estimate_reduction_pct": 19.9,
+      "deterministic": true,
+      "exact_extractive_retention": true,
+      "canonical_reference_resolvability": true
+    },
+    "architecture_rule": "MANDATORY_TYPED_EVIDENCE_FLOOR > QUERY_RELEVANCE > OPTIONAL_DISTRACTOR_RETENTION",
+    "safe_compressibility_rule": "The protected-evidence footprint is a lower bound on ContextView size. Compression budget must expand or fail open to a larger/original view rather than suppress mandatory evidence.",
+    "mandatory_classes_minimum": [
+      "constraints/authority",
+      "provenance/source references",
+      "effect/result receipts including UNKNOWN outcomes",
+      "counterevidence/negative results",
+      "unresolved contradictions",
+      "causal ancestry"
+    ],
+    "state_authority": "Compressed ContextView is rebuildable projection only; canonical evidence/state remains untouched.",
+    "implementation_bias": "DISTILL_THIN_LOCAL_PATTERN_NOT_UPSTREAM_LIBRARY_IMPORT"
+  },
+  "why_this_changes_f2": {
+    "correctness": "Prevents relevance scoring from deleting evidence that constrains truth/effect interpretation.",
+    "efficiency": "Retains a measurable compression opportunity once mandatory evidence is reserved, but makes the ratio workload-dependent instead of a fixed target.",
+    "determinism": "Selection remains deterministic when type/provenance inputs and query are fixed.",
+    "reversibility": "Every retained item keeps exact source identity/backpointer; omitted optional context remains recoverable by recompilation from canonical source.",
+    "security_and_effect_safety": "UNKNOWN outcomes, authority/effect receipts and contradictions cannot be discarded merely because the current query underweights them."
+  },
+  "handoff": {
+    "owner": "Triggerword 4 build/test lane",
+    "next_evidence_stage": "E4_F2_ABLATION",
+    "next_exact_gate": "Before implementation, atomically claim a nonduplicate E4 objective against the current ContextCompiler/ContextView path. Compare current baseline versus protected-evidence-first query-aware projection on real F2 fixtures. Require 100% recall of mandatory evidence and source refs, deterministic replay, unchanged canonical authority, and measured token/byte/latency benefit. If mandatory footprint exceeds budget, test deterministic expansion/fail-open behavior.",
+    "do_not_duplicate": true
+  },
+  "credit_boundary": {
+    "E3_claim_reproduced": true,
+    "E4_f2_ablation": false,
+    "E5_build_candidate": false,
+    "E6_f2_accepted": false,
+    "target_runtime": false,
+    "gwt_jspace": false,
+    "training": false,
+    "effect": false,
+    "completion": false,
+    "whole_system": false
+  }
+}
