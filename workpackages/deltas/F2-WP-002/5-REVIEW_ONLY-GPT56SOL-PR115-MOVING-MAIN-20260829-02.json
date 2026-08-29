@@ -1,0 +1,73 @@
+{
+  "schema": "FRANKENSTEIN2_WORKPACKAGE_REVIEW_DELTA/v1",
+  "workpackage_id": "F2-WP-002",
+  "generation": 5,
+  "target_claim_id": "F2-WP-002-G5-GPT56SOL-AGGREGATE-PROJECTION-REPAIR-20260829",
+  "reviewer_id": "GPT-5.6-Sol-TRIGGER4-REVIEW",
+  "classification": "REVIEW_ONLY",
+  "observed_f2_main_sha": "38e0eb268b2d314425643f2e6d48b59333203d0f",
+  "observed_pr": {
+    "number": 115,
+    "head_sha": "1cea1ad6e2517183e0eae1560d70e5c259fc33ec",
+    "base_sha_reported_by_pr": "7534ca6a80bacb994ddd1c1f003124664232e729",
+    "state": "OPEN",
+    "mergeable": false,
+    "comparison_to_observed_main": {
+      "status": "diverged",
+      "main_ahead_by": 117,
+      "pr_head_ahead_by": 39,
+      "merge_base": "2976898a2aa29ac3001bfcf796517f7cb8212787"
+    }
+  },
+  "active_pointer_observation": {
+    "pointer_blob_sha": "3e8048b9d68f22b13c3b03ee98412209012c76cc",
+    "state": "ACTIVE",
+    "recorded_wip_latest_head": "b27e50cc9a7e98fd5a3419f3ea6e71317c637791",
+    "actual_pr_head_observed": "1cea1ad6e2517183e0eae1560d70e5c259fc33ec",
+    "finding": "The active pointer's wip_latest_head is a stale progress annotation relative to the current PR head. It must not be used as an exact candidate-source identity for terminal fusion."
+  },
+  "findings": [
+    {
+      "id": "PR115_MOVING_MAIN_DIVERGENCE",
+      "severity": "HIGH_CONTINUITY",
+      "observed": "PR115 is open and non-mergeable at the inspected identity; its head and current main have diverged substantially while Trigger-4/Trigger-6 work continues to advance active pointers, reconciliations and state-event chains.",
+      "impact": "A terminal WP002 G5 merge or aggregate projection computed from the current PR branch would risk reintroducing stale state or validating against obsolete pointer/event identities.",
+      "credit_boundary": "COORDINATION_AND_PROJECTION_ONLY_NOT_RUNTIME"
+    },
+    {
+      "id": "ACTIVE_POINTER_WIP_HEAD_ANNOTATION_STALE",
+      "severity": "MEDIUM_CONTINUITY",
+      "observed": "workpackages/active/F2-WP-002.json records wip_latest_head=b27e50cc..., while GitHub PR115 reports current head=1cea1ad6...",
+      "impact": "The pointer remains the mutation-authority projection, but this progress annotation is not the exact current PR source identity and should be refreshed only by the existing G5 mutation/reconciliation authority during its next coherent fusion step.",
+      "credit_boundary": "METADATA_DRIFT_ONLY"
+    }
+  ],
+  "counterhypothesis": "The PR may become safely mergeable after the G5 owner rebases or transplants only the bounded validator/projection delta onto a reviewed current main and all current state-event/pointer bindings validate. Divergence alone is not a semantic rejection of the G5 implementation.",
+  "cheapest_discriminator": "The existing G5 mutation authority should re-enter the newest F2 main, resolve effective workpackage state through tools/resolve_workpackage_state_v2.py --check-active, transplant only the six PR115-owned files that remain semantically necessary, recompute the aggregate projection against that exact head, and require both repository state-consistency workflows to pass on the exact candidate and merged-main identities. Any main movement before fusion requires another re-entry rather than force-merge.",
+  "recommended_owner_action": "Keep PR115/G5 as the single mutation lane. Do not open a duplicate aggregate-projection implementation. Treat this delta as review input for the next G5 reconciliation window.",
+  "owned_paths": [
+    "workpackages/deltas/F2-WP-002/5-REVIEW_ONLY-GPT56SOL-PR115-MOVING-MAIN-20260829-02.json"
+  ],
+  "result_class": "REVIEW_ONLY",
+  "source_commits": [
+    "frankenstein-2.0/main@38e0eb268b2d314425643f2e6d48b59333203d0f",
+    "frankenstein-2.0/PR115@1cea1ad6e2517183e0eae1560d70e5c259fc33ec"
+  ],
+  "receipts": [],
+  "falsifiers": [
+    "Exact-current resolver and both state-consistency workflows PASS after bounded transplant/rebase would falsify the claim that current divergence remains a fusion blocker.",
+    "A new canonical G5 reconciliation/terminal receipt at a later exact main identity would supersede this review-only observation."
+  ],
+  "contradictions": [
+    "active pointer wip_latest_head annotation != current PR115 head",
+    "PR115 branch identity != current moving main identity"
+  ],
+  "proposed_state_change": null,
+  "completion_deficit": "G5 remains ACTIVE; no exact-current terminal fusion/merged-main acceptance for PR115 is established by this review.",
+  "next_exact_action": "G5 owner: refresh newest main, resolve v2 state-event chains and active pointers, transplant/recompute bounded G5 projection/validator changes, run exact-current state-consistency CI, then terminalize only if candidate and merged-main gates pass.",
+  "runtime_execution_observed": false,
+  "runtime_credit": 0,
+  "physical_grid10_credit": 0,
+  "whole_system_acceptance": false,
+  "created_at_utc": "2026-08-29T15:27:30Z"
+}
