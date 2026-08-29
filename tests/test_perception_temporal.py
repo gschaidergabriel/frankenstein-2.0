@@ -1,6 +1,10 @@
 import unittest
 
 from src.frankenstein2.epistemic_perception import EpistemicPerceptClaim
+from src.frankenstein2.perception_clock_alignment_admission import (
+    ClockAlignmentAdmissionRecord,
+    ClockAlignmentAdmissionRegistrySnapshot,
+)
 from src.frankenstein2.perception_temporal import (
     ClockAlignmentWitness,
     PerceptionTemporalError,
@@ -11,6 +15,7 @@ from src.frankenstein2.perception_temporal import (
 
 P = ("test:temporal",)
 EVIDENCE_SHA = "1" * 64
+AUTHORITY_RECEIPT_SHA = "3" * 64
 
 
 def claim(
@@ -95,6 +100,37 @@ def witness(
     )
 
 
+def admission_record(w, *, admission_id=None, witness_sha=None, alignment_id=None):
+    return ClockAlignmentAdmissionRecord(
+        admission_id=admission_id or f"admission:{w.alignment_id}",
+        admission_generation=1,
+        alignment_id=alignment_id or w.alignment_id,
+        witness_sha256=w.sha256() if witness_sha is None else witness_sha,
+        provenance_refs=("test:upstream-clock-admission-record",),
+    )
+
+
+def registry_for(
+    *witnesses,
+    records=None,
+    registry_id="clock-registry:1",
+    authority_id="unifieddb:clock-alignment-admission",
+    authority_generation=7,
+    authority_receipt_sha256=AUTHORITY_RECEIPT_SHA,
+):
+    if records is None:
+        records = tuple(admission_record(w) for w in witnesses)
+    return ClockAlignmentAdmissionRegistrySnapshot(
+        registry_id=registry_id,
+        registry_generation=4,
+        authority_id=authority_id,
+        authority_generation=authority_generation,
+        authority_receipt_sha256=authority_receipt_sha256,
+        admissions=tuple(records),
+        provenance_refs=("test:upstream-clock-admission-registry",),
+    )
+
+
 class PerceptionTemporalTests(unittest.TestCase):
     def test_only_observed_claims_enter_current_window(self):
         inferred = claim(epistemic_type="INFERRED")
@@ -164,8 +200,10 @@ class PerceptionTemporalTests(unittest.TestCase):
         self.assertEqual(window.current_ref_ids, ())
         self.assertEqual(set(window.unaligned_ref_ids), {"a", "b"})
         self.assertEqual(window.alignment_witness_refs, ())
+        self.assertEqual(window.alignment_admission_refs, ())
+        self.assertIsNone(window.alignment_admission_registry_sha256)
 
-    def test_pr409_caller_minted_witness_without_separate_admission_is_unaligned(self):
+    def test_pr409_caller_minted_witness_without_registry_admission_is_unaligned(self):
         """Permanent regression for the executable G2 self-authorizing witness falsifier."""
         a = bind(
             claim("c1", 980),
@@ -194,9 +232,42 @@ class PerceptionTemporalTests(unittest.TestCase):
         self.assertEqual(window.current_ref_ids, ())
         self.assertEqual(set(window.unaligned_ref_ids), {"a", "b"})
         self.assertEqual(window.alignment_witness_refs, ())
-        self.assertEqual(window.alignment_admission_sha256s, ())
+        self.assertEqual(window.alignment_admission_refs, ())
+        self.assertIsNone(window.alignment_admission_registry_sha256)
 
-    def test_separately_admitted_exact_witness_enables_bounded_join_and_is_recorded(self):
+    def test_pr425_bare_caller_digest_is_rejected_as_admission_authority(self):
+        """Permanent regression for run 33253449628 / job 99102982300."""
+        local = bind(
+            claim("c1", 980),
+            ref_id="local",
+            source_id="screen:1",
+            sequence=1,
+            clock_domain="clock:local",
+        )
+        remote = bind(
+            claim("c2", 480),
+            ref_id="remote",
+            source_id="camera:remote",
+            sequence=1,
+            offset=500,
+            clock_domain="clock:remote",
+        )
+        fabricated = witness(local, remote)
+        with self.assertRaisesRegex(
+            PerceptionTemporalError,
+            "bare caller-supplied witness digests",
+        ):
+            build_observation_window(
+                refs=(local, remote),
+                reference_now_ns=1_000,
+                max_join_skew_ns=30,
+                max_clock_uncertainty_ns=5,
+                provenance_refs=P,
+                alignment_witnesses=(fabricated,),
+                admitted_alignment_witness_sha256s=(fabricated.sha256(),),
+            )
+
+    def test_upstream_registry_admitted_exact_witness_enables_bounded_join_and_is_recorded(self):
         local = bind(
             claim("c1", 980),
             ref_id="local",
@@ -214,7 +285,8 @@ class PerceptionTemporalTests(unittest.TestCase):
             clock_domain="clock:remote",
         )
         alignment = witness(local, remote, left_uncertainty=5, right_uncertainty=5)
-        alignment_sha = alignment.sha256()
+        registry = registry_for(alignment)
+        record = registry.admissions[0]
         window = build_observation_window(
             refs=(local, remote),
             reference_now_ns=1_000,
@@ -222,31 +294,77 @@ class PerceptionTemporalTests(unittest.TestCase):
             max_clock_uncertainty_ns=10,
             provenance_refs=P,
             alignment_witnesses=(alignment,),
-            admitted_alignment_witness_sha256s=(alignment_sha,),
+            alignment_admission_registry=registry,
         )
+        alignment_sha = alignment.sha256()
         self.assertEqual(set(window.current_ref_ids), {"local", "remote"})
         self.assertEqual(window.unaligned_ref_ids, ())
         self.assertEqual(window.alignment_witness_refs, ((alignment.alignment_id, alignment_sha),))
-        self.assertEqual(window.alignment_admission_sha256s, (alignment_sha,))
-        self.assertIn(f"admitted-clock-alignment-witness-sha256:{alignment_sha}", window.provenance_refs)
+        self.assertEqual(
+            window.alignment_admission_refs,
+            ((record.admission_id, alignment_sha, record.sha256()),),
+        )
+        self.assertEqual(window.alignment_admission_registry_sha256, registry.sha256())
+        self.assertIn(
+            f"clock-alignment-admission-registry-sha256:{registry.sha256()}",
+            window.provenance_refs,
+        )
+        self.assertIn(
+            f"clock-alignment-admission-authority-receipt-sha256:{AUTHORITY_RECEIPT_SHA}",
+            window.provenance_refs,
+        )
 
-    def test_unknown_admitted_witness_digest_fails_closed(self):
-        local = bind(claim("c1", 980), ref_id="local", source_id="screen:1", sequence=1, clock_domain="clock:a")
-        remote = bind(claim("c2", 980), ref_id="remote", source_id="camera:1", sequence=1, clock_domain="clock:b")
+    def test_registry_record_mismatch_or_ambiguity_remains_unaligned(self):
+        local = bind(
+            claim("c1", 980),
+            ref_id="local",
+            source_id="screen:1",
+            sequence=1,
+            clock_domain="clock:a",
+        )
+        remote = bind(
+            claim("c2", 480),
+            ref_id="remote",
+            source_id="camera:1",
+            sequence=1,
+            offset=500,
+            clock_domain="clock:b",
+        )
         alignment = witness(local, remote)
-        with self.assertRaisesRegex(PerceptionTemporalError, "no supplied exact witness"):
-            build_observation_window(
-                refs=(local, remote),
-                reference_now_ns=1_000,
-                max_join_skew_ns=20,
-                max_clock_uncertainty_ns=5,
-                provenance_refs=P,
-                alignment_witnesses=(alignment,),
-                admitted_alignment_witness_sha256s=("2" * 64,),
-            )
 
-    def test_wrong_or_expired_admitted_witness_remains_unaligned(self):
-        local = bind(claim("c1", 980), ref_id="local", source_id="screen:1", sequence=1, clock_domain="clock:a")
+        mismatched = registry_for(
+            records=(admission_record(alignment, witness_sha="2" * 64),),
+        )
+        ambiguous = registry_for(
+            records=(
+                admission_record(alignment, admission_id="admission:a"),
+                admission_record(alignment, admission_id="admission:b"),
+            ),
+        )
+        for registry in (mismatched, ambiguous):
+            with self.subTest(registry=registry.registry_id, count=len(registry.admissions)):
+                window = build_observation_window(
+                    refs=(local, remote),
+                    reference_now_ns=1_000,
+                    max_join_skew_ns=30,
+                    max_clock_uncertainty_ns=5,
+                    provenance_refs=P,
+                    alignment_witnesses=(alignment,),
+                    alignment_admission_registry=registry,
+                )
+                self.assertEqual(window.current_ref_ids, ())
+                self.assertEqual(set(window.unaligned_ref_ids), {"local", "remote"})
+                self.assertEqual(window.alignment_admission_refs, ())
+                self.assertIsNone(window.alignment_admission_registry_sha256)
+
+    def test_wrong_or_expired_registry_admitted_witness_remains_unaligned(self):
+        local = bind(
+            claim("c1", 980),
+            ref_id="local",
+            source_id="screen:1",
+            sequence=1,
+            clock_domain="clock:a",
+        )
         remote = bind(
             claim("c2", 480),
             ref_id="remote",
@@ -265,13 +383,19 @@ class PerceptionTemporalTests(unittest.TestCase):
                 max_clock_uncertainty_ns=5,
                 provenance_refs=P,
                 alignment_witnesses=(candidate,),
-                admitted_alignment_witness_sha256s=(candidate.sha256(),),
+                alignment_admission_registry=registry_for(candidate),
             )
             self.assertEqual(window.current_ref_ids, ())
             self.assertEqual(set(window.unaligned_ref_ids), {"local", "remote"})
 
-    def test_two_admitted_matching_witnesses_are_ambiguous_and_unaligned(self):
-        local = bind(claim("c1", 980), ref_id="local", source_id="screen:1", sequence=1, clock_domain="clock:a")
+    def test_two_structurally_matching_witnesses_remain_ambiguous_even_if_registry_admits_both(self):
+        local = bind(
+            claim("c1", 980),
+            ref_id="local",
+            source_id="screen:1",
+            sequence=1,
+            clock_domain="clock:a",
+        )
         remote = bind(
             claim("c2", 480),
             ref_id="remote",
@@ -289,12 +413,52 @@ class PerceptionTemporalTests(unittest.TestCase):
             max_clock_uncertainty_ns=5,
             provenance_refs=P,
             alignment_witnesses=(first, second),
-            admitted_alignment_witness_sha256s=(first.sha256(), second.sha256()),
+            alignment_admission_registry=registry_for(first, second),
         )
         self.assertEqual(window.current_ref_ids, ())
         self.assertEqual(set(window.unaligned_ref_ids), {"local", "remote"})
         self.assertEqual(window.alignment_witness_refs, ())
-        self.assertEqual(window.alignment_admission_sha256s, ())
+        self.assertEqual(window.alignment_admission_refs, ())
+
+    def test_registry_authority_identity_changes_window_identity(self):
+        local = bind(
+            claim("c1", 980),
+            ref_id="local",
+            source_id="screen:1",
+            sequence=1,
+            clock_domain="clock:a",
+        )
+        remote = bind(
+            claim("c2", 480),
+            ref_id="remote",
+            source_id="camera:1",
+            sequence=1,
+            offset=500,
+            clock_domain="clock:b",
+        )
+        alignment = witness(local, remote)
+        first_registry = registry_for(alignment, authority_receipt_sha256="4" * 64)
+        second_registry = registry_for(alignment, authority_receipt_sha256="5" * 64)
+        first = build_observation_window(
+            refs=(local, remote),
+            reference_now_ns=1_000,
+            max_join_skew_ns=30,
+            max_clock_uncertainty_ns=5,
+            provenance_refs=P,
+            alignment_witnesses=(alignment,),
+            alignment_admission_registry=first_registry,
+        )
+        second = build_observation_window(
+            refs=(local, remote),
+            reference_now_ns=1_000,
+            max_join_skew_ns=30,
+            max_clock_uncertainty_ns=5,
+            provenance_refs=P,
+            alignment_witnesses=(alignment,),
+            alignment_admission_registry=second_registry,
+        )
+        self.assertNotEqual(first.window_id, second.window_id)
+        self.assertNotEqual(first.sha256(), second.sha256())
 
     def test_shared_clock_still_obeys_join_skew(self):
         a = bind(
@@ -380,7 +544,9 @@ class PerceptionTemporalTests(unittest.TestCase):
         self.assertTrue(payload["unproven_cross_clock_is_unaligned"])
         self.assertFalse(payload["numeric_reference_offset_self_attests_alignment"])
         self.assertFalse(payload["raw_clock_alignment_witness_is_admission_authority"])
-        self.assertTrue(payload["requires_separate_witness_admission"])
+        self.assertFalse(payload["bare_witness_digest_is_admission_authority"])
+        self.assertTrue(payload["requires_upstream_admission_registry"])
+        self.assertFalse(payload["registry_receipt_authenticated_here"])
 
 
 if __name__ == "__main__":
