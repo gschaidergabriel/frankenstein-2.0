@@ -170,6 +170,27 @@ class SemanticClaimTests(unittest.TestCase):
             "b276dc6794c8a85989a3dad568a2d7db7cc38a3a14f2349a31a22f35f81e3657",
         )
 
+    def test_supertonic3_subject_alias_is_precise_and_stable(self):
+        a = SemanticObjective.from_inputs(
+            family="german tts benchmark",
+            target_surface="source-only",
+            subject="supertonic-3",
+            evidence_scope="source-pin",
+            generation=1,
+        )
+        b = SemanticObjective.from_inputs(
+            family="german tts benchmark",
+            target_surface="source-only",
+            subject="supertone-supertonic-3",
+            evidence_scope="source-pin",
+            generation=1,
+        )
+        self.assertEqual(a.semantic_key(), b.semantic_key())
+        self.assertEqual(
+            a.semantic_key(),
+            "140e6517287f351e96ba7571ff06bf7a8ffb44d0029b49ced88eaddb5ce6144c",
+        )
+
 
 if __name__ == "__main__":
     unittest.main()
