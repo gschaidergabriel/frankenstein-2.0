@@ -1,0 +1,29 @@
+name: WP603 review need content-id falsifier
+
+on:
+  push:
+    branches:
+      - review/wp603-need-content-id-falsifier-20260829
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  falsifier:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Compile exact reviewed sources
+        run: |
+          python -m py_compile \
+            src/frankenstein2/recursion_router.py \
+            tests/test_wp603_need_content_id_falsifier.py
+      - name: Run preregistered REVIEW_ONLY discriminator
+        env:
+          PYTHONPATH: src
+        run: python -m unittest discover -s tests -p 'test_wp603_need_content_id_falsifier.py' -v
