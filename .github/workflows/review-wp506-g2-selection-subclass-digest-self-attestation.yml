@@ -17,7 +17,7 @@ permissions:
   contents: read
 
 jobs:
-  selection-subclass-digest-self-attestation:
+  negative-contract-falsifier:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
@@ -26,7 +26,26 @@ jobs:
         with:
           python-version: '3.12'
       - run: python -m pip install pytest
-      - name: WP506 must reject WorkspaceSelection digest self-attesting subtype
+      - name: Accepted WP506 contract must reject subtype
         env:
           PYTHONPATH: src
-        run: python -m pytest -q tests/review/test_wp506_g2_selection_subclass_digest_self_attestation_falsifier.py
+        run: >-
+          python -m pytest -q
+          tests/review/test_wp506_g2_selection_subclass_digest_self_attestation_falsifier.py
+          -k 'must_reject or must_not_mint'
+
+  positive-reproduction-probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install pytest
+      - name: Reproduce current subtype digest acceptance
+        env:
+          PYTHONPATH: src
+        run: >-
+          python -m pytest -q
+          tests/review/test_wp506_g2_selection_subclass_digest_self_attestation_falsifier.py::test_positive_reproduction_probe_current_wp506_accepts_self_attested_digest
