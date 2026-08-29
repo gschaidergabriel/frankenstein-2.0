@@ -1,0 +1,107 @@
+{
+  "schema": "f2.local_voice.model_registry.v1",
+  "updated": "2026-08-29",
+  "research_branch": "research/local-voice-continuous",
+  "trigger": "7",
+  "candidates": [
+    {
+      "id": "qwen3-asr-0.6b",
+      "role": "ASR",
+      "upstream": "Qwen/Qwen3-ASR-0.6B-hf",
+      "repo": "QwenLM/Qwen3-ASR",
+      "paper": "arXiv:2601.21337",
+      "language": ["de"],
+      "status": "QUEUED_FOR_VPS_ACQUISITION",
+      "priority": 100,
+      "reason": "German support, streaming tooling, strong reported accuracy/efficiency; must be compared on single-user F2 latency."
+    },
+    {
+      "id": "qwen3-asr-1.7b",
+      "role": "ASR",
+      "upstream": "Qwen/Qwen3-ASR-1.7B-hf",
+      "repo": "QwenLM/Qwen3-ASR",
+      "paper": "arXiv:2601.21337",
+      "language": ["de"],
+      "status": "WAIT_FOR_0.6B_BASELINE",
+      "priority": 80,
+      "reason": "Quality challenger if hardware and latency permit."
+    },
+    {
+      "id": "faster-whisper-large-v3-turbo",
+      "role": "ASR",
+      "upstream": "Whisper large-v3-turbo compatible local runtime",
+      "status": "CONTROL_BASELINE",
+      "priority": 100,
+      "reason": "Mature local German baseline and existing Frankenstein lineage."
+    },
+    {
+      "id": "whisper-cpp",
+      "role": "ASR_RUNTIME",
+      "repo": "ggml-org/whisper.cpp",
+      "status": "CONTROL_BASELINE",
+      "priority": 90,
+      "reason": "Portable local streaming implementation and quantization/runtime control."
+    },
+    {
+      "id": "qwen3-tts-0.6b",
+      "role": "TTS",
+      "upstream": "Qwen/Qwen3-TTS-12Hz-0.6B-CustomVoice",
+      "repo": "QwenLM/Qwen3-TTS",
+      "paper": "arXiv:2601.15621",
+      "language": ["de"],
+      "status": "QUEUED_FOR_VPS_ACQUISITION",
+      "priority": 100,
+      "reason": "German support, streaming, expressive control, low-latency tokenizer; likely high-information quality candidate."
+    },
+    {
+      "id": "qwen3-tts-1.7b",
+      "role": "TTS",
+      "repo": "QwenLM/Qwen3-TTS",
+      "paper": "arXiv:2601.15621",
+      "language": ["de"],
+      "status": "WAIT_FOR_0.6B_BASELINE",
+      "priority": 80,
+      "reason": "Quality challenger if latency/resource budget permits."
+    },
+    {
+      "id": "piper-de",
+      "role": "TTS",
+      "status": "LATENCY_CONTROL",
+      "priority": 90,
+      "reason": "Fast local German latency floor/fallback, not presumed naturalness champion."
+    },
+    {
+      "id": "bayling-duplex",
+      "role": "FULL_DUPLEX_SPEECHLM",
+      "upstream": "BayLing-Models/BayLing-Duplex",
+      "repo": "BayLing-Models/BayLing-Duplex",
+      "paper": "arXiv:2606.14528",
+      "status": "HIGH_INFORMATION_EXPERIMENT",
+      "priority": 65,
+      "reason": "Native listen/speak/interruption behavior; test architecture lessons and German suitability; model is large and not presumed product fit."
+    },
+    {
+      "id": "moshi",
+      "role": "FULL_DUPLEX_REFERENCE",
+      "repo": "kyutai-labs/moshi",
+      "status": "REFERENCE_OR_EXPERIMENT",
+      "priority": 55,
+      "reason": "Full-duplex streaming reference for turn-taking, protocol and echo-cancellation research."
+    },
+    {
+      "id": "qwen-audio-3.0-tts",
+      "role": "TTS_WATCH",
+      "paper": "arXiv:2607.23938",
+      "status": "WATCH_AVAILABILITY",
+      "priority": 70,
+      "reason": "Newer TTS research; verify downloadable local weights/license/runtime before acquisition."
+    }
+  ],
+  "rules": [
+    "registry status is research metadata only",
+    "record exact revision/hash/license on acquisition",
+    "never promote from paper/model-card claims alone",
+    "negative results are retained",
+    "prefer same-hardware same-corpus comparisons"
+  ]
+}
