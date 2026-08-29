@@ -1,0 +1,85 @@
+{
+  "schema": "FRANKENSTEIN2_TRIGGER6_RESEARCH_DELTA/v1",
+  "research_id": "R6-20260829-WP804-GOAL-INFERENCE-GPT56SOL-01",
+  "evidence_stage": "E1_SOURCE_READ",
+  "created_at": "2026-08-29T20:07:11+07:00",
+  "worker": "GPT-5.6-Sol-TRIGGER6",
+  "current_f2_reentry": "78b0bdcd045b3a525c0a21b22fc92da0db9993c7",
+  "current_f2_observation": {
+    "source": "src/frankenstein2/cognitive_microworld.py",
+    "finding": "WP800 already provides a strong evaluator/SUT separation: WorldNode hidden_ground_truth and transition state remain evaluator-only, while ObservationView exposes only public payload/action surface and a public fixture digest. This is an appropriate substrate for WP804, but it does not yet define a goal-inference task contract, goal-hypothesis universe, public demonstration/familiarization history, or evaluator-side hidden goal label semantics.",
+    "credit": "SOURCE_OBSERVATION_ONLY"
+  },
+  "primary_sources": [
+    {
+      "system": "Baker-Saxe-Tenenbaum Bayesian inverse planning",
+      "identifier": "DOI:10.1016/j.cognition.2009.07.005",
+      "source": "Cognition 113(3):329-349 (2009), Action understanding as inverse planning",
+      "observed_mechanism": [
+        "Goal and other mental-state inference is formulated as an inverse problem over observed action: infer latent goals/beliefs by inverting a forward model of approximately rational planning.",
+        "Observed behavior supports multiple latent explanations, so the inference combines action likelihood with a prior rather than treating one observed path as direct goal truth."
+      ],
+      "transferable_invariant": "WP804 should score an explicit hypothesis over hidden goals from public behavior rather than allow the SUT to inspect evaluator goal labels or equate one action with one goal.",
+      "non_transferable_or_caveat": "The rational-planning assumption is a model hypothesis, not a universal property of agents; WP804 needs baselines/counterexamples where behavior is ambiguous, inefficient or belief-limited."
+    },
+    {
+      "system": "Bayesian Theory of Mind under partial observability",
+      "identifier": "DOI:10.1038/s41562-017-0064",
+      "source": "Nature Human Behaviour 1:0064 (2017), Rational quantitative attribution of beliefs, desires and percepts in human mentalizing",
+      "observed_mechanism": [
+        "The model jointly infers beliefs, desires and percepts by probabilistically inverting planning and state estimation in partially observable domains.",
+        "The study compares the full model with lesioned variants and simpler non-mentalistic motion features, isolating the contribution of components rather than crediting aggregate fit alone."
+      ],
+      "transferable_invariant": "WP804 must prevent goal inference from silently assuming evaluator-known world state; public observation history and hidden world/goal labels need mechanically separate domains, and a lesion/baseline comparison should test whether goal-specific structure adds value beyond simple motion/action-frequency cues.",
+      "non_transferable_or_caveat": "Human mentalizing fit does not establish that the same Bayesian model is the correct F2 implementation; the transferable result is the separation of latent variables and the use of component ablations."
+    },
+    {
+      "system": "AGENT core psychological reasoning benchmark",
+      "identifier": "PMLR:v139/shu21a; arXiv:2102.12321",
+      "source": "ICML 2021, AGENT: A Benchmark for Core Psychological Reasoning",
+      "observed_mechanism": [
+        "AGENT separates familiarization behavior from test cases and includes goal-preference, action-efficiency, unobserved-constraint and cost-reward scenarios.",
+        "Its evaluation protocol emphasizes generalization rather than only interpolation over familiar trials, and it compares Bayesian inverse-planning and Theory-of-Mind neural baselines."
+      ],
+      "transferable_invariant": "WP804 should use held-out goal-preference families with familiarization/public demonstrations and test episodes that vary path/constraint details while preserving the latent preference hypothesis; success must exceed public-information-only heuristics and must not depend on hidden evaluator fields.",
+      "non_transferable_or_caveat": "AGENT is a large visual 3D benchmark. F2 should transfer the causal test structure, not import its simulator, dataset size or dependency stack."
+    },
+    {
+      "system": "Machine Theory of Mind (ToMnet)",
+      "identifier": "arXiv:1802.07740",
+      "source": "Rabinowitz et al. (2018), Machine Theory of Mind",
+      "observed_mechanism": [
+        "ToMnet builds agent models from observations of behavior and uses prior behavioral episodes to predict agent characteristics/mental states on later situations.",
+        "The evaluation includes varied agent populations and false-belief settings, demonstrating that prior behavior and current state information are distinct inputs to inference."
+      ],
+      "transferable_invariant": "WP804 should represent familiarization/history as an explicit public evidence object distinct from the held-out test observation and evaluator-only goal truth, with provenance binding that prevents history/test leakage across fixture families.",
+      "non_transferable_or_caveat": "ToMnet's learned neural architecture and claims do not need to be imported; WP804 is a deterministic benchmark contract and can test arbitrary policies."
+    }
+  ],
+  "cross_source_synthesis": {
+    "supported": [
+      "Treat goal inference as inference over hidden hypotheses from observable behavior, not as direct access to a goal label.",
+      "Separate goals/desires from beliefs/percepts/world state under partial observability.",
+      "Use familiarization/history and held-out test situations with family-level generalization boundaries.",
+      "Compare goal-aware inference against simpler public-information baselines/lesions to detect shortcut behavior.",
+      "Preserve ambiguity: when public behavior is non-identifying, the benchmark must permit UNKNOWN or a non-degenerate hypothesis set rather than force a fabricated single goal."
+    ],
+    "not_supported_by_sources_alone": [
+      "That Bayesian inverse planning is the uniquely correct F2 inference algorithm.",
+      "That passing a goal-inference benchmark proves general Theory of Mind, agency, consciousness or whole-system cognition.",
+      "That evaluator hidden goal truth may enter SUT input for convenience.",
+      "That large AGENT/TDW dependencies should be imported into Frankenstein 2.0."
+    ]
+  },
+  "f2_candidate_invariant": "Define WP804 as a benchmark boundary on top of WP800 in which an evaluator-owned GoalInferenceFixture binds an explicit finite hidden goal-hypothesis universe and evaluator truth, while the SUT receives only immutable public familiarization traces plus a current ObservationView. A GoalInferencePrediction binds episode/fixture/generation/public-history digests and returns either a canonical hypothesis distribution/ranking or UNKNOWN. Evaluator scoring occurs outside the policy boundary. Held-out families must vary public path/constraint details to break action-token and endpoint shortcuts, and at least one non-mentalistic/public-frequency baseline plus one goal-structure lesion must be reported.",
+  "counterhypotheses": [
+    "A goal benchmark can appear solved if goal IDs correlate with action IDs, terminal nodes, payload refs, history length or fixture-family metadata; therefore label permutation and matched-pair counterbalancing are necessary.",
+    "A goal-aware model can appear superior merely because it has more information or compute than the baseline; therefore all benchmarked policies must share the same public evidence boundary and budget declaration.",
+    "Even a perfect hidden-label score may reflect memorized fixture families rather than goal inference; therefore holdout identity must be family-level and provenance-bound, not row-level only."
+  ],
+  "next_stage": "E2_ARCHITECTURE_MAPPED",
+  "research_credit": "E1_PRIMARY_SOURCE_READ",
+  "runtime_credit": 0,
+  "architecture_acceptance_credit": 0,
+  "whole_system_credit": 0
+}
