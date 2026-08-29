@@ -1,0 +1,41 @@
+name: Review WP600 RouteCandidate Producer Lineage Falsifier
+
+on:
+  push:
+    branches:
+      - review/wp600-routecandidate-producer-lineage-falsifier-20260829
+    paths:
+      - 'src/frankenstein2/direct_delegate_router.py'
+      - 'src/frankenstein2/situation_frame.py'
+      - 'tests/review/test_wp600_routecandidate_producer_lineage_falsifier.py'
+      - '.github/workflows/review-wp600-routecandidate-producer-lineage-falsifier.yml'
+  pull_request:
+    paths:
+      - 'src/frankenstein2/direct_delegate_router.py'
+      - 'src/frankenstein2/situation_frame.py'
+      - 'tests/review/test_wp600_routecandidate_producer_lineage_falsifier.py'
+      - '.github/workflows/review-wp600-routecandidate-producer-lineage-falsifier.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  reproduce-producer-lineage-gap:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Compile reviewed source and falsifier
+        run: >-
+          python -m py_compile
+          src/frankenstein2/direct_delegate_router.py
+          src/frankenstein2/situation_frame.py
+          tests/review/test_wp600_routecandidate_producer_lineage_falsifier.py
+      - name: Reproduce RouteCandidate candidate-id lineage gap
+        env:
+          PYTHONPATH: src
+        run: python -m unittest -v tests.review.test_wp600_routecandidate_producer_lineage_falsifier
