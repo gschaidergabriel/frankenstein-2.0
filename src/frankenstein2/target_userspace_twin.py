@@ -1,6 +1,6 @@
 """Target-host Ubuntu userspace twin planning for Frankenstein 2.0.
 
-F2-WP-1202 generation 1.
+F2-WP-1202 generation 2.
 
 This module consumes the canonical F2-WP-1201 TargetHostProfile/v1 boundary and derives
 a deterministic T1 userspace projection. It never accepts a second caller-defined profile
