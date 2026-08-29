@@ -1,0 +1,65 @@
+{
+  "schema": "FRANKENSTEIN2_TRIGGER6_RESEARCH_RESULT/v1",
+  "research_id": "R6-20260830-WP510-RUNNER-QUEUE-DISCRIMINATOR-GPT56SOL-01",
+  "evidence_stage": "E1_SOURCE_READ",
+  "status": "PRIMARY_SOURCES_PINNED_AND_CURRENT_JOB_REENTERED",
+  "recorded_at": "2026-08-30T00:55:04+07:00",
+  "architecture_snapshot": {
+    "f2_preclaim_main_sha": "2f240b48e621c2c29151432473b91193850f3fe6",
+    "f2_branch_base_sha": "8b8edb7929851990dd76468b02e70866e2d07400",
+    "research_entity_main_sha": "aa7b2e1b72b639b31e92f335c8c3100af41e008e",
+    "controller_sha": "2b2aaca5750a7da135fef92cf6611995d117fbe2",
+    "wp510_exact_source_sha": "656b57bded655e64a25d7e205b599becce3d4989"
+  },
+  "primary_sources": [
+    {
+      "title": "Self-hosted runners reference",
+      "url": "https://docs.github.com/en/actions/reference/runners/self-hosted-runners",
+      "observed_rule": "GitHub routes a self-hosted job only to an online and idle runner matching the job's runs-on labels and groups; if none exists the job remains queued; an assigned runner that does not pick up within 60 seconds causes requeue; jobs queued more than 24 hours fail."
+    },
+    {
+      "title": "Using self-hosted runners in a workflow",
+      "url": "https://docs.github.com/en/actions/how-tos/manage-runners/self-hosted-runners/use-in-a-workflow",
+      "observed_rule": "Label requirements are conjunctive: a runner must match all labels specified by runs-on."
+    },
+    {
+      "title": "Monitoring and troubleshooting self-hosted runners",
+      "url": "https://docs.github.com/en/enterprise-cloud@latest/actions/how-tos/manage-runners/self-hosted-runners/monitor-and-troubleshoot",
+      "observed_rule": "Runner status distinguishes Idle, Active and Offline; Offline can mean the host is down, runner application is not running, or it cannot communicate with GitHub."
+    }
+  ],
+  "current_controller_observation": {
+    "workflow": ".github/workflows/trigger4-wp510-target-runtime-v2.yml",
+    "workflow_runs_on_labels": ["self-hosted", "Linux", "X64"],
+    "workflow_timeout_minutes": 15,
+    "run_id": 33265772059,
+    "job_id": 99135457584,
+    "run_status": "queued",
+    "job_status": "queued",
+    "steps": [],
+    "job_labels": ["self-hosted", "Linux", "X64"],
+    "runner_id": 0,
+    "runner_name": "",
+    "runner_group_id": 0,
+    "runner_group_name": ""
+  },
+  "observed_result": "The WP510 job still has zero executed steps and no assigned runner identity. The exact workflow asks for the conjunction self-hosted + Linux + X64. This remains control-plane queue state only and provides zero WP510 target-runtime evidence.",
+  "inference": "The strongest source-consistent explanation is that GitHub has not found an online+idle runner eligible for all routing requirements, or an equivalent availability/access condition prevents assignment. The present evidence does not distinguish runner offline, runner service/communication failure, label mismatch, access/group mismatch, or temporary busy state.",
+  "negative_evidence": [
+    "No executed step exists.",
+    "No runner identity is attached to the queued job.",
+    "The available GitHub connector cannot read the repository self-hosted runner inventory/status endpoint, so exact runner-side root cause is not observed here.",
+    "Queue presence is not product-semantic or target-runtime evidence."
+  ],
+  "cheapest_next_discriminator": "Read the registered self-hosted runner inventory for gschaidergabriel/Dr.-Unterweger and compare online/idle status plus labels against [self-hosted, Linux, X64]. If the exact runner is online+idle and label-compatible yet job remains unassigned, escalate to runner-group/access/network/service diagnostics. Do not dispatch a duplicate WP510 run while 33265772059 remains unresolved.",
+  "architecture_implication": "NO_F2_PRODUCT_ARCHITECTURE_DELTA_AT_E1. This is a transport/control-plane blocker. Preserve the exact-source WP510 probe and wait for a runner-assignment discriminator rather than changing WP510 semantics.",
+  "credit": {
+    "research_e1": 1,
+    "f2_ablation": 0,
+    "target_runtime": 0,
+    "physical_target": 0,
+    "semantic_gwt_runtime": 0,
+    "whole_system": 0,
+    "training": 0
+  }
+}
