@@ -1,0 +1,58 @@
+{
+  "schema": "FRANKENSTEIN2_WORKPACKAGE_DELTA/v1",
+  "workpackage_id": "F2-WP-507",
+  "generation": 1,
+  "claim_id": "F2-WP-507-G1-GPT56SOL-GWT-UPTAKE-CAUSAL-INFLUENCE-20260829",
+  "worker_id": "GPT-5.6-Sol-review",
+  "base_commit": "01c5fe7006d0dcc36d79db494ab6c29330de0f5e",
+  "observed_main_commit": "01c5fe7006d0dcc36d79db494ab6c29330de0f5e",
+  "owned_paths": [
+    "workpackages/deltas/F2-WP-507/1-F2-WP-507-G1-GPT56SOL-GWT-UPTAKE-CAUSAL-INFLUENCE-20260829-02.json"
+  ],
+  "result_class": "FALSIFIER",
+  "source_commits": [
+    "4771f73f0ed57adc99069668b560fe01195ef7a2",
+    "5a200be805599ec3b44ef76e38f501ab6fb8a907"
+  ],
+  "receipts": [
+    {
+      "type": "GITHUB_ACTIONS_ACTIVE_BRANCH_BASELINE",
+      "pull_request": 166,
+      "workflow": "F2 WP507 GWT Uptake CI",
+      "run_id": 33222352417,
+      "job_id": 99018878563,
+      "tested_head": "4771f73f0ed57adc99069668b560fe01195ef7a2",
+      "compile_step": "success",
+      "suite_step": "failure",
+      "failure_count": 1,
+      "known_failure": "delivered_cell_ids uses lexicographic sorting so G10 precedes G2 instead of canonical GRID10 order"
+    },
+    {
+      "type": "GITHUB_ACTIONS_REVIEW_FALSIFIER",
+      "pull_request": 169,
+      "workflow": "F2 WP507 GWT Uptake CI",
+      "run_id": 33222416732,
+      "job_id": 99019075832,
+      "tested_review_head": "5a200be805599ec3b44ef76e38f501ab6fb8a907",
+      "tested_active_base": "4771f73f0ed57adc99069668b560fe01195ef7a2",
+      "compile_step": "success",
+      "suite_step": "failure",
+      "failure_count": 2,
+      "new_incremental_failure": "test_forged_positive_uptake_summary_without_receipts_cannot_mint_causal_influence",
+      "observed_status": "CAUSAL_INFLUENCE_OBSERVED_AT_CONTRACT_SCOPE",
+      "interpretation": "PRODUCT_COUNTEREXAMPLE_REPRODUCED_NOT_INFRASTRUCTURE_FAILURE"
+    }
+  ],
+  "falsifiers": [
+    "The public UptakeSummary constructor accepts status UPTAKE_OBSERVED with zero receipt_ids, zero delivered_cell_ids, a caller-supplied uptaken_cell_ids value, and no unknown cells because its post-init validation does not bind status to receipt/cell evidence.",
+    "evaluate_causal_influence accepts that forged summary when broadcast id/digest match and, with matched non-broadcast input digests plus differing downstream output digests, emits CAUSAL_INFLUENCE_OBSERVED_AT_CONTRACT_SCOPE even though no uptake receipt exists.",
+    "The active-base CI already had one independent canonical GRID10 ordering failure; the review CI added a second distinct failure, so the forged-summary counterexample is incremental rather than a restatement of the pre-existing sort defect."
+  ],
+  "contradictions": [
+    "The F2-WP-507 claim requires UNKNOWN when receipts or downstream evidence are missing and permits causal-influence evidence only from explicit uptake observations plus a matched intervention/control probe, but the current public summary ABI can mint a positive causal result from caller-forged zero-receipt summary state."
+  ],
+  "proposed_state_change": "DO_NOT_ACCEPT_F2_WP_507_G1_UNCHANGED. Preserve the existing active mutation authority. Repair the UptakeSummary/evaluator boundary so UPTAKE_OBSERVED cannot be caller-forged without internally consistent complete receipt-derived evidence, retain UNKNOWN on missing evidence, repair the separate canonical GRID10 ordering defect, then rerun the canonical suite plus PR169's exact forged-summary regression before reconciliation.",
+  "completion_deficit": "WP507 repository-component fail-closed causal-evidence invariant is falsified. This does not constitute target-runtime, physical GRID10, GWT-runtime, training, effect, completion, whole-Frankenstein-2.0, EntityOS, or HCU evidence.",
+  "next_exact_action": "Active F2-WP-507 mutation authority: add the smallest invariant check or construction boundary that prevents zero-receipt/cell-inconsistent UPTAKE_OBSERVED summaries from reaching positive causal evaluation; preserve the PR169 regression and separately restore canonical GRID10 cell ordering; accept only after exact-head repository CI passes both the canonical suite and the forged-summary regression.",
+  "created_at_utc": "2026-08-29T00:05:30Z"
+}
