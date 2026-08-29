@@ -102,6 +102,7 @@ def policy(**overrides) -> FalsifierPolicy:
         min_intervention_score_ppm=600_000,
         min_delta_over_baseline_ppm=100_000,
         min_sample_count_per_capability=10,
+        max_external_actions_per_capability=10_000,
         require_shared_holdout_set=True,
     )
     values.update(overrides)
@@ -177,6 +178,37 @@ class AgenticCoreFalsifierTests(unittest.TestCase):
         report = evaluate_agentic_core(tuple(values), policy=policy(), report_id="report-floor")
         self.assertEqual(report.verdict, FALSIFIED)
         self.assertIn(f"DELTA_BELOW_BASELINE_FLOOR:{PLANNING_EXECUTION}", report.reasons)
+
+    def test_external_action_budget_closes_ungated_efficiency_falsifier(self):
+        low_action = complete_evidence()
+        high_action = tuple(
+            evidence(capability, actions=200_000_000)
+            for capability in (EXPLORATION, MODELING, GOAL_SETTING, PLANNING_EXECUTION)
+        )
+        low_report = evaluate_agentic_core(low_action, policy=policy(), report_id="report-low-action")
+        high_report = evaluate_agentic_core(high_action, policy=policy(), report_id="report-high-action")
+        self.assertEqual(low_report.verdict, SUPPORTED_AT_COMPONENT_SCOPE)
+        self.assertEqual(high_report.verdict, FALSIFIED)
+        self.assertEqual(low_report.total_action_count, 240)
+        self.assertEqual(high_report.total_action_count, 800_000_000)
+        self.assertEqual(
+            high_report.reasons,
+            tuple(
+                sorted(
+                    f"EXTERNAL_ACTION_BUDGET_EXCEEDED:{capability}"
+                    for capability in (EXPLORATION, MODELING, GOAL_SETTING, PLANNING_EXECUTION)
+                )
+            ),
+        )
+
+    def test_external_action_budget_boundary_is_inclusive(self):
+        values = tuple(
+            evidence(capability, actions=10_000)
+            for capability in (EXPLORATION, MODELING, GOAL_SETTING, PLANNING_EXECUTION)
+        )
+        report = evaluate_agentic_core(values, policy=policy(), report_id="report-budget-boundary")
+        self.assertEqual(report.verdict, SUPPORTED_AT_COMPONENT_SCOPE)
+        self.assertEqual(report.reasons, ())
 
     def test_family_binding_cannot_be_relabelled_without_rebinding(self):
         with self.assertRaisesRegex(AgenticCoreFalsifierError, "family binding digest mismatch"):
@@ -254,6 +286,8 @@ class AgenticCoreFalsifierTests(unittest.TestCase):
     def test_boolean_is_not_accepted_as_integer_threshold(self):
         with self.assertRaises(AgenticCoreFalsifierError):
             policy(min_intervention_score_ppm=True)
+        with self.assertRaises(AgenticCoreFalsifierError):
+            policy(max_external_actions_per_capability=True)
 
     def test_input_order_does_not_change_evidence_binding(self):
         values = complete_evidence()
