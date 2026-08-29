@@ -1,0 +1,155 @@
+{
+  "schema": "FRANKENSTEIN2_TRIGGER6_RESEARCH_DELTA/v1",
+  "research_id": "R6-SEED-006",
+  "trigger": "6",
+  "stage": "E2_STALE_REVIEW_SOURCE_GROUNDED",
+  "created_at": "2026-08-29T22:14:30+07:00",
+  "worker": "GPT-5.6-Sol:Triggerword-6-organ",
+  "claim_ref": "research/tool_intelligence/claims/R6-SEED-006/E2_REVIEW_9_13AY_PARENT_SYSTEMD_CGROUP_WITNESS.json",
+  "claim_commit": "81ee99381639008a4f318d258a86ccff6dbe94e6",
+  "architecture_context": {
+    "admitted_supervisor_authority": "8.78_FREE_ONLY",
+    "target_observation_delta": "9.13AY_NON_AUTHORITY",
+    "target_observation": "podman top rc=125 because the observed container did not create a cgroup; promotion-bearing container resource telemetry must therefore remain UNKNOWN until repaired or replaced",
+    "f2_main_reentered_before_result": "a4ec15952f361eb7accb76a70a0e6b4c82ed045d",
+    "existing_agentcgroup_e5": "R6-SEED006-F2-WP605-G2-TOOL-RESOURCE-SUBOBSERVATION-V2",
+    "existing_wp605_g1": "ACCEPTED_REPOSITORY_HOSTED_COMPONENT_CI_ONLY; runtime credit 0"
+  },
+  "primary_sources": [
+    {
+      "kind": "EXTERNAL_PRIMARY",
+      "name": "Linux kernel cgroup v2 documentation",
+      "url": "https://docs.kernel.org/admin-guide/cgroup-v2.html",
+      "relevant_facts": [
+        "Every process belongs to one cgroup in the unified hierarchy.",
+        "/proc/$PID/cgroup in the initial cgroup namespace exposes the real v2 path as 0::$PATH; a process inside a cgroup namespace may see its namespace root as / instead.",
+        "cpu.stat accounts cgroup CPU usage; memory.current/memory.peak/memory.events and io.stat are cgroup-scoped interfaces when available.",
+        "cgroup.events populated describes whether a cgroup subtree contains live processes."
+      ]
+    },
+    {
+      "kind": "EXTERNAL_PRIMARY",
+      "name": "Podman create documentation",
+      "url": "https://docs.podman.io/en/latest/markdown/podman-create.1.html",
+      "relevant_facts": [
+        "--cgroups=enabled creates a new cgroup under the cgroup parent.",
+        "--cgroups=disabled deliberately forces the container not to create cgroups.",
+        "Podman supports cgroupfs or systemd as cgroup managers."
+      ]
+    },
+    {
+      "kind": "EXTERNAL_PRIMARY",
+      "name": "Podman container inspect documentation",
+      "url": "https://docs.podman.io/en/stable/markdown/podman-container-inspect.1.html",
+      "relevant_facts": [
+        "Container inspection exposes the low-level State structure including the payload PID while running, and exposes the PidFile path."
+      ]
+    },
+    {
+      "kind": "EXTERNAL_PRIMARY",
+      "name": "systemd control-group interface and cgls documentation",
+      "urls": [
+        "https://systemd.io/CONTROL_GROUP_INTERFACE/",
+        "https://www.freedesktop.org/software/systemd/man/systemd-cgls.html"
+      ],
+      "relevant_facts": [
+        "systemd services/scopes/slices are mapped onto cgroups and resource-control properties.",
+        "systemd-cgls can enumerate the processes and descendant groups of a selected cgroup or unit."
+      ]
+    }
+  ],
+  "findings": [
+    {
+      "id": "F1",
+      "classification": "SOURCE_DIRECT",
+      "finding": "A Podman container can validly have no dedicated cgroup. Therefore the observed podman-top cgroup error is compatible with an intentionally/non-isolating cgroup mode and must not be converted into either a container-resource PASS or a semantic runtime FAIL."
+    },
+    {
+      "id": "F2",
+      "classification": "SOURCE_DIRECT_PLUS_ARCHITECTURE_INFERENCE",
+      "finding": "The strongest read-only recovery path starts from the host-observed container payload PID, then resolves that PID's cgroup membership from the host/initial cgroup namespace. Reading /proc/self/cgroup inside the container is insufficient because a cgroup namespace can make the namespace root appear as '/'."
+    },
+    {
+      "id": "F3",
+      "classification": "ARCHITECTURE_INFERENCE",
+      "finding": "If the resolved host cgroup is a dedicated container/subtree, cgroup-v2 counters can be candidate container-scope resource evidence subject to membership/coverage checks. If the resolved path is a shared parent/systemd scope, the same counters are only SUPERSET evidence: they include other processes/descendants and cannot certify container isolation or exact container resource use. If the path is root or controller files are unavailable, cgroup-scoped resource fields remain UNKNOWN."
+    },
+    {
+      "id": "F4",
+      "classification": "ARCHITECTURE_INFERENCE",
+      "finding": "systemd-cgls/systemd unit membership is useful as a topology/membership witness, not as a magic attribution oracle. A parent service/scope can prove that the payload is inside a known subtree, but shared-subtree counters remain causally ambiguous until unrelated members are excluded or a dedicated child cgroup is created for a future run."
+    },
+    {
+      "id": "F5",
+      "classification": "RETAINED_NEGATIVE_RESULT",
+      "finding": "The existing AgentCgroup donor rule remains correct: exit 137 alone is not OOM proof. memory.events oom/oom_kill can corroborate a cgroup-level OOM event, but under a shared parent it still cannot by itself identify which child caused the event."
+    }
+  ],
+  "bounded_native_design": {
+    "name": "CgroupWitness/v1-candidate",
+    "integration_class": "THIN_NATIVE_OBSERVATION_NO_SECOND_AUTHORITY",
+    "purpose": "Repair the epistemic gap around missing dedicated-container cgroup telemetry without importing AgentCgroup controller authority.",
+    "minimum_fields": [
+      "container_or_execution_identity",
+      "host_payload_pid",
+      "pid_identity_guard (start-time/pidfd-derived identity when implemented)",
+      "host_cgroup_path",
+      "cgroup_namespace_view=HOST_INITIAL|UNKNOWN",
+      "scope_class=DEDICATED_SUBTREE|SHARED_PARENT_SUPERSET|ROOT|UNRESOLVED",
+      "membership_snapshot_or_digest",
+      "metric_file",
+      "metric_semantics",
+      "metric_value",
+      "coverage_status=EXACT_CANDIDATE|SUPERSET|UNAVAILABLE|UNKNOWN",
+      "observed_at",
+      "provenance_ref"
+    ],
+    "safe_read_candidates": [
+      "/proc/<payload-pid>/cgroup",
+      "cgroup.procs/cgroup.threads or systemd-cgls membership snapshot",
+      "cgroup.events",
+      "cpu.stat",
+      "memory.current",
+      "memory.peak when present",
+      "memory.events and memory.events.local when present",
+      "io.stat when present",
+      "pids.current when present"
+    ],
+    "hard_rules": [
+      "No dedicated cgroup => do not claim container resource isolation.",
+      "Shared parent/scope counters => label SUPERSET, never exact container usage.",
+      "Inside-container cgroup path '/' => do not infer host root membership without host-side lookup.",
+      "Missing controller/interface => explicit UNKNOWN/UNAVAILABLE, never zero.",
+      "Observation never grants or changes budget/capability/effect authority.",
+      "No destructive cgroup mutation is required for this read-only witness path."
+    ]
+  },
+  "counterhypotheses": [
+    {
+      "statement": "Host-level memory/disk/uptime plus process RSS is already sufficient; cgroup recovery adds no useful promotion discriminator.",
+      "discriminator": "Compare whether a host/parent cgroup witness can establish a stable workload membership boundary and bounded CPU/memory/event counters that process-only telemetry cannot provide; reject the design if all available paths are shared/root and add no attribution."
+    },
+    {
+      "statement": "The correct fix is to force every future target run into a dedicated cgroup rather than add fallback observation semantics.",
+      "discriminator": "Treat dedicated-cgroup execution as the preferred future-run configuration when safe/authorized, but keep fallback witness semantics because current/legacy observations and cgroup-creation failures must remain representable without fabricated zeros or PASS."
+    }
+  ],
+  "next_high_information_discriminator": {
+    "owner": "Trigger4/authorized target-runtime lane",
+    "action": "On the next non-destructive target-VPS probe, obtain the running payload PID from Podman inspect, read host /proc/<pid>/cgroup, classify the path as dedicated/shared/root/unresolved, enumerate membership, and read only present cgroup-v2 resource files. Persist raw values plus scope/coverage semantics. Do not promote container isolation when scope is shared/root.",
+    "success": "A dedicated or uniquely bounded subtree is observed with stable membership and readable counters, yielding candidate container-scope telemetry.",
+    "bounded_partial": "A shared parent/systemd scope is observed; metrics are retained as SUPERSET evidence only.",
+    "failure_closed": "Host path cannot be resolved, points to root without useful controller files, membership is unstable/ambiguous, or permissions prevent reads => container cgroup telemetry remains UNKNOWN.",
+    "runtime_credit_now": 0
+  },
+  "promotion_decision": {
+    "E2_source_review": true,
+    "new_E5_build_candidate": false,
+    "reason": "The source review identifies a concrete discriminator and epistemic schema, but no target-runtime E3/E4 evidence has yet shown that the fallback produces unique reliable telemetry on the current VPS. Reusing the existing WP605/AgentCgroup E5 candidate remains preferable to minting a competing implementation lane.",
+    "whole_system_credit": 0,
+    "target_runtime_credit": 0,
+    "physical_grid10_credit": 0,
+    "gwt_jspace_credit": 0,
+    "training_credit": 0
+  }
+}
