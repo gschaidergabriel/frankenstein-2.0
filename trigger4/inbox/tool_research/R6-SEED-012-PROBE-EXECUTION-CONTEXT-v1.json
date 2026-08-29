@@ -1,0 +1,97 @@
+{
+  "schema": "FRANKENSTEIN2_TRIGGER4_TOOL_RESEARCH_HANDOFF/v1",
+  "candidate_id": "R6-SEED-012-PROBE-EXECUTION-CONTEXT-v1",
+  "research_id": "R6-SEED-012",
+  "status": "E5_BUILD_CANDIDATE_AWAITING_TRIGGER4_REVIEW_BUILD_TEST",
+  "created_at": "2026-08-29T22:35:00+07:00",
+  "producer": "GPT-5.6-Sol:Triggerword-6-organ",
+  "canonical_e5_result": {
+    "commit": "e8deb04886fab5677f7f8a220dda6d46731f497d",
+    "path": "research/tool_intelligence/deltas/R6-SEED-012_E5_BUILD_CANDIDATE_PROBE_EXECUTION_CONTEXT_20260829T2234P0700_GPT56SOL.json"
+  },
+  "source_pins": {
+    "external": {
+      "repo": "UKGovernmentBEIS/inspect_ai",
+      "commit": "3712507590dc4e6e678114194ac9844fd3a6fd6c",
+      "tree": "703fa9fd107962f98bdefe01b2b7c24d460a7609",
+      "license": "MIT",
+      "adoption": "PATTERN_ONLY"
+    },
+    "f2": {
+      "snapshot_main": "e5757fa74e4837537d10e4355f4cf85fa4ea2dfd",
+      "wp507_blob_sha": "f25c03d4e4e49c4fed44acd0c5c96edfb40f664e",
+      "wp510_blob_sha": "aa24abf742612240ef3acf117962fc03958f9787",
+      "wp510_generation": 3
+    }
+  },
+  "target_workpackages": ["F2-WP-507", "F2-WP-510"],
+  "target_modules": [
+    "src/frankenstein2/gwt_uptake.py",
+    "src/frankenstein2/gwt_causal_path.py",
+    "tests/test_gwt_uptake.py",
+    "tests/test_gwt_causal_path.py"
+  ],
+  "problem": "WP507 matched causal probes do not structurally bind the non-intervention execution context. Same probe_id and nonbroadcast_input_sha256 can be used across different runner/model/config/environment contexts; if outputs differ, current logic can attribute the difference to the broadcast intervention.",
+  "proposed_delta": {
+    "pattern": "typed shared ProbeExecutionContext + canonical digest",
+    "schema_hint": "FRANKENSTEIN2_GWT_PROBE_EXECUTION_CONTEXT/v1",
+    "construction_rule": "Both CausalProbeArm factories consume the same concrete typed context object and serialize its canonical digest. Do not expose a naked arbitrary digest as the only construction input.",
+    "matching_rule": "If intervention.execution_context_sha256 != control.execution_context_sha256, evaluate_causal_influence returns UNKNOWN_UNMATCHED_CONTROL.",
+    "wp510_rule": "Revalidate the WP507 context-bound arm/result chain; do not create a second context schema or authority.",
+    "intervention_boundary": "Broadcast identity is excluded from the shared context digest because it is the declared manipulated dimension."
+  },
+  "baseline_and_research_evidence": {
+    "e2": "research/tool_intelligence/deltas/R6-SEED-012_E2_ARCHITECTURE_MAPPED_INSPECT_AI_RUN_MANIFEST_20260829T2224P0700_GPT56SOL.json",
+    "e3": "research/tool_intelligence/deltas/R6-SEED-012_E3_MATCHED_CONTROL_EXECUTION_CONFIG_CONFOUND_20260829T2226P0700_GPT56SOL.json",
+    "e4": "research/tool_intelligence/deltas/R6-SEED-012_E4_EXECUTION_CONTEXT_PLACEMENT_ABLATION_20260829T2229P0700_GPT56SOL.json",
+    "e4_wp510_g3_review": "research/tool_intelligence/deltas/R6-SEED-012_E4_REVIEW_WP510_G3_656B57BD_20260829T2232P0700_GPT56SOL.json",
+    "e3_fixture": "research/tool_intelligence/experiments/r6_seed_012_matched_control_execution_context_v1.py",
+    "e4_fixture": "research/tool_intelligence/experiments/r6_seed_012_execution_context_placement_ablation_v1.py",
+    "reproduced_current_status_for_confounded_case": "CAUSAL_INFLUENCE_OBSERVED_AT_CONTRACT_SCOPE",
+    "expected_status_with_context_gate": "UNKNOWN_UNMATCHED_CONTROL"
+  },
+  "research_resource_measurements": {
+    "scope": "LOCAL_RESEARCH_ONLY_NOT_TARGET_RUNTIME",
+    "baseline_pair_bytes": 968,
+    "typed_shared_context_pair_plus_one_context_bytes": 1594,
+    "added_bytes": 626,
+    "typed_context_bytes": 438,
+    "digest_equality_ns_median": 37.30702500035932,
+    "context_sha256_us_median": 5.176630605000128,
+    "added_model_calls": 0,
+    "added_model_tokens": 0
+  },
+  "acceptance_tests": [
+    "Preregister/reproduce the existing confounded pair against exact pre-change WP507.",
+    "After candidate implementation, the same pair must become UNKNOWN_UNMATCHED_CONTROL solely because typed execution-context digests differ.",
+    "Equal typed execution contexts must preserve existing positive/no-causal/unknown semantics under all other current WP507 prerequisites.",
+    "Wrong or stale context generation/digest must fail closed.",
+    "Factories must reject nominal or malformed context values according to the current exact-type/factory ABI style.",
+    "Broadcast intervention identity must remain outside the shared context digest.",
+    "WP510 G3 NOT_COMPUTED positive-seal fence must remain intact.",
+    "All existing WP507 and WP510 tests/CI must pass at successor scope.",
+    "No added model calls/tokens. Measure storage bytes, hash/validation p50/p95/p99, CPU/RSS/I/O on the admitted Trigger4 surface."
+  ],
+  "falsifiers": [
+    "Current exact source already has a mandatory typed execution-context object consumed and compared across both arms; if found, reject duplicate implementation and reuse it.",
+    "Equivalent negative regression fails to reproduce on the exact current predecessor source; if so, stop and reconcile before implementation.",
+    "Typed context cannot exclude the intervention dimension without losing required confound identity; if so, redesign rather than weakening matching."
+  ],
+  "risks": [
+    "Overbinding stochastic or intentionally variable dimensions could turn legitimate experiments into UNKNOWN.",
+    "Underbinding runner/model/config/environment dimensions preserves the confound.",
+    "Duplicating a context object in WP507 and WP510 would create drift/second-authority risk.",
+    "A context digest proves declared field equality only, not world truth or hidden-state causality."
+  ],
+  "required_trigger4_output": "trigger4/outcomes/tool_research/R6-SEED-012-PROBE-EXECUTION-CONTEXT-v1.json",
+  "credits": {
+    "e5_research_candidate": 1,
+    "e6_f2_accepted": 0,
+    "integration_credit": 0,
+    "target_runtime_credit": 0,
+    "physical_grid10_credit": 0,
+    "gwt_runtime_credit": 0,
+    "jspace_runtime_credit": 0,
+    "whole_system_credit": 0
+  }
+}
