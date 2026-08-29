@@ -67,6 +67,8 @@ SUBJECT_ALIASES = {
     "qwen3-tts-12hz-size-ab": "QWEN3_TTS_12HZ_0_6B_VS_1_7B",
     "magpietts-multilingual-357m": "MAGPIETTS_MULTILINGUAL_357M",
     "nvidia-magpietts-multilingual-357m": "MAGPIETTS_MULTILINGUAL_357M",
+    "supertonic-3": "SUPERTONIC_3_99M",
+    "supertone-supertonic-3": "SUPERTONIC_3_99M",
 }
 
 EVIDENCE_SCOPE_ALIASES = {
