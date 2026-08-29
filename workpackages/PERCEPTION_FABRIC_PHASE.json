@@ -1,0 +1,103 @@
+{
+  "schema": "FRANKENSTEIN2_PERCEPTION_FABRIC_PHASE/v1",
+  "status": "PROJECT_OWNER_REQUIRED_BUILD_PLAN",
+  "date": "2026-08-29",
+  "architecture_contract": "architecture/PERCEPTION_FABRIC.md",
+  "build_split": {
+    "vps_side_goal": "finish contracts, deterministic control, scheduling, world-model fusion, bridge semantics, fixtures, CI and release wiring so local Claude Code/Opus integration is primarily real hardware/OS binding plus acceptance",
+    "local_final_goal": "bind actual sensors/permissions/dashboard and execute hardware acceptance without inventing new architecture"
+  },
+  "reference_limits": {
+    "max_active_cortex_workers": 4,
+    "minimum_active_cortex_workers": 0,
+    "source_count": "0..N",
+    "default_generic_vlm_calls": 0,
+    "default_raw_frame_persistence": 0
+  },
+  "workpackages": [
+    {
+      "id": "F2-WP-707",
+      "title": "PerceptionSource + PerceptionCapability + immutable permission snapshot",
+      "acceptance": [
+        "per-source SEE/ANALYZE/MEMORY/RAW_RETENTION/REMOTE_FRAME/EXTERNAL_VLM represented",
+        "snapshot has exact digest/generation/provenance",
+        "revoked or stale snapshot cannot authorize new work"
+      ]
+    },
+    {
+      "id": "F2-WP-708",
+      "title": "ObserveIntent and VisualNeed binding",
+      "acceptance": [
+        "VisualNeed can compile to bounded ObserveIntent without performing capture",
+        "intent binds source, ROI, heads, freshness, deadline, priority, compute ceiling and permission digest",
+        "intent has no truth/effect/completion authority"
+      ]
+    },
+    {
+      "id": "F2-WP-709",
+      "title": "RetinaCaptureBroker single-owner/multiple-reader contract",
+      "acceptance": [
+        "one capture owner per source",
+        "bounded in-memory references/ring",
+        "no unbounded queue growth",
+        "consumer fan-out cannot reopen/contend for underlying source"
+      ]
+    },
+    {
+      "id": "F2-WP-710",
+      "title": "Dynamic Retina/Cortex worker scheduler 0..4",
+      "acceptance": [
+        "0..4 active analysis slots selected under explicit compute policy",
+        "source count independent of worker count",
+        "stale low-value work coalesced/dropped under backpressure",
+        "perception cannot exceed cognitive envelope ceilings"
+      ]
+    },
+    {
+      "id": "F2-WP-711",
+      "title": "Temporal ObservationWindow and cross-source fusion",
+      "acceptance": [
+        "source-local monotonic ordering preserved",
+        "freshness and clock-domain/skew metadata explicit",
+        "stale observations cannot silently become current world state",
+        "multi-view disagreement preserved"
+      ]
+    },
+    {
+      "id": "F2-WP-712",
+      "title": "PerceptionWorldBridge typed events / ObserveIntent return path",
+      "acceptance": [
+        "typed percept events are default bridge payload",
+        "raw/ROI bridge requires REMOTE_FRAME capability",
+        "VLM path additionally requires EXTERNAL_VLM capability",
+        "bridge loss degrades without corrupting local identity or fabricating observations"
+      ]
+    },
+    {
+      "id": "F2-WP-713",
+      "title": "Dashboard capability plane and PerceptionAuditReceipt contract",
+      "acceptance": [
+        "dashboard can pause all Retina and revoke each capability per source",
+        "live worker/source/reason visibility",
+        "auditable permission snapshot and observation execution receipts",
+        "raw keylogging/clipboard/password capture excluded from baseline"
+      ]
+    },
+    {
+      "id": "F2-WP-714",
+      "title": "Perception Fabric sustained multi-source acceptance",
+      "acceptance": [
+        "four permissioned sources represented concurrently",
+        "0..4 workers adapt dynamically",
+        "zero generic VLM calls in normal test",
+        "zero raw-frame persistence under default policy",
+        "bounded RAM/queues",
+        "world model receives typed epistemic/time/source provenance",
+        "GRID10-triggered re-look works",
+        "permission revocation invalidates outstanding intent",
+        "cognition remains within resource/latency envelope"
+      ]
+    }
+  ],
+  "completion_law": "Frankenstein 2.0 perception integration is incomplete if final local Claude Code/Opus work must invent permission, scheduling, epistemic, temporal-fusion, world-model or bridge semantics rather than only bind host-specific sensors/permissions and verify them."
+}
