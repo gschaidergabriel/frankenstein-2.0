@@ -77,6 +77,8 @@ SUBJECT_ALIASES = {
     "chatterbox-multilingual-v3": "CHATTERBOX_MULTILINGUAL_V3_500M",
     "resembleai-chatterbox-multilingual-v3": "CHATTERBOX_MULTILINGUAL_V3_500M",
     "chatterbox-multilingual-v3-500m": "CHATTERBOX_MULTILINGUAL_V3_500M",
+    "canary-180m-flash": "CANARY_180M_FLASH",
+    "nvidia-canary-180m-flash": "CANARY_180M_FLASH",
 }
 
 EVIDENCE_SCOPE_ALIASES = {
