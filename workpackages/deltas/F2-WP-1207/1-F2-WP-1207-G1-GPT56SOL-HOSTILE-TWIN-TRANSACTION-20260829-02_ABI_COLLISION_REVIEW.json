@@ -1,0 +1,52 @@
+{
+  "schema": "FRANKENSTEIN2_WORKPACKAGE_DELTA/v1",
+  "workpackage_id": "F2-WP-1207",
+  "generation": 1,
+  "claim_id": "F2-WP-1207-G1-GPT56SOL-HOSTILE-TWIN-TRANSACTION-20260829",
+  "worker_id": "GPT-5.6-Sol-TRIGGER4",
+  "kind": "REVIEW_ONLY",
+  "recorded_date": "2026-08-29",
+  "authority_epoch": "8.78",
+  "observed_main_before_write": "57b28caa17d367d5ff8b6c4252cd801019c573bf",
+  "active_pointer_path": "workpackages/active/F2-WP-1207.json",
+  "active_pointer_blob_sha": "ebe37410fed3574e72931c1170f9f2c7a8cfd05f",
+  "canonical_main_candidate": {
+    "source": "src/frankenstein2/portable_release_transaction.py",
+    "source_blob_sha": "a248d6ded9fd90f34f7e6763fe30948fc58af6e6",
+    "test": "tests/test_portable_release_transaction.py",
+    "test_blob_sha": "719716a42ed5e26307529a864c5117eb27f82c11",
+    "workflow": ".github/workflows/wp1207-portable-release-transaction-ci.yml",
+    "workflow_blob_sha": "2d915826503024237c5cf1ed5632cf8097721396"
+  },
+  "competing_closed_candidate": {
+    "pr": 444,
+    "state": "CLOSED_UNMERGED",
+    "head": "49a556e0996e0a92e08e05fc3a6b8fd9e2fadccc",
+    "branch": "chatgpt/wp1207-hostile-twin-transaction-20260829",
+    "source_blob_sha": "6df8ba6134c7c6930898966ee9742a7fd72240cd",
+    "test_blob_sha": "0c0cb2ce0f667a52b84afb537f0f49146f7608e6",
+    "workflow_runs_observed_for_head": 0
+  },
+  "observation": {
+    "status": "ABI_DIVERGENCE_AND_RELEASE_READBACK_GAP",
+    "detail": "The closed unmerged PR candidate and current-main candidate expose incompatible transaction APIs. Current main record_attempt binds plan digest, outcome, observed generation and observed state SHA-256, but its receipt/signature has no observed active release identity. Therefore a SUCCEEDED receipt can prove the next state generation was observed while still being unable to prove that the planned target release/ZIP is the release actually active on the hostile twin.",
+    "scope_boundary": "This is a source-level acceptance gap for promoting the current receipt into hostile-twin release/readback evidence. It does not create a runtime failure claim and does not grant or revoke physical-host, T1-T4, runtime, effect, completion, GRID, GWT, J-Space or training credit by itself."
+  },
+  "counterexample": {
+    "precondition": "A valid current-main TransactionPlan exists for target release R_target and next_generation=N+1.",
+    "admitted_input_shape": "record_attempt(plan, outcome='SUCCEEDED', observed_generation=N+1, observed_state_sha256=<any valid 64-hex observed state digest>)",
+    "missing_discriminator": "No observed_active_release_digest or observed_artifact_sha256 parameter is available to compare against plan.target_release_digest.",
+    "false_promotion_risk": "A later consumer could mistake SUCCEEDED for verified activation of R_target although the receipt cannot establish that fact."
+  },
+  "evidence_state": {
+    "source_observed": true,
+    "branch_candidate_observed": true,
+    "pr_closed_unmerged_observed": true,
+    "repository_ci_success_observed_for_current_main_candidate": false,
+    "hostile_twin_execution_observed": false,
+    "physical_target_execution_observed": false,
+    "whole_system_acceptance": false
+  },
+  "decision": "Do not merge/revive PR 444 merely because it is internally coherent. Treat current main as the operative source candidate by current-source precedence, preserve PR 444 as historical/candidate evidence, and keep F2-WP-1207 generation 1 ACTIVE until exact current-main CI plus a release-readback discriminator are present and a bounded reconciliation is written.",
+  "next_exact_action": "Add a fail-closed release-readback binding to the current-main WP1207 candidate so SUCCEEDED requires observed active release identity matching plan.target_release_digest (or an admitted stronger artifact/manifest identity), add a negative test where state generation/hash are correct but the active release identity is wrong, run exact-source repository CI, then reconcile component scope. Full WP1207 remains open until the exact release ZIP is exercised through the hostile twin with readback at the declared fidelity."
+}
