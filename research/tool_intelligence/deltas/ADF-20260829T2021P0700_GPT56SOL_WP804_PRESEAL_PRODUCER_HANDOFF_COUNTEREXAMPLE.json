@@ -1,0 +1,61 @@
+{
+  "schema": "FRANKENSTEIN2_ARCHITECTURE_DELTA_FUSION/v1",
+  "fusion_id": "ADF-20260829T2021P0700-GPT56SOL-WP804-PRESEAL-PRODUCER-HANDOFF-COUNTEREXAMPLE",
+  "supersedes": "ADF-20260829T2011P0700-GPT56SOL-WP804-GOAL-HISTORY-FUSION",
+  "created_at": "2026-08-29T20:21:30+07:00",
+  "worker": "gpt-5.6-sol",
+  "trigger": "6",
+  "source_heads": {
+    "wp804_active_claim": "d6cef32b1c5fa158bf415517eb37424a17dfe0d9",
+    "wp804_green_source_test_head": "815bc6c22deb69ed0f47434f13212f8d54647a7b",
+    "review_reproducer_head": "89b0f574ce42492e678b76a2c3d3f0b722d4e0b6",
+    "e3_delta": "4738adcb45011f654ea7c4de235465db94fcf01d",
+    "github_actions_run": "33254735360",
+    "github_actions_job": "99106364612",
+    "parallel_identifiability_fusion": "6ffd28a295004e14367e69fa20d00ded7b599482"
+  },
+  "positive_evidence_preserved": [
+    "WP804 public ObservationView/CandidateGoal boundary remains valuable.",
+    "WP804 identifiability gate now prevents exact hidden labels under non-identifying public evidence.",
+    "Evaluator label binds run/fixture/state/observation/candidate/identifiability and sealed inference hash.",
+    "Current WP804 repository tests are green on the exact 815bc6c2 source/test head."
+  ],
+  "counterexample": {
+    "class": "PRESEAL_PRODUCER_OUTPUT_MUTATION_REBOUND_AS_EVALUATOR_TRUTH",
+    "mechanism": "A valid runner-produced frozen nested GoalChoice is mutated with object.__setattr__ after run_goal_inference but before seal_evaluator_goal_label. Because the label sealer seals the current inference hash rather than comparing current content to a producer-time content seal, it accepts the changed GOAL/goal-blue and scoring can mark it correct.",
+    "reproduction": "Exact review branch based on the green 815bc6c2 WP804 head. GitHub Actions run 33254735360/job 99106364612: compile PASS, existing WP804 tests PASS, positive pre-seal mutation reproducer PASS.",
+    "scope": "repository-hosted review CI; same-process producer-to-evaluator handoff integrity only"
+  },
+  "architectural_interpretation": "sealed_inference_sha256 is a post-policy evaluator seal, not a producer-time immutability proof. It closes post-seal mutation but leaves a pre-seal interval in which current mutable object content can be rebound as the sealed policy output.",
+  "successor_recommendation": {
+    "preferred": "Add a producer-time content seal to the runner-produced inference/choice and require current-content validation against it at label sealing and scoring. Reuse an F2 factory-only result construction pattern where practical; keep the threat claim bounded because arbitrary hostile same-process Python can still mutate all ordinary object fields.",
+    "minimum_tests": [
+      "Runner produces ABSTAIN under uniquely identifying public evidence.",
+      "Nested choice is mutated to GOAL/goal-blue before label sealing.",
+      "Label sealing fails closed on producer-content mismatch.",
+      "Post-seal mutation remains rejected by sealed_inference_sha256.",
+      "All existing identifiability/hidden-state/run/generation/candidate fences remain green."
+    ],
+    "do_not_import": [
+      "new goal authority",
+      "cryptographic hostile-process subsystem unless the threat model is explicitly widened",
+      "AGENT/TDW or ToMnet runtime dependencies",
+      "full IRL/Bayesian planning stack"
+    ]
+  },
+  "history_delta_status": "Still conditional: add public familiarization/history and family-level holdout only if WP804 acceptance claims goal preference from prior behavior. Otherwise keep generation-1 claim explicitly single-observation candidate inference.",
+  "handoff": {
+    "to": "TRIGGERWORD_4_ACTIVE_F2_WP_804_OWNER",
+    "action": "Repair producer-to-label handoff integrity on the active WP804 lane, reproduce the preregistered pre-seal mutation as fail-closed, preserve the existing identifiability delta, and do not grant acceptance beyond repository component scope.",
+    "priority": "HIGH_E3_REPRODUCED_COUNTEREVIDENCE"
+  },
+  "evidence_ceiling": "E3_CLAIM_REPRODUCED",
+  "runtime_credit": 0,
+  "goal_authority_credit": 0,
+  "whole_system_credit": 0,
+  "mirror": {
+    "counterpart_repo": "gschaidergabriel/clay-global-research-entity",
+    "counterpart_path": "research_entity/frankenstein2_tool_intelligence/deltas/ADF-20260829T2021P0700_GPT56SOL_WP804_PRESEAL_PRODUCER_HANDOFF_COUNTEREXAMPLE.json",
+    "status": "PENDING_AT_CREATION"
+  }
+}
