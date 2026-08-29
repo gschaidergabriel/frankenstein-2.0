@@ -16,7 +16,7 @@ from frankenstein2.target_userspace_twin import (
 )
 
 
-def _command_runner(argv):
+def _command_runner(argv, *, overrides=None):
     values = {
         ("uname", "-r"): "6.8.0-target",
         ("uname", "-m"): "x86_64",
@@ -24,28 +24,46 @@ def _command_runner(argv):
         ("pipewire", "--version"): "pipewire 1.0",
         ("wireplumber", "--version"): "wireplumber 0.5",
     }
+    if overrides:
+        values.update(overrides)
     key = tuple(argv)
     if key in values:
         return True, values[key], ""
     return False, "", "TEST_NOT_OBSERVED"
 
 
-def _file_reader(path):
+def _file_reader(path, *, os_release="Ubuntu 24.04.3 LTS"):
     if path == "/etc/os-release":
-        return True, "Ubuntu 24.04.3 LTS", ""
+        return True, os_release, ""
     return False, "", "TEST_NOT_OBSERVED"
 
 
-def _profile():
+def _profile(*, fields=None):
+    fields = {} if fields is None else dict(fields)
+    command_overrides = {}
+    command_bindings = {
+        "kernel_release": ("uname", "-r"),
+        "architecture": ("uname", "-m"),
+        "systemd_user": ("systemctl", "--user", "is-system-running"),
+        "pipewire_version": ("pipewire", "--version"),
+        "wireplumber_version": ("wireplumber", "--version"),
+    }
+    for field, argv in command_bindings.items():
+        if field in fields:
+            command_overrides[argv] = fields[field]
     return collect_target_host_profile(
         generation=7,
-        command_runner=_command_runner,
-        file_reader=_file_reader,
+        command_runner=lambda argv: _command_runner(
+            argv, overrides=command_overrides
+        ),
+        file_reader=lambda path: _file_reader(
+            path, os_release=fields.get("os_release", "Ubuntu 24.04.3 LTS")
+        ),
         environ={
-            "XDG_SESSION_TYPE": "wayland",
+            "XDG_SESSION_TYPE": fields.get("session_type", "wayland"),
             "XDG_CURRENT_DESKTOP": "GNOME",
         },
-        collector_uid=1000,
+        collector_uid=int(fields.get("uid", 1000)),
     )
 
 
@@ -160,6 +178,11 @@ class TargetUserspaceTwinTests(unittest.TestCase):
         right = build_t1_userspace_plan(reordered)
         self.assertEqual(left.as_dict(), right.as_dict())
         self.assertEqual(left.sha256(), right.sha256())
+
+    def test_control_characters_in_observed_target_fields_fail_closed(self):
+        profile = _profile(fields={"session_type": "wayland\nspoofed"})
+        with self.assertRaises(TargetUserspaceTwinError):
+            build_t1_userspace_plan(profile)
 
     def test_profile_json_must_be_an_object(self):
         with self.assertRaises(TargetUserspaceTwinError):
