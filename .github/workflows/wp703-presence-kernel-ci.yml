@@ -1,0 +1,38 @@
+name: F2 WP703 Presence Kernel CI
+
+on:
+  push:
+    branches:
+      - main
+      - trigger4/wp703-presence-kernel-20260829
+    paths:
+      - 'src/frankenstein2/presence_kernel.py'
+      - 'src/frankenstein2/epistemic_perception.py'
+      - 'tests/test_presence_kernel.py'
+      - '.github/workflows/wp703-presence-kernel-ci.yml'
+  pull_request:
+    paths:
+      - 'src/frankenstein2/presence_kernel.py'
+      - 'src/frankenstein2/epistemic_perception.py'
+      - 'tests/test_presence_kernel.py'
+      - '.github/workflows/wp703-presence-kernel-ci.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  deterministic:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Compile
+        run: python -m py_compile src/frankenstein2/presence_kernel.py tests/test_presence_kernel.py
+      - name: Presence freshness and multi-source conflict falsification suite
+        env:
+          PYTHONPATH: src
+        run: python tests/test_presence_kernel.py -v

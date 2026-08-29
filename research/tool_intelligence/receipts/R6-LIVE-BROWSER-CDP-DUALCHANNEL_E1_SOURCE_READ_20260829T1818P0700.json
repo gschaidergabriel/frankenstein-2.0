@@ -1,0 +1,58 @@
+{
+  "schema": "FRANKENSTEIN2_TRIGGER6_EVIDENCE_RECEIPT/v1",
+  "research_id": "R6-LIVE-BROWSER-CDP-DUALCHANNEL",
+  "evidence_stage": "E1_SOURCE_READ",
+  "status": "COMPLETED_NO_ARCHITECTURE_PROMOTION",
+  "completed_at": "2026-08-29T18:18:00+07:00",
+  "worker": "gpt-5.6-sol",
+  "claim": {
+    "path": "research/tool_intelligence/claims/R6-LIVE-BROWSER-CDP-DUALCHANNEL/E1_SOURCE_READ.json",
+    "claim_commit": "d28067028a517dcdde24390eaa4a0c9894b1f47c"
+  },
+  "architecture_snapshot": {
+    "f2_head_before_claim": "b1cbfb3ba6d5e8d260ca7ec0e00e751ac307b428",
+    "f2_reentry_head_before_receipt": "276a6d246d1de10a5ff0d6872693d085fbc1bdd9",
+    "research_entity_head_observed": "d9d4fea68eafe7148678f003b932f7bfbbf34acc",
+    "current_perception_channels": ["camera/front", "display/1", "browser/rendered", "browser/structural"],
+    "existing_f2_mechanisms_observed": ["single-owner capture broker", "bounded queues/drop accounting", "clock-domain/uncertainty temporal fusion", "local physical-acceptance boundary"]
+  },
+  "source_pins": [
+    {
+      "source": "ChromeDevTools/devtools-protocol",
+      "commit": "ea39a11d80de9a08ce2af03f52125ed2e462cf84",
+      "path": "pdl/domains/Page.pdl",
+      "finding": "Tip-of-tree Page.startScreencast is experimental and emits compressed images through Page.screencastFrame; the frame event carries an integer sessionId documented as the frame number and is paired with screencastFrameAck."
+    },
+    {
+      "source": "Chrome DevTools Protocol official Page domain",
+      "finding": "Page.startScreencast can bound image format/quality/width/height and everyNthFrame, giving a direct source for browser/rendered capture without importing a full automation framework."
+    },
+    {
+      "source": "Chrome DevTools Protocol official DOMSnapshot domain",
+      "finding": "DOMSnapshot.captureSnapshot returns a flattened document snapshot including DOM tree, iframes/template/imported documents, layout and selected computed-style data; DocumentSnapshot exposes frameId, providing a structural browser channel with frame provenance."
+    },
+    {
+      "source": "Chrome DevTools Protocol official Target domain",
+      "finding": "Target.attachToTarget(targetId, flatten=true) returns a string Target.SessionID used to route commands in flat mode, providing a target/session anchor for rendered and structural operations."
+    },
+    {
+      "source": "Chrome DevTools Protocol official version guidance",
+      "finding": "Tip-of-tree changes frequently and has no guaranteed backwards compatibility; stable 1.3 is a much smaller Chrome-64-era subset and does not expose Page.startScreencast. Any F2 adapter must bind browser/protocol identity instead of assuming a timeless CDP ABI."
+    }
+  ],
+  "critical_identity_finding": "CDP has two semantically different fields that can both look like session identity: Target.SessionID is a string debugging-session identifier, while Page.screencastFrame.sessionId is an integer frame number. F2 must name them separately (for example cdp_target_session_id and cdp_screencast_frame_id) to avoid provenance aliasing.",
+  "hypothesis_result": "SUPPORTED_AT_E1_SOURCE_LEVEL",
+  "result": "A thin CDP adapter is source-plausible for the already-required browser/rendered and browser/structural Perception Fabric channels. One attached target/session can issue Page and DOMSnapshot commands, while target/frame identities can be carried as non-authoritative provenance. This does not establish temporal simultaneity, runtime performance, browser-version compatibility, or F2 integration acceptance.",
+  "counterhypotheses": [
+    "Screencast and DOM snapshot observations may refer to measurably different page states under fast mutation; shared target/session identity is not proof of simultaneity.",
+    "Experimental Page.startScreencast may change or disappear across Chromium revisions and may be less stable than periodic Page.captureScreenshot.",
+    "DOMSnapshot.captureSnapshot may be too heavy for the desired structural cadence; a thinner DOM/accessibility projection could be cheaper.",
+    "A browser automation framework could handle compatibility/reconnect semantics more robustly, but would add dependency and control-plane weight that may duplicate F2 authority/routing."
+  ],
+  "next_discriminator": "Acquire a separate E2_ARCHITECTURE_MAPPED claim and map the smallest CDP BrowserCaptureAdapter contract against current F2 capture/temporal/local-acceptance source, explicitly testing identity separation, navigation/reconnect, dual-channel skew semantics, and dependency weight before any build candidate.",
+  "research_evidence_credit": "E1_SOURCE_READ_ONLY",
+  "architecture_credit": 0,
+  "runtime_credit": 0,
+  "physical_browser_capture_credit": 0,
+  "whole_system_credit": 0
+}

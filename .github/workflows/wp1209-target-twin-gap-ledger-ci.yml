@@ -1,0 +1,34 @@
+name: WP1209 Target Twin Gap Ledger CI
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'src/frankenstein2/target_twin_gap_ledger.py'
+      - 'tests/test_target_twin_gap_ledger.py'
+      - '.github/workflows/wp1209-target-twin-gap-ledger-ci.yml'
+  pull_request:
+    paths:
+      - 'src/frankenstein2/target_twin_gap_ledger.py'
+      - 'tests/test_target_twin_gap_ledger.py'
+      - '.github/workflows/wp1209-target-twin-gap-ledger-ci.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Compile source
+        run: python -m compileall -q src/frankenstein2/target_twin_gap_ledger.py tests/test_target_twin_gap_ledger.py
+      - name: Run fail-closed twin-gap ledger suite
+        env:
+          PYTHONPATH: src
+        run: python -m unittest discover -s tests -p 'test_target_twin_gap_ledger.py' -v

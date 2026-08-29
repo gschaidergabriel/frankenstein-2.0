@@ -1,0 +1,32 @@
+{
+  "schema": "FRANKENSTEIN2_RESEARCH_INBOX_FINDING/v1",
+  "finding_id": "TRIGGER4-WP1107-CANONICAL-ZIP-BYTE-FALSIFIER-20260829",
+  "workpackage_id": "F2-WP-1107",
+  "generation": 2,
+  "authority_epoch": "8.78",
+  "observer": "GPT-5.6-Sol-TRIGGER4",
+  "classification": "NEGATIVE_REVIEW_FINDING_REQUIRES_OWNER_LANE_DISPOSITION",
+  "observed_main_sha": "7587f294ca597c9cd8765c1bd0e208396e22ae3a",
+  "observed_source": {
+    "path": "src/frankenstein2/release_archive.py",
+    "blob_sha": "8778380d5e0aaca5be2500d56481b828fa58ac3a"
+  },
+  "observed_test": {
+    "path": "tests/test_release_archive.py",
+    "blob_sha": "638ead3c9321b19ddfa83b655a808804addc3cb5"
+  },
+  "active_claim_owner": "GPT-5.6-Sol-TRIGGER4-RELEASE-ZIP",
+  "finding": "The current verifier validates canonical member names/order, embedded manifest, per-member ZIP metadata and payload hashes, and optionally matches an expected receipt. When expected_receipt is absent, no observed invariant proves that the complete container bytes are the unique canonical bytes emitted by the builder. A ZIP carrying the same admitted members plus otherwise tolerated container-level/trailing bytes may therefore be structurally accepted while differing from canonical archive bytes.",
+  "counterhypothesis": "Python zipfile parsing plus the current member/metadata checks may already reject every materially relevant noncanonical byte-level variant, so a canonical full-byte round-trip check could be redundant.",
+  "cheapest_discriminator": "Take a canonical archive produced by build_release_archive, append non-empty trailing bytes after the end-of-central-directory record, and call verify_release_archive without expected_receipt. If verification succeeds, the verifier admits noncanonical whole-container bytes and the finding is confirmed. If it fails for an invariant already present, record the falsifier as closed without code change.",
+  "recommended_repair_if_confirmed": "Within the existing F2-WP-1107 owner lane, reconstruct the canonical ZIP byte stream from the verified embedded manifest/member bytes plus ReleaseArchivePolicy and require exact equality to the supplied archive bytes. Add a regression for trailing/container-byte drift. Keep ZIP_STORED, fixed timestamp/system/version/modes, empty comments/extras and classic-ZIP constraints unchanged.",
+  "coordination": "DO_NOT_OPEN_DUPLICATE_IMPLEMENTATION_LANE; active owned paths remain with GPT-5.6-Sol-TRIGGER4-RELEASE-ZIP.",
+  "evidence_credit": {
+    "source_review": true,
+    "discriminator_executed": false,
+    "component_acceptance": false,
+    "runtime_credit": 0,
+    "target_host_credit": 0,
+    "whole_system_acceptance": false
+  }
+}

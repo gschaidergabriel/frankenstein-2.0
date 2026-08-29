@@ -190,7 +190,7 @@ def test_policy_route_set_and_bounds_are_validated_deterministically():
     with pytest.raises(DirectDelegateRouterError, match="at least one route"):
         make_policy(allowed_routes=())
 
-    with pytest.raises(DirectDelegateRouterError, match="allowed_routes must be a subset"):
+    with pytest.raises(DirectDelegateRouterError, match="allowed_routes item is invalid"):
         make_policy(allowed_routes=(DIRECT_SMALL, "EXECUTE_EFFECT"))
 
     with pytest.raises(DirectDelegateRouterError, match="max_direct_work_units"):
@@ -201,3 +201,47 @@ def test_policy_route_set_and_bounds_are_validated_deterministically():
             max_direct_context_tokens=1,
             provenance_refs=("policy-source:1",),
         )
+
+
+class EqualityBypassStr(str):
+    """Forged scalar text whose overloaded equality claims every value matches."""
+
+    def __eq__(self, other):
+        return True
+
+    def __ne__(self, other):
+        return False
+
+    __hash__ = str.__hash__
+
+
+def test_scalar_string_subtype_cannot_split_request_and_cycle_identity():
+    """Absorb executable REVIEW_ONLY PR #333 as a permanent G2 regression."""
+
+    cycle = make_cycle()
+    request = make_request(cycle)
+    with pytest.raises(DirectDelegateRouterError):
+        replace(
+            request,
+            cycle_contract_id=EqualityBypassStr("cycle-contract-forged-not-current"),
+            cycle_contract_sha256=EqualityBypassStr("0" * 64),
+        )
+
+
+def test_scalar_string_subtypes_fail_closed_across_semantic_boundaries():
+    cycle = make_cycle()
+    request = make_request(cycle)
+    candidate = route_task(cycle_contract=cycle, request=request, policy=make_policy())
+
+    cases = (
+        lambda: replace(request, schema=EqualityBypassStr("FORGED_REQUEST_SCHEMA")),
+        lambda: replace(request, task_id=EqualityBypassStr("forged-task")),
+        lambda: replace(request, task_sha256=EqualityBypassStr("0" * 64)),
+        lambda: replace(request, provenance_refs=(EqualityBypassStr("forged-ref"),)),
+        lambda: make_policy(allowed_routes=(EqualityBypassStr("EXECUTE_EFFECT"),)),
+        lambda: replace(candidate, classification=EqualityBypassStr("EFFECT_AUTHORITY")),
+        lambda: replace(candidate, selected_route=EqualityBypassStr("EXECUTE_EFFECT")),
+    )
+    for build in cases:
+        with pytest.raises(DirectDelegateRouterError):
+            build()

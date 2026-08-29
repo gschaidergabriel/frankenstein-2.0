@@ -1,0 +1,29 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://frankenstein2.local/schemas/TARGET_OBLIGATION.schema.json",
+  "title": "Frankenstein 2.0 Target Obligation",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema", "obligation_id", "target_profile_digest", "scope", "description", "preconditions", "action", "expected_observation", "positive_probe", "counterevidence_probes", "restart_requirements", "fault_scenarios", "minimum_fidelity", "physical_required", "status", "evidence_refs"],
+  "properties": {
+    "schema": {"const": "FRANKENSTEIN2_TARGET_OBLIGATION/v1"},
+    "obligation_id": {"type": "string", "minLength": 1},
+    "target_profile_digest": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "scope": {"type": "string", "minLength": 1},
+    "description": {"type": "string", "minLength": 1},
+    "preconditions": {"type": "array", "items": {"type": "string"}},
+    "action": {"type": "string", "minLength": 1},
+    "expected_observation": {"type": "string", "minLength": 1},
+    "positive_probe": {"type": "object", "additionalProperties": true},
+    "counterevidence_probes": {"type": "array", "minItems": 1, "items": {"type": "object", "additionalProperties": true}},
+    "restart_requirements": {"type": "array", "items": {"type": "string"}},
+    "fault_scenarios": {"type": "array", "items": {"type": "string"}},
+    "minimum_fidelity": {"enum": ["T0_CONTRACT", "T1_UBUNTU_USERSPACE", "T2_DEVICE_SESSION_FAULT_TWIN", "T3_TARGET_TRACE_REPLAY", "T4_PHYSICAL"]},
+    "physical_required": {"type": "boolean"},
+    "status": {"enum": ["NOT_RUN", "PASS", "FAIL", "UNKNOWN", "BLOCKED"]},
+    "evidence_refs": {"type": "array", "items": {"type": "string"}},
+    "observed_at": {"type": ["string", "null"], "format": "date-time"},
+    "observed_target_generation": {"type": ["integer", "null"], "minimum": 1},
+    "notes": {"type": "array", "items": {"type": "string"}}
+  }
+}

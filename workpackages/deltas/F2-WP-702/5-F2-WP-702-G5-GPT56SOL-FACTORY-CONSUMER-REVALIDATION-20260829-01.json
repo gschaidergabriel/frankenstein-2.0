@@ -1,0 +1,51 @@
+{
+  "schema": "FRANKENSTEIN2_WORKPACKAGE_DELTA/v1",
+  "workpackage_id": "F2-WP-702",
+  "generation": 5,
+  "claim_id": "F2-WP-702-G5-GPT56SOL-FACTORY-CONSUMER-REVALIDATION-20260829",
+  "worker_id": "GPT-5.6-Sol",
+  "state": "IMPLEMENTED_AWAITING_HOSTED_CI",
+  "authority_epoch": "8.78",
+  "claim_commit": "efcdd333e0a4ba773ca6d755462fe3dc5c426fd6",
+  "branch": "trigger4/wp702-g5-factory-consumer-revalidation-20260829",
+  "counterevidence_absorbed": [
+    "research/tool_intelligence/deltas/ADF-20260829T1834P0700_GPT56SOL_WP702_G4_ORIGIN_SENTINEL_COUNTEREXAMPLE.json",
+    "PR402 run 33250180946 job 99094413933 module-origin-reuse",
+    "PR402 run 33250180946 job 99094413811 post-evaluation-content-drift"
+  ],
+  "implementation": [
+    "PerceptionControlResult now uses dataclass(init=False) with an always-failing ordinary constructor; the G4 caller-readable module origin sentinel is removed.",
+    "evaluate_perception_head now produces all result variants through one module-private object.__new__ producer and validates produced field invariants before return.",
+    "validate_perception_control_result requires an externally latched exact result SHA-256, exact current registry SHA-256 and concrete current objects before authority-relevant result fields are consumed.",
+    "Consumer validation re-derives current policy digest, compute blockers, OFF-tier semantics, transitive memory/persistence permissions and expected reason; recomputing a digest over drifted fields cannot self-authorize semantic escalation.",
+    "Canonical regressions absorb ordinary direct construction, dataclasses.replace, module-token reuse removal, post-evaluation digest drift, recomputed-digest policy forgery, registry mismatch and current-policy semantic drift."
+  ],
+  "scope_caveat": "Factory-only construction plus consumer digest/policy revalidation is an in-process correctness/provenance fence. Arbitrary hostile same-process Python can still use low-level object mutation/construction primitives; no cryptographic process-security claim is made.",
+  "source": {
+    "path": "src/frankenstein2/perception_control.py",
+    "implementation_commit": "0a0737c07fbb210f9481e944d04ec1894d9df11e",
+    "blob_sha_after_implementation": "7ff10032d716b9722757874491e1bcec34ec81bb"
+  },
+  "tests": {
+    "path": "tests/test_perception_control.py",
+    "test_commit": "f28ffe5ccfdf6e15331518b18ec919227f7a6548",
+    "blob_sha_after_update": "a378d02b7a7316667ef706380cf55c84ea1a87b1"
+  },
+  "workflow": {
+    "path": ".github/workflows/wp702-perception-control-ci.yml",
+    "workflow_commit": "1a77dbb66af178e54bf1c1ba76ddb202126900b7",
+    "blob_sha_after_update": "14d12a74c7d7e948d2d684744c3411d36cb9d8a7"
+  },
+  "runtime_execution_observed": false,
+  "perception_runtime_credit": 0,
+  "vps_runtime_credit": 0,
+  "physical_grid10_credit": 0,
+  "gwt_runtime_credit": 0,
+  "jspace_runtime_credit": 0,
+  "provider_model_credit": 0,
+  "training_credit": 0,
+  "effect_credit": 0,
+  "completion_credit": 0,
+  "whole_system_acceptance": false,
+  "next_exact_action": "Open the canonical G5 PR to main, require exact PR-head WP702 hosted CI, inspect any failure as component evidence only, and do not reconcile acceptance until the exact branch head passes."
+}

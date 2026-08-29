@@ -1,0 +1,54 @@
+name: WP709 Perception CaptureBroker
+
+on:
+  pull_request:
+    paths:
+      - 'src/frankenstein2/perception_capture_broker.py'
+      - 'src/frankenstein2/*capture_broker*.py'
+      - 'src/frankenstein2/perception_fabric.py'
+      - 'tests/test_perception_capture_broker.py'
+      - 'tests/test_perception_capture_broker_soak.py'
+      - 'tests/test_capture_broker_authority_uniqueness.py'
+      - 'architecture/PERCEPTION_FABRIC.md'
+      - 'architecture/PERCEPTION_FABRIC_HARDENING_20260829.md'
+      - 'workpackages/PERCEPTION_FABRIC_PHASE.json'
+      - '.github/workflows/wp709-perception-capture-broker-ci.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'src/frankenstein2/perception_capture_broker.py'
+      - 'src/frankenstein2/*capture_broker*.py'
+      - 'src/frankenstein2/perception_fabric.py'
+      - 'tests/test_perception_capture_broker.py'
+      - 'tests/test_perception_capture_broker_soak.py'
+      - 'tests/test_capture_broker_authority_uniqueness.py'
+      - 'architecture/PERCEPTION_FABRIC.md'
+      - 'architecture/PERCEPTION_FABRIC_HARDENING_20260829.md'
+      - 'workpackages/PERCEPTION_FABRIC_PHASE.json'
+      - '.github/workflows/wp709-perception-capture-broker-ci.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  wp709-capture-broker:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      PYTHONPATH: src
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Compile CaptureBroker
+        run: |
+          python -m py_compile src/frankenstein2/perception_capture_broker.py
+          python -m py_compile tests/test_perception_capture_broker_soak.py
+          python -m py_compile tests/test_capture_broker_authority_uniqueness.py
+      - name: Run deterministic WP709 falsifiers
+        run: python -m unittest tests.test_perception_capture_broker -v
+      - name: Run WP709 bounded-retention soak falsifiers
+        run: python -m unittest tests.test_perception_capture_broker_soak -v
+      - name: Run WP709 authority-uniqueness falsifier
+        run: python -m unittest tests.test_capture_broker_authority_uniqueness -v

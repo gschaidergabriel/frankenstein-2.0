@@ -1,0 +1,186 @@
+{
+  "schema": "FRANKENSTEIN2_TRIGGER6_SOURCE_ARCHAEOLOGY/v1",
+  "trigger": "6",
+  "slot": "SOURCE_ARCHAEOLOGIST",
+  "research_id": "R6-WP700-XDG-PORTAL-PIPEWIRE-CAPTURE-001",
+  "claim_target": "E1_SOURCE_READ",
+  "status": "E1_SOURCE_READ_COMPLETE_NO_ARCHITECTURE_PROMOTION",
+  "completed_at": "2026-08-29T18:22:14+07:00",
+  "worker": "GPT-5.6 Sol / ChatGPT Trigger-6 organ",
+  "claim": {
+    "path": "research/tool_intelligence/claims/R6-WP700-XDG-PORTAL-PIPEWIRE-CAPTURE-001/E1_SOURCE_READ.json",
+    "claim_commit": "b6091f8680afb0f24b46951f60a87fe621bb2377",
+    "coordination_only": true,
+    "research_credit_from_claim": 0
+  },
+  "architecture_context": {
+    "f2_main_at_claim": "528ddc80b441476a689367238d8f7863bee08f73",
+    "research_entity_main_at_claim": "d9d4fea68eafe7148678f003b932f7bfbbf34acc",
+    "trigger6_protocol_blob_sha": "08571526d33f9a0c06577e2f119bdaf4297ef1c8",
+    "target_workpackages": ["F2-WP-700", "F2-WP-005", "F2-WP-902"],
+    "f2_current_contract": "Perception Fabric requires one CaptureOwner per source, bounded RAM-only fan-out, source generations, exact permission snapshots, temporal provenance and real local OS/device binding without granting the capture backend world/effect authority."
+  },
+  "source_lock": {
+    "xdg_desktop_portal": {
+      "repository": "flatpak/xdg-desktop-portal",
+      "commit": "8b8138a9651a54903daee1ade31d9b5634cd8042",
+      "files_read": [
+        "data/org.freedesktop.portal.ScreenCast.xml",
+        "data/org.freedesktop.portal.Session.xml"
+      ],
+      "interface_version_read": 6
+    },
+    "pipewire": {
+      "repository": "PipeWire/pipewire",
+      "commit": "adad3f54dab7474a0448b1cfe4dacc2dedf71126",
+      "files_read": ["src/pipewire/stream.h"],
+      "official_docs_read": [
+        "PipeWire Access Control",
+        "PipeWire Permission API"
+      ]
+    },
+    "f2_files_read": [
+      "architecture/PERCEPTION_FABRIC_HARDENING_20260829.md",
+      "src/frankenstein2/perception_capture_broker.py",
+      "src/frankenstein2/perception_host_permissions.py"
+    ],
+    "parallel_trigger6_fusion": "research/tool_intelligence/deltas/2026-08-29T1823P0700_GPT56SOL_GSTREAMER_CAPTURE_BACKPRESSURE_E1_SOURCE_READ.json"
+  },
+  "source_observations": [
+    {
+      "id": "XDG-PW-E1-01",
+      "classification": "SOURCE_DIRECT",
+      "observation": "ScreenCast v6 has an explicit long-lived session lifecycle: CreateSession -> SelectSources (once per session) -> Start (once; normally user-mediated) -> OpenPipeWireRemote. This is a better authority boundary than directly opening a display source behind the user's desktop permission model."
+    },
+    {
+      "id": "XDG-PW-E1-02",
+      "classification": "SOURCE_DIRECT",
+      "observation": "A ScreenCast session may be closed by the client or portal and emits Session::Closed. The generic portal Session contract further states that disappearance of the creating D-Bus client is equivalent to closing all active sessions from that client."
+    },
+    {
+      "id": "XDG-PW-E1-03",
+      "classification": "SOURCE_DIRECT",
+      "observation": "Portal persistence is capability persistence, not an immortal permission lease: restore tokens are single-use, Start returns the successor token, and restoration may fail when the source vanished or stored permissions were withdrawn, in which case normal user selection/prompting resumes."
+    },
+    {
+      "id": "XDG-PW-E1-04",
+      "classification": "SOURCE_DIRECT",
+      "observation": "ScreenCast v6 deprecates the stream tuple's PipeWire node ID for targeting because node IDs can be reused after node destruction, including hotplug, resolution/refresh changes and suspend/resume. It adds pipewire-serial, the PipeWire object.serial, documented as a monotonically increasing 64-bit identifier that is never reused; consumers should target it through PW_KEY_TARGET_OBJECT."
+    },
+    {
+      "id": "XDG-PW-E1-05",
+      "classification": "SOURCE_DIRECT",
+      "observation": "ScreenCast also exposes an optional opaque stream id that is unique within the session and can persist across restored sessions. It is semantically different from PipeWire object.serial and should not be conflated with transport node identity."
+    },
+    {
+      "id": "XDG-PW-E1-06",
+      "classification": "SOURCE_DIRECT",
+      "observation": "OpenPipeWireRemote returns a file descriptor intended for pw_context_connect_fd, and the portal contract says only the screen-cast stream nodes are available on that remote. This provides a naturally narrowed transport surface."
+    },
+    {
+      "id": "XDG-PW-E1-07",
+      "classification": "SOURCE_DIRECT",
+      "observation": "PipeWire streams expose state changes, negotiated reusable buffers, dequeue/queue capture flow, and timing information. Current stream.h recommends processing/returning buffers promptly to minimize buffering and maximize reuse; capture buffers carry a cycle time in nanoseconds."
+    },
+    {
+      "id": "XDG-PW-E1-08",
+      "classification": "SOURCE_DIRECT",
+      "observation": "PipeWire implements per-client object permissions (read/write/execute/metadata/link) and allows those permissions to be changed by the session manager. That is useful transport access control, but it is not F2's user-policy/host-grant semantic authority."
+    }
+  ],
+  "f2_mapping_observations_at_e1": [
+    {
+      "id": "XDG-F2-E1-R1",
+      "classification": "INFERENCE",
+      "claim": "For Linux screen/window capture, the XDG ScreenCast session should be treated as a host-native authorization/session lease beneath F2's CaptureOwner, not as the CaptureOwner itself.",
+      "confidence": 0.97
+    },
+    {
+      "id": "XDG-F2-E1-R2",
+      "classification": "INFERENCE",
+      "claim": "F2 should bind a native source instance to at least portal session identity + optional portal stream id + pipewire-serial + F2 source_generation. Raw PipeWire node ID is unsuitable as the durable source identity because its documented reuse creates an ABA-style stale-target hazard.",
+      "confidence": 0.99
+    },
+    {
+      "id": "XDG-F2-E1-R3",
+      "classification": "INFERENCE",
+      "claim": "Session::Closed, D-Bus-owner loss, PipeWire terminal/error/disconnect state, and a changed stream serial are candidate hard invalidation events for the current host grant/CaptureOwner lease. A reopened/restored session should create a new F2 generation even if a portal stream id remains logically stable.",
+      "confidence": 0.94
+    },
+    {
+      "id": "XDG-F2-E1-R4",
+      "classification": "INFERENCE",
+      "claim": "A restore token must never be used as proof that capture is currently permitted. It is a one-shot restoration request whose success still depends on portal/backend state and may fall back to user prompting after permission withdrawal.",
+      "confidence": 0.99
+    },
+    {
+      "id": "XDG-F2-E1-R5",
+      "classification": "INFERENCE",
+      "claim": "PipeWire graph/cycle timing can be retained as native timing provenance, but F2 capture_monotonic_ns should remain stamped in the CaptureOwner's declared monotonic clock domain unless an explicit clock-domain mapping proves equivalence. This avoids silently merging PipeWire graph time with F2 host monotonic time.",
+      "confidence": 0.92
+    },
+    {
+      "id": "XDG-F2-E1-R6",
+      "classification": "INFERENCE",
+      "claim": "The parallel GStreamer result is complementary rather than competing: XDG/PipeWire supplies session/stream authorization and identity semantics; GStreamer supplies optional queue/backpressure mechanics. F2's canonical bounded FrameRef ring and permission intersection remain above either backend.",
+      "confidence": 0.97
+    }
+  ],
+  "important_non_equivalences": [
+    "XDG_SESSION_HANDLE != F2_PERMISSION_SNAPSHOT_DIGEST",
+    "RESTORE_TOKEN != CURRENT_PERMISSION_PROOF",
+    "PIPEWIRE_NODE_ID != DURABLE_SOURCE_IDENTITY",
+    "PIPEWIRE_OBJECT_SERIAL != F2_SOURCE_ID",
+    "PIPEWIRE_ACCESS_PERMISSION != F2_USER_POLICY",
+    "PORTAL_SESSION != F2_CAPTUREOWNER",
+    "PIPEWIRE_BUFFER_TIME != F2_CAPTURE_MONOTONIC_TIME_UNLESS_CLOCK_MAPPING_PROVED",
+    "SOURCE_READ != RUNTIME_ACCEPTANCE"
+  ],
+  "gaps_and_risks": [
+    {
+      "id": "XDG-RISK-01",
+      "risk": "The ScreenCast interface covers monitor/window/virtual-display sources, not camera capture; camera requires a separate portal/native adapter path."
+    },
+    {
+      "id": "XDG-RISK-02",
+      "risk": "The portal does not expose F2's requested immutable capability snapshot digest or expiry semantics. The local adapter must synthesize a HostPermissionGrant from observed native session state and bind it to F2 policy/generation."
+    },
+    {
+      "id": "XDG-RISK-03",
+      "risk": "Backend and compositor behavior can differ. Contract-level portal semantics are portable, but real local acceptance must still exercise the user's actual portal backend, compositor, PipeWire session manager and permission UI."
+    },
+    {
+      "id": "XDG-RISK-04",
+      "risk": "Direct D-Bus + PipeWire integration is lighter than importing a media framework but increases adapter complexity; a high-level library may be safer if it preserves exact session/serial/closure semantics without becoming authority."
+    }
+  ],
+  "counterhypothesis": {
+    "statement": "A direct XDG-Portal/PipeWire adapter may be unnecessary complexity. libportal, GStreamer or another mature wrapper could provide the same user-mediated capture and stream lifecycle with less custom code while still exposing enough identity and closure signals for F2.",
+    "confidence": 0.68,
+    "cheapest_discriminator": "At E2, map the minimum F2 adapter ABI and compare direct portal+PipeWire against wrapper options on required observables: session-close notification, portal stream id, pipewire-serial targeting, permission/restore outcome, bounded buffer handoff, source generation invalidation and testability. Reject direct integration if a wrapper exposes the full required semantics with lower complexity and no hidden authority or unbounded queue."
+  },
+  "adoption_posture": {
+    "xdg_screencast_as_linux_screen_permission_session_layer": "PROMISING",
+    "pipewire_serial_as_native_stream_instance_identifier": "STRONGLY_RECOMMENDED_FOR_E2_MAPPING",
+    "raw_pipewire_node_id_as_durable_identity": "REJECT",
+    "restore_token_as_permission_proof": "REJECT",
+    "direct_pipewire_as_canonical_capture_broker": "REJECT",
+    "full_runtime_integration": "NOT_TESTED_NOT_PROMOTED",
+    "build_candidate": false
+  },
+  "evidence_ceiling": {
+    "level": "E1_SOURCE_READ",
+    "research_credit": 1,
+    "architecture_credit": 0,
+    "runtime_credit": 0,
+    "physical_device_credit": 0,
+    "whole_system_credit": 0,
+    "training_credit": 0
+  },
+  "next_recommended_trigger6_objective": {
+    "slot": "INTEGRATION_DISTILLER",
+    "claim_target": "E2_ARCHITECTURE_MAPPED",
+    "action": "Map a minimal LinuxPortalPipeWireCaptureAdapter ABI onto PerceptionSource, HostPermissionGrant, CaptureOwnerLease and CaptureFrameRef. Explicitly define generation-bump/invalidation rules for Session::Closed, D-Bus owner loss, stream serial replacement, restore failure and PipeWire error/disconnect. Compare direct integration with a wrapper path before any E5 build candidate.",
+    "stop_condition": "Do not promote if the adapter cannot mechanically distinguish current permission/session identity from stale restore/session/node artifacts or if it would bypass the existing F2 CaptureOwner/HostPermission intersection."
+  }
+}

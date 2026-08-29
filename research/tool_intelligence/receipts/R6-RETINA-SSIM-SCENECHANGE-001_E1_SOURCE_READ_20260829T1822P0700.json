@@ -1,0 +1,111 @@
+{
+  "schema": "FRANKENSTEIN2_TRIGGER6_E1_SOURCE_READ_RECEIPT/v1",
+  "research_id": "R6-RETINA-SSIM-SCENECHANGE-001",
+  "claim_target": "E1_SOURCE_READ",
+  "status": "E1_SOURCE_READ_COMPLETED_NO_ARCHITECTURE_OR_RUNTIME_PROMOTION",
+  "completed_at": "2026-08-29T18:22:15+07:00",
+  "worker": "gpt-5.6-sol",
+  "claim_path": "research/tool_intelligence/claims/R6-RETINA-SSIM-SCENECHANGE-001/E1_SOURCE_READ.json",
+  "architecture_context": {
+    "claimed_against_f2_main": "e30539e0f2c2467ab5ab548f8226de3da8e2600d",
+    "claim_commit": "be5004b9b7fdbf9bb259fe3cff0e998cdf808fb6",
+    "capture_broker_source_path": "src/frankenstein2/retina_capture_broker.py",
+    "capture_broker_schema": "FRANKENSTEIN2_CAPTURE_BROKER_STATE/v3",
+    "relevant_workpackage": "F2-WP-700 Retina capture/quality/delta/continuity",
+    "architecture_fusion": "ADF-20260829T1501P0700-GPT56SOL-TRIGGER6-LIVE-FUSION"
+  },
+  "source_pins": [
+    {
+      "source": "Breakthrough/PySceneDetect",
+      "commit": "24953b0bf76af17c450bc143d330eea48fc5e276",
+      "license": "BSD-3-Clause",
+      "files": [
+        "scenedetect/detectors/content_detector.py",
+        "scenedetect/detectors/adaptive_detector.py",
+        "pyproject.toml"
+      ],
+      "observed_mechanisms": [
+        "Adjacent-frame mean absolute pixel distance is the primitive used for hue/saturation/luma/edge change components.",
+        "ContentDetector combines component deltas into a weighted frame score and supports luma-only operation.",
+        "AdaptiveDetector keeps a bounded 1+2*window_width score buffer and detects deviations from the local rolling mean, mitigating some fast-camera-motion false positives.",
+        "ContentDetector edge-kernel sizing is explicitly heuristic/TODO in upstream source and should not be imported as an F2 invariant.",
+        "Core project dependency declares numpy; the detector implementation imports cv2/OpenCV at runtime."
+      ]
+    },
+    {
+      "source": "scikit-image/scikit-image",
+      "commit": "91b0179dfe955de6ec8d9b4e93326a26edcf5c7e",
+      "license": "BSD-style project license",
+      "files": [
+        "src/skimage/metrics/_structural_similarity.py",
+        "pyproject.toml"
+      ],
+      "observed_mechanisms": [
+        "structural_similarity computes mean full-reference structural similarity with explicit windowing/channel/data-range semantics.",
+        "Floating-point inputs require explicit data_range; channel ranges such as YCbCr cannot be naively averaged under one common range.",
+        "The current wrapper delegates to the new skimage2 implementation rather than being a tiny standalone primitive.",
+        "The package dependency surface includes numpy, scipy, networkx, pillow, imageio, tifffile, packaging and lazy-loader."
+      ]
+    },
+    {
+      "source": "Wang, Bovik, Sheikh, Simoncelli (2004)",
+      "doi": "10.1109/TIP.2003.819861",
+      "classification": "PRIMARY_METHOD_REFERENCE",
+      "observed_scope": "SSIM is a full-reference structural/perceptual image-quality similarity method; that scope is not identical to online temporal novelty/change detection."
+    }
+  ],
+  "f2_source_observations": [
+    "CaptureBroker v3 stores immutable frame references only and explicitly does not persist raw frame bytes.",
+    "CaptureBroker maintains bounded live refs, bounded recent-drop diagnostics, monotonic source ordering and bounded rolling provenance.",
+    "Therefore any pixel-domain delta/quality measurement must be computed while transient frame pixels are available upstream of or adjacent to reference publication, then persisted only as typed derived measurement/provenance if admitted."
+  ],
+  "e1_findings": [
+    {
+      "id": "E1-F1-SEPARATE-SEMANTICS",
+      "finding": "F2 should keep temporal visual novelty/change and full-reference visual quality/similarity as separate typed measurements. A single SSIM-like score should not silently stand for both."
+    },
+    {
+      "id": "E1-F2-MINIMUM-NOVELTY-PRIMITIVE",
+      "finding": "PySceneDetect source supports a much thinner baseline than importing its pipeline: adjacent-frame mean absolute luma difference is a deterministic, bounded-state candidate primitive; a small rolling baseline/ratio is a separate adaptive extension."
+    },
+    {
+      "id": "E1-F3-SSIM-SECONDARY",
+      "finding": "SSIM is technically useful as a secondary full-reference stability/quality discriminator when the comparison question requires structural similarity, but requires fixed data-range/window/channel semantics and should not be the default scene-change gate."
+    },
+    {
+      "id": "E1-F4-NO-SCIKIT-IMPORT-YET",
+      "finding": "Importing the complete scikit-image stack solely for an SSIM hot-path primitive is not justified at E1 because its package surface is substantially broader than the F2 need. Thin structural distillation or an already-present lower-level image primitive should be tested first."
+    },
+    {
+      "id": "E1-F5-NO-PYSCENEDETECT-IMPORT-YET",
+      "finding": "Importing the complete PySceneDetect detector pipeline is also not justified at E1. Its adjacent-frame delta and bounded adaptive-ratio ideas are separable from scene-cut orchestration, thresholds, flash filtering and heuristic edge handling."
+    }
+  ],
+  "hypothesis": "A native typed RetinaDelta measurement containing a cheap luma-MAE novelty score plus optional bounded adaptive baseline will provide most of the online change-sensing value at lower dependency/state cost; SSIM should remain an optional separately typed reference-quality measurement.",
+  "counterhypotheses": [
+    "Luma-only MAE may overreact to global illumination/exposure change and under-detect chromatic-only changes.",
+    "A small adaptive baseline may suppress genuinely important sustained changes or introduce detection latency.",
+    "Full SSIM or another structural metric may outperform luma MAE for some low-motion but semantically important changes.",
+    "If OpenCV/scikit-image is already an unavoidable F2 runtime dependency elsewhere, import-cost arguments weaken, though semantic separation and provenance requirements remain."
+  ],
+  "e2_required_mapping_questions": [
+    "Where exactly in the Perception Fabric should transient pixels be consumed so raw-frame persistence remains false?",
+    "What typed schema binds source_id, previous/current frame_ref_id, sequences, metric version, parameters and derived scores without minting world truth?",
+    "Can a fixed downsample/grid and integer luma-MAE be made deterministic across supported hosts/backends?",
+    "What illumination, chromatic-only, camera-motion and no-change falsifier fixtures are required before any threshold is accepted?",
+    "Is OpenCV already an admitted dependency at the exact target runtime, or should the primitive avoid it entirely?"
+  ],
+  "decision": "ADVANCE_TO_E2_ARCHITECTURE_MAPPING; DO_NOT_IMPORT_SCikit-image_OR_PySceneDetect_AS_AN_E1_RESULT",
+  "credit_boundary": {
+    "e1_source_read": 1,
+    "e2_architecture_mapped": 0,
+    "e3_claim_reproduced": 0,
+    "e4_f2_ablation": 0,
+    "e5_build_candidate": 0,
+    "e6_f2_accepted": 0,
+    "runtime_credit": 0,
+    "physical_device_credit": 0,
+    "whole_system_credit": 0
+  },
+  "pending_db_sync": "pending_research.sqlite not rewritten by this receipt; canonical DB synchronization remains pending through the admitted Trigger-6 DB path."
+}

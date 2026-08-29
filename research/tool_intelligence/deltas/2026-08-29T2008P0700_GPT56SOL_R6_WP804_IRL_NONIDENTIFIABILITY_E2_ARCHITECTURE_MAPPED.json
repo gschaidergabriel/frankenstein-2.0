@@ -1,0 +1,84 @@
+{
+  "schema": "FRANKENSTEIN2_TRIGGER6_ARCHITECTURE_DELTA/v1",
+  "research_id": "R6-20260829-WP804-IRL-NONIDENTIFIABILITY-GPT56SOL-01",
+  "evidence_stage": "E2_ARCHITECTURE_MAPPED",
+  "created_at": "2026-08-29T20:08:00+07:00",
+  "worker": "GPT-5.6-Sol-TRIGGER6",
+  "architecture_delta_id": "WP804_IDENTIFIABILITY_GATED_SCORING/v1",
+  "snapshot": {
+    "wp804_claim_commit": "d6cef32b1c5fa158bf415517eb37424a17dfe0d9",
+    "wp804_branch": "chatgpt/wp804-goal-inference-20260829",
+    "wp804_branch_observed_head": "744edad996bd4698b1616f317d3e179f287e2a5a",
+    "wp804_branch_observation": "CI workflow present; benchmark implementation/test files not observed in the recursive tree at this snapshot",
+    "e1_delta_commit": "3721803f012bb990f0e184bdaae0c190169579ac",
+    "e2_claim_commit": "6e9e14457e5390e2440fe52bf3f2e250e6f44001",
+    "authority_epoch": "8.78"
+  },
+  "evidence_refs": [
+    "Skalse & Abate 2026, Artificial Intelligence 356:104525, DOI 10.1016/j.artint.2026.104525",
+    "Skalse et al. 2023, PMLR 202:32033-32058",
+    "Amin & Singh 2016, arXiv:1601.06569",
+    "Ng, Harada & Russell 1999, ICML policy invariance under reward transformations",
+    "Armstrong & Mindermann 2018, NeurIPS, Occam's razor is insufficient to infer preferences",
+    "Baker, Saxe & Tenenbaum 2009, Cognition, action understanding as inverse planning"
+  ],
+  "problem": "The active WP804 contract permits UNKNOWN/ABSTAIN but does not yet state an evaluator-side identifiability gate. Without a matched ambiguity falsifier, a benchmark implementation could still reward exact hidden-label guessing on public histories that do not uniquely discriminate candidate goals.",
+  "best_supported_delta": {
+    "summary": "Condition exact-goal scoring on public-evidence identifiability. Add matched non-identifying and discriminating fixture pairs while keeping evaluator-private equivalence metadata out of policy input.",
+    "affected_workpackages": ["F2-WP-804"],
+    "affected_paths_expected": [
+      "src/frankenstein2/cognitive_goal_inference_benchmark.py",
+      "tests/test_cognitive_goal_inference_benchmark.py",
+      ".github/workflows/wp804-cognitive-goal-inference-ci.yml"
+    ],
+    "required_fixture_semantics": [
+      "NONIDENTIFYING_PREFIX: at least two public candidate-goal descriptors remain behaviorally/evidentially equivalent under the benchmark's declared public assumptions through the scored prefix.",
+      "DISCRIMINATING_PUBLIC_EVIDENCE: a matched continuation exposes a public observation/action affordance that separates those candidates without evaluator-private leakage."
+    ],
+    "evaluator_private_metadata": [
+      "equivalence_set or identifiability_class for the scored prefix",
+      "declared planner/rationality-assumption digest when such assumptions influence label scoring",
+      "hidden exact benchmark label only after policy output is sealed"
+    ],
+    "policy_visible_input": [
+      "exact public ObservationView history allowed by WP804",
+      "explicit public candidate-goal descriptors",
+      "explicit immutable public policy state/configuration"
+    ],
+    "scoring_rule": [
+      "On a NONIDENTIFYING_PREFIX, UNKNOWN/ABSTAIN is a valid calibrated result and forced exact-label confidence is an overclaim; evaluator-private exact labels must not turn guessing into evidence.",
+      "After DISCRIMINATING_PUBLIC_EVIDENCE, exact-label agreement becomes scoreable at benchmark scope.",
+      "If a future policy emits a set-valued hypothesis, its output may be compared with the evaluator equivalence set, but set-valued output is not required for generation 1; preserving the existing exact-or-UNKNOWN surface is the thinner change."
+    ],
+    "mandatory_falsifiers": [
+      "AMBIGUOUS_EXACT_LABEL_FAILS: exact label before public discrimination must not receive success credit merely because it matches evaluator-hidden ground truth.",
+      "AMBIGUOUS_UNKNOWN_PASSES: UNKNOWN/ABSTAIN on the non-identifying pair remains accepted at benchmark scope.",
+      "PUBLIC_DISCRIMINATOR_UNLOCKS_SCORE: after the matched public discriminator, correct exact inference becomes scoreable.",
+      "LABEL_PERMUTATION_ANTI_LEAK: permuting evaluator-hidden labels while holding public trajectory/descriptors fixed must not change policy output.",
+      "PRIVATE_METADATA_FENCE: equivalence sets, hidden labels, fixture nodes/transitions/scores and evaluator diagnostics must never enter policy input.",
+      "ASSUMPTION_DIGEST_FENCE: when evaluator scoring relies on a declared planner/rationality model, a mismatched assumption digest fails closed rather than silently changing the meaning of identifiability."
+    ]
+  },
+  "architectural_choice": {
+    "adopt": "STRUCTURAL_DISTILLATION_ONLY",
+    "reject": "IMPORT_FULL_IRL_OR_BAYESIAN_INVERSE_PLANNING_STACK",
+    "reason": "The evidence changes benchmark falsification semantics, not the runtime cognition architecture. A small deterministic evaluator-side identifiability contract provides the needed discriminator with lower dependency, token, latency and maintenance cost."
+  },
+  "counterhypothesis": "The WP804 implementation may independently include equivalent ambiguity-pair and anti-leak tests before integration. If exact-current source already proves the six falsifiers above, this delta collapses to NO_ADDITIONAL_ARCHITECTURE_CHANGE and only records supporting external evidence.",
+  "acceptance_gate": "Before bounded WP804 acceptance, exact branch/PR source and tests must demonstrate the matched non-identifying/discriminating fixture pair and the anti-leak/assumption fences; repository CI success remains component evidence only.",
+  "handoff": {
+    "consumer": "TRIGGER4",
+    "instruction": "Incorporate the identifiability-gated falsifiers before accepting WP804 generation 1. Do not widen GoalContract authority or import an IRL framework. If the active WP804 implementation already contains equivalent tests, record equivalence and avoid redundant code.",
+    "next_research_stage": "E3_CLAIM_REPRODUCED only after exact implementation exists; otherwise await Trigger4 source delta and re-enter."
+  },
+  "credits": {
+    "research": "E2_ARCHITECTURE_MAPPED",
+    "repository_component_runtime": 0,
+    "target_runtime": 0,
+    "physical_grid10": 0,
+    "gwt_jspace": 0,
+    "training": 0,
+    "goal_authority": 0,
+    "whole_system": 0
+  }
+}

@@ -1,0 +1,45 @@
+name: WP713 Perception Dashboard Audit Plane
+
+on:
+  pull_request:
+    paths:
+      - 'src/frankenstein2/perception_dashboard.py'
+      - 'src/frankenstein2/perception_dashboard_policy.py'
+      - 'src/frankenstein2/perception_fabric.py'
+      - 'tests/test_perception_dashboard.py'
+      - 'tests/test_perception_dashboard_policy.py'
+      - 'architecture/PERCEPTION_FABRIC.md'
+      - 'architecture/PERCEPTION_FABRIC_HARDENING_20260829.md'
+      - 'workpackages/PERCEPTION_FABRIC_PHASE.json'
+      - '.github/workflows/wp713-perception-dashboard-ci.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'src/frankenstein2/perception_dashboard.py'
+      - 'src/frankenstein2/perception_dashboard_policy.py'
+      - 'src/frankenstein2/perception_fabric.py'
+      - 'tests/test_perception_dashboard.py'
+      - 'tests/test_perception_dashboard_policy.py'
+      - 'architecture/PERCEPTION_FABRIC.md'
+      - 'architecture/PERCEPTION_FABRIC_HARDENING_20260829.md'
+      - 'workpackages/PERCEPTION_FABRIC_PHASE.json'
+      - '.github/workflows/wp713-perception-dashboard-ci.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  wp713-dashboard-audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Compile dashboard control and policy modules
+        run: python -m py_compile src/frankenstein2/perception_dashboard.py src/frankenstein2/perception_dashboard_policy.py src/frankenstein2/perception_fabric.py
+      - name: Run deterministic WP713 falsifiers
+        env:
+          PYTHONPATH: src
+        run: python -m unittest tests.test_perception_dashboard tests.test_perception_dashboard_policy -v

@@ -1,0 +1,110 @@
+{
+  "schema": "FRANKENSTEIN2_TRIGGER6_RESEARCH_DELTA/v1",
+  "research_id": "R6-20260829-WP804-GOAL-INFERENCE-EVAL-GPT56SOL-02",
+  "evidence_stage": "E1_SOURCE_READ",
+  "status": "E1_COMPLETE_NO_ARCHITECTURE_CREDIT",
+  "created_at": "2026-08-29T20:08:00+07:00",
+  "worker": "GPT-5.6-Sol-TRIGGER6",
+  "claim_ref": "research/tool_intelligence/claims/R6-20260829-WP804-GOAL-INFERENCE-EVAL-GPT56SOL-02/E1_SOURCE_READ.json",
+  "f2_scope_ref": "workpackages/active/F2-WP-804.json@d6cef32b1c5fa158bf415517eb37424a17dfe0d9",
+  "snapshot": {
+    "f2_main_at_claim": "354439e40affa08cf906adf80d2765968a96b41c",
+    "research_entity_main": "27c38300539cf5c269ac97d9f3a79271037ba47b"
+  },
+  "primary_sources": [
+    {
+      "id": "BAKER_SAXE_TENENBAUM_2009",
+      "type": "peer_reviewed_primary",
+      "title": "Action understanding as inverse planning",
+      "doi": "10.1016/j.cognition.2009.07.005",
+      "finding": "Goal inference is naturally modeled as posterior inference over candidate latent goals given observed behavior under an explicit approximately-rational generative model; priors and goal representation materially affect posterior judgments."
+    },
+    {
+      "id": "RAMIREZ_GEFFNER_2010",
+      "type": "peer_reviewed_primary",
+      "title": "Probabilistic Plan Recognition Using Off-the-Shelf Classical Planners",
+      "doi": "10.1609/aaai.v24i1.7745",
+      "finding": "Probabilistic goal recognition can compare candidate goals via observation-constrained versus unconstrained plan cost, but the published formulation assumes deterministic effects and complete initial-state information; this assumption does not transfer wholesale to WP804 partial-observation evaluation."
+    },
+    {
+      "id": "DRAGAN_LEE_SRINIVASA_2013",
+      "type": "peer_reviewed_primary",
+      "title": "Legibility and Predictability of Robot Motion",
+      "doi": "10.1109/HRI.2013.6483603",
+      "finding": "Inference from trajectories to goals (legibility) is directionally distinct from predicting trajectories given a goal (predictability); benchmark design must not conflate goal-inference quality with next-action/world-model predictability."
+    },
+    {
+      "id": "KAELBLING_LITTMAN_CASSANDRA_1998",
+      "type": "peer_reviewed_primary",
+      "title": "Planning and acting in partially observable stochastic domains",
+      "doi": "10.1016/S0004-3702(98)00023-X",
+      "finding": "Partial observability requires reasoning from observation history/belief rather than evaluator latent state; hidden state is not legitimate policy input merely because the evaluator has it."
+    },
+    {
+      "id": "GEIFMAN_EL_YANIV_2017",
+      "type": "peer_reviewed_primary",
+      "title": "Selective Classification for Deep Neural Networks",
+      "source": "NeurIPS 2017 / arXiv:1705.08500",
+      "finding": "Abstention must be evaluated jointly with coverage/risk; otherwise a system can improve apparent accuracy by declining difficult cases."
+    },
+    {
+      "id": "COBBE_ET_AL_2019_PROCGEN",
+      "type": "peer_reviewed_primary",
+      "title": "Leveraging Procedural Generation to Benchmark Reinforcement Learning",
+      "source": "arXiv:1912.01588",
+      "finding": "Generalization claims require evaluation on diverse held-out environment instances/distributions rather than reuse of the same small set of situations."
+    }
+  ],
+  "source_code_pins": [
+    {
+      "repo": "Farama-Foundation/Minigrid",
+      "commit": "152f9d174e7aa368a178182dd3d8d230351a8f2a",
+      "paths": ["minigrid/minigrid_env.py", "minigrid/wrappers.py"],
+      "finding": "The code exposes an explicit partially-observable agent view while also providing fully-observable wrappers, a concrete demonstration that observation and evaluator/world-state channels must remain capability-separated."
+    },
+    {
+      "repo": "openai/procgen",
+      "commit": "37b521dbb530f0734fd82f72d921f5e0e715c0d1",
+      "finding": "Pinned external benchmark implementation associated with procedural held-out generalization; used as a split/generalization design reference only, not as F2 evidence."
+    }
+  ],
+  "distilled_wp804_invariants": [
+    "GOAL_POSTERIOR_NOT_GOAL_AUTHORITY: benchmark inference is a hypothesis distribution/label prediction only and never adopts a GoalContract.",
+    "PUBLIC_EVIDENCE_ONLY: tested policy may use public ObservationView history, public action history if declared, and immutable public candidate-goal descriptors; evaluator hidden state/labels remain inaccessible until after output sealing.",
+    "AMBIGUITY_IS_VALID: if multiple candidate goals are observationally equivalent under the public evidence, UNKNOWN/ABSTAIN is correct behavior and must not be auto-penalized as an ordinary wrong label.",
+    "ABSTENTION_NEEDS_COVERAGE: report selective risk plus coverage, not accuracy alone.",
+    "INFERENCE_NEQ_PREDICTION: goal legibility/inference and trajectory/world prediction are different benchmark questions and should remain separate WP804 versus WP803 measures.",
+    "PRIORS_ARE_PART_OF_THE_CONTRACT: candidate-goal prior or baseline assumptions must be explicit, immutable and scored separately from evidence likelihood.",
+    "HOLDOUT_BY_CAUSAL_FAMILY: split by fixture/goal-layout or generative family as well as episode/run identity when feasible; random episodes from the same latent template are insufficient evidence of transfer.",
+    "EVALUATE_AFTER_SEAL: evaluator labels and hidden trajectory consequences are read only after the policy output is sealed and identity-bound.",
+    "ASSUMPTION_GUARD: classical-plan-recognition mechanisms that require complete initial state/deterministic effects may serve as baselines only when those assumptions are explicitly satisfied."
+  ],
+  "candidate_metrics": [
+    "top-1 goal agreement on answered cases",
+    "Brier or log score if the benchmark exposes normalized candidate-goal probabilities",
+    "coverage",
+    "selective risk / risk-coverage curve",
+    "UNKNOWN correctness on deliberately non-identifiable cases",
+    "baseline-relative delta against uniform-prior, shortest-public-path or declared cost-difference baselines",
+    "family-heldout versus in-family performance gap"
+  ],
+  "counterhypotheses": [
+    "A simpler deterministic evidence-count or shortest-public-path baseline may match inverse-planning performance in the tiny MicroWorld; if so, a Bayesian inverse-planning implementation would be needless complexity.",
+    "UNKNOWN handling may dominate benchmark outcomes if too many fixtures are non-identifiable; therefore coverage and identifiable-subset reporting are necessary to prevent trivial abstention from looking strong.",
+    "Held-out episodes alone may not test generalization if they reuse the same latent goal/layout family; family-level separation is the stronger falsifier."
+  ],
+  "recommended_next_stage": {
+    "stage": "E2_ARCHITECTURE_MAPPED",
+    "objective": "Map these source-derived invariants onto WP804 exact interfaces/tests without implementing or mutating WP804-owned paths; especially derive fail-closed leakage tests, observational-equivalence UNKNOWN fixtures, explicit priors/baselines and selective-risk metrics.",
+    "requires_new_atomic_claim": true
+  },
+  "credit": {
+    "research": "E1_SOURCE_READ_ONLY",
+    "repository_ci": 0,
+    "runtime": 0,
+    "physical_grid10": 0,
+    "goal_authority": 0,
+    "architecture_acceptance": 0,
+    "whole_system": 0
+  }
+}

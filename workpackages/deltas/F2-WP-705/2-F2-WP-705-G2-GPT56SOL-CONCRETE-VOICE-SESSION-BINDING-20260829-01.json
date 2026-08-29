@@ -1,0 +1,63 @@
+{
+  "schema": "FRANKENSTEIN2_WORKPACKAGE_DELTA/v1",
+  "workpackage_id": "F2-WP-705",
+  "generation": 2,
+  "claim_id": "F2-WP-705-G2-GPT56SOL-CONCRETE-VOICE-SESSION-BINDING-20260829",
+  "worker_id": "GPT-5.6-Sol",
+  "authority_epoch": "8.78",
+  "stage": "STAGE7_RETINA_PRESENCE_VOICE",
+  "delta_id": "F2-WP-705-G2-GPT56SOL-CONCRETE-VOICE-SESSION-BINDING-20260829-01",
+  "result_class": "IMPLEMENTATION_DELTA",
+  "status": "IMPLEMENTED_SOURCE_PENDING_REPOSITORY_CI",
+  "base_commit": "f6b23183527004705fe1825f2d26c759bb4a732f",
+  "branch": "trigger4/wp705-g2-binding",
+  "source_commits": [
+    "56aa9bc40e878ccab61dd8a2e64db2cff656891a",
+    "22df886084b64dbf169956c09f29fae7bc6d6fa1",
+    "5da98490626cbc3c3c3b78a40c64ae0b0f142f8d"
+  ],
+  "owned_paths": [
+    "src/frankenstein2/realtime_reentry.py",
+    "tests/test_realtime_reentry.py",
+    ".github/workflows/wp705-realtime-reentry-ci.yml",
+    "workpackages/deltas/F2-WP-705/2-F2-WP-705-G2-GPT56SOL-CONCRETE-VOICE-SESSION-BINDING-20260829-01.json"
+  ],
+  "implementation_summary": [
+    "Added an exact concrete WP704 VoiceSessionCapsule consumer boundary with canonical from_mapping reconstruction and digest equality checks.",
+    "Added bind_voice_session_cursor(), which derives the WP705 initial cursor only from VoiceSessionCapsule.voice_session_id and VoiceSessionCapsule.sha256().",
+    "Added verify_realtime_reentry_against_voice_session() to reject cross-session or noncanonical bindings while preserving all generation-1 event semantics.",
+    "Extended the deterministic suite from 16 to 19 tests with concrete-session roundtrip, non-exact-type rejection and cross-session rejection.",
+    "Extended WP705 CI path/compile dependencies to voice_contract.py and causal_identity.py so upstream contract changes retrigger the integration boundary."
+  ],
+  "falsifiers": [
+    "non-exact/polymorphic VoiceSessionCapsule input must fail closed",
+    "cross-session RealtimeReentryEvidence must fail closed against a concrete session",
+    "any upstream voice-contract or causal-identity change must re-run WP705 CI",
+    "all generation-1 barge-in/silence/tool-return invariants must remain green"
+  ],
+  "local_preflight": {
+    "surface": "LOCAL_SYNTAX_ONLY",
+    "command": "python -m py_compile realtime_reentry.py test_realtime_reentry.py",
+    "conclusion": "PASS",
+    "source_sha256": "a0acbb570f8ae324a0551402b0e098d3741775d41555c01536b8f44dfbecb10b",
+    "test_sha256": "1d9eae233ac46eb57b24b8219c852df491ef8ff8d2eaf838cfb1d47ea3173350",
+    "unit_tests_observed": false,
+    "credit": "SYNTAX_PRECHECK_ONLY"
+  },
+  "contradictions": [],
+  "proposed_state_change": "ACCEPTED only if exact PR-head and merged-main repository-hosted CI both pass for this G2 artifact set.",
+  "completion_deficit": "No live voice, OpenAI Realtime/provider/model/tool invocation, VPS runtime, microphone/VAD/ASR/TTS path, UnifiedDB cognition re-entry, physical GRID10/GWT/J-Space behavior, effects, completion verification, training or whole-system evidence.",
+  "runtime_execution_observed": false,
+  "realtime_provider_execution_observed": false,
+  "vps_runtime_observed": false,
+  "runtime_credit": 0,
+  "target_vps_runtime_credit": 0,
+  "physical_grid10_credit": 0,
+  "gwt_runtime_credit": 0,
+  "jspace_runtime_credit": 0,
+  "training_credit": 0,
+  "effect_credit": 0,
+  "completion_credit": 0,
+  "whole_system_acceptance": false,
+  "next_exact_action": "Open the bounded G2 pull request, require exact PR-head GitHub Actions success for all 19 tests, merge only with exact expected head, then require merged-main CI before terminal reconciliation."
+}

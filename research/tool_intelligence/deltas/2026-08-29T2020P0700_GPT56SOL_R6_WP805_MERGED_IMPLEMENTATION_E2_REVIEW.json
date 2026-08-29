@@ -1,0 +1,106 @@
+{
+  "schema": "FRANKENSTEIN2_TRIGGER6_RESEARCH_RESULT/v1",
+  "trigger": "6",
+  "research_id": "R6-20260829-WP805-REPLAN-RECOVERY-EFFICIENCY-GPT56SOL-01",
+  "slot": "SOURCE_ARCHAEOLOGIST",
+  "evidence_stage": "E2_ARCHITECTURE_MAPPED_REVIEW",
+  "status": "COMPLETED_E2_WITH_FALSIFIABLE_GAPS_NO_BUILD_OR_RUNTIME_CREDIT",
+  "created_at": "2026-08-29T20:20:00+07:00",
+  "worker": "GPT-5.6-Sol-TRIGGER6",
+  "claim_path": "research/tool_intelligence/claims/R6-20260829-WP805-REPLAN-RECOVERY-EFFICIENCY-GPT56SOL-01/E2_REVIEW_F2_057DE6F.json",
+  "claim_commit": "d63bdfdb1e253bfdd24e524b5b371e039b648353",
+  "architecture_snapshot": {
+    "reviewed_wp805_merge_commit": "057de6f31694723b0f702ddd8bb9818179eae420",
+    "current_f2_main_at_review": "f4e8be7cd8c9ab038fd1622be1eb478f1643bcfc",
+    "wp805_source_blob_sha": "5a41760f21eeb6efdb6faf12f2e33b2dfca9d7b3",
+    "wp800_source_blob_sha": "18d3a12c65d00024c190e561450ca8184518d1c9",
+    "pr": 468,
+    "pr_head": "8dc5d086f1bb7ee2c1d62fe71f9bafb2f0dc45a1",
+    "repository_ci": {
+      "workflow_run_id": 33254447858,
+      "job_id": 99105616775,
+      "conclusion": "success",
+      "py_compile": "PASS",
+      "unittest": "12/12 PASS",
+      "scope": "REPOSITORY_HOSTED_COMPONENT_CI_ONLY"
+    }
+  },
+  "observed_strengths": [
+    "Public tested-policy/checkpoint state is mechanically separated from evaluator-only ground truth and known evaluator keys are rejected recursively.",
+    "TransferCase binds distinct source/target fixture identities, generations, public fixture digests and opaque holdout-set identifiers.",
+    "RecoveryCheckpoint binds exact transfer-case and policy digests plus episode/generation, target public fixture, step, observation and action-history digests.",
+    "MatchedRecoveryComparison requires the same transfer-case digest, evaluator target-fixture digest and action budget for COLD_RESTART versus CHECKPOINT_RESUME.",
+    "Repository CI passes the declared 12 deterministic falsification tests and the component explicitly cannot mint runtime or whole-system credit."
+  ],
+  "material_gaps": [
+    {
+      "id": "WP805-E2-G1-MATCHED-START-IDENTITY-UNBOUND",
+      "severity": "HIGH",
+      "finding": "MatchedRecoveryComparison does not bind the two measured runs to the same post-change public starting observation, episode identity/generation, step index or start-state digest. EvaluatorRunMeasurement contains no such start identity.",
+      "risk": "Same transfer case + hidden target fixture + budget can be compared even if the cold and resume runs began from non-equivalent public states, confounding recovery benefit.",
+      "falsifier": "Construct a checkpoint-resume measurement sealed at one public observation and a cold measurement conceptually declared from a different public observation; if comparison creation succeeds because start identity is absent, the gap is reproduced."
+    },
+    {
+      "id": "WP805-E2-G2-POSTCHANGE-ORACLE-ABSENT",
+      "severity": "HIGH",
+      "finding": "No deterministic post-change oracle/reference-plan result is bound into a case or comparison.",
+      "risk": "Final score/action-count deltas cannot distinguish efficient correct repair from a cheaper but suboptimal or semantically different trajectory when evaluator scoring alone is insufficient.",
+      "falsifier": "Add a fixture whose post-change shortest/optimal valid plan is deterministically computable and show that two terminal runs can have different regret while the current summary has no oracle-regret field."
+    },
+    {
+      "id": "WP805-E2-G3-STRUCTURAL-HOLDOUT-DISJOINTNESS-UNPROVEN",
+      "severity": "HIGH",
+      "finding": "WP800 MicroWorldFixture already exposes evidence_source_family, donor_path_family and method_family, but WP805 TransferCase does not bind or compare them. It only rejects equal opaque holdout_set_id values.",
+      "risk": "Relabeling structurally same-family fixtures can satisfy the current transfer distinctness gate, so a new identifier need not represent held-out structural transfer.",
+      "falsifier": "Build source/target WP800 fixtures with different holdout labels but identical evidence-source, donor-path and method families and verify that current TransferCase accepts them."
+    },
+    {
+      "id": "WP805-E2-G4-PERTURBATION-CAUSAL-IDENTITY-ABSENT",
+      "severity": "MEDIUM_HIGH",
+      "finding": "The benchmark has source and target identities but no typed perturbation/change identity, declared generation boundary or evaluator-owned causal dependency footprint.",
+      "risk": "The benchmark measures transfer between fixtures, not necessarily recovery from one controlled localized change, weakening causal interpretation of selective repair."
+    },
+    {
+      "id": "WP805-E2-G5-REUSE-VALIDITY-TRACE-UNBOUND",
+      "severity": "HIGH",
+      "finding": "replayed_steps and repeated_work_steps are bounded caller-supplied counters; no consumed action/search/dependency trace digest proves what work was replayed, retained or still valid.",
+      "risk": "Efficiency deltas can be internally consistent while the semantic validity of reused material is unverified."
+    },
+    {
+      "id": "WP805-E2-G6-RUNTIME-RESOURCE-VECTOR-INCOMPLETE",
+      "severity": "MEDIUM",
+      "finding": "Measurements include actions/replay/repeated-work and evaluator score, but not model-call count, input/output tokens, latency or CPU/RSS/GPU/I/O metrics required by the Trigger-6 efficiency protocol where applicable.",
+      "risk": "Action savings can hide higher planning/model/resource cost."
+    },
+    {
+      "id": "WP805-E2-G7-CROSS-WP-COUPLING-NOT-YET-BOUND",
+      "severity": "MEDIUM",
+      "finding": "The merged source directly imports WP800 ObservationView only; E1 requested mapping onto accepted WP800/WP802/WP803 and emerging WP804 interfaces, but WP802 information seeking, WP803 prediction and WP804 goal-history/goal-inference artifacts are not causally bound by this component.",
+      "risk": "A standalone recovery benchmark can pass without measuring whether the integrated cognitive substrate actually transfers/replans better."
+    }
+  ],
+  "architecture_disposition": {
+    "decision": "KEEP_AS_BOUNDED_BENCHMARK_SUBSTRATE_BUT_WITHHOLD_E4_RECOVERY_EFFICIENCY_CREDIT",
+    "rationale": "The merged component is a useful fail-closed comparison scaffold and has repository CI evidence, but current matching and provenance fields do not yet identify the causal quantity claimed by recovery-efficiency research.",
+    "minimum_repair_shape": [
+      "Add a typed evaluator-owned RecoveryPerturbation/RecoveryScenario binding source, target, change identity/generation and causal footprint without exposing hidden truth to the SUT.",
+      "Bind both cold and resume measurements to one exact post-change public start identity; cold restart should differ by retained planner/checkpoint state, not by observed world state.",
+      "Add a deterministic post-change oracle/reference result when the micro-world permits it and report score/path/action regret separately from resource cost.",
+      "Bind explicit structural split metadata from WP800 evidence_source_family, donor_path_family and method_family, or a digest of a declared family vector, and fail closed on forbidden overlap for the selected transfer experiment.",
+      "Derive replay/repeated-work/reuse metrics from an exact trace/dependency receipt rather than accepting only unbound counters; preserve a digest and validity classification for retained material.",
+      "Add an evaluator-only optional resource vector for model calls, tokens, latency and host resources when the system under test actually uses them.",
+      "Only after these gates, map the recovery scenario to WP802/WP803/WP804 outputs and use Trigger-4 measured outcomes for any E4/E6 promotion."
+    ]
+  },
+  "counterhypothesis": "For the small deterministic WP800 micro-world regime, full cold replanning may remain cheaper and more reliable than maintaining reusable repair state. The benchmark must permit a neutral or negative result for checkpoint/selective recovery rather than rewarding reuse by construction.",
+  "next_exact_action": "Acquire a separate E3 create-only claim and run an exact-source deterministic falsifier for G1 matched-start identity and G3 structural-family relabeling. If reproduced, emit a minimal architecture delta to Trigger-4; do not modify F2 product source from Trigger-6 and do not grant E4/runtime/whole-system credit.",
+  "credits": {
+    "E2_architecture_mapping": 1,
+    "E3_claim_reproduced": 0,
+    "E4_f2_ablation": 0,
+    "E5_build_candidate": 0,
+    "E6_f2_accepted": 0,
+    "runtime": 0,
+    "whole_system": 0
+  }
+}

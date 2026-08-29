@@ -1,0 +1,79 @@
+{
+  "schema": "FRANKENSTEIN2_TRIGGER6_EVIDENCE_RECEIPT/v1",
+  "research_id": "R6-20260829-WP710-PSI-BROWNOUT-GPT56SOL-01",
+  "claim_target": "E1_SOURCE_READ",
+  "status": "E1_SOURCE_READ_COMPLETE",
+  "worker": "GPT-5.6-Sol",
+  "architecture_snapshot": {
+    "claim_base_f2_sha": "07938a450ff019302c2506a13a35f7a1747c60be",
+    "f2_sha_observed_after_wp710_core": "bc072bfb2f64b02669013b4147c3670b410f7faf",
+    "research_entity_sha": "d9d4fea68eafe7148678f003b932f7bfbbf34acc",
+    "wp710_core_commit": "63731075d7e74fd87a327c09059d0b5082d6d709",
+    "note": "F2 moved after the atomic E1 claim: WP710 gained a bounded scheduler core. This receipt re-read that current core before interpretation; architecture credit remains zero."
+  },
+  "sources": [
+    {
+      "id": "linux-kernel-psi",
+      "type": "EXTERNAL_PRIMARY",
+      "url": "https://docs.kernel.org/accounting/psi.html",
+      "observations": [
+        "PSI reports experienced CPU, memory and I/O stall pressure rather than only utilization.",
+        "some denotes partial workload stalls; full denotes complete non-idle workload stalls for memory/I/O and is a severe-thrashing signal.",
+        "avg10/avg60/avg300 expose trends while total exposes cumulative stall microseconds.",
+        "Userspace can register threshold/window triggers and wait with poll/select/epoll; documented windows are 500 ms to 10 s.",
+        "PSI is explicitly intended to support dynamic load shedding and pausing/killing lower-priority work under pressure.",
+        "The same PSI interface is available per cgroup v2."
+      ]
+    },
+    {
+      "id": "linux-kernel-cgroup-v2",
+      "type": "EXTERNAL_PRIMARY",
+      "url": "https://www.kernel.org/doc/html/latest/admin-guide/cgroup-v2.html",
+      "observations": [
+        "cgroup v2 exposes cpu.pressure, memory.pressure and io.pressure for group-local pressure accounting.",
+        "memory.high is a throttle boundary intended to give an external management agent time to react before OOM-style failure.",
+        "These are host-control mechanisms; importing them into the pure WP710 scheduler would violate its hardware-independent boundary."
+      ]
+    },
+    {
+      "id": "partap-et-al-catan-iros-2022",
+      "type": "EXTERNAL_PRIMARY",
+      "url": "https://arxiv.org/abs/2207.13280",
+      "observations": [
+        "Catan treats sense-react scheduling as a runtime resource-allocation problem over sensing/perception/planning/reaction pipelines.",
+        "It keeps application semantic requirements static while adapting low-level execution rates and CPU allocations to observed computation time and resource availability.",
+        "This supports separating F2 semantic value/priority policy from host-specific resource-pressure measurement."
+      ]
+    },
+    {
+      "id": "xu-dastjerdi-buyya-brownout-2016",
+      "type": "EXTERNAL_PRIMARY",
+      "url": "https://arxiv.org/abs/1608.02707",
+      "observations": [
+        "Brownout handles overload by temporarily deactivating optional components rather than failing the whole application.",
+        "The transferable principle is graceful optional-work degradation under overload; its cloud energy numbers do not transfer to F2."
+      ]
+    }
+  ],
+  "current_f2_observations": [
+    "WP710 is explicitly pure/deterministic and may not open devices or grant world/effect/completion authority.",
+    "The current scheduler already preserves a caller-declared control_reserve_units and derives pressure_degraded only from available_compute_units <= control_reserve_units.",
+    "The current policy has pressure_drop_below_priority_micros, so the architecture already has a deterministic low-value shedding hook but no typed host pressure measurement in this source surface."
+  ],
+  "hypothesis": "A typed host ResourcePressureSnapshot derived outside WP710 from PSI/cgroup-v2 signals can give the scheduler earlier, workload-impact-oriented degradation evidence than raw CPU/RSS utilization, while WP710 remains a pure deterministic planner.",
+  "counterhypothesis": "available_compute_units plus control_reserve_units already encode sufficient pressure; PSI adds host-specific noise, unrelated-workload coupling and complexity without improving protection of cognition/control.",
+  "source_read_conclusion": "PROMOTE_TO_E2_ARCHITECTURE_MAPPING; DO_NOT_IMPORT_KERNEL_OR_CATAN_CODE; prefer a thin F2-native typed pressure adapter and deterministic degradation mapping if later evidence supports it.",
+  "candidate_architecture_shape": {
+    "host_adapter": "Read system or dedicated-perception-cgroup PSI and emit an immutable typed ResourcePressureSnapshot with timestamp/generation/provenance.",
+    "scheduler": "Consume only the typed snapshot plus existing available_compute_units/control_reserve_units; never read /proc or cgroupfs directly.",
+    "degradation": "Map pressure to explicit bounded levels that lower worker/work budgets and shed optional low-priority perception before touching the control reserve.",
+    "anti_flap": "Use deterministic hysteresis/dwell rules because PSI threshold notifications and load can oscillate.",
+    "fallback": "If pressure telemetry is missing/stale/unsupported, retain the current compute-envelope path and mark pressure evidence UNKNOWN rather than fabricating NORMAL."
+  },
+  "evidence_ceiling": "E1_SOURCE_READ",
+  "research_credit": "E1_ONLY",
+  "architecture_credit": 0,
+  "runtime_credit": 0,
+  "integration_credit": 0,
+  "next_exact_gate": "Acquire E2_ARCHITECTURE_MAPPED claim, map typed pressure input against current WP710/WP709/Cognitive Envelope boundaries, and specify a falsifiable no-import architecture delta before any Trigger-4 handoff."
+}

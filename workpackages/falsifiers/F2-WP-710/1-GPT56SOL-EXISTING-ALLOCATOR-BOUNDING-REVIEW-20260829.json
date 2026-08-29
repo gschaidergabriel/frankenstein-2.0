@@ -1,0 +1,85 @@
+{
+  "schema": "FRANKENSTEIN2_WORKPACKAGE_FALSIFIER/v1",
+  "workpackage_id": "F2-WP-710",
+  "review_id": "F2-WP-710-G1-GPT56SOL-EXISTING-ALLOCATOR-BOUNDING-REVIEW-20260829",
+  "review_class": "REVIEW_ONLY_CANDIDATE_FALSIFIER",
+  "worker_id": "GPT-5.6-Sol",
+  "authority": {
+    "supervisor_inbox_schema": "9.13",
+    "supervisor_delta": "9.13AU_NON_AUTHORITY",
+    "owner_vps_bridge_allowed": true,
+    "external_provider_routes_admitted": false,
+    "together_forbidden": true
+  },
+  "active_claim": {
+    "path": "workpackages/active/F2-WP-710.json",
+    "claim_id": "F2-WP-710-G1-GPT56SOL-DYNAMIC-PERCEPTION-SCHEDULER-20260829",
+    "state": "ACTIVE",
+    "mutation_authority": "NOT_THIS_REVIEW"
+  },
+  "reviewed_existing_surface": {
+    "path": "src/frankenstein2/perception_fabric.py",
+    "blob_sha": "30d81c46295ec563543e0d10c0d1c8900792e07a",
+    "functions": [
+      "PerceptionWorkerPolicy",
+      "PerceptionWorkerAllocation",
+      "allocate_perception_workers"
+    ]
+  },
+  "positive_observations": [
+    "max_active_workers is constrained to 0..4",
+    "allocation ordering is deterministic by priority, work units and intent id",
+    "max_total_work_units provides a bounded selected-work budget",
+    "zero-worker policy is representable",
+    "source count is not hard-coded to four"
+  ],
+  "open_gaps_against_wp710": [
+    {
+      "id": "WP710-GAP-01",
+      "finding": "Input queue cardinality is not bounded by the existing allocator contract; callers may submit an arbitrarily large intents tuple.",
+      "risk": "scheduler memory/latency can grow with backlog even though active selected workers are capped at four"
+    },
+    {
+      "id": "WP710-GAP-02",
+      "finding": "deferred_intent_ids retains every deferred intent id, so the allocation result itself can grow O(N) with backlog.",
+      "risk": "backpressure moves unboundedness into metadata instead of proving bounded queue state"
+    },
+    {
+      "id": "WP710-GAP-03",
+      "finding": "provenance construction adds every intent provenance ref and digest, so result provenance can also grow O(N).",
+      "risk": "large source/backlog sets can amplify scheduler metadata and serialization cost"
+    },
+    {
+      "id": "WP710-GAP-04",
+      "finding": "there is no explicit coalescing/latest-wins key or stale/low-value drop accounting in the existing allocator.",
+      "risk": "repeated work for the same source/ROI/head can accumulate or be deferred without a bounded replacement/drop receipt"
+    },
+    {
+      "id": "WP710-GAP-05",
+      "finding": "one invalid/stale intent fails the whole allocation call during upfront validation rather than producing a typed per-item rejection/drop outcome.",
+      "risk": "a stale queued item can deny scheduling of unrelated currently valid work unless a separate admission layer removes it first"
+    },
+    {
+      "id": "WP710-GAP-06",
+      "finding": "resource-pressure degradation is represented only by max workers/work units; there is no explicit pressure level, reserve for cognition/control, or reasoned degradation/drop telemetry.",
+      "risk": "the Perception Fabric acceptance law that perception degrades before cognition/control starvation is not demonstrated by this helper alone"
+    }
+  ],
+  "required_falsifiers_for_active_mutation_authority": [
+    "large-backlog test proves scheduler state and emitted metadata remain bounded independently of offered intent count",
+    "same-key repeated intents prove deterministic coalescing/latest-wins or bounded drop behavior with exact counters",
+    "zero-worker test proves cheap admitted capture/change monitoring can remain separate while analysis work is bounded/deferred/dropped",
+    "stale intent mixed with valid intents cannot indefinitely block unrelated valid work",
+    "N-sources-greater-than-workers test proves bounded scheduling without a four-source assumption",
+    "resource-pressure test proves perception work degrades/drops before the declared cognition/control reserve is consumed",
+    "scheduler integration must bind to exactly one canonical CaptureBroker ABI; the WP709 duplicate-broker review remains open"
+  ],
+  "scope_boundary": "This review does not modify the active WP710 implementation and does not claim the existing allocator is defective outside its declared helper scope. It establishes only that the current helper by itself is insufficient evidence for the stronger WP710 bounded dynamic scheduler acceptance contract.",
+  "credit": {
+    "source_review_credit": 1,
+    "component_runtime_credit": 0,
+    "perception_runtime_credit": 0,
+    "whole_system_acceptance": false
+  },
+  "next_exact_action": "The sole WP710 mutation authority should implement or wrap the scheduler with bounded backlog/coalescing/drop accounting and then run the listed deterministic falsifiers before repository-component reconciliation."
+}

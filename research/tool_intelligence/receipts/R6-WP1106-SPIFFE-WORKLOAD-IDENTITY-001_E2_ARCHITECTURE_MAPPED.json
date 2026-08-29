@@ -1,0 +1,122 @@
+{
+  "schema": "FRANKENSTEIN2_TRIGGER6_EVIDENCE_RECEIPT/v1",
+  "research_id": "R6-WP1106-SPIFFE-WORKLOAD-IDENTITY-001",
+  "evidence_stage": "E2_ARCHITECTURE_MAPPED",
+  "status": "MAPPED_THIN_IDENTITY_DELTA_RECOMMENDED_FULL_SPIRE_REJECTED_AT_SCOPE",
+  "completed_at": "2026-08-29T19:49:45+07:00",
+  "external_source_pins": [
+    "spiffe/spiffe@dc4e9d9b4eff8aa181a54cd330ff9f877186060e",
+    "spiffe/spire@66f6029f508bac63008045522642bb952376868c"
+  ],
+  "f2_target": {
+    "workpackage": "F2-WP-1106",
+    "claim_id": "F2-WP-1106-G1-GPT56SOL-LOCAL-RUNTIME-BRIDGE-20260829T1244Z",
+    "implementation_sha_observed": "9c5652497d6c5b4b3ab26bee6d5a28f00076c549",
+    "implementation_path": "src/frankenstein2/optional_vps_bridge.py",
+    "test_path": "tests/test_optional_vps_bridge.py"
+  },
+  "current_source_observation": [
+    "RemoteEndpointEvidence currently binds endpoint_id, transport, environment_digest, capability_report_digest, bound_local_state_lineage_id, availability state/evidence and second-authority booleans into a deterministic endpoint digest.",
+    "ATTACH currently requires verified local baseline boot, remote availability, typed request/result transport and exact local state-lineage equality.",
+    "The current module correctly rejects remote truth/state/effect authority and keeps remote returns candidate/projection-only with zero target-runtime and whole-system credit.",
+    "However, endpoint_id and capability_report_digest are caller-supplied values with no separate cryptographic peer-identity evidence state, issuer/trust-root binding, credential validity/rotation generation or session/replay binding in the current schema.",
+    "Therefore current source can prove deterministic agreement among supplied fields, but it cannot by itself prove that the live remote peer presenting those fields is the intended endpoint or that a capability digest was authenticated by that peer."
+  ],
+  "mapping": [
+    {
+      "f2_invariant": "stable endpoint identity distinct from network address",
+      "external_support": "STRONG",
+      "note": "SPIFFE ID provides a structured workload identity namespace independent of transport address. F2 can distill this as a typed BridgePeerIdentity without adopting SPIFFE URI syntax as canonical product identity."
+    },
+    {
+      "f2_invariant": "cryptographically verifiable short-lived peer evidence",
+      "external_support": "STRONG",
+      "note": "X.509-SVID binds workload identity to a verifiable certificate/key and supports mutual TLS. F2 currently has no analogous credential evidence fields in RemoteEndpointEvidence."
+    },
+    {
+      "f2_invariant": "trust-root/issuer identity and rotation",
+      "external_support": "STRONG",
+      "note": "SPIFFE trust domains and bundles explicitly bind identity namespaces to issuer keys and allow key rotation. F2 should at minimum bind a pinned trust-root/issuer fingerprint plus credential generation/validity if the bridge is authenticated cryptographically."
+    },
+    {
+      "f2_invariant": "local bootstrap of workload identity",
+      "external_support": "MECHANISM_DONOR_ONLY",
+      "note": "SPIFFE Workload Endpoint is deliberately local and relies on out-of-band OS/process caller identification. This supports binding F2 local runtime identity to host/process evidence, but does not require a SPIRE agent."
+    },
+    {
+      "f2_invariant": "capability authority remains deterministic/local",
+      "external_support": "SPIFFE_NOT_SUFFICIENT",
+      "note": "SPIFFE authenticates workload identity; it does not grant F2 capabilities, state authority, truth authority or effect authority. Capability admission must remain a separate local deterministic gate."
+    },
+    {
+      "f2_invariant": "replay-resistant remote request/result binding",
+      "external_support": "PARTIAL",
+      "note": "X.509 mutual TLS avoids reusable bearer-token identity; JWT-SVID documentation explicitly warns of replay windows. F2 still needs its own request/session nonce or transcript binding because peer authentication alone does not make an old result current."
+    },
+    {
+      "f2_invariant": "single optional owner-controlled bridge with minimal runtime weight",
+      "external_support": "FULL_SPIRE_OVERBUILT_AT_CURRENT_SCOPE",
+      "note": "SPIRE requires a signing server, one or more node agents, registration entries, attestation plugins and lifecycle management. That control plane is disproportionate to current WP-1106 unless F2 later scales to many dynamic workloads/nodes."
+    }
+  ],
+  "three_way_decision": {
+    "A_raw_pinned_key_mtls": {
+      "status": "VIABLE_BASELINE",
+      "strengths": ["small dependency surface", "direct peer authentication", "easy fail-closed pinning"],
+      "gaps": ["identity/rotation/capability schema can become ad hoc unless explicitly typed"]
+    },
+    "B_thin_spiffe_inspired_native": {
+      "status": "RECOMMENDED_FOR_TRIGGER4_CONSIDERATION",
+      "strengths": ["typed stable peer identity", "credential issuer/root and validity binding", "rotation generation", "keeps capability/state/effect authority separate", "no external control plane required"],
+      "gaps": ["must be implemented/tested natively; no runtime credit from this research"]
+    },
+    "C_full_spire": {
+      "status": "REJECT_AT_CURRENT_SCOPE",
+      "strengths": ["mature workload/node attestation and automated SVID lifecycle"],
+      "costs": ["server+agent control plane", "registration store", "plugins", "additional failure/upgrade/operational surfaces", "risk of confusing identity infrastructure with F2 canonical authority"]
+    }
+  },
+  "recommended_architecture_delta": {
+    "delta_id": "F2-WP1106-REMOTE-PEER-IDENTITY-EVIDENCE-v1",
+    "type": "ADD_FAIL_CLOSED_IDENTITY_EVIDENCE_GATE",
+    "scope": "F2-WP-1106 planning/validation source only; no network executor introduced",
+    "add_or_bind": [
+      "peer_identity_namespace + peer_id",
+      "credential_kind and credential/public-key fingerprint",
+      "issuer_or_trust_root_fingerprint",
+      "credential_generation",
+      "valid_from/valid_until or explicit non-temporal pinned-key policy",
+      "identity_evidence_state + identity_evidence_ref",
+      "capability_report_digest bound to authenticated peer identity and protocol version",
+      "request/session nonce or transcript digest on remote-return validation",
+      "optional explicit key-rotation overlap/revocation state"
+    ],
+    "preserve": [
+      "local state lineage is sole canonical state lineage",
+      "remote optionality and local boot independence",
+      "remote output candidate/projection-only",
+      "EffectGate/EffectJournal local effect authority",
+      "zero runtime/whole-system credit from source-only planning"
+    ],
+    "do_not_add": [
+      "SPIRE server", "SPIRE agent", "SPIFFE registration datastore", "second capability authority", "second truth/state/effect authority"
+    ]
+  },
+  "source_supported_tests_for_trigger4": [
+    "ATTACH rejects unknown or DECLARED_ONLY peer-identity evidence even when availability is VERIFIED.",
+    "ATTACH rejects an unexpected peer identity or trust-root/issuer fingerprint.",
+    "ATTACH rejects expired or revoked/stale credential generation when temporal/rotation policy is used.",
+    "ATTACH rejects capability evidence whose authenticated peer/protocol binding differs from the bridge peer identity.",
+    "A replayed remote result with stale request/session nonce or transcript digest is rejected even if result and lineage digests are syntactically valid.",
+    "Credential rotation can overlap in a bounded explicit window without changing local runtime/state identity; the superseded key fails after cutover.",
+    "DETACH remains admissible and preserves local lineage when peer identity is unavailable/expired/invalid.",
+    "Successful remote peer authentication still grants canonical_truth_credit=0 and effect_completion_credit=0."
+  ],
+  "counterhypothesis": "The planning layer intentionally consumes already-verified evidence from a lower transport/security layer. If an exact upstream contract already guarantees peer cryptographic verification, freshness and capability binding, duplicating credential fields in RemoteEndpointEvidence would be redundant. The next discriminator is to locate such an exact upstream contract/receipt path; absent that, current 'VERIFIED availability + caller-supplied endpoint_id' is too weak to satisfy the workpackage phrase 'explicit remote endpoint/capability evidence' at live-identity scope.",
+  "next_falsifier": "Trigger4 should first search current F2/VPS bridge contracts for a preexisting exact peer-authentication/freshness contract. If none exists, implement only the thin identity evidence fields/gates and tests above, then compare schema/code/test weight against a simpler pinned-key-only variant. Do not deploy SPIRE unless later multi-node/dynamic-workload scale makes its attestation/rotation automation measurably cheaper than native management.",
+  "architecture_delta": "DELTA_RECOMMENDED_NOT_ACCEPTED: add a thin fail-closed remote peer identity evidence gate; explicitly reject full SPIRE at current scope.",
+  "research_credit": "E2_ARCHITECTURE_MAPPED_ONLY",
+  "runtime_credit": 0,
+  "architecture_acceptance_credit": 0,
+  "whole_system_credit": 0
+}

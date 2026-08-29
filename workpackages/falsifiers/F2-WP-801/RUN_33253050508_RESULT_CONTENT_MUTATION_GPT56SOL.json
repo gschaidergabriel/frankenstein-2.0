@@ -1,0 +1,45 @@
+{
+  "schema": "FRANKENSTEIN2_WORKPACKAGE_FALSIFIER/v1",
+  "workpackage_id": "F2-WP-801",
+  "generation": 1,
+  "claim_id": "F2-WP-801-G1-GPT56SOL-HELDOUT-ORIENTATION-BENCHMARK-20260829",
+  "worker_id": "GPT-5.6-Sol-review-organ",
+  "classification": "REVIEW_ONLY_EXECUTABLE_CANDIDATE_FALSIFIER",
+  "target_source_path": "src/frankenstein2/cognitive_orientation_benchmark.py",
+  "target_source_blob_sha": "f5159291f1de44365f27d8edc19fcbbca8801616",
+  "target_branch": "trigger4/wp801-heldout-orientation-20260829",
+  "target_branch_head_sha": "9da83a097a98d82b32102b1b9e3eb7d9075ca815",
+  "review_branch": "review/wp801-post-init-result-mutation-falsifier-20260829",
+  "review_head_sha": "007b18dd92f1fd02e6846e552d9a712be6ad8b50",
+  "review_pull_request": 427,
+  "workflow_run_id": 33253050508,
+  "workflow_job_id": 99101931536,
+  "result": "FAILURE_AS_PREREGISTERED",
+  "finding": "WP801_ORIENTATION_RESULT_CURRENT_CONTENT_NOT_REVALIDATED_AT_COMPARISON_BOUNDARY",
+  "hypothesis": "OrientationRunResult is factory-origin protected at construction, but compare_orientation_runs consumes direct current result fields without reconstructing or revalidating the complete current result content against runner-produced lineage. Post-construction mutation can therefore alter evaluator_score while preserving the original runner-origin object identity.",
+  "reproduction": {
+    "setup": "Produce matched baseline and intervention OrientationRunResult objects through run_orientation_policy on the accepted WP800 held-out MicroWorld fixture.",
+    "intervention": "Use object.__setattr__(intervention, 'evaluator_score', 999) after valid runner production.",
+    "expected_fail_closed_behavior": "compare_orientation_runs rejects the mutated result before consuming evaluator_score or producing a comparison.",
+    "observed_behavior": "compare_orientation_runs does not raise OrientationBenchmarkError and consumes the mutated result; the preregistered fail-closed regression therefore fails.",
+    "terminal_assertion": "A post-init mutated OrientationRunResult can cross the comparison consumer boundary with runner-looking lineage while its current evaluator_score no longer matches runner-produced content."
+  },
+  "ci_evidence": {
+    "compile_step": "PASS",
+    "existing_tests": "11/11 PASS",
+    "discriminator_test": "FAILURE_AS_EXPECTED: OrientationBenchmarkError not raised",
+    "runner_scope": "GITHUB_HOSTED_UBUNTU_PYTHON_3_12_REPOSITORY_COMPONENT_REVIEW"
+  },
+  "negative_evidence_scope": "WP801_REPOSITORY_HOSTED_COMPONENT_RESULT_CONSUMER_REVALIDATION_BOUNDARY_ONLY",
+  "does_not_claim": [
+    "WP801 target-runtime failure",
+    "GRID10 failure",
+    "GWT/J-Space failure",
+    "effect/completion failure",
+    "training failure",
+    "whole Frankenstein 2.0 failure"
+  ],
+  "recommended_resolution": "The sole active WP801 mutation owner should reconstruct/revalidate exact current OrientationRunResult content and producer lineage at compare_orientation_runs before consuming score, trace, terminal or other direct fields, absorb PR #427 as canonical regression coverage, and rerun exact repository-hosted CI.",
+  "mutation_authority": "NONE_REVIEW_ONLY_DO_NOT_MODIFY_WP801_OWNED_SOURCE_FROM_THIS_RECORD",
+  "next_exact_action": "WP801 owner repairs the consumer trust boundary under the active claim, absorbs PR #427 regression, requires exact branch-head CI PASS, then reconciles bounded repository-component scope without minting runtime or whole-system credit."
+}

@@ -1,0 +1,41 @@
+{
+  "schema": "FRANKENSTEIN2_TRIGGER6_EVIDENCE_RECEIPT/v1",
+  "research_id": "R6-20260829-ROS2-APPROXTIME-WP711-GPT56SOL-01",
+  "evidence_stage": "E2_ARCHITECTURE_MAPPED",
+  "status": "MAPPED_CURRENT_SCOPE_CONFIRMED_NO_NEW_ARCHITECTURE_DELTA",
+  "completed_at": "2026-08-29T18:24:30+07:00",
+  "external_source_pin": "ros2/message_filters@ef491040f89f9f1a7c2f44fd52170618ae2b037e",
+  "f2_target": {
+    "workpackage": "F2-WP-711",
+    "claim_id": "F2-WP-711-G1-GPT56SOL-TEMPORAL-OBSERVATION-WINDOW-20260829",
+    "claim_scope_observed": "event-time metadata; clock-domain identity; bounded skew/uncertainty; freshness; explicit UNKNOWN/UNALIGNED temporal relation; deterministic explicit fusion window; preserve disagreement; fail closed against arrival-order/same-cycle assumptions"
+  },
+  "mapping": [
+    {"f2_invariant":"event-time-first fusion coordinate","external_support":"STRONG","note":"ROS synchronizers use message/header timestamps; Python arrival-time synchronization exists but is explicitly discouraged as unpredictable."},
+    {"f2_invariant":"bounded per-source buffering","external_support":"STRONG","note":"ApproximateTime uses bounded per-input queues and drops the oldest message on overflow."},
+    {"f2_invariant":"explicit fusion span bound","external_support":"STRONG","note":"C++ policy exposes max_interval_duration; Python exposes slop."},
+    {"f2_invariant":"source-local monotonicity checks","external_support":"PARTIAL","note":"C++ detects out-of-order stamps but only warns; F2 must preserve stronger fail-closed/typed handling."},
+    {"f2_invariant":"clock-domain identity and uncertainty","external_support":"INSUFFICIENT","note":"ApproximateTime operates on rclcpp::Time extracted by TimeGetter but does not provide F2's explicit per-observation clock-domain compatibility/uncertainty state."},
+    {"f2_invariant":"UNKNOWN/UNALIGNED temporal relation","external_support":"INSUFFICIENT","note":"No equivalent first-class epistemic relation was identified in the audited policy; F2 should retain its native representation."},
+    {"f2_invariant":"preserve multi-view disagreement","external_support":"INSUFFICIENT","note":"The synchronizer emits matched tuples; it is not a world-truth or contradiction-preservation system."},
+    {"f2_invariant":"candidate invalidation after source drop","external_support":"MECHANISM_DONOR_ONLY","note":"ROS invalidates/recomputes an active candidate when queue overflow drops a source message; adopt only if F2 implementation actually maintains cross-call candidates."}
+  ],
+  "integration_decision": {
+    "import_ros2_message_filters": false,
+    "reason": "Dependency and semantic surface is larger than the deterministic typed F2 observation-window primitive; the useful invariants are small and already substantially present in WP-711 scope.",
+    "retain_f2_native": ["clock_domain_id","skew_or_uncertainty","freshness","UNKNOWN_UNALIGNED","disagreement_preservation","fail_closed_arrival_order"],
+    "source_supported_test_additions": [
+      "arrival-order permutation must not change an admissible event-time fusion result",
+      "out-of-order source-local timestamp must be rejected or explicitly typed rather than silently normalized",
+      "fusion span just above the bound must fail closed",
+      "bounded per-source overflow must preserve deterministic diagnostics",
+      "headerless/arrival-time fallback must not silently enter the canonical fusion path"
+    ]
+  },
+  "counterhypothesis": "No candidate-invalidation state machine is needed if WP-711 computes fusion sets atomically from immutable bounded snapshots; importing that ROS mechanism would add state without information gain.",
+  "architecture_delta": "NO_NEW_DELTA: current WP-711 contract is stricter than the donor on clock domains and epistemic uncertainty. Feed the source-supported edge-case tests to Trigger4, but do not broaden architecture or import ROS2.",
+  "research_credit": "E2_ARCHITECTURE_MAPPED_ONLY",
+  "runtime_credit": 0,
+  "architecture_acceptance_credit": 0,
+  "whole_system_credit": 0
+}

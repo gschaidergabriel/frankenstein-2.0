@@ -1,0 +1,151 @@
+{
+  "schema": "FRANKENSTEIN2_PERCEPTION_FABRIC_PHASE/v1",
+  "status": "PROJECT_OWNER_REQUIRED_BUILD_PLAN",
+  "date": "2026-08-29",
+  "architecture_contract": "architecture/PERCEPTION_FABRIC.md",
+  "hardening_contract": "architecture/PERCEPTION_FABRIC_HARDENING_20260829.md",
+  "build_split": {
+    "vps_side_goal": "finish contracts, CaptureOwner/Broker semantics, deterministic control, scheduling, world-model fusion, bridge semantics, fixtures, CI and release wiring so local Claude Code/Opus integration is primarily real hardware/OS binding plus acceptance",
+    "local_final_goal": "bind actual sensors/device adapters/permissions/dashboard and execute hardware acceptance without inventing new architecture"
+  },
+  "reference_limits": {
+    "max_active_cortex_workers": 4,
+    "minimum_active_cortex_workers": 0,
+    "source_count": "0..N",
+    "default_generic_vlm_calls": 0,
+    "default_raw_frame_persistence": 0
+  },
+  "hard_laws": [
+    "CONFIGURED_SOURCES=0..N",
+    "PERMITTED_SOURCES<=CONFIGURED_SOURCES",
+    "ONE_CAPTURE_OWNER_PER_SOURCE",
+    "ACTIVE_ANALYSIS_WORKERS=0..4_INITIALLY",
+    "SOURCE_COUNT_INDEPENDENT_OF_WORKER_COUNT",
+    "OBSERVE_INTENT_REQUIRES_EXACT_PERMISSION_SNAPSHOT_DIGEST",
+    "STALE_OR_REVOKED_PERMISSION_CANNOT_BE_REVIVED_BY_QUEUED_INTENT",
+    "ARRIVAL_ORDER!=EVENT_TIME_ORDER",
+    "SAME_GRID_CYCLE!=SAME_REAL_WORLD_TIME",
+    "UNPROVEN_CLOCK_ALIGNMENT=>UNKNOWN_OR_UNALIGNED",
+    "OBSERVED!=INFERRED!=RETRIEVED",
+    "RAW_FRAME_PERSISTENCE_DEFAULT=OFF",
+    "REMOTE_FRAME_REQUIRES_EXPLICIT_CAPABILITY",
+    "EXTERNAL_VLM_REQUIRES_EXPLICIT_CAPABILITY",
+    "BASELINE_CONTINUOUS_PERCEPTION_REQUIRES_NO_LLM_TOKENS",
+    "PERCEPTION_MUST_NOT_STARVE_COGNITION",
+    "VPS_BUILDS_CAPTURE_BROKER_AND_FUSION_BEFORE_LOCAL_BINDING",
+    "LOCAL_ACCEPTANCE_BINDS_REAL_OS_DEVICES_PERMISSIONS_AND_FALSIFIES"
+  ],
+  "workpackages": [
+    {
+      "id": "F2-WP-707",
+      "title": "PerceptionSource + PerceptionCapability + immutable permission snapshot",
+      "acceptance": [
+        "source registry supports 0..N configured sources and never assumes four sources",
+        "per-source SEE/ANALYZE/MEMORY/RAW_RETENTION/REMOTE_FRAME/EXTERNAL_VLM represented",
+        "snapshot has exact digest/generation/provenance",
+        "revoked or stale snapshot cannot authorize new work",
+        "queued observation work revalidates current owner policy before execution",
+        "source add/remove/rebind does not silently preserve obsolete capability authority"
+      ]
+    },
+    {
+      "id": "F2-WP-708",
+      "title": "ObserveIntent and VisualNeed binding",
+      "acceptance": [
+        "VisualNeed can compile to bounded ObserveIntent without performing capture",
+        "intent binds source, ROI, heads, freshness, deadline, priority, compute ceiling and permission digest",
+        "intent has no truth/effect/completion authority",
+        "permission revocation after intent creation causes fail-closed execution",
+        "REMOTE_FRAME and EXTERNAL_VLM are rechecked at actual transfer/dispatch time",
+        "expired intent cannot be replayed after bridge delay/reconnect"
+      ]
+    },
+    {
+      "id": "F2-WP-709",
+      "title": "RetinaCaptureBroker single-owner/multiple-reader contract",
+      "acceptance": [
+        "CaptureOwner/Broker state machine and bounded fan-out are implemented before local handoff",
+        "one capture owner per source",
+        "bounded in-memory references/ring",
+        "no unbounded queue growth",
+        "consumer fan-out cannot reopen/contend for underlying source",
+        "historical duplicate-device-open / Device-busy class has explicit regression falsifier",
+        "real local OS/device adapter can plug into the prebuilt CaptureOwner interface without redesigning ownership semantics"
+      ]
+    },
+    {
+      "id": "F2-WP-710",
+      "title": "Dynamic Retina/Cortex worker scheduler 0..4",
+      "acceptance": [
+        "0..4 active analysis slots selected under explicit compute policy",
+        "source count independent of worker count",
+        "N sources greater than active worker count are handled by bounded scheduling/backpressure",
+        "zero-worker state is valid while admitted cheap Retina capture/change monitoring can continue",
+        "stale low-value work coalesced/dropped under backpressure",
+        "perception cannot exceed cognitive envelope ceilings or starve state/control latency"
+      ]
+    },
+    {
+      "id": "F2-WP-711",
+      "title": "Temporal ObservationWindow and cross-source fusion",
+      "acceptance": [
+        "source-local monotonic ordering preserved",
+        "source time, capture monotonic time, freshness and clock-domain/skew metadata explicit",
+        "cross-clock claims carry bounded clock uncertainty or explicit UNKNOWN/UNALIGNED state",
+        "fusion uses an explicit admissible temporal window/skew policy",
+        "arrival order is never silently treated as event-time order",
+        "same GRID cycle is never silently treated as same real-world time",
+        "stale or temporally unaligned observations cannot silently become current world state",
+        "multi-view disagreement preserved"
+      ]
+    },
+    {
+      "id": "F2-WP-712",
+      "title": "PerceptionWorldBridge typed events / ObserveIntent return path",
+      "acceptance": [
+        "typed percept events are default bridge payload",
+        "raw/ROI bridge requires REMOTE_FRAME capability at actual transfer time",
+        "VLM path additionally requires EXTERNAL_VLM capability at actual dispatch time",
+        "bridge loss degrades without corrupting local identity or fabricating observations",
+        "bridge reconnect cannot replay expired ObserveIntent or stale permission authority",
+        "stale remote events cannot be promoted to current world truth merely by late arrival"
+      ]
+    },
+    {
+      "id": "F2-WP-713",
+      "title": "Dashboard capability plane and PerceptionAuditReceipt contract",
+      "acceptance": [
+        "dashboard can pause all Retina and revoke each capability per source",
+        "live worker/source/reason visibility",
+        "auditable permission snapshot and observation execution receipts",
+        "dashboard binds to the same capability authority used by CaptureOwner/ObserveIntent rather than a UI-only preference copy",
+        "raw keylogging/clipboard/password capture excluded from baseline",
+        "permission withdrawal behavior is testable and visible"
+      ]
+    },
+    {
+      "id": "F2-WP-714",
+      "title": "Perception Fabric sustained multi-source acceptance",
+      "acceptance": [
+        "0-source case keeps cognition healthy and fabricates no observations",
+        "1-source basic capture/event/re-look path passes",
+        "N-sources-greater-than-workers scheduling path passes",
+        "four permissioned sources can be represented concurrently when four real or synthetic sources are available",
+        "0..4 workers adapt dynamically",
+        "zero generic VLM calls in normal baseline soak",
+        "zero raw-frame persistence under default policy",
+        "bounded RAM/queues",
+        "world model receives typed epistemic/time/source provenance",
+        "GRID10-triggered re-look works",
+        "source add/remove/rebind churn is tolerated without state/authority corruption",
+        "permission revocation during queued ObserveIntent invalidates outstanding work",
+        "clock-skew/uncertainty falsifier prevents false contemporaneous fusion",
+        "MEMORY_OFF evidence is not later resurrected from durable memory",
+        "bridge disconnect/reconnect does not replay stale visual authority",
+        "resource-pressure test drops/degrades perception work before cognition/control starvation",
+        "final local Claude Code/Opus run repeats enabled real-device/OS-permission acceptance before product completion"
+      ]
+    }
+  ],
+  "completion_law": "Frankenstein 2.0 perception integration is incomplete if final local Claude Code/Opus work must invent permission, CaptureOwner/Broker ownership, scheduling, epistemic, temporal-fusion, world-model or bridge semantics rather than only bind host-specific sensors/device adapters/permissions and verify them. The hardening contract is part of these acceptance semantics."
+}

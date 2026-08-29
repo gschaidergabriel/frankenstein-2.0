@@ -1,0 +1,57 @@
+{
+  "schema": "FRANKENSTEIN2_TRIGGER6_EVIDENCE_RECEIPT/v1",
+  "research_id": "R6-WP702-PRODUCER-LINEAGE-SEAL-001",
+  "evidence_level": "E2_ARCHITECTURE_MAPPED",
+  "status": "ARCHITECTURE_MAPPED",
+  "observed_at": "2026-08-29T18:26:00+07:00",
+  "worker": "gpt-5.6-sol",
+  "claim_commit_sha": "f473943fb86aed99f25e9d7b07c9f146bbd5356a",
+  "e1_receipt": "research/tool_intelligence/receipts/R6-WP702-PRODUCER-LINEAGE-SEAL-001_E1_SOURCE_READ.json",
+  "f2_main_observed": "d7ca84412eb58a681c11969232e850a576f9808c",
+  "research_entity_main_observed": "d9d4fea68eafe7148678f003b932f7bfbbf34acc",
+  "affected_modules": [
+    "src/frankenstein2/perception_control.py",
+    "tests/test_perception_control.py"
+  ],
+  "reference_donor": {
+    "module": "src/frankenstein2/retina_pipeline.py",
+    "commit": "c2b55c0886982bd3a5ee7f59422fd040f69fe7a1",
+    "pattern": "factory-only RetinaAssessment with dataclass(init=False), fail-closed public __init__, module-private object.__new__ producer, produced-instance validation, and direct-constructor/dataclasses.replace falsifiers"
+  },
+  "recommended_delta": {
+    "class_change": "Change PerceptionControlResult to @dataclass(frozen=True, slots=True, kw_only=True, init=False).",
+    "public_constructor": "Define __init__(*args, **kwargs) that always raises PerceptionControlError with an explicit producer-lineage/factory-only message.",
+    "validation_move": "Move current __post_init__ field/control validation into a private _validate_produced() method without relaxing any existing OFF, taint, policy_sha256, value/confidence, egress, memory or persistence invariant.",
+    "single_producer": "Add module-private _produce_perception_control_result(...) that uses object.__new__(PerceptionControlResult), assigns the complete result envelope, calls _validate_produced(), then returns the result.",
+    "evaluator_binding": "Replace every direct PerceptionControlResult(...) branch in evaluate_perception_head() with _produce_perception_control_result(...). No external caller should be able to use the ordinary constructor to mint an evidence-bearing or persistence-allowed result.",
+    "serialized_schema": "Do not add a claimed cryptographic producer field for this scope. Preserve the current serialized/as_dict schema unless a downstream ABI explicitly needs a producer label; a copied label or digest would not itself prove lineage.",
+    "tests": [
+      "Canonical evaluate_perception_head() result remains behaviorally identical at all ON/COMPUTE_OFF/OUTPUT_OFF/MEMORY_OFF branches.",
+      "Direct PerceptionControlResult(...) with exact legitimate registry_sha256 and policy_sha256 but forged OK/persistence_allowed=True must raise.",
+      "dataclasses.replace(canonical_result, ...) must raise rather than mint a producer-looking variant.",
+      "Existing policy digest, transitive compute taint, transitive memory/persistence taint and error/unknown-head tests remain green.",
+      "No runtime/whole-system credit is granted by component CI."
+    ]
+  },
+  "threat_model": {
+    "closed": "Ordinary repository/API-level direct construction and dataclasses.replace laundering inside trusted cooperative F2 code.",
+    "not_closed": "Arbitrary malicious Python code in the same interpreter using object.__new__, object.__setattr__, monkeypatching, reflection, debugger access, or code execution inside the module trust boundary.",
+    "escalation_condition": "If PerceptionControlResult must be verified across mutually untrusted processes or persisted/re-hydrated as an independently verifiable statement, introduce an EvaluationReceipt/attestation envelope with producer identity, evaluation/invocation identity, exact input/material digests and subject/result digest, authenticated by a signer/key outside the untrusted producer process."
+  },
+  "external_architecture_mapping": {
+    "SLSA_in_toto": "Distill the separation of subject/result identity from producer/builder identity and invocation details; do not import the supply-chain frameworks into the current in-process component.",
+    "Python": "Non-public naming is not a hard privacy boundary. dataclass(init=False) plus a fail-closed constructor is therefore a typed correctness/provenance fence, matching the already accepted WP700 scope rather than a security sandbox."
+  },
+  "resource_assessment": {
+    "new_runtime_dependency": 0,
+    "new_model_calls": 0,
+    "new_provider_calls": 0,
+    "persistent_secret_state": 0,
+    "expected_cpu_memory_overhead": "NEGLIGIBLE_RELATIVE_TO_CURRENT_RESULT_CONSTRUCTION",
+    "reuse": "HIGH_SAME_REPO_ACCEPTED_PATTERN",
+    "determinism": "PRESERVED",
+    "preferred_over_crypto": true
+  },
+  "handoff": "TRIGGER4_SHOULD_ADAPT_WP700_FACTORY_ONLY_PATTERN_TO_WP702_UNDER_SINGLE_CANONICAL_MUTATION_AUTHORITY_AND_RUN_EXACT_SUCCESSOR_FALSIFIER_PLUS_CI",
+  "research_credit": "E2_ONLY_NO_F2_ABLATION_BUILD_ACCEPTANCE_RUNTIME_OR_WHOLE_SYSTEM_CREDIT"
+}

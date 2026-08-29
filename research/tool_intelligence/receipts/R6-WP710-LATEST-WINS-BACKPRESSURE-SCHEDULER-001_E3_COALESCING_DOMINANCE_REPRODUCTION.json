@@ -1,0 +1,101 @@
+{
+  "schema": "FRANKENSTEIN2_TRIGGER6_EVIDENCE_RECEIPT/v1",
+  "trigger": "6",
+  "research_id": "R6-WP710-LATEST-WINS-BACKPRESSURE-SCHEDULER-001",
+  "evidence_stage": "E3_CLAIM_REPRODUCED",
+  "claim_target": "E3_CLAIM_REPRODUCED_COALESCING_DOMINANCE",
+  "status": "REPRODUCED_AT_EXACT_FUNCTION_LOGIC_SCOPE_NO_TARGET_RUNTIME_PROMOTION",
+  "completed_at": "2026-08-29T18:31:00+07:00",
+  "worker": "GPT-5.6 Sol / ChatGPT Trigger-6 organ",
+  "claim": {
+    "path": "research/tool_intelligence/claims/R6-WP710-LATEST-WINS-BACKPRESSURE-SCHEDULER-001/E3_CLAIM_REPRODUCED_COALESCING_DOMINANCE.json",
+    "commit": "67acf9940045d86c3332e87707d88e1419258673"
+  },
+  "source_lock": {
+    "scheduler_origin_commit": "63731075d7e74fd87a327c09059d0b5082d6d709",
+    "scheduler_path": "src/frankenstein2/perception_scheduler.py",
+    "current_main_scheduler_blob_sha_observed": "3916a75d05fc0d3863b2597e9412e3a468612a4d",
+    "relevant_current_functions": ["_rank", "_coalesce_key", "_preferred_coalesced", "enqueue_intents"],
+    "observe_intent_path": "src/frankenstein2/perception_fabric.py",
+    "e2_mapping_commit": "28ed3c02a705f63663f529e24591529af44f7872",
+    "e1_receipt_commit": "c36bff62fb2f6e01aff3006247094e16a4a6bb92"
+  },
+  "execution": {
+    "environment": "ChatGPT local Python sandbox",
+    "network": "NONE",
+    "provider_calls": 0,
+    "external_effects": 0,
+    "method": "Function-level executable reproduction using the exact inspected _rank/_coalesce_key/_preferred_coalesced control logic from the pinned F2 source and an ObserveIntent-shaped immutable test value. The connector source was not mounted as an importable repository checkout, so this receipt does not claim full-module or target-host execution.",
+    "test_cases": [
+      {
+        "id": "E3-C1-FRESHNESS-DEADLINE-DOMINANCE",
+        "setup": "Same source/heads/atoms/ROI/remote/VLM fields, same generation=1, same priority=900000, same work=2 and same permission digest. strict intent requires freshness_ns=10000000 and expires=1100000000; loose intent requires freshness_ns=500000000 and expires=2000000000.",
+        "observed": {
+          "same_coalesce_key": true,
+          "normal_rank_first": "intent:strict",
+          "coalesced_kept": "intent:loose",
+          "coalesced_dropped": "intent:strict",
+          "deadline_inversion": true
+        },
+        "result": "REPRODUCED",
+        "meaning": "Coalescing discards the stricter/fresher earlier-deadline obligation even though the scheduler's ordinary rank would prefer it."
+      },
+      {
+        "id": "E3-C2-PERMISSION-EPOCH-ERASURE",
+        "setup": "Same coalesce target fields and equal generation/priority/work/freshness, but permission_snapshot_sha256 differs; the later-expiry request carries a different digest.",
+        "observed": {
+          "same_coalesce_key": true,
+          "different_permission_digest": true,
+          "coalesced_kept": "intent:perm-stale-later",
+          "coalesced_dropped": "intent:perm-newer-valid"
+        },
+        "result": "REPRODUCED_AT_COALESCING_SCOPE",
+        "meaning": "Permission epoch/digest is erased by equivalence. Dispatch-time validation still prevents authority escalation, but useful valid work can be lost if the retained request later fails validation."
+      }
+    ]
+  },
+  "falsified_claim_scope": {
+    "claim": "Same target/coalesce-key ObserveIntents can be safely latest-wins coalesced without considering freshness, deadline or permission binding.",
+    "status": "FALSIFIED_AT_FUNCTION_LOGIC_SCOPE",
+    "not_falsified": [
+      "WP710 bounded queue behavior in general",
+      "dispatch-time permission fail-closed behavior",
+      "whole Perception Fabric",
+      "target VPS runtime",
+      "whole Frankenstein 2.0"
+    ]
+  },
+  "hypothesis_update": {
+    "statement": "WP710 needs semantic-obligation dominance or conservative equivalence before latest-wins coalescing can be considered correct.",
+    "confidence_before": 0.95,
+    "confidence_after": 0.995,
+    "preferred_minimal_repair_order": [
+      "First write canonical regression tests that reproduce E3-C1 and E3-C2 against the real module.",
+      "Then choose either conservative equivalence (include freshness/expiry/permission digest) or a pure dominance/merge relation preserving strictest compatible obligations.",
+      "Retest admission fairness and drop-diagnostic ordering separately; do not bundle unrelated complexity into the same repair."
+    ]
+  },
+  "counterhypothesis": {
+    "statement": "An upstream contract could guarantee that later same-key intents subsume earlier obligations, making the observed source behavior safe in practice.",
+    "status": "NOT_SUPPORTED_BY_OBSERVED_SOURCE",
+    "falsifier_or_rescue": "Provide an executable/contract-bound upstream invariant proving monotonic subsumption of freshness, expiry and permission semantics across same-key generations. Absent that, fail closed on semantic conflation."
+  },
+  "handoff": {
+    "target": "Trigger-4 sole WP710 mutation authority",
+    "recommended_next_stage": "E4_F2_ABLATION_OR_CANONICAL_REGRESSION",
+    "required_test": "Two same-target intents with stricter-vs-looser freshness/deadline must not silently retain only the looser obligation; differing permission digests must not be conflated in a way that destroys still-valid work.",
+    "production_code_modified_by_this_e3": false
+  },
+  "write_race_note": "First append-only receipt write attempt returned HTTP 409 because main advanced concurrently. This is coordination/head-race evidence only, not a product/scientific failure; no partial receipt was claimed from that attempt.",
+  "evidence_ceiling": {
+    "research_credit": 1,
+    "e3_reproduction_credit": 1,
+    "architecture_direction_support": 1,
+    "canonical_code_repair_credit": 0,
+    "repository_ci_credit": 0,
+    "target_runtime_credit": 0,
+    "physical_grid10_credit": 0,
+    "whole_entityos_hcu_credit": 0,
+    "training_credit": 0
+  }
+}

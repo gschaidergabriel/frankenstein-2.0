@@ -1,0 +1,68 @@
+{
+  "schema": "FRANKENSTEIN2_WORKPACKAGE_DELTA/v1",
+  "workpackage_id": "F2-WP-1207",
+  "generation": 2,
+  "claim_id": "F2-WP-1207-G2-GPT56SOL-RELEASE-READBACK-BINDING-20260829",
+  "worker_id": "GPT-5.6-Sol-TRIGGER4",
+  "base_commit": "e27eb092bf822a0b73c09c29ae7aaf14c4ffe054",
+  "observed_main_commit": "7cbdd158b99875e88a2bcb678702d45aabcc3a40",
+  "owned_paths": [
+    "src/frankenstein2/portable_release_readback.py",
+    "tests/test_portable_release_readback.py",
+    ".github/workflows/wp1207-release-readback-ci.yml"
+  ],
+  "result_class": "IMPLEMENTATION_DELTA",
+  "source_commits": [
+    "37b4f9d3ebacf680483be05f877b349ffc54a403",
+    "542756506cf7802014d6b49074b0bac6d59996fe",
+    "bd76b63ec9575ec3c95b0fb96b460675fd0486f6"
+  ],
+  "receipts": [
+    "GitHub Actions run 33253881419 / job 99104149289 on exact head bd76b63ec9575ec3c95b0fb96b460675fd0486f6: SUCCESS"
+  ],
+  "falsifiers": [
+    "correct next generation/state plus wrong active-release digest is rejected",
+    "missing active-release readback on SUCCEEDED is rejected",
+    "FAILED_NO_MUTATION with wrong pre-attempt active release is rejected",
+    "ROLLED_BACK with wrong pre-attempt active release is rejected",
+    "failed first INSTALL cannot invent active release identity",
+    "injected failure still cannot mint SUCCEEDED because accepted G1 record_attempt is reused"
+  ],
+  "contradictions": [
+    "The G1 release-readback promotion gap is closed by G2 at repository component scope without mutating accepted G1 source/test/workflow.",
+    "Terminal bookkeeping could not be published atomically because three consecutive non-force fast-forward CAS attempts lost to unrelated concurrent main commits. This is coordination contention, not product/test failure."
+  ],
+  "proposed_state_change": "ACCEPT_G2_AT_HOSTILE_TWIN_RELEASE_READBACK_DETERMINISTIC_REPOSITORY_HOSTED_CI_ONLY_WHEN_ATOMIC_RECONCILIATION_CAS_SUCCEEDS",
+  "sync_status": "SYNC_PENDING_ATOMIC_RECONCILIATION",
+  "cas_attempts": [
+    {"candidate_commit": "40d159258fa4373e2e380e104eb1645be358faee", "parent": "ace3399af3df28053e0bda50f2aa9a2a3b4315ad", "result": "REJECTED_NOT_FAST_FORWARD"},
+    {"candidate_commit": "03e60466f132c18b7bd866dd6f6a1dee89334c67", "parent": "c60d3f93cdecda9970c68c76d885a3c704633842", "result": "REJECTED_NOT_FAST_FORWARD"},
+    {"candidate_commit": "5f302a0e4387ae39497e69564f3c74f0c9a50064", "parent": "7cbdd158b99875e88a2bcb678702d45aabcc3a40", "result": "REJECTED_NOT_FAST_FORWARD"}
+  ],
+  "completion_deficit": [
+    "G2 active-pointer/receipt/reconciliation terminal fusion is not yet admitted on main",
+    "no exact release ZIP hostile-twin execution observed",
+    "no package/install/update/rollback side effect observed",
+    "no restart/runtime readback receipt observed",
+    "no T1-T4 or physical target credit",
+    "no whole-system acceptance"
+  ],
+  "ci": {
+    "run_id": 33253881419,
+    "job_id": 99104149289,
+    "head_sha": "bd76b63ec9575ec3c95b0fb96b460675fd0486f6",
+    "compile": "success",
+    "g1_suite": {"status": "success", "tests": 12},
+    "g2_suite": {"status": "success", "tests": 10}
+  },
+  "source_identity": {
+    "readback_source_blob_sha": "ead4aae25cf64bd999ddd286d1198fe99c612dc7",
+    "readback_test_blob_sha": "836c8af1dffcb9ad856a0dfae1dc5d3e7b91a005",
+    "readback_workflow_blob_sha": "86f181348b2105f476fa38d1335238e8dce652ec",
+    "preserved_g1_source_blob_sha": "a248d6ded9fd90f34f7e6763fe30948fc58af6e6",
+    "preserved_g1_test_blob_sha": "c095b15fb65c367b45944db24b5a9909bc1d3f8e",
+    "preserved_g1_workflow_blob_sha": "2d915826503024237c5cf1ed5632cf8097721396"
+  },
+  "next_exact_action": "A reconciliation writer should refresh current main and atomically publish the G2 active pointer terminal state plus acceptance receipt and reconciliation using non-force fast-forward CAS. After that, exercise the exact release ZIP through an admitted hostile target twin using accepted G1 transaction validation plus G2 release-readback fencing, inject update failure, verify rollback/readback to exact pre-attempt generation/state/active-release identity, and persist exact-source runtime evidence before any target-runtime promotion.",
+  "created_at_utc": "2026-08-29T13:03:48Z"
+}

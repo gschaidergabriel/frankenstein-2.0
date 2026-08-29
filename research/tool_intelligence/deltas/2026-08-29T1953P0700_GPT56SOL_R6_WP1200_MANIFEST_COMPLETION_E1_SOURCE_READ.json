@@ -1,0 +1,74 @@
+{
+  "schema": "FRANKENSTEIN2_TRIGGER6_RESEARCH_DELTA/v1",
+  "research_id": "R6-20260829-WP1200-MANIFEST-COMPLETION-GPT56SOL-01",
+  "evidence_stage": "E1_SOURCE_READ",
+  "created_at": "2026-08-29T19:53:00+07:00",
+  "worker": "GPT-5.6-Sol",
+  "current_f2_reentry": "e4d305c94a6b5b3a47ab4c6bc8e16941cd664f62",
+  "current_f2_observation": {
+    "source": "src/frankenstein2/target_completion_epistemics.py",
+    "finding": "Current main already hard-disables physical_credit and requires at least one T4 mandatory obligation for physical_completion_candidate, so the original PR415 physical-credit symptom has narrowed. The closed-world defect remains at completion status: TargetCompletionReport still evaluates only caller-supplied obligations and has no authoritative obligation-universe identity/generation/digest or expected mandatory ID set. A supplied passing subset can therefore still be COMPLETE at status scope even when required obligations are omitted outside the tuple.",
+    "credit": "SOURCE_OBSERVATION_ONLY"
+  },
+  "primary_sources": [
+    {
+      "system": "Bazel Remote Execution API",
+      "repo": "bazelbuild/remote-apis",
+      "commit": "becdd8f9ff811df88a22d3eadd6341753d51d167",
+      "source": "build/bazel/remote/execution/v2/remote_execution.proto",
+      "observed_mechanism": [
+        "Execution is requested by action_digest after Command, Action and all inputs are uploaded to content-addressable storage.",
+        "Action includes command_digest and input_root_digest; the root directory and referenced subdirectories/content blobs must be present in CAS.",
+        "ActionCache addresses ActionResult by digest of the encoded Action that produced it."
+      ],
+      "transferable_invariant": "A result should be bound to the exact declared input/spec object whose digest names the computation, rather than merely carrying unrelated result fields.",
+      "non_transferable_or_caveat": "This does not prove that the declared input set is complete with respect to real dependencies. If the authoritative declaration omits a required dependency, content addressing alone cannot discover it."
+    },
+    {
+      "system": "Kubernetes metav1 Condition",
+      "repo": "kubernetes/apimachinery",
+      "commit": "50d9b4a672b474db2e0bf61c968d87465b55eb56",
+      "source": "pkg/apis/meta/v1/types.go",
+      "observed_mechanism": [
+        "Condition.status is explicitly constrained to True, False or Unknown.",
+        "Condition.observedGeneration records the metadata generation on which the condition was based; the source explicitly says a condition is out of date when observedGeneration lags the current generation."
+      ],
+      "transferable_invariant": "Completion evidence should be explicitly ternary and generation-bound so stale evidence cannot silently satisfy a current obligation universe.",
+      "non_transferable_or_caveat": "Kubernetes conditions are not themselves a closed mandatory-condition universe. Absence of a condition does not automatically prove an expected requirement is Unknown unless another contract defines which condition types are required."
+    },
+    {
+      "system": "The Update Framework specification",
+      "repo": "theupdateframework/specification",
+      "commit": "59e601ed29c0d2e497264ae8b31c11b8ef07df1e",
+      "source": "tuf-spec.md",
+      "observed_mechanism": [
+        "The snapshot role signs metadata describing the latest version of all targets metadata and is intended to prevent mix-and-match combinations.",
+        "Snapshot METAFILES bind metadata paths to versions and optionally lengths/hashes; update procedure increments snapshot version and signs the updated metadata.",
+        "Timestamp metadata binds snapshot metadata and is versioned/signed."
+      ],
+      "transferable_invariant": "A manifest-like universe should have its own identity/version and deterministic integrity binding, and consumers should reject mismatched generations/digests rather than accepting a plausible subset.",
+      "non_transferable_or_caveat": "TUF secures metadata/file selection; it does not establish runtime completion or prove every declared obligation was executed."
+    }
+  ],
+  "cross_source_synthesis": {
+    "supported": [
+      "Bind outcome to an exact declared universe/spec identity, not just to individual outcomes.",
+      "Bind evidence to the generation it observed; stale generation is not current evidence.",
+      "Use an explicit Unknown state for missing/stale required evidence.",
+      "Use deterministic digest/version identity for the declared universe and fail closed on mismatch."
+    ],
+    "not_supported_by_sources_alone": [
+      "That a manifest object is sufficient if callers can mint or incompletely construct it.",
+      "That exact-set equality is always the right policy; optional/non-applicable obligations need an explicit typed policy.",
+      "That these external mechanisms grant any F2 runtime, physical-host or whole-system credit."
+    ]
+  },
+  "f2_candidate_invariant": "TargetCompletionReport should consume an admitted TargetObligationManifest identity (schema + target/profile/fidelity scope + generation + canonical digest + mandatory obligation IDs and applicability policy), verify exact coverage of all applicable mandatory IDs exactly once, and materialize any missing required ID as UNKNOWN before computing COMPLETE. Report/evidence generation must match the manifest generation. Physical credit remains a separate physical-evidence gate.",
+  "counterhypothesis": "The bug may persist even with a manifest if the manifest is caller-minted, stale, profile-mismatched or omits mandatory IDs. Therefore producer/admission authority for the manifest and exact target/profile/fidelity binding are part of the closure, not optional hardening.",
+  "next_stage": "E2_ARCHITECTURE_MAPPED",
+  "research_credit": "E1_PRIMARY_SOURCE_READ",
+  "runtime_credit": 0,
+  "physical_host_credit": 0,
+  "architecture_acceptance_credit": 0,
+  "whole_system_credit": 0
+}

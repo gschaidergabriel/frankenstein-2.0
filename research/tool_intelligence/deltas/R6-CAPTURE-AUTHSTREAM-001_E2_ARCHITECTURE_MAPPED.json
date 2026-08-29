@@ -1,0 +1,130 @@
+{
+  "schema": "FRANKENSTEIN2_TRIGGER6_ARCHITECTURE_MAPPING/v1",
+  "trigger": "6",
+  "research_id": "R6-CAPTURE-AUTHSTREAM-001",
+  "claim_target": "E2_ARCHITECTURE_MAPPED",
+  "status": "E2_COMPLETE_NO_E5_PROMOTION",
+  "worker": "gpt-5.6-sol",
+  "authority": {
+    "supervisor_schema": "9.13",
+    "supervisor_delta": "9.13AU_NON_AUTHORITY",
+    "free_only_meaning": "external-provider token/spend policy; owner VPS and established bridge allowed",
+    "together": "FORBIDDEN",
+    "paid_or_unknown_cost_provider_fallback": "FORBIDDEN"
+  },
+  "architecture_snapshot": {
+    "f2_head_before_e2_write_observed": "3a8ab1b96a10b99c26b494fb051886cc682ba14b",
+    "research_entity_head_observed": "d9d4fea68eafe7148678f003b932f7bfbbf34acc",
+    "canonical_wp709_source": "src/frankenstein2/perception_capture_broker.py",
+    "canonical_wp709_accepted_merge": "fcf1ffea8471bedb3773dffe7fc44eaa6063e104",
+    "parallel_unreconciled_source": "src/frankenstein2/retina_capture_broker.py",
+    "parallel_source_hardening_commits_observed": [
+      "fd61fd6c995ec56bb91c67c9b01aac9345e46b62",
+      "8a1fd2167983d416f62ebebd1c5b8c3d5d292ce9",
+      "621bdb6f44bcf961136f86a079f20f074a5944fe"
+    ],
+    "duplicate_authority_falsifier_commit": "503d60e1915087986702fa7b36c8814c65a74956"
+  },
+  "external_source_pins": [
+    {
+      "repo": "transparency-dev/merkle",
+      "commit": "563ea3ede15b2c54443c1a3100c70aace3b9af38",
+      "relevant_mechanism": "compact ranges / append-only consistency proofs",
+      "fit": "DEFER_NOT_IMPORT"
+    },
+    {
+      "source": "RFC 6962",
+      "relevant_mechanism": "Merkle append-only consistency proof",
+      "fit": "REFERENCE_MODEL_ONLY"
+    },
+    {
+      "repo": "BLAKE3-team/BLAKE3",
+      "commit": "f3149ec5bb5449af877ba20377a11008ff499fa2",
+      "relevant_mechanism": "incremental cumulative hashing",
+      "fit": "NO_IMPORT_REQUIRED"
+    },
+    {
+      "repo": "GStreamer/gstreamer",
+      "commit": "7c49446505b962f25ac484d31a83635f228bffc9",
+      "relevant_mechanism": "bounded queue, explicit leaky policy, in/out/dropped counters",
+      "fit": "STRUCTURAL_DONOR_ONLY",
+      "coordination_note": "A separate Trigger-6 GStreamer capture-backpressure E1 result landed concurrently at d6cb3babed82e7a74f830a9e80efaf28288e1e5a. Treat the GStreamer portion as overlapping/complementary evidence, not independent replication."
+    }
+  ],
+  "canonical_wp709_mapping": {
+    "observed_properties": [
+      "single canonical capture owner lease per source/generation",
+      "FrameRef binds source_generation, capture_owner_id, lease_id, sequence, monotonic capture time, frame SHA-256, payload size and provenance refs",
+      "policy bounds max_frames_per_source, max_frame_age_ns and max_read_window_frames",
+      "read windows expose missed_before_sequence rather than pretending evicted history is still present",
+      "source snapshots expose retained frame IDs, oldest/newest sequence and exact evicted_frame_count",
+      "state is explicitly RAM-only/nonpersistent and has no world/effect/completion authority"
+    ],
+    "missing_stronger_history_property": "The canonical broker does not currently expose a cumulative cryptographic commitment over every accepted FrameRef/event after old refs are evicted. It preserves bounded current state, sequences, per-frame hashes and aggregate eviction count, but not an independently anchored complete-history commitment."
+  },
+  "parallel_retina_mapping": {
+    "useful_donor_property": "The parallel retina_capture_broker.py adds a prior-state SHA-256 plus current-frame SHA-256 rolling commitment while keeping live state bounded.",
+    "authority_problem": "That module is not the accepted WP709 mutation authority and cannot be used as the basis for canonical architecture credit. Its post-acceptance evolution is evidence of duplicate-source drift, not promotion.",
+    "semantic_limit": "A rolling predecessor digest is a cumulative commitment only. If earlier states/checkpoints are discarded, it does not by itself provide arbitrary historical inclusion proofs or a self-contained verifiable append-only log."
+  },
+  "architecture_decision": {
+    "decision": "KEEP_CANONICAL_WP709_AND_DISTILL_ONLY_IF_AUDIT_REQUIREMENT_JUSTIFIES_IT",
+    "imports_rejected_now": [
+      "transparency-dev/merkle inside CaptureBroker",
+      "BLAKE3 dependency solely for broker history commitment",
+      "GStreamer dependency solely for queue/drop policy"
+    ],
+    "reason": "The accepted canonical broker already contains stronger source-generation, lease, age-bound, missed-window and per-frame provenance semantics. External frameworks would add dependency/state complexity without satisfying a current acceptance requirement that the broker itself prove arbitrary historical inclusion. The duplicate broker's useful rolling-hash idea can be distilled later without preserving a second implementation authority.",
+    "candidate_successor_delta_if_required": {
+      "name": "CANONICAL_CAPTURE_HISTORY_COMMITMENT",
+      "location": "successor generation of src/frankenstein2/perception_capture_broker.py only",
+      "minimal_fields": [
+        "history_commitment_sha256 per source_generation",
+        "history_event_count or last committed source_sequence",
+        "explicit history_proof_available=false unless external checkpoints exist"
+      ],
+      "update_input": "domain-separated canonical event encoding of prior commitment + source_id + source_generation + accepted FrameRef SHA-256 + sequence + eviction outcome",
+      "persistence_boundary": "Broker remains RAM-only. Any durable checkpoint belongs in the existing canonical state/audit/receipt plane, not in a new broker database.",
+      "restart_boundary": "Audit continuity across restart must be anchored by an externally persisted checkpoint; otherwise continuity is UNKNOWN, not inferred."
+    }
+  },
+  "counterhypotheses": [
+    {
+      "statement": "Per-frame hashes + source_sequence + evicted_frame_count are already sufficient for all practical Perception Fabric debugging, so a cumulative commitment would add complexity without actionable evidence gain.",
+      "discriminator": "Find a concrete acceptance/recovery/audit case that cannot be resolved from canonical snapshots, frame receipts and existing external journals. If none exists, do not add the commitment."
+    },
+    {
+      "statement": "A Merkle compact-range log is justified because arbitrary historical inclusion proofs will become a hard product requirement.",
+      "discriminator": "Require an explicit accepted requirement for independent inclusion/consistency proofs and benchmark proof-state/storage/latency against a simple checkpointed hash chain before E5 promotion."
+    }
+  ],
+  "falsifiers_for_any_successor": [
+    "reordering two accepted FrameRef events must change the history commitment",
+    "omitting one accepted FrameRef must change the history commitment",
+    "cross-source or cross-generation replay must fail closed or yield a different domain-separated commitment",
+    "eviction must not erase cumulative commitment state",
+    "a persisted checkpoint at sequence N plus canonical receipts N+1..M must deterministically reproduce the sequence-M commitment",
+    "missing checkpoint after restart must not be reported as verified continuous history",
+    "no new broker database or second capture ownership authority may be created"
+  ],
+  "coordination": {
+    "do_not_modify": "Current accepted WP709 source without a successor mutation authority",
+    "duplicate_source_status": "DONOR_ONLY_PENDING_RECONCILIATION_OR_RETIREMENT",
+    "trigger4_handoff": "NOT_READY_E5",
+    "reason_not_e5": "No F2 ablation or target-runtime evidence demonstrates that stronger history commitment improves an accepted requirement enough to justify implementation now."
+  },
+  "credit": {
+    "e2_architecture_mapping": 1,
+    "external_claim_reproduction": 0,
+    "f2_ablation": 0,
+    "build_candidate": 0,
+    "f2_runtime": 0,
+    "perception_runtime": 0,
+    "physical_grid10": 0,
+    "gwt_runtime": 0,
+    "jspace_runtime": 0,
+    "whole_system": 0,
+    "training": 0
+  },
+  "next_exact_action": "Consume the WP709 duplicate-authority reconciliation first. Only if a concrete durable-audit requirement remains after that reconciliation, claim a new E3/E4 objective to test a minimal domain-separated SHA-256 history commitment on the canonical broker successor against no-commitment baseline; do not import Merkle/BLAKE3/GStreamer merely for this feature."
+}

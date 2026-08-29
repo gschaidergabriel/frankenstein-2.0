@@ -1,0 +1,58 @@
+{
+  "schema": "FRANKENSTEIN2_TRIGGER6_EVIDENCE_RECEIPT/v1",
+  "research_id": "R6-SEED-007",
+  "candidate": "indragiek/uniprof",
+  "evidence_stage": "E1_SOURCE_READ",
+  "status": "COMPLETED_NO_ARCHITECTURE_PROMOTION",
+  "worker": "GPT-5.6 Sol / ChatGPT Trigger-6 organ",
+  "coordination_claim": "research/tool_intelligence/claims/R6-SEED-007/E1_SOURCE_READ.json",
+  "f2_architecture_snapshot": "45bf252e2872bb926322922b81f4fc1cd89d705a",
+  "source_pin": {
+    "repository": "indragiek/uniprof",
+    "commit": "e0885475540fe8ff534393cdefda99ccdfeb545b",
+    "tree": "dc6b6fc57460042aa7fd72157665c33c3d5202c0",
+    "version": "0.3.4",
+    "license": "MIT",
+    "license_blob_sha": "77b4a0a390389897df9e5946c7fb2b0b4a3229bc",
+    "package_blob_sha": "e8baf8f2198d1066f1e24689c1b01c3790052406"
+  },
+  "source_findings": [
+    "uniprof is a TypeScript/Node wrapper that selects platform/runtime profilers and normalizes their outputs into a common profile/analysis flow.",
+    "Supported underlying profilers include py-spy, 0x, rbspy, Excimer, async-profiler, dotnet-trace, perf, and macOS Instruments; these remain separate third-party components with their own licenses and runtime requirements.",
+    "The default operational model prefers Docker containers for setup isolation/reproducibility; host mode is supported when profiler dependencies are already present.",
+    "The codebase guide documents a PlatformPlugin contract plus ProfileContext/raw-artifact/post-processing lifecycle, which is the most transferable structural idea for F2 profiling.",
+    "Sampling defaults are approximately 999 Hz on several supported profilers, so profiler overhead and sampling-frequency bias must itself be measured rather than assumed negligible.",
+    "Some profiler paths can require elevated privileges; native Linux profiling depends on perf and host/kernel policy.",
+    "The npm package imports MCP SDK and CLI/UI dependencies that are not required merely to establish an F2 profiling evidence contract."
+  ],
+  "hypothesis": "A common normalized profile artifact and per-runtime adapter contract can make F2 CPU hotspot evidence reproducible across modules without coupling the architecture to one profiler.",
+  "counterhypothesis": "Importing uniprof as the default runtime path would add Node/Docker/container/privilege/dependency overhead, may perturb the workload being measured, and duplicates functionality that can be achieved more cheaply by invoking the smallest runtime-native profiler and normalizing only the evidence schema.",
+  "e1_result": "PARTIALLY_SUPPORTED_DISTILL_METHOD_NOT_RUNTIME",
+  "preliminary_f2_direction": {
+    "distill": [
+      "runtime-to-profiler adapter table",
+      "common immutable profile artifact envelope",
+      "raw-artifact -> normalized-profile -> analysis lineage",
+      "explicit sampling-rate/profiler identity in every receipt",
+      "host/container/environment identity in every measurement"
+    ],
+    "do_not_promote_yet": [
+      "uniprof npm runtime dependency",
+      "Docker as default F2 profiling authority",
+      "MCP integration",
+      "cross-language tool adoption before equivalent-overhead measurement"
+    ],
+    "acceptance_falsifiers_for_future_e2_e3": [
+      "normalized schema loses profiler-specific timing semantics",
+      "wrapper/container overhead materially changes hotspot ranking",
+      "direct py-spy/perf/other native invocation is simpler and equally reproducible",
+      "privilege requirements make the route non-portable across the intended F2 environment"
+    ]
+  },
+  "evidence_ceiling": "E1_SOURCE_READ",
+  "research_credit": "E1_ONLY",
+  "architecture_credit": 0,
+  "runtime_credit": 0,
+  "integration_credit": 0,
+  "whole_system_credit": 0
+}

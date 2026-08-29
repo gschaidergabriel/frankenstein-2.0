@@ -1,0 +1,58 @@
+{
+  "schema": "FRANKENSTEIN2_WORKPACKAGE_DELTA/v1",
+  "workpackage_id": "F2-WP-803",
+  "generation": 1,
+  "claim_id": "F2-WP-803-G1-GPT56SOL-HELDOUT-WORLD-MODEL-PREDICTION-20260829",
+  "authority_epoch": "8.78",
+  "state": "SOURCE_READY_TEST_PENDING",
+  "scope": "HELDOUT_WORLD_MODEL_NEXT_OBSERVATION_PREDICTION_REPOSITORY_COMPONENT_ONLY",
+  "base_commit": "1ae3834d37f100447409946f0eda03dbd56a2225",
+  "branch": "trigger4/wp803-world-model-prediction-20260829",
+  "source_paths": [
+    "src/frankenstein2/cognitive_world_model_prediction_benchmark.py",
+    "tests/test_cognitive_world_model_prediction_benchmark.py",
+    ".github/workflows/wp803-cognitive-world-model-prediction-ci.yml"
+  ],
+  "invariants": [
+    "prediction candidate is bound to exact public ObservationView identity and digest",
+    "policy-facing candidate contains no evaluator node/transition/ground-truth/score fields",
+    "evaluation occurs only after canonical F2-WP-800 step_episode replay",
+    "fixture/episode/generation/run/prediction identities are bound into evaluator evidence",
+    "ABSTAIN preserves insufficient public evidence without forced prediction",
+    "benchmark outcome scores are fixed evaluator-side measurements: CORRECT=1, INCORRECT=-1, ABSTAINED=0",
+    "PredictionEvaluation is evaluator-factory-only and cannot self-mint benchmark evidence",
+    "benchmark score does not mint world truth, causality, goal correctness, cognition superiority or transfer"
+  ],
+  "planned_falsifiers": [
+    "public persistence baseline must fail when next public observation changes",
+    "public persistence baseline must pass when next public observation persists",
+    "explicit public next-observation candidate can be scored through canonical replay",
+    "ABSTAIN is neutral",
+    "fixture-generation and observation-digest drift fail closed before scoring",
+    "ABSTAIN cannot smuggle predicted values",
+    "candidate schema excludes evaluator-only state fields",
+    "evaluation constructor cannot self-mint evaluator evidence",
+    "unknown action still fails at canonical WP800 boundary",
+    "identical replay yields identical prediction/evaluation digests"
+  ],
+  "evidence": {
+    "source_written": true,
+    "tests_written": true,
+    "workflow_written": true,
+    "repository_ci_observed": false,
+    "runtime_execution_observed": false,
+    "vps_runtime_observed": false
+  },
+  "credits": {
+    "runtime": 0,
+    "vps_runtime": 0,
+    "physical_grid10": 0,
+    "gwt": 0,
+    "jspace": 0,
+    "training": 0,
+    "effects": 0,
+    "completion": 0,
+    "whole_system": 0
+  },
+  "next_exact_action": "Open the isolated branch as a PR, inspect exact diff, obtain repository-hosted WP803 CI at the exact PR head, repair any falsifier failures, then reconcile only at bounded component-CI scope."
+}

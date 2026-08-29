@@ -1,0 +1,43 @@
+{
+  "schema": "FRANKENSTEIN2_CANDIDATE_FALSIFIER/v1",
+  "classification": "CANDIDATE_FALSIFIER",
+  "workpackage_id": "F2-WP-804",
+  "review_worker": "GPT-5.6-Sol-TRIGGER4-REVIEW",
+  "authority_epoch": "8.78",
+  "reviewed_main_sha": "642109e5f338c1b1500598c04651a2aea66dba2e",
+  "active_claim_id": "F2-WP-804-G1-GPT56SOL-HELDOUT-GOAL-INFERENCE-20260829",
+  "active_claim_state": "ACTIVE",
+  "mutation_authority": false,
+  "finding": "Candidate-goal public signal binding currently keys goal identifiability on ObservationView.observation_ref membership alone. CandidateGoal carries public_signal_refs but no matching public payload digest, while ObservationView explicitly carries both observation_ref and observation_sha256. The evaluator label and score path reuse the same public_signal_matches helper, so a ref-alias / changed-public-payload case can be self-consistent across policy and evaluator rather than independently rejected.",
+  "source_evidence": [
+    {
+      "path": "src/frankenstein2/cognitive_goal_inference_benchmark.py",
+      "blob_sha": "6afe19c24f5abb60196cdeab334827204d2a73ae",
+      "observation": "public_signal_matches returns goal ids where observation.observation_ref is present in CandidateGoal.public_signal_refs; it does not bind observation.observation_sha256. seal_evaluator_goal_label and score_goal_inference derive identifiability through the same helper."
+    },
+    {
+      "path": "src/frankenstein2/cognitive_microworld.py",
+      "blob_sha": "18d3a12c65d00024c190e561450ca8184518d1c9",
+      "observation": "WorldNode and ObservationView model public payload reference and public payload SHA-256 as separate fields. MicroWorldFixture validates each field but does not establish a repository-global invariant that a public_payload_ref can map to only one SHA across fixture families/generations."
+    },
+    {
+      "path": "tests/test_cognitive_goal_inference_benchmark.py",
+      "blob_sha": "0af0b6c93a4425713ee98416516fe40e7f779662",
+      "observation": "Current tests cover hidden-state mutation, candidate concrete types/order, run/fixture generation, sealed-label binding and ambiguous public refs, but no same-observation-ref/different-public-payload-SHA alias case was observed in this review."
+    }
+  ],
+  "minimal_counterexample": [
+    "Construct fixture A whose initial WorldNode has public_payload_ref = obs:shared and public_payload_sha256 = SHA256(payload-A).",
+    "Construct fixture B in a distinct fixture family or generation whose initial WorldNode has the same public_payload_ref = obs:shared but public_payload_sha256 = SHA256(payload-B), with payload-B != payload-A.",
+    "Use one CandidateGoal set that maps obs:shared to goal-X through public_signal_refs.",
+    "begin_episode yields ObservationView values with distinct observation_sha256 fields but the same observation_ref.",
+    "unique_public_signal_policy selects goal-X for both because matching ignores observation_sha256.",
+    "seal_evaluator_goal_label and score_goal_inference use the same ref-only mapping, so the evaluator can preserve the same identifiability/expected-goal result instead of detecting stale or aliased public evidence."
+  ],
+  "counterhypothesis": "If the canonical benchmark contract explicitly guarantees that every observation_ref is globally immutable/content-addressed across all holdout fixtures, generations and source families, ref-only matching may be sufficient. No such global ref-to-SHA uniqueness invariant was observed in the reviewed MicroWorldFixture/ObservationView validation paths.",
+  "impact_if_confirmed": "The benchmark would not fully satisfy exact public-evidence provenance binding: a stale or aliased candidate-goal descriptor can remain apparently correct after public payload content changes under the same reference. Because policy and evaluator share the same matching helper, benchmark agreement would not independently expose the mismatch.",
+  "recommended_discriminator": "Add one deterministic repository-hosted regression with same observation_ref and different observation_sha256 across two otherwise valid fixtures/generations. Require candidate-goal signal identity to bind ref+payload_sha256 (or an equivalent committed public-signal digest) and require evaluator scoring to reject a candidate set bound to the wrong public payload digest. Prefer an evaluator-side reconstruction/check independent of the policy matching helper where practical.",
+  "evidence_scope": "SOURCE_REVIEW_CANDIDATE_FALSIFIER_ONLY",
+  "execution_note": "A local clone/test attempt from this ChatGPT container was blocked by DNS/network resolution and therefore creates no executable product evidence. No runtime, VPS, physical GRID10, GWT/J-Space, training, effect, completion or whole-system credit is claimed.",
+  "next_exact_action": "The canonical WP804 mutation owner should reproduce the counterexample in repository-hosted CI. If it reproduces, bind CandidateGoal signals to exact public payload digest identity and add the fail-closed regression before terminal WP804 reconciliation; if it does not reproduce, record the exact invariant that makes observation_ref globally content-stable and close this candidate falsifier with executable evidence."
+}

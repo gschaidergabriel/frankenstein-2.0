@@ -1,0 +1,61 @@
+{
+  "schema": "FRANKENSTEIN2_TRIGGER6_EVIDENCE/v1",
+  "research_id": "R6-WP1107-REPROTEST-ZIP-001",
+  "evidence_stage": "E1_SOURCE_READ",
+  "status": "SOURCE_READ_COMPLETE",
+  "observed_at": "2026-08-29T19:48:21+07:00",
+  "f2_baseline_sha": "d6b67b034fd5732f5954b4372104a881381eff70",
+  "f2_exact_target": {
+    "workpackage": "F2-WP-1107",
+    "source_path": "src/frankenstein2/release_integrity.py",
+    "source_blob_sha": "b6e492532714546dc87d719c29b349a187eccfca",
+    "current_capability": "deterministic payload inventory and canonical manifest verification",
+    "missing_capability": "deterministic release-archive construction plus systematic variance falsification"
+  },
+  "external_sources": [
+    {
+      "source": "Debian Sources reprotest 0.7.32 README.rst",
+      "provenance": "https://sources.debian.org/src/reprotest/0.7.32/README.rst",
+      "version": "0.7.32",
+      "license_note": "Debian source package; source licensing must be respected; no source code is copied into F2 by this evidence record."
+    },
+    {
+      "source": "Reproducible Builds: Adding build variance",
+      "provenance": "https://reproducible-builds.org/docs/adding-build-variance/",
+      "license_note": "External methodology source; structural distillation only."
+    },
+    {
+      "source": "Reproducible Builds: Archive metadata",
+      "provenance": "https://reproducible-builds.org/docs/archives/",
+      "license_note": "External methodology source; structural distillation only."
+    },
+    {
+      "source": "SOURCE_DATE_EPOCH specification",
+      "provenance": "https://reproducible-builds.org/specs/source-date-epoch/",
+      "license_note": "Specification/methodology source; structural distillation only."
+    },
+    {
+      "source": "Python 3.14 zipfile documentation",
+      "provenance": "https://docs.python.org/3.14/library/zipfile.html",
+      "license_note": "Documentation reference; no implementation copied."
+    }
+  ],
+  "observations": [
+    "reprotest compares repeated builds under controlled environmental variations and reports artifact differences.",
+    "Its documented variation surface includes environment, build path, kernel, CPU count, time, user/group, file ordering, hostname/domain, HOME, locales, executable path, timezone and umask.",
+    "Reproducible Builds explicitly identifies timestamps, file ordering and permissions/umask as archive reproducibility hazards.",
+    "SOURCE_DATE_EPOCH provides a deterministic source-derived timestamp contract and requires build processes to use it instead of current time when embedded timestamps are needed.",
+    "ZIP archives carry per-member modification timestamps and may carry extra metadata; Python ZipInfo exposes date_time and archive attributes that can be set explicitly.",
+    "reprotest itself has environment/privilege complexity and documented variation caveats; importing it as an F2 runtime dependency would add unnecessary surface for this narrow release gate."
+  ],
+  "source_grounded_conclusion": "The useful donor is the variance-testing method, not the whole reprotest runtime. WP1107 should gain a deterministic archive builder and a bounded variance matrix that perturbs only release-relevant environmental dimensions, then compares complete archive bytes/hash plus manifest identity.",
+  "counterhypothesis": "The existing WP1107 manifest verifier may already be sufficient because it proves payload file bytes independent of ZIP container metadata; byte-identical ZIP generation could add complexity without improving handoff integrity.",
+  "counterhypothesis_status": "NOT_DISMISSED_AT_E1",
+  "next_discriminator": "Map whether archive-container nondeterminism can change the handed-off ZIP while all WP1107 payload-manifest checks remain green; if yes, container-level reproducibility is a distinct integrity property.",
+  "credit": {
+    "research": "E1_SOURCE_READ_ONLY",
+    "architecture": 0,
+    "runtime": 0,
+    "whole_system": 0
+  }
+}

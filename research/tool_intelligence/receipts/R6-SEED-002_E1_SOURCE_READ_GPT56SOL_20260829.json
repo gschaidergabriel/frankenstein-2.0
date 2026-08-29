@@ -1,0 +1,82 @@
+{
+  "schema": "FRANKENSTEIN2_TRIGGER6_EVIDENCE_RECEIPT/v1",
+  "research_id": "R6-SEED-002",
+  "evidence_stage": "E1_SOURCE_READ",
+  "status": "COMPLETED_NO_ARCHITECTURE_PROMOTION",
+  "worker": "gpt-5.6-sol",
+  "coordination_claim": "research/tool_intelligence/claims/R6-SEED-002/E1_SOURCE_READ.json",
+  "architecture_delta_fusion_id": "ARCHFUSION-T6-20260829-GPT56SOL-002",
+  "source_pin": {
+    "repository": "Supercompress/Supercompress",
+    "commit": "c84ef9a613ba0b6f6b9ccde8172a4697afaa8f63",
+    "tree": "f4d262b7734fd9c77da14230ba8dfd39151ff7f3",
+    "license": {
+      "type": "MIT",
+      "blob_sha": "c1661edec1584fb68e3048fbfa46fb25eefc8812"
+    },
+    "package": {
+      "version": "0.6.1",
+      "python": ">=3.10",
+      "core_declared_dependency": "httpx>=0.27.0",
+      "pyproject_blob_sha": "3c730f11cbeccf7d585570d7eaea2f93ba9d77a0"
+    }
+  },
+  "source_reads": [
+    {
+      "path": "supercompress/__init__.py",
+      "blob_sha": "4bf1a1bdb01aef78a7f3af8ed08da676cc97adc2",
+      "finding": "The public local compiler path is a lightweight query-aware extractive fallback. It segments context into blocks, extracts non-stopword query terms, ranks blocks with lexical term hits plus structural/position heuristics, selects blocks to a line budget, then trims selected lines by the same style of query/structure scoring. It does not require the hosted precision API."
+    },
+    {
+      "path": "tests/test_compress_engine.py",
+      "blob_sha": "dbba3e9b07d35d697f1e22a29ef5350ad29e81a9",
+      "finding": "Repository unit tests assert query-relevant strings/blocks survive, token statistics are populated, invalid budgets reject, and precision mode requires an API key. These tests were source-read only in this E1 receipt; they were not executed here."
+    },
+    {
+      "path": "packages/proxy/src/local-engine.js",
+      "blob_sha": "8c0517aaf310df6f13f0c23918ba777895a9d647",
+      "finding": "The Node proxy contains a local engine loader that evaluates an embedded compression engine in a VM and loads an embedded model.json, then calls compressAdaptive locally."
+    },
+    {
+      "path": "api/_lib/engine.js",
+      "blob_sha": "4c39f73aca35da8d6e639a60a65594311997d3f9",
+      "finding": "The server-side implementation explicitly describes the default as a local policy. An optional neural boost is opt-in. The same module also implements CCR/retrieval storage using owner-scoped Firestore objects with TTL, which is not suitable as F2 canonical evidence authority."
+    },
+    {
+      "path": "packages/proxy/src/compressor.js",
+      "blob_sha": "ed214a3452db4b56443226075cde1ad668ed3f53",
+      "finding": "The ordinary coding-agent compressor path primarily calls the hosted SuperCompress API, requires an API key for non-structured normal compression, has quota/paywall handling, and fail-open behavior for several transport failures. Therefore importing the proxy/API dependency is not the thin zero-incremental-spend F2 path."
+    },
+    {
+      "path": "scripts/benchmark_heldout.js",
+      "blob_sha": "56c0ebd3afafd59380edb58377dc7fe9a0c67697",
+      "finding": "The held-out benchmark samples LongBench/public docs and reports token cuts and latency, but its primary QA preservation metric is answer-string containment in the compressed text. That is useful but insufficient to establish preservation of counterevidence, provenance, dependency chains, future-turn evidence, or evidence needed by another GRID cell. Benchmark claims were not independently reproduced in this E1 receipt."
+    }
+  ],
+  "hypothesis": "A local query-aware extractive selector can reduce bounded F2 ContextView token load without creating a second truth store, if canonical evidence remains untouched and selected spans retain exact provenance/backpointers.",
+  "counterhypothesis": "Current-query lexical optimization can remove low-query-overlap evidence that is required for counterhypotheses, causal verification, later turns, or other GRID cells; per-query rewriting can also reduce provider prefix-cache reuse. Answer-string retention alone cannot falsify this failure mode.",
+  "e1_result": "PARTIALLY_SUPPORTED_SOURCE_MECHANISM_ONLY",
+  "preliminary_f2_mapping": {
+    "adopt": "CONCEPT_DISTILL_LOCAL_QUERY_AWARE_EXTRACTIVE_SELECTION_ONLY",
+    "do_not_import": [
+      "hosted SuperCompress API as an F2 runtime dependency",
+      "billing/quota/key path",
+      "Firestore CCR as canonical evidence or recovery authority",
+      "marketing benchmark claims as F2 acceptance evidence"
+    ],
+    "required_f2_invariants": [
+      "UnifiedDB/original admitted evidence remains canonical and unmodified",
+      "compressed ContextView is rebuildable/noncanonical",
+      "every retained unit maps back to exact source evidence identity/span",
+      "counterevidence/provenance/system constraints receive protected retention classes rather than query score alone",
+      "fallback to uncompressed or bounded exact evidence is available when preservation confidence is insufficient",
+      "evaluation includes cache effects and multi-cell/future-turn preservation, not token cut alone"
+    ]
+  },
+  "next_discriminator": "Claim E2 architecture mapping, bind the selector concept to exact current F2 retrieval/context surfaces, and specify a provenance-preserving protected-class ContextView contract plus a cache-aware cost function. No E3/E4 credit until a bound local reproduction/ablation exists.",
+  "architecture_credit": 0,
+  "runtime_credit": 0,
+  "integration_credit": 0,
+  "whole_system_credit": 0,
+  "evidence_ceiling": "E1_SOURCE_READ"
+}

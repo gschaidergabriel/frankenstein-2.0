@@ -1,0 +1,88 @@
+{
+  "schema": "FRANKENSTEIN2_RESEARCH_INBOX/v1",
+  "packet_id": "CANDIDATE_FALSIFIER_TARGET_COMPLETION_SCHEMA_GAPS_2026-08-29",
+  "status": "CANDIDATE_FALSIFIER",
+  "created_at_utc": "2026-08-29T12:35:00Z",
+  "worker_id": "GPT-5.6-Sol-TRIGGER4-REVIEW",
+  "scope": ["F2-WP-1200", "F2-WP-1201", "F2-WP-1202", "F2-WP-1206"],
+  "authority": {
+    "mutation_authority": false,
+    "reason": "F2-WP-1200, F2-WP-1201 and F2-WP-1202 already have active create-only mutation claims; this packet is review/falsifier evidence only.",
+    "claim_protocol": "workpackages/CLAIM_PROTOCOL.md"
+  },
+  "observed_sources": [
+    {
+      "path": "schemas/TARGET_HOST_PROFILE.schema.json",
+      "git_blob_sha": "b75f881495bc0b5b4719b26eeea244a2a5de28a1"
+    },
+    {
+      "path": "schemas/TARGET_OBLIGATION.schema.json",
+      "git_blob_sha": "d46a4f4efbb3c0a88083b382bfe201987bf93eb0"
+    },
+    {
+      "path": "architecture/TARGET_HOST_REALITY_TWIN_AND_COMPLETION_EPISTEMICS.md",
+      "semantic_anchor": "MISSING_EVIDENCE != PASS; independent target readback; negative-space search; exact target profile generation/digest"
+    },
+    {
+      "path": "workpackages/WORKER_DIRECTIVE_TARGET_HOST_REALITY_TWIN_20260829.md",
+      "semantic_anchor": "UNKNOWN not PASS; no secret/user-content collection; counterevidence probe required"
+    }
+  ],
+  "findings": [
+    {
+      "id": "HRT-FALSIFIER-001",
+      "severity": "HIGH",
+      "observation": "TARGET_OBLIGATION schema permits status=PASS with evidence_refs=[], with observed_at omitted, and with observed_target_generation omitted.",
+      "risk": "A schema-valid object can encode PASS without the mandatory evidence that the architecture says must otherwise resolve to UNKNOWN.",
+      "required_falsifier": "Validator test must reject PASS when mandatory positive evidence is absent, when counterevidence results are absent, when observed target generation is absent for target-bound evidence, or when evidence is below minimum_fidelity.",
+      "credit_boundary": "Schema validation alone must never grant completion credit."
+    },
+    {
+      "id": "HRT-FALSIFIER-002",
+      "severity": "HIGH",
+      "observation": "TARGET_HOST_PROFILE schema defines redaction_policy but does not require it.",
+      "risk": "A profile can be schema-valid without an explicit machine-checkable assertion that credentials, clipboard, raw camera, raw microphone and user documents were excluded.",
+      "required_falsifier": "Collector/profile validator should require redaction_policy and all five false constants for any admitted TARGET_OBSERVED or MIXED profile; missing policy must fail closed or remain unadmitted."
+    },
+    {
+      "id": "HRT-FALSIFIER-003",
+      "severity": "HIGH",
+      "observation": "The profile schema allows many target fields to be null/empty while unknown_fields is only a free list and is not structurally required to enumerate every unobserved field.",
+      "risk": "UNKNOWN can collapse into a null/default-looking value, violating the explicit rule that guessed/unobserved target facts remain UNKNOWN.",
+      "required_falsifier": "Deterministic collector/validator must prove a bidirectional invariant: every unobserved target fact is listed in unknown_fields, and every unknown_fields path resolves to an explicitly non-observed value; tests should mutate one side only and require rejection."
+    },
+    {
+      "id": "HRT-FALSIFIER-004",
+      "severity": "MEDIUM_HIGH",
+      "observation": "TARGET_OBLIGATION schema does not constrain consistency between minimum_fidelity and physical_required.",
+      "risk": "Contradictory combinations can be encoded and interpreted differently by workers, e.g. T4_PHYSICAL with physical_required=false.",
+      "required_falsifier": "Semantic validator should reject contradictory fidelity/physical combinations or define one canonical interpretation with tests."
+    },
+    {
+      "id": "HRT-FALSIFIER-005",
+      "severity": "MEDIUM_HIGH",
+      "observation": "target_profile_digest is regex-constrained but not semantically bound by schema to an admitted profile/generation; an all-zero or otherwise invented 64-hex digest is syntactically valid.",
+      "risk": "T0/T1 work could accidentally fabricate target identity instead of binding a real synthetic/observed profile artifact.",
+      "required_falsifier": "Completion evaluation must resolve target_profile_digest to an admitted profile object and verify the digest/generation. Unknown physical target facts require a synthetic/UNKNOWN-bearing profile, never an invented exact-target digest."
+    }
+  ],
+  "recommended_negative_tests": [
+    "PASS + empty evidence_refs => reject/UNKNOWN",
+    "PASS + missing observed_target_generation on target-bound evidence => reject/UNKNOWN",
+    "PASS + fidelity below minimum_fidelity => reject/UNKNOWN",
+    "TARGET_OBSERVED profile + missing redaction_policy => reject admission",
+    "profile null field not listed in unknown_fields => reject admission",
+    "unknown_fields entry whose value is presented as observed => reject admission",
+    "T4_PHYSICAL + physical_required=false => reject or canonicalize explicitly",
+    "unresolvable target_profile_digest => reject/UNKNOWN"
+  ],
+  "counterhypothesis": "WP-1200/WP-1201 semantic validators may already enforce these invariants outside JSON Schema. If so, this packet should be closed by exact tests demonstrating fail-closed behavior; the permissive schema then remains only a transport shape, not acceptance authority.",
+  "acceptance_for_closure": "Each finding is either fixed in schema/validator or explicitly documented as intentionally enforced in deterministic semantic validation, with negative tests bound to current source identity.",
+  "credit": {
+    "source_review": true,
+    "runtime_execution_observed": false,
+    "target_host_credit": false,
+    "physical_credit": false,
+    "whole_system_acceptance": false
+  }
+}

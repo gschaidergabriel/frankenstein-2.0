@@ -1,0 +1,73 @@
+{
+  "schema": "FRANKENSTEIN2_TRIGGER6_RESEARCH_RECEIPT/v1",
+  "research_id": "R6-20260829-WP807-ZERO-SUCCESS-SCORE-CONSISTENCY-GPT56SOL-01",
+  "stage": "E3_CLAIM_REPRODUCED",
+  "status": "REPRODUCED_AS_EXACT_SOURCE_SEMANTIC_WITNESS",
+  "worker": "GPT-5.6 Sol",
+  "trigger": "6",
+  "claim_ref": "research/tool_intelligence/claims/R6-20260829-WP807-ZERO-SUCCESS-SCORE-CONSISTENCY-GPT56SOL-01/E3_CLAIM_REPRODUCED_ZERO_SUCCESS_HIGH_SCORE.json",
+  "architecture_snapshot": {
+    "f2_main_observed_before_receipt": "0acff9554990e73b9ee22e158ce65572a966f29a",
+    "wp807_source_commit": "4a6c401a279798008aad199107b3f1b801802ed0",
+    "wp807_source_blob": "6ea004126f9d39e428141703ea49aa3090b9994e",
+    "e2_integrated_trajectory_delta_commit": "7f4c2f51dec6e298e698b2f8c5794c58e740e8fa",
+    "trigger6_protocol_blob": "08571526d33f9a0c06577e2f119bdaf4297ef1c8"
+  },
+  "claim_under_test": "Current WP807 evaluate_agentic_core can return SUPPORTED_AT_COMPONENT_SCOPE for a complete accepted four-capability evidence bundle whose total success_count is zero, provided submitted intervention/delta/sample predicates pass.",
+  "source_semantics_observed": [
+    "CapabilityEvidence validates success_count only as an integer between zero and sample_count.",
+    "evaluate_agentic_core gates completeness, ACCEPTED source state, distinct receipt/reconciliation hashes, shared holdout_set_id, sample floor, intervention-score floor and delta-over-baseline floor.",
+    "evaluate_agentic_core does not gate on success_count.",
+    "total_success_count is computed only after verdict logic and carried into AgenticCoreReport without a nonzero-success acceptance invariant."
+  ],
+  "deterministic_witness": {
+    "policy": {
+      "min_intervention_score_ppm": 800000,
+      "min_delta_over_baseline_ppm": 500000,
+      "min_sample_count_per_capability": 1,
+      "require_shared_holdout_set": true
+    },
+    "record_template": {
+      "source_terminal_state": "ACCEPTED",
+      "holdout_set_id": "same-holdout",
+      "baseline_score_ppm": 100000,
+      "intervention_score_ppm": 900000,
+      "sample_count": 10,
+      "success_count": 0,
+      "action_count": 1
+    },
+    "capabilities": ["EXPLORATION", "MODELING", "GOAL_SETTING", "PLANNING_EXECUTION"],
+    "receipt_and_reconciliation_identities": "distinct per capability",
+    "observed_verdict": "SUPPORTED_AT_COMPONENT_SCOPE",
+    "observed_total_success_count": 0,
+    "canonical_witness_sha256": "e60d00077659f80fcc2b53b99c3075736c6f94642913cd972cfcff985382eda6"
+  },
+  "execution_note": {
+    "method": "A deterministic local semantic harness copied the exact acceptance predicates visible in the bound WP807 source text and evaluated the witness above.",
+    "local_python": "3.13.5",
+    "local_platform": "Linux-6.18.35-x86_64-with-glibc2.41",
+    "important_limit": "The private repository blob could not be imported directly into the local execution container through the available connector/raw-download boundary. Therefore this is an exact-source semantic witness, not direct byte-for-byte module execution and not F2 runtime evidence."
+  },
+  "result": {
+    "claim_reproduced": true,
+    "severity": "HIGH_FOR_WP807_ACCEPTANCE_SEMANTICS",
+    "interpretation": "WP807's current component-support verdict can be decoupled from explicit success/completion evidence. This does not prove upstream WP802-WP805 scores are wrong; it proves WP807 itself does not enforce or verify their relationship to success_count.",
+    "recommended_fail_closed_repair": "Require producer-bound score derivation or recompute accepted score from bound raw results, and require explicit completion/success consistency before any supported verdict. Preserve component-only authority wording."
+  },
+  "counterhypothesis": {
+    "statement": "Upstream producer contracts guarantee intervention_score_ppm is mathematically impossible to be high when success_count is zero, making the missing WP807 gate redundant.",
+    "status": "OPEN",
+    "next_discriminator": "Trace exact accepted WP802-WP805 score-producer contracts and prove score/success derivation identities. Until then WP807 must not assume the invariant."
+  },
+  "credit": {
+    "e3_claim_reproduced": "SOURCE_SEMANTIC_WITNESS_ONLY",
+    "direct_module_execution": false,
+    "f2_ablation_credit": 0,
+    "build_candidate_credit": 0,
+    "runtime_credit": 0,
+    "physical_grid10_credit": 0,
+    "effect_credit": 0,
+    "completion_credit": 0,
+    "whole_system_acceptance": false
+  }
+}

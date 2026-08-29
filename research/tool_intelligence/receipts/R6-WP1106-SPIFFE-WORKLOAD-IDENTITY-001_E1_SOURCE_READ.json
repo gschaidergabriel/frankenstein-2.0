@@ -1,0 +1,68 @@
+{
+  "schema": "FRANKENSTEIN2_TRIGGER6_EVIDENCE_RECEIPT/v1",
+  "research_id": "R6-WP1106-SPIFFE-WORKLOAD-IDENTITY-001",
+  "evidence_stage": "E1_SOURCE_READ",
+  "status": "SOURCE_READ_COMPLETE_NO_ARCHITECTURE_CREDIT",
+  "completed_at": "2026-08-29T19:48:35+07:00",
+  "architecture_binding": "F2-WP-1106-G1-GPT56SOL-LOCAL-RUNTIME-BRIDGE-20260829T1244Z",
+  "f2_snapshot": "6a7c40e8d4a38a8f6b451d126abfdba642be3488",
+  "claim": "research/tool_intelligence/claims/R6-WP1106-SPIFFE-WORKLOAD-IDENTITY-001/E1_SOURCE_READ.json",
+  "external_sources": [
+    {
+      "repo": "spiffe/spiffe",
+      "branch": "main",
+      "commit": "dc4e9d9b4eff8aa181a54cd330ff9f877186060e",
+      "license": "Apache-2.0",
+      "surfaces": [
+        "standards/SPIFFE_ID_and_SVID.md or current canonical SPIFFE Identity/SVID specification",
+        "standards/SPIFFE_Trust_Domain_and_Bundle.md",
+        "standards/SPIFFE_Workload_API.md",
+        "standards/SPIFFE_Workload_Endpoint.md",
+        "standards/X509-SVID.md",
+        "standards/JWT-SVID.md"
+      ]
+    },
+    {
+      "repo": "spiffe/spire",
+      "branch": "main",
+      "commit": "66f6029f508bac63008045522642bb952376868c",
+      "license": "Apache-2.0",
+      "surfaces": [
+        "SPIRE architecture: server + per-node agent",
+        "node/workload attestation plugins",
+        "registration entries/selectors",
+        "local Workload API and SVID issuance/rotation"
+      ]
+    }
+  ],
+  "source_findings": [
+    "SPIFFE separates a structured workload identity namespace (SPIFFE ID), a cryptographically verifiable identity document (SVID), and a runtime API used to obtain/refresh identities.",
+    "The SPIFFE Workload Endpoint is intended to be local to one host for bootstrap/security reasons; caller identity is normally established out-of-band from local process/OS properties rather than by trusting caller-supplied identity claims.",
+    "X.509-SVIDs support short-lived workload identity and mutual TLS; trust bundles can rotate and the Workload API streams updated X.509 identities/bundles.",
+    "JWT-SVIDs are bearer tokens with an inherent replay window; audience and expiration reduce but do not eliminate replay risk, so X.509 identity is the stronger default comparator for the F2 optional bridge.",
+    "SPIFFE trust domains bind an identity namespace to an issuing authority and cryptographic bundle; multiple keys support rotation while preserving namespace identity.",
+    "SPIRE implements the standard with a server plus one or more agents, registration entries, node attestation and workload attestation. This is a materially larger operational surface than F2-WP-1106 currently requires for one optional owner-controlled bridge.",
+    "SPIRE workload attestation can bind identities to OS/process attributes such as uid/gid/systemd properties or container/orchestrator selectors; this is useful as a design comparator for local runtime identity evidence.",
+    "SPIFFE/SPIRE identity authenticates a peer/workload; it does not by itself establish F2 canonical state lineage, capability authority, effect authority or semantic truth. Those remain separate F2 invariants."
+  ],
+  "f2_distillation": {
+    "recommended": true,
+    "import_full_spire": false,
+    "thin_native_candidate_rules": [
+      "Keep a stable typed bridge peer namespace/peer identity separate from transport address and from canonical local state identity.",
+      "Bind authenticated peer identity to short-lived credential evidence, issuer/trust-root fingerprint, validity interval and rotation generation.",
+      "Prefer mutual-authenticated channel identity for the optional bridge over reusable bearer identity tokens.",
+      "Bind any remote capability declaration separately to the authenticated peer identity, protocol version and exact local state-lineage digest; authenticated identity must never self-grant capabilities.",
+      "Fail closed on unknown issuer/root, expired credential, unexpected peer identity, capability mismatch, lineage mismatch or stale credential generation.",
+      "Preserve local boot/state continuity when no bridge identity can be established; unavailable/invalid remote identity must degrade to detached local operation, not block baseline local boot.",
+      "Treat remote returns as candidate/projection evidence only even after successful peer authentication."
+    ]
+  },
+  "counterhypothesis": "Even the distilled SPIFFE-inspired namespace/SVID abstraction may be unnecessary. A single pinned endpoint public key plus direct mTLS, an explicit capability manifest and F2 state-lineage/session binding may provide equivalent assurance with less code and fewer moving parts.",
+  "next_falsifier": "Map the SPIFFE-derived invariants directly onto the current F2-WP-1106 data model and compare three designs: A) raw pinned-key/mTLS, B) thin SPIFFE-inspired BridgePeerIdentity + rotating credential/capability envelope, C) full SPIRE. Score state/effect authority separation, replay/rotation handling, failure isolation, implementation/dependency weight and testability. Promote only if B adds a concrete invariant that A lacks without importing C's control-plane cost.",
+  "architecture_delta": "NO_ARCHITECTURE_DELTA_AT_E1: source evidence justifies an E2 comparison/distillation pass but not a build candidate or F2 architecture change yet.",
+  "research_credit": "E1_SOURCE_READ_ONLY",
+  "runtime_credit": 0,
+  "architecture_acceptance_credit": 0,
+  "whole_system_credit": 0
+}

@@ -1,0 +1,127 @@
+{
+  "schema": "FRANKENSTEIN2_TRIGGER6_RESEARCH_RESULT/v1",
+  "trigger": "6",
+  "research_id": "R6-20260829-LYCHEE-SEGMENT-CONSOLIDATION-GPT56SOL-01",
+  "slot": "SOURCE_ARCHAEOLOGIST",
+  "evidence_stage": "E1_SOURCE_READ",
+  "status": "COMPLETED_E1_SOURCE_AUDIT_NO_ARCHITECTURE_OR_RUNTIME_CREDIT",
+  "created_at": "2026-08-29T20:21:30+07:00",
+  "worker": "GPT-5.6-Sol-TRIGGER6",
+  "claim": "research/tool_intelligence/claims/R6-20260829-LYCHEE-SEGMENT-CONSOLIDATION-GPT56SOL-01/E1_SOURCE_READ.json@030b90e166e43bc57b20521c74fa68b8d7f8bc1f",
+  "architecture_fusion": "research/tool_intelligence/deltas/ADF-20260829T2016P0700_GPT56SOL_LYCHEE_MEMORY_FUSION.json@a541bac0017bb0722644a8970e965b745bc30675",
+  "architecture_snapshot": {
+    "f2_main_observed_before_result": "da10ef7f939e9a2322d4bf2e7e8198cc17c4d13d",
+    "research_entity_main_observed": "808d79780d057c6a9152708bbe1cc5bfad293c33",
+    "trigger6_protocol_blob": "08571526d33f9a0c06577e2f119bdaf4297ef1c8",
+    "phase3_targets": ["F2-WP-300", "F2-WP-301", "F2-WP-303", "F2-WP-306", "F2-WP-902"]
+  },
+  "external_source_identity": {
+    "paper": {
+      "title": "LycheeMemory V2: Efficient Long-Term Memory for LLM Agents via Semantic Segment-Level Consolidation",
+      "arxiv": "2608.12990",
+      "submitted": "2026-08-13",
+      "claims_from_primary_abstract": [
+        "semantic segment-level rather than turn-level consolidation",
+        "finalized segments encoded into context-independent typed memory records",
+        "lightweight structured indexes for query-planned evidence retrieval",
+        "GPT-4.1-Mini: 89.22% LoCoMo and 92.20% LongMemEval-S",
+        "reported construction-token reductions versus A-Mem: 86.0% on LoCoMo and 75.9% on LongMemEval-S without higher query-time token usage"
+      ]
+    },
+    "repository": {
+      "repo": "LycheeMem/LycheeMem",
+      "branch": "master",
+      "commit": "9c4ba5e5c046d06063cb5159297a73a3ec1eb112",
+      "readme_blob": "a0a64027954e3507a44ba01a24cbad3b55c54bb7",
+      "chunker_blob": "b9c50052e80c9bcf4ec75b3194c42b012dfdf060",
+      "encoder_blob": "59eb98281f853ee87c80637e37d0e335e68cb875",
+      "models_blob": "008bb7cb03457823e0bd9bf6ecd699f6d0a3931b",
+      "license": "Apache-2.0 as declared by repository"
+    }
+  },
+  "source_observations": [
+    "OnlineSemanticChunker is explicitly LLM-free and keeps one open chunk per session.",
+    "The chunker splits at user-bounded exchanges, embeds exchanges, tracks duplicate pending exchanges by turn index, and supports deterministic session_flush finalization.",
+    "Default chunk token preferences are 1000 minimum, 1500 target and 2000 hard maximum; oversized exchanges are split and capacity is fail-bounded.",
+    "Semantic boundary scoring combines embedding surprise, centroid/tail similarity, cohesion drop and length/turn hazards; cut decisions and reasons are recorded.",
+    "CompactSemanticEncoder performs one LLM call per finalized conversation/chunk to extract typed records and disambiguation context.",
+    "Encoder reference_context is documented as read-only disambiguation context and not a new evidence source.",
+    "MemoryRecord types include fact, preference, event, constraint, procedure, failure_pattern and tool_affordance, with temporal metadata and source session/role/evidence turn range.",
+    "SearchPlan supports semantic/pragmatic queries, temporal filters, evidence constraints and independent evidence routes.",
+    "The current source therefore materially supports the V2 mechanism shape; the paper's benchmark numbers remain paper claims and were not reproduced in this macrocycle."
+  ],
+  "cross_research_constraints": [
+    {
+      "source": "LongMemEval-V2 / arXiv:2605.12493",
+      "finding": "Agent memory should be tested on static state, dynamic state, workflow knowledge, environment gotchas and premise awareness over long environment trajectories, not only conversational recall."
+    },
+    {
+      "source": "Beyond Similarity: Trustworthy Memory Search for Personal AI Agents / arXiv:2606.06054",
+      "finding": "Similarity retrieval is a trust boundary; semantically related memory can cause cross-domain leakage, sycophancy, tool-call drift or memory-induced jailbreaks. Query-conditioned admission can reduce these risks."
+    }
+  ],
+  "f2_fit": {
+    "strong_reuse": [
+      "LLM-free semantic boundary detection before expensive memory extraction",
+      "batch-finalize coherent segments instead of invoking a model on every turn",
+      "typed context-independent derived records",
+      "explicit evidence routes and temporal constraints in retrieval",
+      "recorded boundary diagnostics for later ablation and causal review"
+    ],
+    "do_not_import": [
+      "a second mutable canonical memory database or truth authority",
+      "unscoped semantic similarity as sufficient admission into model context",
+      "LLM-generated memory as canonical fact without deterministic provenance/evidence linkage",
+      "hard deletion/rewriting semantics that erase canonical source events",
+      "paper benchmark credit without F2-specific reproduction"
+    ]
+  },
+  "hypothesis": "A thin F2-native segment-consolidation layer over immutable UnifiedDB event provenance can reduce memory-construction model calls/tokens while preserving evidence fidelity better than eager per-turn extraction or fixed-window batching.",
+  "counterhypotheses": [
+    "Semantic segmentation can split causally linked tool/action/outcome sequences or merge unrelated events when embedding drift is weak.",
+    "Delayed finalization can make critical observations unavailable before a decision boundary.",
+    "Derived typed records can become a de facto second truth store if provenance and admission semantics are weak.",
+    "Embedding-based retrieval without a trust/admission gate can inject contextually inappropriate memory despite high semantic relevance.",
+    "For action-heavy F2 traces, deterministic lifecycle/causal boundaries may outperform conversation-style semantic boundaries."
+  ],
+  "candidate_f2_shape": {
+    "name": "DerivedMemorySegmentEnvelope",
+    "authority": "DERIVED_NONCANONICAL_PROJECTION_ONLY",
+    "canonical_source": "UnifiedDB causal/event records",
+    "minimum_fields": [
+      "segment_id", "generation", "first_causal_event_id", "last_causal_event_id", "source_event_ids_or_digest",
+      "boundary_reason", "boundary_score", "boundary_method_identity", "segment_token_count",
+      "derived_record_type", "extractor_identity", "evidence_refs", "temporal_validity", "supersession_refs",
+      "confidence", "canonical_truth=false"
+    ],
+    "boundary_precedence": "hard causal/lifecycle/effect/restart/generation boundaries override semantic batching; semantic boundary is a bounded optimization within those fences",
+    "retrieval_admission": "deterministic project/task/generation/provenance/capability/domain filters before semantic ranking; retrieved memories remain candidate evidence until ContextCompiler admission"
+  },
+  "next_discriminator": {
+    "stage": "E2_ARCHITECTURE_MAPPED",
+    "objective": "Map the candidate envelope and admission sequence onto exact current WP300/WP301/WP303/WP306 interfaces, preserve UnifiedDB authority, and define an E3/E4 benchmark comparing eager-per-turn, fixed-window, semantic-segment and causal-fenced-semantic segmentation.",
+    "required_metrics": [
+      "construction model calls", "construction input/output tokens", "query context tokens", "p50/p95 latency",
+      "retrieval recall/precision", "temporal/provenance correctness", "stale/superseded memory admission rate",
+      "cross-domain leakage", "abstention/premise-awareness", "tool/action outcome accuracy", "lost-critical-evidence rate"
+    ],
+    "negative_controls": [
+      "semantically similar wrong-domain memory",
+      "stale superseded memory",
+      "same wording with different causal identity",
+      "goal transition inside an apparent semantic segment",
+      "tool result arriving after session or generation boundary",
+      "environment gotcha whose wording is low-similarity to the current query"
+    ]
+  },
+  "evidence_credit": {
+    "e1_source_read": true,
+    "e2_architecture_mapped": 0,
+    "e3_claim_reproduced": 0,
+    "e4_f2_ablation": 0,
+    "e5_build_candidate": 0,
+    "e6_f2_accepted": 0,
+    "runtime": 0,
+    "whole_system": 0
+  }
+}

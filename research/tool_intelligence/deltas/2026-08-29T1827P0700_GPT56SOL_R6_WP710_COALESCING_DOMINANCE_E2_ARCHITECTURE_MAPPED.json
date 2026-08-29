@@ -1,0 +1,134 @@
+{
+  "schema": "FRANKENSTEIN2_TRIGGER6_SOURCE_ARCHAEOLOGY_E2/v1",
+  "trigger": "6",
+  "slot": "ARCHITECTURE_MAPPER",
+  "research_id": "R6-WP710-LATEST-WINS-BACKPRESSURE-SCHEDULER-001",
+  "claim_target": "E2_ARCHITECTURE_MAPPED",
+  "status": "E2_ARCHITECTURE_MAPPED_COMPLETE_NO_BUILD_PROMOTION",
+  "completed_at": "2026-08-29T18:27:00+07:00",
+  "worker": "GPT-5.6 Sol / ChatGPT Trigger-6 organ",
+  "claims": {
+    "e1_commit": "442dcf33ae64e0b5733d7f7f875c50a6775aa71d",
+    "e2_commit": "00d126965f4c09974fd200e20058558f583241d4"
+  },
+  "e1_receipt_commit": "c36bff62fb2f6e01aff3006247094e16a4a6bb92",
+  "mapping_lock": {
+    "f2_main_observed": "b479dc279aa45b5bb059c7b6f1d7d8f8642437ff",
+    "wp710_source_commit": "63731075d7e74fd87a327c09059d0b5082d6d709",
+    "wp710_ci_wiring_commit_observed": "f2056c94893056ff3c211157409f30638d534af5",
+    "wp710_policy_digest_falsifier_commit_observed": "ed465e41a6c06e383c9c5f519c0806d20fc8d410",
+    "research_entity_head": "d9d4fea68eafe7148678f003b932f7bfbbf34acc",
+    "scope_note": "Repository source/CI wiring observations only; no target-runtime or whole-system credit."
+  },
+  "external_patterns": [
+    {
+      "pattern": "BOUNDED_QUEUE_WITH_EXPLICIT_OVERFLOW_POLICY",
+      "sources": ["Python asyncio Queue", "GStreamer queue/appsink"],
+      "f2_mapping": "ALREADY_NATIVE",
+      "note": "F2 max_queue_items plus explicit drop accounting is preferable to a blocking producer queue for perception analysis."
+    },
+    {
+      "pattern": "LATEST_VALUE_CONFLATION",
+      "sources": ["libzmq ZMQ_CONFLATE", "GStreamer leaky downstream/old-buffer drop"],
+      "f2_mapping": "PARTIALLY_NATIVE_NEEDS_SEMANTIC_DOMINANCE",
+      "note": "Latest-only replacement is sound only when the retained item satisfies the obligations of the discarded one; freshness/deadline/authority are semantic constraints, not incidental metadata."
+    },
+    {
+      "pattern": "DYNAMIC_CONCURRENCY_LIMIT_0_TO_N",
+      "sources": ["AnyIO CapacityLimiter 4.14.x"],
+      "f2_mapping": "NATIVE_POLICY_ALREADY_BETTER_FIT",
+      "note": "F2 already has max_active_workers 0..4 and explicit work/control budget. Adding AnyIO only for this would add dependency/version risk, including recent limiter race fixes, without clear information gain."
+    }
+  ],
+  "current_f2_strengths": [
+    "0..4 worker policy is explicit and validates zero-worker state.",
+    "Queue size and drop accounting are bounded.",
+    "Dispatch revalidates permission snapshots fail-closed.",
+    "Control reserve is subtracted before perception work is admitted.",
+    "Pressure can shed low-priority work.",
+    "First-pass dispatch gives distinct sources a chance before second work from an already represented source.",
+    "No sensor opening, raw-frame persistence, provider invocation, truth/effect/completion authority is introduced by the scheduler."
+  ],
+  "critical_mismatches": [
+    {
+      "id": "M1_COALESCE_KEY_OMITS_FRESHNESS",
+      "severity": "HIGH",
+      "finding": "_coalesce_key() omits ObserveIntent.required_freshness_ns. Two requests for the same source/heads/atoms/ROI can be collapsed even if one requires materially fresher evidence.",
+      "risk": "The stricter observation obligation can disappear before dispatch."
+    },
+    {
+      "id": "M2_COALESCE_PREFERS_LATER_EXPIRY",
+      "severity": "HIGH",
+      "finding": "Normal scheduling rank prefers earliest expiry after priority, but _preferred_coalesced() prefers later expiry within equal generation/priority.",
+      "risk": "Coalescing can invert the scheduler's own deadline semantics and discard the request that must be satisfied sooner."
+    },
+    {
+      "id": "M3_COALESCE_KEY_OMITS_PERMISSION_BINDING",
+      "severity": "MEDIUM_HIGH",
+      "finding": "permission_snapshot_sha256 is not part of coalescing equivalence. The retained request can therefore be bound to a different permission epoch than the discarded request.",
+      "risk": "Dispatch-time fail-closed validation remains safe for authority, but a stale retained request can cause useful work to disappear instead of retaining a still-valid request. Safety is preserved; liveness/utility may not be."
+    },
+    {
+      "id": "M4_ADMISSION_FAIRNESS_PRECEDES_DISPATCH_FAIRNESS",
+      "severity": "MEDIUM",
+      "finding": "Source diversity is enforced only after the global queue has been sorted and truncated. A noisy high-ranked source with many distinct coalesce keys can fill max_queue_items and evict every pending request from another source before the fair first dispatch pass runs.",
+      "risk": "N-sources-greater-than-workers remains bounded but can still exhibit source starvation."
+    },
+    {
+      "id": "M5_RECENT_DROP_IDS_NOT_STRICTLY_RECENCY_ORDERED",
+      "severity": "LOW_MEDIUM",
+      "finding": "recent_dropped_intent_ids are sorted, then reused as if their order encoded recency before suffix truncation on the next enqueue.",
+      "risk": "The bounded diagnostic set may not actually be the most recent N dropped IDs, weakening audit interpretation while leaving total drop count intact."
+    }
+  ],
+  "proposed_f2_shape": {
+    "name": "WP710_CONSTRAINT_DOMINANCE_COALESCING/v0",
+    "decision": "DISTILL_INTO_NATIVE_SCHEDULER_IF_FALSIFIER_REPRODUCES",
+    "required_invariants": [
+      "Never coalesce requests merely because payload target fields match; semantic request constraints must be compatible.",
+      "A retained/coalesced request must dominate or preserve the strictest required_freshness_ns and deadline obligations of every discarded request.",
+      "Permission snapshot epoch/digest differences are not silently erased; authority is still revalidated at actual dispatch.",
+      "Coalescing must never turn a valid stricter request into no work solely because a looser retained request later fails permission validation.",
+      "Backpressure remains bounded and must not block CaptureOwner/Broker progress.",
+      "Source fairness must be tested at admission as well as dispatch if WP710 claims anti-starvation across N sources.",
+      "Drop diagnostics must state whether retained IDs are chronological or merely a bounded sample/set."
+    ],
+    "minimal_repair_options": [
+      "Conservative: include required_freshness_ns, expires_monotonic_ns and permission_snapshot_sha256 in coalescing equivalence, reducing conflation but preserving semantics.",
+      "Stronger: introduce a pure dominance relation and synthesize/retain a request that carries the strictest compatible constraints; reject conflation when constraints are incomparable.",
+      "Do not add AnyIO/ZeroMQ/GStreamer as scheduler dependencies; their useful behavior is already small enough to encode and test natively."
+    ]
+  },
+  "hypothesis": {
+    "statement": "The current WP710 native scheduler is architecturally preferable to importing an external scheduler, but its coalescing relation is too weak because it conflates target equivalence with obligation equivalence.",
+    "confidence": 0.95
+  },
+  "counterhypothesis": {
+    "statement": "An upstream invariant guarantees that later/equal-key ObserveIntents always subsume all freshness/deadline/permission obligations of earlier ones, making the current replacement rule safe.",
+    "confidence": 0.18,
+    "falsifier": "Create two still-valid same-target ObserveIntents with identical coalesce-key fields but different required_freshness_ns and expiry. Enqueue both and assert that the surviving state still represents the stricter obligation. A second case should vary permission snapshot digest and prove a valid request cannot be erased in favor of a stale one."
+  },
+  "adoption_decision": {
+    "full_external_library_import": "REJECT_FOR_CURRENT_FRONTIER",
+    "native_bounded_scheduler": "KEEP",
+    "constraint_dominance_coalescing": "PROMOTE_TO_EXECUTABLE_FALSIFIER",
+    "source_admission_fairness": "PROMOTE_TO_SECONDARY_FALSIFIER",
+    "build_candidate": false,
+    "trigger4_handoff": true,
+    "handoff": "Before WP710 is accepted, add exact regression cases for freshness/deadline/permission coalescing and, if anti-starvation is claimed, pre-dispatch queue admission fairness. Repair only if the executable counterexample reproduces."
+  },
+  "evidence_ceiling": {
+    "level": "E2_ARCHITECTURE_MAPPED",
+    "source_read": true,
+    "architecture_mapping": true,
+    "external_sources_researched": true,
+    "f2_executable_falsifier_run": false,
+    "architecture_credit": 0,
+    "runtime_credit": 0,
+    "whole_system_credit": 0,
+    "training_credit": 0
+  },
+  "next_recommended_trigger6_slot": "EXPERIMENTAL_FALSIFIER",
+  "next_recommended_objective": "E3_CLAIM_REPRODUCED_WP710_COALESCE_CONSTRAINT_DOMINANCE",
+  "pending_research_sqlite_sync": "PENDING"
+}

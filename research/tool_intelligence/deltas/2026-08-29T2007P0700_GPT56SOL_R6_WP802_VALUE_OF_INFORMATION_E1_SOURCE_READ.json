@@ -1,0 +1,112 @@
+{
+  "schema": "FRANKENSTEIN2_TRIGGER6_SOURCE_ARCHAEOLOGY/v1",
+  "trigger": "6",
+  "slot": "SOURCE_ARCHAEOLOGIST",
+  "research_id": "R6-WP802-VALUE-OF-INFORMATION-001",
+  "claim_target": "E1_SOURCE_READ",
+  "status": "E1_SOURCE_READ_COMPLETE_NO_ARCHITECTURE_PROMOTION",
+  "completed_at": "2026-08-29T20:07:27+07:00",
+  "worker": "GPT-5.6-Sol-TRIGGER6",
+  "claim": {
+    "path": "research/tool_intelligence/claims/R6-WP802-VALUE-OF-INFORMATION-001/E1_SOURCE_READ.json",
+    "claim_commit": "7cbdd158b99875e88a2bcb678702d45aabcc3a40",
+    "coordination_only": true,
+    "semantic_duplicate_observed": "research/tool_intelligence/claims/R6-20260829-WP802-VALUE-OF-INFORMATION-GPT56SOL-01/E1_SOURCE_READ.json@31b2f0c8c1fe13e2e3962c6cdabb9e2f61b57c53",
+    "duplicate_treatment": "ONE_RESEARCH_RESULT_NOT_INDEPENDENT_REPLICATION"
+  },
+  "architecture_context": {
+    "f2_wp802_claim": "F2-WP-802-G1-GPT56SOL-HELDOUT-INFORMATION-SEEKING-BENCHMARK-20260829",
+    "f2_wp802_claim_commit": "fa432e3e5c7b4f14de562d7e3bae311624e16ba5",
+    "wp800_component_merge": "752208ea19d9a94e8b64d5a76c5d5bfbf72f99be",
+    "public_policy_boundary": "ObservationView plus immutable policy state/config only",
+    "forbidden_policy_input": "MicroWorldFixture evaluator-only nodes/transitions/scores/hidden-ground-truth refs",
+    "evidence_scope": "REPOSITORY_RESEARCH_ONLY"
+  },
+  "external_primary_sources": [
+    {
+      "id": "FILSTROFF_2021_TARGETED_ACTIVE_LEARNING",
+      "ref": "arXiv:2106.04193",
+      "observation": "Active learning optimized only for generic predictive accuracy can be suboptimal when the downstream objective is decision quality; the paper targets information about the optimal decision itself."
+    },
+    {
+      "id": "GHASEMI_TOPCU_2019_ACTIVE_PERCEPTION",
+      "ref": "arXiv:1910.02130",
+      "observation": "Active perception is formulated as selective information acquisition under an explicit limited budget and evaluated in terms of downstream expected cumulative reward."
+    },
+    {
+      "id": "GOLOVIN_KRAUSE_2010_ADAPTIVE_SUBMODULARITY",
+      "ref": "arXiv:1003.3967",
+      "observation": "Greedy adaptive information-gathering can have approximation guarantees when the objective satisfies adaptive submodularity; that property is an explicit precondition and cannot be presumed for WP802."
+    },
+    {
+      "id": "HAZEN_2024_VALUE_OF_INFORMATION",
+      "ref": "doi:10.1287/deca.2024.0187",
+      "observation": "Value of information is decision-problem and utility dependent; different information-value measures need not preserve ranking outside restricted utility conditions."
+    },
+    {
+      "id": "NIST_2022_VALUE_OF_INFORMATION_DECISION_PATHWAYS",
+      "ref": "NIST publication 2022-05-20 Value of information and decision pathways",
+      "observation": "Information collection has costs; value-of-information analysis compares those costs with the benefit of information in the decision pathway."
+    }
+  ],
+  "source_synthesis": [
+    {
+      "id": "VOI-WP802-01",
+      "classification": "MULTISOURCE_CORROBORATED",
+      "claim": "For WP802, generic information amount, entropy reduction, novelty or probe count should not be the primary success variable. The primary benchmark should be downstream decision benefit under matched conditions, net of explicit probe cost."
+    },
+    {
+      "id": "VOI-WP802-02",
+      "classification": "INFERENCE",
+      "claim": "Public-observation novelty can remain diagnostic telemetry, but promoting it into the primary reward would permit a decision-irrelevant yet information-rich probe to outperform a smaller probe that actually changes the correct downstream action."
+    },
+    {
+      "id": "VOI-WP802-03",
+      "classification": "INFERENCE",
+      "claim": "The cleanest F2 donor is the decision-theoretic structure, not a heavyweight Bayesian/POMDP library: preserve the existing deterministic WP800 evaluator boundary and add evaluator-side matched utility/cost accounting."
+    },
+    {
+      "id": "VOI-WP802-04",
+      "classification": "SOURCE_BOUNDARY",
+      "claim": "Adaptive-submodular near-optimality guarantees must not be imported into Frankenstein unless WP802's actual objective is separately shown to satisfy the required property."
+    }
+  ],
+  "candidate_architecture_delta": {
+    "status": "E1_CANDIDATE_NOT_PROMOTED",
+    "target": "F2-WP-802 evaluator contract",
+    "proposal": [
+      "Make matched evaluator-side decision utility improvement the primary information-seeking signal.",
+      "Subtract explicit probe/acquisition cost from that improvement before ranking probe-before-commit against commit-first.",
+      "Keep novelty/information-gain/probe-count metrics diagnostic and non-authoritative.",
+      "Use identical fixture/episode/generation/run identities for matched baseline/intervention comparison.",
+      "Keep all utility, hidden state and counterfactual scoring evaluator-side; the SUT receives only exact public ObservationView data.",
+      "Include negative-control fixtures: high-novelty/no-decision-change versus low-novelty/decision-changing evidence.",
+      "Permit UNKNOWN/stop when public evidence does not support a positive expected net decision value."
+    ],
+    "resource_implication": "Structural distillation adds deterministic scalar accounting and matched-pair tests; no external runtime dependency, model call, network service, VPS or additional resident model is required."
+  },
+  "counterhypothesis": {
+    "statement": "WP802 is intended to measure exploration behavior rather than decision value, so novelty and probe accounting may legitimately remain co-primary signals even when they do not improve terminal utility.",
+    "cheapest_discriminator": "Construct two held-out matched fixtures: probe A yields high public novelty but cannot alter the optimal commit; probe B yields lower novelty but changes the optimal commit and improves terminal evaluator utility. A decision-aware primary score should rank B above A while preserving novelty only as diagnostics."
+  },
+  "falsifiers": [
+    "If the implemented WP802 contract already makes terminal decision improvement net of explicit probe cost primary and novelty only diagnostic, this candidate delta collapses to supporting evidence rather than an architecture change.",
+    "If matched held-out fixtures show novelty ranking and net decision-value ranking are identical across the declared benchmark universe, the practical distinction is not established at that scope.",
+    "If explicit probe cost cannot be declared without exposing evaluator-only state to the SUT, the proposed policy-side expected-value mechanism must fail closed; evaluator-side post-hoc scoring may still be retained."
+  ],
+  "coordination_observation": {
+    "result": "SEMANTIC_DUPLICATE_CLAIM_OCCURRED_DESPITE_CREATE_ONLY_PATH_MUTEX",
+    "existing_reproduction_receipt": "research/tool_intelligence/receipts/R6-20260829-CLAIM-SEMANTIC-DEDUPE-GPT56SOL-01_E3_OBJECTIVE_KEY_COLLISION_20260829T2006P0700.json@6bef0f47f2b20c691d73cc57c44a9d82c81a92a2",
+    "implication": "Research provenance ID and semantic objective mutex key should be separate fields."
+  },
+  "evidence_ceiling": {
+    "level": "E1_SOURCE_READ",
+    "research_credit": 1,
+    "architecture_credit": 0,
+    "repository_ci_credit": 0,
+    "runtime_credit": 0,
+    "physical_host_credit": 0,
+    "whole_system_credit": 0
+  },
+  "next_exact_gate": "After consuming any sibling WP802 E1 receipt as complementary evidence, atomically claim one E2 architecture-map objective keyed to WP802 decision-value scoring. Map the proposal against the actual WP802 implementation once source exists; if source is not yet merged, do not invent E2 implementation facts."
+}

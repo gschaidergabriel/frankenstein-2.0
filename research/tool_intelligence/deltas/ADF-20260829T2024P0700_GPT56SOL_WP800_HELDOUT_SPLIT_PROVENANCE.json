@@ -1,0 +1,128 @@
+{
+  "schema": "FRANKENSTEIN2_TRIGGER6_ARCHITECTURE_DELTA_FUSION/v1",
+  "trigger": "6",
+  "architecture_delta_fusion_id": "ADF-20260829T2024P0700-GPT56SOL-WP800-HELDOUT-INDEPENDENCE",
+  "research_id": "R6-20260829-WP800-HELDOUT-GENERATOR-INDEPENDENCE-GPT56SOL-02",
+  "evidence_stage": "E2_ARCHITECTURE_MAPPED",
+  "created_at": "2026-08-29T20:24:10+07:00",
+  "worker": "GPT-5.6-Sol / Trigger-6 organ",
+  "status": "RESEARCH_DELTA_ONLY_NOT_BUILD_ACCEPTANCE",
+  "source_snapshot": {
+    "wp800_module": "src/frankenstein2/cognitive_microworld.py",
+    "wp800_blob": "18d3a12c65d00024c190e561450ca8184518d1c9",
+    "wp800_tests_blob": "3d0efbb276fc768245e6dfc017a5fc959829e9f7",
+    "wp803_implementation_commit": "86b4ecda9550f9fb7f98bc80e795f3d38c581c4e",
+    "wp804_implementation_commit": "a4b1b04757960153fb29a41539f1c24b58e41d5d",
+    "wp805_implementation_commit": "057de6f31694723b0f702ddd8bb9818179eae420",
+    "wp806_implementation_commit": "3e12694d50c21f964780b89853381db49f4036f0",
+    "wp800_producer_lineage_hardening_commit": "bc5c1e2f4924205042f8f4d660c7aa38f8790928"
+  },
+  "external_method_inputs": [
+    {
+      "source": "OpenAI CoinRun / Quantifying Generalization in Reinforcement Learning",
+      "transferable_rule": "Generalization evidence requires evaluation on instances not used during development/training; unseen-level testing is distinct from training-set performance."
+    },
+    {
+      "source": "OpenAI Procgen Benchmark",
+      "transferable_rule": "Procedural generation is useful because it can create distinct train/test instance sets; diversity and unseen test levels are explicit benchmark dimensions."
+    },
+    {
+      "source": "USArmyResearchLab/ProcgenOOD@0a5def7caf8e3abe7477e755d8afa7786731afe5",
+      "transferable_rule": "IID unseen-instance holdout and OOD feature-axis holdout are different claims and should be represented separately."
+    },
+    {
+      "source": "DiscoGen / DiscoBench 2026",
+      "transferable_rule": "Keep meta-test material mutually exclusive from material available during optimization and keep primary metric logic outside the mutable solution surface."
+    }
+  ],
+  "architecture_observation": {
+    "current_strength": "WP800 strongly binds exact fixture identity, hidden evaluator state, public-interface digest, run ancestry and producer-only object construction. WP803, WP804 and WP806 reuse that boundary instead of creating competing evaluator authority; WP805 binds distinct source/target ids and public digests.",
+    "gap": "The current contract does not mechanically distinguish an opaque object named heldout from a fixture family demonstrably disjoint from development/calibration material. holdout_set_id is an identifier, not a split proof. Producer-lineage hardening proves authorized object construction, not statistical/generator-family independence.",
+    "cross_consumer_effect": "Because WP802-WP806 depend on WP800, repairing split provenance centrally is lower-duplication and gives every downstream held-out benchmark the same evidence semantics. WP805 additionally needs an explicit relation between source and target split manifests."
+  },
+  "counterhypotheses": [
+    {
+      "id": "CH1_EXTERNAL_PRODUCER_ALREADY_GUARANTEES_SPLIT",
+      "statement": "A separate producer pipeline may already freeze and withhold benchmark fixtures so WP800 only needs to bind that producer receipt rather than implement set logic itself.",
+      "discriminator": "Search current producer/manifests for a machine-verifiable development-vs-holdout disjointness receipt bound into every fixture. If present and exact, reuse it instead of duplicating split authority."
+    },
+    {
+      "id": "CH2_OOD_IS_TOO_STRONG_AS_DEFAULT",
+      "statement": "For many WP800 uses, unseen IID instances are the correct falsifier; requiring OOD feature-family separation universally would change the question rather than improve it.",
+      "disposition": "SUPPORTED_AS_DESIGN_CONSTRAINT: preserve separate IID_INSTANCE and OOD_AXIS regimes rather than replacing IID holdout with OOD."
+    },
+    {
+      "id": "CH3_CURRENT_PROVENANCE_FAMILIES_CAN_SERVE_AS_SPLIT_AXES",
+      "statement": "evidence_source_family, donor_path_family and method_family might be enough to define structural disjointness.",
+      "disposition": "REJECT_AS_GENERAL_RULE: those fields describe evidence/research provenance and can correlate with generation structure, but they are not a typed generator/distribution contract. They may be retained as auxiliary axes, not silently reinterpreted."
+    }
+  ],
+  "proposed_minimal_contract": {
+    "name": "WP800_HOLDOUT_SPLIT_PROVENANCE/v1",
+    "placement": "single canonical WP800 evaluator/fixture boundary; downstream benchmarks consume the same bound identity",
+    "no_second_authority": true,
+    "objects": [
+      {
+        "name": "SplitManifest",
+        "evaluator_only_fields": [
+          "benchmark_family_id",
+          "split_role: CALIBRATION|LOCKED_HOLDOUT",
+          "split_regime: IID_INSTANCE|OOD_AXIS",
+          "generator_family_id",
+          "generator_contract_sha256",
+          "case_manifest_sha256",
+          "case_identity_digest",
+          "holdout_axis_ids",
+          "holdout_value_manifest_sha256",
+          "evaluator_contract_sha256",
+          "frozen_before_evaluation_receipt_sha256"
+        ],
+        "public_surface": "only an opaque split identity/digest when needed; no hidden held-out cases, axis values or evaluator truth become SUT input"
+      },
+      {
+        "name": "SplitRelation",
+        "purpose": "deterministically classify two bound manifests and prove the declared non-overlap relation",
+        "outputs": [
+          "IID_INSTANCE_DISJOINT",
+          "OOD_AXIS_DISJOINT",
+          "OVERLAP",
+          "UNPROVEN"
+        ],
+        "fail_closed": "missing manifests, unknown generator identity, missing declared OOD axis, or unverifiable set relation => UNPROVEN"
+      }
+    ],
+    "fixture_binding": [
+      "MicroWorldFixture full digest binds exact SplitManifest digest and evaluator contract digest",
+      "RunDescriptor inherits the bound split identity automatically from the exact fixture",
+      "existing holdout_set_id remains compatibility/display identity but cannot alone mint held-out credit"
+    ],
+    "cross_fixture_binding": [
+      "WP805 TransferCase binds a SplitRelation digest for source->target and declares required regime",
+      "other cross-fixture comparisons may reuse the same relation rather than ad-hoc label inequality"
+    ],
+    "required_negative_tests": [
+      "different holdout_set_id but overlapping case manifest => reject held-out credit",
+      "different fixture_id with same case identity => reject held-out credit",
+      "IID_INSTANCE relation accepts disjoint cases under same generator family",
+      "OOD_AXIS relation additionally requires declared held-out axis/value disjointness",
+      "same generator family is not itself an OOD proof",
+      "different evidence_source_family/method_family is not itself a generator-distribution proof",
+      "metric/evaluator contract digest drift between matched evaluations => fail closed",
+      "held-out manifest contents are not exposed through ObservationView/public fixture digest payload"
+    ]
+  },
+  "runtime_efficiency": {
+    "expected_cost": "LOW",
+    "reason": "hash/set-manifest validation at fixture construction or evaluation setup; no heavyweight Procgen/DiscoGen runtime is imported and no per-step model work is added",
+    "reuse": "one central contract improves WP802-WP807 benchmark semantics"
+  },
+  "promotion_policy": {
+    "current_credit": "E2_ARCHITECTURE_MAPPED_ONLY",
+    "e4_measurement_credit": 0,
+    "e5_build_candidate_credit": 0,
+    "e6_acceptance_credit": 0,
+    "runtime_credit": 0,
+    "whole_system_credit": 0,
+    "next_exact_gate": "E3 source-semantic counterexample: show that two individually valid current WP800 fixtures can carry distinct fixture_id/holdout_set_id while sharing the same generation/provenance family and no contract rejects their use as independently held-out. Then hand the minimal negative regression to Trigger4 only if reproduced."
+  }
+}

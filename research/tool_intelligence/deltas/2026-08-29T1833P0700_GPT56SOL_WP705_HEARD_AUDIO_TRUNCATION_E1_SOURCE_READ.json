@@ -1,0 +1,117 @@
+{
+  "schema": "FRANKENSTEIN2_TRIGGER6_EVIDENCE_DELTA/v1",
+  "trigger": "6",
+  "research_id": "R6-20260829-WP705-HEARD-AUDIO-TRUNCATION-GPT56SOL-01",
+  "slot": "SOURCE_ARCHAEOLOGIST",
+  "evidence_stage": "E1_SOURCE_READ",
+  "status": "COMPLETED_SOURCE_GROUNDED_WITH_DISTINCT_TEST_DELTA_NO_BUILD_PROMOTION",
+  "created_at": "2026-08-29T18:33:20+07:00",
+  "worker": "GPT-5.6 Sol / ChatGPT Trigger-6 organ",
+  "claim": {
+    "path": "research/tool_intelligence/claims/R6-20260829-WP705-HEARD-AUDIO-TRUNCATION-GPT56SOL-01/E1_SOURCE_READ.json",
+    "commit": "e32013263e358f6b070a4c78fa8ab6a6c471293e"
+  },
+  "f2_binding": {
+    "main_sha_observed": "54b7788f7505ea61c4ebd9a9dfc38c9f70c039fe",
+    "target": "F2-WP-705 Realtime/barge-in/re-entry",
+    "source_path": "src/frankenstein2/realtime_reentry.py",
+    "source_blob_sha": "d61dab87f7ab7df6a449094c51a90c164b977259",
+    "current_scope": "deterministic caller-supplied transition evidence only; no provider/audio/VAD runtime",
+    "current_barge_in_fields": [
+      "barge_in_input_id",
+      "session_id/session_sha256",
+      "event_sequence/causal_generation/observed_at_ms",
+      "predecessor event identity"
+    ],
+    "not_observed_in_current_barge_in_abi": [
+      "interrupted assistant output item identity",
+      "interrupted provider response identity",
+      "playback/heard cutoff duration",
+      "provider cancellation acknowledgement identity",
+      "provider conversation-truncation acknowledgement identity"
+    ]
+  },
+  "external_primary_observations": [
+    {
+      "source": "OpenAI Realtime API reference",
+      "finding": "conversation.item.truncate is specifically defined for interruption when model audio has been delivered faster than realtime but not fully played. The client supplies assistant item_id plus audio_end_ms so the server conversation is synchronized to client playback; the unplayed transcript portion is removed from server context."
+    },
+    {
+      "source": "OpenAI Realtime API reference",
+      "finding": "response.cancel cancels an in-progress response and produces response.done with cancelled status; response_id can bind cancellation to the specific response."
+    },
+    {
+      "source": "OpenAI Realtime API reference",
+      "finding": "For WebRTC/SIP, output_audio_buffer.clear cuts off current audio and should be preceded by response.cancel. The cleared event carries response_id."
+    }
+  ],
+  "hypothesis": {
+    "statement": "WP705's current BARGE_IN evidence is sufficient as an abstract user-input transition marker, but it is insufficient by itself to prove provider-bound heard-history correctness. A future realtime adapter can observe user barge-in while the server still retains assistant audio/text the user never heard unless the adapter separately binds interruption to the exact assistant output and heard cutoff/truncation evidence.",
+    "confidence": 0.97
+  },
+  "counterhypothesis": {
+    "statement": "No WP705 core change is required because realtime_reentry.py is intentionally provider-neutral and caller-supplied; a provider adapter can prove playback synchronization elsewhere and only emit BARGE_IN after that proof is complete.",
+    "status": "SUPPORTED_AS_ARCHITECTURE_BOUNDARY",
+    "reason": "Current module explicitly does not contact providers or operate audio, so importing OpenAI-specific response/item/event vocabulary directly into the core contract would over-couple WP705 and violate its present abstraction boundary."
+  },
+  "adjudication": {
+    "core_architecture_delta": "DO_NOT_ADD_OPENAI_SPECIFIC_FIELDS_TO_WP705_CORE_AT_E1",
+    "distinct_missing_acceptance_contract": "PROVIDER_ADAPTER_MUST_PROVE_HEARD_HISTORY_SYNCHRONIZATION_BEFORE_PROMOTING_BARGE_IN_REENTRY",
+    "why_distinct": "Current WP705 proves transition-chain/session identity but not that provider conversation history equals actually heard assistant audio at interruption."
+  },
+  "minimal_provider_neutral_evidence_candidate": {
+    "classification": "R2_GENERATED_TEST_CONTRACT_NOT_BUILD_CANDIDATE",
+    "fields_or_refs": [
+      "interrupted_output_ref",
+      "provider_response_ref",
+      "heard_until_ms",
+      "generation_cancel_receipt_ref",
+      "playback_cut_receipt_ref",
+      "conversation_truncation_receipt_ref"
+    ],
+    "note": "These are semantic roles, not mandated field names. OpenAI response_id/item_id/audio_end_ms are one adapter mapping. Other providers may use different mechanisms."
+  },
+  "falsifier_for_trigger4_or_future_adapter_worker": {
+    "status": "PROPOSED_E2/E3_FOLLOWUP_NOT_ELIGIBLE_FOR_BUILD_HANDOFF_YET",
+    "cases": [
+      "model generates 3000 ms audio; client has played only 1200 ms when user begins speaking",
+      "BARGE_IN input identity is valid but no playback/truncation receipt exists",
+      "cancel succeeds but conversation truncation acknowledgement is missing",
+      "conversation truncation targets wrong assistant item",
+      "audio_end_ms exceeds locally observed played duration or targets a different response",
+      "all cancellation/playback/truncation identities align and only then barge-in re-entry is admitted"
+    ],
+    "acceptance_invariant": "No provider-bound BARGE_IN evidence may imply the user heard assistant content beyond independently observed local playback. Unheard generated audio/transcript must not survive into the provider conversation state used for re-entry when the provider offers an explicit truncation mechanism.",
+    "measurement": [
+      "local played-duration witness",
+      "interrupted assistant item/response identity",
+      "cancel acknowledgement",
+      "playback-cut acknowledgement where transport exposes one",
+      "conversation truncation acknowledgement and cutoff",
+      "cross-response/cross-session mismatch rejection"
+    ]
+  },
+  "model_selection_note": {
+    "classification": "CURRENT_PROVIDER_CAPABILITY_OBSERVATION_NOT_F2_REQUIREMENT",
+    "finding": "Current OpenAI model catalog exposes newer realtime models including GPT-Realtime-2.1, while F2 WP705 remains correctly provider/model neutral. The contract should therefore bind provider/model identity at an adapter/runtime receipt boundary rather than hardcode one model into core evidence semantics."
+  },
+  "credits": {
+    "e1_source_read_credit": 1,
+    "e2_architecture_credit": 0,
+    "e3_claim_reproduced_credit": 0,
+    "build_candidate_credit": 0,
+    "provider_runtime_credit": 0,
+    "voice_runtime_credit": 0,
+    "whole_system_credit": 0
+  },
+  "execution": {
+    "external_docs_only": true,
+    "provider_calls": 0,
+    "audio_device_execution": 0,
+    "vps_execution": 0,
+    "real_effect_execution": 0,
+    "paid_fallback": false,
+    "unusual_experiment": false
+  },
+  "next_exact_action": "If this objective continues, atomically claim E2_ARCHITECTURE_MAPPED and inspect the exact WP705 tests plus any provider-adapter/runtime-evidence surface. Determine whether heard-history synchronization belongs in a generic adapter evidence type, a WP705 successor generation, or only a runtime acceptance harness. Do not modify product source from Trigger 6."
+}

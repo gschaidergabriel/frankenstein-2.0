@@ -1,0 +1,66 @@
+{
+  "schema": "FRANKENSTEIN2_TRIGGER6_EVIDENCE_RECEIPT/v1",
+  "research_id": "R6-WP710-LATEST-WINS-BACKPRESSURE-SCHEDULER-001",
+  "evidence_stage": "E3_CLAIM_REPRODUCED",
+  "status": "EXECUTABLE_COUNTEREVIDENCE_REPRODUCED",
+  "worker": "gpt-5.6-sol",
+  "architecture_snapshot": {
+    "accepted_wp710_generation": 1,
+    "accepted_tested_head_sha": "f2056c94893056ff3c211157409f30638d534af5",
+    "accepted_reconciliation_commit": "7e3564fcc55ba79268e15eefdb10757c4ae26360",
+    "research_branch": "trigger6/wp710-coalescing-falsifier-20260829",
+    "research_branch_head_sha": "fd537b2fe95a0db791bbc26182e300cd0a2930ba",
+    "draft_pr": 401,
+    "pr_merge_test_sha": "981fee56657f93a27ac2e09ddb5381f8024d95be",
+    "research_entity_head_observed": "d9d4fea68eafe7148678f003b932f7bfbbf34acc"
+  },
+  "execution_evidence": {
+    "workflow": "WP710 Perception Scheduler",
+    "workflow_run_id": 33250129595,
+    "job_id": 99094279492,
+    "runner_os": "Ubuntu 24.04.4 LTS",
+    "python": "CPython 3.12.14",
+    "compile_scheduler_and_contracts": "PASS",
+    "baseline_wp710_tests": "10/10 PASS",
+    "trigger6_falsifier_tests": "0/1 PASS; 1/1 EXPECTED COUNTEREXAMPLE REPRODUCED",
+    "job_conclusion": "failure",
+    "failure": "AssertionError: 5000 not less than or equal to 100 : coalescing discarded the stricter freshness obligation",
+    "classification": "POST_ACCEPTANCE_EXECUTABLE_COUNTEREVIDENCE_AT_REPOSITORY_HOSTED_COMPONENT_CI_SCOPE"
+  },
+  "reproduced_claim": {
+    "statement": "WP710 generation-1 enqueue coalescing can treat same-target ObserveIntents as equivalent even when their freshness/deadline obligations differ, and the current preference rule can retain the looser/later request while discarding the stricter/earlier request.",
+    "mechanism": "_coalesce_key omits required_freshness_ns and expires_monotonic_ns; _preferred_coalesced prefers later expires_monotonic_ns when generation and priority are equal.",
+    "observed_counterexample": {
+      "strict_required_freshness_ns": 100,
+      "strict_expires_monotonic_ns": 5000,
+      "loose_required_freshness_ns": 5000,
+      "loose_expires_monotonic_ns": 50000,
+      "survivor_required_freshness_ns": 5000,
+      "result": "STRICTER_FRESHNESS_OBLIGATION_DISCARDED"
+    }
+  },
+  "scope_effect": {
+    "wp710_generation1_overall_component_evidence": "PRESERVE_EXCEPT_REPRODUCED_SUBSCOPE",
+    "reopened_subscope": "COALESCING_CONSTRAINT_PRESERVATION",
+    "runtime_execution_observed": false,
+    "physical_device_execution_observed": false,
+    "vps_runtime_observed": false,
+    "provider_or_vlm_execution_observed": false,
+    "physical_grid10_credit": 0,
+    "gwt_runtime_credit": 0,
+    "jspace_runtime_credit": 0,
+    "training_credit": 0,
+    "effect_credit": 0,
+    "completion_credit": 0,
+    "whole_system_acceptance": false
+  },
+  "counterhypothesis_result": "FALSIFIED_AT_EXACT_REPOSITORY_COMPONENT_SCOPE: no enforced upstream dominance invariant protected the accepted generation-1 scheduler from the reproduced same-target freshness/deadline counterexample.",
+  "architecture_decision": "KEEP_NATIVE_SCHEDULER_REPAIR_COALESCING_SEMANTICS; DO_NOT_IMPORT_EXTERNAL_SCHEDULER_LIBRARY",
+  "trigger4_handoff": {
+    "required": true,
+    "next_exact_action": "Open or use the sole successor F2-WP-710 mutation authority. Preserve generation-1 evidence outside the contradicted coalescing sub-scope. Add the reproduced regression to canonical WP710 tests, repair coalescing so a retained request dominates or preserves stricter freshness/deadline/permission obligations (or conservatively refuses to conflate incompatible constraints), run exact successor hosted CI, and reconcile only the repaired scope if green."
+  },
+  "architecture_credit": 0,
+  "runtime_credit": 0,
+  "whole_system_credit": 0
+}

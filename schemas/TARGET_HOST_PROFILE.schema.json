@@ -1,0 +1,94 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://frankenstein2.local/schemas/TARGET_HOST_PROFILE.schema.json",
+  "title": "Frankenstein 2.0 Target Host Profile",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema", "profile_id", "generation", "created_at", "collector_version", "target_class", "fidelity", "machine", "os", "session", "multimedia", "browser", "frankenstein", "unknown_fields", "profile_digest"],
+  "properties": {
+    "schema": {"const": "FRANKENSTEIN2_TARGET_HOST_PROFILE/v1"},
+    "profile_id": {"type": "string", "minLength": 1},
+    "generation": {"type": "integer", "minimum": 1},
+    "created_at": {"type": "string", "format": "date-time"},
+    "collector_version": {"type": "string", "minLength": 1},
+    "target_class": {"type": "string", "minLength": 1},
+    "fidelity": {"enum": ["TARGET_OBSERVED", "SYNTHETIC", "MIXED"]},
+    "machine": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": ["dmi_model", "bios", "cpu", "memory_bytes", "pci_devices", "usb_devices", "storage", "kernel_cmdline"],
+      "properties": {
+        "dmi_model": {"type": ["string", "null"]},
+        "bios": {"type": "object"},
+        "cpu": {"type": "object"},
+        "memory_bytes": {"type": ["integer", "null"], "minimum": 0},
+        "pci_devices": {"type": "array", "items": {"type": "object"}},
+        "usb_devices": {"type": "array", "items": {"type": "object"}},
+        "storage": {"type": "array", "items": {"type": "object"}},
+        "kernel_cmdline": {"type": ["string", "null"]}
+      }
+    },
+    "os": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": ["os_release", "kernel_release", "architecture", "packages", "snaps", "runtime_versions"],
+      "properties": {
+        "os_release": {"type": "object"},
+        "kernel_release": {"type": ["string", "null"]},
+        "architecture": {"type": ["string", "null"]},
+        "packages": {"type": "object"},
+        "snaps": {"type": "array", "items": {"type": "object"}},
+        "runtime_versions": {"type": "object"}
+      }
+    },
+    "session": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": ["uid", "session_type", "desktop", "xdg_runtime_dir", "session_dbus", "systemd_user_manager"],
+      "properties": {
+        "uid": {"type": ["integer", "null"], "minimum": 0},
+        "session_type": {"type": ["string", "null"]},
+        "desktop": {"type": ["string", "null"]},
+        "xdg_runtime_dir": {"type": "object"},
+        "session_dbus": {"type": "object"},
+        "systemd_user_manager": {"type": "object"}
+      }
+    },
+    "multimedia": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": ["pipewire", "wireplumber", "portal", "audio_topology", "video_sources", "display_topology"],
+      "properties": {
+        "pipewire": {"type": "object"},
+        "wireplumber": {"type": "object"},
+        "portal": {"type": "object"},
+        "audio_topology": {"type": "object"},
+        "video_sources": {"type": "array", "items": {"type": "object"}},
+        "display_topology": {"type": "array", "items": {"type": "object"}}
+      }
+    },
+    "browser": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": ["installed", "active", "cdp_capability", "structural_capability", "rendered_capture_capability"]
+    },
+    "frankenstein": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": ["state_path", "runtime_path", "service_units", "host_adapter", "vps_bridge"]
+    },
+    "unknown_fields": {"type": "array", "items": {"type": "string"}, "uniqueItems": true},
+    "redaction_policy": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "credentials_collected": {"const": false},
+        "clipboard_collected": {"const": false},
+        "raw_camera_collected": {"const": false},
+        "raw_microphone_collected": {"const": false},
+        "user_documents_collected": {"const": false}
+      }
+    },
+    "profile_digest": {"type": "string", "pattern": "^[a-f0-9]{64}$"}
+  }
+}

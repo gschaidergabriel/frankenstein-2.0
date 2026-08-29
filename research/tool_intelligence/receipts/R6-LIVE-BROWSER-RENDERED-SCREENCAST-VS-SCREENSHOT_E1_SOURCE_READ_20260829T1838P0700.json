@@ -1,0 +1,46 @@
+{
+  "schema": "FRANKENSTEIN2_TRIGGER6_EVIDENCE_RECEIPT/v1",
+  "research_id": "R6-LIVE-BROWSER-RENDERED-SCREENCAST-VS-SCREENSHOT",
+  "evidence_stage": "E1_SOURCE_READ",
+  "status": "COMPLETED_NO_ARCHITECTURE_PROMOTION",
+  "completed_at": "2026-08-29T18:38:00+07:00",
+  "worker": "gpt-5.6-sol",
+  "claim_path": "research/tool_intelligence/claims/R6-LIVE-BROWSER-RENDERED-SCREENCAST-VS-SCREENSHOT/E1_SOURCE_READ.json",
+  "source": "Chrome DevTools Protocol Page domain",
+  "observations": {
+    "startScreencast": [
+      "Experimental tip-of-tree Page command that emits compressed frames through Page.screencastFrame.",
+      "Controls format, quality, maxWidth, maxHeight and everyNthFrame.",
+      "Current tip-of-tree exposes maxFramesInFlight; frames are bounded until screencastFrameAck is received.",
+      "sendLastFrame explicitly trades overall performance for improved latency by retaining/sending the latest produced frame after acknowledgement.",
+      "screencastFrame carries base64 compressed image data, metadata and an integer sessionId that is documented as the frame number.",
+      "ScreencastFrameMetadata carries scroll/scale/device geometry and a timestamp typed as Network.TimeSinceEpoch."
+    ],
+    "captureScreenshot": [
+      "Non-experimental Page.captureScreenshot method is present in the old stable CDP 1.3 subset as well as tip-of-tree.",
+      "It is request/response pull capture rather than an event stream.",
+      "It supports format, quality, clip and fromSurface; newer tip-of-tree also exposes experimental captureBeyondViewport and optimizeForSpeed parameters.",
+      "It returns one base64 image payload per call and has no Page.screencastFrameAck flow-control protocol."
+    ]
+  },
+  "source_level_comparison": {
+    "continuous_stream_fit": "startScreencast is the native event-stream mechanism and exposes explicit in-flight acknowledgement/backpressure controls.",
+    "compatibility_fit": "captureScreenshot has a materially stronger compatibility signal because the method exists in stable 1.3, whereas startScreencast is tip-of-tree experimental.",
+    "fallback_shape": "captureScreenshot can provide deterministic sampled pull capture if screencast capability/version acceptance fails.",
+    "measurement_boundary": "No target-browser FPS, CPU/RSS, latency, encoding cost, drop rate or quality result is established by protocol shape alone."
+  },
+  "critical_clock_finding": "Page.screencastFrame metadata timestamp is Network.TimeSinceEpoch, not F2's local monotonic clock. It may be retained as an auxiliary source timestamp/clock-domain observation but must not replace captured_monotonic_ns for local ordering without an admitted calibration/uncertainty mapping.",
+  "hypothesis": "F2 can use capability-negotiated rendered capture: prefer bounded startScreencast on an exact verified browser/CDP build when continuous capture is required, with captureScreenshot as stable-compatible sampled fallback/on-demand capture. Existing PerceptionCaptureBroker remains the bounded local admission/drop authority.",
+  "counterhypotheses": [
+    "Experimental startScreencast may have browser-version bugs or encoding overhead that make sampled captureScreenshot preferable even for continuous observation.",
+    "Ack-based flow control may interact poorly with F2 broker drop semantics if adapter acknowledgement is tied to downstream consumption instead of local admission.",
+    "captureScreenshot pull cadence may produce lower resource use and sufficient temporal coverage for the actual workloads.",
+    "Screencast frame TimeSinceEpoch may have unstable offset relative to F2 monotonic time and should remain auxiliary unless measured calibration is reliable."
+  ],
+  "next_discriminator": "Acquire E2_ARCHITECTURE_MAPPED and define a capability/version-negotiated rendered-capture policy that preserves broker ownership, bounded backpressure/drop accounting, source-generation fences and monotonic-time authority. Runtime/efficiency promotion requires exact target-browser measurement.",
+  "research_evidence_credit": "E1_SOURCE_READ_ONLY",
+  "architecture_credit": 0,
+  "runtime_credit": 0,
+  "efficiency_credit": 0,
+  "whole_system_credit": 0
+}

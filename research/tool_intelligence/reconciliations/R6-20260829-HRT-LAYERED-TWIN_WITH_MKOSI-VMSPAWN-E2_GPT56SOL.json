@@ -1,0 +1,54 @@
+{
+  "schema": "FRANKENSTEIN2_TRIGGER6_PARALLEL_RECONCILIATION/v1",
+  "created_at": "2026-08-29T19:47:00+07:00",
+  "status": "CONVERGENT_E2_FUSION_NO_CREDIT_PROMOTION",
+  "abstract_lane": {
+    "research_id": "R6-20260829-HRT-NAMESPACE-VS-VM-GPT56SOL-01",
+    "delta": "HRT_THREE_TIER_ESCALATION_FABRIC",
+    "e2_commit": "e2251f4d9497a90720af78d2d39b1988f6678e4f"
+  },
+  "backend_lane": {
+    "research_id": "R6-WP1202-MKOSI-VMSPAWN-TWIN-001",
+    "delta": "research/tool_intelligence/deltas/2026-08-29T1938P0700_GPT56SOL_R6_WP1202_MKOSI_VMSPAWN_E2_ARCHITECTURE_MAPPED.json",
+    "observed_commit": "01b2227919d8e705b20097641c0ab7a12493e423"
+  },
+  "collision_class": "CONVERGENT_INDEPENDENT_MAPPING_WITH_BACKEND_REFINEMENT",
+  "fusion_result": {
+    "HRT_TIER_A_FAST_USERSPACE_TWIN": {
+      "concrete_backend": "NSPAWN_FAST",
+      "materializer": "pinned mkosi image/config compiler candidate",
+      "evidence_ceiling": "SIMULATED_HOST_VERIFIED",
+      "shared_kernel_fence": true
+    },
+    "HRT_TIER_B_KERNEL_BOOT_TWIN": {
+      "concrete_backends": ["VMSPAWN_VM", "QEMU_VM"],
+      "materializer": "pinned mkosi image/config compiler candidate",
+      "backend_substitution": "EXPLICIT_NEW_RECEIPT_REQUIRED",
+      "state_modes": ["EPHEMERAL", "PERSISTENT_COPY"],
+      "evidence_ceiling": "SIMULATED_HOST_VERIFIED"
+    },
+    "HRT_TIER_C_PHYSICAL_TARGET_WITNESS": {
+      "concrete_binding": "F2-WP-1201 TargetHostProfile generation + profile_digest_sha256",
+      "evidence_ceiling": "ONLY_REAL_RECEIPTS_CAN_ADVANCE_EXACT_HOST/READBACK/RESTART/SOAK"
+    }
+  },
+  "new_refinements_adopted": [
+    "Pin mkosi and backend version/commit/config digest in every simulator receipt.",
+    "Treat vmspawn and QEMU as explicit peer VM backends, never silent fallbacks.",
+    "Separate VM EPHEMERAL from PERSISTENT_COPY because ephemeral clean-state replay can mask persistence/update/rollback defects.",
+    "Record KVM/VSOCK/TPM/EFI-NVRAM capability as OBSERVED_AVAILABLE|OBSERVED_UNAVAILABLE|UNKNOWN and fail closed rather than changing host security configuration automatically.",
+    "Use a typed TwinBackendProfile so nspawn/vmspawn/qemu results cannot collapse into one ambiguous simulator PASS.",
+    "Desktop/media/device fidelity remains an upper layer above boot backend fidelity; VM boot does not imply Wayland/PipeWire/portal/device proof."
+  ],
+  "refinement_to_prior_delta": "The prior abstract Tier-B label QEMU/KVM is retained as a proof-obligation class, not a single implementation. Concrete Tier-B implementation should be backend-profile driven with VMSPAWN_VM and QEMU_VM peers. This is a refinement, not a contradiction.",
+  "combined_hypothesis": "A typed multi-backend simulated twin using a cheap NSPAWN_FAST lane plus explicit VM backends will find more target-transfer defects per resource unit than either a container-only or opaque single-VM harness, provided results retain exact backend/fidelity provenance.",
+  "combined_counterhypothesis": "The backend matrix may create maintenance cost without unique defect discovery beyond one well-configured VM plus synthetic faults.",
+  "next_discriminator": "Measure identical bounded scenarios across NSPAWN_FAST, VMSPAWN_VM and QEMU_VM: unique defect yield, deterministic replay, cold-start latency, steady RSS, disk IO, setup failure rate and configuration surface. Retire any backend whose marginal information gain does not justify cost.",
+  "credit": {
+    "research": "E2_RECONCILIATION_ONLY",
+    "runtime": 0,
+    "physical_host": 0,
+    "architecture_acceptance": 0,
+    "whole_system": 0
+  }
+}

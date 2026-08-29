@@ -1,0 +1,55 @@
+{
+  "schema": "FRANKENSTEIN2_WORKPACKAGE_FALSIFIER/v1",
+  "workpackage_id": "F2-WP-702",
+  "generation": 1,
+  "classification": "POST_ACCEPTANCE_CANDIDATE_FALSIFIER_REVIEW_ONLY",
+  "review_id": "F2-WP-702-G1-REVIEW-UPSTREAM-MEMORY-PERSISTENCE-TAINT-20260829",
+  "reviewer": "GPT-5.6-Sol",
+  "observed_at_utc": "2026-08-29T10:37:30Z",
+  "base_main_sha": "ba75fe3e26f00b5c360359b7b27275c48da71b38",
+  "accepted_scope": "PERCEPTION_OFF_SEMANTICS_REPOSITORY_HOSTED_COMPONENT_CI_ONLY",
+  "canonical_source_ref": "src/frankenstein2/perception_control.py",
+  "canonical_source_blob_sha": "c9147c4bd197cf94dbd8fefa061b3cc259edeefc",
+  "canonical_test_ref": "tests/test_perception_control.py",
+  "canonical_test_blob_sha": "d297246fbed283b1a74dac78eff87e2df47f4f2e",
+  "donor_ref": "gschaidergabriel/frankenstein@5641dc6b2df6ebed1df246ee7533134324f6c427:DEV_SOURCE_RESEARCH/repository/scripts/perception_control.py",
+  "donor_blob_sha": "91a66ecf34a6486a6bf077dcb115fcc224e3119b",
+  "finding": "UPSTREAM_MEMORY_OR_PERSISTENCE_RESTRICTION_IS_NOT_PROPAGATED_TO_DERIVED_HEAD",
+  "observed_current_behavior": [
+    "evaluate_perception_head() transitively blocks computation only through _first_compute_blocker().",
+    "After successful compute, an ON downstream head returns memory_match_allowed=policy.memory_match_allowed and persistence_allowed=policy.persistence_allowed using only the downstream head policy.",
+    "The accepted test suite covers direct MEMORY_OFF and direct memory_allowed=false but contains no dependency-chain regression for upstream MEMORY_OFF or upstream persistence_allowed=false."
+  ],
+  "donor_semantics": [
+    "Frozen donor evaluate_head() starts persistence_allowed from the current head policy and then sets it false when any declared upstream dependency has persistence_allowed=false.",
+    "Therefore a derived atom cannot regain persistence merely because its own head is ON when an upstream semantic dependency is MEMORY_OFF or otherwise persistence-denied."
+  ],
+  "minimal_counterexample": {
+    "upstream": {"head_id": "sensitive.source", "tier": "MEMORY_OFF", "enabled": true, "memory_allowed": true},
+    "downstream": {"head_id": "derived.summary", "tier": "ON", "enabled": true, "memory_allowed": true},
+    "dependency": "derived.summary -> sensitive.source",
+    "current_wp702_result_if_downstream_compute_succeeds": "OK with memory_match_allowed=true and persistence_allowed=true",
+    "required_fail_closed_result": "same-cycle egress may remain allowed, but memory_match_allowed=false and persistence_allowed=false for the derived result because the upstream dependency denies memory/persistence"
+  },
+  "risk": "A MEMORY_OFF protected perception dimension can be transformed into a derived ON head and become persistable/memory-matchable again, defeating the intended non-persistence boundary even though direct-head tests remain green.",
+  "counterhypothesis": "WP702 may intentionally scope dependency propagation to COMPUTE_OFF only. However the frozen donor explicitly propagates persistence denial across semantic dependencies, and the Triggerword-4 perception/privacy design treats policy as an information-flow boundary rather than a direct-head-only annotation.",
+  "required_discriminator": [
+    "Add an exact dependency-chain test with upstream MEMORY_OFF and downstream ON; assert downstream same-cycle value may egress but memory_match_allowed and persistence_allowed are false.",
+    "Add the same regression for upstream ON with memory_allowed=false.",
+    "Decide explicitly whether persistence denial propagates transitively across more than one dependency hop; if yes, test A(MEMORY_OFF)->B(ON)->C(ON).",
+    "If the accepted contract intentionally rejects donor persistence-taint propagation, record an explicit semantic reconciliation before retaining acceptance."
+  ],
+  "credit_boundary": {
+    "runtime_execution_observed_by_this_review": false,
+    "perception_runtime_credit": 0,
+    "physical_grid10_credit": 0,
+    "gwt_runtime_credit": 0,
+    "jspace_runtime_credit": 0,
+    "training_credit": 0,
+    "effect_credit": 0,
+    "completion_credit": 0,
+    "whole_system_acceptance": false
+  },
+  "non_authority_statement": "This review does not mutate the WP702 implementation or active claim, does not open cameras, execute models/providers/tools/VPS work, or mint runtime/product credit. It preserves a source-level post-acceptance falsifier for canonical reconciliation.",
+  "status": "OPEN_POST_ACCEPTANCE_REVIEW_BLOCKER_UNTIL_RECONCILED_OR_FALSIFIED"
+}

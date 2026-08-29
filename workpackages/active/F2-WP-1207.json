@@ -1,0 +1,53 @@
+{
+  "schema": "FRANKENSTEIN2_ACTIVE_WORKPACKAGE_CLAIM/v1",
+  "workpackage_id": "F2-WP-1207",
+  "generation": 2,
+  "claim_id": "F2-WP-1207-G2-GPT56SOL-RELEASE-READBACK-BINDING-20260829",
+  "worker_id": "GPT-5.6-Sol-TRIGGER4",
+  "base_commit": "e27eb092bf822a0b73c09c29ae7aaf14c4ffe054",
+  "authority_epoch": "8.78",
+  "authority_ref": "research_entity/continuity/BOOTSTRAP_MINIMAL.json -> research_entity/claycode/autonomous/SUPERVISOR_STEERING_8_78.json",
+  "stage": "TARGET_HOST_REALITY_TWIN",
+  "parent_generation": 1,
+  "parent_claim_id": "F2-WP-1207-G1-GPT56SOL-HOSTILE-TWIN-TRANSACTION-20260829",
+  "parent_reconciliation_ref": "workpackages/reconciliations/F2-WP-1207/1-F2-WP-1207-G1-GPT56SOL-HOSTILE-TWIN-TRANSACTION-20260829.json",
+  "parent_acceptance_receipt": "workpackages/receipts/F2-WP-1207_G1_HOSTILE_TWIN_TRANSACTION_GHA_33253539715.json",
+  "trigger_falsifier_ref": "workpackages/deltas/F2-WP-1207/1-F2-WP-1207-G1-GPT56SOL-HOSTILE-TWIN-TRANSACTION-20260829-02_ABI_COLLISION_REVIEW.json",
+  "claimed_scope": "Add a fail-closed successor release-readback fence over the accepted byte-identical G1 transaction ABI instead of reopening G1 source. The fence revalidates the exact original transaction request/plan and base attempt receipt, requires explicit observed active release identity (or explicit absence for a failed fresh install), requires SUCCEEDED to match the planned target release digest, and requires FAILED_NO_MUTATION/ROLLED_BACK to match the exact pre-attempt active release. Add adversarial mismatch tests and repository CI. Repository source/tests/CI only. No release ZIP execution, host/twin mutation, package/network operation, hostile-twin runtime credit, T1-T4/physical/effect/completion/GRID/GWT/J-Space/training or whole-system credit.",
+  "owned_scope": [
+    "src/frankenstein2/portable_release_readback.py",
+    "tests/test_portable_release_readback.py",
+    ".github/workflows/wp1207-release-readback-ci.yml",
+    "workpackages/deltas/F2-WP-1207/2-F2-WP-1207-G2-GPT56SOL-RELEASE-READBACK-BINDING-20260829-01.json"
+  ],
+  "preserved_parent_paths": [
+    "src/frankenstein2/portable_release_transaction.py",
+    "tests/test_portable_release_transaction.py",
+    ".github/workflows/wp1207-portable-release-transaction-ci.yml"
+  ],
+  "created_at_utc": "2026-08-29T12:56:29Z",
+  "state": "ACTIVE",
+  "required_invariants": [
+    "accepted G1 source/test/workflow remain byte-identical",
+    "SUCCEEDED cannot pass the readback fence unless observed active release identity exactly matches the planned target release digest",
+    "FAILED_NO_MUTATION with an existing lineage cannot pass unless observed active release identity exactly matches the pre-attempt source active release",
+    "ROLLED_BACK cannot pass unless observed active release identity exactly matches the pre-attempt source active release",
+    "failed fresh INSTALL cannot invent durable lineage or active release identity",
+    "correct generation/state with wrong active release is rejected",
+    "base G1 record_attempt validation is reused rather than weakened or reimplemented as a looser path",
+    "same normalized input remains deterministic",
+    "readback receipt remains explicitly non-runtime/noncanonical preparatory evidence"
+  ],
+  "forbidden": [
+    "mutation of accepted G1 portable_release_transaction source/test/workflow under this narrowed successor scope",
+    "production installer selection or execution",
+    "release ZIP installation or package-manager/network side effects",
+    "VPS or physical target mutation/runtime credit",
+    "T1/T2/T3/T4 acceptance credit",
+    "EffectGate or CompletionGate authority",
+    "GRID10/GWT/J-Space runtime credit",
+    "training credit",
+    "whole-system acceptance"
+  ],
+  "next_exact_action": "Implement the isolated release-readback fence and regression suite over the exact accepted G1 ABI, run deterministic local/static tests, publish the new adapter/tests/workflow, then require exact-source repository-hosted CI before bounded G2 reconciliation."
+}

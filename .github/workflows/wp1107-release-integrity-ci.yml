@@ -1,0 +1,35 @@
+name: F2 WP1107 Release Integrity CI
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'src/frankenstein2/release_integrity.py'
+      - 'tests/test_release_integrity.py'
+      - '.github/workflows/wp1107-release-integrity-ci.yml'
+  pull_request:
+    paths:
+      - 'src/frankenstein2/release_integrity.py'
+      - 'tests/test_release_integrity.py'
+      - '.github/workflows/wp1107-release-integrity-ci.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  deterministic-release-integrity:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Compile
+        run: python -m py_compile src/frankenstein2/release_integrity.py tests/test_release_integrity.py
+      - name: Release integrity falsification suite
+        env:
+          PYTHONPATH: src
+        run: python tests/test_release_integrity.py -v

@@ -1,0 +1,48 @@
+{
+  "schema": "FRANKENSTEIN2_TRIGGER6_EVIDENCE_RECEIPT/v1",
+  "research_id": "R6-LIVE-BROWSER-STRUCTURAL-AX-VS-DOMSNAPSHOT",
+  "evidence_stage": "E1_SOURCE_READ",
+  "status": "COMPLETED_NO_ARCHITECTURE_PROMOTION",
+  "completed_at": "2026-08-29T18:31:00+07:00",
+  "worker": "gpt-5.6-sol",
+  "claim_path": "research/tool_intelligence/claims/R6-LIVE-BROWSER-STRUCTURAL-AX-VS-DOMSNAPSHOT/E1_SOURCE_READ.json",
+  "external_source_pin": {
+    "repository": "ChromeDevTools/devtools-protocol",
+    "commit": "ea39a11d80de9a08ce2af03f52125ed2e462cf84",
+    "accessibility_pdl": "pdl/domains/Accessibility.pdl",
+    "domsnapshot_pdl": "pdl/domains/DOMSnapshot.pdl"
+  },
+  "observations": {
+    "accessibility": [
+      "Accessibility is an experimental CDP domain depending on DOM.",
+      "AXNode exposes semantic role, accessible name, description, value, widget/state properties, parent/child IDs, backendDOMNodeId and frameId.",
+      "getFullAXTree accepts optional depth and frameId; getPartialAXTree and queryAXTree permit narrower retrieval.",
+      "Accessibility.enable makes AXNodeIds stable across calls but the protocol explicitly warns that enabling accessibility can impact performance until disabled."
+    ],
+    "domsnapshot": [
+      "DOMSnapshot is an experimental CDP domain depending on CSS, DOM, DOMDebugger and Page.",
+      "captureSnapshot returns a flattened full DOM snapshot plus layout and optional computed-style/paint/rectangle information.",
+      "DOMSnapshot carries DOM attributes, input/check/select state, backendNodeId, frame identity, layout bounds/text and optional clickability/style detail.",
+      "The source surface is semantically richer for exact layout/DOM inspection than AX, but E1 source shape alone is not a runtime cost measurement."
+    ]
+  },
+  "comparison": {
+    "AX_strength": "compact interaction/meaning-oriented structure: roles, names, values, focusability/widget state and DOM/frame linkage, with bounded-depth/partial/query APIs",
+    "AX_limit": "does not by itself expose the full DOM/layout/computed-style surface needed for exact spatial or markup reasoning",
+    "DOMSnapshot_strength": "high-fidelity document/layout/style structure and DOM attributes",
+    "DOMSnapshot_limit": "full-document snapshot semantics and broader protocol dependencies make it a plausible heavier path, but no latency/bytes/CPU claim is granted without target-browser measurement"
+  },
+  "source_level_hypothesis": "For F2 browser/structural perception, an AX-first semantic structural path with on-demand DOMSnapshot escalation may preserve agent-relevant interaction semantics while avoiding unconditional full-document/layout snapshots. This is a source-derived architecture hypothesis only.",
+  "counterhypotheses": [
+    "AX may omit non-accessible or visually relevant DOM structure needed by F2, forcing DOMSnapshot often enough that two-tier routing adds complexity without savings.",
+    "Persistent AX enablement may itself carry material browser overhead; stateless/bounded AX calls need measurement before promotion.",
+    "DOMSnapshot's shared string tables/columnar encoding may make its practical payload/cost more competitive than source breadth suggests.",
+    "A direct DOM/AX mixed query strategy may outperform both full AX and full DOMSnapshot for interaction tasks."
+  ],
+  "next_discriminator": "Acquire E2_ARCHITECTURE_MAPPED and map AX-first/on-demand-DOMSnapshot against F2 browser/structural source semantics, promotion policy, provenance and temporal/generation boundaries. Do not claim efficiency until exact-browser payload/latency/CPU measurements exist.",
+  "research_evidence_credit": "E1_SOURCE_READ_ONLY",
+  "architecture_credit": 0,
+  "runtime_credit": 0,
+  "efficiency_credit": 0,
+  "whole_system_credit": 0
+}

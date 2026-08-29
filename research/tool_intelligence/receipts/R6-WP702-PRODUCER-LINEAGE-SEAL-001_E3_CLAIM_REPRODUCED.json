@@ -1,0 +1,36 @@
+{
+  "schema": "FRANKENSTEIN2_TRIGGER6_EVIDENCE_RECEIPT/v1",
+  "research_id": "R6-WP702-PRODUCER-LINEAGE-SEAL-001",
+  "evidence_level": "E3_CLAIM_REPRODUCED",
+  "status": "BOUNDED_COUNTEREXAMPLE_REPRODUCED",
+  "observed_at": "2026-08-29T18:32:00+07:00",
+  "worker": "gpt-5.6-sol",
+  "claim_commit_sha": "c7c432b697fcd4b214dcaa7d7a846fe244c892fa",
+  "target_merge": "2e379f1b003599a04ae98f7c04fee05f59ab70f2",
+  "target_scope": "F2-WP-702 G4 evaluator producer-lineage repair",
+  "exact_source_observation": {
+    "module": "src/frankenstein2/perception_control.py",
+    "mechanism": "Module-global _EVALUATOR_ORIGIN = object(); PerceptionControlResult has InitVar _evaluator_origin default None; __post_init__ accepts construction iff argument identity is _EVALUATOR_ORIGIN; evaluate_perception_head passes that same module-global object on each result branch.",
+    "canonical_test": "tests/test_perception_control.py blocks a direct forged constructor that omits _evaluator_origin while using exact legitimate COMPUTE_OFF registry/policy digests.",
+    "missing_test": "No observed canonical test in the merged file attempts explicit module._EVALUATOR_ORIGIN self-grant or dataclasses.replace."
+  },
+  "experiment_transport": {
+    "exact_source_execution_attempt": "BLOCKED_BY_ANALYSIS_CONTAINER_DNS; raw.githubusercontent.com could not be resolved. This is infrastructure transport failure, not product evidence.",
+    "mechanism_reproduction": "Executed a minimal Python dataclass/InitVar object-identity reproduction matching the merged G4 gate semantics using the standard library.",
+    "classification": "LANGUAGE_SEMANTICS_REPRODUCTION_PLUS_EXACT_SOURCE_INSPECTION; NOT_TARGET_RUNTIME"
+  },
+  "results": {
+    "dataclasses_replace_without_origin": "BLOCKED: replacement calls generated initializer with InitVar default None, so __post_init__ rejects it.",
+    "explicit_module_sentinel_self_grant": "BYPASS: a caller possessing the module-global sentinel object can pass it to the public constructor and create an otherwise valid forged result.",
+    "source_level_reason": "The sentinel is a module-global Python object and the constructor parameter is caller-supplied. Python's underscore prefix is non-public convention rather than a hard inaccessible capability boundary."
+  },
+  "bounded_counterexample": "G4 closes uncredentialed ordinary direct construction but does not establish non-self-grantable producer lineage for same-process callers that can import/read the module-global origin object.",
+  "non_counterclaims": [
+    "This does not invalidate WP702 OFF semantics, transitive compute taint, memory/persistence taint, policy/registry digest binding or the canonical direct-constructor negative test.",
+    "This does not establish a hostile-process exploit against a separate trust boundary.",
+    "This does not grant or remove target-runtime/whole-system credit beyond the producer-lineage claim scope."
+  ],
+  "recommended_successor": "Prefer the already-admitted WP700 G2 shape for the current repository-level claim: init=False public constructor that always fails plus one module-private producer using object.__new__ and produced-instance validation. This still is not hostile-same-process cryptographic security, but it removes a caller-supplied self-grant token from the ordinary constructor surface. If true mutually-untrusted same-process code is in scope, Python-level factory privacy is insufficient and a stronger process/attestation boundary is required.",
+  "falsifier_for_successor": "After successor repair, ordinary PerceptionControlResult(...) and dataclasses.replace(...) must fail even when callers know all policy/registry/result fields; no public constructor parameter should accept a caller-obtainable authority token. Explicit object.__new__/object.__setattr__ remains out of scope unless hostile same-process execution is declared in scope.",
+  "research_credit": "E3_BOUNDED_COUNTEREXAMPLE_ONLY_NO_RUNTIME_OR_WHOLE_SYSTEM_CREDIT"
+}

@@ -1,0 +1,54 @@
+{
+  "schema": "FRANKENSTEIN2_TRIGGER6_EVIDENCE_RECEIPT/v1",
+  "research_id": "R6-WP710-LATEST-WINS-BACKPRESSURE-SCHEDULER-001",
+  "evidence_stage": "E1_SOURCE_READ",
+  "status": "COMPLETED_NO_ARCHITECTURE_PROMOTION",
+  "worker": "gpt-5.6-sol",
+  "architecture_snapshot": {
+    "f2_claim_parent_observed": "528ddc80b441476a689367238d8f7863bee08f73",
+    "wp710_scheduler_source_commit": "63731075d7e74fd87a327c09059d0b5082d6d709",
+    "f2_main_observed_after_source_arrival": "21ca1b542900a1afb599dcb2706e673dd473e4c5",
+    "research_entity_head_observed": "d9d4fea68eafe7148678f003b932f7bfbbf34acc"
+  },
+  "source_pins": [
+    {
+      "source": "Python 3.14 asyncio Queue documentation",
+      "url": "https://docs.python.org/3/library/asyncio-queue.html",
+      "finding": "A positive maxsize bounds Queue, but await put() blocks while full; put_nowait() raises QueueFull. PriorityQueue changes dequeue order but does not supply stale-work conflation semantics."
+    },
+    {
+      "source": "GStreamer queue documentation",
+      "url": "https://gstreamer.freedesktop.org/documentation/coreelements/queue.html",
+      "finding": "Queue limits bound buffers/bytes/time; default full behavior blocks the producer, while leaky mode can drop new or old buffers explicitly. Current-level metrics are observable."
+    },
+    {
+      "source": "GStreamer GstAppSink documentation",
+      "url": "https://gstreamer.freedesktop.org/documentation/applib/gstappsink.html",
+      "finding": "Slow consumers can accumulate memory; max-buffers/max-time/max-bytes bound the queue, leaky-type chooses drop policy, and blocking the streaming thread can harm realtime performance."
+    },
+    {
+      "source": "libzmq ZMQ_CONFLATE documentation",
+      "url": "https://libzmq.readthedocs.io/en/latest/zmq_setsockopt.html",
+      "finding": "CONFLATE demonstrates a latest-value mailbox that keeps only the last queued message, but has an explicit caveat that inbound memory may still grow unless recv/event processing occurs; it is therefore a semantic reference, not a zero-growth guarantee or required dependency."
+    },
+    {
+      "source": "AnyIO 4.14.x version history",
+      "url": "https://anyio.readthedocs.io/en/latest/versionhistory.html",
+      "finding": "CapacityLimiter supports zero total tokens in current 4.14.x and dynamic capacity, but recent 4.14.2 fixes include an asyncio token over-grant race. A concurrency limiter is a useful reference, but adding AnyIO only for WP710 would need version pinning and invariant tests."
+    }
+  ],
+  "f2_observation": {
+    "component": "src/frankenstein2/perception_scheduler.py",
+    "current_mechanism": "deterministic bounded queue; priority/deadline/work-cost rank; coalescing; drop accounting; dispatch-time permission revalidation; 0..4 selected workers; control reserve; pressure shedding; first-pass source diversity",
+    "alignment": "The implementation already structurally distills the strongest external mechanisms without requiring asyncio/GStreamer/ZeroMQ/AnyIO as scheduler dependencies.",
+    "falsifier_candidate": "_coalesce_key() does not bind required_freshness_ns, expires_monotonic_ns, cycle_id or permission_snapshot_sha256, while _preferred_coalesced() prefers later expiry after generation/priority. Two superficially similar intents can therefore be treated as equivalent even when one carries a stricter freshness/deadline/authority request. Keeping the looser/later request can discard the stricter sensing obligation before dispatch.",
+    "evidence_boundary": "This is source-level semantic analysis only. No executable WP710 failure has been reproduced in this Trigger-6 stage."
+  },
+  "hypothesis_result": "SUPPORTED_FOR_NATIVE_DISTILLATION_WITH_OPEN_COALESCING_FALSIFIER",
+  "result": "Do not import a heavyweight scheduler. Preserve the native bounded scheduler, but treat coalescing equivalence as the highest-value next discriminator: latest-wins is safe only when the retained request semantically dominates the discarded request or when a merged request preserves the strictest freshness/deadline/permission constraints.",
+  "counterhypothesis": "If required_freshness_ns is downstream-only metadata and every later-generation intent is guaranteed by a stronger upstream contract to subsume all earlier constraints, the current coalescing rule may be safe; that dominance guarantee is not established by the observed source and must be executable or contract-bound before relying on it.",
+  "next_discriminator": "Construct an E2 architecture map and then an executable unit falsifier with two same-key intents whose freshness/deadline constraints differ. The test should fail if enqueue coalescing silently drops the stricter still-valid obligation in favor of a looser later-expiry intent.",
+  "architecture_credit": 0,
+  "runtime_credit": 0,
+  "whole_system_credit": 0
+}

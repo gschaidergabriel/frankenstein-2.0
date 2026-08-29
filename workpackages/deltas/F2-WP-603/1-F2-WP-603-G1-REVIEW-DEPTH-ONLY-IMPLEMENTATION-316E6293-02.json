@@ -1,0 +1,37 @@
+{
+  "schema": "FRANKENSTEIN2_WORKPACKAGE_DELTA/v1",
+  "workpackage_id": "F2-WP-603",
+  "generation": 1,
+  "claim_id": "F2-WP-603-G1-GPT56SOL-RECURSION-ROUTER-20260829",
+  "worker_id": "GPT-5.6-Sol-review-organ",
+  "observed_main_commit": "43483e152ef978522a2a155315b44fa3a96ce0aa",
+  "owned_paths": [],
+  "result_class": "REVIEW_ONLY",
+  "source_commits": [
+    "316e6293b39fc95c95999ed54b7366464b54c6c4"
+  ],
+  "receipts": [],
+  "falsifiers": [
+    {
+      "id": "WP603_DEPTH_ONLY_IMPLEMENTATION_REPRODUCES_CANONICAL_SEMANTICS_MISMATCH",
+      "evidence_class": "CURRENT_IMPLEMENTATION_CONTRADICTION",
+      "statement": "The active WP603 implementation commit 316e6293b39fc95c95999ed54b7366464b54c6c4 still defines R0/R1/R2/R3 by _DEPTH_TO_LEVEL = {0:R0,1:R1,2:R2,3:R3}, RecursionNeed.requested_depth, and RecursionPolicy.admitted_depths/max_recursion_depth. This directly reproduces the already-recorded canonical-contract contradiction: README.md defines R0 deterministic, R1 model recursion, R2 child harness, and R3 adaptive selection. The implementation therefore does not yet absorb the prior review delta.",
+      "minimal_regression": "Before bounded acceptance, executable tests must prove (1) R1 can be represented without requiring a NativeChildRequest, (2) R2 is the native-child-harness mechanism and nested child depth is a separate resource field, and (3) R3 adaptively selects among admitted lower mechanisms rather than meaning depth 3.",
+      "risk": "A green depth-only suite would validate internal consistency of the wrong semantic contract and could force later WP604 child-generation work to undo WP603's public architecture meaning.",
+      "source_refs": [
+        "README.md Phase 6 F2-WP-603 canonical four-class semantics",
+        "workpackages/deltas/F2-WP-603/1-F2-WP-603-G1-REVIEW-CANONICAL-R0-R3-SEMANTICS-20260829T1733P0700-01.json",
+        "src/frankenstein2/recursion_router.py at commit 316e6293b39fc95c95999ed54b7366464b54c6c4 blob dde04941f461602164fee08016639d53cce13cc3"
+      ]
+    }
+  ],
+  "contradictions": [
+    "CANONICAL README: R0 deterministic; R1 model recursion; R2 child harness; R3 adaptive selection.",
+    "ACTIVE IMPLEMENTATION 316e6293: R0/R1/R2/R3 are aliases for numeric requested recursion depths 0/1/2/3.",
+    "The prior review contradiction is present on canonical main but is not reflected in the observed implementation commit."
+  ],
+  "proposed_state_change": "KEEP_THE_SOLE_WP603_G1_MUTATION_AUTHORITY_ACTIVE_AND_BLOCK_ACCEPTANCE_OF_316E6293_AS_CURRENTLY_IMPLEMENTED. ABSORB_THE_CANONICAL_FOUR_CLASS_SEMANTICS_IN_THE_EXISTING WP603 LANE; KEEP NESTED DEPTH ORTHOGONAL UNDER THE NATIVE CHILD RESOURCE BUDGET.",
+  "completion_deficit": "No WP603 bounded acceptance is valid while R0-R3 remain depth aliases. Repository CI, if green against this implementation, is insufficient because it would test the contradicted contract rather than the canonical one.",
+  "next_exact_action": "Active WP603 worker: revise the existing branch in place (no second mutation claim) so R0=deterministic local, R1=model recursion without child requirement, R2=native child harness, R3=adaptive lower-mechanism selection; retain child nested depth as an independent bounded field; then add the three semantic regressions and rerun exact PR-head/merge-ref/main CI.",
+  "observed_at_utc": "2026-08-29T10:34:12Z"
+}

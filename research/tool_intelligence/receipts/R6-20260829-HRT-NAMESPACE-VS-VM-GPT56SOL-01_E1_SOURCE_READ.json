@@ -1,0 +1,94 @@
+{
+  "schema": "FRANKENSTEIN2_TRIGGER6_EVIDENCE_RECEIPT/v1",
+  "research_id": "R6-20260829-HRT-NAMESPACE-VS-VM-GPT56SOL-01",
+  "evidence_stage": "E1_SOURCE_READ",
+  "status": "SOURCE_READ_COMPLETE_NO_ARCHITECTURE_ACCEPTANCE_CREDIT",
+  "completed_at": "2026-08-29T19:31:00+07:00",
+  "architecture_binding": "HOST_REALITY_TWIN_AND_UNIFIEDDB_COMPLETION_ESTIMATOR_2026-08-29",
+  "f2_snapshot_before_claim": "10cb489670416d377c167760cb15c29b70f698f3",
+  "claim_commit": "622987b9d7ed1481c3131bcba3dff4d35bf4d1c1",
+  "primary_sources": [
+    {
+      "name": "systemd-nspawn(1)",
+      "url": "https://man7.org/linux/man-pages/man1/systemd-nspawn.1.html",
+      "classification": "PRIMARY_MANPAGE"
+    },
+    {
+      "name": "systemd.nspawn",
+      "url": "https://www.freedesktop.org/software/systemd/man/systemd.nspawn.html",
+      "classification": "PRIMARY_UPSTREAM_DOC"
+    },
+    {
+      "name": "Linux network_namespaces(7)",
+      "url": "https://man7.org/linux/man-pages/man7/network_namespaces.7.html",
+      "classification": "PRIMARY_MANPAGE"
+    },
+    {
+      "name": "Linux veth(4)",
+      "url": "https://man7.org/linux/man-pages/man4/veth.4.html",
+      "classification": "PRIMARY_MANPAGE"
+    },
+    {
+      "name": "QEMU VirtIO Devices",
+      "url": "https://www.qemu.org/docs/master/system/devices/virtio/index.html",
+      "classification": "PRIMARY_UPSTREAM_DOC"
+    },
+    {
+      "name": "QEMU/KVM CPU model configuration",
+      "url": "https://www.qemu.org/docs/master/system/qemu-cpu-models.html",
+      "classification": "PRIMARY_UPSTREAM_DOC"
+    },
+    {
+      "name": "Linux dm-flakey",
+      "url": "https://docs.kernel.org/admin-guide/device-mapper/dm-flakey.html",
+      "classification": "PRIMARY_KERNEL_DOC"
+    },
+    {
+      "name": "tc-netem(8)",
+      "url": "https://man7.org/linux/man-pages/man8/tc-netem.8.html",
+      "classification": "PRIMARY_MANPAGE"
+    }
+  ],
+  "source_findings": [
+    "systemd-nspawn is a lightweight namespace container that can boot a full Linux userspace/init tree while deliberately restricting access to kernel interfaces, host clock changes, device-node creation, host reboot and kernel-module loading. It therefore has high fidelity for many userspace/service/session lifecycle failures but cannot stand in for a distinct target kernel, firmware or physical device stack.",
+    "nspawn supports ephemeral/volatile filesystem modes, making it suitable for cheap repeatable clean-state and dirty-state scenario resets.",
+    "network namespaces isolate devices, protocol stacks, routing, firewall state, sockets and related network state; veth pairs provide a deterministic bridge between isolated namespaces. This is a direct fit for HRT network detach/reconnect/rename and fault-surface scenarios.",
+    "QEMU VirtIO intentionally supplies generic paravirtualized devices and is recommended when a specific hardware driver is not the object under test. This is useful for guest-kernel/boot/lifecycle testing but is negative evidence against treating a generic VM as a faithful UM790/Radeon/USB4 board replica.",
+    "QEMU host CPU passthrough can expose host CPU model/features closely, while KVM may still filter features that virtualization cannot support. CPU passthrough does not establish board, GPU, USB4, firmware or peripheral identity.",
+    "dm-flakey is explicitly intended to simulate periodically unreliable storage and can be combined with dm-delay; tc-netem supports delay, loss, corruption, duplication, reordering, rate limiting and a seed for reproducible random impairment. These are strong HRT-L3 fault-injection primitives.",
+    "The cheapest high-coverage design is layered rather than monolithic: namespace/container userspace twin for frequent scenarios, VM/kernel twin only when a separate kernel/boot/device model is required, and exact physical host evidence for final host-specific gates."
+  ],
+  "f2_distillation": {
+    "recommended": true,
+    "import_heavy_framework": false,
+    "tier_a_fast_userspace_twin": [
+      "systemd-nspawn --boot with ephemeral/volatile images",
+      "real systemd service lifecycle inside the container",
+      "network namespaces and veth",
+      "systemd/cgroup-v2 resource limits",
+      "tc-netem network impairment",
+      "dm-flakey/dm-delay storage fault injection where safely isolated"
+    ],
+    "tier_b_kernel_boot_twin": [
+      "QEMU/KVM guest for own kernel, boot/reboot, kernel-version and generic virtual-device paths",
+      "prefer VirtIO when the objective is generic OS/device behavior rather than a specific physical driver"
+    ],
+    "tier_c_physical_witness": [
+      "exact TargetEnvironmentIdentity fingerprint",
+      "real UM790 host readback/restart/recovery/soak acceptance where required"
+    ],
+    "promotion_rule": "Tier A or B may increase SIMULATED_HOST_VERIFIED/pre-handoff robustness evidence only. Neither may mint EXACT_HOST_BOUND, REAL_READBACK_VERIFIED, RESTART_RECOVERY_VERIFIED or SOAK_VERIFIED for the physical UM790 unless the corresponding evidence is actually observed on that exact target identity."
+  },
+  "counterhypothesis": "A single QEMU/KVM image could simplify orchestration enough that the extra startup/RAM cost is outweighed by lower test-harness complexity, making a separate namespace tier unnecessary.",
+  "falsifier": "Implement an equivalent bounded HRT scenario subset in nspawn and QEMU/KVM and compare startup time, steady RSS, setup complexity, scenario coverage, determinism and false-positive/false-negative host-fidelity findings. If the VM is not materially costlier and covers all namespace-tier cases with equal reproducibility, collapse the tiers.",
+  "negative_evidence": [
+    "No source supports silicon-identical UM790 emulation from generic QEMU/KVM.",
+    "No source supports granting physical-host acceptance from namespace or VM simulation alone.",
+    "No target-host fingerprint from the real UM790 was observed in this research objective."
+  ],
+  "research_credit": "E1_SOURCE_READ_ONLY",
+  "runtime_credit": 0,
+  "physical_host_credit": 0,
+  "architecture_acceptance_credit": 0,
+  "whole_system_credit": 0
+}

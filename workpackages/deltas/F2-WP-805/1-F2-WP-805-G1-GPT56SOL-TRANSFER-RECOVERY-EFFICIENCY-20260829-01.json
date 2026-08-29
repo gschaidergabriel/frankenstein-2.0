@@ -1,0 +1,58 @@
+{
+  "schema": "FRANKENSTEIN2_WORKPACKAGE_DELTA/v1",
+  "workpackage_id": "F2-WP-805",
+  "generation": 1,
+  "claim_id": "F2-WP-805-G1-GPT56SOL-TRANSFER-RECOVERY-EFFICIENCY-20260829",
+  "worker_id": "GPT-5.6-Sol-TRIGGER4",
+  "delta_kind": "IMPLEMENTATION_CANDIDATE",
+  "status": "SOURCE_TESTS_CI_DEFINED",
+  "integration_mode": "ISOLATED_BRANCH_PENDING_REPOSITORY_CI_AND_RECONCILIATION",
+  "base_claim_commit": "e11c64b1a1169e8d7d431059023e70893cdb8873",
+  "branch": "chatgpt/trigger4-wp805-transfer-recovery-20260829",
+  "source": "src/frankenstein2/cognitive_transfer_recovery_benchmark.py",
+  "tests": "tests/test_cognitive_transfer_recovery_benchmark.py",
+  "workflow": ".github/workflows/wp805-cognitive-transfer-recovery-ci.yml",
+  "source_commit": "79bd52eae12eb6415027af789e79b18144d31bc6",
+  "test_commit": "869e22c1c7568a33f540fa22f797a53b2aa8c36e",
+  "workflow_commit": "f51a345c6858de4a4daabbb84aae9378bbfe2e55",
+  "local_preflight": {
+    "unittest": "12/12 PASS",
+    "py_compile": "PASS",
+    "execution_scope": "LOCAL_DETERMINISTIC_DEVELOPER_PREFLIGHT_ONLY",
+    "credit": "NOT_REPOSITORY_CI_NOT_RUNTIME_NOT_PHYSICAL_GRID10"
+  },
+  "implemented_invariants": [
+    "transfer cases bind distinct source and target fixture identities, public digests and holdout families",
+    "tested policy state and recovery checkpoint state are restricted to public WP800 ObservationView identities and explicit public metadata",
+    "known evaluator-only fields are recursively rejected from public policy/checkpoint payloads",
+    "ObservationView subclasses are rejected at the public trust boundary",
+    "recovery checkpoints bind exact transfer-case, policy, episode generation, target public fixture, observation digest, step index, action-history digest and remaining budget",
+    "stale or future observations cannot satisfy a sealed recovery checkpoint",
+    "cold restart and checkpoint resume measurements require exact mode/checkpoint consistency",
+    "matched comparisons bind exact transfer case, full evaluator target fixture and identical action budget",
+    "action, replay and repeated-work counts are bounded and fail closed on overclaim",
+    "efficiency summaries expose only evaluator deltas and retain runtime_credit=0 and whole_system_acceptance=false"
+  ],
+  "negative_controls": [
+    "same source/target fixture identity rejected",
+    "same source/target public digest rejected",
+    "same source/target holdout family rejected",
+    "wrong source policy binding rejected",
+    "wrong target generation/digest rejected",
+    "hidden evaluator key leakage rejected",
+    "stale recovery checkpoint rejected",
+    "budget/replay overclaim rejected",
+    "mismatched evaluator target in paired comparison rejected"
+  ],
+  "forbidden_credit": [
+    "TARGET_RUNTIME",
+    "VPS_RUNTIME",
+    "PHYSICAL_GRID10",
+    "GWT_JSPACE_RUNTIME",
+    "TRAINING",
+    "EFFECT",
+    "COMPLETION",
+    "WHOLE_SYSTEM"
+  ],
+  "next_exact_action": "Open the isolated implementation branch for review and require exact branch/PR repository-hosted CI PASS. Only after accepted repository evidence may generation 1 be reconciled at bounded WP805 component scope; no runtime or cognition-superiority credit follows from this benchmark component."
+}

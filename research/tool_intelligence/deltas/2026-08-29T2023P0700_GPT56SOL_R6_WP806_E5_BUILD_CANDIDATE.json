@@ -1,0 +1,92 @@
+{
+  "schema": "FRANKENSTEIN2_TRIGGER6_BUILD_CANDIDATE/v1",
+  "research_id": "R6-20260829-WP806-LESION-RESCUE-CAUSAL-CONTROLS-GPT56SOL-01",
+  "evidence_stage": "E5_BUILD_CANDIDATE",
+  "created_at": "2026-08-29T20:23:00+07:00",
+  "worker": "GPT-5.6-Sol-TRIGGER6",
+  "target_workpackage": "F2-WP-806",
+  "target_generation": 2,
+  "claim_commit": "1393d67817714a41c2230bf60b6393496b92da59",
+  "f2_main_observed_before_handoff": "198fb186389bebf42c7f59708b1c60b9befcb192",
+  "basis": {
+    "e3_source_reproduction": "533c568d5c26c20336d086ce8c48fe3887d0cab5",
+    "trigger4_trigger6_reconciliation": "29a6fc361db287813030deaa2704cbd2566007be",
+    "generation1_terminal_component_ci": "04f32ce37bdaf75a64e29c518dea017150a6c63f",
+    "duplicate_lane_stop": "70c2fe2f0706a41443e5f9c8828c71ad8394074b"
+  },
+  "external_research_basis": [
+    {
+      "source": "Geiger et al., Causal Abstraction: A Theoretical Foundation for Mechanistic Interpretability, JMLR 2025",
+      "relevance": "Intervention claims require an explicit mapping from low-level mechanism changes to the bounded high-level variable being tested; intervention semantics should be part of the experiment identity."
+    },
+    {
+      "source": "Zhang & Nanda, Towards Best Practices of Activation Patching in Language Models: Metrics and Methods, arXiv:2309.16042",
+      "relevance": "Metric and intervention-method choices can materially change interpretability conclusions, supporting first-class metric/operator identity."
+    },
+    {
+      "source": "Mueller et al., The Quest for the Right Mediator, Computational Linguistics 52(1), 2026",
+      "relevance": "Causal units/mediators and evaluation objectives should be explicit rather than inferred from generic intervention success."
+    },
+    {
+      "source": "Dura et al., Mechanistic Interpretability of Chain-of-Thought Reasoning via Sequential Activation Patching, arXiv:2608.22332, 2026",
+      "relevance": "Distributed and overlapping mechanisms plus random/cross-question controls reinforce conservative interpretation of isolated lesion/rescue effects."
+    }
+  ],
+  "build_candidate": {
+    "principle": "HARDEN_IDENTITY_AND_INTERPRETATION_WITHOUT_EXPANDING_AUTHORITY",
+    "required_deltas": [
+      {
+        "id": "WP806-G2-1-PAIRED-TARGET",
+        "change": "In run_matched_lesion_rescue, require rescue_condition.disabled_capability_ids to equal lesion_condition.disabled_capability_ids. Keep rescued_capability_ids as a non-empty subset so partial restoration remains representable.",
+        "why": "The generation-1 runner matches fixture/run provenance but does not prove that RESCUE acts inside the same declared lesion universe.",
+        "falsifier": "A rescue condition with a different disabled set must fail closed before any evaluator step."
+      },
+      {
+        "id": "WP806-G2-2-EXPERIMENT-IDENTITY",
+        "change": "Add explicit immutable score_metric_id/version and lesion_operator_id/rescue_operator_id fields to the comparison/experiment identity, or prove an equivalent source-hash-bound typed constant that is serialized into the comparison digest.",
+        "why": "Cross-version comparison should not silently treat changed scoring/intervention semantics as the same experiment.",
+        "falsifier": "Changing any metric/operator identity while preserving fixture/capability identities must change the sealed comparison identity."
+      },
+      {
+        "id": "WP806-G2-3-RESET-ORDER",
+        "change": "Add repository tests that execute identical condition runs from fresh begin_episode boundaries in at least two order permutations and require per-condition result equality at exact identity.",
+        "why": "Current source is structurally state-local, but the cheap falsifier protects against future module/global-cache contamination.",
+        "falsifier": "If order changes any per-condition result digest at fixed identity, generation-2 fails."
+      },
+      {
+        "id": "WP806-G2-4-BOUNDED-SEMANTICS",
+        "change": "Emit a typed interpretation field derived only from measured deltas, with conservative vocabulary: TESTED_INTERVENTION_DEPENDENCE, TARGET_SPECIFIC_RESTORATION_AT_SCOPE, REDUNDANCY_OR_INTERACTION_UNKNOWN, or NO_RESTORATION_AT_SCOPE. Never emit NECESSARY, SUFFICIENT, UNIQUE_CAUSE or global cognitive-causality labels.",
+        "why": "Generation-1 has a strong negative authority disclaimer but leaves positive result wording to downstream prose.",
+        "falsifier": "A zero/small lesion effect must not be encoded as IRRELEVANT; a rescue that improves outcome without matching the paired target universe must not be labeled target-specific restoration."
+      }
+    ],
+    "preexisting_controls_to_consume_not_reinvent": [
+      "Trigger-4 SHAM/no-target-restore review",
+      "Trigger-4 unrelated-module rescue negative control"
+    ],
+    "explicit_non_goals": [
+      "no model-internal causal localization claim",
+      "no new runtime provider or tool invocation",
+      "no GRID10/GWT/J-Space integration claim",
+      "no training/effect/completion authority",
+      "no whole-system acceptance",
+      "no requirement to add new SHAM/WRONG_RESCUE condition kinds if equivalent negative controls can be expressed with existing typed conditions"
+    ]
+  },
+  "handoff": {
+    "lane": "TRIGGERWORD_4_BUILD_REVIEW",
+    "priority": "MEDIUM_HIGH_EVIDENCE_HARDENING",
+    "acceptance_scope_if_implemented": "REPOSITORY_COMPONENT_CI_ONLY_UNLESS_HIGHER_LEVEL_EVIDENCE_IS_SEPARATELY_OBSERVED"
+  },
+  "credit": {
+    "e5_build_candidate": 1,
+    "implementation_credit": 0,
+    "e6_acceptance": 0,
+    "runtime_credit": 0,
+    "physical_grid10_credit": 0,
+    "gwt_jspace_credit": 0,
+    "causal_localization_credit": 0,
+    "training_credit": 0,
+    "whole_system_credit": 0
+  }
+}

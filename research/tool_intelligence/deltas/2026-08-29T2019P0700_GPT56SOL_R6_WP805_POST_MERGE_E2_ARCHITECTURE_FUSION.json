@@ -1,0 +1,105 @@
+{
+  "schema": "FRANKENSTEIN2_TRIGGER6_RESEARCH_DELTA/v1",
+  "research_id": "R6-20260829-WP805-REPLAN-RECOVERY-EFFICIENCY-GPT56SOL-01",
+  "evidence_stage": "E2_ARCHITECTURE_MAPPED",
+  "created_at": "2026-08-29T20:19:00+07:00",
+  "worker": "GPT-5.6-Sol-TRIGGER6",
+  "trigger": "6",
+  "status": "COMPLETED_E2_POST_MERGE_FUSION_NO_BUILD_OR_RUNTIME_CREDIT",
+  "snapshot": {
+    "f2_wp805_merge_commit": "057de6f31694723b0f702ddd8bb9818179eae420",
+    "e2_claim_commit": "1c2efc2cd6ca80e14ae7b7176b2ccf07efc0d053",
+    "e1_result_commit": "2e80f5a75b1b2906a11f0765f7863b2b95304342",
+    "source": "src/frankenstein2/cognitive_transfer_recovery_benchmark.py@057de6f31694723b0f702ddd8bb9818179eae420",
+    "tests": "tests/test_cognitive_transfer_recovery_benchmark.py@057de6f31694723b0f702ddd8bb9818179eae420"
+  },
+  "fusion_result": {
+    "e1_core_already_realized_by_trigger4": [
+      "WP805 has explicit COLD_RESTART versus CHECKPOINT_RESUME modes.",
+      "TransferCase binds distinct source/target fixture ids, public fixture digests and holdout-set ids.",
+      "PublicPolicyState is bound to the exact source public fixture and action budget.",
+      "RecoveryCheckpoint is public-only, digest-bound, generation/observation/action-history/budget constrained and exact-resume checked.",
+      "MatchedRecoveryComparison requires matched target/budget context.",
+      "EfficiencySummary reports evaluator-score, action-count, replayed-step, repeated-work and terminal deltas while preserving zero runtime/whole-system credit.",
+      "Tests reject evaluator-private payload keys, stale/future checkpoint resumes, budget overclaims and cross-target comparison mismatches."
+    ],
+    "novelty_credit": "NONE_FOR_SHARED_CORE_DUE_PARALLEL_TIMING; treat E1 and Trigger4 implementation as convergent evidence, not independent replication."
+  },
+  "residual_architecture_gaps": [
+    {
+      "id": "WP805-FUSION-E2-01",
+      "finding": "Current efficiency count fields are typed evaluator measurements but the observed test API supplies actions_executed, replayed_steps and repeated_work_steps as arguments to EvaluatorRunMeasurement.measure_run.",
+      "risk": "For stronger measured-efficiency credit, a caller-supplied integer can be internally consistent without proving it was derived from an exact execution trace. Current repository-component scope remains valid, but these fields should not be promoted to runtime efficiency evidence without trace binding.",
+      "recommended_later_hardening": [
+        "Bind an execution_trace_sha256 or equivalent exact evaluator trace identity into EvaluatorRunMeasurement.",
+        "Derive actions_executed from trace length where the trace representation permits it instead of independently accepting both.",
+        "Define replayed/repeated-work classification deterministically from trace events or from a separate evaluator-produced work receipt whose digest is bound into the measurement.",
+        "Add tamper fixtures where supplied counts disagree with the bound trace and require fail-closed rejection."
+      ],
+      "blocking_now": false,
+      "promotion_boundary": "BLOCK_STRONG_RUNTIME_EFFICIENCY_CREDIT_UNTIL_TRACE_DERIVED_OR_TRACE_BOUND"
+    },
+    {
+      "id": "WP805-FUSION-E2-02",
+      "finding": "Distinct fixture ids, public digests and holdout-set ids establish cross-fixture evaluation but do not by themselves prove a structurally meaningful transfer axis.",
+      "risk": "Two held-out sets could differ nominally while sharing the same topology/method/donor family. Calling that broad transfer would overstate the evidence.",
+      "recommended_later_hardening": [
+        "When claiming structural transfer, bind an evaluator-defined opaque transfer-family/split digest and explicit transfer_axis into TransferCase or a companion evaluator descriptor.",
+        "Use existing WP800 family metadata such as evidence_source_family/method_family/donor_path_family only on the evaluator side or as opaque digests; do not leak hidden fixture structure to the policy.",
+        "Report transfer scope explicitly: cross-fixture, cross-holdout, cross-topology, cross-method, cross-donor, or combinations."
+      ],
+      "blocking_now": false,
+      "promotion_boundary": "CURRENT_CREDIT_CROSS_FIXTURE_CROSS_HOLDOUT_ONLY_UNLESS_STRONGER_SPLIT_IDENTITY_IS_BOUND"
+    },
+    {
+      "id": "WP805-FUSION-E2-03",
+      "finding": "No oracle/path-regret metric is required at current scope because accepted WP805 does not yet have a stable universal goal-optimality contract across all target fixtures.",
+      "reason": "Adding an oracle before WP804 goal/identifiability semantics settle would risk a second goal authority or evaluator leakage.",
+      "decision": "DEFER_ORACLE_REGRET_UNTIL_STABLE_GOAL_INTERFACE; final evaluator score, terminal state and bounded action/work deltas are the correct current low-complexity evidence."
+    }
+  ],
+  "external_research_fusion": [
+    {
+      "source": "Lifelong Planning A* / D* Lite",
+      "adopt": "Measurement idea: compare reuse/incremental repair with from-scratch planning under matched changed problem.",
+      "reject": "No algorithm import or canonical planner authority."
+    },
+    {
+      "source": "Repair the Amplifier, Not the Symptom, arXiv:2607.01767",
+      "adopt": "Measurement idea: recovery locality/resource cost should be explicit rather than hidden behind eventual success.",
+      "reject": "No LLM repair graph, spectral repair implementation or external state authority imported."
+    },
+    {
+      "source": "A Close Look At World Model Recovery, arXiv:2606.03685",
+      "adopt": "Research caution: coverage/family structure can matter for transfer; benchmark claims must name their split semantics.",
+      "reject": "No training/internal-representation credit transferred into F2."
+    }
+  ],
+  "counterhypotheses": [
+    {
+      "statement": "Trace binding is unnecessary because EvaluatorRunMeasurement is factory-only evaluator evidence and repository tests already enforce bounded consistency.",
+      "falsifier": "If a valid caller can construct two measurements with identical bound case/checkpoint/final outcome but arbitrary different repeated_work_steps values and both validate, the current schema cannot independently substantiate repeated-work measurement. This matters only when stronger efficiency evidence is claimed."
+    },
+    {
+      "statement": "Distinct holdout-set ids are sufficient evidence of general transfer.",
+      "falsifier": "Construct two nominal holdout sets with distinct ids but identical structural family/topology. If they satisfy TransferCase, the contract proves cross-holdout identity, not structural OOD transfer."
+    },
+    {
+      "statement": "An oracle optimal-plan baseline should be mandatory now.",
+      "falsifier": "If target fixtures do not share one admitted goal/optimality semantics without evaluator-private leakage, mandatory oracle regret would create false authority; defer until a stable public/evaluator goal contract exists."
+    }
+  ],
+  "architecture_delta_decision": "PRESERVE_MERGED_WP805_GENERATION_1; NO_REWRITE. Record two bounded future hardening gates: trace-derived efficiency evidence and explicit structural transfer-split identity. Neither mints current build/runtime credit.",
+  "next_exact_action": "Wait for WP805 repository-CI reconciliation and stable WP804 goal semantics. If stronger efficiency or structural-transfer claims are later requested, acquire a new claim and test the trace-count tamper fixture and nominally-distinct-but-structurally-identical transfer split before changing the contract.",
+  "credits": {
+    "trigger6_E2": 1,
+    "trigger6_E3": 0,
+    "trigger6_E4": 0,
+    "trigger6_E5": 0,
+    "trigger6_E6": 0,
+    "wp805_current_component_credit": "UNCHANGED_BY_TRIGGER6",
+    "runtime_credit": 0,
+    "whole_system_credit": 0,
+    "training_credit": 0
+  }
+}

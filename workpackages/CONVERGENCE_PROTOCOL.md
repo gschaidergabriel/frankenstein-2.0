@@ -131,3 +131,20 @@ The protocol is working when additional Triggerword-4 workers increase independe
 - repeated state-pointer rewrites;
 - stale claim resurrection;
 - duplicate dispatches.
+
+## v2 state-event convergence — canonical successor for workpackage state
+
+For workpackage state projection, `workpackages/STATE_CONCURRENCY_PROTOCOL_V2.md` supersedes the assumption that every terminal worker transition must synchronously rewrite the global `workpackages/STATE.json` hot file.
+
+The high-parallelism path is now:
+
+```text
+per-WP create-only state event
++ bound active-pointer/reconciliation evidence
+-> deterministic effective state resolver
+-> optional single-writer STATE compaction later
+```
+
+`STATE.json` is a materialized compatibility snapshot for migrated workpackages, not a second truth authority. Trigger-4 and Trigger-6 workers must not race to update it. Same-workpackage successors use the deterministic next event sequence and, when mutable projection changes are part of the same transition, one Git tree/commit followed by a non-force fast-forward CAS. A failed fast-forward is a stale-work signal, never permission to force-push.
+
+Consumers that need current workpackage state must use `tools/resolve_workpackage_state_v2.py` so an admitted event can outrank a stale snapshot row. Legacy rows with no event chain continue to resolve from `STATE.json` during migration.

@@ -1,0 +1,58 @@
+{
+  "schema": "FRANKENSTEIN2_TRIGGER6_RESEARCH_RECEIPT/v1",
+  "research_id": "R6-20260829-WP806-LESION-RESCUE-CAUSAL-CONTROLS-GPT56SOL-01",
+  "evidence_stage": "E3_CLAIM_REPRODUCED",
+  "experiment_id": "WP806_EXACT_CURRENT_SOURCE_CAUSAL_CONTROL_GAP_REPRODUCTION/v1",
+  "created_at": "2026-08-29T20:16:00+07:00",
+  "worker": "GPT-5.6-Sol-TRIGGER6",
+  "claim_commit": "73ed0442144a3c490a360fd4a46eca751bbadf34",
+  "target": "src/frankenstein2/cognitive_lesion_rescue_benchmark.py + tests/test_cognitive_lesion_rescue_benchmark.py on exact-current main during this reproduction",
+  "observations": [
+    {
+      "id": "E3-WP806-01-CONDITION-VOCABULARY",
+      "result": "REPRODUCED",
+      "evidence": "Exact-current source defines only NORMAL, LESION and RESCUE in _ALLOWED_KINDS; no SHAM or WRONG_RESCUE/OFFTARGET condition kind exists."
+    },
+    {
+      "id": "E3-WP806-02-RESCUE-SUBSET-NOT-PAIR-EQUALITY",
+      "result": "REPRODUCED",
+      "evidence": "CognitiveCondition enforces rescued_capability_ids subset-of that condition's disabled_capability_ids, but run_matched_lesion_rescue validates only condition kinds before running each condition; no exact equality is observed between lesion_condition.disabled_capability_ids and rescue_condition.disabled_capability_ids/rescued target set. A rescue condition can therefore be internally valid yet not be proven as an exact restoration of the same lesion target family."
+    },
+    {
+      "id": "E3-WP806-03-MATCHED-RUN-STRENGTH",
+      "result": "PARTIALLY_ALREADY_STRONG",
+      "evidence": "_assert_matched_runs binds exact fixture identity plus episode/evidence/donor/method families and requires distinct run ids; tests reject different episode family and prove deterministic exact-identity rerun. This closes much of the basic matched-run concern."
+    },
+    {
+      "id": "E3-WP806-04-ORDER-PERMUTATION",
+      "result": "REPRODUCED_GAP",
+      "evidence": "The exact-current tests prove deterministic repeat of the same ordered NORMAL/LESION/RESCUE call but contain no order-permutation fixture establishing condition-order independence."
+    },
+    {
+      "id": "E3-WP806-05-REDUNDANCY-SEMANTICS",
+      "result": "REPRODUCED_GAP",
+      "evidence": "Comparison exposes numeric lesion_delta, rescue_delta and restoration_gap only; no typed REDUNDANCY_OR_INTERACTION_UNKNOWN outcome or bounded co-lesion escalation contract is observed."
+    },
+    {
+      "id": "E3-WP806-06-METRIC-OPERATOR-IDENTITY",
+      "result": "REPRODUCED_GAP",
+      "evidence": "Condition/result/comparison identity seals fixture, capability, condition and run evidence but no explicit score_metric_id/version, lesion_operator_id or rescue_operator_id fields are observed."
+    },
+    {
+      "id": "E3-WP806-07-POSITIVE-CLAIM-VOCABULARY",
+      "result": "REPRODUCED_GAP_WITH_STRONG_NEGATIVE_BOUNDARY",
+      "evidence": "The module explicitly denies causal/runtime/whole-system authority, which is strong; however no typed positive result vocabulary such as TESTED_INTERVENTION_DEPENDENCE or TARGET_SPECIFIC_RESTORATION_AT_SCOPE is emitted, leaving downstream interpretation to prose."
+    }
+  ],
+  "counterhypothesis_result": "PARTIALLY_SUPPORTED: exact-current implementation already has stronger matching/provenance and deterministic rerun guards than the E2 research could observe before source appeared. This reduces C3 scope. It does not close exact lesion/rescue target-pair equality, order-permutation, redundancy/interaction UNKNOWN, operator/metric identity, or typed positive-claim semantics.",
+  "scope": "EXACT_CURRENT_SOURCE_AND_REPOSITORY_TEST_EVIDENCE_ONLY",
+  "credit": {
+    "e3_source_claim_reproduction": 1,
+    "runtime_credit": 0,
+    "integration_credit": 0,
+    "physical_grid10_credit": 0,
+    "causal_claim_credit": 0,
+    "whole_system_credit": 0
+  },
+  "next_exact_action": "Fuse with the pre-existing Trigger-4 SHAM/unrelated-rescue review, preserve overlap without novelty inflation, then hand only the remaining exact-current gaps to the WP806 owner for bounded repository-test hardening."
+}

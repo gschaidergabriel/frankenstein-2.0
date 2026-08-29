@@ -1,0 +1,32 @@
+{
+  "schema": "FRANKENSTEIN2_WORKPACKAGE_FALSIFIER/v1",
+  "workpackage_id": "F2-WP-710",
+  "generation": 1,
+  "classification": "CANDIDATE_FALSIFIER",
+  "falsifier_id": "F2-WP-710-G1-POLICY-SHA256-FAILCLOSED-GPT56SOL-20260829",
+  "worker_id": "GPT-5.6-Sol",
+  "created_at_utc": "2026-08-29T11:22:12Z",
+  "observed_main_sha": "03b22e77979f451b25c7007237235727e827dd5d",
+  "observed_source": {
+    "path": "src/frankenstein2/perception_scheduler.py",
+    "blob_sha": "3916a75d05fc0d3863b2597e9412e3a468612a4d"
+  },
+  "claim_ref": "workpackages/active/F2-WP-710.json",
+  "finding": "PerceptionSchedulePlan.__post_init__ validates policy_sha256 with _text rather than lowercase 64-hex SHA-256 validation. A directly constructed or deserialized plan can therefore carry a non-digest policy_sha256 while still passing the plan's own validation, weakening the claimed exact policy binding at the contract boundary.",
+  "minimal_counterexample": {
+    "construction": "PerceptionSchedulePlan(..., policy_sha256='not-a-sha256', ...)",
+    "expected": "fail closed with PerceptionSchedulerError because policy_sha256 is not lowercase 64-hex SHA-256",
+    "observed_from_source": "the current __post_init__ path calls _text('policy_sha256', value), which accepts any trimmed non-empty printable string"
+  },
+  "scope": "SOURCE_LEVEL_REVIEW_ONLY_NO_RUNTIME_EXECUTION",
+  "risk": "Invalid or ambiguous policy identity can survive object construction even though planner-generated plans currently pass policy.sha256(). This does not prove an exploitable runtime path, but it falsifies strong fail-closed validation of the plan contract itself.",
+  "recommended_test": "Add a deterministic regression asserting PerceptionSchedulePlan rejects policy_sha256='not-a-sha256' and accepts a lowercase 64-hex digest; use the same SHA-256 validator semantics already present in perception_fabric.py/capture contracts.",
+  "recommended_repair": "Add a local _sha256 validator or reuse a shared digest validator, and call it from PerceptionSchedulePlan.__post_init__. Do not change scheduling semantics.",
+  "credits": {
+    "runtime_credit": 0,
+    "perception_runtime_credit": 0,
+    "physical_grid10_credit": 0,
+    "whole_system_acceptance": false
+  },
+  "next_exact_gate": "Active WP710 mutation owner should reproduce the counterexample in repository tests, repair the validator if reproduced, and require repository CI before terminal reconciliation."
+}

@@ -71,3 +71,11 @@ When many workers are active, terminal bookkeeping should be fused coherently: a
 ## Existing duplicate claims
 
 Claims created before this protocol remain historical evidence. They do not all become canonical. Reconciliation selects at most one mutation authority; other same-generation claims become `CANDIDATE_FALSIFIER` or `SUPERSEDED_DUPLICATE`.
+
+## v2 state transition binding
+
+For current high-fan-out work, claim authority and broad state projection are linked through `workpackages/STATE_CONCURRENCY_PROTOCOL_V2.md`.
+
+The active pointer remains the per-workpackage mutation-authority projection, but a migrated workpackage's broad effective state is established by its append-only state-event chain rather than by whichever worker rewrites `STATE.json` first. Every new state event uses the deterministic next six-digit sequence path and binds the exact active-pointer Git blob; terminal events also bind the exact reconciliation blob.
+
+A Trigger-4 worker and a Trigger-6 worker have equal coordination rank. A stale worker may not manufacture priority by changing generation, timestamp, trigger name or forcing the branch ref. When a mutable active/reconciliation change accompanies an event, they must be committed in one Git tree with refreshed `main` as parent and published by non-force fast-forward only.

@@ -1,0 +1,60 @@
+{
+  "schema": "FRANKENSTEIN2_TRIGGER6_RESEARCH_RESULT/v1",
+  "trigger": "6",
+  "research_id": "R6-SEED-006",
+  "slot": "EXPERIMENTAL_FALSIFIER",
+  "evidence_stage": "E3_CLAIM_REPRODUCED",
+  "status": "COMPLETED_EXTERNAL_DONOR_FALSIFIER_NO_F2_RUNTIME_CREDIT",
+  "created_at": "2026-08-29T20:25:00+07:00",
+  "worker": "GPT-5.6-Sol-TRIGGER6",
+  "claim_path": "research/tool_intelligence/claims/R6-SEED-006/E3_JSONL_SERIALIZATION_FALSIFIER.json",
+  "claim_commit": "fafcbf73e6d073436ab35539d43646bf029dcf0f",
+  "f2_live_fusion_head_before_result": "9abd05a556fa043065577ecd353d2435fc01ed2f",
+  "upstream": {
+    "repo": "eunomia-bpf/agentcgroup",
+    "commit": "551ca1689b7d2d30db6b8a8613414750103cc68b",
+    "path": "agentcg/bash_wrapper.sh",
+    "observed_serializer": "Command preview only transforms double quote to apostrophe and is inserted with printf into a hand-built JSON line; hint is inserted without general JSON escaping."
+  },
+  "hypothesis_under_test": "The production shell-built JSONL remains valid JSON for arbitrary command/hint text admitted by the wrapper.",
+  "counterexample": {
+    "environment": "isolated local deterministic Linux container; donor falsifier only",
+    "input_class": "command contains an actual newline and backslash-sensitive text; hint contains a backslash",
+    "method": "Apply the same command-preview transformation and printf JSON structure used by the audited production wrapper, then parse the rendered line with a standard JSON parser.",
+    "rendered_sha256": "18d90580ab9558f4c41f6bc6f0fcb7f20ab2cf7eecfee502356d8d2f85357358",
+    "json_parse_result": "REJECTED",
+    "error_class": "JSONDecodeError",
+    "observed_failure": "Invalid control character caused by unescaped newline in the JSON string; backslash-bearing text is also not generally escaped."
+  },
+  "result": {
+    "hypothesis": "FALSIFIED",
+    "finding": "The production shell serialization pattern is not a robust canonical JSON serializer for arbitrary command/hint text.",
+    "upstream_risk_reproduced": "YES_AT_SERIALIZATION_LOGIC_SCOPE_ONLY"
+  },
+  "f2_architecture_delta": {
+    "type": "EVIDENCE_SERIALIZATION_RULE",
+    "recommended_rule": "Resource/tool evidence must be serialized by a typed JSON/JCS-capable serializer; never construct canonical evidence JSON by interpolating untrusted strings into printf/shell templates.",
+    "recommended_fields": [
+      "exact tool/effect digest or immutable reference",
+      "bounded human-readable preview as non-authoritative projection",
+      "structured resource fields",
+      "coverage status",
+      "serializer/schema identity"
+    ],
+    "authority_boundary": "Malformed telemetry must fail closed as DEGRADED/UNKNOWN coverage rather than silently disappear or become canonical evidence."
+  },
+  "counterhypothesis_remaining": "If F2 guarantees a much narrower command/hint alphabet before logging, a simple serializer could be safe within that declared domain; such a restriction would need explicit validation and still should not replace the existing typed canonicalization path.",
+  "credits": {
+    "trigger6_research": "E3_CLAIM_REPRODUCED_EXTERNAL_DONOR_SERIALIZATION_FALSIFIER",
+    "architecture": 0,
+    "repository_component": 0,
+    "target_runtime": 0,
+    "resource_controller": 0,
+    "physical_grid10": 0,
+    "gwt_jspace": 0,
+    "training": 0,
+    "effects": 0,
+    "whole_system": 0
+  },
+  "next_exact_action": "Preserve this as a negative donor result and require any future F2 ResourceEnvelope implementation to reuse typed canonical serialization. A separate E3 may test AgentCgroup's no-root peak-memory measurement against a child workload with known peak allocation."
+}

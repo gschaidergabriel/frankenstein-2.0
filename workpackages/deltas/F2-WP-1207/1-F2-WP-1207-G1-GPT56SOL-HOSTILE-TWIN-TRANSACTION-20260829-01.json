@@ -1,0 +1,67 @@
+{
+  "schema": "FRANKENSTEIN2_WORKPACKAGE_DELTA/v1",
+  "workpackage_id": "F2-WP-1207",
+  "generation": 1,
+  "claim_id": "F2-WP-1207-G1-GPT56SOL-HOSTILE-TWIN-TRANSACTION-20260829",
+  "worker_id": "GPT-5.6-Sol-TRIGGER4",
+  "authority_epoch": "8.78",
+  "status": "COMPONENT_SOURCE_AND_REPOSITORY_CI_READY",
+  "canonical_source": "src/frankenstein2/portable_release_transaction.py",
+  "canonical_test": "tests/test_portable_release_transaction.py",
+  "canonical_ci": ".github/workflows/wp1207-portable-release-transaction-ci.yml",
+  "source_commits": [
+    "66eda480fe506be0aa57146b9044c329de910ccf",
+    "53be79e2edc4dd9faa1d73029dcda5fe74f44763",
+    "733717c81b2d2d55cec64cfb9e20f9d45d1eef55",
+    "523250f8728fbb427ef82975c7fe21f5169abf84"
+  ],
+  "exact_blobs": {
+    "source": "a248d6ded9fd90f34f7e6763fe30948fc58af6e6",
+    "test": "c095b15fb65c367b45944db24b5a9909bc1d3f8e",
+    "workflow": "2d915826503024237c5cf1ed5632cf8097721396"
+  },
+  "accepted_invariants_at_repository_ci_scope": [
+    "release identity and state-lineage identity use exact deterministic SHA-256 identities",
+    "UPDATE rejects missing, stale, or mismatched expected generation/state continuity",
+    "ROLLBACK requires the exact predecessor generation/state/release identity already bound in the current lineage",
+    "same normalized request yields the same deterministic plan and digest",
+    "injected failure cannot produce a synthetic SUCCEEDED receipt",
+    "FAILED_NO_MUTATION and ROLLED_BACK receipts require exact observed lineage preservation",
+    "first-install failure cannot invent durable lineage state",
+    "all component output remains hostile-twin preparatory evidence only"
+  ],
+  "negative_evidence": [
+    {
+      "run_id": 33253489238,
+      "head_sha": "733717c81b2d2d55cec64cfb9e20f9d45d1eef55",
+      "conclusion": "failure",
+      "compile": "success",
+      "test_suite": "failure",
+      "classification": "TEST_FIXTURE_ISOLATION_DEFECT",
+      "resolution": "mutable release fixtures were isolated with per-request deep copies; product transaction semantics were not weakened"
+    }
+  ],
+  "passing_evidence": {
+    "run_id": 33253539715,
+    "job_id": 99103220932,
+    "head_sha": "523250f8728fbb427ef82975c7fe21f5169abf84",
+    "status": "completed",
+    "conclusion": "success",
+    "compile": "success",
+    "fail_closed_suite": "success",
+    "test_count": 12
+  },
+  "credit_boundary": {
+    "repository_component_ci": 1,
+    "hostile_twin_runtime": 0,
+    "installer_execution": 0,
+    "restart_readback": 0,
+    "t1_t2_t3_t4": 0,
+    "physical_target": 0,
+    "effect_completion": 0,
+    "grid10_gwt_jspace": 0,
+    "training": 0,
+    "whole_system": 0
+  },
+  "next_exact_action": "Exercise the exact release ZIP and this transaction/state-lineage contract inside an admitted hostile target twin, inject update failure, verify exact rollback/readback against the pre-attempt lineage, and persist target-twin runtime receipts before granting any runtime or T-level credit."
+}

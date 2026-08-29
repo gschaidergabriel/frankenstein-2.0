@@ -1,0 +1,149 @@
+{
+  "schema": "FRANKENSTEIN2_TRIGGER6_RESEARCH_DELTA/v1",
+  "research_id": "R6-20260829-WP803-PROPER-SCORING-GPT56SOL-01",
+  "evidence_stage": "E2_ARCHITECTURE_MAPPED",
+  "created_at": "2026-08-29T20:05:00+07:00",
+  "worker": "GPT-5.6-Sol-TRIGGER6",
+  "trigger": "6",
+  "snapshot": {
+    "f2_main_before_delta": "8074762bf5149ab85e0235fe5b737b2b03d8b305",
+    "wp803_claim_commit": "1ae3834d37f100447409946f0eda03dbd56a2225",
+    "this_objective_claim_commit": "32e4783ea60ef6ca35907337252597db6401c7dc",
+    "consumed_wp803_e1_commit": "ffa2b0473b1e93986e8412db6133a106115cf120",
+    "authority_epoch": "8.78"
+  },
+  "objective": "Map a dependency-light scoring/abstention/leakage architecture for F2-WP-803 that does not weaken its public-observation-only boundary or force probabilistic output where the public outcome space is not declared.",
+  "evidence_consumed": [
+    {
+      "type": "F2_TRIGGER6_E1",
+      "ref": "research/tool_intelligence/deltas/2026-08-29T2003P0700_GPT56SOL_R6_WP803_SELECTIVE_PREDICTION_E1_SOURCE_READ.json@ffa2b0473b1e93986e8412db6133a106115cf120",
+      "scope": "public/evaluator-private boundary; prequential prediction-before-step ordering; selective risk plus coverage; held-out split identity; optional strictly proper probabilistic scoring"
+    },
+    {
+      "type": "F2_CURRENT_SOURCE",
+      "ref": "src/frankenstein2/cognitive_microworld.py@main blob 18d3a12c65d00024c190e561450ca8184518d1c9",
+      "scope": "ObservationView is an explicit public whitelist; MicroWorldFixture/WorldNode retain evaluator-only hidden state; public_fixture_sha256 is distinct from full fixture identity"
+    },
+    {
+      "type": "EXTERNAL_PRIMARY",
+      "source": "Gneiting and Raftery, Strictly Proper Scoring Rules, Prediction, and Estimation",
+      "doi": "10.1198/016214506000001437",
+      "url": "https://sites.stat.washington.edu/people/raftery/Research/PDF/Gneiting2007jasa.pdf",
+      "scope": "strictly proper rules incentivize truthful probabilistic forecasts; Brier/quadratic and log score are canonical finite-outcome examples"
+    },
+    {
+      "type": "EXTERNAL_PRIMARY",
+      "source": "Waghmare and Ziegel, Proper Scoring Rules for Estimation and Forecast Evaluation",
+      "doi": "10.1146/annurev-statistics-042424-050626",
+      "url": "https://www.annualreviews.org/content/journals/10.1146/annurev-statistics-042424-050626",
+      "scope": "2026 review confirming proper scoring rules as principled probabilistic forecast evaluation tools"
+    },
+    {
+      "type": "EXTERNAL_PRIMARY",
+      "source": "Geifman and El-Yaniv, Selective Classification for Deep Neural Networks",
+      "arxiv": "1705.08500",
+      "url": "https://arxiv.org/abs/1705.08500",
+      "scope": "abstention is evaluated through a risk-coverage tradeoff rather than accuracy alone"
+    },
+    {
+      "type": "EXTERNAL_CURRENT_RESEARCH",
+      "source": "Wang et al., Search-Time Contamination in Deep Research Agents",
+      "arxiv": "2606.05241",
+      "url": "https://arxiv.org/abs/2606.05241",
+      "scope": "evaluation leakage can inflate benchmark results; controlled access and transparent trajectories are recommended. Structural analogy only: WP803 is not a web-search benchmark."
+    }
+  ],
+  "architecture_findings": [
+    {
+      "id": "WP803-E2-01",
+      "finding": "UNKNOWN/abstain must remain outside ordinary correctness scoring.",
+      "reason": "A single accuracy number can reward an always-abstain policy or hide the cost of refusal. The benchmark should report at minimum eligible_count, predicted_count, abstained_count, coverage, conditional error/risk on predicted cases, and unconditional wrong-count/rate.",
+      "impact": "MEASUREMENT_SCHEMA"
+    },
+    {
+      "id": "WP803-E2-02",
+      "finding": "Do not make probabilistic forecasts mandatory in generation 1 unless the outcome vocabulary is independently public and predeclared.",
+      "reason": "A probability vector requires a public finite outcome space. Deriving candidate outcomes from evaluator-only nodes/transitions would itself leak holdout structure. Point prediction plus UNKNOWN is therefore the fail-closed default when no public outcome vocabulary exists.",
+      "impact": "PUBLIC_PRIVATE_BOUNDARY"
+    },
+    {
+      "id": "WP803-E2-03",
+      "finding": "When a public categorical outcome vocabulary does exist, add bounded Brier score as the preferred generation-1 proper score; keep log score optional/later.",
+      "reason": "Both are strictly proper, but Brier is dependency-free and bounded for finite categorical outcomes. Log score requires explicit zero-probability/clipping semantics and can become unbounded, adding avoidable benchmark-policy complexity.",
+      "impact": "OPTIONAL_PROBABILISTIC_MEASUREMENT"
+    },
+    {
+      "id": "WP803-E2-04",
+      "finding": "Prediction must be identity-sealed before evaluator advancement; the realized next public ObservationView is the only scoring target.",
+      "reason": "This enforces a prequential boundary and blocks post-step rewriting. Prediction identity should bind episode_id/generation, fixture_id/generation, public_fixture_sha256, step_index, input ObservationView digest, policy/config digest, and prediction payload digest.",
+      "impact": "CAUSAL_ORDERING_PROVENANCE"
+    },
+    {
+      "id": "WP803-E2-05",
+      "finding": "Baseline fitting and holdout evaluation identities must be separate.",
+      "reason": "Any empirical transition/frequency baseline fit on held-out fixture transitions contaminates the benchmark. A learned baseline must carry a fit_split_id/digest that is provably disjoint from holdout_set_id; otherwise use fixed public-information-only deterministic baselines.",
+      "impact": "BASELINE_LEAKAGE_FENCE"
+    },
+    {
+      "id": "WP803-E2-06",
+      "finding": "Same-process Python can enforce a typed cooperative provenance boundary, not adversarial secrecy.",
+      "reason": "Passing only ObservationView through the benchmark API prevents accidental leakage, but hostile code in the same interpreter can still reach globals/closures/imports. WP803 generation 1 should claim repository/API leakage resistance only; hostile-plugin secrecy requires a future separate process/sandbox trust boundary.",
+      "impact": "THREAT_MODEL_BOUNDARY"
+    }
+  ],
+  "minimal_trigger4_delta": {
+    "priority": "HIGH_BEFORE_WP803_ACCEPTANCE",
+    "dependency_policy": "NO_NEW_EXTERNAL_RUNTIME_DEPENDENCY",
+    "required": [
+      "Keep the current explicit ObservationView whitelist as the sole prediction input surface.",
+      "Represent point prediction as PREDICTED or UNKNOWN; do not coerce UNKNOWN into an ordinary outcome label.",
+      "Seal PredictionRecord before calling the canonical WP800 evaluator step and reject step/generation/input-digest mismatch.",
+      "Score against the subsequently materialized public ObservationView only.",
+      "Report coverage and selective risk/error together; add an always-UNKNOWN baseline/falsifier so abstention cannot masquerade as high accuracy.",
+      "Bind every learned/public-information baseline to an immutable fit-split/config digest and fail closed if it aliases the held-out family/split.",
+      "If probabilistic categorical prediction is supported, require an independently public outcome-vocabulary digest and compute Brier score; reject probability vectors whose labels originate from evaluator-private fixture enumeration."
+    ],
+    "falsifiers": [
+      "ALWAYS_UNKNOWN must not win by accuracy-only reporting; coverage must become 0 and the report must expose it.",
+      "HIDDEN_STATE_SENTINEL: mutate evaluator-only hidden_ground_truth_ref/sha while keeping public ObservationView identical; prediction input digest and policy output must remain unchanged for a deterministic policy.",
+      "POST_STEP_REWRITE: attempt to construct/submit a prediction after evaluator advancement or with the next step_index; reject.",
+      "HOLDOUT_BASELINE_CONTAMINATION: baseline fit_split_id/digest equals or contains the held-out family/split; reject.",
+      "PRIVATE_OUTCOME_ENUMERATION: probabilistic vocabulary is derived from fixture.nodes/transitions instead of public config; reject.",
+      "MALFORMED_PROBABILITIES: NaN/Inf/negative/non-normalized/duplicate-label values; reject fail closed.",
+      "SAME_PROCESS_THREAT_BOUNDARY: document that deliberate Python global/closure exfiltration is outside generation-1 secrecy credit rather than claiming cryptographic isolation."
+    ],
+    "metrics": [
+      "eligible_count",
+      "predicted_count",
+      "abstained_count",
+      "coverage = predicted_count / eligible_count",
+      "selective_error = wrong_predictions / predicted_count when predicted_count > 0",
+      "unconditional_error = wrong_predictions / eligible_count",
+      "exact_match_rate on all eligible cases with UNKNOWN counted separately, not silently dropped",
+      "optional mean Brier score only for genuine public-vocabulary probabilistic forecasts",
+      "baseline-relative deltas reported separately from absolute metrics"
+    ]
+  },
+  "counterhypotheses": [
+    {
+      "statement": "The active WP803 implementation may already contain all of these fences, making this architecture delta redundant.",
+      "falsifier": "Inspect the first WP803 source/test commit and run the listed adversarial unit tests. If all pass with equivalent metrics/provenance, adopt no additional architecture change."
+    },
+    {
+      "statement": "Mandatory probabilistic scoring would improve sensitivity enough to justify expanding generation-1 scope.",
+      "falsifier": "Only promote it if a public outcome vocabulary exists without holdout leakage and an ablation shows added discrimination beyond point+UNKNOWN metrics at negligible complexity/latency."
+    },
+    {
+      "statement": "Same-process input whitelisting proves hidden-state secrecy.",
+      "falsifier": "A deliberately hostile in-process predictor that imports/reaches evaluator state can bypass cooperative API boundaries; therefore no adversarial secrecy credit is granted at this scope."
+    }
+  ],
+  "resource_decision": "DISTILL_TO_F2_NATIVE_TYPED_METRICS_AND_FENCES; NO_FRAMEWORK_IMPORT; NO_MODEL_CALL; NO_PROVIDER; NO_VPS; NO_RUNTIME_ACCEPTANCE_CREDIT",
+  "handoff": "TRIGGERWORD_4: consume this E2 delta while implementing F2-WP-803. Prefer point+UNKNOWN plus risk/coverage as mandatory generation-1 behavior; add Brier only behind an independently public outcome-vocabulary contract. Run exact hidden-sentinel, always-abstain, post-step, split-contamination and malformed-probability falsifiers before bounded repository-component acceptance.",
+  "evidence_ceiling": "E2_ARCHITECTURE_MAPPED",
+  "research_credit": "E2_ARCHITECTURE_MAPPED_ONLY",
+  "architecture_acceptance_credit": 0,
+  "runtime_credit": 0,
+  "physical_grid10_credit": 0,
+  "whole_system_credit": 0
+}

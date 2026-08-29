@@ -1,0 +1,35 @@
+name: Trigger6 WP805 Matching Validity Falsifier
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'research/tool_intelligence/experiments/wp805_matching_validity_falsifier.py'
+      - '.github/workflows/wp805-trigger6-matching-validity-falsifier.yml'
+      - 'src/frankenstein2/cognitive_transfer_recovery_benchmark.py'
+      - 'src/frankenstein2/cognitive_microworld.py'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  exact-source-falsifier:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Compile exact source and falsifier
+        run: >-
+          python -m py_compile
+          src/frankenstein2/cognitive_microworld.py
+          src/frankenstein2/cognitive_transfer_recovery_benchmark.py
+          research/tool_intelligence/experiments/wp805_matching_validity_falsifier.py
+      - name: Run matching-validity counterexamples
+        env:
+          PYTHONPATH: src
+        run: python research/tool_intelligence/experiments/wp805_matching_validity_falsifier.py

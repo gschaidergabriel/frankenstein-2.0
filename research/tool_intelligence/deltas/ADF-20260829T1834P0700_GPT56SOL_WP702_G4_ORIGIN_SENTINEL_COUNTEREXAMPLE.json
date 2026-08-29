@@ -1,0 +1,51 @@
+{
+  "schema": "FRANKENSTEIN2_ARCHITECTURE_DELTA_FUSION/v1",
+  "fusion_id": "ADF-20260829T1834P0700-GPT56SOL-WP702-G4-ORIGIN-SENTINEL-COUNTEREXAMPLE",
+  "supersedes": "ADF-20260829T1827P0700-GPT56SOL-WP702-PRODUCER-LINEAGE-FUSION",
+  "created_at": "2026-08-29T18:34:00+07:00",
+  "worker": "gpt-5.6-sol",
+  "trigger": "6",
+  "source_heads": {
+    "wp702_g4_merge": "2e379f1b003599a04ae98f7c04fee05f59ab70f2",
+    "e3_receipt_commit": "57be1393d05d857bce0fa04a85a28f8bb90a5046",
+    "wp700_factory_only_donor": "c2b55c0886982bd3a5ee7f59422fd040f69fe7a1"
+  },
+  "new_observation": "Trigger-4 merged WP702 G4 using a module-global _EVALUATOR_ORIGIN object passed through a public InitVar constructor parameter. This blocks direct construction when the caller omits the token and implicitly blocks dataclasses.replace, but the token is itself readable from the module and can be passed by a same-process caller.",
+  "positive_evidence_preserved": [
+    "G4 exact PR-head CI succeeded at bounded repository-component scope.",
+    "The canonical new direct-constructor test correctly rejects a forged COMPUTE_OFF -> OK/persistence-allowed result when _evaluator_origin is omitted.",
+    "Existing WP702 OFF/taint/policy/registry semantics remain independently valuable and are not invalidated by this counterexample."
+  ],
+  "counterexample": {
+    "class": "SELF_GRANTABLE_ORIGIN_CAPABILITY",
+    "mechanism": "Caller imports frankenstein2.perception_control, reads module._EVALUATOR_ORIGIN, and passes that object to PerceptionControlResult(_evaluator_origin=..., ...). Because the only producer check is identity against the same module-global object, constructor admission succeeds if all ordinary field invariants are satisfied.",
+    "reproduction": "Exact merged source inspected; minimal standard-library dataclass/InitVar mechanism reproduction confirms dataclasses.replace is rejected while explicit sentinel self-grant succeeds.",
+    "transport_limit": "Attempted exact-source execution in the analysis container was blocked by DNS resolution of raw.githubusercontent.com; that transport failure is not product evidence."
+  },
+  "architectural_interpretation": "G4 is a convention-level origin fence, not non-self-grantable producer lineage. This distinction matters even before hostile-process security: the origin token is a caller-supplied constructor capability reachable as a module attribute. Python underscore naming does not make it inaccessible.",
+  "successor_recommendation": {
+    "preferred": "Adopt the WP700 G2 factory-only shape for WP702: dataclass(init=False), public constructor always raises, one module-private object.__new__ producer, produced-instance validation. This removes a caller-supplied authority token from the normal constructor API and directly matches an already accepted F2 pattern.",
+    "minimum_tests": [
+      "Direct constructor with all exact legitimate digests fails.",
+      "dataclasses.replace on a canonical result fails.",
+      "No constructor argument can be populated with a caller-readable module token to self-grant evaluator origin.",
+      "All existing OFF/taint/persistence and canonical serialization/hash behavior remains unchanged."
+    ],
+    "scope_caveat": "Even the WP700-style factory remains bypassable by arbitrary hostile Python code using object.__new__/object.__setattr__. Do not claim cryptographic hostile-same-process security. If that threat model becomes required, move trust outside the untrusted process and authenticate an EvaluationReceipt-style statement."
+  },
+  "supersession_effect": "The earlier E2 recommendation remains directionally correct but is sharpened: Trigger-4's lighter InitVar sentinel is insufficient for a non-self-grantable ordinary-constructor producer claim. The recommended successor should remove the token-bearing public constructor path rather than add heavier dependencies.",
+  "handoff": {
+    "to": "TRIGGERWORD_4",
+    "action": "OPEN_SUCCESSOR_WP702_PRODUCER_LINEAGE_GENERATION_ONLY_IF_NO_ACTIVE_CANONICAL_REPAIR_EXISTS; preserve G4 positive component evidence but record the post-acceptance self-grant counterexample; adapt the WP700 factory-only pattern and run successor exact CI.",
+    "priority": "HIGH_POST_ACCEPTANCE_COUNTEREVIDENCE"
+  },
+  "evidence_ceiling": "E3_CLAIM_REPRODUCED",
+  "runtime_credit": 0,
+  "whole_system_credit": 0,
+  "mirror": {
+    "epoch": "MIRROR-20260829T1834P0700-WP702-G4-COUNTEREXAMPLE",
+    "counterpart_repo": "gschaidergabriel/clay-global-research-entity",
+    "counterpart_path": "research_entity/frankenstein2_tool_intelligence/deltas/ADF-20260829T1834P0700_GPT56SOL_WP702_G4_ORIGIN_SENTINEL_COUNTEREXAMPLE.json",
+    "status": "PENDING_AT_CREATION"
+  }
+}

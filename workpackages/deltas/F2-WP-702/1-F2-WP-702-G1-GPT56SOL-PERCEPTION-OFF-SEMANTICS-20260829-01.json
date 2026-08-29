@@ -1,0 +1,49 @@
+{
+  "schema": "FRANKENSTEIN2_WORKPACKAGE_DELTA/v1",
+  "workpackage_id": "F2-WP-702",
+  "generation": 1,
+  "claim_id": "F2-WP-702-G1-GPT56SOL-PERCEPTION-OFF-SEMANTICS-20260829",
+  "worker_id": "GPT-5.6-Sol",
+  "authority_epoch": "8.78",
+  "delta_type": "BOUNDED_IMPLEMENTATION_AND_FALSIFIERS",
+  "scope": "PERCEPTION_OFF_SEMANTICS_REPOSITORY_HOSTED_COMPONENT_ONLY",
+  "implemented": [
+    "immutable PerceptionHeadPolicy with mechanically derived compute/egress/memory-match/persistence permissions",
+    "immutable content-digested PerceptionPolicyRegistry with exact one-binding-per-head dependency graph",
+    "fail-closed rejection of duplicate heads, missing/unknown dependency bindings and cycles",
+    "transitive COMPUTE_OFF taint propagation before callback invocation",
+    "NOT_COMPUTED remains distinct from false/zero/empty and exposes no value/confidence",
+    "OUTPUT_OFF executes at most the caller callback and exposes only OUTPUT_BLOCKED metadata, never the computed value/confidence",
+    "MEMORY_OFF permits same-cycle egress while memory_match_allowed and persistence_allowed remain false",
+    "typed COMPUTE_ERROR produces non-evidence without leaking exception message content",
+    "registry digest mismatch is rejected before compute"
+  ],
+  "local_preflight": {
+    "command": "PYTHONPATH=src python -m unittest discover -s tests -v (isolated WP702 reconstruction)",
+    "tests": 13,
+    "passed": 13,
+    "failed": 0,
+    "credit": "LOCAL_DETERMINISTIC_PREFLIGHT_ONLY_NOT_REPOSITORY_CI_OR_TARGET_RUNTIME"
+  },
+  "owned_paths": [
+    "src/frankenstein2/perception_control.py",
+    "tests/test_perception_control.py",
+    ".github/workflows/wp702-perception-control-ci.yml",
+    "workpackages/deltas/F2-WP-702/1-F2-WP-702-G1-GPT56SOL-PERCEPTION-OFF-SEMANTICS-20260829-01.json"
+  ],
+  "explicit_nonclaims": {
+    "camera_or_pixel_execution": false,
+    "perception_runtime_observed": false,
+    "vps_runtime_observed": false,
+    "provider_or_model_invocation": false,
+    "unifieddb_persistence_observed": false,
+    "physical_grid10_credit": 0,
+    "gwt_runtime_credit": 0,
+    "jspace_runtime_credit": 0,
+    "training_credit": 0,
+    "effect_credit": 0,
+    "completion_credit": 0,
+    "whole_system_acceptance": false
+  },
+  "next_exact_action": "Open one PR for the claimed branch, observe exact PR-head repository-hosted CI, review the diff against current main, merge only if the bounded falsifiers pass, then require merged-main CI before writing a terminal acceptance reconciliation."
+}

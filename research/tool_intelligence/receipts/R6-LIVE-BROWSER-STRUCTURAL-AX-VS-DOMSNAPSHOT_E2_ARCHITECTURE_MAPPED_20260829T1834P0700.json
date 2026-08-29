@@ -1,0 +1,83 @@
+{
+  "schema": "FRANKENSTEIN2_TRIGGER6_EVIDENCE_RECEIPT/v1",
+  "research_id": "R6-LIVE-BROWSER-STRUCTURAL-AX-VS-DOMSNAPSHOT",
+  "evidence_stage": "E2_ARCHITECTURE_MAPPED",
+  "status": "COMPLETED_POLICY_DELTA_PENDING_MEASUREMENT",
+  "completed_at": "2026-08-29T18:34:00+07:00",
+  "worker": "gpt-5.6-sol",
+  "claim": {
+    "path": "research/tool_intelligence/claims/R6-LIVE-BROWSER-STRUCTURAL-AX-VS-DOMSNAPSHOT/E2_ARCHITECTURE_MAPPED.json",
+    "claim_commit": "2800672a7fc6be0a0e5c937e0368cf11cc6d343d"
+  },
+  "prerequisite_receipt": "research/tool_intelligence/receipts/R6-LIVE-BROWSER-STRUCTURAL-AX-VS-DOMSNAPSHOT_E1_SOURCE_READ_20260829T1831P0700.json",
+  "current_f2_contracts_reused": [
+    "browser/structural/<target_id> remains the logical source identity",
+    "PerceptionCaptureBroker remains capture-owner/buffering authority",
+    "source_generation/epoch fences navigation/reconnect",
+    "captured_monotonic_ns and temporal-fusion uncertainty remain timing authority",
+    "browser observations remain candidate perception rather than canonical truth/effect authority"
+  ],
+  "mapped_policy": {
+    "name": "BROWSER_STRUCTURAL_SELECTIVE_CAPTURE/v1",
+    "default_candidate": "AX_SNAPSHOT_OR_QUERY",
+    "default_rationale": "AX directly exposes role/name/description/value/widget-state plus DOM/frame linkage and supports depth-bounded, partial and query retrieval; this matches many interaction-oriented structural needs without requiring the full layout/style surface.",
+    "domsnapshot_escalation_conditions": [
+      "requested evidence requires exact DOM attributes or markup structure not represented by AX",
+      "requested evidence requires layout bounds, paint order, rectangles or computed-style information",
+      "AX result is absent/ignored/ambiguous for a node that remains relevant in rendered perception",
+      "cross-check is required between semantic accessibility state and underlying DOM/layout state",
+      "a deterministic downstream contract explicitly declares DOM_SNAPSHOT_REQUIRED"
+    ],
+    "ax_modes": [
+      "getFullAXTree with explicit bounded depth when full semantic hierarchy is justified",
+      "getPartialAXTree for focused local structure",
+      "queryAXTree for name/role-targeted structural retrieval",
+      "avoid persistent Accessibility.enable by default until exact-browser measurement justifies its stable-ID benefit versus the protocol's stated performance impact"
+    ],
+    "observation_metadata": [
+      "structural_capture_kind = AX_FULL|AX_PARTIAL|AX_QUERY|DOM_SNAPSHOT",
+      "cdp_target_id",
+      "cdp_target_session_id_string",
+      "source_generation_or_epoch",
+      "browser_build_or_version_identity",
+      "cdp_protocol_identity",
+      "captured_monotonic_ns",
+      "payload_sha256_or_ref",
+      "frame_id/backend_dom_node_refs when provided"
+    ]
+  },
+  "anti_authority_rules": [
+    "AX role/name/state is browser-derived observation, not world fact.",
+    "DOMSnapshot clickability/layout is browser-derived observation, not effect authority.",
+    "A model may request an escalation candidate but may not silently redefine capture policy or mint canonical state.",
+    "AX and DOMSnapshot outputs from the same target/session are not automatically simultaneous; temporal fusion still governs correlation."
+  ],
+  "efficiency_assessment": {
+    "source_level": "AX has a semantically narrower schema and offers bounded/partial/query retrieval, while DOMSnapshot returns full DOM plus layout and selected style data.",
+    "measured_runtime_claim": "NONE",
+    "reason": "No exact target-browser payload-size, latency, CPU/RSS or steady-state measurement exists in this Trigger-6 macrocycle.",
+    "required_measurements": [
+      "serialized bytes and node counts by representative page",
+      "p50/p95 capture latency",
+      "browser CPU/RSS impact with stateless AX calls and with Accessibility.enable",
+      "DOMSnapshot CPU/RSS/latency under comparable cadence",
+      "semantic task coverage and fallback rate from AX to DOMSnapshot",
+      "rendered/structural skew and navigation/reconnect behavior"
+    ]
+  },
+  "architecture_decision": "ADOPT_AS_E2_POLICY_HYPOTHESIS_NOT_BUILD_PROMOTION",
+  "expected_benefit": "Potentially keep the structural path interaction-focused and small while retaining deterministic escalation to full DOM/layout evidence only when required.",
+  "counterhypotheses": [
+    "Fallback frequency may be high enough that AX-first increases total calls and latency.",
+    "Accessibility.enable or repeated AX computation may cost more than one DOMSnapshot at the required cadence.",
+    "AX semantics may miss visually actionable but accessibility-ignored nodes, making rendered+DOMSnapshot a more reliable base pair.",
+    "A direct DOM query projection could be thinner than either full AX or full DOMSnapshot."
+  ],
+  "next_discriminator": "E3/E4 only on an exact target-browser fixture: collect paired AX and DOMSnapshot observations over representative static, dynamic, form-heavy, canvas-heavy and accessibility-poor pages; measure bytes/latency/CPU/RSS and task coverage while preserving navigation generation fences. Do not call the selective policy efficient until those measurements support it.",
+  "research_evidence_credit": "E2_ARCHITECTURE_MAPPED_ONLY",
+  "architecture_credit": "BOUNDED_POLICY_PROPOSAL_ONLY",
+  "runtime_credit": 0,
+  "efficiency_credit": 0,
+  "physical_browser_capture_credit": 0,
+  "whole_system_credit": 0
+}

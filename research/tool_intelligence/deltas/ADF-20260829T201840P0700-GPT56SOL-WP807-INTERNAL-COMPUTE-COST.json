@@ -1,0 +1,93 @@
+{
+  "schema": "FRANKENSTEIN2_TRIGGER6_ARCHITECTURE_DELTA/v1",
+  "delta_id": "ADF-20260829T201840P0700-GPT56SOL-WP807-INTERNAL-COMPUTE-COST",
+  "research_id": "R6-20260829-WP807-ARCAGI3-GENERAL-AGENT-FALSIFIER-GPT56SOL-01",
+  "evidence_stage": "E2_ARCHITECTURE_MAPPED",
+  "status": "EVIDENCE_BACKED_ARCHITECTURE_DELTA_NO_BUILD_OR_RUNTIME_CREDIT",
+  "snapshot": {
+    "f2_pre_delta_main": "7587f294ca597c9cd8765c1bd0e208396e22ae3a",
+    "research_entity_main": "101bd5908b19625ed63c70fe509f8b40ede4aea3",
+    "wp807_implementation_delta_commit": "9dd565e5fae80795b0f84a4dfd7aa8c6b2e195e9",
+    "wp807_source_blob": "6ea004126f9d39e428141703ea49aa3090b9994e",
+    "trigger6_protocol_blob": "08571526d33f9a0c06577e2f119bdaf4297ef1c8"
+  },
+  "external_primary_evidence": [
+    {
+      "repo": "arcprize/docs",
+      "commit": "6956cde0c84b9b077d31ae98e5a9a243622a2553",
+      "path": "methodology.mdx",
+      "blob": "1e2a0cab95d082406ecf23784d178b4ba4f6b6eb",
+      "relevant_fact": "ARC-AGI-3 defines an action as a discrete environment interaction and explicitly excludes internal tool calls, reasoning steps and retries from action count."
+    },
+    {
+      "repo": "arcprize/docs",
+      "commit": "6956cde0c84b9b077d31ae98e5a9a243622a2553",
+      "path": "toolkit/competition_mode.mdx",
+      "blob": "b34a921fdaa1f085f29ccfd9b112325f3a4ba5f8",
+      "relevant_fact": "Competition mode constrains external environment interaction and reset/open behavior, reinforcing that the benchmark's counted resource is the environment-action channel."
+    }
+  ],
+  "observed_f2_gap": {
+    "current_capability_evidence": "CapabilityEvidence stores one action_count plus performance/baseline scores, receipt/reconciliation identities and held-out identifiers.",
+    "current_policy": "FalsifierPolicy gates intervention score, delta over baseline, sample count and shared holdout set; it has no external-action ceiling/ratio and no internal-compute envelope.",
+    "current_evaluator": "evaluate_agentic_core sums action_count into total_action_count but does not use total or per-capability action count to determine SUPPORTED_AT_COMPONENT_SCOPE versus FALSIFIED.",
+    "missing_internal_dimensions": [
+      "inference/model call count",
+      "input token count",
+      "output token count",
+      "internal tool call count",
+      "bound compute-profile/runtime/tokenizer identity",
+      "optional latency/memory characterization"
+    ]
+  },
+  "architecture_conclusion": "WP807 currently falsifies four-capability outcome quality under a matched held-out policy, but it does not yet falsify the 'efficient' part of a general agentic-core claim. External interaction efficiency and internal compute efficiency must remain separate, explicitly measured axes.",
+  "proposed_minimal_delta": {
+    "do_not_import": "Do not import ARC scoring or duck-harness runtime as authority/dependency.",
+    "capability_evidence_v2": [
+      "replace ambiguous single action_count with baseline_action_count and intervention_action_count or add an exact matched baseline action identity",
+      "bind compute_profile_id + compute_profile_sha256 so model/runtime/tokenizer measurement semantics cannot drift between baseline and intervention",
+      "record baseline/intervention inference_call_count",
+      "record baseline/intervention input_token_count and output_token_count",
+      "record baseline/intervention internal_tool_call_count",
+      "retain latency/RSS/GPU/I/O as characterization fields where measured, not silently promoted into deterministic semantic truth"
+    ],
+    "policy_v2": [
+      "freeze an external-action efficiency gate before aggregate results are observed",
+      "freeze internal model-call/token/tool-call envelopes or matched-baseline ratios before aggregate results are observed",
+      "fail closed on missing or mismatched compute-profile identity when claiming efficiency",
+      "do not collapse outcome quality, external action efficiency and internal compute efficiency into one scalar acceptance authority"
+    ],
+    "report_v2": [
+      "report outcome/capability support vector",
+      "report external_action_efficiency vector",
+      "report internal_compute_efficiency vector",
+      "retain all runtime/GRID10/GWT/effect/completion/whole-system credits at zero at repository component scope"
+    ]
+  },
+  "counterhypotheses": [
+    {
+      "statement": "Existing intervention_score_ppm already includes all relevant efficiency semantics, so explicit compute evidence is redundant.",
+      "falsifier": "Trace the producer contract for each WP802-WP805 intervention score. If every score is provably bound to a frozen resource-equivalent protocol including internal compute and external actions, this delta can be reduced or retired. Without that binding, score_ppm cannot be assumed to encode hidden compute cost."
+    },
+    {
+      "statement": "Internal compute should be deliberately unconstrained because only world actions matter.",
+      "falsifier": "Run matched held-out capability tests where two systems have equal completion/action counts but one uses materially more model calls/tokens/tool compute. If F2's product criterion treats them as equally efficient, no internal gate is needed; otherwise the current WP807 contract is under-specified."
+    }
+  ],
+  "nonduplicate_boundary": {
+    "existing_neighbor": "R6-20260829-WP807-CROSSBENCH-GENERALIZATION-GPT56SOL-01/E2_ARCHITECTURE_MAPPED_CROSSBENCH_GENERALIZATION",
+    "this_delta_scope": "internal compute cost versus external action efficiency only",
+    "trigger4_mutation_lane": "Existing WP807 Trigger-4 owner remains the only build/mutation lane; this Trigger-6 delta does not modify src/tests or claim build completion."
+  },
+  "acceptance_gate_for_next_stage": "Trigger-4 or the sole WP807 mutation owner must bind a frozen V2 efficiency policy and executable fail-closed tests showing that missing compute identity, excessive external actions, or excessive internal compute cannot yield SUPPORTED_AT_COMPONENT_SCOPE. Then compare matched baseline/intervention on the same held-out family and compute profile.",
+  "credit": {
+    "architecture_mapping": "E2_ONLY",
+    "source_read": true,
+    "claim_reproduced": false,
+    "f2_ablation": false,
+    "build_candidate": false,
+    "f2_accepted": false,
+    "runtime_credit": 0,
+    "whole_system_acceptance": false
+  }
+}

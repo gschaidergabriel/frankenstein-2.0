@@ -1,0 +1,52 @@
+{
+  "schema": "FRANKENSTEIN2_TRIGGER6_EVIDENCE_RECEIPT/v1",
+  "research_id": "R6-HOST-SYSTEMD-USER-READINESS-001",
+  "evidence_stage": "E1_SOURCE_READ",
+  "status": "SOURCE_READ_COMPLETE_NO_ARCHITECTURE_CREDIT",
+  "completed_at": "2026-08-29T19:38:00+07:00",
+  "architecture_binding": "HOST_REALITY_TWIN_AND_UNIFIEDDB_COMPLETION_ESTIMATOR_2026-08-29 + F2-WP-1202 T1 Ubuntu userspace twin",
+  "f2_source_heads": {
+    "claim_bound_main": "10cb489670416d377c167760cb15c29b70f698f3",
+    "latest_reentered_main_observed": "bea5d217cf8f995c8e5623780d3ffa85139c089a",
+    "wp1202_source_commit_observed": "0dcc94903924256980bfabc924941b49d19cc787"
+  },
+  "external_source": {
+    "repo": "systemd/systemd",
+    "branch": "main",
+    "commit": "048970650ce5d50bceffff97442c4a90c1cf0572",
+    "files": [
+      "man/systemd.service.xml",
+      "man/sd_notify.xml",
+      "man/org.freedesktop.systemd1.xml"
+    ]
+  },
+  "source_findings": [
+    "Type=simple may report systemctl start success before the service binary has successfully execve()'d; therefore command success is not even a sufficient process-start witness for that service type.",
+    "Type=exec strengthens process-start evidence by waiting until execve succeeds, but still does not establish application-level function or target-device correctness.",
+    "Type=notify gates manager startup completion on READY=1; READY=1 is a service-originated self-report and must remain below Frankenstein completion authority unless independently checked.",
+    "sd_notify attribution has explicit races for short-lived auxiliary senders; sd_notify_barrier can synchronize receipt of prior notifications in cases where attribution would otherwise race.",
+    "The systemd D-Bus model exposes manager-observed Unit ActiveState/SubState and service Result; service units also expose NRestarts, while Unit exposes InvocationID and the manager can resolve a unit by InvocationID.",
+    "These manager properties provide stronger lifecycle/provenance evidence than a shell command exit code, but they still do not prove peripheral, endpoint, perception, audio, browser or application semantics.",
+    "A restart/recovery proof needs a fresh invocation identity plus fresh external readback; carrying forward READY or active-state evidence from a previous invocation would be stale-evidence promotion."
+  ],
+  "f2_distillation": {
+    "recommended": true,
+    "import_library": false,
+    "thin_native_rules": [
+      "Represent systemd user-manager/service lifecycle observations as derived host-bound evidence, never as a second state authority.",
+      "Bind each service witness to TargetEnvironmentIdentity/profile digest, user-manager scope/UID, unit name, InvocationID and observation time.",
+      "Record ActiveState, SubState, Result, ExecMainStatus when available, and NRestarts; treat restart growth as negative/rework signal rather than hiding it behind a final active state.",
+      "Treat READY=1 and watchdog heartbeats as service health signals only; they cannot satisfy REAL_READBACK_VERIFIED by themselves.",
+      "For RESTART_RECOVERY_VERIFIED require a deliberately induced restart/relogin/reboot-class transition appropriate to the component, a new InvocationID, stable manager state, and fresh external function readback bound to the new invocation.",
+      "Do not infer interactive desktop-session validity merely from a live systemd --user manager; keep login/session/XDG/D-Bus/PipeWire/portal identity as separate proof obligations."
+    ]
+  },
+  "counterhypothesis": "systemd lifecycle properties may duplicate existing EffectJournal/telemetry and can create false confidence if promoted above their scope; active/running, READY=1 and watchdog success can coexist with application-level deadlock, wrong peripheral binding or wrong desktop session.",
+  "next_falsifier": "Against the current WP-1202/T1 twin, construct a deterministic fixture where manager lifecycle evidence is green but the external function-readback witness is absent/wrong, and require CompletionGate to remain below REAL_READBACK_VERIFIED; separately verify a restart produces a different InvocationID and invalidates stale pre-restart readback.",
+  "architecture_delta": "CANDIDATE_E2: add a thin HostServiceLifecycleWitness projection between TargetEnvironmentIdentity and external functional readback; do not import systemd libraries or grant completion from manager/service self-report alone.",
+  "research_credit": "E1_SOURCE_READ_ONLY",
+  "runtime_credit": 0,
+  "physical_host_credit": 0,
+  "architecture_acceptance_credit": 0,
+  "whole_system_credit": 0
+}

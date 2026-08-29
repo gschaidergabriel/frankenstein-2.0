@@ -3,6 +3,7 @@ from dataclasses import replace
 import pytest
 
 from frankenstein2.retina_pipeline import (
+    RetinaAssessment,
     RetinaFrameSignal,
     RetinaPipelineError,
     RetinaPolicy,
@@ -149,6 +150,31 @@ def test_concrete_type_boundary_and_output_invariant_fail_closed():
             expected_policy_sha256=pol.sha256(), provenance_refs=("test",))
     with pytest.raises(RetinaPipelineError, match="must equal"):
         replace(assess(base), percept_event_candidate=True)
+
+
+def test_direct_assessment_cannot_self_assert_opposite_producer_result():
+    prev = frame("f0", 0, sha=A, at=100)
+    cur = frame("f1", 1, sha=B, at=200, quality=1, delta=900_000,
+        ref_id=prev.frame_id, ref_sha=prev.frame_sha256)
+    pol = policy()
+    canonical = assess_retina_transition(assessment_id="canonical", current=cur,
+        expected_current_signal_sha256=cur.sha256(), previous=prev,
+        expected_previous_signal_sha256=prev.sha256(), policy=pol,
+        expected_policy_sha256=pol.sha256(), provenance_refs=("producer:assess_retina_transition",))
+    assert canonical.quality_status == "QUALITY_REJECTED"
+    assert canonical.percept_event_candidate is False
+
+    with pytest.raises(RetinaPipelineError, match="producer|lineage|assessment"):
+        RetinaAssessment(assessment_id="forged-direct-constructor",
+            current_frame_id=cur.frame_id, current_frame_sha256=cur.frame_sha256,
+            current_signal_sha256=cur.sha256(), previous_frame_id=prev.frame_id,
+            previous_frame_sha256=prev.frame_sha256, previous_signal_sha256=prev.sha256(),
+            policy_id=pol.policy_id, policy_generation=pol.generation,
+            policy_sha256=pol.sha256(), quality_status="QUALITY_PASS",
+            delta_status="SALIENT_DELTA", continuity_status="CONTINUOUS",
+            percept_event_candidate=True,
+            event_reason="QUALITY_PASS_SALIENT_DELTA_CONTINUOUS",
+            provenance_refs=("forged:direct-constructor",))
 
 
 def test_provenance_is_canonicalized_and_duplicates_rejected():

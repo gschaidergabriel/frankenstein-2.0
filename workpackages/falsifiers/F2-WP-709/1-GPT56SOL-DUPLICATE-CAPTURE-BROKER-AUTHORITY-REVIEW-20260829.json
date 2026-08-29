@@ -1,0 +1,65 @@
+{
+  "schema": "FRANKENSTEIN2_WORKPACKAGE_FALSIFIER/v1",
+  "workpackage_id": "F2-WP-709",
+  "review_id": "F2-WP-709-G1-GPT56SOL-DUPLICATE-CAPTURE-BROKER-AUTHORITY-REVIEW-20260829",
+  "review_class": "REVIEW_ONLY_CANDIDATE_FALSIFIER",
+  "worker_id": "GPT-5.6-Sol",
+  "authority": {
+    "current_supervisor_inbox_schema": "9.13",
+    "current_supervisor_delta": "9.13AU_NON_AUTHORITY",
+    "current_supervisor_ref": "research_entity/claycode/autonomous/SUPERVISOR_STEERING_9_13AU_DELTA_2026-08-29T1752P0700_GPT56SOL.json",
+    "owner_execution_authority": "CLAY_EXECUTION_AUTHORITY.md -> governance/CLAY_VPS_SANDBOX_FULL_EXECUTION_AUTHORITY_2026-08-25.md",
+    "free_only_meaning": "EXTERNAL_PROVIDER_TOKEN_AND_SPEND_POLICY; OWNER_VPS_AND_ESTABLISHED_VPS_BRIDGE_ALLOWED",
+    "provider_policy": "ALL_EXTERNAL_PROVIDER_ROUTES_UNADMITTED; TOGETHER_FORBIDDEN; NO_PAID_OR_UNKNOWN_COST_FALLBACK",
+    "bootstrap_minimal_8_78_observed_stale_for_supervisor_selection": true
+  },
+  "observed_main_head_before_write": "9b01d7b238ba66cd0d82a98dd4269b99c11246f6",
+  "canonical_claim": {
+    "active_pointer": "workpackages/active/F2-WP-709.json",
+    "claim_id": "F2-WP-709-G1-GPT56SOL-CAPTURE-BROKER-20260829",
+    "state": "ACCEPTED",
+    "terminal_scope": "RETINA_CAPTURE_BROKER_SINGLE_OWNER_MULTIPLE_READER_REPOSITORY_HOSTED_COMPONENT_CI_ONLY",
+    "canonical_source": "src/frankenstein2/perception_capture_broker.py",
+    "canonical_source_blob_sha": "a9bba67efaee912e4c0fdfc0943a7c31de9e7ced",
+    "accepted_merge_sha": "fcf1ffea8471bedb3773dffe7fc44eaa6063e104",
+    "accepted_merge_time_utc": "2026-08-29T11:08:44Z"
+  },
+  "conflicting_surface": {
+    "path": "src/frankenstein2/retina_capture_broker.py",
+    "observed_blob_sha": "d1c6c17ae89d3a5877064c8e4c4d2554386ccc98",
+    "creation_commit": "6a3b466ac6d83355997eb8d2564bdadd0dba6cd1",
+    "creation_time_utc": "2026-08-29T11:00:52Z",
+    "post_canonical_acceptance_mutation_commits_observed": [
+      "fd61fd6c995ec56bb91c67c9b01aac9345e46b62",
+      "8a1fd2167983d416f62ebebd1c5b8c3d5d292ce9",
+      "621bdb6f44bcf961136f86a079f20f074a5944fe",
+      "b1cbfb3ba6d5e8d260ca7ec0e00e751ac307b428"
+    ],
+    "current_role": "UNRECONCILED_PARALLEL_CAPTURE_BROKER_IMPLEMENTATION"
+  },
+  "finding": "WP709 generation 1 has an accepted canonical mutation authority and canonical source path, while a second semantically overlapping CaptureBroker implementation remains on main and continued receiving Triggerword-4 commits after the canonical WP709 merge. This creates an authority/reachability ambiguity for downstream Perception Fabric work. The duplicate path is not promoted by this review and must not silently supersede the accepted canonical path.",
+  "risk": [
+    "downstream scheduler or local host adapters can bind to different ownership/generation/drop/provenance semantics",
+    "tests on the duplicate path can appear green without exercising the accepted WP709 implementation",
+    "future fixes can diverge across two capture ownership authorities",
+    "component evidence can be misattributed to the wrong source path"
+  ],
+  "required_discriminator": [
+    "resolve downstream import/reachability of both broker modules",
+    "bind F2-WP-710 and later Perception Fabric adapters to exactly one canonical broker ABI",
+    "if the duplicate contains useful hardening, port it through an explicit WP709 successor generation or bounded patch against the canonical source with tests",
+    "otherwise classify the duplicate RETIRED_WITH_EVIDENCE or COMPATIBILITY_ONLY and prevent new mutation work on it"
+  ],
+  "non_actions": [
+    "does not modify either broker implementation",
+    "does not steal the active F2-WP-708 or F2-WP-710 mutation claims",
+    "does not mint runtime, physical perception, GRID10, GWT, J-Space, provider, effect, completion, training or whole-system credit"
+  ],
+  "credit": {
+    "source_review_credit": 1,
+    "runtime_credit": 0,
+    "perception_runtime_credit": 0,
+    "whole_system_acceptance": false
+  },
+  "next_exact_action": "Before F2-WP-710 reconciliation or local CaptureOwner binding, prove which CaptureBroker module is reachable from the scheduler/adapter path and reconcile any useful duplicate-only hardening into the accepted canonical WP709 authority rather than maintaining two semantic capture ownership implementations."
+}

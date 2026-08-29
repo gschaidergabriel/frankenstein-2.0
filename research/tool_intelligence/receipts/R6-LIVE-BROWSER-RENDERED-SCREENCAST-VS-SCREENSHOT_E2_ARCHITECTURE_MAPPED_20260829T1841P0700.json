@@ -1,0 +1,78 @@
+{
+  "schema": "FRANKENSTEIN2_TRIGGER6_EVIDENCE_RECEIPT/v1",
+  "research_id": "R6-LIVE-BROWSER-RENDERED-SCREENCAST-VS-SCREENSHOT",
+  "evidence_stage": "E2_ARCHITECTURE_MAPPED",
+  "status": "COMPLETED_CAPABILITY_NEGOTIATED_POLICY_PENDING_MEASUREMENT",
+  "completed_at": "2026-08-29T18:41:00+07:00",
+  "worker": "gpt-5.6-sol",
+  "claim": {
+    "path": "research/tool_intelligence/claims/R6-LIVE-BROWSER-RENDERED-SCREENCAST-VS-SCREENSHOT/E2_ARCHITECTURE_MAPPED.json",
+    "claim_commit": "f8c1eaa986b26b897db04e2d95e97f54f7a35a97"
+  },
+  "prerequisite_receipt": "research/tool_intelligence/receipts/R6-LIVE-BROWSER-RENDERED-SCREENCAST-VS-SCREENSHOT_E1_SOURCE_READ_20260829T1838P0700.json",
+  "current_f2_context": {
+    "logical_source": "browser/rendered/<target_id>",
+    "broker_authority": "PerceptionCaptureBroker remains one-owner bounded admission/drop authority",
+    "temporal_authority": "captured_monotonic_ns plus existing clock calibration/uncertainty rules",
+    "generation_authority": "source_generation/epoch fences navigation/reconnect",
+    "acceptance_state_observed": "WP714 preparation has resolved listed WP708/WP710/WP711/WP712/WP713 repository-CI dependencies; final Perception Fabric acceptance still requires a non-synthetic local real-device/OS-permission receipt"
+  },
+  "mapped_policy": {
+    "name": "BROWSER_RENDERED_CAPABILITY_NEGOTIATED_CAPTURE/v1",
+    "startup": [
+      "bind exact browser build/version and CDP protocol identity",
+      "discover/verify whether Page.startScreencast and required parameters are actually supported on that exact protocol",
+      "never infer tip-of-tree experimental capability from browser family/name alone"
+    ],
+    "continuous_preferred_candidate": "Page.startScreencast only when exact capability/version acceptance passes",
+    "sampled_fallback_candidate": "Page.captureScreenshot at deterministic scheduler-selected cadence",
+    "on_demand_candidate": "Page.captureScreenshot for explicit high-fidelity/specific-region evidence when required",
+    "screencast_flow_control": [
+      "use positive bounded maxFramesInFlight; exact value is a measured configuration, not a source-derived constant",
+      "validate/hash/map frame provenance and publish to the existing local broker before acknowledging the CDP frame",
+      "acknowledgement must not wait for downstream semantic/model consumption because that would turn CDP transport flow control into a second perception scheduling/admission authority",
+      "broker queue/drop counters remain the canonical local overload evidence",
+      "sendLastFrame remains measurement-gated because the protocol explicitly describes a performance-versus-latency trade"
+    ],
+    "timestamp_rule": "Page.screencastFrame.metadata.timestamp (Network.TimeSinceEpoch) is auxiliary browser clock data only. F2 captures local captured_monotonic_ns on receipt/admission and may map the browser timestamp only through existing clock-domain calibration/uncertainty machinery.",
+    "generation_rule": "navigation, target replacement, detach/reconnect or invalidating protocol restart advances source_generation/epoch before new rendered observations rejoin fusion.",
+    "provenance": [
+      "source_id",
+      "source_generation_or_epoch",
+      "rendered_capture_kind=CDP_SCREENCAST|CDP_SCREENSHOT",
+      "cdp_target_id",
+      "cdp_target_session_id_string",
+      "cdp_screencast_frame_id_integer_when_applicable",
+      "browser_build_or_version_identity",
+      "cdp_protocol_identity",
+      "captured_monotonic_ns",
+      "browser_timestamp_since_epoch_when_applicable",
+      "payload_sha256_or_ref"
+    ]
+  },
+  "architecture_decision": "ADOPT_AS_E2_POLICY_HYPOTHESIS_NOT_BUILD_PROMOTION",
+  "expected_benefit": "Preserves a continuous event-stream option with explicit transport backpressure while retaining a broadly compatible pull fallback, without changing F2 capture ownership or temporal authority.",
+  "counterhypotheses": [
+    "Sampled captureScreenshot may be cheaper and sufficient for actual workloads, making screencast unnecessary complexity.",
+    "Experimental startScreencast may fail compatibility/reconnect tests frequently enough that it should not be preferred even when present.",
+    "Acknowledging immediately after local broker publication may still permit excess encode/network work if broker is dropping heavily; scheduler/cadence adaptation may need to reduce screencast rate.",
+    "Browser TimeSinceEpoch may be too unstable or low-value to calibrate; dropping it while retaining local monotonic receipt time may be simpler."
+  ],
+  "required_measurements": [
+    "p50/p95 end-to-end capture-to-broker latency",
+    "CPU/RSS and encoded bytes per second",
+    "broker accepted/dropped counts versus maxFramesInFlight/everyNthFrame settings",
+    "screenshot pull cadence cost at matched effective observation rate",
+    "image quality/task coverage",
+    "navigation/detach/reconnect recovery",
+    "protocol-version fallback behavior",
+    "browser-epoch to local-monotonic calibration stability if browser timestamp is retained"
+  ],
+  "next_discriminator": "E3/E4 on exact target browser/runtime comparing bounded screencast and sampled screenshot under matched observation workloads. No runtime/physical/efficiency credit before those measurements and the owner-authorized local acceptance boundary.",
+  "research_evidence_credit": "E2_ARCHITECTURE_MAPPED_ONLY",
+  "architecture_credit": "BOUNDED_POLICY_PROPOSAL_ONLY",
+  "runtime_credit": 0,
+  "efficiency_credit": 0,
+  "physical_browser_capture_credit": 0,
+  "whole_system_credit": 0
+}

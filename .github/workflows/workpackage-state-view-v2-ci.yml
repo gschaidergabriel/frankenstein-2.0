@@ -1,0 +1,41 @@
+name: Workpackage state view v2 CI
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'workpackages/state_events/**'
+      - 'workpackages/active/**'
+      - 'workpackages/reconciliations/**'
+      - 'workpackages/STATE.json'
+      - 'workpackages/STATE_VIEW_CONTRACT_V2.json'
+      - 'workpackages/STATE_CONCURRENCY_PROTOCOL_V2.md'
+      - 'tools/resolve_workpackage_state_v2.py'
+      - 'tests/test_resolve_workpackage_state_v2.py'
+      - '.github/workflows/workpackage-state-view-v2-ci.yml'
+  pull_request:
+    paths:
+      - 'workpackages/state_events/**'
+      - 'workpackages/active/**'
+      - 'workpackages/reconciliations/**'
+      - 'workpackages/STATE.json'
+      - 'workpackages/STATE_VIEW_CONTRACT_V2.json'
+      - 'workpackages/STATE_CONCURRENCY_PROTOCOL_V2.md'
+      - 'tools/resolve_workpackage_state_v2.py'
+      - 'tests/test_resolve_workpackage_state_v2.py'
+      - '.github/workflows/workpackage-state-view-v2-ci.yml'
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Unit tests
+        run: python -m unittest tests/test_resolve_workpackage_state_v2.py
+      - name: Validate migrated state-event chains and active bindings
+        run: python tools/resolve_workpackage_state_v2.py . --check-active

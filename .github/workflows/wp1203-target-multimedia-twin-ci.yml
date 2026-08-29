@@ -1,0 +1,35 @@
+name: F2 WP1203 Target Multimedia Twin CI
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'src/frankenstein2/target_multimedia_twin.py'
+      - 'tests/test_target_multimedia_twin.py'
+      - '.github/workflows/wp1203-target-multimedia-twin-ci.yml'
+  pull_request:
+    paths:
+      - 'src/frankenstein2/target_multimedia_twin.py'
+      - 'tests/test_target_multimedia_twin.py'
+      - '.github/workflows/wp1203-target-multimedia-twin-ci.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  deterministic:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Compile
+        run: python -m py_compile src/frankenstein2/target_multimedia_twin.py tests/test_target_multimedia_twin.py
+      - name: T2 topology falsification suite
+        env:
+          PYTHONPATH: src
+        run: python tests/test_target_multimedia_twin.py -v

@@ -1,0 +1,171 @@
+{
+  "schema": "FRANKENSTEIN2_TRIGGER6_SOURCE_ARCHAEOLOGY/v1",
+  "trigger": "6",
+  "slot": "SOURCE_ARCHAEOLOGIST",
+  "research_id": "R6-20260829-GSTREAMER-CAPTURE-BACKPRESSURE-GPT56SOL-01",
+  "claim_target": "E1_SOURCE_READ",
+  "status": "E1_SOURCE_READ_COMPLETE_NO_ARCHITECTURE_PROMOTION",
+  "completed_at": "2026-08-29T18:23:00+07:00",
+  "worker": "GPT-5.6 Sol / ChatGPT Trigger-6 organ",
+  "claim": {
+    "path": "research/tool_intelligence/claims/R6-20260829-GSTREAMER-CAPTURE-BACKPRESSURE-GPT56SOL-01/E1_SOURCE_READ.json",
+    "claim_commit": "a2c2d2516b0d30263592eaf436de6c5b7ae51fc3",
+    "coordination_only": true,
+    "precedes_overlapping_wp710_claim": true,
+    "note": "A later worker claimed a WP710 latest-wins/backpressure audit at 442dcf33ae64e0b5733d7f7f875c50a6775aa71d (2026-08-29T11:19:54Z). This E1 claim was created first at 2026-08-29T11:19:00Z; downstream work should fuse rather than count these as independent replication."
+  },
+  "architecture_context": {
+    "supervisor_schema": "9.13",
+    "supervisor_delta": "9.13AP_NON_AUTHORITY",
+    "execution_mode": "FREE_ONLY",
+    "f2_main_observed_preclaim": "621bdb6f44bcf961136f86a079f20f074a5944fe",
+    "research_entity_main_observed_preclaim": "d9d4fea68eafe7148678f003b932f7bfbbf34acc",
+    "f2_capture_baseline_commits": [
+      "8a1fd2167983d416f62ebebd1c5b8c3d5d292ce9",
+      "621bdb6f44bcf961136f86a079f20f074a5944fe"
+    ],
+    "active_problem": "CaptureBroker already bounds live frame refs, retained drop diagnostics and rolling provenance, but its overflow behavior is hard-coded to drop-oldest and its queue pressure model is primarily frame-count based while the new Perception Fabric is moving toward sustained multi-source scheduling."
+  },
+  "source_lock": {
+    "repository": "GStreamer/gstreamer",
+    "commit": "7c49446505b962f25ac484d31a83635f228bffc9",
+    "commit_date_utc": "2026-08-29T06:54:33Z",
+    "license_observed_in_gstappsink_c": "LGPL-2.1-or-later header text",
+    "files_read": [
+      "subprojects/gst-plugins-base/gst-libs/gst/app/gstappsink.c",
+      "subprojects/gst-plugins-base/gst-libs/gst/app/gstappsrc.h"
+    ],
+    "primary_docs_read": [
+      "https://gstreamer.freedesktop.org/documentation/app/appsink.html",
+      "https://gstreamer.freedesktop.org/documentation/coreelements/queue.html"
+    ],
+    "source_type": "EXTERNAL_PRIMARY_REPOSITORY_SOURCE_AND_OFFICIAL_DOCS"
+  },
+  "source_observations": [
+    {
+      "id": "GST-E1-01",
+      "classification": "SOURCE_DIRECT",
+      "observation": "appsink uses an internal queue between the streaming thread and the application. Its own source warns that if the application does not pull samples fast enough, queue memory can grow and blocking the streaming thread can harm real-time performance."
+    },
+    {
+      "id": "GST-E1-02",
+      "classification": "SOURCE_DIRECT",
+      "observation": "appsink exposes independent max-buffers, max-bytes and max-time bounds. The generic queue element likewise supports buffer/byte/time maxima, so boundedness can be expressed in multiple physical dimensions rather than frame count alone."
+    },
+    {
+      "id": "GST-E1-03",
+      "classification": "SOURCE_DIRECT",
+      "observation": "GstAppLeakyType has NONE, UPSTREAM and DOWNSTREAM modes. In appsink this means block when full, drop the incoming/new buffer, or dequeue/drop the oldest buffered item respectively. The historical boolean drop property is deprecated in GStreamer 1.28 in favor of this explicit policy."
+    },
+    {
+      "id": "GST-E1-04",
+      "classification": "SOURCE_DIRECT",
+      "observation": "The current appsink implementation maintains exact in/out/dropped counters and queue-status information; official 1.28 docs expose current-level-buffers/current-level-bytes/current-level-time plus in/out/dropped. Drop accounting distinguishes a dropped buffer list by its contained buffer count."
+    },
+    {
+      "id": "GST-E1-05",
+      "classification": "SOURCE_DIRECT",
+      "observation": "appsink can notify on metric changes, but silent defaults true for its new in/out/dropped notifications. The generic queue similarly offers a silent mode to reduce signal overhead, making observability itself an explicit runtime-cost tradeoff."
+    },
+    {
+      "id": "GST-E1-06",
+      "classification": "SOURCE_DIRECT",
+      "observation": "wait-on-eos can be disabled so an appsink does not hang waiting for a consumer to drain queued buffers after EOS when consumer availability is uncertain."
+    }
+  ],
+  "f2_baseline_observations": [
+    {
+      "id": "F2-CAP-01",
+      "classification": "CURRENT_SOURCE",
+      "observation": "Current F2 CaptureBroker is immutable/persistence-agnostic, stores references rather than raw frame bytes, enforces one source/owner, keeps a fixed-capacity ring, and on overflow removes the oldest reference."
+    },
+    {
+      "id": "F2-CAP-02",
+      "classification": "CURRENT_SOURCE",
+      "observation": "Current F2 records exact total dropped_frame_count, only a bounded recent window of dropped frame IDs, and a constant-size rolling provenance chain using prior-state and current-frame digests."
+    },
+    {
+      "id": "F2-CAP-03",
+      "classification": "CURRENT_TEST_EVIDENCE",
+      "observation": "At 621bdb6f, F2 tests a 1,024-frame run at capacity 4 and asserts bounded live refs, bounded retained drop IDs, bounded provenance refs, exact generation and exact cumulative drop count. This is repository test evidence, not target-device/runtime evidence."
+    }
+  ],
+  "bounded_f2_relevance": [
+    {
+      "id": "GST-F2-R1",
+      "classification": "INFERENCE",
+      "claim": "F2 should not import GStreamer merely to obtain queue policy. The high-value donor is the explicit typed overflow/backpressure contract: BLOCK, DROP_NEW and DROP_OLDEST/LATEST_WINS, with DROP_OLDEST remaining the likely live-perception default.",
+      "confidence": 0.96,
+      "boundary": "Policy selection must remain deterministic and must not let a capture backend become state/effect authority."
+    },
+    {
+      "id": "GST-F2-R2",
+      "classification": "INFERENCE",
+      "claim": "Capture pressure telemetry should separate offered/input, delivered/output and dropped counts from instantaneous queue level. That makes scheduler adaptation and loss diagnosis distinguish consumer slowness from source sparsity without retaining unbounded history.",
+      "confidence": 0.95,
+      "boundary": "Counters/levels are telemetry only; they do not make perception observations true."
+    },
+    {
+      "id": "GST-F2-R3",
+      "classification": "INFERENCE",
+      "claim": "max-bytes is probably lower-value inside the current ref-only CaptureBroker because reference objects are bounded metadata rather than raw images; max-age/max-time is more likely to matter because stale perception can be epistemically worse than dropped perception. A byte cap becomes important only if future broker state starts retaining variable-size payloads or backend buffers.",
+      "confidence": 0.89,
+      "boundary": "Do not copy all three GStreamer dimensions mechanically when F2 semantics differ."
+    },
+    {
+      "id": "GST-F2-R4",
+      "classification": "INFERENCE",
+      "claim": "A bounded newest-frame policy should be tested jointly with WP710 dynamic perception scheduling. If the consumer is intentionally throttled, stale queued frames should normally be discarded before increasing model/perception work; otherwise the scheduler may spend compute on observations that have already been superseded.",
+      "confidence": 0.92,
+      "boundary": "This is a design hypothesis until mapped and ablated against WP710; no architecture promotion is granted at E1."
+    }
+  ],
+  "counterhypothesis": {
+    "statement": "F2's hard-coded drop-oldest ring may already be the minimal correct policy for all current Retina sources. Adding policy enums, time bounds and extra counters could increase state/schema complexity without measurable freshness, latency or diagnostic benefit because only small immutable refs are buffered and total drop count already exists.",
+    "confidence": 0.72,
+    "cheapest_discriminator": "At E2/E4, map the proposed fields onto current CaptureBroker + WP710 and run a deterministic slow-consumer simulation. Reject the delta if DROP_NEW/BLOCK are never valid, if queue age can be derived without extra state, or if in/out/current-level counters add no decision or diagnostic power beyond generation, ring length and cumulative drop count."
+  },
+  "risk_register": [
+    "BACKPRESSURE_POLICY_BECOMES_UNNECESSARY_CONFIGURABILITY",
+    "BLOCKING_CAPTURE_THREAD_INCREASES_REALTIME_LATENCY",
+    "TELEMETRY_FIELDS_DUPLICATE_DERIVABLE_STATE",
+    "STALE_FRAME_PROCESSING_WASTES_PERCEPTION_COMPUTE",
+    "BACKEND_GSTREAMER_IDS_MUST_NOT_BECOME_CANONICAL_F2_IDENTITY",
+    "GSTREAMER_RUNTIME_DEPENDENCY_WEIGHT_EXCEEDS_STRUCTURAL_BENEFIT"
+  ],
+  "adoption_posture": {
+    "full_library_import_for_broker_semantics": "NOT_RECOMMENDED_AT_E1",
+    "structural_distillation": "PROMISING",
+    "likely_minimal_delta": [
+      "typed overflow_policy",
+      "instantaneous queue pressure snapshot",
+      "input/output/dropped monotonic counters",
+      "optional max_age_ns or stale-before-consume rule"
+    ],
+    "runtime_integration": "NOT_AUTHORIZED_NOT_TESTED",
+    "build_candidate": false
+  },
+  "evidence_ceiling": {
+    "level": "E1_SOURCE_READ",
+    "research_credit": 1,
+    "architecture_credit": 0,
+    "runtime_credit": 0,
+    "physical_device_credit": 0,
+    "whole_system_credit": 0,
+    "training_credit": 0
+  },
+  "coordination": {
+    "overlap_detected_after_claim": "research/tool_intelligence claim commit 442dcf33ae64e0b5733d7f7f875c50a6775aa71d for WP710 latest-wins backpressure source audit",
+    "resolution": "Do not claim independent replication. This earlier GStreamer E1 result should be consumed/fused by the later WP710-specific worker; this worker will not duplicate WP710 E2 mapping in this objective."
+  },
+  "next_recommended_trigger6_objective": {
+    "slot": "INTEGRATION_DISTILLER_OR_EXPERIMENTAL_FALSIFIER",
+    "claim_target": "DEFER_TO_EXISTING_WP710_BACKPRESSURE_OWNER",
+    "action": "Fuse this GStreamer source result into the already-claimed WP710 latest-wins/backpressure audit. The next discriminator should compare newest-wins vs blocking vs drop-new under an intentionally slow consumer and measure freshness/age, dropped count, queue depth and processing waste.",
+    "stop_condition": "If latest-wins is strictly dominant for all admitted F2 live-perception source classes and all additional metrics are derivable from existing state, keep the current minimal ring and add only the missing test/telemetry evidence."
+  },
+  "database_sync": {
+    "pending_research_sqlite": "PENDING",
+    "reason": "No binary SQLite mutation is claimed in this source-read step."
+  }
+}

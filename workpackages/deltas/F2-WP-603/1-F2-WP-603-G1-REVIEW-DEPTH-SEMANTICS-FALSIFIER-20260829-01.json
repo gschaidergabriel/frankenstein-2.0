@@ -1,0 +1,36 @@
+{
+  "schema": "FRANKENSTEIN2_WORKPACKAGE_DELTA/v1",
+  "workpackage_id": "F2-WP-603",
+  "generation": 1,
+  "result_class": "CANDIDATE_FALSIFIER_REVIEW_ONLY",
+  "reviewer": "GPT-5.6-Sol",
+  "canonical_mutation_authority": "F2-WP-603-G1-GPT56SOL-RECURSION-ROUTER-20260829",
+  "observed_main": "73295c9298203c32c6c52bc18eb3b0230370087c",
+  "reviewed_dependencies": {
+    "wp600_source": "src/frankenstein2/direct_delegate_router.py",
+    "wp600_source_blob_sha": "f403f4893769bf08812eec5e53a455a267274cf4",
+    "wp601_source": "src/frankenstein2/native_child_abi.py",
+    "wp601_source_blob_sha": "fbaba3705d6ac1337fe3a4ab8a44d5020e789695"
+  },
+  "falsifier_id": "WP603_RECURSION_DEPTH_SEMANTICS_AND_BUDGET_CONSUMPTION",
+  "severity": "HIGH_UNTIL_SEMANTICS_BOUND",
+  "observation": "WP601 exposes ChildResourceBudget.max_nested_depth as a non-negative declarative upper bound but does not define whether that value counts the immediate requested child, only descendants below that child, an absolute root-relative depth, or a remaining edge budget. WP600 has no recursion-depth field. The active WP603 claim requires R0/R1/R2/R3 plus a check that NativeChildRequest.max_nested_depth can cover the selected level. Without one explicit invariant, a syntactically valid implementation can pass local comparisons yet either be off by one or re-issue the same depth budget at each child and exceed the intended recursion ceiling.",
+  "counterexample": {
+    "case_a_off_by_one": "If R1 means one child edge from the current controller and NativeChildRequest.max_nested_depth means descendants allowed below that requested child, then R1 is compatible with max_nested_depth=0. A naive selected_level <= max_nested_depth check rejects a valid bounded one-child delegation.",
+    "case_b_budget_reset": "If a parent selects R3 and emits a child request that still carries max_nested_depth=3, and the child later runs the same router using that unchanged value, the child can select R3 again. The nominal R3 ceiling has become locally true but globally unbounded unless remaining depth or root-relative depth is causally consumed/bound.",
+    "case_c_direct_interface": "DIRECT_SMALL/R0 should not require a semantically meaningless NativeChildRequest merely so the router can read max_nested_depth. If the implementation requires a child request for R0, the direct path acquires an unnecessary child identity/budget dependency; if it accepts one, later consumers may misinterpret dormant child evidence as delegation intent."
+  },
+  "required_discriminator": "Before bounded WP603 acceptance, define and test exactly one recursion-depth convention and bind it into candidate identity. Preferred fail-closed shape: Rk denotes remaining child edges from the current routing decision; DIRECT_SMALL requires R0 and no child request; DELEGATE_BUILD requires k>=1 plus an exact pending NativeChildRequest; the child request carries or is paired with an explicit remaining-depth value for the child equal to k-1, and downstream nested routing cannot increase it. An alternative convention is acceptable only if root/remaining semantics and the immediate-child off-by-one rule are explicit, content-bound, and recursively non-increasing.",
+  "minimum_tests": [
+    "DIRECT_SMALL + R0 succeeds without requiring NativeChildRequest child evidence",
+    "DIRECT_SMALL + R1/R2/R3 fails closed",
+    "DELEGATE_BUILD + R0 fails closed",
+    "R1 immediate-child semantics are explicitly tested against max_nested_depth=0 and/or 1 according to the chosen convention",
+    "nested reroute consumes depth monotonically; a child cannot reissue its parent's full R-level",
+    "route candidate identity/digest changes when recursion level or remaining-depth evidence changes",
+    "mapping ingress rejects a candidate whose displayed recursion level disagrees with its content-bound digest",
+    "policy ceiling <= R3 and request budget ceiling are both enforced without one silently substituting for the other"
+  ],
+  "authority_boundary": "REVIEW_ONLY. This file does not modify WP603 implementation, active claim, routing authority, child execution, budget enforcement, UnifiedDB, effects, completion, runtime, GRID/GWT/J-Space, training or whole-system credit.",
+  "recommended_owner_action": "Active WP603 mutation authority should either absorb this falsifier in generation 1 before acceptance or preserve executable evidence showing why its chosen depth convention makes the counterexamples impossible."
+}

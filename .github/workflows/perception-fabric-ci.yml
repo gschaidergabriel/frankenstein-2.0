@@ -1,0 +1,104 @@
+name: Perception Fabric core contracts
+
+on:
+  pull_request:
+    paths:
+      - 'src/frankenstein2/perception_fabric.py'
+      - 'src/frankenstein2/perception_temporal.py'
+      - 'src/frankenstein2/perception_bridge.py'
+      - 'src/frankenstein2/active_sensing_fabric.py'
+      - 'src/frankenstein2/*capture_broker*.py'
+      - 'src/frankenstein2/perception_dashboard_policy.py'
+      - 'src/frankenstein2/perception_host_permissions.py'
+      - 'src/frankenstein2/perception_fabric_simulation.py'
+      - 'src/frankenstein2/perception_compute_binding.py'
+      - 'tests/test_perception_fabric.py'
+      - 'tests/test_perception_temporal.py'
+      - 'tests/test_perception_bridge.py'
+      - 'tests/test_active_sensing_fabric.py'
+      - 'tests/test_perception_capture_broker.py'
+      - 'tests/test_perception_capture_broker_soak.py'
+      - 'tests/test_capture_broker_authority_uniqueness.py'
+      - 'tests/test_perception_dashboard_policy.py'
+      - 'tests/test_perception_host_permissions.py'
+      - 'tests/test_perception_fabric_simulation.py'
+      - 'tests/test_perception_compute_binding.py'
+      - 'architecture/PERCEPTION_FABRIC.md'
+      - 'architecture/VPS_BUILD_LOCAL_ACCEPTANCE_CONTRACT.md'
+      - 'workpackages/PERCEPTION_FABRIC_PHASE.json'
+      - '.github/workflows/perception-fabric-ci.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'src/frankenstein2/perception_fabric.py'
+      - 'src/frankenstein2/perception_temporal.py'
+      - 'src/frankenstein2/perception_bridge.py'
+      - 'src/frankenstein2/active_sensing_fabric.py'
+      - 'src/frankenstein2/*capture_broker*.py'
+      - 'src/frankenstein2/perception_dashboard_policy.py'
+      - 'src/frankenstein2/perception_host_permissions.py'
+      - 'src/frankenstein2/perception_fabric_simulation.py'
+      - 'src/frankenstein2/perception_compute_binding.py'
+      - 'tests/test_perception_fabric.py'
+      - 'tests/test_perception_temporal.py'
+      - 'tests/test_perception_bridge.py'
+      - 'tests/test_active_sensing_fabric.py'
+      - 'tests/test_perception_capture_broker.py'
+      - 'tests/test_perception_capture_broker_soak.py'
+      - 'tests/test_capture_broker_authority_uniqueness.py'
+      - 'tests/test_perception_dashboard_policy.py'
+      - 'tests/test_perception_host_permissions.py'
+      - 'tests/test_perception_fabric_simulation.py'
+      - 'tests/test_perception_compute_binding.py'
+      - 'architecture/PERCEPTION_FABRIC.md'
+      - 'architecture/VPS_BUILD_LOCAL_ACCEPTANCE_CONTRACT.md'
+      - 'workpackages/PERCEPTION_FABRIC_PHASE.json'
+      - '.github/workflows/perception-fabric-ci.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  perception-fabric-core:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      PYTHONPATH: src
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Compile Perception Fabric core
+        run: |
+          python -m py_compile src/frankenstein2/perception_fabric.py
+          python -m py_compile src/frankenstein2/perception_temporal.py
+          python -m py_compile src/frankenstein2/perception_bridge.py
+          python -m py_compile src/frankenstein2/active_sensing_fabric.py
+          python -m py_compile src/frankenstein2/perception_capture_broker.py
+          python -m py_compile src/frankenstein2/perception_dashboard_policy.py
+          python -m py_compile src/frankenstein2/perception_host_permissions.py
+          python -m py_compile src/frankenstein2/perception_fabric_simulation.py
+          python -m py_compile src/frankenstein2/perception_compute_binding.py
+      - name: Test Perception Fabric
+        run: python -m unittest tests.test_perception_fabric -v
+      - name: Test temporal contracts
+        run: python -m unittest tests.test_perception_temporal -v
+      - name: Test perception bridge
+        run: python -m unittest tests.test_perception_bridge -v
+      - name: Test active sensing fabric
+        run: python -m unittest tests.test_active_sensing_fabric -v
+      - name: Test canonical capture broker
+        run: python -m unittest tests.test_perception_capture_broker -v
+      - name: Test canonical capture broker soak
+        run: python -m unittest tests.test_perception_capture_broker_soak -v
+      - name: Test capture broker authority uniqueness
+        run: python -m unittest tests.test_capture_broker_authority_uniqueness -v
+      - name: Test dashboard policy
+        run: python -m unittest tests.test_perception_dashboard_policy -v
+      - name: Test host permissions
+        run: python -m unittest tests.test_perception_host_permissions -v
+      - name: Test perception simulation
+        run: python -m unittest tests.test_perception_fabric_simulation -v
+      - name: Test perception compute binding
+        run: python -m unittest tests.test_perception_compute_binding -v

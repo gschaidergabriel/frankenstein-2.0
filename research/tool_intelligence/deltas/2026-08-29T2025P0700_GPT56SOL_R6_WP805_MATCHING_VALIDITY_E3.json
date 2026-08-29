@@ -1,0 +1,111 @@
+{
+  "schema": "FRANKENSTEIN2_TRIGGER6_RESEARCH_RESULT/v1",
+  "trigger": "6",
+  "research_id": "R6-20260829-WP805-REPLAN-RECOVERY-EFFICIENCY-GPT56SOL-01",
+  "slot": "EXPERIMENTAL_FALSIFIER",
+  "evidence_stage": "E3_CLAIM_REPRODUCED",
+  "status": "COMPLETED_E3_REPOSITORY_HOSTED_EXACT_SOURCE_COUNTEREXAMPLE",
+  "created_at": "2026-08-29T20:25:00+07:00",
+  "worker": "GPT-5.6-Sol-TRIGGER6",
+  "claim": {
+    "path": "research/tool_intelligence/claims/R6-20260829-WP805-REPLAN-RECOVERY-EFFICIENCY-GPT56SOL-01/E3_CLAIM_REPRODUCED_MATCHING_VALIDITY_GAPS.json",
+    "commit": "aa0ccffc60ff2c11bc57435f578aba619affc0ec"
+  },
+  "source_identity": {
+    "wp805_merge_commit": "057de6f31694723b0f702ddd8bb9818179eae420",
+    "wp805_source_blob_sha": "5a41760f21eeb6efdb6faf12f2e33b2dfca9d7b3",
+    "source_blob_unchanged_at_post_run_main": "747ad79e91b0574ad86e5f290318ac343c4086c2",
+    "experiment_path": "research/tool_intelligence/experiments/wp805_matching_validity_falsifier.py",
+    "experiment_commit": "34b759b459874e8433fd6e58fd00276cbfd1d258",
+    "workflow_path": ".github/workflows/wp805-trigger6-matching-validity-falsifier.yml",
+    "workflow_commit": "1d055f4f48d5634fba981a78bc3529ad23a2f731"
+  },
+  "repository_execution": {
+    "provider": "GITHUB_ACTIONS_REPOSITORY_HOSTED_CI",
+    "workflow_run_id": 33254924416,
+    "job_id": 99106843376,
+    "checked_out_commit": "1d055f4f48d5634fba981a78bc3529ad23a2f731",
+    "runner": "ubuntu-24.04",
+    "python": "3.12.14",
+    "compile": "PASS",
+    "counterexample_job": "PASS",
+    "scope": "RESEARCH_FALSIFIER_EXECUTION_ON_REPOSITORY_SOURCE_NOT_F2_TARGET_RUNTIME"
+  },
+  "reproduced_claims": [
+    {
+      "id": "WP805-E3-R1-MATCHED-START-IDENTITY-GAP",
+      "result": "REPRODUCED",
+      "observation": "A cold public start and checkpoint-resume public start with distinct ObservationView digests and distinct episode ids were used conceptually for the two arms. The current EvaluatorRunMeasurement has no start-observation identity field, and MatchedRecoveryComparison successfully created a pair because it only matches transfer-case, hidden target fixture and action budget plus modes/run ids.",
+      "cold_public_start_sha256": "925dd4b643eb9a46117c4e5f664b51710188d5da3d76157758dc8a9e982cee3c",
+      "resume_public_start_sha256": "717326f29f8bf977fce93fcc17c69aec18ae2e9f687115fd039034c21d9c1a10",
+      "starts_differ": true,
+      "comparison_created": "recovery-pair:f4b5297d7612aa8d70b2f9970ab699702f4ee04e21f1037f72610115068918eb",
+      "inference_boundary": "This proves the present contract does not mechanically establish identical public start state across comparison arms. It does not prove any existing benchmark dataset actually used mismatched starts."
+    },
+    {
+      "id": "WP805-E3-R2-STRUCTURAL-FAMILY-RELABELING-GAP",
+      "result": "REPRODUCED",
+      "observation": "Two valid WP800 MicroWorldFixture values were constructed with different fixture ids, public digests and holdout_set_id labels but identical evidence_source_family, donor_path_family and method_family. TransferCase accepted them.",
+      "transfer_case_created": "transfer:b616bb21a9078a989cf5f2f2c171ec66988e1885e0d2e59fb93cf6ac0f3d838c",
+      "holdout_labels_differ": true,
+      "evidence_source_family_equal": true,
+      "donor_path_family_equal": true,
+      "method_family_equal": true,
+      "inference_boundary": "This proves current WP805 establishes cross-fixture/cross-holdout identity, not structural-family OOD transfer. It does not invalidate the current bounded cross-fixture component credit."
+    }
+  ],
+  "research_interpretation": {
+    "incremental_replanning_context": "Lifelong Planning A* and D* Lite justify comparing reuse against from-scratch solving specifically for related changed problems, because their claimed benefit comes from reusing prior search information across similar tasks; this increases the importance of exact problem-change and arm-matching identity rather than weakening it.",
+    "primary_sources": [
+      {
+        "title": "Lifelong Planning A*",
+        "authors": "Sven Koenig, Maxim Likhachev, David Furcy",
+        "year": 2004,
+        "doi": "10.1016/j.artint.2003.12.001"
+      },
+      {
+        "title": "D* Lite",
+        "authors": "Sven Koenig, Maxim Likhachev",
+        "year": 2002,
+        "venue": "AAAI-02"
+      }
+    ],
+    "current_world_model_caution": "Recent planning/world-model work further motivates explicit coverage/family semantics and local repair cost, but these are research analogies rather than F2 implementation evidence."
+  },
+  "architecture_delta": {
+    "preserve": [
+      "Keep current WP805 generation-1 public/evaluator separation, checkpoint provenance fences, matched target/budget contract and zero-credit boundaries.",
+      "Keep current component acceptance bounded to cross-fixture/cross-holdout repository evidence."
+    ],
+    "new_high_priority_gate": {
+      "id": "WP805-HARDENING-MATCHED-START-v1",
+      "requirement": "For any causal recovery-efficiency claim, bind COLD_RESTART and CHECKPOINT_RESUME to one exact evaluator-approved post-change public start identity (observation digest plus episode/generation/step or a sealed start descriptor). The arms may differ in retained planner/checkpoint state, not in observed world start state."
+    },
+    "confirmed_later_hardening_gate": {
+      "id": "WP805-HARDENING-STRUCTURAL-SPLIT-v1",
+      "requirement": "For structural-transfer claims, bind an evaluator-owned transfer-axis/family vector or opaque digest derived from WP800 family metadata and test forbidden overlap. Distinct holdout labels alone remain cross-holdout evidence only."
+    },
+    "still_deferred": "Do not require a universal oracle/path-regret authority until WP804 goal/identifiability semantics provide one stable admissible goal contract; when an exact deterministic oracle exists for a specific fixture family, it may be added as evaluator-only optional evidence rather than a second goal authority.",
+    "trace_gate": "The preexisting E2 trace-binding gap remains open for stronger repeated-work/replay/runtime-efficiency credit; this E3 run did not reproduce that separate tamper claim."
+  },
+  "counterhypothesis": {
+    "statement": "Matching only transfer-case, target hidden fixture and action budget may be enough because test harnesses can externally guarantee identical starts.",
+    "assessment": "POSSIBLE_BUT_NOT_SELF_AUTHENTICATING",
+    "reason": "An external harness guarantee can make a particular experiment valid, but the current persisted MatchedRecoveryComparison receipt cannot prove that guarantee after the fact. Strong causal promotion therefore needs either the start identity in the measurement contract or a bound external start receipt."
+  },
+  "next_exact_action": "Hand WP805-HARDENING-MATCHED-START-v1 and the already-confirmed structural-split gate to Trigger-4 as a bounded later-generation validation repair. Keep the universal oracle deferred. Separately acquire a new E3 trace-count-tamper claim only if no active worker owns it.",
+  "credits": {
+    "trigger6_E2": 1,
+    "trigger6_E3": 1,
+    "trigger6_E4": 0,
+    "trigger6_E5": 0,
+    "trigger6_E6": 0,
+    "repository_research_execution": 1,
+    "f2_target_runtime": 0,
+    "physical_grid10": 0,
+    "gwt_jspace_runtime": 0,
+    "training": 0,
+    "effect": 0,
+    "whole_system": 0
+  }
+}

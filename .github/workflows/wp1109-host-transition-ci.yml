@@ -1,0 +1,35 @@
+name: F2 WP1109 Host Transition CI
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'src/frankenstein2/host_transition.py'
+      - 'tests/test_host_transition.py'
+      - '.github/workflows/wp1109-host-transition-ci.yml'
+  pull_request:
+    paths:
+      - 'src/frankenstein2/host_transition.py'
+      - 'tests/test_host_transition.py'
+      - '.github/workflows/wp1109-host-transition-ci.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  deterministic-host-transition:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Compile
+        run: python -m py_compile src/frankenstein2/host_transition.py tests/test_host_transition.py
+      - name: Host transition falsification suite
+        env:
+          PYTHONPATH: src
+        run: python tests/test_host_transition.py -v

@@ -1,0 +1,62 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://frankenstein2.local/schemas/PERCEPTION_ACCEPTANCE_RECEIPT.schema.json",
+  "title": "Frankenstein 2.0 Perception Acceptance Receipt",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "classification",
+    "assessment",
+    "dependency_blockers",
+    "case_blockers",
+    "failed_cases",
+    "local_hardware_receipt_bound",
+    "alignment_witness_evidence_bound",
+    "terminal_acceptance_minted",
+    "provenance_digest",
+    "runtime_credit",
+    "perception_runtime_credit",
+    "effect_authority",
+    "completion_authority",
+    "whole_system_acceptance"
+  ],
+  "properties": {
+    "schema": {
+      "const": "FRANKENSTEIN2_PERCEPTION_ACCEPTANCE_ASSESSMENT/v2"
+    },
+    "classification": {
+      "const": "PREPARATION_ONLY_NO_TERMINAL_ACCEPTANCE_AUTHORITY"
+    },
+    "assessment": {
+      "enum": ["BLOCKED", "FAIL_CLOSED", "ELIGIBLE_FOR_FINAL_REVIEW"]
+    },
+    "dependency_blockers": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {"type": "string", "minLength": 1}
+    },
+    "case_blockers": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {"type": "string", "minLength": 1}
+    },
+    "failed_cases": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {"type": "string", "minLength": 1}
+    },
+    "local_hardware_receipt_bound": {"type": "boolean"},
+    "alignment_witness_evidence_bound": {"type": "boolean"},
+    "terminal_acceptance_minted": {"const": false},
+    "provenance_digest": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "runtime_credit": {"const": 0},
+    "perception_runtime_credit": {"const": 0},
+    "effect_authority": {"const": "NONE"},
+    "completion_authority": {"const": "NONE"},
+    "whole_system_acceptance": {"const": false}
+  }
+}

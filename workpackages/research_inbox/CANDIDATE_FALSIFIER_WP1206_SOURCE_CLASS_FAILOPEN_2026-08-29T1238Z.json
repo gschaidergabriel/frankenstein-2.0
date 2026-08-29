@@ -1,0 +1,44 @@
+{
+  "schema": "FRANKENSTEIN2_RESEARCH_INBOX/v1",
+  "packet_id": "CANDIDATE_FALSIFIER_WP1206_SOURCE_CLASS_FAILOPEN_2026-08-29T1238Z",
+  "status": "CANDIDATE_FALSIFIER",
+  "created_at_utc": "2026-08-29T12:38:28Z",
+  "worker_id": "GPT-5.6-Sol-TRIGGER4-REVIEW",
+  "scope": ["F2-WP-1206", "INDEPENDENT_NEGATIVE_SPACE_COMPONENT_ONLY"],
+  "mutation_authority": false,
+  "base_commit_observed": "5366918fd02627a3558827c4755e19dacd336c3b",
+  "authority_epoch": "8.78",
+  "observed_source": {
+    "path": "src/frankenstein2/target_completion_verifier.py",
+    "git_blob_sha": "a29051832d4d657650278840c7e0d2b87b620ed7",
+    "test_path": "tests/test_target_completion_verifier.py",
+    "test_blob_sha": "8d9961da4ed676be6518e2c74e23253578b1cf0f"
+  },
+  "finding": {
+    "id": "HRT-FALSIFIER-007",
+    "severity": "HIGH",
+    "observation": "The verifier treats source_class as an arbitrary non-empty string and rejects only four exact blacklist values: INSTALLER_SELF_REPORT, BUILDER_SELF_REPORT, MODEL_SELF_REPORT and EXECUTOR_SELF_REPORT. Any other unrecognized class is therefore eligible to satisfy the independent-readback gate when the remaining fields are clean.",
+    "why_it_matters": "The architecture contract requires independent target readback and explicitly states SELF_REPORT != COMPLETION_EVIDENCE. A blacklist is not a proof of independence. A producer-controlled alias such as MODEL_OUTPUT, INSTALLER_READBACK or any novel class can bypass the four-name blacklist and allow COMPLETE_AT_TWIN_SCOPE without a positively admitted independent evidence class.",
+    "counterhypothesis": "An upstream schema or trusted adapter may guarantee that source_class can only contain approved independent values before this function is called. No such validation is performed by verify_target_obligations itself, and the current tests call the function directly with caller-supplied mappings, so the component contract is not fail-closed at its public boundary."
+  },
+  "minimal_reproduction": {
+    "input_change_from_green_test": "Use the existing otherwise-clean observation fixture but set source_class to MODEL_OUTPUT (or another non-empty value not in the four-entry blacklist).",
+    "code_path": "_identifier accepts the string; the _FORBIDDEN_SELF_REPORT_SOURCES membership test is false; no unknown/fail reason is added from source_class; all other green fields can therefore produce PASS and top-level COMPLETE_AT_TWIN_SCOPE.",
+    "expected_fail_closed_behavior": "Unknown/unadmitted evidence-source classes must yield UNKNOWN or input rejection; only positively admitted independent source classes may contribute PASS evidence."
+  },
+  "test_gap": "Current tests cover INSTALLER_SELF_REPORT and MODEL_SELF_REPORT blacklist hits, but do not test an unknown or semantically self-reporting alias outside the blacklist.",
+  "required_resolution": [
+    "Replace blacklist-only independence with a positive allowlist or typed evidence-source authority contract.",
+    "Fail closed on unknown source_class values.",
+    "Add regression tests showing MODEL_OUTPUT/INSTALLER_READBACK/arbitrary unknown classes cannot produce COMPLETE_AT_TWIN_SCOPE.",
+    "If independence is established by an upstream authority object instead of a string enum, bind that authority/provenance deterministically and test its stale/wrong-generation cases."
+  ],
+  "credit": {
+    "source_review": true,
+    "static_causal_reproduction": true,
+    "runtime_execution_observed": false,
+    "target_runtime_credit": false,
+    "physical_host_credit": false,
+    "whole_system_acceptance": false
+  }
+}

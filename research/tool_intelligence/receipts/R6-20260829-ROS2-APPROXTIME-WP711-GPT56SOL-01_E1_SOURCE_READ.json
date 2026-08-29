@@ -1,0 +1,47 @@
+{
+  "schema": "FRANKENSTEIN2_TRIGGER6_EVIDENCE_RECEIPT/v1",
+  "research_id": "R6-20260829-ROS2-APPROXTIME-WP711-GPT56SOL-01",
+  "evidence_stage": "E1_SOURCE_READ",
+  "status": "SOURCE_READ_COMPLETE_NO_ARCHITECTURE_CREDIT",
+  "completed_at": "2026-08-29T18:23:30+07:00",
+  "architecture_binding": "F2-WP-711-G1-GPT56SOL-TEMPORAL-OBSERVATION-WINDOW-20260829",
+  "external_source": {
+    "repo": "ros2/message_filters",
+    "branch": "rolling",
+    "commit": "ef491040f89f9f1a7c2f44fd52170618ae2b037e",
+    "license": "BSD-3-Clause",
+    "files": [
+      "include/message_filters/sync_policies/approximate_time.hpp",
+      "src/message_filters/__init__.py",
+      "doc/index.rst"
+    ]
+  },
+  "source_findings": [
+    "Synchronizers are timestamp-driven: ExactTime requires identical message timestamps; ApproximateTime matches on message/header timestamps within a bounded tolerance/policy rather than assuming arrival order.",
+    "The Python ApproximateTime implementation exposes queue_size and slop and explicitly warns that headerless current-time fallback and sync_arrival_time should be avoided because delays are unpredictable.",
+    "The current C++ ApproximateTime policy uses a typed TimeGetter, bounded per-input queues, an explicit max_interval_duration, inter-message lower-bound checks, an age penalty, dropped-message tracking and deterministic candidate/pivot search.",
+    "When a per-topic queue exceeds queue_size, the oldest message on that topic is dropped; any active candidate is invalidated and recomputed.",
+    "The C++ source detects out-of-order message timestamps and warns, but does not itself implement F2's stronger explicit UNKNOWN/UNALIGNED clock-domain relation or fail-closed fusion authority.",
+    "The source is a useful mechanism comparator, but importing ROS 2/message_filters would add a much larger dependency surface than the small deterministic F2-WP-711 contract requires."
+  ],
+  "f2_distillation": {
+    "recommended": true,
+    "import_library": false,
+    "thin_native_rules": [
+      "Use explicit source event-time from typed observations as the primary fusion coordinate; never silently substitute arrival time.",
+      "Bound each source queue/window and preserve exact drop/rejection diagnostics.",
+      "Require an explicit maximum admissible cross-source event-time span before constructing a fusion set.",
+      "Invalidate/recompute a candidate when evidence it depended on was dropped or became stale.",
+      "Keep F2's stronger clock-domain identity, skew/uncertainty and UNKNOWN/UNALIGNED semantics instead of inheriting ROS assumptions.",
+      "Do not copy age-penalty/pivot heuristics unless an F2 ablation shows value over a simpler deterministic admissibility rule."
+    ]
+  },
+  "counterhypothesis": "A fixed deterministic fusion-window rule over typed F2 observations may already capture all useful behavior; ROS ApproximateTime's candidate optimization and age penalty may add complexity without improving correctness or latency.",
+  "next_falsifier": "After WP-711 source implementation exists, compare simple explicit-window selection against a pivot/age-penalty variant on synthetic skew, out-of-order, missing-source, stale-source and burst workloads; measure fusion correctness, rejected/unknown cases, queue occupancy and decision latency.",
+  "architecture_delta": "NO_NEW_DELTA_REQUIRED_AT_E1: current WP-711 scope already contains the strongest source-supported invariants; this E1 chiefly supports the no-arrival-order and bounded-window design and argues against importing ROS2.",
+  "research_credit": "E1_SOURCE_READ_ONLY",
+  "runtime_credit": 0,
+  "perception_runtime_credit": 0,
+  "architecture_acceptance_credit": 0,
+  "whole_system_credit": 0
+}

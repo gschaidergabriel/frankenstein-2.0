@@ -1,0 +1,91 @@
+{
+  "schema": "FRANKENSTEIN2_TRIGGER6_ARCHITECTURE_MAP/v1",
+  "trigger": "6",
+  "slot": "SOURCE_ARCHAEOLOGIST+INTEGRATION_DISTILLER",
+  "research_id": "R6-WP802-VALUE-OF-INFORMATION-001",
+  "claim_target": "E2_ARCHITECTURE_MAPPED",
+  "status": "E2_COMPLETE_STRUCTURAL_CHANGE_NARROWED_TO_TEST_SEMANTIC_HARDENING",
+  "completed_at": "2026-08-29T20:11:00+07:00",
+  "worker": "GPT-5.6-Sol-TRIGGER6",
+  "claim": {
+    "path": "research/tool_intelligence/claims/R6-WP802-VALUE-OF-INFORMATION-001/E2_ARCHITECTURE_MAPPED.json",
+    "claim_commit": "6ad446ce0d9faae7857de6f4896410c212d28342"
+  },
+  "source_lock": {
+    "f2_wp802_merge": "8d9deb90fa7765b803986ef45de9d6b0ddf824e2",
+    "wp802_source": "src/frankenstein2/cognitive_information_seeking_benchmark.py",
+    "wp802_source_blob": "55f08d4f8bd4d691e96ede1d9439fa9683ca6980",
+    "wp802_tests": "tests/test_cognitive_information_seeking_benchmark.py@8d9deb90fa7765b803986ef45de9d6b0ddf824e2",
+    "wp800_source": "src/frankenstein2/cognitive_microworld.py@8d9deb90fa7765b803986ef45de9d6b0ddf824e2",
+    "e1_delta": "research/tool_intelligence/deltas/2026-08-29T2007P0700_GPT56SOL_R6_WP802_VALUE_OF_INFORMATION_E1_SOURCE_READ.json@185fd0d658ad1b81692cfdb8489313baa6799f2d"
+  },
+  "observed_mapping": [
+    {
+      "id": "WP802-MAP-01",
+      "classification": "CURRENT_SOURCE",
+      "observation": "MatchedInformationSeekingResult stores score_delta, probe_delta and public_payload_novelty_delta as separate evaluator-side measurements."
+    },
+    {
+      "id": "WP802-MAP-02",
+      "classification": "CURRENT_SOURCE",
+      "observation": "score_delta is mechanically required to equal intervention.cumulative_score minus baseline.cumulative_score; novelty and probe count do not enter that equality."
+    },
+    {
+      "id": "WP802-MAP-03",
+      "classification": "CURRENT_SOURCE",
+      "observation": "WP800 step_episode adds next_node.evaluator_score to cumulative_score on every transition. Therefore probe acquisition cost can already be represented evaluator-side by assigning a negative score to a probe-result/intermediate node without exposing that cost or hidden state to the policy."
+    },
+    {
+      "id": "WP802-MAP-04",
+      "classification": "CURRENT_SOURCE",
+      "observation": "The merged positive-path test has baseline score -5, intervention score 10, score_delta +15, probe_delta +1 and novelty_delta +1. It proves useful probing can be discriminated but does not test that novelty/probe count are insufficient when utility does not improve."
+    },
+    {
+      "id": "WP802-MAP-05",
+      "classification": "CURRENT_SOURCE",
+      "observation": "PROBE_THEN_COMMIT is a deterministic benchmark policy with public decision rules and a probe budget, not an online Bayesian value-of-information optimizer. This is compatible with WP802 being evaluation infrastructure rather than a runtime cognition policy."
+    }
+  ],
+  "e1_hypothesis_reconciliation": {
+    "original_hypothesis": "WP802 may need primary decision utility net of probe cost instead of novelty/information amount.",
+    "result": "PARTIALLY_ALREADY_SATISFIED",
+    "details": [
+      "Decision utility is already represented independently by score_delta.",
+      "Probe cost can already be represented inside cumulative evaluator score via intermediate-node evaluator_score.",
+      "Novelty/probe count are separate diagnostics and are not algebraically mixed into score_delta.",
+      "No heavyweight VoI/POMDP dependency is justified."
+    ]
+  },
+  "best_supported_delta": {
+    "type": "TEST_AND_SEMANTIC_HARDENING_ONLY",
+    "architecture_change_required": false,
+    "proposal": [
+      "Add a held-out negative-control fixture where probing yields a new public observation (novelty_delta > 0) but its explicit evaluator-side acquisition cost makes score_delta <= 0.",
+      "Assert that positive novelty_delta and positive probe_delta do not imply positive score_delta or benchmark superiority.",
+      "Add a boundary comment/receipt stating that cumulative score is the decision-utility channel and may include declared probe cost, while novelty/probe counts are diagnostics only.",
+      "Do not add a second net_decision_value field unless a future consumer demonstrates ambiguity that cannot be resolved from score_delta semantics; avoid duplicate metrics/authority surfaces."
+    ],
+    "minimal_fixture_design": {
+      "baseline": "commit-first reaches evaluator score -5",
+      "probe_path": "probe reaches a novel intermediate public observation with evaluator score -15, then informed commit reaches +10",
+      "expected": "intervention cumulative score -5, score_delta 0, probe_delta +1, novelty_delta +1",
+      "stronger_variant": "use intermediate probe cost -20 so intervention cumulative score -10 and score_delta -5 while novelty_delta remains +1"
+    },
+    "expected_cost": "test-only or documentation-only delta; no external dependency, model call, runtime service, extra context payload or resident model"
+  },
+  "counterhypothesis": {
+    "statement": "The existing separate result fields and positive-path test are sufficient because downstream consumers are already expected to interpret score_delta, probe_delta and novelty_delta independently.",
+    "cheapest_discriminator": "Run the negative-control fixture. If current code naturally emits novelty_delta > 0 with score_delta <= 0 and no consumer/test equates novelty with success, retain source unchanged and add only the regression test/receipt."
+  },
+  "architecture_credit": {
+    "evidence_stage": "E2_ARCHITECTURE_MAPPED",
+    "new_dependency": false,
+    "source_change_credit": 0,
+    "repository_ci_credit": 0,
+    "runtime_credit": 0,
+    "physical_grid10_credit": 0,
+    "gwt_jspace_credit": 0,
+    "whole_system_credit": 0
+  },
+  "next_exact_gate": "Atomically claim an E3 claim-reproduction objective for the negative-control invariant, execute the smallest deterministic reproduction against the exact merged WP802/WP800 semantics, and promote only if the result distinguishes novelty/probe activity from net evaluator utility."
+}

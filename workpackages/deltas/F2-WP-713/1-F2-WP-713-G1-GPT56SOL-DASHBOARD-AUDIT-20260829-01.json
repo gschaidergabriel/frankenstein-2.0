@@ -1,0 +1,57 @@
+{
+  "schema": "FRANKENSTEIN2_WORKPACKAGE_DELTA/v1",
+  "workpackage_id": "F2-WP-713",
+  "generation": 1,
+  "claim_id": "F2-WP-713-G1-GPT56SOL-DASHBOARD-AUDIT-20260829",
+  "worker_id": "GPT-5.6-Sol",
+  "authority_epoch": "8.78",
+  "status": "SOURCE_READY_AWAITING_REPOSITORY_CI",
+  "base_commit": "bc072bfb2f64b02669013b4147c3670b410f7faf",
+  "claim_commit": "5c7d6e3e45a1c2d6e9e6264cfbf7240bcce1c711",
+  "branch": "trigger4/wp713-dashboard-audit-g1-gpt56sol",
+  "source_scope": {
+    "primary": "src/frankenstein2/perception_dashboard.py",
+    "tests": "tests/test_perception_dashboard.py",
+    "workflow": ".github/workflows/wp713-perception-dashboard-ci.yml",
+    "reused_authority": "src/frankenstein2/perception_dashboard_policy.py",
+    "reused_capability_abi": "src/frankenstein2/perception_fabric.py"
+  },
+  "implemented": [
+    "reuses the existing headless dashboard policy model instead of creating a second capability authority",
+    "immutable PerceptionAuditReceipt with exact before/after dashboard digests, actor, reason, source, monotonic time and append-only receipt chaining",
+    "global Retina pause and per-source capability mutation/revocation wrappers over the existing policy authority",
+    "permission snapshot compilation receipt bound to the exact PerceptionCapabilitySnapshot digest",
+    "observation execution receipt that rejects a snapshot not bound to the current dashboard state",
+    "headless source/worker/reason visibility projection bounded by the dashboard 0..4 worker ceiling",
+    "baseline explicit exclusion of raw keystrokes, clipboard content and password-field content",
+    "no world-truth, effect or completion authority in dashboard/audit projections"
+  ],
+  "falsifiers_added": [
+    "audit chain preserves exact prior-receipt digest and before/after policy digests",
+    "global pause compiles the same capability authority to zero effective capabilities",
+    "REMOTE_FRAME and EXTERNAL_VLM revocation is reflected in the executable permission snapshot",
+    "revoking SEE closes dependent capability authority",
+    "stale pre-revocation snapshot cannot be recorded as EXECUTED after current dashboard state changes",
+    "visibility shows bounded worker/source/reason state and rejects unknown sources or >4 workers",
+    "global pause visibility rejects active workers",
+    "high-sensitivity raw keylogging/clipboard/password capture remains outside baseline"
+  ],
+  "evidence_boundary": {
+    "source_written": true,
+    "tests_written": true,
+    "repository_ci_observed": false,
+    "target_runtime_observed": false,
+    "physical_device_observed": false,
+    "provider_or_vlm_observed": false,
+    "runtime_credit": 0,
+    "perception_runtime_credit": 0,
+    "physical_grid10_credit": 0,
+    "gwt_runtime_credit": 0,
+    "jspace_runtime_credit": 0,
+    "training_credit": 0,
+    "effect_credit": 0,
+    "completion_credit": 0,
+    "whole_system_acceptance": false
+  },
+  "next_exact_action": "Open a pull request from the owned branch, observe exact PR-head repository CI, repair any deterministic falsifier failure, merge only after green exact-head CI, then require exact-main CI before terminal component reconciliation."
+}

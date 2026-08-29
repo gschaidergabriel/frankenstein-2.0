@@ -1,0 +1,115 @@
+{
+  "schema": "FRANKENSTEIN2_TRIGGER6_RESEARCH_RESULT/v1",
+  "trigger": "6",
+  "research_id": "R6-20260829-WP803-PREDICTION-BENCH-GPT56SOL-01",
+  "slot": "DISCOVERY_SCOUT",
+  "stage": "E1_SOURCE_READ",
+  "status": "COMPLETED_E1_NO_BUILD_CREDIT",
+  "created_at": "2026-08-29T20:08:00+07:00",
+  "worker": "GPT-5.6 Sol",
+  "claim_path": "research/tool_intelligence/claims/R6-20260829-WP803-PREDICTION-BENCH-GPT56SOL-01/E1_SOURCE_READ.json",
+  "architecture_snapshot": {
+    "f2_main_at_claim": "d6cef32b1c5fa158bf415517eb37424a17dfe0d9",
+    "wp803_claim_commit": "1ae3834d37f100447409946f0eda03dbd56a2225",
+    "wp803_active_branch": "trigger4/wp803-world-model-prediction-20260829",
+    "wp803_observed_design": "public ObservationView only -> pre-transition PredictionCandidate -> canonical WP800 step -> evaluator-side exact next-observation CORRECT/INCORRECT/ABSTAINED score",
+    "fusion_ref": "research/tool_intelligence/deltas/ADF-20260829T2001P0700-GPT56SOL-R6SEED003-E3.json"
+  },
+  "primary_sources": [
+    {
+      "name": "AutoWorldModel-Bench: A State-Centric Benchmark for Automated World-Model Research",
+      "type": "PRIMARY_CODE_AND_PAPER",
+      "repo": "electronicarts/AutoWorldModelBench",
+      "commit": "906c5bf99c745e1163c78dda122eb9b520f4059f",
+      "paper": "arXiv:2608.11216",
+      "observed_mechanisms": [
+        "architecture-agnostic evaluator with explicit adapter boundary",
+        "teacher-forced h=1 evaluation separated from open-loop rollout",
+        "open-loop horizons 10 and 20 expose error accumulation",
+        "state-centric scoring against exact structured ground truth rather than video realism",
+        "scenario tests probe rule-consistent dynamics under controlled initial state and action sequence",
+        "per-horizon decomposition prevents one-step accuracy from hiding long-horizon failure"
+      ]
+    },
+    {
+      "name": "How Should World Models Be Evaluated? A Decision-Making-Centric Position",
+      "type": "PRIMARY_PAPER",
+      "paper": "arXiv:2606.15032",
+      "observed_mechanisms": [
+        "evaluation claims should match intended use",
+        "interventional/counterfactual action fidelity is more decision-relevant than visual plausibility",
+        "closed-loop rollout validity, reward/value prediction, policy-ranking agreement, exploitability and uncertainty calibration are distinct evidence levels"
+      ]
+    },
+    {
+      "name": "ForecastBench-Sim: A Simulated-World Forecasting Benchmark",
+      "type": "PRIMARY_PAPER",
+      "paper": "arXiv:2606.18686",
+      "observed_mechanisms": [
+        "structured world snapshot -> future-state forecast -> simulator resolution",
+        "arbitrary forecast horizons",
+        "paired intervention worlds enable conditional/causal discrimination with immediately resolvable ground truth",
+        "simulated worlds make rare/disruptive outcomes reproducibly testable"
+      ]
+    },
+    {
+      "name": "PlayWorld: Benchmarking World Models with Agent Players over Long-Horizon Objectives",
+      "type": "PRIMARY_CODE_AND_PAPER",
+      "paper": "arXiv:2608.13552",
+      "observed_mechanisms": [
+        "long-horizon objectives can be more informative than fixed action strings when valid action paths differ",
+        "persistent-state evolution and out-of-sight evolution are explicit failure dimensions"
+      ]
+    }
+  ],
+  "f2_mapping": {
+    "keep_from_current_wp803": [
+      "public-observation-only policy input",
+      "hidden fixture/transitions remain evaluator-only",
+      "prediction identity and provenance seals",
+      "explicit ABSTAIN/UNKNOWN path",
+      "benchmark measurement cannot mint world/effect/completion authority"
+    ],
+    "gap_observed": [
+      "current branch scores one-step exact next-observation only",
+      "no explicit multi-horizon open-loop error-accumulation score is present in the observed branch snapshot",
+      "no paired intervention/counterfactual prediction test is present in the observed branch snapshot",
+      "no probabilistic confidence/calibration contract is present in the observed branch snapshot"
+    ],
+    "evidence_backed_delta": {
+      "delta_class": "ADDITIVE_BENCHMARK_PROTOCOL_EXTENSION_NOT_IMPORT",
+      "recommended_order": [
+        "Do not block the narrow WP803 generation-1 next-observation contract if its existing tests remain valid.",
+        "Add a later generation or follow-on benchmark layer that reports h=1 separately from bounded open-loop h>1 rollout accuracy.",
+        "Add deterministic scenario/intervention pairs where two worlds differ by one controlled action or hidden transition parameter; score the predicted divergence only after evaluator resolution.",
+        "If a prediction policy can emit probabilities, score calibration with a proper scoring rule rather than treating confidence text as evidence.",
+        "Keep all ground-truth transition state, paired-world outcome and score computation evaluator-only; never feed them back as policy input for the same trial."
+      ],
+      "thin_native_preference": "Distill the evaluation geometry into F2-native deterministic benchmark contracts; do not import AutoWorldModelBench or video-world benchmark runtime stacks.",
+      "targets": ["F2-WP-800", "F2-WP-803", "F2-WP-806", "F2-WP-902"]
+    }
+  },
+  "counterhypotheses": [
+    "A one-step exact-match benchmark may be sufficient for the declared narrow WP803 generation-1 scope; multi-horizon and intervention tests may belong to later WP806/whole-system characterization rather than this generation.",
+    "Long-horizon rollout can conflate world-model quality with policy/action-selection errors unless the action sequence is evaluator-controlled or otherwise fixed for the prediction test.",
+    "Probability calibration adds interface and scoring complexity and should not be required until F2 has a genuine probabilistic prediction surface."
+  ],
+  "falsifiers_and_next_gates": [
+    "Inspect merged/accepted WP803 generation-1 evidence before classifying any missing feature as a defect rather than an intentional scope boundary.",
+    "Under a separate E2 claim, map the smallest F2-native multi-horizon/intervention contract against WP800/WP803 identities and verify it does not duplicate WP806.",
+    "No E4/F2 ablation or Trigger4 build handoff is authorized by this E1 result."
+  ],
+  "credits": {
+    "trigger6_E1": 1,
+    "trigger6_E2": 0,
+    "trigger6_E3": 0,
+    "trigger6_E4": 0,
+    "trigger6_E5": 0,
+    "trigger6_E6": 0,
+    "f2_runtime": 0,
+    "physical_grid10": 0,
+    "gwt_jspace": 0,
+    "training": 0,
+    "whole_system": 0
+  }
+}

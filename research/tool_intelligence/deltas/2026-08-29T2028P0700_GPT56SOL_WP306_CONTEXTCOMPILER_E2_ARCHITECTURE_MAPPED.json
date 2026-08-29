@@ -1,0 +1,72 @@
+{
+  "schema": "F2_TRIGGER6_RESEARCH_DELTA/v1",
+  "research_id": "R6-20260829-WP306-CONTEXT-COMPILER-GPT56SOL-01",
+  "evidence_stage": "E2_ARCHITECTURE_MAPPED",
+  "status": "CURRENT_IMPLEMENTATION_REVIEWED_STRUCTURAL_DELTA_ONLY",
+  "created_at_local": "2026-08-29T20:28:00+07:00",
+  "claim_ref": "research/tool_intelligence/claims/R6-20260829-WP306-CONTEXT-COMPILER-GPT56SOL-01/E2_ARCHITECTURE_MAPPED.json",
+  "authority_resolution": {
+    "canonical_research_bootstrap": "gschaidergabriel/clay-global-research-entity@main:research_entity/continuity/BOOTSTRAP_MINIMAL.json",
+    "admitted_supervisor_epoch": "8.78",
+    "note": "Current SUPERVISOR_INBOX carries newer 9.13AW_NON_AUTHORITY metadata but BOOTSTRAP_MINIMAL explicitly selects SUPERVISOR_STEERING_8_78; preserve non-authority provenance without promoting it."
+  },
+  "f2_snapshot": {
+    "main_observed_before_e2_claim": "da10ef7f939e9a2322d4bf2e7e8198cc17c4d13d",
+    "main_reentered_after_parallel_race": "cc2294111b993b52742c984da8f44946617ec01f",
+    "context_compiler_blob": "edbfb96710376af01af88bf4453d660fdcf5d341",
+    "context_compiler_test_blob": "ad747cd9ae91e77379018a24e0dd5670f65dd5a1",
+    "epistemic_context_adapter_blob": "fd87aede76267fe21020ade8aba5f82af16ca52f",
+    "wp306_granular_state": "workpackages/active/F2-WP-306.json",
+    "wp306_granular_generation": 3,
+    "wp306_granular_state_value": "ACCEPTED",
+    "wp306_terminal_scope": "EPISTEMIC_RECORD_TO_CONTEXT_ITEM_ADAPTER_REPOSITORY_HOSTED_COMPONENT_CI_ONLY",
+    "wp306_runtime_credit": 0,
+    "whole_system_acceptance": false
+  },
+  "reconciliation": {
+    "contradiction_id": "WP306_AGGREGATE_NOT_STARTED_VS_GRANULAR_ACCEPTED",
+    "observed": [
+      "WORKPACKAGES.md still renders F2-WP-306 as NOT_STARTED.",
+      "workpackages/STATE.json generation 17 still records F2-WP-306 as NOT_STARTED.",
+      "Granular workpackages/active/F2-WP-306.json records generation 3 ACCEPTED at bounded repository-hosted component-CI scope and binds exact source/test/CI/receipt identities.",
+      "Commit history includes bounded ContextCompiler merge fcb6fce5ed9eb4b84b1e428ceb5f10eff004fda0, generation-zero ABI repair 28560f2238efb7ad287a8e86ee5803df2787b2ec, and G3 epistemic adapter merge 18b4e0b696bf546dec3ea50ff0eae6db6a2bcdfb."
+    ],
+    "resolution": "Treat aggregate surfaces as stale caches; granular accepted scope outranks them. The pre-research fusion's NOT_STARTED statement is superseded by this exact granular reentry. No component or runtime credit is inflated beyond the granular receipt scope."
+  },
+  "external_to_f2_mapping": [
+    {"external_mechanism": "vLLM/OpenAI exact-prefix KV reuse", "f2_mapping": "KEEP_SEPARATE_FROM_CONTEXT_SELECTION", "current_fit": "GOOD", "reason": "WP306 selects reference identities and does not mix KV/runtime-cache state into semantic selection. Future render/cache optimization belongs downstream of ContextView compilation."},
+    {"external_mechanism": "LangChain/Anthropic lossy conversation compaction", "f2_mapping": "DO_NOT_IMPORT_AS_CANONICAL_CONTEXT_AUTHORITY", "current_fit": "GOOD", "reason": "Current WP306 never reads or summarizes payload bytes, so it cannot overwrite evidence with generated summary text."},
+    {"external_mechanism": "LLMLingua-2 extractive importance compression", "f2_mapping": "OPTIONAL_LATER_PAYLOAD_RENDERER_ABLATION_ONLY", "current_fit": "NOT_NEEDED_FOR_CORE", "reason": "Current bounded reference selection already offers a lower-dependency first step. Learned compression should only be tested downstream on non-authoritative payload text with exact original digests retained."},
+    {"external_mechanism": "SCBench workload-aware shared-context evaluation", "f2_mapping": "ADOPT_AS_E4_TEST_DESIGN_PATTERN", "current_fit": "OPEN", "reason": "WP306 has repository component tests but no measured F2 workload ablation for tokens/bytes/cache hits/latency/evidence-retention."}
+  ],
+  "current_strengths": [
+    "Reference-only ContextItem design binds payload/source SHA-256 plus source generation and provenance/evidence references without reading payload semantics.",
+    "ContextView is explicitly classified as not truth/effect authority.",
+    "Required items and required channels fail closed when item/cost budgets cannot satisfy them.",
+    "Counterevidence, authority, hyperposition, completion deficit and do-not-repeat are distinct channels instead of one prose blob.",
+    "Selection is deterministic from explicit priority and stable item-id tie-breaks; omitted entries are sorted deterministically before return.",
+    "G3 EpistemicRecord adapter uses exact concrete types, preventing caller relabeling of hypotheses/retrieval priors/negative/unknown records into observed evidence.",
+    "No model call, summarizer, cache server, second memory store or second truth authority is introduced by WP306."
+  ],
+  "open_gaps_not_yet_falsifiers": [
+    {"gap_id": "WP306-R6-GAP-A-COST-WITNESS", "observation": "ContextItem.cost_units and ContextNeed.max_cost_units are generic caller-supplied integers; no source binding proves that a cost unit equals rendered tokens, bytes, latency or another measured resource.", "risk": "A downstream renderer can dereference a large payload whose caller declared cost is small, so compile-time boundedness need not imply prompt-token boundedness.", "proposed_structural_delta": "Add a separate deterministic ContextCostWitness or equivalent adapter binding payload_sha256 + renderer/tokenizer/model identity + measured byte/token counts; keep generic core compiler model-agnostic.", "falsifier": "Show an existing current F2 source/receipt that already binds cost_units to exact rendered payload/tokenizer identity and demonstrates bounded rendered token cost."},
+    {"gap_id": "WP306-R6-GAP-B-SELECTION-POLICY-LINEAGE", "observation": "priority_bp and required are explicit caller inputs; ContextNeed binds evidence_refs but no explicit selection-policy identity/generation/digest is present in the compiled view except indirectly through need_sha256.", "risk": "Selection can be reproducible for the same inputs while the producer of ranking/required metadata remains opaque, permitting model- or caller-generated priorities to appear deterministic downstream.", "proposed_structural_delta": "Bind ranking/requiredness producer identity and policy digest outside or inside ContextNeed; treat model-derived scores as measurements/candidates, never authority.", "falsifier": "Show an existing typed upstream admission contract that binds every priority/required value to a deterministic policy identity and is carried into ContextNeed evidence lineage."},
+    {"gap_id": "WP306-R6-GAP-C-CONTRADICTION-COVERAGE", "observation": "COUNTEREVIDENCE is available and omission is explicit, but preservation of a contradiction pair depends on caller-selected required items/channels; the compiler intentionally does not infer semantic linkage.", "risk": "A consumer that ignores omitted-channel metadata could receive selected evidence while decisive counterevidence is omitted for budget reasons.", "proposed_structural_delta": "Do not add semantic inference to the compiler. Instead define an upstream contradiction-set/required-channel policy and a downstream consumer rule: omitted COUNTEREVIDENCE or required contradiction refs must trigger ASK/expand/HOLD rather than silent certainty.", "falsifier": "Demonstrate an existing consumer contract and executable test that guarantees contradiction closure or explicit unresolved state under bounded views."},
+    {"gap_id": "WP306-R6-GAP-D-OMISSION-REENTRY", "observation": "OmittedContextItem keeps item_id + item_sha256 + channel + priority/cost/required + reason, but not source_ref/source_sha256/provenance_refs.", "risk": "This is privacy-friendly but audit/re-entry depends on item_id/item_sha256 being resolvable through an external canonical item registry; that registry binding was not established in this E2 source read.", "proposed_structural_delta": "Prefer a resolvable omission identity contract rather than exposing forbidden payload/source metadata inside the view; prove item_id/item_sha256 lookup identity and access controls.", "falsifier": "Show an existing canonical ContextItem registry/resolver keyed by item_id+digest with generation/provenance validation."}
+  ],
+  "recommended_e4_ablation": {
+    "status": "DESIGN_ONLY_NOT_RUN",
+    "baselines": ["whole eligible context", "recency-only trim", "priority top-k without channel requirements", "current WP306 typed bounded view", "current WP306 + trusted cost witness", "optional downstream extractive compression only after source-preserving gate"],
+    "fixtures": ["decisive negative result/counterevidence placed outside naive top-k", "large payload falsely declared cheap to test cost-witness necessity", "same evidence set permuted to verify view digest stability", "stale-generation retrieval prior competing with current observed evidence", "stable system/tool prefix plus changing evidence suffix to measure runtime cache reuse separately"],
+    "metrics": ["rendered input tokens", "rendered bytes", "selected and omitted evidence recall", "counterevidence/contradiction preservation", "provenance resolvability", "deterministic replay digest", "model calls and calls avoided", "cache hit rate where runtime supports it", "p50/p95/p99 latency at later Trigger-4 runtime scope"],
+    "acceptance_rule": "No cheaper candidate wins if it loses required evidence, hides unresolved counterevidence, breaks provenance/re-entry, or depends on unbound caller/model scores."
+  },
+  "decision": {
+    "core_wp306_rewrite": "NO",
+    "external_framework_import": "NO",
+    "architecture_delta": "KEEP CURRENT REFERENCE-ONLY CORE; ADD/PROVE COST-WITNESS + SELECTION-POLICY LINEAGE + CONTRADICTION-CONSUMER CONTRACT BEFORE RUNTIME EFFICIENCY CLAIMS",
+    "trigger4_handoff_level": "E4_ABLATION_CANDIDATE_ONLY_NOT_E5",
+    "reason": "Current implementation already embodies the safest low-dependency patterns. Remaining issues are evidence/measurement/consumer-boundary questions, not a demonstrated core compiler defect."
+  },
+  "credits": {"evidence_stage": "E2", "external_architecture_credit": 0, "new_wp306_runtime_credit": 0, "physical_grid10_credit": 0, "whole_system_credit": 0}
+}
