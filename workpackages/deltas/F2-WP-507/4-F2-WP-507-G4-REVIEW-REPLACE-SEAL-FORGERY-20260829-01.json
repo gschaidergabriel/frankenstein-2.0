@@ -1,0 +1,33 @@
+{
+  "schema": "FRANKENSTEIN2_WORKPACKAGE_DELTA/v1",
+  "workpackage_id": "F2-WP-507",
+  "generation": 4,
+  "claim_id": "F2-WP-507-G4-GPT56SOL-OFFERED-STATE-REPAIR-20260829",
+  "worker_id": "GPT-5.6-Sol-review-organ",
+  "base_commit": "135ace19a650ff1fac7041b1544d5f1f33a9ba17",
+  "observed_main_commit": "135ace19a650ff1fac7041b1544d5f1f33a9ba17",
+  "owned_paths": [],
+  "result_class": "FALSIFIER",
+  "source_commits": [],
+  "receipts": [],
+  "falsifiers": [
+    {
+      "id": "WP507_CELL_UPTAKE_RECEIPT_DATACLASSES_REPLACE_SEAL_FORGERY",
+      "evidence_class": "STATIC_SOURCE_PLUS_LANGUAGE_SEMANTICS_FALSIFIER",
+      "source_path": "src/frankenstein2/gwt_uptake.py",
+      "source_blob_sha": "f25c03d4e4e49c4fed44acd0c5c96edfb40f664e",
+      "statement": "CellUptakeReceipt relies on _factory_seal identity to distinguish factory observations, but _factory_seal is an init=True dataclass field. Python dataclasses.replace preserves init fields that are not explicitly replaced. Therefore replace() of a legitimately factory-produced receipt preserves the exact _RECEIPT_SEAL object while allowing delivery/uptake/downstream fields to be changed to another internally valid combination. assert_broadcast_binding() checks the preserved seal and broadcast/recipient identity but does not re-observe or rederive uptake semantics. summarize_uptake() then accepts the replaced receipt as factory-produced evidence.",
+      "minimal_regression": "Start from CellUptakeReceipt.observe(... delivery_status='DELIVERED', uptake_status='NOT_UPTAKEN', downstream_ref=None, downstream_sha256=None). Then dataclasses.replace(receipt, uptake_status='UPTAKEN', downstream_ref='forged:downstream', downstream_sha256='f'*64). The replacement preserves _factory_seal and satisfies __post_init__. A correct fail-closed boundary must reject this as non-observed semantic mutation rather than let summarize_uptake promote it to UPTAKE_OBSERVED.",
+      "wp510_impact": "F2-WP-510 currently protects forged UptakeSummary and forged CausalInfluenceResult by deterministic rederivation, but it rederives from supplied CellUptakeReceipt values. If the supplied receipt itself carries a copied valid factory seal after replace(), rebuilding the summary/result cannot distinguish the semantic forgery. This can manufacture UPTAKE_OBSERVED at repository-component scope and can propagate into CAUSAL_INFLUENCE_OBSERVED_AT_CONTRACT_SCOPE when declared matched-probe outputs differ.",
+      "credit_boundary": "This falsifier concerns repository-component evidence integrity only. It does not prove target runtime execution, hidden-state causality, world truth, effects, physical GRID10, J-Space, training or whole-system behavior."
+    }
+  ],
+  "contradictions": [
+    "F2-WP-507 G4 is marked ACCEPTED at repository-hosted component-CI scope, but its observation-factory seal is copyable through dataclasses.replace and therefore does not currently establish immutable observation provenance for CellUptakeReceipt semantic fields.",
+    "F2-WP-510 generation 1 depends on exact WP507 receipt lineage, so its acceptance must be withheld or explicitly narrowed until this falsifier is repaired or independently disproved."
+  ],
+  "proposed_state_change": "WITHHOLD_NEW_INTEGRATION_ACCEPTANCE_THAT_TREATS_WP507_CELL_UPTAKE_RECEIPT_FACTORY_SEAL_AS_UNFORGEABLE; ACTIVE_WP507_AUTHORITY_SHOULD_RECONCILE_POST_ACCEPTANCE_FALSIFIER_AND_OPEN_A_DELIBERATE_SUCCESSOR_REPAIR_IF_REPRODUCED.",
+  "completion_deficit": "Add an executable regression for dataclasses.replace receipt semantic mutation. Repair the trust boundary so factory provenance cannot be copied into modified observation semantics, for example by making the seal non-init/recreated in a way replace cannot preserve and requiring deterministic validator lineage, or by binding receipt identity/digest to immutable observation evidence that downstream consumers independently verify. Then rerun WP507 and dependent WP510 integration tests at exact repaired source identity.",
+  "next_exact_action": "Reproduce the replace-seal attack in repository-hosted CI against the exact accepted WP507 G4 source. If reproduced, reconcile WP507 G4 as post-acceptance falsified at observation-provenance scope, open one successor repair authority, and replay WP510 only after the repaired receipt boundary is exact-current.",
+  "created_at_utc": "2026-08-29T09:43:00Z"
+}
