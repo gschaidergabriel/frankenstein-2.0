@@ -44,6 +44,7 @@ def evidence(
     *,
     state: str = ACCEPTED,
     holdout: str = "heldout-family-A",
+    benchmark: str | None = None,
     baseline: int = 300_000,
     intervention: int = 700_000,
     samples: int = 20,
@@ -62,7 +63,7 @@ def evidence(
         f"{capability}_REPOSITORY_HOSTED_COMPONENT_CI_ONLY",
         sha(index),
         receipt_override or sha(index + 100),
-        f"benchmark-{capability.lower()}",
+        benchmark or f"benchmark-{capability.lower()}",
         holdout,
         f"baseline-{capability.lower()}",
         baseline,
@@ -128,6 +129,22 @@ class AgenticCoreFalsifierTests(unittest.TestCase):
         report = evaluate_agentic_core(tuple(values), policy=policy(), report_id="report-mixed")
         self.assertEqual(report.verdict, FALSIFIED)
         self.assertIn("MIXED_HOLDOUT_SET", report.reasons)
+
+    def test_pre_fix_same_text_holdout_alias_can_mask_distinct_benchmark_families(self):
+        values = tuple(
+            evidence(
+                capability,
+                holdout="ALIASED_SHARED_HOLDOUT",
+                benchmark=f"UNRELATED_BENCHMARK_FAMILY_{index}",
+            )
+            for index, capability in enumerate(
+                (EXPLORATION, MODELING, GOAL_SETTING, PLANNING_EXECUTION),
+                start=1,
+            )
+        )
+        report = evaluate_agentic_core(values, policy=policy(), report_id="report-family-alias-pre-fix")
+        self.assertEqual(report.verdict, SUPPORTED_AT_COMPONENT_SCOPE)
+        self.assertEqual(report.reasons, ())
 
     def test_duplicate_receipt_falsifies_independence(self):
         values = list(complete_evidence())
