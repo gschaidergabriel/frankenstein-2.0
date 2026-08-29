@@ -2,7 +2,7 @@
 
 F2-WP-510 generation 1 repository-component scope only.
 
-The seal does not create observations or causal evidence.  It revalidates already
+The seal does not create observations or causal evidence. It revalidates already
 constructed WP506 selection/broadcast lineage, WP507 uptake/causal-probe evidence,
 and WP508 re-entry/uptake bindings as one exact coherent component path.
 """
@@ -65,6 +65,16 @@ def _refs(values: Iterable[str]) -> tuple[str, ...]:
     if len(set(refs)) != len(refs):
         raise GwtCausalPathError("provenance_refs must not contain duplicates")
     return tuple(sorted(refs))
+
+
+def _sha256(name: str, value: Any) -> str:
+    if (
+        not isinstance(value, str)
+        or len(value) != 64
+        or any(ch not in "0123456789abcdef" for ch in value)
+    ):
+        raise GwtCausalPathError(f"{name} must be lowercase 64-hex SHA-256")
+    return value
 
 
 def _digest(value: Any) -> str:
@@ -148,9 +158,7 @@ class GwtCausalPathSeal:
             "uptake_summary_sha256",
             "causal_result_sha256",
         ):
-            value = getattr(self, name)
-            if not isinstance(value, str) or len(value) != 64 or any(ch not in "0123456789abcdef" for ch in value):
-                raise GwtCausalPathError(f"{name} must be lowercase 64-hex SHA-256")
+            object.__setattr__(self, name, _sha256(name, getattr(self, name)))
         if self.path_status not in {
             "CONTRACT_SCOPE_CAUSAL_PATH_SEALED",
             "NO_CAUSAL_INFLUENCE_PATH_SEALED",
@@ -227,16 +235,26 @@ def seal_gwt_causal_path(
         raise GwtCausalPathError("selection must be concrete WorkspaceSelection")
     if type(broadcast) is not BroadcastEnvelope:
         raise GwtCausalPathError("broadcast must be concrete BroadcastEnvelope")
-    if not isinstance(receipts, tuple) or not receipts or not all(type(item) is CellUptakeReceipt for item in receipts):
-        raise GwtCausalPathError("receipts must be a non-empty immutable CellUptakeReceipt tuple")
+    if (
+        not isinstance(receipts, tuple)
+        or not receipts
+        or not all(type(item) is CellUptakeReceipt for item in receipts)
+    ):
+        raise GwtCausalPathError(
+            "receipts must be a non-empty immutable CellUptakeReceipt tuple"
+        )
     if type(uptake_summary) is not UptakeSummary:
         raise GwtCausalPathError("uptake_summary must be concrete UptakeSummary")
     if type(intervention) is not CausalProbeArm or type(control) is not CausalProbeArm:
         raise GwtCausalPathError("intervention/control must be concrete CausalProbeArm values")
     if type(causal_result) is not CausalInfluenceResult:
         raise GwtCausalPathError("causal_result must be concrete CausalInfluenceResult")
-    if not isinstance(reentry_bundles, tuple) or not all(type(item) is ReentryEvidenceBundle for item in reentry_bundles):
-        raise GwtCausalPathError("reentry_bundles must be an immutable ReentryEvidenceBundle tuple")
+    if not isinstance(reentry_bundles, tuple) or not all(
+        type(item) is ReentryEvidenceBundle for item in reentry_bundles
+    ):
+        raise GwtCausalPathError(
+            "reentry_bundles must be an immutable ReentryEvidenceBundle tuple"
+        )
 
     verify_selection_binding(
         selection,
@@ -249,7 +267,6 @@ def seal_gwt_causal_path(
         grid_plan_generation=plan.generation,
         grid_plan_sha256=plan.sha256(),
     )
-
     rebuilt_broadcast = create_broadcast(
         broadcast_id=broadcast.broadcast_id,
         generation=broadcast.generation,
@@ -258,7 +275,9 @@ def seal_gwt_causal_path(
         recipient_cell_ids=broadcast.recipient_cell_ids,
     )
     if rebuilt_broadcast.as_dict() != broadcast.as_dict():
-        raise GwtCausalPathError("broadcast does not match canonical WP506 builder lineage")
+        raise GwtCausalPathError(
+            "broadcast does not match canonical WP506 builder lineage"
+        )
 
     rebuilt_summary = summarize_uptake(
         summary_id=uptake_summary.summary_id,
@@ -267,7 +286,9 @@ def seal_gwt_causal_path(
         provenance_refs=uptake_summary.provenance_refs,
     )
     if rebuilt_summary.as_dict() != uptake_summary.as_dict():
-        raise GwtCausalPathError("uptake summary does not match exact WP507 receipt set")
+        raise GwtCausalPathError(
+            "uptake summary does not match exact WP507 receipt set"
+        )
 
     rebuilt_causal = evaluate_causal_influence(
         result_id=causal_result.result_id,
@@ -278,15 +299,20 @@ def seal_gwt_causal_path(
         provenance_refs=causal_result.provenance_refs,
     )
     if rebuilt_causal.as_dict() != causal_result.as_dict():
-        raise GwtCausalPathError("causal result does not match exact WP507 matched probe")
+        raise GwtCausalPathError(
+            "causal result does not match exact WP507 matched probe"
+        )
 
-    receipt_by_identity = {(item.receipt_id, item.sha256()): item for item in receipts}
+    receipt_by_identity = {
+        (item.receipt_id, item.sha256()): item for item in receipts
+    }
     if len(receipt_by_identity) != len(receipts):
         raise GwtCausalPathError("duplicate WP507 receipt identity/digest")
 
     seen_binding_ids: set[str] = set()
     seen_recipients: set[str] = set()
     bound_uptaken: set[str] = set()
+    bound_uptaken_downstream: dict[str, str] = {}
     binding_ids: list[str] = []
     binding_sha256s: list[str] = []
     for bundle in reentry_bundles:
@@ -294,12 +320,19 @@ def seal_gwt_causal_path(
         if binding.binding_id in seen_binding_ids:
             raise GwtCausalPathError("duplicate re-entry binding identity")
         if binding.recipient_cell_id in seen_recipients:
-            raise GwtCausalPathError("multiple re-entry bindings for one recipient")
+            raise GwtCausalPathError(
+                "multiple re-entry bindings for one recipient"
+            )
         seen_binding_ids.add(binding.binding_id)
         seen_recipients.add(binding.recipient_cell_id)
-        receipt_key = (bundle.uptake_receipt.receipt_id, bundle.uptake_receipt.sha256())
+        receipt_key = (
+            bundle.uptake_receipt.receipt_id,
+            bundle.uptake_receipt.sha256(),
+        )
         if receipt_key not in receipt_by_identity:
-            raise GwtCausalPathError("re-entry bundle uptake receipt is not in sealed WP507 receipt set")
+            raise GwtCausalPathError(
+                "re-entry bundle uptake receipt is not in sealed WP507 receipt set"
+            )
         validate_reentry_uptake_binding(
             binding,
             witness=bundle.witness,
@@ -315,17 +348,34 @@ def seal_gwt_causal_path(
         if binding.uptake_receipt_sha256 != bundle.uptake_receipt.sha256():
             raise GwtCausalPathError("binding uptake receipt digest mismatch")
         if binding.uptake_status == "UPTAKEN":
+            if binding.downstream_sha256 is None:
+                raise GwtCausalPathError(
+                    "UPTAKEN re-entry binding lacks downstream digest"
+                )
             bound_uptaken.add(binding.recipient_cell_id)
+            bound_uptaken_downstream[
+                binding.recipient_cell_id
+            ] = binding.downstream_sha256
         binding_ids.append(binding.binding_id)
         binding_sha256s.append(binding.sha256())
 
     expected_uptaken = set(uptake_summary.uptaken_cell_ids)
     if bound_uptaken != expected_uptaken:
-        raise GwtCausalPathError("every UPTAKEN recipient requires exactly one valid WP508 re-entry binding")
+        raise GwtCausalPathError(
+            "every UPTAKEN recipient requires exactly one valid WP508 re-entry binding"
+        )
 
     status = _path_status(causal_result.status)
-    if status == "CONTRACT_SCOPE_CAUSAL_PATH_SEALED" and not expected_uptaken:
-        raise GwtCausalPathError("positive causal path requires explicit UPTAKEN recipient evidence")
+    if status == "CONTRACT_SCOPE_CAUSAL_PATH_SEALED":
+        if len(expected_uptaken) != 1:
+            raise GwtCausalPathError(
+                "positive causal path requires exactly one UPTAKEN recipient under the v1 probe ABI"
+            )
+        recipient = next(iter(expected_uptaken))
+        if bound_uptaken_downstream[recipient] != intervention.downstream_output_sha256:
+            raise GwtCausalPathError(
+                "positive causal probe downstream digest does not match UPTAKEN re-entry evidence"
+            )
 
     return GwtCausalPathSeal(
         seal_id=seal_id,
@@ -350,10 +400,19 @@ def seal_gwt_causal_path(
     )
 
 
-def validate_gwt_causal_path_seal(seal: GwtCausalPathSeal, **kwargs: Any) -> None:
+def validate_gwt_causal_path_seal(
+    seal: GwtCausalPathSeal,
+    **kwargs: Any,
+) -> None:
     if type(seal) is not GwtCausalPathSeal or seal._factory_seal is not _SEAL_FACTORY:
-        raise GwtCausalPathError("seal was not produced by deterministic WP510 factory")
-    rebuilt = seal_gwt_causal_path(seal_id=seal.seal_id, provenance_refs=seal.provenance_refs, **kwargs)
+        raise GwtCausalPathError(
+            "seal was not produced by deterministic WP510 factory"
+        )
+    rebuilt = seal_gwt_causal_path(
+        seal_id=seal.seal_id,
+        provenance_refs=seal.provenance_refs,
+        **kwargs,
+    )
     if rebuilt.as_dict() != seal.as_dict():
         raise GwtCausalPathError("seal source-evidence lineage mismatch")
 
