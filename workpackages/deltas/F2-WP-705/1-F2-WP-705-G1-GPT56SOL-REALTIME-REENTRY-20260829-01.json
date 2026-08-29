@@ -1,0 +1,65 @@
+{
+  "schema": "FRANKENSTEIN2_WORKPACKAGE_DELTA/v1",
+  "workpackage_id": "F2-WP-705",
+  "generation": 1,
+  "claim_id": "F2-WP-705-G1-GPT56SOL-REALTIME-REENTRY-20260829",
+  "worker_id": "GPT-5.6-Sol",
+  "authority_epoch": "8.78",
+  "stage": "STAGE7_RETINA_PRESENCE_VOICE",
+  "delta_id": "F2-WP-705-G1-GPT56SOL-REALTIME-REENTRY-20260829-01",
+  "status": "IMPLEMENTED_SOURCE_PENDING_REPOSITORY_CI",
+  "branch": "trigger4/wp705-realtime-reentry-g1",
+  "claim_commit": "f9e0acb12de3534416b945fa3e8fbefc979807c1",
+  "observed_branch_head_before_delta": "11ddad46f0f9a9b9eda3726f20c8ceb20f5c5c7e",
+  "owned_paths_written": [
+    "src/frankenstein2/realtime_reentry.py",
+    "tests/test_realtime_reentry.py",
+    ".github/workflows/wp705-realtime-reentry-ci.yml"
+  ],
+  "implementation_summary": [
+    "Introduced immutable content-bound realtime re-entry evidence for BARGE_IN, BILATERAL_SILENCE and TOOL_RETURN only.",
+    "Bound event chains to exact caller-supplied opaque voice-session identity plus SHA-256 digest, monotonic sequence, causal generation, predecessor identity and non-regressing observed time.",
+    "Required both local and remote silence evidence to meet an explicit caller-supplied threshold; no semantic silence inference is performed.",
+    "Required exact tool-call identity plus tool-result digest for tool-return re-entry; tool execution or result-success inference is out of scope.",
+    "Kept generation 1 dependency-tolerant while F2-WP-704 is independently ACTIVE by avoiding a false concrete VoiceSessionCapsule source dependency before WP704 admission."
+  ],
+  "fail_closed_tests": [
+    "cross-session consumer binding",
+    "stale/non-monotonic predecessor timing",
+    "fake or missing predecessor identity",
+    "invalid first-event causal generation",
+    "unknown event type",
+    "barge-in without explicit input identity",
+    "barge-in carrying silence/tool evidence",
+    "bilateral silence with either side below threshold",
+    "silence event carrying barge/tool evidence",
+    "tool-return without exact call/result identity",
+    "tool-return carrying silence/barge evidence",
+    "unknown mapping fields",
+    "content tampering changing identity/digest"
+  ],
+  "local_preflight": {
+    "surface": "LOCAL_CONTAINER_STATIC_UNIT_ONLY",
+    "command": "PYTHONPATH=/tmp/wp705 python -m unittest discover -s /tmp/wp705/tests -v",
+    "tests": 16,
+    "passed": 16,
+    "failed": 0,
+    "source_sha256": "4ac64a7f7da540c007a840c5a3165597caa263daea30ca57e54f72c19a963468",
+    "test_sha256": "a04a0e2024b09d45c61204a2959fb837cff17be87f0a9edb0d2a046ad89f18cb",
+    "credit": "PRE_COMMIT_SANITY_ONLY"
+  },
+  "credit_boundary": {
+    "source_present": true,
+    "local_unit_preflight_observed": true,
+    "repository_hosted_ci_observed": false,
+    "target_runtime_observed": false,
+    "vps_runtime_observed": false,
+    "openai_realtime_observed": false,
+    "physical_grid10_credit": 0,
+    "gwt_jspace_credit": 0,
+    "training_credit": 0,
+    "whole_system_credit": 0,
+    "completion_authority": false
+  },
+  "next_exact_action": "Open a bounded WP705 pull request, obtain exact PR-head repository-hosted CI for the committed source/test/workflow identity, then re-enter current main and require merged-main CI before terminal reconciliation or ACCEPTED_AT_SCOPE."
+}
