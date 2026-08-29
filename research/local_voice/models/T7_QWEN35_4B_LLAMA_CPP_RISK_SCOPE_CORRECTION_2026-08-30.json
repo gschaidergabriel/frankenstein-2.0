@@ -1,5 +1,5 @@
 {
-  "schema_version": 1,
+  "schema_version": 2,
   "trigger": "7",
   "research_id": "T7-LLM-003",
   "objective": "E2_QWEN35_4B_LLAMA_CPP_RISK_SCOPE_CORRECTION",
@@ -34,12 +34,21 @@
       "corrected_observation": "Issue #26916 concerns ShaoShuai0605/Harness-R1 9B with qwen3_5 architecture. It establishes that successful conversion plus quantization does not guarantee loadability for every qwen3_5-derived artifact, but it is not direct evidence that official Qwen3.5-4B fails to load.",
       "classification": "QWEN3_5_FAMILY_CONVERSION_GUARD_NOT_QWEN35_4B_DIRECT_FAILURE",
       "required_test": "For the official 4B chain, require exact converter/build pinning, post-conversion load test, post-quantization load test, GGUF metadata receipt and only then benchmark credit."
+    },
+    {
+      "source": "https://github.com/ggml-org/llama.cpp/issues/24737",
+      "observed_scope": "Direct Qwen/Qwen3.5-4B GGUF conversion/load report. The issue is open and labeled bug-unconfirmed; the report was updated through 2026-08-06 with an additional user reporting the same symptom.",
+      "observation": "The reporter states that Qwen/Qwen3.5-4B has 32 source transformer layers while a converted/quantized artifact was rejected because the loader expected blk.32.attn_norm.weight, i.e. a 33rd block. The report says conversion completed before load failure.",
+      "classification": "DIRECT_QWEN35_4B_UPSTREAM_NEGATIVE_REPORT_BUG_UNCONFIRMED",
+      "required_test": "Before committing to self-conversion as the production baseline path, pin the exact current llama.cpp build, convert the exact official revision, require a high-precision GGUF load test, then quantize and require a second load test. If either fails with an extra-block/missing-tensor signature, preserve the negative receipt and switch the baseline runtime path rather than patching evidence post hoc."
     }
   ],
   "benchmark_policy": {
     "baseline_chain": "official pinned safetensors -> exact pinned converter/build -> self-derived GGUF -> load test -> self-quantized Q4_K_M -> load test -> German VoiceSessionCapsule benchmark",
     "abliterated_gate": "Do not benchmark/promote an abliterated derivative before the official baseline behavior and runtime are measured on the same hardware/build/settings.",
     "cache_policy": "Treat cache/recurrent behavior as an empirical benchmark dimension, not a presumed Qwen3.5-4B defect.",
+    "conversion_policy": "Treat Qwen3.5-4B GGUF conversion/loadability as an explicit falsifiable gate because direct upstream bug-unconfirmed evidence exists; successful conversion or quantization alone grants zero load/runtime credit.",
+    "fallback_if_self_conversion_fails": "Keep the official safetensors revision as provenance truth and evaluate an official-format local runtime or a separately pinned community GGUF only as a distinct runtime path with converter/uploader provenance recorded. Do not collapse those paths into one baseline identity.",
     "credit": "SOURCE_RESEARCH_ONLY"
   },
   "evidence_credit": {
