@@ -1,0 +1,117 @@
+{
+  "schema": "FRANKENSTEIN2_TRIGGER6_ARCHITECTURE_MAPPING_DELTA/v1",
+  "trigger": "6",
+  "research_id": "R6-20260830-PREFIXCACHE-PROVENANCE-GPT56SOL-01",
+  "claim_target": "E2_ARCHITECTURE_MAPPED",
+  "status": "E2_ARCHITECTURE_MAPPED_HOLD_FOR_TARGET_TRACE_DISCRIMINATOR",
+  "created_at_local": "2026-08-30T00:53:00+07:00",
+  "worker": "GPT-5.6 Sol / ChatGPT Trigger-6 organ",
+  "claim_commit": "cd819cca538706f781c246b26970769835d9e40c",
+  "e1_result_commit": "f62712bd5c0dd4b7835ea03a7c2c2cf1ed77db5d",
+  "architecture_fusion_commit": "e426eca7149b61d84397cb7c381a0780b74fc408",
+  "f2_main_refreshed_before_write": "7468bc5ddd2e2e96b21eae3b0787193ad56b792a",
+  "f2_source_bindings": {
+    "workpackage_ledger": "WORKPACKAGES.md",
+    "efficiency_policy": "architecture/TOKEN_AND_RESOURCE_EFFICIENCY_POLICY.md",
+    "mapped_workpackages": {
+      "F2-WP-306": "ContextCompiler / bounded ContextViews — cache reuse must occur only after the exact compiled/rendered context identity is determined; cache state cannot substitute for ContextCompiler output or memory/retrieval authority.",
+      "F2-WP-505": "Adaptive compute allocation — cache hit/miss and reusable-prefix length may become resource observations, but must not independently mint routing, epistemic or completion authority.",
+      "F2-WP-605": "Child performance/latency/quality telemetry — future child/model-call telemetry should expose cache attempt/hit/miss and measured resource effects where the runtime supports them.",
+      "F2-WP-902": "Whole-system resource/latency/quality characterization — any efficiency promotion requires controlled cold-vs-reuse target-runtime evidence at exact source/model/runtime identity."
+    }
+  },
+  "old_path": "Repeated model prefills are treated as ordinary inference cost; F2 has a policy-level cache/reuse metric but no observed canonical provenance/invalidation contract for inference prefix/KV reuse.",
+  "proposed_research_path": "Define a thin runtime-neutral ModelPrefixCacheIdentity/v1 plus InferencePrefixReuseReceipt/v1 research contract. Do not import vLLM/SGLang/llama.cpp as architecture and do not persist physical KV bytes as canonical state.",
+  "minimum_semantic_identity": [
+    "exact model/checkpoint identity at the strongest available consumed-artifact scope",
+    "tokenizer identity",
+    "prompt/chat-template/serializer identity",
+    "ContextCompiler/render/preprocessing schema or implementation identity",
+    "exact reusable prefix token identity or chained prefix digest",
+    "adapter/LoRA/control-vector/J-Space control-state identity when it can alter KV semantics",
+    "multimodal/prompt-embedding identity and offsets when present",
+    "privacy/isolation namespace represented by a non-secret namespace digest or runtime cache_salt binding"
+  ],
+  "runtime_compatibility_identity": [
+    "inference engine/runtime class and build identity where needed for safe reuse",
+    "KV layout/attention backend/dtype/block or cache-format version where the runtime requires exact compatibility",
+    "loader/model-generation lease identity only when reuse across reload/generation boundaries is not explicitly proven safe"
+  ],
+  "invariants": [
+    "CACHE_STATE_IS_DISPOSABLE_ACCELERATOR_STATE_NOT_UNIFIEDDB_TRUTH",
+    "CACHE_HIT_NEVER_RECONSTRUCTS_OR_REPLACES_INTENDED_PROMPT_CONTEXT",
+    "CACHE_HIT_NEVER_BYPASSES_CONTEXTCOMPILER_RETRIEVAL_CAPABILITY_ROUTE_OR_EFFECT_AUTHORITY",
+    "ISOLATION_DOMAIN_PARTICIPATES_IN_CACHE_IDENTITY_OR_NAMESPACE",
+    "MODEL_TOKENIZER_TEMPLATE_PREFIX_ADAPTER_CONTROL_MULTIMODAL_OR_PREPROCESSING_MISMATCH_FAILS_TO_MISS",
+    "UNKNOWN_RUNTIME_COMPATIBILITY_FAILS_TO_MISS",
+    "CACHE_HIT_IS_OBSERVATION_ONLY_AND_CANNOT_MINT_FACT_COMPLETION_OR_GWT_CAUSAL_CREDIT",
+    "POSITION_INDEPENDENT_CONTENT_MATCH_REUSE_IS_EXCLUDED_FROM_INITIAL_F2_LANE"
+  ],
+  "candidate_receipt_fields": [
+    "model_call_id",
+    "cache_attempted",
+    "cache_hit",
+    "cache_identity_digest",
+    "matched_prefix_tokens",
+    "prefill_tokens_avoided_or_equivalent_runtime_counter",
+    "runtime_identity",
+    "isolation_namespace_class_or_digest_without_secret_material",
+    "miss_or_invalidation_reason_when_available",
+    "cold_baseline_or_ablation_correlation_id",
+    "latency_and_memory_counters_at_the_declared_measurement_scope"
+  ],
+  "source_to_f2_mapping": [
+    {
+      "external_mechanism": "vLLM chained block identity + extra keys + cache_salt",
+      "distilled_f2_lesson": "Token-prefix equality alone is insufficient whenever adapters, multimodal content, prompt embeddings or isolation boundaries alter execution semantics; F2 cache identity must include every semantically KV-affecting non-token input."
+    },
+    {
+      "external_mechanism": "SGLang RadixKey extra_key/cache_salt and session soft references",
+      "distilled_f2_lesson": "Separate cache namespace/compatibility from conversation/session truth; session affinity may influence eviction only and cannot become memory reconstruction."
+    },
+    {
+      "external_mechanism": "llama.cpp prompt/KV reuse controls",
+      "distilled_f2_lesson": "Runtime cache mechanisms can remain engine-owned; F2 should standardize identity/receipt/invalidation evidence rather than duplicate the physical cache implementation."
+    },
+    {
+      "external_mechanism": "position-independent cache research",
+      "distilled_f2_lesson": "Potential reuse beyond exact prefix is a separate mechanism class with additional semantic and integrity risk and therefore requires an independent claim/falsification lane before consideration."
+    }
+  ],
+  "expected_resource_effect_if_hypothesis_holds": {
+    "direction": "LOWER_REPEATED_PREFILL_WORK",
+    "eligible_metrics": ["input/prefill work", "time-to-first-token or equivalent latency", "cache/reuse hit rate", "compute", "memory overhead", "quality/evidence retained"],
+    "numeric_credit": "NONE_WITHOUT_F2_TARGET_TRACE_AND_RUNTIME_ABLATION"
+  },
+  "counterhypothesis": "Real F2 ContextViews may change on almost every cycle because state, retrieval, goals, perception and evidence deltas alter early prompt tokens. Exact-prefix reuse may therefore be too small to justify cache identity, isolation, memory overhead and invalidation complexity.",
+  "cheapest_high_information_discriminator": {
+    "name": "F2_PREFIX_REUSE_TRACE_ABLATION_DESIGN/v1",
+    "stage": "DO_NOT_ADVANCE_TO_E3_OR_E5_YET",
+    "procedure": [
+      "Collect or derive a representative set of exact F2 model-call rendered prompts/token streams at the normal evidence boundary without enabling a KV cache.",
+      "Compute per-call longest reusable exact prefix under candidate semantic identity partitions, including cold, same-session and isolation-boundary-separated cases.",
+      "Measure reusable-prefix-token distribution and theoretical prefill-work ceiling before adding runtime code.",
+      "Reject the candidate if reuse is negligible or key instability dominates.",
+      "Only if reuse is material, hand a later bounded Trigger-4 A/B plan to target runtime: cache disabled vs enabled with exact request/model/runtime identity and invariant-equivalent outputs.",
+      "Negative invalidation tests must mutate tokenizer/template, prefix tokens, adapter/control state, multimodal identity, model/runtime compatibility and isolation namespace and require MISS/fail-closed behavior."
+    ],
+    "acceptance_to_continue_research": "Observed representative F2 traces demonstrate nontrivial exact-prefix reuse under a provenance-safe identity partition and no evidence that reuse requires treating cache state as canonical memory/truth.",
+    "rejection": "Reuse ceiling is negligible, provenance identity is unstable/unavailable, isolation cannot be guaranteed, or invalidation semantics cannot be bound exactly."
+  },
+  "trigger4_handoff": {
+    "status": "NOT_READY",
+    "reason": "Trigger-6 evidence is only E2 architecture mapping; no F2 trace reproduction, target ablation or E5 build-candidate evidence exists."
+  },
+  "credit_boundary": {
+    "trigger6_evidence_level": "E2_ARCHITECTURE_MAPPED",
+    "accepted_f2_architecture_credit": 0,
+    "build_candidate_credit": 0,
+    "runtime_credit": 0,
+    "performance_credit": 0,
+    "physical_grid10_credit": 0,
+    "gwt_causal_credit": 0,
+    "whole_system_credit": 0,
+    "training_credit": 0
+  },
+  "next_exact_action": "Acquire a new create-only claim only when a representative exact F2 model-call trace surface exists for the prefix-reuse discriminator; until then hold this lane at E2 and route Trigger-6 effort to another nonduplicate source/research objective."
+}
