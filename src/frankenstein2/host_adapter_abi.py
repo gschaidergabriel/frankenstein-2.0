@@ -81,6 +81,27 @@ DEFAULT_REQUIRED_CAPABILITIES: tuple[str, ...] = (
 )
 EFFECT_ROLES = frozenset({"PRE_EFFECT", "POST_EFFECT", "TOOL_RESULT_RETURN"})
 
+# v1 verified lifecycle contracts are deliberately closed. Free-form strings may remain
+# on non-verified observations, but a VERIFIED binding must use a contract whose semantics
+# the ABI actually knows how to interpret and whose evidence_ref can therefore attest.
+VERIFIED_OCCURRENCE_CONTRACTS = frozenset({"MEASURED_MULTIPLICITY", "ONCE"})
+VERIFIED_TIMING_CONTRACTS = frozenset({"MEASURED_ORDERING", "BEFORE"})
+
+# Fields a LifecycleBinding may require to be present on a SemanticLifecycleEvent.
+# Environment/adapter/concrete-event identity is verified separately below.
+SEMANTIC_EVENT_IDENTITY_FIELDS = frozenset(
+    {
+        "session_id",
+        "agent_id",
+        "task_id",
+        "turn_id",
+        "causal_id",
+        "generation",
+        "effect_id",
+        "tool_use_id",
+    }
+)
+
 
 def _canonical_json(value: Mapping | Sequence | str | int | bool | None) -> str:
     return json.dumps(value, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
@@ -195,15 +216,21 @@ class LifecycleBinding:
     def __post_init__(self) -> None:
         if self.semantic_role not in SEMANTIC_LIFECYCLE_ROLES:
             raise HostABIError(f"UNKNOWN_SEMANTIC_ROLE:{self.semantic_role}")
-        _require_nonempty(self.occurrence_contract, "OCCURRENCE_CONTRACT")
-        _require_nonempty(self.timing_contract, "TIMING_CONTRACT")
+        occurrence_contract = _require_nonempty(self.occurrence_contract, "OCCURRENCE_CONTRACT")
+        timing_contract = _require_nonempty(self.timing_contract, "TIMING_CONTRACT")
         if len(set(self.payload_identity_fields)) != len(self.payload_identity_fields):
             raise HostABIError(f"DUPLICATE_PAYLOAD_IDENTITY_FIELD:{self.semantic_role}")
         for field in self.payload_identity_fields:
-            _require_nonempty(field, "PAYLOAD_IDENTITY_FIELD")
+            field = _require_nonempty(field, "PAYLOAD_IDENTITY_FIELD")
+            if field not in SEMANTIC_EVENT_IDENTITY_FIELDS:
+                raise HostABIError(f"UNKNOWN_PAYLOAD_IDENTITY_FIELD:{self.semantic_role}:{field}")
         if self.environment_digest is not None:
             _require_sha256(self.environment_digest, "LIFECYCLE_ENVIRONMENT_DIGEST")
         if self.verification is LifecycleVerification.VERIFIED:
+            if occurrence_contract not in VERIFIED_OCCURRENCE_CONTRACTS:
+                raise HostABIError(f"{self.semantic_role}_UNVERIFIED_OCCURRENCE_CONTRACT:{occurrence_contract}")
+            if timing_contract not in VERIFIED_TIMING_CONTRACTS:
+                raise HostABIError(f"{self.semantic_role}_UNVERIFIED_TIMING_CONTRACT:{timing_contract}")
             if self.concrete_event is None or not self.concrete_event.strip():
                 raise HostABIError(f"{self.semantic_role}_VERIFIED_WITHOUT_EVENT")
             if self.source_surface is None or not self.source_surface.strip():
@@ -329,9 +356,36 @@ class HostCapabilityReport:
         return hashlib.sha256(self.canonical_json().encode("utf-8")).hexdigest()
 
 
+def _validated_lifecycle_binding(binding: LifecycleBinding) -> LifecycleBinding:
+    """Revalidate current binding content at the consumer boundary."""
+    if type(binding) is not LifecycleBinding:
+        raise HostABIError("LIFECYCLE_BINDING_EXACT_TYPE_REQUIRED")
+    return LifecycleBinding(
+        semantic_role=binding.semantic_role,
+        concrete_event=binding.concrete_event,
+        source_surface=binding.source_surface,
+        verification=binding.verification,
+        evidence_ref=binding.evidence_ref,
+        environment_digest=binding.environment_digest,
+        occurrence_contract=binding.occurrence_contract,
+        timing_contract=binding.timing_contract,
+        payload_identity_fields=binding.payload_identity_fields,
+        native_surface=binding.native_surface,
+    )
+
+
+def _semantic_event_has_identity(event: SemanticLifecycleEvent, field: str) -> bool:
+    if field == "generation":
+        value = event.generation
+        return not isinstance(value, bool) and isinstance(value, int) and value >= 0
+    value = getattr(event, field, None)
+    return isinstance(value, str) and bool(value.strip())
+
+
 def _index_unique_lifecycle(bindings: Iterable[LifecycleBinding]) -> dict[str, LifecycleBinding]:
     result: dict[str, LifecycleBinding] = {}
-    for binding in bindings:
+    for raw_binding in bindings:
+        binding = _validated_lifecycle_binding(raw_binding)
         if binding.semantic_role in result:
             raise HostABIError(f"DUPLICATE_SEMANTIC_ROLE_BINDING:{binding.semantic_role}")
         result[binding.semantic_role] = binding
@@ -500,6 +554,12 @@ def verify_semantic_event_binding(
     binding: LifecycleBinding,
 ) -> bool:
     """Verify that a normalized event belongs to the exact adapter/environment contract."""
+    try:
+        binding = _validated_lifecycle_binding(binding)
+    except (AttributeError, HostABIError):
+        return False
+    if type(event) is not SemanticLifecycleEvent or type(environment) is not TargetEnvironmentBinding:
+        return False
     env_digest = environment.binding_digest()
     if event.role != binding.semantic_role or not binding.is_verified:
         return False
@@ -510,5 +570,7 @@ def verify_semantic_event_binding(
     if event.adapter_id != environment.adapter_id:
         return False
     if event.concrete_event != binding.concrete_event:
+        return False
+    if any(not _semantic_event_has_identity(event, field) for field in binding.payload_identity_fields):
         return False
     return True

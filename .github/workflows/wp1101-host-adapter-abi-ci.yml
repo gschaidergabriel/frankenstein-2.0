@@ -7,11 +7,13 @@ on:
     paths:
       - 'src/frankenstein2/host_adapter_abi.py'
       - 'tests/test_host_adapter_abi.py'
+      - 'tests/test_host_adapter_abi_contract_fences.py'
       - '.github/workflows/wp1101-host-adapter-abi-ci.yml'
   pull_request:
     paths:
       - 'src/frankenstein2/host_adapter_abi.py'
       - 'tests/test_host_adapter_abi.py'
+      - 'tests/test_host_adapter_abi_contract_fences.py'
       - '.github/workflows/wp1101-host-adapter-abi-ci.yml'
   workflow_dispatch:
 
@@ -28,8 +30,12 @@ jobs:
         with:
           python-version: '3.12'
       - name: Compile
-        run: python -m py_compile src/frankenstein2/host_adapter_abi.py tests/test_host_adapter_abi.py
-      - name: Host adapter ABI falsification suite
+        run: python -m py_compile src/frankenstein2/host_adapter_abi.py tests/test_host_adapter_abi.py tests/test_host_adapter_abi_contract_fences.py
+      - name: Host adapter ABI canonical suite
         env:
           PYTHONPATH: src
         run: python tests/test_host_adapter_abi.py -v
+      - name: Host adapter ABI contract-fence regressions
+        env:
+          PYTHONPATH: src
+        run: python tests/test_host_adapter_abi_contract_fences.py -v
