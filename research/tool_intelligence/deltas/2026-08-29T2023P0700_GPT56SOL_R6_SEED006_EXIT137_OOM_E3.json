@@ -1,0 +1,61 @@
+{
+  "schema": "FRANKENSTEIN2_TRIGGER6_RESEARCH_RESULT/v1",
+  "trigger": "6",
+  "research_id": "R6-SEED-006",
+  "slot": "EXPERIMENTAL_FALSIFIER",
+  "evidence_stage": "E3_CLAIM_REPRODUCED",
+  "status": "COMPLETED_EXTERNAL_DONOR_FALSIFIER_NO_F2_RUNTIME_CREDIT",
+  "created_at": "2026-08-29T20:23:00+07:00",
+  "worker": "GPT-5.6-Sol-TRIGGER6",
+  "claim_path": "research/tool_intelligence/claims/R6-SEED-006/E3_EXIT137_OOM_CLASSIFICATION_FALSIFIER.json",
+  "claim_commit": "974bf37f3b2afebb9984007672a9c6694864fdc9",
+  "f2_live_fusion_head_before_result": "764c567ada8d1a9ec9bb2006490f5251c7088975",
+  "upstream": {
+    "repo": "eunomia-bpf/agentcgroup",
+    "commit": "551ca1689b7d2d30db6b8a8613414750103cc68b",
+    "path": "agentcg/bash_wrapper.sh",
+    "observed_rule": "When EXIT_CODE equals 137 and the wrapper entered its child cgroup, stderr states that the command was killed by OOM and exceeded its memory budget."
+  },
+  "hypothesis_under_test": "EXIT_CODE==137 is sufficient evidence that the command was terminated by OOM/resource-budget exhaustion.",
+  "counterexample": {
+    "environment": "isolated local deterministic Linux container; donor falsifier only",
+    "kernel_observed": "Linux 6.18.35 x86_64",
+    "intervention": "Launch an inner bash process and have that process deliberately send SIGKILL to itself with kill -9 $$, without allocating memory or requesting an OOM event.",
+    "command_sha256": "6b2b51ee928054a78a5c94bfa4acf0950e1457822df6be51caa186e71f7bcedf",
+    "observed_exit_code": 137,
+    "result_sha256": "cb0722e36fe9605f12cb20eabd4f9f8d7496de4e6586050d79cb3057990995d6",
+    "control_fact": "Termination cause was the explicitly issued SIGKILL in the test command, not a memory allocation failure or OOM-killer event."
+  },
+  "result": {
+    "hypothesis": "FALSIFIED",
+    "finding": "Exit 137 is compatible with a deliberate non-OOM SIGKILL, so exit code 137 alone is not sufficient evidence for OOM.",
+    "bounded_interpretation": "EXIT_137 => SIGKILL_STYLE_TERMINATION_CANDIDATE; OOM remains UNKNOWN unless corroborated by admitted memory-event/kernel/cgroup evidence.",
+    "upstream_risk_reproduced": "YES_AT_CLASSIFICATION_LOGIC_SCOPE_ONLY"
+  },
+  "f2_architecture_delta": {
+    "type": "EVIDENCE_CLASSIFICATION_RULE",
+    "recommended_rule": "Never mint OOM truth from process exit 137 alone. Bind exit/signal observations separately from candidate termination cause and require corroborating memory.events/oom/oom_kill or equivalent admitted system evidence before classifying OOM as observed.",
+    "resource_receipt_fields": [
+      "exit_code",
+      "termination_signal_if_observable",
+      "resource_event_evidence_refs",
+      "termination_cause_classification",
+      "termination_cause_confidence_or_epistemic_state"
+    ],
+    "authority_boundary": "A model/tool may propose an explanation, but canonical resource-event classification remains deterministic evidence-bound state."
+  },
+  "counterhypothesis_remaining": "On a deployment where the wrapper can prove that all SIGKILL paths inside the managed cgroup originate exclusively from the memory controller, exit 137 might become conditionally diagnostic. That stronger deployment invariant was not established by the audited source and must be separately evidenced.",
+  "credits": {
+    "trigger6_research": "E3_CLAIM_REPRODUCED_EXTERNAL_DONOR_CLASSIFICATION_FALSIFIER",
+    "architecture": 0,
+    "repository_component": 0,
+    "target_runtime": 0,
+    "resource_controller": 0,
+    "physical_grid10": 0,
+    "gwt_jspace": 0,
+    "training": 0,
+    "effects": 0,
+    "whole_system": 0
+  },
+  "next_exact_action": "Hand the evidence-classification rule to Trigger4 only if a current F2 ResourceEnvelope/resource receipt workpackage exists or is opened; otherwise preserve as a tested donor negative result. A later E3/E4 may compare cgroup memory.events against process exit/signals on an admitted F2 workload."
+}
