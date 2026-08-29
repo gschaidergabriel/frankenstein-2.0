@@ -1,0 +1,55 @@
+{
+  "schema": "FRANKENSTEIN2_WORKPACKAGE_DELTA/v1",
+  "workpackage_id": "F2-WP-1207",
+  "generation": 1,
+  "claim_id": "F2-WP-1207-G1-GPT56SOL-HOSTILE-TWIN-TRANSACTION-20260829",
+  "worker_id": "GPT-5.6-Sol-TRIGGER4-REVIEW",
+  "base_commit": "70ba8ff26e4ea14aa4824f4094d7997f96ed25d3",
+  "observed_main_commit": "7b02a65be426b526703f96c8d97097657afee14d",
+  "owned_paths": [],
+  "result_class": "RECONCILIATION_CANDIDATE",
+  "authority_epoch": "8.78",
+  "created_at_utc": "2026-08-29T12:54:43Z",
+  "source_commits": [
+    "66eda480fe506be0aa57146b9044c329de910ccf",
+    "523250f8728fbb427ef82975c7fe21f5169abf84",
+    "70ba8ff26e4ea14aa4824f4094d7997f96ed25d3"
+  ],
+  "receipts": [
+    "workpackages/receipts/F2-WP-1207_G1_HOSTILE_TWIN_TRANSACTION_GHA_33253539715.json",
+    "GitHub Actions run 33253539715 / job 99103220932: repository-hosted transaction suite success"
+  ],
+  "falsifiers": [
+    "workpackages/deltas/F2-WP-1207/1-F2-WP-1207-G1-GPT56SOL-HOSTILE-TWIN-TRANSACTION-20260829-02_ABI_COLLISION_REVIEW.json",
+    "Current AttemptReceipt SUCCEEDED path has no observed active-release/artifact identity field to compare with TransactionPlan.target_release_digest. Correct next generation/state readback alone cannot establish activation of the planned release."
+  ],
+  "contradictions": [
+    {
+      "type": "REVIEW_VS_RECONCILIATION_SCOPE",
+      "lhs": "The sequence-02 REVIEW_ONLY delta requires a release-readback discriminator before G1 reconciliation/promotion of the receipt toward hostile-twin evidence.",
+      "rhs": "The later G1 reconciliation and acceptance receipt mark generation 1 ACCEPTED_AT_SCOPE after repository CI while canonical source blob a248d6ded9fd90f34f7e6763fe30948fc58af6e6 still lacks that discriminator.",
+      "resolution_boundary": "Repository-hosted deterministic planning/lineage CI may remain accepted only at its explicitly non-runtime component scope; its AttemptReceipt must not be treated as sufficient hostile-twin release-activation readback evidence."
+    },
+    {
+      "type": "ACTIVE_POINTER_VS_TERMINAL_RECONCILIATION",
+      "lhs": "workpackages/active/F2-WP-1207.json remains state ACTIVE at observed main.",
+      "rhs": "workpackages/reconciliations/F2-WP-1207/1-F2-WP-1207-G1-GPT56SOL-HOSTILE-TWIN-TRANSACTION-20260829.json records state ACCEPTED.",
+      "resolution_boundary": "Do not race-write either projection. A single reconciliation writer should repair terminal-pointer consistency or open a properly parented successor generation under CLAIM_PROTOCOL.md."
+    }
+  ],
+  "proposed_state_change": "NO_DIRECT_MUTATION_FROM_REVIEW_WORKER. Preserve G1 repository-CI acceptance strictly as deterministic preparatory component evidence, explicitly deny hostile-twin/runtime release-activation credit from the current AttemptReceipt ABI, and require a coherent successor/fusion step before runtime promotion.",
+  "completion_deficit": [
+    "observed active release identity is not bound into SUCCEEDED readback",
+    "wrong-active-release with otherwise correct next generation/state lacks a mandatory negative test",
+    "exact release ZIP has not been exercised in an admitted hostile target twin",
+    "update failure rollback/readback to exact pre-attempt lineage has no hostile-twin runtime receipt",
+    "active pointer and terminal reconciliation disagree"
+  ],
+  "next_exact_action": "After the canonical pointer/reconciliation state is coherently resolved, open the smallest permitted successor scope (or downstream runtime-readback adapter if architecture ownership requires it) that binds observed active release/artifact identity to the planned target identity, adds a mismatch falsifier, passes exact-source repository CI, then exercises the exact release ZIP through an admitted hostile twin with injected update failure and exact rollback/readback. Do not grant T1-T4, physical, EffectGate, CompletionGate, GRID/GWT/J-Space, training or whole-system credit from this delta.",
+  "credit": {
+    "repository_component_ci": "PRESERVE_G1_ACCEPTED_AT_DECLARED_NONRUNTIME_SCOPE",
+    "hostile_twin_runtime": 0,
+    "physical_target": 0,
+    "whole_system": false
+  }
+}
