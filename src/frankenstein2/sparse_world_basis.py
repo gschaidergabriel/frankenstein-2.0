@@ -530,7 +530,7 @@ def materialize_world_slice(
     Expansion uses only exact graph reachability plus explicit caller-supplied activation.
     Omitted activation defaults to zero. Higher activation wins; ties use atom_id order.
     """
-    atom_by_id, _, activation_by_id = _validate_substrate(
+    atom_by_id, operator_by_id, activation_by_id = _validate_substrate(
         atoms=atoms,
         operators=operators,
         activations=activations,
@@ -591,10 +591,12 @@ def materialize_world_slice(
             activation = activation_by_id.get(atom_id)
             if activation is not None:
                 evidence_refs.update(activation.provenance_refs)
+            for operator_id in candidates[atom_id]:
+                evidence_refs.update(operator_by_id[operator_id].provenance_refs)
             selected_operators.update(candidates[atom_id])
 
         depth_reached = depth
-        if set(need.target_atom_ids).issubset(selected):
+        if need.target_atom_ids and set(need.target_atom_ids).issubset(selected):
             stopped_reason = "TARGETS_REACHED"
             break
         if len(selected) >= need.max_atoms:
