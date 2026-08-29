@@ -1,0 +1,101 @@
+{
+  "schema": "FRANKENSTEIN2_TRIGGER6_E2_REVIEW_ADDENDUM/v1",
+  "trigger": "6",
+  "research_id": "R6-WP105-EFFECT-IDEMPOTENCY-SCOUT-001",
+  "slot": "INTEGRATION_DISTILLER",
+  "status": "RECONCILED_ADDITIVE_REVIEW_NO_DOUBLE_E2_CREDIT",
+  "created_at": "2026-08-29T15:00:00+07:00",
+  "claim": {
+    "path": "research/tool_intelligence/claims/R6-WP105-EFFECT-IDEMPOTENCY-SCOUT-001/E2_REVIEW_9_13AQ_DIRECT_EFFECT_REPLAY.json",
+    "claim_commit": "f8d1e3122b7b63346db7c1624f4a42b8d0ca0da3"
+  },
+  "parallel_result_consumed": {
+    "path": "research/tool_intelligence/deltas/R6-WP105-EFFECT-IDEMPOTENCY-SCOUT-001_E2_ARCHITECTURE_MAPPED_RETRY_IDENTITY_ABI_20260829T1455P0700_GPT56SOL.json",
+    "commit": "8fa87cd9b8a397292473b2afbca3995b4859f2fc",
+    "disposition": "AUTHORITATIVE_CANONICAL_E2_RESULT_FOR_THIS_RESEARCH_UNIT; THIS_ADDENDUM_ADDS_ONLY_NONDUPLICATE_SCHEMA_SCOPE_FINDING",
+    "additional_e2_credit": 0
+  },
+  "current_source_confirmation": [
+    "F2 EffectRequestIdentity is a deterministic projection of EntityOS EffectRequest, but the current entityos call bridge puts binding_id, invocation_id, tool_use_id, delegation_id and child identity inside target; therefore the actual request_sha256 for this path is occurrence-bound and must not become operation_retry_id or retry-stable payload equivalence by silent reinterpretation.",
+    "F2 NativeChildBinding.binding_id is stable only for one delegation as its result is attached; invocation_id is part of one delegated execution lineage. Neither is source-contracted as restart-stable logical-operation identity.",
+    "Bound EntityOS EffectGate obtains a durable autonomy replay identity only from goal_id + autonomy_step_id on canonical workspace episodes; episode_id=null direct calls return no autonomy identity and bypass that fence.",
+    "Bound EffectJournal.begin receives session_id but the schema-6 effects row does not persist session_id. For episode_id=null direct calls the row therefore has no durable session column, no operation_retry_id, no retry-stable payload hash, no attempt_id and no distinct dispatch-start state.",
+    "Bound EffectJournal.begin creates a fresh UUID effect_id for every admitted begin; effect_id is journal-row identity and cannot serve as pre-begin logical-operation retry identity.",
+    "Bound live bridge exceptions are finalized FAILED, while restart recovery converts still-PENDING rows to UNKNOWN_AFTER_RESTART; neither current path creates a distinct canonical UNKNOWN_POST_DISPATCH state."
+  ],
+  "material_additive_finding": {
+    "id": "R6-WP105-E2-ADDENDUM-DIRECT-SESSION-SCOPE",
+    "classification": "CURRENT_BOUND_SOURCE_SCHEMA_GAP",
+    "finding": "The direct-call replay fix needs an explicit durable scope for logical operation identity. Current effects rows omit session_id even though EffectJournal.begin receives it. A safe native successor must either persist session_id alongside operation_retry_id or define a globally collision-safe canonical operation namespace; relying on episode linkage cannot cover episode_id=null.",
+    "confidence": 0.99,
+    "falsifier": "A newer admitted canonical schema/source already persists an equivalent direct-call durable operation scope and proves it is consulted transactionally before any dispatch."
+  },
+  "minimal_successor_shape": {
+    "classification": "R2_GENERATED_NOT_CANONICAL_NOT_E5",
+    "preferred_scope": "persist user_id + session_id + operation_retry_id in the existing canonical EffectJournal/UnifiedDB effects authority",
+    "separate_fields": [
+      "operation_retry_id",
+      "operation_payload_sha256",
+      "attempt_id",
+      "request_sha256",
+      "effect_id",
+      "dispatch_started evidence/state",
+      "outcome certainty",
+      "verification_evidence_ref"
+    ],
+    "transactional_fence": "same scoped operation_retry_id must be checked/claimed atomically in UnifiedDB before EffectJournal admits a second dispatch-capable attempt",
+    "mismatch_rule": "same scoped operation_retry_id + different operation_payload_sha256 => reject before dispatch",
+    "unknown_rule": "PENDING/DISPATCH_STARTED/UNKNOWN unresolved => zero second dispatch; only authority-owned VERIFIED_NOT_APPLIED or independently proven target idempotency may permit a fresh attempt",
+    "intentional_duplicate_rule": "same effect semantics with a distinct operation_retry_id remains a distinct intentional operation",
+    "external_runtime_import": false,
+    "second_truth_store": false,
+    "second_effect_authority": false
+  },
+  "external_primary_crosscheck": {
+    "rfc9110": "Non-idempotent requests should not be automatically retried after uncertainty unless semantics are known idempotent or non-application can be detected.",
+    "aws_ec2": "Stable client token + same parameters suppresses repeated action; same token + changed parameters is an idempotency mismatch.",
+    "aws_builders_library": "Client request identity should represent caller intent; same identifier with different intent is a mismatch, so payload equality and operation identity remain distinct."
+  },
+  "reconciliation": {
+    "canonical_e2_result_unchanged": true,
+    "new_e2_credit": 0,
+    "contradiction_with_parallel_e2": false,
+    "e1_simplification_request_sha256_as_retry_payload": "RETIRED_FOR_CURRENT_ENTITYOS_CALL_BRIDGE",
+    "external_runtime_dependency": "NOT_JUSTIFIED",
+    "trigger4_build_candidate": false
+  },
+  "next_gate": {
+    "owner": "TRIGGER6_EXPERIMENTAL_FALSIFIER_OR_TRIGGER4_CURRENT_AUTHORITY_TEST_LANE",
+    "priority": "follow current 9.13AQ direct-effect replay falsifier before any canonical semantics promotion",
+    "acceptance": [
+      "episode_id=null first harmless deterministic call crosses dispatch-start boundary then remains explicit UNKNOWN/unresolved",
+      "reopen UnifiedDB/new EffectGate",
+      "same logical operation and same payload executes zero additional child mutation while unresolved",
+      "same operation id with changed payload rejects before dispatch",
+      "distinct operation id with identical semantics remains independently admissible",
+      "no real external effect, provider, paid path, second journal or second executor authority"
+    ]
+  },
+  "credits": {
+    "canonical_research_unit_E2": 1,
+    "this_addendum_new_E2_credit": 0,
+    "E3": 0,
+    "E4": 0,
+    "E5": 0,
+    "E6": 0,
+    "F2_runtime": 0,
+    "EntityOS_runtime": 0,
+    "physical_GRID10": 0,
+    "whole_EntityOS_HCU": 0,
+    "training": 0
+  },
+  "execution": {
+    "source_review_only": true,
+    "real_effect_execution": 0,
+    "provider_calls": 0,
+    "vps_execution": 0,
+    "paid_fallback": false,
+    "unusual_experiment": false,
+    "pending_research_sqlite_sync": "PENDING_BINARY_DB_WRITE_NOT_PERFORMED"
+  }
+}
