@@ -1,0 +1,56 @@
+{
+  "schema": "T7_QWEN35_4B_BASELINE_RUNTIME_PIN/v1",
+  "trigger": "7",
+  "research_id": "T7-LLM-003",
+  "observed_date": "2026-08-30",
+  "epistemic_scope": "SOURCE_PIN_AND_COMPATIBILITY_AUDIT_ONLY",
+  "official_base": {
+    "repo_id": "Qwen/Qwen3.5-4B",
+    "source_url": "https://huggingface.co/Qwen/Qwen3.5-4B",
+    "license": "apache-2.0",
+    "parameters": "4B",
+    "layers": 32,
+    "thinking_default": true,
+    "immutable_full_upload_revision_observed": "1eef1f4e0bc57dec8f814d1e4c714c8e0065d261",
+    "note": "This is the official Qwen Transformers-format base source. A later metadata/card state may exist; the immutable source revision is retained as a reproducible provenance anchor rather than claimed as current main."
+  },
+  "selected_local_gguf_baseline": {
+    "repo_id": "bartowski/Qwen_Qwen3.5-4B-GGUF",
+    "classification": "COMMUNITY_QUANTIZATION_OF_OFFICIAL_QWEN_BASE_NOT_OFFICIAL_QWEN_GGUF",
+    "license": "apache-2.0",
+    "quant": "Q4_K_M",
+    "file": "Qwen_Qwen3.5-4B-Q4_K_M.gguf",
+    "file_upload_revision": "ba06320255db2dbec194dad738d066be90dabf29",
+    "bytes": 3013027808,
+    "sha256": "13c16f426047e2de38cd075bdade4a7bcbc8c774384876f677740cda65f8a983",
+    "source_url": "https://huggingface.co/bartowski/Qwen_Qwen3.5-4B-GGUF/blob/main/Qwen_Qwen3.5-4B-Q4_K_M.gguf",
+    "upstream_usage_claim": "repository documents direct llama.cpp llama-server/llama-cli use",
+    "upstream_usage_is_runtime_credit": false
+  },
+  "llama_cpp": {
+    "repo": "ggml-org/llama.cpp",
+    "branch": "master",
+    "observed_revision": "3173a56471c1753650cd806694145ffd6dcace67",
+    "source_url": "https://github.com/ggml-org/llama.cpp/commit/3173a56471c1753650cd806694145ffd6dcace67",
+    "compatibility_classification": "SOURCE_PATH_PLAUSIBLE_RUNTIME_UNOBSERVED",
+    "risk_note": "Historical/current issue reports show Qwen3.5 backend/conversion edge cases on some derived models/backends. Therefore repository documentation is not promoted to clay-direct-dev runtime evidence."
+  },
+  "voice_runtime_controls": {
+    "thinking": "DISABLE_OR_HOLD_CONSTANT_FOR_REALTIME_BASELINE",
+    "initial_context": 4096,
+    "serve_bind": "127.0.0.1",
+    "compare_under_identical_voice_session_capsule": true,
+    "official_base_behavior_before_abliterated_variant": true
+  },
+  "hypothesis": "A Q4_K_M community quantization faithful to the official Qwen3.5-4B base can provide a reproducible local dialogue baseline with materially lower resident footprint than full-precision weights while preserving sufficient German conversational behavior for the Trigger-7 Pareto frontier.",
+  "counterhypothesis": "The Q4_K_M quantization and/or llama.cpp path materially degrades German dialogue, tool/state adherence, TTFT, or long-turn stability, making another quant/runtime or a smaller interaction model superior despite nominal compatibility.",
+  "falsifier": "Run exact-SHA quarantine download and exact-runtime benchmark on clay-direct-dev with identical German VoiceSessionCapsule corpus; record load success, model identity, TTFT, time-to-first-speakable-clause, tokens/s, RSS/VRAM, interruption behavior, dialogue quality and no hidden outbound model inference.",
+  "evidence_credit": {
+    "source_pin": 1,
+    "download": 0,
+    "target_runtime": 0,
+    "benchmark": 0,
+    "integration": 0,
+    "whole_system": 0
+  }
+}
