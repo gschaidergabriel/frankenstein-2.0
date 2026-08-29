@@ -3,8 +3,13 @@
 
 The v2 resolver may intentionally let legacy workpackages/STATE.json lag behind
 validated append-only state events. This gate checks the *effective* v2 view
-against every current active workpackage pointer so active/accepted work cannot
-silently disappear or regress to NOT_STARTED.
+against every current active workpackage pointer so active/scoped-terminal work
+cannot silently disappear or regress.
+
+A terminal ACCEPTED claim does not always mean the broader workpackage is done.
+When its canonical reconciliation explicitly carries ``broader_workpackage_status``,
+that status is authoritative for the aggregate projection. Otherwise ACCEPTED
+falls back to ACCEPTED_AT_SCOPE.
 
 This is metadata/projection validation only. It mints no runtime, provider,
 GRID10, GWT, J-Space, training, effect, completion, or whole-system credit.
@@ -25,6 +30,7 @@ from tools import resolve_workpackage_state_v2 as resolver  # noqa: E402
 
 ACTIVE_ROOT_REL = Path("workpackages/active")
 ACTIVE_SCHEMA = "FRANKENSTEIN2_ACTIVE_WORKPACKAGE_CLAIM/v1"
+BROAD_STATUSES = {"NOT_STARTED", "IN_PROGRESS", "HOLD", "BLOCKED", "ACCEPTED_AT_SCOPE"}
 
 
 class ProjectionValidationError(Exception):
@@ -39,6 +45,35 @@ def _load_json(path: Path) -> dict[str, Any]:
     if not isinstance(value, dict):
         raise ProjectionValidationError(f"expected JSON object: {path}")
     return value
+
+
+def _accepted_broad_status(root: Path, pointer_path: Path, pointer: dict[str, Any]) -> str:
+    reconciliation_ref = pointer.get("reconciliation_ref") or pointer.get("terminal_reconciliation_ref")
+    if reconciliation_ref is None:
+        return "ACCEPTED_AT_SCOPE"
+    if not isinstance(reconciliation_ref, str) or not reconciliation_ref:
+        raise ProjectionValidationError(f"{pointer_path}: invalid reconciliation_ref")
+    reconciliation_path = root / reconciliation_ref
+    if not reconciliation_path.is_file():
+        raise ProjectionValidationError(
+            f"{pointer_path}: reconciliation_ref does not exist: {reconciliation_ref}"
+        )
+    reconciliation = _load_json(reconciliation_path)
+    wp = pointer.get("workpackage_id")
+    if reconciliation.get("workpackage_id") != wp:
+        raise ProjectionValidationError(f"{wp}: pointer/reconciliation workpackage mismatch")
+    if reconciliation.get("generation") != pointer.get("generation"):
+        raise ProjectionValidationError(f"{wp}: pointer/reconciliation generation mismatch")
+    if reconciliation.get("claim_id") != pointer.get("claim_id"):
+        raise ProjectionValidationError(f"{wp}: pointer/reconciliation claim mismatch")
+    explicit = reconciliation.get("broader_workpackage_status")
+    if explicit is None:
+        return "ACCEPTED_AT_SCOPE"
+    if explicit not in BROAD_STATUSES:
+        raise ProjectionValidationError(
+            f"{wp}: unsupported reconciliation broader_workpackage_status {explicit!r}"
+        )
+    return explicit
 
 
 def validate_projection(root: Path) -> dict[str, Any]:
@@ -74,10 +109,12 @@ def validate_projection(root: Path) -> dict[str, Any]:
             raise ProjectionValidationError(
                 f"{wp}: ACTIVE pointer cannot project as NOT_STARTED"
             )
-        if state == "ACCEPTED" and broad != "ACCEPTED_AT_SCOPE":
-            raise ProjectionValidationError(
-                f"{wp}: ACCEPTED pointer requires broad ACCEPTED_AT_SCOPE, got {broad!r}"
-            )
+        if state == "ACCEPTED":
+            expected_broad = _accepted_broad_status(root, path, pointer)
+            if broad != expected_broad:
+                raise ProjectionValidationError(
+                    f"{wp}: ACCEPTED pointer requires broad {expected_broad}, got {broad!r}"
+                )
         checked.append(wp)
 
     return {
