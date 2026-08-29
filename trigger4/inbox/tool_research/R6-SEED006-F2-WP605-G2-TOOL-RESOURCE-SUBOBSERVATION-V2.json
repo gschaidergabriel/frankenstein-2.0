@@ -1,0 +1,84 @@
+{
+  "schema": "FRANKENSTEIN2_TRIGGER6_BUILD_CANDIDATE/v1",
+  "candidate_id": "R6-SEED006-F2-WP605-G2-TOOL-RESOURCE-SUBOBSERVATION-V2",
+  "candidate_revision": 2,
+  "supersedes_candidate_id": "R6-SEED006-F2-WP605-RESOURCE-OBSERVATION-V1",
+  "supersession_reason": "Granular re-entry showed F2-WP-605 generation 1 was already ACCEPTED_AT_SCOPE despite stale aggregate STATE. G1 already provides deterministic whole-child telemetry with cpu_time_ns, peak_rss_bytes, tokens, tool_calls/work_units, canonical serialization and exact ChildReconcileEvidence binding. The nonredundant research delta is therefore narrowed to optional per-tool/effect resource sub-observations, not a new WP605 baseline implementation.",
+  "research_id": "R6-SEED-006",
+  "evidence_stage": "E5_BUILD_CANDIDATE",
+  "status": "BUILD_CANDIDATE_NOT_IMPLEMENTED_NOT_ACCEPTED",
+  "created_at": "2026-08-29T20:34:00+07:00",
+  "architecture_snapshot_id": "F2@7e187a0f4b9449ca309a1f6a57f5129129e2aaf4+WP605G1@8443f2fb8391e40007a6ea9fd97bfe25ac65b3a5",
+  "frankenstein_2_source_sha": "7e187a0f4b9449ca309a1f6a57f5129129e2aaf4",
+  "research_entity_source_sha": "cc3bcc556fa7ca3a097d319a01309d2115deeb99",
+  "external_repo": "eunomia-bpf/agentcgroup",
+  "external_repo_commit_sha": "551ca1689b7d2d30db6b8a8613414750103cc68b",
+  "external_repo_tree_sha": "b29edb42640e0af56ba4067bd28de9695fe305ca",
+  "license": "GPL-2.0",
+  "integration_class": "CONCEPT_DISTILL",
+  "f2_target_workpackages": ["F2-WP-605"],
+  "f2_target_modules": ["src/frankenstein2/child_telemetry.py", "tests/test_child_telemetry.py"],
+  "preserve_exact_current_g1": {
+    "state": "ACCEPTED_REPOSITORY_HOSTED_COMPONENT_CI_ONLY",
+    "canonical_merge_commit": "8443f2fb8391e40007a6ea9fd97bfe25ac65b3a5",
+    "source_blob_sha": "b028b18aaa5d39abb2fad793289debfab5190132",
+    "test_blob_sha": "1dc54c4c0224493ecf40687bce3013e59a84a400",
+    "runtime_credit": 0,
+    "whole_system_acceptance": false
+  },
+  "problem_or_gap": "WP605 G1 binds one aggregate child telemetry sample to an exact ChildReconcileEvidence and already canonicalizes explicit whole-child counters. It does not preserve a sequence of per-tool/effect resource measurements. The E4 collision fixture shows two children can share the same aggregate resource summary while differing in whether the failed tool was the high-resource tool.",
+  "proposed_delta": {
+    "summary": "Only if Trigger4 confirms nonredundant value, add a generation-2 compatible per-tool/effect ResourceSubObservation structure subordinate to ChildTelemetrySample or referenced as opaque typed measurement evidence. Do not replace G1 whole-child counters and do not create a second telemetry authority.",
+    "minimum_identity": ["tool_use_id or exact invocation/effect identity", "causal identity/digest inherited from existing child binding", "generation", "provenance/observer reference"],
+    "minimum_measurement_semantics": ["coverage_status", "metric semantics", "peak/current resource fields when actually observed", "exit/signal", "termination cause epistemic state with evidence refs"],
+    "hard_rules": [
+      "exit 137 alone cannot establish OOM",
+      "parent endpoint RSS cannot be labeled child/tool peak",
+      "typed canonical serialization only",
+      "resource hints are candidate-only and cannot self-grant budget/capability",
+      "missing observer coverage is explicit UNKNOWN/DEGRADED",
+      "G1 ChildReconcileEvidence and telemetry identity remain authoritative for the whole-child sample"
+    ]
+  },
+  "counterhypotheses": [
+    "Whole-child G1 telemetry plus existing tool result/effect evidence is already sufficient; per-tool resource sub-observations are unnecessary complexity.",
+    "Per-tool resource measurements cannot be collected accurately/cheaply enough to justify persistent schema surface.",
+    "A separate external analysis artifact linked through provenance_refs is better than extending the G1 dataclass/schema."
+  ],
+  "evidence_refs": [
+    "workpackages/active/F2-WP-605.json",
+    "src/frankenstein2/child_telemetry.py",
+    "tests/test_child_telemetry.py",
+    "research/tool_intelligence/deltas/R6-20260829-SRCARCH-AGENTCGROUP-GPT56SOL-01.json",
+    "research/tool_intelligence/deltas/2026-08-29T2023P0700_GPT56SOL_R6_SEED006_EXIT137_OOM_E3.json",
+    "research/tool_intelligence/deltas/2026-08-29T2025P0700_GPT56SOL_R6_SEED006_JSONL_E3.json",
+    "research/tool_intelligence/deltas/2026-08-29T2027P0700_GPT56SOL_R6_SEED006_LOCAL_PEAK_E3.json",
+    "research/tool_intelligence/deltas/2026-08-29T2029P0700_GPT56SOL_R6_SEED006_F2_RESOURCE_GRANULARITY_E4.json"
+  ],
+  "baseline_definition": "Canonical WP605 G1 at merge 8443f2fb8391e40007a6ea9fd97bfe25ac65b3a5: one immutable whole-child ChildTelemetrySample bound to exact ChildReconcileEvidence with duration, cpu_time_ns, peak_rss_bytes, token counts, tool_calls, work_units, opaque quality/provenance refs and canonical content-bound identity.",
+  "required_tests": [
+    "prove a G2/sub-observation adds a causal distinction that G1 plus existing effect/tool evidence cannot already recover",
+    "preserve exact G1 roundtrip/consumer verification and fail-closed behavior",
+    "reject post-hoc tool identity relabeling and wrong generation/provenance",
+    "deliberate non-OOM SIGKILL must remain OOM UNKNOWN unless corroborated",
+    "observer failure must become explicit UNKNOWN/DEGRADED coverage",
+    "metric semantics prohibit parent endpoint RSS => child/tool peak promotion",
+    "canonical serialization handles quotes/backslashes/newlines/control-sensitive values via typed validation",
+    "no resource hint can mutate canonical budget/capability authority"
+  ],
+  "required_ablations": [
+    "WP605 G1 only versus G1 plus proposed per-tool resource sub-observations on the E4 collision fixture",
+    "G1 plus already-existing effect/tool evidence versus explicit resource sub-observations to test whether the new structure is redundant"
+  ],
+  "required_measurements": ["incremental serialized bytes", "construction/verification latency", "memory overhead", "unique anomaly-localization gain", "collector coverage/accuracy on separately admitted runtime evidence"],
+  "expected_token_delta": "ZERO_IN_CORE_DATA_MODEL; NO MODEL CALL REQUIRED",
+  "expected_latency_delta": "UNKNOWN_UNTIL_COMPONENT_MEASUREMENT",
+  "expected_resource_delta": "UNKNOWN_UNTIL_COMPONENT_MEASUREMENT",
+  "quality_success_metric": "Only promote if per-tool sub-observations add reproducible nonredundant causal localization beyond G1/existing effect evidence while preserving exact G1 authority and bounded overhead.",
+  "rollback_or_reject_rule": "Reject candidate entirely if current G1 plus existing tool/effect evidence can answer the E4 causal question without new persistent structure, or if accurate per-tool measurement requires disproportionate complexity. Preserve the donor falsifiers as test guidance even when candidate is rejected.",
+  "known_failure_modes": ["stale aggregate STATE causing duplicate work", "new schema duplicating G1 authority", "false OOM classification", "mis-scoped peak memory", "silent coverage gaps", "untrusted hint self-grant", "canonical JSON corruption", "upstream performance claims promoted without F2 evidence"],
+  "source_archive_ref": "eunomia-bpf/agentcgroup@551ca1689b7d2d30db6b8a8613414750103cc68b tree b29edb42640e0af56ba4067bd28de9695fe305ca",
+  "research_db_row_ids": [],
+  "credit_boundary": {"E5_build_candidate": true, "E6_F2_accepted": false, "wp605_g1_component_ci_credit_preserved": true, "target_runtime": 0, "whole_system": 0},
+  "trigger4_reentry_instruction": "Do not reopen or duplicate accepted WP605 G1. First prove that the proposed G2/sub-observation structure is nonredundant against current G1 plus existing effect/tool evidence; otherwise reject/close this candidate with the E3 donor falsifiers retained as negative test knowledge."
+}
