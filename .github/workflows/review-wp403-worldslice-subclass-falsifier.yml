@@ -1,0 +1,30 @@
+name: Review WP403 WorldSlice subclass falsifier
+
+on:
+  pull_request:
+    paths:
+      - 'src/frankenstein2/physics_projection.py'
+      - 'src/frankenstein2/sparse_world_basis.py'
+      - 'tests/review/test_wp403_worldslice_subclass_falsifier.py'
+      - '.github/workflows/review-wp403-worldslice-subclass-falsifier.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  falsifier:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: Compile reviewed sources and falsifier
+        run: |
+          python -m py_compile \
+            src/frankenstein2/sparse_world_basis.py \
+            src/frankenstein2/physics_projection.py \
+            tests/review/test_wp403_worldslice_subclass_falsifier.py
+      - name: Reproduce subtype self-attestation counterexample
+        env:
+          PYTHONPATH: src
+        run: python -m unittest tests.review.test_wp403_worldslice_subclass_falsifier -v
