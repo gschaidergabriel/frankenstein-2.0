@@ -5,11 +5,11 @@ F2-WP-1200 generation 1.
 This module evaluates explicit target obligations from independently supplied positive
 readback and counterevidence-probe results. Missing mandatory evidence stays UNKNOWN.
 Repository/source/installer assertions are never promoted into target or physical-host
-completion by this module.
+completion credit by this module.
 """
 from __future__ import annotations
 
-from dataclasses import asdict, dataclass
+from dataclasses import dataclass
 from enum import Enum
 import hashlib
 import json
@@ -102,24 +102,12 @@ class TargetObligation:
             raise CompletionEpistemicsError("positive_readback must be PositiveReadback")
         if not isinstance(self.counterevidence_probe, CounterevidenceProbe):
             raise CompletionEpistemicsError("counterevidence_probe must be CounterevidenceProbe")
-        object.__setattr__(
-            self,
-            "positive_evidence_refs",
-            _refs("positive_evidence_ref", self.positive_evidence_refs),
-        )
-        object.__setattr__(
-            self,
-            "counterevidence_refs",
-            _refs("counterevidence_ref", self.counterevidence_refs),
-        )
-        if self.positive_readback is PositiveReadback.PASS and not self.positive_evidence_refs:
-            raise CompletionEpistemicsError("PASS positive readback requires evidence refs")
-        if self.positive_readback is PositiveReadback.FAIL and not self.positive_evidence_refs:
-            raise CompletionEpistemicsError("FAIL positive readback requires evidence refs")
-        if self.counterevidence_probe is CounterevidenceProbe.CLEAR and not self.counterevidence_refs:
-            raise CompletionEpistemicsError("CLEAR counterevidence probe requires probe refs")
-        if self.counterevidence_probe is CounterevidenceProbe.FOUND and not self.counterevidence_refs:
-            raise CompletionEpistemicsError("FOUND counterevidence requires evidence refs")
+        object.__setattr__(self, "positive_evidence_refs", _refs("positive_evidence_ref", self.positive_evidence_refs))
+        object.__setattr__(self, "counterevidence_refs", _refs("counterevidence_ref", self.counterevidence_refs))
+        if self.positive_readback in (PositiveReadback.PASS, PositiveReadback.FAIL) and not self.positive_evidence_refs:
+            raise CompletionEpistemicsError("non-UNKNOWN positive readback requires evidence refs")
+        if self.counterevidence_probe in (CounterevidenceProbe.CLEAR, CounterevidenceProbe.FOUND) and not self.counterevidence_refs:
+            raise CompletionEpistemicsError("non-UNKNOWN counterevidence probe requires probe refs")
 
     @property
     def status(self) -> ObligationStatus:
@@ -127,10 +115,7 @@ class TargetObligation:
             return ObligationStatus.FAIL
         if self.counterevidence_probe is CounterevidenceProbe.FOUND:
             return ObligationStatus.FAIL
-        if (
-            self.positive_readback is PositiveReadback.PASS
-            and self.counterevidence_probe is CounterevidenceProbe.CLEAR
-        ):
+        if self.positive_readback is PositiveReadback.PASS and self.counterevidence_probe is CounterevidenceProbe.CLEAR:
             return ObligationStatus.PASS
         return ObligationStatus.UNKNOWN
 
@@ -177,9 +162,7 @@ class TargetCompletionReport:
     @property
     def in_scope(self) -> tuple[TargetObligation, ...]:
         rank = _FIDELITY_RANK[self.evaluated_fidelity]
-        return tuple(
-            item for item in self.obligations if _FIDELITY_RANK[item.required_fidelity] <= rank
-        )
+        return tuple(item for item in self.obligations if _FIDELITY_RANK[item.required_fidelity] <= rank)
 
     @property
     def mandatory_in_scope(self) -> tuple[TargetObligation, ...]:
@@ -205,9 +188,21 @@ class TargetCompletionReport:
         return tuple(item.obligation_id for item in self.in_scope if item.status is ObligationStatus.FAIL)
 
     @property
+    def physical_completion_candidate(self) -> bool:
+        """Evidence-shaped T4 candidate only; never physical execution credit."""
+        t4_mandatory = tuple(
+            item for item in self.mandatory_in_scope if item.required_fidelity is FidelityLevel.T4_PHYSICAL
+        )
+        return (
+            self.evaluated_fidelity is FidelityLevel.T4_PHYSICAL
+            and bool(t4_mandatory)
+            and self.status is CompletionStatus.COMPLETE
+        )
+
+    @property
     def physical_credit(self) -> bool:
-        """Physical credit is impossible below T4 and still requires all mandatory T4 evidence."""
-        return self.evaluated_fidelity is FidelityLevel.T4_PHYSICAL and self.status is CompletionStatus.COMPLETE
+        """Never mint physical-host credit from caller-supplied refs."""
+        return False
 
     def as_dict(self) -> dict[str, object]:
         return {
@@ -215,7 +210,8 @@ class TargetCompletionReport:
             "target_id": self.target_id,
             "evaluated_fidelity": self.evaluated_fidelity.value,
             "status": self.status.value,
-            "physical_credit": self.physical_credit,
+            "physical_completion_candidate": self.physical_completion_candidate,
+            "physical_credit": False,
             "unknown_obligation_ids": list(self.unknown_obligation_ids),
             "failed_obligation_ids": list(self.failed_obligation_ids),
             "obligations": [item.as_dict() for item in self.obligations],

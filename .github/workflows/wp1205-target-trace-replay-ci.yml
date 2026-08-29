@@ -1,0 +1,35 @@
+name: F2 WP1205 Target Trace Replay CI
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'src/frankenstein2/target_trace_replay.py'
+      - 'tests/test_target_trace_replay.py'
+      - '.github/workflows/wp1205-target-trace-replay-ci.yml'
+  pull_request:
+    paths:
+      - 'src/frankenstein2/target_trace_replay.py'
+      - 'tests/test_target_trace_replay.py'
+      - '.github/workflows/wp1205-target-trace-replay-ci.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  deterministic:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Compile
+        run: python -m py_compile src/frankenstein2/target_trace_replay.py tests/test_target_trace_replay.py
+      - name: Target trace replay falsification suite
+        env:
+          PYTHONPATH: src
+        run: python tests/test_target_trace_replay.py -v
