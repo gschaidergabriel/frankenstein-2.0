@@ -16,6 +16,7 @@ REPO = "gschaidergabriel/frankenstein-2.0"
 CONTRACT_SCHEMA = "FRANKENSTEIN2_WORKPACKAGE_STATE_CONSISTENCY_CONTRACT/v1"
 STATE_SCHEMA = "FRANKENSTEIN2_WORKPACKAGE_STATE/v1"
 CLAIM_SCHEMA = "FRANKENSTEIN2_WORKPACKAGE_CLAIM/v1"
+ACTIVE_CLAIM_SCHEMA = "FRANKENSTEIN2_ACTIVE_WORKPACKAGE_CLAIM/v1"
 RECON_SCHEMA = "FRANKENSTEIN2_WORKPACKAGE_RECONCILIATION/v1"
 WP = re.compile(r"^F2-WP-[0-9]+$")
 SHA40 = re.compile(r"^[0-9a-f]{40}$")
@@ -97,11 +98,17 @@ def _claims_by_id(root: Path) -> dict[str, dict[str, Any]]:
 
 
 def _bind_claim(pointer: dict[str, Any], claim: dict[str, Any]) -> None:
-    _require(claim.get("schema") == CLAIM_SCHEMA, "claim schema mismatch")
+    claim_schema = claim.get("schema")
+    _require(claim_schema in {CLAIM_SCHEMA, ACTIVE_CLAIM_SCHEMA}, "claim schema mismatch")
     for field in ("workpackage_id", "generation", "claim_id"):
         _require(claim.get(field) == pointer.get(field), f"claim/pointer identity mismatch: {field}")
     if "worker_id" in claim and "worker_id" in pointer:
         _require(claim.get("worker_id") == pointer.get("worker_id"), "claim/pointer identity mismatch: worker_id")
+    if claim_schema == ACTIVE_CLAIM_SCHEMA:
+        _string(claim.get("worker_id"), "embedded_claim.worker_id")
+        _string(claim.get("base_commit"), "embedded_claim.base_commit")
+        _string(claim.get("claimed_scope"), "embedded_claim.claimed_scope")
+        _string(claim.get("created_at_utc"), "embedded_claim.created_at_utc")
     if "trigger" in claim:
         _require(claim.get("trigger") == "4", "claim trigger must be '4' when present")
 
@@ -236,7 +243,7 @@ def validate_pointer(
 ) -> dict[str, Any]:
     compatible_schemas = set((contract or {}).get("compatible_active_pointer_schemas") or [
         "FRANKENSTEIN2_ACTIVE_WORKPACKAGE/v1",
-        "FRANKENSTEIN2_ACTIVE_WORKPACKAGE_CLAIM/v1",
+        ACTIVE_CLAIM_SCHEMA,
         "FRANKENSTEIN2_ACTIVE_WORKPACKAGE_POINTER/v1",
     ])
     active_state = (contract or {}).get("active_state", "ACTIVE")
@@ -290,6 +297,7 @@ def validate_pointer(
         "generation": generation,
         "claim_id": pointer["claim_id"],
         "pointer_schema": pointer["schema"],
+        "claim_binding": "EMBEDDED_ACTIVE_CLAIM" if claim is pointer else "SEPARATE_CLAIM_OBJECT",
         "pointer_state": pointer_state,
         "broad_status": broad_status,
         "reconciliation_bound": reconciliation is not None,
@@ -315,6 +323,8 @@ def validate_repository(root: Path) -> dict[str, Any]:
         pointer = load_json(path)
         claim_id = _string(pointer.get("claim_id"), f"{path}.claim_id")
         claim = claims.get(claim_id)
+        if claim is None and pointer.get("schema") == ACTIVE_CLAIM_SCHEMA:
+            claim = pointer
         _require(claim is not None, f"{path}: no matching claim object for {claim_id}")
         reconciliation = None
         if pointer.get("state") in set(contract["terminal_states"]):
