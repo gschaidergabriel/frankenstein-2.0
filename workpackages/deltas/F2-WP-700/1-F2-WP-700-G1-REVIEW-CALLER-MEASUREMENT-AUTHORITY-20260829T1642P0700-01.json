@@ -1,0 +1,38 @@
+{
+  "schema": "FRANKENSTEIN2_WORKPACKAGE_DELTA/v1",
+  "workpackage_id": "F2-WP-700",
+  "generation": 1,
+  "claim_id": "F2-WP-700-G1-GPT56SOL-RETINA-PIPELINE-20260829",
+  "worker_id": "GPT-5.6-Sol-REVIEW",
+  "result_class": "REVIEW_ONLY",
+  "owned_paths": [],
+  "observed_main_commit": "c25ffadd09ae7d702fd5630328601e8403b9a02d",
+  "source_refs": [
+    "workpackages/active/F2-WP-700.json@main",
+    "workpackages/active/F2-WP-406.json@main",
+    "research_entity/global/TRIGGERWORD_4_FRANKENSTEIN_2_VPS_ASSEMBLY_AND_CORTEX_DIRECTIVE.md@chatgpt/grid10-cognitive-envelope-control-20260828",
+    "research_entity/global/TRIGGERWORD_4_5_SPARSE_GENERATIVE_WORLD_SUBSTRATE_DIRECTIVE.md@chatgpt/grid10-cognitive-envelope-control-20260828"
+  ],
+  "observations": [
+    "WP700 G1 intentionally consumes caller-supplied frame identity/content digest plus bounded quality/delta measurements and does not read pixels or infer object/world semantics.",
+    "Because the component cannot independently establish that a supplied quality/delta measurement was actually derived from the supplied frame bytes, those numeric measurements are assertions at this boundary unless an exact upstream measurement lineage is supplied and bound.",
+    "A frame-content digest proves identity of referenced frame content only; it does not by itself prove that a caller-supplied delta/quality scalar was computed from those bytes.",
+    "Therefore the Retina ABI must not upgrade caller-supplied quality/delta values into sensor-observed world truth merely because they pass range validation or are packaged inside a PerceptEvent-shaped output.",
+    "This review does not require WP700 to inspect pixels; it requires explicit epistemic/provenance binding so the later perception stack can distinguish caller-asserted measurement candidates from independently observed/verified perception."
+  ],
+  "classification": "PREIMPLEMENTATION_EPISTEMIC_BOUNDARY_FALSIFIER__CALLER_MEASUREMENT_MUST_NOT_MINT_OBSERVATION",
+  "counterhypothesis": "If WP700 output is explicitly classified as a non-authoritative candidate/readout, preserves the supplied measurement provenance and frame lineage, and no downstream contract treats those scalars as independently observed sensor truth without a stronger measurement receipt, then the caller-assertion ambiguity is contained by construction.",
+  "cheapest_discriminator": "Hold frame_id, stream_id, generation, continuity epoch and frame-content digest constant while constructing two otherwise valid inputs with conflicting caller-supplied quality/delta measurements (for example low-delta/non-salient versus high-delta/salient). The API may deterministically produce different candidate readouts, but both outputs must retain an explicit non-authoritative/caller-asserted measurement classification or exact measurement provenance. Neither output may claim that the scalar was verified from frame bytes. Add a regression that rejects any attempt to rewrite this classification/provenance into observed sensor authority.",
+  "proposed_state_change": "NO_CANONICAL_STATE_CHANGE_REVIEW_ONLY",
+  "runtime_execution_observed": false,
+  "runtime_credit": 0,
+  "perception_runtime_credit": 0,
+  "physical_grid10_credit": 0,
+  "gwt_runtime_credit": 0,
+  "jspace_runtime_credit": 0,
+  "training_credit": 0,
+  "effect_credit": 0,
+  "completion_credit": 0,
+  "whole_system_acceptance": false,
+  "next_exact_action": "Active WP700 mutation authority should encode the conflicting-measurement discriminator before terminal component-CI acceptance and ensure any PerceptEvent/readout carries a fail-closed epistemic/provenance marker that cannot be rewritten into independent sensor observation. Preserve the no-pixel-inspection scope and do not grant runtime/perception/GRID/GWT/J-Space/effect/completion credit."
+}
