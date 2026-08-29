@@ -1,0 +1,113 @@
+{
+  "schema": "FRANKENSTEIN2_TRIGGER6_E2_ARCHITECTURE_MAP/v1",
+  "trigger": "6",
+  "research_id": "R6-SEED-012",
+  "claim_target": "E2_ARCHITECTURE_MAPPED",
+  "status": "E2_COMPLETE_NEW_CONFOUND_IDENTIFIED",
+  "created_at": "2026-08-29T22:24:00+07:00",
+  "worker": "GPT-5.6-Sol:Triggerword-6-organ",
+  "claim_commit": "2cd85afad7be1cd0b94f7aafc69c241a13abb4b6",
+  "claim_path": "research/tool_intelligence/claims/R6-SEED-012/E2_ARCHITECTURE_MAPPED.json",
+  "external_source_pin": {
+    "repo": "UKGovernmentBEIS/inspect_ai",
+    "commit": "3712507590dc4e6e678114194ac9844fd3a6fd6c",
+    "tree": "703fa9fd107962f98bdefe01b2b7c24d460a7609",
+    "license": "MIT",
+    "relevant_files": {
+      "src/inspect_ai/log/_log.py": "98686dc823e9fed31d7a29d1963b0fcdf7ab908d",
+      "src/inspect_ai/dataset/_dataset.py": "e29cef59b2a9d57e327360ceb79d5bffb19f636a",
+      "pyproject.toml": "578b75df903a657aee7ef8eb4f700f06e8f72f72",
+      "requirements.txt": "9ad058b9d685db05175d3d53153082e046d95620"
+    }
+  },
+  "f2_source_snapshot": {
+    "wp507_path": "src/frankenstein2/gwt_uptake.py",
+    "wp507_blob_sha": "f25c03d4e4e49c4fed44acd0c5c96edfb40f664e",
+    "wp510_path": "src/frankenstein2/gwt_causal_path.py",
+    "wp510_blob_sha": "738b7d9b2dba9cca05f54e94c4d10747831cdd0a"
+  },
+  "source_direct_findings": [
+    "Inspect EvalSpec persists eval/task/run identity; task version and task args; dataset identity and sample IDs; sandbox; model identity and GenerateConfig; revision origin/commit/dirty flag; package versions; and scorer definitions alongside results.",
+    "Inspect EvalConfig persists sample selection/shuffle, epochs, retry/error policy, message/token/time/cost limits and concurrency-related configuration.",
+    "Inspect EvalSample persists sample id plus epoch and a globally unique sample-run uuid, with error/retry/limit/timing/usage fields.",
+    "Inspect Dataset.Sample treats id as the sample identifier and supports deterministic seeded shuffle at the dataset layer.",
+    "Pinned Inspect has a broad dependency surface including cloud/filesystem/UI/server/tokenization packages, so full-library import is disproportionate to the narrow F2 causal-probe need."
+  ],
+  "f2_mapping": {
+    "already_stronger_in_f2": [
+      "WP507 binds intervention broadcast identity/digest and matches intervention/control by probe_id plus exact nonbroadcast_input_sha256.",
+      "WP507 preserves downstream output digests and returns UNKNOWN for probe-id or nonbroadcast-input mismatch.",
+      "WP510 revalidates the WP506->WP507->WP508 object chain and concrete downstream CellOutput lineage for UPTAKEN evidence."
+    ],
+    "inspect_pattern_not_currently_structural_in_probe_arm": [
+      "execution/model/runner configuration identity",
+      "code/revision identity",
+      "package/runtime environment identity",
+      "sample/run attempt identity and epoch/order context"
+    ]
+  },
+  "newly_rejected_ambiguity": {
+    "id": "WP507_MATCHED_CONTROL_EXECUTION_CONFIG_CONFOUND",
+    "statement": "Two CausalProbeArm values can share probe_id and nonbroadcast_input_sha256 yet have materially different execution/model/config/runtime conditions that are unrepresented in the arm schema. If their downstream_output_sha256 values differ, evaluate_causal_influence can classify CAUSAL_INFLUENCE_OBSERVED_AT_CONTRACT_SCOPE even though the difference could be caused by the unbound execution configuration rather than the broadcast intervention.",
+    "current_schema_reason": "CausalProbeArm serializes arm_id, probe_id, condition, nonbroadcast_input_sha256, downstream_output_sha256, intervention broadcast identity and opaque provenance_refs. It contains no mandatory matched_execution_context_sha256 or equivalent typed run-manifest witness.",
+    "evidence_scope": "SOURCE_AND_ARCHITECTURE_MAPPING_ONLY",
+    "not_a_runtime_claim": true
+  },
+  "thin_distillation": {
+    "decision": "DISTILL_RUN_MANIFEST_IDENTITY_PATTERN_NOT_INSPECT_LIBRARY",
+    "preferred_shape": "One immutable ProbeExecutionContext/RunManifest object with a canonical digest shared by intervention and control, containing only the confound-critical execution identity actually required by F2.",
+    "candidate_minimum_fields": [
+      "runner_or_harness_identity",
+      "code_or_artifact_identity",
+      "model_or_engine_identity_if_applicable",
+      "execution_config_digest",
+      "environment_or_dependency_digest_if_material",
+      "sample_case_identity",
+      "attempt_or_epoch_policy_identity"
+    ],
+    "matching_rule": "Intervention and control must share the same canonical execution-context digest except for the declared broadcast intervention dimension; otherwise result must be UNKNOWN_UNMATCHED_CONTROL.",
+    "authority_fence": "Run-manifest equality establishes matched experimental conditions at declared fields only. It does not prove hidden-state causality, semantic uptake, world truth, runtime success, effect correctness or whole-system acceptance."
+  },
+  "counterhypotheses": [
+    {
+      "id": "CH1_PROBE_ID_IMPLICITLY_IDENTIFIES_CONFIG",
+      "statement": "probe_id is an operational convention that already implies identical execution configuration.",
+      "assessment": "Not fail-closed at current schema scope: probe_id is only a validated string and no code proves that its identity commits to runner/model/config/environment."
+    },
+    {
+      "id": "CH2_PROVENANCE_REFS_CAN_ENCODE_CONFIG",
+      "statement": "provenance_refs can encode all execution conditions.",
+      "assessment": "Possible by convention but not enforced: the schema only validates nonempty unique strings and does not require a canonical matched configuration digest shared across arms."
+    },
+    {
+      "id": "CH3_WP510_DOWNSTREAM_CLOSURE_REMOVES_CONFOUND",
+      "statement": "WP510 concrete CellOutput closure makes execution-config matching unnecessary.",
+      "assessment": "Rejected at mapping scope: WP510 proves output lineage to the declared F2 objects; it does not establish that intervention/control were run under identical non-intervention conditions."
+    }
+  ],
+  "dependency_and_resource_assessment": {
+    "full_inspect_import": "REJECT_AT_E2_AS_OVERWEIGHT",
+    "reason": "Pinned Inspect depends on a broad evaluation framework surface (including cloud/filesystem, server/UI, tokenization and other general-purpose packages) that is unnecessary for a compact F2 matched-probe identity contract.",
+    "thin_pattern_runtime_cost_hypothesis": "One canonical small manifest hash plus equality check; expected negligible CPU/RAM/I/O and zero model-token/model-call cost, unmeasured until an F2 ablation.",
+    "offline_local_viability": "HIGH_FOR_DISTILLED_PATTERN"
+  },
+  "upstream_negative_signal": {
+    "current_issue": "Inspect AI issue #4602 reports aggregate completed_samples can depend on scorer declaration order after scorer errors while the per-sample logs identify the same failures.",
+    "use": "Treat as a current ecosystem warning that aggregate evaluation summaries require exact per-sample/error provenance; it is not evidence about F2 behavior and is not needed for the core E2 confound finding."
+  },
+  "next_gate": {
+    "stage": "E3_CLAIM_REPRODUCED_OR_FALSIFIED",
+    "objective": "Construct an exact-current WP507 source-level fixture with matched probe_id and nonbroadcast_input_sha256 but two deliberately distinct external execution-context manifests. Show current evaluate_causal_influence still returns CAUSAL_INFLUENCE_OBSERVED_AT_CONTRACT_SCOPE when downstream digests differ, then show a hypothetical shared context digest rule would force UNKNOWN_UNMATCHED_CONTROL.",
+    "falsifier": "If exact-current WP507/WP510 already requires a canonical execution-context digest whose equality is checked across intervention/control, retire this finding as redundant."
+  },
+  "credits": {
+    "e2_architecture_mapped_credit": 1,
+    "e3_reproduction_credit": 0,
+    "e4_f2_ablation_credit": 0,
+    "e5_build_candidate_credit": 0,
+    "runtime_credit": 0,
+    "gwt_runtime_credit": 0,
+    "jspace_runtime_credit": 0,
+    "whole_system_credit": 0
+  }
+}
