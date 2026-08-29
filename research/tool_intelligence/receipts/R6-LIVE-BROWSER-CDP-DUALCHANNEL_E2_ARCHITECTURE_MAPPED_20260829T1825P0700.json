@@ -1,0 +1,102 @@
+{
+  "schema": "FRANKENSTEIN2_TRIGGER6_EVIDENCE_RECEIPT/v1",
+  "research_id": "R6-LIVE-BROWSER-CDP-DUALCHANNEL",
+  "evidence_stage": "E2_ARCHITECTURE_MAPPED",
+  "status": "COMPLETED_BOUNDED_HARDENING_DELTA_ONLY",
+  "completed_at": "2026-08-29T18:25:00+07:00",
+  "worker": "gpt-5.6-sol",
+  "claim": {
+    "path": "research/tool_intelligence/claims/R6-LIVE-BROWSER-CDP-DUALCHANNEL/E2_ARCHITECTURE_MAPPED.json",
+    "claim_commit": "5467090183be64439e0c057826ff4fb86ddb1278"
+  },
+  "prerequisite_receipt": "research/tool_intelligence/receipts/R6-LIVE-BROWSER-CDP-DUALCHANNEL_E1_SOURCE_READ_20260829T1818P0700.json",
+  "architecture_source_pins": [
+    {
+      "ref": "5467090183be64439e0c057826ff4fb86ddb1278",
+      "path": "src/frankenstein2/retina_capture_broker.py",
+      "observed": "one PerceptionCaptureBroker per source_id, one capture_owner_id, bounded queue/drop accounting, monotonic capture time and provenance_refs"
+    },
+    {
+      "ref": "5467090183be64439e0c057826ff4fb86ddb1278",
+      "path": "architecture/PERCEPTION_FABRIC.md",
+      "observed": "canonical logical browser sources are browser/rendered/<target_id> and browser/structural/<target_id>; one declared capture owner per source; physical/local capture is a later acceptance boundary"
+    },
+    {
+      "ref": "5467090183be64439e0c057826ff4fb86ddb1278",
+      "path": "architecture/PERCEPTION_FABRIC_HARDENING_20260829.md",
+      "observed": "multiple logical sources may share one physical transport if demultiplexing/ownership are explicit; source generation/epoch must fence restarts, navigation and invalidation; monotonic ordering remains authoritative"
+    },
+    {
+      "ref": "4158073b98517f93425eec2167cdfb5a4d5a70ea",
+      "path": "Trigger-4 temporal-fusion change-set",
+      "observed": "existing temporal layer already represents clock-domain/calibration/uncertainty; generic clock-domain logic is therefore not a Trigger-6 architecture gap"
+    },
+    {
+      "ref": "149ff98469da5c9cff900e813363173dd8c5f56d",
+      "path": "Trigger-4 WP709-WP714 change-set",
+      "observed": "local physical acceptance already plans actual browser CDP/DOM/AX hooks; Trigger-6 must refine that seam rather than create a second browser subsystem"
+    },
+    {
+      "path": "research/tool_intelligence/receipts/R6-CAPTURE-AUTHSTREAM-001_E1_SOURCE_READ.json",
+      "observed": "portal/PipeWire permission/session and revocation/reconnect research already exists; CDP mapping must not duplicate capture-authority work"
+    }
+  ],
+  "mapping": {
+    "relationship_to_current_architecture": "REFINE_EXISTING_PLANNED_ADAPTER_SEAM_NOT_NEW_SUBSYSTEM",
+    "physical_transport": "one browser debugging transport / target attachment may back two explicit logical F2 sources",
+    "logical_sources": [
+      "browser/rendered/<target_id> <- Page screencast or bounded screenshot mechanism",
+      "browser/structural/<target_id> <- DOMSnapshot/DOM/AX structural mechanism"
+    ],
+    "capture_authority": "preserve existing per-source broker ownership; CDP adapter produces observations only and gains no canonical truth/effect/completion authority",
+    "temporal_semantics": "rendered and structural outputs may share target/session provenance but are not thereby simultaneous; each observation keeps its own F2 monotonic capture time and existing temporal fusion/uncertainty decides pairing",
+    "generation_semantics": "navigation, target replacement, detach/reconnect or invalidating browser transition must advance source_generation/epoch before observations can rejoin fusion",
+    "version_semantics": "bind actual Chromium/browser and CDP protocol identity; do not assume tip-of-tree experimental commands form a timeless ABI"
+  },
+  "required_provenance_fields": [
+    "source_id",
+    "source_generation_or_epoch",
+    "cdp_target_id",
+    "cdp_target_session_id_string",
+    "cdp_screencast_frame_id_integer_when_applicable",
+    "cdp_frame_id_when_applicable",
+    "browser_build_or_version_identity",
+    "cdp_protocol_identity",
+    "captured_monotonic_ns",
+    "payload_sha256_or_payload_ref",
+    "permission_or_capability_provenance_ref_when_applicable"
+  ],
+  "critical_invariant": "Never alias Target.SessionID with Page.screencastFrame.sessionId. The former is a string debugging-session identity; the latter is an integer screencast frame number. Shared spelling is not shared causal identity.",
+  "bounded_architecture_delta": {
+    "required": true,
+    "name": "BROWSER_CDP_DUALCHANNEL_PROVENANCE_HARDENING",
+    "scope": "adapter/provenance contract only",
+    "adds": [
+      "typed separation of CDP target-session and screencast-frame identities",
+      "browser/CDP version binding",
+      "navigation/reconnect -> source-generation fence",
+      "explicit rule that target/session co-membership does not mint simultaneity"
+    ],
+    "does_not_add": [
+      "new canonical state store",
+      "new effect authority",
+      "new capture-owner authority",
+      "duplicate temporal-fusion subsystem",
+      "Playwright/Puppeteer as mandatory dependency",
+      "runtime or physical-device acceptance"
+    ]
+  },
+  "dependency_assessment": "No repository-level Python packaging/dependency manifest was found at the inspected root/ref and no existing CDP/Playwright/DOMSnapshot/Screencast implementation lane was found by repository search. E2 therefore does not prescribe a client library. Dependency choice remains an E5/build discriminator and should favor the thinnest mechanism compatible with the exact target browser/runtime.",
+  "falsifiers": [
+    "If a current F2 source already implements equivalent typed CDP target/session/frame/version/generation provenance, this delta collapses to documentation-only deduplication.",
+    "If actual target-browser tests show DOMSnapshot cadence or screencast behavior cannot satisfy bounded resource/skew requirements, use a thinner structural path and/or sampled screenshots instead.",
+    "If one physical CDP transport cannot maintain explicit demultiplexed ownership across the two logical source brokers without hidden shared mutable authority, split transport sessions while preserving the same source/provenance contracts.",
+    "If navigation/reconnect can be proven causally continuous under a stable target/session identity for the selected browser mechanism, generation bump rules may be narrowed, but never inferred from target_id alone."
+  ],
+  "next_discriminator": "E5_IMPLEMENTATION_READY_CANDIDATE only after checking the exact target-browser/runtime: compare experimental Page.startScreencast against bounded Page.captureScreenshot, measure structural snapshot cost/skew, exercise navigation/detach/reconnect generation fencing, and verify protocol/version identity. Do not grant physical-browser or whole-system credit from this mapping.",
+  "research_evidence_credit": "E2_ARCHITECTURE_MAPPED_ONLY",
+  "architecture_credit": "BOUNDED_DELTA_PROPOSAL_ONLY",
+  "runtime_credit": 0,
+  "physical_browser_capture_credit": 0,
+  "whole_system_credit": 0
+}
