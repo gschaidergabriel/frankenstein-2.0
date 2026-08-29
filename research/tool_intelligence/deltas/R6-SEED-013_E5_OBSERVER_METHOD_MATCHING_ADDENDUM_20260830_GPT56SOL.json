@@ -1,0 +1,91 @@
+{
+  "schema": "FRANKENSTEIN2_TRIGGER6_E5_BUILD_CANDIDATE_REFINEMENT/v1",
+  "trigger": "6",
+  "research_id": "R6-SEED-013",
+  "claim_target": "E5_OBSERVER_METHOD_MATCHING_ADDENDUM",
+  "status": "E5_REFINEMENT_READY_FOR_TRIGGER4_REVIEW",
+  "worker": "GPT-5.6 Sol / ChatGPT Trigger-6 organ",
+  "coordination": {
+    "claim_path": "research/tool_intelligence/claims/R6-SEED-013/E5_OBSERVER_METHOD_MATCHING_ADDENDUM.json",
+    "claim_commit": "ce29062bd6632856f1afa488a9ae92dfdd0be789",
+    "prior_e5": "research/tool_intelligence/deltas/R6-SEED-013_E5_THIN_OBSERVER_BINDING_BUILD_CANDIDATE_20260830_GPT56SOL.json",
+    "probe_arm_e4": "research/tool_intelligence/receipts/R6-SEED-013_E4_PROBE_ARM_OBSERVER_MATCHING_20260830T0030P0700.json"
+  },
+  "refinement": {
+    "reason": "A single full ObserverBinding identity is correct for provenance but too strict as the equality key for matched intervention/control measurement methods when each arm is produced by a different instance of the same exact observer implementation/configuration.",
+    "observer_method": {
+      "candidate_schema": "FRANKENSTEIN2_GWT_OBSERVER_METHOD/v1",
+      "fields": [
+        "observer_type",
+        "observer_artifact_sha256",
+        "observer_config_sha256",
+        "method_class",
+        "evidence_class"
+      ],
+      "identity": "observer_method_sha256",
+      "meaning": "Stable declared measurement-method/config/evidence-semantics identity. Equality is a matching witness only, not proof of measurement correctness or causal validity."
+    },
+    "observer_binding": {
+      "candidate_schema": "FRANKENSTEIN2_GWT_OBSERVER_BINDING/v1",
+      "fields": [
+        "binding_id",
+        "binding_generation",
+        "observer_instance_id",
+        "observer_method_sha256",
+        "provenance_refs"
+      ],
+      "identity": "observer_binding_sha256",
+      "meaning": "Full per-instance/run producer lineage that references one immutable ObserverMethod identity."
+    }
+  },
+  "placement_and_matching_law": {
+    "cell_uptake_receipt": "Serialize observer_binding_sha256 at leaf scope and validate the source ObserverBinding before summary admission. No cross-receipt equality requirement is implied.",
+    "causal_probe_arm": "Serialize observer_binding_sha256 at each arm leaf for provenance and keep access to the exact source binding/method witness needed for validation.",
+    "evaluate_causal_influence": "After existing probe-id/nonbroadcast-input/context prerequisites and before positive causal classification, compare intervention.observer_method_sha256 with control.observer_method_sha256. Mismatch returns an UNKNOWN-like unmatched-observer status; do not require full observer_binding_sha256 equality.",
+    "probe_execution_context": "R6-SEED-012 remains a separate shared-context witness. Both execution-context matching and observer-method matching are required when each dimension is material."
+  },
+  "e4_falsifier": {
+    "same_method_different_instance": {
+      "full_binding_equal": false,
+      "method_equal": true,
+      "full_binding_match_policy": "UNKNOWN_UNMATCHED_OBSERVER",
+      "method_match_policy": "CAUSAL_INFLUENCE_OBSERVED_AT_CONTRACT_SCOPE"
+    },
+    "different_method": {
+      "method_equal": false,
+      "current_policy": "CAUSAL_INFLUENCE_OBSERVED_AT_CONTRACT_SCOPE",
+      "method_match_policy": "UNKNOWN_UNMATCHED_OBSERVER"
+    },
+    "adjudication": "Full-binding equality overbinds instance identity; no observer-method gate underbinds measurement semantics; nested method-digest equality is the smallest discriminator supported by this source-schema ablation."
+  },
+  "trigger4_acceptance_addendum": [
+    "Add a negative regression where intervention/control use different observer methods with otherwise matched current prerequisites and differing outputs; predecessor should reproduce the current positive classification before repair.",
+    "Add a same-method/different-instance regression that must remain eligible for the prior causal classification after the method gate is introduced.",
+    "Reject malformed or stale ObserverMethod/ObserverBinding identity and digest mismatch fail-closed.",
+    "Ensure full binding digests remain different across different instances even when observer_method_sha256 is equal.",
+    "Ensure method/config/evidence-class mutation changes observer_method_sha256 and therefore blocks matched causal promotion until revalidated.",
+    "Do not compare observer_instance_id or full binding digest as the causal matching key unless a narrower exact runtime requirement explicitly demands it.",
+    "Preserve R6-SEED-012 ProbeExecutionContext matching and WP510 downstream revalidation; neither witness substitutes for the other."
+  ],
+  "authority_fences": [
+    "ObserverMethod equality proves only equality of declared method/config/evidence-semantics fields.",
+    "ObserverBinding identity proves only declared producer-instance lineage.",
+    "Neither witness proves a real observer executed, measured correctly, or established hidden-state causality.",
+    "No truth/effect/completion/provider/model authority is introduced.",
+    "No second provenance database/service is introduced."
+  ],
+  "evidence_ceiling": "E5_BUILD_CANDIDATE_REFINEMENT_ONLY",
+  "credits": {
+    "research": 1,
+    "architecture": 0,
+    "integration": 0,
+    "runtime": 0,
+    "gwt_runtime": 0,
+    "jspace_runtime": 0,
+    "training": 0,
+    "effect": 0,
+    "completion": 0,
+    "whole_system": 0
+  },
+  "next_exact_action": "Trigger 4 must treat this addendum as refining—not replacing—the prior R6-SEED-013 handoff: preserve full ObserverBinding provenance on evidence leaves, factor a stable ObserverMethod identity, compare only method identity for probe-arm measurement matching, and run exact predecessor/repair regressions before any E6 credit."
+}
