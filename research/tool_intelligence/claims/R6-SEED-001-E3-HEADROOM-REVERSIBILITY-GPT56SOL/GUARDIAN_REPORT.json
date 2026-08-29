@@ -1,0 +1,70 @@
+{
+  "schema": "FRANKENSTEIN2_TRIGGER6_GUARDIAN_REPORT/v1",
+  "research_id": "R6-SEED-001-E3-HEADROOM-REVERSIBILITY-GPT56SOL",
+  "seed_id": "R6-SEED-001",
+  "slot": "REFUTATION_REPLICATOR",
+  "status": "COMPLETED_WITH_SOURCE_CONTRACT_FALSIFICATION_NO_UPSTREAM_RUNTIME_REPRODUCTION",
+  "candidate": {
+    "repo": "headroomlabs-ai/headroom",
+    "upstream_commit": "213b37158fb9fa7287d7d5884c7df43800821995",
+    "license": "Apache-2.0",
+    "license_blob_sha": "6ee2620b190c4340d3f18e4ccc5ee111847b1ee3"
+  },
+  "provenance": {
+    "f2_claim_commit": "ae2db967aec71a9bb3f315d029f8b5e3b73d7999",
+    "f2_fixture_commit": "bf9344a32a204f70e606bc6d37146803f9846d59",
+    "f2_result_commit": "5f0d0d8d9469de59ea611b0453f8dd7ffca572f9",
+    "upstream_ccr_mod_blob": "d810414efa772bb324d8cfa6c8ed9c29b194eb19",
+    "upstream_sqlite_blob": "987fcbddbccdf9187f36604348285dacc79107e7",
+    "upstream_roundtrip_test_blob": "7cbc21eef654dceb1e46fb313a16f1555b9ab76e"
+  },
+  "source_observations": [
+    "CCR computes a deterministic 24-hex-character (96-bit) BLAKE3 prefix key for payloads.",
+    "CcrStore.get returns None when recovery material is missing or expired.",
+    "Default TTL is 1800 seconds and an absolute max lifetime caps sliding retention.",
+    "SQLite writes upsert by hash key and replace the prior payload at that key.",
+    "SQLite put failures are logged after the marker may already have been embedded; the source explicitly accepts degradation to an unrecoverable original rather than failing the compression path closed.",
+    "Upstream roundtrip tests demonstrate byte/JSON recovery for successful in-memory store paths, but those tests do not erase the missing/expired/write-failure semantics above."
+  ],
+  "bounded_discriminator": {
+    "method": "deterministic source-derived semantic fixture",
+    "command": "python contract_falsifier.py",
+    "script_sha256_local_execution": "c6f66ba76b95c65416e7d3f7daa4bb7a87fa1650f371a7911e23d32f6c4433bd",
+    "result_sha256_local_execution": "c58c5e1f83e838c4e3a24cc04939d392ff36d7a0f9869280d2aa46fdecb8e1c6",
+    "cases": {
+      "put_failure_after_marker": "FALSIFIES_UNCONDITIONAL_RECOVERABILITY",
+      "recovery_ttl_expiry": "FALSIFIES_LONG_HORIZON_UNCONDITIONAL_RECOVERABILITY",
+      "same_key_overwrite": "REQUIRES_F2_DIGEST_AND_PROVENANCE_REVALIDATION"
+    },
+    "important_limit": "The local surface had no Rust toolchain, so upstream Rust code was not executed. This is not E3 upstream runtime reproduction."
+  },
+  "strongest_interpretation": "Headroom CCR is a useful donor for reversible model-facing context compression only as a temporary noncanonical cache. Its current source contract is insufficient for F2 canonical/evidence-bearing omission because recovery write failure, expiry, or key replacement can leave a marker whose original is no longer verifiably recoverable.",
+  "skeptical_counterinterpretation": "For ordinary short-lived model context, bounded TTL and best-effort recovery may be entirely appropriate; a 96-bit content key is probabilistically ample for a bounded cache, and upstream successful-path roundtrip tests support the intended product scope. The mismatch is primarily an F2 authority/evidence requirement mismatch, not evidence that Headroom's own design is defective.",
+  "frankenstein_delta": {
+    "admission": "ADAPT_ONLY",
+    "portable_primitives": [
+      "content-addressed recovery marker",
+      "separate compressed view from stored original",
+      "persistent SQLite recovery cache option",
+      "deterministic same-input keying",
+      "roundtrip test pattern"
+    ],
+    "required_f2_fences": [
+      "commit recovery material successfully before emitting any omission marker",
+      "bind full canonical original digest plus provenance/generation identity",
+      "on retrieve, recompute and verify digest before re-entry",
+      "missing/expired/mismatched recovery material => UNKNOWN/ABSTAIN/fail closed, never silently continue as lossless",
+      "canonical evidence remains in UnifiedDB; compressed ContextView is rebuildable projection only",
+      "retention must be tied to ContextView/evidence lifetime rather than an implicit short cache TTL"
+    ]
+  },
+  "credit_boundary": {
+    "source_archaeology": "E2_PLUS_CONTRACT_FALSIFIER",
+    "upstream_runtime_reproduced": false,
+    "e3_upstream_runtime_credit": 0,
+    "f2_runtime_credit": 0,
+    "whole_f2_credit": 0,
+    "entityos_hcu_credit": 0
+  },
+  "stop_condition": "Do not spend another Trigger-6 slot on generic Headroom CCR source reading. Next useful discriminator is either exact upstream Rust execution at the bound commit or an F2-native fail-closed recovery-commit prototype/test owned by the relevant implementation workpackage."
+}
