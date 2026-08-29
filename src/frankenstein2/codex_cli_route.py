@@ -196,7 +196,10 @@ class CodexHostCapabilityReport:
             "report_id": self.report_id,
             "target_environment_identity_sha256": self.target_environment_identity_sha256,
             "codex_version": self.codex_version,
-            "surfaces": [surface.as_dict() for surface in self.surfaces],
+            "surfaces": [
+                surface.as_dict()
+                for surface in sorted(self.surfaces, key=lambda item: item.surface_id)
+            ],
         }
 
     def sha256(self) -> str:
