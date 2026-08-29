@@ -27,6 +27,7 @@ ROUTE_SCHEMA = "FRANKENSTEIN2_GENERIC_AGENT_ROUTE/v1"
 RELEASE_SCHEMA = "FRANKENSTEIN2_GENERIC_AGENT_RELEASE_BINDING/v1"
 NATIVE_SUPPORT_SCHEMA = "FRANKENSTEIN2_GENERIC_AGENT_NATIVE_SUPPORT/v1"
 SHA256_RE = re.compile(r"^[0-9a-f]{64}$")
+GIT_OBJECT_RE = re.compile(r"^[0-9a-f]{40,64}$")
 
 
 class GenericAgentRouteError(ValueError):
@@ -69,6 +70,13 @@ def _require_sha256(value: str, label: str) -> str:
     return value
 
 
+def _require_git_object(value: str, label: str) -> str:
+    value = _require_nonempty(value, label)
+    if not GIT_OBJECT_RE.fullmatch(value):
+        raise GenericAgentRouteError(f"{label}_INVALID_GIT_OBJECT")
+    return value
+
+
 @dataclass(frozen=True)
 class ReleaseBinding:
     """Exact release candidate identity consumed by the generic host route."""
@@ -94,7 +102,7 @@ class ReleaseBinding:
             release_manifest_digest=_require_sha256(
                 release_manifest_digest, "RELEASE_MANIFEST_DIGEST"
             ),
-            source_commit=_require_sha256(source_commit, "SOURCE_COMMIT"),
+            source_commit=_require_git_object(source_commit, "SOURCE_COMMIT"),
             state_migration_version=_require_nonempty(
                 state_migration_version, "STATE_MIGRATION_VERSION"
             ),
@@ -251,13 +259,9 @@ def plan_generic_agent_route(
         if native_is_verified:
             native_evidence_ref = native_support.evidence_ref
         else:
-            # Generic capability equivalence is useful, but it cannot mint release-level
-            # native support. Preserve the stronger factual host evidence while reporting
-            # the portable route truthfully as ADAPTED.
             classification = AdapterClass.ADAPTED
             limitations.append("GENERIC_NATIVE_SUPPORT_NOT_RELEASE_VERIFIED")
 
-    # Preserve deterministic order while removing duplicates from upstream limitations.
     limitations = list(dict.fromkeys(limitations))
 
     return GenericAgentRouteCandidate(
