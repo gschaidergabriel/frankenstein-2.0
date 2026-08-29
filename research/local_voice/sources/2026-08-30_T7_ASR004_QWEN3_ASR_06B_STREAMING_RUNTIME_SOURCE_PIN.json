@@ -1,0 +1,53 @@
+{
+  "schema": "T7_SOURCE_RESULT/v1",
+  "trigger": "7",
+  "research_id": "T7-ASR-004",
+  "objective": "V1_QWEN3_ASR_06B_STREAMING_RUNTIME_DEPENDENCY_SOURCE_PIN",
+  "semantic_key": "5819c477c86d0a3fcf7540bd8e1d57513366955139aa652f7f9d6f6a47c4ab2e",
+  "evidence_scope": "SOURCE_PIN",
+  "observed_at": "2026-08-30",
+  "official_source_repo": {
+    "repository": "QwenLM/Qwen3-ASR",
+    "observed_main_commit": "7c6daf77a2421100f5fb066495372c00129d39ff",
+    "package_version_observed": "0.0.6",
+    "license": "Apache-2.0",
+    "streaming_demo": "qwen_asr/cli/demo_streaming.py",
+    "streaming_backend_requirement": "vLLM",
+    "vllm_optional_dependency_observed": "vllm==0.14.0"
+  },
+  "official_model": {
+    "model_id": "Qwen/Qwen3-ASR-0.6B",
+    "license": "apache-2.0",
+    "model_file": "model.safetensors",
+    "weights_upload_commit_observed": "9ba1d4a",
+    "remote_bytes": 1876091704,
+    "sha256": "79d6cbd4c98c7bbffe9db2edac07f56cd6637d0d5944b27f6c2b8353840323ea",
+    "german_listed_in_config_support_languages": true
+  },
+  "source_direct_findings": [
+    "The official Qwen3-ASR-0.6B configuration lists German as a supported language.",
+    "The official 0.6B model artifact is safetensors and the observed weight pointer reports 1,876,091,704 bytes with SHA-256 79d6cbd4c98c7bbffe9db2edac07f56cd6637d0d5944b27f6c2b8353840323ea.",
+    "The official streaming demo is explicitly a vLLM-backend path and installs through qwen-asr[vllm].",
+    "The official streaming documentation states that streaming inference does not support batch inference or returning timestamps.",
+    "Offline/non-streaming inference can use a forced aligner for timestamps; that does not establish streaming timestamp capability."
+  ],
+  "project_inferences_not_runtime_facts": [
+    "A vLLM-only official streaming path may impose meaningful resident-memory/runtime coexistence cost when ASR shares the LOCAL-SOLO host with Frankenstein's LLM, TTS, GRID/GWT/J-Space, UnifiedDB and background services; this must be measured on clay-direct-dev.",
+    "Frankenstein turn-taking, cancellation and causal speech-state bookkeeping must not assume streaming ASR word timestamps unless a separate measured timestamp path is admitted.",
+    "The 0.6B artifact is source-admissible as a German-capable streaming candidate, but it has no Frankenstein German WER, partial-stability, TTFT/endpoint-latency or long-session credit yet."
+  ],
+  "counterhypothesis_status": "NOT_SUPPORTED_BY_CURRENT_OFFICIAL_SOURCE",
+  "counterhypothesis_note": "The inspected official source does not document an equivalent non-vLLM streaming backend or streaming timestamp return path. This is a source observation, not proof that no alternative implementation exists outside the official runtime.",
+  "credit": {
+    "source_pin": 1,
+    "german_language_metadata": 1,
+    "official_streaming_path_identified": 1,
+    "target_hardware": 0,
+    "model_runtime": 0,
+    "german_asr_component": 0,
+    "german_e2e": 0,
+    "trigger4_acceptance": 0,
+    "whole_system": 0
+  },
+  "next_exact_action": "Do not dispatch another generation-1 hardware inventory. Consume the first terminal clay-direct-dev hardware/resource receipt. If whole-Frankenstein headroom is sufficient, create a distinct TARGET_RUNTIME_MODEL_BENCHMARK semantic objective for Qwen3-ASR-0.6B using the exact pinned weights and measure resident RAM/VRAM, startup, streaming partial stability, German WER/CER, endpoint latency and cancellation behavior against the admitted Whisper/faster-whisper baseline. Preserve no-timestamp streaming semantics explicitly."
+}
