@@ -16,6 +16,20 @@ from frankenstein2.qubo_projection import (
 from frankenstein2.sparse_world_basis import WorldSlice
 
 
+class ForgedWorldSlice(WorldSlice):
+    """Adversarial subtype that attempts to forge the bound source digest."""
+
+    def sha256(self) -> str:
+        return "0" * 64
+
+
+class ForgedQuboProjection(QuboProjection):
+    """Adversarial subtype that attempts to forge projection identity."""
+
+    def sha256(self) -> str:
+        return "0" * 64
+
+
 def world_slice(
     *,
     selected: tuple[str, ...] = ("a", "b", "c"),
@@ -132,6 +146,49 @@ class QuboProjectionTests(unittest.TestCase):
             provenance_refs=("objective:caller",),
         )
         self.assertEqual(direct.source_slice_sha256, source.sha256())
+
+    def test_exact_worldslice_type_blocks_digest_forgery_subclass(self):
+        forged = ForgedWorldSlice(
+            slice_id="slice:forged",
+            need_id="need:forged",
+            cycle_id="cycle:forged",
+            generation=7,
+            vector_space_version="vs:1",
+            selected_atom_ids=("a",),
+            selected_operator_ids=(),
+            unresolved_target_atom_ids=(),
+            tainted_atom_ids=(),
+            depth_reached=0,
+            stopped_reason="BOUNDED_FALSIFIER",
+            evidence_refs=("evidence:forged",),
+            provenance_digest="1" * 64,
+        )
+        self.assertEqual(forged.sha256(), "0" * 64)
+        with self.assertRaisesRegex(QuboProjectionError, "exact WorldSlice"):
+            compile_qubo_projection(
+                source_slice=forged,
+                projection_id="qubo:forged-source",
+                variables=(variable("x:a", "a", 1),),
+                couplings=(),
+                provenance_refs=("review:exact-worldslice-type",),
+            )
+
+    def test_exact_projection_type_blocks_identity_forgery_subclass(self):
+        base = projection()
+        forged = ForgedQuboProjection(
+            projection_id=base.projection_id,
+            source_slice=base.source_slice,
+            variables=base.variables,
+            couplings=base.couplings,
+            offset_bias=base.offset_bias,
+            provenance_refs=base.provenance_refs,
+        )
+        self.assertEqual(forged.sha256(), "0" * 64)
+        with self.assertRaisesRegex(QuboProjectionError, "exact QuboProjection"):
+            evaluate_qubo_assignment(
+                projection=forged,
+                assignment=(("x:a", 1), ("x:b", 0), ("x:c", 1)),
+            )
 
     def test_variable_must_reference_selected_and_untainted_atom(self):
         with self.assertRaisesRegex(QuboProjectionError, "not selected"):
