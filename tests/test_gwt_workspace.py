@@ -1,6 +1,7 @@
 import pytest
 
 from frankenstein2.grid10_interface import CellBudget, CellInput, CellOutput, Grid10Plan
+from frankenstein2.hyperposition import Alternative, EpistemicStatus, create_hyperposition
 from frankenstein2.gwt_workspace import (
     BroadcastEnvelope,
     CandidateProducerAdmission,
@@ -139,9 +140,6 @@ def selection(candidates, *, p=None):
         grid_plan_id=GRID_PLAN.plan_id,
         grid_plan_generation=GRID_PLAN.generation,
         grid_plan_sha256=GRID_PLAN.sha256(),
-        hyperposition_id="hyper-1",
-        hyperposition_generation=2,
-        hyperposition_sha256=F,
         policy=p or policy(),
         candidates=tuple(candidates),
     )
@@ -387,6 +385,37 @@ def test_direct_workspace_selection_constructor_cannot_bypass_builder_lineage_be
         )
 
 
+@pytest.mark.parametrize(
+    ("field", "foreign_value", "message"),
+    (
+        ("cycle_id", "cycle-foreign", "producer cycle binding mismatch"),
+        ("frame_id", "frame-foreign", "producer SituationFrame binding mismatch"),
+        ("frame_generation", 999, "producer SituationFrame binding mismatch"),
+        ("frame_sha256", "d" * 64, "producer SituationFrame binding mismatch"),
+    ),
+)
+def test_selection_requires_exact_producer_cycle_and_situation_frame_binding(
+    field, foreign_value, message
+):
+    source = candidate("bound-envelope")
+    kwargs = dict(
+        selection_id="sel-envelope",
+        cycle_id=GRID_PLAN.cycle_id,
+        generation=7,
+        frame_id=GRID_PLAN.frame_id,
+        frame_generation=GRID_PLAN.frame_generation,
+        frame_sha256=GRID_PLAN.frame_sha256,
+        grid_plan_id=GRID_PLAN.plan_id,
+        grid_plan_generation=GRID_PLAN.generation,
+        grid_plan_sha256=GRID_PLAN.sha256(),
+        policy=policy(),
+        candidates=(source,),
+    )
+    kwargs[field] = foreign_value
+    with pytest.raises(GwtWorkspaceError, match=message):
+        build_workspace_selection(**kwargs)
+
+
 def test_selected_candidate_retains_exact_producer_digest_binding():
     source = candidate("bound")
     value = selection((source,))
@@ -394,3 +423,97 @@ def test_selected_candidate_retains_exact_producer_digest_binding():
     assert selected.producer_admission_sha256 == source.producer_admission.sha256()
     assert selected.producer_output_sha256 == source.producer_admission.output_sha256
     assert selected.producer_cell_id == source.producer_admission.cell_id
+
+
+def make_hyperposition(*, frame_ref="frame-1"):
+    return create_hyperposition(
+        hyperposition_id="hyper-bound",
+        generation=2,
+        alternatives=(
+            Alternative(
+                alternative_id="alt-a",
+                proposition_ref="prop:a",
+                generation=2,
+                epistemic_status=EpistemicStatus.UNKNOWN,
+                provenance_refs=("prov:hp:a",),
+            ),
+            Alternative(
+                alternative_id="alt-b",
+                proposition_ref="prop:b",
+                generation=2,
+                epistemic_status=EpistemicStatus.UNKNOWN,
+                provenance_refs=("prov:hp:b",),
+            ),
+        ),
+        provenance_refs=("prov:hp",),
+        situation_frame_ref=frame_ref,
+    )
+
+
+def test_hyperposition_digest_triple_without_object_fails_closed():
+    foreign = make_hyperposition(frame_ref="frame-foreign")
+    with pytest.raises(GwtWorkspaceError, match="hyperposition object required.*frame"):
+        build_workspace_selection(
+            selection_id="sel-cross-frame-legacy",
+            cycle_id="cycle-1",
+            generation=7,
+            frame_id="frame-1",
+            frame_generation=4,
+            frame_sha256=D,
+            grid_plan_id=GRID_PLAN.plan_id,
+            grid_plan_generation=GRID_PLAN.generation,
+            grid_plan_sha256=GRID_PLAN.sha256(),
+            hyperposition_id=foreign.hyperposition_id,
+            hyperposition_generation=foreign.generation,
+            hyperposition_sha256=foreign.sha256(),
+            policy=policy(),
+            candidates=(candidate("hp-legacy"),),
+        )
+
+
+def test_cross_frame_hyperposition_object_fails_closed():
+    foreign = make_hyperposition(frame_ref="frame-foreign")
+    with pytest.raises(GwtWorkspaceError, match="hyperposition situation frame binding mismatch"):
+        build_workspace_selection(
+            selection_id="sel-cross-frame-object",
+            cycle_id="cycle-1",
+            generation=7,
+            frame_id="frame-1",
+            frame_generation=4,
+            frame_sha256=D,
+            grid_plan_id=GRID_PLAN.plan_id,
+            grid_plan_generation=GRID_PLAN.generation,
+            grid_plan_sha256=GRID_PLAN.sha256(),
+            hyperposition=foreign,
+            policy=policy(),
+            candidates=(candidate("hp-foreign"),),
+        )
+
+
+def test_matching_hyperposition_object_binds_exact_frame_and_digest():
+    bound = make_hyperposition(frame_ref="frame-1")
+    value = build_workspace_selection(
+        selection_id="sel-hp-bound",
+        cycle_id="cycle-1",
+        generation=7,
+        frame_id="frame-1",
+        frame_generation=4,
+        frame_sha256=D,
+        grid_plan_id=GRID_PLAN.plan_id,
+        grid_plan_generation=GRID_PLAN.generation,
+        grid_plan_sha256=GRID_PLAN.sha256(),
+        hyperposition=bound,
+        policy=policy(),
+        candidates=(candidate("hp-bound"),),
+    )
+    assert value.hyperposition_id == bound.hyperposition_id
+    assert value.hyperposition_generation == bound.generation
+    assert value.hyperposition_sha256 == bound.sha256()
+    assert value.as_dict()["hyperposition"]["situation_frame_ref"] == "frame-1"
+    create_broadcast(
+        broadcast_id="b-hp-bound",
+        generation=1,
+        selection=value,
+        expected_selection_sha256=value.sha256(),
+        recipient_cell_ids=("G1",),
+    )
