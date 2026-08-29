@@ -1,0 +1,53 @@
+{
+  "schema_version": 1,
+  "trigger": "7",
+  "research_id": "T7-COORD-002",
+  "objective": "E2_SEMANTIC_CLAIM_MUTEX_IMPLEMENTATION",
+  "date": "2026-08-30",
+  "classification": "EXACT_COMMITTED_SOURCE_STATIC_COMPONENT_VALIDATION",
+  "source_identities": {
+    "research/local_voice/tools/t7_semantic_claim.py": {
+      "git_blob_sha": "1157c8f0d2660a19d6346b6b0379b46ba3899758",
+      "sha256": "6eab7407d9fa0fd31ff4ebd74222d6dc75ce1701e7d9404ce68502ad25704913"
+    },
+    "research/local_voice/tests/test_t7_semantic_claim.py": {
+      "git_blob_sha": "c4008579ca1607fbc59eaa3b55d145c42b811b1a",
+      "sha256": "9827ddb458ba4b75fb125a0d6f19dbd6b7a7950f47422be027c007f1ea7c0a5a"
+    }
+  },
+  "static_test_execution": {
+    "environment": "ephemeral local Python test surface; not clay-direct-dev",
+    "tests_run": 6,
+    "tests_passed": 6,
+    "tests_failed": 0,
+    "covered_falsifiers": [
+      "paraphrased human claim metadata with the same canonical semantics converges on one key/path",
+      "human description and research ID do not affect semantic identity",
+      "material target/evidence-scope changes alter the key",
+      "unknown semantic aliases fail closed",
+      "generation change alters the key and nonpositive generation is rejected",
+      "current hardware gate has a locked deterministic key"
+    ],
+    "hardware_semantic_key": "ba79dcf8960e1f02859a664103d5ba3f63fa8da95855d2b077b3e5aa2e0bf9e3"
+  },
+  "canonical_create_only_negative_probe": {
+    "path": "research/local_voice/semantic_claims/ba79dcf8960e1f02859a664103d5ba3f63fa8da95855d2b077b3e5aa2e0bf9e3.json",
+    "precondition": "path already existed",
+    "attempt": "GitHub create-file without replacement SHA",
+    "observed_status": 422,
+    "observed_reason": "sha was not supplied for an existing path",
+    "write_succeeded": false,
+    "scope": "confirms this create-file surface rejects an ordinary second create to an existing canonical semantic path; does not establish a true simultaneous race test"
+  },
+  "legacy_hardware_duplicate_set": {
+    "semantic_claim": "research/local_voice/semantic_claims/ba79dcf8960e1f02859a664103d5ba3f63fa8da95855d2b077b3e5aa2e0bf9e3.json",
+    "state": "LEGACY_DUPLICATE_SET_QUARANTINED_NO_NEW_DISPATCH"
+  },
+  "evidence_boundary": "Source/static component evidence only. No live concurrent two-writer acceptance, no VPS/model/voice runtime, and no Trigger-4/V6 acceptance credit.",
+  "credits": {
+    "semantic_mutex_source_component": 1,
+    "live_concurrent_create_only": 0,
+    "vps_runtime": 0,
+    "voice_acceptance": 0
+  }
+}
