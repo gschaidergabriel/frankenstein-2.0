@@ -1,0 +1,49 @@
+{
+  "schema": "FRANKENSTEIN2_CANDIDATE_FALSIFIER/v1",
+  "classification": "CANDIDATE_FALSIFIER",
+  "trigger": "4",
+  "organ": "GPT-5.6-Sol",
+  "workpackage_id": "F2-WP-1101",
+  "active_claim_id_observed": "F2-WP-1101-G1-GPT56SOL-HOST-CAPABILITY-ABI-20260829T1236Z",
+  "active_claim_state_observed": "ACTIVE",
+  "f2_main_observed_before_falsifier": "dd5784be21151dce28fc26fd50c25bf82eb40af5",
+  "source": {
+    "path": "src/frankenstein2/host_adapter_abi.py",
+    "blob_sha": "e64512e6608f0f45ffcb4b4b34f7d27e4c58572b"
+  },
+  "test": {
+    "path": "tests/test_host_adapter_abi.py",
+    "blob_sha": "0e00dad40b08e232489f54d00fd807823b559b87"
+  },
+  "claim_scope_relevant_text": "firing multiplicity/timing metadata and fail-closed NATIVE/ADAPTED/DEGRADED/BLOCKED classification",
+  "hypothesis": "A LifecycleBinding marked VERIFIED can currently carry arbitrary non-empty occurrence_contract and timing_contract strings, and assess_host_adapter does not interpret or bind those strings to measured timing/multiplicity evidence. Therefore semantically unknown or self-asserted contract labels may still contribute to NATIVE classification.",
+  "source_observation": [
+    "LifecycleBinding.__post_init__ validates occurrence_contract and timing_contract only with _require_nonempty.",
+    "assess_host_adapter checks verification state, environment digest and native_surface for required lifecycle roles but does not validate occurrence_contract or timing_contract semantics.",
+    "The current test suite has no negative case in which a VERIFIED binding carries an unrecognized/unmeasured occurrence or timing contract and must fail closed."
+  ],
+  "counterhypothesis": "occurrence_contract and timing_contract are intentionally opaque descriptive fields whose semantic truth is guaranteed by an external evidence verifier; if such a verifier is mandatory and exact-evidence-bound before HostCapabilityReport admission, this candidate does not establish a fail-open bug in WP1101 itself.",
+  "cheapest_discriminator": {
+    "kind": "REPOSITORY_UNIT_REGRESSION",
+    "case": "Construct an otherwise fully verified/native required lifecycle set where one required role uses occurrence_contract='UNMEASURED' and timing_contract='UNKNOWN_ORDER'. Assert that the route cannot classify NATIVE/ADAPTED unless those contract values are admitted by a closed vocabulary or independently verified evidence object.",
+    "acceptance_if_hypothesis_true": "current implementation returns NATIVE or ADAPTED despite semantically unverified timing/multiplicity metadata",
+    "acceptance_if_counterhypothesis_true": "an existing mandatory verifier rejects the values before assessment and the exact verifier/evidence binding is demonstrated"
+  },
+  "recommended_repair_if_confirmed": [
+    "replace free-form verification-significant contract strings with typed/closed states or bind them to a separately validated measured-contract object",
+    "make UNKNOWN/UNMEASURED/UNRECOGNIZED required-role timing or multiplicity fail closed",
+    "add the discriminator as permanent regression coverage"
+  ],
+  "evidence_scope": "SOURCE_REVIEW_ONLY_NOT_EXECUTED",
+  "runtime_execution_observed": false,
+  "physical_host_credit": 0,
+  "installer_runtime_credit": 0,
+  "grid10_runtime_credit": 0,
+  "gwt_runtime_credit": 0,
+  "jspace_runtime_credit": 0,
+  "effect_credit": 0,
+  "completion_credit": 0,
+  "whole_system_acceptance": false,
+  "mutation_authority": "NONE_REVIEW_ONLY",
+  "next_exact_action": "Active WP1101 owner should run the preregistered unit discriminator against the exact source blob and either absorb the regression/repair or bind the existing external semantic verifier that falsifies this candidate."
+}
