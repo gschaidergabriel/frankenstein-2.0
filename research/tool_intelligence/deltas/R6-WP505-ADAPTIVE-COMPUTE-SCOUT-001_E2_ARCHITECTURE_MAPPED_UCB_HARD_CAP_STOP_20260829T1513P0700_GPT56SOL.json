@@ -1,0 +1,157 @@
+{
+  "schema": "FRANKENSTEIN2_TRIGGER6_SOURCE_ARCHAEOLOGY_E2/v1",
+  "trigger": "6",
+  "slot": "SOURCE_ARCHAEOLOGIST",
+  "research_id": "R6-WP505-ADAPTIVE-COMPUTE-SCOUT-001",
+  "claim_target": "E2_ARCHITECTURE_MAPPED_UCB_HARD_CAP_STOP",
+  "status": "E2_ARCHITECTURE_MAPPED_COMPLETE_NO_BUILD_PROMOTION",
+  "completed_at": "2026-08-29T15:13:33+07:00",
+  "worker": "GPT-5.6 Sol / ChatGPT Trigger-6 organ",
+  "claim_ref": "research/tool_intelligence/claims/R6-WP505-ADAPTIVE-COMPUTE-SCOUT-001/E2_ARCHITECTURE_MAPPED_UCB_HARD_CAP_STOP.json@14212a48d60ae547533b56f3c333debc6e18d3d8",
+  "e1_result": "research/tool_intelligence/deltas/R6-WP505-ADAPTIVE-COMPUTE-SCOUT-001_E1_SOURCE_READ_20260829T1502P0700_GPT56SOL.json@1e25c6207b1ca111544eaf1ef91beeb139cadd8f",
+  "architecture_binding": {
+    "f2_main_observed_for_mapping": "c6afb24c8336b6e68020212f769c450fd29e1933",
+    "wp500_source": {"path": "src/frankenstein2/situation_frame.py", "blob_sha": "93da6f9b265de5d51cc44a648b8cd969f00306e7", "generation": 2},
+    "wp501_source": {"path": "src/frankenstein2/cognitive_envelope.py", "blob_sha": "1de7a87d4ff1c995f07d3f025ad0a35222ffa91f", "generation": 2},
+    "wp503_source": {"path": "src/frankenstein2/grid10_interface.py", "blob_sha": "7e641a3476a3c75e0bffba67fc150a03d1400109", "generation": 1},
+    "wp505_source": {"path": "src/frankenstein2/adaptive_compute.py", "blob_sha": "499243097f14a3775f5ab9a9daf519c45b305442", "generation": 1},
+    "wp505_acceptance_receipt": "workpackages/receipts/F2-WP-505_G1_ADAPTIVE_COMPUTE_MAIN_CI_33222408961.json@f1e0ce3cb3ed399b5e3b8abab0b5222c9211984d",
+    "wp505_current_evidence": "PASS_AT_CURRENT_MAIN_REPOSITORY_COMPONENT_CI_SCOPE_13_TESTS_RUNTIME_ZERO",
+    "aggregate_workpackages_note": "WORKPACKAGES.md still displays F2-WP-505 as NOT_STARTED; granular acceptance evidence outranks this stale aggregate surface."
+  },
+  "source_donors_inherited_from_e1": [
+    {
+      "candidate_id": "MABWISER_UCB1_THIN_DONOR",
+      "repo": "fidelity/mabwiser",
+      "commit": "b104071351d532aae977955d19b83872a9c1b1e3",
+      "license": "Apache-2.0",
+      "decision": "DISTILL_EQUATION_AND_DETERMINISTIC_TIE_BREAK_ONLY_NO_RUNTIME_DEPENDENCY"
+    },
+    {
+      "candidate_id": "MIXTURE_OF_DEPTHS_HARD_CAP_PATTERN",
+      "source": "Raposo et al., Mixture-of-Depths, arXiv:2404.02258",
+      "decision": "DISTILL_HARD_CAP_SEPARATION_INVARIANT_ONLY"
+    },
+    {
+      "candidate_id": "PONDERNET_STOPPING_PATTERN",
+      "source": "Banino et al., PonderNet, arXiv:2107.05407",
+      "decision": "DISTILL_MARGINAL_VALUE_VS_COST_STOP_CONCEPT_ONLY"
+    }
+  ],
+  "critical_architecture_correction": {
+    "finding": "WP505 generation 1 is not an unimplemented blocker. It already deterministically clips an explicit AdaptiveComputePolicy against an exact Grid10Plan and validated ControlSnapshot and has repository-hosted component-CI acceptance.",
+    "consequence": "Do not replace or complicate the accepted WP505 generation-1 allocator. Any UCB-like mechanism belongs, if it survives falsification, upstream as an OPTIONAL_NONAUTHORITATIVE_POLICY_PROPOSER for a future generation, never as the cap authority or direct GRID writer."
+  },
+  "mapping": [
+    {
+      "surface": "WP500 SituationFrame/CycleContract",
+      "observed_boundary": "Explicit typed frame and cycle permission envelope; no hidden inference, effects, completion or runtime credit.",
+      "ucb_mapping": "Frame identity/generation/digest may scope a replay fixture or policy-proposal context. UCB must not infer world facts or broaden allowed exits/max_grid_cells.",
+      "decision": "CONTEXT_BINDING_ONLY"
+    },
+    {
+      "surface": "WP501 ControlSnapshot",
+      "observed_boundary": "Validated read-only signal evaluation emits disposition WITHIN/DEGRADED/HARD_LIMIT/UNKNOWN and a regulation candidate; not a control writer.",
+      "ucb_mapping": "Disposition is a deterministic safety-envelope input. HARD_LIMIT and UNKNOWN must constrain or stop adaptive exploration; a bandit score cannot override the snapshot disposition or policy identity/digest.",
+      "decision": "HARD_FENCE_INPUT"
+    },
+    {
+      "surface": "WP503 Grid10Plan/CellBudget",
+      "observed_boundary": "Exact G1..G10 logical cells with per-cell work ceilings, max re-entry depth and global max_total_work_units, bound to SituationFrame and control policy identities.",
+      "ucb_mapping": "This is the authoritative compute ceiling for the candidate layer. Dynamic scoring may rank already-admissible cells but must be clipped by plan max_total_work_units, per-cell max_work_units, re-entry depth and any stricter explicit allocation policy cap.",
+      "decision": "CANONICAL_BUDGET_CEILING_FOR_PROPOSAL"
+    },
+    {
+      "surface": "WP505 AdaptiveComputePolicy/build_allocation_candidate",
+      "observed_boundary": "Explicit deterministic rules choose max_active_cells, max_total_work_units, canonical cell priority and cell caps per ControlSnapshot disposition; builder emits immutable nonauthoritative ComputeAllocationCandidate.",
+      "ucb_mapping": "Do not change G1. A future proposer may generate a candidate cell_priority or bounded per-cell proposal from admitted historical evaluation, but the existing deterministic builder remains the clipping/fail-closed boundary and requires an explicit frozen policy artifact.",
+      "decision": "OPTIONAL_UPSTREAM_POLICY_PROPOSER_ONLY"
+    }
+  ],
+  "proposed_future_shape": {
+    "name": "F2_ADAPTIVE_POLICY_PROPOSER_UCB_THIN/v0",
+    "authority": "NONAUTHORITATIVE_POLICY_PROPOSAL_ONLY",
+    "inputs": [
+      "exact Grid10Plan identity/generation/digest",
+      "validated ControlSnapshot identity/digest/disposition",
+      "explicit ordered candidate cell IDs",
+      "admitted historical evaluation receipts with typed provenance/generation",
+      "frozen scoring parameters and evaluation window identity"
+    ],
+    "score_shape": "score(cell)=mean_admitted_reward(cell)+alpha*sqrt((2*log(total_observations))/observations(cell))",
+    "tie_break": "canonical GRID10 cell order or explicitly frozen canonical order",
+    "output": "proposed priority/order plus score receipt only; never work/effect/completion authority",
+    "hard_fences": [
+      "final work ceilings remain min(Grid10Plan ceiling, explicit AdaptiveComputePolicy ceiling, remaining global budget)",
+      "HARD_LIMIT_BREACH and UNKNOWN_REQUIRED_EVIDENCE cannot be relaxed by score",
+      "missing reward remains UNKNOWN and is not silently coerced to zero",
+      "model self-report, textual confidence or coherence is not an admitted reward by itself",
+      "adaptive state is rebuildable from exact admitted receipt identities or remains explicitly noncanonical",
+      "no full MABWiser, learned MoD router or PonderNet runtime dependency is justified at E2"
+    ]
+  },
+  "stop_semantics": {
+    "scope": "compute continuation only",
+    "deterministic_stop_conditions_for_experiment": [
+      "hard plan/allocation cap reached",
+      "no admissible cell with positive remaining deterministic ceiling",
+      "ControlSnapshot disposition is HARD_LIMIT_BREACH or UNKNOWN_REQUIRED_EVIDENCE under an experiment policy that forbids further exploration",
+      "frozen marginal-value estimate falls below a frozen cost threshold"
+    ],
+    "non_authority": "STOP terminates optional compute allocation only; it cannot mint task completion, world truth, effect success, goal satisfaction or canonical state."
+  },
+  "reward_contract_requirements": [
+    "reward record binds source receipt IDs/digests, metric schema/version, cell ID, workload/family identity and observed generation",
+    "reward values derive from measurable outcome/evidence deltas or declared evaluation functions, not narrative self-assessment",
+    "late or missing outcomes remain UNKNOWN",
+    "all normalization/clipping is deterministic and versioned",
+    "evaluation window is frozen per replay run to prevent order-dependent hidden updates"
+  ],
+  "deterministic_replay_requirements": [
+    "freeze ordered input trace corpus and all object digests",
+    "freeze scorer version, alpha, reward transform, threshold and tie-break order",
+    "rebuild all bandit statistics from the same ordered admitted receipts at run start",
+    "forbid wall-clock, process-random, network and mutable external state inputs",
+    "emit per-decision score vector, admissibility mask, chosen order, cap clipping and stop-reason receipt"
+  ],
+  "counterhypothesis": {
+    "statement": "The accepted static deterministic AdaptiveComputePolicy with explicit priorities and thresholds will match or outperform a UCB proposer on F2 workloads while being simpler, more replay-stable and less vulnerable to reward Goodharting/nonstationarity.",
+    "confidence": 0.82
+  },
+  "falsifiers": [
+    "same frozen trace plus same policy parameters yields different decision/stop receipts",
+    "any selected proposal exceeds Grid10Plan, ControlSnapshot or explicit AdaptiveComputePolicy restrictions",
+    "rarely observed but useful cells become persistently starved under the UCB arm-selection process",
+    "permutation/test-order changes materially alter results after rebuilding from the same canonical history",
+    "performance decays under a distribution shift because old reward means dominate",
+    "UCB fails to improve evidence/quality per consumed work unit over the accepted static deterministic baseline",
+    "policy-proposer complexity, latency or state burden exceeds measured benefit"
+  ],
+  "adoption_decision": {
+    "modify_wp505_g1": false,
+    "full_mabwiser_dependency": "REJECT_CURRENTLY",
+    "learned_router_dependency": "REJECT_CURRENTLY",
+    "thin_ucb_policy_proposer": "PROMOTE_TO_E3_OFFLINE_FALSIFICATION_ONLY",
+    "trigger4_handoff": false,
+    "build_candidate": false
+  },
+  "evidence_ceiling": {
+    "level": "E2_ARCHITECTURE_MAPPED",
+    "source_read": true,
+    "architecture_mapping": true,
+    "wp505_existing_component_ci_observed": true,
+    "new_code_executed": false,
+    "f2_ablation_executed": false,
+    "architecture_credit": 0,
+    "runtime_credit": 0,
+    "physical_grid10_credit": 0,
+    "gwt_runtime_credit": 0,
+    "effect_credit": 0,
+    "completion_credit": 0,
+    "whole_system_credit": 0,
+    "training_credit": 0
+  },
+  "next_recommended_slot": "EXPERIMENTAL_FALSIFIER",
+  "next_recommended_objective": "E3_FIXED_TRACE_UCB_POLICY_PROPOSER_VS_STATIC_EQUAL_CAPS",
+  "next_gate": "Offline fixed-corpus deterministic replay only: compare thin UCB proposer against accepted static WP505 policy under identical Grid10Plan/ControlSnapshot hard caps; record quality/evidence gain per work unit, starvation, replay identity and overhead; no effects and no production integration."
+}
