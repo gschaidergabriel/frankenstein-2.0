@@ -1,0 +1,66 @@
+{
+  "schema": "FRANKENSTEIN2_TRIGGER6_RESEARCH_RESULT/v1",
+  "research_id": "R6-WP510-FSVERITY-EXACTSOURCE-001",
+  "evidence_stage": "E1_SOURCE_READ",
+  "status": "COMPLETE_AT_E1",
+  "observed_f2_head_before_result": "c1b981f600778651ab728dc10c7985612870a6ce",
+  "claim_commit": "e919c8b82d57e562f35ecfaa100823f5ce04f7b3",
+  "sources": [
+    {
+      "kind": "EXTERNAL_PRIMARY",
+      "name": "Linux kernel fs-verity documentation",
+      "url": "https://github.com/torvalds/linux/blob/master/Documentation/filesystems/fsverity.rst",
+      "finding": "fs-verity authenticates file contents on reads/mmap against a Merkle tree after verity enablement and makes the file read-only, but trusted userspace must still authenticate the expected digest and reject replacement/non-verity files. It is content-integrity evidence, not process-consumption or path-identity proof."
+    },
+    {
+      "kind": "EXTERNAL_PRIMARY",
+      "name": "openat2(2)",
+      "url": "https://man7.org/linux/man-pages/man2/openat2.2.html",
+      "finding": "dirfd-anchored resolution with RESOLVE_BENEATH/NO_SYMLINKS/NO_XDEV can constrain pathname traversal during file acquisition."
+    },
+    {
+      "kind": "EXTERNAL_PRIMARY",
+      "name": "execveat(2)",
+      "url": "https://man7.org/linux/man-pages/man2/execveat.2.html",
+      "finding": "AT_EMPTY_PATH can execute the executable referred to by an already-open fd; useful for native binaries, but insufficient to bind a multi-file Python import graph."
+    },
+    {
+      "kind": "EXTERNAL_PRIMARY",
+      "name": "memfd_create(2)",
+      "url": "https://man7.org/linux/man-pages/man2/memfd_create.2.html",
+      "finding": "memfd sealing can prevent later modification of an already-populated in-memory file and is a possible cross-process TOCTOU hardener."
+    },
+    {
+      "kind": "CURRENT_SOURCE",
+      "name": "F2 release_integrity.py",
+      "path": "src/frankenstein2/release_integrity.py",
+      "finding": "F2 already has FRANKENSTEIN2_RELEASE_MANIFEST/v1 binding release_id, source_commit, source_tree, build_id and per-file canonical path/SHA-256/size while rejecting symlink payload entries."
+    },
+    {
+      "kind": "CURRENT_SOURCE",
+      "name": "F2 portable_release_transaction.py",
+      "path": "src/frankenstein2/portable_release_transaction.py",
+      "finding": "F2-WP-1207 already binds artifact_sha256/manifest_sha256 and explicit state/release lineage, but remains preparatory and grants no target-runtime credit."
+    },
+    {
+      "kind": "CURRENT_SOURCE",
+      "name": "F2 portable_release_readback.py",
+      "path": "src/frankenstein2/portable_release_readback.py",
+      "finding": "F2-WP-1207 generation 2 verifies that the observed active release digest equals the planned target release digest, but explicitly remains preparatory and does not prove which package bytes a Python process consumed."
+    }
+  ],
+  "hypothesis_result": "PARTIALLY_SUPPORTED_BUT_REJECTED_AS_MANDATORY_BASELINE",
+  "conclusion": "Do not make fs-verity a mandatory F2 exact-source prerequisite. Reuse the existing ReleaseManifest and WP1207 release readback as the artifact/release identity substrate, then add a minimal same-bytes consumption witness at the loader/import boundary. fs-verity may remain an optional host-supported defense-in-depth signal.",
+  "negative_evidence": [
+    "PRELOAD_HASH_IS_NOT_CONSUMED_BYTE_PROOF",
+    "FS_VERITY_DIGEST_IS_NOT_PATH_IDENTITY",
+    "FS_VERITY_DIGEST_IS_NOT_PROCESS_CONSUMPTION_PROOF",
+    "ACTIVE_RELEASE_DIGEST_IS_NOT_MODULE_CONSUMPTION_PROOF"
+  ],
+  "credit": {
+    "target_runtime": 0,
+    "physical_target": 0,
+    "whole_system": 0,
+    "training": 0
+  }
+}
