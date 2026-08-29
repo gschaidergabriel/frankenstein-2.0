@@ -4,10 +4,12 @@ This module binds exact OBSERVED percept claims to source/clock identity and con
 bounded, deterministic observation window. Temporal admissibility is explicit: CURRENT,
 STALE, and UNALIGNED are distinct. Distinct clock domains or source generations are not
 comparable merely because caller-supplied numeric offsets happen to line up: a unique,
-provenance-bearing ClockAlignmentWitness is required. The module never treats arrival order,
-a shared GRID cycle, model agreement, or semantic agreement as evidence of real-world
-simultaneity. It does not read sensors, persist raw frames, invoke providers, resolve semantic
-disagreement, or mint world-truth/effect/completion authority.
+provenance-bearing ClockAlignmentWitness plus a separately admitted exact witness identity
+is required. The module consumes admission identity but does not mint trust or dereference
+upstream evidence. It never treats arrival order, a shared GRID cycle, model agreement, or
+semantic agreement as evidence of real-world simultaneity. It does not read sensors, persist
+raw frames, invoke providers, resolve semantic disagreement, or mint world-truth/effect/
+completion authority.
 """
 from __future__ import annotations
 
@@ -21,7 +23,7 @@ from .epistemic_perception import EpistemicPerceptClaim
 
 TEMPORAL_REF_SCHEMA = "FRANKENSTEIN2_TEMPORAL_PERCEPT_REF/v2"
 CLOCK_ALIGNMENT_WITNESS_SCHEMA = "FRANKENSTEIN2_CLOCK_ALIGNMENT_WITNESS/v1"
-OBSERVATION_WINDOW_SCHEMA = "FRANKENSTEIN2_OBSERVATION_WINDOW/v3"
+OBSERVATION_WINDOW_SCHEMA = "FRANKENSTEIN2_OBSERVATION_WINDOW/v4"
 _SHA256_RE = re.compile(r"^[0-9a-f]{64}$")
 
 
@@ -75,6 +77,28 @@ def _canonical_json(value: Any) -> str:
 
 def _digest(value: Any) -> str:
     return hashlib.sha256(_canonical_json(value).encode("utf-8")).hexdigest()
+
+
+def _admission_refs(value: Any) -> tuple[tuple[str, str], ...]:
+    """Validate upstream witness-admission identities without treating them as self-authenticating."""
+    if type(value) is not tuple:
+        raise PerceptionTemporalError("admitted_alignment_witness_refs must be an immutable tuple")
+    checked: list[tuple[str, str]] = []
+    for item in value:
+        if type(item) is not tuple or len(item) != 2:
+            raise PerceptionTemporalError(
+                "admitted_alignment_witness_refs items must be (admission_id, witness_sha256)"
+            )
+        admission_id, witness_sha = item
+        checked.append(
+            (
+                _text("admission_id", admission_id),
+                _sha256("admitted_witness_sha256", witness_sha),
+            )
+        )
+    if len({admission_id for admission_id, _ in checked}) != len(checked):
+        raise PerceptionTemporalError("admitted_alignment_witness_refs must not repeat admission_id")
+    return tuple(sorted(checked))
 
 
 @dataclass(frozen=True, slots=True, kw_only=True)
@@ -273,6 +297,7 @@ class ObservationWindow:
     provenance_refs: tuple[str, ...]
     unaligned_ref_ids: tuple[str, ...] = ()
     alignment_witness_refs: tuple[tuple[str, str], ...] = ()
+    alignment_witness_admission_refs: tuple[tuple[str, str], ...] = ()
 
     schema: ClassVar[str] = OBSERVATION_WINDOW_SCHEMA
     classification: ClassVar[str] = "TEMPORAL_FUSION_WINDOW_NOT_WORLD_TRUTH_OR_DISAGREEMENT_RESOLUTION"
@@ -313,6 +338,11 @@ class ObservationWindow:
         if len({alignment_id for alignment_id, _ in witness_refs}) != len(witness_refs):
             raise PerceptionTemporalError("alignment_witness_refs must not repeat alignment_id")
         object.__setattr__(self, "alignment_witness_refs", tuple(sorted(witness_refs)))
+        admissions = _admission_refs(self.alignment_witness_admission_refs)
+        used_witness_shas = {witness_sha for _, witness_sha in witness_refs}
+        if any(witness_sha not in used_witness_shas for _, witness_sha in admissions):
+            raise PerceptionTemporalError("alignment_witness_admission_refs must bind a used alignment witness")
+        object.__setattr__(self, "alignment_witness_admission_refs", admissions)
         object.__setattr__(self, "provenance_refs", _refs("provenance_refs", self.provenance_refs))
 
     @property
@@ -343,11 +373,16 @@ class ObservationWindow:
                 {"alignment_id": alignment_id, "witness_sha256": witness_sha}
                 for alignment_id, witness_sha in self.alignment_witness_refs
             ],
+            "alignment_witness_admission_refs": [
+                {"admission_id": admission_id, "witness_sha256": witness_sha}
+                for admission_id, witness_sha in self.alignment_witness_admission_refs
+            ],
             "arrival_order_is_event_time": False,
             "same_grid_cycle_is_same_real_world_time": False,
             "unknown_or_unaligned_preserved": True,
             "unproven_cross_clock_is_unaligned": True,
             "numeric_reference_offset_self_attests_alignment": False,
+            "raw_clock_witness_self_attests_admission": False,
             "resolves_semantic_disagreement": False,
             "world_truth_authority": "NONE",
             "effect_authority": "NONE",
@@ -403,11 +438,21 @@ def _matching_alignment_witness(
     b: TemporalPerceptRef,
     *,
     alignment_witnesses: tuple[ClockAlignmentWitness, ...],
-) -> ClockAlignmentWitness | None:
+    admitted_alignment_witness_refs: tuple[tuple[str, str], ...],
+) -> tuple[ClockAlignmentWitness, tuple[str, str]] | None:
     matches = [witness for witness in alignment_witnesses if witness.matches_pair(a, b)]
     if len(matches) != 1:
         return None
-    return matches[0]
+    witness = matches[0]
+    witness_sha = witness.sha256()
+    admissions = [
+        (admission_id, admitted_sha)
+        for admission_id, admitted_sha in admitted_alignment_witness_refs
+        if admitted_sha == witness_sha
+    ]
+    if len(admissions) != 1:
+        return None
+    return (witness, admissions[0])
 
 
 def _pair_is_admissible(
@@ -416,29 +461,35 @@ def _pair_is_admissible(
     *,
     max_join_skew_ns: int,
     alignment_witnesses: tuple[ClockAlignmentWitness, ...],
-) -> tuple[bool, ClockAlignmentWitness | None]:
+    admitted_alignment_witness_refs: tuple[tuple[str, str], ...],
+) -> tuple[bool, ClockAlignmentWitness | None, tuple[str, str] | None]:
     if a.source_id == b.source_id:
-        # A source-local sequence may remain current without a cross-source skew join, but a
-        # source rebind/clock-identity change is not silently comparable.
         same_clock = a.clock_identity == b.clock_identity
         same_transform = a.reference_offset_ns == b.reference_offset_ns
-        return (same_clock and same_transform, None)
+        return (same_clock and same_transform, None, None)
 
     witness: ClockAlignmentWitness | None = None
+    admission: tuple[str, str] | None = None
     if a.clock_identity == b.clock_identity:
         if a.reference_offset_ns != b.reference_offset_ns:
-            return (False, None)
+            return (False, None, None)
     else:
-        witness = _matching_alignment_witness(a, b, alignment_witnesses=alignment_witnesses)
-        if witness is None:
-            return (False, None)
+        matched = _matching_alignment_witness(
+            a,
+            b,
+            alignment_witnesses=alignment_witnesses,
+            admitted_alignment_witness_refs=admitted_alignment_witness_refs,
+        )
+        if matched is None:
+            return (False, None, None)
+        witness, admission = matched
 
     worst_case_separation = (
         abs(a.reference_time_ns - b.reference_time_ns)
         + a.clock_uncertainty_ns
         + b.clock_uncertainty_ns
     )
-    return (worst_case_separation <= max_join_skew_ns, witness)
+    return (worst_case_separation <= max_join_skew_ns, witness, admission)
 
 
 def build_observation_window(
@@ -449,6 +500,7 @@ def build_observation_window(
     max_clock_uncertainty_ns: int,
     provenance_refs: tuple[str, ...],
     alignment_witnesses: tuple[ClockAlignmentWitness, ...] = (),
+    admitted_alignment_witness_refs: tuple[tuple[str, str], ...] = (),
 ) -> ObservationWindow:
     """Partition refs into CURRENT, STALE and UNALIGNED without inventing simultaneity."""
     if type(refs) is not tuple or any(type(item) is not TemporalPerceptRef for item in refs):
@@ -462,6 +514,7 @@ def build_observation_window(
     witness_ids = [item.alignment_id for item in alignment_witnesses]
     if len(witness_ids) != len(set(witness_ids)):
         raise PerceptionTemporalError("alignment_witnesses must have unique alignment_id")
+    admissions = _admission_refs(admitted_alignment_witness_refs)
     _nonnegative("reference_now_ns", reference_now_ns)
     _nonnegative("max_join_skew_ns", max_join_skew_ns)
     _nonnegative("max_clock_uncertainty_ns", max_clock_uncertainty_ns)
@@ -497,19 +550,22 @@ def build_observation_window(
 
     incompatible_ids: set[str] = set()
     used_witnesses: dict[str, ClockAlignmentWitness] = {}
+    used_admissions: dict[str, tuple[str, str]] = {}
     for index, left in enumerate(current):
         for right in current[index + 1 :]:
-            admissible, witness = _pair_is_admissible(
+            admissible, witness, admission = _pair_is_admissible(
                 left,
                 right,
                 max_join_skew_ns=max_join_skew_ns,
                 alignment_witnesses=alignment_witnesses,
+                admitted_alignment_witness_refs=admissions,
             )
             if not admissible:
                 incompatible_ids.add(left.ref_id)
                 incompatible_ids.add(right.ref_id)
-            elif witness is not None:
+            elif witness is not None and admission is not None:
                 used_witnesses[witness.alignment_id] = witness
+                used_admissions[admission[0]] = admission
     if incompatible_ids:
         retained: list[TemporalPerceptRef] = []
         for item in current:
@@ -531,6 +587,10 @@ def build_observation_window(
         witness_refs.append((witness.alignment_id, witness_sha))
         provenance.update(witness.provenance_refs)
         provenance.add(f"clock-alignment-witness-sha256:{witness_sha}")
+    admission_refs = tuple(sorted(used_admissions.values()))
+    for admission_id, witness_sha in admission_refs:
+        provenance.add(f"clock-alignment-admission:{admission_id}:{witness_sha}")
+
     payload = {
         "reference_now_ns": reference_now_ns,
         "max_join_skew_ns": max_join_skew_ns,
@@ -540,6 +600,7 @@ def build_observation_window(
         "unaligned_ref_ids": sorted(item.ref_id for item in unaligned),
         "source_refs": sorted(source_refs),
         "alignment_witness_refs": sorted(witness_refs),
+        "alignment_witness_admission_refs": list(admission_refs),
     }
     window_id = "observation-window:" + _digest(payload)[:24]
     return ObservationWindow(
@@ -552,6 +613,7 @@ def build_observation_window(
         unaligned_ref_ids=tuple(item.ref_id for item in unaligned),
         source_refs=tuple(source_refs),
         alignment_witness_refs=tuple(witness_refs),
+        alignment_witness_admission_refs=admission_refs,
         provenance_refs=tuple(sorted(provenance)),
     )
 
