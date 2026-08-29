@@ -1,103 +1,225 @@
 # Frankenstein 2.0
 
-**Status:** active assembly / evidence-first build
+**Status:** active assembly / evidence-first build / not yet whole-system accepted
 
 This repository is the canonical build, integration, measurement and evidence home for **Frankenstein 2.0**.
 
-The research entity repository remains a research/provenance source. Frankenstein 2.0 itself is assembled, tested, measured and archived **here**.
+Frankenstein 2.0 is being built as a persistent cognitive system around one durable entity/state lineage, one GRID10/GWT cognitive controller, typed world knowledge, active perception, persistent agency, bounded delegation and verified effects.
 
-Initial research source binding:
+The target is not "an LLM with memory" and not "a VPS service". The final product is a **portable local host harness/runtime** that can be installed from a release ZIP by Claude Code, Codex CLI or another supported coding-agent host, while the authorized VPS/bridge lane is used to build, integrate, test and falsify the system as far as possible before final real-machine acceptance.
 
-- source repository: `gschaidergabriel/clay-global-research-entity`
-- source branch: `chatgpt/grid10-cognitive-envelope-control-20260828`
-- source commit at repository initialization: `ff74dc52be6037b6d80f65ba3327e4b0ef7d03d5`
-- current Frankenstein donor: `gschaidergabriel/frankenstein`
+Research/provenance source:
+
+- research repository: `gschaidergabriel/clay-global-research-entity`
+- research branch: `chatgpt/grid10-cognitive-envelope-control-20260828`
+- Frankenstein donor: `gschaidergabriel/frankenstein`
+
+> Repository code, CI and VPS evidence are never promoted to physical/local acceptance unless the corresponding real environment was actually exercised.
 
 ---
 
-## 1. What Frankenstein 2.0 is intended to become
+## 1. Product law: VPS builds, local Claude Code/Opus accepts
 
-Frankenstein 2.0 is a persistent cognitive software system built from the strongest surviving mechanisms of the current Frankenstein donor, Agent-Zero lineage, Project-Frankenstein lineage, Clay/EntityOS/HCU research and the newer GRID10/GWT/Hyperposition architecture.
+The construction topology and the final installed topology are intentionally different.
 
-The target is **one coherent cognitive loop**, not a collection of independent personas:
+```text
+AUTHORIZED VPS / VERIFIED BRIDGE
+        |
+        | build almost-complete Frankenstein 2.0
+        | integrate cognitive/state/perception/voice/effect subsystems
+        | run deterministic + integration + failure + restart + soak tests
+        | build installer routes, service templates, adapters and verifier
+        | package a reproducible release candidate
+        v
+FRANKENSTEIN-2.0.zip
+        |
+        v
+LOCAL CLAUDE CODE / CODEX / OTHER SUPPORTED HOST
+        |
+        | detect real host + OS + devices
+        | bind local paths/services/hooks
+        | request actual user-approved permissions
+        | bind webcam/screens/browser/microphone/effects
+        | run real-machine acceptance + restart/readback tests
+        v
+LOCAL LIVE FRANKENSTEIN 2.0
+```
+
+### Build-completeness rule
+
+The VPS lane should finish **everything that does not inherently require the final user's physical machine or OS permission grant**.
+
+That includes, before handoff:
+
+- GRID10 / GWT / Hyperposition logic;
+- persistent AgencyState, goals, HOLD/WAKE/RESUME and restart semantics;
+- UnifiedDB/state authority and causal identity;
+- retrieval, memory, world model and process-learning logic;
+- Perception Fabric contracts, scheduling, bridge semantics, simulations and falsifiers;
+- CaptureOwner/Broker ownership and bounded queue behavior;
+- temporal fusion and MultiView disagreement handling;
+- dashboard capability-policy backend and audit contracts;
+- voice/session logic that can be tested without the final physical devices;
+- EffectGate / CompletionGate boundaries;
+- host semantic ABI and Claude Code / Codex / generic-agent installer routes;
+- service templates, manifest, hashes, verifier, update/rollback and diagnostics;
+- synthetic host/device fixtures, failure injection, restart, concurrency and soak tests;
+- optional VPS bridge attach/detach semantics.
+
+The intended local lane is deliberately thin:
+
+```text
+READ SMALL INSTALLER ENTRY
+-> VERIFY PACKAGE
+-> DETECT REAL HOST/CAPABILITIES
+-> INSTALL PREBUILT PAYLOAD
+-> BIND LOCAL ADAPTERS
+-> REQUEST USER PERMISSIONS
+-> START/RESTART SERVICES
+-> RUN PHYSICAL ACCEPTANCE PROBES
+-> READ BACK STATE/RECEIPTS
+-> ACCEPT | NATIVE | ADAPTED | DEGRADED | BLOCKED
+```
+
+If local Claude Code/Opus must invent major cognitive, state, perception, scheduling, bridge or authority architecture, the release candidate is considered incomplete and the repair should normally return to canonical VPS engineering with a regression test.
+
+Canonical contract: [`architecture/VPS_BUILD_TO_LOCAL_ACCEPTANCE_CONTRACT.md`](architecture/VPS_BUILD_TO_LOCAL_ACCEPTANCE_CONTRACT.md)
+
+---
+
+## 2. Final distribution: one-handoff portable host harness
+
+The strongest distribution property of the Frankenstein 1.x donor is retained.
+
+The intended release flow is:
+
+```text
+ZIP
+-> AI_START_HERE_DO_NOT_SCAN_REPO
+-> host/capability discovery
+-> Claude Code | Codex CLI | supported other host route
+-> install one canonical local runtime/state lineage
+-> bind native/adapted hooks and services
+-> verify by real readback
+-> LIVE
+```
+
+The final installed product obeys:
+
+```text
+LOCAL_USER_MACHINE = BASELINE_INSTALLED_PRODUCT_RUNTIME
+VPS/HCU/REMOTE_COMPUTE = OPTIONAL_EXTENSION_OR_ACCELERATOR
+VPS_BRIDGE != CANONICAL_PRODUCT_LOCATION
+HOST_ADAPTER != COGNITIVE_STATE_AUTHORITY
+HOST_SWITCH != NEW_FRANKENSTEIN
+```
+
+Claude Code, Codex and other supported coding agents are host/executor surfaces around the **same** Frankenstein identity and durable state. Switching host adapters must not create competing memories, goals or world truths.
+
+See:
+
+- [`PRODUCT_COMPLETION_LAW.md`](PRODUCT_COMPLETION_LAW.md)
+- [`architecture/PORTABLE_HOST_HARNESS_AND_DISTRIBUTION_CONTRACT.md`](architecture/PORTABLE_HOST_HARNESS_AND_DISTRIBUTION_CONTRACT.md)
+- [`AI_START_HERE_DO_NOT_SCAN_REPO/`](AI_START_HERE_DO_NOT_SCAN_REPO/)
+
+---
+
+## 3. One coherent cognitive loop
+
+Frankenstein 2.0 is designed as **one persistent cognitive system**, not a collection of independent personas or competing controllers.
 
 ```text
 WORLD / USER / TASK
-        ↓
-RETINA / PERCEPTION / OBSERVATION
-        ↓
+        |
+        v
+PERCEPTION FABRIC / RETINA / TYPED OBSERVATION
+        |
+        v
 PERSISTENT PULSE + AGENCY
-        ↓
+        |
+        v
 UNIFIEDDB / CAUSAL STATE
-        ↓
+        |
+        v
 EMERGENT RETRIEVAL + METHOD MEMORY
-        ↓
-OPTIONAL WORLD PROJECTIONS
-        ├─ sparse generative world model
-        ├─ QUBO projection
-        ├─ NeRD / rudimentary physics
-        └─ cognitive micro-lab experiments
-        ↓
+        |
+        v
+WORLD MODEL / OPTIONAL BOUNDED PROJECTIONS
+        |-- sparse generative world basis
+        |-- QUBO projection
+        |-- rudimentary physics / NeRD-style projection
+        `-- cognitive micro-lab
+        |
+        v
 GRID10 + HYPERPOSITION
-        ↓
-GLOBAL WORKSPACE / GWT BROADCAST + UPTAKE
-        ↓
+        |
+        v
+GLOBAL WORKSPACE / GWT SELECTION + BROADCAST + UPTAKE + RE-ENTRY
+        |
+        v
 ACT | ASK | SPEAK | OBSERVE | WAIT | HOLD | DELEGATE
-        ↓
-NATIVE CHILD / TOOL / VOICE / EXECUTOR
-        ↓
+        |
+        v
+HOST / NATIVE CHILD / TOOL / VOICE / EXECUTOR
+        |
+        v
 REAL OR SIMULATED OUTCOME
-        ↓
+        |
+        v
 COMPLETION / PREDICTION RESIDUAL / CAUSAL CREDIT
-        ↓
+        |
+        v
 FACT + EPISODE + METHOD + PROCESS-POLICY UPDATE
-        ↓
-NEXT PULSE
+        |
+        v
+CHECKPOINT -> NEXT PULSE | HOLD | WAKE/RESUME
 ```
 
-### Intended capabilities
+### Core cognitive capabilities
 
-Frankenstein 2.0 should eventually be able to:
+The target system should be able to:
 
-- remain persistently oriented across sessions/restarts without treating model context as canonical memory;
-- maintain interests, open loops, goals and deferred intentions even when no user is currently speaking;
-- perceive a user/task/world through a pre-cognitive Retina and distinguish observation from inference;
-- generate competing hypotheses and counterhypotheses instead of collapsing uncertainty too early;
-- choose targeted information-seeking actions when uncertainty is more important than immediate goal progress;
-- build bounded internal world projections and compare multiple views of the same situation;
-- use a reduced physical simulator / NeRD-style physics to estimate plausible physical consequences when useful;
-- use a cognitive micro-lab to test mathematical, logical, causal and physical consistency before real action;
-- learn reusable **methods of thinking**, not only facts, through Recursive Cognitive Process Distillation;
-- adapt retrieval, decomposition, child-agent fanout, recursion depth and context size from measured outcomes;
-- delegate real building/debugging work to native child agents while preserving exact workpackage → child → tool → result lineage;
-- interact by voice as one identity, with Voice acting as an organ of the same GRID/GWT cognition;
-- stop, wait or hold when further cognition has poor expected value;
-- measure its own latency, resource use, critical paths, mistakes, hypotheses, bugs and recovery behavior;
-- be tested on held-out interactive cognitive environments rather than optimized only for one benchmark or one public game set.
+- remain persistently oriented across sessions and process restarts;
+- preserve goals, interests, open loops and deferred intentions outside model context;
+- keep observation, inference, retrieval and simulation epistemically distinct;
+- maintain competing hypotheses instead of collapsing uncertainty too early;
+- choose information-seeking/observation actions when new evidence has higher value than immediate action;
+- maintain a typed world model with freshness, provenance and disagreement;
+- use bounded world projections/micro-experiments before risky or expensive action;
+- delegate work while preserving exact parent/child/tool/result lineage;
+- use voice, perception and executors as organs of the same cognitive body;
+- stop, wait or HOLD when further cognition has poor expected value;
+- verify effects and completion from evidence rather than executor assertion;
+- learn reusable methods/process policies from measured outcomes without requiring model-weight updates.
 
 ---
 
-## 2. Core architecture laws
+## 4. Hard architecture laws
 
 ```text
 MODEL_OUTPUT != WORLD_FACT
 MEMORY != OBSERVATION
+INFERENCE != OBSERVATION
+RETRIEVAL != OBSERVATION
 SIMULATION != OBSERVATION
 WORLD_SLICE != CANONICAL_WORLD
-GOAL_GENERATION != GOAL_ADOPTION
-GOAL_ADOPTION != EFFECT_EXECUTION
-EXECUTION != COMPLETION
 UNKNOWN != FALSE
-UNCERTAINTY -> TARGETED_EXPERIMENT when expected value is positive
-MANY_SIGNAL_READERS -> ONE_AGGREGATED_CONTROL_DECISION -> ONE_POLICY_GATED_WRITER
-ONE COGNITIVE CYCLE -> ONE LATCHED CONTROL SNAPSHOT
+STALE != CURRENT
+ARRIVAL_ORDER != EVENT_TIME_ORDER
+GOAL_GENERATION != GOAL_ADOPTION
+GOAL_ADOPTION != EFFECT_AUTHORIZATION
+EXECUTION != COMPLETION
+GWT_BROADCAST != CAUSAL_UPTAKE
+HOST_ADAPTER != STATE_AUTHORITY
+PERCEPT_EVENT != WORLD_TRUTH
+CI_SUCCESS != PHYSICAL_RUNTIME_ACCEPTANCE
 ```
 
-Security hardening is a later phase after the functional architecture is sufficiently complete to know what must be secured. Causal identity, provenance, completion evidence, sandbox isolation and reproducible measurement remain mandatory now because they are correctness requirements, not merely security features.
+The system must fail closed on stale authority, stale permission snapshots, ambiguous causal identity and unsupported claims.
 
 ---
 
-## 3. GRID10 — intended functional topology
+## 5. GRID10 and Global Workspace
 
 GRID10 is a variable functional topology, not ten personalities.
 
@@ -111,16 +233,214 @@ GRID10 is a variable functional topology, not ten personalities.
 | G6 | Planning / decomposition / action sequence |
 | G7 | Retrieval / transfer / factual + method memory |
 | G8 | Micro-lab / simulation / falsification |
-| G9 | Delegation / native child / R0-R3 recursion routing |
+| G9 | Delegation / native child / recursion routing |
 | G10 | Critic / stopping / HOLD / overprocessing control |
 
-The Global Workspace must have measurable selection, broadcast, uptake, causal influence and outcome re-entry. Merely writing a winner label is not sufficient.
+The Global Workspace must show measurable **selection, broadcast, uptake, causal influence and outcome re-entry**. A winner label or log entry alone is not evidence that workspace information changed downstream cognition.
+
+GRID10 is also the intended controller for active perception: it can decide that it does not know something, identify where that uncertainty can be observed, and issue a bounded `ObserveIntent` rather than forcing the main LLM to continuously inspect visual input.
 
 ---
 
-## 4. Processing self-improvement
+# 6. Perception Fabric — persistent perception, selective attention
 
-Frankenstein 2.0 should preserve four distinct learning products:
+Perception is a **core cognitive substrate** in Frankenstein 2.0, not an occasional VLM tool call.
+
+The governing idea is:
+
+> **Always capable of perception on user-authorized sources; pay expensive attention only when it is useful.**
+
+Canonical loop:
+
+```text
+USER-APPROVED SOURCE
+        |
+        v
+SINGLE CAPTURE OWNER
+        |
+        v
+RETINA L0
+quality / delta / motion / staleness / cheap change detection
+(no LLM/VLM tokens; bounded physical compute still applies)
+        |
+        v
+SALIENCE / EVENT STREAM
+        |
+        v
+GRID10 ATTENTION
+        |
+        v
+OBSERVE INTENT
+        |
+        +-------------------------------+
+        |                               |
+        v                               v
+CORTEX SLOT 1                     CORTEX SLOT 2..4
+OCR / UI / CV / tracking / ROI / specialist heads
+        |                               |
+        +---------------+---------------+
+                        |
+                        v
+              EPISTEMIC PERCEPT CLAIMS
+                        |
+                        v
+                 TEMPORAL FUSION
+                        |
+                        v
+                 MULTIVIEW OVERLAY
+                        |
+                        v
+                    WORLD MODEL
+                        |
+                        v
+                    GWT / GRID10
+                        |
+                        `---- targeted re-look when needed
+
+unresolved + explicitly permitted only
+                        |
+                        v
+                 optional generic VLM
+```
+
+### 6.1 Sources and workers are independent
+
+- configured/permitted source count: **`0..N`**;
+- initial active Cortex analysis ceiling: **`0..4`**;
+- one source may have zero active Cortex workers while cheap Retina L0 monitoring continues;
+- more sources than workers are handled by bounded scheduling/backpressure rather than unbounded fanout;
+- workers are dynamically assigned to source/ROI/head requests according to cognition and compute policy.
+
+Example simultaneous sources include:
+
+- webcam/camera;
+- display/screen 1;
+- display/screen 2;
+- rendered browser/webpage pixels;
+- browser DOM/layout/accessibility structure;
+- local user-activity summaries;
+- future typed sensors through the same capability/epistemic boundary.
+
+### 6.2 Permission-first capability plane
+
+Each source is governed by an exact capability snapshot.
+
+Minimum source capabilities:
+
+| Capability | Meaning |
+|---|---|
+| `SEE` | acquire current permitted source data |
+| `ANALYZE` | run allowed local Cortex/specialist heads |
+| `MEMORY` | persist compact typed percept evidence |
+| `RAW_RETENTION` | persist raw sample/frame payload |
+| `REMOTE_FRAME` | send raw/ROI payload across the bridge |
+| `EXTERNAL_VLM` | allow generic external vision escalation |
+
+These compose with head-level `ON / COMPUTE_OFF / OUTPUT_OFF / MEMORY_OFF` controls.
+
+Important rules:
+
+- no source is sampled or analyzed without current permission;
+- every `ObserveIntent` binds the exact permission-snapshot digest;
+- revocation/staleness invalidates queued intents rather than allowing old authority to survive;
+- raw frame persistence is **OFF by default**;
+- remote frame/ROI transport is **OFF unless explicitly granted**;
+- external VLM use is a separate explicit capability and late escalation;
+- dashboard policy must be the same authority used by the runtime, not a cosmetic UI preference copy.
+
+### 6.3 Single CaptureOwner / multiple readers
+
+Each physical/logical capture source has one owner and bounded in-memory fan-out.
+
+```text
+SOURCE A -> CaptureOwner A -> bounded FrameRef ring -> Retina/Cortex consumers
+SOURCE B -> CaptureOwner B -> bounded FrameRef ring -> Retina/Cortex consumers
+```
+
+Workers do not independently reopen the same webcam/display source. This prevents the duplicate-open / `Device or resource busy` failure class and gives one authoritative source-local sequence/continuity domain.
+
+### 6.4 Temporal and MultiView truth discipline
+
+A webcam observation at one time and a screen observation several minutes earlier must not silently become one "current" state.
+
+Perception therefore preserves:
+
+- source-local monotonic order;
+- source/capture time;
+- freshness horizon;
+- clock-domain identity;
+- bridge receive time when relevant;
+- bounded/estimated clock skew for cross-host fusion;
+- explicit `UNKNOWN` / `UNALIGNED` when simultaneity cannot be established.
+
+Different views may corroborate each other, but disagreement is preserved. DOM/AX saying an element exists does not automatically override rendered pixels showing that it is occluded or unusable. Disagreement can itself generate a new targeted look.
+
+### 6.5 World model receives typed state, not raw pixels by default
+
+The persistent world model should receive compact, provenance-bound state such as:
+
+```text
+screen.1.active_app = Firefox              [OBSERVED]
+page.checkout.button.enabled = true        [OBSERVED, structural]
+person.presence = present                  [OBSERVED, camera]
+terminal.job.state = running               [OBSERVED]
+button.usable = maybe                      [INFERRED]
+```
+
+Each claim carries source, time/freshness, confidence/evidence and epistemic type. `OBSERVED`, `INFERRED` and `RETRIEVED` remain mechanically distinct. Memory cannot overwrite a contradictory current observation.
+
+### 6.6 Browser dual-sense
+
+Where available, browser perception should expose at least two independently typed views:
+
+1. rendered visual pixels/ROI;
+2. structural DOM/layout/accessibility view.
+
+Neither is automatically authoritative over the other.
+
+### 6.7 User-activity context, not baseline keylogging
+
+Useful baseline activity context includes active application/window, browser tab/domain when permitted, idle/active state, interaction rate, focus changes and work-phase summaries.
+
+Raw keystrokes, clipboard contents and password-field capture are **not baseline perception** and require a separately designed high-sensitivity capability if ever introduced.
+
+Canonical Perception Fabric documentation:
+
+- [`architecture/PERCEPTION_FABRIC.md`](architecture/PERCEPTION_FABRIC.md)
+- [`architecture/PERCEPTION_FABRIC_HARDENING_20260829.md`](architecture/PERCEPTION_FABRIC_HARDENING_20260829.md)
+- [`workpackages/PERCEPTION_FABRIC_PHASE.json`](workpackages/PERCEPTION_FABRIC_PHASE.json)
+
+---
+
+## 7. Local edge / VPS bridge split
+
+The intended data path avoids continuously shipping raw video to the VPS.
+
+```text
+LOCAL MACHINE
+Capture -> Retina L0 -> permitted local Cortex -> typed percept events
+                                                   |
+                                                   v
+                                             VPS BRIDGE
+                                                   |
+VPS / OPTIONAL REMOTE ORGAN                        |
+World Model <-> GRID10/GWT <-> cognition <---------+
+                                                   |
+                                              ObserveIntent
+                                                   v
+LOCAL MACHINE
+source/ROI/head execution -> typed observation -> bridge/world-model re-entry
+```
+
+Typed percept events are the default bridge payload. Raw frames/ROIs require `REMOTE_FRAME`; generic external visual inference additionally requires `EXTERNAL_VLM`.
+
+After installation, the VPS bridge is an optional remote organ/accelerator of the same entity. Loss of the bridge may degrade remote compute, but must not fabricate observations, corrupt local identity or destroy durable local state continuity.
+
+---
+
+## 8. Processing self-improvement
+
+Frankenstein 2.0 separates four learning products:
 
 ```text
 Fact Memory     = what appears to be true
@@ -129,281 +449,126 @@ Method Memory   = which method worked under which conditions
 Process Policy  = how cognition should be organized next time
 ```
 
-Each meaningful cognitive/build episode should be able to produce a `MethodEpisode`. Repeated evidence may produce a `MethodHypothesis`, then shadow/ablation testing, then a promoted `MethodRule` only when held-out evidence supports it.
+Meaningful cognitive/build episodes may produce method evidence. Repeated evidence can become a hypothesis, then shadow/ablation testing, and only then a promoted method/process rule when held-out evidence supports it.
 
-This is **online process/meta-learning without requiring model-weight updates**.
-
----
-
-# 5. OPEN WORKPACKAGES
-
-Status codes:
-
-- `[ ]` NOT_STARTED
-- `[-]` IN_PROGRESS / HOLD
-- `[x]` ACCEPTED_AT_SCOPE with evidence in this repository
-
-## Phase 0 — Repository and evidence spine
-
-- [x] **F2-WP-000** Create canonical `gschaidergabriel/frankenstein-2.0` repository.
-- [-] **F2-WP-001** Canonical architecture README and donor/adoption status views.
-- [ ] **F2-WP-002** Machine-readable workpackage state, claims, generations and acceptance evidence.
-- [ ] **F2-WP-003** Research-Entity → F2 provenance mirror with exact source SHA/tree receipts.
-- [ ] **F2-WP-004** Immutable per-test run-package format and artifact index.
-- [ ] **F2-WP-005** Project-wide telemetry databases and collectors.
-
-## Phase 1 — UnifiedDB and causal coordination
-
-- [ ] **F2-WP-100** Canonical UnifiedDB schema/resolver/fingerprint.
-- [ ] **F2-WP-101** `session_id/agent_id/task_id/turn_id/causal_id/generation` identity spine.
-- [ ] **F2-WP-102** Workpackage → native Agent tool-use → child `agent_id` → result binding.
-- [ ] **F2-WP-103** Per-recipient delivery lifecycle `PENDING→OFFERED→ACKED`.
-- [ ] **F2-WP-104** Deferred causal return envelope for retrieval/voice/tool results.
-- [ ] **F2-WP-105** Typed effect/execution/completion outcome lineage for correctness.
-
-## Phase 2 — Persistent pulse and agency
-
-- [ ] **F2-WP-200** Persistent Pulse kernel.
-- [ ] **F2-WP-201** StateFingerprint and cheap state-change detection.
-- [ ] **F2-WP-202** PredictionContract / prediction residual.
-- [ ] **F2-WP-203** AgencyState, interests, open loops and deferred intents.
-- [ ] **F2-WP-204** GoalCandidate → TRIAL → ACTIVE → HOLD/COMPLETE lifecycle.
-- [ ] **F2-WP-205** Wake conditions and valid no-op WAIT/HOLD behavior.
-
-## Phase 3 — Memory, retrieval and process learning
-
-- [ ] **F2-WP-300** Memory evolution / salience / degradation without destructive forgetting.
-- [ ] **F2-WP-301** Emergent multi-view retrieval.
-- [ ] **F2-WP-302** Familiarity and prediction-error binding.
-- [ ] **F2-WP-303** Fact/Episode/Method/Process-Policy memory separation.
-- [ ] **F2-WP-304** Recursive Cognitive Process Distillation (RCPD).
-- [ ] **F2-WP-305** Processing-credit assignment and method ablation/shadow promotion.
-- [ ] **F2-WP-306** ContextCompiler / bounded ContextViews / do-not-repeat memory.
-
-## Phase 4 — World model and cognitive micro-lab
-
-- [ ] **F2-WP-400** Sparse generative world basis + typed operators.
-- [ ] **F2-WP-401** Xeno-style assimilator/composer and gardener/falsifier/compressor.
-- [ ] **F2-WP-402** QUBO world projection adapter.
-- [ ] **F2-WP-403** NeRD / rudimentary physics projection.
-- [ ] **F2-WP-404** Cognitive Micro-Lab for bounded consistency experiments.
-- [ ] **F2-WP-405** Multi-view world projection overlay and disagreement analysis.
-- [ ] **F2-WP-406** VisualNeed / active sensing / post-action re-look.
-
-## Phase 5 — GRID10, Hyperposition and Global Workspace
-
-- [-] **F2-WP-500** GRID10 SituationFrame and cycle contract.
-- [-] **F2-WP-501** Cognitive Envelope / latched ControlSnapshot.
-- [-] **F2-WP-502** Hyperposition branch representation and discriminator selection.
-- [ ] **F2-WP-503** G1–G10 functional interfaces and budgets.
-- [ ] **F2-WP-504** Epistemic Action Selection.
-- [ ] **F2-WP-505** GRID adaptive compute allocation.
-- [ ] **F2-WP-506** GWT selection + broadcast.
-- [ ] **F2-WP-507** GWT uptake and causal-influence capture.
-- [ ] **F2-WP-508** GWT re-entry / child provenance / no parent-misattribution tests.
-- [ ] **F2-WP-509** HOLD/stop/rumination and expected-value controller.
-
-## Phase 6 — Native child agents and recursive harness
-
-- [ ] **F2-WP-600** `DIRECT_SMALL` vs `DELEGATE_BUILD` router.
-- [ ] **F2-WP-601** Native Child ABI and stable WorkExecution identity.
-- [ ] **F2-WP-602** Handoff/reconcile with mechanically valid evidence.
-- [ ] **F2-WP-603** R0 deterministic / R1 model recursion / R2 child harness / R3 adaptive selection.
-- [ ] **F2-WP-604** Child resume/replacement/nested-spawn and stale-generation handling.
-- [ ] **F2-WP-605** Child latency, cost, result quality and method-credit telemetry.
-
-## Phase 7 — Retina, presence and voice
-
-- [ ] **F2-WP-700** Retina capture/quality/delta/temporal continuity pipeline.
-- [ ] **F2-WP-701** ObservedEvidence vs InferredHypothesis vs RetrievalPrior typing.
-- [ ] **F2-WP-702** `COMPUTE_OFF/OUTPUT_OFF/MEMORY_OFF` mechanical separation.
-- [ ] **F2-WP-703** PresenceKernel and FreshPresenceSnapshot.
-- [ ] **F2-WP-704** VoiceIntent / VoiceSessionCapsule / VoiceOutcome loop.
-- [ ] **F2-WP-705** Realtime conversation + barge-in + silence + tool-return re-entry.
-- [ ] **F2-WP-706** Soft familiarity/identity evidence without hard-auth semantics.
-
-## Phase 8 — Cognitive test suite
-
-- [ ] **F2-WP-800** Held-out interactive micro-world harness.
-- [ ] **F2-WP-801** Orientation tests.
-- [ ] **F2-WP-802** Information-seeking / targeted experiment tests.
-- [ ] **F2-WP-803** World-model prediction tests.
-- [ ] **F2-WP-804** Goal inference tests.
-- [ ] **F2-WP-805** Compositional transfer / recovery / efficient planning tests.
-- [ ] **F2-WP-806** Cognitive lesion/rescue suite.
-- [ ] **F2-WP-807** ARC-AGI-3-style general agentic-core falsifier with no public-game overfit credit.
-
-## Phase 9 — Whole-system integration
-
-- [ ] **F2-WP-900** Full persistent cognition loop.
-- [ ] **F2-WP-901** Restart/recovery with unfinished-work continuation.
-- [ ] **F2-WP-902** Whole-system latency/resource/quality characterization.
-- [ ] **F2-WP-903** Long-running soak and degradation tests.
-- [ ] **F2-WP-904** Cross-module failure injection and root-cause closure.
-
-## Phase 10 — Security hardening after functional architecture freeze
-
-- [ ] **F2-WP-1000** Attack-surface inventory from the finished architecture.
-- [ ] **F2-WP-1001** Authentication/authorization/effect hardening.
-- [ ] **F2-WP-1002** Secret handling and supply-chain hardening.
-- [ ] **F2-WP-1003** Adversarial security acceptance suite.
+This is online process/meta-learning without requiring model-weight updates.
 
 ---
 
-# 6. COMPLETED / ACCEPTED IN THIS REPOSITORY
+## 9. Evidence-first acceptance
 
-This section records only work that has become canonical in **this** repository.
-
-| Workpackage | Status | Evidence |
-|---|---|---|
-| F2-WP-000 | ACCEPTED_AT_SCOPE | repository exists and is writable |
-| F2-WP-001 | IN_PROGRESS | this README is the first canonical architecture snapshot |
-
-No cognitive component is claimed as fully integrated merely because a donor implementation exists elsewhere.
-
----
-
-# 7. DONOR MODULE / ARCHITECTURE ADOPTION MATRIX
-
-Adoption classes:
+Frankenstein 2.0 is intentionally strict about evidence scope.
 
 ```text
-DIRECT_ADOPT       = source is close enough to move with minor packaging changes
-ADAPT_TO_GRID      = substantial implementation exists but must be rebound to F2 state/GRID/causal ABI
-CONCEPT_DISTILL    = valuable mechanism exists; implementation should not be copied wholesale
-REIMPLEMENT        = F2 needs a new implementation using donor lessons
-UNKNOWN            = source-level audit still required
+SOURCE_PRESENT != EXECUTED
+DONOR_CODE != MIGRATED_COMPONENT
+UNIT_TEST_PASS != INTEGRATION_ACCEPTANCE
+REPOSITORY_CI != VPS_RUNTIME
+VPS_RUNTIME != PHYSICAL_LOCAL_RUNTIME
+SIMULATED_SENSOR != REAL_CAMERA/SCREEN
+CANDIDATE_OBSERVATION != WORLD_TRUTH
+EXECUTOR_DONE != VERIFIED_COMPLETION
+COMPONENT_ACCEPTED != WHOLE_SYSTEM_COMPLETE
 ```
 
-| Area | Donor status | F2 adoption | Current judgement |
-|---|---|---|---|
-| UnifiedDB / durable memory substrate | substantial live donor code | ADAPT_TO_GRID | strong reusable base; coordination identity needs F2 successor |
-| Handoff / reconcile workpackages | live donor mechanism | ADAPT_TO_GRID | useful evidence discipline; native child binding incomplete |
-| Native Claude child tooling | runtime capability exists outside donor logic | ADAPT_TO_GRID | must bind `paket_id → tool_use_id → agent_id → result` |
-| GRID10 cognitive envelope | active research/staging implementation | ADAPT_TO_GRID | meaningful source exists; latest runtime gates still nonterminal |
-| Hyperposition | extensive research/tests | ADAPT_TO_GRID | mechanism survives; needs F2 cycle ABI |
-| Current Frankenstein Voice / Realtime | substantial live donor implementation | ADAPT_TO_GRID | largely reusable organ; causal return semantics need repair |
-| Visual Cortex / perception control | substantial donor + measured tests | ADAPT_TO_GRID | reuse pipeline ideas/source; bind to permanent Retina/Presence |
-| Presence / familiarity | donor mechanisms + recent forensics | ADAPT_TO_GRID | preserve evidence softness; repair candidate-level attribution |
-| Memory retrieval / MicroClay | substantial live donor implementation | ADAPT_TO_GRID | keep retrieval mechanisms; remove session/latest-entry credit shortcuts |
-| Memory evolution / degradation | historical Project-Frankenstein lineage | CONCEPT_DISTILL | preserve non-destructive fading/salience idea; source-level extraction required |
-| Consciousness/Pulse daemon | historical Project-Frankenstein lineage | CONCEPT_DISTILL | useful precursor for persistent pulse; F2 loop is substantially different |
-| Agent-Zero cognition lineage | broad donor architecture | CONCEPT_DISTILL | keep autonomous cognition strengths, align through GRID10 rather than reuse wholesale |
-| QUBO world model | donor/research lineage | ADAPT_TO_GRID | candidate second projection of world state; exact source migration audit required |
-| NeRD physics | donor/research lineage | ADAPT_TO_GRID | promising bounded physics organ; exact source and performance audit required |
-| Cognitive Micro-Lab | architecture synthesis + donor lab lineage | REIMPLEMENT | new reduced universal experiment environment required |
-| Sparse generative world substrate | current research design | REIMPLEMENT | F2-native bounded WorldSlice architecture |
-| Xeno assimilator/gardener concepts | current research design | CONCEPT_DISTILL | useful decomposition/compression roles, not separate identity |
-| Effect/completion correctness | donor + EntityOS research | REIMPLEMENT | typed per-invocation causal successor required |
-| RLM/RAH/context virtualization | external/research harness evidence | ADAPT_TO_GRID | adaptive R0/R1/R2/R3 router required |
-| Recursive Cognitive Process Distillation | distilled from multi-worker research process | REIMPLEMENT | new intrinsic process-learning subsystem |
-| ARC-AGI-3-style cognitive unit tests | benchmark-derived methodology | REIMPLEMENT | held-out internal worlds required; no public-game overfit |
-| Complete telemetry/data spine | requirements synthesized for F2 | REIMPLEMENT | F2-native observability system |
-
-This matrix is intentionally conservative: **donor availability is not the same as F2 completion**.
-
----
-
-# 8. Mandatory experimental data spine
-
-Every test series must produce an immutable package under:
+A bug is not closed because the symptom disappeared:
 
 ```text
-runs/<test_series>/<run_id>/
-```
-
-containing or referencing all instrumented system data for that run.
-
-Project-wide databases are planned under `data/`:
-
-```text
-data/system_telemetry.sqlite
-    all instrumented Frankenstein-2.0 component/system logs
-
-data/communications.sqlite
-    all Frankenstein-produced communication events + causal metadata
-
-data/hypotheses.sqlite
-    hypotheses, counterhypotheses, evidence and targeted tests
-
-data/bugs.sqlite
-    bugs, symptoms, root causes, fixes and regression evidence
-
-data/grid10_telemetry.sqlite
-    GRID cells, proposals, arbitration, broadcast, uptake, re-entry, budgets
-
-data/performance.sqlite
-    resource samples, state intervals, traces, latency spans and aggregates
-```
-
-A test is not considered fully instrumented unless every participating process/system declared in its test manifest has an active collector or an explicit `NOT_OBSERVABLE` record.
-
-### Bug rule
-
-```text
-SYMPTOM_GONE != FIXED
-PATCH_APPLIED != FIXED
 FIXED = ROOT_CAUSE_CONFIRMED
-        + ROOT_CAUSE_REMOVED
-        + FIX_COMMIT
-        + REGRESSION_TEST_PASS
-        + REGRESSION_RECEIPT
+      + ROOT_CAUSE_REMOVED
+      + FIX_COMMIT
+      + REGRESSION_TEST_PASS
+      + REGRESSION_RECEIPT
 ```
 
-The goal is not to hide bugs. The goal is to close **root causes**.
-
-### Latency rule
-
-All meaningful internal transitions should be traceable with:
-
-```text
-trace_id
-span_id
-parent_span_id
-start/end wall clock
-start/end monotonic clock
-component/subsystem/operation
-system state
-workpackage/run/task/agent/invocation identity
-queue_wait / compute / io_wait / network_wait / model_wait / db_wait / child_wait / unattributed
-```
-
-End-to-end latency is the **critical causal path**, not the sum of parallel work.
-
-### Resource/performance states
-
-At minimum characterize:
-
-```text
-BOOT_INITIALIZE
-IDLE_HOLD
-PULSE_ONLY
-RETINA_IDLE
-RETINA_ACTIVE
-GRID_BURST
-RETRIEVAL
-WORLD_PROJECTION
-QUBO
-MICROLAB
-NERD_PHYSICS
-VOICE_SESSION
-DIRECT_SMALL
-CHILD_BUILD
-MULTI_CHILD
-RECURSIVE_HARNESS
-COMPLETION_REENTRY
-RECOVERY_RESTART
-WHOLE_LOOP
-STRESS_SATURATION
-```
-
-For each useful state/component collect CPU, memory, disk I/O, DB time, network, GPU/VRAM if present, model calls/tokens, latency, queueing and other available resource counters.
+Final whole-product acceptance remains a **real local-machine event** after the VPS pre-handoff gates have passed.
 
 ---
 
-# 9. Triggerword-4 worker law for this repository
+## 10. Perception acceptance target
 
-Once a Triggerword-4 worker is doing Frankenstein-2.0 build work, a coherent step is not finished until it has been made durable here.
+The Perception Fabric is not accepted merely because its contracts compile.
+
+The intended sustained acceptance includes at least:
+
+- `0` configured/permitted sources without fabricated observations;
+- `1`-source capture/event/re-look path;
+- `N > worker_count` scheduling/backpressure;
+- four simultaneously represented permitted sources when available;
+- dynamic `0..4` Cortex analysis workers;
+- zero generic VLM calls in the normal baseline soak;
+- zero raw-frame persistence under default policy;
+- bounded RAM and queues under sustained source change;
+- typed world-model updates with epistemic/source/time provenance;
+- GRID10-triggered re-look from uncertainty/completion deficit/disagreement;
+- source add/remove/rebind churn without stale authority;
+- permission revocation invalidating queued observation work;
+- clock-skew falsification preventing false contemporaneous fusion;
+- `MEMORY_OFF` evidence not later resurrected from durable memory;
+- bridge disconnect/reconnect not replaying stale visual authority;
+- perception degrading/dropping work before starving cognition/control;
+- final local repetition on the actually enabled physical devices and OS permission surfaces.
+
+---
+
+## 11. Current repository implementation surfaces
+
+The repository already contains F2-native implementation surfaces for major parts of the architecture, including examples such as:
+
+```text
+src/frankenstein2/
+    active_sensing_fabric.py
+    adaptive_compute.py
+    agency_state.py
+    cognitive_envelope.py
+    epistemic_perception.py
+    grid10_interface.py
+    gwt_workspace.py
+    gwt_uptake.py
+    hyperposition.py
+    perception_bridge.py
+    perception_capture_broker.py
+    perception_compute_binding.py
+    perception_control.py
+    perception_dashboard_policy.py
+    perception_fabric.py
+    perception_fabric_simulation.py
+    perception_host_permissions.py
+    perception_temporal.py
+    persistent_agency_kernel.py
+    persistent_pulse.py
+    retina_capture_broker.py
+    retina_fanin.py
+    retina_pipeline.py
+    visual_need.py
+    world_maintenance.py
+    world_multiview.py
+```
+
+Presence of these files does **not** by itself mean whole-system or physical-runtime acceptance. Use current workpackage receipts/reconciliations and exact test identities for acceptance claims.
+
+---
+
+## 12. Workpackages and current state
+
+The README intentionally does not maintain a giant hand-edited checklist of every workpackage because parallel workers can make that view stale within minutes.
+
+Use the repository's machine-readable and evidence-backed state instead:
+
+- [`WORKPACKAGES.md`](WORKPACKAGES.md)
+- [`workpackages/`](workpackages/)
+- [`receipts/`](receipts/)
+- [`checkpoints/`](checkpoints/)
+- [`negative_results/`](negative_results/)
+- [`architecture/`](architecture/)
+
+Perception Fabric currently has its own required phase contract covering F2-WP-707 through F2-WP-714 in [`workpackages/PERCEPTION_FABRIC_PHASE.json`](workpackages/PERCEPTION_FABRIC_PHASE.json).
+
+---
+
+## 13. Triggerword-4 engineering law
+
+A Triggerword-4 engineering step is not complete until the result is durable and evidence-scoped.
 
 ```text
 TRIGGERWORT_4
@@ -416,48 +581,67 @@ REFRESH
 + TRACE
 + COMMIT
 + ARCHIVE
-+ CHECK_OFF_OR_RECORD_DEFICIT
++ RECONCILE
 + CHECKPOINT
 ```
 
-Workers must:
+Workers must refresh the current head/authority before mutation, preserve exact ancestry, avoid overwriting concurrent work, test bounded changes, retain negative results, distinguish CI/VPS/local evidence and leave a precise next frontier.
 
-1. refresh current `main` before writing;
-2. select/claim a workpackage and generation;
-3. preserve exact source/donor ancestry;
-4. commit coherent build steps rather than one giant opaque terminal dump;
-5. archive tests, metrics, receipts and important negative results;
-6. update workpackage status only when evidence supports it;
-7. never overwrite a newer worker checkpoint with stale state;
-8. leave `next_exact_action` for continuation;
-9. keep the current `gschaidergabriel/frankenstein` donor read-only unless a separate explicit task says otherwise.
+The authorized VPS/bridge lane is a valid and intended build/test environment. Final product locality does **not** mean development must avoid the VPS.
 
 ---
 
-# 10. Repository target structure
+## 14. Repository target structure
 
 ```text
 frankenstein-2.0/
-├── README.md
-├── WORKPACKAGES.md
-├── DONOR_ADOPTION_MATRIX.md
-├── WORKER_PROTOCOL.md
-├── ARTIFACT_INDEX.md
-├── architecture/
-├── src/
-├── tests/
-├── research_mirror/
-├── workpackages/
-├── runs/
-├── measurements/
-├── receipts/
-├── negative_results/
-├── checkpoints/
-├── data/
-├── telemetry/
-├── bugs/
-├── hypotheses/
-└── archive/
+|-- README.md
+|-- PRODUCT_COMPLETION_LAW.md
+|-- WORKPACKAGES.md
+|-- AI_START_HERE_DO_NOT_SCAN_REPO/
+|-- architecture/
+|-- src/
+|-- tests/
+|-- workpackages/
+|-- runs/
+|-- measurements/
+|-- receipts/
+|-- negative_results/
+|-- checkpoints/
+|-- data/
+|-- telemetry/
+|-- bugs/
+|-- hypotheses/
+|-- provenance/
+`-- archive/
 ```
 
-The end state is intentionally simple: after the build, a researcher should be able to clone **this one repository** and reconstruct what Frankenstein 2.0 is, how it was built, which experiments changed it, what remains uncertain, which root causes remain open and how much each cognitive organ costs in latency/resources.
+The release target is a reproducible package whose installer can reconstruct the supported local runtime and whose evidence allows a researcher or maintainer to determine what was built, what was actually tested, what remains uncertain and which claims are valid at which scope.
+
+---
+
+## 15. Definition of "Frankenstein 2.0 complete"
+
+Frankenstein 2.0 is not complete merely because source code exists, CI is green, GRID10 runs, Perception Fabric simulations pass or the VPS can execute a partial runtime.
+
+At minimum, final completion requires the integrated cognitive loop and portable release gates to converge, followed by real local acceptance of the enabled host/device surfaces:
+
+```text
+persistent state + pulse
+-> goals / open loops / retrieval / world model
+-> GRID10 + Hyperposition
+-> GWT selection/broadcast/uptake/re-entry
+-> ACT | ASK | SPEAK | OBSERVE | WAIT | HOLD | DELEGATE
+-> verified effect/observation
+-> CompletionGate + causal credit
+-> checkpoint + restart continuity
+-> Perception Fabric re-look loop
+-> reproducible ZIP + one-handoff installer
+-> local Claude Code/Opus real-machine integration
+-> state/device/permission/restart readback
+-> ACCEPTED at the exact proven scope
+```
+
+The desired final experience is simple:
+
+> **The VPS engineering lane hands over an almost-complete Frankenstein 2.0 release ZIP. Claude Code/Opus locally should mostly install, bind the real machine, request the user's permissions, run the final acceptance probes and report the truth — not rebuild Frankenstein.**
