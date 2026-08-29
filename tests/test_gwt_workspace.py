@@ -13,6 +13,7 @@ from frankenstein2.gwt_workspace import (
     create_broadcast,
     verify_selection_binding,
 )
+from frankenstein2.hyperposition import Alternative, EpistemicStatus, create_hyperposition
 
 D = "a" * 64
 F = "c" * 64
@@ -394,3 +395,47 @@ def test_selected_candidate_retains_exact_producer_digest_binding():
     assert selected.producer_admission_sha256 == source.producer_admission.sha256()
     assert selected.producer_output_sha256 == source.producer_admission.output_sha256
     assert selected.producer_cell_id == source.producer_admission.cell_id
+
+
+def test_selection_rejects_hyperposition_bound_to_different_situation_frame():
+    """A valid WP502 Hyperposition from another frame must fail closed at WP506."""
+    foreign = create_hyperposition(
+        hyperposition_id="hyper-foreign",
+        generation=2,
+        alternatives=(
+            Alternative(
+                alternative_id="alt-a",
+                proposition_ref="prop:a",
+                generation=2,
+                epistemic_status=EpistemicStatus.UNKNOWN,
+                provenance_refs=("prov:hp:a",),
+            ),
+            Alternative(
+                alternative_id="alt-b",
+                proposition_ref="prop:b",
+                generation=2,
+                epistemic_status=EpistemicStatus.UNKNOWN,
+                provenance_refs=("prov:hp:b",),
+            ),
+        ),
+        provenance_refs=("prov:hp",),
+        situation_frame_ref="frame-foreign",
+    )
+
+    with pytest.raises(GwtWorkspaceError, match="hyperposition.*frame|frame.*hyperposition"):
+        build_workspace_selection(
+            selection_id="sel-cross-frame",
+            cycle_id="cycle-1",
+            generation=7,
+            frame_id="frame-1",
+            frame_generation=4,
+            frame_sha256=D,
+            grid_plan_id=GRID_PLAN.plan_id,
+            grid_plan_generation=GRID_PLAN.generation,
+            grid_plan_sha256=GRID_PLAN.sha256(),
+            hyperposition_id=foreign.hyperposition_id,
+            hyperposition_generation=foreign.generation,
+            hyperposition_sha256=foreign.sha256(),
+            policy=policy(),
+            candidates=(candidate("a"),),
+        )
