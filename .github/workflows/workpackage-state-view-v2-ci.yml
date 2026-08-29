@@ -11,7 +11,9 @@ on:
       - 'workpackages/STATE_VIEW_CONTRACT_V2.json'
       - 'workpackages/STATE_CONCURRENCY_PROTOCOL_V2.md'
       - 'tools/resolve_workpackage_state_v2.py'
+      - 'tools/validate_wp002_projection_v2.py'
       - 'tests/test_resolve_workpackage_state_v2.py'
+      - 'tests/test_validate_wp002_projection_v2.py'
       - '.github/workflows/workpackage-state-view-v2-ci.yml'
   pull_request:
     paths:
@@ -22,7 +24,9 @@ on:
       - 'workpackages/STATE_VIEW_CONTRACT_V2.json'
       - 'workpackages/STATE_CONCURRENCY_PROTOCOL_V2.md'
       - 'tools/resolve_workpackage_state_v2.py'
+      - 'tools/validate_wp002_projection_v2.py'
       - 'tests/test_resolve_workpackage_state_v2.py'
+      - 'tests/test_validate_wp002_projection_v2.py'
       - '.github/workflows/workpackage-state-view-v2-ci.yml'
 
 jobs:
@@ -36,6 +40,8 @@ jobs:
         with:
           python-version: '3.12'
       - name: Unit tests
-        run: python -m unittest tests/test_resolve_workpackage_state_v2.py
+        run: python -m unittest tests/test_resolve_workpackage_state_v2.py tests/test_validate_wp002_projection_v2.py
       - name: Validate migrated state-event chains and active bindings
         run: python tools/resolve_workpackage_state_v2.py . --check-active
+      - name: Validate WP002 effective aggregate projection
+        run: python tools/validate_wp002_projection_v2.py .
