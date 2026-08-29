@@ -1,6 +1,6 @@
 """Deterministic GWT selection/broadcast primitives for Frankenstein 2.0 Stage 5.
 
-F2-WP-506 generation 1.
+F2-WP-506 generation 2.
 
 This module selects an explicitly bounded candidate set for one workspace cycle and
 constructs a broadcast envelope addressed to logical GRID10 cells. Candidate admission
