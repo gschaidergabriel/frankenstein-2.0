@@ -16,7 +16,7 @@ def frame(seq, time_ns=None, source_id="camera:front"):
     if time_ns is None:
         time_ns = 100 + seq
     return CaptureFrameRef(
-        frame_ref_id=f"frame:{seq}",
+        frame_ref_id=f"{source_id}:frame:{seq}",
         source_id=source_id,
         source_sequence=seq,
         captured_monotonic_ns=time_ns,
@@ -55,9 +55,12 @@ class RetinaCaptureBrokerTests(unittest.TestCase):
                 publisher_owner_id="owner:camera:front",
                 frame_ref=frame(seq),
             )
-        self.assertEqual(tuple(item.frame_ref_id for item in state.frame_refs), ("frame:2", "frame:3"))
+        self.assertEqual(
+            tuple(item.frame_ref_id for item in state.frame_refs),
+            ("camera:front:frame:2", "camera:front:frame:3"),
+        )
         self.assertEqual(state.dropped_frame_count, 1)
-        self.assertEqual(state.dropped_frame_ref_ids, ("frame:1",))
+        self.assertEqual(state.dropped_frame_ref_ids, ("camera:front:frame:1",))
         self.assertEqual(len(state.frame_refs), 2)
         self.assertLessEqual(len(state.provenance_refs), len(state.origin_provenance_refs) + 2)
         self.assertFalse(state.as_dict()["raw_frame_persistence"])
@@ -118,8 +121,11 @@ class RetinaCaptureBrokerTests(unittest.TestCase):
             )
         reader_a = latest_frame_refs(state, limit=2)
         reader_b = latest_frame_refs(state, limit=1)
-        self.assertEqual(tuple(item.frame_ref_id for item in reader_a), ("frame:2", "frame:3"))
-        self.assertEqual(tuple(item.frame_ref_id for item in reader_b), ("frame:3",))
+        self.assertEqual(
+            tuple(item.frame_ref_id for item in reader_a),
+            ("camera:front:frame:2", "camera:front:frame:3"),
+        )
+        self.assertEqual(tuple(item.frame_ref_id for item in reader_b), ("camera:front:frame:3",))
         self.assertEqual(state.capture_owner_id, "owner:camera:front")
 
     def test_wrong_source_cannot_enter_broker(self):
@@ -131,7 +137,7 @@ class RetinaCaptureBrokerTests(unittest.TestCase):
             provenance_refs=P,
         )
         wrong = CaptureFrameRef(
-            frame_ref_id="wrong:1",
+            frame_ref_id="display:1:frame:1",
             source_id="display:1",
             source_sequence=1,
             captured_monotonic_ns=100,
@@ -148,18 +154,19 @@ class RetinaCaptureBrokerTests(unittest.TestCase):
     def test_long_run_state_metadata_remains_bounded(self):
         capacity = 4
         total_frames = 1_024
+        source_id = "camera:front"
         state = create_capture_broker(
-            broker_id="broker:camera:front",
-            source_id="camera:front",
-            capture_owner_id="owner:camera:front",
+            broker_id=f"broker:{source_id}",
+            source_id=source_id,
+            capture_owner_id=f"owner:{source_id}",
             capacity=capacity,
             provenance_refs=P,
         )
         for seq in range(1, total_frames + 1):
             state = publish_frame_ref(
                 state=state,
-                publisher_owner_id="owner:camera:front",
-                frame_ref=frame(seq),
+                publisher_owner_id=f"owner:{source_id}",
+                frame_ref=frame(seq, source_id=source_id),
             )
             self.assertLessEqual(len(state.frame_refs), capacity)
             self.assertLessEqual(len(state.dropped_frame_ref_ids), capacity)
@@ -175,9 +182,53 @@ class RetinaCaptureBrokerTests(unittest.TestCase):
         )
         self.assertEqual(
             state.dropped_frame_ref_ids,
-            tuple(f"frame:{seq}" for seq in range(total_frames - (2 * capacity) + 1, total_frames - capacity + 1)),
+            tuple(
+                f"{source_id}:frame:{seq}"
+                for seq in range(total_frames - (2 * capacity) + 1, total_frames - capacity + 1)
+            ),
         )
         self.assertFalse(state.as_dict()["raw_frame_persistence"])
+
+    def test_four_source_soak_has_constant_per_source_state_bounds(self):
+        source_ids = (
+            "camera:front",
+            "display:1",
+            "browser:rendered",
+            "browser:structural",
+        )
+        capacity = 4
+        frames_per_source = 1_024
+        states = {
+            source_id: create_capture_broker(
+                broker_id=f"broker:{source_id}",
+                source_id=source_id,
+                capture_owner_id=f"owner:{source_id}",
+                capacity=capacity,
+                provenance_refs=P,
+            )
+            for source_id in source_ids
+        }
+        for seq in range(1, frames_per_source + 1):
+            for source_id in source_ids:
+                states[source_id] = publish_frame_ref(
+                    state=states[source_id],
+                    publisher_owner_id=f"owner:{source_id}",
+                    frame_ref=frame(seq, source_id=source_id),
+                )
+                current = states[source_id]
+                self.assertLessEqual(len(current.frame_refs), capacity)
+                self.assertLessEqual(len(current.dropped_frame_ref_ids), capacity)
+                self.assertLessEqual(
+                    len(current.provenance_refs),
+                    len(current.origin_provenance_refs) + 2,
+                )
+                self.assertFalse(current.as_dict()["raw_frame_persistence"])
+        for source_id, state in states.items():
+            self.assertEqual(state.generation, frames_per_source)
+            self.assertEqual(state.dropped_frame_count, frames_per_source - capacity)
+            self.assertEqual(len(state.frame_refs), capacity)
+            self.assertEqual(len(state.dropped_frame_ref_ids), capacity)
+            self.assertEqual(state.frame_refs[-1].frame_ref_id, f"{source_id}:frame:{frames_per_source}")
 
 
 if __name__ == "__main__":
