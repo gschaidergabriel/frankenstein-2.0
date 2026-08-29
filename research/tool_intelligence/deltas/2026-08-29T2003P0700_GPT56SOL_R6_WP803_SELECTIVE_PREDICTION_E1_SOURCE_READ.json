@@ -1,0 +1,91 @@
+{
+  "schema": "FRANKENSTEIN2_TRIGGER6_RESEARCH_DELTA/v1",
+  "research_id": "R6-20260829-WP803-SELECTIVE-PREDICTION-GPT56SOL-01",
+  "evidence_stage": "E1_SOURCE_READ",
+  "created_at": "2026-08-29T20:03:00+07:00",
+  "worker": "GPT-5.6-Sol-TRIGGER6",
+  "f2_snapshot": {
+    "preclaim_main": "50bf60794ef6e4daf9597dd773db205d76784775",
+    "wp803_claim_commit": "1ae3834d37f100447409946f0eda03dbd56a2225",
+    "trigger6_claim_commit": "c12001031cf48569c48ce4cd786f37bee758116a",
+    "authority_epoch": "8.78"
+  },
+  "current_f2_observation": {
+    "workpackage": "F2-WP-803 generation 1",
+    "scope": "Held-out WORLD-MODEL-PREDICTION benchmark over exact public ObservationView values plus immutable policy state/config; evaluator-only MicroWorldFixture hidden state must never enter policy input; preserve UNKNOWN/abstain; compare public-information baselines; repository component CI only.",
+    "credit": "SOURCE_OBSERVATION_ONLY"
+  },
+  "primary_sources": [
+    {
+      "source": "Gymnasium Env API",
+      "url": "https://gymnasium.farama.org/api/env/",
+      "observed_mechanism": [
+        "Env.step returns the next observation after the action.",
+        "The info dictionary is auxiliary diagnostic information and may contain variables hidden from observations."
+      ],
+      "transferable_invariant": "WP803 must never pass a raw evaluator/env info mapping into the prediction policy. Policy input should be constructed from an explicit public ObservationView whitelist and sealed independently from evaluator-private state.",
+      "caveat": "Gymnasium defines a general API, not the F2 benchmark semantics."
+    },
+    {
+      "source": "Dawid 1984, Statistical Theory: The Prequential Approach",
+      "doi": "10.2307/2981683",
+      "observed_mechanism": [
+        "Predictive quality is evaluated sequentially from forecasts for future observations and the observations that subsequently materialize."
+      ],
+      "transferable_invariant": "WP803 should seal prediction identity before the canonical evaluator advances the episode, then score only against the subsequently observed public outcome. Evaluation-time future information must not influence the forecast."
+    },
+    {
+      "source": "Geifman and El-Yaniv 2017, Selective Classification for Deep Neural Networks",
+      "arxiv": "1705.08500",
+      "observed_mechanism": [
+        "Selective prediction trades prediction risk against coverage by rejecting/abstaining on some inputs."
+      ],
+      "transferable_invariant": "UNKNOWN/abstain cannot be summarized as ordinary accuracy alone. WP803 should report coverage together with selective risk so an always-abstain policy cannot appear artificially strong."
+    },
+    {
+      "source": "Gneiting and Raftery 2007, Strictly Proper Scoring Rules, Prediction, and Estimation",
+      "doi": "10.1198/016214506000001437",
+      "observed_mechanism": [
+        "Strictly proper scoring rules assess probabilistic forecasts while incentivizing the forecast distribution to reflect the forecaster's actual predictive distribution."
+      ],
+      "transferable_invariant": "If WP803 later admits probabilistic categorical predictions, use a strictly proper score such as Brier/log score as an optional measurement; do not fabricate probabilities for point-prediction-only policies."
+    },
+    {
+      "source": "Cobbe et al. 2019, Procgen Benchmark",
+      "arxiv": "1912.01588",
+      "observed_mechanism": [
+        "Procedurally generated environment distributions are used to measure generalization rather than performance on only memorized environments."
+      ],
+      "transferable_invariant": "Held-out WP803 evaluation should bind fixture-family/split identity and prohibit fitting empirical baselines on the held-out fixture family. Baselines trained from public transitions must have a separate fit-split digest."
+    },
+    {
+      "source": "Kaelbling, Littman and Cassandra 1998, Planning and acting in partially observable stochastic domains",
+      "doi": "10.1016/S0004-3702(98)00023-X",
+      "observed_mechanism": [
+        "Partially observable domains distinguish underlying state from the information available to the agent."
+      ],
+      "transferable_invariant": "Hidden evaluator state may determine the next observation without being valid policy input; inability to infer that hidden state from public history is legitimate uncertainty and should remain UNKNOWN rather than be scored as a forced guess."
+    }
+  ],
+  "cross_source_synthesis": {
+    "supported": [
+      "Create a hard public/evaluator-private data-plane boundary; raw info/debug/fixture state is evaluator-only.",
+      "Seal prediction before environment advancement and score after advancement against the realized public observation.",
+      "Report abstention coverage and selective risk together.",
+      "Bind held-out fixture-family/split identity and baseline-fit split identity separately.",
+      "Use proper probabilistic scoring only when the policy genuinely emits a probability distribution."
+    ],
+    "not_supported_by_sources_alone": [
+      "That next-observation prediction is a sufficient measure of general world-model quality.",
+      "That any particular score threshold proves cognition, causality, transfer or whole-system quality.",
+      "That hidden-state reconstruction should be required when the public history is non-identifying."
+    ]
+  },
+  "counterhypothesis": "The existing WP803 scope may already prevent practical leakage and benchmark gaming, so the proposed additions may add schema/test complexity without changing observed behavior. Falsify this by implementing minimal adversarial tests: hidden info injection, fit-split contamination, and always-abstain. If current code already fails closed and reports coverage, no architecture expansion is warranted.",
+  "next_stage": "E2_ARCHITECTURE_MAPPED",
+  "research_credit": "E1_PRIMARY_SOURCE_READ",
+  "runtime_credit": 0,
+  "physical_grid10_credit": 0,
+  "architecture_acceptance_credit": 0,
+  "whole_system_credit": 0
+}
