@@ -1,11 +1,11 @@
 """Deterministic binding between accepted WP508 re-entry provenance and WP507 uptake evidence.
 
-F2-WP-508 generation 3 component scope only.
+F2-WP-508 generation 4 component scope only.
 
 This module does not observe or infer uptake. It verifies that one already-valid WP508
 re-entry witness and one already-valid WP507 CellUptakeReceipt refer to the same exact
-broadcast and recipient, revalidates accepted WP506 builder/payload lineage, then
-preserves the WP507 delivery/uptake state verbatim.
+broadcast and recipient, revalidates accepted WP506 selection and broadcast builder lineage,
+then preserves the WP507 delivery/uptake state verbatim.
 """
 from __future__ import annotations
 
@@ -37,7 +37,7 @@ _BINDING_SEAL = object()
 
 
 class GwtReentryUptakeBindingError(ValueError):
-    """Fail-closed WP508 generation-3 integration error."""
+    """Fail-closed WP508 generation-4 integration error."""
 
 
 def _text(name: str, value: Any) -> str:
@@ -97,7 +97,7 @@ def _validate_wp506_reentry_lineage(
     broadcast: BroadcastEnvelope,
     cell_input: CellInput,
 ) -> None:
-    """Revalidate builder lineage and require material broadcast payload re-entry."""
+    """Revalidate exact WP506 selection/broadcast lineage and material payload re-entry."""
     try:
         verify_selection_binding(
             selection,
@@ -115,7 +115,17 @@ def _validate_wp506_reentry_lineage(
             f"invalid WP506 selection builder lineage: {exc}"
         ) from exc
 
-    broadcast_payload_refs = set(broadcast.candidate_payload_refs)
+    expected_candidate_ids = tuple(item.candidate_id for item in selection.selected)
+    expected_candidate_payload_refs = tuple(item.payload_ref for item in selection.selected)
+    if (
+        broadcast.candidate_ids != expected_candidate_ids
+        or broadcast.candidate_payload_refs != expected_candidate_payload_refs
+    ):
+        raise GwtReentryUptakeBindingError(
+            "invalid WP506 broadcast builder lineage: candidate ids/payload refs do not match exact selection"
+        )
+
+    broadcast_payload_refs = set(expected_candidate_payload_refs)
     if not broadcast_payload_refs.intersection(cell_input.input_refs):
         raise GwtReentryUptakeBindingError(
             "re-entry CellInput lacks bound broadcast candidate payload reference"
