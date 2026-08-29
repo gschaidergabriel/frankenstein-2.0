@@ -1,10 +1,11 @@
 """Deterministic binding between accepted WP508 re-entry provenance and WP507 uptake evidence.
 
-F2-WP-508 generation 2 component scope only.
+F2-WP-508 generation 3 component scope only.
 
 This module does not observe or infer uptake. It verifies that one already-valid WP508
 re-entry witness and one already-valid WP507 CellUptakeReceipt refer to the same exact
-broadcast and recipient, then preserves the WP507 delivery/uptake state verbatim.
+broadcast and recipient, revalidates accepted WP506 builder/payload lineage, then
+preserves the WP507 delivery/uptake state verbatim.
 """
 from __future__ import annotations
 
@@ -20,7 +21,12 @@ from frankenstein2.gwt_reentry_provenance import (
     validate_reentry_witness,
 )
 from frankenstein2.gwt_uptake import CellUptakeReceipt, GWTUptakeError
-from frankenstein2.gwt_workspace import BroadcastEnvelope, WorkspaceSelection
+from frankenstein2.gwt_workspace import (
+    BroadcastEnvelope,
+    GwtWorkspaceError,
+    WorkspaceSelection,
+    verify_selection_binding,
+)
 
 GWT_REENTRY_UPTAKE_BINDING_SCHEMA = "FRANKENSTEIN2_GWT_REENTRY_UPTAKE_BINDING/v1"
 _CLASSIFICATION = "DERIVED_BINDING_WP507_UPTAKE_AUTHORITY_ONLY_NOT_NEW_UPTAKE_OR_RUNTIME_EVIDENCE"
@@ -31,7 +37,7 @@ _BINDING_SEAL = object()
 
 
 class GwtReentryUptakeBindingError(ValueError):
-    """Fail-closed WP508 generation-2 integration error."""
+    """Fail-closed WP508 generation-3 integration error."""
 
 
 def _text(name: str, value: Any) -> str:
@@ -82,6 +88,38 @@ def _binding_status(uptake_status: str) -> str:
     if uptake_status == "UNKNOWN":
         return "WP507_UNKNOWN_BOUND"
     raise GwtReentryUptakeBindingError("unsupported WP507 uptake status")
+
+
+def _validate_wp506_reentry_lineage(
+    *,
+    plan: Grid10Plan,
+    selection: WorkspaceSelection,
+    broadcast: BroadcastEnvelope,
+    cell_input: CellInput,
+) -> None:
+    """Revalidate builder lineage and require material broadcast payload re-entry."""
+    try:
+        verify_selection_binding(
+            selection,
+            expected_generation=broadcast.selection_generation,
+            expected_selection_sha256=broadcast.selection_sha256,
+            frame_id=plan.frame_id,
+            frame_generation=plan.frame_generation,
+            frame_sha256=plan.frame_sha256,
+            grid_plan_id=plan.plan_id,
+            grid_plan_generation=plan.generation,
+            grid_plan_sha256=plan.sha256(),
+        )
+    except GwtWorkspaceError as exc:
+        raise GwtReentryUptakeBindingError(
+            f"invalid WP506 selection builder lineage: {exc}"
+        ) from exc
+
+    broadcast_payload_refs = set(broadcast.candidate_payload_refs)
+    if not broadcast_payload_refs.intersection(cell_input.input_refs):
+        raise GwtReentryUptakeBindingError(
+            "re-entry CellInput lacks bound broadcast candidate payload reference"
+        )
 
 
 @dataclass(frozen=True, slots=True, kw_only=True)
@@ -206,6 +244,12 @@ def bind_reentry_to_uptake(
     if type(uptake_receipt) is not CellUptakeReceipt:
         raise GwtReentryUptakeBindingError("uptake_receipt must be concrete CellUptakeReceipt")
 
+    _validate_wp506_reentry_lineage(
+        plan=plan,
+        selection=selection,
+        broadcast=broadcast,
+        cell_input=cell_input,
+    )
     validate_reentry_witness(
         witness,
         plan=plan,
