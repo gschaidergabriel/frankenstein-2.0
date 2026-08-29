@@ -1,0 +1,45 @@
+name: F2 WP805 G2 Recovery E2 Falsifier CI
+
+on:
+  push:
+    branches:
+      - main
+      - trigger4/wp805-g2-recovery-e2-repair-20260829
+    paths:
+      - 'src/frankenstein2/cognitive_microworld.py'
+      - 'src/frankenstein2/cognitive_transfer_recovery_benchmark.py'
+      - 'src/frankenstein2/cognitive_transfer_recovery_e2.py'
+      - 'tests/test_cognitive_transfer_recovery_e2.py'
+      - '.github/workflows/wp805-cognitive-transfer-recovery-e2-ci.yml'
+  pull_request:
+    paths:
+      - 'src/frankenstein2/cognitive_microworld.py'
+      - 'src/frankenstein2/cognitive_transfer_recovery_benchmark.py'
+      - 'src/frankenstein2/cognitive_transfer_recovery_e2.py'
+      - 'tests/test_cognitive_transfer_recovery_e2.py'
+      - '.github/workflows/wp805-cognitive-transfer-recovery-e2-ci.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  deterministic:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Compile
+        run: >-
+          python -m py_compile
+          src/frankenstein2/cognitive_microworld.py
+          src/frankenstein2/cognitive_transfer_recovery_benchmark.py
+          src/frankenstein2/cognitive_transfer_recovery_e2.py
+          tests/test_cognitive_transfer_recovery_e2.py
+      - name: Recovery E2 falsification suite
+        env:
+          PYTHONPATH: src
+        run: python -m unittest discover -s tests -p 'test_cognitive_transfer_recovery_e2.py' -v
