@@ -131,6 +131,27 @@ class GWTUptakeG2Tests(unittest.TestCase):
         self.assertEqual(observed.delivered_cell_ids, ("G1", "G2"))
         self.assertEqual(observed.uptaken_cell_ids, ())
 
+    def test_offered_is_explicitly_distinct_from_delivered_and_uptaken(self):
+        b = broadcast(("G1",))
+        offered = receipt(b, "G1", uptake="UNKNOWN", delivery="OFFERED")
+        self.assertEqual(offered.delivery_status, "OFFERED")
+        self.assertEqual(offered.uptake_status, "UNKNOWN")
+        self.assertIsNone(offered.downstream_ref)
+        self.assertIsNone(offered.downstream_sha256)
+        observed = summarize_uptake(
+            summary_id="s-offered", broadcast=b, receipts=(offered,),
+            provenance_refs=("p",),
+        )
+        self.assertEqual(observed.delivered_cell_ids, ())
+        self.assertEqual(observed.uptaken_cell_ids, ())
+        self.assertEqual(observed.unknown_cell_ids, ("G1",))
+        self.assertEqual(observed.status, "UNKNOWN_INCOMPLETE_RECEIPTS")
+
+    def test_offered_cannot_claim_nonunknown_uptake(self):
+        b = broadcast(("G1",))
+        with self.assertRaisesRegex(GWTUptakeError, "must remain UNKNOWN"):
+            receipt(b, "G1", uptake="NOT_UPTAKEN", delivery="OFFERED")
+
     def test_not_observed_delivery_forces_unknown(self):
         b = broadcast(("G1",))
         with self.assertRaisesRegex(GWTUptakeError, "must remain UNKNOWN"):
