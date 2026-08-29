@@ -1,0 +1,118 @@
+{
+  "schema": "F2_TRIGGER6_ARCHITECTURE_MAP/v1",
+  "research_id": "R6-WP507-TRANSFORMERLENS-INTERVENTION-001",
+  "claim_target": "E2_ARCHITECTURE_MAPPED",
+  "status": "E2_SOURCE_ARCHITECTURE_MAPPED_NO_RUNTIME_CREDIT",
+  "mapped_at": "2026-08-29T15:06:00+07:00",
+  "worker": "GPT-5.6-Sol:Triggerword-6-organ",
+  "f2_contract_basis": {
+    "workpackage": "F2-WP-507 generation 3",
+    "source_commit": "46aee3bf37a938dbea5936b9c935ffb7bd74cdf3",
+    "required_positive_contract_scope": [
+      "same probe id for matched intervention/control pair",
+      "identical non-broadcast input digest",
+      "exact intervention broadcast binding",
+      "complete recipient-scoped uptake evidence",
+      "differing declared downstream output digest"
+    ],
+    "hard_semantic_fences": [
+      "OFFERED != DELIVERED != UPTAKEN",
+      "UNKNOWN remains UNKNOWN/fail-closed",
+      "delivery/coherence/recurrence/majority/self-report do not establish semantic uptake or hidden-state causality"
+    ]
+  },
+  "candidate_basis": {
+    "repo": "TransformerLensOrg/TransformerLens",
+    "commit": "1f8224d5e147c98e8f43f0d310e32bbd1578a4b6",
+    "surfaces": [
+      "transformer_lens/patching.py",
+      "transformer_lens/HookedRootModule.py",
+      "transformer_lens/model_bridge/bridge.py",
+      "transformer_lens/HookedTransformer.py",
+      "transformer_lens/pretrained/weight_conversions/qwen3.py"
+    ]
+  },
+  "mapping": [
+    {
+      "wp507_requirement": "same probe id",
+      "transformerlens_primitive": "none; experiment identity is caller/harness responsibility",
+      "f2_adapter_requirement": "F2 must mint/bind probe_id outside TransformerLens and attach it to both control and intervention receipts.",
+      "fit": "REQUIRES_F2_WRAPPER"
+    },
+    {
+      "wp507_requirement": "identical non-broadcast input digest",
+      "transformerlens_primitive": "model calls accept explicit token tensors; Bridge exposes original HF model and configuration but may force eager attention and has BOS/tokenizer behavior",
+      "f2_adapter_requirement": "Digest exact token_ids, attention mask, tokenizer identity/revision, model checkpoint identity, dtype, device, attention implementation, seed/determinism controls and all forward kwargs; matched pair may differ only in the declared intervention field.",
+      "fit": "POSSIBLE_WITH_STRICT_ENVELOPE"
+    },
+    {
+      "wp507_requirement": "exact intervention broadcast binding",
+      "transformerlens_primitive": "run_with_hooks / generic_activation_patch identify hook name and insert a clean cached activation into a corrupted run",
+      "f2_adapter_requirement": "Bind broadcast id/digest/cycle/generation plus hook canonical name, layer/position/head index where applicable, source-cache digest, patch setter identity/version and adapter/TransformerLens commit into the intervention receipt.",
+      "fit": "GOOD_MECHANISTIC_DONOR"
+    },
+    {
+      "wp507_requirement": "complete recipient-scoped uptake evidence",
+      "transformerlens_primitive": "none; activation hooks observe model tensors, not F2 GWT recipient receipt completeness or OFFERED/DELIVERED/UPTAKEN semantics",
+      "f2_adapter_requirement": "Keep WP507 recipient-scoped uptake receipts authoritative for this contract. TransformerLens evidence can only supplement them as a separate mechanistic measurement channel.",
+      "fit": "CANNOT_REPLACE_WP507_UPTAKE_LAYER"
+    },
+    {
+      "wp507_requirement": "differing declared downstream output digest",
+      "transformerlens_primitive": "generic_activation_patch computes a caller-provided metric from patched logits; run_with_hooks returns model output",
+      "f2_adapter_requirement": "Persist/digest raw declared downstream output (or a canonical bounded projection) for both pair members in addition to the predeclared metric; never rely on a scalar metric alone as the causal receipt.",
+      "fit": "POSSIBLE_WITH_OUTPUT_RECEIPT"
+    }
+  ],
+  "identity_and_equivalence_risks": [
+    {
+      "risk": "Legacy HookedTransformer loader transforms represented weights by default (fold_ln, weight centering, unembed centering, value-bias folding).",
+      "mitigation": "Do not use legacy from_pretrained as the exact-identity reference path. Prefer v3 TransformerBridge raw-HF mode or explicitly disable transformations and still independently verify equivalence."
+    },
+    {
+      "risk": "TransformerBridge forces eager attention for hook visibility and documents possible numerical drift versus HF default SDPA due to kernel-level op ordering.",
+      "mitigation": "Compare baseline HF using the same eager attention implementation before any intervention; predeclare exact/tolerance acceptance and fail closed on unexplained drift."
+    },
+    {
+      "risk": "Bridge tokenizer/BOS behavior can alter tokenization relative to stock HF defaults.",
+      "mitigation": "Use pre-tokenized token IDs for matched experiments where possible and bind tokenizer revision/BOS handling in the receipt."
+    },
+    {
+      "risk": "Repository/model-name compatibility does not prove exact checkpoint bytes consumed.",
+      "mitigation": "F2 must provide checkpoint/tokenizer/runtime/build and loader-consumption identity independently; TransformerLens repo/version is only instrumentation provenance."
+    },
+    {
+      "risk": "Hook/adapter instrumentation may perturb numerics or target a semantically different internal point across model architectures.",
+      "mitigation": "Bind adapter class, canonical hook name and source commit; require unpatched-instrumented baseline equivalence before accepting patched deltas."
+    }
+  ],
+  "architecture_decision": {
+    "classification": "USEFUL_MEASUREMENT_DONOR_NOT_RUNTIME_AUTHORITY",
+    "recommended_integration_shape": "optional local falsification adapter outside the canonical WP507 deterministic receipt contract",
+    "why": "TransformerLens provides source-observed cache/hook/activation-patching primitives and a v3 raw-HF Bridge suitable for controlled perturbations, but it does not supply F2 probe identity, recipient-scoped GWT uptake semantics, canonical state/effect authority, or exact consumed-checkpoint attestation.",
+    "nonduplicate_value": "Mechanistic localization/activation intervention complements current pyvene, DoWhy, OpenTelemetry, PlanOut and NNsight research lanes without replacing them."
+  },
+  "next_gate": {
+    "target": "E3_CLAIM_REPRODUCED",
+    "requires_new_atomic_claim": true,
+    "proposed_discriminator": "One exact local checkpoint: establish HF-eager vs TransformerBridge-raw baseline equivalence on fixed token IDs and fixed deterministic controls; only if that passes, execute one single-site no-op hook control and one predeclared activation patch, recording exact output digests and instrumentation identities.",
+    "fail_closed_conditions": [
+      "checkpoint/tokenizer/runtime/build identity unknown",
+      "baseline equivalence fails outside predeclared tolerance",
+      "token IDs or non-intervention forward inputs differ across pair",
+      "hook target/adapter identity ambiguous",
+      "raw downstream output receipt unavailable",
+      "attempt to infer semantic GWT uptake from activation delta alone"
+    ]
+  },
+  "credits": {
+    "research_stage": "E2_ARCHITECTURE_MAPPED_SOURCE_ONLY",
+    "architecture_credit": "MAPPING_ONLY",
+    "integration_credit": 0,
+    "runtime_credit": 0,
+    "gwt_runtime_credit": 0,
+    "jspace_runtime_credit": 0,
+    "training_credit": 0,
+    "whole_system_credit": 0
+  }
+}
