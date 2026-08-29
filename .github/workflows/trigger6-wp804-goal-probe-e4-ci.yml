@@ -1,0 +1,28 @@
+name: trigger6-wp804-goal-probe-e4-ci
+
+on:
+  pull_request:
+    paths:
+      - "tests/test_trigger6_wp804_goal_probe_ablation.py"
+      - "src/frankenstein2/hyperposition.py"
+      - "src/frankenstein2/epistemic_action_selection.py"
+      - "src/frankenstein2/grid10_interface.py"
+      - ".github/workflows/trigger6-wp804-goal-probe-e4-ci.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  e4-ablation:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Run bounded matched ablation
+        env:
+          PYTHONPATH: src
+        run: python -m unittest tests.test_trigger6_wp804_goal_probe_ablation -v
