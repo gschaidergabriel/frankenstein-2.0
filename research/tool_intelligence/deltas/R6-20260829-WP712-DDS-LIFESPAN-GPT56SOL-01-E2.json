@@ -1,0 +1,52 @@
+{
+  "schema": "FRANKENSTEIN2_TRIGGER6_ARCHITECTURE_DELTA/v1",
+  "delta_id": "R6-20260829-WP712-DDS-LIFESPAN-GPT56SOL-01-E2",
+  "research_id": "R6-20260829-WP712-DDS-LIFESPAN-GPT56SOL-01",
+  "stage": "E2_ARCHITECTURE_MAPPED",
+  "status": "NO_IMPORT_MINIMAL_SEMANTIC_DONOR",
+  "worker": "GPT-5.6-Sol",
+  "claim_commit": "26814863977461b846f53c5ca33138c1d85e2cea",
+  "e1_receipt_commit": "52af4f8c89bcffd4d2c28312bb5789b0dcea1e6c",
+  "wp712_core_commit": "3202dc09c1e086c6e0521edcb21054956c6e0304",
+  "evidence_refs": [
+    "OMG DDS 1.4 LIFESPAN/DESTINATION_ORDER/HISTORY: https://www.omg.org/spec/DDS/1.4/PDF",
+    "ROS 2 QoS semantics: https://docs.ros.org/en/humble/Concepts/Intermediate/About-Quality-of-Service-Settings.html",
+    "ROS 2 RMW implementation caveat: https://docs.ros.org/en/ros2_documentation/rolling/Tutorials/Advanced/Creating-An-RMW-Implementation.html",
+    "src/frankenstein2/perception_world_bridge.py@3202dc09c1e086c6e0521edcb21054956c6e0304"
+  ],
+  "current_wp712_observation": [
+    "TypedPerceptEvent already carries source_generation, permission_snapshot_sha256, bridge_generation, source_sequence, capture_monotonic_ns, observed_monotonic_ns, freshness_max_age_ns, clock_domain, optional clock_uncertainty_ns and provenance_refs.",
+    "Same-clock admission computes event age from receive_monotonic_ns - observed_monotonic_ns and rejects age greater than freshness_max_age_ns.",
+    "Different clock domains are not compared arithmetically; they return temporal_status UNALIGNED_CANDIDATE rather than CURRENT_BOUNDED_CANDIDATE.",
+    "Current authority validation binds source generation, permission snapshot and bridge generation before remote percept admission.",
+    "WP712 is accepted only at repository-CI scope; this research adds no runtime or network evidence."
+  ],
+  "mapping": {
+    "dds_lifespan": "Already represented more explicitly by freshness_max_age_ns plus same-clock observed/receive monotonic arithmetic. Do not add a duplicate lifespan field.",
+    "dds_source_timestamp": "F2 should keep clock_domain-aware monotonic timestamps and never assume globally comparable clocks. This is stricter than blindly applying source timestamp ordering.",
+    "dds_destination_order": "Use explicit source_sequence within exact source_generation for source-local ordering; do not use wall/source timestamps as a universal total order across incomparable clock domains.",
+    "dds_keep_last": "May inspire lower-layer buffering only; retained/latest transport data still passes F2 generation, capability, bridge-session and freshness fences before becoming any current candidate.",
+    "ros_qos": "Transport lifespan/deadline/liveliness are optional implementation aids and diagnostics, not F2 correctness authority."
+  },
+  "architecture_decision": "DO_NOT_IMPORT_DDS_OR_ADD_DUPLICATE_LIFESPAN_FIELDS. Preserve WP712's existing generation+sequence+clock-domain+freshness contract. Treat UNALIGNED_CANDIDATE as explicitly non-current until a separate, provenance-bound clock-alignment/re-observation mechanism establishes comparability; otherwise downstream current-world admission must not upgrade it.",
+  "minimal_hardening_delta": [
+    "Document and test that temporal_status=UNALIGNED_CANDIDATE is never sufficient for current-world truth/admission by itself.",
+    "Document source_sequence semantics as ordering only inside exact source_id + source_generation; reconnect/generation rollover resets comparison scope rather than reviving old sequence authority.",
+    "Keep clock_uncertainty_ns metadata non-authoritative unless an explicit alignment contract consumes it; field presence alone must not mint cross-clock freshness.",
+    "If a future transport supports DDS-like lifespan, use it only as an optimization that can drop stale traffic earlier; WP712 validation remains mandatory because middleware may ignore QoS."
+  ],
+  "counterhypothesis": "The existing UNALIGNED_CANDIDATE classification and no-world-truth authority are already sufficient; additional downstream assertions/tests add no meaningful safety because canonical admission is independently fenced elsewhere.",
+  "falsifier": [
+    "Construct a deterministic cross-clock event that is old in reality but has incomparable monotonic timestamps; any path labeling it CURRENT solely from its remote timestamp falsifies the architecture.",
+    "Reconnect with advanced bridge/source generation and replay an older retained sample; acceptance under current generation/capability would falsify session fencing.",
+    "Configure/assume transport lifespan but inject the same stale sample as if middleware ignored QoS; WP712 must still reject or preserve UNALIGNED non-current status.",
+    "Two events share source_generation but timestamps conflict while source_sequence is ordered; F2 ordering should follow its declared source-sequence contract rather than unproven cross-domain timestamp order."
+  ],
+  "evidence_scope": "SOURCE_AND_ARCHITECTURE_MAPPING_ONLY",
+  "research_credit": "E2_ONLY",
+  "architecture_credit": 0,
+  "runtime_credit": 0,
+  "integration_credit": 0,
+  "trigger4_handoff": "NOT_YET_E5",
+  "next_exact_action": "Use deterministic repository tests to prove replay/reconnect and cross-clock UNALIGNED candidates cannot become current merely because a transport delivered them; promote only after measured F2 ablation/acceptance evidence, not from DDS source similarity."
+}
