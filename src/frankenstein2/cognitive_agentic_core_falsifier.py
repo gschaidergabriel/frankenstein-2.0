@@ -6,7 +6,9 @@ It is inspired by the capability decomposition used by interactive ARC-AGI-3-sty
 benchmarks, but it is NOT an ARC-AGI-3 implementation and cannot mint an ARC score.
 
 Inputs remain measurement claims until independently bound to their exact workpackage
-reconciliation/receipt identities. A supported report is therefore repository-component
+reconciliation/receipt identities. Shared fixture-family declarations are additionally
+bound to those exact source identities, but this component does not claim to authenticate
+receipt contents by itself. A supported report is therefore repository-component
 measurement only: no runtime, GRID10, GWT/J-Space, model, training, effect, completion,
 world-truth, causal, or whole-system credit is granted.
 """
@@ -18,9 +20,10 @@ import json
 import re
 from typing import Any
 
-CAPABILITY_EVIDENCE_SCHEMA = "FRANKENSTEIN2_AGENTIC_CORE_CAPABILITY_EVIDENCE/v1"
+CAPABILITY_EVIDENCE_SCHEMA = "FRANKENSTEIN2_AGENTIC_CORE_CAPABILITY_EVIDENCE/v2"
 POLICY_SCHEMA = "FRANKENSTEIN2_AGENTIC_CORE_FALSIFIER_POLICY/v1"
-REPORT_SCHEMA = "FRANKENSTEIN2_AGENTIC_CORE_FALSIFIER_REPORT/v1"
+REPORT_SCHEMA = "FRANKENSTEIN2_AGENTIC_CORE_FALSIFIER_REPORT/v2"
+FIXTURE_FAMILY_BINDING_SCHEMA = "FRANKENSTEIN2_AGENTIC_CORE_FIXTURE_FAMILY_BINDING/v1"
 
 EXPLORATION = "EXPLORATION"
 MODELING = "MODELING"
@@ -100,6 +103,35 @@ def _digest(value: Any) -> str:
     return hashlib.sha256(_json(value).encode()).hexdigest()
 
 
+def fixture_family_binding_sha256(
+    *,
+    shared_fixture_family_sha256: str,
+    source_workpackage_id: str,
+    source_reconciliation_sha256: str,
+    source_receipt_sha256: str,
+    benchmark_id: str,
+    holdout_set_id: str,
+) -> str:
+    """Bind one declared fixture-family digest to exact upstream evidence identities."""
+    _sha("shared_fixture_family_sha256", shared_fixture_family_sha256)
+    _id("source_workpackage_id", source_workpackage_id)
+    _sha("source_reconciliation_sha256", source_reconciliation_sha256)
+    _sha("source_receipt_sha256", source_receipt_sha256)
+    _id("benchmark_id", benchmark_id)
+    _id("holdout_set_id", holdout_set_id)
+    return _digest(
+        {
+            "schema": FIXTURE_FAMILY_BINDING_SCHEMA,
+            "shared_fixture_family_sha256": shared_fixture_family_sha256,
+            "source_workpackage_id": source_workpackage_id,
+            "source_reconciliation_sha256": source_reconciliation_sha256,
+            "source_receipt_sha256": source_receipt_sha256,
+            "benchmark_id": benchmark_id,
+            "holdout_set_id": holdout_set_id,
+        }
+    )
+
+
 @dataclass(frozen=True, slots=True)
 class CapabilityEvidence:
     schema: str
@@ -119,6 +151,8 @@ class CapabilityEvidence:
     sample_count: int
     success_count: int
     action_count: int
+    shared_fixture_family_sha256: str | None = None
+    source_fixture_family_binding_sha256: str | None = None
     classification: str = MEASUREMENT_CLASSIFICATION
 
     def __post_init__(self) -> None:
@@ -144,6 +178,23 @@ class CapabilityEvidence:
             raise AgenticCoreFalsifierError("source_terminal_state is not admitted")
         _sha("source_reconciliation_sha256", self.source_reconciliation_sha256)
         _sha("source_receipt_sha256", self.source_receipt_sha256)
+        if (self.shared_fixture_family_sha256 is None) != (self.source_fixture_family_binding_sha256 is None):
+            raise AgenticCoreFalsifierError(
+                "shared fixture-family digest and source binding must be both present or both absent"
+            )
+        if self.shared_fixture_family_sha256 is not None:
+            _sha("shared_fixture_family_sha256", self.shared_fixture_family_sha256)
+            _sha("source_fixture_family_binding_sha256", self.source_fixture_family_binding_sha256)
+            expected_binding = fixture_family_binding_sha256(
+                shared_fixture_family_sha256=self.shared_fixture_family_sha256,
+                source_workpackage_id=self.source_workpackage_id,
+                source_reconciliation_sha256=self.source_reconciliation_sha256,
+                source_receipt_sha256=self.source_receipt_sha256,
+                benchmark_id=self.benchmark_id,
+                holdout_set_id=self.holdout_set_id,
+            )
+            if self.source_fixture_family_binding_sha256 != expected_binding:
+                raise AgenticCoreFalsifierError("source fixture-family binding does not match exact evidence identity")
         _bounded_int("baseline_score_ppm", self.baseline_score_ppm, 0, _PPM)
         _bounded_int("intervention_score_ppm", self.intervention_score_ppm, 0, _PPM)
         _bounded_int("sample_count", self.sample_count, 1, _MAX_COUNT)
@@ -270,9 +321,9 @@ def evaluate_agentic_core(
 ) -> AgenticCoreReport:
     """Evaluate a matched four-capability evidence set with fail-closed semantics.
 
-    Missing or non-terminal upstream evidence is NOT_EVALUABLE. Accepted evidence that
-    violates the declared matched-holdout, independence, score, delta, or sample criteria
-    is FALSIFIED. Only a complete set satisfying every criterion is
+    Missing, non-terminal, or provenance-unbound shared-family evidence is NOT_EVALUABLE.
+    Accepted evidence that violates declared matched-holdout, independence, score, delta,
+    or sample criteria is FALSIFIED. Only a complete set satisfying every criterion is
     SUPPORTED_AT_COMPONENT_SCOPE.
     """
     if type(policy) is not FalsifierPolicy:
@@ -308,9 +359,23 @@ def evaluate_agentic_core(
         if len(set(reconciliation_shas)) != len(reconciliation_shas):
             verdict = FALSIFIED
             reasons.append("NONINDEPENDENT_DUPLICATE_RECONCILIATION")
-        if policy.require_shared_holdout_set and len({x.holdout_set_id for x in ordered}) != 1:
-            verdict = FALSIFIED
-            reasons.append("MIXED_HOLDOUT_SET")
+        if policy.require_shared_holdout_set:
+            unproven_family = sorted(
+                x.capability for x in ordered if x.shared_fixture_family_sha256 is None
+            )
+            if unproven_family:
+                verdict = NOT_EVALUABLE
+                reasons.extend(
+                    f"UNPROVEN_SHARED_FIXTURE_FAMILY:{capability}" for capability in unproven_family
+                )
+            elif len({x.shared_fixture_family_sha256 for x in ordered}) != 1:
+                verdict = NOT_EVALUABLE
+                reasons.append("SHARED_FIXTURE_FAMILY_MISMATCH")
+            elif len({x.holdout_set_id for x in ordered}) != 1:
+                verdict = FALSIFIED
+                reasons.append("MIXED_HOLDOUT_SET")
+
+    if verdict != NOT_EVALUABLE:
         for item in ordered:
             if item.sample_count < policy.min_sample_count_per_capability:
                 verdict = FALSIFIED
