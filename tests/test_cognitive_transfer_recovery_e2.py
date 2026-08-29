@@ -21,8 +21,6 @@ from frankenstein2.cognitive_transfer_recovery_benchmark import (
     TransferCase,
 )
 from frankenstein2.cognitive_transfer_recovery_e2 import (
-    PERTURBATION_SCHEMA,
-    EVALUATOR_ONLY,
     EvaluatorReferencePlan,
     EvaluatorResourceVector,
     MatchedRecoveryComparisonV2,
@@ -212,7 +210,7 @@ class RecoveryE2Tests(unittest.TestCase):
 
     def test_scenario_requires_public_start_to_match_exact_hidden_evaluator_state(self):
         source, target, case, perturbation, state, observation = _context()
-        other_state, other_observation = begin_episode(target, episode_id="episode/other", episode_generation=2)
+        _, other_observation = begin_episode(target, episode_id="episode/other", episode_generation=2)
         with self.assertRaisesRegex(RecoveryE2Error, "does not match evaluator target state"):
             RecoveryScenario.seal(
                 case=case,
@@ -225,7 +223,7 @@ class RecoveryE2Tests(unittest.TestCase):
         self.assertNotEqual(observation.episode_id, other_observation.episode_id)
 
     def test_reference_plan_is_deterministic_shortest_terminal_oracle(self):
-        _, _, _, scenario, state, observation, start, reference, _ = _scenario()
+        _, _, _, scenario, _, _, start, reference, _ = _scenario()
         self.assertEqual(reference.action_ids, ("a_go",))
         self.assertEqual(reference.action_count, 1)
         self.assertEqual(reference.terminal_evaluator_score, 10)
@@ -234,19 +232,18 @@ class RecoveryE2Tests(unittest.TestCase):
         self.assertEqual(reference.sha256(), replay.sha256())
 
     def test_trace_metrics_are_derived_from_bound_steps_not_free_counters(self):
-        *_, scenario, state, observation, start, reference, checkpoint = _scenario()
+        _, _, _, scenario, _, _, start, _, _ = _scenario()
         trace = _trace(scenario, start, reused=True, repeat=True)
         self.assertEqual(trace.actions_executed, 2)
         self.assertEqual(trace.replayed_steps, 1)
         self.assertEqual(trace.valid_reuse_steps, 1)
         self.assertEqual(trace.invalid_reuse_steps, 0)
         self.assertEqual(trace.repeated_work_steps, 1)
-        forged = replace(trace, replayed_steps=0)
         with self.assertRaises(RecoveryE2Error):
-            replace(forged, trace_id=trace.trace_id)
+            replace(trace, replayed_steps=0)
 
     def test_trace_records_invalid_reuse_separately(self):
-        *_, scenario, state, observation, start, reference, checkpoint = _scenario()
+        _, _, _, scenario, _, _, start, _, _ = _scenario()
         step = RecoveryTraceStep(
             "FRANKENSTEIN2_RECOVERY_TRACE_STEP/v2",
             0,
@@ -261,7 +258,7 @@ class RecoveryE2Tests(unittest.TestCase):
         self.assertEqual(trace.invalid_reuse_steps, 1)
 
     def test_checkpoint_resume_requires_exact_same_postchange_public_start(self):
-        source, target, case, scenario, state, observation, start, reference, checkpoint = _scenario()
+        _, target, _, scenario, _, _, start, reference, checkpoint = _scenario()
         trace = _trace(scenario, start, reused=True)
         _, other_observation = begin_episode(target, episode_id="episode/different-start", episode_generation=2)
         other_start = PostChangeStartIdentity.from_observation(other_observation)
@@ -316,7 +313,7 @@ class RecoveryE2Tests(unittest.TestCase):
         self.assertFalse(summary.whole_system_acceptance)
 
     def test_reference_regret_distinguishes_cheaper_wrong_result_from_optimal_terminal(self):
-        _, _, _, scenario, _, _, start, reference, checkpoint = _scenario()
+        _, _, _, scenario, _, _, start, reference, _ = _scenario()
         trace = RecoveryTraceReceipt.seal(scenario=scenario, start_identity=start, steps=())
         cold = RecoveryRunMeasurementV2.measure(
             run_id="run/cheap-wrong",
@@ -392,13 +389,13 @@ class RecoveryE2Tests(unittest.TestCase):
         class EvilObservation(ObservationView):
             pass
 
-        _, target, _, _, _, observation = _context()
+        _, _, _, _, _, observation = _context()
         evil = EvilObservation(**observation.as_dict())
         with self.assertRaisesRegex(RecoveryE2Error, "exact concrete ObservationView"):
             PostChangeStartIdentity.from_observation(evil)
 
-    def test_manual_run_and_comparison_construction_cannot_self_attest(self):
-        _, _, _, scenario, _, _, start, reference, checkpoint = _scenario()
+    def test_manual_run_construction_cannot_self_attest(self):
+        _, _, _, scenario, _, _, start, reference, _ = _scenario()
         trace = _trace(scenario, start, reused=False)
         cold = RecoveryRunMeasurementV2.measure(
             run_id="run/factory",
