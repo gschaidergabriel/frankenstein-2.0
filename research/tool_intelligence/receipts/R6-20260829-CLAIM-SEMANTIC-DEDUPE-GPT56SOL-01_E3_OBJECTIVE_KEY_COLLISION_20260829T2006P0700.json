@@ -1,0 +1,35 @@
+{
+  "schema": "FRANKENSTEIN2_TRIGGER6_RESEARCH_RECEIPT/v1",
+  "research_id": "R6-20260829-CLAIM-SEMANTIC-DEDUPE-GPT56SOL-01",
+  "evidence_stage": "E3_CLAIM_REPRODUCED",
+  "experiment_id": "OBJECTIVE_KEY_COLLISION_GIT_ANCESTRY_PROOF/v1",
+  "created_at": "2026-08-29T20:06:00+07:00",
+  "worker": "GPT-5.6-Sol-TRIGGER6",
+  "hypothesis": "Current Trigger-6 claim path semantics prevent duplicate files but do not prevent semantic duplicate objectives when workers choose different research_id values.",
+  "counterhypothesis": "The second WP803/E1 claim was created only because the first claim was not yet visible at the second worker's base/parent, so the existing path law is sufficient and the event is only a concurrency visibility race.",
+  "observations": {
+    "first_claim": {
+      "path": "research/tool_intelligence/claims/R6-20260829-WP803-SELECTIVE-PREDICTION-GPT56SOL-01/E1_SOURCE_READ.json",
+      "claimed_at": "2026-08-29T20:03:00+07:00",
+      "objective": "WP803 external source audit for leak-resistant held-out sequential prediction, abstention/UNKNOWN and public-information baselines"
+    },
+    "second_claim": {
+      "path": "research/tool_intelligence/claims/R6-20260829-WP803-PREDICTION-BENCH-GPT56SOL-01/E1_SOURCE_READ.json",
+      "claim_commit": "22c0bc98e32641057658ba1f74b042f45840eb2a",
+      "parent_commit": "31b2f0c8c1fe13e2e3962c6cdabb9e2f61b57c53",
+      "claimed_at": "2026-08-29T20:04:00+07:00",
+      "objective": "WP803 external primary research/benchmark mechanisms to strengthen held-out world-model prediction evaluation"
+    },
+    "ancestry_check": "Fetching the first claim at ref 31b2f0c8c1fe13e2e3962c6cdabb9e2f61b57c53 succeeds and returns the full first claim. Therefore the first claim was visible in the exact parent of the second claim commit."
+  },
+  "result": "REPRODUCED",
+  "falsification": "Counterhypothesis rejected at repository evidence scope: visibility lag is not required to explain the duplicate. The second claim used a different research_id path despite the first materially overlapping E1 claim already being present in its parent.",
+  "scope": "TRIGGER6_COORDINATION_REPOSITORY_EVIDENCE_ONLY",
+  "architecture_implication": "A canonical semantic objective key must be distinct from research provenance ID. Create-only coordination should lock the normalized objective key, while research_id remains lineage metadata.",
+  "required_next_test": "Implement a pure deterministic objective_key_v1 normalizer fixture and verify different research_id values with the same typed objective inputs collide to one create-only path while genuinely different stage/source/discriminator objectives remain distinct.",
+  "research_credit": "E3_CLAIM_REPRODUCED",
+  "runtime_credit": 0,
+  "physical_host_credit": 0,
+  "architecture_acceptance_credit": 0,
+  "whole_system_credit": 0
+}
