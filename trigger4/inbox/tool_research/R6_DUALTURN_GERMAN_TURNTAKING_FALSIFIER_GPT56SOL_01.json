@@ -1,0 +1,79 @@
+{
+  "schema": "TRIGGER6_TO_TRIGGER4_BUILD_CANDIDATE/v1",
+  "candidate_id": "R6-DUALTURN-GERMAN-TURNTAKING-FALSIFIER-GPT56SOL-01",
+  "research_id": "R6-20260830-DUALTURN-GERMAN-TURNTAKING-GPT56SOL-01",
+  "promotion_level": "E5_BUILD_CANDIDATE_PLAN_ONLY",
+  "created_at": "2026-08-30T00:31:00+07:00",
+  "worker": "GPT-5.6 Sol / ChatGPT Trigger-6 research organ",
+  "f2_architecture_snapshot": "605bcf3cb10b87383f857673a25a4944243bf8fd",
+  "research_entity_snapshot": "480b17244bde3202b65bd7ad33a28ab6ece84070",
+  "source_pin": {
+    "paper": "arXiv:2603.08216v1",
+    "official_training_repo": "anyreachai/dualturn@2d0db21e767b953f5017c1cc697928b54161d645",
+    "endpointing_model_repo": "anyreach-ai/dualturn-endpointing",
+    "endpointing_observed_verified_revision": "c3860ed",
+    "required_trigger4_pin_upgrade": "Resolve the full immutable Hugging Face commit id for c3860ed and SHA-256 the exact ONNX graph(s) after quarantine download before execution. Do not execute mutable main."
+  },
+  "target_workpackages": [
+    "F2-WP-704 VoiceIntent/VoiceSessionCapsule/VoiceOutcome",
+    "F2-WP-705 Realtime/barge-in/silence/tool-return re-entry",
+    "F2-WP-902 Whole-system resource/latency/quality characterization"
+  ],
+  "proposed_delta": {
+    "scope": "perception-only experimental adapter and benchmark wiring",
+    "implementation": [
+      "Add a quarantine-pinned ONNX adapter that accepts 24 kHz [user, agent-playback-reference] audio and emits timestamped EOT/VAD/FVAD candidate signals.",
+      "Bind every signal packet to capture identity, audio generation, exact model artifact digest and runtime revision.",
+      "Feed candidate signals into the existing deterministic turn-control policy; never map upstream model output directly to effects or durable state.",
+      "Expose DUAL_CHANNEL and MONO_FALLBACK as separate measured modes.",
+      "Extend the Trigger-7 JSONL receipt only as necessary to record turn-signal mode, model digest, inference tick latency and CPU/RSS; preserve current receipt invariants."
+    ]
+  },
+  "baseline": [
+    "B0 current F2 silence/acoustic-VAD turn policy",
+    "B1 DualTurn MONO_FALLBACK",
+    "C1 DualTurn true DUAL_CHANNEL"
+  ],
+  "acceptance_and_falsification_tests": [
+    "Run the same predeclared German recordings and interactive scenarios across B0/B1/C1.",
+    "Primary German discriminator: deliberate mid-sentence pause/HOLD cases; C1 must reduce false cutoffs without an unacceptable unnecessary-wait increase.",
+    "Backchannel discriminator: mhm/ja/okay while Frank speaks; C1 must not inflate false cancellation.",
+    "Takeover discriminator: Stopp/Nein/new request; C1 must not miss clear takeover or regress playback-stop latency.",
+    "Overlap discriminator: compare B1 vs C1 on simultaneous user+agent speech to measure the actual value of the second channel.",
+    "Whole-product resource discriminator: run with resident Frankenstein services; record CPU/RSS and end-to-end speech-end-to-first-audio latency.",
+    "Fail closed on artifact mismatch, causal timestamp inversion, unheard-output durable commit, duplicate/replayed audible output or any model-to-effect bypass."
+  ],
+  "expected_effects_upstream_only": {
+    "80ms_streaming_graph": "upstream helper reports roughly 47 ms per 80 ms tick on its CPU environment",
+    "240ms_streaming_graph": "upstream helper reports roughly 71 ms per 240 ms tick and about 2x lower compute per audio-second",
+    "endpoint_quality": "upstream English benchmark reports on-device improvement over a simple VAD baseline; not portable to German or F2 until reproduced"
+  },
+  "measured_f2_effects": null,
+  "known_risks": [
+    "German endpoint quality is unproven; released metadata and public turn-taking datasets are English-oriented.",
+    "Specialized endpointing training includes private AI-agent calls, limiting full public reproduction.",
+    "Recent upstream history fixed a streaming ONNX context-initialization divergence; immutable artifact pinning is mandatory.",
+    "80 ms tick CPU duty may contend with resident ASR/dialogue/TTS/GRID services and erase latency benefit.",
+    "Agent playback reference must represent actually played audio, not generated-but-unheard TTS."
+  ],
+  "counterhypotheses": [
+    "Existing F2 VAD + semantic partials may equal or outperform DualTurn on German at lower complexity.",
+    "Mono endpointing may be sufficient, making dual-channel capture unnecessary.",
+    "English-trained turn-taking priors may transfer poorly to German pause/prosody patterns.",
+    "Resource contention may dominate any endpointing advantage."
+  ],
+  "evidence_refs": [
+    "research/tool_intelligence/deltas/ARCHITECTURE_DELTA_FUSION_20260830T0016P0700_GPT56SOL.json",
+    "research/tool_intelligence/deltas/2026-08-30T0022P0700_GPT56SOL_DUALTURN_GERMAN_E1_SOURCE_READ.json",
+    "research/tool_intelligence/deltas/2026-08-30T0026P0700_GPT56SOL_DUALTURN_GERMAN_E2_ARCHITECTURE_MAPPED.json",
+    "research/local_voice/benchmarks/T7_GERMAN_REALTIME_VOICE_BENCHMARK_V1.md"
+  ],
+  "credit_boundary": {
+    "runtime_credit": 0,
+    "f2_ablation_credit": 0,
+    "integration_credit": 0,
+    "whole_system_credit": 0,
+    "e6_acceptance": false
+  },
+  "trigger4_next_exact_action": "Create/claim the bounded WP704/WP705 experimental adapter test lane, resolve full immutable HF revision+ONNX SHA256, then run B0/B1/C1 German ablation through the existing Trigger-7 receipt harness on the authorized clay-direct-dev target."
+}
