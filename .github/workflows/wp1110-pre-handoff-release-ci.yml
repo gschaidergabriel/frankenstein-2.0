@@ -1,0 +1,40 @@
+name: WP1110 Pre-Handoff Release Gate CI
+
+on:
+  pull_request:
+    paths:
+      - "src/frankenstein2/pre_handoff_release.py"
+      - "src/frankenstein2/release_integrity.py"
+      - "tests/test_pre_handoff_release.py"
+      - ".github/workflows/wp1110-pre-handoff-release-ci.yml"
+      - "AI_START_HERE_DO_NOT_SCAN_REPO/**"
+  push:
+    branches: [main]
+    paths:
+      - "src/frankenstein2/pre_handoff_release.py"
+      - "src/frankenstein2/release_integrity.py"
+      - "tests/test_pre_handoff_release.py"
+      - ".github/workflows/wp1110-pre-handoff-release-ci.yml"
+      - "AI_START_HERE_DO_NOT_SCAN_REPO/**"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  pre-handoff-release:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Compile bounded source and test
+        run: |
+          python -m py_compile src/frankenstein2/pre_handoff_release.py tests/test_pre_handoff_release.py
+      - name: Run fail-closed pre-handoff release tests
+        env:
+          PYTHONPATH: src
+        run: |
+          python tests/test_pre_handoff_release.py -v
