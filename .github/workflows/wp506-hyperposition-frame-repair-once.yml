@@ -1,0 +1,121 @@
+name: F2 WP506 Hyperposition Frame Repair Once
+
+on:
+  push:
+    branches:
+      - 'trigger4/wp506-gwt-selection-broadcast-20260829'
+    paths:
+      - '.github/workflows/wp506-hyperposition-frame-repair-once.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  repair:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: 'trigger4/wp506-gwt-selection-broadcast-20260829'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Bind Hyperposition object to exact SituationFrame
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          def replace_once(text: str, old: str, new: str, label: str) -> str:
+              if text.count(old) != 1:
+                  raise SystemExit(f'{label}: expected block exactly once, found {text.count(old)}')
+              return text.replace(old, new, 1)
+
+          source_path = Path('src/frankenstein2/gwt_workspace.py')
+          source = source_path.read_text()
+
+          source = replace_once(
+              source,
+              'from frankenstein2.grid10_interface import CellInput, CellOutput, Grid10InterfaceError, Grid10Plan\n',
+              'from frankenstein2.grid10_interface import CellInput, CellOutput, Grid10InterfaceError, Grid10Plan\nfrom frankenstein2.hyperposition import Hyperposition\n',
+              'hyperposition import',
+          )
+
+          marker = '\n\n@dataclass(frozen=True, slots=True, kw_only=True)\nclass WorkspaceSelection:\n'
+          helper = '''\n\ndef _resolve_hyperposition_binding(\n    *,\n    frame_id: str,\n    hyperposition: Hyperposition | None,\n    hyperposition_id: str | None,\n    hyperposition_generation: int | None,\n    hyperposition_sha256: str | None,\n) -> tuple[str | None, int | None, str | None]:\n    fields = (hyperposition_id, hyperposition_generation, hyperposition_sha256)\n    if hyperposition is None:\n        if any(value is not None for value in fields):\n            raise GwtWorkspaceError(\n                "hyperposition object required to verify situation frame binding"\n            )\n        return None, None, None\n    if type(hyperposition) is not Hyperposition:\n        raise GwtWorkspaceError("hyperposition must be concrete Hyperposition or None")\n    normalized_frame_id = _text("frame_id", frame_id)\n    if hyperposition.situation_frame_ref != normalized_frame_id:\n        raise GwtWorkspaceError("hyperposition situation frame binding mismatch")\n    expected = (\n        hyperposition.hyperposition_id,\n        hyperposition.generation,\n        hyperposition.sha256(),\n    )\n    if any(value is not None for value in fields):\n        if not all(value is not None for value in fields):\n            raise GwtWorkspaceError("hyperposition binding must be all-present or all-absent")\n        normalized = (\n            _text("hyperposition_id", hyperposition_id),\n            _generation("hyperposition_generation", hyperposition_generation),\n            _sha256("hyperposition_sha256", hyperposition_sha256),\n        )\n        if normalized != expected:\n            raise GwtWorkspaceError("hyperposition identity binding mismatch")\n    return expected\n'''
+          source = replace_once(source, marker, helper + marker, 'hyperposition resolver insertion')
+
+          source = replace_once(
+              source,
+              '    hyperposition_sha256: str | None = None\n    selection_policy: SelectionPolicy | None = None\n',
+              '    hyperposition_sha256: str | None = None\n    hyperposition: Hyperposition | None = None\n    selection_policy: SelectionPolicy | None = None\n',
+              'selection hyperposition field',
+          )
+
+          old_validation = '''        hyper_fields = (self.hyperposition_id, self.hyperposition_generation, self.hyperposition_sha256)\n        if any(value is not None for value in hyper_fields) and not all(value is not None for value in hyper_fields):\n            raise GwtWorkspaceError("hyperposition binding must be all-present or all-absent")\n        if self.hyperposition_id is not None:\n            object.__setattr__(self, "hyperposition_id", _text("hyperposition_id", self.hyperposition_id))\n            _generation("hyperposition_generation", self.hyperposition_generation)\n            object.__setattr__(self, "hyperposition_sha256", _sha256("hyperposition_sha256", self.hyperposition_sha256))\n'''
+          new_validation = '''        resolved_hyperposition_id, resolved_hyperposition_generation, resolved_hyperposition_sha256 = (\n            _resolve_hyperposition_binding(\n                frame_id=self.frame_id,\n                hyperposition=self.hyperposition,\n                hyperposition_id=self.hyperposition_id,\n                hyperposition_generation=self.hyperposition_generation,\n                hyperposition_sha256=self.hyperposition_sha256,\n            )\n        )\n        object.__setattr__(self, "hyperposition_id", resolved_hyperposition_id)\n        object.__setattr__(self, "hyperposition_generation", resolved_hyperposition_generation)\n        object.__setattr__(self, "hyperposition_sha256", resolved_hyperposition_sha256)\n'''
+          source = replace_once(source, old_validation, new_validation, 'selection hyperposition validation')
+
+          source = replace_once(
+              source,
+              '            "hyperposition_sha256": self.hyperposition_sha256,\n            "selection_policy": None if self.selection_policy is None else self.selection_policy.as_dict(),\n',
+              '            "hyperposition_sha256": self.hyperposition_sha256,\n            "hyperposition": None if self.hyperposition is None else self.hyperposition.as_dict(),\n            "selection_policy": None if self.selection_policy is None else self.selection_policy.as_dict(),\n',
+              'selection serialization',
+          )
+
+          source = replace_once(
+              source,
+              'def _assert_selection_build_lineage(selection: WorkspaceSelection) -> None:\n    policy = selection.selection_policy\n',
+              'def _assert_selection_build_lineage(selection: WorkspaceSelection) -> None:\n    resolved_hyperposition = _resolve_hyperposition_binding(\n        frame_id=selection.frame_id,\n        hyperposition=selection.hyperposition,\n        hyperposition_id=selection.hyperposition_id,\n        hyperposition_generation=selection.hyperposition_generation,\n        hyperposition_sha256=selection.hyperposition_sha256,\n    )\n    if resolved_hyperposition != (\n        selection.hyperposition_id,\n        selection.hyperposition_generation,\n        selection.hyperposition_sha256,\n    ):\n        raise GwtWorkspaceError("selection hyperposition lineage mismatch")\n    policy = selection.selection_policy\n',
+              'downstream hyperposition revalidation',
+          )
+
+          source = replace_once(
+              source,
+              '    candidates: tuple[WorkspaceCandidate, ...],\n    hyperposition_id: str | None = None,\n',
+              '    candidates: tuple[WorkspaceCandidate, ...],\n    hyperposition: Hyperposition | None = None,\n    hyperposition_id: str | None = None,\n',
+              'builder hyperposition parameter',
+          )
+
+          source = replace_once(
+              source,
+              '        hyperposition_sha256=hyperposition_sha256,\n        selection_policy=policy,\n',
+              '        hyperposition_sha256=hyperposition_sha256,\n        hyperposition=hyperposition,\n        selection_policy=policy,\n',
+              'builder hyperposition object propagation',
+          )
+          source_path.write_text(source)
+
+          tests_path = Path('tests/test_gwt_workspace.py')
+          tests = tests_path.read_text()
+          tests = replace_once(
+              tests,
+              'from frankenstein2.grid10_interface import CellBudget, CellInput, CellOutput, Grid10Plan\n',
+              'from frankenstein2.grid10_interface import CellBudget, CellInput, CellOutput, Grid10Plan\nfrom frankenstein2.hyperposition import Alternative, EpistemicStatus, create_hyperposition\n',
+              'test hyperposition import',
+          )
+          tests = replace_once(
+              tests,
+              '        hyperposition_id="hyper-1",\n        hyperposition_generation=2,\n        hyperposition_sha256=F,\n',
+              '',
+              'remove unverified common hyperposition triple',
+          )
+          tests += '''\n\ndef make_hyperposition(*, frame_ref="frame-1"):\n    return create_hyperposition(\n        hyperposition_id="hyper-bound",\n        generation=2,\n        alternatives=(\n            Alternative(\n                alternative_id="alt-a",\n                proposition_ref="prop:a",\n                generation=2,\n                epistemic_status=EpistemicStatus.UNKNOWN,\n                provenance_refs=("prov:hp:a",),\n            ),\n            Alternative(\n                alternative_id="alt-b",\n                proposition_ref="prop:b",\n                generation=2,\n                epistemic_status=EpistemicStatus.UNKNOWN,\n                provenance_refs=("prov:hp:b",),\n            ),\n        ),\n        provenance_refs=("prov:hp",),\n        situation_frame_ref=frame_ref,\n    )\n\n\ndef test_hyperposition_digest_triple_without_object_fails_closed():\n    foreign = make_hyperposition(frame_ref="frame-foreign")\n    with pytest.raises(GwtWorkspaceError, match="hyperposition object required.*frame"):\n        build_workspace_selection(\n            selection_id="sel-cross-frame-legacy",\n            cycle_id="cycle-1",\n            generation=7,\n            frame_id="frame-1",\n            frame_generation=4,\n            frame_sha256=D,\n            grid_plan_id=GRID_PLAN.plan_id,\n            grid_plan_generation=GRID_PLAN.generation,\n            grid_plan_sha256=GRID_PLAN.sha256(),\n            hyperposition_id=foreign.hyperposition_id,\n            hyperposition_generation=foreign.generation,\n            hyperposition_sha256=foreign.sha256(),\n            policy=policy(),\n            candidates=(candidate("hp-legacy"),),\n        )\n\n\ndef test_cross_frame_hyperposition_object_fails_closed():\n    foreign = make_hyperposition(frame_ref="frame-foreign")\n    with pytest.raises(GwtWorkspaceError, match="hyperposition situation frame binding mismatch"):\n        build_workspace_selection(\n            selection_id="sel-cross-frame-object",\n            cycle_id="cycle-1",\n            generation=7,\n            frame_id="frame-1",\n            frame_generation=4,\n            frame_sha256=D,\n            grid_plan_id=GRID_PLAN.plan_id,\n            grid_plan_generation=GRID_PLAN.generation,\n            grid_plan_sha256=GRID_PLAN.sha256(),\n            hyperposition=foreign,\n            policy=policy(),\n            candidates=(candidate("hp-foreign"),),\n        )\n\n\ndef test_matching_hyperposition_object_binds_exact_frame_and_digest():\n    bound = make_hyperposition(frame_ref="frame-1")\n    value = build_workspace_selection(\n        selection_id="sel-hp-bound",\n        cycle_id="cycle-1",\n        generation=7,\n        frame_id="frame-1",\n        frame_generation=4,\n        frame_sha256=D,\n        grid_plan_id=GRID_PLAN.plan_id,\n        grid_plan_generation=GRID_PLAN.generation,\n        grid_plan_sha256=GRID_PLAN.sha256(),\n        hyperposition=bound,\n        policy=policy(),\n        candidates=(candidate("hp-bound"),),\n    )\n    assert value.hyperposition_id == bound.hyperposition_id\n    assert value.hyperposition_generation == bound.generation\n    assert value.hyperposition_sha256 == bound.sha256()\n    assert value.as_dict()["hyperposition"]["situation_frame_ref"] == "frame-1"\n    create_broadcast(\n        broadcast_id="b-hp-bound",\n        generation=1,\n        selection=value,\n        expected_selection_sha256=value.sha256(),\n        recipient_cell_ids=("G1",),\n    )\n'''
+          tests_path.write_text(tests)
+          PY
+      - name: Compile repaired WP506
+        run: python -m py_compile src/frankenstein2/gwt_workspace.py tests/test_gwt_workspace.py
+      - name: Install pytest
+        run: python -m pip install pytest
+      - name: Run full WP506 suite
+        env:
+          PYTHONPATH: src
+        run: python -m pytest -q tests/test_gwt_workspace.py
+      - name: Commit exact Hyperposition repair
+        shell: bash
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add src/frankenstein2/gwt_workspace.py tests/test_gwt_workspace.py
+          git commit -m 'trigger4: bind WP506 Hyperposition to exact SituationFrame'
+          git push origin HEAD:trigger4/wp506-gwt-selection-broadcast-20260829
