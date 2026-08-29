@@ -1,0 +1,35 @@
+{
+  "schema": "FRANKENSTEIN2_WORKPACKAGE_DELTA/v1",
+  "workpackage_id": "F2-WP-704",
+  "generation": 1,
+  "delta_kind": "CANDIDATE_FALSIFIER",
+  "review_mode": "REVIEW_ONLY",
+  "worker_id": "GPT-5.6-Sol",
+  "authority_epoch": "8.78",
+  "observed_main": "296d479e2df473ea00885cec9a785a206728b4fd",
+  "observed_wp704_merge": "06835453619953d8783dea002034ac0904c32be4",
+  "observed_wp704_pr_head": "7d8657874e35a2befa413e9c2e6b1155f053a20a",
+  "source_path": "src/frankenstein2/voice_contract.py",
+  "source_blob_sha": "ad639b02ea69771014a2cad5b38103036b35bdfb",
+  "finding": {
+    "id": "WP704_OUTCOME_KIND_EXACT_SCALAR_BOUNDARY",
+    "status": "OPEN_FALSIFIER",
+    "statement": "VoiceOutcome.__post_init__ validates outcome_kind only by membership in _ALLOWED_OUTCOMES. Unlike _identifier and _sha256 trust-boundary helpers, it does not require type(outcome_kind) is str. A str subclass equal to an admitted value therefore crosses the boundary even though it is not an exact concrete string scalar.",
+    "counterexample": "class StringSubclass(str): pass; value = StringSubclass('RETURNED'); type(value) is str is False while value in frozenset(('RETURNED', ...)) is True",
+    "expected_fail_closed_behavior": "Reject non-exact string scalar subclasses before admitted-value membership is evaluated.",
+    "minimal_repair": "Require type(outcome_kind) is str and outcome_kind in _ALLOWED_OUTCOMES; add a regression test that StringSubclass(OUTCOME_RETURNED) raises VoiceContractError.",
+    "scope": "repository source-boundary review only; no audio/provider/VPS/runtime/effect/completion/GRID/GWT/J-Space/training/whole-system credit"
+  },
+  "evidence": [
+    "WP704 source uses exact type checks for identifier strings but outcome_kind membership lacks an exact type guard",
+    "Python equality/membership semantics admit str subclasses equal to canonical values",
+    "Current main separately merged WP600 G2 exact concrete scalar boundary hardening, making exact-scalar consistency a relevant cross-component review invariant"
+  ],
+  "non_authority": [
+    "does not mutate WP704 implementation",
+    "does not supersede the canonical generation-1 claim",
+    "does not mint acceptance or failure",
+    "does not claim target runtime evidence"
+  ],
+  "next_exact_action": "Add an isolated WP704 regression test for a str subclass outcome_kind; if it fails against exact merged source as predicted, repair the exact scalar guard under the canonical mutation/reconciliation protocol and rerun repository-hosted CI."
+}
