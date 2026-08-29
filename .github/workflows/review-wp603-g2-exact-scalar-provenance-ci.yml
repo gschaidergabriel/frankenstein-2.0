@@ -1,0 +1,30 @@
+name: REVIEW WP603 G2 exact scalar and provenance falsifier
+
+on:
+  push:
+    branches:
+      - chatgpt/review-wp603-g2-exact-scalar-provenance-20260829
+    paths:
+      - 'tests/review/test_wp603_g2_exact_scalar_and_provenance_falsifier.py'
+      - '.github/workflows/review-wp603-g2-exact-scalar-provenance-ci.yml'
+  pull_request:
+    paths:
+      - 'tests/review/test_wp603_g2_exact_scalar_and_provenance_falsifier.py'
+      - '.github/workflows/review-wp603-g2-exact-scalar-provenance-ci.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  falsifier:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Run REVIEW_ONLY WP603 G2 falsifier
+        env:
+          PYTHONPATH: src
+        run: python -m unittest tests.review.test_wp603_g2_exact_scalar_and_provenance_falsifier -v
