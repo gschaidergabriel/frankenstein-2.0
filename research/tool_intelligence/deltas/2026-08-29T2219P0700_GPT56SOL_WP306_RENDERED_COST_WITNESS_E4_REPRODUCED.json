@@ -1,0 +1,85 @@
+{
+  "schema": "F2_TRIGGER6_RESEARCH_DELTA/v1",
+  "research_id": "R6-20260829-WP306-CONTEXT-COMPILER-GPT56SOL-01",
+  "evidence_stage": "E4_F2_ABLATION",
+  "status": "EXACT_SOURCE_REPOSITORY_HOSTED_FALSIFIER_REPRODUCED",
+  "created_at_local": "2026-08-29T22:19:00+07:00",
+  "claim_ref": "research/tool_intelligence/claims/R6-20260829-WP306-CONTEXT-COMPILER-GPT56SOL-01/E4_F2_ABLATION_RENDERED_COST_WITNESS_MISMATCH.json",
+  "experiment_ref": "research/tool_intelligence/experiments/wp306_rendered_cost_witness_e4.py",
+  "workflow_ref": ".github/workflows/trigger6-wp306-rendered-cost-witness-e4.yml",
+  "workflow_run": {
+    "run_id": 33259851342,
+    "job_id": 99119805104,
+    "head_sha": "8ecec794b3094c7975c021a47fab0f8e2f05dfa0",
+    "event": "push",
+    "runner": "ubuntu-24.04",
+    "python": "3.12.14",
+    "conclusion": "success"
+  },
+  "exact_source_binding": {
+    "path": "src/frankenstein2/context_compiler.py",
+    "expected_git_blob_sha1": "edbfb96710376af01af88bf4453d660fdcf5d341",
+    "observed_git_blob_sha1": "edbfb96710376af01af88bf4453d660fdcf5d341",
+    "observed_source_sha256": "6f429ffb5885d72a8369586199c5aa0267ecec4e5ec5b78debf6b1fd6c0aa791",
+    "source_fence": "PASS"
+  },
+  "counterexample": {
+    "context_max_cost_units": 1,
+    "selected_cost_units": 1,
+    "selected_count": 1,
+    "selected_item_id": "cheap-declared-large-rendered",
+    "payload_sha256": "4dc5ab9f8a7a6e685a8287e5465478f296f0952ce14a3d2b9b0b44923e6a5fe8",
+    "context_view_sha256": "81e485e2c037cc6bc67c6931241c619c59294f67c1af8a68cfd32158fba0ea1f",
+    "rendered_utf8_bytes": 94235,
+    "rendered_test_tokens": 16386,
+    "renderer_id": "F2_TEST_IDENTITY_CHAT_RENDERER/v1",
+    "tokenizer_id": "F2_TEST_WHITESPACE_TOKENIZER/v1_NOT_PRODUCTION",
+    "rendered_sha256": "9db92f55f57e9cbd5c34d0a92bfbcb325bb69cdda95c31cdc2a69c0d963774e7",
+    "witness_sha256": "f4ce4dea91eb82c854a4883fe7c54a553131ac044b869fd981fc77d828cb9a90",
+    "mismatch_reproduced": true,
+    "post_selection_payload_mutation_rejected": true
+  },
+  "falsified_assumption": "CALLER_DECLARED_COST_UNITS_IMPLY_RENDERED_BYTE_OR_TOKEN_BOUNDEDNESS",
+  "interpretation": {
+    "what_is_falsified": "Using caller-declared ContextItem.cost_units as if it were sufficient evidence of actual dereferenced/rendered byte or token cost.",
+    "what_is_not_falsified": "WP306 deterministic reference selection, channel constraints, digest carriage, or its boundedness in the abstract caller-declared cost-unit domain.",
+    "why": "The exact current ContextCompiler is deliberately reference-only and never reads payload bytes. The experiment proves that abstract compile-time cost boundedness can coexist with a much larger rendered payload unless a separate trusted render/token cost witness closes the boundary."
+  },
+  "external_primary_support": [
+    {
+      "source": "Hugging Face Transformers chat templating documentation",
+      "claim_used": "Chat templates add model-specific formatting/control tokens; tokenization should be bound to the actual applied template/tokenizer, with tokenize=True presented as the safer path for avoiding special-token duplication.",
+      "url": "https://huggingface.co/docs/transformers/chat_templating"
+    },
+    {
+      "source": "ggml-org/llama.cpp examples/simple-chat/simple-chat.cpp",
+      "source_commit": "3173a56471c1753650cd806694145ffd6dcace67",
+      "claim_used": "The loaded model supplies the chat template, the template is applied before inference, and the resulting prompt is tokenized through the loaded model vocabulary before decode.",
+      "url": "https://github.com/ggml-org/llama.cpp/blob/3173a56471c1753650cd806694145ffd6dcace67/examples/simple-chat/simple-chat.cpp"
+    }
+  ],
+  "architecture_delta": {
+    "old_interpretation": "ContextCompiler max_cost_units bounds the caller-declared abstract cost dimension only.",
+    "new_required_boundary": "Before a ContextView is admitted to a concrete inference engine under a real context/token budget, bind selected payload digests to the exact dereference/render result and the exact renderer/chat-template plus production tokenizer/model/runtime identity; measure rendered bytes and tokenizer-specific input tokens; fail closed on digest/source/template/tokenizer mismatch or budget overflow.",
+    "recommended_shape": "Keep ContextCompiler model-agnostic. Add a separate deterministic ContextRenderCostWitness/adapter downstream, rather than importing semantic rendering/tokenizer logic into WP306 core.",
+    "authority_impact": "NONE: witness is measurement/admission evidence only and cannot mint truth/effect/completion authority.",
+    "rollback_boundary": "Research experiment/workflow are isolated under research/tool_intelligence plus one research-only workflow; product source remains unchanged."
+  },
+  "production_boundary": {
+    "test_tokenizer_is_production_tokenizer": false,
+    "production_tokenizer_measurement_observed": false,
+    "target_vps_runtime_observed": false,
+    "physical_host_observed": false,
+    "required_next_gate": "Trigger 4: implement or bind a production ContextRenderCostWitness to the actual selected inference renderer/template/tokenizer identity and reproduce reject/re-cost behavior on the real inference path, including template overhead and stale/mutated payload rejection."
+  },
+  "credits": {
+    "research_e4": "PASS_AT_DECLARED_EXACT_SOURCE_REPOSITORY_HOSTED_ABLATION_SCOPE",
+    "product_runtime": 0,
+    "target_vps": 0,
+    "physical_host": 0,
+    "effect": 0,
+    "completion": 0,
+    "training": 0,
+    "whole_system": 0
+  }
+}
