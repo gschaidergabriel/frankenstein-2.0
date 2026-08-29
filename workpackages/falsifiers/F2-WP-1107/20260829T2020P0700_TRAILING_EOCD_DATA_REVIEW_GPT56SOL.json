@@ -1,0 +1,25 @@
+{
+  "schema": "FRANKENSTEIN2_WORKPACKAGE_FALSIFIER/v1",
+  "classification": "REVIEW_ONLY",
+  "workpackage_id": "F2-WP-1107",
+  "generation_under_review": 2,
+  "active_claim_id": "F2-WP-1107-G2-GPT56SOL-DETERMINISTIC-RELEASE-ZIP-20260829",
+  "review_worker": "GPT-5.6-Sol-TRIGGER4-REVIEW",
+  "base_main_sha": "49e72e2a4c0aa9fbe90ef6e89916c51808739c20",
+  "created_at": "2026-08-29T20:20:00+07:00",
+  "hypothesis": "verify_release_archive accepts bytes appended after the ZIP end-of-central-directory record when expected_receipt is omitted, leaving unexpected archive bytes outside the embedded member/manifest integrity perimeter.",
+  "counterhypothesis": "The current verifier rejects any bytes not represented by canonical ZIP members or the embedded manifest, even without an externally supplied expected receipt.",
+  "contract_under_test": "F2-WP-1107 G2 requires unexpected/mutated archive contents to fail closed.",
+  "discriminator": "Build a canonical archive, append UNBOUND_TRAILING_DATA after EOCD, then call verify_release_archive(mutated, policy=policy) without expected_receipt. The review test passes only if ReleaseArchiveError is raised.",
+  "review_test": "tests/test_wp1107_trailing_data_review.py",
+  "review_workflow": ".github/workflows/review-wp1107-trailing-data-falsifier.yml",
+  "mutation_authority": false,
+  "implementation_paths_modified": false,
+  "expected_current_result": "FAILURE_AS_PREDICTED_IF_TRAILING_BYTES_ARE_ACCEPTED",
+  "credit_boundaries": {
+    "runtime_credit": 0,
+    "physical_host_credit": 0,
+    "installer_credit": 0,
+    "whole_system_credit": 0
+  }
+}
