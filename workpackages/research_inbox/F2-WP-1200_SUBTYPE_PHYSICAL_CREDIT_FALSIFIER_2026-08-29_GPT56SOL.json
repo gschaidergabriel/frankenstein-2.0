@@ -1,0 +1,52 @@
+{
+  "schema": "FRANKENSTEIN2_WORKPACKAGE_REVIEW/v1",
+  "review_id": "F2-WP-1200-SUBTYPE-PHYSICAL-CREDIT-FALSIFIER-20260829-GPT56SOL",
+  "workpackage_id": "F2-WP-1200",
+  "mode": "CANDIDATE_FALSIFIER",
+  "status": "OPEN_CONTRADICTION_SOURCE_DERIVED_NOT_RUNTIME_EXECUTED",
+  "worker": "GPT-5.6-Sol-TRIGGER4-REVIEW",
+  "active_claim_ref": "workpackages/active/F2-WP-1200.json",
+  "source_evidence": {
+    "path": "src/frankenstein2/target_completion_epistemics.py",
+    "observed_blob_sha": "63fa1fb0810fe5437594661b30d43c9ee4a7e264",
+    "observations": [
+      "TargetCompletionReport.__post_init__ accepts obligations with isinstance(item, TargetObligation), not exact concrete type or reconstruction through the canonical TargetObligation constructor.",
+      "TargetCompletionReport.status later consumes item.status polymorphically.",
+      "TargetCompletionReport.physical_credit becomes true when evaluated_fidelity is T4_PHYSICAL and report.status is COMPLETE.",
+      "A Python subtype can therefore override status while retaining UNKNOWN positive_readback and UNKNOWN counterevidence_probe fields that would make the canonical concrete TargetObligation status UNKNOWN."
+    ]
+  },
+  "counterexample": {
+    "construction": "Define class ForgedObligation(TargetObligation) overriding the status property to return ObligationStatus.PASS. Construct it with mandatory=true, required_fidelity=T4_PHYSICAL, positive_readback=UNKNOWN, no positive evidence refs, counterevidence_probe=UNKNOWN and no counterevidence refs. Pass it as the sole obligation to TargetCompletionReport at evaluated_fidelity=T4_PHYSICAL.",
+    "current_source_prediction": "The report accepts the subtype because isinstance is true, consumes the overridden PASS status, evaluates COMPLETE and returns physical_credit=true despite both required evidence channels remaining UNKNOWN.",
+    "required_fail_closed_behavior": "Reject non-exact TargetObligation instances at the consumer boundary, or reconstruct/revalidate every current obligation through a non-polymorphic canonical representation before status/physical-credit evaluation. UNKNOWN evidence must never be promotable through subtype dispatch."
+  },
+  "severity": "CRITICAL_AT_DECLARED_T4_COMPLETION_BOUNDARY",
+  "why_it_matters": [
+    "The workpackage exists specifically to prevent self-report or missing evidence from becoming completion evidence.",
+    "A polymorphic obligation can currently become a second completion authority and bypass the positive-readback plus counterevidence requirement.",
+    "At T4 the bypass reaches the physical_credit property, so the failure is not merely cosmetic report metadata."
+  ],
+  "required_regressions": [
+    "A TargetObligation subclass overriding status must be rejected before report construction or evaluation.",
+    "A post-construction object.__setattr__ drift of authority-relevant TargetObligation fields must be revalidated at the report consumer boundary or otherwise made unable to affect report status.",
+    "Report physical_credit must derive only from exact currently validated concrete obligation state and independent evidence fields.",
+    "After repair, exact canonical TargetObligation UNKNOWN plus UNKNOWN must remain UNKNOWN at T4 and physical_credit must remain false."
+  ],
+  "execution_attempt": {
+    "status": "NOT_EXECUTED_AS_REPOSITORY_RUNTIME_EVIDENCE",
+    "reason": "A local exact-repository clone attempt was blocked by DNS/network resolution in the isolated analysis container. This transport failure is infrastructure evidence only and is not counted as a product result.",
+    "next_executable_discriminator": "Run the subtype regression against the exact current F2-WP-1200 source on repository-hosted CI or another admitted exact-source execution surface, then require the active WP1200 owner to absorb the regression before reconciliation."
+  },
+  "coordination": {
+    "mutation_authority_stolen": false,
+    "active_wp1200_paths_modified": false,
+    "claim_protocol": "REVIEW_ONLY/CANDIDATE_FALSIFIER outside active workpackage-owned implementation paths"
+  },
+  "credit": {
+    "repository_component_credit": 0,
+    "target_runtime_credit": 0,
+    "physical_host_credit": 0,
+    "whole_system_credit": 0
+  }
+}
