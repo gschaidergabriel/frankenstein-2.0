@@ -1,0 +1,63 @@
+name: F2 WP807 Repository Evidence Binder CI
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'src/frankenstein2/cognitive_agentic_core_repository_binder.py'
+      - 'tests/test_cognitive_agentic_core_repository_binder.py'
+      - '.github/workflows/wp807-repository-evidence-binder-ci.yml'
+      - 'workpackages/active/F2-WP-802.json'
+      - 'workpackages/active/F2-WP-803.json'
+      - 'workpackages/active/F2-WP-804.json'
+      - 'workpackages/active/F2-WP-805.json'
+      - 'workpackages/reconciliations/F2-WP-802/**'
+      - 'workpackages/reconciliations/F2-WP-803/**'
+      - 'workpackages/reconciliations/F2-WP-804/**'
+      - 'workpackages/reconciliations/F2-WP-805/**'
+      - 'workpackages/receipts/F2-WP-802*'
+      - 'workpackages/receipts/F2-WP-803*'
+      - 'workpackages/receipts/F2-WP-804*'
+      - 'workpackages/receipts/F2-WP-805*'
+  pull_request:
+    paths:
+      - 'src/frankenstein2/cognitive_agentic_core_repository_binder.py'
+      - 'tests/test_cognitive_agentic_core_repository_binder.py'
+      - '.github/workflows/wp807-repository-evidence-binder-ci.yml'
+      - 'workpackages/active/F2-WP-802.json'
+      - 'workpackages/active/F2-WP-803.json'
+      - 'workpackages/active/F2-WP-804.json'
+      - 'workpackages/active/F2-WP-805.json'
+      - 'workpackages/reconciliations/F2-WP-802/**'
+      - 'workpackages/reconciliations/F2-WP-803/**'
+      - 'workpackages/reconciliations/F2-WP-804/**'
+      - 'workpackages/reconciliations/F2-WP-805/**'
+      - 'workpackages/receipts/F2-WP-802*'
+      - 'workpackages/receipts/F2-WP-803*'
+      - 'workpackages/receipts/F2-WP-804*'
+      - 'workpackages/receipts/F2-WP-805*'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  deterministic:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Compile
+        run: >-
+          python -m py_compile
+          src/frankenstein2/cognitive_agentic_core_falsifier.py
+          src/frankenstein2/cognitive_agentic_core_repository_binder.py
+          tests/test_cognitive_agentic_core_repository_binder.py
+      - name: Repository-bound evidence suite
+        env:
+          PYTHONPATH: src
+        run: python -m unittest discover -s tests -p 'test_cognitive_agentic_core_repository_binder.py' -v
