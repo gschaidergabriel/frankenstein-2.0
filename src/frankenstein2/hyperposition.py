@@ -15,7 +15,7 @@ import re
 from typing import Any, ClassVar
 
 
-HYPERPOSITION_SCHEMA = "FRANKENSTEIN2_HYPERPOSITION/v1"
+HYPERPOSITION_SCHEMA = "FRANKENSTEIN2_HYPERPOSITION/v2"
 ALTERNATIVE_SCHEMA = "FRANKENSTEIN2_HYPERPOSITION_ALTERNATIVE/v1"
 DISCRIMINATOR_SCHEMA = "FRANKENSTEIN2_HYPERPOSITION_DISCRIMINATOR/v1"
 
@@ -223,6 +223,8 @@ class Hyperposition:
     alternatives: tuple[Alternative, ...]
     provenance_refs: tuple[str, ...]
     situation_frame_ref: str | None = None
+    situation_frame_generation: int | None = None
+    situation_frame_sha256: str | None = None
     policy_ref: str | None = None
 
     schema: ClassVar[str] = HYPERPOSITION_SCHEMA
@@ -265,6 +267,24 @@ class Hyperposition:
             "situation_frame_ref",
             _optional_text("situation_frame_ref", self.situation_frame_ref),
         )
+        frame_binding = (
+            self.situation_frame_ref,
+            self.situation_frame_generation,
+            self.situation_frame_sha256,
+        )
+        if any(value is not None for value in frame_binding) and not all(
+            value is not None for value in frame_binding
+        ):
+            raise HyperpositionError(
+                "situation frame binding must include ref, generation, and digest together"
+            )
+        if self.situation_frame_ref is not None:
+            _require_generation(self.situation_frame_generation)
+            object.__setattr__(
+                self,
+                "situation_frame_sha256",
+                _require_sha256("situation_frame_sha256", self.situation_frame_sha256),
+            )
         object.__setattr__(self, "policy_ref", _optional_text("policy_ref", self.policy_ref))
 
     def as_dict(self) -> dict[str, Any]:
@@ -276,6 +296,8 @@ class Hyperposition:
             "alternatives": [item.as_dict() for item in self.alternatives],
             "provenance_refs": list(self.provenance_refs),
             "situation_frame_ref": self.situation_frame_ref,
+            "situation_frame_generation": self.situation_frame_generation,
+            "situation_frame_sha256": self.situation_frame_sha256,
             "policy_ref": self.policy_ref,
             "selection_authority": "NONE",
             "authority_boundary": (
@@ -383,6 +405,8 @@ def create_hyperposition(
     alternatives: tuple[Alternative, ...],
     provenance_refs: tuple[str, ...],
     situation_frame_ref: str | None = None,
+    situation_frame_generation: int | None = None,
+    situation_frame_sha256: str | None = None,
     policy_ref: str | None = None,
 ) -> Hyperposition:
     return Hyperposition(
@@ -391,6 +415,8 @@ def create_hyperposition(
         alternatives=alternatives,
         provenance_refs=provenance_refs,
         situation_frame_ref=situation_frame_ref,
+        situation_frame_generation=situation_frame_generation,
+        situation_frame_sha256=situation_frame_sha256,
         policy_ref=policy_ref,
     )
 

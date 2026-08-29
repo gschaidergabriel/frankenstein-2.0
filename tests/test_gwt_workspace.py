@@ -425,7 +425,7 @@ def test_selected_candidate_retains_exact_producer_digest_binding():
     assert selected.producer_cell_id == source.producer_admission.cell_id
 
 
-def make_hyperposition(*, frame_ref="frame-1"):
+def make_hyperposition(*, frame_ref="frame-1", frame_generation=4, frame_sha256=D):
     return create_hyperposition(
         hyperposition_id="hyper-bound",
         generation=2,
@@ -447,6 +447,8 @@ def make_hyperposition(*, frame_ref="frame-1"):
         ),
         provenance_refs=("prov:hp",),
         situation_frame_ref=frame_ref,
+        situation_frame_generation=frame_generation,
+        situation_frame_sha256=frame_sha256,
     )
 
 
@@ -490,6 +492,32 @@ def test_cross_frame_hyperposition_object_fails_closed():
         )
 
 
+@pytest.mark.parametrize(
+    ("kwargs", "message"),
+    (
+        ({"frame_generation": 3}, "version binding mismatch"),
+        ({"frame_sha256": "b" * 64}, "version binding mismatch"),
+    ),
+)
+def test_same_id_stale_hyperposition_frame_version_fails_closed(kwargs, message):
+    stale = make_hyperposition(frame_ref="frame-1", **kwargs)
+    with pytest.raises(GwtWorkspaceError, match=message):
+        build_workspace_selection(
+            selection_id="sel-hp-stale-version",
+            cycle_id="cycle-1",
+            generation=7,
+            frame_id="frame-1",
+            frame_generation=4,
+            frame_sha256=D,
+            grid_plan_id=GRID_PLAN.plan_id,
+            grid_plan_generation=GRID_PLAN.generation,
+            grid_plan_sha256=GRID_PLAN.sha256(),
+            hyperposition=stale,
+            policy=policy(),
+            candidates=(candidate("hp-stale-version"),),
+        )
+
+
 def test_matching_hyperposition_object_binds_exact_frame_and_digest():
     bound = make_hyperposition(frame_ref="frame-1")
     value = build_workspace_selection(
@@ -510,6 +538,8 @@ def test_matching_hyperposition_object_binds_exact_frame_and_digest():
     assert value.hyperposition_generation == bound.generation
     assert value.hyperposition_sha256 == bound.sha256()
     assert value.as_dict()["hyperposition"]["situation_frame_ref"] == "frame-1"
+    assert value.as_dict()["hyperposition"]["situation_frame_generation"] == 4
+    assert value.as_dict()["hyperposition"]["situation_frame_sha256"] == D
     create_broadcast(
         broadcast_id="b-hp-bound",
         generation=1,

@@ -53,6 +53,8 @@ def state() -> object:
         ),
         provenance_refs=("source:z", "source:a"),
         situation_frame_ref="situation:42",
+        situation_frame_generation=4,
+        situation_frame_sha256="a" * 64,
         policy_ref="policy:bounded",
     )
 
@@ -79,6 +81,8 @@ class HyperpositionTests(unittest.TestCase):
             ),
             provenance_refs=("source:a", "source:z"),
             situation_frame_ref="situation:42",
+        situation_frame_generation=4,
+        situation_frame_sha256="a" * 64,
             policy_ref="policy:bounded",
         )
         comparable = create_hyperposition(
@@ -90,6 +94,8 @@ class HyperpositionTests(unittest.TestCase):
             ),
             provenance_refs=("source:z", "source:a"),
             situation_frame_ref="situation:42",
+        situation_frame_generation=4,
+        situation_frame_sha256="a" * 64,
             policy_ref="policy:bounded",
         )
         self.assertEqual(right.canonical_json(), comparable.canonical_json())
@@ -264,6 +270,32 @@ class HyperpositionTests(unittest.TestCase):
                 estimated_cost_micros=100_000,
                 provenance_refs=("source:test",),
             )
+
+    def test_situation_frame_binding_requires_exact_version_triple(self):
+        with self.assertRaisesRegex(HyperpositionError, "ref, generation, and digest"):
+            create_hyperposition(
+                hyperposition_id="hyper:partial-frame",
+                generation=3,
+                alternatives=(alt("alt:a", "hypothesis:a"), alt("alt:b", "hypothesis:b")),
+                provenance_refs=("source:test",),
+                situation_frame_ref="situation:42",
+            )
+
+    def test_situation_frame_version_changes_hyperposition_digest(self):
+        current = state()
+        stale = create_hyperposition(
+            hyperposition_id="hyper:1",
+            generation=3,
+            alternatives=(alt("alt:b", "hypothesis:b"), alt("alt:a", "hypothesis:a")),
+            provenance_refs=("source:z", "source:a"),
+            situation_frame_ref="situation:42",
+            situation_frame_generation=3,
+            situation_frame_sha256="b" * 64,
+            policy_ref="policy:bounded",
+        )
+        self.assertNotEqual(current.sha256(), stale.sha256())
+        self.assertEqual(current.as_dict()["situation_frame_generation"], 4)
+        self.assertEqual(current.as_dict()["situation_frame_sha256"], "a" * 64)
 
     def test_hyperposition_is_frozen(self):
         hp = state()
