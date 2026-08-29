@@ -1,0 +1,83 @@
+{
+  "schema_version": 1,
+  "trigger": "7",
+  "worker": "GPT-5.6-Sol-TRIGGER7",
+  "date_local": "2026-08-30",
+  "status": "APPEND_ONLY_CONTINUATION_DELTA",
+  "f2_main_observed_before_write": "4d7d978f1c85e1fda247aa7fbac6b2033f75182a",
+  "existing_semantic_claim": {
+    "semantic_key": "276537fa4a4615b46c255684da2e0306d596a7712df159e723ae6dfc02a2f961",
+    "research_id": "T7-TTS-001",
+    "objective": "E3_QWEN3_TTS_12HZ_06B_VS_17B_GERMAN_AB",
+    "state_observed": "CLAIMED_CREATE_ONLY",
+    "human_claim_state_observed": "BLOCKED_PENDING_TARGET_HARDWARE_RECEIPT"
+  },
+  "runtime_gate_recheck": {
+    "repository": "gschaidergabriel/Dr.-Unterweger",
+    "run_id": 33265598243,
+    "status": "pending",
+    "conclusion": null,
+    "runtime_credit": 0,
+    "classification": "CONTROL_PLANE_PENDING_NO_TARGET_RUNTIME_EVIDENCE",
+    "dispatch_action": "NO_DUPLICATE_DISPATCH"
+  },
+  "source_observations": {
+    "qwen3_tts_0_6b": {
+      "upstream": "Qwen/Qwen3-TTS-12Hz-0.6B-CustomVoice",
+      "language": "German supported",
+      "upstream_streaming_claim": "Qwen model card describes the family as streaming and reports best-case end-to-end synthesis latency as low as 97 ms; this is upstream evidence only.",
+      "hf_repository_size_display": "2.5 GB",
+      "model_safetensors_size_display": "1.81 GB"
+    },
+    "qwen3_tts_1_7b": {
+      "upstream": "Qwen/Qwen3-TTS-12Hz-1.7B-CustomVoice",
+      "language": "German supported",
+      "hf_repository_size_display": "4.52 GB",
+      "model_safetensors_size_display": "3.83 GB"
+    },
+    "magpietts": {
+      "upstream": "nvidia/magpie_tts_multilingual_357m",
+      "latest_model_card_version_observed": "v2607",
+      "german_supported": true,
+      "nemo_speech_cpp_documented_revision": "v2602",
+      "nemo_speech_cpp_release": "v0.1.0",
+      "nemo_speech_cpp_tts_conversion_type": "f16",
+      "runtime_note": "Current NeMo-Speech.cpp documentation explicitly demonstrates MagpieTTS v2602 plus NanoCodec; it does not establish a native Qwen3-TTS path."
+    }
+  },
+  "research_delta": [
+    "The Qwen 0.6B-versus-1.7B experiment must remain a same-family quality/resource A/B and must not be used to infer a native-runtime advantage over MagpieTTS.",
+    "Qwen and Magpie currently differ in both model family and runtime substrate in the pinned source plan. Comparing them without an attribution fence would confound model quality with Python/CUDA/native-C++ runtime overhead.",
+    "The official source artifact sizes create a useful pre-runtime storage/headroom signal: the 1.7B Qwen checkpoint is materially larger than the 0.6B checkpoint, but no RAM/VRAM/latency conclusion is credited until clay-direct-dev measurement.",
+    "MagpieTTS v2607 is the newer quality checkpoint while the current documented NeMo-Speech.cpp native conversion path pins v2602. These must stay separate benchmark cells rather than being treated as the same artifact/runtime identity."
+  ],
+  "benchmark_fence": {
+    "cell_a": "Qwen3-TTS-12Hz-0.6B-CustomVoice under one exact Qwen runtime/build",
+    "cell_b": "Qwen3-TTS-12Hz-1.7B-CustomVoice under the same exact Qwen runtime/build",
+    "cell_c": "MagpieTTS v2602 under exact NeMo-Speech.cpp v0.1.0/native build",
+    "cell_d_optional": "MagpieTTS v2607 under its exact supported runtime, separately labelled",
+    "shared_measurements": [
+      "cold_load_seconds",
+      "warm_load_seconds",
+      "peak_rss_bytes",
+      "peak_vram_bytes_if_present",
+      "ttfa_ms_p50_p95",
+      "realtime_factor",
+      "complete_wave_latency_ms",
+      "cancellation_stop_latency_ms",
+      "German intelligibility/content consistency",
+      "voice identity stability",
+      "network-blocked operation"
+    ]
+  },
+  "credits": {
+    "source_plan_delta": 1,
+    "target_hardware": 0,
+    "model_download": 0,
+    "model_runtime": 0,
+    "german_tts_component": 0,
+    "german_e2e_voice": 0,
+    "trigger4_acceptance": 0
+  },
+  "next_exact_action": "Do not dispatch another hardware inventory. Consume the first terminal exact-source clay-direct-dev hardware receipt. If valid headroom exists, execute the already-claimed Qwen3-TTS 0.6B-vs-1.7B German A/B under one exact runtime/build first; then benchmark MagpieTTS v2602/NeMo-Speech.cpp as a separately attributed runtime/model cell. Keep v2607 separate unless its exact runtime path is pinned and measured."
+}
