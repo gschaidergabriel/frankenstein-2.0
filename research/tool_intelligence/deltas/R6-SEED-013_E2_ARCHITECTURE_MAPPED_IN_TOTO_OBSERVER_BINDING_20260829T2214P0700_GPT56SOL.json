@@ -1,0 +1,115 @@
+{
+  "schema": "FRANKENSTEIN2_TRIGGER6_E2_ARCHITECTURE_MAP/v1",
+  "trigger": "6",
+  "research_id": "R6-SEED-013",
+  "claim_target": "E2_ARCHITECTURE_MAPPED",
+  "status": "E2_COMPLETE_NEW_AMBIGUITY_IDENTIFIED",
+  "created_at": "2026-08-29T22:14:00+07:00",
+  "worker": "GPT-5.6-Sol:Triggerword-6-organ",
+  "claim_commit": "f607c82f457e07f6718f4e3b9ce457ba2ec91500",
+  "claim_path": "research/tool_intelligence/claims/R6-SEED-013/E2_ARCHITECTURE_MAPPED.json",
+  "architecture_snapshot": {
+    "f2_preclaim_main": "69f290db6b369dcdaf2d48e71d306f6b8babca88",
+    "research_entity_preclaim_main": "bf6d49b19701808a770f8ae9909cc229aee022a4",
+    "trigger6_protocol_blob_sha": "08571526d33f9a0c06577e2f119bdaf4297ef1c8",
+    "wp507_active_generation": 4,
+    "wp507_source": "src/frankenstein2/gwt_uptake.py",
+    "wp507_source_blob_sha": "f25c03d4e4e49c4fed44acd0c5c96edfb40f664e",
+    "wp507_test_blob_sha": "cee30dcbcca1e670e3e21fd8d253f6346821905d",
+    "wp507_acceptance_receipt_blob_sha": "8abe111fb84eb07ef9dc599d621e8b991131e8e6",
+    "wp105_active_generation": 4,
+    "wp105_active_pointer_blob_sha": "c965f84e90e5cd3afa7d291f0643a39ffc0b0d12"
+  },
+  "external_source_pin": {
+    "repo": "in-toto/attestation",
+    "commit": "2dcd055e9f72e746687c306e35f4e59720ff45be",
+    "license": "Apache-2.0",
+    "statement_spec": "spec/v1/statement.md",
+    "link_predicate": "spec/predicates/link.md",
+    "runtime_trace_predicate": "spec/predicates/runtime-trace.md",
+    "bundle_spec": "spec/v1/bundle.md"
+  },
+  "source_direct_findings": [
+    "Statement/v1 binds a predicate type to digest-identified immutable subject artifacts.",
+    "Link/v0.3 separates products/subjects from input materials and preserves step identity plus optional command/environment/byproducts.",
+    "Runtime Trace/v0.1 structurally separates monitor identity/configuration from monitored-process identity and trace content.",
+    "Runtime Trace explicitly warns that monitoring technique changes the strength of evidence guarantees.",
+    "Bundle membership is not authenticated as a whole; deletion, replay and injection remain possible without separate freshness/completeness policy."
+  ],
+  "f2_mapping": {
+    "in_toto_subject": "F2 already has stronger narrow digest binding for BroadcastEnvelope/selection/GRID10 plan and, for positive uptake, downstream_ref + downstream_sha256.",
+    "in_toto_materials": "F2 provenance_refs approximate lineage references but are opaque strings rather than typed digest-bearing material descriptors.",
+    "in_toto_predicate_type": "F2 schema/classification constants already type the receipt semantics and preserve UNKNOWN/noncausal boundaries.",
+    "in_toto_monitor_identity": "MISSING STRUCTURAL EQUIVALENT in CellUptakeReceipt: the observation mechanism/producer that asserts DELIVERED or UPTAKEN is not a typed, digest-bound field.",
+    "in_toto_monitor_config": "MISSING STRUCTURAL EQUIVALENT: no observation-method/config digest is part of CellUptakeReceipt.as_dict()/sha256().",
+    "in_toto_bundle_warning": "Supports existing F2 law that collection/repetition cannot mint completeness/freshness/causal credit; no bundle import is warranted."
+  },
+  "newly_rejected_ambiguity": {
+    "id": "WP507_OBSERVER_METHOD_ALIASING",
+    "statement": "Two materially different observation mechanisms can assert the same receipt_id/broadcast/cell/delivery/uptake/downstream/provenance_refs and therefore produce the same serialized CellUptakeReceipt/sha256, even when their measurement guarantees differ, because observer identity and observer configuration/method are outside the receipt schema.",
+    "why_material": "A synchronous instrumented hook and an asynchronous log-derived observer can have different loss/reordering/completeness guarantees. Current WP507 factory sealing proves construction through the local factory, not which external/host observation mechanism justified the supplied status values.",
+    "current_behavior": "NOT_FAIL_CLOSED_AT_SCHEMA_BOUNDARY",
+    "evidence_scope": "SOURCE_AND_ARCHITECTURE_MAPPING_ONLY"
+  },
+  "wp105_comparison": {
+    "finding": "No equivalent new gap is established for WP105 at this E2 scope. Its accepted G4 boundary structurally requires EffectCallBinding and explicit authorizer/executor routing, rejects forged nominal UNKNOWN outcomes, and preserves UNKNOWN post-dispatch. in-toto still offers useful descriptive vocabulary but does not currently justify reopening WP105.",
+    "action": "KEEP_WP105_CLOSED_ABSENT_NEW_FALSIFIER"
+  },
+  "recommended_thin_distillation": {
+    "decision": "DISTILL_PATTERN_NOT_LIBRARY_IMPORT",
+    "target": "future WP507 review/falsifier, not direct mutation in Trigger 6",
+    "minimal_fields_or_bound_object": [
+      "observer_type",
+      "observer_instance_id",
+      "observer_artifact_sha256_or_exact_source_identity",
+      "observer_config_sha256",
+      "observation_method_or_evidence_class",
+      "observer_provenance_refs"
+    ],
+    "design_preference": "Prefer one typed ObserverBinding object whose canonical digest is embedded in CellUptakeReceipt rather than six ad-hoc strings.",
+    "authority_fence": "ObserverBinding describes evidence production only. It does not mint world truth, semantic uptake, causal influence, completion, UnifiedDB state or effect authority."
+  },
+  "counterhypotheses": [
+    {
+      "id": "CH1_PROVENANCE_REFS_SUFFICIENT",
+      "statement": "Existing provenance_refs can already encode observer identity/configuration by convention, so adding a typed binding is redundant.",
+      "assessment": "Not sufficient at current source scope because the schema validates only nonempty unique strings; it does not require observer semantics, digest binding or a method-strength class."
+    },
+    {
+      "id": "CH2_FACTORY_SEAL_IS_OBSERVER_IDENTITY",
+      "statement": "The private factory seal already proves the observer.",
+      "assessment": "Rejected at architecture-map scope: the seal proves the dataclass was created through CellUptakeReceipt.observe in-process. The caller still supplies delivery_status/uptake_status/provenance_refs; the seal does not identify the evidence-producing sensor/hook/log path."
+    },
+    {
+      "id": "CH3_NO_RUNTIME_CREDIT_SO_NO_NEED",
+      "statement": "Because WP507 grants zero runtime/GWT credit, observer identity is unnecessary.",
+      "assessment": "Rejected for future promotion readiness: repository-component scope is correctly bounded today, but any later target-runtime causal promotion needs exact measurement provenance. The gap should be falsified before such promotion, not silently discovered after it."
+    }
+  ],
+  "next_gate": {
+    "evidence_stage": "E3_CLAIM_REPRODUCED_OR_FALSIFIED",
+    "objective": "Construct a deterministic source-level collision fixture showing two distinct ObserverBinding candidates collapse to the same current CellUptakeReceipt digest, then show that a hypothetical canonical observer-binding digest would distinguish them without changing the underlying uptake claim.",
+    "acceptance": "E3 passes only if the collision is reproducible against exact current WP507 source and the distinction is attributable solely to missing observer identity/config binding.",
+    "falsifier": "If exact current WP507 already binds observer identity/configuration into the receipt digest through another mandatory structure, retire this delta as redundant."
+  },
+  "resource_and_dependency_assessment": {
+    "library_import": "REJECT_AT_E2",
+    "new_runtime_dependency": "NONE_RECOMMENDED",
+    "token_cost": "NEGLIGIBLE_TYPED_FIELDS_ONLY",
+    "cpu_memory_io": "NEGLIGIBLE_HASH_AND_VALIDATION_ONLY",
+    "local_offline": true,
+    "maintenance_risk": "LOW_IF_PATTERN_DISTILLED; HIGHER_AND_UNJUSTIFIED_IF_FULL_IN_TOTO_STACK_IMPORTED"
+  },
+  "credits": {
+    "e2_architecture_mapped_credit": 1,
+    "e3_reproduction_credit": 0,
+    "e4_f2_ablation_credit": 0,
+    "e5_build_candidate_credit": 0,
+    "f2_integration_credit": 0,
+    "runtime_credit": 0,
+    "gwt_runtime_credit": 0,
+    "jspace_runtime_credit": 0,
+    "effect_credit": 0,
+    "whole_system_credit": 0
+  }
+}
