@@ -1,0 +1,29 @@
+name: F2 WP603 G2 Policy Revalidation Closure
+
+on:
+  push:
+    branches:
+      - review/wp603-g2-policy-revalidation-closure-20260829
+    paths:
+      - 'tests/review/test_wp603_g2_policy_revalidation_closure.py'
+      - '.github/workflows/review-wp603-g2-policy-revalidation-closure.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  closure:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Compile isolated G2 closure check
+        run: python -m py_compile tests/review/test_wp603_g2_policy_revalidation_closure.py
+      - name: Verify latest G2 rejects mutated policy
+        env:
+          PYTHONPATH: src:tests
+        run: python tests/review/test_wp603_g2_policy_revalidation_closure.py -v
