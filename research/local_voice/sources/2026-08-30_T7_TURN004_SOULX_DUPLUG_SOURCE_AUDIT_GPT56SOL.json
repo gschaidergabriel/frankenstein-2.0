@@ -1,0 +1,56 @@
+{
+  "schema": "T7_SOURCE_AUDIT/v1",
+  "trigger": "7",
+  "research_id": "T7-TURN-004",
+  "objective": "E1_SOULX_DUPLUG_SOURCE_AUDIT",
+  "date_local": "2026-08-30",
+  "f2_main_observed_during_audit": "866ac48ee9cfeb17d6ae49418a751fd4b0705de2",
+  "semantic_key": "979e0c058f251154510b260ecd70d2b4cd857d02aaf6bdf8e6f50c4fdf501580",
+  "upstream": {
+    "repository": "Soul-AILab/SoulX-Duplug",
+    "repository_sha": "a0b9063843df69619b087b95b74597b2176910b8",
+    "paper": "arXiv:2603.14877",
+    "model": "Soul-AILab/SoulX-Duplug-0.6B",
+    "evaluation_dataset": "Soul-AILab/SoulX-Duplug-Eval",
+    "license": "Apache-2.0",
+    "training_code_release": "2026-07-17"
+  },
+  "observed_primary_source_facts": [
+    "SoulX-Duplug is described upstream as a plug-and-play streaming semantic VAD/state-prediction module for realtime full-duplex speech conversation.",
+    "The model is 0.6B-class and exposes streaming dialogue states idle, nonidle, speak and blank, with ASR segment/buffer text attached to semantic state decisions.",
+    "The reference configuration explicitly documents Chinese via Paraformer, English via SenseVoice language=en, and bilingual via SenseVoice language=auto.",
+    "The official Hugging Face model metadata lists languages en and zh; the official evaluation dataset metadata also lists en and zh.",
+    "The upstream repository released re-implemented training/fine-tuning code on 2026-07-17, so language/domain adaptation is an executable research direction rather than a purely hypothetical one.",
+    "The reference server uses an accumulated ASR buffer covering the past 3.2 seconds for streaming state decisions; this is an architectural latency/context tradeoff that must be measured on Frankenstein German overlap/backchannel traffic."
+  ],
+  "source_scope_falsifier": {
+    "question": "Does current upstream evidence establish German support strongly enough for direct Frankenstein German production-turn-control consideration?",
+    "result": "NO",
+    "reason": "The audited official source, model metadata and evaluation set establish English/Chinese/bilingual paths but do not establish German training, evaluation or production behavior.",
+    "what_is_not_falsified": "German adaptation or fine-tuning using the released training code, and reuse of the streaming semantic-state architecture as a donor."
+  },
+  "frankenstein_mapping": {
+    "useful_donor_features": [
+      "semantic endpointing beyond silence-only VAD",
+      "explicit wait/continue-vs-take-turn decision surface",
+      "streaming state events suitable for a deterministic cancellation/commit FSM",
+      "ASR-aware state evidence that can feed VoiceIntent/GWT without becoming canonical authority"
+    ],
+    "authority_boundary": "SoulX-Duplug output remains candidate measurement only; it cannot mint VoiceOutcome, canonical memory/state, tool effects or completion authority.",
+    "direct_production_status": "NOT_ELIGIBLE_AT_SOURCE_SCOPE_FOR_GERMAN",
+    "research_status": "ARCHITECTURE_AND_GERMAN_ADAPTATION_DONOR"
+  },
+  "hypothesis": "A German-adapted SoulX-Duplug-style semantic streaming controller may reduce false interruptions and premature endpointing versus silence-only control while preserving fast backchannels and explicit WAIT behavior.",
+  "counterhypothesis": "Its ASR-language dependence, 0.6B compute cost and multi-second rolling text context may erase the turn-quality benefit on the actual Frankenstein German latency/resource Pareto frontier; a lighter dedicated endpoint predictor may win.",
+  "cheapest_next_discriminator": "After a terminal clay-direct-dev hardware/resource receipt exists, run the common pinned German pause/backchannel/overlap replay across the existing turn-controller candidates. Include upstream SoulX-Duplug only if the resource envelope admits it; otherwise first benchmark a German fine-tuned/adapted derivative in quarantine as a distinct semantic objective.",
+  "credit": {
+    "source_pin": 1,
+    "source_falsifier": 1,
+    "target_hardware": 0,
+    "model_runtime": 0,
+    "german_turn_replay": 0,
+    "german_e2e": 0,
+    "trigger4_acceptance": 0,
+    "whole_system": 0
+  }
+}
