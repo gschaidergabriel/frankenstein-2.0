@@ -1,0 +1,25 @@
+name: WP105 Direct Retry Identity E3 Falsifier
+
+on:
+  pull_request:
+    paths:
+      - 'tests/test_wp105_direct_retry_identity_falsifier.py'
+      - '.github/workflows/wp105-direct-retry-identity-e3-falsifier-ci.yml'
+      - 'research/tool_intelligence/claims/R6-WP105-EFFECT-IDEMPOTENCY-SCOUT-001/E3_DIRECT_EPISODE_NULL_REOPEN_REPLAY_FENCE.json'
+      - 'research/tool_intelligence/deltas/R6-WP105-EFFECT-IDEMPOTENCY-SCOUT-001_E3_DIRECT_EPISODE_NULL_REOPEN_REPLAY_FENCE_20260829_GPT56SOL.json'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  deterministic-reopen-falsifier:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Run zero-effect direct retry identity discriminator
+        run: python -m unittest -v tests.test_wp105_direct_retry_identity_falsifier
