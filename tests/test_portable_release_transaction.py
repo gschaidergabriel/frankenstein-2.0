@@ -86,12 +86,14 @@ class PortableReleaseTransactionTests(unittest.TestCase):
         self.assertEqual(left.next_generation, 0)
         self.assertEqual(left.evidence_scope, EVIDENCE_SCOPE)
         self.assertIsNone(left.source_lineage_digest)
+        self.assertIsNone(left.source_active_release_digest)
 
     def test_update_requires_exact_generation_and_state_digest(self) -> None:
         raw = update_request()
         plan = build_transaction_plan(raw)
         self.assertEqual(plan.source_generation, 7)
         self.assertEqual(plan.source_state_sha256, E)
+        self.assertEqual(plan.source_active_release_digest, R2_DIGEST)
         self.assertEqual(plan.next_generation, 8)
 
         bad_generation = copy.deepcopy(raw)
@@ -164,6 +166,7 @@ class PortableReleaseTransactionTests(unittest.TestCase):
                 outcome="SUCCEEDED",
                 observed_generation=8,
                 observed_state_sha256=A,
+                observed_active_release_digest=R1_DIGEST,
             )
 
         receipt = record_attempt(
@@ -171,9 +174,11 @@ class PortableReleaseTransactionTests(unittest.TestCase):
             outcome="FAILED_NO_MUTATION",
             observed_generation=7,
             observed_state_sha256=E,
+            observed_active_release_digest=R2_DIGEST,
             failure_code="INJECTED_AFTER_STATE_COPY",
         )
         self.assertEqual(receipt.outcome, "FAILED_NO_MUTATION")
+        self.assertEqual(receipt.observed_active_release_digest, R2_DIGEST)
         self.assertEqual(receipt.evidence_scope, EVIDENCE_SCOPE)
 
     def test_rolled_back_receipt_requires_exact_pre_attempt_lineage(self) -> None:
@@ -183,10 +188,12 @@ class PortableReleaseTransactionTests(unittest.TestCase):
             outcome="ROLLED_BACK",
             observed_generation=7,
             observed_state_sha256=E,
+            observed_active_release_digest=R2_DIGEST,
             failure_code="ACTIVATION_FAILED_ROLLBACK_VERIFIED",
         )
         self.assertEqual(receipt.observed_generation, 7)
         self.assertEqual(receipt.observed_state_sha256, E)
+        self.assertEqual(receipt.observed_active_release_digest, R2_DIGEST)
 
         with self.assertRaisesRegex(PortableReleaseTransactionError, "exact pre-attempt"):
             record_attempt(
@@ -194,19 +201,32 @@ class PortableReleaseTransactionTests(unittest.TestCase):
                 outcome="ROLLED_BACK",
                 observed_generation=8,
                 observed_state_sha256=A,
+                observed_active_release_digest=R2_DIGEST,
                 failure_code="BAD_ROLLBACK",
             )
 
-    def test_success_receipt_requires_observed_next_generation_and_state(self) -> None:
+        with self.assertRaisesRegex(PortableReleaseTransactionError, "exact pre-attempt"):
+            record_attempt(
+                plan,
+                outcome="ROLLED_BACK",
+                observed_generation=7,
+                observed_state_sha256=E,
+                observed_active_release_digest=R1_DIGEST,
+                failure_code="WRONG_RELEASE_AFTER_ROLLBACK",
+            )
+
+    def test_success_receipt_requires_observed_next_generation_state_and_release(self) -> None:
         plan = build_transaction_plan(update_request())
         receipt = record_attempt(
             plan,
             outcome="SUCCEEDED",
             observed_generation=8,
             observed_state_sha256=A,
+            observed_active_release_digest=R1_DIGEST,
         )
         self.assertEqual(receipt.outcome, "SUCCEEDED")
         self.assertEqual(receipt.plan_digest, plan.digest())
+        self.assertEqual(receipt.observed_active_release_digest, plan.target_release_digest)
 
         with self.assertRaisesRegex(PortableReleaseTransactionError, "exact next generation"):
             record_attempt(
@@ -214,6 +234,37 @@ class PortableReleaseTransactionTests(unittest.TestCase):
                 outcome="SUCCEEDED",
                 observed_generation=7,
                 observed_state_sha256=A,
+                observed_active_release_digest=R1_DIGEST,
+            )
+
+        with self.assertRaisesRegex(PortableReleaseTransactionError, "active release"):
+            record_attempt(
+                plan,
+                outcome="SUCCEEDED",
+                observed_generation=8,
+                observed_state_sha256=A,
+                observed_active_release_digest=R2_DIGEST,
+            )
+
+        with self.assertRaisesRegex(PortableReleaseTransactionError, "active release"):
+            record_attempt(
+                plan,
+                outcome="SUCCEEDED",
+                observed_generation=8,
+                observed_state_sha256=A,
+                observed_active_release_digest=None,
+            )
+
+    def test_failed_update_requires_exact_source_release_identity(self) -> None:
+        plan = build_transaction_plan(update_request())
+        with self.assertRaisesRegex(PortableReleaseTransactionError, "source release/state lineage"):
+            record_attempt(
+                plan,
+                outcome="FAILED_NO_MUTATION",
+                observed_generation=7,
+                observed_state_sha256=E,
+                observed_active_release_digest=R1_DIGEST,
+                failure_code="WRONG_RELEASE_AFTER_FAILED_UPDATE",
             )
 
     def test_failed_first_install_cannot_invent_lineage(self) -> None:
@@ -235,10 +286,12 @@ class PortableReleaseTransactionTests(unittest.TestCase):
             outcome="FAILED_NO_MUTATION",
             observed_generation=None,
             observed_state_sha256=None,
+            observed_active_release_digest=None,
             failure_code="INJECTED_BEFORE_STATE_CREATE",
         )
         self.assertIsNone(receipt.observed_generation)
         self.assertIsNone(receipt.observed_state_sha256)
+        self.assertIsNone(receipt.observed_active_release_digest)
 
         with self.assertRaisesRegex(PortableReleaseTransactionError, "must not invent"):
             record_attempt(
@@ -246,6 +299,7 @@ class PortableReleaseTransactionTests(unittest.TestCase):
                 outcome="FAILED_NO_MUTATION",
                 observed_generation=0,
                 observed_state_sha256=A,
+                observed_active_release_digest=R1_DIGEST,
                 failure_code="INJECTED_BEFORE_STATE_CREATE",
             )
 
