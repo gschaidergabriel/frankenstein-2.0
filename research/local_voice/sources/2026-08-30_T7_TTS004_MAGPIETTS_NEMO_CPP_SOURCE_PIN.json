@@ -1,0 +1,98 @@
+{
+  "schema_version": 1,
+  "trigger": "7",
+  "research_id": "T7-TTS-004",
+  "objective": "V1_MAGPIETTS_NEMO_CPP_SOURCE_PIN",
+  "semantic_key": "b276dc6794c8a85989a3dad568a2d7db7cc38a3a14f2349a31a22f35f81e3657",
+  "classification": "SOURCE_PINNED_NO_TARGET_RUNTIME_CREDIT",
+  "observed_date_local": "2026-08-30",
+  "candidate": {
+    "developer": "NVIDIA",
+    "model_id": "nvidia/magpie_tts_multilingual_357m",
+    "model_type": "multilingual text-to-speech encoder-decoder transformer",
+    "reported_parameters": 364000000,
+    "german_supported": true,
+    "reported_languages": ["ar", "de", "en", "es", "fr", "hi", "it", "ja", "ko", "pt", "vi", "zh"],
+    "reported_speakers": ["Aria", "Jason", "Leo", "Sofia", "John Van Stan"],
+    "license": "NVIDIA Open Model License",
+    "zero_shot_voice_cloning_current_release": false
+  },
+  "version_split": {
+    "latest_quality_checkpoint": {
+      "version": "v2607",
+      "release_commit": "5023df68bd3f5b5ce6d666a50979bc501af145cc",
+      "released": "2026-07-21",
+      "artifact": "magpie_tts_multilingual_357m.nemo",
+      "artifact_size_reported": "1.47 GB",
+      "artifact_sha256": "ec675fa8c02b9c1d5382c5c2b5a6acec6492c1e8344866c07cf3892185d18953",
+      "source": "https://huggingface.co/nvidia/magpie_tts_multilingual_357m"
+    },
+    "ready_native_cpp_gguf": {
+      "version": "v2602",
+      "gguf_added_commit": "61a0a4494a40e85adecebaa02b4aa6c70b5fef0d",
+      "artifact": "magpie_tts_multilingual_357m.v2602.f16.gguf",
+      "artifact_size_reported": "449 MB",
+      "artifact_sha256": "901d299a8b1df016cf81cae0089a7a7c15627b9633d033357e15a47d9a219a75",
+      "runtime_dependency": "companion NanoCodec decoder plus tokenizer assets",
+      "source": "https://huggingface.co/nvidia/magpie_tts_multilingual_357m/blob/main/magpie_tts_multilingual_357m.v2602.f16.gguf"
+    },
+    "runtime": {
+      "repository": "NVIDIA/NeMo-Speech.cpp",
+      "version": "v0.1.0",
+      "release_commit": "4f96762",
+      "released": "2026-08-19",
+      "reported_backends": ["CPU", "CUDA", "Vulkan", "Metal"],
+      "reported_tts_support": ["MagpieTTS", "NanoCodec"],
+      "source": "https://github.com/NVIDIA/NeMo-Speech.cpp/releases/tag/v0.1.0"
+    }
+  },
+  "upstream_german_metrics": {
+    "warning": "UPSTREAM_HELD_OUT_RESULT_ONLY_NOT_F2_RESULT",
+    "v2602": {
+      "cer_percent": 0.66,
+      "speaker_similarity": 0.626
+    },
+    "v2607": {
+      "cer_percent": 0.80,
+      "speaker_similarity": 0.742
+    },
+    "interpretation": "Upstream results show a tradeoff rather than monotonic dominance: v2607 reports materially higher German speaker similarity but slightly worse CER than v2602. This must not be generalized to Frankenstein-room quality without reproduction."
+  },
+  "source_level_findings": [
+    "MagpieTTS is a distinct small German-capable expressive TTS family and is not merely another Qwen3-TTS quantization.",
+    "The published ready-to-run NeMo-Speech.cpp GGUF path is v2602, while the current model checkpoint is v2607.",
+    "Therefore a single label 'MagpieTTS' is insufficient for benchmark provenance: v2602-native-C++ and v2607-current-quality must be represented as separate artifact/runtime cells.",
+    "Five fixed speaker identities include multiple male candidates, but upstream source presence does not prove stable Frankenstein male acoustic identity or donor-voice parity.",
+    "NeMo-Speech.cpp v0.1.0 is an early first versioned release; API/runtime stability remains an explicit risk."
+  ],
+  "hypothesis": "The v2602 F16 GGUF through NeMo-Speech.cpp may beat heavier expressive TTS candidates on CPU/RSS/startup/TTFA while preserving adequate German quality; v2607 may recover enough speaker quality to justify a conversion/native-runtime path if its extra integration cost is acceptable.",
+  "counterhypothesis": "Piper/Thorsten remains faster and operationally simpler while Qwen3-TTS or another expressive model sounds materially better; MagpieTTS then occupies no winning point on the actual Frankenstein latency-quality-resource Pareto frontier.",
+  "next_target_discriminator": {
+    "precondition": "Consume a real terminal clay-direct-dev hardware/resource receipt from the already-existing semantic hardware lane; do not dispatch another generation-1 hardware inventory job.",
+    "cells": [
+      "MagpieTTS v2602 F16 GGUF + pinned NeMo-Speech.cpp v0.1.0 + companion NanoCodec",
+      "MagpieTTS v2607 .nemo under the smallest auditable local runtime available, or an explicitly reproduced conversion path",
+      "existing Piper/Thorsten latency floor",
+      "existing Qwen3-TTS expressive benchmark candidate"
+    ],
+    "measure": [
+      "German TTFA p50/p95/p99",
+      "real-time factor",
+      "RSS/VRAM/startup/warmup",
+      "male speaker stability",
+      "German intelligibility and pronunciation",
+      "chunk-boundary prosody",
+      "cancellation/playback-stop behavior",
+      "network-blocked local operation"
+    ]
+  },
+  "credits": {
+    "source_pin": 1,
+    "target_download": 0,
+    "target_runtime": 0,
+    "german_component_benchmark": 0,
+    "german_e2e_voice": 0,
+    "trigger4_acceptance": 0,
+    "whole_system": 0
+  }
+}
