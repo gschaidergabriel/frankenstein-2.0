@@ -57,7 +57,7 @@ def update_request() -> dict:
         "schema": REQUEST_SCHEMA,
         "attempt_id": "wp1207-update-001",
         "operation": "UPDATE",
-        "target_release": R1,
+        "target_release": copy.deepcopy(R1),
         "current_lineage": lineage(predecessor=False),
         "expected_generation": 7,
         "expected_state_sha256": E,
@@ -72,7 +72,7 @@ class PortableReleaseTransactionTests(unittest.TestCase):
             "schema": REQUEST_SCHEMA,
             "attempt_id": "wp1207-install-001",
             "operation": "INSTALL",
-            "target_release": R1,
+            "target_release": copy.deepcopy(R1),
             "current_lineage": None,
             "expected_generation": None,
             "expected_state_sha256": None,
@@ -113,7 +113,7 @@ class PortableReleaseTransactionTests(unittest.TestCase):
 
     def test_update_rejects_same_release_as_active(self) -> None:
         raw = update_request()
-        raw["target_release"] = R2
+        raw["target_release"] = copy.deepcopy(R2)
         with self.assertRaisesRegex(PortableReleaseTransactionError, "must differ"):
             build_transaction_plan(raw)
 
@@ -122,11 +122,11 @@ class PortableReleaseTransactionTests(unittest.TestCase):
             "schema": REQUEST_SCHEMA,
             "attempt_id": "wp1207-rollback-001",
             "operation": "ROLLBACK",
-            "target_release": R1,
+            "target_release": copy.deepcopy(R1),
             "current_lineage": lineage(predecessor=True),
             "expected_generation": 7,
             "expected_state_sha256": E,
-            "rollback_release": R1,
+            "rollback_release": copy.deepcopy(R1),
             "injected_failure_stage": None,
         }
         plan = build_transaction_plan(raw)
@@ -135,7 +135,7 @@ class PortableReleaseTransactionTests(unittest.TestCase):
         self.assertEqual(plan.rollback_target_release_digest, R1_DIGEST)
 
         wrong = copy.deepcopy(raw)
-        wrong["rollback_release"] = R2
+        wrong["rollback_release"] = copy.deepcopy(R2)
         with self.assertRaisesRegex(PortableReleaseTransactionError, "exact predecessor"):
             build_transaction_plan(wrong)
 
@@ -144,11 +144,11 @@ class PortableReleaseTransactionTests(unittest.TestCase):
             "schema": REQUEST_SCHEMA,
             "attempt_id": "wp1207-rollback-002",
             "operation": "ROLLBACK",
-            "target_release": R1,
+            "target_release": copy.deepcopy(R1),
             "current_lineage": lineage(predecessor=False),
             "expected_generation": 7,
             "expected_state_sha256": E,
-            "rollback_release": R1,
+            "rollback_release": copy.deepcopy(R1),
             "injected_failure_stage": None,
         }
         with self.assertRaisesRegex(PortableReleaseTransactionError, "exact predecessor"):
@@ -222,7 +222,7 @@ class PortableReleaseTransactionTests(unittest.TestCase):
                 "schema": REQUEST_SCHEMA,
                 "attempt_id": "wp1207-install-fail",
                 "operation": "INSTALL",
-                "target_release": R1,
+                "target_release": copy.deepcopy(R1),
                 "current_lineage": None,
                 "expected_generation": None,
                 "expected_state_sha256": None,
