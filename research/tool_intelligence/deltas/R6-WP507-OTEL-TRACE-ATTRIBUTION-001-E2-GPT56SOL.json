@@ -1,0 +1,110 @@
+{
+  "schema": "FRANKENSTEIN2_TRIGGER6_E2_ARCHITECTURE_MAPPING/v1",
+  "research_id": "R6-WP507-OTEL-TRACE-ATTRIBUTION-001",
+  "claim_ref": "research/tool_intelligence/claims/R6-WP507-OTEL-TRACE-ATTRIBUTION-001/E2_ARCHITECTURE_MAPPED.json",
+  "slot": "SOURCE_ARCHAEOLOGIST",
+  "status": "E2_ARCHITECTURE_MAPPED",
+  "created_at": "2026-08-29T15:02:00+07:00",
+  "architecture_binding": {
+    "f2_claim_base_observed": "07d73ac4e5ea2fb4f90221e502a0472cbf9c50e8",
+    "f2_reentry_before_result": "9f1a74b0897aeb17725d8b982960e0ae25569692",
+    "wp507_generation": 3,
+    "wp507_claim_id": "F2-WP-507-G3-GPT56SOL-GWT-UPTAKE-CAUSAL-EVIDENCE-20260829",
+    "wp507_current_source_path": "src/frankenstein2/gwt_uptake.py",
+    "wp507_current_source_observation": "NOT_PRESENT_ON_MAIN_AT_E2_MAPPING_TIME",
+    "architecture_delta_fusion": "research/tool_intelligence/deltas/ADF-20260829T1453P0700-GPT56SOL-WP507-G3-REENTRY.json"
+  },
+  "source_locks": [
+    {
+      "source": "open-telemetry/opentelemetry-specification",
+      "commit": "8057bf6d5cf0ab10891b9e6f7b928cded76ab2f7",
+      "license": "Apache-2.0",
+      "relevant_mechanism": "Span parent identity plus zero-to-many ordered Links to SpanContexts with attributes; links are tracing relationships and may cross traces"
+    },
+    {
+      "source": "open-telemetry/opentelemetry-python",
+      "commit": "251d01a9b65b9a9386c8483de5a8065d9abce4de",
+      "license": "Apache-2.0",
+      "relevant_paths": [
+        "opentelemetry-api/src/opentelemetry/trace/__init__.py",
+        "opentelemetry-sdk/src/opentelemetry/sdk/trace/__init__.py"
+      ],
+      "observed_mechanisms": [
+        "Link carries a SpanContext and attributes; Python API documents Link attributes as immutable",
+        "Tracer.start_span accepts an ordered sequence of links",
+        "ReadableSpan exposes links as a tuple",
+        "SDK has configurable bounded link/event/attribute lists and can report dropped links",
+        "SDK contains synchronous/concurrent span processors, environment configuration and exporter-oriented runtime machinery"
+      ]
+    }
+  ],
+  "observed_fit": {
+    "useful_structural_transfer": [
+      "represent one evidence node with explicit immutable identity and zero-to-many typed relationship links",
+      "preserve relationship order",
+      "permit links across separate evidence traces instead of forcing one-parent tree semantics",
+      "attach relation metadata to each link rather than infer relation semantics from adjacency"
+    ],
+    "non_transferable_as_authority": [
+      "OpenTelemetry TraceId/SpanId are tracing correlation identifiers and may be randomly/pseudorandomly generated; they are not deterministic semantic request/broadcast identities",
+      "a parent or Link relationship is telemetry structure, not proof that a recipient semantically consumed a broadcast",
+      "a trace relationship is not model-internal causal evidence",
+      "sampling or dropped links are acceptable observability concepts but are incompatible with WP507 positive-evidence completeness unless they force UNKNOWN/fail-closed"
+    ]
+  },
+  "wp507_mapping": {
+    "canonical_identity_source": "KEEP_F2_NATIVE_DETERMINISTIC_IDENTITIES",
+    "candidate_projection": "F2_NATIVE_CAUSAL_WITNESS_LINK_GRAPH",
+    "node_identity_fields": [
+      "probe_id",
+      "broadcast_id",
+      "broadcast_digest",
+      "broadcast_generation",
+      "selection_id",
+      "selection_generation",
+      "selection_digest",
+      "grid10_plan_id",
+      "grid10_plan_generation",
+      "grid10_plan_digest",
+      "recipient_cell_id",
+      "non_broadcast_input_digest",
+      "downstream_output_digest"
+    ],
+    "candidate_relation_types": [
+      "BROADCAST_TO_RECIPIENT_OFFER",
+      "OFFER_TO_DELIVERY",
+      "DELIVERY_TO_UPTAKE_EVIDENCE",
+      "UPTAKE_TO_DOWNSTREAM_OUTPUT",
+      "MATCHED_CONTROL_TO_INTERVENTION"
+    ],
+    "positive_evidence_rule": "The link graph may make provenance inspectable, but it MUST NOT itself promote causal evidence. WP507 positive contract-scope causal evidence still requires the existing matched control/intervention conditions: same probe_id, identical non-broadcast input digest, exact intervention broadcast binding, complete recipient-scoped uptake evidence and differing declared downstream output digest.",
+    "missing_or_dropped_link_rule": "Any missing required witness link or dropped-link condition on the acceptance path yields UNKNOWN/fail-closed; no sampling-derived positive evidence.",
+    "authority_boundary": "Derived/rebuildable witness only; not UnifiedDB truth, not GWT truth, not model truth and not EffectGate/EffectJournal authority."
+  },
+  "dependency_assessment": {
+    "full_opentelemetry_sdk_import": "REJECT_FOR_CURRENT_WP507",
+    "reason": "Current WP507 is a small deterministic persistence-agnostic contract and its implementation is not yet present on main. The full Python telemetry SDK adds processors, threading, exporters/configuration, dependency surface and bounded-droppable telemetry behavior that are unnecessary for the claimed component scope.",
+    "structural_distillation": "PREFERRED",
+    "distillation_shape": "A tiny immutable F2-native witness-node/link schema using deterministic F2 digests and explicit typed relation attributes; no OpenTelemetry package dependency required."
+  },
+  "counterhypotheses": [
+    "WP507 native receipts may already encode every required relationship, making even a tiny link projection redundant; measure before adopting.",
+    "If Frankenstein later requires cross-process standardized telemetry/export interop, a bounded OpenTelemetry adapter could become useful outside the acceptance authority path.",
+    "External causal packages such as pyvene/DoWhy/CITCOM may provide stronger experimental discriminators; OpenTelemetry should remain provenance scaffolding and must not compete with them as a causal method."
+  ],
+  "recommendation": "THIN_DISTILLATION_ONLY_NOT_SDK_IMPORT",
+  "next_discriminator": {
+    "when": "AFTER_WP507_G3_SOURCE_AND_COMPONENT_TEST_SURFACE_EXISTS_ON_CURRENT_MAIN",
+    "objective": "Run an F2-native E4-style ablation comparing the native receipt-only representation against the tiny deterministic witness-link projection on fail-closed completeness detection, deterministic replay equality, serialized bytes, CPU time and p50/p95 latency. Adopt only if it improves inspectability/falsifier strength without weakening exact evidence or materially increasing cost.",
+    "do_not_do_now": "Do not implement into WP507-owned paths while the Trigger-4 WP507 G3 worker owns those paths and source is not yet present on main."
+  },
+  "credits": {
+    "external_architecture_credit": 0,
+    "f2_integration_credit": 0,
+    "runtime_credit": 0,
+    "gwt_runtime_credit": 0,
+    "jspace_runtime_credit": 0,
+    "effect_credit": 0,
+    "whole_system_credit": 0
+  }
+}
