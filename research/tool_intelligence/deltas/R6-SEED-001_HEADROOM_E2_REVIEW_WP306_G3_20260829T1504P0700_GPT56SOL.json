@@ -1,0 +1,101 @@
+{
+  "schema": "FRANKENSTEIN2_TRIGGER6_SOURCE_ARCHAEOLOGY_DELTA/v1",
+  "trigger": "6",
+  "research_id": "R6-SEED-001",
+  "claim_target": "E2_REVIEW_R6_ADF_20260829T1454P0700_WP306_G3",
+  "slot": "SOURCE_ARCHAEOLOGIST",
+  "status": "E2_REVIEW_COMPLETE_SOURCE_ONLY",
+  "worker": "ChatGPT/GPT-5.6-Sol",
+  "f2_main_observed_before_persist": "ed3f8151303a00485e1bef6b6600c45616f04334",
+  "upstream": {
+    "repo": "headroomlabs-ai/headroom",
+    "commit": "213b37158fb9fa7287d7d5884c7df43800821995",
+    "source_refs": [
+      "headroom/cache/compression_store.py@213b37158fb9fa7287d7d5884c7df43800821995",
+      "headroom/ccr/context_tracker.py@213b37158fb9fa7287d7d5884c7df43800821995",
+      "headroom/transforms/smart_crusher.py@213b37158fb9fa7287d7d5884c7df43800821995"
+    ]
+  },
+  "f2_baseline": {
+    "context_compiler": {
+      "path": "src/frankenstein2/context_compiler.py",
+      "blob_sha": "edbfb96710376af01af88bf4453d660fdcf5d341",
+      "finding": "Deterministic bounded reference-only selection. ContextItem binds payload/source SHA-256, source generation, source classification, provenance/evidence refs; ContextView records selected and omitted items. Compiler explicitly does not read payload bytes or infer relevance/truth."
+    },
+    "epistemic_adapter": {
+      "path": "src/frankenstein2/epistemic_context_adapter.py",
+      "blob_sha": "fd87aede76267fe21020ade8aba5f82af16ca52f",
+      "finding": "Exact record type fixes epistemic channel; payload/source/provenance/evidence digests remain explicit. Adapter does not decode payload semantics or mint truth/retrieval/effect authority."
+    },
+    "existing_headroom_falsifier": {
+      "path": "research/tool_intelligence/claims/R6-SEED-001-E3-HEADROOM-REVERSIBILITY-GPT56SOL/contract_falsifier_result.json",
+      "blob_sha": "a83c8e1306f489e18b5ec7476ce5f7004df563d5",
+      "finding": "Source-derived fixture falsified unconditional recovery under marker-before-put failure, TTL expiry, and same-key overwrite. Upstream Rust runtime was not reproduced and no E3 runtime credit exists."
+    }
+  },
+  "source_findings": [
+    {
+      "id": "HEADROOM_WORKSPACE_SCOPE",
+      "epistemic_type": "SOURCE_DIRECT",
+      "finding": "CCR ContextTracker requires a workspace_key for proactive expansion and fails closed to no recommendation when project identity is unresolved. This is a useful provenance-gating pattern."
+    },
+    {
+      "id": "HEADROOM_HASHED_ORIGINAL_STORE",
+      "epistemic_type": "SOURCE_DIRECT",
+      "finding": "CompressionStore stores original and compressed content behind a hash key with TTL and retrieval metadata. Default key is truncated SHA-256(original), with an explicit-hash escape hatch for producer compatibility."
+    },
+    {
+      "id": "HEADROOM_SEPARATE_RETRIEVAL_STATE",
+      "epistemic_type": "SOURCE_DIRECT",
+      "finding": "CCR adds a distinct compression/retrieval store, optional persistent backend, TTL/eviction and retrieval-event state. Importing that store as authoritative F2 context state would create a competing retrieval/state surface."
+    },
+    {
+      "id": "HEADROOM_STRUCTURAL_COMPACTION",
+      "epistemic_type": "SOURCE_DIRECT",
+      "finding": "SmartCrusher supports lossless structural compaction and an opt-in lossless_only mode; it also has lossy row-drop/opaque offload paths using CCR markers. audit_safe can force protected matching rows to survive and can fail closed on protected-row loss."
+    },
+    {
+      "id": "HEADROOM_CONTENT_AWARE_BOUNDARY",
+      "epistemic_type": "SOURCE_DIRECT",
+      "finding": "Headroom compression inspects payload content and uses content/relevance heuristics. F2 ContextCompiler intentionally does not read payload bytes or infer relevance, so Headroom must not be inserted inside the compiler's deterministic reference-selection authority."
+    }
+  ],
+  "hypothesis": "A thin Headroom-derived structural compaction primitive could reduce rendered payload tokens while preserving F2's canonical evidence and deterministic context-selection boundaries.",
+  "counterhypothesis": "WP306 already supplies the needed bounded context mechanism; any additional compression layer adds opacity, alternate storage/retrieval state and failure modes without enough incremental token benefit.",
+  "adjudication": {
+    "full_headroom_import": "REJECT",
+    "headroom_as_missing_context_component": "REJECT",
+    "headroom_ccr_store_as_f2_authority": "REJECT",
+    "lossy_ccr_marker_path": "NOT_ADMISSIBLE_WITHOUT_STRONGER_FENCES_AND_E4_ABLATION",
+    "thin_structural_lossless_compaction_pattern": "E4_ABLATION_CANDIDATE",
+    "workspace_scoped_fail_closed_retrieval_pattern": "DONOR_PATTERN_ONLY",
+    "audit_safe_protected-row_pattern": "DONOR_PATTERN_ONLY",
+    "architecture_credit": 0,
+    "integration_credit": 0,
+    "runtime_credit": 0,
+    "whole_system_credit": 0
+  },
+  "required_f2_boundaries_if_ablated": [
+    "Canonical original payload remains in existing F2/UnifiedDB authority; no second canonical truth or retrieval DB.",
+    "Compaction is a derived noncanonical payload projection downstream of ContextCompiler selection, never a replacement for ContextItem identity or epistemic classification.",
+    "Derived compact artifact binds original payload_ref + full payload_sha256 + transformation version/config + compact-artifact digest + provenance refs.",
+    "No recoverable-omission marker may be emitted before durable original availability is acknowledged at the canonical F2 source.",
+    "Missing, expired, overwritten or digest-mismatched original fails closed; no guessed reconstruction.",
+    "Lossless structural mode is evaluated first. Lossy semantic/model-based compression remains out of scope until an explicit falsifier demonstrates preserved evidence behavior.",
+    "Protected evidence/counterevidence/authority rows must survive verbatim or the transformation returns the original payload."
+  ],
+  "next_exact_gate": {
+    "stage": "E4_F2_ABLATION_REQUIRED",
+    "owner": "Triggerword 6 Experimental Falsifier or Triggerword 4 only after a separately admitted build handoff",
+    "experiment": "On a fixed fixture corpus of exact F2 payloads, compare baseline rendered payloads with an F2-native lossless structural compactor applied only after ContextView selection. Require byte-reconstructability or exact structural equivalence, identical ContextView identity/selected+omitted references, zero evidence/provenance drift, explicit failure on missing/digest-mismatched original, and measured token savings large enough to justify the new layer.",
+    "promotion_rule": "No E5 build candidate unless the ablation shows incremental savings over existing F2 rendering with every deterministic/evidence fence preserved."
+  },
+  "evidence_scope": "SOURCE_ONLY_PLUS_EXISTING_SOURCE_DERIVED_FIXTURE; NO_UPSTREAM_RUNTIME_REPRODUCTION; NO_F2_RUNTIME_EXECUTION",
+  "credits": {
+    "external_runtime": 0,
+    "f2_runtime": 0,
+    "architecture": 0,
+    "integration": 0,
+    "whole_system": 0
+  }
+}
