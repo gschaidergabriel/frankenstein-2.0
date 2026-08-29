@@ -1,0 +1,324 @@
+{
+  "schema": "FRANKENSTEIN2_TRIGGER6_RESEARCH_RESULT/v1",
+  "trigger": "6",
+  "research_id": "R6-20260829-WP805-REPLAN-RECOVERY-EFFICIENCY-GPT56SOL-01",
+  "slot": "ARCHITECTURE_DELTA_FUSER",
+  "evidence_stage": "E2_ARCHITECTURE_MAPPED",
+  "status": "COMPLETED_E2_NO_BUILD_CREDIT",
+  "created_at": "2026-08-29T20:16:56+07:00",
+  "worker": "GPT-5.6-Sol-TRIGGER6",
+  "claim": {
+    "path": "research/tool_intelligence/claims/R6-20260829-WP805-REPLAN-RECOVERY-EFFICIENCY-GPT56SOL-01/E2_ARCHITECTURE_MAPPED.json",
+    "commit": "557dbf46887a0291d2c25304afe04de1f0b9a594",
+    "research_credit_from_claim": 0
+  },
+  "snapshot": {
+    "claim_base_f2_main": "ec1e0a1a603720330cd9abfac1f1d6277f91f092",
+    "latest_f2_main_observed_before_write": "81f0089247de42127bd828bcd9b8daee135fba06",
+    "research_entity_main_observed": "72449dfd3b9e8c78939a211156d5060caf8888f5",
+    "wp805_e1_result_commit": "2e80f5a75b1b2906a11f0765f7863b2b95304342",
+    "wp800_last_ci_lineage_commit": "d73d9a99bd21609a9213d4c6791fa498635b9f36",
+    "wp803_component_ci_close_commit": "7e1a3990b2904d06dac7c33784d3952b38791ed4",
+    "wp804_goal_history_fusion_commit": "ca94997d22b30a6583a3e06164ac49e78464e0b3",
+    "aggregate_state_blob": "fadcccc9648625b2082f82080b90e0c651049f0d",
+    "aggregate_state_status": "STALE_FOR_PHASE8_GRANULAR_PROGRESS"
+  },
+  "objective": "Map a minimal held-out perturbation/recovery contract onto the existing WP800 public/evaluator boundary and current WP802/WP803/WP804 research/build surfaces, with from-scratch and post-change oracle baselines, transfer-family splits, recovery-cost metrics and fail-closed generation/provenance semantics.",
+  "external_evidence_fused": [
+    {
+      "source": "Koenig, Likhachev, Furcy — Lifelong Planning A*",
+      "identity": "DOI:10.1016/j.artint.2003.12.001",
+      "mapped_principle": "Incremental reuse can reduce replanning work on related changed problems, but only the still-valid part of prior search structure should be reused; F2 should therefore measure valid reuse against a full-replan baseline rather than reward reuse volume itself."
+    },
+    {
+      "source": "Koenig & Likhachev — D* Lite",
+      "identity": "AAAI-02 paper 072",
+      "mapped_principle": "Changing-problem replanning should be compared against solving each problem from scratch under the same problem family; this supports an explicit full-replan comparator, not importing D* Lite as F2 authority."
+    },
+    {
+      "source": "Song & Cai — WM-SAR",
+      "identity": "arXiv:2607.01767",
+      "mapped_principle": "Repair locality is worth measuring under bounded context/resource budgets, but an external LLM graph-repair framework is not required for the deterministic WP805 benchmark."
+    },
+    {
+      "source": "Emami, Qiang, Graf — World Model Recovery in SFT LLM Planners",
+      "identity": "arXiv:2606.03685",
+      "mapped_principle": "Coverage/family structure can materially affect recovery claims; held-out transfer must therefore be family-bound rather than seed-only."
+    },
+    {
+      "source": "Gan et al. — ActSWM",
+      "identity": "arXiv:2607.26712",
+      "mapped_principle": "Prediction similarity alone can hide action-insensitive dynamics; WP805 should optionally use WP803 action-bound predictions as a secondary diagnostic while keeping behavioral recovery as the primary outcome."
+    }
+  ],
+  "granular_f2_fusion": {
+    "WP800": {
+      "role": "CANONICAL_HELDOUT_EVALUATOR_SUBSTRATE",
+      "reused_surfaces": [
+        "MicroWorldFixture.fixture_id/generation/holdout_set_id",
+        "MicroWorldFixture.evidence_source_family/donor_path_family/method_family/primary_source_ids",
+        "ObservationView exact episode/fixture/generation/public-fixture/observation digest binding",
+        "ActionRequest.for_observation",
+        "begin_episode / step_episode deterministic evaluator boundary",
+        "RunDescriptor / MatchedRunPair baseline-vs-intervention provenance pattern"
+      ],
+      "required_change": "NONE_FOR_GENERATION1_IF_WP805_USES_PAIRED_PRECHANGE_AND_POSTCHANGE_FIXTURES_INSTEAD_OF_MUTATING_AN_LIVE_EPISODE"
+    },
+    "WP802": {
+      "role": "OPTIONAL_PUBLIC_INFORMATION_SEEKING_COMPARATOR",
+      "reused_surfaces": [
+        "public-only policy boundary",
+        "COMMIT_FIRST versus PROBE_THEN_COMMIT comparison idea",
+        "probe-count and matched-policy outcome accounting"
+      ],
+      "nondependency": "WP805 must remain runnable without importing WP802 policy authority; a recovery subject may be any deterministic/public policy adapter that consumes the post-change ObservationView."
+    },
+    "WP803": {
+      "role": "OPTIONAL_ACTION_BOUND_WORLD_MODEL_DIAGNOSTIC",
+      "reused_surfaces": [
+        "PredictionCandidate exact observation/action/generation binding",
+        "ABSTAIN as explicit insufficient-evidence outcome",
+        "evaluator-side next-observation scoring after canonical WP800 replay"
+      ],
+      "nondependency": "Prediction accuracy is secondary diagnostic evidence and cannot substitute for post-change task success, recovery cost or transfer evidence."
+    },
+    "WP804": {
+      "role": "CONDITIONAL_GOAL_CHANGE_EXTENSION_ONLY",
+      "reused_surfaces": [
+        "public CandidateGoal boundary and ABSTAIN principle from current architecture fusion",
+        "identifiability-gated scoring principle",
+        "consumer-side revalidation requirement"
+      ],
+      "generation1_rule": "Do not make WP805 depend on unaccepted WP804 source. Goal/constraint-change recovery can be added only through a provenance-bound public goal/constraint digest after WP804 has an admitted consumer boundary."
+    }
+  },
+  "minimal_architecture_delta": {
+    "decision": "ADD_WP805_AS_THIN_EVALUATOR_LAYER_OVER_WP800_NOT_A_NEW_PLANNER_OR_TRUTH_STORE",
+    "candidate_module": "src/frankenstein2/cognitive_recovery_efficiency_benchmark.py",
+    "candidate_test": "tests/test_cognitive_recovery_efficiency_benchmark.py",
+    "candidate_ci": ".github/workflows/wp805-cognitive-recovery-efficiency-ci.yml",
+    "new_types": [
+      {
+        "name": "RecoveryScenarioPair",
+        "classification": "EVALUATOR_ONLY",
+        "fields": [
+          "scenario_id",
+          "scenario_generation",
+          "prechange_fixture_sha256",
+          "postchange_fixture_sha256",
+          "prechange_public_fixture_sha256",
+          "postchange_public_fixture_sha256",
+          "perturbation_family",
+          "transfer_family_digest",
+          "change_boundary_ref",
+          "change_boundary_sha256"
+        ],
+        "law": "The evaluator may know the exact changed transitions/nodes, but those details are not exposed to the recovery policy unless represented in an admitted public observation/signal."
+      },
+      {
+        "name": "PublicRecoveryCarryover",
+        "classification": "PUBLIC_SUT_INPUT_NO_WORLD_AUTHORITY",
+        "fields": [
+          "scenario_id",
+          "prechange_fixture_id/generation/public_sha256",
+          "source_observation_sha256",
+          "remaining_plan_action_ids",
+          "remaining_plan_sha256",
+          "policy_state_sha256",
+          "carryover_generation"
+        ],
+        "law": "Carryover is a frozen candidate artifact from the pre-change run. It is not automatically valid under the post-change generation."
+      },
+      {
+        "name": "RecoveryPlanCandidate",
+        "classification": "PUBLIC_CANDIDATE_NO_EFFECT_OR_WORLD_AUTHORITY",
+        "fields": [
+          "candidate_id",
+          "scenario_id",
+          "postchange_fixture_id/generation/public_sha256",
+          "postchange_observation_sha256",
+          "strategy",
+          "action_ids",
+          "candidate_sha256",
+          "derived_from_carryover_sha256_or_null"
+        ],
+        "allowed_strategies": ["FULL_REPLAN", "SELECTIVE_REPAIR", "REUSE_UNCHANGED"],
+        "law": "Candidate construction sees only public post-change state plus explicitly supplied carryover."
+      },
+      {
+        "name": "RecoveryEvaluation",
+        "classification": "EVALUATOR_ONLY_BENCHMARK_MEASUREMENT",
+        "fields": [
+          "scenario_pair_sha256",
+          "candidate_sha256",
+          "postchange_run_descriptor_sha256",
+          "success",
+          "terminal_score",
+          "executed_action_count",
+          "invalid_or_stale_action_attempts",
+          "oracle_action_count",
+          "excess_actions_vs_oracle",
+          "full_replan_action_count",
+          "action_delta_vs_full_replan",
+          "retained_valid_action_count",
+          "retained_invalid_action_count",
+          "recomputed_action_count",
+          "reuse_fraction_validated",
+          "repair_locality_fraction",
+          "optional_probe_count",
+          "optional_wp803_prediction_correct/incorrect/abstain_counts"
+        ],
+        "law": "No benchmark measurement mints world truth, runtime credit, cognition superiority, effect authority or whole-system acceptance."
+      }
+    ]
+  },
+  "scenario_construction": {
+    "generation1_method": "PAIR_TWO_IMMUTABLE_WP800_FIXTURES",
+    "reason": "WP800 EpisodeState is tightly bound to one fixture SHA/generation. Pairing immutable before/after fixtures preserves its fail-closed invariants and avoids adding in-place world mutation or a second state authority.",
+    "prechange_phase": [
+      "run a deterministic public policy on fixture A",
+      "freeze the public carryover at a declared boundary before completion",
+      "record remaining candidate plan/state digest only"
+    ],
+    "postchange_phase": [
+      "start a new WP800 episode on fixture B whose initial public observation represents the matched recovery point",
+      "fixture B must have a new generation and public fixture digest",
+      "provide the same post-change ObservationView to both FULL_REPLAN and SELECTIVE_REPAIR arms",
+      "only SELECTIVE_REPAIR receives the frozen public carryover",
+      "evaluator ground truth remains hidden"
+    ],
+    "matched_fairness": [
+      "same post-change fixture/generation",
+      "same initial post-change ObservationView",
+      "same action/probe/model-call budget class",
+      "same termination criterion",
+      "same evaluator scoring",
+      "same public goal/constraint digest when such a field is admitted"
+    ]
+  },
+  "oracle_design": {
+    "postchange_oracle": "Evaluator-side bounded shortest-valid-action search over the deterministic hidden WP800 graph from the post-change initial evaluator node to an admitted successful terminal node.",
+    "visibility": "ORACLE_PATH_NEVER_SUT_INPUT",
+    "output_to_metrics": [
+      "oracle_action_count",
+      "success_reachability",
+      "regret/excess-actions only"
+    ],
+    "fail_closed": [
+      "if no successful terminal is reachable, classify scenario UNSCORABLE_FOR_PATH_REGRET rather than invent an oracle",
+      "if multiple shortest paths exist, score path length/outcome rather than syntactic identity",
+      "oracle result must bind exact post-change fixture SHA/generation"
+    ]
+  },
+  "full_replan_baseline": {
+    "definition": "Same policy/planner class, same post-change public inputs and same budget, but no pre-change carryover artifact.",
+    "purpose": "Separate genuine reusable recovery from simply solving the changed problem again.",
+    "anti_cheat": [
+      "do not allow FULL_REPLAN to inspect evaluator-only changed edges/nodes",
+      "do not allow SELECTIVE_REPAIR extra hidden signals",
+      "do not compare different model/provider classes without a separately declared efficiency normalization"
+    ]
+  },
+  "transfer_split_contract": {
+    "existing_wp800_family_axes_reused": [
+      "holdout_set_id",
+      "evidence_source_family",
+      "donor_path_family",
+      "method_family",
+      "primary_source_ids"
+    ],
+    "new_evaluator_only_axes": [
+      "perturbation_family",
+      "recovery_topology_motif_family",
+      "public_goal_constraint_family_if_admitted_later"
+    ],
+    "split_law": "A transfer claim must hold out at least one declared family axis. A new random seed within the same family is reproducibility, not structural transfer.",
+    "leakage_falsifier": "Train/tune/select on all but one perturbation/topology family, then verify that no fixture/source/donor/method-family digest from the held-out family appears in the selection corpus or policy configuration."
+  },
+  "primary_metrics": [
+    "post-change success / terminal score",
+    "excess actions versus post-change evaluator oracle",
+    "action delta versus matched full-replan baseline",
+    "invalid or stale action attempts after the declared change",
+    "validated retained-action count and invalid-retained-action count",
+    "recomputed-action count",
+    "repair locality fraction",
+    "probe/model-call/token/latency/resource deltas when the SUT actually uses those resources"
+  ],
+  "metric_nonclaims": [
+    "plan edit distance is not a primary metric",
+    "high reuse fraction is not success if retained actions are invalid",
+    "fewer model calls do not compensate for worse task success unless an explicit cost-quality frontier is reported",
+    "WP803 prediction score does not equal behavioral recovery",
+    "repository benchmark efficiency does not equal VPS/runtime efficiency"
+  ],
+  "required_falsifiers": [
+    "EARLY_DEPENDENCY_BREAK: invalidate a dependency near the start of the remaining plan; stale reuse must be penalized and cannot score as efficient simply because it preserved many actions",
+    "IRRELEVANT_LOCAL_CHANGE: change a hidden region not on the current valid path; selective repair should not be forced to discard the entire plan",
+    "FULL_REPLAN_WINS_SMALL_WORLD: construct a tiny fixture where bookkeeping/reuse gives no benefit; WP805 must allow NEUTRAL/NEGATIVE architecture benefit",
+    "GENERATION_DRIFT_FAILS_CLOSED: carryover bound to fixture generation g must not be consumed as if valid for g+1 without explicit recovery validation",
+    "OBSERVATION_DIGEST_DRIFT_FAILS_CLOSED: mutate/rebind the post-change public observation after candidate construction and require rejection",
+    "FAMILY_LEAKAGE_REJECTED: held-out family identity appearing in training/selection material invalidates transfer credit",
+    "ORACLE_HIDDEN: any SUT-visible field that reveals evaluator path/changed-edge identity invalidates the fixture",
+    "EQUIVALENT_PLAN: two different shortest action sequences with equal outcome/path length must receive equal oracle-regret credit",
+    "WP803_ACTION_SENSITIVITY_OPTIONAL: a policy with strong next-observation similarity but action-insensitive predictions must not receive recovery credit unless behavior succeeds"
+  ],
+  "architecture_implications": [
+    "Do not import LPA*, D* Lite, WM-SAR, ActSWM or a new planning framework into F2 for WP805 generation 1.",
+    "The smallest dependency-correct design is evaluator infrastructure plus thin public candidate/carryover types over WP800.",
+    "Use immutable before/after fixtures instead of mutating a live EpisodeState; this preserves existing provenance/generation fences.",
+    "Keep WP802 and WP803 as optional comparator/diagnostic adapters, not mandatory authority dependencies.",
+    "Keep WP804 goal-change recovery conditional until its public consumer boundary is admitted.",
+    "Repair locality and resource efficiency should be measured, not assumed to be beneficial."
+  ],
+  "counterhypotheses": [
+    {
+      "statement": "For the current small deterministic micro-worlds, from-scratch replanning may be simpler and cheaper than maintaining recovery carryover.",
+      "discriminator": "FULL_REPLAN_WINS_SMALL_WORLD matched case; if selective repair does not improve any declared cost metric at equal success, do not promote reuse machinery."
+    },
+    {
+      "statement": "A paired-fixture design may fail to model true mid-episode recovery because the new episode boundary resets state that a deployed system would retain.",
+      "discriminator": "If generation-1 paired fixtures show a meaningful recovery signal, later add a separately claimed E4 ablation comparing paired-fixture recovery with an explicit generation-safe resume boundary; do not widen WP800 before that evidence exists."
+    },
+    {
+      "statement": "WP803 prediction diagnostics may add complexity without predicting behavioral recovery.",
+      "discriminator": "Measure correlation only as secondary analysis; remove it from WP805 acceptance if it does not discriminate successful from failed recovery."
+    }
+  ],
+  "architecture_delta_fusion": {
+    "fusion_id": "ADF-20260829T2016P0700-GPT56SOL-WP805-RECOVERY-EFFICIENCY",
+    "affected_workpackages": ["F2-WP-800", "F2-WP-802", "F2-WP-803", "F2-WP-804", "F2-WP-805"],
+    "conflicts": [
+      "workpackages/STATE.json generation 15 still labels WP800-WP805 NOT_STARTED despite granular WP800/WP802/WP803 source/CI progress; aggregate state must not gate this research mapping",
+      "WP804 is architecture/research-active but not yet an admitted stable dependency"
+    ],
+    "supersessions": [
+      "E1 proposal to add topology/goal family axes directly to WP800 is narrowed: keep them evaluator-only in WP805 unless cross-benchmark reuse later justifies a WP800 schema change"
+    ],
+    "unresolved": [
+      "exact Trigger-4 owner decision on whether WP805 generation 1 will implement paired-fixture recovery now or wait for WP804 acceptance",
+      "repository CI and actual F2 behavior for the proposed contract do not exist yet",
+      "runtime token/latency/RSS effects are unmeasured"
+    ]
+  },
+  "handoff": {
+    "target": "TRIGGERWORD_4_F2_WP805_BUILD_LANE",
+    "recommended_scope": "Implement only the thin paired-fixture evaluator/candidate contract and the required falsifiers. Reuse WP800 types; do not add a planner, model, external dependency, new truth store or effect path.",
+    "acceptance_ceiling_after_build": "BOUNDED_REPOSITORY_COMPONENT_CI_ONLY_UNLESS_HIGHER_SCOPE_RUNTIME_IS_SEPARATELY_OBSERVED",
+    "next_trigger6_objective_after_build": "Claim E3/E4 only against an exact implemented WP805 source identity; reproduce at least EARLY_DEPENDENCY_BREAK and FULL_REPLAN_WINS_SMALL_WORLD, then measure whether selective reuse provides any benefit."
+  },
+  "credits": {
+    "trigger6_research": "E2_ARCHITECTURE_MAPPED",
+    "f2_build": 0,
+    "repository_ci": 0,
+    "runtime": 0,
+    "vps_runtime": 0,
+    "physical_grid10": 0,
+    "gwt": 0,
+    "jspace": 0,
+    "training": 0,
+    "effects": 0,
+    "whole_system": 0
+  },
+  "next_exact_action": "Trigger 4 should consume ADF-20260829T2016P0700-GPT56SOL-WP805-RECOVERY-EFFICIENCY and either implement the thin generation-1 paired-fixture WP805 benchmark with fail-closed provenance plus matched full-replan/oracle baselines, or record a dependency-correct hold. Trigger 6 must not self-promote this E2 mapping to build/runtime credit."
+}
