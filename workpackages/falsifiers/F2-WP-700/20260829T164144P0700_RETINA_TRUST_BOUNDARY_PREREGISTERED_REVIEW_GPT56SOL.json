@@ -1,0 +1,79 @@
+{
+  "schema": "FRANKENSTEIN2_CANDIDATE_FALSIFIER/v1",
+  "workpackage_id": "F2-WP-700",
+  "generation": 1,
+  "active_claim_id": "F2-WP-700-G1-GPT56SOL-RETINA-PIPELINE-20260829",
+  "worker_id": "GPT-5.6-Sol-REVIEW",
+  "base_main_commit": "4bd096e86c001b9e7c74c3858b1f1007ae96ae82",
+  "authority_epoch": "8.78",
+  "authority_ref": "gschaidergabriel/clay-global-research-entity@main:research_entity/continuity/BOOTSTRAP_MINIMAL.json -> research_entity/claycode/autonomous/SUPERVISOR_STEERING_8_78.json",
+  "result_class": "REVIEW_ONLY",
+  "classification": "PREREGISTERED_PREIMPLEMENTATION_CANDIDATE_FALSIFIER_NOT_EXECUTED",
+  "mutation_authority": false,
+  "observed_state": {
+    "active_pointer_present": true,
+    "canonical_source_path": "src/frankenstein2/retina_pipeline.py",
+    "canonical_source_present_on_observed_main": false,
+    "canonical_test_path": "tests/test_retina_pipeline.py",
+    "canonical_test_present_on_observed_main": false
+  },
+  "donor_evidence": [
+    "gschaidergabriel/frankenstein@5641dc6b2df6ebed1df246ee7533134324f6c427:DEV_SOURCE_RESEARCH/repository/scripts/visual_cortex.py#c6f47826102e164ddc7ba80fc9b9df3072324fd8",
+    "The frozen donor explicitly separates capture/quality from later interpretation, records structured sensor_quality/provenance, defaults raw_frame_persistence=false, and preserves UNKNOWN on camera/quality failure."
+  ],
+  "hypothesis": "A bounded Retina candidate ABI can still be falsified at its public trust boundary even when canonical serialization/digests look correct if Python subtype or bool-as-int values, stale lineage, or direct post-digest attribute consumption are admitted. The same bug family has already produced executable successor repairs in current Stage-4/Stage-5 components, so preregistering it before WP700 acceptance is high-information and nonduplicative.",
+  "counterhypothesis": "The WP700 implementation may already use exact concrete types, bool-safe numeric validation, complete digest binding and explicit precedence rules, in which case every preregistered test below should pass without semantic changes.",
+  "preregistered_checks": [
+    {
+      "id": "R1_BOOL_IS_NOT_INTEGER_MEASUREMENT",
+      "test": "For every field the implementation declares integer-typed (including generation/continuity counters or fixed-point quality/delta fields), substitute true/false. Construction/evaluation must reject rather than accept bool through Python's int subclassing."
+    },
+    {
+      "id": "R2_NONFINITE_OR_WRONG_NUMERIC_TYPE_FAILS_CLOSED",
+      "test": "For every field declared floating-point, reject bool and non-finite NaN/+Inf/-Inf; for integer/fixed-point fields reject floats even when numerically integral. No coercive normalization may silently change evidence identity."
+    },
+    {
+      "id": "R3_EXACT_CONCRETE_PUBLIC_OBJECTS",
+      "test": "If WP700 exports immutable frame/readout/event structures later consumed across a trust boundary, a subclass overriding serialization/digest or direct attributes must not self-attest as the exact canonical concrete type."
+    },
+    {
+      "id": "R4_DIGEST_TO_DIRECT_ATTRIBUTE_CLOSURE",
+      "test": "Every field consumed after an identity/digest check must be either reconstructed/revalidated from the canonical object or included in the exact canonical digest. A forged subtype/object must not preserve a canonical digest while changing a directly consumed classification, quality, delta, provenance, stream/frame identity or continuity value."
+    },
+    {
+      "id": "R5_LOW_QUALITY_CANNOT_MINT_SALIENT_OBSERVATION",
+      "test": "A caller-supplied low-quality/suppressed frame must remain suppressed/UNKNOWN according to policy and must not become salient observed evidence merely because delta/change magnitude is high."
+    },
+    {
+      "id": "R6_CONTINUITY_BREAK_PRECEDENCE_IS_EXPLICIT",
+      "test": "A declared continuity break must remain visible as a typed discontinuity and must not be overwritten by the same sample's salient-change or baseline classification. If policy intentionally chooses another precedence, the exact rule must be deterministic and regression-tested."
+    },
+    {
+      "id": "R7_STALE_OR_MISMATCHED_LINEAGE_REJECTED",
+      "test": "Mismatched stream identity, generation, continuity epoch, prior-frame/reference identity or bound digest (for whichever lineage fields WP700 actually exposes) must fail closed rather than produce a normal PerceptEvent candidate."
+    },
+    {
+      "id": "R8_NO_RAW_FRAME_OR_PIXEL_SEMANTICS",
+      "test": "The bounded WP700 ABI must operate from opaque caller-supplied identity/digest/measurements only. It must not require a path, byte payload, decoded pixels, object labels or model semantics, and emitted records must not persist raw-frame payload."
+    },
+    {
+      "id": "R9_MEASUREMENT_ONLY_INVARIANCE",
+      "test": "Holding policy and numeric measurements constant while changing only an opaque valid frame-content digest must not change the semantic transition class except for identity/provenance fields. This falsifies accidental payload/digest-derived semantic inference."
+    }
+  ],
+  "execution_status": "NOT_EXECUTED_SOURCE_NOT_YET_ON_MAIN",
+  "credits": {
+    "component_runtime_credit": 0,
+    "perception_runtime_credit": 0,
+    "physical_grid10_credit": 0,
+    "gwt_runtime_credit": 0,
+    "jspace_runtime_credit": 0,
+    "training_credit": 0,
+    "effect_credit": 0,
+    "completion_credit": 0,
+    "whole_system_acceptance": false
+  },
+  "proposed_state_change": "NONE. Preserve the existing WP700 mutation authority. When its source/test head exists, run these checks independently as REVIEW_ONLY; only executable counterevidence may justify a bounded repair/successor decision.",
+  "next_exact_action": "WP700 mutation-authority worker implements the claimed Retina ABI and hosted CI. An independent reviewer then binds these preregistered checks to the exact source/test blobs and records PASS or executable counterevidence without overwriting the canonical source.",
+  "created_at_utc": "2026-08-29T09:41:44Z"
+}
