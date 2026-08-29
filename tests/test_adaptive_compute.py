@@ -9,19 +9,47 @@ from frankenstein2.adaptive_compute import (
     build_allocation_candidate,
 )
 from frankenstein2.cognitive_envelope import (
-    ControlSnapshot,
+    CognitiveEnvelopePolicy,
     DISPOSITION_DEGRADED,
     DISPOSITION_HARD_LIMIT,
     DISPOSITION_UNKNOWN,
     DISPOSITION_WITHIN,
+    EnvelopeBand,
+    SignalReadout,
+    evaluate_control_snapshot,
 )
 from frankenstein2.grid10_interface import CellBudget, GRID10_CELL_IDS, Grid10Plan
 
 HASH_A = "a" * 64
-HASH_B = "b" * 64
+
+
+def envelope_policy(
+    *,
+    policy_id="envelope-policy-1",
+    generation=3,
+    evidence_ref="authority:wp505-test",
+):
+    return CognitiveEnvelopePolicy.create(
+        policy_id=policy_id,
+        generation=generation,
+        bands=(
+            EnvelopeBand.create(
+                signal_id="load",
+                expected_generation=1,
+                hard_min=0,
+                soft_min=20,
+                soft_max=80,
+                hard_max=100,
+                required=True,
+                evidence_refs=(evidence_ref,),
+            ),
+        ),
+        evidence_refs=(evidence_ref,),
+    )
 
 
 def make_plan(*, cell_work=5, total=20):
+    control_policy = envelope_policy()
     cells = tuple(
         CellBudget(
             cell_id=cell,
@@ -40,28 +68,67 @@ def make_plan(*, cell_work=5, total=20):
         frame_id="frame-1",
         frame_generation=4,
         frame_sha256=HASH_A,
-        policy_id="envelope-policy-1",
-        policy_generation=3,
-        policy_sha256=HASH_B,
+        policy_id=control_policy.policy_id,
+        policy_generation=control_policy.generation,
+        policy_sha256=control_policy.sha256(),
         cells=cells,
         max_total_work_units=total,
         provenance_refs=("receipt:grid",),
     )
 
 
-def snapshot(disposition=DISPOSITION_WITHIN, **overrides):
-    values = dict(
-        schema="FRANKENSTEIN2_CONTROL_SNAPSHOT/v1",
-        policy_id="envelope-policy-1",
-        policy_generation=3,
-        policy_sha256=HASH_B,
-        readout_set_sha256="c" * 64,
-        signal_results=(),
-        disposition=disposition,
-        regulation_candidate="candidate",
+def snapshot(
+    disposition=DISPOSITION_WITHIN,
+    *,
+    policy_id="envelope-policy-1",
+    policy_generation=3,
+    evidence_ref="authority:wp505-test",
+):
+    control_policy = envelope_policy(
+        policy_id=policy_id,
+        generation=policy_generation,
+        evidence_ref=evidence_ref,
     )
-    values.update(overrides)
-    return ControlSnapshot(**values)
+    if disposition == DISPOSITION_WITHIN:
+        readouts = (
+            SignalReadout.create(
+                signal_id="load",
+                generation=1,
+                value=50,
+                evidence_refs=("measurement:load",),
+                provenance_refs=("sensor:load",),
+            ),
+        )
+    elif disposition == DISPOSITION_DEGRADED:
+        readouts = (
+            SignalReadout.create(
+                signal_id="load",
+                generation=1,
+                value=10,
+                evidence_refs=("measurement:load",),
+                provenance_refs=("sensor:load",),
+            ),
+        )
+    elif disposition == DISPOSITION_HARD_LIMIT:
+        readouts = (
+            SignalReadout.create(
+                signal_id="load",
+                generation=1,
+                value=-1,
+                evidence_refs=("measurement:load",),
+                provenance_refs=("sensor:load",),
+            ),
+        )
+    elif disposition == DISPOSITION_UNKNOWN:
+        readouts = ()
+    else:
+        raise AssertionError(f"unsupported test disposition: {disposition!r}")
+    result = evaluate_control_snapshot(control_policy, readouts)
+    if result.disposition != disposition:
+        raise AssertionError(
+            f"test fixture produced {result.disposition!r}, expected {disposition!r}"
+        )
+    return result
 
 
 def caps(value=5):
@@ -133,7 +200,9 @@ class AdaptiveComputeTests(unittest.TestCase):
             build_allocation_candidate(plan, snapshot(policy_generation=4), policy)
         with self.assertRaisesRegex(AdaptiveComputeError, "digest mismatch"):
             build_allocation_candidate(
-                plan, snapshot(policy_sha256="d" * 64), policy
+                plan,
+                snapshot(evidence_ref="authority:wp505-digest-mismatch"),
+                policy,
             )
 
     def test_disposition_selects_only_explicit_rule(self):
