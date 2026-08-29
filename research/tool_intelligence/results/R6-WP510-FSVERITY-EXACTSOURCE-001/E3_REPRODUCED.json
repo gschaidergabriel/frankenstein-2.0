@@ -1,0 +1,33 @@
+{
+  "schema": "FRANKENSTEIN2_TRIGGER6_RESEARCH_RESULT/v1",
+  "research_id": "R6-WP510-FSVERITY-EXACTSOURCE-001",
+  "evidence_stage": "E3_REPRODUCED",
+  "status": "REPRODUCED_LOCALLY",
+  "evidence_scope": "LOCAL_DETERMINISTIC_REPRODUCTION_ONLY_NO_F2_TARGET_RUNTIME_OR_PHYSICAL_CREDIT",
+  "environment": "Linux 6.18.35 x86_64 GNU/Linux; isolated ChatGPT container; not the F2 target VPS",
+  "experiment": {
+    "setup": "Write module bytes A to module.py, SHA-256 the path, open that file descriptor, atomically replace the pathname with bytes B, then compare a reopen-by-path with reads/compile from the original open fd. Separately create a memfd with sealing enabled and attempt a post-seal write.",
+    "bytes_A_sha256": "28f14a1719ce7487a9598698661ddb73d77fb2637be5e50b5438496c187d3f43",
+    "bytes_B_sha256": "c0ceca21313d54eeb5250cf875be3642b210634c7a63cccddebe8079d868815f",
+    "path_prehash_sha256": "28f14a1719ce7487a9598698661ddb73d77fb2637be5e50b5438496c187d3f43",
+    "reopened_path_after_atomic_replace_sha256": "c0ceca21313d54eeb5250cf875be3642b210634c7a63cccddebe8079d868815f",
+    "original_open_fd_after_path_replace_sha256": "28f14a1719ce7487a9598698661ddb73d77fb2637be5e50b5438496c187d3f43",
+    "same_open_fd_dev_inode_stable": true,
+    "compiled_same_fd_bytes_value": "A",
+    "prehash_matches_same_fd_consumed_bytes": true,
+    "prehash_matches_reopened_path": false,
+    "memfd_sealing_supported": true,
+    "memfd_postseal_write_blocked": true,
+    "memfd_postseal_write_errno": 1
+  },
+  "observed_result": "A path-level prehash did not constrain a later reopen after atomic pathname replacement; the reopened path consumed B. The already-open file descriptor still yielded A, and compiling the exact bytes read from that fd executed A. Sealed memfd rejected a later write with EPERM in this environment.",
+  "interpretation": "The experiment reproduces the exact TOCTOU class relevant to WP1207: verify-by-path then reopen-by-path is weaker than acquiring an object once and hashing/consuming the same bytes. This supports the ReleaseConsumptionWitness same-byte design and the optional memfd cross-process variant. It does not demonstrate fs-verity, F2 behavior, target-VPS behavior, or promotion readiness.",
+  "falsifier_for_design": "If a Trigger4 F2 ablation on the exact clean target shows the current loader already consumes exactly the same manifest-verified byte objects without pathname reopen or import substitution, the new witness should be reduced to receipt instrumentation rather than a new loader path.",
+  "credit": {
+    "f2_ablation": 0,
+    "target_runtime": 0,
+    "physical_target": 0,
+    "whole_system": 0,
+    "training": 0
+  }
+}
