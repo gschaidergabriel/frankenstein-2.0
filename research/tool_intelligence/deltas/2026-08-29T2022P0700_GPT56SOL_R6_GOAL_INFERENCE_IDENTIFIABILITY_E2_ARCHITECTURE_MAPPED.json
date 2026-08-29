@@ -1,0 +1,102 @@
+{
+  "schema": "FRANKENSTEIN2_TRIGGER6_ARCHITECTURE_MAPPING_E2/v1",
+  "trigger": "6",
+  "research_id": "R6-20260829-GOAL-INFERENCE-IDENTIFIABILITY-GPT56SOL-01",
+  "claim_target": "E2_ARCHITECTURE_MAPPED",
+  "status": "E2_ARCHITECTURE_MAPPED_COMPLETE_NO_BUILD_PROMOTION",
+  "completed_at": "2026-08-29T20:22:00+07:00",
+  "worker": "GPT-5.6 Sol / ChatGPT Trigger-6 organ",
+  "architecture_snapshot": {
+    "wp804_merge_sha": "97759336490f61a3e7036c8bf6d6aebef01f87fd",
+    "f2_main_observed_during_mapping": "e625a1cf536221033bf9319feea7dd724ed21810",
+    "research_entity_main_observed": "d6ca59c908f8cfd665b73fef769ba727b7c536de",
+    "trigger6_protocol_blob": "08571526d33f9a0c06577e2f119bdaf4297ef1c8"
+  },
+  "source_bindings": {
+    "goal_inference_benchmark": {
+      "path": "src/frankenstein2/cognitive_goal_inference_benchmark.py",
+      "blob": "6afe19c24f5abb60196cdeab334827204d2a73ae"
+    },
+    "hyperposition": {
+      "path": "src/frankenstein2/hyperposition.py",
+      "blob": "d49392f5b60ce377373c1ecbe282ae2410557c98"
+    },
+    "epistemic_action_selection": {
+      "path": "src/frankenstein2/epistemic_action_selection.py",
+      "blob": "dd8cf8a30f50f6e04d9549bf9589b6207fde7eb4"
+    },
+    "active_sensing_fabric": {
+      "path": "src/frankenstein2/active_sensing_fabric.py",
+      "blob": "ab006fac3757b617f59195bddaaa25823bef2587"
+    },
+    "information_seeking_benchmark": {
+      "path": "src/frankenstein2/cognitive_information_seeking_benchmark.py",
+      "blob": "55f08d4f8bd4d691e96ede1d9439fa9683ca6980"
+    }
+  },
+  "external_primary_evidence": [
+    "Kim et al., Reward Identification in Inverse Reinforcement Learning, PMLR 2021",
+    "Metelli et al., Towards Theoretical Understanding of Inverse Reinforcement Learning, PMLR 2023",
+    "Shehab et al., Learning true objectives: Linear algebraic characterizations of identifiability in inverse reinforcement learning, PMLR 2024",
+    "Santos et al., An LP-Based Approach for Goal Recognition as Planning, AAAI 2021",
+    "Shvo and McIlraith, Active Goal Recognition, AAAI 2020"
+  ],
+  "observed_architecture": [
+    "WP804 already separates GOAL from ABSTAIN and permits exact goal labels only when declared public evidence uniquely identifies one candidate.",
+    "WP804 collapses all non-identifiable cases to the same ABSTAIN decision in GoalInferenceScore; the score does not retain the public-compatible candidate-goal set.",
+    "Hyperposition already provides a typed authority-free set of unresolved Alternative values with provenance and exact generation/digest binding.",
+    "Hyperposition DiscriminatorCandidate already targets two or more alternatives and carries expected-information-gain and estimated-cost values without action/effect authority.",
+    "Epistemic Action Selection already ranks Hyperposition-bound discriminators against an exact GRID10 plan and emits proposal-only output.",
+    "Active Sensing already compiles an explicit VisualNeed into a permission-bound ObserveIntent and grants no capture, truth, effect or completion authority.",
+    "WP802 currently evaluates a predeclared COMMIT_FIRST or PROBE_THEN_COMMIT public policy; it does not establish that a specific goal-ambiguity set causally selects the discriminating probe."
+  ],
+  "mapping_decision": {
+    "new_persistent_goal_state": "REJECT_REDUNDANT_AND_AUTHORITY_RISK",
+    "new_goal_hypothesis_container": "REJECT_REDUNDANT_WITH_HYPERPOSITION",
+    "reuse_existing_hyperposition": "SUPPORTED",
+    "candidate_delta": "THIN_PUBLIC_GOAL_AMBIGUITY_TO_HYPERPOSITION_ADAPTER_PLUS_PAIRED_FALSIFIER",
+    "build_candidate": false,
+    "trigger4_handoff": false
+  },
+  "proposed_shape": {
+    "name": "F2_PUBLIC_GOAL_AMBIGUITY_HYPERPOSITION_ADAPTER/v0",
+    "flow": "WP804 public ObservationView + CandidateGoal set -> derive public-compatible candidate goal ids -> if cardinality > 1 map each compatible goal to existing Hyperposition Alternative -> existing DiscriminatorCandidate -> existing Epistemic Action Selection -> optional existing Active Sensing path",
+    "persistence": "NONE_REQUIRED; rebuildable projection only",
+    "reverse_authority": "FORBIDDEN",
+    "required_invariants": [
+      "Only the same declared public inputs available to WP804 policy code may enter the adapter.",
+      "Evaluator-only goal labels or hidden fixture state must never enter the Hyperposition projection.",
+      "Compatible-goal membership is candidate structure, not inferred world truth or adopted goal authority.",
+      "No new canonical state store, goal authority, effect path or completion authority is introduced.",
+      "Existing Hyperposition generation/digest/provenance fences remain mandatory.",
+      "The adapter must be pure/deterministic and its output reconstructible from exact public input digests.",
+      "A binary ABSTAIN remains valid when an external interface requires only the decision; the richer set is an optional internal research projection, not a replacement truth label."
+    ]
+  },
+  "expected_benefit": {
+    "capability": "Preserve which goals remain plausible after an abstention so the existing discriminator/action-selection machinery can choose evidence targeted at the actual ambiguity.",
+    "token_cost": "Expected near-zero model-token cost because the proposed bridge is deterministic typed state rather than additional LLM arbitration.",
+    "runtime_cost": "Expected O(number_of_candidate_goals) deterministic set construction plus existing Hyperposition objects; unmeasured until E4.",
+    "architecture_reuse": "High: reuses WP804, Hyperposition, Epistemic Action Selection and Active Sensing instead of adding a second hypothesis system."
+  },
+  "counterhypothesis": {
+    "statement": "The richer ambiguity set provides no measurable benefit beyond binary ABSTAIN because downstream information-seeking can derive all useful probes directly from ObservationView or because existing Hyperposition inputs already encode equivalent ambiguity elsewhere.",
+    "falsifier": "Construct matched held-out microworld pairs with identical initial ABSTAIN outcome but different public-compatible goal sets and different uniquely useful probe actions. Compare a binary-ABSTAIN baseline against the thin Hyperposition adapter under the same public evidence and action budget. If the adapter does not improve correct probe selection / downstream commit accuracy or merely reproduces already-existing derived state, retire the delta."
+  },
+  "evidence_ceiling": {
+    "level": "E2_ARCHITECTURE_MAPPED",
+    "source_read": true,
+    "architecture_mapping": true,
+    "f2_experiment_executed": false,
+    "architecture_credit": 0,
+    "runtime_credit": 0,
+    "physical_grid10_credit": 0,
+    "gwt_credit": 0,
+    "whole_system_credit": 0,
+    "training_credit": 0
+  },
+  "next_recommended_trigger6_slot": "EXPERIMENTAL_FALSIFIER",
+  "next_recommended_objective": "E4_F2_ABLATION_GOAL_AMBIGUITY_TO_HYPERPOSITION",
+  "migration_reuse_score": "EASIER_CROSS_MODE",
+  "pending_research_sqlite_sync": "PENDING"
+}
