@@ -1,0 +1,103 @@
+{
+  "schema": "TRIGGER6_RESEARCH_DELTA/v1",
+  "research_id": "R6-20260830-QWEN35-RECURRENT-RESTORE-VALIDITY-GPT56SOL-01",
+  "trigger": "6",
+  "worker": "GPT-5.6 Sol / ChatGPT Trigger-6 research organ",
+  "claim_target": "E2_ARCHITECTURE_MAPPED",
+  "evidence_level": "EXTERNAL_PRIMARY_PLUS_CURRENT_F2_SOURCE_NO_TARGET_RUNTIME",
+  "f2_snapshot_sha": "5e40117623d673732daf47dfebb0635754639dab",
+  "current_f2_context": {
+    "trigger7_current_head_message": "trigger7: correct VPS sandbox receipt scope and Qwen baseline gate",
+    "qwen_baseline_delta": "research/local_voice/models/T7_QWEN35_4B_OFFICIAL_BASELINE_CONFOUND_CONTROL_DELTA_2026-08-30.json",
+    "observed_existing_risk_coverage": [
+      "Qwen3.5 multi-turn prompt reprocessing",
+      "hybrid cache regression",
+      "post-conversion load validation"
+    ],
+    "novel_gap": "Current risk coverage does not bind slot save/restore API success fields to an effective post-restart recurrent-state witness."
+  },
+  "external_primary_evidence": [
+    {
+      "source": "ggml-org/llama.cpp tools/server README",
+      "claim": "The slot save/restore API reports n_saved/n_written and n_restored/n_read as operation results.",
+      "classification": "UPSTREAM_DOCUMENTED_API_SURFACE"
+    },
+    {
+      "source": "ggml-org/llama.cpp issue #26676",
+      "date": "2026-08-06",
+      "claim": "A Qwen3.5-9B hybrid/recurrent reproduction reports restore reading the saved file and returning n_restored while the following request starts with cache_n=0 and fully re-prefills.",
+      "classification": "UPSTREAM_NEGATIVE_EVIDENCE_NOT_F2_FAILURE"
+    },
+    {
+      "source": "ggml-org/llama.cpp issue #25913",
+      "date": "2026-07",
+      "claim": "A separate hybrid/recurrent reproduction reports save/restore success counts while prompt reuse is lost after restore because recurrent checkpoints are not effectively persisted.",
+      "classification": "UPSTREAM_NEGATIVE_EVIDENCE_NOT_F2_FAILURE"
+    },
+    {
+      "source": "ggml-org/llama.cpp discussion #24043",
+      "date": "2026-06-02",
+      "claim": "A Qwen3.5/DeltaNet persistence report describes non-empty slot files but loss of recurrent state and forced full prompt reprocessing after restore.",
+      "classification": "UPSTREAM_COMMUNITY_CORROBORATION"
+    }
+  ],
+  "architecture_delta": {
+    "name": "RESTORE_EFFECTIVE_STATE_WITNESS/v1",
+    "decision": "Treat slot save/restore return counts as serialization/transport receipts only. They must not grant effective accelerator-state restoration, latency-recovery, or recurrent-state credit without a post-restore behavioral/performance witness.",
+    "authority_boundary": "Conversation transcript, canonical state, decisions and effects remain outside llama.cpp slot state. KV/SSM/DeltaNet state is a rebuildable runtime projection/optimization only.",
+    "credit_split": {
+      "SERIALIZATION_RECEIPT": "n_saved/n_written/n_restored/n_read and saved artifact identity only",
+      "LOGICAL_CONVERSATION_RECOVERY": "same canonical transcript/state can produce an admissible next turn, including by full deterministic replay",
+      "COMPUTE_STATE_RESTORE": "post-restart probe demonstrates actual reusable model state rather than full re-prefill",
+      "LATENCY_RECOVERY": "post-restore TTFT/prefill cost remains inside declared voice-session budget"
+    },
+    "anti_false_positive_rule": "RESTORE_HTTP_200 + N_RESTORED_GT_0 != COMPUTE_STATE_RESTORED"
+  },
+  "hypothesis": "For hybrid Qwen3.5 on some llama.cpp builds, the slot restore receipt can be syntactically successful while recurrent compute state is ineffective, making receipt-only recovery acceptance falsely positive.",
+  "counterhypothesis": "Frankenstein does not require persisted KV/SSM state for correctness; replaying the canonical transcript after restart may be safer and sufficiently fast for short German voice sessions, so slot persistence can remain an optional accelerator optimization.",
+  "cheapest_high_information_falsifier": {
+    "target_owner": "Trigger 4 / Trigger 7 runtime lane",
+    "environment": "authorized exact target runtime only",
+    "fixed_identity": [
+      "exact Qwen3.5-4B GGUF SHA-256",
+      "exact llama.cpp commit/build",
+      "exact chat template/tokenizer",
+      "exact VoiceSessionCapsule corpus",
+      "exact hardware/runtime receipt"
+    ],
+    "probe_sequence": [
+      "A: cold deterministic multi-turn prefix; record prompt_n/cache_n, TTFT and logs",
+      "B: save occupied slot; hash slot artifact; record n_saved/n_written",
+      "C: restart server; restore same slot; record n_restored/n_read",
+      "D: send byte-identical continuation pinned to restored slot; record prompt_n/cache_n, TTFT and forced-full-reprocessing warnings",
+      "E: repeat with transcript replay but no slot restore as the correctness/control baseline",
+      "F: repeat at short, medium and long voice-history lengths"
+    ],
+    "accept_compute_restore_only_if": "Post-restart D demonstrates material prefix-state reuse relative to E/cold and no evidence of full-prefix recomputation under the declared runtime semantics.",
+    "accept_logical_recovery_if": "Canonical replay yields the intended next-turn behavior even if compute-state restore fails.",
+    "reject_latency_recovery_if": "Full replay or ineffective restore violates the declared German voice TTFT budget at any required history length."
+  },
+  "failure_modes_to_preserve": [
+    "restore count positive but cache_n remains zero",
+    "recurrent/SSM checkpoint omitted while KV-like bytes are persisted",
+    "server build changes cache semantics",
+    "short-context test hides long-context latency blow-up",
+    "semantic correctness survives via full replay and is incorrectly reported as compute-state restoration",
+    "slot artifact is treated as canonical conversation memory"
+  ],
+  "recommended_f2_policy": [
+    "Do not make llama.cpp slot state a truth or memory authority.",
+    "Prefer canonical transcript/state replay as the correctness recovery path.",
+    "Use slot restore only as a measured optimization after RESTORE_EFFECTIVE_STATE_WITNESS/v1 passes at exact model/runtime identity.",
+    "Version-bind any positive compute-state restore credit to model artifact, llama.cpp build, cache configuration and chat template."
+  ],
+  "handoff": "trigger4/inbox/tool_research/R6-QWEN35-RECURRENT-RESTORE-EFFECTIVE-WITNESS-GPT56SOL-01.json",
+  "credits": {
+    "research_delta": "E2_ARCHITECTURE_MAPPED",
+    "target_runtime_credit": 0,
+    "compute_state_restore_credit": 0,
+    "latency_recovery_credit": 0,
+    "integration_credit": 0,
+    "whole_system_credit": 0
+  }
+}
