@@ -1,9 +1,12 @@
 """F2-WP-801 held-out ORIENTATION benchmark on the accepted WP800 micro-world.
 
-Only public ObservationView plus public action history reaches the policy logic. Hidden
-MicroWorldFixture nodes, transitions, ground truth and evaluator scores remain inside the
-runner. This component characterizes benchmark discrimination only; it does not establish
-GRID10/GWT/J-Space or whole-system superiority and grants no runtime/effect authority.
+Only public ObservationView plus public action history reaches policy logic. Hidden
+MicroWorldFixture nodes, transitions, ground truth and evaluator scores remain evaluator-side.
+Comparison replays the recorded public trace through WP800 before trusting result fields, so
+post-construction result mutation fails closed at the consumer boundary.
+
+This component characterizes benchmark discrimination only. It does not establish GRID10,
+GWT/J-Space, target-runtime, causal, effect, completion or whole-system superiority credit.
 """
 from __future__ import annotations
 
@@ -114,7 +117,11 @@ class OrientationPolicy:
         _positive_int("max_public_history_entries", self.max_public_history_entries)
 
     @classmethod
-    def memoryless(cls, *, policy_id: str = "baseline.memoryless-canonical-first.v1") -> "OrientationPolicy":
+    def memoryless(
+        cls,
+        *,
+        policy_id: str = "baseline.memoryless-canonical-first.v1",
+    ) -> "OrientationPolicy":
         return cls(POLICY_SCHEMA, policy_id, MEMORYLESS_CANONICAL_FIRST, 1)
 
     @classmethod
@@ -156,13 +163,7 @@ class PublicTraceEntry:
     action_id: str
 
     def __post_init__(self) -> None:
-        if self.schema != TRACE_ENTRY_SCHEMA:
-            raise OrientationBenchmarkError("trace-entry schema mismatch")
-        _nonnegative_int("step_index", self.step_index)
-        _sha256("observation_view_sha256", self.observation_view_sha256)
-        _identifier("observation_ref", self.observation_ref)
-        _sha256("observation_payload_sha256", self.observation_payload_sha256)
-        _identifier("action_id", self.action_id)
+        _validate_trace_entry_fields(self)
 
     def as_dict(self) -> dict[str, Any]:
         return {
@@ -178,6 +179,18 @@ class PublicTraceEntry:
         return _digest(self.as_dict())
 
 
+def _validate_trace_entry_fields(entry: PublicTraceEntry) -> None:
+    if type(entry) is not PublicTraceEntry:
+        raise OrientationBenchmarkError("trace entry must be exact concrete PublicTraceEntry")
+    if entry.schema != TRACE_ENTRY_SCHEMA:
+        raise OrientationBenchmarkError("trace-entry schema mismatch")
+    _nonnegative_int("step_index", entry.step_index)
+    _sha256("observation_view_sha256", entry.observation_view_sha256)
+    _identifier("observation_ref", entry.observation_ref)
+    _sha256("observation_payload_sha256", entry.observation_payload_sha256)
+    _identifier("action_id", entry.action_id)
+
+
 def _select_public_action(
     *,
     policy: OrientationPolicy,
@@ -190,7 +203,9 @@ def _select_public_action(
         raise OrientationBenchmarkError("policy must be exact concrete OrientationPolicy")
     if type(observation) is not ObservationView:
         raise OrientationBenchmarkError("observation must be exact concrete ObservationView")
-    if type(public_history) is not tuple or any(type(item) is not PublicTraceEntry for item in public_history):
+    if type(public_history) is not tuple or any(
+        type(item) is not PublicTraceEntry for item in public_history
+    ):
         raise OrientationBenchmarkError("public_history must contain exact PublicTraceEntry values")
     if len(public_history) > policy.max_public_history_entries:
         raise OrientationBenchmarkError("public history exceeds policy budget")
@@ -236,31 +251,11 @@ class OrientationRunResult:
     _origin: InitVar[object | None] = None
 
     def __post_init__(self, _origin: object | None) -> None:
-        if self.schema != RESULT_SCHEMA:
-            raise OrientationBenchmarkError("result schema mismatch")
-        if self.classification != RESULT_CLASSIFICATION:
-            raise OrientationBenchmarkError("result classification mismatch")
-        _identifier("result_id", self.result_id)
-        if type(self.run_descriptor) is not RunDescriptor:
-            raise OrientationBenchmarkError("run_descriptor must be exact concrete RunDescriptor")
-        _identifier("policy_id", self.policy_id)
-        _sha256("policy_sha256", self.policy_sha256)
-        _identifier("episode_id", self.episode_id)
-        _nonnegative_int("episode_generation", self.episode_generation)
-        if type(self.public_trace) is not tuple or any(type(item) is not PublicTraceEntry for item in self.public_trace):
-            raise OrientationBenchmarkError("public_trace must contain exact PublicTraceEntry values")
-        _nonnegative_int("steps_used", self.steps_used)
-        if self.steps_used != len(self.public_trace):
-            raise OrientationBenchmarkError("steps_used must equal public trace length")
-        if type(self.terminal_reached) is not bool or type(self.step_budget_exhausted) is not bool:
-            raise OrientationBenchmarkError("terminal/budget flags must be booleans")
-        if self.terminal_reached and self.step_budget_exhausted:
-            raise OrientationBenchmarkError("terminal_reached and step_budget_exhausted are mutually exclusive")
-        if type(self.evaluator_score) is not int:
-            raise OrientationBenchmarkError("evaluator_score must be an integer")
-        _sha256("final_observation_view_sha256", self.final_observation_view_sha256)
+        _validate_result_fields(self)
         if _origin is not _RUNNER_ORIGIN:
-            raise OrientationBenchmarkError("OrientationRunResult must be created by run_orientation_policy")
+            raise OrientationBenchmarkError(
+                "OrientationRunResult must be created by run_orientation_policy"
+            )
 
     def as_dict(self) -> dict[str, Any]:
         return {
@@ -282,6 +277,153 @@ class OrientationRunResult:
 
     def sha256(self) -> str:
         return _digest(self.as_dict())
+
+
+def _validate_result_fields(result: OrientationRunResult) -> None:
+    if type(result) is not OrientationRunResult:
+        raise OrientationBenchmarkError("result must be exact concrete OrientationRunResult")
+    if result.schema != RESULT_SCHEMA:
+        raise OrientationBenchmarkError("result schema mismatch")
+    if result.classification != RESULT_CLASSIFICATION:
+        raise OrientationBenchmarkError("result classification mismatch")
+    _identifier("result_id", result.result_id)
+    if type(result.run_descriptor) is not RunDescriptor:
+        raise OrientationBenchmarkError("run_descriptor must be exact concrete RunDescriptor")
+    _identifier("policy_id", result.policy_id)
+    _sha256("policy_sha256", result.policy_sha256)
+    _identifier("episode_id", result.episode_id)
+    _nonnegative_int("episode_generation", result.episode_generation)
+    if type(result.public_trace) is not tuple or any(
+        type(item) is not PublicTraceEntry for item in result.public_trace
+    ):
+        raise OrientationBenchmarkError("public_trace must contain exact PublicTraceEntry values")
+    for entry in result.public_trace:
+        _validate_trace_entry_fields(entry)
+    _nonnegative_int("steps_used", result.steps_used)
+    if result.steps_used != len(result.public_trace):
+        raise OrientationBenchmarkError("steps_used must equal public trace length")
+    if type(result.terminal_reached) is not bool or type(result.step_budget_exhausted) is not bool:
+        raise OrientationBenchmarkError("terminal/budget flags must be booleans")
+    if result.terminal_reached and result.step_budget_exhausted:
+        raise OrientationBenchmarkError(
+            "terminal_reached and step_budget_exhausted are mutually exclusive"
+        )
+    if type(result.evaluator_score) is not int:
+        raise OrientationBenchmarkError("evaluator_score must be an integer")
+    _sha256("final_observation_view_sha256", result.final_observation_view_sha256)
+
+
+def _result_identity_payload(
+    *,
+    run_descriptor_sha256: str,
+    policy_sha256: str,
+    episode_id: str,
+    episode_generation: int,
+    public_trace: tuple[PublicTraceEntry, ...],
+    terminal_reached: bool,
+    step_budget_exhausted: bool,
+    steps_used: int,
+    evaluator_score: int,
+    final_observation_view_sha256: str,
+) -> dict[str, Any]:
+    return {
+        "run_descriptor_sha256": run_descriptor_sha256,
+        "policy_sha256": policy_sha256,
+        "episode_id": episode_id,
+        "episode_generation": episode_generation,
+        "public_trace_sha256": _digest([entry.as_dict() for entry in public_trace]),
+        "terminal_reached": terminal_reached,
+        "step_budget_exhausted": step_budget_exhausted,
+        "steps_used": steps_used,
+        "evaluator_score": evaluator_score,
+        "final_observation_view_sha256": final_observation_view_sha256,
+    }
+
+
+def _replay_validate_orientation_result(
+    fixture: MicroWorldFixture,
+    result: OrientationRunResult,
+) -> None:
+    """Reconstruct evaluator evidence before a result is consumed by comparison.
+
+    Frozen dataclasses are an ergonomic guard, not an integrity boundary: low-level Python
+    mutation can bypass ``frozen=True``. Therefore every comparison replays the exact recorded
+    public trace through the accepted WP800 transition API and compares all derived evaluator
+    fields plus the content-bound ``result_id``. This is repository benchmark provenance only.
+    """
+
+    if type(fixture) is not MicroWorldFixture:
+        raise OrientationBenchmarkError("fixture must be exact concrete MicroWorldFixture")
+    _validate_result_fields(result)
+    try:
+        result.run_descriptor.assert_matches_fixture(fixture)
+    except CognitiveMicroWorldError as exc:
+        raise OrientationBenchmarkError("result run descriptor fails fixture revalidation") from exc
+    if result.run_descriptor.system_under_test_ref != result.policy_id:
+        raise OrientationBenchmarkError("result policy identity is not bound to run descriptor")
+
+    state, observation = begin_episode(
+        fixture,
+        episode_id=result.episode_id,
+        episode_generation=result.episode_generation,
+    )
+    for entry in result.public_trace:
+        if observation.terminal:
+            raise OrientationBenchmarkError("result trace continues after terminal observation")
+        if state.step_index >= fixture.max_steps:
+            raise OrientationBenchmarkError("result trace continues after step budget")
+        expected_observation_sha = observation.sha256()
+        if (
+            entry.step_index != state.step_index
+            or entry.observation_view_sha256 != expected_observation_sha
+            or entry.observation_ref != observation.observation_ref
+            or entry.observation_payload_sha256 != observation.observation_sha256
+        ):
+            raise OrientationBenchmarkError("result trace observation lineage fails replay revalidation")
+        if entry.action_id not in set(observation.available_action_ids):
+            raise OrientationBenchmarkError("result trace action is unavailable during replay")
+        request = ActionRequest.for_observation(observation, action_id=entry.action_id)
+        try:
+            state, observation, _ = step_episode(fixture, state=state, request=request)
+        except CognitiveMicroWorldError as exc:
+            raise OrientationBenchmarkError("result trace action fails evaluator replay") from exc
+
+    if not observation.terminal and state.step_index < fixture.max_steps:
+        raise OrientationBenchmarkError("result trace ended before runner termination condition")
+
+    terminal_reached = observation.terminal
+    exhausted = not terminal_reached and state.step_index >= fixture.max_steps
+    expected = (
+        terminal_reached,
+        exhausted,
+        state.step_index,
+        state.cumulative_score,
+        observation.sha256(),
+    )
+    actual = (
+        result.terminal_reached,
+        result.step_budget_exhausted,
+        result.steps_used,
+        result.evaluator_score,
+        result.final_observation_view_sha256,
+    )
+    if actual != expected:
+        raise OrientationBenchmarkError("result evaluator fields fail replay revalidation")
+
+    payload = _result_identity_payload(
+        run_descriptor_sha256=result.run_descriptor.sha256(),
+        policy_sha256=result.policy_sha256,
+        episode_id=result.episode_id,
+        episode_generation=result.episode_generation,
+        public_trace=result.public_trace,
+        terminal_reached=terminal_reached,
+        step_budget_exhausted=exhausted,
+        steps_used=state.step_index,
+        evaluator_score=state.cumulative_score,
+        final_observation_view_sha256=observation.sha256(),
+    )
+    if result.result_id != "orientation-result:" + _digest(payload):
+        raise OrientationBenchmarkError("result content digest fails replay revalidation")
 
 
 def run_orientation_policy(
@@ -307,6 +449,8 @@ def run_orientation_policy(
         raise OrientationBenchmarkError("condition must be BASELINE or INTERVENTION")
     _identifier("episode_id", episode_id)
     _nonnegative_int("episode_generation", episode_generation)
+    if system_under_test_ref != policy.policy_id:
+        raise OrientationBenchmarkError("system_under_test_ref must equal exact policy_id")
 
     descriptor = RunDescriptor.for_fixture(
         fixture,
@@ -349,19 +493,20 @@ def run_orientation_policy(
 
     terminal_reached = observation.terminal
     exhausted = not terminal_reached and state.step_index >= fixture.max_steps
-    payload = {
-        "run_descriptor_sha256": descriptor.sha256(),
-        "policy_sha256": policy.sha256(),
-        "episode_id": episode_id,
-        "episode_generation": episode_generation,
-        "public_trace_sha256": _digest([entry.as_dict() for entry in history]),
-        "terminal_reached": terminal_reached,
-        "step_budget_exhausted": exhausted,
-        "steps_used": len(history),
-        "evaluator_score": state.cumulative_score,
-        "final_observation_view_sha256": observation.sha256(),
-    }
-    return OrientationRunResult(
+    trace = tuple(history)
+    payload = _result_identity_payload(
+        run_descriptor_sha256=descriptor.sha256(),
+        policy_sha256=policy.sha256(),
+        episode_id=episode_id,
+        episode_generation=episode_generation,
+        public_trace=trace,
+        terminal_reached=terminal_reached,
+        step_budget_exhausted=exhausted,
+        steps_used=len(trace),
+        evaluator_score=state.cumulative_score,
+        final_observation_view_sha256=observation.sha256(),
+    )
+    result = OrientationRunResult(
         schema=RESULT_SCHEMA,
         result_id="orientation-result:" + _digest(payload),
         run_descriptor=descriptor,
@@ -369,14 +514,16 @@ def run_orientation_policy(
         policy_sha256=policy.sha256(),
         episode_id=episode_id,
         episode_generation=episode_generation,
-        public_trace=tuple(history),
+        public_trace=trace,
         terminal_reached=terminal_reached,
         step_budget_exhausted=exhausted,
-        steps_used=len(history),
+        steps_used=len(trace),
         evaluator_score=state.cumulative_score,
         final_observation_view_sha256=observation.sha256(),
         _origin=_RUNNER_ORIGIN,
     )
+    _replay_validate_orientation_result(fixture, result)
+    return result
 
 
 @dataclass(frozen=True, slots=True)
@@ -407,7 +554,9 @@ class OrientationComparison:
         if self.terminal_delta not in {"SAME", "BASELINE_ONLY", "INTERVENTION_ONLY"}:
             raise OrientationBenchmarkError("unsupported terminal_delta")
         if _origin is not _COMPARISON_ORIGIN:
-            raise OrientationBenchmarkError("OrientationComparison must be created by compare_orientation_runs")
+            raise OrientationBenchmarkError(
+                "OrientationComparison must be created by compare_orientation_runs"
+            )
 
     def as_dict(self) -> dict[str, Any]:
         return {
@@ -432,12 +581,18 @@ def compare_orientation_runs(
     baseline: OrientationRunResult,
     intervention: OrientationRunResult,
 ) -> OrientationComparison:
-    """Produce descriptive matched comparison; no causal or system-superiority promotion."""
+    """Produce descriptive matched comparison after exact evaluator replay revalidation."""
 
     if type(fixture) is not MicroWorldFixture:
         raise OrientationBenchmarkError("fixture must be exact concrete MicroWorldFixture")
     if type(baseline) is not OrientationRunResult or type(intervention) is not OrientationRunResult:
-        raise OrientationBenchmarkError("comparison requires exact concrete OrientationRunResult values")
+        raise OrientationBenchmarkError(
+            "comparison requires exact concrete OrientationRunResult values"
+        )
+
+    _replay_validate_orientation_result(fixture, baseline)
+    _replay_validate_orientation_result(fixture, intervention)
+
     if baseline.run_descriptor.condition != BASELINE:
         raise OrientationBenchmarkError("baseline result must have BASELINE condition")
     if intervention.run_descriptor.condition != INTERVENTION:
@@ -446,7 +601,9 @@ def compare_orientation_runs(
         intervention.episode_id,
         intervention.episode_generation,
     ):
-        raise OrientationBenchmarkError("matched orientation runs must use the same episode identity/generation")
+        raise OrientationBenchmarkError(
+            "matched orientation runs must use the same episode identity/generation"
+        )
 
     pair = MatchedRunPair.create(
         fixture=fixture,
