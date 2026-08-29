@@ -1,0 +1,136 @@
+{
+  "schema": "FRANKENSTEIN2_TRIGGER6_ARCHITECTURE_DELTA/v1",
+  "trigger": "6",
+  "research_id": "R6-WP700-XDG-PORTAL-PIPEWIRE-PERMISSIONS-001",
+  "claim_target": "E2_ARCHITECTURE_MAPPED_REVOCATION_LEASE",
+  "status": "E2_ARCHITECTURE_MAPPED_NO_BUILD_RUNTIME_OR_WHOLE_SYSTEM_CREDIT",
+  "completed_at": "2026-08-29T18:25:30+07:00",
+  "worker": "GPT-5.6-Sol:Triggerword-6-organ",
+  "evidence_roots": {
+    "claim": "research/tool_intelligence/claims/R6-WP700-XDG-PORTAL-PIPEWIRE-PERMISSIONS-001/E2_ARCHITECTURE_MAPPED_REVOCATION_LEASE.json",
+    "primary_e1": "research/tool_intelligence/receipts/R6-WP700-XDG-PORTAL-PIPEWIRE-PERMISSIONS-001_E1_SOURCE_READ_OUTCOME.json",
+    "parallel_e1_fused": "research/tool_intelligence/deltas/2026-08-29T1822P0700_GPT56SOL_XDG_PORTAL_PIPEWIRE_CAPTURE_E1_SOURCE_READ.json@b479dc279aa45b5bb059c7b6f1d7d8f8642437ff",
+    "xdg_screencast": "flatpak/xdg-desktop-portal@8b8138a9651a54903daee1ade31d9b5634cd8042:data/org.freedesktop.portal.ScreenCast.xml#ddec479990535855f26b267747cb02de5499dbb1",
+    "xdg_session": "flatpak/xdg-desktop-portal@8b8138a9651a54903daee1ade31d9b5634cd8042:data/org.freedesktop.portal.Session.xml#6bbbd9f136fb29cda157434560d6b55150e3daa5",
+    "xdg_camera": "flatpak/xdg-desktop-portal@8b8138a9651a54903daee1ade31d9b5634cd8042:data/org.freedesktop.portal.Camera.xml#b50e0ca7ff65a49946316888f3ee052cfdb56429",
+    "f2_host_permissions": "src/frankenstein2/perception_host_permissions.py#940b95efcce3b64fff59764da7f5c2e0f0da6dc7",
+    "f2_perception_fabric": "src/frankenstein2/perception_fabric.py#30d81c46295ec563543e0d10c0d1c8900792e07a",
+    "f2_active_sensing": "src/frankenstein2/active_sensing_fabric.py#ab006fac3757b617f59195bddaaa25823bef2587",
+    "f2_wp708_observe_intent": "src/frankenstein2/observe_intent.py#fe731d4b5b6996dd4c30e6d89127e437b5e44083",
+    "f2_capture_broker": "src/frankenstein2/perception_capture_broker.py#a9bba67efaee912e4c0fdfc0943a7c31de9e7ced"
+  },
+  "observed_architecture_facts": [
+    {
+      "id": "E2-F2-01",
+      "classification": "CURRENT_SOURCE",
+      "fact": "HostPermissionGrant models native permission as a grant with time validity, adapter id and native_permission_ref. resolve_effective_perception_snapshot checks grant validity only at resolution time and derives an effective-host-permission marker from immutable hashes/capabilities/time bounds."
+    },
+    {
+      "id": "E2-F2-02",
+      "classification": "CURRENT_SOURCE",
+      "fact": "perception_fabric.ObserveIntent.validate_against revalidates exact snapshot digest and is_valid_at(now), but the PerceptionCapabilitySnapshot itself has no native portal/PipeWire session-liveness or revocation state. A same immutable snapshot remains valid until its expiry unless some external component replaces or expires it."
+    },
+    {
+      "id": "E2-F2-03",
+      "classification": "CURRENT_SOURCE",
+      "fact": "active_sensing_fabric.compile_observe_intent requires the effective-host-permission provenance marker before compilation. This proves host evidence was incorporated at compile time, not that the native permission/session is still alive at later capture time."
+    },
+    {
+      "id": "E2-F2-04",
+      "classification": "CURRENT_SOURCE",
+      "fact": "WP708 observe_intent.py separately performs exact permission-snapshot revalidation immediately before capture/analysis, but against RetinaPermissionSnapshot. It cannot detect an OS/portal revocation unless that external revocation has first changed the snapshot presented to it."
+    },
+    {
+      "id": "E2-F2-05",
+      "classification": "CURRENT_SOURCE",
+      "fact": "CaptureOwnerLease binds source id/generation, owner id, open time, source hash and broker-policy hash. It carries no host-grant digest, effective-permission digest or native-session validation digest. acquire_owner therefore proves logical single ownership, not current host authorization."
+    },
+    {
+      "id": "E2-F2-06",
+      "classification": "CURRENT_SOURCE",
+      "fact": "publish_frame validates active logical owner lease, source generation and monotonic frame ordering. It does not re-check host authorization. The module explicitly delegates actual hardware/native capture to a future local adapter."
+    },
+    {
+      "id": "E2-F2-07",
+      "classification": "CURRENT_SOURCE_CONTRADICTION",
+      "fact": "perception_fabric.py and observe_intent.py both publish schema identifier FRANKENSTEIN2_OBSERVE_INTENT/v1 for structurally different dataclasses/fields and different permission snapshot models. This is an ABI collision that should be reconciled before treating either path as the single integration authority."
+    }
+  ],
+  "external_constraints_distilled": [
+    "XDG ScreenCast sessions can close asynchronously and Session.Closed is the native lifecycle signal.",
+    "D-Bus creator disappearance closes its sessions.",
+    "ScreenCast restore_token is single-use persistence/restore state and is not current liveness proof.",
+    "PipeWire/WirePlumber permissions can be dynamically changed/revoked during a client lifetime.",
+    "A portal-provided PipeWire remote is a restricted live capability and raw file descriptors are ephemeral process resources, not durable state."
+  ],
+  "primary_hypothesis": {
+    "statement": "F2 requires a fresh execution-time host-permission witness between immutable planning permission and logical CaptureOwner acquisition. Compile-time host-bound snapshots alone are insufficient for asynchronous native revocation.",
+    "confidence": 0.98,
+    "reason": "Native authorization can change without changing the already-derived immutable F2 snapshot. The capture broker currently has no host-permission binding."
+  },
+  "counterhypothesis": {
+    "statement": "A separate execution lease is unnecessary if every host grant has a very short finite TTL and every native revocation synchronously republishes a new current permission snapshot before any capture can proceed.",
+    "confidence": 0.28,
+    "falsifier": "Close/revoke a native session after F2 permission compilation but before logical CaptureOwner acquisition while remaining inside the grant TTL. If current F2 validation/acquisition can still succeed without a native liveness read, TTL/snapshot-only semantics are insufficient."
+  },
+  "architecture_delta_candidate": {
+    "name": "HOST_PERMISSION_EXECUTION_LEASE",
+    "classification": "NONCANONICAL_EPHEMERAL_NATIVE_CAPABILITY_WITNESS_NOT_WORLD_TRUTH_EFFECT_OR_COMPLETION_AUTHORITY",
+    "placement": "host adapter -> execution validation -> CaptureOwner acquisition",
+    "minimal_fields": [
+      "lease_id",
+      "source_id",
+      "source_generation",
+      "host_adapter_id",
+      "host_permission_grant_sha256",
+      "effective_permission_snapshot_sha256",
+      "native_session_ref_digest",
+      "native_source_instance_ref_digest",
+      "validated_monotonic_ns",
+      "expires_monotonic_ns",
+      "native_revocation_generation",
+      "provenance_refs"
+    ],
+    "invariants": [
+      "Lease must be produced by a source-specific native adapter after a live permission/session check; arbitrary caller text cannot self-grant it.",
+      "Lease must be finite-lived. No indefinite native execution lease for revocable portal/device permissions.",
+      "Lease source_id/source_generation must match the source and CaptureOwner generation.",
+      "Lease must bind the exact host-grant and effective permission snapshot digests used by planning.",
+      "Raw D-Bus object paths, PipeWire file descriptors and other live handles remain process-local; durable receipts store typed digests/identities only where safe and useful.",
+      "Session Closed / D-Bus owner loss / terminal native stream error invalidates the lease and forces CaptureOwner release. Reopening/restoring creates a new native execution lease and should advance F2 source generation when the native source instance changes.",
+      "Restore tokens never satisfy this lease.",
+      "The lease grants sensor execution only to the local capture adapter path; it grants no canonical world fact, GWT fact, effect or completion authority."
+    ]
+  },
+  "capture_broker_binding_delta": {
+    "preferred": "CaptureOwnerLease (or an admitted wrapper replacing it at integration) binds host_permission_execution_lease_sha256 and effective_permission_snapshot_sha256. acquire_owner rejects missing/stale/mismatched execution lease. publish_frame is only valid while that bound native lease is live for capture_monotonic_ns; asynchronous revocation releases owner and prevents new frame refs.",
+    "why": "The broker is the single-owner choke point. Binding permission freshness here prevents every downstream consumer from inventing its own native permission semantics while keeping the OS adapter outside canonical world/effect authority."
+  },
+  "observe_intent_abi_reconciliation": {
+    "finding": "Two incompatible FRANKENSTEIN2_OBSERVE_INTENT/v1 shapes exist.",
+    "recommended_resolution": "Before host integration, choose one canonical v2 ObserveIntent contract or explicitly rename/version the WP708 Retina-specific contract. The admitted execution path should have one exact current permission digest and one native execution-lease binding, not two same-version ABIs.",
+    "nonclaim": "This E2 does not select or implement the final migration because Trigger4 owns product build/integration."
+  },
+  "source_specific_adapter_notes": {
+    "SCREENCAST_DISPLAY_WINDOW": "Use portal Session lifecycle; session closure is revocation/liveness input. Preserve portal stream id as logical mapping aid, and use PipeWire object.serial/pipewire-serial rather than reusable node id for a native stream instance when available.",
+    "CAMERA": "Use Camera AccessCamera/OpenPipeWireRemote permission semantics. Do not fabricate a ScreenCast Session when the native Camera portal contract is different; map both to the common F2 execution-lease ABI through source-specific adapters.",
+    "BROWSER_RENDERED_OR_STRUCTURAL": "Use the browser's native permission/lifecycle semantics; do not inherit XDG details unless the actual host path uses them."
+  },
+  "trigger4_handoff_acceptance_tests": [
+    "T1_COMPILE_THEN_NATIVE_REVOKE: compile/admit with valid host evidence, signal native revoke before owner acquisition, require acquisition failure.",
+    "T2_REVOKE_AFTER_OWNER_ACQUIRE: revoke/close native session after owner acquisition, require owner release/invalidation and reject subsequent publish_frame; frame count must not advance.",
+    "T3_REOPEN_RESTORE: restored/reopened source cannot reuse prior execution lease; new session/source instance gets a new lease and appropriate source generation.",
+    "T4_RESTORE_TOKEN_NEGATIVE: possession of restore token alone cannot create execution lease.",
+    "T5_ARBITRARY_NATIVE_REF_NEGATIVE: caller-supplied native_permission_ref without adapter validation cannot create execution lease.",
+    "T6_ABI_COLLISION: incompatible ObserveIntent structures cannot both serialize as the same schema/version in admitted integration.",
+    "T7_BOUNDARY: no permission/session receipt grants world-truth, EffectGate bypass, completion or model-output authority."
+  ],
+  "next_high_information_discriminator": "E3 deterministic stale-revocation fixture against exact current source: derive an effective host-bound snapshot, compile/validate it, model native session closure without changing the immutable snapshot, then demonstrate that current F2 source-level checks cannot observe the closure and logical CaptureOwner acquisition remains possible. This is a source-level falsifier only, not native runtime evidence.",
+  "evidence_level": "E2_ARCHITECTURE_MAPPED",
+  "research_credit": 1,
+  "architecture_mapping_credit": 1,
+  "product_build_credit": 0,
+  "runtime_credit": 0,
+  "vps_credit": 0,
+  "whole_system_credit": 0
+}
