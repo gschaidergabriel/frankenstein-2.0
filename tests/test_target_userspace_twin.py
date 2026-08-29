@@ -95,6 +95,16 @@ class TargetUserspaceTwinTests(unittest.TestCase):
             "T1_PREHANDOFF_PLAN_NO_PHYSICAL_OR_COMPLETION_CREDIT",
         )
 
+    def test_real_wp1201_multiline_os_release_remains_consumable(self):
+        realistic_os_release = (
+            'PRETTY_NAME="Ubuntu 24.04.3 LTS"\n'
+            'NAME="Ubuntu"\n'
+            'VERSION_ID="24.04"'
+        )
+        profile = _profile(fields={"os_release": realistic_os_release})
+        plan = build_t1_userspace_plan(profile)
+        self.assertEqual(dict(plan.observed_shape)["os_release"], realistic_os_release)
+
     def test_uncollected_t1_facts_remain_unknown_instead_of_being_guessed(self):
         plan = build_t1_userspace_plan(_profile())
         observed = dict(plan.observed_shape)
