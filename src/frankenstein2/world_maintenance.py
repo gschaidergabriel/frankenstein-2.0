@@ -1,6 +1,6 @@
 """Deterministic maintenance proposals for the Frankenstein 2.0 sparse world substrate.
 
-F2-WP-401 generation 1.  These functions classify candidate maintenance work only.
+F2-WP-401 generation 1. These functions classify candidate maintenance work only.
 They do not mutate a database, delete evidence, promote world truth, authorize effects,
 or claim runtime/GWT/GRID10 execution.
 """
@@ -88,12 +88,18 @@ def _digest(value: Any) -> str:
     return hashlib.sha256(_canonical_json(value).encode("utf-8")).hexdigest()
 
 
-def _atom_content_digest(atom: WorldAtom) -> str:
-    """Identity-independent exact content digest used only for duplicate proposals."""
+def _atom_semantic_digest(atom: WorldAtom) -> str:
+    """Identity/provenance-independent digest used only to propose duplicate compression.
+
+    Provenance and evidence are intentionally excluded from the equivalence key: two
+    independently sourced atoms may describe the same projected content. The proposal
+    result retains the union of those refs and performs no deletion or canonical merge.
+    """
     if not isinstance(atom, WorldAtom):
         raise WorldMaintenanceError("atom must be WorldAtom")
     payload = atom.as_dict().copy()
-    payload.pop("atom_id", None)
+    for field_name in ("atom_id", "provenance_refs", "evidence_refs"):
+        payload.pop(field_name, None)
     return _digest(payload)
 
 
@@ -257,9 +263,9 @@ def assimilate_atom(
             conflicts = (same_id.atom_id,)
         canonical_id = same_id.atom_id
     else:
-        incoming_content = _atom_content_digest(incoming)
+        incoming_content = _atom_semantic_digest(incoming)
         duplicates = tuple(
-            atom for atom in existing_atoms if _atom_content_digest(atom) == incoming_content
+            atom for atom in existing_atoms if _atom_semantic_digest(atom) == incoming_content
         )
         if duplicates:
             action = AtomMaintenanceAction.EXACT_DUPLICATE_CANDIDATE
