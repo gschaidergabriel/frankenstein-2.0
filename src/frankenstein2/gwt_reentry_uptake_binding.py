@@ -1,11 +1,13 @@
 """Deterministic binding between accepted WP508 re-entry provenance and WP507 uptake evidence.
 
-F2-WP-508 generation 4 component scope only; generation 3 remains historical falsifier lineage.
+F2-WP-508 generation 5 component scope; generation 4 remains historical accepted lineage
+plus the prevalidation-order falsifier that opened this successor generation.
 
 This module does not observe or infer uptake. It verifies that one already-valid WP508
 re-entry witness and one already-valid WP507 CellUptakeReceipt refer to the same exact
-broadcast and recipient, revalidates accepted WP506 builder/payload lineage, then
-preserves the WP507 delivery/uptake state verbatim.
+broadcast and recipient, validates exact object lineage before consuming object methods or
+direct attributes, revalidates accepted WP506 builder/payload lineage, then preserves the
+WP507 delivery/uptake state verbatim.
 """
 from __future__ import annotations
 
@@ -37,7 +39,7 @@ _BINDING_SEAL = object()
 
 
 class GwtReentryUptakeBindingError(ValueError):
-    """Fail-closed WP508 generation-4 integration error."""
+    """Fail-closed WP508 generation-5 integration error."""
 
 
 def _text(name: str, value: Any) -> str:
@@ -255,12 +257,10 @@ def bind_reentry_to_uptake(
     if type(uptake_receipt) is not CellUptakeReceipt:
         raise GwtReentryUptakeBindingError("uptake_receipt must be concrete CellUptakeReceipt")
 
-    _validate_wp506_reentry_lineage(
-        plan=plan,
-        selection=selection,
-        broadcast=broadcast,
-        cell_input=cell_input,
-    )
+    # G5 ordering invariant: validate the exact witness/object lineage before any WP508
+    # helper invokes methods or consumes direct attributes from plan/selection/broadcast/input.
+    # validate_reentry_witness() delegates first to the provenance layer's concrete-type
+    # guards for all four objects and only then computes/compares their canonical identities.
     validate_reentry_witness(
         witness,
         plan=plan,
@@ -268,6 +268,12 @@ def bind_reentry_to_uptake(
         broadcast=broadcast,
         cell_input=cell_input,
         known_lineage_refs=known_lineage_refs,
+    )
+    _validate_wp506_reentry_lineage(
+        plan=plan,
+        selection=selection,
+        broadcast=broadcast,
+        cell_input=cell_input,
     )
     try:
         uptake_receipt.assert_broadcast_binding(broadcast)
