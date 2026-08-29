@@ -10,6 +10,8 @@ from frankenstein2.cognitive_goal_inference_benchmark import (
     EVALUATOR_CLASSIFICATION,
     GOAL,
     GOAL_LABEL_SCHEMA,
+    IDENTIFIABLE,
+    NON_IDENTIFIABLE,
     CandidateGoal,
     EvaluatorGoalLabel,
     GoalChoice,
@@ -17,6 +19,7 @@ from frankenstein2.cognitive_goal_inference_benchmark import (
     always_abstain_policy,
     canonical_first_policy,
     candidate_set_digest,
+    public_identifiability_digest,
     run_goal_inference,
     score_goal_inference,
     seal_evaluator_goal_label,
@@ -115,15 +118,31 @@ def goals(*, ambiguous: bool = False) -> tuple[CandidateGoal, ...]:
     )
 
 
-def run(f: MicroWorldFixture, *, sut: str = "sut:goal-policy") -> RunDescriptor:
+def run(f: MicroWorldFixture, *, sut: str = "sut:goal-policy", run_id: str = "run:wp804:001") -> RunDescriptor:
     return RunDescriptor.for_fixture(
         f,
-        run_id="run:wp804:001",
+        run_id=run_id,
         condition=BASELINE,
         episode_family_id="ep-family:wp804",
         system_under_test_ref=sut,
         communication_before_result=False,
         independent_reproduction=False,
+    )
+
+
+def seal(*, r: RunDescriptor, f: MicroWorldFixture, state, obs: ObservationView,
+         candidates: tuple[CandidateGoal, ...], inference, expected_goal_id: str | None,
+         suffix: str):
+    return seal_evaluator_goal_label(
+        run=r,
+        fixture=f,
+        state=state,
+        observation=obs,
+        candidates=candidates,
+        inference=inference,
+        expected_goal_id=expected_goal_id,
+        label_ref=f"label:{suffix}",
+        label_sha256=h(f"label-{suffix}"),
     )
 
 
@@ -163,22 +182,20 @@ class CognitiveGoalInferenceBenchmarkTests(unittest.TestCase):
         f = fixture()
         state, obs = begin_episode(f, episode_id="ep-2", episode_generation=3)
         candidates = goals()
+        r = run(f)
         inference = run_goal_inference(
             policy=unique_public_signal_policy,
-            run=run(f),
+            run=r,
             fixture=f,
             observation=obs,
             candidates=candidates,
         )
-        label = seal_evaluator_goal_label(
-            fixture=f,
-            state=state,
-            candidates=candidates,
-            expected_goal_id="goal-blue",
-            label_ref="label:heldout:blue",
-            label_sha256=h("label-blue"),
+        label = seal(
+            r=r, f=f, state=state, obs=obs, candidates=candidates, inference=inference,
+            expected_goal_id="goal-blue", suffix="heldout-blue",
         )
         score = score_goal_inference(
+            run=r,
             fixture=f,
             state=state,
             observation=obs,
@@ -186,6 +203,7 @@ class CognitiveGoalInferenceBenchmarkTests(unittest.TestCase):
             inference=inference,
             label=label,
         )
+        self.assertEqual(label.identifiability, IDENTIFIABLE)
         self.assertEqual(inference.choice.decision, GOAL)
         self.assertEqual(inference.choice.goal_id, "goal-blue")
         self.assertTrue(score.correct)
@@ -195,22 +213,20 @@ class CognitiveGoalInferenceBenchmarkTests(unittest.TestCase):
         f = fixture()
         state, obs = begin_episode(f, episode_id="ep-3", episode_generation=0)
         candidates = goals(ambiguous=True)
+        r = run(f)
         inference = run_goal_inference(
             policy=unique_public_signal_policy,
-            run=run(f),
+            run=r,
             fixture=f,
             observation=obs,
             candidates=candidates,
         )
-        label = seal_evaluator_goal_label(
-            fixture=f,
-            state=state,
-            candidates=candidates,
-            expected_goal_id=None,
-            label_ref="label:heldout:ambiguous",
-            label_sha256=h("label-ambiguous"),
+        label = seal(
+            r=r, f=f, state=state, obs=obs, candidates=candidates, inference=inference,
+            expected_goal_id=None, suffix="heldout-ambiguous",
         )
         score = score_goal_inference(
+            run=r,
             fixture=f,
             state=state,
             observation=obs,
@@ -218,9 +234,52 @@ class CognitiveGoalInferenceBenchmarkTests(unittest.TestCase):
             inference=inference,
             label=label,
         )
+        self.assertEqual(label.identifiability, NON_IDENTIFIABLE)
         self.assertEqual(inference.choice.decision, ABSTAIN)
         self.assertIsNone(inference.choice.goal_id)
         self.assertTrue(score.correct)
+
+    def test_ambiguous_exact_hidden_label_cannot_mint_correct_guess(self) -> None:
+        f = fixture()
+        state, obs = begin_episode(f, episode_id="ep-gap", episode_generation=0)
+        candidates = goals(ambiguous=True)
+        r = run(f, sut="baseline:canonical-first")
+        guess = run_goal_inference(
+            policy=canonical_first_policy,
+            run=r,
+            fixture=f,
+            observation=obs,
+            candidates=candidates,
+        )
+        self.assertEqual(guess.choice.goal_id, "goal-blue")
+        with self.assertRaisesRegex(GoalInferenceBenchmarkError, "ambiguous public evidence cannot mint exact evaluator goal label"):
+            seal(
+                r=r, f=f, state=state, obs=obs, candidates=candidates, inference=guess,
+                expected_goal_id="goal-blue", suffix="forbidden-hidden-blue",
+            )
+        with self.assertRaisesRegex(GoalInferenceBenchmarkError, "ambiguous public evidence cannot mint exact evaluator goal label"):
+            seal(
+                r=r, f=f, state=state, obs=obs, candidates=candidates, inference=guess,
+                expected_goal_id="goal-red", suffix="forbidden-hidden-red",
+            )
+
+    def test_identifiable_label_cannot_contradict_unique_public_evidence(self) -> None:
+        f = fixture()
+        state, obs = begin_episode(f, episode_id="ep-unique", episode_generation=0)
+        candidates = goals()
+        r = run(f)
+        inference = run_goal_inference(
+            policy=always_abstain_policy,
+            run=r,
+            fixture=f,
+            observation=obs,
+            candidates=candidates,
+        )
+        with self.assertRaisesRegex(GoalInferenceBenchmarkError, "contradicts uniquely identifying public evidence"):
+            seal(
+                r=r, f=f, state=state, obs=obs, candidates=candidates, inference=inference,
+                expected_goal_id="goal-red", suffix="wrong-red",
+            )
 
     def test_public_signal_baseline_can_beat_canonical_first_without_hidden_input(self) -> None:
         f = fixture()
@@ -229,33 +288,37 @@ class CognitiveGoalInferenceBenchmarkTests(unittest.TestCase):
             CandidateGoal(CANDIDATE_GOAL_SCHEMA, "goal-a-red", "goal:red", h("red"), ("obs:needs-red",)),
             CandidateGoal(CANDIDATE_GOAL_SCHEMA, "goal-z-blue", "goal:blue", h("blue"), ("obs:needs-blue",)),
         )
+        base_run = run(f, sut="baseline:canonical-first", run_id="run:wp804:base")
+        signal_run = run(f, sut="baseline:public-signal", run_id="run:wp804:signal")
         baseline = run_goal_inference(
             policy=canonical_first_policy,
-            run=run(f, sut="baseline:canonical-first"),
+            run=base_run,
             fixture=f,
             observation=obs,
             candidates=candidates,
         )
         signal = run_goal_inference(
             policy=unique_public_signal_policy,
-            run=run(f, sut="baseline:public-signal"),
+            run=signal_run,
             fixture=f,
             observation=obs,
             candidates=candidates,
         )
-        label = seal_evaluator_goal_label(
-            fixture=f,
-            state=state,
-            candidates=candidates,
-            expected_goal_id="goal-z-blue",
-            label_ref="label:heldout:z-blue",
-            label_sha256=h("label-z-blue"),
+        base_label = seal(
+            r=base_run, f=f, state=state, obs=obs, candidates=candidates, inference=baseline,
+            expected_goal_id="goal-z-blue", suffix="base-z-blue",
+        )
+        signal_label = seal(
+            r=signal_run, f=f, state=state, obs=obs, candidates=candidates, inference=signal,
+            expected_goal_id="goal-z-blue", suffix="signal-z-blue",
         )
         base_score = score_goal_inference(
-            fixture=f, state=state, observation=obs, candidates=candidates, inference=baseline, label=label
+            run=base_run, fixture=f, state=state, observation=obs, candidates=candidates,
+            inference=baseline, label=base_label,
         )
         signal_score = score_goal_inference(
-            fixture=f, state=state, observation=obs, candidates=candidates, inference=signal, label=label
+            run=signal_run, fixture=f, state=state, observation=obs, candidates=candidates,
+            inference=signal, label=signal_label,
         )
         self.assertFalse(base_score.correct)
         self.assertTrue(signal_score.correct)
@@ -325,56 +388,75 @@ class CognitiveGoalInferenceBenchmarkTests(unittest.TestCase):
         f = fixture()
         state, obs = begin_episode(f, episode_id="ep-8", episode_generation=0)
         c = goals()
+        r = run(f)
+        inference = run_goal_inference(policy=unique_public_signal_policy, run=r, fixture=f, observation=obs, candidates=c)
         with self.assertRaisesRegex(GoalInferenceBenchmarkError, "must be created by seal_evaluator_goal_label"):
             EvaluatorGoalLabel(
                 GOAL_LABEL_SCHEMA,
+                r.sha256(),
                 f.sha256(),
                 state.sha256(),
                 obs.sha256(),
                 candidate_set_digest(c),
+                public_identifiability_digest(obs, c),
+                IDENTIFIABLE,
                 GOAL,
                 "goal-blue",
                 "label:forged",
                 h("forged"),
+                inference.sha256(),
+            )
+
+    def test_label_and_score_are_bound_to_the_sealed_inference_run(self) -> None:
+        f = fixture()
+        state, obs = begin_episode(f, episode_id="ep-run", episode_generation=0)
+        c = goals()
+        r1 = run(f, sut="sut:one", run_id="run:one")
+        r2 = run(f, sut="sut:two", run_id="run:two")
+        i1 = run_goal_inference(policy=unique_public_signal_policy, run=r1, fixture=f, observation=obs, candidates=c)
+        i2 = run_goal_inference(policy=unique_public_signal_policy, run=r2, fixture=f, observation=obs, candidates=c)
+        label1 = seal(
+            r=r1, f=f, state=state, obs=obs, candidates=c, inference=i1,
+            expected_goal_id="goal-blue", suffix="run-one",
+        )
+        with self.assertRaisesRegex(GoalInferenceBenchmarkError, "label run descriptor binding mismatch|label is not bound to sealed inference"):
+            score_goal_inference(
+                run=r2, fixture=f, state=state, observation=obs, candidates=c, inference=i2, label=label1
             )
 
     def test_score_rejects_label_from_different_state_binding(self) -> None:
         f = fixture()
         state, obs = begin_episode(f, episode_id="ep-9", episode_generation=0)
-        other_state, _ = begin_episode(f, episode_id="ep-9-other", episode_generation=0)
+        other_state, other_obs = begin_episode(f, episode_id="ep-9-other", episode_generation=0)
         c = goals()
-        inference = run_goal_inference(policy=unique_public_signal_policy, run=run(f), fixture=f, observation=obs, candidates=c)
-        other_label = seal_evaluator_goal_label(
-            fixture=f,
-            state=other_state,
-            candidates=c,
-            expected_goal_id="goal-blue",
-            label_ref="label:other-state",
-            label_sha256=h("label-other-state"),
+        r = run(f)
+        inference = run_goal_inference(policy=unique_public_signal_policy, run=r, fixture=f, observation=obs, candidates=c)
+        other_inference = run_goal_inference(policy=unique_public_signal_policy, run=r, fixture=f, observation=other_obs, candidates=c)
+        other_label = seal(
+            r=r, f=f, state=other_state, obs=other_obs, candidates=c, inference=other_inference,
+            expected_goal_id="goal-blue", suffix="other-state",
         )
         with self.assertRaisesRegex(GoalInferenceBenchmarkError, "label evaluator fixture/state binding mismatch"):
             score_goal_inference(
-                fixture=f, state=state, observation=obs, candidates=c, inference=inference, label=other_label
+                run=r, fixture=f, state=state, observation=obs, candidates=c, inference=inference, label=other_label
             )
         self.assertEqual(other_label.classification, EVALUATOR_CLASSIFICATION)
 
-    def test_abstain_baseline_scores_only_against_explicit_abstain_label(self) -> None:
+    def test_abstain_guess_is_wrong_when_public_evidence_is_identifiable(self) -> None:
         f = fixture()
         state, obs = begin_episode(f, episode_id="ep-10", episode_generation=0)
         c = goals()
-        inference = run_goal_inference(policy=always_abstain_policy, run=run(f), fixture=f, observation=obs, candidates=c)
-        goal_label = seal_evaluator_goal_label(
-            fixture=f,
-            state=state,
-            candidates=c,
-            expected_goal_id="goal-blue",
-            label_ref="label:goal",
-            label_sha256=h("label-goal"),
+        r = run(f)
+        inference = run_goal_inference(policy=always_abstain_policy, run=r, fixture=f, observation=obs, candidates=c)
+        label = seal(
+            r=r, f=f, state=state, obs=obs, candidates=c, inference=inference,
+            expected_goal_id="goal-blue", suffix="identifiable-goal",
         )
         score = score_goal_inference(
-            fixture=f, state=state, observation=obs, candidates=c, inference=inference, label=goal_label
+            run=r, fixture=f, state=state, observation=obs, candidates=c, inference=inference, label=label
         )
         self.assertFalse(score.correct)
+        self.assertEqual(score.identifiability, IDENTIFIABLE)
         self.assertEqual(score.decision, ABSTAIN)
         self.assertEqual(score.expected_decision, GOAL)
 
