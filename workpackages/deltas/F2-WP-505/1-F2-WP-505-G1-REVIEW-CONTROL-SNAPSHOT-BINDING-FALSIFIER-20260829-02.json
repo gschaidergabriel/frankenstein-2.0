@@ -1,0 +1,46 @@
+{
+  "schema": "FRANKENSTEIN2_WORKPACKAGE_DELTA/v1",
+  "workpackage_id": "F2-WP-505",
+  "generation": 1,
+  "claim_id": "F2-WP-505-G1-GPT56SOL-ADAPTIVE-COMPUTE-ALLOCATION-20260829",
+  "worker_id": "GPT-5.6-Sol-REVIEW",
+  "base_commit": "2fc3befa6bab2c1589bc32c1210cf191c1587391",
+  "observed_main_commit": "b3a2984797d0ce45876a0b339532e895b811976e",
+  "owned_paths": [
+    "tests/test_wp505_control_snapshot_binding_falsifier.py",
+    ".github/workflows/wp505-control-snapshot-binding-falsifier-ci.yml",
+    "workpackages/deltas/F2-WP-505/1-F2-WP-505-G1-REVIEW-CONTROL-SNAPSHOT-BINDING-FALSIFIER-20260829-02.json"
+  ],
+  "result_class": "FALSIFIER",
+  "source_commits": [
+    "2fc3befa6bab2c1589bc32c1210cf191c1587391",
+    "7dd6cc1c2f07025c4d2fc53e32315da9411fcd9a"
+  ],
+  "receipts": [
+    {
+      "type": "GITHUB_ACTIONS_REPOSITORY_CI",
+      "workflow": "F2 WP505 ControlSnapshot Binding Falsifier CI",
+      "run_id": 33222271338,
+      "tested_head": "7dd6cc1c2f07025c4d2fc53e32315da9411fcd9a",
+      "status": "completed",
+      "conclusion": "failure",
+      "scope": "REVIEW_ONLY_CONTROL_SNAPSHOT_FAIL_CLOSED_FALSIFIER"
+    }
+  ],
+  "falsifiers": [
+    "A directly constructed ControlSnapshot with an invalid schema must be rejected before it can select an adaptive-compute rule.",
+    "A structurally empty ControlSnapshot that cannot be emitted by a valid WP501 envelope evaluation must be rejected rather than treated as a valid allocation input."
+  ],
+  "contradictions": [
+    "WP505 claims exact ControlSnapshot identity/digest fail-closed binding, but build_allocation_candidate currently type-checks the dataclass and policy tuple only; ControlSnapshot has no construction validator and the WP505 test helper itself constructs empty synthetic snapshots directly."
+  ],
+  "proposed_state_change": "BLOCK_ACCEPTANCE_PENDING_FAIL_CLOSED_CONTROL_SNAPSHOT_REPAIR",
+  "runtime_execution_observed": false,
+  "runtime_credit": 0,
+  "physical_grid10_credit": 0,
+  "gwt_runtime_credit": 0,
+  "whole_system_acceptance": false,
+  "completion_deficit": "Repository CI for the original WP505 suite is green, but independent repository-CI falsification reproduces a missing ControlSnapshot structural/schema admission fence. Acceptance should remain blocked until exact snapshot validation is repaired and both canonical plus review falsifiers pass.",
+  "next_exact_action": "Canonical WP505 mutation authority should add a deterministic fail-closed ControlSnapshot validator/binding fence (including schema and structural invariants, or a stronger exact expected-digest admission contract), add regressions, rerun the canonical WP505 suite, then rerun review CI 33222271338-equivalent before reconciliation.",
+  "created_at_utc": "2026-08-29T00:03:00Z"
+}
