@@ -1,0 +1,49 @@
+{
+  "schema": "FRANKENSTEIN2_WORKPACKAGE_DELTA/v1",
+  "workpackage_id": "F2-WP-803",
+  "generation": 2,
+  "claim_id": "F2-WP-803-G2-GPT56SOL-RUN-DESCRIPTOR-BINDING-20260829",
+  "worker_id": "GPT-5.6-Sol-TRIGGER4",
+  "authority_epoch": "8.78",
+  "classification": "NEW_EXECUTABLE_NEGATIVE_EVIDENCE_ACCEPTANCE_BLOCKER_NO_RUNTIME_CREDIT",
+  "generation2_integration": {
+    "pull_request": 479,
+    "head_sha": "90143119be01566ab118ccb5c8326d32c45b68da",
+    "merge_commit": "ef386c75b297c5d276860ae17c75df75d4c07290",
+    "state": "MERGED_BUT_NOT_TERMINALLY_ACCEPTED"
+  },
+  "new_exact_falsifier": {
+    "review_pr": 481,
+    "review_branch": "review/wp803-g2-posthoc-coforge-falsifier-20260829",
+    "head_sha": "c50a39384c7e0de28b79893272183bbc9e920cf9",
+    "workflow_run_id": 33254898298,
+    "conclusion": "success",
+    "interpretation": "PASS_REPRODUCED_NEGATIVE_CONTROL",
+    "observed_gaps": [
+      "benchmark_generation is still candidate-self-attested: relabeling the candidate generation is accepted and copied into PredictionEvaluation while the same exact evaluator RunDescriptor is used",
+      "run-id and policy/SUT identity can be co-forged together with a freshly RunDescriptor.for_fixture-originated descriptor; G2 has no independently predeclared/admitted evaluator-side run-manifest identity that distinguishes the intended run from this post-hoc compatible pair"
+    ]
+  },
+  "counterhypothesis": "The review constructs evaluator-side objects and therefore may be stronger than the untrusted-candidate threat model. However, G2 currently represents benchmark_run_id/run_descriptor_sha256 as authenticated run provenance without any independent predeclared admission identity, so the evaluator cannot distinguish intended lineage from a post-hoc internally consistent forged pair. The provenance claim must therefore be narrowed or the admission boundary strengthened before terminal acceptance.",
+  "required_repair_constraints": [
+    "benchmark generation must be evaluator-bound rather than accepted from candidate self-attestation",
+    "the evaluator must receive or resolve an independently admitted predeclared run-manifest identity/digest that binds the exact intended RunDescriptor, run id, benchmark generation and SUT/policy identity",
+    "candidate construction must remain public-only; full fixture/evidence ancestry/run manifest remains evaluator-side",
+    "a forged candidate plus a freshly compatible descriptor must fail when it does not match the independently admitted manifest identity",
+    "the repair must preserve the existing generation-1 run-id relabel, fixture mismatch, SUT mismatch and non-builder descriptor negative controls",
+    "repository CI remains component evidence only and cannot mint runtime, GRID10, GWT/J-Space, training, effect, completion or whole-system credit"
+  ],
+  "state_decision": "KEEP_GENERATION_2_ACTIVE_BLOCK_TERMINAL_ACCEPTANCE",
+  "runtime_execution_observed": false,
+  "vps_runtime_observed": false,
+  "runtime_credit": 0,
+  "physical_grid10_credit": 0,
+  "gwt_runtime_credit": 0,
+  "jspace_runtime_credit": 0,
+  "provider_model_credit": 0,
+  "training_credit": 0,
+  "effect_credit": 0,
+  "completion_credit": 0,
+  "whole_system_acceptance": false,
+  "next_exact_action": "Continue only the sole active WP803 generation-2 mutation lane. Add an evaluator-side predeclared benchmark-run admission contract that binds benchmark generation plus exact intended RunDescriptor digest/run/SUT identity independently of PredictionCandidate; convert both PR481 witnesses into fail-closed canonical regressions; rerun exact PR-head and merged-main repository CI. If the architecture cannot supply an independent admission identity at this layer, narrow the G2 provenance claim instead of simulating closure."
+}
