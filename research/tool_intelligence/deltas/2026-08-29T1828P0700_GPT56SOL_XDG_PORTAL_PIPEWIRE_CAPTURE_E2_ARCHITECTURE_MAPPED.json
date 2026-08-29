@@ -1,0 +1,247 @@
+{
+  "schema": "FRANKENSTEIN2_TRIGGER6_ARCHITECTURE_MAPPING_E2/v1",
+  "trigger": "6",
+  "slot": "INTEGRATION_DISTILLER",
+  "research_id": "R6-WP700-XDG-PORTAL-PIPEWIRE-CAPTURE-001",
+  "claim_target": "E2_ARCHITECTURE_MAPPED",
+  "status": "E2_ARCHITECTURE_MAPPED_COMPLETE_NO_BUILD_PROMOTION",
+  "completed_at": "2026-08-29T18:28:00+07:00",
+  "worker": "GPT-5.6 Sol / ChatGPT Trigger-6 organ",
+  "claims": {
+    "e1": "research/tool_intelligence/claims/R6-WP700-XDG-PORTAL-PIPEWIRE-CAPTURE-001/E1_SOURCE_READ.json@b6091f8680afb0f24b46951f60a87fe621bb2377",
+    "e2": "research/tool_intelligence/claims/R6-WP700-XDG-PORTAL-PIPEWIRE-CAPTURE-001/E2_ARCHITECTURE_MAPPED.json@4214469bbc3e6fc87591b575b64be06a40e86c61"
+  },
+  "e1_result": "research/tool_intelligence/deltas/2026-08-29T1822P0700_GPT56SOL_XDG_PORTAL_PIPEWIRE_CAPTURE_E1_SOURCE_READ.json@b479dc279aa45b5bb059c7b6f1d7d8f8642437ff",
+  "mapping_refresh": {
+    "f2_main_observed_before_e2_result": "f753233fe720329cc60e3b8ee415d80a460dd099",
+    "f2_contracts": [
+      "src/frankenstein2/perception_fabric.py",
+      "src/frankenstein2/perception_host_permissions.py",
+      "src/frankenstein2/perception_capture_broker.py",
+      "architecture/PERCEPTION_FABRIC_HARDENING_20260829.md"
+    ]
+  },
+  "source_lock": {
+    "xdg_desktop_portal": {
+      "repository": "flatpak/xdg-desktop-portal",
+      "commit": "8b8138a9651a54903daee1ade31d9b5634cd8042",
+      "interface": "org.freedesktop.portal.ScreenCast/v6"
+    },
+    "pipewire": {
+      "repository": "PipeWire/pipewire",
+      "commit": "adad3f54dab7474a0448b1cfe4dacc2dedf71126"
+    },
+    "libportal_wrapper_candidate": {
+      "repository": "flatpak/libportal",
+      "commit": "4779b5473a8eb6091d2837edbd4c09dd3536dc02",
+      "files_read": [
+        "libportal/remote.h",
+        "libportal/remote.c",
+        "libportal/session.c",
+        "libportal/session-private.h"
+      ]
+    }
+  },
+  "wrapper_comparison": {
+    "finding": "The counterhypothesis partially survives: libportal is a viable thin session wrapper rather than an opaque media framework. It exposes screencast creation/start, session state, external close signal, restore-token lifecycle, raw stream GVariant a(ua{sv}), and the PipeWire remote fd. Because the raw stream property dictionary is retained, a v6 pipewire-serial can be read by the F2 adapter even though libportal's documentation still foregrounds the legacy node-id tuple member.",
+    "advantages": [
+      "less custom D-Bus request/session lifecycle code",
+      "explicit XDP_SESSION_INITIAL/ACTIVE/CLOSED state",
+      "closed signal for external session shutdown",
+      "raw stream property dictionary remains available",
+      "restore token and persist mode are exposed",
+      "OpenPipeWireRemote fd is exposed"
+    ],
+    "limitations": [
+      "public API does not expose the portal D-Bus session object path directly; F2 must not pretend an adapter-local id is the native session handle",
+      "xdp_session_get_streams documentation still describes node-id plus properties and does not itself elevate pipewire-serial to a typed API field",
+      "libportal does not replace PipeWire buffer ingestion, F2 permission intersection, generation fences, bounded FrameRef fan-out or native-runtime acceptance",
+      "camera capture remains a distinct Camera portal path and must not be conflated with ScreenCast"
+    ],
+    "decision": "PREFER_LIBPORTAL_FOR_PORTAL_SESSION_LIFECYCLE_IF_AVAILABLE; PARSE_PIPEWIRE_SERIAL_FROM_RAW_STREAM_PROPERTIES; KEEP_A_DIRECT_DBUS_FALLBACK_OR_TEST_FIXTURE_FOR_EXACT_PROTOCOL_CONFORMANCE",
+    "confidence": 0.91
+  },
+  "proposed_f2_shape": {
+    "name": "LinuxPortalPipeWireCaptureAdapter/v0",
+    "role": "HOST_ADAPTER_ONLY_NOT_CANONICAL_AUTHORITY",
+    "logical_flow": [
+      "stable F2 PerceptionSource",
+      "create/select/start XDG ScreenCast session through libportal or exact protocol-equivalent adapter",
+      "require ACTIVE session",
+      "read selected stream property dictionary and require pipewire-serial when portal v6 exposes it",
+      "open narrowed PipeWire remote fd",
+      "construct HostPermissionGrant bound to exact adapter session instance + pipewire-serial + F2 source_generation",
+      "intersect HostPermissionGrant with requested F2 PerceptionCapabilitySnapshot",
+      "acquire existing F2 CaptureOwnerLease only after effective permission snapshot exists",
+      "connect PipeWire stream targeted by object.serial via PW_KEY_TARGET_OBJECT",
+      "dequeue native buffers and stamp F2 host monotonic capture time plus bounded native timing provenance",
+      "publish only bounded CaptureFrameRef metadata into existing RetinaCaptureBroker",
+      "on native invalidation stop ingestion before accepting another frame, release owner, invalidate host grant and advance source_generation before reopen"
+    ],
+    "does_not_replace": [
+      "PerceptionSource",
+      "PerceptionCapabilitySnapshot",
+      "HostPermissionGrant",
+      "resolve_effective_perception_snapshot",
+      "ObserveIntent exact snapshot digest validation",
+      "CaptureOwnerLease",
+      "CaptureFrameRef",
+      "RetinaCaptureBroker",
+      "WP710 scheduler/backpressure policy",
+      "world truth authority",
+      "EffectGate/effect authority"
+    ]
+  },
+  "minimal_adapter_state": {
+    "persistent_or_receiptable_metadata": [
+      "adapter_id",
+      "f2_source_id",
+      "f2_source_generation",
+      "portal_interface_version",
+      "source_kind",
+      "portal_stream_id_if_present",
+      "pipewire_serial",
+      "host_permission_grant_sha256",
+      "capture_owner_lease_id",
+      "opened_monotonic_ns",
+      "native_session_state",
+      "source/protocol provenance refs"
+    ],
+    "ephemeral_only": [
+      "XdpSession object",
+      "PipeWire remote fd",
+      "PipeWire stream handle",
+      "dequeued native buffer handles",
+      "raw restore token unless the explicit product permission design later requires secure persistence"
+    ],
+    "explicitly_noncanonical": [
+      "legacy PipeWire node id",
+      "portal restore token",
+      "libportal object pointer identity",
+      "PipeWire graph timing without clock mapping"
+    ]
+  },
+  "identity_mapping": [
+    {
+      "native_surface": "XDG session object/lifetime",
+      "f2_surface": "host adapter session instance",
+      "mapping": "EPHEMERAL_NATIVE_LEASE",
+      "rule": "External close or client/session loss invalidates current host grant and capture lease."
+    },
+    {
+      "native_surface": "optional portal stream id",
+      "f2_surface": "logical selected-stream continuity hint",
+      "mapping": "PROVENANCE_ONLY",
+      "rule": "May remain stable across restoration; never sufficient to prove same concrete native stream instance."
+    },
+    {
+      "native_surface": "PipeWire node id",
+      "f2_surface": "NONE_AS_DURABLE_IDENTITY",
+      "mapping": "REJECT_AS_SOLE_IDENTITY",
+      "rule": "Documented reuse makes stale-target ABA possible."
+    },
+    {
+      "native_surface": "PipeWire object.serial / pipewire-serial",
+      "f2_surface": "native stream instance identifier",
+      "mapping": "REQUIRED_WHEN_AVAILABLE_FOR_V6_SCREENCAST_TARGETING",
+      "rule": "Bind to F2 source_generation and target with PW_KEY_TARGET_OBJECT; do not rename it to source_id."
+    },
+    {
+      "native_surface": "F2 source_generation",
+      "f2_surface": "stale-session/stream fence",
+      "mapping": "CANONICAL_F2_GENERATION_FENCE",
+      "rule": "Advance before any reopened/restored/replaced native stream instance can publish frames."
+    }
+  ],
+  "permission_mapping": {
+    "native_success_condition": "ScreenCast session successfully started and still ACTIVE, selected stream exists, PipeWire remote can be opened, stream instance identity is bound, and adapter has not observed a native invalidation event.",
+    "host_grant_construction": "Construct HostPermissionGrant only from observed native success plus F2-known source/generation. native_permission_ref must be an adapter-produced digest/reference over the observed session-state evidence and stream serial; it must not be a restore token or node id.",
+    "effective_permission": "Use existing resolve_effective_perception_snapshot(requested_snapshot, host_grant, now) so user/dashboard policy and native host permission are intersected rather than substituted.",
+    "execution_recheck": "Before accepting/publishing a buffer, require current adapter state ACTIVE, expected F2 generation, expected pipewire-serial and non-invalidated HostPermissionGrant; otherwise fail closed before FrameRef publication."
+  },
+  "generation_invalidation_matrix": [
+    {
+      "event": "XdpSession::closed / portal Session::Closed",
+      "immediate_action": "STOP_ACCEPTING_BUFFERS; RELEASE_CAPTURE_OWNER; INVALIDATE_HOST_GRANT",
+      "next_open": "SOURCE_GENERATION_PLUS_ONE"
+    },
+    {
+      "event": "creating D-Bus client disappears or portal connection is lost",
+      "immediate_action": "TREAT_SESSION_AS_CLOSED; STOP_ACCEPTING_BUFFERS; INVALIDATE_HOST_GRANT",
+      "next_open": "SOURCE_GENERATION_PLUS_ONE"
+    },
+    {
+      "event": "PipeWire stream enters ERROR/UNCONNECTED after active binding",
+      "immediate_action": "STOP_ACCEPTING_BUFFERS; RELEASE_CAPTURE_OWNER; INVALIDATE_HOST_GRANT",
+      "next_open": "SOURCE_GENERATION_PLUS_ONE"
+    },
+    {
+      "event": "selected stream pipewire-serial changes or required serial no longer resolves",
+      "immediate_action": "REJECT_STALE_STREAM; STOP_ACCEPTING_BUFFERS",
+      "next_open": "SOURCE_GENERATION_PLUS_ONE"
+    },
+    {
+      "event": "restore attempt succeeds with same portal stream id but a new pipewire-serial",
+      "immediate_action": "TREAT_AS_NEW_NATIVE_STREAM_INSTANCE",
+      "next_open": "SOURCE_GENERATION_PLUS_ONE"
+    },
+    {
+      "event": "restore token exists but restore fails or permission was withdrawn",
+      "immediate_action": "NO_HOST_GRANT_FROM_TOKEN; REQUIRE_NEW_SUCCESSFUL_PORTAL_START",
+      "next_open": "SOURCE_GENERATION_PLUS_ONE_IF_NEW_SESSION_SUCCEEDS"
+    }
+  ],
+  "timing_mapping": {
+    "f2_capture_monotonic_ns": "STAMP_AT_OR_IMMEDIATELY_AFTER_NATIVE_BUFFER_ACQUISITION_USING_THE_F2_DECLARED_HOST_MONOTONIC_CLOCK_DOMAIN",
+    "pipewire_cycle_time": "OPTIONAL_NATIVE_TIMING_PROVENANCE",
+    "clock_rule": "Do not compare or merge PipeWire graph/cycle time with F2 host monotonic time as if they were the same domain unless an explicit mapping and uncertainty bound is measured.",
+    "freshness_rule": "Existing F2 required_freshness_ns remains authoritative for scheduling/admission; backend queue timing is evidence feeding freshness diagnostics, not policy authority."
+  },
+  "interaction_with_parallel_gstreamer_e1": {
+    "result": "COMPLEMENTARY_NOT_INDEPENDENT_REPLICATION",
+    "separation": "XDG/libportal/PipeWire supplies user-mediated session authorization, stream identity, narrowed remote and native buffer source; GStreamer E1 supplies optional queue/backpressure design patterns above/beside native ingestion.",
+    "preferred_initial_stack": "libportal session lifecycle + direct PipeWire stream + existing F2 bounded broker; do not add GStreamer unless later ablation shows its media negotiation/queue machinery provides measurable net value."
+  },
+  "hypothesis": {
+    "statement": "A thin libportal + PipeWire host adapter can satisfy the missing Linux local screen-capture binding with stronger stale-session identity than node-id-based capture while preserving all existing F2 permission, generation, broker and authority boundaries.",
+    "confidence": 0.93
+  },
+  "counterhypothesis": {
+    "statement": "The adapter may still be too complex and brittle across compositor/portal/PipeWire backends; a GStreamer portal source or another mature wrapper may reduce integration bugs enough to outweigh the extra dependency and hidden buffering, provided it exposes exact session-close and pipewire-serial semantics.",
+    "confidence": 0.65,
+    "falsifier": "Before E5, run a deterministic E3 fixture against the proposed adapter state machine and, when an admitted local integration surface exists, compare a libportal+PipeWire prototype with one wrapper path on exact observables: ACTIVE/CLOSED transition, serial extraction, stale node-id reuse rejection, restore-with-new-serial generation bump, permission withdrawal behavior, bounded buffer handoff and cleanup."
+  },
+  "adoption_decision": {
+    "full_media_framework_import": "DEFER_NOT_JUSTIFIED",
+    "libportal_as_portal_session_wrapper": "PROMOTE_TO_FALSIFICATION_CANDIDATE",
+    "pipewire_serial_as_native_stream_instance_fence": "PROMOTE_TO_FALSIFICATION_CANDIDATE",
+    "raw_pipewire_node_id_as_durable_identity": "REJECT",
+    "restore_token_as_permission_evidence": "REJECT",
+    "direct_runtime_build_candidate": false,
+    "trigger4_handoff": false
+  },
+  "evidence_ceiling": {
+    "level": "E2_ARCHITECTURE_MAPPED",
+    "source_read": true,
+    "architecture_mapping": true,
+    "libportal_wrapper_source_read": true,
+    "external_runtime_executed": false,
+    "f2_ablation_executed": false,
+    "architecture_credit": 0,
+    "runtime_credit": 0,
+    "physical_device_credit": 0,
+    "whole_system_credit": 0,
+    "training_credit": 0
+  },
+  "next_recommended_trigger6_slot": "EXPERIMENTAL_FALSIFIER",
+  "next_recommended_objective": "E3_CLAIM_REPRODUCED_XDG_PIPEWIRE_IDENTITY_INVALIDATION_FIXTURE",
+  "next_fixture_cases": [
+    "legacy node id reused while pipewire-serial changes -> stale binding rejected",
+    "same portal stream id restored with new serial -> F2 generation bump required",
+    "Session::Closed -> host grant invalid before next frame publication",
+    "restore token present after native permission withdrawal -> no host grant",
+    "PipeWire error/disconnect -> capture owner released before reopen",
+    "buffer from mismatched serial/generation -> no FrameRef publication"
+  ],
+  "pending_research_sqlite_sync": "PENDING"
+}
