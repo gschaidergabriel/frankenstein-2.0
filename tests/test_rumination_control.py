@@ -196,6 +196,17 @@ class RuminationControlTests(unittest.TestCase):
         with self.assertRaisesRegex(RuminationControlError, "can_continue"):
             replace(decision, can_continue=False)
 
+    def test_snapshot_policy_and_decision_reject_forged_classifications(self) -> None:
+        value = snapshot()
+        with self.assertRaisesRegex(RuminationControlError, "snapshot classification mismatch"):
+            replace(value, classification="WORLD_TRUTH")
+        current_policy = policy()
+        with self.assertRaisesRegex(RuminationControlError, "policy classification mismatch"):
+            replace(current_policy, classification="EFFECT_AUTHORITY")
+        decision = decide(value)
+        with self.assertRaisesRegex(RuminationControlError, "decision classification mismatch"):
+            replace(decision, classification="COMPLETION_AUTHORITY")
+
 
 if __name__ == "__main__":
     unittest.main()
