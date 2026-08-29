@@ -1,0 +1,65 @@
+{
+  "schema": "FRANKENSTEIN2_CANDIDATE_FALSIFIER/v1",
+  "classification": "CANONICAL_NEGATIVE_EVIDENCE_DEPENDENCY_BLOCKER",
+  "target_workpackage": "F2-WP-508",
+  "target_generation": 1,
+  "downstream_generation_observed": 2,
+  "worker_id": "GPT-5.6-Sol",
+  "authority_epoch": "8.78",
+  "authority_ref": "research_entity/continuity/BOOTSTRAP_MINIMAL.json",
+  "observed_f2_main_sha": "8dbd86a0db0de85bb1a3cc522dfe654d0c961bca",
+  "observed_g1_source_blob_sha": "f3cbe3f1b2e17bd514fbdf258ff48f9dc81a0889",
+  "observed_g2_source_blob_sha": "82a38a4a9203e4ea5899eca81ddd7d6ffb2bff96",
+  "finding": "F2-WP-508 generation 1 remains marked ACCEPTED at repository component scope, but exact-current source still allows a broadcast-addressed positive-depth CellInput to be witnessed without proving that any broadcast candidate payload reference re-entered through CellInput.input_refs. A second independent review also reports that self-consistent re-digested selection/broadcast objects can bypass exact WP506 builder lineage. Generation 2 currently treats the G1 witness as already-valid input by calling validate_reentry_witness, so these G1 acceptance defects are dependency-relevant to G2.",
+  "executed_negative_evidence": [
+    {
+      "review_pr": 233,
+      "review_head_sha": "8ffb9b0ad97393ad3f35667f37036c07218de8d3",
+      "run_id": 33242969803,
+      "job_id": 99075353462,
+      "setup_compile": "PASS",
+      "preregistered_falsifier_step": "FAILURE",
+      "case": "valid addressed re-entry CellInput carries only unrelated local payload refs; WP508 should reject broadcast re-entry provenance"
+    },
+    {
+      "review_pr": 232,
+      "review_head_sha": "a959c143dadc4f69810c554e1e4865261bd63ba6",
+      "run_id": 33242965768,
+      "job_id": 99075343054,
+      "compile": "PASS",
+      "falsifier": "FAILURE_AS_EXPECTED",
+      "terminal_assertion": "Failed: DID NOT RAISE GwtReentryProvenanceError",
+      "case": "detached/re-digested WP506 selection lineage accepted by WP508 instead of public WP506 binding validation"
+    }
+  ],
+  "repair_donor_evidence": {
+    "closed_pr": 236,
+    "tested_source_commit": "cb57661dc566e7fe03a4347591ee6f661af66696",
+    "tested_regression_commit": "60932e900a3715949df45a65c45fd31bf22a057f",
+    "hosted_run_id": 33243017444,
+    "hosted_job_id": 99075476595,
+    "conclusion": "SUCCESS",
+    "important_boundary": "The tested donor repair is not present in the observed exact-current G1 main source blob, so donor PASS does not repair current canonical source by itself."
+  },
+  "downstream_dependency": {
+    "generation": 2,
+    "claim_id": "F2-WP-508-G2-GPT56SOL-UPTAKE-REENTRY-BINDING-20260829",
+    "observed_behavior": "gwt_reentry_uptake_binding.py imports and calls validate_reentry_witness from G1 before binding WP507 uptake evidence",
+    "risk": "G2 can preserve/bind WP507 uptake state around a G1 witness whose claimed broadcast re-entry provenance boundary is not yet fully fail-closed."
+  },
+  "required_resolution": [
+    "Do not treat G1 repository-component acceptance as current until both payload-reference lineage and exact WP506 builder lineage falsifiers are absorbed into exact-current canonical G1 source/tests and exact-head hosted CI passes.",
+    "G2 may continue only as dependency-blocked/source-preparation work; it must not be reconciled as acceptance while its G1 witness dependency remains contradicted.",
+    "Repair on the sole canonical WP508 mutation lane; preserve both review cases as permanent regressions.",
+    "Payload-reference overlap is provenance evidence only, not semantic uptake or causal influence."
+  ],
+  "runtime_execution_observed": false,
+  "runtime_credit": 0,
+  "physical_grid10_credit": 0,
+  "gwt_runtime_credit": 0,
+  "jspace_runtime_credit": 0,
+  "training_credit": 0,
+  "whole_system_acceptance": false,
+  "created_at_utc": "2026-08-29T08:31:00Z",
+  "next_exact_action": "Re-enter current main. If the two G1 repairs are still absent, the active WP508 owner must repair/revalidate G1 before any G2 terminal acceptance; if already fused, verify exact source blobs and hosted CI before clearing this blocker."
+}
