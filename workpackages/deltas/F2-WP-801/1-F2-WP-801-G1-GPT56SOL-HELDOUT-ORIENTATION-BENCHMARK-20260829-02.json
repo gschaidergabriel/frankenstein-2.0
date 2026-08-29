@@ -1,0 +1,52 @@
+{
+  "schema": "FRANKENSTEIN2_WORKPACKAGE_DELTA/v1",
+  "workpackage_id": "F2-WP-801",
+  "generation": 1,
+  "claim_id": "F2-WP-801-G1-GPT56SOL-HELDOUT-ORIENTATION-BENCHMARK-20260829",
+  "worker_id": "GPT-5.6-Sol",
+  "authority_epoch": "8.78",
+  "trigger": "4",
+  "status": "CURRENT_MAIN_REPAIR_PR_PENDING",
+  "base_commit": "1753cde17be07301bdda3b21004c9ab6a76c40ff",
+  "branch": "trigger4/wp801-g1-currenthead-repair-20260829",
+  "source_commit": "cf56e605e534fc14bf8667897aa9d91e433ff7df",
+  "test_commit": "ea4693ed4488416868178ee9c8e978ca31742fd9",
+  "workflow_commit": "f93215d42bb5326bb6110ae43cb5a9c56708204f",
+  "predecessor_lane": {
+    "pull_request": 389,
+    "branch": "trigger4/wp801-heldout-orientation-20260829",
+    "head_sha": "9da83a097a98d82b32102b1b9e3eb7d9075ca815",
+    "status": "STALE_UNMERGEABLE_IMPLEMENTATION_LANE_TO_BE_SUPERSEDED_WITH_EVIDENCE_PRESERVED"
+  },
+  "absorbed_falsifier": {
+    "pull_request": 427,
+    "classification": "REVIEW_ONLY_EXECUTED_FALSIFIER",
+    "workflow_run_id": 33253050508,
+    "finding": "WP801_ORIENTATION_RESULT_CURRENT_CONTENT_NOT_REVALIDATED_AT_COMPARISON_BOUNDARY",
+    "reproduced_counterexample": "A valid OrientationRunResult can be mutated after construction through object.__setattr__, and the predecessor compare_orientation_runs trusted the mutated evaluator_score instead of revalidating current result content."
+  },
+  "repair": [
+    "transplant the existing WP801 generation-1 benchmark onto exact current F2 main without creating a new claim authority",
+    "add a comparison-boundary deterministic replay validator for each current OrientationRunResult",
+    "re-bind exact RunDescriptor to the supplied hidden fixture before comparison",
+    "replay each public trace step through accepted WP800 begin_episode/step_episode evaluator interfaces",
+    "re-bind trace observation ref/digest, action reachability, terminal state, step-budget state, steps_used, evaluator_score and final observation digest",
+    "recompute and require exact result_id binding to the current replayed content",
+    "add the reproduced evaluator_score post-init mutation as a fail-closed regression",
+    "add a stronger post-init public-trace action mutation regression"
+  ],
+  "epistemic_boundary": "The repair establishes only that current WP801 comparison consumes a result that is internally consistent with deterministic replay of its current public trace against the exact supplied WP800 fixture. It does not prove cryptographic in-process immutability, cognition superiority, GRID10 runtime, GWT/J-Space causality, provider/model behavior, real effects, completion, training or whole-system acceptance.",
+  "runtime_execution_observed": false,
+  "vps_runtime_observed": false,
+  "runtime_credit": 0,
+  "target_vps_runtime_credit": 0,
+  "physical_grid10_credit": 0,
+  "gwt_runtime_credit": 0,
+  "jspace_runtime_credit": 0,
+  "provider_model_credit": 0,
+  "training_credit": 0,
+  "effect_credit": 0,
+  "completion_credit": 0,
+  "whole_system_acceptance": false,
+  "next_exact_action": "Open one replacement/current-main PR under the same WP801 generation-1 claim; require exact PR-head repository-hosted CI including both mutation regressions. If green and mergeable against refreshed main, merge without force, require merged-main WP801 CI, then terminally reconcile generation 1 at HELDOUT_ORIENTATION_REPOSITORY_HOSTED_COMPONENT_CI_ONLY. If main churn or CI blocks the merge, preserve the lane and do not mint acceptance."
+}
