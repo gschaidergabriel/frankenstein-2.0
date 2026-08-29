@@ -1,0 +1,142 @@
+{
+  "schema_version": 1,
+  "trigger": "7",
+  "research_id": "T7-DUPLEX-001",
+  "objective": "E2_GERMAN_FULL_DUPLEX_SOURCE_AUDIT",
+  "worker": "GPT-5.6-Sol-TRIGGER7",
+  "status": "SOURCE_AUDIT_COMPLETED",
+  "observed_date": "2026-08-30",
+  "source_f2_head_before_persist": "ea8a369db460436334eecb6d88507c07af5357c8",
+  "epistemic_scope": "Primary-source and original-paper audit only. No model download, local inference, German listening test, latency benchmark, target-VPS execution, Trigger-4 integration, or runtime acceptance was observed in this objective.",
+  "candidate_findings": [
+    {
+      "family": "Qwen3-Omni",
+      "role": "German-capable realtime speech-native foundation; not by itself proven true full-duplex",
+      "source_repo": "QwenLM/Qwen3-Omni",
+      "source_revision": "e4235853125589c789f06a2dd83e9f4126df5e9d",
+      "license": "Apache-2.0",
+      "german_support": "EXPLICIT_INPUT_AND_OUTPUT",
+      "duplex_support": "REALTIME_STREAMING_AND_NATURAL_TURN_TAKING; TRUE_SIMULTANEOUS_FULL_DUPLEX_NOT_ESTABLISHED_BY_THIS_AUDIT",
+      "observed_facts": [
+        "Official source lists German among 19 speech-input languages and among 10 speech-output languages.",
+        "Official source describes realtime audio/video interaction, natural turn-taking, and immediate text or speech responses.",
+        "Official model card publishes German speech-generation results, so German speech support is more than a generic multilingual text claim."
+      ],
+      "production_voice_credit": 0,
+      "next_gate": "Use only as a German-capability foundation/baseline until target-runtime duplex and latency behavior is measured."
+    },
+    {
+      "family": "DuplexOmni",
+      "role": "Native full-duplex interaction architecture with asynchronous interaction/thinking layers",
+      "source_repo": "MuyeHuang/DuplexOmni",
+      "source_revision": "33bfba1a821b09c5aa66790944f9098584979d34",
+      "model_repo": "MuyeHuang/DuplexOmni",
+      "model_repo_observed_size": "70.5 GB",
+      "license": "Apache-2.0",
+      "german_support": "PLAUSIBLE_FOUNDATION_INHERITANCE_FROM_QWEN3_OMNI_BUT_DUPLEXOMNI_SPECIFIC_GERMAN_EVIDENCE_NOT_FOUND",
+      "duplex_support": "EXPLICIT_FULL_DUPLEX",
+      "runtime_footprint": "Official model card recommends at least 8 NVIDIA H20 GPUs for low-latency deployment at current optimization level; realtime serving uses a modified vLLM/Qwen3-Omni stack and CUDA GPUs.",
+      "observed_facts": [
+        "Paper/source separates a low-latency interaction layer from an asynchronous pluggable thinking/tool layer.",
+        "Released weights include Thinker and Talker and the public serving stack is available.",
+        "Qwen3-Omni foundation explicitly supports German speech input/output, but this does not prove the DuplexOmni finetune preserves German realtime speech quality.",
+        "Current hardware recommendation makes it unsuitable for automatic resident-VPS promotion without a hardware receipt and a materially smaller/quantized runtime path."
+      ],
+      "production_voice_credit": 0,
+      "architecture_reference_credit": "HIGH",
+      "next_gate": "Do not download the 70.5 GB checkpoint blindly. First compare actual clay-direct-dev GPU/RAM/VRAM receipt against the >=8xH20 low-latency recommendation; if hardware is insufficient, preserve as architecture donor and test smaller Qwen3-Omni/modular paths instead."
+    },
+    {
+      "family": "MiniCPM-o 4.5",
+      "role": "Efficient local/on-device full-duplex omni reference",
+      "source_repo": "OpenBMB/MiniCPM-o (repository redirects at audit time; exact redirected head not pinned)",
+      "license": "Apache-2.0",
+      "german_support": "NO_EXPLICIT_GERMAN_REALTIME_SPEECH_SUPPORT",
+      "duplex_support": "EXPLICIT_FULL_DUPLEX",
+      "runtime_footprint": "Official project material describes 9B total parameters; model table reports approximately 19 GB GPU for the standard model, 10 GB for GGUF and 11 GB for AWQ variants.",
+      "observed_facts": [
+        "Official project material describes full-duplex multimodal live streaming and local demos.",
+        "Realtime speech conversation is explicitly described as bilingual English/Chinese.",
+        "Project limitations include unstable speech output and mixed English/Chinese in omni mode."
+      ],
+      "production_voice_credit": 0,
+      "architecture_reference_credit": "MEDIUM_HIGH",
+      "next_gate": "No German production benchmark until upstream or local evidence demonstrates German speech input/output quality; use as full-duplex architecture/runtime reference only."
+    },
+    {
+      "family": "Moshi",
+      "role": "Mature open full-duplex spoken-dialogue reference",
+      "source_repo": "kyutai-labs/moshi",
+      "source_revision": "e6a55d2722a65870ef52a6c9f6ecfc0e90f38362",
+      "code_license": "MIT for Python/client, Apache for Rust backend",
+      "weights_license": "CC-BY-4.0",
+      "german_support": "EXPLICITLY_UNSUPPORTED",
+      "duplex_support": "EXPLICIT_FULL_DUPLEX",
+      "runtime_footprint": "Official FAQ/source says PyTorch requires a significant GPU, approximately 24 GB class; MLX local inference is tested on MacBook Pro M3 and supports quantized variants.",
+      "observed_facts": [
+        "Official FAQ explicitly says Moshi only speaks English and should not be expected to work fully in other languages.",
+        "Streaming Mimi codec frame latency is documented as 80 ms.",
+        "Inference stacks exist for PyTorch, MLX and Rust/Candle."
+      ],
+      "production_voice_credit": 0,
+      "architecture_reference_credit": "HIGH",
+      "next_gate": "Do not spend German production benchmark budget on stock Moshi; retain for full-duplex timing/cancellation architecture comparison unless a German finetune is independently pinned."
+    },
+    {
+      "family": "VITA-1.5",
+      "role": "Realtime interactive omni reference",
+      "source_repo": "VITA-MLLM/VITA",
+      "german_support": "EXPLICITLY_NOT_LISTED; OFFICIAL SUPPORT_ENGLISH_AND_CHINESE",
+      "duplex_support": "REALTIME_INTERACTIVE; FULL_DUPLEX_BEHAVIOR_RESEARCH_REFERENCE",
+      "observed_facts": [
+        "Official README states VITA-1.5 supports English and Chinese.",
+        "Official README reports upstream end-to-end speech interaction latency around 1.5 s; this is not F2 target evidence."
+      ],
+      "production_voice_credit": 0,
+      "architecture_reference_credit": "MEDIUM",
+      "next_gate": "No German production promotion without a German-capable successor or finetune."
+    },
+    {
+      "family": "Freeze-Omni",
+      "role": "Streaming speech-to-speech and duplex state-prediction architecture reference",
+      "source_repo": "VITA-MLLM/Freeze-Omni",
+      "german_support": "NOT_ESTABLISHED_BY_PRIMARY_SOURCE_AUDIT",
+      "duplex_support": "EXPLICIT_DUPLEX_STATE_PREDICTION/INTERRUPTION_ARCHITECTURE",
+      "observed_facts": [
+        "Official source describes chunk-wise streaming input, streaming AR speech output and chunk-level state prediction for duplex dialogue.",
+        "Inference code and model weights are published, but the audited primary surfaces do not establish German speech support."
+      ],
+      "production_voice_credit": 0,
+      "architecture_reference_credit": "MEDIUM_HIGH",
+      "next_gate": "Treat as architecture donor unless a pinned German-capable checkpoint is found."
+    }
+  ],
+  "cross_candidate_conclusions": [
+    "No audited native full-duplex family receives Frankenstein German production-voice credit from source evidence alone.",
+    "Moshi and MiniCPM-o are disqualified from stock German production promotion by explicit language limitations, despite strong full-duplex value as architecture references.",
+    "DuplexOmni is the most interesting native-full-duplex research candidate because its Qwen3-Omni foundation explicitly supports German speech input/output and its interaction/thinking split maps well to Frankenstein's fast interaction plus deeper tool/reasoning architecture.",
+    "However, DuplexOmni-specific German preservation is unverified and its current low-latency hardware recommendation (>=8 NVIDIA H20) makes it a poor default resident candidate until actual target hardware and smaller-runtime options are measured.",
+    "The near-term production hypothesis remains the modular German-first pipeline; native full duplex should remain a parallel architecture lane, not replace it on source claims.",
+    "FD-Bench (arXiv:2507.19040) reports that evaluated open-source full-duplex systems still struggle under frequent interruptions and noise, reinforcing that barge-in robustness must be measured rather than inferred from the full-duplex label."
+  ],
+  "primary_sources": [
+    "https://github.com/QwenLM/Qwen3-Omni",
+    "https://huggingface.co/Qwen/Qwen3-Omni-30B-A3B-Instruct",
+    "https://github.com/MuyeHuang/DuplexOmni",
+    "https://huggingface.co/MuyeHuang/DuplexOmni",
+    "https://github.com/OpenBMB/MiniCPM-o",
+    "https://github.com/kyutai-labs/moshi",
+    "https://github.com/kyutai-labs/moshi/blob/main/FAQ.md",
+    "https://github.com/VITA-MLLM/VITA",
+    "https://github.com/VITA-MLLM/Freeze-Omni",
+    "https://arxiv.org/abs/2606.09186",
+    "https://arxiv.org/abs/2411.00774",
+    "https://arxiv.org/abs/2507.19040"
+  ],
+  "source_audit_observed": true,
+  "execution_observed": false,
+  "runtime_credit": 0,
+  "benchmark_credit": 0,
+  "acceptance_credit": 0,
+  "next_exact_action": "Re-enter the authorized clay-direct-dev bridge and obtain a hardware/RAM/VRAM roundtrip receipt before any heavyweight DuplexOmni download; use that receipt to falsify or admit native-full-duplex runtime candidates."
+}
