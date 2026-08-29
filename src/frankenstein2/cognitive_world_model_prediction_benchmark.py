@@ -1,14 +1,19 @@
 """F2-WP-803 held-out next-observation prediction benchmark.
 
-This module is repository evaluation infrastructure only. A prediction candidate is
-formed from an exact public ``ObservationView`` and an exact publicly available action.
-Hidden ``MicroWorldFixture`` nodes, transition rules, evaluator scores, and ground-truth
-references are used only after the candidate exists, on the evaluator side, through the
-canonical F2-WP-800 step boundary.
+Generation 2 preserves the generation-1 public prediction boundary and hardens only
+run provenance. A prediction candidate is still formed from an exact public
+``ObservationView``, an exact publicly available action, a public run identifier, and
+explicit public policy state/configuration. The full WP800 ``RunDescriptor`` remains
+strictly evaluator-side because it contains full-fixture and evidence-ancestry fields.
 
-A benchmark score is a measurement on a synthetic held-out fixture. It is not world
-truth, causal credit, cognition superiority, transfer evidence, runtime acceptance,
-effect authority, completion authority, or whole-system acceptance.
+Before any canonical WP800 step, the evaluator now requires a builder-originated exact
+``RunDescriptor`` that matches the exact fixture, binds the prediction run id, and binds
+the prediction policy id to the descriptor system-under-test identity. Evaluator evidence
+records the exact descriptor digest.
+
+A benchmark score is repository evaluation evidence on a synthetic held-out fixture. It
+is not world truth, causal credit, cognition superiority, transfer evidence, runtime
+acceptance, effect authority, completion authority, or whole-system acceptance.
 """
 from __future__ import annotations
 
@@ -25,12 +30,13 @@ from .cognitive_microworld import (
     EvaluatorStep,
     MicroWorldFixture,
     ObservationView,
+    RunDescriptor,
     observation_for_state,
     step_episode,
 )
 
 PREDICTION_SCHEMA = "FRANKENSTEIN2_HELDOUT_WORLD_MODEL_PREDICTION/v1"
-EVALUATION_SCHEMA = "FRANKENSTEIN2_HELDOUT_WORLD_MODEL_PREDICTION_EVALUATION/v1"
+EVALUATION_SCHEMA = "FRANKENSTEIN2_HELDOUT_WORLD_MODEL_PREDICTION_EVALUATION/v2"
 PUBLIC_PREDICTION_CLASSIFICATION = "PUBLIC_OBSERVATION_DERIVED_CANDIDATE_NO_WORLD_AUTHORITY"
 EVALUATOR_CLASSIFICATION = "EVALUATOR_ONLY_BENCHMARK_MEASUREMENT_NOT_WORLD_TRUTH"
 NEXT_OBSERVATION = "NEXT_OBSERVATION"
@@ -157,6 +163,7 @@ class PredictionEvaluation:
     fixture_sha256: str
     episode_id: str
     episode_generation: int
+    run_descriptor_sha256: str
     prior_state_sha256: str
     action_request_sha256: str
     evaluator_step_sha256: str
@@ -182,6 +189,7 @@ class PredictionEvaluation:
         for name, value in (
             ("prediction_sha256", self.prediction_sha256),
             ("fixture_sha256", self.fixture_sha256),
+            ("run_descriptor_sha256", self.run_descriptor_sha256),
             ("prior_state_sha256", self.prior_state_sha256),
             ("action_request_sha256", self.action_request_sha256),
             ("evaluator_step_sha256", self.evaluator_step_sha256),
@@ -338,18 +346,40 @@ def _assert_prediction_matches_public_view(prediction: PredictionCandidate, obse
         raise WorldModelPredictionBenchmarkError("prediction/public-observation provenance mismatch")
 
 
+def _assert_run_descriptor_binding(
+    fixture: MicroWorldFixture,
+    prediction: PredictionCandidate,
+    run_descriptor: RunDescriptor,
+) -> None:
+    """Authenticate the public run id against evaluator-only WP800 run provenance."""
+    if type(run_descriptor) is not RunDescriptor:
+        raise WorldModelPredictionBenchmarkError("run_descriptor must be exact concrete RunDescriptor")
+    if not getattr(run_descriptor, "_builder_verified", False):
+        raise WorldModelPredictionBenchmarkError("run_descriptor must originate from RunDescriptor.for_fixture")
+    try:
+        run_descriptor.assert_matches_fixture(fixture)
+    except CognitiveMicroWorldError as exc:
+        raise WorldModelPredictionBenchmarkError("run descriptor/fixture provenance mismatch") from exc
+    if run_descriptor.run_id != prediction.benchmark_run_id:
+        raise WorldModelPredictionBenchmarkError("prediction/run descriptor mismatch")
+    if run_descriptor.system_under_test_ref != prediction.policy_id:
+        raise WorldModelPredictionBenchmarkError("prediction policy/run system-under-test mismatch")
+
+
 def evaluate_next_observation_prediction(
     fixture: MicroWorldFixture,
     *,
     state: EpisodeState,
     action_id: str,
     prediction: PredictionCandidate,
+    run_descriptor: RunDescriptor,
 ) -> tuple[EpisodeState, ObservationView, EvaluatorStep, PredictionEvaluation]:
-    """Advance with WP800, then score a pre-existing action-bound candidate.
+    """Advance with WP800, then score a pre-existing action- and run-bound candidate.
 
-    The prediction is validated against the exact current public observation and exact
-    public action target before the evaluator sees the transition outcome. Hidden fixture
-    state never enters the public candidate-construction path.
+    Candidate construction remains public-only. The full run descriptor is introduced
+    only on this evaluator side and is authenticated before ``step_episode``. Hidden
+    fixture/evidence-ancestry fields therefore cannot become policy inputs for the same
+    trial while evaluator evidence can bind the exact run provenance digest.
     """
     if type(fixture) is not MicroWorldFixture or type(state) is not EpisodeState:
         raise WorldModelPredictionBenchmarkError("fixture/state must be exact concrete WP800 values")
@@ -357,6 +387,7 @@ def evaluate_next_observation_prediction(
     _assert_prediction_matches_public_view(prediction, observation)
     if prediction.action_id != action_id:
         raise WorldModelPredictionBenchmarkError("prediction/action target mismatch")
+    _assert_run_descriptor_binding(fixture, prediction, run_descriptor)
     request = ActionRequest.for_observation(observation, action_id=action_id)
     prior_state_sha256 = state.sha256()
     next_state, next_observation, evaluator_step = step_episode(fixture, state=state, request=request)
@@ -381,6 +412,7 @@ def evaluate_next_observation_prediction(
         fixture.sha256(),
         state.episode_id,
         state.episode_generation,
+        run_descriptor.sha256(),
         prior_state_sha256,
         request.sha256(),
         evaluator_step.sha256(),

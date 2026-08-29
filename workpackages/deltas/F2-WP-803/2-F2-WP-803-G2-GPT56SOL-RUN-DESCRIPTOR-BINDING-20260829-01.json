@@ -1,0 +1,67 @@
+{
+  "schema": "FRANKENSTEIN2_WORKPACKAGE_DELTA/v1",
+  "workpackage_id": "F2-WP-803",
+  "generation": 2,
+  "claim_id": "F2-WP-803-G2-GPT56SOL-RUN-DESCRIPTOR-BINDING-20260829",
+  "authority_epoch": "8.78",
+  "classification": "BOUNDED_COMPONENT_REPAIR_NO_RUNTIME_CREDIT",
+  "opened_by_exact_falsifier": {
+    "draft_pr": 467,
+    "review_head_sha": "f2781180b6b34d5399534308982e73d473625ebf",
+    "negative_control_run_id": 33254440406,
+    "negative_control_job_id": 99105597318,
+    "observed_gap": "generation-1 evaluator accepted a prediction whose benchmark_run_id was relabeled away from an exact WP800 RunDescriptor and copied the forged run id into PredictionEvaluation"
+  },
+  "implementation": {
+    "source": "src/frankenstein2/cognitive_world_model_prediction_benchmark.py",
+    "source_blob_sha": "5fd9e0b0cf1f40ca9fe1c6709dd47749af342d8d",
+    "test": "tests/test_cognitive_world_model_prediction_benchmark.py",
+    "test_blob_sha": "02023d88646e852ffb375d486859fc3d666cfdee",
+    "workflow": ".github/workflows/wp803-cognitive-world-model-prediction-ci.yml",
+    "workflow_blob_sha_before_delta_path_binding": "f40a07ad2f27ef592212ac61e8835ab77220c38f",
+    "workflow_blob_sha_with_delta_path_binding": "94e7b82371c1177e7a83bfa6b994b2fc8462364d"
+  },
+  "changes": [
+    "PredictionEvaluation schema advances to v2 and records run_descriptor_sha256 evaluator evidence.",
+    "evaluate_next_observation_prediction now requires an exact evaluator-side WP800 RunDescriptor.",
+    "RunDescriptor must be exact concrete and builder-originated through RunDescriptor.for_fixture.",
+    "RunDescriptor must match the exact fixture/provenance before step_episode.",
+    "Prediction benchmark_run_id must equal RunDescriptor.run_id before step_episode.",
+    "Prediction policy_id must equal RunDescriptor.system_under_test_ref before step_episode.",
+    "Full RunDescriptor fields remain absent from PredictionCandidate; fixture_sha256/evidence ancestry never enter tested-policy candidate construction.",
+    "Generation-1 run relabel negative control is converted into fail-closed rejection before any evaluator transition."
+  ],
+  "tests": {
+    "initial_branch_head": "690bd305605bd99b208ff7a459fe859f43b2d8f7",
+    "initial_branch_ci_run_id": 33254772669,
+    "initial_branch_ci_job_id": 99106457538,
+    "initial_branch_ci_conclusion": "success",
+    "initial_branch_test_count": 20,
+    "initial_branch_test_result": "20/20 PASS",
+    "covered_negative_controls": [
+      "run id relabel rejected before step",
+      "run descriptor fixture provenance mismatch rejected before step",
+      "run descriptor SUT/policy mismatch rejected before step",
+      "non-builder-originated RunDescriptor rejected before step",
+      "action substitution rejected before step",
+      "stale public observation/generation rejected",
+      "candidate hidden/run-descriptor leakage surface rejected",
+      "unroutable canonical action still rejected by WP800",
+      "deterministic replay binds run descriptor, prediction and evaluation identities"
+    ]
+  },
+  "evidence_boundary": {
+    "repository_hosted_component_ci": true,
+    "runtime_execution_observed": false,
+    "vps_runtime_observed": false,
+    "physical_grid10_credit": 0,
+    "gwt_runtime_credit": 0,
+    "jspace_runtime_credit": 0,
+    "provider_model_credit": 0,
+    "training_credit": 0,
+    "effect_credit": 0,
+    "completion_credit": 0,
+    "whole_system_acceptance": false
+  },
+  "next_exact_action": "Open a PR from the exact generation-2 branch, obtain an exact PR-head repository-hosted CI PASS after this delta is present, merge only if current main remains compatible, then require exact merged-main CI and terminal reconciliation before generation-2 component acceptance."
+}
