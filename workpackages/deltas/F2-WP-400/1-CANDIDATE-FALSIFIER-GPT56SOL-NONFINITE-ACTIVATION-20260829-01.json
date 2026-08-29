@@ -1,0 +1,38 @@
+{
+  "schema": "FRANKENSTEIN2_WORKPACKAGE_DELTA/v1",
+  "workpackage_id": "F2-WP-400",
+  "generation": 1,
+  "delta_id": "F2-WP-400-G1-CANDIDATE-FALSIFIER-GPT56SOL-NONFINITE-ACTIVATION-20260829-01",
+  "worker_id": "GPT-5.6-Sol-review-organ",
+  "classification": "CANDIDATE_FALSIFIER",
+  "base_commit": "54b0dc9b3db5ad632011a20c9f666439aaeee339",
+  "authority_epoch": "9.13",
+  "active_claim_id": "F2-WP-400-G1-GPT56SOL-SPARSE-WORLD-BASIS-20260829",
+  "active_claim_blob_sha": "2c64c2cbac6499d919950cc37e1002b4606b9826",
+  "scope": "Review-only acceptance falsifier for the active WP400 mutation authority. No canonical implementation/state mutation and no runtime credit.",
+  "observation": "The active WP400 contract requires deterministic selection driven by explicit caller-supplied activation values, deterministic tie ordering, immutable bounded WorldSlice output, and fail-closed rejection of invalid/stale inputs. At review time the active implementation branch did not yet expose src/frankenstein2/sparse_world_basis.py, so this delta does not claim an executable failure.",
+  "hypothesis": "If activation values or vector numeric fields accept non-finite IEEE-754 values (NaN, +Inf, -Inf), deterministic ordering, threshold/ranking semantics, equality/fingerprinting and replay can become implementation-dependent or non-total even when all identities and graph references are otherwise valid.",
+  "counterhypothesis": "The implementation may already validate all relevant numeric inputs as finite real numbers before any ordering, hashing, thresholding or graph expansion, in which case the falsifier will be rejected and the invariant is strengthened.",
+  "required_executable_falsifier": {
+    "precondition": "Run against the exact candidate source/blob for WP400 G1 after sparse_world_basis.py exists.",
+    "cases": [
+      "activation = NaN must fail closed before sorting/selection",
+      "activation = +Inf must fail closed",
+      "activation = -Inf must fail closed",
+      "boolean activation values must not silently pass as integers if the contract declares numeric real activation",
+      "non-finite vector components must fail closed before fingerprinting/transforms if vectors are caller supplied",
+      "equal finite activation values inserted in opposite input orders must yield byte-identical atom ordering and slice fingerprint",
+      "signed-zero behavior (+0.0 versus -0.0) must be explicitly canonicalized or rejected so replay identity is stable"
+    ],
+    "acceptance": "All invalid/noncanonical numeric cases are rejected deterministically and the finite tie-order control produces identical serialized output/fingerprint across insertion orders.",
+    "failure_meaning": "WP400 G1 is not yet deterministic/replay-safe at its declared component scope; repair numeric admission/canonicalization without weakening provenance, NOT_COMPUTED, version or bound fences.",
+    "success_meaning": "Only this numeric-domain/tie-order invariant is supported; no target VPS, physical GRID10, GWT, training or whole-system credit is minted."
+  },
+  "runtime_execution_observed": false,
+  "runtime_credit": 0,
+  "physical_grid10_credit": 0,
+  "gwt_runtime_credit": 0,
+  "training_credit": 0,
+  "whole_system_acceptance": false,
+  "next_exact_action": "When the active WP400 implementation appears, execute this falsifier against its exact source blob and feed the result to the existing mutation authority/reconciliation writer; do not create a competing WP400 generation."
+}
