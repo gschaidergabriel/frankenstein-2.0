@@ -1,22 +1,37 @@
 {
   "schema": "FRANKENSTEIN2_CANDIDATE_FALSIFIER/v1",
   "workpackage_id": "F2-WP-603",
-  "classification": "CANDIDATE_FALSIFIER_REVIEW_ONLY",
+  "classification": "OBSERVED_NEGATIVE_RESULT_REVIEW_ONLY",
   "reviewer": "GPT-5.6-Sol",
   "authority_epoch": "8.78",
+  "target_generation": 1,
   "target_source": "src/frankenstein2/recursion_router.py",
   "target_source_blob_sha_observed": "dde04941f461602164fee08016639d53cce13cc3",
-  "hypothesis": "WP603 accepts non-negative Python integer generations without validating that they survive its canonical JSON/hash path, allowing a constructor-valid RecursionPolicy whose sha256 can leak a raw serializer ValueError for pathological integer magnitude.",
-  "counterhypothesis": "The canonical JSON path accepts every integer admitted by WP603 _generation(), or the WP603 boundary already converts serializer-domain failure into RecursionRouterError.",
-  "discriminator": "On repository-hosted Python 3.12, create RecursionPolicy with generation=10**5000 and require either constructor rejection with RecursionRouterError or hash-boundary rejection with RecursionRouterError. A raw ValueError reproduces the boundary leak.",
+  "hypothesis": "WP603 accepts non-negative Python integer generations without validating that they survive its canonical JSON/hash path, allowing a constructor-valid RecursionPolicy whose sha256 can escape through the serializer exception boundary for pathological integer magnitude.",
+  "counterhypothesis": "The canonical JSON path accepts every integer admitted by WP603 _generation(), or the WP603 boundary converts serializer-domain failure into RecursionRouterError.",
+  "discriminator": "On repository-hosted Python 3.12, create RecursionPolicy with generation=10**5000 and require either constructor rejection with RecursionRouterError or hash-boundary rejection with RecursionRouterError.",
   "why_material": "F2-WP-601 generation 2 already established canonical-JSON integer-domain admission as a required deterministic ABI property. WP603 composes WP601 but implements an independent generation validator and canonical hash path.",
   "test": "tests/falsifiers/test_wp603_canonical_integer_domain.py",
   "workflow": ".github/workflows/falsifier-wp603-canonical-int-domain.yml",
-  "status": "PREPARED_NOT_RUN",
+  "pull_request": 364,
+  "run_id": 33248407693,
+  "job_id": 99089753929,
+  "event": "pull_request",
+  "head_sha": "386d0d76475e1c8a3908c0384d64493e6bb8ee0e",
+  "observed_step": "Candidate falsifier",
+  "observed_step_conclusion": "failure",
+  "status": "FALSIFIER_HIT_NEGATIVE_EVIDENCE_PRESERVED",
+  "interpretation_boundary": "The failed review probe establishes a repository-hosted component boundary regression candidate against the observed generation-1 source. It does not establish target-runtime failure, child-execution failure, or whole-system failure. The exact traceback was not retrieved through the connector, so the observed claim is limited to the designed discriminator failing at the exact PR head; repair acceptance must rerun the same regression green.",
+  "successor_observed": {
+    "workpackage_generation": 2,
+    "active_claim_id": "F2-WP-603-G2-GPT56SOL-STRATEGY-DEPTH-CONTRACT-20260829",
+    "note": "Generation 2 is already active for a separate post-acceptance strategy/depth semantic repair; this integer-domain regression should be absorbed into that successor without creating a competing WP603 source lane."
+  },
   "credit": {
-    "wp603_failure": false,
+    "wp603_g1_negative_component_evidence": true,
+    "wp603_g2_failure": false,
     "runtime_credit": 0,
     "whole_system_credit": 0
   },
-  "next_exact_action": "Run the isolated repository-hosted falsifier. If it fails because a raw ValueError escapes, preserve the negative result and require a successor WP603 generation or bounded repair lane rather than silently mutating the accepted generation. If it passes, retire this hypothesis."
+  "next_exact_action": "Do not merge the failing review probe as acceptance evidence. Hand the regression to the already-active WP603 generation-2 owner; require generation 2 to reject or safely normalize out-of-domain generation integers and rerun this exact regression green before bounded successor acceptance."
 }
