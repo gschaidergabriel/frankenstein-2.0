@@ -4,10 +4,9 @@ This component records caller-supplied realtime transition evidence for barge-in
 bilateral silence and tool-return re-entry. It deliberately does not open audio devices,
 run VAD/ASR/TTS, contact a provider/model/tool, execute effects, or mutate canonical state.
 
-Generation 1 binds to an exact opaque voice-session identity + SHA-256 digest so it can
-remain dependency-correct while F2-WP-704's concrete VoiceSessionCapsule source is still
-being admitted. A later consumer may bind these fields to the concrete WP704 capsule
-without changing the meaning of this evidence contract.
+Generation 1 established the opaque session-id/digest evidence contract. Generation 2
+hardens its consumer boundary against the now-admitted F2-WP-704 VoiceSessionCapsule by
+requiring exact concrete canonical reconstruction while preserving all G1 event semantics.
 """
 from __future__ import annotations
 
@@ -16,6 +15,8 @@ import hashlib
 import json
 import re
 from typing import Any, Mapping
+
+from .voice_contract import VoiceSessionCapsule
 
 REALTIME_REENTRY_VERSION = "F2_REALTIME_REENTRY/v1"
 BARGE_IN = "BARGE_IN"
@@ -28,6 +29,20 @@ _MAX_IDENTIFIER_LENGTH = 512
 
 class RealtimeReentryError(ValueError):
     """Raised when WP705 evidence violates the fail-closed contract."""
+
+
+def _exact_voice_session(value: Any) -> VoiceSessionCapsule:
+    """Require the exact canonical WP704 VoiceSessionCapsule boundary."""
+
+    if type(value) is not VoiceSessionCapsule:
+        raise RealtimeReentryError("voice session must be exact concrete VoiceSessionCapsule")
+    try:
+        rebuilt = VoiceSessionCapsule.from_mapping(value.as_dict())
+    except (TypeError, ValueError) as exc:
+        raise RealtimeReentryError(f"invalid voice session capsule: {exc}") from exc
+    if rebuilt != value or rebuilt.sha256() != value.sha256():
+        raise RealtimeReentryError("voice session capsule failed canonical reconstruction")
+    return value
 
 
 def _identifier(name: str, value: Any) -> str:
@@ -360,6 +375,33 @@ def build_realtime_reentry_evidence(
         tool_result_sha256=tool_result_sha256,
         policy=policy,
     )
+
+
+def bind_voice_session_cursor(session: VoiceSessionCapsule) -> RealtimeReentryCursor:
+    """Create the initial WP705 cursor only from an exact WP704 voice session."""
+
+    _exact_voice_session(session)
+    return RealtimeReentryCursor.initial(
+        session_id=session.voice_session_id,
+        session_sha256=session.sha256(),
+    )
+
+
+def verify_realtime_reentry_against_voice_session(
+    evidence: RealtimeReentryEvidence,
+    session: VoiceSessionCapsule,
+) -> RealtimeReentryEvidence:
+    """Bind existing WP705 evidence to one exact concrete WP704 session capsule."""
+
+    _exact_voice_session(session)
+    if type(evidence) is not RealtimeReentryEvidence:
+        raise RealtimeReentryError("evidence must be exact concrete RealtimeReentryEvidence")
+    reconstructed = RealtimeReentryEvidence.from_mapping(evidence.as_dict())
+    if reconstructed != evidence:
+        raise RealtimeReentryError("re-entry evidence canonical reconstruction mismatch")
+    if evidence.session_id != session.voice_session_id or evidence.session_sha256 != session.sha256():
+        raise RealtimeReentryError("voice session binding mismatch")
+    return evidence
 
 
 def verify_realtime_reentry_evidence(
