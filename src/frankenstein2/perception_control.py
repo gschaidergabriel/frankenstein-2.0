@@ -320,6 +320,39 @@ def _first_compute_blocker(registry: PerceptionPolicyRegistry, head_id: str) -> 
     return walk(head_id)
 
 
+def _effective_memory_permissions(
+    registry: PerceptionPolicyRegistry, head_id: str, policy: PerceptionHeadPolicy
+) -> tuple[bool, bool]:
+    """Propagate upstream memory/persistence denial through the acyclic dependency graph.
+
+    Same-cycle egress is deliberately independent: MEMORY_OFF may still be used in the
+    moment, while any value derived from it remains non-matchable and non-persistable.
+    """
+    memory_match_allowed = policy.memory_match_allowed
+    persistence_allowed = policy.persistence_allowed
+    seen: set[str] = set()
+
+    def walk(node: str) -> None:
+        nonlocal memory_match_allowed, persistence_allowed
+        for upstream in registry.upstream(node):
+            if upstream in seen:
+                continue
+            seen.add(upstream)
+            upstream_policy = registry.head(upstream)
+            if upstream_policy is None:
+                raise PerceptionControlError("validated registry lost an upstream head")
+            if not upstream_policy.memory_match_allowed:
+                memory_match_allowed = False
+            if not upstream_policy.persistence_allowed:
+                persistence_allowed = False
+            walk(upstream)
+
+    walk(head_id)
+    if not memory_match_allowed:
+        persistence_allowed = False
+    return memory_match_allowed, persistence_allowed
+
+
 def evaluate_perception_head(*, evaluation_id: str, registry: PerceptionPolicyRegistry,
     expected_registry_sha256: str, head_id: str, compute_fn: Callable[[], tuple[Any, int]],
     provenance_refs: tuple[str, ...]) -> PerceptionControlResult:
@@ -365,9 +398,15 @@ def evaluate_perception_head(*, evaluation_id: str, registry: PerceptionPolicyRe
             policy_sha256=policy_sha, status="OUTPUT_BLOCKED", value=None, confidence_micros=None, computed=True,
             internal_computed=True, egress_allowed=False, memory_match_allowed=False, persistence_allowed=False,
             blocked_by=None, reason="output_off_transient_internal_only", provenance_refs=provenance_refs)
+    memory_match_allowed, persistence_allowed = _effective_memory_permissions(registry, head_id, policy)
+    if policy.tier == "MEMORY_OFF":
+        reason = "memory_off_no_persistence"
+    elif memory_match_allowed != policy.memory_match_allowed or persistence_allowed != policy.persistence_allowed:
+        reason = "upstream_memory_or_persistence_taint"
+    else:
+        reason = "policy_allows_egress"
     return PerceptionControlResult(evaluation_id=evaluation_id, head_id=head_id, registry_sha256=registry_sha,
         policy_sha256=policy_sha, status="OK", value=value, confidence_micros=confidence_micros, computed=True,
-        internal_computed=True, egress_allowed=True, memory_match_allowed=policy.memory_match_allowed,
-        persistence_allowed=policy.persistence_allowed, blocked_by=None,
-        reason="memory_off_no_persistence" if policy.tier == "MEMORY_OFF" else "policy_allows_egress",
+        internal_computed=True, egress_allowed=True, memory_match_allowed=memory_match_allowed,
+        persistence_allowed=persistence_allowed, blocked_by=None, reason=reason,
         provenance_refs=provenance_refs)

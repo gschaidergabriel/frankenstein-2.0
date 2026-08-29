@@ -96,6 +96,46 @@ class PerceptionControlTests(unittest.TestCase):
         self.assertFalse(result.memory_match_allowed)
         self.assertFalse(result.persistence_allowed)
 
+    def test_upstream_memory_off_taints_derived_memory_and_persistence(self):
+        reg = registry(policy("sensitive.source", "MEMORY_OFF"), policy("derived.summary"),
+                       deps={"sensitive.source": (), "derived.summary": ("sensitive.source",)})
+        result = evaluate(reg, "derived.summary", lambda: ({"summary": "same-cycle"}, 760000))
+        self.assertEqual(result.status, "OK")
+        self.assertEqual(result.value, {"summary": "same-cycle"})
+        self.assertTrue(result.egress_allowed)
+        self.assertFalse(result.memory_match_allowed)
+        self.assertFalse(result.persistence_allowed)
+        self.assertEqual(result.reason, "upstream_memory_or_persistence_taint")
+
+    def test_transitive_upstream_memory_off_cannot_be_laundered(self):
+        reg = registry(policy("a", "MEMORY_OFF"), policy("b"), policy("c"),
+                       deps={"a": (), "b": ("a",), "c": ("b",)})
+        result = evaluate(reg, "c", lambda: ("derived", 710000))
+        self.assertEqual(result.status, "OK")
+        self.assertEqual(result.value, "derived")
+        self.assertFalse(result.memory_match_allowed)
+        self.assertFalse(result.persistence_allowed)
+        self.assertEqual(result.reason, "upstream_memory_or_persistence_taint")
+
+    def test_upstream_memory_allowed_false_taints_derived_persistence(self):
+        reg = registry(policy("a", "ON", memory_allowed=False), policy("b"),
+                       deps={"a": (), "b": ("a",)})
+        result = evaluate(reg, "b", lambda: (True, 680000))
+        self.assertEqual(result.status, "OK")
+        self.assertTrue(result.value)
+        self.assertFalse(result.memory_match_allowed)
+        self.assertFalse(result.persistence_allowed)
+        self.assertEqual(result.reason, "upstream_memory_or_persistence_taint")
+
+    def test_output_off_upstream_also_cannot_launder_memory_or_persistence(self):
+        reg = registry(policy("a", "OUTPUT_OFF"), policy("b"),
+                       deps={"a": (), "b": ("a",)})
+        result = evaluate(reg, "b", lambda: ("derived", 690000))
+        self.assertEqual(result.status, "OK")
+        self.assertEqual(result.value, "derived")
+        self.assertFalse(result.memory_match_allowed)
+        self.assertFalse(result.persistence_allowed)
+
     def test_on_with_memory_disallowed_has_same_cycle_egress_only(self):
         reg = registry(policy("face.presence", "ON", memory_allowed=False))
         result = evaluate(reg, "face.presence", lambda: (True, 600000))
