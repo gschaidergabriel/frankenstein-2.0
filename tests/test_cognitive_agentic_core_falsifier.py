@@ -44,6 +44,7 @@ def evidence(
     *,
     state: str = ACCEPTED,
     holdout: str = "heldout-family-A",
+    family_sha: str | None = None,
     baseline: int = 300_000,
     intervention: int = 700_000,
     samples: int = 20,
@@ -52,6 +53,8 @@ def evidence(
     receipt_override: str | None = None,
 ) -> CapabilityEvidence:
     index = CAP_INDEX[capability]
+    if family_sha is None:
+        family_sha = sha(900)
     return CapabilityEvidence(
         CAPABILITY_EVIDENCE_SCHEMA,
         capability,
@@ -70,6 +73,30 @@ def evidence(
         samples,
         successes,
         actions,
+        shared_fixture_family_sha256=family_sha,
+    )
+
+
+def evidence_without_family(capability: str) -> CapabilityEvidence:
+    index = CAP_INDEX[capability]
+    return CapabilityEvidence(
+        CAPABILITY_EVIDENCE_SCHEMA,
+        capability,
+        CAP_TO_WP[capability],
+        1,
+        f"claim-{capability.lower()}",
+        ACCEPTED,
+        f"{capability}_REPOSITORY_HOSTED_COMPONENT_CI_ONLY",
+        sha(index),
+        sha(index + 100),
+        f"benchmark-{capability.lower()}",
+        "heldout-family-A",
+        f"baseline-{capability.lower()}",
+        300_000,
+        700_000,
+        20,
+        14,
+        60,
     )
 
 
@@ -122,12 +149,28 @@ class AgenticCoreFalsifierTests(unittest.TestCase):
         self.assertEqual(report.verdict, NOT_EVALUABLE)
         self.assertIn(f"SOURCE_NOT_ACCEPTED:{GOAL_SETTING}", report.reasons)
 
+    def test_missing_shared_family_proof_is_not_evaluable(self):
+        values = list(complete_evidence())
+        values[1] = evidence_without_family(MODELING)
+        report = evaluate_agentic_core(tuple(values), policy=policy(), report_id="report-unproven-family")
+        self.assertEqual(report.verdict, NOT_EVALUABLE)
+        self.assertIn(f"UNPROVEN_SHARED_FIXTURE_FAMILY:{MODELING}", report.reasons)
+
     def test_mixed_holdout_falsifies_cross_capability_claim(self):
         values = list(complete_evidence())
         values[1] = evidence(MODELING, holdout="heldout-family-B")
         report = evaluate_agentic_core(tuple(values), policy=policy(), report_id="report-mixed")
         self.assertEqual(report.verdict, FALSIFIED)
         self.assertIn("MIXED_HOLDOUT_SET", report.reasons)
+
+    def test_same_text_holdout_with_mixed_shared_family_digest_falsifies(self):
+        values = list(complete_evidence())
+        values[1] = evidence(MODELING, family_sha=sha(901))
+        self.assertEqual(len({item.holdout_set_id for item in values}), 1)
+        self.assertEqual(len({item.benchmark_id for item in values}), 4)
+        report = evaluate_agentic_core(tuple(values), policy=policy(), report_id="report-family-alias")
+        self.assertEqual(report.verdict, FALSIFIED)
+        self.assertIn("MIXED_SHARED_FIXTURE_FAMILY", report.reasons)
 
     def test_duplicate_receipt_falsifies_independence(self):
         values = list(complete_evidence())
@@ -165,6 +208,10 @@ class AgenticCoreFalsifierTests(unittest.TestCase):
                 1,
                 1,
             )
+
+    def test_invalid_shared_family_digest_is_rejected(self):
+        with self.assertRaisesRegex(AgenticCoreFalsifierError, "shared_fixture_family_sha256"):
+            evidence(EXPLORATION, family_sha="not-a-sha")
 
     def test_report_cannot_be_self_attested_by_constructor(self):
         with self.assertRaisesRegex(AgenticCoreFalsifierError, "must be created by evaluator API"):
