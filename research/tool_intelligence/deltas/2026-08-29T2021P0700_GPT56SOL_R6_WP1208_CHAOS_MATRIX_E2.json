@@ -1,0 +1,185 @@
+{
+  "schema": "FRANKENSTEIN2_TRIGGER6_RESEARCH_DELTA/v1",
+  "research_id": "R6-20260829-WP1208-CHAOS-MATRIX-EVAL-GPT56SOL-03",
+  "evidence_stage": "E2_ARCHITECTURE_MAPPED",
+  "status": "E2_COMPLETE_NO_ARCHITECTURE_ACCEPTANCE_CREDIT",
+  "created_at": "2026-08-29T20:21:00+07:00",
+  "worker": "GPT-5.6-Sol-TRIGGER6",
+  "claim_ref": "research/tool_intelligence/claims/R6-20260829-WP1208-CHAOS-MATRIX-EVAL-GPT56SOL-03/E2_ARCHITECTURE_MAPPED.json",
+  "e1_ref": "research/tool_intelligence/deltas/2026-08-29T2018P0700_GPT56SOL_R6_WP1208_CHAOS_MATRIX_E1.json",
+  "wp1208_ref": "workpackages/active/F2-WP-1208.json",
+  "wp1208_source": "src/frankenstein2/target_hostile_chaos_matrix.py",
+  "wp1208_source_blob_sha": "651393c89995a10a58be51261add38a3538bb67c",
+  "wp1204_source": "src/frankenstein2/target_fault_scenarios.py",
+  "architecture_delta_class": "NONMUTATING_SUCCESSOR_CONSUMER_DESIGN",
+  "observed_exact_primitives": {
+    "FaultSpec": ["action", "target", "offset_ms", "parameters_json"],
+    "FaultEvent": ["event_id", "sequence", "action", "domain", "target", "offset_ms", "generation_before", "generation_after", "parameters_json"],
+    "HostileChaosCase": ["case_id", "case_name", "scenario", "family_counts", "concurrent_offsets_ms", "authority_fence_event_ids", "degradation_order", "completion_expectation", "authority_rebind_policy", "protected_state_expectation"],
+    "HostileChaosMatrix": ["matrix_id", "matrix_name", "cases", "total_events"],
+    "current_limits": {"max_cases": 64, "max_events_per_case": 512, "max_total_events": 8192, "max_simultaneous_events": 64},
+    "current_fault_dimensions_already_available": ["ACTION_DOMAIN", "action", "target", "offset/sequence", "generation transition", "parameters", "family", "concurrency offset"]
+  },
+  "do_not_change_accepted_wp1208_g1": true,
+  "recommended_successor_surfaces": {
+    "ChaosCoveragePlan": {
+      "role": "Noncanonical derived selector/measurement over accepted HostileChaosMatrix; does not replace matrix identity or source authority.",
+      "binds": ["matrix_sha256", "target_profile_digest", "factor_schema_digest", "constraint_set_digest", "coverage_strength_t", "sequence_strength_t", "selected_case_ids", "coverage_receipt_digest"],
+      "factor_schema": [
+        "fault family",
+        "FaultEvent.action",
+        "ACTION_DOMAIN/domain",
+        "normalized target class",
+        "generation-invalidating yes/no",
+        "relative timing bucket / concurrency membership",
+        "parameter bucket for bounded numeric fault parameters",
+        "recovery or failure phase where declared"
+      ],
+      "rules": [
+        "Measure coverage only on predeclared finite factor domains.",
+        "Impossible or forbidden combinations remain explicit constraints, never silently omitted.",
+        "t-way coverage is a prioritization/coverage statement, never proof that higher-order interactions do not exist.",
+        "Existing all-five-family cases may remain sentinel cases while additional compact cases can target uncovered interactions in a successor planner/consumer."
+      ]
+    },
+    "ChaosSequenceCoverage": {
+      "role": "Separate order-sensitive measurement; simultaneous family presence is not equivalent to sequence coverage.",
+      "binds": ["matrix_sha256", "event_order_projection_schema", "covered_order_tuples", "required_order_tuples", "sequence_coverage"],
+      "priority_orders": [
+        "authority invalidation -> stale operation -> re-observation/rebind -> valid operation",
+        "session/service restart -> device rediscovery -> permission revalidation",
+        "network disconnect/reset -> stale route use -> route re-observation -> reconnect",
+        "process/lifecycle reset -> old-generation request -> current-generation request"
+      ]
+    },
+    "ChaosExecutionSnapshot": {
+      "role": "Immutable pre-intervention runtime identity for a later Trigger4/target-twin executor. Snapshot creation itself is not execution.",
+      "must_bind": [
+        "F2 repository HEAD and tree",
+        "WP1208 source blob SHA",
+        "WP1204 source blob SHA or exact consumed source identity",
+        "HostileChaosMatrix SHA",
+        "target profile digest and target/twin generation",
+        "resolved ordered case/event identities",
+        "coverage-plan digest if used",
+        "stop-condition-set digest",
+        "control/intervention pairing identity",
+        "executor/runtime/host identity permitted by current authority"
+      ],
+      "immutability_rule": "Once the execution snapshot is sealed, later edits to source, matrix, target profile or stop conditions cannot be attributed to that run."
+    },
+    "ChaosStopConditionSet": {
+      "role": "Dynamic runtime abort policy distinct from WP1208 static case/event ceilings.",
+      "must_bind": ["metric/evidence source identity", "comparison operator", "threshold", "observation freshness/generation", "abort action", "fallback if signal becomes unavailable"],
+      "rules": [
+        "Fail closed if a mandatory stop signal is stale, wrong-generation or unobservable, according to a predeclared policy.",
+        "A stopped/aborted experiment is infrastructure/test evidence, not automatically a product semantic failure.",
+        "Do not use the same corrupted observation path as the sole stop guard when the injected fault can invalidate that path."
+      ]
+    },
+    "StaleAuthorityFenceProbe": {
+      "role": "Causal acceptance discriminator for WP1208's existing authority_fence_event_ids and AUTHORITY_REBIND_POLICY.",
+      "paired_steps": [
+        "establish valid pre-fault operation at generation g",
+        "apply declared generation-invalidating fault producing g+1",
+        "submit an explicitly bound stale-g operation and require rejection/no authority revival",
+        "re-observe current state/topology/permission and bind g+1",
+        "submit matched valid g+1 operation and require acceptance at its own bounded scope"
+      ],
+      "acceptance_rule": "generation advancement alone earns zero fencing credit; stale rejection plus current-generation rescue must both be observed at exact runtime identity."
+    },
+    "MatchedChaosRunPair": {
+      "role": "Control-versus-intervention attribution layer analogous to WP800 matched-run provenance but specific to target-twin chaos execution.",
+      "same_between_pair": ["source/tree", "target profile prestate", "generation/precondition", "executor", "observation schema", "mandatory evidence sources", "budget"],
+      "different_between_pair": "declared fault cut/intervention only",
+      "rule": "Unknown external effect outcome remains UNKNOWN; never blindly replay merely to complete the pair."
+    }
+  },
+  "selection_algorithm_order": [
+    "1. Always retain mandatory invariant sentinels: protected-state fence, stale-authority non-revival, degradation-order/completion fail-closed cases.",
+    "2. Prefer cases that add the largest predeclared constrained t-way interaction coverage per event/case cost.",
+    "3. Prefer cases that add uncovered order-sensitive t-event sequence coverage.",
+    "4. Reduce any discovered violation toward a minimal reproducing fault cut before broadening it.",
+    "5. Only if exact executable outcome lineage exists, optionally rank additional candidate fault cuts using LDFI-style backward causal support; otherwise remain with deterministic coverage/negative evidence and do not invent lineage.",
+    "6. Preserve broad sentinel/regression cases even if a causal selector predicts they are low-value, so selector-model error cannot erase known safety boundaries."
+  ],
+  "mapping_to_current_code_without_mutation": [
+    "FaultEvent.action/domain already supply categorical interaction factors.",
+    "FaultEvent.target supplies an exact value but a successor coverage layer should use a predeclared normalized target-class projection to avoid treating every unique resource string as a different coverage dimension.",
+    "FaultEvent.offset_ms and sequence permit both concurrency and relative-order projections; current concurrent_offsets_ms is retained as a strong identity feature but is not itself sequence coverage.",
+    "generation_before/generation_after and authority_fence_event_ids supply exact anchors for stale-generation probes.",
+    "FaultSpec.parameters_json has bounded action-specific numeric fields such as latency_ms, loss_percent, offset_ms and remaining_bytes; coverage must use preregistered buckets rather than unbounded raw numeric Cartesian products.",
+    "HostileChaosMatrix.sha256 can be the canonical input identity for a derived coverage plan, so no second matrix truth store is needed.",
+    "The current MAX_* ceilings remain static resource guards; dynamic runtime stop conditions belong in the later executor snapshot/receipt rather than retroactively changing accepted source-level semantics."
+  ],
+  "candidate_acceptance_metrics_for_later_trigger4": [
+    "constrained t-way interaction coverage before and after each selected case",
+    "order-tuple coverage before and after each selected case",
+    "cases/events executed per unique coverage increment",
+    "invariant violations found per case/event budget",
+    "minimal reproducing fault-cut size",
+    "matched control/intervention outcome delta",
+    "time or event count to first violation",
+    "stop-condition activation and signal freshness/provenance",
+    "stale-generation attempts rejected / stale-generation attempts submitted",
+    "current-generation rescue successes after valid rebind",
+    "duplicate normalized fault-cut ratio"
+  ],
+  "falsification_matrix": [
+    {
+      "hypothesis": "Coverage-guided selection is more informative than the current broad all-five-family-only selection at equal case/event budget.",
+      "counterhypothesis": "The current compact matrix already covers the relevant interactions; the coverage layer adds bookkeeping without new failures or meaningful compression.",
+      "test": "At a fixed case/event budget, compare unique constrained t-way + sequence coverage, unique violations and minimal counterexample size for current ordering versus coverage-prioritized ordering on the same immutable candidate pool."
+    },
+    {
+      "hypothesis": "Order-sensitive coverage finds bugs that same-offset concurrency coverage misses.",
+      "counterhypothesis": "For the target-twin implementation, the relevant recovery semantics are order-insensitive once generation fencing is correct.",
+      "test": "Use matched fault sets with different declared orders around invalidation/recovery; require any behavior delta to bind exact sequence identity."
+    },
+    {
+      "hypothesis": "Lineage-guided minimal cuts reduce executions once a sound typed outcome lineage exists.",
+      "counterhypothesis": "The available lineage is incomplete/correlated and causes the selector to miss real failures; covering designs are safer and equally efficient.",
+      "test": "Preregister the bounded lineage model, compare predicted cuts against covering-array sentinels, and reject lineage promotion if it loses known counterexamples or fails to reduce execution cost."
+    },
+    {
+      "hypothesis": "Generation fencing prevents stale-authority revival after hostile lifecycle/session/network/permission faults.",
+      "counterhypothesis": "The planner advances generation metadata, but a real consumer can still accept an operation bound to the old generation.",
+      "test": "Execute the explicit stale-g rejection + g+1 re-observe/rebind/rescue sequence and require both halves; metadata-only advancement is insufficient."
+    },
+    {
+      "hypothesis": "Dynamic stop conditions safely bound hostile experiments.",
+      "counterhypothesis": "The injected fault can blind or stale the stop signal, creating false safety.",
+      "test": "Fault the primary observation channel in a bounded twin and verify the predeclared independent/degraded stop policy activates or fails closed."
+    }
+  ],
+  "resource_efficiency_implications": {
+    "expected_benefit": "Reduce redundant hostile cases and later target-twin executions while increasing explicit interaction/order coverage and attribution quality.",
+    "expected_overhead": "Deterministic combinatorial bookkeeping and coverage-set storage; no model call is required for the baseline selector.",
+    "preferred_baseline": "A small deterministic constrained covering/greedy coverage selector before any model- or lineage-heavy mechanism.",
+    "anti_overbuild": "Do not import a general chaos framework or Molly/LDFI runtime into F2 merely because the research mechanism is useful; distill the minimal typed selection, provenance and falsifier structures."
+  },
+  "handoff": {
+    "to": "Trigger4 later executable target-twin consumer / successor workpackage",
+    "do_not_reopen_wp1208_g1_without_counterevidence": true,
+    "recommended_order": [
+      "derive finite factor/constraint schema from accepted fault primitives",
+      "build deterministic coverage/sequence measurement over immutable matrix/candidate pool",
+      "bind immutable execution snapshot and matched control/intervention identity",
+      "bind independent/fail-closed dynamic stop conditions",
+      "execute stale-generation rejection + current-generation rescue probe",
+      "measure equal-budget current-vs-coverage-guided selection before adding optional lineage prioritization"
+    ]
+  },
+  "next_research_gate": "E3 only if a distinct source-level or executable claim can be reproduced without duplicating an active Trigger6 objective. Strongest candidate is a deterministic equal-budget counterexample showing CASE_COUNT/all-five-family coverage can miss a predeclared pairwise/sequence interaction, but acquire a new atomic E3 claim and re-enter current F2 state first.",
+  "credit": {
+    "research": "E2_ARCHITECTURE_MAPPED_ONLY",
+    "wp1208_source_mutation": 0,
+    "new_repository_ci": 0,
+    "target_twin_runtime": 0,
+    "sustained_chaos_runtime": 0,
+    "physical_host": 0,
+    "completion": 0,
+    "architecture_acceptance": 0,
+    "whole_system": 0
+  }
+}
