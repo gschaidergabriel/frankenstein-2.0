@@ -16,6 +16,7 @@ from frankenstein2.physics_projection import (
 )
 from frankenstein2.qubo_projection import (
     QuboCoupling,
+    QuboProjection,
     QuboVariable,
     build_qubo_projection,
 )
@@ -29,6 +30,30 @@ from frankenstein2.sparse_world_basis import (
 
 class ForgedWorldSlice(WorldSlice):
     """Subtype trust-boundary probe; exact-type consumers must reject it."""
+
+
+class ForgedQuboProjection(QuboProjection):
+    """Subtype that can self-attest through overridden digest methods."""
+
+    def sha256(self) -> str:
+        return "0" * 64
+
+
+class ForgedPhysicsProjection(PhysicsProjection):
+    """Subtype that can self-attest through overridden digest methods."""
+
+    def sha256(self) -> str:
+        return "0" * 64
+
+    def canonical_json(self) -> str:
+        return "{}"
+
+
+class ForgedWorldAtom(WorldAtom):
+    """Subtype source atom that must never cross the WP404 public boundary."""
+
+    def sha256(self) -> str:
+        return "0" * 64
 
 
 def atom(atom_id: str, vector: tuple[int, ...]) -> WorldAtom:
@@ -127,6 +152,55 @@ def inputs(*, slice_obj: WorldSlice | None = None):
     return ws, position, velocity, acceleration, physics, qubo
 
 
+def forged_qubo_projection(source: QuboProjection) -> ForgedQuboProjection:
+    return ForgedQuboProjection(
+        projection_id=source.projection_id,
+        slice_id=source.slice_id,
+        slice_sha256=source.slice_sha256,
+        cycle_id=source.cycle_id,
+        generation=source.generation,
+        vector_space_version=source.vector_space_version,
+        variables=source.variables,
+        couplings=source.couplings,
+        offset=source.offset,
+        provenance_refs=source.provenance_refs,
+    )
+
+
+def forged_physics_projection(source: PhysicsProjection) -> ForgedPhysicsProjection:
+    return ForgedPhysicsProjection(
+        projection_id=source.projection_id,
+        slice_id=source.slice_id,
+        slice_digest=source.slice_digest,
+        need_id=source.need_id,
+        cycle_id=source.cycle_id,
+        generation=source.generation,
+        vector_space_version=source.vector_space_version,
+        position_atom_id=source.position_atom_id,
+        velocity_atom_id=source.velocity_atom_id,
+        acceleration_atom_id=source.acceleration_atom_id,
+        source_atom_digests=source.source_atom_digests,
+        dt_ticks=source.dt_ticks,
+        steps=source.steps,
+        position_trajectory=source.position_trajectory,
+        velocity_trajectory=source.velocity_trajectory,
+    )
+
+
+def forged_world_atom(source: WorldAtom) -> ForgedWorldAtom:
+    return ForgedWorldAtom(
+        atom_id=source.atom_id,
+        generation=source.generation,
+        vector_space_version=source.vector_space_version,
+        vector=source.vector,
+        epistemic_origin=source.epistemic_origin,
+        knowledge_state=source.knowledge_state,
+        provenance_refs=source.provenance_refs,
+        evidence_refs=source.evidence_refs,
+        confidence_micros=source.confidence_micros,
+    )
+
+
 def run_lab(**overrides):
     ws, position, velocity, acceleration, physics, qubo = inputs()
     kwargs = {
@@ -189,6 +263,32 @@ class CognitiveMicroLabTests(unittest.TestCase):
         with self.assertRaisesRegex(CognitiveMicroLabError, "exact WorldSlice"):
             run_lab(world_slice=forged)
 
+    def test_projection_subtypes_are_rejected_before_self_attestation(self):
+        ws, position, velocity, acceleration, physics, qubo = inputs()
+        forged_qubo = forged_qubo_projection(qubo)
+        with self.assertRaisesRegex(CognitiveMicroLabError, "exact QuboProjection"):
+            run_lab(
+                qubo_projection=forged_qubo,
+                expected_qubo_projection_sha256=forged_qubo.sha256(),
+            )
+        forged_physics = forged_physics_projection(physics)
+        with self.assertRaisesRegex(CognitiveMicroLabError, "exact PhysicsProjection"):
+            run_lab(
+                physics_projection=forged_physics,
+                expected_physics_projection_sha256=forged_physics.sha256(),
+            )
+
+    def test_world_atom_subtypes_are_rejected_before_physics_replay(self):
+        _, position, velocity, acceleration, _, _ = inputs()
+        for role, forged in (
+            ("position_atom", forged_world_atom(position)),
+            ("velocity_atom", forged_world_atom(velocity)),
+            ("acceleration_atom", forged_world_atom(acceleration)),
+        ):
+            with self.subTest(role=role):
+                with self.assertRaisesRegex(CognitiveMicroLabError, f"{role} must be exact WorldAtom"):
+                    run_lab(**{role: forged})
+
     def test_qubo_projection_is_revalidated_against_exact_world_slice(self):
         ws, position, velocity, acceleration, physics, qubo = inputs()
         changed_slice = world_slice(provenance_digest="1" * 64)
@@ -229,6 +329,49 @@ class CognitiveMicroLabTests(unittest.TestCase):
                 physics_projection=forged,
                 expected_physics_projection_sha256=forged.sha256(),
                 position_atom=position,
+                velocity_atom=velocity,
+                acceleration_atom=acceleration,
+            )
+
+    def test_qubo_and_physics_must_bind_same_exact_world_slice(self):
+        primary = world_slice(provenance_digest="0" * 64)
+        secondary = world_slice(provenance_digest="1" * 64)
+        _, position, velocity, acceleration, physics_primary, _ = inputs(slice_obj=primary)
+        _, _, _, _, _, qubo_secondary = inputs(slice_obj=secondary)
+        with self.assertRaisesRegex(CognitiveMicroLabError, "QUBO source binding rejected"):
+            run_cognitive_micro_lab(
+                world_slice=primary,
+                qubo_projection=qubo_secondary,
+                expected_qubo_projection_sha256=qubo_secondary.sha256(),
+                baseline_assignment=(("x:a", 0), ("x:b", 1)),
+                perturbation=QuboBitPerturbation(
+                    variable_id="x:a", expected_from_bit=0, to_bit=1,
+                    rationale_ref="probe:mixed-slice",
+                ),
+                physics_projection=physics_primary,
+                expected_physics_projection_sha256=physics_primary.sha256(),
+                position_atom=position,
+                velocity_atom=velocity,
+                acceleration_atom=acceleration,
+            )
+
+    def test_cross_slice_source_atom_mixing_is_rejected_by_physics_replay(self):
+        ws, position, velocity, acceleration, physics, qubo = inputs()
+        foreign_position = replace(position, vector=(99, 99))
+        self.assertIs(type(foreign_position), WorldAtom)
+        with self.assertRaisesRegex(CognitiveMicroLabError, "physics source binding rejected"):
+            run_cognitive_micro_lab(
+                world_slice=ws,
+                qubo_projection=qubo,
+                expected_qubo_projection_sha256=qubo.sha256(),
+                baseline_assignment=(("x:a", 0), ("x:b", 1)),
+                perturbation=QuboBitPerturbation(
+                    variable_id="x:a", expected_from_bit=0, to_bit=1,
+                    rationale_ref="probe:cross-source",
+                ),
+                physics_projection=physics,
+                expected_physics_projection_sha256=physics.sha256(),
+                position_atom=foreign_position,
                 velocity_atom=velocity,
                 acceleration_atom=acceleration,
             )
