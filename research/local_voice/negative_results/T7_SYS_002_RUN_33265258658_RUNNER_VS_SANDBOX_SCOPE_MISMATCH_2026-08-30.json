@@ -1,0 +1,37 @@
+{
+  "schema_version": 1,
+  "trigger": "7",
+  "research_id": "T7-SYS-002",
+  "objective": "E3_VPS_HARDWARE_ROUNDTRIP",
+  "date": "2026-08-30",
+  "classification": "NEGATIVE_RESULT_SOURCE_SCOPE_MISMATCH_BEFORE_TARGET_EXECUTION",
+  "observed_run": {
+    "repository": "gschaidergabriel/Dr.-Unterweger",
+    "workflow_run_id": 33265258658,
+    "job_id": 99134091520,
+    "status_observed": "queued",
+    "execution_observed": false,
+    "hardware_receipt_observed": false
+  },
+  "source_problem": {
+    "workflow_path": ".github/workflows/trigger7-vps-hardware-roundtrip.yml",
+    "workflow_blob_before_repair": "5fc1d299f685dbdaf6180c39b8ef79162ab94b74",
+    "finding": "The queued workflow cloned Frankenstein-2.0 and executed t7_hardware_inventory.py directly in the self-hosted runner job. It did not discover or exec into clay-direct-dev. Therefore a success from that source would measure runner hardware rather than the claimed clay-direct-dev sandbox hardware.",
+    "credit_rule": "Run 33265258658 must not mint clay-direct-dev hardware receipt credit even if it later completes successfully."
+  },
+  "repair": {
+    "controller_commit": "97fc5a69f7f2dc2cb56700a34daa0453eed95d92",
+    "workflow_blob_after_repair": "44e88575d0bbfe993898689c61cdc8f7a4f88e6e",
+    "change": "Discover clay-direct-dev through docker/podman/incus/lxc and execute the exact pinned t7_hardware_inventory.py inside the sandbox; record runner and sandbox identities separately; fail closed if sandbox is not discovered.",
+    "source_f2_sha": "d927d4f6933fe5cb4c9e9f535d29a739dade82ff",
+    "tool_blob_sha": "a553a995d4fd8e50be2801eec68caacfe1b2a0bb"
+  },
+  "credit": {
+    "target_runtime_credit": 0,
+    "hardware_receipt_credit": 0,
+    "model_runtime_credit": 0,
+    "trigger4_acceptance_credit": 0,
+    "whole_system_acceptance": false
+  },
+  "next_exact_gate": "Accept hardware evidence only from a post-repair workflow run whose receipt says target_environment=clay-direct-dev, execution_scope=CLAY_DIRECT_DEV_SANDBOX_HARDWARE_INVENTORY_ONLY, execution_observed=true, hardware_receipt_observed=true, and whose source/tool identities match the repaired workflow pins."
+}
