@@ -10,6 +10,7 @@ on:
       - 'schemas/run_closed_receipt.schema.json'
       - 'telemetry/RUN_PACKAGE_CONTRACT.md'
       - 'tests/test_verify_run_package.py'
+      - 'tests/test_wp004_runpackage_authority_singleton.py'
       - 'runs/wp004-runpackage-verifier-ci/**'
       - '.github/workflows/runpackage-verifier-ci.yml'
   pull_request:
@@ -20,6 +21,7 @@ on:
       - 'schemas/run_closed_receipt.schema.json'
       - 'telemetry/RUN_PACKAGE_CONTRACT.md'
       - 'tests/test_verify_run_package.py'
+      - 'tests/test_wp004_runpackage_authority_singleton.py'
       - 'runs/wp004-runpackage-verifier-ci/**'
       - '.github/workflows/runpackage-verifier-ci.yml'
   workflow_dispatch:
@@ -36,10 +38,16 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-      - name: Compile verifier and regression
-        run: python -m py_compile runpackages/verify_run_package.py tests/test_verify_run_package.py
+      - name: Compile verifier and regressions
+        run: >-
+          python -m py_compile
+          runpackages/verify_run_package.py
+          tests/test_verify_run_package.py
+          tests/test_wp004_runpackage_authority_singleton.py
       - name: Run verifier regression suite
-        run: python tests/test_verify_run_package.py
+        run: |
+          python tests/test_verify_run_package.py
+          python -m unittest tests/test_wp004_runpackage_authority_singleton.py
       - name: Parse canonical run-package schemas
         run: |
           python -m json.tool schemas/run_package_manifest.schema.json >/dev/null
