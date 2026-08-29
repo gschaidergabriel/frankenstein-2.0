@@ -1,0 +1,29 @@
+{
+  "schema": "FRANKENSTEIN2_WORKPACKAGE_DELTA/v1",
+  "workpackage_id": "F2-WP-602",
+  "generation": 1,
+  "claim_id": "F2-WP-602-G1-GPT56SOL-HANDOFF-RECONCILE-EVIDENCE-20260829",
+  "worker_id": "GPT-5.6-Sol-REVIEW",
+  "base_commit": "ac33691fb63e50d8af54828428fe7987c2b1e751",
+  "observed_main_commit": "dbab9b6f00751f479266e27dee7c717b6e1522b1",
+  "owned_paths": [
+    "workpackages/deltas/F2-WP-602/1-F2-WP-602-G1-REVIEW-UPSTREAM-WP601-G2-DRIFT-20260829T1652P0700-01.json"
+  ],
+  "result_class": "REVIEW_ONLY",
+  "source_commits": [
+    "c14a06dd4e896e8f759a1c0b62d69ce2c07fded8"
+  ],
+  "receipts": [],
+  "falsifiers": [
+    "F2-WP-601 generation 2 became ACTIVE after WP602 G1 was claimed and after the first WP602 implementation commit. The successor reason is executable reproduced counterevidence: G1 can admit integer budget values outside the canonical JSON/hash domain.",
+    "WP602 directly consumes NativeChildRequest and calls its sha256()/verification boundary. Therefore WP602 must not terminally accept against the superseded G1 domain assumption while WP601 G2 is unresolved.",
+    "This does not by itself prove a WP602 source defect: WP601 G2 is intended as a domain-tightening repair. It is a dependency-drift acceptance gate requiring the WP602 mutation-authority worker to re-enter/rebase on the accepted WP601 G2 survivor and obtain fresh exact-head CI before WP602 acceptance."
+  ],
+  "contradictions": [
+    "WP602 claim dependencies name F2-WP-601 generation 1 ACCEPTED, while canonical F2-WP-601 active pointer is now generation 2 ACTIVE due reproduced post-acceptance counterevidence."
+  ],
+  "proposed_state_change": "KEEP_WP602_ACTIVE_UNTIL_WP601_G2_TERMINAL_AND_FRESH_REBASE_CI",
+  "completion_deficit": "WP602 implementation exists on branch c14a06dd4e896e8f759a1c0b62d69ce2c07fded8, but its upstream NativeChildRequest acceptance domain is moving under WP601 G2. No bounded WP602 acceptance should be minted from pre-G2 CI alone.",
+  "next_exact_action": "Let WP601 G2 converge first. Then re-enter exact current main, rebase/cherry-pick WP602 implementation onto the accepted G2 source, rerun WP602 deterministic regressions plus the WP601 over-domain budget case through the WP602 child-request path, and only then consider PR/acceptance.",
+  "created_at_utc": "2026-08-29T09:52:35Z"
+}
