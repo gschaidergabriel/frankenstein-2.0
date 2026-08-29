@@ -1,6 +1,6 @@
 """Deterministic GWT selection/broadcast primitives for Frankenstein 2.0 Stage 5.
 
-F2-WP-506 generation 3.
+F2-WP-506 generation 4.
 
 This module selects an explicitly bounded candidate set for one workspace cycle and
 constructs a broadcast envelope addressed to logical GRID10 cells. Candidate admission
@@ -584,8 +584,8 @@ class WorkspaceSelection:
         object.__setattr__(self, "policy_id", _text("policy_id", self.policy_id))
         _generation("policy_generation", self.policy_generation)
         object.__setattr__(self, "policy_sha256", _sha256("policy_sha256", self.policy_sha256))
-        if not isinstance(self.selected, tuple) or not all(isinstance(item, SelectedCandidate) for item in self.selected):
-            raise GwtWorkspaceError("selected must be an immutable tuple of SelectedCandidate")
+        if not isinstance(self.selected, tuple) or not all(type(item) is SelectedCandidate for item in self.selected):
+            raise GwtWorkspaceError("selected must be an immutable tuple of concrete SelectedCandidate")
         selected_ids = tuple(item.candidate_id for item in self.selected)
         if len(set(selected_ids)) != len(selected_ids):
             raise GwtWorkspaceError("selected contains duplicate candidate_id")
