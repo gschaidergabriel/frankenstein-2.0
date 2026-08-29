@@ -1,0 +1,111 @@
+{
+  "schema": "FRANKENSTEIN2_TRIGGER4_TOOL_RESEARCH_HANDOFF/v1",
+  "candidate_id": "R6-SEED-013-OBSERVER-BINDING-v1",
+  "research_id": "R6-SEED-013",
+  "status": "E5_BUILD_CANDIDATE_AWAITING_TRIGGER4_REVIEW_BUILD_TEST",
+  "created_at": "2026-08-30T00:27:00+07:00",
+  "producer": "GPT-5.6-Sol:Triggerword-6-organ",
+  "canonical_e5_result": {
+    "commit": "3ef3aad814b4c1efc72c4fdb6164ae2d231a1e3e",
+    "path": "research/tool_intelligence/deltas/R6-SEED-013_E5_THIN_OBSERVER_BINDING_BUILD_CANDIDATE_20260830_GPT56SOL.json"
+  },
+  "source_pins": {
+    "f2": {
+      "wp507_blob_sha": "f25c03d4e4e49c4fed44acd0c5c96edfb40f664e",
+      "wp507_generation": 4,
+      "module": "src/frankenstein2/gwt_uptake.py"
+    },
+    "external_pattern": {
+      "source": "OpenTelemetry InstrumentationScope + Resource specifications",
+      "instrumentation_scope_url": "https://opentelemetry.io/docs/specs/otel/common/instrumentation-scope/",
+      "resource_url": "https://opentelemetry.io/docs/specs/otel/resource/",
+      "adoption": "PATTERN_ONLY_NO_DEPENDENCY_IMPORT"
+    }
+  },
+  "target_workpackages": ["F2-WP-507", "F2-WP-510"],
+  "target_modules": [
+    "src/frankenstein2/gwt_uptake.py",
+    "src/frankenstein2/gwt_causal_path.py",
+    "tests/test_gwt_uptake.py",
+    "tests/test_gwt_causal_path.py"
+  ],
+  "problem": "Current WP507 CellUptakeReceipt canonical identity does not bind the measurement producer/observer method. Distinct observer implementations/configurations can therefore be invisible to the receipt digest and all downstream summary/result digests when observation payloads are otherwise identical.",
+  "proposed_delta": {
+    "pattern": "typed immutable ObserverBinding + canonical digest at measurement-leaf scope",
+    "schema_hint": "FRANKENSTEIN2_GWT_OBSERVER_BINDING/v1",
+    "minimum_fields": [
+      "binding_id",
+      "binding_generation",
+      "observer_type",
+      "observer_instance_id",
+      "observer_artifact_sha256",
+      "observer_config_sha256",
+      "method_class",
+      "evidence_class",
+      "provenance_refs"
+    ],
+    "receipt_rule": "CellUptakeReceipt.observe consumes a concrete validated ObserverBinding and serializes observer_binding_sha256 in the canonical receipt payload.",
+    "validation_rule": "Before summary admission, recompute/revalidate the exact source binding; reject absent, malformed, stale-generation or digest-mismatched observer bindings.",
+    "propagation_rule": "Reuse existing source_receipt_sha256s -> uptake_summary_sha256 lineage; do not duplicate the full observer object at summary/result layers.",
+    "authority_rule": "ObserverBinding is evidence metadata only and cannot mint truth, causal promotion, runtime credit, completion or effects."
+  },
+  "baseline_and_research_evidence": {
+    "e3": "research/tool_intelligence/deltas/R6-SEED-013_E3_OBSERVER_METHOD_ALIASING_COLLISION_20260829T2216P0700_GPT56SOL.json",
+    "e4": "research/tool_intelligence/receipts/R6-SEED-013_E4_OBSERVER_BINDING_PLACEMENT_20260830T0025P0700.json",
+    "e4_fixture": "research/tool_intelligence/experiments/r6_seed_013_observer_binding_placement_ablation_v1.py",
+    "e4_result": "research/tool_intelligence/experiments/R6-SEED-013/observer_binding_placement_e4_result.json",
+    "current_unbound_collision_through_result": true,
+    "receipt_level_collision_after_binding": false,
+    "summary_only_preserves_leaf_identity": false,
+    "result_only_preserves_leaf_identity": false,
+    "two_receipt_assignment_swap_summary_only_collision": true,
+    "two_receipt_assignment_swap_receipt_level_collision": false
+  },
+  "research_resource_measurements": {
+    "scope": "LOCAL_RESEARCH_ONLY_NOT_TARGET_RUNTIME",
+    "typed_observer_binding_example_bytes": 380,
+    "leaf_digest_reference_increment_bytes": 93,
+    "added_model_calls": 0,
+    "added_model_tokens": 0,
+    "provider_calls": 0
+  },
+  "acceptance_tests": [
+    "Preregister/reproduce the existing observer-method collision against exact pre-change WP507.",
+    "After implementation, identical observation payloads with different valid ObserverBinding digests must produce different CellUptakeReceipt digests.",
+    "Swapping two observer bindings across two cell receipts must alter the resulting UptakeSummary digest.",
+    "Direct receipt construction or forged observer_binding_sha256 without a valid source binding must fail closed.",
+    "Artifact/config/generation mutation after receipt construction must fail binding revalidation.",
+    "Opaque provenance_refs containing observer-like strings must not substitute for the typed binding.",
+    "Existing receipt->summary->result lineage and all current WP507/WP510 tests must remain deterministic and green at successor scope.",
+    "Evidence class must not change runtime/truth/causal/effect/completion credit by itself.",
+    "Measure exact successor serialization bytes plus hash/validation p50/p95/p99 and CPU/RSS/I/O where meaningful on the admitted Trigger4 execution surface."
+  ],
+  "probe_arm_followup": {
+    "finding": "CausalProbeArm downstream_output_sha256 is also caller-supplied measurement evidence and currently lacks typed producer identity.",
+    "instruction": "Do not claim full WP507 measurement-producer closure from receipt repair alone. Either reuse ObserverBinding for arm output evidence after an exact-source falsifier or record a bounded no-change reason.",
+    "orthogonal_witness": "R6-SEED-012 ProbeExecutionContext matches non-intervention execution conditions; it is not a substitute for measurement-producer identity."
+  },
+  "falsifiers": [
+    "A newer exact current WP507 successor already contains a mandatory typed observer/evidence-producer binding and validates it before summary admission; if found, reject duplicate implementation and revalidate the existing path.",
+    "The E3 collision does not reproduce against the exact predecessor selected for mutation; if so, stop and reconcile before implementation.",
+    "A stronger shared F2 evidence-binding primitive already provides exact observer artifact/config/method identity and can be consumed without new authority; if so, reuse it rather than adding a local duplicate."
+  ],
+  "risks": [
+    "Binding too late loses per-receipt observer assignment.",
+    "Embedding the full observer object in every receipt increases footprint and duplicates metadata unnecessarily.",
+    "Treating evidence_class as a quality score could silently mint causal/truth credit.",
+    "Duplicating observer schemas across WP507/WP510 would create provenance drift.",
+    "A digest proves declared binding identity, not that a real observer executed correctly."
+  ],
+  "required_trigger4_output": "trigger4/outcomes/tool_research/R6-SEED-013-OBSERVER-BINDING-v1.json",
+  "credits": {
+    "e5_research_candidate": 1,
+    "e6_f2_accepted": 0,
+    "integration_credit": 0,
+    "target_runtime_credit": 0,
+    "physical_grid10_credit": 0,
+    "gwt_runtime_credit": 0,
+    "jspace_runtime_credit": 0,
+    "whole_system_credit": 0
+  }
+}
