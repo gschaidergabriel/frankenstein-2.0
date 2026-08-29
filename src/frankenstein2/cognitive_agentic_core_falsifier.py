@@ -6,9 +6,15 @@ It is inspired by the capability decomposition used by interactive ARC-AGI-3-sty
 benchmarks, but it is NOT an ARC-AGI-3 implementation and cannot mint an ARC score.
 
 Inputs remain measurement claims until independently bound to their exact workpackage
-reconciliation/receipt identities. A supported report is therefore repository-component
-measurement only: no runtime, GRID10, GWT/J-Space, model, training, effect, completion,
-world-truth, causal, or whole-system credit is granted.
+reconciliation/receipt identities. Shared fixture-family identity is represented as a
+SHA-256 digest and each capability record mechanically binds that digest to its exact
+source reconciliation/receipt identities. The outer binder still has to verify that the
+upstream evidence actually attests the supplied family digest; this component does not
+turn caller input into source truth.
+
+A supported report is therefore repository-component measurement only: no runtime,
+GRID10, GWT/J-Space, model, training, effect, completion, world-truth, causal, or
+whole-system credit is granted.
 """
 from __future__ import annotations
 
@@ -18,9 +24,10 @@ import json
 import re
 from typing import Any
 
-CAPABILITY_EVIDENCE_SCHEMA = "FRANKENSTEIN2_AGENTIC_CORE_CAPABILITY_EVIDENCE/v1"
+CAPABILITY_EVIDENCE_SCHEMA = "FRANKENSTEIN2_AGENTIC_CORE_CAPABILITY_EVIDENCE/v2"
 POLICY_SCHEMA = "FRANKENSTEIN2_AGENTIC_CORE_FALSIFIER_POLICY/v1"
 REPORT_SCHEMA = "FRANKENSTEIN2_AGENTIC_CORE_FALSIFIER_REPORT/v1"
+FAMILY_BINDING_SCHEMA = "FRANKENSTEIN2_AGENTIC_CORE_FAMILY_BINDING/v1"
 
 EXPLORATION = "EXPLORATION"
 MODELING = "MODELING"
@@ -100,6 +107,40 @@ def _digest(value: Any) -> str:
     return hashlib.sha256(_json(value).encode()).hexdigest()
 
 
+def derive_family_binding_sha256(
+    *,
+    source_workpackage_id: str,
+    source_generation: int,
+    source_claim_id: str,
+    source_reconciliation_sha256: str,
+    source_receipt_sha256: str,
+    shared_fixture_family_sha256: str,
+) -> str:
+    """Bind one declared shared family identity to exact upstream evidence identities.
+
+    This is a tamper-evident identity binding, not source-content attestation. A caller that
+    has not independently verified the referenced reconciliation/receipt must not promote
+    this digest to factual provenance.
+    """
+    _id("source_workpackage_id", source_workpackage_id)
+    _bounded_int("source_generation", source_generation, 1, _MAX_GENERATION)
+    _id("source_claim_id", source_claim_id)
+    _sha("source_reconciliation_sha256", source_reconciliation_sha256)
+    _sha("source_receipt_sha256", source_receipt_sha256)
+    _sha("shared_fixture_family_sha256", shared_fixture_family_sha256)
+    return _digest(
+        {
+            "schema": FAMILY_BINDING_SCHEMA,
+            "source_workpackage_id": source_workpackage_id,
+            "source_generation": source_generation,
+            "source_claim_id": source_claim_id,
+            "source_reconciliation_sha256": source_reconciliation_sha256,
+            "source_receipt_sha256": source_receipt_sha256,
+            "shared_fixture_family_sha256": shared_fixture_family_sha256,
+        }
+    )
+
+
 @dataclass(frozen=True, slots=True)
 class CapabilityEvidence:
     schema: str
@@ -113,6 +154,8 @@ class CapabilityEvidence:
     source_receipt_sha256: str
     benchmark_id: str
     holdout_set_id: str
+    shared_fixture_family_sha256: str
+    family_binding_sha256: str
     baseline_id: str
     baseline_score_ppm: int
     intervention_score_ppm: int
@@ -144,6 +187,18 @@ class CapabilityEvidence:
             raise AgenticCoreFalsifierError("source_terminal_state is not admitted")
         _sha("source_reconciliation_sha256", self.source_reconciliation_sha256)
         _sha("source_receipt_sha256", self.source_receipt_sha256)
+        _sha("shared_fixture_family_sha256", self.shared_fixture_family_sha256)
+        _sha("family_binding_sha256", self.family_binding_sha256)
+        expected_binding = derive_family_binding_sha256(
+            source_workpackage_id=self.source_workpackage_id,
+            source_generation=self.source_generation,
+            source_claim_id=self.source_claim_id,
+            source_reconciliation_sha256=self.source_reconciliation_sha256,
+            source_receipt_sha256=self.source_receipt_sha256,
+            shared_fixture_family_sha256=self.shared_fixture_family_sha256,
+        )
+        if self.family_binding_sha256 != expected_binding:
+            raise AgenticCoreFalsifierError("family binding digest mismatch")
         _bounded_int("baseline_score_ppm", self.baseline_score_ppm, 0, _PPM)
         _bounded_int("intervention_score_ppm", self.intervention_score_ppm, 0, _PPM)
         _bounded_int("sample_count", self.sample_count, 1, _MAX_COUNT)
@@ -271,7 +326,7 @@ def evaluate_agentic_core(
     """Evaluate a matched four-capability evidence set with fail-closed semantics.
 
     Missing or non-terminal upstream evidence is NOT_EVALUABLE. Accepted evidence that
-    violates the declared matched-holdout, independence, score, delta, or sample criteria
+    violates matched holdout/family lineage, independence, score, delta, or sample criteria
     is FALSIFIED. Only a complete set satisfying every criterion is
     SUPPORTED_AT_COMPONENT_SCOPE.
     """
@@ -311,6 +366,9 @@ def evaluate_agentic_core(
         if policy.require_shared_holdout_set and len({x.holdout_set_id for x in ordered}) != 1:
             verdict = FALSIFIED
             reasons.append("MIXED_HOLDOUT_SET")
+        if len({x.shared_fixture_family_sha256 for x in ordered}) != 1:
+            verdict = FALSIFIED
+            reasons.append("MIXED_PROVENANCE_FAMILY")
         for item in ordered:
             if item.sample_count < policy.min_sample_count_per_capability:
                 verdict = FALSIFIED
