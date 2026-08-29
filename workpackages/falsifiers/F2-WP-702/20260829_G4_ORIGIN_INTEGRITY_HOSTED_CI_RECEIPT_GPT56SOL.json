@@ -1,0 +1,52 @@
+{
+  "schema": "FRANKENSTEIN2_REVIEW_FALSIFIER_RECEIPT/v1",
+  "workpackage_id": "F2-WP-702",
+  "classification": "REVIEW_ONLY_HOSTED_CI_COUNTEREVIDENCE",
+  "worker_id": "GPT-5.6-Sol",
+  "mutation_authority_taken": false,
+  "review_target": {
+    "pull_request": 395,
+    "base_branch": "trigger4/wp702-g4-evaluator-lineage-20260829",
+    "base_sha": "64e3da037ad710ec6771cca8d531e5aae1892a2b",
+    "production_source_changed_by_review": false
+  },
+  "review_pull_request": 402,
+  "review_branch": "review/wp702-g4-origin-integrity-falsifier-20260829",
+  "tested_review_head_sha": "50ff8ad40d3cf510d56a18ef0db2263b2417dcea",
+  "workflow": ".github/workflows/review-wp702-g4-origin-integrity-falsifier.yml",
+  "workflow_run_id": 33250180946,
+  "workflow_run_conclusion": "failure_expected_for_confirmed_falsifiers",
+  "jobs": [
+    {
+      "name": "module-origin-reuse",
+      "job_id": 99094413933,
+      "canonical_wp702_baseline_step": "success",
+      "falsifier_step": "failure",
+      "finding": "CONFIRMED_AT_HOSTED_REPOSITORY_REVIEW_SCOPE: the exact module-level origin object can be reused by a same-process caller through the public PerceptionControlResult constructor, so PR395's sentinel is not an unforgeable producer-lineage proof."
+    },
+    {
+      "name": "post-evaluation-content-drift",
+      "job_id": 99094413811,
+      "canonical_wp702_baseline_step": "success",
+      "falsifier_step": "failure",
+      "finding": "CONFIRMED_AT_HOSTED_REPOSITORY_REVIEW_SCOPE: an evaluator-produced frozen PerceptionControlResult can be mutated after validation with object.__setattr__, so evaluator origin alone is not a content-integrity seal for authority-relevant fields."
+    }
+  ],
+  "baseline_interpretation": "Canonical PR395 WP702 tests passed independently in both jobs before each counterexample. The red jobs therefore preserve bounded counterevidence against the stronger producer/content-lineage interpretation rather than showing an unrelated baseline regression.",
+  "acceptance_boundary": "This receipt does not claim that arbitrary hostile same-process Python code must be made impossible. It establishes that the mechanism in PR395 cannot support an unqualified downstream-consumable producer-lineage/content-integrity claim under the same direct-construction/object-mutation threat model exercised by current project hardening. The canonical owner may either narrow the declared guarantee to cooperative convention fencing or adopt an equivalently stronger consumer/content-bound admission mechanism.",
+  "target_runtime_execution_observed": false,
+  "vps_runtime_execution_observed": false,
+  "physical_perception_execution_observed": false,
+  "provider_model_execution_observed": false,
+  "runtime_credit": 0,
+  "perception_runtime_credit": 0,
+  "vps_runtime_credit": 0,
+  "physical_grid10_credit": 0,
+  "gwt_runtime_credit": 0,
+  "jspace_runtime_credit": 0,
+  "training_credit": 0,
+  "effect_credit": 0,
+  "completion_credit": 0,
+  "whole_system_acceptance": false,
+  "next_exact_action": "Canonical WP702 G4 owner should reconcile PR402. Either explicitly narrow G4 acceptance to cooperative accidental-constructor prevention, or bind downstream acceptance to exact current evaluator-produced content with a mechanism that survives the two hosted counterexamples, then rerun canonical tests plus the preserved review falsifiers."
+}
