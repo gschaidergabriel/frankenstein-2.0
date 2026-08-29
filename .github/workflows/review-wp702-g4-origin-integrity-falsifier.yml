@@ -11,7 +11,7 @@ permissions:
   contents: read
 
 jobs:
-  wp702-g4-origin-integrity-review:
+  module-origin-reuse:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
@@ -23,7 +23,30 @@ jobs:
         env:
           PYTHONPATH: src
         run: python -m unittest tests.test_perception_control -v
-      - name: Execute review-only producer/content integrity counterexamples
+      - name: F1 module origin token reuse must fail closed
         env:
           PYTHONPATH: src
-        run: python -m unittest tests.test_wp702_g4_origin_integrity_falsifier -v
+        run: >-
+          python -m unittest
+          tests.test_wp702_g4_origin_integrity_falsifier.WP702G4OriginIntegrityFalsifier.test_module_origin_token_cannot_be_reused_to_mint_direct_persistent_result
+          -v
+
+  post-evaluation-content-drift:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Preserve canonical WP702 baseline tests
+        env:
+          PYTHONPATH: src
+        run: python -m unittest tests.test_perception_control -v
+      - name: F2 evaluator result must resist post-evaluation authority drift
+        env:
+          PYTHONPATH: src
+        run: >-
+          python -m unittest
+          tests.test_wp702_g4_origin_integrity_falsifier.WP702G4OriginIntegrityFalsifier.test_evaluator_result_cannot_be_post_mutated_into_persistent_authority
+          -v
