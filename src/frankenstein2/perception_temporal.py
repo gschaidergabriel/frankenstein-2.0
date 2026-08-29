@@ -1,12 +1,15 @@
 """Temporal observation-window contracts for the Frankenstein 2.0 Perception Fabric.
 
 Exact OBSERVED percepts are bound to source/clock identity and partitioned into CURRENT,
-STALE, or UNALIGNED. Numeric offsets never self-attest cross-clock comparability. A raw
-ClockAlignmentWitness is evidence input only; distinct clock identities are comparable only
-when the exact witness digest is separately admitted by an upstream deterministic authority.
-This module consumes that admission identity but does not mint trust, dereference external
-evidence, read sensors, synchronize clocks, invoke providers, resolve semantic disagreement,
-or mint world-truth/effect/completion authority.
+STALE, or UNALIGNED. Numeric offsets and raw witness digests never self-attest cross-clock
+comparability. A raw ClockAlignmentWitness is evidence input only; distinct clock identities
+are comparable only when the exact witness is selected by a separately produced
+ClockAlignmentAdmissionRegistrySnapshot carrying upstream authority, generation, receipt,
+and provenance identity.
+
+This module consumes that registry result but does not mint admission authority, dereference
+external receipts, read sensors, synchronize clocks, invoke providers, resolve semantic
+disagreement, or mint world-truth/effect/completion authority.
 """
 from __future__ import annotations
 
@@ -17,10 +20,14 @@ import re
 from typing import Any, ClassVar
 
 from .epistemic_perception import EpistemicPerceptClaim
+from .perception_clock_alignment_admission import (
+    ClockAlignmentAdmissionRecord,
+    ClockAlignmentAdmissionRegistrySnapshot,
+)
 
 TEMPORAL_REF_SCHEMA = "FRANKENSTEIN2_TEMPORAL_PERCEPT_REF/v2"
 CLOCK_ALIGNMENT_WITNESS_SCHEMA = "FRANKENSTEIN2_CLOCK_ALIGNMENT_WITNESS/v1"
-OBSERVATION_WINDOW_SCHEMA = "FRANKENSTEIN2_OBSERVATION_WINDOW/v4"
+OBSERVATION_WINDOW_SCHEMA = "FRANKENSTEIN2_OBSERVATION_WINDOW/v5"
 _SHA256_RE = re.compile(r"^[0-9a-f]{64}$")
 
 
@@ -53,6 +60,12 @@ def _sha256(name: str, value: Any) -> str:
     if _SHA256_RE.fullmatch(value) is None:
         raise PerceptionTemporalError(f"{name} must be lowercase sha256 hex")
     return value
+
+
+def _optional_sha256(name: str, value: Any) -> str | None:
+    if value is None:
+        return None
+    return _sha256(name, value)
 
 
 def _refs(name: str, value: Any, *, allow_empty: bool = False) -> tuple[str, ...]:
@@ -283,7 +296,8 @@ class ObservationWindow:
     provenance_refs: tuple[str, ...]
     unaligned_ref_ids: tuple[str, ...] = ()
     alignment_witness_refs: tuple[tuple[str, str], ...] = ()
-    alignment_admission_sha256s: tuple[str, ...] = ()
+    alignment_admission_refs: tuple[tuple[str, str, str], ...] = ()
+    alignment_admission_registry_sha256: str | None = None
 
     schema: ClassVar[str] = OBSERVATION_WINDOW_SCHEMA
     classification: ClassVar[str] = "TEMPORAL_FUSION_WINDOW_NOT_WORLD_TRUTH_OR_DISAGREEMENT_RESOLUTION"
@@ -299,6 +313,7 @@ class ObservationWindow:
         groups = (set(self.current_ref_ids), set(self.stale_ref_ids), set(self.unaligned_ref_ids))
         if groups[0] & groups[1] or groups[0] & groups[2] or groups[1] & groups[2]:
             raise PerceptionTemporalError("current, stale and unaligned refs must be disjoint")
+
         if type(self.source_refs) is not tuple:
             raise PerceptionTemporalError("source_refs must be an immutable tuple")
         checked: list[tuple[str, str, str]] = []
@@ -312,6 +327,7 @@ class ObservationWindow:
         if groups[0] | groups[1] | groups[2] != {ref_id for _, ref_id, _ in checked}:
             raise PerceptionTemporalError("every source ref must have exactly one temporal disposition")
         object.__setattr__(self, "source_refs", tuple(sorted(checked)))
+
         if type(self.alignment_witness_refs) is not tuple:
             raise PerceptionTemporalError("alignment_witness_refs must be an immutable tuple")
         witness_refs: list[tuple[str, str]] = []
@@ -323,11 +339,39 @@ class ObservationWindow:
         if len({alignment_id for alignment_id, _ in witness_refs}) != len(witness_refs):
             raise PerceptionTemporalError("alignment_witness_refs must not repeat alignment_id")
         object.__setattr__(self, "alignment_witness_refs", tuple(sorted(witness_refs)))
-        admissions = _sha_refs("alignment_admission_sha256s", self.alignment_admission_sha256s)
+
+        if type(self.alignment_admission_refs) is not tuple:
+            raise PerceptionTemporalError("alignment_admission_refs must be an immutable tuple")
+        admission_refs: list[tuple[str, str, str]] = []
+        for item in self.alignment_admission_refs:
+            if type(item) is not tuple or len(item) != 3:
+                raise PerceptionTemporalError(
+                    "alignment_admission_refs items must be (admission_id, witness_sha256, admission_record_sha256)"
+                )
+            admission_id, witness_sha, admission_sha = item
+            admission_refs.append(
+                (
+                    _text("admission_id", admission_id),
+                    _sha256("admission witness_sha256", witness_sha),
+                    _sha256("admission_record_sha256", admission_sha),
+                )
+            )
+        if len({admission_id for admission_id, _, _ in admission_refs}) != len(admission_refs):
+            raise PerceptionTemporalError("alignment_admission_refs must not repeat admission_id")
         witness_shas = {sha for _, sha in witness_refs}
-        if set(admissions) != witness_shas:
-            raise PerceptionTemporalError("used alignment admission identities must exactly match used witness digests")
-        object.__setattr__(self, "alignment_admission_sha256s", admissions)
+        admitted_witness_shas = {sha for _, sha, _ in admission_refs}
+        if witness_shas != admitted_witness_shas:
+            raise PerceptionTemporalError("used admission records must exactly bind used witness digests")
+        registry_sha = _optional_sha256(
+            "alignment_admission_registry_sha256",
+            self.alignment_admission_registry_sha256,
+        )
+        if admission_refs and registry_sha is None:
+            raise PerceptionTemporalError("used alignment admissions require registry snapshot identity")
+        if not admission_refs and registry_sha is not None:
+            raise PerceptionTemporalError("unused registry snapshot must not appear in window causal identity")
+        object.__setattr__(self, "alignment_admission_refs", tuple(sorted(admission_refs)))
+        object.__setattr__(self, "alignment_admission_registry_sha256", registry_sha)
         object.__setattr__(self, "provenance_refs", _refs("provenance_refs", self.provenance_refs))
 
     @property
@@ -358,14 +402,24 @@ class ObservationWindow:
                 {"alignment_id": alignment_id, "witness_sha256": witness_sha}
                 for alignment_id, witness_sha in self.alignment_witness_refs
             ],
-            "alignment_admission_sha256s": list(self.alignment_admission_sha256s),
+            "alignment_admission_refs": [
+                {
+                    "admission_id": admission_id,
+                    "witness_sha256": witness_sha,
+                    "admission_record_sha256": admission_sha,
+                }
+                for admission_id, witness_sha, admission_sha in self.alignment_admission_refs
+            ],
+            "alignment_admission_registry_sha256": self.alignment_admission_registry_sha256,
             "arrival_order_is_event_time": False,
             "same_grid_cycle_is_same_real_world_time": False,
             "unknown_or_unaligned_preserved": True,
             "unproven_cross_clock_is_unaligned": True,
             "numeric_reference_offset_self_attests_alignment": False,
             "raw_clock_alignment_witness_is_admission_authority": False,
-            "requires_separate_witness_admission": True,
+            "bare_witness_digest_is_admission_authority": False,
+            "requires_upstream_admission_registry": True,
+            "registry_receipt_authenticated_here": False,
             "resolves_semantic_disagreement": False,
             "world_truth_authority": "NONE",
             "effect_authority": "NONE",
@@ -421,16 +475,19 @@ def _matching_alignment_witness(
     b: TemporalPerceptRef,
     *,
     alignment_witnesses: tuple[ClockAlignmentWitness, ...],
-    admitted_alignment_witness_sha256s: frozenset[str],
-) -> ClockAlignmentWitness | None:
-    matches = [
-        witness
-        for witness in alignment_witnesses
-        if witness.sha256() in admitted_alignment_witness_sha256s and witness.matches_pair(a, b)
-    ]
-    if len(matches) != 1:
+    alignment_admission_registry: ClockAlignmentAdmissionRegistrySnapshot | None,
+) -> tuple[ClockAlignmentWitness, ClockAlignmentAdmissionRecord] | None:
+    structural_matches = [witness for witness in alignment_witnesses if witness.matches_pair(a, b)]
+    if len(structural_matches) != 1 or alignment_admission_registry is None:
         return None
-    return matches[0]
+    witness = structural_matches[0]
+    admission = alignment_admission_registry.resolve_exact(
+        alignment_id=witness.alignment_id,
+        witness_sha256=witness.sha256(),
+    )
+    if admission is None:
+        return None
+    return (witness, admission)
 
 
 def _pair_is_admissible(
@@ -439,33 +496,35 @@ def _pair_is_admissible(
     *,
     max_join_skew_ns: int,
     alignment_witnesses: tuple[ClockAlignmentWitness, ...],
-    admitted_alignment_witness_sha256s: frozenset[str],
-) -> tuple[bool, ClockAlignmentWitness | None]:
+    alignment_admission_registry: ClockAlignmentAdmissionRegistrySnapshot | None,
+) -> tuple[bool, ClockAlignmentWitness | None, ClockAlignmentAdmissionRecord | None]:
     if a.source_id == b.source_id:
         same_clock = a.clock_identity == b.clock_identity
         same_transform = a.reference_offset_ns == b.reference_offset_ns
-        return (same_clock and same_transform, None)
+        return (same_clock and same_transform, None, None)
 
     witness: ClockAlignmentWitness | None = None
+    admission: ClockAlignmentAdmissionRecord | None = None
     if a.clock_identity == b.clock_identity:
         if a.reference_offset_ns != b.reference_offset_ns:
-            return (False, None)
+            return (False, None, None)
     else:
-        witness = _matching_alignment_witness(
+        matched = _matching_alignment_witness(
             a,
             b,
             alignment_witnesses=alignment_witnesses,
-            admitted_alignment_witness_sha256s=admitted_alignment_witness_sha256s,
+            alignment_admission_registry=alignment_admission_registry,
         )
-        if witness is None:
-            return (False, None)
+        if matched is None:
+            return (False, None, None)
+        witness, admission = matched
 
     worst_case_separation = (
         abs(a.reference_time_ns - b.reference_time_ns)
         + a.clock_uncertainty_ns
         + b.clock_uncertainty_ns
     )
-    return (worst_case_separation <= max_join_skew_ns, witness)
+    return (worst_case_separation <= max_join_skew_ns, witness, admission)
 
 
 def build_observation_window(
@@ -476,9 +535,15 @@ def build_observation_window(
     max_clock_uncertainty_ns: int,
     provenance_refs: tuple[str, ...],
     alignment_witnesses: tuple[ClockAlignmentWitness, ...] = (),
+    alignment_admission_registry: ClockAlignmentAdmissionRegistrySnapshot | None = None,
     admitted_alignment_witness_sha256s: tuple[str, ...] = (),
 ) -> ObservationWindow:
-    """Partition refs without inventing simultaneity or admitting caller-minted witnesses."""
+    """Partition refs without inventing simultaneity or locally minting witness admission.
+
+    ``admitted_alignment_witness_sha256s`` is retained only as a fail-closed compatibility
+    fence for the falsified G3 candidate API. Any non-empty value is rejected. Cross-clock
+    admission must arrive through a typed upstream registry snapshot instead.
+    """
     if type(refs) is not tuple or any(type(item) is not TemporalPerceptRef for item in refs):
         raise PerceptionTemporalError("refs must be an immutable tuple of concrete TemporalPerceptRef values")
     if type(alignment_witnesses) is not tuple or any(
@@ -490,11 +555,19 @@ def build_observation_window(
     witness_ids = [item.alignment_id for item in alignment_witnesses]
     if len(witness_ids) != len(set(witness_ids)):
         raise PerceptionTemporalError("alignment_witnesses must have unique alignment_id")
-    admitted = _sha_refs("admitted_alignment_witness_sha256s", admitted_alignment_witness_sha256s)
-    supplied_witness_shas = {item.sha256() for item in alignment_witnesses}
-    if not set(admitted).issubset(supplied_witness_shas):
-        raise PerceptionTemporalError("admitted alignment witness digest has no supplied exact witness")
-    admitted_set = frozenset(admitted)
+
+    legacy_digests = _sha_refs(
+        "admitted_alignment_witness_sha256s",
+        admitted_alignment_witness_sha256s,
+    )
+    if legacy_digests:
+        raise PerceptionTemporalError(
+            "bare caller-supplied witness digests are not independent admission authority"
+        )
+    if alignment_admission_registry is not None and type(alignment_admission_registry) is not ClockAlignmentAdmissionRegistrySnapshot:
+        raise PerceptionTemporalError(
+            "alignment_admission_registry must be None or a concrete ClockAlignmentAdmissionRegistrySnapshot"
+        )
 
     _nonnegative("reference_now_ns", reference_now_ns)
     _nonnegative("max_join_skew_ns", max_join_skew_ns)
@@ -531,20 +604,22 @@ def build_observation_window(
 
     incompatible_ids: set[str] = set()
     used_witnesses: dict[str, ClockAlignmentWitness] = {}
+    used_admissions: dict[str, ClockAlignmentAdmissionRecord] = {}
     for index, left in enumerate(current):
         for right in current[index + 1 :]:
-            admissible, witness = _pair_is_admissible(
+            admissible, witness, admission = _pair_is_admissible(
                 left,
                 right,
                 max_join_skew_ns=max_join_skew_ns,
                 alignment_witnesses=alignment_witnesses,
-                admitted_alignment_witness_sha256s=admitted_set,
+                alignment_admission_registry=alignment_admission_registry,
             )
             if not admissible:
                 incompatible_ids.add(left.ref_id)
                 incompatible_ids.add(right.ref_id)
-            elif witness is not None:
+            elif witness is not None and admission is not None:
                 used_witnesses[witness.alignment_id] = witness
+                used_admissions[admission.admission_id] = admission
     if incompatible_ids:
         retained: list[TemporalPerceptRef] = []
         for item in current:
@@ -562,14 +637,34 @@ def build_observation_window(
         source_refs.append((item.source_id, item.ref_id, item.sha256()))
 
     witness_refs: list[tuple[str, str]] = []
-    used_admissions: list[str] = []
+    admission_refs: list[tuple[str, str, str]] = []
+    registry_sha: str | None = None
     for witness in used_witnesses.values():
         witness_sha = witness.sha256()
         witness_refs.append((witness.alignment_id, witness_sha))
-        used_admissions.append(witness_sha)
         provenance.update(witness.provenance_refs)
         provenance.add(f"clock-alignment-witness-sha256:{witness_sha}")
-        provenance.add(f"admitted-clock-alignment-witness-sha256:{witness_sha}")
+
+    if used_admissions:
+        if alignment_admission_registry is None:
+            raise PerceptionTemporalError("internal error: used admissions require registry snapshot")
+        registry_sha = alignment_admission_registry.sha256()
+        provenance.update(alignment_admission_registry.provenance_refs)
+        provenance.add(f"clock-alignment-admission-registry-sha256:{registry_sha}")
+        provenance.add(
+            "clock-alignment-admission-authority:"
+            f"{alignment_admission_registry.authority_id}:"
+            f"{alignment_admission_registry.authority_generation}"
+        )
+        provenance.add(
+            "clock-alignment-admission-authority-receipt-sha256:"
+            f"{alignment_admission_registry.authority_receipt_sha256}"
+        )
+        for admission in used_admissions.values():
+            admission_sha = admission.sha256()
+            admission_refs.append((admission.admission_id, admission.witness_sha256, admission_sha))
+            provenance.update(admission.provenance_refs)
+            provenance.add(f"clock-alignment-admission-record-sha256:{admission_sha}")
 
     payload = {
         "reference_now_ns": reference_now_ns,
@@ -580,7 +675,8 @@ def build_observation_window(
         "unaligned_ref_ids": sorted(item.ref_id for item in unaligned),
         "source_refs": sorted(source_refs),
         "alignment_witness_refs": sorted(witness_refs),
-        "alignment_admission_sha256s": sorted(used_admissions),
+        "alignment_admission_refs": sorted(admission_refs),
+        "alignment_admission_registry_sha256": registry_sha,
     }
     window_id = "observation-window:" + _digest(payload)[:24]
     return ObservationWindow(
@@ -593,7 +689,8 @@ def build_observation_window(
         unaligned_ref_ids=tuple(item.ref_id for item in unaligned),
         source_refs=tuple(source_refs),
         alignment_witness_refs=tuple(witness_refs),
-        alignment_admission_sha256s=tuple(used_admissions),
+        alignment_admission_refs=tuple(admission_refs),
+        alignment_admission_registry_sha256=registry_sha,
         provenance_refs=tuple(sorted(provenance)),
     )
 
