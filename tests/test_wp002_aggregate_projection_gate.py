@@ -31,6 +31,30 @@ def reconciliation(broader: str) -> dict:
     return {"schema": mod.RECON_SCHEMA, "workpackage_id": WP, "generation": 1, "claim_id": CLAIM_ID, "worker_id": "fixture-worker", "terminal_state": "ACCEPTED", "broader_workpackage_status": broader, "whole_system_acceptance": False}
 
 
+def _required_projection(root: Path, pointer_path: Path, pointer_value: dict) -> tuple[str, list[str]]:
+    pointer_state = pointer_value.get("state")
+    pointer_ref = pointer_path.relative_to(root).as_posix()
+    if pointer_state == "ACTIVE":
+        return "IN_PROGRESS", [pointer_ref]
+    if pointer_state == "ACCEPTED":
+        matches = mod._matching_reconciliations(root, pointer_value)
+        selected = mod._select_terminal_reconciliation(root, matches, context=pointer_ref)
+        broader = selected.get("broader_workpackage_status")
+        if broader == "ACCEPTED_AT_SCOPE":
+            recon_ref = selected.get("reconciliation_ref")
+            if not isinstance(recon_ref, str):
+                for path, candidate in matches:
+                    if candidate is selected or candidate == selected:
+                        recon_ref = path.relative_to(root).as_posix()
+                        break
+            evidence = [pointer_ref]
+            if isinstance(recon_ref, str) and recon_ref:
+                evidence.append(recon_ref)
+            return "ACCEPTED_AT_SCOPE", evidence
+        return "IN_PROGRESS", [pointer_ref]
+    return "IN_PROGRESS", [pointer_ref]
+
+
 class AggregateProjectionGateTests(unittest.TestCase):
     def test_active_pointer_absent_from_state_fails_closed(self):
         with self.assertRaisesRegex(mod.ValidationError, "absent from STATE"):
@@ -49,13 +73,25 @@ class AggregateProjectionGateTests(unittest.TestCase):
         self.assertEqual(result["broad_status"], "IN_PROGRESS")
         self.assertTrue(result["reconciliation_bound"])
 
-    def test_repository_aggregate_contains_every_active_pointer(self):
+    def test_repository_aggregate_matches_granular_pointer_projection(self):
         root = Path(__file__).resolve().parents[1]
         state = json.loads((root / "workpackages" / "STATE.json").read_text(encoding="utf-8"))
-        projected = set(state["workpackages"])
-        active = {path.stem for path in (root / "workpackages" / "active").glob("F2-WP-*.json")}
-        missing = sorted(active - projected)
-        self.assertEqual(missing, [], f"active pointers absent from STATE: {missing}")
+        projected = state["workpackages"]
+        repairs = []
+        for pointer_path in sorted((root / "workpackages" / "active").glob("F2-WP-*.json")):
+            pointer_value = json.loads(pointer_path.read_text(encoding="utf-8"))
+            wp = pointer_path.stem
+            required_status, evidence = _required_projection(root, pointer_path, pointer_value)
+            entry = projected.get(wp)
+            if not isinstance(entry, dict) or entry.get("status") != required_status:
+                repairs.append({
+                    "workpackage_id": wp,
+                    "pointer_state": pointer_value.get("state"),
+                    "required_status": required_status,
+                    "current_status": entry.get("status") if isinstance(entry, dict) else None,
+                    "minimum_evidence": evidence,
+                })
+        self.assertEqual(repairs, [], "aggregate projection repairs required: " + json.dumps(repairs, sort_keys=True))
 
 
 if __name__ == "__main__":
