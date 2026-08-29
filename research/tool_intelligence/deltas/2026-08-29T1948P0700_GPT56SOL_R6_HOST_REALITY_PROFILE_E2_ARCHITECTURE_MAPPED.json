@@ -1,0 +1,100 @@
+{
+  "schema": "FRANKENSTEIN2_TRIGGER6_ARCHITECTURE_DELTA/v1",
+  "delta_id": "ADF-R6-HOST-REALITY-20260829T1948P0700-GPT56SOL-01",
+  "status": "E2_RESEARCH_DELTA_NOT_BUILD_ACCEPTANCE",
+  "created_at": "2026-08-29T19:49:00+07:00",
+  "worker": "GPT-5.6 Sol / Triggerword-6 organ",
+  "research_id": "R6-20260829-HOST-REALITY-COMPLETION-GPT56SOL-01",
+  "live_fusion": {
+    "e2_claim_commit": "8fcc65b621c997480ef876303b072b9e105c9cb9",
+    "research_entity_main": "5529d48d52d77872478d2c0e2c2aea42ab29a67a",
+    "wp1201_implementation_delta_commit": "bf9a5cb4a463933b4709e088667ef42dd061ac99",
+    "wp1201_source": "src/frankenstein2/target_host_profile.py",
+    "parallel_lanes_not_duplicated": [
+      "systemd service lifecycle/readiness witness",
+      "WP1202 mkosi/nspawn/vmspawn/QEMU layered host-reality twin",
+      "Trigger-4 WP1201 source implementation and CI"
+    ]
+  },
+  "observed_wp1201_strengths": [
+    "fixed allow-list rather than arbitrary caller-supplied probes",
+    "read-only bounded command/file probes with per-probe timeout/error handling",
+    "UNKNOWN is explicit and cannot contain a value",
+    "missing XDG runtime ownership remains UNKNOWN rather than inferred",
+    "deterministic canonical JSON SHA-256 snapshot digest",
+    "baseline probe set avoids raw machine-id, serial-number fields, MAC addresses, credentials, clipboard, user documents and raw camera/microphone payloads",
+    "source explicitly refuses installation/runtime/physical-host/completion credit"
+  ],
+  "observed_architecture_gaps": [
+    {
+      "id": "HRT-PROFILE-GAP-001-MONOLITHIC-INVALIDATION",
+      "finding": "profile_digest_sha256 hashes the entire fact map, mixing comparatively stable platform facts with volatile session/device/software/runtime facts. Any one fact change therefore changes the one global profile digest and can unnecessarily stale unrelated evidence if downstream consumers bind only that digest.",
+      "examples": ["wpctl status", "systemd --user state", "XDG session/desktop", "USB inventory", "browser versions", "kernel release"]
+    },
+    {
+      "id": "HRT-PROFILE-GAP-002-NO-STABLE-HOST-SCOPE",
+      "finding": "WP1201 provides a snapshot digest but no separate stable pseudonymous host-scope identity. External systemd evidence shows raw machine-id must not be exposed and also does not track hardware replacement, so stable lineage and mutable current-host profile need separate identities."
+    },
+    {
+      "id": "HRT-PROFILE-GAP-003-NO-BOOT-SCOPE",
+      "finding": "The profile lacks a distinct boot-scope identity. Reboot-sensitive lifecycle/readback evidence therefore needs an independent boot epoch rather than using whole-profile digest changes as a proxy."
+    },
+    {
+      "id": "HRT-PROFILE-GAP-004-RAW-DYNAMIC-TOPOLOGY",
+      "finding": "The audio probe stores raw `wpctl status` output in the fingerprint. This is operationally useful but is a dynamic runtime topology surface and should not automatically participate in every host-evidence binding; it may also include transient application/media stream descriptions beyond a minimal platform fingerprint."
+    },
+    {
+      "id": "HRT-PROFILE-GAP-005-REQUIREMENT-INSENSITIVE-BINDING",
+      "finding": "The current schema exposes one complete_fingerprint boolean and one global digest. Completion maturity, however, is requirement-specific: evidence for storage migration, audio, camera, desktop session and service lifecycle should invalidate on different subsets of host state."
+    }
+  ],
+  "external_primary_constraints": {
+    "systemd_commit": "048970650ce5d50bceffff97442c4a90c1cf0572",
+    "machine_id_rule": "raw machine-id is confidential; use an application-specific irreversible derived identifier for untrusted/exported contexts",
+    "identity_scope_rule": "machine, boot, service invocation and login/session are separate identity scopes",
+    "machine_id_hardware_rule": "machine-id remains stable when hardware is replaced, so it cannot be the current hardware fingerprint"
+  },
+  "recommended_successor_architecture": {
+    "preserve_wp1201_g1": "YES_AS_COARSE_SNAPSHOT_COMPONENT; do not rewrite or revoke its repository-CI acceptance",
+    "new_typed_scopes": [
+      "HostScopeIdentity: application-specific pseudonymous stable host/install lineage; raw machine-id never stored/exported",
+      "BootScopeIdentity: boot-epoch identity kept separate from host lineage",
+      "HostProfileComponent: independently canonicalized/digested components such as platform, software/kernel, session, device, audio, browser/adapter",
+      "HostRuntimeWitness: volatile current-state observations such as media streams/service state that are not stable fingerprint material",
+      "RequirementBindingDigest: deterministic digest over only the exact component IDs/digests required by a specific acceptance obligation"
+    ],
+    "whole_snapshot_digest": "May remain for snapshot provenance, but CompletionGate and evidence reuse should bind requirement-specific component digests rather than treating every host change as globally invalidating.",
+    "privacy_rule": "Prefer parsed minimal structured fields over retaining broad command output. Volatile application/media stream names should be excluded from the stable host profile unless an explicit requirement needs them.",
+    "unknown_rule": "UNKNOWN remains component-local and contributes unknown debt only to obligations that require that component; an unknown browser probe must not by itself block unrelated storage or state-migration acceptance.",
+    "twin_rule": "All simulated/twin profiles carry explicit backend/fidelity identity and remain capped at SIMULATED_HOST_VERIFIED; no derived host scope ID or matching software profile can mint physical EXACT_HOST_BOUND credit."
+  },
+  "counterhypothesis": "A single monolithic digest is simpler and maximally conservative: any host change invalidates all host-bound evidence, avoiding accidental reuse. This may be preferable if host probes are rare and revalidation is cheap. The successor split is justified only if measured false-staleness/revalidation cost is material without weakening safety.",
+  "falsifier": "Build a no-source-edit fixture around WP1201 outputs and compare monolithic versus component/requirement binding across controlled deltas: audio stream start/stop, browser update, USB hotplug, reboot, kernel update, permission loss and synthetic platform change. A valid split must preserve rejection for requirement-relevant changes while reducing invalidation for irrelevant changes; otherwise retain the monolithic model.",
+  "trigger4_handoff": {
+    "priority": "HIGH_BEFORE_FIRST_PHYSICAL_TARGET_PROFILE_ADMISSION",
+    "do_not_edit_active_generation": true,
+    "suggested_successor": "WP1201 generation-2 or adjacent host-evidence binding workpackage after current reconciliation",
+    "tests": [
+      "raw machine-id never appears in persisted/exported profile or receipt",
+      "same host + new audio stream leaves non-audio requirement binding unchanged",
+      "reboot changes BootScopeIdentity and invalidates reboot-sensitive evidence",
+      "USB change invalidates device-requiring obligations but not unrelated state-migration evidence",
+      "kernel/driver change invalidates requirements that bind kernel/driver component",
+      "host-scope identity remains stable across benign profile changes but is never treated as proof of unchanged hardware",
+      "simulated twin cannot satisfy physical exact-host/readback gates even when software facts match"
+    ]
+  },
+  "efficiency_effect": {
+    "expected_benefit": "less false-stale evidence and less unnecessary physical revalidation while preserving fail-closed requirement-specific invalidation",
+    "runtime_cost": "small additional canonical hashes over already collected structured facts",
+    "token_context_cost": "lower if downstream context selects only required components instead of full raw profile output",
+    "privacy_effect": "improved by separating volatile/runtime observation from stable profile and parsing broad command outputs"
+  },
+  "evidence_ceiling": "E2_ARCHITECTURE_MAPPED",
+  "runtime_credit": 0,
+  "physical_host_credit": 0,
+  "completion_credit": 0,
+  "architecture_acceptance_credit": 0,
+  "whole_system_acceptance": false,
+  "pending_research_sqlite_sync": "PENDING"
+}
