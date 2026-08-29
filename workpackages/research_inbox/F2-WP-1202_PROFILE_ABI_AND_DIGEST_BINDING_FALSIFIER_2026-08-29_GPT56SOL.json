@@ -1,0 +1,56 @@
+{
+  "schema": "FRANKENSTEIN2_WORKPACKAGE_REVIEW/v1",
+  "review_id": "F2-WP-1202-PROFILE-ABI-DIGEST-BINDING-FALSIFIER-20260829-GPT56SOL",
+  "workpackage_id": "F2-WP-1202",
+  "mode": "CANDIDATE_FALSIFIER",
+  "status": "OPEN_CONTRADICTION",
+  "worker": "GPT-5.6-Sol-TRIGGER4-REVIEW",
+  "observed_main_sha": "bea5d217cf8f995c8e5623780d3ffa85139c089a",
+  "active_claim_ref": "workpackages/active/F2-WP-1202.json",
+  "evidence": {
+    "wp1201_source": {
+      "path": "src/frankenstein2/target_host_profile.py",
+      "git_blob_sha": "f0b528956c5dab6cd58f93b1d3a6851c1adcb07a",
+      "observation": "Canonical TargetHostProfile uses schema FRANKENSTEIN2_TARGET_HOST_PROFILE/v1 and serializes collector_version, generation, facts, profile_digest_sha256 plus derived counts/scope. TargetHostProfile.__post_init__ independently recomputes and validates profile_digest_sha256 over schema+collector_version+generation+facts."
+    },
+    "wp1202_source": {
+      "path": "src/frankenstein2/target_userspace_twin.py",
+      "git_blob_sha": "43b9978f2caa4de2a8c5c1d4aed8d17233fb19a4",
+      "observation": "TargetProfileProjection.from_mapping claims the same FRANKENSTEIN2_TARGET_HOST_PROFILE/v1 schema identity but expects profile_generation, profile_sha256 and a flat fields mapping. It syntax-validates profile_sha256 only and does not recompute/bind that digest to the consumed fields."
+    },
+    "wp1202_tests": {
+      "path": "tests/test_target_userspace_twin.py",
+      "git_blob_sha": "303d66ec397815f975052d11ef9b1ca7bfee5ad3",
+      "observation": "Tests construct a synthetic profile shape with profile_generation/profile_sha256/fields rather than consuming canonical TargetHostProfile.as_dict output, so the cross-workpackage ABI mismatch and stale/self-attested digest path are not exercised."
+    }
+  },
+  "contradiction": {
+    "type": "UPSTREAM_PROFILE_ABI_COLLISION_AND_UNBOUND_DIGEST",
+    "severity": "HIGH",
+    "statement": "WP1201 and WP1202 currently assign the same v1 target-host-profile schema identity to incompatible data shapes. Canonical WP1201 output is not directly consumable by WP1202. If a caller manually reshapes the profile into WP1202's expected form, WP1202 accepts a caller-supplied profile_sha256 without proving that it belongs to the consumed fields, so changed target facts can retain a stale/forged source-profile digest.",
+    "risk": [
+      "T1 twin plans can fail to consume the canonical read-only host profile despite claiming target-profile-driven construction",
+      "manual/ad-hoc adapters can silently become an unversioned second profile authority",
+      "a stale or forged digest can label modified target fields as if they came from the original profile identity",
+      "downstream T1/T2/T3 evidence may appear target-bound while actually being bound only to caller-attested metadata"
+    ]
+  },
+  "required_falsifiers": [
+    "Pass TargetHostProfile.as_dict() from canonical WP1201 directly to build_t1_userspace_plan(); current expectation: fail because generation/profile_digest_sha256/facts do not match profile_generation/profile_sha256/fields.",
+    "Construct two WP1202-shaped mappings with identical profile_generation and profile_sha256 but different required fields; current expectation: both are accepted and produce different TwinBootstrapPlan digests while claiming the same source_profile_sha256.",
+    "After repair, require exactly one canonical FRANKENSTEIN2_TARGET_HOST_PROFILE/v1 wire/data contract and an explicit validated projection/adapter if WP1202 needs a reduced view.",
+    "After repair, mutate any consumed target-profile fact while preserving the old canonical digest; admission must fail closed before a TwinBootstrapPlan is produced.",
+    "Bind projection identity to canonical profile generation+digest and document which canonical fact records produce each reduced T1 field; UNKNOWN must remain UNKNOWN rather than being flattened into an unproven observed string."
+  ],
+  "repair_options": [
+    "Preferred: make WP1202 consume the canonical TargetHostProfile/v1 object/dict shape, validate TargetHostProfile digest through the WP1201 canonical validator, then derive a deterministic reduced T1 projection from canonical fact records.",
+    "Alternative: introduce a separately named/versioned TARGET_HOST_PROFILE_T1_PROJECTION schema produced only by a validated adapter that binds canonical profile generation+digest and independently validates the projection digest. Do not reuse FRANKENSTEIN2_TARGET_HOST_PROFILE/v1 for the reduced shape."
+  ],
+  "acceptance_boundary": {
+    "wp1202_should_not_be_reconciled_accepted_until": "canonical WP1201->WP1202 ABI is explicit and the stale/forged profile-digest falsifier fails closed",
+    "repository_component_credit": 0,
+    "target_runtime_credit": 0,
+    "physical_host_credit": 0,
+    "whole_system_credit": 0
+  }
+}
