@@ -186,6 +186,31 @@ class WorkpackageStateValidatorTests(unittest.TestCase):
         )
         self.assertTrue(result["reconciliation_bound"])
 
+    def test_exact_legacy_whole_system_non_credit_token_is_admitted(self):
+        reconciliation = valid_reconciliation(broader="IN_PROGRESS")
+        reconciliation.pop("whole_system_acceptance")
+        reconciliation["non_credit"] = [
+            "NO_PROVIDER_RUNTIME_CREDIT",
+            mod.LEGACY_WHOLE_SYSTEM_NON_CREDIT,
+        ]
+        result = mod.validate_pointer(
+            filename_stem="F2-WP-002", pointer=valid_pointer("ACCEPTED"), claim=valid_claim(),
+            state_entry=valid_state("IN_PROGRESS")["workpackages"]["F2-WP-002"],
+            contract=valid_contract(), reconciliation=reconciliation,
+        )
+        self.assertTrue(result["reconciliation_bound"])
+
+    def test_legacy_non_credit_without_exact_whole_system_token_fails_closed(self):
+        reconciliation = valid_reconciliation(broader="IN_PROGRESS")
+        reconciliation.pop("whole_system_acceptance")
+        reconciliation["non_credit"] = ["NO_PROVIDER_RUNTIME_CREDIT"]
+        with self.assertRaisesRegex(mod.ValidationError, "explicit zero whole-system credit"):
+            mod.validate_pointer(
+                filename_stem="F2-WP-002", pointer=valid_pointer("ACCEPTED"), claim=valid_claim(),
+                state_entry=valid_state("IN_PROGRESS")["workpackages"]["F2-WP-002"],
+                contract=valid_contract(), reconciliation=reconciliation,
+            )
+
     def test_repository_resolves_claim_by_identity_and_reconciliation_by_tuple(self):
         with tempfile.TemporaryDirectory() as td:
             root = Path(td)
