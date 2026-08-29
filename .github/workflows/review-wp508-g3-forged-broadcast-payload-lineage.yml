@@ -1,0 +1,32 @@
+name: Review WP508 G3 forged broadcast payload lineage falsifier
+
+on:
+  push:
+    branches:
+      - review/wp508-g3-forged-broadcast-payload-lineage-20260829-1555
+    paths:
+      - 'tests/review/test_wp508_g3_forged_broadcast_payload_lineage_falsifier.py'
+      - '.github/workflows/review-wp508-g3-forged-broadcast-payload-lineage.yml'
+  pull_request:
+    paths:
+      - 'tests/review/test_wp508_g3_forged_broadcast_payload_lineage_falsifier.py'
+      - '.github/workflows/review-wp508-g3-forged-broadcast-payload-lineage.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  forged-broadcast-payload-lineage:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install pytest
+      - name: G3 must reject forged BroadcastEnvelope payload lineage
+        env:
+          PYTHONPATH: src
+        run: python -m pytest -q tests/review/test_wp508_g3_forged_broadcast_payload_lineage_falsifier.py
