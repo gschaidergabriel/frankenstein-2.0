@@ -1,0 +1,104 @@
+{
+  "schema": "FRANKENSTEIN2_TRIGGER6_RESEARCH_DELTA/v1",
+  "target_id": "R6-20260829-PYTHON-SQLITE-TXN-ABI-GPT56SOL-01",
+  "stage": "E2_ARCHITECTURE_MAPPED",
+  "status": "COMPLETED_AT_SCOPE",
+  "created_at": "2026-08-29T22:41:00+07:00",
+  "claimed_by": "gpt-5.6-sol-trigger6-organ",
+  "exact_project_sources": [
+    {
+      "path": "src/frankenstein2/persistent_agency_kernel.py",
+      "blob_sha": "351545cc18931a04a68b7deb834783f1907c9295",
+      "mapping": "Manual transaction style: writer open requires connection.in_transaction=false, writes issue explicit BEGIN IMMEDIATE, and completion uses Connection.commit()/rollback()."
+    },
+    {
+      "path": ".github/workflows/wp206-persistent-agency-ci.yml",
+      "blob_sha": "8f620d28102a4cbb8cdc2c84561cd7e7ce4f4a7e",
+      "mapping": "Current WP206 repository CI explicitly uses Python 3.12, so the accepted scope does not characterize transaction ABI across later portable-host Python versions."
+    },
+    {
+      "path": "architecture/PORTABLE_HOST_HARNESS_AND_DISTRIBUTION_CONTRACT.md",
+      "blob_sha": "81569e52844794a1dc664239b61b6680bc57954c",
+      "mapping": "Release artifact must declare minimum runtime dependencies and prove clean-host/restart behavior."
+    }
+  ],
+  "transaction_models": [
+    {
+      "model": "CURRENT_OMITTED_DEFAULT",
+      "semantics": "On currently documented Python 3.12-3.15, omission inherits LEGACY_TRANSACTION_CONTROL and default isolation_level. Current explicit BEGIN IMMEDIATE pattern works, but the contract depends on an interpreter default documented to change.",
+      "assessment": "WORKS_NOW_BUT_UNPINNED"
+    },
+    {
+      "model": "PEP249_AUTOCOMMIT_FALSE",
+      "semantics": "Python keeps a transaction open continuously and opens BEGIN DEFERRED on connect and immediately after commit/rollback.",
+      "interaction_with_current_f2": "Incompatible with the current no-open-transaction precondition and explicit BEGIN IMMEDIATE lifecycle unless the store is deliberately refactored. It would also change writer-acquisition timing from explicit IMMEDIATE reservation to Python-managed DEFERRED unless additional design work restores equivalent semantics.",
+      "assessment": "VALID_PYTHON_MODEL_BUT_NOT_BEHAVIOR_PRESERVING_DROP_IN"
+    },
+    {
+      "model": "PYTHON_AUTOCOMMIT_TRUE",
+      "semantics": "Underlying SQLite autocommit mode is used and Python Connection.commit()/rollback() have no effect.",
+      "interaction_with_current_f2": "Incompatible with current store because F2 relies on Connection.commit()/rollback() after explicit BEGIN IMMEDIATE; adopting this requires explicit SQL COMMIT/ROLLBACK or another transaction abstraction.",
+      "assessment": "NOT_BEHAVIOR_PRESERVING_DROP_IN"
+    },
+    {
+      "model": "EXPLICIT_MANUAL_LEGACY_MODE",
+      "semantics": "Pin LEGACY_TRANSACTION_CONTROL and set isolation_level=None so Python does not implicitly open transactions; retain F2's explicit BEGIN IMMEDIATE plus Connection.commit()/rollback() model.",
+      "interaction_with_current_f2": "Closest documented behavior-preserving expression of the existing source contract on Python >=3.12. For Python <3.12, isolation_level=None provides the older manual-SQL mode but autocommit parameter/constant is unavailable.",
+      "assessment": "LOWEST_DELTA_CANDIDATE_PENDING_REPRODUCTION"
+    }
+  ],
+  "architecture_delta": {
+    "status": "BOUNDED_DELTA_READY_FOR_E3_REPRODUCTION",
+    "invariants": [
+      "The runtime/installer must declare a minimum supported Python version instead of relying on whatever interpreter a host happens to provide.",
+      "Every canonical UnifiedDB writer connection must choose its Python sqlite3 transaction-control mode explicitly; interpreter defaults do not select concurrency semantics.",
+      "For the current manual BEGIN IMMEDIATE store design, writer open must begin with low-level SQLite autocommit active (connection.in_transaction=false), BEGIN IMMEDIATE must transition it to active, and commit/rollback must return it to inactive before the next explicit write transaction.",
+      "A migration to PEP-249 autocommit=False is a deliberate store refactor with separate tests, not a dependency bump.",
+      "autocommit=True cannot be substituted while product code depends on Connection.commit()/rollback().",
+      "Runtime evidence should record Python version, sqlite3 module transaction mode, loaded SQLite library version and effective PRAGMA settings; these are dependency evidence, not world truth."
+    ],
+    "candidate_behavior_preserving_configuration": {
+      "python_gte_3_12": "sqlite3.connect(..., autocommit=sqlite3.LEGACY_TRANSACTION_CONTROL, isolation_level=None, ...)",
+      "python_lt_3_12_if_supported": "sqlite3.connect(..., isolation_level=None, ...)",
+      "preferred_product_decision": "Either set minimum Python >=3.12 and use one explicit path, or implement/test a tiny compatibility connection factory. Do not silently support versions the release artifact does not test."
+    },
+    "new_authority": "NONE",
+    "runtime_overhead": "NEGLIGIBLE"
+  },
+  "counterhypotheses": [
+    {
+      "statement": "PEP-249 autocommit=False is Python's recommended mode, therefore F2 should switch to it immediately.",
+      "assessment": "NOT_SUPPORTED_AS_DROP_IN",
+      "reason": "Recommendation is general API guidance; current F2 architecture intentionally uses explicit BEGIN IMMEDIATE and asserts no transaction is open at writer admission. A safe migration would need redesigned transaction boundaries and contention tests."
+    },
+    {
+      "statement": "Pinning LEGACY_TRANSACTION_CONTROL permanently is necessarily best.",
+      "assessment": "NOT_ESTABLISHED",
+      "reason": "It is only the smallest behavior-preserving candidate. A future deliberate PEP-249 transaction abstraction may be cleaner, but must preserve F2 concurrency and fail-closed semantics empirically."
+    }
+  ],
+  "e3_discriminator": {
+    "research_only": true,
+    "matrix": [
+      "omitted current default",
+      "explicit LEGACY_TRANSACTION_CONTROL + isolation_level=None",
+      "autocommit=False",
+      "autocommit=True"
+    ],
+    "measure": [
+      "in_transaction immediately after connect",
+      "whether explicit BEGIN IMMEDIATE succeeds",
+      "in_transaction after BEGIN",
+      "whether Connection.commit()/rollback() ends the transaction",
+      "whether a second BEGIN IMMEDIATE can be started after completion"
+    ],
+    "acceptance_for_behavior_preserving_candidate": "Match current F2 manual transaction lifecycle without relying on omitted defaults."
+  },
+  "credits": {
+    "architecture_mapping": 1,
+    "production_implementation": 0,
+    "f2_runtime": 0,
+    "integration": 0,
+    "whole_system": 0
+  }
+}
