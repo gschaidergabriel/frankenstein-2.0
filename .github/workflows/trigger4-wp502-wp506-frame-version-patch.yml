@@ -1,0 +1,53 @@
+name: Trigger4 one-shot WP502-WP506 frame-version repair
+
+on:
+  push:
+    branches:
+      - trigger4/wp502-wp506-frame-version-binding-20260829
+
+permissions:
+  contents: write
+
+jobs:
+  apply-and-verify:
+    if: ${{ !contains(github.event.head_commit.message, '[frame-version-patch-applied]') }}
+    runs-on: ubuntu-latest
+    env:
+      PYTHONPATH: src
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: trigger4/wp502-wp506-frame-version-binding-20260829
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Apply strictly matched source transformation
+        run: python tools/trigger4_wp502_wp506_frame_version_patch.py
+      - name: Install test dependency
+        run: python -m pip install --disable-pip-version-check pytest
+      - name: Compile repaired boundary
+        run: >-
+          python -m py_compile
+          src/frankenstein2/hyperposition.py
+          src/frankenstein2/gwt_workspace.py
+          src/frankenstein2/grid10_interface.py
+      - name: Run WP502, WP506, and PR207 regression suites
+        run: >-
+          python -m pytest -q
+          tests/test_hyperposition.py
+          tests/test_gwt_workspace.py
+          tests/test_wp506_hyperposition_frame_version_falsifier.py
+      - name: Commit exact repaired files to repair branch
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add \
+            src/frankenstein2/hyperposition.py \
+            src/frankenstein2/gwt_workspace.py \
+            tests/test_hyperposition.py \
+            tests/test_gwt_workspace.py \
+            tests/test_wp506_hyperposition_frame_version_falsifier.py
+          git diff --cached --exit-code && { echo "expected repair diff missing"; exit 1; } || true
+          git commit -m "trigger4: bind Hyperposition to exact SituationFrame version [frame-version-patch-applied]"
+          git push origin HEAD:trigger4/wp502-wp506-frame-version-binding-20260829
