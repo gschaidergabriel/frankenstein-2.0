@@ -1,0 +1,170 @@
+{
+  "schema": "FRANKENSTEIN2_TRIGGER6_SOURCE_ARCHAEOLOGY_E2/v1",
+  "trigger": "6",
+  "slot": "INTEGRATION_DISTILLER",
+  "research_id": "R6-WP1202-MKOSI-VMSPAWN-TWIN-001",
+  "claim_target": "E2_ARCHITECTURE_MAPPED",
+  "status": "E2_ARCHITECTURE_MAPPED_COMPLETE_NO_BUILD_PROMOTION",
+  "completed_at": "2026-08-29T19:38:30+07:00",
+  "worker": "GPT-5.6 Sol / Trigger-6 organ",
+  "claims": {
+    "e1": "research/tool_intelligence/claims/R6-WP1202-MKOSI-VMSPAWN-TWIN-001/E1_SOURCE_READ.json@a9589b87dc78e5e581c7258ecffaa135a5fa66a3",
+    "e2": "research/tool_intelligence/claims/R6-WP1202-MKOSI-VMSPAWN-TWIN-001/E2_ARCHITECTURE_MAPPED.json@5b430ca7f1d03f6abef2a699dd87344cf3495a76"
+  },
+  "e1_result": "research/tool_intelligence/receipts/R6-WP1202-MKOSI-VMSPAWN-TWIN-001_E1_SOURCE_READ.json@11b9d90d0cee03490e4dba2f141508bd0e8294e4",
+  "source_lock": {
+    "mkosi": {
+      "repo": "systemd/mkosi",
+      "commit": "1da3299aecc56a1ba590a7fb7ae868275bb46d93",
+      "surfaces": ["mkosi/resources/man/mkosi.1.md", "mkosi/config.py", "LICENSES/"]
+    },
+    "systemd": {
+      "repo": "systemd/systemd",
+      "commit": "048970650ce5d50bceffff97442c4a90c1cf0572",
+      "surfaces": ["man/systemd-vmspawn.xml", "units/user/systemd-vmspawn@.service.in", "src/vmspawn/"]
+    }
+  },
+  "f2_mapping_lock": {
+    "target_architecture": "architecture/TARGET_HOST_REALITY_TWIN_AND_COMPLETION_EPISTEMICS.md@cd9f08f838dfc4cb36898e819738d37f0f3b191e",
+    "wp1202_source": "src/frankenstein2/target_userspace_twin.py@0dcc94903924256980bfabc924941b49d19cc787",
+    "wp1202_current_shape": "deterministic T1 pre-handoff plan from observed target profile; UNKNOWN fidelity gaps preserved; runtime checks named; no execution/effect/completion authority",
+    "concurrent_related_evidence": "R6-HOST-SYSTEMD-USER-READINESS-001 E1 independently covers service/user-manager readiness and is complementary, not duplicate backend research"
+  },
+  "architecture_mapping": [
+    {
+      "external_mechanism": "mkosi image build/configuration",
+      "f2_target": "WP1202 deterministic target-shaped Ubuntu twin materialization",
+      "decision": "DISTILL_AS_EXTERNAL_PINNED_IMAGE_COMPILER",
+      "reason": "The current WP1202 source describes what the twin must preserve but intentionally performs no materialization. mkosi can build distro/package-defined OS images without becoming F2 state authority."
+    },
+    {
+      "external_mechanism": "mkosi boot / systemd-nspawn",
+      "f2_target": "low-cost T1 userspace/service/install regression",
+      "decision": "ADD_EXPLICIT_NSPAWN_FAST_FIDELITY_LANE",
+      "reason": "nspawn boots systemd in a container and is efficient for userspace lifecycle checks, but shares the host kernel; its receipts must explicitly deny guest-kernel/firmware/device/physical credit."
+    },
+    {
+      "external_mechanism": "mkosi vm + systemd-vmspawn",
+      "f2_target": "higher-fidelity boot/restart/image-state twin",
+      "decision": "ADD_VM_BOOT_BACKEND_OPTION",
+      "reason": "vmspawn provides a full VM boundary plus controllable CPU/RAM, image format/disk type, KVM, VSOCK, TPM, EFI NVRAM and Secure Boot surfaces that directly exercise hidden host assumptions excluded by an nspawn-only twin."
+    },
+    {
+      "external_mechanism": "mkosi vm + qemu",
+      "f2_target": "portable/mature VM backend fallback and comparator",
+      "decision": "KEEP_AS_PEER_BACKEND_NOT_HIDDEN_FALLBACK",
+      "reason": "mkosi defaults its VM verb to qemu. Treating qemu as an explicit peer allows capability-dependent routing and later ablation instead of silently changing fidelity when vmspawn is unavailable."
+    },
+    {
+      "external_mechanism": "vmspawn ephemeral image snapshot",
+      "f2_target": "clean-slate hostile fault/install scenarios",
+      "decision": "DISTILL_WITH_PERSISTENCE_SCOPE_FENCE",
+      "reason": "Ephemeral snapshots improve reproducibility and cleanup, but cannot prove update/rollback/reboot persistence across independently recreated VM instances. Persistent-image-copy scenarios must remain separate."
+    },
+    {
+      "external_mechanism": "KVM/VSOCK/TPM/EFI/NVRAM host requirements",
+      "f2_target": "Target Twin host-capability admission",
+      "decision": "OBSERVE_AND_FAIL_CLOSED",
+      "reason": "Missing host capability is infrastructure/fidelity evidence, not a product logic failure and not permission to weaken host security configuration automatically."
+    }
+  ],
+  "critical_mismatches": [
+    {
+      "id": "M1_SHARED_KERNEL_NSPAWN",
+      "finding": "An nspawn PASS cannot validate the target kernel, firmware, GPU/USB4 stack, KVM behavior or physical peripherals."
+    },
+    {
+      "id": "M2_VM_NOT_DESKTOP_DEVICE_PROOF",
+      "finding": "A full VM boot still does not automatically reproduce the target GNOME/Wayland/X11 user session, PipeWire/WirePlumber graph, portals, browser package confinement or real capture/display devices required by WP1203/WP1204."
+    },
+    {
+      "id": "M3_MOVING_TOOLCHAIN",
+      "finding": "mkosi/systemd/vmspawn are actively evolving; unpinned distro-default versions make a passing twin non-reproducible and can change semantics such as image, manager, ephemeral or firmware handling."
+    },
+    {
+      "id": "M4_EPHEMERAL_PERSISTENCE_FALSE_POSITIVE",
+      "finding": "Using ephemeral snapshots for all scenarios can hide persistence defects by recreating expected clean state; persistent-state tests need their own explicit lane."
+    },
+    {
+      "id": "M5_HOST_SECURITY_SIDE_EFFECT",
+      "finding": "Host prerequisites such as KVM/VSOCK/user-namespace access must not be satisfied by automatic broad permission changes; the twin harness should report BLOCKED/DEGRADED with exact capability evidence."
+    },
+    {
+      "id": "M6_BACKEND_RESULT_COLLAPSE",
+      "finding": "If nspawn, vmspawn and qemu results are collapsed into one generic T1 PASS, F2 loses the exact fidelity scope needed by target-relative completion epistemics."
+    }
+  ],
+  "proposed_f2_shape": {
+    "name": "FRANKENSTEIN2_TWIN_BACKEND_PROFILE/v0",
+    "authority": "NONCANONICAL_EXECUTION_CONFIGURATION_AND_EVIDENCE_BINDING_ONLY",
+    "fields": [
+      "profile_id",
+      "source_target_profile_generation",
+      "source_target_profile_sha256",
+      "image_builder_name",
+      "image_builder_version_or_commit",
+      "image_builder_config_digest",
+      "backend: NSPAWN_FAST|VMSPAWN_VM|QEMU_VM",
+      "backend_version_or_commit",
+      "fidelity_level",
+      "host_kernel_release",
+      "host_systemd_version",
+      "kvm_status: OBSERVED_AVAILABLE|OBSERVED_UNAVAILABLE|UNKNOWN",
+      "vsock_status: OBSERVED_AVAILABLE|OBSERVED_UNAVAILABLE|UNKNOWN",
+      "tpm_status: OBSERVED_AVAILABLE|OBSERVED_UNAVAILABLE|UNKNOWN",
+      "efi_nvram_mode",
+      "state_mode: EPHEMERAL|PERSISTENT_COPY",
+      "cpu_limit",
+      "ram_limit",
+      "release_candidate_digest",
+      "known_fidelity_gaps",
+      "blocked_reasons"
+    ],
+    "result_law": "Each execution receipt binds exact backend profile + target profile + release candidate; no result may be promoted beyond its declared fidelity. Backend substitution requires a new receipt, never silent equivalence.",
+    "recommended_matrix": [
+      "NSPAWN_FAST: package/install/systemd/userspace smoke + one-handoff path",
+      "VM_BOOT_EPHEMERAL: clean install/fault/restart boot-path scenarios",
+      "VM_BOOT_PERSISTENT_COPY: update/rollback/reboot persistence scenarios",
+      "T4_PHYSICAL: separate target acceptance only; never inferred from any twin lane"
+    ]
+  },
+  "integration_boundary": {
+    "wp1202": "Extend planning/schema only after Trigger-4 accepts the candidate; do not replace current UNKNOWN/fail-closed planner.",
+    "wp1203_wp1204": "Remain responsible for desktop/multimedia/device/session fault fidelity layered above backend boot capability.",
+    "wp1207": "Consume exact TwinBackendProfile receipts for clean install/update/rollback/restart matrices.",
+    "unifieddb": "May store admitted receipts/references; backend tooling is not a second truth store.",
+    "effect_authority": "No external tool invocation or host mutation is authorized by this E2 mapping."
+  },
+  "hypothesis": {
+    "statement": "A typed multi-backend twin profile with an nspawn-fast lane plus at least one full-VM lane will detect more host-integration defects per unit cost than either a container-only twin or a single opaque VM harness, while preserving exact fidelity scope.",
+    "confidence": 0.88
+  },
+  "counterhypothesis": {
+    "statement": "The additional backend matrix may create maintenance/version burden without finding defects beyond a single well-configured QEMU VM plus deterministic synthetic fault injection.",
+    "confidence": 0.67,
+    "falsifier": "Run identical target-profile/install/restart/update/fault fixtures across NSPAWN_FAST, VMSPAWN_VM and QEMU_VM; compare unique defect discovery, reproducibility, setup failures, wall time, CPU/RSS/disk I/O and configuration surface. Retire any lane whose unique information gain does not justify its cost."
+  },
+  "adoption_decision": {
+    "full_library_import": "REJECT_CURRENTLY",
+    "mkosi_cli_as_pinned_external_tool": "PROMOTE_TO_FALSIFICATION_CANDIDATE",
+    "typed_multi_backend_profile": "PROMOTE_TO_FALSIFICATION_CANDIDATE",
+    "vmspawn_as_only_backend": "REJECT",
+    "nspawn_as_only_backend": "REJECT",
+    "build_candidate": false,
+    "trigger4_handoff": false
+  },
+  "evidence_ceiling": {
+    "level": "E2_ARCHITECTURE_MAPPED",
+    "source_read": true,
+    "architecture_mapping": true,
+    "external_tools_executed": false,
+    "f2_ablation_executed": false,
+    "architecture_acceptance_credit": 0,
+    "target_twin_runtime_credit": 0,
+    "physical_target_credit": 0,
+    "whole_system_credit": 0
+  },
+  "next_recommended_trigger6_slot": "EXPERIMENTAL_FALSIFIER",
+  "next_recommended_objective": "E3_CLAIM_REPRODUCED_TWIN_BACKEND_PROFILE_CAPABILITY_MATRIX",
+  "pending_research_sqlite_sync": "PENDING"
+}

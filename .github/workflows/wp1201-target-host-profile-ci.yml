@@ -1,0 +1,35 @@
+name: F2 WP1201 Target Host Profile CI
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'src/frankenstein2/target_host_profile.py'
+      - 'tests/test_target_host_profile.py'
+      - '.github/workflows/wp1201-target-host-profile-ci.yml'
+  pull_request:
+    paths:
+      - 'src/frankenstein2/target_host_profile.py'
+      - 'tests/test_target_host_profile.py'
+      - '.github/workflows/wp1201-target-host-profile-ci.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  deterministic:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Compile
+        run: python -m py_compile src/frankenstein2/target_host_profile.py tests/test_target_host_profile.py
+      - name: Target host profile falsification suite
+        env:
+          PYTHONPATH: src
+        run: python tests/test_target_host_profile.py -v

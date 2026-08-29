@@ -1,0 +1,58 @@
+{
+  "schema": "FRANKENSTEIN2_TRIGGER6_EVIDENCE_RECEIPT/v1",
+  "research_id": "R6-WP1202-MKOSI-VMSPAWN-TWIN-001",
+  "evidence_stage": "E1_SOURCE_READ",
+  "status": "SOURCE_READ_COMPLETE_NO_ARCHITECTURE_CREDIT",
+  "completed_at": "2026-08-29T12:36:30Z",
+  "architecture_binding": {
+    "f2_target_host_architecture": "architecture/TARGET_HOST_REALITY_TWIN_AND_COMPLETION_EPISTEMICS.md@cd9f08f838dfc4cb36898e819738d37f0f3b191e",
+    "target_workpackages": ["F2-WP-1202", "F2-WP-1207"],
+    "claim_commit": "a9589b87dc78e5e581c7258ecffaa135a5fa66a3"
+  },
+  "external_sources": [
+    {
+      "repo": "systemd/mkosi",
+      "commit": "1da3299aecc56a1ba590a7fb7ae868275bb46d93",
+      "files": ["mkosi/resources/man/mkosi.1.md", "mkosi/config.py", "LICENSES/"],
+      "license_surface": ["GPL-2.0-only", "LGPL-2.1-or-later", "OFL-1.1", "PSF-2.0"]
+    },
+    {
+      "repo": "systemd/systemd",
+      "commit": "048970650ce5d50bceffff97442c4a90c1cf0572",
+      "files": ["man/systemd-vmspawn.xml", "units/user/systemd-vmspawn@.service.in", "src/vmspawn/"]
+    }
+  ],
+  "source_findings": [
+    "mkosi exposes separate lifecycle verbs: shell/boot use systemd-nspawn; vm uses a configured virtual-machine monitor and defaults to qemu. This makes container and VM fidelity distinct first-class execution lanes rather than one interchangeable backend.",
+    "systemd-vmspawn explicitly launches a full virtual machine rather than namespaces. Current source exposes image/directory boot, CPU/RAM controls, KVM and VSOCK capability handling, TPM/swtpm, EFI NVRAM state, Secure Boot selection, raw/qcow2 image handling and multiple virtual disk types.",
+    "Current vmspawn source includes an ephemeral image mode that runs from a temporary filesystem snapshot and removes it at termination. This is useful for deterministic clean-slate fault scenarios, but by construction cannot prove persistence unless a persistent-image test lane is used.",
+    "mkosi's boot lane exercises systemd inside an nspawn container and is therefore useful for fast package/service/installer regression, but it shares the host kernel and cannot establish guest-kernel, firmware, KVM, TPM, EFI/NVRAM or physical-device fidelity.",
+    "mkosi's vm lane can provide a materially stronger pre-physical boot boundary. Its configured VMM may be qemu or vmspawn; hard-coding one VMM would unnecessarily reduce portability and create a moving-tool dependency.",
+    "vmspawn has Ubuntu/Debian-specific host prerequisites around KVM/VSOCK group access. These are host capability requirements, not evidence that F2 is correctly installed; the twin must probe and fail closed rather than silently weakening host security settings.",
+    "The external tools are actively evolving. Exact mkosi/systemd versions and source identities therefore need to be part of every TwinBackendProfile and receipt; distro-default tool names alone are insufficient provenance.",
+    "Neither mkosi nor vmspawn supplies F2-WP-1203's desktop-session, PipeWire/WirePlumber, portal/compositor, browser or real-device fault semantics automatically. A successful VM boot remains lower-fidelity evidence than the complete hostile-target twin and never grants T4 physical credit."
+  ],
+  "f2_distillation": {
+    "recommended": true,
+    "import_library": false,
+    "recommended_shape": "Use mkosi as a pinned external image/lifecycle compiler and expose at least two explicit twin lanes: NSPAWN_FAST for low-cost userspace/service regression and VM_BOOT for higher-fidelity guest-kernel/boot/lifecycle tests using a pinned VMM (vmspawn or qemu). Preserve backend capability/fidelity gaps in typed state.",
+    "thin_native_rules": [
+      "Never let NSPAWN_FAST imply guest-kernel or firmware fidelity.",
+      "Never let VM_BOOT imply desktop/device or physical-target fidelity.",
+      "Pin mkosi/systemd/VMM identities and record host capability probes before granting twin evidence.",
+      "Use ephemeral VM snapshots for clean-slate scenarios; use explicit persistent image copies for update/rollback/reboot persistence tests.",
+      "Treat KVM/VSOCK/TPM/EFI/NVRAM availability as observed capability fields with UNKNOWN/UNAVAILABLE states, not assumed defaults.",
+      "Keep portable image configuration separate from host-trusted privilege policy; an image must not self-grant host capabilities.",
+      "Invoke the external CLI/tool boundary instead of coupling F2 to mkosi internals unless a later ablation proves an API-level integration materially superior."
+    ]
+  },
+  "counterhypothesis": "A single direct-QEMU or generic container harness may achieve equivalent defect discovery with fewer dependencies; mkosi/vmspawn could add a fast-moving orchestration layer without improving F2 acceptance quality.",
+  "next_falsifier": "Map WP1202/WP1207 requirements against NSPAWN_FAST, mkosi+vmspawn and mkosi+qemu capability matrices, then run an eventual Trigger-4 ablation on identical install/reboot/update/failure fixtures measuring defect detection, setup determinism, wall time, CPU/RSS/disk I/O and maintenance/configuration surface.",
+  "architecture_delta": "E1_SUPPORTS_TWO_LANE_TWIN_BACKEND_PROFILE; requires E2 mapping before handoff",
+  "research_credit": "E1_SOURCE_READ_ONLY",
+  "runtime_credit": 0,
+  "target_twin_runtime_credit": 0,
+  "physical_target_credit": 0,
+  "architecture_acceptance_credit": 0,
+  "whole_system_credit": 0
+}

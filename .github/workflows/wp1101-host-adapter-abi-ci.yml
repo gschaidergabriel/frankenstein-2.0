@@ -1,0 +1,35 @@
+name: F2 WP1101 Host Adapter ABI CI
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'src/frankenstein2/host_adapter_abi.py'
+      - 'tests/test_host_adapter_abi.py'
+      - '.github/workflows/wp1101-host-adapter-abi-ci.yml'
+  pull_request:
+    paths:
+      - 'src/frankenstein2/host_adapter_abi.py'
+      - 'tests/test_host_adapter_abi.py'
+      - '.github/workflows/wp1101-host-adapter-abi-ci.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  deterministic:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Compile
+        run: python -m py_compile src/frankenstein2/host_adapter_abi.py tests/test_host_adapter_abi.py
+      - name: Host adapter ABI falsification suite
+        env:
+          PYTHONPATH: src
+        run: python tests/test_host_adapter_abi.py -v
