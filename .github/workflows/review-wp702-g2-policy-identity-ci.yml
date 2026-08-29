@@ -1,0 +1,30 @@
+name: REVIEW WP702 G2 policy identity closure
+
+on:
+  pull_request:
+    paths:
+      - 'tests/review/test_wp702_g2_policy_identity_closure.py'
+      - '.github/workflows/review-wp702-g2-policy-identity-ci.yml'
+  push:
+    branches:
+      - review/wp702-g2-policy-identity-closure-20260829
+    paths:
+      - 'tests/review/test_wp702_g2_policy_identity_closure.py'
+      - '.github/workflows/review-wp702-g2-policy-identity-ci.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  policy-identity-closure:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Run G2 policy identity closure falsifier
+        env:
+          PYTHONPATH: src
+        run: python -m unittest tests.review.test_wp702_g2_policy_identity_closure -v
