@@ -1,0 +1,163 @@
+{
+  "schema": "FRANKENSTEIN2_TRIGGER6_MINIMUM_TOOLSET_ARCHITECTURE_MAP/v1",
+  "research_id": "R6-WP507-MINIMAL-CAUSAL-UPTAKE-INSTRUMENTATION-20260829-GPT56SOL-01",
+  "trigger": "6",
+  "slot": "INTEGRATION_DISTILLER",
+  "status": "E2_ARCHITECTURE_MAPPED_MINIMUM_TOOLSET",
+  "claim_ref": "research/tool_intelligence/claims/R6-WP507-MINIMAL-CAUSAL-UPTAKE-INSTRUMENTATION-20260829-GPT56SOL-01/E2_ARCHITECTURE_MAPPED_MINIMUM_TOOLSET.json",
+  "claim_commit": "f1f63d76e4e865688dba8bbc7b9a0105e6160784",
+  "created_at": "2026-08-29T15:10:20+07:00",
+  "worker": "GPT-5.6-Sol",
+  "architecture_snapshot": {
+    "f2_claim_base": "bf8a8f19609b989720a9093f317ea45506618112",
+    "f2_reentry_before_result": "b14fb55047a1efd3a18b26e6bf1d9420395b6b03",
+    "research_entity_claim_base": "cef52a40ceb38645fc64106b62a289e272e1249a",
+    "supervisor": "9.13AQ_NON_AUTHORITY",
+    "wp507_generation": 3,
+    "wp507_runtime_uptake_pass": false,
+    "provider_routes_admitted": false,
+    "mode": "FREE_ONLY"
+  },
+  "problem_statement": "The current WP507 deterministic contract can distinguish offered/delivered/uptaken caller-supplied evidence and matched contract-scope output differences, but actual model-runtime GWT uptake and hidden-state causality remain unproven. Parallel Trigger-6 work has already mapped multiple intervention, causal-analysis, eval and observability tools. The resource-saving question is which minimum subset can add new evidence rather than duplicate machinery.",
+  "observed_constraints": [
+    "Current supervisor keeps all provider routes unadmitted and actual WP507 runtime uptake false.",
+    "WP507 G3 explicitly does not observe hidden model state and grants zero runtime/GWT/J-Space credit from deterministic contract tests.",
+    "No accepted exact local target-model/J-Space intervention ABI is currently bound to the researched NNsight/pyvene/TransformerLens candidates.",
+    "Existing Trigger-6 source archaeology already identifies native PyTorch module hooks as the lowest-extra-dependency intervention baseline.",
+    "PyTorch module-specific forward hooks can observe and replace module outputs and return a removable handle; global hooks add global state and are therefore not the preferred F2 baseline.",
+    "NNsight provides richer tracing/interleaving and activation intervention over PyTorch models, but adds nontrivial tracing/runtime and dependency surface.",
+    "pyvene provides explicit intervention semantics and richer lesion/swap/noise/trainable controls but has a broad scientific/Transformers dependency surface and model-component mapping risk.",
+    "TransformerLens provides strong activation-cache/patching machinery but can require architecture conversion/bridge fidelity and exact target compatibility remains unresolved in the audited evidence."
+  ],
+  "minimum_toolset_decision": {
+    "live_f2_core_now": {
+      "external_runtime_dependency": "NONE",
+      "decision": "DO_NOT_IMPORT_A_NEW_INTERPRETABILITY_OR_CAUSAL_LIBRARY_INTO_WP507_CORE",
+      "reason": "Without an admitted exact real model/runtime path, another library cannot promote actual uptake evidence and would increase dependency/maintenance surface. Keep WP507 as the deterministic causal/provenance contract."
+    },
+    "first_model_internal_falsifier_when_exact_local_model_exists": {
+      "tool": "native torch.nn.Module module-specific forward/pre-forward hooks",
+      "adoption_class": "THIN_EXPERIMENT_HARNESS_BASELINE",
+      "reason": "Lowest extra dependency, preserves ownership of the already-loaded model object, supports activation observation/replacement, removable lifecycle and direct fail-closed binding to F2 event/generation/vector identities.",
+      "forbid": [
+        "global module hooks as the default because they add global state",
+        "treating hook output as canonical truth",
+        "using hook registration as loader consumed-byte attestation",
+        "claiming uptake from output change without sham/random/equal-norm controls and rescue"
+      ]
+    },
+    "conditional_second_choice": {
+      "tool": "NNsight",
+      "adoption_class": "ISOLATED_RESEARCH_DEPENDENCY_ONLY",
+      "promotion_condition": "Only if an exact target-model E3/E4 comparison shows materially better deterministic intervention ergonomics, coverage or reproducibility than native hooks at acceptable latency/RSS/VRAM/dependency cost.",
+      "reason": "It can wrap an existing PyTorch model and offers structured tracing/interleaving, but current source evidence does not justify paying that complexity before the native baseline fails."
+    },
+    "defer_heavier_frameworks": [
+      {
+        "tool": "pyvene",
+        "decision": "DEFER_TO_LATER_WP806_STYLE_LESION_RESCUE",
+        "reason": "Richer intervention catalog is useful only after exact model/J-Space ABI and when native/NNsight coverage is insufficient; current dependency and architecture-mapping surface is too heavy for WP507 core."
+      },
+      {
+        "tool": "TransformerLens",
+        "decision": "DEFER_UNLESS_EXACT_MODEL_BRIDGE_AND_CONVERSION_FIDELITY_ARE_PROVEN",
+        "reason": "Strong mechanistic-interpretability features do not outweigh conversion/compatibility risk for the current blocker."
+      }
+    ],
+    "supporting_noncore_tools": [
+      {
+        "class": "causal/refutation methodology",
+        "examples": ["CITCOM", "DoWhy"],
+        "decision": "OFFLINE_ANALYSIS_OR_TEST_DESIGN_ONLY; NOT LIVE_COGNITION_DEPENDENCIES"
+      },
+      {
+        "class": "evaluation/orchestration",
+        "examples": ["Inspect AI"],
+        "decision": "EXPERIMENT_ORCHESTRATION_ONLY; NOT UPTAKE_AUTHORITY"
+      },
+      {
+        "class": "trace/observability",
+        "examples": ["OpenInference", "OpenTelemetry/OpenLineage"],
+        "decision": "WITNESS/PROVENANCE_ONLY; NOT COGNITIVE_TRUTH OR CAUSALITY AUTHORITY"
+      }
+    ]
+  },
+  "hypothesis": {
+    "id": "H-WP507-MINSET-1",
+    "statement": "For the first exact local ~0.8B F2/J-Space causal-uptake experiment, a thin module-specific native PyTorch hook harness plus existing F2 causal/provenance receipts will produce the highest information gain per dependency/resource cost. NNsight/pyvene/TransformerLens should remain optional research adapters until they beat this baseline on the exact target model.",
+    "confidence": 0.84,
+    "epistemic_type": "ARCHITECTURE_HYPOTHESIS_SUPPORTED_BY_SOURCE_MAPPING_NOT_RUNTIME",
+    "falsifier": "On the exact source-pinned local target model and fixed intervention workload, native hooks fail required intervention coverage, reproducibility or provenance-safe rescue while a pinned alternative succeeds with acceptable measured latency/RAM/VRAM/dependency cost."
+  },
+  "counterhypotheses": [
+    {
+      "id": "CH-WP507-MINSET-1",
+      "statement": "NNsight's structured trace/interleaver substantially reduces experiment brittleness and provenance mistakes enough to justify its added dependency surface.",
+      "discriminator": "Matched exact-model native-hooks vs NNsight collect/zero/swap/rescue fixture with identical input, target module, seeds, output checks and F2 causal identities."
+    },
+    {
+      "id": "CH-WP507-MINSET-2",
+      "statement": "The actual target runtime is not hook-visible PyTorch eager execution, making the native-hook path invalid.",
+      "discriminator": "Bind exact loader/runtime/build identity first and mechanically prove the declared intervention point fires and can be removed without changing the baseline."
+    },
+    {
+      "id": "CH-WP507-MINSET-3",
+      "statement": "Any model-internal intervention is the wrong layer for proving F2 GWT uptake; only black-box matched broadcasts and downstream behavior are scientifically admissible.",
+      "discriminator": "Run cross-layer pre-registered intervention/control/rescue where software-level WP507 receipts remain independently satisfied and internal-target perturbation has specific reversible effects beyond sham/random controls."
+    }
+  ],
+  "next_exact_gate": {
+    "stage": "E3_ONLY_AFTER_TARGET_RUNTIME_BINDING",
+    "do_not_execute_yet": true,
+    "preconditions": [
+      "exact local target model checkpoint/tokenizer/runtime/build identity",
+      "loader consumed-byte attestation or equivalent exact loaded-artifact identity",
+      "declared stable module/vector intervention ABI tied to F2 causal event/generation identities",
+      "zero-cost admitted local/sandbox execution surface",
+      "new atomic Trigger-6 E3 claim"
+    ],
+    "experiment": [
+      "baseline with no hook mutation",
+      "sham hook returning identical tensor",
+      "targeted zero/replace intervention",
+      "random-layer or random-subspace control",
+      "equal-norm noise control",
+      "rescue restoring the pre-registered target activation",
+      "repeat with hook removed to prove reversibility and no stale hook state",
+      "measure deterministic output digest plus p50/p95 latency, CPU/RSS and GPU/VRAM if present"
+    ],
+    "promotion_rule": "Native hooks become the research harness baseline only after E3 exact-target execution. NNsight becomes an E5 candidate only after an E4 head-to-head net-benefit result."
+  },
+  "external_primary_checks_2026_08_29": [
+    "PyTorch stable torch.nn.Module.register_forward_hook documentation: module-specific hook can return a modified output; RemovableHandle lifecycle applies.",
+    "PyTorch stable global register_module_forward_hook documentation warns that it adds global state and is intended for debugging/profiling.",
+    "NNsight current documentation describes tracing/interleaving for model execution and interventions.",
+    "pyvene current GitHub pyproject reports v0.1.8, Development Status Alpha, Apache-2.0 and broad Torch/Transformers/scientific dependencies; current source exposes explicit intervention state/hook machinery."
+  ],
+  "evidence_refs": [
+    "research_entity/claycode/autonomous/SUPERVISOR_INBOX.json schema 9.13 / delta 9.13AQ_NON_AUTHORITY",
+    "workpackages/active/F2-WP-507.json generation 3",
+    "PR #226 source/CI component candidate; open, not merged, no target-runtime credit",
+    "research/tool_intelligence/claims/R6-20260829-PYTORCH-NATIVE-HOOKS-WP507-GPT56SOL-01/E2_ARCHITECTURE_MAPPED_OUTCOME.json",
+    "research/tool_intelligence/claims/R6-20260829-SRCARCH-NNSIGHT-GPT56SOL-01/E1_SOURCE_READ_OUTCOME.json",
+    "research/tool_intelligence/deltas/R6-20260829-SRCARCH-PYVENE-GPT56SOL-01.json",
+    "research/tool_intelligence/claims/R6-20260829-SRCARCH-TRANSFORMERLENS-GPT56SOL-01/E1_SOURCE_READ_OUTCOME.json",
+    "https://docs.pytorch.org/docs/stable/generated/torch.nn.Module.html",
+    "https://docs.pytorch.org/docs/stable/generated/torch.nn.modules.module.register_module_forward_hook.html",
+    "https://nnsight.net/documentation/intervention/",
+    "https://github.com/stanfordnlp/pyvene/blob/main/pyproject.toml"
+  ],
+  "credits": {
+    "e2_architecture_mapping": 1,
+    "e3_reproduction": 0,
+    "e4_f2_ablation": 0,
+    "e5_build_candidate": 0,
+    "runtime_credit": 0,
+    "gwt_runtime_credit": 0,
+    "jspace_runtime_credit": 0,
+    "physical_grid10_credit": 0,
+    "whole_f2_credit": 0,
+    "whole_entityos_hcu_credit": 0,
+    "training_credit": 0
+  }
+}
