@@ -1,0 +1,79 @@
+{
+  "schema": "FRANKENSTEIN2_TRIGGER6_RESEARCH_RESULT/v1",
+  "trigger": "6",
+  "research_id": "R6-SEED-006",
+  "slot": "EXPERIMENTAL_FALSIFIER",
+  "evidence_stage": "E4_F2_ABLATION",
+  "status": "COMPLETED_RESEARCH_FIXTURE_NO_PRODUCT_RUNTIME_CREDIT",
+  "created_at": "2026-08-29T20:29:00+07:00",
+  "worker": "GPT-5.6-Sol-TRIGGER6",
+  "claim_path": "research/tool_intelligence/claims/R6-SEED-006/E4_F2_TOOL_RESOURCE_GRANULARITY_ABLATION.json",
+  "claim_commit": "a08ec663279d04386807d5efc4e08f51f1d948b9",
+  "fixture_path": "research/tool_intelligence/experiments/r6_seed006_tool_resource_granularity_ablation.py",
+  "fixture_commit": "5cb5817caf9e394ec4e947cbed51ca31f386210f",
+  "fixture_blob_sha": "8f33413fa48024a5823e35434b03af30c917e105",
+  "f2_live_fusion_head_before_result": "60ba69809a65fcc9026c31e9c4889fee81bdbc11",
+  "f2_contract_basis": {
+    "telemetry_contract": "telemetry/EVIDENCE_SPINE.md",
+    "telemetry_schema": "schemas/EVIDENCE_SPINE.schema.json",
+    "observed_reusable_identity_fields": ["run_id", "tool_use_id", "effect_id", "causal_id", "generation"],
+    "observed_reusable_channel": "PERFORMANCE"
+  },
+  "baseline": {
+    "name": "RUN_AGGREGATE_RESOURCE_VIEW",
+    "description": "Only run-level tool_count/failure_count/session_peak/sum_tool_peaks/total_duration are retained; resource measurements are not bound to tool/effect identity."
+  },
+  "intervention": {
+    "name": "TOOL_EFFECT_BOUND_PERFORMANCE_EVENTS",
+    "description": "Represent each synthetic tool resource observation as an F2-shaped PERFORMANCE event carrying tool_use_id, effect_id, causal_id, generation and typed payload semantics."
+  },
+  "fixture_scenarios": [
+    "A: failed tool has 320 MB peak and successful tool 60 MB",
+    "B: failed tool has 60 MB peak and successful tool 320 MB"
+  ],
+  "observed_result": {
+    "baseline_aggregate_digest_a": "27316872d1008a10251b4ba820cf355ff7d27d6848cfb08706253f874217fb18",
+    "baseline_aggregate_digest_b": "27316872d1008a10251b4ba820cf355ff7d27d6848cfb08706253f874217fb18",
+    "baseline_collision": true,
+    "candidate_tool_event_digest_a": "8ec77c86176ff6d181f9acae3a6ab6d8009de30362f2872930e1258eefa4a4a6",
+    "candidate_tool_event_digest_b": "f382d3bd8bf7b491e3fb4d8988486541472e9a49834d10702262df4b0461b9d5",
+    "candidate_collision": false,
+    "causal_question": "does the failed tool carry the run's highest observed tool peak?",
+    "scenario_a_answer": true,
+    "scenario_b_answer": false,
+    "execution_result_sha256": "80d02579401345e0511e32a432c9ad2977b1267d131be738dffe8b6c464bb130"
+  },
+  "conclusion": {
+    "hypothesis": "SUPPORTED_AT_SYNTHETIC_E4_SCOPE",
+    "finding": "Run aggregates can be identical while the causal association between failure and resource spike differs. Tool/effect-bound resource observations preserve that distinction.",
+    "architecture_implication": "F2-WP-605 can reuse the existing Evidence Spine PERFORMANCE channel and causal/tool/effect identities for a thin ResourceObservation payload contract; no second telemetry authority is necessary.",
+    "limit": "Synthetic identifiability evidence does not establish runtime overhead, collector accuracy, portability or whole-system benefit."
+  },
+  "promotion_assessment": {
+    "E5_build_candidate_ready": true,
+    "integration_class": "CONCEPT_DISTILL",
+    "reason": "E2 established a thin measurement-first design, three E3 falsifiers constrained unsafe donor semantics, and E4 showed unique causal-information value while fitting the existing F2 telemetry identity spine."
+  },
+  "required_build_constraints": [
+    "reuse existing F2 telemetry event authority rather than create a second truth store",
+    "PERFORMANCE resource observation must bind tool_use_id/effect_id/causal_id/generation where available",
+    "coverage and metric semantics must be explicit",
+    "exit 137 must not mint OOM truth without corroborating resource-event evidence",
+    "use typed serialization, not shell interpolation",
+    "agent resource hints are candidate input only and cannot self-grant budget/capability",
+    "fallback estimators must be typed DEGRADED/ESTIMATE rather than OBSERVED_CHILD_PEAK"
+  ],
+  "credits": {
+    "trigger6_research": "E4_F2_ABLATION_RESEARCH_FIXTURE",
+    "architecture": 0,
+    "repository_component": 0,
+    "target_runtime": 0,
+    "resource_controller": 0,
+    "physical_grid10": 0,
+    "gwt_jspace": 0,
+    "training": 0,
+    "effects": 0,
+    "whole_system": 0
+  },
+  "next_exact_action": "Acquire create-only R6-SEED-006/E5_BUILD_CANDIDATE if absent and emit one Trigger4 CONCEPT_DISTILL packet targeting F2-WP-605 with the exact E2/E3/E4 evidence and rejection tests."
+}

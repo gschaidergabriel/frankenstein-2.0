@@ -178,8 +178,14 @@ class TargetObligation:
             raise CompletionEpistemicsError("positive_readback must be PositiveReadback")
         if not isinstance(self.counterevidence_probe, CounterevidenceProbe):
             raise CompletionEpistemicsError("counterevidence_probe must be CounterevidenceProbe")
-        object.__setattr__(self, "positive_evidence_refs", _refs("positive_evidence_ref", self.positive_evidence_refs))
-        object.__setattr__(self, "counterevidence_refs", _refs("counterevidence_ref", self.counterevidence_refs))
+        positive_refs = _refs("positive_evidence_ref", self.positive_evidence_refs)
+        counterevidence_refs = _refs("counterevidence_ref", self.counterevidence_refs)
+        if set(positive_refs).intersection(counterevidence_refs):
+            raise CompletionEpistemicsError(
+                "positive readback and counterevidence probe must use independent evidence refs"
+            )
+        object.__setattr__(self, "positive_evidence_refs", positive_refs)
+        object.__setattr__(self, "counterevidence_refs", counterevidence_refs)
         if self.positive_readback in (PositiveReadback.PASS, PositiveReadback.FAIL) and not self.positive_evidence_refs:
             raise CompletionEpistemicsError("non-UNKNOWN positive readback requires evidence refs")
         if self.counterevidence_probe in (CounterevidenceProbe.CLEAR, CounterevidenceProbe.FOUND) and not self.counterevidence_refs:

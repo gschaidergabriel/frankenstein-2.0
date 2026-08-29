@@ -20,7 +20,7 @@ import hashlib
 import json
 import re
 
-from .host_adapter_abi import AdapterClass, HostCapabilityReport
+from .host_adapter_abi import AdapterClass, CAPABILITY_REPORT_SCHEMA, HostCapabilityReport
 
 
 ROUTE_SCHEMA = "FRANKENSTEIN2_GENERIC_AGENT_ROUTE/v1"
@@ -75,6 +75,68 @@ def _require_git_object(value: str, label: str) -> str:
     if not GIT_OBJECT_RE.fullmatch(value):
         raise GenericAgentRouteError(f"{label}_INVALID_GIT_OBJECT")
     return value
+
+
+def _validate_capability_report_consistency(report: HostCapabilityReport) -> None:
+    """Reject caller-forged report states before WP1104 consumes direct fields.
+
+    ``HostCapabilityReport`` is a frozen dataclass, but frozen does not make a value
+    provenance-authenticated: callers can directly construct or ``replace`` instances.
+    WP1104 therefore revalidates the classification-deficit relationship that the
+    canonical ``assess_host_adapter`` factory establishes.
+
+    This guard intentionally does not recompute host observations or mint runtime
+    evidence. It only rejects impossible report combinations at this trust boundary.
+    """
+
+    if type(report) is not HostCapabilityReport:
+        raise GenericAgentRouteError("CAPABILITY_REPORT_EXACT_TYPE_REQUIRED")
+    if report.schema != CAPABILITY_REPORT_SCHEMA:
+        raise GenericAgentRouteError("CAPABILITY_REPORT_SCHEMA_MISMATCH")
+    if not isinstance(report.classification, AdapterClass):
+        raise GenericAgentRouteError("CAPABILITY_REPORT_CLASSIFICATION_INVALID")
+
+    required_blocked = bool(
+        report.conflicts
+        or report.missing_required_roles
+        or report.unverified_required_roles
+        or report.missing_required_capabilities
+        or report.unverified_required_capabilities
+    )
+    optional_degraded = bool(
+        report.missing_optional_roles or report.missing_optional_capabilities
+    )
+
+    if required_blocked:
+        if report.classification is not AdapterClass.BLOCKED:
+            raise GenericAgentRouteError(
+                "CAPABILITY_REPORT_REQUIRED_DEFICIT_CLASSIFICATION_MISMATCH"
+            )
+        if report.native_surface_complete:
+            raise GenericAgentRouteError(
+                "CAPABILITY_REPORT_BLOCKED_CANNOT_BE_NATIVE_COMPLETE"
+            )
+        return
+
+    if optional_degraded:
+        if report.classification is not AdapterClass.DEGRADED:
+            raise GenericAgentRouteError(
+                "CAPABILITY_REPORT_OPTIONAL_DEFICIT_CLASSIFICATION_MISMATCH"
+            )
+        if report.native_surface_complete:
+            raise GenericAgentRouteError(
+                "CAPABILITY_REPORT_DEGRADED_CANNOT_BE_NATIVE_COMPLETE"
+            )
+        return
+
+    if report.classification not in (AdapterClass.ADAPTED, AdapterClass.NATIVE):
+        raise GenericAgentRouteError(
+            "CAPABILITY_REPORT_CLEAR_SURFACE_CLASSIFICATION_MISMATCH"
+        )
+    if report.classification is AdapterClass.NATIVE and not report.native_surface_complete:
+        raise GenericAgentRouteError("CAPABILITY_REPORT_NATIVE_WITHOUT_COMPLETE_NATIVE_SURFACE")
+    if report.classification is AdapterClass.ADAPTED and report.native_surface_complete:
+        raise GenericAgentRouteError("CAPABILITY_REPORT_ADAPTED_WITH_NATIVE_COMPLETE_SURFACE")
 
 
 @dataclass(frozen=True)
@@ -231,6 +293,8 @@ def plan_generic_agent_route(
     )
     state_lineage_id = _require_nonempty(state_lineage_id, "STATE_LINEAGE_ID")
     durable_state_root = _require_nonempty(durable_state_root, "DURABLE_STATE_ROOT")
+
+    _validate_capability_report_consistency(capability_report)
 
     if state_root_class is not StateRootClass.DURABLE_USER_DATA:
         raise GenericAgentRouteError(

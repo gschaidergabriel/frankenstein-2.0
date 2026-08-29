@@ -9,6 +9,8 @@ from frankenstein2.cognitive_lesion_rescue_benchmark import (
     LESION,
     NORMAL,
     RESCUE,
+    REDUNDANCY_OR_INTERACTION_UNKNOWN,
+    TARGET_SPECIFIC_RESTORATION_AT_SCOPE,
     CognitiveCondition,
     CognitiveLesionRescueError,
     PublicCapability,
@@ -172,6 +174,7 @@ class CognitiveLesionRescueTests(unittest.TestCase):
         self.assertEqual(result.lesion_delta, -11)
         self.assertEqual(result.rescue_delta, 11)
         self.assertEqual(result.restoration_gap, 0)
+        self.assertEqual(result.interpretation, TARGET_SPECIFIC_RESTORATION_AT_SCOPE)
         self.assertTrue(result.normal.terminal)
         self.assertTrue(result.lesion.terminal)
         self.assertTrue(result.rescue.terminal)
@@ -367,6 +370,128 @@ class CognitiveLesionRescueTests(unittest.TestCase):
         )
         self.assertEqual(first.sha256(), second.sha256())
         self.assertEqual(first.comparison_id, second.comparison_id)
+
+    def test_rescue_must_match_exact_lesion_disabled_universe_before_evaluation(self) -> None:
+        f = fixture()
+        r = runs(f)
+        normal, lesion, _ = conditions(f)
+        _, obs = begin_episode(f, episode_id="mismatch-seed", episode_generation=5)
+        mismatched_rescue = CognitiveCondition.for_observation(
+            obs,
+            condition_kind=RESCUE,
+            disabled_capability_ids=("cap.fallback", "cap.goal-path"),
+            rescued_capability_ids=("cap.goal-path",),
+        )
+        with self.assertRaisesRegex(CognitiveLesionRescueError, "same disabled capability universe"):
+            run_matched_lesion_rescue(
+                f,
+                normal_run=r[0],
+                lesion_run=r[1],
+                rescue_run=r[2],
+                normal_condition=normal,
+                lesion_condition=lesion,
+                rescue_condition=mismatched_rescue,
+                capabilities=capabilities(),
+                episode_generation=7,
+            )
+
+    def test_metric_and_operator_identity_change_sealed_comparison_identity(self) -> None:
+        f = fixture()
+        r = runs(f)
+        c = conditions(f)
+        baseline = run_matched_lesion_rescue(
+            f,
+            normal_run=r[0], lesion_run=r[1], rescue_run=r[2],
+            normal_condition=c[0], lesion_condition=c[1], rescue_condition=c[2],
+            capabilities=capabilities(), episode_generation=7,
+        )
+        changed_metric = run_matched_lesion_rescue(
+            f,
+            normal_run=r[0], lesion_run=r[1], rescue_run=r[2],
+            normal_condition=c[0], lesion_condition=c[1], rescue_condition=c[2],
+            capabilities=capabilities(), episode_generation=7,
+            score_metric_version="2",
+        )
+        changed_operator = run_matched_lesion_rescue(
+            f,
+            normal_run=r[0], lesion_run=r[1], rescue_run=r[2],
+            normal_condition=c[0], lesion_condition=c[1], rescue_condition=c[2],
+            capabilities=capabilities(), episode_generation=7,
+            rescue_operator_id="public-capability-restore-subset/v2",
+        )
+        self.assertEqual(baseline.normal.sha256(), changed_metric.normal.sha256())
+        self.assertEqual(baseline.lesion.sha256(), changed_metric.lesion.sha256())
+        self.assertEqual(baseline.rescue.sha256(), changed_metric.rescue.sha256())
+        self.assertNotEqual(baseline.comparison_id, changed_metric.comparison_id)
+        self.assertNotEqual(baseline.comparison_id, changed_operator.comparison_id)
+        self.assertNotEqual(baseline.sha256(), changed_metric.sha256())
+
+    def test_condition_results_are_order_independent_from_fresh_episode_boundaries(self) -> None:
+        f = fixture()
+        r = runs(f)
+        c = conditions(f)
+        jobs = {
+            "normal": (r[0], c[0], "family.wp806.001:normal"),
+            "lesion": (r[1], c[1], "family.wp806.001:lesion"),
+            "rescue": (r[2], c[2], "family.wp806.001:rescue"),
+        }
+
+        def execute(order: tuple[str, ...]) -> dict[str, str]:
+            out: dict[str, str] = {}
+            for name in order:
+                run, condition, episode_id = jobs[name]
+                out[name] = run_condition(
+                    f,
+                    run=run,
+                    condition=condition,
+                    capabilities=capabilities(),
+                    episode_id=episode_id,
+                    episode_generation=11,
+                ).sha256()
+            return out
+
+        first = execute(("normal", "lesion", "rescue"))
+        second = execute(("rescue", "normal", "lesion"))
+        self.assertEqual(first, second)
+
+    def test_zero_lesion_effect_stays_redundancy_or_interaction_unknown(self) -> None:
+        f = fixture()
+        r = runs(f)
+        _, obs = begin_episode(f, episode_id="semantic-seed", episode_generation=5)
+        normal = CognitiveCondition.for_observation(obs, condition_kind=NORMAL)
+        lesion = CognitiveCondition.for_observation(
+            obs,
+            condition_kind=LESION,
+            disabled_capability_ids=("cap.fallback",),
+        )
+        rescue = CognitiveCondition.for_observation(
+            obs,
+            condition_kind=RESCUE,
+            disabled_capability_ids=("cap.fallback",),
+            rescued_capability_ids=("cap.fallback",),
+        )
+        result = run_matched_lesion_rescue(
+            f,
+            normal_run=r[0], lesion_run=r[1], rescue_run=r[2],
+            normal_condition=normal, lesion_condition=lesion, rescue_condition=rescue,
+            capabilities=capabilities(), episode_generation=12,
+        )
+        self.assertEqual(result.lesion_delta, 0)
+        self.assertEqual(result.interpretation, REDUNDANCY_OR_INTERACTION_UNKNOWN)
+        self.assertNotIn("IRRELEVANT", result.as_dict().values())
+
+    def test_semantic_identifiers_are_strict_trimmed_identity_inputs(self) -> None:
+        f = fixture()
+        r = runs(f)
+        c = conditions(f)
+        with self.assertRaisesRegex(CognitiveLesionRescueError, "score_metric_id"):
+            run_matched_lesion_rescue(
+                f,
+                normal_run=r[0], lesion_run=r[1], rescue_run=r[2],
+                normal_condition=c[0], lesion_condition=c[1], rescue_condition=c[2],
+                capabilities=capabilities(), episode_generation=1,
+                score_metric_id=" metric-with-whitespace ",
+            )
 
 
 if __name__ == "__main__":

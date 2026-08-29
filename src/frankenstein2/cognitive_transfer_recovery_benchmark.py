@@ -1,9 +1,9 @@
 """F2-WP-805 deterministic transfer/recovery/efficient-planning benchmark contracts.
 
-This module keeps tested-policy inputs on the public WP800 ObservationView side and keeps
-full-fixture/evaluator measurements on a separate evaluator-only surface. It is repository
-evaluation infrastructure only; it grants no runtime, GRID10/GWT/J-Space, effect,
-completion, training, world-truth, goal-authority, or whole-system credit.
+Tested-policy inputs stay on the public WP800 ObservationView side. Evaluator traces and
+measurements stay on an evaluator-only surface. Repository evidence from this module cannot
+mint runtime, GRID10/GWT/J-Space, effect, completion, training, world-truth, goal-authority,
+or whole-system credit.
 """
 from __future__ import annotations
 
@@ -18,8 +18,9 @@ from frankenstein2.cognitive_microworld import ObservationView
 POLICY_STATE_SCHEMA = "FRANKENSTEIN2_TRANSFER_POLICY_STATE/v1"
 TRANSFER_CASE_SCHEMA = "FRANKENSTEIN2_TRANSFER_CASE/v1"
 RECOVERY_CHECKPOINT_SCHEMA = "FRANKENSTEIN2_PUBLIC_RECOVERY_CHECKPOINT/v1"
-RUN_MEASUREMENT_SCHEMA = "FRANKENSTEIN2_TRANSFER_RECOVERY_RUN_MEASUREMENT/v1"
-MATCHED_COMPARISON_SCHEMA = "FRANKENSTEIN2_TRANSFER_RECOVERY_MATCHED_COMPARISON/v1"
+EVALUATOR_TRACE_SCHEMA = "FRANKENSTEIN2_TRANSFER_RECOVERY_EVALUATOR_TRACE/v1"
+RUN_MEASUREMENT_SCHEMA = "FRANKENSTEIN2_TRANSFER_RECOVERY_RUN_MEASUREMENT/v2"
+MATCHED_COMPARISON_SCHEMA = "FRANKENSTEIN2_TRANSFER_RECOVERY_MATCHED_COMPARISON/v2"
 EFFICIENCY_SUMMARY_SCHEMA = "FRANKENSTEIN2_TRANSFER_RECOVERY_EFFICIENCY_SUMMARY/v1"
 PUBLIC_POLICY_CLASSIFICATION = "PUBLIC_SUT_STATE_NO_EVALUATOR_GROUND_TRUTH"
 EVALUATOR_CLASSIFICATION = "EVALUATOR_ONLY_MEASUREMENT_NOT_POLICY_INPUT_OR_WORLD_AUTHORITY"
@@ -32,25 +33,15 @@ _MAX_ID_LEN = 512
 _MAX_ACTIONS = 4096
 _MAX_BUDGET = 1_000_000
 _MAX_SCORE_ABS = 1_000_000_000
+_TRACE_ORIGIN = object()
 _RUN_ORIGIN = object()
 _COMPARE_ORIGIN = object()
 
-_FORBIDDEN_PUBLIC_KEYS = frozenset(
-    {
-        "current_node_id",
-        "fixture_sha256",
-        "hidden_ground_truth_ref",
-        "hidden_ground_truth_sha256",
-        "evaluator_score",
-        "cumulative_score",
-        "transition_ref",
-        "transition_sha256",
-        "to_node_id",
-        "from_node_id",
-        "nodes",
-        "transitions",
-    }
-)
+_FORBIDDEN_PUBLIC_KEYS = frozenset({
+    "current_node_id", "fixture_sha256", "hidden_ground_truth_ref", "hidden_ground_truth_sha256",
+    "evaluator_score", "cumulative_score", "transition_ref", "transition_sha256", "to_node_id",
+    "from_node_id", "nodes", "transitions",
+})
 
 
 class TransferRecoveryBenchmarkError(ValueError):
@@ -105,6 +96,25 @@ def _actions(name: str, values: Any) -> tuple[str, ...]:
         raise TransferRecoveryBenchmarkError(f"{name} contains duplicates")
     if out != tuple(sorted(out)):
         raise TransferRecoveryBenchmarkError(f"{name} must be in canonical lexical order")
+    return out
+
+
+def _action_sequence(name: str, values: Any) -> tuple[str, ...]:
+    if type(values) is not tuple:
+        raise TransferRecoveryBenchmarkError(f"{name} must be an immutable tuple")
+    if len(values) > _MAX_ACTIONS:
+        raise TransferRecoveryBenchmarkError(f"{name} exceeds action ceiling")
+    return tuple(_id(f"{name} item", value) for value in values)
+
+
+def _indexes(name: str, values: Any, *, length: int) -> tuple[int, ...]:
+    if type(values) is not tuple:
+        raise TransferRecoveryBenchmarkError(f"{name} must be an immutable tuple")
+    out = tuple(_nint(f"{name} item", value, maximum=max(length - 1, 0)) for value in values)
+    if length == 0 and out:
+        raise TransferRecoveryBenchmarkError(f"{name} cannot reference an empty action trace")
+    if len(out) != len(set(out)) or out != tuple(sorted(out)):
+        raise TransferRecoveryBenchmarkError(f"{name} must contain unique canonical indexes")
     return out
 
 
@@ -248,17 +258,15 @@ class TransferCase:
     def assert_policy_source(self, policy: PublicPolicyState) -> None:
         if type(policy) is not PublicPolicyState:
             raise TransferRecoveryBenchmarkError("policy must be exact concrete PublicPolicyState")
-        expected = (
-            self.source_fixture_id,
-            self.source_holdout_set_id,
-            self.source_public_fixture_sha256,
-        )
-        observed = (
+        if (
             policy.source_fixture_id,
             policy.source_holdout_set_id,
             policy.source_public_fixture_sha256,
-        )
-        if observed != expected:
+        ) != (
+            self.source_fixture_id,
+            self.source_holdout_set_id,
+            self.source_public_fixture_sha256,
+        ):
             raise TransferRecoveryBenchmarkError("policy artifact is not bound to exact source public fixture")
         if policy.max_action_budget < self.action_budget:
             raise TransferRecoveryBenchmarkError("policy artifact budget is below transfer-case action budget")
@@ -266,7 +274,11 @@ class TransferCase:
     def assert_target_observation(self, observation: ObservationView) -> None:
         if type(observation) is not ObservationView:
             raise TransferRecoveryBenchmarkError("target observation must be exact concrete ObservationView")
-        if (observation.fixture_id, observation.fixture_generation, observation.public_fixture_sha256) != (
+        if (
+            observation.fixture_id,
+            observation.fixture_generation,
+            observation.public_fixture_sha256,
+        ) != (
             self.target_fixture_id,
             self.target_fixture_generation,
             self.target_public_fixture_sha256,
@@ -313,8 +325,7 @@ class RecoveryCheckpoint:
         _nint("remaining_action_budget", self.remaining_action_budget)
         if self.actions_consumed != self.step_index:
             raise TransferRecoveryBenchmarkError("actions_consumed must equal public episode step_index")
-        expected = "checkpoint:" + _digest(self.identity_body())
-        if self.checkpoint_id != expected:
+        if self.checkpoint_id != "checkpoint:" + _digest(self.identity_body()):
             raise TransferRecoveryBenchmarkError("checkpoint_id does not bind exact public checkpoint identity")
 
     @classmethod
@@ -371,7 +382,13 @@ class RecoveryCheckpoint:
     def sha256(self) -> str:
         return _digest(self.as_dict())
 
-    def assert_resume(self, *, case: TransferCase, policy: PublicPolicyState, observation: ObservationView) -> None:
+    def assert_resume(
+        self,
+        *,
+        case: TransferCase,
+        policy: PublicPolicyState,
+        observation: ObservationView,
+    ) -> None:
         if type(case) is not TransferCase or type(policy) is not PublicPolicyState or type(observation) is not ObservationView:
             raise TransferRecoveryBenchmarkError("resume inputs must be exact concrete benchmark/public values")
         case.assert_policy_source(policy)
@@ -401,14 +418,197 @@ class RecoveryCheckpoint:
 
 
 @dataclass(frozen=True, slots=True)
-class EvaluatorRunMeasurement:
+class EvaluatorExecutionTrace:
+    """Evaluator-only immutable receipt; run identity is derived from the exact trace body."""
+
     schema: str
+    trace_id: str
     run_id: str
     mode: str
     transfer_case_sha256: str
     target_fixture_sha256: str
     checkpoint_sha256: str | None
     action_budget: int
+    start_episode_id: str
+    start_episode_generation: int
+    start_step_index: int
+    start_observation_sha256: str
+    action_ids: tuple[str, ...]
+    replayed_action_indexes: tuple[int, ...]
+    repeated_work_action_indexes: tuple[int, ...]
+    final_evaluator_score: int
+    terminal: bool
+    classification: str = EVALUATOR_CLASSIFICATION
+    _origin: InitVar[object | None] = None
+
+    def __post_init__(self, _origin: object | None) -> None:
+        if self.schema != EVALUATOR_TRACE_SCHEMA or self.classification != EVALUATOR_CLASSIFICATION:
+            raise TransferRecoveryBenchmarkError("evaluator-trace schema/classification mismatch")
+        _id("trace_id", self.trace_id)
+        _id("run_id", self.run_id)
+        if self.mode not in _ALLOWED_MODES:
+            raise TransferRecoveryBenchmarkError("mode must be COLD_RESTART or CHECKPOINT_RESUME")
+        _sha("transfer_case_sha256", self.transfer_case_sha256)
+        _sha("target_fixture_sha256", self.target_fixture_sha256)
+        if self.checkpoint_sha256 is not None:
+            _sha("checkpoint_sha256", self.checkpoint_sha256)
+        if self.mode == CHECKPOINT_RESUME and self.checkpoint_sha256 is None:
+            raise TransferRecoveryBenchmarkError("checkpoint-resume trace requires checkpoint_sha256")
+        if self.mode == COLD_RESTART and self.checkpoint_sha256 is not None:
+            raise TransferRecoveryBenchmarkError("cold-restart trace must not claim checkpoint consumption")
+        _pint("action_budget", self.action_budget)
+        _id("start_episode_id", self.start_episode_id)
+        _nint("start_episode_generation", self.start_episode_generation)
+        _nint("start_step_index", self.start_step_index)
+        _sha("start_observation_sha256", self.start_observation_sha256)
+        actions = _action_sequence("action_ids", self.action_ids)
+        if len(actions) > self.action_budget:
+            raise TransferRecoveryBenchmarkError("trace actions exceed matched action budget")
+        _indexes("replayed_action_indexes", self.replayed_action_indexes, length=len(actions))
+        _indexes("repeated_work_action_indexes", self.repeated_work_action_indexes, length=len(actions))
+        _score("final_evaluator_score", self.final_evaluator_score)
+        _bool("terminal", self.terminal)
+        expected_trace = "trace:" + _digest(self.identity_body(include_trace_id=False, include_run_id=False))
+        if self.trace_id != expected_trace:
+            raise TransferRecoveryBenchmarkError("trace_id does not bind exact evaluator execution trace")
+        expected_run = "run:" + _digest({"trace_sha256": self.sha256_without_run_id()})
+        if self.run_id != expected_run:
+            raise TransferRecoveryBenchmarkError("run_id does not bind exact evaluator execution trace")
+        if _origin is not _TRACE_ORIGIN:
+            raise TransferRecoveryBenchmarkError("EvaluatorExecutionTrace must be created by record")
+
+    @classmethod
+    def record(
+        cls,
+        *,
+        mode: str,
+        case: TransferCase,
+        target_fixture_sha256: str,
+        start_observation: ObservationView,
+        checkpoint: RecoveryCheckpoint | None,
+        action_ids: tuple[str, ...],
+        replayed_action_indexes: tuple[int, ...],
+        repeated_work_action_indexes: tuple[int, ...],
+        final_evaluator_score: int,
+        terminal: bool,
+    ) -> "EvaluatorExecutionTrace":
+        if type(case) is not TransferCase or type(start_observation) is not ObservationView:
+            raise TransferRecoveryBenchmarkError("case/start_observation must be exact concrete values")
+        case.assert_target_observation(start_observation)
+        _sha("target_fixture_sha256", target_fixture_sha256)
+        checkpoint_sha = None
+        if checkpoint is not None:
+            if type(checkpoint) is not RecoveryCheckpoint:
+                raise TransferRecoveryBenchmarkError("checkpoint must be exact RecoveryCheckpoint")
+            if checkpoint.transfer_case_sha256 != case.sha256():
+                raise TransferRecoveryBenchmarkError("checkpoint is bound to a different transfer case")
+            start_identity = (
+                start_observation.episode_id,
+                start_observation.episode_generation,
+                start_observation.step_index,
+                start_observation.sha256(),
+            )
+            checkpoint_identity = (
+                checkpoint.episode_id,
+                checkpoint.episode_generation,
+                checkpoint.step_index,
+                checkpoint.observation_sha256,
+            )
+            if start_identity != checkpoint_identity:
+                raise TransferRecoveryBenchmarkError("trace start does not match sealed checkpoint observation")
+            checkpoint_sha = checkpoint.sha256()
+        body = {
+            "schema": EVALUATOR_TRACE_SCHEMA,
+            "mode": mode,
+            "transfer_case_sha256": case.sha256(),
+            "target_fixture_sha256": target_fixture_sha256,
+            "checkpoint_sha256": checkpoint_sha,
+            "action_budget": case.action_budget,
+            "start_episode_id": start_observation.episode_id,
+            "start_episode_generation": start_observation.episode_generation,
+            "start_step_index": start_observation.step_index,
+            "start_observation_sha256": start_observation.sha256(),
+            "action_ids": action_ids,
+            "replayed_action_indexes": replayed_action_indexes,
+            "repeated_work_action_indexes": repeated_work_action_indexes,
+            "final_evaluator_score": final_evaluator_score,
+            "terminal": terminal,
+            "classification": EVALUATOR_CLASSIFICATION,
+        }
+        trace_id = "trace:" + _digest(body)
+        trace_without_run = dict(body)
+        trace_without_run["trace_id"] = trace_id
+        run_id = "run:" + _digest({"trace_sha256": _digest(trace_without_run)})
+        return cls(
+            EVALUATOR_TRACE_SCHEMA,
+            trace_id,
+            run_id,
+            mode,
+            case.sha256(),
+            target_fixture_sha256,
+            checkpoint_sha,
+            case.action_budget,
+            start_observation.episode_id,
+            start_observation.episode_generation,
+            start_observation.step_index,
+            start_observation.sha256(),
+            action_ids,
+            replayed_action_indexes,
+            repeated_work_action_indexes,
+            final_evaluator_score,
+            terminal,
+            _origin=_TRACE_ORIGIN,
+        )
+
+    def identity_body(self, *, include_trace_id: bool = True, include_run_id: bool = True) -> dict[str, Any]:
+        body = {
+            "schema": self.schema,
+            "mode": self.mode,
+            "transfer_case_sha256": self.transfer_case_sha256,
+            "target_fixture_sha256": self.target_fixture_sha256,
+            "checkpoint_sha256": self.checkpoint_sha256,
+            "action_budget": self.action_budget,
+            "start_episode_id": self.start_episode_id,
+            "start_episode_generation": self.start_episode_generation,
+            "start_step_index": self.start_step_index,
+            "start_observation_sha256": self.start_observation_sha256,
+            "action_ids": self.action_ids,
+            "replayed_action_indexes": self.replayed_action_indexes,
+            "repeated_work_action_indexes": self.repeated_work_action_indexes,
+            "final_evaluator_score": self.final_evaluator_score,
+            "terminal": self.terminal,
+            "classification": self.classification,
+        }
+        if include_trace_id:
+            body["trace_id"] = self.trace_id
+        if include_run_id:
+            body["run_id"] = self.run_id
+        return body
+
+    def sha256_without_run_id(self) -> str:
+        return _digest(self.identity_body(include_trace_id=True, include_run_id=False))
+
+    def as_dict(self) -> dict[str, Any]:
+        return self.identity_body()
+
+    def sha256(self) -> str:
+        return _digest(self.as_dict())
+
+
+@dataclass(frozen=True, slots=True)
+class EvaluatorRunMeasurement:
+    schema: str
+    run_id: str
+    mode: str
+    evaluator_trace_sha256: str
+    transfer_case_sha256: str
+    target_fixture_sha256: str
+    checkpoint_sha256: str | None
+    action_budget: int
+    start_episode_id: str
+    start_episode_generation: int
+    start_step_index: int
+    start_observation_sha256: str
     actions_executed: int
     replayed_steps: int
     repeated_work_steps: int
@@ -423,17 +623,21 @@ class EvaluatorRunMeasurement:
         if self.schema != RUN_MEASUREMENT_SCHEMA or self.classification != EVALUATOR_CLASSIFICATION:
             raise TransferRecoveryBenchmarkError("run-measurement schema/classification mismatch")
         _id("run_id", self.run_id)
+        _sha("evaluator_trace_sha256", self.evaluator_trace_sha256)
         if self.mode not in _ALLOWED_MODES:
             raise TransferRecoveryBenchmarkError("mode must be COLD_RESTART or CHECKPOINT_RESUME")
-        _sha("transfer_case_sha256", self.transfer_case_sha256)
-        _sha("target_fixture_sha256", self.target_fixture_sha256)
+        for name, value in (
+            ("transfer_case_sha256", self.transfer_case_sha256),
+            ("target_fixture_sha256", self.target_fixture_sha256),
+            ("start_observation_sha256", self.start_observation_sha256),
+        ):
+            _sha(name, value)
         if self.checkpoint_sha256 is not None:
             _sha("checkpoint_sha256", self.checkpoint_sha256)
-        if self.mode == CHECKPOINT_RESUME and self.checkpoint_sha256 is None:
-            raise TransferRecoveryBenchmarkError("checkpoint-resume measurement requires checkpoint_sha256")
-        if self.mode == COLD_RESTART and self.checkpoint_sha256 is not None:
-            raise TransferRecoveryBenchmarkError("cold-restart measurement must not claim checkpoint consumption")
         _pint("action_budget", self.action_budget)
+        _id("start_episode_id", self.start_episode_id)
+        _nint("start_episode_generation", self.start_episode_generation)
+        _nint("start_step_index", self.start_step_index)
         _nint("actions_executed", self.actions_executed)
         _nint("replayed_steps", self.replayed_steps)
         _nint("repeated_work_steps", self.repeated_work_steps)
@@ -446,55 +650,56 @@ class EvaluatorRunMeasurement:
         if self.runtime_credit != 0 or self.whole_system_acceptance is not False:
             raise TransferRecoveryBenchmarkError("repository benchmark measurement cannot mint runtime/whole-system credit")
         if _origin is not _RUN_ORIGIN:
-            raise TransferRecoveryBenchmarkError("EvaluatorRunMeasurement must be created by measure_run")
+            raise TransferRecoveryBenchmarkError("EvaluatorRunMeasurement must be created from an evaluator trace")
 
     @classmethod
-    def measure_run(
-        cls,
-        *,
-        run_id: str,
-        mode: str,
-        case: TransferCase,
-        target_fixture_sha256: str,
-        checkpoint: RecoveryCheckpoint | None,
-        actions_executed: int,
-        replayed_steps: int,
-        repeated_work_steps: int,
-        final_evaluator_score: int,
-        terminal: bool,
-    ) -> "EvaluatorRunMeasurement":
-        if type(case) is not TransferCase:
-            raise TransferRecoveryBenchmarkError("case must be exact concrete TransferCase")
-        if checkpoint is not None:
-            if type(checkpoint) is not RecoveryCheckpoint:
-                raise TransferRecoveryBenchmarkError("checkpoint must be exact concrete RecoveryCheckpoint")
-            if checkpoint.transfer_case_sha256 != case.sha256():
-                raise TransferRecoveryBenchmarkError("checkpoint is bound to a different transfer case")
+    def from_trace(cls, trace: EvaluatorExecutionTrace) -> "EvaluatorRunMeasurement":
+        if type(trace) is not EvaluatorExecutionTrace:
+            raise TransferRecoveryBenchmarkError("measurement requires exact EvaluatorExecutionTrace")
         return cls(
             RUN_MEASUREMENT_SCHEMA,
-            run_id,
-            mode,
-            case.sha256(),
-            target_fixture_sha256,
-            None if checkpoint is None else checkpoint.sha256(),
-            case.action_budget,
-            actions_executed,
-            replayed_steps,
-            repeated_work_steps,
-            final_evaluator_score,
-            terminal,
+            trace.run_id,
+            trace.mode,
+            trace.sha256(),
+            trace.transfer_case_sha256,
+            trace.target_fixture_sha256,
+            trace.checkpoint_sha256,
+            trace.action_budget,
+            trace.start_episode_id,
+            trace.start_episode_generation,
+            trace.start_step_index,
+            trace.start_observation_sha256,
+            len(trace.action_ids),
+            len(trace.replayed_action_indexes),
+            len(trace.repeated_work_action_indexes),
+            trace.final_evaluator_score,
+            trace.terminal,
             _origin=_RUN_ORIGIN,
         )
+
+    @classmethod
+    def measure_run(cls, **kwargs: Any) -> "EvaluatorRunMeasurement":
+        """Compatibility name, but raw metric injection is deliberately removed."""
+        if set(kwargs) != {"trace"}:
+            raise TransferRecoveryBenchmarkError(
+                "measure_run requires exactly one trace; raw caller-supplied metrics are forbidden"
+            )
+        return cls.from_trace(kwargs["trace"])
 
     def as_dict(self) -> dict[str, Any]:
         return {
             "schema": self.schema,
             "run_id": self.run_id,
             "mode": self.mode,
+            "evaluator_trace_sha256": self.evaluator_trace_sha256,
             "transfer_case_sha256": self.transfer_case_sha256,
             "target_fixture_sha256": self.target_fixture_sha256,
             "checkpoint_sha256": self.checkpoint_sha256,
             "action_budget": self.action_budget,
+            "start_episode_id": self.start_episode_id,
+            "start_episode_generation": self.start_episode_generation,
+            "start_step_index": self.start_step_index,
+            "start_observation_sha256": self.start_observation_sha256,
             "actions_executed": self.actions_executed,
             "replayed_steps": self.replayed_steps,
             "repeated_work_steps": self.repeated_work_steps,
@@ -526,17 +731,23 @@ class MatchedRecoveryComparison:
             raise TransferRecoveryBenchmarkError("comparison requires exact evaluator measurements")
         if self.cold_restart.mode != COLD_RESTART or self.checkpoint_resume.mode != CHECKPOINT_RESUME:
             raise TransferRecoveryBenchmarkError("comparison requires COLD_RESTART then CHECKPOINT_RESUME")
-        for name in ("transfer_case_sha256", "target_fixture_sha256", "action_budget"):
+        for name in (
+            "transfer_case_sha256",
+            "target_fixture_sha256",
+            "action_budget",
+            "start_episode_id",
+            "start_episode_generation",
+            "start_step_index",
+            "start_observation_sha256",
+        ):
             if getattr(self.cold_restart, name) != getattr(self.checkpoint_resume, name):
                 raise TransferRecoveryBenchmarkError(f"matched recovery comparison differs on {name}")
         if self.cold_restart.run_id == self.checkpoint_resume.run_id:
-            raise TransferRecoveryBenchmarkError("matched comparison requires distinct run_id values")
-        expected = "recovery-pair:" + _digest(
-            {
-                "cold_restart_sha256": self.cold_restart.sha256(),
-                "checkpoint_resume_sha256": self.checkpoint_resume.sha256(),
-            }
-        )
+            raise TransferRecoveryBenchmarkError("matched comparison requires distinct trace-derived run_id values")
+        expected = "recovery-pair:" + _digest({
+            "cold_restart_sha256": self.cold_restart.sha256(),
+            "checkpoint_resume_sha256": self.checkpoint_resume.sha256(),
+        })
         if self.comparison_id != expected:
             raise TransferRecoveryBenchmarkError("comparison_id does not bind exact measurements")
         if _origin is not _COMPARE_ORIGIN:
@@ -551,13 +762,17 @@ class MatchedRecoveryComparison:
     ) -> "MatchedRecoveryComparison":
         if type(cold_restart) is not EvaluatorRunMeasurement or type(checkpoint_resume) is not EvaluatorRunMeasurement:
             raise TransferRecoveryBenchmarkError("comparison requires exact evaluator measurements")
-        comparison_id = "recovery-pair:" + _digest(
-            {
-                "cold_restart_sha256": cold_restart.sha256(),
-                "checkpoint_resume_sha256": checkpoint_resume.sha256(),
-            }
+        comparison_id = "recovery-pair:" + _digest({
+            "cold_restart_sha256": cold_restart.sha256(),
+            "checkpoint_resume_sha256": checkpoint_resume.sha256(),
+        })
+        return cls(
+            MATCHED_COMPARISON_SCHEMA,
+            comparison_id,
+            cold_restart,
+            checkpoint_resume,
+            _origin=_COMPARE_ORIGIN,
         )
-        return cls(MATCHED_COMPARISON_SCHEMA, comparison_id, cold_restart, checkpoint_resume, _origin=_COMPARE_ORIGIN)
 
     def as_dict(self) -> dict[str, Any]:
         return {
