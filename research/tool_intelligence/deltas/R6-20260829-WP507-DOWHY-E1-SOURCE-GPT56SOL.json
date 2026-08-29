@@ -1,0 +1,65 @@
+{
+  "schema": "FRANKENSTEIN2_TRIGGER6_EVIDENCE_RECEIPT/v1",
+  "research_id": "R6-WP507-DOWHY-REFUTATION-001",
+  "claim_target": "E1_SOURCE_READ",
+  "slot": "SOURCE_ARCHAEOLOGIST",
+  "status": "E1_SOURCE_READ_COMPLETE_ZERO_RUNTIME_CREDIT",
+  "completed_at": "2026-08-29T15:01:00+07:00",
+  "worker": "GPT-5.6-Sol",
+  "source_main_sha": "a0b7696c31af77e4ef9f42d26c7b3699d3c90c49",
+  "research_entity_main_sha_observed": "3e0248589c770ca45abe8d204a57445989210890",
+  "claim_path": "research/tool_intelligence/claims/R6-WP507-DOWHY-REFUTATION-001/E1_SOURCE_READ.json",
+  "candidate": {
+    "repo": "py-why/dowhy",
+    "commit_sha": "5a9c401f11df863c39d046ca55743f250e47a0f7",
+    "tree_sha": "c2cd8ef034e1ce9d501f38f5f9c37f32f0740961",
+    "license": "MIT",
+    "source_files_read": [
+      "dowhy/causal_refuters/placebo_treatment_refuter.py",
+      "dowhy/causal_refuters/data_subset_refuter.py",
+      "dowhy/causal_refuters/random_common_cause.py",
+      "tests/causal_refuters/test_placebo_refuter.py",
+      "LICENSE"
+    ]
+  },
+  "observed_source_mechanisms": [
+    {
+      "mechanism": "PLACEBO_TREATMENT_NEGATIVE_CONTROL",
+      "observation": "The refuter replaces or permutes the treatment, re-fits the estimator, and evaluates the resulting effect against a null expectation. This explicitly tests whether an apparent causal effect survives deliberate severing of the treatment-outcome relation.",
+      "wp507_relevance": "A recipient-scoped uptake claim should include a matched null intervention whose causal payload is destroyed while non-causal envelope/provenance dimensions remain comparable. Uptake that survives the null is evidence against a specific causal-uptake interpretation, not positive credit."
+    },
+    {
+      "mechanism": "SUBSET_STABILITY_REFUTER",
+      "observation": "The estimator is repeatedly re-run on independently sampled subsets with reproducible per-simulation seeds and the estimate is tested against the induced distribution.",
+      "wp507_relevance": "A claimed intervention/control delta should be checked for stability across bounded event/recipient subsets rather than relying on one favorable trace slice."
+    },
+    {
+      "mechanism": "RANDOM_COMMON_CAUSE_PERTURBATION",
+      "observation": "A random adjustment variable is introduced and the estimate is recomputed repeatedly, producing a perturbation distribution and significance check.",
+      "wp507_relevance": "A lightweight nuisance-variable perturbation family can test whether a claimed uptake score is brittle to irrelevant covariates/metadata."
+    },
+    {
+      "mechanism": "UPSTREAM_TESTED_NULL_SEVERING",
+      "observation": "The pinned upstream test suite explicitly asserts that placebo effects are near zero / smaller than the original estimate after permutation or randomization and contains regression coverage for IV and multi-treatment cases.",
+      "wp507_relevance": "The useful donor is the refutation pattern and acceptance semantics, not any upstream numeric threshold. F2 thresholds must be calibrated on F2 traces."
+    }
+  ],
+  "counterhypotheses": [
+    "F2-WP-507 may not need a causal-inference library at all; deterministic matched intervention/control receipts plus purpose-built null transforms may provide the same falsification power with less dependency weight.",
+    "A placebo/null intervention can be invalid if it changes routing, recipient eligibility, timing, or provenance structure in addition to the causal payload; apparent refutation would then be confounded by envelope mismatch.",
+    "Subset stability can hide systematic confounding shared across all subsets and therefore cannot establish causality by itself.",
+    "Random nuisance covariates are weak probes for structured hidden confounders and should not be promoted as sufficient confounding control."
+  ],
+  "distillation_preference": "CONCEPT_AND_TEST_PATTERN_FIRST; DO_NOT_IMPORT_DOWHY_INTO_RUNTIME_FROM_E1. Preserve F2 deterministic causal identities and implement only bounded null-transform/refutation semantics if later E2/E4 evidence warrants it.",
+  "coordination_note": "A separate contemporaneous Trigger-6 objective R6-WP507-DOWHY-REFUTER-001 claimed E2 architecture mapping. This receipt intentionally stops at E1 source evidence and must not duplicate or pre-empt that E2 objective.",
+  "evidence_ceiling": "E1_SOURCE_READ",
+  "research_credit": 1,
+  "architecture_credit": 0,
+  "runtime_credit": 0,
+  "integration_credit": 0,
+  "gwt_runtime_credit": 0,
+  "jspace_runtime_credit": 0,
+  "effect_credit": 0,
+  "completion_credit": 0,
+  "next_gate": "Consume the separately claimed DoWhy E2 architecture-mapping result when available; if it remains favorable, define an F2-native matched-null transform plus subset/nuisance refuter contract before any E4 ablation."
+}
