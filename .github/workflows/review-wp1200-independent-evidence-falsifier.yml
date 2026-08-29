@@ -1,0 +1,35 @@
+name: Review WP1200 Independent Evidence Falsifier
+
+on:
+  push:
+    branches:
+      - review/wp1200-independent-evidence-falsifier-20260829
+    paths:
+      - 'src/frankenstein2/target_completion_epistemics.py'
+      - 'review_tests/test_wp1200_independent_evidence_falsifier.py'
+      - '.github/workflows/review-wp1200-independent-evidence-falsifier.yml'
+  pull_request:
+    paths:
+      - 'src/frankenstein2/target_completion_epistemics.py'
+      - 'review_tests/test_wp1200_independent_evidence_falsifier.py'
+      - '.github/workflows/review-wp1200-independent-evidence-falsifier.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  falsifier:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Compile exact target-completion source and falsifier
+        run: python -m py_compile src/frankenstein2/target_completion_epistemics.py review_tests/test_wp1200_independent_evidence_falsifier.py
+      - name: Require independent positive and counterevidence paths
+        env:
+          PYTHONPATH: src
+        run: python review_tests/test_wp1200_independent_evidence_falsifier.py
