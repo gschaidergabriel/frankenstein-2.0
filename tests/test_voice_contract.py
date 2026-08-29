@@ -189,6 +189,24 @@ class VoiceContractTests(unittest.TestCase):
                 provenance_refs=("receipt:fake",),
             )
 
+    def test_outcome_kind_requires_exact_concrete_string_scalar(self) -> None:
+        class StringSubclass(str):
+            pass
+
+        session = self.session()
+        causal = session.session_causal_identity.derive(
+            causal_id="causal-outcome-kind-subclass", generation=5, turn_id="turn-outcome-kind-subclass"
+        )
+        with self.assertRaises(VoiceContractError):
+            VoiceOutcome.create(
+                session=session,
+                outcome_causal_identity=causal,
+                outcome_kind=StringSubclass(OUTCOME_RETURNED),
+                result_ref=None,
+                result_sha256=None,
+                provenance_refs=("receipt:outcome-kind-subclass",),
+            )
+
     def test_bind_outcome_requires_exact_session(self) -> None:
         candidate = self.outcome()
         other_intent = VoiceIntent.create(
