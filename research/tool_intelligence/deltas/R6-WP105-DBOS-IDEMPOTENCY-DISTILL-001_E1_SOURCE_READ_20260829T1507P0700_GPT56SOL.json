@@ -1,0 +1,131 @@
+{
+  "schema": "FRANKENSTEIN2_TRIGGER6_EVIDENCE_DELTA/v1",
+  "trigger": "6",
+  "research_id": "R6-WP105-DBOS-IDEMPOTENCY-DISTILL-001",
+  "claim_ref": "research/tool_intelligence/claims/R6-WP105-DBOS-IDEMPOTENCY-DISTILL-001/E1_SOURCE_READ.json",
+  "claim_commit": "c2eaad5d36dc98384e477787e2e5164c80063bc4",
+  "slot": "SOURCE_ARCHAEOLOGIST",
+  "evidence_stage": "E1_SOURCE_READ",
+  "status": "COMPLETED_CONCEPT_DISTILL_ONLY_NO_PROMOTION",
+  "created_at": "2026-08-29T15:07:00+07:00",
+  "worker": "ChatGPT/GPT-5.6-Sol",
+  "architecture_binding": {
+    "target": "F2-WP-105 direct episode_id=null retry/unknown-outcome boundary",
+    "f2_main_observed_before_result_write": "3a085fb62c15af7d4587e5a461b6326984ed7e75",
+    "research_entity_main_observed_before_result_write": "8cda27372f57d876be6b2544c75a68165eaad2ce",
+    "fusion_ref": "research_entity/frankenstein2_tool_intelligence/deltas/ADF-20260829T1503P0700-GPT56SOL-WP105-AQ-RECONCILIATION.json",
+    "execution_mode": "FREE_ONLY",
+    "existing_effect_authority_unchanged": true
+  },
+  "candidate": {
+    "name": "DBOS Transact Python",
+    "repo": "dbos-inc/dbos-transact-py",
+    "source_commit": "5bca975a729f6dcb921138f03e58628bbe00fa88",
+    "source_commit_verified_signature": true,
+    "license": "MIT",
+    "observed_repo_state": {
+      "stars_at_read": 1554,
+      "forks_at_read": 89,
+      "active": true
+    },
+    "source_refs": [
+      "dbos/_context.py",
+      "dbos/_core.py",
+      "dbos/_sys_db.py",
+      "pyproject.toml",
+      "issue #759",
+      "PR #763 and its changed tests"
+    ]
+  },
+  "source_observations": [
+    "DBOS supports durable user-assigned workflow identity and treats that identity as a replay/idempotency boundary rather than relying only on transient process memory.",
+    "Current source rejects empty or whitespace-only workflow IDs before SetWorkflowID and client enqueue admission.",
+    "Current workflow execution logic can return a previously recorded durable result for a completed workflow instead of re-running the workflow body.",
+    "Current duplicate-workflow conflict handling aborts the duplicate execution path and adopts the recorded outcome rather than continuing a competing execution.",
+    "The system database persists workflow identity/status, serialized inputs, executor/recovery metadata and completion state, demonstrating a durable identity/state-machine pattern rather than a memory-only retry fence.",
+    "DBOS distinguishes strong database-transaction durability from external-step semantics; arbitrary external operations still require their own idempotency/verification discipline.",
+    "The full Python package is not a minimal F2 dependency: even with SQLite support its base dependency surface includes SQLAlchemy, psycopg, websockets, click, PyYAML and python-dateutil; aiosqlite is optional."
+  ],
+  "negative_evidence": [
+    {
+      "id": "DBOS-E1-N1-HISTORICAL-ID-FAILURE",
+      "finding": "DBOS issue #759 documents a production duplicate-execution failure where an empty workflow identity could be recovered under fresh identities and repeatedly re-run side effects. PR #763 subsequently added fail-closed ID validation, recovery rejection and regression tests. This is historical negative evidence, not a current DBOS-main defect at the pinned commit."
+    },
+    {
+      "id": "DBOS-E1-N2-SECOND-AUTHORITY-RISK",
+      "finding": "Importing DBOS as F2's durable workflow runtime would introduce another persistence/control authority beside UnifiedDB/EffectJournal. That conflicts with current F2/EntityOS authority boundaries and is unnecessary for the narrow WP105 blocker."
+    },
+    {
+      "id": "DBOS-E1-N3-EXTERNAL-EXACTLY-ONCE-LIMIT",
+      "finding": "A durable local checkpoint cannot by itself prove whether an external non-idempotent effect applied after an ambiguous transport/process boundary. DBOS patterns do not erase F2's explicit UNKNOWN-outcome requirement."
+    }
+  ],
+  "f2_transfer_assessment": {
+    "recommended_adoption_class": "DISTILL_PATTERN_NOT_LIBRARY_IMPORT",
+    "full_library_import_now": false,
+    "useful_thin_patterns": [
+      "FAIL_CLOSED_LOGICAL_OPERATION_ID_VALIDATION",
+      "DURABLE_IDENTITY_BEFORE_DISPATCH",
+      "REPLAY_RETURNS_EXISTING_DURABLE_RECORD_INSTEAD_OF_RERUNNING_BODY",
+      "DUPLICATE_OWNERSHIP_CONFLICT_ABORTS_NEW_EXECUTION",
+      "PERSIST_ATTEMPT_AND_COMPLETION_STATE_TRANSACTIONALLY",
+      "REGRESSION_TEST_IDENTITY_MISMATCH_AND_REOPEN_PATHS"
+    ],
+    "must_remain_native": [
+      "UnifiedDB canonical state",
+      "EffectGate + EffectJournal effect authority",
+      "F2 request_sha256 per-call identity",
+      "explicit UNKNOWN outcome semantics",
+      "authority-owned verification before any replay of uncertain non-idempotent effects"
+    ]
+  },
+  "hypothesis": {
+    "statement": "WP105 can close most direct episode_id=null duplicate-dispatch risk without importing a workflow engine by distilling DBOS's durable stable-identity, fail-closed validation, recorded-result replay and duplicate-owner abort patterns into the existing EffectJournal/UnifiedDB authority. Persist operation_retry_id, operation_payload_sha256, attempt_id, dispatch-start state, outcome certainty and verification reference transactionally while preserving request_sha256 and effect_id as distinct identities.",
+    "engineering_confidence": 0.91,
+    "required_rules": [
+      "empty/invalid operation_retry_id => reject before dispatch",
+      "same operation_retry_id + changed operation_payload_sha256 => reject before dispatch",
+      "same operation_retry_id + same payload + unresolved prior dispatch => execute zero additional child mutation",
+      "completed same operation => return/reference existing durable outcome rather than rerun",
+      "distinct operation_retry_id + identical semantics => independently admissible",
+      "UNKNOWN non-idempotent outcome => no automatic replay until authority-owned verification"
+    ]
+  },
+  "counterhypothesis": {
+    "statement": "Stable identity plus payload digest is insufficient because direct effects also require a stronger authority-owned dispatch-start/verification state machine to distinguish PRE_DISPATCH, DISPATCH_STARTED_UNKNOWN and terminal verified outcomes.",
+    "discriminator": "After a separately claimed E2 mapping, build a zero-real-effect reopen fixture that crosses a harmless child-start boundary, reopens UnifiedDB under a new gate, and proves zero duplicate child mutation under unresolved retry while changed-payload reuse fails before dispatch."
+  },
+  "adjudication": {
+    "evidence_ceiling": "E1_SOURCE_READ",
+    "promotion_to_e2": false,
+    "promotion_to_e3": false,
+    "promotion_to_e4": false,
+    "promotion_to_e5_build_candidate": false,
+    "trigger4_handoff": "NOT_ELIGIBLE",
+    "pending_research_sqlite_sync": "PENDING",
+    "next_objective": "E2_ARCHITECTURE_MAPPED_DBOS_IDENTITY_REPLAY_PATTERN_TO_CURRENT_WP105",
+    "reason": "Source evidence strongly supports the pattern, but no current F2 schema/source mapping or F2 ablation has been performed in this objective."
+  },
+  "credits": {
+    "e1_source_read_credit": 1,
+    "e2_architecture_credit": 0,
+    "e3_claim_reproduced_credit": 0,
+    "e4_f2_ablation_credit": 0,
+    "e5_build_candidate_credit": 0,
+    "e6_f2_accepted_credit": 0,
+    "runtime_credit": 0,
+    "integration_credit": 0,
+    "effect_credit": 0,
+    "completion_credit": 0,
+    "whole_system_credit": 0,
+    "physical_grid10_credit": 0,
+    "training_credit": 0
+  },
+  "execution": {
+    "real_effect_execution": 0,
+    "provider_calls": 0,
+    "vps_execution": 0,
+    "paid_fallback": false,
+    "unusual_experiment": false
+  }
+}
