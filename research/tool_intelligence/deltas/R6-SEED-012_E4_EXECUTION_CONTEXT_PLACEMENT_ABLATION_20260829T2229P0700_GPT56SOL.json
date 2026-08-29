@@ -1,0 +1,91 @@
+{
+  "schema": "FRANKENSTEIN2_TRIGGER6_E4_F2_ABLATION/v1",
+  "trigger": "6",
+  "research_id": "R6-SEED-012",
+  "claim_target": "E4_EXECUTION_CONTEXT_PLACEMENT_ABLATION",
+  "status": "E4_COMPLETE_TYPED_SHARED_CONTEXT_WINS",
+  "created_at": "2026-08-29T22:29:00+07:00",
+  "worker": "GPT-5.6-Sol:Triggerword-6-organ",
+  "claim_commit": "1a21b7a47b9f7524471428012639ec0e3c506553",
+  "experiment_commit": "2969348ac3da80f3065cba74207ff2909d327f71",
+  "experiment_path": "research/tool_intelligence/experiments/r6_seed_012_execution_context_placement_ablation_v1.py",
+  "baseline": {
+    "source": "src/frankenstein2/gwt_uptake.py",
+    "blob_sha": "f25c03d4e4e49c4fed44acd0c5c96edfb40f664e",
+    "pair_serialized_bytes": 968,
+    "execution_context_match_gate": false,
+    "confounded_case": "ADMITS_CAUSAL_INFLUENCE_OBSERVED_AT_CONTRACT_SCOPE"
+  },
+  "candidate_a_opaque_digest_per_arm": {
+    "pair_serialized_bytes": 1172,
+    "added_bytes_vs_baseline": 204,
+    "rejects_distinct_digest": true,
+    "typed_semantics_for_digest_preimage": false,
+    "failure_mode": "A caller can satisfy equality with the same arbitrary digest/reference convention without the schema defining or validating which runner/code/engine/config/environment/case/attempt dimensions it commits to.",
+    "decision": "REJECT_AS_TOO_WEAK_FOR_FAIL_CLOSED_PROMOTION_DESPITE_MINIMAL_SIZE"
+  },
+  "candidate_b_typed_shared_probe_execution_context": {
+    "context_serialized_bytes": 438,
+    "matched_pair_plus_one_shared_context_bytes": 1594,
+    "added_bytes_vs_baseline_matched_case": 626,
+    "confounded_pair_plus_two_contexts_bytes": 2032,
+    "rejects_distinct_context_digest": true,
+    "typed_semantics_for_digest_preimage": true,
+    "preferred_storage": "Store/emit one typed context object per matched probe execution context and bind only its canonical digest in each arm; do not repeat the full context in both arms.",
+    "decision": "PREFERRED"
+  },
+  "local_research_microbenchmark": {
+    "iterations": 200000,
+    "digest_equality_ns_per_op_median": 37.30702500035932,
+    "typed_context_sha256_us_per_op_median": 5.176630605000128,
+    "scope": "LOCAL_RESEARCH_RUNTIME_ONLY_NOT_F2_TARGET_RUNTIME",
+    "interpretation": "The deterministic hash/equality work is tiny on this research host relative to any model call, but these numbers are not transferable as F2 VPS/target-runtime latency evidence."
+  },
+  "required_dimensions": {
+    "quality_accuracy": "Candidate B rejects the reproduced execution-config confound while preserving equal-context matched probes by construction.",
+    "exact_evidence_preservation": "B makes the digest preimage explicit and canonical rather than convention-only.",
+    "f2_runtime_token_consumption": "0 model tokens by design; typed metadata only.",
+    "context_prompt_size": "No prompt/context injection required.",
+    "model_call_count": "0 additional model calls.",
+    "latency": "Only local research microbenchmark measured; target p50/p95/p99 unresolved until Trigger-4 implementation/runtime measurement.",
+    "cpu_ram_io": "Expected small hash/validation and metadata persistence overhead; target measurements unresolved.",
+    "cache_reuse": "One shared context object/digest can be reused by both arms and by later causal seals.",
+    "failure_modes": "Stale context generation, wrong artifact/config/environment digest, two contexts for one supposedly matched probe, opaque digest not backed by typed object, post-context mutation, and accidental inclusion of the intervention dimension in the matched context.",
+    "deterministic_replay": "Canonical typed context plus digest is deterministic and replay-checkable.",
+    "dependency_weight": "No external runtime dependency; Inspect AI full import remains rejected.",
+    "license": "No code import planned; structural pattern informed by MIT-licensed Inspect AI pin.",
+    "maintenance_risk": "Low-to-moderate if implemented as one small F2 dataclass/validator; lower than importing Inspect.",
+    "local_offline": true,
+    "overlap": "Should be one shared evidence/run-context primitive, not a duplicate inside WP507 and WP510."
+  },
+  "placement_decision": {
+    "winner": "TYPED_SHARED_PROBE_EXECUTION_CONTEXT_WITH_DIGEST_BOUND_IN_BOTH_ARMS",
+    "reason": "It is the smallest tested option that both rejects the reproduced confound and defines what the matching digest means. The extra 626 bytes in the synthetic matched pair are acceptable research evidence for an E5 hypothesis because they buy fail-closed semantics without model calls or heavyweight dependencies; target storage/runtime cost remains to be measured by Trigger 4.",
+    "integration_preference": "Create one typed ProbeExecutionContext in the WP507/evidence-admission boundary, then require intervention/control CausalProbeArm to bind the same context digest. WP510 should revalidate rather than duplicate the context schema.",
+    "intervention_exclusion": "The context must encode only dimensions intended to be held constant. Broadcast identity remains the declared intervention and must not be part of the shared matched-context digest."
+  },
+  "next_gate": {
+    "stage": "E5_BUILD_CANDIDATE",
+    "precondition": "Acquire create-only E5 claim and re-check current WP507/WP510 source/ownership for architecture movement.",
+    "candidate": "small typed ProbeExecutionContext + context digest binding + negative regression from E3 + preservation tests",
+    "trigger4_measurements_required": [
+      "existing WP507/WP510 regression pass",
+      "confounded execution-context pair becomes UNKNOWN_UNMATCHED_CONTROL",
+      "matched equal-context pair preserves existing result semantics",
+      "stale/wrong context digest fails closed",
+      "serialized byte/storage delta",
+      "hash/validation p50/p95/p99 on admitted target surface",
+      "CPU/RSS/I/O delta",
+      "zero added model calls/tokens"
+    ]
+  },
+  "credits": {
+    "e4_f2_ablation_credit": 1,
+    "e5_build_candidate_credit": 0,
+    "f2_integration_credit": 0,
+    "runtime_credit": 0,
+    "gwt_runtime_credit": 0,
+    "jspace_runtime_credit": 0,
+    "whole_system_credit": 0
+  }
+}
