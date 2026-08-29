@@ -1,0 +1,63 @@
+{
+  "schema": "F2_TRIGGER6_EVIDENCE_RESULT/v1",
+  "research_id": "R6-WP507-TRANSFORMERLENS-INTERVENTION-001",
+  "claim_target": "E1_SOURCE_READ",
+  "status": "E1_SOURCE_READ_COMPLETE_NO_RUNTIME_CREDIT",
+  "completed_at": "2026-08-29T15:04:00+07:00",
+  "worker": "GPT-5.6-Sol",
+  "candidate": {
+    "repo": "TransformerLensOrg/TransformerLens",
+    "commit": "1f8224d5e147c98e8f43f0d310e32bbd1578a4b6"
+  },
+  "observed_source_mechanisms": [
+    {
+      "path": "transformer_lens/patching.py",
+      "finding": "generic_activation_patch implements a clean-vs-corrupted counterfactual intervention loop: cached clean activations are inserted into a corrupted forward run through a forward hook and a user-supplied metric measures output recovery. This is directly relevant as a mechanistic matched-intervention donor, but by itself does not establish F2 GWT semantic uptake."
+    },
+    {
+      "path": "transformer_lens/HookedRootModule.py",
+      "finding": "run_with_cache/get_caching_hooks provide selective activation capture and run_with_hooks provides scoped forward interventions; cache entries are detached tensors and hooks can be reset after the run."
+    },
+    {
+      "path": "transformer_lens/HookedTransformer.py",
+      "finding": "legacy HookedTransformer.from_pretrained defaults fold_ln=true, center_writing_weights=true, center_unembed=true and fold_value_biases=true; these transformations are intended to preserve relevant computation but change the represented weights/logits conventions and are therefore unsuitable as an unqualified exact-byte/model-identity proof surface for F2."
+    },
+    {
+      "path": "transformer_lens/model_bridge/bridge.py",
+      "finding": "TransformerBridge.boot_transformers is the preferred v3 path and documents raw HF weights by default; it retains original_model, wraps it with architecture adapters/hook points, and only enters HookedTransformer-equivalent compatibility numerics when compatibility mode is explicitly enabled. This substantially mitigates the legacy-loader provenance concern."
+    },
+    {
+      "path": "transformer_lens/pretrained/weight_conversions/qwen3.py",
+      "finding": "explicit Qwen3 conversion support exists; repository search also shows Qwen/Qwen2/Qwen3 surfaces. This is compatibility evidence only, not evidence that the exact F2 target checkpoint/runtime has been reproduced."
+    }
+  ],
+  "hypothesis": "TransformerLens v3 TransformerBridge can serve as an offline/local mechanistic-intervention measurement donor for WP507/J-Space falsification: capture a fixed activation from a clean/control run, intervene at one named hook during an otherwise identity-bound matched run, and compare a predeclared downstream output digest/metric.",
+  "counterhypothesis": "Even with raw-HF-weight Bridge mode, adapter hook placement, eager-attention forcing, tokenizer/BOS behavior, device/dtype, or instrumentation itself may create numerical/semantic differences. Therefore an F2 experiment must first prove baseline output equivalence for the exact target model/input/config and bind checkpoint/tokenizer/runtime/build identities before interpreting any intervention delta.",
+  "f2_fit": {
+    "recommended_role": "MEASUREMENT_DONOR_ONLY",
+    "do_not_make": [
+      "canonical truth authority",
+      "effect authority",
+      "WP507 deterministic contract dependency",
+      "proof of GWT semantic uptake",
+      "proof of hidden-state causality"
+    ],
+    "nonduplicate_with_current_parallel_work": "Complements pyvene native intervention scouting, DoWhy causal-refutation work, and OpenTelemetry trace-attribution work by adding activation-patching / mechanistic localization as a separate falsification surface."
+  },
+  "next_evidence_gate": {
+    "stage": "E2_ARCHITECTURE_MAPPED_OR_E3_CLAIM_REPRODUCED_ONLY_AFTER_NEW_ATOMIC_CLAIM",
+    "test": "On one exact local target checkpoint, compare uninstrumented HF baseline vs TransformerBridge raw-HF mode on identical token IDs/dtype/device/eager-attention configuration. Require deterministic output-digest/logit tolerance agreement first; then run one predeclared single-site patch with a matched no-patch control. Reject interpretation if baseline equivalence fails or any identity/provenance field is unknown.",
+    "acceptance": "Baseline-equivalence evidence plus a fully bound intervention/control receipt; no GWT/J-Space/runtime credit is granted merely from source compatibility."
+  },
+  "credits": {
+    "research_stage": "E1_SOURCE_READ",
+    "research_credit": "SOURCE_READ_ONLY",
+    "architecture_credit": 0,
+    "integration_credit": 0,
+    "runtime_credit": 0,
+    "gwt_runtime_credit": 0,
+    "jspace_runtime_credit": 0,
+    "training_credit": 0,
+    "whole_system_credit": 0
+  }
+}
