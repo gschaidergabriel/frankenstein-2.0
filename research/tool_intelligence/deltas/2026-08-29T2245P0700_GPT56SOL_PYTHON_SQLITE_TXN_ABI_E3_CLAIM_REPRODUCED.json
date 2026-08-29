@@ -1,0 +1,119 @@
+{
+  "schema": "FRANKENSTEIN2_TRIGGER6_RESEARCH_DELTA/v1",
+  "target_id": "R6-20260829-PYTHON-SQLITE-TXN-ABI-GPT56SOL-01",
+  "stage": "E3_CLAIM_REPRODUCED",
+  "status": "COMPLETED_AT_SCOPE",
+  "created_at": "2026-08-29T22:45:00+07:00",
+  "claimed_by": "gpt-5.6-sol-trigger6-organ",
+  "classification": "LOCAL_RESEARCH_REPRODUCTION_ONLY_NOT_F2_RUNTIME_EVIDENCE",
+  "harness": {
+    "path": "research/tool_intelligence/experiments/python_sqlite_transaction_abi_repro_v1.py",
+    "blob_sha": "330d26a0cef201115b4cdabead50417aece6e4d8",
+    "creation_commit": "ec4fb58f327b33f4501dd2ee5dd1f38e8a51c168"
+  },
+  "environment": {
+    "python": "3.13.5 (main, Jul 15 2026, 20:25:40) [GCC 14.2.0]",
+    "sqlite": "3.46.1"
+  },
+  "observations": [
+    {
+      "mode": "omitted_default",
+      "autocommit_repr": "-1",
+      "isolation_level": "",
+      "in_transaction_after_connect": false,
+      "begin_immediate": "OK",
+      "in_transaction_after_begin": true,
+      "commit_called": "OK",
+      "in_transaction_after_commit": false,
+      "second_begin_immediate": "OK",
+      "rollback_called": "OK",
+      "in_transaction_after_rollback": false,
+      "external_row_count_after_commit": 1
+    },
+    {
+      "mode": "explicit_legacy_manual",
+      "configuration": "autocommit=sqlite3.LEGACY_TRANSACTION_CONTROL, isolation_level=None",
+      "autocommit_repr": "-1",
+      "isolation_level": null,
+      "in_transaction_after_connect": false,
+      "begin_immediate": "OK",
+      "in_transaction_after_begin": true,
+      "commit_called": "OK",
+      "in_transaction_after_commit": false,
+      "second_begin_immediate": "OK",
+      "rollback_called": "OK",
+      "in_transaction_after_rollback": false,
+      "external_row_count_after_commit": 1
+    },
+    {
+      "mode": "pep249_autocommit_false",
+      "configuration": "autocommit=False",
+      "in_transaction_after_connect": true,
+      "begin_immediate": "ERROR: cannot start a transaction within a transaction",
+      "in_transaction_after_commit": true,
+      "second_begin_immediate": "ERROR: cannot start a transaction within a transaction",
+      "in_transaction_after_rollback": true,
+      "external_row_count": "no table created because explicit BEGIN never acquired"
+    },
+    {
+      "mode": "sqlite_autocommit_true",
+      "configuration": "autocommit=True",
+      "in_transaction_after_connect": false,
+      "begin_immediate": "OK",
+      "in_transaction_after_begin": true,
+      "connection_commit_called": "OK_BUT_TRANSACTION_REMAINS_OPEN",
+      "in_transaction_after_commit": true,
+      "second_begin_immediate": "ERROR: cannot start a transaction within a transaction",
+      "connection_rollback_called": "OK_BUT_TRANSACTION_REMAINS_OPEN",
+      "in_transaction_after_rollback": true,
+      "external_row_count": "no such table: t",
+      "interpretation": "Python docs say Connection.commit()/rollback() have no effect in autocommit=True; observation matches current F2 incompatibility."
+    }
+  ],
+  "claim_assessment": [
+    {
+      "claim": "Current omitted default behavior is not equivalent to future autocommit=False behavior for F2's explicit BEGIN IMMEDIATE lifecycle.",
+      "status": "REPRODUCED"
+    },
+    {
+      "claim": "Explicit LEGACY_TRANSACTION_CONTROL plus isolation_level=None preserves the observed manual F2 transaction lifecycle on current Python 3.13.5 while removing reliance on the omitted default.",
+      "status": "REPRODUCED_AT_LOCAL_RESEARCH_SCOPE"
+    },
+    {
+      "claim": "autocommit=False is not a behavior-preserving drop-in for current CanonicalPersistentAgencyStore.",
+      "status": "REPRODUCED"
+    },
+    {
+      "claim": "autocommit=True is not a behavior-preserving drop-in while F2 uses Connection.commit()/rollback() to close explicit transactions.",
+      "status": "REPRODUCED"
+    }
+  ],
+  "architecture_delta_update": {
+    "status": "STRENGTHENED",
+    "recommended_trigger4_direction": "For the current manual BEGIN IMMEDIATE store, explicitly pin a manual transaction ABI rather than the interpreter default. The smallest reproduced candidate on Python >=3.12 is autocommit=sqlite3.LEGACY_TRANSACTION_CONTROL with isolation_level=None. Bind supported Python versions in release metadata and add regression tests for transaction-state transitions. Treat any future migration to autocommit=False as a deliberate transaction-lifecycle refactor, not a dependency upgrade.",
+    "required_regressions": [
+      "in_transaction is false immediately after store connection open",
+      "BEGIN IMMEDIATE succeeds and sets in_transaction true",
+      "Connection.commit() returns in_transaction false and makes writes visible to another connection",
+      "Connection.rollback() returns in_transaction false",
+      "a second explicit BEGIN IMMEDIATE succeeds after prior completion",
+      "the chosen transaction mode is read back/receipted with Python and SQLite versions"
+    ],
+    "new_authority": "NONE",
+    "runtime_overhead": "NEGLIGIBLE"
+  },
+  "negative_evidence": [
+    "This matrix ran only on Python 3.13.5 / SQLite 3.46.1, not target F2 runtime.",
+    "It does not establish behavior on every supported host/interpreter version.",
+    "It does not prove a future Python release date for the documented default change.",
+    "No F2 production source was modified or executed."
+  ],
+  "credits": {
+    "research_claim_reproduction": 1,
+    "f2_runtime": 0,
+    "integration": 0,
+    "target_host": 0,
+    "whole_system": 0
+  },
+  "next_gate": "Trigger 4 should decide the minimum supported Python version, explicitly pin the transaction mode in the canonical writer connection factory/store, and run the existing WP206 restart suite plus transaction-state regressions across the supported Python matrix."
+}
