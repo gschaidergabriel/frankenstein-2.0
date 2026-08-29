@@ -1,19 +1,16 @@
 name: Review WP402 G2 Exact WorldSlice Type Falsifier
 
 on:
-  push:
-    branches:
-      - chatgpt/review-wp402-g2-exact-worldslice-type-falsifier-20260829
+  pull_request:
     paths:
       - 'tests/test_wp402_g2_exact_worldslice_type_falsifier.py'
       - '.github/workflows/review-wp402-g2-exact-worldslice-type-falsifier-ci.yml'
-  workflow_dispatch:
 
 permissions:
   contents: read
 
 jobs:
-  exact-current-falsifier:
+  accepted-g2-merge-context-falsifier:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
@@ -21,9 +18,9 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-      - name: Compile exact-current source and independent falsifier
+      - name: Compile PR merge-context source and independent falsifier
         run: python -m py_compile src/frankenstein2/sparse_world_basis.py src/frankenstein2/qubo_projection.py tests/test_wp402_g2_exact_worldslice_type_falsifier.py
-      - name: Run exact-current WorldSlice subtype falsifier
+      - name: Run accepted-G2 exact WorldSlice subtype falsifiers
         env:
           PYTHONPATH: src
         run: python tests/test_wp402_g2_exact_worldslice_type_falsifier.py -v
