@@ -158,6 +158,18 @@ class MultimediaTopologySnapshot:
     endpoints: tuple[SyntheticEndpoint, ...]
 
     def __post_init__(self) -> None:
+        expected_service_names = (
+            ("pipewire", self.pipewire),
+            ("wireplumber", self.wireplumber),
+            ("portal", self.portal),
+        )
+        for role, service in expected_service_names:
+            if service.name != role:
+                raise TopologyError(
+                    f"{role} role requires canonical service name {role!r}; "
+                    f"got {service.name!r}"
+                )
+
         ids = [endpoint.endpoint_id for endpoint in self.endpoints]
         if len(ids) != len(set(ids)):
             raise TopologyError("endpoint_id values must be unique")

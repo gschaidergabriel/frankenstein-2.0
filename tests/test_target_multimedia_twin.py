@@ -221,6 +221,35 @@ class TargetMultimediaTwinTests(unittest.TestCase):
         )
         self.assertEqual(left.sha256(), right.sha256())
 
+    def test_structural_service_roles_require_canonical_names(self):
+        snapshot = _healthy_snapshot()
+        with self.assertRaisesRegex(TopologyError, "pipewire role requires canonical service name"):
+            MultimediaTopologySnapshot(
+                session=snapshot.session,
+                pipewire=ServiceState(
+                    name="dup",
+                    generation=1,
+                    active=True,
+                    usable=True,
+                    bus_owner="pipewire@1000",
+                ),
+                wireplumber=ServiceState(
+                    name="dup",
+                    generation=7,
+                    active=True,
+                    usable=True,
+                    bus_owner="wireplumber@1000",
+                ),
+                portal=ServiceState(
+                    name="dup",
+                    generation=9,
+                    active=True,
+                    usable=True,
+                    bus_owner="org.freedesktop.portal.Desktop",
+                ),
+                endpoints=(),
+            )
+
     def test_rebind_must_advance_endpoint_generation(self):
         snapshot = _healthy_snapshot()
         with self.assertRaisesRegex(TopologyError, "advance"):
