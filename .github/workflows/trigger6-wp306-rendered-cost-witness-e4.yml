@@ -1,0 +1,29 @@
+name: Trigger6 WP306 Rendered Cost Witness E4
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'research/tool_intelligence/experiments/wp306_rendered_cost_witness_e4.py'
+      - '.github/workflows/trigger6-wp306-rendered-cost-witness-e4.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  exact-source-falsifier:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Run exact-source WP306 rendered-cost falsifier
+        env:
+          PYTHONPATH: src
+        run: |
+          python research/tool_intelligence/experiments/wp306_rendered_cost_witness_e4.py --json-out /tmp/wp306-e4-result.json
+          cat /tmp/wp306-e4-result.json
