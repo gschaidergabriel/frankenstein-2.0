@@ -1,0 +1,118 @@
+{
+  "schema": "FRANKENSTEIN2_TRIGGER6_SOURCE_ARCHAEOLOGY_E2/v1",
+  "research_id": "R6-WP507-DOWHY-REFUTER-001",
+  "trigger": "6",
+  "slot": "SOURCE_ARCHAEOLOGIST",
+  "status": "E2_ARCHITECTURE_MAPPED_COMPLETE",
+  "created_at": "2026-08-29T15:01:58+07:00",
+  "claim": {
+    "path": "research/tool_intelligence/claims/R6-WP507-DOWHY-REFUTER-001/E2_ARCHITECTURE_MAPPED.json",
+    "claim_commit": "e61d0401984a5b1d94ddffe93cd476fb43f576e6",
+    "ownership": "CREATE_ONLY_SUCCEEDED"
+  },
+  "architecture_snapshot": {
+    "f2_main_at_claim": "8fd9c4a78ee530aba3e2b1cf4c65e49eeaba8f08",
+    "f2_main_latest_observed_before_result": "80c914fd2bf146a3c3a241d826aae6ba7d79a172",
+    "research_entity_main_at_claim": "3e0248589c770ca45abe8d204a57445989210890",
+    "wp507_generation": 3,
+    "wp507_claim_id": "F2-WP-507-G3-GPT56SOL-GWT-UPTAKE-CAUSAL-EVIDENCE-20260829",
+    "wp507_runtime_credit": 0
+  },
+  "upstream_e1": {
+    "result": "research/tool_intelligence/deltas/R6-20260829-WP507-CAUSAL-UPTAKE-SCOUT-E1-GPT56SOL.json",
+    "result_commit": "07c121f83557df59b2edc6e51b6c3dfaadb4d79f",
+    "selection": "DoWhy is high-fit as an offline causal-refutation/mediation donor, but should be compared against a smaller F2-native deterministic paired-intervention harness."
+  },
+  "external_source": {
+    "repo": "py-why/dowhy",
+    "commit": "5a9c401f11df863c39d046ca55743f250e47a0f7",
+    "license": "MIT",
+    "files_read": [
+      "dowhy/causal_refuter.py",
+      "dowhy/causal_refuters/placebo_treatment_refuter.py",
+      "dowhy/causal_estimators/two_stage_regression_estimator.py",
+      "pyproject.toml"
+    ]
+  },
+  "source_architecture_map": [
+    {
+      "surface": "CausalRefuter + test_significance",
+      "source": "dowhy/causal_refuter.py",
+      "observed_mechanism": "Refuters generate a comparison distribution and evaluate whether the original/expected effect is compatible with it; AUTO switches to bootstrap at >=100 simulations and otherwise assumes a normal distribution.",
+      "wp507_mapping": "Useful as a falsification pattern only. WP507 should retain exact intervention/control evidence as primary and may later report a bounded refutation statistic as secondary analysis.",
+      "distillation": "CONCEPT_ONLY",
+      "reason": "Current WP507 is a deterministic component contract and must not promote statistical compatibility into causal truth. The <100 normality fallback is especially unsuitable as an automatic authority rule for small paired F2 fixtures."
+    },
+    {
+      "surface": "PlaceboTreatmentRefuter",
+      "source": "dowhy/causal_refuters/placebo_treatment_refuter.py",
+      "observed_mechanism": "Replaces or permutes treatment, repeatedly re-estimates the effect, supports seeded randomness and tests whether zero lies in the placebo-effect distribution.",
+      "wp507_mapping": "Strong conceptual match for SEMANTIC_PLACEBO_BROADCAST and SHUFFLED_RECIPIENT_BROADCAST controls already proposed by the WP507 discovery result. F2 can implement deterministic identity-bound placebo/shuffle fixtures without importing DoWhy.",
+      "distillation": "F2_NATIVE_PATTERN",
+      "reason": "The upstream implementation pulls pandas, joblib, tqdm and DoWhy estimator types; WP507 already has exact broadcast/recipient identities and can build cheaper deterministic controls directly."
+    },
+    {
+      "surface": "TwoStageRegressionEstimator mediation path",
+      "source": "dowhy/causal_estimators/two_stage_regression_estimator.py",
+      "observed_mechanism": "Models treatment->mediator and mediator->outcome in two stages, defaults to linear regression and currently supports a singleton mediator for mediation/front-door estimation.",
+      "wp507_mapping": "UPTAKEN is a plausible mediator candidate between broadcast intervention and downstream recipient output, but regression mediation is not the immediate gate. First prove exact receipt/uptake/lesion-rescue chains; use mediation only as later offline analysis when repeated samples and assumptions are explicit.",
+      "distillation": "DEFERRED_OFFLINE_ANALYSIS",
+      "reason": "A fitted mediation estimate can be informative but cannot establish hidden-state uptake or canonical causality and introduces modeling assumptions absent from the deterministic contract."
+    },
+    {
+      "surface": "Full DoWhy package dependency graph",
+      "source": "pyproject.toml",
+      "observed_mechanism": "Core package declares scipy, statsmodels, numpy, pandas, networkx, sympy, scikit-learn, joblib, econml, tqdm, causal-learn, numba and cvxpy among its dependencies.",
+      "wp507_mapping": "Full runtime adoption is not justified for the current component gate.",
+      "distillation": "REJECT_FULL_IMPORT_AT_CURRENT_STAGE",
+      "reason": "Dependency/runtime surface is much larger than the narrow falsification capability WP507 needs; it would increase packaging, ABI and measurement burden without replacing exact F2 intervention evidence."
+    }
+  ],
+  "recommended_f2_design": {
+    "decision": "DISTILL_REFUTER_PATTERNS; DO_NOT_IMPORT_DOWHY_IN_WP507_RUNTIME",
+    "primary_evidence_path": "exact matched intervention/control pair -> exact recipient delivery binding -> explicit semantic uptake evidence -> downstream output digest delta",
+    "deterministic_controls": [
+      "WITHHELD_BROADCAST",
+      "SHUFFLED_RECIPIENT_BROADCAST",
+      "SEMANTIC_PLACEBO_BROADCAST"
+    ],
+    "optional_later_analysis": [
+      "placebo/refutation statistic over repeated matched fixtures",
+      "mediation analysis with UPTAKEN as explicitly declared mediator",
+      "sensitivity/refuter cross-checks after enough samples exist"
+    ],
+    "authority_fence": "DoWhy/refuter/mediation outputs remain offline analysis evidence only. They cannot mint delivery, semantic uptake, causal influence, world truth, effect success, GWT runtime, J-Space runtime or whole-system credit."
+  },
+  "counterhypotheses": [
+    {
+      "id": "CH-DOWHY-E2-1",
+      "statement": "Full DoWhy import provides materially stronger WP507 falsification than an F2-native deterministic matched-pair/placebo fixture.",
+      "discriminator": "At a later claimed E3/E4 stage, run both on the same bounded evidence set and require DoWhy to detect an attribution/assumption failure missed by the native fixture at acceptable added dependency/latency cost."
+    },
+    {
+      "id": "CH-DOWHY-E2-2",
+      "statement": "Treating UPTAKEN as a mediator is misleading because the receipt may be an instrumentation echo rather than a behaviorally causal state transition.",
+      "discriminator": "Keep delivery constant and lesion/rescue the exact uptake path; downstream output must change specifically with the uptake path before mediation analysis receives any causal interpretation."
+    }
+  ],
+  "recommended_next_objective": {
+    "slot": "EXPERIMENTAL_FALSIFIER",
+    "research_id": "R6-WP507-DOWHY-REFUTER-001",
+    "claim_target": "E3_CLAIM_REPRODUCED_F2_NATIVE_PLACEBO_REFUTER_FIXTURE",
+    "task": "Build a deterministic no-provider fixture over synthetic/caller-supplied WP507-style matched pairs that demonstrates withheld, shuffled-recipient and semantic-placebo controls and shows exactly what a DoWhy-style refuter adds or fails to add. Do not import the full DoWhy dependency graph unless the fixture proves incremental information gain.",
+    "evidence_ceiling": "E3_COMPONENT_FIXTURE_ONLY",
+    "requires_new_create_only_claim": true
+  },
+  "credits": {
+    "trigger6_evidence_stage": "E2_ARCHITECTURE_MAPPED",
+    "source_architecture_mapping_credit": 1,
+    "f2_architecture_acceptance_credit": 0,
+    "runtime_credit": 0,
+    "gwt_runtime_credit": 0,
+    "jspace_runtime_credit": 0,
+    "effect_credit": 0,
+    "whole_f2_credit": 0,
+    "entityos_hcu_credit": 0,
+    "training_credit": 0
+  }
+}
