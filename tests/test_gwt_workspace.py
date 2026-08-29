@@ -425,7 +425,7 @@ def test_selected_candidate_retains_exact_producer_digest_binding():
     assert selected.producer_cell_id == source.producer_admission.cell_id
 
 
-def make_hyperposition(*, frame_ref="frame-1"):
+def make_hyperposition(*, frame_ref="frame-1", frame_generation=4, frame_sha256=D):
     return create_hyperposition(
         hyperposition_id="hyper-bound",
         generation=2,
@@ -447,6 +447,8 @@ def make_hyperposition(*, frame_ref="frame-1"):
         ),
         provenance_refs=("prov:hp",),
         situation_frame_ref=frame_ref,
+        situation_frame_generation=frame_generation,
+        situation_frame_sha256=frame_sha256,
     )
 
 
@@ -512,6 +514,62 @@ def test_matching_hyperposition_object_binds_exact_frame_and_digest():
     assert value.as_dict()["hyperposition"]["situation_frame_ref"] == "frame-1"
     create_broadcast(
         broadcast_id="b-hp-bound",
+        generation=1,
+        selection=value,
+        expected_selection_sha256=value.sha256(),
+        recipient_cell_ids=("G1",),
+    )
+
+
+def test_same_frame_id_stale_hyperposition_version_fails_closed():
+    stale = make_hyperposition(
+        frame_ref="frame-1",
+        frame_generation=3,
+        frame_sha256="b" * 64,
+    )
+    with pytest.raises(GwtWorkspaceError, match="hyperposition situation frame binding mismatch"):
+        build_workspace_selection(
+            selection_id="sel-stale-hp-frame-version",
+            cycle_id="cycle-1",
+            generation=7,
+            frame_id="frame-1",
+            frame_generation=4,
+            frame_sha256=D,
+            grid_plan_id=GRID_PLAN.plan_id,
+            grid_plan_generation=GRID_PLAN.generation,
+            grid_plan_sha256=GRID_PLAN.sha256(),
+            hyperposition=stale,
+            policy=policy(),
+            candidates=(candidate("hp-stale-version"),),
+        )
+
+
+def test_matching_hyperposition_frame_version_survives_downstream_revalidation():
+    bound = make_hyperposition(
+        frame_ref="frame-1",
+        frame_generation=4,
+        frame_sha256=D,
+    )
+    value = build_workspace_selection(
+        selection_id="sel-exact-hp-frame-version",
+        cycle_id="cycle-1",
+        generation=7,
+        frame_id="frame-1",
+        frame_generation=4,
+        frame_sha256=D,
+        grid_plan_id=GRID_PLAN.plan_id,
+        grid_plan_generation=GRID_PLAN.generation,
+        grid_plan_sha256=GRID_PLAN.sha256(),
+        hyperposition=bound,
+        policy=policy(),
+        candidates=(candidate("hp-exact-version"),),
+    )
+    payload = value.as_dict()["hyperposition"]
+    assert payload["situation_frame_ref"] == "frame-1"
+    assert payload["situation_frame_generation"] == 4
+    assert payload["situation_frame_sha256"] == D
+    create_broadcast(
+        broadcast_id="b-exact-hp-frame-version",
         generation=1,
         selection=value,
         expected_selection_sha256=value.sha256(),
