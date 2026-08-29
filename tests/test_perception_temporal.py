@@ -2,6 +2,7 @@ import unittest
 
 from src.frankenstein2.epistemic_perception import EpistemicPerceptClaim
 from src.frankenstein2.perception_temporal import (
+    ClockAlignmentWitness,
     PerceptionTemporalError,
     bind_observed_claim,
     build_observation_window,
@@ -111,6 +112,37 @@ class PerceptionTemporalTests(unittest.TestCase):
             max_join_skew_ns=50,
             max_clock_uncertainty_ns=10,
             provenance_refs=P,
+        )
+        self.assertEqual(window.current_ref_ids, ())
+        self.assertEqual(set(window.unaligned_ref_ids), {"a", "b"})
+        self.assertEqual(window.alignment_status, "UNALIGNED")
+
+    def test_fabricated_clock_witness_cannot_self_attest_alignment(self):
+        a = bind(claim("c1", 980), ref_id="a", source_id="screen:1", sequence=1, freshness=100)
+        b = bind(claim("c2", 985), ref_id="b", source_id="camera:1", sequence=1, freshness=100)
+        forged = ClockAlignmentWitness(
+            alignment_id="caller-forged",
+            alignment_generation=1,
+            left_clock_domain=a.clock_domain,
+            left_source_generation=a.source_generation,
+            left_reference_offset_ns=a.reference_offset_ns,
+            left_max_uncertainty_ns=a.clock_uncertainty_ns,
+            right_clock_domain=b.clock_domain,
+            right_source_generation=b.source_generation,
+            right_reference_offset_ns=b.reference_offset_ns,
+            right_max_uncertainty_ns=b.clock_uncertainty_ns,
+            valid_from_reference_ns=0,
+            valid_through_reference_ns=10_000,
+            evidence_sha256="0" * 64,
+            provenance_refs=("caller:self-attested",),
+        )
+        window = build_observation_window(
+            refs=(a, b),
+            reference_now_ns=1_000,
+            max_join_skew_ns=20,
+            max_clock_uncertainty_ns=5,
+            provenance_refs=P,
+            alignment_witnesses=(forged,),
         )
         self.assertEqual(window.current_ref_ids, ())
         self.assertEqual(set(window.unaligned_ref_ids), {"a", "b"})
