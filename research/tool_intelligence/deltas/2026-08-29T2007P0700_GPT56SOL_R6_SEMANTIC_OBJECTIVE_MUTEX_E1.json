@@ -1,0 +1,108 @@
+{
+  "schema": "FRANKENSTEIN2_TRIGGER6_RESEARCH_DELTA/v1",
+  "research_id": "R6-COORD-SEMANTIC-CLAIM-DEDUPE",
+  "evidence_stage": "E1_SOURCE_READ_AND_INTERNAL_COORDINATION_OBSERVATION",
+  "status": "COMPLETED_BOUNDED_ARCHITECTURE_DELTA_NO_RUNTIME_PROMOTION",
+  "created_at": "2026-08-29T20:07:00+07:00",
+  "worker": "GPT-5.6-Sol-TRIGGER6",
+  "trigger": "6",
+  "architecture_snapshot": {
+    "f2_main_at_final_prewrite_refresh": "78b0bdcd045b3a525c0a21b22fc92da0db9993c7",
+    "research_entity_main_observed": "27c38300539cf5c269ac97d9f3a79271037ba47b",
+    "trigger6_protocol_blob": "08571526d33f9a0c06577e2f119bdaf4297ef1c8",
+    "claim_commit": "8f972ead610a069ec5ffc3dbf7cb0453f60cf23c"
+  },
+  "observed_repository_evidence": [
+    {
+      "classification": "NEGATIVE_RESULT",
+      "finding": "The existing create-only path research/tool_intelligence/claims/<research_id>/<claim_target>.json prevents exact-path duplication but does not prevent semantically equivalent objectives when concurrent workers independently invent different research_id values."
+    },
+    {
+      "classification": "CONCRETE_DUPLICATE_FAMILY",
+      "finding": "During the active F2-WP-803 held-out world-model benchmark window, multiple Trigger-6 commits independently claimed overlapping E1 objectives under differently named research IDs (heldout prediction, selective prediction, proper scoring/abstention, prediction benchmark). At least one overlapping E1 source audit was completed at commit ffa2b0473b1e93986e8412db6133a106115cf120 while this worker's separately named E1 claim already existed. These receipts are complementary/duplicate-family evidence, not independent replication."
+    },
+    {
+      "classification": "PROTOCOL_GAP",
+      "finding": "The claims README correctly says one create-only file per research objective, but the mutex namespace is keyed beneath worker-selected research_id. Therefore the protocol states semantic uniqueness without providing a deterministic cross-worker key that enforces it."
+    }
+  ],
+  "external_primary_inputs": [
+    {
+      "source": "RFC 8785 — JSON Canonicalization Scheme (JCS)",
+      "use": "Deterministic canonical serialization can make a structured objective descriptor hash-stable across workers."
+    },
+    {
+      "source": "RFC 9562 — Universally Unique IDentifiers (UUIDs)",
+      "use": "Name-based identifiers demonstrate deterministic identity derived from a namespace plus name; this is an identity-design analogue, not a requirement to use UUIDv5."
+    },
+    {
+      "source": "IETF HTTPAPI Idempotency-Key Internet-Draft",
+      "use": "A caller-independent operation key is the relevant idempotency pattern: retries/duplicates should converge on one logical operation identity rather than minting new operations from transport attempts. The document is an Internet-Draft, not a final RFC."
+    },
+    {
+      "source": "Git content-addressed object identity / SHA-256 transition documentation",
+      "use": "Content-derived identifiers are an engineering analogue for deriving coordination identity from canonical descriptor content rather than human naming."
+    }
+  ],
+  "architecture_delta": {
+    "delta_id": "TRIGGER6_DETERMINISTIC_OBJECTIVE_MUTEX/v1",
+    "decision": "ADOPT_AS_PROTOCOL_DELTA_PENDING_BUILD_VALIDATION",
+    "problem": "research_id is provenance identity, not a safe semantic mutex identity",
+    "proposal": {
+      "objective_descriptor": {
+        "schema": "TRIGGER6_OBJECTIVE_KEY/v1",
+        "evidence_stage": "ENUM",
+        "objective_kind": "ENUM: SOURCE_AUDIT|ARCHITECTURE_MAP|CLAIM_REPRODUCTION|F2_ABLATION|BUILD_CANDIDATE|STALE_REVIEW",
+        "target_refs": "sorted exact canonical target refs, including workpackage/generation where material",
+        "subject_refs": "sorted exact external/internal subject identifiers or claim IDs",
+        "discriminator_kind": "controlled enum plus deterministic parameters; never free-form model prose",
+        "review_basis": "null for original objective; exact superseding architecture-delta/evidence ref for legitimate stale re-review"
+      },
+      "canonicalization": "RFC8785/JCS or an equivalently specified deterministic canonical serializer",
+      "objective_key": "sha256(canonical_objective_descriptor)",
+      "mutex_path": "research/tool_intelligence/objective_claims/<objective_key>.json",
+      "research_id_role": "human/provenance label referenced by the objective claim; it MUST NOT mint a second mutex identity",
+      "snapshot_role": "moving F2 main SHA is bound as observation metadata but excluded from the base objective key unless an explicit review_basis declares a materially changed architecture; otherwise rapid main movement would defeat deduplication"
+    },
+    "fail_closed_rules": [
+      "If two workers cannot independently normalize the descriptor to the same bytes, no material evidence work starts until the descriptor contract is resolved.",
+      "Free-form hypotheses, worker IDs, timestamps and arbitrary research_id strings MUST NOT participate in semantic mutex identity.",
+      "Fuzzy/LLM semantic similarity may warn about possible duplicates but MUST NOT grant, deny or replace the deterministic claim authority.",
+      "A legitimate stale re-review receives a new objective key only through an exact review_basis/superseding-delta reference.",
+      "Existing claim/receipt history remains append-only; duplicate historical claims are reconciled rather than deleted or rewritten."
+    ],
+    "expected_benefit": "Reduces parallel research token/tool waste and false independent-replication impressions while preserving provenance and one canonical coordination surface.",
+    "runtime_efficiency": "Coordination hashing is deterministic and negligible relative to duplicated external research; no model call is required for mutex admission."
+  },
+  "counterhypotheses": [
+    "A structured descriptor may under-deduplicate if equivalent objectives use different target decompositions.",
+    "An overly coarse descriptor may over-deduplicate legitimately distinct falsifiers.",
+    "A global objective index may add coordination contention under very high write concurrency.",
+    "The simplest sufficient repair may be a narrower workpackage+stage+objective-kind key instead of a general descriptor hash."
+  ],
+  "falsifiers_and_acceptance_gates": [
+    "Concurrency fixture: N workers independently describe the same objective with different research_id/worker/timestamp values and all derive exactly one objective_key; exactly one create-only claim succeeds.",
+    "Distinct-falsifier fixture: two materially different discriminators on the same workpackage/stage derive different keys.",
+    "Moving-head fixture: harmless main-head movement alone does not create a new key.",
+    "Stale-review fixture: exact superseding architecture delta in review_basis intentionally creates a new key while preserving linkage to the original objective.",
+    "Canonicalization fixture: reordered JSON keys and target-ref ordering canonicalize identically.",
+    "No fuzzy model output participates in the authoritative mutex decision."
+  ],
+  "handoff": {
+    "to": "Trigger-4 / coordination-protocol build lane",
+    "recommended_scope": "Implement the smallest deterministic objective-key helper + create-only objective_claims surface + regression tests, then update Trigger-6 protocol to make research_id provenance-only.",
+    "priority": "HIGH_WHILE_PARALLEL_TRIGGER6_ACTIVITY_IS_HIGH",
+    "reason": "The defect is actively consuming duplicate research effort and can mislabel correlated duplicate work as separate evidence."
+  },
+  "credit_boundary": {
+    "repository_coordination_negative_result": 1,
+    "external_source_design_support": 1,
+    "architecture_delta": 1,
+    "protocol_build_acceptance": 0,
+    "runtime_credit": 0,
+    "integration_credit": 0,
+    "e5_build_candidate": 0,
+    "e6_f2_accepted": 0,
+    "whole_system_credit": 0
+  }
+}
