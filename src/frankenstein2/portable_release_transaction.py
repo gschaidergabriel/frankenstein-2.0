@@ -328,6 +328,7 @@ class TransactionPlan:
     source_lineage_digest: str | None
     source_generation: int | None
     source_state_sha256: str | None
+    source_active_release_digest: str | None
     next_generation: int
     rollback_target_generation: int | None
     rollback_target_state_sha256: str | None
@@ -345,6 +346,7 @@ class TransactionPlan:
             "source_lineage_digest": self.source_lineage_digest,
             "source_generation": self.source_generation,
             "source_state_sha256": self.source_state_sha256,
+            "source_active_release_digest": self.source_active_release_digest,
             "next_generation": self.next_generation,
             "rollback_target_generation": self.rollback_target_generation,
             "rollback_target_state_sha256": self.rollback_target_state_sha256,
@@ -366,6 +368,7 @@ class AttemptReceipt:
     outcome: str
     observed_generation: int | None
     observed_state_sha256: str | None
+    observed_active_release_digest: str | None
     failure_code: str | None
     evidence_scope: str = EVIDENCE_SCOPE
 
@@ -378,6 +381,7 @@ class AttemptReceipt:
             "outcome": self.outcome,
             "observed_generation": self.observed_generation,
             "observed_state_sha256": self.observed_state_sha256,
+            "observed_active_release_digest": self.observed_active_release_digest,
             "failure_code": self.failure_code,
             "evidence_scope": self.evidence_scope,
         }
@@ -409,6 +413,9 @@ def build_transaction_plan(raw: Mapping[str, Any]) -> TransactionPlan:
         source_lineage_digest=None if lineage is None else lineage.digest(),
         source_generation=None if lineage is None else lineage.generation,
         source_state_sha256=None if lineage is None else lineage.state_sha256,
+        source_active_release_digest=(
+            None if lineage is None else lineage.active_release_digest
+        ),
         next_generation=0 if lineage is None else lineage.generation + 1,
         rollback_target_generation=rollback_generation,
         rollback_target_state_sha256=rollback_state,
@@ -423,13 +430,15 @@ def record_attempt(
     outcome: str,
     observed_generation: int | None,
     observed_state_sha256: str | None,
+    observed_active_release_digest: str | None = None,
     failure_code: str | None = None,
 ) -> AttemptReceipt:
     """Create a deterministic attempt receipt without converting assertions into truth.
 
-    SUCCEEDED requires an exact observed next generation/state digest and is forbidden when
-    the plan explicitly requests failure injection.  Failure/rollback outcomes remain explicit
-    and can never be normalized into success.
+    SUCCEEDED requires an exact observed next generation, a state digest and an independently
+    observed active-release digest matching the planned target. Failure/rollback outcomes must
+    preserve the exact pre-attempt release/state lineage. Failure injection can never be
+    normalized into success.
     """
 
     if not isinstance(plan, TransactionPlan):
@@ -445,6 +454,9 @@ def record_attempt(
     observed_state_n = _optional_digest(
         "observed_state_sha256", observed_state_sha256
     )
+    observed_release_n = _optional_digest(
+        "observed_active_release_digest", observed_active_release_digest
+    )
     failure_code_n = None if failure_code is None else _string("failure_code", failure_code)
 
     if plan.injected_failure_stage is not None and normalized_outcome == "SUCCEEDED":
@@ -457,35 +469,49 @@ def record_attempt(
             raise PortableReleaseTransactionError(
                 "SUCCEEDED requires exact next generation and observed state digest"
             )
+        if observed_release_n != plan.target_release_digest:
+            raise PortableReleaseTransactionError(
+                "SUCCEEDED requires observed active release matching target release"
+            )
         if failure_code_n is not None:
             raise PortableReleaseTransactionError("SUCCEEDED must not carry failure_code")
 
     elif normalized_outcome == "FAILED_NO_MUTATION":
         if plan.source_generation is None:
-            if observed_generation_n is not None or observed_state_n is not None:
+            if (
+                observed_generation_n is not None
+                or observed_state_n is not None
+                or observed_release_n is not None
+            ):
                 raise PortableReleaseTransactionError(
-                    "failed first install must not invent a durable lineage"
+                    "failed first install must not invent a durable lineage or active release"
                 )
         else:
             if (
                 observed_generation_n != plan.source_generation
                 or observed_state_n != plan.source_state_sha256
+                or observed_release_n != plan.source_active_release_digest
             ):
                 raise PortableReleaseTransactionError(
-                    "FAILED_NO_MUTATION must preserve exact source lineage"
+                    "FAILED_NO_MUTATION must preserve exact source release/state lineage"
                 )
         if failure_code_n is None:
             raise PortableReleaseTransactionError("failure outcome requires failure_code")
 
     else:  # ROLLED_BACK
-        if plan.source_generation is None or plan.source_state_sha256 is None:
+        if (
+            plan.source_generation is None
+            or plan.source_state_sha256 is None
+            or plan.source_active_release_digest is None
+        ):
             raise PortableReleaseTransactionError("ROLLED_BACK requires a source lineage")
         if (
             observed_generation_n != plan.source_generation
             or observed_state_n != plan.source_state_sha256
+            or observed_release_n != plan.source_active_release_digest
         ):
             raise PortableReleaseTransactionError(
-                "ROLLED_BACK receipt must verify return to exact pre-attempt lineage"
+                "ROLLED_BACK receipt must verify return to exact pre-attempt release/state lineage"
             )
         if failure_code_n is None:
             raise PortableReleaseTransactionError("rollback outcome requires failure_code")
@@ -498,6 +524,7 @@ def record_attempt(
         outcome=normalized_outcome,
         observed_generation=observed_generation_n,
         observed_state_sha256=observed_state_n,
+        observed_active_release_digest=observed_release_n,
         failure_code=failure_code_n,
     )
 
