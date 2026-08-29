@@ -1,0 +1,32 @@
+name: Review WP506 G2 selection subtype digest self-attestation falsifier
+
+on:
+  push:
+    branches:
+      - review/wp506-g2-selection-subclass-digest-self-attestation-20260829
+    paths:
+      - 'tests/review/test_wp506_g2_selection_subclass_digest_self_attestation_falsifier.py'
+      - '.github/workflows/review-wp506-g2-selection-subclass-digest-self-attestation.yml'
+  pull_request:
+    paths:
+      - 'tests/review/test_wp506_g2_selection_subclass_digest_self_attestation_falsifier.py'
+      - '.github/workflows/review-wp506-g2-selection-subclass-digest-self-attestation.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  selection-subclass-digest-self-attestation:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install pytest
+      - name: WP506 must reject WorkspaceSelection digest self-attesting subtype
+        env:
+          PYTHONPATH: src
+        run: python -m pytest -q tests/review/test_wp506_g2_selection_subclass_digest_self_attestation_falsifier.py
