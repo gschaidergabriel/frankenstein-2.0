@@ -75,24 +75,34 @@ def _rank(intent: ObserveIntent) -> tuple[int, int, int, str]:
 
 
 def _coalesce_key(intent: ObserveIntent) -> tuple[Any, ...]:
+    """Identity for semantically interchangeable queued work.
+
+    Permission authority, freshness, and deadline are obligations rather than scheduling
+    preferences. Intents that differ on any of those values must remain independently visible
+    to bounded backpressure instead of being silently collapsed into one request.
+    """
     return (
         intent.source_id,
+        intent.permission_snapshot_sha256,
         intent.requested_head_ids,
         intent.target_atom_ids,
         intent.roi_ref,
+        intent.required_freshness_ns,
+        intent.expires_monotonic_ns,
         intent.allow_remote_frame,
         intent.allow_external_vlm,
     )
 
 
 def _preferred_coalesced(a: ObserveIntent, b: ObserveIntent) -> ObserveIntent:
-    """Choose one equivalent queued need deterministically.
+    """Choose one truly equivalent queued need deterministically.
 
-    Higher intent generation wins. Within the same generation prefer higher priority,
-    later expiry/freshness opportunity, lower work cost, then lexicographically stable id.
+    `_coalesce_key` already fences permission/freshness/deadline obligations. Within that
+    exact semantic envelope, higher intent generation wins; then higher priority, lower work
+    cost, and stable id provide deterministic tie-breaking.
     """
-    key_a = (a.generation, a.priority_micros, a.expires_monotonic_ns, -a.max_work_units, a.intent_id)
-    key_b = (b.generation, b.priority_micros, b.expires_monotonic_ns, -b.max_work_units, b.intent_id)
+    key_a = (a.generation, a.priority_micros, -a.max_work_units, a.intent_id)
+    key_b = (b.generation, b.priority_micros, -b.max_work_units, b.intent_id)
     return a if key_a >= key_b else b
 
 
