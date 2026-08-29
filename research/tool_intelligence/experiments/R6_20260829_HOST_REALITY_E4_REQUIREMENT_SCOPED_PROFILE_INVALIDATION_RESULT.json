@@ -1,0 +1,69 @@
+{
+  "schema": "FRANKENSTEIN2_TRIGGER6_E4_ABLATION_RESULT/v1",
+  "research_id": "R6-20260829-HOST-REALITY-COMPLETION-GPT56SOL-01",
+  "claim_target": "E4_F2_ABLATION_REQUIREMENT_SCOPED_PROFILE_INVALIDATION",
+  "created_at_local": "2026-08-29T22:06:00+07:00",
+  "experiment_source": "research/tool_intelligence/experiments/R6_20260829_HOST_REALITY_E4_REQUIREMENT_SCOPED_PROFILE_INVALIDATION.py",
+  "experiment_source_blob_sha": "c9e1cd257c7dd245e9fa3b36b8f03c63292c04e5",
+  "f2_contract_source": "src/frankenstein2/target_host_profile.py",
+  "f2_contract_source_blob_sha": "f0b528956c5dab6cd58f93b1d3a6851c1adcb07a",
+  "execution_surface": "CHATGPT_PYTHON_ANALYSIS_DETERMINISTIC_SYNTHETIC_CONTRACT_ABLATION",
+  "evidence_ceiling": "E4_F2_ABLATION_REPOSITORY_CONTRACT_ONLY",
+  "method": {
+    "allowed_fields": 24,
+    "requirements": 6,
+    "perturbations_per_field": ["VALUE_CHANGE", "OBSERVED_TO_UNKNOWN"],
+    "total_requirement_perturbation_pairs": 288,
+    "candidate_binding": "SHA256(canonical JSON of binding schema + target profile schema + collector version + requirement id + only explicitly required fact records)",
+    "held_constant": ["target profile schema", "collector version", "profile generation=1"],
+    "important_limit": "Requirement dependency sets are hypotheses; this experiment proves deterministic invalidation mechanics under those sets, not semantic completeness of the sets."
+  },
+  "aggregate_result": {
+    "relevant_pairs": 76,
+    "irrelevant_pairs": 212,
+    "monolithic_changed_pairs": 288,
+    "requirement_scoped_changed_pairs": 76,
+    "monolithic_false_preserve_relevant": 0,
+    "requirement_scoped_false_preserve_relevant": 0,
+    "monolithic_irrelevant_invalidations": 212,
+    "requirement_scoped_irrelevant_invalidations": 0,
+    "irrelevant_invalidation_reduction_in_this_matrix": "212/212 = 100%",
+    "interpretation": "The monolithic WP1201 digest invalidates every dependent consumer on every represented fact change. A requirement-scoped digest can avoid all irrelevant invalidation by construction while preserving all declared relevant changes, but only if the dependency declaration is semantically complete."
+  },
+  "per_requirement": [
+    {"requirement":"AUDIO_RUNTIME","required_fields":9,"relevant_cases":18,"monolithic_false_preserve":0,"scoped_false_preserve":0,"irrelevant_cases":30,"monolithic_irrelevant_invalidations":30,"scoped_irrelevant_invalidations":0},
+    {"requirement":"BROWSER_FIREFOX_RUNTIME","required_fields":7,"relevant_cases":14,"monolithic_false_preserve":0,"scoped_false_preserve":0,"irrelevant_cases":34,"monolithic_irrelevant_invalidations":34,"scoped_irrelevant_invalidations":0},
+    {"requirement":"USB_ENUMERATION","required_fields":1,"relevant_cases":2,"monolithic_false_preserve":0,"scoped_false_preserve":0,"irrelevant_cases":46,"monolithic_irrelevant_invalidations":46,"scoped_irrelevant_invalidations":0},
+    {"requirement":"KERNEL_ABI","required_fields":2,"relevant_cases":4,"monolithic_false_preserve":0,"scoped_false_preserve":0,"irrelevant_cases":44,"monolithic_irrelevant_invalidations":44,"scoped_irrelevant_invalidations":0},
+    {"requirement":"PLATFORM_COMPAT","required_fields":10,"relevant_cases":20,"monolithic_false_preserve":0,"scoped_false_preserve":0,"irrelevant_cases":28,"monolithic_irrelevant_invalidations":28,"scoped_irrelevant_invalidations":0},
+    {"requirement":"CAMERA_RUNTIME","required_fields":9,"relevant_cases":18,"monolithic_false_preserve":0,"scoped_false_preserve":0,"irrelevant_cases":30,"monolithic_irrelevant_invalidations":30,"scoped_irrelevant_invalidations":0}
+  ],
+  "scenario_checks": [
+    {"scenario":"audio topology change","field":"pipewire_topology","target_requirement":"AUDIO_RUNTIME","monolithic_changed":true,"target_scoped_changed":true,"other_requirement_monolithic_invalidations":5,"other_requirement_scoped_invalidations":1},
+    {"scenario":"Firefox version change","field":"firefox_version","target_requirement":"BROWSER_FIREFOX_RUNTIME","monolithic_changed":true,"target_scoped_changed":true,"other_requirement_monolithic_invalidations":5,"other_requirement_scoped_invalidations":0},
+    {"scenario":"USB inventory change","field":"usb_inventory","target_requirement":"USB_ENUMERATION","monolithic_changed":true,"target_scoped_changed":true,"other_requirement_monolithic_invalidations":5,"other_requirement_scoped_invalidations":0},
+    {"scenario":"kernel release change","field":"kernel_release","target_requirement":"KERNEL_ABI","monolithic_changed":true,"target_scoped_changed":true,"other_requirement_monolithic_invalidations":5,"other_requirement_scoped_invalidations":1},
+    {"scenario":"runtime-dir ownership change","field":"xdg_runtime_dir_owned_by_collector_uid","target_requirement":"AUDIO_RUNTIME","monolithic_changed":true,"target_scoped_changed":true,"other_requirement_monolithic_invalidations":5,"other_requirement_scoped_invalidations":2},
+    {"scenario":"machine-model change","field":"machine_model","target_requirement":"PLATFORM_COMPAT","monolithic_changed":true,"target_scoped_changed":true,"other_requirement_monolithic_invalidations":5,"other_requirement_scoped_invalidations":0}
+  ],
+  "negative_result": {
+    "reboot_scope": "UNREPRESENTABLE_IN_WP1201_G1_FACT_SCHEMA",
+    "reason": "WP1201 G1 has no boot-scope identity/fact. A reboot with otherwise identical collected facts has no explicit schema-level discriminator, so neither monolithic nor requirement-scoped fact binding can prove boot continuity/change."
+  },
+  "external_primary_evidence": [
+    {"source":"systemd sd_id128_get_machine / latest","url":"https://www.freedesktop.org/software/systemd/man/sd_id128_get_machine.html","finding":"systemd distinguishes machine, application-specific machine, boot, application-specific boot, and invocation IDs; boot ID changes per running kernel instance and application-specific derivation is recommended when exporting identity to untrusted contexts."},
+    {"source":"Linux kernel /proc/sys/kernel random documentation","url":"https://www.kernel.org/doc/html/next/admin-guide/sysctl/kernel.html","finding":"boot_id is a UUID generated for the boot and stable after retrieval during that boot."},
+    {"source":"systemd-sysext / latest","url":"https://www.freedesktop.org/software/systemd/man/latest/systemd-sysext.html","finding":"system extension compatibility is matched on a requirement-like subset (ID plus SYSEXT_LEVEL or VERSION_ID, and architecture if declared), not a digest of unrelated host state."},
+    {"source":"WirePlumber wpctl 0.5.15","url":"https://pipewire.pages.freedesktop.org/wireplumber/man/wpctl.html","finding":"wpctl status reports current PipeWire objects/devices/sinks/sources/filters/streams and runtime-resolved object IDs; this supports treating raw topology as a volatile runtime witness rather than a stable host identity component."}
+  ],
+  "counterhypotheses": [
+    "The monolithic digest is intentionally conservative and may be safer if dependency maps are incomplete.",
+    "Requirement-scoped binding can create false preservation if any required field is omitted or if a hidden cross-field dependency exists.",
+    "The apparent invalidation reduction is structurally guaranteed by declared subsets and therefore does not by itself prove operational benefit; real F2 workload dependency tests are required.",
+    "Adding separate HostScopeIdentity and BootScopeIdentity may be unnecessary for consumers that never reason across boots; the IDs should be introduced only where a consumer contract needs those scopes."
+  ],
+  "decision": "E4_MECHANICS_SUPPORTED_WITH_SEMANTIC_DEPENDENCY_RISK",
+  "architecture_delta_candidate": "Preserve WP1201 whole-profile digest as provenance. Add typed profile components and explicit requirement dependency declarations; derive requirement binding digests from only required components. Add application-specific host identity and separate boot-scope identity only for consumers that need those scopes. Move PipeWire topology and similarly volatile outputs to runtime-witness scope. UNKNOWN remains explicit and should invalidate only requirements that depend on that unknown field.",
+  "next_exact_gate": "Create an E5 build-candidate packet only if it requires Trigger-4 to implement a minimal deterministic successor/adapter with dependency-completeness tests. Trigger-4 acceptance must include negative tests where one omitted relevant dependency causes a forced failure, plus a reboot-scope test once BootScopeIdentity exists.",
+  "credits": {"trigger6_research":"E4_F2_ABLATION_REPOSITORY_CONTRACT_ONLY","f2_runtime":0,"physical_host":0,"installation":0,"completion":0,"architecture_acceptance":0,"whole_system":0}
+}

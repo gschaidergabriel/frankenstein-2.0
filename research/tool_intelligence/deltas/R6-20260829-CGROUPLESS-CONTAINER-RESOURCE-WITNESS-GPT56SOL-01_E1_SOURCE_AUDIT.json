@@ -1,0 +1,124 @@
+{
+  "schema": "FRANKENSTEIN2_TRIGGER6_RESEARCH_DELTA/v1",
+  "research_id": "R6-20260829-CGROUPLESS-CONTAINER-RESOURCE-WITNESS-GPT56SOL-01",
+  "evidence_stage": "E1_SOURCE_READ",
+  "status": "E1_SOURCE_AUDIT_COMPLETE",
+  "created_at": "2026-08-29T22:14:00+07:00",
+  "worker": "GPT-5.6-Sol-TRIGGER6",
+  "claim_ref": "research/tool_intelligence/claims/R6-20260829-CGROUPLESS-CONTAINER-RESOURCE-WITNESS-GPT56SOL-01/E1_SOURCE_READ.json",
+  "snapshot": {
+    "f2_main_at_claim": "ef2217db087787fc17006ad56b2218135e4e0a43",
+    "research_entity_main": "2fb388df8f17c527c121e1bc41cebd7382b8ef08",
+    "supervisor_frontier": "9.13AY P0_RESOURCE_GUARD: missing container cgroup telemetry is UNKNOWN, not healthy"
+  },
+  "source_findings": [
+    {
+      "source_class": "EXTERNAL_PRIMARY",
+      "source": "https://www.kernel.org/doc/html/latest/admin-guide/cgroup-v2.html",
+      "finding": "cgroup v2 provides workload-scope accounting surfaces including cpu.stat, memory.current/memory.peak/memory.stat and pids.current; memory.peak is scoped to a cgroup and descendants.",
+      "architecture_implication": "When an exact container cgroup identity is available, cgroup-v2 is the preferred resource-accounting witness tier."
+    },
+    {
+      "source_class": "EXTERNAL_PRIMARY",
+      "source": "https://docs.podman.io/en/v5.6.0/markdown/podman-create.1.html",
+      "finding": "Podman --cgroups=disabled explicitly forces a container not to create cgroups.",
+      "architecture_implication": "A no-cgroup container is a legitimate runtime state; absence must not be silently repaired by relabeling host metrics as container metrics."
+    },
+    {
+      "source_class": "EXTERNAL_PRIMARY",
+      "source": "https://docs.podman.io/en/v3.4.2/markdown/podman-stats.1.html",
+      "finding": "Podman stats relies on cgroup information for resource statistics.",
+      "architecture_implication": "Native Podman resource statistics are not an independent replacement for missing cgroup accounting."
+    },
+    {
+      "source_class": "EXTERNAL_PRIMARY",
+      "source": "https://docs.podman.io/en/latest/markdown/podman-top.1.html",
+      "finding": "Podman top can expose host PIDs for container processes when its process-discovery path works.",
+      "architecture_implication": "Process identity may be useful as a degraded observation input but does not itself establish container resource-accounting completeness."
+    },
+    {
+      "source_class": "EXTERNAL_PRIMARY",
+      "source": "https://docs.podman.io/en/v4.3/markdown/options/pidfile.html",
+      "finding": "Podman records the container process PID in a pidfile and documents discovery of that pidfile through inspect.",
+      "architecture_implication": "The exact container init host PID can seed a process-scoped degraded witness if bound to process-incarnation evidence."
+    },
+    {
+      "source_class": "EXTERNAL_PRIMARY",
+      "source": "https://docs.kernel.org/next/filesystems/proc.html#proc-pid-task-tid-children-information-about-task-children",
+      "finding": "/proc/<pid>/task/<tid>/children only reports first-level children and explicitly does not guarantee precise live results; children can be skipped unless inspected processes are stopped/frozen for precision.",
+      "architecture_implication": "Recursive procfs children enumeration must never be promoted to exact live container membership. It is DEGRADED/PARTIAL unless a stronger independent membership witness exists."
+    },
+    {
+      "source_class": "EXTERNAL_PRIMARY",
+      "source": "https://www.kernel.org/doc/html/latest/filesystems/proc.html",
+      "finding": "/proc/PID/smaps_rollup supplies per-process pre-summed memory-map metrics and the kernel documents races in proc memory-map reads.",
+      "architecture_implication": "smaps_rollup can support bounded process-level memory evidence, not exact whole-container accounting. PSS is preferable to naively summing RSS when shared mappings matter, but process-set completeness remains a separate requirement."
+    },
+    {
+      "source_class": "EXTERNAL_PRIMARY",
+      "source": "https://www.man7.org/linux/man-pages/man2/pidfd_open.2.html",
+      "finding": "pidfd_open is the preferred stable reference for an already-existing process and avoids relying solely on a recyclable numeric PID.",
+      "architecture_implication": "A process-scoped fallback should bind numeric PID to process-incarnation evidence, ideally pidfd while live and/or /proc starttime in persisted evidence."
+    }
+  ],
+  "f2_source_observations": [
+    {
+      "ref": "src/frankenstein2/target_host_profile.py@f0b528956c5dab6cd58f93b1d3a6851c1adcb07a",
+      "finding": "WP1201 already encodes explicit OBSERVED versus UNKNOWN host facts and forbids invented defaults; it is host fingerprint evidence, not resource telemetry or completion evidence."
+    },
+    {
+      "ref": "src/frankenstein2/child_telemetry.py@b028b18aaa5d39abb2fad793289debfab5190132",
+      "finding": "WP605 accepts caller-supplied whole-child cpu_time_ns and peak_rss_bytes bound to exact child reconciliation/provenance, but the source does not define how missing cgroup coverage becomes exact container-scope measurement."
+    },
+    {
+      "ref": "trigger4/inbox/tool_research/R6-SEED006-F2-WP605-G2-TOOL-RESOURCE-SUBOBSERVATION-V2.json@aeffcf537bfde7de898f149a1f457434e5a886e5",
+      "finding": "Existing AgentCgroup research already forbids parent endpoint RSS => child/tool peak promotion and requires UNKNOWN/DEGRADED observer coverage. This objective therefore does not reopen that E5 candidate."
+    }
+  ],
+  "best_supported_witness_ladder": [
+    {
+      "tier": "CGROUP_V2_EXACT",
+      "scope": "CONTAINER_OR_BOUND_WORKLOAD_CGROUP",
+      "requirements": ["exact cgroup identity/path bound to container/runtime identity", "read cgroup-v2 accounting files", "record observation time and provenance"],
+      "credit": "container-scope resource measurement evidence only; no isolation-health/completion credit by itself"
+    },
+    {
+      "tier": "PROCESS_SCOPED_DEGRADED",
+      "scope": "IDENTIFIED_PROCESS_SET_ONLY",
+      "requirements": ["exact container init PID or runtime process identity", "process-incarnation binding via pidfd and/or starttime", "explicit process-membership coverage state", "per-process procfs metrics"],
+      "credit": "partial process-scoped evidence only; no claim of complete container accounting when membership is not exact"
+    },
+    {
+      "tier": "HOST_ONLY",
+      "scope": "HOST_HEALTH_ONLY",
+      "requirements": ["explicit host provenance"],
+      "credit": "zero container-resource/isolation credit"
+    },
+    {
+      "tier": "UNKNOWN",
+      "scope": "NO_ADMISSIBLE_CONTAINER_OR_PROCESS_RESOURCE_WITNESS",
+      "requirements": [],
+      "credit": "zero; preserve UNKNOWN"
+    }
+  ],
+  "negative_results": [
+    "Host free memory/disk/uptime cannot substitute for container-scope accounting.",
+    "A clean exact-source worktree solves source provenance but does not solve resource-observer scope.",
+    "Podman stats is not independent of cgroup accounting.",
+    "Recursive /proc children traversal is not exact live container membership.",
+    "Numeric PID alone is insufficient durable process-incarnation identity.",
+    "Summed process RSS is not an exact whole-container memory metric and can mis-account shared pages."
+  ],
+  "hypothesis": "F2 should represent resource evidence as an explicit witness tier/scope rather than one undifferentiated healthy/unhealthy field, preserving UNKNOWN whenever neither exact cgroup accounting nor a bounded process-scoped witness is available.",
+  "counterhypothesis": "Current WP1201 host profile plus WP605 caller-supplied telemetry may already be sufficient if target-runtime acceptance simply refuses resource promotion when cgroup is unavailable; a new typed resource-witness structure may be unnecessary complexity.",
+  "next_discriminator": "Map the current target-runtime/host-profile/WP605 integration surfaces and determine whether the witness ladder can be expressed using existing provenance/UNKNOWN fields without adding a new canonical schema. Prefer no new structure if existing typed evidence can preserve scope exactly.",
+  "evidence_ceiling": "E1_SOURCE_READ_ONLY",
+  "credits": {
+    "research_e1": 1,
+    "architecture_change": 0,
+    "repository_component": 0,
+    "target_runtime": 0,
+    "physical_host": 0,
+    "whole_system": 0
+  }
+}
