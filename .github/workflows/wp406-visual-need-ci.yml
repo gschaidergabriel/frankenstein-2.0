@@ -1,0 +1,41 @@
+name: F2 WP406 VisualNeed CI
+
+# Reentry baseline: c56dcbdebf8d4c7f8a33f27298a245b3f0c9cb0f
+on:
+  push:
+    branches:
+      - main
+      - trigger4/wp406-visual-need-g1
+    paths:
+      - 'src/frankenstein2/visual_need.py'
+      - 'src/frankenstein2/world_multiview.py'
+      - 'src/frankenstein2/sparse_world_basis.py'
+      - 'tests/test_visual_need.py'
+      - '.github/workflows/wp406-visual-need-ci.yml'
+  pull_request:
+    paths:
+      - 'src/frankenstein2/visual_need.py'
+      - 'src/frankenstein2/world_multiview.py'
+      - 'src/frankenstein2/sparse_world_basis.py'
+      - 'tests/test_visual_need.py'
+      - '.github/workflows/wp406-visual-need-ci.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  falsification:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Compile exact WP406 source and tests
+        run: python -m py_compile src/frankenstein2/visual_need.py tests/test_visual_need.py
+      - name: VisualNeed falsification suite
+        env:
+          PYTHONPATH: src
+        run: python tests/test_visual_need.py -v
