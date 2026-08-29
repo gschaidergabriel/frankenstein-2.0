@@ -432,11 +432,13 @@ def test_exact_typed_chain_seals_without_minting_runtime_or_whole_system_credit(
     assert payload["whole_system_acceptance"] is False
 
 
-def test_wrong_successor_generation_fails_closed():
+def test_wrong_effect_reentry_generation_fails_closed():
     start, nxt, plan, gwt, outcome = make_bound_fixture()
-    forged = replace(nxt, generation=nxt.generation + 1)
-    with pytest.raises(WholePersistentLoopError, match="GENERATION_MISMATCH"):
-        seal(start, forged, plan, gwt, outcome)
+    forged_outcome = replace(outcome, generation=outcome.generation + 1)
+    with pytest.raises(
+        WholePersistentLoopError, match="EFFECT_OUTCOME_REENTRY_GENERATION_MISMATCH"
+    ):
+        seal(start, nxt, plan, gwt, forged_outcome)
 
 
 def test_wrong_successor_lineage_fails_closed():
