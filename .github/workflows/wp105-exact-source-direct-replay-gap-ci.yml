@@ -1,0 +1,38 @@
+name: WP105 Exact Source Direct Replay Gap
+
+on:
+  pull_request:
+    paths:
+      - 'tests/test_wp105_exact_source_direct_replay_gap.py'
+      - '.github/workflows/wp105-exact-source-direct-replay-gap-ci.yml'
+      - 'research/tool_intelligence/claims/R6-WP105-EFFECT-IDEMPOTENCY-SCOUT-001/E4_EXACT_SOURCE_DIRECT_REPLAY_GAP.json'
+      - 'research/tool_intelligence/deltas/R6-WP105-EFFECT-IDEMPOTENCY-SCOUT-001_E4_EXACT_SOURCE_DIRECT_REPLAY_GAP_20260829_GPT56SOL.json'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  exact-source-negative-falsifier:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout Frankenstein 2.0 candidate
+        uses: actions/checkout@v4
+      - name: Checkout exact EntityOS source subtree
+        uses: actions/checkout@v4
+        with:
+          repository: gschaidergabriel/clay-global-research-entity
+          ref: 2ffe209471efb71140d87e62aa1f9ea52695c2aa
+          path: _entityos_exact
+          fetch-depth: 1
+          sparse-checkout: |
+            the artefact/clayverse
+          sparse-checkout-cone-mode: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Reproduce direct episode-null duplicate dispatch
+        env:
+          ENTITYOS_CANONICAL_ROOT: ${{ github.workspace }}/_entityos_exact
+        run: python -m unittest -v tests.test_wp105_exact_source_direct_replay_gap

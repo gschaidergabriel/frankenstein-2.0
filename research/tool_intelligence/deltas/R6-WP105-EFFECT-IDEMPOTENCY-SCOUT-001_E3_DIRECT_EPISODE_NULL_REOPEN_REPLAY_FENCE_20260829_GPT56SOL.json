@@ -1,0 +1,103 @@
+{
+  "schema": "FRANKENSTEIN2_TRIGGER4_E3_DIRECT_RETRY_FENCE_RESULT/v1",
+  "trigger": "4",
+  "research_id": "R6-WP105-EFFECT-IDEMPOTENCY-SCOUT-001",
+  "evidence_target": "E3_DIRECT_EPISODE_NULL_REOPEN_REPLAY_FENCE",
+  "status": "COMPLETED_REPOSITORY_CI_RESEARCH_PROTOTYPE_NO_RUNTIME_PROMOTION",
+  "supervisor": "9.13AQ_NON_AUTHORITY_FREE_ONLY",
+  "source_lineage": {
+    "initial_f2_base": "388b1f7a1d50506df6790f200902286c00f7ee20",
+    "first_tested_head": "7c2f2ab3ffc766902e4b4ab568ea84a5eb398af3",
+    "rebased_tested_head": "57a0e80162f3dd6df394e5491bd6f2d9f359827d",
+    "tested_test_blob": "5fc8c7d7587319ecc1797abdf34c4ac5fd302ea9",
+    "tested_workflow_blob": "5af3d7d62abdd8cfca20512bca1d696cff67606b",
+    "rebase_parent_main": "9241034c3cee1160d56cdf95a5f8abf51a417d30",
+    "latest_main_observed_after_rebased_ci": "8dbd86a0db0de85bb1a3cc522dfe654d0c961bca",
+    "rebase_policy": "The test/workflow/claim blobs that passed the first run were replayed unchanged onto moving main; the result file is evidence-only."
+  },
+  "hosted_ci": [
+    {
+      "workflow": "WP105 Direct Retry Identity E3 Falsifier",
+      "run_id": 33243170120,
+      "job_id": 99075890989,
+      "head_sha": "7c2f2ab3ffc766902e4b4ab568ea84a5eb398af3",
+      "status": "completed",
+      "conclusion": "success",
+      "runner": "ubuntu-latest",
+      "python": "3.12",
+      "step": "Run zero-effect direct retry identity discriminator"
+    },
+    {
+      "workflow": "WP105 Direct Retry Identity E3 Falsifier",
+      "run_id": 33243263313,
+      "job_id": 99076139520,
+      "head_sha": "57a0e80162f3dd6df394e5491bd6f2d9f359827d",
+      "status": "completed",
+      "conclusion": "success",
+      "runner": "ubuntu-latest",
+      "step": "Run zero-effect direct retry identity discriminator",
+      "meaning": "Success after rebasing the identical discriminator blobs onto main 9241034c3cee1160d56cdf95a5f8abf51a417d30."
+    }
+  ],
+  "observed_discriminators": [
+    {
+      "id": "E3-D1-REOPEN-UNKNOWN-BLOCK",
+      "result": "PASS",
+      "meaning": "After harmless child-start marking plus UNKNOWN, closing and reopening the SQLite authority preserves the operation fence; the same scoped logical operation performs zero additional child mutation and reuses the unresolved attempt/effect identities rather than dispatching again."
+    },
+    {
+      "id": "E3-D2-PAYLOAD-MISMATCH",
+      "result": "PASS",
+      "meaning": "The same user/session/operation_retry_id with a changed operation_payload_sha256 rejects transactionally before a second attempt row or dispatch-capable admission."
+    },
+    {
+      "id": "E3-D3-INTENTIONAL-DUPLICATE",
+      "result": "PASS",
+      "meaning": "Identical effect semantics under a distinct operation_retry_id remain independently admissible with fresh attempt_id and effect_id."
+    },
+    {
+      "id": "E3-D4-VERIFICATION-REOPEN",
+      "result": "PASS",
+      "meaning": "UNKNOWN remains blocked until explicit authority-owned VERIFIED_NOT_APPLIED evidence is recorded; only then is a fresh attempt with fresh attempt_id/effect_id admitted while preserving the prior attempt record."
+    }
+  ],
+  "hypothesis_update": {
+    "prior": "A stable operation_retry_id plus retry-stable payload digest persisted in the existing authority may be sufficient to close the direct duplicate-dispatch class.",
+    "result": "SUPPORTED_IN_DETERMINISTIC_RESEARCH_PROTOTYPE_WITH_EXPLICIT_DISPATCH_AND_OUTCOME_STATE_MACHINE",
+    "important_refinement": "Identity fields alone are not the demonstrated mechanism. The passing prototype requires transactional claim plus explicit PENDING/DISPATCH_STARTED/UNKNOWN/VERIFIED_NOT_APPLIED state and verification evidence; this supports the stronger counterhypothesis that authority-owned dispatch/outcome state is part of the minimum safe native repair."
+  },
+  "remaining_falsifiers": [
+    "Current canonical EntityOS schema/source has not been patched or proven to implement this ABI.",
+    "No multi-process/concurrent contention acceptance has been granted beyond SQLite BEGIN IMMEDIATE semantics exercised by the sequential reopen suite.",
+    "Schema migration/backward-compatibility against the exact current EffectJournal effects table remains unproven.",
+    "The current live bridge still has the separately observed post-dispatch FAILED-vs-UNKNOWN semantic gap until canonical authority changes it.",
+    "No real external effect was used, so no world-effect outcome claim exists."
+  ],
+  "next_gate": {
+    "target": "E4_F2_ABLATION_OR_CURRENT_AUTHORITY_PATCH_CANDIDATE",
+    "instruction": "Bind this proven research shape to exact current EntityOS/F2 source without a second authority: add fail-closed current-source tests for durable operation scope, changed-payload mismatch, unresolved duplicate suppression and post-dispatch UNKNOWN semantics; only then consider the minimum native EffectJournal schema/state-machine patch under the canonical mutation owner.",
+    "production_mutation_authority_in_this_result": false
+  },
+  "credits": {
+    "E2_architecture_mapped": 1,
+    "E3_claim_reproduced": 1,
+    "E4_f2_ablation": 0,
+    "E5_build_candidate": 0,
+    "E6_f2_accepted": 0,
+    "F2_runtime": 0,
+    "EntityOS_runtime": 0,
+    "physical_GRID10": 0,
+    "whole_EntityOS_HCU": 0,
+    "training": 0
+  },
+  "execution": {
+    "repository_hosted_ci": true,
+    "real_effect_execution": 0,
+    "provider_calls": 0,
+    "vps_execution": 0,
+    "paid_fallback": false,
+    "second_truth_store": false,
+    "second_effect_authority": false,
+    "unusual_experiment": false
+  }
+}
