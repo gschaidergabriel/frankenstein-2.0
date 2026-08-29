@@ -62,7 +62,7 @@ class PerceptionTemporalTests(unittest.TestCase):
                 provenance_refs=P,
             )
 
-    def test_fresh_and_stale_are_partitioned(self):
+    def test_fresh_and_stale_are_partitioned_without_arrival_order_authority(self):
         fresh = bind(claim("c1", 950), ref_id="fresh", source_id="screen:1", sequence=1, freshness=100)
         stale = bind(claim("c2", 700), ref_id="stale", source_id="screen:2", sequence=1, freshness=100)
         window = build_observation_window(
@@ -74,9 +74,14 @@ class PerceptionTemporalTests(unittest.TestCase):
         )
         self.assertEqual(window.current_ref_ids, ("fresh",))
         self.assertEqual(window.stale_ref_ids, ("stale",))
-        self.assertFalse(window.as_dict()["arrival_order_is_event_time"])
+        self.assertEqual(window.unaligned_ref_ids, ())
+        self.assertEqual(window.alignment_status, "ALIGNED")
+        payload = window.as_dict()
+        self.assertFalse(payload["arrival_order_is_event_time"])
+        self.assertFalse(payload["same_grid_cycle_is_same_real_world_time"])
+        self.assertTrue(payload["unknown_or_unaligned_preserved"])
 
-    def test_clock_uncertainty_can_make_observation_stale(self):
+    def test_clock_uncertainty_is_unaligned_not_stale(self):
         uncertain = bind(
             claim("c1", 950),
             ref_id="uncertain",
@@ -93,19 +98,23 @@ class PerceptionTemporalTests(unittest.TestCase):
             provenance_refs=P,
         )
         self.assertEqual(window.current_ref_ids, ())
-        self.assertEqual(window.stale_ref_ids, ("uncertain",))
+        self.assertEqual(window.stale_ref_ids, ())
+        self.assertEqual(window.unaligned_ref_ids, ("uncertain",))
+        self.assertEqual(window.alignment_status, "UNALIGNED")
 
-    def test_cross_source_join_skew_fails_closed(self):
+    def test_cross_source_join_skew_is_preserved_as_unaligned(self):
         a = bind(claim("c1", 900), ref_id="a", source_id="screen:1", sequence=1, freshness=500)
         b = bind(claim("c2", 990), ref_id="b", source_id="camera:1", sequence=1, freshness=500)
-        with self.assertRaisesRegex(PerceptionTemporalError, "max_join_skew_ns"):
-            build_observation_window(
-                refs=(a, b),
-                reference_now_ns=1_000,
-                max_join_skew_ns=50,
-                max_clock_uncertainty_ns=10,
-                provenance_refs=P,
-            )
+        window = build_observation_window(
+            refs=(a, b),
+            reference_now_ns=1_000,
+            max_join_skew_ns=50,
+            max_clock_uncertainty_ns=10,
+            provenance_refs=P,
+        )
+        self.assertEqual(window.current_ref_ids, ())
+        self.assertEqual(set(window.unaligned_ref_ids), {"a", "b"})
+        self.assertEqual(window.alignment_status, "UNALIGNED")
 
     def test_reference_clock_offset_enables_bounded_cross_host_join(self):
         local = bind(claim("c1", 980), ref_id="local", source_id="screen:1", sequence=1, freshness=100)
@@ -121,11 +130,32 @@ class PerceptionTemporalTests(unittest.TestCase):
         window = build_observation_window(
             refs=(local, remote),
             reference_now_ns=1_000,
-            max_join_skew_ns=20,
+            max_join_skew_ns=30,
             max_clock_uncertainty_ns=10,
             provenance_refs=P,
         )
         self.assertEqual(set(window.current_ref_ids), {"local", "remote"})
+        self.assertEqual(window.unaligned_ref_ids, ())
+        self.assertEqual(window.alignment_status, "ALIGNED")
+
+    def test_future_reference_time_is_unaligned_not_current_or_stale(self):
+        future = bind(
+            claim("c1", 1_010),
+            ref_id="future",
+            source_id="screen:1",
+            sequence=1,
+            freshness=100,
+        )
+        window = build_observation_window(
+            refs=(future,),
+            reference_now_ns=1_000,
+            max_join_skew_ns=20,
+            max_clock_uncertainty_ns=10,
+            provenance_refs=P,
+        )
+        self.assertEqual(window.current_ref_ids, ())
+        self.assertEqual(window.stale_ref_ids, ())
+        self.assertEqual(window.unaligned_ref_ids, ("future",))
 
     def test_source_time_regression_fails_closed(self):
         newer_sequence_older_time = bind(claim("c2", 90), ref_id="r2", source_id="screen:1", sequence=2, freshness=100)
@@ -138,6 +168,41 @@ class PerceptionTemporalTests(unittest.TestCase):
                 max_clock_uncertainty_ns=10,
                 provenance_refs=P,
             )
+
+    def test_arrival_permutation_does_not_change_window_identity(self):
+        a = bind(claim("c1", 980), ref_id="a", source_id="screen:1", sequence=1, freshness=100)
+        b = bind(claim("c2", 985), ref_id="b", source_id="camera:1", sequence=1, freshness=100)
+        first = build_observation_window(
+            refs=(a, b),
+            reference_now_ns=1_000,
+            max_join_skew_ns=20,
+            max_clock_uncertainty_ns=5,
+            provenance_refs=P,
+        )
+        second = build_observation_window(
+            refs=(b, a),
+            reference_now_ns=1_000,
+            max_join_skew_ns=20,
+            max_clock_uncertainty_ns=5,
+            provenance_refs=P,
+        )
+        self.assertEqual(first.window_id, second.window_id)
+        self.assertEqual(first.sha256(), second.sha256())
+
+    def test_window_never_mints_truth_effect_or_completion_authority(self):
+        a = bind(claim("c1", 980), ref_id="a", source_id="screen:1", sequence=1, freshness=100)
+        window = build_observation_window(
+            refs=(a,),
+            reference_now_ns=1_000,
+            max_join_skew_ns=20,
+            max_clock_uncertainty_ns=5,
+            provenance_refs=P,
+        )
+        payload = window.as_dict()
+        self.assertEqual(payload["world_truth_authority"], "NONE")
+        self.assertEqual(payload["effect_authority"], "NONE")
+        self.assertEqual(payload["completion_authority"], "NONE")
+        self.assertFalse(payload["resolves_semantic_disagreement"])
 
 
 if __name__ == "__main__":
