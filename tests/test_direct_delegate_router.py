@@ -201,3 +201,38 @@ def test_policy_route_set_and_bounds_are_validated_deterministically():
             max_direct_context_tokens=1,
             provenance_refs=("policy-source:1",),
         )
+
+
+class EqualityBypassStr(str):
+    """Forged scalar text whose overloaded equality claims every value matches."""
+
+    def __eq__(self, other):
+        return True
+
+    def __ne__(self, other):
+        return False
+
+    __hash__ = str.__hash__
+
+
+def test_scalar_string_subtype_cannot_split_request_and_cycle_identity():
+    cycle = make_cycle()
+    request = make_request(cycle)
+    forged = replace(
+        request,
+        cycle_contract_id=EqualityBypassStr("cycle-contract-forged-not-current"),
+        cycle_contract_sha256=EqualityBypassStr("0" * 64),
+    )
+
+    # The request's canonical evidence contains the forged values; use text checks so
+    # the subtype cannot make the assertions pass via overloaded equality.
+    serialized = forged.canonical_json()
+    assert '"cycle_contract_id":"cycle-contract-forged-not-current"' in serialized
+    assert ('"cycle_contract_sha256":"' + ("0" * 64) + '"') in serialized
+    assert str(forged.cycle_contract_id) != cycle.contract_id
+    assert str(forged.cycle_contract_sha256) != cycle.sha256()
+
+    # Exact-identity semantics require rejection here. If current WP600 instead returns
+    # a candidate, this regression fails and exposes the split trust boundary.
+    with pytest.raises(DirectDelegateRouterError):
+        route_task(cycle_contract=cycle, request=forged, policy=make_policy())
