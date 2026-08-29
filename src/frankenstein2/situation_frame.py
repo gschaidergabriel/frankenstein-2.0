@@ -1,6 +1,6 @@
 """Deterministic GRID10 SituationFrame and cycle contract for Frankenstein 2.0.
 
-F2-WP-500 generation 1.
+F2-WP-500 generation 2 classification-authority fence repair.
 
 This module is deliberately persistence-agnostic and authority-free. It canonicalizes only
 explicit caller-supplied typed references into an immutable SituationFrame, then binds a
@@ -18,6 +18,8 @@ from typing import Any, Iterable
 
 SITUATION_FRAME_SCHEMA = "FRANKENSTEIN2_GRID10_SITUATION_FRAME/v1"
 CYCLE_CONTRACT_SCHEMA = "FRANKENSTEIN2_GRID10_CYCLE_CONTRACT/v1"
+SITUATION_FRAME_CLASSIFICATION = "EXPLICIT_COGNITIVE_FRAME_NOT_WORLD_TRUTH_OR_EFFECT_AUTHORITY"
+CYCLE_CONTRACT_CLASSIFICATION = "CYCLE_PERMISSION_ENVELOPE_NOT_EFFECT_OR_COMPLETION_AUTHORITY"
 _SHA256_RE = re.compile(r"^[0-9a-f]{64}$")
 _MAX_ID_LEN = 512
 _MAX_REF_COUNT = 4096
@@ -136,11 +138,13 @@ class SituationFrame:
     authority_scope_refs: tuple[str, ...]
     do_not_repeat_refs: tuple[str, ...]
     provenance_refs: tuple[str, ...]
-    classification: str = "EXPLICIT_COGNITIVE_FRAME_NOT_WORLD_TRUTH_OR_EFFECT_AUTHORITY"
+    classification: str = SITUATION_FRAME_CLASSIFICATION
 
     def __post_init__(self) -> None:
         if self.schema != SITUATION_FRAME_SCHEMA:
             raise SituationFrameError("situation frame schema mismatch")
+        if self.classification != SITUATION_FRAME_CLASSIFICATION:
+            raise SituationFrameError("situation frame classification mismatch")
         object.__setattr__(self, "frame_id", _identifier("frame_id", self.frame_id))
         object.__setattr__(self, "cycle_id", _identifier("cycle_id", self.cycle_id))
         object.__setattr__(self, "generation", _generation("generation", self.generation))
@@ -216,6 +220,7 @@ class SituationFrame:
             authority_scope_refs=tuple(authority_scope_refs),
             do_not_repeat_refs=tuple(do_not_repeat_refs),
             provenance_refs=tuple(provenance_refs),
+            classification=SITUATION_FRAME_CLASSIFICATION,
         )
 
     def as_dict(self) -> dict[str, Any]:
@@ -262,11 +267,13 @@ class CycleContract:
     allowed_exits: tuple[str, ...]
     continuation_refs: tuple[str, ...]
     provenance_refs: tuple[str, ...]
-    classification: str = "CYCLE_PERMISSION_ENVELOPE_NOT_EFFECT_OR_COMPLETION_AUTHORITY"
+    classification: str = CYCLE_CONTRACT_CLASSIFICATION
 
     def __post_init__(self) -> None:
         if self.schema != CYCLE_CONTRACT_SCHEMA:
             raise SituationFrameError("cycle contract schema mismatch")
+        if self.classification != CYCLE_CONTRACT_CLASSIFICATION:
+            raise SituationFrameError("cycle contract classification mismatch")
         object.__setattr__(self, "contract_id", _identifier("contract_id", self.contract_id))
         object.__setattr__(self, "cycle_id", _identifier("cycle_id", self.cycle_id))
         object.__setattr__(
@@ -336,6 +343,7 @@ class CycleContract:
             allowed_exits=tuple(allowed_exits),
             continuation_refs=tuple(continuation_refs),
             provenance_refs=tuple(provenance_refs),
+            classification=CYCLE_CONTRACT_CLASSIFICATION,
         )
 
     def assert_matches(self, frame: SituationFrame) -> None:
