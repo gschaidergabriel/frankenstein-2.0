@@ -1,0 +1,65 @@
+{
+  "schema": "FRANKENSTEIN2_WORKPACKAGE_ACCEPTANCE_RECEIPT/v1",
+  "workpackage_id": "F2-WP-508",
+  "generation": 4,
+  "claim_id": "F2-WP-508-G4-GPT56SOL-BROADCAST-BUILDER-LINEAGE-REPAIR-20260829",
+  "acceptance_scope": "GWT_REENTRY_UPTAKE_G4_BROADCAST_BUILDER_LINEAGE_REPAIR_REPOSITORY_HOSTED_COMPONENT_CI_ONLY",
+  "authority_epoch": "8.78",
+  "triggering_negative_evidence": {
+    "falsifier_ref": "workpackages/falsifiers/F2-WP-508/20260829T1557P0700_G3_FORGED_BROADCAST_PAYLOAD_LINEAGE_GPT56SOL.json",
+    "review_pr": 257,
+    "workflow_run_id": 33244351377,
+    "job_id": 99079105335,
+    "head_sha": "bfeab357e8419556406470658ddbc96a7c4f5a84",
+    "conclusion": "failure_as_expected",
+    "meaning": "WP508 generation 3 revalidated WorkspaceSelection identity but still trusted reconstructed BroadcastEnvelope payload lineage, permitting forged candidate payload references to satisfy re-entry overlap"
+  },
+  "repair_evidence": {
+    "implementation_pr": 268,
+    "implementation_head_sha": "ae4089082c235a469f1a5e433ea55651a4d0f894",
+    "implementation_pr_ci_run_id": 33244777457,
+    "implementation_pr_ci_conclusion": "success",
+    "implementation_merge_commit": "74d68f4a32754ecc4a2cdd05e3760a28fdeafc38",
+    "implementation_merged_main_ci_run_id": 33244808806,
+    "implementation_merged_main_ci_conclusion": "success",
+    "g4_provenance_rebind_commit": "c1be08dc3a42d4a1504e21048649c1fa26f37050",
+    "g4_exact_main_ci_run_id": 33244896581,
+    "g4_exact_main_ci_job_id": 99080567770,
+    "g4_exact_main_ci_conclusion": "success",
+    "g4_exact_main_tests": "12 passed in 0.10s"
+  },
+  "artifacts": {
+    "source": "src/frankenstein2/gwt_reentry_uptake_binding.py",
+    "source_blob_sha": "ad43246c0d56903c842eaa4409a0f7a1600d1b4f",
+    "test": "tests/test_gwt_reentry_uptake_binding.py",
+    "test_blob_sha": "20e3df69745cbda32cc663d8ad0edad2e8f7beff",
+    "workflow": ".github/workflows/wp508-g2-uptake-reentry-binding-ci.yml",
+    "workflow_blob_sha": "f3e9e316a52c170a797e6ae28c7a64203db9b74b"
+  },
+  "verified_invariants": [
+    "after exact WP506 WorkspaceSelection verification, BroadcastEnvelope candidate_ids must equal the canonical tuple derived from exact selection.selected",
+    "after exact WP506 WorkspaceSelection verification, BroadcastEnvelope candidate_payload_refs must equal the canonical tuple derived from exact selection.selected",
+    "material re-entry overlap is evaluated against the payload-reference tuple derived from exact selection.selected rather than caller-reconstructed broadcast payload metadata",
+    "the executable forged BroadcastEnvelope payload-lineage counterexample that invalidated generation 3 is preserved as regression evidence",
+    "forged BroadcastEnvelope candidate-id lineage is rejected independently",
+    "the current source scope is explicitly rebound to WP508 generation 4 while generation 3 remains historical falsifier lineage",
+    "WP507 delivery and uptake semantics remain preserved rather than re-inferred by WP508"
+  ],
+  "commands": [
+    "python -m py_compile src/frankenstein2/grid10_interface.py src/frankenstein2/gwt_workspace.py src/frankenstein2/gwt_uptake.py src/frankenstein2/gwt_reentry_provenance.py src/frankenstein2/gwt_reentry_uptake_binding.py tests/test_gwt_reentry_uptake_binding.py",
+    "PYTHONPATH=src python -m pytest -q tests/test_gwt_reentry_uptake_binding.py"
+  ],
+  "environment": "github-actions ubuntu-24.04; python 3.12.14",
+  "runtime_execution_observed": false,
+  "runtime_credit": 0,
+  "physical_grid10_credit": 0,
+  "gwt_runtime_credit": 0,
+  "jspace_runtime_credit": 0,
+  "training_credit": 0,
+  "effect_credit": 0,
+  "completion_credit": 0,
+  "whole_system_acceptance": false,
+  "negative_evidence_preserved": "F2-WP-508 generation 3 remains FAILED_TERMINAL_AT_BROADCAST_PAYLOAD_LINEAGE_SCOPE. PR #268 and its historical G3 naming are retained as implementation provenance; the later c1be08dc generation-4 source-scope rebind plus exact-main CI is the current acceptance evidence.",
+  "completion_deficit": "Repository-hosted deterministic component CI verifies only the WP508 G4 broadcast-builder-lineage repair. No target runtime, physical GRID10 execution, model-internal J-Space, real GWT causal influence, effect/completion loop, training, or whole-system evidence was executed.",
+  "next_exact_action": "Keep WP508 generation 4 closed absent a new executable falsifier. Re-enter current main and select only the next dependency-correct nonduplicate integration or target-runtime evidence gate; require separate admitted runtime evidence before any physical GRID10 or GWT/J-Space causal credit."
+}
