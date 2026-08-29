@@ -1,0 +1,91 @@
+{
+  "schema": "FRANKENSTEIN2_TRIGGER6_EVIDENCE_DELTA/v1",
+  "trigger": "6",
+  "research_id": "R6-WP507-ECONML-CATE-001",
+  "claim_ref": "research/tool_intelligence/claims/R6-WP507-ECONML-CATE-001/E1_SOURCE_READ.json",
+  "claim_commit": "9f1a74b0897aeb17725d8b982960e0ae25569692",
+  "slot": "SOURCE_ARCHAEOLOGIST",
+  "evidence_stage": "E1_SOURCE_READ",
+  "status": "COMPLETED_CONCEPT_ONLY_NO_PROMOTION",
+  "created_at": "2026-08-29T15:04:00+07:00",
+  "worker": "ChatGPT/GPT-5.6-Sol",
+  "architecture_binding": {
+    "target_workpackage": "F2-WP-507 generation 3",
+    "target_scope": "recipient-scoped OFFERED/DELIVERED/UPTAKEN evidence plus matched intervention/control causal falsification",
+    "fusion_ref": "research/tool_intelligence/deltas/R6-ADF-20260829T1454P0700-GPT56SOL.json",
+    "f2_main_observed_prewrite": "a49f284fd26edc1c030a1bb88fdc11569088afa4",
+    "research_entity_main_observed_prewrite": "cce160aef99451de19b3e66b00eca3d272a2a9d3"
+  },
+  "candidate": {
+    "name": "EconML",
+    "repo": "py-why/EconML",
+    "source_commit": "f0fc2e7d39d20e1a9d9201233fb7945e88cab0cc",
+    "version": "0.17.0",
+    "license": "MIT",
+    "source_refs": [
+      "README.md",
+      "pyproject.toml",
+      "econml/_ortho_learner.py",
+      "econml/_cate_estimator.py"
+    ],
+    "observed_purpose": "Machine-learning/econometrics toolkit for estimating heterogeneous treatment effects, including observational-data estimators, inference/confidence intervals, orthogonal learning, cross-fitting, causal forests and meta-learners."
+  },
+  "source_observations": [
+    "The core causal object is treatment T -> outcome Y conditioned on features/confounders X,W, with optional instruments Z for some estimators; causal interpretation depends on estimator-specific identification assumptions.",
+    "Orthogonal learners estimate nuisance functions and use cross-fitting with disjoint train/test folds before fitting the final heterogeneous treatment-effect model.",
+    "The package emphasizes aggregate/statistical effect estimation and uncertainty intervals rather than per-event deterministic causal receipts.",
+    "The 0.17.0 package has a broad scientific dependency surface including numpy, numba, scipy, scikit-learn, sparse, joblib, statsmodels, pandas, shap and lightgbm, with optional DoWhy and Ray integrations."
+  ],
+  "wp507_transfer_assessment": {
+    "recommended_adoption_class": "CONCEPT_DISTILL_ONLY",
+    "full_library_import_now": false,
+    "direct_wp507_core_adoption": false,
+    "useful_thin_concepts": [
+      "TREATMENT_OUTCOME_COVARIATE_SEPARATION: explicitly distinguish intervention assignment, measured downstream outcome and pre-treatment/context covariates.",
+      "CROSSFIT_STYLE_SEPARATION: keep estimator/model-selection data separate from held-out causal-effect evaluation to reduce researcher/test overfit when many WP507 experiments accumulate.",
+      "HETEROGENEOUS_EFFECT_CHARACTERIZATION: after exact per-run F2 receipts exist, analyze whether intervention effects vary by recipient, scenario, state or GRID context rather than assuming one global effect.",
+      "UNCERTAINTY_INTERVALS: preserve statistical uncertainty for aggregate effect estimates instead of converting noisy repeated-run differences into categorical causal truth.",
+      "NUISANCE_MODEL_EXPLICITNESS: if later observational covariates are used, make confounder/nuisance assumptions explicit and separately testable."
+    ],
+    "nontransferable_authority": [
+      "An EconML ATE/CATE estimate cannot mint OFFERED, DELIVERED, UPTAKEN or causal-influence truth for a particular WP507 recipient/run.",
+      "Confidence intervals do not replace exact F2 broadcast/probe/recipient/selection/plan/cell provenance.",
+      "Observational causal identification assumptions are not evidence that F2 software-level matched intervention/control execution occurred correctly.",
+      "EconML artifacts/models must not become UnifiedDB canonical state, EffectGate authority, completion authority or a second truth store."
+    ],
+    "strongest_later_fit": [
+      "F2-WP-902 whole-system characterization over repeated pre-registered causal experiments",
+      "F2-WP-806 lesion/rescue characterization where repeated noisy outcomes and heterogeneity require statistical aggregation",
+      "F2-WP-507 only as an optional aggregate-analysis layer after deterministic per-run causal receipts exist"
+    ]
+  },
+  "counterhypothesis": {
+    "statement": "Repeated GWT intervention/control experiments may be noisy and heterogeneous enough that simple paired differences are insufficient; a CATE/DML-style estimator could improve calibration and reveal recipient/state-specific causal effects.",
+    "falsifier": "Under a separately claimed no-real-effect experiment, compare a simple F2-native paired estimator against a pinned EconML estimator on synthetic/replayed data with known heterogeneous effects and injected confounding. Reject EconML if it adds no material calibration/heterogeneity benefit or if dependency/runtime/provenance cost outweighs the gain."
+  },
+  "adjudication": {
+    "evidence_ceiling": "E1_SOURCE_READ",
+    "promotion_to_e2": false,
+    "promotion_to_e3": false,
+    "promotion_to_e4": false,
+    "promotion_to_e5_build_candidate": false,
+    "trigger4_handoff": "NOT_ELIGIBLE",
+    "pending_research_sqlite_sync": "PENDING",
+    "reason": "EconML is a statistical causal-estimation framework at a different causal layer from WP507's current deterministic per-recipient receipt contract. Its best current value is methodology distillation for later aggregate characterization, not core import."
+  },
+  "credits": {
+    "e1_source_read_credit": 1,
+    "e2_architecture_credit": 0,
+    "e3_claim_reproduced_credit": 0,
+    "e4_f2_ablation_credit": 0,
+    "e5_build_candidate_credit": 0,
+    "e6_f2_accepted_credit": 0,
+    "architecture_acceptance_credit": 0,
+    "runtime_credit": 0,
+    "gwt_runtime_credit": 0,
+    "jspace_runtime_credit": 0,
+    "effect_credit": 0,
+    "completion_credit": 0,
+    "whole_system_credit": 0
+  }
+}
