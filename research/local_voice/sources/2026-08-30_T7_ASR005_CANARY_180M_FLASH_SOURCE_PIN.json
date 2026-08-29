@@ -1,0 +1,56 @@
+{
+  "schema": "T7_SOURCE_RESULT/v1",
+  "trigger": "7",
+  "research_id": "T7-ASR-005",
+  "objective": "E1_CANARY_180M_FLASH_SOURCE_PIN",
+  "semantic_key": "6bef6a827ecf833143e414d9fd59a0c12eaa301267a09f781303dc807f1f2f60",
+  "evidence_scope": "SOURCE_PIN",
+  "observed_at": "2026-08-30",
+  "official_model": {
+    "provider": "NVIDIA",
+    "model_id": "nvidia/canary-180m-flash",
+    "pinned_model_revision": "b12ab418510d093e83890178fd0e8b0d0f7918a6",
+    "weights_upload_commit": "611632e761d844a45ea24ddb0d483e8c0c374013",
+    "model_file": "canary-180m-flash.nemo",
+    "remote_bytes": 736665600,
+    "sha256": "7b97de18b718ef01bf3398715ce8d18486c4d83961e230230b26f5712e112675",
+    "parameters_reported": 182000000,
+    "license": "CC-BY-4.0",
+    "framework": "NVIDIA NeMo"
+  },
+  "source_direct_findings": [
+    "The official model card reports 182M parameters and German ASR support alongside English, French and Spanish.",
+    "The official model artifact is 736,665,600 bytes and its LFS/Xet payload identity is SHA-256 7b97de18b718ef01bf3398715ce8d18486c4d83961e230230b26f5712e112675.",
+    "The official model card reports German WER 4.81 on MLS and 5.94 on Mozilla Common Voice 16.1 under its stated evaluation protocol.",
+    "The official model card reports experimental word-level and segment-level timestamp support for German.",
+    "The official model card reports throughput of 1233 RTFx on A100 and 2041 RTFx on H100 for its OpenASR profiling setup; those are throughput measurements, not Frankenstein conversational endpoint or first-partial latency.",
+    "Current NVIDIA NeMo ASR documentation states that Canary models support chunked and streaming inference, but no clay-direct-dev execution was performed in this source stage."
+  ],
+  "project_inferences_not_runtime_facts": [
+    "At 182M parameters and a 737 MB reference checkpoint, Canary-180M-Flash is a high-value small-footprint challenger for the German LOCAL-SOLO ASR lane.",
+    "Its small model and strong reported batch throughput may reduce ASR resource pressure relative to larger current candidates, but NeMo/PyTorch process overhead can erase part of that advantage and must be measured as whole-process RSS/VRAM on clay-direct-dev.",
+    "Official benchmark WER does not establish WER/CER on Frankenstein's conversational German corpus, partial-hypothesis stability, pause handling, barge-in behavior, cancellation correctness or speech-end-to-first-usable-text latency.",
+    "Timestamp support is relevant to turn bookkeeping but remains target-runtime behavior until exercised under the selected inference path."
+  ],
+  "counterhypothesis": "The NeMo runtime footprint, decoder/streaming behavior or conversational German error distribution can make Canary-180M-Flash slower or less useful in the actual duplex loop than its parameter count and batch RTFx suggest.",
+  "counterhypothesis_status": "OPEN_REQUIRES_TARGET_RUNTIME",
+  "downstream_noncanonical_portability_signal": {
+    "project": "handy-computer/transcribe.cpp",
+    "claim": "A community GGUF port exists with F32/F16/Q8/Q6/Q5/Q4 artifacts and reports LibriSpeech test-clean parity-like WER across those quantizations.",
+    "boundary": "This downstream port is not NVIDIA official evidence, its quoted WER is English LibriSpeech rather than German, and it receives zero Frankenstein runtime or German-quality credit here. It may be investigated under a separate semantic objective if target hardware favors native GGUF execution."
+  },
+  "credit": {
+    "source_pin": 1,
+    "german_language_metadata": 1,
+    "official_german_benchmark_metadata": 1,
+    "official_timestamp_capability_metadata": 1,
+    "target_hardware": 0,
+    "model_runtime": 0,
+    "streaming_runtime": 0,
+    "german_asr_component": 0,
+    "german_e2e": 0,
+    "trigger4_acceptance": 0,
+    "whole_system": 0
+  },
+  "next_exact_action": "Do not create another hardware-inventory dispatch while Trigger-7 run 33266856557 remains unresolved. After the first valid clay-direct-dev hardware/resource receipt establishes headroom, create a distinct TARGET_RUNTIME_MODEL_BENCHMARK semantic objective for CANARY_180M_FLASH before download/execution. Measure startup, whole-process RSS/VRAM, real-time first/partial/final text latency, German WER/CER, partial stability, timestamps, long-session behavior and cancellation under network-blocked LOCAL-SOLO conditions against the admitted Qwen3-ASR/Nemotron/Whisper baselines. Keep official NeMo and any community GGUF port as separate artifact identities."
+}
