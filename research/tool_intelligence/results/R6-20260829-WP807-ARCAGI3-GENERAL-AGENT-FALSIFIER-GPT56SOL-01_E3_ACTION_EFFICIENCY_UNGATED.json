@@ -1,0 +1,66 @@
+{
+  "schema": "FRANKENSTEIN2_TRIGGER6_RESEARCH_RESULT/v1",
+  "research_id": "R6-20260829-WP807-ARCAGI3-GENERAL-AGENT-FALSIFIER-GPT56SOL-01",
+  "stage": "E3_CLAIM_REPRODUCED",
+  "status": "REPRODUCED_AT_REPOSITORY_HOSTED_COMPONENT_REVIEW_SCOPE",
+  "claim_target": "E3_CLAIM_REPRODUCED_ACTION_EFFICIENCY_UNGATED",
+  "observed_main_before_result": "e03336d4ca746612c06020ce484b72fbcabef3a7",
+  "source_identity": {
+    "wp807_source_blob_sha256_identity": "6ea004126f9d39e428141703ea49aa3090b9994e",
+    "review_branch": "review/wp807-action-efficiency-ungated-falsifier-20260829",
+    "review_head_sha": "834843821b8f042c9e440c794bb870db4da65106",
+    "pull_request": 482
+  },
+  "executable_evidence": {
+    "workflow": "F2 WP807 Agentic-Core Falsifier CI",
+    "workflow_run_id": 33254909508,
+    "job_id": 99106806124,
+    "runner": "ubuntu-latest",
+    "head_sha": "834843821b8f042c9e440c794bb870db4da65106",
+    "compile": "PASS",
+    "agentic_core_falsification_suite": "PASS",
+    "conclusion": "success"
+  },
+  "reproduced_counterexample": {
+    "controlled_equal_dimensions": [
+      "four required capabilities",
+      "ACCEPTED source states",
+      "unique receipt/reconciliation identities",
+      "shared holdout_set_id",
+      "baseline_score_ppm=300000",
+      "intervention_score_ppm=700000",
+      "sample_count=20 per capability",
+      "success_count=14 per capability",
+      "same FalsifierPolicy score/delta/sample/holdout thresholds"
+    ],
+    "low_action_condition": {
+      "action_count_per_capability": 60,
+      "total_action_count": 240,
+      "verdict": "SUPPORTED_AT_COMPONENT_SCOPE"
+    },
+    "high_action_condition": {
+      "action_count_per_capability": 200000000,
+      "total_action_count": 800000000,
+      "verdict": "SUPPORTED_AT_COMPONENT_SCOPE"
+    },
+    "observed_invariant": "Changing external action count by more than six orders of magnitude does not change the current verdict when current score/delta/sample/holdout gates remain satisfied."
+  },
+  "interpretation": {
+    "observed_fact": "Current WP807 action_count is validated and reported but is not an acceptance/falsification gate.",
+    "architecture_implication": "Current WP807 can support a four-capability outcome claim at repository component scope but cannot, by itself, support an external-action-efficiency claim. The separate E2 internal-compute delta remains necessary if F2 intends to evaluate overall agentic efficiency.",
+    "counterhypothesis": "This behavior may be intentional if WP807 is defined solely as an outcome/capability aggregator and efficiency is owned by a different workpackage/metric. In that case the correct repair is semantic scoping/documentation plus a downstream efficiency gate rather than mutating WP807 itself."
+  },
+  "authority_boundaries": {
+    "source_mutation": false,
+    "review_only": true,
+    "architecture_credit": "E3_CLAIM_REPRODUCED_ONLY",
+    "f2_ablation_credit": 0,
+    "runtime_credit": 0,
+    "physical_grid10_credit": 0,
+    "gwt_jspace_credit": 0,
+    "effect_credit": 0,
+    "completion_credit": 0,
+    "whole_system_acceptance": false
+  },
+  "next_exact_action": "Sole WP807 mutation owner decides whether efficiency belongs inside WP807 or a downstream typed efficiency gate. If inside WP807, preregister/freeze action and internal-compute policies, add fail-closed regressions, and compare matched baseline/intervention under one compute profile. If outside, rename/narrow WP807 claims so SUPPORTED_AT_COMPONENT_SCOPE cannot be read as efficiency evidence."
+}
