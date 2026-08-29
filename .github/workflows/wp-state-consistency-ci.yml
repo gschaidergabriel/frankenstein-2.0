@@ -7,14 +7,30 @@ on:
       - 'workpackages/STATE_CONSISTENCY_CONTRACT.md'
       - 'workpackages/WORKPACKAGE_STATE_CONSISTENCY_CONTRACT_V1.json'
       - 'workpackages/F2-WP-002_STATE_CONTRACT.md'
+      - 'workpackages/STATE_VIEW_CONTRACT_V2.json'
       - 'workpackages/STATE.json'
       - 'workpackages/active/**'
       - 'workpackages/claims/**'
       - 'workpackages/reconciliations/**'
+      - 'workpackages/state_events/**'
       - 'tools/validate_workpackage_state.py'
       - 'tests/test_validate_workpackage_state.py'
       - 'tools/validate_wp_state_consistency_v1.py'
       - 'tests/test_validate_wp_state_consistency_v1.py'
+      - 'tools/resolve_workpackage_state_v2.py'
+      - 'tests/test_resolve_workpackage_state_v2.py'
+      - 'tools/validate_effective_workpackage_state.py'
+      - '.github/workflows/wp-state-consistency-ci.yml'
+  pull_request:
+    paths:
+      - 'workpackages/STATE_VIEW_CONTRACT_V2.json'
+      - 'workpackages/STATE.json'
+      - 'workpackages/active/**'
+      - 'workpackages/reconciliations/**'
+      - 'workpackages/state_events/**'
+      - 'tools/resolve_workpackage_state_v2.py'
+      - 'tests/test_resolve_workpackage_state_v2.py'
+      - 'tools/validate_effective_workpackage_state.py'
       - '.github/workflows/wp-state-consistency-ci.yml'
   workflow_dispatch:
 
@@ -38,3 +54,7 @@ jobs:
         run: python -m unittest -v tests.test_validate_wp_state_consistency_v1
       - name: Validate active F2-WP-002 generation
         run: python tools/validate_wp_state_consistency_v1.py . F2-WP-002
+      - name: Run state-view v2 resolver regressions
+        run: python -m unittest -v tests.test_resolve_workpackage_state_v2
+      - name: Validate effective state with event-head precedence and blob bindings
+        run: python tools/validate_effective_workpackage_state.py .
