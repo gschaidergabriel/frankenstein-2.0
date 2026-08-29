@@ -1,0 +1,35 @@
+{
+  "schema": "FRANKENSTEIN2_WORKPACKAGE_CLAIM/v1",
+  "workpackage_id": "F2-WP-1110",
+  "generation": 1,
+  "claim_id": "F2-WP-1110-G1-GPT56SOL-ONE-HANDOFF-GATE-20260829T1731Z",
+  "worker_id": "GPT-5.6-Sol-TRIGGER4",
+  "base_commit": "ce29062bd6632856f1afa488a9ae92dfdd0be789",
+  "authority_epoch": "8.78",
+  "stage": "PORTABLE_ONE_HANDOFF_RELEASE_GATE",
+  "claimed_scope": "Implement the smallest deterministic static pre-handoff release gate that binds an already integrity-verified final release manifest to its declared prehandoff receipt reference and validates the machine-readable installer route graph before any real clean-machine execution. Repository source/tests/CI only. No installer execution, host mutation, network/provider/VPS action, runtime/physical/effect/completion credit, or whole-system acceptance.",
+  "owned_scope": [
+    "src/frankenstein2/pre_handoff_release.py",
+    "tests/test_pre_handoff_release.py",
+    ".github/workflows/wp1110-pre-handoff-release-ci.yml"
+  ],
+  "required_invariants": [
+    "release payload identity is verified by the existing FRANKENSTEIN2_RELEASE_MANIFEST/v1 implementation rather than a second manifest authority",
+    "the exact prehandoff_receipt_ref passed to later clean-machine acceptance is already bound in the final release manifest",
+    "AI_START_HERE_DO_NOT_SCAN_REPO/01_ROUTES.json uses the admitted installer route schema and all declared file routes resolve inside the release root to regular files",
+    "state and VPS baseline laws remain exact and production_ready_condition remains PORTABLE_ONE_HANDOFF_RELEASE_GATE_ACCEPTED",
+    "static READY_FOR_REAL_HOST_HANDOFF never grants runtime, physical-host, effect, completion, or whole-system credit",
+    "the receipt is deterministic and remains outside the release payload so it can bind the final manifest hash without a self-hash cycle"
+  ],
+  "forbidden": [
+    "production installer execution",
+    "clean-machine or VPS mutation",
+    "network/provider dispatch",
+    "synthetic real-host evidence",
+    "runtime or physical-host credit",
+    "EffectGate or CompletionGate authority",
+    "whole-system acceptance"
+  ],
+  "state": "ACTIVE",
+  "next_exact_action": "Implement and repository-test the static one-handoff gate; then require repository-hosted CI. Only after a final release artifact and external prehandoff receipt exist may a successor consume real clean-machine observations through the existing clean_machine_acceptance validator."
+}
