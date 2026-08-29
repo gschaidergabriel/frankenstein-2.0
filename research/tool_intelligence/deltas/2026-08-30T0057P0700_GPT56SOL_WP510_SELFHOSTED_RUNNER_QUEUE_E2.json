@@ -1,0 +1,129 @@
+{
+  "schema": "TRIGGER6_ARCHITECTURE_DELTA_FUSION/v1",
+  "research_id": "R6-20260830-WP510-SELFHOSTED-RUNNER-QUEUE-GPT56SOL-01",
+  "evidence_stage": "E2_ARCHITECTURE_MAPPED",
+  "recorded_at": "2026-08-30T00:57:24+07:00",
+  "worker": "GPT-5.6-Sol",
+  "claim": "research/tool_intelligence/claims/R6-20260830-WP510-SELFHOSTED-RUNNER-QUEUE-GPT56SOL-01/E2_ARCHITECTURE_MAPPED.json",
+  "architecture_snapshot": {
+    "f2_preclaim_main": "f9ac1bfe898fdfc2e5b3c581d906b247db5dcd4d",
+    "research_entity_preclaim_main": "e55ebe2ad7a76a53e70d45af34e360e44c73f253",
+    "supervisor": "9.13BB_NON_AUTHORITY",
+    "controller_run": 33265772059,
+    "controller_job": 99135457584,
+    "controller_dispatch_sha": "2b2aaca5750a7da135fef92cf6611995d117fbe2",
+    "wp510_exact_f2_source_sha": "656b57bded655e64a25d7e205b599becce3d4989"
+  },
+  "external_primary_sources": [
+    {
+      "type": "GITHUB_DOCS",
+      "title": "Self-hosted runners reference",
+      "url": "https://docs.github.com/en/actions/reference/runners/self-hosted-runners",
+      "observed_claims": [
+        "GitHub routes to an online and idle self-hosted runner matching required runs-on labels/groups.",
+        "If no online and idle matching runner exists, the job remains queued until a runner comes online.",
+        "If an assigned runner does not pick up the job within 60 seconds, the job is re-queued.",
+        "A self-hosted job queued for more than 24 hours fails."
+      ]
+    },
+    {
+      "type": "GITHUB_DOCS",
+      "title": "Using self-hosted runners in a workflow",
+      "url": "https://docs.github.com/en/actions/how-tos/manage-runners/self-hosted-runners/use-in-a-workflow",
+      "observed_claims": [
+        "Default self-hosted labels include self-hosted, OS and architecture labels.",
+        "Multiple runs-on labels are cumulative; a runner must satisfy all specified labels."
+      ]
+    },
+    {
+      "type": "GITHUB_DOCS",
+      "title": "Monitoring and troubleshooting self-hosted runners",
+      "url": "https://docs.github.com/actions/how-tos/managing-self-hosted-runners/monitoring-and-troubleshooting-self-hosted-runners",
+      "observed_claims": [
+        "Runner states include Idle, Active and Offline.",
+        "Offline can mean host down, runner application stopped, or loss of GitHub connectivity.",
+        "The runner config script supports --check for required GitHub network services.",
+        "Runner diagnostic logs are stored below _diag and systemd service state can be inspected with journalctl."
+      ]
+    },
+    {
+      "type": "UPSTREAM_SOURCE",
+      "repo": "actions/runner",
+      "commit": "fb64b9b20d56951bf30c5b7333a128bc25c2d923",
+      "path": "src/Runner.Listener/Runner.cs",
+      "observed_claims": [
+        "Runner.Listener creates the message listener and starts listening to the queue.",
+        "The listener awaits GetNextMessageAsync before dispatching work to the worker process.",
+        "Acquire-job failures have explicit throttling/backoff logic."
+      ]
+    }
+  ],
+  "f2_observations": {
+    "job_status": "queued",
+    "job_steps": 0,
+    "job_labels": ["self-hosted", "Linux", "X64"],
+    "runner_id": 0,
+    "runner_name": "",
+    "runner_group_id": 0,
+    "runner_group_name": "",
+    "workflow_runs_on": ["self-hosted", "Linux", "X64"],
+    "workflow_timeout_minutes": 15,
+    "workflow_exact_source_control": "The dispatched workflow clones Frankenstein 2.0 inside clay-direct-dev, checks out detached F2_WP510_SOURCE_SHA=656b57bded655e64a25d7e205b599becce3d4989, verifies HEAD equality, and requires a clean working tree before executing the probe.",
+    "duplicate_dispatch_observed": false
+  },
+  "finding": {
+    "classification": "WP510_RUNNER_ASSIGNMENT_AVAILABILITY_GATE_CONFIRMED_AT_E2",
+    "directly_observed": "The existing WP510 job is still queued, has zero executed steps, and exposes no assigned runner identity while requesting self-hosted/Linux/X64.",
+    "external_rule_match": "GitHub's documented routing semantics predict exactly this state when no online+idle eligible runner is available to accept all requested labels/groups.",
+    "inference_boundary": "runner_id=0 plus blank runner_name is treated as strong assignment-state evidence in this concrete API response, but not as proof of which underlying cause made all eligible runners unavailable.",
+    "semantic_credit": 0,
+    "target_runtime_credit": 0,
+    "whole_system_credit": 0
+  },
+  "counterhypotheses": [
+    {
+      "id": "H1_LABEL_OR_GROUP_MISMATCH",
+      "status": "OPEN",
+      "discriminator": "Enumerate registered runner labels/groups visible to the controller repository and verify one runner satisfies self-hosted+Linux+X64."
+    },
+    {
+      "id": "H2_RUNNER_OFFLINE_OR_SERVICE_DOWN_OR_NETWORK_BLOCKED",
+      "status": "OPEN_HIGH_PRIORITY",
+      "discriminator": "Check runner state, runner service/journal, _diag/Runner logs and config.sh --check on the intended runner host."
+    },
+    {
+      "id": "H3_RUNNER_BUSY_NOT_IDLE",
+      "status": "OPEN",
+      "discriminator": "Check whether the intended matching runner is Active on another job; wait for Idle without creating a second WP510 dispatch."
+    },
+    {
+      "id": "H4_REPOSITORY_OR_RUNNER_GROUP_ACCESS_POLICY",
+      "status": "OPEN",
+      "discriminator": "Verify the runner or runner group is authorized for gschaidergabriel/Dr.-Unterweger."
+    },
+    {
+      "id": "H5_RUNNER_VERSION_OR_UPDATE_GATE",
+      "status": "OPEN_LOWER_PRIORITY",
+      "discriminator": "Inspect runner version/update logs and compare to currently supported runner requirements."
+    },
+    {
+      "id": "H6_GITHUB_CONTROL_PLANE_DELAY",
+      "status": "OPEN_LOW_PRIOR",
+      "discriminator": "A known-good online+idle matching runner that is visible to the repository but still receives no assignment would raise this hypothesis."
+    }
+  ],
+  "architecture_delta": {
+    "decision": "NO_F2_SEMANTIC_ARCHITECTURE_CHANGE",
+    "reason": "Current external evidence confirms the existing supervisor/Trigger4 classification rather than falsifying WP510 logic. The next useful change is operational runner restoration/eligibility verification, not a competing WP510 implementation or a new runtime dispatch.",
+    "affected_workpackages": ["F2-WP-510"],
+    "runtime_token_effect": "NONE_UNTIL_RUNNER_ACCEPTS_JOB",
+    "model_call_effect": "NONE",
+    "dependency_effect": "WP510 target-runtime evidence remains blocked before probe execution; no downstream semantic promotion is justified."
+  },
+  "next_exact_action": "On the existing controller run 33265772059/job 99135457584, restore or verify one eligible registered online+idle self-hosted Linux X64 runner. Diagnose label/group access, runner service, network connectivity and runner logs first. Do not create a duplicate WP510 dispatch while this job remains unresolved. If the existing job executes, admit only evidence bound to exact F2 source 656b57bded655e64a25d7e205b599becce3d4989 and the observed runner/runtime receipt.",
+  "evidence_ceiling": "E2_ARCHITECTURE_MAPPED",
+  "research_credit": 1,
+  "runtime_credit": 0,
+  "build_candidate": false,
+  "pending_research_sqlite_sync": "NOT_PERFORMED_BINARY_DB_WRITE_SURFACE_NOT_AVAILABLE_IN_THIS_SESSION"
+}
