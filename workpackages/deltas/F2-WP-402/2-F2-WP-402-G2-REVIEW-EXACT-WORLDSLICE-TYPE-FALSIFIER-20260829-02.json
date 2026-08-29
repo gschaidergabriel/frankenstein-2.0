@@ -1,0 +1,46 @@
+{
+  "schema": "FRANKENSTEIN2_WORKPACKAGE_DELTA/v1",
+  "workpackage_id": "F2-WP-402",
+  "generation": 2,
+  "classification": "CANDIDATE_FALSIFIER_REPAIR_PROBE",
+  "review_id": "F2-WP-402-G2-REVIEW-EXACT-WORLDSLICE-TYPE-FALSIFIER-20260829",
+  "review_worker": "GPT-5.6-Sol",
+  "target_reconciliation": "workpackages/reconciliations/F2-WP-402/2-F2-WP-402-G2-GPT56SOL-DIRECT-CONSTRUCTOR-BINDING-REPAIR-20260829.json",
+  "target_terminal_state_before_falsifier": "ACCEPTED",
+  "target_terminal_scope_before_falsifier": "QUBO_SCORING_EXACT_WORLDSLICE_REVALIDATION_REPOSITORY_HOSTED_COMPONENT_CI_ONLY",
+  "accepted_g2_passing_head": "4ca1de1df26ac3f754adfa50f06496aea3ac9eef",
+  "accepted_g2_passing_run_id": 33243165119,
+  "accepted_g2_passing_job_id": 99075878543,
+  "accepted_g2_tests": "10/10 PASS",
+  "accepted_main_source_blob_observed": "e376d06e20c8335f2f81fad5acda3e9215647b4c",
+  "finding": "Accepted generation 2 still uses subtype-permissive isinstance(world_slice, WorldSlice) at both build_qubo_projection and _validate_projection_against_slice. Both boundaries then trust polymorphic world_slice.sha256(), so a WorldSlice subtype can return an attacker-chosen digest and cross the claimed exact-WorldSlice boundary.",
+  "accepted_g2_merge_context_falsifier_run_id": 33243286811,
+  "accepted_g2_merge_context_falsifier_job_id": 99076198811,
+  "accepted_g2_merge_context_result": "FAIL_AS_EXPECTED_FOR_VULNERABLE_ACCEPTED_G2",
+  "observed_tests": {
+    "build_rejects_worldslice_subclass_with_forged_digest": "FAIL: QuboProjectionError not raised",
+    "score_revalidation_rejects_subclass_that_forges_source_slice_digest": "FAIL: QuboProjectionError not raised"
+  },
+  "repair_probe": "In the PR merge-context working tree only, replace both exact WorldSlice admission checks from isinstance(...) to type(world_slice) is WorldSlice.",
+  "accepted_g2_merge_context_repair_run_id": 33243286822,
+  "accepted_g2_merge_context_repair_job_id": 99076198733,
+  "repair_probe_result": "PASS",
+  "repair_probe_steps": {
+    "apply_two_exact_type_guards": "PASS",
+    "compile": "PASS",
+    "canonical_wp402_regression_suite": "PASS",
+    "two_exact_worldslice_subtype_regressions": "PASS"
+  },
+  "interpretation": "New executable counterevidence invalidates generation-2 acceptance specifically at its declared exact-WorldSlice revalidation scope. The tested minimal repair is two exact concrete-type guards, one at build admission and one at scoring revalidation. This does not invalidate unrelated deterministic QUBO scoring behavior and grants no runtime or whole-system credit.",
+  "required_reconciliation": "REOPEN_OR_SUCCESSOR_GENERATION_REQUIRED_BEFORE_TREATING_WP402_G2_EXACT_WORLDSLICE_SCOPE_AS_CURRENTLY_ACCEPTED",
+  "canonical_mutation_authority": "DO_NOT_SELF_GRANT_FROM_REVIEW_BRANCH; FOLLOW_CLAIM_PROTOCOL_FOR_SUCCESSOR_REPAIR",
+  "credit": {
+    "wp402_g2_exact_worldslice_scope": "FALSIFIED_AFTER_ACCEPTANCE",
+    "runtime_credit": 0,
+    "physical_grid10_credit": 0,
+    "gwt_runtime_credit": 0,
+    "jspace_runtime_credit": 0,
+    "training_credit": 0,
+    "whole_system_acceptance": false
+  }
+}
