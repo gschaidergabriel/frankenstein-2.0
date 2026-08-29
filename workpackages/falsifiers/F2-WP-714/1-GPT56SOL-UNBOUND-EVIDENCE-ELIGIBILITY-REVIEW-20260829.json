@@ -1,0 +1,95 @@
+{
+  "schema": "FRANKENSTEIN2_WORKPACKAGE_FALSIFIER_REVIEW/v1",
+  "review_id": "F2-WP-714-G1-GPT56SOL-UNBOUND-EVIDENCE-ELIGIBILITY-REVIEW-20260829",
+  "review_class": "REVIEW_ONLY_CANDIDATE_FALSIFIER",
+  "worker_id": "GPT-5.6-Sol",
+  "trigger": "4",
+  "authority": {
+    "research_entity_main_sha_observed": "d9d4fea68eafe7148678f003b932f7bfbbf34acc",
+    "current_supervisor_inbox_schema": "9.13",
+    "current_supervisor_delta": "9.13AU_NON_AUTHORITY",
+    "current_supervisor_ref": "research_entity/claycode/autonomous/SUPERVISOR_STEERING_9_13AU_DELTA_2026-08-29T1752P0700_GPT56SOL.json",
+    "owner_execution_authority": "CLAY_EXECUTION_AUTHORITY.md -> governance/CLAY_VPS_SANDBOX_FULL_EXECUTION_AUTHORITY_2026-08-25.md"
+  },
+  "observed_f2_main_before_review_branch": "89a5eb21cca50e010391906a592bf0ec5f82e274",
+  "reviewed_candidate": {
+    "workpackage_id": "F2-WP-714",
+    "claim_id": "F2-WP-714-G1-GPT56SOL-SUSTAINED-ACCEPTANCE-HARNESS-20260829",
+    "branch": "chatgpt/f2-wp714-perception-acceptance-harness-20260829",
+    "branch_head": "6c95cbff5f0f15dc93b5b1a55099e4470aee01b1",
+    "source_path": "src/frankenstein2/perception_acceptance.py",
+    "source_blob_sha": "691e7d2ff1dec4ca120abdd9d4dea36dcec759ee"
+  },
+  "finding": {
+    "status": "STATIC_COUNTEREXAMPLE_PRESENT",
+    "severity": "MEDIUM_FAIL_CLOSED_ELIGIBILITY_INTEGRITY",
+    "claim_boundary": "PREPARATION_ONLY_NO_TERMINAL_ACCEPTANCE_AUTHORITY",
+    "statement": "The evaluator can report ELIGIBLE_FOR_FINAL_REVIEW and local_hardware_receipt_bound=true from caller-asserted strings/booleans without verifying that upstream workpackages are actually accepted at their required exact scopes or that the local hardware evidence reference denotes a real verified receipt.",
+    "non_inflation_note": "The reviewed source hard-codes terminal_acceptance_minted=false and whole_system_acceptance=false, so this review does NOT claim that terminal acceptance can currently be minted. The defect is narrower: the eligibility signal and local_hardware_receipt_bound field can be satisfied by unverified assertions."
+  },
+  "static_witness": {
+    "upstream_acceptances": {
+      "ids": ["F2-WP-708", "F2-WP-710", "F2-WP-711", "F2-WP-712", "F2-WP-713"],
+      "accepted_scope": "NOT_ACCEPTED",
+      "receipt_ref": "unverified://fabricated-upstream-receipt",
+      "receipt_sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+    },
+    "cases": {
+      "all_required_case_ids": "PASS",
+      "ordinary_case_evidence_ref": "unverified://fabricated-case-evidence",
+      "ordinary_case_synthetic": true,
+      "LOCAL_REAL_DEVICE_OS_PERMISSION_ACCEPTANCE": {
+        "result": "PASS",
+        "evidence_ref": "unverified://fabricated-local-device-receipt",
+        "synthetic": false
+      }
+    },
+    "source_logic_result": {
+      "dependency_blockers": [],
+      "case_blockers": [],
+      "failed_cases": [],
+      "local_hardware_receipt_bound": true,
+      "assessment": "ELIGIBLE_FOR_FINAL_REVIEW",
+      "terminal_acceptance_minted": false
+    }
+  },
+  "why_the_witness_is_constructible": [
+    "UpstreamAcceptance validates workpackage_id/accepted_scope/receipt_ref as trimmed strings and receipt_sha256 only as lowercase 64-hex; it does not validate receipt contents, acceptance state, exact accepted scope, repository identity, or receipt digest against fetched bytes.",
+    "Dependency closure is computed from presence of the five required workpackage IDs only.",
+    "PerceptionAcceptanceCase accepts any non-empty evidence_ref and a caller-supplied synthetic boolean.",
+    "local_hardware_receipt_bound becomes true solely when the local case says PASS and synthetic=false; no typed local-device receipt or verifier result is required."
+  ],
+  "counterhypothesis": "This may be an intentional separation of pure evidence-shape evaluation from a later trusted receipt-verification layer. If so, the current names local_hardware_receipt_bound and ELIGIBLE_FOR_FINAL_REVIEW overstate what this pure layer has established unless the caller boundary is explicitly typed/trusted and enforced elsewhere.",
+  "cheapest_discriminator": "On the WP714 implementation branch, add a regression that constructs the witness above. If the current function returns ELIGIBLE_FOR_FINAL_REVIEW with local_hardware_receipt_bound=true, either make that test fail under a stricter verified-receipt contract or rename/re-scope the assessment so unverified evidence cannot be mistaken for bound acceptance evidence.",
+  "suggested_repair_options": [
+    "Require typed verified upstream receipt objects whose workpackage_id, acceptance state, accepted_scope, source identity and digest have already been deterministically checked against canonical receipt bytes.",
+    "Require the local real-device case to bind a typed local-device/OS-permission receipt with exact source/provenance/digest verification rather than deriving receipt_bound from synthetic=false.",
+    "If verification intentionally lives outside this module, rename the booleans/assessment to asserted_evidence_present or structurally_eligible and make the trusted verification boundary explicit in schema/tests."
+  ],
+  "execution_evidence": {
+    "exact_candidate_runtime_executed_by_this_review": false,
+    "repository_ci_observed_by_this_review": false,
+    "physical_device_execution_observed": false,
+    "vps_execution_observed": false,
+    "provider_execution_observed": false
+  },
+  "credits": {
+    "runtime_credit": 0,
+    "perception_runtime_credit": 0,
+    "vps_runtime_credit": 0,
+    "physical_grid10_credit": 0,
+    "gwt_runtime_credit": 0,
+    "jspace_runtime_credit": 0,
+    "training_credit": 0,
+    "effect_credit": 0,
+    "completion_credit": 0,
+    "whole_system_acceptance": false
+  },
+  "coordination": {
+    "owned_wp714_paths_modified": false,
+    "active_wp714_branch_modified": false,
+    "duplicate_implementation_created": false,
+    "review_branch_only": true
+  },
+  "next_exact_action": "WP714 owner should run the static witness as a regression on its isolated branch and either harden receipt verification/typing or explicitly narrow the eligibility semantics before repository-CI reconciliation."
+}
