@@ -20,6 +20,7 @@ RECON_SCHEMA = "FRANKENSTEIN2_WORKPACKAGE_RECONCILIATION/v1"
 WP = re.compile(r"^F2-WP-[0-9]+$")
 SHA40 = re.compile(r"^[0-9a-f]{40}$")
 CONTRACT_REL = Path("workpackages/WORKPACKAGE_STATE_CONSISTENCY_CONTRACT_V1.json")
+LEGACY_WHOLE_SYSTEM_NON_CREDIT = "NO_WHOLE_FRANKENSTEIN2_ACCEPTANCE"
 
 
 class ValidationError(ValueError):
@@ -90,30 +91,24 @@ def _claims_by_id(root: Path) -> dict[str, dict[str, Any]]:
         claim = load_json(path)
         claim_id = claim.get("claim_id")
         if not isinstance(claim_id, str) or not claim_id:
-            continue  # historical/noncanonical objects are not selectable by an active pointer
+            continue
         _require(claim_id not in claims, f"duplicate claim_id: {claim_id}")
         claims[claim_id] = claim
     return claims
 
 
 def _bind_claim(pointer: dict[str, Any], claim: dict[str, Any]) -> None:
-    _require(claim.get("schema") == CLAIM_SCHEMA, "claim schema mismatch")
+    wp_id = pointer.get("workpackage_id", "UNKNOWN_WORKPACKAGE")
+    _require(claim.get("schema") == CLAIM_SCHEMA, f"{wp_id}: claim schema mismatch")
     for field in ("workpackage_id", "generation", "claim_id"):
-        _require(claim.get(field) == pointer.get(field), f"claim/pointer identity mismatch: {field}")
-    # Historical worker spellings are provenance; exact worker identity is required when present on both.
+        _require(claim.get(field) == pointer.get(field), f"{wp_id}: claim/pointer identity mismatch: {field}")
     if "worker_id" in claim and "worker_id" in pointer:
-        _require(claim.get("worker_id") == pointer.get("worker_id"), "claim/pointer identity mismatch: worker_id")
-    # CLAIM_PROTOCOL.md does not require a trigger field on every admitted v1 claim.
-    # Preserve compatibility for claims that omit it, while fail-closing any explicit
-    # trigger value that would bind this Triggerword-4 repository state to another trigger.
+        _require(claim.get("worker_id") == pointer.get("worker_id"), f"{wp_id}: claim/pointer identity mismatch: worker_id")
     if "trigger" in claim:
-        _require(claim.get("trigger") == "4", "claim trigger must be '4' when present")
+        _require(claim.get("trigger") == "4", f"{wp_id}: claim trigger must be '4' when present")
 
 
 def _reconciliation_terminal_state(reconciliation: dict[str, Any]) -> str:
-    # Newer reconciliations use terminal_state. One admitted legacy generation used state.
-    # If terminal_state exists it remains authoritative even when a legacy descriptive state
-    # (for example SUPERSEDED_DUPLICATE) is also present.
     if "terminal_state" in reconciliation:
         return _string(reconciliation.get("terminal_state"), "reconciliation.terminal_state")
     return _string(reconciliation.get("state"), "reconciliation.state")
@@ -144,25 +139,31 @@ def _matching_reconciliations(root: Path, pointer: dict[str, Any]) -> list[tuple
 
 
 def _bind_reconciliation(pointer: dict[str, Any], reconciliation: dict[str, Any]) -> None:
-    _require(reconciliation.get("schema") == RECON_SCHEMA, "reconciliation schema mismatch")
+    wp_id = pointer.get("workpackage_id", "UNKNOWN_WORKPACKAGE")
+    _require(reconciliation.get("schema") == RECON_SCHEMA, f"{wp_id}: reconciliation schema mismatch")
     for field in ("workpackage_id", "generation", "claim_id"):
         _require(reconciliation.get(field) == pointer.get(field),
-                 f"reconciliation/pointer identity mismatch: {field}")
+                 f"{wp_id}: reconciliation/pointer identity mismatch: {field}")
     if "worker_id" in reconciliation and "worker_id" in pointer:
         _require(reconciliation.get("worker_id") == pointer.get("worker_id"),
-                 "reconciliation/pointer identity mismatch: worker_id")
+                 f"{wp_id}: reconciliation/pointer identity mismatch: worker_id")
     _require(_reconciliation_terminal_state(reconciliation) == pointer.get("state"),
-             "reconciliation terminal_state mismatch")
+             f"{wp_id}: reconciliation terminal_state mismatch")
 
-    # Current receipts use the explicit boolean guard. Older admitted reconciliations used
-    # whole_system_credit: 0. Preserve fail-closed semantics: exactly one explicit zero/false
-    # representation is required; absence, truthy acceptance, or nonzero credit is rejected.
     if "whole_system_acceptance" in reconciliation:
         _require(reconciliation.get("whole_system_acceptance") is False,
-                 "component reconciliation must not assert whole-system acceptance")
-    else:
+                 f"{wp_id}: component reconciliation must not assert whole-system acceptance")
+    elif "whole_system_credit" in reconciliation:
         _require(reconciliation.get("whole_system_credit") == 0,
-                 "component reconciliation requires explicit zero whole-system credit")
+                 f"{wp_id}: component reconciliation requires explicit zero whole-system credit")
+    else:
+        non_credit = reconciliation.get("non_credit")
+        _require(
+            isinstance(non_credit, list)
+            and all(isinstance(item, str) for item in non_credit)
+            and LEGACY_WHOLE_SYSTEM_NON_CREDIT in non_credit,
+            f"{wp_id}: component reconciliation requires explicit zero whole-system credit",
+        )
 
 
 def validate_pointer(
@@ -190,40 +191,40 @@ def validate_pointer(
     _require(pointer.get("schema") in compatible_schemas,
              f"active pointer schema not contract-admitted: {pointer.get('schema')}")
     workpackage_id = _string(pointer.get("workpackage_id"), "pointer.workpackage_id")
-    _require(bool(WP.fullmatch(workpackage_id)), "pointer workpackage_id malformed")
-    _require(filename_stem == workpackage_id, "active filename/workpackage mismatch")
-    _require(isinstance(state_entry, dict), "active pointer workpackage absent from STATE")
+    _require(bool(WP.fullmatch(workpackage_id)), f"{workpackage_id}: pointer workpackage_id malformed")
+    _require(filename_stem == workpackage_id, f"{workpackage_id}: active filename/workpackage mismatch")
+    _require(isinstance(state_entry, dict), f"active pointer workpackage absent from STATE: {workpackage_id}")
 
     generation = pointer.get("generation")
-    _require(type(generation) is int and generation >= 1, "pointer generation must be integer >= 1")
-    _string(pointer.get("claim_id"), "pointer.claim_id")
-    _string(pointer.get("worker_id"), "pointer.worker_id")
+    _require(type(generation) is int and generation >= 1, f"{workpackage_id}: pointer generation must be integer >= 1")
+    _string(pointer.get("claim_id"), f"{workpackage_id}.pointer.claim_id")
+    _string(pointer.get("worker_id"), f"{workpackage_id}.pointer.worker_id")
     base_commit = pointer.get("base_commit")
     _require(isinstance(base_commit, str) and bool(SHA40.fullmatch(base_commit)),
-             "pointer base_commit malformed")
+             f"{workpackage_id}: pointer base_commit malformed")
     _bind_claim(pointer, claim)
 
     pointer_state = pointer.get("state")
     _require(pointer_state == active_state or pointer_state in terminal_values,
-             f"invalid active pointer state: {pointer_state}")
+             f"{workpackage_id}: invalid active pointer state: {pointer_state}")
     broad_status = state_entry.get("status")
-    _require(broad_status in state_values, f"invalid broad workpackage status: {broad_status}")
+    _require(broad_status in state_values, f"{workpackage_id}: invalid broad workpackage status: {broad_status}")
 
     if pointer_state == active_state:
         _require(broad_status not in {"NOT_STARTED", "ACCEPTED_AT_SCOPE"},
-                 f"ACTIVE pointer requires nonterminal broad state, got {broad_status}")
-        _require(reconciliation is None, "ACTIVE pointer must not bind terminal reconciliation")
+                 f"{workpackage_id}: ACTIVE pointer requires nonterminal broad state, got {broad_status}")
+        _require(reconciliation is None, f"{workpackage_id}: ACTIVE pointer must not bind terminal reconciliation")
     else:
-        _require(reconciliation is not None, "terminal active pointer requires reconciliation")
+        _require(reconciliation is not None, f"{workpackage_id}: terminal active pointer requires reconciliation")
         _bind_reconciliation(pointer, reconciliation)
         if pointer_state == "ACCEPTED":
             broader = reconciliation.get("broader_workpackage_status")
             if broader == "IN_PROGRESS":
                 _require(broad_status == "IN_PROGRESS",
-                         "scoped ACCEPTED reconciliation requires broad IN_PROGRESS")
+                         f"{workpackage_id}: scoped ACCEPTED reconciliation requires broad IN_PROGRESS")
             elif broader == "ACCEPTED_AT_SCOPE":
                 _require(broad_status == "ACCEPTED_AT_SCOPE",
-                         "terminal ACCEPTED reconciliation requires broad ACCEPTED_AT_SCOPE")
+                         f"{workpackage_id}: terminal ACCEPTED reconciliation requires broad ACCEPTED_AT_SCOPE")
 
     return {
         "workpackage_id": workpackage_id,
@@ -244,7 +245,6 @@ def validate_repository(root: Path) -> dict[str, Any]:
     _require(active_dir.is_dir(), "workpackages/active directory missing")
     claims = _claims_by_id(root)
 
-    # ACCEPTED_AT_SCOPE is only meaningful with repository-local evidence that actually exists.
     for workpackage_id, entry in workpackages.items():
         if entry.get("status") == "ACCEPTED_AT_SCOPE":
             evidence = entry["evidence"]
