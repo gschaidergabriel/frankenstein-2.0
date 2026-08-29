@@ -115,6 +115,24 @@ class SparseWorldBasisTests(unittest.TestCase):
         self.assertEqual(first.canonical_json(), second.canonical_json())
         self.assertEqual(first.sha256(), second.sha256())
 
+    def test_empty_target_set_remains_open_ended_and_operator_provenance_is_preserved(self):
+        result = materialize_world_slice(
+            atoms=(atom("a"), atom("b"), atom("c"), atom("d")),
+            operators=(
+                op("op:ab", ("a",), ("b",)),
+                op("op:bc", ("b",), ("c",)),
+                op("op:cd", ("c",), ("d",)),
+            ),
+            activations=(),
+            need=need(targets=(), max_depth=2, max_atoms=4),
+        )
+        self.assertEqual(result.selected_atom_ids, ("a", "b", "c"))
+        self.assertEqual(result.depth_reached, 2)
+        self.assertEqual(result.stopped_reason, "MAX_DEPTH_REACHED")
+        self.assertIn("operator-source:op:ab", result.evidence_refs)
+        self.assertIn("operator-source:op:bc", result.evidence_refs)
+        self.assertNotIn("operator-source:op:cd", result.evidence_refs)
+
     def test_not_computed_taint_propagates_through_downstream_dependencies(self):
         result = materialize_world_slice(
             atoms=(
