@@ -1,0 +1,144 @@
+{
+  "schema": "FRANKENSTEIN2_TRIGGER6_EXPERIMENTAL_FALSIFIER_RESULT/v1",
+  "trigger": "6",
+  "research_id": "R6-20260829-SRCARCH-CITCOM-CAUSALTEST-GPT56SOL-01",
+  "slot": "EXPERIMENTAL_FALSIFIER",
+  "worker": "GPT-5.6-Sol",
+  "status": "E3_SOURCE_DERIVED_CONCEPT_FIXTURE_REPRODUCED_WITH_ORDER_CONTAMINATION_COUNTEREXAMPLE",
+  "created_at": "2026-08-29T15:09:49+07:00",
+  "coordination": {
+    "claim_path": "research/tool_intelligence/claims/R6-20260829-SRCARCH-CITCOM-CAUSALTEST-GPT56SOL-01/E3_CLAIM_REPRODUCED_NATIVE_FALSE_POSITIVE_FIXTURE.json",
+    "claim_commit": "a0c0fef09d087314479d776de19b49e42003ec61",
+    "research_credit_from_claim": 0
+  },
+  "authority_reentry": {
+    "f2_main_before_result_write": "12560047d720b36308153a2e2e250878d694efba",
+    "research_entity_main_before_result_write": "1c143f98594b54df4c3758e14980b02b8a12bbc3",
+    "canonical_supervisor_epoch": "9.13",
+    "latest_observed_supervisor_delta": "9.13AP_NON_AUTHORITY",
+    "execution_mode": "FREE_ONLY",
+    "provider_routes_admitted": false,
+    "together_forbidden": true,
+    "paid_fallback_forbidden": true
+  },
+  "source_identity": {
+    "repository": "CITCOM-project/CausalTestingFramework",
+    "commit": "9ee3e7c92d07a682a4caf16e2ca98c484c80ac65",
+    "experimental_estimator": {
+      "path": "causal_testing/estimation/experimental_estimator.py",
+      "blob_sha": "773a5703aa23c1ab0429cd9b0dc5b7e6a477c0fc"
+    },
+    "upstream_test": {
+      "path": "tests/estimation_tests/test_experimental_estimator.py",
+      "blob_sha": "394afde717e396f519a987033efeaadfaabf3caa"
+    },
+    "source_observation": "Pinned upstream source builds control and treatment configurations from the same adjustment configuration, changes only the treatment variable, executes all control repeats before all treatment repeats, and the pinned deterministic Y=2X test expects exact ATE=2 and risk ratio=2."
+  },
+  "experiment": {
+    "script_path": "research/tool_intelligence/experiments/R6-CITCOM-WP507-E3_NATIVE_FALSE_POSITIVE_FIXTURE_GPT56SOL.py",
+    "script_commit": "0d18de7f091b1f52a2c0597290f01017bf8677b6",
+    "script_git_blob_sha": "3ae7db7951dcc866590150bbb42406087ef5d2d1",
+    "script_sha256": "571b40b9595618d95721053ef71cec5b85e236a80ef599a895a24e834a259c2a",
+    "exact_committed_blob_reconstructed_and_verified_before_execution": true,
+    "python": "3.13.5",
+    "execution_surface": "LOCAL_NORMAL_USER_CONTAINER_SANDBOX",
+    "provider_calls": 0,
+    "vps_runs": 0,
+    "root_or_sudo": 0,
+    "production_runs": 0,
+    "network_runtime_dependency": 0,
+    "canonical_state_mutations": 0,
+    "identical_repetitions": 2,
+    "repeat_diff": "EMPTY",
+    "normalized_result_sha256": "59ac048c789fe90499fac0dd5bdf0f0886e4cffed312d0379e750c9ebd9d3843",
+    "assertions_passed_per_run": 8,
+    "fixture_scope": "SOURCE_DERIVED_REPRODUCTION_OF_PINNED_TREATMENT_CONTROL_SHAPE_PLUS_F2_NATIVE_FAIL_CLOSED_CAUSAL_PAIR_FENCES; NOT_IMPORT_OR_EXECUTION_OF_WHOLE_UPSTREAM_PACKAGE"
+  },
+  "observations": {
+    "pure_source_derived_ate": 2.0,
+    "stateful_block_order_naive_ate": 5.0,
+    "expected_true_treatment_effect_in_fixture": 2.0,
+    "matched_positive": "POSITIVE:MATCHED_CAUSAL_DIFFERENCE",
+    "mismatched_frozen_input": "INESTIMABLE:FROZEN_INPUT_MISMATCH",
+    "incomplete_recipient_uptake": "INESTIMABLE:RECIPIENT_UPTAKE_INCOMPLETE",
+    "sham_control_drift": "INESTIMABLE:SHAM_CONTROL_DRIFT",
+    "order_state_contamination": "INESTIMABLE:ORDER_STATE_CONTAMINATION",
+    "matched_no_effect": "NEGATIVE:NO_DOWNSTREAM_CHANGE"
+  },
+  "reproduced_and_falsified_claims": [
+    {
+      "id": "CITCOM-E3-C1-DETERMINISTIC-TREATMENT-CONTROL",
+      "direction": "REPRODUCES_PINNED_SOURCE_DERIVED_CLAIM",
+      "result": "PASS",
+      "observation": "A dependency-free extraction of the pinned treatment/control configuration shape on Y=2X reproduced ATE=2.0 for control X=1 and treatment X=2 over 200 repeats.",
+      "boundary": "This reproduces the narrow source semantics, not the complete upstream package runtime."
+    },
+    {
+      "id": "CITCOM-E3-C2-BLOCK-ORDER-STATE-CONTAMINATION",
+      "direction": "FALSIFIES_UNCONDITIONAL_CAUSAL_USE_ON_STATEFUL_TARGETS",
+      "result": "COUNTEREXAMPLE_OBSERVED",
+      "observation": "With a deterministic stateful drift term incremented on every call, the same all-control-then-all-treatment schedule returned naive ATE=5.0 although the fixture's treatment contribution remains 2.0.",
+      "f2_implication": "WP507 must bind pre-state/order/seed or equivalent matched-run identity; output difference alone cannot establish broadcast causality."
+    },
+    {
+      "id": "CITCOM-E3-C3-FOUR-FALSE-POSITIVE-FENCES",
+      "direction": "SUPPORTS_THIN_F2_NATIVE_DISTILLATION",
+      "result": "PASS",
+      "observation": "Frozen-input mismatch, incomplete recipient uptake, sham/control drift and order/state contamination were each rejected as INESTIMABLE rather than promoted to causal success.",
+      "f2_implication": "The useful donor is the treatment/control/expected-effect vocabulary plus explicit INESTIMABLE adjudication, not the upstream dependency graph or aggregate statistics as authority."
+    },
+    {
+      "id": "CITCOM-E3-C4-POSITIVE-NEGATIVE-SEPARATION",
+      "direction": "SUPPORTS_FAIL_CLOSED_ADJUDICATION",
+      "result": "PASS",
+      "observation": "A fully matched pair with complete uptake and changed output returned POSITIVE, while a fully matched pair with unchanged output returned NEGATIVE.",
+      "f2_implication": "The minimal native contract can preserve positive, negative and inestimable as distinct epistemic outcomes."
+    }
+  ],
+  "architecture_delta": {
+    "hypothesis_H_CITCOM_WP507_1": "SUPPORTED_AT_E3_NARROW_FIXTURE_SCOPE",
+    "counterhypothesis_CH_CITCOM_WP507_1": "PARTIALLY_FALSIFIED_AT_FIXTURE_SCOPE because explicit INESTIMABLE and order/state/sham fences reject false-positive classes not demonstrated by the pinned upstream treatment/control abstraction alone",
+    "counterhypothesis_CH_CITCOM_WP507_2": "SUPPORTED: statistical effect output must not bypass exact pair/provenance/uptake/state fences",
+    "recommended_adoption_class": "DISTILL_THIN_MATCHED_CAUSAL_PROBE_CONTRACT_ONLY",
+    "direct_dependency": false,
+    "required_native_fields_or_witnesses": [
+      "causal_probe_id",
+      "non_broadcast_input_digest",
+      "generation_and_frame_version",
+      "pre_state_or_order_seed_witness",
+      "intervention_broadcast_identity",
+      "complete_recipient_uptake_set",
+      "sham_or_no_broadcast_stability_witness",
+      "downstream_output_digest",
+      "POSITIVE_NEGATIVE_INESTIMABLE_adjudication"
+    ]
+  },
+  "counterevidence_and_limits": [
+    "The complete upstream CITCOM package was not imported or executed; E3 is a source-derived exact concept extraction from pinned files.",
+    "The experiment does not establish that upstream CITCOM itself claims stateful targets are safe from ordering effects; it demonstrates why the abstraction is insufficient for F2 without extra fences.",
+    "No canonical F2 WP507 implementation is present at src/frankenstein2/gwt_uptake.py on refreshed main, so no E4 F2 ablation was attempted.",
+    "No real GWT broadcast, recipient runtime, J-Space hidden state, physical GRID10, EffectGate or world effect was executed.",
+    "Two identical runs establish deterministic fixture reproducibility only, not independent scientific replication.",
+    "pending_research.sqlite was not rewritten through the text-only GitHub connector; database synchronization remains pending."
+  ],
+  "adjudication": {
+    "E3_narrow_semantic_reproduction": 1,
+    "whole_donor_runtime_credit": 0,
+    "F2_ablation_credit": 0,
+    "E5_build_candidate_credit": 0,
+    "E6_F2_acceptance_credit": 0,
+    "gwt_runtime_credit": 0,
+    "jspace_runtime_credit": 0,
+    "effect_credit": 0,
+    "training_credit": 0,
+    "whole_system_credit": 0,
+    "trigger4_handoff": "PREPARED_AS_ARCHITECTURE_DELTA_NOT_BUILD_CANDIDATE"
+  },
+  "database_sync": {
+    "status": "DB_SYNC_PENDING",
+    "pending_research_sqlite_modified": false,
+    "reason": "Current connector write path is UTF-8 text only; no safe canonical binary DB rewrite was performed."
+  },
+  "next_exact_action": "After canonical WP507 source is reconciled onto current F2 main, acquire a distinct create-only E4 claim and ablate current native WP507 against the four E3 false-positive classes. Promote toward E5 only if the thin additional fences reject a real gap without duplicating existing G3 semantics or creating a second truth/effect authority.",
+  "evidence_boundary": "E3 narrow source-derived concept reproduction and falsification only; zero F2 runtime, GWT/J-Space causal, effect, training or whole-system credit."
+}
