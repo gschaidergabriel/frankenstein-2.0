@@ -1,0 +1,53 @@
+name: WP714 Perception Acceptance Harness
+
+on:
+  pull_request:
+    paths:
+      - 'src/frankenstein2/perception_acceptance.py'
+      - 'tests/test_perception_acceptance.py'
+      - 'schemas/PERCEPTION_ACCEPTANCE_RECEIPT.schema.json'
+      - 'architecture/PERCEPTION_FABRIC.md'
+      - 'architecture/PERCEPTION_FABRIC_HARDENING_20260829.md'
+      - 'workpackages/PERCEPTION_FABRIC_PHASE.json'
+      - 'workpackages/active/F2-WP-708.json'
+      - 'workpackages/active/F2-WP-710.json'
+      - 'workpackages/active/F2-WP-711.json'
+      - 'workpackages/active/F2-WP-712.json'
+      - 'workpackages/active/F2-WP-713.json'
+      - '.github/workflows/wp714-perception-acceptance-ci.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'src/frankenstein2/perception_acceptance.py'
+      - 'tests/test_perception_acceptance.py'
+      - 'schemas/PERCEPTION_ACCEPTANCE_RECEIPT.schema.json'
+      - 'architecture/PERCEPTION_FABRIC.md'
+      - 'architecture/PERCEPTION_FABRIC_HARDENING_20260829.md'
+      - 'workpackages/PERCEPTION_FABRIC_PHASE.json'
+      - 'workpackages/active/F2-WP-708.json'
+      - 'workpackages/active/F2-WP-710.json'
+      - 'workpackages/active/F2-WP-711.json'
+      - 'workpackages/active/F2-WP-712.json'
+      - 'workpackages/active/F2-WP-713.json'
+      - '.github/workflows/wp714-perception-acceptance-ci.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  wp714-acceptance-harness:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Compile acceptance harness
+        run: python -m py_compile src/frankenstein2/perception_acceptance.py
+      - name: Validate receipt schema JSON
+        run: python -m json.tool schemas/PERCEPTION_ACCEPTANCE_RECEIPT.schema.json >/dev/null
+      - name: Run deterministic WP714 falsifiers
+        env:
+          PYTHONPATH: src
+        run: python -m unittest tests.test_perception_acceptance -v
