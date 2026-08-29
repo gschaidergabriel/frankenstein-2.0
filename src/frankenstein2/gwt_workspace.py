@@ -584,8 +584,8 @@ class WorkspaceSelection:
         object.__setattr__(self, "policy_id", _text("policy_id", self.policy_id))
         _generation("policy_generation", self.policy_generation)
         object.__setattr__(self, "policy_sha256", _sha256("policy_sha256", self.policy_sha256))
-        if not isinstance(self.selected, tuple) or not all(isinstance(item, SelectedCandidate) for item in self.selected):
-            raise GwtWorkspaceError("selected must be an immutable tuple of SelectedCandidate")
+        if not isinstance(self.selected, tuple) or not all(type(item) is SelectedCandidate for item in self.selected):
+            raise GwtWorkspaceError("selected must be an immutable tuple of concrete SelectedCandidate")
         selected_ids = tuple(item.candidate_id for item in self.selected)
         if len(set(selected_ids)) != len(selected_ids):
             raise GwtWorkspaceError("selected contains duplicate candidate_id")
@@ -649,6 +649,8 @@ class WorkspaceSelection:
 
 
 def _assert_selection_build_lineage(selection: WorkspaceSelection) -> None:
+    if not isinstance(selection.selected, tuple) or not all(type(item) is SelectedCandidate for item in selection.selected):
+        raise GwtWorkspaceError("selection selected members must be concrete SelectedCandidate")
     resolved_hyperposition = _resolve_hyperposition_binding(
         frame_id=selection.frame_id,
         frame_generation=selection.frame_generation,
