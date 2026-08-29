@@ -11,6 +11,10 @@ When its canonical reconciliation explicitly carries ``broader_workpackage_statu
 that status is authoritative for the aggregate projection. Otherwise ACCEPTED
 falls back to ACCEPTED_AT_SCOPE.
 
+All pointer/projection mismatches are aggregated in deterministic path order so
+one CI run exposes the complete current repair set instead of hiding later drift
+behind the first failure.
+
 This is metadata/projection validation only. It mints no runtime, provider,
 GRID10, GWT, J-Space, training, effect, completion, or whole-system credit.
 """
@@ -88,34 +92,41 @@ def validate_projection(root: Path) -> dict[str, Any]:
         raise ProjectionValidationError(f"missing active pointer directory: {ACTIVE_ROOT_REL}")
 
     checked: list[str] = []
+    errors: list[str] = []
     for path in sorted(active_root.glob("F2-WP-*.json")):
-        pointer = _load_json(path)
-        if pointer.get("schema") != ACTIVE_SCHEMA:
-            continue
-        wp = pointer.get("workpackage_id")
-        state = pointer.get("state")
-        if not isinstance(wp, str) or not wp:
-            raise ProjectionValidationError(f"{path}: missing workpackage_id")
-        if not isinstance(state, str) or not state:
-            raise ProjectionValidationError(f"{path}: missing state")
+        try:
+            pointer = _load_json(path)
+            if pointer.get("schema") != ACTIVE_SCHEMA:
+                continue
+            wp = pointer.get("workpackage_id")
+            state = pointer.get("state")
+            if not isinstance(wp, str) or not wp:
+                raise ProjectionValidationError(f"{path}: missing workpackage_id")
+            if not isinstance(state, str) or not state:
+                raise ProjectionValidationError(f"{path}: missing state")
 
-        row = rows.get(wp)
-        if not isinstance(row, dict):
-            raise ProjectionValidationError(
-                f"{wp}: active pointer is absent from effective State View v2"
-            )
-        broad = row.get("status")
-        if state == "ACTIVE" and broad == "NOT_STARTED":
-            raise ProjectionValidationError(
-                f"{wp}: ACTIVE pointer cannot project as NOT_STARTED"
-            )
-        if state == "ACCEPTED":
-            expected_broad = _accepted_broad_status(root, path, pointer)
-            if broad != expected_broad:
+            row = rows.get(wp)
+            if not isinstance(row, dict):
                 raise ProjectionValidationError(
-                    f"{wp}: ACCEPTED pointer requires broad {expected_broad}, got {broad!r}"
+                    f"{wp}: active pointer is absent from effective State View v2"
                 )
-        checked.append(wp)
+            broad = row.get("status")
+            if state == "ACTIVE" and broad == "NOT_STARTED":
+                raise ProjectionValidationError(
+                    f"{wp}: ACTIVE pointer cannot project as NOT_STARTED"
+                )
+            if state == "ACCEPTED":
+                expected_broad = _accepted_broad_status(root, path, pointer)
+                if broad != expected_broad:
+                    raise ProjectionValidationError(
+                        f"{wp}: ACCEPTED pointer requires broad {expected_broad}, got {broad!r}"
+                    )
+            checked.append(wp)
+        except ProjectionValidationError as exc:
+            errors.append(str(exc))
+
+    if errors:
+        raise ProjectionValidationError("\n".join(errors))
 
     return {
         "schema": "F2_WP002_EFFECTIVE_PROJECTION_VALIDATION/v2",
