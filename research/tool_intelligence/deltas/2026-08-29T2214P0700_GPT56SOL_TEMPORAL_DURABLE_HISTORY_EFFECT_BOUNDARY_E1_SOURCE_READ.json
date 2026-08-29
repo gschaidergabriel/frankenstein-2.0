@@ -1,0 +1,45 @@
+{
+  "schema": "FRANKENSTEIN2_TRIGGER6_RESEARCH_DELTA/v1",
+  "research_id": "R6-20260829-TEMPORAL-DURABLE-HISTORY-EFFECT-BOUNDARY-GPT56SOL-01",
+  "evidence_stage": "E1_SOURCE_READ",
+  "worker_id": "GPT-5.6-Sol",
+  "trigger": "6",
+  "observed_f2_main_before_source_read": "69f290db6b369dcdaf2d48e71d306f6b8babca88",
+  "write_reentry_main_observed": "4965b8db766b30d19a6f4d8d87f6caf07dfe47ec",
+  "primary_sources": [
+    "https://docs.temporal.io/encyclopedia/event-history",
+    "https://docs.temporal.io/workflow-definition",
+    "https://docs.temporal.io/activities",
+    "https://docs.temporal.io/activity-definition",
+    "https://docs.temporal.io/activity-execution",
+    "https://docs.temporal.io/encyclopedia/retry-policies"
+  ],
+  "source_direct_findings": [
+    "Temporal Event History is a durable log used to replay Workflow code and reconstruct logical workflow state after failure.",
+    "Workflow code must be deterministic; external/non-deterministic operations such as API, database, and LLM calls belong outside the replay path in Activities.",
+    "Activities may be retried after task loss or worker crash, including the case where an external action completed but completion was not recorded by the service.",
+    "Temporal explicitly recommends idempotent Activities; external idempotency can be enforced by a stable key derived from logical workflow/activity identity.",
+    "Temporal can make an Activity observed as completed exactly once while the underlying Activity may execute or partially execute multiple times.",
+    "Activity Task Tokens are attempt-specific and may become invalid across retries; stable Activity Id plus Workflow Id can be used instead for asynchronous completion identity.",
+    "Temporal Service persists its own Event History/state database and therefore importing Temporal itself into F2 would introduce another durable state authority unless strictly subordinated as a noncanonical executor/projection."
+  ],
+  "hypothesis_status": "SUPPORTED_WITH_IMPORT_REJECTION",
+  "counterhypothesis_status": "PARTIALLY_SUPPORTED",
+  "f2_relevance": {
+    "reuse": [
+      "separate deterministic replay/orchestration state from non-deterministic external-effect execution",
+      "separate stable logical operation identity from retry/transport-attempt identity",
+      "treat completion observation as distinct from physical exactly-once execution",
+      "make external-effect retries depend on stable target-enforced idempotency identity or remain UNKNOWN/non-replayable"
+    ],
+    "reject": [
+      "Temporal Service/Event History as a second canonical F2 truth store",
+      "Temporal retry state as an authority that can override UnifiedDB/EffectGate/EffectJournal",
+      "any claim that durable orchestration by itself proves an external effect happened exactly once"
+    ]
+  },
+  "negative_result": "No evidence supports adopting Temporal as a canonical runtime authority for F2. The useful result is structural: its distinction between replayable orchestration, retryable external Activities, stable logical identity, attempt identity, and observed completion reinforces F2's existing authority separation.",
+  "novel_discriminator": "Test the current F2 WP103/WP104/WP105 integration under a lost-ack scenario: the same logical child result is offered through two transport attempts, one acknowledgement is lost, and recovery occurs. Required invariant: stable result/return identity survives attempts; ACK cannot mint parent consumption, effect success, or task completion; retry must not generate a second logical result or blindly replay an UNKNOWN external effect.",
+  "credits": {"runtime":0,"real_effect":0,"vps":0,"physical_grid10":0,"gwt_jspace":0,"training":0,"whole_system":0},
+  "status": "E1_COMPLETE"
+}
