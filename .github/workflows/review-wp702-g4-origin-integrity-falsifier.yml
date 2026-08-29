@@ -1,0 +1,29 @@
+name: REVIEW WP702 G4 origin integrity falsifier
+
+on:
+  pull_request:
+    paths:
+      - 'tests/test_wp702_g4_origin_integrity_falsifier.py'
+      - '.github/workflows/review-wp702-g4-origin-integrity-falsifier.yml'
+      - 'workpackages/falsifiers/F2-WP-702/**'
+
+permissions:
+  contents: read
+
+jobs:
+  wp702-g4-origin-integrity-review:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Preserve canonical WP702 baseline tests
+        env:
+          PYTHONPATH: src
+        run: python -m unittest tests.test_perception_control -v
+      - name: Execute review-only producer/content integrity counterexamples
+        env:
+          PYTHONPATH: src
+        run: python -m unittest tests.test_wp702_g4_origin_integrity_falsifier -v
