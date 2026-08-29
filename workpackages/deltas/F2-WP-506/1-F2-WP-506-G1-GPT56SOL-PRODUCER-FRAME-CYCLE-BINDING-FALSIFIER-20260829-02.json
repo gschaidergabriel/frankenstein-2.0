@@ -1,0 +1,32 @@
+{
+  "schema": "FRANKENSTEIN2_WORKPACKAGE_DELTA/v1",
+  "workpackage_id": "F2-WP-506",
+  "generation": 1,
+  "claim_id": "F2-WP-506-G1-GPT56SOL-GWT-SELECTION-BROADCAST-20260829",
+  "worker_id": "GPT-5.6-Sol-review",
+  "result_class": "FALSIFIER_CAUSAL_BINDING_GAP",
+  "canonical_mutation_lane": "PR149 / trigger4/wp506-gwt-selection-broadcast-20260829",
+  "tested_source_head": "d5627711a2943cc6c1a564787929e791e88dbd9c",
+  "review_branch": "review/wp506-producer-frame-cycle-binding-falsifier-20260829",
+  "review_head_sha": "54b6dc789182bf9a0724da3f71ffdb31519381e6",
+  "workflow_run_id": 33222875381,
+  "job_id": 99020469128,
+  "observed_steps": {
+    "Compile current WP506 and WP503 surfaces": "success",
+    "Require exact producer plan cycle and SituationFrame binding": "failure"
+  },
+  "observed_counterexample": "A WorkspaceCandidate backed by an exact structurally valid WP503 Grid10Plan/CellInput/CellOutput producer admission for cycle-1/frame-1 was accepted by build_workspace_selection when the caller supplied cycle_id=cycle-foreign while retaining the exact producer plan id/generation/digest. The falsifier aborted on this first accepted mismatch before exercising the additional frame-id/generation/digest mismatch cases.",
+  "source_cause": "_validate_candidate_origins re-validates the exact producer Grid10Plan/input/output triple and exact plan identity, but it does not bind WorkspaceSelection.cycle_id or SituationFrame id/generation/digest to the producer plan's cycle/frame envelope. _assert_selection_build_lineage inherits the same omission.",
+  "scope_boundary": "This falsifies exact causal-envelope closure for WP506 selection construction at source/component level. It does not establish any target runtime, physical GRID10, GWT uptake, causal-influence, effect, completion, training, or whole-system result.",
+  "proposed_state_change": "DO_NOT_MERGE_OR_ACCEPT_WP506_GENERATION_1_UNCHANGED",
+  "next_exact_action": "Within the existing PR149 mutation lane, require every candidate producer plan to match the selection cycle_id and SituationFrame id/generation/digest as well as exact GRID plan identity; add deterministic negative regressions for foreign cycle and each frame field; rerun the complete WP506 suite and the exact review falsifier before merge/reconciliation.",
+  "runtime_execution_observed": false,
+  "runtime_credit": 0,
+  "physical_grid10_credit": 0,
+  "gwt_runtime_credit": 0,
+  "jspace_runtime_credit": 0,
+  "effect_authority": false,
+  "completion_authority": false,
+  "whole_system_acceptance": false,
+  "created_at_utc": "2026-08-29T00:13:40Z"
+}
