@@ -1,0 +1,36 @@
+{
+  "schema": "FRANKENSTEIN2_CANDIDATE_FALSIFIER/v1",
+  "classification": "REVIEW_ONLY_INTEGRATION_CAUSAL_BINDING_FALSIFIER",
+  "target_workpackage": "F2-WP-508",
+  "target_generation": 1,
+  "falsifier_id": "F2-WP-508-REENTRY-BROADCAST-PAYLOAD-BINDING-20260829T1520P0700-GPT56SOL",
+  "worker_id": "GPT-5.6-Sol",
+  "reviewed_main_sha": "191620c56d8f91531396a08741a998168845ac05",
+  "reviewed_source": "src/frankenstein2/gwt_reentry_provenance.py",
+  "reviewed_broadcast_source": "src/frankenstein2/gwt_workspace.py",
+  "hypothesis": "WP508 can currently mint a provenance witness tying a recipient CellInput to an exact BroadcastEnvelope even when the CellInput input_refs contain none of the broadcast candidate_payload_refs. Recipient membership plus object identity therefore does not yet establish content-level re-entry provenance.",
+  "counterhypothesis": "WP508 intentionally witnesses only structural recipient/lineage identity and content-level payload reference binding is guaranteed by another exact upstream/downstream invariant, making an explicit overlap check redundant.",
+  "direct_source_evidence": [
+    "BroadcastEnvelope canonically carries candidate_payload_refs derived from WorkspaceSelection.selected payload_ref values.",
+    "WP508 _assert_exact_object_lineage checks plan/input validity, selection-plan/frame identity, broadcast-selection/plan identity, positive reentry_depth and recipient membership.",
+    "No observed WP508 check requires any cell_input.input_refs entry to match any broadcast.candidate_payload_refs entry before build_reentry_witness constructs the witness."
+  ],
+  "minimal_counterexample": "Build a valid one-candidate BroadcastEnvelope addressed to G1 with candidate_payload_refs=('payload:broadcast-candidate',). Build a valid G1 CellInput with reentry_depth=1 but input_refs=('payload:unrelated-local-state',). The preregistered test requires build_reentry_witness to reject this as lacking broadcast payload binding.",
+  "expected_current_result": "FAILURE_OF_PREREGISTERED_REJECTION_IF_GAP_IS_PRESENT",
+  "test": "tests/test_wp508_reentry_payload_binding_falsifier.py",
+  "workflow": ".github/workflows/review-wp508-reentry-payload-binding-falsifier.yml",
+  "impact_if_confirmed": "WP508 remains useful for exact structural lineage but cannot claim that the witnessed CellInput re-entered content offered by the bound broadcast. This is narrower than semantic uptake/causal influence and does not invalidate WP506 broadcast construction.",
+  "recommended_repair_if_confirmed": [
+    "On the sole WP508 mutation-authority lane, fail closed unless at least one exact CellInput input_ref is contained in the bound BroadcastEnvelope candidate_payload_refs, or define and enforce a stronger explicit deterministic content-binding relation if one-to-one overlap is not the intended ABI.",
+    "Add positive and unrelated-payload negative regressions without weakening recipient/frame/plan/selection/broadcast identity fences.",
+    "Do not treat payload-reference overlap as semantic uptake or causal influence; it establishes only content-reference re-entry provenance."
+  ],
+  "evidence_scope": "EXACT_CURRENT_SOURCE_PLUS_REPOSITORY_HOSTED_REVIEW_TEST_WHEN_EXECUTED",
+  "runtime_execution_observed": false,
+  "runtime_credit": 0,
+  "physical_grid10_credit": 0,
+  "gwt_runtime_credit": 0,
+  "jspace_runtime_credit": 0,
+  "whole_system_acceptance": false,
+  "created_at_utc": "2026-08-29T08:20:45Z"
+}
