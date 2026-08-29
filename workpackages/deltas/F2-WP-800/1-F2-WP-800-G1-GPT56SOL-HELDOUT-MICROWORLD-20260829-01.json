@@ -1,0 +1,42 @@
+{
+  "schema": "FRANKENSTEIN2_WORKPACKAGE_DELTA/v1",
+  "workpackage_id": "F2-WP-800",
+  "generation": 1,
+  "claim_id": "F2-WP-800-G1-GPT56SOL-HELDOUT-MICROWORLD-20260829",
+  "worker_id": "GPT-5.6-Sol",
+  "authority_epoch": "8.78",
+  "stage": "STAGE8_COGNITIVE_UNIT_TEST_SUITE",
+  "status": "SOURCE_READY_AWAITING_REPOSITORY_HOSTED_CI",
+  "branch": "trigger4/wp800-heldout-microworld-20260829",
+  "base_commit": "7743364cd24e5ab921afa5c5bd4ebfdf3ff98525",
+  "source_ref": "src/frankenstein2/micro_world.py",
+  "source_blob_sha": "cd14a2d8734455212adccd17dc84349b7f259bfd",
+  "test_ref": "tests/test_micro_world.py",
+  "workflow_ref": ".github/workflows/wp800-micro-world-ci.yml",
+  "implemented_invariants": [
+    "canonical environment truth is mechanically separate from agent-visible observations",
+    "observations expose only declared visible state and bounded action identifiers; no scenario split/id/digest or hidden-state payload is exposed",
+    "reset/step/replay are deterministic and content-bound",
+    "run-state consumption revalidates exact scenario identity, generation, digest, state keyset and terminal semantics",
+    "max_steps is a hard terminal bound rather than a soft advisory",
+    "development and held-out partitions must be disjoint by scenario_id and identity-independent semantic content_sha256",
+    "the same semantic world cannot enter held-out by renaming scenario_id or changing split metadata",
+    "unknown actions/state keys and malformed integer domains fail closed",
+    "the harness has no model/provider/tool/UnifiedDB/effect/completion authority"
+  ],
+  "planned_falsification_tests": 11,
+  "negative_or_hardening_findings": [
+    "Exact scenario digest alone would not detect a renamed cross-split semantic duplicate because split/scenario_id participate in that digest. Added identity-independent content_sha256 and partition overlap rejection before CI promotion."
+  ],
+  "evidence_scope": "SOURCE_AND_TEST_DEFINITION_ONLY_UNTIL_EXACT_HEAD_CI_PASSES",
+  "runtime_execution_observed": false,
+  "target_runtime_credit": 0,
+  "physical_grid10_credit": 0,
+  "gwt_runtime_credit": 0,
+  "jspace_runtime_credit": 0,
+  "training_credit": 0,
+  "effect_credit": 0,
+  "completion_credit": 0,
+  "whole_system_acceptance": false,
+  "next_exact_action": "Open one PR from the owned branch, require exact PR-head repository-hosted WP800 CI, repair any executable falsifier, then merge and require merged-main CI before bounded terminal reconciliation."
+}
