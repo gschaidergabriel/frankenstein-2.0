@@ -1,0 +1,41 @@
+name: F2 WP804 Ref Alias Payload Falsifier Review CI
+
+on:
+  push:
+    branches:
+      - review/wp804-ref-alias-payload-falsifier-20260829
+    paths:
+      - 'tests/test_wp804_ref_alias_payload_falsifier.py'
+      - '.github/workflows/wp804-ref-alias-falsifier-review-ci.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  reproduce:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Compile review target
+        run: >-
+          python -m py_compile
+          src/frankenstein2/cognitive_microworld.py
+          src/frankenstein2/cognitive_goal_inference_benchmark.py
+          tests/test_cognitive_goal_inference_benchmark.py
+          tests/test_wp804_ref_alias_payload_falsifier.py
+      - name: Preserve accepted WP804 suites
+        env:
+          PYTHONPATH: src:.
+        run: >-
+          python -m unittest -v
+          tests.test_cognitive_goal_inference_benchmark
+          tests.test_wp804_g2_producer_lineage_repair
+      - name: Positive ref-alias payload reproducer
+        env:
+          PYTHONPATH: src:.
+        run: python -m unittest -v tests.test_wp804_ref_alias_payload_falsifier
