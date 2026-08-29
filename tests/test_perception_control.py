@@ -157,7 +157,7 @@ class PerceptionControlTests(unittest.TestCase):
         reg = registry(original)
         result = evaluate(reg, "head", lambda: (True, 800000))
         changed = registry(policy("head", "MEMORY_OFF"))
-        with self.assertRaisesRegex(PerceptionControlError, "policy identity mismatch"):
+        with self.assertRaisesRegex(PerceptionControlError, "registry identity mismatch"):
             validate_perception_control_result(
                 result=result,
                 expected_result_sha256=result.sha256(),
