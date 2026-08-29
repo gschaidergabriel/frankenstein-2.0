@@ -18,7 +18,6 @@ from frankenstein2.gwt_uptake import (
     summarize_uptake,
 )
 from frankenstein2.gwt_workspace import (
-    BroadcastEnvelope,
     CandidateProducerAdmission,
     SelectionPolicy,
     WorkspaceCandidate,
@@ -120,7 +119,13 @@ def make_selection(plan):
     )
 
 
-def make_fixture(*, delivery="DELIVERED", uptake="UPTAKEN", control_output=F):
+def make_fixture(
+    *,
+    delivery="DELIVERED",
+    uptake="UPTAKEN",
+    intervention_output=C,
+    control_output=F,
+):
     plan = make_plan()
     selection = make_selection(plan)
     broadcast = create_broadcast(
@@ -165,7 +170,7 @@ def make_fixture(*, delivery="DELIVERED", uptake="UPTAKEN", control_output=F):
         probe_id="probe:wp510",
         broadcast=broadcast,
         nonbroadcast_input_sha256=D,
-        downstream_output_sha256=E,
+        downstream_output_sha256=intervention_output,
         provenance_refs=("prov:intervention",),
     )
     control = CausalProbeArm.control(
@@ -253,6 +258,13 @@ def test_positive_uptake_without_wp508_reentry_binding_is_rejected():
         seal(fx, reentry_bundles=())
 
 
+def test_positive_probe_must_share_downstream_digest_with_uptake_reentry_evidence():
+    fx = make_fixture(intervention_output=E)
+    assert fx["causal_result"].status == "CAUSAL_INFLUENCE_OBSERVED_AT_CONTRACT_SCOPE"
+    with pytest.raises(GwtCausalPathError, match="downstream digest does not match"):
+        seal(fx)
+
+
 def test_forged_causal_result_is_rejected_by_exact_re_evaluation():
     fx = make_fixture()
     forged = replace(fx["causal_result"], status="NO_CAUSAL_INFLUENCE_OBSERVED")
@@ -278,7 +290,7 @@ def test_delivered_not_uptaken_path_remains_unknown_insufficient_uptake():
 
 
 def test_same_downstream_output_preserves_explicit_no_causal_influence():
-    fx = make_fixture(control_output=E)
+    fx = make_fixture(control_output=C)
     observed = seal(fx)
     assert fx["causal_result"].status == "NO_CAUSAL_INFLUENCE_OBSERVED"
     assert observed.path_status == "NO_CAUSAL_INFLUENCE_PATH_SEALED"
