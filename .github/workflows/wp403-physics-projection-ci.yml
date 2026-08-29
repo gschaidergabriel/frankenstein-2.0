@@ -15,6 +15,7 @@ on:
       - 'src/frankenstein2/physics_projection.py'
       - 'src/frankenstein2/sparse_world_basis.py'
       - 'tests/test_physics_projection.py'
+      - 'tests/test_wp403_subclass_forgery_falsifier.py'
       - '.github/workflows/wp403-physics-projection-ci.yml'
   workflow_dispatch:
 
@@ -31,8 +32,10 @@ jobs:
         with:
           python-version: '3.12'
       - name: Compile exact WP403 source and tests
-        run: python -m py_compile src/frankenstein2/sparse_world_basis.py src/frankenstein2/physics_projection.py tests/test_physics_projection.py
+        run: python -m py_compile src/frankenstein2/sparse_world_basis.py src/frankenstein2/physics_projection.py tests/test_physics_projection.py tests/test_wp403_subclass_forgery_falsifier.py
       - name: Rudimentary physics projection falsification suite
         env:
           PYTHONPATH: src
-        run: python tests/test_physics_projection.py -v
+        run: |
+          python tests/test_physics_projection.py -v
+          python tests/test_wp403_subclass_forgery_falsifier.py -v
