@@ -99,7 +99,9 @@ def fixture() -> MicroWorldFixture:
 
 def goals(*, ambiguous: bool = False) -> tuple[CandidateGoal, ...]:
     blue_signals = ("obs:needs-blue",)
+    blue_signal_sha256s = (h("needs-blue"),)
     red_signals = ("obs:needs-blue",) if ambiguous else ("obs:needs-red",)
+    red_signal_sha256s = (h("needs-blue"),) if ambiguous else (h("needs-red"),)
     return (
         CandidateGoal(
             CANDIDATE_GOAL_SCHEMA,
@@ -107,6 +109,7 @@ def goals(*, ambiguous: bool = False) -> tuple[CandidateGoal, ...]:
             "goal:blue",
             h("goal-blue"),
             blue_signals,
+            blue_signal_sha256s,
         ),
         CandidateGoal(
             CANDIDATE_GOAL_SCHEMA,
@@ -114,6 +117,7 @@ def goals(*, ambiguous: bool = False) -> tuple[CandidateGoal, ...]:
             "goal:red",
             h("goal-red"),
             red_signals,
+            red_signal_sha256s,
         ),
     )
 
@@ -285,8 +289,22 @@ class CognitiveGoalInferenceBenchmarkTests(unittest.TestCase):
         f = fixture()
         state, obs = begin_episode(f, episode_id="ep-4", episode_generation=0)
         candidates = (
-            CandidateGoal(CANDIDATE_GOAL_SCHEMA, "goal-a-red", "goal:red", h("red"), ("obs:needs-red",)),
-            CandidateGoal(CANDIDATE_GOAL_SCHEMA, "goal-z-blue", "goal:blue", h("blue"), ("obs:needs-blue",)),
+            CandidateGoal(
+                CANDIDATE_GOAL_SCHEMA,
+                "goal-a-red",
+                "goal:red",
+                h("red"),
+                ("obs:needs-red",),
+                (h("needs-red"),),
+            ),
+            CandidateGoal(
+                CANDIDATE_GOAL_SCHEMA,
+                "goal-z-blue",
+                "goal:blue",
+                h("blue"),
+                ("obs:needs-blue",),
+                (h("needs-blue"),),
+            ),
         )
         base_run = run(f, sut="baseline:canonical-first", run_id="run:wp804:base")
         signal_run = run(f, sut="baseline:public-signal", run_id="run:wp804:signal")
@@ -350,7 +368,14 @@ class CognitiveGoalInferenceBenchmarkTests(unittest.TestCase):
         class EvilCandidate(CandidateGoal):
             pass
 
-        evil = EvilCandidate(CANDIDATE_GOAL_SCHEMA, c[0].goal_id, c[0].public_goal_ref, c[0].public_goal_sha256, c[0].public_signal_refs)
+        evil = EvilCandidate(
+            CANDIDATE_GOAL_SCHEMA,
+            c[0].goal_id,
+            c[0].public_goal_ref,
+            c[0].public_goal_sha256,
+            c[0].public_signal_refs,
+            c[0].public_signal_sha256s,
+        )
         with self.assertRaisesRegex(GoalInferenceBenchmarkError, "exact concrete CandidateGoal"):
             candidate_set_digest((evil, c[1]))
 

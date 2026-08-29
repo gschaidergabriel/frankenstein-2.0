@@ -94,6 +94,7 @@ class CandidateGoal(_Digestible):
     public_goal_ref: str
     public_goal_sha256: str
     public_signal_refs: tuple[str, ...]
+    public_signal_sha256s: tuple[str, ...]
     classification: str = PUBLIC_CANDIDATE_CLASSIFICATION
 
     def __post_init__(self) -> None:
@@ -102,7 +103,13 @@ class CandidateGoal(_Digestible):
         _id("goal_id", self.goal_id)
         _id("public_goal_ref", self.public_goal_ref)
         _sha("public_goal_sha256", self.public_goal_sha256)
-        _refs("public_signal_refs", self.public_signal_refs)
+        refs = _refs("public_signal_refs", self.public_signal_refs)
+        if type(self.public_signal_sha256s) is not tuple:
+            raise GoalInferenceBenchmarkError("public_signal_sha256s must be an immutable tuple")
+        if len(refs) != len(self.public_signal_sha256s):
+            raise GoalInferenceBenchmarkError("public signal ref/digest binding length mismatch")
+        for index, value in enumerate(self.public_signal_sha256s):
+            _sha(f"public_signal_sha256s[{index}]", value)
 
 
 def candidate_set_digest(candidates: tuple[CandidateGoal, ...]) -> str:
@@ -122,11 +129,43 @@ def public_signal_matches(observation: ObservationView, candidates: tuple[Candid
     if type(observation) is not ObservationView:
         raise GoalInferenceBenchmarkError("observation must be exact concrete ObservationView")
     candidate_set_digest(candidates)
-    return tuple(item.goal_id for item in candidates if observation.observation_ref in item.public_signal_refs)
+    return tuple(
+        item.goal_id
+        for item in candidates
+        if any(
+            ref == observation.observation_ref and payload_sha256 == observation.observation_sha256
+            for ref, payload_sha256 in zip(item.public_signal_refs, item.public_signal_sha256s)
+        )
+    )
 
 
-def public_identifiability_digest(observation: ObservationView, candidates: tuple[CandidateGoal, ...]) -> str:
-    matches = public_signal_matches(observation, candidates)
+def _evaluator_public_signal_matches(
+    observation: ObservationView, candidates: tuple[CandidateGoal, ...]
+) -> tuple[str, ...]:
+    """Evaluator-side reconstruction independent of the policy matching helper."""
+    if type(observation) is not ObservationView:
+        raise GoalInferenceBenchmarkError("observation must be exact concrete ObservationView")
+    candidate_set_digest(candidates)
+    matches: list[str] = []
+    for item in candidates:
+        matched = False
+        for index in range(len(item.public_signal_refs)):
+            if (
+                item.public_signal_refs[index] == observation.observation_ref
+                and item.public_signal_sha256s[index] == observation.observation_sha256
+            ):
+                matched = True
+                break
+        if matched:
+            matches.append(item.goal_id)
+    return tuple(matches)
+
+
+def _identifiability_digest(
+    observation: ObservationView,
+    candidates: tuple[CandidateGoal, ...],
+    matches: tuple[str, ...],
+) -> str:
     return _digest(
         {
             "observation_sha256": observation.sha256(),
@@ -135,6 +174,11 @@ def public_identifiability_digest(observation: ObservationView, candidates: tupl
             "identifiability": IDENTIFIABLE if len(matches) == 1 else NON_IDENTIFIABLE,
         }
     )
+
+
+def public_identifiability_digest(observation: ObservationView, candidates: tuple[CandidateGoal, ...]) -> str:
+    matches = public_signal_matches(observation, candidates)
+    return _identifiability_digest(observation, candidates, matches)
 
 
 @dataclass(frozen=True, slots=True)
@@ -358,7 +402,7 @@ def seal_evaluator_goal_label(*, run: RunDescriptor, fixture: MicroWorldFixture,
         candidates=candidates,
         inference=inference,
     )
-    matches = public_signal_matches(observation, candidates)
+    matches = _evaluator_public_signal_matches(observation, candidates)
     identifiability = IDENTIFIABLE if len(matches) == 1 else NON_IDENTIFIABLE
     if identifiability == IDENTIFIABLE:
         if expected_goal_id != matches[0]:
@@ -372,7 +416,7 @@ def seal_evaluator_goal_label(*, run: RunDescriptor, fixture: MicroWorldFixture,
         state.sha256(),
         observation.sha256(),
         candidate_set_digest(candidates),
-        public_identifiability_digest(observation, candidates),
+        _identifiability_digest(observation, candidates, matches),
         identifiability,
         GOAL if expected_goal_id is not None else ABSTAIN,
         expected_goal_id,
@@ -433,8 +477,8 @@ def score_goal_inference(*, run: RunDescriptor, fixture: MicroWorldFixture, stat
         inference=inference,
     )
     candidate_digest = candidate_set_digest(candidates)
-    ident_digest = public_identifiability_digest(observation, candidates)
-    matches = public_signal_matches(observation, candidates)
+    matches = _evaluator_public_signal_matches(observation, candidates)
+    ident_digest = _identifiability_digest(observation, candidates, matches)
     expected_identifiability = IDENTIFIABLE if len(matches) == 1 else NON_IDENTIFIABLE
     if label.run_descriptor_sha256 != run.sha256():
         raise GoalInferenceBenchmarkError("label run descriptor binding mismatch")
