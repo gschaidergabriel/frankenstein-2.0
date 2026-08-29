@@ -5,15 +5,18 @@ on:
     branches:
       - trigger4/wp506-gwt-selection-broadcast-20260829
       - trigger4/wp506-g3-exact-concrete-selection-type-repair-20260829
+      - trigger4/wp506-g3-selectedcandidate-exact-type-repair-20260829
       - main
     paths:
       - 'src/frankenstein2/gwt_workspace.py'
       - 'tests/test_gwt_workspace.py'
+      - 'tests/test_wp506_selected_candidate_subtype_lineage_falsifier.py'
       - '.github/workflows/wp506-gwt-selection-broadcast-ci.yml'
   pull_request:
     paths:
       - 'src/frankenstein2/gwt_workspace.py'
       - 'tests/test_gwt_workspace.py'
+      - 'tests/test_wp506_selected_candidate_subtype_lineage_falsifier.py'
       - '.github/workflows/wp506-gwt-selection-broadcast-ci.yml'
   workflow_dispatch:
 
@@ -32,8 +35,15 @@ jobs:
       - name: Install test dependency
         run: python -m pip install pytest
       - name: Compile
-        run: python -m py_compile src/frankenstein2/gwt_workspace.py tests/test_gwt_workspace.py
+        run: >-
+          python -m py_compile
+          src/frankenstein2/gwt_workspace.py
+          tests/test_gwt_workspace.py
+          tests/test_wp506_selected_candidate_subtype_lineage_falsifier.py
       - name: GWT selection/broadcast falsification suite
         env:
           PYTHONPATH: src
-        run: python -m pytest -q tests/test_gwt_workspace.py
+        run: >-
+          python -m pytest -q
+          tests/test_gwt_workspace.py
+          tests/test_wp506_selected_candidate_subtype_lineage_falsifier.py
