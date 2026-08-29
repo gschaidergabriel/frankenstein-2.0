@@ -12,6 +12,7 @@ on:
       - 'src/frankenstein2/gwt_reentry_uptake_binding.py'
       - 'src/frankenstein2/gwt_causal_path.py'
       - 'tests/test_gwt_causal_path.py'
+      - 'tests/test_wp510_g3_not_computed_status.py'
       - '.github/workflows/wp510-gwt-causal-path-ci.yml'
   pull_request:
     paths:
@@ -22,6 +23,7 @@ on:
       - 'src/frankenstein2/gwt_reentry_uptake_binding.py'
       - 'src/frankenstein2/gwt_causal_path.py'
       - 'tests/test_gwt_causal_path.py'
+      - 'tests/test_wp510_g3_not_computed_status.py'
       - '.github/workflows/wp510-gwt-causal-path-ci.yml'
   workflow_dispatch:
 
@@ -49,7 +51,11 @@ jobs:
           src/frankenstein2/gwt_reentry_uptake_binding.py
           src/frankenstein2/gwt_causal_path.py
           tests/test_gwt_causal_path.py
+          tests/test_wp510_g3_not_computed_status.py
       - name: WP510 GWT causal-path falsification suite
         env:
           PYTHONPATH: src
-        run: python -m pytest -q tests/test_gwt_causal_path.py
+        run: >-
+          python -m pytest -q
+          tests/test_gwt_causal_path.py
+          tests/test_wp510_g3_not_computed_status.py
