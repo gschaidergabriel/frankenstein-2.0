@@ -1,0 +1,74 @@
+{
+  "schema": "FRANKENSTEIN2_TRIGGER6_E4_RESEARCH_RECEIPT/v1",
+  "research_id": "R6-SEED-001",
+  "claim_target": "E4_F2_ABLATION_LOSSLESS_STRUCTURAL_COMPACTION",
+  "slot": "EXPERIMENTAL_FALSIFIER",
+  "status": "E4_COMPLETE_BOUNDED_RESEARCH_SCOPE",
+  "observed_at": "2026-08-30T00:25:20+07:00",
+  "worker": "ChatGPT/GPT-5.6-Sol",
+  "claim_ref": "research/tool_intelligence/claims/R6-SEED-001/E4_F2_ABLATION_LOSSLESS_STRUCTURAL_COMPACTION.json",
+  "claim_commit": "343c9cecc106d6c00f57f96e60f3b1652637f7df",
+  "f2_main_observed_before_result_write": "a0f49bc4faf532e854c8b96fd573f4359e833ede",
+  "research_entity_main_observed_before_experiment": "a75f94b8ce2daa07b0dab0fbf7954ae7c78c1e8d",
+  "current_f2_sources": {
+    "context_compiler": "src/frankenstein2/context_compiler.py@a8cf88735e0ba6d01cdd3a1e9440a860f8e3eeea",
+    "epistemic_context_adapter": "src/frankenstein2/epistemic_context_adapter.py@fd87aede76267fe21020ade8aba5f82af16ca52f"
+  },
+  "external_source": {
+    "repo": "headroomlabs-ai/headroom",
+    "head": "213b37158fb9fa7287d7d5884c7df43800821995",
+    "source_ref": "headroom/transforms/content_router.py",
+    "relevant_observation": "Headroom mixes lossless and lossy/recoverable transforms; CCR recovery is side-store/marker based and source comments document a nested-marker recovery hazard. This E4 therefore tests only a side-store-free pure lossless structural transform, not Headroom import or CCR."
+  },
+  "experiment": {
+    "script_ref": "research/tool_intelligence/experiments/R6-SEED-001_E4_LOSSLESS_STRUCTURAL_COMPACTION_GPT56SOL.py",
+    "script_commit": "58768e262623d499c435fd49760587249fee9c36",
+    "script_sha256": "8560a8b61d3e7c9ff8a121f33b4856994f28646a35a21219d9f3d89c897a557e",
+    "result_canonical_sha256": "a7dff91d1126e809ffa908a30e6490d195599266f1e977eef1a001e0fb3874ff",
+    "environment": "Python 3.13.5; Linux 6.18.35 x86_64; standard-library-only harness",
+    "scope": "SYNTHETIC_F2_STYLE_CONTEXTVIEW_RESEARCH_ONLY",
+    "candidate": "self-describing row-oriented structural encoding with fixed field contract and source ContextView digest; no omitted fields, no semantic summarization, no external recovery store",
+    "token_measurement_limit": "NO_PINNED_TARGET_TOKENIZER_AVAILABLE; lexical-token and chars/4 proxies only",
+    "unrelated_environment_note": "Python subprocess startup emitted an artifact-tool spreadsheet warmup timeout, but the experiment process completed and its JSON stdout parsed successfully. Classified as infrastructure noise, not an F2 scientific negative."
+  },
+  "benchmarks": [
+    {"selected": 1, "omitted": 1, "baseline_bytes": 1744, "compact_bytes": 1950, "byte_savings_pct": -11.811927, "lexical_proxy_savings_pct": -12.698413, "char4_proxy_savings_pct": -11.926606, "encode_p50_us": 16.064, "decode_p50_us": 17.105, "roundtrip_exact": true},
+    {"selected": 4, "omitted": 1, "baseline_bytes": 5239, "compact_bytes": 4188, "byte_savings_pct": 20.061080, "lexical_proxy_savings_pct": 26.434196, "char4_proxy_savings_pct": 20.076336, "encode_p50_us": 40.719, "decode_p50_us": 43.053, "roundtrip_exact": true},
+    {"selected": 16, "omitted": 4, "baseline_bytes": 19872, "compact_bytes": 13523, "byte_savings_pct": 31.949477, "lexical_proxy_savings_pct": 42.456768, "char4_proxy_savings_pct": 31.944444, "encode_p50_us": 141.987, "decode_p50_us": 150.495, "roundtrip_exact": true},
+    {"selected": 64, "omitted": 16, "baseline_bytes": 78369, "compact_bytes": 50828, "byte_savings_pct": 35.142722, "lexical_proxy_savings_pct": 46.674225, "char4_proxy_savings_pct": 35.145205, "encode_p50_us": 594.197, "decode_p50_us": 626.810, "roundtrip_exact": true},
+    {"selected": 256, "omitted": 64, "baseline_bytes": 312359, "compact_bytes": 200050, "byte_savings_pct": 35.955103, "lexical_proxy_savings_pct": 47.786486, "char4_proxy_savings_pct": 35.954668, "encode_p50_us": 2472.887, "decode_p50_us": 2594.866, "roundtrip_exact": true}
+  ],
+  "adversarial_tests": {
+    "unsupported_codec": "PASS_REJECTED",
+    "field_order_mutation": "PASS_REJECTED",
+    "row_truncation": "PASS_REJECTED",
+    "payload_digest_mutation": "PASS_REJECTED",
+    "source_digest_tamper": "PASS_REJECTED",
+    "duplicate_field_name": "PASS_REJECTED"
+  },
+  "observations": [
+    "The fixed structural header is net-negative for a one-item view and must not be blindly enabled for tiny contexts.",
+    "From four selected items upward the synthetic F2-style structure shows positive byte reduction; the gain plateaus near 36% by 256 selected items.",
+    "Exact canonical round-trip identity held for every benchmark size.",
+    "All six malformed/tampered representations were rejected fail-closed.",
+    "Measured encode/decode overhead remained sub-millisecond through 64 selected items in this environment and approximately 2.5 ms each at 256 items; these are local research timings, not target-runtime measurements."
+  ],
+  "falsifier_result": "COUNTERHYPOTHESIS_PARTIALLY_FALSIFIED_AT_SYNTHETIC_STRUCTURAL_SCOPE_ONLY",
+  "disposition": "KEEP_CONDITIONAL_E4_CANDIDATE_NOT_E5",
+  "architecture_delta": {
+    "candidate_name": "LOSSLESS_CONTEXT_STRUCTURAL_RENDER_CODEC",
+    "placement": "derived noncanonical transient stage after ContextView selection and before any model-facing serialization that otherwise repeats full metadata keys",
+    "authority": "NO_TRUTH_NO_RETRIEVAL_NO_EFFECT_NO_COMPLETION_AUTHORITY",
+    "must_preserve": ["source ContextView SHA-256", "payload/source digests", "source generations", "epistemic classifications", "provenance/evidence refs", "cost-witness identity", "exact round-trip"],
+    "must_not_add": ["CCR side store", "semantic summarization", "lossy field dropping", "second retrieval authority", "new canonical state"],
+    "activation_hypothesis": "enable only when measured rendered-token savings exceed codec/header overhead; tiny contexts should bypass",
+    "missing_gate": "measure actual F2 production model-facing renderer output on representative admitted ContextViews with the exact pinned target tokenizer, then run downstream task/lesion equivalence and latency accounting"
+  },
+  "credit": {
+    "research_e4": 1,
+    "architecture": 0,
+    "integration": 0,
+    "target_runtime": 0,
+    "whole_system": 0
+  }
+}
