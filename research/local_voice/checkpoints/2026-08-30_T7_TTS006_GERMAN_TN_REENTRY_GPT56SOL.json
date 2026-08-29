@@ -1,0 +1,47 @@
+{
+  "schema": "T7_REENTRY_CHECKPOINT/v1",
+  "trigger": "7",
+  "organ": "GPT-5.6 Sol",
+  "date_local": "2026-08-30",
+  "research_id": "T7-TTS-006",
+  "objective": "E2_MAGPIETTS_GERMAN_TEXT_NORMALIZATION_DEPENDENCY_AUDIT",
+  "semantic_key": "f80bff0dbad5ed66ef6a8ebc7cd32cb4776551df0dbed617805f90371854336b",
+  "writes": {
+    "semantic_claim": "research/local_voice/semantic_claims/f80bff0dbad5ed66ef6a8ebc7cd32cb4776551df0dbed617805f90371854336b.json",
+    "human_claim": "research/local_voice/claims/T7-TTS-006/E2_MAGPIETTS_GERMAN_TEXT_NORMALIZATION_DEPENDENCY_AUDIT.json",
+    "source_audit": "research/local_voice/sources/2026-08-30_T7_TTS006_MAGPIETTS_GERMAN_TN_DEPENDENCY_AUDIT.json"
+  },
+  "source_result": {
+    "status": "DEPENDENCY_GAP_IDENTIFIED_SOURCE_ONLY",
+    "summary": "Official German NeMo text-normalization grammar source exists and emits classifier/verbalizer FAR archives, but the emitted German cache filenames are not directly discoverable by pinned NeMo-Speech.cpp. An explicit pinned generation/staging rename step is required. Source suggests structural bridgeability; runtime compatibility remains unverified.",
+    "runtime_credit": 0,
+    "hardware_credit": 0,
+    "german_listening_credit": 0,
+    "acceptance_credit": 0
+  },
+  "hardware_gate": {
+    "repo": "gschaidergabriel/Dr.-Unterweger",
+    "workflow_run_id": 33265598243,
+    "workflow_name": "Trigger 7 VPS Hardware Roundtrip",
+    "head_sha": "ba9d5682227372bf84ed3bd35654a2a861892c56",
+    "latest_observed_status": "completed",
+    "latest_observed_conclusion": "cancelled",
+    "valid_hardware_receipt_observed": false,
+    "credit": 0,
+    "rule": "Cancelled workflow execution is not a valid target-hardware receipt and cannot mint runtime/model/E2E credit. Do not infer hardware availability from workflow existence."
+  },
+  "negative_evidence": [
+    "German TN is not enabled by default in the pinned NeMo-Speech.cpp build.",
+    "Missing language grammar can degrade to unchanged-text pass-through rather than a hard failure.",
+    "Pinned NeMo-Speech.cpp does not vendor the German FAR grammar assets.",
+    "Official German NeMo-text-processing cache output filenames do not directly satisfy NeMo-Speech.cpp discovery/staging filenames.",
+    "Run 33265598243 completed cancelled and therefore provides no valid hardware receipt."
+  ],
+  "next_exact_actions": [
+    "Preserve the pinned FAR-generation/staging contract: German ClassifyFst archive -> tokenize_and_classify.far; German VerbalizeFinalFst archive -> verbalize.far; keep exact upstream commits and hashes.",
+    "On an execution surface explicitly admitted by current higher authority, run a source-bound German FAR generation plus NeMo-Speech.cpp text-normalizer smoke test before granting direct bridgeability credit.",
+    "Only after a valid target-hardware receipt exists, benchmark Magpie with paired RAW_TEXT_NO_TN and PINNED_GERMAN_TN German corpus cells; do not silently normalize only one challenger.",
+    "Keep cancelled run 33265598243 as negative coordination/runtime evidence; do not convert it into a product negative or rerun automatically."
+  ],
+  "reentry_rule": "Refresh current main, semantic claims and current execution authority before any further write or runtime action. Route away if another worker has already closed the same German TN bridge objective."
+}
