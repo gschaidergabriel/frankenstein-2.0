@@ -1,6 +1,6 @@
 """Deterministic HOLD/stop/rumination exit control for Frankenstein 2.0.
 
-F2-WP-509 generation 1.
+F2-WP-509 generation 2.
 
 This component decides only whether a caller-supplied cognitive cycle may continue or must
 leave the current rumination loop through an explicit typed transition. It does not infer
@@ -9,7 +9,7 @@ read or write UnifiedDB; mutate GRID/GWT state; authorize effects; or mint runti
 """
 from __future__ import annotations
 
-from dataclasses import asdict, dataclass
+from dataclasses import InitVar, asdict, dataclass
 import hashlib
 import json
 import re
@@ -36,6 +36,7 @@ _SHA256_RE = re.compile(r"^[0-9a-f]{64}$")
 _MAX_ID_LEN = 512
 _MAX_COUNTER = 2**31 - 1
 _MAX_REFS = 4096
+_EVALUATOR_ORIGIN = object()
 
 
 class RuminationControlError(ValueError):
@@ -274,8 +275,9 @@ class RuminationExitDecision:
     unresolved_preserved: bool
     provenance_refs: tuple[str, ...]
     classification: str = DECISION_CLASSIFICATION
+    _evaluator_origin: InitVar[object | None] = None
 
-    def __post_init__(self) -> None:
+    def __post_init__(self, _evaluator_origin: object | None) -> None:
         if self.schema != RUMINATION_DECISION_SCHEMA:
             raise RuminationControlError("rumination decision schema mismatch")
         if self.classification != DECISION_CLASSIFICATION:
@@ -298,6 +300,10 @@ class RuminationExitDecision:
             raise RuminationControlError("reasons contains duplicates")
         object.__setattr__(self, "reasons", reasons)
         object.__setattr__(self, "provenance_refs", _refs("provenance_refs", self.provenance_refs))
+        if _evaluator_origin is not _EVALUATOR_ORIGIN:
+            raise RuminationControlError(
+                "RuminationExitDecision must be created by evaluate_rumination_exit"
+            )
 
     def as_dict(self) -> dict[str, Any]:
         return {
@@ -393,6 +399,7 @@ def evaluate_rumination_exit(
         can_continue=transition == CONTINUE,
         unresolved_preserved=unresolved,
         provenance_refs=tuple(provenance_refs),
+        _evaluator_origin=_EVALUATOR_ORIGIN,
     )
 
 
