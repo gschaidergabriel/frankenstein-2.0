@@ -1,0 +1,40 @@
+{
+  "schema": "FRANKENSTEIN2_CANDIDATE_FALSIFIER/v1",
+  "workpackage_id": "F2-WP-1104",
+  "classification": "CANDIDATE_FALSIFIER",
+  "mutation_authority": false,
+  "active_claim_ref": "workpackages/active/F2-WP-1104.json",
+  "active_claim_id": "F2-WP-1104-G1-GPT56SOL-GENERIC-AGENT-ROUTE-20260829T1242Z",
+  "base_main_sha": "e261c8b924f2a11e8f2c075a2347b5fa3349907d",
+  "tested_source_refs": {
+    "generic_agent_route": {
+      "path": "src/frankenstein2/generic_agent_route.py",
+      "blob_sha": "e91416086bf89ef92011cbe6387337d558030046"
+    },
+    "host_adapter_abi": {
+      "path": "src/frankenstein2/host_adapter_abi.py",
+      "blob_sha": "e64512e6608f0f45ffcb4b4b34f7d27e4c58572b"
+    }
+  },
+  "hypothesis": "WP1104 treats HostCapabilityReport.report_digest() as sufficient evidence lineage even though HostCapabilityReport is publicly directly constructible and has no producer seal tying it to assess_host_adapter().",
+  "counterhypothesis": "plan_generic_agent_route independently revalidates the report strongly enough that a directly constructed report with no assessed required lifecycle/capability evidence cannot produce an ADAPTED or NATIVE route candidate.",
+  "discriminator": "Directly construct a HostCapabilityReport with classification=ADAPTED, empty required role/capability sets and no missing/unverified/conflict markers; bind only environment/state-lineage digests; feed it to plan_generic_agent_route. Counterhypothesis is falsified if a clean ADAPTED route is emitted.",
+  "reproduction_test": "tests/test_wp1104_host_report_producer_lineage_falsifier.py",
+  "workflow": ".github/workflows/review-wp1104-host-report-producer-falsifier.yml",
+  "review_branch": "review/wp1104-host-report-producer-falsifier-20260829",
+  "review_head_before_record": "d4bcefce07327e67d49e95385448b198544ff144",
+  "status": "PENDING_REPOSITORY_HOSTED_EXECUTION",
+  "expected_if_vulnerable": "test PASS: forged direct-constructor report is accepted as ADAPTED with no fail-closed limitation",
+  "expected_if_hardened": "test FAIL/raise: router rejects unsealed/unassessed report or independently reconstructs required assessment semantics",
+  "scope": "REVIEW_ONLY_REPOSITORY_COMPONENT_TRUST_BOUNDARY",
+  "credits": {
+    "runtime": 0,
+    "physical_host": 0,
+    "physical_grid10": 0,
+    "gwt": 0,
+    "jspace": 0,
+    "training": 0,
+    "whole_system": 0
+  },
+  "created_at": "2026-08-29T20:31:00+07:00"
+}
