@@ -122,6 +122,7 @@ Phase-3 acceptance is bounded to the granular repository-hosted evidence referen
 ## Phase 11 — Portable Host Harness
 
 - [-] F2-WP-1101 Host capability discovery / semantic lifecycle ABI — active source/tests-only claim; no physical-host or installer-runtime credit.
+- [-] F2-WP-1102 Claude Code local-host route planner / validator — active planning/validation claim; no live hook-firing, host mutation, or physical-host installer credit.
 
 ## Completion law
 
