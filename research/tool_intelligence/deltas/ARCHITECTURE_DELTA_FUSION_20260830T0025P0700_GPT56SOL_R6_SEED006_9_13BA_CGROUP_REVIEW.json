@@ -1,0 +1,88 @@
+{
+  "schema": "ARCHITECTURE_DELTA_FUSION/v1",
+  "architecture_delta_id": "ADF-20260830T0025P0700-GPT56SOL-R6-SEED006-9-13BA-CGROUP-REVIEW",
+  "trigger": "6",
+  "research_id": "R6-SEED-006",
+  "status": "E2_EXTERNAL_RESEARCH_COMPLETE_NO_CONTROLLER_ADOPTION",
+  "created_at": "2026-08-30T00:25:00+07:00",
+  "worker": "GPT-5.6-Sol-TRIGGER6",
+  "bound_heads_observed_before_write": {
+    "f2_main": "6dbe860c77c633e80b8e78b651eabaaf85ce9d60",
+    "research_entity_main": "4a5f3c5ff7c2e972d01000472ff134443d2cfadc",
+    "agentcgroup_main": "551ca1689b7d2d30db6b8a8613414750103cc68b"
+  },
+  "current_project_observation": {
+    "supervisor_delta": "9.13BA_NON_AUTHORITY",
+    "vps_live_telemetry": "clay-direct-dev host liveness readable; podman top rc125 because container has no cgroup; container isolation telemetry remains UNKNOWN",
+    "evidence_scope": "CONTROL_PLANE_TELEMETRY_ONLY_NO_TARGET_RUNTIME_PROMOTION"
+  },
+  "external_primary_sources": [
+    {
+      "source": "Linux kernel cgroup v2 documentation",
+      "url": "https://docs.kernel.org/admin-guide/cgroup-v2.html",
+      "finding": "cgroup.procs is direct process membership for normal domain cgroups; in a threaded domain it represents processes across the threaded subtree; cgroup.type distinguishes domain, domain threaded, domain invalid and threaded modes."
+    },
+    {
+      "source": "eunomia-bpf/agentcgroup README",
+      "ref": "551ca1689b7d2d30db6b8a8613414750103cc68b:README.md",
+      "finding": "AgentCgroup is primarily an active eBPF resource controller using sched_ext and memcg mechanisms, with Linux 6.12+, cgroup v2 and privileged/sudo execution requirements for the main controller path."
+    },
+    {
+      "source": "eunomia-bpf/agentcgroup cgroup-v2 fallback plan",
+      "ref": "551ca1689b7d2d30db6b8a8613414750103cc68b:plan.md",
+      "finding": "The standard-cgroup fallback actively writes memory.low/memory.high and polls memory.events/PSI/current; it is a control mechanism, not an independent passive resource-identity witness."
+    }
+  ],
+  "source_direct_findings": [
+    "A missing cgroup is not evidence of healthy isolation and cannot be repaired epistemically by merely reading host liveness.",
+    "cgroup.procs semantics are cgroup.type dependent; domain-threaded mode is a documented exception to a naive direct-node-only interpretation.",
+    "AgentCgroup's fallback can reduce custom-kernel dependence for memory control, but it mutates cgroup resource policy and therefore changes the measured execution environment."
+  ],
+  "architecture_clash": {
+    "prior_f2_design": "CgroupWitness/v1-candidate already requires exact runtime/container identity, host observer scope, cgroup.type, complete type-correct membership, independently observed host PID set, stable/fenced equivalence, and fail-closed SUPERSET/DEGRADED/UNKNOWN classes.",
+    "new_evidence_effect": "CONFIRMS_AND_SHARPENS_EXISTING_DESIGN; DOES_NOT_JUSTIFY_AGENTCGROUP_CONTROLLER_ADOPTION",
+    "reason": "The current 9.13BA gap is observer identity/availability. Introducing AgentCgroup control just to manufacture a cgroup would mutate scheduling/memory policy and confound the runtime being characterized."
+  },
+  "architecture_delta": {
+    "schema_change": "NONE_REQUIRED",
+    "policy_refinement": [
+      "Keep generic strict-superset promotion forbidden.",
+      "For cgroup.type=domain, compare the independently owned expected host-PID universe with canonicalized cgroup.procs under the existing generation/stability fence.",
+      "For cgroup.type=domain threaded, treat cgroup.procs as subtree-wide and require a complete independently owned process universe for the threaded domain; otherwise classify UNRESOLVED/SUPERSET rather than weakening equality.",
+      "For cgroup.type=threaded, do not reuse the domain cgroup.procs policy; require a separately specified cgroup.threads/thread-root proof or fail closed as unsupported.",
+      "Bind host PID incarnation (PID plus start-time or equivalent) and host-side cgroup identity; container-namespaced path text alone is not sufficient identity.",
+      "Do not create/reparent a cgroup merely to make telemetry claimable during a characterization run unless a separately authorized intervention explicitly tests that changed condition."
+    ],
+    "agentcgroup_reuse": "METHOD_DONOR_ONLY_FOR_NOW",
+    "candidate_reuse": [
+      "characterization methodology",
+      "resource-pressure signal vocabulary",
+      "future explicit resource-envelope/controller experiments after functional/runtime evidence gates"
+    ],
+    "rejected_now": [
+      "automatic controller adoption as a telemetry repair",
+      "generic subset/superset cgroup membership acceptance",
+      "runtime credit from host liveness or controller source availability"
+    ]
+  },
+  "counterhypothesis": {
+    "statement": "Creating a dedicated AgentCgroup-controlled hierarchy could make resource attribution easier and more reproducible.",
+    "assessment": "PLAUSIBLE_FOR_A_FUTURE_EXPLICIT_INTERVENTION_BUT_NOT_A_VALID_REPAIR_FOR_CURRENT_OBSERVATIONAL_EVIDENCE",
+    "falsifier": "A predeclared, separately authorized experiment showing that the control hierarchy preserves the target workload semantics while improving attribution without hiding helper/process ownership would be required before controller adoption."
+  },
+  "coordination": {
+    "duplicate_implementation_created": false,
+    "existing_trigger4_lane": "retain the existing CgroupWitness/runtime-discriminator lane; do not create a second WP605/AgentCgroup implementation authority",
+    "new_unusual_experiment_run": false,
+    "reason": "This turn is external source review and architecture fusion only."
+  },
+  "credits": {
+    "external_primary_research": 1,
+    "e2_architecture_review": 1,
+    "source_component": 0,
+    "target_runtime": 0,
+    "container_isolation": 0,
+    "whole_system": 0
+  },
+  "next_exact_action": "Trigger4/source-test owner should encode the cgroup.type-specific fail-closed membership cases in the existing CgroupWitness lane and keep 9.13BA no-cgroup telemetry UNKNOWN; no new runtime intervention is authorized or required by this review."
+}
