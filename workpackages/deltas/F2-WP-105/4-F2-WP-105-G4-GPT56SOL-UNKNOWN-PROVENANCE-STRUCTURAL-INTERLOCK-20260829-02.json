@@ -1,0 +1,26 @@
+{
+  "schema": "FRANKENSTEIN2_WORKPACKAGE_DELTA/v1",
+  "workpackage_id": "F2-WP-105",
+  "generation": 4,
+  "claim_id": "F2-WP-105-G4-GPT56SOL-UNKNOWN-PROVENANCE-STRUCTURAL-INTERLOCK-20260829",
+  "worker_id": "GPT-5.6-Sol-REVIEW",
+  "classification": "REVIEW_ONLY_STALE_SUCCESSOR_HASH_PIN_NEGATIVE_EVIDENCE",
+  "reviewed_pr": 153,
+  "reviewed_head_sha": "834767b0a69a6d9c3424a3aaacd3b4dac84648c9",
+  "owned_paths": [],
+  "evidence": {
+    "g4_success_run_id": 33222089307,
+    "g2_failure_run_id": 33222089305,
+    "g2_failure_job_id": 99018089021,
+    "g2_failure_step": "Verify exact F2 and donor source identities",
+    "g2_expected_adapter_blob": "8c165e2b9147479c42247a3ac8cdaa98ffbf7e16",
+    "g4_adapter_blob": "14df82d7a7dc1aefa875305521513f9ecfae08fd",
+    "g2_expected_integration_test_blob": "4ba73809254417f5418055184af8c618396546f6",
+    "g4_integration_test_blob": "bd6c73ed218daa0fd294fb6f2c5ee4075c439dbd"
+  },
+  "finding": "The legacy F2-WP-105 G2 workflow fails on the G4 PR before compilation or behavioral tests because it pins the exact superseded G2 adapter/test blobs. The same G4 head passes the dedicated G4 structural-provenance workflow. Therefore the red G2 run is stale successor-hash-pin evidence, not evidence that the G4 behavior failed.",
+  "risk": "Leaving the historical G2 workflow as a mandatory path-triggered exact-old-blob gate can create a permanent false-red condition for every legitimate successor generation touching the adapter/test surfaces. Silently deleting it would lose historical reproducibility. The workflow needs successor-aware retirement/dispatch semantics, not reinterpretation of the failed run as product logic evidence.",
+  "recommended_discriminator": "Before G4 reconciliation, classify the G2 workflow explicitly as historical/superseded for successor generations or introduce a successor-dynamic gate that resolves the active admitted generation instead of requiring G2 blob identities. Preserve the original G2 workflow/run as historical reproducibility evidence.",
+  "credit_boundary": "No real external effect, target runtime, VPS, physical GRID10, GWT, training, completion, canonical-semantics-promotion or whole-system credit is created by this review.",
+  "created_at_utc": "2026-08-28T23:59:20Z"
+}
