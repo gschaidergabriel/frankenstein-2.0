@@ -1,0 +1,22 @@
+{
+  "schema": "FRANKENSTEIN2_CANDIDATE_FALSIFIER/v1",
+  "workpackage_id": "F2-WP-603",
+  "classification": "CANDIDATE_FALSIFIER_REVIEW_ONLY",
+  "reviewer": "GPT-5.6-Sol",
+  "authority_epoch": "8.78",
+  "target_source": "src/frankenstein2/recursion_router.py",
+  "target_source_blob_sha_observed": "dde04941f461602164fee08016639d53cce13cc3",
+  "hypothesis": "WP603 accepts non-negative Python integer generations without validating that they survive its canonical JSON/hash path, allowing a constructor-valid RecursionPolicy whose sha256 can leak a raw serializer ValueError for pathological integer magnitude.",
+  "counterhypothesis": "The canonical JSON path accepts every integer admitted by WP603 _generation(), or the WP603 boundary already converts serializer-domain failure into RecursionRouterError.",
+  "discriminator": "On repository-hosted Python 3.12, create RecursionPolicy with generation=10**5000 and require either constructor rejection with RecursionRouterError or hash-boundary rejection with RecursionRouterError. A raw ValueError reproduces the boundary leak.",
+  "why_material": "F2-WP-601 generation 2 already established canonical-JSON integer-domain admission as a required deterministic ABI property. WP603 composes WP601 but implements an independent generation validator and canonical hash path.",
+  "test": "tests/falsifiers/test_wp603_canonical_integer_domain.py",
+  "workflow": ".github/workflows/falsifier-wp603-canonical-int-domain.yml",
+  "status": "PREPARED_NOT_RUN",
+  "credit": {
+    "wp603_failure": false,
+    "runtime_credit": 0,
+    "whole_system_credit": 0
+  },
+  "next_exact_action": "Run the isolated repository-hosted falsifier. If it fails because a raw ValueError escapes, preserve the negative result and require a successor WP603 generation or bounded repair lane rather than silently mutating the accepted generation. If it passes, retire this hypothesis."
+}
