@@ -1,0 +1,59 @@
+{
+  "schema": "FRANKENSTEIN2_TRIGGER6_RESEARCH_RECEIPT/v1",
+  "trigger": "6",
+  "research_id": "R6-20260829-WP800-HELDOUT-GENERATOR-INDEPENDENCE-GPT56SOL-02",
+  "evidence_stage": "E1_SOURCE_READ",
+  "created_at": "2026-08-29T20:21:20+07:00",
+  "worker": "GPT-5.6-Sol / Trigger-6 organ",
+  "claim_ref": "research/tool_intelligence/claims/R6-20260829-WP800-HELDOUT-GENERATOR-INDEPENDENCE-GPT56SOL-02/E1_SOURCE_READ.json@642109e5f338c1b1500598c04651a2aea66dba2e",
+  "f2_source": {
+    "module": "src/frankenstein2/cognitive_microworld.py",
+    "module_blob_sha": "18d3a12c65d00024c190e561450ca8184518d1c9",
+    "test": "tests/test_cognitive_microworld.py",
+    "test_blob_sha": "3d0efbb276fc768245e6dfc017a5fc959829e9f7"
+  },
+  "primary_external_sources": [
+    {
+      "name": "CoinRun / Quantifying Generalization in Reinforcement Learning",
+      "finding": "Generalization is measured on unseen procedurally generated levels; training-environment evaluation can hide overfitting."
+    },
+    {
+      "name": "Procgen Benchmark / train-procgen",
+      "source_pin": "openai/train-procgen@1a2ae2194a61f76a733a39339530401c024c3ad8",
+      "finding": "Train/test instances are separated by generator level ranges; unseen instances are explicit benchmark structure."
+    },
+    {
+      "name": "ProcgenOOD",
+      "source_pin": "USArmyResearchLab/ProcgenOOD@0a5def7caf8e3abe7477e755d8afa7786731afe5",
+      "finding": "Unseen seeds under one generator distribution are distinct from OOD holdouts over generation features; the two axes must not be conflated."
+    },
+    {
+      "name": "DiscoGen / DiscoBench",
+      "finding": "Benchmark methodology separates mutually exclusive meta-train/meta-test datasets and keeps the principal evaluation metric outside the mutable solution module."
+    }
+  ],
+  "observed_f2_contract": {
+    "strong_existing_controls": [
+      "full hidden fixture digest",
+      "public-interface-only digest",
+      "fixture id and generation binding",
+      "evidence/source/donor/method provenance fields",
+      "matched baseline/intervention exact fixture ancestry",
+      "evaluator-only hidden state separated from SUT view"
+    ],
+    "unproven_property": "No current WP800 field or observed test mechanically proves that a locked held-out fixture/case/family is disjoint from development or calibration fixtures at instance, generator-family, or declared feature-holdout level.",
+    "why_holdout_set_id_is_insufficient": "holdout_set_id is validated as an identifier and hashed into fixture identity, but source inspection found no accompanying manifest, generator contract digest, split-role semantics, or set-intersection check that establishes distributional independence."
+  },
+  "cross_workpackage_signal": {
+    "wp805_e2_review_commit": "da10ef7f939e9a2322d4bf2e7e8198cc17c4d13d",
+    "finding": "A contemporaneous WP805 review independently identified that distinct opaque holdout_set_id values do not prove structural transfer disjointness when evidence_source_family, donor_path_family and method_family overlap.",
+    "credit_boundary": "CORROBORATING_ARCHITECTURE_SIGNAL_ONLY_NOT_INDEPENDENT_REPLICATION"
+  },
+  "hypothesis": "WP800 should distinguish exact fixture integrity from held-out generalization validity by binding an explicit split/generator/holdout provenance contract.",
+  "counterhypothesis": "The current harness may already be sufficient if fixture generation/freezing and pre-evaluation access are enforced by an external producer pipeline that mechanically guarantees disjointness; adding generator-family machinery inside WP800 would then duplicate authority.",
+  "result": "E1_GAP_SUPPORTED_SOURCE_LEVEL_ONLY",
+  "architecture_credit": 0,
+  "runtime_credit": 0,
+  "whole_system_credit": 0,
+  "next_exact_gate": "Acquire E2_ARCHITECTURE_MAPPED, inspect all current WP800 producer paths and WP802-WP807 fixture usage, then determine whether split independence is already enforced externally or requires a minimal typed WP800 manifest contract."
+}
