@@ -1,0 +1,65 @@
+{
+  "schema": "T7_RESEARCH_RESULT/v1",
+  "research_id": "T7-TTS-007",
+  "objective": "E2_MAGPIE_V2602_V2607_NATIVE_RUNTIME_VERSION_FENCE",
+  "state": "COMPLETED_SOURCE_AUDIT",
+  "semantic_claim_key": "2d90946ce1c8df466d04a91c797130b317550da0b13dbdd659d2e2266290090d",
+  "language_priority": "de",
+  "evidence_level": "V1_SOURCE_PINNED",
+  "runtime_execution_observed": false,
+  "runtime_credit": 0,
+  "quality_credit": 0,
+  "acceptance_credit": 0,
+  "source_pins": {
+    "nemo_speech_cpp": {
+      "repository": "NVIDIA/NeMo-Speech.cpp",
+      "ref": "main",
+      "sha": "4f9676226f667d14608487df744f375db87127f8",
+      "tts_models_path": "docs/tts/models.md",
+      "tts_configuration_path": "docs/tts/configuration.md"
+    },
+    "magpie_tts": {
+      "repository": "nvidia/magpie_tts_multilingual_357m",
+      "provider": "Hugging Face",
+      "documented_native_baseline_tag": "v2602",
+      "current_latest_model_tag": "v2607",
+      "v2607_release_date": "2026-07-21"
+    }
+  },
+  "observations": [
+    "At NeMo-Speech.cpp SHA 4f9676226f667d14608487df744f375db87127f8, the official MagpieTTS conversion instructions explicitly download nvidia/magpie_tts_multilingual_357m with --revision v2602 before GGUF conversion.",
+    "The same NeMo-Speech.cpp TTS configuration examples point at magpie_tts_multilingual_357m.v2602.f16.gguf and expose native German tokenization (de).",
+    "NVIDIA's official MagpieTTS model card identifies v2607 as the latest release and v2602 as an older checkpoint. v2607 adds languages and changes release behavior, including removal of zero-shot voice-cloning and updated G2P/code-switching support.",
+    "The official MagpieTTS card reports German metrics separately for v2602 and v2607, so they are not interchangeable benchmark identities."
+  ],
+  "finding": {
+    "classification": "NATIVE_RUNTIME_VERSION_FENCE_REQUIRED",
+    "native_cpp_reference": "Use exact v2602 as the documented NeMo-Speech.cpp native GGUF reference until v2607 conversion+load is independently demonstrated at exact identity.",
+    "latest_model_challenger": "Treat exact v2607 as a distinct latest-model challenger. Do not silently inherit NeMo-Speech.cpp native compatibility or runtime metrics from v2602.",
+    "comparison_rule": "Never mix v2602 native-runtime latency/resource measurements with v2607 quality/model-card results as though they describe one model identity."
+  },
+  "counterhypothesis": "The NeMo-Speech.cpp converter may already accept v2607 unchanged because the architecture remained sufficiently compatible; if so, the version fence remains necessary for identity but native compatibility can be promoted after exact conversion and load evidence.",
+  "falsifier": "On the authorized clay-direct-dev runtime, pin v2607 exactly, convert with the pinned NeMo-Speech.cpp converter, verify consumed artifact/tokenizer identity, load successfully, and synthesize the fixed German corpus without fallback/network model APIs. Failure or incompatibility preserves v2602 as the native reference and routes v2607 to a separate runtime path.",
+  "post_hardware_benchmark_gate": {
+    "variants": [
+      "MagpieTTS v2602 via pinned NeMo-Speech.cpp native GGUF path",
+      "MagpieTTS v2607 via the same pinned converter/runtime only if conversion+load passes"
+    ],
+    "same_german_corpus": true,
+    "measure": [
+      "speech-end-to-first-audio/TTFA p50 p95 p99",
+      "RTF",
+      "RSS and VRAM",
+      "German CER/pronunciation on numbers, abbreviations, compounds and code-switching",
+      "fixed male voice identity stability",
+      "cancellation/barge-in correctness",
+      "offline/network-blocked operation"
+    ],
+    "text_normalization_note": "Pin the text-normalization condition/version per arm, but leave detailed German TN dependency auditing to its separately claimed Trigger-7 lane."
+  },
+  "sources": [
+    "https://github.com/NVIDIA/NeMo-Speech.cpp/blob/4f9676226f667d14608487df744f375db87127f8/docs/tts/models.md",
+    "https://github.com/NVIDIA/NeMo-Speech.cpp/blob/4f9676226f667d14608487df744f375db87127f8/docs/tts/configuration.md",
+    "https://huggingface.co/nvidia/magpie_tts_multilingual_357m"
+  ]
+}
