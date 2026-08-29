@@ -1,0 +1,245 @@
+{
+  "schema": "FRANKENSTEIN2_TRIGGER6_RESEARCH_DELTA/v1",
+  "research_id": "R6-20260829-WP804-GOAL-INFERENCE-EVAL-GPT56SOL-02",
+  "evidence_stage": "E2_ARCHITECTURE_MAPPED",
+  "status": "E2_COMPLETE_NO_ARCHITECTURE_ACCEPTANCE_CREDIT",
+  "created_at": "2026-08-29T20:11:00+07:00",
+  "worker": "GPT-5.6-Sol-TRIGGER6",
+  "claim_ref": "research/tool_intelligence/claims/R6-20260829-WP804-GOAL-INFERENCE-EVAL-GPT56SOL-02/E2_ARCHITECTURE_MAPPED.json",
+  "e1_ref": "research/tool_intelligence/deltas/2026-08-29T2008P0700_GPT56SOL_R6_WP804_GOAL_INFERENCE_E1.json",
+  "f2_workpackage_ref": "workpackages/active/F2-WP-804.json",
+  "wp800_ref": "src/frankenstein2/cognitive_microworld.py",
+  "wp800_blob_sha": "18d3a12c65d00024c190e561450ca8184518d1c9",
+  "f2_main_observed_before_write": "5252f5d22ed6b25ba928ac054df130386eb503e8",
+  "authority_epoch_observed_from_wp804": "8.78",
+  "observed_current_state": {
+    "wp800": "ACCEPTED_AT_REPOSITORY_HOSTED_COMPONENT_CI_ONLY",
+    "wp804": "ACTIVE_GENERATION_1",
+    "wp804_source_path_present_on_main": false,
+    "wp804_owned_source": "src/frankenstein2/cognitive_goal_inference_benchmark.py",
+    "wp804_owned_test": "tests/test_cognitive_goal_inference_benchmark.py",
+    "wp804_owned_ci": ".github/workflows/wp804-cognitive-goal-inference-ci.yml"
+  },
+  "exact_wp800_api_mapping": {
+    "public_policy_input_anchor": {
+      "type": "ObservationView",
+      "fields": [
+        "episode_id",
+        "episode_generation",
+        "fixture_id",
+        "fixture_generation",
+        "public_fixture_sha256",
+        "step_index",
+        "observation_ref",
+        "observation_sha256",
+        "available_action_ids",
+        "terminal",
+        "classification"
+      ],
+      "required_classification": "PUBLIC_SUT_VIEW_NO_EVALUATOR_GROUND_TRUTH",
+      "mapping": "WP804 goal inference may consume exact concrete ObservationView values, plus separately declared immutable public CandidateGoalDescriptor values. It must not consume MicroWorldFixture itself."
+    },
+    "evaluator_only_anchors": {
+      "types": ["MicroWorldFixture", "WorldNode", "TransitionRule", "EpisodeState", "EvaluatorStep"],
+      "sensitive_fields_examples": [
+        "WorldNode.hidden_ground_truth_ref",
+        "WorldNode.hidden_ground_truth_sha256",
+        "WorldNode.evaluator_score",
+        "EpisodeState.current_node_id",
+        "EpisodeState.cumulative_score",
+        "EvaluatorStep.transition_ref",
+        "EvaluatorStep.from_node_id",
+        "EvaluatorStep.to_node_id"
+      ],
+      "mapping": "These values are evaluator-side only. WP804 policy call signatures should make passing any of these exact types impossible or fail closed on exact-type/subtype attempts."
+    },
+    "identity_anchors": {
+      "episode": ["episode_id", "episode_generation"],
+      "fixture": ["fixture_id", "fixture_generation", "public_fixture_sha256"],
+      "observation": ["step_index", "observation_sha256"],
+      "run": ["RunDescriptor.run_id", "RunDescriptor.fixture_sha256", "RunDescriptor.episode_family_id", "RunDescriptor.system_under_test_ref"],
+      "mapping": "A sealed GoalInference must bind the exact public observation digest plus candidate-set digest and run identity so evaluator labels cannot be mixed across fixture/generation/run boundaries."
+    },
+    "holdout_family_anchors": {
+      "fixture_fields": ["holdout_set_id", "evidence_source_family", "primary_source_ids", "donor_path_family", "method_family"],
+      "run_field": "episode_family_id",
+      "mapping": "WP804 should report family-heldout separation using these existing provenance/family fields, not merely distinct episode_id values from the same latent template."
+    }
+  },
+  "recommended_wp804_contract": {
+    "CandidateGoalDescriptor": {
+      "properties": [
+        "exact frozen immutable value",
+        "goal_id",
+        "public_descriptor_ref",
+        "public_descriptor_sha256",
+        "prior_weight_or_prior_logit if probabilistic inference is supported",
+        "classification = PUBLIC_CANDIDATE_GOAL_NO_GOAL_AUTHORITY"
+      ],
+      "constraints": [
+        "canonical lexical order",
+        "unique goal_id",
+        "no hidden node id, transition ref, evaluator score, hidden ground-truth ref or GoalContract mutation handle",
+        "candidate set receives its own deterministic digest"
+      ]
+    },
+    "GoalInference": {
+      "properties": [
+        "sealed immutable output",
+        "inference_id",
+        "run_id",
+        "episode_id and generation",
+        "fixture_id and generation",
+        "public_fixture_sha256",
+        "observation_sha256",
+        "candidate_set_sha256",
+        "decision = GOAL_ID or UNKNOWN",
+        "optional normalized candidate probabilities only if validated and scored with a proper scoring rule",
+        "policy_ref/policy_sha256",
+        "classification = BENCHMARK_HYPOTHESIS_NO_GOAL_AUTHORITY"
+      ],
+      "constraints": [
+        "must be created before evaluator label access",
+        "must never expose an adoption/apply/commit method",
+        "must bind exact current ObservationView and candidate set",
+        "UNKNOWN is first-class, not encoded as a fake candidate goal"
+      ]
+    },
+    "EvaluatorGoalLabel": {
+      "properties": [
+        "evaluator-only object created or retrieved only after GoalInference sealing",
+        "same exact run/episode/fixture/generation identities",
+        "predeclared label/evidence ref and digest",
+        "may represent IDENTIFIABLE(goal_id) or NON_IDENTIFIABLE/UNKNOWN_EXPECTED"
+      ],
+      "constraints": [
+        "never passed into tested policy",
+        "no label derivation from policy output",
+        "fail closed on identity mismatch"
+      ]
+    }
+  },
+  "required_fail_closed_tests_for_wp804_owner": [
+    "reject MicroWorldFixture, WorldNode, TransitionRule, EpisodeState or EvaluatorStep as policy input",
+    "reject subclasses/proxies that attempt to smuggle evaluator-only state where exact concrete public types are required",
+    "reject stale/future episode_generation",
+    "reject fixture_generation mismatch",
+    "reject public_fixture_sha256 mismatch",
+    "reject observation_sha256 mismatch",
+    "reject duplicate/noncanonical candidate goal ids/order",
+    "reject candidate descriptor containing evaluator-only refs or authority-bearing GoalContract handles",
+    "reject evaluator label access before inference is sealed",
+    "reject evaluator label whose run/episode/fixture/generation binding differs from inference",
+    "reject probability vectors that are non-finite, negative, non-normalized or omit candidates if probabilistic mode exists",
+    "verify GoalInference has no path that mutates F2-WP-203/F2-WP-204 canonical goal authority",
+    "verify repository CI metadata cannot mint runtime/GRID10/GWT/J-Space/training/effect/completion/whole-system credit"
+  ],
+  "required_discriminating_fixtures": [
+    {
+      "name": "OBSERVATIONALLY_EQUIVALENT_TWO_GOAL",
+      "purpose": "Construct two candidate goals for which the entire declared public evidence at decision time is identical. Correct public-only behavior is UNKNOWN/ABSTAIN; any confident distinction indicates hidden-state leakage, undeclared prior asymmetry or an invalid benchmark contract."
+    },
+    {
+      "name": "IDENTIFIABLE_PUBLIC_EVIDENCE",
+      "purpose": "Provide an otherwise matched case where one public observation/action-history feature actually discriminates the goals. The benchmark must answer rather than obtaining a good score by universal abstention."
+    },
+    {
+      "name": "PRIOR_ONLY_ASYMMETRY",
+      "purpose": "Hold likelihood/public evidence symmetric and vary only an explicitly declared public prior. Score this separately so prior-driven guesses are not mislabeled evidence-driven inference."
+    },
+    {
+      "name": "FAMILY_HELDOUT_TEMPLATE",
+      "purpose": "Hold out a goal/layout or generative family via existing holdout/provenance fields, not merely episode id, to detect template memorization."
+    },
+    {
+      "name": "HIDDEN_LEAK_SENTINEL",
+      "purpose": "Create cases where an evaluator-only field perfectly predicts the label while public evidence does not. Public policy must remain at UNKNOWN/chance; any gain is a leakage alarm."
+    }
+  ],
+  "metrics_mapping": {
+    "mandatory": [
+      "answered_count",
+      "total_count",
+      "coverage = answered_count / total_count",
+      "error_on_answered",
+      "selective_risk = wrong_answered / answered_count with explicit zero-answered handling",
+      "UNKNOWN correctness on NON_IDENTIFIABLE fixtures",
+      "identifiable-subset accuracy",
+      "family-heldout versus in-family delta",
+      "public-baseline-relative delta"
+    ],
+    "conditional_probabilistic": [
+      "Brier score",
+      "log score / negative log-likelihood"
+    ],
+    "anti_goodhart_rule": "Do not rank policies by answered-case accuracy alone; universal or near-universal abstention must be visible through coverage and identifiable-subset performance."
+  },
+  "baselines_mapping": [
+    {
+      "name": "UNIFORM_PUBLIC_PRIOR",
+      "assumptions": "No evidence preference; candidate set only."
+    },
+    {
+      "name": "DECLARED_PUBLIC_PRIOR_ONLY",
+      "assumptions": "Uses only immutable public priors, no observation evidence."
+    },
+    {
+      "name": "PUBLIC_COST_DIFFERENCE",
+      "assumptions": "Ramirez-Geffner-style cost-difference baseline only if the benchmark explicitly satisfies deterministic/publicly known state-transition assumptions. It must not read hidden MicroWorld transitions."
+    },
+    {
+      "name": "SIMPLE_PUBLIC_EVIDENCE_RULE",
+      "assumptions": "Deterministic evidence-count/shortest-public-path rule where definable, to test whether more elaborate inverse planning adds real value in the tiny world."
+    }
+  ],
+  "architecture_conclusions": [
+    "The existing WP800 separation is compatible with a leakage-resistant goal-inference benchmark if WP804 consumes ObservationView rather than MicroWorldFixture.",
+    "WP804 should add benchmark-specific immutable candidate/inference/label objects rather than overloading GoalContract or AgencyState; this preserves benchmark evidence versus goal authority.",
+    "UNKNOWN must be represented semantically and scored with coverage/risk, otherwise either forced guessing or trivial abstention can Goodhart the benchmark.",
+    "Family-level holdout can reuse WP800 provenance fields and RunDescriptor.episode_family_id, avoiding a second competing provenance mechanism.",
+    "A public cost-difference/inverse-planning baseline is not automatically valid because WP800 intentionally hides transitions/state; the baseline must be capability-constrained to the same public information as the SUT."
+  ],
+  "counterhypotheses_and_falsifiers": [
+    {
+      "counterhypothesis": "The tiny deterministic MicroWorld makes sophisticated inverse-planning unnecessary.",
+      "falsifier": "Compare the simplest public deterministic baseline against any richer inference method on family-heldout identifiable cases; retain complexity only for a reproducible gain."
+    },
+    {
+      "counterhypothesis": "UNKNOWN support makes the benchmark trivially easy through abstention.",
+      "falsifier": "Require both ambiguous and publicly identifiable matched cases and report risk-coverage plus identifiable-subset accuracy."
+    },
+    {
+      "counterhypothesis": "Episode-level holdout already prevents leakage.",
+      "falsifier": "Create unseen episodes sharing the same latent family versus truly held-out family fixtures and compare the generalization gap."
+    },
+    {
+      "counterhypothesis": "Exact-type separation alone prevents hidden leakage.",
+      "falsifier": "Use hidden-leak sentinels plus subtype/proxy/derived-feature tests; require chance/UNKNOWN under public symmetry and fail closed on undeclared fields."
+    }
+  ],
+  "handoff_to_trigger4": {
+    "owner": "F2-WP-804 generation-1 Trigger4 worker",
+    "do_not_mutate_owned_paths_from_trigger6": true,
+    "recommended_implementation_order": [
+      "CandidateGoalDescriptor + canonical candidate-set digest",
+      "sealed GoalInference bound to ObservationView/run identities",
+      "evaluator-only label object and post-seal scorer",
+      "UNKNOWN plus coverage/selective-risk metrics",
+      "public-information baselines",
+      "observational-equivalence and hidden-leak sentinel tests",
+      "family-heldout split tests",
+      "repository-hosted CI only"
+    ]
+  },
+  "next_research_gate": "Do not claim another generic WP804 E3 if an active semantically overlapping identifiability-gap E3 claim exists. The current main already showed commit 5252f5d22ed6b25ba928ac054df130386eb503e8 'trigger6: claim WP804 identifiability-gap E3'; inspect/route around it before any further WP804 intervention.",
+  "credit": {
+    "research": "E2_ARCHITECTURE_MAPPED_ONLY",
+    "source_mutation": 0,
+    "repository_ci": 0,
+    "runtime": 0,
+    "physical_grid10": 0,
+    "goal_authority": 0,
+    "architecture_acceptance": 0,
+    "whole_system": 0
+  }
+}
