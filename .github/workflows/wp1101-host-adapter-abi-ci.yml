@@ -12,6 +12,7 @@ on:
     paths:
       - 'src/frankenstein2/host_adapter_abi.py'
       - 'tests/test_host_adapter_abi.py'
+      - 'tests/test_review_wp1101_payload_identity_binding_falsifier.py'
       - '.github/workflows/wp1101-host-adapter-abi-ci.yml'
   workflow_dispatch:
 
@@ -28,8 +29,12 @@ jobs:
         with:
           python-version: '3.12'
       - name: Compile
-        run: python -m py_compile src/frankenstein2/host_adapter_abi.py tests/test_host_adapter_abi.py
-      - name: Host adapter ABI falsification suite
+        run: python -m py_compile src/frankenstein2/host_adapter_abi.py tests/test_host_adapter_abi.py tests/test_review_wp1101_payload_identity_binding_falsifier.py
+      - name: Host adapter ABI canonical suite
         env:
           PYTHONPATH: src
         run: python tests/test_host_adapter_abi.py -v
+      - name: REVIEW ONLY payload identity binding falsifier
+        env:
+          PYTHONPATH: src
+        run: python tests/test_review_wp1101_payload_identity_binding_falsifier.py -v
