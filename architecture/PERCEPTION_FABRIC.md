@@ -2,6 +2,7 @@
 
 Status: PROJECT-OWNER CORE ARCHITECTURE INVARIANT
 Date: 2026-08-29
+Hardening: `architecture/PERCEPTION_FABRIC_HARDENING_20260829.md`
 
 ## Product intent
 
@@ -9,7 +10,9 @@ Frankenstein 2.0 treats perception as a persistent, permission-governed cognitiv
 
 The canonical loop is:
 
-`PERMISSIONED SOURCE -> CAPTURE OWNER -> RETINA L0 -> SALIENCE -> GRID10 ATTENTION -> OBSERVE INTENT -> 0..N CORTEX WORKERS -> EPISTEMIC PERCEPTS -> TEMPORAL/MULTIVIEW FUSION -> WORLD MODEL -> GWT/GRID10 -> RELOOK WHEN NEEDED`
+`PERMISSIONED SOURCE -> CAPTURE OWNER -> RETINA L0 -> SALIENCE -> GRID10 ATTENTION -> OBSERVE INTENT -> 0..4 CORTEX ANALYSIS WORKERS (initial ceiling) -> EPISTEMIC PERCEPTS -> TEMPORAL/MULTIVIEW FUSION -> WORLD MODEL -> GWT/GRID10 -> RELOOK WHEN NEEDED`
+
+Source cardinality is independently `0..N`; the initial Cortex analysis concurrency ceiling is `0..4`.
 
 Generic VLM inference is an explicit late escalation, not the default visual path.
 
@@ -141,7 +144,8 @@ Observations outside their freshness/skew window cannot silently contribute to a
 
 The Perception Fabric is not accepted merely because contracts compile. A target integration run must eventually prove:
 
-- four simultaneously permissioned sources can be represented;
+- source cardinality `0..N` without fixed-source assumptions;
+- four simultaneously permissioned sources can be represented when four real or synthetic sources are available;
 - `0..4` Cortex workers allocate dynamically;
 - normal run invokes zero generic VLM calls;
 - raw-frame persistence remains zero under default policy;
@@ -154,6 +158,8 @@ The Perception Fabric is not accepted merely because contracts compile. A target
 - perception load obeys cognitive compute ceilings and cannot starve the main loop;
 - optional VPS bridge loss degrades remote cognition/compute without fabricating local observation or corrupting entity state.
 
+The complete cardinality/time/revocation/resource falsifier matrix is defined in `architecture/PERCEPTION_FABRIC_HARDENING_20260829.md` and `workpackages/PERCEPTION_FABRIC_PHASE.json`.
+
 ## Local final integration responsibility
 
-Final Claude Code/Opus integration should primarily bind already-defined adapters to actual OS primitives (camera, PipeWire/portal/display, browser CDP/DOM/AX, local activity APIs), connect the dashboard to the capability store, and run the hardware acceptance suite. If local integration must invent new epistemic, scheduling, permission, world-model or bridge semantics, VPS-side assembly is incomplete.
+Final Claude Code/Opus integration should primarily bind already-defined adapters to actual OS primitives (camera, PipeWire/portal/display, browser CDP/DOM/AX, local activity APIs), connect the dashboard to the capability store, and run the hardware acceptance suite. If local integration must invent new epistemic, CaptureOwner/Broker, scheduling, permission, world-model or bridge semantics, VPS-side assembly is incomplete.
