@@ -505,6 +505,39 @@ class CausalInfluenceResult:
         return _digest(self.as_dict())
 
 
+def _positive_summary_has_complete_cell_evidence(
+    uptake_summary: UptakeSummary,
+    broadcast: BroadcastEnvelope,
+) -> bool:
+    """Reject caller-constructed positive summaries that bypass receipt aggregation.
+
+    This is a structural admission fence, not proof that caller-supplied receipts describe
+    real hidden state. A positive summary must at least carry the exact complete GRID10
+    recipient footprint that summarize_uptake() emits: one unique receipt per recipient,
+    all recipients delivered, no unresolved cells, and at least one uptaken recipient.
+    """
+    recipients = tuple(broadcast.recipient_cell_ids)
+    recipient_set = set(recipients)
+    receipt_ids = tuple(uptake_summary.receipt_ids)
+    delivered = tuple(uptake_summary.delivered_cell_ids)
+    uptaken = tuple(uptake_summary.uptaken_cell_ids)
+    unknown = tuple(uptake_summary.unknown_cell_ids)
+
+    if len(receipt_ids) != len(recipients) or len(set(receipt_ids)) != len(receipt_ids):
+        return False
+    if delivered != recipients:
+        return False
+    if unknown:
+        return False
+    if not uptaken or len(set(uptaken)) != len(uptaken):
+        return False
+    if not set(uptaken).issubset(recipient_set):
+        return False
+    if _grid_order(uptaken) != uptaken:
+        return False
+    return True
+
+
 def evaluate_causal_influence(
     *,
     result_id: str,
@@ -527,11 +560,24 @@ def evaluate_causal_influence(
         or control.condition != "CONTROL_NO_BROADCAST"
     ):
         raise GWTUptakeError("causal probe requires intervention and control conditions")
-    if (
-        uptake_summary.broadcast_id != broadcast.broadcast_id
-        or uptake_summary.broadcast_sha256 != broadcast.sha256()
-    ):
-        raise GWTUptakeError("uptake summary broadcast binding mismatch")
+    expected_summary_binding = (
+        broadcast.broadcast_id,
+        broadcast.sha256(),
+        broadcast.selection_id,
+        broadcast.plan_id,
+        broadcast.plan_generation,
+        broadcast.plan_sha256,
+    )
+    observed_summary_binding = (
+        uptake_summary.broadcast_id,
+        uptake_summary.broadcast_sha256,
+        uptake_summary.selection_id,
+        uptake_summary.plan_id,
+        uptake_summary.plan_generation,
+        uptake_summary.plan_sha256,
+    )
+    if observed_summary_binding != expected_summary_binding:
+        raise GWTUptakeError("uptake summary broadcast/selection/GRID10 binding mismatch")
     if (
         intervention.broadcast_id != broadcast.broadcast_id
         or intervention.broadcast_sha256 != broadcast.sha256()
@@ -539,6 +585,8 @@ def evaluate_causal_influence(
         raise GWTUptakeError("intervention broadcast binding mismatch")
 
     if uptake_summary.status != "UPTAKE_OBSERVED":
+        status = "UNKNOWN_INSUFFICIENT_UPTAKE"
+    elif not _positive_summary_has_complete_cell_evidence(uptake_summary, broadcast):
         status = "UNKNOWN_INSUFFICIENT_UPTAKE"
     elif intervention.nonbroadcast_input_sha256 != control.nonbroadcast_input_sha256:
         status = "UNKNOWN_UNMATCHED_CONTROL"
