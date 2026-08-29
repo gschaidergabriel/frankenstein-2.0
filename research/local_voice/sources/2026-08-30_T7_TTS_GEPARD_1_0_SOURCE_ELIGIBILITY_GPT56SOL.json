@@ -1,0 +1,48 @@
+{
+  "schema_version": 1,
+  "trigger": "7",
+  "worker": "GPT-5.6-Sol-TRIGGER7",
+  "research_id": "T7-TTS-GEPARD-001",
+  "semantic_key": "ef3b55ef0d284815080231bd0e697e5cf704823df8a8d4efeefebd97f0e9a52d",
+  "date_local": "2026-08-30",
+  "scope": "SOURCE_PIN_AND_GERMAN_ELIGIBILITY_ONLY",
+  "candidate": {
+    "name": "Gepard 1.0",
+    "upstream_model": "nineninesix/gepard-1.0",
+    "model_card_exact_revision_observed": "a36c73a24b47154dfbd337ffff669bc77f8a5af8",
+    "current_tree_short_revision_observed": "56a5f18",
+    "license_model_card": "apache-2.0",
+    "artifact_shape_observed": "safetensors model; Hugging Face tree approximately 1.13 GB total at observation time",
+    "reference_inference_repo": "nineninesix-ai/gepard-inference",
+    "vllm_serving_repo": "nineninesix-ai/gepard-vllm"
+  },
+  "primary_source_observations": [
+    "The exact observed model-card revision declares only en, es, pt, nl in language metadata; German/de is absent.",
+    "The current model page likewise lists English, Spanish (Mexico), Portuguese (Brazil), and Dutch (Netherlands) as supported languages.",
+    "Upstream describes Gepard as decoder-only autoregressive streaming TTS with a Qwen-family backbone and NVIDIA NeMo NanoCodec, with zero-shot voice cloning and a vLLM serving path.",
+    "The vLLM serving project exposes cancellable streaming/barge-in semantics; it also documents sentence-level streaming where prosody resets at sentence boundaries.",
+    "Upstream latency/throughput figures are hardware-specific upstream claims and grant zero Frankenstein runtime credit."
+  ],
+  "source_urls": [
+    "https://huggingface.co/nineninesix/gepard-1.0/blob/a36c73a24b47154dfbd337ffff669bc77f8a5af8/README.md",
+    "https://huggingface.co/nineninesix/gepard-1.0/tree/main",
+    "https://github.com/nineninesix-ai/gepard-inference",
+    "https://github.com/nineninesix-ai/gepard-vllm"
+  ],
+  "result": {
+    "german_declared_supported": false,
+    "classification": "GERMAN_NOT_DECLARED_SOURCE_INELIGIBLE_FOR_CURRENT_PRODUCTION_FRONTIER",
+    "architecture_reference_value": "HIGH_FOR_STREAMING_VLLM_CANCEL_AND_SMALL_DECODER_TTS_DESIGN",
+    "target_runtime_priority": "DO_NOT_SCHEDULE_AHEAD_OF_GERMAN_CAPABLE_CANDIDATES",
+    "falsifier_boundary": "This result proves only that German is not declared by the pinned upstream source. It does not prove the model is physically incapable of emitting German. Under Trigger-7's German-first production law, unsupported German is sufficient to deny production-candidate credit at this source scope."
+  },
+  "credit": {
+    "source_pin": 1,
+    "runtime": 0,
+    "german_tts_component": 0,
+    "german_e2e": 0,
+    "trigger4_acceptance": 0,
+    "whole_system": 0
+  },
+  "next_action": "Retain Gepard as an architecture/reference donor for low-latency vLLM-native TTS, cancellation and serving design. Do not spend clay-direct-dev runtime headroom on it while German-capable Qwen3-TTS, MagpieTTS, Supertonic/CosyVoice-family or other admitted candidates remain unresolved. Reopen only if upstream adds explicit German support or owner language priority changes."
+}
