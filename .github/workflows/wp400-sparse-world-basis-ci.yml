@@ -1,0 +1,36 @@
+name: F2 WP400 Sparse World Basis CI
+
+on:
+  push:
+    branches:
+      - main
+      - trigger4/wp400-sparse-world-basis-g1-gpt56sol-20260829
+    paths:
+      - 'src/frankenstein2/sparse_world_basis.py'
+      - 'tests/test_sparse_world_basis.py'
+      - '.github/workflows/wp400-sparse-world-basis-ci.yml'
+  pull_request:
+    paths:
+      - 'src/frankenstein2/sparse_world_basis.py'
+      - 'tests/test_sparse_world_basis.py'
+      - '.github/workflows/wp400-sparse-world-basis-ci.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  falsification:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Compile exact WP400 source and tests
+        run: python -m py_compile src/frankenstein2/sparse_world_basis.py tests/test_sparse_world_basis.py
+      - name: Sparse world basis falsification suite
+        env:
+          PYTHONPATH: src
+        run: python tests/test_sparse_world_basis.py -v
