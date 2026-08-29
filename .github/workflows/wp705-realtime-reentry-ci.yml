@@ -5,13 +5,18 @@ on:
     branches:
       - main
       - trigger4/wp705-realtime-reentry-g1
+      - trigger4/wp705-g2-binding
     paths:
       - 'src/frankenstein2/realtime_reentry.py'
+      - 'src/frankenstein2/voice_contract.py'
+      - 'src/frankenstein2/causal_identity.py'
       - 'tests/test_realtime_reentry.py'
       - '.github/workflows/wp705-realtime-reentry-ci.yml'
   pull_request:
     paths:
       - 'src/frankenstein2/realtime_reentry.py'
+      - 'src/frankenstein2/voice_contract.py'
+      - 'src/frankenstein2/causal_identity.py'
       - 'tests/test_realtime_reentry.py'
       - '.github/workflows/wp705-realtime-reentry-ci.yml'
   workflow_dispatch:
@@ -29,7 +34,7 @@ jobs:
         with:
           python-version: '3.12'
       - name: Compile
-        run: python -m py_compile src/frankenstein2/realtime_reentry.py tests/test_realtime_reentry.py
+        run: python -m py_compile src/frankenstein2/realtime_reentry.py src/frankenstein2/voice_contract.py src/frankenstein2/causal_identity.py tests/test_realtime_reentry.py
       - name: Realtime re-entry falsification suite
         env:
           PYTHONPATH: src
