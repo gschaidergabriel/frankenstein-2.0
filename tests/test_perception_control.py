@@ -7,6 +7,7 @@ sys.path.insert(0, str(ROOT / "src"))
 
 from frankenstein2.perception_control import (  # noqa: E402
     PerceptionControlError,
+    PerceptionControlResult,
     PerceptionDependency,
     PerceptionHeadPolicy,
     PerceptionPolicyRegistry,
@@ -56,6 +57,34 @@ class PerceptionControlTests(unittest.TestCase):
         self.assertIsNone(result.value)
         self.assertIsNone(result.confidence_micros)
         self.assertFalse(result.computed)
+
+    def test_direct_result_constructor_cannot_launder_compute_off_policy(self):
+        protected_policy = policy("protected.head", "COMPUTE_OFF")
+        reg = registry(protected_policy)
+        calls = []
+        evaluated = evaluate(reg, "protected.head", lambda: (calls.append("must-not-run") or {"forged": True}, 1_000_000))
+        self.assertEqual(calls, [])
+        self.assertEqual(evaluated.status, "NOT_COMPUTED")
+        self.assertFalse(evaluated.egress_allowed)
+        self.assertFalse(evaluated.persistence_allowed)
+        with self.assertRaises(PerceptionControlError):
+            PerceptionControlResult(
+                evaluation_id="eval-forged",
+                head_id="protected.head",
+                registry_sha256=reg.sha256(),
+                policy_sha256=protected_policy.sha256(),
+                status="OK",
+                value={"forged": True},
+                confidence_micros=1_000_000,
+                computed=True,
+                internal_computed=True,
+                egress_allowed=True,
+                memory_match_allowed=True,
+                persistence_allowed=True,
+                blocked_by=None,
+                reason="caller_forged_policy_bypass",
+                provenance_refs=("caller:self-attested",),
+            )
 
     def test_disabled_is_equivalent_to_compute_off_for_execution(self):
         calls = []

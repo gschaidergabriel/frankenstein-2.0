@@ -7,7 +7,7 @@ mint world/effect/completion authority.
 """
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import InitVar, dataclass
 import hashlib
 import json
 import re
@@ -20,6 +20,7 @@ RESULT_SCHEMA = "FRANKENSTEIN2_PERCEPTION_CONTROL_RESULT/v1"
 TIERS = frozenset({"ON", "COMPUTE_OFF", "OUTPUT_OFF", "MEMORY_OFF"})
 _STATUSES = frozenset({"OK", "NOT_COMPUTED", "OUTPUT_BLOCKED", "COMPUTE_ERROR"})
 _SHA256_RE = re.compile(r"^[0-9a-f]{64}$")
+_EVALUATOR_ORIGIN = object()
 
 
 class PerceptionControlError(ValueError):
@@ -236,8 +237,11 @@ class PerceptionControlResult:
     provenance_refs: tuple[str, ...]
     schema: ClassVar[str] = RESULT_SCHEMA
     classification: ClassVar[str] = "PERCEPTION_CONTROL_READOUT_NOT_WORLD_TRUTH_GWT_EFFECT_OR_COMPLETION_AUTHORITY"
+    _evaluator_origin: InitVar[object | None] = None
 
-    def __post_init__(self) -> None:
+    def __post_init__(self, _evaluator_origin: object | None) -> None:
+        if _evaluator_origin is not _EVALUATOR_ORIGIN:
+            raise PerceptionControlError("PerceptionControlResult must be created by evaluate_perception_head")
         object.__setattr__(self, "evaluation_id", _text("evaluation_id", self.evaluation_id))
         object.__setattr__(self, "head_id", _text("head_id", self.head_id))
         _sha256("registry_sha256", self.registry_sha256)
@@ -370,26 +374,26 @@ def evaluate_perception_head(*, evaluation_id: str, registry: PerceptionPolicyRe
     registry_sha = registry.sha256()
     policy = registry.head(head_id)
     if policy is None:
-        return PerceptionControlResult(evaluation_id=evaluation_id, head_id=head_id, registry_sha256=registry_sha,
+        return PerceptionControlResult(_evaluator_origin=_EVALUATOR_ORIGIN, evaluation_id=evaluation_id, head_id=head_id, registry_sha256=registry_sha,
             policy_sha256=None, status="NOT_COMPUTED", value=None, confidence_micros=None, computed=False,
             internal_computed=False, egress_allowed=False, memory_match_allowed=False, persistence_allowed=False,
             blocked_by=None, reason="unknown_head_not_in_registry", provenance_refs=provenance_refs)
     policy_sha = policy.sha256()
     if not policy.compute_allowed:
-        return PerceptionControlResult(evaluation_id=evaluation_id, head_id=head_id, registry_sha256=registry_sha,
+        return PerceptionControlResult(_evaluator_origin=_EVALUATOR_ORIGIN, evaluation_id=evaluation_id, head_id=head_id, registry_sha256=registry_sha,
             policy_sha256=policy_sha, status="NOT_COMPUTED", value=None, confidence_micros=None, computed=False,
             internal_computed=False, egress_allowed=False, memory_match_allowed=False, persistence_allowed=False,
             blocked_by=head_id, reason="compute_off_or_disabled", provenance_refs=provenance_refs)
     blocked_by = _first_compute_blocker(registry, head_id)
     if blocked_by is not None:
-        return PerceptionControlResult(evaluation_id=evaluation_id, head_id=head_id, registry_sha256=registry_sha,
+        return PerceptionControlResult(_evaluator_origin=_EVALUATOR_ORIGIN, evaluation_id=evaluation_id, head_id=head_id, registry_sha256=registry_sha,
             policy_sha256=policy_sha, status="NOT_COMPUTED", value=None, confidence_micros=None, computed=False,
             internal_computed=False, egress_allowed=False, memory_match_allowed=False, persistence_allowed=False,
             blocked_by=blocked_by, reason=f"taint_blocked_by:{blocked_by}", provenance_refs=provenance_refs)
     try:
         raw = compute_fn()
     except Exception as exc:
-        return PerceptionControlResult(evaluation_id=evaluation_id, head_id=head_id, registry_sha256=registry_sha,
+        return PerceptionControlResult(_evaluator_origin=_EVALUATOR_ORIGIN, evaluation_id=evaluation_id, head_id=head_id, registry_sha256=registry_sha,
             policy_sha256=policy_sha, status="COMPUTE_ERROR", value=None, confidence_micros=None, computed=True,
             internal_computed=False, egress_allowed=False, memory_match_allowed=False, persistence_allowed=False,
             blocked_by=None, reason=f"compute_error:{type(exc).__name__}", provenance_refs=provenance_refs)
@@ -399,7 +403,7 @@ def evaluate_perception_head(*, evaluation_id: str, registry: PerceptionPolicyRe
     value = _json_value(value)
     _confidence(confidence_micros)
     if policy.tier == "OUTPUT_OFF":
-        return PerceptionControlResult(evaluation_id=evaluation_id, head_id=head_id, registry_sha256=registry_sha,
+        return PerceptionControlResult(_evaluator_origin=_EVALUATOR_ORIGIN, evaluation_id=evaluation_id, head_id=head_id, registry_sha256=registry_sha,
             policy_sha256=policy_sha, status="OUTPUT_BLOCKED", value=None, confidence_micros=None, computed=True,
             internal_computed=True, egress_allowed=False, memory_match_allowed=False, persistence_allowed=False,
             blocked_by=None, reason="output_off_transient_internal_only", provenance_refs=provenance_refs)
@@ -410,7 +414,7 @@ def evaluate_perception_head(*, evaluation_id: str, registry: PerceptionPolicyRe
         reason = "upstream_memory_or_persistence_taint"
     else:
         reason = "policy_allows_egress"
-    return PerceptionControlResult(evaluation_id=evaluation_id, head_id=head_id, registry_sha256=registry_sha,
+    return PerceptionControlResult(_evaluator_origin=_EVALUATOR_ORIGIN, evaluation_id=evaluation_id, head_id=head_id, registry_sha256=registry_sha,
         policy_sha256=policy_sha, status="OK", value=value, confidence_micros=confidence_micros, computed=True,
         internal_computed=True, egress_allowed=True, memory_match_allowed=memory_match_allowed,
         persistence_allowed=persistence_allowed, blocked_by=None, reason=reason,
