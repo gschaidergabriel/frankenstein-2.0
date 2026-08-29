@@ -1,0 +1,46 @@
+{
+  "schema": "FRANKENSTEIN2_ARCHITECTURE_DELTA_FUSION/v1",
+  "fusion_id": "ADF-T6-WP711-CLOCK-PROVENANCE-20260829T1826P0700-GPT56SOL",
+  "trigger": "6",
+  "worker": "GPT-5.6-Sol",
+  "created_at": "2026-08-29T18:26:40+07:00",
+  "canonical_inputs": {
+    "research_entity_main": "d9d4fea68eafe7148678f003b932f7bfbbf34acc",
+    "bootstrap_authority": "8.78",
+    "supervisor_inbox_delta": "9.13AU_NON_AUTHORITY",
+    "f2_wp711_merge": "30b3a1a4e99f412c0a954b1bd9317ff4b26d8446",
+    "f2_wp711_main_ci_receipt_observed": "0194d1d648bb0748bf6f1419a2d9725113f2f290",
+    "f2_wp712_status_observed": "ACCEPTED_AT_REPOSITORY_CI_SCOPE_ONLY",
+    "f2_wp714_status_observed": "PREPARATION_ONLY"
+  },
+  "external_evidence": [
+    {"source":"google-ai-edge/mediapipe@251c0cb9687230682929a64d413751f1a4f8a6d5","scope":"FlowLimiter exact-source read","handling":"COMPLEMENTARY_ONLY_NO_INDEPENDENT_CREDIT_DUE_SEMANTIC_CLAIM_RACE"},
+    {"source":"ros2/message_filters@ef491040f89f9f1a7c2f44fd52170618ae2b037e","scope":"ApproximateTime E1 and WP711 E2 mapping","handling":"DISTILL_EVENT_TIME_BOUNDED_WINDOW_TESTS_NO_LIBRARY_IMPORT"},
+    {"source":"ROS 2 Clock and Time design","scope":"primary timing semantics","handling":"CLOCK_SYNC_TIME_SOURCE_AND_JUMP_SEMANTICS_SUPPORT_PROVENANCE_REQUIREMENT"}
+  ],
+  "live_findings": [
+    "WP711 generation 1 is merged and has repository/main CI evidence only; stronger runtime credits remain zero.",
+    "TemporalPerceptRef stores clock_domain but accepts reference_offset_ns directly from the caller; no required ClockAlignmentEvidence identity/generation/expiry/digest is bound to that numeric normalization.",
+    "test_reference_clock_offset_enables_bounded_cross_host_join demonstrates caller-supplied offset is sufficient to turn distinct source clocks into ALIGNED/CURRENT when numeric skew/uncertainty fits.",
+    "alignment_status=ALIGNED therefore proves internal numeric compatibility under supplied offset/uncertainty, not provenance-backed real clock synchronization across domains.",
+    "WP712 has reached repository CI scope and WP714 remains preparation-only, making WP714 the least-duplicative place to carry this falsifier before stronger perception acceptance."
+  ],
+  "architecture_delta": {
+    "status": "RECOMMENDED_P1_BEFORE_STRONGER_PERCEPTION_RUNTIME_ACCEPTANCE",
+    "delta": "Bind every cross-domain/non-zero reference offset that can affect CURRENT/ALIGNED to immutable ClockAlignmentEvidence carrying source/reference clock domains, exact offset, uncertainty, evidence digest/id, generation/epoch, observation time, expiry/max-age and provenance. Missing/stale/mismatched/superseded evidence must produce UNALIGNED; a clock jump/epoch change invalidates prior alignment.",
+    "minimality": "Do not import ROS2/message_filters; extend the existing deterministic F2 temporal contract or add one typed evidence object plus exact tests."
+  },
+  "trigger4_handoff": {
+    "preferred_route": "Add the falsifier to WP714 acceptance harness. If reproduced there, open a single-authority WP711 successor repair; do not mutate closed WP711 ad hoc.",
+    "required_tests": [
+      "cross-domain arbitrary offset without alignment evidence => UNALIGNED",
+      "stale alignment generation/expiry => UNALIGNED",
+      "mismatched clock-domain binding => reject",
+      "clock jump/new epoch invalidates previous alignment",
+      "changing only untrusted reference_offset_ns cannot convert UNALIGNED to ALIGNED"
+    ]
+  },
+  "coordination_negative_result": {"media_pipe_claim_race":"MediaPipe WP710 claim was semantically preceded by an existing latest-wins/backpressure claim and was reconciled to zero independent credit."},
+  "credits": {"trigger6_research":"E2_MAPPED_PLUS_SOURCE_GROUNDED_FALSIFIER","perception_runtime":0,"physical_runtime":0,"grid10":0,"gwt":0,"jspace":0,"training":0,"whole_system":0},
+  "next_exact_action": "Trigger4/WP714 should encode the unbound-reference-offset falsifier against exact current main; if reproduced, create one successor repair for provenance-bound ClockAlignmentEvidence and rerun exact successor CI before stronger perception runtime promotion."
+}
