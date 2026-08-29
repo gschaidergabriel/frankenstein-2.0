@@ -1,0 +1,107 @@
+{
+  "schema_version": 1,
+  "trigger": "7",
+  "research_id": "T7-DUPLEX-001",
+  "objective": "E2_BAYLING_SECURITY_LICENSE_RECONCILIATION",
+  "worker": "GPT-5.6-Sol-TRIGGER7",
+  "date": "2026-08-30",
+  "state": "SOURCE_SECURITY_LICENSE_AUDIT_COMPLETED",
+  "epistemic_scope": "Static source, published artifact metadata, and license audit only. No BayLing model download, code execution, German speech test, target-VPS benchmark, runtime acceptance, or Trigger-4 acceptance observed.",
+  "reconciles": [
+    "research/local_voice/frontier/2026-08-30_GERMAN_FULL_DUPLEX_SOURCE_AUDIT.md",
+    "research/local_voice/claims/T7-DUPLEX-001/E2_GERMAN_FULL_DUPLEX_SOURCE_AUDIT_RESULT_2026-08-30.json",
+    "research/local_voice/sources/T7-DUPLEX-001_E2_GERMAN_FULL_DUPLEX_SOURCE_AUDIT_2026-08-30.json"
+  ],
+  "source_pins": {
+    "bayling_code_repo": "BayLing-Models/BayLing-Duplex",
+    "bayling_code_revision": "41669ac04bbcbfaf5b1be3a2cc563e4b3752d041",
+    "bayling_hf_model_revision_observed": "b314288d7fc545cdac3b2fe0c4caeb9084c5526b",
+    "glm4_voice_tokenizer_hf_revision_observed": "a5f2404e63c84e92f5238908e1706316324ebafa",
+    "glm4_voice_decoder_hf_revision": "UNRESOLVED_FULL_40_HEX_IN_THIS_AUDIT"
+  },
+  "artifact_footprint_source_observed": {
+    "bayling_main_checkpoint_tree": "approximately 19.1 GB",
+    "glm4_voice_tokenizer_tree": "approximately 1.46 GB",
+    "glm4_voice_decoder_tree": "approximately 527 MB",
+    "minimum_visible_download_tree_sum": "approximately 21.087 GB before Python/runtime dependencies and caches",
+    "warning": "Download footprint is not VRAM/RAM runtime footprint and grants no target-hardware-fit credit."
+  },
+  "security_findings": [
+    {
+      "severity": "HIGH_FOR_UNTRUSTED_EXECUTION",
+      "finding": "BayLingDuplex constructs AutoTokenizer and AutoModel with trust_remote_code=True.",
+      "source": "bayling_duplex/duplex.py",
+      "consequence": "Existing Trigger-7 quarantine policy must not execute the model repository blindly; exact custom Python must be audited and sandboxed before model load."
+    },
+    {
+      "severity": "HIGH_FOR_UNTRUSTED_WEIGHT_LOAD",
+      "finding": "AudioDecoder loads flow.pt and hift.pt through torch.load without an explicit weights_only=True fence.",
+      "source": "bayling_duplex_runtime/flow_inference.py",
+      "consequence": "The decoder checkpoints require quarantine/source inspection and should not be treated like safetensors-only data artifacts."
+    },
+    {
+      "severity": "MEDIUM_HIGH",
+      "finding": "Decoder config is interpreted through hyperpyyaml and upstream config uses object/application tags.",
+      "consequence": "Config plus local runtime code form an executable construction surface; pin and inspect the exact decoder config before execution."
+    },
+    {
+      "severity": "MEDIUM",
+      "finding": "Python dependencies use lower bounds rather than an exact lockfile in requirements.txt/pyproject.toml.",
+      "consequence": "A reproducible benchmark environment needs an exact resolved dependency lock/container receipt rather than installing mutable latest-compatible packages into a trusted runtime."
+    }
+  ],
+  "license_findings": [
+    "BayLing-Duplex repository LICENSE is the glm-4-voice License, not Apache-2.0.",
+    "The license permits free academic research use; commercial use requires registration under the stated upstream process.",
+    "Products/services using covered GLM-4 materials carry notice/display obligations including prominent 'Built with glm-4' language under the published license text.",
+    "CosyVoice-derived runtime files retain Apache-2.0 headers, but that does not replace the model-level glm-4-voice license obligations."
+  ],
+  "language_finding": {
+    "bayling_german": "UNVERIFIED",
+    "foundation_signal": "Published GLM-4-Voice tokenizer/decoder documentation explicitly describes Chinese/English speech. This is negative prior evidence for German production quality, not proof that BayLing cannot process German after its own training.",
+    "production_credit": 0
+  },
+  "reconciled_candidate_order": [
+    {
+      "candidate": "BayLing-Duplex",
+      "role": "highest-information relatively smaller runnable native-duplex German falsifier",
+      "promotion_state": "RESEARCH_ONLY_PENDING_HARDWARE_SECURITY_LICENSE_GERMAN_GATES"
+    },
+    {
+      "candidate": "DuplexOmni",
+      "role": "strongest audited explicit German-foundation native-duplex architecture candidate",
+      "promotion_state": "RESEARCH_ONLY_HARDWARE_IMPLAUSIBLE_UNTIL_TARGET_RECEIPT; current upstream low-latency recommendation >=8 NVIDIA H20"
+    },
+    {
+      "candidate": "Lychee-FD",
+      "role": "native full-duplex architecture/runtime reference",
+      "promotion_state": "NO_GERMAN_PRODUCTION_CREDIT; published model metadata lists zh/en"
+    }
+  ],
+  "runtime_transport_observation": {
+    "controller_repo": "gschaidergabriel/Dr.-Unterweger",
+    "github_run_id": 33265258658,
+    "job_id": 99134091520,
+    "observed_status_during_this_audit": "queued",
+    "execution_observed": false,
+    "hardware_receipt_observed": false,
+    "runtime_credit": 0,
+    "classification": "RUNNER_TRANSPORT_OR_AVAILABILITY_PENDING; not a Trigger-7 model negative result"
+  },
+  "decision": "Keep the modular German-first voice organ as production-leading hypothesis. Preserve BayLing-Duplex as a high-information native-duplex falsifier, but do not download/execute/promote it until the target hardware receipt arrives and exact model/decoder revisions plus custom-code/pickle/config surfaces are quarantined and audited.",
+  "next_exact_actions": [
+    "Observe run 33265258658 to terminal state and fetch its hardware receipt if execution occurs.",
+    "Resolve an immutable 40-hex Hugging Face revision for glm-4-voice-decoder before any downloader invocation.",
+    "If target whole-Frankenstein headroom is plausible, quarantine-download exact BayLing model/tokenizer/decoder artifacts without execution and hash every artifact.",
+    "Audit exact HF custom Python against pinned BayLing code and isolate decoder pickle/config loading before any local run.",
+    "Only then run a German-only smoke falsifier covering interruption, mid-sentence pause, overlap and backchannel; keep all production/runtime credits at zero until measured."
+  ],
+  "credits": {
+    "source_security_audit": 1,
+    "model_download": 0,
+    "execution": 0,
+    "german_e2e_benchmark": 0,
+    "runtime_acceptance": 0,
+    "trigger4_acceptance": 0
+  }
+}
