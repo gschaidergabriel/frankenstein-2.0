@@ -5,20 +5,39 @@ Owner direction: 2026-08-29
 
 ## Core separation
 
-Frankenstein 2.0 product/runtime efficiency and Trigger-6 research effort are deliberately separate budgets.
+Frankenstein 2.0 product/runtime efficiency and Trigger-4/Trigger-6 engineering/research effort are deliberately separate budgets.
 
 ```text
-TRIGGER6_RESEARCH = MAXIMUM_USEFUL_DEPTH
+TRIGGER4_WORK = MAXIMUM_USEFUL_BUILD_TEST_MEASUREMENT_DEPTH
+TRIGGER6_RESEARCH = MAXIMUM_USEFUL_RESEARCH_DEPTH
 FRANKENSTEIN2_RUNTIME = MINIMUM_NECESSARY_TOKENS_AND_RESOURCES_FOR_REQUIRED_QUALITY
 ```
 
-Trigger 6 must not be prematurely shortened to save research tokens or tool effort. Its job is to search deeply enough to discover and falsify better designs.
+Trigger 4 must not be prematurely shortened to save worker tokens, tool calls, test/CI effort, sandbox compute, debugging effort or analysis depth. Its job is to build, falsify, measure and integrate deeply enough to establish the strongest available evidence and continue through additional dependency-correct non-duplicate work when useful capacity remains.
+
+Trigger 6 likewise must not be prematurely shortened to save research tokens or tool effort. Its job is to search deeply enough to discover and falsify better designs.
 
 Frankenstein 2.0 itself should be token- and resource-efficient by architecture, not merely by asking models to be brief.
 
+This means engineering/research may spend substantial resources to discover and prove a runtime that uses fewer resources.
+
+## Trigger-4 execution-budget law
+
+On an exact `4`, `triggerword 4`, or `triggerwort 4` invocation, subject to hard platform, safety, authority, provider, spending and claim constraints:
+
+- use the largest useful reasoning, source-reading, tool, test, benchmark, failure-injection, debugging, measurement and output budget available;
+- do not stop merely to conserve ChatGPT tokens, tool calls, CI attempts, local/sandbox compute or analysis effort;
+- after one objective reaches a useful terminal state, continue into additional dependency-correct, non-duplicate objectives when useful work remains;
+- a claimed or blocked objective is a reason to respect ownership and choose another useful objective, not a reason to end the run solely for resource conservation;
+- use stronger negative tests, replay/restart/concurrency tests, exact-head CI and target-runtime measurements when they materially improve confidence or discriminate competing hypotheses;
+- produce architecture deltas when evidence changes the best-supported integration, authority, component, resource or token strategy;
+- preserve enough evidence to distinguish source presence, component success, hosted CI, target-runtime behavior, causal uptake, effect correctness and end-to-end acceptance.
+
+Maximum useful effort never overrides hard authority, safety, provider or spending restrictions and never creates duplicate mutation authority.
+
 ## Priority order
 
-Efficiency optimization must preserve the following order:
+Efficiency optimization of Frankenstein 2.0 must preserve the following order:
 
 1. deterministic authority / safety / effect boundaries;
 2. exact evidence, provenance and replayability;
@@ -73,7 +92,8 @@ Treat the following as explicit optimization targets:
 - duplicated resident checkpoints without measured need;
 - verbose inter-module natural-language protocols where compact typed packets suffice;
 - context compression that destroys provenance, uncertainty or causal identity;
-- saving tokens by hiding evidence or silently dropping unresolved contradictions.
+- saving runtime tokens by hiding evidence or silently dropping unresolved contradictions;
+- saving Trigger-4 engineering resources by under-testing, under-measuring or stopping before another high-value non-duplicate discriminator.
 
 ## Architecture-delta rule
 
@@ -92,10 +112,22 @@ Such a delta should record:
 
 Do not promote an efficiency delta from aesthetic preference alone. Prefer measured ablation evidence.
 
-## Trigger-6 binding
+## Trigger bindings
 
-Canonical research protocol:
+Canonical Trigger-6 research protocol:
 
 `research/tool_intelligence/TRIGGERWORD_6_PROTOCOL.md`
 
-Trigger 6 uses maximum useful research depth to discover and test efficiency improvements. Trigger 4 owns actual build/integration/runtime measurement. Runtime efficiency claims remain component- or workload-scoped until exact F2 evidence exists.
+Trigger 6 uses maximum useful research depth to discover and test efficiency improvements.
+
+Trigger 4 owns actual build/integration/runtime measurement and also uses maximum useful engineering/test depth. The active owner binding on the Research-Entity side is:
+
+`research_entity/global/TRIGGERWORD_4_MAXIMUM_EXECUTION_BUDGET_BINDING.md`
+
+Runtime efficiency claims remain component- or workload-scoped until exact F2 evidence exists.
+
+```text
+TRIGGER4_WORK_BUDGET != FRANKENSTEIN2_RUNTIME_BUDGET
+TRIGGER6_RESEARCH_BUDGET != FRANKENSTEIN2_RUNTIME_BUDGET
+SPEND ENGINEERING/RESEARCH RESOURCES TO PROVE A CHEAPER, BETTER RUNTIME
+```
