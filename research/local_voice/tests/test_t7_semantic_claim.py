@@ -123,6 +123,32 @@ class SemanticClaimTests(unittest.TestCase):
             "ba79dcf8960e1f02859a664103d5ba3f63fa8da95855d2b077b3e5aa2e0bf9e3",
         )
 
+    def test_qwen3_tts_12hz_size_ab_alias_is_precise_and_stable(self):
+        a = SemanticObjective.from_inputs(
+            family="german tts benchmark",
+            target_surface="clay-direct-dev",
+            subject="qwen3-tts-12hz-0.6b-vs-1.7b",
+            evidence_scope="component benchmark",
+            generation=1,
+        )
+        b = SemanticObjective.from_inputs(
+            family="german tts benchmark",
+            target_surface="clay-direct-dev",
+            subject="qwen3-tts-12hz-size-ab",
+            evidence_scope="component benchmark",
+            generation=1,
+        )
+        self.assertEqual(a.semantic_key(), b.semantic_key())
+        self.assertEqual(a.claim_path(), b.claim_path())
+        with self.assertRaisesRegex(ValueError, "unknown subject alias"):
+            SemanticObjective.from_inputs(
+                family="german tts benchmark",
+                target_surface="clay-direct-dev",
+                subject="qwen3-tts-25hz",
+                evidence_scope="component benchmark",
+                generation=1,
+            )
+
 
 if __name__ == "__main__":
     unittest.main()
