@@ -1,0 +1,31 @@
+name: Review WP900 GWT factory-seal falsifier
+
+on:
+  push:
+    branches:
+      - chatgpt/review-wp900-gwt-factory-seal-falsifier-20260829
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  reproduce:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Compile exact review surface
+        run: |
+          python -m py_compile \
+            src/frankenstein2/whole_persistent_loop.py \
+            src/frankenstein2/gwt_causal_path.py \
+            tests/test_whole_persistent_loop.py \
+            tests/falsifier_wp900_unvalidated_gwt_seal.py
+      - name: Reproduce non-factory GWT seal admission
+        env:
+          PYTHONPATH: src:tests
+        run: python tests/falsifier_wp900_unvalidated_gwt_seal.py
