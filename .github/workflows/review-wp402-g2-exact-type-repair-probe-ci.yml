@@ -1,0 +1,44 @@
+name: Review WP402 G2 Exact Type Repair Probe
+
+on:
+  push:
+    branches:
+      - chatgpt/review-wp402-g2-exact-type-falsifier-20260829
+    paths:
+      - '.github/workflows/review-wp402-g2-exact-type-repair-probe-ci.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  ephemeral-repair-probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Apply exact-type guards ephemerally
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          path = Path('src/frankenstein2/qubo_projection.py')
+          text = path.read_text(encoding='utf-8')
+          old_ws = '    if not isinstance(world_slice, WorldSlice):\n'
+          new_ws = '    if type(world_slice) is not WorldSlice:\n'
+          old_qp = '    if not isinstance(projection, QuboProjection):\n'
+          new_qp = '    if type(projection) is not QuboProjection:\n'
+          if text.count(old_ws) != 2:
+              raise SystemExit(f'expected exactly two WorldSlice isinstance guards, got {text.count(old_ws)}')
+          if text.count(old_qp) != 1:
+              raise SystemExit(f'expected exactly one QuboProjection isinstance guard, got {text.count(old_qp)}')
+          path.write_text(text.replace(old_ws, new_ws).replace(old_qp, new_qp), encoding='utf-8')
+          PY
+      - name: Compile repaired source and falsifier
+        run: python -m py_compile src/frankenstein2/sparse_world_basis.py src/frankenstein2/qubo_projection.py tests/test_wp402_g2_exact_type_falsifier.py
+      - name: Run exact-type falsifier after repair
+        env:
+          PYTHONPATH: src
+        run: python tests/test_wp402_g2_exact_type_falsifier.py -v
