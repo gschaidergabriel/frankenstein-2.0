@@ -1,0 +1,103 @@
+{
+  "schema": "FRANKENSTEIN2_TRIGGER6_RESEARCH_RECEIPT/v1",
+  "research_id": "R6-20260829-WP807-ARCAGI3-GENERAL-AGENT-FALSIFIER-GPT56SOL-01",
+  "stage": "E1_SOURCE_READ",
+  "status": "COMPLETE_AT_E1_SOURCE_SCOPE",
+  "worker": "GPT-5.6 Sol",
+  "trigger": "6",
+  "claim_ref": "research/tool_intelligence/claims/R6-20260829-WP807-ARCAGI3-GENERAL-AGENT-FALSIFIER-GPT56SOL-01/E1_SOURCE_READ.json",
+  "architecture_snapshot": {
+    "f2_main_observed_before_receipt": "be6bb0e76809af788c1916aa520288f4aedea9fa",
+    "research_entity_main_observed": "101bd5908b19625ed63c70fe509f8b40ede4aea3",
+    "trigger6_protocol_blob": "08571526d33f9a0c06577e2f119bdaf4297ef1c8"
+  },
+  "sources": [
+    {
+      "type": "EXTERNAL_PRIMARY",
+      "repo": "arcprize/docs",
+      "commit": "6956cde0c84b9b077d31ae98e5a9a243622a2553",
+      "path": "methodology.mdx",
+      "blob": "1e2a0cab95d082406ecf23784d178b4ba4f6b6eb",
+      "observed_claims": [
+        "ARC-AGI-3 scores completion and environment-action efficiency.",
+        "Internal reasoning/tool operations that do not alter the environment are not counted as actions.",
+        "Human action baselines use first-time players and per-level upper-median action counts.",
+        "Per-level efficiency is squared, capped, then aggregated with later levels weighted more strongly."
+      ]
+    },
+    {
+      "type": "EXTERNAL_PRIMARY",
+      "repo": "arcprize/docs",
+      "commit": "6956cde0c84b9b077d31ae98e5a9a243622a2553",
+      "path": "toolkit/competition_mode.mdx",
+      "blob": "b34a921fdaa1f085f29ccfd9b112325f3a4ba5f8",
+      "observed_claims": [
+        "Competition mode requires API-only environment interaction.",
+        "All available environments count toward scoring even if skipped.",
+        "Only level resets are permitted; game resets are not available as a fresh-game escape hatch.",
+        "An environment may be opened through make only once and only one scorecard may be opened."
+      ]
+    },
+    {
+      "type": "EXTERNAL_SOURCE_ARCHAEOLOGY",
+      "repo": "Tufalabs/duck-harness",
+      "commit": "7652836056c59e044f093e3c13ed7438c814169e",
+      "path": "ARC3-Inference/inference/agent/tool_agent.py",
+      "blob": "59655e985cbe1c2e7756e3a76976a7d6a5916195",
+      "observed_claims": [
+        "The harness distinguishes an internal Python inspection/analysis tool from real environment action execution.",
+        "The analysis tool exposes bounded structured current/previous/history/transition state and a distinct action(actions) bridge for real actions.",
+        "The harness has explicit terminal-state stopping logic and requires re-grounding after a level completion.",
+        "The implementation carries explicit context/tool-step limits rather than treating unlimited hidden computation as free architecture state."
+      ],
+      "credit_boundary": "SOURCE_PATTERN_ONLY; NO PERFORMANCE OR F2 ADOPTION CREDIT"
+    }
+  ],
+  "findings": [
+    {
+      "id": "WP807-E1-F1",
+      "epistemic_type": "SOURCE_DIRECT_PLUS_F2_INFERENCE",
+      "statement": "F2-WP-807 should preserve a first-contact, interaction-bounded test regime: the system must infer what matters from environment transitions rather than from task instructions or replayed game resets."
+    },
+    {
+      "id": "WP807-E1-F2",
+      "epistemic_type": "SOURCE_DIRECT_PLUS_F2_INFERENCE",
+      "statement": "Completion alone is too weak. External environment-action efficiency is a useful falsifier dimension because brute-force interaction can otherwise masquerade as adaptation."
+    },
+    {
+      "id": "WP807-E1-F3",
+      "epistemic_type": "COUNTERHYPOTHESIS_SUPPORTED_BY_SOURCE_SEMANTICS",
+      "statement": "ARC-style action efficiency alone is insufficient for Frankenstein efficiency claims because the upstream metric deliberately does not count internal reasoning/tool operations. F2 must separately meter model calls, token/context consumption, tool calls and local compute/latency if WP807 is used to judge an efficient general agentic core."
+    },
+    {
+      "id": "WP807-E1-F4",
+      "epistemic_type": "SOURCE_ARCHAEOLOGY_PATTERN",
+      "statement": "A dual-channel design is compatible with F2 authority boundaries: internal analysis/inspection may be rich while real environment actions remain explicit, typed and separately counted. The Tufa source demonstrates this pattern but does not prove that F2 should import its implementation."
+    },
+    {
+      "id": "WP807-E1-F5",
+      "epistemic_type": "F2_ARCHITECTURE_INFERENCE",
+      "statement": "WP807 should consume capability-specific evidence from WP802-WP806 rather than collapse all behavior into one leaderboard scalar; otherwise a strong aggregate score can hide failures in information seeking, prediction, goal inference, recovery or lesion sensitivity."
+    }
+  ],
+  "counterhypotheses": [
+    {
+      "statement": "A single ARC-style scalar is sufficient to falsify the general agentic core.",
+      "status": "NOT_SUPPORTED_AT_E1",
+      "reason": "The source metric prices external actions but intentionally leaves internal computation unpriced and does not attribute which cognitive subsystem caused success."
+    },
+    {
+      "statement": "A successful external harness should be imported wholesale into Frankenstein 2.0.",
+      "status": "NOT_SUPPORTED_AT_E1",
+      "reason": "The source audit establishes reusable structural patterns only; dependency, overlap, ablation and F2 causal benefit have not been measured."
+    }
+  ],
+  "proposed_next_discriminator": "Acquire E2_ARCHITECTURE_MAPPED create-only claim if still unowned, then map a WP807 episode/result contract with first-contact/reset provenance, external-action efficiency, internal compute cost, held-out-family identity, subsystem metrics and fail-closed acceptance gates. Do not create a competing Trigger-4 build lane.",
+  "credit": {
+    "e1_source_read": true,
+    "architecture_credit": 0,
+    "f2_ablation_credit": 0,
+    "runtime_credit": 0,
+    "e6_f2_acceptance": false
+  }
+}
