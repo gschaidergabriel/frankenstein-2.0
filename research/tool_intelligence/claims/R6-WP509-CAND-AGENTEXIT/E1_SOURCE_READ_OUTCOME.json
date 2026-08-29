@@ -1,0 +1,128 @@
+{
+  "schema": "FRANKENSTEIN2_TRIGGER6_WORK_OUTCOME/v1",
+  "research_id": "R6-WP509-CAND-AGENTEXIT",
+  "claim_target": "E1_SOURCE_READ",
+  "status": "COMPLETED_E1_SOURCE_READ",
+  "completed_at": "2026-08-29T15:08:34+07:00",
+  "claim_commit": "fe3deae38425e99c9a02f7695bc86c13f1817549",
+  "architecture_snapshot": {
+    "f2_main_before_outcome_write": "ca77ae5fb571de04441508bc6d99ea0881982b1b",
+    "workpackage_ledger_blob": "8de9711dd6f2f310d594b4c244b2639d1ebd37f6",
+    "target": "F2-WP-509 HOLD/stop/rumination control",
+    "adjacent_targets": ["F2-WP-505", "F2-WP-600", "F2-WP-602", "F2-WP-603", "F2-WP-800", "F2-WP-902"]
+  },
+  "external_source": {
+    "repo": "Coldmist-Lu/AgentExit",
+    "commit": "9747f0237fc91aa0445d4cc8630bf0fa4c22022c",
+    "source_pin_status": "EXACT_COMMIT_PINNED",
+    "license": "Apache-2.0",
+    "audited_files": [
+      "README.md",
+      "agentboard/agents/react_style_agent_verify.py",
+      "agentboard/agents/verify_utils.py",
+      "agentboard/agents/react_style_agent_history.py",
+      "agentboard/tasks/alfworld.py",
+      "agentboard/eval_main_agentexit.py",
+      "agentboard/utils/logging/logger.py",
+      "LICENSE"
+    ]
+  },
+  "classification": "RELEVANT_CONCEPT_METRIC_HANDOFF_DONOR_DO_NOT_IMPORT_RUNTIME_CONTROL_PLANE",
+  "source_observations": [
+    "AgentExit implements intrinsic early exit as prompt text that asks the same acting model to emit EXIT when the environment appears complete or further progress seems unlikely.",
+    "Its extrinsic path instantiates a Verify helper using the same llm_model and periodically asks it to judge recent history for stuckness, completion, infeasibility or low expected progress.",
+    "Verify latches exit_flag when the free-form verifier response contains the substring YES; this is not a typed or schema-validated decision surface.",
+    "When exit_flag is latched, ReactStyleAgentVerify returns action EXIT before the next environment action.",
+    "In the audited ALFWorld task loop, any action containing EXIT breaks the interaction with exit_reason=early_exit before env.step; success remains a separate environment-derived done signal. Thus EXIT is control-flow termination in this path, not itself success evidence.",
+    "The repository exposes task progress trajectories and baseline comparison infrastructure, supporting the paper's general redundancy-versus-progress-loss framing, but this E1 audit did not locate a repository implementation that independently establishes the paper's exact Redundancy Steps and Progress Degradation formulas. Exact metric reproduction therefore remains unproven here.",
+    "ReactStyleAgentHistory replays a prior trajectory until the recorded early-exit point and then resumes generation, demonstrating continuation/handoff as a concept but carrying history as AgentBoard-specific trajectory data rather than a typed causal F2 envelope.",
+    "The executable package is tightly coupled to AgentBoard environments, task-specific EXIT modifications, model-provider wrappers, logging/baseline infrastructure and optional W&B; importing it wholesale would add a large dependency and authority surface for a narrow WP509 need.",
+    "The audited tree contains a tracked .env path. Its contents were intentionally not read or copied; this is a source-hygiene warning, not evidence of a leaked secret.",
+    "Apache-2.0 licensing permits donor inspection/reuse subject to license obligations, but licensing does not imply architecture suitability."
+  ],
+  "architecture_relevance": {
+    "f2_wp509": "HIGH_AS_THIN_STOP_CANDIDATE_AND_METRIC_DONOR",
+    "f2_wp505": "MEDIUM_AS_FUTURE_EXPECTED_VALUE_ADAPTIVE_COMPUTE_SIGNAL",
+    "f2_wp600_wp603": "HIGH_FOR_EXIT_TO_ASK_DELEGATE_REOBSERVE_ROUTING",
+    "f2_wp800_wp902": "HIGH_FOR_FALSE_STOP_PROGRESS_LOSS_AND_RESOURCE_MEASUREMENT",
+    "canonical_state_authority": "NONE",
+    "completion_authority": "NONE",
+    "effect_authority": "NONE",
+    "provider_route": "NONE_REQUIRED_FOR_SOURCE_AUDIT"
+  },
+  "hypothesis_update": "SUPPORTED_AT_SOURCE_LEVEL: separating early-stop efficiency from progress damage and allowing a bounded continuation/handoff after stopping are useful WP509 design patterns. The safest F2 translation is an advisory typed StopCandidate that proposes HOLD/WAIT/ASK/DELEGATE/REOBSERVE/STOP_COGNITION while canonical COMPLETE remains separately evidence-gated.",
+  "counterhypothesis_update": "STRENGTHENED: AgentExit's same-model verifier, free-form YES substring parser and direct EXIT latch are too circular and brittle to import as F2 authority. A deterministic repeated-state/no-new-evidence/hard-budget baseline may capture most benefit with lower latency, fewer self-judgment errors and cleaner causal attribution.",
+  "distilled_f2_candidate": {
+    "name": "WP509_STOP_CANDIDATE_ENVELOPE_HYPOTHESIS",
+    "fields": [
+      "causal_event_id",
+      "loop_or_cycle_id",
+      "generation",
+      "state_digest",
+      "evidence_delta_digest",
+      "progress_delta",
+      "repeated_state_count",
+      "no_new_evidence_count",
+      "resource_delta",
+      "stop_reason",
+      "proposed_transition",
+      "verifier_provenance",
+      "verifier_model_or_rule_identity"
+    ],
+    "allowed_candidate_transitions": ["HOLD", "WAIT", "ASK", "DELEGATE", "REOBSERVE", "STOP_COGNITION"],
+    "forbidden_promotion": "StopCandidate must never mint COMPLETE, effect success or world truth.",
+    "implementation_preference": "F2-native thin deterministic gate first; optional model verifier later only as advisory evidence. Do not embed AgentBoard as the WP509 control plane."
+  },
+  "measurement_translation": {
+    "redundancy_metric": "Count transitions after the last measurable progress/evidence delta only when they also add no admitted evidence and repeat an equivalent state/action class; do not label negative evidence as redundant merely because task progress is flat.",
+    "progress_degradation_metric": "On paired deterministic fixtures, compare progress achieved by the stop policy against a bound reference trajectory and clamp only positive loss; bind baseline identity explicitly.",
+    "mandatory_safety_metrics": [
+      "false_COMPLETE_count = 0 by construction",
+      "premature_disengagement_rate",
+      "repeated_state_rate",
+      "no_new_evidence_transition_count",
+      "handoff_or_reobserve_recovery_success",
+      "tokens_and_wall_time_delta",
+      "p50_p95_p99_stop_decision_latency",
+      "CPU_RSS_IO_delta_where_measurable"
+    ]
+  },
+  "non_inference_boundaries": [
+    "README and paper-reported benchmark gains are upstream claims, not F2 measurements.",
+    "This audit does not establish exact Redundancy Steps or Progress Degradation code reproduction from the repository.",
+    "A same-model verifier response is candidate cognition, not completion truth.",
+    "An EXIT/HOLD decision is not canonical task completion.",
+    "No external provider, VPS, production host or paid execution was used.",
+    "No runtime experiment or F2 ablation was executed.",
+    "No E2, E3, E4, E5 or E6 promotion is granted by this result.",
+    "No whole-F2, EntityOS/HCU, physical GRID10, canonical semantics or training credit is granted."
+  ],
+  "recommended_next_discriminator": {
+    "stage": "E2_ARCHITECTURE_MAPPED_THEN_E3_DETERMINISTIC_FIXTURE",
+    "design_comparison": [
+      "A: deterministic hard budget + repeated-state + no-new-evidence baseline",
+      "B: A plus F2-native progress-aware StopCandidate modeled on AgentExit's paired efficiency/damage framing",
+      "C: B plus bounded adaptive thresholding only after B is causally measurable"
+    ],
+    "acceptance_requirements": [
+      "COMPLETE authority remains unreachable from the stop controller",
+      "generation/state/evidence provenance is exact",
+      "negative evidence is not misclassified as no progress",
+      "B reduces redundant transitions without material progress degradation versus A/reference",
+      "ASK/DELEGATE/REOBSERVE can recover useful progress after an early stop",
+      "latency/resource overhead is lower than the saved work at the evaluated workload"
+    ],
+    "promotion_gate": "Claim E2 only after mapping this thin envelope into exact current F2 WP509/WP505/WP600-603 interfaces. Claim E3 only for a deterministic fixture. E4 requires an admitted F2 ablation surface; E6 remains Trigger-4-only."
+  },
+  "evidence_ceiling": "E1_SOURCE_READ_ONLY",
+  "credits": {
+    "research_source_delta": 1,
+    "runtime_credit": 0,
+    "f2_wp509_runtime_credit": 0,
+    "physical_grid10_credit": 0,
+    "whole_f2_credit": 0,
+    "whole_entityos_hcu_credit": 0,
+    "canonical_semantics_credit": 0,
+    "training_credit": 0
+  }
+}
