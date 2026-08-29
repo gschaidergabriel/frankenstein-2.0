@@ -1,0 +1,66 @@
+{
+  "schema": "FRANKENSTEIN2_WORKPACKAGE_ACCEPTANCE_RECEIPT/v1",
+  "workpackage_id": "F2-WP-510",
+  "generation": 1,
+  "claim_id": "F2-WP-510-G1-GPT56SOL-GWT-CAUSAL-PATH-SEAL-20260829",
+  "acceptance_scope": "GWT_CAUSAL_PATH_SEAL_G1_REPOSITORY_HOSTED_COMPONENT_CI_ONLY",
+  "authority_epoch": "8.78",
+  "implementation_pr": 307,
+  "merge_commit": "e1141cf6051bc42e6299e220afcdae40b887dd86",
+  "review_negative_evidence": {
+    "falsifier_id": "WP510_DETACHED_POSITIVE_DOWNSTREAM_EVIDENCE",
+    "conclusion": "valid_static_integration_falsifier",
+    "meaning": "The first green PR head could revalidate a positive matched causal result and a positive uptake/re-entry binding without requiring both positives to name the same downstream-output digest. Two locally valid evidence chains could therefore be co-sealed without proving they were one causal path.",
+    "resolution": "The same generation was hardened before merge: positive contract-scope sealing now requires exactly one UPTAKEN recipient under the v1 probe ABI and exact equality between its WP507/WP508 downstream digest and the intervention arm downstream-output digest. A regression test rejects detached positive downstream evidence."
+  },
+  "pr_head_evidence": {
+    "head_sha": "92d7be924e865af5b72dffd7c74d645d56dd7f6c",
+    "run_id": 33246169083,
+    "job_id": 99083893824,
+    "conclusion": "success",
+    "compile": "PASS",
+    "falsification_suite": "PASS"
+  },
+  "merged_main_evidence": {
+    "head_sha": "e1141cf6051bc42e6299e220afcdae40b887dd86",
+    "run_id": 33246199191,
+    "job_id": 99083978255,
+    "conclusion": "success",
+    "compile": "PASS",
+    "falsification_suite": "PASS"
+  },
+  "artifacts": {
+    "source": "src/frankenstein2/gwt_causal_path.py",
+    "source_blob_sha": "c3591248e33d1a88650283cd642d18fdc5c095e6",
+    "test": "tests/test_gwt_causal_path.py",
+    "test_blob_sha": "9a8370a58ffe0c3d5bd68af520992e5b126747c5",
+    "workflow": ".github/workflows/wp510-gwt-causal-path-ci.yml",
+    "workflow_blob_sha": "f1f092efbdd2604596eddee3d78192771a3a4d78"
+  },
+  "verified_invariants": [
+    "WorkspaceSelection is revalidated against exact GRID10 plan/frame identity and BroadcastEnvelope is rebuilt from the WP506 canonical builder before comparison",
+    "UptakeSummary is rebuilt from the exact WP507 CellUptakeReceipt set and the matched intervention/control causal result is re-evaluated rather than trusted",
+    "every UPTAKEN recipient represented in the sealed summary requires exactly one valid WP508 re-entry/uptake binding tied to the same witness, receipt, CellInput and broadcast",
+    "positive contract-scope sealing under the v1 probe ABI requires exactly one UPTAKEN recipient and exact downstream-digest identity between uptake/re-entry evidence and the intervention output",
+    "forged broadcast payload lineage, missing re-entry evidence, detached positive downstream evidence, forged causal status, factory bypass and foreign receipt substitution fail closed",
+    "OFFERED/UNKNOWN, NOT_UPTAKEN and explicit no-causal outcomes stay nonpositive",
+    "the seal carries no truth, effect or completion authority and mints zero runtime, physical GRID10, GWT runtime, J-Space, training or whole-system credit"
+  ],
+  "commands": [
+    "python -m py_compile src/frankenstein2/grid10_interface.py src/frankenstein2/gwt_workspace.py src/frankenstein2/gwt_uptake.py src/frankenstein2/gwt_reentry_provenance.py src/frankenstein2/gwt_reentry_uptake_binding.py src/frankenstein2/gwt_causal_path.py tests/test_gwt_causal_path.py",
+    "PYTHONPATH=src python -m pytest -q tests/test_gwt_causal_path.py"
+  ],
+  "environment": "github-actions ubuntu-latest; python 3.12",
+  "runtime_execution_observed": false,
+  "runtime_credit": 0,
+  "physical_grid10_credit": 0,
+  "gwt_runtime_credit": 0,
+  "jspace_runtime_credit": 0,
+  "training_credit": 0,
+  "effect_credit": 0,
+  "completion_credit": 0,
+  "whole_system_acceptance": false,
+  "negative_evidence_preserved": "The initial PR-head run 33246070367 was green but preceded the detached-positive-downstream review falsifier; it remains reproducibility/history only and is not the final acceptance evidence. Final acceptance uses repaired head 92d7be924e865af5b72dffd7c74d645d56dd7f6c plus merged-main run 33246199191.",
+  "completion_deficit": "This receipt establishes only deterministic repository-hosted integration of existing WP506/WP507/WP508 evidence objects. It does not show a real model call, physical GRID10 delivery, target-runtime uptake, actual recurrent GWT causality, J-Space hidden-state influence, VPS execution, UnifiedDB persistence, effects, completion loop, training or whole-system operation.",
+  "next_exact_action": "Keep WP510 generation 1 closed unless new evidence falsifies this component boundary. The next Stage-5 promotion must be an admitted target-runtime experiment/receipt that instantiates the exact sealed chain with real execution identities; source or CI repetition alone cannot mint GWT runtime credit."
+}
