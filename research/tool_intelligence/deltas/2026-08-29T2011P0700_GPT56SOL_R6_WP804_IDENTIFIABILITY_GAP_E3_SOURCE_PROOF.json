@@ -1,0 +1,59 @@
+{
+  "schema": "FRANKENSTEIN2_TRIGGER6_RESEARCH_DELTA/v1",
+  "research_id": "R6-20260829-WP804-IRL-NONIDENTIFIABILITY-GPT56SOL-01",
+  "evidence_stage": "E3_CLAIM_REPRODUCED_SOURCE_SEMANTICS",
+  "created_at": "2026-08-29T20:11:00+07:00",
+  "worker": "GPT-5.6-Sol-TRIGGER6",
+  "claim": "Exact-current WP804 branch source does not fail closed against evaluator assignment of a unique hidden goal label when the public benchmark evidence is ambiguity-preserving; an arbitrary exact-goal policy can therefore be marked correct solely by matching that evaluator-hidden label.",
+  "exact_identity": {
+    "wp804_branch": "chatgpt/wp804-goal-inference-20260829",
+    "wp804_branch_sha": "a4b1b04757960153fb29a41539f1c24b58e41d5d",
+    "source_path": "src/frankenstein2/cognitive_goal_inference_benchmark.py",
+    "test_path": "tests/test_cognitive_goal_inference_benchmark.py",
+    "e3_claim_commit": "5252f5d22ed6b25ba928ac054df130386eb503e8"
+  },
+  "source_proof": [
+    "The branch test fixture function goals(ambiguous=True) gives both goal-blue and goal-red the same public signal ref obs:needs-blue, and test_ambiguous_public_signal_preserves_abstention treats that condition as ambiguity by sealing an ABSTAIN evaluator label.",
+    "seal_evaluator_goal_label has no identifiability/equivalence argument or check. It accepts any expected_goal_id that is a member of the candidate set, including goal-blue or goal-red for the same ambiguity-preserving public observation/candidate set.",
+    "canonical_first_policy returns the lexically first candidate goal independent of discriminating evidence.",
+    "score_goal_inference sets correct solely from equality of policy decision/goal_id and evaluator expected_decision/expected_goal_id after identity bindings pass.",
+    "Therefore, for the same ambiguous public observation/candidate set, sealing expected_goal_id=goal-blue makes canonical_first_policy score correct, while sealing expected_goal_id=goal-red makes the identical public policy output score incorrect. The evaluator-hidden label, not a public-evidence identifiability gate, determines the result."
+  ],
+  "existing_good_controls": [
+    "Policy input is restricted to concrete ObservationView and CandidateGoal values.",
+    "Evaluator label construction is origin-gated and bound to exact fixture/state/observation/candidate digests.",
+    "The current suite already tests ambiguous-public-signal abstention, hidden fixture mutation invariance, canonical candidate ordering, observation subtype rejection, run/fixture generation binding, forged label rejection and wrong-state label rejection."
+  ],
+  "missing_fail_closed_control": "No source-level invariant binds expected_decision=GOAL to a proof that the public evidence uniquely discriminates that goal under declared benchmark assumptions. The existing ambiguous test demonstrates one correct evaluator choice but does not prevent a contradictory exact hidden label for the same public evidence.",
+  "minimal_adversarial_test": {
+    "name": "test_ambiguous_exact_hidden_label_cannot_mint_correct_guess",
+    "construction": [
+      "Use the existing fixture(), begin_episode and goals(ambiguous=True).",
+      "Run canonical_first_policy; it returns goal-blue without public discriminating evidence.",
+      "Attempt to seal an exact evaluator label goal-blue for the ambiguous condition.",
+      "Required fixed behavior: label sealing or scoring must fail closed, or the score must not grant correct=True, unless an evaluator-private identifiability certificate bound to declared public evidence proves uniqueness.",
+      "Add matched discriminating case where one later public observation breaks equivalence and exact goal scoring is permitted."
+    ]
+  },
+  "label_permutation_falsifier": "For a fixed public observation and fixed candidate descriptors, permuting only evaluator-hidden expected_goal_id must never change the policy output; if benchmark correctness changes, that is acceptable only when evaluator metadata explicitly marks the case as uniquely identifiable from public evidence. Otherwise it exposes hidden-label-dependent scoring rather than evidence-sensitive inference.",
+  "runtime_attempt": {
+    "surface": "local analysis container",
+    "result": "BLOCKED_INFRASTRUCTURE_DNS",
+    "detail": "git clone could not resolve github.com",
+    "credit": 0,
+    "classification": "TRANSPORT_INFRASTRUCTURE_FAILURE_NOT_PRODUCT_NEGATIVE"
+  },
+  "reconciliation_with_e2": "E2 delta WP804_IDENTIFIABILITY_GATED_SCORING/v1 is confirmed as materially relevant to the now-observed implementation rather than redundant. The smallest fix remains evaluator-side identifiability-gated label/scoring semantics plus matched ambiguity/discrimination and label-permutation tests; no full IRL import is warranted.",
+  "counterhypothesis": "Trigger4 may add an equivalent identifiability gate in a later branch commit before PR/acceptance. Re-enter exact branch head before handoff or acceptance; if equivalent controls appear, mark this result superseded-by-implementation rather than duplicating code.",
+  "next_exact_action": "Trigger4 should amend WP804 before bounded acceptance: make exact GOAL evaluator labels/scoring impossible on evaluator-declared non-identifying public evidence, add the matched ambiguity/discrimination and hidden-label permutation falsifiers, then run exact PR-head repository CI. Trigger6 should consume that exact source/test result before any E4/E5 promotion.",
+  "credits": {
+    "research": "E3_SOURCE_SEMANTIC_CLAIM_REPRODUCED",
+    "repository_ci": 0,
+    "target_runtime": 0,
+    "physical_grid10": 0,
+    "gwt_jspace": 0,
+    "training": 0,
+    "goal_authority": 0,
+    "whole_system": 0
+  }
+}
