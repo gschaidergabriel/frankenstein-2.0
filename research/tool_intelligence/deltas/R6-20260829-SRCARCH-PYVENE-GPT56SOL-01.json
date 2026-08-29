@@ -1,0 +1,151 @@
+{
+  "schema": "FRANKENSTEIN2_TRIGGER6_SOURCE_ARCHAEOLOGY/v1",
+  "research_id": "R6-20260829-SRCARCH-PYVENE-GPT56SOL-01",
+  "trigger": "6",
+  "slot": "SOURCE_ARCHAEOLOGIST",
+  "status": "E2_ARCHITECTURE_MAPPED",
+  "architecture_delta_fusion": "research/tool_intelligence/deltas/ADF-20260829T1455P0700-GPT56SOL-PYVENE-WP507.json",
+  "claim_ref": "research/tool_intelligence/claims/R6-20260829-SRCARCH-PYVENE-GPT56SOL-01/E2_ARCHITECTURE_MAPPED.json",
+  "promotion": {
+    "to_E3": false,
+    "to_E4": false,
+    "to_E5_BUILD_CANDIDATE": false,
+    "to_E6_ACCEPTED": false,
+    "architecture_credit": 0,
+    "runtime_credit": 0,
+    "whole_system_credit": 0
+  },
+  "candidate": {
+    "repo": "stanfordnlp/pyvene",
+    "source_commit": "9e333904dcf9e597ca76170010d17f4d4580de8d",
+    "version_in_pyproject": "0.1.8",
+    "license": "Apache-2.0",
+    "development_classifier": "Development Status :: 3 - Alpha",
+    "purpose": "intervene on internal states of PyTorch models for interpretability, steering, robustness, model editing and causal-mechanism experiments",
+    "paper": {
+      "title": "pyvene: A Library for Understanding and Improving PyTorch Models via Interventions",
+      "venue": "NAACL 2024 System Demonstrations",
+      "doi": "10.18653/v1/2024.naacl-demo.16"
+    }
+  },
+  "observed_source_architecture": [
+    "IntervenableModel wraps an existing PyTorch model and binds abstract RepresentationConfig locations to concrete module hooks.",
+    "Interventions are torch modules/functions and can be grouped into ordered serial/parallel intervention groups.",
+    "The core wrapper keeps per-intervention hook state, activation caches, hot activations, getter/setter call counters and intervention pointers.",
+    "IntervenableModelOutput separates original outputs, intervened outputs and collected activations.",
+    "The intervention catalog includes zeroing/subtraction-like controls, source swaps, rotated-space interventions, low-rank/trainable interventions, sigmoid masks, noise and autoencoder-latent interventions.",
+    "The package supports trainable interventions while freezing the wrapped model by default; intervention artifacts can be serialized separately from model weights.",
+    "Model-component dimensions and hook locations are mapped per supported architecture; the current head includes recent GQA head-dimension mapping fixes."
+  ],
+  "dependency_and_weight": {
+    "python": ">=3.9",
+    "core_dependencies": [
+      "torch>=2.0.0",
+      "transformers>=4.55.0.dev0",
+      "tokenizers>=0.20.0",
+      "datasets>=3.0.1",
+      "protobuf>=3.20.0",
+      "matplotlib>=3.7.4",
+      "ipywidgets>=8.1.1",
+      "plotnine>=0.12.4",
+      "huggingface-hub>=0.25.1",
+      "numpy>1.24.4",
+      "fsspec>=2023.6.0",
+      "accelerate>=0.34.2",
+      "sentencepiece>=0.2.0"
+    ],
+    "assessment": "Heavy for an F2 core causal-protocol dependency; acceptable only as an isolated experimental/model-analysis dependency if evidence later justifies it."
+  },
+  "current_main_limitations_and_risks": [
+    "Current F2-WP-507 explicitly does not observe hidden model state; pyvene does. Directly inserting pyvene into WP507 would cross the current scope boundary and could falsely equate model-internal perturbation with software-level GWT uptake.",
+    "Hook/component mappings are model-architecture specific. Recent 2026 GQA fixes show that dimension assumptions can be wrong for newer architectures, so exact target-model compatibility must be tested rather than assumed.",
+    "Upstream PR #110 for intervention scheduling across generated-token positions remains open. Dynamic generation-time intervention behavior must not be inferred from that unmerged PR.",
+    "Upstream PR #241 for nnsight/NDIF backend remains open. Remote/NDIF capability is not part of pinned main and is not an admitted F2 execution path.",
+    "The library carries a broad scientific Python/Transformers dependency surface that increases installation, versioning and reproducibility risk compared with a thin F2-native hook harness.",
+    "A changed model output after an internal intervention can reflect generic disruption, not the intended J-Space/GWT causal mechanism. Sham/random-location controls are mandatory.",
+    "pyvene state/caches/hooks are experimental runtime state only and must never become UnifiedDB or effect/completion authority."
+  ],
+  "f2_integration_assessment": {
+    "recommended_adoption_class": "CONCEPT_DISTILL_PLUS_LATER_ISOLATED_MODEL_ABLATION",
+    "direct_adopt_now": false,
+    "why": [
+      "WP507 is currently a deterministic message/workspace evidence contract, while pyvene is a model-internal intervention framework.",
+      "The strongest fit is later F2-WP-806 lesion/rescue and model-specific J-Space causal validation after an exact local model/J-Space ABI exists.",
+      "A thin F2-native experiment adapter can preserve F2 causal IDs and authority fences while borrowing pyvene-style intervention semantics; full library import should require measured benefit over that thinner adapter."
+    ],
+    "high_value_donor_mechanisms": [
+      "explicit intervention vs control execution over the same base input",
+      "collect-original/intervened/activation outputs as separate experimental products",
+      "zero/swap/noise/mask interventions for lesion and rescue controls",
+      "serial/parallel multi-location interventions for mechanism specificity testing",
+      "trainable low-rank/rotated interventions as later research-only probes",
+      "serialized intervention configuration/artifact identity for reproducible experiments"
+    ],
+    "target_workpackages": {
+      "F2-WP-507": "METHOD_DONOR_ONLY: strengthen matched intervention/control vocabulary; do not import hidden-state machinery into the current deterministic uptake contract.",
+      "F2-WP-508": "POTENTIAL_LATER_DONOR: pair workspace re-entry provenance with model-internal intervention receipts only if exact model call/J-Space identity is bound.",
+      "F2-WP-806": "STRONGEST_FIT: lesion/rescue harness for exact local model/J-Space experiments after model-specific runtime evidence exists."
+    },
+    "authority_fence": "pyvene experiment outputs are measurements/candidates only. They cannot mint world facts, GWT uptake truth, effect success, completion, canonical memory or whole-system acceptance."
+  },
+  "counterhypotheses": [
+    {
+      "id": "CH-PYVENE-1",
+      "statement": "A thin F2-native forward-hook lesion harness provides all needed causal discriminators with much lower dependency and maintenance cost.",
+      "falsifier": "On the exact target local model, pyvene materially improves intervention coverage, correctness or reproducibility over the thin harness while staying within acceptable latency/RAM/VRAM/dependency cost."
+    },
+    {
+      "id": "CH-PYVENE-2",
+      "statement": "Model-internal interventions are the wrong causal layer for proving F2 GWT uptake and will create misleading evidence.",
+      "falsifier": "A pre-registered cross-layer experiment binds one exact F2 broadcast/J-Space control variable to one exact pyvene intervention and shows specific downstream changes with sham/random-location controls, while software-level uptake receipts remain independently satisfied."
+    },
+    {
+      "id": "CH-PYVENE-3",
+      "statement": "Exact approximately-0.8B target-model architecture is insufficiently supported or too brittle under pyvene hook mappings.",
+      "falsifier": "Pinned target model passes deterministic collect/zero/swap/noise probes at declared components across repeated runs with exact activation-shape and output-digest receipts."
+    },
+    {
+      "id": "CH-PYVENE-4",
+      "statement": "Observed output changes are generic damage rather than mechanism-specific causal influence.",
+      "falsifier": "Targeted intervention effect exceeds matched sham, random-layer, random-subspace and equal-norm noise controls and is reversible/rescuable at the pre-registered target."
+    }
+  ],
+  "next_discriminator": {
+    "evidence_stage": "E3_CLAIM_REPRODUCED_THEN_E4_F2_ABLATION",
+    "execute_now": false,
+    "reason": "No accepted F2 local-model/J-Space intervention ABI and no exact target-model runtime baseline are currently bound to this research object.",
+    "plan": [
+      "wait for an exact local model/J-Space ABI and source/runtime identity",
+      "pin pyvene commit 9e333904dcf9e597ca76170010d17f4d4580de8d and the exact target model/tokenizer/runtime",
+      "reproduce one minimal collect plus zero/swap intervention claim on a deterministic fixture",
+      "build an equivalent thin F2-native hook baseline",
+      "compare effect specificity, deterministic replay, p50/p95 latency, CPU, RSS/PSS, GPU/VRAM, install/dependency cost and failure rate",
+      "add sham/random-layer/random-subspace/equal-norm noise controls and a rescue intervention",
+      "only if measured net value is positive, advance toward E5 BUILD_CANDIDATE for an isolated research harness rather than the WP507 core"
+    ]
+  },
+  "evidence_refs": [
+    "F2 research/tool_intelligence/TRIGGERWORD_6_PROTOCOL.md blob 4302f7659eae51eaf73d06cd1424526d97a7f743",
+    "F2 workpackages/active/F2-WP-507.json at main 1bce941e77a91c5cf7836c4d75709539657d8106",
+    "F2 WORKPACKAGES.md at 46aee3bf37a938dbea5936b9c935ffb7bd74cdf3",
+    "F2 DONOR_ADOPTION_MATRIX.md at 46aee3bf37a938dbea5936b9c935ffb7bd74cdf3",
+    "Research Entity main 5f14068837cd5b3ed389f88891cacb46fee4c588",
+    "Trigger-4/5 architecture branch 10eadfb0d57c9a9328744dd9facc1e7e1463f230",
+    "stanfordnlp/pyvene main 9e333904dcf9e597ca76170010d17f4d4580de8d",
+    "stanfordnlp/pyvene pyproject.toml and pyvene/models/intervenable_base.py at the pinned commit",
+    "stanfordnlp/pyvene PR #110 open: intervention scheduling for generation",
+    "stanfordnlp/pyvene PR #241 open: nnsight/NDIF backend",
+    "Wu et al., NAACL 2024 System Demonstrations, DOI 10.18653/v1/2024.naacl-demo.16"
+  ],
+  "epistemic_boundary": {
+    "source_read": true,
+    "architecture_mapped": true,
+    "upstream_claim_reproduced": false,
+    "f2_ablation_run": false,
+    "build_candidate": false,
+    "f2_runtime_observed": false,
+    "research_credit": 0,
+    "runtime_credit": 0,
+    "whole_system_credit": 0
+  }
+}
