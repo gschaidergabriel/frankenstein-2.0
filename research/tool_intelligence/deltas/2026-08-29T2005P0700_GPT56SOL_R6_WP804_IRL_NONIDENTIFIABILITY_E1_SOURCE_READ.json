@@ -1,0 +1,101 @@
+{
+  "schema": "FRANKENSTEIN2_TRIGGER6_RESEARCH_DELTA/v1",
+  "research_id": "R6-20260829-WP804-IRL-NONIDENTIFIABILITY-GPT56SOL-01",
+  "evidence_stage": "E1_SOURCE_READ",
+  "created_at": "2026-08-29T20:05:00+07:00",
+  "worker": "GPT-5.6-Sol-TRIGGER6",
+  "f2_snapshot": {
+    "wp804_claim_commit": "d6cef32b1c5fa158bf415517eb37424a17dfe0d9",
+    "trigger6_claim_commit": "a257a1e9cf269a82af919b2e951f091578117c81",
+    "authority_epoch": "8.78"
+  },
+  "current_f2_observation": {
+    "workpackage": "F2-WP-804 generation 1",
+    "scope": "Held-out GOAL-INFERENCE benchmark using public ObservationView plus explicit public candidate-goal descriptors; evaluator-private fixture state is forbidden from policy input; UNKNOWN/ABSTAIN is valid; goal-label agreement grants no goal adoption/authority; repository component CI only.",
+    "implementation_on_main_at_source_read": "NOT_OBSERVED",
+    "credit": "SOURCE_OBSERVATION_ONLY"
+  },
+  "primary_sources": [
+    {
+      "source": "Skalse and Abate, Partial Identifiability and Misspecification in Inverse Reinforcement Learning, Artificial Intelligence 356 (2026), 104525",
+      "doi": "10.1016/j.artint.2026.104525",
+      "url": "https://www.sciencedirect.com/science/article/pii/S0004370226000512",
+      "observed_mechanism": [
+        "Multiple reward functions can be compatible with the same observed policy, so reward inference is generally only partially identifiable.",
+        "Inference also depends on a behavioural model relating reward to policy; misspecification can make reward inference unsound.",
+        "The paper explicitly distinguishes ambiguity of the latent reward from whether that ambiguity matters for a downstream application."
+      ],
+      "transfer_boundary": "WP804 infers bounded benchmark goal labels rather than a general reward function. The direct transferable invariant is anti-overidentification: identical public behavior cannot justify forcing distinct latent-goal labels unless the benchmark declares additional discriminating evidence/assumptions."
+    },
+    {
+      "source": "Skalse et al., Invariance in Policy Optimisation and Partial Identifiability in Reward Learning, ICML/PMLR 2023",
+      "url": "https://proceedings.mlr.press/v202/skalse23a/skalse23a.pdf",
+      "observed_mechanism": [
+        "Different reward functions can fit the same data even with infinite data.",
+        "Ambiguity is acceptable only when all compatible latent explanations induce the same downstream outcome required by the application."
+      ],
+      "transferable_invariant": "Benchmark scoring should be equivalence-aware: if candidate goals are observationally equivalent for the available public trajectory and the downstream benchmark does not require distinguishing them, exact-label forcing is not justified."
+    },
+    {
+      "source": "Amin and Singh, Towards Resolving Unidentifiability in Inverse Reinforcement Learning, 2016",
+      "arxiv": "1601.06569",
+      "url": "https://arxiv.org/abs/1601.06569",
+      "observed_mechanism": [
+        "Single fixed-environment IRL is fundamentally unidentifiable in general.",
+        "Actively selecting multiple environments can recover more of the latent reward information; experimental context can supply discriminating evidence unavailable in one environment."
+      ],
+      "transferable_invariant": "WP804 fixture design should include paired contexts/episodes where competing goals are intentionally non-discriminable in one public prefix and discriminable in another, rather than assuming one trajectory always identifies a unique goal."
+    },
+    {
+      "source": "Ng, Harada and Russell, Policy Invariance Under Reward Transformations, ICML 1999",
+      "url": "https://ai.stanford.edu/~ang/papers/shaping-icml99.pdf",
+      "observed_mechanism": [
+        "Potential-based reward transformations can preserve optimal policies."
+      ],
+      "transferable_invariant": "Behavioral equality is not sufficient evidence of unique latent utility/goal structure. WP804 must not equate same action trace with same uniquely identifiable latent goal."
+    },
+    {
+      "source": "Armstrong and Mindermann, Occam's razor is insufficient to infer the preferences of irrational agents, NeurIPS 2018",
+      "url": "https://papers.neurips.cc/paper_files/paper/2018/hash/d89a66c7c80a29b1bdbab0f2a1a94af8-Abstract.html",
+      "observed_mechanism": [
+        "Observed policy alone does not uniquely decompose into a planner and reward when the planner/rationality model is unknown.",
+        "Simplicity priors alone do not resolve the ambiguity."
+      ],
+      "transferable_invariant": "WP804 should keep any planner/rationality assumption explicit in evaluator metadata and must not hide it inside a supposedly objective goal label."
+    },
+    {
+      "source": "Baker, Saxe and Tenenbaum, Action understanding as inverse planning, Cognition 2009 / earlier goal-inference work",
+      "url": "https://www.sciencedirect.com/science/article/pii/S0010027709001607",
+      "observed_mechanism": [
+        "Goal inference can be formalized by inverting a probabilistic model of goal-conditioned planning.",
+        "Goal inference depends on both observed actions/environment and modeling assumptions such as goal priors/rational action."
+      ],
+      "transferable_invariant": "Do not import a heavyweight Bayesian inverse-planning stack into WP804 merely for benchmark credit. Structurally distill the useful requirement: inference assumptions and candidate-goal descriptors must be explicit, public and testable."
+    }
+  ],
+  "cross_source_synthesis": {
+    "supported": [
+      "A public action/observation trajectory may support multiple latent goals; forced exact-label scoring can manufacture false confidence.",
+      "UNKNOWN/ABSTAIN is not merely a safety convenience; it is required on deliberately non-identifying public evidence.",
+      "Goal-inference evaluation should distinguish observational equivalence from true discrimination and keep planner/rationality assumptions explicit.",
+      "Multiple contexts/interventions can create discriminating evidence that a single fixed episode lacks."
+    ],
+    "not_supported_by_sources_alone": [
+      "That WP804 needs full inverse-reinforcement-learning machinery.",
+      "That exact human preference inference is required for Frankenstein 2.0.",
+      "That any benchmark goal label is a real user/system goal or may enter GoalContract authority."
+    ]
+  },
+  "candidate_falsifier": {
+    "name": "BEHAVIORAL_EQUIVALENCE_PAIR",
+    "design": "Construct two public candidate-goal descriptors whose induced public observation/action prefix is identical under the declared benchmark policy model. Exact-label inference before a later discriminating observation must fail the benchmark; UNKNOWN/ABSTAIN must remain valid. Pair this with a matched fixture where one later public observation/action affordance separates the candidates and exact inference becomes scoreable.",
+    "expected_information_gain": "High: directly tests whether WP804 measures evidence-sensitive goal inference or rewards hidden-label guessing."
+  },
+  "counterhypothesis": "WP804's existing UNKNOWN rule and explicit candidate-goal descriptors may already be sufficient if implementation tests include non-identifying candidate pairs. If the exact-current implementation already rejects forced exact labels on such pairs and binds all inference assumptions explicitly, no architecture expansion is warranted.",
+  "next_stage": "E2_ARCHITECTURE_MAPPED",
+  "research_credit": "E1_PRIMARY_SOURCE_READ",
+  "runtime_credit": 0,
+  "architecture_acceptance_credit": 0,
+  "goal_authority_credit": 0,
+  "whole_system_credit": 0
+}
