@@ -1,0 +1,99 @@
+{
+  "schema": "FRANKENSTEIN2_TRIGGER6_E1_SOURCE_READ/v1",
+  "trigger": "6",
+  "research_id": "R6-20260829-SRCARCH-HYPOTHESIS-PBT-GPT56SOL-01",
+  "claim_ref": "research/tool_intelligence/claims/R6-20260829-SRCARCH-HYPOTHESIS-PBT-GPT56SOL-01/E1_SOURCE_READ.json",
+  "claim_commit": "26a43bbb7d9c78200b28b933ff3790802c978cfd",
+  "slot": "SOURCE_ARCHAEOLOGIST",
+  "evidence_stage": "E1_SOURCE_READ",
+  "status": "E1_SOURCE_READ_COMPLETE_TEST_ONLY_FALSIFICATION_DONOR",
+  "created_at": "2026-08-29T15:07:00+07:00",
+  "worker": "GPT-5.6-Sol:Triggerword-6-organ",
+  "architecture_binding": {
+    "target_workpackage": "F2-WP-507 generation 3",
+    "target_scope": "deterministic recipient-scoped OFFERED/DELIVERED/UPTAKEN evidence plus exact matched intervention/control causal contract",
+    "active_claim_ref": "workpackages/active/F2-WP-507.json",
+    "fusion_ref": "research/tool_intelligence/deltas/ADF-20260829T150547P0700-GPT56SOL-HYPOTHESIS-PBT-REENTRY.json",
+    "f2_main_observed_prewrite": "bce12df24984847e962e8f9bfc7e9d48b91f5cc8",
+    "research_entity_main_observed_prewrite": "4792dc2fad9c68fa37a670ad07966fc887ffed0c"
+  },
+  "source_pin": {
+    "repo": "HypothesisWorks/hypothesis",
+    "default_branch": "master",
+    "commit_sha": "49a797bdfdd98b4f393b538c6c5aabf90ec59ffd",
+    "tree_sha": "44debe61f03a49af81dc9b5978bff4d4bd25ea44",
+    "commit_date_utc": "2026-08-25T07:13:10Z",
+    "archived": false,
+    "license": "MPL-2.0"
+  },
+  "source_surfaces": [
+    {
+      "path": "hypothesis/pyproject.toml",
+      "observed_mechanism": "Production/stable Python property-based testing package; Python >=3.10; direct runtime dependencies are sortedcontainers plus exceptiongroup only below Python 3.11; build backend is maturin and the package includes a native module, so source builds can pull Rust/build cost even though runtime use can stay test-only."
+    },
+    {
+      "path": "hypothesis/src/hypothesis/stateful.py",
+      "observed_mechanism": "RuleBasedStateMachine generates operation sequences whose available steps can depend on prior execution, checks invariants after steps, supports bounded stateful_step_count, and prints/minimizes a breaking operation sequence. This maps naturally to replay/stale-generation/order transition falsifiers rather than to canonical runtime logic."
+    },
+    {
+      "path": "current Hypothesis settings/stateful documentation (6.165.10 observed 2026-08-29)",
+      "observed_mechanism": "Fixed @seed values reproduce the same generated test cases absent external nondeterminism; derandomize=True is intended for deterministic CI; database=None prevents mutable example-cache dependence; generated failures shrink; explicit @example cases are always run and are preferred when correctness requires a permanently pinned regression input."
+    },
+    {
+      "path": "LICENSE.txt",
+      "observed_mechanism": "Repository code is MPL-2.0 except explicitly noted third-party portions."
+    }
+  ],
+  "wp507_relevance": {
+    "strongest_transfer": [
+      "IDENTITY_NEAR_MISS_GENERATION: systematically mutate broadcast/selection/GRID10 plan id, generation and digest fields one dimension at a time and assert that no stale/mismatched case receives positive causal credit.",
+      "RECIPIENT_SCOPE_GENERATION: generate exact recipient subsets/supersets, missing receipts, duplicate receipts, unexpected recipients and UNKNOWN uptake states to validate completeness against broadcast.recipient_cell_ids rather than the full GRID10 universe.",
+      "MATCHED_PAIR_FALSIFICATION: generate intervention/control pairs with one controlled mismatch in probe id, non-broadcast input digest, intervention broadcast binding or downstream output digest and assert fail-closed behavior.",
+      "STATEFUL_REPLAY_FALSIFICATION: model OFFERED -> DELIVERED -> UPTAKEN -> CAUSAL_PAIR transitions plus reordered, replayed and stale-generation events; invariants should ensure no sequence can mint a positive result before all exact predicates are satisfied.",
+      "COUNTEREXAMPLE_SHRINKING: when a property fails, preserve the smallest generated failing tuple/sequence as a deterministic regression fixture, reducing diagnosis cost."
+    ],
+    "required_f2_fences": [
+      "Hypothesis output is test input/evidence only, never canonical state, causal truth or runtime authority.",
+      "Use only in tests/CI; do not add Hypothesis to the Frankenstein production/runtime dependency surface.",
+      "Pin Hypothesis version/source identity for any evidence-bearing CI run.",
+      "Use deterministic settings for acceptance CI: explicit seed or derandomize=True, database=None, bounded max_examples/stateful_step_count; record the configuration in the receipt.",
+      "Promote any discovered minimal counterexample into an explicit fixed regression fixture/@example so future correctness does not depend on generator search luck.",
+      "Property-based test success cannot promote WP507 beyond repository-component test scope and grants zero GWT/J-Space/target-runtime/whole-system credit."
+    ],
+    "recommended_shape": "DEV_TEST_ONLY_LIBRARY_IMPORT_WITH_PINNED_DETERMINISTIC_PROFILE"
+  },
+  "resource_assessment": {
+    "runtime_path_cost": "ZERO_IF_DEV_TEST_ONLY",
+    "test_dependency_cost": "LOW_TO_MODERATE",
+    "direct_runtime_dependencies": ["sortedcontainers>=2.1.0,<3.0.0", "exceptiongroup>=1.0.0 only for Python <3.11"],
+    "source_build_caveat": "maturin/Rust native build backend exists; prefer a pinned wheel in CI where available or account for build-tool overhead. No claim about wheel availability was promoted in this E1 audit.",
+    "network_provider_cost": "NONE_REQUIRED",
+    "vps_or_paid_execution_required": false
+  },
+  "counterhypotheses": [
+    "WP507's hand-written fail-closed matrix may already cover all meaningful identity and matched-pair boundary cases; generated cases could add complexity without discovering new discriminators.",
+    "Property-based search may overproduce syntactic edge cases while contributing little to the scientific question of semantic uptake or mechanism-specific causal influence.",
+    "Mutable example databases, changing library versions, Python/hash nondeterminism or external state could weaken exact reproducibility if CI configuration is not explicitly fenced.",
+    "A smaller custom combinatorial generator may achieve equivalent coverage with fewer dependencies if WP507's state space is small and fully enumerable."
+  ],
+  "adjudication": {
+    "full_runtime_import": "REJECT",
+    "test_only_falsification_donor": "PROMISING",
+    "evidence_ceiling": "E1_SOURCE_READ",
+    "next_discriminator": "Under a separately claimed E2_ARCHITECTURE_MAPPED or E3_REPRODUCTION objective after WP507 source/tests are present on current main, implement a bounded deterministic property matrix around the real WP507 API. Compare against the existing hand-written suite using unique fail-closed boundary coverage and minimal counterexample yield. Reject Hypothesis if it finds no genuinely new invariant class and adds material CI/build overhead.",
+    "proposed_acceptance_metric": "At least one new reproducible minimized counterexample or a demonstrable new fail-closed invariant class beyond the existing fixed tests, at bounded CI cost; otherwise no promotion.",
+    "pending_research_sqlite_sync": "NOT_PERFORMED_IN_THIS_TURN"
+  },
+  "credits": {
+    "e1_source_read_credit": 1,
+    "e2_architecture_credit": 0,
+    "e3_claim_reproduced_credit": 0,
+    "e4_f2_ablation_credit": 0,
+    "e5_build_candidate_credit": 0,
+    "e6_f2_accepted_credit": 0,
+    "runtime_credit": 0,
+    "gwt_runtime_credit": 0,
+    "jspace_runtime_credit": 0,
+    "whole_system_credit": 0
+  }
+}
