@@ -1,0 +1,96 @@
+{
+  "schema": "TRIGGER6_RESEARCH_DELTA/v1",
+  "research_id": "R6-20260830-DUALTURN-GERMAN-TURNTAKING-GPT56SOL-01",
+  "claim_target": "E1_SOURCE_READ",
+  "evidence_level": "E1_SOURCE_READ",
+  "created_at": "2026-08-30T00:22:00+07:00",
+  "worker": "GPT-5.6 Sol / ChatGPT Trigger-6 research organ",
+  "architecture_fusion": "ADF-20260830T0016P0700-GPT56SOL",
+  "f2_claim_path": "research/tool_intelligence/claims/R6-20260830-DUALTURN-GERMAN-TURNTAKING-GPT56SOL-01/E1_SOURCE_READ.json",
+  "external_source_identity": {
+    "paper": {
+      "title": "DualTurn: Learning Turn-Taking from Dual-Channel Generative Speech Pretraining",
+      "author": "Shangeth Rajaa",
+      "arxiv": "2603.08216v1",
+      "submitted": "2026-03-09",
+      "url": "https://arxiv.org/abs/2603.08216"
+    },
+    "official_repo": {
+      "repo": "anyreachai/dualturn",
+      "observed_head": "2d0db21e767b953f5017c1cc697928b54161d645",
+      "license": "MIT",
+      "url": "https://github.com/anyreachai/dualturn"
+    },
+    "endpointing_export": {
+      "repo": "anyreach-ai/dualturn-endpointing",
+      "surface": "Hugging Face",
+      "license": "Apache-2.0",
+      "metadata_language": "en",
+      "base_model": "kyutai/mimi",
+      "observed_model_card": "https://huggingface.co/anyreach-ai/dualturn-endpointing",
+      "observed_source": "https://huggingface.co/anyreach-ai/dualturn-endpointing/blob/main/modeling_dualturn.py"
+    }
+  },
+  "observed_claims": [
+    {
+      "epistemic_type": "EXTERNAL_PRIMARY",
+      "claim": "The paper trains a 0.5B dual-channel model to predict interpretable turn-taking signals and reports Switchboard weighted-F1 0.633 vs VAP 0.389 plus word-level AUC 0.930 vs 0.880 for a 3.1B audio-text baseline."
+    },
+    {
+      "epistemic_type": "EXTERNAL_PRIMARY",
+      "claim": "The official implementation uses dual-channel otoSpeech and Switchboard; the released derivative turn-taking datasets are marked English."
+    },
+    {
+      "epistemic_type": "EXTERNAL_PRIMARY",
+      "claim": "DualTurn exposes EOT, HOLD, BOT, BC, VAD and FVAD signals; FVAD spans multiple future horizons and the architecture explicitly separates genuine end-of-turn from hold/mid-turn pause."
+    },
+    {
+      "epistemic_type": "EXTERNAL_PRIMARY",
+      "claim": "The newer endpointing export is a causal dual-channel audio-only perception model with 80 ms frames, user EOT plus user/agent VAD/FVAD, a ~1.45M-parameter causal readout on frozen Mimi features, and ONNX streaming artifacts."
+    },
+    {
+      "epistemic_type": "UPSTREAM_SELF_REPORTED",
+      "claim": "The endpointing model card reports ~52 ms per 80 ms streaming ONNX tick and a 240 ms tick variant roughly 1.8x cheaper per second; these figures are not Frankenstein measurements."
+    },
+    {
+      "epistemic_type": "EXTERNAL_PRIMARY_NEGATIVE",
+      "claim": "The endpointing model card is tagged language=en and describes best fit as conversational telephone/voice-agent audio. No German training or German benchmark evidence was found in the audited primary surfaces."
+    },
+    {
+      "epistemic_type": "EXTERNAL_PRIMARY_NEGATIVE",
+      "claim": "The specialized endpointing export adds a large private dual-channel AI-agent call dataset beyond the public corpora, so its exact training evidence is not fully independently reproducible from public data."
+    },
+    {
+      "epistemic_type": "EXTERNAL_PRIMARY_NEGATIVE",
+      "claim": "The endpointing repository history documents a prior streaming ONNX divergence bug caused by zero-initialized audio context and a subsequent fix; therefore F2 must pin an exact revision/artifact digest rather than consume mutable main."
+    }
+  ],
+  "f2_fit": {
+    "mechanism_fit": "HIGH",
+    "german_evidence_fit": "UNPROVEN",
+    "causal_signal_fit": "HIGH",
+    "offline_local_fit": "HIGH",
+    "resource_fit": "PROMISING_BUT_UNMEASURED_ON_F2",
+    "supply_chain_fit": "GOOD_IF_PINNED_ONNX; TRUST_REMOTE_CODE_PATH_NOT_PREFERRED",
+    "state_authority_fit": "GOOD_AS_PERCEPTION_ONLY_IF_OUTPUT_REMAINS_CANDIDATE_SIGNAL",
+    "integration_recommendation": "TEST_AS_FALSIFIER_NOT_ADOPT_AS_WINNER"
+  },
+  "critical_architecture_interpretation": [
+    "For F2 the strongest reusable primitive is not DualTurn's five-action policy; it is the causal EOT/VAD/FVAD signal stream feeding F2's own deterministic WAIT/START/CANCEL/BACKCHANNEL state machine.",
+    "Do not import upstream action authority or let EOT threshold directly mint a spoken effect.",
+    "Keep agent playback as the second audio channel where possible because dual-channel context is a central premise of the mechanism; mono fallback is a degraded condition and should be scored separately.",
+    "The German question is the decisive falsifier: acoustic/prosodic transfer may generalize, but training/evaluation surfaces do not establish it."
+  ],
+  "next_discriminator": {
+    "objective": "E2_ARCHITECTURE_MAPPED",
+    "test_design_seed": "Map exact ONNX dual-channel signal ABI into T7_GERMAN_REALTIME_VOICE_BENCHMARK_V1 and predeclare a German corpus/real-room ablation: dual-channel vs mono fallback vs current silence/VAD baseline, measuring false cutoff, unnecessary wait, backchannel/overlap behavior, endpoint-to-first-audio latency and CPU/RAM.",
+    "success_condition": "Architecture map remains perception-only, exact-artifact pinned, and exposes a German-specific falsifier without importing a second action/state authority."
+  },
+  "credits": {
+    "research_credit": "E1_ONLY",
+    "runtime_credit": 0,
+    "f2_benchmark_credit": 0,
+    "integration_credit": 0,
+    "whole_system_credit": 0
+  }
+}
