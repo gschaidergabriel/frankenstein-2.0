@@ -1,0 +1,59 @@
+{
+  "schema": "FRANKENSTEIN2_TRIGGER6_ARCHITECTURE_DELTA/v1",
+  "delta_id": "ADF-20260829T1931P0700-GPT56SOL-TRIGGER6-HOST-SYSTEMD-READINESS",
+  "status": "E2_RESEARCH_DELTA_NOT_BUILD_ACCEPTANCE",
+  "created_at": "2026-08-29T19:43:00+07:00",
+  "worker": "GPT-5.6 Sol / Triggerword-6 organ",
+  "research_id": "R6-HOST-SYSTEMD-USER-READINESS-001",
+  "live_fusion": {
+    "initial_f2_main": "10cb489670416d377c167760cb15c29b70f698f3",
+    "research_main": "5529d48d52d77872478d2c0e2c2aea42ab29a67a",
+    "reentered_f2_main_before_delta_retry": "d5f2832c2e70ee04776a4aa43e536a775914d145",
+    "concurrent_trigger4_observations": [
+      "F2-WP-1200 target completion epistemics implemented/tested",
+      "F2-WP-1201 target host fingerprint implemented",
+      "F2-WP-1202 Ubuntu userspace twin claimed and generation-1 planner implemented",
+      "F2-WP-1203 and F2-WP-1204 claimed",
+      "Trigger-4 lane is actively moving; no duplicate implementation is authorized from this delta"
+    ]
+  },
+  "external_primary_source": {
+    "repo": "systemd/systemd",
+    "commit": "048970650ce5d50bceffff97442c4a90c1cf0572",
+    "mechanisms": [
+      "Type=exec versus Type=simple process-start semantics",
+      "Type=notify READY=1 readiness protocol",
+      "sd_notify attribution/barrier semantics",
+      "Unit ActiveState/SubState/InvocationID",
+      "Service Result/NRestarts",
+      "manager lookup by InvocationID"
+    ]
+  },
+  "finding": "The current F2 completion epistemics correctly separates target positive readback from counterevidence, and WP-1202 correctly treats systemd-user reachability as a runtime check. The missing discriminating layer is provenance-rich lifecycle evidence: systemd can give manager-observed service lifecycle/invocation evidence, but none of READY=1, active/running, Result=success or systemctl start success is equivalent to external target-function readback.",
+  "recommended_delta": "Add or reuse one generic typed TargetRuntimeLifecycleWitness abstraction, with systemd-user as its first producer adapter. Bind the witness to target profile generation/digest, target id, UID/manager scope, unit identity, InvocationID and observed manager state. CompletionGate may use it to satisfy lifecycle/process obligations, but a separate externally observed function-readback witness remains mandatory for REAL_READBACK_VERIFIED and all higher target completion. After restart/relogin/reboot, stale lifecycle/readback evidence is invalid until a new InvocationID and fresh function readback are observed.",
+  "why_not_a_systemd_specific_truth_layer": "A systemd-only canonical layer would overfit one init/service manager and duplicate authority. The durable architecture rule is generic lifecycle-evidence provenance; systemd is an adapter/probe implementation on Ubuntu.",
+  "efficiency_effect": {
+    "dependencies": "no new runtime dependency required; use existing systemctl/D-Bus host surfaces",
+    "context": "small fixed witness schema instead of full journal/status text",
+    "latency": "one property snapshot per relevant transition plus event-driven refresh where available",
+    "token_cost": "structured fields avoid feeding free-form systemd status/journal text into GRID unless diagnosing a failure",
+    "false_completion_risk": "reduced by requiring manager+invocation provenance plus independent functional readback"
+  },
+  "trigger4_consumption": {
+    "priority": "HIGH_FOR_WP1200_WP1202_SUCCESSOR_OR_HOST_EVIDENCE_ADMISSION",
+    "do_not_edit_active_generation": true,
+    "suggested_tests": [
+      "green lifecycle + absent function readback => UNKNOWN",
+      "restart changes InvocationID and invalidates stale readback",
+      "wrong profile/UID/manager scope => reject witness",
+      "crash-loop NRestarts preserved as counterevidence despite final active state",
+      "live user manager does not prove desktop/session/PipeWire/portal identity",
+      "oneshot and long-running service semantics are contract-specific"
+    ]
+  },
+  "evidence_ceiling": "E2_ARCHITECTURE_MAPPED",
+  "runtime_credit": 0,
+  "physical_host_credit": 0,
+  "completion_credit": 0,
+  "whole_system_acceptance": false
+}
