@@ -1,0 +1,49 @@
+{
+  "schema": "FRANKENSTEIN2_WORKPACKAGE_CANDIDATE_FALSIFIER/v1",
+  "workpackage_id": "F2-WP-403",
+  "generation_under_test": 2,
+  "falsifier_id": "F2-WP-403-G2-SUBCLASS-SELF-ATTESTATION-GPT56SOL-20260829",
+  "classification": "EXECUTABLE_CANDIDATE_FALSIFIER",
+  "trigger": "triggerword 4",
+  "worker_id": "GPT-5.6-Sol",
+  "authority_epoch": "8.78",
+  "authority_ref": "gschaidergabriel/clay-global-research-entity@b53794926738801f7cdfc90bc56a2a825f61fed1:research_entity/continuity/BOOTSTRAP_MINIMAL.json -> research_entity/claycode/autonomous/SUPERVISOR_STEERING_8_78.json",
+  "tested_main_source": {
+    "path": "src/frankenstein2/physics_projection.py",
+    "blob_sha": "0f83accc474bedd238943a17e9349db36ca1af04",
+    "observed_boundary": "validate_physics_projection_binding accepts isinstance(PhysicsProjection) and then invokes projection.sha256() and projection.canonical_json() polymorphically before returning the caller object"
+  },
+  "hypothesis": "A PhysicsProjection subclass can override sha256() and canonical_json(), self-attest a forged public object to the independently rebuilt valid projection, and pass the generation-2 public binding validator even though the returned object is not the exact concrete projection whose canonical bytes were replayed.",
+  "counterhypothesis": "Frozen/slotted dataclass inheritance or the existing validator semantics prevent a subclass from reaching the public boundary or from overriding the attestation methods in a way that passes validation.",
+  "discriminator": {
+    "draft_pr": 254,
+    "branch": "chatgpt/wp403-subclass-forgery-falsifier-20260829",
+    "head_sha": "8ed988553d5473bdbe7e55b1410dbe6a36fab268",
+    "test_path": "tests/test_wp403_subclass_forgery_falsifier.py",
+    "workflow_path": ".github/workflows/wp403-physics-projection-ci.yml",
+    "run_id": 33244301434,
+    "job_id": 99078970096,
+    "compile_step": "success",
+    "existing_generation_2_regression_step": "success",
+    "candidate_exact_projection_subtype_boundary_step": "failure"
+  },
+  "result": "COUNTERHYPOTHESIS_REJECTED_AT_REPOSITORY_HOSTED_CI_SCOPE",
+  "interpretation": "The exact current G2 source continues to pass its original regression suite, while the isolated fail-closed subtype-boundary assertion fails. This is executable counterevidence against treating the current public validator as an exact-concrete-type trust boundary. The CI failure is the intended falsifier signal, not a runtime/product acceptance result.",
+  "required_repair_direction": [
+    "At public admission, require type(projection) is PhysicsProjection before invoking any instance-provided digest/canonicalization method",
+    "Require exact WorldSlice and exact WorldAtom concrete types at the same trust boundary or independently serialize/reconstruct them without polymorphic caller methods",
+    "Add the subclass self-attestation regression to the canonical WP403 suite",
+    "Re-run exact PR-head and merged-main repository-hosted CI before restoring bounded downstream acceptance"
+  ],
+  "downstream_constraint": "F2-WP-404 may not treat WP403 G2 self-hash/canonical_json validation alone as exact-source admission. It must either enforce exact concrete WP403/WorldSlice/WorldAtom types at its own boundary or wait for a successor WP403 hardening generation.",
+  "credits": {
+    "runtime_execution_observed": false,
+    "runtime_credit": 0,
+    "physical_grid10_credit": 0,
+    "gwt_runtime_credit": 0,
+    "jspace_runtime_credit": 0,
+    "training_credit": 0,
+    "whole_system_acceptance": false
+  },
+  "next_exact_action": "Re-enter current main and active F2-WP-403. If generation 2 remains the terminal current pointer with no competing successor claim, open one deliberate generation-3 exact-concrete-type boundary repair. Do not mutate the active F2-WP-404 owner; its worker can consume this falsifier as dependency evidence."
+}
