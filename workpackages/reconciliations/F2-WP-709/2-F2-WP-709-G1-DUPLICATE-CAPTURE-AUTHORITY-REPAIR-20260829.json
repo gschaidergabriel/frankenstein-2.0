@@ -10,12 +10,16 @@
   "counterevidence": {
     "duplicate_source": "src/frankenstein2/retina_capture_broker.py",
     "duplicate_test": "tests/test_retina_capture_broker.py",
-    "reason": "F2-WP-709 is ACCEPTED and explicitly requires that no duplicate CaptureBroker mutation path be created. A second independently implemented broker therefore constituted a competing source authority even though it minted no runtime/world/effect credit."
+    "reason": "F2-WP-709 is ACCEPTED and explicitly requires that no duplicate CaptureBroker mutation path be created. The later independent retina_capture_broker implementation had its own frame-ring mutation semantics and therefore constituted a competing capture-state source authority even though it minted no runtime/world/effect credit."
   },
   "repair": {
-    "removed_duplicate_source": true,
+    "removed_independent_duplicate_implementation": true,
+    "compatibility_adapter_path": "src/frankenstein2/retina_capture_broker.py",
+    "compatibility_adapter_authority": "DELEGATES_ONLY_TO_PERCEPTION_CAPTURE_BROKER",
+    "compatibility_adapter_scope": "LEGACY_REPOSITORY_INTEGRATION_HARNESS_API_ONLY",
     "removed_duplicate_test": true,
     "uniqueness_regression": "tests/test_capture_broker_authority_uniqueness.py",
+    "legacy_simulation_consumer_preserved_via_adapter": true,
     "canonical_source_modified": false,
     "wp709_acceptance_scope_changed": false
   },
@@ -29,7 +33,7 @@
     "bounded recent dropped-frame reference diagnostics",
     "rolling prior-state provenance digest"
   ],
-  "evidence_scope": "SOURCE_TOPOLOGY_AND_REGRESSION_ONLY",
+  "evidence_scope": "SOURCE_TOPOLOGY_COMPATIBILITY_AND_REPOSITORY_CI_ONLY",
   "runtime_execution_observed": false,
   "physical_device_execution_observed": false,
   "perception_runtime_credit": 0,
@@ -39,5 +43,5 @@
   "effect_credit": 0,
   "completion_credit": 0,
   "whole_system_acceptance": false,
-  "next_exact_action": "Run repository CI on this rebased repair branch. If green, merge the repair without reopening WP-709 acceptance. Any useful donor mechanism must enter later through the canonical perception_capture_broker.py under an explicit bounded amendment, never by restoring a second broker authority."
+  "next_exact_action": "Run repository CI on the repaired branch. Merge only if canonical capture-broker tests, authority-uniqueness regression, four-source Perception Fabric simulation and remaining Perception Fabric falsifiers all pass. Any later donor mechanism must enter through the canonical perception_capture_broker.py under an explicit bounded amendment, never as a second broker authority."
 }
