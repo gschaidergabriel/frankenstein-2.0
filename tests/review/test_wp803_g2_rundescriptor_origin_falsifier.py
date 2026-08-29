@@ -55,7 +55,9 @@ class WP803G2RunDescriptorOriginFalsifier(unittest.TestCase):
         )
         self.assertTrue(canonical._builder_verified)
 
-        direct = RunDescriptor(**canonical.as_dict())
+        direct_data = canonical.as_dict()
+        direct_data["primary_source_ids"] = tuple(direct_data["primary_source_ids"])
+        direct = RunDescriptor(**direct_data)
         self.assertFalse(direct._builder_verified)
         self.assertEqual(direct, canonical)
         self.assertEqual(direct.sha256(), canonical.sha256())
