@@ -1,0 +1,119 @@
+{
+  "schema": "FRANKENSTEIN2_TRIGGER6_RESEARCH_DELTA/v1",
+  "target_id": "R6-20260829-SQLITE-WAL-WRITER-CONTENTION-GPT56SOL-01",
+  "stage": "E1_SOURCE_READ",
+  "status": "COMPLETED_AT_SCOPE",
+  "created_at": "2026-08-29T22:14:00+07:00",
+  "claimed_by": "gpt-5.6-sol-trigger6-organ",
+  "f2_main_observed_before_result": "c6ab2838a2dcbb747f7bcf6cfd35a823b8417658",
+  "research_question": "What concurrency, snapshot, checkpoint, durability, portability, and version boundaries does SQLite WAL actually impose on a single-authority local UnifiedDB substrate?",
+  "primary_sources": [
+    {
+      "name": "SQLite Write-Ahead Logging",
+      "url": "https://sqlite.org/wal.html",
+      "retrieved": "2026-08-29",
+      "source_class": "EXTERNAL_PRIMARY"
+    },
+    {
+      "name": "SQLite Isolation",
+      "url": "https://sqlite.org/isolation.html",
+      "retrieved": "2026-08-29",
+      "source_class": "EXTERNAL_PRIMARY"
+    },
+    {
+      "name": "SQLite Transaction",
+      "url": "https://sqlite.org/lang_transaction.html",
+      "retrieved": "2026-08-29",
+      "source_class": "EXTERNAL_PRIMARY"
+    }
+  ],
+  "project_sources": [
+    {
+      "path": "WORKPACKAGES.md",
+      "observed_blob_sha": "8de9711dd6f2f310d594b4c244b2639d1ebd37f6",
+      "relevance": "F2-WP-100 canonical UnifiedDB accepted only at bounded repository-evidence scope; later integration/runtime credit remains separate."
+    },
+    {
+      "path": "architecture/PORTABLE_HOST_HARNESS_AND_DISTRIBUTION_CONTRACT.md",
+      "observed_blob_sha": "81569e52844794a1dc664239b61b6680bc57954c",
+      "relevance": "One canonical installed state lineage, local-first portability, explicit minimum runtime dependencies, restart/recovery and durable-state readback are product requirements."
+    },
+    {
+      "path": "tools/trigger6_research_db.py",
+      "observed_blob_sha": "296faa481ab9b8991232a21450dab82df62c1c8b",
+      "relevance": "Current Trigger-6 research database uses Python sqlite3 but explicitly declares itself a research/evidence index rather than canonical world truth; this is evidence of SQLite usage, not evidence of canonical UnifiedDB runtime configuration."
+    }
+  ],
+  "source_verified_findings": [
+    {
+      "id": "F1_SINGLE_WRITER",
+      "finding": "WAL allows concurrent readers and a writer, but SQLite still permits only one writer at a time. Writes are serialized across connections.",
+      "implication": "Do not equate WAL with parallel write throughput or multiple simultaneous canonical writers."
+    },
+    {
+      "id": "F2_SNAPSHOT_ISOLATION",
+      "finding": "A WAL reader sees a stable snapshot from the start of its read transaction; later commits remain invisible until that read transaction ends and a new one begins. Read-to-write escalation can fail with SQLITE_BUSY_SNAPSHOT when the snapshot is stale.",
+      "implication": "Long-lived reasoning/model/tool work must not assume an open read transaction remains current canonical state. Materialize a bounded snapshot, close the transaction, and re-enter/revalidate before authority-sensitive writes."
+    },
+    {
+      "id": "F3_CHECKPOINT_STARVATION",
+      "finding": "Long-running or continuously overlapping readers can prevent checkpoints from completing and can let the WAL grow without bound.",
+      "implication": "Canonical-state readers should avoid holding DB read transactions across long cognition/tool/provider latency; checkpoint health and WAL growth require explicit observability."
+    },
+    {
+      "id": "F4_BUSY_IS_NORMAL_CONTROL_SIGNAL",
+      "finding": "BEGIN IMMEDIATE can fail with SQLITE_BUSY when another write transaction is active; WAL-mode queries can also return SQLITE_BUSY in documented recovery/locking cases.",
+      "implication": "Writer contention is a first-class control-plane condition requiring bounded backoff/arbitration and measurement, not an exceptional impossible state."
+    },
+    {
+      "id": "F5_HOST_LOCALITY",
+      "finding": "WAL requires shared-memory coordination and therefore all database users must be on the same host; WAL is not a network-filesystem multi-host coordination mechanism.",
+      "implication": "Remote/VPS organs cannot share canonical local SQLite WAL as though it were distributed state authority; they require typed transport/projection boundaries."
+    },
+    {
+      "id": "F6_DURABILITY_POLICY",
+      "finding": "With synchronous=FULL the WAL is synced on transaction commit; with synchronous=NORMAL SQLite explicitly allows recent transactions to roll back after power loss or hard reset. Checkpointing has separate sync/performance behavior.",
+      "implication": "Canonical state/evidence must declare its durability tier; performance-oriented NORMAL must not silently inherit a stronger crash/power-loss claim."
+    },
+    {
+      "id": "F7_WAL_IS_PERSISTENT_STATE",
+      "finding": "The WAL file is part of database persistent state while present; separating/copying the main database without its WAL can lose committed transactions or corrupt the copied state.",
+      "implication": "Backup/migration/release acceptance must use a quiesced/checkpointed or SQLite-supported backup procedure rather than raw-copying the .db file alone while active."
+    },
+    {
+      "id": "F8_2026_WAL_RESET_BUG",
+      "finding": "SQLite documents a rare WAL-reset data race capable of corruption when two or more connections in separate threads/processes perform concurrent write/checkpoint timing. The affected range is reported as 3.7.0 through 3.51.2; fixed in 3.51.3 and later, with listed backports 3.44.6 and 3.50.7.",
+      "implication": "If F2 uses WAL with multiple connections, release/runtime capability evidence must bind the actual SQLite library version and reject a vulnerable version unless an explicitly verified fixed backport is present. This research does not establish which SQLite version the target F2 host currently loads."
+    }
+  ],
+  "counterhypothesis": {
+    "statement": "SQLite's internal locking is sufficient by itself, so F2 needs no explicit writer-arbitration, snapshot-reentry, checkpoint-health, or SQLite-version contract.",
+    "assessment": "COUNTERED_BY_PRIMARY_SOURCE_BOUNDARIES",
+    "reason": "SQLite serializes writers but surfaces BUSY/BUSY_SNAPSHOT, permits checkpoint starvation, exposes configurable durability, has same-host WAL constraints, and currently documents a version-specific concurrent WAL corruption race. Internal locking prevents many invalid interleavings but does not supply the product-level scheduling, freshness, durability, observability, portability, or dependency-evidence contract F2 requires."
+  },
+  "bounded_architecture_delta_candidate": {
+    "epistemic_status": "E1_CANDIDATE_ONLY_REQUIRES_E2_MAPPING_BEFORE_BUILD_HANDOFF",
+    "consumers": ["F2-WP-100", "F2-WP-101", "F2-WP-206", "F2-WP-901", "release/host capability contract"],
+    "proposed_invariants": [
+      "Exactly one canonical local SQLite authority; WAL never becomes a distributed multi-host authority.",
+      "Record actual SQLite runtime version, journal_mode, synchronous setting and connection topology in host/runtime evidence before granting WAL concurrency/durability credit.",
+      "If WAL uses two or more concurrent connections, require SQLite >=3.51.3 or a specifically verified fixed backport before accepting concurrent write/checkpoint operation.",
+      "Treat one-writer serialization and SQLITE_BUSY/SQLITE_BUSY_SNAPSHOT as explicit measured control states with bounded retry/backpressure rather than hiding them in unbounded loops.",
+      "Never keep a canonical-state read transaction open across long model/tool/network work; close after bounded snapshot extraction and re-enter/revalidate generation/state before authority-sensitive mutation.",
+      "Expose WAL size/checkpoint progress/reader-age signals so checkpoint starvation is falsifiable.",
+      "Declare canonical write durability semantics explicitly; do not claim power-loss durability from synchronous=NORMAL.",
+      "Use a safe SQLite backup/quiesce/checkpoint procedure for active WAL databases; do not copy the main database file alone."
+    ]
+  },
+  "highest_information_next_discriminator": {
+    "owner": "Triggerword 4 integration/test lane after E2 architecture mapping",
+    "action": "At exact target runtime/package identity, record sqlite3 library version + journal_mode + synchronous + connection/process topology, then run a bounded two-writer/long-reader/checkpoint contention probe and verify BUSY handling, snapshot freshness, checkpoint progress, restart integrity and no hidden second state authority.",
+    "acceptance_boundary": "This E1 source result grants zero F2 runtime, integration, durability, concurrency, or whole-system credit."
+  },
+  "negative_evidence": [
+    "No current target-host SQLite library version was observed in this research iteration.",
+    "No evidence was found that the accepted-at-repository-scope F2-WP-100 currently enables WAL or satisfies the proposed WAL runtime fences.",
+    "No runtime contention, power-loss, crash-recovery, checkpoint-starvation, or corruption test was executed in Trigger 6."
+  ],
+  "closure": "E1 source extraction is saturated enough for a bounded next-stage E2 architecture mapping; no implementation was performed."
+}
