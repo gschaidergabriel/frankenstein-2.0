@@ -71,6 +71,18 @@ def validate_repository(root: Path) -> dict[str, Any]:
     active_dir = root / "workpackages" / "active"
     _require(active_dir.is_dir(), "workpackages/active directory missing")
     claims = legacy._claims_by_id(root)
+    active_paths = sorted(active_dir.glob("*.json"))
+    pointers = [(path, legacy.load_json(path)) for path in active_paths]
+
+    missing_effective: list[str] = []
+    for path, pointer in pointers:
+        workpackage_id = pointer.get("workpackage_id")
+        if workpackage_id not in workpackages:
+            missing_effective.append(f"{path.name}:{workpackage_id}")
+    _require(
+        not missing_effective,
+        "active pointer workpackages absent from effective state: " + ", ".join(missing_effective),
+    )
 
     # ACCEPTED_AT_SCOPE still requires at least one concrete repository-local evidence ref.
     for workpackage_id, entry in workpackages.items():
@@ -82,17 +94,12 @@ def validate_repository(root: Path) -> dict[str, Any]:
             )
 
     validated: list[dict[str, Any]] = []
-    for path in sorted(active_dir.glob("*.json")):
-        pointer = legacy.load_json(path)
+    for path, pointer in pointers:
         claim_id = legacy._string(pointer.get("claim_id"), f"{path}.claim_id")
         claim = claims.get(claim_id)
         _require(claim is not None, f"{path}: no matching claim object for {claim_id}")
 
-        workpackage_id = pointer.get("workpackage_id")
-        _require(
-            workpackage_id in workpackages,
-            f"{path}: active pointer workpackage absent from effective state: {workpackage_id}",
-        )
+        workpackage_id = pointer["workpackage_id"]
         reconciliation = None
         if pointer.get("state") in set(contract["terminal_states"]):
             if workpackage_id in migrated:
