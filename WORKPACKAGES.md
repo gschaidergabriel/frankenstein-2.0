@@ -41,13 +41,15 @@ The directive-level Persistent Agency Kernel restart/next-tick gate is therefore
 
 ## Phase 3 — Memory / Retrieval / Process Learning
 
-- [ ] F2-WP-300 Memory evolution/degradation without destructive forgetting.
-- [ ] F2-WP-301 Emergent retrieval.
-- [ ] F2-WP-302 Familiarity/prediction-error binding.
-- [ ] F2-WP-303 Fact/Episode/Method/Process-Policy separation.
-- [ ] F2-WP-304 Recursive Cognitive Process Distillation.
-- [ ] F2-WP-305 Processing credit + method ablations.
-- [ ] F2-WP-306 ContextCompiler / bounded ContextViews.
+- [x] F2-WP-300 Memory evolution/degradation without destructive forgetting — generation-1 repository-hosted component-CI scope accepted.
+- [x] F2-WP-301 Emergent retrieval — generation-1 deterministic repository-hosted component-CI scope accepted.
+- [x] F2-WP-302 Familiarity/prediction-error binding — generation-2 provenance/derived-score hardening accepted at repository-hosted component-CI scope.
+- [x] F2-WP-303 Fact/Episode/Method/Process-Policy separation — generation-1 typed-memory repository-hosted component-CI scope accepted.
+- [x] F2-WP-304 Recursive Cognitive Process Distillation — generation-1 deterministic repository-hosted component-CI scope accepted.
+- [x] F2-WP-305 Processing credit + method ablations — generation-1 repository-hosted component-CI scope accepted.
+- [x] F2-WP-306 ContextCompiler / bounded ContextViews — generation-3 epistemic-context adapter accepted at repository-hosted component-CI scope.
+
+Phase-3 acceptance is bounded to the granular repository-hosted evidence referenced from `workpackages/STATE.json` and the corresponding active pointers/receipts/reconciliations. It grants no target-runtime, physical GRID10, live GWT/J-Space, effect, completion, training or whole-system credit.
 
 ## Phase 4 — World Model / Micro-Lab
 
