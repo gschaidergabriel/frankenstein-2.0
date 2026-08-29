@@ -1,0 +1,70 @@
+{
+  "schema": "FRANKENSTEIN2_CANDIDATE_FALSIFIER/v1",
+  "workpackage_id": "F2-WP-1202",
+  "classification": "CANDIDATE_FALSIFIER",
+  "worker_id": "GPT-5.6-Sol",
+  "observed_at_utc": "2026-08-29T12:36:00Z",
+  "base_main_sha_observed": "52ff8457ec110cff9fab0072c79488b864573e27",
+  "title": "WP1202 cannot consume the canonical WP1201 TargetHostProfile ABI",
+  "severity": "HIGH_INTEGRATION_BLOCKER",
+  "claim_scope_respected": true,
+  "mutation_authority": "NONE_REVIEW_ONLY",
+  "evidence": {
+    "wp1201_source": "src/frankenstein2/target_host_profile.py",
+    "wp1201_blob_sha": "f0b528956c5dab6cd58f93b1d3a6851c1adcb07a",
+    "wp1202_source": "src/frankenstein2/target_userspace_twin.py",
+    "wp1202_blob_sha": "43b9978f2caa4de2a8c5c1d4aed8d17233fb19a4",
+    "wp1201_active_claim": "workpackages/active/F2-WP-1201.json",
+    "wp1202_active_claim": "workpackages/active/F2-WP-1202.json"
+  },
+  "observed_contract_mismatch": {
+    "wp1201_emits_top_level": [
+      "schema",
+      "collector_version",
+      "generation",
+      "facts",
+      "profile_digest_sha256",
+      "observed_field_count",
+      "unknown_field_count",
+      "unknown_fields",
+      "epistemic_scope"
+    ],
+    "wp1202_requires_top_level": [
+      "schema",
+      "profile_generation",
+      "profile_sha256",
+      "fields"
+    ],
+    "wp1201_fact_shape": "facts[field_id] = {status, source, value|reason}",
+    "wp1202_field_shape": "fields[field_id] = scalar string or missing->UNKNOWN",
+    "name_mismatches": [
+      "WP1201 generation != WP1202 profile_generation",
+      "WP1201 profile_digest_sha256 != WP1202 profile_sha256",
+      "WP1201 facts != WP1202 fields",
+      "WP1201 collector_uid != WP1202 uid",
+      "WP1201 systemd_user_state != WP1202 systemd_user",
+      "WP1201 has xdg_runtime_dir_present/owned flags but no WP1202 xdg_runtime_dir scalar",
+      "WP1201 has no session_dbus field",
+      "WP1201 has no portal_backend field",
+      "WP1201 has browser version probes but no browser_package_form field"
+    ]
+  },
+  "deterministic_reproduction": {
+    "expression": "build_t1_userspace_plan(collect_target_host_profile(generation=1, ...).as_dict())",
+    "first_fail_closed_boundary": "TargetProfileProjection.from_mapping -> raw.get('profile_generation') returns None -> _generation(None) raises TargetUserspaceTwinError",
+    "expected_result": "FAIL",
+    "physical_host_required": false,
+    "provider_or_model_required": false
+  },
+  "secondary_provenance_gap": "WP1202 accepts any syntactically valid profile_sha256 without recomputing/binding it to the supplied flattened fields, so a hand-constructed profile can pair arbitrary field values with an unrelated digest. The canonical WP1201 object does recompute and validate its own digest, but WP1202 currently does not consume that canonical object/shape.",
+  "counterhypothesis": "WP1202 intentionally defines an independent projection ABI and a separate adapter is expected to convert WP1201 TargetHostProfile into that projection.",
+  "counterhypothesis_status": "NOT_OBSERVED_IN_CURRENT_SOURCES",
+  "required_discriminator": "Either add and test an explicit exact-digest WP1201->WP1202 adapter, or change WP1202 admission to consume/validate the canonical WP1201 TargetHostProfile ABI directly. The integration test must construct a canonical WP1201 profile and pass it through the real boundary without manual field renaming, while mutation of any profile fact or digest fails closed.",
+  "credit": {
+    "source_level_negative_evidence": true,
+    "repository_ci_credit": 0,
+    "target_runtime_credit": 0,
+    "physical_host_credit": 0,
+    "whole_system_credit": 0
+  }
+}
