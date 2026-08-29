@@ -27,7 +27,9 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-      - name: Run WP702 deterministic component falsifiers
+      - name: Compile G5 source and falsifiers
+        run: python -m py_compile src/frankenstein2/perception_control.py tests/test_perception_control.py
+      - name: Run WP702 G5 factory and consumer-revalidation falsifiers
         env:
           PYTHONPATH: src
         run: python -m unittest tests.test_perception_control -v
