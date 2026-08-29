@@ -1,0 +1,35 @@
+name: WP900 GWT factory-seal closure
+
+on:
+  push:
+    branches:
+      - trigger4/wp900-whole-persistent-loop-20260829
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify-closure:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Compile exact WP900/WP510 surface
+        run: |
+          python -m py_compile \
+            src/frankenstein2/whole_persistent_loop.py \
+            src/frankenstein2/gwt_causal_path.py \
+            tests/test_whole_persistent_loop.py \
+            tests/falsifier_wp900_unvalidated_gwt_seal.py
+      - name: Run WP900 repository-component suite
+        env:
+          PYTHONPATH: src
+        run: python tests/test_whole_persistent_loop.py
+      - name: Require former non-factory seal falsifier to stay closed
+        env:
+          PYTHONPATH: src:tests
+        run: python tests/falsifier_wp900_unvalidated_gwt_seal.py
