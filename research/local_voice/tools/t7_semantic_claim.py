@@ -74,6 +74,9 @@ SUBJECT_ALIASES = {
     "funaudiollm-fun-cosyvoice3-0.5b-2512": "FUN_COSYVOICE3_0_5B_2512",
     "gepard-1.0": "GEPARD_1_0",
     "nineninesix-gepard-1.0": "GEPARD_1_0",
+    "chatterbox-multilingual-v3": "CHATTERBOX_MULTILINGUAL_V3_500M",
+    "resembleai-chatterbox-multilingual-v3": "CHATTERBOX_MULTILINGUAL_V3_500M",
+    "chatterbox-multilingual-v3-500m": "CHATTERBOX_MULTILINGUAL_V3_500M",
 }
 
 EVIDENCE_SCOPE_ALIASES = {
