@@ -575,3 +575,72 @@ def test_matching_hyperposition_frame_version_survives_downstream_revalidation()
         expected_selection_sha256=value.sha256(),
         recipient_cell_ids=("G1",),
     )
+
+
+FORGED_SELECTION_SHA256 = "f" * 64
+
+
+class SelfAttestingWorkspaceSelection(WorkspaceSelection):
+    """Adversarial subtype that attempts to self-attest a forged public digest."""
+
+    def sha256(self) -> str:
+        return FORGED_SELECTION_SHA256
+
+
+def self_attesting_selection(value: WorkspaceSelection) -> WorkspaceSelection:
+    return SelfAttestingWorkspaceSelection(
+        selection_id=value.selection_id,
+        cycle_id=value.cycle_id,
+        generation=value.generation,
+        frame_id=value.frame_id,
+        frame_generation=value.frame_generation,
+        frame_sha256=value.frame_sha256,
+        grid_plan_id=value.grid_plan_id,
+        grid_plan_generation=value.grid_plan_generation,
+        grid_plan_sha256=value.grid_plan_sha256,
+        policy_id=value.policy_id,
+        policy_generation=value.policy_generation,
+        policy_sha256=value.policy_sha256,
+        selected=value.selected,
+        deferred_candidate_ids=value.deferred_candidate_ids,
+        hyperposition_id=value.hyperposition_id,
+        hyperposition_generation=value.hyperposition_generation,
+        hyperposition_sha256=value.hyperposition_sha256,
+        hyperposition=value.hyperposition,
+        selection_policy=value.selection_policy,
+        source_candidates=value.source_candidates,
+    )
+
+
+def test_verify_selection_binding_rejects_digest_self_attesting_selection_subtype():
+    canonical = selection((candidate("subtype-verify"),))
+    adversarial = self_attesting_selection(canonical)
+    assert type(canonical) is WorkspaceSelection
+    assert type(adversarial) is SelfAttestingWorkspaceSelection
+    assert adversarial.sha256() == FORGED_SELECTION_SHA256
+    assert canonical.sha256() != FORGED_SELECTION_SHA256
+    with pytest.raises(GwtWorkspaceError, match="concrete WorkspaceSelection"):
+        verify_selection_binding(
+            adversarial,
+            expected_generation=adversarial.generation,
+            expected_selection_sha256=FORGED_SELECTION_SHA256,
+            frame_id=GRID_PLAN.frame_id,
+            frame_generation=GRID_PLAN.frame_generation,
+            frame_sha256=GRID_PLAN.frame_sha256,
+            grid_plan_id=GRID_PLAN.plan_id,
+            grid_plan_generation=GRID_PLAN.generation,
+            grid_plan_sha256=GRID_PLAN.sha256(),
+        )
+
+
+def test_create_broadcast_rejects_digest_self_attesting_selection_subtype():
+    canonical = selection((candidate("subtype-broadcast"),))
+    adversarial = self_attesting_selection(canonical)
+    with pytest.raises(GwtWorkspaceError, match="concrete WorkspaceSelection"):
+        create_broadcast(
+            broadcast_id="broadcast:reject-selection-subtype",
+            generation=3,
+            selection=adversarial,
+            expected_selection_sha256=FORGED_SELECTION_SHA256,
+            recipient_cell_ids=("G1",),
+        )

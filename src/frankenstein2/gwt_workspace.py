@@ -1,12 +1,13 @@
 """Deterministic GWT selection/broadcast primitives for Frankenstein 2.0 Stage 5.
 
-F2-WP-506 generation 1.
+F2-WP-506 generation 3.
 
 This module selects an explicitly bounded candidate set for one workspace cycle and
 constructs a broadcast envelope addressed to logical GRID10 cells. Candidate admission
 is bound to an exact, structurally validated WP503 Grid10Plan/CellInput/CellOutput triple,
 and downstream broadcast re-validates the exact policy + source-candidate lineage carried
-by the WorkspaceSelection.
+by the WorkspaceSelection. Public selection identity boundaries require the concrete
+WorkspaceSelection type before trusting its digest, preventing subtype self-attestation.
 
 Selection and broadcast remain candidate-coordination artifacts only: they do not establish
 recipient uptake, causal influence, world truth, action/effect authority, completion, target
@@ -851,8 +852,8 @@ def verify_selection_binding(
     grid_plan_generation: int,
     grid_plan_sha256: str,
 ) -> None:
-    if not isinstance(selection, WorkspaceSelection):
-        raise GwtWorkspaceError("selection must be WorkspaceSelection")
+    if type(selection) is not WorkspaceSelection:
+        raise GwtWorkspaceError("selection must be concrete WorkspaceSelection")
     _assert_selection_build_lineage(selection)
     if selection.generation != _generation("expected_generation", expected_generation):
         raise GwtWorkspaceError("selection generation mismatch")
@@ -880,8 +881,8 @@ def create_broadcast(
     expected_selection_sha256: str,
     recipient_cell_ids: tuple[str, ...],
 ) -> BroadcastEnvelope:
-    if not isinstance(selection, WorkspaceSelection):
-        raise GwtWorkspaceError("selection must be WorkspaceSelection")
+    if type(selection) is not WorkspaceSelection:
+        raise GwtWorkspaceError("selection must be concrete WorkspaceSelection")
     _assert_selection_build_lineage(selection)
     if selection.sha256() != _sha256("expected_selection_sha256", expected_selection_sha256):
         raise GwtWorkspaceError("selection digest mismatch")
