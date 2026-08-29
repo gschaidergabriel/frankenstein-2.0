@@ -1,0 +1,71 @@
+{
+  "schema": "FRANKENSTEIN2_WORKPACKAGE_ACCEPTANCE_RECEIPT/v1",
+  "workpackage_id": "F2-WP-604",
+  "generation": 1,
+  "claim_id": "F2-WP-604-G1-GPT56SOL-CHILD-LIFECYCLE-GENERATION-20260829",
+  "acceptance_scope": "CHILD_LIFECYCLE_GENERATION_REPOSITORY_HOSTED_COMPONENT_CI_ONLY",
+  "authority_epoch": "8.78",
+  "implementation_evidence": {
+    "claim_commit": "864c937bb57adb18a76e0b2b817f0c3f22550026",
+    "implementation_pull_request": 349,
+    "implementation_pr_head": "73396dbe240d8d2a595015c36162d67d690cb363",
+    "implementation_merge_commit": "43d3f5869a40c2395cfb9e14ce1c48e0454f033e",
+    "hardening_pull_request": 360,
+    "hardening_pr_head": "48577843700d06bc3d345ee07b5ef530260ab7f2",
+    "hardening_merge_commit": "e8f54d4929c964e8a19b7a04bec548c6efb092f2"
+  },
+  "repository_hosted_ci": {
+    "initial_pull_request_run_id": 33248192916,
+    "initial_pull_request_job_id": 99089196927,
+    "initial_pull_request_tests": "13/13 PASS",
+    "hardening_pull_request_run_id": 33248337960,
+    "hardening_pull_request_job_id": 99089571589,
+    "hardening_pull_request_head_sha": "48577843700d06bc3d345ee07b5ef530260ab7f2",
+    "hardening_pull_request_merge_ref": "2d3ea71b0dc70c7a2fa71ebd2dc01a398890d1b8",
+    "hardening_pull_request_tests": "14/14 PASS",
+    "hardening_pull_request_conclusion": "success",
+    "merged_main_run_id": 33248356863,
+    "merged_main_job_id": 99089620079,
+    "merged_main_head_sha": "e8f54d4929c964e8a19b7a04bec548c6efb092f2",
+    "merged_main_tests": "14/14 PASS",
+    "merged_main_conclusion": "success",
+    "compile": "PASS",
+    "falsification_suite": "PASS"
+  },
+  "artifacts": {
+    "source": "src/frankenstein2/child_lifecycle.py",
+    "source_blob_sha": "4141a6c8fde760f812c0ca7a4cd7d21f2661a519",
+    "test": "tests/test_child_lifecycle.py",
+    "test_blob_sha": "9efc2cfb8f6d7e9a3595f86835ad5d27e7312bd9",
+    "workflow": ".github/workflows/wp604-child-lifecycle-ci.yml",
+    "workflow_blob_sha": "3911ab81a63f5c5c817a3d4066113d43c344f2ab",
+    "delta": "workpackages/deltas/F2-WP-604/1-F2-WP-604-G1-GPT56SOL-CHILD-LIFECYCLE-GENERATION-20260829-01.json"
+  },
+  "verified_invariants": [
+    "the exact WP601 NativeChildRequest identity/digest is reconstructed and revalidated before lifecycle evidence is accepted",
+    "expected current generation must exactly equal the request generation and next_generation is exactly current + 1",
+    "malformed boolean/string/float/null generation and nested-depth inputs fail through the WP604 ChildLifecycleError boundary before arithmetic or candidate construction",
+    "RESUME is admitted only from explicit WAITING and cannot smuggle replacement identity or nested-spawn depth",
+    "REPLACE preserves predecessor lineage, advances generation monotonically, and requires an explicit different replacement binding identity rather than rewriting the existing identity",
+    "NESTED_SPAWN rejects terminal children and is bounded by both lifecycle policy and the already-bound NativeChildRequest max_nested_depth",
+    "lifecycle candidates are canonical-content-bound and consumer verification checks exact lifecycle id, digest, operation and generation",
+    "the component emits lifecycle evidence/candidates only and does not mint execution, effect, completion or world-fact authority"
+  ],
+  "commands": [
+    "python -m py_compile src/frankenstein2/child_lifecycle.py tests/test_child_lifecycle.py",
+    "PYTHONPATH=src python tests/test_child_lifecycle.py -v"
+  ],
+  "environment": "github-actions ubuntu-latest; python 3.12",
+  "runtime_execution_observed": false,
+  "runtime_credit": 0,
+  "physical_grid10_credit": 0,
+  "gwt_runtime_credit": 0,
+  "jspace_runtime_credit": 0,
+  "training_credit": 0,
+  "effect_credit": 0,
+  "completion_credit": 0,
+  "whole_system_acceptance": false,
+  "negative_evidence_preserved": "The initial implementation passed 13/13 PR merge-ref tests, but re-reading the merged source found that expected_current_generation + 1 could execute before explicit lifecycle validation and leak a raw Python TypeError for malformed input. WP604 therefore remained ACTIVE. A follow-up hardening patch moved validation ahead of arithmetic, added malformed generation/depth regressions, passed 14/14 PR merge-ref tests, and then passed 14/14 on the exact merged-main commit.",
+  "completion_deficit": "No real child spawn, resume, replacement or nested spawn was executed. No provider/model/tool invocation, UnifiedDB/DeliveryStore mutation, target VPS/runtime evidence, physical GRID10, GWT/J-Space runtime, effects, completion, training or whole-system evidence was produced.",
+  "next_exact_action": "Terminally reconcile WP604 generation 1 at this bounded component scope, then re-enter current main and continue only through unclaimed dependency-correct work or higher-scope integration/runtime evidence."
+}
