@@ -28,7 +28,7 @@ def h(text: str) -> str:
 
 
 def ambiguous_orientation_fixture(*, max_steps: int = 4) -> MicroWorldFixture:
-    """Two evaluator states look identical publicly; action history is useful, hidden node ID is not exposed."""
+    """Two evaluator states look identical publicly; history helps without hidden node input."""
 
     return MicroWorldFixture(
         schema=FIXTURE_SCHEMA,
@@ -108,30 +108,32 @@ def ambiguous_orientation_fixture(*, max_steps: int = 4) -> MicroWorldFixture:
 
 
 def run_pair():
-    f = ambiguous_orientation_fixture()
+    fixture = ambiguous_orientation_fixture()
+    baseline_policy = OrientationPolicy.memoryless()
+    intervention_policy = OrientationPolicy.bounded_exploration(max_public_history_entries=4)
     baseline = run_orientation_policy(
-        f,
-        policy=OrientationPolicy.memoryless(),
+        fixture,
+        policy=baseline_policy,
         run_id="orientation-baseline-run",
         condition=BASELINE,
         episode_family_id="orientation-family-001",
         episode_id="orientation-episode-001",
         episode_generation=0,
-        system_under_test_ref="builtin-memoryless-public-baseline-v1",
+        system_under_test_ref=baseline_policy.policy_id,
         independent_reproduction=True,
     )
     intervention = run_orientation_policy(
-        f,
-        policy=OrientationPolicy.bounded_exploration(max_public_history_entries=4),
+        fixture,
+        policy=intervention_policy,
         run_id="orientation-exploration-run",
         condition=INTERVENTION,
         episode_family_id="orientation-family-001",
         episode_id="orientation-episode-001",
         episode_generation=0,
-        system_under_test_ref="builtin-bounded-public-exploration-v1",
+        system_under_test_ref=intervention_policy.policy_id,
         independent_reproduction=True,
     )
-    return f, baseline, intervention
+    return fixture, baseline, intervention
 
 
 class OrientationBenchmarkTests(unittest.TestCase):
@@ -172,9 +174,9 @@ class OrientationBenchmarkTests(unittest.TestCase):
                 self.assertEqual(entry.observation_ref, "obs:ambiguous-junction")
 
     def test_comparison_is_matched_and_descriptive_not_superiority_credit(self) -> None:
-        f, baseline, intervention = run_pair()
+        fixture, baseline, intervention = run_pair()
         comparison = compare_orientation_runs(
-            f,
+            fixture,
             baseline=baseline,
             intervention=intervention,
         )
@@ -188,17 +190,41 @@ class OrientationBenchmarkTests(unittest.TestCase):
         )
 
     def test_hidden_fixture_change_breaks_matched_comparison(self) -> None:
-        f, baseline, intervention = run_pair()
-        nodes = list(f.nodes)
+        fixture, baseline, intervention = run_pair()
+        nodes = list(fixture.nodes)
         nodes[0] = replace(nodes[0], hidden_ground_truth_sha256=h("changed-hidden-goal"))
-        changed = replace(f, nodes=tuple(nodes))
-        with self.assertRaisesRegex(Exception, "exact fixture|fixture/provenance|does not match"):
+        changed = replace(fixture, nodes=tuple(nodes))
+        with self.assertRaisesRegex(
+            Exception,
+            "exact fixture|fixture/provenance|does not match|revalidation",
+        ):
             compare_orientation_runs(changed, baseline=baseline, intervention=intervention)
 
     def test_result_reconstruction_loses_runner_origin(self) -> None:
         _, baseline, _ = run_pair()
-        with self.assertRaisesRegex(OrientationBenchmarkError, "must be created by run_orientation_policy"):
+        with self.assertRaisesRegex(
+            OrientationBenchmarkError,
+            "must be created by run_orientation_policy",
+        ):
             replace(baseline, evaluator_score=999)
+
+    def test_post_init_result_mutation_must_fail_closed_at_comparison_boundary(self) -> None:
+        fixture, baseline, intervention = run_pair()
+        object.__setattr__(intervention, "evaluator_score", 999)
+        with self.assertRaisesRegex(
+            OrientationBenchmarkError,
+            "result|producer|lineage|revalid|digest|score",
+        ):
+            compare_orientation_runs(fixture, baseline=baseline, intervention=intervention)
+
+    def test_post_init_trace_mutation_must_fail_closed_at_comparison_boundary(self) -> None:
+        fixture, baseline, intervention = run_pair()
+        object.__setattr__(intervention.public_trace[0], "action_id", "b-right")
+        with self.assertRaisesRegex(
+            OrientationBenchmarkError,
+            "trace|replay|revalid|result",
+        ):
+            compare_orientation_runs(fixture, baseline=baseline, intervention=intervention)
 
     def test_policy_modes_and_history_bounds_fail_closed(self) -> None:
         with self.assertRaisesRegex(OrientationBenchmarkError, "mode must be one of"):
@@ -208,38 +234,55 @@ class OrientationBenchmarkTests(unittest.TestCase):
                 mode="USES_HIDDEN_GROUND_TRUTH",
                 max_public_history_entries=1,
             )
-        with self.assertRaisesRegex(OrientationBenchmarkError, "integer in \[1"):
+        with self.assertRaisesRegex(OrientationBenchmarkError, "integer in \\[1"):
             OrientationPolicy.bounded_exploration(max_public_history_entries=0)
 
     def test_conditions_are_explicit_and_not_inferred_from_policy_name(self) -> None:
-        f = ambiguous_orientation_fixture()
+        fixture = ambiguous_orientation_fixture()
+        policy = OrientationPolicy.bounded_exploration()
         result = run_orientation_policy(
-            f,
-            policy=OrientationPolicy.bounded_exploration(),
+            fixture,
+            policy=policy,
             run_id="explicit-baseline-condition",
             condition=BASELINE,
             episode_family_id="family",
             episode_id="episode",
             episode_generation=0,
-            system_under_test_ref="bounded-exploration-used-as-baseline",
+            system_under_test_ref=policy.policy_id,
         )
         self.assertEqual(result.run_descriptor.condition, BASELINE)
         self.assertEqual(result.policy_id, "baseline.bounded-public-exploration.v1")
 
+    def test_run_descriptor_binds_exact_policy_identity(self) -> None:
+        fixture = ambiguous_orientation_fixture()
+        policy = OrientationPolicy.memoryless()
+        with self.assertRaisesRegex(OrientationBenchmarkError, "exact policy_id"):
+            run_orientation_policy(
+                fixture,
+                policy=policy,
+                run_id="wrong-sut-ref",
+                condition=BASELINE,
+                episode_family_id="family",
+                episode_id="episode",
+                episode_generation=0,
+                system_under_test_ref="different-policy",
+            )
+
     def test_comparison_rejects_different_episode_identity(self) -> None:
-        f, baseline, _ = run_pair()
+        fixture, baseline, _ = run_pair()
+        policy = OrientationPolicy.bounded_exploration()
         other = run_orientation_policy(
-            f,
-            policy=OrientationPolicy.bounded_exploration(),
+            fixture,
+            policy=policy,
             run_id="other",
             condition=INTERVENTION,
             episode_family_id="orientation-family-001",
             episode_id="different-episode",
             episode_generation=0,
-            system_under_test_ref="builtin-bounded-public-exploration-v1",
+            system_under_test_ref=policy.policy_id,
         )
         with self.assertRaisesRegex(OrientationBenchmarkError, "same episode identity"):
-            compare_orientation_runs(f, baseline=baseline, intervention=other)
+            compare_orientation_runs(fixture, baseline=baseline, intervention=other)
 
     def test_fixture_is_hidden_from_policy_selector_signature_by_contract(self) -> None:
         import inspect
@@ -251,9 +294,9 @@ class OrientationBenchmarkTests(unittest.TestCase):
         self.assertNotIn("state", parameters)
 
     def test_baseline_and_intervention_use_same_full_hidden_fixture_digest(self) -> None:
-        f, baseline, intervention = run_pair()
-        self.assertEqual(baseline.run_descriptor.fixture_sha256, f.sha256())
-        self.assertEqual(intervention.run_descriptor.fixture_sha256, f.sha256())
+        fixture, baseline, intervention = run_pair()
+        self.assertEqual(baseline.run_descriptor.fixture_sha256, fixture.sha256())
+        self.assertEqual(intervention.run_descriptor.fixture_sha256, fixture.sha256())
         self.assertEqual(
             baseline.run_descriptor.primary_source_ids,
             intervention.run_descriptor.primary_source_ids,
