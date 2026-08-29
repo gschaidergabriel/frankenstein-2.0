@@ -252,7 +252,7 @@ def verify_release_archive(archive_bytes: bytes, *, policy: ReleaseArchivePolicy
     try:
         archive = zipfile.ZipFile(io.BytesIO(archive_bytes), "r", allowZip64=False)
     except (zipfile.BadZipFile, zipfile.LargeZipFile) as exc:
-        raise ReleaseArchiveError("invalid or ZIP64 release ZIP") from exc
+        raise ReleaseArchiveError("invalid release ZIP or forbidden ZIP64") from exc
     with archive:
         if archive.comment:
             raise ReleaseArchiveError("archive comment must be empty")
