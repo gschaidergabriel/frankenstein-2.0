@@ -1,0 +1,71 @@
+{
+  "schema": "T7_SOURCE_SIGNAL/v1",
+  "trigger": "7",
+  "organ": "GPT-5.6-Sol",
+  "observed_date": "2026-08-30",
+  "research_id": "T7-ASR-007",
+  "objective": "E1_STATEFUL_STREAMING_ASR_CROSS_UTTERANCE_CONTEXT_SOURCE_SIGNAL",
+  "status": "RESEARCH_SIGNAL_ONLY_NO_SEMANTIC_CLAIM",
+  "reason_no_semantic_claim": "The current Trigger-7 semantic subject compiler does not yet admit this paper/method as a canonical subject. Persist the source-grounded signal without bypassing create-only semantic-claim coordination or editing the fast-moving shared compiler surface.",
+  "evidence_scope": "UPSTREAM_PRIMARY_SOURCE_ONLY",
+  "runtime_credit": 0,
+  "german_runtime_credit": 0,
+  "frankenstein_acceptance_credit": 0,
+  "upstream": {
+    "title": "Beyond Fresh Starts: Stateful Inference for Streaming ASR in Conversational Voice Agents",
+    "authors": ["Sameep Chattopadhyay", "Alexander Erdmann", "Mari Ostendorf"],
+    "arxiv_id": "2608.22101v1",
+    "submitted": "2026-08-22",
+    "paper_url": "https://arxiv.org/abs/2608.22101",
+    "code_url_reported_by_paper": "https://github.com/Sameep-c/stateful-streaming-asr.git"
+  },
+  "source_observations": {
+    "problem": "Fresh-start reset at every conversational turn discards useful acoustic context and disproportionately harms recognition at turn onsets; naive continuous state can instead retain harmful long-silence or backchannel context.",
+    "evaluated_models": ["fastconformer-114m", "nemotron-streaming-0.6b"],
+    "evaluated_dialogue_benchmarks": ["CallHome", "Switchboard"],
+    "baseline_fresh_start": "Reset model state at the start of every turn.",
+    "baseline_continuous_state": "Carry streaming state continuously through inter-turn silence without manipulation.",
+    "state_carry_over": "Use the state at the end of one turn as the starting state for the next, bypassing inter-turn silence while preserving prior-turn context.",
+    "state_rollback": "Carry state across turns but, when the previous turn is shorter than a token threshold, roll back to the state saved after the last substantial turn to discard backchannel context.",
+    "reported_best_method": "State Rollback",
+    "reported_relative_wer_reduction_at_utterance_onsets_percent": "15-21",
+    "reported_memory_overhead": {
+      "fastconformer_114m": "approximately 2.6 MB / 0.6% of model size",
+      "nemotron_streaming_0_6b": "approximately 7.32 MB / 0.3% of model size"
+    },
+    "latency_scope": "Authors report the qualitative ranking remains stable across supported low-latency settings below 250 ms and with Silero-VAD-derived turn boundaries on Switchboard.",
+    "german_specific_validation_observed": false,
+    "scope_note": "These are upstream paper results, not Frankenstein measurements."
+  },
+  "frankenstein_interpretation": {
+    "candidate_role": "ASR acoustic-state continuity policy between confirmed turns, orthogonal to canonical conversation memory and UnifiedDB.",
+    "important_separation": "Model acoustic cache is ephemeral inference state. It must not become canonical memory, identity state, or evidence authority.",
+    "smallest_useful_delta_after_runner_recovery": "Add Fresh Start vs State Carry-over vs State Rollback as an A/B/C factor to the same pinned German room-audio ASR corpus after the existing target-runtime runner gate is resolved.",
+    "metrics": [
+      "overall WER",
+      "first-word / first-N-word WER",
+      "WER after long pause",
+      "WER after short backchannel turn",
+      "latency p50/p95/p99",
+      "cache memory overhead",
+      "state-reset/rollback correctness",
+      "cross-speaker or stale-state contamination"
+    ],
+    "safety_fence": "Rollback/carry-over may affect ASR hypotheses only. It cannot mint a user fact, completed turn, VoiceIntent, tool request, world state or EffectGate authorization."
+  },
+  "hypothesis": "For a German-first local streaming ASR stack, preserving bounded cross-utterance acoustic state may reduce turn-onset errors without adding a second memory authority, provided short backchannels and long pauses trigger deterministic rollback/reset policy.",
+  "counterhypotheses": [
+    "The gains may be architecture-specific to cache-aware FastConformer-RNNT and may not transfer to Qwen3-ASR or other current Trigger-7 candidates.",
+    "German room audio may contain speaker changes, reverberation and disfluencies that make carried acoustic state harmful or unstable.",
+    "A sufficiently strong fresh-start ASR model may make state management complexity unnecessary.",
+    "Cross-turn state may improve first-word WER while degrading contamination/recovery behavior, so aggregate WER alone is insufficient."
+  ],
+  "promotion": {
+    "source_value": "HIGH_INFORMATION_METHOD_DONOR",
+    "german_candidate_status": "UNVERIFIED",
+    "target_runtime_required": true,
+    "semantic_claim_required_before_material_implementation_or_benchmark_lane": true,
+    "whole_system_credit": 0
+  },
+  "next_exact_action": "Do not dispatch another target-runtime job while the shared self-hosted runner gate remains blocked. When the existing Qwen3-ASR runtime lane obtains an exact hardware/model receipt, acquire a nonduplicate semantic claim for bounded ASR state-management evaluation and compare Fresh Start, State Carry-over and State Rollback on the same pinned German room-audio corpus."
+}
