@@ -3,7 +3,11 @@ name: WP803 probabilistic calibration candidate
 on:
   pull_request:
     paths:
+      - "src/frankenstein2/cognitive_world_model_prediction_benchmark.py"
+      - "src/frankenstein2/cognitive_world_model_run_admission.py"
       - "src/frankenstein2/cognitive_world_model_probabilistic_scoring.py"
+      - "tests/test_cognitive_world_model_prediction_benchmark.py"
+      - "tests/test_cognitive_world_model_run_admission.py"
       - "tests/test_cognitive_world_model_probabilistic_scoring.py"
       - ".github/workflows/wp803-probabilistic-calibration-ci.yml"
   workflow_dispatch:
@@ -20,12 +24,24 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-      - name: Compile
+      - name: Compile exact G2 + candidate surfaces
         run: >-
           python -m py_compile
+          src/frankenstein2/cognitive_world_model_prediction_benchmark.py
+          src/frankenstein2/cognitive_world_model_run_admission.py
           src/frankenstein2/cognitive_world_model_probabilistic_scoring.py
+          tests/test_cognitive_world_model_prediction_benchmark.py
+          tests/test_cognitive_world_model_run_admission.py
           tests/test_cognitive_world_model_probabilistic_scoring.py
-      - name: Probabilistic scoring falsification suite
+      - name: Generation-2 prediction regression suite
+        env:
+          PYTHONPATH: src
+        run: python -m unittest -v tests.test_cognitive_world_model_prediction_benchmark
+      - name: Generation-2 predeclared run-admission regression suite
+        env:
+          PYTHONPATH: src
+        run: python -m unittest -v tests.test_cognitive_world_model_run_admission
+      - name: Generation-3 probabilistic calibration falsification suite
         env:
           PYTHONPATH: src
         run: python -m unittest discover -s tests -p 'test_cognitive_world_model_probabilistic_scoring.py' -v
