@@ -1,8 +1,10 @@
 #!/usr/bin/env python3
-"""Deterministic noncanonical Architect worker-packet validator/matcher/ACK helper.
+"""Stateless validator/matcher/ACK helper for noncanonical Architect worker packets.
 
-This tool does not grant mutation, runtime-dispatch, effect, provider, or credit authority.
-It only evaluates coordination packets after canonical worker authority has been resolved.
+Delivery ownership/CAS/UNKNOWN_DELIVERY semantics remain with Clay's existing
+`research_entity/coordination/live_reentry_delivery_atomicity.py` primitive.
+This F2 helper only validates packet identity, matches a resolved worker context,
+and emits non-authoritative ACK evidence.
 """
 from __future__ import annotations
 
@@ -13,15 +15,18 @@ import pathlib
 import sys
 import uuid
 from datetime import datetime, timedelta, timezone
-from typing import Any, Iterable
+from typing import Any, Iterable, Mapping
 
 PACKET_SCHEMA = "F2_ARCHITECT_WORKER_PACKET/v1"
 ACK_SCHEMA = "F2_ARCHITECT_WORKER_PACKET_ACK/v1"
+MESSAGE_KIND = "ARCHITECT_COORDINATION_PACKET"
 ACTION_CLASSES = {
-    "COORDINATION_ONLY",
-    "CONTEXT_DELTA",
+    "ACK_ONLY",
+    "STATUS",
     "REVIEW_ONLY",
     "CANDIDATE_FALSIFIER",
+    "COORDINATION_ONLY",
+    "CONTEXT_DELTA",
     "RESEARCH_REQUEST",
     "STOP_DEFER",
 }
@@ -47,7 +52,9 @@ DISPOSITIONS = {
 REQUIRED_PACKET_FIELDS = {
     "schema",
     "packet_id",
+    "route_id",
     "nonce",
+    "payload_digest",
     "issued_at",
     "expires_at",
     "architect_id",
@@ -63,11 +70,16 @@ REQUIRED_PACKET_FIELDS = {
     "credit_authority",
     "mutation_authority",
     "runtime_dispatch_authority",
+    "effect_authority",
 }
 
 
 class PacketError(ValueError):
     pass
+
+
+def _canonical_json(value: Mapping[str, Any]) -> bytes:
+    return json.dumps(value, sort_keys=True, separators=(",", ":"), ensure_ascii=False).encode("utf-8")
 
 
 def _parse_time(value: str) -> datetime:
@@ -91,13 +103,45 @@ def _dump(data: Any) -> str:
     return json.dumps(data, indent=2, sort_keys=True, ensure_ascii=False) + "\n"
 
 
+def payload_identity(packet: Mapping[str, Any]) -> dict[str, Any]:
+    return {
+        "objective": packet.get("objective"),
+        "constraints": packet.get("constraints"),
+        "expected_output": packet.get("expected_output"),
+        "evidence_refs": packet.get("evidence_refs"),
+        "supersedes_packet_ids": packet.get("supersedes_packet_ids"),
+        "runtime_subject_fence": packet.get("runtime_subject_fence"),
+        "owner_intent_epoch": packet.get("owner_intent_epoch"),
+    }
+
+
+def compute_payload_digest(packet: Mapping[str, Any]) -> str:
+    return hashlib.sha256(_canonical_json(payload_identity(packet))).hexdigest()
+
+
+def receiver_identity(target: Mapping[str, Any]) -> str:
+    return _canonical_json(target).decode("utf-8")
+
+
+def compute_route_id(packet: Mapping[str, Any]) -> str:
+    """Use the same canonical route identity shape as Clay live_reentry_delivery_atomicity.route_id."""
+    route_packet = {
+        "decision": str(packet.get("action_class") or ""),
+        "message_kind": MESSAGE_KIND,
+        "payload_digest": str(packet.get("payload_digest") or ""),
+        "receiver": receiver_identity(packet.get("target") or {}),
+        "run_id": str(packet.get("packet_id") or ""),
+    }
+    return hashlib.sha256(_canonical_json(route_packet)).hexdigest()
+
+
 def validate_packet(packet: dict[str, Any]) -> None:
     missing = sorted(REQUIRED_PACKET_FIELDS - set(packet))
     if missing:
         raise PacketError(f"missing required fields: {', '.join(missing)}")
     if packet.get("schema") != PACKET_SCHEMA:
         raise PacketError(f"schema must be {PACKET_SCHEMA}")
-    for field in ("packet_id", "nonce", "architect_id", "project", "objective"):
+    for field in ("packet_id", "route_id", "nonce", "payload_digest", "architect_id", "project", "objective"):
         if not isinstance(packet.get(field), str) or not packet[field].strip():
             raise PacketError(f"{field} must be a non-empty string")
     if packet.get("action_class") not in ACTION_CLASSES:
@@ -126,9 +170,13 @@ def validate_packet(packet: dict[str, Any]) -> None:
     expires = _parse_time(packet["expires_at"])
     if expires <= issued:
         raise PacketError("expires_at must be after issued_at")
-    for field in ("credit_authority", "mutation_authority", "runtime_dispatch_authority"):
+    for field in ("credit_authority", "mutation_authority", "runtime_dispatch_authority", "effect_authority"):
         if packet.get(field) is not False:
             raise PacketError(f"{field} must be false in Architect coordination packets")
+    if packet["payload_digest"] != compute_payload_digest(packet):
+        raise PacketError("payload_digest mismatch")
+    if packet["route_id"] != compute_route_id(packet):
+        raise PacketError("route_id mismatch")
 
 
 def _selector_matches(expected: Any, actual: Any) -> bool:
@@ -190,7 +238,7 @@ def make_ack(
     stable = "|".join(
         str(x or "")
         for x in (
-            packet.get("packet_id"),
+            packet.get("route_id"),
             worker_context.get("worker_id"),
             worker_context.get("claim_id"),
             disposition,
@@ -202,7 +250,9 @@ def make_ack(
         "schema": ACK_SCHEMA,
         "ack_id": ack_id,
         "packet_id": packet.get("packet_id"),
+        "route_id": packet.get("route_id"),
         "nonce": packet.get("nonce"),
+        "payload_digest": packet.get("payload_digest"),
         "worker_id": worker_context.get("worker_id"),
         "worker_lane": worker_context.get("worker_lane"),
         "workpackage_id": worker_context.get("workpackage_id"),
@@ -218,6 +268,7 @@ def make_ack(
         "estimated_context_tokens_injected": (packet_bytes + 3) // 4 if disposition == "APPLIED" else 0,
         "new_mutation_authority": False,
         "new_runtime_dispatch": False,
+        "new_effect_authority": False,
         "credit_delta": 0,
     }
 
@@ -236,10 +287,12 @@ def new_packet(
 ) -> dict[str, Any]:
     issued = datetime.now(timezone.utc)
     packet_uuid = uuid.uuid4().hex
-    packet = {
+    packet: dict[str, Any] = {
         "schema": PACKET_SCHEMA,
         "packet_id": f"AWP-{issued.strftime('%Y%m%dT%H%M%SZ')}-{packet_uuid[:12]}",
+        "route_id": "PENDING",
         "nonce": packet_uuid,
+        "payload_digest": "PENDING",
         "issued_at": issued.isoformat().replace("+00:00", "Z"),
         "expires_at": (issued + timedelta(minutes=ttl_minutes)).isoformat().replace("+00:00", "Z"),
         "architect_id": architect_id,
@@ -251,6 +304,7 @@ def new_packet(
         "constraints": constraints,
         "expected_output": {
             "ack_required": True,
+            "classification_required": True,
             "result_summary_required": True,
             "telemetry_required": True,
         },
@@ -259,7 +313,10 @@ def new_packet(
         "credit_authority": False,
         "mutation_authority": False,
         "runtime_dispatch_authority": False,
+        "effect_authority": False,
     }
+    packet["payload_digest"] = compute_payload_digest(packet)
+    packet["route_id"] = compute_route_id(packet)
     validate_packet(packet)
     return packet
 
@@ -305,11 +362,10 @@ def cmd_match(args: argparse.Namespace) -> int:
 def cmd_ack(args: argparse.Namespace) -> int:
     packet = _load(args.packet)
     context = _load(args.context)
-    disposition = args.disposition
     ack = make_ack(
         packet,
         context,
-        disposition,
+        args.disposition,
         reason=args.reason,
         authority_head=args.authority_head,
         event_head_ref=args.event_head_ref,
