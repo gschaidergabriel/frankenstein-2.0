@@ -1,0 +1,46 @@
+name: REVIEW ONLY - WP206 G3 Repeat Provenance Characterization
+
+on:
+  push:
+    branches:
+      - review/trigger4-wp206-g3-provenance-repeat-falsifier-20260830
+    paths:
+      - 'src/frankenstein2/wp206_legacy_authority_recovery.py'
+      - 'src/frankenstein2/persistent_agency_kernel.py'
+      - 'tests/test_wp206_g3_provenance_repeat_falsifier.py'
+      - 'tests/wp206_restart_probe.py'
+      - '.github/workflows/wp206-g3-provenance-repeat-review-ci.yml'
+  pull_request:
+    paths:
+      - 'src/frankenstein2/wp206_legacy_authority_recovery.py'
+      - 'src/frankenstein2/persistent_agency_kernel.py'
+      - 'tests/test_wp206_g3_provenance_repeat_falsifier.py'
+      - 'tests/wp206_restart_probe.py'
+      - '.github/workflows/wp206-g3-provenance-repeat-review-ci.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  characterize-repeat-provenance:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Compile exact review surface
+        run: >-
+          python -m py_compile
+          src/frankenstein2/wp206_legacy_authority_recovery.py
+          tests/test_wp206_g3_provenance_repeat_falsifier.py
+          tests/wp206_restart_probe.py
+      - name: Characterize conflicting repeat provenance
+        env:
+          PYTHONPATH: src
+        run: python tests/test_wp206_g3_provenance_repeat_falsifier.py -v
+      - name: Preserve canonical G3 regression
+        env:
+          PYTHONPATH: src
+        run: python tests/test_wp206_legacy_authority_recovery.py -v
