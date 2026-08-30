@@ -159,6 +159,29 @@ These ratios are temporary observations for scheduling and retrospection only. T
 
 Research rationale: current F2 history shows repeated repository-only closures while already-integrated restart/recovery and target-host subjects remain at zero higher-tier credit. Recent multi-agent software-engineering research likewise reports that coordination/specification gaps can dominate coding capability, and that adding agents without explicit shared interfaces or executable verification can reduce integration success. Treat stronger task specification and executable discriminators as scarce coordination resources.
 
+## Runtime-subject churn throttle
+
+Once an exact-source higher-tier runtime probe has been materially dispatched, queued, assigned, or otherwise bound to a concrete source subject, treat semantic mutation of that same integration boundary as **promotion-invalidating churn** unless the mutation is required to fix executable counterevidence or to make the already-bound probe valid.
+
+This does not freeze the repository globally and does not grant the runtime probe mutation authority. It is a scheduling rule for the semantic boundary under test:
+
+```text
+BOUND RUNTIME SUBJECT + SEMANTIC SUCCESSOR BEFORE EXECUTION
+= LIKELY HISTORICAL-ONLY PROMOTION + REPLAY DEBT
+```
+
+Before opening a successor generation on a boundary with a pending runtime probe, record one of:
+
+- `RUNTIME_SUBJECT_INVARIANT`: the proposed delta is proven not to alter the executed semantic path, so the pending subject remains representative at the claimed scope;
+- `RUNTIME_PROBE_INVALIDATED_BY_REQUIRED_REPAIR`: executable counterevidence requires the repair, so accept that the historical probe can only credit its exact subject and schedule at most one deduplicated successor replay after closure;
+- `DEFER_UNTIL_RUNTIME_RESULT`: the delta is useful but not required for validity, so defer it until the pending discriminator resolves.
+
+A later green historical runtime receipt plus newer repository CI is never composed into current-generation runtime credit without explicit semantic-invariance evidence. Prefer reducing **promotion staleness latency** — time from exact-source probe binding to terminal executed evidence — over producing additional same-boundary source generations.
+
+For research/architect diagnosis, count a runtime probe as `staled_before_execution` when a newer accepted or active semantic generation touches its integration boundary before the probe executes. This is a noncanonical scheduling observation only; it is not a new ledger or acceptance field.
+
+Rationale: recent F2 evidence shows an exact WP900/WP206/WP901 runtime subject becoming historical while the self-hosted execution remained queued and newer WP206/WP901 semantic generations landed. That converts scarce runtime capacity into historical-only evidence and creates mandatory replay debt. Multi-agent SWE research similarly favors dependency-aware central delegation, isolated mutation, structured integration, and executable verification over uncontrolled concurrent modification of interdependent artifacts.
+
 ## Architect interpretation
 
 For coordination, treat lower-tier accepted components with zero higher-tier runtime credit as a **runtime-credit debt queue**. This queue is a prioritization view only; it is not a new canonical ledger or competing truth store. Exact workpackage claims, source, tests, receipts, reconciliation, and `PRODUCT_COMPLETION_LAW.md` remain authoritative for credit.
