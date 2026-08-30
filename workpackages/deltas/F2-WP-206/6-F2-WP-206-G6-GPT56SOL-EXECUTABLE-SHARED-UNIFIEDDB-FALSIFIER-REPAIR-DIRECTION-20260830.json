@@ -1,0 +1,62 @@
+{
+  "schema": "FRANKENSTEIN2_WORKPACKAGE_DELTA/v1",
+  "workpackage_id": "F2-WP-206",
+  "generation": 6,
+  "claim_id": "F2-WP-206-G6-GPT56SOL-EXTERNAL-SQLITE-REVISION-FENCE-20260830",
+  "worker_id": "GPT-5.6-Sol-TRIGGER4-REVIEW",
+  "trigger": "4",
+  "work_class": "REVIEW_ONLY_EXECUTABLE_COUNTEREVIDENCE_AND_REPAIR_DIRECTION",
+  "mutation_authority": false,
+  "observed_main_sha": "c4371ca72b231a6160f68675d39f709e1bd6c09f",
+  "active_mutation_pr": 742,
+  "active_mutation_head_observed": "5f9d3e69a329e3acf56b3d45496d6bd89c21d971",
+  "active_kernel_blob_sha": "8d0bcd3cec2ad3908add094bdbb344ad4bc72e4b",
+  "counterevidence_pr": 746,
+  "counterevidence_head_sha": "a08af5041528c00e3d3aa13bbf3e74015d7632fb",
+  "counterevidence_run_id": 33309245011,
+  "counterevidence_run_status": "completed",
+  "counterevidence_run_conclusion": "success",
+  "executable_observation": "A legitimate CanonicalDeliveryStore WP103 commit to its own typed tables in the same canonical UnifiedDB advances the WP206 observer connection's PRAGMA main.data_version and makes the current G6 hard fence raise UNIFIEDDB_EXTERNAL_SQLITE_REVISION_DRIFT while WP206-owned checkpoint state is unchanged.",
+  "classification": "PASS_REPRODUCED_WP206_G6_CROSS_SUBSYSTEM_FALSE_POSITIVE",
+  "architecture_boundary": [
+    "UnifiedDB is one canonical authority substrate with multiple typed subsystem writers.",
+    "PRAGMA main.data_version is database-wide for commits observed from another connection and therefore cannot itself identify mutation of WP206-owned state.",
+    "The persistent_agency_kernel contract explicitly separates UnifiedDB file identity from Agency checkpoint state identity.",
+    "Repository-hosted executable counterevidence invalidates only the proposed G6 hard-data_version acceptance semantics; it does not invalidate accepted G5/G4/G3 scopes and mints no target-runtime credit."
+  ],
+  "counterhypothesis_status": "FALSIFIER_CONFIRMED_EXECUTABLY_AT_REPOSITORY_CI_SCOPE",
+  "recommended_repair_direction": {
+    "principle": "DATA_VERSION_AS_DIRTY_SIGNAL_THEN_WP206_OWNED_STATE_REVALIDATION",
+    "do_not": [
+      "Do not retain data_version inequality as an unconditional hard failure in the shared UnifiedDB runtime.",
+      "Do not substitute the whole-file UnifiedDB fingerprint as the WP206 state witness because legitimate unrelated subsystem commits change the shared database.",
+      "Do not grant an implicit exclusive-writer epoch to WP206 without an explicit architecture contract and executable integration proof."
+    ],
+    "bounded_mechanism": [
+      "Keep device/inode/path authority checks as hard file-identity fences.",
+      "Treat a changed connection-local data_version only as evidence that some other connection committed.",
+      "Recompute a deterministic witness over WP206-owned durable state/schema only, including f2_persistent_agency_checkpoints and the WP206 legacy-recovery authority surface when present.",
+      "If the WP206-owned witness is unchanged, accept the unrelated UnifiedDB commit, advance the local data_version observation baseline, and continue.",
+      "If the WP206-owned witness changed without the store's admitted same-connection mutation path, fail closed with a WP206-owned-state drift error.",
+      "After every admitted same-connection WP206 commit or migration/recovery commit, refresh the owned-state witness baseline explicitly.",
+      "Fence revalidation races: bind the witness to a stable observation window or re-read data_version after witness computation and retry/fail closed if another external commit occurred during revalidation."
+    ]
+  },
+  "required_regressions_before_g6_reconciliation": [
+    "PR746 legitimate WP103 writer case must pass without WP206 failure after repair.",
+    "External same-inode mutation of WP206-owned checkpoint state must still fail closed.",
+    "Accepted G5 evidence-subject, G4 repeat-provenance, G3 legacy-recovery and persistent-agency-kernel regressions must remain green.",
+    "No target-host/runtime/physical-GRID10/GWT/J-Space/effect/completion/training/whole-system credit may be promoted by repository CI."
+  ],
+  "credits": {
+    "target_runtime_credit": 0,
+    "physical_grid10_credit": 0,
+    "gwt_runtime_credit": 0,
+    "jspace_runtime_credit": 0,
+    "effect_credit": 0,
+    "completion_credit": 0,
+    "training_credit": 0,
+    "whole_system_acceptance": false
+  },
+  "next_exact_action": "The existing F2-WP-206 generation-6 mutation owner should revise PR742 in-place, replacing unconditional data_version failure with dirty-signal plus WP206-owned-state revalidation, then execute PR746-equivalent legitimate-writer regression together with the hostile WP206 mutation discriminator and all accepted predecessor regressions before any G6 reconciliation."
+}
