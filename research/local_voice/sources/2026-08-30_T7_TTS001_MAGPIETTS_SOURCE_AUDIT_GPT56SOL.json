@@ -1,0 +1,74 @@
+{
+  "schema": "T7_SOURCE_AUDIT/v1",
+  "trigger": "7",
+  "organ": "GPT-5.6-Sol",
+  "observed_local_time": "2026-08-30T16:46:48+07:00",
+  "research_id": "T7-TTS-001",
+  "objective": "E1_MAGPIETTS_V2607_GERMAN_LOCAL_CPP_SOURCE_PIN",
+  "semantic_key": "8707f35cd466c7fa8862d797d5b1509f7ce97fd1093748f9afe975e853280a52",
+  "source_scope": "PRIMARY_MODEL_CARD_AND_VENDOR_PROJECT_DOCS_ONLY",
+  "sources": [
+    {
+      "kind": "PRIMARY_MODEL_CARD",
+      "url": "https://huggingface.co/nvidia/magpie_tts_multilingual_357m",
+      "observed_version": "v2607 latest",
+      "indexed_exact_tree_ref_observed": "7c24d468ae0b5db36e61609485c64ab42caa24f1",
+      "exact_head_independently_resolved": false
+    },
+    {
+      "kind": "PRIMARY_VENDOR_REPOSITORY",
+      "url": "https://github.com/NVIDIA-NeMo/Speech",
+      "observation": "2026-07 project update lists MagpieTTS v2607 and German among supported languages."
+    }
+  ],
+  "observed_facts": {
+    "model": "nvidia/magpie_tts_multilingual_357m",
+    "latest_version": "v2607",
+    "parameters_model_card": "364M",
+    "languages": ["ar", "de", "en", "es", "fr", "hi", "it", "ja", "ko", "pt", "vi", "zh"],
+    "german_supported": true,
+    "speaker_names": ["Aria", "Jason", "John", "Leo", "Sofia"],
+    "stable_male_speaker_options_source_supported": ["Jason", "John", "Leo"],
+    "zero_shot_voice_cloning": "removed in current release for security reasons",
+    "german_vendor_eval": {
+      "v2607_CER_percent": 0.80,
+      "v2607_SSIM": 0.742,
+      "scope": "vendor held-out evaluation; not F2 room-audio or human naturalness evidence"
+    },
+    "standard_mode_limit": "up to 20 seconds generated speech per request",
+    "long_form": "sliding-window generation documented",
+    "python_local_inference": true,
+    "native_cpp_family_path_documented": true,
+    "native_cpp_exact_artifact_documented": "magpie_tts_multilingual_357m.v2602.f16.gguf plus NanoCodec decoder",
+    "native_cpp_v2607_artifact_explicitly_documented": false,
+    "true_incremental_audio_streaming_explicitly_documented": false,
+    "barge_in_cancellation_semantics_documented": false,
+    "time_to_first_audio_benchmark_documented": false,
+    "network_required_for_local_inference_after_artifacts_present": false
+  },
+  "falsifier_results": {
+    "GERMAN_NOT_SUPPORTED": "FALSIFIED",
+    "NO_LOCAL_PATH": "FALSIFIED",
+    "NO_STABLE_MALE_SPEAKER": "FALSIFIED",
+    "LOCAL_PATH_REQUIRES_EXTERNAL_API": "FALSIFIED_AT_DOCUMENTED_LOCAL_PATH_SCOPE",
+    "TRUE_INCREMENTAL_STREAMING_ALREADY_PROVEN": "NOT_SUPPORTED",
+    "V2607_CPP_ARTIFACT_ALREADY_PROVEN": "NOT_SUPPORTED"
+  },
+  "result": "PROMOTE_TO_TRIGGER7_TTS_BENCHMARK_FRONTIER_AT_SOURCE_SCOPE_ONLY",
+  "evidence_level": "V1_SOURCE_PINNED",
+  "runtime_credit": 0,
+  "german_e2e_voice_credit": 0,
+  "trigger4_acceptance_credit": 0,
+  "whole_system_credit": 0,
+  "benchmark_recommendation": {
+    "first_low_risk_native_runtime": "Use the explicitly documented v2602 F16 GGUF + NanoCodec NeMo-Speech.cpp path as the native-runtime baseline, then separately test v2607 Python/NeMo for quality before claiming any v2607 native C++ equivalence.",
+    "compare_against": ["Piper/Thorsten latency floor", "Qwen3-TTS 0.6B", "Fun-CosyVoice3 0.5B", "Chatterbox Multilingual"],
+    "mandatory_metrics": ["German intelligibility/naturalness blind score", "TTFA p50/p95", "RTF", "chunk-boundary continuity", "cancellation latency", "male identity stability", "names/numbers/technical pronunciation", "CPU/RAM/VRAM"],
+    "promotion_gate": "Do not promote beyond source scope until a local component run proves actual generation and measures whether audio can be emitted/cancelled incrementally enough for Frankenstein barge-in."
+  },
+  "negative_evidence": [
+    "The primary model card documents utterance/batch and long-form synthesis but does not establish true incremental streaming audio output.",
+    "The model card's native NeMo-Speech.cpp example currently names a v2602 GGUF artifact, not an explicit v2607 GGUF artifact.",
+    "Vendor CER/SSIM is upstream evidence and cannot substitute for F2 German room-audio, naturalness, latency or cancellation measurements."
+  ]
+}

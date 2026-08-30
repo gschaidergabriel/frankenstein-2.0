@@ -1,0 +1,89 @@
+{
+  "schema": "FRANKENSTEIN2_TRIGGER6_RESEARCH_EVIDENCE/v1",
+  "research_id": "R6-WP206-SQLITE-LIVE-DRIFT",
+  "evidence_stage": "E1_SOURCE_READ",
+  "slot": "SOURCE_ARCHAEOLOGIST",
+  "status": "COMPLETED",
+  "created_at_local": "2026-08-30T16:50:25+07:00",
+  "worker": "gpt-5.6-sol",
+  "claim_ref": "research/tool_intelligence/claims/R6-WP206-SQLITE-LIVE-DRIFT/E1_SOURCE_READ.json",
+  "architecture_fusion_ref": "research/tool_intelligence/deltas/ADF-20260830T1647P0700-GPT56SOL-WP206-SAME-INODE-LIVE-FUSION.json",
+  "f2_reentry_head_before_result": "995be0cfbd42d1ca66a6fcd139df08224c9f28c5",
+  "upstream": {
+    "project": "SQLite",
+    "official_github_mirror": "https://github.com/sqlite/sqlite",
+    "source_head": "d92acf1afe6dbd4c8aec9aa9513a518f690c2acf",
+    "source_head_observed_at": "2026-08-30T16:50:25+07:00",
+    "source_files": [
+      "src/main.c",
+      "src/pager.c"
+    ],
+    "primary_docs": [
+      "https://sqlite.org/c3ref/c_fcntl_begin_atomic_write.html",
+      "https://sqlite.org/c3ref/file_control.html",
+      "https://sqlite.org/pragma.html",
+      "https://sqlite.org/fileformat.html",
+      "https://sqlite.org/isolation.html",
+      "https://sqlite.org/lang_transaction.html",
+      "https://sqlite.org/c3ref/total_changes.html"
+    ]
+  },
+  "source_findings": [
+    {
+      "id": "E1-01-PRAGMA-DATA-VERSION",
+      "classification": "SOURCE_DIRECT",
+      "finding": "PRAGMA data_version is meaningful only when comparing values from the same connection over time. It changes for commits made by other connections but is unchanged for commits made on the connection issuing the pragma.",
+      "implication": "Insufficient as the sole WP206 live-drift fence because same-connection mutation is a documented blind spot."
+    },
+    {
+      "id": "E1-02-FCNTL-DATA-VERSION",
+      "classification": "SOURCE_DIRECT",
+      "finding": "SQLITE_FCNTL_DATA_VERSION returns the pager data-version counter for a selected attached database and SQLite documents it as changing for database changes made through the same connection or committed by separate connections. SQLite describes it as the only built-in mechanism among the compared counters that covers both internal and external SQLite-connection changes for one attached database.",
+      "implication": "Best-supported low-cost SQLite-native change witness for this discriminator, but still a change detector rather than canonical provenance/fingerprint authority."
+    },
+    {
+      "id": "E1-03-PAGER-IMPLEMENTATION",
+      "classification": "SOURCE_DIRECT_PINNED",
+      "finding": "At sqlite/sqlite d92acf1afe6dbd4c8aec9aa9513a518f690c2acf, sqlite3_file_control(..., SQLITE_FCNTL_DATA_VERSION, ...) returns sqlite3PagerDataVersion(pPager); sqlite3PagerDataVersion returns Pager.iDataVersion. pager.c documents iDataVersion as changing whenever database content changes and increments it on pager cache reset and transaction paths.",
+      "implication": "The witness is pager-state based. It should trigger revalidation; it must not be misrepresented as a cryptographic digest of file bytes."
+    },
+    {
+      "id": "E1-04-SCHEMA-COOKIE",
+      "classification": "SOURCE_DIRECT",
+      "finding": "The database header schema cookie at offset 40 is incremented when the database schema changes and SQLite checks it when prepared statements run. PRAGMA schema_version exposes this value and can also set it, with SQLite warning that misuse can produce obsolete-schema execution or corruption.",
+      "implication": "Useful as a schema-specific corroborating witness, not a data-change witness and not an authority value to trust if arbitrary writers can set it."
+    },
+    {
+      "id": "E1-05-FILE-CHANGE-COUNTER",
+      "classification": "SOURCE_DIRECT",
+      "finding": "The database-header file change counter at offset 24 supports cross-process cache invalidation in rollback mode, but SQLite explicitly notes it might not increment on every transaction in WAL mode because WAL-index state is used instead.",
+      "implication": "Directly reading only the header change counter is not a journal-mode-independent live-drift solution."
+    },
+    {
+      "id": "E1-06-SNAPSHOT-BOUNDARY",
+      "classification": "SOURCE_DIRECT",
+      "finding": "SQLite WAL mode provides snapshot isolation: an active read transaction continues to see its historical snapshot while other connections commit newer state; those changes become visible only after the read transaction ends and a new one begins.",
+      "implication": "Any WP206 revalidation protocol must define whether the authority check is before transaction start, after transaction end, or both. Observing a changed version while intentionally holding an old snapshot is not itself corruption."
+    },
+    {
+      "id": "E1-07-TOTAL-CHANGES",
+      "classification": "SOURCE_DIRECT",
+      "finding": "sqlite3_total_changes reports row changes caused by statements on one connection and ignores changes from other connections.",
+      "implication": "Not suitable as the sole same-inode drift witness."
+    },
+    {
+      "id": "E1-08-RAW-FILESYSTEM-MUTATION",
+      "classification": "UNKNOWN_NOT_PROMOTED",
+      "finding": "The reviewed primary documentation strongly specifies SQLite-mediated same-connection and cross-connection changes, but this E1 review does not establish that SQLITE_FCNTL_DATA_VERSION detects arbitrary out-of-band raw file mutation that bypasses SQLite locking/pager semantics.",
+      "implication": "Raw same-inode mutation must remain a separate executable falsifier before the witness can be treated as sufficient for hostile filesystem drift."
+    }
+  ],
+  "hypothesis_after_e1": "Use SQLITE_FCNTL_DATA_VERSION, when available through the runtime binding, as a cheap connection-scoped dirty witness. On mismatch, fail closed into a stronger canonical revalidation that rechecks the exact WP206 authority/provenance/fingerprint contract at a defined transaction boundary. Do not continuously recompute the full fingerprint on every operation when the version is unchanged.",
+  "counterhypothesis": "The F2 Python runtime may not expose sqlite3_file_control directly, and pager data-version semantics may be insufficient for raw out-of-band same-inode mutation or intentionally stale WAL snapshots. A simpler transaction-bound schema/full-fingerprint check at fewer lifecycle points may be safer and cheaper than adding a native bridge.",
+  "evidence_ceiling": "E1_SOURCE_READ",
+  "architecture_credit": 0,
+  "build_candidate_credit": 0,
+  "runtime_credit": 0,
+  "whole_system_credit": 0,
+  "next_exact_action": "Acquire E2_ARCHITECTURE_MAPPED claim, inspect exact current WP206 source/runtime binding and Python SQLite capabilities, then map the smallest fail-closed integration surface and the raw-filesystem/WAL falsifiers without changing accepted G4 semantics."
+}
