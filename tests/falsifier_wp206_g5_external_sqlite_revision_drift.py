@@ -25,13 +25,19 @@ from frankenstein2.persistent_agency_kernel import (
 from state.unifieddb_identity import fingerprint_unifieddb, resolve_unifieddb_path
 
 
-def _bootstrap(path: Path) -> None:
+def _bootstrap(path: Path, *, mode: str = "delete") -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     conn = sqlite3.connect(path)
     try:
         conn.execute("CREATE TABLE bootstrap(id INTEGER PRIMARY KEY, value TEXT)")
         conn.execute("INSERT INTO bootstrap(value) VALUES('initial')")
         conn.commit()
+        if mode == "wal":
+            assert conn.execute("PRAGMA journal_mode=WAL").fetchone()[0].lower() == "wal"
+        elif mode == "delete":
+            assert conn.execute("PRAGMA journal_mode=DELETE").fetchone()[0].lower() == "delete"
+        else:
+            raise AssertionError(f"unsupported journal mode: {mode}")
     finally:
         conn.close()
 
@@ -54,19 +60,22 @@ def _assert_external_commit_fails_closed(mode: str) -> None:
         home = root / "home"
         home.mkdir()
         db = root / "canonical" / f"{mode}.db"
-        _bootstrap(db)
+
+        # Establish the requested journal mode before the monitored store connection opens.
+        # Changing DELETE -> WAL on that same long-lived connection can itself advance the
+        # connection-local data_version observation; that is a harness transition, not the
+        # external-commit discriminator this test is meant to isolate.
+        _bootstrap(db, mode=mode)
 
         store = _open_store(db, home)
         try:
             # Same-connection canonical schema mutation must not poison the connection-local
-            # baseline: SQLite data_version is specifically an other-connection witness.
+            # baseline: the fence is scoped to a different connection committing afterwards.
             store.initialize_schema()
             store._assert_current_file_identity()
 
-            if mode == "wal":
-                assert store.connection.execute("PRAGMA journal_mode=WAL").fetchone()[0].lower() == "wal"
-            else:
-                store.connection.execute("PRAGMA journal_mode=DELETE")
+            observed_mode = store.connection.execute("PRAGMA journal_mode").fetchone()[0].lower()
+            assert observed_mode == mode, (observed_mode, mode)
             store._assert_current_file_identity()
 
             before_stat = db.stat()
@@ -135,6 +144,7 @@ def main() -> int:
         "external same-inode commits failed closed in DELETE and WAL modes"
     )
     print("DATA_VERSION_SCOPE=ONE_LONG_LIVED_CONNECTION_ONLY")
+    print("JOURNAL_MODE_ESTABLISHED_BEFORE_MONITORED_CONNECTION=TRUE")
     print("SAME_CONNECTION_RAW_DML=EXPLICITLY_UNCOVERED_SEPARATE_FALSIFIER")
     print("RAW_FILESYSTEM_WAL_TAMPER=EXPLICITLY_UNCOVERED_SEPARATE_FALSIFIER")
     print("TARGET_RUNTIME_CREDIT=0")
