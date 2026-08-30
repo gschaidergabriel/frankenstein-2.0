@@ -1,0 +1,193 @@
+{
+  "schema": "FRANKENSTEIN2_TRIGGER6_ARCHITECTURE_DELTA_E2/v1",
+  "trigger": "6",
+  "research_id": "R6-20260830-WP301-EMERGENT-RETRIEVAL-RANK-FUSION-GPT56SOL-01",
+  "claim_target": "E2_ARCHITECTURE_MAPPED",
+  "status": "E2_ARCHITECTURE_MAPPED_COMPLETE",
+  "completed_at": "2026-08-30T19:29:12+07:00",
+  "worker": "GPT-5.6 Sol / ChatGPT Trigger-6 organ",
+  "claim_ref": "research/tool_intelligence/claims/R6-20260830-WP301-EMERGENT-RETRIEVAL-RANK-FUSION-GPT56SOL-01/E2_ARCHITECTURE_MAPPED.json@2fe8bbe3d3c027c160d4aa42fd3e272458dd43fd",
+  "e1_ref": "research/tool_intelligence/deltas/2026-08-30T1924P0700_GPT56SOL_R6_WP301_EMERGENT_RETRIEVAL_E1_SOURCE_READ.json@d6821af046501c1428dab0348e0bf30dcedb72e9",
+  "architecture_snapshot": {
+    "f2_main_at_write_preflight": "a694a5c1008390adcff9e8a0d2866149ee690e88",
+    "wp301_source": "src/frankenstein2/emergent_retrieval.py@8ca0c51bf88a79701ad188b9ccb0d7859feea944",
+    "wp301_tests": "tests/test_emergent_retrieval.py@44ee5d1acd062bf6ccdc742bbadc97912ccde9a8",
+    "wp302_binding_source": "src/frankenstein2/familiarity_prediction_binding.py@9519438f1587d7a9314ded1efbd0b87ed3d12152",
+    "context_witness_precedent": "src/frankenstein2/context_compiler.py",
+    "memory_salience_precedent": "src/frankenstein2/memory_salience_projection.py"
+  },
+  "problem_statement": "Current WP301 preserves deterministic arithmetic and evidence refs but does not encode whether heterogeneous axis score magnitudes are semantically commensurate. The current overlap_count also treats every score_bp > 0 as a full discrete support axis. WP302 then promotes max(weighted_score_bp) into familiarity_bp, so an unbound score contract can propagate into later attention priority even when aggregate arithmetic itself is tamper-resistant.",
+  "design_decision": {
+    "name": "WP301_RETRIEVAL_FUSION_CONTRACT_V2",
+    "principle": "Separate score semantics from rank semantics; bind every derived signal to its producer/calibration identity; make support/overlap semantics explicit; keep all fusion outputs derived and non-authoritative.",
+    "external_framework_import": "REJECTED",
+    "reason": "The needed mechanism is small deterministic control-plane logic. Importing a search server/framework would add state, dependency and runtime cost without improving canonical authority."
+  },
+  "proposed_types": {
+    "RetrievalSignalWitness": {
+      "required_fields": [
+        "generator_id",
+        "generator_version",
+        "score_semantics",
+        "scale_id",
+        "calibration_id_or_explicit_uncalibrated",
+        "calibration_evidence_refs",
+        "producer_source_revision",
+        "need_or_query_snapshot_sha256",
+        "candidate_input_sha256",
+        "evidence_refs"
+      ],
+      "identity_rule": "Witness contents participate in RetrievalSignal/candidate/plan digests. Same numeric score from a different scorer/calibration/version is a different derived observation.",
+      "local_precedent": "ContextCostWitness already binds tokenizer/renderer/source-revision/content identities before trusting a derived token count. WP301 score evidence should have an analogous provenance contract."
+    },
+    "RetrievalFusionPolicyV2": {
+      "required_fields": [
+        "fusion_mode",
+        "algorithm_version",
+        "presence_threshold_bp_by_axis_or_policy",
+        "allowed_scale_contracts",
+        "rank_constant_if_rrf",
+        "rank_window_size_if_rrf",
+        "policy_evidence_refs"
+      ],
+      "modes": {
+        "CALIBRATED_SCORE_V1": "Retain weighted integer score fusion only when every participating soft-evidence axis declares a compatible score semantics/scale/calibration contract. Incompatible or unknown contracts fail closed rather than being averaged because they share a 0..10000 range.",
+        "ORDINAL_RRF_V1": "Use deterministic reciprocal-rank fusion only when ranked evidence is available but score magnitudes are not demonstrably commensurate. Fixed rank_constant/window, deterministic ties and unique evidence-dimension identities are mandatory. Its fused number is ordering evidence only, never a relevance probability/basis-point familiarity value."
+      }
+    },
+    "RetrievalFusionTrace": {
+      "fields": [
+        "need_sha256",
+        "policy_sha256",
+        "candidate_sha256s",
+        "per_axis_raw_scores_or_ranks",
+        "per_axis_witness_sha256s",
+        "support_threshold_decisions",
+        "fusion_mode",
+        "fusion_parameters",
+        "selected_order",
+        "tie_break_decisions",
+        "algorithm_version",
+        "trace_sha256"
+      ],
+      "authority": "DERIVED_REPLAYABLE_TRACE_ONLY"
+    }
+  },
+  "hard_gate_soft_signal_split": {
+    "hard_before_fusion": [
+      "typed-memory lifecycle/supersession eligibility",
+      "required-axis presence",
+      "generation/provenance identity required by caller integration",
+      "duplicate memory identity rejection",
+      "capability/authority validity where applicable"
+    ],
+    "soft_after_admission": [
+      "goal relevance",
+      "semantic similarity",
+      "causal relevance",
+      "temporal relevance",
+      "state relevance",
+      "confidence or other explicitly derived relevance axes"
+    ],
+    "invariant": "No rank/score/fusion result may resurrect an inadmissible or superseded memory."
+  },
+  "overlap_semantics_delta": {
+    "current": "score_bp > 0 increments overlap_count",
+    "proposed": "Axis support is true only when score_bp >= explicit presence_threshold_bp for that axis/policy. The threshold identity is part of policy_sha256.",
+    "reason": "Prevents an accidental zero-to-one basis-point discontinuity from receiving the same full discrete overlap bonus as meaningful support while preserving the project's multi-evidence overlap concept.",
+    "compatibility": "Do not silently reinterpret v1 plans. Introduce a versioned v2 policy/plan digest; v1 receipts remain historical/replayable under v1 semantics."
+  },
+  "wp302_dependency_delta": {
+    "current": "familiarity_bp = max(selected_result.weighted_score_bp)",
+    "required": [
+      "CALIBRATED_SCORE_V1 may expose familiarity_bp only if its calibration contract explicitly states that weighted_score_bp has the required familiarity-compatible semantics.",
+      "ORDINAL_RRF_V1 must NOT convert RRF consensus score into familiarity_bp.",
+      "When no familiarity-compatible calibrated score exists, emit an explicit unavailable/unknown familiarity state rather than manufacturing zero as epistemic equivalence to known-zero unless the existing WP302 API intentionally defines zero as no admitted familiarity evidence."
+    ],
+    "reason": "Rank consensus and calibrated magnitude are different evidence types; downstream attention must preserve that distinction."
+  },
+  "candidate_generators": {
+    "lexical": {
+      "candidate": "SQLite FTS5 rank/bm25",
+      "role": "REBUILDABLE_DERIVED_RANK_OR_SCORE_GENERATOR",
+      "authority": "NONE",
+      "note": "Bind tokenizer/query/config/source revision and score semantics before score fusion; otherwise use ordinal mode."
+    },
+    "vector": {
+      "candidate": "sqlite-vec",
+      "pin": "asg017/sqlite-vec@04d28bd21773981e2d266bbf6aa4efbd011eb4f6",
+      "role": "OPTIONAL_REBUILDABLE_VECTOR_CANDIDATE_GENERATOR",
+      "authority": "NONE",
+      "risk": "Pinned upstream README identifies the project as pre-v1 with breaking changes expected; isolate behind a narrow adapter and do not make F2 schema/authority depend on it."
+    }
+  },
+  "acceptance_tests_for_trigger4": [
+    "Existing WP301 determinism/order-invariance/supersession/provenance tests remain green under v1 compatibility.",
+    "V2 CALIBRATED_SCORE rejects two axes whose scale_id/calibration contract is incompatible even when both numeric values are 0..10000.",
+    "V2 signal/candidate/plan digest changes when generator/calibration/version identity changes while numeric score stays identical.",
+    "Explicit support threshold reproduces and closes the 1-bp overlap discontinuity for a policy whose meaningful-support threshold exceeds 1 bp.",
+    "Threshold is itself versioned/evidence-bound and deterministic; no hidden heuristic threshold.",
+    "ORDINAL_RRF result is invariant to input insertion order with deterministic per-axis ties.",
+    "Duplicate/correlated evidence-dimension IDs cannot be counted twice without an explicit distinct-dimension identity.",
+    "RRF rank_constant and rank_window_size are fixed in policy identity; changing either changes policy/plan digest.",
+    "WP302 refuses to interpret ORDINAL_RRF consensus score as familiarity_bp.",
+    "A calibrated-score result may feed WP302 familiarity only with an explicit familiarity-compatible score contract.",
+    "Superseded/inadmissible memory cannot become eligible in either fusion mode.",
+    "Derived FTS/vector indexes can be deleted/rebuilt without changing UnifiedDB canonical memory authority."
+  ],
+  "falsification_plan": {
+    "next_claim": "E3_CLAIM_REPRODUCED",
+    "reproduce": [
+      "Exact current v1 one-basis-point overlap inversion from the pinned formula.",
+      "Same case under an explicit support threshold to show the discontinuity is policy-controlled rather than implicit.",
+      "RRF duplicate-dimension arithmetic showing why evidence-dimension identity/deduplication is required."
+    ],
+    "credit": "ANALYTICAL_REPRODUCTION_ONLY_NO_F2_RUNTIME_CREDIT"
+  },
+  "resource_effect_prediction": {
+    "model_calls": "0 additional",
+    "prompt_tokens": "0 additional in retrieval core",
+    "cpu": "small deterministic metadata/hash/validation overhead; bounded O(candidates * axes)",
+    "memory": "small witness/trace metadata increase",
+    "network": "0 required",
+    "external_service": "none required",
+    "expected_net": "Higher evidence integrity and replayability at low runtime cost; exact overhead must be measured by Trigger4 before acceptance."
+  },
+  "counterhypotheses_preserved": [
+    "Existing caller may already guarantee cross-axis calibration; trace producers before forcing schema migration.",
+    "A pure RRF replacement may improve robustness to incomparable scores but loses magnitude information needed by familiarity/abstention; therefore not adopted wholesale.",
+    "A full search framework could provide mature fusion operators but creates unnecessary dependency/state surface relative to a thin local contract."
+  ],
+  "impact_surface": [
+    "src/frankenstein2/emergent_retrieval.py",
+    "tests/test_emergent_retrieval.py",
+    "src/frankenstein2/familiarity_prediction_binding.py",
+    "WP302 tests",
+    "UnifiedDB schema only if fusion traces/witnesses are durably journaled; any derived index remains rebuildable/non-authoritative"
+  ],
+  "explicit_non_goals": [
+    "No change to canonical UnifiedDB truth authority.",
+    "No direct model/LLM arbitration.",
+    "No provider/network dependency.",
+    "No automatic import of sqlite-vec, Elasticsearch, OpenSearch or another search framework.",
+    "No runtime/whole-system/physical GRID10 credit from this mapping."
+  ],
+  "promotion_decision": {
+    "E2_complete": true,
+    "E3_warranted": true,
+    "E5_build_candidate_yet": false,
+    "reason": "The architecture delta is source-grounded but the principal discontinuity should be independently reproduced and the RRF duplicate-dimension risk demonstrated before build handoff."
+  },
+  "pending_research_sqlite_sync": {
+    "status": "PENDING_ADMITTED_DB_WRITE_PATH",
+    "reason": "GitHub connector exposes the canonical SQLite file as binary but no admitted binary SQLite mutation action was available in this session. Protocol requires separate durable evidence receipt now and DB synchronization when the admitted DB path is available; no binary file rewrite was fabricated."
+  },
+  "credits": {
+    "architecture_mapping": "E2_SOURCE_GROUNDED",
+    "F2_runtime": 0,
+    "whole_system": 0,
+    "physical_grid10": 0,
+    "effects": 0,
+    "training": 0
+  }
+}
