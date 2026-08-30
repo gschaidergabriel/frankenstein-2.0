@@ -7,13 +7,10 @@
   "owner_authority": "research/local_voice/authority/2026-08-31_TRIGGER7_TEXT_PACKET_COMPLETION_AUTHORITY.md",
   "implementation": {
     "path": "src/frankenstein2/voice_packet_cortex.py",
-    "blob_sha": "baeb4a8eef4749d7518f14e943c3aa3e13746002",
-    "latest_commit": "c22e99ff7813add7924d10f436a6c03afdb0d041"
-  },
-  "regression_test": {
-    "path": "tests/test_voice_packet_cortex.py",
-    "blob_sha": "4b6f2427f49e6c017e470c0e41f863632b59ec5c",
-    "creation_commit": "a5ae70f9c953deeb7a1b46dc6c1718b39c1b4c00"
+    "adopted_research_blob_sha": "baeb4a8eef4749d7518f14e943c3aa3e13746002",
+    "adopted_research_commit": "c22e99ff7813add7924d10f436a6c03afdb0d041",
+    "f2_mutation_owner": "F2-WP-715-G1-GPT56SOL-PACKET-CORTEX-CONVERGENCE-20260831",
+    "t7_source_mutation_allowed_after_wp715_claim": false
   },
   "implemented_semantics": [
     "typed VoiceInputPacket",
@@ -32,17 +29,57 @@
   "observed_local_checks": {
     "python_compile": "PASS",
     "isolated_packet_mechanics_harness": "PASS",
-    "isolated_harness_scope": "packet state machine with stub VoiceSessionCapsule/VoiceOutcome only"
+    "isolated_harness_scope": "packet state machine with stub VoiceSessionCapsule/VoiceOutcome only",
+    "credit_scope": "SOURCE_LOCAL_ISOLATED_ONLY"
   },
-  "repository_ci_observed": false,
+  "repository_ci": {
+    "observed": true,
+    "workflow": "WP715 Voice Packet Cortex CI",
+    "workflow_run_id": 33326372699,
+    "job_id": 99297112952,
+    "source_commit": "f8b31914d7975b3ba2ad03cb47987d9ea86eb4af",
+    "python": "3.12.14",
+    "tests_run": 15,
+    "tests_passed": 9,
+    "tests_failed": 6,
+    "classification": "EXECUTED_REPOSITORY_CI_PRODUCT_NEGATIVE",
+    "failure_class": "PRODUCT_NEGATIVE",
+    "source_sha256": "3e0f186692048328958573aa45b5089dc6019f38acb0ba4500aa8a9594d1703d",
+    "test_sha256": "19488c867fa6ae810862772d7a47b331145373df45e798f5974c03143ed17890",
+    "reproduced_product_negatives": [
+      "input monotonic timestamp rollback accepted",
+      "output playback timestamp rollback accepted",
+      "barge-in cancellation timestamp rollback accepted",
+      "duplicate output sequence within one turn accepted",
+      "output chunks exposed in packet-id order instead of declared sequence order",
+      "output sequence gap accepted"
+    ],
+    "bound_result": "trigger4/results/local_voice/T4_FD_FALSIFIER_001_WP715_REPO_CI_PRODUCT_NEGATIVE_33326372699.json"
+  },
+  "independent_vps_falsifier": {
+    "workflow_run_id": 33326348539,
+    "state_at_last_observation": "QUEUED",
+    "executed_credit": 0,
+    "rule": "QUEUED != EXECUTED"
+  },
+  "additional_open_falsifiers": [
+    "late tool result requires cancellation/ownership epoch fence",
+    "VoiceOutcome result binding must exclude unheard/cancelled semantic commit",
+    "faulted packet identity admission/retry policy must not poison valid retry",
+    "restart/reconnect must not resurrect cancelled output or stale ownership",
+    "long-session transient state must be bounded while preserving replay/idempotency",
+    "duplicate close with identical causal identity should be idempotent or have an explicit fail-closed replay contract"
+  ],
   "target_runtime_observed": false,
   "physical_audio_observed": false,
+  "packet_component_acceptance_credit": 0,
+  "vps_sandbox_runtime_credit": 0,
   "acoustic_acceptance_credit": 0,
   "asr_model_credit": 0,
   "tts_model_credit": 0,
   "target_runtime_credit": 0,
   "trigger4_acceptance_credit": 0,
   "whole_system_credit": 0,
-  "state": "SOURCE_IMPLEMENTED_LOCAL_ISOLATED_FALSIFIER_PASS_REPO_CI_PENDING",
-  "next_exact_action": "Execute tests/test_voice_packet_cortex.py against the canonical F2 package in an admitted repository/VPS test surface; repair only exact failures, then extend packet fixtures into long-conversation restart/recovery and matched ASR/TTS adapters without duplicating frozen ASR004 runtime dispatch."
+  "state": "SOURCE_IMPLEMENTED_REPOSITORY_CI_PRODUCT_NEGATIVE_WP715_REPAIR_REQUIRED",
+  "next_exact_action": "F2-WP-715 mutation owner repairs only the six executed clock/output-order defects, reruns the exact repository discriminator, then executes the repaired exact subject in the already-bound VPS S1/S2 falsifier. T7 remains review/falsifier-only on WP715-owned source, tracks the remaining causal/restart/bounded-state/duplicate-close falsifiers, and must not redispatch frozen ASR004 attempt4."
 }
