@@ -1,0 +1,98 @@
+{
+  "schema": "F2_TRIGGER4_WP715_REPAIR_EVIDENCE/v1",
+  "trigger": "4",
+  "recorded_date": "2026-08-31",
+  "organ": "GPT-5.6-Sol",
+  "workpackage_id": "F2-WP-715",
+  "generation": 1,
+  "claim_id": "F2-WP-715-G1-GPT56SOL-PACKET-CORTEX-CONVERGENCE-20260831",
+  "classification": "ACCEPTED_REPOSITORY_CI_COMPONENT_REPAIR_SCOPE",
+  "mutation_authority": false,
+  "root_cause": "The exact pre-repair packet cortex subject lacked per-turn monotonic input chronology, per-output monotonic transition chronology, barge-in chronology, and deterministic per-turn output-sequence admission/order fences. Repository CI run 33326372699 executed the exact subject and reproduced six PRODUCT_NEGATIVE invariants.",
+  "negative_evidence": {
+    "source_commit": "f8b31914d7975b3ba2ad03cb47987d9ea86eb4af",
+    "workflow_run_id": 33326372699,
+    "failure_class": "PRODUCT_NEGATIVE",
+    "tests_run": 15,
+    "tests_passed": 9,
+    "tests_failed": 6,
+    "reproduced": [
+      "test_input_monotonic_timestamp_cannot_regress_with_advancing_sequence",
+      "test_output_playback_timestamp_cannot_regress_across_state_transition",
+      "test_barge_in_timestamp_cannot_precede_output_state_it_cancels",
+      "test_duplicate_output_sequence_same_turn_fails_closed",
+      "test_output_chunks_are_exposed_in_declared_sequence_order",
+      "test_output_sequence_gap_is_rejected_explicitly"
+    ]
+  },
+  "repair": {
+    "source_commit": "00fe8baf1d358ed9604b724a4bacaffb46257e92",
+    "source_path": "src/frankenstein2/voice_packet_cortex.py",
+    "source_sha256_at_passing_run": "cd267bf38511d127ce849fb894287cf17921f8f016cfc60b924060f7df94e453",
+    "changes": [
+      "per-turn last input monotonic timestamp fence",
+      "per-turn output sequence admission fence",
+      "declared output sequence ordering",
+      "output playback monotonic timestamp fence",
+      "barge-in cancellation timestamp fence",
+      "rejected input no longer enters _input_seen before validity checks"
+    ]
+  },
+  "postrepair_fixture_classification": {
+    "workflow_run_id": 33326468314,
+    "source_commit": "00fe8baf1d358ed9604b724a4bacaffb46257e92",
+    "classification": "EVIDENCE_INVALID_TEST_FIXTURE_STALE",
+    "detail": "All six repaired negative discriminators passed, but the older positive barge-in fixture supplied monotonic_ms=100 after the output had advanced to monotonic_ms=200. The new chronology fence correctly rejected that impossible timeline.",
+    "fixture_repair_commit": "1bfc4f37812053f31e95900e6bffe3275d11cbc4",
+    "fixture_repair": "barge-in input timestamp changed to monotonic_ms=201; product source unchanged"
+  },
+  "regression_receipt": {
+    "workflow": "WP715 Voice Packet Cortex CI",
+    "workflow_run_id": 33326526530,
+    "job_id": 99297526996,
+    "head_sha": "1bfc4f37812053f31e95900e6bffe3275d11cbc4",
+    "runner_class": "GITHUB_HOSTED_UBUNTU_24_04",
+    "python": "3.12.14",
+    "command": "PYTHONPATH=src python -m unittest discover -s tests -p 'test_voice_packet_cortex.py' -v",
+    "source_sha256": "cd267bf38511d127ce849fb894287cf17921f8f016cfc60b924060f7df94e453",
+    "test_sha256": "eb26f44348b75924e609e00f98631f1822d2addb5c3847c2c069aeea5994e5be",
+    "tests_run": 15,
+    "tests_passed": 15,
+    "tests_failed": 0,
+    "conclusion": "SUCCESS"
+  },
+  "bug_closure": {
+    "clock_and_output_sequence_six_defects": "FIXED_AT_REPOSITORY_CI_SCOPE",
+    "reason": "root cause + executable negative + repair commit + regression tests + passing exact-subject CI receipt are all present",
+    "not_promoted_beyond_scope": true
+  },
+  "separate_open_falsifiers": {
+    "PN9_RESTART_CHECKPOINT_OMITS_POSTREPAIR_CAUSAL_STATE": "OPEN_CANDIDATE_REQUIRES_EXECUTABLE_CONFIRMATION_OR_REPAIR",
+    "PN10_LONG_SESSION_TEST_DOES_NOT_PROVE_BOUNDED_STATE": "OPEN_CANDIDATE_REQUIRES_EXECUTABLE_CONFIRMATION_OR_REPAIR"
+  },
+  "vps_gate": {
+    "workflow": "T4 Packet Cortex Full Duplex Falsifier",
+    "workflow_run_id": 33326586170,
+    "head_sha": "4ec3a46b7720f9c35a6fdd2a13702f6f71b73bce",
+    "state_at_review": "QUEUED",
+    "classification": "UNKNOWN_NONTERMINAL",
+    "credit": 0,
+    "rule": "QUEUED != EXECUTED; do not redispatch while nonterminal"
+  },
+  "credit_boundary": {
+    "repository_ci_component_repair_credit": 1,
+    "vps_sandbox_runtime_credit": 0,
+    "target_runtime_credit": 0,
+    "restart_recovery_credit": 0,
+    "bounded_state_credit": 0,
+    "acoustic_credit": 0,
+    "asr_tts_runtime_credit": 0,
+    "physical_device_credit": 0,
+    "gwt_jspace_credit": 0,
+    "effect_credit": 0,
+    "training_credit": 0,
+    "whole_voice_e2e_credit": 0,
+    "whole_product_credit": 0
+  },
+  "next_exact_action": "Do not reopen the six closed repository-CI clock/order defects absent executable counterevidence. Preserve the repaired source subject while VPS run 33326586170 is nonterminal. Separately execute PN9/PN10 under the WP715 owner before admitting recovery/bounded-state semantics. Promote only exact executed scope."
+}
