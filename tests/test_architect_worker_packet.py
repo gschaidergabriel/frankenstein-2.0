@@ -4,6 +4,8 @@ from datetime import datetime, timezone
 
 from tools.coordination.architect_packet import (
     PacketError,
+    compute_payload_digest,
+    compute_route_id,
     make_ack,
     packet_disposition,
     target_matches,
@@ -11,27 +13,37 @@ from tools.coordination.architect_packet import (
 )
 
 
-BASE_PACKET = {
-    "schema": "F2_ARCHITECT_WORKER_PACKET/v1",
-    "packet_id": "AWP-TEST-0001",
-    "nonce": "nonce-0001",
-    "issued_at": "2026-08-31T00:00:00Z",
-    "expires_at": "2026-08-31T06:00:00Z",
-    "architect_id": "persistent-architect",
-    "project": "frankenstein-2.0",
-    "priority": 50,
-    "action_class": "REVIEW_ONLY",
-    "target": {"worker_id": "worker-A", "workpackage_id": "F2-WP-715"},
-    "objective": "Review one exact boundary without mutation.",
-    "constraints": ["no mutation"],
-    "expected_output": {"ack_required": True},
-    "evidence_refs": [],
-    "supersedes_packet_ids": [],
-    "credit_authority": False,
-    "mutation_authority": False,
-    "runtime_dispatch_authority": False,
-}
+def sealed_packet(**changes):
+    packet = {
+        "schema": "F2_ARCHITECT_WORKER_PACKET/v1",
+        "packet_id": "AWP-TEST-0001",
+        "route_id": "PENDING",
+        "nonce": "nonce-0001",
+        "payload_digest": "PENDING",
+        "issued_at": "2026-08-31T00:00:00Z",
+        "expires_at": "2026-08-31T06:00:00Z",
+        "architect_id": "persistent-architect",
+        "project": "frankenstein-2.0",
+        "priority": 50,
+        "action_class": "REVIEW_ONLY",
+        "target": {"worker_id": "worker-A", "workpackage_id": "F2-WP-715"},
+        "objective": "Review one exact boundary without mutation.",
+        "constraints": ["no mutation"],
+        "expected_output": {"ack_required": True},
+        "evidence_refs": [],
+        "supersedes_packet_ids": [],
+        "credit_authority": False,
+        "mutation_authority": False,
+        "runtime_dispatch_authority": False,
+        "effect_authority": False,
+    }
+    packet.update(changes)
+    packet["payload_digest"] = compute_payload_digest(packet)
+    packet["route_id"] = compute_route_id(packet)
+    return packet
 
+
+BASE_PACKET = sealed_packet()
 CONTEXT = {
     "worker_id": "worker-A",
     "worker_lane": "REVIEW_ONLY",
@@ -41,7 +53,6 @@ CONTEXT = {
     "claim_id": "claim-1",
     "organ": "GPT-5.6-Sol",
 }
-
 NOW = datetime(2026, 8, 31, 1, 0, tzinfo=timezone.utc)
 
 
@@ -56,20 +67,17 @@ class ArchitectWorkerPacketTests(unittest.TestCase):
         self.assertEqual(packet_disposition(BASE_PACKET, other, now=NOW), "REJECT_MISADDRESSED")
 
     def test_list_selector_supports_bounded_cohort(self):
-        packet = copy.deepcopy(BASE_PACKET)
-        packet["target"] = {"trigger": "7", "worker_lane": ["REVIEW_ONLY", "CANDIDATE_FALSIFIER"]}
+        packet = sealed_packet(target={"trigger": "7", "worker_lane": ["REVIEW_ONLY", "CANDIDATE_FALSIFIER"]})
         self.assertEqual(packet_disposition(packet, CONTEXT, now=NOW), "APPLIED")
 
     def test_empty_target_forbidden(self):
-        packet = copy.deepcopy(BASE_PACKET)
-        packet["target"] = {}
+        packet = sealed_packet(target={})
         with self.assertRaises(PacketError):
             validate_packet(packet)
         self.assertEqual(packet_disposition(packet, CONTEXT, now=NOW), "REJECT_SCHEMA_INVALID")
 
     def test_expired_packet_fails_closed(self):
-        packet = copy.deepcopy(BASE_PACKET)
-        packet["expires_at"] = "2026-08-31T00:30:00Z"
+        packet = sealed_packet(expires_at="2026-08-31T00:30:00Z")
         self.assertEqual(packet_disposition(packet, CONTEXT, now=NOW), "REJECT_STALE")
 
     def test_duplicate_nonce_is_ack_only(self):
@@ -90,14 +98,24 @@ class ArchitectWorkerPacketTests(unittest.TestCase):
             "REJECT_AUTHORITY_CONFLICT",
         )
 
-    def test_packet_cannot_claim_authority(self):
-        for field in ("credit_authority", "mutation_authority", "runtime_dispatch_authority"):
+    def test_packet_cannot_claim_any_authority(self):
+        for field in ("credit_authority", "mutation_authority", "runtime_dispatch_authority", "effect_authority"):
             packet = copy.deepcopy(BASE_PACKET)
             packet[field] = True
             with self.assertRaises(PacketError):
                 validate_packet(packet)
 
-    def test_ack_is_non_authoritative(self):
+    def test_payload_tamper_is_rejected(self):
+        packet = copy.deepcopy(BASE_PACKET)
+        packet["objective"] = "tampered after sealing"
+        self.assertEqual(packet_disposition(packet, CONTEXT, now=NOW), "REJECT_SCHEMA_INVALID")
+
+    def test_route_tamper_is_rejected(self):
+        packet = copy.deepcopy(BASE_PACKET)
+        packet["route_id"] = "0" * 64
+        self.assertEqual(packet_disposition(packet, CONTEXT, now=NOW), "REJECT_SCHEMA_INVALID")
+
+    def test_ack_is_non_authoritative_and_binds_route(self):
         ack = make_ack(
             BASE_PACKET,
             CONTEXT,
@@ -110,9 +128,11 @@ class ArchitectWorkerPacketTests(unittest.TestCase):
         )
         self.assertFalse(ack["new_mutation_authority"])
         self.assertFalse(ack["new_runtime_dispatch"])
+        self.assertFalse(ack["new_effect_authority"])
         self.assertEqual(ack["credit_delta"], 0)
         self.assertGreater(ack["context_bytes_injected"], 0)
-        self.assertEqual(ack["packet_id"], BASE_PACKET["packet_id"])
+        self.assertEqual(ack["route_id"], BASE_PACKET["route_id"])
+        self.assertEqual(ack["payload_digest"], BASE_PACKET["payload_digest"])
         self.assertEqual(ack["worker_id"], CONTEXT["worker_id"])
 
 
