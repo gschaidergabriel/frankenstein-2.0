@@ -1,0 +1,99 @@
+name: WP206 G6 atomic terminal CAS
+
+on:
+  push:
+    branches:
+      - 'chatgpt/trigger4-wp206-g6-terminal-cas-20260830'
+    paths:
+      - '.github/workflows/wp206-g6-terminal-cas.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  reconcile:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
+        with:
+          python-version: '3.12'
+      - name: Fast-forward only atomic reconciliation loop
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          for attempt in $(seq 1 40); do
+            git fetch origin main
+            git checkout -B wp206-g6-cas origin/main
+            base_sha="$(git rev-parse HEAD)"
+
+            if [ -f workpackages/state_events/F2-WP-206/000003.json ]; then
+              if [ "$(git hash-object workpackages/active/F2-WP-206.json)" = "7e06b093e1833d7499be001fd68a3bc26c9e5d43" ] \
+                 && [ "$(git hash-object workpackages/receipts/F2-WP-206_G6_OWNED_SQLITE_SURFACE_REVISION_FENCE.json)" = "5ddf981d0ec5e4220b5428d00411db21d00d38b9" ] \
+                 && [ "$(git hash-object workpackages/reconciliations/F2-WP-206/6-F2-WP-206-G6-GPT56SOL-EXTERNAL-SQLITE-REVISION-FENCE-20260830.json)" = "3094c7d1624b56c0b440b48c1bcc827aa56abbc4" ]; then
+                echo 'ALREADY_TERMINALIZED_IDENTICALLY=true'
+                exit 0
+              fi
+              echo 'WP206_G6_TERMINAL_CONFLICT=true'
+              exit 42
+            fi
+
+            test "$(git hash-object workpackages/active/F2-WP-206.json)" = "5ff9aad551864f578dcaa551b2ae57972c95167d"
+            git merge-base --is-ancestor 2e1619183450b85eddddf87136e2cece9c8ebfed HEAD
+
+            BASE_SHA="$base_sha" python - <<'PY'
+          import base64, os, zlib
+          from pathlib import Path
+
+          blobs = {
+            'workpackages/active/F2-WP-206.json': 'eNqtVVFz4jYQfs+v8PBcBxtiB9KZTonjUDeczdlOcumLRsiL0Z2RGEkkx3T6329lk4TQ3Ezba4aHoN39tPtpv48/Txynp9kK1rR34fSu80l6E6dFGSfpgEyiMrmLyX2W38wn0c1kGpNoNkk+9B/93k+28EmqLxvKvtAaCK9agIF7P3cHXtgl1CBAUcOlwGDYHrGG8vVxtjvFz7wMwiKbufGnMs7TycwtPs6SMnbz+C4pkix1r+M0ijF9EHqjoffaAqg9HkK4wWnoFrJxyzyZTuP8rEszitc1KJu0P6Fbs5KKmx2BjWQrGxmf+sPjoIKlDSnQQBVbERAGj/s4xY7JCvqYKYVcy63uF7fzOMdWs5wk6WX26fSzluJXC3qZdLDaIFMWriiRzAHB/CJBstOS4Pc0eiA3OHk8e8k2bfYkiuJ5GV+9Tkzwfq1tLEnLeJpPSuSHXM6yCAF6rzxDRTSTmxbl75fdz5F6kt2n8RXpuCbFbX49iWLyzDlpOcev86xIyix/IL9liHFFouzDPEstWJSQLJ097HmmqgZDmFxvGrDvTgzvaD+AOKztyrgwUHeLQhZyKyqqdrYookIKzmgzB6W5Nsj+BHeK7QojFTiNFLXb8EeoHOyfG3CYFAKYxXHcX5x2QFc+CUzQdA0uF/hmz7l6q5aUgaPgkWtbUYHparumFlSDnWTNje3lnFbjQTUcMBqc4T/ecHzuD8983xuNFxWMF9QPw/MwOO+KN1Rhs+SNAILDyHd0EBzo4C65aje+uL38PY5K9zJJr5J0eqSAPZ4CnJ3xhncs7vf2QKG6/zZF91+u7Qfuf2yh3fE3fVDGYGOoYGBbAr4x7/Vhzw8aINOAPN9F9neR/V0HVzQoCP18Be72O/ZynPI/280x/L8Z8R9J7WDaH3rR0P2haQ/a4FbKa3zaro2NVfN5cPZebA2ofqJX7W/JAPzQH/uj4VngLUYBVPi3HKFmQhgwpGfMRrBYQrUfdovGugYCX4FtWzC50KBQ2oi1pI2GN2lMQdXK0ut2b7XT1iZIrXjle8fh+gn18X7lZ41kwveiRlEuuKiPz2G5RKc4Pj1wvaPI00o2SMwOHWx9oJA3o73sFDVka1hLIb6G643coVf6wYU3vPC8Pzq6BHw1yBVldhf3AujdAGycV004ocMaqdH7KFIpjCPgydlIbXAhnI5numisZ+LwYF2wQmuFn62JGi626JCAosaNdzpbd1dYjHaJP0zKtLv3CGrnUFGh0wa+5yCLeDk6MrKzYwhdW7mc9k7+OvkGjLqdBg==',
+            'workpackages/receipts/F2-WP-206_G6_OWNED_SQLITE_SURFACE_REVISION_FENCE.json': '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',
+            'workpackages/reconciliations/F2-WP-206/6-F2-WP-206-G6-GPT56SOL-EXTERNAL-SQLITE-REVISION-FENCE-20260830.json': 'eNqNV11zIrcSfd9fofKzx55vmM0TF7OErAME2Dh7b6VUQuqB2R2kyUhjlqTy39PSDGCDkxvb5Y+W1DrqPt2n/cc7Qm4038KO3bwnNx8Wg+nH0XS5Gk2mIX2aLT7OB8OPg/GILkbD2XQ4eZwMVpPZ9P45uLm1R/eq/lox/pVtgBbCuQi9p7kX+mm7YQMSamYKJXExdSZesmJ3udsb49d8laTL2aM3+mU1WkwHj97yp8fJauQtRj9Plnit92E0HY5we5j6/cg/Q4C684cuvOQu9Zaq9FaLyXg8WsTtNtaYraoLc6BQKb61m7O7IGoXtWEGrGkwHI7mq9FDd4ZzqAwIqrmq3Pp8tFhOMDzTFcWoTIef6dMc0dPZ03T0QFu4dPlp8WEwtDFrYVMHG/+cz5aT1WzxmX4/Qx8PdDj7cT6bWmfDCZ1NHz93aDAb0hScikJXShdd9G7Gp1iSlEhW12qvidkCwXdtCsnK8kCqWuEREEQww9ZMg7cvBBD4ZqDGHV4Nz4W2HnKQHO7IfDEY/zggO1bIO3uEPkPt1gtNlESHjHAlJXB7rVcqzkoiitocyLaQ5juyVo0UeB36ZWUhWnQqd7BcaDy1l7iOFONfK4VnSEs3wiSesi8o2kfgxaLg5pZoRRpZQ4kpEcQcKvz+SRZ5AeLhP2SPKUSERCgilSG8BtxGclZqIKcUE1EXublro1nsqhJ2IM2RhX+gFe1VU5a0ht8a0AatvSS+bRe2wDDjW1cQPEzjVPhZL4mE6GXBOouypJ+HmQh7UdaHdZ4nURK1ZMezO6g3yBcbzqOLEII0yIJ+FCf+up+AwI+83wuiFEIOHDJu3YA4uVCiKR3ZdM3v85rJryC1gUKG95VNDv4uDcWKk/xAkfoSyrvq8Po4XZdqbRFQZqgDZR3m8ZolLAozHkZ+3svXLFtzsWYxxJAgEvzkEHF+9NXynyFRqGmjdGN/6nv7ne4ry/xNSl2GqW7qnOHOfWEkaP0C0oWbEzYXnT6Eqch5hjj6AmK+TgVnfM38NIoD/I2FQZwm8dGXzbTlQn0GczKdER3pTvVvJfKFHllPW2IgNPT2p6MHfAPeYKlgzHCTsFVx5gh8Y9xQrZoasSsJiFoZWjeybTdRFNm8RkGa3f7TgS/4Xncgy8Je0usHYeb/4wEsOV42uqt73WAAtT6GoKqpoyjWEmzafmAhadz6P7eDdMD6fpIEt5emMLky9fwrUxBemaL+lSm+8pUGvWtf8fWN16bsGlecOsuvbxTXxeNf5CMOs37o/58jrzKS+ljgxwf/7ZG3c3LikYQN7ns+s4hig3PEg/2ZUMeuTG1Xpi8bLu36n3W+GP0wGh5V6JL0rUvPNef5ohen74lrvdhuAz/qGiZXu11hCBPPtuxaNTi1dqzQrWpM25/Jruk6Y3eZbmyXAWzqVCip6pe86sUnWvTirE3OKQI74FsmsT2hctWgVdkchesTNudXCBx4o4gAbtVpvwX5tpKgNqD2YKBZfbgjQ7WrWA1OLvCGpjSF3KATLPZd0d5MNNuBhypoD71UIK/rT6TrT/Z664cJDJRVGpuWspDwHbrO0fu2Q4l7zoJHWI6XXemTUyXtJC1nRUl46TTYvcsJtNPA4802TBvQnT7ZGBxZNXCdkmxeCj0zCMiNAao+eFulTZvfCruFNN5wQtx04tCiniNyqJ8xRgxpjEcbnCR2cEuq7UEXVr3Hi8lD4KPMdlMGGT+t7n/wljjG4TbIc9R6fetuKMFiuCWmxmKwobYP3G9VCZ4+II6d1V9RGG1B/g61uns5N7mGX2P2isqx+sWsqO87u74/TYB0/K/GqLsvuuPqG9e8kpYEdTbrB8IHnkAchv46icO+8P04CMQ6xAVfRP111jqz6URtOo18bwyuXSxp+2g0uy5zc4ws3dSFCPzL5c3eKcZbJ79oG/S/Wz1G/dLepujSes7X5YpLGG0TRs8xw3U3NnXd65uhrRYxfizb71UpuibxipEdu9laIwGxPvfkLKIEmWpwmEf+4KugPnZDW7z4Stm01asBC9lObi1NHa1tSeOfxnJDYac4OLo9zZPAtzRGAF5Z4NMPHK/Z2HSdOhnW+065ZnAuFYKVgTXeBbdjakfQdmwUdjhqDHdzCP5P4fl9L/JXQfLej977/n9v3v357i9vxS0I',
+            'workpackages/state_events/F2-WP-206/000003.json': 'eNq1VNtu4zYQfc9XEH5e1SR1z5vWVVwjhuy1tZvFFgXBy8hmVpZcUXYaFP33UpKzcZwEfVhUsAWQM3Pmcs7o7yuERkZuYcdH12h0s0qy2zRb5+kso+xusbpdJpPbZJqydZ7kKUu/pFk+PpLRhy7uoW6+77n8zjfAtOrjqXO3dCgOBgcDfx6gkmBNbn+x5w1ULYOjfXf+ZwhmbFrewmAz4x9IY9w99Jd7U1ejVyDMbDn1gw5LhJi4UUQ5FiQAwgtBCl4oHKuQR34cRhFQLmkcRR7GASWuBK9waVF4IS1ieuppQJUlN6YDnaZZukry2SJjyWSSLvP0V5bc5OmKpV/Tyec8+ThP2SqdLLLJbD7rHQecWhhojqDYjuuqq7JDY+xjsraz/C1hbHCzifSObaCChrfadniNgjPDxVSdqf0tcz9YL+ZO+tWWkSVzZ/1pPstTZ5V+ma1tfucmzSapdacBjlw85BFNzRXrJnzo+3pq5jTRLTcdSbQ/tbotu9PobtnlrB8qUMjwHTi6qhUgm0+3gMyhKbgE1MBRG1s6KnqqT1PU6kT87/Zsb5ar0PfQDpqNBeMGUSABiUnkej4WkQ/KPkUUEjcAKkFCLCMQBagez8Y3hwq5rtsFuCSI0Rjd1wLFMQ39MCI0xgj+4rJ1TH1obFHTANUVOGZbt2iZrNdPMMuVswWu0L4BZbMYUzeIV/YMjdGm7WpumphM9BhXgQP1Tsdo+hHPZ5VFMVn9QQYxyGhz5CtY+Vdycdz4Be4L7agsWXp/fkGsGnAFneZVd7ANFt/Xt0kk053A+OsZ/x5Q96ArCupSz30dLZbgfNT2hpS2ox/9Kzb+esjsH3dNdr0aoPXYrvwEmUtnvYjBBwIHLtgaXZV6MWxAIxJoYKIu0LSQMbgK88dgF62xRooXn1S/ufO3yrjvB8Xx54MFQmoJ/xAYuF59h9JIqSMaMi5H3AhpPc0GAn7llsJspMI3uvpZwXyVqrzun27i3FEFAbpg0cpFr5HI4WxR4gS1BqwciMRnwZwqFq9AybtTunus477a11ZAZSlpfgdh/320WjJS7atTXtpPO7Nf8ZtGq0IvjRvHtr3Iu+NnSK8Z20bu9i62lzeQ1GAfFWgrHf7EnrKLywP27oEZh7t7u/Y86StveClgSG6AbscivGWHVrZzbxTloMjx8U58a+xe43xt9HVP1f/AgjNSj4='
+          }
+          base = os.environ['BASE_SHA']
+          for path, payload in blobs.items():
+              raw = zlib.decompress(base64.b64decode(payload)).decode('utf-8')
+              if path.endswith('/000003.json'):
+                  raw = raw.replace('__BASE_SHA__', base)
+              target = Path(path)
+              target.parent.mkdir(parents=True, exist_ok=True)
+              target.write_text(raw, encoding='utf-8')
+          PY
+
+            test "$(git hash-object workpackages/active/F2-WP-206.json)" = "7e06b093e1833d7499be001fd68a3bc26c9e5d43"
+            test "$(git hash-object workpackages/receipts/F2-WP-206_G6_OWNED_SQLITE_SURFACE_REVISION_FENCE.json)" = "5ddf981d0ec5e4220b5428d00411db21d00d38b9"
+            test "$(git hash-object workpackages/reconciliations/F2-WP-206/6-F2-WP-206-G6-GPT56SOL-EXTERNAL-SQLITE-REVISION-FENCE-20260830.json)" = "3094c7d1624b56c0b440b48c1bcc827aa56abbc4"
+
+            git add \
+              workpackages/active/F2-WP-206.json \
+              workpackages/receipts/F2-WP-206_G6_OWNED_SQLITE_SURFACE_REVISION_FENCE.json \
+              workpackages/reconciliations/F2-WP-206/6-F2-WP-206-G6-GPT56SOL-EXTERNAL-SQLITE-REVISION-FENCE-20260830.json \
+              workpackages/state_events/F2-WP-206/000003.json
+            test "$(git diff --cached --name-only | wc -l)" -eq 4
+            git commit -m 'trigger4: reconcile WP206 G6 acceptance atomically'
+            if git push origin HEAD:main; then
+              echo "WP206_G6_ATOMIC_TERMINAL_COMMIT=$(git rev-parse HEAD)"
+              echo "WP206_G6_ATOMIC_BASE=$base_sha"
+              exit 0
+            fi
+            echo "CAS_RETRY=$attempt"
+            sleep 1
+          done
+          echo 'WP206_G6_ATOMIC_RECONCILIATION_STARVED=true'
+          exit 75
+
+      - name: Evidence scope
+        if: always()
+        run: |
+          echo 'SCOPE=WP206_G6_REPOSITORY_COMPONENT_ONLY'
+          echo 'TARGET_RUNTIME_CREDIT=0'
+          echo 'PHYSICAL_GRID10_CREDIT=0'
+          echo 'GWT_JSPACE_RUNTIME_CREDIT=0'
+          echo 'EFFECT_COMPLETION_TRAINING_CREDIT=0'
+          echo 'WHOLE_SYSTEM_ACCEPTANCE=false'
