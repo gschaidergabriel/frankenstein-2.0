@@ -5,46 +5,62 @@
   "semantic_key": "aca287916aca8eba83a0b6469012f02c38905f6b8608fd2171c61b5bc3ca6d56",
   "canonical_semantic_claim": "research/local_voice/semantic_claims/aca287916aca8eba83a0b6469012f02c38905f6b8608fd2171c61b5bc3ca6d56.json",
   "owner_authority": "research/local_voice/authority/2026-08-31_TRIGGER7_TEXT_PACKET_COMPLETION_AUTHORITY.md",
-  "implementation": {
-    "path": "src/frankenstein2/voice_packet_cortex.py",
-    "clock_order_repair_commit": "00fe8baf1d358ed9604b724a4bacaffb46257e92",
-    "green_base_fixture_commit": "1bfc4f37812053f31e95900e6bffe3275d11cbc4",
-    "current_source_sha256_observed_in_expanded_ci": "cd267bf38511d127ce849fb894287cf17921f8f016cfc60b924060f7df94e453",
-    "f2_mutation_owner": "F2-WP-715-G1-GPT56SOL-PACKET-CORTEX-CONVERGENCE-20260831",
-    "t7_source_mutation_allowed_after_wp715_claim": false
+  "f2_mutation_owner": "F2-WP-715-G1-GPT56SOL-PACKET-CORTEX-CONVERGENCE-20260831",
+  "trigger7_role": "REVIEW_FALSIFIER_ONLY_ON_WP715_OWNED_SOURCE",
+  "current_adopted_surface": {
+    "packet_source": "src/frankenstein2/voice_packet_cortex.py",
+    "recovery_source": "src/frankenstein2/voice_packet_cortex_recovery.py",
+    "packet_tests": "tests/test_voice_packet_cortex.py",
+    "recovery_tests": "tests/test_voice_packet_cortex_recovery.py",
+    "recovery_scope_adopted_by_trigger4_commit": "96a736cd0af5f6128f88247e4a6d7535f8e43d64"
   },
-  "executed_history": {
-    "initial_clock_order_negative": {
+  "evidence_history": {
+    "clock_order_product_negative": {
       "workflow_run_id": 33326372699,
       "tests_run": 15,
       "tests_passed": 9,
       "tests_failed": 6,
       "classification": "EXECUTED_REPOSITORY_CI_PRODUCT_NEGATIVE"
     },
-    "clock_order_repair_green": {
+    "clock_order_repair_pass": {
+      "repair_commit": "00fe8baf1d358ed9604b724a4bacaffb46257e92",
+      "fixture_alignment_commit": "1bfc4f37812053f31e95900e6bffe3275d11cbc4",
       "workflow_run_id": 33326526530,
-      "job_id": 99297526996,
-      "subject_commit": "1bfc4f37812053f31e95900e6bffe3275d11cbc4",
       "tests_run": 15,
       "tests_passed": 15,
-      "tests_failed": 0,
       "classification": "EXECUTED_REPOSITORY_CI_REGRESSION_PASS"
     },
-    "expanded_ownership_outcome_close_suite": {
+    "ownership_outcome_close_product_negative": {
       "workflow_run_id": 33326695878,
-      "job_id": 99297995043,
       "subject_commit": "1e09d33eb2479e63954bebc05584ccd53e73073a",
-      "tests_run_before_stop": 18,
-      "tests_passed": 15,
-      "tests_failed": 2,
-      "tests_errors": 1,
+      "packet_tests_run": 18,
+      "packet_tests_passed": 15,
+      "packet_tests_failed": 2,
+      "packet_tests_errors": 1,
       "classification": "EXECUTED_REPOSITORY_CI_PRODUCT_NEGATIVE",
-      "reproduced_product_negatives": [
-        "cancelled turn accepts a late TOOL_RESULT instead of fencing stale ownership",
-        "cancelled/unheard output can still mint a result reference during close",
-        "duplicate close with identical causal identity is not idempotent"
+      "reproduced": [
+        "late TOOL_RESULT accepted after owning turn cancellation",
+        "cancelled/unheard output allowed result reference during close",
+        "duplicate close with identical causal identity not idempotent"
       ],
-      "pn9_restart_step": "SKIPPED_DUE_TO_PRIOR_FAILURE"
+      "pn9_step": "SKIPPED"
+    },
+    "ownership_outcome_close_repair_and_restart_negative": {
+      "repair_commit": "c3ce29403ea3cdb19eec0a19c85d63bbe7b181fc",
+      "workflow_run_id": 33326748488,
+      "job_id": 99298139373,
+      "python": "3.12.14",
+      "packet_source_sha256": "324e8583a342be311adb9e21473d655e48289bee870631ca85d23e3e49510653",
+      "recovery_source_sha256": "8c054b46c380f16fe705b4a30fd155155bcf4d1c88df2efc7af011bffac0818e",
+      "packet_test_sha256": "6bdef222bdbea4dc0296bafbfea1a7c54cba5917ae4de5e3d14b1193f4c1b76b",
+      "recovery_test_sha256": "283939aec6c11e73e94f3f8aa2eef67452960ab82254affe8371c91e2adae6bf",
+      "packet_tests_run": 18,
+      "packet_tests_passed": 18,
+      "packet_tests_failed": 0,
+      "pn9_executed": true,
+      "pn9_result": "PRODUCT_NEGATIVE",
+      "pn9_exact_failure": "AttributeError: VoicePacketCortex has no attribute _last_input_monotonic_ms after resume",
+      "pn9_interpretation": "Recovery checkpoint/resume omitted post-repair causal clock state; continuation fails before the later output-sequence fixture can be evaluated."
     }
   },
   "closed_executed_regressions": [
@@ -53,38 +69,36 @@
     "barge-in cancellation timestamp rollback",
     "duplicate output sequence within one turn",
     "output chunks exposed outside declared sequence order",
-    "output sequence gap acceptance"
+    "output sequence gap acceptance",
+    "late tool-result ownership after cancellation",
+    "cancelled/unheard output minting result reference",
+    "duplicate close same causal identity replay"
   ],
-  "current_executed_product_negatives": [
-    "late tool-result ownership/cancellation fence missing",
-    "VoiceOutcome/result binding does not exclude cancelled/unheard output",
-    "duplicate close same causal identity is not idempotent"
-  ],
-  "recovery_candidate": {
-    "helper_commit": "922f2695d4a6d43171e3122f4ed7ac3912ebc7fc",
-    "test_commit": "b164666d487ac99f8a278d0da90fbf0e3605de58",
-    "status": "CANDIDATE_NOT_YET_ACCEPTED",
-    "open_checkpoint_falsifier": "trigger4/inbox/local_voice/T7_PACKET_CORTEX_RECOVERY_FALSIFIER_DELTA_2026-08-31_GPT56SOL.json",
-    "pn9_fixture_correction": "trigger4/inbox/local_voice/T7_WP715_PN9_DISCRIMINATOR_FIXTURE_CORRECTION_2026-08-31_GPT56SOL.json"
+  "current_executed_product_negative": {
+    "id": "PN9_RESTART_CHECKPOINT_OMITS_POSTREPAIR_CAUSAL_STATE",
+    "scope": "REPOSITORY_CI_PACKET_RECOVERY",
+    "reproduced": true,
+    "repair_required": true,
+    "fixture_correction_after_first_failure": "trigger4/inbox/local_voice/T7_WP715_PN9_DISCRIMINATOR_FIXTURE_CORRECTION_2026-08-31_GPT56SOL.json",
+    "note": "The current PN9 fixture already proves the missing input-clock field because it fails on first continued input. Before testing output-sequence restoration after that fix, use same-turn sequence continuation or reset a new turn to sequence=0 so the discriminator stays unambiguous."
   },
-  "remaining_unexecuted_or_unclosed_falsifiers": [
-    "PN9: checkpoint/resume continuation must prove preservation of post-repair input-clock and output-sequence fences; current workflow step was skipped and its fixture requires correction before use",
-    "PN10: long-session transient/replay state and checkpoint size require an explicit bound rather than a growth assertion",
-    "restart/reconnect must not resurrect cancelled output or stale ownership after current ownership repair",
-    "fault/retry and result-commit semantics require regression coverage after ownership/outcome repair"
+  "remaining_falsifiers": [
+    "restore and preserve _last_input_monotonic_ms across checkpoint/reentry",
+    "restore and preserve _last_output_sequence across checkpoint/reentry with a valid same-turn continuation discriminator",
+    "preserve active/cancelled tool ownership and closed-outcome replay state across restart where semantically required",
+    "restart/reconnect must not resurrect cancelled output or stale ownership",
+    "PN10: explicit bounded transient/replay state and checkpoint-size invariant; current long-session test demonstrates growth rather than boundedness",
+    "post-repair fault/retry and result-commit regression coverage"
   ],
   "vps_state": {
-    "older_pre_repair_run_id": 33326348539,
-    "older_pre_repair_state_at_last_observation": "QUEUED",
-    "current_test_expansion_run_id": 33326643354,
-    "current_test_expansion_subject_commit": "c2b57f6f87b32d38a9a4aacf6683ebf474b51b8d",
-    "current_test_expansion_state_at_last_observation": "QUEUED",
-    "vps_runtime_credit": 0,
-    "rule": "QUEUED != EXECUTED; known repository product negatives block promotion regardless"
+    "packet_vps_execution_credit": 0,
+    "known_runs_are_nonterminal_or_bound_to_preclosure_subjects": true,
+    "rule": "QUEUED != EXECUTED; repository product-negative subject is not promotable to packet runtime acceptance"
   },
   "credit": {
-    "repository_clock_order_regression_credit": 1,
-    "current_expanded_packet_component_acceptance_credit": 0,
+    "clock_order_repository_regression_credit": 1,
+    "ownership_outcome_close_repository_regression_credit": 1,
+    "current_recovery_component_acceptance_credit": 0,
     "vps_sandbox_runtime_credit": 0,
     "target_runtime_credit": 0,
     "physical_audio_credit": 0,
@@ -95,6 +109,6 @@
     "whole_voice_e2e_credit": 0,
     "whole_system_credit": 0
   },
-  "state": "EXPANDED_REPOSITORY_CI_PRODUCT_NEGATIVE_WP715_REPAIR_REQUIRED",
-  "next_exact_action": "F2-WP-715 owner repairs only the three reproduced ownership/outcome/duplicate-close defects and reruns the expanded repository suite. Then correct and execute the PN9 restart-continuation discriminator, execute PN10 bounded-state measurement, and only after repository closure execute the exact current subject in an admitted VPS S1/S2 route. T7 remains review/falsifier-only on WP715-owned source and does not duplicate frozen ASR004 runtime work."
+  "state": "PN9_RESTART_CONTINUATION_PRODUCT_NEGATIVE_WP715_REPAIR_REQUIRED",
+  "next_exact_action": "F2-WP-715 owner serializes/restores the post-repair causal continuation state required by PN9, corrects the output-sequence continuation fixture before its next stage, reruns all 18 packet tests plus PN9, then executes PN10 bounded-state measurement. Only after repository closure should the exact current packet/recovery subject be executed in admitted VPS S1/S2. T7 does not duplicate WP715 source mutation or ASR004 runtime dispatch."
 }
