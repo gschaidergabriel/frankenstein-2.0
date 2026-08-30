@@ -1,0 +1,33 @@
+name: "[REVIEW_ONLY] WP1207 G3 Output Boundary Falsifier"
+
+on:
+  push:
+    branches:
+      - chatgpt/review-wp1207-g3-output-boundary-falsifier-20260830
+    paths:
+      - 'tests/review_test_wp1207_g3_output_boundary.py'
+      - '.github/workflows/review-wp1207-g3-output-boundary-falsifier.yml'
+  pull_request:
+    paths:
+      - 'tests/review_test_wp1207_g3_output_boundary.py'
+      - '.github/workflows/review-wp1207-g3-output-boundary-falsifier.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  review-only-output-boundary-falsifier:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Compile review-only falsifier
+        run: python -m py_compile tests/review_test_wp1207_g3_output_boundary.py
+      - name: Run current WP1207 positive path plus hostile output-boundary falsifiers
+        env:
+          PYTHONPATH: src:.
+        run: python tests/review_test_wp1207_g3_output_boundary.py -v
