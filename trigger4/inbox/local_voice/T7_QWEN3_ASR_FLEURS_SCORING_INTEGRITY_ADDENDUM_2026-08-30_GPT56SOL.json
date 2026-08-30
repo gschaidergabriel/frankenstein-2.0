@@ -1,0 +1,41 @@
+{
+  "schema": "TRIGGER7_TO_TRIGGER4_LOCAL_VOICE_HANDOFF_ADDENDUM/v1",
+  "created_date": "2026-08-30",
+  "producer": "GPT-5.6-Sol Trigger 7",
+  "research_id": "T7-ASR-004",
+  "semantic_key": "95bd53a469133dbfdf39da320f6daa049cec1361084e632dc915c4bc156e3715",
+  "binds_existing_handoff": "trigger4/inbox/local_voice/T7_QWEN3_ASR_STREAMING_SCOPE_SUCCESSOR_2026-08-30_GPT56SOL.json",
+  "source_delta": "research/local_voice/sources/2026-08-30_T7_ASR004_FLEURS_SCORING_INTEGRITY_GPT56SOL.json",
+  "source_delta_commit": "392979668b3fa80fd4563a6f988f7b9855b72f75",
+  "duplicate_dispatch_forbidden": true,
+  "runtime_owner_unchanged": "existing Trigger4/current authorized target executor",
+  "purpose": "Prevent evaluator/gating confounds from invalidating the already-routed matched German Qwen3-ASR versus faster-whisper quality discriminator.",
+  "required_before_aggregate_quality_claim": [
+    "For every pinned FLEURS row 0..31, persist both raw_transcription and transcription plus the exact raw hypothesis from every comparison arm.",
+    "Freeze one shared evaluator normalizer for all arms: Unicode NFKC, lowercase, replace punctuation/symbols with spaces, preserve German letters/diacritics/sharp-s, collapse whitespace and trim.",
+    "Persist the exact evaluator source/config and SHA-256; bind the hash to every aggregate WER/CER receipt.",
+    "Do not use a model-specific normalizer as hidden scoring authority. Any diagnostic alternative normalization must be labeled separately and must not replace the primary score silently.",
+    "If a speech row is rejected by VAD/turn admission, keep it in the speech WER/CER denominator with an empty hypothesis and separately count the gate false reject.",
+    "Do not put silence/noise/echo strata into speech WER/CER. Score those by false text activation, exact emitted text, gate decision and latency.",
+    "Report decoder-only latency separately from gated end-to-end latency and retain raw-decoder versus gated-pipeline quality metrics separately.",
+    "Hash the actual audio bytes delivered to every arm and verify arm-to-arm audio identity for the matched FLEURS comparator."
+  ],
+  "ranking_stability_falsifier": "After raw hypotheses are persisted, re-score with the pinned primary evaluator and one explicitly named diagnostic alternative. If the material candidate ordering changes, mark the quality conclusion NORMALIZATION_SENSITIVE and preserve both results rather than promoting a winner.",
+  "no_new_execution_request": true,
+  "next_exact_action": "Continue the already-open T7-ASR-004 target run through the existing admitted Git VPS bridge on clay-direct-dev: pinned FLEURS de_de rows 0..31 through Qwen3-ASR direct, Qwen3-ASR with deterministic VAD/turn admission, and matched faster-whisper; run the separate pinned non-speech strata; persist exact transcripts, evaluator identity/hash, WER/CER, false activations, gate false rejects, latency and resources. Official Qwen vLLM streaming remains a distinct successor gate after resource-fit verification.",
+  "acceptance_fences": [
+    "SCORING_ADDENDUM != RUNTIME_DISPATCH",
+    "PINNED_EVALUATOR != GERMAN_QUALITY_PASS",
+    "GATE_REJECTION != DROPPED_TEST_ROW",
+    "NON_SPEECH_FALSE_TEXT != WER",
+    "RAW_QWEN != GATED_WHISPER_FAIR_COMPARISON",
+    "TRIGGER7 != TRIGGER4_ACCEPTANCE"
+  ],
+  "credits": {
+    "runtime": 0,
+    "german_asr_quality": 0,
+    "streaming_asr": 0,
+    "trigger4_acceptance": 0,
+    "whole_system": 0
+  }
+}
