@@ -1,0 +1,38 @@
+name: WP902 characterization contract CI
+
+on:
+  pull_request:
+    paths:
+      - 'src/frankenstein2/characterization_contract.py'
+      - 'tests/test_characterization_contract.py'
+      - '.github/workflows/wp902-characterization-contract-ci.yml'
+      - 'workpackages/active/F2-WP-902.json'
+  push:
+    branches:
+      - main
+    paths:
+      - 'src/frankenstein2/characterization_contract.py'
+      - 'tests/test_characterization_contract.py'
+      - '.github/workflows/wp902-characterization-contract-ci.yml'
+      - 'workpackages/active/F2-WP-902.json'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  deterministic-characterization-contract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout exact ref
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - name: Compile WP902 source and regressions
+        run: >-
+          python -m py_compile
+          src/frankenstein2/characterization_contract.py
+          tests/test_characterization_contract.py
+      - name: Run WP902 fail-closed suite
+        env:
+          PYTHONPATH: src
+        run: python -m unittest -v tests.test_characterization_contract
