@@ -1,0 +1,42 @@
+{
+  "schema": "FRANKENSTEIN2_WORKPACKAGE_DELTA/v1",
+  "workpackage_id": "F2-WP-901",
+  "generation": 2,
+  "claim_id": "F2-WP-901-G2-GPT56SOL-CAUSAL-LINEAGE-FENCE-20260830",
+  "classification": "EXECUTABLE_NEGATIVE_EVIDENCE_DRIVEN_SUCCESSOR_REPAIR",
+  "base_main_sha": "7f18a3c48de7cbd784112bd460f242ccab1e3de2",
+  "falsifier": {
+    "review_pr": 669,
+    "head_sha": "6e49fed3516dcb9fadc9471d41df15966b9e5521",
+    "workflow_run_id": 33301445292,
+    "conclusion": "success",
+    "meaning": "The G1 mixed checkpoint/whole-loop causal-lineage counterexample was reproducible; green review is negative evidence, not acceptance."
+  },
+  "observed_gap": "G1 re-bound checkpoint id/generation/digest and whole-loop seal id/digest but carried no explicit causal_lineage_id and had no independent checkpoint-vs-whole-loop lineage witness.",
+  "bounded_change": [
+    "upgrade recovery evidence and plan schemas to v2",
+    "add explicit persisted causal_lineage_id",
+    "require independent expected_checkpoint_causal_lineage_id and expected_whole_loop_causal_lineage_id witnesses",
+    "fail closed when the two witnesses differ",
+    "fail closed when persisted evidence lineage differs from the independently agreeing witnesses",
+    "carry the admitted causal_lineage_id into the continuation plan and provenance",
+    "retain all G1 UNKNOWN/effect/completion/scheduler/persistence authority fences"
+  ],
+  "new_regressions": [
+    "causal_lineage_id exists on evidence and plan",
+    "mixed checkpoint/whole-loop lineage fails RECOVERY_CAUSAL_LINEAGE_MISMATCH",
+    "persisted lineage versus independent witnesses fails RECOVERY_EVIDENCE_CAUSAL_LINEAGE_MISMATCH"
+  ],
+  "credit_boundary": {
+    "runtime_execution_observed": false,
+    "runtime_credit": 0,
+    "physical_grid10_credit": 0,
+    "gwt_runtime_credit": 0,
+    "jspace_runtime_credit": 0,
+    "training_credit": 0,
+    "effect_credit": 0,
+    "completion_credit": 0,
+    "whole_system_acceptance": false
+  },
+  "next_exact_action": "Open one G2 PR, require exact WP901 repository CI, then reconcile only if the lineage regressions pass and no newer executable falsifier invalidates the successor."
+}
