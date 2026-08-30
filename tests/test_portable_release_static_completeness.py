@@ -106,6 +106,12 @@ class PortableReleaseStaticCompletenessTests(unittest.TestCase):
         )
         write_release_manifest(root, manifest)
 
+    def _symlink_or_skip(self, link: Path, target: str, *, target_is_directory: bool = False) -> None:
+        try:
+            link.symlink_to(target, target_is_directory=target_is_directory)
+        except (OSError, NotImplementedError) as exc:
+            self.skipTest(f"symlink unavailable on this platform: {exc}")
+
     def test_complete_contract_passes_static_only(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
@@ -134,6 +140,33 @@ class PortableReleaseStaticCompletenessTests(unittest.TestCase):
             result = evaluate_portable_release_static_completeness(root, prehandoff_receipt_ref=RECEIPT_REF)
             self.assertEqual(result.status, BLOCKED)
             self.assertIn("perception_defaults:raw_frame_persistence_must_be_false", result.violations)
+
+    def test_final_referenced_file_symlink_fails_closed_even_when_target_stays_inside_root(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            self._package(root)
+            link = root / "workpackages/receipts/F2-WP-1108_G1_CLEAN_MACHINE_MATRIX_MAIN_CI_33253634771.json"
+            link.unlink()
+            self._symlink_or_skip(link, "F2-WP-1105_G1_STATE_MIGRATION_MAIN_CI_33253041398.json")
+
+            result = evaluate_portable_release_static_completeness(root, prehandoff_receipt_ref=RECEIPT_REF)
+
+            self.assertEqual(result.status, BLOCKED)
+            self.assertIn("baseline_runtime:evidence_ref:0:symlink_component", result.violations)
+
+    def test_intermediate_symlink_component_fails_closed_even_when_target_stays_inside_root(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            self._package(root)
+            original = root / "architecture"
+            relocated = root / "architecture-real"
+            original.rename(relocated)
+            self._symlink_or_skip(original, relocated.name, target_is_directory=True)
+
+            result = evaluate_portable_release_static_completeness(root, prehandoff_receipt_ref=RECEIPT_REF)
+
+            self.assertEqual(result.status, BLOCKED)
+            self.assertIn("optional_feature_capabilities:perception_policy_ref:0:symlink_component", result.violations)
 
 
 if __name__ == "__main__":
