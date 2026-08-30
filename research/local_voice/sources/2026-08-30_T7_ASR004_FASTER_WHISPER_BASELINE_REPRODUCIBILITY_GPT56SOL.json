@@ -1,0 +1,73 @@
+{
+  "schema": "T7_SOURCE_DELTA/v1",
+  "trigger": "7",
+  "date": "2026-08-30",
+  "organ": "GPT-5.6-Sol",
+  "research_id": "T7-ASR-004",
+  "semantic_key": "95bd53a469133dbfdf39da320f6daa049cec1361084e632dc915c4bc156e3715",
+  "state": "FASTER_WHISPER_BASELINE_REPRODUCIBILITY_CONSTRAINT_PINNED_SOURCE_ONLY",
+  "purpose": "Close a reproducibility/fairness gap in the already-routed matched German Qwen3-ASR versus faster-whisper comparator without creating a new benchmark or runtime dispatch.",
+  "current_project_basis": {
+    "handoff": "trigger4/inbox/local_voice/T7_QWEN3_ASR_STREAMING_SCOPE_SUCCESSOR_2026-08-30_GPT56SOL.json",
+    "scoring_addendum": "trigger4/inbox/local_voice/T7_QWEN3_ASR_FLEURS_SCORING_INTEGRITY_ADDENDUM_2026-08-30_GPT56SOL.json",
+    "gap": "The existing handoff requires an admitted Whisper/faster-whisper baseline but does not itself bind the baseline package version, resolved model revision/artifact identity, device/compute type, beam/search options, thread count, language mode, previous-text conditioning, or VAD semantics. Those choices can materially affect both WER and latency."
+  },
+  "fresh_primary_source_observations": {
+    "faster_whisper_project": "SYSTRAN/faster-whisper",
+    "stable_pypi_version_observed": "1.2.1",
+    "stable_pypi_release_date": "2025-10-31",
+    "stable_wheel_sha256": "79a66ad50688c0b794dd501dc340a736992a6342f7f95e5811be60b5224a26a7",
+    "official_large_v3_alias_target": "Systran/faster-whisper-large-v3",
+    "official_large_v3_repository_reported_size": "3.09 GB",
+    "official_cpu_example_compute_type": "int8",
+    "official_example_beam_size": 5,
+    "official_vad": "Silero VAD integrated; vad_filter is configurable and batched transcription enables VAD by default",
+    "official_comparison_warning": "Performance comparisons must use similar transcription options, especially beam size, and CPU comparisons should control thread count such as OMP_NUM_THREADS.",
+    "source_urls": [
+      "https://pypi.org/project/faster-whisper/1.2.1/",
+      "https://github.com/SYSTRAN/faster-whisper/blob/master/README.md",
+      "https://github.com/SYSTRAN/faster-whisper/blob/master/faster_whisper/utils.py",
+      "https://huggingface.co/Systran/faster-whisper-large-v3/tree/main"
+    ]
+  },
+  "required_runtime_binding_before_quality_credit": [
+    "Persist the exact faster-whisper package version and installed wheel/source digest; do not rely on an unpinned mutable environment.",
+    "Persist the exact resolved CTranslate2 model repository revision plus artifact/file digests actually consumed; do not treat the string alias large-v3 as sufficient provenance.",
+    "Persist device, compute_type, beam_size, language, condition_on_previous_text, temperature/search settings, CPU thread count and library/runtime versions.",
+    "For the RAW faster-whisper arm, disable internal VAD so decoder behavior is not silently helped by a model-specific gate.",
+    "For the GATED arm, apply the same deterministic external VAD/turn-admission decision contract used for the corresponding Qwen gated arm; do not substitute faster-whisper's internal Silero VAD as hidden comparison authority.",
+    "If an existing admitted Frankenstein faster-whisper baseline already fixes a different exact model/version/configuration, preserve that baseline and record it instead of silently replacing it with this source delta's provisional reference configuration.",
+    "Record OMP_NUM_THREADS or equivalent effective CPU thread count and keep it fixed for latency comparison arms unless a separately labeled resource-scaling experiment is intended.",
+    "Keep FLEURS speech WER/CER separate from non-speech false-text activation, as already required by the scoring-integrity addendum."
+  ],
+  "provisional_reference_configuration_if_no_existing_admitted_baseline_is_found": {
+    "package": "faster-whisper==1.2.1",
+    "model_alias": "large-v3",
+    "resolved_model_repo_expected": "Systran/faster-whisper-large-v3",
+    "device": "cpu",
+    "compute_type": "int8",
+    "beam_size": 5,
+    "language": "de",
+    "condition_on_previous_text": false,
+    "raw_vad_filter": false,
+    "gated_vad_authority": "same external deterministic admission contract as Qwen gated arm",
+    "note": "This is a reproducible reference configuration, not a target-runtime observation and not a requirement to overwrite a newer already-admitted project baseline. The executor must still resolve and pin the exact model revision/artifact hashes before inference."
+  },
+  "hypothesis": "A fully pinned faster-whisper baseline will prevent decoder/search/VAD/thread differences from being mistaken for Qwen-versus-Whisper model quality differences.",
+  "counterhypothesis": "The existing executor may already have an exact admitted baseline configuration outside the currently inspected handoff; if so this delta should only add provenance/fairness checks and must not create a second baseline.",
+  "falsifier": "If the current Trigger4 executor can produce a pre-existing exact faster-whisper package/model/configuration receipt bound to the same T7-ASR-004 semantic key and matched inputs, classify the baseline-pin gap as already closed and use that exact baseline rather than the provisional reference configuration.",
+  "coordination": {
+    "new_semantic_claim_created": false,
+    "new_runtime_dispatch_created": false,
+    "duplicate_execution_created": false,
+    "runtime_owner_unchanged": "existing Trigger4/current authorized target executor"
+  },
+  "credits": {
+    "runtime": 0,
+    "german_asr_quality": 0,
+    "streaming_asr": 0,
+    "trigger4_acceptance": 0,
+    "whole_system": 0
+  },
+  "next_exact_action": "Bind these provenance and fairness requirements into the existing T7-ASR-004 Trigger4 comparator handoff; then the existing target executor runs the already-pinned FLEURS de_de rows 0..31 plus non-speech strata without creating another semantic objective or duplicate dispatch."
+}
