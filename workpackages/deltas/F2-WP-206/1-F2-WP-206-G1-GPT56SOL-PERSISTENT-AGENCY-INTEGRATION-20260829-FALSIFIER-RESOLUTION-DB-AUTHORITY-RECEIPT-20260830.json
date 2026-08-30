@@ -1,0 +1,35 @@
+{
+  "schema": "FRANKENSTEIN2_WORKPACKAGE_DELTA/v1",
+  "workpackage_id": "F2-WP-206",
+  "generation": 1,
+  "claim_id": "F2-WP-206-G1-GPT56SOL-PERSISTENT-AGENCY-INTEGRATION-20260829",
+  "worker_id": "GPT-5.6-Sol",
+  "delta_class": "FALSIFIER_RESOLUTION_NEGATIVE_RESULT",
+  "status": "COUNTERHYPOTHESIS_SUPPORTED_NO_GENERATION1_DEFECT_PROVEN",
+  "candidate_falsifier_ref": "workpackages/deltas/F2-WP-206/1-F2-WP-206-G1-GPT56SOL-PERSISTENT-AGENCY-INTEGRATION-20260829-FALSIFIER-UNBOUND-DB-AUTHORITY-RECEIPT-20260830.json",
+  "candidate_falsifier_pr": 638,
+  "candidate_falsifier_run_id": 33295280134,
+  "successor_experiment_pr": 647,
+  "successor_experiment_head": "0293941c55b6506545dca6818028f13b471323cc",
+  "successor_experiment_run_id": 33295503745,
+  "successor_experiment_job_id": 99214354408,
+  "observation": "PR 638 established only that the persisted unifieddb_authority_receipt_sha256 column is not compared during load_checkpoint. PR 647 then implemented the strongest simple interpretation of the candidate repair: compare that stored receipt to the fresh-process store fingerprint receipt. On exact head 0293941c55b6506545dca6818028f13b471323cc, source compilation passed, Workpackage State Consistency CI passed, Workpackage state view v2 CI passed, but the WP206 fresh-process restart suite failed.",
+  "mechanistic_resolution": "The full UnifiedDBFingerprint receipt is not a restart-stable lineage identifier. It includes mutable SQLite/main-file observations such as file SHA-256, schema/page metadata and timestamps. The WP206 write path obtains a fingerprint before its own schema/checkpoint writes; legitimate canonical DB evolution therefore changes a later fresh-process fingerprint receipt. Direct historical-receipt == current-receipt equality would reject legitimate restart and is not a valid replay invariant.",
+  "surviving_enforcement": [
+    "canonical path equality",
+    "device/inode file identity equality",
+    "checkpoint JSON digest equality",
+    "typed checkpoint replay digest equality",
+    "generation and parent lineage fences"
+  ],
+  "interpretation": "unifieddb_authority_receipt_sha256 is bounded historical authority/provenance evidence at the writer-open identity, not a stable current-file replay equality token. The accepted generation-1 reconciliation already states that Agency checkpoint identity remains distinct from UnifiedDB file/authority identity.",
+  "decision": "Do not merge PR 638 or PR 647. Do not advance WP206 generation solely for this candidate. Keep generation-1 acceptance at its existing repository-hosted Stage-2 integration scope. If stronger tamper-evident storage-record binding is later required, open it as a distinct semantic contract with an explicit threat model and migration test rather than pretending the mutable full fingerprint is stable.",
+  "credit_boundaries": {
+    "generation1_acceptance_revoked": false,
+    "new_runtime_credit": 0,
+    "physical_grid10_credit": 0,
+    "whole_system_acceptance": false
+  },
+  "next_exact_action": "Re-enter current main and continue the smallest nonduplicate Triggerword-4 dependency after the accepted Stage-2 Persistent Agency kernel; do not keep iterating on this resolved false repair hypothesis.",
+  "created_at_utc": "2026-08-30T05:51:00Z"
+}
