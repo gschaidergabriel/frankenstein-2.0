@@ -3,9 +3,9 @@
   "fusion_id": "ADF-20260830T1656P0700-GPT56SOL-RUNTIME-CREDIT-CONVERGENCE",
   "trigger": "6",
   "slot": "ARCHITECTURE_DELTA_FUSER",
-  "status": "COMPLETED_LIVE_FUSION_RUNTIME_CREDIT_FIRST_NO_RUNTIME_PROMOTION_AUTHORITY_CORRECTED",
+  "status": "COMPLETED_LIVE_FUSION_SHARED_RUNNER_BOTTLENECK_NO_RUNTIME_PROMOTION_AUTHORITY_CORRECTED",
   "created_at_local": "2026-08-30T16:56:00+07:00",
-  "corrected_at_local": "2026-08-30T16:59:00+07:00",
+  "corrected_at_local": "2026-08-30T17:04:00+07:00",
   "provenance": {
     "worker": "gpt-5.6-sol",
     "current_owner_priority_overlay_commit": "7805ca2e6d1a4b6d7f58510d70d83bbf29c75bba",
@@ -13,9 +13,15 @@
     "research_entity_authority_snapshot_head": "4c63063eaa24a1c7ce8f756fe8dc25e9160ac671",
     "canonical_authority_epoch": "8.78",
     "observed_supervisor_snapshot": "9.13BI_NON_AUTHORITY",
-    "authority_resolution_note": "Corrected after exact-current reentry: the 9.13BI supervisor surface explicitly classifies itself NON_AUTHORITY. Canonical F2 authority epoch remains 8.78; the 9.13BI snapshot is consumed as current steering/evidence state, not promoted into authority.",
+    "authority_resolution_note": "The 9.13BI supervisor surface explicitly classifies itself NON_AUTHORITY. Canonical F2 authority epoch remains 8.78; the 9.13BI snapshot is consumed as current steering/evidence state, not promoted into authority.",
     "f2_main_observed_before_initial_write": "e5a0f1ce74c77b0eed7de266c876280036733f29",
-    "parallel_authority_correction_evidence_commit": "ddcd7f250c52fe96e6bb0a229ddfc85ec3ec1405"
+    "parallel_authority_correction_evidence_commit": "ddcd7f250c52fe96e6bb0a229ddfc85ec3ec1405",
+    "wp510_yaml_repair_commit": "9e4758491cbfc0bfe6963f833dc58e27b25cd504",
+    "wp510_repaired_job_run": 33292758933,
+    "wp510_repaired_job_id": 99207167278,
+    "wp1207_target_dispatch_commit": "f6cac8ebf1e6d491b7e590c6912f55398ab478c9",
+    "wp1207_target_run": 33301648871,
+    "wp1207_target_job_id": 99230838825
   },
   "priority_interpretation": {
     "order": [
@@ -29,62 +35,74 @@
   "live_frontier": [
     {
       "rank": 1,
-      "boundary": "WP1207 exact release subject -> owner-authorized target host hostile-twin execution/readback",
-      "classification": "RUNTIME_CREDIT_CLOSURE",
-      "observed_evidence": "Exact predecessor and candidate GitHub Actions artifacts are retrievable and hash-bound by the existing prerequisite checkpoint; repository G5 is accepted only at component scope.",
-      "blocker": "No owner-host/clay-direct-dev target execution/readback is present on this organ; substituting local/container execution would not mint the required target-host credit.",
-      "next_exact_action": "On an organ with the established owner-authorized VPS bridge/clay-direct-dev surface, fetch artifact IDs 9726495595 and 9726674221, verify their recorded outer/archive hashes, then execute tools/run_wp1207_hostile_twin_gate.py through the declared G3 install -> injected G4 update failure/rollback -> successful G4 update -> G3 rollback sequence with process-reentry readback and persist the exact target receipt.",
-      "duplicate_policy": "Do not create a replacement executor or new release-artifact abstraction."
+      "boundary": "shared self-hosted runner assignment/availability -> queued target jobs -> owner-host runtime evidence",
+      "classification": "SHARED_RUNTIME_CREDIT_INTEGRATION_BLOCKER",
+      "observed_evidence": [
+        "The old WP510 run 33292468726 had zero jobs because its workflow YAML contained unindented heredoc bodies and was repaired by controller commit 9e4758491cbfc0bfe6963f833dc58e27b25cd504.",
+        "After that repair, GitHub materialized WP510 run 33292758933 / job 99207167278 as wp510-target-runtime; it is queued with zero steps, so the zero-job parser/control-plane gate is closed while runner assignment remains open.",
+        "The newer WP1207 hostile-twin dispatch materialized run 33301648871 / job 99230838825 as hostile-twin-target; it is also queued with zero steps.",
+        "On the same newer controller head, multiple other self-hosted target checks are queued while a fast integrity check reached completion/failure, consistent with a shared self-hosted execution-capacity/eligibility boundary rather than two independent product-code failures."
+      ],
+      "inference_boundary": "Queued jobs prove materialization and absence of executed steps, but do not identify the underlying cause. Runner offline/service-down/connectivity, label/group mismatch, runner busy, repository access policy and runner update state remain separate hypotheses until runner-state evidence is observed.",
+      "next_exact_action": "Do not create additional runtime dispatches. Restore or verify one eligible self-hosted runner lifecycle for gschaidergabriel/Dr.-Unterweger: registration/access -> required labels self-hosted+Linux+X64 (or exact target workflow labels) -> online -> idle -> assigned job -> first step. Inspect runner service/journal/_diag and network check on the intended owner host when the authorized bridge/host organ is available. Then consume the already-queued jobs instead of minting replacements.",
+      "expected_information_gain": "One runner-lifecycle discriminator can unblock or classify multiple runtime-credit paths simultaneously, including WP510 and WP1207."
     },
     {
       "rank": 2,
-      "boundary": "WP510 controller dispatch -> job materialization -> intended target runner -> GRID/GWT runtime output/re-entry",
-      "classification": "INTEGRATION_BLOCKER",
-      "observed_evidence": "Recorded controller workflow run 33292468726 completed with failure and zero materialized jobs; no runner execution was observed.",
-      "blocker": "Control-plane/runner lifecycle must be restored or verified before another exact-source attempt can produce target-runtime evidence.",
-      "next_exact_action": "Do not redispatch through the degraded fan-out path. First verify runner registration, liveness, eligibility, assignment and job materialization as distinct evidence classes; only then run one exact-source WP510 target attempt and bind delivery, uptake, re-entry and output.",
-      "duplicate_policy": "Existing unresolved attempt forbids duplicate dispatch."
+      "boundary": "WP1207 exact release subject -> hostile-twin target execution/readback",
+      "classification": "RUNTIME_CREDIT_CLOSURE_QUEUED_BEHIND_SHARED_RUNNER_GATE",
+      "observed_evidence": "Exact predecessor/candidate artifacts are already retrievable and hash-bound; controller target job 99230838825 is now materialized but queued, not executed.",
+      "next_exact_action": "After runner assignment is restored, let the existing hostile-twin job execute the exact G3 install -> injected G4 update failure/rollback -> successful G4 update -> G3 rollback with process-reentry readback. Persist its target receipt; do not substitute a new release subject.",
+      "duplicate_policy": "No new dispatch while the existing queued job is unresolved."
     },
     {
       "rank": 3,
-      "boundary": "WP901 restart/recovery target-host execution/readback",
-      "classification": "RUNTIME_CREDIT_CLOSURE_ALREADY_ACTIVE_ELSEWHERE",
-      "observed_evidence": "The observed 9.13BI_NON_AUTHORITY supervisor snapshot permits consuming WP206 legacy recovery only within its admitted repository-component scope; target-host recoverability still requires target-host execution/readback.",
-      "blocker": "Active Trigger-4 work already owns current WP901 convergence.",
-      "next_exact_action": "Consume its result; do not fork a competing mutation/runtime lane."
+      "boundary": "WP510 exact-source G3 target component chain",
+      "classification": "RUNTIME_CREDIT_CLOSURE_QUEUED_BEHIND_SHARED_RUNNER_GATE",
+      "observed_evidence": "Workflow YAML repair closed the earlier zero-job parse failure. Existing run 33292758933 has a real materialized job 99207167278 named wp510-target-runtime, still queued with zero steps.",
+      "next_exact_action": "After runner assignment is restored, consume the existing job and bind exact-source target-environment execution, delivery, output and re-entry. Keep semantic GWT/physical GRID10/J-Space/whole-system promotion at zero unless separately evidenced.",
+      "duplicate_policy": "Do not redispatch. A prior Trigger-6 E2 runner-queue mapping already exists at commit 0151f09d1ef0da6dc919372a8e12c23c24fe2e91; this run only adds re-entry evidence that the YAML gate is closed and the assignment gate remains."
     },
     {
       "rank": 4,
-      "boundary": "WP206 same-inode live drift observability -> F2-specific correctness ablation",
-      "classification": "RESEARCH_FALSIFIER_NOT_BUILD_BY_DEFAULT",
-      "observed_evidence": "E3 local reproduction showed stable inode across foreign data/schema commits, observer PRAGMA data_version changes for foreign commits but not same-observer commits, schema_version changes for tested DDL, and a false positive where unrelated-table write changed data_version while the protected row remained unchanged.",
-      "blocker": "No F2-specific E4 evidence yet shows current WP206 digest/replay/transaction logic misses a correctness-relevant stale-read/recovery case.",
-      "next_exact_action": "No build candidate by default. Only if unowned and still valuable, run an E4 F2 ablation across unrelated foreign write, protected-row mutation and schema mutation and compare current WP206 correctness behavior; keep change counters as diagnostic/invalidation hints, not canonical authority.",
-      "duplicate_policy": "E2/E3 are already owned/executed by other Trigger-6 workers; do not duplicate them."
+      "boundary": "WP901 restart/recovery target-host execution/readback",
+      "classification": "RUNTIME_CREDIT_CLOSURE_ALREADY_ACTIVE_ELSEWHERE",
+      "observed_evidence": "The observed 9.13BI_NON_AUTHORITY snapshot keeps WP206 legacy recovery bounded to admitted repository-component scope and still requires target-host execution/readback for recovery promotion.",
+      "blocker": "Active Trigger-4 work owns the WP901 lane; the shared runner gate may also constrain it depending on its transport.",
+      "next_exact_action": "Consume its current owner/result and do not fork a competing lane."
     },
     {
       "rank": 5,
+      "boundary": "WP206 same-inode live drift observability -> F2-specific correctness ablation",
+      "classification": "RESEARCH_FALSIFIER_NOT_BUILD_BY_DEFAULT",
+      "observed_evidence": "E3 local reproduction showed stable inode across foreign data/schema commits, observer PRAGMA data_version changes for foreign commits but not same-observer commits, schema_version changes for tested DDL, and a false positive where unrelated-table write changed data_version while the protected row stayed unchanged.",
+      "blocker": "No F2-specific E4 evidence yet shows current WP206 digest/replay/transaction logic misses a correctness-relevant stale-read/recovery case.",
+      "next_exact_action": "No build candidate by default. Only if unowned and still valuable after runtime blockers, run a bounded E4 ablation; keep change counters as diagnostic/invalidation hints, not canonical authority."
+    },
+    {
+      "rank": 6,
       "boundary": "granular workpackage acceptance -> aggregate human/machine state projection",
       "classification": "EVIDENCE_RECONCILIATION",
-      "observed_evidence": "Granular active pointers show WP300-WP305 accepted at bounded repository CI scopes and WP306 G4 latest accepted, while sampled WORKPACKAGES.md/workpackages/STATE.json still reported Phase-3 items as NOT_STARTED.",
-      "blocker": "Aggregate projection is stale and can misroute workers, but it is lower priority than runtime-credit closure under the current owner overlay.",
-      "next_exact_action": "Reconcile through the single-writer aggregate/state projection mechanism from exact terminal granular evidence; never manually inflate runtime/whole-system credit."
+      "observed_evidence": "Granular active pointers show WP300-WP305 accepted at bounded repository CI scopes and WP306 G4 latest accepted, while sampled aggregate WORKPACKAGES.md/workpackages/STATE.json still reported Phase-3 items as NOT_STARTED.",
+      "blocker": "Stale aggregate projection can misroute workers, but it remains lower priority than the shared runtime runner gate under the current owner overlay.",
+      "next_exact_action": "Reconcile through the single-writer aggregate/state projection mechanism from exact terminal granular evidence; never inflate runtime/whole-system credit."
     }
   ],
   "sqlite_research_conclusion": {
     "status": "E3_REPRODUCED_NO_BUILD_BY_DEFAULT",
     "result_commit": "7f26ea6aec2ead368ec27a1b4fc84d0a0cab450e",
-    "consequence": "SQLite data_version/schema_version are useful cheap change hints but cannot by themselves prove protected-row staleness or historical authority. The architectural burden shifts from adding a generic counter to demonstrating a concrete current-WP206 correctness failure under an E4 ablation."
+    "consequence": "SQLite data_version/schema_version are cheap change hints but cannot by themselves prove protected-row staleness or historical authority. The burden is a concrete current-WP206 correctness failure under E4, not a generic counter addition."
   },
   "architecture_delta": {
-    "change": "Scheduling/selection delta only: runtime-credit debt queue becomes the immediate Trigger-6/Trigger-4 convergence focus; breadth-first new-component research is deprioritized. No product authority boundary or canonical state/effect path changes.",
-    "expected_benefit": "Moves existing verified components toward higher-scope executable evidence, reduces duplicate work and prevents cheap observability mechanisms from being promoted into false authority.",
-    "counterhypothesis": "A hidden missing component may still be the actual blocker on one runtime path; if a named runtime gate cannot be closed with existing accepted/source-ready mechanisms, new component work becomes admissible only with explicit necessity evidence.",
-    "falsifier": "A refreshed exact-current runtime path showing that the listed blockers are already closed, owned by a newer terminal result, or impossible without a specific absent component invalidates this prioritization and requires a new fusion."
+    "change": "Scheduling/selection delta only: collapse apparently separate WP510/WP1207 runtime debts onto the shared self-hosted runner assignment/availability frontier where current evidence supports it. Runtime-credit debt stays ahead of new-component breadth. No canonical product/state/effect authority changes.",
+    "expected_benefit": "One infrastructure restoration/discriminator can unlock multiple already-built target-runtime gates, while preventing duplicate dispatches and false product regressions.",
+    "counterhypothesis": "The queued jobs may require different runner labels/groups or access policies and therefore may not share one physical blocker; this remains open until runner registration/label/group state is observed.",
+    "falsifier": "Evidence of an online+idle eligible runner with correct access/labels that still leaves one queued job unassigned, or a distinct per-workflow policy error, falsifies the single-shared-runner explanation and requires per-lane routing."
   },
   "credit_boundary": {
     "architecture_fusion_delta": 1,
     "e3_sqlite_research_credit_consumed": 1,
+    "runner_reentry_observation": 1,
     "new_build_candidate": 0,
     "target_runtime_credit": 0,
     "vps_runtime_credit": 0,
