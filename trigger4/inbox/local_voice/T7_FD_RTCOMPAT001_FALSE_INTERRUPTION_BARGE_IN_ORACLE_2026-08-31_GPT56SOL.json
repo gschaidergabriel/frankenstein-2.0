@@ -1,0 +1,47 @@
+{
+  "schema": "T7_TO_T4_CORTEX_ORACLE_REFINEMENT_V1",
+  "created_at": "2026-08-31T04:24:30+07:00",
+  "trigger": "7",
+  "organ": "GPT-5.6-Sol",
+  "research_id": "T7-FD-RTCOMPAT-001",
+  "classification": "EXISTING_RUNTIME_LANE_ORACLE_REFINEMENT_NO_NEW_DISPATCH",
+  "source_delta": "research/local_voice/deltas/2026-08-31_T7_FALSE_INTERRUPTION_BARGE_IN_CONTRACT_GPT56SOL.json",
+  "owner_authority": "research/local_voice/authority/2026-08-31_TRIGGER7_TEXT_PACKET_COMPLETION_AUTHORITY.md",
+  "resolved_policy_id": "T7_INTERRUPTED_CONTEXT_RETAIN_HEARD_PREFIX_EPHEMERALLY_ONLY_V1",
+  "existing_runtime_lane": ["HF09_EXACT_HEARD_PREFIX_RETENTION", "HF10_POST_DONE_PLAYOUT_LAG_CONTEXT_EXACTNESS", "HF05_DOUBLE_CANCEL_AND_LATE_CHUNK"],
+  "new_runtime_dispatch": false,
+  "new_semantic_claim": false,
+  "wp715_reopen": false,
+  "required_trigger4_actions": [
+    "Audit the current voice adapter/controller mapping and prove raw speech_start/VAD activity does not directly set VoiceInputPacket.barge_in=true.",
+    "Add FI01_SPEECH_START_IS_NONTERMINAL: nonterminal output plus active tool ownership with speech_start=true and barge_in=false must preserve output/tool ownership and emit no terminal barge cancellation.",
+    "Add FI02_CONFIRMED_BARGE_IN_IS_TERMINAL: once the interruption classifier/decision explicitly sets barge_in=true, cancellable output becomes interrupted/cancelled and old-turn tool ownership is fenced exactly once.",
+    "Add FI03_FALSE_INTERRUPTION_DOES_NOT_REPLAY: candidate speech activity not confirmed as barge-in preserves the same assistant output identity without duplicate turn creation, replay of already-heard output, or stale tool cancellation.",
+    "Add FI04_RAW_VAD_TO_BARGE_MAPPING_FORBIDDEN: fail the integration contract if raw VAD speech_started/speech_start alone is wired directly to barge_in=true without the admitted interruption-decision boundary.",
+    "Run these checks with the already-routed HF09/HF10/HF05 controller -> vps-clay-host lane; do not create a duplicate runtime dispatch."
+  ],
+  "runtime_oracle": {
+    "speech_start_only": "NONTERMINAL_INTERRUPT_CANDIDATE",
+    "confirmed_barge_in": "TERMINAL_CANCELLATION_BOUNDARY",
+    "genuine_interruption_context": "retain only verified playback-synchronized heard prefix ephemerally; exclude unheard tail",
+    "durable_commit": "unchanged; interrupted output receives no durable VoiceOutcome/UnifiedDB/effect credit solely from ephemeral prefix retention"
+  },
+  "product_negative_if_executed": [
+    "raw VAD/speech-start directly causes irreversible barge cancellation before interruption confirmation",
+    "false interruption creates a duplicate assistant turn or replays already-heard output",
+    "false interruption cancels active tool ownership that should remain causal to the still-live assistant turn",
+    "confirmed interruption fails to fence stale old-turn output/tool ownership",
+    "unheard assistant tail becomes authoritative next-turn context"
+  ],
+  "credit_before_execution": {
+    "research_contract": 1,
+    "repository_runtime": 0,
+    "false_interruption_runtime": 0,
+    "hf_protocol_runtime": 0,
+    "german_e2e_voice": 0,
+    "acoustic_quality": 0,
+    "durable_memory": 0,
+    "whole_product": 0
+  },
+  "next_exact_action": "Trigger4 consumes this packet into the current voice-cortex integration claim, implements only the smallest missing adapter/regression delta if required, and executes FI01-FI04 together with the existing HF09/HF10/HF05 discriminator on the proven controller/VPS route. Classify the exact observed result before any repair."
+}
