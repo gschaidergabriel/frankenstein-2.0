@@ -1,0 +1,70 @@
+name: WP300 G2 memory salience projection CI
+
+on:
+  pull_request:
+    paths:
+      - 'src/frankenstein2/memory_salience_projection.py'
+      - 'tests/test_memory_salience_projection.py'
+      - 'src/frankenstein2/memory_lifecycle.py'
+      - 'tests/test_memory_lifecycle.py'
+      - 'src/frankenstein2/emergent_retrieval.py'
+      - 'tests/test_emergent_retrieval.py'
+      - 'src/frankenstein2/familiarity_prediction_binding.py'
+      - 'tests/test_familiarity_prediction_binding.py'
+      - 'src/frankenstein2/typed_memory.py'
+      - 'tests/test_typed_memory.py'
+      - '.github/workflows/wp300-g2-memory-salience-projection-ci.yml'
+      - 'workpackages/active/F2-WP-300.json'
+  push:
+    branches:
+      - main
+    paths:
+      - 'src/frankenstein2/memory_salience_projection.py'
+      - 'tests/test_memory_salience_projection.py'
+      - 'src/frankenstein2/memory_lifecycle.py'
+      - 'tests/test_memory_lifecycle.py'
+      - 'src/frankenstein2/emergent_retrieval.py'
+      - 'tests/test_emergent_retrieval.py'
+      - 'src/frankenstein2/familiarity_prediction_binding.py'
+      - 'tests/test_familiarity_prediction_binding.py'
+      - 'src/frankenstein2/typed_memory.py'
+      - 'tests/test_typed_memory.py'
+      - '.github/workflows/wp300-g2-memory-salience-projection-ci.yml'
+      - 'workpackages/active/F2-WP-300.json'
+      - 'workpackages/reconciliations/F2-WP-300/**'
+      - 'workpackages/receipts/F2-WP-300*'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  deterministic-projection-and-regressions:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - name: Checkout exact workflow ref
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - name: Compile WP300 G1 G2 WP301 WP302 WP303 surfaces
+        run: >-
+          python -m py_compile
+          src/frankenstein2/memory_lifecycle.py
+          src/frankenstein2/memory_salience_projection.py
+          src/frankenstein2/emergent_retrieval.py
+          src/frankenstein2/familiarity_prediction_binding.py
+          src/frankenstein2/typed_memory.py
+          tests/test_memory_lifecycle.py
+          tests/test_memory_salience_projection.py
+          tests/test_emergent_retrieval.py
+          tests/test_familiarity_prediction_binding.py
+          tests/test_typed_memory.py
+      - name: Run WP300 G2 hostile and accepted downstream regressions
+        env:
+          PYTHONPATH: src
+        run: >-
+          python -m unittest -v
+          tests.test_memory_lifecycle
+          tests.test_memory_salience_projection
+          tests.test_emergent_retrieval
+          tests.test_familiarity_prediction_binding
+          tests.test_typed_memory
