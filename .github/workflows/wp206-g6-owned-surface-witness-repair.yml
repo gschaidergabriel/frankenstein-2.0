@@ -53,14 +53,44 @@ jobs:
           PYTHONPATH: src
         run: python tests/falsifier_wp206_g6_external_sqlite_revision_drift.py
 
-      - name: Preserve accepted predecessor regressions
+      - name: Execute predecessors and capture exact diagnostics
+        id: predecessors
+        continue-on-error: true
         env:
           PYTHONPATH: src
         run: |
-          python tests/test_wp206_g5_evidence_subject_binding.py -v
-          python tests/test_wp206_g4_repeat_provenance_binding.py -v
-          python tests/test_wp206_legacy_authority_recovery.py -v
-          python tests/test_persistent_agency_kernel.py -v
+          mkdir -p wp206-g6-owned-witness-diagnostics
+          failed=0
+          run_case() {
+            name="$1"
+            shift
+            set +e
+            "$@" >"wp206-g6-owned-witness-diagnostics/${name}.log" 2>&1
+            rc=$?
+            set -e
+            cat "wp206-g6-owned-witness-diagnostics/${name}.log"
+            printf '%s\n' "$rc" >"wp206-g6-owned-witness-diagnostics/${name}.exit"
+            if [ "$rc" -ne 0 ]; then failed=1; fi
+          }
+          run_case g5 python tests/test_wp206_g5_evidence_subject_binding.py -v
+          run_case g4 python tests/test_wp206_g4_repeat_provenance_binding.py -v
+          run_case g3 python tests/test_wp206_legacy_authority_recovery.py -v
+          run_case kernel python tests/test_persistent_agency_kernel.py -v
+          printf '%s\n' "$failed" > wp206-g6-owned-witness-diagnostics/aggregate.exit
+          exit "$failed"
+
+      - name: Upload exact predecessor diagnostics
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: wp206-g6-owned-witness-diagnostics
+          path: wp206-g6-owned-witness-diagnostics/
+          retention-days: 1
+          if-no-files-found: error
+
+      - name: Fail closed if predecessor matrix failed
+        if: always()
+        run: test "$(cat wp206-g6-owned-witness-diagnostics/aggregate.exit)" = "0"
 
       - name: Commit only after complete bounded matrix is green
         run: |
