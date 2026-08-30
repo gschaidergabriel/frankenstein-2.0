@@ -15,87 +15,124 @@
     "path": "trigger4/inbox/local_voice/T7_PACKET_CORTEX_COMPLETION_2026-08-31_GPT56SOL.json",
     "commit": "e1cefbceb41982d2d71c5c5c8389d5ac51381514"
   },
-  "current_observation": {
-    "voice_input_packet_symbol_found_on_main": false,
-    "cortex_event_packet_symbol_found_on_main": false,
-    "interpretation": "The packet-cortex boundary is claimed/routed but not yet executable evidence at review time. The booleans in the handoff acceptance object are requirements, not proof of satisfaction."
+  "implementation_observed_after_initial_review": {
+    "commit": "33356bea5c6c6c8a7a77ff2cc4ab21382625fc9f",
+    "path": "src/frankenstein2/voice_packet_cortex.py",
+    "source_present": true,
+    "executed_test_receipt_observed": false,
+    "packet_runtime_credit": 0,
+    "interpretation": "Source implementation exists, but source presence is not executed packet/cortex evidence and does not satisfy the handoff acceptance booleans by itself."
   },
+  "source_review_product_negative_candidates": [
+    {
+      "id": "PN1_LATE_TOOL_RESULT_NOT_EPOCH_FENCED",
+      "observation": "The implementation exposes emit_intent(..., tool_ref=...) without an output/tool ownership epoch or cancellation generation check. cancel_for_barge_in changes output playback state but does not invalidate tool/result ownership.",
+      "risk": "A late tool completion from an interrupted turn can still be emitted into the active session unless a caller outside this module supplies an unproven fence.",
+      "required_discriminator": "cancelled_epoch_late_tool_result_cannot_cross_turn_mutate"
+    },
+    {
+      "id": "PN2_VOICEOUTCOME_NOT_BOUND_TO_COMMIT_ELIGIBILITY",
+      "observation": "close_session() creates VoiceOutcome after merely requiring all outputs to be terminal. It does not require a commit_eligible output, bind heard_fraction, or prove that result_ref/result_sha256 refers only to heard committed content.",
+      "risk": "A session whose generated output was cancelled/interrupted can still create a terminal VoiceOutcome with a result reference, so unheard/cancelled output noncommit is not causally enforced in this adapter.",
+      "required_discriminator": "cancel_before_heard_does_not_commit_unheard_output_or_result"
+    },
+    {
+      "id": "PN3_FAULT_PACKET_POISONS_SEEN_ID_BEFORE_VALIDATION",
+      "observation": "accept_input() stores _input_seen[packet_id] = digest before corrupt/drop/reorder and sequence checks complete.",
+      "risk": "A drop/reorder/corrupt injection can consume the packet identity before admission. A corrected retry with the same packet_id but changed fault metadata is then rejected as changed-content replay, while an exact retry is treated as duplicate. Recovery policy is therefore not demonstrated and may be impossible for that identity.",
+      "required_discriminator": "drop_or_reorder_then_valid_retry_has_explicit_deterministic_policy"
+    },
+    {
+      "id": "PN4_RESTART_RECONNECT_STATE_PATH_ABSENT",
+      "observation": "No snapshot/restart/reconnect restore API or persisted reducer-state contract was observed in voice_packet_cortex.py.",
+      "risk": "The owner-authority requirement for restart/recovery without cancelled-output resurrection is not implemented by this module at the reviewed source revision.",
+      "required_discriminator": "restart_does_not_resurrect_cancelled_output_or_stale_ownership"
+    },
+    {
+      "id": "PN5_LONG_SESSION_STATE_UNBOUNDED_IN_SOURCE",
+      "observation": "_input_seen, _last_input_sequence, _final_turns, _outputs and _events are retained without an observed compaction/bounding policy.",
+      "risk": "Long-conversation packet state grows with session history and does not yet prove the required bounded-state property.",
+      "required_discriminator": "long_session_transient_state_is_bounded_with_idempotency_preserved"
+    }
+  ],
   "falsifier_invariants": [
     {
       "id": "F1_DUPLICATE_IDEMPOTENCY",
-      "requirement": "A repeated packet_id with byte-identical payload must not advance turn state, memory state, tool ownership, output epoch or VoiceOutcome twice; a repeated packet_id with different payload must fail closed as identity corruption."
+      "requirement": "A repeated packet_id with byte-identical payload must not advance semantic turn/memory/tool/output ownership or VoiceOutcome twice; a repeated packet_id with different payload must fail closed as identity corruption."
     },
     {
       "id": "F2_PARTIAL_REVISION_NOT_REORDER",
-      "requirement": "Legal ASR partial revisions for one turn must be distinguishable from sequence gaps/reordering. A newer partial may replace prior uncommitted transcript text without causing duplicate semantic commit."
+      "requirement": "Legal ASR partial revisions for one turn must be distinguishable from sequence gaps/reordering and must not cause duplicate semantic commit."
     },
     {
       "id": "F3_SEQUENCE_GAP_EXPLICIT",
-      "requirement": "A missing sequence number must never be silently skipped. Buffer, reject or explicit recovery is acceptable, but the policy and resulting state transition must be deterministic and traceable."
+      "requirement": "A missing sequence number must never be silently skipped. Buffer, reject or explicit recovery is acceptable only when policy/state transition is deterministic and traceable."
     },
     {
       "id": "F4_CANCEL_EPOCH_FENCE",
-      "requirement": "Barge-in/cancel must advance or invalidate the active output/tool ownership epoch so any late generation chunk, TTS chunk or tool completion from the cancelled epoch cannot leak into the next turn."
+      "requirement": "Barge-in/cancel must invalidate active output/tool ownership so late generation/TTS/tool completions from the cancelled epoch cannot leak into the next turn."
     },
     {
       "id": "F5_HEARD_VS_COMMITTED_SEPARATION",
-      "requirement": "Partially heard output may create an observational VoiceOutcome/reentry record with bounded heard_fraction, but must not be confused with semantic memory commit. Unheard tail and fully unheard cancelled output remain noncommittable."
+      "requirement": "Partially heard output may create observational outcome evidence, but unheard tail and fully unheard cancelled output must never become semantic memory/result commit."
     },
     {
       "id": "F6_HEARD_FRACTION_MONOTONE",
-      "requirement": "Within one output packet/epoch, heard_fraction must remain in [0,1] and never decrease. completed requires the implementation's explicit heard/commit rule; interrupted/cancelled must not become completed by a later stale event."
+      "requirement": "heard_fraction stays in [0,1], never decreases, and stale terminal events cannot resurrect interrupted/cancelled output."
     },
     {
       "id": "F7_RESTART_NO_RESURRECTION",
-      "requirement": "Snapshot/restart/reconnect must not resurrect cancelled output, stale tool ownership, superseded partials or an old endpoint timer. Only admitted durable session facts may re-enter."
+      "requirement": "Restart/reconnect restores only admitted durable session facts and cannot resurrect cancelled output, stale tool ownership, superseded partials or old endpoint timers."
     },
     {
       "id": "F8_CROSS_TURN_TOOL_ISOLATION",
-      "requirement": "A tool result must bind to its originating session_id, turn_id and ownership/epoch identity. A result arriving after interruption may be retained as evidence but cannot silently mutate the successor turn."
+      "requirement": "Tool results bind to originating session/turn/ownership identity and cannot silently mutate successor turns after interruption."
     },
     {
       "id": "F9_WAIT_BACKCHANNEL_NONFINAL",
-      "requirement": "WAIT/backchannel behavior must not close the turn, mint a final answer outcome, or allow a backchannel utterance to overwrite the user's still-open input turn."
+      "requirement": "WAIT/backchannel behavior must not close the turn or mint final answer outcome while user input remains open."
     },
     {
       "id": "F10_CLOSE_DETERMINISM",
-      "requirement": "Semantic close and silence close must be deterministic under the same packet trace; duplicate close packets are idempotent and post-close input requires explicit reopen/new-session policy."
+      "requirement": "Semantic/silence close is deterministic; duplicate close is idempotent and post-close input needs explicit reopen/new-session policy."
     },
     {
       "id": "F11_LONG_SESSION_BOUNDEDNESS",
-      "requirement": "Long-session fixtures must demonstrate bounded retained transient packet state rather than unbounded seen-id/partial/output growth. Any compaction must preserve replay/idempotency guarantees."
+      "requirement": "Long-session retained transient packet state must be bounded while preserving replay/idempotency guarantees."
     },
     {
       "id": "F12_NO_SECOND_AUTHORITY",
-      "requirement": "The adapter may project packet/cortex state but must not become a competing canonical UnifiedDB, EffectGate/EffectJournal, GWT truth, release, receipt or runtime authority."
+      "requirement": "Packet adapter must not become competing UnifiedDB, EffectGate/EffectJournal, GWT truth, release, receipt or runtime authority."
     },
     {
       "id": "F13_LOCAL_SOLO_COUNTER",
-      "requirement": "Executed packet tests must bind an explicit zero outbound model/ASR/TTS inference-call counter or equivalent network isolation evidence; absence of calls in code review alone is insufficient runtime proof."
+      "requirement": "Executed packet tests bind explicit zero outbound model/ASR/TTS inference evidence; source review alone is insufficient."
     },
     {
       "id": "F14_CREDIT_SCOPE",
-      "requirement": "Repository/S1/S2 packet tests may promote only packet/controller component scope. Acoustic quality, captured-audio WER, AEC, physical speaker-heard output, physical latency, device acceptance, whole voice E2E and whole product remain zero."
+      "requirement": "Packet tests can promote only packet/controller scope; acoustic/WER/AEC/physical latency/device/whole-voice/whole-product remain zero."
     }
   ],
   "required_negative_tests": [
-    "duplicate_same_id_same_payload_is_idempotent",
+    "duplicate_same_id_same_payload_is_semantically_idempotent",
     "duplicate_same_id_different_payload_fails_closed",
     "partial_revision_does_not_double_commit",
     "sequence_gap_is_explicit_not_silent",
+    "drop_or_reorder_then_valid_retry_has_explicit_deterministic_policy",
     "cancelled_epoch_late_output_is_suppressed",
     "cancelled_epoch_late_tool_result_cannot_cross_turn_mutate",
+    "cancel_before_heard_does_not_commit_unheard_output_or_result",
     "partially_heard_outcome_is_observational_not_full_semantic_commit",
-    "restart_does_not_resurrect_cancelled_output",
+    "restart_does_not_resurrect_cancelled_output_or_stale_ownership",
     "wait_backchannel_does_not_finalize_open_turn",
     "duplicate_close_is_idempotent",
     "post_close_packet_requires_explicit_session_policy",
-    "long_session_transient_state_is_bounded",
+    "long_session_transient_state_is_bounded_with_idempotency_preserved",
     "local_solo_runtime_counter_is_zero"
   ],
-  "failure_classification": "NO_PRODUCT_NEGATIVE_OBSERVED_YET_REVIEW_PREEXECUTION",
+  "failure_classification": "SOURCE_REVIEW_PRODUCT_NEGATIVE_CANDIDATES_REQUIRE_EXECUTABLE_CONFIRMATION_OR_REPAIR",
   "credit": {
-    "implementation": 0,
+    "source_implementation_present": 1,
     "executed_tests": 0,
     "packet_component_runtime": 0,
     "acoustic": 0,
@@ -103,5 +140,5 @@
     "whole_voice": 0,
     "whole_product": 0
   },
-  "next_exact_action": "The current Trigger4 owner should implement against the existing claimed boundary, include these falsifiers in the deterministic fixture suite, run the exact-source packet logic on an admitted LOCAL_SOLO VPS sandbox, and emit a bound receipt. If code has landed before this review is consumed, treat this packet as an independent falsifier checklist rather than a request for a successor implementation."
+  "next_exact_action": "Current Trigger4 implementation owner should treat PN1-PN5 as source-review counterevidence, add the exact negative tests, repair only reproduced validity defects, and execute exact-source packet logic under LOCAL_SOLO in admitted VPS S1/S2. Emit a bound receipt; do not promote packet component runtime or acceptance from source presence. T7-ARCH-003 remains the independent causal-identity falsifier lane and should not be duplicated."
 }
