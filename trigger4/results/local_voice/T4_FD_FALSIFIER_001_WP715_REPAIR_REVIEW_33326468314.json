@@ -1,0 +1,53 @@
+{
+  "schema": "F2_TRIGGER4_LOCAL_VOICE_REPAIR_REVIEW/v1",
+  "trigger": "4",
+  "research_id": "T4-FD-FALSIFIER-001",
+  "semantic_key": "af4da01da7ced3fa0bee3839adf7f4798e73399408fd29735c8a529a2ed2d9d9",
+  "classification": "REPAIR_CONFIRMED_SIX_ORIGINAL_NEGATIVES_CLOSED_FIXTURE_STALE",
+  "mutation_authority": false,
+  "repair_commit": "00fe8baf1d358ed9604b724a4bacaffb46257e92",
+  "repair_scope": [
+    "input monotonic timestamp rollback guard",
+    "output playback timestamp rollback guard",
+    "barge-in cancellation timestamp rollback guard",
+    "per-turn output sequence uniqueness/contiguity",
+    "declared output sequence exposure order",
+    "output sequence gap/reorder rejection"
+  ],
+  "execution": {
+    "workflow": "WP715 Voice Packet Cortex CI",
+    "workflow_run_id": 33326468314,
+    "job_id": 99297367843,
+    "runner_class": "GITHUB_HOSTED_UBUNTU_24_04",
+    "python": "3.12.14",
+    "source_sha256": "cd267bf38511d127ce849fb894287cf17921f8f016cfc60b924060f7df94e453",
+    "test_sha256": "19488c867fa6ae810862772d7a47b331145373df45e798f5974c03143ed17890",
+    "tests_run": 15,
+    "tests_ok": 14,
+    "tests_error": 1
+  },
+  "six_original_discriminators": {
+    "all_passed_after_repair": true,
+    "product_negative_remaining_for_original_six": false
+  },
+  "remaining_error": {
+    "test": "test_barge_in_interrupts_started_output_and_revokes_commit",
+    "failure_class": "EVIDENCE_INVALID",
+    "subclass": "STALE_TEMPORALLY_INCONSISTENT_TEST_FIXTURE",
+    "reason": "The fixture advances output to monotonic_ms=200, then injects a barge-in input at the helper default monotonic_ms=100. The repaired product correctly rejects cancellation that precedes the current output state. The fixture must move the later input timestamp forward; weakening the new monotonic guard would reintroduce the confirmed defect.",
+    "product_mutation_required": false,
+    "test_fixture_mutation_required_by_wp715_owner": true
+  },
+  "credit_boundary": {
+    "repair_source_present": 1,
+    "six_regression_discriminators_passed": 1,
+    "wp715_repository_component_acceptance_credit": 0,
+    "vps_sandbox_runtime_credit": 0,
+    "target_runtime_credit": 0,
+    "acoustic_credit": 0,
+    "physical_device_credit": 0,
+    "whole_voice_e2e_credit": 0,
+    "whole_product_credit": 0
+  },
+  "next_exact_action": "WP715 owner updates only the stale barge-in fixture timestamp to a causally later value, reruns all packet-cortex repository discriminators, then executes the exact green subject in owner-VPS S1/S2. Do not weaken the monotonic guards and do not create a second packet-cortex implementation."
+}
