@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 """Create-only coordination-intent fence for Architect packet creation.
 
-This module is deliberately separate from packet delivery idempotency.  Packet
+This module is deliberately separate from packet delivery idempotency. Packet
 nonce/route identity still belongs to ``architect_packet``; this helper only
 ensures that one explicit coordination intent revision maps to one deterministic
-pending-packet path.  Repository create-only/CAS semantics then make concurrent
+pending-packet path. Repository create-only/CAS semantics then make concurrent
 creators converge on one winner instead of producing parallel semantic work.
 """
 from __future__ import annotations
@@ -15,6 +15,7 @@ import json
 import os
 import pathlib
 import re
+import tempfile
 from typing import Any, Mapping
 
 from tools.coordination.architect_packet import (
@@ -129,12 +130,26 @@ def _intent_refs(packet: Mapping[str, Any]) -> set[str]:
     return {str(ref) for ref in refs if str(ref).startswith(INTENT_REF_PREFIX)}
 
 
+def _reuse_existing(packet: dict[str, Any], path: pathlib.Path) -> tuple[str, dict[str, Any]]:
+    existing = json.loads(path.read_text(encoding="utf-8"))
+    validate_packet(existing)
+    if existing.get("packet_id") != packet.get("packet_id"):
+        raise PacketError("deterministic intent path collision with different packet_id")
+    wanted_refs = _intent_refs(packet)
+    existing_refs = _intent_refs(existing)
+    if len(wanted_refs) != 1 or wanted_refs != existing_refs:
+        raise PacketError("deterministic intent path collision with different intent identity")
+    return "REUSE_EXISTING", existing
+
+
 def create_only_write(packet: dict[str, Any], path: pathlib.Path) -> tuple[str, dict[str, Any]]:
     """Atomically create one local/repository checkout owner for the intent path.
 
-    ``O_EXCL`` gives same-checkout process atomicity.  When this deterministic
+    A fully-written same-directory temporary file is hard-linked into the
+    deterministic destination. ``link(2)`` is create-only and atomic, so a
+    loser never observes a partially-written winner. When the same deterministic
     path is committed with GitHub's create-file/CAS flow, concurrent branches
-    race on the same repository path; the loser must refresh and reuse/defer.
+    race on that path and the loser must refresh and reuse/defer.
     """
     validate_packet(packet)
     expected = pending_path(packet, root=path.parent)
@@ -142,23 +157,24 @@ def create_only_write(packet: dict[str, Any], path: pathlib.Path) -> tuple[str, 
         raise PacketError(f"output path must be deterministic intent path {expected}")
     path.parent.mkdir(parents=True, exist_ok=True)
     data = _dump(packet).encode("utf-8")
+
+    fd, temp_name = tempfile.mkstemp(prefix=".architect-intent-", suffix=".tmp", dir=path.parent)
+    temp_path = pathlib.Path(temp_name)
     try:
-        fd = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o644)
-    except FileExistsError:
-        existing = json.loads(path.read_text(encoding="utf-8"))
-        validate_packet(existing)
-        if existing.get("packet_id") != packet.get("packet_id"):
-            raise PacketError("deterministic intent path collision with different packet_id")
-        wanted_refs = _intent_refs(packet)
-        existing_refs = _intent_refs(existing)
-        if len(wanted_refs) != 1 or wanted_refs != existing_refs:
-            raise PacketError("deterministic intent path collision with different intent identity")
-        return "REUSE_EXISTING", existing
-    with os.fdopen(fd, "wb") as handle:
-        handle.write(data)
-        handle.flush()
-        os.fsync(handle.fileno())
-    return "CREATED", packet
+        with os.fdopen(fd, "wb") as handle:
+            handle.write(data)
+            handle.flush()
+            os.fsync(handle.fileno())
+        try:
+            os.link(temp_path, path)
+        except FileExistsError:
+            return _reuse_existing(packet, path)
+        return "CREATED", packet
+    finally:
+        try:
+            temp_path.unlink()
+        except FileNotFoundError:
+            pass
 
 
 def build_parser() -> argparse.ArgumentParser:
