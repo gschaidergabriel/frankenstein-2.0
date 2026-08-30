@@ -1,0 +1,54 @@
+{
+  "schema": "F2_TRIGGER7_WP715_BARGE_CAPACITY_ATOMICITY_FALSIFIER/v1",
+  "trigger": "7",
+  "recorded_date": "2026-08-31",
+  "organ": "GPT-5.6-Sol",
+  "classification": "CANDIDATE_FALSIFIER_REVIEW_ONLY",
+  "mutation_authority": false,
+  "workpackage_id": "F2-WP-715",
+  "owner_authority": "research/local_voice/authority/2026-08-31_TRIGGER7_TEXT_PACKET_COMPLETION_AUTHORITY.md",
+  "observed_subject": {
+    "f2_head": "9203d515dbcfb8a049971e60174a281609865a33",
+    "source": "src/frankenstein2/voice_packet_cortex.py",
+    "source_blob_sha": "98b93f85b446c66db78b553f12631aa0acebbc71",
+    "scope": "packet cortex bounded transient state / barge-in atomicity"
+  },
+  "candidate_id": "PN12_BARGE_IN_NEAR_EVENT_CAP_CAN_PARTIALLY_MUTATE_THEN_RAISE",
+  "observation": {
+    "accept_input_precheck": "accept_input() calls _require_event_capacity() once before mutating input replay/sequence/final-turn state.",
+    "barge_path": "For packet.barge_in=true, accept_input() then calls cancel_for_barge_in(), which mutates cancellable outputs and tool ownership and emits BARGE_IN_CANCEL_PROPAGATED, consuming an event slot.",
+    "final_input_event": "accept_input() then emits the ASR input event through _event(), requiring a second event slot.",
+    "boundary_case": "If len(_events)==MAX_EVENTS-1 on entry, the initial guard passes. cancel_for_barge_in() can consume the last slot after state mutation. The final ASR _event() then fails capacity. The caller receives VoicePacketCortexError after input/cancellation state has already changed.",
+    "risk": "A rejected operation can leave durable in-memory controller state different from the pre-call state, creating replay/causal ambiguity at the exact resource-boundary condition PN10 is intended to fail closed on."
+  },
+  "minimal_discriminator": {
+    "precondition": "Construct a VoicePacketCortex with exactly MAX_EVENTS-1 existing events and at least one nonterminal cancellable output plus optionally an active tool owned by that output turn.",
+    "action": "Call accept_input() with a new valid final VoiceInputPacket carrying barge_in=true.",
+    "expected_fail_closed_property": "Either the whole operation is rejected before any input/output/tool state mutation, or enough event capacity is reserved atomically for all events the operation will emit.",
+    "candidate_product_negative": "If the call raises capacity exhaustion while _input_seen/_last_input_sequence/_final_turns and/or output/tool cancellation state changed, classify PRODUCT_NEGATIVE at packet-controller atomicity scope.",
+    "control": "Repeat at MAX_EVENTS-2; the same input should complete with both BARGE_IN_CANCEL_PROPAGATED and ASR event emitted, proving the failure is the one-slot atomicity boundary rather than malformed input."
+  },
+  "repair_options_for_wp715_owner": [
+    "Reserve the full event budget required by accept_input() before any mutation (2 slots on barge-in path, 1 otherwise).",
+    "Or refactor barge-in/input handling into a staged transaction that validates all capacity/invariants before committing state and events.",
+    "Add a regression that snapshots relevant controller state before the MAX_EVENTS-1 call and proves exact equality after a rejected operation."
+  ],
+  "failure_class_until_executed": "CANDIDATE_PRODUCT_NEGATIVE_REQUIRES_EXECUTION",
+  "credit": {
+    "review_delta": 1,
+    "repository_ci_credit": 0,
+    "vps_packet_runtime_credit": 0,
+    "target_runtime_credit": 0,
+    "acoustic_credit": 0,
+    "whole_voice_credit": 0,
+    "whole_product_credit": 0
+  },
+  "zero_credit_fences": [
+    "No physical microphone/speaker/AEC evidence.",
+    "No ASR/TTS/model inference executed.",
+    "No external provider/model call.",
+    "No UnifiedDB/effect/whole-loop promotion.",
+    "This packet is review/falsifier routing only; Trigger 4 retains canonical WP715 mutation/acceptance authority."
+  ],
+  "next_exact_action": "WP715 mutation owner executes PN12 against the current exact subject before broad packet/recovery VPS promotion; if reproduced, repair atomic capacity reservation and bind the regression into the existing WP715 repository/VPS discriminator rather than creating a second workflow."
+}
