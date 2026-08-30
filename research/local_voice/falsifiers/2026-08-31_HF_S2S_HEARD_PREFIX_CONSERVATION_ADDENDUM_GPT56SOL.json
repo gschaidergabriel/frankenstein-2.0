@@ -2,9 +2,9 @@
   "schema": "T7_REALTIME_PROTOCOL_FALSIFIER_ADDENDUM/v1",
   "trigger": "7",
   "research_id": "T7-FD-RTCOMPAT-001",
-  "objective": "F1B_HF_S2S_HEARD_PREFIX_CONSERVATION",
+  "objective": "F1B_HF_S2S_HEARD_BOUNDARY_COMMIT_POLICY_RECONCILIATION",
   "claim_semantic_key": "8c53f25ed47c458bb727dd4dc82f788241cee699e428c4d97401a965a4eb375e",
-  "classification": "REVIEW_ONLY_CANDIDATE_FALSIFIER",
+  "classification": "REVIEW_ONLY_RECONCILED_FALSIFIER",
   "implementation_mutation_authority": false,
   "duplicate_semantic_claim_created": false,
   "pinned_upstream": {
@@ -15,51 +15,65 @@
   "source_findings": [
     "The pinned OpenAI-Realtime router parses conversation.item.truncate but deliberately treats it as a no-op after cancellation because client-side playback is considered owner of the unheard tail.",
     "At the pinned revision, response cancellation closes the current response and calls Chat.rollback_provisional_generation for cancelled, failed or incomplete responses.",
-    "The pinned language-model process makes default-chat commit contingent on the generation not being cancelled and rolls back recorded provisional generation items in its finally path when the interrupted generation was not committed.",
-    "Pinned upstream tests explicitly assert that a cancelled provisional assistant/tool generation leaves chat.buffer empty while already committed user input survives cancellation.",
-    "Therefore the strongest static hypothesis is no longer primarily an unheard-tail-retention bug. The server appears capable of removing the entire interrupted assistant response from its default Chat, which can also remove semantics that the user actually heard before barge-in."
+    "The pinned language-model process makes default-chat commit contingent on the generation not being cancelled and rolls back recorded provisional generation items in its cleanup path when the interrupted generation was not committed.",
+    "Pinned upstream tests explicitly assert that a cancelled provisional assistant/tool generation leaves chat.buffer empty while already committed user input survives cancellation."
   ],
+  "current_f2_contract_findings": [
+    "VoiceOutputPacket permits commit_eligible only when playback_state is completed and heard_fraction is exactly 1.0.",
+    "advance_output preserves heard_fraction as monotone playback evidence but makes interrupted/cancelled output non-commit-eligible.",
+    "barge-in changes queued output to cancelled and started/heard output to interrupted while revoking commit eligibility and fencing outstanding tool ownership.",
+    "session close permits a result reference only when at least one fully heard completed output is commit-eligible."
+  ],
+  "reconciliation": {
+    "superseded_overstrong_hypothesis": "A prior version of this addendum treated loss of an actually heard prefix from server-local next-turn Chat as a product failure unless F2 reconstructed that prefix.",
+    "correction": "That requirement is not supported by the current F2 commit contract. A partially heard interrupted response is non-commit-eligible as a whole. heard_fraction is retained as playback/diagnostic evidence, not as a rule that the heard semantic prefix must become committed model-context truth.",
+    "current_interpretation": "Whole-response rollback in the pinned HF server can therefore be compatible with current F2 semantics. It remains a protocol-surface difference from audio_end_ms truncate behavior, but it is not by itself a Frankenstein product negative.",
+    "status": "SOURCE_CONTRACT_RECONCILED_RUNTIME_COMPATIBILITY_OPEN"
+  },
   "protocol_difference": {
     "openai_reference_semantics": "conversation.item.truncate is a playback-synchronization operation at a client-supplied audio_end_ms boundary and successful handling is surfaced by conversation.item.truncated.",
     "pinned_hf_semantics": "conversation.item.truncate is accepted as a no-op; cancellation/provisional-generation rollback governs server-local assistant history instead.",
-    "risk": "Whole-response rollback can be safe against an unheard suffix while still being non-equivalent to a measured heard-prefix boundary. If server-local Chat is used as next-turn context, the model can experience conversational amnesia for words the user actually heard."
+    "runtime_risk": "The material risks are cancelled-response semantics regaining next-turn/tool/effect authority, playback continuing beyond the measured stop boundary, or stale/duplicate cancellation corrupting a newer turn. Dropping the whole interrupted assistant response from raw HF Chat is not presently a failure by itself."
   },
   "hypotheses": [
     {
-      "id": "H1_NO_UNHEARD_TAIL_AFTER_CANCEL",
+      "id": "H1_NO_CANCELLED_HISTORY_AUTHORITY_REGAIN",
       "state": "SOURCE_SUPPORTED_RUNTIME_UNVERIFIED",
-      "claim": "Cancellation rollback removes incomplete assistant generation from the default Chat, so unheard assistant suffix semantics should not survive there under the ordinary in-band path."
+      "claim": "Cancellation rollback should prevent provisional assistant/tool content from the cancelled response from regaining ordinary server-local next-turn authority."
     },
     {
-      "id": "H2_HEARD_PREFIX_AMNESIA",
-      "state": "SOURCE_PLAUSIBLE_RUNTIME_UNVERIFIED",
-      "claim": "If an assistant prefix was actually played before cancellation, whole-response rollback can remove that heard prefix from the server-local next-turn context unless Frankenstein reconstructs authoritative heard state externally."
+      "id": "H2_WHOLE_ROLLBACK_COMPATIBLE_WITH_CURRENT_F2_COMMIT_POLICY",
+      "state": "SOURCE_CONTRACT_RECONCILED_RUNTIME_UNVERIFIED",
+      "claim": "Deleting the whole interrupted assistant response from server-local Chat is compatible with current F2 policy because interrupted output is wholly non-commit-eligible, even when heard_fraction is greater than zero."
     },
     {
-      "id": "H3_F2_CONTEXT_RECONSTRUCTION_CLOSES_GAP",
+      "id": "H3_CONTEXT_POLICY_SEPARATION",
       "state": "OPEN_HYPOTHESIS",
-      "claim": "A narrow F2 adapter can preserve protocol correctness by treating the speech server as a transient inference/transport organ and rebuilding next-turn model context from F2's measured heard-state authority rather than trusting server-local conversation history."
+      "claim": "F2 must continue to own commit/tool/effect authority independently of speech-server Chat. Explicit partial-prefix context reconstruction becomes required only if a later canonical F2 contract promotes partially heard interrupted semantics into committed conversational context."
     }
   ],
   "falsifier": {
-    "id": "HF03B_HEARD_PREFIX_CONSERVATION",
-    "action": "Generate an assistant response with two semantically unique clauses A and B. Allow clause A to become definitely audible while clause B remains buffered/unheard. Record the exact F2 heard boundary, issue response.cancel and conversation.item.truncate at that measured boundary, then inspect server-local Chat, the exact next-turn model input and the next response. Repeat with duplicate/stale truncate and with an F2 context-reconstruction adapter enabled.",
+    "id": "HF03B_HEARD_BOUNDARY_COMMIT_POLICY_SEPARATION",
+    "action": "Generate an assistant response with two semantically unique clauses A and B. Allow A to become definitely audible while B remains buffered/unheard. Record the exact F2 heard boundary, issue response.cancel and conversation.item.truncate, inspect server-local Chat and exact next-turn model input, then deliver late tool/audio events and repeat duplicate/stale cancellation/truncate cases.",
     "must_hold": [
-      "No clause-B semantic content beyond the measured heard boundary reaches next-turn model context.",
-      "Clause-A semantics that were actually heard are either present in authoritative next-turn context or explicitly reconstructed from F2 heard-state authority.",
-      "Server-local cancellation rollback cannot silently convert partial playback into conversational amnesia when that server history is used as a context source.",
-      "If the server retains zero interrupted-assistant history, the adapter treats that as transient transport state and reconstructs next-turn context from F2 rather than treating server Chat as canonical.",
-      "Duplicate, stale or out-of-range truncate cannot mutate a newer turn, resurrect cancelled output or increase heard_fraction/commit eligibility."
+      "The F2 output packet remains interrupted/cancelled and commit_eligible=false after barge-in even when heard_fraction is greater than zero.",
+      "No assistant text/audio/tool/effect semantics from the cancelled non-commit-eligible response regain authoritative next-turn influence.",
+      "Playback stops at the measured cancellation/heard boundary and late cancelled-generation audio is discarded.",
+      "Late tool results from the cancelled turn cannot reacquire current-turn ownership.",
+      "Duplicate, stale or out-of-range cancellation/truncate cannot mutate a newer turn, resurrect cancelled output or increase commit eligibility.",
+      "Raw HF Chat may contain neither A nor B after rollback without that alone being classified as failure under the current F2 commit contract."
     ],
-    "falsifies_if": "Next-turn context is a superset of the F2 heard boundary (unheard semantic leak) or a strict subset that loses actually-heard prefix semantics without explicit F2 reconstruction."
+    "must_not_fail_merely_if": "The raw HF server drops the entire interrupted assistant response, including an already-audible prefix, provided F2 retains the measured playback evidence, keeps the response non-commit-eligible and no separate current F2 contract requires partial-prefix semantic persistence.",
+    "falsifies_if": "Any cancelled response semantics regain authoritative next-turn/tool/effect influence, playback exceeds the admitted stop boundary, or stale/duplicate control corrupts a newer causal turn."
   },
   "required_receipt_delta": [
     "generated_vs_heard_boundary",
+    "f2_output_packet_before_cancel",
+    "f2_output_packet_after_cancel",
     "server_chat_items_before_cancel",
     "server_chat_items_after_cancel",
     "post_cancel_next_turn_context",
-    "post_cancel_heard_prefix_presence",
-    "adapter_context_reconstruction_trace",
+    "late_tool_and_audio_trace",
     "duplicate_stale_truncate_trace",
     "negative_evidence"
   ],
@@ -67,10 +81,11 @@
     "route": "existing Trigger4/VPS runtime authority",
     "new_runtime_dispatch_created_here": false,
     "existing_nonterminal_dispatch_33328707636_duplicated": false,
-    "note": "The older WP715 workflow remains a separate queued zero-step subject and must not be converted into evidence for this HF protocol discriminator merely by narrative association."
+    "note": "The older WP715 workflow remains a queued zero-step control-plane subject and must not be converted into HF protocol runtime evidence by association."
   },
   "credit_boundary": {
     "source_or_review_credit": 1,
+    "f2_contract_reconciliation_credit": 1,
     "executed_protocol_component_credit": 0,
     "german_e2e_voice_credit": 0,
     "acoustic_quality_credit": 0,
@@ -78,5 +93,5 @@
     "trigger4_acceptance_credit": 0,
     "whole_product_credit": 0
   },
-  "next_exact_action": "Execute HF02, HF03 and HF03B on the exact pinned revision through the admitted Trigger4/VPS route. Measure both sides of the boundary: reject any unheard-tail influence and reject heard-prefix loss unless F2 explicitly reconstructs the authoritative heard context. Promote only the executed scope."
+  "next_exact_action": "Execute HF02, HF03 and refined HF03B on the exact pinned revision through the admitted Trigger4/VPS route. Prove cancellation authority, playback-stop correctness, stale-tool/audio fencing and duplicate/stale control safety. Do not fail the candidate merely because raw HF Chat drops an already-heard prefix while the interrupted response remains wholly non-commit-eligible under the current F2 contract. Promote only executed scope."
 }
