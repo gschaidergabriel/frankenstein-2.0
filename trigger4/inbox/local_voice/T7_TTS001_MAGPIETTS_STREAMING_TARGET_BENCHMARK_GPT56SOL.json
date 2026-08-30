@@ -1,0 +1,45 @@
+{
+  "schema": "TRIGGER7_TO_TRIGGER4_LOCAL_VOICE_CANDIDATE/v1",
+  "from_trigger": "7",
+  "to_trigger": "4",
+  "research_id": "T7-TTS-001",
+  "candidate": "MAGPIETTS_STREAMING_TARGET_BENCHMARK",
+  "state": "READY_WHEN_RUNNER_RECOVERS",
+  "priority": "AFTER_EXISTING_QWEN3_ASR_RUN_33292903286_IS_CONSUMED",
+  "do_not_dispatch_duplicate_asr_job": true,
+  "source_evidence": {
+    "german_supported": true,
+    "local_self_hosted_supported": true,
+    "streaming_service_path_supported": true,
+    "native_documented_baseline": "MagpieTTS v2602 F16 GGUF + NanoCodec via NVIDIA NeMo-Speech.cpp",
+    "v2607_native_gguf_runtime_proven": false
+  },
+  "required_target_environment": "clay-direct-dev",
+  "required_transport": "authorized existing bridge/self-hosted runner",
+  "benchmark": {
+    "transport_preference": "Riva SynthesizeOnline or direct native streaming API",
+    "language": "de",
+    "voice_requirement": "stable male speaker",
+    "measure": [
+      "TTFA p50/p95",
+      "stream chunk cadence and jitter",
+      "real-time factor",
+      "CPU/RSS/VRAM",
+      "barge-in cancellation request -> last audible sample latency",
+      "post-cancel leaked samples",
+      "German pronunciation of names/numbers/technical terms",
+      "speaker identity stability",
+      "30-minute stability if earlier gates pass"
+    ],
+    "comparators": [
+      "current Piper/Thorsten latency floor if available",
+      "Qwen3-TTS current Trigger-7 candidate if available"
+    ]
+  },
+  "acceptance_boundaries": [
+    "source streaming support != target runtime pass",
+    "target component pass != German E2E voice pass",
+    "Trigger4 owns F2 runtime acceptance",
+    "no whole-system credit from this candidate"
+  ]
+}
