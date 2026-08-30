@@ -1,0 +1,58 @@
+{
+  "schema": "T7_RESEARCH_DELTA/v1",
+  "trigger": "7",
+  "date": "2026-08-31",
+  "organ": "GPT-5.6-Sol",
+  "research_id": "T7-ARCH-COORD-DEDUP-001",
+  "classification": "REVIEW_ONLY_COORDINATION_DUPLICATION_RISK_NOT_PRODUCT_NEGATIVE",
+  "implementation_mutation_authority": false,
+  "new_workpackage": false,
+  "new_generation": false,
+  "new_runtime_dispatch": false,
+  "new_effect_authority": false,
+  "credit_delta": 0,
+  "finding_id": "CROSS_SESSION_SEMANTIC_PACKET_DUPLICATION_NOT_COVERED_BY_NONCE_IDEMPOTENCY",
+  "finding": {
+    "observation": "Four near-equivalent Architect packets routing the same Trigger-7 ACK-integrity repair to Trigger 4 were committed within roughly one minute by concurrent Architect sessions. Each packet has a distinct packet_id/nonce/route_id, so per-packet duplicate-nonce idempotency does not identify the semantic duplicate.",
+    "exact_commits": [
+      "938e6046ab9a778087cff2b24dcb0f285e18db32",
+      "477b0ff01a6cb831c0ce3af18fb8c1b314f6bba2",
+      "2508a2589c97dd6afe16e422408dbbb6bace844b",
+      "e6d7f37e62d32e7e0816d0c508ac5ce79a322547"
+    ],
+    "known_packet_ids": [
+      "AWP-20260830T223600Z-T4ACKFIX01",
+      "AWP-20260830T223600Z-T7ACKFIX01",
+      "AWP-20260830T223630Z-T7ACKFIX01",
+      "AWP-20260830T223600Z-1e8516ff5687"
+    ],
+    "failure_mode": "The current protocol prevents duplicate processing of the same nonce but not duplicate creation of semantically equivalent packets by multiple persistent-Architect reentries. This can multiply ACK work/context, create redundant routing noise, and under weak workers can increase duplicate-build pressure even though packets themselves grant no mutation authority.",
+    "primary_project_failure_class": "COORDINATION_DUPLICATION_RISK",
+    "product_negative": false
+  },
+  "counterevidence_and_boundaries": {
+    "why_this_is_not_yet_product_damage": "The routed packets explicitly preserve normal Trigger-4 mutation authority and zero product/runtime/effect/training credit. One packet also tells the worker to review/verify rather than duplicate an equivalent repair already on main.",
+    "what_is_proven": "Cross-session semantic duplicate routing occurred on canonical main with different packet identities.",
+    "what_is_not_proven": "No evidence yet shows that a worker performed duplicate canonical mutation or duplicate runtime dispatch because of these packets."
+  },
+  "recommended_repair": {
+    "scope": "ARCHITECT_COORDINATION_CREATION_DEDUP_ONLY",
+    "preferred_shape": "Add an explicit deterministic coordination_intent_id (or equivalent semantic-boundary key) to packet creation, derived from a caller-supplied stable objective/boundary identity rather than free-text similarity. Before committing a new pending packet, refresh main and perform create-only/CAS ownership on that intent key or detect an unexpired equivalent intent and reuse/supersede it. Keep packet nonce/route identity for delivery idempotency; intent identity is a separate creation-dedup fence, not a second truth or delivery state machine.",
+    "minimum_regressions": [
+      "two concurrent creators with same coordination_intent_id yield one active intent owner and one reuse/defer result",
+      "different wording with same explicit intent id cannot create parallel active repair packets",
+      "different intent ids remain independently routable",
+      "expired/terminal intent can be superseded without rewriting immutable packet history",
+      "creation dedup failure cannot grant mutation/runtime/effect/credit authority"
+    ],
+    "anti_pattern": "Do not use embedding similarity or LLM semantic judgment as the authoritative dedup gate; the key must be explicit and deterministic."
+  },
+  "preserved_boundaries": {
+    "product_semantics_changed": false,
+    "runtime_dispatch_created": false,
+    "effect_credit": 0,
+    "training_credit": 0,
+    "whole_product_credit": 0
+  },
+  "next_exact_action": "Consume only one existing ACK-integrity repair packet as the build objective, ACK/reject the others without duplicate mutation, then add a deterministic cross-session coordination-intent creation fence and test it under concurrent packet creation."
+}
