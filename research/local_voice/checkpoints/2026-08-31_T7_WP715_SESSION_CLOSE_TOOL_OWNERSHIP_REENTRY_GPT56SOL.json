@@ -43,6 +43,13 @@
     "routed_packet": "trigger4/inbox/local_voice/T7_WP715_SESSION_CLOSE_ACTIVE_TOOL_OWNERSHIP_FALSIFIER_2026-08-31_GPT56SOL.json",
     "routing_commit": "17035fb2bfed761dc735bbfbd64ad7f24f4e00dd"
   },
+  "external_primary_context": {
+    "classification": "EXTERNAL_PRIMARY_DESIGN_SUPPORT_ONLY_NO_F2_CREDIT",
+    "livekit_tools": "Current official LiveKit tool documentation distinguishes interruption from actual cancellation: ordinary interrupted tools can keep running in the background, while cancellable async tools expose explicit cancellation state/handles. This supports making tool ownership terminalization explicit rather than silently erasing it at a session boundary.",
+    "livekit_shutdown": "Current official LiveKit lifecycle documentation treats session shutdown as an explicit lifecycle operation with queued-work/drain semantics, reinforcing that session termination and in-flight work ownership should be causally represented rather than inferred from disappearance.",
+    "vllm_omni_full_duplex": "Current vLLM-Omni full-duplex design uses epoch-based staleness filtering so late stale outputs are rejected after cancellation/turn changes; this supports the broader invariant that asynchronous work needs explicit ownership epochs/fences across interruption and close boundaries.",
+    "credit": 0
+  },
   "coordination": {
     "duplicate_runtime_dispatch_created": false,
     "duplicate_source_mutation_created": false,
