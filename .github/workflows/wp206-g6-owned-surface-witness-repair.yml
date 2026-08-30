@@ -24,13 +24,16 @@ jobs:
           python-version: '3.12'
 
       - name: Apply exact-anchor owned-surface repair
-        run: python tools/trigger4_wp206_g6_owned_surface_witness_repair.py
+        run: |
+          python tools/trigger4_wp206_g6_owned_surface_witness_repair.py
+          python tools/trigger4_wp206_g6_reopen_monitor_and_g3_reason_fix.py
 
       - name: Compile repaired G6 surface
         run: >-
           python -m py_compile
           src/frankenstein2/persistent_agency_kernel.py
           tools/trigger4_wp206_g6_owned_surface_witness_repair.py
+          tools/trigger4_wp206_g6_reopen_monitor_and_g3_reason_fix.py
           tests/test_wp206_g6_owned_surface_witness.py
           tests/falsifier_wp206_g6_external_sqlite_revision_drift.py
           tests/wp206_restart_probe.py
@@ -94,13 +97,13 @@ jobs:
 
       - name: Commit only after complete bounded matrix is green
         run: |
-          if git diff --quiet -- src/frankenstein2/persistent_agency_kernel.py; then
+          if git diff --quiet -- src/frankenstein2/persistent_agency_kernel.py tests/test_wp206_legacy_authority_recovery.py; then
             echo 'NO_SOURCE_DIFF=true'
             exit 0
           fi
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add src/frankenstein2/persistent_agency_kernel.py
+          git add src/frankenstein2/persistent_agency_kernel.py tests/test_wp206_legacy_authority_recovery.py
           git commit -m 'trigger4: scope WP206 G6 revision guard to owned surface'
           git push origin HEAD:${GITHUB_REF_NAME}
 
