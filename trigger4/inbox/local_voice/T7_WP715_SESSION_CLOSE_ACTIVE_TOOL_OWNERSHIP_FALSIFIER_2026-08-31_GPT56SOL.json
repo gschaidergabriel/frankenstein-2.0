@@ -1,0 +1,58 @@
+{
+  "schema": "T7_TRIGGER4_CANDIDATE_FALSIFIER/v1",
+  "trigger": "7",
+  "date": "2026-08-31",
+  "organ": "GPT-5.6-Sol",
+  "work_class": "CANDIDATE_FALSIFIER",
+  "research_lane": "GERMAN_FIRST_LOCAL_SOLO_RESEARCH__CORTEX_FIRST",
+  "target_workpackage": "F2-WP-715",
+  "mutation_authority_requested": false,
+  "runtime_dispatch_requested": false,
+  "duplicate_runtime_dispatch_created": false,
+  "candidate_id": "T7-WP715-SESSION-CLOSE-ACTIVE-TOOL-OWNERSHIP",
+  "current_observed_f2_head": "2377fa7c4abf98a912cf1341024675adc3bb0e7f",
+  "source_identity": {
+    "packet_source": "src/frankenstein2/voice_packet_cortex.py",
+    "packet_source_blob": "46bd01d3701ff6e6119f5d0522486f5d5cc5bd93",
+    "recovery_source": "src/frankenstein2/voice_packet_cortex_recovery.py",
+    "recovery_source_blob": "7854afca22599b235c289020673ffa9a7c9b7d43"
+  },
+  "observation": {
+    "summary": "VoicePacketCortex.close_session() rejects nonterminal output but does not reject or explicitly fence active tool ownership. After emitting SESSION_CLOSE it sets is_open=false and clears _active_tools silently. By contrast barge-in explicitly moves active tools into _cancelled_tools and restart/reentry explicitly fences restored active tools stale.",
+    "candidate_risk": "A session may produce a terminal VoiceOutcome while a TOOL_USE ownership record is still active, then erase that ownership without an explicit cancellation/fence event. A later external tool completion is necessarily rejected because the session is closed, but the packet-cortex event history no longer contains a causal tool-cancellation/fence transition explaining the ownership terminalization.",
+    "scope": "packet-cortex tool ownership / session-close causal atomicity only",
+    "status": "STATIC_CANDIDATE_NOT_EXECUTED"
+  },
+  "high_information_discriminator": {
+    "precondition": "Create one open VoicePacketCortex; emit TOOL_USE with a unique tool_ref; keep all output terminal/no output so close is otherwise legal.",
+    "action": "Call close_session() before TOOL_RESULT for the active tool_ref, then inspect return/exception, event log, active/cancelled ownership state, exported checkpoint, and behavior of a synthetic late TOOL_RESULT attempt.",
+    "candidate_failure_condition": "close_session succeeds while the active tool disappears from ownership without an explicit cancellation/fence event or preserved tombstone sufficient to prove why later completion is stale/cancelled.",
+    "acceptable_repair_shapes": [
+      "fail closed: refuse SESSION_CLOSE while any active tool ownership remains",
+      "explicit terminalization: atomically fence/cancel every active tool before SESSION_CLOSE and preserve causal tombstones/events"
+    ],
+    "required_regression": "A close attempt with active TOOL_USE cannot silently erase tool ownership; restart/export and late-result behavior must remain deterministic and auditable."
+  },
+  "coordination": {
+    "existing_wp715_trigger4_owner_reused": true,
+    "existing_vps_run_id": 33328707636,
+    "existing_vps_job_id": 99303303728,
+    "existing_vps_state_observed": "QUEUED_ZERO_STEPS",
+    "existing_vps_classification": "UNKNOWN_NONTERMINAL",
+    "runtime_subject_churn_rule": "Do not mutate current packet semantics merely from this static candidate. Execute the repository falsifier first. Only an exact reproduced PRODUCT_NEGATIVE justifies required repair that may invalidate the queued runtime subject; otherwise preserve the bound VPS subject and do not redispatch."
+  },
+  "credit": {
+    "review_falsifier_delta": 1,
+    "candidate_product_negative_executed": 0,
+    "repository_runtime_credit": 0,
+    "vps_packet_runtime_credit": 0,
+    "acoustic_credit": 0,
+    "asr_credit": 0,
+    "tts_credit": 0,
+    "gwt_runtime_credit": 0,
+    "effect_credit": 0,
+    "whole_voice_credit": 0,
+    "whole_product_credit": 0
+  },
+  "next_exact_action": "F2-WP-715 Trigger-4 owner executes this discriminator in the existing repository regression lane without creating a new VPS dispatch. If reproduced, classify PRODUCT_NEGATIVE at session-close/tool-ownership causal atomicity scope, apply the smallest repair, add restart/export/late-result regression, then reconcile the already queued VPS subject under runtime-subject-churn law. If not reproduced, close this falsifier with exact negative evidence and preserve the current queued VPS subject unchanged."
+}
