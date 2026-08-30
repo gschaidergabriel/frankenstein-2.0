@@ -1,10 +1,13 @@
 """Deterministic release-candidate ZIP construction and verification.
 
-F2-WP-1107 generation 2. Ambient filesystem metadata is excluded from archive identity:
+F2-WP-1107 generation 3. Ambient filesystem metadata is excluded from archive identity:
 member order, timestamp, POSIX mode, ZIP version, compression, comments and extra fields are
 explicit policy. V1 forbids ZIP64 and non-ASCII member names so the builder cannot emit a
 container that its verifier rejects or whose filename flags depend on runtime encoding paths.
 The embedded accepted WP1107 manifest remains the payload-integrity authority.
+
+Generation 3 additionally seals the outer archive-byte boundary: no unbound bytes may exist
+before the first canonical local-file header or after the zero-comment EOCD record.
 
 REPRODUCIBLE_ARCHIVE_COMPONENT != INSTALLATION != TARGET_RUNTIME != COMPLETION
 """
@@ -31,6 +34,8 @@ _MAX_ZIP_EPOCH = 4354819198
 _REGULAR_TYPE = stat.S_IFREG
 _ZIP20 = 20
 _MAX_CLASSIC_ZIP_MEMBERS = 65535
+_EOCD_SIGNATURE = b"PK\x05\x06"
+_EOCD_FIXED_SIZE = 22
 
 
 class ReleaseArchiveError(ValueError):
@@ -83,6 +88,25 @@ def _zip_datetime(epoch: int) -> tuple[int, int, int, int, int, int]:
     epoch -= epoch % 2
     dt = datetime.fromtimestamp(epoch, tz=timezone.utc)
     return (dt.year, dt.month, dt.day, dt.hour, dt.minute, dt.second)
+
+
+def _require_exact_outer_archive_boundary(archive_bytes: bytes) -> None:
+    """Reject bytes outside the canonical classic-ZIP container boundary.
+
+    Python's zipfile reader intentionally tolerates self-extracting prefixes and bytes after
+    EOCD. Frankenstein release identity does not: every handed-off byte must belong to the
+    canonical archive produced by this component.
+    """
+
+    if len(archive_bytes) < _EOCD_FIXED_SIZE:
+        raise ReleaseArchiveError("invalid release ZIP: EOCD record missing")
+    eocd_offset = len(archive_bytes) - _EOCD_FIXED_SIZE
+    eocd = archive_bytes[eocd_offset:]
+    if eocd[:4] != _EOCD_SIGNATURE:
+        raise ReleaseArchiveError("archive must end at the canonical zero-comment EOCD record")
+    comment_length = int.from_bytes(eocd[20:22], "little")
+    if comment_length != 0:
+        raise ReleaseArchiveError("archive comment must be empty")
 
 
 @dataclass(frozen=True, slots=True)
@@ -249,6 +273,7 @@ def verify_release_archive(archive_bytes: bytes, *, policy: ReleaseArchivePolicy
     if not isinstance(archive_bytes, bytes) or not archive_bytes:
         raise ReleaseArchiveError("archive_bytes must be non-empty bytes")
     manifest_path = _relpath(manifest_path)
+    _require_exact_outer_archive_boundary(archive_bytes)
     try:
         archive = zipfile.ZipFile(io.BytesIO(archive_bytes), "r", allowZip64=False)
     except (zipfile.BadZipFile, zipfile.LargeZipFile) as exc:
@@ -258,6 +283,8 @@ def verify_release_archive(archive_bytes: bytes, *, policy: ReleaseArchivePolicy
             raise ReleaseArchiveError("archive comment must be empty")
         infos = archive.infolist()
         names = [info.filename for info in infos]
+        if not infos or min(info.header_offset for info in infos) != 0:
+            raise ReleaseArchiveError("archive contains unbound bytes before first local file header")
         if len(infos) > _MAX_CLASSIC_ZIP_MEMBERS:
             raise ReleaseArchiveError("archive member count requires forbidden ZIP64")
         if len(set(names)) != len(names):
