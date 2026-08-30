@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Repository-level falsifiers for F2-WP-1107 generation 2."""
+"""Repository-level falsifiers for F2-WP-1107 generation 3."""
 from __future__ import annotations
 
 from dataclasses import replace
@@ -148,6 +148,25 @@ class ReleaseArchiveTests(unittest.TestCase):
                 archive.writestr("zzz-extra.txt", b"unexpected")
             with self.assertRaises(ReleaseArchiveError):
                 verify_release_archive(stream.getvalue(), policy=self.policy())
+
+    def test_unbound_trailing_bytes_after_eocd_fail_closed_without_expected_receipt(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            populate(root, reverse=False, mtime=0, bin_mode=0o755, data_mode=0o644)
+            result = build(root, self.policy())
+            mutated = result.archive_bytes + b"UNBOUND_TRAILING_DATA"
+            with self.assertRaisesRegex(ReleaseArchiveError, "trailing/unbound"):
+                verify_release_archive(mutated, policy=self.policy())
+
+    def test_forged_terminal_eocd_cannot_hide_unbound_trailer(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            populate(root, reverse=False, mtime=0, bin_mode=0o755, data_mode=0o644)
+            result = build(root, self.policy())
+            fake_eocd = b"PK\x05\x06" + b"\x00" * 18
+            mutated = result.archive_bytes + b"UNBOUND" + fake_eocd
+            with self.assertRaisesRegex(ReleaseArchiveError, "central directory"):
+                verify_release_archive(mutated, policy=self.policy())
 
     def test_wrong_expected_receipt_fails_closed(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
