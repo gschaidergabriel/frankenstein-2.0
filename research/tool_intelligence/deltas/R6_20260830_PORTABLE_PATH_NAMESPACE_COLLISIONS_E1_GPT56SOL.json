@@ -1,0 +1,83 @@
+{
+  "schema": "TRIGGER6_RESEARCH_RESULT/v1",
+  "trigger": "6",
+  "research_id": "R6-20260830-PORTABLE-PATH-NAMESPACE-COLLISIONS-GPT56SOL-01",
+  "stage": "E1_SOURCE_READ",
+  "created_at": "2026-08-30T22:02:00+07:00",
+  "worker": "GPT-5.6 Sol / ChatGPT organ",
+  "claim_ref": "research/tool_intelligence/claims/R6-20260830-PORTABLE-PATH-NAMESPACE-COLLISIONS-GPT56SOL-01/E1_SOURCE_READ.json@45d735441d15af614b9d1d965eb83736c4d64771",
+  "snapshot": {
+    "f2_main_at_claim": "5c344eec1694477ba95dd256db624f505e2f34ee",
+    "research_entity_main": "7ea077dc8cedb345d191a22adb9b273c05791cc1"
+  },
+  "f2_source": {
+    "ref": "src/frankenstein2/release_integrity.py@5c344eec1694477ba95dd256db624f505e2f34ee",
+    "observed": [
+      "_canonical_relpath enforces non-empty relative canonical POSIX syntax, rejects NUL/backslash and dot/dot-dot segments, but does not enforce a portable Windows namespace subset.",
+      "ReleaseManifest rejects duplicate paths only by exact case-sensitive Python string equality.",
+      "_iter_regular_files can therefore build a valid manifest on a case-sensitive host containing names that collide or are invalid under default Windows pathname semantics."
+    ]
+  },
+  "external_primary_sources": [
+    {
+      "ref": "https://learn.microsoft.com/en-us/windows/win32/fileio/naming-a-file",
+      "finding": "Microsoft says applications should not assume case sensitivity; default Windows semantics can treat differently-cased names as the same. It also reserves characters and device names including CON/PRN/AUX/NUL/COM1..9/LPT1..9 (including extension forms) and says names should not end in a space or period."
+    },
+    {
+      "ref": "https://learn.microsoft.com/en-us/windows/wsl/case-sensitivity",
+      "finding": "Windows filesystem behavior is case-insensitive by default; per-directory case sensitivity is optional and can create interoperability problems with Windows applications."
+    },
+    {
+      "ref": "https://learn.microsoft.com/en-us/troubleshoot/windows-client/shell-experience/file-folder-name-whitespace-characters",
+      "finding": "Supported Windows clients strip ASCII trailing spaces and trailing periods on ordinary creation paths, creating additional alias/unmaterializable-name risk."
+    }
+  ],
+  "findings": [
+    {
+      "id": "F1_CASE_ALIAS_COLLISION",
+      "classification": "SOURCE_SUPPORTED_ARCHITECTURE_GAP",
+      "severity": "HIGH_FOR_PORTABLE_RELEASE_CONTRACT",
+      "statement": "A manifest containing both e.g. A/file.json and a/file.json is distinct under F2's current exact-string uniqueness rule but is not safely portable to a default case-insensitive Windows directory. The current release-integrity schema therefore proves Linux/POSIX-name determinism more strongly than cross-host namespace representability.",
+      "cheapest_falsifier": "Construct ReleaseManifest entries whose paths differ only by ASCII case and verify the current constructor accepts them; then add a portable-name projection that must reject the pair before any host handoff."
+    },
+    {
+      "id": "F2_WINDOWS_RESERVED_COMPONENT",
+      "classification": "SOURCE_SUPPORTED_ARCHITECTURE_GAP",
+      "severity": "HIGH_FOR_WINDOWS_MATERIALIZATION",
+      "statement": "Current _canonical_relpath accepts Windows-reserved components such as NUL, CON.txt, names containing colon/question-mark/asterisk and components ending in space or period. A Linux-built release can therefore be internally valid yet fail or alias when materialized through ordinary Windows APIs.",
+      "cheapest_falsifier": "Instantiate ReleaseFileEntry for representative reserved components on a non-Windows host and confirm acceptance; successor portable validation should reject them independent of build-host OS."
+    },
+    {
+      "id": "F3_BUILD_HOST_DEPENDENCE",
+      "classification": "INFERENCE_FROM_SOURCE_PLUS_PRIMARY_DOCS",
+      "severity": "MEDIUM_HIGH",
+      "statement": "Relying on the build host filesystem to reject bad names is insufficient because a Linux builder can represent namespaces that a Windows clean machine cannot. Portability must be checked from a deterministic target namespace policy, not inferred from successful source-host traversal."
+    }
+  ],
+  "counterhypotheses": [
+    "If Frankenstein 2.0 explicitly excludes native Windows filesystem materialization, this is not a current product blocker; that exclusion was not established by the inspected portable-release source.",
+    "The current exact release candidate may contain no colliding/reserved names. This E1 identifies a missing invariant, not evidence that the present payload already violates it.",
+    "Enabling case-sensitive NTFS directories can represent case-distinct names, but Microsoft documents that this is non-default and can break ordinary Windows application assumptions; it is therefore a poor implicit portability requirement."
+  ],
+  "distillation": {
+    "candidate_name": "PORTABLE_PATH_NAMESPACE_POLICY/v1",
+    "minimal_shape": [
+      "Keep canonical POSIX manifest paths as canonical identity.",
+      "Add a deterministic platform-portability validator independent of the current OS.",
+      "For the Windows-supported profile, reject forbidden characters/control chars, reserved device basenames (including extension variants), trailing ASCII space/period, and collisions under an explicitly specified Windows-equivalence key.",
+      "Apply the policy to every path component and fail before release-candidate promotion/clean-machine handoff.",
+      "Do not silently lowercase canonical identity; retain original path plus a separate collision key so provenance/hashes remain exact."
+    ],
+    "dependency_cost": "stdlib-only; no external runtime dependency",
+    "runtime_credit": 0
+  },
+  "evidence_ceiling": "E1_SOURCE_READ",
+  "research_credit": 1,
+  "architecture_credit": 0,
+  "runtime_credit": 0,
+  "physical_host_credit": 0,
+  "effect_credit": 0,
+  "completion_credit": 0,
+  "whole_system_acceptance": false,
+  "next_exact_action": "Acquire E2_ARCHITECTURE_MAPPED create-only claim, map PORTABLE_PATH_NAMESPACE_POLICY/v1 onto release_integrity + WP1111-bound release-candidate/clean-machine handoff, and hand Trigger-4 a small deterministic regression set only if current-source reentry finds no existing equivalent policy."
+}
