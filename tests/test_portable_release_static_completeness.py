@@ -3,7 +3,9 @@ from __future__ import annotations
 import json
 from pathlib import Path
 import tempfile
+from types import SimpleNamespace
 import unittest
+from unittest.mock import patch
 
 from frankenstein2.portable_release_static_completeness import (
     BLOCKED,
@@ -20,6 +22,20 @@ class PortableReleaseStaticCompletenessTests(unittest.TestCase):
         path = root / rel
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text(value, encoding="utf-8")
+
+    def _ready_prehandoff(self) -> SimpleNamespace:
+        return SimpleNamespace(
+            status="READY_FOR_REAL_HOST_HANDOFF",
+            release_id="f2-test",
+            source_commit="a" * 40,
+            release_manifest_sha256="c" * 64,
+            resolved_routes=(
+                ("claude_code", "AI_START_HERE_DO_NOT_SCAN_REPO/CLAUDE_CODE/00_DO_THIS.md"),
+                ("codex_cli", "AI_START_HERE_DO_NOT_SCAN_REPO/CODEX_CLI/00_DO_THIS.md"),
+                ("other_agent", "AI_START_HERE_DO_NOT_SCAN_REPO/OTHER_AGENT/00_DO_THIS.md"),
+                ("verify_install", "AI_START_HERE_DO_NOT_SCAN_REPO/03_VERIFY_INSTALL.md"),
+            ),
+        )
 
     def _package(self, root: Path, *, omit_runtime=False, bad_perception=False) -> None:
         route_targets = {
@@ -134,6 +150,54 @@ class PortableReleaseStaticCompletenessTests(unittest.TestCase):
             result = evaluate_portable_release_static_completeness(root, prehandoff_receipt_ref=RECEIPT_REF)
             self.assertEqual(result.status, BLOCKED)
             self.assertIn("perception_defaults:raw_frame_persistence_must_be_false", result.violations)
+
+    def test_final_symlink_substitution_after_prehandoff_fails_closed(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            self._package(root)
+            evidence = root / "workpackages/receipts/F2-WP-1108_G1_CLEAN_MACHINE_MATRIX_MAIN_CI_33253634771.json"
+            target = evidence.with_name("clean-machine-real.json")
+            target.write_text("{}\n", encoding="utf-8")
+            evidence.unlink()
+            evidence.symlink_to(target.name)
+
+            with patch(
+                "frankenstein2.portable_release_static_completeness.evaluate_pre_handoff_release",
+                return_value=self._ready_prehandoff(),
+            ):
+                result = evaluate_portable_release_static_completeness(
+                    root, prehandoff_receipt_ref=RECEIPT_REF
+                )
+
+            self.assertEqual(result.status, BLOCKED)
+            self.assertIn(
+                "baseline_runtime:evidence_ref:0:symlink_component", result.violations
+            )
+
+    def test_intermediate_symlink_substitution_after_prehandoff_fails_closed(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            self._package(root)
+            receipts = root / "workpackages/receipts"
+            real_receipts = root / "workpackages/real_receipts"
+            receipts.rename(real_receipts)
+            receipts.symlink_to(real_receipts.name, target_is_directory=True)
+
+            with patch(
+                "frankenstein2.portable_release_static_completeness.evaluate_pre_handoff_release",
+                return_value=self._ready_prehandoff(),
+            ):
+                result = evaluate_portable_release_static_completeness(
+                    root, prehandoff_receipt_ref=RECEIPT_REF
+                )
+
+            self.assertEqual(result.status, BLOCKED)
+            self.assertIn(
+                "baseline_runtime:evidence_ref:0:symlink_component", result.violations
+            )
+            self.assertIn(
+                "state_migration:acceptance_ref:symlink_component", result.violations
+            )
 
 
 if __name__ == "__main__":
