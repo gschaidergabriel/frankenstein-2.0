@@ -236,6 +236,24 @@ class PersistedRowLoadAttestationTests(unittest.TestCase):
                 checkpoint_id=checkpoint.checkpoint_id,
             )
 
+    def test_persisted_previous_checkpoint_column_must_match_loaded_checkpoint(self) -> None:
+        _, checkpoint, _, _, _ = self.sources()
+        forged_parent = checkpoint.checkpoint_id
+        self.assertNotEqual(forged_parent, checkpoint.previous_checkpoint_id)
+        self.store.connection.execute(
+            f"UPDATE {CHECKPOINT_TABLE} SET previous_checkpoint_id=? WHERE checkpoint_id=?",
+            (forged_parent, checkpoint.checkpoint_id),
+        )
+        self.store.connection.commit()
+        with self.assertRaisesRegex(
+            PersistedRowLoadAttestationError,
+            "PERSISTED_ROW_PREVIOUS_CHECKPOINT_ID_MISMATCH",
+        ):
+            attest_persisted_checkpoint_load(
+                self.store,
+                checkpoint_id=checkpoint.checkpoint_id,
+            )
+
     def test_substituted_checkpoint_id_cannot_mint_load_evidence(self) -> None:
         self.sources()
         with self.assertRaisesRegex(Exception, "CHECKPOINT_NOT_FOUND"):
