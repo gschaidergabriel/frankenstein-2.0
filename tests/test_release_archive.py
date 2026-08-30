@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Repository-level falsifiers for F2-WP-1107 generation 2."""
+"""Repository-level falsifiers for F2-WP-1107 generation 3."""
 from __future__ import annotations
 
 from dataclasses import replace
@@ -148,6 +148,20 @@ class ReleaseArchiveTests(unittest.TestCase):
                 archive.writestr("zzz-extra.txt", b"unexpected")
             with self.assertRaises(ReleaseArchiveError):
                 verify_release_archive(stream.getvalue(), policy=self.policy())
+
+    def test_unbound_container_prefix_or_trailing_bytes_fail_closed(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            populate(root, reverse=False, mtime=0, bin_mode=0o755, data_mode=0o644)
+            result = build(root, self.policy())
+            mutations = (
+                b"UNBOUND_PREFIX" + result.archive_bytes,
+                result.archive_bytes + b"UNBOUND_TRAILING_DATA",
+            )
+            for mutated in mutations:
+                with self.subTest(mutation_size=len(mutated) - len(result.archive_bytes)):
+                    with self.assertRaisesRegex(ReleaseArchiveError, "canonical deterministic encoding"):
+                        verify_release_archive(mutated, policy=self.policy())
 
     def test_wrong_expected_receipt_fails_closed(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
