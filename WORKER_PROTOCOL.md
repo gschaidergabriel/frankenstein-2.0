@@ -2,15 +2,35 @@
 
 Every Triggerword-4 worker doing Frankenstein-2.0 assembly must treat this repository as the canonical build/evidence home.
 
+## Active owner convergence priority
+
+Every worker must read `workpackages/RUNTIME_CREDIT_CONVERGENCE_DIRECTIVE.md` before selecting new material work.
+
+Current default work-selection order is:
+
+```text
+RUNTIME_CREDIT_CLOSURE
+> INTEGRATION_BLOCKER
+> EVIDENCE_RECONCILIATION
+> NEW_COMPONENT
+```
+
+An unclaimed component is **not** automatically useful work. A `NEW_COMPONENT` claim must name the concrete open integration/runtime gate it closes and explain why wiring, adapting, testing or repairing existing machinery cannot close that gate first.
+
+Workers should treat lower-tier accepted/source-ready components with zero higher-tier runtime credit as an integration-debt priority signal, not as failed components and not as permission to relabel evidence. The directive is a scheduling/coordination overlay; exact claim ownership, receipts and `PRODUCT_COMPLETION_LAW.md` still determine actual credit.
+
 ## Required cycle
 
 ```text
 REFRESH
+→ CLASSIFY RUNTIME-CREDIT / INTEGRATION / RECONCILIATION / NEW-COMPONENT WORK
 → SELECT/CLAIM WORKPACKAGE + GENERATION
+→ NAME TARGET COMPLETION TIER + INTEGRATION BOUNDARY
 → INSPECT DONOR/DEPENDENCIES
 → INSPECT ACTIVE RESEARCH PACKETS RELEVANT TO CLAIM
 → INSPECT NEWER CLAIM-SCOPED DELTAS / OVERLAP
-→ BUILD SMALLEST COHERENT STEP
+→ FUSE EXISTING ACCEPTED/SOURCE-READY PARTS FIRST
+→ BUILD SMALLEST COHERENT MISSING STEP ONLY IF REQUIRED
 → TEST
 → MEASURE + TRACE
 → RECORD NEGATIVE RESULTS / BUGS / HYPOTHESES
@@ -20,7 +40,7 @@ REFRESH
 → next_exact_action
 ```
 
-High-fan-out runs must follow `workpackages/CONVERGENCE_PROTOCOL.md`. Normal workers do not repeatedly rewrite shared canonical ledgers merely to announce progress.
+High-fan-out runs must follow `workpackages/CONVERGENCE_PROTOCOL.md` and `workpackages/RUNTIME_CREDIT_CONVERGENCE_DIRECTIVE.md`. Normal workers do not repeatedly rewrite shared canonical ledgers merely to announce progress.
 
 Active cross-workpackage research/falsification input lives under `workpackages/research_inbox/`. A research packet is evidence/input only, never mutation authority. On refresh, workers must inspect active packets, consume only items routed to their current claim, preserve source ancestry, and convert overlap with already-landed work to `REVIEW_ONLY` / `CANDIDATE_FALSIFIER` rather than creating duplicate implementation authority.
 
@@ -51,13 +71,14 @@ workpackage_id + generation + claim_id
 Before every write:
 
 1. refresh current `main`;
-2. inspect `workpackages/STATE.json`, `workpackages/CLAIM_PROTOCOL.md`, `workpackages/CONVERGENCE_PROTOCOL.md`, `workpackages/active/<workpackage_id>.json` when present, `workpackages/research_inbox/` active packets relevant to the claim, and `checkpoints/CURRENT.json` when present;
+2. inspect `workpackages/STATE.json`, `workpackages/CLAIM_PROTOCOL.md`, `workpackages/CONVERGENCE_PROTOCOL.md`, `workpackages/RUNTIME_CREDIT_CONVERGENCE_DIRECTIVE.md`, `workpackages/active/<workpackage_id>.json` when present, `workpackages/research_inbox/` active packets relevant to the claim, and `checkpoints/CURRENT.json` when present;
 3. inspect newer claim-scoped deltas for the same workpackage/generation;
 4. detect overlapping/newer claims and exact owned-path overlap;
 5. never overwrite a newer accepted generation with stale state;
 6. if equivalent canonical work already landed, stop implementation and convert the result to `REVIEW_ONLY` / `CANDIDATE_FALSIFIER` instead of creating another adapter;
 7. if overlap is useful as an independent falsifier, label it explicitly rather than pretending it is independent by default;
-8. do not multiply epistemic confidence by raw worker count: preserve primary-source, donor-path and method ancestry when a research packet defines them, because many workers may share one underlying evidence source.
+8. do not multiply epistemic confidence by raw worker count: preserve primary-source, donor-path and method ancestry when a research packet defines them, because many workers may share one underlying evidence source;
+9. before opening breadth, prefer an unowned integration boundary that can promote existing work toward the next evidence tier.
 
 ### Mechanical mutation-authority lock
 
@@ -109,6 +130,8 @@ acceptance scope
 completion deficit
 next_exact_action
 ```
+
+For convergence-priority work, the claim or first durable delta should additionally preserve the target completion tier, integration boundary, existing components being fused, smallest blocking deficit, expected runtime evidence, and any new-component necessity argument required by `workpackages/RUNTIME_CREDIT_CONVERGENCE_DIRECTIVE.md`.
 
 ## Evidence law
 
@@ -167,8 +190,8 @@ Required behavior while a runner-dependent discriminator is nonterminal:
 
 1. preserve the existing singleton/claim and do not stampede duplicate dispatches;
 2. record the exact blocked discriminator and required runtime receipt;
-3. continue independent Frankenstein-2.0 workpackages in this repository;
-4. prioritize evidence/data spine, causal identity, donor migration, GRID/GWT interfaces, memory, world-model, child ABI, Retina/Voice and cognitive-test work that can proceed without that runner;
+3. continue independent Frankenstein-2.0 work only where it closes another named runtime-credit, integration-blocker or evidence-reconciliation gate, or supplies the demonstrably smallest missing dependency for one;
+4. prefer connecting and exercising the existing evidence/data spine, causal identity, donor migrations, GRID/GWT interfaces, memory, world-model, child ABI, Retina/Voice and cognitive-test mechanisms over opening adjacent feature breadth;
 5. consume the runner result when it becomes terminal and then update only the workpackages whose acceptance actually depends on it.
 
 A stale external supervisor state written before the canonical F2 repository existed must not override this repository's current `workpackages/STATE.json`, README, checkpoints or accepted evidence.
