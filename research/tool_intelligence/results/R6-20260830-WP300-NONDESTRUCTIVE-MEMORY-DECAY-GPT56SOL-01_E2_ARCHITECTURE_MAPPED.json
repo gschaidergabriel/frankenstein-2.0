@@ -1,0 +1,94 @@
+{
+  "schema": "F2_TRIGGER6_RESEARCH_RESULT/v1",
+  "research_id": "R6-20260830-WP300-NONDESTRUCTIVE-MEMORY-DECAY-GPT56SOL-01",
+  "evidence_stage": "E2_ARCHITECTURE_MAPPED",
+  "status": "COMPLETE_AT_SCOPE",
+  "recorded_at": "2026-08-30T16:57:00+07:00",
+  "worker": "GPT-5.6-Sol/ChatGPT-organ",
+  "claim_ref": "research/tool_intelligence/claims/R6-20260830-WP300-NONDESTRUCTIVE-MEMORY-DECAY-GPT56SOL-01/E2_ARCHITECTURE_MAPPED.json",
+  "upstream_e1": "research/tool_intelligence/results/R6-20260830-WP300-NONDESTRUCTIVE-MEMORY-DECAY-GPT56SOL-01_E1_SOURCE_READ.json@a38116bbda43f4508af8fba2389d16f0a774ae93",
+  "mapping_scope": "CURRENT_F2_SOURCE_AND_TEST_ARCHITECTURE_ONLY",
+  "observed_source": {
+    "memory_lifecycle": {
+      "path": "src/frankenstein2/memory_lifecycle.py",
+      "blob_sha": "001be880bc76ead38c48a6ba8a577e46bfb4ed60",
+      "finding": "F2-WP-300 generation 1 already implements explicit ACTIVE/DEGRADED/SUPERSEDED lifecycle transitions; payload_ref, payload_sha256 and source provenance are preserved; DELETE is not a supported transition; no clock, inferred decay, retrieval ranking or UnifiedDB persistence is claimed."
+    },
+    "memory_lifecycle_test": {
+      "path": "tests/test_memory_lifecycle.py",
+      "blob_sha": "41516919cca412250488b181a9217c4bd3daa367",
+      "finding": "Source-level tests explicitly assert degradation preserves payload/provenance, supersession is redirect-only/terminal, DELETE is unsupported, stale generation/digest fail closed, and serialized contracts contain no clock/retrieval/effect/completion authority. Test-file existence is not promoted to CI/runtime credit here."
+    },
+    "emergent_retrieval": {
+      "path": "src/frankenstein2/emergent_retrieval.py",
+      "blob_sha": "8ca0c51bf88a79701ad188b9ccb0d7859feea944",
+      "finding": "F2-WP-301 deterministically ranks explicit evidence-bound multi-axis signals and preserves RETRIEVAL_SCORE != TRUTH. It is persistence-agnostic and does not mutate lifecycle state."
+    },
+    "emergent_retrieval_test": {
+      "path": "tests/test_emergent_retrieval.py",
+      "blob_sha": "44ee5d1acd062bf6ccdc742bbadc97912ccde9a8",
+      "finding": "A DEGRADED memory remains selectable and returns its preserved payload when caller-supplied scores are high. Therefore DEGRADED status by itself currently does not lower retrieval rank. SUPERSEDED memory is redirect-only and payload-suppressed."
+    },
+    "typed_memory": {
+      "path": "src/frankenstein2/typed_memory.py",
+      "blob_sha": "6bb5be7e93d300c6e2d8ae348530323f3bb6b9eb",
+      "finding": "F2-WP-303 binds FACT/EPISODE/METHOD/PROCESS type declarations to exact WP300 lifecycle identity while explicitly denying that caller type claims mint truth. This is compatible with a salience projection that never rewrites type or source evidence."
+    },
+    "familiarity_prediction": {
+      "path": "src/frankenstein2/familiarity_prediction_binding.py",
+      "blob_sha": "9519438f1587d7a9314ded1efbd0b87ed3d12152",
+      "finding": "F2-WP-302 generation 2 derives familiarity_bp from selected WP301 weighted retrieval scores and attention_priority_bp from max(familiarity, prediction_error). It validates derived WP301 scores and does not implement temporal/use-based memory decay."
+    },
+    "wp302_falsifier_test": {
+      "path": "tests/test_wp302_prebinding_derived_score_falsifier.py",
+      "blob_sha": "3ff6645e951270cb03b78df4b21341226a36dd47",
+      "finding": "Forged WP301 weighted/bottleneck/overlap scores are rejected before WP302 binding; this makes a new decay mechanism best expressed upstream as explicit evidence-bound WP301 axis signals, not as hidden WP302 score mutation."
+    }
+  },
+  "aggregate_state_contradiction": {
+    "surface": "WORKPACKAGES.md",
+    "observation": "Phase-3 WP300-WP306 remain aggregate NOT_STARTED while granular Phase-3 source and tests are present on current main.",
+    "classification": "AGGREGATE_CACHE_STALE_RELATIVE_TO_GRANULAR_SOURCE",
+    "credit_rule": "Granular source presence outranks stale aggregate for existence, but source/test-file presence alone still does not mint CI, runtime, physical-host or whole-system acceptance."
+  },
+  "e1_to_f2_fusion": {
+    "already_satisfied": [
+      "non-destructive degradation",
+      "immutable payload identity across lifecycle transitions",
+      "explicit provenance",
+      "supersession rather than silent historical rewrite",
+      "retrieval as a candidate/reference plane rather than truth authority"
+    ],
+    "remaining_gap": "There is no deterministic evidence-bound policy that turns explicit age/verified-use/lifecycle evidence into TEMPORAL/STATE salience inputs. DEGRADED is currently a lifecycle label, not a retrieval penalty. WP301 expects caller-supplied scores; WP302 consumes WP301 output and therefore does not close this gap.",
+    "non_gap": "Physical archival/deletion is a separate retention/effect-policy question and should not be conflated with ordinary retrieval forgetting."
+  },
+  "candidate_boundary": {
+    "preferred_location": "WP300-derived rebuildable MemorySalienceProjection feeding WP301 TEMPORAL/STATE RetrievalSignal inputs",
+    "must_bind": [
+      "memory_id",
+      "exact memory lifecycle state digest/generation",
+      "explicit reference time or logical tick supplied by an authorized caller",
+      "last verified-use evidence identity if used",
+      "policy identity/version",
+      "evidence refs for every score"
+    ],
+    "must_not_do": [
+      "delete or rewrite canonical payload/provenance",
+      "increase strength merely because the memory was retrieved",
+      "silently mutate WP301 derived rank scores after plan construction",
+      "turn retrieval/familiarity into truth",
+      "create a second persistence authority"
+    ]
+  },
+  "hypothesis": "A thin deterministic WP300 salience projection can close the decay gap without changing WP300 canonical lifecycle or WP301 ranking semantics: it should emit evidence-bound TEMPORAL/STATE signals that WP301 already knows how to combine.",
+  "counterhypothesis": "The explicit lifecycle state alone is sufficient; callers should choose arbitrary temporal/state scores and no shared decay policy is needed.",
+  "next_discriminator": "E4 deterministic ablation: hold semantic/goal/causal evidence constant and compare ACTIVE vs DEGRADED memories under (A) current caller-neutral scoring, (B) deterministic lifecycle/time salience projection, and (C) naive retrieval-count reinforcement. Measure ranking change and self-reinforcement behavior without deleting payloads.",
+  "research_credit": "E2_SOURCE_ARCHITECTURE_MAPPING_ONLY",
+  "ci_credit": 0,
+  "runtime_credit": 0,
+  "physical_host_credit": 0,
+  "effect_credit": 0,
+  "completion_credit": 0,
+  "training_credit": 0,
+  "whole_system_credit": 0
+}
