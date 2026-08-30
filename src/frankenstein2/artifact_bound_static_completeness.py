@@ -2,11 +2,13 @@
 
 F2-WP-1112 generation 1.
 
-This is a composition layer only.  The accepted WP1107 ``verify_release_archive`` remains
+This is a composition layer only. The accepted WP1107 ``verify_release_archive`` remains
 archive/container authority and the accepted WP1111
 ``evaluate_portable_release_static_completeness`` remains static-delivery authority.
 The composer verifies the exact ZIP before materialization, runs WP1111 on the resulting
-exact release root, and binds both subjects into one deterministic receipt.
+exact release root, and binds both subjects into one deterministic receipt. The original
+artifact locator is re-verified after WP1111 returns so mutation or path retargeting during
+the composition window fails closed.
 
 ARTIFACT_BOUND_STATIC_COMPLETE != INSTALLATION != TARGET_RUNTIME != COMPLETION
 """
@@ -103,6 +105,37 @@ def _materialize_verified_archive(archive_bytes: bytes, destination: Path) -> No
             target.write_bytes(archive.read(info.filename))
 
 
+def _assert_artifact_locator_still_exact(
+    locator: Path, resolved_path: Path, expected_bytes: bytes
+) -> None:
+    """Close the read/evaluate/return TOCTOU window on the handoff artifact locator."""
+
+    if locator.is_symlink() or locator.is_junction():
+        raise ArtifactBoundStaticCompletenessError(
+            "artifact locator changed to a symlink or junction during static evaluation"
+        )
+    try:
+        rebound = locator.resolve(strict=True)
+    except (OSError, RuntimeError) as exc:
+        raise ArtifactBoundStaticCompletenessError(
+            "artifact locator stopped resolving during static evaluation"
+        ) from exc
+    if rebound != resolved_path or not rebound.is_file():
+        raise ArtifactBoundStaticCompletenessError(
+            "artifact locator target changed during static evaluation"
+        )
+    try:
+        final_bytes = rebound.read_bytes()
+    except OSError as exc:
+        raise ArtifactBoundStaticCompletenessError(
+            "artifact could not be re-read after static evaluation"
+        ) from exc
+    if final_bytes != expected_bytes:
+        raise ArtifactBoundStaticCompletenessError(
+            "artifact mutated during static completeness evaluation"
+        )
+
+
 @dataclass(frozen=True, slots=True)
 class ArtifactBoundStaticCompletenessReceipt:
     artifact_subject: ReleaseArtifactSubject
@@ -193,14 +226,14 @@ def bind_release_artifact_static_completeness(
     """Verify exact ZIP bytes, materialize them, then execute accepted WP1111 on that root."""
 
     receipt_ref = _text(prehandoff_receipt_ref, "prehandoff_receipt_ref")
-    path = Path(artifact_path)
-    if path.is_symlink() or path.is_junction():
+    artifact_locator = Path(artifact_path)
+    if artifact_locator.is_symlink() or artifact_locator.is_junction():
         raise ArtifactBoundStaticCompletenessError(
             "artifact_path must not be a symlink or junction"
         )
     try:
-        path = path.resolve(strict=True)
-    except OSError as exc:
+        path = artifact_locator.resolve(strict=True)
+    except (OSError, RuntimeError) as exc:
         raise ArtifactBoundStaticCompletenessError("artifact_path does not resolve") from exc
     if not path.is_file():
         raise ArtifactBoundStaticCompletenessError(
@@ -245,6 +278,8 @@ def bind_release_artifact_static_completeness(
         raise ArtifactBoundStaticCompletenessError(
             "WP1111 source commit differs from exact archive subject"
         )
+
+    _assert_artifact_locator_still_exact(artifact_locator, path, archive_bytes)
 
     violations = tuple(sorted(set(static.violations)))
     status = STATIC_COMPLETE if static.status == STATIC_COMPLETE and not violations else BLOCKED
