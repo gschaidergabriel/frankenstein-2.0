@@ -1,0 +1,78 @@
+{
+  "schema": "FRANKENSTEIN2_TRIGGER6_E4_F2_ABLATION/v1",
+  "trigger": "6",
+  "research_id": "R6-20260830-WP510-RECURSIVE-MANIFEST-GPT56SOL-01",
+  "status": "E4_F2_ABLATION_COMPLETE_RESEARCH_ONLY",
+  "claim": "research/tool_intelligence/claims/R6-20260830-WP510-RECURSIVE-MANIFEST-GPT56SOL-01/E4_FROZEN_HAZARD_MUTATION_ABLATION.json@69423e8c44a9a73148c547d82720f5ef17074a0b",
+  "exact_source_commit": "c5298c3f93ae171ecd1ffcab8b87dd64b078c03f",
+  "ablation_tool": "research/tool_intelligence/experiments/wp510_manifest_mutation_ablation.py",
+  "manifest_tool": "research/tool_intelligence/experiments/wp510_recursive_manifest.py",
+  "workflow": ".github/workflows/trigger6-wp510-manifest-e4-ablation-ci.yml",
+  "github_actions": {
+    "run_id": 33318462054,
+    "job_id": 99276099023,
+    "run_conclusion": "success",
+    "job_conclusion": "success",
+    "python": "CPython 3.12.14"
+  },
+  "baseline": {
+    "root_sha256": "ac88e7542a5ba614e57b9663a2fd8267e7529d3e098b42eef46714a92b72a307",
+    "local_files": 7,
+    "local_closure_sha256": "1571b4127ba475aec8177e9382731b0f10799dd97a02a0d1a1b52706397dd9da",
+    "manifest_sha256": "5358fa6cee350443e049e84857ea1150ac2e47b8c92d8786e426ef8d6527f27c",
+    "blockers": [],
+    "runtime_extra_local_modules": []
+  },
+  "ablation_cases": {
+    "UNRELATED_REPO_CHURN": {
+      "passed": true,
+      "finding": "Root and seven-file local closure digest remain invariant; no runtime-extra local modules."
+    },
+    "TRANSITIVE_SOURCE_BYTE_MUTATION": {
+      "passed": true,
+      "finding": "Root digest remains fixed while local closure digest changes to 7265a178f328565a84975dba8efedbccfe52f07f98f22ef2ab0e64617588d950."
+    },
+    "STATIC_NEW_LOCAL_DEPENDENCY": {
+      "passed": true,
+      "finding": "Recursive closure expands from 7 to 8 files and changes digest to a4a87964a80a09edace8315f6d4b56a8355aaffa51ee22c5283ff1f220782a50."
+    },
+    "DYNAMIC_IMPORT_RUNTIME_EXTRA": {
+      "passed": true,
+      "finding": "Detected DYNAMIC_IMPORT_CALL, emitted DYNAMIC_IMPORT_OR_RUNTIME_SURFACE plus RUNTIME_STATIC_CLOSURE_MISMATCH, classified HYBRID_BOUNDED_UNPROVEN, and observed runtime-extra local module frankenstein2.r6_dynamic_extra."
+    },
+    "SYS_PATH_MUTATION": {
+      "passed": true,
+      "finding": "Detected SYS_PATH_MUTATION and classified HYBRID_BOUNDED_UNPROVEN."
+    },
+    "ENTRY_POINT_DISCOVERY": {
+      "passed": true,
+      "finding": "Detected ENTRY_POINT_DISCOVERY and classified HYBRID_BOUNDED_UNPROVEN."
+    },
+    "ENVIRONMENT_DEPENDENCY": {
+      "passed": true,
+      "finding": "Detected ENVIRONMENT_DEPENDENCY and classified HYBRID_BOUNDED_UNPROVEN."
+    },
+    "NATIVE_LIBRARY_LOAD": {
+      "passed": true,
+      "finding": "Detected NATIVE_LIBRARY_LOAD and classified HYBRID_BOUNDED_UNPROVEN."
+    }
+  },
+  "interpretation": {
+    "supported": "The research manifest predicate is sensitive to all declared WP510 dependency hazard classes tested on frozen F2 copies while remaining invariant to unrelated repository-local Python churn outside the recursive closure. Transitive byte changes and new static local dependencies invalidate the closure digest even when the root source bytes do not change.",
+    "not_supported": "E4 does not establish target-host equivalence, exhaustive Python import semantics, stdlib/native transitive closure, or a product-integrated freshness authority. It only validates the declared research predicate against these frozen-copy ablations.",
+    "architecture_delta": "A future product witness should bind the recursive local-closure digest rather than root-source digest alone, bind exact interpreter/build/import-environment identity, fail closed on dynamic discovery/native/environment surfaces, and use runtime-local-module mismatch as an explicit invalidator.",
+    "next_discriminator": "E5 build-candidate reproduction of a deterministic capture+compare witness contract with explicit INVALIDATE/REPROBE outcomes; hand off to Trigger4 only after exact tests, without granting E6/runtime credit."
+  },
+  "evidence_ceiling": "E4_F2_ABLATION_RESEARCH_ONLY",
+  "credit": {
+    "research_e4_credit": 1,
+    "architecture_credit": 0,
+    "runtime_credit": 0,
+    "target_host_credit": 0,
+    "physical_grid10_credit": 0,
+    "gwt_runtime_credit": 0,
+    "jspace_runtime_credit": 0,
+    "training_credit": 0,
+    "whole_system_credit": 0
+  }
+}
