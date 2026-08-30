@@ -1,0 +1,76 @@
+{
+  "schema": "TRIGGER6_RESEARCH_RECONCILIATION/v1",
+  "research_id": "R6-20260830-WORKPACKAGE-STATUS-MATERIALIZED-PROJECTION-GPT56SOL-01",
+  "objective": "E2_REVIEW_PR115_REBUILDABLE_PROJECTION_GAP",
+  "status": "COMPLETED_PARTIAL_OVERLAP_RECONCILED",
+  "created_at": "2026-08-30T19:29:00+07:00",
+  "worker": "GPT-5.6 Sol / ChatGPT organ",
+  "claim_commit": "6558183edf5c6203eb66b28b5ed8d4a3b6a3f696",
+  "reviewed_existing_lane": {
+    "pull_request": 115,
+    "title": "Trigger 4: WP002 G5 aggregate state projection repair",
+    "head_observed": "1cea1ad6e2517183e0eae1560d70e5c259fc33ec",
+    "state_observed": "OPEN",
+    "scope": "metadata projection/state consistency only; runtime credit zero"
+  },
+  "existing_lane_already_covers": [
+    "STATE.json treated as a cache/projection rather than an authority oracle",
+    "active pointer -> broad-state consistency checks",
+    "terminal pointer -> exact matching reconciliation checks",
+    "explicit broader_workpackage_status handling for scoped acceptance",
+    "append-only reconciliation-chain validation with parent links and unique leaf",
+    "pull-request CI coverage for state-consistency drift",
+    "runtime/whole-system credit kept at zero"
+  ],
+  "duplicate_intent_retired": "Do not create a second WP002 aggregate-projection implementation lane and do not promote the broad E2 proposal as a separate E5 candidate.",
+  "genuinely_missing_or_unproven_in_pr115": [
+    {
+      "gap": "REBUILDABLE_PROJECTOR_OWNERSHIP",
+      "observation": "PR115's test computes required repairs and the validator rejects inconsistent STATE, but the reviewed surfaces still treat STATE.json as a manually materialized file; no pure canonical builder/write-check pair was observed that can reconstruct the entire view from granular inputs.",
+      "why_it_matters": "External materialized-view guidance treats the view as disposable and rebuildable from source. Validation alone detects drift after it exists; a deterministic builder removes independent manual projection semantics."
+    },
+    {
+      "gap": "MULTI_GENERATION_ACCEPTED_SCOPE_PRESERVATION",
+      "observation": "The v1 contract exposes one scalar state value. PR115 maps an ACTIVE current pointer to IN_PROGRESS. It does not expose a structured field for highest_accepted_generation/accepted_scopes from historical terminal reconciliations while a newer generation is active.",
+      "why_it_matters": "One scalar cannot simultaneously say 'generation N accepted at scope S' and 'generation N+1 is active'. The accepted scope remains evidence but is not queryable as first-class aggregate state."
+    },
+    {
+      "gap": "PROJECTION_IDENTITY_AND_INPUT_MANIFEST",
+      "observation": "The reviewed v1 consistency contract has no projector code digest, projection schema/version, deterministic input-manifest digest, input count or last processed evidence identity.",
+      "why_it_matters": "A self-consistent stale projection needs an explicit identity/freshness witness; current repo HEAD alone is too coarse because unrelated commits should not change semantic projection content."
+    },
+    {
+      "gap": "HUMAN_LEDGER_SINGLE_DERIVATION",
+      "observation": "PR115 explicitly validates machine STATE.json surfaces; no reviewed mechanism mechanically renders/verifies WORKPACKAGES.md status markers from the same canonical projection result.",
+      "why_it_matters": "A human ledger and machine ledger maintained independently can drift even if one of them is internally valid."
+    }
+  ],
+  "recommended_nonduplicate_delta_to_existing_lane": {
+    "lane": "PR115 or its exact-current successor after rebase/reentry",
+    "do_not_create_second_branch": true,
+    "changes": [
+      "Factor the existing pointer/reconciliation precedence logic into a pure deterministic build_projection(root) function.",
+      "Add --check mode that canonicalizes and compares the generated projection with checked-in STATE; optionally add --write for explicit maintenance, never runtime truth mutation.",
+      "Add projection_meta with projector_schema_version, projector_code_digest and canonical input_manifest_digest; exclude volatile display timestamps from the canonical digest.",
+      "Extend per-workpackage machine shape compatibly (or version schema deliberately) with current_generation/current_generation_state plus highest_accepted_generation/accepted_scopes; do not infer runtime credit from either.",
+      "Add a fixture: G1 ACCEPTED_AT_SCOPE followed by G2 ACTIVE must project current_generation_state=IN_PROGRESS while preserving G1 accepted scope.",
+      "Add a contradictory same-generation fixture that fails closed instead of latest-file-wins.",
+      "Mechanically verify or render WORKPACKAGES.md status markers from the same projection output, while leaving descriptive prose human-maintained.",
+      "Preserve PR115's reconciliation-chain and explicit whole-system-zero checks unchanged."
+    ]
+  },
+  "architecture_assessment": {
+    "new_framework_dependency": false,
+    "new_database": false,
+    "new_model_call": false,
+    "authority_change": "NONE; projection remains derived cache only",
+    "expected_coordination_benefit": "reduces recurring aggregate drift and duplicate routing without adding runtime cognition cost",
+    "evidence_scope": "E2 architecture review only; no executable acceptance"
+  },
+  "counterhypothesis": "PR115 validation-only design may be intentionally sufficient; if a deterministic builder adds maintenance complexity and drift does not recur after PR115 merges, the builder portion should be omitted while the multi-generation fixture/metadata gap is reconsidered separately.",
+  "falsifier": "After PR115 or successor is rebased on exact current main, demonstrate that (a) STATE can be reconstructed byte-equivalently from granular evidence with existing code, (b) accepted G1 + active G2 is represented losslessly in machine aggregate state, and (c) WORKPACKAGES.md cannot drift independently. If all three already hold, this residual delta is obsolete.",
+  "next_exact_action": "Emit one Trigger-4 review handoff targeting PR115/successor; do not create a new E5 implementation candidate.",
+  "research_credit": "E2_REVIEW",
+  "runtime_credit": 0,
+  "whole_system_credit": 0
+}
