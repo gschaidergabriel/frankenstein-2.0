@@ -1,0 +1,80 @@
+{
+  "schema": "TRIGGER6_ARCHITECTURE_MAP/v1",
+  "trigger": "6",
+  "research_id": "R6-20260830-PORTABLE-ARCHIVE-RESOURCE-BOUNDS-GPT56SOL-01",
+  "stage": "E2_ARCHITECTURE_MAPPED",
+  "status": "ARCHITECTURE_MAPPED",
+  "worker": "GPT-5.6-Sol organ",
+  "claim_ref": "research/tool_intelligence/claims/R6-20260830-PORTABLE-ARCHIVE-RESOURCE-BOUNDS-GPT56SOL-01/E2_ARCHITECTURE_MAPPED.json@5e1fbbb23c1169d8d6264562eab6bca349f16f35",
+  "e1_ref": "research/tool_intelligence/results/R6-20260830-PORTABLE-ARCHIVE-RESOURCE-BOUNDS-GPT56SOL-01/E1_SOURCE_READ.json@b4b2b7adecdf18dbf14f0a8ccece00aad2f8e12a",
+  "snapshot": {
+    "f2_main_for_mapping": "45d735441d15af614b9d1d965eb83736c4d64771",
+    "release_archive": "src/frankenstein2/release_archive.py",
+    "release_integrity": "src/frankenstein2/release_integrity.py",
+    "portable_transaction": "src/frankenstein2/portable_release_transaction.py",
+    "portable_contract": "architecture/PORTABLE_HOST_HARNESS_AND_DISTRIBUTION_CONTRACT.md"
+  },
+  "observed_current_controls": [
+    "ReleaseArchivePolicy v1 requires ZIP_STORED and forbids ZIP64, non-ASCII paths, comments/extra metadata and directory entries.",
+    "ReleaseArchiveReceipt already binds archive_sha256, archive_size and member_count in addition to manifest_sha256 and archive policy identity.",
+    "ReleaseManifest binds every payload member to exact canonical path, SHA-256 and uncompressed size.",
+    "verify_release_archive currently accepts the entire archive as bytes, reads every member into a member_bytes dictionary and then rebuilds a second canonical archive byte string for byte-for-byte equality.",
+    "The portable transaction core is planning-only and does not supply a streaming archive-consumption path."
+  ],
+  "important_refinement_from_e1": {
+    "compression_bomb_status_for_current_v1": "STRUCTURALLY_REDUCED",
+    "reason": "The admitted generation-3 release ZIP policy is ZIP_STORED only and ZIP64 is forbidden, so classic compressed-to-expanded ratio bombs are not the primary current risk. Generic max_compression_ratio should therefore not become a new acceptance authority for v1.",
+    "current_high_value_resource_risk": "RAM_AND_IO_AMPLIFICATION_DURING_VERIFICATION",
+    "source_mechanism": "archive_bytes is already fully resident; archive.read materializes all members; canonical re-encoding materializes another archive-sized bytes object. Peak verifier memory therefore scales with total release size rather than a small streaming window."
+  },
+  "minimal_architecture_delta_candidate": {
+    "name": "MANIFEST_BOUND_STREAMING_RELEASE_VERIFIER",
+    "classification": "E2_CONCEPT_DISTILL_NOT_IMPLEMENTED_HERE",
+    "authority": "REUSES_RELEASE_ARCHIVE_RECEIPT_AND_RELEASE_MANIFEST_NO_NEW_TRUTH_AUTHORITY",
+    "install_lane_contract": [
+      "Require an expected ReleaseArchiveReceipt for install/handoff verification rather than treating it as optional.",
+      "Accept a file path or seekable file object for install-lane verification so the outer ZIP need not be loaded wholly into RAM.",
+      "Stat and stream-hash the artifact first; require exact archive_size and archive_sha256 from the expected receipt before member consumption.",
+      "Open the verified artifact with allowZip64=False and retain existing deterministic metadata/path/member-set checks.",
+      "Read the embedded canonical manifest with an explicit small manifest-byte ceiling, then use its exact file sizes and hashes as the payload byte budget.",
+      "Stream each member in bounded chunks, enforcing exact expected per-file byte count and SHA-256 and an exact total expected payload budget; do not retain all member bytes simultaneously.",
+      "For the install lane, do not rebuild a second full canonical ZIP in memory after exact outer artifact identity has matched a trusted pre-handoff receipt whose build lane already proved canonical encoding.",
+      "Continue into the separate private-staging extraction boundary only after archive identity/member verification succeeds."
+    ],
+    "build_or_source_only_lane": "The existing full canonical re-encode verifier may remain for build/source tests where proving deterministic encoding without an external trusted receipt is the objective; it should not automatically define the memory profile of the local install lane.",
+    "resource_policy": {
+      "max_archive_bytes": "BOUND_BY_EXPECTED_RECEIPT_PLUS_OPTIONAL_HOST_ABSOLUTE_CEILING",
+      "max_members": "BOUND_BY_EXPECTED_RECEIPT_AND_MANIFEST; classic ZIP hard maximum remains a format fence, not the product budget",
+      "max_manifest_bytes": "SMALL_EXPLICIT_BOOTSTRAP_LIMIT",
+      "max_total_payload_bytes": "EXACT_SUM_OF_ACCEPTED_MANIFEST_FILE_SIZES_PLUS_HOST_ABSOLUTE_CEILING",
+      "max_single_member_bytes": "EXACT_MANIFEST_ENTRY_SIZE_PLUS_OPTIONAL_HOST_ABSOLUTE_CEILING",
+      "max_compression_ratio": "NOT_REQUIRED_FOR_CURRENT_ZIP_STORED_V1; reconsider only if a future compression policy is admitted",
+      "peak_payload_memory_target": "O(chunk_size + manifest_bytes + ZIP metadata), not O(total_payload_bytes)"
+    }
+  },
+  "why_this_is_smaller_than_a_generic_archive_security_framework": [
+    "It exploits current F2's exact deterministic ZIP policy instead of supporting arbitrary ZIP/tar features.",
+    "It reuses the existing exact archive receipt and per-file manifest rather than creating a second package truth store.",
+    "It removes redundant ratio heuristics under ZIP_STORED and converts generic resource limits into exact release-specific budgets.",
+    "It separates build-time canonical-encoding proof from install-time exact-artifact consumption, allowing the latter to be streaming and cheaper."
+  ],
+  "counterhypotheses": [
+    {
+      "statement": "Real F2 release artifacts remain so small that all-at-once verification is operationally negligible.",
+      "falsifier": "Measure current verifier peak memory across increasing canonical ZIP_STORED payload sizes and compare with a bounded streaming prototype or analytical lower bound."
+    },
+    {
+      "statement": "A trusted exact archive receipt is unavailable at local handoff, so install-time canonical re-encoding cannot be safely removed.",
+      "falsifier": "Trace WP1107/WP1110 handoff receipts and the one-handoff installer input; if exact archive_sha256/policy identity is not available before install verification, retain canonical encoding proof or strengthen the handoff subject binding first."
+    },
+    {
+      "statement": "Future compressed release policy will replace ZIP_STORED soon.",
+      "impact": "Then streamed exact expanded-size enforcement remains useful, but compression-method and CPU/ratio policy must be re-evaluated under that successor policy rather than hardcoded now."
+    }
+  ],
+  "next_exact_action": "E3 local exact-source reproduction: measure current verify_release_archive incremental peak allocation versus canonical ZIP_STORED payload size. Preserve LOCAL_DETERMINISTIC_REPRODUCTION_ONLY scope. If memory scales approximately linearly with total payload as source predicts, hand a bounded streaming-verifier candidate to Trigger4 for an implementation/benchmark workpackage; otherwise terminalize the optimization hypothesis.",
+  "evidence_scope": "E2_ARCHITECTURE_MAPPING_ONLY",
+  "runtime_credit": 0,
+  "integration_credit": 0,
+  "whole_system_credit": 0
+}
