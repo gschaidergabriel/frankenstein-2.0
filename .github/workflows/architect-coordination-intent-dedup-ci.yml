@@ -1,0 +1,36 @@
+name: Architect Coordination Intent Dedup CI
+
+on:
+  push:
+    paths:
+      - tools/coordination/architect_packet.py
+      - tools/coordination/architect_intent.py
+      - tests/test_architect_worker_packet.py
+      - tests/test_architect_intent.py
+      - workpackages/ARCHITECT_COORDINATION_INTENT_DEDUP_PROTOCOL.md
+      - .github/workflows/architect-coordination-intent-dedup-ci.yml
+  pull_request:
+    paths:
+      - tools/coordination/architect_packet.py
+      - tools/coordination/architect_intent.py
+      - tests/test_architect_worker_packet.py
+      - tests/test_architect_intent.py
+      - workpackages/ARCHITECT_COORDINATION_INTENT_DEDUP_PROTOCOL.md
+      - .github/workflows/architect-coordination-intent-dedup-ci.yml
+
+permissions:
+  contents: read
+
+jobs:
+  regression:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Deterministic ACK classifier regressions
+        run: PYTHONPATH=. python tests/test_architect_worker_packet.py
+      - name: Coordination intent creation-dedup regressions
+        run: PYTHONPATH=. python tests/test_architect_intent.py
