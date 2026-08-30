@@ -1,0 +1,83 @@
+{
+  "schema": "T7_TO_T4_POLICY_GATE_V1",
+  "created_at": "2026-08-31T04:16:00+07:00",
+  "trigger": "7",
+  "organ": "GPT-5.6-Sol",
+  "research_id": "T7-FD-RTCOMPAT-001",
+  "classification": "POLICY_GATE_BEFORE_RUNTIME_INTERPRETATION",
+  "implementation_mutation_authority": false,
+  "new_runtime_dispatch": false,
+  "new_semantic_claim": false,
+  "current_f2_facts": [
+    "VoiceOutputPacket is commit_eligible only when playback_state=completed and heard_fraction=1.0.",
+    "Interrupted output may preserve a nonzero heard_fraction while remaining non-commit-eligible.",
+    "Current cited F2 packet source does not explicitly define whether the exactly-heard prefix of an interrupted response belongs in ephemeral next-turn model context."
+  ],
+  "pinned_upstream": {
+    "repository": "huggingface/speech-to-speech",
+    "revision": "3986f453012a131632eee4731995474046846794",
+    "still_current_main_at_refresh": true,
+    "relevant_fact": "The pinned local Realtime surface supports response.cancel and conversation.item.truncate, while cancellation/rollback semantics can differ from exact heard-boundary context retention."
+  },
+  "external_reference_convergence": [
+    "Current LiveKit interruption handling truncates conversation history to the portion of agent speech actually heard.",
+    "Current RealtimeSession interfaces expose message truncation at audioEndMs for playback-synchronized history."
+  ],
+  "policy_question": "For an interrupted assistant response with 0 < heard_fraction < 1, what exact assistant semantics may influence the next local model turn?",
+  "recommended_policy_candidate": {
+    "id": "RETAIN_HEARD_PREFIX_EPHEMERALLY_ONLY",
+    "status": "TRIGGER7_RECOMMENDATION_NOT_CANONICAL",
+    "rule": "The exactly measured/heard assistant prefix may remain in ephemeral next-turn dialogue context; the unheard tail must be excluded. The interrupted response remains non-commit-eligible for durable VoiceOutcome/memory/effect authority unless independently admitted.",
+    "why": [
+      "preserves conversational continuity for words the user actually heard",
+      "keeps unheard semantics from influencing later turns",
+      "preserves the existing F2 durable commit/effect boundary",
+      "matches current interruption-history practice in mature realtime voice frameworks"
+    ]
+  },
+  "counterpolicy": {
+    "id": "DROP_WHOLE_INTERRUPTED_RESPONSE",
+    "status": "ALLOWED_ONLY_IF_EXPLICITLY_SELECTED_AND_MEASURED",
+    "risk": "The next turn may exhibit conversational amnesia for speech the user demonstrably heard."
+  },
+  "authority_separation": {
+    "ephemeral_next_turn_context": "policy gate under this packet",
+    "durable_memory": "unchanged, separately gated",
+    "VoiceOutcome_commit": "unchanged, fully-heard completed output only under current contract",
+    "effect_authority": "unchanged",
+    "identity_persona": "unchanged; no second entity"
+  },
+  "required_trigger4_action": {
+    "first": "Pin one explicit interrupted-response next-turn context policy in the appropriate existing F2 voice contract/authority surface without reopening accepted WP715 packet runtime scope.",
+    "then": "Execute the existing HF09/HF10/HF02-HF05 runtime lane through the already-proven controller -> vps-clay-host path; do not create a duplicate semantic lane.",
+    "must_measure": [
+      "playout receipt/measurement identity",
+      "heard boundary ms",
+      "heard prefix digest",
+      "unheard tail digest",
+      "raw speech-server post-cancel/truncate context digest",
+      "F2 authoritative ephemeral context digest",
+      "next-turn effective model-context digest",
+      "durable memory write count",
+      "late cancelled-generation output disposition",
+      "late old-turn tool-result disposition"
+    ]
+  },
+  "classification_after_policy_pin": {
+    "if_retain_prefix_and_heard_prefix_present_unheard_tail_absent": "SEMANTIC_MATCH_CANDIDATE",
+    "if_retain_prefix_and_heard_prefix_missing": "PREFIX_AMNESIA_PRODUCT_NEGATIVE",
+    "if_any_unheard_tail_influences_next_turn": "TAIL_LEAK_PRODUCT_NEGATIVE",
+    "if_late_cancelled_output_or_tool_regains_authority": "CAUSAL_FENCING_PRODUCT_NEGATIVE",
+    "if_policy_not_pinned": "PREFIX_RETENTION_POLICY_UNRESOLVED"
+  },
+  "credit": {
+    "research_policy_evidence": 1,
+    "runtime_credit": 0,
+    "acoustic_credit": 0,
+    "german_e2e_voice_credit": 0,
+    "durable_memory_credit": 0,
+    "effect_credit": 0,
+    "whole_product_credit": 0
+  },
+  "next_exact_action": "Trigger4 pins the interrupted-response ephemeral-context policy, then executes the already-existing HF protocol lane once through the proven controller/VPS route and classifies exact measured behavior against that policy."
+}
