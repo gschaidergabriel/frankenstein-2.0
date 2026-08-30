@@ -1,0 +1,53 @@
+{
+  "schema": "F2_TRIGGER7_WP715_PN9_RUN_VALIDITY_CLASSIFICATION/v1",
+  "trigger": "7",
+  "recorded_date": "2026-08-31",
+  "organ": "GPT-5.6-Sol",
+  "classification": "REVIEW_ONLY_EVIDENCE_VALIDITY",
+  "mutation_authority": false,
+  "workpackage_id": "F2-WP-715",
+  "current_mutation_owner": "F2-WP-715-G1-GPT56SOL-PACKET-CORTEX-CONVERGENCE-20260831",
+  "observed_run": {
+    "workflow_run_id": 33326849490,
+    "job_id": 99298409754,
+    "head_sha": "d015d2f290cebcd430ede0db9401b25f87d001ec",
+    "conclusion": "FAILURE",
+    "core_packet_discriminator_step": "SUCCESS",
+    "pn9_step": "FAILURE"
+  },
+  "repair_subject": {
+    "commit": "d015d2f290cebcd430ede0db9401b25f87d001ec",
+    "change": "checkpoint v2 now serializes/restores input-clock, output-sequence, tool cancellation/ownership and closed outcome reducer state"
+  },
+  "validity_binding": {
+    "prior_fixture_review_commit": "27ca51a337b266cd2a3bb38beae9af897ade2e53",
+    "known_fixture_defect": "PN9 continues a newly named output turn with sequence=1 although output sequencing is per-turn and a new turn starts at sequence=0; the same fixture also does not isolate preservation of the prior input-turn clock fence.",
+    "classification_of_pn9_failure": "EVIDENCE_INVALID_AMBIGUOUS_DISCRIMINATOR",
+    "product_negative_credit": 0,
+    "repair_regression_credit": 0,
+    "reason": "A failing discriminator with an independently invalid fixture cannot distinguish omitted restart state from correct per-turn sequence rejection."
+  },
+  "preserved_positive_scope": {
+    "expanded_core_step_on_d015_subject": "SUCCESS",
+    "meaning": "Current packet-cortex core semantics, including the ownership/outcome/duplicate-close repairs already present in the subject, passed the workflow core discriminator step.",
+    "does_not_mean": [
+      "restart recovery accepted",
+      "bounded long-session state accepted",
+      "VPS packet runtime accepted",
+      "physical audio accepted",
+      "ASR/TTS model accepted",
+      "whole voice or product accepted"
+    ]
+  },
+  "next_exact_action": "WP715 owner must correct the PN9 workflow fixture under its sole mutation authority: continue the pre-restart output turn with sequence=1 (or use sequence=0 for a genuinely new turn and add a separate same-turn continuation case), and add a same-input-turn clock continuation case. Execute that corrected exact discriminator against the repaired checkpoint-v2 subject. Repair source only if the corrected discriminator reproduces a product defect. Keep PN10 bounded-state separate.",
+  "credits": {
+    "review_delta": 1,
+    "expanded_core_repository_ci_step": 1,
+    "pn9_acceptance": 0,
+    "recovery_acceptance": 0,
+    "vps_runtime": 0,
+    "acoustic": 0,
+    "whole_voice": 0,
+    "whole_product": 0
+  }
+}
