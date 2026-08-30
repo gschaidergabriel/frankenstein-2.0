@@ -1,0 +1,76 @@
+name: F2 WP716 Media Network Breadth Smoke
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/wp716-media-network-breadth-smoke.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  network-media-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      PYTHONPATH: src
+      F2_MEDIA_LAB_ROOT: /tmp/f2-media-network-smoke
+      F2_MEDIA_LAB_MAX_BYTES: '10737418240'
+      F2_MEDIA_LAB_LOW_WATER_BYTES: '8589934592'
+      F2_MEDIA_LAB_MAX_AGE_HOURS: '72'
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install yt-dlp
+        run: python3 -m pip install --user yt-dlp
+      - name: Fetch real public audio and video
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          python3 -m frankenstein2.media_lab_store fetch \
+            'https://raw.githubusercontent.com/scipy/scipy/main/scipy/io/tests/data/test-44100Hz-2ch-32bit-float-be.wav' \
+            | tee /tmp/audio-fetch.json
+          python3 -m frankenstein2.media_lab_store fetch \
+            'https://storage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4' \
+            | tee /tmp/video-fetch.json
+      - name: Exercise yt-dlp resolver into capped fetcher
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          export PATH="$HOME/.local/bin:$PATH"
+          python3 -m frankenstein2.media_lab_store fetch-ytdlp \
+            'https://storage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4' \
+            | tee /tmp/ytdlp-fetch.json
+      - name: Verify classes dedup and budget
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          python3 -m frankenstein2.media_lab_store status | tee /tmp/network-status.json
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          a=json.loads(Path('/tmp/audio-fetch.json').read_text())
+          v=json.loads(Path('/tmp/video-fetch.json').read_text())
+          y=json.loads(Path('/tmp/ytdlp-fetch.json').read_text())
+          s=json.loads(Path('/tmp/network-status.json').read_text())
+          assert a['kind']=='audio' and a['size']>0, a
+          assert v['kind']=='video' and v['size']>0, v
+          assert y['kind']=='video' and y['size']>0, y
+          assert y['sha256']==v['sha256'], (y,v)
+          assert s['max_bytes']==10*1024**3, s
+          assert s['usage_bytes']<=s['max_bytes'], s
+          assert s['object_count']==2, s
+          print('WP716_NETWORK_BREADTH=PASS')
+          PY
+      - name: Upload evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: wp716-network-breadth-${{ github.run_id }}
+          path: |
+            /tmp/audio-fetch.json
+            /tmp/video-fetch.json
+            /tmp/ytdlp-fetch.json
+            /tmp/network-status.json
+          if-no-files-found: warn
