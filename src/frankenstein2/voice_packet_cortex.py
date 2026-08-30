@@ -1,7 +1,7 @@
 """Deterministic text/information-packet surrogate for the F2 local-voice cortex.
 
-Trigger-7 component evidence only: no acoustic I/O, model inference, UnifiedDB write,
-external effect, target-runtime credit, or Trigger-4 acceptance is created here.
+WP715 packet/controller scope only: no acoustic I/O, model inference, UnifiedDB write,
+external effect, target-runtime credit, or whole-product acceptance is created here.
 """
 from __future__ import annotations
 
@@ -31,6 +31,7 @@ _SYSTEM_EVENTS = frozenset((
     "WAKE", "VAD_TRANSITION", "ENDPOINT_DECISION", "CANCELLATION", "TOOL_RESULT",
     "MEMORY_BIND", "ERROR", "FALLBACK", "RECOVERY", "TRANSPORT_FAILURE", "RESTART_REENTRY",
 ))
+_TERMINAL_PLAYBACK = frozenset(("interrupted", "cancelled", "completed"))
 
 
 class VoicePacketCortexError(ValueError):
@@ -248,7 +249,17 @@ class CortexEventPacket:
 
 
 class VoicePacketCortex:
-    """In-memory deterministic state machine for packet-only voice-cortex testing."""
+    """In-memory deterministic state machine for packet-only voice-cortex testing.
+
+    Resource limits are per VoiceSessionCapsule and fail closed.  The controller never evicts
+    replay/causal identity silently because doing so could turn an old replay into a new packet.
+    A caller approaching a cap must close/roll to a new causally bound VoiceSessionCapsule.
+    """
+
+    MAX_EVENTS = 4096
+    MAX_INPUT_PACKETS = 2048
+    MAX_OUTPUT_PACKETS = 1024
+    MAX_TOOL_REFS = 1024
 
     def __init__(self, session: "VoiceSessionCapsule", *, presence_state: str = "PRESENT_INTERRUPTIBLE",
                  opened_monotonic_ms: int = 0) -> None:
@@ -289,12 +300,29 @@ class VoicePacketCortex:
     def outputs(self) -> tuple[VoiceOutputPacket, ...]:
         return tuple(sorted(self._outputs.values(), key=lambda packet: (packet.turn_id, packet.sequence, packet.packet_id)))
 
+    def _require_event_capacity(self) -> None:
+        if len(self._events) >= self.MAX_EVENTS:
+            raise VoicePacketCortexError("event capacity exhausted; rotate VoiceSessionCapsule")
+
+    def _require_new_input_capacity(self) -> None:
+        if len(self._input_seen) >= self.MAX_INPUT_PACKETS:
+            raise VoicePacketCortexError("input replay capacity exhausted; rotate VoiceSessionCapsule")
+
+    def _require_new_output_capacity(self) -> None:
+        if len(self._outputs) >= self.MAX_OUTPUT_PACKETS:
+            raise VoicePacketCortexError("output packet capacity exhausted; rotate VoiceSessionCapsule")
+
+    def _require_new_tool_capacity(self) -> None:
+        if len(self._active_tools) + len(self._cancelled_tools) >= self.MAX_TOOL_REFS:
+            raise VoicePacketCortexError("tool ownership capacity exhausted; rotate VoiceSessionCapsule")
+
     def _event(self, *, turn_id: str, monotonic_ms: int, kind: str, intent: str = "WAIT",
                packet_refs: tuple[str, ...] = (), gwt_ref: str | None = None,
                memory_refs: tuple[str, ...] = (), tool_ref: str | None = None,
                detail: str = "") -> CortexEventPacket:
         if not self.is_open and kind != "SESSION_CLOSE":
             raise VoicePacketCortexError("session is closed")
+        self._require_event_capacity()
         self._event_seq += 1
         event = CortexEventPacket(
             session_id=self.session_id,
@@ -316,6 +344,7 @@ class VoicePacketCortex:
     def accept_input(self, packet: VoiceInputPacket) -> CortexEventPacket:
         if not self.is_open or packet.session_id != self.session_id:
             raise VoicePacketCortexError("closed session or input packet session mismatch")
+        self._require_event_capacity()
         digest = packet.sha256()
         prior = self._input_seen.get(packet.packet_id)
         if prior is not None:
@@ -353,6 +382,7 @@ class VoicePacketCortex:
             )
         if packet.turn_id in self._final_turns:
             raise VoicePacketCortexError("input arrived after final turn packet")
+        self._require_new_input_capacity()
         self._input_seen[packet.packet_id] = digest
         self._last_input_sequence[packet.turn_id] = packet.sequence
         self._last_input_monotonic_ms[packet.turn_id] = packet.monotonic_ms
@@ -376,6 +406,8 @@ class VoicePacketCortex:
                      sequence: int, cancellable: bool = True) -> VoiceOutputPacket:
         if not self.is_open or packet_id in self._outputs:
             raise VoicePacketCortexError("closed session or duplicate output packet_id")
+        self._require_event_capacity()
+        self._require_new_output_capacity()
         expected = self._last_output_sequence.get(turn_id, -1) + 1
         if sequence != expected:
             raise VoicePacketCortexError(f"output sequence gap/reorder: expected {expected}, got {sequence}")
@@ -408,6 +440,7 @@ class VoicePacketCortex:
                        heard_fraction: float) -> VoiceOutputPacket:
         if packet_id not in self._outputs:
             raise VoicePacketCortexError("unknown output packet")
+        self._require_event_capacity()
         current = self._outputs[packet_id]
         allowed = {
             "queued": frozenset(("started", "cancelled")),
@@ -446,10 +479,11 @@ class VoicePacketCortex:
         return updated
 
     def cancel_for_barge_in(self, *, turn_id: str, monotonic_ms: int) -> tuple[str, ...]:
+        self._require_event_capacity()
         candidates = tuple(
             (packet_id, current)
             for packet_id, current in self._outputs.items()
-            if current.playback_state not in ("completed", "cancelled", "interrupted") and current.cancellable
+            if current.playback_state not in _TERMINAL_PLAYBACK and current.cancellable
         )
         if any(monotonic_ms < current.monotonic_ms for _, current in candidates):
             raise VoicePacketCortexError("barge-in monotonic_ms precedes output state it would cancel")
@@ -483,6 +517,7 @@ class VoicePacketCortex:
                           detail: str = "") -> CortexEventPacket:
         if event_kind not in _SYSTEM_EVENTS:
             raise VoicePacketCortexError("system event kind is not admitted")
+        self._require_event_capacity()
         if event_kind == "TOOL_RESULT":
             if tool_ref is None or tool_ref in self._cancelled_tools or self._active_tools.get(tool_ref) != turn_id:
                 raise VoicePacketCortexError("late, cancelled, unknown, or cross-turn tool result rejected")
@@ -498,11 +533,15 @@ class VoicePacketCortex:
     def emit_intent(self, *, turn_id: str, monotonic_ms: int, voice_intent: str,
                     gwt_ref: str | None = None, memory_refs: tuple[str, ...] = (),
                     tool_ref: str | None = None, detail: str = "") -> CortexEventPacket:
+        if voice_intent not in _INTENTS:
+            raise VoicePacketCortexError("voice_intent is not admitted")
+        self._require_event_capacity()
         if voice_intent == "TOOL_USE":
             if tool_ref is None:
                 raise VoicePacketCortexError("TOOL_USE requires tool_ref")
             if tool_ref in self._active_tools or tool_ref in self._cancelled_tools:
                 raise VoicePacketCortexError("tool_ref already used or cancelled")
+            self._require_new_tool_capacity()
         event = self._event(
             turn_id=turn_id, monotonic_ms=monotonic_ms, kind="VOICE_INTENT",
             intent=voice_intent, gwt_ref=gwt_ref, memory_refs=memory_refs,
@@ -515,7 +554,7 @@ class VoicePacketCortex:
     def close_session(self, *, turn_id: str, monotonic_ms: int, outcome_causal_identity: "CausalIdentity",
                       outcome_kind: str, result_ref: str | None = None,
                       result_sha256: str | None = None,
-                      provenance_refs: tuple[str, ...] = ("trigger7:packet-cortex",)) -> "VoiceOutcome":
+                      provenance_refs: tuple[str, ...] = ("trigger4:wp715-packet-cortex",)) -> "VoiceOutcome":
         signature = (
             turn_id, monotonic_ms, outcome_causal_identity, outcome_kind,
             result_ref, result_sha256, provenance_refs,
@@ -524,7 +563,8 @@ class VoicePacketCortex:
             if self._closed_outcome is not None and signature == self._closed_signature:
                 return self._closed_outcome
             raise VoicePacketCortexError("session is already closed with different close identity")
-        if any(packet.playback_state not in ("completed", "cancelled", "interrupted") for packet in self._outputs.values()):
+        self._require_event_capacity()
+        if any(packet.playback_state not in _TERMINAL_PLAYBACK for packet in self._outputs.values()):
             raise VoicePacketCortexError("cannot close session with nonterminal output")
         commit_eligible = [packet for packet in self._outputs.values() if packet.commit_eligible]
         if (result_ref is not None or result_sha256 is not None) and not commit_eligible:
