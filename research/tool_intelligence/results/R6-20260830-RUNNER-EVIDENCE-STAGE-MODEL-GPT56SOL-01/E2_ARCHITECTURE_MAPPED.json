@@ -1,0 +1,238 @@
+{
+  "schema": "TRIGGER6_RESEARCH_RESULT/v1",
+  "research_id": "R6-20260830-RUNNER-EVIDENCE-STAGE-MODEL-GPT56SOL-01",
+  "claim_target": "E2_ARCHITECTURE_MAPPED",
+  "slot": "ARCHITECTURE_DELTA_FUSER",
+  "status": "COMPLETE_AT_E2",
+  "recorded_at": "2026-08-30T19:25:43+07:00",
+  "worker": "GPT-5.6 Sol / ChatGPT organ",
+  "trigger": "6",
+  "evidence_level": "E2_ARCHITECTURE_MAPPED",
+  "evidence_ceiling": "ARCHITECTURE_MAPPING_ONLY_NO_TARGET_RUNTIME_OBSERVATION",
+  "authority_snapshot": {
+    "f2_main_sha_before_result_write": "f79c628b3113e91373fea35a70bf3c70ae3efab1",
+    "research_entity_main_sha_observed": "76b8063b613ef40a7a7ddd29467fd3d885d23739",
+    "supervisor_schema": "9.13",
+    "execution_mode": "FREE_ONLY_WITH_OWNER_AUTHORIZED_VPS_AND_GITHUB",
+    "paid_external_provider_fallback": "FORBIDDEN",
+    "together": "FORBIDDEN"
+  },
+  "exact_blocked_runtime_subject": {
+    "controller_repo": "gschaidergabriel/Dr.-Unterweger",
+    "run_id": 33308965181,
+    "job_id": 99250433269,
+    "run_head_sha": "03f39ad9e03579e6a77a6a89ed493d86d281fe08",
+    "job_labels": ["self-hosted", "Linux", "X64"],
+    "job_conclusion": "cancelled",
+    "executed_steps": 0,
+    "runner_id": 0,
+    "runner_name": "",
+    "runner_group_id": 0,
+    "runner_group_name": "",
+    "classification": "CONTROL_PLANE_OR_RUNNER_TRANSPORT_EVIDENCE_ONLY_NOT_WP1207_EXECUTOR_RUNTIME_EVIDENCE"
+  },
+  "source_archaeology": {
+    "upstream_repo": "actions/runner",
+    "pinned_sha": "fb64b9b20d56951bf30c5b7333a128bc25c2d923",
+    "files": [
+      {
+        "path": "src/Runner.Listener/Runner.cs",
+        "finding": "Runner server session establishment precedes the Listening for Jobs state and message wait loop; local process/service existence therefore does not prove a connected listening session."
+      },
+      {
+        "path": "src/Runner.Listener/MessageListener.cs",
+        "finding": "CreateSessionAsync loads settings and credentials, connects to GitHub, constructs the agent session and attempts server-side session creation; this is a distinct boundary from local service/process liveness."
+      },
+      {
+        "path": "src/Misc/layoutbin/actions.runner.service.template",
+        "finding": "The stock Linux systemd unit invokes runsvc.sh and has no unconditional Restart= policy in the pinned source."
+      },
+      {
+        "path": "src/Misc/layoutbin/runsvc.sh",
+        "finding": "The service wrapper invokes RunnerService.js and propagates its exit code."
+      },
+      {
+        "path": "src/Misc/layoutbin/RunnerService.js",
+        "finding": "The stock wrapper has bounded/conditional retry behavior for selected runner exit codes; service configuration and listener/server-session health remain distinct observations."
+      }
+    ]
+  },
+  "external_primary_findings": [
+    {
+      "source": "GitHub Docs — Routing precedence for self-hosted runners",
+      "url": "https://docs.github.com/en/actions/reference/runners/self-hosted-runners",
+      "finding": "A matching self-hosted runner must be online and idle before GitHub assigns a queued job. Assignment, pickup, and execution are separate transitions."
+    },
+    {
+      "source": "GitHub Docs — Using labels with self-hosted runners",
+      "url": "https://docs.github.com/en/actions/how-tos/manage-runners/self-hosted-runners/apply-labels",
+      "finding": "Runner labels are case-insensitive; Linux/X64 capitalization is not a viable explanation for the observed zero-step job."
+    },
+    {
+      "source": "GitHub Docs — Monitoring and troubleshooting self-hosted runners",
+      "url": "https://docs.github.com/en/actions/how-tos/manage-runners/self-hosted-runners/monitor-and-troubleshoot",
+      "finding": "Offline can mean host offline, runner application not running, or inability to communicate with GitHub; direct service/process/connectivity evidence is needed to separate these causes."
+    },
+    {
+      "source": "GitHub Docs — Self-hosted runner updates",
+      "url": "https://docs.github.com/en/actions/reference/runners/self-hosted-runners",
+      "finding": "Runner update age is part of scheduling eligibility; a sufficiently stale self-hosted runner can stop receiving queued jobs and therefore version/update state is a transport-health observation."
+    }
+  ],
+  "architecture_mapping": {
+    "name": "RuntimeTransportEvidence",
+    "authority_class": "NONCANONICAL_OBSERVATIONAL_EVIDENCE",
+    "purpose": "Separate target-runtime transport/admission evidence from Frankenstein product semantics so scheduler or runner failures cannot mint or destroy semantic/runtime credit.",
+    "stages": [
+      {
+        "stage": "T0_EXACT_RUNTIME_SUBJECT_BOUND",
+        "positive_evidence": "Exact source/artifact/workflow subject digest and runtime request identity are fixed.",
+        "must_not_infer": "No host reachability, runner health, execution or target behavior."
+      },
+      {
+        "stage": "T1_LOCAL_RUNNER_CONFIG_PRESENT",
+        "positive_evidence": "Read-only local runner configuration identifies intended repository/organization registration target and local labels where available.",
+        "must_not_infer": "Configured does not mean remotely registered, online, connected or eligible."
+      },
+      {
+        "stage": "T2_REMOTE_REGISTRATION_OBSERVED",
+        "positive_evidence": "Authenticated GitHub runner roster shows the intended runner identity/status/labels, when that API surface is available.",
+        "must_not_infer": "API denial/unavailability is UNKNOWN, never runner offline."
+      },
+      {
+        "stage": "T3_SERVICE_LIVE",
+        "positive_evidence": "Owner-host systemd/service observation reports active service state at a bound timestamp.",
+        "must_not_infer": "Service active does not prove listener process/server session connectivity."
+      },
+      {
+        "stage": "T4_LISTENER_PROCESS_LIVE",
+        "positive_evidence": "Bound process observation shows runner listener/wrapper process identity, PID and start time.",
+        "must_not_infer": "Listener process existence does not prove GitHub server session creation or routing eligibility."
+      },
+      {
+        "stage": "T5_SERVER_SESSION_CONNECTED",
+        "positive_evidence": "Runner diagnostics/logs or equivalent direct observation show successful GitHub connection/session and Listening for Jobs state.",
+        "must_not_infer": "Connected listener does not prove labels/group/repository/version eligibility for the particular job."
+      },
+      {
+        "stage": "T6_ROUTE_ELIGIBLE",
+        "positive_evidence": "Required labels, repository/group access and supported runner version are positively matched for the exact job route.",
+        "must_not_infer": "Eligibility does not prove GitHub actually assigned this job to this runner. Broad self-hosted routing can remain placement-ambiguous when multiple runners qualify."
+      },
+      {
+        "stage": "T7_JOB_ASSIGNED",
+        "positive_evidence": "Exact GitHub job record binds a nonzero runner_id/name/group to the runtime request.",
+        "must_not_infer": "Assignment does not prove workflow step startup or target command execution."
+      },
+      {
+        "stage": "T8_STEP_EXECUTION_STARTED",
+        "positive_evidence": "Exact job record contains workflow step start/execution evidence on the assigned runner.",
+        "must_not_infer": "A setup or preliminary step does not prove exact WP1207 hostile-twin executor invocation."
+      },
+      {
+        "stage": "T9_DIRECT_TARGET_CAPABILITY_OBSERVED",
+        "positive_evidence": "Target-host step positively proves the expected direct capability/surface used for the runtime test, bound to the job and subject.",
+        "must_not_infer": "Capability presence does not prove hostile-twin semantics or completion."
+      },
+      {
+        "stage": "T10_EXACT_SUBJECT_TARGET_RECEIPT_VALIDATED",
+        "positive_evidence": "Exact bound runtime subject executes and yields a validated target-host receipt with provenance and result scope.",
+        "must_not_infer": "A bounded WP1207 receipt does not mint whole-system, physical GRID10, GWT, J-Space, effect or completion credit beyond its declared scope."
+      }
+    ],
+    "required_fields_minimum": [
+      "runtime_subject_digest",
+      "workflow_run_id",
+      "job_id",
+      "stage",
+      "observed_at",
+      "runner_id_or_unknown",
+      "runner_name_or_unknown",
+      "runner_group_or_unknown",
+      "labels_or_unknown",
+      "runner_version_or_unknown",
+      "host_observation_ref_or_unknown",
+      "evidence_refs",
+      "unknown_reason",
+      "evidence_digest"
+    ],
+    "fail_closed_rules": [
+      "UNKNOWN_RUNNER_ROSTER != RUNNER_OFFLINE",
+      "SERVICE_ACTIVE != SERVER_SESSION_CONNECTED",
+      "LISTENER_PROCESS_LIVE != SERVER_SESSION_CONNECTED",
+      "SERVER_SESSION_CONNECTED != ROUTE_ELIGIBLE",
+      "ROUTE_ELIGIBLE != JOB_ASSIGNED",
+      "JOB_ASSIGNED != STEP_EXECUTION_STARTED",
+      "STEP_EXECUTION_STARTED != EXACT_RUNTIME_SUBJECT_EXECUTED",
+      "ZERO_STEP_OR_NO_RUNNER_JOB != PRODUCT_RUNTIME_FAILURE",
+      "TARGET_RECEIPT_SCOPE != WHOLE_SYSTEM_ACCEPTANCE"
+    ]
+  },
+  "current_subject_classification": {
+    "highest_positive_stage": "T0_EXACT_RUNTIME_SUBJECT_BOUND",
+    "negative_observation": "The historical job reached neither T7_JOB_ASSIGNED nor T8_STEP_EXECUTION_STARTED.",
+    "runner_health_now": "UNKNOWN",
+    "why_unknown": "No fresh direct owner-host service/listener/session/version observation is available in this Trigger6 evidence set, and remote runner roster visibility is not authoritative when unavailable.",
+    "wp1207_semantic_runtime_status": "UNTESTED_BY_THIS_JOB"
+  },
+  "counterhypotheses_and_falsifiers": [
+    {
+      "hypothesis": "Runner service/listener was down or stopped.",
+      "falsifier": "Fresh owner-host service + process + journal observation around a new bound probe."
+    },
+    {
+      "hypothesis": "Runner process was live but GitHub session/connectivity failed.",
+      "falsifier": "Runner diagnostic logs/connectivity check showing successful session and Listening for Jobs."
+    },
+    {
+      "hypothesis": "Runner was connected but not eligible for the job route.",
+      "falsifier": "Positive label plus repository/group eligibility observation for the exact runner/job pair."
+    },
+    {
+      "hypothesis": "Runner software was too stale to receive jobs.",
+      "falsifier": "Exact installed runner version and update-age check against current GitHub support window."
+    },
+    {
+      "hypothesis": "Broad self-hosted routing selected or could select the wrong runner.",
+      "falsifier": "Exact runner_id assignment evidence or a deliberately restricted runner label/group chosen after observing the actual roster."
+    },
+    {
+      "hypothesis": "WP1207 hostile-twin executor failed on the owner host.",
+      "falsifier": "Only an assigned, step-executed, exact-subject target receipt can test this hypothesis; the zero-step historical job cannot."
+    }
+  ],
+  "integration_advisory_for_trigger4": {
+    "priority": "HIGH_BEFORE_NEXT_DUPLICATE_RUNTIME_DISPATCH",
+    "semantic_source_mutation_required": false,
+    "recommended_sequence": [
+      "Read-only owner-host service status, listener PID/start time, runner diagnostics, registration target, labels/group if locally visible, and exact runner version.",
+      "Use authenticated remote runner roster/status only when available; map access denial to UNKNOWN rather than offline.",
+      "Resolve T3-T6 transport health before dispatching another semantic WP1207 runtime probe.",
+      "If transport is positively healthy, retry exactly one source-bound WP1207 subject and record T7 through T10 as separately evidenced transitions.",
+      "If multiple self-hosted runners are eligible, bind routing to an exact intended runner using an observed label/group strategy before claiming target-host evidence.",
+      "Do not add an unconditional Restart= policy solely from source archaeology; first observe the actual failure mode and preserve owner-authorized VPS constraints."
+    ],
+    "candidate_artifact": "A small append-only RuntimeTransportEvidence receipt/gate owned by the build/runtime evidence layer, not by canonical product state.",
+    "integration_status": "ADVISORY_ONLY_TRIGGER4_MUST_IMPLEMENT_TEST_AND_ACCEPT"
+  },
+  "nonduplication": {
+    "runner_diagnostics_e1": "ALREADY_OWNED_BY_PARALLEL_TRIGGER6_ORGAN_NOT_DUPLICATED",
+    "runner_roster_api_e1": "PARALLEL_RESULT_REUSED_AS_INPUT",
+    "runner_dispatch_admission_e1": "PARALLEL_RESULT_REUSED_AS_INPUT",
+    "new_runtime_dispatch": false
+  },
+  "credit": {
+    "trigger6_research_e2": 1,
+    "target_runtime": 0,
+    "wp1207_executor_runtime": 0,
+    "physical_grid10": 0,
+    "gwt": 0,
+    "jspace": 0,
+    "effect": 0,
+    "completion": 0,
+    "training": 0,
+    "whole_system": 0
+  },
+  "next_exact_action": "Trigger4 should perform one fresh read-only owner-host runner lifecycle/connection/version inspection. If and only if the intended runner is positively connected and eligible, execute one exact-source WP1207 retry and capture runner assignment, step start, direct target capability and target receipt as separate evidence stages.",
+  "acceptance": "PASS_AT_E2_ARCHITECTURE_MAPPING_ONLY"
+}
