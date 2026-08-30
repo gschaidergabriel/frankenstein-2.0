@@ -1,0 +1,99 @@
+{
+  "architectural_proposal": {
+    "acceptance_gates": [
+      "PREDECLARE temporal split/run admission before candidate emission; no future rows or evaluator-only fixture data in predictor inputs",
+      "BASELINE gate: target-specific model must beat declared naive baseline on proper/point score; otherwise reject extra complexity",
+      "TIME_BASIS gate: every temporal predictor declares WALL_CLOCK/PULSE/EPISODE/CAUSAL_EVENT/FIXED_WINDOW semantics; no silent index-as-time",
+      "CALIBRATION gate: evaluate horizon-specific empirical coverage + width + proper score + reliability; aggregate coverage alone is insufficient",
+      "REGIME gate: include predeclared drift/regime-shift slices; static residual percentiles are not admitted as sufficient based on this experiment",
+      "OVERCONFIDENCE falsifier: same hard decisions with more extreme probabilities must be distinguishable by evaluator score",
+      "AUTHORITY gate: prediction/calibration/surprise never mints world truth, effect, completion, scheduler or canonical-state authority",
+      "COMPLEXITY gate: do not admit DLT/KTR/learned predictor until persistence/EWMA/seasonal/trend baselines establish target-level forecastability"
+    ],
+    "do_not_change": "F2-WP-202 PredictionContract deterministic semantics and candidate-only/no-world-truth boundary",
+    "new_candidate_contracts": [
+      {
+        "authority": "measurement/candidate only",
+        "fields": ["basis_id","state_fingerprint_sha256","time_basis","origin_time","horizon_value","horizon_unit","feature_frame_sha256","predictor_id","predictor_generation","training_window_sha256"],
+        "name": "TemporalPredictionBasis/v1",
+        "time_basis_values": ["WALL_CLOCK","PULSE_INDEX","EPISODE_STEP","CAUSAL_EVENT_INDEX","FIXED_WINDOW"]
+      },
+      {
+        "fields": ["prediction_contract_sha256","temporal_basis_sha256","target_id","distribution_kind","quantiles_or_class_probabilities","calibration_method_id","calibration_state_sha256","classification"],
+        "name": "ProbabilisticPredictionEnvelope/v1",
+        "required_classification": "PROBABILISTIC_PREDICTION_CANDIDATE_NOT_WORLD_TRUTH_NOT_EFFECT_AUTHORITY"
+      },
+      {
+        "fields": ["run_admission_sha256","split_descriptor_sha256","target_id","horizon","sample_count","baseline_id","brier_or_quantile_score","log_loss_optional","interval_score_optional","coverage","interval_width","reliability_bins","regime_slice_metrics","classification"],
+        "name": "PredictionCalibrationReceipt/v1",
+        "required_classification": "EVALUATOR_ONLY_CALIBRATION_EVIDENCE_NOT_WORLD_TRUTH"
+      },
+      {
+        "authority": "candidate signal only; cannot authorize ACT/effect/completion by itself",
+        "fields": ["prediction_residual_sha256","calibration_receipt_sha256","normalized_surprise_bp","interval_violation","status","classification"],
+        "name": "PredictiveSurpriseCandidate/v1",
+        "status_values": ["EXPECTED","SURPRISING","UNKNOWN"]
+      }
+    ]
+  },
+  "authority": {
+    "clay_authority_epoch": "8.78",
+    "coordination_issue": 664,
+    "f2_main_at_experiment_start": "ccd6aa17cedba2481103161d34a861066c5da90b",
+    "f2_main_refreshed_before_routing": "fb293b754fd17127be6c5c9ddadbb4abfb5256b6",
+    "rule": "refresh current main + exact active claim/reconciliation before mutation; this packet never grants mutation authority"
+  },
+  "classification": "RESEARCH_ONLY_NOT_MUTATION_AUTHORITY_NOT_RUNTIME_CREDIT",
+  "created_at_utc": "2026-08-30T06:04:00Z",
+  "credit": {"canonical_semantics":0,"completion":0,"effects":0,"gwt_jspace":0,"physical_grid10":0,"runtime":0,"training":0,"vps_runtime":0,"whole_system":0},
+  "donor_source": {
+    "backtest_py_sha256": "e257c9615e4588560e14a1a0e543033f8536a82c4c3fa51f812a49edf2a275e6",
+    "interpretation": "architecture/mechanism donor only; do not vendor blindly",
+    "metrics_py_sha256": "08ea43270da6634e11331875516994950844abe7fc1ad6888b0cb8d11985aa55",
+    "uploaded_zip": "orbit-dev.zip",
+    "zip_sha256": "3b4d292bfe4d83b4b5b93ad00d5680b72e2242cbb760ce750d57a8543b236e88"
+  },
+  "experiment_results": {
+    "H1_TIME_BASIS": {"implication":"time_basis must be explicit in ABI; event index is not a safe proxy for wall clock on irregular streams","irregular_event_trend_event_index_mae":9.950284538561922,"irregular_event_trend_wall_clock_mae":1.5754583269465052,"status":"SUPPORTED","wall_clock_over_event_index_mae_ratio":0.1583329924728163},
+    "H2_CALIBRATION_INFORMATION": {"brier_calibrated":0.19815706769206043,"brier_overconfident_same_decision":0.25525000000000003,"ece_calibrated":0.09067647717202403,"ece_overconfident_same_decision":0.2503571428571429,"implication":"CORRECT/INCORRECT hard score cannot distinguish calibrated from overconfident predictions when decisions are identical; add proper probabilistic score in a successor layer without changing accepted WP803 v2 semantics","log_loss_calibrated":0.5922884117089403,"log_loss_overconfident_same_decision":1.2064226111206857,"same_accuracy":0.7396428571428572,"same_hard_score":0.47928571428571426,"status":"SUPPORTED"},
+    "H3_BASELINES_ARE_TARGET_SPECIFIC": {"implication":"no global predictor admission; each target must beat a declared naive baseline under held-out temporal replay","orbit_iclaims_best":"persistence","orbit_iclaims_mae":{"ewma_a025":0.21878887459414764,"persistence":0.2025727837713424,"seasonal_naive":0.2399927466458704,"trend_event_index":0.2906572417492205},"regular_best":"seasonal_naive","regular_mae":{"ewma_a025":4.489806109343415,"persistence":3.612206682248941,"seasonal_naive":2.568289057746749,"trend_event_index":3.48521675554162},"status":"SUPPORTED_MIXED"},
+    "H4_ORBIT_RMSSE_SAFETY": {"falsifier":{"input":{"prediction":[10.0,11.0],"test":[10.0,11.0],"train":[0.0,1.0,2.0,3.0]},"result":{"is_finite":false,"returned":null},"source_observation":"function indexes first non-zero from train_actual but then assigns train_actual = test_actual[first_nz:]"},"implication":"do not use uploaded Orbit rmsse() for F2 evidence; implement/review metrics independently with exact regressions","status":"FALSIFIED_FOR_UPLOADED_SOURCE"},
+    "H5_STATIC_OR_SIMPLE_ROLLING_INTERVAL_CALIBRATION": {"iclaims_persistence_coverage":{"expanding":0.6730769230769231,"rolling_32":0.6346153846153846,"rolling_64":0.6322115384615384,"rolling_96":0.6370192307692307},"implication":"nominal 90% intervals under-cover under regime shift/nonstationarity; rolling residual windows alone are not an admission-grade calibration method","irregular_wallclock_coverage":{"expanding":0.7255,"rolling_32":0.67975,"rolling_64":0.70725,"rolling_96":0.7525},"regular_seasonal_coverage":{"expanding":0.8335648148148148,"rolling_32":0.7831018518518519,"rolling_64":0.8351851851851851,"rolling_96":0.8435185185185186},"status":"NOT_SUFFICIENT"}
+  },
+  "external_research": [
+    {"f2_use":"make horizon + distribution/interval explicit rather than a free-form confidence number","finding":"point forecasts should be accompanied by uncertainty; multi-step uncertainty generally grows with horizon","source":"Forecasting: Principles and Practice 3e — Distributional forecasts and prediction intervals","url":"https://otexts.com/fpp3/prediction-intervals.html"},
+    {"f2_use":"proper scores belong in evaluator-side CalibrationReceipt, not in model authority","finding":"quantile scores, Winkler interval score and CRPS evaluate probabilistic forecasts; lower is better","source":"Forecasting: Principles and Practice 3e — Evaluating distributional forecast accuracy","url":"https://otexts.com/fpp3/distaccuracy.html"},
+    {"f2_use":"record both proper score and explicit reliability/ECE-style calibration evidence","finding":"Brier/log loss are strictly proper but conflate calibration and discrimination; reliability/calibration curves are needed to inspect calibration itself","source":"scikit-learn 1.9 probability calibration docs","url":"https://scikit-learn.org/stable/modules/calibration.html"},
+    {"f2_use":"calibration gate must test sequential/conditional coverage, not only aggregate coverage","finding":"time dependence/distribution shift can violate nominal coverage; descriptive coverage/width alone can miss adaptation failures","source":"Retzlaff et al. 2025, PMLR — Testing Marginal and Conditional Coverage in Conformal Prediction for Non-Stationary Time Series","url":"https://proceedings.mlr.press/v266/retzlaff25a.html"},
+    {"f2_use":"candidate next experiment: horizon-specific adaptive calibration; do not claim guarantees until exact assumptions/tests are satisfied","finding":"adaptive conformal procedures can tune significance online and separately across horizons for non-exchangeable time series","source":"Hallberg Szabadvary 2024, PMLR — Adaptive Coverage for Multi-Step Ahead Time-Series Forecasting Online","url":"https://proceedings.mlr.press/v230/hallberg-szabadvary24a.html"},
+    {"f2_use":"treat adaptive calibration as a dedicated mechanism with explicit assumptions and falsifiers","finding":"classical split-conformal exchangeability is violated by temporal dependence and shifts; recent methods reweight/update residual distributions or adapt target coverage","source":"Stocker et al. 2025 review — Conformal Time Series Forecasting","url":"https://arxiv.org/abs/2511.13608"},
+    {"f2_use":"reuse temporal replay pattern, not Orbit truth/metric authority","finding":"expanding and rolling temporal windows are native evaluation patterns","source":"Uber Orbit backtest documentation","url":"https://uber.github.io/orbit/tutorials/backtest.html"}
+  ],
+  "next_experiments_ranked": [
+    {"cost":"LOW","goal":"add evaluator-only Brier/log-loss/reliability path on held-out micro-world predictions while preserving existing hard outcome semantics","info_gain":"VERY_HIGH","name":"WP803 probabilistic same-decision falsifier","rank":1},
+    {"cost":"LOW_MEDIUM","goal":"compare static residual quantiles vs adaptive conformal/coverage update on predeclared nonstationary sequences","info_gain":"VERY_HIGH","name":"horizon-specific adaptive calibration replay","rank":2},
+    {"cost":"MEDIUM","goal":"find one irregular real F2 metric and compare event-index vs wall-clock prediction with exact telemetry lineage","info_gain":"HIGH","name":"time-basis falsifier in real F2 telemetry","rank":3},
+    {"cost":"HIGH","goal":"only after baseline skill and calibration gates pass; compare complexity against admitted naive baselines","info_gain":"CONDITIONAL","name":"KTR/DLT donor candidate","rank":4}
+  ],
+  "organ": "GPT-5.6-Sol/federated-architect-research",
+  "packet_sha256": "f0b390c788dce04937e2525606473fe8de4566f3378789f346f52ffd7e0afbfc",
+  "reproducibility": {
+    "adaptive_calibration_probe_sha256": "8e578a3f3c65b47a9e77a2b758b4c7332eb0f894a78457f8b99630c323bae29d",
+    "experiment_json_sha256": "d2d7984c722d7923e68659d928e4e5d147378bb4650f62f45cd515e9ade0b3d9",
+    "experiment_script_sha256": "afbce17677d1d70bc60b6e3eb34bdd9f7d988272d77a1a01e7685fa2541c91cd",
+    "probabilistic_method": "empirical past one-step residual quantiles p05/p50/p95; second probe compares expanding vs last 32/64/96 residuals",
+    "seeds": [1000,1001,1002,1003,1004,1005,1006,1007,1008,1009,1010,1011,1012,1013,1014,1015,1016,1017,1018,1019],
+    "splitter": "Orbit TimeSeriesSplitter expanding-window, no future rows in train"
+  },
+  "schema": "FRANKENSTEIN2_ORBIT_PREDICTIVE_CALIBRATION_RESEARCH_PACKET/v1",
+  "subject": "Orbit donor experiment -> probabilistic prediction, calibration, temporal replay, time-basis and successor routing for Frankenstein 2.0",
+  "worker_routing_summary": {
+    "F2-WP-202": "READ/DEPENDENCY ONLY. G4 ACCEPTED; do not reopen from this research. Keep deterministic residual ABI unchanged.",
+    "F2-WP-302": "SUCCESSOR RESEARCH CANDIDATE. Calibrated surprise can sit downstream of residual+retrieval evidence, but no mutation without a new exact scope/claim.",
+    "F2-WP-505": "FUTURE CONSUMER ONLY. Calibrated predictive uncertainty may inform bounded allocation candidates later; never directly grant compute/effect authority.",
+    "F2-WP-701": "FUTURE CONSUMER ONLY. Perception surprise can use calibrated expectations later while preserving observed-vs-inferred separation.",
+    "F2-WP-800": "EVALUATOR SUBSTRATE. Reuse accepted held-out micro-world/run descriptor concepts; do not recreate harness or same-generation identity.",
+    "F2-WP-803": "PRIMARY SUCCESSOR TARGET. Preserve accepted v2 hard outcome benchmark and add parallel probability/calibration evaluation only under a new explicit successor/higher-scope run-admission claim.",
+    "F2-WP-901": "NO BLOCK/NO MUTATION. Current Stage-9 restart/recovery claim is orthogonal; research must not disturb its owned paths."
+  }
+}
