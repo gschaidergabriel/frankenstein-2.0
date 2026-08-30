@@ -1,0 +1,65 @@
+{
+  "schema": "F2_TRIGGER7_WP715_VPS_SUBJECT_SCOPE_FALSIFIER/v1",
+  "trigger": "7",
+  "recorded_date": "2026-08-31",
+  "organ": "GPT-5.6-Sol",
+  "classification": "CANDIDATE_FALSIFIER_REVIEW_ONLY",
+  "mutation_authority": false,
+  "workpackage_id": "F2-WP-715",
+  "current_adopted_scope": {
+    "authority_commit": "96a736cd0af5f6128f88247e4a6d7535f8e43d64",
+    "packet_source": "src/frankenstein2/voice_packet_cortex.py",
+    "recovery_source": "src/frankenstein2/voice_packet_cortex_recovery.py",
+    "packet_tests": "tests/test_voice_packet_cortex.py",
+    "recovery_tests": "tests/test_voice_packet_cortex_recovery.py",
+    "latest_repository_ci_commit": "c54918e088ef6a97e23b1ec51be7d5be9ecb0bef",
+    "latest_repository_ci_run_id": 33326870056,
+    "latest_repository_ci_result": "SUCCESS"
+  },
+  "vps_workflow_observation": {
+    "workflow": ".github/workflows/t4-packet-cortex-full-duplex-falsifier.yml",
+    "observed_at_commit": "c54918e088ef6a97e23b1ec51be7d5be9ecb0bef",
+    "push_paths_include": [
+      "src/frankenstein2/voice_packet_cortex.py",
+      "tests/test_voice_packet_cortex.py",
+      "research/local_voice/tools/falsify_voice_packet_cortex.py",
+      ".github/workflows/t4-packet-cortex-full-duplex-falsifier.yml"
+    ],
+    "push_paths_missing_from_adopted_scope": [
+      "src/frankenstein2/voice_packet_cortex_recovery.py",
+      "tests/test_voice_packet_cortex_recovery.py"
+    ],
+    "executed_probe": "research/local_voice/tools/falsify_voice_packet_cortex.py",
+    "probe_scope": [
+      "PN6 input/output/barge monotonic rollback",
+      "PN7 duplicate/order/gap output sequence"
+    ],
+    "adopted_scope_not_exercised_by_probe": [
+      "late tool ownership cancellation fence",
+      "cancelled/unheard result binding",
+      "duplicate close idempotency",
+      "checkpoint/restart continuation PN9",
+      "bounded replay/transient state PN10",
+      "recovery source/tests"
+    ]
+  },
+  "candidate_id": "PN11_VPS_FALSIFIER_SCOPE_LAGS_ADOPTED_PACKET_RECOVERY_COMPONENT",
+  "risk": "A green VPS receipt from the current t4 packet falsifier can prove only the PN6/PN7 clock/order subset. It cannot promote the adopted packet+recovery component as a whole because recovery changes do not trigger the workflow and the sandbox probe never imports or executes the recovery surface or the later causal/outcome/close discriminators.",
+  "failure_class": "EVIDENCE_INVALID_FOR_BROAD_PACKET_RECOVERY_VPS_PROMOTION",
+  "required_repair": [
+    "Bind recovery source/tests into the exact VPS workflow subject/trigger set.",
+    "Execute the current repository packet suite and recovery suite in the sandbox, or extend the bounded falsifier with equivalent exact discriminators.",
+    "Include PN9 same-turn restart continuation and PN10 explicit bounded-state measurement before broad packet+recovery VPS promotion.",
+    "Retain outbound model/ASR/TTS call count=0 and all acoustic/target/physical/whole-system zero-credit fences."
+  ],
+  "credit": {
+    "review_delta": 1,
+    "existing_vps_clock_order_subset_credit": 0,
+    "packet_recovery_vps_component_credit": 0,
+    "target_runtime_credit": 0,
+    "acoustic_credit": 0,
+    "whole_voice_credit": 0,
+    "whole_product_credit": 0
+  },
+  "next_exact_action": "WP715 owner expands the existing single VPS falsifier authority rather than creating a second workflow: bind the adopted recovery source/tests, run the exact current packet+recovery repository discriminators plus PN9/PN10 inside S1/S2, emit one exact-scope receipt, and promote only the executed subset."
+}
