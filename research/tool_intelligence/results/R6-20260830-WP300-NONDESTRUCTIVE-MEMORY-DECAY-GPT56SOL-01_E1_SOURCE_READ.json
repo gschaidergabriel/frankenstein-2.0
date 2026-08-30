@@ -1,0 +1,87 @@
+{
+  "schema": "F2_TRIGGER6_RESEARCH_RESULT/v1",
+  "research_id": "R6-20260830-WP300-NONDESTRUCTIVE-MEMORY-DECAY-GPT56SOL-01",
+  "evidence_stage": "E1_SOURCE_READ",
+  "status": "COMPLETE_AT_SCOPE",
+  "recorded_at": "2026-08-30T16:52:00+07:00",
+  "worker": "GPT-5.6-Sol/ChatGPT-organ",
+  "claim_ref": "research/tool_intelligence/claims/R6-20260830-WP300-NONDESTRUCTIVE-MEMORY-DECAY-GPT56SOL-01/E1_SOURCE_READ.json",
+  "snapshot": {
+    "f2_initial_head": "b8841141a5b9ec3026b8e38af2c57cf0bb93759a",
+    "claim_commit": "896dace33d6698cada14d32f50432966619ee624",
+    "f2_reentry_head_before_result": "0dcd9b6c464a091af2512df8bb6e489d192f09ff",
+    "research_entity_head": "4c63063eaa24a1c7ce8f756fe8dc25e9160ac671",
+    "supervisor_surface": "9.13BI_NON_AUTHORITY via research_entity/claycode/autonomous/SUPERVISOR_INBOX.json",
+    "trigger6_protocol_blob": "08571526d33f9a0c06577e2f119bdaf4297ef1c8"
+  },
+  "target": {
+    "workpackage": "F2-WP-300",
+    "goal": "memory evolution/degradation without destructive forgetting",
+    "constraint": "canonical facts, episodes, causal provenance and effect evidence must not be physically deleted or silently rewritten merely because retrieval salience decays"
+  },
+  "external_primary_sources": [
+    {
+      "project": "zhongwanjun/MemoryBank-SiliconFriend",
+      "pin": "cf61c4196e4cfdb0f2b7a0316249fa40312dc3a9",
+      "paper": "Zhong et al., MemoryBank: Enhancing Large Language Models with Long-Term Memory, AAAI 2024 / arXiv:2305.10250",
+      "source_path": "memory_bank/memory_retrieval/forget_memory.py",
+      "finding": "The paper intends retention to increase with memory strength after recall. The public source implements forgetting_curve as math.exp(-t / 5*S), which Python evaluates as exp((-t/5)*S), so increasing S lowers retention instead of raising it. The loader then samples forget_ids and physically pops forgotten dialog records from the stored history before rewriting the memory file.",
+      "wp300_relevance": "Strong negative donor: useful idea is temporal/retrieval decay; destructive deletion and the precedence-sensitive formula are unsafe for F2 canonical evidence."
+    },
+    {
+      "project": "joonspk-research/generative_agents",
+      "pin": "fe05a71d3e4ed7d10bf68aa4eda6dd995ec070f4",
+      "paper": "Park et al., Generative Agents: Interactive Simulacra of Human Behavior, UIST 2023 / arXiv:2304.03442",
+      "finding": "The architecture stores a complete record of agent experiences and retrieves dynamically using recency, importance and relevance, while reflections are additional higher-level memories.",
+      "wp300_relevance": "Positive donor for separating retention of historical records from query-time salience. Importance is model-assigned in that system and therefore must remain a noncanonical candidate signal in F2."
+    },
+    {
+      "project": "WujiangXu/A-mem",
+      "pin": "0c8039f28fdcc08189a23c07a3437d9d2482f9c2",
+      "paper": "Xu et al., A-MEM: Agentic Memory for LLM Agents, arXiv:2502.12110",
+      "source_paths": ["memory_layer.py", "memory_layer_robust.py", "llm_text_parsers.py"],
+      "finding": "A-MEM links memories and lets an LLM-driven evolution step update historical neighbors' context and tags in place; the robust source assigns notetmp.tags and notetmp.context from model-generated updates.",
+      "wp300_relevance": "Useful donor for derived links/tags, but direct mutation of historical semantic metadata is incompatible with evidence-grade provenance unless versioned as a derived projection with explicit source lineage."
+    },
+    {
+      "project": "SQLite FTS5 official documentation",
+      "source": "https://www.sqlite.org/fts5.html",
+      "finding": "FTS5 supports external-content indexes whose canonical column values remain in another SQLite table; the index can be integrity-checked and rebuilt from that content table. SQLite explicitly warns that index/content inconsistency must be controlled.",
+      "wp300_relevance": "Strong systems donor for a rebuildable retrieval projection over canonical UnifiedDB content without turning the retrieval index into a second truth store."
+    }
+  ],
+  "code_level_discriminator": {
+    "memorybank_expression": "exp(-t / 5*S)",
+    "python_semantics": "exp((-t/5)*S)",
+    "example_t_1_S_1": 0.8187307531,
+    "example_t_1_S_10": 0.1353352832,
+    "direction": "INVERTED_RELATIVE_TO_DOCUMENTED_STRENGTH_SEMANTICS",
+    "destructive_forgetting": "OBSERVED: forgotten history entries are removed with list.pop() and the modified memory bank is written back"
+  },
+  "hypothesis": "F2-WP-300 should implement forgetting as a deterministic, rebuildable access/salience projection over immutable or explicitly versioned canonical memory records. Time decay may lower retrieval priority; successful evidence-bearing recall may update separate access metadata; neither operation should erase the underlying canonical record.",
+  "counterhypothesis": "Physical pruning of old memories is necessary to bound storage and retrieval cost; preserving every record will make F2 slower and may flood retrieval with stale content.",
+  "source_discriminator_result": "COUNTERHYPOTHESIS_PARTIALLY_REJECTED_AT_E1: retrieval cost can be bounded by ranking/index projections while preserving source records, as demonstrated conceptually by complete-record retrieval architectures and concretely by SQLite external-content FTS indexes. Long-term physical storage growth remains a separate retention/archival policy problem and is not solved by this E1 result.",
+  "candidate_architecture_direction": {
+    "canonical_layer": "append/preserve source memory and provenance; supersession is explicit, not silent overwrite",
+    "derived_access_layer": "last_accessed_at, recall_count, deterministic time-decay score, optional noncanonical importance/relevance signals",
+    "retrieval_projection": "rebuildable FTS/vector/hybrid indexes referencing canonical memory IDs",
+    "evolution": "new links/tags/summaries become versioned derived records with provenance rather than in-place mutation of historical evidence",
+    "forgetting": "means exclusion/down-ranking from ordinary retrieval, not destruction of canonical evidence"
+  },
+  "anti_patterns": [
+    "random deletion from canonical memory based on a retention probability",
+    "in-place model-authored rewrite of historical evidence metadata without version/provenance",
+    "stored decay values that require periodic rewrite when they can be computed lazily from stable inputs",
+    "retrieval index treated as truth rather than rebuildable projection",
+    "recall-count reinforcement without a control for self-reinforcing retrieval loops"
+  ],
+  "next_discriminator": "E2 architecture map against current F2 UnifiedDB/memory substrate: identify the smallest tables/interfaces needed for immutable memory record + versioned supersession + access-state projection, and prove no second authority or destructive delete path is required.",
+  "evidence_scope": "EXTERNAL_PRIMARY_SOURCE_AND_SOURCE_CODE_READ_ONLY",
+  "research_credit": "E1_SOURCE_READ_ONLY",
+  "runtime_credit": 0,
+  "physical_host_credit": 0,
+  "effect_credit": 0,
+  "completion_credit": 0,
+  "training_credit": 0,
+  "whole_system_credit": 0
+}
