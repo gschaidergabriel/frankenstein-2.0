@@ -1,0 +1,183 @@
+name: WP901 G4 active-claim persisted row-load attestation CI
+
+on:
+  pull_request:
+    paths:
+      - 'src/frankenstein2/restart_recovery_persisted_row_load_attestation.py'
+      - 'tests/test_restart_recovery_persisted_row_load_attestation.py'
+      - 'src/frankenstein2/persistent_agency_kernel.py'
+      - 'src/frankenstein2/restart_recovery_source_authentication.py'
+      - 'src/frankenstein2/restart_recovery_continuation.py'
+      - 'tests/test_restart_recovery_source_authentication.py'
+      - 'tests/test_restart_recovery_continuation.py'
+      - 'tests/falsifier_wp901_plan_semantic_consistency.py'
+      - 'tests/falsifier_wp901_reason_code_consistency.py'
+      - '.github/workflows/wp901-g4-active-claim-row-load-ci.yml'
+      - 'workpackages/active/F2-WP-901.json'
+  push:
+    branches:
+      - main
+    paths:
+      - 'src/frankenstein2/restart_recovery_persisted_row_load_attestation.py'
+      - 'tests/test_restart_recovery_persisted_row_load_attestation.py'
+      - 'src/frankenstein2/persistent_agency_kernel.py'
+      - 'src/frankenstein2/restart_recovery_source_authentication.py'
+      - 'src/frankenstein2/restart_recovery_continuation.py'
+      - 'tests/test_restart_recovery_source_authentication.py'
+      - 'tests/test_restart_recovery_continuation.py'
+      - 'tests/falsifier_wp901_plan_semantic_consistency.py'
+      - 'tests/falsifier_wp901_reason_code_consistency.py'
+      - '.github/workflows/wp901-g4-active-claim-row-load-ci.yml'
+      - 'workpackages/active/F2-WP-901.json'
+      - 'workpackages/reconciliations/F2-WP-901/**'
+      - 'workpackages/receipts/F2-WP-901*'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  exact-row-load-and-g2-g3-regression:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout exact workflow ref
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - name: Compile G2 G3 and repaired G4 surfaces
+        run: >-
+          python -m py_compile
+          src/frankenstein2/restart_recovery_continuation.py
+          src/frankenstein2/restart_recovery_source_authentication.py
+          src/frankenstein2/restart_recovery_persisted_row_load_attestation.py
+          tests/test_restart_recovery_continuation.py
+          tests/falsifier_wp901_plan_semantic_consistency.py
+          tests/falsifier_wp901_reason_code_consistency.py
+          tests/test_restart_recovery_source_authentication.py
+          tests/test_restart_recovery_persisted_row_load_attestation.py
+      - name: Run accepted G2 regressions
+        env: {PYTHONPATH: src}
+        run: >-
+          python -m unittest -v tests.test_restart_recovery_continuation
+          tests.falsifier_wp901_plan_semantic_consistency
+          tests.falsifier_wp901_reason_code_consistency
+      - name: Run accepted G3 regressions
+        env: {PYTHONPATH: src}
+        run: python -m unittest -v tests.test_restart_recovery_source_authentication
+      - name: Diagnose G4 discovery shape exactly ten tests
+        continue-on-error: true
+        env: {PYTHONPATH: src}
+        run: |
+          python - <<'PY'
+          import unittest
+          import tests.test_restart_recovery_persisted_row_load_attestation as m
+          suite = unittest.defaultTestLoader.loadTestsFromModule(m)
+          ids = []
+          def walk(s):
+              for item in s:
+                  if isinstance(item, unittest.TestSuite):
+                      walk(item)
+                  else:
+                      ids.append(item.id().rsplit('.', 1)[-1])
+          walk(suite)
+          expected = [
+              'test_exact_persisted_row_load_preserves_g3_g2_semantics',
+              'test_expected_evidence_digest_mismatch_fails_after_exact_row_load',
+              'test_forged_seal_predecessor_digest_is_rejected_after_real_row_load',
+              'test_forged_seal_predecessor_id_is_rejected_after_real_row_load',
+              'test_g3_mixed_causal_lineage_rejection_still_applies_after_row_load',
+              'test_hostile_store_subclass_is_rejected_before_loader_dispatch',
+              'test_persisted_authority_receipt_drift_fails_inside_canonical_wp206_loader',
+              'test_persisted_checkpoint_json_tamper_fails_inside_canonical_wp206_loader',
+              'test_receipt_binds_exact_row_predecessor_and_zero_credit_boundary',
+              'test_unifieddb_authority_fingerprint_schema_mismatch_fails_closed',
+          ]
+          raise SystemExit(0 if ids == expected else 1)
+          PY
+      - name: Diagnose G4 ordered group A
+        continue-on-error: true
+        env: {PYTHONPATH: src}
+        run: >-
+          python -m unittest -v
+          tests.test_restart_recovery_persisted_row_load_attestation.RestartRecoveryPersistedRowLoadAttestationTests.test_exact_persisted_row_load_preserves_g3_g2_semantics
+          tests.test_restart_recovery_persisted_row_load_attestation.RestartRecoveryPersistedRowLoadAttestationTests.test_expected_evidence_digest_mismatch_fails_after_exact_row_load
+          tests.test_restart_recovery_persisted_row_load_attestation.RestartRecoveryPersistedRowLoadAttestationTests.test_forged_seal_predecessor_digest_is_rejected_after_real_row_load
+          tests.test_restart_recovery_persisted_row_load_attestation.RestartRecoveryPersistedRowLoadAttestationTests.test_forged_seal_predecessor_id_is_rejected_after_real_row_load
+          tests.test_restart_recovery_persisted_row_load_attestation.RestartRecoveryPersistedRowLoadAttestationTests.test_g3_mixed_causal_lineage_rejection_still_applies_after_row_load
+      - name: Diagnose G4 ordered group B
+        continue-on-error: true
+        env: {PYTHONPATH: src}
+        run: >-
+          python -m unittest -v
+          tests.test_restart_recovery_persisted_row_load_attestation.RestartRecoveryPersistedRowLoadAttestationTests.test_hostile_store_subclass_is_rejected_before_loader_dispatch
+          tests.test_restart_recovery_persisted_row_load_attestation.RestartRecoveryPersistedRowLoadAttestationTests.test_persisted_authority_receipt_drift_fails_inside_canonical_wp206_loader
+          tests.test_restart_recovery_persisted_row_load_attestation.RestartRecoveryPersistedRowLoadAttestationTests.test_persisted_checkpoint_json_tamper_fails_inside_canonical_wp206_loader
+          tests.test_restart_recovery_persisted_row_load_attestation.RestartRecoveryPersistedRowLoadAttestationTests.test_receipt_binds_exact_row_predecessor_and_zero_credit_boundary
+          tests.test_restart_recovery_persisted_row_load_attestation.RestartRecoveryPersistedRowLoadAttestationTests.test_unifieddb_authority_fingerprint_schema_mismatch_fails_closed
+      - name: Diagnose G4 explicit all ten same process
+        continue-on-error: true
+        env: {PYTHONPATH: src}
+        run: >-
+          python -m unittest -v
+          tests.test_restart_recovery_persisted_row_load_attestation.RestartRecoveryPersistedRowLoadAttestationTests.test_exact_persisted_row_load_preserves_g3_g2_semantics
+          tests.test_restart_recovery_persisted_row_load_attestation.RestartRecoveryPersistedRowLoadAttestationTests.test_expected_evidence_digest_mismatch_fails_after_exact_row_load
+          tests.test_restart_recovery_persisted_row_load_attestation.RestartRecoveryPersistedRowLoadAttestationTests.test_forged_seal_predecessor_digest_is_rejected_after_real_row_load
+          tests.test_restart_recovery_persisted_row_load_attestation.RestartRecoveryPersistedRowLoadAttestationTests.test_forged_seal_predecessor_id_is_rejected_after_real_row_load
+          tests.test_restart_recovery_persisted_row_load_attestation.RestartRecoveryPersistedRowLoadAttestationTests.test_g3_mixed_causal_lineage_rejection_still_applies_after_row_load
+          tests.test_restart_recovery_persisted_row_load_attestation.RestartRecoveryPersistedRowLoadAttestationTests.test_hostile_store_subclass_is_rejected_before_loader_dispatch
+          tests.test_restart_recovery_persisted_row_load_attestation.RestartRecoveryPersistedRowLoadAttestationTests.test_persisted_authority_receipt_drift_fails_inside_canonical_wp206_loader
+          tests.test_restart_recovery_persisted_row_load_attestation.RestartRecoveryPersistedRowLoadAttestationTests.test_persisted_checkpoint_json_tamper_fails_inside_canonical_wp206_loader
+          tests.test_restart_recovery_persisted_row_load_attestation.RestartRecoveryPersistedRowLoadAttestationTests.test_receipt_binds_exact_row_predecessor_and_zero_credit_boundary
+          tests.test_restart_recovery_persisted_row_load_attestation.RestartRecoveryPersistedRowLoadAttestationTests.test_unifieddb_authority_fingerprint_schema_mismatch_fails_closed
+      - name: Diagnose G4 A plus hostile subclass
+        continue-on-error: true
+        env: {PYTHONPATH: src}
+        run: >-
+          python -m unittest -v
+          tests.test_restart_recovery_persisted_row_load_attestation.RestartRecoveryPersistedRowLoadAttestationTests.test_exact_persisted_row_load_preserves_g3_g2_semantics
+          tests.test_restart_recovery_persisted_row_load_attestation.RestartRecoveryPersistedRowLoadAttestationTests.test_expected_evidence_digest_mismatch_fails_after_exact_row_load
+          tests.test_restart_recovery_persisted_row_load_attestation.RestartRecoveryPersistedRowLoadAttestationTests.test_forged_seal_predecessor_digest_is_rejected_after_real_row_load
+          tests.test_restart_recovery_persisted_row_load_attestation.RestartRecoveryPersistedRowLoadAttestationTests.test_forged_seal_predecessor_id_is_rejected_after_real_row_load
+          tests.test_restart_recovery_persisted_row_load_attestation.RestartRecoveryPersistedRowLoadAttestationTests.test_g3_mixed_causal_lineage_rejection_still_applies_after_row_load
+          tests.test_restart_recovery_persisted_row_load_attestation.RestartRecoveryPersistedRowLoadAttestationTests.test_hostile_store_subclass_is_rejected_before_loader_dispatch
+      - name: Diagnose G4 A plus first two B
+        continue-on-error: true
+        env: {PYTHONPATH: src}
+        run: >-
+          python -m unittest -v
+          tests.test_restart_recovery_persisted_row_load_attestation.RestartRecoveryPersistedRowLoadAttestationTests.test_exact_persisted_row_load_preserves_g3_g2_semantics
+          tests.test_restart_recovery_persisted_row_load_attestation.RestartRecoveryPersistedRowLoadAttestationTests.test_expected_evidence_digest_mismatch_fails_after_exact_row_load
+          tests.test_restart_recovery_persisted_row_load_attestation.RestartRecoveryPersistedRowLoadAttestationTests.test_forged_seal_predecessor_digest_is_rejected_after_real_row_load
+          tests.test_restart_recovery_persisted_row_load_attestation.RestartRecoveryPersistedRowLoadAttestationTests.test_forged_seal_predecessor_id_is_rejected_after_real_row_load
+          tests.test_restart_recovery_persisted_row_load_attestation.RestartRecoveryPersistedRowLoadAttestationTests.test_g3_mixed_causal_lineage_rejection_still_applies_after_row_load
+          tests.test_restart_recovery_persisted_row_load_attestation.RestartRecoveryPersistedRowLoadAttestationTests.test_hostile_store_subclass_is_rejected_before_loader_dispatch
+          tests.test_restart_recovery_persisted_row_load_attestation.RestartRecoveryPersistedRowLoadAttestationTests.test_persisted_authority_receipt_drift_fails_inside_canonical_wp206_loader
+      - name: Diagnose G4 A plus first three B
+        continue-on-error: true
+        env: {PYTHONPATH: src}
+        run: >-
+          python -m unittest -v
+          tests.test_restart_recovery_persisted_row_load_attestation.RestartRecoveryPersistedRowLoadAttestationTests.test_exact_persisted_row_load_preserves_g3_g2_semantics
+          tests.test_restart_recovery_persisted_row_load_attestation.RestartRecoveryPersistedRowLoadAttestationTests.test_expected_evidence_digest_mismatch_fails_after_exact_row_load
+          tests.test_restart_recovery_persisted_row_load_attestation.RestartRecoveryPersistedRowLoadAttestationTests.test_forged_seal_predecessor_digest_is_rejected_after_real_row_load
+          tests.test_restart_recovery_persisted_row_load_attestation.RestartRecoveryPersistedRowLoadAttestationTests.test_forged_seal_predecessor_id_is_rejected_after_real_row_load
+          tests.test_restart_recovery_persisted_row_load_attestation.RestartRecoveryPersistedRowLoadAttestationTests.test_g3_mixed_causal_lineage_rejection_still_applies_after_row_load
+          tests.test_restart_recovery_persisted_row_load_attestation.RestartRecoveryPersistedRowLoadAttestationTests.test_hostile_store_subclass_is_rejected_before_loader_dispatch
+          tests.test_restart_recovery_persisted_row_load_attestation.RestartRecoveryPersistedRowLoadAttestationTests.test_persisted_authority_receipt_drift_fails_inside_canonical_wp206_loader
+          tests.test_restart_recovery_persisted_row_load_attestation.RestartRecoveryPersistedRowLoadAttestationTests.test_persisted_checkpoint_json_tamper_fails_inside_canonical_wp206_loader
+      - name: Diagnose G4 A plus first four B
+        continue-on-error: true
+        env: {PYTHONPATH: src}
+        run: >-
+          python -m unittest -v
+          tests.test_restart_recovery_persisted_row_load_attestation.RestartRecoveryPersistedRowLoadAttestationTests.test_exact_persisted_row_load_preserves_g3_g2_semantics
+          tests.test_restart_recovery_persisted_row_load_attestation.RestartRecoveryPersistedRowLoadAttestationTests.test_expected_evidence_digest_mismatch_fails_after_exact_row_load
+          tests.test_restart_recovery_persisted_row_load_attestation.RestartRecoveryPersistedRowLoadAttestationTests.test_forged_seal_predecessor_digest_is_rejected_after_real_row_load
+          tests.test_restart_recovery_persisted_row_load_attestation.RestartRecoveryPersistedRowLoadAttestationTests.test_forged_seal_predecessor_id_is_rejected_after_real_row_load
+          tests.test_restart_recovery_persisted_row_load_attestation.RestartRecoveryPersistedRowLoadAttestationTests.test_g3_mixed_causal_lineage_rejection_still_applies_after_row_load
+          tests.test_restart_recovery_persisted_row_load_attestation.RestartRecoveryPersistedRowLoadAttestationTests.test_hostile_store_subclass_is_rejected_before_loader_dispatch
+          tests.test_restart_recovery_persisted_row_load_attestation.RestartRecoveryPersistedRowLoadAttestationTests.test_persisted_authority_receipt_drift_fails_inside_canonical_wp206_loader
+          tests.test_restart_recovery_persisted_row_load_attestation.RestartRecoveryPersistedRowLoadAttestationTests.test_persisted_checkpoint_json_tamper_fails_inside_canonical_wp206_loader
+          tests.test_restart_recovery_persisted_row_load_attestation.RestartRecoveryPersistedRowLoadAttestationTests.test_receipt_binds_exact_row_predecessor_and_zero_credit_boundary
+      - name: Run repaired G4 regressions
+        env: {PYTHONPATH: src}
+        run: python -m unittest -v tests.test_restart_recovery_persisted_row_load_attestation
