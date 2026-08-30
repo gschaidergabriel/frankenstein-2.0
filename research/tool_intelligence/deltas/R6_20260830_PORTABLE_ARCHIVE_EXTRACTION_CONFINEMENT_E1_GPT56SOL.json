@@ -1,0 +1,59 @@
+{
+  "schema": "TRIGGER6_SOURCE_READ_RESULT/v1",
+  "trigger": "6",
+  "research_id": "R6-20260830-PORTABLE-ARCHIVE-EXTRACTION-CONFINEMENT-GPT56SOL-01",
+  "stage": "E1_SOURCE_READ",
+  "status": "SOURCE_READ_COMPLETE",
+  "worker": "chatgpt-trigger6-organ-gpt56sol",
+  "claim_ref": "research/tool_intelligence/claims/R6-20260830-PORTABLE-ARCHIVE-EXTRACTION-CONFINEMENT-GPT56SOL-01/E1_SOURCE_READ.json@8f648ead8592305d195647a87760f508c148d876",
+  "architecture_snapshot": {
+    "f2_main_at_claim": "d8b3cbd799d3005bc94eda6d379fa02a400581e5",
+    "f2_main_at_result_reentry": "0aa74ea864cace822bcfcee1abc488cc36779a98",
+    "portable_contract": "architecture/PORTABLE_HOST_HARNESS_AND_DISTRIBUTION_CONTRACT.md",
+    "release_integrity": "src/frankenstein2/release_integrity.py"
+  },
+  "source_pins": [
+    {
+      "kind": "F2_CURRENT_SOURCE",
+      "ref": "src/frankenstein2/release_integrity.py@d8b3cbd799d3005bc94eda6d379fa02a400581e5",
+      "finding": "F2 canonicalizes manifest paths, forbids absolute/dot/dotdot/backslash paths, duplicate manifest paths, symlink directories/files and non-regular staged entries, and binds SHA-256 plus size for each regular file. The module verifies an already-materialized package root; it contains no ZIP extraction primitive."
+    },
+    {
+      "kind": "F2_ARCHITECTURE_SOURCE",
+      "ref": "architecture/PORTABLE_HOST_HARNESS_AND_DISTRIBUTION_CONTRACT.md@d8b3cbd799d3005bc94eda6d379fa02a400581e5",
+      "finding": "The product contract requires a release-candidate ZIP handed to a receiving local coding agent, but the installer sequence begins by resolving package root/manifest and does not normatively bind the extractor implementation or extraction-time confinement semantics."
+    },
+    {
+      "kind": "EXTERNAL_PRIMARY_SOURCE",
+      "repo": "python/cpython",
+      "commit": "b3ddde433e69166ecdf40095349f69e08997e9cb",
+      "path": "Lib/zipfile/__init__.py",
+      "finding": "CPython ZipFile._extract_member lexically removes absolute roots and dot/dotdot components, then creates parent directories with os.makedirs and writes with open(targetpath, 'wb'). It does not acquire every destination component with a no-follow/beneath filesystem primitive. Duplicate ZIP names are permitted at write time with a warning."
+    },
+    {
+      "kind": "EXTERNAL_PRIMARY_DOC",
+      "source": "Python 3.14 zipfile documentation",
+      "finding": "ZipFile.extract/extractall normalize suspicious member names but the documentation still warns against blindly extracting untrusted archives; zipfile.Path explicitly does not sanitize archive names."
+    },
+    {
+      "kind": "EXTERNAL_PRIMARY_OS_INTERFACE",
+      "source": "Linux openat2(2)",
+      "finding": "Linux provides RESOLVE_BENEATH/RESOLVE_IN_ROOT/RESOLVE_NO_SYMLINKS to constrain pathname resolution for untrusted paths, including race-aware escape detection. This is a stronger filesystem-object acquisition primitive than lexical path normalization alone."
+    }
+  ],
+  "e1_findings": [
+    "No current evidence supports calling F2 release_integrity itself vulnerable to ZIP path traversal: it does not extract ZIP archives and its staged-root manifest verifier already rejects symlink/non-regular entries.",
+    "There is nevertheless an architecture-scope gap between the required release ZIP and the first normative installer step: extractor identity and extraction-time confinement are not bound in the portable distribution contract observed here.",
+    "Lexical ZIP member sanitization and post-extraction manifest verification are different controls. A hostile or concurrently mutated destination filesystem can invalidate assumptions between name validation and file creation unless extraction occurs in a fresh/private staging root or uses stronger no-follow/beneath semantics.",
+    "The active WP1110/WP1111 route-symlink research remains separate: that lane concerns path references in the materialized package. This result concerns the ZIP-to-materialized-root boundary and must not duplicate the active lane."
+  ],
+  "counterhypotheses": [
+    "If F2 release ZIPs are always generated from a symlink-free exact-hash-bound tree, transferred without mutation, extracted by a controlled installer into a newly created private staging directory, and immediately verified by release_integrity before any code is used, then Linux-specific openat2 hardening may add little value and should not become a mandatory dependency.",
+    "If the receiving coding agent or platform already guarantees a fresh isolated extraction root and records the extractor identity, the missing contract may be documentary/receipt-level rather than a new runtime module."
+  ],
+  "evidence_ceiling": "E1_SOURCE_READ_ONLY",
+  "runtime_credit": 0,
+  "integration_credit": 0,
+  "whole_system_credit": 0,
+  "next_exact_action": "Acquire a non-overlapping E2 architecture-mapping claim and map the minimal extractor->staging->manifest-verify->installer-use boundary. Prefer a small cross-platform contract/validator delta over importing a framework; reserve openat2-style enforcement for threat models where fresh-private staging plus post-extraction verification is insufficient."
+}
