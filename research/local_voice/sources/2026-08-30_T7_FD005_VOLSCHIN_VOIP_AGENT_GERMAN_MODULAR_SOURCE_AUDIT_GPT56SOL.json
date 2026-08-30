@@ -1,0 +1,83 @@
+{
+  "schema": "T7_SOURCE_AUDIT/v2",
+  "trigger": "7",
+  "research_id": "T7-FD-005",
+  "objective": "E1_VOLSCHIN_VOIP_AGENT_GERMAN_MODULAR_SOURCE_AUDIT",
+  "worker": "GPT-5.6-Sol-TRIGGER7",
+  "observed_date": "2026-08-30",
+  "semantic_key": "31184163ee33b253c72a5e2adf81694fd8d69094ec0c6c7919084bea9549877b",
+  "f2_claim_commit": "8c13b22aea67c8fc7366a11a803f453933e333bc",
+  "upstream": {
+    "repository": "volschin/voip-agent",
+    "commit": "dc397a77884b403291828aeb7fe5f35d86cce773",
+    "repository_description": "German-language voice AI agent — Fritzbox SIP + PJSIP + Qwen3-ASR/TTS + Nous Hermes on DGX Spark",
+    "license_metadata": null,
+    "license_boundary": "NO_RECOGNIZED_LICENSE_OBSERVED_IN_REPOSITORY_METADATA_OR_PYPROJECT_AT_PIN; DIRECT_CODE_REUSE_NOT_ADMITTED_BY_THIS_AUDIT"
+  },
+  "scope": "Source-only audit. No upstream code execution, dependency installation, model download, target-host execution, F2 integration, German E2E benchmark, room-microphone AEC test or Trigger-4 acceptance was performed.",
+  "evidence": [
+    {
+      "type": "SOURCE_DIRECT",
+      "path": "README.md",
+      "finding": "The pinned source describes a German local voice path using PJSUA2 16 kHz PCM -> VAD -> Qwen3-ASR -> local LLM/tool loop -> Qwen3-TTS -> PCM/RTP, with LLM-token segmentation and sentence-level synthesis/playback overlap."
+    },
+    {
+      "type": "SOURCE_DIRECT",
+      "path": "agent/conversation.py",
+      "finding": "Barge-in is causally fenced by a per-call generation counter. Speech during SPEAKING/PROCESSING increments generation, marks previous_response_interrupted, cancels and awaits the old playback task, clears the sink, resets VAD, then starts the replacement streamed turn."
+    },
+    {
+      "type": "SOURCE_DIRECT",
+      "path": "agent/pipeline.py",
+      "finding": "The streaming path appends the assistant response to history only after the full producer/consumer path completes. A cancellation before completion therefore does not append the partial assistant response. The next LLM call receives a one-shot German system context saying the previous response was interrupted and must not be continued unprompted."
+    },
+    {
+      "type": "SOURCE_DIRECT",
+      "path": "agent/pipeline.py",
+      "finding": "Production TTS streaming is sentence-granular, not codec/sample-native: each completed sentence uses the stable whole-WAV TTS endpoint, then yields bounded PCM blocks. At most two completed sentence segments may prefetch."
+    },
+    {
+      "type": "SOURCE_DIRECT",
+      "path": "agent/turn_detector.py",
+      "finding": "Smart Turn v3 is revision-pinned and in-process ONNX, but the constructor calls hf_hub_download when no injected test session is provided. Unmodified adoption therefore does not satisfy Frankenstein's zero-network target-runtime invariant unless the artifact is pre-provisioned and loading is changed/fenced to local-only."
+    },
+    {
+      "type": "SOURCE_DIRECT_TEST",
+      "path": "tests/test_conversation.py",
+      "finding": "Source tests exercise stream cancellation under a full output queue, bounded playback backlog, playback-error clearing, and a real PJSIP barge-in path that waits for the old producer finalizer before starting clean replacement output. These are source/test assets only; this Trigger-7 audit did not execute them."
+    },
+    {
+      "type": "UPSTREAM_MEASUREMENT_CLAIM_NOT_F2_MEASUREMENT",
+      "path": "README.md",
+      "finding": "The upstream README reports short German acceptance probes of 282 ms ASR, 861 ms non-streaming TTS and 609 ms to a diagnostic stream chunk on NVIDIA GB10. These values are not percentile characterization and grant zero Frankenstein runtime credit."
+    },
+    {
+      "type": "NEGATIVE_EVIDENCE",
+      "path": "repository metadata + root listing + pyproject.toml",
+      "finding": "No recognized project license was observed at the pinned revision. The repository API reports license=null and pyproject.toml declares no license. This audit therefore treats the project as an architecture/test donor only, not a directly reusable code donor."
+    }
+  ],
+  "transferable_mechanisms": [
+    "generation-fenced cancellation of stale voice output",
+    "await-old-producer-finalization-before-replacement",
+    "sink/playback-buffer clear on interruption or streaming failure",
+    "do-not-persist-partial-assistant-response",
+    "one-shot interrupted-response context on the next model turn",
+    "byte-bounded playback backlog rather than unbounded item queues",
+    "revision-pinned in-process turn detector with explicit CPU thread caps"
+  ],
+  "nontransferable_or_unproven": [
+    "The telephony/SIP acoustic path is not evidence for Frankenstein room-microphone/open-speaker AEC robustness.",
+    "Sentence-level whole-WAV TTS is not evidence for true sample-native low-latency synthesis.",
+    "README latency probes are hardware- and stack-specific upstream measurements, not F2 measurements.",
+    "hf_hub_download at runtime conflicts with F2 zero-network target-runtime requirements unless replaced by pre-provisioned local artifact loading.",
+    "Direct source-code reuse is not admitted while license status remains unresolved."
+  ],
+  "hypothesis": "The highest-value donor contribution is not the upstream model stack but its causal turn-state discipline: generation fencing + cancellation finalization + playback clearing + conservative assistant-history commit can prevent Frankenstein from reasoning from speech the human never heard.",
+  "counterhypothesis": "The apparent robustness is dominated by telephony transport semantics; without an explicit room-audio AEC/reference path the same VAD/barge-in controller may self-trigger on Frankenstein's own speaker output and fail in the target interaction geometry.",
+  "cheapest_high_information_discriminator": "Port only the protocol semantics, not the code: add/verify deterministic F2 voice-harness tests for stale-generation rejection, cancellation-finalizer ordering, unheard-assistant non-commit, playback-buffer clearing and bounded ahead-audio. Separately require a pre-provisioned local turn-model artifact and open-speaker AEC loopback before any target-runtime promotion.",
+  "result": "HIGH_VALUE_STATE_AND_CANCELLATION_ARCHITECTURE_DONOR__NOT_A_DIRECT_CODE_OR_FULL_DUPLEX_RUNTIME_CANDIDATE_AT_SOURCE_SCOPE",
+  "source_credit": 1,
+  "runtime_credit": 0,
+  "acceptance_credit": 0
+}
