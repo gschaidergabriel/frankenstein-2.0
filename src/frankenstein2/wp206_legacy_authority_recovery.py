@@ -128,10 +128,11 @@ def recover_legacy_g1_checkpoint_authority(
 ) -> LegacyAuthorityRecoveryReceipt:
     """Explicitly rebind one externally witnessed legacy G1 row to current file authority.
 
-    The caller-supplied legacy receipt is an external recovery input, not a value learned
-    from the row during recovery.  A checkpoint can be recovered once.  Exact repeat calls
-    are idempotent only while the row still carries the recorded rebound receipt; any later
-    receipt drift fails closed and cannot be laundered through another recovery call.
+    The caller-supplied legacy receipt and provenance are external recovery inputs, not
+    values learned from the row during recovery.  A checkpoint can be recovered once.
+    Exact repeat calls are idempotent only when the historical receipt, provenance and
+    rebound authority all still match the first recovery; conflicting repeat provenance
+    or later receipt drift fails closed and cannot be laundered through another call.
     """
     if not isinstance(store, CanonicalPersistentAgencyStore):
         raise PersistentAgencyError("CANONICAL_PERSISTENT_AGENCY_STORE_REQUIRED")
@@ -225,6 +226,10 @@ def recover_legacy_g1_checkpoint_authority(
             if recorded_legacy != expected_legacy:
                 raise PersistentAgencyError(
                     "LEGACY_RECOVERY_EXTERNAL_RECEIPT_CONFLICT"
+                )
+            if recorded_provenance != provenance_ref:
+                raise PersistentAgencyError(
+                    "LEGACY_RECOVERY_PROVENANCE_CONFLICT"
                 )
             if recorded_rebound != current_receipt:
                 raise PersistentAgencyError(
