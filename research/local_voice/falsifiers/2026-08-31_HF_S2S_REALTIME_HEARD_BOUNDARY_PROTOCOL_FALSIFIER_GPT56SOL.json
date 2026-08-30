@@ -1,0 +1,158 @@
+{
+  "schema": "T7_REALTIME_PROTOCOL_FALSIFIER/v1",
+  "trigger": "7",
+  "research_id": "T7-FD-RTCOMPAT-001",
+  "objective": "F1_HF_S2S_HEARD_BOUNDARY_AND_AUTHORITY_FALSIFIER",
+  "claim_semantic_key": "8c53f25ed47c458bb727dd4dc82f788241cee699e428c4d97401a965a4eb375e",
+  "classification": "REVIEW_ONLY_CANDIDATE_FALSIFIER",
+  "implementation_mutation_authority": false,
+  "target": "Pinned huggingface/speech-to-speech OpenAI-Realtime-compatible local server integrated behind the existing Frankenstein 2.0 voice boundary",
+  "purpose": "Falsify protocol compatibility specifically at the barge-in heard/unheard boundary, conversation authority boundary, tool cancellation boundary and zero-external-inference boundary before treating the local cascade as a drop-in realtime transport replacement.",
+  "source_review_basis": {
+    "upstream_observed_client_events": [
+      "input_audio_buffer.append",
+      "input_audio_buffer.commit",
+      "output_audio_buffer.clear",
+      "session.update",
+      "conversation.item.create",
+      "response.create",
+      "response.cancel"
+    ],
+    "upstream_not_observed_in_event_map": [
+      "conversation.item.truncate",
+      "conversation.item.truncated"
+    ],
+    "f2_required_semantics": [
+      "queued unheard output is cancelled with heard_fraction=0 and commit_eligible=false",
+      "started/heard output interrupted by barge-in remains non-commit-eligible",
+      "barge-in fences outstanding tool ownership",
+      "only fully heard completed output may become commit-eligible",
+      "VoiceOutcome result reference requires fully heard commit-eligible output"
+    ]
+  },
+  "oracle_law": [
+    "Stopping audio generation is not sufficient if server-side conversation context still contains assistant content the user never heard.",
+    "The local speech server may be a transport/inference organ but may not become a competing canonical session, memory, tool, effect, or heard-state authority.",
+    "A barge-in must terminate or fence every stale response/TTS/tool producer causally attached to the interrupted turn.",
+    "Any server-internal assistant history beyond the F2 heard boundary must be truncated, replaced, reconstructed from F2 authority, or proven unable to influence later model context.",
+    "Unknown or unsupported realtime events must fail visibly; silent compatibility downgrade is forbidden.",
+    "Network-blocked acceptance must prove zero external ASR, LLM and TTS inference calls."
+  ],
+  "falsifiers": [
+    {
+      "id": "HF01_EVENT_SURFACE_EXACTNESS",
+      "action": "Connect the existing F2 realtime-client adapter to the pinned local server and enumerate every client/server event actually exchanged during session open, one voice turn, one tool turn and close.",
+      "must_hold": [
+        "all F2-required events map deterministically or through one explicit adapter",
+        "unknown event produces explicit typed incompatibility",
+        "no hidden second conversation authority is introduced"
+      ],
+      "falsifies_if": "required client behavior is silently ignored or coerced into a different semantic meaning"
+    },
+    {
+      "id": "HF02_CANCEL_GENERATION_VS_HEARD_HISTORY",
+      "action": "Start an assistant response long enough to buffer output ahead of playback; record generated text/audio boundary and F2 heard boundary; issue response.cancel plus output_audio_buffer.clear at a known interruption point.",
+      "must_hold": [
+        "future audio generation stops",
+        "queued/unheard local playback is cleared",
+        "F2 commit_eligible remains false for interrupted segment",
+        "next-turn model context contains no assistant content beyond the measured heard boundary"
+      ],
+      "falsifies_if": "later model context contains any assistant text/audio semantics that F2 classified as unheard"
+    },
+    {
+      "id": "HF03_TRUNCATE_ABSENCE_COMPENSATION",
+      "action": "Send conversation.item.truncate using the expected OpenAI-Realtime shape. If unsupported, exercise the intended F2 adapter fallback and inspect the next model prompt/context.",
+      "must_hold": [
+        "either exact truncate-equivalent semantics are supported",
+        "or F2 reconstructs authoritative next-turn context from its own heard-state boundary so server history cannot leak unheard text",
+        "unsupported truncate cannot be treated as successful no-op"
+      ],
+      "falsifies_if": "truncate is ignored and server-retained unheard assistant content influences the next response"
+    },
+    {
+      "id": "HF04_TOOL_RESULT_AFTER_BARGE_IN",
+      "action": "Trigger a function/tool call, barge in before its result returns, then deliver the late result while a new user turn is active.",
+      "must_hold": [
+        "late old-turn tool result cannot acquire current-turn ownership",
+        "cancelled response cannot resume from the late result",
+        "F2 tool/effect authority remains the deciding boundary"
+      ],
+      "falsifies_if": "late tool data mutates current conversation or causes output without an explicit new causal bridge"
+    },
+    {
+      "id": "HF05_DOUBLE_CANCEL_AND_LATE_CHUNK",
+      "action": "Issue repeated response.cancel/output clear and inject or observe a late TTS/audio chunk from the cancelled generation.",
+      "must_hold": [
+        "cancellation is idempotent",
+        "late audio is discarded by generation/epoch identity",
+        "heard_fraction and commit eligibility cannot increase after interruption"
+      ],
+      "falsifies_if": "late cancelled-generation audio is played or becomes durable spoken history"
+    },
+    {
+      "id": "HF06_SESSION_AUTHORITY_RESET",
+      "action": "Disconnect/reconnect or restart the local speech server while preserving F2 VoiceSessionCapsule/UnifiedDB authority; resume using an explicit reentry adapter.",
+      "must_hold": [
+        "speech-server connection/session IDs are treated as transient transport identities",
+        "F2 causal identity remains authoritative",
+        "cancelled/unheard output is not resurrected",
+        "tool ownership does not survive unless explicitly reconstructed by F2 policy"
+      ],
+      "falsifies_if": "speech-server restart/reconnect changes canonical conversation identity or resurrects stale work"
+    },
+    {
+      "id": "HF07_PROGRESSIVE_STT_LOAD_AND_LATENCY",
+      "action": "With the intended local STT backend, run progressive transcription on a fixed German utterance and count accumulated-utterance retranscriptions, CPU/GPU utilization and user-end-to-first-response timing.",
+      "must_hold": [
+        "request amplification is measured",
+        "late progressive result cannot override final transcript",
+        "resource/latency remains within the selected hardware envelope or progressive mode is explicitly disabled/adapted"
+      ],
+      "falsifies_if": "progressive retranscription causes unbounded request amplification, final-state regression or unacceptable measured latency"
+    },
+    {
+      "id": "HF08_NETWORK_BLOCKED_LOCALITY",
+      "action": "Run the exact pinned stack with external inference/network egress blocked except localhost/internal required transport; execute one German session including STT, response generation, TTS and tool bridge.",
+      "must_hold": [
+        "external ASR inference calls==0",
+        "external LLM inference calls==0",
+        "external TTS inference calls==0",
+        "no hidden hosted fallback occurs",
+        "all model/artifact provenance is pinned"
+      ],
+      "falsifies_if": "any external inference call or silent hosted fallback is required"
+    }
+  ],
+  "execution_contract": {
+    "preferred_surface": "lowest safe faithful VPS sandbox / clay-direct-dev under existing Trigger4 execution authority",
+    "pinned_upstream_required": true,
+    "network_blocked_locality_phase_required": true,
+    "do_not_create_parallel_voice_fsm": true,
+    "do_not_replace_f2_state_or_effect_authority": true,
+    "required_receipt_fields": [
+      "f2_exact_source_sha",
+      "speech_to_speech_exact_revision",
+      "model_artifact_ids_and_hashes",
+      "command_and_runtime_identity",
+      "event_trace",
+      "generated_vs_heard_boundary",
+      "post_cancel_next_turn_context",
+      "tool_request_result_causal_ids",
+      "outbound_network_destinations",
+      "user_end_to_first_audio_or_packet_p50_p95_where_observed",
+      "per_falsifier_result",
+      "negative_evidence"
+    ]
+  },
+  "credit_boundary": {
+    "source_or_review_credit": 1,
+    "executed_protocol_component_credit": 0,
+    "german_e2e_voice_credit": 0,
+    "acoustic_quality_credit": 0,
+    "physical_device_credit": 0,
+    "trigger4_acceptance_credit": 0,
+    "whole_product_credit": 0
+  },
+  "next_exact_action": "The existing semantic-claim owner should consume this falsifier packet instead of opening another claim. Execute HF01-HF03 first because the heard-boundary/history result decides whether preserving the OpenAI-Realtime transport boundary is architecturally viable. If the server lacks truncate-equivalent history semantics, prefer a narrow F2 adapter that keeps canonical conversation context outside the speech server rather than granting the server authority."
+}
