@@ -81,6 +81,9 @@ SUBJECT_ALIASES = {
     "nvidia-canary-180m-flash": "CANARY_180M_FLASH",
     "parakeet-tdt-0.6b-v3": "PARAKEET_TDT_0_6B_V3",
     "nvidia-parakeet-tdt-0.6b-v3": "PARAKEET_TDT_0_6B_V3",
+    "x2-turn-4b": "X2_TURN_4B_0812",
+    "x2-turn-4b-0812": "X2_TURN_4B_0812",
+    "x-square-robot-x2-turn-4b-0812": "X2_TURN_4B_0812",
 }
 
 EVIDENCE_SCOPE_ALIASES = {
