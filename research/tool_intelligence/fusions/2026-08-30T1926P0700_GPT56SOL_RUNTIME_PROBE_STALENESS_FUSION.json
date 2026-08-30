@@ -1,0 +1,136 @@
+{
+  "schema": "TRIGGER6_ARCHITECTURE_DELTA_FUSION/v1",
+  "trigger": "6",
+  "fusion_id": "ADF-20260830T1926P0700-GPT56SOL-RUNTIME-PROBE-STALENESS-FUSION",
+  "created_at": "2026-08-30T19:26:00+07:00",
+  "worker": "GPT-5.6 Sol / ChatGPT organ",
+  "reentered_f2_main": "2fe8bbe3d3c027c160d4aa42fd3e272458dd43fd",
+  "primary_research_id": "R6-20260830-RUNTIME-PROBE-STALENESS-GPT56SOL-01",
+  "primary_e1_result": {
+    "path": "research/tool_intelligence/deltas/R6_20260830_RUNTIME_PROBE_STALENESS_E1_GPT56SOL.json",
+    "commit": "dba9d8a6cb7ffab4cd567091b0d69e51ce32322f",
+    "stage": "E1_SOURCE_READ"
+  },
+  "coordination": {
+    "our_e2_claim": "research/tool_intelligence/claims/R6-20260830-RUNTIME-PROBE-STALENESS-GPT56SOL-01/E2_ARCHITECTURE_MAPPED.json@a4b38e84535af5a1da37bd760dfc63c7a25a9488",
+    "later_parallel_overlap": "research/tool_intelligence/claims/R6-20260830-GHA-CONCURRENCY-PENDING-REPLACEMENT-GPT56SOL-01/E2_TARGET_INSPECTION.json@1766155eb4ec3788c7ce82af9c6345c14774777f",
+    "decision": "RETIRE_OUR_E2_MUTATION_RESEARCH_TO_REVIEW_ONLY; do not duplicate GitHub Actions pending-replacement inspection. Consume the parallel result when terminal.",
+    "credit_effect": "NO_E2_ARCHITECTURE_CREDIT_FROM_THIS_FUSION"
+  },
+  "consumed_parallel_evidence": [
+    {
+      "ref": "66bf2a63dee8e93ff201922a76dcf91cbf41481b",
+      "stage": "E2_ARCHITECTURE_MAPPED",
+      "subject": "RUNTIME_SUBJECT_BOUNDARY_FINGERPRINT",
+      "use": "Provides the falsifiable semantic-invariance/currentness predicate. Whole-repository SHA is provenance but is too coarse as the sole equivalence predicate; a verified boundary-input closure can distinguish unrelated repository churn from probe-invalidating semantic drift."
+    },
+    {
+      "ref": "bbaf429a53ddaba4a64fb6166865a54788b4a014",
+      "stage": "E1_SOURCE_READ_PLUS_CURRENT_CONTROL_PLANE_OBSERVATION",
+      "subject": "RUNNER_DISPATCH_ADMISSION",
+      "use": "Separates runner eligibility/transport state from product runtime evidence and recommends no queue-amplifying redispatch while roster/runner status is unresolved."
+    },
+    {
+      "ref": "480ff8163037f2c2a66ce847dedf7fc2aa535e56",
+      "stage": "E4_F2_ABLATION",
+      "subject": "RUNTIME_SUBJECT_INVALIDATION",
+      "use": "Newer parallel falsification result exists at reentry; consume its exact result before any E5 currentness implementation decision."
+    }
+  ],
+  "current_controller_observations": [
+    {
+      "ref": "e3cb1ae105c39f7a8521f29d3fc5dfdeebfd41fe",
+      "finding": "WP901 target-host workflow already uses a stable concurrency group with cancel-in-progress:false. Under current GitHub semantics, this preserves a running member while retaining at most one pending representative per group."
+    },
+    {
+      "ref": "8e6abc2cf807c8cf2c5a97b20eb930d754a77a64",
+      "finding": "WP902 target-host characterization likewise uses a stable concurrency group with cancel-in-progress:false."
+    },
+    {
+      "ref": "f6cac8ebf1e6d491b7e590c6912f55398ab478c9",
+      "finding": "The stronger mainline WP1207 target-host workflow observed in this macrocycle has no concurrency key, so it does not inherit the same per-family pending-replacement behavior."
+    },
+    {
+      "ref": "33308965181 + 8636cdbd815b8812f5b5e821e0afcf9ab6cf7171",
+      "finding": "A redundant queued WP1207 branch run was actually cancelled after a no-op successor reused its concurrency group with cancel-in-progress:true. This demonstrates current controller/platform cancellation behavior at transport scope only."
+    },
+    {
+      "ref": "33301648871",
+      "finding": "The stronger mainline WP1207 target-host run remained queued at observation, so no target-runtime semantic result was available from that run."
+    }
+  ],
+  "external_pattern_fusion": [
+    {
+      "pattern": "GITHUB_ACTIONS_CONCURRENCY_SINGLE_PENDING",
+      "adoption": "REUSE_NATIVE_MECHANISM",
+      "bounded_meaning": "One running plus at most one pending representative per semantic family; do not use cancel-in-progress:true by default for running exact-source probes."
+    },
+    {
+      "pattern": "BUILDBOT_COLLAPSE_REQUESTS",
+      "adoption": "CONCEPT_ONLY",
+      "bounded_meaning": "Compatible request collapse is useful under worker scarcity but loses per-request results; F2 should collapse only semantically equivalent pending probes, not distinct experiments."
+    },
+    {
+      "pattern": "JENKINS_MILESTONE",
+      "adoption": "CONCEPT_ONLY",
+      "bounded_meaning": "A pre-promotion freshness checkpoint can stop an older subject from overriding a newer representative, but F2 must use its own boundary fingerprint and evidence laws."
+    },
+    {
+      "pattern": "GITHUB_RUNNER_STATUS_BUSY_ROSTER",
+      "adoption": "READ_ONLY_ADMISSION_SIGNAL_WHEN_AUTHORIZED",
+      "bounded_meaning": "Runner online/busy/labels can prevent blind redispatch; absence of an authorized roster read remains UNKNOWN, never OFFLINE evidence."
+    }
+  ],
+  "distilled_architecture": {
+    "name": "RUNTIME_PROBE_LATEST_REPRESENTATIVE_PIPELINE",
+    "classification": "FUSION_CANDIDATE_NOT_IMPLEMENTED_HERE",
+    "layers": [
+      {
+        "layer": "1_PROBE_FAMILY",
+        "rule": "Derive a stable probe_family_id from the semantic promotion boundary/workpackage discriminator, not repository HEAD. Distinct experiments/falsifiers must have distinct families."
+      },
+      {
+        "layer": "2_PENDING_COALESCING",
+        "rule": "Use the controller platform's single-pending concurrency behavior for the same family. Preserve the currently running exact-source probe by default; replace only older PENDING representatives."
+      },
+      {
+        "layer": "3_DISPATCH_ADMISSION",
+        "rule": "Where an authorized runner roster/status read exists, distinguish ONLINE_IDLE/ONLINE_BUSY/OFFLINE/UNKNOWN before dispatch. UNKNOWN is not OFFLINE. Do not redispatch merely because a previous job is queued."
+      },
+      {
+        "layer": "4_PRE_EXECUTION_FRESHNESS",
+        "rule": "Before expensive target execution or any effectful boundary, compare the queued subject with the current semantic boundary using RUNTIME_SUBJECT_BOUNDARY_FINGERPRINT. If closure is incomplete or changed, classify STALE_OR_UNKNOWN_BEFORE_EXECUTION and mint zero runtime credit."
+      },
+      {
+        "layer": "5_EXACT_RECEIPT",
+        "rule": "If execution proceeds, bind exact controller run/job, F2 source/artifact, runner identity, boundary fingerprint, invocation, result and target receipt. Queue/cancellation metadata remains transport evidence only."
+      },
+      {
+        "layer": "6_PROMOTION_REENTRY",
+        "rule": "A green historical receipt cannot be composed with newer CI/source into current runtime credit unless the exact invariance/currentness gate passes at the claimed scope."
+      }
+    ],
+    "no_new_authority": "This pipeline is a scheduling/evidence-linking projection over existing workpackage claims, controller runs and exact receipts. It must not become a second truth store, effect authority, completion authority or independent progress ledger."
+  },
+  "counterhypotheses_and_limits": [
+    "Per-family coalescing does not solve an offline/busy runner and cannot create runtime evidence.",
+    "A globally shared latest-wins group would be wrong because distinct workpackages and independent falsifiers must not cancel one another.",
+    "cancel-in-progress:true is unsafe as a default for effectful or unknown-outcome work and can destroy valuable already-running exact-source evidence.",
+    "A boundary fingerprint is only as sound as its verified dependency closure; incomplete closure must fail closed to UNKNOWN.",
+    "Runner labels/status are routing observations, not proof that clay-direct-dev exists or that the requested artifact executed.",
+    "The existing WP901/WP902 concurrency design means the correct delta is normalization/fusion, not a new external scheduler framework."
+  ],
+  "credit": {
+    "research_e1_credit": 1,
+    "architecture_e2_credit_from_this_fusion": 0,
+    "runtime_credit": 0,
+    "target_host_credit": 0,
+    "whole_system_credit": 0
+  },
+  "next_exact_actions": [
+    "Consume the terminal result of the already-active GHA pending-replacement E2 lane instead of duplicating it.",
+    "Consume the exact E4 runtime-subject invalidation result at 480ff8163037f2c2a66ce847dedf7fc2aa535e56.",
+    "If both survive, hand Trigger-4 one minimal normalization candidate: stable probe-family concurrency for the affected target-host lane plus a fail-closed pre-execution boundary-fingerprint freshness check and exact receipt fields.",
+    "Do not add Buildbot/Jenkins/Kubernetes/another scheduler unless native GitHub concurrency plus existing F2 scheduling law is falsified as insufficient."
+  ]
+}
