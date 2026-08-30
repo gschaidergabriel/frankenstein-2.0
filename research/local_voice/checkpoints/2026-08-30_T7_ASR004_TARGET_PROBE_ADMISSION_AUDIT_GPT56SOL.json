@@ -1,0 +1,84 @@
+{
+  "schema": "T7_RESEARCH_CHECKPOINT/v1",
+  "trigger": "7",
+  "research_id": "T7-ASR-004",
+  "objective": "TARGET_PROBE_ADMISSION_AUDIT_BEFORE_RUNTIME_CREDIT",
+  "semantic_key": "95bd53a469133dbfdf39da320f6daa049cec1361084e632dc915c4bc156e3715",
+  "semantic_claim_state": "CLAIMED_CREATE_ONLY",
+  "observed_at_utc": "2026-08-30T05:05:26Z",
+  "worker": "GPT-5.6-Sol-TRIGGER7",
+  "target_surface": "clay-direct-dev",
+  "f2_main_observed": "f521491b3a3135c532208c630856b6bcb0927d85",
+  "bound_probe": {
+    "source_commit": "e0521522a49cd57ff86af9f49cc87f33ab6e22a3",
+    "path": "research/local_voice/tools/t7_qwen3_asr_target_probe.py",
+    "model_id": "Qwen/Qwen3-ASR-0.6B",
+    "model_revision": "9ba1d4a",
+    "model_file": "model.safetensors",
+    "expected_model_sha256": "79d6cbd4c98c7bbffe9db2edac07f56cd6637d0d5944b27f6c2b8353840323ea",
+    "qwen_asr_version": "0.0.6"
+  },
+  "controller": {
+    "repo": "gschaidergabriel/Dr.-Unterweger",
+    "head_commit": "a1fa3222cec7081c4ce2af153b4831138041814a",
+    "workflow": ".github/workflows/trigger7-qwen3-asr-target-probe.yml",
+    "run_id": 33292903286,
+    "job_id": 99207535776,
+    "observed_status": "queued",
+    "observed_conclusion": null
+  },
+  "coordination_classification": "RUNNER_OR_CONTROL_PLANE_QUEUE_STATE_NOT_MODEL_NEGATIVE",
+  "static_admission_audit": [
+    {
+      "id": "A1_SCOPE_CAP",
+      "finding": "The dispatched probe loads the exact pinned model through the Transformers path on CPU in float32 and performs a one-second silence transcription. It explicitly does not test the official vLLM streaming backend.",
+      "consequence": "A successful receipt can establish only exact target artifact verification plus local model-load/inference evidence at partial component scope. It cannot establish German WER/CER, streaming partial stability, endpoint latency, cancellation behavior, Whisper comparison, or German E2E voice quality."
+    },
+    {
+      "id": "A2_ACTIONS_CONCLUSION_NOT_EVIDENCE_AUTHORITY",
+      "finding": "Probe failure paths emit pass=false receipts and return exit code 0, while the controller persists any non-empty receipt regardless of the probe return code.",
+      "consequence": "GitHub Actions workflow success must never be interpreted as model/benchmark PASS. Admission must parse the receipt classification, pass flag, exact hashes, model-load flag, inference flag, and declared evidence scope."
+    },
+    {
+      "id": "A3_RUNTIME_PROVENANCE_GAP",
+      "finding": "The probe creates a venv with --system-site-packages and records selected versions such as qwen-asr and torch, but does not capture a complete resolved dependency manifest or environment hash.",
+      "consequence": "The current probe is sufficient for bounded load/inference reconnaissance if exact model/source identity is verified, but stronger reproducibility or promotion requires a complete runtime dependency manifest and build/environment identity."
+    },
+    {
+      "id": "A4_POSITIVE_IDENTITY_FENCES",
+      "finding": "The workflow binds an exact F2 probe commit, exact Qwen3-ASR model revision, expected model.safetensors SHA-256, and target surface.",
+      "consequence": "These are useful positive provenance fences and should be preserved in all successor runtime receipts."
+    }
+  ],
+  "claim_scope_reconciliation": {
+    "human_claim_requires": [
+      "whole-host CPU/RAM/GPU/VRAM headroom",
+      "startup/warmup",
+      "German WER/CER on pinned corpus or admitted room samples",
+      "streaming partial stability",
+      "endpoint latency",
+      "cancellation behavior",
+      "comparison against admitted Whisper/faster-whisper baseline"
+    ],
+    "current_probe_can_close_full_claim": false
+  },
+  "credit_boundary": {
+    "runtime_execution_observed": false,
+    "artifact_hash_verified_at_target": false,
+    "model_load_observed": false,
+    "inference_observed": false,
+    "german_quality_credit": 0,
+    "streaming_credit": 0,
+    "german_e2e_credit": 0,
+    "trigger4_acceptance_credit": 0,
+    "whole_system_credit": 0
+  },
+  "no_duplicate_execution": true,
+  "reason_no_duplicate_execution": "Generation-1 semantic claim already exists and the bound target job is still queued; Trigger-7 semantic mutex forbids a differently named duplicate execution lane for the same objective.",
+  "next_exact_gates": [
+    "Observe run 33292903286 and job 99207535776 leaving queued state. Do not mint model-negative evidence from queue state.",
+    "If the run executes, ingest the append-only target receipt and cap any success to the receipt's declared partial model-load/local-inference scope.",
+    "Before a stronger successor streaming benchmark, capture a complete runtime dependency/environment manifest and use the official vLLM streaming path with real German audio plus whole-host resource measurements.",
+    "If queue state persists, repair/re-enter the registered self-hosted runner/VPS bridge control plane rather than dispatching a duplicate generation-1 Qwen3-ASR benchmark."
+  ]
+}
