@@ -1,0 +1,76 @@
+{
+  "schema": "FRANKENSTEIN_TRIGGER7_CLAIM/v1",
+  "trigger": "7",
+  "research_id": "T7-FD-RTCOMPAT-001",
+  "objective": "E3_HF_SPEECH_TO_SPEECH_REALTIME_PROTOCOL_COMPATIBILITY",
+  "semantic_key": "8c53f25ed47c458bb727dd4dc82f788241cee699e428c4d97401a965a4eb375e",
+  "semantic_claim_path": "research/local_voice/semantic_claims/8c53f25ed47c458bb727dd4dc82f788241cee699e428c4d97401a965a4eb375e.json",
+  "target": "pinned huggingface/speech-to-speech OpenAI-Realtime-compatible local cascade on clay-direct-dev",
+  "evidence_scope": "COMPONENT_BENCHMARK",
+  "state": "CLAIMED_READY_FOR_BOUNDED_PROTOCOL_FALSIFIER",
+  "source_scope_precondition": {
+    "repository": "huggingface/speech-to-speech",
+    "commit": "3986f453012a131632eee4731995474046846794",
+    "package_version": "0.2.12",
+    "license": "Apache-2.0",
+    "source_evidence": [
+      "src/speech_to_speech/api/openai_realtime/service.py",
+      "tests/openai_realtime/test_realtime_service.py",
+      "pyproject.toml"
+    ]
+  },
+  "question": "Can the pinned local cascade satisfy the exact OpenAI-Realtime event, tool and cancellation boundary required by Frankenstein while Frankenstein remains the sole identity, state, memory, tool and effect authority and model inference remains local?",
+  "protocol_discriminators": [
+    "session.created/session.update and function-tool declarations",
+    "input_audio_buffer.append plus turn/VAD boundary events",
+    "response audio/text/transcript delta and done ordering",
+    "response.cancel followed by deterministic output cancellation",
+    "conversation.item.truncate semantics for unheard or retracted output",
+    "function-call argument completion plus function_call_output round-trip",
+    "unknown or late tool-result rejection behavior",
+    "back-to-back speech turn ordering without cross-turn corruption",
+    "server-local conversation/session buffers never become canonical Frankenstein state"
+  ],
+  "benchmark_dimensions": [
+    "resolve and bind the exact current F2 Realtime client or adapter subject before execution",
+    "connect the F2 client boundary with no semantic protocol shim beyond a bounded adapter",
+    "user-end-to-first-output-packet p50/p95 plus component timings",
+    "barge-in cancel-decision-to-output-stop packet latency; acoustic stop credit remains zero without real audio",
+    "tool-call request/result causal ordering, cancellation and stale-result rejection",
+    "long-session bounded queue, memory and resource growth",
+    "CPU/GPU/RAM and model resident-footprint interaction with the whole Frankenstein resource envelope",
+    "network-blocked execution after admitted local artifact preparation with zero external ASR/LLM/TTS inference calls",
+    "German transcript and turn fixtures through typed VoiceInputPacket/VoiceOutputPacket/CortexEventPacket surrogates without claiming synthetic acoustic quality"
+  ],
+  "authority_fences": [
+    "the local cascade is an ORGAN_NOT_ENTITY and cannot become canonical Frankenstein identity or memory",
+    "VoiceIntent, GWT, Presence, Interruptibility, UnifiedDB, tool and EffectGate/EffectJournal authority remain outside the cascade",
+    "packet simulation is implementation evidence, not acoustic acceptance",
+    "upstream source tests are compatibility evidence, not F2 runtime integration evidence",
+    "Trigger7 cannot self-award Trigger4 acceptance"
+  ],
+  "coordination_gate": {
+    "semantic_claim_won": true,
+    "new_runtime_dispatch": false,
+    "trigger4_mutation_authority_requested": false,
+    "wp715_existing_vps_subject_touched": false,
+    "duplicate_semantic_claim_allowed": false
+  },
+  "evidence_credit": 0,
+  "runtime_credit": 0,
+  "acoustic_credit": 0,
+  "german_e2e_voice_credit": 0,
+  "trigger4_acceptance_credit": 0,
+  "whole_system_credit": 0,
+  "falsifiers": [
+    "The exact current F2 Realtime client cannot establish or maintain the required event sequence against the pinned local server.",
+    "Required function/tool call or function_call_output semantics differ or are unsupported at the executed boundary.",
+    "Cancel/truncate permits unheard output to remain commit-eligible or permits stale tool completion to regain ownership.",
+    "The local stack requires external inference or uncontrolled network access after admitted artifact preparation.",
+    "The local server's conversation/session state becomes a competing canonical state, identity, memory or effect authority.",
+    "Queueing or buffering causes unacceptable packet-level turn-taking or cancellation latency under the bounded benchmark.",
+    "Pinned dependencies or model residency cannot fit the admitted whole-Frankenstein resource envelope.",
+    "Long-session ordering, restart or transport-fault injection produces duplicate, dropped or causally reordered authoritative events."
+  ],
+  "next_exact_action": "Build and execute the smallest source-pinned protocol-compatibility harness on the admitted VPS sandbox/target route. Resolve the exact current F2 Realtime client subject first; drive deterministic German text/packet fixtures, tools, cancel/truncate, restart and fault injection through the pinned server while recording resources and outbound inference calls. Preserve incompatibilities as negative evidence. Route only executed evidence to Trigger4; do not broaden ASR/TTS model search from this claim."
+}
