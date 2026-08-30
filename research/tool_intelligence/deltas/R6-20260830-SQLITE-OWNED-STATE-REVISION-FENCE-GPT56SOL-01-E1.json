@@ -1,0 +1,85 @@
+{
+  "schema": "FRANKENSTEIN2_TRIGGER6_RESEARCH_EVIDENCE/v1",
+  "research_id": "R6-20260830-SQLITE-OWNED-STATE-REVISION-FENCE-GPT56SOL-01",
+  "stage": "E1_SOURCE_READ",
+  "status": "COMPLETE_AT_E1_ONLY",
+  "recorded_at": "2026-08-30T19:14:00+07:00",
+  "worker": "ChatGPT GPT-5.6 Sol / Trigger-6 organ",
+  "claim": "research/tool_intelligence/claims/R6-20260830-SQLITE-OWNED-STATE-REVISION-FENCE-GPT56SOL-01/E1_SOURCE_READ.json",
+  "architecture_snapshot": {
+    "f2_main_at_claim": "e407e3d072127863c8fab074699a8ee54b50f08a",
+    "research_entity_main_at_claim": "becd78c4b893874d9fefc53fe58d0de61e423a58",
+    "wp206_problem": "same-inode SQLite data/schema revision fencing without database-wide false positives"
+  },
+  "source_findings": [
+    {
+      "source": "SQLite official PRAGMA data_version documentation",
+      "url": "https://www.sqlite.org/pragma.html#pragma_data_version",
+      "finding": "data_version changes on a connection when another connection commits to the database; same-connection commits do not change it; values are connection-local and meaningful only when compared on the same connection over time.",
+      "f2_implication": "Useful as a coarse live-connection signal that some external database write happened, but too broad to identify WP206-owned-state drift and not suitable as a persistent restart epoch by itself."
+    },
+    {
+      "source": "SQLite official sqlite3_update_hook documentation",
+      "url": "https://www.sqlite.org/c3ref/update_hook.html",
+      "finding": "update hooks are per connection and observe many row INSERT/UPDATE/DELETE events on that connection, with documented omissions including WITHOUT ROWID and some REPLACE/truncate cases.",
+      "f2_implication": "Not a cross-process persistent foreign-writer witness and therefore insufficient for stale-authority fencing."
+    },
+    {
+      "source": "SQLite official CREATE TRIGGER documentation",
+      "url": "https://www.sqlite.org/lang_createtrigger.html",
+      "finding": "Persistent triggers can execute automatically on INSERT/UPDATE/DELETE for selected tables and can update a durable revision row in the same transaction.",
+      "f2_implication": "Supports a table-specific persistent monotonic owned-state mutation witness that unrelated UnifiedDB tables do not bump."
+    },
+    {
+      "source": "SQLite official Session Extension documentation",
+      "url": "https://www.sqlite.org/sessionintro.html",
+      "finding": "sessions monitor configured tables for changes made through the associated connection/session and produce changesets.",
+      "f2_implication": "Useful for changeset capture but not an all-connection persistent external-writer witness."
+    },
+    {
+      "source": "SQLite official sqlite3_db_config / PRAGMA documentation",
+      "url": "https://www.sqlite.org/c3ref/c_dbconfig_defensive.html",
+      "finding": "trigger execution can be disabled per connection through SQLITE_DBCONFIG_ENABLE_TRIGGER; defensive configuration restricts dangerous schema manipulation but does not turn in-database triggers into an unbypassable external authority.",
+      "f2_implication": "A trigger revision counter must be paired with trigger/schema identity verification and an authorized-writer contract; it is not a hostile arbitrary-writer security boundary by itself."
+    },
+    {
+      "source": "SQLite official ON CONFLICT / REPLACE behavior documentation",
+      "url": "https://www.sqlite.org/lang_conflict.html",
+      "finding": "REPLACE may delete conflicting rows before inserting/replacing; delete-trigger behavior has recursive-trigger nuances.",
+      "f2_implication": "Treat the owned revision as a monotonic 'relevant state mutated' witness, not an exact operation counter; tests must cover REPLACE semantics explicitly."
+    }
+  ],
+  "hypothesis": "For cooperative authorized UnifiedDB writers, a narrow persistent owned-state revision row, transactionally incremented by triggers on only WP206-owned tables and paired with schema/trigger identity verification, can detect same-inode authority-relevant drift without rejecting unrelated legitimate database writes.",
+  "counterhypotheses": [
+    "If arbitrary writers may disable triggers or rewrite schema, an in-database revision counter is bypassable and cannot be the sole authority witness.",
+    "If WP206-owned state spans dynamic/unbounded tables, maintaining a trigger set may be more fragile than a deterministic digest of a bounded owned-state projection.",
+    "If the active G6 design already has a narrower equivalent revision contract, adding another mechanism would be duplicate architecture."
+  ],
+  "recommended_pattern": {
+    "name": "OWNED_STATE_REVISION_FENCE",
+    "components": [
+      "persistent revision record scoped to WP206-owned state",
+      "AFTER INSERT/UPDATE/DELETE triggers on only WP206-owned tables that monotonically advance the revision inside the writer transaction",
+      "schema/trigger identity fence over the expected owned-table/trigger definitions",
+      "optional PRAGMA data_version as a cheap coarse signal that prompts selective re-check, never as the final authority decision"
+    ],
+    "fail_closed_rules": [
+      "owned revision changed unexpectedly -> stale-authority/reopen path, subject to current WP206 contract",
+      "expected trigger/schema identity changed or is missing -> fail closed",
+      "data_version changed but owned revision/schema identity did not -> treat as unrelated database activity, not WP206 authority replacement",
+      "do not infer hostile-writer resistance from cooperative trigger semantics"
+    ]
+  },
+  "rejected_as_primary_witness": [
+    "PRAGMA data_version alone",
+    "sqlite3_update_hook alone",
+    "SQLite Session Extension alone",
+    "PRAGMA user_version as an automatically maintained revision"
+  ],
+  "evidence_boundary": "SOURCE_READ_AND_ARCHITECTURAL_INFERENCE_ONLY. No WP206 code mutation, repository CI, target runtime, or whole-system credit is granted. Active WP206 generation ownership remains external to Trigger 6.",
+  "research_credit": "E1_ONLY",
+  "runtime_credit": 0,
+  "integration_credit": 0,
+  "whole_system_credit": 0,
+  "next_exact_action": "Refresh F2 main and active WP206 G6 ownership; if no Trigger-6 mapping objective already exists, acquire E2_ARCHITECTURE_MAPPED and map the smallest owned-state revision witness onto the current persistent_agency_kernel/UnifiedDB boundary without mutating the active workpackage."
+}
