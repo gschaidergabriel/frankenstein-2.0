@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Executable migration/tamper regressions for F2-WP-206 generation 3."""
+"""Executable migration/tamper regressions for F2-WP-206 generation 3 under G5 ingress."""
 from __future__ import annotations
 
 import json
@@ -19,6 +19,7 @@ from frankenstein2.wp206_legacy_authority_recovery import (
     ALREADY_RECOVERED,
     RECOVERED,
     RECOVERY_TABLE,
+    LegacyRecoveryEvidenceSubject,
     recover_legacy_g1_checkpoint_authority,
 )
 from state.unifieddb_identity import fingerprint_unifieddb, resolve_unifieddb_path
@@ -71,6 +72,19 @@ class WP206LegacyAuthorityRecoveryTests(unittest.TestCase):
         self.assertEqual(result.returncode, 0, msg=result.stderr)
         return json.loads(result.stdout)
 
+    def _checkpoint_sha(self) -> str:
+        connection = sqlite3.connect(self.db)
+        try:
+            row = connection.execute(
+                """SELECT checkpoint_sha256
+                   FROM f2_persistent_agency_checkpoints
+                   WHERE checkpoint_id='checkpoint-0'"""
+            ).fetchone()
+            self.assertIsNotNone(row)
+            return str(row[0])
+        finally:
+            connection.close()
+
     def _stored_receipt(self) -> str:
         connection = sqlite3.connect(self.db)
         try:
@@ -115,6 +129,39 @@ class WP206LegacyAuthorityRecoveryTests(unittest.TestCase):
         self._replace_receipt(historical_g1_receipt)
         return historical_g1_receipt, current_bound_file_receipt
 
+    def _subject(
+        self,
+        expected_legacy: str,
+        *,
+        source_ref: str = LEGACY_PROVENANCE,
+        checkpoint_sha256: str | None = None,
+    ) -> LegacyRecoveryEvidenceSubject:
+        return LegacyRecoveryEvidenceSubject(
+            source_ref=source_ref,
+            checkpoint_id="checkpoint-0",
+            checkpoint_sha256=checkpoint_sha256 or self._checkpoint_sha(),
+            legacy_authority_receipt_sha256=expected_legacy,
+            evidence={
+                "kind": "accepted-wp206-g1-recovery-attestation",
+                "source_ref": source_ref,
+            },
+        )
+
+    def _recover(
+        self,
+        *,
+        store: CanonicalPersistentAgencyStore,
+        expected_legacy: str,
+        subject: LegacyRecoveryEvidenceSubject | None = None,
+    ):
+        return recover_legacy_g1_checkpoint_authority(
+            store=store,
+            checkpoint_id="checkpoint-0",
+            expected_legacy_authority_receipt_sha256=expected_legacy,
+            recovery_provenance_ref=LEGACY_PROVENANCE,
+            recovery_evidence_subject=subject or self._subject(expected_legacy),
+        )
+
     def test_explicit_g1_recovery_restores_current_reader_without_silent_acceptance(self) -> None:
         historical, current = self._emulate_accepted_g1_row()
         store = self._open_store()
@@ -124,24 +171,27 @@ class WP206LegacyAuthorityRecoveryTests(unittest.TestCase):
             ):
                 store.load_checkpoint("checkpoint-0")
 
-            receipt = recover_legacy_g1_checkpoint_authority(
-                store=store,
-                checkpoint_id="checkpoint-0",
-                expected_legacy_authority_receipt_sha256=historical,
-                recovery_provenance_ref=LEGACY_PROVENANCE,
-            )
+            receipt = self._recover(store=store, expected_legacy=historical)
             self.assertEqual(receipt.status, RECOVERED)
             self.assertEqual(receipt.legacy_authority_receipt_sha256, historical)
             self.assertEqual(receipt.rebound_authority_receipt_sha256, current)
+            self.assertRegex(str(receipt.recovery_evidence_sha256), r"^[0-9a-f]{64}$")
             self.assertEqual(self._stored_receipt(), current)
 
             checkpoint = store.load_checkpoint("checkpoint-0")
             self.assertEqual(checkpoint.checkpoint_id, "checkpoint-0")
             row = store.connection.execute(
-                f"SELECT recovery_id, checkpoint_sha256 FROM {RECOVERY_TABLE} "
-                "WHERE checkpoint_id='checkpoint-0'"
+                f"""SELECT recovery_id, checkpoint_sha256, recovery_evidence_sha256
+                    FROM {RECOVERY_TABLE} WHERE checkpoint_id='checkpoint-0'"""
             ).fetchone()
-            self.assertEqual(row, (receipt.recovery_id, receipt.checkpoint_sha256))
+            self.assertEqual(
+                row,
+                (
+                    receipt.recovery_id,
+                    receipt.checkpoint_sha256,
+                    receipt.recovery_evidence_sha256,
+                ),
+            )
         finally:
             store.close()
 
@@ -153,11 +203,10 @@ class WP206LegacyAuthorityRecoveryTests(unittest.TestCase):
             with self.assertRaisesRegex(
                 PersistentAgencyError, "LEGACY_RECOVERY_EXPECTED_RECEIPT_MISMATCH"
             ):
-                recover_legacy_g1_checkpoint_authority(
+                self._recover(
                     store=store,
-                    checkpoint_id="checkpoint-0",
-                    expected_legacy_authority_receipt_sha256=wrong,
-                    recovery_provenance_ref=LEGACY_PROVENANCE,
+                    expected_legacy=wrong,
+                    subject=self._subject(wrong),
                 )
             self.assertEqual(self._stored_receipt(), historical)
             with self.assertRaisesRegex(
@@ -169,6 +218,7 @@ class WP206LegacyAuthorityRecoveryTests(unittest.TestCase):
 
     def test_checkpoint_payload_tamper_is_rejected_before_rebinding(self) -> None:
         historical, _ = self._emulate_accepted_g1_row()
+        checkpoint_sha = self._checkpoint_sha()
         connection = sqlite3.connect(self.db)
         try:
             connection.execute(
@@ -184,11 +234,12 @@ class WP206LegacyAuthorityRecoveryTests(unittest.TestCase):
             with self.assertRaisesRegex(
                 PersistentAgencyError, "CHECKPOINT_DIGEST_MISMATCH"
             ):
-                recover_legacy_g1_checkpoint_authority(
+                self._recover(
                     store=store,
-                    checkpoint_id="checkpoint-0",
-                    expected_legacy_authority_receipt_sha256=historical,
-                    recovery_provenance_ref=LEGACY_PROVENANCE,
+                    expected_legacy=historical,
+                    subject=self._subject(
+                        historical, checkpoint_sha256=checkpoint_sha
+                    ),
                 )
             self.assertEqual(self._stored_receipt(), historical)
         finally:
@@ -211,12 +262,7 @@ class WP206LegacyAuthorityRecoveryTests(unittest.TestCase):
             with self.assertRaisesRegex(
                 PersistentAgencyError, "CHECKPOINT_DB_FILE_IDENTITY_DRIFT"
             ):
-                recover_legacy_g1_checkpoint_authority(
-                    store=store,
-                    checkpoint_id="checkpoint-0",
-                    expected_legacy_authority_receipt_sha256=historical,
-                    recovery_provenance_ref=LEGACY_PROVENANCE,
-                )
+                self._recover(store=store, expected_legacy=historical)
         finally:
             store.close()
 
@@ -224,17 +270,12 @@ class WP206LegacyAuthorityRecoveryTests(unittest.TestCase):
         historical, current = self._emulate_accepted_g1_row()
         store = self._open_store()
         try:
-            first = recover_legacy_g1_checkpoint_authority(
-                store=store,
-                checkpoint_id="checkpoint-0",
-                expected_legacy_authority_receipt_sha256=historical,
-                recovery_provenance_ref=LEGACY_PROVENANCE,
+            subject = self._subject(historical)
+            first = self._recover(
+                store=store, expected_legacy=historical, subject=subject
             )
-            second = recover_legacy_g1_checkpoint_authority(
-                store=store,
-                checkpoint_id="checkpoint-0",
-                expected_legacy_authority_receipt_sha256=historical,
-                recovery_provenance_ref=LEGACY_PROVENANCE,
+            second = self._recover(
+                store=store, expected_legacy=historical, subject=subject
             )
             self.assertEqual(first.recovery_id, second.recovery_id)
             self.assertEqual(second.status, ALREADY_RECOVERED)
@@ -246,11 +287,8 @@ class WP206LegacyAuthorityRecoveryTests(unittest.TestCase):
                 PersistentAgencyError,
                 "LEGACY_RECOVERY_POST_MIGRATION_AUTHORITY_DRIFT",
             ):
-                recover_legacy_g1_checkpoint_authority(
-                    store=store,
-                    checkpoint_id="checkpoint-0",
-                    expected_legacy_authority_receipt_sha256=historical,
-                    recovery_provenance_ref=LEGACY_PROVENANCE,
+                self._recover(
+                    store=store, expected_legacy=historical, subject=subject
                 )
             with self.assertRaisesRegex(
                 PersistentAgencyError, "CHECKPOINT_DB_AUTHORITY_RECEIPT_MISMATCH"
