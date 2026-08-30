@@ -1,0 +1,45 @@
+{
+  "schema": "FRANKENSTEIN2_TRIGGER6_TO_TRIGGER4_HANDOFF_ADDENDUM/v1",
+  "candidate_id": "R6-20260830-WP206-G5A-EXTERNAL-SQLITE-REVISION-FENCE-GPT56SOL",
+  "status": "ADDENDUM_TO_EXISTING_HANDOFF_NO_DUPLICATE_CANDIDATE",
+  "created_at_local": "2026-08-30T17:05:00+07:00",
+  "worker": "GPT-5.6 Sol / Trigger-6 research organ",
+  "parent_handoff": "trigger4/inbox/tool_research/R6-20260830-WP206-G5A-EXTERNAL-SQLITE-REVISION-FENCE-HANDOFF-GPT56SOL.json",
+  "architecture_delta_fusion": "research/tool_intelligence/deltas/2026-08-30T1704P0700_GPT56SOL_ARCHITECTURE_DELTA_FUSION_WP206_SQLITE_LIVE_DRIFT_REVIEW.json@eb0e978d601b0ecd081b3d4d2f3fb0bd2a979883",
+  "why_addendum_exists": "Parallel re-entry found the E5 candidate already handed off. This file contributes only non-duplicate false-positive and staleness evidence and tightens Trigger4 acceptance semantics.",
+  "new_evidence": {
+    "unrelated_write_control": "Local E3: a foreign commit to an unrelated table advanced observer data_version while the protected row remained unchanged.",
+    "schema_classifier": "Foreign DDL advanced schema_version, but data_version already signaled the external commit; schema_version is a classifier/revalidation aid, not a durable revision authority.",
+    "f2_prior_counterevidence": "PR655/run 33295636700 already proved same-inode schema/full-fingerprint drift can remain accepted by the open store-use guard.",
+    "staleness_check": "Current _assert_current_file_identity remains path/device/inode-only at the relevant boundary, so PR655 is not superseded by later G3/G4 recovery work."
+  },
+  "required_trigger4_semantics": [
+    "Treat PRAGMA main.data_version only as a connection-local invalidation hint.",
+    "Do not persist raw data_version or compare it across reopened connections.",
+    "Do not turn any data_version change into global UnifiedDB corruption/failure.",
+    "On mismatch, establish the intended transaction/snapshot and re-read/revalidate only the protected WP206 evidence needed by the operation.",
+    "Unrelated external write + unchanged protected row must be allowed after successful targeted revalidation.",
+    "Protected-row or schema mutation must not authorize continuation from a stale previously observed context.",
+    "Same-Connection arbitrary writes remain explicitly outside coverage and need a separate writer-ownership/provenance falsifier if relevant."
+  ],
+  "mandatory_ablation_before_product_source_change": {
+    "baseline": "exact-current CanonicalPersistentAgencyStore/G4",
+    "case_a": "foreign unrelated-table write on same inode; verify whether baseline already safely re-reads the protected row; candidate must not introduce false rejection",
+    "case_b": "foreign protected-row or relevant schema mutation on same inode; verify whether baseline can perform an authority-sensitive continuation without fresh protected evidence",
+    "decision_rule": "If exact-current baseline already closes both correctness cases through fresh transaction/row/digest/provenance checks, retire EXTERNAL_SQLITE_REVISION_FENCE as redundant diagnostics. If case_b remains open while case_a remains valid, implement the smallest ephemeral revision-hint plus targeted-revalidation fence."
+  },
+  "resource_gate": {
+    "model_calls": 0,
+    "runtime_tokens": 0,
+    "new_dependencies": 0,
+    "measure": ["extra PRAGMA reads", "extra SQLite reads/transactions only after mismatch", "latency overhead", "false revalidation rate under unrelated UnifiedDB churn"]
+  },
+  "credit_boundary": {
+    "this_addendum": "RESEARCH_HANDOFF_REFINEMENT_ONLY",
+    "new_e5_candidate": 0,
+    "trigger4_build": 0,
+    "repository_ci": 0,
+    "target_runtime": 0,
+    "whole_system": 0
+  }
+}
