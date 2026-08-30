@@ -1,0 +1,90 @@
+{
+  "schema": "TRIGGER6_RESEARCH_DELTA/v1",
+  "research_id": "R6-20260830-RUNTIME-PROBE-STALENESS-GPT56SOL-01",
+  "evidence_stage": "E1_SOURCE_READ",
+  "status": "SOURCE_READ_COMPLETE",
+  "observed_at": "2026-08-30T19:19:00+07:00",
+  "worker": "GPT-5.6 Sol / ChatGPT organ",
+  "trigger": "6",
+  "architecture_delta_fusion_id": "ADF-20260830T1914P0700-GPT56SOL-TRIGGER6-RUNTIME-PROBE-STALENESS",
+  "snapshot": {
+    "f2_main_before_claim": "562b585bc35cbc1c5f846e77f307583f545d8d89",
+    "f2_claim_commit": "e447423da804c49ee061e57e0dfc645f504f1979",
+    "research_entity_main": "5933ed34cc03328f6300a83b2be972bc05cf0a66",
+    "controller_main_observed": "8e6abc2cf807c8cf2c5a97b20eb930d754a77a64",
+    "controller_wp1207_mainline_subject": "f6cac8ebf1e6d491b7e590c6912f55398ab478c9",
+    "controller_wp1207_duplicate_neutralizer": "8636cdbd815b8812f5b5e821e0afcf9ab6cf7171"
+  },
+  "current_f2_observations": [
+    {
+      "type": "PROJECT_MEASUREMENT",
+      "ref": "Dr.-Unterweger Actions run 33301648871",
+      "finding": "The stronger mainline WP1207 target-host run remained QUEUED on the self-hosted route at observation time."
+    },
+    {
+      "type": "PROJECT_MEASUREMENT",
+      "ref": "F2 commit 443ba60f77def0fc15157e5cc7f52cba2c3ef2ec",
+      "finding": "Trigger-4 observed 33 queued controller-repository runs and zero in-progress runs while the admitted self-hosted route was unavailable."
+    },
+    {
+      "type": "PROJECT_MEASUREMENT",
+      "ref": "Dr.-Unterweger Actions run 33308965181 + commit 8636cdbd815b8812f5b5e821e0afcf9ab6cf7171",
+      "finding": "A redundant WP1207 branch run was cancelled after a no-op successor reused its concurrency group with cancel-in-progress=true. This is bounded evidence that queue cancellation/coalescing is operational on the current controller platform, not merely a README hypothesis."
+    },
+    {
+      "type": "CURRENT_SOURCE",
+      "ref": "Dr.-Unterweger@8e6abc2:.github/workflows/trigger4-wp1207-hostile-twin-target.yml",
+      "finding": "The stronger mainline WP1207 target-host workflow has no concurrency key, so logically equivalent probe generations are not automatically coalesced with branch-specific successors."
+    }
+  ],
+  "external_primary_sources": [
+    {
+      "source": "GitHub Actions concurrency documentation",
+      "url": "https://docs.github.com/en/actions/how-tos/write-workflows/choose-when-workflows-run/control-workflow-concurrency",
+      "finding": "A concurrency group permits at most one running member; by default only one pending member is retained and a newer queued member replaces the prior pending member. cancel-in-progress=true can also cancel a running member. Current 2026 docs expose queue=single as the default and queue=max up to 100 pending members. Group names operate repository-wide, including across workflows."
+    },
+    {
+      "source": "GitHub self-hosted runner reference",
+      "url": "https://docs.github.com/en/actions/reference/runners/self-hosted-runners",
+      "finding": "If no matching online idle self-hosted runner exists, jobs remain queued until a runner comes online and fail after 24 hours. This explains why backlog can grow independently of probe correctness."
+    },
+    {
+      "source": "Buildbot 4.3 builder configuration",
+      "url": "https://docs.buildbot.net/current/manual/configuration/builders.html",
+      "finding": "Buildbot can collapse compatible build requests when requests arrive faster than workers can satisfy them; it explicitly documents the tradeoff that individual results are lost. Custom collapse predicates are supported."
+    },
+    {
+      "source": "Jenkins Pipeline Milestone Step",
+      "url": "https://www.jenkins.io/doc/pipeline/steps/pipeline-milestone-step/",
+      "finding": "Milestones enforce build ordering and abort an older build that attempts to pass after a newer build already passed the milestone; this is a useful structural analogue for a pre-effect freshness gate."
+    },
+    {
+      "source": "GitLab CI redundant pipeline auto-cancel",
+      "url": "https://docs.gitlab.com/ci/pipelines/settings/",
+      "finding": "GitLab can auto-cancel pending/running redundant pipelines on newer changes, with interruptibility controls for running work."
+    },
+    {
+      "source": "CircleCI auto-cancel redundant workflows",
+      "url": "https://circleci.com/docs/guides/orchestrate/skip-build/",
+      "finding": "CircleCI documents automatic cancellation of non-terminated workflows when a newer pipeline is triggered on the same branch, explicitly to reduce queue delay."
+    },
+    {
+      "source": "SLSA Build Provenance v1.2",
+      "url": "https://slsa.dev/spec/v1.2/build-provenance",
+      "finding": "Artifact provenance binds an executed output to its exact build definition, dependencies and invocation identity. This supports exact-subject evidence but does not itself solve freshness or queue prioritization."
+    }
+  ],
+  "hypothesis": "For scarce F2 target-runtime probes, a repository-native latest-representative queue policy can reduce promotion-staleness debt without adding a heavyweight scheduler: use one concurrency family per semantic runtime boundary, preserve at most one pending representative, and perform an explicit subject-freshness gate before expensive/effectful execution.",
+  "counterhypotheses": [
+    "A global latest-wins queue would incorrectly erase distinct workpackages or experiments; coalescing must be scoped to a semantic probe family, not repository HEAD.",
+    "cancel-in-progress=true can destroy useful exact-source evidence or interrupt a non-idempotent/effectful path; running probes should not be cancelled by default.",
+    "Queue coalescing does not repair an offline runner. It only reduces obsolete backlog while preserving one latest representative.",
+    "Commit recency alone is insufficient: unrelated commits must not invalidate a probe. The key must bind workpackage/generation or an explicit semantic subject fingerprint.",
+    "SLSA-style provenance proves what executed, not whether that subject is still promotion-representative. Freshness needs a separate witness."
+  ],
+  "source_stage_conclusion": "SUPPORTED_FOR_E2_MAPPING",
+  "architecture_credit": 0,
+  "runtime_credit": 0,
+  "whole_system_credit": 0,
+  "next_exact_action": "Acquire E2_ARCHITECTURE_MAPPED claim for the same research_id, map the smallest GitHub-native RuntimeProbeFamily/coalescing/freshness design onto current Trigger-4 controller workflows, and explicitly separate pending replacement from running-probe preservation and credit semantics."
+}
