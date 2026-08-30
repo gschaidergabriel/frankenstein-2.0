@@ -1,0 +1,29 @@
+name: REVIEW WP902 mixed provenance falsifier
+
+on:
+  pull_request:
+    paths:
+      - 'src/frankenstein2/whole_system_characterization.py'
+      - 'tests/falsifier_wp902_mixed_provenance_family.py'
+      - '.github/workflows/review-wp902-mixed-provenance-falsifier.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  mixed-provenance-family-falsifier:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout exact review ref
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - name: Compile WP902 source and falsifier
+        run: >-
+          python -m py_compile
+          src/frankenstein2/whole_system_characterization.py
+          tests/falsifier_wp902_mixed_provenance_family.py
+      - name: Run mixed-provenance family falsifier
+        env:
+          PYTHONPATH: src
+        run: python -m unittest -v tests.falsifier_wp902_mixed_provenance_family
