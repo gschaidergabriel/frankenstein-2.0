@@ -1,0 +1,38 @@
+name: REVIEW WP901 G4 loader and lineage falsifiers
+
+on:
+  pull_request:
+    paths:
+      - 'src/frankenstein2/restart_recovery_persisted_row_attestation.py'
+      - 'tests/test_restart_recovery_persisted_row_attestation.py'
+      - 'tests/review_wp901_g4_loader_and_lineage_falsifier.py'
+      - '.github/workflows/review-wp901-g4-loader-and-lineage-falsifier-ci.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  reproduce-g4-counterexamples:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout exact review ref
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - name: Compile G4 candidate and review falsifiers
+        run: >-
+          python -m py_compile
+          src/frankenstein2/restart_recovery_persisted_row_attestation.py
+          tests/test_restart_recovery_persisted_row_attestation.py
+          tests/review_wp901_g4_loader_and_lineage_falsifier.py
+      - name: Run G4 baseline plus negative-evidence witnesses
+        env:
+          PYTHONPATH: src
+        run: >-
+          python -m unittest -v
+          tests.test_restart_recovery_persisted_row_attestation
+          tests.review_wp901_g4_loader_and_lineage_falsifier
+      - name: Review-only credit fence
+        run: >-
+          printf '%s\n'
+          'REVIEW_ONLY: green means counterexamples reproduced; no canonical mutation authority or runtime/whole-system credit.'
