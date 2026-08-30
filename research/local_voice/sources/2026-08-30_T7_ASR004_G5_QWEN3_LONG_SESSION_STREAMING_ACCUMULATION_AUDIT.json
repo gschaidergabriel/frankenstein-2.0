@@ -1,0 +1,78 @@
+{
+  "schema": "T7_SOURCE_RESULT/v1",
+  "trigger": "7",
+  "research_id": "T7-ASR-004",
+  "objective": "E5_QWEN3_ASR_LONG_SESSION_STREAMING_ACCUMULATION_FALSIFIER",
+  "semantic_key": "d7663b06f28c5b438a9a23d3cb77041404e07830cd4e1369d27cad49dc5e74e6",
+  "evidence_scope": "SOURCE_PIN",
+  "observed_date": "2026-08-30",
+  "official_source": {
+    "repository": "QwenLM/Qwen3-ASR",
+    "observed_main_commit": "7c6daf77a2421100f5fb066495372c00129d39ff",
+    "streaming_source_path": "qwen_asr/inference/qwen3_asr.py",
+    "streaming_source_blob_sha": "d99b91512a5bbc1c15897d97752cfd86ea68d46e",
+    "last_commit_touching_streaming_source": "c17a131fe028b2e428b6e80a33d30bb4fa57b8df",
+    "official_streaming_backend": "vLLM",
+    "streaming_timestamps": false
+  },
+  "upstream_issue": {
+    "repository": "QwenLM/Qwen3-ASR",
+    "issue": 148,
+    "title": "Serious Issues with Real-Time Streaming",
+    "opened": "2026-04-08",
+    "closed": "2026-07-27",
+    "closure_reason": "not_planned/inactive rather than documented technical resolution",
+    "reported_behavior": "long-running streaming processing time increases and quality degrades because all audio observed since stream start is repeatedly supplied to inference",
+    "multiple_user_reports_observed": true
+  },
+  "source_direct_findings": [
+    "ASRStreamingState initializes an ever-growing audio_accum buffer.",
+    "For every full streaming chunk, the official implementation appends the new chunk to audio_accum.",
+    "The implementation documentation explicitly states that each incremental decode step re-feeds all audio seen so far to the model.",
+    "The actual vLLM input binds state.audio_accum as the audio payload on every decode step.",
+    "finish_streaming_transcribe also appends the tail to the accumulated audio and supplies the full accumulated audio again.",
+    "Upstream issue #148 reports long-session slowdown/unresponsiveness and quality degradation from this same accumulation mechanism; the issue was closed as inactive/not-planned, not with a documented source fix.",
+    "Current official main still contains the all-audio re-feed implementation at the observed source blob."
+  ],
+  "project_inferences_not_runtime_facts": [
+    "Because the amount of audio presented at decode step n grows with elapsed conversation duration, the amount of re-presented audio across successive chunks grows superlinearly in session length in the absence of an effective hidden cache. This is a complexity/risk inference, not measured clay-direct-dev runtime scaling.",
+    "A short streaming demo PASS cannot establish Frankenstein's required long-conversation behavior; latency slope, resource slope and transcript stability over time must be measured explicitly.",
+    "The existing LOCAL-SOLO voice acceptance ladder should treat Qwen3-ASR native vLLM streaming as unpromoted until long-session behavior is measured at fixed chunk sizes on the actual resident Frankenstein resource envelope."
+  ],
+  "counterhypotheses": [
+    {
+      "statement": "vLLM or model-internal multimodal caching may substantially amortize repeated audio processing despite the growing source payload.",
+      "status": "UNRESOLVED_TARGET_MEASUREMENT_REQUIRED"
+    },
+    {
+      "statement": "A bounded rolling audio window could cap the long-session cost while preserving acceptable German transcript continuity.",
+      "status": "COMMUNITY_SUGGESTION_ONLY_NOT_OFFICIAL_FIX",
+      "risk": "windowing changes context/rollback semantics and may create boundary errors, duplicated text or lost words"
+    }
+  ],
+  "required_target_discriminator": {
+    "reuse_existing_executor": true,
+    "new_runtime_dispatch_required_now": false,
+    "conditions": [
+      "exact pinned Qwen3-ASR model/runtime",
+      "fixed streaming chunk configuration",
+      "identical German fixture sequence and non-speech strata",
+      "measure at cumulative stream ages such as 1, 5, 10, 20 and 30 minutes",
+      "record per-chunk decode latency p50/p95/p99 and latency-versus-stream-age slope",
+      "record RSS/VRAM and GPU utilization versus stream age",
+      "record partial transcript stability, duplicated/replayed text and endpoint/cancellation correctness",
+      "compare official unbounded accumulation against a separately labelled bounded-window experimental challenger only after baseline measurement",
+      "do not grant V4/V6 credit from source evidence"
+    ]
+  },
+  "credit": {
+    "source_negative_evidence": 1,
+    "target_runtime_scaling": 0,
+    "german_asr_quality": 0,
+    "streaming_performance": 0,
+    "german_e2e_voice": 0,
+    "trigger4_acceptance": 0,
+    "whole_system": 0
+  },
+  "next_exact_action": "Extend the already-owned T7-ASR-004 target benchmark, after the current pinned German comparator/non-speech gate, with a no-restart long-session streaming slope test. Baseline the official unbounded accumulation path first; only then test a bounded-window challenger. Persist raw per-chunk timings and resource traces."
+}
