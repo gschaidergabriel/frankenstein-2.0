@@ -1,0 +1,37 @@
+{
+  "schema": "FRANKENSTEIN2_WORKPACKAGE_DELTA/v1",
+  "workpackage_id": "F2-WP-1207",
+  "generation": 3,
+  "claim_id": "F2-WP-1207-G3-GPT56SOL-EXACT-RELEASE-CANDIDATE-BUNDLE-20260830",
+  "classification": "REVIEW_ONLY_CANDIDATE_PATCH_AFTER_EXECUTED_COUNTEREVIDENCE",
+  "trigger": "4",
+  "observed_main_sha": "9b194acad315a024438b2c0ec06ac90bf2b0c39a",
+  "counterevidence": {
+    "pull_request": 628,
+    "workflow_run": 33292958913,
+    "job": 99207676456,
+    "result": "2_FAILING_FALSIFIERS_1_PASSING_POSITIVE_CONTROL",
+    "findings": [
+      "a pre-existing external-receipts parent symlink lets receipt materialization escape the output root",
+      "a pre-existing declared receipt with different bytes is overwritten instead of rejected and preserved"
+    ]
+  },
+  "candidate_scope": "Immutable create-once-or-byte-identical materialization for the WP1207 G3 archive and evidence files, including fail-closed parent/target symlink handling; no canonical state mutation in this review lane.",
+  "hypothesis": "One shared fail-closed evidence writer can close both reproduced defects and prevent the same output-boundary class on the archive, content-bound receipt and bundle index without changing WP1107/WP1110 semantic authorities.",
+  "counterhypothesis": "The hostile pre-existing output tree is outside the repository-only G3 scope. That is insufficient for the next admitted hostile-twin gate, which must not overwrite or escape through attacker-controlled output paths.",
+  "tests": [
+    "reject parent-symlink escape and leave the outside directory empty",
+    "reject an existing different-byte declared receipt and preserve its bytes",
+    "accept a repeated build only when every existing evidence file is byte-identical",
+    "rerun the complete canonical WP1207 G3 suite"
+  ],
+  "authority_boundary": "CANDIDATE_PATCH_ONLY_UNTIL_ACTIVE_CLAIM_RECONCILER_ABSORBS_OR_OPENS_A_SUCCESSOR",
+  "runtime_execution_observed": false,
+  "hostile_twin_runtime_credit": 0,
+  "target_runtime_credit": 0,
+  "physical_host_credit": 0,
+  "effect_credit": 0,
+  "completion_credit": 0,
+  "whole_system_acceptance": false,
+  "next_exact_action": "Run exact PR-head repository CI. If green, the canonical WP1207 authority must absorb this patch or explicitly open a successor before using any G3 release bundle in the hostile-twin gate; then re-run merged-main CI and preserve PR #628 as negative evidence."
+}

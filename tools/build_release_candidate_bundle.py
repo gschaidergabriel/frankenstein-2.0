@@ -18,6 +18,7 @@ import argparse
 import hashlib
 import io
 import json
+import os
 from pathlib import Path, PurePosixPath
 import subprocess
 import tarfile
@@ -33,7 +34,6 @@ from frankenstein2.release_archive import (
     ReleaseArchivePolicy,
     verify_release_archive,
     build_release_archive,
-    write_release_archive,
 )
 from frankenstein2.release_artifact_subject import (
     ArtifactBoundPreHandoffReceipt,
@@ -76,6 +76,65 @@ def _canonical_json(value: Any) -> bytes:
 
 def _sha256(data: bytes) -> str:
     return hashlib.sha256(data).hexdigest()
+
+
+def _write_new_or_identical(
+    output_root: Path,
+    relative_path: str | PurePosixPath,
+    data: bytes,
+) -> Path:
+    """Materialize immutable evidence without following output-tree symlinks."""
+
+    rel = _safe_relpath(str(relative_path))
+    root = output_root.absolute()
+    if root.is_symlink() or not root.is_dir():
+        raise ReleaseCandidateBundleError("output root must be a real directory")
+
+    parent = root
+    for part in rel.parts[:-1]:
+        parent = parent / part
+        try:
+            parent.mkdir()
+        except FileExistsError:
+            pass
+        if parent.is_symlink() or not parent.is_dir():
+            raise ReleaseCandidateBundleError(
+                f"output path contains a symlink or non-directory: {rel.as_posix()!r}"
+            )
+
+    destination = parent / rel.name
+    flags = os.O_WRONLY | os.O_CREAT | os.O_EXCL
+    if hasattr(os, "O_NOFOLLOW"):
+        flags |= os.O_NOFOLLOW
+    try:
+        descriptor = os.open(destination, flags, 0o600)
+    except FileExistsError:
+        if destination.is_symlink() or not destination.is_file():
+            raise ReleaseCandidateBundleError(
+                f"output evidence path is a symlink or non-file: {rel.as_posix()!r}"
+            )
+        if destination.read_bytes() != data:
+            raise ReleaseCandidateBundleError(
+                f"output evidence already exists with different bytes: {rel.as_posix()!r}"
+            )
+        return destination
+    except OSError as exc:
+        raise ReleaseCandidateBundleError(
+            f"cannot create output evidence safely: {rel.as_posix()!r}"
+        ) from exc
+
+    try:
+        with os.fdopen(descriptor, "wb") as stream:
+            stream.write(data)
+            stream.flush()
+            os.fsync(stream.fileno())
+    except Exception:
+        try:
+            destination.unlink()
+        except OSError:
+            pass
+        raise
+    return destination
 
 
 def _safe_relpath(name: str) -> PurePosixPath:
@@ -213,7 +272,11 @@ def build_release_candidate_bundle(
         policy=policy,
         prehandoff_receipt_refs=(receipt_ref,),
     )
-    artifact_path = write_release_archive(output / artifact_filename, archive_build)
+    artifact_path = _write_new_or_identical(
+        output,
+        artifact_filename,
+        archive_build.archive_bytes,
+    )
 
     # Re-open exact artifact bytes through the already accepted WP1107 verifier before
     # constructing any higher composition receipt.
@@ -237,9 +300,11 @@ def build_release_candidate_bundle(
         )
 
     artifact_bound_bytes = artifact_bound.canonical_bytes()
-    artifact_bound_path = output.joinpath(*PurePosixPath(receipt_ref).parts)
-    artifact_bound_path.parent.mkdir(parents=True, exist_ok=True)
-    artifact_bound_path.write_bytes(artifact_bound_bytes)
+    artifact_bound_path = _write_new_or_identical(
+        output,
+        receipt_ref,
+        artifact_bound_bytes,
+    )
 
     content_bound = bind_prehandoff_receipt_content(
         artifact_bound,
@@ -249,13 +314,17 @@ def build_release_candidate_bundle(
     if content_bound.status != "READY_FOR_REAL_HOST_HANDOFF":
         raise ReleaseCandidateBundleError("receipt-content binding is not ready")
 
-    content_bound_path = artifact_bound_path.with_name(
-        artifact_bound_path.name.replace(
+    content_bound_ref = PurePosixPath(receipt_ref).with_name(
+        PurePosixPath(receipt_ref).name.replace(
             ".artifact-bound-prehandoff.json",
             ".content-bound-prehandoff.json",
         )
     )
-    content_bound_path.write_bytes(content_bound.canonical_bytes())
+    content_bound_path = _write_new_or_identical(
+        output,
+        content_bound_ref,
+        content_bound.canonical_bytes(),
+    )
 
     portable_identity = ReleaseIdentity(
         schema="FRANKENSTEIN2_PORTABLE_RELEASE_IDENTITY/v1",
@@ -316,7 +385,11 @@ def build_release_candidate_bundle(
         ),
     }
     index_path = output / "RELEASE_CANDIDATE_BUNDLE.json"
-    index_path.write_bytes(_canonical_json(index))
+    index_path = _write_new_or_identical(
+        output,
+        index_path.name,
+        _canonical_json(index),
+    )
 
     # The staging directory is not evidence and must not enter the uploaded artifact.
     import shutil
