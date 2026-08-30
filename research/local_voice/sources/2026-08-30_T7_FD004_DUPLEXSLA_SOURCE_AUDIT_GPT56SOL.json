@@ -1,0 +1,73 @@
+{
+  "schema": "T7_SOURCE_AUDIT_RESULT/v1",
+  "research_id": "T7-FD-004",
+  "objective": "E1_DUPLEXSLA_GERMAN_ACTION_CHANNEL_SOURCE_FALSIFIER",
+  "semantic_key": "78f976b9316d14ff421e0bfaccf128d37373852100651ab6722d1247ee92378d",
+  "observed_local_time": "2026-08-30T16:50:18+07:00",
+  "evidence_scope": "SOURCE_PIN",
+  "candidate": {
+    "name": "DuplexSLA",
+    "upstream_repo": "hyzhang24/DuplexSLA",
+    "upstream_commit": "c17e5fc8b91cf6448bb7715e6574a5864682b4c3",
+    "upstream_tree": "7b5e879db928e72a72289786a2cfef401b4996dc",
+    "readme_blob": "e62f8b7bb3512b7c28a62489e2a6ed9d65328795",
+    "license_blob": "e985552b2edbb4b4409c72e0c6ef4346e16385a0",
+    "paper": "arXiv:2605.20755v2",
+    "paper_revision_date": "2026-06-11",
+    "repository_license_observed": "MIT"
+  },
+  "observed_source_facts": [
+    "DuplexSLA uses a shared 160 ms conversational chunk clock with continuous user audio, assistant audio, and a separate rate-limited textual action channel.",
+    "The action channel can carry delayed transcript text, planning text, interaction-control labels and structured tool calls while assistant audio continues.",
+    "The paper evaluates pause, interruption, backchannel behavior and in-conversation tool calling together.",
+    "The pinned upstream repository currently contains README.md, LICENSE, DuplexSLA.pdf, .gitignore and assets only; no inference implementation, released checkpoint, deployment recipe or benchmark code is present at the pinned commit.",
+    "The public project README describes the backbone as Step-Audio-2-mini at approximately 7B parameters.",
+    "The currently published Step-Audio-2-mini model metadata identifies English and Chinese; no German language support claim was found in the DuplexSLA paper/repository evidence inspected for this audit.",
+    "Step-Audio-2-mini public local usage is CUDA-oriented and its published artifact is approximately 17.9 GB; this is upstream context only and does not establish DuplexSLA target-runtime fit on clay-direct-dev."
+  ],
+  "german_first_falsifier": {
+    "production_candidate": false,
+    "classification": "NOT_GERMAN_PRODUCTION_CANDIDATE_AT_SOURCE_SCOPE__HIGH_VALUE_ACTION_CHANNEL_ARCHITECTURE_DONOR",
+    "reasons": [
+      "No released DuplexSLA model/inference artifacts exist at the pinned source identity, so V2 LOCAL_RUNNABLE_COMPONENT cannot be established.",
+      "German support is not source-established; Frankenstein Trigger 7 requires German-first evidence before production promotion.",
+      "No clay-direct-dev CPU/RAM/latency evidence exists for DuplexSLA; the approximately-7B CUDA-oriented backbone makes hardware fit an open question rather than a positive claim.",
+      "No executable artifacts means security/dependency/runtime audit of the actual DuplexSLA implementation cannot yet be completed."
+    ]
+  },
+  "architecture_transfer": {
+    "retain": [
+      "TIME_STAMPED_VOICE_ACTION_CANDIDATE_LANE",
+      "SHARED_CONVERSATIONAL_CLOCK_FOR_SPEECH_AND_ACTION",
+      "SEPARATE_ACTION_TOKENS_FROM_SPOKEN_TEXT",
+      "JOINT_TURN_TAKING_PLUS_TOOL_CALL_BENCHMARK_DIMENSION"
+    ],
+    "frankenstein_mapping_hypothesis": {
+      "pause": "VoiceIntent WAIT candidate",
+      "response": "VoiceIntent RESPOND candidate",
+      "interrupt": "generation plus unheard-audio CANCEL candidate",
+      "backchannel": "bounded BACKCHANNEL or CONTINUE_CURRENT_OUTPUT candidate",
+      "structured tool call": "typed ToolRequest candidate routed through existing GWT/tool/effect authority"
+    },
+    "non_transferable_without_new_evidence": [
+      "Removing external VAD as a safety/observation signal",
+      "Treating model-emitted action tokens as canonical tool/effect authority",
+      "German acoustic quality",
+      "VPS hardware fit",
+      "sub-second end-to-end latency on Frankenstein hardware"
+    ],
+    "recommended_design_delta": "Add a timestamped VoiceActionCandidate benchmark surface that can score WAIT/RESPOND/CANCEL/BACKCHANNEL/tool-request timing independently of whether the final accepted speech stack is modular or speech-native. Keep VoiceIntent/GWT arbitration and EffectGate/EffectJournal authority outside the speech model."
+  },
+  "evidence_credits": {
+    "source_pin": 1,
+    "local_runnable_component": 0,
+    "component_benchmark": 0,
+    "german_e2e_voice": 0,
+    "trigger4_acceptance": 0,
+    "whole_system": 0
+  },
+  "runtime_executed": false,
+  "network_model_inference_executed": false,
+  "next_revisit_condition": "Re-open DuplexSLA only when model/checkpoint plus inference code or DuplexSLA-Bench artifacts are actually released, then inspect exact artifact identity, license, German capability and hardware requirements before any target-runtime experiment.",
+  "current_runtime_gate_unchanged": "Existing Qwen3-ASR target probe 33292903286 remains the runtime discriminator; do not dispatch a duplicate while the self-hosted runner assignment gate is unresolved."
+}
