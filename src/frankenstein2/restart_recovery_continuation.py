@@ -3,13 +3,17 @@
 F2-WP-901 generation 2 repository-component scope only.
 
 Generation 1 established bounded unfinished-work and UNKNOWN-effect recovery semantics.
-Generation 2 preserves those semantics and closes two executable post-acceptance
+Generation 2 preserves those semantics and closes three executable post-acceptance
 counterexamples:
 
-* restart evidence must carry one explicit replay-stable causal-lineage witness that is
-  independently repeated for the checkpoint and whole-loop seal; mixed lineage fails closed;
+* restart evidence carries one explicit replay-stable causal-lineage witness repeated for
+  checkpoint and whole-loop evidence; mixed lineage fails closed;
 * the public RestartContinuationPlan constructor validates disposition/reference/effect-flag
-  coherence so callers cannot manufacture contradictory recovery candidates directly.
+  coherence so callers cannot manufacture contradictory recovery candidates directly;
+* caller-supplied checkpoint/seal ids and digests are not accepted as their own source
+  authentication: planning also requires concrete WP206 PersistentAgencyCheckpoint and WP900
+  WholePersistentLoopSeal objects, and the seal must name that checkpoint as its exact persisted
+  next-checkpoint identity.
 
 Canonical durable state remains UnifiedDB. These objects are typed recovery/control
 projections only and never acquire scheduler, truth, effect, completion or persistence
@@ -23,12 +27,14 @@ import json
 import re
 from typing import Any, ClassVar, Iterable
 
+from .persistent_agency_kernel import PersistentAgencyCheckpoint
 from .whole_persistent_loop import (
     EFFECT_OUTCOME_UNKNOWN,
     EFFECT_RESULT_OBSERVED,
     EFFECT_VERIFIED_APPLIED,
     EFFECT_VERIFIED_NOT_APPLIED,
     NO_EFFECT,
+    WholePersistentLoopSeal,
 )
 
 
@@ -39,7 +45,7 @@ EVIDENCE_CLASSIFICATION = (
     "NOT_WORLD_TRUTH_EFFECT_OR_COMPLETION_AUTHORITY"
 )
 PLAN_CLASSIFICATION = (
-    "DETERMINISTIC_CAUSAL_LINEAGE_BOUND_RESTART_CONTINUATION_CANDIDATE_"
+    "DETERMINISTIC_CAUSAL_LINEAGE_AND_TYPED_SOURCE_BOUND_RESTART_CONTINUATION_CANDIDATE_"
     "NOT_SCHEDULER_EFFECT_OR_COMPLETION_AUTHORITY"
 )
 
@@ -137,6 +143,9 @@ class PersistedRestartEvidence:
     The three causal-lineage fields are deliberately redundant. A caller must obtain the
     common replay-stable lineage from the persisted evidence boundary and bind it to both
     principal sources; naming conventions or provenance prose are not accepted substitutes.
+
+    This value is not itself sufficient source authentication. The planner also consumes the
+    concrete WP206 checkpoint and WP900 whole-loop seal and re-derives their ids/digests.
     """
 
     evidence_id: str
@@ -383,31 +392,43 @@ class RestartContinuationPlan:
 
     def _validate_semantics(self) -> None:
         if self.requires_effect_verification and self.requires_effect_reauthorization:
-            raise RestartRecoveryError("recovery plan cannot require verification and reauthorization together")
+            raise RestartRecoveryError(
+                "recovery plan cannot require verification and reauthorization together"
+            )
 
         if self.disposition == CONTINUE_UNFINISHED:
             if self.reason_code != _REASON_CONTINUE:
                 raise RestartRecoveryError("CONTINUE_UNFINISHED reason mismatch")
             if not self.continuation_refs or self.held_refs:
-                raise RestartRecoveryError("CONTINUE_UNFINISHED requires continuation refs and no held refs")
+                raise RestartRecoveryError(
+                    "CONTINUE_UNFINISHED requires continuation refs and no held refs"
+                )
             if self.requires_effect_verification or self.requires_effect_reauthorization:
-                raise RestartRecoveryError("CONTINUE_UNFINISHED cannot carry effect hold flags")
+                raise RestartRecoveryError(
+                    "CONTINUE_UNFINISHED cannot carry effect hold flags"
+                )
             return
 
         if self.disposition == HOLD_EFFECT_VERIFICATION:
             if self.reason_code != _REASON_VERIFY:
                 raise RestartRecoveryError("HOLD_EFFECT_VERIFICATION reason mismatch")
             if self.continuation_refs or not self.held_refs:
-                raise RestartRecoveryError("HOLD_EFFECT_VERIFICATION requires only held refs")
+                raise RestartRecoveryError(
+                    "HOLD_EFFECT_VERIFICATION requires only held refs"
+                )
             if not self.requires_effect_verification or self.requires_effect_reauthorization:
                 raise RestartRecoveryError("HOLD_EFFECT_VERIFICATION flag mismatch")
             return
 
         if self.disposition == CONTINUE_WITH_EFFECT_REAUTH_HOLD:
             if self.reason_code != _REASON_REAUTHORIZE:
-                raise RestartRecoveryError("CONTINUE_WITH_EFFECT_REAUTH_HOLD reason mismatch")
+                raise RestartRecoveryError(
+                    "CONTINUE_WITH_EFFECT_REAUTH_HOLD reason mismatch"
+                )
             if not self.held_refs:
-                raise RestartRecoveryError("CONTINUE_WITH_EFFECT_REAUTH_HOLD requires held effect refs")
+                raise RestartRecoveryError(
+                    "CONTINUE_WITH_EFFECT_REAUTH_HOLD requires held effect refs"
+                )
             if self.requires_effect_verification or not self.requires_effect_reauthorization:
                 raise RestartRecoveryError("CONTINUE_WITH_EFFECT_REAUTH_HOLD flag mismatch")
             return
@@ -455,10 +476,53 @@ class RestartContinuationPlan:
         return _digest(self.as_dict())
 
 
+def _validate_typed_sources(
+    evidence: PersistedRestartEvidence,
+    *,
+    source_checkpoint: PersistentAgencyCheckpoint,
+    source_whole_loop_seal: WholePersistentLoopSeal,
+) -> None:
+    """Bind self-described recovery metadata to concrete WP206/WP900 objects."""
+
+    if type(source_checkpoint) is not PersistentAgencyCheckpoint:
+        raise RestartRecoveryError(
+            "source_checkpoint must be concrete PersistentAgencyCheckpoint"
+        )
+    if type(source_whole_loop_seal) is not WholePersistentLoopSeal:
+        raise RestartRecoveryError(
+            "source_whole_loop_seal must be concrete WholePersistentLoopSeal"
+        )
+
+    checkpoint_sha256 = source_checkpoint.sha256()
+    whole_loop_sha256 = source_whole_loop_seal.sha256()
+
+    if evidence.source_checkpoint_id != source_checkpoint.checkpoint_id:
+        raise RestartRecoveryError("RECOVERY_SOURCE_CHECKPOINT_OBJECT_ID_MISMATCH")
+    if evidence.source_checkpoint_generation != source_checkpoint.generation:
+        raise RestartRecoveryError(
+            "RECOVERY_SOURCE_CHECKPOINT_OBJECT_GENERATION_MISMATCH"
+        )
+    if evidence.source_checkpoint_sha256 != checkpoint_sha256:
+        raise RestartRecoveryError("RECOVERY_SOURCE_CHECKPOINT_OBJECT_DIGEST_MISMATCH")
+    if evidence.whole_loop_seal_id != source_whole_loop_seal.seal_id:
+        raise RestartRecoveryError("RECOVERY_SOURCE_WHOLE_LOOP_OBJECT_ID_MISMATCH")
+    if evidence.whole_loop_seal_sha256 != whole_loop_sha256:
+        raise RestartRecoveryError("RECOVERY_SOURCE_WHOLE_LOOP_OBJECT_DIGEST_MISMATCH")
+
+    if source_whole_loop_seal.next_checkpoint_id != source_checkpoint.checkpoint_id:
+        raise RestartRecoveryError("RECOVERY_WHOLE_LOOP_NEXT_CHECKPOINT_ID_MISMATCH")
+    if source_whole_loop_seal.next_checkpoint_sha256 != checkpoint_sha256:
+        raise RestartRecoveryError("RECOVERY_WHOLE_LOOP_NEXT_CHECKPOINT_DIGEST_MISMATCH")
+    if source_checkpoint.generation != source_whole_loop_seal.generation + 1:
+        raise RestartRecoveryError("RECOVERY_WHOLE_LOOP_NEXT_GENERATION_MISMATCH")
+
+
 def plan_restart_continuation(
     evidence: PersistedRestartEvidence,
     *,
     plan_id: str,
+    source_checkpoint: PersistentAgencyCheckpoint,
+    source_whole_loop_seal: WholePersistentLoopSeal,
     expected_evidence_sha256: str,
     expected_causal_lineage_id: str,
     expected_checkpoint_id: str,
@@ -470,9 +534,9 @@ def plan_restart_continuation(
     """Create one deterministic, authority-free restart continuation candidate.
 
     Principal identities and the common causal lineage are supplied again by the caller and
-    must agree with the canonical persisted-evidence object. The evidence object itself
-    independently requires checkpoint and whole-loop lineage witnesses to match that common
-    lineage before this function can run.
+    must agree with persisted evidence. They are additionally re-derived from concrete WP206
+    checkpoint and WP900 whole-loop source objects. The whole-loop seal must itself name the
+    checkpoint as its exact next-checkpoint id/digest/direct-successor generation.
     """
 
     if type(evidence) is not PersistedRestartEvidence:
@@ -496,6 +560,12 @@ def plan_restart_continuation(
     )
     expected_whole_loop_seal_sha256 = _sha256(
         "expected_whole_loop_seal_sha256", expected_whole_loop_seal_sha256
+    )
+
+    _validate_typed_sources(
+        evidence,
+        source_checkpoint=source_checkpoint,
+        source_whole_loop_seal=source_whole_loop_seal,
     )
 
     if evidence.sha256() != expected_evidence_sha256:
@@ -546,8 +616,8 @@ def plan_restart_continuation(
             | {
                 f"wp901:evidence:{evidence.evidence_id}:{evidence_sha}",
                 f"wp901:lineage:{evidence.causal_lineage_id}",
-                f"wp901:checkpoint:{evidence.source_checkpoint_id}:{evidence.source_checkpoint_sha256}",
-                f"wp901:whole-loop:{evidence.whole_loop_seal_id}:{evidence.whole_loop_seal_sha256}",
+                f"wp901:checkpoint:{source_checkpoint.checkpoint_id}:{source_checkpoint.sha256()}",
+                f"wp901:whole-loop:{source_whole_loop_seal.seal_id}:{source_whole_loop_seal.sha256()}",
             }
         )
     )
