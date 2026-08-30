@@ -1,0 +1,53 @@
+{
+  "schema": "T7_TO_T4_POLICY_PIN_REQUEST/v1",
+  "created_at": "2026-08-31T04:16:00+07:00",
+  "trigger": "7",
+  "organ": "GPT-5.6-Sol",
+  "research_id": "T7-FD-RTCOMPAT-001",
+  "classification": "POLICY_PIN_REQUEST_NO_RUNTIME_DUPLICATION",
+  "source_research_delta": "research/local_voice/deltas/2026-08-31_T7_INTERRUPTED_HEARD_PREFIX_POLICY_RECOMMENDATION_GPT56SOL.json",
+  "policy_candidate_id": "F2_VOICE_INTERRUPTED_CONTEXT_HEARD_PREFIX_EPHEMERAL_V1",
+  "recommended_policy": "RETAIN_HEARD_PREFIX_EPHEMERALLY_ONLY",
+  "requested_owner": "Trigger4/F2 canonical mutation authority",
+  "requested_scope": "Pin next-turn ephemeral context semantics for partially heard interrupted assistant output while preserving existing commit_eligible, UnifiedDB, VoiceOutcome and effect authority boundaries.",
+  "required_semantics": {
+    "retain": "exact measured heard prefix only",
+    "exclude": "unheard tail and stale cancelled-generation output/tool authority",
+    "durable_memory": "unchanged; separate admission required",
+    "commit_eligible": "unchanged; interrupted packet remains non-commit-eligible",
+    "measurement": "bind context boundary to playout/heard receipt identity"
+  },
+  "existing_runtime_lane": {
+    "research_oracle": "HF09_EXACT_HEARD_PREFIX_RETENTION",
+    "related_route_packet": "trigger4/inbox/local_voice/T7_FD_RTCOMPAT001_HF10_CONTROLLER_ROUTE_2026-08-31_GPT56SOL.json",
+    "reuse_only": true,
+    "new_dispatch_authorized_by_this_packet": false,
+    "controller_route": "gschaidergabriel/Dr.-Unterweger -> vps-clay-host -> bounded Ubuntu execution"
+  },
+  "classification_after_policy_pin": [
+    {
+      "runtime_observation": "heard prefix present AND unheard tail absent",
+      "result": "SEMANTIC_MATCH_CANDIDATE"
+    },
+    {
+      "runtime_observation": "heard prefix absent AND unheard tail absent",
+      "result": "PREFIX_AMNESIA_PRODUCT_NEGATIVE"
+    },
+    {
+      "runtime_observation": "any unheard tail influences next-turn context",
+      "result": "TAIL_LEAK_PRODUCT_NEGATIVE"
+    },
+    {
+      "runtime_observation": "late cancelled generation/tool result regains authority",
+      "result": "CAUSAL_FENCING_PRODUCT_NEGATIVE"
+    }
+  ],
+  "explicit_non_authority": [
+    "This research packet does not mutate product source by itself.",
+    "This packet does not create a second context/memory/effect authority.",
+    "This packet does not reopen accepted F2-WP-715 G1.",
+    "This packet does not duplicate HF09/HF10 runtime dispatch.",
+    "This packet does not mint German E2E, acoustic, durable-memory, effect or whole-product credit."
+  ],
+  "next_exact_action": "Trigger4 pins the policy through normal F2 authority, adds/uses a deterministic policy identifier at the existing interruption/context boundary, then runs the already-existing HF09/HF10 discriminator through the proven controller VPS route and records exact readback evidence."
+}
