@@ -1,0 +1,53 @@
+{
+  "schema": "FRANKENSTEIN2_TRIGGER6_ARCHITECTURE_MAPPING/v1",
+  "research_id": "R6-20260830-SQLITE-OWNED-STATE-REVISION-FENCE-GPT56SOL-01",
+  "stage": "E2_ARCHITECTURE_MAPPED",
+  "status": "COMPLETE_CONVERGED_WITH_ACTIVE_G6_REPAIR",
+  "recorded_at": "2026-08-30T19:25:00+07:00",
+  "worker": "ChatGPT GPT-5.6 Sol / Trigger-6 organ",
+  "claim": "research/tool_intelligence/claims/R6-20260830-SQLITE-OWNED-STATE-REVISION-FENCE-GPT56SOL-01/E2_ARCHITECTURE_MAPPED.json",
+  "current_f2_context": {
+    "active_workpackage": "F2-WP-206 generation 6",
+    "active_claim": "F2-WP-206-G6-GPT56SOL-EXTERNAL-SQLITE-REVISION-FENCE-20260830",
+    "mutation_owner": "Trigger-4",
+    "active_pr": 742,
+    "pr_head_observed": "d132bed069117e8d5b58d52d6aa52e74d70fd4a7",
+    "owned_table_observed_on_main": "f2_persistent_agency_checkpoints",
+    "source_surface": "src/frankenstein2/persistent_agency_kernel.py"
+  },
+  "mapping": {
+    "original_g6_candidate": "PRAGMA main.data_version used as a hard verdict for any different-connection commit during one long-lived store connection",
+    "executable_counterevidence": "PR746/current G6 review demonstrated a legitimate WP103 write in the same UnifiedDB changes data_version while WP206-owned checkpoint state is unchanged; unconditional failure is therefore database-wide false positive behavior.",
+    "thin_current_solution": "Keep path/device/inode as hard file identity. Use connection-local data_version only as a dirty/revalidation hint. When it changes, compute a deterministic witness over WP206-owned sqlite_schema objects plus ordered checkpoint rows. If the owned witness is unchanged, accept unrelated UnifiedDB activity and advance the local observation baseline. If the owned witness changed unexpectedly, fail closed.",
+    "why_no_revision_trigger_subsystem": "Exact-current WP206 owns one bounded table and PR742 already contains an in-memory owned-surface witness repair. Adding persistent revision tables/triggers would add mutable state and schema surface without increasing current discriminator value.",
+    "authority_boundary": "The owned-surface witness is a local integrity/revalidation measurement only. It is not a second canonical state store, not cross-reopen UnifiedDB authority, and not runtime/product acceptance."
+  },
+  "external_source_alignment": [
+    "SQLite data_version is connection-local and database-wide with respect to commits by other connections, matching the false-positive mechanism.",
+    "A selective SQL query over sqlite_schema and WP206-owned rows is compatible with SQLite's normal transactional snapshot semantics and avoids connection-local update-hook/session limitations.",
+    "A trigger-based persistent revision counter would require additional threat assumptions because triggers can be disabled per writer connection; therefore it is not preferred for this exact current F2 boundary."
+  ],
+  "required_acceptance_matrix": [
+    "unrelated legitimate subsystem commit changes data_version but leaves owned witness stable -> continue and rebaseline",
+    "external mutation of a WP206 checkpoint row -> owned witness changes -> fail closed",
+    "external WP206 schema change -> owned witness changes -> fail closed",
+    "canonical same-connection WP206 write/recovery -> refresh owned witness and remain usable",
+    "DELETE and WAL journal modes preserve the same decision law",
+    "double-read/race capture must not admit a torn owned witness while an external commit overlaps revalidation",
+    "G5/G4/G3/kernel predecessor regressions remain green",
+    "all higher target-runtime/effect/training/whole-system credits remain zero at repository-CI scope"
+  ],
+  "residual_counterhypotheses": [
+    "A foreign writer can mutate and restore WP206-owned bytes between observations; a final-state witness will not preserve that transient causal history. If detecting any historical foreign write is required, a stronger append-only/write-authority mechanism is needed.",
+    "Large future WP206 tables could make full owned-row hashing too expensive; only measured growth would justify a persistent incremental witness later.",
+    "Raw filesystem/WAL tamper is outside this SQL-level witness and remains a separate boundary."
+  ],
+  "architecture_delta": "NO_NEW_BRANCH. External research independently converges on the active PR742 owned-surface witness repair. The useful delta is to preserve the two-stage dirty-hint/selective-witness contract and its counterevidence-driven tests, not to add a second revision subsystem.",
+  "evidence_ceiling": "E2_ARCHITECTURE_MAPPED_ONLY",
+  "research_credit": "E2_ONLY",
+  "runtime_credit": 0,
+  "effect_credit": 0,
+  "completion_credit": 0,
+  "whole_system_credit": 0,
+  "next_exact_action": "Trigger-4 owner should finish executable CI binding and terminal reconciliation for PR742 only after the owned-surface matrix and predecessor regressions execute at the claimed repository-component scope. Trigger-6 should consume that outcome rather than duplicate G6 mutation."
+}
