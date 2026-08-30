@@ -35,7 +35,15 @@ def route(
     status=ROUTE_ADAPTED,
     lifecycle=True,
     readback=True,
+    typed_readback=True,
+    bound_state=None,
+    lineage_id=None,
+    generation=None,
+    state_sha256=None,
+    binding_sha256=None,
 ):
+    bound_state = state() if bound_state is None else bound_state
+    typed = readback and typed_readback
     return HostRouteEvidence.create(
         host_id=host_id,
         route_id=route_id,
@@ -43,6 +51,18 @@ def route(
         capability_evidence_ref="evidence/capabilities.json",
         lifecycle_firing_evidence_ref="evidence/lifecycle.json" if lifecycle else None,
         state_readback_evidence_ref="evidence/readback.json" if readback else None,
+        state_readback_lineage_id=(
+            bound_state.lineage_id if typed and lineage_id is None else lineage_id
+        ),
+        state_readback_generation=(
+            bound_state.generation if typed and generation is None else generation
+        ),
+        state_readback_state_sha256=(
+            bound_state.state_sha256 if typed and state_sha256 is None else state_sha256
+        ),
+        state_readback_binding_sha256=(
+            bound_state.sha256() if typed and binding_sha256 is None else binding_sha256
+        ),
     )
 
 
@@ -119,6 +139,44 @@ class HostTransitionTests(unittest.TestCase):
         with self.assertRaisesRegex(HostTransitionError, "state readback"):
             req(OP_SWITCH_HOST, successor_route=route(readback=False))
 
+    def test_switch_rejects_untyped_state_readback_identity(self):
+        with self.assertRaisesRegex(HostTransitionError, "typed durable state readback identity"):
+            req(
+                OP_SWITCH_HOST,
+                successor_route=route(typed_readback=False),
+            )
+
+    def test_switch_rejects_state_readback_lineage_mismatch(self):
+        with self.assertRaisesRegex(HostTransitionError, "readback lineage mismatch"):
+            req(
+                OP_SWITCH_HOST,
+                successor_route=route(lineage_id="lineage-other"),
+            )
+
+    def test_switch_rejects_state_readback_generation_mismatch(self):
+        with self.assertRaisesRegex(HostTransitionError, "readback generation mismatch"):
+            req(OP_SWITCH_HOST, successor_route=route(generation=8))
+
+    def test_switch_rejects_state_readback_state_digest_mismatch(self):
+        with self.assertRaisesRegex(HostTransitionError, "readback state digest mismatch"):
+            req(OP_SWITCH_HOST, successor_route=route(state_sha256="b" * 64))
+
+    def test_switch_rejects_state_readback_binding_digest_mismatch(self):
+        with self.assertRaisesRegex(HostTransitionError, "readback binding digest mismatch"):
+            req(OP_SWITCH_HOST, successor_route=route(binding_sha256="c" * 64))
+
+    def test_partial_typed_readback_identity_is_rejected(self):
+        with self.assertRaisesRegex(HostTransitionError, "state readback identity must be complete"):
+            HostRouteEvidence.create(
+                host_id="codex",
+                route_id="codex-adapter",
+                route_status=ROUTE_ADAPTED,
+                capability_evidence_ref="evidence/capabilities.json",
+                lifecycle_firing_evidence_ref="evidence/lifecycle.json",
+                state_readback_evidence_ref="evidence/readback.json",
+                state_readback_lineage_id="lineage-1",
+            )
+
     def test_switch_rejects_same_host_identity(self):
         with self.assertRaisesRegex(HostTransitionError, "must differ"):
             req(OP_SWITCH_HOST, successor_route=route(host_id="claude", route_id="other"))
@@ -151,6 +209,16 @@ class HostTransitionTests(unittest.TestCase):
     def test_reenable_rejects_different_rollback_route(self):
         rollback = route(host_id="claude", route_id="other", status=ROUTE_NATIVE)
         with self.assertRaisesRegex(HostTransitionError, "source route identity"):
+            req(OP_REENABLE, rollback_route=rollback)
+
+    def test_reenable_rejects_mismatched_state_readback_binding(self):
+        rollback = route(
+            host_id="claude",
+            route_id="claude-native",
+            status=ROUTE_NATIVE,
+            binding_sha256="d" * 64,
+        )
+        with self.assertRaisesRegex(HostTransitionError, "readback binding digest mismatch"):
             req(OP_REENABLE, rollback_route=rollback)
 
     def test_state_digest_fence_detects_tampering(self):
