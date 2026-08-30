@@ -1,0 +1,92 @@
+{
+  "schema": "TRIGGER6_ARCHITECTURE_REVIEW_HANDOFF/v1",
+  "research_id": "R6-20260830-WORKPACKAGE-STATUS-MATERIALIZED-PROJECTION-GPT56SOL-01",
+  "trigger6_status": "E2_REVIEW_COMPLETE",
+  "handoff_status": "REVIEW_EXISTING_LANE_NO_DUPLICATE_IMPLEMENTATION",
+  "created_at": "2026-08-30T19:31:00+07:00",
+  "worker": "GPT-5.6 Sol / ChatGPT organ",
+  "target_workpackage": "F2-WP-002",
+  "existing_trigger4_lane": {
+    "pull_request": 115,
+    "title": "Trigger 4: WP002 G5 aggregate state projection repair",
+    "head_observed": "1cea1ad6e2517183e0eae1560d70e5c259fc33ec",
+    "state_observed": "OPEN",
+    "instruction": "Re-enter current main and this PR or its exact successor. Do not create a second aggregate-projection branch from this packet."
+  },
+  "architecture_snapshot": {
+    "f2_main_observed_before_handoff": "f79c628b3113e91373fea35a70bf3c70ae3efab1",
+    "research_entity_main_observed": "5933ed34cc03328f6300a83b2be972bc05cf0a66",
+    "trigger6_protocol_blob": "08571526d33f9a0c06577e2f119bdaf4297ef1c8"
+  },
+  "trigger6_evidence": [
+    "research/tool_intelligence/receipts/R6-20260830-WORKPACKAGE-STATUS-MATERIALIZED-PROJECTION-GPT56SOL-01_E1_SOURCE_READ.json",
+    "research/tool_intelligence/deltas/ADF-20260830T1925P0700-GPT56SOL-WORKPACKAGE-STATUS-MATERIALIZED-PROJECTION-E2.json",
+    "research/tool_intelligence/reconciliations/R6-20260830-WORKPACKAGE-STATUS-MATERIALIZED-PROJECTION-GPT56SOL-01_PR115_E2_REVIEW.json"
+  ],
+  "observed_overlap": [
+    "PR115 already treats STATE.json as a cache/projection rather than truth authority.",
+    "PR115 already checks active-pointer/broad-state consistency and terminal reconciliation binding.",
+    "PR115 already handles explicit broader_workpackage_status for scoped acceptance.",
+    "PR115 already validates append-only reconciliation chains and keeps runtime/whole-system credit at zero."
+  ],
+  "residual_review_questions": [
+    {
+      "id": "R1_REBUILDABLE_PROJECTOR",
+      "question": "Does current PR115/successor expose a pure deterministic canonical builder that reconstructs the aggregate machine view from granular inputs, rather than only rejecting/manual-repairing stale STATE?",
+      "accept_if": "A source-bound builder plus check mode reproduces the checked-in projection deterministically from admitted granular inputs.",
+      "falsify_gap_if": "Existing exact-current code already does this comprehensively."
+    },
+    {
+      "id": "R2_MULTI_GENERATION_SCOPE",
+      "question": "Can machine aggregate state losslessly represent accepted generation N/scope S while generation N+1 is ACTIVE?",
+      "accept_if": "Machine state exposes current_generation/current_generation_state separately from highest_accepted_generation/accepted_scopes or an equivalent typed representation.",
+      "falsify_gap_if": "Existing exact-current schema already preserves both dimensions without scalar ambiguity."
+    },
+    {
+      "id": "R3_PROJECTION_IDENTITY_FRESHNESS",
+      "question": "Is projection identity/freshness bound to projector version/code and a canonical manifest of relevant evidence inputs?",
+      "accept_if": "Projection metadata binds schema/projector identity and canonical input-manifest digest or an equivalently strong deterministic freshness witness.",
+      "falsify_gap_if": "Existing exact-current mechanism already proves semantic projection freshness independent of unrelated repository churn."
+    },
+    {
+      "id": "R4_HUMAN_LEDGER_DERIVATION",
+      "question": "Can WORKPACKAGES.md status markers drift independently from the same machine projection?",
+      "accept_if": "Markers are rendered from or mechanically checked against the same projection result; prose may remain manually maintained.",
+      "falsify_gap_if": "Existing exact-current CI already guarantees the human and machine status views cannot diverge."
+    }
+  ],
+  "recommended_delta_if_gaps_remain": [
+    "Factor current precedence logic into build_projection(root) or an equivalent pure deterministic projection function.",
+    "Provide a canonical --check path; optional explicit --write may materialize the view, but the view never becomes truth authority.",
+    "Bind projection schema/projector identity and relevant-input manifest digest.",
+    "Represent current generation state separately from historical accepted scope when both coexist.",
+    "Add G1 accepted + G2 active, contradictory terminal, input-order permutation, unsupported-schema and direct-edit drift falsifiers.",
+    "Render or check human status markers from the same projection result.",
+    "Preserve PR115 reconciliation-chain and explicit zero whole-system/runtime credit invariants."
+  ],
+  "external_pattern_distillation": {
+    "decision": "ADOPT_PATTERN_NOT_FRAMEWORK",
+    "patterns": [
+      "authoritative granular records -> disposable/rebuildable projection",
+      "single projection writer/owner",
+      "explicit projection checkpoint/freshness identity",
+      "rebuild/version on projection logic change",
+      "gaps/conflicts fail closed"
+    ],
+    "do_not_import": ["Marten", "KurrentDB/EventStoreDB", "Azure services"],
+    "runtime_model_calls": 0,
+    "new_database": false,
+    "new_framework_dependency": false
+  },
+  "counterhypothesis": "PR115's validator-only design may already be sufficient; if exact-current re-entry proves deterministic rebuildability, lossless multi-generation scope, strong freshness binding and human-view consistency, retire this residual delta with no code change.",
+  "acceptance_boundary": {
+    "requested_evidence": "repository source/tests/hosted CI only",
+    "runtime_credit": 0,
+    "vps_credit": 0,
+    "physical_grid10_credit": 0,
+    "effect_credit": 0,
+    "training_credit": 0,
+    "whole_system_credit": 0,
+    "e5_new_build_candidate": false
+  }
+}
