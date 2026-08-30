@@ -1,0 +1,67 @@
+{
+  "schema": "TRIGGER7_TO_TRIGGER4_HANDOFF_ADDENDUM/v1",
+  "trigger": "7",
+  "date": "2026-08-31",
+  "research_id": "T7-ASR-004",
+  "semantic_key": "95bd53a469133dbfdf39da320f6daa049cec1361084e632dc915c4bc156e3715",
+  "handoff_scope": "CLASSIFY_MATCHED_COMPARATOR_FAILURE_AND_CLOSE_SINGLE_REPAIR_BOUNDARY",
+  "coordination": {
+    "new_semantic_claim": false,
+    "duplicate_comparator_dispatch_forbidden": true,
+    "existing_handoff": "trigger4/inbox/local_voice/T7_ASR004_MATCHED_GERMAN_NOISE_COMPARATOR_EXECUTION_GPT56SOL.json",
+    "repair_artifact_commit": "81cfd78a776bdc471d0c9beb9d2865fe2a3c50e2",
+    "repair_artifact_path": "research/local_voice/tools/t7_asr004_datasets36_repair.patch"
+  },
+  "executed_run": {
+    "repository": "gschaidergabriel/Dr.-Unterweger",
+    "run_id": 33326279965,
+    "job_id": 99296857609,
+    "runner": "vps-clay-host",
+    "target_sandbox": "clay-direct-dev",
+    "bound_f2_source_commit": "3db127b0f7a7169c148212db35f600f6ef0e54e0",
+    "execution_observed": true,
+    "job_conclusion": "failure",
+    "receipt_classification": "COMPARATOR_EXECUTION_FAILED_NO_QUALITY_CREDIT",
+    "exception_type": "RuntimeError",
+    "exception": "Dataset scripts are no longer supported, but found fleurs.py"
+  },
+  "evidence_classification": {
+    "class": "EVIDENCE_INVALID",
+    "reason": "The target comparator process executed, but the pinned FLEURS fixture failed to load before any valid matched German quality comparison was completed. This is not executable counterevidence against Qwen3-ASR quality.",
+    "product_negative": false,
+    "qwen3_asr_quality_conclusion_permitted": false,
+    "faster_whisper_quality_conclusion_permitted": false
+  },
+  "observed_source_gap": {
+    "current_comparator_still_calls_load_dataset_without_trust_remote_code": true,
+    "current_bootstrap_still_installs_unpinned_datasets": true,
+    "repair_patch_proposes": [
+      "load_dataset(..., trust_remote_code=True)",
+      "pin datasets==3.6.0"
+    ],
+    "repair_patch_materialized_into_comparator_source": false
+  },
+  "required_next_action": {
+    "owner": "TRIGGER4",
+    "steps": [
+      "Materialize the already-bound repair patch into the canonical comparator source; do not create a second comparator implementation.",
+      "Run repository regression/receipt-validator tests for the repaired exact source.",
+      "Bind the execution controller to the new exact repaired F2 source commit.",
+      "Dispatch exactly one matched comparator run on the same clay-direct-dev target and same semantic key.",
+      "Require a validator-bound receipt and raw per-input outputs before any German ASR quality promotion."
+    ],
+    "do_not": [
+      "Do not rerun workflow 33326279965 unchanged because it remains bound to source commit 3db127b0f7a7169c148212db35f600f6ef0e54e0.",
+      "Do not start T7-ASR-008 Nemotron on a changed benchmark shape before ASR004 is measured or explicitly reconciled.",
+      "Do not mint runtime-quality, German-quality, Trigger4 acceptance, or whole-system credit from this failed comparator run."
+    ]
+  },
+  "credits": {
+    "new_target_model_runtime": 0,
+    "new_german_asr_quality": 0,
+    "new_streaming_asr": 0,
+    "new_trigger4_acceptance": 0,
+    "new_whole_system": 0
+  },
+  "status": "REPAIR_BOUNDARY_ROUTED_FAIL_CLOSED"
+}
