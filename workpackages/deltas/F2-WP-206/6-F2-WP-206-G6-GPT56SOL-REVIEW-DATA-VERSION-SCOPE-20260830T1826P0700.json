@@ -1,0 +1,56 @@
+{
+  "schema": "FRANKENSTEIN2_WORKPACKAGE_DELTA/v1",
+  "workpackage_id": "F2-WP-206",
+  "generation": 6,
+  "claim_id": "F2-WP-206-G6-GPT56SOL-EXTERNAL-SQLITE-REVISION-FENCE-20260830",
+  "worker_id": "GPT-5.6-Sol-TRIGGER4-REVIEW",
+  "trigger": "4",
+  "work_class": "REVIEW_ONLY_CANDIDATE_FALSIFIER",
+  "mutation_authority": false,
+  "recorded_at_utc": "2026-08-30T11:26:00Z",
+  "observed_main_before_review_write": "026ec3e2324b22367492145b5d8e61531fb0132a",
+  "active_pointer_blob_sha": "5ff9aad551864f578dcaa551b2ae57972c95167d",
+  "current_kernel_blob_sha": "7ba8bd55c788faa9eb9b96870c039cb5273e181d",
+  "current_restart_probe_blob_sha": "a28084d15945feac2dc9b393a56a97d2efcc149d",
+  "candidate_pr": 728,
+  "candidate_source_blob_sha": "8d0bcd3cec2ad3908add094bdbb344ad4bc72e4b",
+  "candidate_restart_probe_blob_sha": "cb242d2c33e0df7164592b5be2ac78a27c896dee",
+  "candidate_run_id": 33306943200,
+  "candidate_job_id": 99245043942,
+  "compatibility_review": {
+    "kernel_rebase": "CLEAN_AT_CONTENT_BASE: exact current persistent_agency_kernel.py blob equals the PR728 merge-base blob, so the donor's bounded 23-line source delta has no later same-file mainline mutation to overwrite.",
+    "restart_probe_rebase": "CLEAN_AT_CONTENT_BASE: exact current tests/wp206_restart_probe.py blob equals the PR728 merge-base blob, so the donor restart-fixture correction can be ported without overwriting later same-file mainline mutation.",
+    "branch_reuse": "DO_NOT_MERGE_PR728_BRANCH_DIRECTLY: the donor branch is deeply behind current main and must be semantically rebased under the active G6 authority.",
+    "missing_current_regression": "The donor G5 workflow predates accepted G5 evidence-subject binding and does not execute tests/test_wp206_g5_evidence_subject_binding.py. G6 acceptance must add the exact current G5 regression before reconciliation."
+  },
+  "sqlite_primary_source": {
+    "source": "SQLite official PRAGMA documentation, PRAGMA data_version",
+    "url": "https://www.sqlite.org/pragma.html#pragma_data_version",
+    "observed_semantics": [
+      "Two data_version reads on the same connection differ when any other connection commits changes to the database in between.",
+      "Commits made on the same connection do not change that connection's data_version value.",
+      "data_version is connection-local and values from different connections must not be compared as database identity."
+    ]
+  },
+  "serious_counterhypothesis": {
+    "id": "DATABASE_WIDE_EXTERNAL_COMMIT_FALSE_POSITIVE",
+    "statement": "A connection-local PRAGMA main.data_version fence is database-wide rather than WP206-table-specific. If canonical UnifiedDB legitimately permits other components/connections to commit unrelated tables while CanonicalPersistentAgencyStore remains open, the proposed hard fence will classify those legitimate commits as UNIFIEDDB_EXTERNAL_SQLITE_REVISION_DRIFT and can make the long-lived agency store unusable under normal multi-writer operation.",
+    "why_material": "UnifiedDB is one canonical authority substrate intended to host multiple typed tables/readers/writers. Detecting every other-connection commit is stronger than detecting unauthorized mutation of WP206-owned state.",
+    "cheapest_discriminator": [
+      "Open CanonicalPersistentAgencyStore on a fixture UnifiedDB and establish the G6 data_version baseline.",
+      "From a second legitimate connection, commit only to a non-WP206 table that is explicitly outside CHECKPOINT_TABLE/recovery ownership.",
+      "Call the canonical WP206 read/write identity guard on the original store.",
+      "If the guard raises UNIFIEDDB_EXTERNAL_SQLITE_REVISION_DRIFT, record that G6 is a database-wide concurrency fence, not a WP206-state revision fence.",
+      "Then either prove the runtime contract intentionally grants WP206 an exclusive/single-writer database epoch, or narrow the fence to an owned-state revision witness before acceptance."
+    ],
+    "acceptance_rule": "Do not reconcile G6 merely because hostile external DML/DDL is detected. Acceptance also requires a declared and tested answer for legitimate unrelated UnifiedDB commits; otherwise the mechanism may close one stale-state gap by breaking the shared canonical substrate contract."
+  },
+  "scope_boundaries": [
+    "data_version must never be persisted or compared across reopen as durable database identity",
+    "same-connection raw DML remains separate",
+    "raw filesystem/WAL tamper remains separate",
+    "repository CI cannot mint target-host/runtime/GRID10/GWT/J-Space/effect/completion/training/whole-system credit"
+  ],
+  "review_result": "G6_DONOR_REBASE_IS_CONTENT_COMPATIBLE_BUT_ACCEPTANCE_NEEDS_ONE_ADDITIONAL_UNRELATED_LEGITIMATE_WRITER_DISCRIMINATOR_OR_AN_EXPLICIT_EXCLUSIVE_WRITER_EPOCH_CONTRACT",
+  "next_exact_action": "Active G6 mutation owner should port PR728 onto current main, rename the acceptance surface to G6, preserve exact current G5/G4/kernel/restart regressions, and add the unrelated-legitimate-writer discriminator before terminal reconciliation. If it fires, do not weaken it silently: decide explicitly between an exclusive WP206 writer epoch and a narrower owned-state revision witness."
+}
