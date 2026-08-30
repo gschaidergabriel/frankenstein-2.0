@@ -1,0 +1,52 @@
+{
+  "schema": "FRANKENSTEIN2_WORKPACKAGE_DELTA/v1",
+  "workpackage_id": "F2-WP-1208",
+  "generation": 2,
+  "claim_id": "F2-WP-1208-G2-GPT56SOL-COVERAGE-GUIDED-SELECTION-20260830",
+  "worker_id": "GPT-5.6-Sol-TRIGGER4-REVIEW",
+  "base_commit": "d7b9cfcb5742169b0ddd0bccc3142cdf48ba66e8",
+  "observed_main_commit": "1bfaabac41579e011e4e2649a503e2186b042006",
+  "owned_paths": [],
+  "result_class": "REVIEW_ONLY_PREMERGE",
+  "source_refs": [
+    "src/frankenstein2/target_hostile_chaos_matrix.py@blob:651393c89995a10a58be51261add38a3538bb67c",
+    "src/frankenstein2/target_fault_scenarios.py@blob:4629230b47b97b3717dac7f6dc647e60b47359c7",
+    "research/tool_intelligence/deltas/2026-08-29T2206P0700_GPT56SOL_R6_WP1208_PAIRWISE_SEQUENCE_E3.json@commit:4965b8db766b30d19a6f4d8d87f6caf07dfe47ec",
+    "research/tool_intelligence/experiments/wp1208_pairwise_sequence_counterexample_v1.py@blob:7e0e70736fe418ccdfe7340654e84326f623be03",
+    "workpackages/active/F2-WP-1208.json@claim:F2-WP-1208-G2-GPT56SOL-COVERAGE-GUIDED-SELECTION-20260830"
+  ],
+  "observations": [
+    "Accepted WP1208 G1 counts required families across all FaultEvents in each scenario; a production HostileChaosCase is not restricted to exactly one action per fault family.",
+    "The Trigger-6 E3 fixture intentionally simplifies to exactly one action variant per factor and proves only that required-family presence plus concurrency/fence invariants do not imply pairwise or sequence coverage.",
+    "The E3 pairwise universe is a Cartesian action-level universe: its six candidate rows collectively cover 36 of 40 possible cross-factor level pairs, so four potential combinations remain absent even from the full fixture pool.",
+    "FaultSpec offsets must already be monotonic; equal offsets are legal. FaultEvent.sequence is caller-order sequence while G1 separately treats equal-offset cross-family events as concurrent.",
+    "Therefore G2 must state explicitly whether ordered-pair coverage excludes equal-offset concurrent pairs or intentionally treats sequence order as order evidence; an incidental sequence index must not silently manufacture temporal order.",
+    "The active G2 contract already requires exact source-matrix binding, deterministic equal-budget selection, caller-declared mandatory sentinels, same-budget baseline comparison and zero runtime-credit promotion."
+  ],
+  "premerge_review_gates": [
+    "Coverage extraction must consume every validated event in every candidate case; it must not collapse a multi-action family to an arbitrary single representative merely because the E3 fixture has one level per factor.",
+    "Coverage-plan identity must bind the exact validated source matrix identity, case budget, mandatory sentinel case ids, coverage-universe definition, ordered-pair semantics and deterministic tie-break policy.",
+    "Mandatory sentinels must be validated as unique members of the exact candidate matrix and must fail closed when unknown, duplicated or already over budget.",
+    "The same-budget baseline must preserve the same mandatory sentinels and case budget; otherwise measured selector gain is not comparable to the baseline.",
+    "Pairwise and ordered coverage must be reported separately even if a combined marginal-information score is used for selection; any weighting/tie-break rule must be explicit and identity-bound.",
+    "A no-gain result on the actual immutable candidate pool is valid counterevidence to claimed selector benefit and must be reported as zero gain rather than converted into success by changing budget or universe after observation.",
+    "All G1 family/concurrency/generation-fence/protected-state invariants remain properties of the underlying cases and must not be weakened by coverage selection.",
+    "Repository source/tests/CI may prove only deterministic coverage planning; target-twin, sustained-chaos, physical-host, effect/completion, GRID/GWT/J-Space, provider/model, training and whole-system credit remain zero."
+  ],
+  "hypothesis": "A deterministic coverage planner can extract all real candidate actions and order information from the immutable WP1208 matrix, preserve mandatory safety sentinels and improve or characterize equal-budget interaction coverage without changing G1 authority.",
+  "counterhypothesis": "The actual immutable WP1208 candidate pool may already have no useful equal-budget coverage improvement, or naive order/action reduction may create metric artifacts; in either case the planner is measurement-only and must not be promoted as runtime benefit.",
+  "proposed_state_change": "NONE_REVIEW_ONLY_ROUTE_FINDINGS_TO_ACTIVE_G2_MUTATION_AUTHORITY",
+  "runtime_execution_observed": false,
+  "runtime_credit": 0,
+  "target_twin_runtime_credit": 0,
+  "sustained_chaos_runtime_credit": 0,
+  "physical_host_credit": 0,
+  "physical_grid10_credit": 0,
+  "gwt_runtime_credit": 0,
+  "jspace_runtime_credit": 0,
+  "training_credit": 0,
+  "effect_credit": 0,
+  "completion_credit": 0,
+  "whole_system_acceptance": false,
+  "next_exact_action": "Active G2 mutation authority should consume these review gates in its dedicated branch; require exact PR merge-ref CI over G1 plus G2 tests, then merged-main CI before terminal reconciliation. Do not duplicate the existing singleton self-hosted runtime lane."
+}
