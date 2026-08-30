@@ -1,0 +1,73 @@
+{
+  "schema": "F2_TRIGGER6_RESEARCH_RESULT/v1",
+  "research_id": "R6-20260830-WP206-PROVENANCE-ATTESTATION-MINIMALITY-GPT56SOL-01",
+  "evidence_stage": "E5_BUILD_CANDIDATE",
+  "status": "READY_FOR_TRIGGER4_BUILD_AND_ABLATION_NOT_ACCEPTED",
+  "recorded_at": "2026-08-30T16:58:00+07:00",
+  "worker": "GPT-5.6-Sol/ChatGPT-organ",
+  "claim_ref": "research/tool_intelligence/claims/R6-20260830-WP206-PROVENANCE-ATTESTATION-MINIMALITY-GPT56SOL-01/E5_BUILD_CANDIDATE.json",
+  "e2_result_ref": "research/tool_intelligence/results/R6-20260830-WP206-PROVENANCE-ATTESTATION-MINIMALITY-GPT56SOL-01_E2_ARCHITECTURE_MAPPED.json",
+  "architecture_delta_ref": "research/tool_intelligence/deltas/ADF-20260830T1657P0700-GPT56SOL-WP206-RECOVERY-EVIDENCE-SUBJECT.json",
+  "candidate": {
+    "name": "LegacyRecoveryEvidenceSubject/v1",
+    "target": "WP206 explicit one-time legacy authority recovery",
+    "build_policy": "thin deterministic adapter; reuse existing F2 canonicalization/hash/type patterns; do not import a general provenance framework",
+    "required_behavior": [
+      "accept a concrete typed recovery evidence object or canonical immutable evidence bytes at the canonical recovery ingress",
+      "derive evidence_sha256 inside the adapter",
+      "validate evidence checkpoint_id/checkpoint_sha256/legacy receipt against concrete WP206 checkpoint/recovery inputs",
+      "persist evidence_sha256 plus normalized evidence_source_ref in the existing recovery table",
+      "bind evidence_sha256 into recovery_id",
+      "preserve exact-repeat idempotence only when evidence subject identity and all existing G4 provenance/authority fields match",
+      "fail closed on evidence subject drift without mutating the previously recorded recovery",
+      "retain existing recovery transaction/CAS as the inner state-transition authority"
+    ]
+  },
+  "trigger4_ablation": {
+    "baseline": "current WP206 G4 opaque provenance-ref binding",
+    "candidate": "typed/content-addressed evidence-subject adapter before current G4 inner transition",
+    "primary_falsifier": "same recovery_provenance_ref and same checkpoint/legacy receipt but mutated underlying evidence bytes; baseline cannot detect content mutation at this boundary, candidate must reject it",
+    "controls": [
+      "exact same typed evidence repeat remains idempotent",
+      "different provenance ref with same content remains fail closed under strict audit-alias policy",
+      "wrong checkpoint digest fails",
+      "wrong legacy receipt fails",
+      "existing current-authority drift fails",
+      "existing G3 and G4 test suites remain green"
+    ]
+  },
+  "measurement_requirements": [
+    "repository CI result at exact candidate head",
+    "test count/pass-fail and exact failing negative-case reason",
+    "new dependency count",
+    "model-call/token delta",
+    "migration-path wall-time delta for representative evidence sizes",
+    "database row/storage delta",
+    "source/test/workflow blob SHAs"
+  ],
+  "expected_efficiency": {
+    "new_dependencies": 0,
+    "model_calls": 0,
+    "network_calls": 0,
+    "token_delta": 0,
+    "steady_state_runtime_delta": "none outside exceptional legacy migration path",
+    "migration_path_delta": "single canonicalization/hash plus constant-size persistence"
+  },
+  "do_not_promote": [
+    "target runtime",
+    "VPS runtime",
+    "physical GRID10",
+    "semantic GWT",
+    "J-Space",
+    "provider/model execution",
+    "effect",
+    "completion",
+    "training",
+    "whole system"
+  ],
+  "handoff_ref": "trigger4/inbox/tool_research/R6-20260830-WP206-PROVENANCE-ATTESTATION-MINIMALITY-GPT56SOL-01.json",
+  "research_credit": "E5_BUILD_CANDIDATE",
+  "trigger4_build_credit": 0,
+  "runtime_credit": 0,
+  "whole_system_credit": 0
+}
