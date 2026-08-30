@@ -1,0 +1,80 @@
+{
+  "schema": "F2_TRIGGER6_RESEARCH_RESULT/v1",
+  "research_id": "R6-20260830-WP300-NONDESTRUCTIVE-MEMORY-DECAY-GPT56SOL-01",
+  "evidence_stage": "E4_ABLATION",
+  "status": "COMPLETE_AT_SCOPE",
+  "recorded_at": "2026-08-30T17:11:00+07:00",
+  "worker": "GPT-5.6-Sol/ChatGPT-organ",
+  "claim_ref": "research/tool_intelligence/claims/R6-20260830-WP300-NONDESTRUCTIVE-MEMORY-DECAY-GPT56SOL-01/E4_ABLATION.json",
+  "upstream_e2": "research/tool_intelligence/results/R6-20260830-WP300-NONDESTRUCTIVE-MEMORY-DECAY-GPT56SOL-01_E2_ARCHITECTURE_MAPPED.json@72bf3698b18ec24e839f4a4038c7b593f35ae228",
+  "execution_surface": "LOCAL_DETERMINISTIC_RESEARCH_CALCULATION_ONLY",
+  "not_f2_runtime": true,
+  "method": {
+    "wp301_equivalent_rank_calculation": "weighted_score_bp = integer mean of equal-weight explicit axis scores; overlap_count = count(score > 0); rank_score = weighted_score_bp * overlap_count",
+    "controlled_axes": "goal/semantic/causal held fixed within each memory across policy variants",
+    "old_degraded_base": {"goal": 9000, "semantic": 9000, "causal": 9000},
+    "recent_active_base": {"goal": 8000, "semantic": 8000, "causal": 8000},
+    "policies": {
+      "A_LIFECYCLE_NEUTRAL": {
+        "old_degraded": {"temporal": 10000, "state": 10000},
+        "recent_active": {"temporal": 10000, "state": 10000},
+        "classification": "CONTROL"
+      },
+      "B_EVIDENCE_BOUND_DECAY_STRAWMAN": {
+        "old_degraded": {"temporal": 2000, "state": 3000},
+        "recent_active": {"temporal": 9000, "state": 10000},
+        "classification": "HYPOTHETICAL_FALSIFICATION_POLICY_NOT_PRODUCT_PARAMETERIZATION"
+      },
+      "C_NAIVE_RETRIEVAL_COUNT_REINFORCEMENT": {
+        "starting_old": {"temporal": 2000, "state": 3000},
+        "old_prior_retrievals": 20,
+        "temporal_rule": "min(10000, 2000 + 400*n)",
+        "state_rule": "min(10000, 3000 + 350*n)",
+        "recent_active": {"temporal": 9000, "state": 10000},
+        "classification": "INTENTIONALLY_NAIVE_STRAWMAN_FOR_FEEDBACK_LOOP_FALSIFICATION"
+      }
+    }
+  },
+  "results": {
+    "A_LIFECYCLE_NEUTRAL": {
+      "old_degraded": {"weighted_score_bp": 9400, "overlap_count": 5, "bottleneck_score_bp": 9000, "rank_score": 47000},
+      "recent_active": {"weighted_score_bp": 8800, "overlap_count": 5, "bottleneck_score_bp": 8000, "rank_score": 44000},
+      "winner": "old_degraded",
+      "interpretation": "Lifecycle degradation alone does not alter ranking; stronger semantic/goal/causal signals keep the old degraded memory ahead."
+    },
+    "B_EVIDENCE_BOUND_DECAY_STRAWMAN": {
+      "old_degraded": {"weighted_score_bp": 6400, "overlap_count": 5, "bottleneck_score_bp": 2000, "rank_score": 32000},
+      "recent_active": {"weighted_score_bp": 8600, "overlap_count": 5, "bottleneck_score_bp": 8000, "rank_score": 43000},
+      "winner": "recent_active",
+      "interpretation": "Explicit temporal/state salience can change retrieval priority through normal WP301 semantics while preserving the old memory payload and provenance."
+    },
+    "C_NAIVE_RETRIEVAL_COUNT_REINFORCEMENT": {
+      "old_degraded_after_20_retrievals": {"temporal": 10000, "state": 10000, "weighted_score_bp": 9400, "overlap_count": 5, "bottleneck_score_bp": 9000, "rank_score": 47000},
+      "recent_active": {"temporal": 9000, "state": 10000, "weighted_score_bp": 8600, "overlap_count": 5, "bottleneck_score_bp": 8000, "rank_score": 43000},
+      "winner": "old_degraded_after_20_retrievals",
+      "interpretation": "Selection/retrieval-count reinforcement can resurrect and amplify stale memories without new external evidence, creating a self-locking retrieval loop."
+    }
+  },
+  "falsification_result": {
+    "supports": "A thin evidence-bound salience projection upstream of WP301 is sufficient in principle to express non-destructive forgetting without modifying WP301 rank derivation or WP302 familiarity binding.",
+    "rejects": "DEGRADED-as-label-only is not sufficient if degradation is expected to affect retrieval; naive retrieval-count reinforcement is unsafe as a default strengthening rule.",
+    "does_not_establish": "No exact decay curve, threshold, half-life, lifecycle penalty, or verified-use update rule is selected by this ablation. Numeric strawman parameters have zero product authority."
+  },
+  "architecture_constraints_derived": [
+    "Use integer deterministic arithmetic for salience outputs to match WP301 basis-point contracts and avoid hidden floating-point/platform variance.",
+    "Use explicit caller-supplied logical/reference ticks or equivalently identity-bound time evidence; do not read wall clock implicitly inside the projection.",
+    "Do not let retrieval/selection itself count as memory-strength evidence.",
+    "If salience is refreshed by successful use, require an independently verified downstream-use/outcome evidence reference and bind it to the exact memory generation/state digest.",
+    "Emit TEMPORAL and STATE RetrievalSignal inputs with explicit evidence refs; do not mutate weighted/rank scores after WP301 plan construction.",
+    "Keep payload/provenance immutable; forgetting remains access prioritization, not canonical deletion."
+  ],
+  "next_discriminator": "If no overlapping Trigger6 candidate exists, create an E5 build candidate for a deterministic evidence-bound MemorySalienceProjection contract and hand it to Trigger4 for implementation/testing; do not self-promote it to accepted runtime behavior.",
+  "research_credit": "E4_LOCAL_DETERMINISTIC_ABLATION_ONLY",
+  "ci_credit": 0,
+  "runtime_credit": 0,
+  "physical_host_credit": 0,
+  "effect_credit": 0,
+  "completion_credit": 0,
+  "training_credit": 0,
+  "whole_system_credit": 0
+}
