@@ -1,0 +1,119 @@
+name: Trigger4 Deterministic Release Candidate
+
+on:
+  pull_request:
+    paths:
+      - 'tools/build_release_candidate.py'
+      - '.github/workflows/trigger4-release-candidate-ci.yml'
+      - 'src/frankenstein2/release_integrity.py'
+      - 'src/frankenstein2/release_archive.py'
+      - 'src/frankenstein2/pre_handoff_release.py'
+      - 'src/frankenstein2/release_artifact_subject.py'
+      - 'src/frankenstein2/receipt_content_binding.py'
+      - 'AI_START_HERE_DO_NOT_SCAN_REPO/**'
+      - 'PRODUCT_COMPLETION_LAW.md'
+      - 'architecture/PORTABLE_HOST_HARNESS_AND_DISTRIBUTION_CONTRACT.md'
+      - 'workpackages/PORTABLE_DELIVERY_PHASE.json'
+      - 'provenance/frankenstein1-portable-installer-audit-20260829.json'
+  push:
+    branches: [main]
+    paths:
+      - 'tools/build_release_candidate.py'
+      - '.github/workflows/trigger4-release-candidate-ci.yml'
+      - 'src/frankenstein2/release_integrity.py'
+      - 'src/frankenstein2/release_archive.py'
+      - 'src/frankenstein2/pre_handoff_release.py'
+      - 'src/frankenstein2/release_artifact_subject.py'
+      - 'src/frankenstein2/receipt_content_binding.py'
+      - 'AI_START_HERE_DO_NOT_SCAN_REPO/**'
+      - 'PRODUCT_COMPLETION_LAW.md'
+      - 'architecture/PORTABLE_HOST_HARNESS_AND_DISTRIBUTION_CONTRACT.md'
+      - 'workpackages/PORTABLE_DELIVERY_PHASE.json'
+      - 'provenance/frankenstein1-portable-installer-audit-20260829.json'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: trigger4-release-candidate-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  release-candidate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      PYTHONPATH: ${{ github.workspace }}/src
+      PYTHONDONTWRITEBYTECODE: '1'
+      EXPECTED_SOURCE_SHA: ${{ github.sha }}
+    steps:
+      - name: Checkout exact workflow source
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Prove checkout identity and tracked cleanliness
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$EXPECTED_SOURCE_SHA"
+          test -z "$(git status --porcelain --untracked-files=no)"
+          git rev-parse HEAD
+          git rev-parse HEAD^{tree}
+
+      - name: Run accepted release and receipt-binding regressions
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m unittest discover -s tests -p 'test_release_archive.py' -v
+          python -m unittest discover -s tests -p 'test_release_artifact_subject.py' -v
+          python -m unittest discover -s tests -p 'test_receipt_content_binding.py' -v
+
+      - name: Build candidate twice from exact Git tree
+        shell: bash
+        run: |
+          set -euo pipefail
+          python tools/build_release_candidate.py --output-dir dist/release-a > dist-a.json
+          python tools/build_release_candidate.py --output-dir dist/release-b > dist-b.json
+
+      - name: Prove byte-for-byte reproducibility and bounded credit
+        shell: bash
+        run: |
+          set -euo pipefail
+          diff -qr dist/release-a dist/release-b
+          cmp dist/release-a/frankenstein-2.0.zip dist/release-b/frankenstein-2.0.zip
+          cmp dist/release-a/frankenstein-2.0-prehandoff.json dist/release-b/frankenstein-2.0-prehandoff.json
+          cmp dist/release-a/frankenstein-2.0-content-bound-prehandoff.json dist/release-b/frankenstein-2.0-content-bound-prehandoff.json
+          cmp dist/release-a/release-bundle-index.json dist/release-b/release-bundle-index.json
+          python - <<'PY'
+          import json
+          from pathlib import Path
+
+          index = json.loads(Path('dist/release-a/release-bundle-index.json').read_text())
+          assert index['source_commit'] == __import__('os').environ['EXPECTED_SOURCE_SHA']
+          assert index['artifact_subject']['status'] == 'READY_FOR_REAL_HOST_HANDOFF'
+          assert index['artifact_subject']['static_status'] == 'READY_FOR_REAL_HOST_HANDOFF'
+          assert index['artifact_subject']['static_violations'] == []
+          assert index['prehandoff_receipt']['content_bound_status'] == 'READY_FOR_REAL_HOST_HANDOFF'
+          assert index['credits']['repository_release_build_credit'] == 1
+          for key in (
+              'clean_machine_runtime_credit',
+              'physical_host_credit',
+              'vps_runtime_credit',
+              'provider_model_credit',
+              'effect_credit',
+              'completion_credit',
+          ):
+              assert index['credits'][key] == 0, (key, index['credits'][key])
+          assert index['credits']['whole_system_acceptance'] is False
+          print(json.dumps(index, indent=2, sort_keys=True))
+          PY
+
+      - name: Upload exact release-candidate evidence bundle
+        uses: actions/upload-artifact@v4
+        with:
+          name: frankenstein-2.0-release-candidate-${{ github.sha }}
+          path: dist/release-a/
+          if-no-files-found: error
+          retention-days: 30
