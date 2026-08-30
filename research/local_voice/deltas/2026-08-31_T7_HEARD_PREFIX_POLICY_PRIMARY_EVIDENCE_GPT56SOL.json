@@ -1,0 +1,105 @@
+{
+  "schema": "T7_RESEARCH_DELTA/v1",
+  "trigger": "7",
+  "date": "2026-08-31",
+  "created_at": "2026-08-31T04:15:00+07:00",
+  "organ": "GPT-5.6-Sol",
+  "research_id": "T7-FD-RTCOMPAT-001",
+  "classification": "REVIEW_ONLY_PRIMARY_EVIDENCE_SYNTHESIS",
+  "implementation_mutation_authority": false,
+  "new_runtime_dispatch": false,
+  "new_semantic_claim": false,
+  "resumed_not_restarted": true,
+  "observed_f2_main_before_write": "be92b0adc62bd7e9d166739305690e8ba669b92c",
+  "finding_id": "T7-HEARD-PREFIX-POLICY-PRIMARY-EVIDENCE-20260831",
+  "question": "For an interrupted assistant response, should the next-turn ephemeral dialogue context retain exactly what the user demonstrably heard while excluding the unheard tail?",
+  "current_f2_boundary": {
+    "established": [
+      "voice_packet_cortex commit eligibility requires completed playback with heard_fraction == 1.0",
+      "interrupted output is non-commit-eligible",
+      "heard_fraction is retained/monotone on the output packet"
+    ],
+    "not_established": "Current F2 product authority still does not explicitly define next-turn ephemeral dialogue retention for the partially heard prefix.",
+    "forbidden_equivalence": "non_commit_eligible == delete_whole_interrupted_response_from_next_turn_context"
+  },
+  "external_primary_evidence": [
+    {
+      "class": "EXTERNAL_PRIMARY_CURRENT",
+      "source": "https://openai.github.io/openai-agents-python/realtime/guide/",
+      "observed_2026_08_31": true,
+      "finding": "On interruption the realtime session updates history so the server-side conversation remains aligned with what the user actually heard. For delayed or remote playback it recommends RealtimePlaybackTracker so truncation occurs at the actual playback position rather than generated-audio position."
+    },
+    {
+      "class": "EXTERNAL_PRIMARY_CURRENT",
+      "source": "https://openai.github.io/openai-agents-python/ref/realtime/model/",
+      "observed_2026_08_31": true,
+      "finding": "The playback tracker records actual played audio progress and exposes elapsed playback state specifically for interruption handling."
+    },
+    {
+      "class": "EXTERNAL_PRIMARY_CURRENT",
+      "source": "https://openai.github.io/openai-agents-js/guides/voice-agents/build/",
+      "observed_2026_08_31": true,
+      "finding": "For WebSocket interruption handling the SDK truncates assistant audio to what the user actually heard; local history updates after truncation/conversation events. WebRTC clears buffered output while WebSocket clients must stop local playback."
+    },
+    {
+      "class": "EXTERNAL_PRIMARY_CURRENT",
+      "source": "https://docs.livekit.io/agents/logic/turns/",
+      "observed_2026_08_31": true,
+      "finding": "On interruption LiveKit stops agent speech and automatically truncates conversation history to include only the portion of agent speech heard before interruption."
+    },
+    {
+      "class": "EXTERNAL_PRIMARY_CURRENT",
+      "source": "https://docs.livekit.io/agents/logic/tools/definition/",
+      "observed_2026_08_31": true,
+      "finding": "Tool execution has a separate interruption lifecycle: an interrupted turn does not imply arbitrary cancellation of already completed tool effects/history; tool ownership and conversational speech retention must remain separate semantic planes."
+    }
+  ],
+  "synthesis": {
+    "research_preference": "RETAIN_HEARD_PREFIX_EPHEMERALLY_ONLY",
+    "support_strength": "STRONG_CROSS_IMPLEMENTATION_PRIMARY_EVIDENCE",
+    "why": [
+      "Two independent current realtime-agent implementations converge on heard-position-aligned truncation rather than whole-response amnesia.",
+      "Playback-position tracking is treated as necessary state, which directly matches the F2 heard_fraction/packet-cortex direction.",
+      "Keeping only the actually heard prefix prevents the next turn from reasoning over speech the user never perceived while preserving conversational continuity for speech that did occur.",
+      "This policy does not authorize durable memory, effects, completion or whole-product credit."
+    ],
+    "counterhypothesis_status": "DROP_WHOLE_INTERRUPTED_RESPONSE remains logically possible as an intentional Frankenstein policy, but it is now contrary to the dominant current primary-reference behavior and requires an explicit product decision plus measured dialogue-coherence justification.",
+    "canonical_authority_limit": "Trigger7 research cannot self-mint this as canonical F2 product policy. Trigger4/product authority must explicitly pin the policy before HF09 prefix amnesia can be classified PRODUCT_NEGATIVE."
+  },
+  "recommended_policy_contract": {
+    "policy_id": "F2_VOICE_INTERRUPTION_CONTEXT_HEARD_PREFIX_V1",
+    "ephemeral_next_turn_context": "retain exactly the assistant prefix bounded by measured user-heard playback position",
+    "unheard_tail": "exclude from next-turn effective model context",
+    "durable_memory": "no automatic write or credit; independent memory admission only",
+    "effects_and_tools": "preserve existing deterministic effect/tool authority and response-scoped ownership; do not infer effect rollback from speech interruption",
+    "required_measurement": [
+      "response_id and item/content identity",
+      "playout receipt or sink measurement identity",
+      "heard_boundary_ms",
+      "heard_prefix_digest",
+      "unheard_tail_digest",
+      "raw post-interruption conversation/history digest",
+      "next-turn effective model context digest",
+      "late cancelled-generation output/tool disposition",
+      "durable memory write count"
+    ]
+  },
+  "impact_on_hf09_hf10": {
+    "reuse_existing_lane": true,
+    "duplicate_runtime_dispatch": false,
+    "hf09": "After explicit F2 policy pin, whole-prefix deletion becomes PRODUCT_NEGATIVE and unheard-tail retention becomes PRODUCT_NEGATIVE. Before pin, report PREFIX_RETENTION_POLICY_UNRESOLVED.",
+    "hf10": "Continue measuring response.done versus actual playout/heard boundary and next-turn effective context; response.done alone must not grant conversational ownership to unheard output."
+  },
+  "credit_boundary": {
+    "research_primary_evidence_synthesis": 1,
+    "canonical_policy_credit": 0,
+    "hf_protocol_runtime_credit": 0,
+    "trigger4_acceptance": 0,
+    "german_e2e_voice": 0,
+    "durable_memory_credit": 0,
+    "effect_credit": 0,
+    "whole_voice_system": 0,
+    "whole_product": 0
+  },
+  "next_exact_action": "Route one non-duplicative policy-pin request to Trigger4: explicitly bind F2 next-turn interruption context to measured heard-prefix-only semantics without widening durable memory/effect authority, then execute the already-existing HF09/HF10 discriminator lane through the proven controller VPS route and classify exact runtime behavior against the pinned policy."
+}
