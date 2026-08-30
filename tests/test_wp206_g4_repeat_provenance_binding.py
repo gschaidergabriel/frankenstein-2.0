@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Executable successor regression for WP206 G4 repeat-provenance binding."""
+"""Executable successor regression for WP206 G4 repeat-provenance binding under G5 ingress."""
 from __future__ import annotations
 
 import json
@@ -18,6 +18,7 @@ from frankenstein2.persistent_agency_kernel import (
 from frankenstein2.wp206_legacy_authority_recovery import (
     ALREADY_RECOVERED,
     RECOVERED,
+    LegacyRecoveryEvidenceSubject,
     recover_legacy_g1_checkpoint_authority,
 )
 from state.unifieddb_identity import fingerprint_unifieddb, resolve_unifieddb_path
@@ -87,6 +88,19 @@ class WP206G4RepeatProvenanceBinding(unittest.TestCase):
             connection.close()
         return historical_receipt
 
+    def _checkpoint_sha(self) -> str:
+        connection = sqlite3.connect(self.db)
+        try:
+            row = connection.execute(
+                """SELECT checkpoint_sha256
+                   FROM f2_persistent_agency_checkpoints
+                   WHERE checkpoint_id='checkpoint-0'"""
+            ).fetchone()
+            self.assertIsNotNone(row)
+            return str(row[0])
+        finally:
+            connection.close()
+
     def _open_store(self) -> CanonicalPersistentAgencyStore:
         resolution = resolve_unifieddb_path(env=self.env, home=self.home)
         fingerprint = fingerprint_unifieddb(resolution.path)
@@ -95,26 +109,53 @@ class WP206G4RepeatProvenanceBinding(unittest.TestCase):
             fingerprint=fingerprint,
         )
 
+    def _subject(
+        self, historical: str, source_ref: str
+    ) -> LegacyRecoveryEvidenceSubject:
+        return LegacyRecoveryEvidenceSubject(
+            source_ref=source_ref,
+            checkpoint_id="checkpoint-0",
+            checkpoint_sha256=self._checkpoint_sha(),
+            legacy_authority_receipt_sha256=historical,
+            evidence={
+                "kind": "g4-provenance-attestation",
+                "source_ref": source_ref,
+                "statement": "authoritative recovery provenance",
+            },
+        )
+
+    def _recover(
+        self,
+        *,
+        store: CanonicalPersistentAgencyStore,
+        historical: str,
+        source_ref: str,
+    ):
+        return recover_legacy_g1_checkpoint_authority(
+            store=store,
+            checkpoint_id="checkpoint-0",
+            expected_legacy_authority_receipt_sha256=historical,
+            recovery_provenance_ref=source_ref,
+            recovery_evidence_subject=self._subject(historical, source_ref),
+        )
+
     def test_same_provenance_is_exact_idempotent_repeat(self) -> None:
         historical = self._write_legacy_style_row()
         store = self._open_store()
         try:
-            first = recover_legacy_g1_checkpoint_authority(
-                store=store,
-                checkpoint_id="checkpoint-0",
-                expected_legacy_authority_receipt_sha256=historical,
-                recovery_provenance_ref=PROVENANCE_A,
+            first = self._recover(
+                store=store, historical=historical, source_ref=PROVENANCE_A
             )
-            second = recover_legacy_g1_checkpoint_authority(
-                store=store,
-                checkpoint_id="checkpoint-0",
-                expected_legacy_authority_receipt_sha256=historical,
-                recovery_provenance_ref=PROVENANCE_A,
+            second = self._recover(
+                store=store, historical=historical, source_ref=PROVENANCE_A
             )
             self.assertEqual(first.status, RECOVERED)
             self.assertEqual(second.status, ALREADY_RECOVERED)
             self.assertEqual(second.recovery_id, first.recovery_id)
             self.assertEqual(second.recovery_provenance_ref, PROVENANCE_A)
+            self.assertEqual(
+                second.recovery_evidence_sha256, first.recovery_evidence_sha256
+            )
         finally:
             store.close()
 
@@ -122,32 +163,26 @@ class WP206G4RepeatProvenanceBinding(unittest.TestCase):
         historical = self._write_legacy_style_row()
         store = self._open_store()
         try:
-            first = recover_legacy_g1_checkpoint_authority(
-                store=store,
-                checkpoint_id="checkpoint-0",
-                expected_legacy_authority_receipt_sha256=historical,
-                recovery_provenance_ref=PROVENANCE_A,
+            first = self._recover(
+                store=store, historical=historical, source_ref=PROVENANCE_A
             )
             self.assertEqual(first.status, RECOVERED)
             with self.assertRaisesRegex(
                 PersistentAgencyError, "LEGACY_RECOVERY_PROVENANCE_CONFLICT"
             ):
-                recover_legacy_g1_checkpoint_authority(
-                    store=store,
-                    checkpoint_id="checkpoint-0",
-                    expected_legacy_authority_receipt_sha256=historical,
-                    recovery_provenance_ref=PROVENANCE_B,
+                self._recover(
+                    store=store, historical=historical, source_ref=PROVENANCE_B
                 )
-            # The failed repeat must not mutate the authoritative stored provenance.
-            exact_repeat = recover_legacy_g1_checkpoint_authority(
-                store=store,
-                checkpoint_id="checkpoint-0",
-                expected_legacy_authority_receipt_sha256=historical,
-                recovery_provenance_ref=PROVENANCE_A,
+            exact_repeat = self._recover(
+                store=store, historical=historical, source_ref=PROVENANCE_A
             )
             self.assertEqual(exact_repeat.status, ALREADY_RECOVERED)
             self.assertEqual(exact_repeat.recovery_id, first.recovery_id)
             self.assertEqual(exact_repeat.recovery_provenance_ref, PROVENANCE_A)
+            self.assertEqual(
+                exact_repeat.recovery_evidence_sha256,
+                first.recovery_evidence_sha256,
+            )
         finally:
             store.close()
 
