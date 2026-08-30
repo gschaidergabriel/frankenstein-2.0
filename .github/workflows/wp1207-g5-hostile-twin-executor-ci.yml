@@ -35,6 +35,7 @@ on:
       - '.github/workflows/wp1207-g5-hostile-twin-executor-ci.yml'
 
 permissions:
+  actions: read
   contents: read
 
 jobs:
@@ -64,3 +65,76 @@ jobs:
           python tests/test_release_candidate_bundle.py
           python tests/test_hostile_twin_release_executor.py
           python tests/test_current_release_bundle_adapter.py
+
+  exact-accepted-wp1113-artifact:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      PYTHONPATH: src:.
+      WP1113_ARTIFACT_ID: '9734326897'
+      WP1113_OUTER_SHA256: 'ac19149da0b448b4759e56cdd5db7e6411d1423dda53b8954c43054c6b630066'
+      WP1113_RELEASE_SHA256: '3dbee89f5b4c24f052f1d3f022515c2aa0cc03f1f8b2c2f10e240c05bcece887'
+      WP1113_SOURCE_SHA: '06f0d5b0365f850fe795a6bc24f7b01fba3f6040'
+    steps:
+      - uses: actions/checkout@v4
+      - name: Download exact accepted WP1113 Actions artifact bytes
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          curl --fail --silent --show-error --location \
+            -H "Authorization: Bearer ${GH_TOKEN}" \
+            -H 'Accept: application/vnd.github+json' \
+            -H 'X-GitHub-Api-Version: 2022-11-28' \
+            "https://api.github.com/repos/${GITHUB_REPOSITORY}/actions/artifacts/${WP1113_ARTIFACT_ID}/zip" \
+            --output /tmp/wp1113-release-candidate.zip
+          echo "${WP1113_OUTER_SHA256}  /tmp/wp1113-release-candidate.zip" | sha256sum --check --strict
+      - name: Prove exact accepted WP1113 artifact reaches existing WP1207 execution path
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+          import tempfile
+          import zipfile
+
+          from frankenstein2.current_release_bundle_adapter import from_current_release_bundle
+          from frankenstein2.hostile_twin_release_executor import ScratchHostileTwin, request_for_install
+
+          bundle = Path('/tmp/wp1113-release-candidate.zip')
+          with zipfile.ZipFile(bundle) as zf:
+              index = json.loads(zf.read('release-bundle-index.json'))
+          assert index['source_commit'] == os.environ['WP1113_SOURCE_SHA']
+          assert index['archive']['sha256'] == os.environ['WP1113_RELEASE_SHA256']
+
+          candidate = from_current_release_bundle(bundle)
+          assert candidate.release_identity.version == 'git-' + os.environ['WP1113_SOURCE_SHA'][:12]
+          assert candidate.archive_receipt.archive_sha256 == os.environ['WP1113_RELEASE_SHA256']
+          assert candidate.release_identity.artifact_sha256 == os.environ['WP1113_RELEASE_SHA256']
+
+          with tempfile.TemporaryDirectory(prefix='f2-wp1207-exact-wp1113-') as td:
+              twin = ScratchHostileTwin(Path(td) / 'twin')
+              receipt = twin.execute(
+                  request_for_install(attempt_id='exact-wp1113-install', release=candidate.release_identity),
+                  candidate=candidate,
+                  canonical_state_bytes=b'{"scope":"repository-ci-exact-wp1113"}\n',
+              )
+              assert receipt.outcome == 'SUCCEEDED'
+              assert receipt.target_runtime_credit == 0
+              assert receipt.physical_host_credit == 0
+              assert receipt.effect_credit == 0
+              assert receipt.completion_credit == 0
+              assert receipt.whole_system_acceptance is False
+              readback = twin.readback()
+              assert readback is not None
+              assert readback.active_release_digest == candidate.portable_release_digest
+          print(json.dumps({
+              'status': 'PASS_AT_REPOSITORY_CI_EXACT_ACCEPTED_WP1113_ARTIFACT_SCOPE',
+              'artifact_id': int(os.environ['WP1113_ARTIFACT_ID']),
+              'source_sha': os.environ['WP1113_SOURCE_SHA'],
+              'release_sha256': os.environ['WP1113_RELEASE_SHA256'],
+              'target_runtime_credit': 0,
+              'whole_system_acceptance': False,
+          }, sort_keys=True))
+          PY
