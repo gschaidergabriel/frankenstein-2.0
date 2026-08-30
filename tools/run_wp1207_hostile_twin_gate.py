@@ -3,6 +3,12 @@
 
 This is an execution adapter, not an authority surface. Environment/target promotion must be
 bound by an external runner receipt that identifies the actual host/sandbox and exact inputs.
+
+F2-WP-1207 generation 6 routes both predecessor and candidate bundles through the bounded
+WP1113 compatibility adapter. Historical evidence bundles still delegate to the accepted G5
+loader; current WP1113 bundles are cross-bound before the same hostile-twin executor receives a
+``BoundReleaseCandidate``. Optional externally admitted outer SHA-256 values close exact artifact
+identity before any filesystem mutation.
 """
 from __future__ import annotations
 
@@ -19,12 +25,14 @@ if str(SRC) not in sys.path:
 
 from frankenstein2.hostile_twin_release_executor import (  # noqa: E402
     FAIL_AFTER_EXTRACT,
-    BoundReleaseCandidate,
     HostileTwinExecutionError,
     ScratchHostileTwin,
     request_for_install,
     request_for_rollback,
     request_for_update,
+)
+from frankenstein2.wp1113_release_bundle_adapter import (  # noqa: E402
+    load_bound_release_candidate,
 )
 
 SCHEMA = "F2_WP1207_HOSTILE_TWIN_GATE_RECEIPT/v1"
@@ -42,6 +50,8 @@ def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--predecessor-bundle", required=True)
     parser.add_argument("--candidate-bundle", required=True)
+    parser.add_argument("--predecessor-expected-outer-sha256")
+    parser.add_argument("--candidate-expected-outer-sha256")
     parser.add_argument("--twin-root", required=True)
     parser.add_argument("--state-file", required=True)
     parser.add_argument("--receipt", required=True)
@@ -54,8 +64,14 @@ def main() -> int:
         raise HostileTwinExecutionError("state-file must be a regular non-symlink file")
     state = state_path.read_bytes()
 
-    predecessor = BoundReleaseCandidate.from_bundle(args.predecessor_bundle)
-    candidate = BoundReleaseCandidate.from_bundle(args.candidate_bundle)
+    predecessor = load_bound_release_candidate(
+        args.predecessor_bundle,
+        expected_outer_sha256=args.predecessor_expected_outer_sha256,
+    )
+    candidate = load_bound_release_candidate(
+        args.candidate_bundle,
+        expected_outer_sha256=args.candidate_expected_outer_sha256,
+    )
     if predecessor.portable_release_digest == candidate.portable_release_digest:
         raise HostileTwinExecutionError("predecessor and candidate release identities must differ")
 
