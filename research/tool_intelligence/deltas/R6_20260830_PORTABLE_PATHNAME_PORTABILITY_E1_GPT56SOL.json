@@ -1,0 +1,74 @@
+{
+  "schema": "TRIGGER6_RESEARCH_RESULT/v1",
+  "trigger": "6",
+  "research_id": "R6-20260830-PORTABLE-PATHNAME-PORTABILITY-GPT56SOL-01",
+  "stage": "E1_SOURCE_READ",
+  "created_at": "2026-08-30T22:06:00+07:00",
+  "worker": "GPT-5.6 Sol / ChatGPT organ",
+  "claim_ref": "research/tool_intelligence/claims/R6-20260830-PORTABLE-PATHNAME-PORTABILITY-GPT56SOL-01/E1_SOURCE_READ.json@f9acbf2d0d5ae06d4023341bb9d89e8a1e5b5056",
+  "f2_main_at_claim": "ac99c0c284e389ce399aa0a4dd28e0135ff9ef5e",
+  "f2_source": {
+    "ref": "src/frankenstein2/release_integrity.py@7da39021e9ce2cec12b523fe2616b0fcf534d558",
+    "finding": "_canonical_relpath enforces non-empty canonical POSIX syntax, no NUL/backslash, no absolute path and no dot/dot-dot segment. It does not enforce Windows reserved-name rules or detect distinct manifest paths that collapse under Windows case-insensitive semantics."
+  },
+  "external_sources": [
+    {
+      "kind": "PRIMARY_VENDOR_DOC",
+      "ref": "https://learn.microsoft.com/en-us/windows/win32/fileio/naming-a-file",
+      "finding": "Windows guidance says not to assume case sensitivity; forbids reserved characters; reserves CON/PRN/AUX/NUL/COM1..9/LPT1..9 families even with extensions; and advises against trailing spaces or periods."
+    },
+    {
+      "kind": "PRIMARY_LANGUAGE_DOC",
+      "ref": "https://docs.python.org/3.12/library/pathlib.html",
+      "version": "Python 3.12.13",
+      "finding": "PureWindowsPath comparisons are case-insensitive and PureWindowsPath.is_reserved() is available in the existing Python 3.12 baseline for offline Windows-flavour lexical checks."
+    }
+  ],
+  "findings": [
+    {
+      "id": "F5_CROSS_PLATFORM_NAME_COLLISION_POLICY_MISSING",
+      "classification": "SOURCE_SUPPORTED_ARCHITECTURE_GAP",
+      "severity": "MEDIUM_TO_HIGH_FOR_PORTABLE_RELEASES",
+      "statement": "A release manifest constructed on a case-sensitive builder can represent two lexically distinct POSIX paths that are not distinct under default Windows path semantics. The current manifest schema checks exact-string duplicate paths only, so it lacks a portable materialization collision invariant.",
+      "cheapest_falsifier": "Construct a synthetic manifest/package containing two regular entries whose relative paths differ only by Windows case folding (for example, A/file.txt and a/file.txt) on a case-sensitive builder. A future portable-path validator should reject before host handoff."
+    },
+    {
+      "id": "F6_WINDOWS_RESERVED_COMPONENT_POLICY_MISSING",
+      "classification": "SOURCE_SUPPORTED_ARCHITECTURE_GAP",
+      "severity": "MEDIUM",
+      "statement": "The current canonical POSIX path grammar can admit components such as NUL.txt or names ending with a dot/space that are problematic or reserved under ordinary Windows path semantics. A portable release contract should either reject such components or explicitly declare Windows materialization out of scope.",
+      "cheapest_falsifier": "Feed representative reserved/invalid Windows components through _canonical_relpath; current source is predicted to accept several of them because it does not apply a Windows-flavour portability profile."
+    }
+  ],
+  "current_tree_scan": {
+    "recursive_tree_sha": "638def662387abd2e4a33e747a5663c838c1c9c7",
+    "status": "INCOMPLETE_BOUNDED_CONNECTOR_RESULT",
+    "observed": "A recursive Git tree was requested and no targeted exact reserved-name hit was found in the surfaced result, but the connector response is too large/truncated to honestly certify absence of all case-fold/reserved-name collisions.",
+    "credit": 0,
+    "next_discriminator": "Add or run a deterministic repository/release-manifest portability linter over the exact release candidate; do not infer current-tree cleanliness from a truncated tree view."
+  },
+  "distillation": {
+    "candidate": "PORTABLE_PATHNAME_PROFILE/v1",
+    "shape": [
+      "Keep canonical POSIX path identity as the manifest's serialization form.",
+      "Additionally compute a Windows-flavour collision key for each component/path using stdlib-only PureWindowsPath/case semantics or an explicitly specified equivalent.",
+      "Reject reserved Windows path components and trailing dot/space if Windows is an admitted portable target.",
+      "Reject any pair of release paths that collapse to the same portability key.",
+      "Keep this as deterministic pre-handoff validation; do not let host filesystem behavior become a second manifest authority."
+    ],
+    "dependencies_added": 0,
+    "model_calls_added": 0
+  },
+  "counterhypotheses": [
+    "The portable distribution contract may intentionally target only case-sensitive filesystems; if so, Windows must be explicitly excluded rather than implicitly assumed portable.",
+    "The exact release payload may currently contain no colliding/reserved paths. That would make this preventive hardening rather than a present payload defect, but it would not close the missing invariant for future releases."
+  ],
+  "evidence_ceiling": "E1_SOURCE_READ",
+  "architecture_credit": 0,
+  "runtime_credit": 0,
+  "physical_host_credit": 0,
+  "effect_credit": 0,
+  "completion_credit": 0,
+  "whole_system_acceptance": false,
+  "next_exact_action": "Do not advance this objective beyond E1 until an exact release-candidate path set can be scanned deterministically; prioritize the already-E2 junction/release-tree boundary first because it is the stronger current architectural risk."
+}
