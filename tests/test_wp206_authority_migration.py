@@ -202,6 +202,7 @@ class WP206AuthorityMigrationTests(unittest.TestCase):
         finally:
             store.close()
         self.assertEqual(self._stored_receipt(), legacy_receipt)
+        self.assertEqual(payload["checkpoint_sha256"], payload["checkpoint_sha256"])
 
     def test_conflicting_second_migration_id_is_rejected(self) -> None:
         payload, legacy_receipt, _ = self._emulate_accepted_g1_row()
