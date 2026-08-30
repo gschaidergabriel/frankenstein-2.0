@@ -15,9 +15,8 @@ permissions:
 
 jobs:
   ubuntu-target-sandbox-smoke:
-    # Intentionally broad self-hosted selector: this is the owner-VPS execution lane.
-    # The job itself records the actual runner identity before any scope promotion.
-    runs-on: self-hosted
+    # Current verified owner-VPS routing authority. Generic self-hosted is stale/forbidden.
+    runs-on: clay-host
     timeout-minutes: 35
     env:
       F2_SANDBOX_ROOT: /var/tmp/frankenstein2-sandboxes
@@ -28,7 +27,7 @@ jobs:
       - name: Checkout exact workflow subject
         uses: actions/checkout@v4
 
-      - name: Record runner/control-plane identity
+      - name: Verify exact VPS runner identity
         shell: bash
         run: |
           set -Eeuo pipefail
@@ -39,6 +38,8 @@ jobs:
             "GITHUB_SHA=$GITHUB_SHA" \
             "GITHUB_RUN_ID=$GITHUB_RUN_ID" \
             "GITHUB_RUN_ATTEMPT=$GITHUB_RUN_ATTEMPT"
+          test "${RUNNER_NAME:-}" = "vps-clay-host"
+          test "${RUNNER_OS:-}" = "Linux"
 
       - name: Static safety/syntax gate
         shell: bash
@@ -88,8 +89,6 @@ jobs:
         shell: bash
         run: |
           set -Eeuo pipefail
-          result=FAIL
-          if grep -q '^F2_SANDBOX_RESULT=PASS$' /tmp/f2-sandbox-run.txt 2>/dev/null; then result=PASS; fi
           python3 - <<'PY'
           import json, os, pathlib
           def read(path):
