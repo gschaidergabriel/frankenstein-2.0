@@ -1,0 +1,59 @@
+name: F2 WP1107 G3 Exact Archive Byte Boundary CI
+
+on:
+  pull_request:
+    paths:
+      - 'src/frankenstein2/release_archive.py'
+      - 'tests/test_wp1107_g3_archive_boundary.py'
+      - 'tests/test_release_archive.py'
+      - 'tests/test_release_archive_metadata_perimeter.py'
+      - '.github/workflows/wp1107-g3-archive-boundary-ci.yml'
+      - 'workpackages/active/F2-WP-1107.json'
+  push:
+    branches:
+      - main
+    paths:
+      - 'src/frankenstein2/release_archive.py'
+      - 'tests/test_wp1107_g3_archive_boundary.py'
+      - 'tests/test_release_archive.py'
+      - 'tests/test_release_archive_metadata_perimeter.py'
+      - '.github/workflows/wp1107-g3-archive-boundary-ci.yml'
+      - 'workpackages/active/F2-WP-1107.json'
+      - 'workpackages/reconciliations/F2-WP-1107/**'
+      - 'workpackages/receipts/F2-WP-1107*'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  archive-byte-boundary:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Compile exact WP1107 G3 surfaces
+        run: >-
+          python -m py_compile
+          src/frankenstein2/release_integrity.py
+          src/frankenstein2/release_archive.py
+          tests/test_wp1107_g3_archive_boundary.py
+          tests/test_release_archive.py
+          tests/test_release_archive_metadata_perimeter.py
+      - name: Run generation-3 outer byte-boundary regressions
+        env:
+          PYTHONPATH: src
+        run: python tests/test_wp1107_g3_archive_boundary.py -v
+      - name: Re-run accepted deterministic archive suite
+        env:
+          PYTHONPATH: src
+        run: python tests/test_release_archive.py -v
+      - name: Re-run ZIP metadata perimeter suite
+        env:
+          PYTHONPATH: src
+        run: python tests/test_release_archive_metadata_perimeter.py -v
+      - name: Validate migrated workpackage state chain
+        run: python tools/resolve_workpackage_state_v2.py --check-active
