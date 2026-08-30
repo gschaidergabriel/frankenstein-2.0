@@ -1,0 +1,37 @@
+name: REVIEW WP901 G4 semantic row-bytes falsifier
+
+on:
+  pull_request:
+    paths:
+      - 'tests/falsifier_wp901_g4_semantic_row_bytes_attestation.py'
+      - '.github/workflows/review-wp901-g4-semantic-row-bytes-falsifier.yml'
+      - 'src/frankenstein2/restart_recovery_persisted_row.py'
+      - 'tests/test_restart_recovery_persisted_row.py'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  reproduce-counterexample:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout exact review head
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - name: Compile exact reviewed surfaces
+        run: >-
+          python -m py_compile
+          src/frankenstein2/restart_recovery_persisted_row.py
+          tests/test_restart_recovery_persisted_row.py
+          tests/falsifier_wp901_g4_semantic_row_bytes_attestation.py
+      - name: Reproduce row-evidence completeness counterexample
+        env:
+          PYTHONPATH: src:.
+        run: python tests/falsifier_wp901_g4_semantic_row_bytes_attestation.py
+      - name: Scope fence
+        run: |
+          echo 'classification=REVIEW_ONLY_EXECUTABLE_COUNTEREVIDENCE'
+          echo 'wp901_mutation_authority=NONE'
+          echo 'target_host_runtime_credit=0'
+          echo 'effect_completion_training_whole_system_credit=0'
