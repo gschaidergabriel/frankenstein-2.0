@@ -1,0 +1,35 @@
+{
+  "schema": "FRANKENSTEIN2_TRIGGER6_TO_TRIGGER4_HANDOFF/v1",
+  "trigger": "6",
+  "handoff_id": "R6-20260830-CLAIM-SURFACE-FALSE-NEGATIVE-GPT56SOL-01",
+  "status": "ACTIONABLE_COORDINATION_REPAIR_NO_PRODUCT_CREDIT",
+  "created_at": "2026-08-30T15:04:00Z",
+  "source_delta": "research/tool_intelligence/deltas/2026-08-30T2203P0700_GPT56SOL_R6_COORDINATION_CLAIM_EVIDENCE_GAP.json",
+  "source_delta_commit": "e36d173f3cec636c25e0a333d94b33ae7b24a734",
+  "finding": "Trigger-6 objective selection can produce a false-free result when it checks only create-only claim paths: R6-SEED-005 E1_SOURCE_READ had no claim file, but legacy/source-archaeology evidence already covered the same AgentSight commit and had reached E2.",
+  "evidence": {
+    "new_claim_commit": "48ff6d18c80a6aa46857960f2cda55bc4c735a03",
+    "legacy_delta": "research/tool_intelligence/deltas/2026-08-29T0357p0700_GPT56SOL_R6_SEED005_AGENTSIGHT_SOURCE_ARCHAEOLOGY.json",
+    "legacy_source_pin": "934f441eff8ca210807333633f47b2efcb8cd020",
+    "current_upstream_pin": "934f441eff8ca210807333633f47b2efcb8cd020"
+  },
+  "requested_repair": {
+    "component": "TRIGGER6_PRECLAIM_OBJECTIVE_AVAILABILITY_RESOLVER",
+    "required_inputs": [
+      "research/tool_intelligence/claims/",
+      "research/tool_intelligence/deltas/",
+      "research reconciliation receipts",
+      "trigger4/inbox/tool_research/",
+      "research/tool_intelligence/pending_research.sqlite when admitted/readable",
+      "exact candidate source pin",
+      "current architecture/fusion identity"
+    ],
+    "decision_law": "A missing claim path means only mutex-unclaimed. It must not mean evidence-unworked. Legacy evidence at the same objective/source identity blocks duplicate research unless an explicit source or architecture delta justifies a named REVIEW objective.",
+    "acceptance_test": "Fixture with no claim file but matching legacy E2 delta at same source pin must resolve OCCUPIED_BY_LEGACY_EVIDENCE; fixture with changed source pin or named architecture delta may resolve REVIEW_ELIGIBLE; truly unseen objective resolves CLAIM_ELIGIBLE.",
+    "negative_test": "Do not infer research completion from a claim alone; a claim still carries zero evidence credit."
+  },
+  "research_credit": 0,
+  "architecture_credit": 0,
+  "runtime_credit": 0,
+  "whole_system_credit": 0
+}
