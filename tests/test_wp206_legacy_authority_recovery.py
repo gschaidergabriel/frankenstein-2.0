@@ -290,6 +290,18 @@ class WP206LegacyAuthorityRecoveryTests(unittest.TestCase):
                 self._recover(
                     store=store, expected_legacy=historical, subject=subject
                 )
+
+            # G6 is the earlier same-process live fence: this external write changed a
+            # WP206-owned checkpoint row and must fail before the older row-level G3 check.
+            with self.assertRaisesRegex(
+                PersistentAgencyError, "UNIFIEDDB_WP206_OWNED_SURFACE_DRIFT"
+            ):
+                store.load_checkpoint("checkpoint-0")
+
+            # Re-entry deliberately establishes a fresh same-process G6 witness. The older G3
+            # row-level authority invariant remains independently enforceable after reopen.
+            store.close()
+            store = self._open_store()
             with self.assertRaisesRegex(
                 PersistentAgencyError, "CHECKPOINT_DB_AUTHORITY_RECEIPT_MISMATCH"
             ):
