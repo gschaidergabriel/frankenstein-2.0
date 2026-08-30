@@ -1,0 +1,65 @@
+{
+  "schema": "F2_TRIGGER6_RESEARCH_RESULT/v1",
+  "research_id": "R6-20260830-SQLITE-SAME-INODE-DRIFT-WP206-GPT56SOL-01",
+  "evidence_stage": "E1_SOURCE_READ",
+  "status": "COMPLETE_AT_SCOPE",
+  "recorded_at": "2026-08-30T16:51:00+07:00",
+  "worker": "GPT-5.6-Sol",
+  "claim_ref": "research/tool_intelligence/claims/R6-20260830-SQLITE-SAME-INODE-DRIFT-WP206-GPT56SOL-01/E1_SOURCE_READ.json",
+  "claim_commit": "eb9cdd2d6f51d272a6fac943a83de306f77d2214",
+  "architecture_fusion_ref": "research/tool_intelligence/deltas/ADF-20260830T1647P0700-GPT56SOL-WP206-SAME-INODE-LIVE-FUSION.json",
+  "architecture_snapshot": {
+    "wp206_source_head": "b8841141a5b9ec3026b8e38af2c57cf0bb93759a",
+    "f2_head_observed_after_parallel_claim_fusion": "c626c550544a188c587f622505302f2358d27364",
+    "research_entity_head": "4c63063eaa24a1c7ce8f756fe8dc25e9160ac671"
+  },
+  "f2_source_observed": {
+    "legacy_authority_recovery": "src/frankenstein2/wp206_legacy_authority_recovery.py@b8841141a5b9ec3026b8e38af2c57cf0bb93759a",
+    "persistent_agency_kernel": "src/frankenstein2/persistent_agency_kernel.py@b8841141a5b9ec3026b8e38af2c57cf0bb93759a",
+    "legacy_unifieddb_identity": "src/state/unifieddb_identity.py@b8841141a5b9ec3026b8e38af2c57cf0bb93759a",
+    "observed_boundary": "WP206 current-authority admission binds canonical path/device/inode plus authority-receipt identity; same-inode data/schema mutation is a separately preserved discriminator and is not closed by G4 repeat-provenance acceptance."
+  },
+  "external_primary_sources": [
+    {
+      "source": "SQLite PRAGMA documentation — data_version",
+      "url": "https://www.sqlite.org/pragma.html#pragma_data_version",
+      "relevant_mechanism": "PRAGMA data_version changes for commits by other connections, but not for commits performed by the same connection; values are local to a connection and intended for repeated comparison on that connection."
+    },
+    {
+      "source": "SQLite standard file-control opcodes — SQLITE_FCNTL_DATA_VERSION",
+      "url": "https://sqlite.org/c3ref/c_fcntl_begin_atomic_write.html#sqlitefcntldataversion",
+      "relevant_mechanism": "pager data-version changes on changes to the particular database file from either the same connection or other connections; SQLite documents this file-control as the mechanism covering both internal and external changes for one attached database."
+    },
+    {
+      "source": "SQLite PRAGMA documentation — schema_version",
+      "url": "https://www.sqlite.org/pragma.html#pragma_schema_version",
+      "relevant_mechanism": "schema_version is automatically incremented when the schema changes and therefore is not a general witness for ordinary row/data mutation."
+    },
+    {
+      "source": "SQLite isolation documentation",
+      "url": "https://www.sqlite.org/isolation.html",
+      "relevant_mechanism": "SQLite transactions provide serializable isolation, but isolation orders/controls visibility; it does not authenticate that a pre-existing row is the exact historically evidenced row."
+    }
+  ],
+  "source_level_findings": [
+    "PRAGMA data_version is insufficient as a complete WP206 authority fence because it deliberately omits changes made by the same database connection.",
+    "SQLITE_FCNTL_DATA_VERSION is a stronger low-level drift witness because SQLite states that it changes for both same-connection and other-connection changes to the particular database file.",
+    "schema_version is useful specifically for schema drift but cannot witness ordinary row/data mutation.",
+    "A SQLite change counter can be used as a cheap trigger for fail-closed revalidation, but it is not itself historical provenance or content authenticity and must not become a second truth authority.",
+    "Current WP206 source already guards pathname/device/inode replacement and validates the digest stored with the checkpoint row. E1 does not establish that this self-consistency check proves the row is the externally evidenced historical checkpoint; that question is reserved for architecture mapping/reproduction after duplicate-work reconciliation.",
+    "No source-level evidence justifies continuous whole-database hashing as the default hot-path mechanism; the current best-supported direction is a low-cost drift signal followed by bounded authoritative revalidation when triggered."
+  ],
+  "hypothesis": "A low-overhead SQLite change witness can cheaply detect same-inode live drift and trigger bounded fail-closed revalidation without becoming canonical authority.",
+  "counterhypothesis": "Available high-level SQLite counters are too connection-local/coarse to close WP206's authority gap, so explicit transaction-bound content/provenance revalidation may still be required.",
+  "hypothesis_status": "PARTIALLY_SUPPORTED_AT_E1_SOURCE_READ_SCOPE",
+  "counterhypothesis_status": "ALSO_SUPPORTED_AT_E1_SOURCE_READ_SCOPE",
+  "decision": "Do not promote PRAGMA data_version as a complete fix. Preserve it or a stronger equivalent only as a drift trigger; separately determine whether the exact historical checkpoint content is externally bound before designing a build candidate.",
+  "recommended_next_stage": "COORDINATION_RECONCILE_PARALLEL_WP206_E1_CLAIMS_THEN_E2_ARCHITECTURE_MAPPED_IF_UNOWNED",
+  "research_credit": "E1_SOURCE_READ_ONLY",
+  "architecture_credit": 0,
+  "runtime_credit": 0,
+  "integration_credit": 0,
+  "effect_credit": 0,
+  "whole_system_credit": 0,
+  "pending_research_sqlite_sync": "PENDING_ADMITTED_BINARY_DB_PATH"
+}
