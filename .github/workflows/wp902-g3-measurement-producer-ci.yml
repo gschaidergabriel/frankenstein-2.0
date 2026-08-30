@@ -1,0 +1,51 @@
+name: WP902 G3 host measurement producer CI
+
+on:
+  pull_request:
+    paths:
+      - 'src/frankenstein2/whole_system_measurement.py'
+      - 'src/frankenstein2/whole_system_characterization.py'
+      - 'src/frankenstein2/whole_persistent_loop.py'
+      - 'tests/test_whole_system_measurement.py'
+      - 'tests/test_whole_system_characterization.py'
+      - '.github/workflows/wp902-g3-measurement-producer-ci.yml'
+      - 'workpackages/active/F2-WP-902.json'
+  push:
+    branches:
+      - main
+    paths:
+      - 'src/frankenstein2/whole_system_measurement.py'
+      - 'src/frankenstein2/whole_system_characterization.py'
+      - 'src/frankenstein2/whole_persistent_loop.py'
+      - 'tests/test_whole_system_measurement.py'
+      - 'tests/test_whole_system_characterization.py'
+      - '.github/workflows/wp902-g3-measurement-producer-ci.yml'
+      - 'workpackages/active/F2-WP-902.json'
+      - 'workpackages/reconciliations/F2-WP-902/**'
+      - 'workpackages/receipts/F2-WP-902*'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  measurement-producer:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout exact workflow ref
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - name: Compile WP902 G2 and G3 surfaces
+        run: >-
+          python -m py_compile
+          src/frankenstein2/whole_system_characterization.py
+          src/frankenstein2/whole_system_measurement.py
+          tests/test_whole_system_characterization.py
+          tests/test_whole_system_measurement.py
+      - name: Run accepted G2 characterization and G3 producer regressions
+        env:
+          PYTHONPATH: src
+        run: >-
+          python -m unittest -v
+          tests.test_whole_system_characterization
+          tests.test_whole_system_measurement
