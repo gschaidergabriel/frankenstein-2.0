@@ -1,0 +1,34 @@
+name: REVIEW WP901 G4 persisted-row metadata falsifier
+
+on:
+  pull_request:
+    paths:
+      - 'tests/review_wp901_g4_persisted_row_metadata_falsifier.py'
+      - '.github/workflows/review-wp901-g4-persisted-row-metadata-falsifier.yml'
+      - 'src/frankenstein2/restart_recovery_persisted_row.py'
+      - 'src/frankenstein2/persistent_agency_kernel.py'
+
+permissions:
+  contents: read
+
+jobs:
+  reproduce-row-metadata-attestation-gap:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout exact review ref
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - name: Compile candidate G4 and review falsifier
+        run: >-
+          python -m py_compile
+          src/frankenstein2/restart_recovery_persisted_row.py
+          src/frankenstein2/persistent_agency_kernel.py
+          tests/test_restart_recovery_persisted_row.py
+          tests/review_wp901_g4_persisted_row_metadata_falsifier.py
+      - name: Run candidate G4 baseline and row-metadata counterexample
+        env:
+          PYTHONPATH: src
+        run: >-
+          python -m unittest -v
+          tests.test_restart_recovery_persisted_row
+          tests.review_wp901_g4_persisted_row_metadata_falsifier.Wp901G4RowMetadataAttestationFalsifier.test_counterexample_reproduced
