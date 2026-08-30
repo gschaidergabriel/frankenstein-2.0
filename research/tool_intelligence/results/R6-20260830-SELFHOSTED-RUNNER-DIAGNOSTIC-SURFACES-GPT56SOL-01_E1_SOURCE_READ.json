@@ -1,0 +1,86 @@
+{
+  "schema": "F2_TRIGGER6_RESEARCH_RESULT/v1",
+  "research_id": "R6-20260830-SELFHOSTED-RUNNER-DIAGNOSTIC-SURFACES-GPT56SOL-01",
+  "evidence_stage": "E1_SOURCE_READ",
+  "status": "COMPLETE_AT_SCOPE",
+  "recorded_at": "2026-08-30T19:19:00+07:00",
+  "worker": "GPT-5.6 Sol / ChatGPT organ",
+  "claim_ref": "research/tool_intelligence/claims/R6-20260830-SELFHOSTED-RUNNER-DIAGNOSTIC-SURFACES-GPT56SOL-01/E1_SOURCE_READ.json",
+  "claim_commit": "acba4bab524bfd3ad7d09ad0627b6641806da67e",
+  "architecture_fusion_ref": "research/tool_intelligence/deltas/ADF-20260830T1914P0700-GPT56SOL-TRIGGER6-RUNNER-DIAGNOSTIC-SURFACES.json",
+  "f2_snapshot": {
+    "latest_runtime_health_observation_commit": "b5421d83e3ebc3cbca0df4e31e35b1fe1072453c",
+    "workpackage": "F2-WP-1207/G5",
+    "queued_workflow_runs": 31,
+    "in_progress_workflow_runs": 0,
+    "sample_queued_runner_id": 0,
+    "sample_queued_runner_name": "",
+    "sample_job_labels": ["self-hosted", "Linux", "X64"],
+    "prior_dispatch_conclusion": "cancelled",
+    "prior_dispatch_executed_steps": 0,
+    "current_runtime_subject_law": "DEFER_UNTIL_RUNTIME_RESULT",
+    "target_runtime_credit": 0
+  },
+  "coordination_boundary": {
+    "adjacent_claim": "research/tool_intelligence/claims/R6-20260830-GHA-RUNNER-DISPATCH-ADMISSION-GPT56SOL-01/E1_SOURCE_READ.json",
+    "adjacent_objective": "routing/queue semantics and dispatch-admission design",
+    "this_objective": "post-queue fault localization and diagnostic evidence surfaces",
+    "nonduplicate_rule": "do not repeat dispatch-admission synthesis; this result is limited to discriminating runner availability, listener/service/connectivity, and label/group causes"
+  },
+  "external_primary_sources": [
+    {
+      "source": "GitHub Docs — Self-hosted runners reference",
+      "url": "https://docs.github.com/en/actions/reference/runners/self-hosted-runners",
+      "relevant_mechanism": "GitHub assigns a self-hosted job only to an online and idle runner matching runs-on labels/groups; if an assigned runner does not pick up within 60 seconds the job is re-queued; if no matching online/idle runner exists the job remains queued; jobs queued longer than 24 hours fail."
+    },
+    {
+      "source": "GitHub Docs — Monitoring and troubleshooting self-hosted runners",
+      "url": "https://docs.github.com/en/actions/how-tos/manage-runners/self-hosted-runners/monitor-and-troubleshoot",
+      "relevant_mechanism": "Registered runners expose runner name, labels and status; Idle means connected/ready, Active means executing, Offline can mean host offline, runner app not running, or runner app unable to communicate with GitHub."
+    },
+    {
+      "source": "GitHub REST API — self-hosted runners",
+      "url": "https://docs.github.com/en/rest/actions/self-hosted-runners?apiVersion=2026-03-10",
+      "relevant_mechanism": "Repository/organization runner inventory exposes id, name, OS, online/offline status, busy state, ephemeral flag, runner version and labels, providing a machine-readable control-plane discriminator."
+    },
+    {
+      "source": "GitHub Docs — Configure self-hosted runner application as a service",
+      "url": "https://docs.github.com/en/actions/how-tos/manage-runners/self-hosted-runners/configure-the-application",
+      "relevant_mechanism": "svc.sh status is the documented Linux service-state check for a service-installed Actions runner."
+    },
+    {
+      "source": "GitHub Docs source — monitor and troubleshoot",
+      "url": "https://github.com/github/docs/blob/main/content/actions/how-tos/manage-runners/self-hosted-runners/monitor-and-troubleshoot.md",
+      "relevant_mechanism": "config.sh --check can test required GitHub services from the runner host and writes detailed check logs under _diag; runner and worker logs provide listener/job evidence."
+    }
+  ],
+  "source_level_findings": [
+    "The observed queued state with runner_id=0 and zero in-progress jobs is compatible with GitHub having no matching online+idle runner available at observation time, but runner_id=0 alone cannot distinguish host offline, runner service stopped, GitHub connectivity failure, registration-scope mismatch, label/group mismatch, or a rarer listener defect.",
+    "A workflow redispatch is a low-information discriminator while the control plane still lacks a matching assigned runner; it risks duplicate queue pressure and does not identify the missing plane.",
+    "The smallest high-information discriminator is a bound runner-health snapshot: query the correct repository/organization runner inventory, capture id/name/status/busy/version/labels, compare required labels/groups exactly, then inspect service and connectivity diagnostics only on the expected target host if the control plane reports it offline/unavailable.",
+    "Runner UI/control-plane status alone is not sufficient to prove listener health in every failure mode; if an apparently online+idle matching runner still does not acquire jobs, preserve _diag/listener evidence and exact timestamps before any repair action.",
+    "GitHub Actions Runner Controller is an autoscaling solution for Kubernetes and is not justified by this E1 evidence for the current single established VPS bridge; importing ARC now would be architecture breadth rather than the smallest diagnostic closure.",
+    "No F2 source/runtime semantics should be changed while WP1207 is bound and awaiting the transport discriminator."
+  ],
+  "minimal_diagnostic_sequence": [
+    "1. Resolve runner registration scope used by the WP1207 workflow (repository/organization and runner group if applicable).",
+    "2. Query self-hosted runner inventory at that exact scope and capture runner id, name, status, busy, version and labels.",
+    "3. Compare job runs-on labels/groups exactly against the expected runner registration.",
+    "4. If the runner is offline or absent, inspect the established target host runner service state and recent runner _diag logs; run the documented connectivity check when authorized.",
+    "5. If the runner is online+idle and labels match yet assignment still does not occur, capture queue timestamps plus listener diagnostics as a distinct runner/listener anomaly; do not classify it as F2 product failure.",
+    "6. Only after fresh runner assignment/reachability is observed should Trigger 4 execute the already-bound unchanged WP1207 target-host gate."
+  ],
+  "hypothesis": "The current WP1207 zero-step/queued condition is most efficiently resolved by explicit runner-availability/listener diagnostics before any redispatch or product mutation.",
+  "hypothesis_status": "SUPPORTED_AT_E1_SOURCE_READ_SCOPE",
+  "counterhypothesis": "The queued condition primarily indicates a Frankenstein 2.0 workflow/product defect, so source changes or redispatch should precede runner diagnostics.",
+  "counterhypothesis_status": "NOT_SUPPORTED_BY_CURRENT_OBSERVATION",
+  "counterhypothesis_reason": "The prior run executed zero steps and the sampled queued job had no runner assignment; GitHub primary routing semantics place runner availability/matching before job execution.",
+  "recommended_next_stage": "E2_ARCHITECTURE_MAPPED only if no adjacent active claim already owns the same diagnostic integration surface",
+  "architecture_import_decision": "NO_NEW_RUNTIME_COMPONENT_AT_E1",
+  "research_credit": "E1_SOURCE_READ_ONLY",
+  "runtime_credit": 0,
+  "physical_host_credit": 0,
+  "effect_credit": 0,
+  "whole_system_credit": 0,
+  "pending_research_sqlite_sync": "PENDING_ADMITTED_BINARY_DB_PATH"
+}
