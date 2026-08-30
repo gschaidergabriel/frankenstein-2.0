@@ -1,0 +1,138 @@
+{
+  "schema": "FRANKENSTEIN2_TRIGGER6_ARCHITECTURE_DELTA_FUSION/v1",
+  "fusion_id": "ADF-20260830T1925P0700-GPT56SOL-WORKPACKAGE-STATUS-MATERIALIZED-PROJECTION-E2",
+  "research_id": "R6-20260830-WORKPACKAGE-STATUS-MATERIALIZED-PROJECTION-GPT56SOL-01",
+  "trigger": "6",
+  "slot": "INTEGRATION_DISTILLER",
+  "status": "E2_ARCHITECTURE_MAPPED",
+  "snapshot": {
+    "f2_head_at_e2_claim": "4b163e8fedabb19adf6e9828ca33a94444fd314c",
+    "research_entity_head_observed": "5933ed34cc03328f6300a83b2be972bc05cf0a66",
+    "trigger6_protocol_blob": "08571526d33f9a0c06577e2f119bdaf4297ef1c8",
+    "aggregate_state_blob": "workpackages/STATE.json observed at 4b163e8fedabb19adf6e9828ca33a94444fd314c",
+    "prior_drift_fusion_commit": "134775cb292d844ef1e6daa3d2ca447b3189cfc2",
+    "wp301_acceptance_commit": "614f87f204391a7c795e809e0f2a3275afcea2eb"
+  },
+  "observed_problem": {
+    "type": "AGGREGATE_VS_GRANULAR_STATE",
+    "example": "At the E2 snapshot, workpackages/STATE.json says F2-WP-301=NOT_STARTED while granular WP301 reconciliation/receipt evidence records state=ACCEPTED at deterministic repository-hosted CI scope; a prior Trigger-6 fusion already recorded the contradiction.",
+    "consequence": "Aggregate-only consumers can duplicate work, route stale dependencies, or understate/overstate maturity. Manual repair does not remove the recurrence mechanism."
+  },
+  "external_pattern_distillation": {
+    "adopt": [
+      "authoritative granular records remain source; aggregate views are disposable/rebuildable projections",
+      "single projector owns projection output; direct independent status mutation is forbidden",
+      "projection version and processing/freshness checkpoint are explicit",
+      "rebuild from authoritative inputs is a normal correctness operation",
+      "ordering gaps/conflicts prevent unsafe progress claims"
+    ],
+    "do_not_import": [
+      "Marten",
+      "KurrentDB/EventStoreDB",
+      "Azure services"
+    ],
+    "reason": "F2 needs the projection invariants, not a new database/framework. A Python-stdlib deterministic projector over repository evidence is lower dependency and token/runtime cost."
+  },
+  "proposed_contract": {
+    "name": "WorkpackageStatusProjection/v1",
+    "authority": "DERIVED_PROJECTION_ONLY",
+    "inputs": [
+      "canonical workpackage registry metadata",
+      "workpackages/claims and active-generation records",
+      "workpackages/receipts",
+      "workpackages/reconciliations",
+      "explicit HOLD/BLOCKED records where schema-supported"
+    ],
+    "required_input_binding": [
+      "path",
+      "content digest/blob identity",
+      "workpackage id",
+      "generation when present",
+      "schema",
+      "evidence scope"
+    ],
+    "projection_metadata": [
+      "projector_schema_version",
+      "projector_code_digest",
+      "source_head",
+      "input_manifest_digest",
+      "input_count",
+      "generated_at",
+      "conflicts",
+      "unsupported_schemas"
+    ],
+    "per_workpackage_output": [
+      "current_generation",
+      "current_generation_state",
+      "highest_accepted_generation",
+      "accepted_scopes",
+      "active_claim_refs",
+      "terminal_receipt_refs",
+      "reconciliation_refs",
+      "runtime_credit",
+      "whole_system_credit",
+      "projection_state",
+      "conflicts"
+    ]
+  },
+  "critical_semantic_delta": {
+    "old_shape_risk": "One scalar status cannot faithfully represent an accepted prior scope plus a newer active generation.",
+    "new_shape": "Separate current_generation_state from highest_accepted_generation/accepted_scopes. Human shorthand may render one marker, but machine state must preserve both dimensions.",
+    "promotion_rule": "ACCEPTED_AT_SCOPE requires supported, mutually consistent terminal reconciliation/receipt evidence at the claimed generation and scope. Component/CI acceptance never mints runtime, physical-host, GRID10, effect, training or whole-system credit.",
+    "conflict_rule": "Conflicting same-generation terminal artifacts, broken cross-references, unsupported schemas, or ambiguous generation precedence fail closed to CONFLICTED/STALE rather than latest-file-wins.",
+    "not_started_rule": "NOT_STARTED is valid only when no supported active/claim/receipt/reconciliation evidence exists for the workpackage; absence of a fresh aggregate literal is not evidence of NOT_STARTED."
+  },
+  "projection_ownership": {
+    "machine_view": "workpackages/STATE.json or a successor STATUS_PROJECTION.json becomes projector-produced derived state, not independently maintained authority.",
+    "human_view": "WORKPACKAGES.md status markers should be rendered from the same projection result or mechanically verified against it; descriptive prose may remain human-maintained.",
+    "direct_edit_policy": "CI recomputation must detect divergent manual status edits."
+  },
+  "acceptance_falsifiers": [
+    "Known WP301 stale-aggregate fixture must project accepted repository-CI scope from granular evidence without runtime promotion.",
+    "Known WP302 stale-aggregate fixture must behave analogously when exact terminal artifacts support it.",
+    "A higher active generation after a lower accepted generation must preserve prior accepted scope while reporting current generation IN_PROGRESS.",
+    "Two contradictory terminal records for the same generation must produce CONFLICTED and no acceptance promotion.",
+    "A reconciliation referring to a missing/mismatched receipt must fail closed.",
+    "Unknown evidence schema must be surfaced as unsupported, never silently ignored when it can affect status.",
+    "Repeated rebuild from the same input manifest must be byte-identical except explicitly excluded timestamp fields; a canonical digest form should exclude volatile display time.",
+    "Input order permutation must not change canonical projection content.",
+    "Component-CI acceptance with runtime_execution_observed=false must leave runtime_credit=0.",
+    "Manual mutation of generated machine/human status must fail projection-consistency CI.",
+    "Projector version change must change projector identity and force explicit rebuild/review rather than reinterpret old output silently."
+  ],
+  "resource_model": {
+    "model_calls_runtime": 0,
+    "external_service_runtime": 0,
+    "new_database": false,
+    "new_framework_dependency": false,
+    "expected_complexity": "O(number of workpackage evidence records) deterministic local scan; optional per-workpackage incremental manifest later only if measurement justifies it.",
+    "token_cost": "none in F2 runtime"
+  },
+  "counterhypotheses": [
+    {
+      "statement": "Periodic manual reconciliation is sufficient and cheaper.",
+      "falsifier": "If drift recurs after manual repair or multiple aggregate-only workers route duplicate work, deterministic projection has positive coordination value. Existing WP301/WP302 drift is already one recurrence signal, not yet a measured cost benchmark."
+    },
+    {
+      "statement": "Git commit chronology alone can determine workpackage status.",
+      "falsifier": "Merge/commit messages are not typed evidence scope; accepted state requires exact bound receipt/reconciliation fields and must preserve runtime-credit boundaries."
+    },
+    {
+      "statement": "One scalar workpackage status is enough.",
+      "falsifier": "Construct accepted generation N plus active generation N+1; any scalar either erases accepted scope or hides active work."
+    }
+  ],
+  "architecture_delta": {
+    "warranted": true,
+    "change": "Replace independent manual aggregate-status authority with one deterministic, rebuildable, evidence-bound WorkpackageStatusProjection; preserve aggregate files as derived views only.",
+    "affected_workpackages": ["F2-WP-002"],
+    "affected_consumers": ["Trigger-4 work selection", "Trigger-6 architecture fusion", "Architect situation-frame compilation", "human WORKPACKAGES ledger"],
+    "authority_change": "No new truth authority; this removes accidental aggregate authority.",
+    "runtime_change": "None until Trigger-4 builds/tests the projector."
+  },
+  "next_exact_action": "Claim E5_BUILD_CANDIDATE and hand Trigger-4 a bounded source-only implementation/test packet for a stdlib projector under F2-WP-002; no runtime or whole-system promotion.",
+  "evidence_credit": "E2_ARCHITECTURE_MAPPED",
+  "runtime_credit": 0,
+  "physical_host_credit": 0,
+  "whole_system_credit": 0
+}
