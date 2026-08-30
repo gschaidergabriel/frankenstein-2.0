@@ -1,12 +1,12 @@
 """Deterministic release-candidate ZIP construction and verification.
 
-F2-WP-1107 generation 3 preserves the generation-2 deterministic archive contract and
-closes the exact archive-byte perimeter around the classic ZIP end-of-central-directory
-(EOCD). Ambient filesystem metadata is excluded from archive identity: member order,
-timestamp, POSIX mode, ZIP version, compression, comments and extra fields are explicit
-policy. V1 forbids ZIP64 and non-ASCII member names so the builder cannot emit a container
-that its verifier rejects or whose filename flags depend on runtime encoding paths.
-The embedded accepted WP1107 manifest remains the payload-integrity authority.
+F2-WP-1107 generation 3 preserves the generation-2 deterministic archive ABI and adds exact
+whole-archive byte closure: the handed-off ZIP must equal the canonical byte encoding rebuilt
+from its admitted members and explicit policy. Ambient filesystem metadata is excluded from
+archive identity: member order, timestamp, POSIX mode, ZIP version, compression, comments and
+extra fields are explicit policy. V1 forbids ZIP64 and non-ASCII member names so the builder
+cannot emit a container that its verifier rejects or whose filename flags depend on runtime
+encoding paths. The embedded accepted WP1107 manifest remains the payload-integrity authority.
 
 REPRODUCIBLE_ARCHIVE_COMPONENT != INSTALLATION != TARGET_RUNTIME != COMPLETION
 """
@@ -33,8 +33,6 @@ _MAX_ZIP_EPOCH = 4354819198
 _REGULAR_TYPE = stat.S_IFREG
 _ZIP20 = 20
 _MAX_CLASSIC_ZIP_MEMBERS = 65535
-_EOCD_SIGNATURE = b"PK\x05\x06"
-_EOCD_FIXED_SIZE = 22
 
 
 class ReleaseArchiveError(ValueError):
@@ -195,6 +193,20 @@ def _zip_info(path: str, policy: ReleaseArchivePolicy) -> zipfile.ZipInfo:
     return info
 
 
+def _canonical_archive_bytes(members: Mapping[str, bytes], policy: ReleaseArchivePolicy) -> bytes:
+    if len(members) > _MAX_CLASSIC_ZIP_MEMBERS:
+        raise ReleaseArchiveError("archive member count requires forbidden ZIP64")
+    stream = io.BytesIO()
+    try:
+        with zipfile.ZipFile(stream, "w", compression=zipfile.ZIP_STORED, allowZip64=False) as archive:
+            archive.comment = b""
+            for path in sorted(members):
+                archive.writestr(_zip_info(path, policy), members[path])
+    except zipfile.LargeZipFile as exc:
+        raise ReleaseArchiveError("archive size/offset requires forbidden ZIP64") from exc
+    return stream.getvalue()
+
+
 def _read_bound_payload(root: Path, manifest: ReleaseManifest) -> dict[str, bytes]:
     payload: dict[str, bytes] = {}
     for entry in manifest.files:
@@ -221,17 +233,7 @@ def build_release_archive(package_root: str | Path, *, release_id: str, source_c
         raise ReleaseArchiveError(f"executable policy references absent payload: {unknown_exec}")
     members = dict(payload)
     members[manifest_path] = manifest.canonical_bytes()
-    if len(members) > _MAX_CLASSIC_ZIP_MEMBERS:
-        raise ReleaseArchiveError("archive member count requires forbidden ZIP64")
-    stream = io.BytesIO()
-    try:
-        with zipfile.ZipFile(stream, "w", compression=zipfile.ZIP_STORED, allowZip64=False) as archive:
-            archive.comment = b""
-            for path in sorted(members):
-                archive.writestr(_zip_info(path, policy), members[path])
-    except zipfile.LargeZipFile as exc:
-        raise ReleaseArchiveError("archive size/offset requires forbidden ZIP64") from exc
-    archive_bytes = stream.getvalue()
+    archive_bytes = _canonical_archive_bytes(members, policy)
     receipt = ReleaseArchiveReceipt(release_id=manifest.release_id, source_commit=manifest.source_commit, source_tree=manifest.source_tree, build_id=manifest.build_id, archive_policy_id=policy.policy_id, archive_policy_sha256=policy.digest(), manifest_path=manifest_path, manifest_sha256=manifest.sha256(), archive_sha256=_sha256(archive_bytes), archive_size=len(archive_bytes), member_count=len(members))
     return ReleaseArchiveBuild(archive_bytes, manifest, receipt)
 
@@ -249,43 +251,9 @@ def _expected_attr(path: str, policy: ReleaseArchivePolicy) -> int:
     return ((_REGULAR_TYPE | _mode(path, policy)) & 0xFFFF) << 16
 
 
-def _require_exact_classic_eocd_tail(archive_bytes: bytes) -> None:
-    """Reject bytes outside the canonical classic-ZIP EOCD perimeter.
-
-    Generation 2 already forbids archive comments, ZIP64 and multi-disk archives. Under that
-    policy the EOCD is exactly the final 22 bytes, and the central directory must terminate
-    immediately before it. Python's ``zipfile`` intentionally tolerates concatenated/trailing
-    bytes, so this boundary must be checked explicitly before ordinary ZIP parsing.
-    """
-    if len(archive_bytes) < _EOCD_FIXED_SIZE:
-        raise ReleaseArchiveError("invalid release ZIP: missing canonical EOCD")
-    eocd_offset = len(archive_bytes) - _EOCD_FIXED_SIZE
-    eocd = archive_bytes[eocd_offset:]
-    if eocd[:4] != _EOCD_SIGNATURE:
-        raise ReleaseArchiveError("invalid release ZIP: trailing/unbound bytes after canonical EOCD")
-
-    disk_number = int.from_bytes(eocd[4:6], "little")
-    central_directory_disk = int.from_bytes(eocd[6:8], "little")
-    entries_on_disk = int.from_bytes(eocd[8:10], "little")
-    entries_total = int.from_bytes(eocd[10:12], "little")
-    central_directory_size = int.from_bytes(eocd[12:16], "little")
-    central_directory_offset = int.from_bytes(eocd[16:20], "little")
-    comment_length = int.from_bytes(eocd[20:22], "little")
-
-    if comment_length != 0:
-        raise ReleaseArchiveError("archive comment must be empty")
-    if disk_number != 0 or central_directory_disk != 0 or entries_on_disk != entries_total:
-        raise ReleaseArchiveError("multi-disk release ZIP is forbidden")
-    if entries_total > _MAX_CLASSIC_ZIP_MEMBERS:
-        raise ReleaseArchiveError("archive member count requires forbidden ZIP64")
-    if central_directory_offset + central_directory_size != eocd_offset:
-        raise ReleaseArchiveError("invalid release ZIP: central directory does not terminate at canonical EOCD")
-
-
 def verify_release_archive(archive_bytes: bytes, *, policy: ReleaseArchivePolicy, expected_receipt: ReleaseArchiveReceipt | None = None, manifest_path: str = DEFAULT_MANIFEST_PATH) -> ReleaseArchiveReceipt:
     if not isinstance(archive_bytes, bytes) or not archive_bytes:
         raise ReleaseArchiveError("archive_bytes must be non-empty bytes")
-    _require_exact_classic_eocd_tail(archive_bytes)
     manifest_path = _relpath(manifest_path)
     try:
         archive = zipfile.ZipFile(io.BytesIO(archive_bytes), "r", allowZip64=False)
@@ -320,7 +288,11 @@ def verify_release_archive(archive_bytes: bytes, *, policy: ReleaseArchivePolicy
                 raise ReleaseArchiveError(f"unexpected file mode for {info.filename}")
             if info.comment or info.extra:
                 raise ReleaseArchiveError(f"comment/extra metadata forbidden for {info.filename}")
-        manifest_raw = archive.read(manifest_path)
+        try:
+            member_bytes = {info.filename: archive.read(info.filename) for info in infos}
+        except (zipfile.BadZipFile, RuntimeError) as exc:
+            raise ReleaseArchiveError("archive member integrity failure") from exc
+        manifest_raw = member_bytes[manifest_path]
         try:
             manifest = ReleaseManifest.from_bytes(manifest_raw)
         except ReleaseIntegrityError as exc:
@@ -333,9 +305,12 @@ def verify_release_archive(archive_bytes: bytes, *, policy: ReleaseArchivePolicy
             extra = sorted(set(names) - set(expected_names))
             raise ReleaseArchiveError(f"archive member mismatch; missing={missing}, extra={extra}")
         for entry in manifest.files:
-            data = archive.read(entry.path)
+            data = member_bytes[entry.path]
             if len(data) != entry.size or _sha256(data) != entry.sha256:
                 raise ReleaseArchiveError(f"archive payload mismatch: {entry.path}")
+        canonical_archive_bytes = _canonical_archive_bytes(member_bytes, policy)
+        if archive_bytes != canonical_archive_bytes:
+            raise ReleaseArchiveError("archive bytes are not the canonical deterministic encoding")
     unknown_exec = sorted(set(policy.executable_paths) - {entry.path for entry in manifest.files})
     if unknown_exec:
         raise ReleaseArchiveError(f"executable policy references absent payload: {unknown_exec}")
