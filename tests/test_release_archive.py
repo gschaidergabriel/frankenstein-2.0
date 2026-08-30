@@ -168,6 +168,15 @@ class ReleaseArchiveTests(unittest.TestCase):
             with self.assertRaisesRegex(ReleaseArchiveError, "central directory"):
                 verify_release_archive(mutated, policy=self.policy())
 
+    def test_unbound_leading_bytes_fail_closed_without_expected_receipt(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            populate(root, reverse=False, mtime=0, bin_mode=0o755, data_mode=0o644)
+            result = build(root, self.policy())
+            mutated = b"UNBOUND_LEADING_DATA" + result.archive_bytes
+            with self.assertRaisesRegex(ReleaseArchiveError, "central directory"):
+                verify_release_archive(mutated, policy=self.policy())
+
     def test_wrong_expected_receipt_fails_closed(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
