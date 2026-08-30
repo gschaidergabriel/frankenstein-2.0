@@ -1,0 +1,78 @@
+{
+  "schema": "T7_REENTRY_CHECKPOINT/v1",
+  "trigger": "7",
+  "organ": "GPT-5.6-Sol",
+  "observed_user_trigger_local_time": "2026-08-30T15:18:00+07:00",
+  "scope": "CONTROLLER_SELF_HOSTED_QUEUE_BREADTH_AUDIT_ONLY",
+  "f2_main_observed_before_write": "91b5bf8495d0f2f7753f118b6981a707505861fc",
+  "controller_main_observed": "6c77751435d980bf50f5e3b362e8d1fcffca87c1",
+  "authority": {
+    "trigger7_active": true,
+    "local_solo_required": true,
+    "clay_direct_dev_authorized": true,
+    "paid_provider_fallback": false
+  },
+  "observations": {
+    "trigger7_qwen3_asr": {
+      "run_id": 33292903286,
+      "job_id": 99207535776,
+      "status": "queued",
+      "labels": ["self-hosted", "Linux", "X64"],
+      "runner_id": 0,
+      "runner_name": "",
+      "steps_observed": 0
+    },
+    "trigger7_hardware_roundtrip": {
+      "run_id": 33266856557,
+      "job_id": 99138324275,
+      "run_status": "pending",
+      "job_status": "queued",
+      "labels": ["self-hosted", "Linux", "X64"],
+      "runner_id": 0,
+      "runner_name": "",
+      "steps_observed": 0
+    },
+    "unrelated_trigger4_wp900_probe": {
+      "run_id": 33295805800,
+      "job_id": 99215136749,
+      "workflow": "Frank SQLite package provenance readonly v1",
+      "status": "queued",
+      "labels": ["self-hosted", "Linux", "X64"],
+      "runner_id": 0,
+      "runner_name": "",
+      "steps_observed": 0
+    },
+    "controller_action_queue_snapshot": {
+      "queued_workflow_runs_total": 26,
+      "in_progress_workflow_runs_total": 0
+    }
+  },
+  "finding": {
+    "epistemic_type": "OBSERVED_PLUS_BOUNDED_INFERENCE",
+    "statement": "The Trigger-7 Qwen3-ASR and hardware-roundtrip jobs remain unassigned, and an unrelated newer Trigger-4 WP900 job using the same self-hosted/Linux/X64 class is also queued with runner_id=0. The controller currently reports 26 queued workflow runs and zero in-progress runs. This materially strengthens a controller-wide self-hosted executor admission/starvation/access/label problem over a Trigger-7-specific workflow defect, but does not distinguish runner offline/unregistered from runner-group access or label-policy mismatch because runner administration/status is unavailable on the current connector surface."
+  },
+  "counterhypotheses_preserved": [
+    "An eligible runner exists but repository/runner-group access currently prevents assignment.",
+    "The registered runner no longer carries one or more required labels.",
+    "The runner service is stopped, offline, or unregistered.",
+    "A control-plane condition outside runner liveness prevents assignment despite an otherwise healthy host."
+  ],
+  "coordination": {
+    "duplicate_qwen_dispatch": false,
+    "duplicate_hardware_dispatch": false,
+    "nemotron_runtime_dispatch": false,
+    "reason": "Existing runtime claims are already blocked on the same runner-assignment gate; creating another model job would add queue load without discriminating model behavior."
+  },
+  "credits": {
+    "control_plane_diagnosis": 1,
+    "target_hardware": 0,
+    "qwen3_asr_model_runtime": 0,
+    "nemotron_model_runtime": 0,
+    "german_asr_quality": 0,
+    "streaming_runtime": 0,
+    "german_e2e_voice": 0,
+    "trigger4_acceptance": 0,
+    "whole_system": 0
+  },
+  "next_exact_action": "Restore or directly verify one eligible Dr.-Unterweger self-hosted/Linux/X64 runner (or an already-authorized equivalent bridge) at a surface that can observe/administer runner registration, labels and repository/group access. Do not dispatch another Trigger-7 model job. Re-enter existing Qwen run 33292903286 and hardware run 33266856557; only after actual runner assignment ingest the exact persisted clay-direct-dev receipt and then execute the already-defined matched German-room benchmark frontier."
+}
