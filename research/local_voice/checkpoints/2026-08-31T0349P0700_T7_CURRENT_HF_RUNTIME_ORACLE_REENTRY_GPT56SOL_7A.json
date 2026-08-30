@@ -1,0 +1,61 @@
+{
+  "schema": "T7_CONTINUATION_CHECKPOINT_V1",
+  "trigger": "7",
+  "date": "2026-08-31",
+  "organ": "GPT-5.6-Sol",
+  "mode": "REVIEW_ONLY_CURRENT_REENTRY_NO_DUPLICATE",
+  "canonical_scope": "Frankenstein 2.0 local realtime voice research",
+  "research_id": "T7-FD-RTCOMPAT-001",
+  "resumed_not_restarted": true,
+  "observed_authority": {
+    "f2_head_before_write": "cab8fa998b4f98c7ac79776e2c693e90fd8c62ec",
+    "clay_research_head_observed": "910cc0be76c23688b33b8a7480f85b93db3e835c",
+    "owner_authority": "research/local_voice/authority/2026-08-31_TRIGGER7_TEXT_PACKET_COMPLETION_AUTHORITY.md",
+    "semantic_claim_key": "8c53f25ed47c458bb727dd4dc82f788241cee699e428c4d97401a965a4eb375e",
+    "trigger4_packet": "trigger4/inbox/local_voice/T7_FD_RTCOMPAT001_HF_HEARD_BOUNDARY_EXECUTION_2026-08-31_GPT56SOL.json"
+  },
+  "upstream_freshness": {
+    "repository": "huggingface/speech-to-speech",
+    "pinned_revision": "3986f453012a131632eee4731995474046846794",
+    "main_observed_revision": "3986f453012a131632eee4731995474046846794",
+    "new_upstream_subject": false
+  },
+  "primary_protocol_verification": {
+    "openai_current_client_semantics": "conversation.item.truncate synchronizes server understanding with client playback and removes server-side transcript beyond the heard boundary",
+    "hf_pinned_semantics": "conversation.item.truncate is parsed but deliberately no-ops after cancellation; cancelled/failed/incomplete response handling instead rolls back provisional generation",
+    "classification": "PROTOCOL_SURFACE_DIFFERENCE__RUNTIME_COMPATIBILITY_OPEN"
+  },
+  "f2_oracle_reentry": {
+    "current_policy_evidence": "Interrupted output is non-commit-eligible unless playback completed with heard_fraction exactly 1.0; heard_fraction remains measurement evidence.",
+    "must_fail_if": [
+      "cancelled assistant, audio, tool or effect semantics regain authoritative next-turn influence",
+      "late cancelled-generation tool or output regains ownership",
+      "playback continues beyond the admitted measured cancellation boundary",
+      "duplicate, stale or out-of-range cancellation/truncate corrupts a newer turn"
+    ],
+    "must_not_fail_merely_if": "raw HF server drops the entire provisional interrupted response while F2 keeps that response non-commit-eligible and no newer F2 contract requires partial-prefix context persistence"
+  },
+  "execution_state": {
+    "wp715_workflow_run_id": 33328707636,
+    "wp715_workflow_status_observed": "queued",
+    "wp715_executed_steps_observed": 0,
+    "wp715_classification": "UNKNOWN_NONTERMINAL_CONTROL_PLANE_ONLY",
+    "wp715_is_not_hf_protocol_runtime_evidence": true,
+    "new_runtime_dispatch_created": false,
+    "new_semantic_claim_created": false,
+    "product_source_mutation_created": false,
+    "adjacent_model_scouting_opened": false
+  },
+  "credit_boundary": {
+    "source_protocol_evidence": 1,
+    "source_reconciliation_evidence": 1,
+    "executed_hf_protocol_runtime": 0,
+    "wp715_vps_runtime_from_queued_run": 0,
+    "german_e2e_voice": 0,
+    "acoustic_credit": 0,
+    "trigger4_acceptance": 0,
+    "whole_voice_system": 0,
+    "whole_product": 0
+  },
+  "next_exact_action": "Keep the existing T7-FD-RTCOMPAT-001 semantic claim and Trigger4 packet. Do not duplicate WP715 run 33328707636 and do not narratively reuse it as HF protocol evidence. Through the existing Trigger4/VPS authority, execute the pinned HF cancellation/heard-boundary packet and prove no cancelled assistant/tool producer regains next-turn authority, playback stops at the measured boundary, and late/stale/duplicate events cannot corrupt a newer turn. Use packetized surrogate I/O wherever physical audio is not intrinsically required; reserve acoustic credit for final physical tests. Promote only executed scope."
+}
