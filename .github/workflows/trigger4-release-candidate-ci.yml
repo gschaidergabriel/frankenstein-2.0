@@ -10,6 +10,7 @@ on:
       - 'src/frankenstein2/pre_handoff_release.py'
       - 'src/frankenstein2/release_artifact_subject.py'
       - 'src/frankenstein2/receipt_content_binding.py'
+      - 'src/frankenstein2/portable_release_static_completeness.py'
       - 'AI_START_HERE_DO_NOT_SCAN_REPO/**'
       - 'PRODUCT_COMPLETION_LAW.md'
       - 'architecture/PORTABLE_HOST_HARNESS_AND_DISTRIBUTION_CONTRACT.md'
@@ -25,6 +26,7 @@ on:
       - 'src/frankenstein2/pre_handoff_release.py'
       - 'src/frankenstein2/release_artifact_subject.py'
       - 'src/frankenstein2/receipt_content_binding.py'
+      - 'src/frankenstein2/portable_release_static_completeness.py'
       - 'AI_START_HERE_DO_NOT_SCAN_REPO/**'
       - 'PRODUCT_COMPLETION_LAW.md'
       - 'architecture/PORTABLE_HOST_HARNESS_AND_DISTRIBUTION_CONTRACT.md'
@@ -69,6 +71,7 @@ jobs:
           python -m unittest discover -s tests -p 'test_release_archive.py' -v
           python -m unittest discover -s tests -p 'test_release_artifact_subject.py' -v
           python -m unittest discover -s tests -p 'test_receipt_content_binding.py' -v
+          python -m unittest discover -s tests -p 'test_portable_release_static_completeness.py' -v
 
       - name: Build candidate twice from exact Git tree
         shell: bash
@@ -76,6 +79,96 @@ jobs:
           set -euo pipefail
           python tools/build_release_candidate.py --output-dir dist/release-a > dist-a.json
           python tools/build_release_candidate.py --output-dir dist/release-b > dist-b.json
+
+      - name: Bind WP1111 static completeness to exact candidate roots
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import hashlib
+          import json
+          import os
+          from pathlib import Path
+          import tempfile
+          import zipfile
+
+          from frankenstein2.portable_release_static_completeness import (
+              STATIC_COMPLETE,
+              evaluate_portable_release_static_completeness,
+          )
+
+          receipt_name = 'frankenstein-2.0-static-completeness.json'
+          receipt_ref = 'release-receipts/frankenstein-2.0-prehandoff.json'
+          expected_source = os.environ['EXPECTED_SOURCE_SHA']
+
+          for release_dir in (Path('dist/release-a'), Path('dist/release-b')):
+              archive = release_dir / 'frankenstein-2.0.zip'
+              index_path = release_dir / 'release-bundle-index.json'
+              index = json.loads(index_path.read_text(encoding='utf-8'))
+
+              with tempfile.TemporaryDirectory(prefix='f2-wp1111-release-root-') as td:
+                  root = Path(td)
+                  with zipfile.ZipFile(archive, 'r') as zf:
+                      zf.extractall(root)
+                  receipt = evaluate_portable_release_static_completeness(
+                      root,
+                      prehandoff_receipt_ref=receipt_ref,
+                  )
+
+              assert receipt.status == STATIC_COMPLETE, receipt.as_dict()
+              assert receipt.violations == (), receipt.violations
+              assert receipt.source_commit == expected_source, (
+                  receipt.source_commit,
+                  expected_source,
+              )
+              assert receipt.release_manifest_sha256 == index['archive']['manifest_sha256'], (
+                  receipt.release_manifest_sha256,
+                  index['archive']['manifest_sha256'],
+              )
+              assert receipt.runtime_credit == 0
+              assert receipt.physical_host_credit == 0
+              assert receipt.effect_credit == 0
+              assert receipt.completion_credit == 0
+              assert receipt.whole_system_acceptance is False
+
+              raw = (
+                  json.dumps(
+                      receipt.as_dict(),
+                      ensure_ascii=False,
+                      sort_keys=True,
+                      separators=(',', ':'),
+                  )
+                  + '\n'
+              ).encode('utf-8')
+              receipt_path = release_dir / receipt_name
+              receipt_path.write_bytes(raw)
+              digest = hashlib.sha256(raw).hexdigest()
+
+              index['static_completeness'] = {
+                  'file': receipt_name,
+                  'sha256': digest,
+                  'status': receipt.status,
+                  'evidence_scope': receipt.evidence_scope,
+                  'prehandoff_status': receipt.prehandoff_status,
+                  'release_manifest_sha256': receipt.release_manifest_sha256,
+                  'verified_refs': list(receipt.verified_refs),
+                  'violations': list(receipt.violations),
+              }
+              index['files'][receipt_name] = {
+                  'sha256': digest,
+                  'size_bytes': len(raw),
+              }
+              index_path.write_text(
+                  json.dumps(
+                      index,
+                      ensure_ascii=False,
+                      sort_keys=True,
+                      separators=(',', ':'),
+                  )
+                  + '\n',
+                  encoding='utf-8',
+              )
+          PY
 
       - name: Prove byte-for-byte reproducibility and bounded credit
         shell: bash
@@ -85,6 +178,7 @@ jobs:
           cmp dist/release-a/frankenstein-2.0.zip dist/release-b/frankenstein-2.0.zip
           cmp dist/release-a/frankenstein-2.0-prehandoff.json dist/release-b/frankenstein-2.0-prehandoff.json
           cmp dist/release-a/frankenstein-2.0-content-bound-prehandoff.json dist/release-b/frankenstein-2.0-content-bound-prehandoff.json
+          cmp dist/release-a/frankenstein-2.0-static-completeness.json dist/release-b/frankenstein-2.0-static-completeness.json
           cmp dist/release-a/release-bundle-index.json dist/release-b/release-bundle-index.json
           python - <<'PY'
           import json
@@ -96,6 +190,9 @@ jobs:
           assert index['artifact_subject']['static_status'] == 'READY_FOR_REAL_HOST_HANDOFF'
           assert index['artifact_subject']['static_violations'] == []
           assert index['prehandoff_receipt']['content_bound_status'] == 'READY_FOR_REAL_HOST_HANDOFF'
+          assert index['static_completeness']['status'] == 'STATIC_COMPLETE_FOR_REAL_HOST_ACCEPTANCE'
+          assert index['static_completeness']['violations'] == []
+          assert index['static_completeness']['release_manifest_sha256'] == index['archive']['manifest_sha256']
           assert index['credits']['repository_release_build_credit'] == 1
           for key in (
               'clean_machine_runtime_credit',
