@@ -1,0 +1,30 @@
+name: Review WP901 self-attested recovery identity falsifier
+
+on:
+  push:
+    branches:
+      - review/wp901-self-attested-recovery-identity-falsifier-20260830
+    paths:
+      - 'src/frankenstein2/restart_recovery_continuation.py'
+      - 'tests/falsifiers/falsifier_wp901_self_attested_recovery_identity.py'
+      - '.github/workflows/review-wp901-self-attested-recovery-identity-falsifier.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  falsifier:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Compile falsifier
+        run: python -m py_compile tests/falsifiers/falsifier_wp901_self_attested_recovery_identity.py
+      - name: Run self-attested identity counterexample
+        env:
+          PYTHONPATH: src
+        run: python tests/falsifiers/falsifier_wp901_self_attested_recovery_identity.py
