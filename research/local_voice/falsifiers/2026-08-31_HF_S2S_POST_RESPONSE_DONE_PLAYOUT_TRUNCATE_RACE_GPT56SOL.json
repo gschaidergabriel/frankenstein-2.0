@@ -1,0 +1,132 @@
+{
+  "schema": "T7_REALTIME_PROTOCOL_FALSIFIER_DELTA/v1",
+  "trigger": "7",
+  "date": "2026-08-31",
+  "organ": "GPT-5.6-Sol",
+  "research_id": "T7-FD-RTCOMPAT-001",
+  "semantic_key": "8c53f25ed47c458bb727dd4dc82f788241cee699e428c4d97401a965a4eb375e",
+  "supplements": [
+    "research/local_voice/falsifiers/2026-08-31_HF_S2S_REALTIME_HEARD_BOUNDARY_PROTOCOL_FALSIFIER_GPT56SOL.json",
+    "research/local_voice/falsifiers/2026-08-31_HF_S2S_HEARD_PREFIX_RETENTION_DELTA_GPT56SOL.json"
+  ],
+  "classification": "REVIEW_ONLY_CANDIDATE_FALSIFIER_DELTA",
+  "implementation_mutation_authority": false,
+  "new_claim_or_generation": false,
+  "target": {
+    "repository": "huggingface/speech-to-speech",
+    "revision": "3986f453012a131632eee4731995474046846794",
+    "surface": "OpenAI-Realtime-compatible local server behind the existing Frankenstein 2.0 voice boundary"
+  },
+  "finding": {
+    "id": "HF10_POST_RESPONSE_DONE_CLIENT_PLAYOUT_TRUNCATE_RACE",
+    "epistemic_status": "CURRENT_PINNED_SOURCE_PROVEN_CONTROL_FLOW__RUNTIME_IMPACT_UNEXECUTED",
+    "summary": "The pinned whole-response rollback protects cancelled provisional generations, but it does not cover the distinct case where the server has already completed/finalized a response while the client still has unplayed buffered audio. In that state a later barge-in can arrive after response.done: response.cancel no longer rolls back finalized chat history and conversation.item.truncate is deliberately a no-op.",
+    "confirmed_source": [
+      {
+        "path": "src/speech_to_speech/api/openai_realtime/handlers/response.py",
+        "observation": "finish_response finalizes provisional chat history when status is completed and rolls it back only for cancelled, failed or incomplete status; the rollback is inside the st.in_response branch."
+      },
+      {
+        "path": "src/speech_to_speech/api/openai_realtime/handlers/response.py",
+        "observation": "handle_response_cancel delegates to finish_response(status=cancelled) and then closes pending responses. If the completed response has already cleared st.in_response, that completed chat history is not rolled back by this path."
+      },
+      {
+        "path": "src/speech_to_speech/api/openai_realtime/websocket_router.py",
+        "observation": "ResponseCancelEvent computes had_response from st.in_response or st.response_pending; it still clears transport/output queues, but completed response history is already outside the provisional rollback branch."
+      },
+      {
+        "path": "src/speech_to_speech/api/openai_realtime/websocket_router.py",
+        "observation": "ConversationItemTruncateEvent is accepted as a deliberate no-op because client playback is treated as owner of the unheard tail."
+      },
+      {
+        "path": "src/speech_to_speech/LLM/chat.py",
+        "observation": "finalize_provisional_generation removes the response from provisional tracking, while rollback_provisional_generation only removes item/call IDs still tracked for that response key."
+      }
+    ],
+    "control_flow_consequence": "If server-side response completion occurs before client playout completion, the raw local speech-server Chat can contain the full finalized assistant response while the user has heard only a prefix. A later response.cancel cannot convert that finalized response back into provisional state, and truncate performs no state mutation. Source inspection therefore does not support raw server-history equivalence to the F2 heard-state boundary for this ordering.",
+    "scope_fence": "This is a source-proven control-flow compatibility gap and an executable runtime hypothesis. It is not runtime PRODUCT_NEGATIVE credit until the ordering is actually exercised against the bound F2 client/adapter subject."
+  },
+  "why_existing_cancel_evidence_is_not_enough": [
+    "Pinned upstream tests and source strongly support rollback for a response cancelled while it remains provisional.",
+    "Those tests do not by themselves prove the post-response.done case where server generation/TTS has completed but client playback has not.",
+    "The server explicitly delegates unheard-tail ownership to client playback while simultaneously finalizing chat history at server response completion, so server-complete and client-heard are different clocks that require a discriminator."
+  ],
+  "highest_information_discriminator": {
+    "id": "HF10_POST_DONE_PLAYOUT_LAG_CONTEXT_EXACTNESS",
+    "owner": "TRIGGER4_RUNTIME_FALSIFIER",
+    "preferred_surface": "lowest safe faithful VPS sandbox / clay-direct-dev through existing Trigger4 execution authority",
+    "procedure": [
+      "Use the existing T7-FD-RTCOMPAT-001 semantic lane and pinned speech-to-speech revision; do not open another claim or runtime subject.",
+      "Generate a deterministic assistant response containing unique semantic markers A, B and C and enough audio to create a measurable client playback backlog.",
+      "Artificially slow or pause client playout so the server emits response.done while B/C remain unplayed; record server response.done monotonic time, received-audio boundary and actual F2 heard boundary separately.",
+      "After response.done but before client playout completion, trigger the normal F2 barge-in path and send the real response.cancel/playback-clear sequence plus conversation.item.truncate with the measured item_id/content_index/audio_end_ms.",
+      "Capture the raw speech-server Chat immediately after response.done, after response.cancel, after truncate, and the exact effective model input used for the next user turn.",
+      "Probe A/B/C independently in the next turn so heard-prefix retention and unheard-tail leakage are distinguishable.",
+      "Repeat once with WebSocket client-side buffered audio and once with WebRTC output_audio_buffer.clear semantics; preserve the transport distinction.",
+      "Repeat duplicate/stale/out-of-range truncate and a late old-turn tool result after the post-done barge-in.",
+      "Only after semantic ordering is measured, repeat in the network-blocked locality phase and record outbound inference destinations/counters."
+    ],
+    "must_record": [
+      "f2_exact_source_sha",
+      "speech_to_speech_revision",
+      "response_key_and_item_id",
+      "server_response_done_monotonic_ms",
+      "server_audio_generated_or_emitted_boundary_ms",
+      "client_received_audio_boundary_ms",
+      "f2_heard_boundary_ms",
+      "truncate_audio_end_ms",
+      "raw_server_chat_digest_after_done",
+      "raw_server_chat_digest_after_cancel",
+      "raw_server_chat_digest_after_truncate",
+      "next_turn_effective_model_context_digest",
+      "marker_A_heard_presence",
+      "marker_B_boundary_presence",
+      "marker_C_unheard_presence",
+      "late_tool_result_disposition",
+      "late_audio_disposition",
+      "external_asr_llm_tts_inference_calls"
+    ],
+    "diagnostic_matrix": [
+      {
+        "raw_server_history": "full finalized interrupted response remains",
+        "next_turn_effective_context": "F2-authoritative context excludes interrupted response",
+        "classification": "RAW_SERVER_GAP_ADAPTER_CONTAINED",
+        "architecture_consequence": "HF server may remain a transport/inference organ only behind an F2-owned next-turn context reconstruction boundary."
+      },
+      {
+        "raw_server_history": "full finalized interrupted response remains",
+        "next_turn_effective_context": "unheard or otherwise non-commit-eligible response semantics influence generation",
+        "classification": "RUNTIME_PRODUCT_NEGATIVE_IF_EXECUTED",
+        "architecture_consequence": "Raw HF conversation state is not drop-in compatible with the F2 heard-state contract; patch/fence/reconstruct before promotion."
+      },
+      {
+        "raw_server_history": "interrupted response removed or made non-influential by an executed mechanism",
+        "next_turn_effective_context": "matches F2 authoritative non-commit policy",
+        "classification": "SEMANTIC_MATCH_CANDIDATE",
+        "architecture_consequence": "Narrow this gap only; German E2E, acoustic, locality, tool-race and Trigger4 acceptance remain separate gates."
+      }
+    ]
+  },
+  "architecture_law": {
+    "f2_interrupted_output_policy": "Interrupted output remains non-commit-eligible under the currently admitted F2 voice contract; raw speech-server completion must not override that authority.",
+    "preferred_containment_if_confirmed": "Keep canonical conversation/heard-state outside the speech server and reconstruct or explicitly supply the next-turn context from F2 authority; do not create a second persona, memory, state or effect system.",
+    "alternate_repair": "Upstream/local adapter may delay chat finalization until the client heard boundary is acknowledged or implement exact truncation semantics, but any repair requires executable regression evidence."
+  },
+  "credit_boundary": {
+    "source_control_flow_evidence": 1,
+    "executed_protocol_component_credit": 0,
+    "target_runtime_credit": 0,
+    "german_e2e_voice_credit": 0,
+    "acoustic_credit": 0,
+    "trigger4_acceptance_credit": 0,
+    "whole_voice_system_credit": 0,
+    "whole_product_credit": 0
+  },
+  "coordination": {
+    "duplicate_semantic_lane_created": false,
+    "new_runtime_dispatch_created": false,
+    "trigger4_mutation_authority_claimed": false,
+    "runtime_subject_churn_allowed": false
+  },
+  "next_exact_action": "Existing Trigger4/runtime owner should add HF10 to the already-claimed T7-FD-RTCOMPAT-001 packet and execute it before accepting truncate-as-no-op compatibility. Force response.done to precede client playout completion, then measure the post-done barge-in next-turn context. Do not duplicate the still-queued WP715 workflow 33328707636 and do not mint runtime credit from this source result."
+}
