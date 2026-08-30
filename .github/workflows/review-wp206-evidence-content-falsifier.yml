@@ -1,0 +1,51 @@
+name: REVIEW ONLY WP206 evidence-content falsifier
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'src/frankenstein2/wp206_legacy_authority_recovery.py'
+      - 'src/frankenstein2/persistent_agency_kernel.py'
+      - 'src/state/unifieddb_identity.py'
+      - 'tests/wp206_restart_probe.py'
+      - 'research/tool_intelligence/falsifiers/wp206_same_ref_mutated_evidence_falsifier.py'
+      - '.github/workflows/review-wp206-evidence-content-falsifier.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  review-only-post-g4-falsifier:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: Checkout exact workflow ref
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - name: Compile exact falsifier surface
+        run: >-
+          python -m py_compile
+          src/frankenstein2/wp206_legacy_authority_recovery.py
+          src/frankenstein2/persistent_agency_kernel.py
+          src/state/unifieddb_identity.py
+          tests/wp206_restart_probe.py
+          research/tool_intelligence/falsifiers/wp206_same_ref_mutated_evidence_falsifier.py
+      - name: Execute post-G4 same-ref mutated-evidence falsifier
+        env:
+          PYTHONPATH: src
+        run: python research/tool_intelligence/falsifiers/wp206_same_ref_mutated_evidence_falsifier.py -v
+      - name: Preserve zero-credit fence
+        if: always()
+        run: |
+          echo 'CLASSIFICATION=REVIEW_ONLY_EXECUTABLE_COUNTEREVIDENCE_NOT_REPAIR'
+          echo 'WP206_G4_ACCEPTANCE_MUTATION=NONE'
+          echo 'TARGET_RUNTIME_CREDIT=0'
+          echo 'VPS_RUNTIME_CREDIT=0'
+          echo 'PHYSICAL_GRID10_CREDIT=0'
+          echo 'GWT_RUNTIME_CREDIT=0'
+          echo 'JSPACE_RUNTIME_CREDIT=0'
+          echo 'EFFECT_CREDIT=0'
+          echo 'COMPLETION_CREDIT=0'
+          echo 'TRAINING_CREDIT=0'
+          echo 'WHOLE_SYSTEM_ACCEPTANCE=false'
