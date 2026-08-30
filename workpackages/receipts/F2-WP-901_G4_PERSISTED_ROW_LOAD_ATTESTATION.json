@@ -1,0 +1,83 @@
+{
+  "schema": "FRANKENSTEIN2_WORKPACKAGE_RECEIPT/v1",
+  "workpackage_id": "F2-WP-901",
+  "generation": 4,
+  "claim_id": "F2-WP-901-G4-GPT56SOL-PERSISTED-ROW-LOAD-ATTESTATION-20260830",
+  "result": "PASS_AT_BOUNDED_SCOPE",
+  "accepted_scope": "PERSISTED_ROW_SNAPSHOT_BOUND_RESTART_INGRESS_REPOSITORY_HOSTED_COMPONENT_CI_ONLY",
+  "scope_interpretation": "The accepted mechanism is the ownership-safe WP901 adapter form: it accepts only an exact concrete CanonicalPersistentAgencyStore, opens one SQLite read transaction, invokes the accepted WP206 load_checkpoint path, re-reads the checkpoint row inside that same snapshot, validates the observed row/store bindings, and mints deterministic row evidence before passing the exact loaded checkpoint into G3/G2. This does not claim that WP206 persistent_agency_kernel.py was extended with a new receipt-producing method.",
+  "repair_evidence": {
+    "implementation_pr": 712,
+    "implementation_head_sha": "e8bb4488c7828896dfb37b0f13d2c7453453d883",
+    "implementation_merge_sha": "a43331af82389078dff7c89a9c1983645a31651e",
+    "g4_source_blob_sha": "bd4712105e0abbc1797c2066fb28782b5a6f0a0f",
+    "g3_source_binding_blob_sha": "d4f04606b03c9e2ebf8fde262a3d0fef84297dbb",
+    "g4_regression_test_blob_sha": "57a7e76f3df04f0c30b8da8b768375655ae75eb7",
+    "direct_predecessor_regression_blob_sha": "67b3e69c5a0b07c30b8045c5b35b9add03892df7",
+    "workflow_blob_sha": "a830d5c5f06a8740df8ea731704fe56bcd0e5b78",
+    "passing_main_ci_run_id": 33305454362,
+    "passing_main_ci_job_id": 99241099205,
+    "result": "SUCCESS",
+    "observed_steps": [
+      "Checkout exact workflow ref",
+      "Compile G2 G3 G4 and WP206 loader surfaces",
+      "Run accepted G2 G3 WP206 and G4 hostile regressions"
+    ]
+  },
+  "review_evidence_preserved": [
+    {
+      "pr": 706,
+      "result": "SUPERSEDED_DONOR_CLOSED_UNMERGED",
+      "reason": "post-load adapter without exact row-evidence digest was insufficient"
+    },
+    {
+      "pr": 711,
+      "run_id": 33305293069,
+      "result": "COUNTEREXAMPLE_REPRODUCED_ON_OLDER_DONOR",
+      "reason": "persisted checkpoint_json representation changed while pre-repair attestation remained identical"
+    },
+    {
+      "pr": 713,
+      "result": "SUPERSEDED_NEGATIVE_CONTROL_CLOSED_UNMERGED",
+      "reason": "current G4 donor had already advanced to same-snapshot exact-row evidence binding"
+    },
+    {
+      "pr": 708,
+      "result": "OWNERSHIP_AND_SUBSTITUTION_GUARD_PRESERVED",
+      "reason": "G4 uses exact concrete store type and keeps the derived attestation adapter WP901-owned rather than silently mutating WP206-owned storage semantics"
+    }
+  ],
+  "closed_scope": [
+    "caller cannot provide a replacement checkpoint object at the G4 ingress; the checkpoint is obtained through CanonicalPersistentAgencyStore.load_checkpoint",
+    "the store object must be exact concrete CanonicalPersistentAgencyStore rather than a hostile subclass with an overridden loader",
+    "load_checkpoint and row-evidence read occur in one SQLite read transaction snapshot",
+    "attestation binds checkpoint id generation digest, raw persisted checkpoint JSON, canonical DB path, device, inode and bound-file authority receipt through deterministic row_evidence_sha256",
+    "the exact loader-returned checkpoint is passed into the accepted G3 typed source-authentication boundary and then accepted G2 planner",
+    "direct predecessor checkpoint identity must match the whole-loop seal current checkpoint",
+    "accepted G2 disposition/ref/flag/reason-code semantics and accepted G3 causal provenance invariants remain regression-covered"
+  ],
+  "explicit_non_credit": {
+    "rollback_freshness_attestation": "NOT_OBSERVED",
+    "same_inode_live_db_drift_closure": "NOT_OBSERVED",
+    "target_host_readback": "NOT_OBSERVED",
+    "runtime_execution_observed": false,
+    "runtime_credit": 0,
+    "vps_runtime_credit": 0,
+    "physical_grid10_credit": 0,
+    "semantic_gwt_credit": 0,
+    "jspace_credit": 0,
+    "provider_model_execution_credit": 0,
+    "effect_credit": 0,
+    "completion_credit": 0,
+    "training_credit": 0,
+    "whole_system_acceptance": false
+  },
+  "authority_reentry": {
+    "canonical_schema_epoch": "8.78",
+    "bootstrap_minimal": "research_entity/continuity/BOOTSTRAP_MINIMAL.json",
+    "supervisor_inbox_schema": "9.13",
+    "supervisor_delta": "9.13BI_NON_AUTHORITY"
+  },
+  "evidence_note": "Repository-hosted component CI only. The receipt proves the bounded persisted-row snapshot binding at the merged source identity and executed CI steps. It does not prove target-host recovery, rollback freshness, same-inode live database drift closure, physical GRID10, GWT/J-Space runtime, provider/model execution, effects, completion, training, EntityOS/HCU runtime or Frankenstein whole-system acceptance.",
+  "accepted_evidence_completed_at_utc": "2026-08-30T10:01:41Z"
+}
