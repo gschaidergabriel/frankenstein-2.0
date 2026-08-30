@@ -1,0 +1,28 @@
+{
+  "schema": "F2_TRIGGER4_CANDIDATE_FALSIFIER/v1",
+  "trigger": "4",
+  "research_id": "T7-ASR-008",
+  "classification": "EVIDENCE_INVALID_IF_AXIS_IS_INTERPRETED_AS_CHUNK_SIZE",
+  "source_subject": {
+    "f2_head_observed_before_write": "7eff92ca74d1256ad6a21be12ce517cf8c3ae217",
+    "comparator_path": "research/local_voice/tools/t7_asr008_nemotron35_target_comparator.py",
+    "comparator_commit": "db887fa357e46300277fc695b410e90becc4d53a",
+    "runtime_repo": "NVIDIA/NeMo-Speech.cpp",
+    "runtime_commit": "4f9676226f667d14608487df744f375db87127f8"
+  },
+  "finding": {
+    "observed_runtime_control": "--asr.streaming.rnnt_right_context",
+    "observed_receipt_axis_name": "chunk_ms",
+    "claim_axis": "80/160/320/560/1120 ms right-context operating points where supported by the exact runtime",
+    "runtime_documentation": "At pinned NeMo-Speech.cpp runtime commit, asr.streaming.chunk_size/--chunk-sec is documented as the CTC buffered window, while asr.streaming.rnnt_right_context is the cache-aware RNNT right-context control.",
+    "interpretation": "The comparator does vary the relevant RNNT control, but its receipt/config metadata names the mapped millisecond axis chunk_ms. Treating that field as a literal runtime chunk-size setting would be unsupported. The axis should be recorded as right_context_ms (or explicitly documented as a derived right-context latency label) before promotion-bearing execution is consumed."
+  },
+  "credit": {
+    "runtime_credit": 0,
+    "model_quality_credit": 0,
+    "trigger4_acceptance_credit": 0,
+    "whole_product_credit": 0
+  },
+  "next_exact_action": "Before consuming an ASR008 execution receipt for promotion, make the comparator/validator schema distinguish rnnt_right_context from derived right_context_ms and reject receipts that present the field as literal chunk-size evidence. Then execute the unchanged pinned model/runtime subject and compare against the admitted ASR004 baselines.",
+  "scope_fence": "This is a metadata/evidence-validity finding, not a Nemotron product-negative result and not proof that the RNNT geometry sweep itself is ineffective."
+}
