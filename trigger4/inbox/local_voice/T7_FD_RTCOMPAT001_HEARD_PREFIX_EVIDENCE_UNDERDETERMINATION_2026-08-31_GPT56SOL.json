@@ -1,0 +1,103 @@
+{
+  "schema": "T7_TO_T4_HEARD_PREFIX_EVIDENCE_GAP_V1",
+  "created_at": "2026-08-31T04:16:00+07:00",
+  "trigger": "7",
+  "organ": "GPT-5.6-Sol",
+  "mode": "REVIEW_ONLY_CAUSAL_EVIDENCE_REFINEMENT",
+  "research_id": "T7-FD-RTCOMPAT-001",
+  "implementation_mutation_authority": false,
+  "new_runtime_dispatch": false,
+  "new_semantic_claim": false,
+  "duplicate_dispatch_allowed": false,
+  "observed_f2_head": "be92b0adc62bd7e9d166739305690e8ba669b92c",
+  "continuation_refs": [
+    "research/local_voice/deltas/2026-08-31_T7_COMMIT_ELIGIBILITY_CONTEXT_SEPARATION_GPT56SOL.json",
+    "research/local_voice/falsifiers/2026-08-31_HF_S2S_HEARD_PREFIX_RETENTION_DELTA_GPT56SOL.json",
+    "trigger4/inbox/local_voice/T7_FD_RTCOMPAT001_INTERRUPTED_CONTEXT_POLICY_PIN_REQUIRED_2026-08-31_GPT56SOL.json",
+    "workpackages/reconciliations/F2-WP-715/1-F2-WP-715-G1-GPT56SOL-PACKET-CORTEX-CONVERGENCE-20260831.json"
+  ],
+  "finding_id": "T7-HEARD-FRACTION-DOES-NOT-DETERMINE-TEXT-PREFIX",
+  "current_f2_source_fact": {
+    "path": "src/frankenstein2/voice_packet_cortex.py",
+    "fact": "VoiceOutputPacket stores text_segment, planned_audio_duration_ms, playback_state, heard_fraction and interruption_ms. Interrupted output may retain a monotone heard_fraction, but the packet contains no playout-synchronized transcript prefix, token/audio alignment, word timing map or sink receipt that deterministically maps a scalar heard_fraction back to the exact words actually heard.",
+    "credit_scope": "PACKET_COMPONENT_ONLY"
+  },
+  "causal_problem": {
+    "statement": "Even after product authority selects RETAIN_HEARD_PREFIX_EPHEMERALLY_ONLY, heard_fraction alone is insufficient evidence for the exact next-turn text prefix.",
+    "counterexample_family": [
+      "Two outputs can both report heard_fraction=0.5 while the first half of audio contains different numbers of spoken words because of pauses, prosody, speaking-rate variation or non-speech lead-in.",
+      "A generated text midpoint is not generally an acoustic-time midpoint.",
+      "A planned_audio_duration_ms estimate is not proof of actual sink playout duration.",
+      "Generation completion time is not proof of what reached the listener when output buffering or delayed playback exists."
+    ],
+    "failure_if_ignored": "The system can retain unheard words or forget heard words while still presenting a numerically plausible heard_fraction; either case corrupts causal next-turn dialogue context."
+  },
+  "external_primary_reference": [
+    {
+      "source": "https://docs.livekit.io/reference/agents-js/interfaces/agents.voice.PlaybackFinishedEvent.html",
+      "finding": "PlaybackFinishedEvent exposes playbackPosition and an optional synchronizedTranscript that may be partial when interrupted, explicitly separating playback progress from transcript synchronization."
+    },
+    {
+      "source": "https://docs.livekit.io/reference/python/livekit/agents/voice/io.html",
+      "finding": "Audio sinks report playback_position, interrupted state and optionally synchronized_transcript; PlaybackProgressedEvent represents audio stretches that actually played and can no longer be discarded."
+    },
+    {
+      "source": "https://openai.github.io/openai-agents-python/realtime/guide/",
+      "finding": "Realtime interruption handling keeps history aligned with what the user actually heard and recommends RealtimePlaybackTracker when playback can be delayed."
+    },
+    {
+      "source": "https://openai.github.io/openai-agents-python/ref/realtime/model/",
+      "finding": "RealtimePlaybackTracker tracks current item/content identity plus elapsed_ms of actually played audio rather than inferring heard state from generated duration."
+    }
+  ],
+  "research_conclusion": {
+    "policy_dependency": "PREFIX_RETENTION_POLICY_UNRESOLVED remains the semantic authority gate; this delta does not self-select policy.",
+    "evidence_requirement_if_retain_policy_selected": "A playout-synchronized heard-prefix evidence object or equivalent must bind exact output identity to actual sink progress and the transcript prefix admitted into next-turn ephemeral context.",
+    "minimum_fields": [
+      "voice_output_packet_sha256",
+      "session_id",
+      "turn_id",
+      "playout_sink_identity",
+      "playout_measurement_identity",
+      "audio_format_or_timing_basis",
+      "heard_boundary_ms_or_sample_offset",
+      "synchronized_heard_prefix_text_or_digest",
+      "heard_prefix_digest",
+      "unheard_tail_digest",
+      "next_turn_effective_context_digest",
+      "interrupted_context_policy_id",
+      "durable_memory_write_count"
+    ],
+    "fail_closed_rule": "If the sink can prove elapsed audio but cannot map it to a synchronized transcript prefix, preserve the measured acoustic boundary as evidence but do not invent an exact textual heard prefix from heard_fraction alone. The next-turn context decision remains UNKNOWN/POLICY-EVIDENCE-INCOMPLETE for exact-prefix semantics.",
+    "authority_boundary": "This evidence object must not become a second canonical memory/effect authority; it is causal playout evidence feeding the existing voice/context integration boundary."
+  },
+  "impact_on_existing_hf09": {
+    "do_not_duplicate": true,
+    "oracle_refinement": "HF09 should not accept heard_fraction-only reconstruction as proof of exact prefix retention. Its receipt should bind actual playout timing and a synchronized prefix or explicit alignment evidence before classifying PREFIX_AMNESIA_PRODUCT_NEGATIVE versus semantic match.",
+    "tail_leak_rule": "Any text proven to lie beyond the synchronized heard boundary but present in next-turn effective context remains TAIL_LEAK_PRODUCT_NEGATIVE once the retain-prefix policy is explicitly admitted.",
+    "prefix_amnesia_rule": "A proven synchronized heard prefix absent from next-turn effective context becomes PREFIX_AMNESIA_PRODUCT_NEGATIVE only after the retain-prefix policy is explicitly admitted."
+  },
+  "coordination_fences": {
+    "wp715_generation_reopened": false,
+    "wp716_media_lab_interfered_with": false,
+    "new_runtime_lane_opened": false,
+    "existing_hf09_hf10_lane_reused": true,
+    "runtime_subject_churn_fence_respected": true
+  },
+  "credit_boundary": {
+    "research_causal_evidence_delta": 1,
+    "wp715_packet_runtime_credit_changed": 0,
+    "hf_protocol_runtime_credit": 0,
+    "acoustic_runtime_credit": 0,
+    "asr_runtime_credit": 0,
+    "tts_runtime_credit": 0,
+    "physical_device_credit": 0,
+    "durable_memory_credit": 0,
+    "gwt_jspace_credit": 0,
+    "effect_credit": 0,
+    "training_credit": 0,
+    "whole_voice_e2e_credit": 0,
+    "whole_product_credit": 0
+  },
+  "next_exact_action": "Do not dispatch another runtime job. First obtain explicit product/owner selection of the interrupted-response next-turn context policy. If RETAIN_HEARD_PREFIX_EPHEMERALLY_ONLY is admitted, Trigger4 should bind the existing HF09/HF10 runtime lane to playout-synchronized prefix evidence rather than heard_fraction-only inference, then execute the existing discriminator and promote only the measured causal context scope. In parallel, WP716 may continue independently; do not use the media-lab claim to bypass this semantic/evidence gate."
+}
