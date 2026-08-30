@@ -1,0 +1,58 @@
+{
+  "schema": "TRIGGER7_SOURCE_RESULT/v1",
+  "research_id": "T7-FD-002",
+  "objective": "E1_AEC_PLAYBACK_REFERENCE_SOURCE_FALSIFIER",
+  "semantic_key": "b953d244a6af82ff8f2f3064b4b9d0535cefb8c67fd97485e4a3463b350af906",
+  "evidence_scope": "SOURCE_PIN",
+  "generation": 2,
+  "generation_reason": "Generation 1 evaluated speech-native/full-duplex model source eligibility. Generation 2 isolates the orthogonal acoustic echo cancellation/playback-reference prerequisite needed to interpret later simultaneous speaker+microphone barge-in measurements.",
+  "question": "Is there a current source-supported local acoustic echo cancellation path with an explicit playback/reference stream that can make later microphone-vs-speaker full-duplex German barge-in measurements interpretable?",
+  "observations": [
+    {
+      "source_class": "PRIMARY_OFFICIAL_DOC",
+      "project": "PipeWire",
+      "source": "https://docs.pipewire.org/page_module_echo_cancel.html",
+      "observed": [
+        "PipeWire documents libpipewire-module-echo-cancel as an echo-cancellation module.",
+        "The documented topology has four streams: microphone capture, an application-fed sink carrying the signal to cancel, playback to the speaker, and a source exposing echo-cancelled capture.",
+        "The sink/reference stream and capture stream are correlated so the sink signal can be removed from capture.",
+        "The documented default AEC library is aec/libspa-aec-webrtc."
+      ]
+    },
+    {
+      "source_class": "PRIMARY_SOURCE_CODE",
+      "project": "WebRTC",
+      "source": "https://webrtc.googlesource.com/src/+/8718afb283b7bf6b071d4a65ad15ab51d438123f/modules/audio_processing/aec3/echo_canceller3.h",
+      "observed": [
+        "EchoCanceller3 exposes separate render analysis and capture processing surfaces.",
+        "AnalyzeRender stores an internal copy of the render signal while ProcessCapture removes echo from capture."
+      ]
+    },
+    {
+      "source_class": "PRIMARY_OFFICIAL_DOC",
+      "project": "SpeexDSP",
+      "source": "https://www.speex.org/docs/api/speex-api-reference/group__SpeexEchoState.html",
+      "observed": [
+        "speex_echo_cancellation takes microphone recording and the signal played to the speaker as separate inputs and returns the near-end signal with echo removed.",
+        "speex_echo_playback explicitly supplies frames queued to the sound card to the echo canceller."
+      ]
+    }
+  ],
+  "source_scope_result": "LOCAL_EXPLICIT_PLAYBACK_REFERENCE_AEC_PATH_SOURCE_SUPPORTED",
+  "answer_at_scope": "YES_AT_SOURCE_SCOPE_ONLY",
+  "architecture_inference": [
+    "A later F2 full-duplex test can be made causally interpretable by routing synthesized assistant audio through an AEC reference/playback path and feeding ASR/turn detection from the echo-cancelled capture path.",
+    "PipeWire provides a particularly direct Linux integration candidate because it exposes virtual playback and capture nodes around the AEC engine."
+  ],
+  "unknowns": [
+    "Whether clay-direct-dev currently has a compatible PipeWire build/module and aec/libspa-aec-webrtc installed.",
+    "Whether the actual audio-device topology and delays on clay-direct-dev permit stable echo cancellation.",
+    "Measured echo suppression, near-end speech preservation, double-talk behavior, barge-in latency, CPU cost, and recovery behavior.",
+    "Whether F2 currently routes TTS playback and microphone capture through such a reference-linked graph."
+  ],
+  "runtime_credit": 0,
+  "german_e2e_voice_credit": 0,
+  "trigger4_acceptance_credit": 0,
+  "whole_system_credit": 0,
+  "next_discriminator": "After a valid live clay-direct-dev execution surface is available, bind a distinct target-runtime full-duplex component objective and record PipeWire/AEC availability, exact module/library identity, graph topology, TTS-reference routing, microphone capture, controlled speaker-to-mic echo suppression, near-end/double-talk preservation, latency/CPU metrics, and cleanup. Do not dispatch while the existing runner-assignment gate remains unresolved."
+}
