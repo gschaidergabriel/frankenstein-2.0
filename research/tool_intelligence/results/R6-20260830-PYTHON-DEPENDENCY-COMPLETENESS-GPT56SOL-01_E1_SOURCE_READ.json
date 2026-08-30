@@ -1,0 +1,68 @@
+{
+  "schema": "FRANKENSTEIN2_TRIGGER6_E1_SOURCE_READ/v1",
+  "research_id": "R6-20260830-PYTHON-DEPENDENCY-COMPLETENESS-GPT56SOL-01",
+  "stage": "E1_SOURCE_READ",
+  "status": "COMPLETE_AT_E1_SCOPE",
+  "parent_research": "R6-20260830-RUNTIME-SUBJECT-INVARIANCE-GPT56SOL-01@E4",
+  "primary_sources": [
+    {
+      "source": "PEP 578 / CPython audit hooks",
+      "finding": "Audit hooks expose runtime actions such as module imports and other low-level operations, but are monitoring/transparency primitives rather than a general sandbox or complete semantic dependency oracle."
+    },
+    {
+      "source": "Python 3.13 sys/C API audit documentation",
+      "finding": "Python-level sys.addaudithook may be bypassed by malicious code; native PySys_AddAuditHook can be installed before initialization. Event coverage is implementation/runtime specific and must be version-bound."
+    },
+    {
+      "source": "Python importlib documentation",
+      "finding": "Import resolution is dynamic through sys.meta_path, path finders, caches, search paths and explicit dynamic import; finders may notice newly created modules only after cache invalidation."
+    },
+    {
+      "source": "Python importlib.metadata entry points",
+      "finding": "Installed package metadata can provide dynamic plugin entry points whose module/value resolution is an execution dependency outside a naive lexical import graph."
+    },
+    {
+      "source": "Python os audit documentation",
+      "finding": "File opens and directory listing/scanning operations emit audit events in CPython, making runtime read/probe discovery materially observable."
+    },
+    {
+      "source": "Python ctypes documentation",
+      "finding": "ctypes can load and execute native shared libraries and access process memory, creating native dependency edges that a pure Python source/import graph does not cover."
+    },
+    {
+      "source": "Linux strace manual",
+      "finding": "System-call tracing can observe file/process/network kernel interactions and is useful as an independent runtime dependency probe, but tracing a subset of syscalls can support incorrect inferences and it does not supply Python-level causal semantics."
+    }
+  ],
+  "conclusions": [
+    "There is no single machine-derived Python dependency source that should be treated as complete for F2 runtime-subject invariance.",
+    "Static imports are necessary but insufficient because Python supports dynamic import resolution, mutable search paths, package entry points and runtime discovery.",
+    "CPython audit events provide valuable observed dependency/probe evidence, but coverage and trust properties must be bound to exact interpreter/runtime identity.",
+    "OS syscall tracing is a useful independent coverage validator, not a replacement for Python-level provenance and configuration identity.",
+    "Native extension/shared-library identity must be explicit when a boundary can transitively enter native code.",
+    "Environment/config values and discovery rules must be captured as inputs when they can affect selected modules, files, tools or behavior."
+  ],
+  "candidate_completeness_model": {
+    "classes": [
+      "DECLARED_ONLY_INSUFFICIENT_FOR_CERTIFICATION",
+      "OBSERVED_ONLY_INSUFFICIENT_FOR_CERTIFICATION",
+      "HYBRID_BOUNDED_UNPROVEN",
+      "CLOSED_BY_CONSTRUCTION_CANDIDATE"
+    ],
+    "layers": [
+      "exact interpreter executable/version/ABI/build identity",
+      "exact sys.path/meta_path/path-hook and package/distribution identity",
+      "static import/module graph",
+      "dynamic plugin/entry-point/discovery declaration",
+      "CPython audit event pathset for import/open/listdir/scandir/exec/process-relevant events",
+      "config and environment allowlist with exact values/digests",
+      "native extension/shared-library dependency identities",
+      "optional OS syscall trace as independent validation probe",
+      "explicit opaque external-state declarations"
+    ],
+    "certification_law": "Only a boundary proven CLOSED_BY_CONSTRUCTION, or a later experimentally justified HYBRID_BOUNDED class with all known dynamic edge classes explicitly fenced, may attempt CERTIFY_NONINTERFERENCE. Otherwise successor change handling is INVALIDATE_OR_DEFER."
+  },
+  "counterhypothesis": "The completeness machinery may cost more than simply replaying the target runtime probe and may still remain too incomplete for general Python boundaries.",
+  "next_discriminator": "Map this layered model onto the exact WP510/WP900 source/import surfaces and identify whether either boundary can realistically be CLOSED_BY_CONSTRUCTION without a resident tracing service or new authority path.",
+  "evidence_ceiling": {"level": "E1_SOURCE_READ", "architecture_credit": 0, "runtime_credit": 0, "whole_system_credit": 0}
+}
