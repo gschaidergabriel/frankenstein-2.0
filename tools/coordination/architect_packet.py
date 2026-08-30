@@ -3,8 +3,8 @@
 
 Delivery ownership/CAS/UNKNOWN_DELIVERY semantics remain with Clay's existing
 `research_entity/coordination/live_reentry_delivery_atomicity.py` primitive.
-This F2 helper only validates packet identity, matches a resolved worker context,
-and emits non-authoritative ACK evidence.
+This F2 helper validates packet identity, deterministically classifies a resolved
+worker context, and emits non-authoritative ACK evidence.
 """
 from __future__ import annotations
 
@@ -21,56 +21,23 @@ PACKET_SCHEMA = "F2_ARCHITECT_WORKER_PACKET/v1"
 ACK_SCHEMA = "F2_ARCHITECT_WORKER_PACKET_ACK/v1"
 MESSAGE_KIND = "ARCHITECT_COORDINATION_PACKET"
 ACTION_CLASSES = {
-    "ACK_ONLY",
-    "STATUS",
-    "REVIEW_ONLY",
-    "CANDIDATE_FALSIFIER",
-    "COORDINATION_ONLY",
-    "CONTEXT_DELTA",
-    "RESEARCH_REQUEST",
-    "STOP_DEFER",
+    "ACK_ONLY", "STATUS", "REVIEW_ONLY", "CANDIDATE_FALSIFIER",
+    "COORDINATION_ONLY", "CONTEXT_DELTA", "RESEARCH_REQUEST", "STOP_DEFER",
 }
 TARGET_FIELDS = {
-    "worker_id",
-    "worker_lane",
-    "trigger",
-    "workpackage_id",
-    "generation",
-    "claim_id",
-    "runtime_subject_id",
-    "organ",
+    "worker_id", "worker_lane", "trigger", "workpackage_id", "generation",
+    "claim_id", "runtime_subject_id", "organ",
 }
 DISPOSITIONS = {
-    "APPLIED",
-    "ACK_ONLY_DUPLICATE",
-    "REJECT_STALE",
-    "REJECT_MISADDRESSED",
-    "REJECT_SUPERSEDED",
-    "REJECT_AUTHORITY_CONFLICT",
-    "REJECT_SCHEMA_INVALID",
+    "APPLIED", "ACK_ONLY_DUPLICATE", "REJECT_STALE", "REJECT_MISADDRESSED",
+    "REJECT_SUPERSEDED", "REJECT_AUTHORITY_CONFLICT", "REJECT_SCHEMA_INVALID",
 }
 REQUIRED_PACKET_FIELDS = {
-    "schema",
-    "packet_id",
-    "route_id",
-    "nonce",
-    "payload_digest",
-    "issued_at",
-    "expires_at",
-    "architect_id",
-    "project",
-    "priority",
-    "action_class",
-    "target",
-    "objective",
-    "constraints",
-    "expected_output",
-    "evidence_refs",
-    "supersedes_packet_ids",
-    "credit_authority",
-    "mutation_authority",
-    "runtime_dispatch_authority",
-    "effect_authority",
+    "schema", "packet_id", "route_id", "nonce", "payload_digest", "issued_at",
+    "expires_at", "architect_id", "project", "priority", "action_class", "target",
+    "objective", "constraints", "expected_output", "evidence_refs",
+    "supersedes_packet_ids", "credit_authority", "mutation_authority",
+    "runtime_dispatch_authority", "effect_authority",
 }
 
 
@@ -124,7 +91,6 @@ def receiver_identity(target: Mapping[str, Any]) -> str:
 
 
 def compute_route_id(packet: Mapping[str, Any]) -> str:
-    """Use the same canonical route identity shape as Clay live_reentry_delivery_atomicity.route_id."""
     route_packet = {
         "decision": str(packet.get("action_class") or ""),
         "message_kind": MESSAGE_KIND,
@@ -194,12 +160,8 @@ def target_matches(target: dict[str, Any], worker_context: dict[str, Any]) -> bo
 
 
 def packet_disposition(
-    packet: dict[str, Any],
-    worker_context: dict[str, Any],
-    *,
-    now: datetime | None = None,
-    seen_nonces: Iterable[str] = (),
-    superseded_packet_ids: Iterable[str] = (),
+    packet: dict[str, Any], worker_context: dict[str, Any], *, now: datetime | None = None,
+    seen_nonces: Iterable[str] = (), superseded_packet_ids: Iterable[str] = (),
     authority_conflict: bool = False,
 ) -> str:
     try:
@@ -220,31 +182,18 @@ def packet_disposition(
     return "APPLIED"
 
 
-def make_ack(
-    packet: dict[str, Any],
-    worker_context: dict[str, Any],
-    disposition: str,
-    *,
-    reason: str,
-    authority_head: str,
-    observed_at: datetime | None = None,
-    event_head_ref: str | None = None,
+def _serialize_ack(
+    packet: dict[str, Any], worker_context: dict[str, Any], disposition: str, *, reason: str,
+    authority_head: str, observed_at: datetime, event_head_ref: str | None = None,
     active_pointer_ref: str | None = None,
 ) -> dict[str, Any]:
     if disposition not in DISPOSITIONS:
         raise PacketError("invalid disposition")
-    observed = (observed_at or datetime.now(timezone.utc)).astimezone(timezone.utc)
     packet_bytes = len(_dump(packet).encode("utf-8"))
-    stable = "|".join(
-        str(x or "")
-        for x in (
-            packet.get("route_id"),
-            worker_context.get("worker_id"),
-            worker_context.get("claim_id"),
-            disposition,
-            observed.isoformat(),
-        )
-    )
+    stable = "|".join(str(x or "") for x in (
+        packet.get("route_id"), worker_context.get("worker_id"), worker_context.get("claim_id"),
+        disposition, observed_at.isoformat(),
+    ))
     ack_id = "AWA-" + hashlib.sha256(stable.encode("utf-8")).hexdigest()[:20]
     return {
         "schema": ACK_SCHEMA,
@@ -258,7 +207,7 @@ def make_ack(
         "workpackage_id": worker_context.get("workpackage_id"),
         "generation": worker_context.get("generation"),
         "claim_id": worker_context.get("claim_id"),
-        "observed_at": observed.isoformat().replace("+00:00", "Z"),
+        "observed_at": observed_at.isoformat().replace("+00:00", "Z"),
         "disposition": disposition,
         "authority_head": authority_head,
         "event_head_ref": event_head_ref,
@@ -273,47 +222,68 @@ def make_ack(
     }
 
 
-def new_packet(
-    *,
-    target: dict[str, Any],
-    objective: str,
-    action_class: str,
-    ttl_minutes: int,
-    priority: int,
-    architect_id: str,
-    project: str,
-    constraints: list[str],
-    evidence_refs: list[str],
+def classify_and_make_ack(
+    packet: dict[str, Any], worker_context: dict[str, Any], *, reason: str, authority_head: str,
+    now: datetime | None = None, seen_nonces: Iterable[str] = (),
+    superseded_packet_ids: Iterable[str] = (), authority_conflict: bool = False,
+    event_head_ref: str | None = None, active_pointer_ref: str | None = None,
+    asserted_disposition: str | None = None,
 ) -> dict[str, Any]:
+    observed = (now or datetime.now(timezone.utc)).astimezone(timezone.utc)
+    disposition = packet_disposition(
+        packet, worker_context, now=observed, seen_nonces=seen_nonces,
+        superseded_packet_ids=superseded_packet_ids, authority_conflict=authority_conflict,
+    )
+    if asserted_disposition is not None and asserted_disposition != disposition:
+        raise PacketError(
+            f"caller-supplied disposition {asserted_disposition!r} conflicts with deterministic {disposition!r}"
+        )
+    return _serialize_ack(
+        packet, worker_context, disposition, reason=reason, authority_head=authority_head,
+        observed_at=observed, event_head_ref=event_head_ref, active_pointer_ref=active_pointer_ref,
+    )
+
+
+def make_ack(
+    packet: dict[str, Any], worker_context: dict[str, Any], disposition: str | None = None, *,
+    reason: str, authority_head: str, observed_at: datetime | None = None,
+    event_head_ref: str | None = None, active_pointer_ref: str | None = None,
+    seen_nonces: Iterable[str] = (), superseded_packet_ids: Iterable[str] = (),
+    authority_conflict: bool = False,
+) -> dict[str, Any]:
+    """Compatibility wrapper that cannot bypass deterministic packet classification.
+
+    ``disposition`` is retained only as an assertion for existing callers. It is never
+    trusted as the classification source; a mismatch fails closed.
+    """
+    return classify_and_make_ack(
+        packet, worker_context, reason=reason, authority_head=authority_head,
+        now=observed_at, seen_nonces=seen_nonces,
+        superseded_packet_ids=superseded_packet_ids, authority_conflict=authority_conflict,
+        event_head_ref=event_head_ref, active_pointer_ref=active_pointer_ref,
+        asserted_disposition=disposition,
+    )
+
+
+def new_packet(*, target: dict[str, Any], objective: str, action_class: str, ttl_minutes: int,
+               priority: int, architect_id: str, project: str, constraints: list[str],
+               evidence_refs: list[str]) -> dict[str, Any]:
     issued = datetime.now(timezone.utc)
     packet_uuid = uuid.uuid4().hex
     packet: dict[str, Any] = {
         "schema": PACKET_SCHEMA,
         "packet_id": f"AWP-{issued.strftime('%Y%m%dT%H%M%SZ')}-{packet_uuid[:12]}",
-        "route_id": "PENDING",
-        "nonce": packet_uuid,
-        "payload_digest": "PENDING",
+        "route_id": "PENDING", "nonce": packet_uuid, "payload_digest": "PENDING",
         "issued_at": issued.isoformat().replace("+00:00", "Z"),
         "expires_at": (issued + timedelta(minutes=ttl_minutes)).isoformat().replace("+00:00", "Z"),
-        "architect_id": architect_id,
-        "project": project,
-        "priority": priority,
-        "action_class": action_class,
-        "target": target,
-        "objective": objective,
+        "architect_id": architect_id, "project": project, "priority": priority,
+        "action_class": action_class, "target": target, "objective": objective,
         "constraints": constraints,
-        "expected_output": {
-            "ack_required": True,
-            "classification_required": True,
-            "result_summary_required": True,
-            "telemetry_required": True,
-        },
-        "evidence_refs": evidence_refs,
-        "supersedes_packet_ids": [],
-        "credit_authority": False,
-        "mutation_authority": False,
-        "runtime_dispatch_authority": False,
-        "effect_authority": False,
+        "expected_output": {"ack_required": True, "classification_required": True,
+                            "result_summary_required": True, "telemetry_required": True},
+        "evidence_refs": evidence_refs, "supersedes_packet_ids": [],
+        "credit_authority": False, "mutation_authority": False,
+        "runtime_dispatch_authority": False, "effect_authority": False,
     }
     packet["payload_digest"] = compute_payload_digest(packet)
     packet["route_id"] = compute_route_id(packet)
@@ -348,10 +318,7 @@ def cmd_match(args: argparse.Namespace) -> int:
     context = _load(args.context)
     now = _parse_time(args.now) if args.now else None
     disposition = packet_disposition(
-        packet,
-        context,
-        now=now,
-        seen_nonces=_read_string_set(args.seen_nonces),
+        packet, context, now=now, seen_nonces=_read_string_set(args.seen_nonces),
         superseded_packet_ids=_read_string_set(args.superseded_packet_ids),
         authority_conflict=args.authority_conflict,
     )
@@ -362,15 +329,18 @@ def cmd_match(args: argparse.Namespace) -> int:
 def cmd_ack(args: argparse.Namespace) -> int:
     packet = _load(args.packet)
     context = _load(args.context)
-    ack = make_ack(
-        packet,
-        context,
-        args.disposition,
-        reason=args.reason,
-        authority_head=args.authority_head,
-        event_head_ref=args.event_head_ref,
-        active_pointer_ref=args.active_pointer_ref,
-    )
+    now = _parse_time(args.now) if args.now else None
+    try:
+        ack = classify_and_make_ack(
+            packet, context, reason=args.reason, authority_head=args.authority_head, now=now,
+            seen_nonces=_read_string_set(args.seen_nonces),
+            superseded_packet_ids=_read_string_set(args.superseded_packet_ids),
+            authority_conflict=args.authority_conflict, event_head_ref=args.event_head_ref,
+            active_pointer_ref=args.active_pointer_ref, asserted_disposition=args.disposition,
+        )
+    except PacketError as exc:
+        print(f"ACK_REJECTED: {exc}", file=sys.stderr)
+        return 2
     pathlib.Path(args.output).parent.mkdir(parents=True, exist_ok=True)
     pathlib.Path(args.output).write_text(_dump(ack), encoding="utf-8")
     print(args.output)
@@ -380,15 +350,9 @@ def cmd_ack(args: argparse.Namespace) -> int:
 def cmd_new(args: argparse.Namespace) -> int:
     target = json.loads(args.target_json)
     packet = new_packet(
-        target=target,
-        objective=args.objective,
-        action_class=args.action_class,
-        ttl_minutes=args.ttl_minutes,
-        priority=args.priority,
-        architect_id=args.architect_id,
-        project=args.project,
-        constraints=args.constraint or [],
-        evidence_refs=args.evidence_ref or [],
+        target=target, objective=args.objective, action_class=args.action_class,
+        ttl_minutes=args.ttl_minutes, priority=args.priority, architect_id=args.architect_id,
+        project=args.project, constraints=args.constraint or [], evidence_refs=args.evidence_ref or [],
     )
     text = _dump(packet)
     if args.output:
@@ -421,9 +385,13 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("packet")
     p.add_argument("context")
     p.add_argument("output")
-    p.add_argument("--disposition", choices=sorted(DISPOSITIONS), required=True)
+    p.add_argument("--disposition", choices=sorted(DISPOSITIONS))
     p.add_argument("--reason", required=True)
     p.add_argument("--authority-head", required=True)
+    p.add_argument("--now")
+    p.add_argument("--seen-nonces")
+    p.add_argument("--superseded-packet-ids")
+    p.add_argument("--authority-conflict", action="store_true")
     p.add_argument("--event-head-ref")
     p.add_argument("--active-pointer-ref")
     p.set_defaults(func=cmd_ack)
