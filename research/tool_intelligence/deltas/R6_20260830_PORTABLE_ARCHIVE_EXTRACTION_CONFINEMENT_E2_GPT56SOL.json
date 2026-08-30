@@ -1,0 +1,108 @@
+{
+  "schema": "TRIGGER6_ARCHITECTURE_MAP/v1",
+  "trigger": "6",
+  "research_id": "R6-20260830-PORTABLE-ARCHIVE-EXTRACTION-CONFINEMENT-GPT56SOL-01",
+  "stage": "E2_ARCHITECTURE_MAPPED",
+  "status": "ARCHITECTURE_MAPPED",
+  "worker": "chatgpt-trigger6-organ-gpt56sol",
+  "claim_ref": "research/tool_intelligence/claims/R6-20260830-PORTABLE-ARCHIVE-EXTRACTION-CONFINEMENT-GPT56SOL-01/E2_ARCHITECTURE_MAPPED.json@e7275267bad5a99162c4a263f8c25343487d6749",
+  "e1_ref": "research/tool_intelligence/deltas/R6_20260830_PORTABLE_ARCHIVE_EXTRACTION_CONFINEMENT_E1_GPT56SOL.json@c0b1ae2ce0562ff9d063ac0f8c33d72fe05533da",
+  "snapshot": {
+    "f2_main_for_mapping": "587db5f6b248b87429e81ab1c0a7916519f6414e",
+    "portable_contract": "architecture/PORTABLE_HOST_HARNESS_AND_DISTRIBUTION_CONTRACT.md",
+    "release_contract": "AI_START_HERE_DO_NOT_SCAN_REPO/02_RELEASE_CONTRACT.json",
+    "release_integrity": "src/frankenstein2/release_integrity.py"
+  },
+  "current_boundary": {
+    "observed_pipeline": [
+      "VPS_BUILD_AND_PACKAGE_ZIP",
+      "ZIP_TRANSFER_TO_RECEIVING_AGENT",
+      "UNSPECIFIED_EXTRACTION_OR_MATERIALIZATION",
+      "RESOLVE_PACKAGE_ROOT_AND_MANIFEST",
+      "RELEASE_INTEGRITY_AND_STATIC_CONTRACT_VERIFICATION",
+      "HOST_ROUTE_SELECTION_AND_INSTALL"
+    ],
+    "gap": "The required ZIP handoff is explicit, but extraction/materialization semantics are not normatively bound before the installer begins resolving the package root. The existing release_integrity module verifies the materialized tree and must remain the evidence authority for its file-set/hash scope."
+  },
+  "minimal_distilled_candidate": {
+    "name": "VERIFIED_PRIVATE_STAGING_EXTRACTION_BOUNDARY",
+    "classification": "CONCEPT_DISTILL_NOT_IMPLEMENTED_HERE",
+    "authority": "TRANSFORM_AND_VERIFY_GATE_ONLY_NOT_STATE_OR_EFFECT_AUTHORITY",
+    "pipeline": [
+      {
+        "step": 1,
+        "name": "ARTIFACT_IDENTITY",
+        "rule": "Bind the received archive bytes to the expected release/build/pre-handoff identity before extraction. Unknown/mismatched artifact identity fails closed."
+      },
+      {
+        "step": 2,
+        "name": "FRESH_PRIVATE_STAGING",
+        "rule": "Create a new process/user-private empty staging directory for this extraction. Never extract over the repository, installed state, home directory, plugin cache or another pre-existing product tree."
+      },
+      {
+        "step": 3,
+        "name": "ARCHIVE_PREFLIGHT",
+        "rule": "Enumerate members before writing. Require canonical relative names; reject absolute/drive/UNC roots, dot/dotdot, NUL, ambiguous separators, exact duplicate names, unsupported special-file/link metadata and target-profile path collisions. Treat archive names as candidate paths, not authority."
+      },
+      {
+        "step": 4,
+        "name": "BOUNDED_EXTRACTION",
+        "rule": "Extract only into the fresh staging root using the admitted stdlib path. No code/import/hook execution occurs during or before extraction verification. For threat models with concurrent hostile filesystem mutation, use a stronger handle/dirfd no-follow/beneath primitive or fail closed; do not pretend lexical normalization is race-proof."
+      },
+      {
+        "step": 5,
+        "name": "POST_EXTRACTION_RELEASE_VERIFY",
+        "rule": "Run the existing release_integrity/load_and_verify_release_manifest plus portable static-completeness gates against the staged tree. Their no-symlink/non-regular and SHA-256/size/file-set checks remain authoritative at their declared scope."
+      },
+      {
+        "step": 6,
+        "name": "PROMOTE_STAGED_ROOT_FOR_INSTALLER_USE",
+        "rule": "Only a verified staged root may become package_root for route selection/install. Record extractor implementation/version, archive digest, staging identity and verifier result in the handoff/acceptance receipt."
+      }
+    ]
+  },
+  "why_not_new_framework": [
+    "Current F2 baseline is CPython >=3.12 with a stdlib baseline.",
+    "The strongest existing F2 control is already a deterministic post-materialization manifest verifier; replacing it would duplicate authority.",
+    "Fresh private staging makes pre-existing destination symlink/junction attacks structurally harder and bounds any extraction overwrite to disposable data.",
+    "A mandatory Linux-only openat2 wrapper would reduce portability and is not justified unless the accepted threat model includes hostile concurrent mutation of the staging root."
+  ],
+  "cross_platform_notes": [
+    "Archive member canonicalization must be stricter than trusting host extractor normalization because Windows drive/UNC/illegal-character normalization and case-insensitive filesystems can alias distinct archive names.",
+    "Post-extraction F2 verification should catch a materialized file-set/hash mismatch, but preflight collision rejection prevents ambiguous overwrite-before-fail behavior and makes the handoff deterministic.",
+    "WP1111 junction/symlink work remains responsible for link-like components in the already-materialized package. This candidate only ensures that the staged root reaches that verifier without becoming an implicit trust bypass."
+  ],
+  "counterhypotheses": [
+    {
+      "statement": "The receiving platform always provides a fresh isolated immutable extraction root and never executes package code before F2 verification.",
+      "impact": "Then the candidate can collapse to a receipt/contract clarification plus archive member preflight; no new extraction module is needed."
+    },
+    {
+      "statement": "F2 never ships or consumes a ZIP byte artifact in the actual one-handoff implementation despite the architecture contract language.",
+      "impact": "Then archive-specific implementation work is unnecessary and this E2 remains a contract-level gap only."
+    },
+    {
+      "statement": "Concurrent hostile mutation of the staging filesystem is within the product acceptance threat model.",
+      "impact": "Fresh staging plus Python path operations are insufficient as a race-proof security primitive; a platform-specific handle-bound resolution design must be evaluated separately."
+    }
+  ],
+  "acceptance_falsifiers": [
+    "A crafted archive with absolute, parent, duplicate, case-colliding or Windows-normalization-colliding names must be rejected before installer use.",
+    "A staged tree containing any symlink/junction/non-regular entry must not pass the existing post-extraction verifier at the target platform's declared link semantics.",
+    "Changing archive bytes while preserving a stale manifest/receipt identity must fail artifact binding.",
+    "No installer route, Python import, hook or executable payload may run before post-extraction verification is green.",
+    "The same exact archive and target profile must yield one deterministic admitted staged file set or fail closed."
+  ],
+  "resource_effect": {
+    "model_calls": 0,
+    "runtime_tokens": 0,
+    "dependency_addition": "NONE_EXPECTED_FOR_BASELINE",
+    "cpu_io": "one archive enumeration plus existing full file hashing; bounded by package size",
+    "preferred_implementation": "reuse canonical path parser/manifest verifier and Python stdlib ZIP metadata; no framework import"
+  },
+  "evidence_scope": "E2_ARCHITECTURE_MAPPING_ONLY",
+  "runtime_credit": 0,
+  "integration_credit": 0,
+  "whole_system_credit": 0,
+  "next_exact_action": "Claim and run one bounded E3 source-semantics reproduction: demonstrate whether CPython ZipFile extraction into a destination containing a pre-existing symlinked intermediate directory follows that destination link, and separately confirm that extraction into a fresh private staging root followed by F2 release_integrity rejects any resulting link/non-regular materialization. Use only a disposable local sandbox; do not claim target-host runtime credit."
+}
