@@ -292,10 +292,10 @@ class WP206LegacyAuthorityRecoveryTests(unittest.TestCase):
                 )
 
             # G6 is the earlier live-connection fence: the receipt tamper was committed by
-            # a different SQLite connection, so the already-open store must reject that
-            # revision before it reads the now-invalid checkpoint row.
+            # a different SQLite connection and changed WP206-owned checkpoint state, so the
+            # already-open store must reject that owned-surface drift before reading the row.
             with self.assertRaisesRegex(
-                PersistentAgencyError, "UNIFIEDDB_EXTERNAL_SQLITE_REVISION_DRIFT"
+                PersistentAgencyError, "UNIFIEDDB_WP206_OWNED_SURFACE_DRIFT"
             ):
                 store.load_checkpoint("checkpoint-0")
 

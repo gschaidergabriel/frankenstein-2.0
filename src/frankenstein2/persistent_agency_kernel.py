@@ -961,8 +961,17 @@ class CanonicalPersistentAgencyStore:
         ):
             raise PersistentAgencyError("UNIFIEDDB_DATA_VERSION_UNAVAILABLE")
         # Connection-local observation only.  SQLite advances data_version when a
-        # *different* connection commits.  Never persist or compare it across reopen.
+        # *different* connection commits.  It is a dirty hint, never the authority verdict.
         self.sqlite_data_version_baseline = int(data_version_row[0])
+        self._wp206_owned_surface_witness_sha256: str | None = None
+        existing_wp206_table = self.connection.execute(
+            "SELECT 1 FROM sqlite_schema WHERE type='table' AND name=?",
+            (CHECKPOINT_TABLE,),
+        ).fetchone()
+        if existing_wp206_table is not None:
+            # Reopen establishes a fresh same-process observation baseline over the already
+            # admitted WP206-owned surface. Cross-reopen data_version continuity is never used.
+            self._adopt_wp206_monitor_state(self._capture_wp206_monitor_state())
 
     @classmethod
     def open(
@@ -987,6 +996,60 @@ class CanonicalPersistentAgencyStore:
 
     def close(self) -> None:
         self.connection.close()
+
+    def _read_sqlite_data_version(self) -> int:
+        row = self.connection.execute("PRAGMA main.data_version").fetchone()
+        if row is None or len(row) != 1 or type(row[0]) is not int:
+            raise PersistentAgencyError("UNIFIEDDB_DATA_VERSION_UNAVAILABLE")
+        return int(row[0])
+
+    def _compute_wp206_owned_surface_witness(self) -> str:
+        """Digest only WP206-owned schema objects and checkpoint rows.
+
+        This is an in-memory same-process revalidation witness. It is deliberately not
+        persisted and is not cross-reopen UnifiedDB authority.
+        """
+        try:
+            schema_rows = self.connection.execute(
+                """SELECT type, name, tbl_name, sql
+                   FROM sqlite_schema
+                   WHERE name=? OR tbl_name=?
+                   ORDER BY type, name""",
+                (CHECKPOINT_TABLE, CHECKPOINT_TABLE),
+            ).fetchall()
+            checkpoint_rows = self.connection.execute(
+                f"""SELECT checkpoint_id, previous_checkpoint_id, kernel_state_id,
+                           generation, checkpoint_sha256, checkpoint_json,
+                           canonical_db_path, db_device, db_inode,
+                           unifieddb_authority_receipt_sha256
+                    FROM {CHECKPOINT_TABLE}
+                    ORDER BY checkpoint_id"""
+            ).fetchall()
+        except sqlite3.Error as exc:
+            raise PersistentAgencyError(
+                "UNIFIEDDB_WP206_OWNED_SURFACE_REVALIDATION_FAILED"
+            ) from exc
+        return _sha256(
+            {
+                "schema": "FRANKENSTEIN2_WP206_OWNED_SQLITE_SURFACE_WITNESS/v1",
+                "schema_rows": [list(row) for row in schema_rows],
+                "checkpoint_rows": [list(row) for row in checkpoint_rows],
+            }
+        )
+
+    def _capture_wp206_monitor_state(self) -> tuple[int, str]:
+        # Double-read the connection-local dirty counter around the bounded witness so an
+        # overlapping external commit cannot be silently folded into one inconsistent view.
+        for _ in range(3):
+            before = self._read_sqlite_data_version()
+            witness = self._compute_wp206_owned_surface_witness()
+            after = self._read_sqlite_data_version()
+            if before == after:
+                return after, witness
+        raise PersistentAgencyError("UNIFIEDDB_WP206_MONITOR_CAPTURE_UNSTABLE")
+
+    def _adopt_wp206_monitor_state(self, state: tuple[int, str]) -> None:
+        self.sqlite_data_version_baseline, self._wp206_owned_surface_witness_sha256 = state
 
     def initialize_schema(self) -> None:
         """Create only WP-206-owned tables inside the selected canonical DB."""
@@ -1015,7 +1078,9 @@ class CanonicalPersistentAgencyStore:
                 f"""CREATE INDEX IF NOT EXISTS idx_f2_persistent_agency_lineage
                     ON {CHECKPOINT_TABLE}(kernel_state_id, generation)"""
             )
+            pending_monitor_state = self._capture_wp206_monitor_state()
             self.connection.commit()
+            self._adopt_wp206_monitor_state(pending_monitor_state)
         except Exception:
             self.connection.rollback()
             raise
@@ -1027,17 +1092,18 @@ class CanonicalPersistentAgencyStore:
             raise PersistentAgencyError("UNIFIEDDB_FILE_MISSING_DURING_STORE_USE") from exc
         if (st.st_dev, st.st_ino) != (self.db_device, self.db_inode):
             raise PersistentAgencyError("UNIFIEDDB_FILE_IDENTITY_DRIFT")
-        data_version_row = self.connection.execute(
-            "PRAGMA main.data_version"
-        ).fetchone()
-        if (
-            data_version_row is None
-            or len(data_version_row) != 1
-            or type(data_version_row[0]) is not int
-        ):
-            raise PersistentAgencyError("UNIFIEDDB_DATA_VERSION_UNAVAILABLE")
-        if int(data_version_row[0]) != self.sqlite_data_version_baseline:
-            raise PersistentAgencyError("UNIFIEDDB_EXTERNAL_SQLITE_REVISION_DRIFT")
+        current_data_version = self._read_sqlite_data_version()
+        if self._wp206_owned_surface_witness_sha256 is None:
+            # Before initialize_schema there is no admitted WP206-owned SQL surface to witness.
+            return
+        if current_data_version == self.sqlite_data_version_baseline:
+            return
+        observed_state = self._capture_wp206_monitor_state()
+        if observed_state[1] != self._wp206_owned_surface_witness_sha256:
+            raise PersistentAgencyError("UNIFIEDDB_WP206_OWNED_SURFACE_DRIFT")
+        # Another connection changed only non-WP206 state. Refresh the connection-local dirty
+        # hint after bounded revalidation proved the WP206-owned surface unchanged.
+        self._adopt_wp206_monitor_state(observed_state)
 
     def write_checkpoint(self, checkpoint: PersistentAgencyCheckpoint) -> str:
         if not isinstance(checkpoint, PersistentAgencyCheckpoint):
@@ -1049,6 +1115,8 @@ class CanonicalPersistentAgencyStore:
         checkpoint_sha = checkpoint.sha256()
         try:
             self.connection.execute("BEGIN IMMEDIATE")
+            # Close the race between the pre-BEGIN check and acquisition of the write lock.
+            self._assert_current_file_identity()
             existing = self.connection.execute(
                 f"""SELECT checkpoint_sha256, checkpoint_json
                     FROM {CHECKPOINT_TABLE} WHERE checkpoint_id=?""",
@@ -1056,7 +1124,9 @@ class CanonicalPersistentAgencyStore:
             ).fetchone()
             if existing is not None:
                 if existing == (checkpoint_sha, checkpoint_json):
+                    pending_monitor_state = self._capture_wp206_monitor_state()
                     self.connection.commit()
+                    self._adopt_wp206_monitor_state(pending_monitor_state)
                     return checkpoint_sha
                 raise PersistentAgencyError(
                     "CHECKPOINT_ID_ALREADY_BOUND_TO_DIFFERENT_BYTES"
@@ -1125,7 +1195,9 @@ class CanonicalPersistentAgencyStore:
                     self.authority_receipt_sha256,
                 ),
             )
+            pending_monitor_state = self._capture_wp206_monitor_state()
             self.connection.commit()
+            self._adopt_wp206_monitor_state(pending_monitor_state)
             return checkpoint_sha
         except Exception:
             self.connection.rollback()
