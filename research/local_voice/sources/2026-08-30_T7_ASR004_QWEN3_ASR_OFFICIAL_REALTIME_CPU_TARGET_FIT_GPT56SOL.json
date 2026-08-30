@@ -1,0 +1,69 @@
+{
+  "schema": "T7_SOURCE_DELTA/v1",
+  "trigger": "7",
+  "date": "2026-08-30",
+  "organ": "GPT-5.6-Sol",
+  "research_id": "T7-ASR-004",
+  "semantic_key": "95bd53a469133dbfdf39da320f6daa049cec1361084e632dc915c4bc156e3715",
+  "objective": "OFFICIAL_QWEN3_ASR_REALTIME_BACKEND_CPU_TARGET_FIT",
+  "scope": "SOURCE_AND_TARGET_FIT_ANALYSIS_ONLY",
+  "resumed_not_restarted": true,
+  "canonical_f2_prewrite_head_observed": "935bdfb2859704e661c98cd694346394635d52a8",
+  "existing_target_evidence": {
+    "target_surface": "clay-direct-dev",
+    "cpu_count_logical": 4,
+    "cuda_available": false,
+    "cuda_device_count": 0,
+    "qwen3_asr_06b_transformers_cpu_model_load_observed": true,
+    "qwen3_asr_06b_transformers_cpu_local_inference_observed": true,
+    "qwen3_asr_streaming_credit": 0,
+    "german_quality_credit": 0,
+    "source": "research/local_voice/benchmarks/2026-08-30_T7_ASR004_QWEN3_ASR_06B_TARGET_CPU_SMOKE_GPT56SOL.json"
+  },
+  "upstream_pins": {
+    "qwen3_asr_repo": {
+      "repo": "QwenLM/Qwen3-ASR",
+      "observed_main_head": "7c6daf77a2421100f5fb066495372c00129d39ff",
+      "package_version_observed": "0.0.6",
+      "vllm_optional_dependency_observed": "vllm==0.14.0",
+      "streaming_demo": "qwen_asr/cli/demo_streaming.py",
+      "finding": "Official Qwen3-ASR streaming inference is implemented through the vLLM backend; the streaming demo initializes Qwen3ASRModel streaming state and incrementally calls streaming_transcribe."
+    },
+    "qwen_model": {
+      "id": "Qwen/Qwen3-ASR-0.6B",
+      "already_pinned_revision": "9ba1d4a",
+      "model_file_bytes_observed_existing_target_receipt": 1876091704,
+      "license": "Apache-2.0",
+      "german_listed_supported_language": true
+    },
+    "vllm": {
+      "repo": "vllm-project/vllm",
+      "observed_main_head": "56058fd572f6a7fec6899385f4a4ed7f4b964477",
+      "current_supported_models_doc_observation": "Qwen3ASRForConditionalGeneration is supported and the Realtime Transcription section lists Qwen3ASRRealtimeGeneration for Qwen/Qwen3-ASR-0.6B. Serving the realtime architecture requires an explicit hf-overrides architecture selection.",
+      "current_cpu_support_doc_observation": "The current Intel Xeon CPU supported-model matrix does not list Qwen3ASRForConditionalGeneration or Qwen3ASRRealtimeGeneration. Absence from the matrix is treated as lack of documented CPU support, not proof of impossibility."
+    }
+  },
+  "primary_sources": [
+    "https://github.com/QwenLM/Qwen3-ASR/blob/7c6daf77a2421100f5fb066495372c00129d39ff/qwen_asr/cli/demo_streaming.py",
+    "https://github.com/QwenLM/Qwen3-ASR/blob/7c6daf77a2421100f5fb066495372c00129d39ff/pyproject.toml",
+    "https://huggingface.co/Qwen/Qwen3-ASR-0.6B",
+    "https://docs.vllm.ai/en/latest/models/supported_models/",
+    "https://docs.vllm.ai/en/latest/models/hardware_supported_models/cpu/"
+  ],
+  "hypothesis": "The official Qwen3-ASR realtime path can improve partial-transcript behavior only if the target can host a supported vLLM realtime runtime; on the current 4-vCPU no-CUDA target, backend/platform fit is likely to be the blocker before ASR quality is even measured.",
+  "counterhypothesis": "vLLM CPU can run Qwen3ASRRealtimeGeneration despite the missing current CPU support-matrix entry, with acceptable memory and latency on clay-direct-dev.",
+  "discriminator": "Do not mint streaming credit from source support. If Trigger4 chooses to probe the official realtime successor, first perform a bounded fail-closed vLLM CPU architecture/load preflight on the exact target with no model/API network inference and strict RAM/startup caps; only proceed to audio streaming if Qwen3ASRRealtimeGeneration actually initializes. Otherwise retain the current German comparator path and do not spend further target time on vLLM realtime there.",
+  "decision": "DEFER_OFFICIAL_VLLM_REALTIME_AS_DEFAULT_CPU_TARGET_SUCCESSOR_PENDING_EXACT_TARGET_SUPPORT_PROOF",
+  "reason": "The current target has no CUDA and only four logical CPUs. The existing positive receipt covers Transformers CPU load/inference, not the official vLLM streaming runtime. Current upstream documentation establishes realtime architecture availability but does not document Qwen3-ASR on the vLLM CPU support matrix.",
+  "evidence_credit": {
+    "source_pin": 1,
+    "target_fit_analysis": 1,
+    "new_target_execution": 0,
+    "streaming_asr": 0,
+    "german_asr_quality": 0,
+    "german_e2e_voice": 0,
+    "trigger4_acceptance": 0,
+    "whole_system": 0
+  },
+  "next_exact_action": "Keep the already-routed pinned FLEURS + non-speech Qwen3-ASR versus faster-whisper comparator as the primary target discriminator. Treat official Qwen vLLM realtime as a separate bounded support preflight only after the comparator result or when a GPU-capable admitted target is available."
+}
