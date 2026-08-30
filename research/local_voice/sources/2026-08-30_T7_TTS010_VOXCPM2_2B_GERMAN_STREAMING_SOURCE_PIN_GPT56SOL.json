@@ -1,0 +1,62 @@
+{
+  "schema": "T7_SOURCE_RESULT/v1",
+  "trigger": "7",
+  "research_id": "T7-TTS-010",
+  "objective": "V1_VOXCPM2_2B_GERMAN_STREAMING_SOURCE_PIN",
+  "semantic_key": "2e877d0a87923c052e1bdc04434dc859e017c3114f63ba0c8ec9f76e72b3eaea",
+  "evidence_scope": "SOURCE_PIN",
+  "observed_at": "2026-08-30",
+  "primary_sources": {
+    "upstream_repository": {
+      "repository": "OpenBMB/VoxCPM",
+      "observed_main_commit": "f5a1c6a6b901bc732e20f0d59a369f6829ad717a",
+      "license": "Apache-2.0"
+    },
+    "model_repository": {
+      "model_id": "openbmb/VoxCPM2",
+      "observed_main_short_revision": "32279ef",
+      "model_repository_size": "4.96 GB",
+      "model_safetensors_size": "4.58 GB",
+      "model_safetensors_sha256": "f7f964cfa9da23653baec6e6f7750719977ad944ed9f95fe52fe3a620506891d",
+      "model_safetensors_file_revision_short": "07f4cde",
+      "license": "apache-2.0"
+    },
+    "same_org_replication": {
+      "repository": "OpenBMB/UltraEval-Audio",
+      "path": "replication/VoxCPM2.md",
+      "blob_sha": "a43bdc9b494dbd240debba2b45b0e440f5113db9",
+      "evaluation_dates": "2026-07-26..2026-07-27"
+    }
+  },
+  "source_direct_findings": [
+    "VoxCPM2 is described by the primary repository/model card as a 2B tokenizer-free diffusion-autoregressive TTS system with 30-language support including German and 48 kHz output.",
+    "The primary implementation exposes local streaming generation through generate_streaming().",
+    "The primary sources report approximately 8 GB VRAM and RTF about 0.30 on RTX 4090 for the standard path, with about 0.13 reported for Nano-vLLM acceleration.",
+    "Weights and source are presented as Apache-2.0/commercial-ready by the primary project surfaces.",
+    "OpenBMB UltraEval-Audio reports a reproduced German CV3 zero-shot WER/CER of 4.629% versus 4.77% official, SIM 74.461, P808 MOS 3.617; MiniMax German reproduction reports WER 1.054% versus 0.679% official and SIM 79.874 versus 80.3 official. These are upstream/same-organization benchmark results, not Frankenstein measurements."
+  ],
+  "project_inferences_not_runtime_facts": [
+    "German benchmark evidence is materially stronger than language-metadata-only support and makes VoxCPM2 a credible quality challenger for Frankenstein's German TTS lane.",
+    "The 2B/approximately-8-GB-VRAM envelope is likely substantially more expensive to co-reside than the smallest latency-floor candidates; whole-Frankenstein resource fit must be measured before target execution is prioritized.",
+    "Streaming availability plus voice design/control is architecturally attractive for stable male acoustic identity and state-derived prosody, but no barge-in, cancellation, first-audio latency, long-session stability or F2 VoiceOutcome re-entry behavior is established here."
+  ],
+  "counterhypotheses": [
+    "Published German quality may not survive the exact Frankenstein male-voice, short-turn, project-vocabulary and interruption workload.",
+    "A smaller TTS may produce better end-to-end conversational quality once whole-system latency and co-resident resource contention are included.",
+    "Upstream streaming RTF on RTX 4090 does not imply acceptable TTFA, cancellation latency, CPU fallback, or clay-direct-dev behavior."
+  ],
+  "credit": {
+    "source_pin": 1,
+    "german_support_metadata": 1,
+    "upstream_german_benchmark_evidence": 1,
+    "streaming_api_identified": 1,
+    "target_runtime": 0,
+    "frankenstein_german_tts_quality": 0,
+    "frankenstein_streaming_latency": 0,
+    "german_e2e_voice": 0,
+    "trigger4_acceptance": 0,
+    "whole_system": 0
+  },
+  "decision": "SOURCE_ADMISSIBLE_QUALITY_CHALLENGER_RESOURCE_GATED",
+  "next_exact_action": "Route to Trigger 4 as a deferred bounded target-runtime comparator only after current TTS/resource frontier permits it. If admitted, use the exact pinned model artifact and measure cold/warm TTFA, RTF, p50/p95 chunk cadence, cancellation tail, RSS/VRAM, German intelligibility, stable male-voice consistency, state/prosody controllability and whole-Frankenstein coexistence against the current lighter TTS finalists. Do not award production or runtime credit from upstream results."
+}
