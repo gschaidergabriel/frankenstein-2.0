@@ -1,0 +1,82 @@
+{
+  "schema": "T7_REALTIME_PROTOCOL_FALSIFIER_ADDENDUM/v1",
+  "trigger": "7",
+  "research_id": "T7-FD-RTCOMPAT-001",
+  "objective": "F1B_HF_S2S_HEARD_PREFIX_CONSERVATION",
+  "claim_semantic_key": "8c53f25ed47c458bb727dd4dc82f788241cee699e428c4d97401a965a4eb375e",
+  "classification": "REVIEW_ONLY_CANDIDATE_FALSIFIER",
+  "implementation_mutation_authority": false,
+  "duplicate_semantic_claim_created": false,
+  "pinned_upstream": {
+    "repository": "huggingface/speech-to-speech",
+    "revision": "3986f453012a131632eee4731995474046846794",
+    "package_version": "0.2.12"
+  },
+  "source_findings": [
+    "The pinned OpenAI-Realtime router parses conversation.item.truncate but deliberately treats it as a no-op after cancellation because client-side playback is considered owner of the unheard tail.",
+    "At the pinned revision, response cancellation closes the current response and calls Chat.rollback_provisional_generation for cancelled, failed or incomplete responses.",
+    "The pinned language-model process makes default-chat commit contingent on the generation not being cancelled and rolls back recorded provisional generation items in its finally path when the interrupted generation was not committed.",
+    "Pinned upstream tests explicitly assert that a cancelled provisional assistant/tool generation leaves chat.buffer empty while already committed user input survives cancellation.",
+    "Therefore the strongest static hypothesis is no longer primarily an unheard-tail-retention bug. The server appears capable of removing the entire interrupted assistant response from its default Chat, which can also remove semantics that the user actually heard before barge-in."
+  ],
+  "protocol_difference": {
+    "openai_reference_semantics": "conversation.item.truncate is a playback-synchronization operation at a client-supplied audio_end_ms boundary and successful handling is surfaced by conversation.item.truncated.",
+    "pinned_hf_semantics": "conversation.item.truncate is accepted as a no-op; cancellation/provisional-generation rollback governs server-local assistant history instead.",
+    "risk": "Whole-response rollback can be safe against an unheard suffix while still being non-equivalent to a measured heard-prefix boundary. If server-local Chat is used as next-turn context, the model can experience conversational amnesia for words the user actually heard."
+  },
+  "hypotheses": [
+    {
+      "id": "H1_NO_UNHEARD_TAIL_AFTER_CANCEL",
+      "state": "SOURCE_SUPPORTED_RUNTIME_UNVERIFIED",
+      "claim": "Cancellation rollback removes incomplete assistant generation from the default Chat, so unheard assistant suffix semantics should not survive there under the ordinary in-band path."
+    },
+    {
+      "id": "H2_HEARD_PREFIX_AMNESIA",
+      "state": "SOURCE_PLAUSIBLE_RUNTIME_UNVERIFIED",
+      "claim": "If an assistant prefix was actually played before cancellation, whole-response rollback can remove that heard prefix from the server-local next-turn context unless Frankenstein reconstructs authoritative heard state externally."
+    },
+    {
+      "id": "H3_F2_CONTEXT_RECONSTRUCTION_CLOSES_GAP",
+      "state": "OPEN_HYPOTHESIS",
+      "claim": "A narrow F2 adapter can preserve protocol correctness by treating the speech server as a transient inference/transport organ and rebuilding next-turn model context from F2's measured heard-state authority rather than trusting server-local conversation history."
+    }
+  ],
+  "falsifier": {
+    "id": "HF03B_HEARD_PREFIX_CONSERVATION",
+    "action": "Generate an assistant response with two semantically unique clauses A and B. Allow clause A to become definitely audible while clause B remains buffered/unheard. Record the exact F2 heard boundary, issue response.cancel and conversation.item.truncate at that measured boundary, then inspect server-local Chat, the exact next-turn model input and the next response. Repeat with duplicate/stale truncate and with an F2 context-reconstruction adapter enabled.",
+    "must_hold": [
+      "No clause-B semantic content beyond the measured heard boundary reaches next-turn model context.",
+      "Clause-A semantics that were actually heard are either present in authoritative next-turn context or explicitly reconstructed from F2 heard-state authority.",
+      "Server-local cancellation rollback cannot silently convert partial playback into conversational amnesia when that server history is used as a context source.",
+      "If the server retains zero interrupted-assistant history, the adapter treats that as transient transport state and reconstructs next-turn context from F2 rather than treating server Chat as canonical.",
+      "Duplicate, stale or out-of-range truncate cannot mutate a newer turn, resurrect cancelled output or increase heard_fraction/commit eligibility."
+    ],
+    "falsifies_if": "Next-turn context is a superset of the F2 heard boundary (unheard semantic leak) or a strict subset that loses actually-heard prefix semantics without explicit F2 reconstruction."
+  },
+  "required_receipt_delta": [
+    "generated_vs_heard_boundary",
+    "server_chat_items_before_cancel",
+    "server_chat_items_after_cancel",
+    "post_cancel_next_turn_context",
+    "post_cancel_heard_prefix_presence",
+    "adapter_context_reconstruction_trace",
+    "duplicate_stale_truncate_trace",
+    "negative_evidence"
+  ],
+  "execution_routing": {
+    "route": "existing Trigger4/VPS runtime authority",
+    "new_runtime_dispatch_created_here": false,
+    "existing_nonterminal_dispatch_33328707636_duplicated": false,
+    "note": "The older WP715 workflow remains a separate queued zero-step subject and must not be converted into evidence for this HF protocol discriminator merely by narrative association."
+  },
+  "credit_boundary": {
+    "source_or_review_credit": 1,
+    "executed_protocol_component_credit": 0,
+    "german_e2e_voice_credit": 0,
+    "acoustic_quality_credit": 0,
+    "physical_device_credit": 0,
+    "trigger4_acceptance_credit": 0,
+    "whole_product_credit": 0
+  },
+  "next_exact_action": "Execute HF02, HF03 and HF03B on the exact pinned revision through the admitted Trigger4/VPS route. Measure both sides of the boundary: reject any unheard-tail influence and reject heard-prefix loss unless F2 explicitly reconstructs the authoritative heard context. Promote only the executed scope."
+}
