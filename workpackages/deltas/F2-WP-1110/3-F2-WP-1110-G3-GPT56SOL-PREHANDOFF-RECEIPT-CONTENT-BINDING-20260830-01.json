@@ -1,0 +1,51 @@
+{
+  "schema": "F2_WORKPACKAGE_DELTA/v1",
+  "workpackage_id": "F2-WP-1110",
+  "generation": 3,
+  "claim_id": "F2-WP-1110-G3-GPT56SOL-PREHANDOFF-RECEIPT-CONTENT-BINDING-20260830",
+  "worker_id": "chatgpt-trigger4-organ-gpt56sol",
+  "trigger": "4",
+  "base_commit": "af974fbba0d321108d0ee588d4cea7b5d8efe0ae",
+  "observed_main_commit": "af974fbba0d321108d0ee588d4cea7b5d8efe0ae",
+  "owned_paths": [],
+  "result_class": "FALSIFIER",
+  "source_commits": [
+    "bea6fa1e921e0a47c61fc35a9ccac47c84637425",
+    "af974fbba0d321108d0ee588d4cea7b5d8efe0ae"
+  ],
+  "receipts": [
+    "github-actions-run:33293014579",
+    "github-actions-artifact:9726542875",
+    "release-inner-zip-sha256:1ca051321de9a3934ba9555dbaffd17a4133181a07790a29abcc578205e9f843",
+    "release-manifest-sha256:602c1cdf0a67acae1a5bde1cb312c522610241a5c39f16b5f37c0dc312bfb091"
+  ],
+  "falsifiers": [
+    {
+      "id": "WP1110_STATIC_READY_UNDERCOVERS_DISTRIBUTION_CONTRACT",
+      "observation": "The exact release candidate is internally hash/receipt consistent, but the current static pre-handoff evaluator can return READY_FOR_REAL_HOST_HANDOFF after validating release integrity, the prehandoff receipt reference, route-file existence/resolution, and a small invariant set while not validating the full release-artifact acceptance list declared by architecture/PORTABLE_HOST_HARNESS_AND_DISTRIBUTION_CONTRACT.md section 13.",
+      "direct_code_evidence": [
+        "src/frankenstein2/pre_handoff_release.py: ROUTE_KEYS plus EXPECTED_* checks define current READY surface",
+        "tests/test_pre_handoff_release.py and tests/test_release_artifact_subject.py construct placeholder distribution/verify route target contents and still admit static readiness when route/integrity checks pass"
+      ],
+      "contract_requirements_not_established_by_current_ready_gate": [
+        "minimum runtime dependencies",
+        "explicit state migration version",
+        "optional-feature capability requirements",
+        "Perception Fabric capability/default-policy declarations",
+        "semantic validity of the verifier/self-test entry beyond target-file existence"
+      ],
+      "epistemic_scope": "STATIC_GATE_COVERAGE_GAP_ONLY_CURRENT_RELEASE_ARTIFACT_NOT_DECLARED_FAILED",
+      "runtime_credit": 0,
+      "physical_host_credit": 0,
+      "completion_credit": 0,
+      "whole_system_acceptance": false
+    }
+  ],
+  "contradictions": [
+    "READY_FOR_REAL_HOST_HANDOFF currently means the implemented WP1110 static subset passed; it must not be read as proof that every section-13 distribution-contract requirement is machine-validated."
+  ],
+  "proposed_state_change": "NO_POINTER_OR_HOT_STATE_MUTATION. Preserve WP1110 G3 ACCEPTED at its declared PREHANDOFF_RECEIPT_CONTENT_IDENTITY_BINDING_REPOSITORY_HOSTED_CI_ONLY scope; route this falsifier into a successor portable-delivery static-completeness gate before using static READY as clean-machine admission authority.",
+  "completion_deficit": "Full portable release static-completeness evidence remains open even though exact artifact identity/content binding is strong. Real clean-machine runtime acceptance also remains open.",
+  "next_exact_action": "Create a non-overlapping successor portable-delivery gate that binds the exact release artifact to explicit machine-checkable runtime requirements, state-migration version, optional capability/perception declarations, and verifier/self-test semantics; then rebuild/rebind one exact release candidate and only afterward collect Claude Code, Codex CLI, generic-agent, no-VPS, VPS-bridge and permission/device clean-machine observations.",
+  "created_at_utc": "2026-08-30T12:28:43Z"
+}
