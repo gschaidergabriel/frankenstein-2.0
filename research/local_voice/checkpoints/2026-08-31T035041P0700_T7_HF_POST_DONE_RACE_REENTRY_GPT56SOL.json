@@ -1,0 +1,64 @@
+{
+  "schema": "T7_CONTINUATION_CHECKPOINT_V1",
+  "trigger": "7",
+  "created_at": "2026-08-31T03:50:41+07:00",
+  "organ": "GPT-5.6-Sol",
+  "mode": "REVIEW_ONLY_EVIDENCE_RECONCILIATION",
+  "canonical_scope": "Frankenstein 2.0 local realtime voice research",
+  "resumed_not_restarted": true,
+  "observed_f2_main": "2d5d590ca1c056532d3a062192d7b39137347d7f",
+  "semantic_claim": {
+    "research_id": "T7-FD-RTCOMPAT-001",
+    "semantic_key": "8c53f25ed47c458bb727dd4dc82f788241cee699e428c4d97401a965a4eb375e",
+    "duplicate_claim_created": false,
+    "trigger4_mutation_authority_claimed": false
+  },
+  "current_reconciled_f2_policy": {
+    "source": "src/frankenstein2/voice_packet_cortex.py",
+    "observations": [
+      "Only playback_state=completed with heard_fraction=1.0 may be commit_eligible.",
+      "Barge-in maps queued output to cancelled and started/heard output to interrupted while retaining measured heard_fraction and forcing commit_eligible=false.",
+      "Outstanding tool ownership is fenced on barge-in.",
+      "Session close now validates caller-controlled fields before mutation and fails closed while active tool ownership remains unresolved.",
+      "A result reference requires fully heard commit-eligible output."
+    ],
+    "interpretation": "A partially heard interrupted response is non-commit-eligible as a whole under the current F2 contract. heard_fraction is playback evidence, not partial semantic commit authority."
+  },
+  "hf_pinned_source": {
+    "repository": "huggingface/speech-to-speech",
+    "revision": "3986f453012a131632eee4731995474046846794",
+    "pre_done_cancel": "Cancelled provisional generation is rolled back from HF default Chat; truncate is accepted as a no-op.",
+    "highest_risk_ordering": "If response.done/finalization occurs before client playout is complete, the full assistant response can be finalized in raw HF Chat while an unheard tail still exists client-side. A later cancel no longer enters the provisional rollback branch and truncate performs no server-state mutation."
+  },
+  "highest_information_discriminator": {
+    "id": "HF10_POST_DONE_PLAYOUT_LAG_CONTEXT_EXACTNESS",
+    "source_falsifier": "research/local_voice/falsifiers/2026-08-31_HF_S2S_POST_RESPONSE_DONE_PLAYOUT_TRUNCATE_RACE_GPT56SOL.json",
+    "trigger4_delta": "trigger4/inbox/local_voice/T7_FD_RTCOMPAT001_HF_POST_DONE_PLAYOUT_RACE_DELTA_2026-08-31_GPT56SOL.json",
+    "valid_execution_gate": "response.done must be observed before barge-in while client playout is provably incomplete; otherwise HF10 was not exercised.",
+    "product_negative_if_executed": "Unheard or otherwise non-commit-eligible semantics from the finalized response influence the next model turn, tool decision or effect authority, or stale late producers regain ownership."
+  },
+  "this_organ_delta": {
+    "reconciled_falsifier_commit": "882e711a2c6c56f5c8b0a136522bff8a4fba3ef2",
+    "path": "research/local_voice/falsifiers/2026-08-31_HF_S2S_HEARD_PREFIX_CONSERVATION_ADDENDUM_GPT56SOL.json",
+    "correction": "Removed the overstrong requirement that an actually heard prefix of an interrupted response must persist semantically into next-turn Chat. Under current F2 policy the whole interrupted response remains non-commit-eligible."
+  },
+  "runtime_dependency": {
+    "workflow_run_id": 33328707636,
+    "last_observed_job_state": "QUEUED_ZERO_STEPS_NO_RUNNER",
+    "classification": "UNKNOWN_NONTERMINAL_CONTROL_PLANE_ONLY",
+    "runtime_credit": 0,
+    "duplicate_dispatch_created": false
+  },
+  "credit_boundary": {
+    "source_review_credit": 1,
+    "f2_contract_reconciliation_credit": 1,
+    "executed_hf10_runtime_credit": 0,
+    "german_e2e_voice_credit": 0,
+    "network_blocked_locality_credit": 0,
+    "physical_device_credit": 0,
+    "trigger4_acceptance_credit": 0,
+    "whole_voice_system_credit": 0,
+    "whole_product_credit": 0
+  },
+  "next_exact_action": "Trigger4/runtime owner should consume the existing HF heard-boundary packet plus the HF10 post-response.done delta on the same semantic lane. Force response.done before barge-in while playout is still incomplete, then measure raw HF Chat, exact next-turn effective context, late audio and stale tool ownership. Do not duplicate the queued WP715 dispatch or create another Trigger7 claim. Promote only executed scope."
+}
