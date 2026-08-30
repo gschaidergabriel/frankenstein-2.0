@@ -1,0 +1,50 @@
+{
+  "schema": "FRANKENSTEIN2_WORKPACKAGE_DELTA/v1",
+  "workpackage_id": "F2-WP-206",
+  "generation": 2,
+  "claim_id": "F2-WP-206-G2-GPT56SOL-UNIFIEDDB-AUTHORITY-RECEIPT-REPLAY-FENCE-20260830",
+  "status": "CANONICAL_MUTATION_BRANCH_PREPARED_FROM_EXECUTED_REVIEW_DONOR",
+  "authority_epoch": "9.13",
+  "base_claim_commit": "55bf09a34312f6bccb2d06069747d9d8034d15d1",
+  "counterevidence": {
+    "retained_falsifier_pr": 638,
+    "corroborating_pr": 639,
+    "run_id": 33295334472,
+    "job_id": 99213903088,
+    "positive_control": "PASS",
+    "tampered_persisted_authority_receipt_fails_closed": false
+  },
+  "review_donor": {
+    "pr": 645,
+    "head_sha": "ca8d6a75eda5759751344f9b83292c565eb1d275",
+    "workflow_run": 33295552995,
+    "conclusion": "success",
+    "classification": "REVIEW_ONLY_CANDIDATE_REPAIR_DONOR_NO_MUTATION_AUTHORITY"
+  },
+  "absorbed_hypothesis": "Replay must compare a persisted authority receipt against a stable store-bound file-authority receipt before checkpoint decode/replay. The authority receipt must remain distinct from Agency checkpoint state identity and stable across legitimate same-file content mutation.",
+  "planned_implementation": [
+    "derive the WP206 store authority receipt from canonical real path plus device plus inode rather than mutable database content",
+    "select persisted unifieddb_authority_receipt_sha256 in load_checkpoint",
+    "compare it fail-closed before JSON decode/replay",
+    "reuse the donor acceptance test for untampered replay plus authority-receipt-only tamper rejection",
+    "preserve all generation/digest/provenance/restart regressions"
+  ],
+  "scope_exclusions": [
+    "same-inode DB content/schema fingerprint refresh remains a separate discriminator",
+    "no target/VPS execution",
+    "no physical GRID10/GWT/J-Space runtime",
+    "no provider/model call",
+    "no effect/completion authority",
+    "no training or whole-system promotion"
+  ],
+  "runtime_execution_observed": false,
+  "runtime_credit": 0,
+  "physical_grid10_credit": 0,
+  "gwt_runtime_credit": 0,
+  "jspace_runtime_credit": 0,
+  "training_credit": 0,
+  "effect_credit": 0,
+  "completion_credit": 0,
+  "whole_system_acceptance": false,
+  "next_exact_action": "Run canonical G2 branch CI that absorbs the reviewed minimal patch into source, executes existing WP206 regressions plus the exact authority-receipt tamper discriminator, and persists the source delta only if all tests pass."
+}
