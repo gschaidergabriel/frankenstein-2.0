@@ -1,0 +1,60 @@
+{
+  "schema": "FRANKENSTEIN2_TRIGGER6_CLAIM_REPRODUCTION_RECEIPT/v1",
+  "research_id": "R6-20260830-RUNTIME-SUBJECT-BOUNDARY-FINGERPRINT-GPT56SOL-01",
+  "stage": "E3_CLAIM_REPRODUCED",
+  "claim_target": "E3_CLAIM_REPRODUCED_WP206_TRANSITIVE_DEPENDENCY_OMISSION",
+  "created_at": "2026-08-30T19:23:00+07:00",
+  "worker": "GPT-5.6-Sol-TRIGGER6",
+  "subject_f2_sha": "da3e24b4480c89c14c515649f623bb25440e1aea",
+  "source_subjects": [
+    "src/frankenstein2/persistent_agency_kernel.py",
+    ".github/workflows/wp206-g5-evidence-subject-binding-ci.yml"
+  ],
+  "method": {
+    "type": "DETERMINISTIC_STATIC_DIRECT_IMPORT_SET_DIFFERENCE",
+    "parser": "Python ast.ImportFrom over the exact observed persistent_agency_kernel.py local-production import block",
+    "mapping": "frankenstein2.x -> src/frankenstein2/x.py; state.x -> src/state/x.py",
+    "comparison": "mapped direct local production imports minus current workflow production paths",
+    "limitation": "This proves direct omissions only. It does not claim a complete transitive closure and therefore is conservative evidence against treating workflow paths as a complete closure."
+  },
+  "observed_direct_local_production_imports": [
+    "src/frankenstein2/agency_state.py",
+    "src/frankenstein2/goal_lifecycle.py",
+    "src/frankenstein2/persistent_pulse.py",
+    "src/frankenstein2/state_fingerprint.py",
+    "src/frankenstein2/wake_hold.py",
+    "src/state/unifieddb_identity.py"
+  ],
+  "observed_workflow_production_paths": [
+    "src/frankenstein2/persistent_agency_kernel.py",
+    "src/frankenstein2/wp206_legacy_authority_recovery.py",
+    "src/state/unifieddb_identity.py"
+  ],
+  "covered_direct_imports": [
+    "src/state/unifieddb_identity.py"
+  ],
+  "missing_direct_imports": [
+    "src/frankenstein2/agency_state.py",
+    "src/frankenstein2/goal_lifecycle.py",
+    "src/frankenstein2/persistent_pulse.py",
+    "src/frankenstein2/state_fingerprint.py",
+    "src/frankenstein2/wake_hold.py"
+  ],
+  "counts": {
+    "direct_local_production_imports": 6,
+    "covered_by_workflow_production_paths": 1,
+    "missing_direct_imports": 5
+  },
+  "deterministic_set_difference_receipt_sha256": "a2f55516026885abfa829889e24cd2d85c07f0f4ee0cbe20ce5b8017633fb453",
+  "claim_tested": "The WP206 G5 workflow paths list can be reused as a complete semantic/runtime-subject dependency closure.",
+  "result": "FALSIFIED_AS_COMPLETE_CLOSURE",
+  "reason": "Five direct local production imports of persistent_agency_kernel.py are absent from the workflow production paths list. A change in any omitted imported module can affect the WP206 execution path without changing a digest constructed only from the workflow path list.",
+  "architecture_consequence": "RUNTIME_SUBJECT_BOUNDARY_FINGERPRINT must not seed its authority manifest from GitHub Actions paths filters alone. It needs a verified dependency-closure construction or must classify completeness UNKNOWN and fail closed.",
+  "counterhypothesis_preserved": "The workflow path list may be intentionally scoped only to when this dedicated CI job should run and may rely on broader CI elsewhere. This receipt does not criticize that scheduling use; it only falsifies treating the list itself as a complete semantic invariance closure.",
+  "evidence_scope": "STATIC_REPOSITORY_SOURCE_COUNTEREXAMPLE_ONLY",
+  "research_credit": "E3_REPRODUCED",
+  "runtime_credit": 0,
+  "integration_credit": 0,
+  "whole_system_credit": 0,
+  "next_exact_action": "E4 candidate ablation should compare whole-repo invalidation versus a conservative verified dependency-closure fingerprint on synthetic unrelated-change and omitted-dependency-change cases; no E5 until omission fails closed."
+}
