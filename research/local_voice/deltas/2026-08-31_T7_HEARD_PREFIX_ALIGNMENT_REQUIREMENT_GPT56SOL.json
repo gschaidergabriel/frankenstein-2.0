@@ -1,0 +1,108 @@
+{
+  "schema": "T7_RESEARCH_DELTA_V1",
+  "trigger": "7",
+  "date": "2026-08-31",
+  "organ": "GPT-5.6-Sol",
+  "mode": "REVIEW_ONLY_POLICY_REFINEMENT",
+  "research_id": "T7-FD-RTCOMPAT-001",
+  "semantic_claim_ref": "research/local_voice/claims/T7-FD-RTCOMPAT-001/E3_HF_SPEECH_TO_SPEECH_REALTIME_PROTOCOL_COMPATIBILITY.json",
+  "continuation_of": [
+    "research/local_voice/deltas/2026-08-31_T7_COMMIT_ELIGIBILITY_CONTEXT_SEPARATION_GPT56SOL.json",
+    "research/local_voice/falsifiers/2026-08-31_HF_S2S_HEARD_PREFIX_RETENTION_DELTA_GPT56SOL.json",
+    "trigger4/inbox/local_voice/T7_FD_RTCOMPAT001_INTERRUPTED_CONTEXT_POLICY_PIN_REQUIRED_2026-08-31_GPT56SOL.json"
+  ],
+  "current_f2_observation": {
+    "source": "src/frankenstein2/voice_packet_cortex.py",
+    "facts": [
+      "VoiceOutputPacket binds the full text_segment, planned_audio_duration_ms, playback_state, heard_fraction, interruption_ms and commit_eligible.",
+      "advance_output permits monotonic heard_fraction and marks commit_eligible only for playback_state=completed with heard_fraction=1.0.",
+      "The current packet contract does not bind a word/token/phoneme/audio-frame alignment, an exact heard-prefix text value, or a heard-prefix digest for a partially heard text_segment."
+    ]
+  },
+  "pinned_hf_observation": {
+    "repository": "huggingface/speech-to-speech",
+    "revision": "3986f453012a131632eee4731995474046846794",
+    "source": "src/speech_to_speech/api/openai_realtime/websocket_router.py",
+    "fact": "ConversationItemTruncateEvent is parsed and accepted for WebSocket, but the router intentionally performs no additional server-state mutation because it assumes response cancellation/server-VAD already discarded provisional generation and client playback owns the unheard tail."
+  },
+  "current_primary_reference_behavior": [
+    {
+      "source": "https://openai.github.io/openai-agents-python/realtime/guide/",
+      "finding": "Current RealtimeSession interruption handling updates history so server-side conversation stays aligned with what the user actually heard; delayed playback should provide tracked playback position."
+    },
+    {
+      "source": "https://openai.github.io/openai-agents-js/guides/voice-agents/build/",
+      "finding": "Current WebSocket interruption handling truncates assistant audio/history to what the user actually heard and updates local history from truncation/conversation events."
+    },
+    {
+      "source": "https://docs.livekit.io/agents/logic/turns/",
+      "finding": "Current interruption handling truncates conversation history to only the portion of agent speech heard before interruption."
+    }
+  ],
+  "new_high_information_finding": {
+    "id": "HEARD_FRACTION_IS_NOT_TEXT_PREFIX_ALIGNMENT",
+    "classification": "POLICY_IMPLEMENTATION_PRECONDITION",
+    "finding": "A scalar heard_fraction over a full text_segment is insufficient to derive the exact semantic text prefix heard by the user. Speech duration is not proportional to character/token count, and TTS prosody, pauses, punctuation, numbers and tokenization make fraction-based text slicing non-evidential.",
+    "forbidden_implementation": "Do not derive heard_prefix_text by multiplying heard_fraction or interruption_ms by character/token length unless an independently validated alignment transform explicitly binds that mapping.",
+    "why_it_matters": "Without an explicit alignment witness, a RETAIN_HEARD_PREFIX policy can silently keep unheard semantics or delete heard semantics, corrupting next-turn context while appearing numerically precise."
+  },
+  "recommended_noncanonical_policy_refinement": {
+    "candidate_id": "RETAIN_VERIFIED_HEARD_PREFIX_EPHEMERALLY_ONLY",
+    "status": "RESEARCH_RECOMMENDATION_NOT_PRODUCT_AUTHORITY",
+    "rules": [
+      "Retain only assistant semantics proven to be within the measured playout/heard boundary.",
+      "Always exclude the unheard tail from ephemeral next-turn context.",
+      "Keep interrupted output non-commit-eligible for durable VoiceOutcome/UnifiedDB/effect purposes unless separately admitted.",
+      "At packet boundaries, fully heard completed earlier packets may be retained directly.",
+      "For a partially heard current packet, retain partial text only when a word/token/phoneme/segment alignment witness maps the measured audio boundary to an exact text-prefix boundary.",
+      "If no such alignment exists, fail closed: omit the unverifiable partial packet from semantic next-turn context rather than inventing a fractional string cut.",
+      "Reduce lost heard semantics by making output semantic/audio segments small and causally acknowledged, not by guessing alignment."
+    ]
+  },
+  "minimum_alignment_receipt": [
+    "response_id",
+    "assistant_item_id",
+    "output_packet_id",
+    "output_packet_sha256",
+    "playout_measurement_identity",
+    "audio_sample_rate_hz",
+    "audio_frames_sent",
+    "audio_frames_confirmed_played_or_heard",
+    "heard_boundary_ms",
+    "alignment_method_id",
+    "alignment_source_identity",
+    "aligned_text_prefix",
+    "aligned_text_prefix_sha256",
+    "unheard_text_tail_sha256",
+    "alignment_confidence_or_exactness_class",
+    "next_turn_effective_context_sha256",
+    "durable_memory_write_count"
+  ],
+  "hf10_oracle_refinement": {
+    "existing_runtime_lane": "HF10_POST_DONE_PLAYOUT_LAG_CONTEXT_EXACTNESS",
+    "runtime_dispatch_change": "NONE",
+    "required_additional_classification": [
+      "If whole completed assistant text remains in the next-turn server/model context after only a prefix was actually heard, classify as protocol context divergence under a pinned heard-prefix policy.",
+      "If the local adapter deletes the whole interrupted response, do not call that a product negative until product authority pins heard-prefix retention; report exact deletion behavior and dialogue-coherence impact.",
+      "If partial text is claimed retained, require alignment receipt; scalar heard_fraction alone is insufficient evidence."
+    ]
+  },
+  "coordination": {
+    "new_semantic_claim": false,
+    "new_runtime_dispatch": false,
+    "wp715_reopened": false,
+    "product_source_mutation": false,
+    "duplicate_lane_created": false,
+    "existing_hf10_lane_reused": true
+  },
+  "credit": {
+    "research_evidence": 1,
+    "hf10_runtime_credit": 0,
+    "trigger4_acceptance_credit": 0,
+    "german_e2e_voice_credit": 0,
+    "acoustic_credit": 0,
+    "durable_memory_credit": 0,
+    "whole_product_credit": 0
+  },
+  "next_exact_action": "Keep the existing HF10 controller-routed execution lane. Before classifying partial interrupted-context retention as correct, bind a product policy and require an audio-to-text alignment witness for any partially heard packet. Route this alignment precondition to Trigger4 without opening a duplicate runtime dispatch or reopening accepted WP715."
+}
