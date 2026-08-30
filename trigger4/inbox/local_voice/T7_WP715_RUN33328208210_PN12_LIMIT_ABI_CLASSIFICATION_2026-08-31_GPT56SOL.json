@@ -1,0 +1,81 @@
+{
+  "schema": "F2_TRIGGER7_WP715_RUN_CLASSIFICATION/v1",
+  "trigger": "7",
+  "recorded_date": "2026-08-31",
+  "organ": "GPT-5.6-Sol",
+  "classification": "REVIEW_ONLY_EXECUTED_EVIDENCE_CLASSIFICATION",
+  "mutation_authority": false,
+  "workpackage_id": "F2-WP-715",
+  "owner_authority": "research/local_voice/authority/2026-08-31_TRIGGER7_TEXT_PACKET_COMPLETION_AUTHORITY.md",
+  "execution_subject": {
+    "repo": "gschaidergabriel/frankenstein-2.0",
+    "branch": "main",
+    "head_sha": "2dfecf97924e1f099b1900edcbb189be32d5714a",
+    "workflow": ".github/workflows/wp715-voice-packet-cortex-ci.yml",
+    "workflow_run_id": 33328208210,
+    "job_id": 99302008976,
+    "runner": "GitHub-hosted Ubuntu 24.04 / Python 3.12.14",
+    "run_status": "completed",
+    "run_conclusion": "failure"
+  },
+  "executed_step_results": {
+    "packet_cortex_repository_suite": "PASS_18_TESTS",
+    "recovery_component_suite": "PASS_7_TESTS",
+    "pn9_restart_continuation": "PASS",
+    "pn10_bounded_transient_state": "FAIL",
+    "later_pn10_assertions_after_first_failure": "NOT_EXECUTED"
+  },
+  "exact_failure": {
+    "step": "PN10 bounded transient and checkpoint state",
+    "python_stdin_line": 48,
+    "assertion": "assert rejected_at is not None and rejected_at <= MAX_INPUT_PACKETS",
+    "workflow_local_MAX_INPUT_PACKETS": 256,
+    "current_source_VoicePacketCortex_MAX_INPUT_PACKETS": 2048,
+    "loop_attempts_before_assertion": 258,
+    "observed_meaning": "No VoicePacketCortexError occurred within the workflow's 258-input loop because the implementation's admitted input replay cap is 2048, so the hardcoded 256-bound discriminator could not observe its expected rejection.",
+    "text_bound_assertion_executed": false,
+    "output_tool_event_bound_assertions_after_input_block_executed": false
+  },
+  "failure_class": "EVIDENCE_INVALID_DISCRIMINATOR_ABI_DRIFT",
+  "classification_reason": [
+    "The executable subject did run, but the first PN10 failure is a mismatch between workflow-local hardcoded limits and the current controller limit ABI, not evidence that the controller has no bound.",
+    "The source already declares explicit finite caps; therefore this run cannot be promoted as bounded-state PASS, but it also does not justify a broad product-boundedness PRODUCT_NEGATIVE from this first failure alone.",
+    "The earlier PN12 static counterexample is now execution-confirmed as a discriminator/ABI drift defect.",
+    "Because the step stopped at its first assertion, the separate suspected MAX_TEXT_CHARS mismatch remains unexecuted and must not be upgraded to executed product evidence."
+  ],
+  "restart_repair_evidence": {
+    "status": "BOUNDED_PARTIAL_CONFIRMATION_ONLY",
+    "evidence": "On the exact 2dfecf subject, both repository test suites and PN9 restart continuation passed before PN10 failed.",
+    "not_claimed": "Whole WP715 repository acceptance remains false because the workflow run concluded failure; no VPS/target/acoustic/whole-voice credit is minted."
+  },
+  "required_repair": [
+    "Make PN10 derive MAX_INPUT_PACKETS/MAX_OUTPUT_PACKETS/MAX_TOOL_REFS/MAX_EVENTS from VoicePacketCortex or one shared admitted limits contract instead of maintaining independent smaller constants.",
+    "Exercise each admitted cap at cap and cap+1 with exact rejection assertions.",
+    "Define and bind any text-size limit in the same shared contract before treating MAX_TEXT_CHARS as an acceptance invariant; do not infer a product defect from the currently unexecuted text assertion.",
+    "Rerun the existing WP715 workflow on the repaired discriminator without creating a second workflow or source owner.",
+    "After repository discriminator closure, execute the exact packet+recovery subject in the existing admitted VPS S1/S2 falsifier and promote only the executed subset."
+  ],
+  "coordination": {
+    "wp715_mutation_owner": "Trigger4",
+    "trigger7_role": "review/falsifier only",
+    "duplicate_source_mutation": false,
+    "duplicate_workflow": false,
+    "new_asr_tts_scouting": "DEPRIORITIZE_UNLESS_UNIQUE_BLOCKER",
+    "next_exact_action": "Trigger4 repairs PN10 limit-contract binding first, reruns run-equivalent repository CI, then Trigger7 classifies the new exact receipt. PN14/PN15 remain queued bounded falsifiers for the same coherent regression pass, not separate source owners."
+  },
+  "credit": {
+    "executed_review_evidence": 1,
+    "repository_component_acceptance": 0,
+    "vps_packet_runtime_credit": 0,
+    "target_runtime_credit": 0,
+    "asr_runtime_credit": 0,
+    "tts_runtime_credit": 0,
+    "acoustic_credit": 0,
+    "physical_device_credit": 0,
+    "gwt_jspace_credit": 0,
+    "effect_credit": 0,
+    "training_credit": 0,
+    "whole_voice_credit": 0,
+    "whole_product_credit": 0
+  }
+}
