@@ -28,7 +28,17 @@ jobs:
           src/frankenstein2/persistent_agency_kernel.py
           tests/wp206_restart_probe.py
           tests/test_wp206_db_authority_receipt_falsifier.py
-      - name: Run positive control and fail-closed falsifier
+      - name: Positive control — untampered replay succeeds
         env:
           PYTHONPATH: src
-        run: python tests/test_wp206_db_authority_receipt_falsifier.py -v
+        run: >-
+          python tests/test_wp206_db_authority_receipt_falsifier.py
+          WP206DBAuthorityReceiptReplayFalsifier.test_positive_control_untampered_authority_receipt_replays
+          -v
+      - name: Falsifier — tampered stored authority receipt must fail closed
+        env:
+          PYTHONPATH: src
+        run: >-
+          python tests/test_wp206_db_authority_receipt_falsifier.py
+          WP206DBAuthorityReceiptReplayFalsifier.test_tampered_stored_authority_receipt_must_fail_closed
+          -v
