@@ -1,0 +1,50 @@
+{
+  "schema": "FRANKENSTEIN2_CROSS_WORKPACKAGE_RESEARCH_INPUT/v1",
+  "classification": "REVIEW_ONLY_SUCCESSOR_INPUT",
+  "created_at_utc": "2026-08-30T05:15:00Z",
+  "organ": "GPT-5.6-Sol/federated-architect-research",
+  "subject": "VoiceMem donor mechanisms for agency, perception, familiarity and realtime voice",
+  "f2_base_observed": "560c05da55ed5d7b7679496742c71ce16b37182d",
+  "routes": [
+    {"workpackage_id":"F2-WP-203","observed_scope":"AgencyState/deferred intents exists","use":"SUCCESSOR/INTEGRATION INPUT only: prospective cue evaluation must remain a separate evidence producer."},
+    {"workpackage_id":"F2-WP-205","use":"SUCCESSOR INPUT: wake on evidence-bound prospective cue without conflating cue detection with effect authority."},
+    {"workpackage_id":"F2-WP-700","use":"REVIEW INPUT: lazy perception and quality-gated identity evidence."},
+    {"workpackage_id":"F2-WP-701","use":"FALSIFIER INPUT: UNKNOWN/candidate identity must remain distinct from observation/identity fact."},
+    {"workpackage_id":"F2-WP-703","use":"SUCCESSOR INPUT: scene/presence changes can produce prospective cue candidates."},
+    {"workpackage_id":"F2-WP-704","observed_state":"ACCEPTED_G1","use":"REVIEW INPUT: separate user facts/traits from assistant response experience."},
+    {"workpackage_id":"F2-WP-705","observed_state":"ACCEPTED_G2","use":"SUCCESSOR/RUNTIME INPUT: speculative local retrieval, cancellation on speech resume, transport framing."},
+    {"workpackage_id":"F2-WP-706","observed_state":"ACCEPTED_G1","use":"FALSIFIER INPUT: soft familiarity must not become person identity; quality/observation-count gating."}
+  ],
+  "donor_source_refs": [
+    "xzf-thu/VoiceMem@d587d424a02727d9ff3ef6f8e672a39a19ce64a7:voicemem/stream.py",
+    "xzf-thu/VoiceMem@d587d424a02727d9ff3ef6f8e672a39a19ce64a7:voicemem/orchestrator.py",
+    "xzf-thu/VoiceMem@d587d424a02727d9ff3ef6f8e672a39a19ce64a7:voicemem/utils/audio/perceiver.py",
+    "xzf-thu/VoiceMem@d587d424a02727d9ff3ef6f8e672a39a19ce64a7:voicemem/utils/audio/voiceprint/adaptive_centroid.py",
+    "xzf-thu/VoiceMem@d587d424a02727d9ff3ef6f8e672a39a19ce64a7:voicemem/utils/audio/voiceprint/voiceprint_store.py",
+    "xzf-thu/VoiceMem@d587d424a02727d9ff3ef6f8e672a39a19ce64a7:voicemem/utils/audio/environment/scene_trigger.py",
+    "xzf-thu/VoiceMem@d587d424a02727d9ff3ef6f8e672a39a19ce64a7:voicemem/utils/audio/environment/routine_memory.py",
+    "xzf-thu/VoiceMem@d587d424a02727d9ff3ef6f8e672a39a19ce64a7:voicemem/tts.py",
+    "xzf-thu/VoiceMem@d587d424a02727d9ff3ef6f8e672a39a19ce64a7:voicemem/startup_check.py"
+  ],
+  "observed_mechanisms": [
+    {"id":"VM-V01-PROSPECTIVE-CUE-MEMORY","source_observation":"SceneTrigger stores a pending future intention keyed to a coarse scene plus optional specific label; e.g. bus can require transit+bus so subway does not fire it.","transfer":"Bind F2 DeferredIntent.revisit_condition_ref to a typed prospective-condition object. Perception/Presence may emit a CueMatchCandidate; a separate deterministic evaluator can produce revisit eligibility. Eligibility is not an effect and must re-enter Agency/Pulse/EffectGate normally.","counterhypothesis":"Continuous cue monitoring can waste compute and over-trigger on noisy sensors.","cheapest_discriminator":"Synthetic scene stream with near-miss cues, stale generations and exact-label cases; require zero false fires at the intent-evaluation boundary and measure monitoring cost."},
+    {"id":"VM-V02-UNKNOWN-BEFORE-IDENTITY","source_observation":"Very short speaker windows are skipped because noisy embeddings frequently landed in candidate range and previously fragmented one person into many identities; donor comments explicitly prefer not knowing the speaker to contaminating the identity store.","transfer":"For WP701/WP706, maintain OBSERVATION -> CANDIDATE_MATCH -> RECONCILED_IDENTITY as distinct states. Soft similarity never mints identity. Quality, observation count, generation and provenance gates should be explicit.","counterhypothesis":"Conservative UNKNOWN may reduce personalization availability.","cheapest_discriminator":"Open-set speaker/perception fixture with short/noisy samples, repeated clean samples and explicit-name conflicts; score false merge, false split and unknown rate separately."},
+    {"id":"VM-V03-ADAPTIVE-MULTI-PROTOTYPE","source_observation":"Voiceprint profile uses quality-weighted cumulative averaging while evidence is sparse, caps accumulated weight so later updates behave like an EMA, and splits a new subcentroid when no existing mode is similar enough; excessive subcentroids are merged.","transfer":"Reusable candidate for soft familiarity/state prototypes, not canonical identity. Store prototype generation, support mass and quality provenance. Separate mode discovery from identity reconciliation.","counterhypothesis":"EMA-like adaptation can slowly absorb poisoned/misattributed samples.","cheapest_discriminator":"Poisoning/drift test: inject low-quality cross-identity samples and verify canonical identity does not move; compare prototype movement with/without quality caps and admission fences."},
+    {"id":"VM-V04-CROSS-TURN-WEAK-EXPECTATION","source_observation":"After a user says they will play a song, a following sound-only VAD turn may inherit a short-lived expected-music cue because speech and music are separate turns. The expectation is used as weak context, not tune identity.","transfer":"Presence/Perception may consume bounded prior-state expectations as relevance priors only. Expectation != observation and must expire/fence by causal turn/generation.","counterhypothesis":"Expectation can bias perception into confirming itself.","cheapest_discriminator":"Expectation-present/no-signal and expectation-conflict fixtures must preserve UNKNOWN/contradiction rather than hallucinated observation."},
+    {"id":"VM-V05-SPECULATIVE-LOCAL-PREFETCH","source_observation":"Streaming code starts a local speculative reply/retrieval around a short silence window, cancels speculative work if speech resumes, and keeps the path local/no-network. It exploits VAD waiting time rather than adding a new post-turn delay.","transfer":"WP705/WP505 can define reversible SPECULATIVE_CANDIDATE work during natural wait windows. It must be cancellation-safe, generation-bound, side-effect free and must never call EffectGate early.","counterhypothesis":"Speculation may increase CPU/GPU contention and worsen end-to-end latency on low-resource hosts.","cheapest_discriminator":"A/B trace: no-prefetch vs bounded-prefetch under identical audio/compute load. Measure p50/p95 reply-ready latency, cancellation waste, resource contention and stale-candidate rejection."},
+    {"id":"VM-V06-LAZY-PERCEPTION","source_observation":"StreamState exposes perception properties lazily so expensive perception is not paid unless consumed; right-brain speculative context may reuse prior-turn affect because full acoustic emotion analysis is too expensive for the immediate speculative window.","transfer":"Perception heads and HCU cells should declare demand/cost and compute only when a downstream consumer requests them or a policy makes them mandatory. Prior-state reuse must be typed as stale prior evidence, not fresh observation.","counterhypothesis":"Lazy computation can miss signals needed by downstream safety/epistemic gating.","cheapest_discriminator":"Dependency manifest test: every mandatory consumer declares required head; missing demanded evidence yields UNKNOWN/HOLD, never silent reuse."},
+    {"id":"VM-V07-SOUND-ONLY-MEMORY-FALLBACK","source_observation":"If no textual facts are extracted but a sound/tune is perceived, the orchestrator materializes a minimal vector/cognitive record so downstream tags are not orphaned by foreign-key assumptions; unknown sound is not automatically called music.","transfer":"Typed Entry should support modality-native evidence even when no linguistic fact exists. Do not force all perception through text serialization.","counterhypothesis":"Minimal placeholder memories can become junk if downstream semantics are underspecified.","cheapest_discriminator":"Require modality/type/provenance and no fact classification; verify retrieval does not expose placeholder as a textual world fact."},
+    {"id":"VM-V08-TRANSPORT-FRAMING","source_observation":"Streaming TTS reassembles byte chunks on PCM16 sample boundaries because HTTP chunks may arrive at odd byte lengths.","transfer":"Voice runtime receipts should bind transport framing/codec/sample-rate and reject partial-frame corruption. This is a concrete low-level reliability donor, not a cognition concept.","counterhypothesis":"Current F2 transport may already normalize frames upstream.","cheapest_discriminator":"Inject odd-sized byte chunks and compare reconstructed PCM digest to reference."},
+    {"id":"VM-V09-STARTUP-STATUS-CLASSIFICATION","source_observation":"Startup probes classify missing dependency/model/credential as SKIP, slow as SLOW and execution anomaly as FAIL instead of conflating unavailable infrastructure with product logic failure.","transfer":"Use typed runtime preflight outcomes in voice/perception host diagnostics: SKIP/UNAVAILABLE != FAIL; SLOW != logic regression.","counterhypothesis":"SKIP could hide a mandatory dependency.","cheapest_discriminator":"Mark requirement level separately; mandatory+SKIP -> BLOCKED, optional+SKIP -> DEGRADED, actual exception -> FAIL."}
+  ],
+  "do_not_import": [
+    "Do not let acoustic similarity or a candidate voiceprint write canonical person identity.",
+    "Do not let scene-trigger eligibility execute an external effect directly.",
+    "Do not treat prior-turn emotion as current observation; it is stale prior evidence only.",
+    "Do not use speculative prefetch paths for irreversible or network/provider effects without separate current authorization.",
+    "Do not treat VoiceMem audio-runtime comments as F2 target-runtime evidence."
+  ],
+  "mutation_authority": "NONE_RESEARCH_INPUT_ONLY",
+  "runtime_credit": 0,
+  "whole_system_credit": 0
+}
