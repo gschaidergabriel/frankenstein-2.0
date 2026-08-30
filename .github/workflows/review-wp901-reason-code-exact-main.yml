@@ -1,0 +1,30 @@
+name: REVIEW WP901 reason-code exact-main falsifier
+
+on:
+  push:
+    branches:
+      - review/wp901-reason-code-exact-main-20260830
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  exact-main-reason-code-falsifier:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout exact review ref
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - name: Compile patched WP901 source and review
+        run: >-
+          python -m py_compile
+          src/frankenstein2/restart_recovery_continuation.py
+          tests/falsifier_wp901_reason_code_consistency.py
+      - name: Run canonical WP901 suite
+        env:
+          PYTHONPATH: src
+        run: python -m unittest -v tests.test_restart_recovery_continuation
+      - name: Run reason-code semantic falsifier
+        env:
+          PYTHONPATH: src
+        run: python -m unittest -v tests.falsifier_wp901_reason_code_consistency
