@@ -1,0 +1,86 @@
+{
+  "schema": "T7_RESEARCH_POLICY_RECOMMENDATION/v1",
+  "trigger": "7",
+  "created_at": "2026-08-31T04:15:00+07:00",
+  "organ": "GPT-5.6-Sol",
+  "research_id": "T7-FD-RTCOMPAT-001",
+  "classification": "REVIEW_ONLY_POLICY_RECOMMENDATION",
+  "implementation_mutation_authority": false,
+  "new_semantic_claim": false,
+  "new_runtime_dispatch": false,
+  "observed_f2_main_before_write": "be92b0adc62bd7e9d166739305690e8ba669b92c",
+  "policy_candidate_id": "F2_VOICE_INTERRUPTED_CONTEXT_HEARD_PREFIX_EPHEMERAL_V1",
+  "decision_recommendation": "RETAIN_HEARD_PREFIX_EPHEMERALLY_ONLY",
+  "normative_candidate": {
+    "heard_prefix": "The exactly measured portion of assistant output demonstrably played to/heard by the user remains eligible for ephemeral next-turn dialogue context.",
+    "unheard_tail": "Assistant semantics beyond the measured heard/playout boundary are excluded from next-turn authoritative dialogue context.",
+    "durable_memory": "Interrupted output does not become durable canonical memory merely because a heard prefix is retained ephemerally. Durable admission remains independently gated.",
+    "effects_and_tools": "Cancelled or stale generation outputs/tool results cannot regain authority after cancellation unless a separate current causal owner explicitly admits them.",
+    "commit_eligibility": "Existing VoiceOutputPacket commit_eligible semantics remain unchanged: only fully heard completed output may be commit eligible.",
+    "measurement_binding": "The retained boundary must be bound to a playout/heard measurement identity, not inferred from generated audio length or response.done alone."
+  },
+  "current_f2_source_facts": [
+    {
+      "path": "src/frankenstein2/voice_packet_cortex.py",
+      "fact": "VoiceOutputPacket requires playback_state=completed and heard_fraction=1.0 for commit_eligible=true; interrupted output can retain a monotone heard_fraction while remaining non-commit-eligible."
+    },
+    {
+      "path": "research/local_voice/deltas/2026-08-31_T7_COMMIT_ELIGIBILITY_CONTEXT_SEPARATION_GPT56SOL.json",
+      "fact": "Current F2 authority distinguishes durable commit eligibility from ephemeral next-turn conversational context and leaves the latter policy unresolved."
+    }
+  ],
+  "external_primary_evidence": [
+    {
+      "source": "https://openai.github.io/openai-agents-python/realtime/guide/",
+      "observed_2026_08_31": true,
+      "finding": "Realtime interruption handling updates history so server-side conversation stays aligned with what the user actually heard; delayed playback should use playback tracking so truncation follows actual playback position."
+    },
+    {
+      "source": "https://openai.github.io/openai-agents-js/guides/voice-agents/build/",
+      "observed_2026_08_31": true,
+      "finding": "On interruption, assistant audio/history is truncated to what the user actually heard; local history follows the corresponding truncation/conversation events."
+    },
+    {
+      "source": "https://docs.livekit.io/agents/logic/turns/",
+      "observed_2026_08_31": true,
+      "finding": "LiveKit interruption handling automatically truncates conversation history to include only the portion of agent speech the user heard before interruption."
+    }
+  ],
+  "reasoning_summary": {
+    "compatibility": "Two independent current realtime voice stacks converge on heard-prefix history retention rather than whole-response amnesia.",
+    "dialogue_coherence": "Keeping exactly what the user heard preserves common conversational reference while deleting the unheard tail prevents the model from relying on words the user never received.",
+    "authority_separation": "Ephemeral next-turn context can preserve dialogue continuity without granting durable memory, VoiceOutcome, effect, training, or whole-product credit.",
+    "falsifiability": "The policy yields a direct runtime oracle: heard prefix present + unheard tail absent is the semantic match; prefix amnesia or tail leakage are distinct failures after canonical policy adoption."
+  },
+  "counterhypothesis": {
+    "id": "DROP_WHOLE_INTERRUPTED_RESPONSE",
+    "status": "NOT_RECOMMENDED_BUT_MEASURABLE",
+    "note": "Whole-response deletion remains a possible explicit product choice, but current external primary behavior and dialogue-continuity considerations do not support treating it as the compatibility default."
+  },
+  "trigger4_handoff": {
+    "requested_action": "Pin an explicit F2 interrupted-response next-turn context policy through normal Trigger4/F2 mutation authority, preferably this candidate. Do not alter durable memory/effect authority and do not create a second context authority.",
+    "after_pin": "Execute the existing HF09/HF10 protocol-compatibility lane through the already-proven controller -> vps-clay-host route; do not duplicate dispatch.",
+    "required_runtime_fields": [
+      "policy_id",
+      "playout_measurement_identity",
+      "heard_boundary_ms",
+      "heard_prefix_digest",
+      "unheard_tail_digest",
+      "next_turn_effective_context_digest",
+      "durable_memory_write_count",
+      "late_cancelled_generation_write_disposition"
+    ]
+  },
+  "credit_boundary": {
+    "research_policy_evidence": 1,
+    "canonical_product_policy": 0,
+    "hf_protocol_runtime_credit": 0,
+    "german_e2e_voice": 0,
+    "acoustic_quality": 0,
+    "durable_memory_credit": 0,
+    "effect_credit": 0,
+    "whole_voice_e2e": 0,
+    "whole_product": 0
+  },
+  "next_exact_action": "Trigger4/F2 authority explicitly pins the interrupted-response context policy without changing durable commit semantics, then the existing HF09/HF10 lane measures exact heard-prefix retention versus tail leakage on the proven VPS controller route."
+}
