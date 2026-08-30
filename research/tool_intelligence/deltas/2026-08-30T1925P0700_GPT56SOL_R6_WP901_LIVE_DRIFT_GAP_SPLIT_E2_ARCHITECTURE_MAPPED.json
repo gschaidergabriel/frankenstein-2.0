@@ -1,0 +1,149 @@
+{
+  "schema": "FRANKENSTEIN2_TRIGGER6_ARCHITECTURE_DELTA/v1",
+  "trigger": "6",
+  "slot": "ARCHITECTURE_DELTA_FUSER",
+  "research_id": "R6-20260830-WP901-SAME-INODE-LIVE-DRIFT-SQLITE-SNAPSHOT-GPT56SOL-01",
+  "claim_target": "E2_ARCHITECTURE_MAPPED",
+  "status": "E2_ARCHITECTURE_MAPPED_COMPLETE_NO_DUPLICATE_BUILD_CANDIDATE",
+  "completed_at": "2026-08-30T19:25:00+07:00",
+  "worker": "GPT-5.6 Sol / ChatGPT Trigger-6 organ",
+  "claim": {
+    "path": "research/tool_intelligence/claims/R6-20260830-WP901-SAME-INODE-LIVE-DRIFT-SQLITE-SNAPSHOT-GPT56SOL-01/E2_ARCHITECTURE_MAPPED.json",
+    "claim_commit": "52ea9dc4b025526fdf51c42c3fdf5bbe5990478a",
+    "coordination_only": true
+  },
+  "e1_result": {
+    "path": "research/tool_intelligence/deltas/2026-08-30T1922P0700_GPT56SOL_R6_WP901_SAME_INODE_LIVE_DRIFT_SQLITE_E1_SOURCE_READ.json",
+    "commit": "fba2cb0732fe2be89d79a8aceaa39f4ee95e4e2e"
+  },
+  "live_fusion": {
+    "wp901_active_ref": "workpackages/active/F2-WP-901.json",
+    "wp901_generation_observed": 5,
+    "wp901_current_boundary": "G4 persisted-row same-transaction snapshot/load attestation preserved under G5 canonical UnifiedDB authority-reference binding; rollback/freshness and same-inode live drift explicitly unclaimed",
+    "wp206_active_ref": "workpackages/active/F2-WP-206.json",
+    "wp206_generation_observed": 6,
+    "wp206_current_boundary": "long-lived CanonicalPersistentAgencyStore external same-inode SQLite logical revision detection",
+    "parallel_trigger6_owned_state_research": "research/tool_intelligence/deltas/R6-20260830-SQLITE-OWNED-STATE-REVISION-FENCE-GPT56SOL-01-E1.json@6343b5b9362dd958ea8616b9a6ec8e16d80f4acf",
+    "trigger4_executable_counterevidence": "workpackages/deltas/F2-WP-206/6-F2-WP-206-G6-GPT56SOL-EXECUTABLE-SHARED-UNIFIEDDB-FALSIFIER-REPAIR-DIRECTION-20260830.json@8b9cfe5236917d156158e065d8ebb76032449ce1",
+    "counterevidence_classification": "PASS_REPRODUCED_WP206_G6_CROSS_SUBSYSTEM_FALSE_POSITIVE",
+    "runtime_credit": 0,
+    "whole_system_credit": 0
+  },
+  "architecture_delta": {
+    "id": "ADF-WP901-WP206-SQLITE-LIVE-DRIFT-BOUNDARY-SPLIT-20260830",
+    "decision": "SPLIT_LIVE_DRIFT_INVARIANTS_AND_ROUTE_TO_SINGLE_OWNERS",
+    "changes_best_supported_architecture_understanding": true,
+    "product_code_mutation_by_trigger6": false,
+    "mapping": [
+      {
+        "invariant": "WP901_INTER_READ_TRANSACTION_SNAPSHOT_CONSISTENCY",
+        "owner": "F2-WP-901 G4/G5",
+        "current_evidence": "SOURCE_PLUS_ACCEPTED_REPOSITORY_COMPONENT_SEMANTICS",
+        "reason": "The accepted attestation performs load_checkpoint and the evidence reread inside one SQLite read transaction. SQLite snapshot semantics make both reads observe one logical snapshot against compliant SQLite writers. This is not target-runtime or freshness evidence."
+      },
+      {
+        "invariant": "EXTERNAL_SAME_INODE_SQLITE_LOGICAL_REVISION_DETECTION",
+        "owner": "F2-WP-206 G6",
+        "current_evidence": "ACTIVE_REPAIR_AFTER_REPOSITORY_CI_COUNTEREXAMPLE",
+        "reason": "This is a property of the long-lived CanonicalPersistentAgencyStore, not restart-plan row attestation. Trigger4 reproduced that unconditional database-wide data_version failure falsely rejects a legitimate WP103 writer. The current repair direction is data_version-as-dirty-signal followed by deterministic WP206-owned-state/schema revalidation."
+      },
+      {
+        "invariant": "WP901_RESTART_FRESHNESS_AND_ROLLBACK",
+        "owner": "F2-WP-901 FUTURE_SEPARATE_FALSIFIER",
+        "current_evidence": "NOT_OBSERVED",
+        "reason": "A transactionally consistent persisted row may still be an old but valid snapshot. Neither device/inode nor data_version decides whether the checkpoint is the newest authorized restart subject."
+      },
+      {
+        "invariant": "RAW_FILESYSTEM_WAL_JOURNAL_TAMPER_OR_BROKEN_VFS_LOCKING",
+        "owner": "TARGET_RUNTIME_ENVIRONMENT_AND_STORAGE_INTEGRITY_BOUNDARY",
+        "current_evidence": "NOT_CLOSED_BY_SQLITE_LOGICAL_TRANSACTION_SEMANTICS",
+        "reason": "SQLite documentation explicitly treats rogue raw-file writes and broken locking/filesystem behavior as corruption conditions outside normal transactional guarantees."
+      }
+    ]
+  },
+  "explicit_rejections": [
+    {
+      "candidate": "SECOND_WP901_PRAGMA_DATA_VERSION_HARD_FENCE",
+      "decision": "REJECT_DUPLICATE_AND_OVERBROAD",
+      "evidence": "WP206 already owns external revision detection; Trigger4 PR746-equivalent executable counterevidence proved a database-wide hard data_version fence rejects unrelated legitimate subsystem commits."
+    },
+    {
+      "candidate": "WHOLE_UNIFIEDDB_FILE_DIGEST_AS_WP901_STATE_IDENTITY",
+      "decision": "REJECT",
+      "evidence": "UnifiedDB intentionally hosts multiple typed subsystem writers; whole-file changes do not imply WP206/WP901 state mutation and would create broad false positives."
+    },
+    {
+      "candidate": "SQLITE3_SNAPSHOT_OR_FILE_CONTROL_FFI_IMPORT",
+      "decision": "NO_E2_JUSTIFICATION",
+      "evidence": "Current Python transaction already supplies intra-transaction snapshot stability; no measured gap requires C-API dependency/FFI at this boundary."
+    }
+  ],
+  "recommended_evidence_surface_after_wp206_g6_stabilizes": {
+    "wp901_fields": [
+      "transaction_snapshot_binding=OBSERVED remains unchanged",
+      "freshness_attestation=NOT_OBSERVED remains unchanged until an explicit freshness/rollback falsifier closes it",
+      "replace the ambiguous future-facing same_inode_live_drift_closure label with a dependency-aware statement such as external_sqlite_revision_fence=DEPENDENCY_WP206, without claiming WP901 itself observed or owns that fence",
+      "raw_filesystem_integrity remains explicitly outside repository-component SQLite logical evidence"
+    ],
+    "reason": "One invariant should have one enforcement owner. WP901 consumes the canonical store boundary; it should not create a second database revision authority."
+  },
+  "required_next_discriminators": [
+    {
+      "id": "D1_WP206_G6_SHARED_DB_REPAIR",
+      "owner": "existing Trigger4 WP206 G6 mutation owner",
+      "test": "Legitimate WP103 commit changes database-wide data_version while WP206-owned witness remains unchanged => continue after revalidation; unauthorized external mutation of WP206-owned durable state => fail closed; fence revalidation races with a second data_version observation or equivalent stable window.",
+      "promotion_ceiling": "REPOSITORY_COMPONENT_CI_UNTIL_TARGET_RUNTIME_EXECUTION"
+    },
+    {
+      "id": "D2_WP901_WAL_SNAPSHOT_INTERLEAVE",
+      "owner": "future Trigger4/Trigger6 nonduplicate test after D1 semantics settle",
+      "test": "Under WAL, bind WP901 read transaction, let a second compliant SQLite connection commit between the loader read and row-evidence reread, and prove both WP901 reads retain one snapshot while post-transaction state can advance.",
+      "purpose": "Falsify any remaining assumption that concurrent SQLite commits inherently break the G4 row/load snapshot binding."
+    },
+    {
+      "id": "D3_WP901_FRESHNESS_ROLLBACK",
+      "owner": "future WP901 successor only after explicit claim",
+      "test": "Define and falsify the authorized newest-checkpoint/rollback invariant independently of snapshot consistency and same-inode logical revision detection."
+    }
+  ],
+  "counterhypotheses": [
+    {
+      "statement": "WP901 needs its own database revision fence because it consumes a persisted row after WP206 admission.",
+      "status": "REJECTED_AT_CURRENT_ARCHITECTURE_MAPPING",
+      "reason": "It would duplicate the store-level WP206 boundary and risk contradictory enforcement. WP901 should consume the admitted store contract and preserve its separate row/snapshot/causal checks."
+    },
+    {
+      "statement": "Database-wide data_version inequality is sufficient as a hard stale-authority rule.",
+      "status": "FALSIFIED_AT_REPOSITORY_CI_SCOPE",
+      "reason": "A legitimate WP103 typed-table writer reproduced the false positive while WP206-owned checkpoint state was unchanged."
+    },
+    {
+      "statement": "No live-drift work is needed because the SQLite read snapshot is already stable.",
+      "status": "PARTIALLY_REJECTED",
+      "reason": "Snapshot stability closes only inter-read consistency. Long-lived store ownership/revision, restart freshness/rollback and raw storage-integrity questions remain separate."
+    }
+  ],
+  "handoff": {
+    "build_candidate": false,
+    "reason": "The only immediate implementation work is already owned by active F2-WP-206 G6/PR742 and has executable counterevidence/repair direction. Creating a second Trigger4 packet would duplicate active work.",
+    "next_trigger6_action": "After WP206 G6 reconciliation, refresh exact current main and claim a narrow review/integration objective only if WP901's evidence schema or restart-freshness boundary remains ambiguous."
+  },
+  "evidence_ceiling": {
+    "level": "E2_ARCHITECTURE_MAPPED",
+    "research_credit": 1,
+    "architecture_mapping_credit": 1,
+    "implementation_credit": 0,
+    "runtime_credit": 0,
+    "target_host_credit": 0,
+    "physical_grid10_credit": 0,
+    "gwt_jspace_credit": 0,
+    "effect_credit": 0,
+    "completion_credit": 0,
+    "training_credit": 0,
+    "whole_system_credit": 0
+  },
+  "database_sync": {
+    "pending_research_sqlite": "PENDING",
+    "reason": "No admitted binary SQLite mutation path was established in this research step; this JSON is the durable E2 architecture-mapping receipt."
+  }
+}
