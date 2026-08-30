@@ -1,0 +1,77 @@
+{
+  "schema": "T7_SOURCE_RECONCILIATION/v1",
+  "trigger": "7",
+  "organ": "GPT-5.6-Sol",
+  "observed_date": "2026-08-30",
+  "research_id": "T7-TTS-001",
+  "objective": "E1_MAGPIETTS_V2607_GERMAN_LOCAL_CPP_SOURCE_PIN",
+  "supersedes_only_this_statement": "True incremental audible streaming output is unsupported by source evidence.",
+  "correction": "Current NVIDIA NeMo-Speech.cpp TTS documentation explicitly exposes codec streaming controls and a Riva-compatible SynthesizeOnline TTS method for MagpieTTS. Therefore source evidence DOES establish a streaming-capable local TTS path at the codec/service layer. It does not establish Frankenstein barge-in correctness, generation cancellation semantics, target-hardware TTFA, or a v2607 native GGUF runtime result.",
+  "primary_sources": [
+    {
+      "url": "https://github.com/NVIDIA/NeMo-Speech.cpp/blob/main/docs/tts/configuration.md",
+      "supports": [
+        "RivaSpeechSynthesis.SynthesizeOnline is implemented",
+        "German native tokenizer support is documented",
+        "tts.chunk-frames defaults to 3",
+        "tts.codec-queue-depth defaults to 4",
+        "tts.codec-future-frames defaults to 1",
+        "tts.flush-partial-chunk defaults to true"
+      ]
+    },
+    {
+      "url": "https://github.com/NVIDIA/NeMo-Speech.cpp/blob/main/docs/server.md",
+      "supports": [
+        "local HTTP/Riva serving for MagpieTTS",
+        "the realtime WebSocket documented there is transcription-oriented and must not be miscredited as a TTS cancellation API"
+      ]
+    },
+    {
+      "url": "https://huggingface.co/nvidia/magpie_tts_multilingual_357m",
+      "supports": [
+        "v2607 is latest",
+        "German is supported",
+        "364M parameter class",
+        "German v2607 CER 0.80 and speaker-similarity 0.742 are upstream held-out metrics",
+        "the documented NeMo-Speech.cpp example still names a v2602 F16 GGUF artifact"
+      ]
+    }
+  ],
+  "revised_supported": [
+    "German v2607 source relevance",
+    "fixed speaker identities including male voices",
+    "local/self-hosted inference",
+    "native NeMo-Speech.cpp family path",
+    "source-level streaming-capable codec/service path"
+  ],
+  "still_unproven": [
+    "time-to-first-audible-audio on clay-direct-dev",
+    "audio chunk cadence and jitter on target hardware",
+    "hard cancellation latency after user barge-in",
+    "proof that unplayed/unheard generated audio is never committed as spoken",
+    "v2607 GGUF execution in NeMo-Speech.cpp on target hardware",
+    "German Frankenstein E2E naturalness and long-session stability"
+  ],
+  "next_runtime_test": {
+    "baseline": "documented v2602 F16 GGUF + NanoCodec through NeMo-Speech.cpp",
+    "transport": "Riva SynthesizeOnline or equivalent direct native streaming API",
+    "measure": [
+      "TTFA p50/p95",
+      "per-chunk duration and jitter",
+      "RTF",
+      "CPU/RSS/VRAM",
+      "cancellation request to last audible sample latency",
+      "post-cancel leaked audio bytes/samples",
+      "German pronunciation and male identity stability"
+    ],
+    "credit_boundary": "SOURCE_CORRECTION_ONLY__NO_RUNTIME_CREDIT"
+  },
+  "credits": {
+    "source_pin": 1,
+    "streaming_source_support": 1,
+    "local_component_runtime": 0,
+    "german_e2e_voice": 0,
+    "trigger4_f2_acceptance": 0,
+    "whole_system": 0
+  }
+}
