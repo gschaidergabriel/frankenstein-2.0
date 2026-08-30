@@ -11,6 +11,14 @@ on:
       - 'tests/wp206_restart_probe.py'
       - 'research/tool_intelligence/falsifiers/wp206_same_ref_mutated_evidence_falsifier.py'
       - '.github/workflows/review-wp206-evidence-content-falsifier.yml'
+  pull_request:
+    paths:
+      - 'src/frankenstein2/wp206_legacy_authority_recovery.py'
+      - 'src/frankenstein2/persistent_agency_kernel.py'
+      - 'src/state/unifieddb_identity.py'
+      - 'tests/wp206_restart_probe.py'
+      - 'research/tool_intelligence/falsifiers/wp206_same_ref_mutated_evidence_falsifier.py'
+      - '.github/workflows/review-wp206-evidence-content-falsifier.yml'
   workflow_dispatch:
 
 permissions:
@@ -31,15 +39,15 @@ jobs:
           src/state/unifieddb_identity.py
           tests/wp206_restart_probe.py
           research/tool_intelligence/falsifiers/wp206_same_ref_mutated_evidence_falsifier.py
-      - name: Execute post-G4 same-ref mutated-evidence falsifier
+      - name: Execute successor-dynamic same-ref mutated-evidence falsifier
         env:
           PYTHONPATH: src
         run: python research/tool_intelligence/falsifiers/wp206_same_ref_mutated_evidence_falsifier.py -v
       - name: Preserve zero-credit fence
         if: always()
         run: |
-          echo 'CLASSIFICATION=REVIEW_ONLY_EXECUTABLE_COUNTEREVIDENCE_NOT_REPAIR'
-          echo 'WP206_G4_ACCEPTANCE_MUTATION=NONE'
+          echo 'CLASSIFICATION=REVIEW_ONLY_EXECUTABLE_COUNTEREVIDENCE_OR_CLOSURE_CHECK_NOT_RUNTIME_ACCEPTANCE'
+          echo 'WP206_G5_ACCEPTANCE_MUTATION=NONE'
           echo 'TARGET_RUNTIME_CREDIT=0'
           echo 'VPS_RUNTIME_CREDIT=0'
           echo 'PHYSICAL_GRID10_CREDIT=0'
