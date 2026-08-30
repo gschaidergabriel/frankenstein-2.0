@@ -1,0 +1,59 @@
+{
+  "schema": "FRANKENSTEIN_TRIGGER7_SOURCE_RESULT/v1",
+  "trigger": "7",
+  "research_id": "T7-TURN-006",
+  "objective": "E1_SOULX_DUPLUG_0_6B_GERMAN_SOURCE_ELIGIBILITY",
+  "semantic_key": "a8408b814735a7cd0b713f5aeecaa5af9080dc8aa7b2373f3ada02c16fdd3596",
+  "observed_f2_head_before_claim": "740fd409135bc9bc2c3891b5f9befe404c2909f0",
+  "claim_commit": "fcc3a12541a9c679c624dc0762666c715e097c4f",
+  "subject": {
+    "upstream_model": "Soul-AILab/SoulX-Duplug-0.6B",
+    "upstream_code": "Soul-AILab/SoulX-Duplug",
+    "code_revision": "a0b9063843df69619b087b95b74597b2176910b8",
+    "model_revision": "UNRESOLVED_FROM_CURRENT_RESEARCH_SURFACE",
+    "declared_size": "0.6B",
+    "license": "Apache-2.0"
+  },
+  "primary_sources": [
+    "https://arxiv.org/abs/2603.14877",
+    "https://github.com/Soul-AILab/SoulX-Duplug",
+    "https://huggingface.co/Soul-AILab/SoulX-Duplug-0.6B",
+    "https://huggingface.co/datasets/Soul-AILab/SoulX-Duplug-Eval"
+  ],
+  "source_findings": {
+    "architecture": {
+      "class": "plug-and-play streaming semantic VAD / dialogue-state predictor coupled with streaming ASR",
+      "purpose": "low-latency semantic-aware turn management for full-duplex spoken dialogue",
+      "model_size": "0.6B",
+      "training_code_status": "official repository reports training code released 2026-07-17",
+      "local_deployment_status": "official repository provides local Linux installation, model download and streaming inference server instructions"
+    },
+    "language_support": {
+      "model_card_declared": ["English", "Chinese"],
+      "german_declared": false,
+      "german_training_or_evaluation_evidence_found": false,
+      "runtime_configuration_evidence": "official configuration recommends Paraformer for Chinese, SenseVoice language=en for English, and SenseVoice language=auto for bilingual use; no German path is declared",
+      "trigger7_implication": "No German-first production, benchmark or Trigger-4 promotion credit is supported at source scope."
+    },
+    "evaluation_boundary": {
+      "upstream_claim": "paper reports low-latency streaming dialogue-state control and improved overall turn-management/latency results on its released evaluation setting",
+      "scope": "UPSTREAM_BILINGUAL_RESULT_ONLY_NOT_FRANKENSTEIN_GERMAN_AUDIO",
+      "f2_runtime_credit": 0
+    },
+    "donor_value": {
+      "high_value_mechanism": "small streaming semantic state predictor that uses partial textual/ASR evidence instead of relying only on acoustic silence",
+      "frankenstein_mapping": "candidate donor for semantic endpointing, WAIT/continue-vs-commit arbitration and interruption policy while preserving Frankenstein state/effect authority",
+      "adaptation_note": "the released training code makes a separate German adaptation/fine-tune research lane technically more plausible than runtime-testing the unadapted bilingual checkpoint"
+    }
+  },
+  "hypothesis": "A SoulX-Duplug-style 0.6B streaming semantic state predictor could reduce false endpoints and improve Frankenstein turn-taking if adapted to German and fused with the existing VoiceIntent/GWT/WAIT policy rather than used as a direct action authority.",
+  "counterhypothesis": "The predictor may encode English/Chinese ASR-text cues strongly enough that German adaptation requires substantial data and tuning, while a simpler German streaming ASR plus deterministic acoustic/semantic endpoint policy could achieve equal or better latency and robustness with less runtime cost.",
+  "terminal_classification": "ARCHITECTURE_DONOR_ONLY_GERMAN_NOT_DECLARED_SOURCE_INELIGIBLE_FOR_CURRENT_PRODUCTION_FRONTIER",
+  "evidence_credit": 1,
+  "runtime_credit": 0,
+  "german_turn_benchmark_credit": 0,
+  "german_e2e_voice_credit": 0,
+  "trigger4_acceptance_credit": 0,
+  "whole_system_credit": 0,
+  "next_discriminator": "Do not dispatch the unadapted SoulX-Duplug-0.6B checkpoint merely to test German that upstream does not claim. Preserve the semantic-VAD/state-prediction architecture as a donor and reopen only under a distinct German adaptation objective with German data and a pinned baseline. Continue consuming existing Qwen3-ASR target run 33292903286 after the self-hosted runner/control-plane gate resolves; do not duplicate that run."
+}

@@ -1,0 +1,100 @@
+{
+  "schema": "F2_TRIGGER6_RESEARCH_RESULT/v1",
+  "research_id": "R6-20260830-SQLITE-ROW-LOAD-ATTESTATION-GPT56SOL-01",
+  "evidence_stage": "E1_SOURCE_READ",
+  "status": "COMPLETE_AT_SCOPE",
+  "recorded_at": "2026-08-30T16:45:00+07:00",
+  "worker": "GPT-5.6-Sol",
+  "claim_ref": "research/tool_intelligence/claims/R6-20260830-SQLITE-ROW-LOAD-ATTESTATION-GPT56SOL-01/E1_SOURCE_READ.json",
+  "claim_commit": "a84b67312c2b830e65f168eb259cbebea1e295b0",
+  "architecture_fusion_ref": "research/tool_intelligence/deltas/ADF-20260830T1645P0700-GPT56SOL-WP901-PERSISTED-ROW-LOAD-FUSION.json",
+  "f2_source_observed": {
+    "restart_source_authentication": "src/frankenstein2/restart_recovery_source_authentication.py",
+    "frontier": "F2-WP-901/G3",
+    "explicit_boundary": "persisted_row_attestation=NOT_OBSERVED",
+    "source_object_note": "UnifiedDBAuthorityRef is a reference and does not itself prove that a persisted UnifiedDB row was loaded",
+    "runtime_credit": 0
+  },
+  "external_primary_sources": [
+    {
+      "source": "SQLite Isolation",
+      "url": "https://www.sqlite.org/isolation.html",
+      "relevant_mechanism": "a read transaction observes a stable database snapshot; WAL mode provides snapshot isolation"
+    },
+    {
+      "source": "SQLite Snapshot API",
+      "url": "https://www.sqlite.org/c3ref/snapshot.html",
+      "relevant_mechanism": "snapshot handles can identify historical WAL read states when SQLite is built with SQLITE_ENABLE_SNAPSHOT"
+    },
+    {
+      "source": "SQLite PRAGMA data_version",
+      "url": "https://www.sqlite.org/pragma.html#pragma_data_version",
+      "relevant_mechanism": "same-connection comparison can detect intervening commits from other connections; it is not a durable global revision or row identity"
+    },
+    {
+      "source": "SQLite sqlite3_trace_v2",
+      "url": "https://www.sqlite.org/c3ref/trace_v2.html",
+      "relevant_mechanism": "statement/row tracing provides execution observability but does not authenticate semantic typed-object consumption"
+    },
+    {
+      "source": "SQLite sqlite3_set_authorizer",
+      "url": "https://www.sqlite.org/c3ref/set_authorizer.html",
+      "relevant_mechanism": "authorization occurs while statements are compiled/prepared at operation/table/column scope rather than proving exact row values consumed"
+    },
+    {
+      "source": "SQLite Session Extension",
+      "url": "https://www.sqlite.org/sessionintro.html",
+      "relevant_mechanism": "changesets capture mutation lineage; they do not attest SELECT-row consumption"
+    },
+    {
+      "source": "SQLite Pre-Update Hook",
+      "url": "https://www.sqlite.org/c3ref/preupdate_blobwrite.html",
+      "relevant_mechanism": "pre-update hooks concern mutations rather than SELECT consumption"
+    },
+    {
+      "source": "immudb verified read/write documentation",
+      "url": "https://docs.immudb.io/master/immudb.html",
+      "relevant_mechanism": "cryptographically verified reads are a useful adversarial reference pattern, but importing a second database/ledger would be architecturally disproportionate for this F2 boundary"
+    }
+  ],
+  "source_level_findings": [
+    "SQLite can establish a stable read snapshot, but no single inspected standard primitive proves that one exact canonical row was materialized as one exact F2 typed object and consumed by one exact restart/planner invocation.",
+    "PRAGMA data_version is useful only as a concurrent-change guard and must not be promoted into row identity or durable snapshot truth.",
+    "Authorizer, trace, session and pre-update mechanisms each cover useful adjacent observability or mutation surfaces but do not independently establish semantic row-to-object consumption.",
+    "A full cryptographically verified external datastore is stronger than required and risks a competing truth/provenance substrate.",
+    "The smallest architecture-compatible candidate is therefore an F2-native load receipt emitted at the canonical UnifiedDB read adapter after successful row fetch and typed-object construction."
+  ],
+  "candidate_receipt_minimum_fields": [
+    "canonical_db_authority_identity",
+    "table_or_record_family",
+    "primary_key_or_record_id",
+    "schema_version",
+    "object_generation",
+    "causal_identity",
+    "canonical_row_or_typed_object_digest",
+    "read_transaction_identity",
+    "optional_sqlite_snapshot_identity_if_available",
+    "loader_adapter_identity",
+    "typed_object_type_and_identity",
+    "typed_object_digest",
+    "consumed_by_invocation_identity"
+  ],
+  "fail_closed_nonclaims": [
+    "receipt existence alone does not prove physical target runtime execution",
+    "data_version alone is not row-load attestation",
+    "pre-load/source-object hashing alone is not consumed-row evidence",
+    "application receipt is not tamper-proof against a malicious privileged process",
+    "E1 does not grant F2-WP-901 integration, runtime, physical-grid or whole-system credit"
+  ],
+  "hypothesis_status": "SUPPORTED_AT_SOURCE_READ_SCOPE",
+  "counterhypothesis": "Existing source-object authentication is already sufficient and no explicit row-load receipt is necessary.",
+  "counterhypothesis_status": "FALSIFIED_AT_INTERFACE_SEMANTICS_SCOPE_BY_CURRENT_F2_SOURCE_BOUNDARY",
+  "counterhypothesis_note": "Current F2 source explicitly declares persisted_row_attestation=NOT_OBSERVED, so current source-object authentication cannot by itself support the stronger persisted-row-load claim.",
+  "recommended_next_stage": "E2_ARCHITECTURE_MAPPED",
+  "research_credit": "E1_SOURCE_READ_ONLY",
+  "runtime_credit": 0,
+  "physical_host_credit": 0,
+  "effect_credit": 0,
+  "whole_system_credit": 0,
+  "pending_research_sqlite_sync": "PENDING_ADMITTED_BINARY_DB_PATH"
+}

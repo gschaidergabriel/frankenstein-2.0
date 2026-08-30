@@ -1,0 +1,92 @@
+{
+  "schema": "T7_SOURCE_AUDIT/v1",
+  "trigger": "7",
+  "research_id": "T7-ARCH-001",
+  "objective": "E1_JOYAI_TALKER_DUPLEX_THINKER_TALKER_ARCHITECTURE_DONOR_SOURCE_AUDIT",
+  "semantic_key": "a195896797bb95b6e97838d13c504217317610eb4e749bd0794d017d3fd8a537",
+  "worker": "GPT-5.6-Sol-TRIGGER7",
+  "observed_date": "2026-08-30",
+  "scope": "SOURCE_PIN_ONLY",
+  "subject": "JoyAI-Talker / Joy-Duplex",
+  "primary_sources": [
+    {
+      "type": "ARXIV_PRIMARY",
+      "id": "arXiv:2608.01119v1",
+      "title": "JoyAI-Talker: Full-Duplex Speech Interactive Large Model Built for Empathetic Voice Agents",
+      "submitted": "2026-08-02",
+      "url": "https://arxiv.org/abs/2608.01119"
+    },
+    {
+      "type": "VENDOR_PRIMARY",
+      "publisher": "JD/JoyAI Exploration Research Institute",
+      "title": "JoyAI-Talker",
+      "url": "https://research.joyai.com/joyai-talker"
+    }
+  ],
+  "source_supported_findings": {
+    "architecture": "JoyAI-Talker explicitly separates conversational state coordination, cognitive planning, and expressive speech generation into Duplex, Thinker, and Talker boundaries.",
+    "duplex_controller": "Joy-Duplex is a decoupled state-driven plug-and-play gating layer. Its streaming encoder consumes non-overlapping 160 ms audio chunks; the decoder is a 1.7B decoder-only model that interleaves incremental text with interaction-state tokens.",
+    "interaction_state_vocabulary": ["partial", "complete", "backchannel", "accept", "reject"],
+    "gating": "The downstream speech dialogue model remains gated until an explicit accept state is emitted; reject suppresses activation for off-target/background speech.",
+    "upstream_full_duplex_benchmark": {
+      "benchmark": "Full-Duplex-Bench v1.5",
+      "user_interruption_respond": 0.88,
+      "user_interruption_resume_false_action": 0.07,
+      "user_backchannel_false_respond": 0.01,
+      "user_backchannel_resume": 0.96,
+      "talking_to_other_false_respond": 0.17,
+      "background_speech_false_respond": 0.10,
+      "classification": "UPSTREAM_RESULT_NOT_F2_RESULT"
+    },
+    "thinker_talker_split": "The Thinker determines response content/communicative intent while the Talker specializes in speaker-consistent expressive low-latency speech generation.",
+    "talker_control": "The Talker uses global and local natural-language instructions. Speaker identity is fixed after speaker-specific SFT while utterance-level emotion, speaking rate/rhythm, breathiness and other expressive attributes remain dynamically controllable.",
+    "talker_training_language_surface": "The paper states that Talker foundation training uses a multilingual corpus, but the checked primary sources do not enumerate German or provide a German-specific evaluation.",
+    "agent_surface": "The paper reports speech tool-calling evaluation and configures JoyAI-Talker at 48B total parameters with 3B active parameters for the reported tool-calling comparison.",
+    "known_limitation": "The paper explicitly notes that a fully end-to-end dual-stream architecture may obtain lower turn-taking latency and stronger concurrent input/output synchronization than the modular Joy-Duplex approach."
+  },
+  "bounded_negative_or_unknown": {
+    "german_production_support": "NOT_SOURCE_ESTABLISHED",
+    "german_e2e_quality": "UNMEASURED_FOR_F2",
+    "official_local_code_weights": "NO_REPRODUCIBLE_JOYAI_TALKER_CODE_OR_WEIGHT_LINK_OBSERVED_IN_THE_CHECKED_ARXIV_AND_VENDOR_PRIMARY_SURFACES; THIS_IS_A_BOUNDED_OBSERVATION_NOT_A_NONEXISTENCE_CLAIM",
+    "local_solo_hardware_fit": "UNVERIFIED",
+    "f2_runtime": "NOT_RUN",
+    "trigger4_acceptance": "NOT_CLAIMED"
+  },
+  "frankenstein_transfer_hypothesis": {
+    "classification": "HIGH_VALUE_ARCHITECTURE_DONOR_ONLY",
+    "mapping": {
+      "Joy-Duplex partial/complete/backchannel/accept/reject": "timestamped VoiceActionCandidate / VoiceIntent candidate lane before canonical GWT arbitration",
+      "Thinker": "provider-neutral cognition plane; local Qwen-class path or optional Claude-augmented organ without identity/state/effect authority",
+      "Talker global speaker control": "stable male acoustic identity binding",
+      "Talker local instructions": "ExpressionVector-to-TTSStyleInstruction compilation for emotion/rate/loudness/prosodic control",
+      "localized paralinguistic events": "typed bounded vocal-event candidates such as laughter/sigh/backchannel, never world facts"
+    },
+    "candidate_interface": {
+      "name": "VoiceActionCandidate/v0-research",
+      "fields": ["observed_audio_interval", "candidate_act", "confidence", "deadline_ms", "text_delta_ref", "expression_ref", "speaker_match_ref", "provenance", "generation"],
+      "candidate_act_examples": ["HOLD", "ACCEPT_TURN", "REJECT_OFFTARGET", "BACKCHANNEL", "INTERRUPT_CANCEL"]
+    },
+    "authority_boundary": "Model state/action output remains candidate cognition. It may not bypass VoiceIntent/GWT arbitration, UnifiedDB authority, or EffectGate/EffectJournal."
+  },
+  "counterhypothesis": "The modular gating layer may reduce false triggers but add semantic serialization and scheduling latency; a native time-aligned full-duplex system could outperform it on overlap while preserving adequate cognition. The architecture donor must therefore be tested as a benchmarkable interaction-control layer rather than adopted on elegance alone.",
+  "promotion": {
+    "model_to_production": "NO",
+    "architecture_pattern_to_trigger4_design_candidate": "YES",
+    "required_before_runtime_credit": [
+      "existing self-hosted runner assignment/liveness gate restored",
+      "exact source/runtime identity",
+      "German turn-taking micro-suite",
+      "barge-in cancellation and unheard-audio commit test",
+      "false-trigger/background/third-party speech test",
+      "latency comparison against current modular baseline"
+    ]
+  },
+  "credits": {
+    "source_architecture_evidence": 1,
+    "local_runtime": 0,
+    "german_e2e_voice": 0,
+    "trigger4_acceptance": 0,
+    "whole_system": 0
+  },
+  "next_exact_action": "Route the source-grounded VoiceActionCandidate/semantic-gate design pattern to Trigger 4 without dispatching a new runtime job. Runtime priority remains consumption of the already queued Qwen3-ASR target run once an eligible self-hosted Linux/X64 runner is restored. JoyAI-Talker itself stays architecture-donor-only until reproducible artifacts and German evidence appear."
+}

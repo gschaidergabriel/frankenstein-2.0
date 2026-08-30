@@ -1,0 +1,61 @@
+{
+  "schema": "FRANKENSTEIN2_TRIGGER6_TO_TRIGGER4_HANDOFF/v1",
+  "candidate_id": "R6-20260830-WP206-G5A-EXTERNAL-SQLITE-REVISION-FENCE-GPT56SOL",
+  "status": "E3_REPRODUCED_READY_FOR_TRIGGER4_REVIEW",
+  "created_at_local": "2026-08-30T17:00:20+07:00",
+  "worker": "GPT-5.6-Sol / ChatGPT Trigger-6 organ",
+  "trigger": "6",
+  "canonical_authority_epoch": "8.78",
+  "observed_f2_head_before_handoff": "740fd409135bc9bc2c3891b5f9befe404c2909f0",
+  "research_chain": {
+    "e1_primary_source_result": "research/tool_intelligence/deltas/2026-08-30T1650P0700_GPT56SOL_R6_WP206_SQLITE_LIVE_DRIFT_E1_SOURCE_READ.json@0dcd9b6c464a091af2512df8bb6e489d192f09ff",
+    "parallel_e1_reconciliation": "research/tool_intelligence/reconciliations/R6-WP206-SQLITE-LIVE-DRIFT_E1_PARALLEL_RECONCILIATION_20260830T1655P0700_GPT56SOL.json@5feea3b3e43ff7f8a1542225ea652dc2da6e0200",
+    "e2_architecture_mapping": "research/tool_intelligence/results/R6-20260830-WP206-SAME-INODE-LIVE-DRIFT-GPT56SOL-01_E2_ARCHITECTURE_MAPPED.json@3f92f0ab377e8d8e96053ea69114d99b4d5255fe",
+    "e3_isolated_reproduction": "research/tool_intelligence/results/R6-20260830-WP206-SAME-INODE-LIVE-DRIFT-GPT56SOL-01_E3_CLAIM_REPRODUCED_G5A.json@c566e4e332ba70a729f82cfebb5f1218bb166eb9"
+  },
+  "reproduced_counterexample": {
+    "scope": "isolated temporary SQLite fixture only",
+    "environment": "Linux 6.18.35 x86_64; Python 3.13.5; SQLite 3.46.1",
+    "checks": "12/12 PASS",
+    "observation": "A second SQLite connection can commit DML/DDL, including WAL-mode DML with WAL/SHM present, while the main database st_dev/st_ino remain unchanged; the long-lived observer connection's PRAGMA main.data_version advances. Same-connection DML deliberately does not advance that PRAGMA value.",
+    "current_wp206_gap": "The current CanonicalPersistentAgencyStore live-use guard re-stats and compares st_dev/st_ino only, so external same-inode logical revision is a separate predicate from bound-file identity."
+  },
+  "candidate": {
+    "name": "EXTERNAL_SQLITE_REVISION_FENCE/v1",
+    "minimal_form": "Capture PRAGMA main.data_version on the same long-lived CanonicalPersistentAgencyStore connection after canonical path/device/inode binding; before authority-sensitive recovery/mutation boundaries, compare against the baseline and fail closed into stronger canonical revalidation on mismatch.",
+    "preserve": [
+      "canonical path/device/inode authority",
+      "UnifiedDB as sole canonical durable state authority",
+      "accepted WP206 G4 repeat-provenance semantics",
+      "EffectGate/EffectJournal as sole real-effect authority"
+    ],
+    "explicit_noncoverage": [
+      "arbitrary mutation through the exact same sqlite3.Connection object",
+      "raw filesystem or raw WAL tamper outside SQLite pager/locking semantics",
+      "cryptographic database-state attestation",
+      "continuity by comparing raw data_version integers across connection reopen"
+    ]
+  },
+  "trigger4_required_first_actions": [
+    "refresh exact-current WP206 source, current F2 main and active workpackage claims",
+    "confirm no equivalent G5A repair landed after c566e4e332ba70a729f82cfebb5f1218bb166eb9",
+    "claim a bounded successor WP206 generation before source modification",
+    "first encode the E3 counterexample as an F2 repository-level failing-before ablation around CanonicalPersistentAgencyStore/recovery",
+    "implement the smallest same-connection PRAGMA data_version baseline/compare fence only if the ablation hits current source",
+    "on mismatch, fail closed into existing canonical provenance/content revalidation rather than minting a second authority",
+    "run predecessor G1-G4 regressions plus rollback-journal/WAL/no-change controls",
+    "keep same-handle and raw-filesystem tamper as separate falsifiers",
+    "grant only the exact executed component scope"
+  ],
+  "credit_boundary": {
+    "trigger6_research": "E3_ISOLATED_REPRODUCTION_PLUS_BUILD_CANDIDATE_HANDOFF",
+    "trigger4_build": 0,
+    "repository_ci": 0,
+    "target_runtime": 0,
+    "physical_grid10": 0,
+    "gwt_jspace_runtime": 0,
+    "effect": 0,
+    "whole_system": 0,
+    "training": 0
+  }
+}

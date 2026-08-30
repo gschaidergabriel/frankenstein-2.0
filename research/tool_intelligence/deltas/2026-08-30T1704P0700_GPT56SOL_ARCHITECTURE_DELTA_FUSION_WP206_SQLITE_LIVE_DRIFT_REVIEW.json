@@ -1,0 +1,109 @@
+{
+  "schema": "FRANKENSTEIN2_ARCHITECTURE_DELTA_FUSION/v1",
+  "delta_id": "ADF-R6-WP206-SQLITE-LIVE-DRIFT-20260830T1704P0700-GPT56SOL",
+  "trigger": "6",
+  "status": "CONVERGED_WITH_EXISTING_E5_HANDOFF_NO_DUPLICATE",
+  "recorded_at_local": "2026-08-30T17:04:00+07:00",
+  "worker": "GPT-5.6 Sol / Trigger-6 research organ",
+  "architecture_snapshot": {
+    "f2_main": "7b8f61a172e9e24a2c7e65052cc63f9a1fef326b",
+    "research_entity_main": "5cdcc32d0569f27da4dc6607c81b4baee03ef6b9",
+    "supervisor": "9.13BI_NON_AUTHORITY",
+    "wp206": "G4_ACCEPTED_REPEAT_PROVENANCE_BINDING_REPOSITORY_HOSTED_COMPONENT_CI_ONLY",
+    "wp206_same_inode": "OPEN_SEPARATE_DISCRIMINATOR"
+  },
+  "protocol": {
+    "path": "research/tool_intelligence/TRIGGERWORD_6_PROTOCOL.md",
+    "blob_sha": "08571526d33f9a0c06577e2f119bdaf4297ef1c8"
+  },
+  "coordination": {
+    "owned_review_claim": "research/tool_intelligence/claims/R6-WP206-SQLITE-LIVE-DRIFT-001/E2_REVIEW_AFTER_E3_SQLITE_DATA_VERSION.json",
+    "existing_parallel_e5_handoff": "trigger4/inbox/tool_research/R6-20260830-WP206-G5A-EXTERNAL-SQLITE-REVISION-FENCE-HANDOFF-GPT56SOL.json",
+    "duplicate_e5_created": false,
+    "reason": "Re-entry found a semantically equivalent Trigger-6 E3/E5 handoff already present. This delta fuses only non-duplicate evidence and refines its acceptance semantics."
+  },
+  "evidence_fusion": [
+    {
+      "ref": "https://github.com/gschaidergabriel/frankenstein-2.0/pull/655",
+      "head": "58c389a28f9353747444b774b387c9bffad24325",
+      "run": 33295636700,
+      "scope": "REPOSITORY_HOSTED_EXECUTABLE_NEGATIVE_EVIDENCE",
+      "finding": "Committed same-inode schema mutation changed schema/full fingerprint while the open store retained its cached authority and _assert_current_file_identity did not raise."
+    },
+    {
+      "ref": "https://github.com/gschaidergabriel/frankenstein-2.0/pull/656",
+      "scope": "REVIEW_ONLY_CHARACTERIZATION",
+      "finding": "Legitimate same-inode data-only and schema writes move the full mutable fingerprint; therefore full-fingerprint equality is not a valid immutable replay epoch."
+    },
+    {
+      "ref": "research/tool_intelligence/results/R6-20260830-WP206-SAME-INODE-LIVE-DRIFT-GPT56SOL-01_E3_CLAIM_REPRODUCED_G5A.json",
+      "scope": "E3_ISOLATED_REPRODUCTION",
+      "finding": "Same-connection PRAGMA main.data_version detects commits by another connection in rollback-journal and WAL modes while device/inode remain stable; same-connection writes are intentionally invisible."
+    },
+    {
+      "ref": "research/tool_intelligence/deltas/2026-08-30_GPT56SOL_R6_WP206_SQLITE_LIVE_DRIFT_E3_CLAIM_REPRODUCED.json",
+      "scope": "E3_LOCAL_RESEARCH_REPRODUCTION",
+      "finding": "An unrelated-table foreign write advanced data_version while the protected row stayed unchanged; a DDL write advanced schema_version. This proves a data_version change is an invalidation hint, not checkpoint corruption."
+    },
+    {
+      "ref": "src/frankenstein2/persistent_agency_kernel.py",
+      "current_blob_sha": "7ba8bd55c788faa9eb9b96870c039cb5273e181d",
+      "pr655_blob_sha": "351545cc18931a04a68b7deb834783f1907c9295",
+      "scope": "SUCCESSOR_STALENESS_CHECK",
+      "finding": "The module blob moved, but the exact _assert_current_file_identity boundary remains path/device/inode-only and text-equivalent at the relevant guard. PR655 therefore remains live counterevidence at that boundary; later G3/G4 recovery work did not close it."
+    }
+  ],
+  "primary_source_constraints": [
+    "SQLite PRAGMA data_version is connection-local and only comparable across time on the same connection.",
+    "It changes for commits by other connections but not for commits on the querying connection itself.",
+    "schema_version is a schema cookie, not a complete data revision.",
+    "SQLite main-file full content/change counters are not a portable universal WAL transaction identity."
+  ],
+  "architecture_decision": {
+    "stable_file_authority": "KEEP canonical path + device + inode bound-file receipt unchanged",
+    "external_revision_witness": "RETAIN existing EXTERNAL_SQLITE_REVISION_FENCE/v1 E5 handoff, but classify data_version strictly as EPHEMERAL_INVALIDATION_HINT_NOT_AUTHORITY",
+    "on_mismatch": "Mark the previously observed SQLite read context stale and force targeted canonical revalidation at the authority-sensitive boundary. Do not equate the mismatch with corruption and do not mint a second database authority.",
+    "targeted_revalidation": [
+      "re-establish the intended SQLite transaction/snapshot boundary",
+      "re-read the exact WP206 checkpoint/recovery rows consumed by the operation",
+      "re-run existing checkpoint digest, typed replay, generation/parent/provenance and recovery-CAS checks as applicable",
+      "for schema-sensitive operations, revalidate the expected WP206 schema or fail on concrete schema mismatch",
+      "continue only if the exact protected evidence still validates"
+    ],
+    "same_connection_blind_spot": "OPEN_SEPARATE_FALSIFIER; data_version does not detect arbitrary writes through the exact observer Connection and must not be advertised as full mutation coverage"
+  },
+  "important_counterhypothesis": {
+    "statement": "A data_version fence adds no correctness value if every authority-sensitive WP206 operation already establishes a fresh transaction and re-reads/revalidates all exact protected rows before acting.",
+    "status": "UNRESOLVED_AND_HIGH_VALUE",
+    "why": "The existing evidence proves observability of external drift and a stale open-store identity cache, but not yet that current G4 performs a correctness-relevant action from stale protected row state.",
+    "cheapest_discriminator": "Trigger4 F2-native ablation must compare baseline versus revision-hint path under an unrelated external write and an exact protected-row/schema mutation. If both baseline cases already revalidate correctly, retire the new fence as redundant diagnostics."
+  },
+  "trigger4_acceptance_refinement": [
+    "UNRELATED_FOREIGN_WRITE: data_version changes; protected checkpoint row unchanged; candidate must revalidate and continue, not globally reject the DB.",
+    "PROTECTED_EXTERNAL_MUTATION: same inode plus foreign commit; candidate must force fresh protected-row/schema validation before authority-sensitive continuation.",
+    "SAME_CONNECTION_WRITE_CONTROL: candidate must explicitly show noncoverage; no false claim of complete mutation detection.",
+    "NO_CHANGE_CONTROL: no extra revalidation churn beyond the selected bounded check.",
+    "ROLLBACK_JOURNAL_AND_WAL: preserve both modes and all accepted WP206 G1-G4 regressions.",
+    "RESOURCE_GATE: measure added PRAGMA/transaction/read overhead; zero model calls/tokens and no new dependency."
+  ],
+  "expected_benefit": "Closes a real same-inode stale-context observability gap without destabilizing restart-stable file authority and without converting unrelated legitimate UnifiedDB churn into checkpoint corruption.",
+  "resource_implications": {
+    "model_calls": 0,
+    "runtime_tokens": 0,
+    "new_dependency": "NONE",
+    "candidate_overhead": "O(1) connection-local PRAGMA read at selected boundaries plus targeted revalidation only on mismatch"
+  },
+  "evidence_credit": {
+    "e1_source_read": true,
+    "e2_architecture_mapped": true,
+    "e3_claim_reproduced": true,
+    "historical_f2_executable_counterevidence_pr655": true,
+    "new_e4_current_f2_ablation": false,
+    "new_e5_created_by_this_delta": false,
+    "existing_e5_handoff_retained": true,
+    "e6_f2_accepted": false,
+    "target_runtime": 0,
+    "whole_system": 0
+  },
+  "next_exact_action": "Trigger4 consumes the existing EXTERNAL_SQLITE_REVISION_FENCE/v1 handoff with this refinement, first runs the two-sided F2-native ablation (unrelated foreign write must not falsely reject; protected-row/schema mutation must force fresh validation), and promotes source only if baseline is actually insufficient and the candidate improves that exact scope."
+}

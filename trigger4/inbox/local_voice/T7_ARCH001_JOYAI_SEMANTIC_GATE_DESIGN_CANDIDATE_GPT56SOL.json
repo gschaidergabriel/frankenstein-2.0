@@ -1,0 +1,48 @@
+{
+  "schema": "TRIGGER7_TO_TRIGGER4_LOCAL_VOICE_CANDIDATE/v1",
+  "from_trigger": "7",
+  "to_trigger": "4",
+  "research_id": "T7-ARCH-001",
+  "candidate": "JOYAI_SEMANTIC_GATE_AND_DUPLEX_THINKER_TALKER_DESIGN_PATTERN",
+  "state": "DESIGN_BENCHMARK_CANDIDATE_NO_MODEL_RUNTIME_DISPATCH",
+  "priority": "AFTER_EXISTING_QWEN3_ASR_RUN_33292903286_IS_CONSUMED_OR_IN_PARALLEL_ONLY_IF_NO_NEW_TARGET_RUNTIME_JOB_IS_CREATED",
+  "do_not_dispatch_duplicate_asr_job": true,
+  "source_result": "research/local_voice/sources/2026-08-30_T7_ARCH001_JOYAI_TALKER_ARCHITECTURE_DONOR_SOURCE_AUDIT_GPT56SOL.json",
+  "semantic_key": "a195896797bb95b6e97838d13c504217317610eb4e749bd0794d017d3fd8a537",
+  "source_evidence": {
+    "joy_duplex_chunk_ms": 160,
+    "joy_duplex_decoder_parameters": "1.7B",
+    "interaction_states": ["partial", "complete", "backchannel", "accept", "reject"],
+    "upstream_user_interruption_response": 0.88,
+    "upstream_backchannel_false_response": 0.01,
+    "german_production_support": false,
+    "local_reproducible_joyai_talker_artifact_observed": false
+  },
+  "requested_trigger4_delta": {
+    "type": "DESIGN_AND_BENCHMARK_SURFACE_ONLY",
+    "interface_candidate": "VoiceActionCandidate/v0-research",
+    "required_behavior": [
+      "timestamped HOLD/ACCEPT_TURN/REJECT_OFFTARGET/BACKCHANNEL/INTERRUPT_CANCEL candidates",
+      "candidate outputs must pass VoiceIntent/GWT authority",
+      "interrupt must cancel generation plus unheard audio without falsely committing speech",
+      "ExpressionVector must compile separately into TTS style/prosody control",
+      "stable male speaker identity remains orthogonal to per-utterance expression"
+    ],
+    "benchmark_required": [
+      "endpoint latency",
+      "false endpoint rate",
+      "backchannel false response",
+      "third-party/background false activation",
+      "barge-in detect -> playback stop latency",
+      "unheard audio commit correctness",
+      "comparison against current deterministic/semantic turn controller"
+    ]
+  },
+  "acceptance_boundaries": [
+    "JoyAI upstream benchmark != Frankenstein result",
+    "architecture donor != model candidate",
+    "German unsupported at source scope -> no production voice credit",
+    "source design candidate != target runtime pass",
+    "Trigger4 owns F2 build/runtime acceptance"
+  ]
+}

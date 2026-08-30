@@ -1,0 +1,62 @@
+{
+  "schema": "F2_TRIGGER6_RESEARCH_RESULT/v1",
+  "research_id": "R6-20260830-PREHANDOFF-RECEIPT-AUTHENTICITY-GPT56SOL-01",
+  "evidence_stage": "E1_SOURCE_READ",
+  "status": "COMPLETE_AT_SCOPE",
+  "recorded_at": "2026-08-30T17:01:00+07:00",
+  "worker": "GPT-5.6-Sol",
+  "claim_ref": "research/tool_intelligence/claims/R6-20260830-PREHANDOFF-RECEIPT-AUTHENTICITY-GPT56SOL-01/E1_SOURCE_READ.json",
+  "exact_current_f2_sources": [
+    {
+      "path": "src/frankenstein2/release_artifact_subject.py",
+      "observation": "ArtifactBoundPreHandoffReceipt is deterministically derived only after verify_release_archive accepts exact unopened ZIP bytes; it binds artifact SHA-256/size/name, manifest digest, source/build identities, archive policy digest and receipt ref."
+    },
+    {
+      "path": "src/frankenstein2/artifact_bound_clean_machine.py",
+      "observation": "Every successor clean-machine observation must match the exact artifact filename/SHA-256/size and artifact-subject digest before the historical generation-1 matrix is accepted."
+    },
+    {
+      "path": "src/frankenstein2/receipt_content_binding.py",
+      "observation": "Generation 3 requires the external receipt bytes to equal ArtifactBoundPreHandoffReceipt.canonical_bytes() exactly, then binds receipt SHA-256/size/ref into successor observations."
+    },
+    {
+      "path": "src/frankenstein2/release_archive.py",
+      "observation": "The canonical archive policy uses ZIP_STORED and explicit canonical metadata; the verifier rebuilds canonical archive bytes and requires exact whole-archive byte equality."
+    },
+    {
+      "path": "workpackages/active/F2-WP-1110.json",
+      "observation": "Generation 3 is accepted only at repository-hosted CI scope; no final release ZIP, external receipt, real clean-machine execution or runtime/whole-system credit is observed."
+    }
+  ],
+  "primary_external_sources": [
+    {
+      "source": "SLSA v1.2 Build: Verifying artifacts",
+      "url": "https://slsa.dev/spec/v1.2/verifying-artifacts",
+      "observation": "SLSA provenance verification separately verifies the provenance envelope signature/root of trust and checks that the statement subject digest matches the artifact."
+    },
+    {
+      "source": "Sigstore Cosign verifying signatures",
+      "url": "https://docs.sigstore.dev/cosign/verifying/verify/",
+      "observation": "Blob verification can bind an artifact digest to a signer identity/certificate/root, including bundle-based offline verification data."
+    },
+    {
+      "source": "Sigstore signing overview",
+      "url": "https://docs.sigstore.dev/cosign/signing/overview/",
+      "observation": "Keyless signing introduces OIDC identity, short-lived certificates and transparency-log witnessing; these are additional trust infrastructure, not mere content hashing."
+    },
+    {
+      "source": "DSSE envelope specification",
+      "url": "https://github.com/secure-systems-lab/dsse/blob/master/envelope.proto",
+      "observation": "DSSE authenticates a payload plus payload type with one or more signatures; keyid is only an unauthenticated hint."
+    }
+  ],
+  "source_level_distinction": {
+    "content_identity": "F2 already provides strong exact-byte content identity for artifact and external receipt.",
+    "origin_identity": "No cryptographic signer/origin authentication mechanism was found in the inspected F2 handoff path.",
+    "security_meaning": "These are distinct properties. Missing signature does not imply missing content integrity; adding a signature does not replace local artifact/payload verification."
+  },
+  "open_question_for_e2": "Does F2 currently rely on any non-recomputable producer assertion or untrusted distribution boundary such that signer-origin authentication changes the next clean-machine acceptance predicate, or can the receiver recompute all authoritative receipt semantics from the exact artifact plus fixed policy?",
+  "research_credit": "E1_SOURCE_READ_ONLY",
+  "runtime_credit": 0,
+  "whole_system_credit": 0
+}

@@ -1,0 +1,75 @@
+{
+  "schema": "F2_TRIGGER6_RESEARCH_RESULT/v1",
+  "research_id": "R6-20260830-WP206-SAME-INODE-LIVE-DRIFT-GPT56SOL-01",
+  "evidence_stage": "E3_CLAIM_REPRODUCED",
+  "status": "COMPLETE_AT_SCOPE",
+  "recorded_at": "2026-08-30T16:58:10+07:00",
+  "worker": "GPT-5.6-Sol / ChatGPT Trigger-6 organ",
+  "claim_ref": "research/tool_intelligence/claims/R6-20260830-WP206-SAME-INODE-LIVE-DRIFT-GPT56SOL-01/E3_CLAIM_REPRODUCED_G5A.json",
+  "claim_commit": "639ea882152025aaeec425d1c0783c7859a1209b",
+  "experiment_ref": "research/tool_intelligence/experiments/R6-20260830-WP206-SAME-INODE-LIVE-DRIFT-GPT56SOL-01_E3_G5A_SQLITE_DATA_VERSION_PROBE.json",
+  "experiment_commit": "de5dda7ee8884644134f197c4ca14afcf976cbf3",
+  "parent_e1": "research/tool_intelligence/results/R6-20260830-WP206-SAME-INODE-LIVE-DRIFT-GPT56SOL-01_E1_SOURCE_READ.json@c9567d80f65ce8f303f368aa1182fdddfa16b55a",
+  "parent_e2": "research/tool_intelligence/results/R6-20260830-WP206-SAME-INODE-LIVE-DRIFT-GPT56SOL-01_E2_ARCHITECTURE_MAPPED.json@3f92f0ab377e8d8e96053ea69114d99b4d5255fe",
+  "reproduced_claim": "On one long-lived SQLite observer connection, PRAGMA main.data_version can discriminate committed changes by a second connection even when the main database file keeps the same st_dev/st_ino, including WAL-mode committed DML; same-connection DML remains intentionally invisible to that pragma.",
+  "observed": {
+    "environment": "Linux 6.18.35 x86_64; Python 3.13.5; SQLite 3.46.1",
+    "checks": "12/12 PASS",
+    "rollback_journal": {
+      "same_connection_dml_data_version_changed": false,
+      "other_connection_dml_data_version_changed": true,
+      "other_connection_ddl_data_version_changed": true,
+      "other_connection_ddl_schema_version_changed": true,
+      "main_file_inode_unchanged": true,
+      "no_change_control_stable": true
+    },
+    "wal": {
+      "same_connection_dml_data_version_changed": false,
+      "other_connection_dml_data_version_changed": true,
+      "other_connection_ddl_data_version_changed": true,
+      "other_connection_ddl_schema_version_changed": true,
+      "main_file_inode_unchanged": true,
+      "wal_present": true,
+      "shm_present": true,
+      "no_change_control_stable": true
+    }
+  },
+  "falsifier_result": "NOT_FALSIFIED_ON_TESTED_RUNTIME",
+  "evidence_interpretation": [
+    "The current F2 st_dev/st_ino guard is demonstrably orthogonal to SQLite logical revision: the isolated fixture advanced database state while preserving device/inode.",
+    "The critical WAL case reproduced: another committed connection advanced observer data_version while the main-file inode stayed unchanged and WAL/SHM were present.",
+    "The same-connection negative control reproduced exactly as SQLite documents, so G5A must remain explicitly scoped to other-connection/process drift.",
+    "schema_version is useful as a schema-drift classifier but not needed to detect external DDL because data_version also advanced."
+  ],
+  "architecture_delta": {
+    "candidate": "EXTERNAL_SQLITE_REVISION_FENCE/v1",
+    "recommended_location": "CanonicalPersistentAgencyStore lifecycle, sampled and compared on the same long-lived store connection before authority-sensitive operations",
+    "recommended_observable": "PRAGMA main.data_version",
+    "preserve": [
+      "existing canonical_db_path/st_dev/st_ino bound-file authority",
+      "UnifiedDB as sole canonical state store",
+      "accepted WP206 G4 repeat-provenance semantics",
+      "EffectGate/EffectJournal authority",
+      "zero target/runtime/whole-system credit until Trigger-4 executes the F2-native ablation and implementation gate"
+    ],
+    "do_not_claim": [
+      "same sqlite3.Connection arbitrary-write detection",
+      "raw file/WAL tamper attestation",
+      "cryptographic database-state identity",
+      "connection-reopen continuity from raw data_version integers"
+    ]
+  },
+  "recommended_next_stage": "E4_F2_ABLATION_G5A_BY_TRIGGER4_OR_BOUND_EXPERIMENTAL_FALSIFIER",
+  "next_exact_action": "Add a repository-level F2 ablation fixture around CanonicalPersistentAgencyStore/recovery proving that an external same-inode WAL commit currently passes the st_dev/st_ino boundary but would be rejected by a same-connection PRAGMA data_version baseline; do not modify accepted G4 semantics until that exact counterexample is executable.",
+  "research_credit": "E3_ISOLATED_FIXTURE_ONLY",
+  "f2_repository_ci_credit": 0,
+  "f2_runtime_credit": 0,
+  "target_host_credit": 0,
+  "physical_grid10_credit": 0,
+  "gwt_runtime_credit": 0,
+  "jspace_runtime_credit": 0,
+  "effect_credit": 0,
+  "completion_credit": 0,
+  "whole_system_credit": 0,
+  "pending_research_sqlite_sync": "PENDING_ADMITTED_BINARY_DB_PATH"
+}

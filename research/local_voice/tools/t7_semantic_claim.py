@@ -67,6 +67,9 @@ SUBJECT_ALIASES = {
     "qwen3-tts-12hz-size-ab": "QWEN3_TTS_12HZ_0_6B_VS_1_7B",
     "magpietts-multilingual-357m": "MAGPIETTS_MULTILINGUAL_357M",
     "nvidia-magpietts-multilingual-357m": "MAGPIETTS_MULTILINGUAL_357M",
+    "voicechat-tts": "VOICECHAT_TTS_2026",
+    "nvidia-voicechat-tts": "VOICECHAT_TTS_2026",
+    "voicechat-tts-2026": "VOICECHAT_TTS_2026",
     "supertonic-3": "SUPERTONIC_3_99M",
     "supertone-supertonic-3": "SUPERTONIC_3_99M",
     "fun-cosyvoice3-0.5b-2512": "FUN_COSYVOICE3_0_5B_2512",
@@ -77,6 +80,8 @@ SUBJECT_ALIASES = {
     "chatterbox-multilingual-v3": "CHATTERBOX_MULTILINGUAL_V3_500M",
     "resembleai-chatterbox-multilingual-v3": "CHATTERBOX_MULTILINGUAL_V3_500M",
     "chatterbox-multilingual-v3-500m": "CHATTERBOX_MULTILINGUAL_V3_500M",
+    "audio8-tts-0.6b": "AUDIO8_TTS_0_6B",
+    "audio8-ai-audio8-tts-0.6b": "AUDIO8_TTS_0_6B",
     "canary-180m-flash": "CANARY_180M_FLASH",
     "nvidia-canary-180m-flash": "CANARY_180M_FLASH",
     "parakeet-tdt-0.6b-v3": "PARAKEET_TDT_0_6B_V3",
@@ -87,6 +92,8 @@ SUBJECT_ALIASES = {
     "duplex-minnima": "DUPLEX_MINNIMA_CPP",
     "eddiegulay-duplex-minnima": "DUPLEX_MINNIMA_CPP",
     "turn-taker": "DUPLEX_MINNIMA_CPP",
+    "vibevoice-realtime-0.5b": "VIBEVOICE_REALTIME_0_5B",
+    "microsoft-vibevoice-realtime-0.5b": "VIBEVOICE_REALTIME_0_5B",
 }
 
 EVIDENCE_SCOPE_ALIASES = {

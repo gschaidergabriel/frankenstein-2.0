@@ -1,0 +1,71 @@
+{
+  "schema": "F2_TRIGGER6_ISOLATED_EXPERIMENT_RECEIPT/v1",
+  "research_id": "R6-20260830-WP206-SAME-INODE-LIVE-DRIFT-GPT56SOL-01",
+  "claim_target": "E3_CLAIM_REPRODUCED_G5A",
+  "recorded_at": "2026-08-30T16:57:40+07:00",
+  "classification": "ISOLATED_TEMPORARY_SQLITE_FIXTURE_NOT_F2_RUNTIME_NOT_TARGET_HOST",
+  "worker": "GPT-5.6-Sol / ChatGPT Trigger-6 organ",
+  "claim_ref": "research/tool_intelligence/claims/R6-20260830-WP206-SAME-INODE-LIVE-DRIFT-GPT56SOL-01/E3_CLAIM_REPRODUCED_G5A.json",
+  "claim_commit": "639ea882152025aaeec425d1c0783c7859a1209b",
+  "environment": {
+    "os": "Linux 6.18.35 x86_64 GNU/Linux",
+    "python": "3.13.5",
+    "sqlite_runtime": "3.46.1",
+    "network_used": false,
+    "provider_used": false,
+    "vps_or_target_host_used": false
+  },
+  "probe_script_sha256": "a6e997bf8b0be571246a162bcb5388dd1b47be0733a0971fa5e446823f79038d",
+  "probe_contract": [
+    "Create fresh SQLite DB and table.",
+    "Open one long-lived observer connection and one second writer connection.",
+    "Run separately with DELETE and WAL journal modes.",
+    "Record observer PRAGMA main.data_version and PRAGMA main.schema_version plus main-file st_dev/st_ino.",
+    "Commit DML on observer connection and test that observer data_version remains stable.",
+    "Commit DML on second connection and test that observer data_version changes while main-file device/inode stays equal.",
+    "Commit DDL on second connection and test that observer data_version and schema_version change while device/inode stays equal.",
+    "Repeat data_version without writes as no-change control."
+  ],
+  "results": {
+    "all_pass": true,
+    "checks_passed": 12,
+    "checks_total": 12,
+    "DELETE": {
+      "same_connection_dml_data_version": [1, 1],
+      "other_connection_dml_data_version": [1, 2],
+      "other_connection_ddl_data_version": [2, 3],
+      "other_connection_ddl_schema_version": [1, 2],
+      "no_change_control_data_version": [3, 3],
+      "main_file_inode_unchanged": true,
+      "wal_present": false,
+      "shm_present": false
+    },
+    "WAL": {
+      "same_connection_dml_data_version": [2, 2],
+      "other_connection_dml_data_version": [2, 3],
+      "other_connection_ddl_data_version": [3, 4],
+      "other_connection_ddl_schema_version": [1, 2],
+      "no_change_control_data_version": [4, 4],
+      "main_file_inode_unchanged": true,
+      "wal_present": true,
+      "shm_present": true
+    }
+  },
+  "interpretation": {
+    "supported": "On this isolated Python/SQLite runtime, PRAGMA main.data_version on a long-lived observer connection detects committed DML/DDL by another connection in both rollback-journal and WAL modes even though the main database st_dev/st_ino is unchanged.",
+    "negative_control": "Same-connection DML does not change that connection's PRAGMA data_version, matching SQLite documentation.",
+    "schema_classifier": "External DDL changed schema_version in both tested modes.",
+    "evidence_boundary": "This reproduces mechanism semantics only. It is not F2 code execution, not repository CI, not VPS/target runtime, not physical GRID10/GWT/J-Space evidence, and not whole-system acceptance."
+  },
+  "credits": {
+    "research_stage": "E3_ISOLATED_FIXTURE_ONLY",
+    "f2_runtime": 0,
+    "target_host": 0,
+    "physical_grid10": 0,
+    "gwt": 0,
+    "jspace": 0,
+    "effect": 0,
+    "completion": 0,
+    "whole_system": 0
+  }
+}

@@ -1,0 +1,93 @@
+{
+  "schema_version": 1,
+  "trigger": "7",
+  "research_id": "T7-TURN-007",
+  "objective": "E1_DUPLEX_MINNIMA_SOURCE_AUDIT",
+  "semantic_key": "669220eee0ca36ec75a3e8ef9d536c511e804b81eb7b9f91a15f6f47c0b2c7b8",
+  "classification": "SOURCE_PINNED_ARCHITECTURE_DONOR_NOT_DROP_IN_LINUX_OR_GERMAN_ACCEPTED",
+  "observed_date_local": "2026-08-30",
+  "upstream": {
+    "repository": "eddiegulay/duplex-minnima",
+    "commit": "2d86397857e8a2a789e3dddb7264ccad7ac3e0a0",
+    "license": "MIT",
+    "implementation": "C++17 header-oriented turn-taking engine using vendored miniaudio"
+  },
+  "source_observations": [
+    "The upstream engine intentionally performs turn-taking without an LLM, ASR, or neural VAD; it uses acoustic/prosodic evidence and a cost policy, so it cannot understand the lexical content of German speech by itself.",
+    "The microphone is intended to remain active while the system speaks. Upstream combines echo-aware band evidence and NCC-derived evidence for barge-in instead of muting capture during playback.",
+    "Barge-in evidence is separated from intent: strong acoustic evidence alone is not allowed to immediately mint an interruption decision; duration/cost logic distinguishes a likely interruption from a short backchannel.",
+    "The policy explicitly states that its inherited pause prior is based on Swedish/English measurements and includes a calibration path from observed user pauses/gaps. Therefore German timing quality must be measured rather than inferred from language-independence of the DSP.",
+    "CMake gates Apple audio frameworks behind APPLE, which is compatible with a potentially portable core, but no Linux/clay-direct-dev build or runtime was observed in this audit.",
+    "The bundled TTS adapter hard-depends on macOS say plus afconvert. The upstream application is therefore not a drop-in Linux Frankenstein voice stack even if useful core modules compile elsewhere."
+  ],
+  "f2_transfer_candidates": [
+    {
+      "module": "AEC_PLUS_BARGEIN_EVIDENCE_FUSION",
+      "role": "candidate acoustic evidence lane below VoiceIntent/GWT",
+      "authority": "MEASUREMENT_ONLY",
+      "reason": "May improve open-speaker interruption detection when near-end speech is quieter than residual self-echo."
+    },
+    {
+      "module": "BACKCHANNEL_VS_INTERRUPTION_DURATION_COST_POLICY",
+      "role": "candidate bounded arbitration feature",
+      "authority": "CANDIDATE_ONLY",
+      "reason": "Separates real speech evidence from intent-to-take-floor, matching Frankenstein's observation-versus-intent boundary."
+    },
+    {
+      "module": "GAP_PAUSE_CALIBRATION_FROM_SESSION_TIMELINE",
+      "role": "German room/user adaptation measurement",
+      "authority": "DERIVED_CALIBRATION_ONLY",
+      "reason": "Offers an explicit way to replace inherited Swedish/English pause priors with local session evidence."
+    },
+    {
+      "module": "EXACT_PLAYED_AUDIO_ACCOUNTING",
+      "role": "VoiceOutcome/cancellation provenance donor",
+      "authority": "MEASUREMENT_ONLY",
+      "reason": "The upstream design tracks what audio was actually played/heard when an utterance is interrupted, conceptually aligned with Frankenstein's unheard-audio cancellation boundary."
+    }
+  ],
+  "nontransfer_or_open": [
+    "macOS say/afconvert TTS adapter is not a VPS Linux solution",
+    "rule-based response agent has no semantic dialogue value for Frankenstein cognition",
+    "German endpoint/backchannel quality is unmeasured",
+    "Linux compile, ALSA/PipeWire device behavior, CPU cost, AEC stability, and real room ERLE are unmeasured on clay-direct-dev",
+    "upstream repository claims of live behavior remain upstream evidence until independently reproduced"
+  ],
+  "hypothesis": "A small extracted subset consisting of echo-aware barge-in evidence, backchannel/interruption arbitration, and gap/pause calibration could improve Frankenstein's open-speaker full-duplex robustness without replacing semantic turn control or GWT authority.",
+  "counterhypothesis": "Frankenstein's existing PipeWire/ALSA/WebRTC/Silero and semantic turn-control path already captures the useful signal; adding another DSP/policy layer would duplicate mechanisms, complicate calibration, and fail to improve German room metrics.",
+  "next_discriminator": {
+    "precondition": "Restore the already-existing self-hosted runner/bridge path; do not dispatch another job while the current shared runner gate remains queued.",
+    "experiment_class": "distinct future target-runtime component comparison requiring its own semantic claim",
+    "input": "identical German room audio with pauses, short backchannels, true interruptions, open-speaker self-echo, and headphone control",
+    "compare": [
+      "current Frankenstein acoustic/turn lane",
+      "current lane plus extracted Duplex Minnima acoustic evidence/calibration donor"
+    ],
+    "measure": [
+      "true-interruption detection latency p50/p95",
+      "false-stop rate on German backchannels",
+      "missed interruption rate",
+      "endpoint false-cut rate during mid-sentence pauses",
+      "AEC/echo-evidence usability and ERLE diagnostics",
+      "CPU/RSS",
+      "cancellation and actually-heard audio receipt correctness"
+    ]
+  },
+  "source_refs": {
+    "readme": "https://github.com/eddiegulay/duplex-minnima/blob/2d86397857e8a2a789e3dddb7264ccad7ac3e0a0/README.md",
+    "bargein": "https://github.com/eddiegulay/duplex-minnima/blob/2d86397857e8a2a789e3dddb7264ccad7ac3e0a0/include/vt/sense/bargein.h",
+    "policy": "https://github.com/eddiegulay/duplex-minnima/blob/2d86397857e8a2a789e3dddb7264ccad7ac3e0a0/include/vt/decide/policy.h",
+    "tts": "https://github.com/eddiegulay/duplex-minnima/blob/2d86397857e8a2a789e3dddb7264ccad7ac3e0a0/include/vt/act/tts.h",
+    "cmake": "https://github.com/eddiegulay/duplex-minnima/blob/2d86397857e8a2a789e3dddb7264ccad7ac3e0a0/CMakeLists.txt"
+  },
+  "credits": {
+    "source_pin": 1,
+    "source_architecture_donor": 1,
+    "linux_build": 0,
+    "target_runtime": 0,
+    "german_component_benchmark": 0,
+    "german_e2e_voice": 0,
+    "trigger4_acceptance": 0,
+    "whole_system": 0
+  }
+}

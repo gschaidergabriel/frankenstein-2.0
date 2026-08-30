@@ -1,0 +1,69 @@
+{
+  "schema": "F2_TRIGGER6_RESEARCH_RESULT/v1",
+  "research_id": "R6-20260830-PREHANDOFF-RECEIPT-AUTHENTICITY-GPT56SOL-01",
+  "evidence_stage": "E2_ARCHITECTURE_MAPPED",
+  "status": "COMPLETE_AT_SCOPE_NO_BUILD_PROMOTION",
+  "recorded_at": "2026-08-30T17:05:00+07:00",
+  "worker": "GPT-5.6-Sol",
+  "claim_ref": "research/tool_intelligence/claims/R6-20260830-PREHANDOFF-RECEIPT-AUTHENTICITY-GPT56SOL-01/E2_ARCHITECTURE_MAPPED.json",
+  "prior_e1_ref": "research/tool_intelligence/results/R6-20260830-PREHANDOFF-RECEIPT-AUTHENTICITY-GPT56SOL-01_E1_SOURCE_READ.json",
+  "architecture_chain": [
+    "release_archive.py: deterministic ZIP_STORED canonical whole-archive construction + exact verifier",
+    "release_artifact_subject.py: locally derived exact unopened artifact subject after archive verification",
+    "artifact_bound_clean_machine.py: every clean-machine row binds the same exact artifact subject",
+    "receipt_content_binding.py: external receipt exact bytes must equal the locally expected canonical ArtifactBoundPreHandoffReceipt bytes",
+    "PORTABLE_HOST_HARNESS_AND_DISTRIBUTION_CONTRACT.md: user hands one release package to a capable local coding agent; receiving agent verifies release/pre-handoff identity before installation"
+  ],
+  "security_property_map": {
+    "payload_integrity": "PRESENT_AT_REPOSITORY_COMPONENT_SCOPE",
+    "outer_artifact_exact_byte_identity": "PRESENT_AT_REPOSITORY_COMPONENT_SCOPE",
+    "external_receipt_exact_byte_identity": "PRESENT_AT_REPOSITORY_COMPONENT_SCOPE",
+    "clean_machine_subject_consistency": "PRESENT_AT_REPOSITORY_COMPONENT_SCOPE",
+    "producer_origin_authentication": "NOT_OBSERVED_IN_INSPECTED_HANDOFF_PATH",
+    "public_distribution_rollback_freeze_protection": "NOT_A_CURRENT_DECLARED_ONE_HANDOFF_REQUIREMENT"
+  },
+  "threat_analysis": [
+    {
+      "threat": "accidental or adversarial mutation of the handed-off ZIP or receipt bytes after the expected subject is established",
+      "current_f2": "fail-closed digest/content binding is appropriate"
+    },
+    {
+      "threat": "malicious wholesale replacement of both artifact and self-consistent receipt by an untrusted distributor",
+      "current_f2": "content self-consistency alone does not prove producer identity; an external trust anchor would be required if this threat enters scope"
+    },
+    {
+      "threat": "rollback/freeze/mix-and-match in a long-lived public update repository",
+      "current_f2": "not covered by a one-off signature alone; TUF-class version/expiry/snapshot/root semantics are the relevant mechanism if an updater/repository is later introduced"
+    }
+  ],
+  "external_mechanism_mapping": {
+    "slsa": "Separates envelope signature/root verification from subject-digest matching. Useful model if F2 later consumes non-recomputable producer provenance from an untrusted channel.",
+    "sigstore_cosign": "Can sign/verify blobs and attestations with identity-bound certificates and transparency evidence, but introduces identity provider/root/transparency/bundle lifecycle and should not be a mandatory dependency for the current offline/local one-handoff gate absent an explicit origin-authentication requirement.",
+    "dsse": "Provides a compact authenticated payload+payloadType envelope if F2 later needs signed semantic attestations; it does not define the trust root by itself.",
+    "tuf": "Appropriate for an actual update/repository threat model with rollback/freeze/mix-and-match concerns; disproportionate for the current single handoff before such a distribution channel exists."
+  },
+  "smallest_future_mechanism_if_origin_authentication_becomes_required": {
+    "name": "DistributionTrustAnchor/v1",
+    "status": "DEFERRED_HYPOTHESIS_NOT_BUILD_CANDIDATE",
+    "levels": [
+      "L0 current: direct trusted user handoff plus deterministic local recomputation; document this trust assumption explicitly",
+      "L1 bounded: out-of-band trusted pin of artifact_sha256 and prehandoff_receipt_sha256; zero new signing stack",
+      "L2 public/untrusted distribution: authenticated DSSE/Sigstore-style signed subject with explicit expected signer identity/root and offline-verifiable bundle",
+      "L3 update channel: TUF-class root/targets/snapshot/timestamp semantics for freshness, rollback and repository consistency"
+    ]
+  },
+  "decision": {
+    "e3_reproduction": "NOT_WARRANTED_NOW",
+    "e4_ablation": "NOT_WARRANTED_NOW",
+    "e5_build_candidate": "NO",
+    "reason": "The next declared WP1110 discriminator is executable: create/identify the final deterministic ZIP and external canonical receipt, then collect real clean-machine observations. A signing stack does not increase information gain for that immediate gate unless the owner/product threat model first declares an untrusted distribution/origin-authentication requirement."
+  },
+  "recommended_documentation_delta": "Make the current distribution trust assumption explicit: the one-handoff package is owner/trusted-channel supplied. If this assumption changes, promote DistributionTrustAnchor/v1 research before public distribution rather than silently treating self-consistent receipts as publisher authentication.",
+  "next_exact_gate": "Do not delay first real clean-machine acceptance for signature infrastructure. Preserve origin-authentication as a named deferred security hypothesis and re-open only when public/untrusted distribution, auto-update, mirror, or independent producer-identity verification becomes a product requirement.",
+  "research_credit": "E2_ARCHITECTURE_MAPPED_ONLY",
+  "runtime_credit": 0,
+  "physical_host_credit": 0,
+  "effect_credit": 0,
+  "completion_credit": 0,
+  "whole_system_credit": 0
+}
