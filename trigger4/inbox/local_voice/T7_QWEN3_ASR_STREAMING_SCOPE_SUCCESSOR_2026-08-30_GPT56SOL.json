@@ -1,0 +1,49 @@
+{
+  "schema": "TRIGGER7_TO_TRIGGER4_LOCAL_VOICE_HANDOFF/v1",
+  "created_date": "2026-08-30",
+  "producer": "GPT-5.6-Sol Trigger 7",
+  "priority_class": "STREAMING_SCOPE_SUCCESSOR_AFTER_EXISTING_RUNTIME_GATE",
+  "depends_on_existing_run_id": 33292903286,
+  "depends_on_existing_job_id": 99207535776,
+  "duplicate_dispatch_forbidden": true,
+  "current_probe_scope": {
+    "controller_workflow": ".github/workflows/trigger7-qwen3-asr-target-probe.yml",
+    "f2_probe_commit": "e0521522a49cd57ff86af9f49cc87f33ab6e22a3",
+    "probe_tool": "research/local_voice/tools/t7_qwen3_asr_target_probe.py",
+    "backend": "transformers",
+    "device": "cpu",
+    "input": "one second silence",
+    "official_streaming_backend_tested": false,
+    "credit_if_pass": "bounded exact-model target-runtime load/local inference only; no streaming/German E2E credit"
+  },
+  "new_source_delta": {
+    "evidence": "research/local_voice/sources/2026-08-30_T7_ASR007_QWEN3_STREAMING_STATE_TRANSFER_AUDIT_GPT56SOL.json",
+    "qwen_source_commit": "7c6daf77a2421100f5fb066495372c00129d39ff",
+    "qwen_source_path": "qwen_asr/inference/qwen3_asr.py",
+    "finding": "Official Qwen3-ASR streaming is vLLM-only. ASRStreamingState stores PCM accumulation and decoded/prompt text. Each chunk re-feeds all audio_accum to the model; exposed rollback is token-prefix rollback, not a saved neural acoustic/cache state rollback.",
+    "risk": "A green existing CPU silence probe can be misread as streaming readiness, and a future Qwen continuity test can be mislabeled as reproduction of internal-state rollback when it is not mechanism-equivalent."
+  },
+  "requested_trigger4_successor_action": [
+    "Do not modify, cancel, or duplicate existing queued run 33292903286 merely to add streaming coverage.",
+    "After the existing run becomes terminal and its exact receipt is ingested, create a distinct successor target-runtime semantic/workpackage gate for official vLLM streaming if resource fit permits.",
+    "Measure per-chunk latency versus stream age because the official wrapper re-feeds accumulated audio; report p50/p95/p99 and growth slope, not one aggregate inference latency.",
+    "Separate QWEN_TEXT_AUDIO_CONTEXT_CONTINUITY factors from INTERNAL_NEURAL_STATE_CARRY/ROLLBACK factors in benchmark names and receipts.",
+    "On the same pinned German corpus, measure first-word/first-N-word WER, long-pause recovery, short-backchannel recovery, speaker-change contamination, cancellation/reset correctness, memory and compute growth.",
+    "Keep streaming credit, German quality credit, German E2E credit and whole-system credit at zero until their own acceptance evidence exists."
+  ],
+  "acceptance_fences": [
+    "CPU_TRANSFORMERS_SILENCE_PASS != VLLM_STREAMING_PASS",
+    "STREAMING_API_EXISTS != BOUNDED_REALTIME_LATENCY",
+    "ASRStreamingState != PERSISTENT_NEURAL_STATE",
+    "TOKEN_PREFIX_ROLLBACK != INTERNAL_ACOUSTIC_STATE_ROLLBACK",
+    "GERMAN_SUPPORTED_METADATA != GERMAN_ROOM_AUDIO_PASS",
+    "TRIGGER7 != TRIGGER4_ACCEPTANCE"
+  ],
+  "credit_before": {
+    "qwen3_asr_target_runtime": 0,
+    "qwen3_asr_streaming": 0,
+    "qwen3_asr_german_quality": 0,
+    "german_e2e_voice": 0,
+    "whole_persistent_voice_loop": 0
+  }
+}
