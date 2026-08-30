@@ -1,0 +1,86 @@
+{
+  "schema": "T7_TO_T4_RUNTIME_FALSIFIER_DELTA_V1",
+  "created_at": "2026-08-31T03:43:00+07:00",
+  "trigger": "7",
+  "organ": "GPT-5.6-Sol",
+  "mode": "CANDIDATE_FALSIFIER_EXECUTION_DELTA",
+  "research_id": "T7-FD-RTCOMPAT-001",
+  "semantic_key": "8c53f25ed47c458bb727dd4dc82f788241cee699e428c4d97401a965a4eb375e",
+  "supplements_existing_packet": "trigger4/inbox/local_voice/T7_FD_RTCOMPAT001_HF_HEARD_BOUNDARY_EXECUTION_2026-08-31_GPT56SOL.json",
+  "source_falsifier_delta": "research/local_voice/falsifiers/2026-08-31_HF_S2S_POST_RESPONSE_DONE_PLAYOUT_TRUNCATE_RACE_GPT56SOL.json",
+  "same_semantic_lane": true,
+  "new_claim": false,
+  "new_generation": false,
+  "new_runtime_dispatch_requested": false,
+  "trigger4_mutation_authority_claimed": false,
+  "pinned_upstream": {
+    "repository": "huggingface/speech-to-speech",
+    "revision": "3986f453012a131632eee4731995474046846794"
+  },
+  "reason_for_delta": "The existing handoff requires server generation/client playback divergence but does not force the stronger ordering where the server has already emitted response.done and finalized provisional Chat history before the client-side heard/playout boundary reaches the end. Source review shows that this post-done ordering bypasses the normal provisional rollback path while conversation.item.truncate remains a no-op.",
+  "required_ordering_discriminator": {
+    "id": "HF10_POST_DONE_PLAYOUT_LAG_CONTEXT_EXACTNESS",
+    "preconditions": [
+      "Use the already-claimed T7-FD-RTCOMPAT-001 subject and existing Trigger4/VPS execution authority.",
+      "Create deterministic output with unique semantic markers A, B and C and enough buffered audio that client playout can lag server completion.",
+      "Instrument server response.done, received/emitted audio boundary and F2 actually-heard boundary on one monotonic timeline."
+    ],
+    "must_force": [
+      "Observe response.done for the target response.",
+      "At response.done time, prove client playout is still incomplete and at least one uniquely identifiable semantic/audio tail remains unheard.",
+      "Only after those two facts are simultaneously true, trigger the F2 barge-in/cancellation path.",
+      "Then send conversation.item.truncate with the measured item_id/content_index/audio_end_ms and issue the next user turn."
+    ],
+    "must_capture": [
+      "server_response_done_monotonic_ms",
+      "f2_barge_in_monotonic_ms",
+      "client_playout_end_monotonic_ms_if_any",
+      "server_emitted_or_generated_boundary_ms",
+      "client_received_boundary_ms",
+      "f2_heard_boundary_ms",
+      "raw_server_chat_after_response_done",
+      "raw_server_chat_after_post_done_cancel",
+      "raw_server_chat_after_truncate",
+      "exact_next_turn_effective_model_context",
+      "marker_A_presence",
+      "marker_B_boundary_presence",
+      "marker_C_unheard_presence",
+      "late_old_turn_tool_result_disposition",
+      "late_cancelled_audio_disposition"
+    ],
+    "validity_gate": "If response.done is not observed before the measured barge-in while playout is demonstrably incomplete, HF10 was NOT EXECUTED. A pre-done cancellation result cannot close this post-finalization discriminator.",
+    "runtime_classification": [
+      {
+        "condition": "raw server history retains the finalized interrupted response but F2 reconstructs the next-turn model context so no non-commit-eligible assistant/tool semantics influence it",
+        "class": "RAW_SERVER_GAP_ADAPTER_CONTAINED"
+      },
+      {
+        "condition": "unheard or otherwise non-commit-eligible semantics from the finalized response influence the next model turn/tool/effect decision",
+        "class": "PRODUCT_NEGATIVE"
+      },
+      {
+        "condition": "an executed mechanism removes or makes the finalized interrupted response non-influential and the next-turn context matches F2 authority",
+        "class": "SEMANTIC_MATCH_CANDIDATE"
+      },
+      {
+        "condition": "the harness never establishes response.done before barge-in with incomplete playout",
+        "class": "EVIDENCE_INVALID_OR_DISCRIMINATOR_NOT_EXERCISED"
+      }
+    ]
+  },
+  "transport_matrix": [
+    "WebSocket: unplayed audio is client-side; force a client playback backlog explicitly.",
+    "WebRTC: preserve output_audio_buffer.clear/media-track behavior as a separate run; do not infer WebSocket semantics from WebRTC or vice versa."
+  ],
+  "credit_before_execution": {
+    "source_control_flow_evidence": 1,
+    "executed_post_done_race_credit": 0,
+    "target_runtime_credit": 0,
+    "german_e2e_voice_credit": 0,
+    "trigger4_acceptance_credit": 0,
+    "whole_voice_system_credit": 0,
+    "whole_product_credit": 0
+  },
+  "coordination_law": "Consume this as a delta to the existing packet. Do not create a duplicate Trigger7 semantic claim, a second F2 voice authority, or a duplicate VPS dispatch merely to run HF10. Re-enter current Trigger4 ownership first and attach the discriminator to the existing subject when legal.",
+  "next_exact_action": "Trigger4/runtime owner should execute the existing HF packet with this additional ordering gate. A successful pre-response.done cancel/rollback test is useful but cannot close HF10. Promote only the exact executed ordering and preserve all negative evidence."
+}
