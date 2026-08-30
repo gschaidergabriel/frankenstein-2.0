@@ -4,131 +4,56 @@
   "date": "2026-08-31",
   "organ": "GPT-5.6-Sol",
   "research_id": "T7-FD-RTCOMPAT-001",
-  "supplement_to": "research/local_voice/falsifiers/2026-08-31_HF_S2S_REALTIME_HEARD_BOUNDARY_PROTOCOL_FALSIFIER_GPT56SOL.json",
-  "classification": "REVIEW_ONLY_CANDIDATE_FALSIFIER_DELTA",
+  "classification": "REVIEW_ONLY_CORRECTION",
   "implementation_mutation_authority": false,
   "new_claim_or_generation": false,
-  "target": "huggingface/speech-to-speech OpenAI-Realtime-compatible local server at pinned revision 3986f453012a131632eee4731995474046846794",
-  "finding": {
-    "id": "HF_CANCEL_ROLLBACK_PREFIX_AMNESIA_RISK",
-    "epistemic_status": "CONFIRMED_SOURCE_PLUS_OPEN_RUNTIME_HYPOTHESIS",
-    "confirmed_source": [
-      "The pinned websocket router parses conversation.item.truncate and intentionally treats it as a no-op after cancellation, asserting that client playback owns the unheard tail and no additional server state needs mutation.",
-      "On response terminal status cancelled, failed, or incomplete, ResponseHandler calls Chat.rollback_provisional_generation for the current response before deferred client items are applied.",
-      "Chat.rollback_provisional_generation tombstones the response key and removes the tracked provisional item IDs and call IDs through _rollback_generation_locked."
+  "correction_status": "PRIOR_PREFIX_AMNESIA_HYPOTHESIS_REJECTED_FOR_CURRENT_F2_POLICY",
+  "supersedes_own_prior_content": true,
+  "basis": {
+    "f2_policy": [
+      "started/heard output interrupted by barge-in remains non-commit-eligible",
+      "only fully heard completed output may become commit-eligible",
+      "VoiceOutcome result reference requires fully heard commit-eligible output"
     ],
-    "open_runtime_hypothesis": "The rollback likely prevents an unheard-tail leak, but because it removes the tracked provisional response rather than truncating it at audio_end_ms, it may also erase assistant semantics that the user actually heard before barge-in. This would produce next-turn context amnesia rather than tail leakage.",
-    "why_this_matters": "OpenAI-style conversation.item.truncate is intended to synchronize server conversation context with actual client playback at audio_end_ms. Compatibility therefore requires exact heard-boundary preservation, not merely absence of unheard content.",
-    "two_sided_oracle": {
-      "tail_leak_failure": "next-turn model context contains assistant semantics beyond the measured F2 heard boundary",
-      "prefix_amnesia_failure": "next-turn model context omits assistant semantics at or before the measured F2 heard boundary when those semantics are required by the authoritative F2 conversation contract",
-      "pass_condition": "next-turn effective model context is equivalent to the F2-authoritative conversation truncated exactly at the measured heard boundary, with stale tool/audio producers fenced"
-    }
+    "pinned_upstream_revision": "3986f453012a131632eee4731995474046846794",
+    "pinned_source_findings": [
+      "conversation.item.truncate is parsed but intentionally no-ops after cancellation",
+      "cancelled/failed/incomplete response termination calls Chat.rollback_provisional_generation",
+      "rollback tombstones the response key and removes tracked provisional assistant/tool items"
+    ],
+    "newer_checkpoint": "research/local_voice/checkpoints/2026-08-31T034300P0700_T7_HF_S2S_CANCEL_ROLLBACK_TEST_EVIDENCE_GPT56SOL.json"
   },
-  "source_refs": [
-    {
-      "class": "CURRENT_PINNED_SOURCE",
-      "repo": "huggingface/speech-to-speech",
-      "revision": "3986f453012a131632eee4731995474046846794",
-      "path": "src/speech_to_speech/api/openai_realtime/websocket_router.py",
-      "observation": "ConversationItemTruncateEvent is routed as deliberate no-op after cancellation."
-    },
-    {
-      "class": "CURRENT_PINNED_SOURCE",
-      "repo": "huggingface/speech-to-speech",
-      "revision": "3986f453012a131632eee4731995474046846794",
-      "path": "src/speech_to_speech/api/openai_realtime/handlers/response.py",
-      "observation": "cancelled/failed/incomplete terminal handling rolls back provisional generation."
-    },
-    {
-      "class": "CURRENT_PINNED_SOURCE",
-      "repo": "huggingface/speech-to-speech",
-      "revision": "3986f453012a131632eee4731995474046846794",
-      "path": "src/speech_to_speech/LLM/chat.py",
-      "observation": "rollback_provisional_generation marks response cancelled and removes tracked provisional item/call IDs."
-    },
-    {
-      "class": "EXTERNAL_PROTOCOL_REFERENCE",
-      "source": "OpenAI Realtime-compatible documentation",
-      "observation": "conversation.item.truncate uses item_id/content_index/audio_end_ms to synchronize server understanding with client playback and remove unplayed assistant transcript/context."
-    }
-  ],
-  "highest_information_discriminator": {
-    "id": "HF09_EXACT_HEARD_PREFIX_RETENTION",
+  "reconciliation": {
+    "incorrect_hypothesis": "Current F2 requires preservation of the partially heard assistant prefix after barge-in, so whole-response rollback would cause prefix amnesia.",
+    "why_incorrect": "Current F2 explicitly treats the entire interrupted response as non-commit-eligible even if part was heard. Therefore whole-response rollback is compatible with current F2 semantics in principle.",
+    "remaining_protocol_difference": "OpenAI-style truncate can preserve conversation state up to audio_end_ms, whereas the pinned HF server relies on cancel plus whole provisional-response rollback. This remains a protocol-surface difference, not a current F2 product failure by itself.",
+    "remaining_runtime_hypothesis": "Source and unit tests cannot prove real ordering across playback, TTS, late tool results, late assistant writes, reconnects and WebSocket/WebRTC transport races."
+  },
+  "revised_discriminator": {
     "owner": "TRIGGER4_RUNTIME_FALSIFIER",
-    "preferred_surface": "lowest safe faithful VPS sandbox under existing Trigger4 execution authority",
-    "subject_fences": {
-      "speech_to_speech_revision": "3986f453012a131632eee4731995474046846794",
-      "same_existing_f2_semantic_claim": true
-    },
-    "procedure": [
-      "Generate a deterministic assistant response containing three uniquely identifiable semantic segments A, B, C, with enough audio buffering that C is generated before it is heard.",
-      "Measure actual playback and barge in after A is fully heard and during B, defining an exact F2 heard boundary inside B.",
-      "Send the existing cancellation/playback-clear sequence and conversation.item.truncate with the measured audio_end_ms.",
-      "After cancellation is terminal, capture the exact internal Chat/model-input representation used for the next user turn without granting the speech server canonical conversation authority.",
-      "Probe the next turn for A, the heard prefix of B, the unheard suffix of B, and C separately.",
-      "Repeat with duplicate, stale and out-of-range truncate; repeat with a delayed old-turn tool result and a late cancelled-generation audio/text chunk.",
-      "Run a network-blocked locality variant after protocol semantics are established."
+    "reuse_existing_packet": true,
+    "ids": [
+      "HF02_CANCEL_GENERATION_VS_HEARD_HISTORY",
+      "HF03_TRUNCATE_NOOP_SEMANTIC_EXACTNESS",
+      "HF04_TOOL_RESULT_AFTER_BARGE_IN",
+      "HF05_DOUBLE_CANCEL_AND_LATE_CHUNK"
     ],
     "must_hold": [
-      "No semantic content strictly after the measured heard boundary may influence the next turn.",
-      "Semantic content at or before the measured heard boundary must remain available to the next turn through the authoritative F2 conversation reconstruction or an exactly equivalent server state.",
-      "A cancelled response cannot regain authority through late audio, text, tool output or duplicate/stale truncate.",
-      "The test must distinguish server internal history from F2 authoritative reconstructed history; a safe F2 adapter may pass even if raw server history is intentionally discarded.",
-      "No runtime/Trigger4 acceptance credit is minted by this research packet."
+      "after partial audible output and response.cancel, the entire interrupted assistant response is absent from the next-turn effective local Chat/model context under current F2 policy",
+      "late cancelled-generation assistant/audio/tool writes cannot re-enter current-turn authority",
+      "duplicate/stale/out-of-range truncate cannot corrupt newer causal state",
+      "WebSocket and WebRTC are exercised separately",
+      "network-blocked locality remains a separate required gate"
     ],
-    "diagnostic_matrix": [
-      {
-        "post_cancel_context": "heard prefix present, unheard tail absent",
-        "classification": "SEMANTIC_MATCH_CANDIDATE"
-      },
-      {
-        "post_cancel_context": "heard prefix present, unheard tail present",
-        "classification": "TAIL_LEAK_PRODUCT_NEGATIVE"
-      },
-      {
-        "post_cancel_context": "heard prefix absent, unheard tail absent",
-        "classification": "PREFIX_AMNESIA_PROTOCOL_GAP"
-      },
-      {
-        "post_cancel_context": "heard prefix absent, unheard tail present",
-        "classification": "SEVERE_CONTEXT_DIVERGENCE"
-      }
-    ],
-    "required_receipt_additions": [
-      "assistant_segment_ids_A_B_C",
-      "generated_boundary_ms",
-      "emitted_boundary_ms",
-      "heard_boundary_ms",
-      "truncate_audio_end_ms",
-      "raw_server_post_cancel_chat_digest",
-      "f2_authoritative_reconstructed_context_digest",
-      "next_turn_effective_model_context_digest",
-      "heard_prefix_presence",
-      "unheard_tail_presence"
-    ]
-  },
-  "architecture_consequence": {
-    "if_prefix_amnesia_confirmed_but_f2_reconstruction_exact": "Keep the HF server as transport/inference organ; reconstruct next-turn model context from F2 authoritative heard-state and do not rely on server conversation persistence.",
-    "if_tail_leak_confirmed": "Do not treat raw HF conversation state as compatible; fence it behind an F2-owned context adapter/reconstruction boundary.",
-    "if_exact_boundary_match_confirmed": "Protocol gap is narrowed, but German E2E, locality, acoustic, tool-race and Trigger4 runtime acceptance remain separately zero until measured.",
-    "forbidden": [
-      "second persona",
-      "second memory authority",
-      "second state/effect system",
-      "duplicate Trigger4 claim",
-      "scope inflation from source inspection to runtime acceptance"
-    ]
+    "reopen_prefix_retention_only_if": "F2 authority later changes to persist a partially heard prefix from interrupted responses."
   },
   "credit": {
-    "source_review_delta": 1,
-    "executed_protocol_component": 0,
+    "source_review": 1,
+    "upstream_unit_test_evidence": 1,
+    "executed_local_protocol": 0,
     "german_e2e_voice": 0,
-    "network_blocked_locality": 0,
-    "acoustic_quality": 0,
-    "physical_device": 0,
     "trigger4_acceptance": 0,
     "whole_product": 0
   },
-  "next_exact_action": "Route HF09 to the existing Trigger4 semantic-claim owner. Execute it before further local-realtime architecture expansion because the result distinguishes safe tail rollback from incompatible heard-prefix amnesia and decides whether F2 must reconstruct authoritative conversation context on every interrupted turn."
+  "next_exact_action": "Do not execute a new HF09 prefix-retention lane. Route the existing HF01-HF05 packet through the existing Trigger4/VPS execution authority using whole-response rollback semantics; inspect exact next-turn context and late producer fencing, then promote only executed scope."
 }
