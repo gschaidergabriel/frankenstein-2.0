@@ -1,0 +1,81 @@
+{
+  "schema": "TRIGGER6_ARCHITECTURE_DELTA_FUSION/v1",
+  "trigger": "6",
+  "fusion_id": "ADF-20260830T2155P0700-GPT56SOL-WP1111-SYMLINK-AUTHORITY",
+  "created_at": "2026-08-30T21:55:00+07:00",
+  "worker": "GPT-5.6 Sol / ChatGPT organ",
+  "f2_snapshot": "14050fae602d504422ccf0a99901f5f35bbb80c8",
+  "research_entity_snapshot": "b49abd93a5f1d4e445a766eba1a13a1218e1179c",
+  "primary_research_id": "R6-20260830-SYMLINK-CONFINEMENT-GPT56SOL-01",
+  "primary_evidence": "research/tool_intelligence/deltas/R6_20260830_SYMLINK_CONFINEMENT_E1_GPT56SOL.json@379bbe0474369bb76329b0acd511d64d7e6ec1b4",
+  "live_fusion": {
+    "initial_wp1111_source": "025c40c1835d3780d941e69f23604954cc3be067",
+    "trigger4_hardening": "e92b3bb594505015bba9b9d0bd6894aff41796d8",
+    "failed_adversarial_regression": "8b176639958d28b0b3a3a6745e6406f29fe05a6a / Actions 33317884561",
+    "isolated_falsifier_source": "943d10275d76558e1d657270989a99e4c2009111",
+    "accepted_repository_ci": "Actions 33317948080 / job 99274719625",
+    "acceptance_receipt_commit": "621faa21b771343468bae6f44731f999e4df5f92",
+    "reconciliation_commit": "6fca8b19dd492d0fe6cfb8035e2a78ed812860b0"
+  },
+  "finding": {
+    "original_local_issue": "The original WP1111 helper resolved a referenced path before checking candidate.is_symlink(), which is locally incapable of proving that the lexical reference was link-free.",
+    "composed_system_counterfinding": "The composed WP1111 evaluator first invokes the canonical release-integrity verifier, which rejects symlink files/directories across the manifest-bound payload before metadata-reference checks. Therefore ordinary post-build symlink substitution does not establish a reachable bypass of the composed static gate.",
+    "parallel_resolution": "Trigger-4 retained lexical component checking as defense-in-depth and isolated its unit falsifiers from release-manifest authority. Repository-hosted component CI then passed at the exact accepted source.",
+    "architecture_conclusion": "NO_NEW_EXTERNAL_FILESYSTEM_FRAMEWORK_REQUIRED_FOR_STATIC_RELEASE_GATE"
+  },
+  "authority_model": [
+    {
+      "layer": "RELEASE_INTEGRITY",
+      "role": "canonical full-payload static integrity and symlink prohibition for manifest-bound release artifacts"
+    },
+    {
+      "layer": "WP1111_REFERENCE_VALIDATION",
+      "role": "defense-in-depth validation of lexical metadata references; may fail earlier/more specifically but must not become a second release-manifest authority"
+    },
+    {
+      "layer": "LIVE_MUTABLE_FILESYSTEM_ACCESS",
+      "role": "separate future/runtime concern; if untrusted mutable traversal exists, use descriptor/kernel-backed confinement rather than assuming static Path validation closes TOCTOU races"
+    }
+  ],
+  "external_patterns": [
+    {
+      "source": "Python pathlib Path.resolve/is_symlink",
+      "adoption": "SEMANTIC_SUPPORT",
+      "result": "supports lexical-check-before-resolve when link identity itself is an invariant"
+    },
+    {
+      "source": "Python tarfile extraction filters",
+      "adoption": "CONCEPT_ONLY",
+      "result": "prefer forbidding links when not required and keep extraction/live mutation outside static manifest claims"
+    },
+    {
+      "source": "Linux openat2 RESOLVE_NO_SYMLINKS/RESOLVE_BENEATH and Go os.Root",
+      "adoption": "DEFER_TO_LIVE_FS_BOUNDARY_ONLY",
+      "result": "do not import for current frozen static gate; revisit only if F2 opens untrusted mutable filesystem paths"
+    }
+  ],
+  "counterhypotheses": [
+    "Defense-in-depth lexical checking may be redundant under the current manifest-bound call chain, but can still protect future helper reuse and produce a local invariant with clearer failure semantics.",
+    "Static link-free validation does not prove race-free later access if another process can mutate path components after validation.",
+    "The successful repository CI establishes only the accepted component/source scope, not clean-machine, physical-host, runtime, effect, completion or whole-system acceptance."
+  ],
+  "architecture_delta": {
+    "status": "NO_NEW_BUILD_DELTA_REQUIRED_CONCURRENTLY_ABSORBED",
+    "reason": "The only justified static-gate hardening was already implemented, tested, accepted and reconciled by Trigger-4 during this Trigger-6 macrocycle. Importing a new framework would add weight without current evidence of net benefit.",
+    "affected_workpackages": ["F2-WP-1111"],
+    "runtime_token_effect": "NONE_EXPECTED",
+    "dependency_effect": "NO_NEW_DEPENDENCY"
+  },
+  "credit": {
+    "trigger6_research_stage": "E1_SOURCE_READ",
+    "trigger6_architecture_e2_credit": 0,
+    "wp1111_repository_component_acceptance": true,
+    "runtime_credit": 0,
+    "physical_host_credit": 0,
+    "clean_machine_credit": 0,
+    "effect_credit": 0,
+    "completion_credit": 0,
+    "whole_system_credit": 0
+  },
+  "next_exact_action": "Do not reopen WP1111 implementation. Consume its accepted repository-CI result as a bounded static prerequisite; bind/rebuild one exact deterministic release candidate and execute the accepted gate against that exact root before Trigger-4 enters real clean-machine acceptance. Keep any future live mutable-filesystem confinement as a distinct research objective."
+}
