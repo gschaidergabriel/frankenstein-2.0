@@ -1,0 +1,81 @@
+{
+  "schema": "FRANKENSTEIN2_TRIGGER6_INSTRUMENT_REPAIR_REPRODUCED/v1",
+  "trigger": "6",
+  "research_id": "R6-20260830-WP510-RECURSIVE-MANIFEST-GPT56SOL-01",
+  "status": "E3_E4_INSTRUMENT_REPAIR_REPRODUCED_RESEARCH_ONLY",
+  "repair_claim": "research/tool_intelligence/claims/R6-20260830-WP510-RECURSIVE-MANIFEST-GPT56SOL-01/E3_INTERPRETER_BINARY_IDENTITY_REPAIR.json@fb2a4fcf6e8291c8df5c99ee90ded0bce046b2a2",
+  "successor_instrument": "research/tool_intelligence/experiments/wp510_recursive_manifest_v2.py@bf7f841800fe571d561a18b3e7f635f3d0e98380",
+  "defect_closed": "v1 executable_sha256 hashed the resolved executable path string rather than interpreter executable bytes",
+  "preserved_history": [
+    "The original E3/E4 results remain valid only for their explicitly measured source-closure/hazard behavior and historical instrument version.",
+    "The v1 executable_sha256 field is not credited as interpreter binary identity.",
+    "No old receipt was overwritten or silently upgraded."
+  ],
+  "e3_v2": {
+    "exact_source_commit": "6b5ee8dcda957b7191ee230f962e71468c1e86e9",
+    "github_actions_run_id": 33318695142,
+    "github_actions_job_id": 99276708197,
+    "conclusion": "success",
+    "runner": "GitHub hosted ubuntu-24.04 / CPython 3.12.14",
+    "self_test_checks": 13,
+    "self_test_passed": true,
+    "root_sha256": "ac88e7542a5ba614e57b9663a2fd8267e7529d3e098b42eef46714a92b72a307",
+    "local_files": 7,
+    "local_closure_sha256": "1571b4127ba475aec8177e9382731b0f10799dd97a02a0d1a1b52706397dd9da",
+    "blockers": [],
+    "runtime_extra_local_modules": [],
+    "interpreter": {
+      "resolved_path": "/opt/hostedtoolcache/Python/3.12.14/x64/bin/python3.12",
+      "executable_path_sha256": "df4607e96338dd8988c5edf26baa173b9a979d5c432b77a888b85d0064573115",
+      "executable_file_sha256": "bef88f140b625959f8af25c7b75cce2cd5d4b29cc2f2b079befd7f68eda4dba0",
+      "executable_file_size": 17752,
+      "executable_file_read_status": "OK",
+      "cache_tag": "cpython-312",
+      "soabi": "cpython-312-x86_64-linux-gnu"
+    },
+    "manifest_sha256": "f71698a33102ee864967ddd6c72dc5203428962e675f72c0cbba63706361864a",
+    "completeness_class": "CLOSED_BY_CONSTRUCTION_CANDIDATE_RESEARCH_ONLY"
+  },
+  "e4_v2": {
+    "exact_source_commit": "2ec2c6adf2fddb24cfbd249dae7efccd5e976495",
+    "github_actions_run_id": 33318707601,
+    "github_actions_job_id": 99276739419,
+    "conclusion": "success",
+    "cases_total": 8,
+    "cases_passed": 8,
+    "unrelated_repo_churn_preserved_closure": true,
+    "transitive_source_mutation_changed_closure_digest": true,
+    "static_new_local_dependency_expanded_closure": true,
+    "dynamic_import_detected_and_runtime_mismatch_observed": true,
+    "sys_path_mutation_fail_closed": true,
+    "entry_point_discovery_fail_closed": true,
+    "environment_dependency_fail_closed": true,
+    "native_library_load_fail_closed": true
+  },
+  "external_primary_recheck": {
+    "python_import_system": "Python 3.12 import documentation states cached bytecode invalidation can be timestamp- or hash-based and unchecked hash pycs are assumed valid unless policy overrides it.",
+    "pep_552": "PEP 552 defines CHECKED_HASH and UNCHECKED_HASH pycs and --check-hash-based-pycs default/always/never behavior.",
+    "importlib_machinery": "Python importlib documents SourceLoader optional bytecode support, SourcelessFileLoader for bytecode-only modules, FileFinder/path hooks, and extension-module loaders.",
+    "entry_point_discovery": "importlib.metadata distribution discovery can consult sys.path and meta path finders, so plugin/entry-point discovery is an execution-environment dependency surface.",
+    "refs": [
+      "https://docs.python.org/3.12/reference/import.html",
+      "https://docs.python.org/3.12/library/importlib.html",
+      "https://peps.python.org/pep-0552/",
+      "https://docs.python.org/3.12/library/importlib.metadata.html"
+    ]
+  },
+  "new_parallel_delta_consumed": {
+    "ref": "trigger4/inbox/tool_research/R6-20260830-PYTHON-BYTECODE-SUBJECT-ATTESTATION-GPT56SOL-01.json@f5e2dc1ce6b5509f64e6a80bee08fa0825f60a51",
+    "meaning": "Interpreter executable bytes plus source closure still do not prove the actually executed Python module artifact when cached or sourceless bytecode can diverge from .py source identity.",
+    "effect_on_wp510_candidate": "E5 must bind or fail closed on executed loader/bytecode artifact identity; it may not call source+interpreter equality complete runtime identity."
+  },
+  "evidence_ceiling": "E4_F2_ABLATION_RESEARCH_ONLY_WITH_REPAIRED_INSTRUMENT",
+  "credit": {
+    "research_reproduction_credit": 1,
+    "architecture_credit": 0,
+    "runtime_credit": 0,
+    "target_host_credit": 0,
+    "whole_system_credit": 0
+  },
+  "next_exact_action": "Claim E5 and distill a Trigger-4 build candidate that seals WP510 recursive source closure plus interpreter/import-environment identity, but treats consumed loader/bytecode artifact identity as a mandatory acceptance gate rather than assumed closure."
+}
