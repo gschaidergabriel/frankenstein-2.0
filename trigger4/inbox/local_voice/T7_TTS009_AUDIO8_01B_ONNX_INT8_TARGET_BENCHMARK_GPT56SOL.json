@@ -4,8 +4,8 @@
   "to_trigger": "4",
   "research_id": "T7-TTS-009",
   "candidate": "AUDIO8_TTS_01B_ONNX_INT8_GERMAN_TARGET_BENCHMARK",
-  "state": "READY_WHEN_RUNNER_RECOVERS",
-  "priority": "AFTER_EXISTING_CLAY_DIRECT_DEV_HARDWARE_GATE_AND_WITHOUT_DUPLICATING_ACTIVE_TTS_RUNS",
+  "state": "READY_FOR_GIT_VPS_BRIDGE_AFTER_TARGET_CLAIM",
+  "priority": "USE_EXISTING_ADMITTED_GIT_VPS_BRIDGE; DO_NOT_CREATE_ANOTHER_GITHUB_ACTIONS_QUEUE_PROBE; AVOID_DUPLICATING_ACTIVE_TTS_RUNS",
   "source_semantic_key": "6798470b87f53df7caa51a83b85fac09e813028a7359c52685e7ecf879d8a1a3",
   "source_result": "research/local_voice/sources/2026-08-30_T7_TTS009_AUDIO8_0_1B_ONNX_SOURCE_PIN_GPT56SOL.json",
   "do_not_dispatch_from_this_file": true,
@@ -18,7 +18,14 @@
     "generation": 1
   },
   "expected_target_runtime_semantic_key": "71bbc37229b43296de2325d375124a25d39c5eccd15bd3709a432ec3bf9913b0",
-  "execution_claim_rule": "Before any target run, Trigger 4 or the authorized executor must compile and acquire the distinct canonical target-runtime semantic claim. This handoff is source evidence only and does not authorize duplicate dispatch.",
+  "target_claim_observed_at_reentry": false,
+  "execution_claim_rule": "Before any target run, Trigger 4 or the authorized executor must create-only acquire the distinct canonical target-runtime semantic claim. This handoff is source evidence only and does not authorize duplicate dispatch.",
+  "transport_reentry": {
+    "github_actions_state": "QUEUED_NO_STEPS_REMAINS_INFRASTRUCTURE_NEGATIVE_EVIDENCE",
+    "admitted_bypass": "GIT_VPS_BRIDGE",
+    "bypass_evidence": "F2 commit ebb5478ea4071c51879caf58f038e6c8888f9e53 records Qwen3-ASR model load and local inference on clay-direct-dev through GIT_VPS_BRIDGE while its original Actions job remained queued/no-steps.",
+    "routing_consequence": "Audio8 target work should use the same admitted target transport after claim acquisition rather than enqueue a new self-hosted Actions probe."
+  },
   "source_evidence": {
     "upstream_code_commit": "55c1260df0176f0f7ba64e53ae0828cff3f95081",
     "official_onnx_cpu_runtime": true,
