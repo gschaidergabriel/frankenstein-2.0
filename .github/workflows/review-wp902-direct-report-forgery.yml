@@ -1,0 +1,29 @@
+name: REVIEW WP902 direct-report forgery falsifier
+
+on:
+  pull_request:
+    paths:
+      - 'src/frankenstein2/whole_system_characterization.py'
+      - 'tests/falsifier_wp902_direct_report_forgery.py'
+      - '.github/workflows/review-wp902-direct-report-forgery.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  direct-report-forgery-falsifier:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout exact PR merge ref
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - name: Compile current WP902 and falsifier
+        run: >-
+          python -m py_compile
+          src/frankenstein2/whole_system_characterization.py
+          tests/falsifier_wp902_direct_report_forgery.py
+      - name: Require direct forged report to fail closed
+        env:
+          PYTHONPATH: src
+        run: python -m unittest -v tests.falsifier_wp902_direct_report_forgery
