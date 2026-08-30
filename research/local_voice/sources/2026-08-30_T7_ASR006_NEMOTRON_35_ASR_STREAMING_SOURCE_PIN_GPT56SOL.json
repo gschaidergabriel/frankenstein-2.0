@@ -1,0 +1,60 @@
+{
+  "schema": "FRANKENSTEIN_TRIGGER7_SOURCE_RESULT/v1",
+  "trigger": "7",
+  "research_id": "T7-ASR-006",
+  "objective": "E1_NEMOTRON_35_ASR_STREAMING_SOURCE_PIN",
+  "semantic_key": "224418a2f8026dfe0ea41dbd36c103e7c59c23b050616c2cf40acc83649a6ff6",
+  "observed_f2_reentry_head_before_research": "397a7f598f3c47fe77d4649773dfd5615b8a83c9",
+  "subject": {
+    "upstream": "nvidia/nemotron-3.5-asr-streaming-0.6b",
+    "model_version": "nemotron-3.5-asr-streaming-0.6b-v1",
+    "pinned_upstream_revision": "1c8deaecc64b91f034d73e08dd8b64625eb3395d",
+    "revision_reason": "latest observed upstream commit in Hugging Face commit history; adds official NeMo-Speech.cpp GGUF",
+    "parameters": "600M",
+    "architecture": "Cache-Aware FastConformer-RNNT with language-ID prompt conditioning",
+    "license": "OpenMDW-1.1"
+  },
+  "primary_sources": [
+    "https://huggingface.co/nvidia/nemotron-3.5-asr-streaming-0.6b",
+    "https://huggingface.co/nvidia/nemotron-3.5-asr-streaming-0.6b/commits/main",
+    "https://huggingface.co/nvidia/nemotron-3.5-asr-streaming-0.6b/blob/main/nemotron-3.5-asr-streaming-0.6b.q8_0.gguf"
+  ],
+  "source_findings": {
+    "german_support": {
+      "status": "SUPPORTED_TRANSCRIPTION_READY",
+      "locale": "de-DE",
+      "upstream_tier": "transcription-ready"
+    },
+    "streaming": {
+      "status": "NATIVE_CACHE_AWARE_STREAMING_SOURCE_SUPPORTED",
+      "chunk_ms": [80, 160, 320, 560, 1120],
+      "mechanism": "encoder attention/convolution cache reuse with non-overlapping chunk processing; RNNT decoder",
+      "language_conditioning": "de-DE/de or auto"
+    },
+    "german_fleurs_wer_percent_self_reported": {
+      "langid": {"80ms": 9.81, "160ms": 9.21, "320ms": 8.83, "560ms": 8.42, "1120ms": 8.31},
+      "auto": {"80ms": 9.90, "160ms": 9.37, "320ms": 8.87, "560ms": 8.58, "1120ms": 8.22},
+      "scope": "UPSTREAM_SELF_REPORTED_FLEURS_ONLY_NOT_F2_ROOM_AUDIO"
+    },
+    "local_runtime_paths": {
+      "nemo_speech_cpp": "official model card documents local C++ runtime path",
+      "nemo": "NeMo 26.06; Python 3.11+, Cython, PyTorch; cache-aware streaming inference script",
+      "transformers": "Nemotron3_5Asr support documented from transformers>=5.13.0"
+    },
+    "official_q8_gguf": {
+      "remote_size": "742 MB",
+      "sha256": "a5c435f294eea8f88ce68dd27b8c3bfea7f777cb2fbba04fcd30eaa555f429ae",
+      "xet_hash": "f01b59f39469308f0d5621999a050abcfcc205bf82dd091042e1eeaf06746745",
+      "note": "repository tree pointer size is not artifact size; Xet metadata reports the 742 MB remote object"
+    }
+  },
+  "hypothesis": "Nemotron 3.5 ASR Streaming 0.6B is a strong German-first local ASR candidate because it combines explicit de-DE production-tier support, native cache-aware streaming and an official local Q8 C++ path.",
+  "counterhypothesis": "Upstream FLEURS and H100-oriented claims may not transfer to Frankenstein room audio or the actual VPS/CPU/GPU envelope; 600M ASR compute may lose to a smaller or better-optimized baseline in end-to-end turn latency.",
+  "source_scope_result": "SOURCE_PINNED_ELIGIBLE_FOR_TARGET_RUNTIME_BENCHMARK",
+  "evidence_credit": 1,
+  "runtime_credit": 0,
+  "german_e2e_voice_credit": 0,
+  "trigger4_acceptance_credit": 0,
+  "whole_system_credit": 0,
+  "next_discriminator": "After the existing clay-direct-dev runner-assignment blocker is resolved, benchmark the pinned Q8 GGUF first at 80/160/320 ms on a fixed German-room corpus against the existing Whisper/Qwen3-ASR baseline, measuring WER, partial stability, CPU/GPU/RAM, first-token/final-token latency and real-time factor."
+}
