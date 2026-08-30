@@ -24,6 +24,7 @@ from frankenstein2.cognitive_world_model_prediction_benchmark import (
 from frankenstein2.cognitive_world_model_probability_evaluation import (
     ProbabilityCorrectClaim,
     WorldModelProbabilityEvaluationError,
+    evaluate_admitted_probabilistic_next_observation_prediction,
     evaluate_probability_quality,
     proper_binary_scores,
 )
@@ -83,14 +84,12 @@ def _admit(fixture: MicroWorldFixture, run: RunDescriptor, *, admission_id: str)
 
 
 class WorldModelProbabilityEvaluationTests(unittest.TestCase):
-    def test_probability_score_binds_existing_predeclared_admission(self) -> None:
+    def test_integrated_probability_path_checks_claim_before_step_and_scores_correct(self) -> None:
         fixture = _fixture()
         state, observation = begin_episode(fixture, episode_id="episode/probability-correct", episode_generation=1)
         policy_id = "policy/probability-correct"
         run = _run(fixture, run_id="run/wp803-probability-correct", policy_id=policy_id)
         admission = _admit(fixture, run, admission_id="admission/wp803-probability-correct")
-        expected_admission_sha = admission.sha256()
-
         prediction = prediction_for_observation(
             observation,
             action_id="a_change",
@@ -108,36 +107,32 @@ class WorldModelProbabilityEvaluationTests(unittest.TestCase):
             probability_claim_id="probability-claim/correct-70pct",
             probability_correct_ppm=700_000,
         )
-        _, _, _, hard = evaluate_admitted_next_observation_prediction(
+        next_state, _, _, hard, score = evaluate_admitted_probabilistic_next_observation_prediction(
             fixture,
             state=state,
             action_id="a_change",
             prediction=prediction,
+            probability_claim=claim,
             run_descriptor=run,
             run_admission=admission,
-            expected_run_admission_sha256=expected_admission_sha,
-        )
-        score = evaluate_probability_quality(
-            claim,
-            prediction=prediction,
-            hard_evaluation=hard,
-            run_admission=admission,
-            expected_run_admission_sha256=expected_admission_sha,
+            expected_run_admission_sha256=admission.sha256(),
+            expected_probability_claim_sha256=claim.sha256(),
         )
 
         self.assertEqual(hard.outcome, CORRECT)
         self.assertEqual(score.target_correct, 1)
-        self.assertEqual(score.run_admission_sha256, expected_admission_sha)
+        self.assertEqual(score.run_admission_sha256, admission.sha256())
+        self.assertEqual(score.probability_claim_sha256, claim.sha256())
         self.assertAlmostEqual(score.brier_score, 0.09)
         self.assertAlmostEqual(score.log_loss, -math.log(0.7))
+        self.assertEqual(next_state.step_index, 1)
 
-    def test_wrong_hard_prediction_penalizes_overconfidence(self) -> None:
+    def test_wrong_hard_prediction_penalizes_predeclared_overconfidence(self) -> None:
         fixture = _fixture()
         state, observation = begin_episode(fixture, episode_id="episode/probability-wrong", episode_generation=1)
         policy_id = "PUBLIC_PERSISTENCE_BASELINE"
         run = _run(fixture, run_id="run/wp803-probability-wrong", policy_id=policy_id)
         admission = _admit(fixture, run, admission_id="admission/wp803-probability-wrong")
-        expected_admission_sha = admission.sha256()
         prediction = persistence_baseline(
             observation,
             action_id="a_change",
@@ -150,21 +145,16 @@ class WorldModelProbabilityEvaluationTests(unittest.TestCase):
             probability_claim_id="probability-claim/wrong-90pct",
             probability_correct_ppm=900_000,
         )
-        _, _, _, hard = evaluate_admitted_next_observation_prediction(
+        _, _, _, hard, score = evaluate_admitted_probabilistic_next_observation_prediction(
             fixture,
             state=state,
             action_id="a_change",
             prediction=prediction,
+            probability_claim=claim,
             run_descriptor=run,
             run_admission=admission,
-            expected_run_admission_sha256=expected_admission_sha,
-        )
-        score = evaluate_probability_quality(
-            claim,
-            prediction=prediction,
-            hard_evaluation=hard,
-            run_admission=admission,
-            expected_run_admission_sha256=expected_admission_sha,
+            expected_run_admission_sha256=admission.sha256(),
+            expected_probability_claim_sha256=claim.sha256(),
         )
 
         self.assertEqual(hard.outcome, INCORRECT)
@@ -172,9 +162,8 @@ class WorldModelProbabilityEvaluationTests(unittest.TestCase):
         self.assertAlmostEqual(score.brier_score, 0.81)
         self.assertAlmostEqual(score.log_loss, -math.log(0.1))
 
-    def test_same_hard_decisions_now_distinguish_probability_quality(self) -> None:
-        # Mirrors the admitted research falsifier: the hard decisions/outcomes are fixed.
-        # Only confidence changes. Two errors make blanket 0.99 confidence materially worse.
+    def test_same_hard_decisions_distinguish_probability_quality(self) -> None:
+        # Exact donor falsifier shape: hard decisions/outcomes are identical; confidence differs.
         targets = (1, 1, 0, 1, 1, 1, 0, 1, 1, 1)
         calibrated_ppm = (700_000, 680_000, 690_000, 660_000, 640_000, 710_000, 710_000, 660_000, 640_000, 620_000)
         overconfident_ppm = (990_000,) * len(targets)
@@ -186,17 +175,16 @@ class WorldModelProbabilityEvaluationTests(unittest.TestCase):
         calibrated_log = sum(v[1] for v in calibrated) / len(calibrated)
         overconfident_log = sum(v[1] for v in overconfident) / len(overconfident)
 
-        self.assertEqual(sum(targets), 8)  # same 0.8 hard accuracy in both confidence variants
+        self.assertEqual(sum(targets), 8)
         self.assertLess(calibrated_brier, overconfident_brier)
         self.assertLess(calibrated_log, overconfident_log)
 
-    def test_fresh_or_wrong_admission_digest_cannot_replace_pinned_identity(self) -> None:
+    def test_wrong_run_admission_digest_fails_before_world_step(self) -> None:
         fixture = _fixture()
         state, observation = begin_episode(fixture, episode_id="episode/probability-admission", episode_generation=1)
         policy_id = "PUBLIC_PERSISTENCE_BASELINE"
         run = _run(fixture, run_id="run/wp803-probability-admission", policy_id=policy_id)
         admission = _admit(fixture, run, admission_id="admission/wp803-probability-admission")
-        expected_admission_sha = admission.sha256()
         prediction = persistence_baseline(
             observation,
             action_id="b_stay",
@@ -209,6 +197,73 @@ class WorldModelProbabilityEvaluationTests(unittest.TestCase):
             probability_claim_id="probability-claim/admission",
             probability_correct_ppm=600_000,
         )
+
+        with self.assertRaisesRegex(WorldModelProbabilityEvaluationError, "predeclared expected digest"):
+            evaluate_admitted_probabilistic_next_observation_prediction(
+                fixture,
+                state=state,
+                action_id="b_stay",
+                prediction=prediction,
+                probability_claim=claim,
+                run_descriptor=run,
+                run_admission=admission,
+                expected_run_admission_sha256="9" * 64,
+                expected_probability_claim_sha256=claim.sha256(),
+            )
+        self.assertEqual(state.step_index, 0)
+
+    def test_wrong_probability_claim_digest_fails_before_world_step(self) -> None:
+        fixture = _fixture()
+        state, observation = begin_episode(fixture, episode_id="episode/probability-claim-pin", episode_generation=1)
+        policy_id = "PUBLIC_PERSISTENCE_BASELINE"
+        run = _run(fixture, run_id="run/wp803-probability-claim-pin", policy_id=policy_id)
+        admission = _admit(fixture, run, admission_id="admission/wp803-probability-claim-pin")
+        prediction = persistence_baseline(
+            observation,
+            action_id="b_stay",
+            prediction_id="prediction/probability-claim-pin",
+            benchmark_run_id=run.run_id,
+            benchmark_generation=2,
+        )
+        claim = ProbabilityCorrectClaim.for_prediction(
+            prediction,
+            probability_claim_id="probability-claim/pinned",
+            probability_correct_ppm=600_000,
+        )
+
+        with self.assertRaisesRegex(WorldModelProbabilityEvaluationError, "pre-outcome expected digest"):
+            evaluate_admitted_probabilistic_next_observation_prediction(
+                fixture,
+                state=state,
+                action_id="b_stay",
+                prediction=prediction,
+                probability_claim=claim,
+                run_descriptor=run,
+                run_admission=admission,
+                expected_run_admission_sha256=admission.sha256(),
+                expected_probability_claim_sha256="8" * 64,
+            )
+        self.assertEqual(state.step_index, 0)
+
+    def test_post_outcome_adaptive_claim_replacement_fails_against_retained_digest(self) -> None:
+        fixture = _fixture()
+        state, observation = begin_episode(fixture, episode_id="episode/probability-posthoc", episode_generation=1)
+        policy_id = "PUBLIC_PERSISTENCE_BASELINE"
+        run = _run(fixture, run_id="run/wp803-probability-posthoc", policy_id=policy_id)
+        admission = _admit(fixture, run, admission_id="admission/wp803-probability-posthoc")
+        prediction = persistence_baseline(
+            observation,
+            action_id="b_stay",
+            prediction_id="prediction/probability-posthoc",
+            benchmark_run_id=run.run_id,
+            benchmark_generation=2,
+        )
+        pre_outcome_claim = ProbabilityCorrectClaim.for_prediction(
+            prediction,
+            probability_claim_id="probability-claim/pre-outcome",
+            probability_correct_ppm=600_000,
+        )
+        retained_claim_sha = pre_outcome_claim.sha256()
         _, _, _, hard = evaluate_admitted_next_observation_prediction(
             fixture,
             state=state,
@@ -216,16 +271,23 @@ class WorldModelProbabilityEvaluationTests(unittest.TestCase):
             prediction=prediction,
             run_descriptor=run,
             run_admission=admission,
-            expected_run_admission_sha256=expected_admission_sha,
+            expected_run_admission_sha256=admission.sha256(),
+        )
+        adaptive_probability = 999_999 if hard.outcome == CORRECT else 1
+        post_outcome_claim = ProbabilityCorrectClaim.for_prediction(
+            prediction,
+            probability_claim_id="probability-claim/post-outcome-adaptive",
+            probability_correct_ppm=adaptive_probability,
         )
 
-        with self.assertRaisesRegex(WorldModelProbabilityEvaluationError, "predeclared expected digest"):
+        with self.assertRaisesRegex(WorldModelProbabilityEvaluationError, "pre-outcome expected digest"):
             evaluate_probability_quality(
-                claim,
+                post_outcome_claim,
                 prediction=prediction,
                 hard_evaluation=hard,
                 run_admission=admission,
-                expected_run_admission_sha256="9" * 64,
+                expected_run_admission_sha256=admission.sha256(),
+                expected_probability_claim_sha256=retained_claim_sha,
             )
 
     def test_probability_claim_is_bound_to_exact_prediction_digest(self) -> None:
@@ -263,6 +325,7 @@ class WorldModelProbabilityEvaluationTests(unittest.TestCase):
                 hard_evaluation=hard,
                 run_admission=admission,
                 expected_run_admission_sha256=admission.sha256(),
+                expected_probability_claim_sha256=forged_claim.sha256(),
             )
 
     def test_abstention_cannot_be_given_a_probability_score(self) -> None:
