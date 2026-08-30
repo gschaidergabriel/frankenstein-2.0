@@ -1,10 +1,12 @@
 """Deterministic release-candidate ZIP construction and verification.
 
-F2-WP-1107 generation 2. Ambient filesystem metadata is excluded from archive identity:
+F2-WP-1107 generation 3. Ambient filesystem metadata is excluded from archive identity:
 member order, timestamp, POSIX mode, ZIP version, compression, comments and extra fields are
 explicit policy. V1 forbids ZIP64 and non-ASCII member names so the builder cannot emit a
 container that its verifier rejects or whose filename flags depend on runtime encoding paths.
-The embedded accepted WP1107 manifest remains the payload-integrity authority.
+Generation 3 additionally requires the complete handed-off byte string to equal the canonical
+ZIP serialization reconstructed from the validated manifest and payload. This closes unbound
+prefix/trailing/container bytes without relying on an optional external receipt.
 
 REPRODUCIBLE_ARCHIVE_COMPONENT != INSTALLATION != TARGET_RUNTIME != COMPLETION
 """
@@ -191,6 +193,33 @@ def _zip_info(path: str, policy: ReleaseArchivePolicy) -> zipfile.ZipInfo:
     return info
 
 
+def _serialize_canonical_members(members: Mapping[str, bytes], policy: ReleaseArchivePolicy) -> bytes:
+    """Serialize exactly one canonical classic ZIP envelope for already-bound members."""
+
+    canonical: dict[str, bytes] = {}
+    for raw_path, data in members.items():
+        path = _relpath(raw_path)
+        if path in canonical:
+            raise ReleaseArchiveError(f"duplicate canonical archive member: {path}")
+        if type(data) is not bytes:
+            raise ReleaseArchiveError(f"archive member payload must be exact bytes: {path}")
+        canonical[path] = data
+    if not canonical:
+        raise ReleaseArchiveError("release archive must contain at least one member")
+    if len(canonical) > _MAX_CLASSIC_ZIP_MEMBERS:
+        raise ReleaseArchiveError("archive member count requires forbidden ZIP64")
+
+    stream = io.BytesIO()
+    try:
+        with zipfile.ZipFile(stream, "w", compression=zipfile.ZIP_STORED, allowZip64=False) as archive:
+            archive.comment = b""
+            for path in sorted(canonical):
+                archive.writestr(_zip_info(path, policy), canonical[path])
+    except zipfile.LargeZipFile as exc:
+        raise ReleaseArchiveError("archive size/offset requires forbidden ZIP64") from exc
+    return stream.getvalue()
+
+
 def _read_bound_payload(root: Path, manifest: ReleaseManifest) -> dict[str, bytes]:
     payload: dict[str, bytes] = {}
     for entry in manifest.files:
@@ -217,17 +246,7 @@ def build_release_archive(package_root: str | Path, *, release_id: str, source_c
         raise ReleaseArchiveError(f"executable policy references absent payload: {unknown_exec}")
     members = dict(payload)
     members[manifest_path] = manifest.canonical_bytes()
-    if len(members) > _MAX_CLASSIC_ZIP_MEMBERS:
-        raise ReleaseArchiveError("archive member count requires forbidden ZIP64")
-    stream = io.BytesIO()
-    try:
-        with zipfile.ZipFile(stream, "w", compression=zipfile.ZIP_STORED, allowZip64=False) as archive:
-            archive.comment = b""
-            for path in sorted(members):
-                archive.writestr(_zip_info(path, policy), members[path])
-    except zipfile.LargeZipFile as exc:
-        raise ReleaseArchiveError("archive size/offset requires forbidden ZIP64") from exc
-    archive_bytes = stream.getvalue()
+    archive_bytes = _serialize_canonical_members(members, policy)
     receipt = ReleaseArchiveReceipt(release_id=manifest.release_id, source_commit=manifest.source_commit, source_tree=manifest.source_tree, build_id=manifest.build_id, archive_policy_id=policy.policy_id, archive_policy_sha256=policy.digest(), manifest_path=manifest_path, manifest_sha256=manifest.sha256(), archive_sha256=_sha256(archive_bytes), archive_size=len(archive_bytes), member_count=len(members))
     return ReleaseArchiveBuild(archive_bytes, manifest, receipt)
 
@@ -294,10 +313,16 @@ def verify_release_archive(archive_bytes: bytes, *, policy: ReleaseArchivePolicy
             missing = sorted(set(expected_names) - set(names))
             extra = sorted(set(names) - set(expected_names))
             raise ReleaseArchiveError(f"archive member mismatch; missing={missing}, extra={extra}")
+        verified_payload: dict[str, bytes] = {}
         for entry in manifest.files:
             data = archive.read(entry.path)
             if len(data) != entry.size or _sha256(data) != entry.sha256:
                 raise ReleaseArchiveError(f"archive payload mismatch: {entry.path}")
+            verified_payload[entry.path] = data
+        canonical_members = dict(verified_payload)
+        canonical_members[manifest_path] = manifest_raw
+        if _serialize_canonical_members(canonical_members, policy) != archive_bytes:
+            raise ReleaseArchiveError("archive byte envelope is not canonical")
     unknown_exec = sorted(set(policy.executable_paths) - {entry.path for entry in manifest.files})
     if unknown_exec:
         raise ReleaseArchiveError(f"executable policy references absent payload: {unknown_exec}")

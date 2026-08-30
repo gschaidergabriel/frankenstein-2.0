@@ -1,0 +1,43 @@
+name: WP1107 G3 Exact Archive Byte Closure CI
+
+on:
+  pull_request:
+    paths:
+      - 'src/frankenstein2/release_archive.py'
+      - 'tests/test_release_archive.py'
+      - 'tests/test_wp1107_exact_archive_envelope.py'
+      - '.github/workflows/wp1107-g3-exact-archive-byte-closure-ci.yml'
+      - 'workpackages/active/F2-WP-1107.json'
+      - 'workpackages/state_events/F2-WP-1107/**'
+      - 'workpackages/deltas/F2-WP-1107/**'
+  push:
+    branches: [main]
+    paths:
+      - 'src/frankenstein2/release_archive.py'
+      - 'tests/test_release_archive.py'
+      - 'tests/test_wp1107_exact_archive_envelope.py'
+      - '.github/workflows/wp1107-g3-exact-archive-byte-closure-ci.yml'
+      - 'workpackages/active/F2-WP-1107.json'
+      - 'workpackages/state_events/F2-WP-1107/**'
+      - 'workpackages/deltas/F2-WP-1107/**'
+
+permissions:
+  contents: read
+
+jobs:
+  exact-byte-closure:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      PYTHONPATH: src
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Compile release archive surface
+        run: python -m py_compile src/frankenstein2/release_archive.py tests/test_release_archive.py tests/test_wp1107_exact_archive_envelope.py
+      - name: Run accepted G2 regression suite
+        run: python tests/test_release_archive.py
+      - name: Run G3 exact byte-envelope regressions
+        run: python tests/test_wp1107_exact_archive_envelope.py
