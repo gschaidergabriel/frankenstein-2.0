@@ -1,0 +1,90 @@
+{
+  "schema": "F2_TRIGGER6_RESEARCH_RESULT/v1",
+  "research_id": "R6-WP803-PROPER-SCORING-CALIBRATION",
+  "evidence_stage": "E2_ARCHITECTURE_MAPPED",
+  "status": "COMPLETE_AT_SCOPE_CONDITIONAL_SUCCESSOR_ONLY",
+  "recorded_at": "2026-08-30T16:55:00+07:00",
+  "worker": "gpt-5.6-sol",
+  "claim_ref": "research/tool_intelligence/claims/R6-WP803-PROPER-SCORING-CALIBRATION/E2_ARCHITECTURE_MAPPED.json",
+  "claim_commit": "2bfaeb4657e44de111538e513f5776920a34c06e",
+  "e1_result_ref": "research/tool_intelligence/results/R6-WP803-PROPER-SCORING-CALIBRATION_E1_SOURCE_READ.json",
+  "e1_result_commit": "8b1b6182d1dcbd01e72a097a470003498ae32d12",
+  "architecture_fusion_ref": "research/tool_intelligence/deltas/ADF-20260830T1653P0700-GPT56SOL-WP803-PROPER-SCORING.json",
+  "architecture_fusion_commit": "760c57cacca9eac828c2cbea74b26cd328bb4a23",
+  "mapping_decision": "DO_NOT_MUTATE_ACCEPTED_WP803_G2. Define only a separate research-successor sidecar contract if a future product claim explicitly requires probability-quality evidence.",
+  "conditional_successor_contract": {
+    "working_name": "FRANKENSTEIN2_PROBABILISTIC_NEXT_OBSERVATION_SIDECAR/research-v0",
+    "candidate_role": "UNTRUSTED_PUBLIC_INPUT_DERIVED_PROBABILITY_FORECAST_NO_WORLD_AUTHORITY",
+    "evaluation_role": "EVALUATOR_ONLY_PROBABILITY_QUALITY_MEASUREMENT_NOT_WORLD_TRUTH",
+    "required_candidate_bindings": [
+      "base PredictionCandidate SHA-256",
+      "benchmark_run_id and benchmark_generation",
+      "policy_id, policy_generation and policy_state_sha256",
+      "episode/fixture/public-observation/action identity already admitted by WP803",
+      "predeclared public outcome-domain schema/version and outcome_domain_sha256"
+    ],
+    "probability_representation": {
+      "preferred_research_form": "ordered finite vector of outcome identity plus integer probability units",
+      "deterministic_unit": "probability_ppm integer in [0,1000000]",
+      "normalization": "sum exactly 1000000",
+      "reason": "avoid NaN/Inf and cross-runtime floating serialization ambiguity in provenance hashes while retaining sufficient research resolution",
+      "duplicates": "REJECT",
+      "unknown_outcome_identity": "REJECT",
+      "missing_realized_outcome_from_predeclared_domain": "INVALID_TRIAL_NOT_MODEL_MISS"
+    },
+    "outcome_domain_law": [
+      "The domain must be fixed/admitted before candidate emission.",
+      "The predictor must not receive evaluator-only fixture ancestry or hidden state to construct the domain.",
+      "The domain must be exhaustive for the declared scored target or the proper-score claim is narrowed to an explicit coarsened partition.",
+      "A candidate may not self-select or rewrite the scored event after observing hidden/evaluator information."
+    ],
+    "scoring": {
+      "primary_research_score": "categorical Brier/quadratic loss over the full admitted probability vector",
+      "secondary_optional_score": "log loss only with an explicit zero-probability/clipping policy and separate reporting",
+      "existing_hard_score": "preserve +1/-1/0 WP803 G2 output unchanged and report alongside, never replace retroactively",
+      "calibration_diagnostics": "aggregate-only reliability/resolution diagnostics; no single-trial calibration claim"
+    },
+    "abstention": {
+      "law": "Existing ABSTAIN remains a separate coverage/decision outcome; do not silently encode abstention as a uniform probability distribution.",
+      "probability_vector_on_abstain": "REJECT_IN_MINIMAL_V0",
+      "reason": "keeps prediction uncertainty and decision-to-abstain semantically distinct and preserves current WP803 hard benchmark meaning"
+    },
+    "authority": [
+      "No probabilistic score may mint world truth, canonical state, effect authority, completion authority, GWT/J-Space credit or model superiority by itself.",
+      "Evaluation must remain evaluator-originated and bind the same run provenance fences as WP803 G2.",
+      "Research-sidecar presence cannot alter accepted WP803 G2 receipts or active generation."
+    ]
+  },
+  "efficiency_assessment": {
+    "extra_model_calls_required": 0,
+    "evaluator_model_calls_required": 0,
+    "deterministic_evaluator_only": true,
+    "payload_complexity": "O(K) probability entries for K admitted outcomes",
+    "dependency_delta": "stdlib-only is sufficient for Brier and basic log loss",
+    "risk": "large or hidden-state-dependent outcome domains can erase the efficiency and evidence benefits",
+    "optimization_gate": "Do not build until K/domain construction is measured on the actual public WP803 target. Prefer no new framework and no extra model invocation."
+  },
+  "falsifiers_and_acceptance_gates": [
+    "Domain digest mismatch between predeclared evaluator/public domain and candidate -> fail closed before world step.",
+    "Probability sum != 1,000,000, negative/out-of-range unit, duplicate outcome identity or unknown outcome -> reject.",
+    "Candidate-created domain that omits an outcome which later materializes -> trial invalid/evaluator contract failure, not INCORRECT model evidence.",
+    "Any hidden fixture/evaluator ancestry accessible to candidate during domain construction -> reject as leakage.",
+    "Same top-1 decisions and same hard score with calibrated vs overconfident vectors -> proper score must distinguish the vectors in the demonstrated direction on the declared fixture set.",
+    "ABSTAIN carrying a probability sidecar -> reject in minimal v0.",
+    "Changing or deleting accepted WP803 G2 hard-score semantics -> fail the successor compatibility gate.",
+    "If no explicit product claim requires calibrated probability quality -> architecture delta remains NOT_BUILD_CANDIDATE."
+  ],
+  "counterhypothesis": "The existing hard benchmark is sufficient because F2 currently needs exact next-observation hit/abstain evidence rather than probability-quality evidence.",
+  "counterhypothesis_resolution": "NOT_FALSIFIED; therefore no build recommendation is justified yet.",
+  "architecture_delta": "CONDITIONAL_RESEARCH_SUCCESSOR_ONLY",
+  "recommended_next_stage": "HOLD_AT_E2 unless Trigger-4/owner/product requirements explicitly request probabilistic-quality evidence; if requested, claim E3 for a deterministic sidecar falsifier before any build candidate.",
+  "research_credit": "E2_ARCHITECTURE_MAPPED_ONLY",
+  "runtime_credit": 0,
+  "vps_runtime_credit": 0,
+  "physical_grid10_credit": 0,
+  "gwt_jspace_credit": 0,
+  "provider_model_credit": 0,
+  "training_credit": 0,
+  "effect_credit": 0,
+  "whole_system_credit": 0
+}
