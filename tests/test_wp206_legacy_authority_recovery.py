@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Executable migration/tamper regressions for F2-WP-206 generation 3."""
+"""Executable migration/tamper regressions for F2-WP-206 generations 3/4."""
 from __future__ import annotations
 
 import json
@@ -256,6 +256,72 @@ class WP206LegacyAuthorityRecoveryTests(unittest.TestCase):
                 PersistentAgencyError, "CHECKPOINT_DB_AUTHORITY_RECEIPT_MISMATCH"
             ):
                 store.load_checkpoint("checkpoint-0")
+        finally:
+            store.close()
+
+    def test_repeat_with_conflicting_provenance_fails_closed_without_mutation(self) -> None:
+        historical, current = self._emulate_accepted_g1_row()
+        store = self._open_store()
+        try:
+            first = recover_legacy_g1_checkpoint_authority(
+                store=store,
+                checkpoint_id="checkpoint-0",
+                expected_legacy_authority_receipt_sha256=historical,
+                recovery_provenance_ref=LEGACY_PROVENANCE,
+            )
+            conflicting = LEGACY_PROVENANCE + ":conflict"
+            with self.assertRaisesRegex(
+                PersistentAgencyError, "LEGACY_RECOVERY_PROVENANCE_CONFLICT"
+            ):
+                recover_legacy_g1_checkpoint_authority(
+                    store=store,
+                    checkpoint_id="checkpoint-0",
+                    expected_legacy_authority_receipt_sha256=historical,
+                    recovery_provenance_ref=conflicting,
+                )
+            row = store.connection.execute(
+                f"SELECT recovery_id, recovery_provenance_ref FROM {RECOVERY_TABLE} "
+                "WHERE checkpoint_id='checkpoint-0'"
+            ).fetchone()
+            self.assertEqual(row, (first.recovery_id, LEGACY_PROVENANCE))
+            self.assertEqual(self._stored_receipt(), current)
+            checkpoint = store.load_checkpoint("checkpoint-0")
+            self.assertEqual(checkpoint.checkpoint_id, "checkpoint-0")
+        finally:
+            store.close()
+
+    def test_recovery_record_provenance_tamper_is_rejected_on_repeat(self) -> None:
+        historical, current = self._emulate_accepted_g1_row()
+        store = self._open_store()
+        try:
+            first = recover_legacy_g1_checkpoint_authority(
+                store=store,
+                checkpoint_id="checkpoint-0",
+                expected_legacy_authority_receipt_sha256=historical,
+                recovery_provenance_ref=LEGACY_PROVENANCE,
+            )
+            store.connection.execute(
+                f"UPDATE {RECOVERY_TABLE} SET recovery_provenance_ref=? "
+                "WHERE checkpoint_id='checkpoint-0'",
+                (LEGACY_PROVENANCE + ":tampered",),
+            )
+            store.connection.commit()
+            with self.assertRaisesRegex(
+                PersistentAgencyError, "LEGACY_RECOVERY_RECORD_IDENTITY_DRIFT"
+            ):
+                recover_legacy_g1_checkpoint_authority(
+                    store=store,
+                    checkpoint_id="checkpoint-0",
+                    expected_legacy_authority_receipt_sha256=historical,
+                    recovery_provenance_ref=LEGACY_PROVENANCE,
+                )
+            row = store.connection.execute(
+                f"SELECT recovery_id, recovery_provenance_ref FROM {RECOVERY_TABLE} "
+                "WHERE checkpoint_id='checkpoint-0'"
+            ).fetchone()
+            self.assertEqual(row[0], first.recovery_id)
+            self.assertEqual(row[1], LEGACY_PROVENANCE + ":tampered")
+            self.assertEqual(self._stored_receipt(), current)
         finally:
             store.close()
 
