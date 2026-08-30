@@ -1,0 +1,80 @@
+name: Trigger6 WP510 target-runtime stale review
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/trigger6-wp510-stale-review-ci.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  compare-executed-subject-to-current-closure:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Materialize exact Trigger4 executed source subject
+        run: |
+          git merge-base --is-ancestor 656b57bded655e64a25d7e205b599becce3d4989 HEAD
+          git worktree add --detach /tmp/wp510-executed 656b57bded655e64a25d7e205b599becce3d4989
+      - name: Extract executed-subject and current static closures with repaired instrument
+        run: |
+          python research/tool_intelligence/experiments/wp510_recursive_manifest_v2.py \
+            --repo-root /tmp/wp510-executed \
+            --root-source src/frankenstein2/gwt_causal_path.py \
+            --output /tmp/wp510_executed_closure.json
+          python research/tool_intelligence/experiments/wp510_recursive_manifest_v2.py \
+            --repo-root . \
+            --root-source src/frankenstein2/gwt_causal_path.py \
+            --output /tmp/wp510_current_closure.json
+      - name: Compare exact recursive source subjects
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+
+          old=json.loads(Path('/tmp/wp510_executed_closure.json').read_text())
+          new=json.loads(Path('/tmp/wp510_current_closure.json').read_text())
+          old_files={row['path']:row['sha256'] for row in old['closure']['files']}
+          new_files={row['path']:row['sha256'] for row in new['closure']['files']}
+          added=sorted(set(new_files)-set(old_files))
+          removed=sorted(set(old_files)-set(new_files))
+          changed=sorted(p for p in set(old_files)&set(new_files) if old_files[p]!=new_files[p])
+          unchanged=sorted(p for p in set(old_files)&set(new_files) if old_files[p]==new_files[p])
+          same=(not added and not removed and not changed and old['closure']['local_closure_sha256']==new['closure']['local_closure_sha256'])
+          result={
+            'schema':'FRANKENSTEIN2_TRIGGER6_WP510_STALE_REVIEW/v1',
+            'executed_source_commit':'656b57bded655e64a25d7e205b599becce3d4989',
+            'current_source_commit':__import__('subprocess').check_output(['git','rev-parse','HEAD'],text=True).strip(),
+            'executed_local_files':len(old_files),
+            'current_local_files':len(new_files),
+            'executed_closure_sha256':old['closure']['local_closure_sha256'],
+            'current_closure_sha256':new['closure']['local_closure_sha256'],
+            'closure_equal':same,
+            'added':added,
+            'removed':removed,
+            'changed':changed,
+            'unchanged':unchanged,
+            'executed_dynamic_surfaces':old['closure']['dynamic_surfaces'],
+            'current_dynamic_surfaces':new['closure']['dynamic_surfaces'],
+            'executed_external_or_unresolved_imports':old['closure']['external_or_unresolved_imports'],
+            'current_external_or_unresolved_imports':new['closure']['external_or_unresolved_imports'],
+            'credit':{
+              'runtime_credit_transfer':0,
+              'semantic_gwt_runtime_credit':0,
+              'whole_system_credit':0
+            },
+            'interpretation':'SOURCE_CLOSURE_EQUALITY_IS_ONLY_ONE_REUSE_GATE' if same else 'SOURCE_CLOSURE_CHANGED_REPROBE_REQUIRED'
+          }
+          print(json.dumps(result,sort_keys=True))
+          assert old['closure']['root_source']=='src/frankenstein2/gwt_causal_path.py'
+          assert new['closure']['root_source']=='src/frankenstein2/gwt_causal_path.py'
+          PY
