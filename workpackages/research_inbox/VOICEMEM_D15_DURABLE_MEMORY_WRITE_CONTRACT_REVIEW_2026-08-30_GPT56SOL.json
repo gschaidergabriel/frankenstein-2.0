@@ -1,0 +1,112 @@
+{
+  "schema": "FRANKENSTEIN2_RESEARCH_INBOX_REVIEW/v1",
+  "packet_id": "VOICEMEM_D15_DURABLE_MEMORY_WRITE_CONTRACT_REVIEW_2026-08-30_GPT56SOL",
+  "created_date": "2026-08-30",
+  "worker_id": "GPT-5.6-Sol-TRIGGER4",
+  "trigger": "4",
+  "authority_epoch": "9.13",
+  "authority_ref": "research_entity/claycode/autonomous/SUPERVISOR_INBOX.json -> research_entity/claycode/autonomous/SUPERVISOR_STEERING_9_13BG_DELTA_2026-08-30T1244P0700_GPT56SOL.json",
+  "mode": "REVIEW_ONLY_APPEND_ONLY",
+  "mutation_authority_granted": false,
+  "unusual_experiment": false,
+  "source_failure_input": {
+    "path": "workpackages/research_inbox/VOICEMEM_FULL_SOURCE_SWEEP_EXECUTABLE_FAILURE_DELTA_2026-08-30_GPT56SOL.json",
+    "failure_id": "VM-G11-FIRE-AND-FORGET-NEQ-DURABLE-MEMORY",
+    "discriminator_id": "D15",
+    "donor_observation": "VoiceMem remember() daemon-thread start is not durable commit; abrupt process exit can lose the write.",
+    "epistemic_status": "DONOR_LOCAL_SOURCE_BEHAVIOR_NOT_F2_RUNTIME_PROOF"
+  },
+  "current_f2_source_observations": [
+    {
+      "path": "src/frankenstein2/memory_lifecycle.py",
+      "blob_sha": "001be880bc76ead38c48a6ba8a577e46bfb4ed60",
+      "observation": "WP300 is explicitly persistence-agnostic. MemoryLifecycleState and MemoryTransitionReceipt fence memory_id/generation/state digest but the receipt classification explicitly does not grant persistence authority and the module performs no UnifiedDB reads/writes.",
+      "classification": "CURRENT_SOURCE"
+    },
+    {
+      "path": "src/frankenstein2/typed_memory.py",
+      "blob_sha": "6bb5be7e93d300c6e2d8ae348530323f3bb6b9eb",
+      "observation": "WP303 binds typed Fact/Episode/Method/Process metadata to an exact lifecycle-state identity but explicitly performs no UnifiedDB reads/writes and therefore cannot prove durable memory commit.",
+      "classification": "CURRENT_SOURCE"
+    },
+    {
+      "path": "src/frankenstein2/persistent_agency_kernel.py",
+      "observation": "WP206 demonstrates an existing canonical-UnifiedDB checkpoint persistence pattern for Agency state, but its owned contract is persistent agency checkpoint/replay, not a general memory WriteIntent/WriteReceipt store. Generation 2 is currently claimed by another worker for a distinct authority-receipt replay defect and must not be overloaded by D15.",
+      "classification": "CURRENT_SOURCE_AND_CURRENT_CLAIM"
+    },
+    {
+      "path": "src/state/delivery_store.py",
+      "observation": "WP103 provides a repository-local example of canonical UnifiedDB-backed durable state/idempotency for recipient delivery, but it owns delivery lifecycle rather than memory persistence and must remain a donor pattern only.",
+      "classification": "CURRENT_SOURCE_DONOR_PATTERN"
+    },
+    {
+      "path": "WORKPACKAGES.md",
+      "blob_sha": "8de9711dd6f2f310d594b4c244b2639d1ebd37f6",
+      "observation": "Canonical Phase 3 currently enumerates WP300..WP306 and contains no dedicated durable memory-write persistence workpackage. WP904 exists canonically in Phase 9 as Failure injection/root-cause closure but has no active claim or implementation and is not the present memory-store owner.",
+      "classification": "CURRENT_SOURCE_LEDGER"
+    }
+  ],
+  "result": {
+    "d15_reproduced_as_f2_bug": false,
+    "durable_memory_write_path_observed": false,
+    "durable_memory_write_contract_status": "OPEN_ARCHITECTURE_GAP",
+    "enqueue_or_lifecycle_receipt_may_mint_persistence_credit": false,
+    "new_workpackage_id_invented": false,
+    "wp300_reopened": false,
+    "wp206_modified": false,
+    "wp103_modified": false,
+    "wp904_claimed": false,
+    "runtime_execution_observed": false,
+    "runtime_credit": 0,
+    "effect_credit": 0,
+    "completion_credit": 0,
+    "whole_system_credit": 0
+  },
+  "required_future_contract": {
+    "principle": "ENQUEUE_OR_THREAD_START_NEQ_DURABLE_MEMORY_COMMIT",
+    "minimum_write_identity": [
+      "write_id",
+      "memory_id",
+      "causal_event_id",
+      "expected_generation",
+      "payload_ref",
+      "payload_sha256",
+      "provenance_refs",
+      "canonical_unifieddb_identity_or_authority_receipt"
+    ],
+    "minimum_states": [
+      "QUEUED",
+      "STARTED",
+      "CANONICAL_COMMITTED",
+      "PROJECTIONS_PENDING",
+      "COMPLETE",
+      "FAILED_OR_EXPLICITLY_UNCOMMITTED"
+    ],
+    "invariants": [
+      "A caller-visible success cannot be emitted before CANONICAL_COMMITTED is durably recorded for the exact write identity.",
+      "Restart must classify every previously admitted write identity as committed or explicitly non-committed/failed; UNKNOWN cannot be silently promoted to committed.",
+      "Retry must be idempotent by exact write/causal identity and must not duplicate a canonical memory record.",
+      "Projection/index/vector completion is distinct from canonical memory commit and may remain pending without losing canonical durability.",
+      "Shutdown must drain, cancel with explicit non-commit receipt, or preserve retryable durable intent; daemon-thread disappearance is never completion evidence.",
+      "The implementation must use the existing canonical UnifiedDB authority rather than create a second truth store.",
+      "Lifecycle status, typed-memory kind, retrieval relevance and effect authority remain separate from persistence commitment."
+    ]
+  },
+  "next_executable_discriminator": {
+    "precondition": "current owner/architect authority assigns the smallest canonical implementation owner without overloading an accepted unrelated workpackage",
+    "test_matrix": [
+      "enqueue then immediate process exit before worker start",
+      "exit after STARTED but before canonical transaction commit",
+      "exit immediately after canonical commit but before projection/index completion",
+      "restart and replay same write_id",
+      "retry same causal identity with identical payload",
+      "retry same write_id with mismatched payload/digest must fail closed",
+      "shutdown with pending writes must resolve each identity to drained commit or explicit non-commit state"
+    ],
+    "acceptance_scope": "DURABLE_MEMORY_WRITE_LIFECYCLE_REPOSITORY_COMPONENT_FIRST; TARGET_RUNTIME_REQUIRES_SEPARATE_EXACT_SOURCE_EXECUTION",
+    "promotion_rule": "Repository subprocess/restart fixtures may establish component persistence semantics only. Target/VPS/runtime, whole-system, effect and completion credit remain zero until their own exact-source gates execute."
+  },
+  "counterhypothesis": "The product may intentionally defer durable memory storage to a later integrated persistence owner, so absence of a current store is an incomplete architecture surface rather than a defect in WP300/WP303. This is why no accepted workpackage is reopened by this review.",
+  "decision": "PRESERVE_D15_AS_OPEN_CROSS_CUTTING_DURABILITY_REQUIREMENT_AND_REQUIRE_EXPLICIT_OWNER_ASSIGNMENT_BEFORE_IMPLEMENTATION",
+  "evidence_boundary": "Source/ledger review only. No host/model/provider execution, no memory write was performed, and no runtime/whole-system acceptance is implied."
+}
