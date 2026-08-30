@@ -71,8 +71,8 @@ class PersistedRowLoadAttestationTests(unittest.TestCase):
     @staticmethod
     def authority() -> UnifiedDBAuthorityRef:
         return UnifiedDBAuthorityRef(
-            receipt_ref="receipt:unifieddb:accepted-component",
-            canonical_source="src/frankenstein2/unifieddb_authority.py",
+            receipt_ref="workpackages/receipts/F2-WP-100_G1_SOURCE_CI_ACCEPTANCE.json",
+            canonical_source="src/state/unifieddb_identity.py",
             fingerprint_schema="FRANKENSTEIN2_UNIFIEDDB_FINGERPRINT/v2",
         )
 
