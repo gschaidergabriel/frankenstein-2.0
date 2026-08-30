@@ -1,0 +1,141 @@
+{
+  "schema": "F2_TRIGGER6_RESEARCH_RESULT/v1",
+  "research_id": "R6-20260830-WP206-SAME-INODE-LIVE-DRIFT-GPT56SOL-01",
+  "evidence_stage": "E1_SOURCE_READ",
+  "status": "COMPLETE_AT_SCOPE",
+  "recorded_at": "2026-08-30T16:53:11+07:00",
+  "worker": "GPT-5.6-Sol / ChatGPT Trigger-6 organ",
+  "claim_ref": "research/tool_intelligence/claims/R6-20260830-WP206-SAME-INODE-LIVE-DRIFT-GPT56SOL-01/E1_SOURCE_READ.json",
+  "claim_commit": "c626c550544a188c587f622505302f2358d27364",
+  "architecture_fusion_ref": "research/tool_intelligence/deltas/ADF-20260830T1649P0700-GPT56SOL-WP206-SAME-INODE-LIVE-DRIFT-FUSION.json",
+  "architecture_fusion_commit": "4a80b508b23aa751d9fcbc20b5db2ab62d09a5fe",
+  "f2_source_observed": {
+    "wp206_active": "workpackages/active/F2-WP-206.json",
+    "wp206_state": "ACCEPTED_GENERATION_4_AT_REPEAT_PROVENANCE_REPOSITORY_COMPONENT_CI_SCOPE_ONLY",
+    "wp206_open_gate": "same-inode live data/schema drift remains a separate discriminator",
+    "legacy_recovery_source": "src/frankenstein2/wp206_legacy_authority_recovery.py@20eaee5570875568784e6f9234343b6027fdc3ee",
+    "persistent_store_source": "src/frankenstein2/persistent_agency_kernel.py@7ba8bd55c788faa9eb9b96870c039cb5273e181d",
+    "unifieddb_identity_source": "src/state/unifieddb_identity.py@7422e836315ef9ebcc0e79e6dc648a8fd01ed73e",
+    "current_bound_file_authority": "SHA256(canonical_db_path,db_device,db_inode)",
+    "current_live_identity_check": "st_dev+st_ino equality only",
+    "current_static_fingerprint": "main-file SHA-256 plus metadata/schema identity, explicitly not a full SQLite state snapshot and explicitly excludes uncheckpointed WAL state"
+  },
+  "external_primary_sources": [
+    {
+      "source": "SQLite PRAGMA data_version",
+      "url": "https://sqlite.org/pragma.html#pragma_data_version",
+      "finding": "Meaningful only when comparing two readings on the same connection; changes for commits from other connections, but not for commits made by that same connection."
+    },
+    {
+      "source": "SQLite SQLITE_FCNTL_DATA_VERSION",
+      "url": "https://sqlite.org/c3ref/c_fcntl_begin_atomic_write.html#sqlitefcntldataversion",
+      "finding": "Returns a 32-bit pager data version for one attached database and changes for changes made both through the same connection and by other committed connections; SQLite documents it as the only built-in mechanism covering both internal and external changes for a particular attached database."
+    },
+    {
+      "source": "SQLite sqlite3_file_control implementation",
+      "url": "https://www3.sqlite.org/matrix/ev/src/main.html",
+      "finding": "SQLITE_FCNTL_DATA_VERSION is routed to sqlite3PagerDataVersion(pPager), so this is pager/runtime revision state rather than a cryptographic content identity."
+    },
+    {
+      "source": "SQLite pager source/history",
+      "url": "https://sqlite.org/src/finfo?name=src%2Fpager.c",
+      "finding": "Pager data-version support was added specifically to detect database changes; source history also records fixes for cache-empty and shared-cache change detection."
+    },
+    {
+      "source": "SQLite PRAGMA schema_version",
+      "url": "https://sqlite.org/pragma.html#pragma_schema_version",
+      "finding": "Schema version is a separate 32-bit schema cookie normally incremented by SQLite when schema changes; it is used to invalidate/rebuild schema interpretation. Application-side writes to schema_version are dangerous and must not be used as authority."
+    },
+    {
+      "source": "SQLite isolation",
+      "url": "https://www.sqlite.org/isolation.html",
+      "finding": "WAL mode provides snapshot isolation: an active read transaction continues to see its historical snapshot while other connections commit newer state."
+    },
+    {
+      "source": "SQLite WAL file format",
+      "url": "https://www.sqlite.org/fileformat.html#the_write_ahead_log",
+      "finding": "In WAL mode committed changes are first recorded as WAL frames and may not yet be reflected in the main database file; therefore main-file inode and even main-file bytes are not equivalent to current logical database state."
+    },
+    {
+      "source": "SQLite immutable URI semantics",
+      "url": "https://www.sqlite.org/uri.html#recognized_query_parameters",
+      "finding": "immutable=1 disables locking and change detection because SQLite assumes the file cannot change; if it does change, incorrect results or SQLITE_CORRUPT may result. This confirms that F2's immutable identity probe is suitable only for its declared static identity scope, not live drift authority."
+    }
+  ],
+  "source_level_findings": [
+    {
+      "classification": "CURRENT_SOURCE",
+      "finding": "F2-WP-206 generation 4 deliberately closes repeat-recovery provenance only and names same-inode live data/schema drift as a separate unresolved discriminator."
+    },
+    {
+      "classification": "CURRENT_SOURCE",
+      "finding": "CanonicalPersistentAgencyStore binds durable file authority only to canonical real path plus st_dev/st_ino; _assert_current_file_identity() repeats only the device/inode test. Same-inode content change therefore does not change that authority receipt."
+    },
+    {
+      "classification": "CURRENT_SOURCE",
+      "finding": "The legacy recovery path checks st_dev/st_ino before BEGIN IMMEDIATE and validates checkpoint bytes/typed replay, but it has no SQLite data-version witness before recovery."
+    },
+    {
+      "classification": "CURRENT_SOURCE",
+      "finding": "F2's richer UnifiedDBFingerprint already computes main-file SHA-256 and schema metadata, but its immutable SQLite probe explicitly ignores uncheckpointed WAL state and is classified as identity-not-state-snapshot. Reusing it as live authority would violate its own evidence boundary."
+    },
+    {
+      "classification": "EXTERNAL_PRIMARY",
+      "finding": "PRAGMA data_version is insufficient as the sole witness when the authoritative F2 connection itself may write, because same-connection commits do not advance that pragma for that connection."
+    },
+    {
+      "classification": "EXTERNAL_PRIMARY",
+      "finding": "SQLITE_FCNTL_DATA_VERSION is a better native primitive for the exact research question because it covers same-connection and other-connection changes for one attached database."
+    },
+    {
+      "classification": "EXTERNAL_PRIMARY",
+      "finding": "schema_version is useful to classify schema-bearing drift, but is narrower than general data revision and must be read, never application-forced as an authority value."
+    },
+    {
+      "classification": "EXTERNAL_PRIMARY",
+      "finding": "WAL snapshot isolation makes filesystem identity, main-file byte identity, pager revision, and reader-visible snapshot four distinct concepts. A future gate must specify which one it is claiming."
+    },
+    {
+      "classification": "INFERENCE",
+      "finding": "Because SQLITE_FCNTL_DATA_VERSION is a 32-bit runtime counter rather than a cryptographic digest, it should be treated as a drift discriminator/epoch witness, not as canonical database-state identity. Wrap/restart/process-lifecycle boundaries must be characterized before durable use."
+    }
+  ],
+  "hypothesis": "A fail-closed pre-mutation SQLite revision witness can close the WP206 same-inode blind spot without replacing canonical UnifiedDB authority. The strongest primary-source candidate is SQLITE_FCNTL_DATA_VERSION, with schema_version used only as a schema-drift classifier.",
+  "hypothesis_status": "SUPPORTED_AT_E1_SOURCE_READ_SCOPE_ONLY",
+  "counterhypothesis": "Existing path/device/inode plus static fingerprint and checkpoint digests are sufficient because any relevant mutation would necessarily alter one of those surfaces.",
+  "counterhypothesis_status": "FALSIFIED_AT_SOURCE/ARCHITECTURE-SEMANTICS_SCOPE_FOR_WAL_AND_SAME-INODE_MUTATION",
+  "counterhypothesis_note": "SQLite WAL commits may advance logical database state without changing main-file inode and before checkpointing changes into the main file. F2 itself declares its static fingerprint not to include uncheckpointed WAL state.",
+  "smallest_next_discriminator": {
+    "stage": "E2_ARCHITECTURE_MAPPED_THEN_E3_SOURCE_LEVEL_REPRODUCTION",
+    "design_question": "Can a pre-recovery revision fence distinguish unauthorized same-inode drift from authorized F2 writes without becoming a second truth store?",
+    "required_cases": [
+      "rollback-journal external DML same inode",
+      "WAL external committed DML before checkpoint",
+      "external DDL/schema change",
+      "same-authoritative-connection DML",
+      "no-change control",
+      "connection close/reopen boundary",
+      "revision counter rollover/restart semantics classified rather than assumed"
+    ],
+    "acceptance_shape": "A later Trigger-4 patch may consume an ephemeral/native revision witness only if tests prove fail-closed detection at the exact mutation boundary while preserving current UnifiedDB and Effect authority."
+  },
+  "do_not_adopt_yet": [
+    "Do not replace the bound-file authority receipt with SQLITE_FCNTL_DATA_VERSION.",
+    "Do not treat PRAGMA data_version as complete because it omits same-connection writes.",
+    "Do not treat schema_version as a general data revision.",
+    "Do not hash only the main DB file and call that current state in WAL mode.",
+    "Do not use immutable=1 for a live-changing authority connection.",
+    "Do not promote this E1 source audit to runtime, target-host, WP206 generation, or whole-system credit."
+  ],
+  "recommended_next_stage": "E2_ARCHITECTURE_MAPPED",
+  "research_credit": "E1_SOURCE_READ_ONLY",
+  "runtime_credit": 0,
+  "target_host_credit": 0,
+  "physical_grid10_credit": 0,
+  "gwt_runtime_credit": 0,
+  "jspace_runtime_credit": 0,
+  "effect_credit": 0,
+  "completion_credit": 0,
+  "whole_system_credit": 0,
+  "pending_research_sqlite_sync": "PENDING_ADMITTED_BINARY_DB_PATH"
+}
