@@ -1,0 +1,62 @@
+{
+  "schema": "F2_TRIGGER6_RESEARCH_RESULT/v1",
+  "research_id": "R6-20260830-WP206-PROVENANCE-ATTESTATION-MINIMALITY-GPT56SOL-01",
+  "evidence_stage": "E1_SOURCE_READ",
+  "status": "COMPLETE_AT_SCOPE",
+  "recorded_at": "2026-08-30T16:49:00+07:00",
+  "worker": "GPT-5.6-Sol/ChatGPT-organ",
+  "claim_ref": "research/tool_intelligence/claims/R6-20260830-WP206-PROVENANCE-ATTESTATION-MINIMALITY-GPT56SOL-01/E1_SOURCE_READ.json",
+  "snapshot": {
+    "f2_initial_head": "b8841141a5b9ec3026b8e38af2c57cf0bb93759a",
+    "f2_reentry_head": "40722b83d3ecb14455c047a750e27c325ab75253",
+    "research_entity_head": "4c63063eaa24a1c7ce8f756fe8dc25e9160ac671",
+    "trigger6_protocol_blob": "08571526d33f9a0c06577e2f119bdaf4297ef1c8"
+  },
+  "f2_source_observed": {
+    "wp206_recovery_path": "src/frankenstein2/wp206_legacy_authority_recovery.py",
+    "wp206_observation": "Recovery validates canonical DB file identity, checkpoint digest/typed replay, one-per-checkpoint recovery state and compare-and-swap. recovery_provenance_ref is caller-supplied text; recovery_id hashes that text but no content/object behind the reference is authenticated at this boundary.",
+    "wp206_g4_test_path": "tests/test_wp206_g4_repeat_provenance_binding.py",
+    "wp206_g4_test_observation": "G4 proves exact repeat with the same provenance string and rejects a conflicting provenance string; the test provenance values are opaque literals and do not authenticate referenced evidence content.",
+    "wp901_g3_path": "src/frankenstein2/restart_recovery_source_authentication.py",
+    "wp901_g3_source_blob": "f716e323d96f81fd1560d168a4578d10324853a6",
+    "wp901_g3_observation": "Current F2 already has a typed source-binding pattern that derives principal IDs/digests from concrete source objects and a CausalIdentity rather than accepting a parallel caller-controlled expected identity set; it explicitly does not claim persisted-row attestation."
+  },
+  "external_primary_sources": [
+    {
+      "project": "in-toto/attestation",
+      "pin": "2dcd055e9f72e746687c306e35f4e59720ff45be",
+      "relevance": "Attestation statements bind predicates to explicit subjects/resources by digest; supports content-addressed evidence-subject identity rather than opaque reference identity."
+    },
+    {
+      "project": "slsa-framework/slsa",
+      "pin": "54b88b009fd45acb331c7e6578a526e0f36e0430",
+      "relevance": "Provenance is a verifiable relationship between a produced subject and its origin/build context; supports exact subject binding but is broader than WP206 needs."
+    },
+    {
+      "project": "sigstore/protobuf-specs",
+      "pin": "0342fe5797edd558c58098033220fb27a2542a28",
+      "relevance": "Signed bundles combine signature and verification material when producer authenticity is part of the threat model; this is stronger and operationally heavier than local content binding."
+    },
+    {
+      "project": "theupdateframework/specification",
+      "pin": "59e601ed29c0d2e497264ae8b31c11b8ef07df1e",
+      "relevance": "Persisted trusted metadata and monotone versions provide rollback protection; useful analogy, but WP206 already has unique one-time recovery plus CAS and does not justify importing TUF semantics by default."
+    }
+  ],
+  "hypothesis": "WP206 G4 closes repeat-provenance substitution only at opaque-reference-string identity. A mutable, aliased or otherwise unauthenticated evidence target can retain the same reference string while its content changes, leaving an evidence-subject binding gap.",
+  "counterhypothesis": "No further binding is needed because one-per-checkpoint recovery, exact checkpoint/receipt checks and CAS already prevent a second recovery and therefore provenance content cannot affect canonical state after the first transition.",
+  "source_discriminator_result": "COUNTERHYPOTHESIS_PARTIALLY_REJECTED_AT_E1: current WP206 controls protect the state transition and repeat semantics, but they do not establish what external evidence the first recovery provenance string actually denotes. This is an evidence-authentication gap, not a demonstrated state-transition corruption bug.",
+  "minimality_result": "Do not import Sigstore, Rekor, TUF or a second provenance database for this gap. The smallest supported direction is a typed/content-addressed recovery evidence subject, preferably reusing F2's existing WP901 G3 typed-source/CausalIdentity pattern. Cryptographic producer authentication remains a separate later threat-model gate only if recovery callers/evidence producers are not trusted.",
+  "efficiency": {
+    "typed_local_subject_digest": "constant-size typed data/hash; no model call; no network; negligible steady-state overhead",
+    "sigstore_tuf_stack": "additional trust roots, verification logic/dependencies and possibly network/log operations; not justified by current E1 evidence"
+  },
+  "evidence_scope": "SOURCE_READ_AND_ARCHITECTURE_MINIMALITY_DIRECTION_ONLY",
+  "research_credit": "E1_SOURCE_READ_ONLY",
+  "runtime_credit": 0,
+  "physical_host_credit": 0,
+  "effect_credit": 0,
+  "completion_credit": 0,
+  "training_credit": 0,
+  "whole_system_credit": 0
+}
