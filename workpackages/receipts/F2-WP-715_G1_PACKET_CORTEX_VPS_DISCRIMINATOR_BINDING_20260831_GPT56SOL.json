@@ -1,0 +1,60 @@
+{
+  "schema": "F2_WP715_PACKET_CORTEX_VPS_DISCRIMINATOR_BINDING/v1",
+  "workpackage_id": "F2-WP-715",
+  "generation": 1,
+  "claim_id": "F2-WP-715-G1-GPT56SOL-PACKET-CORTEX-CONVERGENCE-20260831",
+  "trigger": "4",
+  "work_class": "RUNTIME_CREDIT_CLOSURE",
+  "repository_repair_subject": {
+    "source_sha": "da1c92f1d4e448e23842c74a456e0edd9d228b5c",
+    "repository_ci_run_id": 33328599095,
+    "repository_ci_result": "SUCCESS",
+    "scope": [
+      "voice_packet_cortex packet suite",
+      "voice_packet_cortex recovery suite",
+      "PN9 checkpoint restart continuation",
+      "PN10 source-declared bounded state",
+      "PN14 stale tool ownership fencing on barge-in",
+      "PN15 rejected near-cap barge-in atomicity",
+      "EVENTSEQ rejected-event atomicity and restartability"
+    ]
+  },
+  "vps_discriminator_binding": {
+    "harness_commit": "db01bfbcc2deebc45524b56407a681b226de7b78",
+    "workflow": ".github/workflows/t4-packet-cortex-full-duplex-falsifier.yml",
+    "workflow_run_id": 33328707636,
+    "runner_required": "vps-clay-host",
+    "execution_surface": "VPS_SANDBOX_REPRESENTABLE",
+    "sandbox_tier": "S1_OR_S2_AUTO",
+    "network_mode": "OFF",
+    "packet_recovery_bounds_falsifier": "research/local_voice/tools/falsify_voice_packet_cortex_recovery_bounds.py",
+    "atomicity_falsifier": "research/local_voice/tools/falsify_voice_packet_cortex_atomicity.py",
+    "receipt_schema_expected": "F2_T4_PACKET_CORTEX_FULL_DUPLEX_FALSIFIER_RECEIPT/v3",
+    "state_at_binding": "QUEUED",
+    "classification": "UNKNOWN_NONTERMINAL"
+  },
+  "superseded_pending_probe_note": {
+    "older_run_id": 33328599252,
+    "older_source_sha": "da1c92f1d4e448e23842c74a456e0edd9d228b5c",
+    "status_when_superseded_for_full_current_scope": "QUEUED",
+    "classification": "PARTIAL_SCOPE_NONCURRENT_FOR_FULL_ACCEPTANCE",
+    "reason": "The product source is unchanged, but the stronger current VPS discriminator explicitly adds PN14, PN15 and EVENTSEQ to the same packet/recovery boundary. Any later execution of the older run may support only its exact partial scope and must not be composed into full current VPS acceptance without explicit scope reconciliation."
+  },
+  "credit": {
+    "repository_component_regression_credit": 1,
+    "vps_packet_execution_observed": false,
+    "packet_component_runtime_credit": 0,
+    "outbound_model_asr_tts_inference_calls_observed": null,
+    "acoustic_credit": 0,
+    "asr_runtime_credit": 0,
+    "tts_runtime_credit": 0,
+    "physical_device_credit": 0,
+    "gwt_runtime_credit": 0,
+    "jspace_runtime_credit": 0,
+    "effect_credit": 0,
+    "training_credit": 0,
+    "completion_credit": 0,
+    "whole_system_acceptance": false
+  },
+  "next_exact_action": "Resolve workflow run 33328707636 and its emitted v3 receipt. Promote only exact executed S1/S2 packet/recovery/PN9/PN10/PN14/PN15/EVENTSEQ component scope if the runner identity, sandbox execution and all probes are valid. If the run remains queued, mint no runtime credit and do not mutate the product boundary."
+}
