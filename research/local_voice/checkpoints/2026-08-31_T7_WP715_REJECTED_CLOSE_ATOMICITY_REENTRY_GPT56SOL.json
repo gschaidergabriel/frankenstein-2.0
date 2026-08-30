@@ -1,0 +1,81 @@
+{
+  "schema": "T7_REENTRY_CHECKPOINT/v1",
+  "trigger": "7",
+  "date": "2026-08-31",
+  "organ": "GPT-5.6-Sol",
+  "mode": "GERMAN_FIRST_LOCAL_SOLO_RESEARCH__CORTEX_FIRST__CONSUME_TRIGGER4_BEFORE_BREADTH",
+  "resumed_not_restarted": true,
+  "research_id": "T7-WP715-CORTEX-REENTRY",
+  "state": "WP715_REPOSITORY_ATOMICITY_REPAIR_GREEN__VPS_DISCRIMINATOR_QUEUED_ZERO_STEP__TWO_SESSION_CLOSE_FALSIFIERS_ROUTED__NO_RUNTIME_PROMOTION",
+  "authority": {
+    "trigger7_protocol": "research/local_voice/TRIGGERWORD_7_PROTOCOL.md",
+    "cortex_first_authority": "research/local_voice/authority/2026-08-31_TRIGGER7_TEXT_PACKET_COMPLETION_AUTHORITY.md",
+    "wp715_mutation_authority": "F2-WP-715-G1-GPT56SOL-PACKET-CORTEX-CONVERGENCE-20260831",
+    "trigger7_mutation_authority": false
+  },
+  "observed_heads": {
+    "f2_main_after_candidate_write": "cdfd09c1f4a0ec9fd40b6b331b5a0fa0b7fc180b",
+    "packet_source_blob": "46bd01d3701ff6e6119f5d0522486f5d5cc5bd93",
+    "recovery_source_blob": "7854afca22599b235c289020673ffa9a7c9b7d43"
+  },
+  "consumed_trigger4_outcome": {
+    "eventseq_barge_atomicity_repair_subject": "da1c92f1d4e448e23842c74a456e0edd9d228b5c",
+    "repository_ci_run_id": 33328599095,
+    "repository_ci_result": "SUCCESS",
+    "scope": "WP715 packet/recovery repository regression only",
+    "vps_runtime_credit": 0
+  },
+  "current_vps_discriminator": {
+    "workflow_run_id": 33328707636,
+    "source_sha": "db01bfbcc2deebc45524b56407a681b226de7b78",
+    "status_observed": "queued",
+    "executed_steps_observed": 0,
+    "classification": "UNKNOWN_NONTERMINAL_CONTROL_PLANE_ONLY",
+    "duplicate_dispatch_created": false,
+    "runtime_credit": 0
+  },
+  "current_repository_falsifiers": [
+    {
+      "candidate_id": "T7-WP715-SESSION-CLOSE-ACTIVE-TOOL-OWNERSHIP",
+      "routing_commit": "17035fb2bfed761dc735bbfbd64ad7f24f4e00dd",
+      "status": "STATIC_CANDIDATE_NOT_EXECUTED",
+      "scope": "successful session-close / active-tool ownership terminalization"
+    },
+    {
+      "candidate_id": "T7-WP715-REJECTED-SESSION-CLOSE-ATOMICITY",
+      "routing_commit": "cdfd09c1f4a0ec9fd40b6b331b5a0fa0b7fc180b",
+      "status": "STATIC_CANDIDATE_NOT_EXECUTED",
+      "scope": "rejected session-close rollback / dangling VoiceOutcome reference persistence"
+    }
+  ],
+  "new_static_finding": {
+    "summary": "Current close_session() mutates commit-eligible outputs with voiceoutcome_ref before the SESSION_CLOSE event validates turn_id/monotonic_ms. A late-rejected close can plausibly leave an open controller partially mutated and export that dangling reference into a restart checkpoint.",
+    "executed": false,
+    "product_negative_credit": 0
+  },
+  "external_primary_context": {
+    "livekit_turns": "Official LiveKit turn docs continue to truncate interrupted conversation history to the portion actually heard.",
+    "livekit_tools": "Official LiveKit tool docs distinguish speech interruption from tool cancellation/lifecycle, supporting explicit ownership transitions only as external design context."
+  },
+  "coordination": {
+    "existing_wp715_trigger4_owner_reused": true,
+    "product_source_mutation_created": false,
+    "new_vps_dispatch_created": false,
+    "adjacent_asr_tts_breadth_opened": false,
+    "runtime_subject_churn_fence_respected": true,
+    "recommended_repository_execution_consolidation": "Execute both session-close discriminators in the same WP715 repository regression cycle where practical; do not create separate semantic generations merely because two candidates exist."
+  },
+  "next_exact_action": "F2-WP-715 Trigger-4 owner executes the two already-routed session-close repository discriminators against the current exact packet source before any product mutation or new VPS dispatch. If neither reproduces, close both with negative evidence and preserve queued VPS run 33328707636 unchanged. If either reproduces, classify PRODUCT_NEGATIVE only at its exact controller/causal-ownership scope, apply one smallest coherent atomicity/terminalization repair plus regressions, then explicitly reconcile whether the queued VPS subject is invalidated. Independently consume run 33328707636 if it actually executes; queued/zero-step remains zero runtime credit. Trigger 7 consumes those outcomes before new ASR/TTS breadth.",
+  "credit_state": {
+    "repository_component_regression_credit": 1,
+    "review_falsifier_delta_this_cycle": 1,
+    "candidate_product_negative_executed": 0,
+    "vps_packet_recovery_runtime": 0,
+    "acoustic_credit": 0,
+    "asr_runtime_credit": 0,
+    "tts_runtime_credit": 0,
+    "german_e2e_voice": 0,
+    "whole_persistent_voice_loop": 0,
+    "whole_product": 0
+  }
+}
