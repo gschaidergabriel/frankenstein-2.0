@@ -87,6 +87,8 @@ SUBJECT_ALIASES = {
     "duplex-minnima": "DUPLEX_MINNIMA_CPP",
     "eddiegulay-duplex-minnima": "DUPLEX_MINNIMA_CPP",
     "turn-taker": "DUPLEX_MINNIMA_CPP",
+    "vibevoice-realtime-0.5b": "VIBEVOICE_REALTIME_0_5B",
+    "microsoft-vibevoice-realtime-0.5b": "VIBEVOICE_REALTIME_0_5B",
 }
 
 EVIDENCE_SCOPE_ALIASES = {
