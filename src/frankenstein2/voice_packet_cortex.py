@@ -306,9 +306,14 @@ class VoicePacketCortex:
     def outputs(self) -> tuple[VoiceOutputPacket, ...]:
         return tuple(sorted(self._outputs.values(), key=lambda packet: (packet.turn_id, packet.sequence, packet.packet_id)))
 
-    def _require_event_capacity(self) -> None:
-        if len(self._events) >= self.MAX_EVENTS:
+    def _require_event_slots(self, required: int) -> None:
+        if type(required) is not int or required <= 0:
+            raise VoicePacketCortexError("required event slots must be a positive integer")
+        if len(self._events) + required > self.MAX_EVENTS:
             raise VoicePacketCortexError("event capacity exhausted; rotate VoiceSessionCapsule")
+
+    def _require_event_capacity(self) -> None:
+        self._require_event_slots(1)
 
     def _require_new_input_capacity(self) -> None:
         if len(self._input_seen) >= self.MAX_INPUT_PACKETS:
@@ -329,11 +334,11 @@ class VoicePacketCortex:
         if not self.is_open and kind != "SESSION_CLOSE":
             raise VoicePacketCortexError("session is closed")
         self._require_event_capacity()
-        self._event_seq += 1
+        next_event_seq = self._event_seq + 1
         event = CortexEventPacket(
             session_id=self.session_id,
             turn_id=turn_id,
-            event_id=f"cortex-event:{self.session_id}:{self._event_seq:08d}",
+            event_id=f"cortex-event:{self.session_id}:{next_event_seq:08d}",
             monotonic_ms=monotonic_ms,
             event_kind=kind,
             voice_intent=intent,
@@ -344,6 +349,7 @@ class VoicePacketCortex:
             tool_ref=tool_ref,
             detail=detail,
         )
+        self._event_seq = next_event_seq
         self._events.append(event)
         return event
 
@@ -389,11 +395,12 @@ class VoicePacketCortex:
         if packet.turn_id in self._final_turns:
             raise VoicePacketCortexError("input arrived after final turn packet")
         self._require_new_input_capacity()
+        self._require_event_slots(2 if packet.barge_in else 1)
+        if packet.barge_in:
+            self.cancel_for_barge_in(turn_id=packet.turn_id, monotonic_ms=packet.monotonic_ms)
         self._input_seen[packet.packet_id] = digest
         self._last_input_sequence[packet.turn_id] = packet.sequence
         self._last_input_monotonic_ms[packet.turn_id] = packet.monotonic_ms
-        if packet.barge_in:
-            self.cancel_for_barge_in(turn_id=packet.turn_id, monotonic_ms=packet.monotonic_ms)
         if packet.is_final:
             self._final_turns.add(packet.turn_id)
         kind = "ASR_FINAL" if packet.is_final else "ASR_PARTIAL"
@@ -494,7 +501,6 @@ class VoicePacketCortex:
         if any(monotonic_ms < current.monotonic_ms for _, current in candidates):
             raise VoicePacketCortexError("barge-in monotonic_ms precedes output state it would cancel")
         changed: list[str] = []
-        cancelled_turns: set[str] = set()
         for packet_id, current in candidates:
             state = "cancelled" if current.playback_state == "queued" else "interrupted"
             self._outputs[packet_id] = replace(
@@ -505,11 +511,11 @@ class VoicePacketCortex:
                 commit_eligible=False,
             )
             changed.append(packet_id)
-            cancelled_turns.add(current.turn_id)
-        for tool_ref, owner_turn in tuple(self._active_tools.items()):
-            if owner_turn in cancelled_turns:
-                self._active_tools.pop(tool_ref, None)
-                self._cancelled_tools.add(tool_ref)
+        # A barge-in is the controller's interruption boundary.  Until a finer tool epoch exists,
+        # all outstanding tool ownership is stale relative to the new user turn and must be fenced.
+        for tool_ref in tuple(self._active_tools):
+            self._active_tools.pop(tool_ref, None)
+            self._cancelled_tools.add(tool_ref)
         changed_tuple = tuple(sorted(changed))
         self._event(
             turn_id=turn_id, monotonic_ms=monotonic_ms, kind="BARGE_IN_CANCEL_PROPAGATED",
