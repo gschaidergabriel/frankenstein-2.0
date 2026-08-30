@@ -1,0 +1,226 @@
+name: F2 WP1207 G10 Terminal CAS
+
+on:
+  push:
+    branches:
+      - 'trigger4/wp1207-g10-cas-writer'
+    paths:
+      - '.github/workflows/wp1207-g10-terminal-cas.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  actions: read
+
+concurrency:
+  group: wp1207-g10-terminal-cas
+  cancel-in-progress: false
+
+jobs:
+  terminalize-exact-repository-repair:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Verify independent exact-main validation receipt source
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(gh api repos/gschaidergabriel/frankenstein-2.0/actions/runs/33326310837 --jq '.status + ":" + .conclusion')" = "completed:success"
+          test "$(gh api repos/gschaidergabriel/frankenstein-2.0/actions/jobs/99296942416 --jq '.status + ":" + .conclusion')" = "completed:success"
+          gh run view 33326310837 --repo gschaidergabriel/frankenstein-2.0 --log > /tmp/g10-validation.log
+          grep -F 'VALIDATED_MAIN_SHA=fb09d660d8de0aeb0807968a38283b8448469ebe' /tmp/g10-validation.log
+          grep -F 'G10_ACTIVE_EVENT13_BOUND' /tmp/g10-validation.log
+          grep -F 'G10_EXACT_SOURCE_TEST_BLOBS_BOUND' /tmp/g10-validation.log
+          grep -F 'Ran 12 tests' /tmp/g10-validation.log
+          grep -F 'PASS effective workpackage state v2' /tmp/g10-validation.log
+          grep -F 'WP1207_G10_EXACT_MAIN_REGRESSION_PASS' /tmp/g10-validation.log
+          grep -F 'NO_RUNTIME_OR_PHYSICAL_CREDIT_MINTED' /tmp/g10-validation.log
+
+      - name: Fast-forward-only terminal reconciliation
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          RECEIPT='workpackages/receipts/F2-WP-1207_G10_ROLLBACK_STATE_BINDING_REPOSITORY_CI_33326310837.json'
+          RECON='workpackages/reconciliations/F2-WP-1207/10-F2-WP-1207-G10-GPT56SOL-ROLLBACK-STATE-BINDING-20260830.json'
+          EVENT='workpackages/state_events/F2-WP-1207/000014.json'
+
+          for attempt in $(seq 1 20); do
+            echo "TERMINAL_CAS_ATTEMPT=$attempt"
+            git fetch origin main --no-tags
+            git switch --detach -f origin/main
+            BASE_SHA="$(git rev-parse HEAD)"
+
+            BASE_SHA="$BASE_SHA" python - <<'PY'
+          import json, os, pathlib
+          p=json.load(open('workpackages/active/F2-WP-1207.json'))
+          if p.get('generation') == 10 and p.get('claim_id') == 'F2-WP-1207-G10-GPT56SOL-ROLLBACK-STATE-BINDING-20260830' and p.get('state') == 'ACCEPTED':
+              print('G10_ALREADY_TERMINAL')
+              raise SystemExit(20)
+          if p.get('generation') != 10 or p.get('claim_id') != 'F2-WP-1207-G10-GPT56SOL-ROLLBACK-STATE-BINDING-20260830' or p.get('state') != 'ACTIVE':
+              print('G10_AUTHORITY_CHANGED=' + repr((p.get('generation'),p.get('claim_id'),p.get('state'))))
+              raise SystemExit(21)
+          e=json.load(open('workpackages/state_events/F2-WP-1207/000013.json'))
+          assert e['sequence'] == 13 and e['claim_id'] == p['claim_id'] and e['broad_status'] == 'IN_PROGRESS'
+          if pathlib.Path('workpackages/state_events/F2-WP-1207/000014.json').exists():
+              print('EVENT14_ALREADY_EXISTS')
+              raise SystemExit(22)
+          print('G10_ACTIVE_PARENT_OK=' + os.environ['BASE_SHA'])
+          PY
+            rc=$?
+            if [ "$rc" -eq 20 ]; then exit 0; fi
+            if [ "$rc" -eq 21 ] || [ "$rc" -eq 22 ]; then exit 0; fi
+            if [ "$rc" -ne 0 ]; then exit "$rc"; fi
+
+            test "$(git hash-object src/frankenstein2/portable_release_transaction.py)" = "dad832595799cb05bd472068569d10739f6c74cc"
+            test "$(git hash-object tests/test_portable_release_transaction.py)" = "6f106432d128bdbb28096d8bc5d149532d9d5088"
+            python -m py_compile src/frankenstein2/portable_release_transaction.py tests/test_portable_release_transaction.py
+            PYTHONPATH=src python tests/test_portable_release_transaction.py -v
+            python tools/resolve_workpackage_state_v2.py --workpackage F2-WP-1207 --check-active
+
+            BASE_SHA="$BASE_SHA" RECEIPT="$RECEIPT" RECON="$RECON" EVENT="$EVENT" python - <<'PY'
+          import json, os
+          from datetime import datetime, timezone
+          created=datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace('+00:00','Z')
+          receipt={
+            'schema':'FRANKENSTEIN2_REPOSITORY_REGRESSION_REPAIR_ACCEPTANCE_RECEIPT/v1',
+            'workpackage_id':'F2-WP-1207','generation':10,
+            'claim_id':'F2-WP-1207-G10-GPT56SOL-ROLLBACK-STATE-BINDING-20260830','trigger':'4',
+            'status':'PASS_ACCEPTED_AT_REPOSITORY_REGRESSION_REPAIR_SCOPE',
+            'parent_generation':9,
+            'parent_reconciliation_ref':'workpackages/reconciliations/F2-WP-1207/9-F2-WP-1207-G9-GPT56SOL-VPS-CLEAN-HOST-S1-20260830.json',
+            'canonical_subject':{
+              'g10_open_commit_sha':'5f16f8cd151abc99694ec2509a7dfd312c482c54',
+              'validated_main_sha':'fb09d660d8de0aeb0807968a38283b8448469ebe',
+              'terminalization_base_main_sha':os.environ['BASE_SHA'],
+              'source_blob_sha':'dad832595799cb05bd472068569d10739f6c74cc',
+              'test_blob_sha':'6f106432d128bdbb28096d8bc5d149532d9d5088',
+              'active_event_ref':'workpackages/state_events/F2-WP-1207/000013.json'
+            },
+            'counterevidence':{
+              'issue':451,'review_only_pr':757,
+              'pre_fix_reproduction_run_id':33325643150,'pre_fix_reproduction_job_id':99295166104
+            },
+            'validation':{
+              'workflow_run_id':33326310837,'job_id':99296942416,
+              'workflow':'F2 WP1207 G10 Exact Main Validator',
+              'workflow_conclusion':'success','execution_steps_observed':True,
+              'exact_source_test_blob_binding':'PASS','compile':'PASS','transaction_regressions':'PASS_12_OF_12',
+              'event_first_resolver':'PASS','runtime_or_physical_promotion':'NONE'
+            },
+            'accepted_new_credits':{
+              'repository_regression_repair_credit':1,'new_runtime_credit':0,'new_target_runtime_credit':0,
+              'new_physical_host_credit':0,'new_effect_credit':0,'new_completion_credit':0,
+              'new_grid10_runtime_credit':0,'new_gwt_runtime_credit':0,'new_jspace_runtime_credit':0,
+              'new_provider_model_credit':0,'new_training_credit':0,'new_whole_system_acceptance':False
+            },
+            'inherited_parent_scope':{
+              'g9_clean_host_s1_runtime_credit':1,'g9_vps_target_like_clean_host_credit':1,
+              'note':'G9 receipt exact semantic subject binds executor/adapter/hostile-twin blobs, not portable_release_transaction.py. G10 does not extend or relabel that runtime evidence.'
+            },
+            'evidence_boundary':'Only issue #451 rollback-success receipt binding is accepted at repository regression-repair scope. This receipt does not establish a G10 physical/local execution, generic target runtime, broad VPS runtime, effects, GRID10, GWT/J-Space, training, completion, or whole-system acceptance.',
+            'next_exact_action':'Use the repaired current WP1207 source in the next admitted handoff discriminator. Reserve S4 only for irreducible physical owner-workstation evidence; require exact source/artifact/environment identity and independent restart/re-entry readback before physical/target promotion.',
+            'created_at_utc':created
+          }
+          os.makedirs(os.path.dirname(os.environ['RECEIPT']),exist_ok=True)
+          with open(os.environ['RECEIPT'],'w') as f: json.dump(receipt,f,separators=(',',':')); f.write('\n')
+          recon={
+            'schema':'FRANKENSTEIN2_WORKPACKAGE_RECONCILIATION/v1','workpackage_id':'F2-WP-1207','generation':10,
+            'claim_id':'F2-WP-1207-G10-GPT56SOL-ROLLBACK-STATE-BINDING-20260830','status':'ACCEPTED_AT_SCOPE',
+            'terminal_scope':'REPOSITORY_REGRESSION_REPAIR_ISSUE451_ROLLBACK_SUCCESS_EXACT_PREDECESSOR_STATE_BINDING_ONLY',
+            'parent_generation':9,
+            'parent_reconciliation_ref':'workpackages/reconciliations/F2-WP-1207/9-F2-WP-1207-G9-GPT56SOL-VPS-CLEAN-HOST-S1-20260830.json',
+            'acceptance_receipt':os.environ['RECEIPT'],
+            'observed_result':[
+              'issue #451 counterexample was reproduced before repair',
+              'exact candidate source/test bytes were materially incorporated into canonical main under G10 event authority',
+              'independent run 33326310837 job 99296942416 rebound current main, verified exact G10 source/test blobs, compiled the surface, passed all 12 transaction regressions, and passed event-first state resolution',
+              'the successful ROLLBACK receipt now rejects a next-generation state digest that differs from plan.rollback_target_state_sha256',
+              'only repository regression-repair scope is newly accepted; no runtime or physical credit is newly minted'
+            ],
+            'repository_regression_repair_credit':1,
+            'runtime_execution_observed':True,'runtime_credit':1,'hostile_twin_runtime_credit':1,
+            'target_environment_component_runtime_credit':1,'clean_host_s1_runtime_credit':1,'vps_target_like_clean_host_credit':1,
+            'target_runtime_credit':0,'vps_runtime_credit':0,'physical_host_credit':0,'effect_credit':0,'completion_credit':0,
+            'grid10_runtime_credit':0,'gwt_runtime_credit':0,'jspace_runtime_credit':0,'provider_model_credit':0,'training_credit':0,
+            'whole_system_acceptance':False,'new_runtime_credit':0,'new_physical_host_credit':0,
+            'next_exact_action':'Use repaired current WP1207 source for the next admitted handoff; S4 remains the irreducible physical owner-machine boundary before target/physical promotion.',
+            'created_at_utc':created
+          }
+          os.makedirs(os.path.dirname(os.environ['RECON']),exist_ok=True)
+          with open(os.environ['RECON'],'w') as f: json.dump(recon,f,separators=(',',':')); f.write('\n')
+          PY
+
+            RECEIPT_BLOB="$(git hash-object "$RECEIPT")"
+            RECON_BLOB="$(git hash-object "$RECON")"
+            EVENT13_SHA256="$(sha256sum workpackages/state_events/F2-WP-1207/000013.json | awk '{print $1}')"
+
+            RECEIPT="$RECEIPT" RECON="$RECON" EVENT="$EVENT" python - <<'PY'
+          import json, os
+          from datetime import datetime, timezone
+          created=datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace('+00:00','Z')
+          p=json.load(open('workpackages/active/F2-WP-1207.json'))
+          p.update({
+            'state':'ACCEPTED','repository_regression_repair_credit':1,'new_runtime_credit':0,'new_physical_host_credit':0,
+            'acceptance_receipt':os.environ['RECEIPT'],'reconciliation_ref':os.environ['RECON'],
+            'terminal_event_ref':os.environ['EVENT'],'accepted_at_utc':created,
+            'next_exact_action':'Use repaired current WP1207 source for the next admitted handoff; S4 remains the irreducible physical owner-machine boundary before target/physical promotion.'
+          })
+          with open('workpackages/active/F2-WP-1207.json','w') as f: json.dump(p,f,separators=(',',':')); f.write('\n')
+          PY
+            ACTIVE_BLOB="$(git hash-object workpackages/active/F2-WP-1207.json)"
+
+            ACTIVE_BLOB="$ACTIVE_BLOB" RECEIPT_BLOB="$RECEIPT_BLOB" RECON_BLOB="$RECON_BLOB" EVENT13_SHA256="$EVENT13_SHA256" RECEIPT="$RECEIPT" RECON="$RECON" EVENT="$EVENT" python - <<'PY'
+          import json, os
+          from datetime import datetime, timezone
+          created=datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace('+00:00','Z')
+          e={
+            'schema':'FRANKENSTEIN2_WORKPACKAGE_STATE_EVENT/v1','workpackage_id':'F2-WP-1207','sequence':14,
+            'parent_event':'workpackages/state_events/F2-WP-1207/000013.json','parent_event_sha256':os.environ['EVENT13_SHA256'],
+            'event_class':'POST_ACCEPTANCE_REGRESSION_REPAIR_ACCEPTED','observed_main_sha':None,
+            'claim_generation':10,'claim_id':'F2-WP-1207-G10-GPT56SOL-ROLLBACK-STATE-BINDING-20260830',
+            'broad_status':'ACCEPTED_AT_SCOPE','phase':12,
+            'title':'Accept #451 exact rollback predecessor-state binding at repository regression-repair scope',
+            'evidence':[os.environ['RECEIPT'],os.environ['RECON'],'GHA_RUN_33326310837_JOB_99296942416_EXACT_MAIN_G10_REGRESSION_PASS'],
+            'active_pointer_state':'ACCEPTED','active_pointer_blob_sha':os.environ['ACTIVE_BLOB'],
+            'reconciliation_ref':os.environ['RECON'],'reconciliation_blob_sha':os.environ['RECON_BLOB'],
+            'acceptance_receipt_ref':os.environ['RECEIPT'],'acceptance_receipt_blob_sha':os.environ['RECEIPT_BLOB'],
+            'resolution':'G10 closes only the post-acceptance #451 repository regression repair. Exact current source/test bytes passed independent exact-main compile, 12/12 transaction regressions, and event-first resolver. G9 S1 runtime evidence remains separately scoped and is not extended. No new target runtime, broad VPS, physical host, effect, completion, GRID/GWT/J-Space/provider/training or whole-system credit is minted.',
+            'repository_regression_repair_credit':1,
+            'runtime_execution_observed':True,'runtime_credit':1,'hostile_twin_runtime_credit':1,
+            'target_environment_component_runtime_credit':1,'clean_host_s1_runtime_credit':1,'vps_target_like_clean_host_credit':1,
+            'target_runtime_credit':0,'vps_runtime_credit':0,'physical_host_credit':0,'grid10_runtime_credit':0,
+            'gwt_runtime_credit':0,'jspace_runtime_credit':0,'provider_model_credit':0,'training_credit':0,'effect_credit':0,
+            'completion_credit':0,'whole_system_acceptance':False,'new_runtime_credit':0,'new_physical_host_credit':0,
+            'created_at_utc':created
+          }
+          with open(os.environ['EVENT'],'w') as f: json.dump(e,f,separators=(',',':')); f.write('\n')
+          PY
+
+            git diff --check
+            git add -- "$RECEIPT" "$RECON" workpackages/active/F2-WP-1207.json "$EVENT"
+            test "$(git diff --cached --name-only | wc -l)" -eq 4
+            git commit -m "trigger4: accept WP1207 G10 rollback state binding repair"
+            python tools/resolve_workpackage_state_v2.py --workpackage F2-WP-1207 --check-active
+
+            if git push origin HEAD:main; then
+              echo "G10_TERMINAL_CAS_PUSH_SUCCESS=$(git rev-parse HEAD)"
+              exit 0
+            fi
+            echo "TERMINAL_CAS_LOST_REENTER"
+          done
+
+          echo "G10_TERMINAL_CAS_EXHAUSTED_WITHOUT_FORCE_PUSH" >&2
+          exit 1
