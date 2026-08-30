@@ -1,0 +1,110 @@
+{
+  "schema_version": 1,
+  "trigger": "7",
+  "research_id": "T7-TTS-008",
+  "objective": "E1_AUDIO8_TTS_06B_GERMAN_SOURCE_SECURITY_AUDIT",
+  "semantic_key": "934196a3a4dbd14cf0a709a3cb1e243d4b44c08af205547d83216b3e1097e3f5",
+  "classification": "SOURCE_PINNED_PROMISING_GERMAN_TTS_CHALLENGER_WITH_AUDITABLE_ONNX_PATH_NOT_TARGET_RUNTIME_ACCEPTED",
+  "observed_date_local": "2026-08-30",
+  "upstream": {
+    "repository": "Audio8-AI/Audio8_TTS",
+    "repository_commit": "55c1260df0176f0f7ba64e53ae0828cff3f95081",
+    "repository_commit_date": "2026-08-28T02:17:17Z",
+    "torch_hf_model": "Audio8/Audio8-TTS-Preview-0.6b",
+    "torch_hf_observed_head": "f9612f13a0ab40facf3d050fc908b9e6db05c2be",
+    "onnx_hf_model": "Audio8/Audio8-TTS-Preview-0.6B-ONNX-INT4",
+    "onnx_publish_commit": "50aa78746f8f7e739ddc98a1e7ec016bb75d244f",
+    "license": "Apache-2.0"
+  },
+  "source_observations": [
+    "Upstream explicitly lists German among the 11 recommended languages for Audio8 TTS Preview 0.6B. This grants German source eligibility only; no Frankenstein German listening or runtime quality credit is implied.",
+    "The main model is reported as 601,159,424 parameters excluding the codec and uses a DualAR design: a slow autoregressive semantic-token transformer followed by a fast autoregressive codec-codebook predictor.",
+    "The bundled codec is 44.1 kHz with 2,048 samples per model frame, approximately 21.5 model frames per second. The checkpoint supports zero-shot voice cloning from reference audio plus an exact reference transcript.",
+    "The ordinary Hugging Face Transformers path contains custom Python model/processor/codec code and upstream explicitly instructs callers to review it and use trust_remote_code=True. That path must not be treated as pre-audited target runtime code.",
+    "A separate first-party ONNX Runtime deployment exists for the same 0.6B family. It uses weight-only INT4 Slow/Fast AR graphs, FP16 activations/KV/cache and FP16 codec, and after model download does not require PyTorch, Transformers or Hugging Face Hub at runtime.",
+    "The first-party ONNX service exposes streaming signed-16-bit 44.1 kHz PCM and a cancellation endpoint, plus an OpenAI-compatible /v1/audio/speech WAV route. These interfaces are source-level alignment signals for the Frankenstein voice ABI, not measured barge-in or TTFA evidence.",
+    "The ONNX runtime serializes synthesis and voice-registration requests to bound memory. Upstream reports about 1004 MiB loaded and roughly 1.1-1.2 GiB synthesis peak on a tested 16 GB Apple M2, with about 572 MiB online model files and about 968 MiB including the optional registration encoder. Those numbers are upstream Apple-M2 measurements and cannot be transferred to clay-direct-dev without measurement.",
+    "The current ONNX release is explicitly tested on macOS arm64 CPUExecutionProvider. Linux CPU compatibility is plausible from the dependency/runtime design but was not observed in this source audit and receives zero target-runtime credit.",
+    "The pinned ONNX Python dependency set is small and explicit: numpy 2.4.3, onnxruntime 1.24.4, soundfile 0.13.1, scipy 1.17.1, fastapi 0.135.2, uvicorn 0.42.0, pydantic >=2.9,<3, python-multipart 0.0.22.",
+    "The ONNX artifact repository is Apache-2.0 and contains ONNX/Xet model data plus tokenizer/manifest files rather than Hugging Face custom Python model code. Model graphs remain untrusted executable inputs and still require isolated verification before target adoption.",
+    "Upstream recommends keeping synthesis inputs within 150 characters for best quality. Frankenstein therefore needs its own incremental text segmentation and prosody-continuity test rather than assuming long-response quality from single-shot samples."
+  ],
+  "security_dependency_audit": {
+    "torch_transformers_path": {
+      "trust_remote_code_required_by_upstream": true,
+      "custom_python_files_present": true,
+      "target_recommendation": "Do not use directly in F2 target runtime before code review and exact revision pinning."
+    },
+    "onnx_cpu_path": {
+      "transformers_required_after_download": false,
+      "pytorch_required_after_download": false,
+      "hf_hub_required_after_download": false,
+      "local_service_bind_default": "127.0.0.1:8024",
+      "streaming_pcm_source_support": true,
+      "explicit_cancel_endpoint_source_support": true,
+      "remaining_risk": "Untrusted ONNX graphs and Python service/runtime code still require isolated source/hash-bound verification; setup scripts and dependencies must be inspected/pinned before execution."
+    }
+  },
+  "f2_fit": {
+    "classification": "PROMISING_TTS_CHALLENGER_AND_POSSIBLE_CPU_FALLBACK",
+    "advantages_to_measure": [
+      "German is an upstream-declared primary language",
+      "first-party zero-shot voice cloning could preserve a stable male acoustic identity",
+      "first-party CPU INT4 ONNX path could avoid GPU residency competition with the local dialogue LLM",
+      "streaming PCM plus explicit cancel route maps naturally to cancellable F2 playback",
+      "OpenAI-compatible speech route may reduce adapter complexity while preserving the existing voice-provider boundary"
+    ],
+    "unproven_or_risks": [
+      "German naturalness, pronunciation and prosody on the actual user/domain corpus",
+      "stable male voice identity across long sessions and segmented streaming",
+      "true time-to-first-audio and RTF on clay-direct-dev",
+      "Linux CPU provider behavior and thread contention with ASR/LLM/audio services",
+      "whether chunk boundaries create audible seams or prosody reset",
+      "whether cancel stops generation quickly enough for Frankenstein barge-in rather than only stopping HTTP delivery",
+      "voice cloning consent/provenance and exact reference-audio custody must remain explicit",
+      "the Transformers remote-code path should not be used merely because it is the default model-card example"
+    ]
+  },
+  "hypothesis": "Audio8 0.6B INT4 ONNX can become a high-value German local TTS challenger because it combines explicit German support, zero-shot voice identity, streaming/cancel interfaces and a low-memory CPU-only path that may preserve GPU budget for the dialogue brain.",
+  "counterhypothesis": "Its autoregressive 44.1 kHz codec path may be too slow on the actual target CPU, segmented text may collapse prosody, and voice-cloning quality may not match the required stable male Frankenstein identity; Qwen3-TTS, MagpieTTS or a simpler Piper-class baseline may dominate the end-to-end latency/naturalness frontier.",
+  "next_discriminator": {
+    "precondition": "Use Trigger-4 only after the retained target runner/bridge gate is available; do not create a parallel execution lane while the current shared runtime gate remains unresolved.",
+    "experiment_class": "distinct future target-runtime German TTS benchmark requiring its own semantic claim",
+    "preferred_first_runtime": "Audio8 0.6B ONNX INT4 path rather than trust_remote_code Transformers path",
+    "compare": [
+      "Audio8 0.6B ONNX INT4",
+      "current admitted Qwen3-TTS candidate",
+      "MagpieTTS multilingual challenger",
+      "ultralight existing local baseline where available"
+    ],
+    "measure": [
+      "TTFA p50/p95",
+      "real-time factor and steady-state CPU/RSS",
+      "German pronunciation of names, numbers and technical vocabulary",
+      "stable male acoustic identity and reference-speaker similarity",
+      "prosody continuity across incremental segments",
+      "stream chunk seam/click/duplication rate",
+      "cancel request to generation-stop and playback-stop latency",
+      "30-minute voice consistency and failure recovery",
+      "network-blocked inference after artifacts are present"
+    ]
+  },
+  "source_refs": {
+    "github_readme": "https://github.com/Audio8-AI/Audio8_TTS/blob/55c1260df0176f0f7ba64e53ae0828cff3f95081/README.md",
+    "github_onnx_readme": "https://github.com/Audio8-AI/Audio8_TTS/blob/55c1260df0176f0f7ba64e53ae0828cff3f95081/onnx_runtime/README.md",
+    "github_onnx_requirements": "https://github.com/Audio8-AI/Audio8_TTS/blob/55c1260df0176f0f7ba64e53ae0828cff3f95081/onnx_runtime/requirements.txt",
+    "hf_torch_model_revision": "https://huggingface.co/Audio8/Audio8-TTS-Preview-0.6b/tree/f9612f13a0ab40facf3d050fc908b9e6db05c2be",
+    "hf_onnx_publish_revision": "https://huggingface.co/Audio8/Audio8-TTS-Preview-0.6B-ONNX-INT4/commit/50aa78746f8f7e739ddc98a1e7ec016bb75d244f"
+  },
+  "credits": {
+    "source_pin": 1,
+    "german_source_eligibility": 1,
+    "security_architecture_audit": 1,
+    "linux_build": 0,
+    "target_runtime": 0,
+    "german_component_benchmark": 0,
+    "german_e2e_voice": 0,
+    "trigger4_acceptance": 0,
+    "whole_system": 0
+  }
+}
