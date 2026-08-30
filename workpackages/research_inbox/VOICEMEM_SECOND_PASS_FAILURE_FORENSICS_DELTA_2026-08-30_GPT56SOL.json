@@ -1,0 +1,136 @@
+{
+  "schema": "FRANKENSTEIN2_CROSS_WORKPACKAGE_RESEARCH_DELTA/v1",
+  "classification": "APPEND_ONLY_FAILURE_FORENSICS_AND_FALSIFIER_INPUT",
+  "created_at_utc": "2026-08-30T05:28:00Z",
+  "organ": "GPT-5.6-Sol/federated-architect-research",
+  "subject": "VoiceMem second-pass hidden failure lessons after full-tree empirical-marker audit",
+  "parent_packets": [
+    "workpackages/research_inbox/VOICEMEM_SOURCE_MANIFEST_2026-08-30_GPT56SOL.json",
+    "workpackages/research_inbox/VOICEMEM_PHASE3_MEMORY_RETRIEVAL_RESEARCH_PACKET_2026-08-30_GPT56SOL.json",
+    "workpackages/research_inbox/VOICEMEM_PHASE7_AGENCY_VOICE_PERCEPTION_RESEARCH_PACKET_2026-08-30_GPT56SOL.json",
+    "workpackages/research_inbox/VOICEMEM_CROSSCUTTING_EFFICIENCY_EVIDENCE_RESEARCH_PACKET_2026-08-30_GPT56SOL.json",
+    "workpackages/research_inbox/VOICEMEM_DEEP_DONOR_ARCHITECTURE_RESEARCH_2026-08-30_GPT56SOL.md"
+  ],
+  "donor_source_refs": [
+    {"ref":"xzf-thu/VoiceMem@d587d424a02727d9ff3ef6f8e672a39a19ce64a7:voicemem/leftbrain/cognitive_graph/store.py","sha256":"7aa3f012b37a93a6b23d480165de75f02216076949c8f2cbb0712833db3701c0"},
+    {"ref":"xzf-thu/VoiceMem@d587d424a02727d9ff3ef6f8e672a39a19ce64a7:web/run.py","sha256":"447cef218291d40079d337cb74f919827146ed9a16b5ea7ce64b5df331a35e56"},
+    {"ref":"xzf-thu/VoiceMem@d587d424a02727d9ff3ef6f8e672a39a19ce64a7:voicemem/utils/common/voice_input.py","sha256":"c12b837d0a03d4538a5766e915c59c55602111a120cb1ffb504a660bf9b40dcc"},
+    {"ref":"xzf-thu/VoiceMem@d587d424a02727d9ff3ef6f8e672a39a19ce64a7:voicemem/utils/audio/emotion/paper_emotion_detector.py","sha256":"0873dd8a16e37d9f784d5bf36be97679720392d8d4417085fd6eed507c9adb69"},
+    {"ref":"xzf-thu/VoiceMem@d587d424a02727d9ff3ef6f8e672a39a19ce64a7:voicemem/utils/audio/voiceprint/speaker_encoder.py","sha256":"1bf3d58bcf7cbe43452c2fe155d4b888b25c7da2c60369bec3f3ac32970e1b2d"},
+    {"ref":"xzf-thu/VoiceMem@d587d424a02727d9ff3ef6f8e672a39a19ce64a7:voicemem/utils/audio/voiceprint/campplus_worker.py","sha256":"9eeebb8f8c50432a7e3dc059998843cf0ac1ddf726bb9e8ef849469a682cd1cf"}
+  ],
+  "routes": [
+    {"workpackage_id":"F2-WP-005","use":"zero-activation/dead-path telemetry; effective-config receipts; latency span attribution"},
+    {"workpackage_id":"F2-WP-100","use":"schema-generation migration compatibility and fail-closed read adapters"},
+    {"workpackage_id":"F2-WP-103","use":"write/read visibility and pending-delivery lifecycle"},
+    {"workpackage_id":"F2-WP-104","use":"deferred completion visibility/re-entry rather than hidden asynchronous gaps"},
+    {"workpackage_id":"F2-WP-301","use":"update-candidate recall and read-time relevance without lifecycle mutation"},
+    {"workpackage_id":"F2-WP-701","use":"calibration and uncertainty; confidence score alone is not epistemic reliability"},
+    {"workpackage_id":"F2-WP-703","use":"speaker/presence freshness trade-offs and cross-identity isolation"},
+    {"workpackage_id":"F2-WP-705","use":"event-loop nonblocking architecture, realtime effective-config validation, per-response state delivery"},
+    {"workpackage_id":"F2-WP-706","use":"identity contamination falsifiers"},
+    {"workpackage_id":"F2-WP-800","use":"micro-world regression fixtures for all delta mechanisms"},
+    {"workpackage_id":"F2-WP-806","use":"lesion tests for dead graph path/config omission"},
+    {"workpackage_id":"F2-WP-902","use":"critical-path and event-loop latency characterization"},
+    {"workpackage_id":"F2-WP-904","use":"failure injection: legacy schema row, silent config reject, queue/visibility race"}
+  ],
+  "new_findings": [
+    {
+      "id": "VM-F01-SCHEMA-MIGRATION-BLAST-RADIUS",
+      "source_observation": "cognitive_graph/store.py documents a live bug where SlotV2(row['slot']) raised on legacy taxonomy rows such as slot='people'. One bad row propagated through find_entities/get_entity and AnchorRouter, silently zeroing all right-brain results for the user. The repair coerces known legacy values and falls back to knowledge rather than crashing the entire query.",
+      "general_lesson": "A local schema-generation incompatibility must not create whole-user/whole-subsystem retrieval failure. Read paths require explicit generation migration or typed UNKNOWN/legacy handling.",
+      "counterhypothesis": "Fallback coercion can hide genuinely invalid data and silently misclassify it.",
+      "cheapest_discriminator": "Inject one known-legacy row and one unknown-invalid row into a compatibility fixture. Known legacy must migrate deterministically with receipt; unknown must become typed UNKNOWN/BLOCKED or isolated error, never silently poison the full query and never be treated as trusted knowledge.",
+      "priority": "P0"
+    },
+    {
+      "id": "VM-F02-ZERO-ACTIVATION-DEAD-PATH",
+      "source_observation": "neighbor_entity_ids had SQL placeholder ordering wrong; donor comments state one-hop neighbor expansion never worked and an evaluation over 821 questions had f_nbr=0 throughout. The surrounding pipeline could still run, making the feature appear present while causally dead.",
+      "general_lesson": "Source presence and green outer-path execution do not prove a cognitive branch ever contributes. Every intended adaptive/graph/GWT branch needs activation-count and causal-contribution telemetry.",
+      "counterhypothesis": "A branch can legitimately remain zero on a dataset where its trigger condition never occurs.",
+      "cheapest_discriminator": "Add a positive-control fixture guaranteed to require the branch plus runtime activation counters. Acceptance requires nonzero branch activation on positive controls and zero on explicit negative controls; do not infer usefulness merely from activation.",
+      "priority": "P0"
+    },
+    {
+      "id": "VM-F03-READTIME-DECAY-NOT-CANONICAL-MUTATION",
+      "source_observation": "Graph edges and memory heat are exponentially decayed at read time while stored base weights remain unchanged. Archivable-memory listing only proposes candidates; execution is a separate caller action with minimum-age protection.",
+      "general_lesson": "Freshness/relevance decay can be a rebuildable query projection rather than destructive canonical-state mutation. Candidate archival must remain distinct from archive effect.",
+      "counterhypothesis": "Read-time decay tied to wall clock harms deterministic replay unless reference time is explicit.",
+      "cheapest_discriminator": "Require explicit reference_time in deterministic F2 analogues; replay identical state+reference_time to identical score and verify no canonical payload/lifecycle mutation occurs."
+    },
+    {
+      "id": "VM-F04-READ-YOUR-OWN-WRITES-VISIBILITY-GAP",
+      "source_observation": "web/run.py keeps a short-lived _LAST_TUNE cache because background ingest can take 15-20 seconds; a natural immediate request to replay the just-heard song arrives before its durable memory is query-visible. The transient buffer bridges that gap without pretending durable ingest completed.",
+      "general_lesson": "Asynchronous cognition/persistence creates a consistency window. Immediate re-entry needs an explicit pending/provisional visibility layer rather than forcing synchronous durable ingest or pretending the write is complete.",
+      "counterhypothesis": "A transient cache can become a second truth source or leak stale data after ingest failure.",
+      "cheapest_discriminator": "Model PENDING -> DURABLE|FAILED with exact causal id and TTL. Immediate same-session query may see typed PENDING evidence; after durable receipt it resolves to canonical ref; after failure/TTL it disappears. Never grant durable-memory credit from the provisional layer.",
+      "priority": "P0"
+    },
+    {
+      "id": "VM-F05-CONFIDENCE-NEQ-CALIBRATION",
+      "source_observation": "web/run.py documents emotion2vec+ confidently wrong at score 1.00 on benign real utterances. Raising a numeric confidence threshold could not solve the error; VoiceMem instead restricts trust to selected acoustically distinctive classes and uses semantic evidence elsewhere.",
+      "general_lesson": "A model's internal confidence score is not evidence of calibration. Admission policy must be class/condition-specific or externally calibrated, and disagreement should remain UNKNOWN/Hyperposition rather than be collapsed by high self-confidence.",
+      "counterhypothesis": "The observed miscalibration may be speaker/domain-specific and class allowlists may overfit one user.",
+      "cheapest_discriminator": "Held-out multi-speaker calibration set; reliability diagram/ECE or bounded calibration metric by class. Compare global threshold, class-conditional gate and multimodal disagreement policy."
+    },
+    {
+      "id": "VM-F06-EVENT-LOOP-BLOCKING-IS-COGNITIVE-FAILURE",
+      "source_observation": "web/run.py documents a synchronous speaker/perception read taking about 2.1 seconds inside the event loop; during it the socket was not read and microphone frames accumulated, perceived as ASR lag. Barge-in was also structurally impossible while reply generation/TTS was awaited inline; repair moved reply work to cancellable background task while socket consumption continued.",
+      "general_lesson": "Realtime agency must classify scheduler/event-loop starvation separately from model latency. Long perception/cognition cannot block ingress or interrupt handling.",
+      "counterhypothesis": "Moving work off the event loop can create stale prior-state decisions and races.",
+      "cheapest_discriminator": "Inject bounded slow perception/reply tasks while streaming input. Measure socket/read-loop gap, queued audio growth, barge-in latency, cancellation completion and stale-generation rejection.",
+      "priority": "P0_RUNTIME"
+    },
+    {
+      "id": "VM-F07-EFFECTIVE-CONFIG-ACK-NOT-REQUEST",
+      "source_observation": "Realtime turn_detection was previously written at the wrong schema level and silently rejected through an error event; code behaved as if server VAD were disabled when it was not. This caused auto-responses without injected memory and collisions with the client's response.create. The current source places turn_detection under session.audio.input and treats handshake success as insufficient until interaction works.",
+      "general_lesson": "Configuration request != effective configuration. Provider/runtime setup requires an observed acknowledgement/effective-state receipt, and error events must be consumed.",
+      "counterhypothesis": "Provider schemas and acknowledgements can change; one success does not prove future effective state.",
+      "cheapest_discriminator": "Negative fixture with an intentionally invalid nested config must produce BLOCKED/REJECTED receipt, never READY. Positive fixture must bind requested config digest to observed effective/accepted response before dependent runtime credit.",
+      "priority": "P0_RUNTIME"
+    },
+    {
+      "id": "VM-F08-DELIVERY-SCOPE-MATTERS",
+      "source_observation": "VoiceMem comments report session.update instructions were not visible to the current response even though memory had been retrieved; moving memory context into per-response response.create instructions made it available to that response.",
+      "general_lesson": "State/config existence at session scope does not prove delivery to the exact consuming inference. Bind context to the concrete model-call/response identity when current-turn causality matters.",
+      "counterhypothesis": "Per-call context can increase duplication/token cost.",
+      "cheapest_discriminator": "Two-turn fixture with changing memory context. Require exact call receipt showing context digest consumed by intended response; compare session-scoped vs call-scoped delivery and token overhead."
+    },
+    {
+      "id": "VM-F09-CROSS-IDENTITY-CONFLICT-FENCE",
+      "source_observation": "voice_input.py documents a reproduced household bug where a current speaker's new fact updated another named person's similar old memory despite a prompt rule. The repair hard-filters candidates explicitly naming another known person before the model conflict resolver sees them.",
+      "general_lesson": "Identity/authority boundaries cannot rely on prompt instructions. Candidate construction must hard-fence principal/subject identity before a model may propose UPDATE/DELETE-like actions.",
+      "counterhypothesis": "Name filtering alone is brittle under aliases/coreference or shared facts.",
+      "cheapest_discriminator": "Multi-principal fixture with same-template facts, aliases and shared entities; a candidate updater must not receive foreign-principal mutable candidates without explicit cross-principal relation evidence.",
+      "priority": "P0"
+    },
+    {
+      "id": "VM-F10-UPDATE-CANDIDATE-RECALL-IS-DIFFERENT-FROM-QUERY-RECALL",
+      "source_observation": "VoiceMem changed conflict resolution from one whole-turn top-10 search to per-fact wider search plus an attribute-only query. Source comments explain that different values of the same attribute can be embedding-dissimilar, causing old values to miss top-k and turning intended UPDATE into ADD.",
+      "general_lesson": "Candidate retrieval for state reconciliation has different recall requirements from answer retrieval. It should query stable relation/attribute identity in addition to value-bearing text.",
+      "counterhypothesis": "Wider candidate windows increase latency and false conflict risk; donor comments report one conflict-resolver call took 10.2s with a 95-memory store.",
+      "cheapest_discriminator": "Ablate whole-turn top-k, per-fact top-k and per-attribute candidate retrieval on update/delete recall, false-conflict rate, prompt size and latency. Keep effect/mutation downstream separately gated."
+    },
+    {
+      "id": "VM-F11-RAW-FALLBACK-MUST-BE-EXPLICIT",
+      "source_observation": "voice_input.py has an optional raw-text memory fallback for extraction failure/offline use but leaves it disabled by default; otherwise unstructured request/junk can be persisted as if it were quality-extracted memory.",
+      "general_lesson": "Degraded fallback modes must change epistemic type, not silently preserve the normal success label.",
+      "counterhypothesis": "Failing closed can lose valuable user information during provider outage.",
+      "cheapest_discriminator": "If a raw fallback is ever admitted, store it as RAW_OBSERVATION/PENDING_EXTRACTION with separate retrieval policy and later reconciliation; verify it cannot appear as FACT until typed admission succeeds."
+    }
+  ],
+  "worker_priority": [
+    "P0: positive-control activation telemetry for graph/GWT/adaptive branches (VM-F02)",
+    "P0: schema-generation compatibility blast-radius test (VM-F01)",
+    "P0: provisional PENDING visibility/read-your-own-writes contract without second truth authority (VM-F04)",
+    "P0 runtime: nonblocking ingress/barge-in and effective-config receipts (VM-F06/F07/F08)",
+    "P0: cross-principal candidate hard fence (VM-F09)",
+    "P1: calibration-vs-confidence suite (VM-F05)",
+    "P1: update-candidate recall ablation (VM-F10)",
+    "P1: explicit reference-time read-decay experiment (VM-F03)",
+    "P1: typed raw fallback if degraded/offline operation is required (VM-F11)"
+  ],
+  "mutation_authority": "NONE_RESEARCH_INPUT_ONLY",
+  "runtime_credit": 0,
+  "whole_system_credit": 0
+}
