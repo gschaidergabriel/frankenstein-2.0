@@ -1,0 +1,64 @@
+name: Trigger6 WP510 manifest E4 frozen ablation
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'research/tool_intelligence/experiments/wp510_manifest_mutation_ablation.py'
+      - 'research/tool_intelligence/experiments/wp510_recursive_manifest.py'
+      - '.github/workflows/trigger6-wp510-manifest-e4-ablation-ci.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  e4-frozen-hazard-ablation:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Run frozen-copy mutation ablation
+        run: >-
+          python research/tool_intelligence/experiments/wp510_manifest_mutation_ablation.py
+          --repo-root .
+          --output /tmp/wp510_e4_ablation.json
+      - name: Assert E4 result and zero credit
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          data = json.loads(Path('/tmp/wp510_e4_ablation.json').read_text())
+          assert data['passed'] is True
+          assert data['credit'] == {'architecture_credit': 0, 'runtime_credit': 0, 'whole_system_credit': 0}
+          cases = {row['case']: row for row in data['cases']}
+          required = {
+              'UNRELATED_REPO_CHURN',
+              'TRANSITIVE_SOURCE_BYTE_MUTATION',
+              'STATIC_NEW_LOCAL_DEPENDENCY',
+              'DYNAMIC_IMPORT_RUNTIME_EXTRA',
+              'SYS_PATH_MUTATION',
+              'ENTRY_POINT_DISCOVERY',
+              'ENVIRONMENT_DEPENDENCY',
+              'NATIVE_LIBRARY_LOAD',
+          }
+          assert set(cases) == required
+          assert all(cases[name]['passed'] for name in required)
+          print(json.dumps({
+              'passed': data['passed'],
+              'baseline': data['baseline'],
+              'cases': {
+                  name: {
+                      'blockers': cases[name]['blockers'],
+                      'dynamic_surfaces': cases[name]['dynamic_surfaces'],
+                      'runtime_extra_local_modules': cases[name]['runtime_extra_local_modules'],
+                      'local_files': cases[name]['local_files'],
+                      'local_closure_sha256': cases[name]['local_closure_sha256'],
+                  }
+                  for name in sorted(required)
+              },
+          }, sort_keys=True))
+          PY
