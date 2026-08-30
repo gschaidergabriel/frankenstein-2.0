@@ -1,0 +1,41 @@
+{
+  "schema": "T7_REENTRY_CHECKPOINT/v1",
+  "trigger": "7",
+  "organ": "GPT-5.6-Sol",
+  "mode": "SOURCE_RESEARCH_AND_TRIGGER4_ROUTING_NO_RUNTIME_DISPATCH",
+  "observed_f2_main_before_checkpoint": "8a0654ffbc15a1a752ad075a89659d471d2f576a",
+  "completed": {
+    "semantic_subject_admitted": "NAMO_TURN_DETECTOR_V1_MULTILINGUAL",
+    "semantic_key": "ef624c13104dfa4990918906f59104fd558197c8842f60ace298f23567237c6f",
+    "semantic_claim": "SOURCE_PINNED_TERMINAL_AT_SCOPE",
+    "source_audit": "research/local_voice/sources/2026-08-30_T7_TURN006_NAMO_MULTILINGUAL_GERMAN_SOURCE_AUDIT_GPT56SOL.json",
+    "trigger4_route": "trigger4/inbox/local_voice/T7_TURN006_NAMO_SEMANTIC_EOU_TARGET_BENCHMARK_GPT56SOL.json"
+  },
+  "source_result": {
+    "upstream_repo_sha": "75ddd0e858ef3fc28a65dbc48bb74d7e9b462f3c",
+    "hf_revision_observed": "59245aac1f0a0f170277ebecc32ddaea418083b4",
+    "model_quant_sha256": "67be31dac7c49abd43a277a105222c9031a0e22ac37f0e22dab395f68b318fc9",
+    "upstream_german_accuracy": 0.9425,
+    "upstream_german_f1": 0.9443,
+    "upstream_multilingual_latency_claim_ms": "<29",
+    "runtime_reproduced": false
+  },
+  "architecture_delta": "Treat semantic EOU as a text-side turn-transfer gate downstream/alongside streaming ASR; retain acoustic VAD for speech presence, wake, and barge-in. Candidate composition: acoustic VAD + streaming ASR + semantic EOU + local brain + cancellable TTS.",
+  "hypothesis": "Semantic EOU can reduce German false cuts and fixed-silence delay at negligible incremental compute cost relative to the voice pipeline.",
+  "counterhypothesis": "Streaming-ASR partial instability and colloquial German can make semantic endpointing later or less reliable than a tuned acoustic policy despite upstream benchmark accuracy.",
+  "runtime_gate": {
+    "existing_qwen3_asr_run_id": 33292903286,
+    "observed_status": "queued",
+    "new_runtime_dispatch_created": false,
+    "reason": "The current self-hosted runner admission/liveness blocker remains unresolved; adding more queued work would reduce information gain and violate convergence discipline."
+  },
+  "credit_state": {
+    "namo_source_evidence": 1,
+    "namo_target_runtime": 0,
+    "german_e2e_voice": 0,
+    "trigger4_f2_acceptance": 0,
+    "whole_persistent_voice_loop": 0
+  },
+  "next_exact_action": "Trigger4/infrastructure restores one eligible self-hosted runner or bridge execution path, lets existing Qwen3-ASR run 33292903286 reach a terminal exact-source receipt, then executes the already-routed NAMO German semantic EOU component benchmark against the current silence/VAD endpoint policy without creating a duplicate ASR dispatch.",
+  "no_background_claim": true
+}
