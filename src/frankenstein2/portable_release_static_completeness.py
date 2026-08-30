@@ -35,23 +35,45 @@ def _safe_file(root: Path, raw: Any, label: str, violations: list[str]) -> str |
     if not isinstance(raw, str) or not raw or raw != raw.strip():
         violations.append(f"{label}:invalid_ref")
         return None
-    candidate = (root / raw).resolve()
+
+    lexical = Path(raw)
+    if lexical.is_absolute() or ".." in lexical.parts:
+        violations.append(f"{label}:escapes_release_root")
+        return None
+
+    # Preserve lexical path identity until every component has been checked.  Resolving
+    # first would erase the fact that the release reference traversed a symbolic link.
+    candidate = root
+    for part in lexical.parts:
+        if part in {"", "."}:
+            continue
+        candidate = candidate / part
+        if candidate.is_symlink():
+            violations.append(f"{label}:symlink_component")
+            return None
+
     try:
-        rel = candidate.relative_to(root)
+        resolved = candidate.resolve(strict=True)
+    except (OSError, RuntimeError):
+        violations.append(f"{label}:missing_or_nonregular")
+        return None
+
+    try:
+        rel = resolved.relative_to(root)
     except ValueError:
         violations.append(f"{label}:escapes_release_root")
         return None
-    if candidate.is_symlink() or not candidate.is_file():
+    if not resolved.is_file():
         violations.append(f"{label}:missing_or_nonregular")
         return None
     return rel.as_posix()
 
 
 def _load_json_file(root: Path, rel: str, label: str, violations: list[str]) -> dict[str, Any] | None:
-    path = root / rel
-    if path.is_symlink() or not path.is_file():
-        violations.append(f"{label}:missing_or_nonregular")
+    safe_rel = _safe_file(root, rel, label, violations)
+    if safe_rel is None:
         return None
+    path = root / safe_rel
     try:
         value = json.loads(path.read_text(encoding="utf-8"))
     except (UnicodeDecodeError, json.JSONDecodeError):
