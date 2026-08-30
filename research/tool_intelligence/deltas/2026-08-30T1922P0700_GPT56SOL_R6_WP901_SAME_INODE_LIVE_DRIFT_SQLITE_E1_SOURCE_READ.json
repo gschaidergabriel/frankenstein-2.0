@@ -1,0 +1,188 @@
+{
+  "schema": "FRANKENSTEIN2_TRIGGER6_SOURCE_ARCHAEOLOGY/v1",
+  "trigger": "6",
+  "slot": "SOURCE_ARCHAEOLOGIST",
+  "research_id": "R6-20260830-WP901-SAME-INODE-LIVE-DRIFT-SQLITE-SNAPSHOT-GPT56SOL-01",
+  "claim_target": "E1_SOURCE_READ",
+  "status": "E1_SOURCE_READ_COMPLETE_NO_ARCHITECTURE_PROMOTION",
+  "completed_at": "2026-08-30T19:22:00+07:00",
+  "worker": "GPT-5.6 Sol / ChatGPT Trigger-6 organ",
+  "claim": {
+    "path": "research/tool_intelligence/claims/R6-20260830-WP901-SAME-INODE-LIVE-DRIFT-SQLITE-SNAPSHOT-GPT56SOL-01/E1_SOURCE_READ.json",
+    "claim_commit": "3322e4d1bcd873e8ad4d1c12468d9e859e15708a",
+    "coordination_only": true
+  },
+  "architecture_context": {
+    "f2_main_at_claim": "acba4bab524bfd3ad7d09ad0627b6641806da67e",
+    "research_entity_main_at_claim": "becd78c4b893874d9fefc53fe58d0de61e423a58",
+    "trigger5_branch_head_observed": "c8aa3fd049ae402e001f1a6ef7263e0244509ac6",
+    "trigger5_last_ingest_state": "2026-08-28T11:00:25Z / retrieval-identity-binding-schema delta",
+    "f2_source_blobs": {
+      "restart_recovery_persisted_row_attestation.py": "a40eba0a7b31664fc3268f54bd56d2b465dd12a7",
+      "restart_recovery_source_authentication.py": "d4f04606b03c9e2ebf8fde262a3d0fef84297dbb",
+      "persistent_agency_kernel.py": "7ba8bd55c788faa9eb9b96870c039cb5273e181d",
+      "test_restart_recovery_persisted_row_attestation.py": "35de6a6c6d0bd10f54ee40839ddadf31f027d67a"
+    },
+    "active_problem": "WP901 G4/G5 records transaction_snapshot_binding=OBSERVED while explicitly keeping freshness_attestation and same_inode_live_drift_closure NOT_OBSERVED. Store identity is path/device/inode plus an authority receipt derived from those values."
+  },
+  "external_primary_sources": [
+    {
+      "id": "SQLITE-ISOLATION",
+      "url": "https://www.sqlite.org/isolation.html",
+      "kind": "OFFICIAL_SQLITE_DOCUMENTATION"
+    },
+    {
+      "id": "SQLITE-TRANSACTION",
+      "url": "https://www.sqlite.org/lang_transaction.html",
+      "kind": "OFFICIAL_SQLITE_DOCUMENTATION"
+    },
+    {
+      "id": "SQLITE-WAL",
+      "url": "https://www.sqlite.org/wal.html",
+      "kind": "OFFICIAL_SQLITE_DOCUMENTATION"
+    },
+    {
+      "id": "SQLITE-PRAGMA-DATA-VERSION",
+      "url": "https://www.sqlite.org/pragma.html#pragma_data_version",
+      "kind": "OFFICIAL_SQLITE_DOCUMENTATION"
+    },
+    {
+      "id": "SQLITE-FCNTL-DATA-VERSION-HAS-MOVED",
+      "url": "https://www.sqlite.org/c3ref/c_fcntl_begin_atomic_write.html",
+      "kind": "OFFICIAL_SQLITE_C_API_DOCUMENTATION"
+    },
+    {
+      "id": "SQLITE-SNAPSHOT",
+      "url": "https://www.sqlite.org/c3ref/snapshot.html",
+      "kind": "OFFICIAL_SQLITE_C_API_DOCUMENTATION"
+    },
+    {
+      "id": "SQLITE-CORRUPTION-BOUNDARIES",
+      "url": "https://www.sqlite.org/howtocorrupt.html",
+      "kind": "OFFICIAL_SQLITE_DOCUMENTATION"
+    },
+    {
+      "id": "PYTHON-SQLITE3",
+      "url": "https://docs.python.org/3/library/sqlite3.html",
+      "kind": "OFFICIAL_PYTHON_DOCUMENTATION"
+    }
+  ],
+  "source_observations": [
+    {
+      "id": "WP901-SQLITE-E1-01",
+      "classification": "SOURCE_DIRECT_PLUS_CURRENT_SOURCE_MAPPING",
+      "observation": "The current F2 function issues BEGIN and then performs load_checkpoint followed by a second SELECT before COMMIT. SQLite's default BEGIN is DEFERRED; the first SELECT establishes the read transaction. SQLite documents that a read transaction continues to see the same historical snapshot until that transaction ends."
+    },
+    {
+      "id": "WP901-SQLITE-E1-02",
+      "classification": "SOURCE_DIRECT",
+      "observation": "In WAL mode, concurrent writers may commit while a reader remains active, but the reader's WAL end-mark is fixed for the duration of the read transaction. In rollback-journal mode, SQLite locking prevents normal database-file writes while readers hold the required shared lock."
+    },
+    {
+      "id": "WP901-SQLITE-E1-03",
+      "classification": "INFERENCE_BOUNDED_BY_PRIMARY_DOCS",
+      "observation": "Therefore the existing G4 same-transaction load-plus-row-reread already has a strong source-level basis for inter-read snapshot consistency against compliant SQLite connections. A second SQLite connection cannot make the two reads observe two committed logical database states within that one read transaction. This is not target-runtime evidence and does not prove filesystem correctness."
+    },
+    {
+      "id": "WP901-SQLITE-E1-04",
+      "classification": "CURRENT_SOURCE_DIRECT",
+      "observation": "CanonicalPersistentAgencyStore validates path/device/inode at writer-open and derives its authority receipt from path/device/inode. Persisted-row attestation later compares stored path/device/inode/authority-receipt with the store object's cached identity. It does not re-stat the database file at each attestation and it does not carry a database-content version."
+    },
+    {
+      "id": "WP901-SQLITE-E1-05",
+      "classification": "SOURCE_DIRECT",
+      "observation": "PRAGMA data_version is a same-connection-comparison signal that changes when another SQLite connection commits to that database. It does not change for commits made by the same connection and is not a durable global database identity."
+    },
+    {
+      "id": "WP901-SQLITE-E1-06",
+      "classification": "SOURCE_DIRECT",
+      "observation": "At the SQLite C API layer, SQLITE_FCNTL_DATA_VERSION is stronger for change detection because it changes for modifications associated with the attached database whether made on the same connection or another connection. SQLITE_FCNTL_HAS_MOVED separately reports rename/move/delete since open."
+    },
+    {
+      "id": "WP901-SQLITE-E1-07",
+      "classification": "SOURCE_DIRECT_PLUS_INTERFACE_BOUNDARY",
+      "observation": "The standard Python sqlite3 documentation exposes SQL execution/transaction control but no sqlite3_file_control wrapper. Using SQLITE_FCNTL_DATA_VERSION or SQLITE_FCNTL_HAS_MOVED from this Python component would therefore require a different binding/extension/FFI surface, increasing implementation and portability risk."
+    },
+    {
+      "id": "WP901-SQLITE-E1-08",
+      "classification": "SOURCE_DIRECT",
+      "observation": "SQLite explicitly cannot defend a database file against a rogue process that bypasses SQLite and overwrites the ordinary disk file, and correct concurrency also depends on functioning filesystem/VFS locking. Rename/unlink/hard-link misuse can make database/WAL/journal identity unsafe."
+    },
+    {
+      "id": "WP901-SQLITE-E1-09",
+      "classification": "SOURCE_DIRECT",
+      "observation": "sqlite3_snapshot can name a historical WAL snapshot, but it is a WAL-specific C API mechanism. The current F2 Python read transaction already supplies an unchanging snapshot for the two reads, so snapshot-object adoption is not justified at E1."
+    }
+  ],
+  "gap_decomposition": {
+    "already_supported_at_source_semantics": [
+      "INTER_READ_LOGICAL_SNAPSHOT_STABILITY_WITHIN_ONE_SQLITE_READ_TRANSACTION"
+    ],
+    "still_open": [
+      "NO_OTHER_CONNECTION_COMMIT_DURING_ATTESTATION_WINDOW",
+      "DATABASE_PATH_FILE_IDENTITY_STILL_MATCHES_AFTER_STORE_OPEN",
+      "FRESHNESS_RELATIVE_TO_LATEST_CANONICAL_CHECKPOINT",
+      "ROGUE_RAW_FILE_WRITE_OR_BROKEN_VFS_LOCKING",
+      "TARGET_RUNTIME_BEHAVIOR_ON_DEPLOYED_FILESYSTEM_AND_SQLITE_BUILD"
+    ],
+    "important_non_equivalence": "SNAPSHOT_CONSISTENCY != GLOBAL_QUIESCENCE != LATEST_CHECKPOINT_FRESHNESS != FILESYSTEM_INTEGRITY"
+  },
+  "bounded_f2_relevance": [
+    {
+      "id": "WP901-SQLITE-R1",
+      "classification": "INFERENCE",
+      "claim": "Do not treat the single label same_inode_live_drift_closure as one undifferentiated missing invariant. Split it into transaction-snapshot consistency, SQLite-level concurrent-commit observation, file-move/replacement observation, freshness/rollback, and out-of-model raw-filesystem corruption.",
+      "confidence": 0.97
+    },
+    {
+      "id": "WP901-SQLITE-R2",
+      "classification": "INFERENCE",
+      "claim": "The smallest Python-native discriminator for ordinary SQLite concurrent commits is a before/after PRAGMA data_version witness on the same connection. Because the attestation function itself is read-only, a changed value can conservatively mean another connection committed during the observation window. This is a concurrency witness only, not a canonical version or truth authority.",
+      "confidence": 0.9
+    },
+    {
+      "id": "WP901-SQLITE-R3",
+      "classification": "INFERENCE",
+      "claim": "Rejecting every data_version change may be unnecessarily strict because an unrelated table commit can change the counter while the attested checkpoint snapshot remains internally valid. The product must choose explicitly between WHOLE_DB_QUIESCENCE_REQUIRED and TARGET_ROW_SNAPSHOT_SUFFICIENT rather than accidentally conflating them.",
+      "confidence": 0.95
+    },
+    {
+      "id": "WP901-SQLITE-R4",
+      "classification": "INFERENCE",
+      "claim": "Do not add ctypes/FFI solely to reach SQLITE_FCNTL_DATA_VERSION at this stage. Prefer structural distillation using Python-native PRAGMA data_version plus existing row digests unless a later falsifier proves same-connection or file-control coverage is materially required.",
+      "confidence": 0.88
+    }
+  ],
+  "counterhypothesis": {
+    "statement": "No additional live-drift guard is needed for G4/G5 because the attestation's claim is only that the exact checkpoint row consumed by the accepted loader is internally bound inside one read snapshot; unrelated commits before/after that snapshot do not invalidate that bounded claim. Adding a whole-database data-version fence could create false failures without increasing exact-row evidence.",
+    "confidence": 0.86,
+    "cheapest_discriminator": "Implement repository-only A/B tests with a second SQLite connection in WAL mode: (A) commit an unrelated-row/table change between the loader read and evidence reread; (B) attempt a relevant checkpoint-row change in the same interval. Verify the current reader remains snapshot-stable, then decide whether product policy requires merely exact-row snapshot evidence or complete no-commit quiescence. Separately test PRAGMA data_version before/after to quantify whether it distinguishes the chosen policy."
+  },
+  "recommended_next_stage": {
+    "claim_target": "E2_ARCHITECTURE_MAPPED",
+    "action": "Map the gap split onto WP901 G4/G5 fields and tests, define a non-authoritative DatabaseChangeWindowWitness candidate using PRAGMA data_version only if WHOLE_DB_QUIESCENCE_REQUIRED is actually intended, and specify exact negative tests. Do not change freshness/rollback semantics or runtime credit.",
+    "stop_condition": "If WP901's intended evidence claim is exact-row snapshot consistency only, rename/narrow the unresolved flag instead of adding a global data-version guard."
+  },
+  "adoption_posture": {
+    "new_dependency": "NOT_RECOMMENDED",
+    "sqlite3_snapshot_c_api": "NOT_RECOMMENDED_AT_E1",
+    "sqlite_file_control_ffi": "NOT_RECOMMENDED_AT_E1",
+    "python_pragma_data_version": "PROMISING_ONLY_AS_BOUNDED_CONCURRENCY_WITNESS",
+    "build_candidate": false
+  },
+  "evidence_ceiling": {
+    "level": "E1_SOURCE_READ",
+    "research_credit": 1,
+    "architecture_credit": 0,
+    "runtime_credit": 0,
+    "target_host_credit": 0,
+    "whole_system_credit": 0,
+    "truth_authority": "NONE",
+    "persistence_authority": "NONE",
+    "effect_authority": "NONE"
+  },
+  "database_sync": {
+    "pending_research_sqlite": "PENDING",
+    "reason": "No admitted binary SQLite mutation path was established in this research step; this JSON is the durable E1 receipt."
+  }
+}
