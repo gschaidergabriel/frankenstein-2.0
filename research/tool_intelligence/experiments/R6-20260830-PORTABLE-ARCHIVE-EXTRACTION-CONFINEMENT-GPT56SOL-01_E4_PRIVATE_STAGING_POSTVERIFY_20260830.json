@@ -1,0 +1,58 @@
+{
+  "schema": "FRANKENSTEIN2_TRIGGER6_F2_ABLATION/v1",
+  "trigger": "6",
+  "research_id": "R6-20260830-PORTABLE-ARCHIVE-EXTRACTION-CONFINEMENT-GPT56SOL-01",
+  "stage": "E4_F2_ABLATION",
+  "status": "BOUNDED_LOGICAL_COMPONENT_ABLATION_COMPLETE",
+  "claim_ref": "research/tool_intelligence/claims/R6-20260830-PORTABLE-ARCHIVE-EXTRACTION-CONFINEMENT-GPT56SOL-01/E4_F2_ABLATION_PRIVATE_STAGING_POSTVERIFY.json@54f4e0aa878667fc97981115b399d771deb72af3",
+  "e3_ref": "research/tool_intelligence/receipts/R6-20260830-PORTABLE-ARCHIVE-EXTRACTION-CONFINEMENT-GPT56SOL-01_E3_CPYTHON_DESTINATION_SYMLINK_20260830.json@773b53fa591cbee3983e7202263a316f951b27e8",
+  "f2_source_identity": "src/frankenstein2/release_integrity.py@773b53fa591cbee3983e7202263a316f951b27e8",
+  "execution_scope": "DISPOSABLE_LOCAL_SANDBOX_SOURCE_LOGIC_ABLATION_NOT_REPOSITORY_IMPORT_NOT_TARGET_RUNTIME",
+  "infrastructure_boundary": "The exact GitHub raw file could be fetched through the connected GitHub source reader, but direct raw-file transfer into the local sandbox was network-blocked. The relevant release_integrity functions were transcribed from the exact observed source for the ablation. Therefore this is not byte-import exact-source execution credit.",
+  "fixture": {
+    "source_tree": "one regular payload link/owned.txt plus canonical F2 release manifest",
+    "archive": "deterministic ZIP_STORED with fixed member timestamps",
+    "archive_sha256": "535a5e26b3117733a7fba669bfd0be10ae469c0c5cfc4bb87c1bb91ea695f50f",
+    "payload": "E4_PAYLOAD"
+  },
+  "arms": {
+    "A_FRESH_EMPTY_STAGING_THEN_F2_POSTVERIFY": {
+      "extract_result": "member materialized under staging root",
+      "f2_release_integrity_result": "PASS",
+      "interpretation": "Fresh staging plus post-extraction manifest verification is compatible with the current F2 release-integrity invariants for this fixture."
+    },
+    "B_PREEXISTING_SYMLINK_DESTINATION_THEN_F2_POSTVERIFY": {
+      "extract_result": "CPython extraction followed destination/link and wrote payload into sibling outside directory",
+      "outside_write_observed": true,
+      "f2_release_integrity_result": "REJECT",
+      "error": "ReleaseIntegrityError: symlink directory forbidden: link",
+      "interpretation": "The current F2 post-materialization verifier prevents promotion of this hostile staged tree, but it cannot undo an extraction-time write that already escaped into a pre-existing destination link."
+    }
+  },
+  "primary_result": "The existing F2 release-integrity verifier is an effective post-extraction promotion fence for a symlink-bearing staged tree in this bounded Linux fixture. It is not by itself an extraction sandbox. A fresh/private disposable staging root materially changes the consequence: the clean control stayed confined and verified, while the pre-existing-link arm caused an outside write before F2 correctly rejected the tree.",
+  "architecture_implication": [
+    "Do not weaken or replace release_integrity; reuse it after extraction.",
+    "Normatively require fresh/private disposable staging before any ZIP extraction used by the one-handoff path.",
+    "Do not execute/import/install package contents before the post-extraction F2 verification succeeds.",
+    "Add archive-member preflight for deterministic cross-platform names/duplicates/special metadata so extraction behavior is not delegated blindly to host defaults.",
+    "Do not require Linux openat2 for the portable baseline unless concurrent hostile staging mutation becomes an accepted threat model; keep it as a stronger optional/platform-specific future discriminator."
+  ],
+  "counterhypothesis_status": {
+    "postverify_alone_is_enough": "FALSIFIED_FOR_PREEXISTING_HOSTILE_DESTINATION_SIDE_EFFECT; verification rejects but occurs after escaped write",
+    "fresh_private_staging_plus_postverify_is_sufficient_for_all_attackers": "NOT_ESTABLISHED; concurrent hostile mutation/race and platform-specific aliasing were not tested",
+    "f2_release_integrity_is_the_bug": "NOT_SUPPORTED; it rejected the hostile materialized tree as designed"
+  },
+  "resource_measurement": {
+    "model_calls": 0,
+    "provider_calls": 0,
+    "runtime_tokens": 0,
+    "target_latency_cpu_ram": "NOT_MEASURED",
+    "reason": "This ablation isolates correctness boundaries, not target performance."
+  },
+  "research_credit": "E4_BOUNDED_LOGICAL_COMPONENT_ABLATION",
+  "runtime_credit": 0,
+  "target_host_credit": 0,
+  "integration_credit": 0,
+  "whole_system_credit": 0,
+  "next_exact_action": "If no overlapping E5 exists, emit one narrow Trigger-4 build candidate: stdlib-only verified private staging extraction boundary with preflight, no pre-verify execution, existing release_integrity reuse, exact extractor/archive/staging receipt binding, and adversarial tests including pre-existing symlink plus cross-platform filename collisions."
+}
