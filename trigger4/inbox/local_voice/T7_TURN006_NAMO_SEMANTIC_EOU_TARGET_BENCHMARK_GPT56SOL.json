@@ -1,0 +1,55 @@
+{
+  "schema": "TRIGGER7_TO_TRIGGER4_LOCAL_VOICE_CANDIDATE/v1",
+  "from_trigger": "7",
+  "to_trigger": "4",
+  "research_id": "T7-TURN-006",
+  "candidate": "NAMO_MULTILINGUAL_SEMANTIC_EOU_TARGET_BENCHMARK",
+  "semantic_key": "ef624c13104dfa4990918906f59104fd558197c8842f60ace298f23567237c6f",
+  "state": "READY_WHEN_RUNNER_RECOVERS",
+  "priority": "AFTER_EXISTING_QWEN3_ASR_RUN_33292903286_IS_CONSUMED",
+  "do_not_dispatch_duplicate_asr_job": true,
+  "source_evidence": {
+    "german_declared": true,
+    "quantized_onnx_available": true,
+    "model_quant_sha256": "67be31dac7c49abd43a277a105222c9031a0e22ac37f0e22dab395f68b318fc9",
+    "upstream_german_accuracy": 0.9425,
+    "upstream_german_f1": 0.9443,
+    "upstream_multilingual_latency_claim_ms": "<29",
+    "f2_runtime_reproduced": false
+  },
+  "required_target_environment": "clay-direct-dev",
+  "required_transport": "authorized existing bridge/self-hosted runner",
+  "architecture_role": "semantic end-of-utterance gate over streaming ASR text; retain acoustic VAD for speech presence/wake/barge-in",
+  "benchmark": {
+    "language": "de",
+    "dataset_requirements": [
+      "hesitations and fillers",
+      "enumerations",
+      "self-corrections",
+      "conjunction tails",
+      "short complete answers",
+      "long complete answers",
+      "false pauses",
+      "true turn endings"
+    ],
+    "comparators": [
+      "current silence/VAD endpoint policy",
+      "VAD + NAMO multilingual semantic EOU"
+    ],
+    "measure": [
+      "false_cut_rate",
+      "late_turn_rate",
+      "endpoint_decision_latency_ms p50/p95",
+      "ASR-final-to-response-start_ms p50/p95",
+      "CPU/RSS",
+      "German error taxonomy"
+    ]
+  },
+  "acceptance_boundaries": [
+    "upstream benchmark != F2 target-runtime benchmark",
+    "source pin != integration pass",
+    "NAMO text EOU != acoustic VAD replacement",
+    "Trigger4 owns F2 runtime acceptance",
+    "no whole-system credit from this candidate"
+  ]
+}
