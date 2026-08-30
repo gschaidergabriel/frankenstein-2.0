@@ -1,0 +1,59 @@
+name: F2 WP1207 Issue451 Materialize Tested Candidate
+
+on:
+  push:
+    branches:
+      - 'trigger4/wp1207-451-rollback-state-binding'
+    paths:
+      - '.github/workflows/wp1207-issue451-materialize-candidate.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  materialize-tested-candidate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Verify exact source subject proven by candidate run 33325643150
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git hash-object src/frankenstein2/portable_release_transaction.py)" = "a248d6ded9fd90f34f7e6763fe30948fc58af6e6"
+          test "$(git hash-object tests/test_portable_release_transaction.py)" = "c095b15fb65c367b45944db24b5a9909bc1d3f8e"
+
+      - name: Apply already-proven candidate patch
+        shell: bash
+        run: |
+          set -euo pipefail
+          git apply --check workpackages/candidate_patches/F2-WP-1207-issue451-rollback-state-binding.patch
+          git apply workpackages/candidate_patches/F2-WP-1207-issue451-rollback-state-binding.patch
+          git diff --check
+
+      - name: Re-run canonical WP1207 transaction regressions
+        env:
+          PYTHONPATH: src
+        run: python tests/test_portable_release_transaction.py -v
+
+      - name: Commit only the candidate source and regression test to review branch
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -- src/frankenstein2/portable_release_transaction.py tests/test_portable_release_transaction.py
+          git diff --cached --check
+          git diff --cached --name-only | grep -Fx 'src/frankenstein2/portable_release_transaction.py'
+          git diff --cached --name-only | grep -Fx 'tests/test_portable_release_transaction.py'
+          test "$(git diff --cached --name-only | wc -l)" -eq 2
+          git commit -m "fix(wp1207): bind rollback success to predecessor state"
+          git push origin HEAD:trigger4/wp1207-451-rollback-state-binding
