@@ -1,0 +1,64 @@
+{
+  "schema": "T7_CONTINUATION_CHECKPOINT_V1",
+  "trigger": "7",
+  "created_at": "2026-08-31T03:43:00+07:00",
+  "organ": "GPT-5.6-Sol",
+  "mode": "GERMAN_FIRST_LOCAL_SOLO_RESEARCH__REVIEW_ONLY_CANDIDATE_FALSIFIER",
+  "canonical_scope": "Frankenstein 2.0 local realtime voice research",
+  "resumed_not_restarted": true,
+  "research_id": "T7-FD-RTCOMPAT-001",
+  "observed_authority": {
+    "f2_main": "3caccb669701f981f37cc62dd2743a1bf9157b47",
+    "trigger7_protocol": "research/local_voice/TRIGGERWORD_7_PROTOCOL.md",
+    "existing_falsifier": "research/local_voice/falsifiers/2026-08-31_HF_S2S_REALTIME_HEARD_BOUNDARY_PROTOCOL_FALSIFIER_GPT56SOL.json",
+    "trigger4_acceptance_authority_claimed": false
+  },
+  "upstream_freshness": {
+    "repository": "huggingface/speech-to-speech",
+    "main_observed_sha": "3986f453012a131632eee4731995474046846794",
+    "pinned_claim_sha": "3986f453012a131632eee4731995474046846794",
+    "main_equals_pinned": true,
+    "observed_at": "2026-08-31T03:43:00+07:00",
+    "conclusion": "NO_NEWER_UPSTREAM_SUBJECT_TO_CONSUME"
+  },
+  "exact_source_observation": {
+    "path": "src/speech_to_speech/api/openai_realtime/websocket_router.py",
+    "revision": "3986f453012a131632eee4731995474046846794",
+    "finding": "ConversationItemTruncateEvent is parsed and routed, but its branch deliberately performs no additional server-state mutation because cancellation is expected to discard provisional generation and client playback is treated as owner of the unheard tail.",
+    "evidence_class": "CURRENT_EXACT_UPSTREAM_SOURCE"
+  },
+  "protocol_semantic_gap": {
+    "finding": "The OpenAI Realtime truncate contract is stronger than parser acceptance: truncation synchronizes server understanding with actually played audio and removes server-side transcript beyond the heard boundary. Therefore HF truncate-as-no-op is not proven drop-in compatible by source inspection alone.",
+    "status": "OPEN_EXECUTABLE_FALSIFIER",
+    "product_negative_credit": 0,
+    "required_discriminator": "Partially deliver assistant output, measure generated versus actually-heard boundary, cancel, send truncate, then inspect next-turn local model context plus late audio/tool behavior. Any assistant semantics beyond the F2 admitted heard boundary influencing the later turn falsifies drop-in compatibility unless an explicit F2 adapter reconstructs authoritative history outside the speech server."
+  },
+  "current_vps_discriminator": {
+    "workflow_run_id": 33328707636,
+    "source_sha": "db01bfbcc2deebc45524b56407a681b226de7b78",
+    "status_observed": "queued",
+    "executed_steps_observed": 0,
+    "classification": "UNKNOWN_NONTERMINAL_CONTROL_PLANE_ONLY",
+    "duplicate_dispatch_created": false,
+    "runtime_credit": 0
+  },
+  "coordination": {
+    "duplicate_semantic_lane_created": false,
+    "new_vps_dispatch_created": false,
+    "product_source_mutation_created": false,
+    "adjacent_asr_tts_breadth_opened": false,
+    "runtime_subject_churn_fence_respected": true
+  },
+  "credit_state": {
+    "source_protocol_evidence": 1,
+    "local_speech_to_speech_runtime": 0,
+    "vps_packet_recovery_runtime": 0,
+    "acoustic_credit": 0,
+    "german_e2e_voice": 0,
+    "v5_build_candidate": 0,
+    "v6_trigger4_acceptance": 0,
+    "whole_voice_system": 0,
+    "whole_product": 0
+  },
+  "next_exact_action": "Do not dispatch a duplicate WP715/HF runtime job. First consume the existing WP715 Trigger4 session-close discriminator outcomes and workflow 33328707636 if it actually executes. Then execute HF01-HF03 from the existing heard-boundary falsifier against the pinned speech-to-speech revision, with special focus on whether truncate-as-no-op permits unplayed assistant semantics to influence the next local model context. Promote only executed scope."
+}
