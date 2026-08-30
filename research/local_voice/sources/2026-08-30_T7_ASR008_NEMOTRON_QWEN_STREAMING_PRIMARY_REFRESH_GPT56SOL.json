@@ -1,0 +1,46 @@
+{
+  "schema": "FRANKENSTEIN_TRIGGER7_SOURCE_REFRESH/v1",
+  "trigger": "7",
+  "date": "2026-08-30",
+  "organ": "GPT-5.6-Sol",
+  "research_id": "T7-ASR-008",
+  "semantic_key": "93d61d9b893d411c8085cd5d257968c23448bc426430e603f6e33add1db5e4e3",
+  "purpose": "Refresh primary-source evidence relevant to the already-claimed Nemotron 3.5 ASR target-runtime benchmark after the clay-direct-dev bridge blocker was resolved.",
+  "nemotron": {
+    "upstream": "nvidia/nemotron-3.5-asr-streaming-0.6b",
+    "pinned_revision_from_existing_source_scope": "1c8deaecc64b91f034d73e08dd8b64625eb3395d",
+    "official_q8_sha256_reverified": "a5c435f294eea8f88ce68dd27b8c3bfea7f777cb2fbba04fcd30eaa555f429ae",
+    "official_q8_remote_size": "742 MB",
+    "primary_sources": [
+      "https://huggingface.co/nvidia/nemotron-3.5-asr-streaming-0.6b",
+      "https://huggingface.co/nvidia/nemotron-3.5-asr-streaming-0.6b/blob/main/nemotron-3.5-asr-streaming-0.6b.q8_0.gguf",
+      "https://build.nvidia.com/nvidia/nemotron-asr-streaming/modelcard"
+    ],
+    "refreshed_findings": [
+      "German de-DE remains explicitly supported by the multilingual release.",
+      "Official material still describes cache-aware FastConformer-RNNT streaming that processes new chunks while reusing cached encoder context.",
+      "Configurable streaming operating points remain 80/160/320/560/1120 ms.",
+      "A local NeMo-Speech.cpp GGUF route remains documented, so the benchmark does not require a remote inference API."
+    ]
+  },
+  "qwen_counterpoint": {
+    "upstream": "QwenLM/Qwen3-ASR",
+    "primary_sources": [
+      "https://github.com/QwenLM/Qwen3-ASR",
+      "https://github.com/QwenLM/Qwen3-ASR/blob/main/qwen_asr/inference/qwen3_asr.py",
+      "https://github.com/QwenLM/Qwen3-ASR/discussions/9"
+    ],
+    "refreshed_findings": [
+      "Official open-source streaming remains vLLM-only.",
+      "The current streaming state accumulates PCM and each ready chunk re-feeds all audio seen so far to the model.",
+      "The exposed rollback mechanism is decoded-token-prefix rollback, not evidence of persistent internal acoustic-state rollback.",
+      "A Qwen maintainer states that the current open streaming implementation did not use KV-cache reuse and is still far from an industrial implementation."
+    ]
+  },
+  "interpretation": {
+    "hypothesis": "For a long-running local Frankenstein voice organ, Nemotron's native cache-aware streaming may have a structural latency/resource advantage over the current open Qwen3-ASR streaming implementation as stream duration grows.",
+    "counterhypothesis": "Nemotron may lose on actual German-room recognition quality, footprint, CPU/GPU fit, or integration complexity; upstream architecture claims and H100/FLEURS results do not establish the target result.",
+    "discriminator": "Run the already-claimed Nemotron Q8 target benchmark on clay-direct-dev after the current matched Qwen3-ASR/faster-whisper comparator, using identical pinned German/non-speech audio and recording WER/CER, partial stability, first/final latency, RTF, memory, and false activation.",
+    "credit": "SOURCE_REFRESH_ONLY; NO_NEMOTRON_TARGET_RUNTIME_OR_GERMAN_QUALITY_CREDIT"
+  }
+}
