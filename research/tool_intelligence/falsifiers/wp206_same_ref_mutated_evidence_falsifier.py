@@ -1,14 +1,17 @@
 #!/usr/bin/env python3
-"""REVIEW_ONLY post-G4 falsifier for WP206 recovery provenance content binding.
+"""REVIEW_ONLY successor-dynamic falsifier for WP206 recovery evidence binding.
 
-This test does not propose or mutate accepted WP206 semantics. It asks one narrow question:
-if external evidence bytes change while recovery_provenance_ref remains identical, can the
-accepted G4 boundary observe that change? A PASS here means the counterexample is reproduced,
-not that WP206 is accepted or repaired.
+Historical G4 behavior reproduced a real counterexample: external evidence bytes could change
+while recovery_provenance_ref stayed identical and an exact repeat still returned
+ALREADY_RECOVERED. G5 closes that deficit by requiring a typed content-bearing evidence
+subject and binding its internally derived digest into the recovery row/identity.
+
+A PASS now means the historical counterexample is CLOSED at repository-component scope:
+identical provenance with changed evidence content must fail closed without mutating the first
+recovery. This remains review evidence only and mints no runtime or whole-system credit.
 """
 from __future__ import annotations
 
-import hashlib
 import json
 import os
 from pathlib import Path
@@ -18,10 +21,14 @@ import sys
 import tempfile
 import unittest
 
-from frankenstein2.persistent_agency_kernel import CanonicalPersistentAgencyStore
+from frankenstein2.persistent_agency_kernel import (
+    CanonicalPersistentAgencyStore,
+    PersistentAgencyError,
+)
 from frankenstein2.wp206_legacy_authority_recovery import (
-    ALREADY_RECOVERED,
+    EVIDENCE_SUBJECT_BOUND_G5,
     RECOVERED,
+    LegacyRecoveryEvidenceSubject,
     recover_legacy_g1_checkpoint_authority,
 )
 from state.unifieddb_identity import fingerprint_unifieddb, resolve_unifieddb_path
@@ -31,10 +38,6 @@ REPO_ROOT = Path(__file__).resolve().parents[3]
 PROBE = REPO_ROOT / "tests" / "wp206_restart_probe.py"
 SRC = REPO_ROOT / "src"
 PROVENANCE_REF = "evidence:mutable-external-object"
-
-
-def _sha256_bytes(data: bytes) -> str:
-    return hashlib.sha256(data).hexdigest()
 
 
 class WP206SameRefMutatedEvidenceFalsifier(unittest.TestCase):
@@ -47,7 +50,6 @@ class WP206SameRefMutatedEvidenceFalsifier(unittest.TestCase):
         self.cwd.mkdir()
         self.db = self.root / "canonical" / "unified.db"
         self.db.parent.mkdir()
-        self.evidence = self.root / "external-evidence.json"
         connection = sqlite3.connect(self.db)
         try:
             connection.execute(
@@ -64,7 +66,7 @@ class WP206SameRefMutatedEvidenceFalsifier(unittest.TestCase):
     def tearDown(self) -> None:
         self._tmp.cleanup()
 
-    def _write_legacy_style_row(self) -> str:
+    def _write_legacy_style_row(self) -> tuple[str, str]:
         written = subprocess.run(
             [sys.executable, str(PROBE), "write"],
             cwd=str(self.cwd),
@@ -77,13 +79,14 @@ class WP206SameRefMutatedEvidenceFalsifier(unittest.TestCase):
         historical_receipt = str(json.loads(written.stdout)["db_authority_receipt"])
         connection = sqlite3.connect(self.db)
         try:
-            current = connection.execute(
-                """SELECT unifieddb_authority_receipt_sha256
+            row = connection.execute(
+                """SELECT checkpoint_sha256, unifieddb_authority_receipt_sha256
                    FROM f2_persistent_agency_checkpoints
-                   WHERE checkpoint_id='checkpoint-0'""",
+                   WHERE checkpoint_id='checkpoint-0'"""
             ).fetchone()
-            self.assertIsNotNone(current)
-            self.assertNotEqual(historical_receipt, str(current[0]))
+            self.assertIsNotNone(row)
+            checkpoint_sha, current_receipt = str(row[0]), str(row[1])
+            self.assertNotEqual(historical_receipt, current_receipt)
             connection.execute(
                 """UPDATE f2_persistent_agency_checkpoints
                    SET unifieddb_authority_receipt_sha256=?
@@ -93,7 +96,7 @@ class WP206SameRefMutatedEvidenceFalsifier(unittest.TestCase):
             connection.commit()
         finally:
             connection.close()
-        return historical_receipt
+        return historical_receipt, checkpoint_sha
 
     def _open_store(self) -> CanonicalPersistentAgencyStore:
         resolution = resolve_unifieddb_path(env=self.env, home=self.home)
@@ -103,12 +106,25 @@ class WP206SameRefMutatedEvidenceFalsifier(unittest.TestCase):
             fingerprint=fingerprint,
         )
 
-    def test_same_ref_cannot_observe_mutated_external_evidence_bytes(self) -> None:
-        historical = self._write_legacy_style_row()
-        evidence_a = b'{"claim":"legacy receipt witnessed","version":1}\n'
-        evidence_b = b'{"claim":"different evidence at same reference","version":2}\n'
-        self.evidence.write_bytes(evidence_a)
-        sha_a = _sha256_bytes(self.evidence.read_bytes())
+    @staticmethod
+    def _subject(
+        *, historical: str, checkpoint_sha: str, evidence_text: str
+    ) -> LegacyRecoveryEvidenceSubject:
+        return LegacyRecoveryEvidenceSubject(
+            source_ref=PROVENANCE_REF,
+            checkpoint_id="checkpoint-0",
+            checkpoint_sha256=checkpoint_sha,
+            legacy_authority_receipt_sha256=historical,
+            evidence={
+                "kind": "review-only-external-evidence",
+                "raw_utf8": evidence_text,
+            },
+        )
+
+    def test_same_ref_mutated_external_evidence_is_rejected_under_g5(self) -> None:
+        historical, checkpoint_sha = self._write_legacy_style_row()
+        evidence_a = '{"claim":"legacy receipt witnessed","version":1}\n'
+        evidence_b = '{"claim":"different evidence at same reference","version":2}\n'
 
         store = self._open_store()
         try:
@@ -117,33 +133,58 @@ class WP206SameRefMutatedEvidenceFalsifier(unittest.TestCase):
                 checkpoint_id="checkpoint-0",
                 expected_legacy_authority_receipt_sha256=historical,
                 recovery_provenance_ref=PROVENANCE_REF,
+                recovery_evidence_subject=self._subject(
+                    historical=historical,
+                    checkpoint_sha=checkpoint_sha,
+                    evidence_text=evidence_a,
+                ),
             )
             self.assertEqual(first.status, RECOVERED)
-
-            self.evidence.write_bytes(evidence_b)
-            sha_b = _sha256_bytes(self.evidence.read_bytes())
-            self.assertNotEqual(sha_a, sha_b)
-
-            second = recover_legacy_g1_checkpoint_authority(
-                store=store,
-                checkpoint_id="checkpoint-0",
-                expected_legacy_authority_receipt_sha256=historical,
-                recovery_provenance_ref=PROVENANCE_REF,
+            self.assertEqual(
+                first.recovery_evidence_subject_state,
+                EVIDENCE_SUBJECT_BOUND_G5,
             )
+            self.assertRegex(str(first.recovery_evidence_sha256), r"^[0-9a-f]{64}$")
 
-            self.assertEqual(second.status, ALREADY_RECOVERED)
-            self.assertEqual(second.recovery_id, first.recovery_id)
-            self.assertEqual(second.recovery_provenance_ref, PROVENANCE_REF)
+            with self.assertRaisesRegex(
+                PersistentAgencyError,
+                "LEGACY_RECOVERY_EVIDENCE_SUBJECT_CONFLICT",
+            ):
+                recover_legacy_g1_checkpoint_authority(
+                    store=store,
+                    checkpoint_id="checkpoint-0",
+                    expected_legacy_authority_receipt_sha256=historical,
+                    recovery_provenance_ref=PROVENANCE_REF,
+                    recovery_evidence_subject=self._subject(
+                        historical=historical,
+                        checkpoint_sha=checkpoint_sha,
+                        evidence_text=evidence_b,
+                    ),
+                )
+
+            row = store.connection.execute(
+                """SELECT recovery_id, recovery_evidence_sha256,
+                          recovery_evidence_subject_state
+                   FROM f2_wp206_legacy_authority_recoveries
+                   WHERE checkpoint_id='checkpoint-0'"""
+            ).fetchone()
+            self.assertEqual(
+                row,
+                (
+                    first.recovery_id,
+                    first.recovery_evidence_sha256,
+                    EVIDENCE_SUBJECT_BOUND_G5,
+                ),
+            )
             print(
                 json.dumps(
                     {
-                        "schema": "F2_TRIGGER6_WP206_EVIDENCE_CONTENT_FALSIFIER/v1",
-                        "result": "COUNTEREXAMPLE_REPRODUCED_IF_TEST_PASS",
+                        "schema": "F2_TRIGGER6_WP206_EVIDENCE_CONTENT_FALSIFIER/v2",
+                        "result": "HISTORICAL_COUNTEREXAMPLE_CLOSED_G5_IF_TEST_PASS",
                         "provenance_ref": PROVENANCE_REF,
-                        "evidence_sha256_before": sha_a,
-                        "evidence_sha256_after": sha_b,
-                        "first_status": first.status,
-                        "repeat_status": second.status,
+                        "first_recovery_id": first.recovery_id,
+                        "first_evidence_sha256": first.recovery_evidence_sha256,
+                        "mutated_repeat": "FAIL_CLOSED",
                         "runtime_credit": 0,
                         "whole_system_credit": 0,
                     },
