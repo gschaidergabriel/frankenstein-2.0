@@ -5,15 +5,22 @@
   "objective": "E3_QWEN3_ASR_AUDIOCPP_STREAMING_TIMESTAMP_SOURCE_DELTA",
   "semantic_key": "867ed9c005b4ec106396a63e8b4c6c8486cb9d5e109a244077908a9174a6a95c",
   "semantic_generation": 3,
-  "state": "ACTIVE_SOURCE_AUDIT",
+  "state": "SOURCE_RECONCILIATION_TERMINAL_AT_SCOPE",
   "scope": "SOURCE_ONLY_NO_RUNTIME_CREDIT",
   "subject": "QWEN3_ASR",
   "target": "audio.cpp current main as a non-vLLM local Qwen3-ASR challenger",
-  "generation_reason": "Generation 1 pinned the official Qwen3-ASR source/runtime dependency; generation 2 audited CrispASR. Generation 3 tests the remaining counterhypothesis that another local non-vLLM runtime provides native streaming and timestamp-capable integration.",
-  "invariants": [
-    "do not duplicate the cancelled generation-1 hardware dispatch",
-    "source evidence does not mint model runtime, German WER/CER, latency or F2 acceptance credit",
-    "streaming transcript support and streaming timestamp support are distinct claims",
-    "pin exact upstream source identity before terminalizing"
-  ]
+  "generation_reason": "Generation 1 pinned the official Qwen3-ASR source/runtime dependency; generation 2 audited CrispASR. Generation 3 reconciles the ASR lane with the already-admitted audio.cpp system audit and current upstream implementation evidence.",
+  "result_path": "research/local_voice/sources/2026-08-30_T7_ASR004_G3_AUDIOCPP_STREAMING_TIMESTAMP_RECONCILIATION.json",
+  "terminal_finding": "audio.cpp is a source-pinned C++/ggml/GGUF non-vLLM Qwen3-ASR streaming challenger. Current upstream source accepts offline and streaming sessions and documents buffered transcript deltas, but word timestamps remain offline-only via Qwen3 Forced Aligner.",
+  "credit": {
+    "source_reconciliation": 1,
+    "non_vllm_streaming_source": 1,
+    "streaming_word_timestamps": 0,
+    "target_hardware": 0,
+    "model_runtime": 0,
+    "german_quality": 0,
+    "german_e2e_voice": 0,
+    "trigger4_acceptance": 0
+  },
+  "next_discriminator": "Route target execution only through existing semantic claim 95bd53a469133dbfdf39da320f6daa049cec1361084e632dc915c4bc156e3715; do not duplicate target-runtime or hardware lanes."
 }
