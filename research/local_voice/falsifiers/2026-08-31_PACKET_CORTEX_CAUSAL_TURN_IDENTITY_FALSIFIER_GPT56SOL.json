@@ -1,0 +1,183 @@
+{
+  "schema": "T7_PACKET_CORTEX_FALSIFIER/v1",
+  "trigger": "7",
+  "research_id": "T7-ARCH-003",
+  "objective": "F1_PACKET_CORTEX_CAUSAL_TURN_IDENTITY_FALSIFIER",
+  "claim_semantic_key": "af2f204dcf3ec952b1da5e7d3d8f26b047df84cfefe6f158c09e36fc10235abc",
+  "classification": "REVIEW_ONLY_CANDIDATE_FALSIFIER",
+  "implementation_mutation_authority": false,
+  "target": "Trigger4-owned packet-surrogate local-voice cortex/controller integration",
+  "purpose": "Falsify causal ownership, idempotency, cancellation, replay/reorder handling, restart behavior, and VoiceOutcome re-entry using deterministic information packets only.",
+  "oracle_law": [
+    "A packet may affect only the session/turn/epoch it is causally admitted to.",
+    "A duplicate/replayed packet must never cause a second semantic admission, tool effect, memory write, spoken-output commit, or VoiceOutcome commit.",
+    "A cancelled or stale producer may not regain authority through a late result.",
+    "Final input cannot be semantically rolled back by a late older partial.",
+    "Unheard output must not be committed as heard/spoken; partial heard state must remain quantitatively bounded.",
+    "Restart may restore only admitted durable state and may not resurrect cancelled output or stale in-flight ownership.",
+    "Session identity is part of causal identity; equal turn_id values across sessions are not interchangeable.",
+    "Corrupt, impossible, or policy-ambiguous packet order must fail closed or enter an explicit noncanonical quarantine/buffer state; silent canonical mutation is forbidden."
+  ],
+  "trace_defaults": {
+    "source_modality": "SIMULATED_TEXT_PACKET",
+    "language_locale": "de-DE",
+    "outbound_model_asr_tts_inference_calls": 0,
+    "clock": "deterministic_monotonic_fixture",
+    "acoustic_claims": false
+  },
+  "falsifiers": [
+    {
+      "id": "F01_DUPLICATE_FINAL_SAME_PACKET",
+      "sequence": [
+        {"type":"session_open","session_id":"S1","sequence_number":1},
+        {"type":"VoiceInputPacket","session_id":"S1","turn_id":"T1","packet_id":"I1","sequence_number":2,"partial_final":"final","text_or_transcript":"Wie geht es dir?"},
+        {"type":"VoiceInputPacket","session_id":"S1","turn_id":"T1","packet_id":"I1","sequence_number":2,"partial_final":"final","text_or_transcript":"Wie geht es dir?","drop_duplicate_reorder_corruption_flags":["duplicate"]}
+      ],
+      "must_hold": ["semantic_turn_admission_count==1","tool_effect_count_for_T1<=1","memory_commit_count_for_T1<=1"],
+      "falsifies_if": "duplicate final causes any second semantic/effect/memory admission"
+    },
+    {
+      "id": "F02_REPLAY_EQUIVALENT_FINAL_DIFFERENT_PACKET_ID",
+      "sequence": [
+        {"type":"VoiceInputPacket","session_id":"S1","turn_id":"T2","packet_id":"I2a","sequence_number":10,"partial_final":"final","text_or_transcript":"Stopp."},
+        {"type":"VoiceInputPacket","session_id":"S1","turn_id":"T2","packet_id":"I2b","sequence_number":10,"partial_final":"final","text_or_transcript":"Stopp.","drop_duplicate_reorder_corruption_flags":["replay_or_duplicate_sequence"]}
+      ],
+      "must_hold": ["one_authoritative_sequence10_admission","no_double_close_or_effect"],
+      "falsifies_if": "packet_id uniqueness bypasses sequence/idempotency protection"
+    },
+    {
+      "id": "F03_FINAL_THEN_LATE_OLDER_PARTIAL",
+      "sequence": [
+        {"type":"VoiceInputPacket","session_id":"S1","turn_id":"T3","packet_id":"I3f","sequence_number":21,"partial_final":"final","text_or_transcript":"Mach das Licht aus."},
+        {"type":"VoiceInputPacket","session_id":"S1","turn_id":"T3","packet_id":"I3p","sequence_number":20,"partial_final":"partial","text_or_transcript":"Mach das Licht","drop_duplicate_reorder_corruption_flags":["reordered"]}
+      ],
+      "must_hold": ["authoritative_final_text_remains=='Mach das Licht aus.'","no_turn_state_regression_to_partial"],
+      "falsifies_if": "late partial rewrites final semantic state"
+    },
+    {
+      "id": "F04_SEQUENCE_GAP_FAIL_CLOSED",
+      "sequence": [
+        {"type":"VoiceInputPacket","session_id":"S1","turn_id":"T4","packet_id":"I4a","sequence_number":30,"partial_final":"partial","text_or_transcript":"Bitte"},
+        {"type":"VoiceInputPacket","session_id":"S1","turn_id":"T4","packet_id":"I4c","sequence_number":32,"partial_final":"final","text_or_transcript":"Bitte starte den Test.","drop_duplicate_reorder_corruption_flags":["gap_before"]}
+      ],
+      "must_hold": ["gap_policy_is_explicit","no_silent_canonical_assumption_about_missing_sequence31"],
+      "falsifies_if": "gap is silently treated as complete ordered history without explicit policy"
+    },
+    {
+      "id": "F05_LATE_TOOL_RESULT_AFTER_CANCEL_AND_NEXT_TURN",
+      "sequence": [
+        {"type":"CortexEventPacket","session_id":"S1","turn_id":"T5","event":"tool_request","request_id":"R5","epoch":5},
+        {"type":"CortexEventPacket","session_id":"S1","turn_id":"T5","event":"cancel_turn","epoch":6},
+        {"type":"VoiceInputPacket","session_id":"S1","turn_id":"T6","packet_id":"I6","sequence_number":41,"partial_final":"final","text_or_transcript":"Neue Frage."},
+        {"type":"CortexEventPacket","session_id":"S1","turn_id":"T5","event":"tool_result","request_id":"R5","epoch":5,"late":true}
+      ],
+      "must_hold": ["late_R5_not_admitted_into_T6","T6_memory_and_answer_not_mutated_by_R5_without_explicit_causal_bridge","stale_epoch_effect_authority==false"],
+      "falsifies_if": "late tool result leaks into new turn or regains cancelled ownership"
+    },
+    {
+      "id": "F06_CANCEL_BEFORE_HEARD_ZERO_COMMIT",
+      "sequence": [
+        {"type":"VoiceOutputPacket","session_id":"S1","turn_id":"T7","packet_id":"O7","chunk_sequence":1,"generated_text_segment":"Ich werde jetzt ...","playback_state":"queued","heard_fraction_or_equivalent":0.0,"cancellable":true},
+        {"type":"CortexEventPacket","session_id":"S1","turn_id":"T7","event":"cancel_output","interruption_timestamp":100.0}
+      ],
+      "must_hold": ["spoken_or_heard_commit_fraction==0.0","unheard_text_not_committed_as_spoken","VoiceOutcome_does_not_claim_heard_content"],
+      "falsifies_if": "queued but unheard text becomes durable spoken history"
+    },
+    {
+      "id": "F07_PARTIAL_HEARD_THEN_CANCEL_BOUNDED_COMMIT",
+      "sequence": [
+        {"type":"VoiceOutputPacket","session_id":"S1","turn_id":"T8","packet_id":"O8","chunk_sequence":1,"generated_text_segment":"Erster Teil. Zweiter Teil.","playback_state":"playing","heard_fraction_or_equivalent":0.37,"cancellable":true},
+        {"type":"CortexEventPacket","session_id":"S1","turn_id":"T8","event":"cancel_output","interruption_timestamp":110.0}
+      ],
+      "must_hold": ["0.0<=durable_heard_fraction<=0.37","unheard_tail_not_committed","VoiceOutcome_preserves_interruption_cause"],
+      "falsifies_if": "whole generated segment is recorded as heard after partial playback"
+    },
+    {
+      "id": "F08_RESTART_MUST_NOT_RESURRECT_CANCELLED_OUTPUT",
+      "sequence": [
+        {"type":"VoiceOutputPacket","session_id":"S1","turn_id":"T9","packet_id":"O9","chunk_sequence":1,"generated_text_segment":"Nicht wiederholen","playback_state":"queued","heard_fraction_or_equivalent":0.0},
+        {"type":"CortexEventPacket","session_id":"S1","turn_id":"T9","event":"cancel_output"},
+        {"type":"CortexEventPacket","session_id":"S1","event":"process_restart"},
+        {"type":"CortexEventPacket","session_id":"S1","event":"recovery_complete"}
+      ],
+      "must_hold": ["O9_not_requeued","cancel_tombstone_or_equivalent_dominates_stale_queue","no_spoken_commit_for_O9"],
+      "falsifies_if": "restart replays cancelled/unheard output"
+    },
+    {
+      "id": "F09_STALE_EPOCH_INPUT_AFTER_SESSION_REOPEN",
+      "sequence": [
+        {"type":"CortexEventPacket","session_id":"S1","event":"session_close","epoch":20},
+        {"type":"CortexEventPacket","session_id":"S2","event":"session_open","epoch":21},
+        {"type":"VoiceInputPacket","session_id":"S1","turn_id":"T10","packet_id":"I10","sequence_number":50,"partial_final":"final","text_or_transcript":"Alt","epoch":19,"late":true}
+      ],
+      "must_hold": ["stale_S1_packet_not_admitted_to_S2","no_memory_or_tool_side_effect_from_I10"],
+      "falsifies_if": "closed-session late packet contaminates reopened/new session"
+    },
+    {
+      "id": "F10_SAME_TURN_ID_DIFFERENT_SESSION_IS_NOT_SAME_CAUSE",
+      "sequence": [
+        {"type":"VoiceInputPacket","session_id":"SA","turn_id":"T1","packet_id":"IA","sequence_number":1,"partial_final":"final","text_or_transcript":"A"},
+        {"type":"VoiceInputPacket","session_id":"SB","turn_id":"T1","packet_id":"IB","sequence_number":1,"partial_final":"final","text_or_transcript":"B"}
+      ],
+      "must_hold": ["causal_key_includes_session_identity","SA/T1_and_SB/T1_never_alias"],
+      "falsifies_if": "turn_id alone indexes ownership or VoiceOutcome state"
+    },
+    {
+      "id": "F11_CORRUPTION_FLAG_BLOCKS_CANONICAL_MUTATION",
+      "sequence": [
+        {"type":"VoiceInputPacket","session_id":"S1","turn_id":"T11","packet_id":"I11","sequence_number":60,"partial_final":"final","text_or_transcript":"Lösche alles","drop_duplicate_reorder_corruption_flags":["corrupt"]}
+      ],
+      "must_hold": ["canonical_semantic_admission==false","tool_effect_count==0","memory_write_count==0","explicit_rejection_or_quarantine_reason_present"],
+      "falsifies_if": "corrupt packet reaches canonical action/state path"
+    },
+    {
+      "id": "F12_MONOTONIC_TIME_ROLLBACK",
+      "sequence": [
+        {"type":"VoiceInputPacket","session_id":"S1","turn_id":"T12","packet_id":"I12a","sequence_number":70,"monotonic_timestamp":700.0,"partial_final":"partial","text_or_transcript":"eins"},
+        {"type":"VoiceInputPacket","session_id":"S1","turn_id":"T12","packet_id":"I12b","sequence_number":71,"monotonic_timestamp":699.0,"partial_final":"final","text_or_transcript":"eins zwei"}
+      ],
+      "must_hold": ["clock_rollback_policy_explicit","negative_duration_or_negative_latency_never_committed","ordering_not_silently_rebased_from_invalid_time"],
+      "falsifies_if": "invalid monotonic chronology produces canonical timing/state claims"
+    },
+    {
+      "id": "F13_OLD_TURN_MEMORY_WRITE_AFTER_NEW_TURN",
+      "sequence": [
+        {"type":"CortexEventPacket","session_id":"S1","turn_id":"T13","event":"memory_write_requested","write_id":"M13","epoch":30},
+        {"type":"CortexEventPacket","session_id":"S1","turn_id":"T13","event":"cancel_turn","epoch":31},
+        {"type":"VoiceInputPacket","session_id":"S1","turn_id":"T14","packet_id":"I14","sequence_number":81,"partial_final":"final","text_or_transcript":"Weiter"},
+        {"type":"CortexEventPacket","session_id":"S1","turn_id":"T13","event":"memory_write_result","write_id":"M13","epoch":30,"late":true}
+      ],
+      "must_hold": ["M13_result_not_rebound_to_T14","durable_write_semantics_preserve_original_causal_turn_and_cancel_policy","no_cross_turn_implicit_parenting"],
+      "falsifies_if": "late old-turn memory completion is attached to current turn by recency"
+    },
+    {
+      "id": "F14_CLOSE_THEN_LATE_INPUT",
+      "sequence": [
+        {"type":"CortexEventPacket","session_id":"S1","event":"semantic_close","epoch":40},
+        {"type":"CortexEventPacket","session_id":"S1","event":"session_close","epoch":41},
+        {"type":"VoiceInputPacket","session_id":"S1","turn_id":"T15","packet_id":"I15","sequence_number":90,"partial_final":"final","text_or_transcript":"Noch da?","epoch":40,"late":true}
+      ],
+      "must_hold": ["late_input_not_resurrect_closed_session","new_interaction_requires_explicit_new_session_or_admitted_reopen_transition"],
+      "falsifies_if": "late packet silently reopens closed causal session"
+    }
+  ],
+  "execution_contract": {
+    "preferred_surface": "same deterministic packet-cortex test harness used by Trigger4 implementation",
+    "do_not_create_parallel_voice_fsm": true,
+    "runner_requirement": "LOCAL_SOLO or lowest safe faithful VPS sandbox",
+    "required_receipt_fields": ["exact_source_sha","test_or_fixture_ids","command","executed_steps","result_per_falsifier","outbound_model_asr_tts_call_count","negative_evidence"],
+    "promotion_rule": "Only executed packet/cortex scope may receive component evidence; any failing falsifier is PRODUCT_NEGATIVE only if the exact implementation subject actually executed the corresponding oracle."
+  },
+  "credit_boundary": {
+    "source_or_review_credit": 1,
+    "executed_packet_component_credit": 0,
+    "asr_runtime_credit": 0,
+    "tts_runtime_credit": 0,
+    "acoustic_quality_credit": 0,
+    "physical_device_credit": 0,
+    "trigger4_acceptance_credit": 0,
+    "whole_voice_e2e_credit": 0,
+    "whole_product_credit": 0
+  },
+  "next_exact_action": "Trigger4 implementation owner should translate these packet traces into the existing cortex/controller test harness without creating a second FSM, execute all falsifiers against the exact implementation subject, and return per-falsifier results plus exact receipt. Trigger7 then classifies any failures without stealing mutation authority."
+}
