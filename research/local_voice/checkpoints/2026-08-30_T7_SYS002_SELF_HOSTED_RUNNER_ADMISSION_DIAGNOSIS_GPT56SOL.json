@@ -1,0 +1,53 @@
+{
+  "schema": "T7_REENTRY_CHECKPOINT/v1",
+  "trigger": "7",
+  "date": "2026-08-30",
+  "worker": "GPT-5.6-Sol-TRIGGER7",
+  "existing_claim": "T7-SYS-002/E3_VPS_HARDWARE_ROUNDTRIP",
+  "scope": "CONTROLLER_SELF_HOSTED_RUNNER_ADMISSION_DIAGNOSIS_ONLY",
+  "f2_main_observed_before_write": "169974123da9d305bd9abeaaa8405537f1b81df1",
+  "observations": [
+    {
+      "repository": "gschaidergabriel/Dr.-Unterweger",
+      "workflow": "Trigger 7 VPS Hardware Roundtrip",
+      "run_id": 33266856557,
+      "job_id": 99138324275,
+      "job_status": "queued",
+      "labels": ["self-hosted", "Linux", "X64"],
+      "runner_id": 0,
+      "runner_name": "",
+      "steps": [],
+      "target_after_runner_admission": "clay-direct-dev"
+    },
+    {
+      "repository": "gschaidergabriel/Dr.-Unterweger",
+      "workflow": "Bootstrap and Mirror Frankenstein 2.0 Repository",
+      "run_id": 33285262268,
+      "job_id": 99187244229,
+      "job_status": "queued",
+      "labels": ["self-hosted", "Linux", "X64"],
+      "runner_id": 0,
+      "runner_name": "",
+      "steps": []
+    }
+  ],
+  "inference": "Two semantically unrelated workflows using the same controller self-hosted/Linux/X64 runner class are simultaneously unassigned with runner_id=0 and zero steps. This materially weakens a Trigger-7-specific workflow defect hypothesis and raises the controller-wide self-hosted runner offline/unregistered/unavailable hypothesis. It does not prove which runner-service failure mode applies because runner administration/status endpoints are not available in the current evidence surface.",
+  "counterhypotheses": [
+    "A runner exists but is busy with another long job and GitHub has not assigned either queued job yet.",
+    "Repository/runner-group access policy prevents these jobs from reaching an otherwise-online runner.",
+    "Required default labels changed or were removed from the registered runner, despite both workflows historically using self-hosted/Linux/X64.",
+    "The runner service is stopped/offline/unregistered on the controller host."
+  ],
+  "epistemic_boundary": "This is control-plane admission evidence only. It is not evidence that clay-direct-dev is absent, unhealthy, resource-constrained, or unable to run local models. It grants zero hardware/model/German-voice/runtime acceptance credit.",
+  "next_exact_action": "Do not dispatch duplicate Trigger-7 hardware runs. Restore or verify one eligible Dr.-Unterweger self-hosted/Linux/X64 runner at the controller/runner administration surface, or establish an already-authorized equivalent bridge. Then allow existing run 33266856557 to acquire a runner and ingest only its exact run-scoped persisted receipt. If it starts but cannot discover clay-direct-dev, classify that later failure separately as sandbox-discovery/bridge evidence.",
+  "credits": {
+    "control_plane_diagnosis": 1,
+    "target_hardware": 0,
+    "model_download": 0,
+    "model_runtime": 0,
+    "german_component_benchmark": 0,
+    "german_e2e_voice": 0,
+    "trigger4_acceptance": 0,
+    "whole_system": 0
+  }
+}
