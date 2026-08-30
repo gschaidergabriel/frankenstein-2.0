@@ -1,0 +1,146 @@
+{
+  "schema": "FRANKENSTEIN2_TRIGGER4_DEPENDENCY_FUSION/v1",
+  "classification": "COORDINATION_AND_IMPLEMENTATION_DONOR_ROUTING_NOT_WORKPACKAGE_ACCEPTANCE",
+  "created_at_utc": "2026-08-30T10:05:00Z",
+  "trigger": "4",
+  "observed_main_before_persist": "d0c0aadce9d4f13f34c0398dab7c72df860479ab",
+  "wp901": {
+    "workpackage_id": "F2-WP-901",
+    "generation": 4,
+    "claim_id": "F2-WP-901-G4-GPT56SOL-PERSISTED-ROW-LOAD-ATTESTATION-20260830",
+    "state_observed": "ACTIVE",
+    "pointer": "workpackages/active/F2-WP-901.json",
+    "required_boundary": "CANONICAL_WP206_STORE_MINTED_TYPED_IMMUTABLE_ROW_LOAD_RECEIPT",
+    "required_receipt_fields": [
+      "checkpoint_id",
+      "checkpoint_generation",
+      "checkpoint_sha256",
+      "canonical_db_real_path",
+      "db_device",
+      "db_inode",
+      "store_authority_receipt_sha256",
+      "deterministic_row_evidence_sha256_over_exact_consumed_columns"
+    ],
+    "preserved_parent": "F2-WP-901-G3-GPT56SOL-SOURCE-AUTHENTICATION-20260830",
+    "parent_main_ci_run_id": 33304879871,
+    "parent_main_ci_job_id": 99239529206,
+    "parent_scope": "SOURCE_AUTHENTICATED_RESTART_BOUNDARY_REPOSITORY_HOSTED_COMPONENT_CI_ONLY"
+  },
+  "wp206": {
+    "workpackage_id": "F2-WP-206",
+    "generation_observed": 4,
+    "claim_id_observed": "F2-WP-206-G4-GPT56SOL-REPEAT-PROVENANCE-BINDING-20260830",
+    "state_observed": "ACCEPTED",
+    "pointer": "workpackages/active/F2-WP-206.json",
+    "accepted_scope": "PERSISTENT_AGENCY_REPEAT_PROVENANCE_BINDING_REPOSITORY_HOSTED_COMPONENT_CI_ONLY",
+    "store_source": "src/frankenstein2/persistent_agency_kernel.py",
+    "current_loader": "CanonicalPersistentAgencyStore.load_checkpoint",
+    "current_loader_evidence": "validates current file identity plus stored path/device/inode/authority receipt, checkpoint JSON digest and typed replay digest, but returns only PersistentAgencyCheckpoint and does not mint the G4 typed row-load receipt"
+  },
+  "new_post_g4_counterevidence": {
+    "pr": 705,
+    "classification": "REVIEW_ONLY_POST_G4_EXECUTABLE_COUNTEREVIDENCE",
+    "head_sha": "5c1b588ee902426388dc7647c8b275474984ed52",
+    "run_id": 33305152759,
+    "job_id": 99240257034,
+    "conclusion": "SUCCESS",
+    "preserved_positive": "accepted WP206 G4 repeat-provenance regressions 2/2 PASS",
+    "reproduced_negative": "WP206 G4 accepted arbitrary row-derived legacy receipt plus caller-created provenance without independently authenticated admission evidence",
+    "successor_requirement": "typed independently verifiable legacy-recovery admission subject/resolver with admission authority distinct from the checkpoint row"
+  },
+  "parallel_research": {
+    "research_id": "R6-20260830-WP206-SAME-INODE-LIVE-DRIFT-GPT56SOL-01",
+    "status_observed": "EXPERIMENTAL_FALSIFIER_RESEARCH_CLAIM",
+    "claim_target": "E3_CLAIM_REPRODUCED_G5A",
+    "scope_fence": "same-inode live data/schema drift and rollback freshness remain separate from WP901 row-load attestation and are not promoted by this fusion"
+  },
+  "donor_mechanisms": [
+    {
+      "pr": 706,
+      "status": "REVIEW_ONLY_SUPERSEDED_BRANCH_DONOR",
+      "mechanisms": [
+        "remove caller-supplied checkpoint object from canonical ingress",
+        "require concrete CanonicalPersistentAgencyStore rather than subclass-substitutable loader",
+        "bind restart planning to checkpoint returned by load_checkpoint",
+        "explicitly keep same-inode global drift NOT_CLAIMED"
+      ]
+    },
+    {
+      "branch": "chatgpt/trigger4-wp901-g4-persisted-row-load-20260830",
+      "donor_commit": "354686a33b98c4f70da4c23d5e736e0b9c612b15",
+      "mechanisms": [
+        "single explicit SQLite read snapshot",
+        "load_checkpoint followed by exact row-column re-read inside the same snapshot",
+        "checkpoint_json_sha256",
+        "deterministic row_evidence_sha256",
+        "path/device/inode/store-authority rebinding",
+        "caller-transaction fail-closed fence"
+      ]
+    },
+    {
+      "branch": "chatgpt/trigger4-wp901-g4-persisted-row-load-20260830",
+      "donor_commit": "fd0421d9d812cd4f0fbcd7127535fb21d74baf7d",
+      "mechanisms": [
+        "fresh connection reopen regression",
+        "hostile CanonicalPersistentAgencyStore subclass rejection",
+        "tampered persisted authority receipt rejection",
+        "forged evidence checkpoint substitution rejection",
+        "existing caller transaction preservation",
+        "row-evidence digest positive assertions"
+      ]
+    },
+    {
+      "pr": 708,
+      "status": "REVIEW_ONLY_FALSIFIER_ROUTING",
+      "mechanisms": [
+        "hostile loader-subclass substitution falsifier",
+        "WP206 ownership fence",
+        "separation of row-load attestation from same-inode live drift and target-host readback"
+      ]
+    }
+  ],
+  "coordination_decision": {
+    "decision": "DO_NOT_SILENTLY_MUTATE_WP206_SOURCE_UNDER_WP901_G4",
+    "reason": "The active WP901 G4 invariant explicitly requires the canonical WP206 store itself to mint the load receipt. Modifying persistent_agency_kernel.py changes WP206 source identity and therefore requires deliberate WP206 successor ownership/reconciliation rather than an implicit WP901-side mutation.",
+    "duplicate_prevention": "No new WP206 G5 mutation lane is opened by this artifact while PR705 post-G4 counterevidence and Trigger6 WP206 successor research are unresolved/parallel.",
+    "donor_preservation": "The exact same-snapshot row evidence and hostile-substitution mechanisms are preserved above for fusion into the eventual canonical implementation."
+  },
+  "dependency_state": "WP901_G4_ACTIVE_DEPENDENCY_BLOCKED_ON_OWNERSHIP_COMPATIBLE_WP206_SUCCESSOR_OR_EXPLICIT_G4_CONTRACT_REVISION",
+  "two_admissible_closure_routes": [
+    {
+      "route": "WP206_SUCCESSOR",
+      "requirements": [
+        "claim exact current WP206 parent/reconciliation under CLAIM_PROTOCOL",
+        "resolve PR705 independently authenticated legacy-recovery admission counterevidence at its declared scope",
+        "add store-minted immutable row-load receipt without weakening accepted load_checkpoint fail-closed checks",
+        "keep Trigger6 same-inode drift semantics independently scoped unless explicitly admitted into that successor",
+        "run accepted WP206 regressions plus new hostile receipt/admission tests",
+        "then bind exact store-minted receipt into WP901 G4 and rerun G2/G3/G4 recovery stack"
+      ]
+    },
+    {
+      "route": "WP901_G4_CONTRACT_REVISION",
+      "requirements": [
+        "explicitly revise the active G4 invariant from store-minted receipt to same-snapshot WP901-owned derived attestation",
+        "record why this preserves WP206 ownership while providing equivalent row-consumption evidence at repository-component scope",
+        "retain concrete-store and hostile-subclass fences",
+        "retain exact row-column evidence digest",
+        "do not silently treat this as satisfying the current store-minted wording"
+      ]
+    }
+  ],
+  "next_exact_action": "Re-enter current main. If a canonical WP206 successor appears, fuse PR705 admission evidence plus the store-minted row-load receipt requirement and donor falsifiers into that single owned lane. If no successor exists and Trigger6 remains research-only, resolve the ownership choice explicitly before production-source mutation. After repository acceptance, execute exact-source process/write-restart/readback on clay-direct-dev through the established self-hosted runner bridge and keep target-runtime credit scoped to the observed component path.",
+  "credits": {
+    "wp901_g4_repository_acceptance": 0,
+    "wp206_successor_acceptance": 0,
+    "target_host_runtime_credit": 0,
+    "physical_grid10_credit": 0,
+    "semantic_gwt_credit": 0,
+    "jspace_credit": 0,
+    "provider_model_credit": 0,
+    "effect_credit": 0,
+    "completion_credit": 0,
+    "training_credit": 0,
+    "whole_system_acceptance": false
+  }
+}
