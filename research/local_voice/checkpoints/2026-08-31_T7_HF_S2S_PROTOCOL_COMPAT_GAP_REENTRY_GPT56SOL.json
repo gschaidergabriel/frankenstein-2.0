@@ -1,0 +1,67 @@
+{
+  "schema": "T7_CONTINUATION_CHECKPOINT_V1",
+  "trigger": "7",
+  "created_at": "2026-08-31T03:27:00+07:00",
+  "organ": "GPT-5.6-Sol",
+  "mode": "REVIEW_ONLY_CANDIDATE_FALSIFIER",
+  "canonical_scope": "Frankenstein 2.0 local realtime voice research",
+  "f2_head_observed_before_checkpoint": "91882abf7b0860279cce97ce1b88e1ac0ae9f719",
+  "owner_authority": "research/local_voice/authority/2026-08-31_TRIGGER7_TEXT_PACKET_COMPLETION_AUTHORITY.md",
+  "candidate": {
+    "name": "huggingface/speech-to-speech local OpenAI-Realtime-compatible cascade",
+    "semantic_subject_expected": "HUGGINGFACE_SPEECH_TO_SPEECH_REALTIME",
+    "expected_semantic_key_from_new_regression": "8c53f25ed47c458bb727dd4dc82f788241cee699e428c4d97401a965a4eb375e",
+    "evidence_class": "EXTERNAL_PRIMARY_PLUS_CURRENT_F2_SOURCE_REVIEW_ONLY",
+    "runtime_credit": 0,
+    "trigger4_acceptance_credit": 0
+  },
+  "primary_source_findings": [
+    "The upstream realtime service admits input_audio_buffer.append, input_audio_buffer.commit, output_audio_buffer.clear, session.update, conversation.item.create, response.create and response.cancel as client events.",
+    "The upstream service emits session, speech-start/stop, conversation-item, transcription, response audio/text, function-call arguments and response.done events.",
+    "The upstream event model inspected in this turn does not list conversation.item.truncate or conversation.item.truncated.",
+    "Upstream response cancellation uses a response cancellation path, but response.cancel/output buffer clear alone does not prove server conversation history is truncated to exactly what the user actually heard.",
+    "The OpenAI-compatible STT backend keeps VAD, turn, session, conversation and response handling inside speech-to-speech and may progressively re-upload accumulated utterance audio; this is an integration/latency and authority-boundary risk that must be measured rather than assumed away."
+  ],
+  "f2_semantic_requirement": {
+    "source": "src/frankenstein2/voice_packet_cortex.py",
+    "observed": [
+      "Barge-in transitions queued output to cancelled and started/heard output to interrupted.",
+      "Barge-in revokes commit eligibility and fences outstanding tool ownership.",
+      "Only fully heard completed output is commit-eligible.",
+      "VoiceOutcome result references require fully heard commit-eligible output."
+    ],
+    "compatibility_consequence": "A protocol-compatible local server must preserve heard-versus-unheard history/commit semantics, not merely stop generation or clear playback."
+  },
+  "coordination_negative": {
+    "class": "SOURCE_COORDINATION_INCONSISTENCY_REVIEW_ONLY",
+    "observed": "Commit 91882abf7b0860279cce97ce1b88e1ac0ae9f719 adds a regression expecting huggingface/speech-to-speech aliases and stable semantic key 8c53f25e..., while the current fetched t7_semantic_claim.py still lacks those subject aliases.",
+    "consequence": "Do not create a material semantic claim by hand or invent a new alias. Reconcile compiler source plus test first, then acquire the canonical create-only semantic claim if still unowned.",
+    "product_negative_credit": 0
+  },
+  "hypothesis": "The local cascade can preserve much of the existing realtime transport/client boundary while Frankenstein retains canonical VoiceIntent, VoiceSessionCapsule, UnifiedDB, tool/effect and heard-state authority outside the speech server.",
+  "counterhypotheses": [
+    "Missing conversation.item.truncate semantics cause the server-side assistant context to retain speech that the user never heard after barge-in.",
+    "The server's internal conversation/session state becomes a competing authority rather than a transient speech transport projection.",
+    "Response cancellation stops generation but fails to revoke already-buffered or already-contextualized unheard assistant content.",
+    "Progressive accumulated-utterance STT adds unacceptable compute/latency under the intended local hardware envelope.",
+    "The apparent OpenAI-Realtime compatibility is insufficient for Frankenstein's exact tool, cancellation, event-order and close semantics."
+  ],
+  "next_exact_action": "First reconcile the semantic-claim compiler/test drift without inventing identity. Then, if the canonical semantic key can be acquired create-only, run one bounded protocol-compatibility falsifier against a pinned speech-to-speech revision: exercise session.update, input append/commit, response.create/cancel, output clear, tool call/result continuation, confirmed barge-in and heard/unheard rollback. The highest-information discriminator is whether server-side conversation context after interruption contains any assistant text/audio beyond the F2 heard boundary. Run network-blocked local inference only after the protocol gate is valid.",
+  "zero_credit_boundaries": [
+    "no semantic claim ownership acquired in this turn",
+    "no local speech-to-speech runtime execution",
+    "no German E2E benchmark",
+    "no physical audio benchmark",
+    "no barge-in latency benchmark",
+    "no network-blocked acceptance",
+    "no V5 build-candidate credit",
+    "no V6 Trigger4 acceptance"
+  ],
+  "sources": [
+    "https://github.com/huggingface/speech-to-speech/blob/main/src/speech_to_speech/api/openai_realtime/service.py",
+    "https://github.com/huggingface/speech-to-speech/blob/main/docs/openai-compatible-stt.md",
+    "src/frankenstein2/voice_packet_cortex.py",
+    "research/local_voice/tools/t7_semantic_claim.py",
+    "research/local_voice/tests/test_t7_semantic_claim_hf_speech_to_speech_gpt56sol.py"
+  ]
+}
