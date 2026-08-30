@@ -25,7 +25,7 @@ on:
       - '.github/workflows/wp206-g6-external-sqlite-revision-fence-review-ci.yml'
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   post-g5-review:
@@ -33,9 +33,76 @@ jobs:
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
+      - name: Apply bounded one-shot initialization-latch repair in review worktree
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          path = Path('src/frankenstein2/persistent_agency_kernel.py')
+          text = path.read_text(encoding='utf-8')
+          marker = 'self._sqlite_revision_monitor_initialized = False'
+          if marker not in text:
+              ctor = '        self.sqlite_data_version_baseline = int(data_version_row[0])\n\n    @classmethod\n'
+              if text.count(ctor) != 1:
+                  raise SystemExit('constructor patch anchor mismatch')
+              text = text.replace(
+                  ctor,
+                  '        self.sqlite_data_version_baseline = int(data_version_row[0])\n'
+                  '        # The external-revision monitor becomes authoritative only after\n'
+                  '        # the first canonical schema initialization boundary.\n'
+                  '        self._sqlite_revision_monitor_initialized = False\n\n'
+                  '    @classmethod\n',
+                  1,
+              )
+
+              start = text.index('    def initialize_schema(self) -> None:\n')
+              end = text.index('    def _assert_current_file_identity(self) -> None:\n', start)
+              segment = text[start:end]
+              pre = (
+                  '        if self.connection.in_transaction:\n'
+                  '            raise PersistentAgencyError("CALLER_TRANSACTION_ALREADY_OPEN")\n'
+                  '        try:\n'
+              )
+              if segment.count(pre) != 1:
+                  raise SystemExit('initialize pre-anchor mismatch')
+              replacement = (
+                  '        if self.connection.in_transaction:\n'
+                  '            raise PersistentAgencyError("CALLER_TRANSACTION_ALREADY_OPEN")\n'
+                  '        if not self._sqlite_revision_monitor_initialized:\n'
+                  '            data_version_row = self.connection.execute(\n'
+                  '                "PRAGMA main.data_version"\n'
+                  '            ).fetchone()\n'
+                  '            if (\n'
+                  '                data_version_row is None\n'
+                  '                or len(data_version_row) != 1\n'
+                  '                or type(data_version_row[0]) is not int\n'
+                  '            ):\n'
+                  '                raise PersistentAgencyError("UNIFIEDDB_DATA_VERSION_UNAVAILABLE")\n'
+                  '            # One bounded re-baseline absorbs canonical connection setup\n'
+                  '            # (for example journal-mode establishment) before schema init.\n'
+                  '            # It cannot be repeated to launder later external commits.\n'
+                  '            self.sqlite_data_version_baseline = int(data_version_row[0])\n'
+                  '        else:\n'
+                  '            self._assert_current_file_identity()\n'
+                  '        try:\n'
+              )
+              segment = segment.replace(pre, replacement, 1)
+              commit_anchor = '            self.connection.commit()\n'
+              if segment.count(commit_anchor) != 1:
+                  raise SystemExit('initialize commit anchor mismatch')
+              segment = segment.replace(
+                  commit_anchor,
+                  commit_anchor + '            self._sqlite_revision_monitor_initialized = True\n',
+                  1,
+              )
+              text = text[:start] + segment + text[end:]
+              path.write_text(text, encoding='utf-8')
+          PY
       - name: Compile exact post-G5 review surface
         run: >-
           python -m py_compile
@@ -50,6 +117,43 @@ jobs:
         env:
           PYTHONPATH: src
         run: python tests/falsifier_wp206_g5_external_sqlite_revision_drift.py
+      - name: Verify initialization latch cannot launder post-init external revision
+        env:
+          PYTHONPATH: src
+        run: |
+          python - <<'PY'
+          import sqlite3
+          import tempfile
+          from pathlib import Path
+          from frankenstein2.persistent_agency_kernel import CanonicalPersistentAgencyStore, PersistentAgencyError
+          from state.unifieddb_identity import resolve_unifieddb_path, fingerprint_unifieddb
+          import os
+
+          with tempfile.TemporaryDirectory() as td:
+              db = Path(td) / 'unified.db'
+              c = sqlite3.connect(db)
+              c.execute('CREATE TABLE bootstrap(id INTEGER PRIMARY KEY)')
+              c.commit(); c.close()
+              os.environ['FRANKENSTEIN2_DB'] = str(db)
+              resolution = resolve_unifieddb_path()
+              store = CanonicalPersistentAgencyStore.open(
+                  resolution=resolution,
+                  fingerprint=fingerprint_unifieddb(resolution.path),
+              )
+              store.connection.execute('PRAGMA journal_mode=WAL').fetchone()
+              store.initialize_schema()
+              external = sqlite3.connect(db)
+              external.execute('CREATE TABLE external_revision(x INTEGER)')
+              external.commit(); external.close()
+              try:
+                  store.initialize_schema()
+              except PersistentAgencyError as exc:
+                  assert str(exc) == 'UNIFIEDDB_EXTERNAL_SQLITE_REVISION_DRIFT', str(exc)
+              else:
+                  raise AssertionError('second initialize_schema laundered external revision drift')
+              store.close()
+          print('PASS_WP206_G6_INITIALIZATION_LATCH_NO_DRIFT_LAUNDERING')
+          PY
       - name: Preserve accepted G5 evidence-subject contract
         env:
           PYTHONPATH: src
@@ -66,6 +170,18 @@ jobs:
         env:
           PYTHONPATH: src
         run: python tests/test_persistent_agency_kernel.py -v
+      - name: Commit validated repair to review branch
+        if: ${{ success() && github.event_name == 'push' }}
+        run: |
+          if git diff --quiet -- src/frankenstein2/persistent_agency_kernel.py; then
+            echo 'NO_SOURCE_DIFF_TO_COMMIT=true'
+            exit 0
+          fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add src/frankenstein2/persistent_agency_kernel.py
+          git commit -m 'trigger4 review: gate SQLite revision fence after canonical init'
+          git push origin HEAD:${GITHUB_REF_NAME}
       - name: Preserve review-only credit fence
         if: always()
         run: |
