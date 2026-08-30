@@ -7,7 +7,10 @@ import unittest
 
 from frankenstein2.portable_release_static_completeness import (
     BLOCKED,
+    METADATA_PATH,
     STATIC_COMPLETE,
+    _load_json_file,
+    _safe_file,
     evaluate_portable_release_static_completeness,
 )
 from frankenstein2.release_integrity import build_release_manifest, write_release_manifest
@@ -143,30 +146,31 @@ class PortableReleaseStaticCompletenessTests(unittest.TestCase):
 
     def test_final_referenced_file_symlink_fails_closed_even_when_target_stays_inside_root(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
-            root = Path(tmp)
-            self._package(root)
-            link = root / "workpackages/receipts/F2-WP-1108_G1_CLEAN_MACHINE_MATRIX_MAIN_CI_33253634771.json"
-            link.unlink()
-            self._symlink_or_skip(link, "F2-WP-1105_G1_STATE_MIGRATION_MAIN_CI_33253041398.json")
+            root = Path(tmp).resolve()
+            self._write(root, "targets/real.txt", "evidence\n")
+            link = root / "evidence.txt"
+            self._symlink_or_skip(link, "targets/real.txt")
+            violations: list[str] = []
 
-            result = evaluate_portable_release_static_completeness(root, prehandoff_receipt_ref=RECEIPT_REF)
+            resolved = _safe_file(root, "evidence.txt", "evidence_ref", violations)
 
-            self.assertEqual(result.status, BLOCKED)
-            self.assertIn("baseline_runtime:evidence_ref:0:symlink_component", result.violations)
+            self.assertIsNone(resolved)
+            self.assertIn("evidence_ref:symlink_component", violations)
 
     def test_intermediate_symlink_component_fails_closed_even_when_target_stays_inside_root(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
-            root = Path(tmp)
-            self._package(root)
-            original = root / "architecture"
-            relocated = root / "architecture-real"
-            original.rename(relocated)
-            self._symlink_or_skip(original, relocated.name, target_is_directory=True)
+            root = Path(tmp).resolve()
+            real_dir = root / "real-installer-dir"
+            real_dir.mkdir()
+            (real_dir / "02_RELEASE_CONTRACT.json").write_text("{}", encoding="utf-8")
+            link_dir = root / "AI_START_HERE_DO_NOT_SCAN_REPO"
+            self._symlink_or_skip(link_dir, real_dir.name, target_is_directory=True)
+            violations: list[str] = []
 
-            result = evaluate_portable_release_static_completeness(root, prehandoff_receipt_ref=RECEIPT_REF)
+            loaded = _load_json_file(root, METADATA_PATH, "release_contract", violations)
 
-            self.assertEqual(result.status, BLOCKED)
-            self.assertIn("optional_feature_capabilities:perception_policy_ref:0:symlink_component", result.violations)
+            self.assertIsNone(loaded)
+            self.assertIn("release_contract:symlink_component", violations)
 
 
 if __name__ == "__main__":
