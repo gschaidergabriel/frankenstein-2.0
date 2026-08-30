@@ -1,0 +1,49 @@
+{
+  "schema": "T7_SOURCE_RECONCILIATION/v1",
+  "trigger": "7",
+  "date": "2026-08-30",
+  "research_id": "T7-ASR-004",
+  "objective": "E3_QWEN3_ASR_AUDIOCPP_STREAMING_TIMESTAMP_SOURCE_DELTA",
+  "semantic_key": "867ed9c005b4ec106396a63e8b4c6c8486cb9d5e109a244077908a9174a6a95c",
+  "classification": "SOURCE_RECONCILIATION_ONLY_NO_TARGET_RUNTIME_CREDIT",
+  "reconciled_surfaces": {
+    "asr_checkpoint": "research/local_voice/checkpoints/2026-08-30_T7_ASR004_QWEN3_ASR_STREAMING_GPT56SOL.json",
+    "prior_system_audit": "research/local_voice/sources/2026-08-30_AUDIO_CPP_V070_NATIVE_RUNTIME_CHALLENGER_AUDIT.json"
+  },
+  "contradiction": {
+    "asr_checkpoint_statement": "The official Qwen3-ASR source pin establishes vLLM as the official streaming backend and leaves alternative non-vLLM streaming/timestamp implementations unproven outside that inspected official runtime.",
+    "cross_lane_evidence_already_present": "The prior T7-SYS-004 audio.cpp v0.7.0 source audit already recorded Qwen3-ASR-0.6B/1.7B as German-capable GGUF 16/Q8 Stream candidates.",
+    "resolution": "The stronger project-level statement that no source-pinned non-vLLM streaming path was known is stale. audio.cpp is an admitted non-vLLM C++/ggml/GGUF Qwen3-ASR streaming challenger at source scope. This does not change any target-runtime credit."
+  },
+  "upstream_pin": {
+    "repository": "0xShug0/audio.cpp",
+    "observed_main_commit": "ee7be93398b56ac391849648c2bf3adfe714c812",
+    "license": "Apache-2.0 runtime; model/artifact licenses remain separately binding",
+    "qwen3_asr_streaming_introduction_commit": "7ce769e460014a1182364b8d07ee1dce4fd1e2ae",
+    "qwen3_asr_concurrency_memory_fix_commit": "4d383be1bff107e823ffc19120dcb6c78d493c0f",
+    "docs_path": "docs/models/qwen3.md",
+    "implementation_path": "src/models/qwen3_asr/session.cpp"
+  },
+  "source_findings": [
+    "Current audio.cpp source accepts Qwen3-ASR sessions in both offline and streaming run modes.",
+    "Current model documentation states that streaming mode accepts live audio chunks and emits buffered transcript deltas.",
+    "Word timestamps are implemented by passing the recognized transcript through Qwen3 Forced Aligner.",
+    "Timestamp output remains offline-only because alignment runs after the full transcript is known; therefore native streaming transcript support must not be conflated with streaming word-timestamp support.",
+    "Current source exposes Qwen3-ASR weight-type/resource controls and GGUF-oriented deployment paths, making it a materially different runtime hypothesis from the official vLLM streaming path.",
+    "Upstream commit 4d383be1 reports a previously observed concurrent-load VRAM failure for Qwen3-ASR-0.6B Q8 on a 12 GB H100L slice and a source fix; this is upstream hardware evidence only and is a warning to measure concurrency/residency on clay-direct-dev rather than assuming stability."
+  ],
+  "hypothesis_update": "For Frankenstein, audio.cpp is now the strongest source-pinned non-vLLM Qwen3-ASR streaming challenger because it preserves a C++/ggml/GGUF path and explicit streaming lifecycle. It may reduce Python/vLLM framework overhead, but that benefit remains unmeasured on the target host.",
+  "counterhypothesis": "On clay-direct-dev, audio.cpp may still lose to the admitted Whisper/faster-whisper or other ASR paths on German WER/CER, endpoint latency, p95/p99, resident VRAM/RSS, cancellation semantics, or ASR+LLM+TTS coexistence. Offline-only timestamp alignment may also be insufficient for any design that requires live word timing.",
+  "evidence_boundary": {
+    "source_reconciliation_credit": 1,
+    "non_vllm_streaming_source_credit": 1,
+    "streaming_word_timestamp_credit": 0,
+    "target_hardware_credit": 0,
+    "model_runtime_credit": 0,
+    "german_asr_quality_credit": 0,
+    "german_e2e_voice_credit": 0,
+    "trigger4_acceptance_credit": 0,
+    "whole_system_credit": 0
+  },
+  "next_exact_action": "Do not dispatch another hardware-inventory workflow. Use the live supervisor-8.78 clay-direct-dev bridge if exposed to the executing organ, acquire a distinct TARGET_RUNTIME_MODEL_BENCHMARK semantic claim, and benchmark exact pinned Qwen3-ASR-0.6B under audio.cpp against the admitted Whisper/faster-whisper baseline for cold/warm startup, resident RSS/VRAM, German WER/CER, partial stability, endpoint latency, cancellation behavior and whole-host ASR+LLM+TTS headroom. Preserve timestamp output as offline-only unless target runtime evidence proves a separate live alignment path."
+}
