@@ -951,6 +951,18 @@ class CanonicalPersistentAgencyStore:
             }
         )
         self.connection.execute("PRAGMA foreign_keys=ON")
+        data_version_row = self.connection.execute(
+            "PRAGMA main.data_version"
+        ).fetchone()
+        if (
+            data_version_row is None
+            or len(data_version_row) != 1
+            or type(data_version_row[0]) is not int
+        ):
+            raise PersistentAgencyError("UNIFIEDDB_DATA_VERSION_UNAVAILABLE")
+        # Connection-local observation only.  SQLite advances data_version when a
+        # *different* connection commits.  Never persist or compare it across reopen.
+        self.sqlite_data_version_baseline = int(data_version_row[0])
 
     @classmethod
     def open(
@@ -1015,6 +1027,17 @@ class CanonicalPersistentAgencyStore:
             raise PersistentAgencyError("UNIFIEDDB_FILE_MISSING_DURING_STORE_USE") from exc
         if (st.st_dev, st.st_ino) != (self.db_device, self.db_inode):
             raise PersistentAgencyError("UNIFIEDDB_FILE_IDENTITY_DRIFT")
+        data_version_row = self.connection.execute(
+            "PRAGMA main.data_version"
+        ).fetchone()
+        if (
+            data_version_row is None
+            or len(data_version_row) != 1
+            or type(data_version_row[0]) is not int
+        ):
+            raise PersistentAgencyError("UNIFIEDDB_DATA_VERSION_UNAVAILABLE")
+        if int(data_version_row[0]) != self.sqlite_data_version_baseline:
+            raise PersistentAgencyError("UNIFIEDDB_EXTERNAL_SQLITE_REVISION_DRIFT")
 
     def write_checkpoint(self, checkpoint: PersistentAgencyCheckpoint) -> str:
         if not isinstance(checkpoint, PersistentAgencyCheckpoint):
