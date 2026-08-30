@@ -94,6 +94,9 @@ SUBJECT_ALIASES = {
     "turn-taker": "DUPLEX_MINNIMA_CPP",
     "vibevoice-realtime-0.5b": "VIBEVOICE_REALTIME_0_5B",
     "microsoft-vibevoice-realtime-0.5b": "VIBEVOICE_REALTIME_0_5B",
+    "namo-turn-detector-v1-multilingual": "NAMO_TURN_DETECTOR_V1_MULTILINGUAL",
+    "namo-v1-multilingual": "NAMO_TURN_DETECTOR_V1_MULTILINGUAL",
+    "videosdk-live-namo-turn-detector-v1-multilingual": "NAMO_TURN_DETECTOR_V1_MULTILINGUAL",
 }
 
 EVIDENCE_SCOPE_ALIASES = {
