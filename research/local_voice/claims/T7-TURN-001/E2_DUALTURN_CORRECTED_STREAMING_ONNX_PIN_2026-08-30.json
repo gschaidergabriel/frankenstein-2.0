@@ -1,0 +1,63 @@
+{
+  "schema_version": 1,
+  "trigger": "7",
+  "research_id": "T7-TURN-001",
+  "objective": "E2_SEMANTIC_ENDPOINT_INTERRUPT_FRONTIER",
+  "date": "2026-08-30",
+  "worker": "GPT-5.6-Sol-TRIGGER7",
+  "evidence_scope": "SOURCE_RESEARCH_ONLY",
+  "candidate": {
+    "upstream": "anyreach-ai/dualturn-endpointing",
+    "license_reported_upstream": "apache-2.0",
+    "corrected_streaming_graph_commit": "213dae6ca2a94fae7ba1c508b7405eba3d77aade",
+    "correction": "streaming ONNX audio_ctx changed from zero-initialized to dynamically growing empty context because Mimi is not zero-prefix-invariant; upstream reports prior 0.17-0.66 divergence reduced to about 0.019",
+    "artifacts_mutated_by_correction": [
+      "README.md",
+      "onnx_streaming.py",
+      "stream_tick.onnx",
+      "stream_tick_240.onnx"
+    ],
+    "runtime_shape": {
+      "stream_tick.onnx": "2-channel 24 kHz, 1920 samples = 80 ms per call, state in/out, pure onnxruntime + numpy",
+      "stream_tick_240.onnx": "2-channel 24 kHz, 5760 samples = 240 ms per call, returns three 80 ms frames, state in/out, pure onnxruntime + numpy"
+    },
+    "upstream_cpu_measurements": {
+      "80ms_graph": "about 52 ms/call on CPU with 4 threads; about 65% per-stream duty cycle",
+      "240ms_graph": "about 85 ms/call on CPU with 4 threads; about 36% per-stream duty cycle; about 1.8x cheaper per audio-second than 80 ms graph",
+      "credit": "UPSTREAM_ONLY_NOT_FRANKENSTEIN_MEASUREMENT"
+    },
+    "causality_claim": "strictly causal; corrected streaming outputs are source-claimed decision-equivalent rather than batch-bit-exact, with about 0.02-0.03 fp32 residual versus offline",
+    "training_language_boundary": {
+      "public_dualturn_switchboard": "English",
+      "public_dualturn_otospeech": "English",
+      "private_agent_call_training": "language composition not established by inspected public source",
+      "german_runtime_credit": 0
+    }
+  },
+  "decision_delta": {
+    "status": "PIN_CORRECTED_GRAPH_BEFORE_E3",
+    "reason": "The corrected ONNX streaming path is a materially safer and lighter local endpointing runtime candidate than trust_remote_code/PyTorch, but English-dominant training means German quality cannot be inferred from source results.",
+    "predeclared_target_test": [
+      "quarantine-download stream_tick.onnx, stream_tick_240.onnx and onnx_streaming.py from the corrected source lineage",
+      "record byte sizes and SHA-256 inside clay-direct-dev before execution",
+      "run the 80 ms and 240 ms graphs on the same German EOT/backchannel/self-correction fixtures and eot-bench German slice",
+      "measure endpoint delay, false cutoffs, CPU wall time, RSS and interference with resident ASR/LLM/TTS",
+      "prefer 80 ms only if its latency benefit survives whole-Frankenstein contention; otherwise test 240 ms as the resource-sparing mode",
+      "do not route to Trigger 4 as accepted until deterministic turn FSM and cancellation-path integration is measured"
+    ],
+    "falsifier": "Reject DualTurn as the primary local endpoint detector if German false-cutoff/latency Pareto is not competitive with the multilingual text-turn challenger and silence/VAD baseline, or if its resident CPU cost materially worsens ASR/LLM/TTS tail latency."
+  },
+  "sources": [
+    "https://huggingface.co/anyreach-ai/dualturn-endpointing/commit/213dae6ca2a94fae7ba1c508b7405eba3d77aade",
+    "https://huggingface.co/anyreach-ai/dualturn-endpointing",
+    "https://huggingface.co/datasets/anyreach-ai/dualturn-switchboard-turn-taking",
+    "https://huggingface.co/datasets/anyreach-ai/dualturn-otospeech-turn-taking"
+  ],
+  "credits": {
+    "target_runtime": 0,
+    "german_quality": 0,
+    "end_to_end_voice": 0,
+    "trigger4_acceptance": 0,
+    "whole_system": 0
+  }
+}
