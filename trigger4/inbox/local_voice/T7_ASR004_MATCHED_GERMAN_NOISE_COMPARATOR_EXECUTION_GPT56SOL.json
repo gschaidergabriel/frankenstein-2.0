@@ -1,0 +1,88 @@
+{
+  "schema": "TRIGGER7_TO_TRIGGER4_HANDOFF/v1",
+  "trigger": "7",
+  "date": "2026-08-30",
+  "research_id": "T7-ASR-004",
+  "semantic_key": "95bd53a469133dbfdf39da320f6daa049cec1361084e632dc915c4bc156e3715",
+  "handoff_scope": "EXECUTE_EXISTING_ASR_QUALITY_OBJECTIVE_ON_TARGET",
+  "coordination": {
+    "new_semantic_claim": false,
+    "duplicate_execution_forbidden": true,
+    "canonical_claim": "research/local_voice/semantic_claims/95bd53a469133dbfdf39da320f6daa049cec1361084e632dc915c4bc156e3715.json",
+    "prior_target_receipt_checkpoint": "research/local_voice/checkpoints/2026-08-30_T7_ASR004_RUN33292903286_TRANSPORT_REPAIRED_CPU_SMOKE_PASS_GPT56SOL.json",
+    "quality_gate_checkpoint": "research/local_voice/checkpoints/2026-08-30_T7_ASR004_SILENCE_NOISE_GERMAN_COMPARATOR_REENTRY_GPT56SOL.json",
+    "stale_actions_run": 33292903286,
+    "stale_actions_run_credit": 0,
+    "transport_rule": "Do not wait for or duplicate the queued Actions transport. Use the already-admitted clay-direct-dev executor/bridge and preserve the existing semantic key."
+  },
+  "target": {
+    "surface": "clay-direct-dev",
+    "mode": "LOCAL_SOLO",
+    "external_model_inference_calls_required": 0,
+    "owner_vps_local_model_execution_allowed": true
+  },
+  "observed_prior_evidence": {
+    "artifact_hash_verified": true,
+    "qwen3_asr_model_load_observed": true,
+    "qwen3_asr_local_cpu_inference_observed": true,
+    "silence_fixture_seconds": 1,
+    "silence_output": "Ich.",
+    "german_quality_credit": 0,
+    "streaming_credit": 0,
+    "trigger4_acceptance_credit": 0
+  },
+  "pinned_german_fixture": {
+    "source_pin": "research/local_voice/sources/2026-08-30_T7_ASR004_FLEURS_DE_DE_EVAL_PIN_GPT56SOL.json",
+    "dataset": "google/fleurs",
+    "config": "de_de",
+    "revision": "bc0636bc121b131df69ed727a4ddafc5afc8afe4",
+    "split": "test",
+    "rows_start_inclusive": 0,
+    "rows_end_inclusive": 31,
+    "count": 32
+  },
+  "required_comparison_arms": [
+    "QWEN3_ASR_DIRECT_RAW_DECODER",
+    "QWEN3_ASR_WITH_DETERMINISTIC_SPEECH_PRESENCE_VAD_TURN_ADMISSION",
+    "MATCHED_FASTER_WHISPER_BASELINE_WITH_ADMITTED_VAD_NO_SPEECH_CONTROLS"
+  ],
+  "required_non_speech_falsifiers": [
+    "deterministic digital silence 1s",
+    "deterministic digital silence 2s",
+    "deterministic digital silence 5s",
+    "pinned real room tone if an admitted existing fixture is available",
+    "pinned fan/keyboard/background-noise fixture if an admitted existing fixture is available",
+    "echo-only or own-speaker playback fixture only if an admitted existing fixture is available"
+  ],
+  "required_measurements": [
+    "exact transcript per input and arm",
+    "WER",
+    "CER",
+    "false activation per non-speech clip",
+    "gate speech/non-speech decision",
+    "gate latency",
+    "decoder latency",
+    "per-utterance latency",
+    "RSS and VRAM where applicable",
+    "warm/cold execution state",
+    "exact model/runtime/source identities",
+    "audio hash actually supplied to each ASR arm"
+  ],
+  "acceptance_fences": [
+    "RAW_DECODER_FALSE_TEXT != GATED_PIPELINE_FALSE_ACTIVATION",
+    "GATED_WHISPER != RAW_QWEN_FAIR_COMPARISON",
+    "ONE_SILENCE_HALLUCINATION != GENERAL_GERMAN_ASR_FAILURE",
+    "CPU_TRANSFORMERS_LOCAL_INFERENCE != OFFICIAL_QWEN_VLLM_STREAMING",
+    "TRIGGER7_RESEARCH != TRIGGER4_ACCEPTANCE"
+  ],
+  "executor_result_requirement": "Persist a causally bound target receipt plus raw per-input results. Return the measured Pareto result to Trigger 7 and only then decide Qwen3-ASR preferred vs mandatory-gated vs loses-to-faster-whisper. Keep official vLLM streaming as a separate successor gate.",
+  "credits_at_handoff": {
+    "target_model_load": 1,
+    "target_local_asr_inference": 1,
+    "german_asr_quality": 0,
+    "streaming_asr": 0,
+    "german_e2e_voice": 0,
+    "trigger4_acceptance": 0,
+    "whole_system": 0
+  }
+}
