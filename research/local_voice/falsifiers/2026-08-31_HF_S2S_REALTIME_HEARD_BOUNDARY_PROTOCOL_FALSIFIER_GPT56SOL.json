@@ -9,19 +9,20 @@
   "target": "Pinned huggingface/speech-to-speech OpenAI-Realtime-compatible local server integrated behind the existing Frankenstein 2.0 voice boundary",
   "purpose": "Falsify protocol compatibility specifically at the barge-in heard/unheard boundary, conversation authority boundary, tool cancellation boundary and zero-external-inference boundary before treating the local cascade as a drop-in realtime transport replacement.",
   "source_review_basis": {
+    "upstream_pinned_revision": "3986f453012a131632eee4731995474046846794",
     "upstream_observed_client_events": [
       "input_audio_buffer.append",
       "input_audio_buffer.commit",
       "output_audio_buffer.clear",
       "session.update",
       "conversation.item.create",
+      "conversation.item.truncate",
       "response.create",
       "response.cancel"
     ],
-    "upstream_not_observed_in_event_map": [
-      "conversation.item.truncate",
-      "conversation.item.truncated"
-    ],
+    "upstream_exact_source_observation": "conversation.item.truncate is parsed and routed at the pinned revision, but the router currently accepts it as a deliberate no-op after cancellation because it considers client-side playback the owner of the unheard tail and states that no additional server state needs mutation.",
+    "upstream_not_observed_server_event": "conversation.item.truncated was not found in the pinned repository source sweep.",
+    "correction_note": "A prior web-index/source review incorrectly classified conversation.item.truncate as absent. Exact pinned GitHub source outranks that stale observation. The compatibility risk is semantic no-op exactness, not parser/event absence.",
     "f2_required_semantics": [
       "queued unheard output is cancelled with heard_fraction=0 and commit_eligible=false",
       "started/heard output interrupted by barge-in remains non-commit-eligible",
@@ -32,6 +33,7 @@
   },
   "oracle_law": [
     "Stopping audio generation is not sufficient if server-side conversation context still contains assistant content the user never heard.",
+    "Parsing or accepting conversation.item.truncate is not semantic proof; the next-turn model context must be measured against the F2 heard boundary.",
     "The local speech server may be a transport/inference organ but may not become a competing canonical session, memory, tool, effect, or heard-state authority.",
     "A barge-in must terminate or fence every stale response/TTS/tool producer causally attached to the interrupted turn.",
     "Any server-internal assistant history beyond the F2 heard boundary must be truncated, replaced, reconstructed from F2 authority, or proven unable to influence later model context.",
@@ -61,14 +63,16 @@
       "falsifies_if": "later model context contains any assistant text/audio semantics that F2 classified as unheard"
     },
     {
-      "id": "HF03_TRUNCATE_ABSENCE_COMPENSATION",
-      "action": "Send conversation.item.truncate using the expected OpenAI-Realtime shape. If unsupported, exercise the intended F2 adapter fallback and inspect the next model prompt/context.",
+      "id": "HF03_TRUNCATE_NOOP_SEMANTIC_EXACTNESS",
+      "action": "Send conversation.item.truncate for a known assistant item/content_index/audio_end_ms after buffered output has advanced beyond the measured F2 heard boundary; then inspect the server-side next-turn model context and event trace. Repeat with duplicate, stale and out-of-range truncate inputs.",
       "must_hold": [
-        "either exact truncate-equivalent semantics are supported",
-        "or F2 reconstructs authoritative next-turn context from its own heard-state boundary so server history cannot leak unheard text",
-        "unsupported truncate cannot be treated as successful no-op"
+        "the pinned server visibly accepts or rejects truncate according to its actual contract rather than silently changing event meaning",
+        "the current no-op handling cannot cause next-turn model context to contain assistant semantics beyond the measured F2 heard boundary",
+        "if server history can retain unheard assistant semantics, the F2 adapter reconstructs authoritative next-turn context from F2 heard state instead of trusting server history",
+        "duplicate or stale truncate cannot mutate a newer turn, resurrect cancelled output or increase F2 heard_fraction/commit eligibility",
+        "absence of a conversation.item.truncated acknowledgement is recorded as a protocol-surface difference rather than misreported as absence of truncate input support"
       ],
-      "falsifies_if": "truncate is ignored and server-retained unheard assistant content influences the next response"
+      "falsifies_if": "truncate is accepted as a no-op while retained unheard assistant semantics influence a later response, or a stale/duplicate/out-of-range truncate corrupts newer causal state"
     },
     {
       "id": "HF04_TOOL_RESULT_AFTER_BARGE_IN",
@@ -154,5 +158,5 @@
     "trigger4_acceptance_credit": 0,
     "whole_product_credit": 0
   },
-  "next_exact_action": "The existing semantic-claim owner should consume this falsifier packet instead of opening another claim. Execute HF01-HF03 first because the heard-boundary/history result decides whether preserving the OpenAI-Realtime transport boundary is architecturally viable. If the server lacks truncate-equivalent history semantics, prefer a narrow F2 adapter that keeps canonical conversation context outside the speech server rather than granting the server authority."
+  "next_exact_action": "The existing semantic-claim owner should consume this corrected falsifier packet instead of opening another claim. Execute HF01-HF03 first because the heard-boundary/history result decides whether preserving the OpenAI-Realtime transport boundary is architecturally viable. The pinned server accepts truncate as a no-op, so the discriminator must inspect actual next-turn context; if no-op semantics retain unheard assistant content, keep F2 canonical conversation context outside the speech server and use a narrow adapter/reconstruction boundary."
 }
