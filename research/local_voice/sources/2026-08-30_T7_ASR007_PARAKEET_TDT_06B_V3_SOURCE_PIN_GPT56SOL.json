@@ -1,0 +1,79 @@
+{
+  "schema": "FRANKENSTEIN_TRIGGER7_SOURCE_RESULT/v1",
+  "trigger": "7",
+  "research_id": "T7-ASR-007",
+  "objective": "E1_PARAKEET_TDT_06B_V3_SOURCE_PIN",
+  "semantic_key": "831a0648586591689423d110d6cbc2ac0566b9f5d2e9557cffeb45a8bd6705f3",
+  "observed_f2_reentry_head_before_research": "7ef0368b7be1d3fbcf2f52b13ce1587ccbf43594",
+  "subject": {
+    "upstream": "nvidia/parakeet-tdt-0.6b-v3",
+    "pinned_upstream_revision": "541d1f99c6b0c3cd0b11a95167540bb8edefd82b",
+    "revision_reason": "latest observed upstream revision; adds an official Q8_0 GGUF for local inference with NeMo-Speech.cpp",
+    "parameters": "600M",
+    "architecture": "FastConformer encoder with Token-and-Duration Transducer (TDT)",
+    "license": "CC-BY-4.0"
+  },
+  "primary_sources": [
+    "https://huggingface.co/nvidia/parakeet-tdt-0.6b-v3",
+    "https://huggingface.co/nvidia/parakeet-tdt-0.6b-v3/commits/541d1f99c6b0c3cd0b11a95167540bb8edefd82b/.gitattributes",
+    "https://huggingface.co/nvidia/parakeet-tdt-0.6b-v3/blob/541d1f99c6b0c3cd0b11a95167540bb8edefd82b/parakeet-tdt-0.6b-v3.q8_0.gguf"
+  ],
+  "source_findings": {
+    "german_support": {
+      "status": "EXPLICITLY_SUPPORTED",
+      "locale": "de",
+      "language_set_size": 25,
+      "automatic_language_detection": true
+    },
+    "german_primary_source_wer_percent": {
+      "fleurs": 5.04,
+      "covost": 4.84,
+      "mls": null,
+      "decoder": "Transducer greedy decoding without external language model",
+      "scope": "UPSTREAM_PRIMARY_SOURCE_BENCHMARK_ONLY_NOT_F2_ROOM_AUDIO"
+    },
+    "timestamps": {
+      "status": "SOURCE_SUPPORTED",
+      "levels": ["char", "word", "segment"]
+    },
+    "streaming": {
+      "status": "CHUNKED_STREAMING_SOURCE_SUPPORTED_NOT_LOW_LATENCY_PROVEN",
+      "official_nemo_example": {
+        "right_context_secs": 2.0,
+        "chunk_secs": 2.0,
+        "left_context_secs": 10.0,
+        "batch_size": 32
+      },
+      "boundary": "The primary source documents a NeMo chunked streaming inference script, but these example context values are not evidence of conversational endpoint latency and do not prove that the NeMo-Speech.cpp Q8 path is itself incremental/streaming."
+    },
+    "local_runtime_paths": {
+      "nemo_speech_cpp": "official model card documents local C++ inference with the repository Q8_0 GGUF",
+      "nemo": "official Python NeMo path plus chunked streaming inference script",
+      "transformers": "official model card documents Transformers loading from source/current integration"
+    },
+    "official_q8_gguf": {
+      "filename": "parakeet-tdt-0.6b-v3.q8_0.gguf",
+      "remote_size": "714 MB",
+      "sha256": "e3880d0aaaaf2c308ea2c35016b2b895c423eb3fda924c1b463d1c19b7f4d32e",
+      "xet_hash": "fe5f7d8dc3e4599efa7d8373929bb8eaf22ea771142f1387b9c7b3ac591b0c13",
+      "status": "UPSTREAM_DIGEST_PINNED_NOT_LOCALLY_REHASHED"
+    },
+    "full_precision_artifacts": {
+      "model_safetensors_reported_size": "2.51 GB",
+      "nemo_reported_size": "2.51 GB"
+    },
+    "comparison_to_current_nemotron_source_lane": {
+      "observation": "Parakeet reports 5.04% German FLEURS WER while the current Nemotron source pin reports 8.22-9.90% German FLEURS across its streaming-context conditions.",
+      "boundary": "NOT_AN_APPLES_TO_APPLES_WIN: decoder/runtime/context and streaming conditions differ; only identical target-runtime German audio can rank them."
+    }
+  },
+  "hypothesis": "Parakeet TDT 0.6B v3 is a high-value German local-ASR challenger because it combines strong upstream German accuracy, timestamps, a provenance-clean official 714 MB Q8 artifact and a native NeMo-Speech.cpp path that may fit the complete Frankenstein resident envelope better than heavier Python stacks.",
+  "counterhypothesis": "The apparent source advantage may disappear in realtime conversation: the official NeMo streaming example uses two seconds of chunk and right context, the Q8 NeMo-Speech.cpp path is not yet proven incremental, and room-audio partial stability/endpoint latency may favor the explicitly cache-aware Nemotron or an existing Whisper/Qwen3-ASR baseline.",
+  "source_scope_result": "SOURCE_PINNED_ELIGIBLE_FOR_TARGET_RUNTIME_BENCHMARK_AFTER_EXISTING_RUNTIME_GATE",
+  "evidence_credit": 1,
+  "runtime_credit": 0,
+  "german_e2e_voice_credit": 0,
+  "trigger4_acceptance_credit": 0,
+  "whole_system_credit": 0,
+  "next_discriminator": "Do not dispatch while the current clay-direct-dev hardware/runner semantic gate is unresolved. After valid target hardware evidence, create a distinct TARGET_RUNTIME_MODEL_BENCHMARK semantic claim and quarantine-download the exact Q8 artifact at revision 541d1f99c6b0c3cd0b11a95167540bb8edefd82b; recompute SHA-256 locally, then compare Parakeet, Nemotron and the admitted Whisper/Qwen3-ASR baselines on identical German room audio for WER/CER, partial stability, endpoint latency, first/final token latency, cancellation behavior, RTF and resident RAM/VRAM/CPU/GPU."
+}

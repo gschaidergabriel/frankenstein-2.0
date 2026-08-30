@@ -1,0 +1,74 @@
+{
+  "schema": "T7_SOURCE_AUDIT/v1",
+  "trigger": "7",
+  "research_id": "T7-TURN-005",
+  "objective": "E1_PIPECAT_SMART_TURN_V3_GERMAN_SOURCE_AUDIT",
+  "semantic_key": "820d97352ef679aae9d4169ef86a233aecaf11b7801c79724ad516cef13b6c3a",
+  "evidence_scope": "SOURCE_PIN_ONLY",
+  "epistemic_status": "UPSTREAM_SOURCE_OBSERVED_PLUS_F2_INFERENCE",
+  "runtime_credit": 0,
+  "f2_acceptance_credit": 0,
+  "upstream": {
+    "source_repo": "pipecat-ai/smart-turn",
+    "source_repo_main_observed_sha": "4786657e242dfe77dd138699ac564ee074a2a543",
+    "source_repo_url": "https://github.com/pipecat-ai/smart-turn",
+    "model_repo": "pipecat-ai/smart-turn-v3",
+    "model_revision": "f766f81d3cfdf7737ac64aad813d91bbfd56bf93",
+    "model_file": "smart-turn-v3.2-cpu.onnx",
+    "model_file_sha256": "2bb026316b14a660486a75b1733cd3fbab8c2fd0314dc9af7be49f8cca967e4f",
+    "model_file_bytes": 8679182,
+    "license": "BSD-2-Clause",
+    "license_source": "https://github.com/pipecat-ai/smart-turn/blob/4786657e242dfe77dd138699ac564ee074a2a543/LICENSE"
+  },
+  "source_observations": {
+    "german_explicitly_supported": true,
+    "supported_language_count": 23,
+    "audio_native": true,
+    "input_audio": "PCM audio; upstream benchmark/source uses 16 kHz and up to 8 seconds of current-turn audio",
+    "runtime_form": "local ONNX inference; CPU artifact is int8 quantized",
+    "intended_composition": "lightweight VAD detects a pause; Smart Turn classifies whether the user is actually done; classify again if speech resumes",
+    "architecture_summary": "Whisper-Tiny-class audio encoder features plus a binary end-of-turn classifier; upstream describes approximately 8M parameters",
+    "upstream_latency_claim": "as little as ~10 ms on some CPUs and under 100 ms on most cloud instances; not reproduced on Frankenstein hardware",
+    "german_upstream_benchmark": {
+      "dataset_samples": 1322,
+      "accuracy_percent": 96.37,
+      "precision": 0.947,
+      "recall": 0.982,
+      "f1": 0.964,
+      "false_positive_percent": 2.72,
+      "false_negative_percent": 0.91,
+      "benchmark_generated_utc": "2026-01-07T17:53:34Z",
+      "scope_note": "UPSTREAM_RESULT_NOT_F2_RESULT"
+    }
+  },
+  "security_dependency_notes": {
+    "preferred_artifact": "ONNX model rather than arbitrary remote model code",
+    "source_repo_contains_training_and_remote-service-oriented tooling": true,
+    "training_source_observation": "current source includes optional W&B/training machinery and Modal-related training paths; these are not required to treat the pinned ONNX inference artifact as the candidate runtime subject",
+    "f2_requirement": "production integration should pin the ONNX bytes and minimal auditable local inference path; no training/telemetry/remote inference dependency should enter LOCAL-SOLO acceptance"
+  },
+  "hypothesis": "Smart Turn v3.2 is a stronger direct German production candidate for semantic end-of-turn classification than the generation-1 SoulX-Duplug source candidate because upstream explicitly includes German and provides a small local ONNX artifact with German benchmark results.",
+  "counterhypotheses": [
+    "Upstream German benchmark quality may not transfer to the user's microphone, accent, room noise, echo, pauses, self-interruptions or Frankenstein conversational timing.",
+    "A pause-triggered end-of-turn classifier may reduce false endpoints yet add enough decision latency to hurt perceived responsiveness.",
+    "The model does not by itself solve true full-duplex overlap, backchannels, playback truncation or cancellation of unheard output.",
+    "A deterministic silence/VAD controller tuned to the actual user may match or beat Smart Turn on the real F2 distribution at lower complexity."
+  ],
+  "f2_architecture_delta": {
+    "candidate_role": "semantic EOT gate downstream of VAD pause and upstream of VoiceIntent/GWT response commitment",
+    "must_not_replace": [
+      "continuous wake/VAD",
+      "barge-in detector",
+      "deterministic cancellation/playback truncation FSM",
+      "VoiceIntent/GWT/WAIT authority",
+      "VoiceOutcome causal re-entry",
+      "UnifiedDB canonical state"
+    ],
+    "recommended_measurement": "On clay-direct-dev, compare Smart Turn v3.2 CPU against the admitted current endpoint controller using pinned German room-audio turns. Measure false-cut/false-wait rates, pause-to-EOT decision p50/p95/p99, user-end-to-first-audio delta, CPU/RSS, and interaction with barge-in/cancellation."
+  },
+  "promotion": {
+    "current_level": "V1_SOURCE_PINNED",
+    "target_runtime_required_for_v2_or_higher": true,
+    "trigger4_acceptance_not_claimed": true
+  }
+}

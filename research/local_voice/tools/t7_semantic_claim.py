@@ -79,6 +79,8 @@ SUBJECT_ALIASES = {
     "chatterbox-multilingual-v3-500m": "CHATTERBOX_MULTILINGUAL_V3_500M",
     "canary-180m-flash": "CANARY_180M_FLASH",
     "nvidia-canary-180m-flash": "CANARY_180M_FLASH",
+    "parakeet-tdt-0.6b-v3": "PARAKEET_TDT_0_6B_V3",
+    "nvidia-parakeet-tdt-0.6b-v3": "PARAKEET_TDT_0_6B_V3",
 }
 
 EVIDENCE_SCOPE_ALIASES = {
