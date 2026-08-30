@@ -1,0 +1,54 @@
+name: Trigger6 WP510 recursive manifest E3
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'research/tool_intelligence/experiments/wp510_recursive_manifest.py'
+      - '.github/workflows/trigger6-wp510-recursive-manifest-ci.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  e3-research-falsifier:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Adversarial extractor self-test
+        run: python research/tool_intelligence/experiments/wp510_recursive_manifest.py --self-test
+      - name: Extract current WP510 recursive manifest with research-only runtime observation
+        run: >-
+          python research/tool_intelligence/experiments/wp510_recursive_manifest.py
+          --repo-root .
+          --root-source src/frankenstein2/gwt_causal_path.py
+          --runtime-observe
+          --output /tmp/wp510_recursive_manifest.json
+      - name: Assert fail-closed research result shape
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          p = Path('/tmp/wp510_recursive_manifest.json')
+          data = json.loads(p.read_text())
+          assert data['schema'] == 'FRANKENSTEIN2_TRIGGER6_RECURSIVE_PYTHON_MANIFEST/v1'
+          assert data['credit']['architecture_credit'] == 0
+          assert data['credit']['runtime_credit'] == 0
+          assert data['credit']['whole_system_credit'] == 0
+          assert data['closure']['root_source'] == 'src/frankenstein2/gwt_causal_path.py'
+          assert data['runtime_observation']['status'] in {'OBSERVED_RESEARCH_ONLY', 'RUNTIME_OBSERVATION_FAILED'}
+          print(json.dumps({
+              'completeness_class': data['completeness_class'],
+              'blockers': data['blockers'],
+              'local_files': len(data['closure']['files']),
+              'dynamic_surfaces': data['closure']['dynamic_surfaces'],
+              'external_or_unresolved_imports': data['closure']['external_or_unresolved_imports'],
+              'runtime_extra_local_modules': data['runtime_extra_local_modules'],
+              'manifest_sha256': data['manifest_sha256'],
+          }, sort_keys=True))
+          PY
