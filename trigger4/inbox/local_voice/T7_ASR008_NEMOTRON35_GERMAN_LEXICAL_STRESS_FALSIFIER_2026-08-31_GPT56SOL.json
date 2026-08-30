@@ -1,0 +1,78 @@
+{
+  "schema": "F2_TRIGGER7_ASR008_GERMAN_LEXICAL_STRESS_FALSIFIER/v1",
+  "trigger": "7",
+  "recorded_date": "2026-08-31",
+  "organ": "GPT-5.6-Sol",
+  "classification": "CANDIDATE_FALSIFIER_REVIEW_ONLY",
+  "mutation_authority": false,
+  "research_id": "T7-ASR-008",
+  "candidate": "nvidia/nemotron-3.5-asr-streaming-0.6b",
+  "owner_boundary": "Trigger7 research/falsifier only; Trigger4 owns build/runtime acceptance. Do not mutate or redispatch active ASR004 or WP715 subjects from this packet.",
+  "current_f2_head_observed_before_write": "9657eece9c951988a59eb65ec454032bd7f8efca",
+  "external_evidence": {
+    "official_model_card": {
+      "url": "https://huggingface.co/nvidia/nemotron-3.5-asr-streaming-0.6b",
+      "classification": "EXTERNAL_PRIMARY",
+      "observed_claims": [
+        "0.6B multilingual streaming ASR",
+        "German de-DE is listed as supported",
+        "cache-aware FastConformer-RNNT streaming architecture"
+      ]
+    },
+    "german_underperformance_report": {
+      "url": "https://huggingface.co/nvidia/nemotron-3.5-asr-streaming-0.6b/discussions/11",
+      "classification": "COMMUNITY_EDGE_CASE_REPORT_NOT_CANONICAL_BENCHMARK",
+      "observed_report": "A user reports poor German terminology and simple-word behavior at 1120 ms chunking, with examples including Bahnhofplatz, Achillessehne, Paracetamol, 39 Grad and Magen-Darm-Probleme.",
+      "epistemic_fence": "This report is a falsifier lead, not proof of general German model quality. It must be reproduced on the F2 benchmark subject before any project conclusion."
+    }
+  },
+  "why_this_matters": "The current Trigger7 reentry plan schedules T7-ASR-008 only after ASR004 is measured or explicitly reconciled, using the identical matched comparator. The external edge-case report indicates that a broad German-support label and average matched-set WER alone may miss compound-word, terminology, spelling and number failures that are directly relevant to Frankenstein's German-first voice contract.",
+  "anti_benchmark_drift": {
+    "replace_existing_matched_comparator": false,
+    "primary_comparator_shape_changes": false,
+    "rule": "Run the admitted identical ASR004 comparator unchanged for Nemotron first. Add this lexical stress slice as a separate orthogonal falsifier with its own receipt and zero promotion authority by itself."
+  },
+  "candidate_falsifier": {
+    "id": "ASR008_DE_LEXICAL_TERMINOLOGY_NUMBERS_STRESS",
+    "minimum_categories": [
+      "German compounds",
+      "names and place-like terms",
+      "technical and medical terminology",
+      "numbers and units",
+      "short confusable words",
+      "inflected multi-word phrases"
+    ],
+    "seed_examples_from_external_report_for_reproduction_only": [
+      "Bahnhofplatz",
+      "Heimatort",
+      "stechender Schmerz",
+      "rechte Hand",
+      "Achillessehne",
+      "Paracetamol",
+      "vor einer Woche",
+      "39 Grad",
+      "Magen-Darm-Probleme",
+      "verschwommenes Sehen"
+    ],
+    "required_measurements": [
+      "exact audio/hash identity",
+      "chunk size and streaming mode",
+      "WER and CER",
+      "exact-term accuracy / phrase error rate",
+      "partial-stability / rewrite behavior",
+      "endpoint latency",
+      "false activation and VAD gate decisions where applicable",
+      "CPU/RAM/GPU/VRAM and per-turn latency growth",
+      "outbound external model/ASR/TTS API calls = 0 for local-runtime evidence"
+    ]
+  },
+  "credits": {
+    "research_falsifier_delta": 1,
+    "new_model_runtime_credit": 0,
+    "new_german_asr_quality_credit": 0,
+    "new_streaming_asr_credit": 0,
+    "new_trigger4_acceptance_credit": 0,
+    "new_whole_voice_system_credit": 0
+  },
+  "next_exact_action": "Do not execute or redispatch T7-ASR-008 while ASR004 remains the unresolved/current comparison subject. After ASR004 terminal measurement or explicit reconciliation and after nonduplicate ownership is available, run Nemotron 3.5 on the unchanged admitted matched German/noise comparator, then execute this separate German lexical/terminology/number stress slice. Preserve exact model revision, audio hashes, streaming chunk configuration, WER/CER, term accuracy, latency/resource growth and zero-external-runtime evidence. Promote only reproduced measured scope through Trigger4."
+}
