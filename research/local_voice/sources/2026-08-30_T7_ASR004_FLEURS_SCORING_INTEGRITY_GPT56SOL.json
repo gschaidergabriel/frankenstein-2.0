@@ -1,0 +1,87 @@
+{
+  "schema": "T7_ASR_SCORING_INTEGRITY_SOURCE_DELTA/v1",
+  "trigger": "7",
+  "date": "2026-08-30",
+  "organ": "GPT-5.6-Sol",
+  "research_id": "T7-ASR-004",
+  "semantic_key": "95bd53a469133dbfdf39da320f6daa049cec1361084e632dc915c4bc156e3715",
+  "classification": "EXTERNAL_PRIMARY_SOURCE_PLUS_EVALUATION_PROTOCOL_NO_RUNTIME_CREDIT",
+  "observed_main_before_write": "935bdfb2859704e661c98cd694346394635d52a8",
+  "existing_claim_state": "TARGET_RUNTIME_PARTIAL_OBSERVED_CLAIM_REMAINS_OPEN",
+  "problem": "The pinned FLEURS slice exposes both raw_transcription and transcription, while the current comparator pin names transcription as the reference field but does not yet bind one hypothesis-normalization implementation. An evaluator-dependent normalization path could change WER/CER and therefore contaminate model ranking.",
+  "primary_source_findings": [
+    {
+      "source": "google/fleurs",
+      "revision": "bc0636bc121b131df69ed727a4ddafc5afc8afe4",
+      "finding": "Selected examples expose both raw_transcription and transcription. Preserve both per row even though transcription remains the engineering reference field."
+    },
+    {
+      "source": "openai/whisper",
+      "revision": "5f86d1d86363843179951550570367b37c5d6f78",
+      "path": "whisper/normalizers/basic.py",
+      "finding": "Whisper's BasicTextNormalizer applies its own lowercasing, bracket removal, Unicode normalization and symbol handling; its remove_diacritics path additionally folds characters including German sharp-s. A model-family normalizer must therefore not silently become benchmark authority."
+    },
+    {
+      "source": "SYSTRAN/faster-whisper",
+      "revision": "ed9a06cd89a93e47838f564998a6c09b655d7f43",
+      "finding": "The baseline has configurable Silero-VAD behavior. Gate behavior is a separate pipeline variable and must not be conflated with decoder quality."
+    }
+  ],
+  "hypothesis": "A single pinned evaluator normalizer applied identically to every speech reference/hypothesis produces a more stable engineering discriminator than per-model or implicit normalization.",
+  "counterhypothesis": "Normalization choice is immaterial on the selected 32 German rows, so rankings and error deltas remain unchanged across reasonable evaluator variants.",
+  "falsifier": "Re-score the same persisted raw hypotheses under the pinned primary evaluator and at least one explicitly named diagnostic alternative. If candidate ordering or the material error conclusion changes, the unpinned metric is not a stable discriminator and both scores must remain visible.",
+  "scoring_contract": {
+    "reference_authority": "google/fleurs de_de test transcription at the pinned revision for primary engineering WER/CER",
+    "preserve_per_row": [
+      "dataset row index and stable loader identifiers/path fields",
+      "raw_transcription",
+      "transcription",
+      "SHA-256 of the decoded/canonical audio bytes actually supplied to each arm",
+      "raw ASR hypothesis before evaluator normalization for every arm",
+      "gate decision, reason and gate latency for gated arms",
+      "decoder latency and end-to-end arm latency",
+      "runtime/model/config identities"
+    ],
+    "primary_evaluator_normalizer": [
+      "Unicode NFKC",
+      "lowercase",
+      "replace Unicode punctuation and symbols with spaces",
+      "preserve German letters, combining marks/diacritics and sharp-s",
+      "collapse whitespace and trim"
+    ],
+    "normalizer_identity_rule": "Persist and SHA-256 the exact evaluator source/config. Every aggregate WER/CER receipt must bind that identity.",
+    "speech_gate_rejection_rule": "A speech row rejected by a VAD/turn gate remains in the WER/CER denominator with an empty hypothesis and is also counted as a gate false reject. Never improve WER by censoring rejected speech rows.",
+    "non_speech_rule": "Silence/noise/echo strata are excluded from speech WER/CER. Report false text activation, exact emitted text, gate decision and latency separately.",
+    "fairness_rule": "Use identical selected audio and the same evaluator on Qwen direct, Qwen gated, and faster-whisper comparison arms. Preserve raw-decoder and gated-pipeline metrics separately."
+  },
+  "required_outputs": [
+    "WER and CER with the pinned evaluator identity",
+    "raw per-row hypotheses and references",
+    "false-activation rate for non-speech strata",
+    "gate false-reject rate on speech strata",
+    "decoder-only and gated end-to-end latency distributions",
+    "resource measurements",
+    "explicit ranking-sensitivity note if diagnostic normalization changes the conclusion"
+  ],
+  "acceptance_fences": [
+    "NORMALIZER_EXISTS != NORMALIZER_IS_FAIR",
+    "MODEL_SPECIFIC_NORMALIZATION != SHARED_EVALUATOR",
+    "GATE_REJECTED_SPEECH != REMOVED_FROM_WER_DENOMINATOR",
+    "NON_SPEECH_FALSE_ACTIVATION != SPEECH_WER",
+    "NORMALIZED_TRANSCRIPT != RAW_MODEL_OUTPUT",
+    "FLEURS_ENGINEERING_COMPARATOR != ROOM_AUDIO_OR_PROJECT_VOCABULARY_ACCEPTANCE",
+    "SCORING_PROTOCOL_PIN != TARGET_RUNTIME_QUALITY_CREDIT"
+  ],
+  "coordination": {
+    "new_semantic_claim_created": false,
+    "new_runtime_dispatch_created": false,
+    "reason": "This is a measurement-integrity refinement inside the already-open T7-ASR-004 semantic objective. The existing Trigger4 target executor retains runtime ownership."
+  },
+  "credits": {
+    "target_runtime_delta": 0,
+    "german_asr_quality_delta": 0,
+    "streaming_asr_delta": 0,
+    "trigger4_acceptance_delta": 0,
+    "whole_system_delta": 0
+  }
+}
