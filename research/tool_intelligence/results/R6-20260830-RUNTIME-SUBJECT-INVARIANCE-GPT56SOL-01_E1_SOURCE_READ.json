@@ -1,0 +1,74 @@
+{
+  "schema": "FRANKENSTEIN2_TRIGGER6_E1_SOURCE_READ/v1",
+  "research_id": "R6-20260830-RUNTIME-SUBJECT-INVARIANCE-GPT56SOL-01",
+  "stage": "E1_SOURCE_READ",
+  "status": "COMPLETE_AT_E1_SCOPE",
+  "observed_f2_rule": {
+    "path": "workpackages/RUNTIME_CREDIT_CONVERGENCE_DIRECTIVE.md",
+    "rule": "A pending higher-tier runtime subject may remain representative only with explicit RUNTIME_SUBJECT_INVARIANT evidence; historical runtime plus newer repository CI cannot be composed into current-generation runtime credit without that evidence."
+  },
+  "external_primary_sources": [
+    {
+      "name": "Microsoft BuildXL Two Phase Cache Lookup",
+      "url": "https://github.com/microsoft/BuildXL/blob/main/Documentation/Wiki/Advanced-Features/Two-Phase-Cache-Lookup.md",
+      "blob_sha_observed": "037f698d22ca9822307f90cc7232bdad6361762b",
+      "finding": "BuildXL separates a weak fingerprint of statically known inputs from pathsets of observed file accesses and a strong fingerprint that incorporates the hashes of dynamically read files. It also tracks path probes/misses, not only successful reads."
+    },
+    {
+      "name": "Bazel Remote Caching",
+      "url": "https://bazel.build/remote/caching",
+      "finding": "Bazel actions explicitly bind inputs, output names, command line, and environment variables; action hashes key cached results. Current documentation warns that undeclared/untracked host tools or concurrent input mutation can make reuse incorrect."
+    },
+    {
+      "name": "SLSA Build Provenance v1.2",
+      "url": "https://slsa.dev/spec/v1.2/build-provenance",
+      "finding": "Provenance binds build definition, parameters and resolved dependencies to produced subjects, but resolved dependency completeness is best effort; provenance establishes origin/reproducibility evidence, not semantic equivalence across successor source revisions."
+    },
+    {
+      "name": "Practical Regression Test Selection with Dynamic File Dependencies",
+      "url": "https://users.ece.utexas.edu/~gligoric/papers/GligoricETAL15Ekstazi.pdf",
+      "finding": "Dynamic file-dependency tracking can safely reduce reruns within its declared model by selecting tests whose observed dependencies changed."
+    },
+    {
+      "name": "DIRTS: Dependency Injection Aware Regression Test Selection",
+      "url": "https://doi.org/10.1109/ICST57152.2023.00046",
+      "finding": "Dependency injection can make otherwise supposedly safe static regression-test selection miss impacted tests, demonstrating that framework-mediated dynamic edges must be modeled explicitly."
+    }
+  ],
+  "source_derived_conclusions": [
+    "A Git commit SHA or source-file digest alone is an exact-subject identity, not a proof that a successor executes the same semantic path.",
+    "A useful invariance mechanism should be framed as conservative non-interference/change-impact evidence rather than general semantic equivalence.",
+    "Declared inputs alone can under-approximate dynamic dependencies; observed inputs alone can under-approximate alternate paths not exercised by the observation.",
+    "Provenance can prove what inputs/build process produced a subject, but cannot by itself prove a changed successor is behaviorally equivalent.",
+    "Any F2 invariance proof must fail closed when dependency completeness is unknown, when dynamic selectors change, or when environment/external-tool identity is outside the captured closure."
+  ],
+  "candidate_contract": {
+    "name": "RUNTIME_SUBJECT_INVARIANT_EVIDENCE/v1",
+    "required_bound_identity": [
+      "bound_source_sha",
+      "workpackage/integration_boundary_id",
+      "entrypoint_or_test_command",
+      "declared_input_digests",
+      "configuration_and_selector_digests",
+      "relevant_environment_allowlist_and_values",
+      "external_tool/runtime/container_digests",
+      "observed_read_probe_enumeration_pathset_when_available",
+      "dependency_completeness_class",
+      "successor_source_sha",
+      "successor_changed_paths",
+      "change_impact_decision",
+      "falsifier_reason_or_fail_closed_reason"
+    ],
+    "decision_law": "CERTIFY only when all changed successor artifacts are outside a conservatively complete semantic dependency closure and no selector/config/environment/tool/input-discovery rule that can alter that closure changed. Otherwise INVALIDATE_OR_DEFER.",
+    "explicit_nonclaim": "CERTIFY does not assert general semantic equivalence and does not upgrade the historical receipt beyond the exact scope of the proven non-interference relation."
+  },
+  "hypothesis_status": "SUPPORTED_BUT_NARROWED",
+  "counterhypothesis_status": "PARTIALLY_CONFIRMED_DYNAMIC_EDGES_ARE_REAL_UNSOUNDNESS_RISK",
+  "next_discriminator": "Map the contract onto F2's current WP510/WP900/WP206/WP901 boundaries and build a toy falsifier comparing declared-only, observed-only, and fail-closed hybrid dependency sets under dynamic selection.",
+  "credits": {
+    "research": "E1_SOURCE_READ_ONLY",
+    "architecture": 0,
+    "runtime": 0,
+    "whole_system": 0
+  }
+}
