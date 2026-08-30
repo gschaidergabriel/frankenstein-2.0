@@ -1,0 +1,49 @@
+{
+  "schema": "FRANKENSTEIN2_WORKPACKAGE_DELTA/v1",
+  "workpackage_id": "F2-WP-1207",
+  "generation": 4,
+  "claim_id": "F2-WP-1207-G4-GPT56SOL-HOSTILE-OUTPUT-BOUNDARY-20260830",
+  "classification": "BOUNDED_SUCCESSOR_AFTER_EXECUTED_COUNTEREVIDENCE",
+  "trigger": "4",
+  "observed_main_sha": "bdee94d63f53434a1782a8da62522cbb52b28119",
+  "created_at_utc": "2026-08-30T04:48:29Z",
+  "counterevidence": {
+    "pull_request": 628,
+    "workflow_run": 33292958913,
+    "job": 99207676456,
+    "result": "2_FAILING_FALSIFIERS_1_PASSING_POSITIVE_CONTROL",
+    "findings": [
+      "a pre-existing external-receipts parent symlink lets receipt materialization escape the output root",
+      "a pre-existing declared receipt with different bytes is overwritten instead of rejected and preserved"
+    ]
+  },
+  "review_donor": {
+    "pull_request": 632,
+    "head_sha": "4b38c2bb1a8e62c257b34816b4292525e873ea83",
+    "merge_ref_ci_run": 33293223608,
+    "merge_ref_ci_job": 99208382442,
+    "merge_ref_source_commit": "0274319431b5f9f9431fd42483293d51a8e41d92",
+    "result": "SUCCESS_56_TESTS_STATE_VIEW_AND_BUNDLE_UPLOAD",
+    "actions_artifact_id": 9726602838,
+    "actions_artifact_sha256": "395ca05d0dba1d806f864ecd03cadba5851fbe79ae4c1e575582aeddf1b89448"
+  },
+  "scope": "Immutable create-once-or-byte-identical materialization for the WP1207 archive and all evidence files, with fail-closed parent/target symlink handling and exact idempotence tests.",
+  "hypothesis": "One shared fail-closed evidence writer closes both reproduced defects and prevents the same output-boundary class on the archive, content-bound receipt and bundle index without changing WP1107/WP1110 semantic authorities.",
+  "counterhypothesis": "The hostile pre-existing output tree is outside the repository-only G3 scope. That is insufficient for the admitted next hostile-twin gate, which must not overwrite or escape through attacker-controlled output paths.",
+  "tests": [
+    "reject parent-symlink escape and leave the outside directory empty",
+    "reject an existing different-byte declared receipt and preserve its bytes",
+    "accept a repeated build only when every existing evidence file is byte-identical",
+    "rerun all accepted WP1107 WP1110 and WP1207 composition tests",
+    "materialize and upload the exact PR merge-ref evidence bundle"
+  ],
+  "runtime_execution_observed": false,
+  "hostile_twin_runtime_credit": 0,
+  "target_runtime_credit": 0,
+  "vps_runtime_credit": 0,
+  "physical_host_credit": 0,
+  "effect_credit": 0,
+  "completion_credit": 0,
+  "whole_system_acceptance": false,
+  "next_exact_action": "Run G4 PR merge-ref CI. If exact non-zero jobs are green and main has no newer overlapping owner, merge by ordinary non-force PR flow, verify merged-main CI, then terminally reconcile only the bounded repository output-boundary repair scope."
+}
