@@ -1,0 +1,116 @@
+name: F2 WP716 Portable Media Lab Smoke
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/wp716-portable-media-lab-smoke.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  linux-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      PYTHONPATH: src
+      F2_MEDIA_LAB_ROOT: /tmp/f2-media-lab-hosted
+      F2_MEDIA_LAB_MAX_BYTES: '10737418240'
+      F2_MEDIA_LAB_LOW_WATER_BYTES: '8589934592'
+      F2_MEDIA_LAB_MAX_AGE_HOURS: '72'
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install media tools
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          sudo apt-get update
+          sudo apt-get install -y ffmpeg sox espeak-ng python3-pip
+          python3 -m pip install --user pytest yt-dlp
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+
+      - name: Run store tests
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          python3 -m pytest -q tests/test_media_lab_store.py | tee /tmp/wp716-hosted-pytest.txt
+
+      - name: Generate and download all media classes
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          python3 -m frankenstein2.media_lab_store tone --frequency 997 --seconds 1 | tee /tmp/tone.json
+          python3 -m frankenstein2.media_lab_store generate image --size 1280x720 | tee /tmp/image.json
+          python3 -m frankenstein2.media_lab_store generate video --seconds 3 --size 1280x720 --fps 24 | tee /tmp/video.json
+          python3 -m frankenstein2.media_lab_store speech 'Frankenstein, teste Wahrnehmung und Sprache.' --voice de | tee /tmp/speech.json
+          python3 -m frankenstein2.media_lab_store fetch 'https://raw.githubusercontent.com/github/explore/main/topics/python/python.png' | tee /tmp/fetch.json
+          python3 -m frankenstein2.media_lab_store status | tee /tmp/status.json
+          python3 -m frankenstein2.media_lab_store gc --aggressive | tee /tmp/gc.json
+          python3 -m frankenstein2.media_lab_store status | tee /tmp/final.json
+
+      - name: Verify output and hard cap
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          for f in ('tone','image','video','speech','fetch'):
+              d=json.loads(Path('/tmp/'+f+'.json').read_text())
+              assert d['sha256'] and d['size'] > 0 and Path(d['path']).is_file(), (f,d)
+          s=json.loads(Path('/tmp/final.json').read_text())
+          assert s['max_bytes'] == 10 * 1024**3, s
+          assert s['usage_bytes'] <= s['max_bytes'], s
+          print('WP716_PORTABLE_MEDIA_LAB_SMOKE=PASS')
+          PY
+
+      - name: Write receipt
+        if: always()
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import json, os, pathlib, shutil, subprocess
+          def read(p):
+              q=pathlib.Path(p); return q.read_text(errors='replace') if q.exists() else ''
+          def j(p):
+              try: return json.loads(read(p))
+              except Exception: return None
+          tools={}
+          for t in ['ffmpeg','ffprobe','sox','espeak-ng','yt-dlp']:
+              path=shutil.which(t)
+              tools[t]={'available':bool(path),'path':path}
+          final=j('/tmp/final.json') or {}
+          receipt={
+            'schema':'F2_WP716_PORTABLE_MEDIA_LAB_SMOKE/v1',
+            'source_sha':os.environ.get('GITHUB_SHA'),
+            'runner':'ubuntu-latest',
+            'pytest_pass':'4 passed' in read('/tmp/wp716-hosted-pytest.txt'),
+            'tone':bool(j('/tmp/tone.json')),
+            'image':bool(j('/tmp/image.json')),
+            'video':bool(j('/tmp/video.json')),
+            'speech':bool(j('/tmp/speech.json')),
+            'public_fetch':bool(j('/tmp/fetch.json')),
+            'tools':tools,
+            'store_status':final,
+            'hard_cap_exact_10_gib':final.get('max_bytes')==10*1024**3,
+            'under_cap':int(final.get('usage_bytes',10*1024**3+1))<=10*1024**3,
+            'vps_credit':0,
+            'physical_credit':0,
+          }
+          pathlib.Path('/tmp/wp716-portable-receipt.json').write_text(json.dumps(receipt,indent=2,sort_keys=True)+'\n')
+          print(json.dumps(receipt,sort_keys=True))
+          PY
+
+      - name: Upload receipt
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: wp716-portable-media-lab-${{ github.run_id }}
+          path: |
+            /tmp/wp716-portable-receipt.json
+            /tmp/wp716-hosted-pytest.txt
+            /tmp/final.json
+          if-no-files-found: warn
