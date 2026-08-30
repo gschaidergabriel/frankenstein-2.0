@@ -1,0 +1,132 @@
+{
+  "schema": "T7_ASR_PROJECT_VOCAB_CODESWITCH_FIXTURE/v1",
+  "trigger": "7",
+  "research_id": "T7-ASR-004",
+  "objective": "E6_QWEN3_ASR_F2_VOCAB_CODESWITCH_FIXTURE_PIN",
+  "semantic_key": "db6ca9f9841745df3d390aad71dd3ac8203df4832b7cf06ee2782ddd4bb443c3",
+  "status": "SOURCE_PINNED_AUDIO_NOT_YET_COLLECTED",
+  "purpose": "Measure Frankenstein-2.0 German technical-vocabulary and German/English code-switch recognition separately from the ordinary-German FLEURS comparator.",
+  "evidence_boundary": "This file pins text, scoring and future audio-collection conditions only. It grants zero target-runtime, German-quality, streaming, Trigger4-acceptance or whole-system credit.",
+  "source_basis": {
+    "project": [
+      "research/local_voice/checkpoints/CURRENT.json",
+      "research/local_voice/TRIGGERWORD_7_PROTOCOL.md",
+      "research/local_voice/benchmarks/2026-08-30_T7_ASR004_QWEN3_ASR_06B_TARGET_CPU_SMOKE_GPT56SOL.json",
+      "research/local_voice/checkpoints/2026-08-30_T7_ASR004_FLEURS_PINNED_COMPARATOR_REENTRY_GPT56SOL.json"
+    ],
+    "external_primary": [
+      {
+        "ref": "QwenLM/Qwen3-ASR",
+        "url": "https://github.com/QwenLM/Qwen3-ASR",
+        "bounded_observation": "Qwen3-ASR officially supports German among its multilingual ASR languages and provides local inference plus a streaming implementation. This does not establish Frankenstein-specific code-switch accuracy."
+      },
+      {
+        "ref": "Qwen3-ASR Technical Report",
+        "url": "https://arxiv.org/abs/2601.21337",
+        "bounded_observation": "The report evaluates multilingual ASR and emphasizes real-world evaluation differences; it does not provide evidence for this project's technical lexicon."
+      }
+    ]
+  },
+  "scoring_policy": {
+    "freeze_before_audio": true,
+    "normalization": [
+      "Unicode NFKC",
+      "lowercase",
+      "replace underscore and hyphen with spaces",
+      "remove remaining punctuation",
+      "collapse repeated whitespace"
+    ],
+    "metrics": [
+      "WER on normalized full utterance",
+      "CER on normalized full utterance",
+      "critical_token_recall using only the predeclared aliases below",
+      "critical_token_exact_miss_count",
+      "language_flip_or_translation_error_count"
+    ],
+    "anti_goodhart": [
+      "Do not add aliases after seeing model outputs.",
+      "Report aggregate WER/CER and critical-token recall separately.",
+      "A low aggregate WER cannot hide a project-critical token miss.",
+      "Do not score punctuation/case as a critical-token failure.",
+      "Preserve raw transcripts before normalization."
+    ]
+  },
+  "critical_tokens": {
+    "QWEN3_ASR": ["qwen3 asr", "qwen 3 asr", "qwen three asr", "qwen drei asr"],
+    "FASTER_WHISPER": ["faster whisper"],
+    "FLEURS": ["fleurs"],
+    "CLAY_DIRECT_DEV": ["clay direct dev"],
+    "LOCAL_SOLO": ["local solo"],
+    "CLAUDE_AUGMENTED": ["claude augmented"],
+    "WER": ["wer", "w e r"],
+    "CER": ["cer", "c e r"],
+    "VAD": ["vad", "v a d"],
+    "ASR": ["asr", "a s r"],
+    "TTS": ["tts", "t t s"],
+    "CPU": ["cpu", "c p u"],
+    "VLLM": ["vllm", "v llm", "v l l m"],
+    "VOICE_OUTCOME": ["voice outcome", "voiceoutcome"],
+    "PRESENCE": ["presence"],
+    "INTERRUPTIBILITY": ["interruptibility"],
+    "TRIGGER_4": ["trigger 4", "trigger four", "trigger vier"],
+    "TRIGGER_7": ["trigger 7", "trigger seven", "trigger sieben"]
+  },
+  "utterances": [
+    {"id":"V01","stratum":"DE_TECH","reference":"Frankenstein, prüfe Qwen drei ASR gegen Faster Whisper.","critical":["QWEN3_ASR","FASTER_WHISPER"]},
+    {"id":"V02","stratum":"DE_TECH","reference":"Lade den FLEURS de de Vergleich und ändere dabei keinen Effekt.","critical":["FLEURS"]},
+    {"id":"V03","stratum":"DE_TECH","reference":"Die Zielumgebung heißt Clay Direct Dev.","critical":["CLAY_DIRECT_DEV"]},
+    {"id":"V04","stratum":"DE_TECH","reference":"Der lokale Modus bleibt Local Solo.","critical":["LOCAL_SOLO"]},
+    {"id":"V05","stratum":"DE_TECH","reference":"Claude Augmented ist optional, Local Solo bleibt der Offline Modus.","critical":["CLAUDE_AUGMENTED","LOCAL_SOLO"]},
+    {"id":"V06","stratum":"DE_ACRONYM","reference":"Miss W E R und C E R getrennt.","critical":["WER","CER"]},
+    {"id":"V07","stratum":"DE_ACRONYM","reference":"Aktiviere V A D vor dem A S R Decoder.","critical":["VAD","ASR"]},
+    {"id":"V08","stratum":"DE_ACRONYM","reference":"T T S darf erst nach dem Turn Gate sprechen.","critical":["TTS"]},
+    {"id":"V09","stratum":"DE_TECH","reference":"Der Qwen drei ASR Smoke Test lief auf C P U.","critical":["QWEN3_ASR","CPU"]},
+    {"id":"V10","stratum":"DE_TECH","reference":"V L L M Streaming bekommt einen eigenen Nachfolgertest.","critical":["VLLM"]},
+    {"id":"V11","stratum":"DE_TECH","reference":"Speichere Voice Outcome, Presence und Interruptibility separat.","critical":["VOICE_OUTCOME","PRESENCE","INTERRUPTIBILITY"]},
+    {"id":"V12","stratum":"DE_TECH","reference":"Trigger vier übernimmt Build und Acceptance, Trigger sieben bleibt Forschung.","critical":["TRIGGER_4","TRIGGER_7"]},
+    {"id":"V13","stratum":"DE_EN_CODESWITCH","reference":"Bitte run the matched comparator auf denselben Audio Inputs.","critical":[]},
+    {"id":"V14","stratum":"DE_EN_CODESWITCH","reference":"Keep the raw decoder separate vom deterministic V A D gate.","critical":["VAD"]},
+    {"id":"V15","stratum":"DE_EN_CODESWITCH","reference":"Measure endpoint latency und partial transcript stability.","critical":[]},
+    {"id":"V16","stratum":"DE_EN_CODESWITCH","reference":"Do not promote local inference zu German quality.","critical":[]},
+    {"id":"V17","stratum":"DE_EN_CODESWITCH","reference":"The fallback stays Local Solo, auch wenn Claude Augmented ausfällt.","critical":["LOCAL_SOLO","CLAUDE_AUGMENTED"]},
+    {"id":"V18","stratum":"DE_EN_CODESWITCH","reference":"Compare Qwen three ASR with Faster Whisper auf identischem Host state.","critical":["QWEN3_ASR","FASTER_WHISPER"]},
+    {"id":"V19","stratum":"DE_EN_CODESWITCH","reference":"Use the same audio hash für raw, gated und baseline.","critical":[]},
+    {"id":"V20","stratum":"DE_EN_CODESWITCH","reference":"No whole system credit ohne Trigger four acceptance.","critical":["TRIGGER_4"]}
+  ],
+  "future_audio_collection": {
+    "primary_speaker": "human German speaker; natural delivery; do not spell words unless the reference explicitly separates acronym letters",
+    "format": "mono PCM WAV, 16 kHz, 16-bit",
+    "profiles": [
+      {"id":"NEAR_CLEAN","utterances":"V01..V20","geometry":"approximately 20-40 cm microphone distance; ordinary quiet-room speech"},
+      {"id":"ROOM_FAR","utterances":["V01","V03","V04","V06","V07","V11","V13","V16","V18","V20"],"geometry":"approximately 1-2 m microphone distance in an ordinary room; no artificial denoise before hashing"}
+    ],
+    "primary_acceptance_audio": "human speech only; synthetic TTS may be used only as a separately labelled diagnostic stratum",
+    "required_per_file_receipt": ["fixture_id","profile_id","sha256","byte_count","duration_seconds","sample_rate","channels"]
+  },
+  "future_matched_execution": {
+    "same_audio_required": true,
+    "pipelines": [
+      "Qwen3-ASR-0.6B raw decoder",
+      "Qwen3-ASR-0.6B behind the deterministic F2 VAD/turn-admission gate",
+      "current pinned faster-whisper baseline"
+    ],
+    "required_outputs": [
+      "raw transcript",
+      "normalized transcript",
+      "WER",
+      "CER",
+      "critical token outcomes",
+      "language/translation error flags",
+      "gate decision where applicable",
+      "wall latency",
+      "resource measurements",
+      "exact model/runtime/source identity"
+    ]
+  },
+  "falsifiers": [
+    "If Qwen3-ASR loses project-critical tokens materially more often than faster-whisper on matched audio, do not promote it merely because ordinary-German FLEURS WER is competitive.",
+    "If forced German language handling translates or rewrites embedded English technical tokens, score that separately as a code-switch failure.",
+    "If deterministic VAD/turn admission improves false activation but changes project-token recognition, preserve raw and gated scores separately.",
+    "A clean near-field pass does not establish far-field room performance."
+  ]
+}
