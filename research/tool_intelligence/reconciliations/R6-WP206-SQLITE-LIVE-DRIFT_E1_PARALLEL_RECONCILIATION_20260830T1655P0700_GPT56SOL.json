@@ -1,0 +1,45 @@
+{
+  "schema": "FRANKENSTEIN2_TRIGGER6_RESEARCH_RECONCILIATION/v1",
+  "reconciliation_id": "R6-WP206-SQLITE-LIVE-DRIFT-E1-PARALLEL-RECONCILIATION-20260830T1655P0700-GPT56SOL",
+  "trigger": "6",
+  "status": "RECONCILED_ONE_E1_RESULT_COMPLEMENTARY_RECEIPTS",
+  "created_at_local": "2026-08-30T16:55:20+07:00",
+  "worker": "gpt-5.6-sol",
+  "architecture_fusion_ref": "research/tool_intelligence/deltas/ADF-20260830T1647P0700-GPT56SOL-WP206-SAME-INODE-LIVE-FUSION.json",
+  "receipts": [
+    {
+      "research_id": "R6-WP206-SQLITE-LIVE-DRIFT",
+      "claim_commit": "d95e9b339e15bafa189534ddd59d146965ef8b7d",
+      "result_commit": "0dcd9b6c464a091af2512df8bb6e489d192f09ff",
+      "result_ref": "research/tool_intelligence/deltas/2026-08-30T1650P0700_GPT56SOL_R6_WP206_SQLITE_LIVE_DRIFT_E1_SOURCE_READ.json"
+    },
+    {
+      "research_id": "R6-20260830-SQLITE-SAME-INODE-DRIFT-WP206-GPT56SOL-01",
+      "claim_commit": "eb9cdd2d6f51d272a6fac943a83de306f77d2214",
+      "result_commit": "52ad603381b4f75f7afa8e1eda16405101b634b9",
+      "result_ref": "research/tool_intelligence/results/R6-20260830-SQLITE-SAME-INODE-DRIFT-WP206-GPT56SOL-01_E1_SOURCE_READ.json"
+    }
+  ],
+  "independence_classification": "SAME_PRIMARY_MECHANISM_AND_SHARED_F2_FRONTIER_NOT_INDEPENDENT_REPLICATION",
+  "shared_findings": [
+    "PRAGMA data_version is not a complete WP206 fence because same-connection commits do not change that connection's PRAGMA value.",
+    "SQLITE_FCNTL_DATA_VERSION is the stronger SQLite-native low-cost drift witness because SQLite specifies coverage of changes from the same connection and other connections to the selected database.",
+    "schema_version is schema-specific and not a general row/data mutation witness.",
+    "A change/version witness can trigger bounded fail-closed revalidation but cannot itself become historical provenance, content authenticity or a second state authority.",
+    "Continuous whole-database hashing is not justified by the reviewed E1 evidence as the default hot path."
+  ],
+  "complementary_findings": [
+    "The source-pinned review binds SQLITE_FCNTL_DATA_VERSION to sqlite3PagerDataVersion(Pager.iDataVersion) at sqlite/sqlite d92acf1afe6dbd4c8aec9aa9513a518f690c2acf, strengthening the implementation-level interpretation that it is a pager change counter rather than a cryptographic digest.",
+    "The F2-source-oriented review observes that current WP206 already binds canonical pathname/device/inode and validates checkpoint-row digest self-consistency, while externally evidenced historical-row identity remains a separate question.",
+    "WAL snapshot isolation requires a defined transaction boundary: an intentionally old read snapshot is not by itself corruption even if a later version exists.",
+    "Reviewed primary docs do not establish arbitrary out-of-band raw-filesystem same-inode mutation detection by SQLITE_FCNTL_DATA_VERSION; keep that as an executable falsifier rather than silently promoting coverage."
+  ],
+  "hypothesis": "A two-tier fence is the smallest currently supported direction: cheap SQLite-native dirty witness at lifecycle/transaction boundaries, followed on change by exact canonical provenance/content revalidation. Raw-filesystem hostile mutation and snapshot-boundary behavior must be falsified separately.",
+  "counterhypothesis": "If the runtime binding cannot expose SQLITE_FCNTL_DATA_VERSION cheaply or if hostile raw-file mutation is in scope, a transaction-bound canonical digest/provenance revalidation may be simpler and safer than a native file-control bridge.",
+  "decision": "Treat both E1 receipts as one source-read result with complementary detail. Do not increase evidence-stage credit. Respect the already-owned E2 architecture-mapping claim and consume its result instead of duplicating it.",
+  "evidence_credit": "E1_SOURCE_READ_ONE_RESULT",
+  "independent_replication_credit": 0,
+  "architecture_credit": 0,
+  "runtime_credit": 0,
+  "whole_system_credit": 0
+}
