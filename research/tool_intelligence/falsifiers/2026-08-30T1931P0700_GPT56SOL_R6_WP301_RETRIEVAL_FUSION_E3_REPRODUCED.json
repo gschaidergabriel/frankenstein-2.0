@@ -1,0 +1,89 @@
+{
+  "schema": "FRANKENSTEIN2_TRIGGER6_FALSIFIER_E3/v1",
+  "trigger": "6",
+  "research_id": "R6-20260830-WP301-EMERGENT-RETRIEVAL-RANK-FUSION-GPT56SOL-01",
+  "claim_target": "E3_CLAIM_REPRODUCED",
+  "status": "E3_CLAIM_REPRODUCED_COMPLETE",
+  "completed_at": "2026-08-30T19:31:18+07:00",
+  "worker": "GPT-5.6 Sol / ChatGPT Trigger-6 organ",
+  "claim_ref": "research/tool_intelligence/claims/R6-20260830-WP301-EMERGENT-RETRIEVAL-RANK-FUSION-GPT56SOL-01/E3_CLAIM_REPRODUCED.json@5c9fba7e0742c38f39283e7ab28e51cf066ce485",
+  "mapping_ref": "research/tool_intelligence/deltas/2026-08-30T1929P0700_GPT56SOL_R6_WP301_EMERGENT_RETRIEVAL_E2_ARCHITECTURE_MAPPED.json@d1ab19c7f9ab4fd7a807b2c4e13248668adc6500",
+  "f2_main_at_write_preflight": "3cddedb00bf1666781a0e6ed28023ecd743bd969",
+  "execution_surface": "LOCAL_ANALYTICAL_REPRODUCER_ONLY",
+  "runtime_credit": 0,
+  "reproducer_definition": {
+    "weighted_score_bp": "sum(score_bp_i * 10000) // (3 * 10000) for three equal-weight axes",
+    "overlap_v1": "count(score_bp_i >= 1)",
+    "rank_score_v1": "weighted_score_bp * overlap_v1",
+    "threshold_variant": "count(score_bp_i >= presence_threshold_bp)",
+    "rrf_demo": "sum(1/(k + rank_i)), k=60"
+  },
+  "observations": [
+    {
+      "id": "V1_INVERSION_A",
+      "scores": [7000, 7000, 0],
+      "presence_threshold_bp": 1,
+      "weighted_score_bp": 4666,
+      "overlap_count": 2,
+      "rank_score": 9332
+    },
+    {
+      "id": "V1_INVERSION_B",
+      "scores": [5000, 5000, 1],
+      "presence_threshold_bp": 1,
+      "weighted_score_bp": 3333,
+      "overlap_count": 3,
+      "rank_score": 9999,
+      "result": "B outranks A solely because the 1-bp third axis obtains a full third overlap unit."
+    },
+    {
+      "id": "V1_BOUNDARY",
+      "scores": [4666, 4666, 1],
+      "presence_threshold_bp": 1,
+      "weighted_score_bp": 3111,
+      "overlap_count": 3,
+      "rank_score": 9333,
+      "comparison": "This is the first integer b in [b,b,1] that outranks [7000,7000,0] under the exact reproduced arithmetic; it wins 9333 vs 9332 despite materially weaker magnitudes on the two shared axes."
+    },
+    {
+      "id": "EXPLICIT_THRESHOLD_CLOSURE",
+      "scores": [5000, 5000, 1],
+      "presence_threshold_bp": 1000,
+      "weighted_score_bp": 3333,
+      "overlap_count": 2,
+      "rank_score": 6666,
+      "comparison": "Against [7000,7000,0] at the same threshold (4666,2,9332), the accidental 1-bp breadth bonus disappears. This demonstrates that the discontinuity can be moved into an explicit versioned support policy rather than an implicit >0 rule."
+    },
+    {
+      "id": "RRF_DUPLICATE_DIMENSION",
+      "k": 60,
+      "rank": 1,
+      "one_dimension_contribution": 0.01639344262295082,
+      "same_dimension_accidentally_counted_twice": 0.03278688524590164,
+      "multiplier": 2.0,
+      "result": "Naive additive RRF doubles the contribution when the same evidence dimension/list is counted twice. Therefore ordinal mode needs stable evidence-dimension identity and duplicate rejection; this is arithmetic demonstration, not a claim that current F2 already has such duplication."
+    }
+  ],
+  "falsifier_result": {
+    "one_bp_overlap_discontinuity": "REPRODUCED",
+    "explicit_threshold_controls_discontinuity": "REPRODUCED",
+    "rrf_duplicate_dimension_additivity": "REPRODUCED",
+    "cross_axis_calibration_problem": "NOT_RUNTIME_TESTED; REMAINS SOURCE_CONTRACT_GAP",
+    "whole_architecture_delta_proven": false
+  },
+  "interpretation": "The E2 recommendation survives its cheapest falsifier. The current v1 overlap formula has a real discrete boundary at score 0/1. An explicit support threshold is a sufficient structural control for that boundary but does not by itself solve cross-axis calibration. Rank fusion remains a separate fallback mode and requires dimension deduplication; it is not a replacement for calibrated score semantics.",
+  "next_evidence_gate": {
+    "target": "E5_BUILD_CANDIDATE",
+    "justification": "E1 source pin + E2 architecture mapping + E3 analytical reproduction now support a bounded Trigger4 implementation/test candidate without claiming E4 F2 ablation or runtime benefit.",
+    "required_before_acceptance": "Trigger4 must implement source-level v2 contract, run component/integration tests, measure regression/overhead and preserve v1 replay compatibility."
+  },
+  "credits": {
+    "upstream_or_formula_claim_reproduced": true,
+    "F2_runtime": 0,
+    "F2_ablation": 0,
+    "whole_system": 0,
+    "physical_grid10": 0,
+    "effects": 0
+  },
+  "pending_research_sqlite_sync": "PENDING_ADMITTED_DB_WRITE_PATH"
+}
