@@ -1,0 +1,54 @@
+{
+  "schema": "TRIGGER7_TO_TRIGGER4_LOCAL_VOICE_HANDOFF/v1",
+  "trigger7_semantic_key": "ba9ab00e0cf2a2b838f87d06936276ec55dc24f6cd84b1bcb5d70cdbff1823a9",
+  "research_id": "T7-TURN-005",
+  "objective": "E3_LIVEKIT_EOT_BENCH_DE_NAMO_COMPONENT_BENCHMARK",
+  "state": "READY_FOR_TRIGGER4_EXECUTION_AFTER_DATASET_IDENTITY_GATE",
+  "target": "clay-direct-dev",
+  "duplicate_dispatch_forbidden": true,
+  "source_contract": {
+    "benchmark_repo": "livekit/eot-bench",
+    "benchmark_repo_revision": "6594d8b3b8af385b15f116dde310ce45af92d646",
+    "source_pin": "research/local_voice/sources/2026-08-30_T7_TURN005_LIVEKIT_EOT_BENCH_DE_SOURCE_PIN_GPT56SOL.json",
+    "human_claim": "research/local_voice/claims/T7-TURN-005/E3_LIVEKIT_EOT_BENCH_DE_NAMO_COMPONENT_BENCHMARK.json",
+    "semantic_claim": "research/local_voice/semantic_claims/ba9ab00e0cf2a2b838f87d06936276ec55dc24f6cd84b1bcb5d70cdbff1823a9.json",
+    "namo_source_audit": "research/local_voice/sources/2026-08-30_T7_TURN006_NAMO_MULTILINGUAL_GERMAN_SOURCE_AUDIT_GPT56SOL.json"
+  },
+  "hard_preconditions": [
+    "Resolve and pin the exact livekit/eot-bench-data Hugging Face revision consumed.",
+    "Resolve governing dataset license at that exact revision; do not assume benchmark-repo license applies to dataset bytes.",
+    "Create immutable manifest/hash for consumed German rows/audio/silence spans.",
+    "Bind the already source-pinned NAMO model artifact hash and exact ONNX runtime/build.",
+    "Use local execution only; outbound model/ASR/TTS provider calls must remain zero."
+  ],
+  "experiment": {
+    "language": "de",
+    "split": "validation",
+    "span_definition": "all silence spans >=100ms; final span=eot, earlier spans=hold",
+    "baseline": "VAD/silence-only endpoint policy on identical spans",
+    "candidate": "NAMO multilingual semantic EOU on identical causal transcript context",
+    "policy_sweep": ["threshold", "action_delay", "timeout"],
+    "primary_outputs": [
+      "false_cutoffs_at_300ms",
+      "false_cutoffs_at_600ms",
+      "latency_at_5pct_false_cutoff",
+      "latency_at_10pct_false_cutoff",
+      "pareto_frontier"
+    ],
+    "secondary_outputs": [
+      "per-span predictions",
+      "NAMO inference latency distribution",
+      "CPU and RSS",
+      "German error/failure classes"
+    ]
+  },
+  "acceptance_fence": {
+    "component_value": "Only if NAMO improves the German latency/false-cutoff frontier over identical VAD-only substrate without unacceptable resource cost.",
+    "runtime_credit_before_run": 0,
+    "integration_credit_before_run": 0,
+    "trigger4_acceptance_credit_before_run": 0,
+    "whole_system_credit_before_run": 0,
+    "source_metrics_are_not_runtime_credit": true
+  },
+  "return_contract": "Persist exact dataset/model/runtime identities, commands, logs, per-span outputs, metric artifacts, resource measurements, hashes and negative results; return receipt path to Trigger7 for interpretation."
+}
