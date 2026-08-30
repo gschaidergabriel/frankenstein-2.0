@@ -457,6 +457,13 @@ def record_attempt(
             raise PortableReleaseTransactionError(
                 "SUCCEEDED requires exact next generation and observed state digest"
             )
+        if (
+            plan.operation == "ROLLBACK"
+            and observed_state_n != plan.rollback_target_state_sha256
+        ):
+            raise PortableReleaseTransactionError(
+                "SUCCEEDED ROLLBACK must verify exact predecessor state digest"
+            )
         if failure_code_n is not None:
             raise PortableReleaseTransactionError("SUCCEEDED must not carry failure_code")
 
