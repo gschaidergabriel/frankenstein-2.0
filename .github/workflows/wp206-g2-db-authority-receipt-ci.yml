@@ -1,0 +1,41 @@
+name: WP206 G2 DB Authority Receipt Replay
+
+on:
+  pull_request:
+    paths:
+      - 'src/frankenstein2/persistent_agency_kernel.py'
+      - 'src/state/unifieddb_identity.py'
+      - 'tests/wp206_restart_probe.py'
+      - 'tests/test_persistent_agency_kernel.py'
+      - 'tests/test_wp206_g2_db_authority_receipt.py'
+      - '.github/workflows/wp206-persistent-agency-ci.yml'
+      - '.github/workflows/wp206-g2-db-authority-receipt-ci.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  replay-authority-receipt-fence:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Compile exact WP206 G2 surface
+        run: >-
+          python -m py_compile
+          src/frankenstein2/persistent_agency_kernel.py
+          tests/wp206_restart_probe.py
+          tests/test_persistent_agency_kernel.py
+          tests/test_wp206_g2_db_authority_receipt.py
+      - name: Run prior WP206 regression suite
+        env:
+          PYTHONPATH: src
+        run: python tests/test_persistent_agency_kernel.py -v
+      - name: Run G2 authority-receipt regression
+        env:
+          PYTHONPATH: src
+        run: python tests/test_wp206_g2_db_authority_receipt.py -v
