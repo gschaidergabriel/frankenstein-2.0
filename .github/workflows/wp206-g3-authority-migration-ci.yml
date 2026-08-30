@@ -1,0 +1,67 @@
+name: WP206 G3 Authority Migration CI
+
+on:
+  push:
+    branches:
+      - chatgpt/trigger4-wp206-g3-legacy-authority-migration-20260830
+    paths:
+      - 'src/frankenstein2/persistent_agency_authority_migration.py'
+      - 'src/frankenstein2/persistent_agency_kernel.py'
+      - 'src/state/unifieddb_identity.py'
+      - 'tests/wp206_restart_probe.py'
+      - 'tests/test_persistent_agency_kernel.py'
+      - 'tests/test_wp206_authority_migration.py'
+      - 'workpackages/active/F2-WP-206.json'
+      - '.github/workflows/wp206-g3-authority-migration-ci.yml'
+  pull_request:
+    paths:
+      - 'src/frankenstein2/persistent_agency_authority_migration.py'
+      - 'src/frankenstein2/persistent_agency_kernel.py'
+      - 'src/state/unifieddb_identity.py'
+      - 'tests/wp206_restart_probe.py'
+      - 'tests/test_persistent_agency_kernel.py'
+      - 'tests/test_wp206_authority_migration.py'
+      - 'workpackages/active/F2-WP-206.json'
+      - '.github/workflows/wp206-g3-authority-migration-ci.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  migration:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Compile exact WP206 G3 surface
+        run: >-
+          python -m py_compile
+          src/frankenstein2/persistent_agency_kernel.py
+          src/frankenstein2/persistent_agency_authority_migration.py
+          src/state/unifieddb_identity.py
+          tests/wp206_restart_probe.py
+          tests/test_persistent_agency_kernel.py
+          tests/test_wp206_authority_migration.py
+      - name: Run G3 migration falsification suite
+        env:
+          PYTHONPATH: src
+        run: python tests/test_wp206_authority_migration.py -v
+      - name: Preserve accepted WP206 integration regressions
+        env:
+          PYTHONPATH: src
+        run: python tests/test_persistent_agency_kernel.py -v
+      - name: Preserve bounded credit fence
+        if: always()
+        run: |
+          echo 'CLASSIFICATION=F2_WP206_G3_REPOSITORY_HOSTED_MIGRATION_CI_ONLY'
+          echo 'TARGET_RUNTIME_CREDIT=0'
+          echo 'PHYSICAL_GRID10_CREDIT=0'
+          echo 'GWT_JSPACE_RUNTIME_CREDIT=0'
+          echo 'EFFECT_CREDIT=0'
+          echo 'COMPLETION_CREDIT=0'
+          echo 'TRAINING_CREDIT=0'
+          echo 'WHOLE_SYSTEM_ACCEPTANCE=false'
