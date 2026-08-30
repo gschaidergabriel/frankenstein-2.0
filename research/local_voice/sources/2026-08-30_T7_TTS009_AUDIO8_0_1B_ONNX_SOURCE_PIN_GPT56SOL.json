@@ -1,0 +1,92 @@
+{
+  "schema": "T7_SOURCE_AUDIT/v1",
+  "trigger": "7",
+  "research_id": "T7-TTS-009",
+  "objective": "E1_AUDIO8_TTS_0_1B_ONNX_INT8_SOURCE_PIN",
+  "date": "2026-08-30",
+  "classification": "SOURCE_PINNED_TARGET_RUNTIME_FALSIFIER_CANDIDATE",
+  "subject": "AUDIO8_TTS_0_1B_ONNX_INT8",
+  "source_identity": {
+    "upstream_code_repo": "Audio8-AI/Audio8_TTS",
+    "upstream_code_branch": "master",
+    "upstream_code_commit": "55c1260df0176f0f7ba64e53ae0828cff3f95081",
+    "upstream_code_commit_message": "Merge pull request #36 from Audio8-AI/onnx-runtime-0.1b-int8 / Add standalone 0.1B INT8 ONNX runtime",
+    "huggingface_model_repo": "Audio8/audio8-TTS-0.1B-ONNX-INT8",
+    "observed_huggingface_revision": "09f3bdaed14f4ae5530547f80b2967fbb8a8dd9c",
+    "runtime_manifest_fingerprint": "audio8-tts-preview-0.1b-int8-v1",
+    "base_model_repo": "Audio8/Audio8-TTS-Preview-0.1b"
+  },
+  "source_observations": {
+    "german_support": "Official ONNX model card lists German among 11 supported/recommended languages; the base Preview card describes German as experimental/multilingual rather than primary, so German production quality remains unproven.",
+    "execution": "Official 0.1B runtime uses ONNX Runtime CPUExecutionProvider and is documented/tested for Linux x86_64 and macOS arm64 upstream.",
+    "resource_claims_upstream_only": {
+      "normal_synthesis_model_files_gb_approx": 0.6,
+      "complete_repo_with_registration_gb_approx": 1.0,
+      "reported_loaded_memory_gib_linux_x86_64_approx": 0.4,
+      "slow_ar_token_ms_on_upstream_test_host_approx": 19,
+      "fast_ar_frame_ms_on_upstream_test_host_approx": 8
+    },
+    "streaming_contract": {
+      "route": "/api/tts/stream",
+      "format": "application/x-ndjson carrying base64 s16le PCM chunks",
+      "default_chunk_frames": 12,
+      "codec_hop_samples": 2048,
+      "sample_rate_hz": 44100,
+      "nominal_audio_duration_per_default_chunk_ms": 557.2789,
+      "important_boundary": "557 ms is encoded audio duration per default 12-frame chunk, not measured target TTFA. Actual TTFA also includes prompt prefill, model generation and codec decode."
+    },
+    "cancellation_contract": {
+      "route": "/api/tts/cancel",
+      "mechanism": "threading.Event shared with the active stream",
+      "polling": "stop_event is checked once per generated semantic step inside iter_codes",
+      "credit_boundary": "source semantics only; target cancellation latency and tail audio are unmeasured"
+    },
+    "openai_compatibility": {
+      "route": "/v1/audio/speech",
+      "observed_behavior": "source-compatible request shape for wav/pcm, but this route calls full synthesize and is non-streaming in the pinned code",
+      "integration_consequence": "Frank realtime integration should use/adapt the explicit stream route rather than assume OpenAI-compatible route preserves realtime streaming"
+    },
+    "voice_identity": "Runtime supports packaged default voice plus local reference voice registration; stable male Frank voice remains a target-runtime acceptance question, not a source fact.",
+    "license_boundary": {
+      "pinned_code_repo": "Apache-2.0",
+      "official_onnx_model_card": "Apache-2.0",
+      "base_preview_model_card_current": "Audio8 Community License v1.0 revenue-capped custom license",
+      "classification": "UPSTREAM_LICENSE_SURFACE_CONFLICT_OR_RELICENSE_BOUNDARY_NEEDS_EXPLICIT_RESOLUTION_BEFORE_DISTRIBUTION_CREDIT",
+      "note": "Do not infer legal compatibility from source metadata alone; exact downloaded ONNX artifacts and accompanying license/NOTICE must be frozen and reviewed before shipping."
+    },
+    "artifact_identity": {
+      "codec_decoder_fp16_onnx_sha256": "25379b866ad555b9a55226c46325344d2ebfafea1b474c29de5223a9d01ea533",
+      "codec_decoder_fp16_onnx_xet_hash": "d48564cca523c59c9d170231bb268b73a686ab4982877cf679de76f791bb9d6f",
+      "full_target_download_digest_set": "NOT_YET_OBSERVED"
+    }
+  },
+  "hypothesis": "Audio8 0.1B INT8 ONNX can reduce the resident TTS footprint enough to coexist with the local LLM/ASR stack while still providing acceptable German turn-level speech and cancel responsiveness.",
+  "counterhypothesis": "Its German quality is too weak, default streaming chunking/prefill makes TTFA too high, or the runtime/license boundary makes it inferior to already-pinned Qwen3-TTS/Magpie/Supertonic/CosyVoice/VibeVoice candidates despite lower memory use.",
+  "target_runtime_discriminator": {
+    "surface": "clay-direct-dev",
+    "required_after_runner_gate": [
+      "freeze full Hugging Face revision and SHA-256 for all consumed model/runtime files",
+      "measure cold load and resident RSS/PSS",
+      "German fixed-voice TTFA p50/p95 and realtime factor on canonical short/medium prompts",
+      "German intelligibility using independent ASR WER/CER plus human spot check",
+      "cancel-to-last-audio p50/p95 during active synthesis",
+      "repeated same-speaker stability and male Frank reference identity",
+      "compare chunk_frames 12 vs smaller bounded values without glitch/repetition regression",
+      "verify zero outbound model/TTS API calls"
+    ]
+  },
+  "result": "PROMOTE_TO_TARGET_RUNTIME_FALSIFIER_FRONTIER_AT_SOURCE_SCOPE_ONLY",
+  "evidence_credit": 1,
+  "runtime_credit": 0,
+  "german_production_credit": 0,
+  "voice_acceptance_credit": 0,
+  "trigger4_acceptance_credit": 0,
+  "whole_system_credit": 0,
+  "negative_evidence_preserved": [
+    "German is not the base model's primary language and quality is explicitly more variable outside Chinese/English.",
+    "The OpenAI-compatible speech route is non-streaming at pinned source.",
+    "Default streaming emits only after 12 codec frames per chunk; target TTFA is therefore not implied by the presence of a streaming endpoint.",
+    "Exact target-consumed artifact digest set is not yet observed.",
+    "License metadata differs between the base Preview model and the official ONNX/code surfaces."
+  ]
+}
