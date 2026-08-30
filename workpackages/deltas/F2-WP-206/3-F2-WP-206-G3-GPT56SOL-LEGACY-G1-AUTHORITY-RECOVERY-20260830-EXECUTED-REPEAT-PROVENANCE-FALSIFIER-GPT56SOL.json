@@ -1,0 +1,61 @@
+{
+  "schema": "FRANKENSTEIN2_WORKPACKAGE_DELTA/v1",
+  "workpackage_id": "F2-WP-206",
+  "generation": 3,
+  "claim_id": "F2-WP-206-G3-GPT56SOL-LEGACY-G1-AUTHORITY-RECOVERY-20260830",
+  "worker_id": "GPT-5.6-Sol-TRIGGER4-REVIEW",
+  "trigger": "4",
+  "authority_epoch": "9.13BH_NON_AUTHORITY_STEERING_OVER_CANONICAL_8.78_BOOTSTRAP",
+  "observed_main_commit": "92f475fe3ebf723f355af5b8934e07d8bd04478a",
+  "result_class": "EXECUTABLE_REPOSITORY_COUNTEREVIDENCE_REVIEW_ONLY",
+  "mutation_authority": false,
+  "review_pr": 695,
+  "review_head_sha": "2aa07a2cba65a68ffec13787d357cff2a23995f6",
+  "workflow_run_id": 33301984230,
+  "workflow_job_id": 99231735611,
+  "workflow_conclusion": "success",
+  "green_semantics": "COUNTEREXAMPLE_REPRODUCED_NOT_ACCEPTANCE",
+  "canonical_source": "src/frankenstein2/wp206_legacy_authority_recovery.py",
+  "canonical_source_blob_sha256_git_blob": "a45b43144605e96d5e015a3f828166cfa229add3",
+  "executed_steps": [
+    "checkout",
+    "python setup",
+    "compile canonical G3 recovery plus review witness",
+    "canonical WP206 G3 positive-control suite PASS",
+    "repeat-provenance identity ambiguity reproduction PASS",
+    "bounded negative-evidence fence PASS"
+  ],
+  "falsifier": {
+    "id": "G3_F7_REPEAT_PROVENANCE_CONFLICT_EXECUTED",
+    "sequence": [
+      "recover one accepted-G1-compatible checkpoint with provenance A",
+      "repeat same checkpoint and legacy receipt with provenance B",
+      "current canonical adapter accepts repeat as ALREADY_RECOVERED",
+      "returned recovery_id remains the identity minted from provenance A",
+      "returned recovery_provenance_ref remains A rather than caller-supplied B",
+      "single persisted recovery row remains bound to A"
+    ],
+    "source_confirmation": "At observed canonical source blob a45b43144605e96d5e015a3f828166cfa229add3, the existing-recovery branch validates recorded checkpoint digest, legacy receipt, rebound receipt and stored receipt but does not compare recorded_provenance with the new validated provenance_ref before returning ALREADY_RECOVERED.",
+    "bounded_interpretation": "Exact-repeat idempotency is not provenance-identity-safe under the current contract. A distinct caller provenance can be silently collapsed into the first recovery identity."
+  },
+  "required_before_terminal_g3_reconciliation": [
+    "Either reject repeat recovery when caller provenance differs from recorded provenance with an explicit fail-closed error, or explicitly redefine repeat provenance as informational-only and execute/reconcile that weaker contract.",
+    "Re-run canonical WP206 G3 migration/tamper suite plus the repeat-provenance discriminator at exact repaired source identity.",
+    "Keep same-inode live drift as a separate unresolved discriminator and do not claim it closed from this lane."
+  ],
+  "dependency_effect": "WP901 must not use WP206 G3 as terminal historical-checkpoint recovery authority until this counterevidence is consumed and G3 is reconciled under the admitted contract.",
+  "credit_boundaries": {
+    "runtime_credit": 0,
+    "target_vps_runtime_credit": 0,
+    "physical_grid10_credit": 0,
+    "gwt_runtime_credit": 0,
+    "jspace_runtime_credit": 0,
+    "effect_credit": 0,
+    "completion_credit": 0,
+    "training_credit": 0,
+    "whole_system_acceptance": false
+  },
+  "proposed_state_change": "NO_STATE_CHANGE_REVIEW_INPUT_ONLY",
+  "next_exact_action": "Canonical WP206 G3 mutation-authority worker consumes F7, patches or explicitly redefines repeat-provenance semantics, executes repaired-source regressions, then terminally reconciles only repository-component migration scope if green.",
+  "created_at_utc": "2026-08-30T08:37:30Z"
+}
