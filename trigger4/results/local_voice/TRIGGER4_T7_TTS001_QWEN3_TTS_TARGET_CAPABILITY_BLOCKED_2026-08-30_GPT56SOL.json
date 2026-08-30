@@ -1,0 +1,79 @@
+{
+  "schema": "TRIGGER4_LOCAL_VOICE_TARGET_CAPABILITY_RESULT/v1",
+  "trigger": "4",
+  "worker": "GPT-5.6-Sol-TRIGGER4",
+  "observed_date": "2026-08-30",
+  "research_id": "T7-TTS-001",
+  "objective": "E3_QWEN3_TTS_12HZ_06B_VS_17B_GERMAN_AB",
+  "semantic_key": "276537fa4a4615b46c255684da2e0306d596a7712df159e723ae6dfc02a2f961",
+  "state": "BLOCKED_TARGET_CAPABILITY_AUDIO_OUTPUT_UNOBSERVABLE_NO_MODEL_RUNTIME_DISPATCH",
+  "f2_main_observed_before_write": "d99725eab44e20dbc2ebe1c59b38881f1193abd0",
+  "handoff": {
+    "path": "trigger4/inbox/local_voice/T7_QWEN3_TTS_06B_VS_17B_GERMAN_TARGET_BENCHMARK_GPT56SOL.json",
+    "benchmark_contract": "research/local_voice/benchmarks/T7_GERMAN_REALTIME_VOICE_BENCHMARK_V1.md",
+    "target_surface_requested": "clay-direct-dev",
+    "runtime_mode_required": "LOCAL_SOLO",
+    "candidate_models": [
+      "Qwen/Qwen3-TTS-12Hz-0.6B-CustomVoice",
+      "Qwen/Qwen3-TTS-12Hz-1.7B-CustomVoice"
+    ]
+  },
+  "target_hardware_precondition": {
+    "status": "SATISFIED_AT_HARDWARE_INVENTORY_SCOPE_ONLY",
+    "controller_repository": "gschaidergabriel/Dr.-Unterweger",
+    "controller_evidence_commit": "add7b4ab70dd3a4be1f73c60d8e4d21c9ff2a8c4",
+    "workflow_run_id": 33318275726,
+    "inventory_sha256": "fd0d44a76ad01201b55a7fe875cfc00336f3d60ba9144f888ba2c0b4ec601809",
+    "execution_scope": "CLAY_DIRECT_DEV_SANDBOX_HARDWARE_INVENTORY_ONLY",
+    "target_environment": "clay-direct-dev",
+    "execution_observed": true,
+    "hardware_receipt_observed": true,
+    "cpu_count_logical": 4,
+    "memory_total_kb": 16376020,
+    "memory_available_kb": 10471612,
+    "gpu_nvidia_available": false,
+    "gpu_rocm_available": false,
+    "audio_device_count": 0,
+    "ffmpeg_available": false,
+    "hf_cli_available": true
+  },
+  "superseded_waiting_run": {
+    "run_id": 33266856557,
+    "job_id": 99138324275,
+    "final_run_status": "completed",
+    "final_run_conclusion": "cancelled",
+    "final_job_status": "completed",
+    "final_job_conclusion": "cancelled",
+    "execution_observed": false,
+    "hardware_receipt_observed": false,
+    "note": "This older queued attempt is not runtime evidence and no longer proves that the target runner is unavailable because run 33318275726 later produced a real clay-direct-dev hardware inventory receipt."
+  },
+  "observations": [
+    "The required real exact-source target hardware precondition is now closed only at hardware-inventory scope by run 33318275726; it grants no TTS model-runtime or Trigger-4 acceptance credit.",
+    "The measured clay-direct-dev target exposes zero audio devices. The benchmark contract requires first_audio_played, barge_in_detected -> playback_stopped, cancellation behavior, and durable heard-output boundaries tied to what the user could actually have heard.",
+    "A model-only tensor/PCM generation run on this target could measure some synthesis timings but cannot honestly observe first audible playback or cancellation-to-silence on a real output path, so it cannot satisfy the routed semantic objective as declared.",
+    "The same target is CPU-only (4 logical CPUs), has no NVIDIA/ROCm GPU, about 16 GB total RAM with about 10 GB available at inventory time, and no ffmpeg. No target measurement yet proves either Qwen3-TTS candidate coexists with the admitted Frankenstein core resource envelope.",
+    "Downloading or loading model weights would not repair the missing audible-output observation boundary, so no model bytes were fetched and no runtime dispatch was created in this gate."
+  ],
+  "decision": "BLOCK_RUNTIME_DISPATCH_FAIL_CLOSED_ON_DECLARED_TARGET_CAPABILITY",
+  "runtime_dispatch_created": false,
+  "model_bytes_downloaded": false,
+  "outbound_model_api_calls": 0,
+  "outbound_asr_api_calls": 0,
+  "outbound_tts_api_calls": 0,
+  "candidate_model_failure_claimed": false,
+  "reason": "The current clay-direct-dev hardware receipt proves a real runner but also proves that the requested target has no audio output device. The predeclared benchmark requires audible-playback and interruption observations; substituting generated PCM timestamps for heard output would weaken the benchmark and fabricate evidence. This is a target-capability block, not a negative result for either Qwen3-TTS model.",
+  "credits": {
+    "target_hardware_inventory_precondition": 1,
+    "qwen3_tts_06b_model_runtime": 0,
+    "qwen3_tts_17b_model_runtime": 0,
+    "german_tts_component_benchmark": 0,
+    "first_audible_playback_measurement": 0,
+    "cancellation_to_silence_measurement": 0,
+    "whole_product_resource_coexistence": 0,
+    "trigger4_voice_acceptance": 0,
+    "whole_voice_system": 0,
+    "whole_system": 0
+  },
+  "next_exact_action": "Route the existing semantic key unchanged to the canonical local owner-machine or another admitted clean physical target-class host with a real audio output path and a fresh exact hardware inventory receipt. Run Qwen3-TTS 12Hz 0.6B first under LOCAL_SOLO with zero outbound inference counters and exact first-audible/barge-in/heard-output receipts; attempt 1.7B only if the 0.6B run leaves sufficient measured whole-product RAM/CPU headroom. Do not reinterpret this clay-direct-dev capability block as a model-quality failure."
+}
