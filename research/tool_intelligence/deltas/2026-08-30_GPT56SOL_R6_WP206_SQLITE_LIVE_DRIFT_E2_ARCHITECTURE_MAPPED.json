@@ -1,0 +1,106 @@
+{
+  "schema": "FRANKENSTEIN2_TRIGGER6_E2_ARCHITECTURE_MAPPED/v1",
+  "research_id": "R6-WP206-SQLITE-LIVE-DRIFT-001",
+  "claim_target": "E2_ARCHITECTURE_MAPPED",
+  "trigger": "6",
+  "status": "E2_ARCHITECTURE_MAPPED_COMPLETE",
+  "evidence_input": "research/tool_intelligence/deltas/2026-08-30_GPT56SOL_R6_WP206_SQLITE_LIVE_DRIFT_E1_SOURCE_READ.json",
+  "claim_ref": "research/tool_intelligence/claims/R6-WP206-SQLITE-LIVE-DRIFT-001/E2_ARCHITECTURE_MAPPED.json",
+  "f2_reference": {
+    "wp206_generation": 4,
+    "workpackage": "workpackages/active/F2-WP-206.json",
+    "current_source": "src/frankenstein2/persistent_agency_kernel.py",
+    "legacy_recovery_source": "src/frankenstein2/wp206_legacy_authority_recovery.py",
+    "unifieddb_identity_source": "src/state/unifieddb_identity.py",
+    "accepted_scope": "PERSISTENT_AGENCY_REPEAT_PROVENANCE_BINDING_REPOSITORY_HOSTED_COMPONENT_CI_ONLY",
+    "runtime_credit": 0
+  },
+  "architecture_problem": "WP206 deliberately uses a restart-stable path/device/inode authority receipt. That avoids false restart failure caused by mutable whole-file fingerprints, but same-inode writes do not alter this stable authority identity. A live mutation sensor must therefore remain separate from authority identity and must not turn unrelated canonical writes into false checkpoint corruption.",
+  "mapped_boundaries": [
+    {
+      "boundary": "STORE_FILE_AUTHORITY",
+      "current": "_assert_current_file_identity() checks path/device/inode.",
+      "decision": "KEEP_UNCHANGED",
+      "reason": "This answers which durable file is authoritative, not whether its data changed. Folding data_version/schema_version into this receipt would conflate identity with mutable state and break restart comparability."
+    },
+    {
+      "boundary": "LIVE_FOREIGN_WRITER_SUSPICION",
+      "current": "No explicit same-connection PRAGMA data_version sampling surface exists.",
+      "decision": "CANDIDATE_EPHEMERAL_WITNESS",
+      "candidate": "Sample PRAGMA data_version on the same long-lived store connection at bounded authority-sensitive boundaries. A change means another connection committed since the prior sample. It is an invalidation hint only.",
+      "classification": "EPHEMERAL_INVALIDATION_HINT_NOT_CANONICAL_AUTHORITY"
+    },
+    {
+      "boundary": "LIVE_SCHEMA_DRIFT",
+      "current": "UnifiedDBFingerprint records schema_version/schema digest only during separate main-file identity fingerprinting; immutable=1 intentionally excludes uncheckpointed WAL state.",
+      "decision": "CANDIDATE_SCHEMA_SENTINEL",
+      "candidate": "Read PRAGMA schema_version on the live connection when a data_version change or schema-sensitive operation requires revalidation. Do not persist it as durable authority.",
+      "classification": "EPHEMERAL_SCHEMA_INVALIDATION_HINT"
+    },
+    {
+      "boundary": "CHECKPOINT_LOAD",
+      "current": "load_checkpoint checks file identity, stored authority receipt and checkpoint digest/typed replay.",
+      "decision": "TARGETED_REVALIDATION_NOT_GLOBAL_ABORT",
+      "candidate": "If foreign-writer drift is observed, execute the existing row digest + typed replay checks from a fresh SQLite transaction/snapshot. Abort only on a concrete checkpoint/schema/provenance mismatch, not merely because unrelated data changed."
+    },
+    {
+      "boundary": "LEGACY_RECOVERY",
+      "current": "Recovery uses BEGIN IMMEDIATE, exact checkpoint digest, path/device/inode and compare-and-swap on stored authority receipt.",
+      "decision": "LOCKED_REVALIDATION_REMAINS_PRIMARY",
+      "candidate": "A pre-lock live drift hint may force explicit re-read after BEGIN IMMEDIATE, but the transaction-bound row/CAS checks remain authoritative. data_version itself never authorizes recovery."
+    },
+    {
+      "boundary": "SAME_CONNECTION_OUT_OF_BAND_WRITE",
+      "current": "SQLite data_version deliberately does not change for commits made by the same connection.",
+      "decision": "DATA_VERSION_CANNOT_CLOSE_THIS_GAP",
+      "candidate": "Treat store connection ownership as an explicit contract or separately instrument same-connection write provenance. Do not claim data_version detects arbitrary out-of-band use of the shared Connection object."
+    }
+  ],
+  "invariants": [
+    "STABLE_FILE_AUTHORITY_IDENTITY != MUTABLE_DATABASE_STATE",
+    "EPHEMERAL_DRIFT_SIGNAL != DURABLE_RECOVERY_IDENTITY",
+    "DATA_VERSION_CHANGE => REVALIDATE; DATA_VERSION_CHANGE != CORRUPTION",
+    "NO_DATA_VERSION_CHANGE != NO_SAME_CONNECTION_WRITE",
+    "SCHEMA_VERSION_CHANGE => SCHEMA_REVALIDATION; SCHEMA_VERSION_STABLE != DATA_STABLE",
+    "UNRELATED_CANONICAL_WRITE_MUST_NOT_INVALIDATE_AN_UNCHANGED_CHECKPOINT",
+    "TARGET_ROW_DIGEST_TYPED_REPLAY_AND_TRANSACTIONAL_CAS_OUTRANK_CACHE_INVALIDATION_HINTS"
+  ],
+  "counterhypothesis_analysis": {
+    "counterhypothesis": "Existing checkpoint digest plus transaction locking already makes a live-drift witness unnecessary.",
+    "status": "PARTIALLY_SUPPORTED",
+    "reason": "For recovery after BEGIN IMMEDIATE and for simple payload tamper, existing checks are strong. The unresolved value of a drift witness is narrow: detecting that a previously observed read context became stale and forcing targeted revalidation. It should not be added unless an E3/E4 discriminator demonstrates a concrete missed case or measurable diagnostic value."
+  },
+  "build_direction": {
+    "status": "DO_NOT_PROMOTE_TO_E5_YET",
+    "smallest_candidate_if_E3_SUPPORTS": "A tiny internal LiveSQLiteDriftWitness helper with connection-local data_version baseline and optional schema_version sample, used only to request targeted revalidation. No new dependency, DB, model call, token use or effect authority.",
+    "explicitly_rejected": [
+      "Persisting PRAGMA data_version as checkpoint/recovery authority",
+      "Replacing path/device/inode receipt with mutable whole-file hash",
+      "Treating schema_version as full data revision",
+      "Reading raw main-file change counter as a WAL-safe global transaction sequence",
+      "Failing every checkpoint load merely because unrelated UnifiedDB data changed"
+    ]
+  },
+  "next_evidence_gate": {
+    "stage": "E3_CLAIM_REPRODUCED",
+    "experiment": "Deterministically reproduce: (1) foreign-connection commit changes data_version while inode stays constant; (2) same-connection commit leaves data_version unchanged; (3) schema change advances schema_version; (4) unrelated foreign write can change data_version without invalidating a protected checkpoint row. Then decide whether E4 F2 ablation is worth coordination cost.",
+    "credit_ceiling": "LOCAL_RESEARCH_REPRODUCTION_ONLY_NOT_F2_RUNTIME"
+  },
+  "efficiency": {
+    "steady_state_model_calls": 0,
+    "steady_state_tokens": 0,
+    "new_dependency": "NONE",
+    "candidate_sql_overhead": "O(1) PRAGMA reads only at selected boundaries",
+    "architectural_complexity": "LOW_IF_KEPT_EPHEMERAL"
+  },
+  "credits": {
+    "e1_source_read": 1,
+    "e2_architecture_mapping": 1,
+    "e3_claim_reproduced": 0,
+    "e4_f2_ablation": 0,
+    "e5_build_candidate": 0,
+    "e6_f2_accepted": 0,
+    "runtime": 0,
+    "whole_system": 0
+  }
+}
