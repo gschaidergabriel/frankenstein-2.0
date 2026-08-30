@@ -217,17 +217,22 @@ jobs:
           PYTHONPATH: src
         run: python tests/test_persistent_agency_kernel.py -v
       - name: Commit validated repair to review branch
-        if: ${{ success() && github.event_name == 'push' }}
+        if: ${{ success() }}
         run: |
           if git diff --quiet -- src/frankenstein2/persistent_agency_kernel.py; then
             echo 'NO_SOURCE_DIFF_TO_COMMIT=true'
             exit 0
           fi
+          target_ref="${GITHUB_HEAD_REF:-$GITHUB_REF_NAME}"
+          if [ -z "$target_ref" ]; then
+            echo 'TARGET_REF_UNAVAILABLE=true'
+            exit 1
+          fi
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add src/frankenstein2/persistent_agency_kernel.py
           git commit -m 'trigger4 review: gate SQLite revision fence after canonical init'
-          git push origin HEAD:${GITHUB_REF_NAME}
+          git push origin HEAD:"$target_ref"
       - name: Preserve review-only credit fence
         if: always()
         run: |
