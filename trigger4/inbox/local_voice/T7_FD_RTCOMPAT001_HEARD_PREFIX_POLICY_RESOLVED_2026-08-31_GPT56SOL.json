@@ -1,0 +1,71 @@
+{
+  "schema": "T7_TO_T4_POLICY_RESOLUTION_PACKET_V1",
+  "created_at": "2026-08-31T04:17:30+07:00",
+  "trigger": "7",
+  "organ": "GPT-5.6-Sol",
+  "mode": "REVIEW_ONLY_POLICY_RESOLUTION_HANDOFF",
+  "research_id": "T7-FD-RTCOMPAT-001",
+  "implementation_mutation_authority": false,
+  "new_semantic_claim": false,
+  "new_runtime_dispatch": false,
+  "duplicate_dispatch_allowed": false,
+  "resolution_commit": "208b3cf96c1f1e9cf2311d256fd100d7cef0d91a",
+  "resolution_delta": "research/local_voice/deltas/2026-08-31_T7_INTERRUPTED_CONTEXT_POLICY_RESOLUTION_GPT56SOL.json",
+  "owner_authority": "research/local_voice/authority/2026-08-31_TRIGGER7_TEXT_PACKET_COMPLETION_AUTHORITY.md",
+  "resolved_policy": {
+    "policy_id": "T7_INTERRUPTED_CONTEXT_RETAIN_HEARD_PREFIX_EPHEMERALLY_ONLY_V1",
+    "short_name": "RETAIN_HEARD_PREFIX_EPHEMERALLY_ONLY",
+    "ephemeral_context": "retain exactly measured heard prefix; exclude unheard tail",
+    "durable_commit": "interrupted output remains non-commit-eligible unless independently admitted by separate current authority",
+    "heard_boundary_authority": "explicit playout/sink measurement or deterministic packet-I/O surrogate receipt, never generation length alone"
+  },
+  "owner_authority_interpretation": "Active Trigger7 owner authority explicitly requires unheard-output rollback/non-commit, heard/unheard accounting, and completion under best engineering judgment. The narrow consistent semantics are to roll back the unheard tail while retaining the measured heard prefix ephemerally; deleting both heard and unheard semantics would collapse the required heard/unheard distinction.",
+  "existing_falsifier_lane": {
+    "hf09": "HF09_EXACT_HEARD_PREFIX_RETENTION",
+    "reuse": true,
+    "related": ["HF10_POST_DONE_PLAYOUT_RACE", "HF02-HF05 existing realtime protocol discriminators"],
+    "new_dispatch": false
+  },
+  "required_t4_binding": [
+    "Bind interrupted_context_policy_id to T7_INTERRUPTED_CONTEXT_RETAIN_HEARD_PREFIX_EPHEMERALLY_ONLY_V1 at the existing F2 ephemeral voice/context integration boundary.",
+    "Do not create a second canonical memory, effect, history or execution authority.",
+    "Derive F2 next-turn ephemeral context from measured heard-state when raw upstream history cannot represent the heard prefix exactly.",
+    "Preserve current causal fences for late cancelled response/tool data.",
+    "Record playout_measurement_identity, heard_boundary_ms, heard_prefix_digest, unheard_tail_digest, raw_server_post_cancel_chat_digest, f2_authoritative_ephemeral_context_digest, next_turn_effective_model_context_digest and durable_memory_write_count.",
+    "Use the already admitted VPS/controller route; do not duplicate a queued/direct runtime dispatch."
+  ],
+  "oracle": [
+    {
+      "condition": "heard prefix retained AND unheard tail absent",
+      "classification": "SEMANTIC_MATCH_CANDIDATE"
+    },
+    {
+      "condition": "heard prefix absent AND unheard tail absent",
+      "classification": "PREFIX_AMNESIA_PRODUCT_NEGATIVE"
+    },
+    {
+      "condition": "unheard tail present",
+      "classification": "TAIL_LEAK_PRODUCT_NEGATIVE"
+    },
+    {
+      "condition": "late cancelled response/tool data regains authority",
+      "classification": "CAUSAL_FENCING_PRODUCT_NEGATIVE"
+    }
+  ],
+  "current_primary_reference_alignment": [
+    "OpenAI Agents Python realtime guide: interruption history stays aligned with what the user actually heard; delayed playback uses playback tracking.",
+    "OpenAI Agents JS voice guide: WebSocket interruption truncates assistant audio to what the user actually heard and history follows truncation/conversation events."
+  ],
+  "credit_boundary": {
+    "policy_resolution_research_credit": 1,
+    "wp715_packet_component_runtime_credit": 1,
+    "hf_protocol_runtime_credit": 0,
+    "german_e2e_voice": 0,
+    "acoustic_quality": 0,
+    "durable_memory": 0,
+    "effect": 0,
+    "trigger4_acceptance": 0,
+    "whole_product": 0
+  },
+  "next_exact_action": "Trigger4 consumes this policy packet, binds the policy id into the existing ephemeral context boundary, adds or updates the smallest regression/oracle needed for HF09/HF10, and executes the existing falsifier lane through admitted VPS/controller authority. No duplicate runtime dispatch and no wider credit."
+}
