@@ -8,6 +8,7 @@ import unittest
 from frankenstein2.portable_release_static_completeness import (
     BLOCKED,
     STATIC_COMPLETE,
+    _safe_file,
     evaluate_portable_release_static_completeness,
 )
 from frankenstein2.release_integrity import build_release_manifest, write_release_manifest
@@ -134,6 +135,32 @@ class PortableReleaseStaticCompletenessTests(unittest.TestCase):
             result = evaluate_portable_release_static_completeness(root, prehandoff_receipt_ref=RECEIPT_REF)
             self.assertEqual(result.status, BLOCKED)
             self.assertIn("perception_defaults:raw_frame_persistence_must_be_false", result.violations)
+
+    def test_safe_file_rejects_final_symlink_before_resolution(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp).resolve()
+            self._write(root, "real/target.txt", "target\n")
+            link = root / "linked.txt"
+            link.symlink_to(root / "real/target.txt")
+            violations: list[str] = []
+
+            result = _safe_file(root, "linked.txt", "test_ref", violations)
+
+            self.assertIsNone(result)
+            self.assertEqual(violations, ["test_ref:symlink_component"])
+
+    def test_safe_file_rejects_intermediate_symlink_before_resolution(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp).resolve()
+            self._write(root, "real_dir/target.txt", "target\n")
+            link_dir = root / "linked_dir"
+            link_dir.symlink_to(root / "real_dir", target_is_directory=True)
+            violations: list[str] = []
+
+            result = _safe_file(root, "linked_dir/target.txt", "test_ref", violations)
+
+            self.assertIsNone(result)
+            self.assertEqual(violations, ["test_ref:symlink_component"])
 
 
 if __name__ == "__main__":
