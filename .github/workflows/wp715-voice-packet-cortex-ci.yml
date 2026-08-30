@@ -104,3 +104,117 @@ jobs:
           assert resumed.events[-1].event_kind == 'OUTPUT_QUEUED'
           print('PN9_PASS: resumed cortex preserved clock and per-turn input/output sequence state')
           PY
+      - name: PN10 bounded transient and checkpoint state
+        env:
+          PYTHONPATH: src
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from frankenstein2.causal_identity import CausalIdentity
+          from frankenstein2.voice_contract import VoiceIntent, VoiceSessionCapsule
+          from frankenstein2.voice_packet_cortex import VoiceInputPacket, VoicePacketCortex, VoicePacketCortexError
+          from frankenstein2.voice_packet_cortex_recovery import export_packet_cortex_checkpoint
+
+          MAX_INPUT_PACKETS = 256
+          MAX_OUTPUT_PACKETS = 256
+          MAX_TOOL_REFS = 128
+          MAX_EVENTS = 512
+          MAX_TEXT_CHARS = 32768
+
+          def make_session(suffix: str) -> VoiceSessionCapsule:
+              root = CausalIdentity(
+                  session_id=f'session-wp715-pn10-{suffix}', agent_id='frankenstein-2',
+                  task_id=f'wp715-pn10-{suffix}', turn_id='turn-root',
+                  causal_id=f'causal-root-wp715-pn10-{suffix}', generation=1,
+              )
+              intent = VoiceIntent.create(
+                  causal_identity=root, input_ref=f'wp715:pn10:{suffix}', input_sha256='a' * 64,
+                  provenance_refs=('trigger4:wp715-pn10',),
+              )
+              return VoiceSessionCapsule.create(
+                  intent=intent,
+                  session_causal_identity=root.derive(
+                      causal_id=f'causal-session-wp715-pn10-{suffix}', generation=2,
+                      turn_id='turn-session',
+                  ),
+                  provenance_refs=('trigger4:wp715-pn10-session',),
+              )
+
+          def one_final(cortex: VoicePacketCortex, index: int) -> VoiceInputPacket:
+              return VoiceInputPacket(
+                  session_id=cortex.session_id, turn_id=f'turn-{index}', packet_id=f'input-{index}',
+                  monotonic_ms=1000 + index, source_modality='asr_final', text='x', language='de-DE',
+                  is_final=True, confidence=0.99, speech_start=True, speech_end=True, vad_state='SPEECH',
+                  endpoint_decision='END', overlap_state='NONE', barge_in=False, source_duration_ms=1,
+                  sequence=0, fault_flags=(),
+              )
+
+          cortex = VoicePacketCortex(make_session('inputs'))
+          rejected_at = None
+          for index in range(MAX_INPUT_PACKETS + 2):
+              try:
+                  cortex.accept_input(one_final(cortex, index))
+              except VoicePacketCortexError:
+                  rejected_at = index
+                  break
+          assert rejected_at is not None and rejected_at <= MAX_INPUT_PACKETS
+          assert len(cortex._input_seen) <= MAX_INPUT_PACKETS
+          assert len(cortex._last_input_sequence) <= MAX_INPUT_PACKETS
+          assert len(cortex._last_input_monotonic_ms) <= MAX_INPUT_PACKETS
+          assert len(cortex._final_turns) <= MAX_INPUT_PACKETS
+
+          cortex = VoicePacketCortex(make_session('outputs'))
+          rejected_at = None
+          for index in range(MAX_OUTPUT_PACKETS + 2):
+              try:
+                  cortex.queue_output(
+                      turn_id=f'turn-{index}', packet_id=f'output-{index}', monotonic_ms=1000 + index,
+                      text_segment='x', expression_intent='neutral', speech_act='ANSWER',
+                      planned_audio_duration_ms=1, sequence=0,
+                  )
+              except VoicePacketCortexError:
+                  rejected_at = index
+                  break
+          assert rejected_at is not None and rejected_at <= MAX_OUTPUT_PACKETS
+          assert len(cortex._outputs) <= MAX_OUTPUT_PACKETS
+
+          cortex = VoicePacketCortex(make_session('tools'))
+          rejected_at = None
+          for index in range(MAX_TOOL_REFS + 2):
+              try:
+                  cortex.emit_intent(
+                      turn_id=f'turn-{index}', monotonic_ms=1000 + index,
+                      voice_intent='TOOL_USE', tool_ref=f'tool:{index}',
+                  )
+              except VoicePacketCortexError:
+                  rejected_at = index
+                  break
+          assert rejected_at is not None and rejected_at <= MAX_TOOL_REFS
+          assert len(cortex._active_tools) + len(cortex._cancelled_tools) <= MAX_TOOL_REFS
+
+          cortex = VoicePacketCortex(make_session('events'))
+          rejected_at = None
+          for index in range(MAX_EVENTS + 2):
+              try:
+                  cortex.emit_intent(turn_id='turn-events', monotonic_ms=1000 + index, voice_intent='WAIT')
+              except VoicePacketCortexError:
+                  rejected_at = index
+                  break
+          assert rejected_at is not None and len(cortex.events) <= MAX_EVENTS
+
+          try:
+              one = VoiceInputPacket(
+                  session_id=cortex.session_id, turn_id='turn-text', packet_id='input-text',
+                  monotonic_ms=9999, source_modality='asr_final', text='x' * (MAX_TEXT_CHARS + 1),
+                  language='de-DE', is_final=True, confidence=0.99, speech_start=True,
+                  speech_end=True, vad_state='SPEECH', endpoint_decision='END', overlap_state='NONE',
+                  barge_in=False, source_duration_ms=1, sequence=0, fault_flags=(),
+              )
+          except VoicePacketCortexError:
+              one = None
+          assert one is None
+
+          checkpoint = export_packet_cortex_checkpoint(VoicePacketCortex(make_session('checkpoint')))
+          assert len(checkpoint['payload']['events']) <= MAX_EVENTS
+          print('PN10_PASS: packet/replay/event/tool/text/checkpoint state has explicit hard bounds')
+          PY
