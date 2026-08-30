@@ -1,0 +1,28 @@
+{
+  "schema": "T7_ASR004_EXTERNAL_GATE_CONTRACT/v1",
+  "semantic_key": "95bd53a469133dbfdf39da320f6daa049cec1361084e632dc915c4bc156e3715",
+  "scope": "BENCHMARK_LOCAL_SHARED_EXTERNAL_SPEECH_PRESENCE_GATE",
+  "implementation": "webrtcvad-wheels==2.0.14",
+  "sample_rate_hz": 16000,
+  "sample_format": "MONO_SIGNED_PCM16_LE",
+  "frame_ms": 30,
+  "webrtcvad_mode": 2,
+  "trailing_partial_frame_policy": "DROP",
+  "minimum_voiced_frames": 2,
+  "minimum_voiced_ratio": 0.1,
+  "decision_rule": "SPEECH iff voiced_frames >= 2 AND voiced_frames / complete_frames >= 0.1; otherwise NON_SPEECH",
+  "shared_arm_rule": "The exact same contract bytes and implementation are used before both gated Qwen3-ASR and gated faster-whisper decoder arms.",
+  "fairness_rule": "Raw decoder arms bypass this gate. faster-whisper internal VAD remains disabled in both raw and gated comparison arms.",
+  "scope_fences": [
+    "BENCHMARK_GATE != PRODUCTION_TURN_ADMISSION_ACCEPTANCE",
+    "GATE_DECISION != DECODER_QUALITY",
+    "GATED_FALSE_REJECT_REMAINS_IN_SPEECH_WER_CER_DENOMINATOR",
+    "NON_SPEECH_FALSE_TEXT_ACTIVATION_REMAINS_SEPARATE_FROM_SPEECH_WER_CER"
+  ],
+  "credits": {
+    "runtime": 0,
+    "german_asr_quality": 0,
+    "trigger4_acceptance": 0,
+    "whole_system": 0
+  }
+}
