@@ -28,6 +28,8 @@ jobs:
     timeout-minutes: 6
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
@@ -48,5 +50,15 @@ jobs:
           python tests/test_release_archive.py -v
           python tests/test_release_artifact_subject.py -v
           python tests/test_receipt_content_binding.py -v
-      - name: Confirm canonical workpackage state remains untouched
-        run: python tools/resolve_workpackage_state_v2.py --check-active
+      - name: Prove REVIEW_ONLY diff does not mutate canonical WP1110 authority state
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch origin main
+          base="$(git merge-base HEAD origin/main)"
+          changed="$(git diff --name-only "$base" HEAD)"
+          printf '%s\n' "$changed"
+          if printf '%s\n' "$changed" | grep -Eq '^workpackages/(active|state_events|reconciliations|receipts)/'; then
+            echo 'REVIEW_ONLY candidate touched canonical authority/evidence state' >&2
+            exit 1
+          fi
