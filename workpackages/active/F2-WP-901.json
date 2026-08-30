@@ -2,63 +2,43 @@
   "schema": "FRANKENSTEIN2_ACTIVE_WORKPACKAGE_CLAIM/v1",
   "workpackage_id": "F2-WP-901",
   "generation": 2,
-  "claim_id": "F2-WP-901-G2-GPT56SOL-LINEAGE-PLAN-CONSISTENCY-REPAIR-20260830",
+  "claim_id": "F2-WP-901-G2-GPT56SOL-PLAN-SEMANTIC-CONSISTENCY-20260830",
   "worker_id": "GPT-5.6-Sol-TRIGGER4",
   "trigger": "4",
   "base_commit": "7502fe99ec805b3c34f738513bb1f9d9309e14e9",
-  "authority_epoch": "8.78",
-  "authority_ref": "research_entity/continuity/BOOTSTRAP_MINIMAL.json",
-  "stage": "STAGE9_WHOLE_SYSTEM_INTEGRATION",
-  "state": "CLAIMED",
   "parent_generation": 1,
   "parent_claim_id": "F2-WP-901-G1-GPT56SOL-RESTART-RECOVERY-CONTINUATION-20260830",
   "parent_reconciliation_ref": "workpackages/reconciliations/F2-WP-901/1-F2-WP-901-G1-GPT56SOL-RESTART-RECOVERY-CONTINUATION-20260830.json",
-  "parent_acceptance_receipt": "workpackages/receipts/F2-WP-901_G1_RESTART_RECOVERY_CONTINUATION.json",
-  "successor_reason": "NEW_EXECUTABLE_FALSIFIERS_AFTER_G1_ACCEPTANCE_REQUIRE_SEMANTIC_REPAIR",
-  "negative_evidence": [
-    {
-      "pr": 669,
-      "head_sha": "6e49fed3516dcb9fadc9471d41df15966b9e5521",
-      "workflow_run_id": 33301445292,
-      "result": "MIXED_CAUSAL_LINEAGE_ACCEPTED_BY_G1_CONTRACT"
-    },
-    {
-      "pr": 672,
-      "head_sha": "31d43ff34248dfd1340de0cb5590e4724a8ebb36",
-      "workflow_run_id": 33301481379,
-      "result": "DIRECT_PLAN_CONSTRUCTOR_ACCEPTS_SEMANTICALLY_CONTRADICTORY_STATES"
-    }
-  ],
-  "claimed_scope": "Repair F2-WP-901 after post-acceptance executable falsifiers by binding an explicit replay-stable causal-lineage identity across restart evidence and emitted continuation plans, rejecting mixed checkpoint/whole-loop lineages, and making RestartContinuationPlan fail closed on contradictory disposition/reference/effect-flag combinations. Preserve all G1 UNKNOWN-effect, unfinished/completed, direct-successor, digest and zero-authority semantics. Repository source/tests/CI only; no scheduler, effect, completion, provider/model, target/VPS, physical GRID10, GWT/J-Space, training or whole-system promotion.",
+  "authority_epoch": "8.78",
+  "authority_ref": "research_entity/continuity/BOOTSTRAP_MINIMAL.json",
+  "stage": "STAGE9_WHOLE_SYSTEM_INTEGRATION",
+  "state": "ACTIVE",
+  "claimed_scope": "Repair only the newer executable post-acceptance falsifier showing that direct construction of exported RestartContinuationPlan can admit semantically contradictory disposition/reference/effect-flag combinations. Preserve generation-1 planner behavior and authority boundaries. Add fail-closed constructor invariants plus regressions; repository source/tests/CI only. No second recovery implementation, scheduler, persistence authority, provider/model/tool invocation, real effects, target/VPS/physical-GRID10/GWT/J-Space/training/completion or whole-system credit.",
+  "triggering_falsifier": {
+    "pr": 672,
+    "head_sha": "31d43ff34248dfd1340de0cb5590e4724a8ebb36",
+    "workflow_run_id": 33301481379,
+    "job_id": 99230392743,
+    "result": "FAILURE_AT_SEMANTIC_FALSIFIER_AFTER_CHECKOUT_AND_COMPILE_PASS",
+    "canonical_source_blob_observed_after_failure": "07bf10056923851685707601b59f76c285b8e08a"
+  },
   "required_invariants": [
-    "checkpoint causal lineage and whole-loop causal lineage must be explicit and identical before planning",
-    "expected causal lineage must match persisted evidence and emitted plan lineage",
-    "mixed-lineage evidence fails closed before a continuation candidate exists",
-    "RestartContinuationPlan constructor rejects disposition/reference/effect-flag contradictions",
-    "G1 UNKNOWN and merely-observed effects remain held pending verification and are never blindly replayed",
-    "completed and unfinished work remain disjoint and verified-applied effects cannot re-enter unfinished work",
-    "candidate generation remains direct successor of the source checkpoint generation",
-    "output remains candidate/control evidence only with zero scheduler/truth/effect/completion/persistence authority",
-    "UnifiedDB remains sole canonical durable-state authority",
-    "repository CI cannot mint target-runtime, physical-GRID10, semantic-GWT/J-Space, provider/model, effect, completion, training or whole-system credit"
+    "NO_UNFINISHED_WORK requires empty continuation/held refs and both effect flags false",
+    "CONTINUE_UNFINISHED_AS_CANDIDATE requires nonempty continuation refs, empty held refs and both effect flags false",
+    "HOLD_FOR_EFFECT_VERIFICATION requires empty continuation refs, nonempty held refs, verification true and reauthorization false",
+    "CONTINUE_NON_EFFECT_WITH_EFFECT_REAUTH_HOLD requires nonempty held refs, verification false and reauthorization true; non-effect continuation may be empty",
+    "candidate generation remains direct successor of source checkpoint generation",
+    "continuation output remains candidate/control evidence only and gains no scheduler/truth/effect/completion/persistence authority"
   ],
   "owned_paths": [
     "src/frankenstein2/restart_recovery_continuation.py",
     "tests/test_restart_recovery_continuation.py",
+    "tests/falsifier_wp901_plan_semantic_consistency.py",
     ".github/workflows/wp901-restart-recovery-ci.yml",
-    "workpackages/deltas/F2-WP-901/2-F2-WP-901-G2-GPT56SOL-LINEAGE-PLAN-CONSISTENCY-REPAIR-20260830-01.json",
-    "workpackages/reconciliations/F2-WP-901/2-F2-WP-901-G2-GPT56SOL-LINEAGE-PLAN-CONSISTENCY-REPAIR-20260830.json",
-    "workpackages/receipts/F2-WP-901_G2_LINEAGE_PLAN_CONSISTENCY_REPAIR.json",
+    "workpackages/deltas/F2-WP-901/2-F2-WP-901-G2-GPT56SOL-PLAN-SEMANTIC-CONSISTENCY-20260830-01.json",
+    "workpackages/reconciliations/F2-WP-901/2-F2-WP-901-G2-GPT56SOL-PLAN-SEMANTIC-CONSISTENCY-20260830.json",
+    "workpackages/receipts/F2-WP-901_G2_PLAN_SEMANTIC_CONSISTENCY.json",
     "workpackages/active/F2-WP-901.json"
-  ],
-  "forbidden": [
-    "rewriting or deleting G1 historical receipt/reconciliation",
-    "second truth database or recovery ledger",
-    "implicit lineage inference from naming or provenance prose alone",
-    "blind replay of UNKNOWN external effects",
-    "provider/model/tool invocation",
-    "real effect or completion authority",
-    "target/VPS/physical-GRID10/GWT/J-Space/training/whole-system promotion from repository evidence"
   ],
   "runtime_execution_observed": false,
   "runtime_credit": 0,
@@ -70,5 +50,5 @@
   "completion_credit": 0,
   "whole_system_acceptance": false,
   "created_at_utc": "2026-08-30T08:27:00Z",
-  "next_exact_action": "Repair canonical WP901 source and regressions on this single G2 branch, run repository-hosted CI including both falsifier classes, and reconcile only the bounded repository-component scope if green."
+  "next_exact_action": "Patch RestartContinuationPlan.__post_init__ with disposition-specific fail-closed invariants, preserve the falsifier as regression evidence, run canonical WP901 plus semantic-falsifier CI, and reconcile only bounded repository-component scope if green."
 }

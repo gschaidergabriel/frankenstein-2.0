@@ -1,0 +1,77 @@
+{
+  "schema": "FRANKENSTEIN_TRIGGER7_SOURCE_RESULT/v1",
+  "trigger": "7",
+  "research_id": "T7-FD-003",
+  "objective": "E1_DUPLEXCASCADE_GERMAN_ARCHITECTURE_SOURCE_FALSIFIER",
+  "semantic_key": "7f04e8c0be8145a09b2e9b26dd21c7c8d71d0e5ac8cdba7053b648f732bcaba0",
+  "source_scope": "EXTERNAL_PRIMARY_AND_EXACT_UPSTREAM_SOURCE_PIN_ONLY",
+  "observed_at": "2026-08-30",
+  "sources": [
+    {
+      "kind": "PRIMARY_PAPER",
+      "title": "DuplexCascade: Full-Duplex Speech-to-Speech Dialogue with VAD-Free Cascaded ASR-LLM-TTS Pipeline and Micro-Turn Optimization",
+      "arxiv": "2603.09180v1",
+      "submitted": "2026-03-10",
+      "doi": "10.48550/arXiv.2603.09180"
+    },
+    {
+      "kind": "OFFICIAL_GITHUB",
+      "repository": "sbintuitions/DuplexCascade",
+      "commit": "42893024ca90c8de8ac3ed624467ebc123512ff8",
+      "commit_date": "2026-03-24T07:56:40Z",
+      "commit_message": "Initial public release",
+      "license": "MIT"
+    },
+    {
+      "kind": "OFFICIAL_HUGGINGFACE_MODEL_CARD",
+      "model": "sbintuitions/DuplexCascade",
+      "declared_language": ["en"],
+      "base_model": "Qwen/Qwen2-7B-Instruct",
+      "license": "mit"
+    }
+  ],
+  "direct_observations": {
+    "architecture": "Streaming cascaded ASR -> text LLM -> streaming TTS with VAD-free micro-turn interaction.",
+    "micro_turn_default_seconds": 0.6,
+    "control_tokens": [
+      "<no voice>",
+      "<user is speaking>",
+      "<user finish speaking>",
+      "<user is interrupting>",
+      "<user backchannel>",
+      "<user is thinking>",
+      "<system backchannel>"
+    ],
+    "training_method": "Text-only dynamically constructed duplex sequences; LoRA adaptation of Qwen2-7B-Instruct plus trainable token embeddings/head.",
+    "published_training_scale": "50k multi-turn text dialogues; 5k optimization steps; paper reports 8 H100 GPUs for 5 hours.",
+    "published_turn_control_result": "Paper reports strongest averaged turn-taking accuracy among the evaluated open systems in its Full-Duplex-Bench table; this is upstream benchmark evidence only, not Frankenstein reproduction.",
+    "published_latency_tradeoff": "Paper evaluates micro-turn durations 0.3-1.8 s and selects 0.6 s as a practical latency/accuracy trade-off despite best reported turn-taking accuracy near 1.2 s in its simulation setting.",
+    "released_speech_backend": "Official README instructs Kyutai delayed-streams-modeling STT/TTS and starts STT with config-stt-en_fr-hf.toml.",
+    "german_release_support": "NOT_ESTABLISHED",
+    "german_blocking_evidence": [
+      "Official Hugging Face model metadata declares language=en, not German.",
+      "Official released demo path names an English/French STT configuration, not German.",
+      "No primary-source German speech benchmark or German end-to-end dialogue result was found in the pinned paper/model/repository evidence."
+    ]
+  },
+  "result": "NOT_GERMAN_PRODUCTION_CANDIDATE_AT_SOURCE_SCOPE__HIGH_VALUE_ARCHITECTURE_DONOR",
+  "bounded_inference": {
+    "production_voice": "DuplexCascade itself receives no German production-voice promotion because the released evidence does not establish German ASR/TTS/end-to-end support.",
+    "architecture_transfer": "The VAD-free micro-turn control policy is unusually compatible with Frankenstein's existing VoiceIntent/GWT arbitration because its special tokens correspond closely to WAIT, RESPOND, INTERRUPT/CANCEL and BACKCHANNEL decisions while leaving ASR, LLM and TTS modular. This is an engineering inference, not reproduced behavior.",
+    "preferred_transfer_experiment": "Do not port the 7B released model first. After the runner gate is restored, compare a bounded controller-only adaptation: feed the accepted German streaming ASR partials into a local text model at a fixed micro-turn cadence and map explicit control outputs into Frankenstein VoiceIntent/GWT, using the already selected German ASR/TTS components. Preserve current VAD as a safety/observation signal during the experiment rather than deleting it upfront.",
+    "safety_boundary": "WAIT/RESPOND/BACKCHANNEL tokens remain candidate control outputs and cannot bypass canonical state, tool/effect authority, cancellation accounting or VoiceOutcome re-entry."
+  },
+  "falsifiers_remaining": [
+    "A newer official DuplexCascade German checkpoint or German ASR/TTS configuration may exist outside the pinned sources and would reopen language eligibility.",
+    "On Frankenstein room audio, fixed micro-turn polling may create more ASR partial-instability and false interruption than the current VAD/endpoint path.",
+    "A local 0.8B-4B dialogue model may be too weak to learn semantic turn control without degrading answer/tool quality.",
+    "The extra periodic LLM evaluations may increase CPU/GPU contention enough to erase latency gains.",
+    "Retaining VAD as a safety signal may interact with the VAD-free learned policy and requires an explicit arbitration rule."
+  ],
+  "recommended_next_discriminator": "After one eligible clay-direct-dev runner is restored and the existing queued Qwen3-ASR benchmark is consumed, benchmark a Frankenstein-native micro-turn controller as a separate bounded experiment: accepted German ASR partials -> fixed 0.6 s micro-turns -> explicit WAIT/RESPOND/INTERRUPT/BACKCHANNEL candidate -> current VoiceIntent/GWT arbitration; measure premature takeover, interruption-stop latency, backchannel precision, ASR-partial correction sensitivity, TTFT and resource contention. Do not require DuplexCascade's English Qwen2-7B checkpoint for this architecture test.",
+  "evidence_credit": 1,
+  "runtime_credit": 0,
+  "german_e2e_voice_credit": 0,
+  "trigger4_acceptance_credit": 0,
+  "whole_system_credit": 0
+}

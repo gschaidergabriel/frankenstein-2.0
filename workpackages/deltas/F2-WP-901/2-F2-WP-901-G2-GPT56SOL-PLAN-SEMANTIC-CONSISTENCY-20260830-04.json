@@ -1,0 +1,57 @@
+{
+  "schema": "FRANKENSTEIN2_WORKPACKAGE_DELTA/v1",
+  "workpackage_id": "F2-WP-901",
+  "generation": 2,
+  "claim_id": "F2-WP-901-G2-GPT56SOL-PLAN-SEMANTIC-CONSISTENCY-20260830",
+  "worker_id": "GPT-5.6-Sol-TRIGGER4-REVIEW",
+  "base_commit": "732eb50c4d88ba93a5494b1a5168470d9a334aeb",
+  "observed_main_commit": "732eb50c4d88ba93a5494b1a5168470d9a334aeb",
+  "owned_paths": [
+    "workpackages/deltas/F2-WP-901/2-F2-WP-901-G2-GPT56SOL-PLAN-SEMANTIC-CONSISTENCY-20260830-04.json",
+    "review/wp901-reason-code-exact-main-20260830:tests/falsifier_wp901_reason_code_consistency.py",
+    "review/wp901-reason-code-exact-main-20260830:.github/workflows/review-wp901-reason-code-exact-main.yml"
+  ],
+  "result_class": "NEGATIVE_RESULT",
+  "source_commits": [
+    "640105e44eafd48517c1aafa6418b7dfbc512823",
+    "e4780ec47b6122c582ac4f00c9bee0c1d7dd911f"
+  ],
+  "receipts": [
+    "github-actions-run:33301886145",
+    "github-actions-job:99231470982"
+  ],
+  "falsifiers": [
+    {
+      "name": "DIRECT_PLAN_REASON_CODE_SEMANTIC_MISMATCH_EXACT_PATCHED_MAIN_REPLAY",
+      "review_branch": "review/wp901-reason-code-exact-main-20260830",
+      "review_head_sha": "e4780ec47b6122c582ac4f00c9bee0c1d7dd911f",
+      "base_main_sha": "732eb50c4d88ba93a5494b1a5168470d9a334aeb",
+      "canonical_wp901_source_blob": "b568e81587c8431ea6addfbd351729f891cd85c4",
+      "workflow_run_id": 33301886145,
+      "job_id": 99231470982,
+      "compile": "PASS",
+      "canonical_wp901_suite": "16/16 PASS",
+      "reason_code_falsifier_suite": "0/4 PASS; every cross-paired disposition/reason plan was incorrectly admitted",
+      "interpretation": "The generation-2 disposition/ref/effect-flag patch is present and preserves the canonical suite, but does not bind deterministic reason_code semantics at direct-constructor boundary."
+    }
+  ],
+  "contradictions": [
+    "Generation 2 source claims the exported RestartContinuationPlan object boundary obeys the same semantics as the canonical planner, while exact patched-main execution shows disposition-to-reason semantic mismatch remains admissible."
+  ],
+  "proposed_state_change": "KEEP_G2_ACTIVE_UNTIL_REASON_CODE_FALSIFIER_IS_ADMITTED_OR_EXPLICITLY_REJECTED",
+  "completion_deficit": "The object-boundary hardening remains incomplete at its stated same-semantics scope unless reason_code is disposition-bound or the contract explicitly demotes reason_code to non-semantic annotation and adjusts claims/tests accordingly.",
+  "credit_boundaries": {
+    "failure_scope": "REPOSITORY_COMPONENT_ONLY",
+    "target_runtime_failure": false,
+    "runtime_credit": 0,
+    "physical_grid10_credit": 0,
+    "gwt_runtime_credit": 0,
+    "jspace_runtime_credit": 0,
+    "effect_credit": 0,
+    "completion_credit": 0,
+    "training_credit": 0,
+    "whole_system_acceptance": false
+  },
+  "next_exact_action": "Canonical G2 owner: bind each disposition to its canonical reason code and rerun canonical + original semantic falsifier + exact-main reason-code falsifier, or explicitly narrow the G2 semantic contract before reconciliation. Preserve the independent PR683 source-authentication falsifier for a separate successor decision; do not conflate self-consistency with upstream authentication.",
+  "created_at_utc": "2026-08-30T08:35:00Z"
+}

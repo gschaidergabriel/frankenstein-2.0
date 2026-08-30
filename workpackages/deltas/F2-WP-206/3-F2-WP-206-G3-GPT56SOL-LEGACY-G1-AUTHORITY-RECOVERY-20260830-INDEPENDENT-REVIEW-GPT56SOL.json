@@ -1,0 +1,53 @@
+{
+  "schema": "FRANKENSTEIN2_WORKPACKAGE_DELTA/v1",
+  "workpackage_id": "F2-WP-206",
+  "generation": 3,
+  "claim_id": "F2-WP-206-G3-GPT56SOL-LEGACY-G1-AUTHORITY-RECOVERY-20260830",
+  "worker_id": "GPT-5.6-Sol-TRIGGER4-REVIEW",
+  "trigger": "4",
+  "base_commit": "d35affba8e30a4970dc99593b1922e01911558fc",
+  "observed_main_commit": "d35affba8e30a4970dc99593b1922e01911558fc",
+  "owned_paths": [
+    "workpackages/deltas/F2-WP-206/3-F2-WP-206-G3-GPT56SOL-LEGACY-G1-AUTHORITY-RECOVERY-20260830-INDEPENDENT-REVIEW-GPT56SOL.json"
+  ],
+  "result_class": "REVIEW_ONLY",
+  "source_commits": [
+    "f7b440fcb9a178b62e6c27a0b7da2f8c6d4aa33b"
+  ],
+  "receipts": [],
+  "falsifiers": [
+    {
+      "id": "G3_F1_EXTERNAL_EXPECTATION_MUST_NOT_SELF_AUTHENTICATE",
+      "requirement": "A legacy recovery request with an expected historical G1 full-fingerprint receipt that does not exactly equal the stored legacy receipt must fail before any row or recovery-record mutation. Empty/malformed provenance must fail. The implementation must not derive the externally expected receipt from the same checkpoint row and then treat equality with itself as evidence."
+    },
+    {
+      "id": "G3_F2_EXACT_G1_RECOVERY_POSITIVE_CONTROL",
+      "requirement": "An otherwise valid accepted-G1-compatible row with exact checkpoint digest, typed replay, canonical DB path, device/inode, exact externally supplied historical receipt and provenance must recover exactly once, preserve checkpoint payload/generation/state identity, rebind only authority evidence, and then load successfully under the current stable bound-file authority scheme."
+    },
+    {
+      "id": "G3_F3_CORRUPT_PREMIGRATION_ROW_FAILS_WITHOUT_PARTIAL_WRITE",
+      "requirement": "Checkpoint JSON/digest mismatch, canonical path mismatch, device/inode mismatch, malformed receipt, or typed replay mismatch must fail closed and leave both the checkpoint row and recovery-record set unchanged."
+    },
+    {
+      "id": "G3_F4_POST_MIGRATION_TAMPER_IS_IRREVERSIBLE_BY_RECOVERY_RETRY",
+      "requirement": "After one successful migration, mutating the current authority receipt must make load fail closed. A second recovery call, even if supplied with the tampered value as a new expectation, must not overwrite/rebind the migrated row or append a second canonical recovery record."
+    },
+    {
+      "id": "G3_F5_REPEAT_EXACT_RECOVERY_HAS_SINGLE_RECORD_SEMANTICS",
+      "requirement": "A repeated byte-identical recovery request after a successful migration must have deterministic one-record semantics: either explicit already-recovered rejection or exact idempotent return of the original record, never a second authority transition."
+    },
+    {
+      "id": "G3_F6_SCOPE_FENCE",
+      "requirement": "Do not claim same-inode live data/schema drift closure, target/VPS runtime, physical GRID10, semantic GWT/J-Space, provider/model, effect, completion, training or whole-system credit from this migration lane."
+    }
+  ],
+  "contradictions": [
+    "PR663 run 33296011089/job 99215676906 proves current source can replay freshly written stable-authority rows but cannot replay an accepted-G1-compatible legacy full-fingerprint receipt row.",
+    "WP901 repository CI may be green independently, but restart recovery must not claim historical WP206-G1 checkpoint recoverability until this migration/legacy-recovery gate closes executablely."
+  ],
+  "proposed_state_change": "NONE_REVIEW_INPUT_ONLY",
+  "completion_deficit": "G3 mutation authority still owes production implementation plus exact accepted-G1-row -> recovery -> current-reader positive control and post-migration tamper executable regressions, followed by bounded reconciliation if green.",
+  "next_exact_action": "Mutation-authority worker should implement G3 against these falsifiers on its owned branch, run repository-hosted CI at exact source identity, preserve negative evidence, and reconcile only the migration compatibility component scope if every preregistered invariant is green.",
+  "evidence_boundary": "REVIEW_ONLY input; this delta mints no mutation authority, acceptance, runtime, effect, completion, training or whole-system credit.",
+  "created_at_utc": "2026-08-30T08:29:00Z"
+}
