@@ -1,0 +1,49 @@
+{
+  "schema": "T7_SOURCE_AUDIT/v1",
+  "trigger": "7",
+  "research_id": "T7-FD-BENCH-001",
+  "semantic_key": "3fae2a9efbda5676e5c492bbb5f5861aa5dc20e4d25e34aa0163fea81f598d94",
+  "organ": "GPT-5.6-Sol",
+  "observed_date": "2026-08-30",
+  "subject": "HumDial-FDBench",
+  "upstream": {
+    "repository": "ASLP-lab/HumDial-FDBench",
+    "repository_main_sha": "f51d8ebfeac5461c5df1b38ed99882e33a6861c1",
+    "paper": "arXiv:2604.21406",
+    "paper_title": "Full-Duplex Interaction in Spoken Dialogue Systems: A Comprehensive Study from the ICASSP 2026 HumDial Challenge",
+    "code_license_observed": "Apache-2.0",
+    "dataset_license": "UNRESOLVED_FROM_CURRENT_SOURCE_READ"
+  },
+  "observed_capabilities": {
+    "real_human_dual_channel_dialogue": true,
+    "interruption_scenarios": ["follow_up_question", "negation_or_dissatisfaction", "repetition_request", "topic_switch", "silence_or_stop"],
+    "rejection_scenarios": ["user_realtime_backchannel", "pause_handling", "third_party_speech", "speech_directed_to_others"],
+    "metrics_include": ["interruption_score", "rejection_score", "delay_seconds", "delay_score", "final_score"],
+    "public_leaderboard": true
+  },
+  "source_measurements": {
+    "train_instances_known_minimum": 8688,
+    "dev_instances": 1800,
+    "test_instances": 5000,
+    "leaderboard_examples": {
+      "best_reported_final": 76.6,
+      "best_reported_delay_seconds": 0.624,
+      "freeze_omni_final": 43.8,
+      "moshi_final": 34.5
+    }
+  },
+  "f2_interpretation": {
+    "classification": "PROMISING_INTERACTION_EVALUATION_DONOR_NOT_GERMAN_PRODUCTION_EVIDENCE",
+    "why_useful": "The scenario taxonomy directly exercises F2 invariants that WER/TTS-only tests miss: barge-in, stop, backchannel rejection, pause patience, third-party rejection, overlap and response delay.",
+    "why_not_acceptance": "No German F2 target run, no F2 VoiceIntent/GWT/UnifiedDB/effect integration run, and no proof that the released corpus matches the target user's language/acoustics.",
+    "recommended_adaptation": "Translate/adapt the nine interaction scenarios into pinned German two-channel fixtures while preserving the original event labels, then add F2-specific checks for cancellation correctness, unheard-output non-commit, VoiceOutcome causal re-entry and Presence/Interruptibility state transitions."
+  },
+  "evidence_boundary": {
+    "source_pin_credit": 1,
+    "local_component_runtime_credit": 0,
+    "german_e2e_credit": 0,
+    "trigger4_acceptance_credit": 0,
+    "whole_system_credit": 0
+  },
+  "next_exact_gate": "Trigger4 benchmark-harness lane: implement a bounded German adaptation of the nine HumDial-FDBench interaction scenarios against the existing F2 voice ABI and score interruption/rejection/delay plus F2 cancellation and causal-reentry correctness; do not use the upstream leaderboard as F2 acceptance evidence."
+}
