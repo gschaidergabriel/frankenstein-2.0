@@ -3,10 +3,10 @@
   "trigger": "7",
   "organ": "GPT-5.6-Sol",
   "observed_date": "2026-08-31",
-  "scope": "ASR004_CONTROLLER_REPAIR_ATTEMPT3_AND_STALE_CONCURRENCY_REENTRY",
+  "scope": "ASR004_CONTROLLER_REPAIR_ATTEMPT4_REENTRY",
   "heads_observed": {
-    "f2_main_before_initial_checkpoint": "3b5a247d74dc118a18283a0a86440c176469f1a1",
-    "controller_main_latest_observed": "2f966e3fb015897a82407e80db5af639b43a637e"
+    "f2_main_before_reconciliation": "67c29fc4795ff8b18f0b864bd97f2eb7e0e1a1f2",
+    "controller_main_latest_observed": "0c937053e7d0b30f691373e3cd48e8ce5413087e"
   },
   "research_id": "T7-ASR-004",
   "semantic_key": "95bd53a469133dbfdf39da320f6daa049cec1361084e632dc915c4bc156e3715",
@@ -14,35 +14,40 @@
   "target_surface": "clay-direct-dev",
   "controller_repairs": {
     "runner_selector": {
-      "workflow": ".github/workflows/trigger7-qwen3-asr-target-probe.yml",
-      "workflow_blob_sha_observed_before_concurrency_delta": "1ddc4631af56682b6749fda5afb379cce69ee546",
-      "runs_on_observed": ["clay-host"],
+      "runs_on": ["clay-host"],
       "repair_commit": "daa479744e7813b61f8321b22b35c8dccd8b45de",
       "classification": "RUNNER_LABEL_ELIGIBILITY_MISMATCH_REPAIRED_IN_SOURCE"
     },
     "stale_concurrency_isolation": {
-      "commit": "2f966e3fb015897a82407e80db5af639b43a637e",
-      "old_group": "trigger7-qwen3-asr-target-probe",
+      "repair_commit": "2f966e3fb015897a82407e80db5af639b43a637e",
       "new_group": "trigger7-qwen3-asr-target-probe-clay-host-v2",
-      "classification": "CONTROLLER_CONCURRENCY_REPAIR_IN_SOURCE",
-      "runtime_implication": "No runtime conclusion. The change affects controller scheduling; an executed receipt is still required."
+      "classification": "CONTROLLER_CONCURRENCY_REPAIR_IN_SOURCE"
     }
   },
-  "attempt3_dispatch_marker": {
-    "commit": "f381628eff3fd44d9d84d037d5b09ed497a40f3c",
-    "attempt": 3,
-    "probe_source_repo": "gschaidergabriel/frankenstein-2.0",
-    "probe_source_commit": "48f0dbd96d5ab41b1f9b0bba568a65040b240afd",
-    "model_revision": "9ba1d4a",
-    "model_sha256": "79d6cbd4c98c7bbffe9db2edac07f56cd6637d0d5944b27f6c2b8353840323ea",
-    "ordering_note": "Attempt-3 marker predates the later concurrency-group isolation source change. This does not by itself prove attempt 3 executed, failed, or was invalidated."
-  },
+  "dispatch_history": [
+    {
+      "attempt": 3,
+      "commit": "f381628eff3fd44d9d84d037d5b09ed497a40f3c",
+      "controller_snapshot": "runner selector repaired but before stale-concurrency isolation",
+      "runtime_conclusion": "UNRESOLVED_NO_RECEIPT_OBSERVED"
+    },
+    {
+      "attempt": 4,
+      "commit": "0c937053e7d0b30f691373e3cd48e8ce5413087e",
+      "workflow_repair_commit": "2f966e3fb015897a82407e80db5af639b43a637e",
+      "probe_source_repo": "gschaidergabriel/frankenstein-2.0",
+      "probe_source_commit": "48f0dbd96d5ab41b1f9b0bba568a65040b240afd",
+      "model_revision": "9ba1d4a",
+      "model_sha256": "79d6cbd4c98c7bbffe9db2edac07f56cd6637d0d5944b27f6c2b8353840323ea",
+      "classification": "CORRECTED_DISPATCH_MARKER_AFTER_RUNNER_AND_CONCURRENCY_REPAIRS"
+    }
+  ],
   "runtime_observation": {
-    "workflow_run_identity_observed": false,
-    "executed_steps_observed": false,
+    "attempt4_workflow_run_identity_observed": false,
+    "attempt4_executed_steps_observed": false,
     "latest_receipt_path_observed": false,
     "receipt_lookup": "runtime/trigger7_qwen3_asr_target_probe/LATEST.json",
-    "classification": "UNKNOWN_NONTERMINAL_DISPATCH_MARKER_PRESENT_RECEIPT_NOT_OBSERVED"
+    "classification": "UNKNOWN_NONTERMINAL_ATTEMPT4_DISPATCH_MARKER_PRESENT_RECEIPT_NOT_OBSERVED"
   },
   "credit_delta": {
     "controller_runner_routing_repair_source": 1,
@@ -56,8 +61,8 @@
   "anti_duplication": {
     "new_semantic_claim_created": false,
     "duplicate_dispatch_created_by_trigger7": false,
-    "rule": "Trigger 7 must not create another ASR004 dispatch. Trigger 4 owns controller mutation/re-dispatch. Preserve the semantic subject until a terminal executed receipt or explicit controller invalidation/reconciliation exists."
+    "rule": "Attempt 4 is now the current corrected Trigger-4 dispatch marker. Trigger 7 must not redispatch while its terminal execution state is unresolved."
   },
-  "next_exact_action": "Consume the first exact terminal controller/runtime evidence after the clay-host selector and stale-concurrency repairs. If attempt 3 has no valid execution because its historical controller snapshot remains blocked, let Trigger 4 decide the smallest legal successor dispatch under the repaired concurrency group; Trigger 7 must not duplicate it. Promote only observed executed scope. Once exact target execution is valid, execute/consume the already-routed identical-audio German/noise comparator against the admitted faster-whisper baseline and preserve the silence false-positive discriminator.",
+  "next_exact_action": "Consume the first exact persisted receipt/run evidence for corrected attempt 4. Promote only observed executed scope. If nonterminal, preserve the subject and do not redispatch. If infrastructure-invalid, classify before repair. If exact target execution succeeds, consume/execute the already-routed identical-audio German/noise comparator against the admitted faster-whisper baseline while preserving silence false-positive behavior as an explicit discriminator.",
   "status": "CHECKPOINTED_FAIL_CLOSED_NO_RUNTIME_SCOPE_INFLATION"
 }
