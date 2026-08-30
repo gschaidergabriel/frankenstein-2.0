@@ -1,0 +1,118 @@
+{
+  "schema": "T7_SOURCE_RESULT/v1",
+  "trigger": "7",
+  "research_id": "T7-ASR-007",
+  "objective": "E4_QWEN3_ASR_17B_GERMAN_SOURCE_AUDIT",
+  "semantic_key": "6817d8e817dae9ebb8c9920961771a896992591c83403b78350f1421ca1d8848",
+  "evidence_scope": "SOURCE_PIN",
+  "state": "SOURCE_PINNED_TERMINAL_AT_SCOPE",
+  "observed_at": "2026-08-30T11:30:00+07:00",
+  "official_source": {
+    "repository": "QwenLM/Qwen3-ASR",
+    "repository_commit": "7c6daf77a2421100f5fb066495372c00129d39ff",
+    "package": "qwen-asr",
+    "package_version": "0.0.6",
+    "license": "Apache-2.0",
+    "model_id": "Qwen/Qwen3-ASR-1.7B",
+    "model_revision": "7278e1e70fe206f11671096ffdd38061171dd6e5",
+    "weights_origin_commit": "e6942fcb56f665d470e39e6fe9efe6f5f31ee254",
+    "transformers_version_declared_by_model_config": "4.57.6",
+    "german_supported": true,
+    "inference_modes": ["Offline", "Streaming"],
+    "streaming_backend_official_package": "vLLM_only",
+    "streaming_batch_inference_supported": false,
+    "streaming_timestamps_supported": false
+  },
+  "artifacts": [
+    {
+      "path": "model-00001-of-00002.safetensors",
+      "bytes": 4220320824,
+      "sha256": "a4cd1f1a04d90b757dc7f7dd26254e69a013b19e80efe590a83c6a3bde8608d6"
+    },
+    {
+      "path": "model-00002-of-00002.safetensors",
+      "bytes": 478200688,
+      "sha256": "6e0b9d9e09e2e0238e7ef3cc8a484ab387e91b90f1900bedf88bc92d7929ccfc"
+    }
+  ],
+  "weight_bytes_total": 4698521512,
+  "comparison_to_pinned_06b": {
+    "qwen3_asr_06b_weight_bytes": 1876091704,
+    "weight_byte_ratio_17b_over_06b": 2.5044199609,
+    "additional_weight_bytes": 2822429808,
+    "note": "This is model-file size comparison only, not measured resident RAM/VRAM. Runtime memory may differ materially."
+  },
+  "german_public_wer_percent": [
+    {
+      "dataset": "MLS",
+      "qwen3_asr_06b": 9.52,
+      "qwen3_asr_17b": 6.05,
+      "relative_wer_reduction_percent": 36.45
+    },
+    {
+      "dataset": "CommonVoice",
+      "qwen3_asr_06b": 9.44,
+      "qwen3_asr_17b": 5.85,
+      "relative_wer_reduction_percent": 38.03
+    },
+    {
+      "dataset": "MLC-SLM",
+      "qwen3_asr_06b": 19.78,
+      "qwen3_asr_17b": 17.19,
+      "relative_wer_reduction_percent": 13.09
+    },
+    {
+      "dataset": "Fleurs",
+      "qwen3_asr_06b": 6.48,
+      "qwen3_asr_17b": 3.92,
+      "relative_wer_reduction_percent": 39.51
+    }
+  ],
+  "streaming_source_evidence": {
+    "official_streaming_test_languages_in_technical_report": ["English", "Chinese"],
+    "german_streaming_wer_published_in_inspected_official_table": false,
+    "qwen3_asr_17b_offline_avg_reported": 2.69,
+    "qwen3_asr_17b_streaming_avg_reported": 3.33,
+    "qwen3_asr_06b_offline_avg_reported": 3.48,
+    "qwen3_asr_06b_streaming_avg_reported": 4.40,
+    "scope_note": "The streaming table covers LibriSpeech/Fleurs-en/Fleurs-zh, not German. It supports streaming viability but cannot mint German streaming-quality credit."
+  },
+  "dependency_surface": {
+    "base_dependencies_observed": [
+      "transformers==4.57.6",
+      "nagisa==0.2.11",
+      "soynlp==0.0.493",
+      "accelerate==1.12.0",
+      "qwen-omni-utils",
+      "librosa",
+      "soundfile",
+      "sox",
+      "gradio",
+      "flask",
+      "pytz"
+    ],
+    "streaming_optional_dependency": "vllm==0.14.0",
+    "flash_attention_2": "recommended by upstream for memory/performance, not required by this source result",
+    "root_model_weight_format": "safetensors",
+    "trust_remote_code_required_by_inspected_official_quickstart": false,
+    "full_transitive_supply_chain_audit_completed": false
+  },
+  "source_refs": [
+    "https://github.com/QwenLM/Qwen3-ASR/tree/7c6daf77a2421100f5fb066495372c00129d39ff",
+    "https://huggingface.co/Qwen/Qwen3-ASR-1.7B/tree/7278e1e70fe206f11671096ffdd38061171dd6e5",
+    "https://arxiv.org/html/2601.21337"
+  ],
+  "finding": "PROMOTE_TO_TARGET_RUNTIME_A_B_WHEN_RUNNER_AVAILABLE",
+  "rationale": "The official technical report gives a consistent German WER advantage for 1.7B over 0.6B on MLS, CommonVoice, MLC-SLM and Fleurs (13.09% to 39.51% relative WER reduction), which is strong enough to justify a bounded target-runtime A/B. The cost side is unresolved: pinned weight bytes are 2.504x the 0.6B checkpoint, and the official package's streaming path is vLLM-only with no streaming timestamps. German streaming WER and actual whole-host resident RAM/VRAM/startup/partial-stability costs remain unmeasured.",
+  "evidence_boundary": {
+    "source_pin_credit": 1,
+    "german_language_metadata_credit": 1,
+    "published_german_quality_direction_credit": 1,
+    "target_runtime_credit": 0,
+    "german_streaming_runtime_quality_credit": 0,
+    "german_e2e_voice_credit": 0,
+    "trigger4_acceptance_credit": 0,
+    "whole_system_credit": 0
+  },
+  "next_exact_action": "After the existing self-hosted runner/target-runtime queue is resolved, acquire a distinct clay-direct-dev TARGET_RUNTIME_MODEL_BENCHMARK claim for Qwen3-ASR-1.7B and run the exact 1.7B artifact against the exact pinned 0.6B artifact and admitted Whisper/faster-whisper baseline on identical German corpus/room samples. Measure WER/CER, endpoint/partial stability, TTFT, RTF, startup, whole-host RAM/VRAM/headroom and cancellation behavior. Do not dispatch a duplicate while the shared runner remains unresolved."
+}
