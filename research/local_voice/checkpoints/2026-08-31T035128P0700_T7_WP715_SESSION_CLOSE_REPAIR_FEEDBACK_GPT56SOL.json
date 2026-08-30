@@ -1,0 +1,60 @@
+{
+  "schema": "T7_TRIGGER4_OUTCOME_FEEDBACK_CHECKPOINT_V1",
+  "trigger": "7",
+  "created_at": "2026-08-31T03:51:28+07:00",
+  "organ": "GPT-5.6-Sol",
+  "mode": "TRIGGER4_OUTCOME_FEEDBACK_REVIEW_ONLY",
+  "observed_f2_head": "d161b785ef8a098dd0b0cdb23088573c9bb13dc5",
+  "workpackage": "F2-WP-715",
+  "trigger4_receipt": "workpackages/receipts/F2-WP-715_G1_SESSION_CLOSE_ATOMICITY_REPAIR_20260831_GPT56SOL.json",
+  "executed_repository_negative": {
+    "source_sha": "d208f9fc0111fd0b625ac2a0e1980f4be056cf6c",
+    "ci_run_id": 33334621717,
+    "tests_total": 20,
+    "tests_failed": 2,
+    "failure_class": "PRODUCT_NEGATIVE",
+    "scopes": [
+      "SESSION_CLOSE silently erased active tool ownership without an explicit cancellation/fence tombstone.",
+      "Rejected SESSION_CLOSE mutated checkpointable output.voiceoutcome_ref before late validation failed."
+    ]
+  },
+  "repair": {
+    "source_sha": "53bbd87337b263ecca5151b4c54d5afdc60330b0",
+    "ci_run_id": 33334747307,
+    "ci_result": "SUCCESS",
+    "strategy": [
+      "Prevalidate caller-controlled SESSION_CLOSE turn_id and monotonic_ms before outcome/output mutation.",
+      "Fail closed while active tool ownership remains instead of silently clearing it."
+    ],
+    "repository_regression_credit": 1
+  },
+  "runtime_reconciliation": {
+    "old_run_id": 33328707636,
+    "old_subject": "db01bfbcc2deebc45524b56407a681b226de7b78",
+    "old_state": "QUEUED_ZERO_STEPS_NO_RUNNER",
+    "old_probe_class": "RUNTIME_PROBE_INVALIDATED_BY_REQUIRED_REPAIR",
+    "current_run_id": 33334747338,
+    "current_subject": "53bbd87337b263ecca5151b4c54d5afdc60330b0",
+    "current_state": "QUEUED_ZERO_STEPS_NO_RUNNER",
+    "runtime_credit": 0,
+    "duplicate_dispatch_created": false
+  },
+  "trigger7_frontier_effect": {
+    "wp715_session_close_source_gap": "REPAIRED_AT_REPOSITORY_CI_SCOPE",
+    "wp715_exact_source_vps_runtime": "OPEN",
+    "hf10_post_response_done_playout_race": "OPEN_SEPARATE_DISCRIMINATOR",
+    "note": "Do not compose the WP715 repository repair or queued VPS run into HF10 runtime evidence. HF10 still requires response.done before barge-in while playout is provably incomplete on the pinned HF speech-to-speech subject."
+  },
+  "credit_boundary": {
+    "repository_regression_credit": 1,
+    "packet_component_vps_runtime_credit": 0,
+    "hf10_runtime_credit": 0,
+    "acoustic_credit": 0,
+    "german_e2e_voice_credit": 0,
+    "physical_device_credit": 0,
+    "trigger4_acceptance_credit": 0,
+    "whole_voice_system_credit": 0,
+    "whole_product_credit": 0
+  },
+  "next_exact_action": "Resolve exact-source VPS run 33334747338 for WP715 without duplicate dispatch. Independently retain HF10 as the highest-information local-Realtime compatibility discriminator and execute it only through the existing T7-FD-RTCOMPAT-001/Trigger4 lane when legal."
+}
