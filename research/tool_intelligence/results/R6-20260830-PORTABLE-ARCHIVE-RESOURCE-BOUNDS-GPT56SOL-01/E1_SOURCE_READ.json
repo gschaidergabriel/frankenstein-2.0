@@ -1,0 +1,73 @@
+{
+  "schema": "FRANKENSTEIN2_TRIGGER6_RESEARCH_RESULT/v1",
+  "trigger": "6",
+  "research_id": "R6-20260830-PORTABLE-ARCHIVE-RESOURCE-BOUNDS-GPT56SOL-01",
+  "evidence_stage": "E1_SOURCE_READ",
+  "status": "SOURCE_AUDIT_COMPLETE",
+  "worker": "GPT-5.6-Sol organ",
+  "f2_architecture_snapshot_sha": "e7275267bad5a99162c4a263f8c25343487d6749",
+  "research_entity_snapshot_sha": "7ea077dc8cedb345d191a22adb9b273c05791cc1",
+  "claim_ref": "research/tool_intelligence/claims/R6-20260830-PORTABLE-ARCHIVE-RESOURCE-BOUNDS-GPT56SOL-01/E1_SOURCE_READ.json",
+  "evidence_scope": "SOURCE_AUDIT_ONLY_NO_F2_IMPLEMENTATION_RUNTIME_PHYSICAL_OR_WHOLE_SYSTEM_CREDIT",
+  "f2_observations": [
+    "architecture/PORTABLE_HOST_HARNESS_AND_DISTRIBUTION_CONTRACT.md requires a final release ZIP with deterministic manifest and SHA-256 hashes.",
+    "AI_START_HERE_DO_NOT_SCAN_REPO/02_RELEASE_CONTRACT.json declares CPython >=3.12 stdlib as the baseline runtime.",
+    "src/frankenstein2/portable_release_transaction.py is explicitly a preparatory non-executing transaction/state-lineage primitive and binds artifact/manifest SHA-256 identities, but the inspected module does not consume or extract archive member bytes and does not define archive expansion resource budgets."
+  ],
+  "primary_sources": [
+    {
+      "source": "Python 3.14.7 zipfile documentation",
+      "url": "https://docs.python.org/3.14/library/zipfile.html",
+      "observed": "The documented decompression pitfalls explicitly include disk/memory resource exhaustion from decompression bombs, incomplete extraction after interruption, filesystem limits, and overwrite behavior when extracting the same archive more than once."
+    },
+    {
+      "source": "Python 3.14.7 tarfile documentation",
+      "url": "https://docs.python.org/3.14/library/tarfile.html",
+      "observed": "The extraction-filter guidance says the secure default does not prevent every unintended behavior; aborted extraction may leave partial output; further verification should limit extracted-file count, total extracted bytes, filename length and per-file size and account for case-insensitive shadowing and duplicate overwrite semantics."
+    },
+    {
+      "source": "PKWARE ZIP File Capacities technical note",
+      "url": "https://support.pkware.com/pkzip/kb-what-are-the-maximum-limits-for-zip-archives",
+      "observed": "ZIP/ZIP64 format capacities are vastly larger than a reasonable local installer budget, including archive sizes on the order of exabytes and file counts in the billions; format capacity is therefore not a safe application resource policy."
+    },
+    {
+      "source": "PKWARE How PKZIP Works in UNIX",
+      "url": "https://support.pkware.com/pkzip/how-pkzip-works-in-unix",
+      "observed": "ZIP local-header/central-directory metadata includes compression method, compressed size, uncompressed size, CRC and filename, which can support a cheap declared-size preflight but must not be treated as final consumed-byte truth."
+    }
+  ],
+  "source_supported_findings": [
+    "Archive path confinement and archive resource confinement are separate invariants; a path-safe archive can still exhaust disk, memory, inode/file-count or time budgets.",
+    "A deterministic installer needs explicit application-level archive limits rather than relying on ZIP64 or filesystem maxima.",
+    "Declared central-directory sizes are useful for fail-fast preflight, but actual streamed decompressed-byte and entry counters remain necessary because archive metadata is untrusted input until verified.",
+    "Extraction should occur in a private empty staging root and any abort/resource violation should leave no promoted release root; partial output is a documented failure mode.",
+    "Normalized duplicate names and case-insensitive collisions need an explicit fail-closed policy because overwrite/shadow behavior can make a manifest-to-materialized-tree mapping ambiguous."
+  ],
+  "architecture_hypothesis": {
+    "name": "PortableArchiveBudgetPolicy",
+    "status": "E1_HYPOTHESIS_NOT_ARCHITECTURE_CREDIT",
+    "minimal_fields": [
+      "max_entries",
+      "max_total_uncompressed_bytes",
+      "max_single_entry_bytes",
+      "max_member_name_bytes",
+      "max_path_depth",
+      "allowed_compression_methods",
+      "max_declared_compression_ratio",
+      "reject_duplicate_normalized_paths",
+      "reject_casefold_collisions_when_target_semantics_require_it",
+      "streamed_actual_output_byte_budget"
+    ],
+    "placement_candidate": "archive admission/extraction boundary before release_integrity/static-completeness verification and before installer use",
+    "implementation_bias": "prefer a small CPython-stdlib validator/extractor contract over a new framework unless E2 mapping falsifies that sufficiency"
+  },
+  "counterhypothesis": "The existing deterministic release manifest plus exact artifact hash may already bind an approved package strongly enough that generic decompression-ratio policy adds little value; if the actual packaging/installer path verifies a trusted exact artifact before extraction and already enforces exact member byte counts and atomic staging, the proposed policy should collapse to tests/receipt instrumentation rather than a new subsystem.",
+  "falsifier_next_gate": "E2 must inspect the exact release-manifest schema, packaging producer and archive-to-staging consumer. If they already bind exact normalized member set/sizes and enforce streamed extraction limits plus cleanup, record NO_ARCHITECTURE_DELTA. Otherwise map the smallest missing budget contract and hand it to Trigger4 only after the normal evidence ladder.",
+  "credit": {
+    "architecture": 0,
+    "f2_build": 0,
+    "f2_runtime": 0,
+    "physical_target": 0,
+    "whole_system": 0
+  }
+}
