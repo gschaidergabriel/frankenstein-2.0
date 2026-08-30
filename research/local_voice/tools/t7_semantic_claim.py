@@ -133,6 +133,11 @@ EVIDENCE_SCOPE_ALIASES = {
 
 
 def _resolve(value: str, aliases: dict[str, str], field: str) -> str:
+    if not isinstance(value, str) or not value.strip():
+        raise ValueError("semantic objective fields must be non-empty strings")
+    canonical_values = set(aliases.values())
+    if value in canonical_values:
+        return value
     key = _norm_atom(value)
     if key not in aliases:
         allowed = ", ".join(sorted(aliases))
