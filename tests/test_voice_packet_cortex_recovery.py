@@ -117,6 +117,25 @@ class VoicePacketCortexRecoveryTests(unittest.TestCase):
         with self.assertRaises(VoicePacketCortexError):
             resume_packet_cortex(other_session, checkpoint, monotonic_ms=10)
 
+    def test_rejected_event_is_atomic_and_checkpoint_remains_restartable(self) -> None:
+        session = self.session()
+        cortex = VoicePacketCortex(session)
+        before_seq = cortex._event_seq
+        before_events = cortex.events
+        before_checkpoint = export_packet_cortex_checkpoint(cortex)
+
+        with self.assertRaises(VoicePacketCortexError):
+            cortex.emit_system_event(
+                turn_id="turn-reject", monotonic_ms=10, event_kind="ERROR", detail=1  # type: ignore[arg-type]
+            )
+
+        self.assertEqual(cortex._event_seq, before_seq)
+        self.assertEqual(cortex.events, before_events)
+        after_checkpoint = export_packet_cortex_checkpoint(cortex)
+        self.assertEqual(after_checkpoint, before_checkpoint)
+        resumed = resume_packet_cortex(session, after_checkpoint, monotonic_ms=20)
+        self.assertEqual(resumed.events[-1].event_kind, "RESTART_REENTRY")
+
     def test_event_derived_latency_accounting_is_explicit(self) -> None:
         cortex = VoicePacketCortex(self.session())
         cortex.accept_input(self.final_input(cortex, "turn-latency", "input-latency", 100))
