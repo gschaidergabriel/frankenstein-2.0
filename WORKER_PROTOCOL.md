@@ -2,9 +2,53 @@
 
 Every Triggerword-4 worker doing Frankenstein-2.0 assembly must treat this repository as the canonical build/evidence home.
 
-## Active owner convergence priority
+## Mandatory current execution authority
 
-Every worker must read `workpackages/RUNTIME_CREDIT_CONVERGENCE_DIRECTIVE.md` before selecting new material work.
+Before selecting or deferring any executable test, every worker MUST read:
+
+1. `workpackages/RUNTIME_CREDIT_CONVERGENCE_DIRECTIVE.md`
+2. `workpackages/VPS_SANDBOX_EXECUTION_AUTHORITY.md`
+3. `workpackages/STATE_CONCURRENCY_PROTOCOL_V2.md` when the selected workpackage is migrated to event-sourced state
+4. `workpackages/CLAIM_PROTOCOL.md` and `workpackages/CONVERGENCE_PROTOCOL.md` as required by the selected claim
+5. `PRODUCT_COMPLETION_LAW.md` for completion-scope questions
+
+The current owner execution rule is **VPS SANDBOX FIRST**.
+
+For every test that can be faithfully represented in the owner-provisioned Ubuntu VPS sandbox / `clay-direct-dev`, execute it there before asking for or deferring to the owner's physical workstation.
+
+The local workstation is a final **physical evidence** surface, not the normal development sandbox.
+
+Before a worker writes `needs local-machine test`, it MUST classify the missing invariant as exactly one of:
+
+```text
+VPS_SANDBOX_REPRESENTABLE
+PHYSICAL_LOCAL_ONLY
+UNKNOWN_FIDELITY
+```
+
+Required behavior:
+
+```text
+VPS_SANDBOX_REPRESENTABLE -> execute in VPS sandbox now
+PHYSICAL_LOCAL_ONLY       -> preserve exact physical reason and defer only that scope
+UNKNOWN_FIDELITY          -> improve/measure sandbox fidelity first; do not default to local
+```
+
+Every `PHYSICAL_LOCAL_ONLY` classification must name the exact property the VPS Ubuntu sandbox cannot reproduce.
+
+Inside a positively identified disposable sandbox, workers have broad authority to mutate, corrupt, wipe, reinstall, restart, crash, fuzz, stress and otherwise destroy **sandbox-local** state as necessary for high-information testing. They must preserve the owner host, canonical repositories, credentials, SSH/control access and unrelated persistent data as required by `VPS_SANDBOX_EXECUTION_AUTHORITY.md`.
+
+Sandbox success earns only the exact VPS/target-like scope actually executed. It does not automatically earn physical-device, physical-workstation or whole-product credit.
+
+## Provider / coding-agent route
+
+Owner-authorized exception: **GLM-5.3-Flash may be used as an alternative coding/test agent when Claude Code is unavailable or an API-backed coding agent is useful.**
+
+Credentials MUST come from a secret/environment boundary. Never commit, print, echo, copy into prompts, shell history, logs, receipts, test fixtures, artifacts or repository files any provider token.
+
+Together remains forbidden unless a later explicit owner directive changes that. The old autonomous Free-Swarm remains disabled. GLM work is an `ORGAN_NOT_ENTITY` and must pass the same source/test/evidence gates as Claude/GPT/Codex work.
+
+## Active owner convergence priority
 
 Current default work-selection order is:
 
@@ -17,50 +61,49 @@ RUNTIME_CREDIT_CLOSURE
 
 An unclaimed component is **not** automatically useful work. A `NEW_COMPONENT` claim must name the concrete open integration/runtime gate it closes and explain why wiring, adapting, testing or repairing existing machinery cannot close that gate first.
 
-Workers should treat lower-tier accepted/source-ready components with zero higher-tier runtime credit as an integration-debt priority signal, not as failed components and not as permission to relabel evidence. The directive is a scheduling/coordination overlay; exact claim ownership, receipts and `PRODUCT_COMPLETION_LAW.md` still determine actual credit.
+Workers should treat lower-tier accepted/source-ready components with zero higher-tier runtime credit as an integration-debt priority signal, not as failed components and not as permission to relabel evidence.
 
 ## Required cycle
 
 ```text
 REFRESH
-→ CLASSIFY RUNTIME-CREDIT / INTEGRATION / RECONCILIATION / NEW-COMPONENT WORK
-→ SELECT/CLAIM WORKPACKAGE + GENERATION
-→ NAME TARGET COMPLETION TIER + INTEGRATION BOUNDARY
-→ INSPECT DONOR/DEPENDENCIES
-→ INSPECT ACTIVE RESEARCH PACKETS RELEVANT TO CLAIM
-→ INSPECT NEWER CLAIM-SCOPED DELTAS / OVERLAP
-→ FUSE EXISTING ACCEPTED/SOURCE-READY PARTS FIRST
-→ BUILD SMALLEST COHERENT MISSING STEP ONLY IF REQUIRED
-→ TEST
-→ MEASURE + TRACE
-→ RECORD NEGATIVE RESULTS / BUGS / HYPOTHESES
-→ COMMIT OWNED SOURCE/TEST/EVIDENCE
-→ EMIT CLAIM-SCOPED DELTA
-→ RECONCILER UPDATES SHARED STATE/CHECKPOINTS
-→ next_exact_action
+-> RESOLVE CURRENT EVENT/CLAIM AUTHORITY
+-> CLASSIFY RUNTIME-CREDIT / INTEGRATION / RECONCILIATION / NEW-COMPONENT WORK
+-> SELECT/CLAIM WORKPACKAGE + GENERATION
+-> NAME TARGET COMPLETION TIER + INTEGRATION BOUNDARY
+-> CLASSIFY EXECUTION SURFACE: VPS_SANDBOX_REPRESENTABLE / PHYSICAL_LOCAL_ONLY / UNKNOWN_FIDELITY
+-> INSPECT DONOR/DEPENDENCIES + ACTIVE RESEARCH PACKETS
+-> INSPECT NEWER CLAIM-SCOPED DELTAS / OVERLAP
+-> FUSE EXISTING ACCEPTED/SOURCE-READY PARTS FIRST
+-> BUILD SMALLEST COHERENT MISSING STEP ONLY IF REQUIRED
+-> EXECUTE HIGHEST-INFORMATION AUTHORIZED TEST, VPS SANDBOX FIRST WHERE REPRESENTABLE
+-> MEASURE + TRACE + READ BACK
+-> CLASSIFY FAILURES
+-> RECORD NEGATIVE RESULTS / BUGS / HYPOTHESES
+-> COMMIT OWNED SOURCE/TEST/EVIDENCE
+-> EMIT CLAIM-SCOPED DELTA
+-> APPEND/RECONCILE STATE THROUGH CURRENT PROTOCOL
+-> next_exact_action
 ```
 
-High-fan-out runs must follow `workpackages/CONVERGENCE_PROTOCOL.md` and `workpackages/RUNTIME_CREDIT_CONVERGENCE_DIRECTIVE.md`. Normal workers do not repeatedly rewrite shared canonical ledgers merely to announce progress.
+Normal workers do not repeatedly rewrite shared canonical ledgers merely to announce progress.
 
-Active cross-workpackage research/falsification input lives under `workpackages/research_inbox/`. A research packet is evidence/input only, never mutation authority. On refresh, workers must inspect active packets, consume only items routed to their current claim, preserve source ancestry, and convert overlap with already-landed work to `REVIEW_ONLY` / `CANDIDATE_FALSIFIER` rather than creating duplicate implementation authority.
+## Event-first state reentry
 
-## Commit law
-
-Commit coherent steps, not one giant final dump. Typical progression:
+For migrated workpackages, current state resolution is event-first:
 
 ```text
-F2-WP-403: claim NeRD projection generation 2
-F2-WP-403: import bounded donor primitives
-F2-WP-403: add physical plausibility cases
-F2-WP-403: archive lesion benchmark
-F2-WP-403: accept projection adapter scope
+refresh main
+-> resolve workpackages/state_events/<WP>/ valid head
+-> inspect workpackages/active/<WP>.json
+-> inspect terminal reconciliation / runtime receipt
+-> inspect newest claim-scoped deltas
+-> only then consult workpackages/STATE.json / checkpoints/CURRENT.json as projections
 ```
 
-A worker step is not finished if the only surviving evidence is chat text, terminal output or an uncommitted workspace.
+A stale `STATE.json` or `CURRENT.json` is `PROJECTION_STALE`, not permission to overwrite newer event authority.
 
-For coordination-only changes, prefer one coherent fusion commit over a chain of `restore` / `repair` / `rebind` bookkeeping commits when the same state can be represented atomically.
-
-## Concurrency
+## Concurrency and mutation authority
 
 Stable work identity:
 
@@ -68,29 +111,15 @@ Stable work identity:
 workpackage_id + generation + claim_id
 ```
 
-Before every write:
-
-1. refresh current `main`;
-2. inspect `workpackages/STATE.json`, `workpackages/CLAIM_PROTOCOL.md`, `workpackages/CONVERGENCE_PROTOCOL.md`, `workpackages/RUNTIME_CREDIT_CONVERGENCE_DIRECTIVE.md`, `workpackages/active/<workpackage_id>.json` when present, `workpackages/research_inbox/` active packets relevant to the claim, and `checkpoints/CURRENT.json` when present;
-3. inspect newer claim-scoped deltas for the same workpackage/generation;
-4. detect overlapping/newer claims and exact owned-path overlap;
-5. never overwrite a newer accepted generation with stale state;
-6. if equivalent canonical work already landed, stop implementation and convert the result to `REVIEW_ONLY` / `CANDIDATE_FALSIFIER` instead of creating another adapter;
-7. if overlap is useful as an independent falsifier, label it explicitly rather than pretending it is independent by default;
-8. do not multiply epistemic confidence by raw worker count: preserve primary-source, donor-path and method ancestry when a research packet defines them, because many workers may share one underlying evidence source;
-9. before opening breadth, prefer an unowned integration boundary that can promote existing work toward the next evidence tier.
-
-### Mechanical mutation-authority lock
-
 A claim file under `workpackages/claims/` is historical/work evidence; by itself it is **not** mutation authority.
 
-Before mutating workpackage-owned canonical source/state, the worker must own the create-only pointer:
+Before mutating workpackage-owned canonical source/state, the worker must own or validly inherit:
 
 ```text
 workpackages/active/<workpackage_id>.json
 ```
 
-There may be at most one active pointer per workpackage. If the path already exists for another claim, the new worker must not manufacture authority by incrementing generation, changing timestamp or opening a second claim. It may operate only as `CANDIDATE_FALSIFIER` / `REVIEW_ONLY` until reconciliation explicitly transfers authority.
+There may be at most one active mutation pointer per workpackage.
 
 ```text
 NEW_WORKER != NEW_GENERATION
@@ -99,7 +128,43 @@ CLAIM_FILE != MUTATION_AUTHORITY
 ONE_WORKPACKAGE -> AT_MOST_ONE_ACTIVE_MUTATION_POINTER
 ```
 
-The detailed state/reconciliation rules are canonical in `workpackages/CLAIM_PROTOCOL.md`; high-fan-out fusion and hot-file rules are canonical in `workpackages/CONVERGENCE_PROTOCOL.md`.
+If equivalent canonical work already landed, stop duplicate implementation and convert useful overlap to `REVIEW_ONLY` / `CANDIDATE_FALSIFIER`.
+
+For event-sourced successors, use create-only event paths and non-force Git CAS/fast-forward semantics. A race loser refreshes and re-evaluates. Never force-push merely to win a state race.
+
+## Runtime-subject churn fence
+
+If an exact-source higher-tier runtime probe is already bound, dispatched, queued, assigned or otherwise materially tied to a concrete subject, classify before changing that same semantic boundary:
+
+```text
+RUNTIME_SUBJECT_INVARIANT
+RUNTIME_PROBE_INVALIDATED_BY_REQUIRED_REPAIR
+DEFER_UNTIL_RUNTIME_RESULT
+```
+
+Do not create a newer semantic subject merely because another worker is idle. A later runtime PASS for an older subject plus newer repository CI cannot be composed into current-generation runtime credit without explicit semantic-invariance evidence.
+
+## Failure classification
+
+Before architecture repair, classify a failed/nonterminal discriminator as exactly one primary class:
+
+```text
+PRODUCT_NEGATIVE
+EVIDENCE_INVALID
+INFRA_AUTH_TRANSPORT_QUOTA
+CONCURRENCY_RETRY
+UNKNOWN_NONTERMINAL
+```
+
+Examples:
+
+- exact executed assertion/regression failure -> `PRODUCT_NEGATIVE`
+- wrong/unbound/fake/dry-run subject -> `EVIDENCE_INVALID`
+- runner/auth/transport/quota/host-health guard -> `INFRA_AUTH_TRANSPORT_QUOTA`
+- failed fast-forward / legitimate claim race -> `CONCURRENCY_RETRY`
+- queued/pending/zero-step unresolved run -> `UNKNOWN_NONTERMINAL`
+
+Infrastructure failure is not product evidence.
 
 ## Required receipt fields
 
@@ -115,23 +180,28 @@ source_commit_before
 source_commit_after
 donor_source_refs
 environment/runtime identity
+execution_surface_class
+sandbox_identity/reset_path when sandboxed
+resource/host-health limits when relevant
 commands/tests
 started_at / finished_at
 exit status
 metrics paths
 trace paths
+actual executed steps
+result/readback
 system-log package path
 communication-log slice
 GRID10-log slice
 hypothesis IDs
 bug IDs
 negative-result paths
+failure_class
 acceptance scope
+explicit zero-credit boundaries
 completion deficit
 next_exact_action
 ```
-
-For convergence-priority work, the claim or first durable delta should additionally preserve the target completion tier, integration boundary, existing components being fused, smallest blocking deficit, expected runtime evidence, and any new-component necessity argument required by `workpackages/RUNTIME_CREDIT_CONVERGENCE_DIRECTIVE.md`.
 
 ## Evidence law
 
@@ -140,11 +210,18 @@ SOURCE_PRESENCE != RUNTIME_PASS
 QUEUED_JOB != EXECUTION
 MODEL_CONSENSUS != EVIDENCE
 SIMULATION_PASS != WORLD_PASS
+VPS_SANDBOX_PASS != PHYSICAL_LOCAL_PASS
 SYMPTOM_GONE != ROOT_CAUSE_FIXED
 COMPONENT_PASS != WHOLE_SYSTEM_PASS
 ```
 
-A workpackage receives `[x]` only when its exact acceptance evidence is archived in this repository.
+A workpackage receives acceptance only when its exact evidence is archived/bound under current protocol.
+
+## Commit law
+
+Commit coherent causal steps, not one giant final dump and not bookkeeping-only chains where one atomic fusion commit is sufficient.
+
+A worker step is not finished if the only surviving evidence is chat text, terminal output or an uncommitted workspace.
 
 ## Donor law
 
@@ -154,9 +231,9 @@ Historical Project-Frankenstein/Agent-Zero/other repos may be read when exact pr
 
 ## Telemetry law
 
-All system components participating in a test must either emit/route telemetry or be declared `NOT_OBSERVABLE` in the test manifest. Every test series gets an immutable package under `runs/<series>/<run_id>/`.
+All system components participating in a test must either emit/route telemetry or be declared `NOT_OBSERVABLE` in the test manifest. Every test series gets an immutable package under `runs/<series>/<run_id>/` or the current admitted receipt path.
 
-GRID10 logs, all internal latency spans, resource/performance measurements, communications, hypotheses/counterhypotheses and bug/root-cause states are first-class experiment data.
+GRID10 logs, latency spans, resource/performance measurements, communications, hypotheses/counterhypotheses and bug/root-cause states are first-class experiment data.
 
 ## Bug closure law
 
@@ -174,24 +251,30 @@ Patching around a symptom remains `FIX_CANDIDATE` or `REGRESSION_PENDING`.
 
 ## Canonical-build priority after repository materialization
 
-The canonical `gschaidergabriel/frankenstein-2.0` repository now exists. From this point forward, Triggerword-4 assembly is **F2-repository-first**.
+Triggerword-4 assembly is **F2-repository-first**. Research-Entity, controller, VPS and historical repositories remain valid donor/evidence/execution surfaces, but canonical F2 product state materializes here.
 
-Research-Entity, controller, VPS and historical repositories remain valid donor/evidence/execution surfaces, but they are not the canonical product state. A useful result produced elsewhere must be materialized here as source, test, measurement, receipt, provenance record or explicitly linked external evidence before it earns Frankenstein-2.0 build credit.
+A useful result produced elsewhere must be materialized here as source, test, measurement, receipt, provenance record or explicitly linked external evidence before it earns F2 build credit.
 
-Queued or unavailable self-hosted runner gates are side-fronts unless the selected workpackage truly depends on them. In particular:
+A nonterminal runner-dependent discriminator does not block independent work on a different named runtime-credit/integration/reconciliation boundary, but workers must not stampede duplicate dispatches.
+
+## Current execution shorthand
 
 ```text
-QUEUED_RUNNER_GATE != BLOCKED_FRANKENSTEIN2_PROJECT
-OLD_ENTITYOS_HCU_P0 != AUTOMATIC_F2_GLOBAL_P0
-RESEARCH_STAGING_PROGRESS != F2_IMPLEMENTATION_PROGRESS
+CAN_IT_BE_TESTED_FAITHFULLY_IN_UBUNTU_VPS_SANDBOX?
+    YES -> TEST IT THERE NOW.
+    NO  -> NAME THE EXACT PHYSICAL-LOCAL PROPERTY.
+    UNSURE -> IMPROVE/MEASURE SANDBOX FIDELITY FIRST.
 ```
 
-Required behavior while a runner-dependent discriminator is nonterminal:
+Preferred convergence flow:
 
-1. preserve the existing singleton/claim and do not stampede duplicate dispatches;
-2. record the exact blocked discriminator and required runtime receipt;
-3. continue independent Frankenstein-2.0 work only where it closes another named runtime-credit, integration-blocker or evidence-reconciliation gate, or supplies the demonstrably smallest missing dependency for one;
-4. prefer connecting and exercising the existing evidence/data spine, causal identity, donor migrations, GRID/GWT interfaces, memory, world-model, child ABI, Retina/Voice and cognitive-test mechanisms over opening adjacent feature breadth;
-5. consume the runner result when it becomes terminal and then update only the workpackages whose acceptance actually depends on it.
-
-A stale external supervisor state written before the canonical F2 repository existed must not override this repository's current `workpackages/STATE.json`, README, checkpoints or accepted evidence.
+```text
+accepted exact source/artifact
+-> fresh target-like Ubuntu VPS sandbox
+-> install/run/falsify
+-> crash/restart/readback as relevant
+-> exact receipt
+-> only measured credit
+-> next dependency-correct boundary
+-> physical local machine only for irreducible final physical evidence
+```
