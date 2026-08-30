@@ -1,0 +1,83 @@
+{
+  "schema": "FRANKENSTEIN2_WORKPACKAGE_DELTA/v1",
+  "workpackage_id": "F2-WP-206",
+  "generation": 6,
+  "claim_id": "F2-WP-206-G6-GPT56SOL-EXTERNAL-SQLITE-REVISION-FENCE-20260830",
+  "worker_id": "GPT-5.6-Sol-TRIGGER4",
+  "trigger": "4",
+  "classification": "REPOSITORY_COMPONENT_CI_EVIDENCE_COMPLETE_COORDINATION_RECONCILIATION_PENDING",
+  "observed_at_utc": "2026-08-30T15:13:00Z",
+  "authority_epoch": "9.13",
+  "current_checkpoint": {
+    "workpackage_id": "F2-WP-206",
+    "generation": 6,
+    "claim_id": "F2-WP-206-G6-GPT56SOL-EXTERNAL-SQLITE-REVISION-FENCE-20260830",
+    "state": "ACTIVE"
+  },
+  "source_application": {
+    "one_shot_arm_commit": "de106f2d108854cfbc3c35819352d24469abd0f9",
+    "measured_product_delta_commit": "c2646d09753dd791b93958f29d27398ebff53536",
+    "kernel_blob_sha": "f4ba5a329c230f7fba9bcdba4e4e5ce9e9ece3cc",
+    "method": "exact prepatch kernel blob anchor -> one-shot patch -> executable acceptance matrix -> commit measured delta",
+    "prepatch_kernel_blob": "7ba8bd55c788faa9eb9b96870c039cb5273e181d"
+  },
+  "repository_ci": {
+    "workflow_run_id": 33318343169,
+    "job_id": 99275781290,
+    "conclusion": "SUCCESS",
+    "successful_steps": [
+      "Verify exact unpatched WP206 source anchor",
+      "Apply exact-main anchor-checked G6 transplant once",
+      "Compile G6 and predecessor surfaces",
+      "Execute G6 owned-surface acceptance matrix",
+      "Execute same-inode WP206-owned drift discriminator",
+      "Preserve accepted predecessor regressions",
+      "Commit measured product delta",
+      "Preserve bounded evidence scope"
+    ],
+    "post_commit_regression_head": "c2646d09753dd791b93958f29d27398ebff53536",
+    "post_commit_check_count_observed": 11,
+    "post_commit_visible_checks_observed_success": true
+  },
+  "measured_mechanism": {
+    "data_version_role": "CONNECTION_LOCAL_DIRTY_HINT_ONLY_NOT_AUTHORITY_VERDICT",
+    "authority_verdict": "BOUNDED_IN_MEMORY_WP206_OWNED_SCHEMA_AND_CHECKPOINT_ROW_WITNESS",
+    "capture_rule": "double-read PRAGMA main.data_version around bounded witness capture; retry on concurrent revision",
+    "legitimate_cross_component_write": "WP103_TYPED_COMMIT_NONINTERFERING_AND_REBASELINES_DIRTY_HINT_WHEN_WP206_SURFACE_UNCHANGED",
+    "fail_closed_case": "EXTERNAL_SAME_INODE_WP206_OWNED_SCHEMA_OR_ROW_SURFACE_DRIFT",
+    "error": "UNIFIEDDB_WP206_OWNED_SURFACE_DRIFT",
+    "journal_modes_measured": ["DELETE", "WAL"],
+    "write_race_guard": "repeat file/surface identity assertion after BEGIN IMMEDIATE before mutation"
+  },
+  "counterevidence_that_changed_design": {
+    "rejected_design": "treat every PRAGMA main.data_version change as authoritative external drift",
+    "reason": "database-wide data_version also advances for legitimate writes owned by other canonical components, so using it as the verdict creates false positives",
+    "replacement": "use data_version only to trigger revalidation of the WP206-owned surface witness"
+  },
+  "explicit_noncoverage": [
+    "data_version is not persisted or compared across reopen",
+    "same-connection raw DML outside admitted WP206 methods remains separate",
+    "raw filesystem or WAL tamper remains separate",
+    "cryptographic durable database-state attestation remains separate",
+    "target-host recoverability remains separate",
+    "target/local-user-machine runtime remains separate",
+    "physical GRID10 remains separate",
+    "semantic GWT/J-Space remains separate",
+    "provider/model execution remains separate",
+    "effects/completion/training/whole-system acceptance remain separate"
+  ],
+  "credit": {
+    "repository_component_ci": 1,
+    "runtime_execution_observed": false,
+    "runtime_credit": 0,
+    "physical_grid10_credit": 0,
+    "gwt_runtime_credit": 0,
+    "jspace_runtime_credit": 0,
+    "training_credit": 0,
+    "effect_credit": 0,
+    "completion_credit": 0,
+    "whole_system_acceptance": false
+  },
+  "coordination_reason_not_terminalized": "checkpoints/CURRENT.json is now correctly bound to this exact F2-WP-206 generation-6 ACTIVE tuple. Terminalizing the active pointer before atomically advancing CURRENT to another matching admitted ACTIVE successor would recreate the checkpoint-continuity failure already observed and repaired in F2-WP-002 generation 6.",
+  "next_exact_action": "Keep F2-WP-206 generation 6 ACTIVE while it is the canonical checkpoint frontier. Reconcile this measured repository-component CI scope when a dependency-correct successor has a matching admitted ACTIVE claim tuple, atomically advance CURRENT to that successor, then terminalize G6 without granting any broader runtime or whole-system credit."
+}
