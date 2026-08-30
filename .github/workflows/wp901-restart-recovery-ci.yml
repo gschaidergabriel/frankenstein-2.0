@@ -5,6 +5,7 @@ on:
     paths:
       - 'src/frankenstein2/restart_recovery_continuation.py'
       - 'tests/test_restart_recovery_continuation.py'
+      - 'tests/falsifier_wp901_plan_semantic_consistency.py'
       - '.github/workflows/wp901-restart-recovery-ci.yml'
       - 'workpackages/active/F2-WP-901.json'
   push:
@@ -13,6 +14,7 @@ on:
     paths:
       - 'src/frankenstein2/restart_recovery_continuation.py'
       - 'tests/test_restart_recovery_continuation.py'
+      - 'tests/falsifier_wp901_plan_semantic_consistency.py'
       - '.github/workflows/wp901-restart-recovery-ci.yml'
       - 'workpackages/active/F2-WP-901.json'
       - 'workpackages/reconciliations/F2-WP-901/**'
@@ -34,7 +36,11 @@ jobs:
           python -m py_compile
           src/frankenstein2/restart_recovery_continuation.py
           tests/test_restart_recovery_continuation.py
-      - name: Run WP901 fail-closed suite
+          tests/falsifier_wp901_plan_semantic_consistency.py
+      - name: Run WP901 fail-closed suite and semantic consistency regressions
         env:
           PYTHONPATH: src
-        run: python -m unittest -v tests.test_restart_recovery_continuation
+        run: >-
+          python -m unittest -v
+          tests.test_restart_recovery_continuation
+          tests.falsifier_wp901_plan_semantic_consistency
