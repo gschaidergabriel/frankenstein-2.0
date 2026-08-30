@@ -23,6 +23,7 @@ from frankenstein2.restart_recovery_continuation import (
 from frankenstein2.restart_recovery_persisted_row_attestation import (
     PersistedRowLoadAttestationError,
     attest_persisted_checkpoint_load,
+    canonical_unifieddb_component_authority_ref,
     plan_restart_continuation_from_persisted_row,
 )
 from frankenstein2.restart_recovery_source_authentication import (
@@ -70,11 +71,7 @@ class PersistedRowLoadAttestationTests(unittest.TestCase):
 
     @staticmethod
     def authority() -> UnifiedDBAuthorityRef:
-        return UnifiedDBAuthorityRef(
-            receipt_ref="receipt:unifieddb:accepted-component",
-            canonical_source="src/frankenstein2/unifieddb_authority.py",
-            fingerprint_schema="FRANKENSTEIN2_UNIFIEDDB_FINGERPRINT/v2",
-        )
+        return canonical_unifieddb_component_authority_ref()
 
     @staticmethod
     def identity(generation: int) -> CausalIdentity:
