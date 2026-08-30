@@ -1,0 +1,71 @@
+{
+  "schema": "T7_SOURCE_PIN/v1",
+  "trigger": "7",
+  "research_id": "T7-TURN-005",
+  "objective": "E3_LIVEKIT_EOT_BENCH_DE_NAMO_COMPONENT_BENCHMARK",
+  "semantic_key": "ba9ab00e0cf2a2b838f87d06936276ec55dc24f6cd84b1bcb5d70cdbff1823a9",
+  "worker": "GPT-5.6-Sol-TRIGGER7",
+  "observed_date": "2026-08-30",
+  "classification": "SOURCE_PINNED_BENCHMARK_SUBSTRATE_EXECUTION_NOT_YET_OBSERVED",
+  "benchmark_repo": {
+    "repository": "livekit/eot-bench",
+    "branch": "main",
+    "revision_observed": "6594d8b3b8af385b15f116dde310ce45af92d646",
+    "revision_date": "2026-08-28T14:49:32Z",
+    "license_badge": "Apache-2.0",
+    "purpose": "reproducible end-of-turn policy benchmark over causal silence decisions"
+  },
+  "dataset": {
+    "repository": "livekit/eot-bench-data",
+    "host": "Hugging Face Datasets",
+    "split": "validation",
+    "language": "de",
+    "all_rows_observed": 5450,
+    "languages_observed": 14,
+    "required_fields": ["id", "language", "audio", "silence_spans"],
+    "optional_fields": ["messages", "words"],
+    "dataset_revision": "UNRESOLVED_IN_THIS_SOURCE_PASS",
+    "license_metadata_observed": "cc-by-4.0",
+    "license_note": "The pinned eot-bench README states the dataset is available 'Apache-2.0 alongside this repo', while the Hugging Face dataset metadata observed on 2026-08-30 reports cc-by-4.0. Preserve this provenance discrepancy; Trigger4 must bind the actual dataset revision and governing dataset license before copying or executing the corpus."
+  },
+  "why_this_is_high_information": [
+    "German is explicitly present in the shared multilingual corpus.",
+    "Every >=100 ms silence is evaluated causally: the final silence is EOT and earlier pauses are HOLD.",
+    "The benchmark exposes the production tradeoff directly as endpointing delay versus false-cutoff rate instead of a single classification accuracy.",
+    "A VAD-only baseline is evaluated on the same policy grid, enabling a fair test of whether NAMO adds value beyond silence timing.",
+    "It can become a common substrate for already-audited SmartTurn, NAMO and X2-Turn candidates instead of creating incomparable bespoke tests."
+  ],
+  "candidate_under_test": {
+    "subject": "NAMO_TURN_DETECTOR_V1_MULTILINGUAL",
+    "existing_source_audit": "research/local_voice/sources/2026-08-30_T7_TURN006_NAMO_MULTILINGUAL_GERMAN_SOURCE_AUDIT_GPT56SOL.json",
+    "existing_source_commit": "8cdd04827d105dcdddc2d5d3b788a69866a60268",
+    "upstream_german_metrics_are_source_claims_only": true
+  },
+  "predeclared_component_comparison": {
+    "target": "clay-direct-dev",
+    "baseline": "same eot-bench German spans with silence/VAD-only policy",
+    "candidate": "same German spans with NAMO semantic EOU score/policy",
+    "primary_metrics": [
+      "false_cutoff_rate_at_300ms",
+      "false_cutoff_rate_at_600ms",
+      "endpoint_latency_at_5pct_false_cutoff",
+      "endpoint_latency_at_10pct_false_cutoff",
+      "pareto_frontier"
+    ],
+    "secondary_metrics": ["NAMO inference latency", "CPU", "RSS", "failure classes"],
+    "acceptance_rule": "NAMO earns component value only if it improves the German latency/false-cutoff frontier over the identical VAD-only substrate without violating local resource limits."
+  },
+  "execution_prerequisites": [
+    "resolve and pin exact Hugging Face dataset revision",
+    "hash the consumed German dataset artifacts or an immutable local manifest",
+    "confirm dataset license/provenance at the consumed revision",
+    "bind exact NAMO model artifact already source-pinned",
+    "run through the admitted Trigger4/clay-direct-dev execution lane",
+    "persist exact command, environment, rows/spans consumed, predictions and output hashes"
+  ],
+  "evidence_credit": 1,
+  "runtime_credit": 0,
+  "integration_credit": 0,
+  "trigger4_acceptance_credit": 0,
+  "whole_system_credit": 0
+}
