@@ -1,0 +1,68 @@
+{
+  "schema": "FRANKENSTEIN2_WORKPACKAGE_DELTA/v1",
+  "workpackage_id": "F2-WP-002",
+  "generation": 6,
+  "claim_id": "F2-WP-002-G6-GPT56SOL-CHECKPOINT-SUCCESSOR-REPAIR-20260830",
+  "worker_id": "GPT-5.6-Sol",
+  "trigger": "4",
+  "base_commit": "98a3d3715e8da627ee20a240f7bbd6717799cf96",
+  "observed_main_commit": "c4371ca72b231a6160f68675d39f709e1bd6c09f",
+  "authority_epoch": "8.78",
+  "owned_paths": [],
+  "result_class": "TEST_DELTA",
+  "source_commits": [
+    "db0f8dccb60ce8893f958b1ca57ef6a1524634d2",
+    "6f15c371e01eaf8526482e3fc5311f67d16ef0b7"
+  ],
+  "receipts": [
+    {
+      "name": "F2 Checkpoint Continuity CI",
+      "run_id": 33266116004,
+      "head_sha": "6f15c371e01eaf8526482e3fc5311f67d16ef0b7",
+      "conclusion": "success"
+    },
+    {
+      "name": "Workpackage State Consistency CI",
+      "run_id": 33266116068,
+      "head_sha": "6f15c371e01eaf8526482e3fc5311f67d16ef0b7",
+      "conclusion": "success"
+    },
+    {
+      "name": "Workpackage state view v2 CI",
+      "run_id": 33266115992,
+      "head_sha": "6f15c371e01eaf8526482e3fc5311f67d16ef0b7",
+      "conclusion": "success"
+    }
+  ],
+  "falsifiers": [
+    "A CURRENT transition is invalid unless the destination workpackage has a matching admitted ACTIVE pointer/claim tuple.",
+    "Repository CI success at this metadata scope does not grant target-runtime, physical GRID10, GWT/J-Space, provider/model, effect, completion, training or whole-system credit."
+  ],
+  "contradictions": [
+    {
+      "type": "STALE_CHECKPOINT_UNRESOLVED_VS_GRANULAR_CI",
+      "lhs": "checkpoints/CURRENT.json still lists the three generation-6 CI gates as unresolved",
+      "rhs": "all three repository-hosted gates completed successfully on exact repair commit 6f15c371e01eaf8526482e3fc5311f67d16ef0b7",
+      "resolution": "granular exact-head CI evidence outranks the stale unresolved checkpoint prose; preserve CURRENT as a hot file until a coherent reconciliation window"
+    },
+    {
+      "type": "WP900_G2_CLAIM_VS_ACTIVE_POINTER",
+      "lhs": "workpackages/claims/F2-WP-900_G2_GPT56SOL_WP206_PERSIST_READBACK_INTEGRATION_20260830.json exists",
+      "rhs": "workpackages/active/F2-WP-900.json remains generation 1 terminal ACCEPTED",
+      "resolution": "the G2 claim artifact alone is not a checkpoint-valid ACTIVE successor; do not move CURRENT to WP900 G2"
+    }
+  ],
+  "proposed_state_change": "NO_HOT_FILE_CHANGE. Keep F2-WP-002 generation 6 ACTIVE as the canonical checkpoint-continuity frontier. Treat its three repository-CI gates as accepted at continuity-metadata scope. Terminalize G6 only in a coherent reconciliation transaction after CURRENT can move to a different workpackage with a matching admitted ACTIVE pointer/claim tuple.",
+  "completion_deficit": "No checkpoint-valid admitted ACTIVE successor is established by the inspected WP900 generation-2 claim because the canonical WP900 active pointer remains generation 1 ACCEPTED. G6 therefore cannot be safely terminalized yet.",
+  "runtime_execution_observed": false,
+  "runtime_credit": 0,
+  "physical_grid10_credit": 0,
+  "gwt_runtime_credit": 0,
+  "jspace_runtime_credit": 0,
+  "training_credit": 0,
+  "effect_credit": 0,
+  "completion_credit": 0,
+  "whole_system_acceptance": false,
+  "next_exact_action": "Re-enter current main and wait for or identify a dependency-correct workpackage with a matching admitted ACTIVE pointer/claim tuple. When one exists, perform one coherent reconciliation window that advances CURRENT first and terminalizes F2-WP-002 G6 at continuity-metadata scope without granting runtime or whole-system credit.",
+  "created_at_utc": "2026-08-30T12:20:30Z"
+}
