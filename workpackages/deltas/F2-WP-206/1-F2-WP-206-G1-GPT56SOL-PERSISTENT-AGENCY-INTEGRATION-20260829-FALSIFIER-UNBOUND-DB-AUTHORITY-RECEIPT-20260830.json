@@ -1,0 +1,45 @@
+{
+  "schema": "FRANKENSTEIN2_WORKPACKAGE_DELTA/v1",
+  "workpackage_id": "F2-WP-206",
+  "generation": 1,
+  "claim_id": "F2-WP-206-G1-GPT56SOL-PERSISTENT-AGENCY-INTEGRATION-20260829",
+  "worker_id": "GPT-5.6-Sol",
+  "delta_class": "CANDIDATE_FALSIFIER",
+  "status": "SOURCE_PROVEN_REGRESSION_NOT_YET_EXECUTED_IN_ADMITTED_RUNTIME",
+  "observed_f2_main_sha": "ccd6aa17cedba2481103161d34a861066c5da90b",
+  "canonical_source": "src/frankenstein2/persistent_agency_kernel.py",
+  "canonical_source_blob_sha": "351545cc18931a04a68b7deb834783f1907c9295",
+  "canonical_test": "tests/test_persistent_agency_kernel.py",
+  "canonical_test_blob_sha": "bed2e65d49aa3b1cc039c8fd35daca4260113953",
+  "finding": "CanonicalPersistentAgencyStore.write_checkpoint persists unifieddb_authority_receipt_sha256 for each checkpoint, but load_checkpoint does not SELECT or validate that stored receipt against the store's current fingerprint receipt. The persisted provenance/authority binding is therefore non-enforcing on replay: changing only unifieddb_authority_receipt_sha256 in an existing checkpoint row leaves checkpoint_json and checkpoint_sha256 untouched and load_checkpoint has no code path that can observe the changed field.",
+  "why_it_matters": "F2-WP-206 claims explicit canonical UnifiedDB boundary/provenance binding across restart. WP-100's UnifiedDBFingerprint receipt includes exact main-file identity information such as file SHA-256 and SQLite schema identity. A checkpoint row that carries an authority receipt but does not validate it on replay can present stale or tampered DB-authority provenance while still loading successfully, weakening the fail-closed lineage claim even though path/device/inode and checkpoint payload digest checks remain intact.",
+  "source_evidence": [
+    "write_checkpoint INSERT includes unifieddb_authority_receipt_sha256=self.authority_receipt_sha256",
+    "load_checkpoint SELECT returns checkpoint_sha256, checkpoint_json, canonical_db_path, db_device, db_inode only",
+    "load_checkpoint validates path/device/inode and checkpoint payload digest but never reads unifieddb_authority_receipt_sha256",
+    "tests/test_persistent_agency_kernel.py covers same-path file replacement and checkpoint_json tamper, but contains no regression for authority-receipt-column tamper"
+  ],
+  "minimal_regression": {
+    "setup": "Create a normal WP-206 checkpoint using the current test fixture, then execute UPDATE f2_persistent_agency_checkpoints SET unifieddb_authority_receipt_sha256='000...000' WHERE checkpoint_id='checkpoint-0'.",
+    "expected_fail_closed_behavior": "store.load_checkpoint('checkpoint-0') raises a PersistentAgencyError such as CHECKPOINT_DB_AUTHORITY_RECEIPT_MISMATCH.",
+    "current_source_prediction": "load_checkpoint('checkpoint-0') succeeds because the mutated column is not selected or compared.",
+    "repair_shape": "Include unifieddb_authority_receipt_sha256 in load_checkpoint SELECT and compare it with self.authority_receipt_sha256 before decoding the checkpoint. Add a regression that mutates only this column and requires fail-closed rejection. Consider separately whether store open/use must refresh the underlying UnifiedDBFingerprint to detect same-inode content/schema mutation; that is a distinct scope and should not be silently bundled without a discriminator."
+  },
+  "counterhypothesis": "The stored authority receipt is intentionally informational only and path/device/inode is the complete replay authority contract.",
+  "counterhypothesis_assessment": "Weak against the current implementation and WP-206 wording because the column is explicitly named unifieddb_authority_receipt_sha256, is persisted on every checkpoint, and the accepted claim names the canonical UnifiedDB boundary/provenance binding. If informational-only semantics are intended, that must be made explicit in the contract and the field should not be presented as an enforcing authority receipt.",
+  "execution": {
+    "local_container_attempted": true,
+    "local_container_result": "BLOCKED_BEFORE_TEST: container could not resolve github.com, so the exact repository could not be cloned for local pytest execution.",
+    "repository_hosted_ci_run_created": false,
+    "admitted_runtime_execution_observed": false
+  },
+  "credit_boundaries": {
+    "wp206_component_acceptance_revoked": false,
+    "candidate_falsifier_only": true,
+    "runtime_credit": 0,
+    "physical_grid10_credit": 0,
+    "whole_system_acceptance": false
+  },
+  "next_exact_action": "Independent reconciliation worker should add the one-column tamper regression on a successor WP-206 scope. If it reproduces the predicted successful load, open an explicit WP-206 successor generation that binds the stored UnifiedDB authority receipt on replay; otherwise retire this candidate falsifier with the contradicting executable evidence.",
+  "created_at_local": "2026-08-30T12:38:00+07:00"
+}
