@@ -1,0 +1,51 @@
+{
+  "schema": "TRIGGER7_TO_TRIGGER4_LOCAL_VOICE_HANDOFF_ADDENDUM/v1",
+  "created_date": "2026-08-30",
+  "producer": "GPT-5.6-Sol Trigger 7",
+  "research_id": "T7-ASR-004",
+  "semantic_key": "95bd53a469133dbfdf39da320f6daa049cec1361084e632dc915c4bc156e3715",
+  "binds_existing_handoff": "trigger4/inbox/local_voice/T7_QWEN3_ASR_STREAMING_SCOPE_SUCCESSOR_2026-08-30_GPT56SOL.json",
+  "binds_scoring_addendum": "trigger4/inbox/local_voice/T7_QWEN3_ASR_FLEURS_SCORING_INTEGRITY_ADDENDUM_2026-08-30_GPT56SOL.json",
+  "source_delta": "research/local_voice/sources/2026-08-30_T7_ASR004_FASTER_WHISPER_BASELINE_REPRODUCIBILITY_GPT56SOL.json",
+  "source_delta_commit": "334f653eeb99ef15a6b1f828fe2824288d99dd7e",
+  "duplicate_dispatch_forbidden": true,
+  "runtime_owner_unchanged": "existing Trigger4/current authorized target executor",
+  "purpose": "Prevent an unpinned faster-whisper package/model/search/VAD/thread configuration from confounding the already-routed matched German comparator.",
+  "required_before_matched_baseline_quality_credit": [
+    "Resolve and persist the exact existing admitted faster-whisper baseline if one already exists for this semantic objective. Do not create a second baseline merely because this addendum exists.",
+    "Otherwise use a reproducible reference baseline starting from faster-whisper==1.2.1 and large-v3 on CPU int8, then pin the exact resolved Systran/faster-whisper-large-v3 revision and consumed artifact digests before inference.",
+    "Persist package/source digest, CTranslate2/runtime versions, device, compute_type, beam_size, language, condition_on_previous_text, temperature/search parameters and effective CPU thread count.",
+    "RAW arm: disable faster-whisper internal VAD. GATED arm: use the same external deterministic VAD/turn-admission contract as the corresponding Qwen gated arm. Do not let internal Silero VAD become hidden comparison authority.",
+    "Keep actual input-audio hashes identical across matched arms and retain the already-pinned evaluator normalization/hash from the scoring-integrity addendum.",
+    "Report decoder-only and gated end-to-end latency separately; keep speech WER/CER separate from non-speech false-text activation."
+  ],
+  "provisional_reference_only": {
+    "package": "faster-whisper==1.2.1",
+    "package_wheel_sha256": "79a66ad50688c0b794dd501dc340a736992a6342f7f95e5811be60b5224a26a7",
+    "model_alias": "large-v3",
+    "expected_model_repo": "Systran/faster-whisper-large-v3",
+    "device": "cpu",
+    "compute_type": "int8",
+    "beam_size": 5,
+    "language": "de",
+    "condition_on_previous_text": false,
+    "raw_vad_filter": false,
+    "warning": "Exact resolved model revision/artifact identity and effective thread count are still runtime-bound facts and must be captured by the executor. A newer already-admitted project baseline outranks this provisional reference."
+  },
+  "no_new_execution_request": true,
+  "acceptance_fences": [
+    "BASELINE_CONFIG_PIN != RUNTIME_RESULT",
+    "MUTABLE_MODEL_ALIAS != ARTIFACT_PROVENANCE",
+    "INTERNAL_WHISPER_VAD != MATCHED_EXTERNAL_GATE",
+    "MATCHED_DECODER_SETTINGS_REQUIRED_FOR_FAIRNESS",
+    "TRIGGER7 != TRIGGER4_ACCEPTANCE"
+  ],
+  "credits": {
+    "runtime": 0,
+    "german_asr_quality": 0,
+    "streaming_asr": 0,
+    "trigger4_acceptance": 0,
+    "whole_system": 0
+  },
+  "next_exact_action": "Existing Trigger4/current target executor consumes this addendum together with the FLEURS scoring addendum and runs the already-open T7-ASR-004 comparator once, with no duplicate dispatch."
+}
