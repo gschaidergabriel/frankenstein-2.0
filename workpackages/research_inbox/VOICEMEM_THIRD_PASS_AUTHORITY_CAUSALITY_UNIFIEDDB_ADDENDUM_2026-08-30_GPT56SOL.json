@@ -1,0 +1,143 @@
+{
+  "schema": "FRANKENSTEIN2_VOICEMEM_THIRD_PASS_ADDENDUM/v1",
+  "classification": "APPEND_ONLY_DONOR_GAP_AUDIT_AND_EXTERNAL_FALSIFIER_INPUT",
+  "created_at_utc": "2026-08-30T05:55:00Z",
+  "organ": "GPT-5.6-Sol/federated-architect-research",
+  "subject": "VoiceMem third-pass gaps: state-substrate convergence, explicit causal context, recurrence, memory authority and stale-behavior verification",
+  "parent_routing_index": "workpackages/research_inbox/VOICEMEM_WORKER_ROUTING_INDEX_2026-08-30_GPT56SOL.json",
+  "source_snapshot": {
+    "voice_mem_repo": "xzf-thu/VoiceMem",
+    "voice_mem_sha": "d587d424a02727d9ff3ef6f8e672a39a19ce64a7",
+    "uploaded_zip_sha256": "535ed07d8af8da7fb8b8b5a31ee3105b0fa92fb7d739863a00c8159e099641e0",
+    "f2_main_before_addendum": "609883e308cbf81df27de0342ed0a1a2b869afbe"
+  },
+  "new_donor_source_refs": [
+    {"ref":"xzf-thu/VoiceMem@d587d424a02727d9ff3ef6f8e672a39a19ce64a7:voicemem/utils/common/space.py","sha256":"7b1907ac6e49e4d781899bab04cf689de2d74398d50373c8e92042a7787a628e"},
+    {"ref":"xzf-thu/VoiceMem@d587d424a02727d9ff3ef6f8e672a39a19ce64a7:voicemem/utils/common/turn_ids.py","sha256":"f1a24955dc0a7fa002ac9cf4b2763cc33649117d5bd01e572dc4076114461e1c"},
+    {"ref":"xzf-thu/VoiceMem@d587d424a02727d9ff3ef6f8e672a39a19ce64a7:voicemem/utils/common/session_tracker.py","sha256":"efc0257d9abfb2df2f56e81d39ea465b461ba140a7bb8404f29b89f621dc32b0"},
+    {"ref":"xzf-thu/VoiceMem@d587d424a02727d9ff3ef6f8e672a39a19ce64a7:voicemem/orchestrator.py","sha256":"a9ffd2430c528b0e84912f548c9ccdf997b466e3fc4eb5e1a56c9d81474d89af"},
+    {"ref":"xzf-thu/VoiceMem@d587d424a02727d9ff3ef6f8e672a39a19ce64a7:voicemem/leftbrain/merged_extraction.py","sha256":"706420c415030bcd16661a582eecf7caa3acf177d875cc022417d6ae62fa2d89"},
+    {"ref":"xzf-thu/VoiceMem@d587d424a02727d9ff3ef6f8e672a39a19ce64a7:voicemem/utils/audio/environment/routine_memory.py","sha256":"9fc2c3421734dba6129979db0397dd4c82a66c35aaf304de3fae6fb02555505c"},
+    {"ref":"xzf-thu/VoiceMem@d587d424a02727d9ff3ef6f8e672a39a19ce64a7:voicemem/leftbrain/memory_repository.py","sha256":"099449443a76159b19dfdd1ab3e33b877132743a1a2105285e979b5cff5deb0a"}
+  ],
+  "source_internal_contradiction": {
+    "id": "VM-G00-STRUCTURED-DB-COUNT-DISCREPANCY",
+    "observation": "space.py clearly documents consolidation of previously separate structured SQLite stores into one per MemorySpace, but one comment says 10 old .sqlite files while the explanatory list and orchestrator comment say nine. Preserve this as a donor documentation inconsistency; it does not affect the observed one-SQLite-per-space implementation.",
+    "worker_rule": "Do not convert donor documentation counts into evidence. Verify actual schema/files when reproducing."
+  },
+  "new_findings": [
+    {
+      "id": "VM-G01-ONE-STRUCTURED-AUTHORITY-SUBSTRATE",
+      "source_observation": "MemorySpace places structured stores that were formerly split across multiple SQLite files into one <space>.sqlite with typed, non-overlapping tables; vectors remain in a Qdrant directory and multimodal blobs remain separate. The code explicitly frames the merge as reducing ownership/copy/backup boundaries, not as making one monolithic table.",
+      "transfer": "Strong donor support for UnifiedDB's one canonical structured authority substrate, many typed tables/views model. External vectors/blobs may remain projections/artifacts only if canonical identity, provenance, generation and rebuild/recovery rules are explicit.",
+      "counterhypothesis": "Co-locating tables in one SQLite file can increase lock/contention or create schema blast radius while giving a false impression of atomic whole-system state.",
+      "cheapest_discriminator": "Snapshot/recovery fixture: copy one canonical structured DB plus declared external projection/blob manifests; verify all canonical typed state restores, external projections can be rebuilt or are explicitly noncanonical, and one malformed/legacy table row cannot poison unrelated read paths.",
+      "routes": ["F2-WP-100","F2-WP-103","UNIFIEDDB","ARCHITECT"]
+    },
+    {
+      "id": "VM-G02-ONE-DB-FILE-NEQ-ATOMIC-MULTISTORE-COMMIT",
+      "source_observation": "memory_repository.append_extracted writes the vector store first, then a JSON mirror, then cognitive graph rows; graph failure is logged while vector memory can remain. The sound-only path separately documents that vector insertion without a corresponding SQLite memory row makes later foreign-key tag writes fail. Thus storage co-location does not eliminate partial-write states across vector/structured/projection surfaces.",
+      "transfer": "For F2, represent cross-surface writes as an explicit staged WriteSet/Admission receipt with canonical-first authority, idempotent repair and per-surface status. A vector/projection write must never be treated as canonical completion.",
+      "counterhypothesis": "A strict transactional wrapper around every projection write may over-serialize harmless derived work and raise latency.",
+      "cheapest_discriminator": "Failure-injection fixture between canonical write, vector projection and graph/index write. Canonical state must remain unambiguous; projection failure becomes REPAIRABLE/DEGRADED, retry is idempotent, and no foreign-key/orphan projection is exposed as complete.",
+      "routes": ["F2-WP-103","F2-WP-104","F2-WP-904","UNIFIEDDB"]
+    },
+    {
+      "id": "VM-G03-CORRELATION-ID-NEQ-CAUSAL-IDENTITY",
+      "source_observation": "VoiceMem generates readable turn_id from sanitized session_id + turn_index and learned through a real bug that locally predicted memory IDs diverged from the IDs actually returned by mem0, breaking graph links. It now adopts backend-returned memory IDs for linked stores.",
+      "transfer": "Readable session/turn IDs are useful correlation labels but must not substitute for replay-stable causal_event_id/admission_id/model_call_id. Bind human-readable aliases to immutable identities; downstream links must echo the actually consumed/returned identity.",
+      "counterhypothesis": "Additional IDs can add bookkeeping complexity without value in strictly single-process paths.",
+      "cheapest_discriminator": "Replay/collision test with same display session/turn labels across generations and backend-assigned object IDs. No two causal events may collapse; every graph/projection link must resolve to an actually admitted object.",
+      "routes": ["F2-WP-005","F2-WP-103","TYPED_ENTRY","GWT_JSPACE"]
+    },
+    {
+      "id": "VM-G04-IMPLICIT-THREAD-CONTEXT-IS-HIDDEN-ABI",
+      "source_observation": "merged_extraction.py uses threading.local() to pass whole-utterance emotion/trait results from extraction to later consumers because textual keys differed. The optimization assumes producer and consumer run sequentially on the same thread; annotations also use process-global bounded dictionaries keyed by fact text.",
+      "transfer": "Do not carry this pattern into HCU/async/multi-worker execution. Use an explicit ExtractionBundle/TransformBundle keyed by causal event + call/output identity, with typed fields and one-consumer or reference-count semantics. Hidden thread/process context is not provenance.",
+      "counterhypothesis": "Thread-local transfer is simpler and can be safe in a single-thread synchronous product.",
+      "cheapest_discriminator": "Concurrent identical-utterance fixture across threads/tasks plus cancellation/retry. No emotion/trait/annotation may cross event identities; fallback of one field must not consume another event's cached output.",
+      "routes": ["F2-WP-005","F2-WP-505","F2-WP-705","HCU_TYPED_CAUSAL_FABRIC"]
+    },
+    {
+      "id": "VM-G05-RECURRENCE-CREATES-ROUTINE-CANDIDATE-NOT-FACT",
+      "source_observation": "RoutineStore records one scene/time-bucket observation per day and creates a routine after the threshold is reached on distinct days, default 3. This is an efficient recurrence detector, but recurrence alone does not prove a durable behavioral rule.",
+      "transfer": "Use recurrence as a cheap consolidation/proposal gate: repeated observations may create RoutineHypothesisCandidate with exact observation refs, distinct-day support, time bucket and counterevidence; promotion to durable method/persona/world claim requires separate evidence policy.",
+      "counterhypothesis": "Three repeated observations can be caused by a temporary schedule, holiday, experiment or sensor bias.",
+      "cheapest_discriminator": "Synthetic temporal stream with recurring, temporary, alternating and missing-observation regimes. Candidate creation may follow recurrence; durable claim confidence must fall or remain UNKNOWN when counterevidence breaks the pattern.",
+      "routes": ["F2-WP-303","F2-WP-304","F2-WP-800","ARCHITECT"]
+    },
+    {
+      "id": "VM-G06-AUTHORITY-MUST-SURVIVE-MEMORY-CONSOLIDATION",
+      "source_observation": "VoiceMem's claim/evidence/cause separation improves provenance structure but does not itself encode the authorization scope under which a source may later influence actions.",
+      "external_support": [
+        "arXiv:2608.01679 When Memory Becomes Authority: authority collapse at consolidation; same claim with source authority varied",
+        "arXiv:2607.29167 Memory Provenance Laundering: provenance can be rewritten away while action trigger survives",
+        "arXiv:2606.25161 TrustMem: memory transition verification for coverage, preservation and faithfulness"
+      ],
+      "transfer": "Every durable Claim/Method/Policy candidate that may influence effects must preserve source authority/capability scope separately from semantic content. Consolidation may narrow but never amplify authority. Recall-time use and EffectGate must re-check the authority envelope rather than trust a rewritten summary.",
+      "counterhypothesis": "Authority labels predicted by a model may themselves be wrong or stale and create a false safety boundary.",
+      "cheapest_discriminator": "Paired fixture with identical claim text from authorized vs unauthorized sources. Consolidation output may be semantically identical, but stored authority envelope and allowed downstream use must differ. Unauthorized memory must never authorize a high-risk effect; model-predicted authority alone is insufficient without platform/canonical binding.",
+      "routes": ["F2-WP-303","F2-WP-304","F2-WP-305","F2-WP-800","F2-WP-904","EFFECTGATE","TYPED_ENTRY"],
+      "priority": "P0"
+    },
+    {
+      "id": "VM-G07-MEMORY-TRANSITION-VERIFIER-AS-FIRST-CLASS-GATE",
+      "source_observation": "VoiceMem's history contains several update/consolidation bugs where content links, schema generation or IDs drifted while outer paths still ran.",
+      "external_support": "arXiv:2606.25161 TrustMem evaluates memory transitions for coverage, preservation and faithfulness rather than judging only the final summary.",
+      "transfer": "Add a candidate MemoryTransitionReceipt verifier over exact before-state digest, proposed patch, after-state digest, preserved refs and unsupported additions. This is a validation layer for candidate memory evolution, not a model authority.",
+      "counterhypothesis": "A verifier trained/judged by similar models can share the same blind spots as the consolidator.",
+      "cheapest_discriminator": "Deterministic corruption suite: omission, unsupported addition, wrong-principal update, lost provenance, lost authority, stale-generation overwrite. Require exact structural failures to be caught without model-only self-agreement.",
+      "routes": ["F2-WP-300","F2-WP-305","F2-WP-800","F2-WP-904"],
+      "priority": "P0"
+    },
+    {
+      "id": "VM-G08-CURRENT-MEMORY-NEQ-CURRENT-BEHAVIOR",
+      "source_observation": "VoiceMem's supersession and context-delivery fixes show that having an updated record does not guarantee the exact downstream response consumes it.",
+      "external_support": "arXiv:2608.01619 reports an implicit policy adaptation gap where agents can possess newer state yet still generate behavior based on stale dependencies; its StateAuditor audits from changed state toward the draft.",
+      "transfer": "For high-impact changed state, bind changed-state refs into the exact downstream SituationFrame/model-call/action-candidate and test whether stale predecessor premises still influence the candidate. Verification must cover implicit dependencies, not only explicit factual claims in text.",
+      "counterhypothesis": "State-to-draft auditing can over-repair when old state remains contextually relevant or the transition is only chronological, not semantic supersession.",
+      "cheapest_discriminator": "Paired old/new-state micro-world where successor is current for one task but predecessor remains historically valid for another. Current-action candidate must not depend on stale premise; historical query must retain old evidence. Verify chronology/provenance separately from semantic supersession.",
+      "routes": ["F2-WP-306","F2-WP-800","F2-WP-806","GWT_JSPACE","AGENCY"]
+    },
+    {
+      "id": "VM-G09-RECURRENCE-AND-TEMPORAL-HIERARCHY-AS-CONSOLIDATION-SIGNALS",
+      "source_observation": "VoiceMem delays expensive consolidation and uses repeated real interactions/observations to justify higher-order structures.",
+      "external_support": [
+        "ACL Findings 2026 / arXiv:2605.16045 RecMem: recurrence-gated consolidation rather than LLM processing every interaction",
+        "ACL Findings 2026 / arXiv:2601.02845 TiMem: temporal-hierarchical organization and complexity-aware recall"
+      ],
+      "transfer": "Treat recurrence and temporal scale as proposal/gating signals, not truth. Candidate consolidation should expose the raw evidence set, recurrence statistics, temporal level and exact query/task benefit.",
+      "counterhypothesis": "Recurrence optimizes frequent patterns and can neglect rare but safety-critical or one-shot high-value facts.",
+      "cheapest_discriminator": "Compare eager, recurrence-gated and hybrid importance/recurrence consolidation on token cost, rare-critical retention, held-out retrieval quality and factual preservation.",
+      "routes": ["F2-WP-303","F2-WP-305","F2-WP-306","F2-WP-800","F2-WP-902"]
+    }
+  ],
+  "new_p0_discriminators": [
+    {"id":"D9","name":"Authority-preserving memory consolidation","rule":"identical semantic content from different source-authority classes must preserve distinct authorized-use envelopes; consolidation cannot amplify authority"},
+    {"id":"D10","name":"Cross-surface partial-write recovery","rule":"failure between canonical structured state and vector/graph/blob projections must yield one unambiguous canonical state plus idempotent repair, never a second truth"},
+    {"id":"D11","name":"Explicit causal transform bundle","rule":"concurrent/cancelled/retried transforms must not exchange hidden thread/process-local outputs across causal identities"},
+    {"id":"D12","name":"Memory transition verifier","rule":"omission, unsupported addition, wrong-principal update, provenance/authority loss and stale-generation overwrite are rejected at transition scope"},
+    {"id":"D13","name":"State-to-behavior stale-dependency audit","rule":"a current action candidate must demonstrate consumption of relevant successor state and reject stale implicit premises while historical queries retain superseded evidence"}
+  ],
+  "worker_order_addendum": [
+    "P0: D9 authority-preservation paired benchmark before allowing evolved memory/Method/Policy candidates to influence high-risk effects.",
+    "P0: D10 partial-write failure injection around structured canonical state vs vectors/graphs/blobs.",
+    "P0: D11 replace any new hidden thread/process-local cross-stage context with explicit causal TransformBundle; existing VoiceMem pattern is donor failure-risk evidence, not a design to copy.",
+    "P0: D12 MemoryTransitionReceipt corruption suite.",
+    "P0/P1: D13 stale-dependency audit on changed-state -> SituationFrame/model-call/action candidate.",
+    "P1: recurrence/routine candidate experiment with rare-critical counterexamples and temporal hierarchy.",
+    "Review UnifiedDB recovery/backup and table-namespace rules using VM-G01; do not create a competing database."
+  ],
+  "hard_do_not_do_addendum": [
+    "Do not equate one SQLite file with one atomic end-to-end transaction across vector, blob, model and projection surfaces.",
+    "Do not treat readable turn/session identifiers as replay-stable causal authority.",
+    "Do not use thread-local/global caches as provenance across HCU cells, async tasks or workers.",
+    "Do not promote recurrence/frequency directly into FACT, identity, routine truth or permission.",
+    "Do not allow consolidation, summarization or method learning to erase or amplify source authority.",
+    "Do not treat a current memory store as proof that the downstream response/action used the current state."
+  ],
+  "evidence_boundary": "Donor-source findings are architecture/failure evidence from VoiceMem source, not F2 runtime evidence. External paper results are author-reported and provide independent problem-class support only. This addendum authorizes no workpackage mutation by itself.",
+  "mutation_authority": "NONE_RESEARCH_INPUT_ONLY",
+  "runtime_credit": 0,
+  "whole_system_credit": 0
+}
