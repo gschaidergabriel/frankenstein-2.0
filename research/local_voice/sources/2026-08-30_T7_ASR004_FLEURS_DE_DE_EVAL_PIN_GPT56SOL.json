@@ -1,0 +1,66 @@
+{
+  "schema": "TRIGGER7_ASR_FIXTURE_SOURCE_PIN/v1",
+  "trigger": "7",
+  "date": "2026-08-30",
+  "research_id": "T7-ASR-004",
+  "semantic_key": "95bd53a469133dbfdf39da320f6daa049cec1361084e632dc915c4bc156e3715",
+  "classification": "EXTERNAL_PRIMARY_SOURCE_PIN_NO_RUNTIME_CREDIT",
+  "purpose": "Provide a reproducible transcript-bearing ordinary-German ASR comparator slice for the already-open Qwen3-ASR versus faster-whisper target benchmark.",
+  "dataset": {
+    "owner": "google",
+    "name": "fleurs",
+    "config": "de_de",
+    "revision": "bc0636bc121b131df69ed727a4ddafc5afc8afe4",
+    "revision_message": "Add 'de_de' config data files",
+    "split": "test",
+    "license": "CC-BY-4.0",
+    "source_role": "ORDINARY_GERMAN_TRANSCRIPT_BEARING_REFERENCE_ONLY"
+  },
+  "selection_v1": {
+    "rule": "Load google/fleurs config de_de at the exact pinned revision, split=test, preserve canonical dataset row order, and take rows 0 through 31 inclusive.",
+    "row_indices": {
+      "start_inclusive": 0,
+      "end_inclusive": 31,
+      "count": 32
+    },
+    "reference_field": "transcription",
+    "runtime_receipt_requirements": [
+      "record dataset library/runtime version",
+      "record resolved dataset revision",
+      "record each selected row index and stable example identifier/path fields exposed by the loader",
+      "hash the decoded or canonicalized audio bytes actually supplied to each ASR arm",
+      "persist exact reference and hypothesis text per row",
+      "run the identical selected audio/reference rows on every compared candidate/condition"
+    ]
+  },
+  "comparison_arms": [
+    "QWEN3_ASR_DIRECT",
+    "QWEN3_ASR_WITH_DETERMINISTIC_VAD_TURN_ADMISSION",
+    "MATCHED_FASTER_WHISPER_BASELINE_WITH_ITS_ADMITTED_VAD_NO_SPEECH_CONTROLS"
+  ],
+  "metrics": [
+    "WER",
+    "CER",
+    "per_utterance_latency",
+    "exact_failure_transcripts",
+    "resource_measurements",
+    "gate_decision_and_gate_latency_for_gated_arms"
+  ],
+  "scope_limits": [
+    "FLEURS ordinary German does not substitute for the separate non-speech silence/noise/echo falsifier.",
+    "FLEURS does not establish project-specific names, technical vocabulary, German-English code switching, room acoustics, barge-in, streaming partial stability or endpoint quality.",
+    "A benchmark result on this public corpus may be affected by unknown upstream training overlap; use it as a matched engineering comparator, not proof of out-of-distribution generalization.",
+    "Dataset/source availability and metadata do not create any F2 runtime or German-quality credit before exact target execution."
+  ],
+  "coordination": {
+    "new_semantic_claim_created": false,
+    "reason": "This source pin narrows the input corpus for the existing open T7-ASR-004 semantic objective; it is not a new scientific objective or execution lane."
+  },
+  "credits": {
+    "target_execution_delta": 0,
+    "german_asr_quality_delta": 0,
+    "streaming_asr_delta": 0,
+    "trigger4_acceptance_delta": 0,
+    "whole_system_delta": 0
+  }
+}
