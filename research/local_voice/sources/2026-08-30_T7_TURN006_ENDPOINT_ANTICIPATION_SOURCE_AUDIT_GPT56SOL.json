@@ -1,0 +1,83 @@
+{
+  "schema": "T7_SOURCE_AUDIT/v1",
+  "trigger": "7",
+  "research_id": "T7-TURN-006",
+  "objective": "E1_ENDPOINT_ANTICIPATION_SOURCE_AUDIT",
+  "semantic_key": "b3bd287b511e605871506c00a90dbf4750d89e4fd8bcf197f3bdca67bd43b054",
+  "evidence_scope": "SOURCE_PIN_ONLY",
+  "epistemic_status": "UPSTREAM_PRIMARY_SOURCE_OBSERVED_PLUS_F2_INFERENCE",
+  "runtime_credit": 0,
+  "german_runtime_credit": 0,
+  "f2_acceptance_credit": 0,
+  "upstream": {
+    "title": "Endpoint Anticipation for Low-Latency Spoken Dialogue",
+    "authors": ["Sathvik Udupa", "Shinji Watanabe", "Petr Schwarz", "Jan Cernocky"],
+    "arxiv_id": "2606.13450",
+    "source_url": "https://arxiv.org/abs/2606.13450",
+    "observed_publication_date": "2026-06-11"
+  },
+  "source_observations": {
+    "mechanism": "speech-based proactive forecasting of end-of-turn signals before the actual endpoint, enabling speculative downstream execution on partial context",
+    "maximum_reported_anticipation_seconds": 2.56,
+    "reported_unmute_average_latency_reduction_ms": 505,
+    "reported_speculative_compute_increase_percent": 28.4,
+    "reported_baseline_relation": "authors report consistent gains over competitive VAP-based baselines across conversational and task-oriented datasets",
+    "german_specific_validation_observed": false,
+    "scope_note": "UPSTREAM_RESULT_NOT_F2_RESULT"
+  },
+  "relationship_to_existing_f2_candidates": {
+    "pipecat_smart_turn_v3_2": "primarily a reactive semantic EOT classifier after a pause; Endpoint Anticipation instead forecasts the endpoint before it occurs",
+    "next_turn_duration_aware_endpointing": "predicts time-to-next-speech-onset / pause duration behavior; Endpoint Anticipation is a proactive latency-hiding trigger for speculative downstream work",
+    "dualturn": "broader interaction-state / two-channel turn-taking research; Endpoint Anticipation can be evaluated as a narrow speculative-start signal rather than as the sole turn controller"
+  },
+  "f2_architecture_delta": {
+    "candidate_role": "non-authoritative speculative-start signal upstream of committed response generation",
+    "safe_composition": [
+      "VAD/audio evidence suggests likely end-of-turn",
+      "Endpoint Anticipation may start a cancellable speculative LLM branch on partial context",
+      "optional TTS preflight may prepare but must not make unconfirmed audio canonical/spoken",
+      "VoiceIntent/GWT/turn-controller confirmation remains the response-commit gate",
+      "barge-in, resumed user speech or changed transcript cancels the speculative branch",
+      "unheard text/audio must never be recorded as spoken in VoiceOutcome or UnifiedDB"
+    ],
+    "must_not_replace": [
+      "continuous wake/VAD",
+      "semantic turn authority",
+      "barge-in cancellation",
+      "playback truncation",
+      "VoiceIntent/GWT/WAIT",
+      "VoiceOutcome causal re-entry",
+      "UnifiedDB canonical state/evidence"
+    ]
+  },
+  "hypothesis": "A proactive endpoint-anticipation signal can hide part of local LLM/TTS sequential latency without weakening Frankenstein's deterministic turn/cancellation authority, if speculative work remains uncommitted and fully cancellable.",
+  "counterhypotheses": [
+    "The reported 28.4% speculative-compute overhead may create CPU/GPU contention on clay-direct-dev and erase the latency benefit for a fully local stack.",
+    "Forecast errors on German hesitation, clause-final prosody, self-repair and backchannels may increase wasted generation and cancellation churn.",
+    "A strong reactive German Smart Turn / Next-Turn controller plus faster ASR/TTS may already achieve the same perceived latency with less resource complexity.",
+    "Starting TTS too early risks semantic/audio commit errors unless audible playback remains behind an explicit commit fence."
+  ],
+  "recommended_measurement": {
+    "target_surface": "clay-direct-dev",
+    "common_corpus": "same pinned German room-audio turns used by the Trigger-7 turn-controller benchmark",
+    "comparators": ["silence/VAD baseline", "Pipecat Smart Turn v3.2", "Next-Turn-style duration-aware endpointing", "Endpoint Anticipation speculative-start path"],
+    "metrics": [
+      "false-cut rate",
+      "false-wait rate",
+      "endpoint/commit latency p50/p95/p99",
+      "user-speech-end to first audible Frankenstein audio",
+      "speculative hit rate",
+      "cancelled/wasted speculative compute",
+      "CPU/RSS/GPU/VRAM contention",
+      "barge-in playback-stop latency",
+      "unheard-output commit violations",
+      "German hesitation/backchannel/overlap accuracy"
+    ]
+  },
+  "promotion": {
+    "result": "SOURCE_ADMISSIBLE_SPECULATIVE_ENDPOINT_CANDIDATE_GERMAN_UNPROVEN",
+    "current_level": "V1_SOURCE_PINNED",
+    "target_runtime_required_for_v2_or_higher": true,
+    "trigger4_acceptance_not_claimed": true
+  }
+}
