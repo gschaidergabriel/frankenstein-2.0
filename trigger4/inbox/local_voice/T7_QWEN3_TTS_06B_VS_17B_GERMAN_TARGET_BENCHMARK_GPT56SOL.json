@@ -1,0 +1,54 @@
+{
+  "schema": "T7_TO_TRIGGER4_LOCAL_VOICE_CANDIDATE/v1",
+  "date": "2026-08-30",
+  "trigger7_worker": "GPT-5.6-Sol",
+  "research_id": "T7-TTS-001",
+  "objective": "E3_QWEN3_TTS_12HZ_06B_VS_17B_GERMAN_AB",
+  "semantic_key": "276537fa4a4615b46c255684da2e0306d596a7712df159e723ae6dfc02a2f961",
+  "semantic_claim_path": "research/local_voice/semantic_claims/276537fa4a4615b46c255684da2e0306d596a7712df159e723ae6dfc02a2f961.json",
+  "human_claim_path": "research/local_voice/claims/T7-TTS-001/E3_QWEN3_TTS_12HZ_06B_VS_17B_GERMAN_AB.json",
+  "benchmark_contract": "research/local_voice/benchmarks/T7_GERMAN_REALTIME_VOICE_BENCHMARK_V1.md",
+  "receipt_tool": "research/local_voice/tools/t7_voice_receipt.py",
+  "target_surface": "clay-direct-dev",
+  "runtime_mode_required": "LOCAL_SOLO",
+  "candidate_models": [
+    "Qwen/Qwen3-TTS-12Hz-0.6B-CustomVoice",
+    "Qwen/Qwen3-TTS-12Hz-1.7B-CustomVoice"
+  ],
+  "fixed_language": "de",
+  "required_precondition": "REAL_EXACT_SOURCE_TARGET_HARDWARE_RUNTIME_RECEIPT",
+  "required_network_counters": {
+    "outbound_model_api_calls": 0,
+    "outbound_asr_api_calls": 0,
+    "outbound_tts_api_calls": 0
+  },
+  "measure": [
+    "cold_load_seconds",
+    "warm_load_seconds",
+    "peak_rss_bytes",
+    "peak_vram_bytes_if_gpu_present",
+    "tts_ttfa_ms_p50_p95_p99_max",
+    "first_audio_played_latency_ms",
+    "realtime_factor",
+    "complete_wave_latency_ms",
+    "chunk_boundary_continuity",
+    "stable_male_identity",
+    "german_intelligibility",
+    "names_numbers_technical_pronunciation",
+    "cancellation_stop_latency_ms",
+    "unheard_output_committed",
+    "duplicate_audio_detected",
+    "replayed_audio_detected",
+    "oom_timeout_dependency_failures"
+  ],
+  "hard_fail": [
+    "ANY_EXTERNAL_MODEL_ASR_TTS_INFERENCE_CALL",
+    "UNHEARD_OUTPUT_DURABLY_COMMITTED",
+    "DUPLICATE_OR_REPLAYED_AUDIO_CHANGES_HEARD_OUTPUT",
+    "CANDIDATE_CANNOT_COEXIST_WITH_ADMITTED_F2_RESOURCE_ENVELOPE"
+  ],
+  "execution_law": "Do not dispatch a duplicate semantic objective. Consume the existing semantic key. If no eligible target runner/hardware receipt exists, persist BLOCKED_TARGET_RUNNER rather than fabricating runtime evidence.",
+  "acceptance_boundary": "Trigger 7 routes and interprets research evidence only. Trigger 4 owns F2 target-runtime integration/acceptance. Upstream latency claims are not target measurements.",
+  "observed_main_before_route": "e4386cfcc1d03e95407cfaa7c44097e7b8a040de",
+  "status": "ROUTED_TO_TRIGGER4_FOR_TARGET_EXECUTION_OR_BLOCKED_RECEIPT"
+}
