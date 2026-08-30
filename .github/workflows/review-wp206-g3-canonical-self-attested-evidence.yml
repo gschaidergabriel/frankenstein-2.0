@@ -1,0 +1,58 @@
+name: REVIEW WP206 G3 canonical self-attested evidence
+
+on:
+  push:
+    branches:
+      - review/trigger4-wp206-g3-canonical-self-attested-evidence-20260830
+    paths:
+      - 'src/frankenstein2/wp206_legacy_authority_recovery.py'
+      - 'src/frankenstein2/persistent_agency_kernel.py'
+      - 'src/state/unifieddb_identity.py'
+      - 'tests/wp206_restart_probe.py'
+      - 'tests/falsifier_wp206_g3_canonical_self_attested_evidence.py'
+      - '.github/workflows/review-wp206-g3-canonical-self-attested-evidence.yml'
+  pull_request:
+    paths:
+      - 'src/frankenstein2/wp206_legacy_authority_recovery.py'
+      - 'src/frankenstein2/persistent_agency_kernel.py'
+      - 'src/state/unifieddb_identity.py'
+      - 'tests/wp206_restart_probe.py'
+      - 'tests/falsifier_wp206_g3_canonical_self_attested_evidence.py'
+      - '.github/workflows/review-wp206-g3-canonical-self-attested-evidence.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  canonical-negative-control:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Compile exact accepted surface and falsifier
+        run: >-
+          python -m py_compile
+          src/frankenstein2/wp206_legacy_authority_recovery.py
+          src/frankenstein2/persistent_agency_kernel.py
+          src/state/unifieddb_identity.py
+          tests/wp206_restart_probe.py
+          tests/falsifier_wp206_g3_canonical_self_attested_evidence.py
+      - name: Reproduce canonical post-acceptance negative control
+        env:
+          PYTHONPATH: src
+        run: python tests/falsifier_wp206_g3_canonical_self_attested_evidence.py
+      - name: Preserve review-only credit fence
+        if: always()
+        run: |
+          echo 'CLASSIFICATION=POST_ACCEPTANCE_REVIEW_ONLY_EXECUTABLE_FALSIFIER'
+          echo 'MUTATION_AUTHORITY=false'
+          echo 'TARGET_RUNTIME_CREDIT=0'
+          echo 'PHYSICAL_GRID10_CREDIT=0'
+          echo 'GWT_JSPACE_RUNTIME_CREDIT=0'
+          echo 'EFFECT_CREDIT=0'
+          echo 'COMPLETION_CREDIT=0'
+          echo 'TRAINING_CREDIT=0'
+          echo 'WHOLE_SYSTEM_ACCEPTANCE=false'
