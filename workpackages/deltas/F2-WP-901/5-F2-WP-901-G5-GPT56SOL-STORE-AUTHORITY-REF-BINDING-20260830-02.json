@@ -37,14 +37,21 @@
       "7502c5018360ab39e32418e155cd023f7615115a",
       "bd829217bf1586c2f9e3b067c84b126fccdc8ce1",
       "c0e66a23612f7d85df57edbc75a1e205ca84798f",
-      "b5c214a63703f86a9c3d666844adb6485d0c865e"
+      "b5c214a63703f86a9c3d666844adb6485d0c865e",
+      "b5b60bfba5f1621408bf98d67f30aa31c5bbf390"
     ],
     "failed_attempts_are_canonical": false,
     "force_push_used": false,
     "state_json_rewritten": false
   },
+  "parallel_reentry_evidence": {
+    "wal_snapshot_e3_result_commit": "5be38a33952c375faee6d3e7ee5986dc892ba3e2",
+    "result": "20_OF_20_EXPECTED_LOCAL_SQLITE_WAL_SNAPSHOT_MECHANISM",
+    "scope": "LOCAL_SQLITE_MECHANISM_REPRODUCTION_NOT_F2_TARGET_RUNTIME",
+    "interpretation": "The WAL snapshot result is compatible with the existing G4 same-transaction snapshot binding and targets the separately open same-inode/freshness boundary. It does not falsify the narrow G5 authority-reference repair and grants no target/runtime/whole-system credit."
+  },
   "current_interpretation": "Generation 5 implementation and exact-main CI evidence are sufficient for bounded repository-component reconciliation, but the canonical active pointer/state-event terminal transition remains SYNC_PENDING until one atomic v2 CAS wins. Do not infer terminal canonical state from this delta alone.",
-  "next_exact_action": "A reconciliation writer should refresh main and F2-WP-901 event head, verify generation 5 remains the active claim and sequence 7 remains unused, then atomically commit the bounded receipt + reconciliation + ACCEPTED active pointer + sequence-7 terminal state event with current main as sole parent and publish force=false. If a successor or sequence-7 event already exists, re-enter instead of overwriting it.",
+  "next_exact_action": "A reconciliation writer should refresh main and F2-WP-901 event head, verify generation 5 remains the active claim and sequence 7 remains unused, then atomically commit the bounded receipt + reconciliation + ACCEPTED active pointer + sequence-7 terminal state event with current main as sole parent and publish force=false. If a successor or sequence-7 event already exists, re-enter instead of overwriting it. Do not duplicate WP206 G6 or promote WAL E3 beyond its local mechanism scope.",
   "explicit_non_credit": {
     "target_host_restart_readback": "NOT_OBSERVED",
     "rollback_freshness": "NOT_OBSERVED",
@@ -59,5 +66,5 @@
     "training_credit": 0,
     "whole_system_acceptance": false
   },
-  "recorded_at_utc": "2026-08-30T12:27:00Z"
+  "recorded_at_utc": "2026-08-30T12:30:00Z"
 }
