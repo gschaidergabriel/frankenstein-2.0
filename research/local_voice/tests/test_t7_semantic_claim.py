@@ -212,6 +212,27 @@ class SemanticClaimTests(unittest.TestCase):
             "6bef6a827ecf833143e414d9fd59a0c12eaa301267a09f781303dc807f1f2f60",
         )
 
+    def test_parakeet_tdt_06b_v3_subject_alias_is_precise_and_stable(self):
+        a = SemanticObjective.from_inputs(
+            family="german asr benchmark",
+            target_surface="source-only",
+            subject="parakeet-tdt-0.6b-v3",
+            evidence_scope="source-pin",
+            generation=1,
+        )
+        b = SemanticObjective.from_inputs(
+            family="german asr benchmark",
+            target_surface="source-only",
+            subject="nvidia-parakeet-tdt-0.6b-v3",
+            evidence_scope="source-pin",
+            generation=1,
+        )
+        self.assertEqual(a.semantic_key(), b.semantic_key())
+        self.assertEqual(
+            a.semantic_key(),
+            "831a0648586591689423d110d6cbc2ac0566b9f5d2e9557cffeb45a8bd6705f3",
+        )
+
 
 if __name__ == "__main__":
     unittest.main()
