@@ -1,0 +1,52 @@
+name: "[REVIEW_ONLY] F2 WP1110 G4 Final Release Materialization CI"
+
+on:
+  push:
+    branches:
+      - chatgpt/trigger4-wp1110-g4-final-release-materialization-20260830
+    paths:
+      - 'src/frankenstein2/final_release_materialization.py'
+      - 'tools/materialize_final_release.py'
+      - 'tests/test_final_release_materialization.py'
+      - '.github/workflows/wp1110-g4-final-release-materialization-review-ci.yml'
+      - 'workpackages/deltas/F2-WP-1110/**'
+  pull_request:
+    paths:
+      - 'src/frankenstein2/final_release_materialization.py'
+      - 'tools/materialize_final_release.py'
+      - 'tests/test_final_release_materialization.py'
+      - '.github/workflows/wp1110-g4-final-release-materialization-review-ci.yml'
+      - 'workpackages/deltas/F2-WP-1110/**'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  review-only-final-release-materialization:
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Compile candidate surfaces
+        run: >-
+          python -m py_compile
+          src/frankenstein2/final_release_materialization.py
+          tools/materialize_final_release.py
+          tests/test_final_release_materialization.py
+      - name: Run exact materialization and tamper falsifiers
+        env:
+          PYTHONPATH: src
+        run: python tests/test_final_release_materialization.py -v
+      - name: Re-run accepted upstream composition boundaries
+        env:
+          PYTHONPATH: src
+        run: |
+          python tests/test_release_archive.py -v
+          python tests/test_release_artifact_subject.py -v
+          python tests/test_receipt_content_binding.py -v
+      - name: Confirm canonical workpackage state remains untouched
+        run: python tools/resolve_workpackage_state_v2.py --check-active
