@@ -10,6 +10,11 @@ row is rebound, the adapter verifies the exact canonical DB file identity, store
 digest and typed checkpoint replay.  A one-per-checkpoint recovery record is persisted in
 the same canonical UnifiedDB so a later receipt drift cannot be silently "recovered" again.
 
+Generation 4 hardens the already-recovered path: an idempotent repeat must carry the exact
+same provenance witness as the first recovery, and the persisted recovery row must still
+hash to its recorded recovery_id.  Conflicting repeat provenance or audit-row identity drift
+fails closed instead of being silently normalized to the first call.
+
 This is migration/recovery authority only.  It does not infer truth, schedule work, execute
 effects, mint completion, or create a second state database.
 """
@@ -75,6 +80,32 @@ def _same_real_path(left: str, right: str) -> bool:
     )
 
 
+def _recovery_id(
+    *,
+    checkpoint_id: str,
+    checkpoint_sha256: str,
+    canonical_db_path: str,
+    db_device: int,
+    db_inode: int,
+    legacy_authority_receipt_sha256: str,
+    rebound_authority_receipt_sha256: str,
+    recovery_provenance_ref: str,
+) -> str:
+    return _sha256(
+        {
+            "schema": RECOVERY_SCHEMA,
+            "checkpoint_id": checkpoint_id,
+            "checkpoint_sha256": checkpoint_sha256,
+            "canonical_db_path": canonical_db_path,
+            "db_device": db_device,
+            "db_inode": db_inode,
+            "legacy_authority_receipt_sha256": legacy_authority_receipt_sha256,
+            "rebound_authority_receipt_sha256": rebound_authority_receipt_sha256,
+            "recovery_provenance_ref": recovery_provenance_ref,
+        }
+    )
+
+
 @dataclass(frozen=True, slots=True)
 class LegacyAuthorityRecoveryReceipt:
     schema: str
@@ -130,8 +161,9 @@ def recover_legacy_g1_checkpoint_authority(
 
     The caller-supplied legacy receipt is an external recovery input, not a value learned
     from the row during recovery.  A checkpoint can be recovered once.  Exact repeat calls
-    are idempotent only while the row still carries the recorded rebound receipt; any later
-    receipt drift fails closed and cannot be laundered through another recovery call.
+    are idempotent only while the row still carries the recorded rebound receipt, the caller
+    supplies the same provenance witness, and the persisted audit row still authenticates
+    to its recovery_id.  Any later drift or conflicting repeat identity fails closed.
     """
     if not isinstance(store, CanonicalPersistentAgencyStore):
         raise PersistentAgencyError("CANONICAL_PERSISTENT_AGENCY_STORE_REQUIRED")
@@ -218,6 +250,20 @@ def recover_legacy_g1_checkpoint_authority(
                 recorded_provenance,
                 classification,
             ) = existing
+            recovery_id = _receipt("recorded_recovery_id", recovery_id)
+            recorded_checkpoint_sha = _receipt(
+                "recorded_checkpoint_sha256", recorded_checkpoint_sha
+            )
+            recorded_legacy = _receipt(
+                "recorded_legacy_authority_receipt_sha256", recorded_legacy
+            )
+            recorded_rebound = _receipt(
+                "recorded_rebound_authority_receipt_sha256", recorded_rebound
+            )
+            recorded_provenance = _identifier(
+                "recorded_recovery_provenance_ref", recorded_provenance
+            )
+            classification = _identifier("recorded_classification", classification)
             if recorded_checkpoint_sha != checkpoint_sha:
                 raise PersistentAgencyError(
                     "LEGACY_RECOVERY_CHECKPOINT_DIGEST_DRIFT"
@@ -234,6 +280,22 @@ def recover_legacy_g1_checkpoint_authority(
                 raise PersistentAgencyError(
                     "LEGACY_RECOVERY_POST_MIGRATION_AUTHORITY_DRIFT"
                 )
+            expected_recovery_id = _recovery_id(
+                checkpoint_id=checkpoint_id,
+                checkpoint_sha256=recorded_checkpoint_sha,
+                canonical_db_path=store.canonical_db_path,
+                db_device=store.db_device,
+                db_inode=store.db_inode,
+                legacy_authority_receipt_sha256=recorded_legacy,
+                rebound_authority_receipt_sha256=recorded_rebound,
+                recovery_provenance_ref=recorded_provenance,
+            )
+            if recovery_id != expected_recovery_id:
+                raise PersistentAgencyError(
+                    "LEGACY_RECOVERY_RECORD_IDENTITY_DRIFT"
+                )
+            if recorded_provenance != provenance_ref:
+                raise PersistentAgencyError("LEGACY_RECOVERY_PROVENANCE_CONFLICT")
             connection.commit()
             return LegacyAuthorityRecoveryReceipt(
                 schema=RECOVERY_SCHEMA,
@@ -253,18 +315,15 @@ def recover_legacy_g1_checkpoint_authority(
         classification = (
             "EXPLICIT_ONE_TIME_PERSISTENCE_MIGRATION_NOT_WORLD_TRUTH_OR_RUNTIME_ACCEPTANCE"
         )
-        recovery_id = _sha256(
-            {
-                "schema": RECOVERY_SCHEMA,
-                "checkpoint_id": checkpoint_id,
-                "checkpoint_sha256": checkpoint_sha,
-                "canonical_db_path": store.canonical_db_path,
-                "db_device": store.db_device,
-                "db_inode": store.db_inode,
-                "legacy_authority_receipt_sha256": expected_legacy,
-                "rebound_authority_receipt_sha256": current_receipt,
-                "recovery_provenance_ref": provenance_ref,
-            }
+        recovery_id = _recovery_id(
+            checkpoint_id=checkpoint_id,
+            checkpoint_sha256=checkpoint_sha,
+            canonical_db_path=store.canonical_db_path,
+            db_device=store.db_device,
+            db_inode=store.db_inode,
+            legacy_authority_receipt_sha256=expected_legacy,
+            rebound_authority_receipt_sha256=current_receipt,
+            recovery_provenance_ref=provenance_ref,
         )
         connection.execute(
             f"""INSERT INTO {RECOVERY_TABLE}(
