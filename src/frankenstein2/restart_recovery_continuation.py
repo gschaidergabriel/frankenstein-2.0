@@ -17,8 +17,8 @@ The key restart safety rule is intentionally conservative:
 * NO_EFFECT cannot carry effect-attempt refs.
 
 Generation 2 additionally makes the exported RestartContinuationPlan object boundary
-fail closed: direct construction must obey the same disposition/ref/effect-flag semantics
-that the canonical planner emits.
+fail closed: direct construction must obey the same disposition/ref/effect-flag and
+reason-code semantics that the canonical planner emits.
 
 Canonical durable state remains UnifiedDB.  This object is a typed recovery/control
 projection only and cannot become a competing truth/effect/completion authority.
@@ -338,6 +338,16 @@ class RestartContinuationPlan:
         if self.disposition not in allowed_dispositions:
             raise RestartRecoveryError("unsupported recovery disposition")
         object.__setattr__(self, "reason_code", _text("reason_code", self.reason_code))
+        expected_reason_code = {
+            CONTINUE_UNFINISHED: _REASON_CONTINUE,
+            HOLD_EFFECT_VERIFICATION: _REASON_VERIFY,
+            CONTINUE_WITH_EFFECT_REAUTH_HOLD: _REASON_REAUTHORIZE,
+            NO_CONTINUATION: _REASON_NONE,
+        }[self.disposition]
+        if self.reason_code != expected_reason_code:
+            raise RestartRecoveryError(
+                "reason_code must match the deterministic disposition semantics"
+            )
         object.__setattr__(
             self,
             "continuation_refs",
