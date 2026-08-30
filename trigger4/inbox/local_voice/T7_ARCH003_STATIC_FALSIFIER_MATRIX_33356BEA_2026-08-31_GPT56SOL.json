@@ -1,0 +1,149 @@
+{
+  "schema": "F2_TRIGGER7_STATIC_FALSIFIER_MATRIX/v1",
+  "trigger": "7",
+  "classification": "REVIEW_ONLY_STATIC_SOURCE_ANALYSIS_NOT_EXECUTED_EVIDENCE",
+  "organ": "GPT-5.6-Sol",
+  "reviewed_source_commit": "33356bea5c6c6c8a7a77ff2cc4ab21382625fc9f",
+  "reviewed_source_path": "src/frankenstein2/voice_packet_cortex.py",
+  "reviewed_test_commit": "a5ae70f9c953deeb7a1b46dc6c1718b39c1b4c00",
+  "reviewed_test_path": "tests/test_voice_packet_cortex.py",
+  "formal_falsifier": {
+    "research_id": "T7-ARCH-003",
+    "claim_commit": "82ba4f025a1a303d28f82ebf042107f6861a5e3f",
+    "falsifier_commit": "80824eb01cd098ba35ae0b2cdad2432ae6dbe3da",
+    "mutation_authority": false
+  },
+  "matrix": [
+    {
+      "id": "F01_DUPLICATE_FINAL_SAME_PACKET",
+      "static_status": "LIKELY_PASS_SEMANTIC_IDEMPOTENCY_WITH_AUDIT_EVENT",
+      "basis": "Exact same packet_id+digest returns INPUT_DUPLICATE_IGNORED before final-turn mutation. It does append a new audit event, so byte-identical full reducer state is not idempotent even though semantic admission appears idempotent.",
+      "executed": false
+    },
+    {
+      "id": "F02_REPLAY_EQUIVALENT_FINAL_DIFFERENT_PACKET_ID",
+      "static_status": "FAIL_CLOSED_BY_SEQUENCE_MISMATCH",
+      "basis": "Different packet_id with already-used sequence does not bypass per-turn expected-sequence check; unrecognized replay flag still reaches fail-closed exception.",
+      "executed": false
+    },
+    {
+      "id": "F03_FINAL_THEN_LATE_OLDER_PARTIAL",
+      "static_status": "FAIL_CLOSED_BEFORE_FINAL_STATE_REGRESSION",
+      "basis": "Older sequence is rejected before _final_turns state could regress. Formal fixture flag spelling differs from implementation's literal 'reorder', but mismatch still raises rather than mutating semantic state.",
+      "executed": false
+    },
+    {
+      "id": "F04_SEQUENCE_GAP_FAIL_CLOSED",
+      "static_status": "LIKELY_PASS_FAIL_CLOSED",
+      "basis": "Unexpected sequence raises unless the exact 'reorder' injection flag is present, in which case an explicit INPUT_REORDER_REJECTED event is emitted.",
+      "executed": false
+    },
+    {
+      "id": "F05_LATE_TOOL_RESULT_AFTER_CANCEL_AND_NEXT_TURN",
+      "static_status": "FAIL_STATIC_NO_EPOCH_OR_TOOL_OWNERSHIP_FENCE",
+      "basis": "cancel_for_barge_in mutates output playback only. emit_intent accepts arbitrary tool_ref after cancellation and contains no epoch/generation/request ownership admission check.",
+      "executed": false
+    },
+    {
+      "id": "F06_CANCEL_BEFORE_HEARD_ZERO_COMMIT",
+      "static_status": "PARTIAL_OUTPUT_FLAG_PASS_BUT_VOICEOUTCOME_BINDING_UNPROVEN",
+      "basis": "Queued cancel preserves heard_fraction=0 and commit_eligible=false, but close_session can later create VoiceOutcome from externally supplied result_ref/result_sha256 without proving relation to committed/heard output.",
+      "executed": false
+    },
+    {
+      "id": "F07_PARTIAL_HEARD_THEN_CANCEL_BOUNDED_COMMIT",
+      "static_status": "PARTIAL_HEARD_FRACTION_PRESERVED_BUT_OUTCOME_SEMANTICS_UNBOUND",
+      "basis": "Barge-in preserves partial heard_fraction and revokes commit_eligible. No adapter-level constraint prevents a later VoiceOutcome result from representing the full generated segment.",
+      "executed": false
+    },
+    {
+      "id": "F08_RESTART_MUST_NOT_RESURRECT_CANCELLED_OUTPUT",
+      "static_status": "NOT_IMPLEMENTED_IN_REVIEWED_MODULE",
+      "basis": "No snapshot/restore/restart/reconnect state contract or cancellation tombstone restore path is present in the reviewed file.",
+      "executed": false
+    },
+    {
+      "id": "F09_STALE_EPOCH_INPUT_AFTER_SESSION_REOPEN",
+      "static_status": "PARTIAL_PASS_BY_SESSION_ID_REJECTION_NOT_EPOCH_MODEL",
+      "basis": "A new cortex instance rejects packet.session_id mismatch, but there is no explicit epoch model for same-session reopen semantics.",
+      "executed": false
+    },
+    {
+      "id": "F10_SAME_TURN_ID_DIFFERENT_SESSION_IS_NOT_SAME_CAUSE",
+      "static_status": "LIKELY_PASS_BY_FIXED_SESSION_BOUNDARY",
+      "basis": "VoicePacketCortex binds one VoiceSessionCapsule/session_id and rejects foreign-session input packets.",
+      "executed": false
+    },
+    {
+      "id": "F11_CORRUPTION_FLAG_BLOCKS_CANONICAL_MUTATION",
+      "static_status": "PARTIAL_FAIL_SEEN_ID_MUTATES_BEFORE_CORRUPTION_REJECTION",
+      "basis": "Corrupt packet raises before semantic event/tool/memory admission, but _input_seen is mutated before corruption validation, poisoning later corrected retry semantics for that packet_id.",
+      "executed": false
+    },
+    {
+      "id": "F12_MONOTONIC_TIME_ROLLBACK",
+      "static_status": "FAIL_STATIC_NO_INTERPACKET_MONOTONIC_CLOCK_FENCE",
+      "basis": "monotonic_ms is individually nonnegative but accept_input does not compare it with prior packet/event monotonic time. An increasing sequence with decreasing timestamp is source-admissible.",
+      "executed": false
+    },
+    {
+      "id": "F13_OLD_TURN_MEMORY_WRITE_AFTER_NEW_TURN",
+      "static_status": "FAIL_STATIC_NO_MEMORY_COMPLETION_OWNERSHIP_EPOCH",
+      "basis": "emit_intent accepts memory_refs/tool_ref as metadata without request generation or cancellation ownership checks, so old-turn completion isolation is not enforced in this adapter.",
+      "executed": false
+    },
+    {
+      "id": "F14_CLOSE_THEN_LATE_INPUT",
+      "static_status": "LIKELY_PASS_SESSION_CLOSED_REJECTION",
+      "basis": "close_session sets is_open=false; later accept_input rejects closed session.",
+      "executed": false
+    }
+  ],
+  "additional_owner_handoff_gap": {
+    "id": "LONG_SESSION_BOUNDED_STATE",
+    "static_status": "FAIL_STATIC_UNBOUNDED_COLLECTIONS",
+    "basis": "_input_seen, _last_input_sequence, _final_turns, _outputs and _events have no observed compaction or retention bound in the reviewed module."
+  },
+  "test_coverage_review": {
+    "existing_tests_cover": [
+      "partial-to-final order",
+      "barge-in output interruption",
+      "unheard queued cancellation flag",
+      "full completed output commit_eligible",
+      "same-id duplicate/change rejection",
+      "drop/reorder/corrupt surface classification",
+      "WAIT/BACKCHANNEL/TOOL_USE refs",
+      "positive VoiceOutcome close",
+      "nonterminal output close rejection"
+    ],
+    "missing_high_information_tests": [
+      "late tool result after cancel/new turn",
+      "late memory result after cancel/new turn",
+      "cancelled output followed by VoiceOutcome with result_ref",
+      "drop/reorder fault followed by valid retry policy",
+      "restart/reconnect nonresurrection",
+      "monotonic timestamp rollback",
+      "same-session reopen epoch isolation",
+      "long-session boundedness",
+      "explicit LOCAL_SOLO zero outbound inference runtime counter"
+    ]
+  },
+  "local_review_execution_attempt": {
+    "attempted": true,
+    "result": "INFRA_AUTH_TRANSPORT_QUOTA_DNS_GITHUB_UNAVAILABLE",
+    "product_conclusion": "NONE",
+    "github_actions_runs_for_test_commit": 0,
+    "executed_test_credit": 0
+  },
+  "credit": {
+    "static_source_review": 1,
+    "source_implementation_present": 1,
+    "test_source_present": 1,
+    "executed_tests": 0,
+    "packet_runtime": 0,
+    "acoustic": 0,
+    "whole_voice": 0,
+    "whole_product": 0
+  },
+  "next_exact_action": "Trigger4 current owner should run the formal T7-ARCH-003 traces against the exact current implementation, starting with F05, F06/F07 outcome binding, F08, F11 retry poisoning, F12, F13 and long-session boundedness. Reproduce before repair; then repair only reproduced defects and rerun under LOCAL_SOLO with bound zero-outbound evidence."
+}
