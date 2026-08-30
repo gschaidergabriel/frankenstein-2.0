@@ -1,0 +1,71 @@
+{
+  "schema": "FRANKENSTEIN2_TRIGGER6_E2_ARCHITECTURE_MAPPED/v1",
+  "research_id": "R6-20260830-PORTABLE-PATH-NAMESPACE-COLLISIONS-GPT56SOL-01",
+  "stage": "E2_ARCHITECTURE_MAPPED",
+  "status": "COMPLETE_AT_E2_SCOPE",
+  "created_at": "2026-08-30T22:04:50+07:00",
+  "claim_ref": "research/tool_intelligence/claims/R6-20260830-PORTABLE-PATH-NAMESPACE-COLLISIONS-GPT56SOL-01/E2_ARCHITECTURE_MAPPED.json@f4a5e45345ce54384d925271e40ea24be83264b8",
+  "source_reentry": {
+    "f2_main": "2e1619183450b85eddddf87136e2cece9c8ebfed",
+    "release_integrity": "src/frankenstein2/release_integrity.py@5c344eec1694477ba95dd256db624f505e2f34ee",
+    "release_candidate_receipt": "workpackages/receipts/TRIGGER4_RELEASE_CANDIDATE_45958D_WP1111_STATIC_BINDING_GHA_33318165549.json@0ca0e323ca1f23177326f7d135bbe03ffdb2fb73",
+    "research_entity_main": "7ea077dc8cedb345d191a22adb9b273c05791cc1"
+  },
+  "architecture_chain": [
+    "release_integrity._canonical_relpath defines canonical manifest identity as exact POSIX relative strings.",
+    "ReleaseManifest uniqueness is exact-string uniqueness only.",
+    "Trigger4 builds a deterministic ZIP release candidate and binds its release manifest, archive policy, artifact subject and WP1111 static-completeness receipt.",
+    "The current receipt is READY_FOR_REAL_HOST_HANDOFF only at repository/static scope and explicitly has clean_machine_runtime_credit=0.",
+    "Therefore the correct insertion point for target-namespace representability is before READY_FOR_REAL_HOST_HANDOFF is minted for a release candidate, not during model/runtime execution and not by rewriting canonical path identity after packaging."
+  ],
+  "architecture_delta": {
+    "name": "PORTABLE_PATH_NAMESPACE_POLICY/v1",
+    "role": "DETERMINISTIC_RELEASE_ADMISSION_SUBGATE",
+    "authority": "validation only; no second manifest identity and no runtime/effect authority",
+    "input": "canonical ReleaseFileEntry.path set",
+    "profiles": {
+      "posix_canonical": "existing canonical path identity remains unchanged",
+      "windows_default": [
+        "reject components containing Win32-forbidden characters or control characters",
+        "reject reserved device basenames including extension forms",
+        "reject components ending in ASCII space or period",
+        "compute a separate deterministic Windows collision key and reject two canonical paths that alias under that key"
+      ]
+    },
+    "output": "PASS or deterministic violation list bound into release-candidate/static-completeness evidence",
+    "non_goal": "do not lowercase, rename, rewrite or normalize canonical release paths silently"
+  },
+  "minimal_f2_candidate": {
+    "source_target": "src/frankenstein2/release_integrity.py",
+    "preferred_form": "one pure stdlib validator over manifest paths plus unit/adversarial regressions; no external dependency",
+    "test_vectors": [
+      "A/x.txt versus a/x.txt => reject under windows_default profile",
+      "NUL => reject",
+      "con.txt => reject",
+      "COM1.log => reject",
+      "name. => reject",
+      "name<1>.txt or name?.txt => reject",
+      "ordinary distinct ASCII paths => preserve exact existing manifest identity and hashes"
+    ],
+    "release_candidate_gate": "Run before or as part of static completeness for any artifact advertised as portable to Windows/default Windows tools."
+  },
+  "scope_resolution": {
+    "current_release_candidate_invalidated": false,
+    "reason": "No evidence was acquired that the exact 2,862-member candidate already contains a colliding/reserved pathname. E2 proves a missing portability invariant, not a present-payload violation.",
+    "wp1111_terminal_invalidated": false,
+    "reason_wp1111": "WP1111 remains accepted at repository-hosted static component scope; this successor requirement is for stronger cross-host namespace portability before real-host promotion.",
+    "trigger4_handoff_required": true
+  },
+  "counterhypothesis_resolution": [
+    "If native Windows materialization is explicitly out of product scope, the windows_default profile can remain disabled and the requirement must be documented rather than implied by 'portable'.",
+    "If Windows is supported only in specially case-sensitive directories, that is a host precondition rather than portable-default behavior and should be measured explicitly; Microsoft documents it as non-default and potentially incompatible with ordinary applications."
+  ],
+  "evidence_ceiling": "E2_ARCHITECTURE_MAPPED",
+  "architecture_credit": 0,
+  "runtime_credit": 0,
+  "physical_host_credit": 0,
+  "effect_credit": 0,
+  "completion_credit": 0,
+  "whole_system_acceptance": false,
+  "next_exact_action": "Trigger4 should add PORTABLE_PATH_NAMESPACE_POLICY/v1 as a deterministic release-admission subgate, run the listed falsifiers on Linux and Windows CI where available, rebuild/rebind the exact release candidate, and only then proceed to real-host acceptance. Trigger6 should not grant E6."
+}
