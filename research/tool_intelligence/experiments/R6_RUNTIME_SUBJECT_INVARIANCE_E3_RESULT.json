@@ -1,0 +1,83 @@
+{
+  "schema": "FRANKENSTEIN2_TRIGGER6_EXPERIMENT_RESULT/v1",
+  "trigger": "6",
+  "research_id": "R6-20260830-RUNTIME-SUBJECT-INVARIANCE-GPT56SOL-01",
+  "claim_target": "E3_CLAIM_REPRODUCED_RUNTIME_SUBJECT_INVARIANCE_TOY",
+  "status": "E3_CLAIM_REPRODUCED_LOCAL_MECHANISM_ONLY",
+  "claim": {
+    "path": "research/tool_intelligence/claims/R6-20260830-RUNTIME-SUBJECT-INVARIANCE-GPT56SOL-01/E3_CLAIM_REPRODUCED_RUNTIME_SUBJECT_INVARIANCE_TOY.json",
+    "claim_commit": "290c1ae1036f2b9ae08edd7962606edb5c2fc8b2"
+  },
+  "source": {
+    "path": "research/tool_intelligence/experiments/R6_RUNTIME_SUBJECT_INVARIANCE_E3.py",
+    "source_commit": "8ad3d4bada30325f0aaf056e33360f87a51a16c9",
+    "github_blob_sha1": "b0afe5b35413c9e8e1d7d8268d0eb2b425bddf54",
+    "executed_copy_sha256": "e8f326d2698ada9758dae30d68519e687f80f956edc6848d40016b83c94a72e5"
+  },
+  "environment": {
+    "surface": "ChatGPT isolated local container",
+    "python_version": "3.13.5",
+    "classification": "LOCAL_DETERMINISTIC_MECHANISM_REPRODUCTION_NOT_F2_TARGET_RUNTIME"
+  },
+  "method": {
+    "strategies": ["declared_only", "observed_only", "hybrid_fail_closed"],
+    "cases": [
+      "unrelated_docs",
+      "selected_plugin_changes",
+      "selector_a_to_b",
+      "nonselected_plugin_b_changes",
+      "environment_selector_changes",
+      "runtime_identity_changes",
+      "plugin_discovery_rule_changes"
+    ],
+    "ground_truth_rule": "All cases except unrelated_docs must invalidate because they can alter the exact or successor-resolvable execution dependency closure.",
+    "acceptance": "declared-only and observed-only must each produce at least one false CERTIFY; hybrid must produce zero false CERTIFY and must still certify unrelated_docs."
+  },
+  "result": {
+    "acceptance": true,
+    "declared_only_false_certify_count": 6,
+    "observed_only_false_certify_count": 5,
+    "hybrid_fail_closed_false_certify_count": 0,
+    "hybrid_certifies_unrelated_docs": true,
+    "captured_output_sha256": "a03b28c5db550180b1797df7c1ed65c10f8ca8f8215d8eec19dbf83169adbc2c"
+  },
+  "interpretation": [
+    {
+      "classification": "MEASURED_LOCAL_MECHANISM",
+      "claim": "Declared-only dependency tracking can falsely certify non-interference when dynamic selected inputs, selector state, environment, runtime identity or discovery rules are outside its closure."
+    },
+    {
+      "classification": "MEASURED_LOCAL_MECHANISM",
+      "claim": "Observed-only tracking can falsely certify non-interference for unobserved alternate inputs and selector/config/environment/runtime/discovery changes."
+    },
+    {
+      "classification": "MEASURED_LOCAL_MECHANISM",
+      "claim": "In the preregistered toy, a conservative hybrid closure rejected all six potentially execution-affecting successor changes while still certifying the unrelated documentation change."
+    },
+    {
+      "classification": "F2_ARCHITECTURE_INFERENCE",
+      "claim": "A future F2 runtime-subject invariance witness should combine declared and observed dependency evidence with selector/config/environment/runtime-tool/discovery identities and an explicit dependency-completeness class; unknown completeness must invalidate or defer."
+    }
+  ],
+  "limits": [
+    "This toy does not prove a conservative dependency closure can be constructed for any specific live F2 integration boundary.",
+    "This did not execute F2 target/VPS runtime, physical GRID10, GWT/J-Space semantics, provider/model calls, effects, completion or training.",
+    "The ground-truth mutation classes are intentionally constructed; E4 must test F2-shaped frozen fixtures/receipts and real boundary metadata.",
+    "Zero false CERTIFY in seven toy cases is not a general soundness proof."
+  ],
+  "evidence_ceiling": {
+    "level": "E3_CLAIM_REPRODUCED",
+    "local_mechanism_reproduction_credit": 1,
+    "research_credit": 1,
+    "architecture_credit": 0,
+    "f2_runtime_credit": 0,
+    "target_host_runtime_credit": 0,
+    "physical_grid10_credit": 0,
+    "gwt_jspace_credit": 0,
+    "effect_credit": 0,
+    "completion_credit": 0,
+    "whole_system_credit": 0,
+    "training_credit": 0
+  },
+  "next_exact_action": "Re-enter current F2 main and, if mapped boundaries/directive remain compatible, acquire an E4 F2_ABLATION claim for a frozen-fixture evaluator that consumes exact F2 active-claim/receipt/source metadata without mutating any active Trigger-4 owned path."
+}
