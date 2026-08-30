@@ -1,0 +1,47 @@
+{
+  "schema": "F2_TOOL_INTELLIGENCE_RESULT/v1",
+  "study_id": "R6-20260830-PYTHON-BYTECODE-SUBJECT-ATTESTATION-GPT56SOL-01",
+  "status": "E3_INDEPENDENTLY_REPRODUCED",
+  "observed_on": "2026-08-30",
+  "claim_base_f2_main": "457ac17ef08ce055ad9cd21c4fa27dc1b943d161",
+  "architecture_mapping_f2_main": "29d16d7cd48cc6788d6ac9c447759c723afe0722",
+  "python_runtime": "CPython 3.13.5",
+  "hypothesis": "Hashing or attesting visible .py source/dependency bytes does not by itself prove that those bytes are the Python code actually executed by the interpreter.",
+  "counterhypothesis": "If the F2 execution boundary guarantees no pre-existing or sourceless bytecode, forces checked hash validation where applicable, or directly attests the loaded executable artifact, then the divergence demonstrated here is closed for that bounded path.",
+  "primary_sources": [
+    "https://peps.python.org/pep-0552/",
+    "https://docs.python.org/3/using/cmdline.html#cmdoption-check-hash-based-pycs",
+    "https://docs.python.org/3/library/importlib.html#importlib.machinery.SourcelessFileLoader"
+  ],
+  "experiment": {
+    "class": "isolated local CPython import-semantics falsifier; not Frankenstein runtime execution",
+    "setup": "For each mode independently, create victim.py with OLD_BYTECODE, compile an UNCHECKED_HASH pyc in __pycache__, mutate victim.py to NEW_SOURCE__, then import in a fresh subprocess. Separately compile victim2.py to a top-level victim2.pyc, delete the source, and import.",
+    "results": {
+      "default": {"value": "OLD_BYTECODE", "loader": "SourceFileLoader"},
+      "always": {"value": "NEW_SOURCE__", "loader": "SourceFileLoader"},
+      "never": {"value": "OLD_BYTECODE", "loader": "SourceFileLoader"},
+      "sourceless": {"value": "SOURCELESS_BYTECODE", "loader": "SourcelessFileLoader"}
+    }
+  },
+  "architecture_mapping": {
+    "observed_upstream_boundary": "Current artifact-bound static-completeness tests bind archive SHA-256, manifest SHA-256, source_commit, source_tree, and build_id while explicitly granting runtime_credit=0.",
+    "gap": "A later Python runtime handoff can still require an explicit executed-artifact identity gate; static release/source identity is not executable-byte identity.",
+    "candidate_invariant": "BYTECODE_EXECUTION_IDENTITY_GATE/v1: a Python execution receipt may not claim source/runtime-subject closure unless the executable Python artifact actually consumed is bound to the attested subject, or the environment proves a policy that excludes divergent cached/sourceless bytecode and records that policy in the receipt.",
+    "f2_target_workpackages": ["WP1111", "WP1112"],
+    "f2_target_modules": ["frankenstein2.artifact_bound_static_completeness", "runtime Python launcher/import boundary to be resolved by Trigger 4"]
+  },
+  "required_e4": [
+    "Fixture: UNCHECKED_HASH pyc, mutate .py after pyc creation; gate must block or bind the executed pyc rather than remaining green from source hashes alone.",
+    "Fixture: sourceless top-level .pyc; require explicit policy/identity handling.",
+    "Record interpreter hash-pyc policy plus executed module loader/origin/cached artifact, or use an equivalent stronger loader-attestation mechanism.",
+    "Keep runtime, physical-host, effect, and whole-system credit at zero until admitted F2 execution observes the boundary."
+  ],
+  "credit": {
+    "external_source_audit": "E1",
+    "f2_architecture_mapping": "E2",
+    "cpython_semantics_falsifier": "E3",
+    "f2_runtime_ablation": "NOT_RUN",
+    "f2_runtime_credit": 0,
+    "whole_system_credit": 0
+  }
+}
