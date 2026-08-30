@@ -1,0 +1,101 @@
+{
+  "schema": "F2_TRIGGER6_RESEARCH_RESULT/v1",
+  "research_id": "R6-20260830-WP206-SAME-INODE-LIVE-DRIFT-GPT56SOL-01",
+  "evidence_stage": "E2_ARCHITECTURE_MAPPED",
+  "status": "COMPLETE_AT_SCOPE",
+  "recorded_at": "2026-08-30T16:55:37+07:00",
+  "worker": "GPT-5.6-Sol / ChatGPT Trigger-6 organ",
+  "claim_ref": "research/tool_intelligence/claims/R6-20260830-WP206-SAME-INODE-LIVE-DRIFT-GPT56SOL-01/E2_ARCHITECTURE_MAPPED.json",
+  "claim_commit": "7beba014a22384fe7fd856e81dbe92de88645538",
+  "parent_result": "research/tool_intelligence/results/R6-20260830-WP206-SAME-INODE-LIVE-DRIFT-GPT56SOL-01_E1_SOURCE_READ.json@c9567d80f65ce8f303f368aa1182fdddfa16b55a",
+  "architecture_fusion_ref": "research/tool_intelligence/deltas/ADF-20260830T1649P0700-GPT56SOL-WP206-SAME-INODE-LIVE-DRIFT-FUSION.json",
+  "exact_f2_mapping": {
+    "authority_binding": {
+      "source": "src/frankenstein2/persistent_agency_kernel.py",
+      "surface": "CanonicalPersistentAgencyStore.__init__",
+      "current_semantics": "verifies bound main path and st_dev/st_ino, then hashes only canonical_db_path+db_device+db_inode into authority_receipt_sha256"
+    },
+    "live_use_guard": {
+      "source": "src/frankenstein2/persistent_agency_kernel.py",
+      "surface": "CanonicalPersistentAgencyStore._assert_current_file_identity",
+      "current_semantics": "re-stat and compare st_dev/st_ino only"
+    },
+    "recovery_guard": {
+      "source": "src/frankenstein2/wp206_legacy_authority_recovery.py",
+      "surface": "recover_legacy_g1_checkpoint_authority",
+      "current_semantics": "st_dev/st_ino check before BEGIN IMMEDIATE, then typed checkpoint/digest/provenance/CAS checks"
+    },
+    "static_identity_probe": {
+      "source": "src/state/unifieddb_identity.py",
+      "surface": "fingerprint_unifieddb/_sqlite_schema_identity",
+      "current_semantics": "main-file SHA-256 and schema metadata under mode=ro&immutable=1; explicitly excludes uncheckpointed WAL state and is explicitly not a full state snapshot"
+    }
+  },
+  "architecture_decision": {
+    "decision": "DO_NOT_REPLACE_BOUND_FILE_AUTHORITY; ADD_A_SEPARATE_EPHEMERAL_REVISION_FENCE_AT_THE_STORE_CONNECTION_BOUNDARY_IF_E3_REPRODUCES_THE_BLIND_SPOT",
+    "reason": "File identity answers which durable file is authoritative; SQLite revision witnessing answers whether that same file/database has advanced since this connection established its trusted epoch. They are different predicates and should stay separate.",
+    "minimal_python_native_candidate": {
+      "name": "EXTERNAL_SQLITE_REVISION_FENCE/v1",
+      "baseline": "PRAGMA main.data_version captured on the long-lived CanonicalPersistentAgencyStore connection after path/device/inode binding",
+      "guard": "Before a recovery or other authority-sensitive mutation, compare PRAGMA main.data_version on the same connection to the baseline and fail closed on change.",
+      "why_own_store_writes_do_not_false_positive": "SQLite specifies PRAGMA data_version as unchanged for commits made on that same connection.",
+      "wal_relevance": "External WAL commits are database changes even while the main-file inode remains unchanged; E3 must prove the exact Python/runtime behavior before build adoption.",
+      "schema_classification": "PRAGMA main.schema_version may be sampled as a diagnostic classifier when drift is detected, but it must not become a second authority or be application-written."
+    }
+  },
+  "threat_scope_split": [
+    {
+      "lane": "G5A_EXTERNAL_CONNECTION_SAME_INODE_DRIFT",
+      "candidate": "PRAGMA data_version on the persistent store connection",
+      "status": "E2_BUILD_CANDIDATE_PENDING_E3",
+      "covers": "committed changes by other SQLite connections/processes, including expected WAL cases subject to reproduction",
+      "does_not_claim": "arbitrary mutation through the exact same sqlite3.Connection object"
+    },
+    {
+      "lane": "G5B_SAME_HANDLE_UNBROKERED_MUTATION",
+      "candidate": "either explicit connection encapsulation plus brokered mutation accounting, or a later native SQLITE_FCNTL_DATA_VERSION bridge",
+      "status": "SEPARATE_FUTURE_DISCRIMINATOR_NOT_BUNDLED_INTO_G5A",
+      "reason": "PRAGMA data_version deliberately omits same-connection writes; Python stdlib sqlite3 exposes total_changes but no documented sqlite3_file_control wrapper was found in the current 3.14 API surface. total_changes also has row-count/rollback/DDL semantics that make it unsuitable for silent promotion into canonical revision identity."
+    },
+    {
+      "lane": "RAW_FILE_OR_WAL_TAMPER_OUTSIDE_SQLITE",
+      "candidate": "not solved by a connection-local counter alone",
+      "status": "OUTSIDE_G5A_EVIDENCE_SCOPE",
+      "reason": "pager counters are drift witnesses, not cryptographic state attestations"
+    }
+  ],
+  "rejected_shortcuts": [
+    "Do not rerun fingerprint_unifieddb as a live guard: its immutable=1 probe explicitly disables change detection and excludes uncheckpointed WAL state.",
+    "Do not make the full mutable UnifiedDBFingerprint receipt canonical again; G3/G4 intentionally migrated away from that unstable representation.",
+    "Do not use mtime/size as a substitute for SQLite logical revision.",
+    "Do not make schema_version the general drift counter.",
+    "Do not add APSW/ctypes/native-pointer extraction merely to reach SQLITE_FCNTL_DATA_VERSION before the pure-Python discriminator is tested.",
+    "Do not reopen or modify accepted G4 repeat-provenance semantics unless a new executable post-G4 counterexample hits the separate same-inode lane."
+  ],
+  "next_experiment_design": {
+    "recommended_stage": "E3_CLAIM_REPRODUCED_G5A",
+    "surface": "isolated temporary SQLite fixture, not target VPS and not Frankenstein runtime credit",
+    "cases": [
+      "no-change control: same store connection, data_version stable",
+      "same-connection DML: data_version expected stable",
+      "second-connection committed DML in DELETE/rollback journal mode: data_version expected change",
+      "second-connection committed DML in WAL mode with same main-file inode: data_version expected change",
+      "second-connection committed DDL: data_version expected change and schema_version expected change",
+      "verify main-file st_dev/st_ino remains equal across all cases",
+      "keep any connection-close/reopen result separately scoped because data_version values are only comparable on the same connection"
+    ],
+    "falsifier": "If an external committed WAL DML can leave PRAGMA data_version unchanged on the same long-lived observer connection, reject G5A and escalate to a stronger native/snapshot mechanism."
+  },
+  "hypothesis_status": "SUPPORTED_FOR_E3_DISCRIMINATION_NOT_FOR_BUILD_ADOPTION",
+  "recommended_next_stage": "E3_CLAIM_REPRODUCED_G5A",
+  "research_credit": "E2_ARCHITECTURE_MAPPED_ONLY",
+  "runtime_credit": 0,
+  "target_host_credit": 0,
+  "physical_grid10_credit": 0,
+  "gwt_runtime_credit": 0,
+  "jspace_runtime_credit": 0,
+  "effect_credit": 0,
+  "completion_credit": 0,
+  "whole_system_credit": 0,
+  "pending_research_sqlite_sync": "PENDING_ADMITTED_BINARY_DB_PATH"
+}
