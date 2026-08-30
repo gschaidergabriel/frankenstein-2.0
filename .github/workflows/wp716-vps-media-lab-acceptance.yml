@@ -1,0 +1,230 @@
+name: F2 WP716 VPS Media Lab Acceptance
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'src/frankenstein2/media_lab_store.py'
+      - 'scripts/bootstrap_vps_multimodal_lab.sh'
+      - 'tests/test_media_lab_store.py'
+      - 'workpackages/F2-WP-716_VPS_MEDIA_LAB_POLICY.md'
+      - '.github/workflows/wp716-vps-media-lab-acceptance.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  wp716-vps-media-lab:
+    runs-on: clay-host
+    timeout-minutes: 45
+    env:
+      F2_MEDIA_LAB_ROOT: /var/tmp/frankenstein2-media-lab
+      F2_MEDIA_LAB_MAX_BYTES: '10737418240'
+      F2_MEDIA_LAB_LOW_WATER_BYTES: '8589934592'
+      F2_MEDIA_LAB_MAX_AGE_HOURS: '72'
+      PYTHONPATH: src
+    steps:
+      - name: Checkout exact subject
+        uses: actions/checkout@v4
+
+      - name: Verify authoritative VPS runner
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          printf '%s\n' \
+            "RUNNER_NAME=${RUNNER_NAME:-UNKNOWN}" \
+            "RUNNER_OS=${RUNNER_OS:-UNKNOWN}" \
+            "RUNNER_ARCH=${RUNNER_ARCH:-UNKNOWN}" \
+            "GITHUB_SHA=$GITHUB_SHA" \
+            "GITHUB_RUN_ID=$GITHUB_RUN_ID"
+          test "${RUNNER_NAME:-}" = "vps-clay-host"
+          test "${RUNNER_OS:-}" = "Linux"
+
+      - name: Sandbox-first core media falsifier
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          bash tools/vps_sandbox/run_ubuntu_sandbox.sh --backend nspawn --network off -- \
+            /bin/bash -lc '
+              set -Eeuo pipefail
+              export PYTHONPATH=/work/f2/src
+              export F2_MEDIA_LAB_ROOT=/tmp/f2-media-lab-sandbox
+              export F2_MEDIA_LAB_MAX_BYTES=4194304
+              export F2_MEDIA_LAB_LOW_WATER_BYTES=1048576
+              python3 - <<"PY"
+          from pathlib import Path
+          from frankenstein2.media_lab_store import MediaLabStore, _validate_public_url
+          s = MediaLabStore()
+          a = s.generate_tone(seconds=0.2, frequency=997.0)
+          b = s.ingest(a["path"], source_label="SANDBOX_REINGEST")
+          assert a["sha256"] == b["sha256"]
+          assert s.status()["object_count"] == 1
+          assert s.status()["usage_bytes"] <= s.status()["max_bytes"]
+          try:
+              _validate_public_url("http://127.0.0.1/private.mp4")
+          except ValueError:
+              pass
+          else:
+              raise AssertionError("loopback URL was not rejected")
+          print("WP716_SANDBOX_CORE=PASS")
+          PY
+            ' | tee /tmp/wp716-sandbox.txt
+          grep -q 'WP716_SANDBOX_CORE=PASS' /tmp/wp716-sandbox.txt
+          grep -q 'F2_SANDBOX_RESULT=PASS' /tmp/wp716-sandbox.txt
+
+      - name: Bootstrap persistent shared VPS media lab
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          mkdir -p "$F2_MEDIA_LAB_ROOT"
+          chmod 700 "$F2_MEDIA_LAB_ROOT" || true
+          bash scripts/bootstrap_vps_multimodal_lab.sh | tee /tmp/wp716-bootstrap.txt
+          export PATH="$HOME/.local/bin:$PATH"
+          command -v f2-media
+          f2-media status | tee /tmp/wp716-status-before.json
+
+      - name: Run media-store regression tests
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          if ! python3 -c 'import pytest' >/dev/null 2>&1; then
+            python3 -m pip install --user pytest
+          fi
+          python3 -m pytest -q tests/test_media_lab_store.py | tee /tmp/wp716-pytest.txt
+
+      - name: Generate image video tone and speech fixtures
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          export PATH="$HOME/.local/bin:$PATH"
+          f2-media tone --frequency 997 --seconds 1 | tee /tmp/wp716-tone.json
+          f2-media generate image --size 1280x720 | tee /tmp/wp716-image.json
+          f2-media generate video --seconds 3 --size 1280x720 --fps 24 | tee /tmp/wp716-video.json
+          f2-media speech 'Frankenstein, was siehst du gerade?' --voice de | tee /tmp/wp716-speech1.json
+          f2-media speech 'Prüfe Bewegung, Objektpersistenz und Kausalität.' --voice de | tee /tmp/wp716-speech2.json
+
+      - name: Download a real public image through capped fetcher
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          export PATH="$HOME/.local/bin:$PATH"
+          f2-media fetch 'https://raw.githubusercontent.com/github/explore/main/topics/python/python.png' | tee /tmp/wp716-public-fetch.json
+
+      - name: Verify tools cap store and GC
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          export PATH="$HOME/.local/bin:$PATH"
+          for tool in ffmpeg ffprobe sox espeak-ng yt-dlp; do
+            if command -v "$tool" >/dev/null 2>&1; then
+              printf '%s=%s\n' "$tool" "$($tool --version 2>&1 | head -n 1)"
+            else
+              printf '%s=MISSING\n' "$tool"
+              exit 20
+            fi
+          done | tee /tmp/wp716-tools.txt
+
+          f2-media status | tee /tmp/wp716-status-after.json
+          f2-media gc --aggressive | tee /tmp/wp716-gc.json
+          f2-media status | tee /tmp/wp716-status-final.json
+
+          python3 - <<'PY'
+          import json, pathlib
+          status = json.loads(pathlib.Path('/tmp/wp716-status-final.json').read_text())
+          assert status['max_bytes'] == 10 * 1024**3, status
+          assert status['usage_bytes'] <= status['max_bytes'], status
+          assert status['object_count'] >= 1, status
+          print('WP716_CAP_AND_STORE=PASS')
+          PY
+
+          timer_state=UNAVAILABLE
+          if command -v systemctl >/dev/null 2>&1; then
+            timer_state="$(systemctl --user is-enabled frankenstein2-media-lab-gc.timer 2>/dev/null || true)"
+          fi
+          printf '%s\n' "$timer_state" | tee /tmp/wp716-timer.txt
+
+      - name: Emit WP716 VPS execution receipt
+        if: always()
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          python3 - <<'PY'
+          import json, os, pathlib
+          def read(path):
+              p = pathlib.Path(path)
+              return p.read_text(errors='replace') if p.exists() else ''
+          def maybe_json(path):
+              try:
+                  return json.loads(read(path))
+              except Exception:
+                  return None
+          final = maybe_json('/tmp/wp716-status-final.json') or {}
+          receipt = {
+              'schema': 'F2_WP716_VPS_MEDIA_LAB_EXECUTION/v1',
+              'source_sha': os.environ.get('GITHUB_SHA'),
+              'workflow_run_id': int(os.environ.get('GITHUB_RUN_ID', '0')),
+              'workflow_run_attempt': int(os.environ.get('GITHUB_RUN_ATTEMPT', '0')),
+              'runner_name': os.environ.get('RUNNER_NAME', 'UNKNOWN'),
+              'runner_os': os.environ.get('RUNNER_OS', 'UNKNOWN'),
+              'sandbox_core_pass': 'WP716_SANDBOX_CORE=PASS' in read('/tmp/wp716-sandbox.txt'),
+              'sandbox_boundary_pass': 'F2_SANDBOX_RESULT=PASS' in read('/tmp/wp716-sandbox.txt'),
+              'pytest_pass': '4 passed' in read('/tmp/wp716-pytest.txt'),
+              'tool_versions': read('/tmp/wp716-tools.txt'),
+              'timer_state': read('/tmp/wp716-timer.txt').strip(),
+              'public_fetch_observed': bool(maybe_json('/tmp/wp716-public-fetch.json')),
+              'tone_observed': bool(maybe_json('/tmp/wp716-tone.json')),
+              'image_observed': bool(maybe_json('/tmp/wp716-image.json')),
+              'video_observed': bool(maybe_json('/tmp/wp716-video.json')),
+              'speech_observed': bool(maybe_json('/tmp/wp716-speech1.json')),
+              'store_status': final,
+              'hard_cap_exact_10_gib': final.get('max_bytes') == 10 * 1024**3,
+              'under_cap': int(final.get('usage_bytes', 10 * 1024**3 + 1)) <= 10 * 1024**3,
+              'vps_file_media_execution_credit': 1 if (
+                  'WP716_SANDBOX_CORE=PASS' in read('/tmp/wp716-sandbox.txt')
+                  and bool(maybe_json('/tmp/wp716-tone.json'))
+                  and bool(maybe_json('/tmp/wp716-image.json'))
+                  and bool(maybe_json('/tmp/wp716-video.json'))
+                  and bool(maybe_json('/tmp/wp716-speech1.json'))
+                  and bool(maybe_json('/tmp/wp716-public-fetch.json'))
+              ) else 0,
+              'physical_camera_credit': 0,
+              'physical_microphone_credit': 0,
+              'physical_speaker_credit': 0,
+              'whole_system_acceptance': False,
+          }
+          pathlib.Path('/tmp/f2-wp716-vps-media-lab-receipt.json').write_text(
+              json.dumps(receipt, indent=2, sort_keys=True) + '\n'
+          )
+          print(json.dumps(receipt, sort_keys=True))
+          PY
+
+      - name: Upload WP716 receipt
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: f2-wp716-vps-media-lab-${{ github.run_id }}
+          path: |
+            /tmp/f2-wp716-vps-media-lab-receipt.json
+            /tmp/wp716-sandbox.txt
+            /tmp/wp716-bootstrap.txt
+            /tmp/wp716-pytest.txt
+            /tmp/wp716-tools.txt
+            /tmp/wp716-status-final.json
+            /tmp/wp716-gc.json
+          if-no-files-found: warn
+
+      - name: Enforce WP716 acceptance
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          python3 - <<'PY'
+          import json
+          r=json.load(open('/tmp/f2-wp716-vps-media-lab-receipt.json'))
+          assert r['sandbox_core_pass']
+          assert r['sandbox_boundary_pass']
+          assert r['hard_cap_exact_10_gib']
+          assert r['under_cap']
+          assert r['vps_file_media_execution_credit'] == 1
+          print('WP716_VPS_MEDIA_LAB_ACCEPTANCE=PASS')
+          PY
