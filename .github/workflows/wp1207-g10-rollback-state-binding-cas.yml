@@ -1,0 +1,230 @@
+name: F2 WP1207 G10 Rollback State Binding CAS
+
+on:
+  push:
+    branches:
+      - 'trigger4/wp1207-g10-cas-writer'
+    paths:
+      - '.github/workflows/wp1207-g10-rollback-state-binding-cas.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: wp1207-g10-rollback-state-binding-cas
+  cancel-in-progress: false
+
+jobs:
+  bounded-cas-writer:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Prepare exact previously proven candidate blobs
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch origin \
+            refs/heads/trigger4/wp1207-451-rollback-state-binding:refs/remotes/origin/trigger4/wp1207-451-rollback-state-binding
+          git show origin/trigger4/wp1207-451-rollback-state-binding:src/frankenstein2/portable_release_transaction.py > /tmp/wp1207_candidate_source.py
+          git show origin/trigger4/wp1207-451-rollback-state-binding:tests/test_portable_release_transaction.py > /tmp/wp1207_candidate_test.py
+          test "$(git hash-object /tmp/wp1207_candidate_source.py)" = "dad832595799cb05bd472068569d10739f6c74cc"
+          test "$(git hash-object /tmp/wp1207_candidate_test.py)" = "6f106432d128bdbb28096d8bc5d149532d9d5088"
+
+      - name: Fast-forward-only G10 claim plus repair with event-first CAS
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          for attempt in $(seq 1 20); do
+            echo "CAS_ATTEMPT=$attempt"
+            git fetch origin main --no-tags
+            git switch --detach -f origin/main
+            BASE_SHA="$(git rev-parse HEAD)"
+
+            python - "$BASE_SHA" <<'PY'
+          import json, pathlib, sys
+          base = sys.argv[1]
+          p = pathlib.Path('workpackages/active/F2-WP-1207.json')
+          d = json.loads(p.read_text())
+          if d.get('generation') == 10:
+              if d.get('claim_id') == 'F2-WP-1207-G10-GPT56SOL-ROLLBACK-STATE-BINDING-20260830':
+                  print('G10_ALREADY_PRESENT')
+                  raise SystemExit(20)
+              print('G10_CONFLICT_OTHER_OWNER=' + str(d.get('claim_id')))
+              raise SystemExit(21)
+          if d.get('generation') != 9 or d.get('state') != 'ACCEPTED' or d.get('claim_id') != 'F2-WP-1207-G9-GPT56SOL-VPS-CLEAN-HOST-S1-20260830':
+              print('UNEXPECTED_WP1207_HEAD=' + repr((d.get('generation'), d.get('state'), d.get('claim_id'))))
+              raise SystemExit(22)
+          print('G9_TERMINAL_PARENT_OK=' + base)
+          PY
+            rc=$?
+            if [ "$rc" -eq 20 ]; then
+              exit 0
+            elif [ "$rc" -eq 21 ] || [ "$rc" -eq 22 ]; then
+              exit 0
+            elif [ "$rc" -ne 0 ]; then
+              exit "$rc"
+            fi
+
+            test ! -e workpackages/state_events/F2-WP-1207/000013.json
+            test "$(sha256sum workpackages/state_events/F2-WP-1207/000012.json | awk '{print $1}')" = "de6071963c929bd6293c70aaeb28ef41eb90671ed7c88aa84ad351e6bf7aa8f7"
+            test "$(git hash-object src/frankenstein2/portable_release_transaction.py)" = "a248d6ded9fd90f34f7e6763fe30948fc58af6e6"
+            test "$(git hash-object tests/test_portable_release_transaction.py)" = "c095b15fb65c367b45944db24b5a9909bc1d3f8e"
+
+            cp /tmp/wp1207_candidate_source.py src/frankenstein2/portable_release_transaction.py
+            cp /tmp/wp1207_candidate_test.py tests/test_portable_release_transaction.py
+            test "$(git hash-object src/frankenstein2/portable_release_transaction.py)" = "dad832595799cb05bd472068569d10739f6c74cc"
+            test "$(git hash-object tests/test_portable_release_transaction.py)" = "6f106432d128bdbb28096d8bc5d149532d9d5088"
+
+            BASE_SHA="$BASE_SHA" python - <<'PY'
+          import json, os
+          from datetime import datetime, timezone
+          created = datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace('+00:00','Z')
+          d = {
+            'schema':'FRANKENSTEIN2_ACTIVE_WORKPACKAGE_CLAIM/v1',
+            'workpackage_id':'F2-WP-1207',
+            'generation':10,
+            'claim_id':'F2-WP-1207-G10-GPT56SOL-ROLLBACK-STATE-BINDING-20260830',
+            'worker_id':'GPT-5.6-Sol-TRIGGER4',
+            'trigger':'4',
+            'base_commit':os.environ['BASE_SHA'],
+            'stage':'PORTABLE_RELEASE_TRANSACTION_REGRESSION_REPAIR',
+            'state':'ACTIVE',
+            'claimed_scope':'POST_ACCEPTANCE_REGRESSION_REPAIR_ISSUE451_BIND_SUCCESSFUL_ROLLBACK_RECEIPT_TO_EXACT_PREDECESSOR_STATE_REPOSITORY_SCOPE_ONLY',
+            'parent_generation':9,
+            'parent_claim_id':'F2-WP-1207-G9-GPT56SOL-VPS-CLEAN-HOST-S1-20260830',
+            'parent_reconciliation_ref':'workpackages/reconciliations/F2-WP-1207/9-F2-WP-1207-G9-GPT56SOL-VPS-CLEAN-HOST-S1-20260830.json',
+            'parent_terminal_event':'workpackages/state_events/F2-WP-1207/000012.json',
+            'work_class':'INTEGRATION_BLOCKER',
+            'failure_class':'PRODUCT_NEGATIVE',
+            'target_completion_tier':'REPOSITORY_COMPONENT_REGRESSION_REPAIR',
+            'integration_boundary':'ROLLBACK TransactionPlan exact predecessor state identity -> SUCCEEDED AttemptReceipt observed_state_sha256',
+            'blocking_deficit':'Executable counterexample #451 proves current canonical record_attempt accepts an unrelated valid state digest for successful ROLLBACK instead of binding success to plan.rollback_target_state_sha256.',
+            'counterevidence':{
+              'issue':451,
+              'candidate_pr':757,
+              'candidate_discriminator_run_id':33325643150,
+              'candidate_discriminator_job_id':99295166104,
+              'materialization_run_id':33325693003,
+              'pr_transaction_ci_run_id':33325778416,
+              'pr_hostile_twin_ci_run_id':33325778440,
+              'pr_release_readback_ci_run_id':33325778432,
+              'vulnerable_source_blob_sha':'a248d6ded9fd90f34f7e6763fe30948fc58af6e6',
+              'candidate_source_blob_sha':'dad832595799cb05bd472068569d10739f6c74cc',
+              'candidate_test_blob_sha':'6f106432d128bdbb28096d8bc5d149532d9d5088'
+            },
+            'duplicate_owner_check':'G9 terminal ACCEPTED; fixed-path sequence 000013 absent; no other G10 pointer observed at CAS attempt.',
+            'pending_probe':'NONE_OBSERVED',
+            'credit_policy':'No new runtime/effect/completion/training/whole-system credit from repository regression repair; preserve G9 clean-host S1 scope and keep physical target zero.',
+            'runtime_execution_observed':True,
+            'runtime_credit':1,
+            'hostile_twin_runtime_credit':1,
+            'target_environment_component_runtime_credit':1,
+            'clean_host_s1_runtime_credit':1,
+            'vps_target_like_clean_host_credit':1,
+            'target_runtime_credit':0,
+            'vps_runtime_credit':0,
+            'physical_host_credit':0,
+            'effect_credit':0,
+            'completion_credit':0,
+            'grid10_runtime_credit':0,
+            'gwt_runtime_credit':0,
+            'jspace_runtime_credit':0,
+            'provider_model_credit':0,
+            'training_credit':0,
+            'whole_system_acceptance':False,
+            'created_at_utc':created,
+            'next_exact_action':'Execute exact G10 main-bound repository CI and v2 resolver, then terminalize only the regression-repair scope if all exact-main discriminators pass.'
+          }
+          with open('workpackages/active/F2-WP-1207.json','w') as f:
+              json.dump(d,f,separators=(',',':'))
+              f.write('\n')
+          PY
+
+            ACTIVE_BLOB="$(git hash-object workpackages/active/F2-WP-1207.json)"
+            BASE_SHA="$BASE_SHA" ACTIVE_BLOB="$ACTIVE_BLOB" python - <<'PY'
+          import json, os
+          from datetime import datetime, timezone
+          created = datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace('+00:00','Z')
+          d = {
+            'schema':'FRANKENSTEIN2_WORKPACKAGE_STATE_EVENT/v1',
+            'workpackage_id':'F2-WP-1207',
+            'sequence':13,
+            'parent_event':'workpackages/state_events/F2-WP-1207/000012.json',
+            'parent_event_sha256':'de6071963c929bd6293c70aaeb28ef41eb90671ed7c88aa84ad351e6bf7aa8f7',
+            'event_class':'POST_ACCEPTANCE_REGRESSION_REPAIR_OPENED',
+            'observed_main_sha':os.environ['BASE_SHA'],
+            'claim_generation':10,
+            'claim_id':'F2-WP-1207-G10-GPT56SOL-ROLLBACK-STATE-BINDING-20260830',
+            'broad_status':'IN_PROGRESS',
+            'phase':12,
+            'title':'Repair successful rollback receipt binding to exact predecessor state after executable counterexample #451',
+            'evidence':[
+              'workpackages/active/F2-WP-1207.json',
+              'src/frankenstein2/portable_release_transaction.py',
+              'tests/test_portable_release_transaction.py',
+              'GITHUB_ISSUE_451_CANDIDATE_FALSIFIER',
+              'GITHUB_PR_757_REVIEW_ONLY_CANDIDATE_PATCH',
+              'GHA_RUN_33325643150_JOB_99295166104_COUNTEREXAMPLE_AND_CANDIDATE_REPAIR_SUCCESS',
+              'GHA_RUN_33325778416_PR_TRANSACTION_CI_SUCCESS',
+              'GHA_RUN_33325778440_PR_HOSTILE_TWIN_CI_SUCCESS',
+              'GHA_RUN_33325778432_PR_RELEASE_READBACK_CI_SUCCESS'
+            ],
+            'active_pointer_state':'ACTIVE',
+            'active_pointer_blob_sha':os.environ['ACTIVE_BLOB'],
+            'resolution':'Generation 10 opens only the #451 post-acceptance regression repair. Exact candidate source/test bytes already passed isolated and PR CI. G9 clean-host S1 evidence is preserved. No new runtime, physical, effect, completion, GRID/GWT/J-Space/provider/training or whole-system credit is created until later exact-scope evidence permits it.',
+            'runtime_execution_observed':True,
+            'runtime_credit':1,
+            'hostile_twin_runtime_credit':1,
+            'target_environment_component_runtime_credit':1,
+            'clean_host_s1_runtime_credit':1,
+            'vps_target_like_clean_host_credit':1,
+            'target_runtime_credit':0,
+            'vps_runtime_credit':0,
+            'physical_host_credit':0,
+            'grid10_runtime_credit':0,
+            'gwt_runtime_credit':0,
+            'jspace_runtime_credit':0,
+            'provider_model_credit':0,
+            'training_credit':0,
+            'effect_credit':0,
+            'completion_credit':0,
+            'whole_system_acceptance':False,
+            'created_at_utc':created
+          }
+          with open('workpackages/state_events/F2-WP-1207/000013.json','w') as f:
+              json.dump(d,f,separators=(',',':'))
+              f.write('\n')
+          PY
+
+            PYTHONPATH=src python tests/test_portable_release_transaction.py -v
+            git diff --check
+            git add -- \
+              src/frankenstein2/portable_release_transaction.py \
+              tests/test_portable_release_transaction.py \
+              workpackages/active/F2-WP-1207.json \
+              workpackages/state_events/F2-WP-1207/000013.json
+            test "$(git diff --cached --name-only | wc -l)" -eq 4
+            git commit -m "trigger4: open WP1207 G10 rollback state binding repair"
+            python tools/resolve_workpackage_state_v2.py --workpackage F2-WP-1207 --check-active
+
+            if git push origin HEAD:main; then
+              echo "G10_CAS_PUSH_SUCCESS=$(git rev-parse HEAD)"
+              exit 0
+            fi
+            echo "CAS_LOST_REENTER"
+          done
+
+          echo "G10_CAS_EXHAUSTED_WITHOUT_FORCE_PUSH" >&2
+          exit 1
