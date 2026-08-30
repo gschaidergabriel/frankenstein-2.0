@@ -1,6 +1,6 @@
 """Deterministic bounded context compilation for Frankenstein 2.0.
 
-F2-WP-306 generation 4.
+F2-WP-306 generation 4 with a REVIEW_ONLY D14 candidate hardening.
 
 The compiler operates on caller-supplied references and metadata only. It never reads
 payload bytes, infers relevance or truth, mutates upstream state, or authorizes effects.
@@ -9,6 +9,13 @@ Generation 4 closes one bounded accounting gap: a selectable ContextItem must ha
 exact typed cost witness for its payload digest, and the witness's measured cost must
 match the item's declared cost_units before budget accounting can use that value.
 The witness is measurement/admission evidence only; it is not world-truth authority.
+
+The D14 review hardening adds a second independent boundary for CHANNEL_AUTHORITY:
+retrieval, source classification, priority or rendering metadata cannot by themselves
+promote an item into the authority channel. Every selectable authority item requires a
+separate exact ContextAuthorityWitness bound to the whole ContextItem identity. The
+witness is still only admission evidence; an upstream deterministic authority resolver
+must decide whether its issuer/reference is legitimate.
 """
 from __future__ import annotations
 
@@ -22,6 +29,7 @@ CONTEXT_ITEM_SCHEMA = "FRANKENSTEIN2_CONTEXT_ITEM/v1"
 CONTEXT_NEED_SCHEMA = "FRANKENSTEIN2_CONTEXT_NEED/v1"
 CONTEXT_VIEW_SCHEMA = "FRANKENSTEIN2_CONTEXT_VIEW/v1"
 CONTEXT_COST_WITNESS_SCHEMA = "FRANKENSTEIN2_CONTEXT_COST_WITNESS/v1"
+CONTEXT_AUTHORITY_WITNESS_SCHEMA = "FRANKENSTEIN2_CONTEXT_AUTHORITY_WITNESS/v1"
 
 CHANNEL_STATE = "STATE"
 CHANNEL_GOAL = "GOAL"
@@ -285,6 +293,78 @@ class ContextItem:
 
 
 @dataclass(frozen=True, slots=True)
+class ContextAuthorityWitness:
+    """Separate admission witness required for any selectable AUTHORITY item.
+
+    The witness binds the exact immutable ContextItem digest plus an explicit authority
+    class/reference/scope/issuer and provenance. It is intentionally supplied separately
+    from ContextItem so retrieved/model/user data cannot become authority merely by
+    choosing CHANNEL_AUTHORITY or a privileged source_classification string.
+
+    This object is not proof that issuer_ref is legitimate. Upstream deterministic
+    authority resolution must validate that before creating/admitting the witness.
+    """
+
+    schema: str
+    item_id: str
+    item_sha256: str
+    authority_class: str
+    authority_ref: str
+    scope_ref: str
+    issuer_ref: str
+    generation: int
+    provenance_refs: tuple[str, ...]
+
+    def __post_init__(self) -> None:
+        if self.schema != CONTEXT_AUTHORITY_WITNESS_SCHEMA:
+            raise ContextCompilerError("context authority witness schema mismatch")
+        _identifier("authority witness item_id", self.item_id)
+        _sha256("authority witness item_sha256", self.item_sha256)
+        _identifier("authority_class", self.authority_class)
+        _identifier("authority_ref", self.authority_ref)
+        _identifier("authority scope_ref", self.scope_ref)
+        _identifier("authority issuer_ref", self.issuer_ref)
+        _nonnegative_int("authority witness generation", self.generation, maximum=2_147_483_647)
+        object.__setattr__(
+            self,
+            "provenance_refs",
+            _refs("authority witness provenance_ref", self.provenance_refs),
+        )
+
+    @classmethod
+    def create(
+        cls,
+        *,
+        item: ContextItem,
+        authority_class: str,
+        authority_ref: str,
+        scope_ref: str,
+        issuer_ref: str,
+        generation: int,
+        provenance_refs: Iterable[str],
+    ) -> "ContextAuthorityWitness":
+        if type(item) is not ContextItem:
+            raise ContextCompilerError("authority witness item must be an exact ContextItem")
+        return cls(
+            schema=CONTEXT_AUTHORITY_WITNESS_SCHEMA,
+            item_id=item.item_id,
+            item_sha256=item.sha256(),
+            authority_class=authority_class,
+            authority_ref=authority_ref,
+            scope_ref=scope_ref,
+            issuer_ref=issuer_ref,
+            generation=generation,
+            provenance_refs=tuple(provenance_refs),
+        )
+
+    def as_dict(self) -> dict[str, Any]:
+        return asdict(self)
+
+    def sha256(self) -> str:
+        return _digest(self.as_dict())
+
+
+@dataclass(frozen=True, slots=True)
 class ContextNeed:
     schema: str
     context_id: str
@@ -368,6 +448,13 @@ class SelectedContextItem:
     cost_witness_generation: int
     cost_measurement_ref: str
     cost_witness_provenance_refs: tuple[str, ...]
+    authority_witness_sha256: str | None
+    authority_class: str | None
+    authority_ref: str | None
+    authority_scope_ref: str | None
+    authority_issuer_ref: str | None
+    authority_witness_generation: int | None
+    authority_witness_provenance_refs: tuple[str, ...]
     selection_reason: str
 
     def as_dict(self) -> dict[str, Any]:
@@ -415,6 +502,7 @@ def _selected(
     item: ContextItem,
     reason: str,
     cost_witness: ContextCostWitness,
+    authority_witness: ContextAuthorityWitness | None,
 ) -> SelectedContextItem:
     return SelectedContextItem(
         item_id=item.item_id,
@@ -439,6 +527,13 @@ def _selected(
         cost_witness_generation=cost_witness.generation,
         cost_measurement_ref=cost_witness.measurement_ref,
         cost_witness_provenance_refs=cost_witness.provenance_refs,
+        authority_witness_sha256=(authority_witness.sha256() if authority_witness else None),
+        authority_class=(authority_witness.authority_class if authority_witness else None),
+        authority_ref=(authority_witness.authority_ref if authority_witness else None),
+        authority_scope_ref=(authority_witness.scope_ref if authority_witness else None),
+        authority_issuer_ref=(authority_witness.issuer_ref if authority_witness else None),
+        authority_witness_generation=(authority_witness.generation if authority_witness else None),
+        authority_witness_provenance_refs=(authority_witness.provenance_refs if authority_witness else ()),
         selection_reason=reason,
     )
 
@@ -487,18 +582,62 @@ def _bind_cost_witnesses(
     return bound
 
 
+def _bind_authority_witnesses(
+    selectable: tuple[ContextItem, ...],
+    authority_witnesses: Iterable[ContextAuthorityWitness],
+) -> dict[str, ContextAuthorityWitness]:
+    if isinstance(authority_witnesses, (str, bytes)):
+        raise ContextCompilerError(
+            "authority_witnesses must be an iterable of ContextAuthorityWitness values"
+        )
+    witnesses = tuple(authority_witnesses)
+    if any(type(witness) is not ContextAuthorityWitness for witness in witnesses):
+        raise ContextCompilerError(
+            "authority_witnesses must contain only exact ContextAuthorityWitness values"
+        )
+
+    authority_items = {
+        item.item_id: item for item in selectable if item.channel == CHANNEL_AUTHORITY
+    }
+    bound: dict[str, ContextAuthorityWitness] = {}
+    for witness in witnesses:
+        item = authority_items.get(witness.item_id)
+        if item is None:
+            raise ContextCompilerError("unbound context authority witness item_id")
+        if witness.item_id in bound:
+            raise ContextCompilerError("duplicate context authority witness for item_id")
+        if witness.item_sha256 != item.sha256():
+            raise ContextCompilerError(
+                f"authority witness does not match context item digest for {item.item_id!r}"
+            )
+        bound[item.item_id] = witness
+
+    for item_id in authority_items:
+        if item_id not in bound:
+            raise ContextCompilerError(
+                f"missing authority witness for context item {item_id!r}"
+            )
+    return bound
+
+
 def compile_context(
     need: ContextNeed,
     items: Iterable[ContextItem],
     *,
     cost_witnesses: Iterable[ContextCostWitness] = (),
+    authority_witnesses: Iterable[ContextAuthorityWitness] = (),
 ) -> ContextView:
     """Compile one deterministic bounded reference-only context view.
 
     Every selectable item must have one exact typed cost witness bound to its
     payload digest. Budget accounting uses the measured cost only after proving
-    it equals the item's declared cost_units. The compiler still never reads or
-    renders payload bytes.
+    it equals the item's declared cost_units.
+
+    Additionally, every selectable AUTHORITY item must have one separate exact
+    ContextAuthorityWitness bound to the complete ContextItem digest. Retrieval,
+    source classification, rendering and caller priority cannot substitute for that
+    witness. The compiler still never reads/renders payload bytes and the witness
+    does not itself prove that its issuer is authorized.
     """
     if not isinstance(need, ContextNeed):
         raise ContextCompilerError("need must be a ContextNeed")
@@ -528,6 +667,7 @@ def compile_context(
 
     selectable = tuple(item for item in candidates if item.channel in allowed)
     cost_by_item = _bind_cost_witnesses(selectable, cost_witnesses)
+    authority_by_item = _bind_authority_witnesses(selectable, authority_witnesses)
 
     explicit_required = sorted(
         (item for item in selectable if item.required),
@@ -539,7 +679,14 @@ def compile_context(
             raise ContextCompilerError("required context items exceed max_items")
         if used_cost + measured_cost > need.max_cost_units:
             raise ContextCompilerError("required context items exceed max_cost_units")
-        selected.append(_selected(item, "EXPLICIT_REQUIRED", cost_by_item[item.item_id]))
+        selected.append(
+            _selected(
+                item,
+                "EXPLICIT_REQUIRED",
+                cost_by_item[item.item_id],
+                authority_by_item.get(item.item_id),
+            )
+        )
         selected_ids.add(item.item_id)
         used_cost += measured_cost
 
@@ -564,7 +711,14 @@ def compile_context(
             raise ContextCompilerError("required channels exceed max_items")
         if used_cost + measured_cost > need.max_cost_units:
             raise ContextCompilerError("required channels exceed max_cost_units")
-        selected.append(_selected(chosen, "REQUIRED_CHANNEL", cost_by_item[chosen.item_id]))
+        selected.append(
+            _selected(
+                chosen,
+                "REQUIRED_CHANNEL",
+                cost_by_item[chosen.item_id],
+                authority_by_item.get(chosen.item_id),
+            )
+        )
         selected_ids.add(chosen.item_id)
         used_cost += measured_cost
 
@@ -581,7 +735,12 @@ def compile_context(
             omitted.append(_omitted(item, "COST_LIMIT"))
             continue
         selected.append(
-            _selected(item, "EXPLICIT_PRIORITY_WITHIN_BUDGET", cost_by_item[item.item_id])
+            _selected(
+                item,
+                "EXPLICIT_PRIORITY_WITHIN_BUDGET",
+                cost_by_item[item.item_id],
+                authority_by_item.get(item.item_id),
+            )
         )
         selected_ids.add(item.item_id)
         used_cost += measured_cost
@@ -619,10 +778,12 @@ __all__ = [
     "CHANNEL_METHOD",
     "CHANNEL_RETRIEVAL_REFERENCE",
     "CHANNEL_STATE",
+    "CONTEXT_AUTHORITY_WITNESS_SCHEMA",
     "CONTEXT_COST_WITNESS_SCHEMA",
     "CONTEXT_ITEM_SCHEMA",
     "CONTEXT_NEED_SCHEMA",
     "CONTEXT_VIEW_SCHEMA",
+    "ContextAuthorityWitness",
     "ContextCompilerError",
     "ContextCostWitness",
     "ContextItem",
