@@ -1,0 +1,47 @@
+{
+  "schema": "FRANKENSTEIN2_TRIGGER6_RESEARCH_RESULT/v1",
+  "trigger": "6",
+  "research_id": "R6-20260830-PORTABLE-ARCHIVE-RESOURCE-BOUNDS-GPT56SOL-01",
+  "evidence_stage": "E3_REPRODUCED",
+  "status": "MECHANISM_REPRODUCED_LOCALLY_WITH_EXACT_SOURCE_PATH_OBSERVED",
+  "worker": "GPT-5.6-Sol organ",
+  "claim_ref": "research/tool_intelligence/claims/R6-20260830-PORTABLE-ARCHIVE-RESOURCE-BOUNDS-GPT56SOL-01/E3_REPRODUCED_VERIFIER_MEMORY_SCALING.json@e96ef3f11732d13da2bb60aa0956d7f7bf1a5fc3",
+  "f2_source_snapshot_sha": "754dbb0c985eee307fd4d889346fe8f250f58f1c",
+  "source_ref": "src/frankenstein2/release_archive.py",
+  "source_observation": "At the pinned F2 source, verify_release_archive receives the entire archive as bytes, materializes every member via member_bytes = {info.filename: archive.read(info.filename) for info in infos}, and then materializes canonical_archive_bytes by rebuilding the full deterministic ZIP before comparing it to archive_bytes.",
+  "local_reproducer": {
+    "environment": "Linux 6.18.35 x86_64; Python 3.13.5; isolated ChatGPT container; not F2 target VPS or user host",
+    "script_sha256": "19f3b4dd8397278d605263274576e85ef30f9392a6dc4d0022fe82f348bea729",
+    "method": "Create canonical-style ZIP_STORED archives containing one payload plus a small manifest. Start tracemalloc only after archive_bytes already exists, then execute the source-observed memory mechanism: ZipFile(BytesIO(archive_bytes)) -> read all members into a dictionary -> rebuild a second ZIP_STORED archive in memory. Record Python-tracked peak allocation.",
+    "samples": [
+      {"payload_mib": 1, "archive_mib": 1.000, "peak_incremental_allocation_mib": 2.132, "peak_incremental_over_archive": 2.131},
+      {"payload_mib": 4, "archive_mib": 4.000, "peak_incremental_allocation_mib": 8.505, "peak_incremental_over_archive": 2.126},
+      {"payload_mib": 16, "archive_mib": 16.000, "peak_incremental_allocation_mib": 34.005, "peak_incremental_over_archive": 2.125},
+      {"payload_mib": 32, "archive_mib": 32.000, "peak_incremental_allocation_mib": 68.005, "peak_incremental_over_archive": 2.125},
+      {"payload_mib": 64, "archive_mib": 64.000, "peak_incremental_allocation_mib": 136.005, "peak_incremental_over_archive": 2.125}
+    ]
+  },
+  "observed_result": "Across 1-64 MiB payloads, the reproduced source mechanism showed stable approximately-linear Python-tracked peak incremental allocation at about 2.125x archive size. The input archive bytes were allocated before tracemalloc started, so this ratio is incremental verifier allocation and not total process RSS.",
+  "interpretation": "The source-predicted memory amplification mechanism is real in a controlled reproduction. For current ZIP_STORED v1, generic decompression-ratio defenses are lower-value than replacing all-at-once member retention plus full in-memory canonical re-encoding in the install lane with manifest-bound streaming verification against a trusted exact ReleaseArchiveReceipt.",
+  "limitations": [
+    "This was not execution of the complete F2 module because the connected GitHub source could not be materialized into the isolated runtime through the available connector/file bridge in this run.",
+    "The reproducer mirrors the exact relevant allocation pattern but omits unrelated F2 validation branches and therefore is mechanism evidence, not full exact-source F2 runtime evidence.",
+    "tracemalloc measures Python-tracked allocations and is not a complete process-RSS profiler.",
+    "No target VPS, clean local host, installer flow, effect path or whole-system runtime was executed."
+  ],
+  "counterhypothesis_status": {
+    "hypothesis": "The all-at-once verifier memory cost may be negligible for actual F2 release sizes.",
+    "status": "NOT_FALSIFIED_FOR_REAL_RELEASE_SIZE",
+    "reason": "Scaling is reproduced, but no canonical production-sized release artifact was benchmarked in this run. Urgency depends on actual release size and host memory envelope."
+  },
+  "next_exact_gate": "Trigger4 should benchmark the exact F2 verifier at a representative release size and implement/test a path-or-seekable-file streaming install-lane verifier only if the measured memory budget is material. The candidate should require exact expected ReleaseArchiveReceipt identity, stream artifact/member hashes and byte counts, reuse ReleaseManifest exact sizes, and avoid a second full archive materialization. Keep build-time canonical encoding verification separate.",
+  "evidence_scope": "LOCAL_DETERMINISTIC_MECHANISM_REPRODUCTION_ONLY_NO_F2_TARGET_RUNTIME_OR_PHYSICAL_CREDIT",
+  "credit": {
+    "source_mechanism_reproduction": 1,
+    "exact_full_f2_source_execution": 0,
+    "f2_ablation": 0,
+    "target_runtime": 0,
+    "physical_target": 0,
+    "whole_system": 0
+  }
+}
