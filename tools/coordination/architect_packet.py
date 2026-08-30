@@ -220,20 +220,25 @@ def packet_disposition(
     return "APPLIED"
 
 
-def make_ack(
+def _serialize_ack(
     packet: dict[str, Any],
     worker_context: dict[str, Any],
     disposition: str,
     *,
     reason: str,
     authority_head: str,
-    observed_at: datetime | None = None,
+    observed_at: datetime,
     event_head_ref: str | None = None,
     active_pointer_ref: str | None = None,
 ) -> dict[str, Any]:
+    """Serialize an already-derived ACK disposition.
+
+    This is intentionally private: public ACK creation must classify the exact
+    packet/context first and may not trust a caller-supplied disposition.
+    """
     if disposition not in DISPOSITIONS:
         raise PacketError("invalid disposition")
-    observed = (observed_at or datetime.now(timezone.utc)).astimezone(timezone.utc)
+    observed = observed_at.astimezone(timezone.utc)
     packet_bytes = len(_dump(packet).encode("utf-8"))
     stable = "|".join(
         str(x or "")
@@ -271,6 +276,49 @@ def make_ack(
         "new_effect_authority": False,
         "credit_delta": 0,
     }
+
+
+def make_ack(
+    packet: dict[str, Any],
+    worker_context: dict[str, Any],
+    *,
+    reason: str,
+    authority_head: str,
+    observed_at: datetime | None = None,
+    classification_now: datetime | None = None,
+    seen_nonces: Iterable[str] = (),
+    superseded_packet_ids: Iterable[str] = (),
+    authority_conflict: bool = False,
+    event_head_ref: str | None = None,
+    active_pointer_ref: str | None = None,
+) -> dict[str, Any]:
+    """Validate, classify, then serialize one non-authoritative ACK.
+
+    The disposition is deliberately not a parameter. This closes the public
+    ACK-classification bypass where a caller could previously force `APPLIED`
+    for a tampered, stale, misaddressed, duplicate, superseded, or conflicting
+    packet.
+    """
+    observed = (observed_at or classification_now or datetime.now(timezone.utc)).astimezone(timezone.utc)
+    classify_at = (classification_now or observed).astimezone(timezone.utc)
+    disposition = packet_disposition(
+        packet,
+        worker_context,
+        now=classify_at,
+        seen_nonces=seen_nonces,
+        superseded_packet_ids=superseded_packet_ids,
+        authority_conflict=authority_conflict,
+    )
+    return _serialize_ack(
+        packet,
+        worker_context,
+        disposition,
+        reason=reason,
+        authority_head=authority_head,
+        observed_at=observed,
+        event_head_ref=event_head_ref,
+        active_pointer_ref=active_pointer_ref,
+    )
 
 
 def new_packet(
@@ -362,12 +410,16 @@ def cmd_match(args: argparse.Namespace) -> int:
 def cmd_ack(args: argparse.Namespace) -> int:
     packet = _load(args.packet)
     context = _load(args.context)
+    now = _parse_time(args.now) if args.now else None
     ack = make_ack(
         packet,
         context,
-        args.disposition,
         reason=args.reason,
         authority_head=args.authority_head,
+        classification_now=now,
+        seen_nonces=_read_string_set(args.seen_nonces),
+        superseded_packet_ids=_read_string_set(args.superseded_packet_ids),
+        authority_conflict=args.authority_conflict,
         event_head_ref=args.event_head_ref,
         active_pointer_ref=args.active_pointer_ref,
     )
@@ -421,7 +473,10 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("packet")
     p.add_argument("context")
     p.add_argument("output")
-    p.add_argument("--disposition", choices=sorted(DISPOSITIONS), required=True)
+    p.add_argument("--now")
+    p.add_argument("--seen-nonces")
+    p.add_argument("--superseded-packet-ids")
+    p.add_argument("--authority-conflict", action="store_true")
     p.add_argument("--reason", required=True)
     p.add_argument("--authority-head", required=True)
     p.add_argument("--event-head-ref")
