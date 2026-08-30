@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import multiprocessing
+import os
 from pathlib import Path
 import sqlite3
 import sys
@@ -84,6 +85,32 @@ def _process_apply(db_path, home, barrier, queue, transition):
     finally:
         if store is not None:
             store.close()
+
+
+def _process_crash_before_transition_insert(db_path, home, transition):
+    """Kill the process after the delivery-row update but before transition insert/commit."""
+    store = _open_store(db_path, home)
+
+    def crash_now():
+        os._exit(73)
+
+    store.connection.create_function("wp103_crash_now", 0, crash_now)
+    store.connection.execute(
+        """CREATE TEMP TRIGGER wp103_crash_before_transition_insert
+           BEFORE INSERT ON f2_recipient_delivery_transitions
+           BEGIN
+             SELECT wp103_crash_now();
+           END"""
+    )
+    store.apply(_identity(), transition)
+    os._exit(79)  # pragma: no cover - reaching here means the crash fixture failed
+
+
+def _process_apply_then_hard_exit(db_path, home, transition):
+    """Exit without close immediately after apply() has returned its commit witness."""
+    store = _open_store(db_path, home)
+    store.apply(_identity(), transition)
+    os._exit(74)
 
 
 class CanonicalDeliveryStoreTests(unittest.TestCase):
@@ -267,6 +294,63 @@ class CanonicalDeliveryStoreTests(unittest.TestCase):
         self.assertEqual(record.state, DeliveryState.ACKED)
         self.assertEqual(record.acknowledged_attempt_id, "attempt:1")
         self.assertIn(len(record.transport_attempt_ids), (1, 2))
+        store.close()
+
+    def test_hard_exit_before_transition_insert_rolls_back_ack_atomically(self):
+        store = _open_store(self.db_path, self.home)
+        offered = store.apply(
+            _identity(), _transition("transition:offer-1", DeliveryOperation.OFFER)
+        )
+        self.assertEqual(offered.state, DeliveryState.OFFERED)
+        self.assertEqual(store.transition_count(offered.delivery_id), 1)
+        store.close()
+
+        ctx = multiprocessing.get_context("spawn")
+        ack = _transition("transition:ack-crash", DeliveryOperation.ACK)
+        process = ctx.Process(
+            target=_process_crash_before_transition_insert,
+            args=(self.db_path, self.home, ack),
+        )
+        process.start()
+        process.join(15)
+        self.assertEqual(process.exitcode, 73)
+
+        store = _open_store(self.db_path, self.home)
+        record = store.get_delivery(
+            causal_event_id="causal:event-1", recipient_id="recipient:alpha"
+        )
+        self.assertIsNotNone(record)
+        self.assertEqual(record.state, DeliveryState.OFFERED)
+        self.assertIsNone(record.acknowledged_attempt_id)
+        self.assertEqual(store.transition_count(record.delivery_id), 1)
+        store.close()
+
+    def test_hard_exit_after_apply_return_preserves_committed_ack(self):
+        store = _open_store(self.db_path, self.home)
+        offered = store.apply(
+            _identity(), _transition("transition:offer-1", DeliveryOperation.OFFER)
+        )
+        self.assertEqual(offered.state, DeliveryState.OFFERED)
+        store.close()
+
+        ctx = multiprocessing.get_context("spawn")
+        ack = _transition("transition:ack-committed", DeliveryOperation.ACK)
+        process = ctx.Process(
+            target=_process_apply_then_hard_exit,
+            args=(self.db_path, self.home, ack),
+        )
+        process.start()
+        process.join(15)
+        self.assertEqual(process.exitcode, 74)
+
+        store = _open_store(self.db_path, self.home)
+        record = store.get_delivery(
+            causal_event_id="causal:event-1", recipient_id="recipient:alpha"
+        )
+        self.assertIsNotNone(record)
+        self.assertEqual(record.state, DeliveryState.ACKED)
+        self.assertEqual(record.acknowledged_attempt_id, "attempt:1")
+        self.assertEqual(store.transition_count(record.delivery_id), 2)
         store.close()
 
 
