@@ -1,0 +1,38 @@
+name: WP900 Fresh Process Reopen CI
+
+on:
+  pull_request:
+    paths:
+      - "tests/test_whole_loop_fresh_process_reopen.py"
+      - ".github/workflows/wp900-fresh-process-reopen-ci.yml"
+      - "src/frankenstein2/persistent_agency_kernel.py"
+      - "src/frankenstein2/whole_loop_persistence_integration.py"
+      - "src/frankenstein2/whole_persistent_loop.py"
+      - "src/state/unifieddb_identity.py"
+      - "tests/test_whole_persistent_loop.py"
+  push:
+    branches:
+      - "chatgpt/trigger4-wp900-fresh-process-reopen-20260830"
+    paths:
+      - "tests/test_whole_loop_fresh_process_reopen.py"
+      - ".github/workflows/wp900-fresh-process-reopen-ci.yml"
+      - "src/frankenstein2/persistent_agency_kernel.py"
+      - "src/frankenstein2/whole_loop_persistence_integration.py"
+      - "src/frankenstein2/whole_persistent_loop.py"
+      - "src/state/unifieddb_identity.py"
+      - "tests/test_whole_persistent_loop.py"
+
+permissions:
+  contents: read
+
+jobs:
+  fresh-process-reopen:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Run fresh-process persistence/reopen falsifier
+        run: python -m unittest tests.test_whole_loop_fresh_process_reopen -v
