@@ -134,6 +134,25 @@ class PortableReleaseTransactionTests(unittest.TestCase):
         self.assertEqual(plan.rollback_target_state_sha256, F)
         self.assertEqual(plan.rollback_target_release_digest, R1_DIGEST)
 
+        receipt = record_attempt(
+            plan,
+            outcome="SUCCEEDED",
+            observed_generation=8,
+            observed_state_sha256=F,
+        )
+        self.assertEqual(receipt.observed_state_sha256, F)
+
+        with self.assertRaisesRegex(
+            PortableReleaseTransactionError,
+            "exact predecessor state digest",
+        ):
+            record_attempt(
+                plan,
+                outcome="SUCCEEDED",
+                observed_generation=8,
+                observed_state_sha256=A,
+            )
+
         wrong = copy.deepcopy(raw)
         wrong["rollback_release"] = copy.deepcopy(R2)
         with self.assertRaisesRegex(PortableReleaseTransactionError, "exact predecessor"):
