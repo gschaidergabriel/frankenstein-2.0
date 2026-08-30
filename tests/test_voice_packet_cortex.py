@@ -6,6 +6,7 @@ import unittest
 from frankenstein2.causal_identity import CausalIdentity
 from frankenstein2.voice_contract import OUTCOME_RETURNED, VoiceIntent, VoiceSessionCapsule
 from frankenstein2.voice_packet_cortex import VoiceInputPacket, VoicePacketCortex, VoicePacketCortexError
+from frankenstein2.voice_packet_cortex_recovery import export_packet_cortex_checkpoint
 
 
 class VoicePacketCortexTests(unittest.TestCase):
@@ -333,6 +334,66 @@ class VoicePacketCortexTests(unittest.TestCase):
                 ),
                 outcome_kind=OUTCOME_RETURNED,
             )
+
+    def test_session_close_cannot_silently_erase_active_tool_ownership(self) -> None:
+        session = self.session()
+        cortex = VoicePacketCortex(session)
+        tool_ref = "tool:session-close-owned"
+        cortex.emit_intent(
+            turn_id="turn-tool", monotonic_ms=100, voice_intent="TOOL_USE", tool_ref=tool_ref
+        )
+        event_kinds_before = [event.event_kind for event in cortex.events]
+        try:
+            cortex.close_session(
+                turn_id="turn-close", monotonic_ms=110,
+                outcome_causal_identity=session.session_causal_identity.derive(
+                    causal_id="causal-outcome-active-tool", generation=5, turn_id="turn-outcome-active-tool"
+                ),
+                outcome_kind=OUTCOME_RETURNED,
+            )
+        except VoicePacketCortexError:
+            self.assertTrue(cortex.is_open)
+            self.assertEqual(cortex._active_tools.get(tool_ref), "turn-tool")
+            self.assertEqual([event.event_kind for event in cortex.events], event_kinds_before)
+            return
+        self.assertIn(
+            tool_ref,
+            cortex._cancelled_tools,
+            "successful SESSION_CLOSE must preserve an explicit stale/cancelled tool tombstone",
+        )
+        self.assertTrue(
+            any(event.event_kind in ("CANCELLATION", "TOOL_CANCELLED", "TOOL_FENCED") and event.tool_ref == tool_ref
+                for event in cortex.events),
+            "successful SESSION_CLOSE must emit an explicit causal tool terminalization event",
+        )
+
+    def test_rejected_session_close_is_checkpoint_atomic(self) -> None:
+        session = self.session()
+        cortex = VoicePacketCortex(session)
+        cortex.queue_output(
+            turn_id="turn-0", packet_id="output-atomic-close", monotonic_ms=10,
+            text_segment="Atomar schließen.", expression_intent="neutral", speech_act="CLOSE",
+            planned_audio_duration_ms=100, sequence=0,
+        )
+        cortex.advance_output("output-atomic-close", playback_state="started", monotonic_ms=20, heard_fraction=0.0)
+        cortex.advance_output("output-atomic-close", playback_state="completed", monotonic_ms=120, heard_fraction=1.0)
+        before = export_packet_cortex_checkpoint(cortex)
+        with self.assertRaises(VoicePacketCortexError):
+            cortex.close_session(
+                turn_id="", monotonic_ms=130,
+                outcome_causal_identity=session.session_causal_identity.derive(
+                    causal_id="causal-outcome-rejected-close", generation=5, turn_id="turn-outcome-rejected-close"
+                ),
+                outcome_kind=OUTCOME_RETURNED,
+                result_ref="voice-result:rejected-close",
+                result_sha256="e" * 64,
+            )
+        after = export_packet_cortex_checkpoint(cortex)
+        self.assertEqual(
+            after,
+            before,
+            "rejected SESSION_CLOSE must not mutate durable/recoverable packet-cortex state",
+        )
 
 
 if __name__ == "__main__":
