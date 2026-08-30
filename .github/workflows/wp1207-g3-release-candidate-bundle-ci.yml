@@ -1,0 +1,84 @@
+name: WP1207 G3 Release Candidate Bundle CI
+
+on:
+  pull_request:
+    paths:
+      - "tools/build_release_candidate_bundle.py"
+      - "tests/test_release_candidate_bundle.py"
+      - ".github/workflows/wp1207-g3-release-candidate-bundle-ci.yml"
+      - "workpackages/active/F2-WP-1207.json"
+      - "workpackages/state_events/F2-WP-1207/**"
+      - "workpackages/deltas/F2-WP-1207/**"
+  push:
+    branches: [main]
+    paths:
+      - "tools/build_release_candidate_bundle.py"
+      - "tests/test_release_candidate_bundle.py"
+      - ".github/workflows/wp1207-g3-release-candidate-bundle-ci.yml"
+      - "workpackages/active/F2-WP-1207.json"
+      - "workpackages/state_events/F2-WP-1207/**"
+      - "workpackages/deltas/F2-WP-1207/**"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  exact-release-candidate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Validate state-event/active-pointer binding
+        run: |
+          python tools/resolve_workpackage_state_v2.py --check-active --workpackage F2-WP-1207
+
+      - name: Compile bounded release composition surface
+        run: |
+          python -m py_compile \
+            src/frankenstein2/release_integrity.py \
+            src/frankenstein2/release_archive.py \
+            src/frankenstein2/pre_handoff_release.py \
+            src/frankenstein2/release_artifact_subject.py \
+            src/frankenstein2/artifact_bound_clean_machine.py \
+            src/frankenstein2/receipt_content_binding.py \
+            src/frankenstein2/portable_release_transaction.py \
+            src/frankenstein2/portable_release_readback.py \
+            tools/build_release_candidate_bundle.py \
+            tests/test_release_candidate_bundle.py
+
+      - name: Re-run accepted release identity tests plus G3 falsifiers
+        env:
+          PYTHONPATH: src
+        run: |
+          python tests/test_release_archive.py -v
+          python tests/test_release_artifact_subject.py -v
+          python tests/test_receipt_content_binding.py -v
+          python tests/test_portable_release_transaction.py -v
+          python tests/test_portable_release_readback.py -v
+          python tests/test_release_candidate_bundle.py -v
+
+      - name: Materialize exact Git-tree release candidate bundle
+        env:
+          PYTHONPATH: src
+        run: |
+          rm -rf "$RUNNER_TEMP/f2-release-candidate"
+          python tools/build_release_candidate_bundle.py \
+            --repo-root "$GITHUB_WORKSPACE" \
+            --output-dir "$RUNNER_TEMP/f2-release-candidate"
+          sha256sum "$RUNNER_TEMP"/f2-release-candidate/*.zip
+          cat "$RUNNER_TEMP/f2-release-candidate/RELEASE_CANDIDATE_BUNDLE.json"
+
+      - name: Upload exact release-candidate evidence bundle
+        uses: actions/upload-artifact@v4
+        with:
+          name: f2-wp1207-g3-release-candidate-${{ github.sha }}
+          path: ${{ runner.temp }}/f2-release-candidate/
+          if-no-files-found: error
+          retention-days: 30
