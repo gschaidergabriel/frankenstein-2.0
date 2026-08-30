@@ -1,13 +1,15 @@
 #!/usr/bin/env python3
-"""Executable failing-before ablation for WP206 external same-inode SQLite drift.
+"""Executable acceptance regression for WP206 G5 external SQLite revision drift.
 
-This is the Trigger-4 repository reproduction of the Trigger-6 E3 handoff.  It proves
-that a second SQLite connection can commit a logical database revision while the bound
-main file keeps the same device/inode, and that the current WP206 file-identity guard
-therefore accepts continued use.
+The pre-patch version of this exact scenario reproduced the gap on PR #728 head
+49ea7a9a73bcda7f12545e203a5a0b704f7b6280 / Actions 33305713501: a second SQLite
+connection committed logical changes, main.data_version advanced, device/inode stayed
+stable, and the G4 guard accepted continued use.
 
-A zero exit code means the pre-G5 gap was reproduced.  This script is negative evidence,
-not acceptance of the successor repair and not target-runtime evidence.
+G5 acceptance inverts that discriminator.  The same DELETE/WAL external commits must now
+fail closed on the original long-lived canonical store connection while no-change and
+same-connection canonical schema work remain usable.  This is repository-component evidence
+only, not target-runtime or whole-system evidence.
 """
 from __future__ import annotations
 
@@ -16,7 +18,10 @@ from pathlib import Path
 import sqlite3
 import tempfile
 
-from frankenstein2.persistent_agency_kernel import CanonicalPersistentAgencyStore
+from frankenstein2.persistent_agency_kernel import (
+    CanonicalPersistentAgencyStore,
+    PersistentAgencyError,
+)
 from state.unifieddb_identity import fingerprint_unifieddb, resolve_unifieddb_path
 
 
@@ -43,7 +48,7 @@ def _open_store(db: Path, home: Path) -> CanonicalPersistentAgencyStore:
     )
 
 
-def _reproduce(mode: str) -> None:
+def _assert_external_commit_fails_closed(mode: str) -> None:
     with tempfile.TemporaryDirectory() as tmp:
         root = Path(tmp)
         home = root / "home"
@@ -53,11 +58,16 @@ def _reproduce(mode: str) -> None:
 
         store = _open_store(db, home)
         try:
+            # Same-connection canonical schema mutation must not poison the connection-local
+            # baseline: SQLite data_version is specifically an other-connection witness.
             store.initialize_schema()
+            store._assert_current_file_identity()
+
             if mode == "wal":
                 assert store.connection.execute("PRAGMA journal_mode=WAL").fetchone()[0].lower() == "wal"
             else:
                 store.connection.execute("PRAGMA journal_mode=DELETE")
+            store._assert_current_file_identity()
 
             before_stat = db.stat()
             before_version = int(
@@ -78,7 +88,6 @@ def _reproduce(mode: str) -> None:
             after_version = int(
                 store.connection.execute("PRAGMA main.data_version").fetchone()[0]
             )
-
             assert (before_stat.st_dev, before_stat.st_ino) == (
                 after_stat.st_dev,
                 after_stat.st_ino,
@@ -87,21 +96,47 @@ def _reproduce(mode: str) -> None:
                 "observer PRAGMA main.data_version did not witness the external commit"
             )
 
-            # Current G4 guard checks only path/device/inode.  If this call succeeds while
-            # data_version changed, the exact pre-G5 logical-revision gap is reproduced.
-            store._assert_current_file_identity()
+            try:
+                store._assert_current_file_identity()
+            except PersistentAgencyError as exc:
+                assert str(exc) == "UNIFIEDDB_EXTERNAL_SQLITE_REVISION_DRIFT", str(exc)
+            else:
+                raise AssertionError(
+                    "WP206 G5 failed to reject an externally committed same-inode SQLite revision"
+                )
+        finally:
+            store.close()
+
+
+def _assert_no_change_stays_usable() -> None:
+    with tempfile.TemporaryDirectory() as tmp:
+        root = Path(tmp)
+        home = root / "home"
+        home.mkdir()
+        db = root / "canonical" / "no-change.db"
+        _bootstrap(db)
+        store = _open_store(db, home)
+        try:
+            store.initialize_schema()
+            baseline = store.sqlite_data_version_baseline
+            for _ in range(3):
+                store._assert_current_file_identity()
+                assert store.sqlite_data_version_baseline == baseline
         finally:
             store.close()
 
 
 def main() -> int:
-    _reproduce("delete")
-    _reproduce("wal")
+    _assert_no_change_stays_usable()
+    _assert_external_commit_fails_closed("delete")
+    _assert_external_commit_fails_closed("wal")
     print(
-        "PASS_REPRODUCED_WP206_G5_PREPATCH_GAP: external SQLite commits advanced "
-        "main.data_version in DELETE and WAL modes while device/inode stayed stable and "
-        "the current WP206 file-identity guard accepted continued use"
+        "PASS_WP206_G5_EXTERNAL_SQLITE_REVISION_FENCE: no-change stayed usable and "
+        "external same-inode commits failed closed in DELETE and WAL modes"
     )
+    print("DATA_VERSION_SCOPE=ONE_LONG_LIVED_CONNECTION_ONLY")
+    print("SAME_CONNECTION_RAW_DML=EXPLICITLY_UNCOVERED_SEPARATE_FALSIFIER")
+    print("RAW_FILESYSTEM_WAL_TAMPER=EXPLICITLY_UNCOVERED_SEPARATE_FALSIFIER")
     print("TARGET_RUNTIME_CREDIT=0")
     print("PHYSICAL_GRID10_CREDIT=0")
     print("GWT_JSPACE_RUNTIME_CREDIT=0")
