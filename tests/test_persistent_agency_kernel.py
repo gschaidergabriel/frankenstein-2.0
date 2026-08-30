@@ -160,7 +160,7 @@ class PersistentAgencyIntegrationTests(unittest.TestCase):
         )
         self.assertNotEqual(reader.returncode, 0)
         self.assertIn("UnifiedDBAuthorityConflict", reader.stderr)
-        self.assertNotIn('"mode": "read"', reader.stdout)
+        self.assertNotIn('\"mode\": \"read\"', reader.stdout)
 
     def test_same_path_replaced_file_identity_fails_closed(self) -> None:
         self._write_process_a()
@@ -207,6 +207,37 @@ class PersistentAgencyIntegrationTests(unittest.TestCase):
         reader = self._probe("read")
         self.assertNotEqual(reader.returncode, 0)
         self.assertIn("CHECKPOINT_DIGEST_MISMATCH", reader.stderr)
+
+    def test_checkpoint_db_authority_receipt_tamper_fails_closed(self) -> None:
+        self._write_process_a()
+        forged_receipt = "0" * 64
+        connection = sqlite3.connect(self.db)
+        try:
+            row = connection.execute(
+                """SELECT unifieddb_authority_receipt_sha256
+                   FROM f2_persistent_agency_checkpoints
+                   WHERE checkpoint_id='checkpoint-0'"""
+            ).fetchone()
+            self.assertIsNotNone(row)
+            self.assertNotEqual(row[0], forged_receipt)
+            connection.execute(
+                """UPDATE f2_persistent_agency_checkpoints
+                   SET unifieddb_authority_receipt_sha256=?
+                   WHERE checkpoint_id='checkpoint-0'""",
+                (forged_receipt,),
+            )
+            connection.commit()
+        finally:
+            connection.close()
+
+        store = self._open_store_current_process()
+        try:
+            with self.assertRaisesRegex(
+                PersistentAgencyError, "CHECKPOINT_DB_AUTHORITY_RECEIPT_MISMATCH"
+            ):
+                store.load_checkpoint("checkpoint-0")
+        finally:
+            store.close()
 
     def test_wrong_parent_identity_is_rejected_transactionally(self) -> None:
         self._write_process_a()
