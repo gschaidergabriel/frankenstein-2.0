@@ -1,0 +1,63 @@
+{
+  "schema": "TRIGGER6_RESEARCH_RESULT/v1",
+  "research_id": "R6-20260830-EXECUTION-SURFACE-IDENTITY-GPT56SOL-01",
+  "stage": "E1_SOURCE_READ",
+  "status": "COMPLETE_AT_E1",
+  "recorded_at": "2026-08-30T19:22:00+07:00",
+  "subject": "Minimum execution-surface identity required to separate GitHub-hosted CI from owner-target-host runtime evidence",
+  "project_observations": [
+    "WP1207 workflow run 33311147892 is bound to head_sha fc550a0edb7032c1a7592e32e9aaa802f46a7133 and workflow path .github/workflows/wp1207-portable-release-transaction-ci.yml.",
+    "At that exact head, job deterministic-hostile-twin-transaction-core declares runs-on: ubuntu-latest.",
+    "The corresponding jobs API result for job 99256303130 reports labels=[ubuntu-latest], runner_name=GitHub Actions 1000051152, runner_group_name=GitHub Actions, run_attempt=1, the same head_sha, and executed steps ending in success.",
+    "Current owner authority separately defines clay-direct-dev as the intended Frankenstein-2.0 build/test/runtime sandbox and the self-hosted runner/VPS bridge as an authorized execution transport.",
+    "Therefore the successful hosted-CI run is not a failed target-host assignment; it is a successful execution of a different declared execution surface. Target-host credit remains zero unless a distinct clay-direct-dev execution subject is observed."
+  ],
+  "external_primary": [
+    {
+      "source": "GitHub Docs — Workflow syntax for GitHub Actions",
+      "url": "https://docs.github.com/en/actions/reference/workflows-and-actions/workflow-syntax",
+      "finding": "jobs.<job_id>.runs-on defines the type/destination class of machine; labels/groups constrain eligible runners."
+    },
+    {
+      "source": "GitHub Docs — REST API endpoints for workflow jobs",
+      "url": "https://docs.github.com/en/rest/actions/workflow-jobs?apiVersion=2026-03-10",
+      "finding": "Workflow-job evidence exposes run/job identity, head_sha, run_attempt, steps, labels, runner_id/name and runner-group identity."
+    },
+    {
+      "source": "GitHub Docs — Self-hosted runners reference",
+      "url": "https://docs.github.com/en/actions/reference/runners/self-hosted-runners",
+      "finding": "Self-hosted routing is based on matching runs-on labels/groups; online/idle matching runners are assigned, and failure to pick up within 60 seconds causes requeue."
+    }
+  ],
+  "hypothesis": "Runtime promotion should bind both the intended execution-surface contract and the observed execution-surface identity. A success is admissible for target-runtime credit only if the observed surface satisfies the intended target contract at the same source/run attempt identity.",
+  "counterhypothesis": "No new workflow-level architecture is required if GitHub-hosted CI is intentionally component-only and target-host execution already occurs through a separate bridge/tool path; in that case the missing primitive is only an explicit scope/subject admission contract that prevents cross-surface credit.",
+  "falsifier": "Find an admitted current runtime receipt that can prove clay-direct-dev execution at exact source/artifact identity without binding any intended/observed execution-surface fields. If such a receipt remains unambiguous under replay, rerun, hosted-CI coexistence and route changes, the proposed surface-binding fields are redundant.",
+  "minimum_identity_candidate": {
+    "intended": [
+      "owner_authority_generation_or_ref",
+      "target_surface_id",
+      "workflow_or_executor_identity",
+      "normalized_runs_on_or_route_contract",
+      "source_or_artifact_identity"
+    ],
+    "observed": [
+      "workflow_run_id_or_external_execution_id",
+      "run_attempt",
+      "job_or_gate_id",
+      "head_sha_or_consumed_artifact_digest",
+      "runner_or_host_identity",
+      "runner_group_or_route_identity",
+      "observed_labels_or_surface_class",
+      "executed_steps_or_gate_execution_observed",
+      "result"
+    ],
+    "admission_rule": "INTENDED_TARGET_MATCHES_OBSERVED_SURFACE && EXACT_SOURCE_OR_ARTIFACT_MATCH && EXECUTION_OBSERVED; otherwise preserve evidence at its narrower scope and set target_runtime_credit_delta=0."
+  },
+  "architecture_implication": "Do not mutate the existing ubuntu-latest component-CI workflow merely to make its success look like target execution. Keep component CI and clay-direct-dev runtime subjects distinct; bind their scope explicitly at admission and require a separate exact target-host receipt for promotion.",
+  "trigger4_handoff": "For WP1207, treat run 33311147892/job 99256303130 as hosted component CI only. The next target-runtime gate is a separate bridge/self-hosted clay-direct-dev execution of the bound predecessor/candidate artifacts with exact source/artifact and host/route identity captured; reject any cross-surface success substitution.",
+  "evidence_ceiling": "E1_SOURCE_READ_PLUS_CURRENT_PROJECT_SOURCE_OBSERVATION",
+  "runtime_credit": 0,
+  "effect_credit": 0,
+  "completion_credit": 0,
+  "whole_system_credit": 0
+}
