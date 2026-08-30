@@ -1,0 +1,26 @@
+diff --git a/src/frankenstein2/persistent_agency_kernel.py b/src/frankenstein2/persistent_agency_kernel.py
+--- a/src/frankenstein2/persistent_agency_kernel.py
++++ b/src/frankenstein2/persistent_agency_kernel.py
+@@ -936,7 +936,20 @@ class CanonicalPersistentAgencyStore:
+         self.canonical_db_path = os.path.realpath(fingerprint.real_path)
+         self.db_device = int(fingerprint.device)
+         self.db_inode = int(fingerprint.inode)
+-        self.authority_receipt_sha256 = fingerprint.receipt_sha256()
++        # Cross-restart authority identity must exclude mutable SQLite state.
++        # UnifiedDBFingerprint.receipt_sha256() intentionally includes file/state
++        # observations (content hash, timestamps, schema/page count, WAL/SHM flags),
++        # so it cannot be an equality witness across legitimate writes to the same DB.
++        self.authority_receipt_sha256 = _sha256(
++            {
++                "schema": "FRANKENSTEIN2_UNIFIEDDB_AUTHORITY_BINDING/v1",
++                "resolution_schema": resolution.schema,
++                "resolution_path": os.path.realpath(resolution.path),
++                "resolution_source": resolution.source,
++                "resolution_explicit_sources": list(resolution.explicit_sources),
++                "fingerprint_schema": fingerprint.schema,
++                "canonical_db_path": self.canonical_db_path,
++                "db_device": self.db_device,
++                "db_inode": self.db_inode,
++            }
++        )
+         self.connection.execute("PRAGMA foreign_keys=ON")
