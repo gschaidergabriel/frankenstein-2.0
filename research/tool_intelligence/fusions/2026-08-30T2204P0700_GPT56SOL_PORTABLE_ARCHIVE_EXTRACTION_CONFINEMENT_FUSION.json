@@ -1,0 +1,40 @@
+{
+  "schema": "TRIGGER6_ARCHITECTURE_DELTA_FUSION/v1",
+  "trigger": "6",
+  "fusion_id": "ADF-20260830T2204P0700-GPT56SOL-PORTABLE-ARCHIVE-EXTRACTION-CONFINEMENT",
+  "worker": "GPT-5.6 Sol / ChatGPT Trigger-6 organ",
+  "primary_research_id": "R6-20260830-PORTABLE-ARCHIVE-EXTRACTION-CONFINEMENT-GPT56SOL-01",
+  "reentered_f2_main_before_write": "33412266a08a75e6062c5b2283f0fd1191b90493",
+  "coordination": {
+    "overlap_avoided": ["WP1110 route symlink confinement", "WP1111 materialized-package symlink/junction authority"],
+    "semantic_boundary": "ZIP archive bytes -> disposable staged package root; existing WP1110/WP1111 retain materialized-package path responsibility"
+  },
+  "evidence_chain": {
+    "E1": "c0b1ae2ce0562ff9d063ac0f8c33d72fe05533da",
+    "E2": "46878cf96bf36b7acd48b5b501330cbb7d38872f",
+    "E3": "773b53fa591cbee3983e7202263a316f951b27e8",
+    "E4": "ad23ed07639970f1686cf6788a98d4f612205d6b",
+    "E5": "52515b02b5f625886501f61174ebe19795db27fd"
+  },
+  "observed": [
+    "F2 release_integrity is already a strict post-materialization verifier and is not itself a ZIP extractor.",
+    "The portable architecture requires a release ZIP but leaves ZIP-to-package-root materialization semantics unspecified before installer root/manifest resolution.",
+    "CPython ZipFile extraction followed a pre-existing destination directory symlink in a disposable E3 and wrote the member outside the lexical destination.",
+    "The clean empty-destination control stayed confined.",
+    "The bounded E4 source-logic ablation showed F2 post-verification rejects the symlink-bearing staged tree, but post-verification cannot undo a write that escaped during extraction."
+  ],
+  "surviving_delta": {
+    "name": "F2_VERIFIED_PRIVATE_RELEASE_STAGING_V1",
+    "status": "TRIGGER4_BUILD_CANDIDATE_NOT_IMPLEMENTED",
+    "pipeline": "archive identity -> F2-owned fresh/private staging -> member preflight -> bounded extraction/no execution -> existing release_integrity/static completeness -> verified package-root promotion -> installer",
+    "dependency_policy": "stdlib-only baseline; no new framework",
+    "authority_policy": "staging is transform/verification plumbing only; release_integrity remains authoritative at its existing scope"
+  },
+  "limits": [
+    "E4 did not import repository bytes directly because local raw-file network transfer was blocked; relevant functions were transcribed from the exact connected-source file, so there is no exact-byte runtime credit.",
+    "No Windows/macOS target execution, no target performance measurement and no E6 integration/runtime/whole-system credit.",
+    "Linux openat2-style hardening is not required by current evidence unless concurrent hostile staging mutation enters the accepted threat model."
+  ],
+  "credits": {"E1":1,"E2":1,"E3":1,"E4":1,"E5":1,"E6":0,"runtime":0,"target_host":0,"whole_system":0},
+  "next_exact_action": "Trigger4 refreshes current main, checks for newer staging/extractor overlap, then implements/tests F2_VERIFIED_PRIVATE_RELEASE_STAGING_V1 or records an evidence-backed redundancy decision. Trigger6 must not mint E6."
+}
