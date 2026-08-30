@@ -1,0 +1,67 @@
+{
+  "schema": "FRANKENSTEIN2_TRIGGER6_E3_CLAIM_REPRODUCED/v1",
+  "research_id": "R6-WP206-SQLITE-LIVE-DRIFT-001",
+  "claim_target": "E3_CLAIM_REPRODUCED_SQLITE_DATA_VERSION",
+  "trigger": "6",
+  "status": "E3_LOCAL_RESEARCH_REPRODUCED",
+  "claim_ref": "research/tool_intelligence/claims/R6-WP206-SQLITE-LIVE-DRIFT-001/E3_CLAIM_REPRODUCED_SQLITE_DATA_VERSION.json",
+  "experiment": {
+    "repo_path": "research/tool_intelligence/experiments/sqlite_live_drift_semantics_repro_v1.py",
+    "repo_blob_sha": "ae18d5c4f45f77a4622bbff68bc03d62886451dc",
+    "executed_source_sha256": "22de8f1b9f305ce777dac1c06dcb01f3489a195e383e28a0856823867eff6341",
+    "execution_surface": "ChatGPT local container research sandbox",
+    "classification": "LOCAL_RESEARCH_REPRODUCTION_NOT_F2_RUNTIME_OR_VPS_RUNTIME"
+  },
+  "environment": {
+    "python": "3.13.5",
+    "sqlite_runtime": "3.46.1",
+    "journal_mode": "WAL"
+  },
+  "observed": {
+    "inode_sequence": [2884198, 2884198, 2884198],
+    "data_version_sequence": [2, 3, 3, 4],
+    "schema_version_sequence": [2, 2, 2, 3],
+    "protected_row_initial": ["alpha", "digest-alpha"],
+    "protected_row_after_unrelated_foreign_write": ["alpha", "digest-alpha"]
+  },
+  "assertions": {
+    "inode_stable_across_foreign_data_and_schema_commits": true,
+    "foreign_connection_commit_changed_data_version_on_observer": true,
+    "same_observer_connection_commit_did_not_change_its_data_version": true,
+    "foreign_schema_commit_changed_data_version": true,
+    "foreign_schema_commit_changed_schema_version": true,
+    "unrelated_foreign_write_left_protected_row_unchanged": true
+  },
+  "reproduced_claims": [
+    "Same-inode mutation is real and is not detectable by path/device/inode authority identity alone.",
+    "PRAGMA data_version can cheaply detect that another SQLite connection committed since the observer's prior sample.",
+    "PRAGMA data_version does not witness commits made by the observer connection itself.",
+    "PRAGMA schema_version distinguishes the tested DDL mutation but not ordinary data mutation.",
+    "A data_version change can be a false positive for a specific checkpoint: an unrelated-table write changed data_version while the protected row stayed byte-for-byte semantically unchanged."
+  ],
+  "falsified_or_not_supported": [
+    "Any data_version change should automatically invalidate a WP206 checkpoint.",
+    "data_version is a complete mutation witness for all writes that can occur through the same Connection object.",
+    "stable inode implies stable SQLite state.",
+    "schema_version is a full database data revision."
+  ],
+  "architectural_consequence": "The evidence supports data_version/schema_version only as ephemeral invalidation/diagnostic hints that trigger targeted revalidation. It does not yet justify a new persistent generation field or a change to the stable bound-file authority receipt.",
+  "counterhypothesis_status": "PARTIALLY_SURVIVES",
+  "counterhypothesis_note": "Existing WP206 digest/replay/transaction checks may already be sufficient for correctness. E3 demonstrates observability, not a current F2 correctness failure. A product change requires an F2-specific E4 ablation showing a missed stale-read or recovery case whose outcome is improved by the witness.",
+  "next_gate": {
+    "recommended": "E2_REVIEW_AFTER_E3_THEN_HANDOFF_NO_BUILD_BY_DEFAULT",
+    "optional_only_if_TRIGGER4_OR_NEW_COUNTEREVIDENCE_DEMANDS": "E4_F2_ABLATION: run current WP206 source under controlled foreign-connection unrelated write, protected-row mutation, and schema mutation to measure whether existing digest/replay/BEGIN IMMEDIATE checks miss a correctness-relevant case.",
+    "credit_ceiling": "NO_E4_NO_E5_NO_RUNTIME_CREDIT"
+  },
+  "credits": {
+    "e1_source_read": 1,
+    "e2_architecture_mapping": 1,
+    "e3_claim_reproduced": 1,
+    "e4_f2_ablation": 0,
+    "e5_build_candidate": 0,
+    "e6_f2_accepted": 0,
+    "f2_runtime": 0,
+    "vps_runtime": 0,
+    "whole_system": 0
+  }
+}
