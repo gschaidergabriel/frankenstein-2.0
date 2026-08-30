@@ -3,7 +3,8 @@ set -Eeuo pipefail
 
 # Execute a command in a disposable Ubuntu target-like sandbox while keeping
 # the owner host, checkout and unrelated persistent state outside the writable boundary.
-# Preferred backends: provisioned systemd-nspawn, Podman, Docker.
+# Auto mode prefers resource-bounded Podman/Docker. Use --backend nspawn when
+# closer systemd/userspace fidelity is required and the nspawn base is provisioned.
 
 backend="${F2_SANDBOX_BACKEND:-auto}"
 network="${F2_SANDBOX_NETWORK:-off}"
@@ -47,12 +48,12 @@ case "$sandbox_root" in
 esac
 
 if [[ "$backend" == "auto" ]]; then
-  if command -v systemd-nspawn >/dev/null 2>&1 && [[ -d "$nspawn_base" ]]; then
-    backend="nspawn"
-  elif command -v podman >/dev/null 2>&1; then
+  if command -v podman >/dev/null 2>&1; then
     backend="podman"
   elif command -v docker >/dev/null 2>&1; then
     backend="docker"
+  elif command -v systemd-nspawn >/dev/null 2>&1 && [[ -d "$nspawn_base" ]]; then
+    backend="nspawn"
   else
     echo "no supported sandbox backend; run host_prepare_ubuntu_nspawn.sh or install Podman/Docker" >&2
     exit 69
@@ -72,6 +73,7 @@ trap cleanup_host_sentinel EXIT
 
 run_oci() {
   local engine="$1"
+  shift
   local -a net_args=()
   [[ "$network" == "off" ]] && net_args=(--network none)
 
