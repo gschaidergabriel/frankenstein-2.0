@@ -1,0 +1,56 @@
+{
+  "schema": "FRANKENSTEIN2_WORKPACKAGE_RECONCILIATION/v1",
+  "workpackage_id": "F2-WP-206",
+  "generation": 3,
+  "claim_id": "F2-WP-206-G3-GPT56SOL-LEGACY-G1-AUTHORITY-RECOVERY-20260830",
+  "worker_id": "GPT-5.6-Sol-TRIGGER4",
+  "state": "ACCEPTED",
+  "accepted_scope": "PERSISTENT_AGENCY_LEGACY_G1_AUTHORITY_RECOVERY_REPOSITORY_HOSTED_COMPONENT_CI_ONLY",
+  "whole_system_acceptance": false,
+  "runtime_credit": 0,
+  "physical_grid10_credit": 0,
+  "gwt_runtime_credit": 0,
+  "jspace_runtime_credit": 0,
+  "training_credit": 0,
+  "effect_credit": 0,
+  "completion_credit": 0,
+  "canonical_source": "src/frankenstein2/wp206_legacy_authority_recovery.py",
+  "canonical_tests": [
+    "tests/test_wp206_legacy_authority_recovery.py",
+    "tests/wp206_restart_probe.py"
+  ],
+  "canonical_ci": ".github/workflows/wp206-g3-legacy-authority-recovery-ci.yml",
+  "acceptance_receipt": "workpackages/receipts/F2-WP-206_G3_LEGACY_G1_AUTHORITY_RECOVERY.json",
+  "implementation_pr": 681,
+  "passing_head_sha": "7cc2dc2a5c9362f6e967d3df05a15604542582eb",
+  "merged_main_sha": "736a0907bdd35056d56f1ed0f75ea11e8457b8c1",
+  "passing_pr_head_run_id": 33301728380,
+  "passing_pr_head_job_id": 99231053013,
+  "passing_main_run_id": 33301769704,
+  "passing_main_job_id": 99231155835,
+  "evidence": [
+    "PR 681 merged the explicit accepted-G1 legacy authority recovery adapter and its deterministic regressions into main",
+    "GitHub-hosted CI on exact PR head 7cc2dc2a5c9362f6e967d3df05a15604542582eb passed compile, accepted-G1 recovery and post-migration tamper regressions",
+    "GitHub-hosted push CI on merged-main SHA 736a0907bdd35056d56f1ed0f75ea11e8457b8c1 passed the same bounded recovery suite",
+    "the normal checkpoint reader remains fail-closed; compatibility is exposed only through an explicit one-time recovery adapter",
+    "repository-component scope is accepted without runtime, physical GRID10, GWT/J-Space, effect, completion, training or whole-system promotion"
+  ],
+  "preserved_boundaries": [
+    "caller must supply the externally expected historical G1 receipt and provenance rather than infer legacy trust from a 64-hex value",
+    "canonical DB path/device/inode, checkpoint digest and typed replay are verified before receipt rebinding",
+    "recovery metadata stays inside the same canonical UnifiedDB and does not become a second truth store",
+    "post-migration receipt drift is not auto-healed by recovery replay",
+    "same-inode live data/schema drift is explicitly not closed by this generation"
+  ],
+  "non_credit": [
+    "NO_TARGET_OR_VPS_RUNTIME_CREDIT",
+    "NO_PHYSICAL_GRID10_RUNTIME_CREDIT",
+    "NO_GWT_OR_JSPACE_RUNTIME_CREDIT",
+    "NO_PROVIDER_OR_MODEL_CREDIT",
+    "NO_EFFECT_AUTHORIZATION_OR_EXECUTION_CREDIT",
+    "NO_COMPLETION_VERIFICATION_CREDIT",
+    "NO_TRAINING_CREDIT",
+    "NO_WHOLE_FRANKENSTEIN2_ACCEPTANCE"
+  ],
+  "next_exact_action": "Release the WP901 dependency fence that existed only for the accepted-G1 authority-receipt compatibility gap, while keeping same-inode live drift separate and preserving all repository-component credit bounds. Re-enter exact current main before selecting any further Stage-9 recovery/stress work."
+}
