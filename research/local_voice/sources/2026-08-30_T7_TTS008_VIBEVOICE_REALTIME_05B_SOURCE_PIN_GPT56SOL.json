@@ -1,0 +1,107 @@
+{
+  "schema": "FRANKENSTEIN2_TRIGGER7_SOURCE_PIN/v1",
+  "date_local": "2026-08-30",
+  "trigger": "7",
+  "research_id": "T7-TTS-008",
+  "objective": "E1_VIBEVOICE_REALTIME_05B_GERMAN_SOURCE_PIN",
+  "semantic_key": "e309960e65c028eb54de70be7c032d98c67943e40eb6919028b49addc8c46194",
+  "subject": "microsoft/VibeVoice-Realtime-0.5B",
+  "status": "SOURCE_PINNED_NO_F2_RUNTIME_CREDIT",
+  "upstream_code": {
+    "repository": "microsoft/VibeVoice",
+    "pinned_commit": "94da20d98b2fa7688e9cbfaf7692ddb4954f7600",
+    "primary_doc": "docs/vibevoice-realtime-0.5b.md",
+    "experimental_voice_installer": "demo/download_experimental_voices.sh"
+  },
+  "upstream_model": {
+    "provider": "Hugging Face",
+    "model_id": "microsoft/VibeVoice-Realtime-0.5B",
+    "license": "mit",
+    "declared_task": "text-to-speech",
+    "declared_primary_language": "English",
+    "parameter_class": "0.5B",
+    "model_safetensors_bytes_approx": "2.04 GB",
+    "model_safetensors_sha256": "7758b150b8139deb48ac1ff6f181f745c8fedd5511232fd974b3eb217d83b514",
+    "model_safetensors_xet_hash": "f4ef91562d7f139a6d69649c4415c758ce4ab69f11826b2f6bbaac904e0fc0ef",
+    "model_file_commit_observed_short": "583464a",
+    "audio_sample_rate_hz": 24000,
+    "language_model_pretrained_name": "Qwen/Qwen2.5-0.5B"
+  },
+  "source_supported_realtime_signals": {
+    "interleaved_windowed_design": true,
+    "incremental_text_chunk_encoding_claimed": true,
+    "parallel_acoustic_latent_generation_from_prior_context_claimed": true,
+    "acoustic_tokenizer_frame_rate_hz": 7.5,
+    "single_speaker_variant": true,
+    "upstream_first_audible_latency_claim": "approximately 200 ms in feature text; approximately 300 ms first speech chunk in websocket usage note; hardware/network dependent",
+    "upstream_devices_reported_realtime": ["NVIDIA T4", "Apple Mac M4 Pro"],
+    "boundary": "UPSTREAM_SOURCE_CLAIM_NOT_FRANKENSTEIN_TARGET_RUNTIME_EVIDENCE"
+  },
+  "german_source_evidence": {
+    "experimental_german_voice_archive_present": true,
+    "archive_name": "experimental_voices_de.tar.gz",
+    "multilingual_exploration_list_includes_german": true,
+    "source_warning": "Model is primarily built/intended for English; multilingual behavior has not been extensively tested and non-English output may be unpredictable.",
+    "stable_german_male_identity_established": false,
+    "german_quality_benchmark_established": false,
+    "german_production_credit": 0
+  },
+  "source_contradictions": [
+    {
+      "id": "T7_VIBEVOICE_STREAMING_API_CONTRADICTION",
+      "lhs": "Primary document describes streaming text input and incremental encoding of incoming text chunks.",
+      "rhs": "The same document TODO still lists implementation of a streaming text-input function that feeds new tokens while audio is being generated as unfinished.",
+      "classification": "UNRESOLVED_SOURCE_CONTRADICTION",
+      "credit_effect": "Do not grant true externally feedable live-token streaming/cancellation semantics from source alone."
+    },
+    {
+      "id": "T7_VIBEVOICE_TTFA_SOURCE_RANGE",
+      "lhs": "Feature text states approximately 200 ms first audible speech.",
+      "rhs": "Websocket usage note refers to approximately 300 ms first speech chunk generation latency.",
+      "classification": "UPSTREAM_MEASUREMENT_CONTEXT_AMBIGUITY",
+      "credit_effect": "Record 200-300 ms only as an upstream claim range; require target p50/p95 TTFA."
+    }
+  ],
+  "research_assessment": {
+    "result": "PROMOTE_TO_TARGET_RUNTIME_FALSIFIER_FRONTIER_AT_SOURCE_SCOPE_ONLY",
+    "production_relevance": "HIGH_INFORMATION_REALTIME_CHALLENGER_BUT_GERMAN_PRODUCTION_UNPROVEN",
+    "strengths": [
+      "0.5B-class model with local source/runtime surface",
+      "realtime-oriented interleaved/windowed architecture",
+      "explicit low first-audio upstream claim",
+      "official experimental German voice assets exist",
+      "MIT model license",
+      "safetensors model artifact rather than pickle model weights"
+    ],
+    "risks": [
+      "official source explicitly warns non-English output may be unpredictable",
+      "no source-level German quality or stable male identity evidence",
+      "streaming-text API documentation is internally contradictory",
+      "200 ms versus 300 ms latency wording requires target measurement rather than source promotion",
+      "single-speaker realtime variant limits identity flexibility",
+      "target cancellation/barge-in semantics are unmeasured",
+      "2.04 GB model artifact and actual RAM/VRAM/CPU/GPU envelope are unmeasured on the Frankenstein target"
+    ]
+  },
+  "target_runtime_falsifiers": [
+    "German intelligibility/naturalness fails against Piper/Thorsten, MagpieTTS, Qwen3-TTS or CosyVoice3 on identical material.",
+    "No stable acceptable male German voice is available from the released experimental assets.",
+    "TTFA p50/p95 exceeds the Trigger-7 conversational budget on the actual target.",
+    "Real-time factor, RSS/VRAM or warm-start cost exceeds the target resource envelope.",
+    "Externally fed incremental text duplicates/skips audio or is not actually runnable despite source claims.",
+    "Cancellation/barge-in latency causes stale speech after CANCEL.",
+    "Network-blocked LOCAL-SOLO execution cannot complete after a pinned local prefetch."
+  ],
+  "next_exact_action": "Do not dispatch another runtime job while the shared self-hosted runner admission gate remains unresolved. Once the existing target runner path is restored and the queued Qwen3-ASR measurement has terminal evidence, create a distinct VIBEVOICE_REALTIME_0_5B target-runtime semantic objective. Prefetch pinned source/model bytes, then run the same German TTS corpus used for Magpie/Qwen3-TTS/CosyVoice/Piper and record TTFA p50/p95, RTF, RSS/VRAM, pronunciation/intelligibility, blind naturalness, stable male identity, incremental chunk continuity, CANCEL latency and network-blocked LOCAL-SOLO behavior. Preserve the streaming-API source contradiction as an explicit runtime discriminator.",
+  "credit": {
+    "source_pin": 1,
+    "realtime_architecture_source_signal": 1,
+    "german_experimental_asset_source_signal": 1,
+    "target_hardware": 0,
+    "model_runtime": 0,
+    "german_tts_component": 0,
+    "german_e2e": 0,
+    "trigger4_acceptance": 0,
+    "whole_system": 0
+  }
+}
