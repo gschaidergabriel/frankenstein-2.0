@@ -1,6 +1,14 @@
 name: WP206 G6 exact-main owned-surface transplant
 
 on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'tools/trigger4_wp206_g6_mainreentry_patch.py'
+      - 'tests/test_wp206_g6_owned_surface_witness.py'
+      - 'tests/falsifier_wp206_g6_external_sqlite_revision_drift.py'
+      - '.github/workflows/wp206-g6-mainreentry-repair.yml'
   push:
     branches:
       - 'chatgpt/trigger4-wp206-g6-owned-surface-mainreentry-20260830'
@@ -62,6 +70,7 @@ jobs:
           python tests/test_persistent_agency_kernel.py -v
 
       - name: Commit product delta only after complete matrix is green
+        if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
         run: |
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
