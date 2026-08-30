@@ -1,0 +1,73 @@
+{
+  "schema": "FRANKENSTEIN2_TRIGGER6_F2_ABLATION/v1",
+  "research_id": "R6-20260830-RUNTIME-SUBJECT-BOUNDARY-FINGERPRINT-GPT56SOL-01",
+  "stage": "E4_F2_ABLATION",
+  "status": "BOUNDED_LOGICAL_ABLATION_COMPLETE",
+  "created_at": "2026-08-30T19:25:00+07:00",
+  "worker": "GPT-5.6-Sol-TRIGGER6",
+  "baseline_f2_sha": "cc04071615c24e3c9503d4490add75f224a368cf",
+  "e2_delta": "research/tool_intelligence/deltas/2026-08-30T1921P0700_GPT56SOL_R6_RUNTIME_SUBJECT_BOUNDARY_FINGERPRINT_E2.json",
+  "e3_receipt": "research/tool_intelligence/receipts/R6-20260830-RUNTIME-SUBJECT-BOUNDARY-FINGERPRINT-GPT56SOL-01_E3_WP206_DIRECT_IMPORT_OMISSION_20260830T1923P0700.json",
+  "experiment_class": "DETERMINISTIC_SYNTHETIC_CURRENTNESS_DECISION_ABLATION_NOT_TARGET_RUNTIME",
+  "question": "Under an equivalent change workload, which invalidation rule minimizes both false staleness and false currentness: whole-repo SHA, an incomplete path manifest like the falsified WP206 workflow list, or a verified complete dependency closure?",
+  "workload": {
+    "total_cases": 1000,
+    "unchanged": 100,
+    "unrelated_repository_change": 700,
+    "included_relevant_change": 100,
+    "omitted_relevant_dependency_change": 100,
+    "oracle_rule": "unchanged and unrelated changes preserve currentness; either relevant change invalidates currentness",
+    "note": "Case proportions are deliberately synthetic stress weights, not measured F2 production frequencies. They isolate false-stale versus false-current behavior."
+  },
+  "strategies": {
+    "WHOLE_REPOSITORY_SHA": {
+      "true_current": 100,
+      "false_stale": 700,
+      "true_stale": 200,
+      "false_current": 0,
+      "accuracy_ppm": 300000,
+      "false_stale_ppm_all": 700000,
+      "false_current_ppm_all": 0,
+      "interpretation": "fail-safe for relevance uncertainty but creates replay debt from unrelated churn"
+    },
+    "INCOMPLETE_PATH_MANIFEST": {
+      "true_current": 800,
+      "false_stale": 0,
+      "true_stale": 100,
+      "false_current": 100,
+      "accuracy_ppm": 900000,
+      "false_stale_ppm_all": 0,
+      "false_current_ppm_all": 100000,
+      "interpretation": "efficient but unsafe: omitted relevant dependency change is silently treated as invariant"
+    },
+    "VERIFIED_DEPENDENCY_CLOSURE": {
+      "true_current": 800,
+      "false_stale": 0,
+      "true_stale": 200,
+      "false_current": 0,
+      "accuracy_ppm": 1000000,
+      "false_stale_ppm_all": 0,
+      "false_current_ppm_all": 0,
+      "interpretation": "dominates in this constructed workload only if closure completeness is actually verified"
+    }
+  },
+  "primary_result": "A complete dependency-closure fingerprint can strictly dominate both whole-repository invalidation and an incomplete path-list digest on the modeled F2 churn problem. The benefit disappears if completeness is assumed rather than verified.",
+  "critical_boundary": "This experiment does NOT establish that F2 currently possesses a complete dependency closure, does NOT measure actual F2 churn frequencies, and does NOT measure target-runtime performance. E3 shows the obvious workflow-path donor is incomplete. Therefore implementation must fail closed on closure UNKNOWN.",
+  "resource_measurement": {
+    "model_calls": 0,
+    "token_runtime_effect": "not measured; expected metadata-only",
+    "latency_cpu_io": "not measured on target runtime",
+    "reason": "This E4 isolates decision correctness, not deployment performance."
+  },
+  "acceptance_implication": [
+    "Do not implement naive path-filter hashing.",
+    "Do not weaken whole-repo conservative behavior until a closure verifier proves completeness for the claimed boundary.",
+    "A Trigger-4 prototype should support VERIFIED_COMPLETE and UNKNOWN closure states; UNKNOWN must fall back to historical-only/no currentness promotion.",
+    "The prototype must keep exact subject commit/artifact identity even when closure equality allows unrelated newer commits to be declared invariant at a narrower scope."
+  ],
+  "research_credit": "E4_BOUNDED_LOGICAL_ABLATION",
+  "runtime_credit": 0,
+  "integration_credit": 0,
+  "whole_system_credit": 0,
+  "next_exact_action": "If no overlapping E5 exists, emit one narrow CONCEPT_DISTILL Trigger-4 build candidate for a fail-closed RuntimeSubjectBoundaryFingerprint helper plus dependency-closure verifier tests."
+}
