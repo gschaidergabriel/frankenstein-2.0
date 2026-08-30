@@ -41,7 +41,13 @@ jobs:
         run: |
           set -euo pipefail
           python -m unittest discover -s tests -p 'test_voice_packet_cortex.py' -v
-      - name: PN9 checkpoint resume then continue
+      - name: Run WP715 recovery component tests
+        env:
+          PYTHONPATH: src
+        run: |
+          set -euo pipefail
+          python -m unittest discover -s tests -p 'test_voice_packet_cortex_recovery.py' -v
+      - name: PN9 checkpoint resume then continue same reducer identities
         env:
           PYTHONPATH: src
         run: |
@@ -68,17 +74,13 @@ jobs:
               provenance_refs=('trigger4:wp715-pn9-session',),
           )
           cortex = VoicePacketCortex(session)
-
-          def packet(turn_id: str, packet_id: str, monotonic_ms: int) -> VoiceInputPacket:
-              return VoiceInputPacket(
-                  session_id=cortex.session_id, turn_id=turn_id, packet_id=packet_id,
-                  monotonic_ms=monotonic_ms, source_modality='asr_final', text='Weiter',
-                  language='de-DE', is_final=True, confidence=0.99, speech_start=True,
-                  speech_end=True, vad_state='SPEECH', endpoint_decision='END', overlap_state='NONE',
-                  barge_in=False, source_duration_ms=100, sequence=0, fault_flags=(),
-              )
-
-          cortex.accept_input(packet('turn-0', 'input-0', 100))
+          cortex.accept_input(VoiceInputPacket(
+              session_id=cortex.session_id, turn_id='turn-0', packet_id='input-0',
+              monotonic_ms=100, source_modality='asr_partial', text='Wei', language='de-DE',
+              is_final=False, confidence=0.90, speech_start=True, speech_end=False, vad_state='SPEECH',
+              endpoint_decision='HOLD', overlap_state='NONE', barge_in=False, source_duration_ms=80,
+              sequence=0, fault_flags=(),
+          ))
           cortex.queue_output(
               turn_id='turn-0', packet_id='output-0', monotonic_ms=120, text_segment='Ja',
               expression_intent='neutral', speech_act='ANSWER', planned_audio_duration_ms=100,
@@ -88,17 +90,17 @@ jobs:
           resumed = resume_packet_cortex(session, checkpoint, monotonic_ms=200)
 
           resumed.accept_input(VoiceInputPacket(
-              session_id=resumed.session_id, turn_id='turn-1', packet_id='input-1',
+              session_id=resumed.session_id, turn_id='turn-0', packet_id='input-1',
               monotonic_ms=210, source_modality='asr_final', text='Weiter', language='de-DE',
-              is_final=True, confidence=0.99, speech_start=True, speech_end=True, vad_state='SPEECH',
+              is_final=True, confidence=0.99, speech_start=False, speech_end=True, vad_state='SPEECH',
               endpoint_decision='END', overlap_state='NONE', barge_in=False, source_duration_ms=100,
-              sequence=0, fault_flags=(),
+              sequence=1, fault_flags=(),
           ))
           resumed.queue_output(
-              turn_id='turn-1', packet_id='output-1', monotonic_ms=220, text_segment='Weiter',
+              turn_id='turn-0', packet_id='output-1', monotonic_ms=220, text_segment='Weiter',
               expression_intent='neutral', speech_act='ANSWER', planned_audio_duration_ms=100,
               sequence=1,
           )
           assert resumed.events[-1].event_kind == 'OUTPUT_QUEUED'
-          print('PN9_PASS: resumed cortex preserved post-repair clock and output-sequence state')
+          print('PN9_PASS: resumed cortex preserved clock and per-turn input/output sequence state')
           PY
