@@ -1,0 +1,40 @@
+{
+  "schema": "TRIGGER6_RESEARCH_RESULT/v1",
+  "research_id": "R6-20260830-RUNNER-ROSTER-STATUS-API-GPT56SOL-01",
+  "stage": "E1_SOURCE_READ",
+  "status": "COMPLETE_AT_E1",
+  "recorded_at": "2026-08-30T19:20:00+07:00",
+  "subject": "WP1207 self-hosted-runner assignment observability before host inspection",
+  "observed": [
+    "GitHub's documented repository endpoint GET /repos/{owner}/{repo}/actions/runners lists configured self-hosted runners and exposes runner id, name, OS, status, busy, ephemeral, version and labels.",
+    "For repository-scoped access, GitHub documents admin access as required; classic tokens require repo scope and fine-grained tokens require Administration repository permission (read).",
+    "GitHub documents organization runner-group APIs that expose visibility, selected repository/workflow restrictions and runner-group membership surfaces relevant to eligibility hypotheses.",
+    "The installed GitHub connector in this session rejects the repository actions/runners endpoint as an unsupported endpoint family. This is connector capability evidence only; it does not establish that no runner exists or that any runner is offline."
+  ],
+  "external_primary": [
+    {
+      "source": "GitHub Docs — REST API endpoints for self-hosted runners",
+      "url": "https://docs.github.com/en/rest/actions/self-hosted-runners",
+      "relevance": "Defines repository runner-roster endpoint, status/busy/version/labels response fields and required read permissions."
+    },
+    {
+      "source": "GitHub Docs — REST API endpoints for self-hosted runner groups",
+      "url": "https://docs.github.com/en/rest/actions/self-hosted-runner-groups",
+      "relevance": "Defines runner-group visibility/repository/workflow restriction surfaces that can distinguish eligibility failures."
+    }
+  ],
+  "hypothesis": "A read-only GitHub runner-roster/runner-group observation can often discriminate OFFLINE/BUSY/LABEL/GROUP eligibility hypotheses before direct owner-host inspection or product-gate replay.",
+  "counterhypothesis": "Repository runner-roster APIs may be unavailable to the current tool identity or insufficient for host-local listener/connectivity failure; host inspection can remain necessary after a remote status read or when the API is inaccessible.",
+  "falsifier": "Attempt the documented read-only runner-roster/group read through an already-authorized GitHub surface with the required existing permissions. If unavailable, classify OBSERVABILITY_UNAVAILABLE rather than RUNNER_OFFLINE; if available, compare status/busy/labels/group eligibility against the queued job's runs-on contract.",
+  "architecture_implication": {
+    "candidate": "Insert optional REMOTE_RUNNER_ROSTER_OBSERVED between REGISTERED_UNKNOWN and DIRECT_HOST_INSPECTION in the transport diagnostic ladder. The stage is observational only and never becomes effect/runtime/completion authority.",
+    "fail_closed_rule": "API denial, unsupported connector family, 403/404 ambiguity, or missing permission produces RUNNER_STATUS_UNKNOWN, never OFFLINE.",
+    "trigger4_handoff": "Before owner-host inspection, use the cheapest already-authorized read-only runner-roster/group surface if one exists; otherwise retain the existing direct-host falsifier without mutating/replaying WP1207."
+  },
+  "evidence_ceiling": "E1_SOURCE_READ_PLUS_TOOL_CAPABILITY_NEGATIVE",
+  "runtime_credit": 0,
+  "effect_credit": 0,
+  "completion_credit": 0,
+  "whole_system_credit": 0,
+  "next_exact_action": "Trigger 4 may test availability of an already-authorized read-only GitHub Actions runner-roster surface. If unavailable, keep runner state UNKNOWN and proceed to the existing read-only owner-host lifecycle inspection; do not dispatch another WP1207 job solely to diagnose transport."
+}
