@@ -1,0 +1,58 @@
+{
+  "schema": "T7_CONTINUATION_CHECKPOINT_V1",
+  "trigger": "7",
+  "created_at": "2026-08-31T03:48:25+07:00",
+  "organ": "GPT-5.6-Sol",
+  "mode": "REVIEW_ONLY_CANDIDATE_FALSIFIER",
+  "canonical_scope": "Frankenstein 2.0 local realtime voice research",
+  "f2_head_after_research_delta": "0df3cbc24c260a733bdffbf4e6195fa66fe27ff4",
+  "semantic_claim": {
+    "research_id": "T7-FD-RTCOMPAT-001",
+    "semantic_key": "8c53f25ed47c458bb727dd4dc82f788241cee699e428c4d97401a965a4eb375e",
+    "state": "CLAIMED_READY_FOR_BOUNDED_PROTOCOL_FALSIFIER",
+    "duplicate_claim_created": false,
+    "runtime_credit": 0,
+    "trigger4_acceptance_credit": 0
+  },
+  "pinned_upstream": {
+    "repository": "huggingface/speech-to-speech",
+    "revision": "3986f453012a131632eee4731995474046846794",
+    "package_version": "0.2.12"
+  },
+  "new_primary_source_findings": [
+    "conversation.item.truncate is parsed at the pinned revision but the WebSocket router deliberately treats it as a no-op after cancellation.",
+    "For cancelled, failed or incomplete responses, the pinned response lifecycle calls Chat.rollback_provisional_generation on the current response key.",
+    "The pinned LLM write-back commits default-chat assistant output only when the generation remains allowed; cancelled provisional items are rolled back in the cleanup path.",
+    "Pinned upstream tests assert that cancelled provisional assistant/tool output leaves the Chat buffer empty while committed user input survives.",
+    "Static evidence therefore shifts the highest-information risk from only unheard-tail retention to exact heard-boundary conservation: the server can remove the entire interrupted assistant turn, including an already-audible prefix."
+  ],
+  "research_delta": {
+    "path": "research/local_voice/falsifiers/2026-08-31_HF_S2S_HEARD_PREFIX_CONSERVATION_ADDENDUM_GPT56SOL.json",
+    "commit": "0df3cbc24c260a733bdffbf4e6195fa66fe27ff4",
+    "new_discriminator": "HF03B_HEARD_PREFIX_CONSERVATION"
+  },
+  "current_hypothesis_frontier": {
+    "H1": "Cancellation rollback likely prevents ordinary default-Chat retention of unheard assistant suffix semantics; runtime still unverified.",
+    "H2": "Whole-response rollback can erase assistant semantics already heard by the user, producing server-local conversational amnesia; runtime still unverified.",
+    "H3": "A narrow F2 adapter can close the mismatch by rebuilding next-turn context from F2's measured heard-state authority while keeping the HF server a transient inference/transport organ."
+  },
+  "highest_information_discriminator": "Generate semantically unique clauses A and B, make A definitely audible and B definitely buffered/unheard, cancel plus truncate at the measured F2 heard boundary, then inspect server Chat and exact next-turn model input. Failure exists if B leaks forward or A disappears without explicit F2 context reconstruction.",
+  "trigger4_runtime_dependency": {
+    "existing_wp715_run": 33328707636,
+    "observed_status": "QUEUED_ZERO_STEPS_NO_RUNNER",
+    "classification": "UNKNOWN_NONTERMINAL_CONTROL_PLANE_ONLY",
+    "runtime_credit": 0,
+    "duplicate_dispatch_created": false,
+    "warning": "The existing WP715 run is not automatically evidence for the HF heard-prefix discriminator; do not compose unrelated or zero-step subjects into protocol credit."
+  },
+  "zero_credit_boundaries": [
+    "no HF local speech-to-speech runtime execution in this checkpoint",
+    "no German E2E acoustic benchmark",
+    "no physical barge-in latency benchmark",
+    "no network-blocked locality acceptance",
+    "no V5 build-candidate promotion",
+    "no V6 Trigger4 acceptance",
+    "no whole voice-system acceptance"
+  ],
+  "next_exact_action": "Through the existing Trigger4/VPS execution authority, execute HF02, HF03 and HF03B against the pinned HF revision and exact current F2 client/adapter subject. Measure server Chat and next-turn model context after partial audible delivery. Reject both unheard-tail leakage and heard-prefix amnesia unless the latter is explicitly repaired by F2 authoritative-context reconstruction. Then return the executed receipt to Trigger7 for frontier update."
+}
