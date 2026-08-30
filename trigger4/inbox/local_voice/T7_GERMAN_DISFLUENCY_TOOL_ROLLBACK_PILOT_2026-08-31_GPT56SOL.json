@@ -1,0 +1,90 @@
+{
+  "schema": "T7_TO_T4_CANDIDATE_FALSIFIER_V1",
+  "created_at": "2026-08-31T04:23:00+07:00",
+  "trigger": "7",
+  "organ": "GPT-5.6-Sol",
+  "classification": "CANDIDATE_FALSIFIER__SMALL_ORIGINAL_GERMAN_PILOT",
+  "donor_audit_ref": "research/local_voice/sources/2026-08-31_T7_FDBV3_GERMAN_TOOL_ROLLBACK_DONOR_AUDIT_GPT56SOL.json",
+  "donor_rule": "Use only the abstract testing axes learned from Full-Duplex-Bench-v3. Do not copy donor scenario text/audio/data. Do not use its cloud inference path or optional external LLM judge.",
+  "purpose": "Test whether German disfluency + tool rollback interactions expose a new F2 product-negative class beyond existing WP715/HF02-HF10 packet and realtime falsifiers before any larger benchmark is built.",
+  "same_product_authorities": true,
+  "implementation_owner": "Trigger4",
+  "new_external_model_runtime": false,
+  "duplicate_hf_dispatch": false,
+  "fixture_mode": "ORIGINAL_TEXT_PACKET_SURROGATES_WITH_DETERMINISTIC_MOCK_TOOLS",
+  "pilot": [
+    {
+      "id": "DETR01_FALSE_START_BEFORE_TOOL",
+      "user_packet_sequence": ["Buche mir den Termin am Dienstag — äh, nein, Mittwoch um zehn."],
+      "expected": "Only the corrected Wednesday 10:00 intent may reach the deterministic mock-tool request; Tuesday must not become effect-authoritative.",
+      "negative": "PRE_CORRECTION_TOOL_EFFECT_LEAK"
+    },
+    {
+      "id": "DETR02_POST_TOOL_CORRECTION_ROLLBACK",
+      "user_packet_sequence": ["Nimm Rechnung 41.", "Nein, stopp — Rechnung 42."],
+      "expected": "If a request for 41 was only pending/non-effectful, cancel/fence it and allow 42. If an effect boundary was already crossed, preserve exact EffectJournal semantics rather than pretending rollback occurred.",
+      "negative": "UNRECORDED_EFFECT_ROLLBACK_OR_STALE_TOOL_OWNERSHIP"
+    },
+    {
+      "id": "DETR03_BARGE_IN_WHILE_TOOL_PENDING",
+      "user_packet_sequence": ["Prüf bitte den Status von Vorgang 17.", "Stopp, ich meine Vorgang 71."],
+      "expected": "Late result for 17 cannot regain current-turn context/memory/effect ownership after cancellation; 71 has distinct causal identity.",
+      "negative": "LATE_OLD_TOOL_RESULT_REGAINS_AUTHORITY"
+    },
+    {
+      "id": "DETR04_DUPLICATE_TOOL_RESULT",
+      "user_packet_sequence": ["Wie ist der Status von Vorgang 9?"],
+      "fault": "deliver identical deterministic tool result twice",
+      "expected": "Second delivery is idempotent/replay-classified and cannot duplicate VoiceOutcome/memory/effect authority.",
+      "negative": "DUPLICATE_RESULT_DOUBLE_COMMIT"
+    },
+    {
+      "id": "DETR05_GERMAN_NUMBER_SELF_CORRECTION",
+      "user_packet_sequence": ["Überweise simuliert hundertfünfzig — nein, fünfzehn Euro an Testkonto Alpha."],
+      "expected": "Packet/cognition path preserves correction and never treats the abandoned 150 value as effect-authoritative. No real external effect is executed in this pilot.",
+      "negative": "ABANDONED_NUMERIC_ARGUMENT_LEAK"
+    },
+    {
+      "id": "DETR06_CODE_SWITCHED_IDENTIFIER",
+      "user_packet_sequence": ["Öffne Ticket alpha-seven-four, äh, Alpha sieben vier."],
+      "expected": "One normalized explicitly admitted identifier must be chosen by the deterministic fixture oracle; no speculative second tool call.",
+      "negative": "AMBIGUOUS_IDENTIFIER_EXTRA_TOOL_CALL"
+    },
+    {
+      "id": "DETR07_RESPONSE_DONE_BEFORE_HEARD_COMPLETION",
+      "user_packet_sequence": ["Sag mir den Status kurz."],
+      "fault": "server done precedes measured playback completion; then user barges in",
+      "expected": "Resolved heard-prefix policy applies: exact heard prefix may remain ephemeral; unheard tail and late old-generation output cannot influence next turn or durable memory/effect authority.",
+      "negative": "UNHEARD_TAIL_OR_LATE_GENERATION_LEAK"
+    },
+    {
+      "id": "DETR08_WAIT_WITH_HESITATION_NO_PREMATURE_TOOL",
+      "user_packet_sequence": ["Ich brauche... ähm... vielleicht den Kontostand von Testkonto Beta — warte."],
+      "expected": "WAIT/HOLD and unresolved intent suppress premature deterministic mock-tool request until an explicit final admitted intent exists.",
+      "negative": "PREMATURE_TOOL_DURING_UNRESOLVED_INTENT"
+    }
+  ],
+  "strict_oracle": {
+    "required": [
+      "expected deterministic mock tool call set equals actual set exactly",
+      "no unexpected tool calls",
+      "arguments equal admitted corrected arguments exactly after fixture normalization",
+      "causal turn/tool ids bind every result",
+      "late/cancelled results remain non-authoritative",
+      "durable memory/effect/VoiceOutcome authority remains separately gated"
+    ],
+    "external_llm_judge": false
+  },
+  "comparison_against_existing_suite": "Trigger4 should first map each pilot row to existing WP715/HF02-HF10 coverage. Implement only rows that add a cross-boundary interaction not already discriminated. If all eight are redundant, return REVIEW_ONLY with the exact duplicate mapping and do not add tests.",
+  "runtime_route_if_implemented": "controller -> vps-clay-host -> resource-bounded Ubuntu, network off during evidence execution where dependencies permit",
+  "credit_before_execution": {
+    "research_donor_credit": 1,
+    "pilot_runtime": 0,
+    "tool_runtime": 0,
+    "german_e2e_voice": 0,
+    "acoustic": 0,
+    "effect": 0,
+    "whole_product": 0
+  },
+  "next_exact_action": "Trigger4 performs duplicate mapping, implements the smallest orthogonal subset only, runs it with deterministic mock tools on the proven VPS route, and returns whether any genuinely new failure class is exposed."
+}
