@@ -10,8 +10,9 @@ from __future__ import annotations
 
 from dataclasses import asdict, dataclass
 import json
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 import re
+import stat
 from typing import Any
 
 from .pre_handoff_release import READY_STATUS, evaluate_pre_handoff_release
@@ -31,27 +32,73 @@ class PortableReleaseStaticCompletenessError(ValueError):
     pass
 
 
-def _safe_file(root: Path, raw: Any, label: str, violations: list[str]) -> str | None:
-    if not isinstance(raw, str) or not raw or raw != raw.strip():
+def _lexical_regular_file(
+    root: Path, raw: Any, label: str, violations: list[str]
+) -> tuple[Path, str] | None:
+    """Validate a canonical release-root-relative file without following symlinks.
+
+    The release-integrity layer already rejects symlinks in a complete package. This
+    second check is intentional defense in depth for the interval after pre-handoff
+    verification: resolving first would erase whether a lexical path component was a
+    symlink and could turn path substitution into an apparently regular in-root file.
+    """
+
+    if (
+        not isinstance(raw, str)
+        or not raw
+        or raw != raw.strip()
+        or "\x00" in raw
+        or "\\" in raw
+    ):
         violations.append(f"{label}:invalid_ref")
         return None
-    candidate = (root / raw).resolve()
-    try:
-        rel = candidate.relative_to(root)
-    except ValueError:
-        violations.append(f"{label}:escapes_release_root")
+
+    relative = PurePosixPath(raw)
+    if (
+        relative.is_absolute()
+        or relative.as_posix() != raw
+        or not relative.parts
+        or any(part in {"", ".", ".."} for part in relative.parts)
+    ):
+        violations.append(f"{label}:noncanonical_ref")
         return None
-    if candidate.is_symlink() or not candidate.is_file():
+
+    cursor = root
+    final_mode: int | None = None
+    for index, part in enumerate(relative.parts):
+        cursor = cursor / part
+        try:
+            mode = cursor.lstat().st_mode
+        except OSError:
+            violations.append(f"{label}:missing_or_nonregular")
+            return None
+        if stat.S_ISLNK(mode):
+            violations.append(f"{label}:symlink_component")
+            return None
+        if index < len(relative.parts) - 1 and not stat.S_ISDIR(mode):
+            violations.append(f"{label}:missing_or_nonregular")
+            return None
+        final_mode = mode
+
+    if final_mode is None or not stat.S_ISREG(final_mode):
         violations.append(f"{label}:missing_or_nonregular")
         return None
-    return rel.as_posix()
+    return cursor, relative.as_posix()
+
+
+def _safe_file(root: Path, raw: Any, label: str, violations: list[str]) -> str | None:
+    checked = _lexical_regular_file(root, raw, label, violations)
+    if checked is None:
+        return None
+    _, relative = checked
+    return relative
 
 
 def _load_json_file(root: Path, rel: str, label: str, violations: list[str]) -> dict[str, Any] | None:
-    path = root / rel
-    if path.is_symlink() or not path.is_file():
-        violations.append(f"{label}:missing_or_nonregular")
+    checked = _lexical_regular_file(root, rel, label, violations)
+    if checked is None:
         return None
+    path, _ = checked
     try:
         value = json.loads(path.read_text(encoding="utf-8"))
     except (UnicodeDecodeError, json.JSONDecodeError):
