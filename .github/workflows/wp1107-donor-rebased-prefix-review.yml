@@ -1,0 +1,27 @@
+name: REVIEW ONLY WP1107 G3 Donor Rebased Prefix Validation
+
+on:
+  pull_request:
+    paths:
+      - 'tests/test_wp1107_rebased_prefix_review.py'
+      - '.github/workflows/wp1107-donor-rebased-prefix-review.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  donor-rebased-prefix-validation:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Compile exact rebased-prefix review test
+        run: python -m py_compile tests/test_wp1107_rebased_prefix_review.py
+      - name: Require donor to reject rebased unbound prefix
+        env:
+          PYTHONPATH: src
+        run: python tests/test_wp1107_rebased_prefix_review.py -v
