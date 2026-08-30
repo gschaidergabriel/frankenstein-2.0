@@ -4,12 +4,15 @@ on:
   pull_request:
     paths:
       - 'tools/build_release_candidate.py'
+      - 'tools/verify_release_candidate_static_completeness.py'
       - '.github/workflows/trigger4-release-candidate-ci.yml'
       - 'src/frankenstein2/release_integrity.py'
       - 'src/frankenstein2/release_archive.py'
       - 'src/frankenstein2/pre_handoff_release.py'
+      - 'src/frankenstein2/portable_release_static_completeness.py'
       - 'src/frankenstein2/release_artifact_subject.py'
       - 'src/frankenstein2/receipt_content_binding.py'
+      - 'tests/test_portable_release_static_completeness.py'
       - 'AI_START_HERE_DO_NOT_SCAN_REPO/**'
       - 'PRODUCT_COMPLETION_LAW.md'
       - 'architecture/PORTABLE_HOST_HARNESS_AND_DISTRIBUTION_CONTRACT.md'
@@ -19,12 +22,15 @@ on:
     branches: [main]
     paths:
       - 'tools/build_release_candidate.py'
+      - 'tools/verify_release_candidate_static_completeness.py'
       - '.github/workflows/trigger4-release-candidate-ci.yml'
       - 'src/frankenstein2/release_integrity.py'
       - 'src/frankenstein2/release_archive.py'
       - 'src/frankenstein2/pre_handoff_release.py'
+      - 'src/frankenstein2/portable_release_static_completeness.py'
       - 'src/frankenstein2/release_artifact_subject.py'
       - 'src/frankenstein2/receipt_content_binding.py'
+      - 'tests/test_portable_release_static_completeness.py'
       - 'AI_START_HERE_DO_NOT_SCAN_REPO/**'
       - 'PRODUCT_COMPLETION_LAW.md'
       - 'architecture/PORTABLE_HOST_HARNESS_AND_DISTRIBUTION_CONTRACT.md'
@@ -69,6 +75,7 @@ jobs:
           python -m unittest discover -s tests -p 'test_release_archive.py' -v
           python -m unittest discover -s tests -p 'test_release_artifact_subject.py' -v
           python -m unittest discover -s tests -p 'test_receipt_content_binding.py' -v
+          python -m unittest discover -s tests -p 'test_portable_release_static_completeness.py' -v
 
       - name: Build candidate twice from exact Git tree
         shell: bash
@@ -76,6 +83,13 @@ jobs:
           set -euo pipefail
           python tools/build_release_candidate.py --output-dir dist/release-a > dist-a.json
           python tools/build_release_candidate.py --output-dir dist/release-b > dist-b.json
+
+      - name: Bind WP1111 static completeness to both exact archive subjects
+        shell: bash
+        run: |
+          set -euo pipefail
+          python tools/verify_release_candidate_static_completeness.py --bundle-dir dist/release-a > static-a.json
+          python tools/verify_release_candidate_static_completeness.py --bundle-dir dist/release-b > static-b.json
 
       - name: Prove byte-for-byte reproducibility and bounded credit
         shell: bash
@@ -85,18 +99,36 @@ jobs:
           cmp dist/release-a/frankenstein-2.0.zip dist/release-b/frankenstein-2.0.zip
           cmp dist/release-a/frankenstein-2.0-prehandoff.json dist/release-b/frankenstein-2.0-prehandoff.json
           cmp dist/release-a/frankenstein-2.0-content-bound-prehandoff.json dist/release-b/frankenstein-2.0-content-bound-prehandoff.json
+          cmp dist/release-a/frankenstein-2.0-static-completeness.json dist/release-b/frankenstein-2.0-static-completeness.json
           cmp dist/release-a/release-bundle-index.json dist/release-b/release-bundle-index.json
           python - <<'PY'
           import json
           from pathlib import Path
 
           index = json.loads(Path('dist/release-a/release-bundle-index.json').read_text())
+          static = json.loads(Path('dist/release-a/frankenstein-2.0-static-completeness.json').read_text())
           assert index['source_commit'] == __import__('os').environ['EXPECTED_SOURCE_SHA']
           assert index['artifact_subject']['status'] == 'READY_FOR_REAL_HOST_HANDOFF'
           assert index['artifact_subject']['static_status'] == 'READY_FOR_REAL_HOST_HANDOFF'
           assert index['artifact_subject']['static_violations'] == []
           assert index['prehandoff_receipt']['content_bound_status'] == 'READY_FOR_REAL_HOST_HANDOFF'
           assert index['credits']['repository_release_build_credit'] == 1
+          assert static['source_commit'] == index['source_commit']
+          assert static['release_id'] == index['release_id']
+          assert static['archive_sha256'] == index['archive']['sha256']
+          assert static['release_manifest_sha256'] == index['archive']['manifest_sha256']
+          assert static['wp1111_status'] == 'STATIC_COMPLETE_FOR_REAL_HOST_ACCEPTANCE'
+          assert static['wp1111_violations'] == []
+          assert static['credits']['repository_release_static_completeness_credit'] == 1
+          for key in (
+              'clean_machine_runtime_credit',
+              'physical_host_credit',
+              'vps_runtime_credit',
+              'effect_credit',
+              'completion_credit',
+          ):
+              assert static['credits'][key] == 0, (key, static['credits'][key])
+          assert static['credits']['whole_system_acceptance'] is False
           for key in (
               'clean_machine_runtime_credit',
               'physical_host_credit',
@@ -107,7 +139,7 @@ jobs:
           ):
               assert index['credits'][key] == 0, (key, index['credits'][key])
           assert index['credits']['whole_system_acceptance'] is False
-          print(json.dumps(index, indent=2, sort_keys=True))
+          print(json.dumps({'bundle_index': index, 'static_completeness': static}, indent=2, sort_keys=True))
           PY
 
       - name: Upload exact release-candidate evidence bundle
