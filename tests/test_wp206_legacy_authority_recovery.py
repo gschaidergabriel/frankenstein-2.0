@@ -290,6 +290,19 @@ class WP206LegacyAuthorityRecoveryTests(unittest.TestCase):
                 self._recover(
                     store=store, expected_legacy=historical, subject=subject
                 )
+
+            # G6 is the earlier live-connection fence: the receipt tamper was committed by
+            # a different SQLite connection, so the already-open store must reject that
+            # revision before it reads the now-invalid checkpoint row.
+            with self.assertRaisesRegex(
+                PersistentAgencyError, "UNIFIEDDB_EXTERNAL_SQLITE_REVISION_DRIFT"
+            ):
+                store.load_checkpoint("checkpoint-0")
+
+            # Re-entry deliberately establishes a fresh G6 observation baseline. The older
+            # G3 row-level authority invariant must still remain independently enforceable.
+            store.close()
+            store = self._open_store()
             with self.assertRaisesRegex(
                 PersistentAgencyError, "CHECKPOINT_DB_AUTHORITY_RECEIPT_MISMATCH"
             ):
