@@ -1,0 +1,88 @@
+{
+  "schema": "F2_TRIGGER6_RESEARCH_RESULT/v1",
+  "research_id": "R6-20260830-WP901-ROLLBACK-FRESHNESS-WITNESS-GPT56SOL-01",
+  "evidence_stage": "E1_SOURCE_READ",
+  "status": "COMPLETE_AT_SCOPE",
+  "recorded_at": "2026-08-30T16:53:00+07:00",
+  "worker": "GPT-5.6-Sol",
+  "claim_ref": "research/tool_intelligence/claims/R6-20260830-WP901-ROLLBACK-FRESHNESS-WITNESS-GPT56SOL-01/E1_SOURCE_READ.json",
+  "claim_commit": "029fc4f5d998f5106edccefcadce5bada4b0a5d2",
+  "architecture_fusion_ref": "research/tool_intelligence/deltas/ADF-20260830T1652P0700-GPT56SOL-TRIGGER6-WP901-ROLLBACK-FRESHNESS-FUSION.json",
+  "architecture_fusion_commit": "95e10da2bf36cff3e074986a31d6fa6b79894390",
+  "f2_source_observed": {
+    "workpackage": "F2-WP-901",
+    "g3_source_commit": "bcd8c01d45acce39cddf715e887ec833128e9208",
+    "source_path": "src/frankenstein2/restart_recovery_source_authentication.py",
+    "source_blob_sha": "f716e323d96f81fd1560d168a4578d10324853a6",
+    "tests_path": "tests/test_restart_recovery_source_authentication.py",
+    "tests_blob_sha": "bd737384b091f10f7dec507c59262c2dd77b39ef",
+    "observed_properties": [
+      "checkpoint generation must equal causal identity generation",
+      "checkpoint generation must equal whole-loop seal generation plus one",
+      "seal/checkpoint/outcome ids and digests must match concrete typed objects",
+      "the exact causal-identity provenance ref must occur across checkpoint, seal, outcome and restart evidence",
+      "the binding explicitly reports persisted_row_attestation as NOT_OBSERVED",
+      "no trusted-minimum-generation, previously-accepted-checkpoint or non-rollbackable freshness-witness input is present in the G3 source surface",
+      "repository tests cover self-attested principal rejection, mixed causal lineage, object mismatch, generation mismatch, missing causal refs and evidence-digest mismatch; no coherent-old-set rollback/freeze falsifier was observed"
+    ],
+    "runtime_credit": 0,
+    "whole_system_credit": 0
+  },
+  "external_primary_sources": [
+    {
+      "source": "The Update Framework Specification 1.0.35",
+      "source_repo": "theupdateframework/specification",
+      "source_repo_commit_observed": "59e601ed29c0d2e497264ae8b31c11b8ef07df1e",
+      "url": "https://theupdateframework.github.io/specification/latest/",
+      "relevant_mechanism": "separates authenticity/integrity from rollback and freeze protection; clients retain trusted versions, reject version decrease and reject expired metadata"
+    },
+    {
+      "source": "python-tuf TrustedMetadataSet reference implementation",
+      "source_repo": "theupdateframework/python-tuf",
+      "source_repo_commit_observed": "19ab12bb4ad724893c0fa0989cf2d5cf03321715",
+      "source_path": "tuf/ngclient/_internal/trusted_metadata_set.py",
+      "source_blob_sha": "4a3362ad95f6998a5a408c83626e6ce41a0853c5",
+      "relevant_mechanism": "uses previously trusted timestamp/snapshot metadata as rollback-protection state and checks expiration separately"
+    },
+    {
+      "source": "Trusted Computing Group TPM 2.0 Library Part 1 Architecture v185",
+      "version": "185",
+      "published": "2026-03",
+      "url": "https://trustedcomputinggroup.org/resource/tpm-library-specification/",
+      "relevant_mechanism": "TPMA_NV_COUNTER / TPM2_NV_Increment provides a monotonic non-volatile counter primitive whose value is specified not to move backward; stronger against whole-local-state rollback than a rollbackable local database anchor"
+    },
+    {
+      "source": "Sigstore Rekor transparency-log security model",
+      "url": "https://docs.sigstore.dev/about/security/",
+      "relevant_mechanism": "append-only Merkle-log commitments and signed tree heads can externalize a freshness/provenance checkpoint; useful as witness, not canonical F2 state"
+    },
+    {
+      "source": "google/trillian append-only verifiable log",
+      "source_repo": "google/trillian",
+      "source_repo_commit_observed": "02b853b8a1807739458e921b7d5e1a2500371733",
+      "url": "https://github.com/google/trillian",
+      "relevant_mechanism": "inclusion and consistency proofs between tree sizes provide a generic append-only witness construction"
+    }
+  ],
+  "source_level_findings": [
+    "Authenticity and freshness are distinct predicates. A digest/provenance-valid state can still be old relative to a previously trusted state.",
+    "WP901 G3 closes self-attested-principal and mixed-source lineage gaps inside the supplied restart evidence set, but the inspected G3 boundary does not itself compare that set with an independently trusted latest-seen generation/checkpoint.",
+    "A local monotonic generation/checkpoint anchor stored only inside the same rollbackable persistence domain can detect partial rollback but cannot, by itself, establish protection against a coherent whole-domain rollback that also restores the anchor.",
+    "A TPM monotonic NV counter is a stronger optional freshness witness because it is designed not to decrease across ordinary host-state rollback, but it adds hardware/platform/authorization/write-endurance/availability constraints and is not justified as a mandatory dependency at E1.",
+    "An append-only remote/transparency witness can externalize checkpoint freshness without becoming canonical state, but it adds network/privacy/availability/operator/trust complexity and must remain witness-only.",
+    "The smallest likely F2 design is therefore not importing TUF, Trillian or a TPM stack. It is a narrow typed FreshnessWitness contract with explicit assurance classification and fail-closed semantics, plus lightweight backends selected by deployment policy.",
+    "E1 does not prove that a coherent stale WP901 source set is reachable from the current integrated loader/caller path. That requires E2 architecture mapping and then an F2-specific falsifier/ablation before any integration or runtime credit."
+  ],
+  "hypothesis_status": "SUPPORTED_AT_SOURCE_READ_SCOPE",
+  "counterhypothesis_status": "PARTIALLY_SUPPORTED",
+  "counterhypothesis_note": "G3 direct-successor and exact causal/source bindings are strong against internally inconsistent or mixed evidence. They may be sufficient if an upstream caller already supplies a non-rollbackable current causal/freshness anchor. No such guarantee is established by the inspected G3 component itself.",
+  "recommended_next_stage": "E2_ARCHITECTURE_MAPPED",
+  "recommended_e2_question": "Map the smallest FreshnessWitness boundary onto current WP901/UnifiedDB/restart-loader dependencies and identify whether an existing F2 authority surface already supplies a trustworthy latest-seen anchor, avoiding a duplicate state authority.",
+  "research_credit": "E1_SOURCE_READ_ONLY",
+  "architecture_credit": 0,
+  "runtime_credit": 0,
+  "physical_host_credit": 0,
+  "effect_credit": 0,
+  "whole_system_credit": 0,
+  "pending_research_sqlite_sync": "PENDING_ADMITTED_BINARY_DB_PATH"
+}
