@@ -1,0 +1,90 @@
+{
+  "schema": "FRANKENSTEIN2_WORKPACKAGE_DELTA/v1",
+  "workpackage_id": "F2-WP-206",
+  "generation": 5,
+  "claim_id": "F2-WP-206-G5-GPT56SOL-EVIDENCE-SUBJECT-BINDING-20260830",
+  "worker_id": "GPT-5.6-Sol-TRIGGER4-REVIEW",
+  "trigger": "4",
+  "work_class": "REVIEW_ONLY_CANDIDATE_FALSIFIER",
+  "mutation_authority": false,
+  "recorded_at_utc": "2026-08-30T10:30:00Z",
+  "observed_main_before_review_write": "aedcf3b7df3ba838c518219eca6f35921daec899",
+  "active_pointer_blob_sha": "3b63db07fcd9d701a996f5e3eff82e2a91251f99",
+  "current_source_blob_sha": "20eaee5570875568784e6f9234343b6027fdc3ee",
+  "current_g4_regression_blob_sha": "e8f2adefef680b8aa946ae303abae089192b227b",
+  "e5_candidate_blob_sha": "d2f3a7c48de1cae738b65c98fd963cfffb2ac408",
+  "source_observation": {
+    "recovery_table_creation": "Current wp206_legacy_authority_recovery.py creates f2_wp206_legacy_authority_recoveries with CREATE TABLE IF NOT EXISTS and G4 columns only.",
+    "persisted_subject_binding": "Current table stores recovery_provenance_ref but no evidence-subject content digest.",
+    "repeat_predicate": "Current repeat path compares recorded_provenance to recovery_provenance_ref string and therefore cannot observe changed evidence bytes behind an unchanged ref.",
+    "g4_test_scope": "Current G4 regression covers same-ref idempotence and different-ref conflict, but not upgrading an already-existing G4 recovery table/row to the proposed G5 evidence-subject schema."
+  },
+  "confirmed_upstream_counterevidence": {
+    "run_id": 33305289546,
+    "job_id": 99240629206,
+    "result": "SAME_REF_MUTATED_EVIDENCE_BYTES_REMAINS_ALREADY_RECOVERED_UNDER_G4",
+    "classification": "POST_G4_EXECUTABLE_COUNTEREVIDENCE_ALREADY_ADMITTED_BY_ACTIVE_G5_CLAIM"
+  },
+  "candidate_falsifier_1": {
+    "id": "G4_TABLE_TO_G5_SCHEMA_UPGRADE",
+    "hypothesis": "A G5 implementation that only changes CREATE TABLE IF NOT EXISTS to name additional evidence-subject columns will not upgrade databases whose recovery table was already created by G4.",
+    "why": "SQLite CREATE TABLE IF NOT EXISTS is a no-op when the table already exists; it does not add newly declared columns.",
+    "required_regression": [
+      "Create a database/recovery table using exact pre-G5/G4 code or equivalent exact G4 schema.",
+      "Perform or seed a valid G4 recovery row.",
+      "Open the same database with the G5 implementation.",
+      "Exercise the G5 recovery ingress with a typed concrete evidence subject.",
+      "Require deterministic explicit schema migration or deterministic fail-closed legacy handling; a missing-column runtime exception is FAIL.",
+      "Verify rollback leaves the prior G4 recovery and checkpoint authority unchanged on failure."
+    ],
+    "acceptance_boundary": "Schema evolution must be explicit and transactionally compatible with the existing recovery/CAS authority; do not create a second recovery truth store merely to avoid migration."
+  },
+  "candidate_falsifier_2": {
+    "id": "PRE_G5_RECOVERY_SUBJECT_CANNOT_BE_RETROACTIVELY_PROVEN",
+    "hypothesis": "For a recovery already committed under G4, later caller-supplied evidence bytes cannot by themselves prove that those bytes were the evidence subject used when the historical G4 recovery was authorized, because G4 persisted no subject digest.",
+    "risk": "Silently populating a new evidence_subject_sha256 on the first post-upgrade repeat could create false historical content-binding credit and rewrite an unbound historical recovery into an apparently content-authenticated one.",
+    "required_semantics": [
+      "Represent pre-G5 recovered rows with explicit LEGACY_EVIDENCE_SUBJECT_UNBOUND or equivalent state until an independently authorized migration/attestation rule closes the historical gap.",
+      "Do not label a post-hoc first G5 subject as proof of the original G4 evidence bytes without independent evidence.",
+      "For new G5 recoveries, compute the evidence digest internally from concrete canonical evidence bytes/object and persist it before/within the same recovery transaction.",
+      "For exact G5 repeats, compare the internally derived subject digest plus normalized source ref and all existing G4 fences before returning ALREADY_RECOVERED.",
+      "On digest/source drift, fail before mutating the checkpoint or recovery row."
+    ],
+    "credit_boundary": "A successful migration can establish forward content binding from the migration event onward; it does not retroactively prove historical G4 subject identity unless independent evidence is bound."
+  },
+  "candidate_falsifier_3": {
+    "id": "RECOVERY_ID_VERSIONING_AND_IDEMPOTENCE",
+    "hypothesis": "Binding evidence_sha256 into recovery_id changes identity semantics; existing G4 recovery_id values cannot be silently replaced while preserving immutable receipt lineage.",
+    "required_regression": [
+      "Existing G4 recovery_id remains preserved as historical identity or is explicitly linked as parent/legacy id.",
+      "A new G5 recovery_id for a fresh recovery includes the internally derived evidence subject digest.",
+      "An exact G5 repeat returns the same G5 recovery_id.",
+      "Subject drift cannot create a second successful recovery_id for the same checkpoint.",
+      "Any migration mapping from G4 id to G5 binding is explicit, deterministic and does not delete historical evidence."
+    ]
+  },
+  "recommended_smallest_patch_shape": {
+    "note": "Review guidance only; active G5 mutation authority remains with the existing claim.",
+    "subject_type": "LegacyRecoveryEvidenceSubject/v1 with normalized source_ref and immutable canonical evidence payload/bytes; derive SHA-256 inside the adapter rather than trusting a caller-provided digest.",
+    "schema_strategy": "Use an explicit inspected migration path (for example PRAGMA table_info plus transactional ALTER TABLE ADD COLUMN where compatible) or an equally bounded versioned successor that preserves one canonical recovery authority. Do not assume CREATE TABLE IF NOT EXISTS upgrades G4 schema.",
+    "legacy_row_strategy": "Fail closed or preserve an explicit unbound legacy state for pre-G5 rows; any forward anchoring event must be separately classified and must not mint retroactive provenance credit.",
+    "transaction_strategy": "Retain G4 BEGIN IMMEDIATE + checkpoint validation + compare-and-swap as the inner transition authority; subject validation/migration must not open a second state authority."
+  },
+  "serious_counterhypothesis": {
+    "statement": "If G5 deliberately supports only brand-new databases/recovery rows and explicitly rejects all pre-G5 recovery tables/rows, schema migration and retroactive anchoring are not required for correctness of that narrow scope.",
+    "discriminator": "The active claim/E5 candidate explicitly says to persist subject fields in the existing recovery table and preserve G4 behavior, so the implementation must either demonstrate an explicit legacy rejection contract or pass the upgrade regression above."
+  },
+  "do_not_promote": [
+    "runtime_execution",
+    "target_runtime",
+    "VPS_runtime",
+    "physical_GRID10",
+    "GWT_or_JSpace",
+    "effect",
+    "completion",
+    "training",
+    "whole_system"
+  ],
+  "review_result": "G5_REPAIR_REMAINS_JUSTIFIED_BUT_MUST_CLOSE_SCHEMA_EVOLUTION_AND_LEGACY_UNBOUND_SEMANTICS_TO_AVOID_FALSE_PROVENANCE_CREDIT",
+  "next_exact_action": "Active G5 mutation owner should encode the already-admitted same-ref/mutated-bytes falsifier plus the G4-table-to-G5-schema upgrade and pre-G5-unbound-history regressions before implementation acceptance; preserve exact G3/G4 controls and reconcile only executed scope."
+}
