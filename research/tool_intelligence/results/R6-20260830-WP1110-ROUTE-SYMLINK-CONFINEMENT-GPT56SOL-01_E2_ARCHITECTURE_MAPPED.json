@@ -1,0 +1,42 @@
+{
+  "schema": "FRANKENSTEIN2_TRIGGER6_E2_ARCHITECTURE_MAPPED/v1",
+  "research_id": "R6-20260830-WP1110-ROUTE-SYMLINK-CONFINEMENT-GPT56SOL-01",
+  "stage": "E2_ARCHITECTURE_MAPPED",
+  "status": "COMPLETE_AT_E2_SCOPE",
+  "claim_ref": "research/tool_intelligence/claims/R6-20260830-WP1110-ROUTE-SYMLINK-CONFINEMENT-GPT56SOL-01/E2_REVIEW_WP1111_TERMINAL_62A8C551.json",
+  "reviewed_terminal_commit": "62a8c5518372ef89867e65ff3351f61a4debcf54",
+  "reviewed_source_snapshot": "943d10275d76558e1d657270989a99e4c2009111",
+  "architecture_chain": [
+    "F2-WP-1111 static-completeness validation depends on evaluate_pre_handoff_release().",
+    "evaluate_pre_handoff_release() invokes release-integrity verification before declared-route resolution.",
+    "release_integrity.py walks the portable-release tree and rejects symbolic-link directories and symbolic-link files before route resolution is accepted.",
+    "_resolve_declared_route() still resolves the route before checking candidate.is_symlink(), so that local check cannot itself prove lexical no-symlink confinement after resolution."
+  ],
+  "resolution": {
+    "e1_counterhypothesis": "CONFIRMED_AT_STATIC_SCOPE",
+    "static_route_symlink_exploitability": "NOT_SUPPORTED_BY_CURRENT_SOURCE_CHAIN",
+    "wp1111_terminal_acceptance_impact": "NO_INVALIDATION_AT_DECLARED_STATIC_SCOPE",
+    "wp1110_post_resolve_is_symlink_check": "REDUNDANT_OR_MISLEADING_DEFENSE_IN_DEPTH_CHECK",
+    "remaining_mutation_risk": "TOCTOU_BETWEEN_RELEASE_INTEGRITY_VERIFICATION_AND_LATER_PATH_USE_IS_A_DISTINCT_DYNAMIC_HYPOTHESIS"
+  },
+  "negative_evidence": [
+    "The initial E1 suspicion does not survive architecture fusion for a static, non-mutating package: the stronger upstream release-integrity invariant rejects the symlink before the weaker local post-resolve check can become decisive.",
+    "Repository code-search did not surface an explicit release-integrity symlink-test by the searched error/function terms; absence from search is not proof of test absence and does not change the source-level invariant."
+  ],
+  "coordination": {
+    "wp1111_symlink_hardening_commit": "e92b3bb594505015bba9b9d0bd6894aff41796d8",
+    "wp1111_adversarial_regression_commit": "8b176639958d28b0b3a3a6745e6406f29fe05a6a",
+    "wp1111_terminal_commit": "62a8c5518372ef89867e65ff3351f61a4debcf54",
+    "toctou_lane": "ALREADY_CLAIMED_CONCURRENTLY_DO_NOT_DUPLICATE"
+  },
+  "handoff": {
+    "build_delta": "NONE_FROM_THIS_STATIC_SYMLINK_HYPOTHESIS",
+    "recommended_followup": "Do not reopen WP1111 on this static route-symlink theory. Preserve the local post-resolve is_symlink check as a semantic-smell/defense-in-depth cleanup candidate only. Let the separately claimed TOCTOU lane decide whether dynamic mutation invalidates any stronger claim."
+  },
+  "evidence_ceiling": {
+    "level": "E2_ARCHITECTURE_MAPPED",
+    "architecture_credit": 0,
+    "runtime_credit": 0,
+    "whole_system_credit": 0
+  }
+}
