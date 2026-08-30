@@ -14,7 +14,11 @@ permissions:
 
 jobs:
   component:
-    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
@@ -29,3 +33,17 @@ jobs:
           PYTHONPATH: src
         run: |
           python -m unittest -v tests.test_portable_release_static_completeness
+      - name: Verify Windows junction fails closed
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $root = Join-Path $env:RUNNER_TEMP 'wp1111-junction'
+          Remove-Item -Recurse -Force $root -ErrorAction SilentlyContinue
+          $real = Join-Path $root 'real'
+          $junction = Join-Path $root 'junction'
+          New-Item -ItemType Directory -Path $real -Force | Out-Null
+          Set-Content -Path (Join-Path $real 'evidence.txt') -Value 'evidence'
+          New-Item -ItemType Junction -Path $junction -Target $real | Out-Null
+          $env:WP1111_ROOT = $root
+          $env:PYTHONPATH = 'src'
+          python -c "import os; from pathlib import Path; from frankenstein2.portable_release_static_completeness import _safe_file; root=Path(os.environ['WP1111_ROOT']); violations=[]; assert (root/'junction').is_junction(); assert _safe_file(root, 'junction/evidence.txt', 'junction_ref', violations) is None; assert 'junction_ref:symlink_component' in violations, violations"
