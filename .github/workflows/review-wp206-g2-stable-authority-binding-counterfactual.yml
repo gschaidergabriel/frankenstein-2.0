@@ -1,0 +1,56 @@
+name: REVIEW WP206 G2 Stable Authority Binding Counterfactual
+
+on:
+  push:
+    branches:
+      - review/wp206-g2-stable-authority-binding-counterfactual-20260830
+    paths:
+      - 'repairs/wp206_g2_stable_authority_binding_counterfactual.patch'
+      - '.github/workflows/review-wp206-g2-stable-authority-binding-counterfactual.yml'
+  pull_request:
+    paths:
+      - 'repairs/wp206_g2_stable_authority_binding_counterfactual.patch'
+      - '.github/workflows/review-wp206-g2-stable-authority-binding-counterfactual.yml'
+      - 'src/frankenstein2/persistent_agency_kernel.py'
+      - 'tests/test_persistent_agency_kernel.py'
+      - 'tests/test_wp206_unifieddb_authority_receipt_replay_falsifier.py'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  counterfactual:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Require exact counterfactual patch applicability
+        run: git apply --check repairs/wp206_g2_stable_authority_binding_counterfactual.patch
+      - name: Apply review-only counterfactual
+        run: git apply repairs/wp206_g2_stable_authority_binding_counterfactual.patch
+      - name: Compile exact bounded surface
+        run: |
+          python -m py_compile \
+            src/frankenstein2/persistent_agency_kernel.py \
+            tests/test_persistent_agency_kernel.py \
+            tests/test_wp206_unifieddb_authority_receipt_replay_falsifier.py \
+            tests/wp206_restart_probe.py
+      - name: Preserve full existing WP206 restart regressions
+        env:
+          PYTHONPATH: src
+        run: python tests/test_persistent_agency_kernel.py -v
+      - name: Preserve G2 receipt tamper discriminator
+        env:
+          PYTHONPATH: src
+        run: python tests/test_wp206_unifieddb_authority_receipt_replay_falsifier.py -v
+      - name: Assert review-only credit fence
+        run: |
+          echo 'REVIEW_ONLY=CANDIDATE_REPAIR_DONOR'
+          echo 'RUNTIME_CREDIT=0'
+          echo 'EFFECT_CREDIT=0'
+          echo 'COMPLETION_CREDIT=0'
+          echo 'WHOLE_SYSTEM_ACCEPTANCE=false'
