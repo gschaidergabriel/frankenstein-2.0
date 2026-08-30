@@ -1,0 +1,97 @@
+{
+  "schema": "FRANKENSTEIN2_TRIGGER6_E1_SOURCE_READ/v1",
+  "research_id": "R6-WP206-SQLITE-LIVE-DRIFT-001",
+  "claim_target": "E1_SOURCE_READ",
+  "trigger": "6",
+  "status": "E1_SOURCE_READ_COMPLETE",
+  "research_credit": "E1_ONLY",
+  "architecture_credit": 0,
+  "runtime_credit": 0,
+  "f2_snapshot_before_claim": "b8841141a5b9ec3026b8e38af2c57cf0bb93759a",
+  "claim_commit": "db5515dc52ff122f53a0cc5ac0434e22d8dd5d04",
+  "research_entity_snapshot": "4c63063eaa24a1c7ce8f756fe8dc25e9160ac671",
+  "protocol": {
+    "path": "research/tool_intelligence/TRIGGERWORD_6_PROTOCOL.md",
+    "blob_sha": "08571526d33f9a0c06577e2f119bdaf4297ef1c8"
+  },
+  "objective": "Audit SQLite-native live-drift signals for WP206 same-inode data/schema mutation detection, separating ephemeral cache invalidation from durable restart/recovery identity.",
+  "f2_source_observations": [
+    {
+      "path": "src/frankenstein2/persistent_agency_kernel.py",
+      "observation": "The restart-stable FRANKENSTEIN2_UNIFIEDDB_BOUND_FILE_AUTHORITY/v1 receipt intentionally hashes only canonical_db_path, db_device and db_inode. It therefore remains stable across same-inode content mutation.",
+      "evidence_scope": "CURRENT_SOURCE"
+    },
+    {
+      "path": "src/state/unifieddb_identity.py",
+      "blob_sha": "7422e836315ef9ebcc0e79e6dc648a8fd01ed73e",
+      "observation": "UnifiedDBFingerprint/v2 already records mutable main-file sha256, schema digest/version, user_version, page count, journal mode and WAL/SHM presence, but its own classification says SQLITE_MAIN_FILE_IDENTITY_NOT_STATE_SNAPSHOT. The immutable=1 schema probe intentionally excludes uncheckpointed WAL state.",
+      "evidence_scope": "CURRENT_SOURCE"
+    },
+    {
+      "path": "src/frankenstein2/wp206_legacy_authority_recovery.py",
+      "blob_sha": "20eaee5570875568784e6f9234343b6027fdc3ee",
+      "observation": "G4 checks path/device/inode plus checkpoint digest and performs BEGIN IMMEDIATE + CAS on the stored authority receipt; the accepted next discriminator is same-inode live data/schema drift.",
+      "evidence_scope": "CURRENT_SOURCE"
+    }
+  ],
+  "external_primary_sources": [
+    {
+      "source": "SQLite PRAGMA documentation",
+      "url": "https://sqlite.org/pragma.html#pragma_data_version",
+      "finding": "PRAGMA data_version changes on a connection when another connection commits. It does not change for commits made by the same connection, and values from different connections are not comparable.",
+      "classification": "EXTERNAL_PRIMARY"
+    },
+    {
+      "source": "SQLite PRAGMA documentation",
+      "url": "https://sqlite.org/pragma.html#pragma_schema_version",
+      "finding": "schema_version is an internal schema cookie incremented when schema changes. It is a schema invalidation signal, not a complete data mutation witness; manually forcing it is unsafe.",
+      "classification": "EXTERNAL_PRIMARY"
+    },
+    {
+      "source": "SQLite Database File Format",
+      "url": "https://sqlite.org/fileformat.html#file_change_counter",
+      "finding": "The main-file change counter is useful for cache invalidation in rollback-journal operation, but SQLite explicitly notes it might not increment on every transaction in WAL mode.",
+      "classification": "EXTERNAL_PRIMARY"
+    },
+    {
+      "source": "SQLite WAL-mode File Format",
+      "url": "https://sqlite.org/walformat.html",
+      "finding": "WAL-index iChange increments per transaction but belongs to transient shared-memory coordination state, not a portable durable restart identity.",
+      "classification": "EXTERNAL_PRIMARY"
+    },
+    {
+      "source": "SQLite sqlite3_update_hook documentation",
+      "url": "https://sqlite.org/c3ref/update_hook.html",
+      "finding": "update_hook is registered on a specific SQLite connection and has documented coverage gaps; it is not a cross-process durable mutation identity primitive.",
+      "classification": "EXTERNAL_PRIMARY"
+    }
+  ],
+  "source_read_result": {
+    "supported": [
+      "PRAGMA data_version is suitable as a low-cost EPHEMERAL foreign-writer invalidation witness only when sampled on the same long-lived connection at two times.",
+      "PRAGMA schema_version can complement it as a schema-change sentinel, but does not witness arbitrary data mutations.",
+      "Neither data_version nor schema_version should be folded into the restart-stable WP206 bound-file authority receipt.",
+      "The main-file header change counter is insufficient as a universal mutation sequence under WAL.",
+      "F2 already deliberately separates restart-stable file authority from the richer mutable UnifiedDB fingerprint; that separation should be preserved."
+    ],
+    "not_supported": [
+      "SQLite exposes a built-in persistent globally comparable monotonic data-version suitable for WP206 recovery identity.",
+      "data_version values can be persisted and compared across reopened connections as an authority proof.",
+      "schema_version alone proves that canonical data did not change.",
+      "main-file hashing with immutable=1 observes uncheckpointed WAL state."
+    ]
+  },
+  "hypothesis": "A separate ephemeral live-drift witness can detect concurrent same-inode mutation without destabilizing the durable file-authority receipt.",
+  "counterhypothesis": "WP206 checkpoint digest + transactional locking already close all relevant same-inode drift hazards; adding a live-drift witness would only add false invalidations and complexity.",
+  "next_discriminator": "Map exactly which WP206 read/recovery boundaries can be invalidated by another connection while preserving valid unrelated writes, and determine whether data_version/schema_version should remain diagnostics only or become a typed pre/post-transaction guard. This requires a separate E2 claim.",
+  "efficiency": {
+    "model_calls_added_to_f2_runtime": 0,
+    "runtime_tokens_added": 0,
+    "external_dependency": "NONE",
+    "candidate_runtime_cost": "Two bounded PRAGMA reads at selected boundaries if promoted; not yet promoted."
+  },
+  "coordination": {
+    "canonical_claim": "research/tool_intelligence/claims/R6-WP206-SQLITE-LIVE-DRIFT-001/E1_SOURCE_READ.json",
+    "pending_research_sqlite_sync": "NOT_ATTEMPTED_BINARY_DB_PATH_NOT_MUTATED_THROUGH_CONNECTOR"
+  }
+}
