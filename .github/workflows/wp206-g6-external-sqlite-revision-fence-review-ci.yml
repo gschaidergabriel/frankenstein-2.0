@@ -38,15 +38,16 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-      - name: Apply bounded one-shot initialization-latch repair in review worktree
+      - name: Apply bounded initialization-latch and read-order repair in review worktree
         run: |
           python - <<'PY'
           from pathlib import Path
 
           path = Path('src/frankenstein2/persistent_agency_kernel.py')
           text = path.read_text(encoding='utf-8')
-          marker = 'self._sqlite_revision_monitor_initialized = False'
-          if marker not in text:
+
+          latch_marker = 'self._sqlite_revision_monitor_initialized = False'
+          if latch_marker not in text:
               ctor = '        self.sqlite_data_version_baseline = int(data_version_row[0])\n\n    @classmethod\n'
               if text.count(ctor) != 1:
                   raise SystemExit('constructor patch anchor mismatch')
@@ -101,7 +102,45 @@ jobs:
                   1,
               )
               text = text[:start] + segment + text[end:]
-              path.write_text(text, encoding='utf-8')
+
+          load_start = text.index('    def load_checkpoint(self, checkpoint_id: str) -> PersistentAgencyCheckpoint:\n')
+          load_end = text.index('    def latest_checkpoint(\n', load_start)
+          load_segment = text[load_start:load_end]
+          early = (
+              '        checkpoint_id = _identifier("checkpoint_id", checkpoint_id)\n'
+              '        self._assert_current_file_identity()\n'
+              '        row = self.connection.execute(\n'
+          )
+          late_marker = (
+              '        if checkpoint.sha256() != expected_sha:\n'
+              '            raise PersistentAgencyError("CHECKPOINT_TYPED_REPLAY_DIGEST_MISMATCH")\n'
+              '        return checkpoint\n'
+          )
+          if early in load_segment:
+              load_segment = load_segment.replace(
+                  early,
+                  '        checkpoint_id = _identifier("checkpoint_id", checkpoint_id)\n'
+                  '        row = self.connection.execute(\n',
+                  1,
+              )
+              if load_segment.count(late_marker) != 1:
+                  raise SystemExit('load checkpoint late-anchor mismatch')
+              load_segment = load_segment.replace(
+                  late_marker,
+                  '        if checkpoint.sha256() != expected_sha:\n'
+                  '            raise PersistentAgencyError("CHECKPOINT_TYPED_REPLAY_DIGEST_MISMATCH")\n'
+                  '        # Preserve established row-specific corruption/authority errors first;\n'
+                  '        # unchanged rows still require the global external-revision fence\n'
+                  '        # immediately before the typed checkpoint is returned.\n'
+                  '        self._assert_current_file_identity()\n'
+                  '        return checkpoint\n',
+                  1,
+              )
+              text = text[:load_start] + load_segment + text[load_end:]
+          elif 'unchanged rows still require the global external-revision fence' not in load_segment:
+              raise SystemExit('load checkpoint patch state ambiguous')
+
+          path.write_text(text, encoding='utf-8')
           PY
       - name: Compile exact post-G5 review surface
         run: >-
