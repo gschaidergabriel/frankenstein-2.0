@@ -1,0 +1,95 @@
+name: WP715 Active Tool Close Review GPT56Sol
+
+on:
+  push:
+    branches:
+      - trigger4/wp715-active-tool-close-review-gpt56sol
+    paths:
+      - '.github/workflows/wp715-active-tool-close-review-gpt56sol.yml'
+      - 'src/frankenstein2/voice_packet_cortex.py'
+      - 'src/frankenstein2/voice_contract.py'
+      - 'src/frankenstein2/causal_identity.py'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  active-tool-close-falsifier:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Record exact review subject
+        run: |
+          set -euo pipefail
+          git rev-parse HEAD
+          git rev-parse HEAD^ || true
+          sha256sum src/frankenstein2/voice_packet_cortex.py src/frankenstein2/voice_contract.py src/frankenstein2/causal_identity.py
+      - name: Execute unresolved active-tool session-close discriminator
+        env:
+          PYTHONPATH: src
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from frankenstein2.causal_identity import CausalIdentity
+          from frankenstein2.voice_contract import OUTCOME_RETURNED, VoiceIntent, VoiceSessionCapsule
+          from frankenstein2.voice_packet_cortex import VoicePacketCortex, VoicePacketCortexError
+
+          root = CausalIdentity(
+              session_id='session-wp715-active-tool-close',
+              agent_id='frankenstein-2',
+              task_id='wp715-active-tool-close-review',
+              turn_id='turn-input',
+              causal_id='causal-input-wp715-active-tool-close',
+              generation=3,
+          )
+          intent = VoiceIntent.create(
+              causal_identity=root,
+              input_ref='review:wp715-active-tool-close',
+              input_sha256='d' * 64,
+              provenance_refs=('trigger4:wp715-active-tool-close-review',),
+          )
+          session = VoiceSessionCapsule.create(
+              intent=intent,
+              session_causal_identity=root.derive(
+                  causal_id='causal-session-wp715-active-tool-close',
+                  generation=4,
+                  turn_id='turn-session',
+              ),
+              provenance_refs=('trigger4:wp715-active-tool-close-review:session',),
+          )
+          cortex = VoicePacketCortex(session)
+          cortex.emit_intent(
+              turn_id='turn-tool',
+              monotonic_ms=10,
+              voice_intent='TOOL_USE',
+              tool_ref='tool:pending',
+          )
+          assert cortex.is_open
+          assert cortex._active_tools.get('tool:pending') == 'turn-tool'
+
+          try:
+              cortex.close_session(
+                  turn_id='turn-close',
+                  monotonic_ms=20,
+                  outcome_causal_identity=session.session_causal_identity.derive(
+                      causal_id='causal-outcome-wp715-active-tool-close',
+                      generation=5,
+                      turn_id='turn-close',
+                  ),
+                  outcome_kind=OUTCOME_RETURNED,
+                  provenance_refs=('trigger4:wp715-active-tool-close-review:outcome',),
+              )
+          except VoicePacketCortexError:
+              assert cortex.is_open, 'rejected close must leave session open'
+              assert cortex._active_tools.get('tool:pending') == 'turn-tool', 'rejected close must preserve ownership'
+              print('FALSIFIER_PASS: close rejected while unresolved TOOL_USE ownership remained active')
+          else:
+              raise AssertionError(
+                  'PRODUCT_NEGATIVE: close_session admitted terminal SESSION_CLOSE with unresolved active TOOL_USE ownership'
+              )
+          PY
