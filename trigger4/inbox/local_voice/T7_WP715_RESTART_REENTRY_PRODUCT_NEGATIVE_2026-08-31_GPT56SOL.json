@@ -1,0 +1,65 @@
+{
+  "schema": "F2_TRIGGER7_WP715_RESTART_REENTRY_PRODUCT_NEGATIVE/v1",
+  "trigger": "7",
+  "recorded_date": "2026-08-31",
+  "organ": "GPT-5.6-Sol",
+  "classification": "CANDIDATE_FALSIFIER_REVIEW_ONLY",
+  "mutation_authority": false,
+  "workpackage_id": "F2-WP-715",
+  "observed_subject": {
+    "source_sha": "9203d515dbcfb8a049971e60174a281609865a33",
+    "repository_ci_run_id": 33327120335,
+    "repository_ci_job_id": 99299122913,
+    "repository_ci_check": "packet-cortex-discriminator",
+    "exact_source_vps_run_id": 33327120314,
+    "exact_source_vps_job_id": 99299122821,
+    "exact_source_vps_state_at_observation": "QUEUED"
+  },
+  "executed_evidence": {
+    "packet_component_tests": {
+      "executed": true,
+      "result": "PASS",
+      "tests": 18
+    },
+    "recovery_component_tests": {
+      "executed": true,
+      "result": "FAIL",
+      "tests_started": 7,
+      "failing_test": "test_checkpoint_resume_preserves_exact_state_and_adds_reentry_event",
+      "assertion": "resumed.outputs[0].playback_state expected interrupted but observed started"
+    },
+    "pn9_step": "SKIPPED_AFTER_RECOVERY_FAILURE",
+    "pn10_step": "SKIPPED_AFTER_RECOVERY_FAILURE"
+  },
+  "failure_class": "PRODUCT_NEGATIVE",
+  "root_cause_evidence": {
+    "test_contract": "tests/test_voice_packet_cortex_recovery.py expects a started nonterminal output to become interrupted at restart monotonic_ms, remain non-commit-eligible, and bind interruption_ms before RESTART_REENTRY.",
+    "implementation_observation": "src/frankenstein2/voice_packet_cortex_recovery.py reconstructs VoiceOutputPacket objects verbatim from checkpoint payload, then emits RESTART_REENTRY. It does not deterministically terminalize queued/started nonterminal playback state during resume.",
+    "causal_mechanism": "checkpoint restore preserves playback_state=started across process restart, violating the recovery invariant that unheard/in-flight playback cannot remain live or commit-eligible after restart."
+  },
+  "coordination": {
+    "duplicate_runtime_dispatch_created": false,
+    "queued_exact_source_vps_run_must_not_be_redispatched": true,
+    "prior_pn11_vps_scope_falsifier_still_relevant": true,
+    "reason_prior_pn11_remains_relevant": "current t4 packet VPS workflow still does not bind recovery source/tests or PN9/PN10 into its trigger/executed probe scope"
+  },
+  "required_repair": [
+    "WP715 mutation owner makes restart semantics explicit: any restored nonterminal queued/started playback must become a deterministic terminal non-commit state at the restart timestamp, preserving causal identity and heard_fraction without minting heard/result credit.",
+    "Add/retain regression assertions for queued, started, partially heard, completed, cancelled and already interrupted outputs so only nonterminal states are restart-terminalized and terminal states remain stable.",
+    "Re-run the existing single WP715 repository discriminator and require recovery suite PASS before PN9/PN10 are credited.",
+    "Do not duplicate the currently queued exact-source VPS run; classify its eventual result only at the subset actually executed.",
+    "After repository repair, expand the existing single VPS falsifier authority to include recovery source/tests plus PN9/PN10 before broad packet+recovery VPS promotion."
+  ],
+  "credit": {
+    "packet_repository_component_subset": 1,
+    "recovery_repository_component": 0,
+    "pn9_restart_continuation": 0,
+    "pn10_bounded_state": 0,
+    "packet_recovery_vps_component": 0,
+    "target_runtime": 0,
+    "acoustic": 0,
+    "whole_voice": 0,
+    "whole_product": 0
+  },
+  "next_exact_action": "WP715 Trigger-4 owner repairs restart reentry so restored nonterminal playback is terminalized deterministically at restart, then reruns the existing repository discriminator; do not open new ASR/TTS breadth and do not redispatch the already queued exact-source VPS job."
+}
