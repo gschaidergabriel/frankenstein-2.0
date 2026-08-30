@@ -1,0 +1,145 @@
+{
+  "schema": "FRANKENSTEIN2_TRIGGER6_TO_TRIGGER4_BUILD_CANDIDATE/v1",
+  "candidate_id": "F2-WP301-RETRIEVAL-FUSION-CONTRACT-V2-20260830",
+  "hypothesis_id": "R6-20260830-WP301-EMERGENT-RETRIEVAL-RANK-FUSION-GPT56SOL-01",
+  "architecture_snapshot_id": "F2-WP301@8ca0c51bf88a79701ad188b9ccb0d7859feea944+WP302@9519438f1587d7a9314ded1efbd0b87ed3d12152+E2@d1ab19c7f9ab4fd7a807b2c4e13248668adc6500",
+  "research_entity_source_sha": "29465ee811c3fe4d0ac7b8b5178aaf5fb9dd8626",
+  "frankenstein_2_source_sha": "00207dd704b4862cc85121d28d493c8dab4e7c59",
+  "external_repo": null,
+  "external_repo_commit_sha": null,
+  "external_repo_tree_sha": null,
+  "license": "N/A_CONCEPT_DISTILL_NO_EXTERNAL_CODE_IMPORT",
+  "integration_class": "CONCEPT_DISTILL",
+  "f2_target_workpackages": ["F2-WP-301", "F2-WP-302"],
+  "f2_target_modules": [
+    "src/frankenstein2/emergent_retrieval.py",
+    "tests/test_emergent_retrieval.py",
+    "src/frankenstein2/familiarity_prediction_binding.py",
+    "tests/test_wp302_prebinding_derived_score_falsifier.py"
+  ],
+  "problem_or_gap": "WP301 numerically constrains heterogeneous relevance signals to 0..10000 bp but does not bind producer/scorer/calibration semantics proving that axis magnitudes are commensurate before weighted averaging. Separately, every score_bp > 0 grants a full overlap-axis increment, producing a reproduced zero-to-one-bp discontinuity. WP302 then maps max selected weighted_score_bp to familiarity_bp, so score-semantics ambiguity can propagate into later deterministic attention priority despite aggregate-score integrity checks.",
+  "proposed_delta": {
+    "name": "WP301_RETRIEVAL_FUSION_CONTRACT_V2",
+    "steps": [
+      "Introduce a hashed RetrievalSignalWitness binding generator_id/version, score_semantics, scale_id, calibration identity/evidence, producer source revision, query/need snapshot and candidate input identity.",
+      "Introduce versioned RetrievalFusionPolicyV2 with explicit fusion_mode, algorithm_version and presence_threshold_bp semantics.",
+      "CALIBRATED_SCORE_V1 preserves integer weighted-score fusion only when participating score contracts are explicitly compatible; unknown/incompatible scale/calibration fails closed for score fusion.",
+      "ORDINAL_RRF_V1 is an optional deterministic ordering fallback for non-commensurate ranked evidence, with fixed rank_constant/window, deterministic ties, stable evidence-dimension identity and duplicate-dimension rejection.",
+      "RRF consensus score is never interpreted as familiarity_bp, probability or truth.",
+      "Make overlap support explicit: an axis counts only when its score reaches the versioned policy threshold; threshold identity participates in policy/plan digest.",
+      "Preserve v1 replay semantics. Do not silently reinterpret historical v1 plan receipts under v2.",
+      "Emit a deterministic RetrievalFusionTrace containing raw per-axis scores/ranks, witness identities, support decisions, fusion parameters, selected order, tie-breaks and trace digest.",
+      "Keep hard eligibility gates before soft fusion; no fusion result may resurrect superseded/inadmissible memory.",
+      "Keep lexical/vector indexes rebuildable derived structures. Do not add a second truth store or search-server authority."
+    ]
+  },
+  "counterhypotheses": [
+    "Actual WP301 producers may already share one documented calibrated score contract; if Trigger4 proves this end-to-end, a smaller witness-only delta may be sufficient and ordinal fallback can remain unimplemented.",
+    "Pure RRF could avoid cross-scale magnitude assumptions, but it discards magnitude information and must not replace calibrated score semantics needed by WP302 familiarity/abstention.",
+    "A mature external search framework could supply fusion operators, but the marginal value is likely negative relative to thin deterministic local control logic and would increase dependency/state/runtime surface."
+  ],
+  "evidence_refs": [
+    "research/tool_intelligence/deltas/2026-08-30T1924P0700_GPT56SOL_R6_WP301_EMERGENT_RETRIEVAL_E1_SOURCE_READ.json",
+    "research/tool_intelligence/deltas/2026-08-30T1929P0700_GPT56SOL_R6_WP301_EMERGENT_RETRIEVAL_E2_ARCHITECTURE_MAPPED.json",
+    "research/tool_intelligence/falsifiers/2026-08-30T1931P0700_GPT56SOL_R6_WP301_RETRIEVAL_FUSION_E3_REPRODUCED.json",
+    "src/frankenstein2/emergent_retrieval.py@8ca0c51bf88a79701ad188b9ccb0d7859feea944",
+    "tests/test_emergent_retrieval.py@44ee5d1acd062bf6ccdc742bbadc97912ccde9a8",
+    "src/frankenstein2/familiarity_prediction_binding.py@9519438f1587d7a9314ded1efbd0b87ed3d12152",
+    "SIGIR-2009-RRF DOI:10.1145/1571941.1572114",
+    "SQLite FTS5 current official documentation",
+    "OpenSearch hybrid-search score-normalization and RRF current official documentation",
+    "Elastic current RRF documentation",
+    "asg017/sqlite-vec@04d28bd21773981e2d266bbf6aa4efbd011eb4f6 (optional generator research pin only)"
+  ],
+  "upstream_claims_reproduced": [
+    "Current WP301 formula produces [7000,7000,0] => weighted 4666, overlap 2, rank 9332 and [5000,5000,1] => weighted 3333, overlap 3, rank 9999.",
+    "The smallest integer b found for [b,b,1] to outrank [7000,7000,0] under the reproduced equal-weight formula is b=4666, yielding rank 9333.",
+    "With explicit support threshold 1000 bp, [5000,5000,1] has overlap 2 and rank 6666, closing this accidental 1-bp breadth bonus.",
+    "Naive additive RRF at k=60 doubles a rank-1 contribution from 1/61 to 2/61 if the same evidence dimension is accidentally counted twice."
+  ],
+  "upstream_claims_not_reproduced": [
+    "No F2 workload ablation comparing v1 vs v2 vs RRF has been run.",
+    "No measured quality improvement on a labeled F2 retrieval corpus exists yet.",
+    "No p50/p95/p99 runtime overhead measurement exists yet.",
+    "No cross-axis producer calibration audit has yet proven which active WP301 signal generators are actually commensurate.",
+    "No sqlite-vec performance or stability benchmark was reproduced for F2."
+  ],
+  "baseline_definition": {
+    "source": "src/frankenstein2/emergent_retrieval.py@8ca0c51bf88a79701ad188b9ccb0d7859feea944",
+    "formula": "weighted_score_bp=floor(sum(score*weight)/sum(weight)); overlap_count=count(score>0); rank_score=weighted_score_bp*overlap_count",
+    "downstream": "WP302 familiarity_bp=max(selected_result.weighted_score_bp) under current binding",
+    "required_preserved_behaviors": [
+      "determinism",
+      "input-order invariance",
+      "evidence refs",
+      "missing required-axis rejection",
+      "duplicate-memory rejection",
+      "superseded redirect-only behavior",
+      "score != truth and memory != observation boundaries"
+    ]
+  },
+  "required_tests": [
+    "All existing WP301 and WP302 tests remain green or are versioned with explicit compatibility rationale.",
+    "CALIBRATED_SCORE_V1 rejects numerically same-range axes with incompatible scale/calibration identities.",
+    "Signal/candidate/plan digests change when generator/calibration/version identity changes with identical numeric score.",
+    "An explicit support threshold closes the reproduced 1-bp overlap inversion for a policy whose meaningful support threshold exceeds 1 bp.",
+    "Threshold identity is hashed/versioned and no hidden heuristic threshold exists.",
+    "ORDINAL_RRF_V1 is input-order invariant and deterministic under tied ranks.",
+    "Same evidence-dimension identity cannot be counted twice in ordinal fusion unless an explicit distinct evidence dimension exists.",
+    "Changing RRF rank_constant or rank_window_size changes policy/plan identity.",
+    "WP302 cannot consume RRF consensus score as familiarity_bp.",
+    "WP302 accepts weighted_score_bp as familiarity only when a familiarity-compatible calibrated score contract is explicit.",
+    "Superseded/inadmissible memory remains excluded before both fusion modes.",
+    "Deleting/rebuilding any lexical/vector derived index does not mutate canonical UnifiedDB memory facts."
+  ],
+  "required_ablations": [
+    "Current v1 formula vs V2 calibrated-score mode on the same deterministic retrieval fixtures.",
+    "V2 calibrated-score mode vs ordinal RRF on fixtures where source magnitudes are deliberately transformed monotonically per axis while rank order is preserved.",
+    "Per-axis dropout to detect one evidence dimension dominating selection.",
+    "Support-threshold sweep using explicitly declared thresholds, reporting stability and false breadth-bonus cases.",
+    "Duplicate-dimension injection test for ordinal mode.",
+    "WP302 downstream attention-priority comparison with calibrated familiarity vs unavailable rank-only familiarity."
+  ],
+  "required_measurements": [
+    "quality/accuracy on an admitted labeled or deterministic oracle retrieval fixture set",
+    "exact-evidence/provenance preservation",
+    "p50/p95/p99 planner latency",
+    "CPU time and RSS/PSS delta",
+    "serialized witness/trace byte overhead",
+    "model-call delta (expected zero)",
+    "prompt/context token delta (expected zero in retrieval core)",
+    "startup/steady-state overhead",
+    "cache/reuse behavior if derived FTS/vector generators are integrated",
+    "failure behavior under missing/incompatible calibration and stale/mismatched witness identities"
+  ],
+  "expected_token_delta": "0 model tokens in deterministic retrieval core; downstream context may improve or regress only through changed selection and must be measured separately",
+  "expected_latency_delta": "small positive deterministic metadata/hash/validation overhead, O(candidates*axes); no quantified claim until Trigger4 measures",
+  "expected_resource_delta": "small witness/trace memory+serialization increase; no network/provider/GPU requirement; exact CPU/RSS delta unmeasured",
+  "quality_success_metric": "Close the reproduced implicit support-boundary failure; reject incompatible score semantics deterministically; preserve baseline eligible ordering where contracts/thresholds intentionally reproduce v1; prevent rank-only scores from masquerading as familiarity; no regression of provenance/supersession/determinism invariants.",
+  "rollback_or_reject_rule": "Reject or reduce the candidate if Trigger4 cannot identify a real producer-semantics ambiguity, if v2 creates unacceptable latency/state complexity without measurable evidence benefit, if v1 replay compatibility cannot be preserved, if score/rank types can still cross into WP302 familiarity ambiguously, or if an external dependency becomes required for the core contract. A smaller witness-only patch is preferred if producer audit proves scores already share one valid calibration contract.",
+  "known_failure_modes": [
+    "Schema complexity without real producer diversity.",
+    "Mistaking common numeric range for common semantics.",
+    "Using RRF fused score as relevance/familiarity magnitude.",
+    "Duplicate/correlated evidence dimensions overweighting rank fusion.",
+    "Hidden threshold heuristics breaking replay.",
+    "Version migration silently changing historical retrieval receipts.",
+    "Derived index becoming de facto truth authority.",
+    "Fail-open behavior when calibration metadata is absent.",
+    "Downstream code treating unknown familiarity as known zero without explicit semantics."
+  ],
+  "source_archive_ref": "research/tool_intelligence/deltas/2026-08-30T1924P0700_GPT56SOL_R6_WP301_EMERGENT_RETRIEVAL_E1_SOURCE_READ.json",
+  "research_db_row_ids": [],
+  "research_db_sync_status": "PENDING_ADMITTED_BINARY_SQLITE_WRITE_PATH",
+  "trigger6_credit": {
+    "E1_SOURCE_READ": true,
+    "E2_ARCHITECTURE_MAPPED": true,
+    "E3_CLAIM_REPRODUCED": true,
+    "E4_F2_ABLATION": false,
+    "E5_BUILD_CANDIDATE": true,
+    "E6_F2_ACCEPTED": false,
+    "F2_runtime_credit": 0,
+    "whole_system_credit": 0
+  },
+  "trigger4_precondition": "Refresh current F2 HEAD and re-read affected WP301/WP302 module blobs before implementation. If affected architecture moved, hold/adapt this packet and preserve baseline/falsifiers; do not apply stale patches blindly."
+}
