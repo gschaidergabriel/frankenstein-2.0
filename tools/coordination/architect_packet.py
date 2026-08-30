@@ -1,10 +1,12 @@
 #!/usr/bin/env python3
-"""Stateless validator/matcher/ACK helper for noncanonical Architect worker packets.
+"""Stateless packet validation/ACK plus noncanonical coordination-intent creation fencing.
 
 Delivery ownership/CAS/UNKNOWN_DELIVERY semantics remain with Clay's existing
 `research_entity/coordination/live_reentry_delivery_atomicity.py` primitive.
-This F2 helper only validates packet identity, matches a resolved worker context,
-and emits non-authoritative ACK evidence.
+This F2 helper validates packet identity, matches a resolved worker context,
+emits non-authoritative ACK evidence, and provides a deterministic create-only
+coordination-intent fence so concurrent Architect reentries cannot create
+parallel active packets for one explicit intent identity.
 """
 from __future__ import annotations
 
@@ -19,6 +21,7 @@ from typing import Any, Iterable, Mapping
 
 PACKET_SCHEMA = "F2_ARCHITECT_WORKER_PACKET/v1"
 ACK_SCHEMA = "F2_ARCHITECT_WORKER_PACKET_ACK/v1"
+INTENT_SCHEMA = "F2_ARCHITECT_COORDINATION_INTENT_EVENT/v1"
 MESSAGE_KIND = "ARCHITECT_COORDINATION_PACKET"
 ACTION_CLASSES = {
     "ACK_ONLY",
@@ -49,6 +52,8 @@ DISPOSITIONS = {
     "REJECT_AUTHORITY_CONFLICT",
     "REJECT_SCHEMA_INVALID",
 }
+INTENT_STATES = {"ACTIVE", "TERMINAL"}
+INTENT_CREATION_DISPOSITIONS = {"CLAIMED", "REUSE_ACTIVE"}
 REQUIRED_PACKET_FIELDS = {
     "schema",
     "packet_id",
@@ -95,6 +100,10 @@ def _parse_time(value: str) -> datetime:
     return dt.astimezone(timezone.utc)
 
 
+def _format_time(value: datetime) -> str:
+    return value.astimezone(timezone.utc).isoformat().replace("+00:00", "Z")
+
+
 def _load(path: str | pathlib.Path) -> Any:
     return json.loads(pathlib.Path(path).read_text(encoding="utf-8"))
 
@@ -103,8 +112,26 @@ def _dump(data: Any) -> str:
     return json.dumps(data, indent=2, sort_keys=True, ensure_ascii=False) + "\n"
 
 
+def _validate_coordination_intent_id(value: Any) -> str:
+    if not isinstance(value, str):
+        raise PacketError("coordination_intent_id must be a string")
+    text = value.strip()
+    if not text or text != value:
+        raise PacketError("coordination_intent_id must be a non-empty trimmed string")
+    if len(text) > 256:
+        raise PacketError("coordination_intent_id must be <= 256 characters")
+    if any(ord(ch) < 32 or ord(ch) == 127 for ch in text):
+        raise PacketError("coordination_intent_id must not contain control characters")
+    return text
+
+
+def coordination_intent_key(coordination_intent_id: str) -> str:
+    intent_id = _validate_coordination_intent_id(coordination_intent_id)
+    return hashlib.sha256(intent_id.encode("utf-8")).hexdigest()
+
+
 def payload_identity(packet: Mapping[str, Any]) -> dict[str, Any]:
-    return {
+    identity: dict[str, Any] = {
         "objective": packet.get("objective"),
         "constraints": packet.get("constraints"),
         "expected_output": packet.get("expected_output"),
@@ -113,6 +140,11 @@ def payload_identity(packet: Mapping[str, Any]) -> dict[str, Any]:
         "runtime_subject_fence": packet.get("runtime_subject_fence"),
         "owner_intent_epoch": packet.get("owner_intent_epoch"),
     }
+    # Historical v1 packets did not carry this field. Add it to the sealed
+    # payload only when present so old packet digests remain reproducible.
+    if "coordination_intent_id" in packet:
+        identity["coordination_intent_id"] = packet.get("coordination_intent_id")
+    return identity
 
 
 def compute_payload_digest(packet: Mapping[str, Any]) -> str:
@@ -144,6 +176,8 @@ def validate_packet(packet: dict[str, Any]) -> None:
     for field in ("packet_id", "route_id", "nonce", "payload_digest", "architect_id", "project", "objective"):
         if not isinstance(packet.get(field), str) or not packet[field].strip():
             raise PacketError(f"{field} must be a non-empty string")
+    if "coordination_intent_id" in packet:
+        _validate_coordination_intent_id(packet["coordination_intent_id"])
     if packet.get("action_class") not in ACTION_CLASSES:
         raise PacketError("unsupported action_class")
     if not isinstance(packet.get("priority"), int) or not 0 <= packet["priority"] <= 100:
@@ -283,7 +317,7 @@ def make_ack(
         "workpackage_id": worker_context.get("workpackage_id"),
         "generation": worker_context.get("generation"),
         "claim_id": worker_context.get("claim_id"),
-        "observed_at": observed.isoformat().replace("+00:00", "Z"),
+        "observed_at": _format_time(observed),
         "disposition": derived_disposition,
         "authority_head": authority_head,
         "event_head_ref": event_head_ref,
@@ -298,8 +332,208 @@ def make_ack(
     }
 
 
+def _intent_event_dir(root: str | pathlib.Path, coordination_intent_id: str) -> pathlib.Path:
+    return pathlib.Path(root) / coordination_intent_key(coordination_intent_id)
+
+
+def _validate_intent_event(event: dict[str, Any], expected_intent_id: str, expected_sequence: int) -> None:
+    required = {
+        "schema",
+        "coordination_intent_id",
+        "intent_key",
+        "sequence",
+        "parent_sequence",
+        "state",
+        "observed_at",
+        "owner_packet_id",
+        "owner_route_id",
+        "owner_nonce",
+        "owner_payload_digest",
+        "new_mutation_authority",
+        "new_runtime_dispatch",
+        "new_effect_authority",
+        "credit_delta",
+    }
+    missing = sorted(required - set(event))
+    if missing:
+        raise PacketError(f"intent event missing required fields: {', '.join(missing)}")
+    if event.get("schema") != INTENT_SCHEMA:
+        raise PacketError(f"intent event schema must be {INTENT_SCHEMA}")
+    intent_id = _validate_coordination_intent_id(event.get("coordination_intent_id"))
+    if intent_id != expected_intent_id:
+        raise PacketError("intent event coordination_intent_id mismatch")
+    if event.get("intent_key") != coordination_intent_key(intent_id):
+        raise PacketError("intent event intent_key mismatch")
+    if event.get("sequence") != expected_sequence:
+        raise PacketError("intent event sequence mismatch")
+    expected_parent = expected_sequence - 1 if expected_sequence > 1 else None
+    if event.get("parent_sequence") != expected_parent:
+        raise PacketError("intent event parent_sequence mismatch")
+    if event.get("state") not in INTENT_STATES:
+        raise PacketError("unsupported intent event state")
+    _parse_time(event.get("observed_at"))
+    for field in ("owner_packet_id", "owner_route_id", "owner_nonce", "owner_payload_digest"):
+        if not isinstance(event.get(field), str) or not event[field].strip():
+            raise PacketError(f"intent event {field} must be non-empty string")
+    for field in ("new_mutation_authority", "new_runtime_dispatch", "new_effect_authority"):
+        if event.get(field) is not False:
+            raise PacketError(f"intent event {field} must be false")
+    if event.get("credit_delta") != 0:
+        raise PacketError("intent event credit_delta must be zero")
+    if event["state"] == "ACTIVE":
+        opened = _parse_time(event.get("opened_at"))
+        expires = _parse_time(event.get("expires_at"))
+        if expires <= opened:
+            raise PacketError("intent event expires_at must be after opened_at")
+    else:
+        _parse_time(event.get("terminal_at"))
+        if not isinstance(event.get("terminal_reason"), str) or not event["terminal_reason"].strip():
+            raise PacketError("terminal intent event requires terminal_reason")
+
+
+def _read_intent_chain(
+    root: str | pathlib.Path,
+    coordination_intent_id: str,
+) -> list[tuple[pathlib.Path, dict[str, Any]]]:
+    intent_id = _validate_coordination_intent_id(coordination_intent_id)
+    directory = _intent_event_dir(root, intent_id)
+    if not directory.exists():
+        return []
+    if not directory.is_dir():
+        raise PacketError("intent key path exists but is not a directory")
+    paths = sorted(directory.glob("*.json"))
+    chain: list[tuple[pathlib.Path, dict[str, Any]]] = []
+    expected = 1
+    for path in paths:
+        if len(path.stem) != 6 or not path.stem.isdigit() or int(path.stem) != expected:
+            raise PacketError("intent event chain has non-contiguous or malformed sequence path")
+        event = _load(path)
+        if not isinstance(event, dict):
+            raise PacketError("intent event must be a JSON object")
+        _validate_intent_event(event, intent_id, expected)
+        chain.append((path, event))
+        expected += 1
+    return chain
+
+
+def claim_coordination_intent(
+    root: str | pathlib.Path,
+    packet: dict[str, Any],
+    *,
+    now: datetime | None = None,
+) -> tuple[str, dict[str, Any], pathlib.Path]:
+    """Create one append-only ACTIVE intent event or reuse the active owner.
+
+    The next event path is deterministic (six-digit sequence under a SHA-256
+    intent key) and is opened with create-only semantics. Concurrent creators
+    for the same intent therefore contend on the same path. In separate Git
+    checkouts the same deterministic path must additionally pass the normal
+    repository fast-forward/CAS boundary before becoming canonical.
+    """
+    validate_packet(packet)
+    if "coordination_intent_id" not in packet:
+        raise PacketError("new coordination packet requires coordination_intent_id")
+    intent_id = _validate_coordination_intent_id(packet["coordination_intent_id"])
+    observed = (now or datetime.now(timezone.utc)).astimezone(timezone.utc)
+    chain = _read_intent_chain(root, intent_id)
+    if chain:
+        head_path, head = chain[-1]
+        if head["state"] == "ACTIVE" and observed < _parse_time(head["expires_at"]):
+            return "REUSE_ACTIVE", head, head_path
+
+    sequence = len(chain) + 1
+    directory = _intent_event_dir(root, intent_id)
+    directory.mkdir(parents=True, exist_ok=True)
+    path = directory / f"{sequence:06d}.json"
+    event = {
+        "schema": INTENT_SCHEMA,
+        "coordination_intent_id": intent_id,
+        "intent_key": coordination_intent_key(intent_id),
+        "sequence": sequence,
+        "parent_sequence": sequence - 1 if sequence > 1 else None,
+        "state": "ACTIVE",
+        "observed_at": _format_time(observed),
+        "opened_at": _format_time(observed),
+        "expires_at": packet["expires_at"],
+        "owner_packet_id": packet["packet_id"],
+        "owner_route_id": packet["route_id"],
+        "owner_nonce": packet["nonce"],
+        "owner_payload_digest": packet["payload_digest"],
+        "new_mutation_authority": False,
+        "new_runtime_dispatch": False,
+        "new_effect_authority": False,
+        "credit_delta": 0,
+    }
+    _validate_intent_event(event, intent_id, sequence)
+    try:
+        with path.open("x", encoding="utf-8") as handle:
+            handle.write(_dump(event))
+    except FileExistsError:
+        # A same-filesystem creator won the deterministic create-only race.
+        # Re-read the complete chain and reuse only a still-active winner.
+        refreshed = _read_intent_chain(root, intent_id)
+        if refreshed:
+            winner_path, winner = refreshed[-1]
+            if winner["state"] == "ACTIVE" and observed < _parse_time(winner["expires_at"]):
+                return "REUSE_ACTIVE", winner, winner_path
+        raise PacketError("coordination intent create-only race requires authority refresh")
+    return "CLAIMED", event, path
+
+
+def close_coordination_intent(
+    root: str | pathlib.Path,
+    coordination_intent_id: str,
+    *,
+    reason: str,
+    now: datetime | None = None,
+) -> tuple[str, dict[str, Any], pathlib.Path]:
+    """Append a TERMINAL event without rewriting the active intent history."""
+    intent_id = _validate_coordination_intent_id(coordination_intent_id)
+    if not isinstance(reason, str) or not reason.strip():
+        raise PacketError("terminal reason must be a non-empty string")
+    observed = (now or datetime.now(timezone.utc)).astimezone(timezone.utc)
+    chain = _read_intent_chain(root, intent_id)
+    if not chain:
+        raise PacketError("cannot terminalize an intent with no event history")
+    head_path, head = chain[-1]
+    if head["state"] == "TERMINAL":
+        return "ALREADY_TERMINAL", head, head_path
+    sequence = len(chain) + 1
+    path = _intent_event_dir(root, intent_id) / f"{sequence:06d}.json"
+    event = {
+        "schema": INTENT_SCHEMA,
+        "coordination_intent_id": intent_id,
+        "intent_key": coordination_intent_key(intent_id),
+        "sequence": sequence,
+        "parent_sequence": sequence - 1,
+        "state": "TERMINAL",
+        "observed_at": _format_time(observed),
+        "terminal_at": _format_time(observed),
+        "terminal_reason": reason.strip(),
+        "owner_packet_id": head["owner_packet_id"],
+        "owner_route_id": head["owner_route_id"],
+        "owner_nonce": head["owner_nonce"],
+        "owner_payload_digest": head["owner_payload_digest"],
+        "new_mutation_authority": False,
+        "new_runtime_dispatch": False,
+        "new_effect_authority": False,
+        "credit_delta": 0,
+    }
+    _validate_intent_event(event, intent_id, sequence)
+    try:
+        with path.open("x", encoding="utf-8") as handle:
+            handle.write(_dump(event))
+    except FileExistsError:
+        refreshed = _read_intent_chain(root, intent_id)
+        if refreshed and refreshed[-1][1]["state"] == "TERMINAL":
+            return "ALREADY_TERMINAL", refreshed[-1][1], refreshed[-1][0]
+        raise PacketError("coordination intent terminal race requires authority refresh")
+    return "TERMINALIZED", event, path
+
+
 def new_packet(
     *,
+    coordination_intent_id: str,
     target: dict[str, Any],
     objective: str,
     action_class: str,
@@ -309,8 +543,12 @@ def new_packet(
     project: str,
     constraints: list[str],
     evidence_refs: list[str],
+    now: datetime | None = None,
 ) -> dict[str, Any]:
-    issued = datetime.now(timezone.utc)
+    if ttl_minutes <= 0:
+        raise PacketError("ttl_minutes must be > 0")
+    intent_id = _validate_coordination_intent_id(coordination_intent_id)
+    issued = (now or datetime.now(timezone.utc)).astimezone(timezone.utc)
     packet_uuid = uuid.uuid4().hex
     packet: dict[str, Any] = {
         "schema": PACKET_SCHEMA,
@@ -318,8 +556,8 @@ def new_packet(
         "route_id": "PENDING",
         "nonce": packet_uuid,
         "payload_digest": "PENDING",
-        "issued_at": issued.isoformat().replace("+00:00", "Z"),
-        "expires_at": (issued + timedelta(minutes=ttl_minutes)).isoformat().replace("+00:00", "Z"),
+        "issued_at": _format_time(issued),
+        "expires_at": _format_time(issued + timedelta(minutes=ttl_minutes)),
         "architect_id": architect_id,
         "project": project,
         "priority": priority,
@@ -335,6 +573,7 @@ def new_packet(
         },
         "evidence_refs": evidence_refs,
         "supersedes_packet_ids": [],
+        "coordination_intent_id": intent_id,
         "credit_authority": False,
         "mutation_authority": False,
         "runtime_dispatch_authority": False,
@@ -413,7 +652,9 @@ def cmd_ack(args: argparse.Namespace) -> int:
 
 def cmd_new(args: argparse.Namespace) -> int:
     target = json.loads(args.target_json)
+    now = _parse_time(args.now) if args.now else None
     packet = new_packet(
+        coordination_intent_id=args.coordination_intent_id,
         target=target,
         objective=args.objective,
         action_class=args.action_class,
@@ -423,14 +664,67 @@ def cmd_new(args: argparse.Namespace) -> int:
         project=args.project,
         constraints=args.constraint or [],
         evidence_refs=args.evidence_ref or [],
+        now=now,
     )
+    disposition, event, _event_path = claim_coordination_intent(args.intent_root, packet, now=now)
+    if disposition == "REUSE_ACTIVE":
+        print(
+            _dump(
+                {
+                    "creation_disposition": disposition,
+                    "coordination_intent_id": packet["coordination_intent_id"],
+                    "owner_packet_id": event["owner_packet_id"],
+                    "owner_route_id": event["owner_route_id"],
+                    "credit_delta": 0,
+                }
+            ),
+            end="",
+        )
+        return 3
+
     text = _dump(packet)
     if args.output:
-        pathlib.Path(args.output).parent.mkdir(parents=True, exist_ok=True)
-        pathlib.Path(args.output).write_text(text, encoding="utf-8")
+        output = pathlib.Path(args.output)
+        output.parent.mkdir(parents=True, exist_ok=True)
+        try:
+            with output.open("x", encoding="utf-8") as handle:
+                handle.write(text)
+        except Exception:
+            # Preserve the failed creation causally; do not leave a durable
+            # active intent pointing at a packet file we failed to materialize.
+            close_coordination_intent(
+                args.intent_root,
+                packet["coordination_intent_id"],
+                reason="PACKET_OUTPUT_WRITE_FAILED",
+                now=now,
+            )
+            raise
         print(args.output)
     else:
         print(text, end="")
+    return 0
+
+
+def cmd_close_intent(args: argparse.Namespace) -> int:
+    now = _parse_time(args.now) if args.now else None
+    disposition, event, path = close_coordination_intent(
+        args.intent_root,
+        args.coordination_intent_id,
+        reason=args.reason,
+        now=now,
+    )
+    print(
+        _dump(
+            {
+                "disposition": disposition,
+                "coordination_intent_id": event["coordination_intent_id"],
+                "sequence": event["sequence"],
+                "event_path": str(path),
+                "credit_delta": 0,
+            }
+        ),
+        end="",
+    )
     return 0
 
 
@@ -471,6 +765,8 @@ def build_parser() -> argparse.ArgumentParser:
     p.set_defaults(func=cmd_ack)
 
     p = sub.add_parser("new")
+    p.add_argument("--coordination-intent-id", required=True)
+    p.add_argument("--intent-root", default="coordination/architect_intents")
     p.add_argument("--target-json", required=True)
     p.add_argument("--objective", required=True)
     p.add_argument("--action-class", choices=sorted(ACTION_CLASSES), default="COORDINATION_ONLY")
@@ -480,8 +776,16 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--project", default="frankenstein-2.0")
     p.add_argument("--constraint", action="append")
     p.add_argument("--evidence-ref", action="append")
+    p.add_argument("--now")
     p.add_argument("--output")
     p.set_defaults(func=cmd_new)
+
+    p = sub.add_parser("close-intent")
+    p.add_argument("--coordination-intent-id", required=True)
+    p.add_argument("--intent-root", default="coordination/architect_intents")
+    p.add_argument("--reason", required=True)
+    p.add_argument("--now")
+    p.set_defaults(func=cmd_close_intent)
     return parser
 
 
