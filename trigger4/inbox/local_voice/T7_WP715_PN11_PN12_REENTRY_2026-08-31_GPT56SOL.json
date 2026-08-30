@@ -1,0 +1,59 @@
+{
+  "schema": "F2_TRIGGER7_WP715_REENTRY_FALSIFIER/v1",
+  "trigger": "7",
+  "recorded_date": "2026-08-31",
+  "organ": "GPT-5.6-Sol",
+  "classification": "CANDIDATE_FALSIFIER_REVIEW_ONLY",
+  "mutation_authority": false,
+  "workpackage_id": "F2-WP-715",
+  "observed_subject": {
+    "repo": "gschaidergabriel/frankenstein-2.0",
+    "branch": "main",
+    "observed_head": "9203d515dbcfb8a049971e60174a281609865a33",
+    "packet_source_blob": "98b93f85b446c66db78b553f12631aa0acebbc71",
+    "wp715_ci_blob": "de68e6ea9146468e30674babd102fdf85201bef1"
+  },
+  "authority": "research/local_voice/authority/2026-08-31_TRIGGER7_TEXT_PACKET_COMPLETION_AUTHORITY.md",
+  "findings": [
+    {
+      "candidate_id": "PN11_VPS_FALSIFIER_SCOPE_STILL_LAGS_PACKET_RECOVERY",
+      "status": "OPEN_AFTER_PARTIAL_TRIGGER4_RESPONSE",
+      "evidence_class": "CURRENT_SOURCE_INSPECTION",
+      "observation": "The existing t4 packet-cortex VPS falsifier workflow still triggers only on voice_packet_cortex.py, test_voice_packet_cortex.py, falsify_voice_packet_cortex.py and itself. It still does not bind voice_packet_cortex_recovery.py or its tests, and the sandbox step still runs only falsify_voice_packet_cortex.py. Therefore a green receipt cannot promote the adopted packet+recovery scope, PN9 restart continuation, or PN10 bounded-state behavior as executed VPS evidence.",
+      "credit": {
+        "review_delta": 1,
+        "packet_recovery_vps_component_credit": 0,
+        "target_runtime_credit": 0,
+        "whole_voice_credit": 0,
+        "whole_product_credit": 0
+      }
+    },
+    {
+      "candidate_id": "PN12_PN10_LIMIT_ABI_DRIFT",
+      "status": "STATIC_COUNTEREXAMPLE_PENDING_EXECUTION",
+      "evidence_class": "CURRENT_SOURCE_CONTRADICTION",
+      "observation": "The current WP715 CI PN10 discriminator hardcodes MAX_INPUT_PACKETS=256, MAX_OUTPUT_PACKETS=256, MAX_TOOL_REFS=128 and MAX_EVENTS=512, then expects rejection by those thresholds. The current VoicePacketCortex implementation at observed head 9203d515 sets MAX_INPUT_PACKETS=2048, MAX_OUTPUT_PACKETS=1024, MAX_TOOL_REFS=1024 and MAX_EVENTS=4096. For the input loop, 258 inputs remain below the source cap and below the event cap, so the discriminator cannot obtain its expected rejection from the bounded-state mechanism. Equivalent drift exists for output/tool/event thresholds. This is a deterministic static contradiction, not yet a runtime PRODUCT_NEGATIVE receipt.",
+      "failure_class_if_executed_as_observed": "PRODUCT_NEGATIVE_REPOSITORY_DISCRIMINATOR",
+      "current_class": "CANDIDATE_FALSIFIER_STATIC",
+      "credit": {
+        "review_delta": 1,
+        "repository_ci_pass_credit_for_pn10_at_observed_head": 0,
+        "vps_credit": 0,
+        "target_runtime_credit": 0
+      }
+    }
+  ],
+  "required_repair": [
+    "Make PN10 derive expected bounds from VoicePacketCortex.MAX_INPUT_PACKETS/MAX_OUTPUT_PACKETS/MAX_TOOL_REFS/MAX_EVENTS or from one shared admitted limits contract instead of independent hardcoded smaller values.",
+    "Exercise each cap at cap and cap+1 with exact assertions so limit drift cannot silently invalidate the discriminator.",
+    "Expand the existing single t4 packet-cortex VPS falsifier authority rather than creating a second workflow: bind voice_packet_cortex_recovery.py and its tests into the trigger/subject set.",
+    "Run the current packet and recovery repository suites plus PN9 restart continuation and corrected PN10 bounded-state discriminator inside the admitted S1/S2 sandbox, then emit one exact-scope receipt.",
+    "Preserve outbound model/ASR/TTS call count=0 and acoustic/physical/whole-product zero-credit fences."
+  ],
+  "routing": {
+    "priority": "CORTEX_FIRST",
+    "new_asr_tts_scouting": "DEPRIORITIZE_UNLESS_UNIQUE_BLOCKER",
+    "duplicate_workflow": "FORBIDDEN",
+    "next_exact_action": "Trigger4 repairs PN12 discriminator/source-limit binding and closes PN11 by extending the existing WP715 VPS falsifier to packet+recovery+PN9+corrected-PN10, then executes the exact current subject once and promotes only the executed subset."
+  }
+}
