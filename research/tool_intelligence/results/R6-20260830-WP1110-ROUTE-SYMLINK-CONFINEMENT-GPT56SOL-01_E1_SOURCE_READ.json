@@ -1,0 +1,50 @@
+{
+  "schema": "FRANKENSTEIN2_TRIGGER6_E1_SOURCE_READ/v1",
+  "research_id": "R6-20260830-WP1110-ROUTE-SYMLINK-CONFINEMENT-GPT56SOL-01",
+  "stage": "E1_SOURCE_READ",
+  "status": "COMPLETE_AT_E1_SCOPE",
+  "claim_ref": "research/tool_intelligence/claims/R6-20260830-WP1110-ROUTE-SYMLINK-CONFINEMENT-GPT56SOL-01/E1_SOURCE_READ.json@9cd4063e0d4f4deee1bcc3d21edb5e11ccd24036",
+  "f2_source_snapshot": "935bdfb2859704e661c98cd694346394635d52a8",
+  "primary_sources": [
+    {
+      "source": "Python pathlib documentation: Path.resolve(strict=True)",
+      "url": "https://docs.python.org/3/library/pathlib.html#pathlib.Path.resolve",
+      "finding": "Path.resolve makes a path absolute while resolving symbolic links; therefore symlink identity is not preserved in the returned resolved Path."
+    },
+    {
+      "source": "Python os.path documentation: isfile/islink semantics",
+      "url": "https://docs.python.org/3/library/os.path.html",
+      "finding": "Regular-file predicates follow symbolic links while link predicates apply to the directory entry itself; testing a post-resolution path cannot recover a symlink component that was already traversed."
+    },
+    {
+      "source": "Linux openat2(2) / path_resolution(7)",
+      "url": "https://man7.org/linux/man-pages/man2/openat2.2.html",
+      "finding": "Linux exposes RESOLVE_NO_SYMLINKS specifically to reject symbolic links in any path component during resolution; final-component O_NOFOLLOW alone is not equivalent."
+    }
+  ],
+  "current_source_observation": {
+    "file": "src/frankenstein2/pre_handoff_release.py",
+    "source_sha": "935bdfb2859704e661c98cd694346394635d52a8",
+    "function": "_resolve_declared_route",
+    "sequence": [
+      "candidate = (routes_dir / raw_value).resolve(strict=True)",
+      "candidate.relative_to(root)",
+      "candidate.is_symlink() or not candidate.is_file()"
+    ],
+    "finding": "The route validator resolves the declared route before checking is_symlink(). An in-root symlink can therefore lose lexical link identity before the check. This is a source-level falsifier candidate, not yet a reproduced runtime failure."
+  },
+  "relationship_to_concurrent_work": {
+    "wp1111_hardening": "e92b3bb594505015bba9b9d0bd6894aff41796d8 hardens portable_release_static_completeness.py with lexical component checks.",
+    "wp1111_regressions": "8b176639958d28b0b3a3a6745e6406f29fe05a6a adds final/intermediate symlink regressions for WP1111 referenced files.",
+    "nonduplicate_delta": "This E1 targets the upstream WP1110 route resolver still called by WP1111, not the newly hardened WP1111 _safe_file path."
+  },
+  "hypothesis": "A route entry in AI_START_HERE_DO_NOT_SCAN_REPO/01_ROUTES.json that lexically names a symlink whose target remains inside the release root can be accepted by evaluate_pre_handoff_release despite the intended regular-file/no-link boundary.",
+  "counterhypothesis": "The release-integrity manifest or another upstream invariant may reject or make such a symlink route impossible before _resolve_declared_route is reached; if so, the local post-resolve check is redundant rather than exploitable.",
+  "next_discriminator": "Acquire E2 and map release_integrity plus the route fixture/manifest interaction. If no earlier invariant forbids the route symlink, hand Trigger4 one deterministic regression: replace a declared route file with an in-root symlink and require pre-handoff status BLOCKED.",
+  "evidence_ceiling": {
+    "level": "E1_SOURCE_READ",
+    "architecture_credit": 0,
+    "runtime_credit": 0,
+    "whole_system_credit": 0
+  }
+}
