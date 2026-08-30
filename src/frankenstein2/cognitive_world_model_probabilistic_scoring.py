@@ -4,6 +4,11 @@ This module does not replace the accepted hard CORRECT/INCORRECT/ABSTAIN evaluat
 It binds a pre-evaluation probability-of-correctness statement to the exact public
 PredictionCandidate and computes evaluator-side Brier/log-loss/reliability evidence
 after the existing hard evaluation has closed.
+
+The probabilistic evaluator additionally requires the exact externally pinned
+``BenchmarkRunAdmission`` digest retained by the accepted generation-2 provenance path.
+Probability quality therefore remains a parallel evaluator measurement and cannot loosen
+run/fixture/policy/generation provenance merely because the hard outcome is available.
 """
 from __future__ import annotations
 
@@ -11,6 +16,7 @@ from dataclasses import InitVar, asdict, dataclass
 from decimal import Decimal, localcontext
 import hashlib
 import json
+import re
 from typing import Iterable, Any
 
 from .cognitive_world_model_prediction_benchmark import (
@@ -20,6 +26,7 @@ from .cognitive_world_model_prediction_benchmark import (
     PredictionCandidate,
     PredictionEvaluation,
 )
+from .cognitive_world_model_run_admission import BenchmarkRunAdmission
 
 CONFIDENCE_SCHEMA = "FRANKENSTEIN2_WORLD_MODEL_PREDICTION_CONFIDENCE/v1"
 PROB_EVALUATION_SCHEMA = "FRANKENSTEIN2_WORLD_MODEL_PROBABILISTIC_EVALUATION/v1"
@@ -29,6 +36,7 @@ SCORED = "SCORED"
 ABSTAIN_NOT_SCORED = "ABSTAIN_NOT_PROBABILISTICALLY_SCORED"
 _ORIGIN = object()
 _PPM = 1_000_000
+_SHA256_RE = re.compile(r"^[0-9a-f]{64}$")
 
 
 class ProbabilisticScoringError(ValueError):
@@ -41,6 +49,12 @@ def _json(value: Any) -> str:
 
 def _digest(value: Any) -> str:
     return hashlib.sha256(_json(value).encode()).hexdigest()
+
+
+def _sha(name: str, value: Any) -> str:
+    if type(value) is not str or _SHA256_RE.fullmatch(value) is None:
+        raise ProbabilisticScoringError(f"{name} must be lowercase 64-hex SHA-256")
+    return value
 
 
 def _decimal_text(value: Decimal) -> str:
@@ -90,6 +104,7 @@ class ProbabilisticPredictionEvaluation:
     prediction_sha256: str
     confidence_sha256: str
     hard_evaluation_sha256: str
+    run_admission_sha256: str
     benchmark_run_id: str
     benchmark_generation: int
     hard_outcome: str
@@ -107,6 +122,10 @@ class ProbabilisticPredictionEvaluation:
             raise ProbabilisticScoringError("probabilistic evaluation must be created by evaluator API")
         if self.schema != PROB_EVALUATION_SCHEMA or self.classification != EVALUATOR_PROB_CLASSIFICATION:
             raise ProbabilisticScoringError("probabilistic evaluation schema/classification mismatch")
+        _sha("prediction_sha256", self.prediction_sha256)
+        _sha("confidence_sha256", self.confidence_sha256)
+        _sha("hard_evaluation_sha256", self.hard_evaluation_sha256)
+        _sha("run_admission_sha256", self.run_admission_sha256)
 
     def as_dict(self) -> dict[str, Any]:
         return asdict(self)
@@ -115,21 +134,80 @@ class ProbabilisticPredictionEvaluation:
         return _digest(self.as_dict())
 
 
-def evaluate_prediction_confidence(
+def _assert_admitted_provenance(
     confidence: PredictionConfidence,
+    prediction: PredictionCandidate,
     hard_evaluation: PredictionEvaluation,
-) -> ProbabilisticPredictionEvaluation:
+    run_admission: BenchmarkRunAdmission,
+    expected_run_admission_sha256: str,
+) -> str:
     if type(confidence) is not PredictionConfidence:
         raise ProbabilisticScoringError("confidence must be exact concrete PredictionConfidence")
+    if type(prediction) is not PredictionCandidate:
+        raise ProbabilisticScoringError("prediction must be exact concrete PredictionCandidate")
     if type(hard_evaluation) is not PredictionEvaluation:
         raise ProbabilisticScoringError("hard_evaluation must be exact concrete PredictionEvaluation")
+    if type(run_admission) is not BenchmarkRunAdmission:
+        raise ProbabilisticScoringError("run_admission must be exact concrete BenchmarkRunAdmission")
+
+    expected_admission = _sha("expected_run_admission_sha256", expected_run_admission_sha256)
+    if run_admission.sha256() != expected_admission:
+        raise ProbabilisticScoringError("run admission digest does not match predeclared expected digest")
+
     if (
-        confidence.prediction_id != hard_evaluation.prediction_id
-        or confidence.prediction_sha256 != hard_evaluation.prediction_sha256
-        or confidence.benchmark_run_id != hard_evaluation.benchmark_run_id
-        or confidence.benchmark_generation != hard_evaluation.benchmark_generation
+        confidence.prediction_id != prediction.prediction_id
+        or confidence.prediction_sha256 != prediction.sha256()
+        or confidence.benchmark_run_id != prediction.benchmark_run_id
+        or confidence.benchmark_generation != prediction.benchmark_generation
     ):
-        raise ProbabilisticScoringError("confidence/hard-evaluation provenance mismatch")
+        raise ProbabilisticScoringError("confidence/prediction provenance mismatch")
+
+    if (
+        hard_evaluation.prediction_id != prediction.prediction_id
+        or hard_evaluation.prediction_sha256 != prediction.sha256()
+        or hard_evaluation.benchmark_run_id != prediction.benchmark_run_id
+        or hard_evaluation.benchmark_generation != prediction.benchmark_generation
+    ):
+        raise ProbabilisticScoringError("hard-evaluation/prediction provenance mismatch")
+
+    if (
+        run_admission.run_id != prediction.benchmark_run_id
+        or run_admission.benchmark_generation != prediction.benchmark_generation
+        or run_admission.system_under_test_ref != prediction.policy_id
+    ):
+        raise ProbabilisticScoringError("prediction/run-admission provenance mismatch")
+    if run_admission.run_descriptor_sha256 != hard_evaluation.run_descriptor_sha256:
+        raise ProbabilisticScoringError("hard-evaluation/run-descriptor admission mismatch")
+    if (
+        run_admission.fixture_id,
+        run_admission.fixture_generation,
+        run_admission.fixture_sha256,
+    ) != (
+        hard_evaluation.fixture_id,
+        hard_evaluation.fixture_generation,
+        hard_evaluation.fixture_sha256,
+    ):
+        raise ProbabilisticScoringError("hard-evaluation/fixture admission mismatch")
+
+    return expected_admission
+
+
+def evaluate_prediction_confidence(
+    confidence: PredictionConfidence,
+    prediction: PredictionCandidate,
+    hard_evaluation: PredictionEvaluation,
+    *,
+    run_admission: BenchmarkRunAdmission,
+    expected_run_admission_sha256: str,
+) -> ProbabilisticPredictionEvaluation:
+    """Score confidence only inside the retained predeclared run-admission boundary."""
+    expected_admission = _assert_admitted_provenance(
+        confidence,
+        prediction,
+        hard_evaluation,
+        run_admission,
+        expected_run_admission_sha256,
+    )
 
     target = None
     status = ABSTAIN_NOT_SCORED
@@ -153,6 +231,7 @@ def evaluate_prediction_confidence(
         confidence.prediction_sha256,
         confidence.sha256(),
         hard_evaluation.sha256(),
+        expected_admission,
         confidence.benchmark_run_id,
         confidence.benchmark_generation,
         hard_evaluation.outcome,
