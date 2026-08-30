@@ -1,0 +1,30 @@
+name: REVIEW_ONLY WP901 causal-lineage falsifier
+
+on:
+  pull_request:
+    paths:
+      - 'tests/review_wp901_causal_lineage_falsifier.py'
+      - 'src/frankenstein2/restart_recovery_continuation.py'
+      - 'src/frankenstein2/whole_persistent_loop.py'
+      - '.github/workflows/review-wp901-causal-lineage-falsifier.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  reproduce-counterexample:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Compile review witness and canonical WP901 source
+        run: |
+          python -m py_compile src/frankenstein2/restart_recovery_continuation.py
+          python -m py_compile tests/review_wp901_causal_lineage_falsifier.py
+      - name: Reproduce causal-lineage counterexample
+        env:
+          PYTHONPATH: src
+        run: python tests/review_wp901_causal_lineage_falsifier.py
