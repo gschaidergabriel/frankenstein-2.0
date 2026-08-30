@@ -1,0 +1,151 @@
+{
+  "schema": "F2_TRIGGER7_TO_TRIGGER4_PACKET_CORTEX_HANDOFF/v1",
+  "trigger": "7",
+  "recorded_date": "2026-08-31",
+  "organ": "GPT-5.6-Sol",
+  "route_to": "TRIGGER4",
+  "classification": "INTEGRATION_BLOCKER_PACKET_SURROGATE_CORTEX_COMPLETION",
+  "owner_authority": {
+    "path": "research/local_voice/authority/2026-08-31_TRIGGER7_TEXT_PACKET_COMPLETION_AUTHORITY.md",
+    "commit": "d17416cccf5c6b0360333ba23be2b2ba9ca8f2eb",
+    "binding": true
+  },
+  "continuation_checkpoint": {
+    "path": "research/local_voice/checkpoints/2026-08-31_TRIGGER7_PACKET_IO_COMPLETION_REENTRY_GPT56SOL.json",
+    "commit": "31c020cd78371026754ea98be2e6de20bcd9a4e2"
+  },
+  "semantic_identity": {
+    "new_semantic_claim": false,
+    "rule": "CONTINUE_EXISTING_LOCAL_VOICE_CORTEX_OBJECTIVES_WITH_PACKET_TRANSPORT_SURROGATE",
+    "do_not_duplicate": [
+      "T7-TTS-001",
+      "T7-ASR-004",
+      "T7-ASR-008"
+    ]
+  },
+  "work_class": "INTEGRATION_BLOCKER",
+  "target_completion_tier": "PACKET_SURROGATE_CORTEX_COMPONENT_INTEGRATION",
+  "objective": "Finish the non-acoustic local-voice cortex/controller path through typed deterministic packet I/O so that only minimal real audio binding, target-specific adaptation and final physical-device acceptance remain.",
+  "required_packet_families": {
+    "VoiceInputPacket": [
+      "session_id",
+      "turn_id",
+      "packet_id",
+      "monotonic_timestamp",
+      "source_modality",
+      "text_or_transcript",
+      "language_locale",
+      "partial_final",
+      "confidence_uncertainty",
+      "speech_start_end",
+      "vad_state",
+      "endpoint_metadata",
+      "overlap_state",
+      "interrupt_or_barge_in",
+      "source_or_simulated_duration",
+      "sequence_number",
+      "drop_duplicate_reorder_corruption_flags"
+    ],
+    "VoiceOutputPacket": [
+      "session_id",
+      "turn_id",
+      "packet_id",
+      "generated_text_segment",
+      "expression_or_prosody_intent",
+      "speech_act_or_voice_intent",
+      "planned_duration_or_timing_estimate",
+      "first_output_timestamp",
+      "chunk_sequence",
+      "cancellable",
+      "playback_state",
+      "heard_fraction_or_equivalent",
+      "interruption_timestamp",
+      "commit_eligibility",
+      "voice_outcome_reentry_payload"
+    ],
+    "CortexEventPacket": [
+      "wake_session_open_session_close",
+      "vad_transition",
+      "endpoint_decision",
+      "wait_backchannel_answer_tool_close_intent",
+      "gwt_or_state_broadcast_where_applicable",
+      "presence_interruptibility",
+      "cancellation_propagation",
+      "tool_request_result",
+      "memory_read_write_reference",
+      "error_fallback_recovery",
+      "timing_resource_observation"
+    ]
+  },
+  "integration_law": [
+    "Exercise the same controller/state/cancellation functions that the eventual physical audio binders will call; do not create a parallel fake voice state machine.",
+    "Reuse current VoiceSessionCapsule or typed successor, VoiceIntent/GWT arbitration, Presence/Interruptibility, UnifiedDB/state/memory boundaries, tool/effect boundaries and VoiceOutcome causal re-entry where present.",
+    "Do not create a second canonical state, effect, receipt, release or execution authority.",
+    "LOCAL_SOLO only for packet/cortex validation; outbound model/ASR/TTS inference API calls must remain zero unless separately admitted by current authority.",
+    "Packet simulation is valid cortex implementation evidence but never acoustic acceptance."
+  ],
+  "minimum_deterministic_scenarios": [
+    "session_open_then_partial_then_final_then_answer_then_close",
+    "multiple_partials_then_revised_final",
+    "endpoint_wait_backchannel_then_answer",
+    "user_overlap_and_barge_in_before_output_started",
+    "user_barge_in_after_output_started_with_unheard_tail_cancelled",
+    "cancel_before_heard_does_not_commit_unheard_output",
+    "partially_heard_output_records_bounded_heard_fraction_and_causal_outcome",
+    "late_cancelled_generation_or_tool_completion_is_suppressed_by_epoch_or_ownership",
+    "duplicate_input_packet_is_idempotent",
+    "out_of_order_packet_is_rejected_buffered_or_reconciled_deterministically",
+    "dropped_packet_or_sequence_gap_fails_closed_or_recovers_by_explicit policy",
+    "tool_request_result_survives_interruption_without_cross_turn_leakage",
+    "memory_read_write_and_voiceoutcome_reentry_preserve causal turn identity",
+    "restart_recovery_restores only admitted durable session state and does not resurrect cancelled output",
+    "semantic_or_silence_close_is deterministic",
+    "long_conversation_fixture_preserves bounded state and turn ownership"
+  ],
+  "required_artifacts": [
+    "typed packet contracts or typed successors",
+    "adapter(s) that connect packet input/output to the existing voice cortex/controller boundaries",
+    "deterministic fixtures for all minimum scenarios",
+    "fault-injection harness for duplicate/drop/reorder/cancel/late-result behavior",
+    "tests proving state ownership, idempotency, cancellation and VoiceOutcome re-entry",
+    "benchmark/trace receipt with exact source SHA, commands, test identities and LOCAL_SOLO outbound-call counters",
+    "integration note naming the minimal remaining physical microphone/speaker binder delta"
+  ],
+  "acceptance": {
+    "packet_contracts_compile_or_parse": true,
+    "same_cortex_path_exercised": true,
+    "deterministic_turn_fsm_tests_pass": true,
+    "barge_in_cancel_unheard_rollback_tests_pass": true,
+    "voiceintent_gwt_presence_state_tests_pass_where_current_components_exist": true,
+    "memory_tools_voiceoutcome_reentry_tests_pass": true,
+    "restart_recovery_drop_duplicate_reorder_tests_pass": true,
+    "long_session_fault_fixture_pass": true,
+    "outbound_model_asr_tts_inference_calls": 0,
+    "remaining_real_audio_binding": "MINIMAL",
+    "remaining_target_specific_adaptation": "MINIMAL"
+  },
+  "failure_taxonomy": [
+    "PRODUCT_NEGATIVE",
+    "EVIDENCE_INVALID",
+    "INFRA_AUTH_TRANSPORT_QUOTA",
+    "CONCURRENCY_RETRY",
+    "UNKNOWN_NONTERMINAL"
+  ],
+  "credit_boundary": {
+    "packet_simulation_component_credit_may_be_promoted_only_after_executed_tests_and_bound_receipt": true,
+    "acoustic_quality_credit": 0,
+    "captured_audio_wer_credit": 0,
+    "microphone_aec_credit": 0,
+    "real_speaker_heard_output_credit": 0,
+    "physical_audio_latency_credit": 0,
+    "physical_device_acceptance_credit": 0,
+    "whole_voice_e2e_credit": 0,
+    "whole_product_credit": 0
+  },
+  "execution_preference": {
+    "surface": "LOWEST_SAFE_FAITHFUL_VPS_SANDBOX_S1_OR_S2_FOR_PACKET_LOGIC",
+    "physical_audio": "FINAL_GATE_ONLY",
+    "runtime_subject_churn": "DEFER_SEMANTIC_SUCCESSOR_WHILE_EQUIVALENT_IMPLEMENTATION_OR_PROBE_IS_ACTIVE_UNLESS_EXECUTABLE_COUNTEREVIDENCE_REQUIRES_REPAIR"
+  },
+  "next_exact_action": "Trigger4 should refresh main and current mutation ownership, reuse existing local-voice/controller code, implement the smallest coherent typed packet surrogate plus deterministic fault/long-session tests, execute it on the lowest safe faithful VPS sandbox, emit exact source/test/trace receipt and promote only packet/cortex scope. If an equivalent current implementation owner has already landed, do not duplicate; review/falsify it instead."
+}
