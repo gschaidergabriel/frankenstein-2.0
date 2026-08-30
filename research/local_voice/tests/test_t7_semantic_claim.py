@@ -1,3 +1,4 @@
+import json
 import pathlib
 import sys
 import unittest
@@ -232,6 +233,49 @@ class SemanticClaimTests(unittest.TestCase):
             a.semantic_key(),
             "831a0648586591689423d110d6cbc2ac0566b9f5d2e9557cffeb45a8bd6705f3",
         )
+
+    def test_2026_full_duplex_triage_key_is_stable(self):
+        obj = SemanticObjective.from_inputs(
+            family="FULL_DUPLEX_2026_GERMAN_TRIAGE",
+            target_surface="EXTERNAL_PRIMARY_RESEARCH",
+            subject="SOULX_DUPLUG__LYCHEE_FD__BAYLING_DUPLEX",
+            evidence_scope="SOURCE_PINNED_TRIAGE",
+            generation=1,
+        )
+        self.assertEqual(
+            obj.semantic_key(),
+            "6fcd22aed92beee2278dba80309ed1558898aafd170eaa8d353106845cb68849",
+        )
+
+    def test_fdbv3_tool_rollback_donor_key_is_stable(self):
+        obj = SemanticObjective.from_inputs(
+            family="FDBV3_GERMAN_TOOL_ROLLBACK_DONOR_AUDIT",
+            target_surface="EXTERNAL_PRIMARY_RESEARCH",
+            subject="FULL_DUPLEX_BENCH_V3_3E799C45A045256F47D5F1C9CDA90157E2D2EC9E",
+            evidence_scope="SOURCE_PINNED_BENCHMARK_DONOR",
+            generation=1,
+        )
+        self.assertEqual(
+            obj.semantic_key(),
+            "efa6ce947e57106992c07f380a4a49df3fe990395d656e38cc04123fe83dc33a",
+        )
+
+    def test_all_semantic_claim_files_roundtrip_through_compiler(self):
+        claim_root = pathlib.Path(__file__).resolve().parents[1] / "semantic_claims"
+        for path in sorted(claim_root.glob("*.json")):
+            with self.subTest(path=path.name):
+                payload = json.loads(path.read_text(encoding="utf-8"))
+                objective = payload["semantic_objective"]
+                compiled = SemanticObjective.from_inputs(
+                    family=objective["family"],
+                    target_surface=objective["target_surface"],
+                    subject=objective["subject"],
+                    evidence_scope=objective["evidence_scope"],
+                    generation=objective["generation"],
+                )
+                self.assertEqual(compiled.canonical_object(), objective)
+                self.assertEqual(compiled.semantic_key(), payload["semantic_key"])
+                self.assertEqual(path.name, f"{compiled.semantic_key()}.json")
 
 
 if __name__ == "__main__":
