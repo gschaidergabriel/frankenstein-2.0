@@ -5,9 +5,12 @@ import json
 from pathlib import Path
 import tempfile
 import unittest
+from unittest.mock import patch
 
+import frankenstein2.artifact_bound_static_completeness as artifact_binding
 from frankenstein2.artifact_bound_static_completeness import (
     EVIDENCE_SCOPE,
+    ArtifactBoundStaticCompletenessError,
     bind_release_artifact_static_completeness,
 )
 from frankenstein2.portable_release_static_completeness import BLOCKED, STATIC_COMPLETE
@@ -138,6 +141,36 @@ class ArtifactBoundStaticCompletenessTests(unittest.TestCase):
                     prehandoff_receipt_ref=RECEIPT_REF,
                     expected_archive_receipt=build.receipt,
                 )
+
+    def test_artifact_mutation_during_wp1111_evaluation_fails_closed(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp_root = Path(tmp)
+            payload = tmp_root / "payload"
+            payload.mkdir()
+            build = self._build(payload)
+            artifact = write_release_archive(tmp_root / "frankenstein-2.0.zip", build)
+            original = artifact_binding.evaluate_portable_release_static_completeness
+
+            def evaluate_then_mutate(*args, **kwargs):
+                receipt = original(*args, **kwargs)
+                artifact.write_bytes(build.archive_bytes + b"post-verify-tamper")
+                return receipt
+
+            with patch.object(
+                artifact_binding,
+                "evaluate_portable_release_static_completeness",
+                side_effect=evaluate_then_mutate,
+            ):
+                with self.assertRaisesRegex(
+                    ArtifactBoundStaticCompletenessError,
+                    "artifact mutated during static completeness evaluation",
+                ):
+                    bind_release_artifact_static_completeness(
+                        artifact,
+                        policy=self._policy(),
+                        prehandoff_receipt_ref=RECEIPT_REF,
+                        expected_archive_receipt=build.receipt,
+                    )
 
     def test_wrong_expected_archive_subject_fails_closed(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
