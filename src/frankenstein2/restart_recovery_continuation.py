@@ -1,13 +1,19 @@
 """Fail-closed restart/recovery continuation contract for Frankenstein 2.0.
 
-F2-WP-901 generation 1 repository-component scope only.
+F2-WP-901 generation 2 repository-component scope only.
 
-This module deliberately does not persist a second recovery ledger, schedule work, call
-models/providers/tools, execute effects, or mint completion.  It consumes one explicit
-persisted-evidence envelope that is already bound to an accepted WP900 whole-loop seal and
-WP206 checkpoint identity, then produces only a deterministic continuation *candidate*.
+Generation 2 closes the executed generation-1 mixed-causal-lineage/self-attestation
+counterexample. Recovery admission now consumes the existing canonical ``CausalIdentity``
+primitive plus concrete ``PersistentAgencyCheckpoint``, ``WholePersistentLoopSeal`` and
+``LoopOutcomeEvidence`` objects. The WP900 seal must identify the exact restart checkpoint
+as its direct successor and the exact outcome object, and one causal-identity reference must
+be present in the persisted provenance of the checkpoint, outcome and whole-loop seal.
 
-The key restart safety rule is intentionally conservative:
+This module still does not persist a second recovery ledger, schedule work, call
+models/providers/tools, execute effects, or mint completion. It produces only a deterministic
+continuation *candidate*.
+
+Restart safety remains conservative:
 
 * UNKNOWN or merely RESULT_OBSERVED external-effect outcomes hold the entire unfinished
   set until outcome verification closes the causal ambiguity;
@@ -16,7 +22,7 @@ The key restart safety rule is intentionally conservative:
 * VERIFIED_APPLIED requires the attempted-effect refs to be explicitly completed;
 * NO_EFFECT cannot carry effect-attempt refs.
 
-Canonical durable state remains UnifiedDB.  This object is a typed recovery/control
+Canonical durable state remains UnifiedDB. This object is a typed recovery/control
 projection only and cannot become a competing truth/effect/completion authority.
 """
 from __future__ import annotations
@@ -27,22 +33,26 @@ import json
 import re
 from typing import Any, ClassVar, Iterable
 
+from .causal_identity import CausalIdentity
+from .persistent_agency_kernel import PersistentAgencyCheckpoint
 from .whole_persistent_loop import (
     EFFECT_OUTCOME_UNKNOWN,
     EFFECT_RESULT_OBSERVED,
     EFFECT_VERIFIED_APPLIED,
     EFFECT_VERIFIED_NOT_APPLIED,
     NO_EFFECT,
+    LoopOutcomeEvidence,
+    WholePersistentLoopSeal,
 )
 
 
-RECOVERY_EVIDENCE_SCHEMA = "FRANKENSTEIN2_RESTART_RECOVERY_EVIDENCE/v1"
-RECOVERY_PLAN_SCHEMA = "FRANKENSTEIN2_RESTART_RECOVERY_CONTINUATION_PLAN/v1"
+RECOVERY_EVIDENCE_SCHEMA = "FRANKENSTEIN2_RESTART_RECOVERY_EVIDENCE/v2"
+RECOVERY_PLAN_SCHEMA = "FRANKENSTEIN2_RESTART_RECOVERY_CONTINUATION_PLAN/v2"
 EVIDENCE_CLASSIFICATION = (
-    "PERSISTED_IDENTITY_BOUND_RECOVERY_INPUT_NOT_WORLD_TRUTH_EFFECT_OR_COMPLETION_AUTHORITY"
+    "PERSISTED_CAUSAL_OBJECT_BOUND_RECOVERY_INPUT_NOT_WORLD_TRUTH_EFFECT_OR_COMPLETION_AUTHORITY"
 )
 PLAN_CLASSIFICATION = (
-    "DETERMINISTIC_RESTART_CONTINUATION_CANDIDATE_NOT_SCHEDULER_EFFECT_OR_COMPLETION_AUTHORITY"
+    "DETERMINISTIC_CAUSAL_BOUND_RESTART_CONTINUATION_CANDIDATE_NOT_SCHEDULER_EFFECT_OR_COMPLETION_AUTHORITY"
 )
 
 CONTINUE_UNFINISHED = "CONTINUE_UNFINISHED_AS_CANDIDATE"
@@ -132,22 +142,31 @@ def _digest(value: Any) -> str:
     return hashlib.sha256(_canonical_json(value).encode("utf-8")).hexdigest()
 
 
+def causal_identity_ref(identity: CausalIdentity) -> str:
+    """Return the exact reusable provenance reference for one canonical causal identity."""
+    if type(identity) is not CausalIdentity:
+        raise RestartRecoveryError("causal_identity must be concrete CausalIdentity")
+    return f"f2:causal-identity:{identity.causal_id}:{identity.sha256()}"
+
+
 @dataclass(frozen=True, slots=True, kw_only=True)
 class PersistedRestartEvidence:
-    """Minimal explicit evidence required to plan one restart continuation.
+    """Explicit, causally bound evidence required to plan one restart continuation.
 
-    The caller must still bind this object to the exact persisted row/receipt it loaded.
-    `plan_restart_continuation` therefore requires the expected digest and all principal
-    checkpoint/whole-loop identities again and fails closed on disagreement.
+    Direct construction remains validation-only. Canonical recovery admission should use
+    :func:`bind_persisted_restart_evidence`, which derives checkpoint/seal/outcome identities
+    from concrete typed source objects rather than accepting mutually self-consistent hashes.
     """
 
     evidence_id: str
+    causal_identity: CausalIdentity
     source_checkpoint_id: str
     source_checkpoint_generation: int
     source_checkpoint_sha256: str
     whole_loop_seal_id: str
     whole_loop_seal_sha256: str
     outcome_status: str
+    outcome_id: str
     outcome_sha256: str
     unfinished_work_refs: tuple[str, ...] = ()
     completed_work_refs: tuple[str, ...] = ()
@@ -159,6 +178,8 @@ class PersistedRestartEvidence:
 
     def __post_init__(self) -> None:
         object.__setattr__(self, "evidence_id", _text("evidence_id", self.evidence_id))
+        if type(self.causal_identity) is not CausalIdentity:
+            raise RestartRecoveryError("causal_identity must be concrete CausalIdentity")
         object.__setattr__(
             self,
             "source_checkpoint_id",
@@ -186,6 +207,7 @@ class PersistedRestartEvidence:
         )
         if type(self.outcome_status) is not str or self.outcome_status not in _OUTCOME_STATUSES:
             raise RestartRecoveryError("unsupported whole-loop outcome status")
+        object.__setattr__(self, "outcome_id", _text("outcome_id", self.outcome_id))
         object.__setattr__(
             self, "outcome_sha256", _sha256("outcome_sha256", self.outcome_sha256)
         )
@@ -209,6 +231,15 @@ class PersistedRestartEvidence:
             "provenance_refs",
             _refs("provenance_refs", self.provenance_refs, allow_empty=False),
         )
+
+        if self.causal_identity.generation != self.source_checkpoint_generation:
+            raise RestartRecoveryError(
+                "causal identity generation must equal restart checkpoint generation"
+            )
+        if causal_identity_ref(self.causal_identity) not in self.provenance_refs:
+            raise RestartRecoveryError(
+                "persisted recovery evidence lacks exact causal identity provenance ref"
+            )
 
         unfinished = set(self.unfinished_work_refs)
         completed = set(self.completed_work_refs)
@@ -245,12 +276,15 @@ class PersistedRestartEvidence:
             "schema": self.schema,
             "classification": self.classification,
             "evidence_id": self.evidence_id,
+            "causal_identity": self.causal_identity.as_dict(),
+            "causal_identity_sha256": self.causal_identity.sha256(),
             "source_checkpoint_id": self.source_checkpoint_id,
             "source_checkpoint_generation": self.source_checkpoint_generation,
             "source_checkpoint_sha256": self.source_checkpoint_sha256,
             "whole_loop_seal_id": self.whole_loop_seal_id,
             "whole_loop_seal_sha256": self.whole_loop_seal_sha256,
             "outcome_status": self.outcome_status,
+            "outcome_id": self.outcome_id,
             "outcome_sha256": self.outcome_sha256,
             "unfinished_work_refs": list(self.unfinished_work_refs),
             "completed_work_refs": list(self.completed_work_refs),
@@ -265,16 +299,103 @@ class PersistedRestartEvidence:
         return _digest(self.as_dict())
 
 
+def bind_persisted_restart_evidence(
+    *,
+    evidence_id: str,
+    causal_identity: CausalIdentity,
+    source_checkpoint: PersistentAgencyCheckpoint,
+    whole_loop_seal: WholePersistentLoopSeal,
+    outcome: LoopOutcomeEvidence,
+    unfinished_work_refs: Iterable[str] = (),
+    completed_work_refs: Iterable[str] = (),
+    effect_attempt_refs: Iterable[str] = (),
+    provenance_refs: Iterable[str] = (),
+) -> PersistedRestartEvidence:
+    """Bind recovery evidence to concrete WP206/WP900/outcome objects and causal lineage."""
+    if type(causal_identity) is not CausalIdentity:
+        raise RestartRecoveryError("causal_identity must be concrete CausalIdentity")
+    if type(source_checkpoint) is not PersistentAgencyCheckpoint:
+        raise RestartRecoveryError(
+            "source_checkpoint must be concrete PersistentAgencyCheckpoint"
+        )
+    if type(whole_loop_seal) is not WholePersistentLoopSeal:
+        raise RestartRecoveryError(
+            "whole_loop_seal must be concrete WholePersistentLoopSeal"
+        )
+    if type(outcome) is not LoopOutcomeEvidence:
+        raise RestartRecoveryError("outcome must be concrete LoopOutcomeEvidence")
+
+    checkpoint_sha = source_checkpoint.sha256()
+    seal_sha = whole_loop_seal.sha256()
+    outcome_sha = outcome.sha256()
+    causal_ref = causal_identity_ref(causal_identity)
+
+    if source_checkpoint.generation != causal_identity.generation:
+        raise RestartRecoveryError("RECOVERY_CAUSAL_GENERATION_MISMATCH")
+    if source_checkpoint.generation != whole_loop_seal.generation + 1:
+        raise RestartRecoveryError("RECOVERY_SEAL_CHECKPOINT_GENERATION_MISMATCH")
+    if whole_loop_seal.next_checkpoint_id != source_checkpoint.checkpoint_id:
+        raise RestartRecoveryError("RECOVERY_SEAL_CHECKPOINT_ID_MISMATCH")
+    if whole_loop_seal.next_checkpoint_sha256 != checkpoint_sha:
+        raise RestartRecoveryError("RECOVERY_SEAL_CHECKPOINT_DIGEST_MISMATCH")
+    if whole_loop_seal.outcome_id != outcome.outcome_id:
+        raise RestartRecoveryError("RECOVERY_SEAL_OUTCOME_ID_MISMATCH")
+    if whole_loop_seal.outcome_sha256 != outcome_sha:
+        raise RestartRecoveryError("RECOVERY_SEAL_OUTCOME_DIGEST_MISMATCH")
+
+    for label, refs in (
+        ("checkpoint", source_checkpoint.provenance_refs),
+        ("whole-loop seal", whole_loop_seal.provenance_refs),
+        ("outcome", outcome.provenance_refs),
+    ):
+        if causal_ref not in refs:
+            raise RestartRecoveryError(
+                f"RECOVERY_CAUSAL_LINEAGE_REF_MISSING:{label}"
+            )
+
+    provenance = tuple(
+        sorted(
+            set(_refs("provenance_refs", provenance_refs))
+            | {
+                causal_ref,
+                f"wp206:checkpoint:{source_checkpoint.checkpoint_id}:{checkpoint_sha}",
+                f"wp900:whole-loop:{whole_loop_seal.seal_id}:{seal_sha}",
+                f"wp900:outcome:{outcome.outcome_id}:{outcome_sha}",
+            }
+        )
+    )
+
+    return PersistedRestartEvidence(
+        evidence_id=evidence_id,
+        causal_identity=causal_identity,
+        source_checkpoint_id=source_checkpoint.checkpoint_id,
+        source_checkpoint_generation=source_checkpoint.generation,
+        source_checkpoint_sha256=checkpoint_sha,
+        whole_loop_seal_id=whole_loop_seal.seal_id,
+        whole_loop_seal_sha256=seal_sha,
+        outcome_status=outcome.status,
+        outcome_id=outcome.outcome_id,
+        outcome_sha256=outcome_sha,
+        unfinished_work_refs=tuple(unfinished_work_refs),
+        completed_work_refs=tuple(completed_work_refs),
+        effect_attempt_refs=tuple(effect_attempt_refs),
+        provenance_refs=provenance,
+    )
+
+
 @dataclass(frozen=True, slots=True, kw_only=True)
 class RestartContinuationPlan:
     plan_id: str
     source_evidence_id: str
     source_evidence_sha256: str
+    causal_identity: CausalIdentity
     source_checkpoint_id: str
     source_checkpoint_generation: int
     source_checkpoint_sha256: str
     whole_loop_seal_id: str
     whole_loop_seal_sha256: str
+    outcome_id: str
+    outcome_sha256: str
     candidate_generation: int
     disposition: str
     reason_code: str
@@ -297,6 +418,8 @@ class RestartContinuationPlan:
             "source_evidence_sha256",
             _sha256("source_evidence_sha256", self.source_evidence_sha256),
         )
+        if type(self.causal_identity) is not CausalIdentity:
+            raise RestartRecoveryError("causal_identity must be concrete CausalIdentity")
         object.__setattr__(
             self,
             "source_checkpoint_id",
@@ -322,8 +445,14 @@ class RestartContinuationPlan:
             "whole_loop_seal_sha256",
             _sha256("whole_loop_seal_sha256", self.whole_loop_seal_sha256),
         )
+        object.__setattr__(self, "outcome_id", _text("outcome_id", self.outcome_id))
         object.__setattr__(
-            self, "candidate_generation", _generation("candidate_generation", self.candidate_generation)
+            self, "outcome_sha256", _sha256("outcome_sha256", self.outcome_sha256)
+        )
+        object.__setattr__(
+            self,
+            "candidate_generation",
+            _generation("candidate_generation", self.candidate_generation),
         )
         allowed_dispositions = {
             CONTINUE_UNFINISHED,
@@ -351,6 +480,12 @@ class RestartContinuationPlan:
         )
         if set(self.continuation_refs) & set(self.held_refs):
             raise RestartRecoveryError("continuation_refs and held_refs must be disjoint")
+        if self.causal_identity.generation != self.source_checkpoint_generation:
+            raise RestartRecoveryError(
+                "plan causal identity generation must equal source checkpoint generation"
+            )
+        if causal_identity_ref(self.causal_identity) not in self.provenance_refs:
+            raise RestartRecoveryError("plan lacks exact causal identity provenance ref")
         if self.candidate_generation != self.source_checkpoint_generation + 1:
             raise RestartRecoveryError(
                 "candidate_generation must be direct successor of source checkpoint generation"
@@ -363,11 +498,15 @@ class RestartContinuationPlan:
             "plan_id": self.plan_id,
             "source_evidence_id": self.source_evidence_id,
             "source_evidence_sha256": self.source_evidence_sha256,
+            "causal_identity": self.causal_identity.as_dict(),
+            "causal_identity_sha256": self.causal_identity.sha256(),
             "source_checkpoint_id": self.source_checkpoint_id,
             "source_checkpoint_generation": self.source_checkpoint_generation,
             "source_checkpoint_sha256": self.source_checkpoint_sha256,
             "whole_loop_seal_id": self.whole_loop_seal_id,
             "whole_loop_seal_sha256": self.whole_loop_seal_sha256,
+            "outcome_id": self.outcome_id,
+            "outcome_sha256": self.outcome_sha256,
             "candidate_generation": self.candidate_generation,
             "disposition": self.disposition,
             "reason_code": self.reason_code,
@@ -392,52 +531,44 @@ def plan_restart_continuation(
     *,
     plan_id: str,
     expected_evidence_sha256: str,
-    expected_checkpoint_id: str,
-    expected_checkpoint_generation: int,
-    expected_checkpoint_sha256: str,
-    expected_whole_loop_seal_id: str,
-    expected_whole_loop_seal_sha256: str,
+    causal_identity: CausalIdentity,
+    source_checkpoint: PersistentAgencyCheckpoint,
+    whole_loop_seal: WholePersistentLoopSeal,
+    outcome: LoopOutcomeEvidence,
 ) -> RestartContinuationPlan:
-    """Create one deterministic, authority-free restart continuation candidate.
+    """Create one deterministic restart candidate from independently bound typed sources.
 
-    All principal identities are supplied twice on purpose: the persisted evidence object
-    and the caller's exact expected identity binding must agree before recovery planning.
-    This prevents a convenient stale/foreign row from becoming restart authority merely
-    because it is internally well-formed.
+    Unlike generation 1, checkpoint/seal/outcome principal identities are not accepted as a
+    second set of caller-supplied strings. They are re-derived from concrete validated source
+    objects and compared to the persisted evidence before any continuation disposition exists.
     """
-
     if type(evidence) is not PersistedRestartEvidence:
         raise RestartRecoveryError("evidence must be concrete PersistedRestartEvidence")
     plan_id = _text("plan_id", plan_id)
     expected_evidence_sha256 = _sha256(
         "expected_evidence_sha256", expected_evidence_sha256
     )
-    expected_checkpoint_id = _text("expected_checkpoint_id", expected_checkpoint_id)
-    expected_checkpoint_generation = _generation(
-        "expected_checkpoint_generation", expected_checkpoint_generation
-    )
-    expected_checkpoint_sha256 = _sha256(
-        "expected_checkpoint_sha256", expected_checkpoint_sha256
-    )
-    expected_whole_loop_seal_id = _text(
-        "expected_whole_loop_seal_id", expected_whole_loop_seal_id
-    )
-    expected_whole_loop_seal_sha256 = _sha256(
-        "expected_whole_loop_seal_sha256", expected_whole_loop_seal_sha256
-    )
+    if type(causal_identity) is not CausalIdentity:
+        raise RestartRecoveryError("causal_identity must be concrete CausalIdentity")
 
     if evidence.sha256() != expected_evidence_sha256:
         raise RestartRecoveryError("RECOVERY_EVIDENCE_DIGEST_MISMATCH")
-    if evidence.source_checkpoint_id != expected_checkpoint_id:
-        raise RestartRecoveryError("RECOVERY_CHECKPOINT_ID_MISMATCH")
-    if evidence.source_checkpoint_generation != expected_checkpoint_generation:
-        raise RestartRecoveryError("RECOVERY_CHECKPOINT_GENERATION_MISMATCH")
-    if evidence.source_checkpoint_sha256 != expected_checkpoint_sha256:
-        raise RestartRecoveryError("RECOVERY_CHECKPOINT_DIGEST_MISMATCH")
-    if evidence.whole_loop_seal_id != expected_whole_loop_seal_id:
-        raise RestartRecoveryError("RECOVERY_WHOLE_LOOP_SEAL_ID_MISMATCH")
-    if evidence.whole_loop_seal_sha256 != expected_whole_loop_seal_sha256:
-        raise RestartRecoveryError("RECOVERY_WHOLE_LOOP_SEAL_DIGEST_MISMATCH")
+    if evidence.causal_identity.as_dict() != causal_identity.as_dict():
+        raise RestartRecoveryError("RECOVERY_CAUSAL_IDENTITY_MISMATCH")
+
+    rebound = bind_persisted_restart_evidence(
+        evidence_id=evidence.evidence_id,
+        causal_identity=causal_identity,
+        source_checkpoint=source_checkpoint,
+        whole_loop_seal=whole_loop_seal,
+        outcome=outcome,
+        unfinished_work_refs=evidence.unfinished_work_refs,
+        completed_work_refs=evidence.completed_work_refs,
+        effect_attempt_refs=evidence.effect_attempt_refs,
+        provenance_refs=evidence.provenance_refs,
+    )
+    if rebound.as_dict() != evidence.as_dict():
+        raise RestartRecoveryError("RECOVERY_BOUND_SOURCE_OBJECT_MISMATCH")
 
     unfinished = set(evidence.unfinished_work_refs)
     effects = set(evidence.effect_attempt_refs)
@@ -460,9 +591,6 @@ def plan_restart_continuation(
         reason = _REASON_REAUTHORIZE
         continuation = tuple(sorted(unfinished - effects))
         held = tuple(sorted(effects))
-        if not continuation:
-            # Nothing safe remains to continue until the effect receives explicit authority.
-            disposition = CONTINUE_WITH_EFFECT_REAUTH_HOLD
     else:
         disposition = CONTINUE_UNFINISHED
         reason = _REASON_CONTINUE
@@ -473,9 +601,11 @@ def plan_restart_continuation(
         sorted(
             set(evidence.provenance_refs)
             | {
+                causal_identity_ref(causal_identity),
                 f"wp901:evidence:{evidence.evidence_id}:{evidence.sha256()}",
                 f"wp901:checkpoint:{evidence.source_checkpoint_id}:{evidence.source_checkpoint_sha256}",
                 f"wp901:whole-loop:{evidence.whole_loop_seal_id}:{evidence.whole_loop_seal_sha256}",
+                f"wp901:outcome:{evidence.outcome_id}:{evidence.outcome_sha256}",
             }
         )
     )
@@ -484,11 +614,14 @@ def plan_restart_continuation(
         plan_id=plan_id,
         source_evidence_id=evidence.evidence_id,
         source_evidence_sha256=evidence.sha256(),
+        causal_identity=causal_identity,
         source_checkpoint_id=evidence.source_checkpoint_id,
         source_checkpoint_generation=evidence.source_checkpoint_generation,
         source_checkpoint_sha256=evidence.source_checkpoint_sha256,
         whole_loop_seal_id=evidence.whole_loop_seal_id,
         whole_loop_seal_sha256=evidence.whole_loop_seal_sha256,
+        outcome_id=evidence.outcome_id,
+        outcome_sha256=evidence.outcome_sha256,
         candidate_generation=evidence.source_checkpoint_generation + 1,
         disposition=disposition,
         reason_code=reason,
@@ -510,5 +643,7 @@ __all__ = [
     "RECOVERY_PLAN_SCHEMA",
     "RestartContinuationPlan",
     "RestartRecoveryError",
+    "bind_persisted_restart_evidence",
+    "causal_identity_ref",
     "plan_restart_continuation",
 ]
