@@ -45,6 +45,10 @@ FAMILY_ALIASES = {
     "full-duplex-german-falsifier": "FULL_DUPLEX_GERMAN_FALSIFIER",
     "full-duplex-2026-german-triage": "FULL_DUPLEX_2026_GERMAN_TRIAGE",
     "fdbv3-german-tool-rollback-donor-audit": "FDBV3_GERMAN_TOOL_ROLLBACK_DONOR_AUDIT",
+    "full-duplex-evaluation-benchmark": "FULL_DUPLEX_EVALUATION_BENCHMARK",
+    "german-local-tts-source-candidate": "GERMAN_LOCAL_TTS_SOURCE_CANDIDATE",
+    "voice-architecture-donor": "VOICE_ARCHITECTURE_DONOR",
+    "packet-cortex-causal-turn-identity-falsifier": "PACKET_CORTEX_CAUSAL_TURN_IDENTITY_FALSIFIER",
 }
 
 TARGET_ALIASES = {
@@ -116,6 +120,9 @@ SUBJECT_ALIASES = {
     "hf-speech-to-speech": "HUGGINGFACE_SPEECH_TO_SPEECH_REALTIME",
     "soulx-duplug-lychee-fd-bayling-duplex": "SOULX_DUPLUG__LYCHEE_FD__BAYLING_DUPLEX",
     "full-duplex-bench-v3-3e799c45a045256f47d5f1c9cda90157e2d2ec9e": "FULL_DUPLEX_BENCH_V3_3E799C45A045256F47D5F1C9CDA90157E2D2EC9E",
+    "humdial-fdbench-2026": "HUMDIAL_FDBENCH_2026",
+    "joyai-talker-2608-01119": "JOYAI_TALKER_2608_01119",
+    "soulx-duplug-0.6b": "SOULX_DUPLUG_0_6B",
 }
 
 EVIDENCE_SCOPE_ALIASES = {
@@ -129,6 +136,7 @@ EVIDENCE_SCOPE_ALIASES = {
     "component-benchmark": "COMPONENT_BENCHMARK",
     "source-pinned-triage": "SOURCE_PINNED_TRIAGE",
     "source-pinned-benchmark-donor": "SOURCE_PINNED_BENCHMARK_DONOR",
+    "candidate-falsifier": "CANDIDATE_FALSIFIER",
 }
 
 
