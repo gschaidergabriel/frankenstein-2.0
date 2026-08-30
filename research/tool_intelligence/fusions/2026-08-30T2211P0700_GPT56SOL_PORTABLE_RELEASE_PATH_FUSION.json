@@ -1,0 +1,111 @@
+{
+  "schema": "TRIGGER6_LIVE_ARCHITECTURE_FUSION/v1",
+  "trigger": "6",
+  "created_at": "2026-08-30T22:11:00+07:00",
+  "worker": "GPT-5.6 Sol / ChatGPT organ",
+  "f2_main_observed_before_fusion": "dfe05bf4861889f2d76bb26a87e2ae51c388c4a5",
+  "research_entity_main_observed_before_fusion": "3572ba8b2b27bd79aa87b69b335987419ad44b20",
+  "consumed_research": [
+    "research/tool_intelligence/deltas/R6_20260830_PORTABLE_RELEASE_PATH_HARDENING_E1_GPT56SOL.json",
+    "research/tool_intelligence/deltas/R6_20260830_PORTABLE_RELEASE_PATH_HARDENING_E2_GPT56SOL.json",
+    "research/tool_intelligence/deltas/R6_20260830_PORTABLE_PATHNAME_PORTABILITY_E1_GPT56SOL.json"
+  ],
+  "live_trigger4_reentry": {
+    "wp1112_generation2": {
+      "status": "ACCEPTED_AT_REPOSITORY_HOSTED_COMPONENT_CI_SCOPE",
+      "main_ci_run_id": 33318736886,
+      "ubuntu": "success",
+      "windows": "success",
+      "runtime_credit": 0,
+      "clean_machine_credit": 0
+    },
+    "exact_release_artifact_transient_container": {
+      "frozen_subject_commit": "45958d498815972bf044356db4f982df3462f21e",
+      "source_tree": "646889388a076697214875a1fb34dd28053e4b60",
+      "outer_artifact_sha256": "3aac7654d1b19a443d6384280e00029c234879a1298cd6155bcc0c0a0738671b",
+      "nested_release_zip_sha256": "371c86ec5511e05ff8c83d5a8ff65169071170138420661e5c8fa45d74273661",
+      "release_manifest_sha256": "010f6f54a3e8c140a3ab73024ce1c312700aac74b27c6beff52b01bd4dedb9fa",
+      "member_count": 2862,
+      "transient_linux_container_tests": "142/142 PASS",
+      "target_host_credit": 0,
+      "whole_system_credit": 0
+    },
+    "wp1207_g5": {
+      "repository_component_status": "ACCEPTED_SOURCE_COMPONENT_ONLY",
+      "executor_source": "src/frankenstein2/hostile_twin_release_executor.py",
+      "junction_specific_test_found": false,
+      "is_junction_use_found": false,
+      "target_route_state": "REPAIRED_TO_CLAY_HOST_BUT_SUCCESSOR_PHYSICAL_DISPATCH_BLOCKED_UNTIL_EXISTING_MISROUTED_RUN_IS_TERMINAL_OR_SAFELY_SUPERSEDED",
+      "target_runtime_credit": 0
+    }
+  },
+  "superseded_research_statement": {
+    "statement": "The E1 path-hardening delta recorded no current tar/zip extraction implementation in the portable path.",
+    "status": "SUPERSEDED_BY_CURRENT_EVIDENCE",
+    "replacement": "F2 has release_archive.py with deterministic ZIP authority and the exact nested release ZIP was extracted/compiled/tested in a transient Linux container. The remaining archive/path questions are cross-platform pathname/link semantics and target-host execution, not absence of an archive implementation."
+  },
+  "fused_findings": [
+    {
+      "priority": "P0",
+      "id": "WINDOWS_JUNCTION_RELEASE_TREE_FALSIFIER",
+      "status": "E2_ARCHITECTURE_MAPPED_NEEDS_RUNTIME_FALSIFIER",
+      "claim": "Current release-integrity/WP1110/WP1111 path guards are symlink-oriented but do not centrally reject Windows junctions. CPython >=3.12 provides separate junction detection; the existing G5 hostile-twin executor/tests do not cover junctions. The source-composed prediction is that a Windows directory junction can evade a symlink-only redirect-free invariant.",
+      "architecture_delta": "RELEASE_REDIRECT_FREE_PATH_POLICY/v1",
+      "smallest_discriminator": "On Windows CPython >=3.12, create an external-target and root-internal directory junction inside a synthetic package_root, then run build_release_manifest/verify_release_manifest and the WP1110/WP1111 composition. Desired behavior is deterministic explicit rejection before traversal/use.",
+      "promotion_rule": "Only if reproduced: centralize redirect-free path semantics using stdlib junction+symlink checks before descent/component consumption and reuse them across release_integrity, pre_handoff_release and portable_release_static_completeness.",
+      "do_not_import": ["cyphar/libpathrs", "cyphar/filepath-securejoin"],
+      "reason": "Stronger race-resistant Linux primitives are unnecessary for the current static portable baseline unless concurrent attacker mutation is formally in scope."
+    },
+    {
+      "priority": "P1",
+      "id": "PORTABLE_PATHNAME_PROFILE_SCAN",
+      "status": "E1_SOURCE_READ_OPEN_NO_PAYLOAD_DEFECT_PROVEN",
+      "claim": "Canonical POSIX manifest/ZIP path syntax does not by itself reject Windows reserved components or case-insensitive materialization collisions.",
+      "smallest_discriminator": "Run a deterministic scan over the exact 2862-member frozen release ZIP/manifest path set for Windows reserved/trailing-dot-space components and collisions under an explicitly specified Windows portability key.",
+      "candidate_if_needed": "PORTABLE_PATHNAME_PROFILE/v1",
+      "current_payload_defect_credit": 0
+    },
+    {
+      "priority": "P2",
+      "id": "MUTABLE_ROOT_TOCTOU_THREAT_BOUNDARY",
+      "status": "THREAT_MODEL_BOUNDARY_NOT_CURRENT_PORTABLE_BASELINE_DEFECT",
+      "claim": "Lexical check/resolve/path-use sequences are not race-free against concurrent hostile mutation.",
+      "smallest_discriminator": "Decide whether untrusted concurrent release-root mutation is admitted at the real-host boundary. If excluded, preserve STATIC_SNAPSHOT_ONLY wording. If admitted, use a separate handle-bound verifier and race test; do not relabel path-string checks as race-free."
+    }
+  ],
+  "external_primary_basis": [
+    "CPython 3.12 pathlib Path.is_junction semantics",
+    "CPython/OS Windows reparse-point semantics",
+    "Linux kernel path lookup and openat2 RESOLVE_IN_ROOT/RESOLVE_NO_SYMLINKS documentation",
+    "Microsoft Windows file naming rules",
+    "CPython 3.12 PureWindowsPath case/reserved-name semantics"
+  ],
+  "overlap_analysis": {
+    "wp1207_duplicate": false,
+    "reason": "WP1207 G5 exercises bounded filesystem install/update/failure/rollback/readback but no junction-specific tests or is_junction checks were located; the current target route is still pending physical execution after routing repair. The Trigger6 junction lane therefore supplies a new cross-platform falsifier rather than a duplicate executor."
+  },
+  "trigger4_handoff": {
+    "status": "FALSIFIER_READY_NOT_E5_BUILD_CANDIDATE",
+    "p0": "WINDOWS_JUNCTION_RELEASE_TREE_FALSIFIER",
+    "p1": "EXACT_2862_MEMBER_PORTABLE_PATHNAME_SCAN",
+    "coordination": "Do not create a duplicate WP1207 physical dispatch. Existing misrouted run must become terminal or be safely superseded before the already-defined clay-host successor dispatch.",
+    "credit_boundary": "Repository CI and transient Linux artifact tests do not establish Windows junction behavior, clean-machine target-host execution, physical-host acceptance, effects, completion, GRID/GWT/J-Space, training, or whole-system runtime."
+  },
+  "evidence": {
+    "e1_source_read_objectives_completed": 2,
+    "e2_architecture_mappings_completed": 1,
+    "e3_runtime_reproduction_completed": 0,
+    "e4_benchmark_completed": 0,
+    "e5_build_candidate_completed": 0,
+    "e6_adopted": 0
+  },
+  "credits": {
+    "trigger6_architecture_mapping_credit": 1,
+    "runtime_credit": 0,
+    "physical_host_credit": 0,
+    "effect_credit": 0,
+    "completion_credit": 0,
+    "whole_system_acceptance": false
+  },
+  "next_exact_action": "Trigger4 or a dedicated admitted Windows test lane should run the P0 junction falsifier first; Trigger6 should not implement the fix until reproduction or an equally strong current Windows execution result closes the source-composed prediction."
+}
