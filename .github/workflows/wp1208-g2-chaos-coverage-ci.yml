@@ -1,0 +1,50 @@
+name: WP1208 G2 Chaos Coverage CI
+
+on:
+  push:
+    paths:
+      - 'src/frankenstein2/target_chaos_coverage.py'
+      - 'tests/test_target_chaos_coverage.py'
+      - 'src/frankenstein2/target_hostile_chaos_matrix.py'
+      - 'src/frankenstein2/target_fault_scenarios.py'
+      - '.github/workflows/wp1208-g2-chaos-coverage-ci.yml'
+      - 'workpackages/active/F2-WP-1208.json'
+      - 'workpackages/state_events/F2-WP-1208/**'
+  pull_request:
+    paths:
+      - 'src/frankenstein2/target_chaos_coverage.py'
+      - 'tests/test_target_chaos_coverage.py'
+      - 'src/frankenstein2/target_hostile_chaos_matrix.py'
+      - 'src/frankenstein2/target_fault_scenarios.py'
+      - '.github/workflows/wp1208-g2-chaos-coverage-ci.yml'
+      - 'workpackages/active/F2-WP-1208.json'
+      - 'workpackages/state_events/F2-WP-1208/**'
+
+permissions:
+  contents: read
+
+jobs:
+  deterministic-chaos-coverage:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install test dependency
+        run: python -m pip install pytest
+      - name: Compile exact bounded surfaces
+        run: |
+          python -m py_compile \
+            src/frankenstein2/target_fault_scenarios.py \
+            src/frankenstein2/target_hostile_chaos_matrix.py \
+            src/frankenstein2/target_chaos_coverage.py \
+            tests/test_target_chaos_coverage.py
+      - name: Run accepted matrix regressions plus G2 coverage suite
+        env:
+          PYTHONPATH: ${{ github.workspace }}/src
+        run: |
+          python -m pytest -q \
+            tests/test_target_hostile_chaos_matrix.py \
+            tests/test_target_chaos_coverage.py
