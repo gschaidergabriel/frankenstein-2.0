@@ -1,0 +1,37 @@
+name: WP715 Voice Packet Cortex CI
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'src/frankenstein2/voice_packet_cortex.py'
+      - 'src/frankenstein2/voice_contract.py'
+      - 'src/frankenstein2/causal_identity.py'
+      - 'tests/test_voice_packet_cortex.py'
+      - '.github/workflows/wp715-voice-packet-cortex-ci.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  packet-cortex-discriminator:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Record exact subject
+        run: |
+          set -euo pipefail
+          git rev-parse HEAD
+          python --version
+          sha256sum src/frankenstein2/voice_packet_cortex.py tests/test_voice_packet_cortex.py
+      - name: Run WP715 packet-cortex discriminators
+        env:
+          PYTHONPATH: src
+        run: |
+          set -euo pipefail
+          python -m unittest discover -s tests -p 'test_voice_packet_cortex.py' -v
