@@ -157,6 +157,26 @@ def _same_real_path(left: str, right: str) -> bool:
     )
 
 
+def _unifieddb_authority_binding_sha256(
+    *,
+    resolution: UnifiedDBResolution,
+    fingerprint: UnifiedDBFingerprint,
+) -> str:
+    """Stable authority identity; deliberately excludes mutable DB content metadata."""
+    if fingerprint.device is None or fingerprint.inode is None:
+        raise PersistentAgencyError("UNIFIEDDB_FINGERPRINT_FILE_IDENTITY_MISSING")
+    return _sha256(
+        {
+            "schema": "FRANKENSTEIN2_UNIFIEDDB_AUTHORITY_BINDING/v1",
+            "resolution_schema": resolution.schema,
+            "fingerprint_schema": fingerprint.schema,
+            "canonical_db_path": os.path.realpath(fingerprint.real_path),
+            "db_device": int(fingerprint.device),
+            "db_inode": int(fingerprint.inode),
+        }
+    )
+
+
 def _decode_goal_record_candidate(raw: Any) -> GoalRecord:
     value = _mapping("goal candidate", raw)
     _expect_keys(
@@ -942,7 +962,10 @@ class CanonicalPersistentAgencyStore:
         self.canonical_db_path = os.path.realpath(fingerprint.real_path)
         self.db_device = int(fingerprint.device)
         self.db_inode = int(fingerprint.inode)
-        self.authority_receipt_sha256 = fingerprint.receipt_sha256()
+        self.authority_receipt_sha256 = _unifieddb_authority_binding_sha256(
+    resolution=resolution,
+    fingerprint=fingerprint,
+)
         self.connection.execute("PRAGMA foreign_keys=ON")
 
     @classmethod
