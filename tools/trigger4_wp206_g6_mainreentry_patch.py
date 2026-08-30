@@ -270,12 +270,31 @@ def main() -> int:
     g3 = G3_TEST.read_text(encoding="utf-8")
     g3 = replace_once(
         g3,
-        '''            with self.assertRaisesRegex(
+        '''            tampered = "f" * 64 if current != "f" * 64 else "e" * 64
+            self._replace_receipt(tampered)
+            with self.assertRaisesRegex(
+                PersistentAgencyError,
+                "LEGACY_RECOVERY_POST_MIGRATION_AUTHORITY_DRIFT",
+            ):
+                self._recover(
+                    store=store, expected_legacy=historical, subject=subject
+                )
+            with self.assertRaisesRegex(
                 PersistentAgencyError, "CHECKPOINT_DB_AUTHORITY_RECEIPT_MISMATCH"
             ):
                 store.load_checkpoint("checkpoint-0")
 ''',
-        '''            # G6 is the earlier same-process live fence: this external write changed a
+        '''            tampered = "f" * 64 if current != "f" * 64 else "e" * 64
+            self._replace_receipt(tampered)
+            with self.assertRaisesRegex(
+                PersistentAgencyError,
+                "LEGACY_RECOVERY_POST_MIGRATION_AUTHORITY_DRIFT",
+            ):
+                self._recover(
+                    store=store, expected_legacy=historical, subject=subject
+                )
+
+            # G6 is the earlier same-process live fence: this external write changed a
             # WP206-owned checkpoint row and must fail before the older row-level G3 check.
             with self.assertRaisesRegex(
                 PersistentAgencyError, "UNIFIEDDB_WP206_OWNED_SURFACE_DRIFT"
