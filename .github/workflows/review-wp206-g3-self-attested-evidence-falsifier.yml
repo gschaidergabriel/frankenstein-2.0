@@ -1,0 +1,58 @@
+name: REVIEW WP206 G3 self-attested evidence falsifier
+
+on:
+  push:
+    branches:
+      - review/trigger4-wp206-g3-self-attested-evidence-falsifier-20260830
+    paths:
+      - 'src/frankenstein2/persistent_agency_authority_migration.py'
+      - 'src/frankenstein2/persistent_agency_kernel.py'
+      - 'src/state/unifieddb_identity.py'
+      - 'tests/wp206_restart_probe.py'
+      - 'tests/falsifier_wp206_g3_self_attested_legacy_receipt.py'
+      - '.github/workflows/review-wp206-g3-self-attested-evidence-falsifier.yml'
+  pull_request:
+    paths:
+      - 'src/frankenstein2/persistent_agency_authority_migration.py'
+      - 'src/frankenstein2/persistent_agency_kernel.py'
+      - 'src/state/unifieddb_identity.py'
+      - 'tests/wp206_restart_probe.py'
+      - 'tests/falsifier_wp206_g3_self_attested_legacy_receipt.py'
+      - '.github/workflows/review-wp206-g3-self-attested-evidence-falsifier.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  negative-control:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Compile exact review surface
+        run: >-
+          python -m py_compile
+          src/frankenstein2/persistent_agency_authority_migration.py
+          src/frankenstein2/persistent_agency_kernel.py
+          src/state/unifieddb_identity.py
+          tests/wp206_restart_probe.py
+          tests/falsifier_wp206_g3_self_attested_legacy_receipt.py
+      - name: Reproduce self-attested legacy evidence negative control
+        env:
+          PYTHONPATH: src
+        run: python tests/falsifier_wp206_g3_self_attested_legacy_receipt.py
+      - name: Preserve review-only credit fence
+        if: always()
+        run: |
+          echo 'CLASSIFICATION=REVIEW_ONLY_CANDIDATE_FALSIFIER'
+          echo 'MUTATION_AUTHORITY=false'
+          echo 'TARGET_RUNTIME_CREDIT=0'
+          echo 'PHYSICAL_GRID10_CREDIT=0'
+          echo 'GWT_JSPACE_RUNTIME_CREDIT=0'
+          echo 'EFFECT_CREDIT=0'
+          echo 'COMPLETION_CREDIT=0'
+          echo 'TRAINING_CREDIT=0'
+          echo 'WHOLE_SYSTEM_ACCEPTANCE=false'
