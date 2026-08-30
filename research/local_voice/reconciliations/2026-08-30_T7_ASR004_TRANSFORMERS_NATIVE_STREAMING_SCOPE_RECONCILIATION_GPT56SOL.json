@@ -1,0 +1,47 @@
+{
+  "schema": "T7_SOURCE_RECONCILIATION/v1",
+  "trigger": "7",
+  "date": "2026-08-30",
+  "organ": "GPT-5.6-Sol",
+  "research_id": "T7-ASR-004",
+  "semantic_key": "95bd53a469133dbfdf39da320f6daa049cec1361084e632dc915c4bc156e3715",
+  "state": "TRANSFORMERS_NATIVE_STREAMING_SCOPE_RECONCILED_SOURCE_ONLY",
+  "observed_f2_main_before_write": "6fca8b19dd492d0fe6cfb8035e2a78ed812860b0",
+  "evidence": {
+    "qwen_upstream_repo": "QwenLM/Qwen3-ASR",
+    "qwen_upstream_main": "7c6daf77a2421100f5fb066495372c00129d39ff",
+    "qwen_upstream_native_transformers_news": "Native Transformers support added; upstream points to Qwen3-ASR -hf checkpoints.",
+    "qwen_hf_checkpoint": "Qwen/Qwen3-ASR-0.6B-hf",
+    "qwen_hf_documented_requirement": "transformers>=5.13.0",
+    "qwen_hf_model_card_inference_mode_claim": "Offline / Streaming",
+    "qwen_hf_documented_usage_observed": "apply_transcription_request -> model.generate -> final decode/transcription",
+    "transformers_upstream_repo": "huggingface/transformers",
+    "transformers_upstream_main": "42ca97014c85d71a88ad60d55f08cb9fb4d26e2c",
+    "transformers_qwen3_stateful_progressive_stream_api_observed_in_current_audit": false,
+    "qwen_asr_stateful_stream_api_observed": true,
+    "qwen_asr_stateful_stream_source": "qwen_asr/inference/qwen3_asr.py plus examples/example_qwen3_asr_vllm_streaming.py",
+    "qwen_asr_stateful_stream_backend_observed": "vLLM"
+  },
+  "reconciliation": {
+    "prior_absolute_wording": "OFFICIAL_QWEN3_ASR_STREAMING_IS_VLLM_ONLY",
+    "replacement_claim": "THE_CURRENTLY_OBSERVED_OFFICIAL_STATEFUL_INCREMENTAL_QWEN3_ASR_STREAMING_API_IS_THE_QWEN_ASR_VLLM_PATH. NATIVE_TRANSFORMERS_SUPPORT EXISTS AND THE -HF MODEL CARD ADVERTISES OFFLINE/STREAMING, BUT THIS AUDIT DID NOT OBSERVE AN EQUIVALENT QWEN3-SPECIFIC PROGRESSIVE STREAM-STATE API IN THE DOCUMENTED TRANSFORMERS-NATIVE USAGE OR SEARCHED CURRENT TRANSFORMERS SOURCE.",
+    "runtime_consequence": "Keep the existing distinct vLLM streaming successor gate. Do not reinterpret the successful CPU Transformers smoke or native checkpoint support as streaming runtime evidence.",
+    "credit_consequence": "No streaming, German-quality, Trigger4-acceptance, or whole-system credit is created by this source reconciliation."
+  },
+  "coordination": {
+    "new_semantic_claim_created": false,
+    "new_target_dispatch_created": false,
+    "duplicate_execution_created": false,
+    "reason": "T7-ASR-004 remains open and the existing Trigger4 handoff already owns the matched German/non-speech target execution route."
+  },
+  "falsifier": "Identify an exact current Transformers-native Qwen3-ASR method/source path that accepts sequential audio chunks and preserves or updates progressive stream state across calls. If found, pin that source and acquire a distinct successor target-runtime gate to compare its partial-text latency/stability against the existing qwen-asr/vLLM route on identical audio. If not found, retain vLLM as the observed stateful incremental route.",
+  "current_primary_runtime_barrier": "Complete the already-pinned T7-ASR-004 FLEURS de_de rows 0..31 plus non-speech strata comparator on clay-direct-dev through the existing Trigger4/Git VPS Bridge route, separating raw Qwen, deterministically gated Qwen, and matched faster-whisper behavior.",
+  "credits": {
+    "new_target_runtime_credit": 0,
+    "new_german_asr_quality_credit": 0,
+    "new_streaming_asr_credit": 0,
+    "new_trigger4_acceptance_credit": 0,
+    "new_whole_system_credit": 0
+  },
+  "next_exact_action": "Do not create a duplicate target dispatch. Existing Trigger4/current authorized target executor completes the pinned FLEURS + non-speech comparator under T7-ASR-004 and persists exact audio hashes, transcripts, WER/CER, false activation, gate decisions, latency and resources. After that result and target resource-fit evidence, execute the distinct stateful streaming successor gate; test a Transformers-native progressive route only if the exact progressive API/source is first identified."
+}
