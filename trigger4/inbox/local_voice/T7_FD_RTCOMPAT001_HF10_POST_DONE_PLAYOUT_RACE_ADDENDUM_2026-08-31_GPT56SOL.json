@@ -1,0 +1,87 @@
+{
+  "schema": "T7_TO_T4_RUNTIME_FALSIFIER_ADDENDUM_V1",
+  "created_at": "2026-08-31T03:50:00+07:00",
+  "trigger": "7",
+  "organ": "GPT-5.6-Sol",
+  "mode": "CANDIDATE_FALSIFIER_ADDENDUM",
+  "research_id": "T7-FD-RTCOMPAT-001",
+  "semantic_key": "8c53f25ed47c458bb727dd4dc82f788241cee699e428c4d97401a965a4eb375e",
+  "implementation_mutation_authority": false,
+  "new_semantic_claim": false,
+  "new_runtime_dispatch": false,
+  "duplicate_dispatch_allowed": false,
+  "base_execution_packet": "trigger4/inbox/local_voice/T7_FD_RTCOMPAT001_HF_HEARD_BOUNDARY_EXECUTION_2026-08-31_GPT56SOL.json",
+  "source_falsifier": "research/local_voice/falsifiers/2026-08-31_HF_S2S_POST_RESPONSE_DONE_PLAYOUT_TRUNCATE_RACE_GPT56SOL.json",
+  "continuation_checkpoint": "research/local_voice/checkpoints/2026-08-31T0349P0700_T7_CURRENT_HF_RUNTIME_ORACLE_REENTRY_GPT56SOL_7A.json",
+  "pinned_upstream": {
+    "repository": "huggingface/speech-to-speech",
+    "revision": "3986f453012a131632eee4731995474046846794",
+    "package_version": "0.2.12"
+  },
+  "delta_reason": "The existing packet covers cancellation/heard-boundary behavior generally. HF10 isolates the distinct ordering where the server has already emitted response.done and finalized provisional chat history while client playout still has an unheard backlog. In the pinned server, a later response.cancel does not roll back already-finalized chat history and conversation.item.truncate is a deliberate no-op, so this ordering requires an explicit discriminator before protocol compatibility can be promoted.",
+  "required_execution_extension": {
+    "id": "HF10_POST_DONE_PLAYOUT_LAG_CONTEXT_EXACTNESS",
+    "procedure": [
+      "Reuse the existing T7-FD-RTCOMPAT-001 runtime subject and Trigger4 authority; do not create another claim or dispatch merely for this addendum.",
+      "Generate deterministic assistant content with unique markers A, B and C and enough buffered output that server completion can precede client playout completion.",
+      "Throttle or pause client playout until response.done has been observed while B/C remain unplayed, and record response.done time, client received-output boundary and F2 measured playback boundary separately.",
+      "After response.done but before playout completion, execute the ordinary F2 barge-in cancellation/playback-clear path and send conversation.item.truncate with the measured item_id, content_index and audio_end_ms.",
+      "Capture raw speech-server Chat after response.done, after response.cancel and after truncate, plus the exact effective model input for the next user turn.",
+      "Inject duplicate, stale and out-of-range truncate plus a late old-turn tool result; record whether any newer turn is mutated or any cancelled producer regains ownership.",
+      "Preserve WebSocket client-buffered and WebRTC output-buffer-clear cases as distinct transport observations."
+    ],
+    "must_record": [
+      "f2_exact_source_sha",
+      "speech_to_speech_revision",
+      "response_key_and_item_id",
+      "server_response_done_monotonic_ms",
+      "client_received_output_boundary_ms",
+      "f2_measured_playback_boundary_ms",
+      "truncate_audio_end_ms",
+      "raw_server_chat_digest_after_done",
+      "raw_server_chat_digest_after_cancel",
+      "raw_server_chat_digest_after_truncate",
+      "next_turn_effective_model_context_digest",
+      "marker_A_disposition",
+      "marker_B_disposition",
+      "marker_C_disposition",
+      "late_tool_result_disposition",
+      "late_audio_disposition",
+      "transport_kind"
+    ]
+  },
+  "current_f2_oracle": {
+    "interrupted_response_policy": "A response that becomes interrupted/cancelled remains non-commit-eligible unless it had already completed with heard_fraction exactly 1.0 under the current F2 packet contract.",
+    "product_negative_if_executed": [
+      "cancelled or otherwise non-commit-eligible assistant semantics regain authoritative next-turn influence",
+      "a late cancelled-generation tool result or output regains ownership",
+      "playback continues beyond the admitted measured cancellation boundary",
+      "duplicate, stale or out-of-range cancellation/truncate corrupts a newer turn"
+    ],
+    "do_not_fail_merely_if": "The raw server removes the whole provisional interrupted response while F2 keeps it non-commit-eligible and no newer F2 contract requires partial-prefix context persistence."
+  },
+  "failure_classification": [
+    "PRODUCT_NEGATIVE",
+    "EVIDENCE_INVALID",
+    "INFRA_AUTH_TRANSPORT_QUOTA",
+    "CONCURRENCY_RETRY",
+    "UNKNOWN_NONTERMINAL"
+  ],
+  "coordination_fences": {
+    "existing_wp715_workflow_run_id": 33328707636,
+    "do_not_duplicate_queued_zero_step_run": true,
+    "wp715_run_is_not_hf10_runtime_evidence_by_association": true,
+    "runtime_subject_churn_allowed": false
+  },
+  "credit_before_execution": {
+    "source_control_flow_evidence": 1,
+    "executed_hf10_protocol_credit": 0,
+    "target_runtime_credit": 0,
+    "german_e2e_voice_credit": 0,
+    "acoustic_credit": 0,
+    "trigger4_acceptance_credit": 0,
+    "whole_voice_system_credit": 0,
+    "whole_product_credit": 0
+  },
+  "next_exact_action": "Trigger4 should merge this HF10 discriminator into the already-owned T7-FD-RTCOMPAT-001 execution packet and run it on the exact pinned subject in the lowest safe faithful VPS sandbox. Do not open a duplicate dispatch. Promote only executed/read-back scope."
+}
