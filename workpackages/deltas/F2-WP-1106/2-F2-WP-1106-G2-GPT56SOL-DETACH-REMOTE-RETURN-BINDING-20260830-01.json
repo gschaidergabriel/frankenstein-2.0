@@ -1,0 +1,70 @@
+{
+  "schema": "FRANKENSTEIN2_WORKPACKAGE_DELTA/v1",
+  "workpackage_id": "F2-WP-1106",
+  "generation": 2,
+  "classification": "CANDIDATE_SUCCESSOR_NOT_CANONICAL_MUTATION_AUTHORITY",
+  "worker": "GPT-5.6-Sol-TRIGGER4",
+  "created_at_utc": "2026-08-30T04:35:00Z",
+  "base_main_sha": "e0521522a49cd57ff86af9f49cc87f33ab6e22a3",
+  "branch": "trigger4/wp1106-g2-detach-remote-binding-20260830",
+  "parent_claim": "F2-WP-1106-G1-GPT56SOL-LOCAL-RUNTIME-BRIDGE-20260829T1244Z",
+  "parent_state": "ACCEPTED_REPOSITORY_HOSTED_COMPONENT_CI_ONLY",
+  "reason_candidate_not_main_claim": "Two create/fast-forward attempts to atomically advance the active pointer plus state-event chain were rejected with HTTP 422 because main advanced concurrently. Force update was not used. Current canonical active pointer therefore remains G1 ACCEPTED. This branch carries a reviewable successor patch without pretending to own canonical mutation authority.",
+  "counterevidence": [
+    {
+      "ref": "github:issue/502",
+      "finding": "DETACH is blocked when baseline local boot evidence is UNKNOWN/DECLARED_ONLY/CONFLICT because the baseline blocker is created before action-specific logic.",
+      "reproduction_scope": "function-logic executable reproduction against the inspected exact G1 logic",
+      "result": "REPRODUCED"
+    },
+    {
+      "ref": "github:issue/503",
+      "finding": "validate_remote_return accepts caller-supplied syntactically valid request/result digests without binding the request to the attached plan or the return to the remote endpoint identity.",
+      "reproduction_scope": "function-logic executable reproduction against the inspected exact G1 logic",
+      "result": "REPRODUCED"
+    }
+  ],
+  "candidate_repair": {
+    "source": "src/frankenstein2/optional_vps_bridge.py",
+    "source_branch_blob_sha": "b0fb85c71bc676ca21a70e91d3f2019cd7368ba1",
+    "tests": "tests/test_optional_vps_bridge.py",
+    "tests_branch_blob_sha": "73c0a8fd53719d4698473ad352f8c4605aaf0e51",
+    "changes": [
+      "baseline boot verification remains an ATTACH admission requirement",
+      "DETACH remains admissible when baseline boot evidence is non-VERIFIED and records that fact as a limitation instead of a blocker",
+      "RemoteRequestBinding seals exact bridge plan digest + exact remote endpoint digest + local state lineage + request digest",
+      "validate_remote_return requires exact request binding and exact returning endpoint digest before accepting candidate output",
+      "wrong plan/endpoint/lineage/tampered request binding fail closed",
+      "remote result remains candidate/projection only with zero truth/effect/runtime/whole-system credit"
+    ]
+  },
+  "workflow": {
+    "path": ".github/workflows/wp1106-optional-vps-bridge-ci.yml",
+    "blob_sha": "dc3ac9ff98b3b114b642ec3627926ce8ca310339",
+    "existing_pull_request_trigger_covers_candidate_paths": true,
+    "workflow_modified": false,
+    "repository_ci_result_for_this_candidate": "NOT_YET_OBSERVED",
+    "github_actions_execution_surface_warning": "Current research supervisor evidence reports recent zero-step Actions failures/control-plane degradation. A zero-step PR workflow failure must not be interpreted as executable counterevidence and must not be blindly rerun/fanned out."
+  },
+  "compatibility_review": {
+    "main_code_search_for_validate_remote_return_callers": "NO_ADDITIONAL_CALLER_FOUND_OUTSIDE_WORKPACKAGE_TEST_SURFACE",
+    "api_change": "intentional fail-closed strengthening at WP1106 boundary"
+  },
+  "credits": {
+    "candidate_source_repair": 1,
+    "canonical_repair": 0,
+    "repository_ci": 0,
+    "host_runtime": 0,
+    "vps_runtime": 0,
+    "physical_host": 0,
+    "physical_grid10": 0,
+    "gwt_runtime": 0,
+    "jspace_runtime": 0,
+    "provider_model": 0,
+    "training": 0,
+    "effect": 0,
+    "completion": 0,
+    "whole_system": 0
+  },
+  "acceptance_gate": "Obtain canonical successor mutation authority/reconciliation, execute the existing WP1106 pull-request CI with non-zero executable steps, require all old and new deterministic regressions PASS, merge without weakening current authority boundaries, then terminalize only at repository-component scope. Physical/VPS promotion remains a separate exact-runtime gate."
+}
