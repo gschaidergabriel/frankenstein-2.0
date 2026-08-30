@@ -1,9 +1,14 @@
 import copy
+import json
+import tempfile
 import unittest
 from datetime import datetime, timezone
+from pathlib import Path
 
 from tools.coordination.architect_packet import (
     PacketError,
+    build_parser,
+    cmd_ack,
     compute_payload_digest,
     compute_route_id,
     make_ack,
@@ -134,6 +139,63 @@ class ArchitectWorkerPacketTests(unittest.TestCase):
         self.assertEqual(ack["route_id"], BASE_PACKET["route_id"])
         self.assertEqual(ack["payload_digest"], BASE_PACKET["payload_digest"])
         self.assertEqual(ack["worker_id"], CONTEXT["worker_id"])
+
+    def test_make_ack_derives_schema_rejection_and_blocks_forced_applied(self):
+        packet = copy.deepcopy(BASE_PACKET)
+        packet["objective"] = "tampered"
+        with self.assertRaises(PacketError):
+            make_ack(packet, CONTEXT, "APPLIED", reason="forced", authority_head="deadbeef", observed_at=NOW)
+        ack = make_ack(packet, CONTEXT, reason="classified", authority_head="deadbeef", observed_at=NOW)
+        self.assertEqual(ack["disposition"], "REJECT_SCHEMA_INVALID")
+        self.assertEqual(ack["context_bytes_injected"], 0)
+
+    def test_make_ack_blocks_forced_applied_for_route_tamper(self):
+        packet = copy.deepcopy(BASE_PACKET)
+        packet["route_id"] = "0" * 64
+        with self.assertRaises(PacketError):
+            make_ack(packet, CONTEXT, "APPLIED", reason="forced", authority_head="deadbeef", observed_at=NOW)
+
+    def test_make_ack_derives_stale(self):
+        packet = sealed_packet(expires_at="2026-08-31T00:30:00Z")
+        ack = make_ack(packet, CONTEXT, reason="classified", authority_head="deadbeef", observed_at=NOW)
+        self.assertEqual(ack["disposition"], "REJECT_STALE")
+
+    def test_make_ack_derives_misaddressed(self):
+        ack = make_ack(BASE_PACKET, dict(CONTEXT, worker_id="worker-B"), reason="classified", authority_head="deadbeef", observed_at=NOW)
+        self.assertEqual(ack["disposition"], "REJECT_MISADDRESSED")
+
+    def test_make_ack_derives_duplicate_nonce(self):
+        ack = make_ack(
+            BASE_PACKET, CONTEXT, reason="classified", authority_head="deadbeef",
+            observed_at=NOW, seen_nonces={"nonce-0001"},
+        )
+        self.assertEqual(ack["disposition"], "ACK_ONLY_DUPLICATE")
+
+    def test_make_ack_derives_authority_conflict(self):
+        ack = make_ack(
+            BASE_PACKET, CONTEXT, reason="classified", authority_head="deadbeef",
+            observed_at=NOW, authority_conflict=True,
+        )
+        self.assertEqual(ack["disposition"], "REJECT_AUTHORITY_CONFLICT")
+
+    def test_cli_ack_rejects_forced_applied_on_tampered_packet(self):
+        packet = copy.deepcopy(BASE_PACKET)
+        packet["objective"] = "tampered"
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            packet_path = root / "packet.json"
+            context_path = root / "context.json"
+            output_path = root / "ack.json"
+            packet_path.write_text(json.dumps(packet), encoding="utf-8")
+            context_path.write_text(json.dumps(CONTEXT), encoding="utf-8")
+            parser = build_parser()
+            args = parser.parse_args([
+                "ack", str(packet_path), str(context_path), str(output_path),
+                "--disposition", "APPLIED", "--reason", "forced",
+                "--authority-head", "deadbeef", "--now", "2026-08-31T01:00:00Z",
+            ])
+            self.assertEqual(cmd_ack(args), 2)
+            self.assertFalse(output_path.exists())
 
 
 if __name__ == "__main__":
