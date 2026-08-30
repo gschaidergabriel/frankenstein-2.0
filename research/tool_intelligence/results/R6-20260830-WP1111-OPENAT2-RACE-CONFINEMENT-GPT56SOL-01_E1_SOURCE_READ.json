@@ -1,0 +1,75 @@
+{
+  "schema": "FRANKENSTEIN2_TRIGGER6_E1_SOURCE_READ/v1",
+  "trigger": "6",
+  "research_id": "R6-20260830-WP1111-OPENAT2-RACE-CONFINEMENT-GPT56SOL-01",
+  "claim_ref": "research/tool_intelligence/claims/R6-20260830-WP1111-OPENAT2-RACE-CONFINEMENT-GPT56SOL-01/E1_SOURCE_READ.json@1b26be418d6e36545714745a5bba8c34be8802b1",
+  "status": "E1_SOURCE_READ_COMPLETE_COMPLEMENTARY_SCOPE_REFINEMENT_NO_INDEPENDENT_REPLICATION_CREDIT",
+  "architecture_snapshot": {
+    "f2_claim_base": "ccfea430191d3df43ea6b98387a79a6a357dc9e0",
+    "f2_reentered_head_before_result": "4029a501884eafda11ea1351ae54d7f51c6aff62",
+    "research_entity_head": "7ea077dc8cedb345d191a22adb9b273c05791cc1"
+  },
+  "coordination": {
+    "prior_overlapping_result": "research/tool_intelligence/results/R6-20260830-WP1111-LEXICAL-SYMLINK-CONFINEMENT-GPT56SOL-01_E1_SOURCE_READ.json@1a290ddc670529a5db06f257392ecd18064429b3",
+    "overlap": "The prior E1 already identified openat2 as the stronger hostile-directory/race model while explicitly leaving it outside WP1111 unless concurrent mutation is in scope.",
+    "classification": "COMPLEMENTARY_THREAT_MODEL_DEEPENING_NOT_INDEPENDENT_REPLICATION",
+    "independent_replication_credit": 0
+  },
+  "primary_sources": [
+    {
+      "source": "Linux man-pages openat2(2), man-pages 6.18",
+      "url": "https://man7.org/linux/man-pages/man2/openat2.2.html",
+      "observed": [
+        "openat2 resolves relative paths against dirfd and exposes resolve restrictions over all path components.",
+        "RESOLVE_BENEATH rejects resolution outside dirfd; RESOLVE_NO_SYMLINKS rejects symlink resolution in all components; RESOLVE_NO_XDEV rejects mount-point and bind-mount traversal.",
+        "With RESOLVE_BENEATH/IN_ROOT the kernel can return EAGAIN when it cannot prove that '..' did not escape because of a race or potential attack, and EXDEV when escape is detected.",
+        "openat2 is Linux-specific, present since Linux 5.6, and glibc provides no wrapper, so direct syscall use is required by the documented C interface."
+      ]
+    },
+    {
+      "source": "Linux kernel documentation: Pathname lookup",
+      "url": "https://docs.kernel.org/filesystems/path-lookup.html",
+      "observed": [
+        "The kernel documents openat2 resolution flags as protection against race conditions and attacks involving changing path components.",
+        "LOOKUP_BENEATH/LOOKUP_IN_ROOT use rename_lock and mount_lock to detect attacks affecting '..' resolution; LOOKUP_NO_XDEV blocks vfsmount traversal."
+      ]
+    },
+    {
+      "source": "Linux man-pages path_resolution(7), man-pages 6.18",
+      "url": "https://man7.org/linux/man-pages/man7/path_resolution.7.html",
+      "observed": [
+        "Normal path resolution follows intermediate symlinks and traverses mount points unless restricted; openat2 provides explicit all-component symlink and mount restrictions."
+      ]
+    }
+  ],
+  "f2_source_observation": {
+    "source": "src/frankenstein2/portable_release_static_completeness.py@main observed after WP1111 hardening",
+    "scope": "PORTABLE_RELEASE_STATIC_CONTRACT_COMPLETENESS_ONLY_NO_RUNTIME_EFFECT_OR_COMPLETION_CREDIT",
+    "mechanism": "_link_free_regular_file lexically rejects absolute/dot/dotdot paths and Path.is_symlink() components, then calls resolve(strict=True), verifies relative_to(root), verifies regular-file type, and later reads the returned pathname.",
+    "evidence_boundary": "This is a source/static-completeness predicate. It does not claim hostile concurrent-directory mutation resistance or target-host runtime authority."
+  },
+  "hypothesis": "If the release directory can be modified concurrently by an attacker between the lexical component checks and subsequent resolve/read, the pathname-based WP1111 predicate has a check/use race class that descriptor-based kernel-enforced resolution is designed to address.",
+  "counterhypothesis": "WP1111 evaluates a frozen/static release tree under repository/CI evidence scope; hostile concurrent mutation is outside its declared contract, so importing a Linux-only openat2 syscall path would add portability and maintenance cost without improving the claim WP1111 is authorized to make.",
+  "assessment": {
+    "hostile_mutable_tree": "OPENAT2_STYLE_DESCRIPTOR_CONFINEMENT_IS_STRONGER_AND_SHOULD_BE_EVALUATED_AT_THE_REAL_HOST_INGEST_VERIFICATION_BOUNDARY",
+    "current_wp1111_static_tree": "DO_NOT_EXPAND_WP1111_TO_LINUX_OPENAT2_BY_DEFAULT",
+    "portability_cost": "HIGH_FOR_A_PORTABLE_PYTHON_STDLIB_BASELINE_BECAUSE_OPENAT2_IS_LINUX_ONLY_AND_HAS_NO_GLIBC_WRAPPER",
+    "architecture_delta_warranted": false,
+    "recommended_spec_clarification": "Make the frozen/non-hostile-concurrent-mutation precondition explicit for WP1111. If later installer/host verification consumes attacker-writable or concurrently mutable package trees, create a separate platform-capability gate for race-safe descriptor-based resolution rather than silently upgrading this static predicate."
+  },
+  "falsifier": {
+    "for_current_no_delta_decision": "Show that WP1111 is intended to authenticate or consume files from a concurrently attacker-writable release tree on the real host, or demonstrate an accepted WP1111 threat model requiring race resistance. That would invalidate the current no-openat2 decision.",
+    "for_openat2_need": "If the actual host verification boundary first snapshots or otherwise immutably pins the artifact/tree before any path validation/read, the openat2 race-hardening benefit may be redundant at that boundary."
+  },
+  "decision": "NO_WP1111_BUILD_CANDIDATE_FROM_OPENAT2_AT_CURRENT_SCOPE__PRESERVE_AS_HOST_INGEST_SECURITY_PATTERN_IF_THREAT_MODEL_EXPANDS",
+  "evidence_ceiling": {
+    "level": "E1_SOURCE_READ",
+    "architecture_credit": 0,
+    "runtime_credit": 0,
+    "physical_host_credit": 0,
+    "whole_system_credit": 0
+  },
+  "database_sync": "NOT_PERFORMED_BINARY_PENDING_RESEARCH_SQLITE_NOT_MUTATED_BY_THIS_CONNECTOR_RUN",
+  "next_exact_action": "Trigger4 should keep WP1111 scoped to a frozen/static tree and, when defining the real-host package-ingest verifier, explicitly decide whether the input tree can be attacker-writable/concurrently mutable. Only that boundary should trigger an openat2/dirfd E2/E4 security design lane.",
+  "completed_at": "2026-08-30T14:55:00Z"
+}
