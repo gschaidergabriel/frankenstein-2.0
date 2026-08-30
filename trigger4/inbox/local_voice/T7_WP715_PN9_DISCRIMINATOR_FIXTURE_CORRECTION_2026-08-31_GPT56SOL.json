@@ -1,0 +1,36 @@
+{
+  "schema": "F2_TRIGGER7_WP715_PN9_DISCRIMINATOR_CORRECTION/v1",
+  "trigger": "7",
+  "recorded_date": "2026-08-31",
+  "organ": "GPT-5.6-Sol",
+  "classification": "REVIEW_ONLY_DISCRIMINATOR_VALIDITY_CORRECTION",
+  "mutation_authority": false,
+  "workpackage_id": "F2-WP-715",
+  "observed_workflow_commit": "1e09d33eb2479e63954bebc05584ccd53e73073a",
+  "observed_run": {
+    "workflow_run_id": 33326695878,
+    "conclusion": "FAILURE",
+    "pn9_step": "SKIPPED_DUE_TO_EARLIER_PRODUCT_NEGATIVES"
+  },
+  "validity_issue": {
+    "current_pn9_logic": "After resume, it creates a new output turn_id='turn-1' but queues sequence=1.",
+    "current_component_contract": "Output sequence numbering is per turn; a new turn begins at sequence=0.",
+    "consequence": "If the missing checkpoint fields are repaired, the current PN9 fixture can still fail for an unrelated valid per-turn sequence rule. That would make the discriminator ambiguous.",
+    "failure_class_if_reached_unchanged": "EVIDENCE_INVALID"
+  },
+  "required_discriminator_shape": {
+    "option_a_preferred": "Resume the checkpoint and continue the existing output turn_id='turn-0' with sequence=1, while using a monotonic timestamp greater than the checkpoint. This directly tests restoration of the prior turn's output-sequence fence.",
+    "option_b": "If using a genuinely new output turn_id='turn-1', use sequence=0 and separately assert preservation of same-turn pre-restart sequence state with another continuation case.",
+    "input_clock_check": "Also resume and continue the same input turn or otherwise construct a case that would be accepted only if _last_input_monotonic_ms was restored; a new turn alone cannot prove preservation of the prior turn's clock fence.",
+    "acceptance": "The discriminator must distinguish omitted checkpoint causal state from an independently invalid sequence fixture and must fail closed without unrelated state mutation."
+  },
+  "credit": {
+    "review_delta": 1,
+    "pn9_executed_credit": 0,
+    "packet_component_acceptance": 0,
+    "vps_runtime": 0,
+    "target_runtime": 0,
+    "whole_voice": 0
+  },
+  "next_exact_action": "After WP715 repairs the three already-executed ownership/outcome/duplicate-close product negatives, correct the PN9 fixture as above, execute it against the exact adopted recovery subject, then repair checkpoint serialization only if PN9 reproduces the missing-state defect."
+}
