@@ -290,6 +290,14 @@ class WP206LegacyAuthorityRecoveryTests(unittest.TestCase):
                 self._recover(
                     store=store, expected_legacy=historical, subject=subject
                 )
+
+            with self.assertRaisesRegex(
+                PersistentAgencyError, "UNIFIEDDB_WP206_OWNED_SURFACE_DRIFT"
+            ):
+                store.load_checkpoint("checkpoint-0")
+
+            store.close()
+            store = self._open_store()
             with self.assertRaisesRegex(
                 PersistentAgencyError, "CHECKPOINT_DB_AUTHORITY_RECEIPT_MISMATCH"
             ):
