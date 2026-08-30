@@ -63,6 +63,34 @@ SAME_EXPLICIT_INTENT + SAME_GENERATION
 
 No force push. No second active packet because wording changed.
 
+## Generation selection is not caller authority
+
+A caller MUST NOT freely choose the next intent generation.
+
+The public creation compiler intentionally has no caller-selectable `generation` parameter:
+
+```text
+no observed predecessor
+    -> compiler may propose GENERATION_1 only
+
+validated active + unexpired predecessor N
+    -> REUSE_EXISTING_PACKET
+    -> no new packet
+    -> no successor reservation
+
+validated expired or externally-terminal predecessor N
+    -> compiler derives GENERATION_N_PLUS_1 exactly
+```
+
+This closes the generation-skip bypass of the create-only collision path. If a creator ignores
+an already-observed predecessor and calls the compiler as if no predecessor exists, it can only
+propose generation 1 again and therefore collides with the already-existing generation-1 path at
+repository CAS; it cannot jump directly to generation 2 or an arbitrary generation.
+
+The observed predecessor supplied for successor derivation MUST be the current reservation obtained
+after refresh. Git CAS remains the cross-session authority if another creator advances the same
+intent between read and write. A CAS loser refreshes and re-evaluates; it never force-pushes.
+
 ## Separation from delivery identity
 
 The creation key is deliberately independent from packet delivery identity:
@@ -82,15 +110,17 @@ Clay's existing live-reentry delivery atomicity primitive remains the delivery a
 
 Reservation files are immutable. They are never rewritten to make a new packet active.
 
-If the current packet is expired or externally established terminal, the caller must increment the
-explicit intent generation and create the next deterministic reservation path. Historical
-reservation and packet evidence remain intact.
+If the current packet is expired or externally established terminal, the compiler validates the
+observed reservation and derives exactly the next generation. Historical reservation and packet
+evidence remain intact.
 
 ```text
 EXPIRED_OR_TERMINAL_GENERATION_N
-    -> GENERATION_N_PLUS_1
+    -> COMPILER_DERIVES_GENERATION_N_PLUS_1
     -> NEW CREATE_ONLY PATH
 ```
+
+No public creation path may accept an arbitrary `N+1` supplied by the caller.
 
 ## Failure / credit
 
@@ -113,14 +143,17 @@ under this fence.
 
 At minimum:
 
-1. same explicit intent ID + different prose -> identical reservation path;
+1. same explicit intent ID + different prose -> identical generation-1 reservation path;
 2. different explicit intent IDs -> independent paths;
-3. same intent candidate packets retain distinct nonce/packet/route identities before CAS;
-4. active existing reservation -> `REUSE_EXISTING_PACKET`;
-5. expired or terminal reservation -> `NEXT_GENERATION_REQUIRED`;
-6. reservation identity/path tamper -> fail closed;
-7. reservation cannot grant authority or credit;
-8. repository writer creates reservation + packet in one refreshed-main CAS commit.
+3. same-intent candidate packets retain distinct nonce/packet/route identities before CAS;
+4. active existing reservation -> `REUSE_EXISTING_PACKET` and **no new packet**;
+5. omitting observed state can only re-propose generation 1, preserving same-path collision;
+6. expired or terminal reservation N -> compiler derives exactly generation N+1;
+7. public creation API/CLI has no arbitrary generation selector;
+8. reservation from another intent -> fail closed;
+9. reservation identity/path tamper -> fail closed;
+10. reservation cannot grant authority or credit;
+11. repository writer creates reservation + packet in one refreshed-main CAS commit.
 
 ## Compatibility
 
