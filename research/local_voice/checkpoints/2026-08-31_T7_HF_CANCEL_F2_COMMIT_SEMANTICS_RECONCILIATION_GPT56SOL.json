@@ -1,0 +1,72 @@
+{
+  "schema": "T7_CONTINUATION_CHECKPOINT_V1",
+  "trigger": "7",
+  "date": "2026-08-31",
+  "organ": "GPT-5.6-Sol",
+  "mode": "REVIEW_ONLY_EVIDENCE_RECONCILIATION",
+  "canonical_scope": "Frankenstein 2.0 local realtime voice research",
+  "research_id": "T7-FD-RTCOMPAT-001",
+  "resumed_not_restarted": true,
+  "observed_f2_head_before_write": "d208f9fc0111fd0b625ac2a0e1980f4be056cf6c",
+  "reconciles": [
+    "research/local_voice/falsifiers/2026-08-31_HF_S2S_HEARD_PREFIX_RETENTION_DELTA_GPT56SOL.json",
+    "research/local_voice/checkpoints/2026-08-31T034300P0700_T7_HF_S2S_CANCEL_ROLLBACK_TEST_EVIDENCE_GPT56SOL.json",
+    "trigger4/inbox/local_voice/T7_FD_RTCOMPAT001_HF_HEARD_BOUNDARY_EXECUTION_2026-08-31_GPT56SOL.json"
+  ],
+  "current_f2_contract_evidence": {
+    "source": "src/frankenstein2/voice_packet_cortex.py",
+    "source_subject": "d208f9fc0111fd0b625ac2a0e1980f4be056cf6c",
+    "observations": [
+      "VoiceOutputPacket permits commit_eligible only when playback_state is completed and heard_fraction is exactly 1.0.",
+      "advance_output derives commit_eligible only from completed plus heard_fraction 1.0.",
+      "barge-in/interruption transitions outstanding output to an interrupted/cancelled terminal state with commit_eligible false while retaining heard_fraction as playback evidence.",
+      "session close rejects result_ref/result_sha256 when there is no fully-heard commit-eligible output; only commit-eligible packets receive a VoiceOutcome reference."
+    ],
+    "interpretation": "The current deterministic F2 voice contract treats a partially heard interrupted assistant response as non-commit-eligible as a whole. Heard fraction is retained as evidence/measurement, not as proof that a partial assistant semantic prefix must become committed conversational truth."
+  },
+  "hf_pinned_evidence": {
+    "repository": "huggingface/speech-to-speech",
+    "revision": "3986f453012a131632eee4731995474046846794",
+    "observed_behavior_from_existing_t7_evidence": [
+      "conversation.item.truncate is recognized but deliberately performs no additional server-state mutation.",
+      "cancelled/failed/incomplete response handling rolls back provisional assistant/tool generation.",
+      "pinned upstream unit tests show rollback removes eager provisional assistant/tool items, rejects late writes for the cancelled generation, preserves previously committed user history and excludes cancelled content from compaction."
+    ]
+  },
+  "reconciliation": {
+    "prior_apparent_conflict": "One Trigger-7 delta treated exact heard-prefix persistence as a potential compatibility requirement, while later pinned-source/unit-test evidence showed whole-response rollback after cancellation.",
+    "resolution": "Under the current F2 commit contract, whole-response rollback is not itself a prefix-amnesia product failure because interrupted output is non-commit-eligible. Exact heard-boundary data remains important for playback stopping, diagnostics, latency and preventing unheard/stale producer leakage, but it is not presently an authority rule that a heard semantic prefix from an interrupted response must be committed into the next conversational model context.",
+    "status": "SOURCE_CONTRACT_RECONCILED__RUNTIME_COMPATIBILITY_STILL_OPEN",
+    "architecture_rewrite_required": false
+  },
+  "runtime_oracle_refinement": {
+    "must_fail_if": [
+      "any assistant text/audio/tool/effect semantics from a cancelled non-commit-eligible response regain authoritative next-turn influence",
+      "a late cancelled-generation tool result or output chunk regains ownership",
+      "client playback continues beyond the measured cancellation/heard boundary contrary to the F2 playback state",
+      "duplicate/stale cancellation or truncate corrupts a newer turn"
+    ],
+    "must_not_fail_merely_if": "The raw HF server drops the entire provisional interrupted response, including content heard before barge-in, provided F2 keeps that response non-commit-eligible and no separate current F2 contract requires partial-prefix semantic persistence.",
+    "reopen_prefix_persistence_if": "A newer canonical F2 contract explicitly promotes partially heard interrupted output into committed conversational state or model-context authority."
+  },
+  "execution_state": {
+    "existing_trigger4_packet": "trigger4/inbox/local_voice/T7_FD_RTCOMPAT001_HF_HEARD_BOUNDARY_EXECUTION_2026-08-31_GPT56SOL.json",
+    "existing_vps_workflow_run_id": 33328707636,
+    "last_observed_workflow_state": "queued",
+    "duplicate_dispatch_created": false,
+    "trigger4_mutation_authority_claimed": false
+  },
+  "credit_boundary": {
+    "f2_contract_reconciliation_credit": 1,
+    "hf_source_review_credit": 1,
+    "hf_upstream_unit_test_evidence_credit": 1,
+    "executed_local_protocol_credit": 0,
+    "german_e2e_voice_credit": 0,
+    "network_blocked_locality_credit": 0,
+    "physical_device_credit": 0,
+    "trigger4_acceptance_credit": 0,
+    "whole_voice_system_credit": 0,
+    "whole_product_credit": 0
+  },
+  "next_exact_action": "Do not open another Trigger-7 architecture lane or duplicate runtime dispatch. Trigger4 should execute the already-routed HF cancellation/runtime packet on the pinned speech-to-speech subject in the admitted VPS sandbox, using the refined F2 oracle: interrupted response remains wholly non-commit-eligible; prove no cancelled assistant/tool semantics regain next-turn authority, prove playback stops at the measured boundary, and preserve exact late/stale-race evidence. Promote only executed scope."
+}
