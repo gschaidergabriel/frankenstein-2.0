@@ -1,0 +1,68 @@
+{
+  "schema": "FRANKENSTEIN_TRIGGER7_SOURCE_RESULT/v1",
+  "trigger": "7",
+  "research_id": "T7-TURN-005",
+  "objective": "E1_X2_TURN_4B_0812_GERMAN_SOURCE_ELIGIBILITY",
+  "semantic_key": "d581486a8b8721b4c9fb9c2ea3990ddc1f783a03da7fb920419893f5d6ba0e42",
+  "observed_f2_head_before_claim": "3b74a4b55d8daca0037f9bacbbac8003dfffcd1d",
+  "subject": {
+    "upstream_model": "x-square-robot/X2-Turn-4B-0812",
+    "upstream_code": "X-Square-Robot/X2-Turn",
+    "code_revision": "3609a0fd11b4a1dc2b2629e95538bbe0860da96d",
+    "model_revision": "UNRESOLVED_FROM_CURRENT_RESEARCH_SURFACE",
+    "base_model": "mistralai/Voxtral-Mini-4B-Realtime-2602",
+    "declared_size": "approximately 4B / Hugging Face UI reports 5B parameters",
+    "license": "Apache-2.0 for released code/weights subject to Mistral base-model terms"
+  },
+  "primary_sources": [
+    "https://arxiv.org/abs/2608.10878",
+    "https://huggingface.co/x-square-robot/X2-Turn-4B-0812",
+    "https://github.com/X-Square-Robot/X2-Turn",
+    "https://github.com/X-Square-Robot/X2-Turn/blob/main/voxtral-realtime/integrations/vllm/README.md"
+  ],
+  "source_findings": {
+    "turn_model": {
+      "architecture": "frame-synchronous dual-head streaming ASR plus turn-state prediction over shared Voxtral Realtime representations",
+      "frame_interval_ms": 80,
+      "inference_labels": ["idle", "noidle", "speaking", "turn_end", "backchannel", "uncertain"],
+      "policy_boundary": "Upstream explicitly describes labels as predictions rather than commands and recommends smoothing/policy over multiple frames."
+    },
+    "language_support": {
+      "declared": ["Chinese", "English", "mixed Chinese-English"],
+      "german_declared": false,
+      "german_training_or_evaluation_evidence_found": false,
+      "paper_evaluation": "Easy-Turn bilingual Chinese-English",
+      "trigger7_implication": "Fails German-first production eligibility at source scope; no German production or benchmark credit may be minted."
+    },
+    "upstream_turn_benchmark": {
+      "scope": "UPSTREAM_EASYTURN_ONLY_NOT_FRANKENSTEIN_GERMAN_AUDIO",
+      "streaming_delay_reference_ms": 480,
+      "zh_complete_accuracy_percent": 91.0,
+      "zh_incomplete_accuracy_percent": 93.0,
+      "zh_backchannel_accuracy_percent": 96.0,
+      "zh_latency_ms": 288,
+      "en_complete_accuracy_percent": 92.1,
+      "en_incomplete_accuracy_percent": 84.6,
+      "en_latency_ms": 225,
+      "delay_tradeoff": "At tau 320 ms the model card reports lower complete-state accuracy but lower latency; this is an upstream tradeoff, not an F2 latency result."
+    },
+    "runtime_and_security": {
+      "quickstart_requirement": "Linux + NVIDIA GPU with at least 24 GB VRAM for the documented Turn Demo path",
+      "trust_remote_code_required": false,
+      "local_checkpoint_supported": true,
+      "stock_vllm_sufficient_for_turn_events": false,
+      "vllm_overlay": "Upstream pins an overlay to vLLM 0.19.1 commit b1388b1fbf5aaef47937fabe98931211684666a6 for turn.delta propagation.",
+      "full_duplex_demo_boundary": "Full-duplex stack adds optional LLM/TTS and patched runtime; it is separate from the basic turn model and grants no F2 full-duplex credit."
+    }
+  },
+  "hypothesis": "The frame-synchronous shared-representation turn head is a high-value architecture donor for Frankenstein because its explicit speaking/turn_end/backchannel/uncertain state machine maps naturally onto WAIT, interruption and semantic endpointing without requiring a second persona or effect authority.",
+  "counterhypothesis": "The turn head may encode language-specific semantic cues strongly enough that direct reuse on German degrades endpoint and backchannel behavior; its approximately-4B/24-GB-VRAM reference path may also be too expensive relative to a smaller German-specific endpoint model or deterministic VAD-plus-semantic policy.",
+  "terminal_classification": "ARCHITECTURE_DONOR_ONLY_GERMAN_NOT_DECLARED_SOURCE_INELIGIBLE_FOR_CURRENT_PRODUCTION_FRONTIER",
+  "evidence_credit": 1,
+  "runtime_credit": 0,
+  "german_turn_benchmark_credit": 0,
+  "german_e2e_voice_credit": 0,
+  "trigger4_acceptance_credit": 0,
+  "whole_system_credit": 0,
+  "next_discriminator": "Do not dispatch this 4B checkpoint merely to test a language it does not claim. Extract the six-state frame-synchronous policy/ABI as a donor concept, and only reopen X2-Turn runtime work if upstream adds German support or an explicitly justified German adaptation/fine-tune lane receives its own semantic objective. Continue the existing Qwen3-ASR target-runtime claim only after its already-dispatched runner/control-plane gate resolves; do not duplicate that run."
+}
