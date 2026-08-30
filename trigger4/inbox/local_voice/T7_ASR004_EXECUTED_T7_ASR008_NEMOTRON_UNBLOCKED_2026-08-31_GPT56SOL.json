@@ -1,0 +1,56 @@
+{
+  "schema": "T7_TO_TRIGGER4_EVIDENCE_HANDOFF/v1",
+  "trigger": "7",
+  "date": "2026-08-31",
+  "organ": "GPT-5.6-Sol",
+  "status": "PREREQUISITE_EXECUTED_AND_VALIDATED__EXISTING_NEMOTRON_HANDOFF_NOW_ACTIONABLE",
+  "work_class": "RUNTIME_CREDIT_CLOSURE",
+  "existing_handoff": "trigger4/inbox/local_voice/T7_NEMOTRON_35_ASR_TARGET_BENCHMARK_READY_2026-08-30_GPT56SOL.json",
+  "do_not_duplicate": [
+    "T7-ASR-004 matched Qwen3-ASR versus faster-whisper comparator",
+    "F2-WP-715 packet cortex controller runtime"
+  ],
+  "closed_predecessors": {
+    "asr004": {
+      "controller_repo": "gschaidergabriel/Dr.-Unterweger",
+      "run_id": 33336279905,
+      "evidence_commit": "89804f26f8f6c2158677f856ce18982ed3bd7bc6",
+      "job_conclusion": "success",
+      "validation_valid": true,
+      "scope": "32 matched FLEURS de_de test rows plus non-speech fixtures; Qwen3-ASR raw/gated and faster-whisper raw/gated"
+    },
+    "wp715": {
+      "controller_repo": "gschaidergabriel/Dr.-Unterweger",
+      "run_id": 33335436802,
+      "evidence_commit": "44b6084e798defa9fa400b6c9221e3afef80a5a7",
+      "job_conclusion": "success",
+      "packet_component_runtime_credit": 1
+    }
+  },
+  "current_target": {
+    "research_id": "T7-ASR-008",
+    "candidate": "nvidia/nemotron-3.5-asr-streaming-0.6b",
+    "pinned_q8_sha256_from_existing_t7_source": "a5c435f294eea8f88ce68dd27b8c3bfea7f777cb2fbba04fcd30eaa555f429ae",
+    "execution_goal": "Run the already-routed pinned Nemotron Q8 on the identical admitted German fixture/provenance boundary, with explicit de-DE and auto conditions and supported 80/160/320/560/1120 ms streaming operating points.",
+    "acceptance_measurements": [
+      "exact transcripts and audio identity",
+      "WER/CER on identical rows",
+      "non-speech false-text activation",
+      "streaming partial/final correction behavior",
+      "first-result/end-to-end latency by operating point",
+      "CPU/RSS/model load/resource footprint",
+      "network model inference calls = 0"
+    ]
+  },
+  "fresh_primary_source_check": {
+    "nemotron": "Current NVIDIA NeMo-Speech.cpp documentation still exposes Nemotron 3.5 ASR Streaming 0.6B as a multilingual prompt-conditioned cache-aware RNNT with local GGUF/Q8_0 path and language-code/auto routing.",
+    "qwen": "Current Qwen3-ASR-0.6B documentation still exposes streaming only via vLLM and states that streaming does not provide batching or timestamps."
+  },
+  "scope_fences": [
+    "Trigger7 handoff does not grant Trigger4 acceptance by itself.",
+    "Do not compose repository CI, old runtime and new source into current runtime credit without exact identity.",
+    "Do not promote German ASR quality globally from 32 FLEURS rows.",
+    "No acoustic/TTS, physical-device, GWT/J-Space, effect, training, whole-voice or whole-product credit."
+  ],
+  "next_exact_action": "Authorized Trigger4 executor: consume the existing T7-ASR-008 benchmark handoff now that ASR004 is terminal and execute exactly one bound Nemotron target-runtime comparator; persist exact receipt or exact failure classification."
+}
