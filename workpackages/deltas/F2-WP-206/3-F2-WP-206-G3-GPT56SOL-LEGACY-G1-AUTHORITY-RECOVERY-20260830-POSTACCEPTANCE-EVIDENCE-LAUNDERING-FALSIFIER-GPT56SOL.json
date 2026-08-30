@@ -1,0 +1,63 @@
+{
+  "schema": "FRANKENSTEIN2_WORKPACKAGE_DELTA/v1",
+  "workpackage_id": "F2-WP-206",
+  "generation": 3,
+  "claim_id": "F2-WP-206-G3-GPT56SOL-LEGACY-G1-AUTHORITY-RECOVERY-20260830",
+  "worker_id": "GPT-5.6-Sol-TRIGGER4-REVIEW",
+  "trigger": "4",
+  "authority_epoch": "9.13BH_NON_AUTHORITY_STEERING_OVER_CANONICAL_8.78_BOOTSTRAP",
+  "observed_main_commit": "5548d5a99b97a08d76af9ca1173d8562ad4309bf",
+  "result_class": "POST_ACCEPTANCE_EXECUTABLE_COUNTEREVIDENCE_REVIEW_ONLY",
+  "mutation_authority": false,
+  "review_pr": 698,
+  "review_head_sha": "f5b36e3eecd3658842772c599e5bfb28f783cdd5",
+  "workflow_run_id": 33301988977,
+  "workflow_job_id": 99231749417,
+  "workflow_conclusion": "success",
+  "green_semantics": "COUNTEREXAMPLE_REPRODUCED_NOT_ACCEPTANCE",
+  "canonical_subject_blob": "a45b43144605e96d5e015a3f828166cfa229add3",
+  "executed_steps": [
+    "checkout exact review head based on accepted canonical G3 source",
+    "compile accepted recovery surface and falsifier PASS",
+    "reproduce canonical post-acceptance negative control PASS",
+    "bounded review-only credit fence PASS"
+  ],
+  "falsifier": {
+    "id": "G3_F8_SELF_ATTESTED_LEGACY_EVIDENCE_LAUNDERING",
+    "sequence": [
+      "write a valid current checkpoint",
+      "replace only the checkpoint row authority receipt with an arbitrary non-current lowercase 64-hex value not independently proven to be an accepted historical G1 receipt",
+      "read that same arbitrary value back from the row under migration",
+      "supply the row-derived value as expected_legacy_authority_receipt_sha256 together with caller-created provenance review:caller-self-attested-not-admitted",
+      "canonical generation-3 recovery returns RECOVERED",
+      "row is rebound to current authority receipt and normal checkpoint replay succeeds"
+    ],
+    "bounded_interpretation": "The generation-3 adapter validates equality against caller-supplied expected evidence but does not itself establish that the expected historical receipt/provenance came from an independently admitted external evidence subject. Under the accepted G3 wording, arbitrary row-derived values can therefore be laundered into recovery authority by caller self-attestation.",
+    "preserved_positive_fences": [
+      "canonical path/device/inode checks remain useful",
+      "checkpoint digest and typed replay remain useful",
+      "CAS/one-recovery semantics remain useful",
+      "generation-4 repeat-provenance hardening is orthogonal and does not close this admission gap"
+    ]
+  },
+  "contract_decision_required": [
+    "Preferred strong closure: require a typed independently verifiable legacy-recovery evidence subject/resolver whose identity/digest binds evidence schema/version, checkpoint identity/digest, historical receipt, provenance/source identity and a distinct admission/authority identity.",
+    "Alternative explicit boundary: formally weaken the adapter contract so external authentication is a separately evidenced caller precondition, then bind recovery invocation to a concrete resolver/admission receipt and test that boundary. Free-form strings alone must not be reported as independently authenticated evidence.",
+    "Retain PR698 exact negative control as regression for whichever contract is admitted."
+  ],
+  "dependency_effect": "Generation-4 repeat-provenance repair may proceed and can be accepted only at its narrow scope, but historical-G1 recovery promotion through WP901 remains evidence-authentication-fenced until a successor closes or explicitly relocates this admission boundary with executable evidence.",
+  "credit_boundaries": {
+    "runtime_credit": 0,
+    "target_vps_runtime_credit": 0,
+    "physical_grid10_credit": 0,
+    "gwt_runtime_credit": 0,
+    "jspace_runtime_credit": 0,
+    "effect_credit": 0,
+    "completion_credit": 0,
+    "training_credit": 0,
+    "whole_system_acceptance": false
+  },
+  "proposed_state_change": "NO_STATE_CHANGE_REVIEW_INPUT_ONLY",
+  "next_exact_action": "After G4 reaches its narrow terminal state, create at most one deliberate WP206 successor for authenticated legacy-recovery evidence admission; consume PR698 without weakening normal checkpoint-reader fail-closed behavior or creating a second state/effect authority.",
+  "created_at_utc": "2026-08-30T08:41:00Z"
+}
