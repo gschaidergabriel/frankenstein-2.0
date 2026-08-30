@@ -1,0 +1,79 @@
+{
+  "schema": "T7_RESEARCH_DELTA/v1",
+  "trigger": "7",
+  "date": "2026-08-31",
+  "organ": "GPT-5.6-Sol",
+  "research_id": "T7-ARCH-COORD-AUDIT-001",
+  "classification": "REVIEW_ONLY_COORDINATION_EVIDENCE_INTEGRITY_GAP_NOT_PRODUCT_NEGATIVE",
+  "implementation_mutation_authority": false,
+  "new_workpackage": false,
+  "new_generation": false,
+  "new_runtime_dispatch": false,
+  "new_effect_authority": false,
+  "credit_delta": 0,
+  "architect_packets_consumed": [
+    "AWP-20260830T212738Z-T7RESEARCH01",
+    "AWP-20260830T212856Z-ALLWORKERS01"
+  ],
+  "authority_head_before_write": "e81466ba07edf64f160c50f0bad06cac1033a620",
+  "finding_id": "ARCHITECT_PACKET_ACK_CAN_BE_EMITTED_WITHOUT_PACKET_VALIDATION_OR_DETERMINISTIC_CLASSIFICATION",
+  "finding": {
+    "protocol_expectation": "Worker reentry verifies payload digest, route id and nonce, classifies the packet deterministically, then emits non-authoritative ACK evidence preserving the packet/route/payload/worker/authority identity.",
+    "current_helper_behavior": "packet_disposition() calls validate_packet() and therefore fails closed on digest/route/schema defects, but make_ack() does not validate the packet and accepts an arbitrary caller-supplied disposition. cmd_ack() loads packet/context and calls make_ack() directly without validate_packet() or packet_disposition().",
+    "test_gap": "tests/test_architect_worker_packet.py verifies tampered packets are rejected by packet_disposition() and verifies a positive make_ack() result, but contains no regression requiring ACK creation itself to reject an invalid/tampered packet or to derive the disposition from the deterministic classifier.",
+    "failure_mode": "A caller can bypass the classifier and emit a structurally normal-looking APPLIED ACK for a packet whose payload/route is invalid or whose deterministic disposition should be stale, misaddressed, superseded, duplicate or authority-conflicting. The ACK cannot mint product authority, but it can falsely tell the Architect/coordination layer that an instruction was observed and classified correctly, causing coordination state or follow-up routing to trust invalid delivery evidence.",
+    "primary_project_failure_class": "EVIDENCE_INVALID_RISK",
+    "coordination_failure_label": "ACK_CLASSIFICATION_BYPASS",
+    "product_negative": false
+  },
+  "evidence": [
+    {
+      "ref": "workpackages/ARCHITECT_WORKER_COORDINATION_PROTOCOL.md",
+      "observation": "Protocol requires verify -> deterministic ACK/reject ordering and defines ACK as evidence that a packet was observed and classified, not as authority."
+    },
+    {
+      "ref": "tools/coordination/architect_packet.py",
+      "observation": "validate_packet()/packet_disposition() enforce schema, digest, route, staleness, addressing, supersession, duplicate and authority conflict, while make_ack()/cmd_ack() do not enforce that validation/classification path."
+    },
+    {
+      "ref": "tests/test_architect_worker_packet.py",
+      "observation": "Current tests cover tamper rejection at packet_disposition and positive ACK binding, but not invalid-packet ACK rejection/classifier-to-ACK coupling."
+    }
+  ],
+  "recommended_repair": {
+    "scope": "COORDINATION_HELPER_ONLY_NO_PRODUCT_SEMANTICS",
+    "preferred_shape": "Add one classify_and_make_ack path that validates the packet and derives disposition from packet_disposition using the same now/seen_nonces/superseded/authority_conflict inputs; make the CLI ACK route use it. If raw make_ack remains for serialization, require an already-validated/classified marker or keep it private/internal.",
+    "minimum_regressions": [
+      "tampered payload cannot produce APPLIED ACK",
+      "tampered route cannot produce APPLIED ACK",
+      "expired packet ACK disposition is REJECT_STALE",
+      "misaddressed packet ACK disposition is REJECT_MISADDRESSED",
+      "duplicate nonce ACK disposition is ACK_ONLY_DUPLICATE",
+      "authority conflict ACK disposition is REJECT_AUTHORITY_CONFLICT"
+    ],
+    "why_not_implemented_here": "The Architect packet explicitly grants no product/mutation authority and requests REVIEW_ONLY evidence. This delta routes the smallest exact repair without stealing build authority."
+  },
+  "telemetry": {
+    "targeted_packet_context_bytes": 2096,
+    "targeted_packet_estimated_tokens": 524,
+    "all_worker_packet_context_bytes": 1920,
+    "all_worker_packet_estimated_tokens": 480,
+    "combined_packet_bytes": 4016,
+    "combined_packet_estimated_tokens": 1004,
+    "comparison_baseline": "Two supplied 2026-08-30 fast-bootstrap cache files in this session total 94429 bytes; this is a local context-size comparison only, not canonical project telemetry.",
+    "packet_bytes_vs_two_boot_caches_ratio": 0.04253,
+    "approx_byte_reduction_vs_two_boot_caches": 0.95747,
+    "interpretation": "The targeted-delta mechanism is materially smaller than replaying both supplied boot caches for this bounded audit, while still exposing the exact protocol/tool/test refs needed to find the ACK integrity gap. This does not prove end-to-end latency improvement yet."
+  },
+  "preserved_boundaries": {
+    "wp715_reopened": false,
+    "runtime_dispatch_created": false,
+    "product_semantics_changed": false,
+    "source_runtime_credit": 0,
+    "german_voice_runtime_credit": 0,
+    "effect_credit": 0,
+    "training_credit": 0,
+    "whole_product_credit": 0
+  },
+  "next_exact_action": "Route the ACK-classification coupling repair to the existing authorized build/test lane; add fail-closed regression tests, then re-run a bounded Architect packet experiment and compare ACK completeness plus context/tool-call cost. Do not treat the current research finding itself as product progress."
+}
