@@ -2,15 +2,20 @@ import copy
 import json
 import pathlib
 import tempfile
+import threading
 import unittest
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 
 from tools.coordination.architect_packet import (
     PacketError,
+    claim_coordination_intent,
+    close_coordination_intent,
     compute_payload_digest,
     compute_route_id,
+    coordination_intent_key,
     main,
     make_ack,
+    new_packet,
     packet_disposition,
     target_matches,
     validate_packet,
@@ -58,6 +63,22 @@ CONTEXT = {
     "organ": "GPT-5.6-Sol",
 }
 NOW = datetime(2026, 8, 31, 1, 0, tzinfo=timezone.utc)
+
+
+def intent_packet(intent_id, objective="Repair one coordination boundary.", *, now=NOW, ttl_minutes=60):
+    return new_packet(
+        coordination_intent_id=intent_id,
+        target={"trigger": "4"},
+        objective=objective,
+        action_class="CONTEXT_DELTA",
+        ttl_minutes=ttl_minutes,
+        priority=90,
+        architect_id="persistent-architect",
+        project="frankenstein-2.0",
+        constraints=["no authority inflation"],
+        evidence_refs=[],
+        now=now,
+    )
 
 
 class ArchitectWorkerPacketTests(unittest.TestCase):
@@ -148,48 +169,12 @@ class ArchitectWorkerPacketTests(unittest.TestCase):
         route_tamper["route_id"] = "0" * 64
 
         cases = [
-            (
-                "payload tamper",
-                payload_tamper,
-                CONTEXT,
-                {},
-                "REJECT_SCHEMA_INVALID",
-            ),
-            (
-                "route tamper",
-                route_tamper,
-                CONTEXT,
-                {},
-                "REJECT_SCHEMA_INVALID",
-            ),
-            (
-                "stale",
-                sealed_packet(expires_at="2026-08-31T00:30:00Z"),
-                CONTEXT,
-                {},
-                "REJECT_STALE",
-            ),
-            (
-                "misaddressed",
-                BASE_PACKET,
-                dict(CONTEXT, worker_id="worker-B"),
-                {},
-                "REJECT_MISADDRESSED",
-            ),
-            (
-                "duplicate nonce",
-                BASE_PACKET,
-                CONTEXT,
-                {"seen_nonces": {"nonce-0001"}},
-                "ACK_ONLY_DUPLICATE",
-            ),
-            (
-                "authority conflict",
-                BASE_PACKET,
-                CONTEXT,
-                {"authority_conflict": True},
-                "REJECT_AUTHORITY_CONFLICT",
-            ),
+            ("payload tamper", payload_tamper, CONTEXT, {}, "REJECT_SCHEMA_INVALID"),
+            ("route tamper", route_tamper, CONTEXT, {}, "REJECT_SCHEMA_INVALID"),
+            ("stale", sealed_packet(expires_at="2026-08-31T00:30:00Z"), CONTEXT, {}, "REJECT_STALE"),
+            ("misaddressed", BASE_PACKET, dict(CONTEXT, worker_id="worker-B"), {}, "REJECT_MISADDRESSED"),
+            ("duplicate nonce", BASE_PACKET, CONTEXT, {"seen_nonces": {"nonce-0001"}}, "ACK_ONLY_DUPLICATE"),
+            ("authority conflict", BASE_PACKET, CONTEXT, {"authority_conflict": True}, "REJECT_AUTHORITY_CONFLICT"),
         ]
 
         for name, packet, context, kwargs, expected in cases:
@@ -282,6 +267,133 @@ class ArchitectWorkerPacketTests(unittest.TestCase):
             ack = json.loads(output_path.read_text(encoding="utf-8"))
             self.assertEqual(ack["disposition"], "REJECT_STALE")
             self.assertEqual(ack["context_bytes_injected"], 0)
+
+    def test_coordination_intent_field_is_sealed_without_breaking_historical_packets(self):
+        validate_packet(BASE_PACKET)
+        packet = intent_packet("T7/ACK-INTEGRITY")
+        validate_packet(packet)
+        self.assertEqual(packet_disposition(packet, {"trigger": "4"}, now=NOW), "APPLIED")
+        tampered = copy.deepcopy(packet)
+        tampered["coordination_intent_id"] = "T7/OTHER"
+        self.assertEqual(packet_disposition(tampered, {"trigger": "4"}, now=NOW), "REJECT_SCHEMA_INVALID")
+
+    def test_same_intent_different_wording_reuses_one_active_owner(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            first = intent_packet("COORD/ACK-FIX", "Repair ACK classification bypass.")
+            second = intent_packet("COORD/ACK-FIX", "Close the same ACK validation weakness using different wording.")
+            d1, e1, _ = claim_coordination_intent(tmp, first, now=NOW)
+            d2, e2, _ = claim_coordination_intent(tmp, second, now=NOW)
+            self.assertEqual(d1, "CLAIMED")
+            self.assertEqual(d2, "REUSE_ACTIVE")
+            self.assertEqual(e2["owner_packet_id"], e1["owner_packet_id"])
+            key_dir = pathlib.Path(tmp) / coordination_intent_key("COORD/ACK-FIX")
+            self.assertEqual([p.name for p in key_dir.glob("*.json")], ["000001.json"])
+
+    def test_concurrent_same_intent_creators_yield_claim_and_reuse(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            barrier = threading.Barrier(2)
+            lock = threading.Lock()
+            outcomes = []
+
+            def creator(objective):
+                packet = intent_packet("COORD/RACE-1", objective)
+                barrier.wait()
+                result = claim_coordination_intent(tmp, packet, now=NOW)
+                with lock:
+                    outcomes.append((result[0], result[1]["owner_packet_id"]))
+
+            threads = [
+                threading.Thread(target=creator, args=("wording A",)),
+                threading.Thread(target=creator, args=("wording B",)),
+            ]
+            for thread in threads:
+                thread.start()
+            for thread in threads:
+                thread.join()
+
+            self.assertEqual(sorted(disposition for disposition, _ in outcomes), ["CLAIMED", "REUSE_ACTIVE"])
+            self.assertEqual(len({owner for _, owner in outcomes}), 1)
+            key_dir = pathlib.Path(tmp) / coordination_intent_key("COORD/RACE-1")
+            self.assertEqual([p.name for p in key_dir.glob("*.json")], ["000001.json"])
+
+    def test_different_intents_are_independently_routable(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            d1, e1, _ = claim_coordination_intent(tmp, intent_packet("COORD/A"), now=NOW)
+            d2, e2, _ = claim_coordination_intent(tmp, intent_packet("COORD/B"), now=NOW)
+            self.assertEqual((d1, d2), ("CLAIMED", "CLAIMED"))
+            self.assertNotEqual(e1["intent_key"], e2["intent_key"])
+
+    def test_expired_intent_can_be_superseded_append_only(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            first = intent_packet("COORD/EXPIRY", now=NOW, ttl_minutes=10)
+            d1, e1, _ = claim_coordination_intent(tmp, first, now=NOW)
+            later = NOW + timedelta(minutes=20)
+            second = intent_packet("COORD/EXPIRY", "successor after expiry", now=later, ttl_minutes=10)
+            d2, e2, _ = claim_coordination_intent(tmp, second, now=later)
+            self.assertEqual((d1, d2), ("CLAIMED", "CLAIMED"))
+            self.assertEqual((e1["sequence"], e2["sequence"]), (1, 2))
+            key_dir = pathlib.Path(tmp) / coordination_intent_key("COORD/EXPIRY")
+            self.assertEqual(sorted(p.name for p in key_dir.glob("*.json")), ["000001.json", "000002.json"])
+
+    def test_terminal_intent_can_be_superseded_without_history_rewrite(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            first = intent_packet("COORD/TERMINAL")
+            d1, e1, first_path = claim_coordination_intent(tmp, first, now=NOW)
+            first_bytes = first_path.read_bytes()
+            close_disposition, terminal, _ = close_coordination_intent(
+                tmp,
+                "COORD/TERMINAL",
+                reason="repair merged",
+                now=NOW + timedelta(minutes=5),
+            )
+            second = intent_packet("COORD/TERMINAL", "new legal successor", now=NOW + timedelta(minutes=6))
+            d2, e2, _ = claim_coordination_intent(tmp, second, now=NOW + timedelta(minutes=6))
+            self.assertEqual(d1, "CLAIMED")
+            self.assertEqual(close_disposition, "TERMINALIZED")
+            self.assertEqual(terminal["sequence"], 2)
+            self.assertEqual(d2, "CLAIMED")
+            self.assertEqual(e2["sequence"], 3)
+            self.assertEqual(first_path.read_bytes(), first_bytes)
+
+    def test_intent_events_cannot_mint_authority_or_credit(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            _, active, _ = claim_coordination_intent(tmp, intent_packet("COORD/ZERO-CREDIT"), now=NOW)
+            _, terminal, _ = close_coordination_intent(
+                tmp,
+                "COORD/ZERO-CREDIT",
+                reason="closed",
+                now=NOW + timedelta(minutes=1),
+            )
+            for event in (active, terminal):
+                self.assertFalse(event["new_mutation_authority"])
+                self.assertFalse(event["new_runtime_dispatch"])
+                self.assertFalse(event["new_effect_authority"])
+                self.assertEqual(event["credit_delta"], 0)
+
+    def test_cli_new_reuses_active_intent_and_does_not_write_second_packet(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = pathlib.Path(tmp)
+            intent_root = root / "intents"
+            first_output = root / "first.json"
+            second_output = root / "second.json"
+            common = [
+                "--coordination-intent-id",
+                "COORD/CLI",
+                "--intent-root",
+                str(intent_root),
+                "--target-json",
+                '{"trigger":"4"}',
+                "--action-class",
+                "CONTEXT_DELTA",
+                "--now",
+                "2026-08-31T01:00:00Z",
+            ]
+            rc1 = main(["new", *common, "--objective", "first wording", "--output", str(first_output)])
+            rc2 = main(["new", *common, "--objective", "different wording", "--output", str(second_output)])
+            self.assertEqual(rc1, 0)
+            self.assertEqual(rc2, 3)
+            self.assertTrue(first_output.exists())
+            self.assertFalse(second_output.exists())
 
 
 if __name__ == "__main__":
