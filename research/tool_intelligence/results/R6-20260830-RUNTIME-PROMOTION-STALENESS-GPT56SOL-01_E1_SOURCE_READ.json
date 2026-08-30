@@ -1,0 +1,102 @@
+{
+  "schema": "F2_TRIGGER6_RESEARCH_RESULT/v1",
+  "research_id": "R6-20260830-RUNTIME-PROMOTION-STALENESS-GPT56SOL-01",
+  "evidence_stage": "E1_SOURCE_READ",
+  "status": "COMPLETE_AT_SCOPE",
+  "recorded_at": "2026-08-30T19:14:00+07:00",
+  "worker": "GPT-5.6 Sol / ChatGPT organ",
+  "claim_ref": "research/tool_intelligence/claims/R6-20260830-RUNTIME-PROMOTION-STALENESS-GPT56SOL-01/E1_SOURCE_READ.json",
+  "snapshot": {
+    "f2_main_at_claim": "be0359f8c8bad330f1320adc9d5e2f3fd1d6ea5e",
+    "claim_commit": "e6aa35eea2794c93a2ee2111f4a55c15706e5b63",
+    "research_entity_main_at_claim": "5933ed34cc03328f6300a83b2be972bc05cf0a66",
+    "current_f2_directive": "workpackages/RUNTIME_CREDIT_CONVERGENCE_DIRECTIVE.md",
+    "current_trigger6_protocol": "research/tool_intelligence/TRIGGERWORD_6_PROTOCOL.md"
+  },
+  "f2_problem_observed": "The active runtime-credit directive records a real promotion-staleness failure mode: a higher-tier exact-source runtime subject may become historical before execution when the same semantic integration boundary advances, creating replay debt while higher-tier credit remains zero.",
+  "primary_external_sources": [
+    {
+      "source": "GitHub Actions workflow concurrency",
+      "url": "https://docs.github.com/en/actions/reference/workflows-and-actions/workflow-syntax#concurrency",
+      "observation": "A concurrency group can keep one running and one pending run; by default a newer queued run replaces an older pending run, and cancel-in-progress may cancel the running predecessor. This is a latest-wins queue primitive, not semantic evidence authority."
+    },
+    {
+      "source": "GitHub Actions concurrency group REST API",
+      "url": "https://docs.github.com/en/rest/actions/concurrency-groups",
+      "observation": "Current GitHub exposes live concurrency-group membership and queue position, allowing a control plane to observe which run is blocking a newer subject without inventing a second acceptance ledger."
+    },
+    {
+      "source": "Zuul project gating / dependent pipeline",
+      "url": "https://zuul-ci.org/docs/zuul/latest/gating.html",
+      "observation": "Zuul tests changes in the state in which they are expected to merge and discards/re-runs dependent results when an earlier speculative assumption fails; its variable pipeline window explicitly trades throughput against wasted test work."
+    },
+    {
+      "source": "Zuul pipeline.dequeue-on-new-patchset",
+      "url": "https://zuul-ci.org/docs/zuul/latest/config/pipeline.html",
+      "observation": "By default a new patchset removes the older pipeline entry and cancels its jobs. This is the closest external analogue to invalidating a queued runtime subject when the subject itself changes."
+    },
+    {
+      "source": "GitLab auto-cancel redundant pipelines",
+      "url": "https://docs.gitlab.com/ci/pipelines/settings/#auto-cancel-redundant-pipelines",
+      "observation": "GitLab can auto-cancel pending/running pipelines on a new commit and uses job interruptibility to distinguish work that may be canceled from work that should continue."
+    },
+    {
+      "source": "Buildkite cancel intermediate builds",
+      "url": "https://buildkite.com/docs/pipelines/configure/canceling-builds",
+      "observation": "Buildkite can cancel running intermediate same-branch builds and keep the latest commit, explicitly targeting resource waste caused by rapid successor commits."
+    },
+    {
+      "source": "Jenkins Pipeline milestone step",
+      "url": "https://www.jenkins.io/doc/pipeline/steps/pipeline-milestone-step/",
+      "observation": "A newer build passing a milestone prevents an older build from later passing that milestone, a direct monotonic anti-stale-promotion pattern."
+    },
+    {
+      "source": "SLSA v1.2 build provenance",
+      "url": "https://slsa.dev/spec/v1.2/build-provenance",
+      "observation": "Provenance binds a result to explicit build inputs/dependencies and run identity. This solves subject identity/provenance, but by itself does not decide whether stale queued work should be canceled, deferred or accepted as historical-only evidence."
+    }
+  ],
+  "cross_source_findings": [
+    "LATEST_WINS_OR_SUPERSEDE is a mature CI scheduling pattern when older work becomes operationally irrelevant after a newer source revision.",
+    "SOURCE_SUBJECT_IDENTITY and QUEUE_SUPERSESSION are separate concerns: provenance can prove exactly what ran while still wasting runtime on a no-longer-current subject.",
+    "UNCONDITIONAL_CANCEL_ON_NEW_COMMIT is too coarse for F2 because an unrelated repository change need not invalidate the semantic integration boundary of a bound probe.",
+    "INTERRUPTIBILITY is useful as a policy dimension: queued/not-started probes are cheap to supersede; running probes may be allowed to finish as historical evidence unless a safe cancellation path is already native to the runner.",
+    "MONOTONIC_PROMOTION_GATES such as Jenkins milestones support the F2 rule that an older result must not promote a newer semantic generation merely because it finishes later.",
+    "F2 should distill these mechanisms into its existing deterministic claim/dispatch/evidence control plane rather than adopt a heavy external scheduler as a new authority."
+  ],
+  "candidate_transfer": {
+    "name": "BOUNDARY_SCOPED_RUNTIME_SUPERSESSION",
+    "classification": "ARCHITECTURE_CANDIDATE_NOT_YET_E2",
+    "minimum_semantics": [
+      "Bind each higher-tier runtime probe to exact source/artifact identity plus an integration-boundary identity.",
+      "Before a same-boundary semantic successor is admitted, classify the pending probe as INVARIANT, REQUIRED_REPAIR_INVALIDATED, or DEFER_UNTIL_RUNTIME_RESULT as the current directive already requires.",
+      "If a successor truly invalidates a not-yet-started probe, prefer cancel/replace or explicit historical-only disposition rather than consuming scarce target-runtime capacity and later creating replay debt.",
+      "If the old probe is already running, preserve its exact result as historical evidence; do not compose it with newer repository CI into current runtime credit without an explicit invariance proof.",
+      "Keep queue status and staleness metrics noncanonical; PRODUCT_COMPLETION_LAW and exact receipts remain the only credit authority."
+    ],
+    "expected_efficiency_effect": "Lower wasted target-runtime executions, lower replay debt, shorter promotion-staleness latency, fewer same-boundary generations waiting behind obsolete probes.",
+    "dependency_weight": "LOW if distilled into existing F2 metadata/gates; HIGH and unjustified if implemented by importing Zuul/GitLab/Buildkite/Jenkins as product dependencies."
+  },
+  "counterhypotheses": [
+    "Exact-source receipts alone may already be sufficient; the cost of occasional historical probes could be lower than additional coordination complexity.",
+    "A latest-wins rule may cancel valuable falsifiers or hide regressions if semantic relevance is inferred too broadly.",
+    "Boundary-scoped invalidation is only safe if the boundary dependency/fingerprint mechanism is deterministic and conservative; a false invariant is more dangerous than replay debt."
+  ],
+  "falsifiers_for_transfer": [
+    "If recent F2 history shows staled-before-execution probes are rare or consume negligible scarce runtime, a new supersession mechanism is not justified.",
+    "If a deterministic boundary fingerprint cannot conservatively distinguish relevant from unrelated source changes, keep the current qualitative throttle and do not automate cancellation.",
+    "If runner-native cancellation/queue replacement cannot preserve exact historical disposition and source identity, do not let transport behavior become acceptance authority."
+  ],
+  "coordination": {
+    "later_semantic_duplicate_claim": "research/tool_intelligence/claims/R6-20260830-RUNTIME-PROBE-STALENESS-GPT56SOL-01/E1_SOURCE_READ.json",
+    "duplicate_claim_commit": "e447423da804c49ee061e57e0dfc645f504f1979",
+    "earlier_claim_commit": "e6aa35eea2794c93a2ee2111f4a55c15706e5b63",
+    "disposition": "This result completes the earlier E1 objective. Do not run a second independent E1 on the same semantic question; reconcile as one research result, not replication.",
+    "adjacent_e2_owner": "research/tool_intelligence/claims/R6-20260830-RUNTIME-SUBJECT-BOUNDARY-FINGERPRINT-GPT56SOL-01/E2_ARCHITECTURE_MAPPED.json",
+    "adjacent_e2_disposition": "Boundary-fingerprint architecture mapping is already separately claimed; hand these E1 source findings forward and do not duplicate that E2 objective."
+  },
+  "next_exact_action": "Consume this E1 evidence in the already-claimed runtime-subject boundary-fingerprint E2 objective; test whether a conservative deterministic boundary/dependency fingerprint can make the current churn throttle narrower without creating false invariance.",
+  "research_credit": "E1_SOURCE_READ_ONLY",
+  "runtime_credit": 0,
+  "whole_system_credit": 0
+}
