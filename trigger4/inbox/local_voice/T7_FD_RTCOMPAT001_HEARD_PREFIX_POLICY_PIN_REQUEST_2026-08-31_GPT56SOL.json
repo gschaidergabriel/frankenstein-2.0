@@ -1,0 +1,67 @@
+{
+  "schema": "T7_TO_T4_POLICY_ROUTE_DELTA_V1",
+  "created_at": "2026-08-31T04:15:30+07:00",
+  "trigger": "7",
+  "organ": "GPT-5.6-Sol",
+  "research_id": "T7-FD-RTCOMPAT-001",
+  "classification": "NON_DUPLICATIVE_PRODUCT_POLICY_PIN_REQUEST",
+  "same_semantic_claim": true,
+  "new_runtime_dispatch": false,
+  "new_workpackage_generation": false,
+  "new_release_or_effect_authority": false,
+  "research_delta": "research/local_voice/deltas/2026-08-31_T7_HEARD_PREFIX_POLICY_PRIMARY_EVIDENCE_GPT56SOL.json",
+  "existing_falsifier_lane": [
+    "research/local_voice/falsifiers/2026-08-31_HF_S2S_HEARD_PREFIX_RETENTION_DELTA_GPT56SOL.json",
+    "trigger4/inbox/local_voice/T7_FD_RTCOMPAT001_HF10_CONTROLLER_ROUTE_2026-08-31_GPT56SOL.json"
+  ],
+  "request": {
+    "owner": "Trigger4/product authority",
+    "policy_id_recommended": "F2_VOICE_INTERRUPTION_CONTEXT_HEARD_PREFIX_V1",
+    "pin_semantics": {
+      "ephemeral_next_turn_context": "retain exactly the assistant prefix bounded by measured playback actually heard by the user",
+      "unheard_tail": "exclude",
+      "durable_memory": "no automatic admission; existing independent memory gate remains authoritative",
+      "effects_tools": "no rollback/promotion inferred from speech interruption; existing deterministic effect/tool ownership remains authoritative"
+    },
+    "why_now": "Current F2 source separates commit eligibility from next-turn context but does not pin partial-heard retention semantics. Current primary OpenAI Agents and LiveKit realtime guidance independently converge on truncating conversation state to actual heard playback position.",
+    "do_not": [
+      "do not create a duplicate HF09/HF10 runtime lane",
+      "do not reopen accepted F2-WP-715 G1",
+      "do not redispatch the old direct frankenstein-2.0 queued runner path",
+      "do not widen durable memory/effect/completion credit",
+      "do not treat response.done as proof that generated but unheard audio belongs in next-turn context"
+    ]
+  },
+  "required_acceptance_test_after_policy_pin": {
+    "route": "existing proven controller -> vps-clay-host -> bounded Ubuntu/clay-direct-dev path",
+    "reuse_hf09_hf10": true,
+    "measure": [
+      "response and item identity",
+      "actual sink/heard playback position",
+      "conversation.item.truncate audio_end_ms or equivalent",
+      "heard-prefix digest",
+      "unheard-tail digest",
+      "post-interruption raw history digest",
+      "next-turn effective model-context digest",
+      "late cancelled output/tool disposition",
+      "durable memory write count"
+    ],
+    "product_negative_if_policy_pinned": [
+      "unheard tail remains authoritative in next-turn effective context",
+      "heard prefix is deleted from next-turn effective context",
+      "late cancelled generation regains conversational ownership",
+      "speech interruption itself mints or rolls back durable memory/effect authority outside existing gates"
+    ]
+  },
+  "credit_before_trigger4": {
+    "research_evidence": 1,
+    "canonical_policy": 0,
+    "hf_protocol_runtime": 0,
+    "trigger4_acceptance": 0,
+    "german_e2e_voice": 0,
+    "durable_memory": 0,
+    "effect": 0,
+    "whole_product": 0
+  },
+  "next_exact_action": "Trigger4 pins or explicitly rejects the proposed interrupted-response next-turn context policy in current F2 authority, then reuses the already-existing HF09/HF10 controller-runtime lane to obtain exact readback. Trigger7 consumes that result; no duplicate dispatch is authorized by this packet."
+}
