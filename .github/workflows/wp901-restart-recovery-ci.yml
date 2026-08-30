@@ -1,0 +1,45 @@
+name: F2 WP901 G1 Restart Recovery CI
+
+on:
+  push:
+    branches:
+      - main
+      - trigger4/wp901-restart-recovery-continuation-20260830
+    paths:
+      - 'src/frankenstein2/restart_recovery_continuation.py'
+      - 'src/frankenstein2/persistent_agency_kernel.py'
+      - 'src/frankenstein2/whole_persistent_loop.py'
+      - 'tests/test_restart_recovery_continuation.py'
+      - 'workpackages/deltas/F2-WP-901/**'
+      - '.github/workflows/wp901-restart-recovery-ci.yml'
+  pull_request:
+    paths:
+      - 'src/frankenstein2/restart_recovery_continuation.py'
+      - 'src/frankenstein2/persistent_agency_kernel.py'
+      - 'src/frankenstein2/whole_persistent_loop.py'
+      - 'tests/test_restart_recovery_continuation.py'
+      - 'workpackages/deltas/F2-WP-901/**'
+      - '.github/workflows/wp901-restart-recovery-ci.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  deterministic:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Compile
+        run: >-
+          python -m py_compile
+          src/frankenstein2/restart_recovery_continuation.py
+          tests/test_restart_recovery_continuation.py
+      - name: Restart/recovery fail-closed suite
+        env:
+          PYTHONPATH: src
+        run: python -m unittest discover -s tests -p 'test_restart_recovery_continuation.py' -v
