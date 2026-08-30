@@ -1,0 +1,34 @@
+name: REVIEW WP206 DB Authority Receipt Replay Falsifier
+
+on:
+  pull_request:
+    paths:
+      - 'src/frankenstein2/persistent_agency_kernel.py'
+      - 'src/state/unifieddb_identity.py'
+      - 'tests/wp206_restart_probe.py'
+      - 'tests/test_wp206_db_authority_receipt_falsifier.py'
+      - '.github/workflows/wp206-db-authority-receipt-falsifier.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  authority-receipt-replay-falsifier:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Compile exact review surface
+        run: >-
+          python -m py_compile
+          src/frankenstein2/persistent_agency_kernel.py
+          tests/wp206_restart_probe.py
+          tests/test_wp206_db_authority_receipt_falsifier.py
+      - name: Run positive control and fail-closed falsifier
+        env:
+          PYTHONPATH: src
+        run: python tests/test_wp206_db_authority_receipt_falsifier.py -v
