@@ -1,0 +1,57 @@
+{
+  "schema": "TRIGGER6_RESEARCH_RECEIPT/v1",
+  "research_id": "R6-20260830-WORKPACKAGE-STATUS-MATERIALIZED-PROJECTION-GPT56SOL-01",
+  "evidence_stage": "E1_SOURCE_READ",
+  "status": "COMPLETED",
+  "observed_at": "2026-08-30T19:22:00+07:00",
+  "worker": "GPT-5.6 Sol / ChatGPT organ",
+  "trigger": "6",
+  "claim_commit": "a16e1acdbd35e5db424620284fa664a8fbb7c84f",
+  "architecture_problem": "F2 aggregate workpackage surfaces can drift behind granular terminal receipts/reconciliations, creating duplicate-work and false-priority risk. A prior Trigger-6 fusion already observed WP301/WP302 aggregate-vs-granular disagreement.",
+  "primary_sources": [
+    {
+      "source": "Microsoft Azure Architecture Center — CQRS Pattern",
+      "url": "https://learn.microsoft.com/en-us/azure/architecture/patterns/cqrs",
+      "finding": "When event sourcing is combined with CQRS, the event store remains the source of truth and read models/materialized views are derived and rebuildable; asynchronous read models may lag."
+    },
+    {
+      "source": "Microsoft Azure Architecture Center — Materialized View Pattern",
+      "url": "https://learn.microsoft.com/en-us/azure/architecture/patterns/materialized-view",
+      "finding": "A materialized view is a disposable specialized cache that can be rebuilt from source data and should not be directly updated by the application."
+    },
+    {
+      "source": "KurrentDB/EventStoreDB — Introduction to projections",
+      "url": "https://docs.kurrent.io/server/v26.1/features/projections/intro",
+      "finding": "Projection-owned output must not be mutated externally because that destroys projection predictability; reset returns to the source stream/checkpoint model and rebuilds from source."
+    },
+    {
+      "source": "KurrentDB/EventStoreDB — Event streams / projection ordering",
+      "url": "https://docs.kurrent.io/server/v24.10/features/streams",
+      "finding": "Projection checkpoint/order streams make processing position and deterministic restart ordering explicit."
+    },
+    {
+      "source": "Marten — Async Projections Daemon",
+      "url": "https://martendb.io/events/projections/async-daemon.html",
+      "finding": "A high-water mark is held behind known sequence gaps so projections do not claim ordered progress past unresolved holes; projections can be rebuilt from source events."
+    },
+    {
+      "source": "Marten — Rebuilding Projections",
+      "url": "https://martendb.io/events/projections/rebuilding",
+      "finding": "Projection rebuild and projection-versioning are explicit operations; old/new projection versions can coexist while a new version catches up."
+    }
+  ],
+  "source_convergence": [
+    "Granular authoritative evidence should remain separate from derived aggregate views.",
+    "Derived aggregate status should be reproducible from authoritative inputs, not directly edited as independent truth.",
+    "Projection progress/freshness must be explicit; a stale projection is not authoritative merely because it is internally consistent.",
+    "Projection algorithm/schema changes require rebuild/versioning rather than silent reinterpretation.",
+    "Output ownership must be single-writer/projector-owned to prevent untraceable drift."
+  ],
+  "f2_fit_hypothesis": "Adopt the projection pattern structurally, not the external frameworks. A small deterministic F2 projector should derive machine and human workpackage status from exact granular terminal receipts/reconciliations and preserve conflicts/freshness metadata.",
+  "counterhypothesis": "Manual aggregate maintenance plus periodic reconciliation may be simpler and sufficient; a projector could add complexity or encode wrong precedence rules and thereby automate false promotion.",
+  "next_discriminator": "E2 map the smallest deterministic projection contract against current F2 evidence precedence and explicit conflict cases; require fail-closed CONFLICTED/STALE states and no runtime-credit promotion.",
+  "dependency_import_recommendation": "NONE_AT_E1",
+  "research_credit": "E1_ONLY",
+  "runtime_credit": 0,
+  "whole_system_credit": 0
+}
