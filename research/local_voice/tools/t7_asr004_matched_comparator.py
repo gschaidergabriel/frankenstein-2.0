@@ -197,6 +197,7 @@ def prepare_fixtures(root: Path) -> tuple[list[dict[str, Any]], list[dict[str, A
         FLEURS_CONFIG,
         revision=FLEURS_REVISION,
         split="test",
+        trust_remote_code=True,
     )
     ds = ds.cast_column("audio", Audio(decode=False))
     speech: list[dict[str, Any]] = []
@@ -253,6 +254,7 @@ def prepare_fixtures(root: Path) -> tuple[list[dict[str, Any]], list[dict[str, A
         "datasets_version": importlib.metadata.version("datasets"),
         "load_seconds": time.perf_counter() - t0,
         "resolved_revision_requested": FLEURS_REVISION,
+        "trust_remote_code": True,
     }
 
 
@@ -661,7 +663,7 @@ def bootstrap_and_reexec(output: Path) -> int:
                 f"qwen-asr=={QWEN_ASR_VERSION}",
                 "faster-whisper==1.2.1",
                 "webrtcvad-wheels==2.0.14",
-                "datasets",
+                "datasets==3.6.0",
                 "soundfile",
                 "psutil",
             ],
