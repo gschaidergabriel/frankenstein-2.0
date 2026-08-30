@@ -232,6 +232,68 @@ class VoicePacketCortexTests(unittest.TestCase):
                          ("WAIT", "BACKCHANNEL", "TOOL_USE"))
         self.assertEqual(tool.tool_ref, "tool:status-read")
 
+    def test_cancelled_turn_rejects_late_tool_result(self) -> None:
+        cortex = VoicePacketCortex(self.session())
+        cortex.queue_output(
+            turn_id="turn-0", packet_id="output-tool", monotonic_ms=100,
+            text_segment="Ich prüfe das.", expression_intent="neutral", speech_act="ANSWER",
+            planned_audio_duration_ms=500, sequence=0,
+        )
+        cortex.advance_output("output-tool", playback_state="started", monotonic_ms=110, heard_fraction=0.0)
+        cortex.emit_intent(
+            turn_id="turn-0", monotonic_ms=115, voice_intent="TOOL_USE", tool_ref="tool:late"
+        )
+        cortex.cancel_for_barge_in(turn_id="turn-1", monotonic_ms=120)
+        with self.assertRaises(VoicePacketCortexError):
+            cortex.emit_system_event(
+                turn_id="turn-0", monotonic_ms=130, event_kind="TOOL_RESULT", tool_ref="tool:late"
+            )
+
+    def test_cancelled_unheard_output_cannot_mint_result_reference(self) -> None:
+        session = self.session()
+        cortex = VoicePacketCortex(session)
+        cortex.queue_output(
+            turn_id="turn-0", packet_id="output-cancelled", monotonic_ms=10,
+            text_segment="Nicht gehört", expression_intent="neutral", speech_act="ANSWER",
+            planned_audio_duration_ms=500, sequence=0,
+        )
+        cortex.cancel_for_barge_in(turn_id="turn-1", monotonic_ms=20)
+        with self.assertRaises(VoicePacketCortexError):
+            cortex.close_session(
+                turn_id="turn-close", monotonic_ms=30,
+                outcome_causal_identity=session.session_causal_identity.derive(
+                    causal_id="causal-outcome-cancelled", generation=5, turn_id="turn-outcome-cancelled"
+                ),
+                outcome_kind=OUTCOME_RETURNED,
+                result_ref="voice-result:unheard",
+                result_sha256="c" * 64,
+            )
+
+    def test_duplicate_close_same_identity_is_idempotent(self) -> None:
+        session = self.session()
+        cortex = VoicePacketCortex(session)
+        cortex.queue_output(
+            turn_id="turn-0", packet_id="output-close", monotonic_ms=10,
+            text_segment="Fertig", expression_intent="neutral", speech_act="CLOSE",
+            planned_audio_duration_ms=100, sequence=0,
+        )
+        cortex.advance_output("output-close", playback_state="started", monotonic_ms=20, heard_fraction=0.0)
+        cortex.advance_output("output-close", playback_state="completed", monotonic_ms=120, heard_fraction=1.0)
+        identity = session.session_causal_identity.derive(
+            causal_id="causal-outcome-idempotent", generation=5, turn_id="turn-outcome-idempotent"
+        )
+        first = cortex.close_session(
+            turn_id="turn-close", monotonic_ms=130,
+            outcome_causal_identity=identity, outcome_kind=OUTCOME_RETURNED,
+            result_ref="voice-result:idempotent", result_sha256="d" * 64,
+        )
+        second = cortex.close_session(
+            turn_id="turn-close", monotonic_ms=130,
+            outcome_causal_identity=identity, outcome_kind=OUTCOME_RETURNED,
+            result_ref="voice-result:idempotent", result_sha256="d" * 64,
+        )
+        self.assertEqual(second, first)
+
     def test_close_binds_existing_voice_outcome_contract(self) -> None:
         session = self.session()
         cortex = VoicePacketCortex(session)
