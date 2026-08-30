@@ -6,6 +6,10 @@ on:
       - review/trigger4-wp306-d14-memory-authority-falsifier-20260830
     paths:
       - 'src/frankenstein2/context_compiler.py'
+      - 'src/frankenstein2/epistemic_context_adapter.py'
+      - 'tests/test_context_compiler.py'
+      - 'tests/test_epistemic_context_adapter.py'
+      - 'tests/test_wp306_renderer_tokenizer_cost_binding_falsifier.py'
       - 'tests/test_wp306_d14_memory_authority_falsifier.py'
       - '.github/workflows/review-wp306-d14-memory-authority-falsifier.yml'
   workflow_dispatch:
@@ -22,9 +26,28 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-      - name: Compile falsifier
-        run: python -m py_compile tests/test_wp306_d14_memory_authority_falsifier.py
-      - name: Run D14 candidate falsifier
+      - name: Compile review surfaces
+        run: >-
+          python -m py_compile
+          src/frankenstein2/context_compiler.py
+          src/frankenstein2/epistemic_context_adapter.py
+          tests/test_context_compiler.py
+          tests/test_epistemic_context_adapter.py
+          tests/test_wp306_renderer_tokenizer_cost_binding_falsifier.py
+          tests/test_wp306_d14_memory_authority_falsifier.py
+      - name: Run canonical ContextCompiler regression
+        env:
+          PYTHONPATH: src
+        run: python tests/test_context_compiler.py -v
+      - name: Run accepted epistemic adapter regression
+        env:
+          PYTHONPATH: src
+        run: python tests/test_epistemic_context_adapter.py -v
+      - name: Run accepted G4 cost-witness falsifier regression
+        env:
+          PYTHONPATH: src
+        run: python tests/test_wp306_renderer_tokenizer_cost_binding_falsifier.py -v
+      - name: Run D14 authority-boundary regression
         env:
           PYTHONPATH: src
         run: python tests/test_wp306_d14_memory_authority_falsifier.py -v
