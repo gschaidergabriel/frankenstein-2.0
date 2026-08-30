@@ -1,0 +1,52 @@
+{
+  "schema": "TRIGGER4_LOCAL_VOICE_HANDOFF/v1",
+  "from_trigger": "7",
+  "to_trigger": "4",
+  "research_id": "T7-ASR-004",
+  "objective": "E6_QWEN3_ASR_F2_VOCAB_CODESWITCH_FIXTURE_PIN",
+  "semantic_key": "db6ca9f9841745df3d390aad71dd3ac8203df4832b7cf06ee2782ddd4bb443c3",
+  "state": "SOURCE_SUCCESSOR_READY_AFTER_FLEURS_MATCHED_COMPARATOR",
+  "priority": "SUCCESSOR_NOT_CURRENT_PRIMARY",
+  "fixture_path": "research/local_voice/sources/2026-08-30_T7_ASR004_F2_VOCAB_CODESWITCH_FIXTURE_GPT56SOL.json",
+  "fixture_creation_commit": "4398a88798e3b50a1ae1963c8d873f34f785c246",
+  "coordination": {
+    "do_not_preempt_current_fleurs_gate": true,
+    "do_not_create_duplicate_t7_asr_004_runtime_dispatch": true,
+    "reuse_existing_target_executor": true,
+    "target_surface": "clay-direct-dev"
+  },
+  "requested_execution_after_fleurs": {
+    "audio": "record the pinned human-German utterances under the declared NEAR_CLEAN and ROOM_FAR profiles; persist SHA-256, byte count, duration, sample rate and channels for every file before inference",
+    "matched_pipelines": [
+      "Qwen3-ASR-0.6B raw decoder",
+      "Qwen3-ASR-0.6B behind deterministic F2 VAD/turn admission",
+      "current pinned faster-whisper baseline"
+    ],
+    "required_evidence": [
+      "raw transcripts",
+      "normalized transcripts",
+      "WER and CER",
+      "critical-token recall and exact misses using only predeclared aliases",
+      "language flip or translation errors",
+      "gate decisions",
+      "latency and resource measurements",
+      "exact source/model/runtime identities"
+    ]
+  },
+  "acceptance_fences": [
+    "FLEURS ordinary-German quality does not imply Frankenstein project-vocabulary quality.",
+    "A low aggregate WER cannot hide misses of project-critical model/runtime/control tokens.",
+    "Do not add scoring aliases after observing transcripts.",
+    "Synthetic TTS is diagnostic only and cannot replace the primary human-speech stratum.",
+    "Near-field success does not establish room/far-field performance.",
+    "Trigger7 source completion does not grant Trigger4 or whole-system acceptance."
+  ],
+  "credit": {
+    "source_fixture": 1,
+    "audio_observed": 0,
+    "target_runtime": 0,
+    "german_project_vocab_quality": 0,
+    "trigger4_acceptance": 0,
+    "whole_system": 0
+  }
+}
