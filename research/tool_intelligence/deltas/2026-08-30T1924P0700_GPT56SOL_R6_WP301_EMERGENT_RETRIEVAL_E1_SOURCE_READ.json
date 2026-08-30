@@ -1,0 +1,156 @@
+{
+  "schema": "FRANKENSTEIN2_TRIGGER6_SOURCE_RESEARCH_E1/v1",
+  "trigger": "6",
+  "slot": "SOURCE_ARCHAEOLOGIST",
+  "research_id": "R6-20260830-WP301-EMERGENT-RETRIEVAL-RANK-FUSION-GPT56SOL-01",
+  "claim_target": "E1_SOURCE_READ",
+  "status": "E1_SOURCE_READ_COMPLETE",
+  "completed_at": "2026-08-30T19:24:25+07:00",
+  "worker": "GPT-5.6 Sol / ChatGPT Trigger-6 organ",
+  "claim": "research/tool_intelligence/claims/R6-20260830-WP301-EMERGENT-RETRIEVAL-RANK-FUSION-GPT56SOL-01/E1_SOURCE_READ.json@6a0a51672b7ed9282a04a0fed19ba8cc6df8feb5",
+  "architecture_snapshot": {
+    "f2_main_observed_during_source_read": "485986bdeb88cbe3e09d789f8d17c60ae52d705d",
+    "trigger6_protocol_blob": "08571526d33f9a0c06577e2f119bdaf4297ef1c8",
+    "wp301_source": "src/frankenstein2/emergent_retrieval.py",
+    "wp301_source_blob": "8ca0c51bf88a79701ad188b9ccb0d7859feea944",
+    "wp301_tests": "tests/test_emergent_retrieval.py",
+    "wp301_tests_blob": "44ee5d1acd062bf6ccdc742bbadc97912ccde9a8",
+    "wp302_binding_source": "src/frankenstein2/familiarity_prediction_binding.py",
+    "wp302_binding_blob": "9519438f1587d7a9314ded1efbd0b87ed3d12152",
+    "wp302_prebinding_falsifier_test_blob": "3ff6645e951270cb03b78df4b21341226a36dd47"
+  },
+  "external_sources": [
+    {
+      "id": "RRF_ORIGINAL_2009",
+      "kind": "PRIMARY_PAPER_METADATA",
+      "title": "Reciprocal rank fusion outperforms condorcet and individual rank learning methods",
+      "authors": ["Gordon V. Cormack", "Charles L. A. Clarke", "Stefan Buettcher"],
+      "venue": "SIGIR 2009",
+      "doi": "10.1145/1571941.1572114",
+      "evidence_use": "RRF is a rank-level fusion method for combining multiple retrieval rankings."
+    },
+    {
+      "id": "SQLITE_FTS5_CURRENT_DOC",
+      "kind": "PRIMARY_VENDOR_DOC",
+      "url": "https://www.sqlite.org/fts5.html",
+      "retrieved_at": "2026-08-30",
+      "evidence_use": "FTS5 exposes deterministic lexical ordering through its rank column/default bm25() auxiliary function."
+    },
+    {
+      "id": "OPENSEARCH_HYBRID_CURRENT_DOC",
+      "kind": "PRIMARY_VENDOR_DOC",
+      "url": "https://docs.opensearch.org/latest/vector-search/ai-search/hybrid-search/index/",
+      "retrieved_at": "2026-08-30",
+      "evidence_use": "Score-based fusion requires normalization to a common scale and preserves margins; rank-based RRF avoids score-scale comparability but discards score magnitudes."
+    },
+    {
+      "id": "OPENSEARCH_RRF_CURRENT_DOC",
+      "kind": "PRIMARY_VENDOR_DOC",
+      "url": "https://docs.opensearch.org/latest/vector-search/ai-search/hybrid-search/rrf/",
+      "retrieved_at": "2026-08-30",
+      "evidence_use": "RRF score is rank consensus rather than relevance magnitude; docs caution against using it as min-score relevance or comparing it across queries."
+    },
+    {
+      "id": "ELASTIC_RRF_CURRENT_DOC",
+      "kind": "PRIMARY_VENDOR_DOC",
+      "url": "https://www.elastic.co/docs/reference/elasticsearch/rest-apis/reciprocal-rank-fusion",
+      "retrieved_at": "2026-08-30",
+      "evidence_use": "Independent retriever result lists are fused with explicit rank_constant and rank_window_size; fixed window affects consistency."
+    },
+    {
+      "id": "SQLITE_VEC_PIN",
+      "kind": "EXTERNAL_SOURCE_PIN",
+      "repository": "asg017/sqlite-vec",
+      "commit": "04d28bd21773981e2d266bbf6aa4efbd011eb4f6",
+      "readme_blob": "f367dcf6ac8a3da75bca39403337af255688c8b9",
+      "evidence_use": "Small SQLite-local vector KNN option; upstream explicitly labels project pre-v1 with breaking changes expected."
+    }
+  ],
+  "observed_current_wp301": {
+    "already_present": [
+      "Seven explicit retrieval axes: goal, semantic, causal, temporal, state, provenance and confidence.",
+      "Caller-supplied integer basis-point signals with per-signal evidence refs.",
+      "RetrievalNeed carries axis weights, min_overlap_axes, limit and evidence refs.",
+      "Candidate and plan digests provide deterministic identity at the interface.",
+      "Missing required axes fail closed; duplicate axes and duplicate memory IDs fail closed.",
+      "Superseded memories are redirect-only and never leak payload refs.",
+      "Eligible results are deterministically sorted with stable memory identity/digest tie-breakers.",
+      "Tests explicitly establish input-order invariance and provenance preservation at component source/test scope."
+    ],
+    "current_score_rule": {
+      "weighted_score_bp": "floor(sum(score_bp[axis] * weight_bp[axis]) / sum(weight_bp))",
+      "overlap_axes": "all required axes with score_bp > 0",
+      "rank_score": "weighted_score_bp * overlap_count"
+    },
+    "authority_boundary": "The planner states RETRIEVAL_REFERENCE != OBSERVATION, RETRIEVAL_SCORE != TRUTH and MEMORY != CURRENT_WORLD_FACT; no UnifiedDB access or effect authority is present in the module."
+  },
+  "source_level_gap": {
+    "id": "WP301_SCORE_SEMANTICS_NOT_BOUND",
+    "finding": "All signals are numerically bounded to 0..10000 basis points, but the interface does not bind a score generator/version, score semantics, calibration population/window, scale identity or calibration evidence. Arithmetic averaging therefore assumes cross-axis commensurability that is not encoded by the contract.",
+    "downstream_relevance": "WP302 validates that WP301 weighted scores are internally derived and then uses the maximum selected weighted_score_bp as familiarity_bp. Digest integrity therefore protects the arithmetic from post-hoc forgery but does not establish that the original heterogeneous signal magnitudes were calibrated to comparable meanings.",
+    "epistemic_class": "CURRENT_SOURCE_PLUS_INFERENCE"
+  },
+  "source_level_falsifier": {
+    "id": "WP301_ONE_BP_OVERLAP_DISCONTINUITY",
+    "premise": "Use equal weights on three axes and min_overlap_axes=2, exactly supported by the current API.",
+    "candidate_a_scores": [7000, 7000, 0],
+    "candidate_a_weighted_score_bp": 4666,
+    "candidate_a_overlap_count": 2,
+    "candidate_a_rank_score": 9332,
+    "candidate_b_scores": [5000, 5000, 1],
+    "candidate_b_weighted_score_bp": 3333,
+    "candidate_b_overlap_count": 3,
+    "candidate_b_rank_score": 9999,
+    "result": "Candidate B outranks A because a 1-bp third-axis signal changes overlap_count from 2 to 3, even though A is materially stronger on both non-zero axes. This is a deterministic consequence of the current formula, not runtime evidence.",
+    "epistemic_class": "DETERMINISTIC_SOURCE_DERIVATION"
+  },
+  "research_hypothesis": {
+    "statement": "WP301 should distinguish calibrated score fusion from ordinal rank fusion instead of treating a common numeric range as proof of common score meaning. It should also make overlap support threshold semantics explicit so tiny non-zero scores cannot receive a full discrete overlap multiplier unintentionally.",
+    "confidence": 0.94
+  },
+  "counterhypotheses": [
+    {
+      "id": "C1_BASIS_POINTS_ALREADY_CALIBRATED_BY_CALLER",
+      "statement": "The caller may already guarantee that every 0..10000 score has the same calibrated relevance meaning, so extra calibration metadata could be redundant schema weight.",
+      "falsifier": "Trace actual WP301 signal producers and show a shared score contract plus equivalent calibration semantics across all active axes. No such contract was observed in the WP301 interface during E1."
+    },
+    {
+      "id": "C2_RRF_REPLACEMENT",
+      "statement": "Replace score fusion entirely with RRF because rank positions are scale-independent.",
+      "counterevidence": "Current OpenSearch documentation explicitly separates score-based and rank-based fusion: RRF discards score magnitudes and its fused score is not a relevance magnitude suitable for min-score/abstention semantics. A full replacement would throw away information WP302 currently consumes as familiarity.",
+      "decision": "REJECT_WHOLESALE_REPLACEMENT"
+    },
+    {
+      "id": "C3_IMPORT_SEARCH_FRAMEWORK",
+      "statement": "Adopt Elasticsearch/OpenSearch as the retrieval authority.",
+      "counterevidence": "The useful fusion mechanics are small and deterministic; importing a server/search stack would create unnecessary state/dependency/runtime cost and risk a second authority. F2 can structurally distill the fusion contract instead."
+    }
+  ],
+  "candidate_generator_notes": {
+    "lexical": "SQLite FTS5 can provide a rebuildable lexical ranked-list generator inside the SQLite ecosystem; its rank/bm25 output must remain a derived retrieval signal, not canonical truth.",
+    "vector": "sqlite-vec is a plausible small local vector candidate generator, but because the pinned upstream source is explicitly pre-v1 it should be optional, ABI-isolated and rebuildable; no WP301 design should depend on it for authority or schema stability.",
+    "no_import_decision": "No external retrieval library is promoted by E1."
+  },
+  "e1_decision": {
+    "architecture_delta_warranted": true,
+    "reason": "The current source has a precise unencoded calibration assumption and a discrete overlap discontinuity; external primary/vendor evidence shows score-based and rank-based fusion solve different problems and should not be conflated.",
+    "recommended_next_objective": "E2_ARCHITECTURE_MAPPED",
+    "build_candidate": false,
+    "trigger4_handoff": false
+  },
+  "evidence_ceiling": {
+    "level": "E1_SOURCE_READ",
+    "source_read": true,
+    "external_primary_or_vendor_docs_read": true,
+    "architecture_mapping_complete": false,
+    "tests_observed": true,
+    "tests_executed_by_this_research": false,
+    "f2_ablation_executed": false,
+    "architecture_credit": 0,
+    "runtime_credit": 0,
+    "physical_grid10_credit": 0,
+    "whole_system_credit": 0,
+    "training_credit": 0
+  },
+  "pending_research_sqlite_sync": "PENDING"
+}
