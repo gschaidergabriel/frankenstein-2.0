@@ -1,0 +1,34 @@
+name: WP901 source-bound recovery review CI
+
+on:
+  pull_request:
+    paths:
+      - 'src/frankenstein2/restart_recovery_source_binding.py'
+      - 'tests/test_restart_recovery_source_binding.py'
+      - '.github/workflows/wp901-source-binding-review-ci.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  source-bound-recovery-candidate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout exact review ref
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - name: Compile accepted WP901 and source-binding candidate
+        run: >-
+          python -m py_compile
+          src/frankenstein2/restart_recovery_continuation.py
+          src/frankenstein2/restart_recovery_source_binding.py
+          tests/test_restart_recovery_continuation.py
+          tests/test_restart_recovery_source_binding.py
+      - name: Run accepted WP901 regressions plus source-binding falsifiers
+        env:
+          PYTHONPATH: src
+        run: >-
+          python -m unittest -v
+          tests.test_restart_recovery_continuation
+          tests.test_restart_recovery_source_binding
