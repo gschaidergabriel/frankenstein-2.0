@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 import os
 from pathlib import Path
+import sqlite3
 import sys
 
 from frankenstein2.agency_state import AgencyState, Interest, OpenLoop
@@ -134,9 +135,31 @@ def _open_store():
     return resolution, fingerprint, store
 
 
+def _prepare_write_journal_mode() -> str:
+    """Establish WAL before the monitored long-lived store connection begins.
+
+    WP206 G5 treats a change in ``PRAGMA main.data_version`` during one store connection
+    lifetime as evidence that another SQLite connection committed a logical revision.
+    Switching DELETE -> WAL after that monitor begins can itself move the observed
+    data_version, so the restart fixture must finish this bootstrap transition first.
+    """
+    resolution = _resolution()
+    connection = sqlite3.connect(Path(resolution.path))
+    try:
+        mode = str(connection.execute("PRAGMA journal_mode=WAL").fetchone()[0]).upper()
+        if mode != "WAL":
+            raise RuntimeError(f"WAL journal mode unavailable: {mode}")
+        return mode
+    finally:
+        connection.close()
+
+
 def write_fixture():
+    expected_mode = _prepare_write_journal_mode()
     resolution, fingerprint, store = _open_store()
-    mode = store.connection.execute("PRAGMA journal_mode=WAL").fetchone()[0]
+    mode = str(store.connection.execute("PRAGMA journal_mode").fetchone()[0]).upper()
+    if mode != expected_mode:
+        raise RuntimeError(f"journal mode drift after monitored store open: {mode}")
     store.connection.execute("PRAGMA wal_autocheckpoint=0")
     store.initialize_schema()
     checkpoint = _fixture_checkpoint()
@@ -147,7 +170,7 @@ def write_fixture():
         "resolved_path": str(Path(resolution.path).resolve()),
         "db_authority_receipt": fingerprint.receipt_sha256(),
         "checkpoint_sha256": digest,
-        "journal_mode": str(mode).upper(),
+        "journal_mode": mode,
         "wal_exists_before_exit": wal.exists(),
         "wal_size_before_exit": wal.stat().st_size if wal.exists() else 0,
     }
