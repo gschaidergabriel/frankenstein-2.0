@@ -40,13 +40,71 @@
     ],
     "product_negative_if": "Any assistant semantics classified by F2 as unheard influence a later model turn, tool/effect decision or committed conversation state without an explicit F2-owned authoritative-history reconstruction boundary."
   },
+  "integrated_addenda": [
+    {
+      "id": "HF10_POST_DONE_PLAYOUT_LAG_CONTEXT_EXACTNESS",
+      "source": "trigger4/inbox/local_voice/T7_FD_RTCOMPAT001_HF10_POST_DONE_PLAYOUT_RACE_ADDENDUM_2026-08-31_GPT56SOL.json",
+      "integration_status": "ADOPTED_FOR_NEXT_VALID_EXECUTION_NO_RUNTIME_CREDIT",
+      "reason": "response.done can precede client playout completion; post-done cancellation/truncate must be discriminated against F2 measured heard/commit boundaries before protocol compatibility is promoted",
+      "required_procedure": [
+        "generate deterministic assistant markers A/B/C with enough buffered output that response.done can precede client playout completion",
+        "throttle or pause client playout until response.done is observed while B/C remain unplayed",
+        "record response.done, client-received and F2 measured-playback boundaries separately",
+        "after response.done but before playout completion execute ordinary F2 barge-in/playback-clear and conversation.item.truncate at the measured boundary",
+        "capture raw server Chat after done, after cancel and after truncate plus exact next-turn effective model context",
+        "inject duplicate, stale and out-of-range truncate plus a late old-turn tool result and verify no newer-turn mutation or ownership resurrection",
+        "record WebSocket client-buffered and WebRTC output-buffer-clear observations separately"
+      ],
+      "must_record": [
+        "f2_exact_source_sha",
+        "speech_to_speech_revision",
+        "response_key_and_item_id",
+        "server_response_done_monotonic_ms",
+        "client_received_output_boundary_ms",
+        "f2_measured_playback_boundary_ms",
+        "truncate_audio_end_ms",
+        "raw_server_chat_digest_after_done",
+        "raw_server_chat_digest_after_cancel",
+        "raw_server_chat_digest_after_truncate",
+        "next_turn_effective_model_context_digest",
+        "marker_A_disposition",
+        "marker_B_disposition",
+        "marker_C_disposition",
+        "late_tool_result_disposition",
+        "late_audio_disposition",
+        "transport_kind"
+      ],
+      "product_negative_if_executed": [
+        "cancelled or otherwise non-commit-eligible assistant semantics regain authoritative next-turn influence",
+        "a late cancelled-generation tool result or output regains ownership",
+        "playback continues beyond the admitted measured cancellation boundary",
+        "duplicate, stale or out-of-range cancellation/truncate corrupts a newer turn"
+      ]
+    }
+  ],
+  "runtime_dispatch_fence": {
+    "previous_run_id": 33328707636,
+    "previous_subject_sha": "db01bfbcc2deebc45524b56407a681b226de7b78",
+    "previous_classification": "RUNTIME_PROBE_INVALIDATED_BY_REQUIRED_REPAIR",
+    "current_exact_source_run_id": 33334747338,
+    "current_exact_source_sha": "53bbd87337b263ecca5151b4c54d5afdc60330b0",
+    "current_state_observed": "QUEUED_ZERO_EXECUTED_STEPS",
+    "manual_duplicate_dispatch_created": false,
+    "hf10_is_not_runtime_evidence_by_association": true,
+    "runtime_subject_churn_allowed": false
+  },
   "acceptance_scope": "bounded local realtime protocol compatibility evidence only",
   "credit_before_execution": {
+    "source_control_flow_evidence": 1,
+    "hf10_executed_protocol_credit": 0,
     "trigger7_runtime_credit": 0,
     "trigger4_acceptance_credit": 0,
+    "target_runtime_credit": 0,
+    "german_e2e_voice_credit": 0,
+    "acoustic_credit": 0,
     "whole_voice_system_credit": 0,
     "whole_product_credit": 0
   },
-  "promotion_law": "Promote only actually executed and read-back scope. Protocol parsing, source inspection, README compatibility or a queued job cannot mint runtime credit.",
-  "next_exact_action": "Trigger4 should consume this existing semantic lane, execute the falsifier on the exact pinned subject in the lowest safe faithful VPS sandbox, classify any failure as PRODUCT_NEGATIVE / EVIDENCE_INVALID / INFRA_AUTH_TRANSPORT_QUOTA / CONCURRENCY_RETRY / UNKNOWN_NONTERMINAL, and return an exact receipt without opening a competing voice authority."
+  "promotion_law": "Promote only actually executed and read-back scope. Protocol parsing, source inspection, README compatibility, this HF10 adoption, or a queued job cannot mint runtime credit.",
+  "next_exact_action": "Do not create a duplicate runtime dispatch while 33334747338 is queued. Resolve the current exact-source singleton first. After a valid execution slot exists, run the same T7-FD-RTCOMPAT-001 semantic lane with HF10_POST_DONE_PLAYOUT_LAG_CONTEXT_EXACTNESS on pinned speech-to-speech revision 3986f453012a131632eee4731995474046846794 in the lowest safe faithful VPS sandbox and emit exact readback evidence."
 }
