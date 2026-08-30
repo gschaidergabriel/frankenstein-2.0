@@ -1,0 +1,60 @@
+{
+  "schema": "F2_WP715_SESSION_CLOSE_ATOMICITY_REPAIR_RECEIPT/v1",
+  "workpackage_id": "F2-WP-715",
+  "generation": 1,
+  "claim_id": "F2-WP-715-G1-GPT56SOL-PACKET-CORTEX-CONVERGENCE-20260831",
+  "trigger": "4",
+  "work_class": "INTEGRATION_BLOCKER",
+  "failure_class": "PRODUCT_NEGATIVE",
+  "candidate_falsifiers": [
+    "T7-WP715-SESSION-CLOSE-ACTIVE-TOOL-OWNERSHIP",
+    "T7-WP715-REJECTED-SESSION-CLOSE-ATOMICITY"
+  ],
+  "executed_negative": {
+    "test_commit": "d208f9fc0111fd0b625ac2a0e1980f4be056cf6c",
+    "repository_ci_run_id": 33334621717,
+    "result": "FAILURE",
+    "tests_total": 20,
+    "tests_failed": 2,
+    "failed_scopes": [
+      "successful SESSION_CLOSE silently erased active tool ownership without a cancellation/fence tombstone",
+      "rejected SESSION_CLOSE mutated checkpointable output.voiceoutcome_ref before late event validation failed"
+    ],
+    "other_packet_cortex_tests_passed": 18
+  },
+  "repair": {
+    "commit": "53bbd87337b263ecca5151b4c54d5afdc60330b0",
+    "strategy": [
+      "prevalidate caller-controlled SESSION_CLOSE turn_id and monotonic_ms before outcome/output mutation",
+      "fail closed while active tool ownership remains instead of silently clearing it"
+    ],
+    "repository_ci_run_id": 33334747307,
+    "repository_ci_result": "SUCCESS"
+  },
+  "runtime_subject_reconciliation": {
+    "previous_vps_run_id": 33328707636,
+    "previous_subject_sha": "db01bfbcc2deebc45524b56407a681b226de7b78",
+    "previous_state": "QUEUED_ZERO_EXECUTED_STEPS",
+    "classification": "RUNTIME_PROBE_INVALIDATED_BY_REQUIRED_REPAIR",
+    "current_exact_source_vps_run_id": 33334747338,
+    "current_exact_source_sha": "53bbd87337b263ecca5151b4c54d5afdc60330b0",
+    "current_state_at_receipt": "QUEUED",
+    "duplicate_manual_dispatch_created": false
+  },
+  "credit": {
+    "repository_component_regression_credit": 1,
+    "vps_packet_execution_observed": false,
+    "packet_component_runtime_credit": 0,
+    "acoustic_credit": 0,
+    "asr_runtime_credit": 0,
+    "tts_runtime_credit": 0,
+    "physical_device_credit": 0,
+    "gwt_runtime_credit": 0,
+    "jspace_runtime_credit": 0,
+    "effect_credit": 0,
+    "training_credit": 0,
+    "completion_credit": 0,
+    "whole_system_acceptance": false
+  },
+  "next_exact_action": "Resolve exact-source VPS workflow run 33334747338. Promote only its actually executed S1/S2 packet-cortex scope if runner identity, exact source binding, discriminator execution and readback are valid. QUEUED or zero-step remains zero runtime credit."
+}
