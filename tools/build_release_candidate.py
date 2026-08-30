@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Build one deterministic Frankenstein 2.0 release candidate from exact Git tree bytes.
 
-This is a Stage-11 production harness around the already accepted WP1107/WP1110
+This is a Stage-11 production harness around the already accepted WP1107/WP1110/WP1112
 components. It does not create a new release-integrity authority and does not mint
 clean-machine, target-host, effect, completion, or whole-system credit.
 
@@ -10,6 +10,7 @@ The payload source is the exact current Git tree, not the ambient checkout:
     HEAD tree -> canonical regular blobs/modes -> WP1107 deterministic ZIP
               -> WP1110 exact unopened-artifact subject
               -> WP1110 exact external pre-handoff receipt-content subject
+              -> WP1112 exact artifact-bound static-completeness receipt
 
 Untracked files and checkout-local mutations cannot enter the payload. Git symlinks,
 gitlinks/submodules, non-regular modes, non-UTF-8 paths, and non-ASCII paths fail closed.
@@ -30,6 +31,10 @@ SRC = ROOT / "src"
 if str(SRC) not in sys.path:
     sys.path.insert(0, str(SRC))
 
+from frankenstein2.artifact_bound_static_completeness import (
+    bind_release_artifact_static_completeness,
+)
+from frankenstein2.portable_release_static_completeness import STATIC_COMPLETE
 from frankenstein2.pre_handoff_release import READY_STATUS
 from frankenstein2.receipt_content_binding import bind_prehandoff_receipt_content
 from frankenstein2.release_archive import (
@@ -180,7 +185,6 @@ def build_bundle(output_dir: Path, *, artifact_filename: str, prehandoff_receipt
     except ValueError as exc:
         raise ReleaseCandidateBuildError("HEAD commit timestamp is not an integer") from exc
 
-    expected_source = None
     import os
     expected_source = os.environ.get("EXPECTED_SOURCE_SHA")
     if expected_source and source_commit != expected_source:
@@ -247,10 +251,29 @@ def build_bundle(output_dir: Path, *, artifact_filename: str, prehandoff_receipt
     if content_bound.status != READY_STATUS:
         raise ReleaseCandidateBuildError(f"receipt-content binding is not ready: {content_bound.status}")
 
+    static_bound = bind_release_artifact_static_completeness(
+        artifact_path,
+        policy=policy,
+        prehandoff_receipt_ref=prehandoff_receipt_ref,
+        expected_archive_receipt=build.receipt,
+    )
+    if static_bound.status != STATIC_COMPLETE or static_bound.static_violations:
+        raise ReleaseCandidateBuildError(
+            f"artifact-bound static completeness is not ready: status={static_bound.status} "
+            f"violations={static_bound.static_violations}"
+        )
+    if static_bound.artifact_subject != artifact_bound.subject:
+        raise ReleaseCandidateBuildError(
+            "WP1112 artifact subject differs from WP1110 pre-handoff artifact subject"
+        )
+
     archive_receipt_path = output_dir / "frankenstein-2.0-archive-receipt.json"
     archive_receipt_path.write_bytes(build.receipt.canonical_bytes())
     content_bound_path = output_dir / "frankenstein-2.0-content-bound-prehandoff.json"
     content_bound_path.write_bytes(content_bound.canonical_bytes())
+    static_bound_path = output_dir / "frankenstein-2.0-artifact-bound-static-completeness.json"
+    static_bound_bytes = static_bound.canonical_bytes()
+    static_bound_path.write_bytes(static_bound_bytes)
 
     bundle = {
         "schema": SCHEMA,
@@ -288,11 +311,23 @@ def build_bundle(output_dir: Path, *, artifact_filename: str, prehandoff_receipt
             "content_bound_sha256": content_bound.sha256(),
             "content_bound_status": content_bound.status,
         },
+        "artifact_bound_static_completeness": {
+            "filename": static_bound_path.name,
+            "sha256": _sha256(static_bound_bytes),
+            "receipt_sha256": static_bound.sha256(),
+            "status": static_bound.status,
+            "static_status": static_bound.static_status,
+            "static_violations": list(static_bound.static_violations),
+            "artifact_subject_sha256": static_bound.artifact_subject.sha256(),
+            "artifact_sha256": static_bound.artifact_sha256,
+            "release_manifest_sha256": static_bound.release_manifest_sha256,
+        },
         "files": {
             artifact_path.name: {"sha256": _sha256(artifact_path.read_bytes()), "size_bytes": artifact_path.stat().st_size},
             archive_receipt_path.name: {"sha256": _sha256(archive_receipt_path.read_bytes()), "size_bytes": archive_receipt_path.stat().st_size},
             external_prehandoff_path.name: {"sha256": _sha256(external_prehandoff_path.read_bytes()), "size_bytes": external_prehandoff_path.stat().st_size},
             content_bound_path.name: {"sha256": _sha256(content_bound_path.read_bytes()), "size_bytes": content_bound_path.stat().st_size},
+            static_bound_path.name: {"sha256": _sha256(static_bound_bytes), "size_bytes": len(static_bound_bytes)},
         },
         "credits": {
             "repository_release_build_credit": 1,
@@ -305,9 +340,9 @@ def build_bundle(output_dir: Path, *, artifact_filename: str, prehandoff_receipt
             "whole_system_acceptance": False,
         },
         "next_exact_action": (
-            "Run the exact archive plus exact external pre-handoff receipt bytes on real clean-machine "
-            "Claude Code, Codex CLI, other-agent, no-VPS baseline, and VPS-bridge cases; bind every "
-            "observation to these same artifact and receipt-content subjects before any runtime promotion."
+            "Run this same exact archive, pre-handoff receipt-content subject, and WP1112 artifact-bound "
+            "static subject on admitted real clean-machine Claude Code, Codex CLI, other-agent, no-VPS "
+            "baseline, and VPS-bridge cases before any runtime promotion."
         ),
     }
     index_path = output_dir / "release-bundle-index.json"
