@@ -1,0 +1,68 @@
+name: WP901 G4 persisted row attestation CI
+
+on:
+  push:
+    branches:
+      - chatgpt/trigger4-wp901-g4-persisted-row-attestation-20260830
+    paths:
+      - 'src/frankenstein2/restart_recovery_continuation.py'
+      - 'src/frankenstein2/restart_recovery_source_authentication.py'
+      - 'src/frankenstein2/restart_recovery_persisted_row_attestation.py'
+      - 'src/frankenstein2/persistent_agency_kernel.py'
+      - 'tests/test_restart_recovery_continuation.py'
+      - 'tests/test_restart_recovery_source_authentication.py'
+      - 'tests/test_restart_recovery_persisted_row_attestation.py'
+      - '.github/workflows/wp901-g4-persisted-row-attestation-ci.yml'
+      - 'workpackages/active/F2-WP-901.json'
+  pull_request:
+    paths:
+      - 'src/frankenstein2/restart_recovery_continuation.py'
+      - 'src/frankenstein2/restart_recovery_source_authentication.py'
+      - 'src/frankenstein2/restart_recovery_persisted_row_attestation.py'
+      - 'src/frankenstein2/persistent_agency_kernel.py'
+      - 'tests/test_restart_recovery_continuation.py'
+      - 'tests/test_restart_recovery_source_authentication.py'
+      - 'tests/test_restart_recovery_persisted_row_attestation.py'
+      - '.github/workflows/wp901-g4-persisted-row-attestation-ci.yml'
+      - 'workpackages/active/F2-WP-901.json'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  wp901-g4:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Compile accepted and successor restart surfaces
+        run: |
+          python -m py_compile \
+            src/frankenstein2/restart_recovery_continuation.py \
+            src/frankenstein2/restart_recovery_source_authentication.py \
+            src/frankenstein2/restart_recovery_persisted_row_attestation.py \
+            tests/test_restart_recovery_persisted_row_attestation.py
+      - name: Run accepted G2 restart regressions
+        env:
+          PYTHONPATH: src:.
+        run: python -m unittest tests.test_restart_recovery_continuation
+      - name: Run accepted G3 source-authentication regressions
+        env:
+          PYTHONPATH: src:.
+        run: python -m unittest tests.test_restart_recovery_source_authentication
+      - name: Run G4 persisted-row/load-attestation regressions
+        env:
+          PYTHONPATH: src:.
+        run: python -m unittest tests.test_restart_recovery_persisted_row_attestation
+      - name: Credit fence
+        run: |
+          echo 'repository_component_scope=WP206_PERSISTED_CHECKPOINT_ROW_LOAD_ATTESTATION_ONLY'
+          echo 'wp900_persisted_seal_attestation=NOT_OBSERVED'
+          echo 'target_host_runtime_credit=0'
+          echo 'physical_grid10_credit=0'
+          echo 'gwt_jspace_credit=0'
+          echo 'effect_completion_training_whole_system_credit=0'
