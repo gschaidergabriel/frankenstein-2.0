@@ -1,0 +1,82 @@
+{
+  "schema": "F2_TRIGGER6_RESEARCH_RESULT/v1",
+  "research_id": "R6-WP803-PROPER-SCORING-CALIBRATION",
+  "evidence_stage": "E1_SOURCE_READ",
+  "status": "COMPLETE_AT_SCOPE",
+  "recorded_at": "2026-08-30T16:52:00+07:00",
+  "worker": "gpt-5.6-sol",
+  "claim_ref": "research/tool_intelligence/claims/R6-WP803-PROPER-SCORING-CALIBRATION/E1_SOURCE_READ.json",
+  "claim_commit": "615c07af4b9cde6496672d66a6b699e05def82d1",
+  "snapshot_f2_ref": "615c07af4b9cde6496672d66a6b699e05def82d1",
+  "research_entity_main_sha": "4c63063eaa24a1c7ce8f756fe8dc25e9160ac671",
+  "f2_source_observed": {
+    "active_pointer": "workpackages/active/F2-WP-803.json",
+    "active_generation": 2,
+    "active_scope": "PREDECLARED_RUN_ADMISSION_BOUND_WORLD_MODEL_PREDICTION_REPOSITORY_HOSTED_COMPONENT_CI_ONLY",
+    "canonical_source": "src/frankenstein2/cognitive_world_model_prediction_benchmark.py",
+    "current_outcomes": ["CORRECT", "INCORRECT", "ABSTAINED"],
+    "current_score_deltas": {"CORRECT": 1, "INCORRECT": -1, "ABSTAINED": 0},
+    "probability_distribution_field_present": false,
+    "successor_research_falsifier_commit": "68a2afa45cadf52901e0b696f13c0b17396dbf9e",
+    "runtime_credit": 0,
+    "whole_system_acceptance": false
+  },
+  "external_primary_sources": [
+    {
+      "source": "Gneiting & Raftery (2007), Strictly Proper Scoring Rules, Prediction, and Estimation",
+      "doi": "10.1198/016214506000001437",
+      "url": "https://doi.org/10.1198/016214506000001437",
+      "relevant_mechanism": "A scoring rule evaluates a probabilistic forecast against the realized observation; strict propriety makes the true predictive distribution the unique optimum in expectation. Logarithmic and quadratic scores are canonical examples."
+    },
+    {
+      "source": "Brier (1950), Verification of Forecasts Expressed in Terms of Probability",
+      "doi": "10.1175/1520-0493(1950)078<0001:VOFEIT>2.0.CO;2",
+      "url": "https://doi.org/10.1175/1520-0493(1950)078%3C0001:VOFEIT%3E2.0.CO;2",
+      "relevant_mechanism": "Probability forecasts can be scored by squared error against observed outcome indicators; the original probability-score construction covers mutually exclusive forecast categories."
+    },
+    {
+      "source": "Murphy (1973), A New Vector Partition of the Probability Score",
+      "doi": "10.1175/1520-0450(1973)012<0595:ANVPOT>2.0.CO;2",
+      "url": "https://doi.org/10.1175/1520-0450(1973)012%3C0595:ANVPOT%3E2.0.CO;2",
+      "relevant_mechanism": "Brier/probability-score behavior can be decomposed into uncertainty, reliability and resolution components, useful for diagnosis rather than replacing the proper score itself."
+    },
+    {
+      "source": "Gneiting, Balabdaoui & Raftery (2007), Probabilistic Forecasts, Calibration and Sharpness",
+      "doi": "10.1111/j.1467-9868.2007.00587.x",
+      "url": "https://doi.org/10.1111/j.1467-9868.2007.00587.x",
+      "relevant_mechanism": "Forecast quality should assess calibration and sharpness; proper scoring rules summarize both and can rank competing forecast procedures."
+    }
+  ],
+  "source_level_findings": [
+    "The current WP803 generation-2 evaluator is intentionally a hard exact-match benchmark with +1/-1/0 outcomes and no probabilistic forecast distribution.",
+    "The existing research-only same-decision falsifier is directionally valid: two predictors can preserve identical hard decisions and hard score while differing under Brier and logarithmic loss; this demonstrates a measurement blind spot if F2 later claims probability-quality evidence.",
+    "Primary scoring-rule theory supports proper probabilistic evaluation only when a forecast distribution and realized outcome are defined on an admitted outcome space.",
+    "A bare confidence attached to a self-selected top-1 next-observation guess is not, by itself, enough to inherit strict-propriety guarantees for the underlying multiclass next-observation problem. This is an F2 mapping inference from the fixed-outcome-space requirement, not a direct literature quote.",
+    "Murphy-style reliability/resolution decomposition is a useful aggregate diagnostic only after enough forecast/outcome pairs exist; it should not mint per-candidate truth or replace the exact evaluator receipt.",
+    "The logarithmic score is information-sensitive but can impose very large penalties near zero probability; Brier/quadratic scoring is bounded for a finite categorical distribution and is a safer first discriminator for F2 research unless a later requirement justifies log-score sensitivity."
+  ],
+  "verified_local_discriminator": {
+    "source": "workpackages/research_inbox/orbit_f2_wp803_probabilistic_same_decision_falsifier_2026-08-30_GPT56SOL.py@68a2afa45cadf52901e0b696f13c0b17396dbf9e",
+    "same_accuracy": 0.8,
+    "same_hard_score_mean": 0.6,
+    "calibrated_brier": 0.18915,
+    "overconfident_same_decision_brier": 0.1961,
+    "calibrated_log_loss": 0.5695525965325225,
+    "overconfident_same_decision_log_loss": 0.9290743058804193,
+    "evidence_scope": "DETERMINISTIC_RESEARCH_REPRODUCTION_ONLY_NOT_WP803_ACCEPTANCE"
+  },
+  "hypothesis": "If F2 later needs evidence about probabilistic world-model quality, a successor evaluator should score an explicit normalized predictive distribution over a fixed public/admitted outcome domain with a proper score, while preserving current WP803 generation-2 hard-score semantics and provenance binding.",
+  "counterhypothesis": "WP803 only needs exact next-observation hit/abstain evidence at its current scope; introducing a probabilistic distribution would add state, schema and calibration complexity without a product claim that requires it.",
+  "counterhypothesis_status": "CURRENTLY_PLAUSIBLE_AND_SCOPE_PRESERVING",
+  "minimality_gate": "DO_NOT_ADD_PROBABILITY_FIELDS_TO_ACCEPTED_WP803_G2. First define the exact product claim that needs calibrated probabilities and a fixed public outcome domain. If either is absent, retain the hard benchmark and keep probabilistic work research-only.",
+  "recommended_next_stage": "E2_ARCHITECTURE_MAPPED_ONLY_IF_NON_DUPLICATE_AND_PRODUCT_CLAIM_REQUIRES_PROBABILITY_QUALITY",
+  "research_credit": "E1_SOURCE_READ_ONLY",
+  "runtime_credit": 0,
+  "physical_grid10_credit": 0,
+  "gwt_jspace_credit": 0,
+  "provider_model_credit": 0,
+  "training_credit": 0,
+  "effect_credit": 0,
+  "whole_system_credit": 0,
+  "pending_research_sqlite_sync": "PENDING_ADMITTED_BINARY_DB_PATH"
+}
