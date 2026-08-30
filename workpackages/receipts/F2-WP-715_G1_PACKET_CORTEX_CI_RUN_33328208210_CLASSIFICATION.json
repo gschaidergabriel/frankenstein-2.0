@@ -1,0 +1,51 @@
+{
+  "schema": "F2_WP715_PACKET_CORTEX_CI_FAILURE_CLASSIFICATION/v1",
+  "workpackage_id": "F2-WP-715",
+  "generation": 1,
+  "claim_id": "F2-WP-715-G1-GPT56SOL-PACKET-CORTEX-CONVERGENCE-20260831",
+  "trigger": "4",
+  "run_id": 33328208210,
+  "workflow": ".github/workflows/wp715-voice-packet-cortex-ci.yml",
+  "workflow_run_number": 12,
+  "exact_subject_sha": "2dfecf97924e1f099b1900edcbb189be32d5714a",
+  "exact_subject_message": "trigger4: terminalize WP715 playback on restart",
+  "runner": "github-hosted ubuntu-24.04",
+  "python": "3.12.14",
+  "overall_status": "COMPLETED_FAILURE",
+  "failure_class": "EVIDENCE_INVALID",
+  "classification_basis": {
+    "packet_cortex_unit_suite": "PASS_18_OF_18",
+    "recovery_unit_suite": "PASS_7_OF_7",
+    "pn9_restart_continuation": "PASS",
+    "pn10_bounded_transient_checkpoint": "FAILED_BEFORE_COMPLETION",
+    "pn10_observed_mismatch": "workflow discriminator hardcodes MAX_INPUT_PACKETS=256 while exact subject declares VoicePacketCortex.MAX_INPUT_PACKETS=2048; therefore the assertion requiring rejection by index <=256 is stale relative to the executed source contract",
+    "restart_repair_regression_observed": true,
+    "restart_repair_whole_wp715_acceptance": false
+  },
+  "scope_law": {
+    "product_negative_from_this_pn10_failure": false,
+    "reason": "The observed failing assertion is caused by a discriminator/source-limit mismatch, not by execution falsifying the declared 2048-packet capacity contract.",
+    "text_payload_bound_test_reached": false,
+    "pn14_tool_only_barge_falsifier_executed": false,
+    "repository_component_acceptance_promoted": false,
+    "vps_packet_execution_observed": false,
+    "packet_component_runtime_credit": 0,
+    "acoustic_credit": 0,
+    "asr_runtime_credit": 0,
+    "tts_runtime_credit": 0,
+    "physical_device_credit": 0,
+    "gwt_runtime_credit": 0,
+    "jspace_runtime_credit": 0,
+    "effect_credit": 0,
+    "training_credit": 0,
+    "completion_credit": 0,
+    "whole_system_acceptance": false
+  },
+  "negative_evidence_preserved": [
+    "run 33328208210 is red and must not be relabeled green",
+    "PN10 did not complete, so later assertions in that step have no executed evidence",
+    "the restart repair has bounded unit-regression evidence only; it does not mint WP715 acceptance or runtime credit"
+  ],
+  "next_exact_action": "Repair PN10 without weakening the bounded-state invariant: bind its packet/output/tool/event limits to the current explicit VoicePacketCortex contract (or intentionally change that contract with a named product reason), preserve a separate executable payload-size bound discriminator, add/execute PN14 tool-only barge ownership, then rerun exact-source WP715 CI. Only after a green exact-source repository discriminator should the same repaired subject advance to admitted VPS S1/S2 packet-only execution.",
+  "recorded_at_utc": "2026-08-30T18:30:00Z"
+}
