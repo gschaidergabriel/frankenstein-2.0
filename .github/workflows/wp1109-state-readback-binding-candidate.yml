@@ -1,0 +1,56 @@
+name: WP1109 Typed State Readback Candidate Review
+
+on:
+  push:
+    branches:
+      - chatgpt/trigger4-wp1109-state-readback-binding-review-20260830
+    paths:
+      - 'reviews/wp1109_state_readback_binding_candidate.py'
+      - 'tests/falsifiers/test_wp1109_state_readback_binding_candidate.py'
+      - '.github/workflows/wp1109-state-readback-binding-candidate.yml'
+      - 'workpackages/deltas/F2-WP-1109/**'
+  pull_request:
+    paths:
+      - 'reviews/wp1109_state_readback_binding_candidate.py'
+      - 'tests/falsifiers/test_wp1109_state_readback_binding_candidate.py'
+      - '.github/workflows/wp1109-state-readback-binding-candidate.yml'
+      - 'src/frankenstein2/host_transition.py'
+      - 'tests/test_host_transition.py'
+      - 'workpackages/deltas/F2-WP-1109/**'
+
+permissions:
+  contents: read
+
+jobs:
+  discriminate-typed-state-readback-candidate:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Fail closed unless reviewed WP1109 blobs are exact
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git hash-object src/frankenstein2/host_transition.py)" = "76bf1f93efd328205338370461c6c51e639b9f73"
+          test "$(git hash-object tests/test_host_transition.py)" = "9cc776b4c19c6c7bd3a46bffd38ffef9d60731af"
+
+      - name: Apply review-only candidate in disposable checkout
+        run: python reviews/wp1109_state_readback_binding_candidate.py
+
+      - name: Compile candidate and regressions
+        run: python -m py_compile src/frankenstein2/host_transition.py tests/test_host_transition.py tests/falsifiers/test_wp1109_state_readback_binding_candidate.py
+
+      - name: Preserve existing WP1109 regression suite
+        env:
+          PYTHONPATH: src
+        run: python tests/test_host_transition.py
+
+      - name: Close PR457 typed state-readback discriminator
+        env:
+          PYTHONPATH: src
+        run: python tests/falsifiers/test_wp1109_state_readback_binding_candidate.py
