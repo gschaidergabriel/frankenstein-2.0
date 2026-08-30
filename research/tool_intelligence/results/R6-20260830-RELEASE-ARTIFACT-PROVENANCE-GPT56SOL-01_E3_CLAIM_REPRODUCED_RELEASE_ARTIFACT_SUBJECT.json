@@ -1,0 +1,106 @@
+{
+  "schema": "F2_TRIGGER6_RESEARCH_RESULT/v1",
+  "research_id": "R6-20260830-RELEASE-ARTIFACT-PROVENANCE-GPT56SOL-01",
+  "evidence_stage": "E3_CLAIM_REPRODUCED",
+  "claim_id": "RELEASE_ARTIFACT_SUBJECT",
+  "status": "COMPLETE_AT_SCOPE",
+  "recorded_at": "2026-08-30T16:53:00+07:00",
+  "worker": "GPT-5.6-Sol",
+  "claim_ref": "research/tool_intelligence/claims/R6-20260830-RELEASE-ARTIFACT-PROVENANCE-GPT56SOL-01/E3_CLAIM_REPRODUCED_RELEASE_ARTIFACT_SUBJECT.json",
+  "fusion_ref": "research/tool_intelligence/deltas/R6-20260830T1645P0700_GPT56SOL_RELEASE_ARTIFACT_SUBJECT_ARCHITECTURE_DELTA_FUSION.json",
+  "experiment_ref": "research/tool_intelligence/experiments/R6-20260830-RELEASE-ARTIFACT-PROVENANCE-GPT56SOL-01_release_artifact_subject_repro.py",
+  "f2_source_observed": {
+    "clean_machine_acceptance": "src/frankenstein2/clean_machine_acceptance.py",
+    "pre_handoff_release": "src/frankenstein2/pre_handoff_release.py",
+    "release_integrity": "src/frankenstein2/release_integrity.py",
+    "current_existing_binding": ["release_manifest_sha256", "prehandoff_receipt_ref"],
+    "unopened_outer_artifact_sha256_binding_observed": false
+  },
+  "primary_external_evidence": [
+    {
+      "source": "SLSA v1.2 Build: Verifying artifacts",
+      "url": "https://slsa.dev/spec/v1.2/verifying-artifacts",
+      "observed_rule": "verification compares the Statement subject to the digest of the artifact in question; provenance envelope authentication is a separate verification step"
+    },
+    {
+      "source": "Reproducible Builds SOURCE_DATE_EPOCH",
+      "url": "https://reproducible-builds.org/docs/source-date-epoch/",
+      "observed_rule": "build timestamps can be normalized from a source-derived epoch"
+    },
+    {
+      "source": "Reproducible Builds stable inputs",
+      "url": "https://reproducible-builds.org/docs/stable-inputs/",
+      "observed_rule": "archive input order must be explicitly stable; filesystem enumeration order is not a reproducibility guarantee"
+    },
+    {
+      "source": "Python zipfile documentation",
+      "url": "https://docs.python.org/3/library/zipfile.html",
+      "observed_rule": "ZIP_DEFLATED uses zlib; ZIP records expose order and metadata including timestamp/comment/extra/create_system/external_attr that are distinct from extracted file bytes"
+    }
+  ],
+  "local_reproduction": {
+    "scope": "LOCAL_DETERMINISTIC_RESEARCH_EXPERIMENT_ONLY_NOT_F2_RUNTIME",
+    "environment": {"python": "3.13.5", "implementation": "CPython", "zlib_compile": "1.3.1", "zlib_runtime": "1.3.1"},
+    "outer_identity_falsifier": {
+      "zip_a_sha256": "5013062ccdb06c89d6325a0748f112f54415f5ffd0b375a02088242af1b831b9",
+      "zip_b_sha256": "dec6125fba973adb303a2e9279d8ebddc285fe2d4c71c6aa5d5fe1ff69e7463d",
+      "zip_a_size": 218,
+      "zip_b_size": 218,
+      "extracted_inventory_equal": true,
+      "extracted_inventory": [
+        {"path": "a.txt", "size": 6, "sha256": "b6a98d9ce9a2d9149288fa3df42d377c3e42737afdcdaf714e33c0a100b51060"},
+        {"path": "dir/b.txt", "size": 5, "sha256": "f2c82decdd7181cf98945929a62598db7e6b477e11f6e0eb0ae97020eff151ad"}
+      ]
+    },
+    "normalized_same_runtime_double_build": {
+      "zip_stored_equal": true,
+      "zip_stored_sha256": "ff6b98b34bc00eadbbb2b41ebd354458bf4079e5ffb739a1b04dd1d47e547b6b",
+      "zip_stored_size": 213,
+      "zip_deflated_equal": true,
+      "zip_deflated_sha256": "cacc4c7ad84db7283eb1f28485c9b4bfa122e1dd6bcdda07326c61a5d9343b7b",
+      "zip_deflated_size": 217,
+      "scope_note": "same-runtime evidence only; no cross-host/toolchain reproducibility credit"
+    },
+    "cases": [
+      {"name": "exact_subject_accept", "observed": "ACCEPT", "passed": true},
+      {"name": "same_payload_different_outer_reject", "observed": "REJECT:SubjectError:subject:artifact_sha256:mismatch", "passed": true},
+      {"name": "size_mismatch_reject", "observed": "REJECT:SubjectError:subject:artifact_size_bytes:mismatch", "passed": true},
+      {"name": "filename_mismatch_reject", "observed": "REJECT:SubjectError:subject:artifact_filename:mismatch", "passed": true},
+      {"name": "parent_traversal_reject", "observed": "REJECT:SubjectError:zip:dot_or_parent_segment", "passed": true},
+      {"name": "absolute_path_reject", "observed": "REJECT:SubjectError:zip:absolute_path", "passed": true},
+      {"name": "backslash_reject", "observed": "REJECT:SubjectError:zip:noncanonical_separator", "passed": true},
+      {"name": "duplicate_name_reject", "observed": "REJECT:SubjectError:zip:duplicate_member_name", "passed": true},
+      {"name": "safe_topology_accept", "observed": "ACCEPT", "passed": true}
+    ],
+    "passed": true
+  },
+  "hypothesis_resolution": {
+    "hypothesis": "An external ReleaseArtifactSubject/v1 that binds filename/size/SHA-256 of the unopened distributed artifact closes an evidence-subject gap without replacing the existing release manifest authority.",
+    "result": "SUPPORTED_AT_E3_LOCAL_REPRODUCTION_SCOPE",
+    "counterhypothesis": "The current release_manifest_sha256 + prehandoff_receipt_ref pair is already sufficient for exact outer artifact identity.",
+    "counterhypothesis_result": "REJECTED_AT_E3_FOR_EXACT_OUTER_ARTIFACT_IDENTITY; RETAINED_AS_SUFFICIENT_FOR_ITS_EXISTING_EXTRACTED_PAYLOAD_PREDICATE"
+  },
+  "architecture_refinement": {
+    "mechanism": "ReleaseArtifactSubject/v1",
+    "authority_role": "EVIDENCE_SUBJECT_ONLY_NOT_CANONICAL_PAYLOAD_TRUTH_OR_EFFECT_AUTHORITY",
+    "required_fields": ["artifact_filename", "artifact_sha256", "artifact_size_bytes", "release_manifest_sha256", "source_commit", "source_tree", "release_id", "build_id"],
+    "verification_order": [
+      "hash exact unopened distributed artifact",
+      "fail closed on artifact filename/size/SHA-256 mismatch",
+      "reject unsafe or ambiguous ZIP member topology before extraction",
+      "extract into a controlled temporary root",
+      "invoke the existing release-manifest verifier on extracted payload",
+      "bind clean-machine evidence to artifact_sha256 + release_manifest_sha256 + prehandoff_receipt_ref"
+    ],
+    "authentication_boundary": "Subject digest binding does not authenticate the external receipt by itself. A signature/envelope/root-of-trust mechanism is a separate later security property and receives no credit here.",
+    "reproducible_build_refinement": "Stable paths/order/timestamps/metadata are necessary but not sufficient to claim cross-host byte reproducibility for compressed ZIPs. The build contract must also bind/characterize packaging runtime and compressor identity and pass cross-environment double-build comparison, or deliberately choose a packaging mode with stronger deterministic semantics when tradeoffs permit."
+  },
+  "promotion_decision": "E4_F2_STATIC_ABLATION_WARRANTED_BEFORE_E5_BUILD_CANDIDATE",
+  "next_exact_gate": "Acquire E4_F2_ABLATION_RELEASE_ARTIFACT_SUBJECT and demonstrate against exact-current F2 acceptance semantics that two equal-manifest/equal-receipt payload-equivalent outer ZIPs are observationally indistinguishable under the current contract but distinguishable after the proposed additive subject binding, without changing canonical payload authority.",
+  "research_credit": "E3_CLAIM_REPRODUCED_ONLY",
+  "runtime_credit": 0,
+  "physical_host_credit": 0,
+  "effect_credit": 0,
+  "completion_credit": 0,
+  "whole_system_credit": 0
+}
