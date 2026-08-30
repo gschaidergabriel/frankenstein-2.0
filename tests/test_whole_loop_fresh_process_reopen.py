@@ -1,8 +1,11 @@
 #!/usr/bin/env python3
-"""Fresh-process persistence/reopen falsifier for the WP900 -> WP206 boundary.
+"""Fresh-process persistence/reopen falsifier for the WP900 -> WP206 -> WP901 boundary.
 
-Repository evidence only. A passing test does not establish target-host runtime,
-physical GRID10/GWT/J-Space behavior, effects, completion, or whole-system acceptance.
+Repository evidence only. A passing test proves that a WP900-sealed successor persisted
+through the canonical WP206 store can be reopened by a fresh Python process and admitted
+through the accepted WP901 persisted-row attestation ingress. It does not establish
+VPS/target-host runtime, physical GRID10/GWT/J-Space behavior, effects, completion, or
+whole-system acceptance.
 """
 from __future__ import annotations
 
@@ -76,7 +79,7 @@ PROCESS_A = textwrap.dedent(
             decision=decision,
             outcome=outcome,
             next_checkpoint=successor,
-            provenance_refs=("test:wp900-wp206:fresh-process",),
+            provenance_refs=("test:wp900-wp206-wp901:fresh-process",),
         )
         store.write_checkpoint(current)
         evidence = persist_sealed_successor_and_readback(
@@ -112,6 +115,9 @@ PROCESS_B = textwrap.dedent(
     import sys
 
     from frankenstein2.persistent_agency_kernel import CanonicalPersistentAgencyStore
+    from frankenstein2.restart_recovery_persisted_row_attestation import (
+        attest_persisted_checkpoint_load,
+    )
     from state.unifieddb_identity import fingerprint_unifieddb, resolve_unifieddb_path
 
     db = Path(sys.argv[1])
@@ -128,12 +134,22 @@ PROCESS_B = textwrap.dedent(
         fingerprint=fingerprint,
     )
     try:
-        checkpoint = store.load_checkpoint(checkpoint_id)
+        checkpoint, attestation = attest_persisted_checkpoint_load(
+            store,
+            checkpoint_id=checkpoint_id,
+        )
+        payload = attestation.as_dict()
         print(
             json.dumps(
                 {
                     "checkpoint_id": checkpoint.checkpoint_id,
                     "checkpoint_sha256": checkpoint.sha256(),
+                    "attestation_sha256": attestation.sha256(),
+                    "row_evidence_sha256": attestation.row_evidence_sha256,
+                    "transaction_snapshot_binding": payload["transaction_snapshot_binding"],
+                    "target_host_execution": payload["target_host_execution"],
+                    "runtime_credit": payload["runtime_credit"],
+                    "whole_system_acceptance": payload["whole_system_acceptance"],
                 },
                 sort_keys=True,
             )
@@ -191,7 +207,7 @@ class WholeLoopFreshProcessReopenTests(unittest.TestCase):
         self.assertTrue(lines, msg="subprocess emitted no JSON evidence")
         return json.loads(lines[-1])
 
-    def test_successor_survives_process_exit_and_fresh_store_reopen(self) -> None:
+    def test_successor_survives_exit_and_enters_wp901_from_fresh_process(self) -> None:
         first = self._run(PROCESS_A, str(self.db), str(self.home))
 
         self.assertTrue(first["write_observed"])
@@ -208,6 +224,12 @@ class WholeLoopFreshProcessReopenTests(unittest.TestCase):
 
         self.assertEqual(second["checkpoint_id"], first["checkpoint_id"])
         self.assertEqual(second["checkpoint_sha256"], first["checkpoint_sha256"])
+        self.assertEqual(second["transaction_snapshot_binding"], "OBSERVED")
+        self.assertTrue(second["row_evidence_sha256"])
+        self.assertTrue(second["attestation_sha256"])
+        self.assertEqual(second["target_host_execution"], "NOT_OBSERVED")
+        self.assertEqual(second["runtime_credit"], 0)
+        self.assertFalse(second["whole_system_acceptance"])
 
 
 if __name__ == "__main__":
