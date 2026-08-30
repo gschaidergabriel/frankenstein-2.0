@@ -1,0 +1,63 @@
+name: F2 WP1207 G10 Exact Main Validator
+
+on:
+  push:
+    branches:
+      - 'trigger4/wp1207-g10-cas-writer'
+    paths:
+      - '.github/workflows/wp1207-g10-main-exact-validator.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  exact-main-g10-regression:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Re-enter current main and bind G10 exact subject
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch origin main --no-tags
+          git switch --detach -f origin/main
+          echo "VALIDATED_MAIN_SHA=$(git rev-parse HEAD)"
+          python - <<'PY'
+          import json
+          p=json.load(open('workpackages/active/F2-WP-1207.json'))
+          assert p['generation'] == 10, p
+          assert p['claim_id'] == 'F2-WP-1207-G10-GPT56SOL-ROLLBACK-STATE-BINDING-20260830', p
+          assert p['state'] == 'ACTIVE', p
+          e=json.load(open('workpackages/state_events/F2-WP-1207/000013.json'))
+          assert e['sequence'] == 13 and e['claim_id'] == p['claim_id'], e
+          assert e['active_pointer_state'] == 'ACTIVE', e
+          print('G10_ACTIVE_EVENT13_BOUND')
+          PY
+          test "$(git hash-object src/frankenstein2/portable_release_transaction.py)" = "dad832595799cb05bd472068569d10739f6c74cc"
+          test "$(git hash-object tests/test_portable_release_transaction.py)" = "6f106432d128bdbb28096d8bc5d149532d9d5088"
+          echo "G10_EXACT_SOURCE_TEST_BLOBS_BOUND"
+
+      - name: Compile exact WP1207 transaction surface
+        run: python -m py_compile src/frankenstein2/portable_release_transaction.py tests/test_portable_release_transaction.py
+
+      - name: Run fail-closed WP1207 transaction suite
+        env:
+          PYTHONPATH: src
+        run: python tests/test_portable_release_transaction.py -v
+
+      - name: Resolve event-first G10 authority
+        run: python tools/resolve_workpackage_state_v2.py --workpackage F2-WP-1207 --check-active
+
+      - name: Emit bounded discriminator result
+        run: |
+          echo "WP1207_G10_EXACT_MAIN_REGRESSION_PASS"
+          echo "NO_RUNTIME_OR_PHYSICAL_CREDIT_MINTED"
