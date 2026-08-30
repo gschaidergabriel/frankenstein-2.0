@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 import os
 from pathlib import Path
+import sqlite3
 import sys
 
 from frankenstein2.agency_state import AgencyState, Interest, OpenLoop
@@ -134,9 +135,29 @@ def _open_store():
     return resolution, fingerprint, store
 
 
+def _establish_wal_before_monitored_open() -> str:
+    """Establish the durable journal mode before G6 captures data_version.
+
+    SQLite may advance PRAGMA data_version when journal_mode itself changes. G6 therefore
+    monitors only after canonical journal configuration is complete; otherwise a legitimate
+    local WAL transition is observationally indistinguishable from the external revision it
+    is designed to fence. The store fingerprint is resolved after this setup connection
+    closes, so no authority identity is carried across the configuration boundary.
+    """
+    resolution = _resolution()
+    connection = sqlite3.connect(str(Path(resolution.path).resolve()))
+    try:
+        row = connection.execute("PRAGMA journal_mode=WAL").fetchone()
+        if row is None or len(row) != 1 or str(row[0]).lower() != "wal":
+            raise RuntimeError("WP206_G6_WAL_ESTABLISHMENT_FAILED")
+        return str(row[0]).upper()
+    finally:
+        connection.close()
+
+
 def write_fixture():
+    mode = _establish_wal_before_monitored_open()
     resolution, fingerprint, store = _open_store()
-    mode = store.connection.execute("PRAGMA journal_mode=WAL").fetchone()[0]
     store.connection.execute("PRAGMA wal_autocheckpoint=0")
     store.initialize_schema()
     checkpoint = _fixture_checkpoint()
@@ -147,7 +168,7 @@ def write_fixture():
         "resolved_path": str(Path(resolution.path).resolve()),
         "db_authority_receipt": fingerprint.receipt_sha256(),
         "checkpoint_sha256": digest,
-        "journal_mode": str(mode).upper(),
+        "journal_mode": mode,
         "wal_exists_before_exit": wal.exists(),
         "wal_size_before_exit": wal.stat().st_size if wal.exists() else 0,
     }
