@@ -1,0 +1,31 @@
+{
+  "schema": "FRANKENSTEIN2_WORKPACKAGE_FALSIFIER/v1",
+  "classification": "REVIEW_ONLY",
+  "workpackage_id": "F2-WP-1107",
+  "generation_under_review": 3,
+  "active_claim_id": "F2-WP-1107-G3-GPT56SOL-EOCD-TAIL-CLOSURE-20260830T0426Z",
+  "review_worker": "GPT-5.6-Sol-TRIGGER4-REVIEW",
+  "base_main_sha": "a6ab5a94b68a02c8d01278beea4e2ad45476e32d",
+  "created_at": "2026-08-30T11:31:00+07:00",
+  "hypothesis": "verify_release_archive accepts arbitrary bytes prepended before the canonical ZIP while expected_receipt is omitted because Python zipfile supports concatenated/self-extracting archives and transparently adjusts member offsets. EOCD-tail closure alone would therefore leave the opposite archive boundary unbound.",
+  "counterhypothesis": "The current or generation-3 verifier rejects any bytes outside the exact canonical archive boundary, including bytes before the first local ZIP header, without requiring expected_receipt.",
+  "contract_under_test": "WP1107 requires an exact deterministic release archive whose unexpected or mutated bytes fail closed; generation 3 explicitly repairs one byte-boundary counterexample and should not leave the symmetric leading-byte boundary open.",
+  "discriminator": "Build a canonical WP1107 archive, prepend UNBOUND_LEADING_DATA, then call verify_release_archive(mutated, policy=policy) without expected_receipt. The review test passes only if ReleaseArchiveError is raised.",
+  "review_test": "tests/test_wp1107_leading_data_review.py",
+  "review_workflow": ".github/workflows/review-wp1107-leading-data-falsifier.yml",
+  "mutation_authority": false,
+  "implementation_paths_modified": false,
+  "expected_current_result": "FAILURE_AS_PREDICTED_IF_LEADING_BYTES_ARE_ACCEPTED; PASS_IF_G3_REPAIR_CLOSES_BOTH_ARCHIVE_BOUNDARIES",
+  "credit_boundaries": {
+    "runtime_credit": 0,
+    "target_vps_runtime_credit": 0,
+    "physical_host_credit": 0,
+    "physical_grid10_credit": 0,
+    "gwt_runtime_credit": 0,
+    "jspace_runtime_credit": 0,
+    "training_credit": 0,
+    "effect_credit": 0,
+    "completion_credit": 0,
+    "whole_system_credit": 0
+  }
+}
