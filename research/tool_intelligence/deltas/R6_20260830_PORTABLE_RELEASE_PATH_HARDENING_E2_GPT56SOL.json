@@ -1,0 +1,97 @@
+{
+  "schema": "TRIGGER6_ARCHITECTURE_MAPPING/v1",
+  "trigger": "6",
+  "research_id": "R6-20260830-PORTABLE-RELEASE-PATH-HARDENING-GPT56SOL-01",
+  "stage": "E2_ARCHITECTURE_MAPPED",
+  "created_at": "2026-08-30T22:01:00+07:00",
+  "worker": "GPT-5.6 Sol / ChatGPT organ",
+  "claim_ref": "research/tool_intelligence/claims/R6-20260830-PORTABLE-RELEASE-PATH-HARDENING-GPT56SOL-01/E2_ARCHITECTURE_MAPPED.json@94d1f06fdfd4d4401a79c9e6cc063f0ad5f89aa7",
+  "depends_on": "research/tool_intelligence/deltas/R6_20260830_PORTABLE_RELEASE_PATH_HARDENING_E1_GPT56SOL.json",
+  "architecture_snapshot": "7da39021e9ce2cec12b523fe2616b0fcf534d558",
+  "mapped_surfaces": [
+    {
+      "surface": "src/frankenstein2/release_integrity.py",
+      "role": "ROOT_RELEASE_TREE_INTEGRITY",
+      "finding": "_iter_regular_files uses os.walk(..., followlinks=False) and rejects only candidate.is_symlink(). Under CPython 3.12 on Windows, junctions are distinct from symlinks; os.walk's normal False path classifies directory targets with entry.is_dir() and its recursion guard uses os.path.islink(), so a junction is not covered by the existing symlink-only policy. This is the highest-leverage layer to harden because all downstream release gates trust the manifest verifier."
+    },
+    {
+      "surface": "src/frankenstein2/pre_handoff_release.py",
+      "role": "INSTALL_ROUTE_GRAPH_BINDING",
+      "finding": "_resolve_declared_route resolves the path before candidate.is_symlink(), so the final check cannot prove that the lexical route was redirect-free. The upstream release-integrity layer currently supplies most of the safety for ordinary symlinks; route-local logic should still use the same centralized path policy rather than a resolve-then-check pattern."
+    },
+    {
+      "surface": "src/frankenstein2/portable_release_static_completeness.py",
+      "role": "DELIVERY_METADATA_REFERENCE_BINDING",
+      "finding": "WP1111 improved this layer by checking each lexical component before resolve, but only for symbolic links. It should consume the same centralized redirect-free reference primitive and thereby inherit Windows-junction treatment instead of growing another local rule."
+    },
+    {
+      "surface": "AI_START_HERE_DO_NOT_SCAN_REPO/03_VERIFY_INSTALL.md",
+      "role": "REAL_HOST_ACCEPTANCE",
+      "finding": "Clean local installation proof is explicitly stronger than repository CI. Any mutation-race or platform-specific path guarantee belongs here only if the host threat model requires it; current WP1111 acceptance must remain static/component scope."
+    }
+  ],
+  "source_composition_finding": {
+    "id": "F4_RELEASE_TREE_WINDOWS_JUNCTION_TRAVERSAL",
+    "classification": "SOURCE_COMPOSED_PREDICTION_NEEDS_WINDOWS_REPRODUCTION",
+    "severity": "HIGH",
+    "statement": "The release-manifest walker is the architectural choke point. On Windows CPython 3.12, a directory junction can be seen as a directory while not being a symbolic link; the current os.walk/is_symlink combination can therefore traverse it. If the junction targets outside package_root, lexical relative paths can remain under package_root while reads resolve through the junction. That would violate the intended closed release-tree boundary even though file hashes remain internally consistent.",
+    "falsifier": "On Windows CPython >=3.12, create package_root/ext as a junction to an external directory containing a regular file. Run build_release_manifest and verify_release_manifest. Current source is predicted either to enumerate the external file under ext/... or to fail for a reason other than explicit junction rejection. The desired post-fix behavior is deterministic ReleaseIntegrityError before descent."
+  },
+  "proposed_architecture_delta": {
+    "name": "RELEASE_REDIRECT_FREE_PATH_POLICY/v1",
+    "classification": "E2_RESEARCH_DELTA_NOT_IMPLEMENTED",
+    "principles": [
+      "One release-path policy, not three partially different path checkers.",
+      "Reject lexical absolute paths, dot/dot-dot segments and noncanonical separators before filesystem lookup.",
+      "Before descending or consuming a release-tree entry, reject both symbolic links and Windows junctions using CPython-3.12 stdlib capabilities.",
+      "Perform root confinement and regular-file/type checks after strict resolution as a second line, not as a substitute for lexical redirect detection.",
+      "Manifest generation and verification must use the same tree-walk primitive and semantics.",
+      "Pre-handoff route resolution and WP1111 metadata-reference resolution must call the same primitive/policy.",
+      "Keep the current guarantee explicitly STATIC_SNAPSHOT_ONLY unless concurrent untrusted mutation is admitted into the threat model.",
+      "If concurrent mutation becomes in-scope, add a separate handle-bound real-host verifier; do not pretend a path-string check became race-free."
+    ],
+    "minimum_stdlib_shape": {
+      "tree_walk": "Recursive os.scandir() or equivalent that checks DirEntry.is_symlink() and DirEntry.is_junction() before descent; reject redirect entries rather than following them.",
+      "single_ref": "Walk each lexical component from package_root, reject Path.is_symlink() or Path.is_junction(), then strict-resolve and confirm root confinement/type.",
+      "external_dependency": "NONE for the static portable baseline"
+    },
+    "optional_future_linux_hardened_shape": "At real-host acceptance only, if attacker-controlled concurrent mutation is in scope, use a handle-bound resolver based on openat2 RESOLVE_IN_ROOT/RESOLVE_NO_SYMLINKS or an audited library such as libpathrs. Do not make this Linux-only path a mandatory portable baseline dependency."
+  },
+  "tests_for_trigger4": [
+    "Windows: release-tree external-target directory junction must be rejected before traversal.",
+    "Windows: root-internal directory junction must be rejected if the invariant is redirect-free tree identity, even though it remains root-confined.",
+    "Windows: pre-handoff route whose intermediate component is a junction must fail explicitly.",
+    "Windows: WP1111 metadata evidence/source reference with intermediate junction must fail explicitly.",
+    "POSIX: existing intermediate/final symlink regressions remain green after centralization.",
+    "Cross-platform: ordinary regular-file package yields exactly the same canonical manifest entries/digest under unchanged inputs.",
+    "No runtime/effect/host credit is minted by these static tests."
+  ],
+  "archive_boundary": {
+    "current_f2_observation": "No tar/zip extraction implementation was located by current repository search for the portable path.",
+    "future_rule": "If an archive transport is introduced, extraction becomes a typed predecessor boundary: use an explicit restrictive extraction policy, a fresh destination and then run the release manifest/path policy over the extracted tree. Python 3.12 tar extraction must not rely on its default fully-trusted-equivalent behavior."
+  },
+  "counterhypotheses": [
+    "The release package may be guaranteed to originate only from a trusted immutable builder, making junction traversal impossible in the admitted construction path. If so, the central junction rejection still improves portability/invariant clarity but severity at runtime is lower.",
+    "The intended invariant might allow root-internal junctions. If so, that exception must be explicit and separately tested; current prose and symlink-hardening direction instead indicate a redirect-free release tree.",
+    "A future clean-machine packaging transport might dereference all junctions into regular directories before the verifier ever sees them. That would reduce exposure but does not make the repository-side integrity primitive correct for arbitrary package_root inputs."
+  ],
+  "efficiency": {
+    "expected_cost": "negligible additional metadata probes during static release verification",
+    "model_calls_added": 0,
+    "provider_calls_added": 0,
+    "dependencies_added": 0,
+    "preferred_over_framework_import": true
+  },
+  "trigger4_handoff": {
+    "status": "FALSIFIER_READY_NOT_E5_BUILD_CANDIDATE",
+    "smallest_next_action": "Run a Windows CPython >=3.12 junction regression against release_integrity first. If reproduced, centralize release redirect-free path policy and reuse it in WP1110/WP1111; if not reproduced, record the actual Windows traversal semantics and retire or narrow the hypothesis.",
+    "do_not_do": "Do not import libpathrs/filepath-securejoin before the static-junction falsifier; do not upgrade WP1111 repository CI to host/runtime credit."
+  },
+  "evidence_ceiling": "E2_ARCHITECTURE_MAPPED",
+  "architecture_credit": 1,
+  "runtime_credit": 0,
+  "physical_host_credit": 0,
+  "effect_credit": 0,
+  "completion_credit": 0,
+  "whole_system_acceptance": false
+}
