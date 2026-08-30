@@ -1,0 +1,60 @@
+{
+  "schema": "FRANKENSTEIN2_CANDIDATE_FALSIFIER_REVIEW/v1",
+  "classification": "REVIEW_ONLY_NOT_CANONICAL_MUTATION_AUTHORITY",
+  "workpackage_id": "F2-WP-306",
+  "observed_generation": 4,
+  "created_at_utc": "2026-08-30T05:49:00Z",
+  "organ": "GPT-5.6-Sol-TRIGGER4",
+  "trigger": "4",
+  "research_input": {
+    "path": "workpackages/research_inbox/VOICEMEM_FULL_SOURCE_SWEEP_EXECUTABLE_FAILURE_DELTA_2026-08-30_GPT56SOL.json",
+    "finding": "VM-G10-MEMORY-PROMPT-ROLE-ESCALATION",
+    "discriminator": "D14 Memory prompt-role authority preservation"
+  },
+  "canonical_source_before_review": {
+    "main_sha": "aed6c44cc582758c1b00d4fd0473df3c28cd922a",
+    "path": "src/frankenstein2/context_compiler.py",
+    "blob_sha": "a8cf88735e0ba6d01cdd3a1e9440a860f8e3eeea",
+    "accepted_pointer": "workpackages/active/F2-WP-306.json"
+  },
+  "red_falsifier": {
+    "branch": "review/trigger4-wp306-d14-memory-authority-falsifier-20260830",
+    "test": "tests/test_wp306_d14_memory_authority_falsifier.py",
+    "workflow_run_id": 33295265897,
+    "workflow_job_id": 99213720057,
+    "conclusion": "FAILURE_EXPECTED_FALSIFIER_REPRODUCED",
+    "observed": "A ContextItem classified RETRIEVED_USER_MEMORY_UNTRUSTED_DATA was accepted and selected on CHANNEL_AUTHORITY using only caller channel/classification plus a cost witness; no independent authority-admission witness was required.",
+    "scope": "REPOSITORY_HOSTED_COMPONENT_COUNTEREVIDENCE_ONLY"
+  },
+  "candidate_repair": {
+    "source_commit": "020a7a1ad218f9ed358008ae859a33de4cbc4bcd",
+    "test_commit": "e68ec55649d87a25e0fa590ec735a2c95d497a1d",
+    "workflow_commit": "456951fa52a0dc0094a3e189191623aea13348e7",
+    "mechanism": "Require one separate exact ContextAuthorityWitness for every selectable CHANNEL_AUTHORITY ContextItem. Bind the witness to the complete ContextItem digest and expose witness identity/class/reference/scope/issuer/provenance in SelectedContextItem. Retrieval/source classification/priority/cost/rendering cannot substitute for the witness.",
+    "epistemic_boundary": "ContextAuthorityWitness is admission evidence only. It does not prove issuer_ref legitimate; an upstream deterministic canonical authority resolver must establish that before witness creation/admission."
+  },
+  "green_review": {
+    "workflow_run_id": 33295469395,
+    "workflow_job_id": 99214264636,
+    "conclusion": "SUCCESS",
+    "tests": {
+      "context_compiler": "15/15 PASS",
+      "epistemic_context_adapter": "8/8 PASS",
+      "g4_renderer_tokenizer_cost_binding": "6/6 PASS",
+      "d14_authority_boundary": "3/3 PASS"
+    },
+    "total_tests_observed": 32,
+    "scope": "REVIEW_BRANCH_REPOSITORY_HOSTED_COMPONENT_CI_ONLY"
+  },
+  "credit": {
+    "target_runtime": 0,
+    "physical_grid10": 0,
+    "gwt_runtime": 0,
+    "jspace_runtime": 0,
+    "effect": 0,
+    "training": 0,
+    "whole_system": 0
+  },
+  "mutation_authority": "NONE",
+  "next_exact_action": "Canonical WP306 reconciliation owner should review the red/green evidence. If admitted as a successor semantic hardening, advance WP306 by protocol, bind the authority witness producer to deterministic canonical authority rather than memory/model output, rerun exact canonical CI, then separately exercise target-runtime context construction before any runtime credit."
+}
