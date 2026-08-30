@@ -1,14 +1,22 @@
 """Fail-closed restart/recovery continuation contract for Frankenstein 2.0.
 
-F2-WP-901 generation 1 repository-component scope only.
+F2-WP-901 generation 2 repository-component scope only.
+
+Generation 2 preserves the generation-1 restart/effect fences and closes the executable
+causal-lineage counterexample reproduced by REVIEW_ONLY PR #669.  Recovery now requires one
+explicit replay-stable ``causal_lineage_id`` in persisted evidence plus two independently
+supplied lineage witnesses: one for the source checkpoint and one for the accepted whole-loop
+seal.  All three must agree before a continuation candidate can be emitted, and the admitted
+lineage is carried into the resulting plan.
 
 This module deliberately does not persist a second recovery ledger, schedule work, call
 models/providers/tools, execute effects, or mint completion.  It consumes one explicit
 persisted-evidence envelope that is already bound to an accepted WP900 whole-loop seal and
 WP206 checkpoint identity, then produces only a deterministic continuation *candidate*.
 
-The key restart safety rule is intentionally conservative:
+The restart safety rules remain conservative:
 
+* mixed checkpoint/whole-loop causal lineages fail closed;
 * UNKNOWN or merely RESULT_OBSERVED external-effect outcomes hold the entire unfinished
   set until outcome verification closes the causal ambiguity;
 * VERIFIED_NOT_APPLIED may continue unrelated non-effect work, but the effect attempt
@@ -36,13 +44,13 @@ from .whole_persistent_loop import (
 )
 
 
-RECOVERY_EVIDENCE_SCHEMA = "FRANKENSTEIN2_RESTART_RECOVERY_EVIDENCE/v1"
-RECOVERY_PLAN_SCHEMA = "FRANKENSTEIN2_RESTART_RECOVERY_CONTINUATION_PLAN/v1"
+RECOVERY_EVIDENCE_SCHEMA = "FRANKENSTEIN2_RESTART_RECOVERY_EVIDENCE/v2"
+RECOVERY_PLAN_SCHEMA = "FRANKENSTEIN2_RESTART_RECOVERY_CONTINUATION_PLAN/v2"
 EVIDENCE_CLASSIFICATION = (
-    "PERSISTED_IDENTITY_BOUND_RECOVERY_INPUT_NOT_WORLD_TRUTH_EFFECT_OR_COMPLETION_AUTHORITY"
+    "PERSISTED_IDENTITY_AND_CAUSAL_LINEAGE_BOUND_RECOVERY_INPUT_NOT_WORLD_TRUTH_EFFECT_OR_COMPLETION_AUTHORITY"
 )
 PLAN_CLASSIFICATION = (
-    "DETERMINISTIC_RESTART_CONTINUATION_CANDIDATE_NOT_SCHEDULER_EFFECT_OR_COMPLETION_AUTHORITY"
+    "DETERMINISTIC_CAUSAL_LINEAGE_BOUND_RESTART_CONTINUATION_CANDIDATE_NOT_SCHEDULER_EFFECT_OR_COMPLETION_AUTHORITY"
 )
 
 CONTINUE_UNFINISHED = "CONTINUE_UNFINISHED_AS_CANDIDATE"
@@ -136,12 +144,13 @@ def _digest(value: Any) -> str:
 class PersistedRestartEvidence:
     """Minimal explicit evidence required to plan one restart continuation.
 
-    The caller must still bind this object to the exact persisted row/receipt it loaded.
-    `plan_restart_continuation` therefore requires the expected digest and all principal
-    checkpoint/whole-loop identities again and fails closed on disagreement.
+    ``causal_lineage_id`` is the single lineage admitted by the persisted recovery input.
+    The planner additionally requires independent checkpoint and whole-loop lineage witnesses
+    and refuses to continue unless all three identities are exactly equal.
     """
 
     evidence_id: str
+    causal_lineage_id: str
     source_checkpoint_id: str
     source_checkpoint_generation: int
     source_checkpoint_sha256: str
@@ -159,6 +168,9 @@ class PersistedRestartEvidence:
 
     def __post_init__(self) -> None:
         object.__setattr__(self, "evidence_id", _text("evidence_id", self.evidence_id))
+        object.__setattr__(
+            self, "causal_lineage_id", _text("causal_lineage_id", self.causal_lineage_id)
+        )
         object.__setattr__(
             self,
             "source_checkpoint_id",
@@ -245,6 +257,7 @@ class PersistedRestartEvidence:
             "schema": self.schema,
             "classification": self.classification,
             "evidence_id": self.evidence_id,
+            "causal_lineage_id": self.causal_lineage_id,
             "source_checkpoint_id": self.source_checkpoint_id,
             "source_checkpoint_generation": self.source_checkpoint_generation,
             "source_checkpoint_sha256": self.source_checkpoint_sha256,
@@ -270,6 +283,7 @@ class RestartContinuationPlan:
     plan_id: str
     source_evidence_id: str
     source_evidence_sha256: str
+    causal_lineage_id: str
     source_checkpoint_id: str
     source_checkpoint_generation: int
     source_checkpoint_sha256: str
@@ -298,6 +312,9 @@ class RestartContinuationPlan:
             _sha256("source_evidence_sha256", self.source_evidence_sha256),
         )
         object.__setattr__(
+            self, "causal_lineage_id", _text("causal_lineage_id", self.causal_lineage_id)
+        )
+        object.__setattr__(
             self,
             "source_checkpoint_id",
             _text("source_checkpoint_id", self.source_checkpoint_id),
@@ -323,7 +340,9 @@ class RestartContinuationPlan:
             _sha256("whole_loop_seal_sha256", self.whole_loop_seal_sha256),
         )
         object.__setattr__(
-            self, "candidate_generation", _generation("candidate_generation", self.candidate_generation)
+            self,
+            "candidate_generation",
+            _generation("candidate_generation", self.candidate_generation),
         )
         allowed_dispositions = {
             CONTINUE_UNFINISHED,
@@ -363,6 +382,7 @@ class RestartContinuationPlan:
             "plan_id": self.plan_id,
             "source_evidence_id": self.source_evidence_id,
             "source_evidence_sha256": self.source_evidence_sha256,
+            "causal_lineage_id": self.causal_lineage_id,
             "source_checkpoint_id": self.source_checkpoint_id,
             "source_checkpoint_generation": self.source_checkpoint_generation,
             "source_checkpoint_sha256": self.source_checkpoint_sha256,
@@ -395,15 +415,16 @@ def plan_restart_continuation(
     expected_checkpoint_id: str,
     expected_checkpoint_generation: int,
     expected_checkpoint_sha256: str,
+    expected_checkpoint_causal_lineage_id: str,
     expected_whole_loop_seal_id: str,
     expected_whole_loop_seal_sha256: str,
+    expected_whole_loop_causal_lineage_id: str,
 ) -> RestartContinuationPlan:
     """Create one deterministic, authority-free restart continuation candidate.
 
-    All principal identities are supplied twice on purpose: the persisted evidence object
-    and the caller's exact expected identity binding must agree before recovery planning.
-    This prevents a convenient stale/foreign row from becoming restart authority merely
-    because it is internally well-formed.
+    All principal identities are supplied twice on purpose.  Generation 2 additionally
+    requires independent checkpoint and whole-loop causal-lineage witnesses.  A mixed-lineage
+    pair fails closed even when every ordinary id/digest binding is otherwise self-consistent.
     """
 
     if type(evidence) is not PersistedRestartEvidence:
@@ -419,11 +440,17 @@ def plan_restart_continuation(
     expected_checkpoint_sha256 = _sha256(
         "expected_checkpoint_sha256", expected_checkpoint_sha256
     )
+    expected_checkpoint_causal_lineage_id = _text(
+        "expected_checkpoint_causal_lineage_id", expected_checkpoint_causal_lineage_id
+    )
     expected_whole_loop_seal_id = _text(
         "expected_whole_loop_seal_id", expected_whole_loop_seal_id
     )
     expected_whole_loop_seal_sha256 = _sha256(
         "expected_whole_loop_seal_sha256", expected_whole_loop_seal_sha256
+    )
+    expected_whole_loop_causal_lineage_id = _text(
+        "expected_whole_loop_causal_lineage_id", expected_whole_loop_causal_lineage_id
     )
 
     if evidence.sha256() != expected_evidence_sha256:
@@ -438,6 +465,11 @@ def plan_restart_continuation(
         raise RestartRecoveryError("RECOVERY_WHOLE_LOOP_SEAL_ID_MISMATCH")
     if evidence.whole_loop_seal_sha256 != expected_whole_loop_seal_sha256:
         raise RestartRecoveryError("RECOVERY_WHOLE_LOOP_SEAL_DIGEST_MISMATCH")
+
+    if expected_checkpoint_causal_lineage_id != expected_whole_loop_causal_lineage_id:
+        raise RestartRecoveryError("RECOVERY_CAUSAL_LINEAGE_MISMATCH")
+    if evidence.causal_lineage_id != expected_checkpoint_causal_lineage_id:
+        raise RestartRecoveryError("RECOVERY_EVIDENCE_CAUSAL_LINEAGE_MISMATCH")
 
     unfinished = set(evidence.unfinished_work_refs)
     effects = set(evidence.effect_attempt_refs)
@@ -460,9 +492,6 @@ def plan_restart_continuation(
         reason = _REASON_REAUTHORIZE
         continuation = tuple(sorted(unfinished - effects))
         held = tuple(sorted(effects))
-        if not continuation:
-            # Nothing safe remains to continue until the effect receives explicit authority.
-            disposition = CONTINUE_WITH_EFFECT_REAUTH_HOLD
     else:
         disposition = CONTINUE_UNFINISHED
         reason = _REASON_CONTINUE
@@ -474,6 +503,7 @@ def plan_restart_continuation(
             set(evidence.provenance_refs)
             | {
                 f"wp901:evidence:{evidence.evidence_id}:{evidence.sha256()}",
+                f"wp901:causal-lineage:{evidence.causal_lineage_id}",
                 f"wp901:checkpoint:{evidence.source_checkpoint_id}:{evidence.source_checkpoint_sha256}",
                 f"wp901:whole-loop:{evidence.whole_loop_seal_id}:{evidence.whole_loop_seal_sha256}",
             }
@@ -484,6 +514,7 @@ def plan_restart_continuation(
         plan_id=plan_id,
         source_evidence_id=evidence.evidence_id,
         source_evidence_sha256=evidence.sha256(),
+        causal_lineage_id=evidence.causal_lineage_id,
         source_checkpoint_id=evidence.source_checkpoint_id,
         source_checkpoint_generation=evidence.source_checkpoint_generation,
         source_checkpoint_sha256=evidence.source_checkpoint_sha256,
