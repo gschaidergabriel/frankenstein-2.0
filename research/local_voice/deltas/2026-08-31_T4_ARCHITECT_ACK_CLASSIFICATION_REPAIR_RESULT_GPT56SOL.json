@@ -1,0 +1,75 @@
+{
+  "schema": "F2_TRIGGER4_COORDINATION_REPAIR_RESULT/v1",
+  "trigger": "4",
+  "date": "2026-08-31",
+  "organ": "GPT-5.6-Sol",
+  "classification": "COORDINATION_EVIDENCE_INTEGRITY_REPAIR_NOT_PRODUCT_NEGATIVE",
+  "source_finding_ref": "research/local_voice/deltas/2026-08-31_T7_ARCHITECT_COORDINATION_ACK_VALIDATION_GAP_GPT56SOL.json",
+  "architect_packet": "coordination/architect_packets/pending/AWP-20260830T223600Z-1e8516ff5687.json",
+  "architect_ack": "coordination/architect_packets/acks/AWP-20260830T223600Z-1e8516ff5687/T4-GPT56SOL-ACKFIX-20260831.AWA-35a87be1ecf67ad37a80.json",
+  "repair": {
+    "pull_request": 774,
+    "merged_fix_sha": "76c8943be674713f078df4de07badde5953f93f4",
+    "files": [
+      "tools/coordination/architect_packet.py",
+      "tests/test_architect_worker_packet.py"
+    ],
+    "behavior_after_repair": [
+      "make_ack derives the emitted disposition from packet_disposition",
+      "caller-supplied disposition is assertion-only and cannot force APPLIED",
+      "CLI ack can receive now, seen nonce, superseded packet id and authority-conflict classifier inputs",
+      "a mismatched expected disposition fails closed without writing an ACK file",
+      "rejection ACKs inject zero context bytes and mint no authority or credit"
+    ],
+    "public_cli_ack_bypass_remaining": false
+  },
+  "regression_receipt": {
+    "workflow": "Architect Worker Coordination CI",
+    "run_id": 33339791546,
+    "job_id": 99333226233,
+    "job_name": "packet-protocol",
+    "merge_test_subject": "a5dfd4b7ef99f301d1e2d9b02d73c294645074ec",
+    "test_command": "python3 -m unittest tests.test_architect_worker_packet -v",
+    "tests_run": 16,
+    "tests_passed": 16,
+    "tests_failed": 0,
+    "compile_command": "python3 -m py_compile tools/coordination/architect_packet.py",
+    "compile_passed": true,
+    "targeted_regressions": [
+      "test_ack_derives_fail_closed_dispositions",
+      "test_caller_supplied_applied_cannot_override_rejection",
+      "test_cli_ack_cannot_force_applied_for_tampered_packet",
+      "test_cli_ack_derives_rejection_without_disposition_argument",
+      "payload tamper -> REJECT_SCHEMA_INVALID",
+      "route tamper -> REJECT_SCHEMA_INVALID",
+      "stale -> REJECT_STALE",
+      "misaddressed -> REJECT_MISADDRESSED",
+      "duplicate nonce -> ACK_ONLY_DUPLICATE",
+      "authority conflict -> REJECT_AUTHORITY_CONFLICT"
+    ],
+    "conclusion": "PASS"
+  },
+  "telemetry": {
+    "target_packet_context_bytes": 2250,
+    "target_packet_estimated_tokens": 563,
+    "ack_disposition": "APPLIED",
+    "ack_context_bytes_injected": 2250,
+    "ack_estimated_context_tokens_injected": 563,
+    "runtime_dispatches_created": 0,
+    "new_workpackages_created": 0,
+    "new_generations_created": 0
+  },
+  "preserved_zero_credit_boundaries": {
+    "new_mutation_authority_from_packet": false,
+    "new_runtime_dispatch": false,
+    "new_effect_authority": false,
+    "product_runtime_credit_delta": 0,
+    "physical_grid10_credit_delta": 0,
+    "gwt_jspace_credit_delta": 0,
+    "effect_credit_delta": 0,
+    "training_credit_delta": 0,
+    "whole_product_credit_delta": 0
+  },
+  "result_summary": "The Architect packet ACK-classification bypass is closed at repository-CI scope. ACK creation now follows deterministic packet_disposition classification and a caller cannot force APPLIED for a packet that should be rejected. This is coordination/evidence-integrity progress only, not product/runtime/training completion.",
+  "next_exact_action": "Re-enter current main and resume the highest-value nonduplicate Trigger-4 runtime/integration frontier; do not continue spending build capacity on this closed coordination defect unless executable counterevidence appears."
+}
