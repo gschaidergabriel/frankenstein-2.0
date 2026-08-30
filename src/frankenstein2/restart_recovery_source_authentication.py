@@ -153,6 +153,10 @@ def bind_restart_sources(
         raise RestartSourceAuthenticationError(
             "SOURCE_AUTH_SEAL_CHECKPOINT_GENERATION_MISMATCH"
         )
+    if source_checkpoint.previous_checkpoint_id != whole_loop_seal.current_checkpoint_id:
+        raise RestartSourceAuthenticationError(
+            "SOURCE_AUTH_DIRECT_PREDECESSOR_CHECKPOINT_MISMATCH"
+        )
     if whole_loop_seal.next_checkpoint_id != source_checkpoint.checkpoint_id:
         raise RestartSourceAuthenticationError(
             "SOURCE_AUTH_SEAL_CHECKPOINT_ID_MISMATCH"
