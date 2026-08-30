@@ -1,0 +1,70 @@
+{
+  "schema": "TRIGGER7_TO_TRIGGER4_LOCAL_VOICE_CANDIDATE/v1",
+  "from_trigger": "7",
+  "to_trigger": "4",
+  "research_id": "T7-TTS-009",
+  "candidate": "AUDIO8_TTS_01B_ONNX_INT8_GERMAN_TARGET_BENCHMARK",
+  "state": "READY_WHEN_RUNNER_RECOVERS",
+  "priority": "AFTER_EXISTING_CLAY_DIRECT_DEV_HARDWARE_GATE_AND_WITHOUT_DUPLICATING_ACTIVE_TTS_RUNS",
+  "source_semantic_key": "6798470b87f53df7caa51a83b85fac09e813028a7359c52685e7ecf879d8a1a3",
+  "source_result": "research/local_voice/sources/2026-08-30_T7_TTS009_AUDIO8_0_1B_ONNX_SOURCE_PIN_GPT56SOL.json",
+  "do_not_dispatch_from_this_file": true,
+  "target_runtime_semantic_objective": {
+    "schema": "T7_SEMANTIC_OBJECTIVE/v1",
+    "family": "GERMAN_TTS_BENCHMARK",
+    "target_surface": "clay-direct-dev",
+    "subject": "AUDIO8_TTS_0_1B_ONNX_INT8",
+    "evidence_scope": "COMPONENT_BENCHMARK",
+    "generation": 1
+  },
+  "expected_target_runtime_semantic_key": "71bbc37229b43296de2325d375124a25d39c5eccd15bd3709a432ec3bf9913b0",
+  "execution_claim_rule": "Before any target run, Trigger 4 or the authorized executor must compile and acquire the distinct canonical target-runtime semantic claim. This handoff is source evidence only and does not authorize duplicate dispatch.",
+  "source_evidence": {
+    "upstream_code_commit": "55c1260df0176f0f7ba64e53ae0828cff3f95081",
+    "official_onnx_cpu_runtime": true,
+    "german_declared_in_official_onnx_surface": true,
+    "streaming_ndjson_pcm_source_support": true,
+    "explicit_cancel_endpoint_source_support": true,
+    "openai_compatible_nonstreaming_route_source_support": true,
+    "default_stream_chunk_frames": 12,
+    "sample_rate_hz": 44100,
+    "codec_hop_samples": 2048,
+    "nominal_default_chunk_audio_ms_not_ttfa": 557.2789,
+    "target_runtime_proven": false,
+    "german_target_quality_proven": false,
+    "stable_male_frank_voice_proven": false
+  },
+  "benchmark": {
+    "language": "de",
+    "voice_requirement": "stable male Frankenstein voice",
+    "preferred_path": "first-party Audio8 0.1B INT8 ONNX CPU runtime; keep inference network-blocked once artifacts are local",
+    "measure": [
+      "exact downloaded artifact SHA-256 set and consumed revision",
+      "cold load time and resident RSS/PSS",
+      "TTFA p50/p95 on canonical short and medium German prompts",
+      "real-time factor and sustained CPU use",
+      "German independent-ASR WER/CER plus human intelligibility spot check",
+      "speaker identity stability over repeated prompts",
+      "chunk_frames 12 versus smaller bounded values for cadence, seams and repetitions",
+      "cancel request to generation stop to last audible sample p50/p95",
+      "post-cancel leaked audio",
+      "interference with local ASR/LLM/audio threads",
+      "zero outbound model/ASR/TTS API calls"
+    ],
+    "comparators": [
+      "Audio8 0.6B ONNX INT4 candidate",
+      "Qwen3-TTS Trigger-7 candidate",
+      "MagpieTTS multilingual streaming candidate",
+      "current ultralight local TTS latency floor"
+    ]
+  },
+  "acceptance_boundaries": [
+    "source German declaration != target German quality",
+    "upstream memory/latency claims != clay-direct-dev measurements",
+    "streaming endpoint != low TTFA",
+    "cancel endpoint != acceptable barge-in tail latency",
+    "source/component pass != German E2E voice pass",
+    "Trigger4 owns F2 runtime acceptance",
+    "no whole-system credit from this handoff"
+  ]
+}
