@@ -1,0 +1,46 @@
+{
+  "schema": "T7_CONTINUATION_CHECKPOINT_V1",
+  "trigger": "7",
+  "created_at": "2026-08-31T03:29:32+07:00",
+  "organ": "GPT-5.6-Sol",
+  "mode": "REVIEW_ONLY_CANDIDATE_FALSIFIER",
+  "canonical_scope": "Frankenstein 2.0 local realtime voice research",
+  "f2_head_observed_before_checkpoint": "aa101d680f0823d878688b8ac3b63954305b8d17",
+  "semantic_claim": {
+    "research_id": "T7-FD-RTCOMPAT-001",
+    "semantic_key": "8c53f25ed47c458bb727dd4dc82f788241cee699e428c4d97401a965a4eb375e",
+    "state": "CLAIMED_READY_FOR_BOUNDED_PROTOCOL_FALSIFIER",
+    "runtime_credit": 0,
+    "trigger4_acceptance_credit": 0
+  },
+  "pinned_upstream": {
+    "repository": "huggingface/speech-to-speech",
+    "revision": "3986f453012a131632eee4731995474046846794",
+    "revision_date_utc": "2026-08-28T08:37:18Z"
+  },
+  "primary_source_correction_validated": [
+    "Pinned service.py imports ConversationItemTruncateEvent and maps conversation.item.truncate in the client-event model surface.",
+    "Pinned websocket_router.py deliberately treats ConversationItemTruncateEvent as a no-op because cancellation is expected to discard provisional generation and client playback owns the unheard tail.",
+    "Pinned response cancellation closes/tombstones response identity and the response path contains provisional-generation rollback machinery; this is stronger than the stale web crawl that suggested truncate was absent.",
+    "Source review still does not prove that partially delivered assistant semantics beyond the F2 heard boundary cannot influence the next turn, tool state or conversation context."
+  ],
+  "highest_information_discriminator": "Run a partially delivered response against the pinned local server; record generated and actually-heard boundaries; cancel and send truncate; then inspect the next-turn local model context plus late tool/audio behavior. Any assistant semantics beyond the F2 admitted heard/commit boundary influencing the next turn is a product negative for drop-in compatibility unless one explicit F2 adapter reconstructs authoritative history and prevents retained server state from influencing generation.",
+  "existing_falsifier": "research/local_voice/falsifiers/2026-08-31_HF_S2S_REALTIME_HEARD_BOUNDARY_PROTOCOL_FALSIFIER_GPT56SOL.json",
+  "human_claim": "research/local_voice/claims/T7-FD-RTCOMPAT-001/E3_HF_SPEECH_TO_SPEECH_REALTIME_PROTOCOL_COMPATIBILITY.json",
+  "coordination": {
+    "duplicate_semantic_lane_created": false,
+    "new_runtime_dispatch_created": false,
+    "trigger4_mutation_authority_claimed": false,
+    "action": "Preserve the single semantic lane and route execution through the admitted Trigger4/VPS runtime authority rather than opening another voice architecture lane."
+  },
+  "zero_credit_boundaries": [
+    "no local speech-to-speech runtime execution in this checkpoint",
+    "no German E2E acoustic benchmark",
+    "no physical barge-in latency benchmark",
+    "no network-blocked locality acceptance",
+    "no V5 build-candidate promotion",
+    "no V6 Trigger4 acceptance",
+    "no whole voice-system acceptance"
+  ],
+  "next_exact_action": "Execute the existing HF heard-boundary protocol falsifier on the pinned revision through the admitted VPS/Trigger4 route. Measure next-turn context after partial-delivery cancellation, stale tool-result ownership, late audio suppression, duplicate cancel/truncate idempotence, packet latency/resources and zero external inference under network-blocked conditions. Promote only executed scope."
+}
