@@ -1,0 +1,31 @@
+name: WP1111 portable release static completeness
+
+on:
+  push:
+    paths:
+      - 'AI_START_HERE_DO_NOT_SCAN_REPO/02_RELEASE_CONTRACT.json'
+      - 'src/frankenstein2/portable_release_static_completeness.py'
+      - 'tests/test_portable_release_static_completeness.py'
+      - '.github/workflows/wp1111-portable-release-static-completeness-ci.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  component:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Compile owned source and test
+        run: |
+          python -m py_compile src/frankenstein2/portable_release_static_completeness.py tests/test_portable_release_static_completeness.py
+      - name: Run fail-closed component suite
+        env:
+          PYTHONPATH: src
+        run: |
+          python -m unittest -v tests.test_portable_release_static_completeness
