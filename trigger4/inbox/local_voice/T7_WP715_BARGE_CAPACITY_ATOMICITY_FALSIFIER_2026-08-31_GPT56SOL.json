@@ -13,7 +13,9 @@
     "source_blob_sha": "98b93f85b446c66db78b553f12631aa0acebbc71",
     "scope": "packet cortex bounded transient state / barge-in atomicity"
   },
-  "candidate_id": "PN12_BARGE_IN_NEAR_EVENT_CAP_CAN_PARTIALLY_MUTATE_THEN_RAISE",
+  "candidate_id": "PN15_BARGE_IN_NEAR_EVENT_CAP_CAN_PARTIALLY_MUTATE_THEN_RAISE",
+  "renumbered_from": "PN12_BARGE_IN_NEAR_EVENT_CAP_CAN_PARTIALLY_MUTATE_THEN_RAISE",
+  "renumber_reason": "Concurrent Trigger-7 reentry already assigned PN12 to PN10 limit-ABI drift and PN14 to tool-only barge ownership; preserve unique falsifier identity.",
   "observation": {
     "accept_input_precheck": "accept_input() calls _require_event_capacity() once before mutating input replay/sequence/final-turn state.",
     "barge_path": "For packet.barge_in=true, accept_input() then calls cancel_for_barge_in(), which mutates cancellable outputs and tool ownership and emits BARGE_IN_CANCEL_PROPAGATED, consuming an event slot.",
@@ -33,6 +35,12 @@
     "Or refactor barge-in/input handling into a staged transaction that validates all capacity/invariants before committing state and events.",
     "Add a regression that snapshots relevant controller state before the MAX_EVENTS-1 call and proves exact equality after a rejected operation."
   ],
+  "coordination": {
+    "immediate_blocker": "Executed restart-reentry PRODUCT_NEGATIVE on source 9203d515dbcfb8a049971e60174a281609865a33 remains higher priority.",
+    "execution_priority": "DEFER_PN15_UNTIL_RESTART_REENTRY_REPAIR_OR_SAME_COHERENT_WP715_REGRESSION_PASS",
+    "duplicate_runtime_dispatch": false,
+    "duplicate_source_mutation": false
+  },
   "failure_class_until_executed": "CANDIDATE_PRODUCT_NEGATIVE_REQUIRES_EXECUTION",
   "credit": {
     "review_delta": 1,
@@ -50,5 +58,5 @@
     "No UnifiedDB/effect/whole-loop promotion.",
     "This packet is review/falsifier routing only; Trigger 4 retains canonical WP715 mutation/acceptance authority."
   ],
-  "next_exact_action": "WP715 mutation owner executes PN12 against the current exact subject before broad packet/recovery VPS promotion; if reproduced, repair atomic capacity reservation and bind the regression into the existing WP715 repository/VPS discriminator rather than creating a second workflow."
+  "next_exact_action": "After the current restart-reentry PRODUCT_NEGATIVE is repaired, or within the same coherent WP715 regression pass, execute PN15 against the then-current exact subject; if reproduced, repair atomic capacity reservation and bind the regression into the existing WP715 repository/VPS discriminator rather than creating a second workflow."
 }
