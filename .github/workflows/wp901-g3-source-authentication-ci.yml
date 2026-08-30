@@ -1,0 +1,57 @@
+name: WP901 G3 source authentication CI
+
+on:
+  pull_request:
+    paths:
+      - 'src/frankenstein2/restart_recovery_source_authentication.py'
+      - 'tests/test_restart_recovery_source_authentication.py'
+      - 'src/frankenstein2/restart_recovery_continuation.py'
+      - 'tests/test_restart_recovery_continuation.py'
+      - 'tests/falsifier_wp901_plan_semantic_consistency.py'
+      - 'tests/falsifier_wp901_reason_code_consistency.py'
+      - '.github/workflows/wp901-g3-source-authentication-ci.yml'
+      - 'workpackages/active/F2-WP-901.json'
+  push:
+    branches:
+      - main
+    paths:
+      - 'src/frankenstein2/restart_recovery_source_authentication.py'
+      - 'tests/test_restart_recovery_source_authentication.py'
+      - 'src/frankenstein2/restart_recovery_continuation.py'
+      - 'tests/test_restart_recovery_continuation.py'
+      - 'tests/falsifier_wp901_plan_semantic_consistency.py'
+      - 'tests/falsifier_wp901_reason_code_consistency.py'
+      - '.github/workflows/wp901-g3-source-authentication-ci.yml'
+      - 'workpackages/active/F2-WP-901.json'
+      - 'workpackages/reconciliations/F2-WP-901/**'
+      - 'workpackages/receipts/F2-WP-901*'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  source-authentication-and-g2-regression:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout exact workflow ref
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - name: Compile G2 and G3 recovery surfaces
+        run: >-
+          python -m py_compile
+          src/frankenstein2/restart_recovery_continuation.py
+          src/frankenstein2/restart_recovery_source_authentication.py
+          tests/test_restart_recovery_continuation.py
+          tests/falsifier_wp901_plan_semantic_consistency.py
+          tests/falsifier_wp901_reason_code_consistency.py
+          tests/test_restart_recovery_source_authentication.py
+      - name: Run accepted G2 suites and G3 source-authentication regressions
+        env:
+          PYTHONPATH: src
+        run: >-
+          python -m unittest -v
+          tests.test_restart_recovery_continuation
+          tests.falsifier_wp901_plan_semantic_consistency
+          tests.falsifier_wp901_reason_code_consistency
+          tests.test_restart_recovery_source_authentication
