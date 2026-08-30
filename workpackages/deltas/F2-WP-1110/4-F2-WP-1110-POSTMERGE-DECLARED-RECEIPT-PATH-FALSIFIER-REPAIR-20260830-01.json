@@ -1,0 +1,42 @@
+{
+  "schema": "FRANKENSTEIN2_WORKPACKAGE_DELTA/v1",
+  "workpackage_id": "F2-WP-1110",
+  "classification": "POST_MERGE_FALSIFIER_AND_BOUNDED_HARNESS_REPAIR",
+  "trigger": "4",
+  "worker_id": "GPT-5.6-Sol-TRIGGER4",
+  "authority_epoch": "8.78",
+  "base_commit": "a6ab5a94b68a02c8d01278beea4e2ad45476e32d",
+  "source_defect": {
+    "introduced_by_pr": 610,
+    "merged_pr_head": "43c0f20a73671c2b44c2bb6a2d07e369c759218b",
+    "finding": "The exact release-candidate harness declared release-receipts/frankenstein-2.0-prehandoff.json as prehandoff_receipt_ref but wrote the canonical ArtifactBoundPreHandoffReceipt bytes to output_dir/frankenstein-2.0-prehandoff.json instead. Declared reference and materialized external path therefore diverged while CI remained green.",
+    "review_evidence": "PR #610 review 5059937219",
+    "donor_falsifier_pr": 613
+  },
+  "repair_scope": "TOOLS_BUILD_RELEASE_CANDIDATE_DECLARED_RECEIPT_PATH_BINDING_AND_ITS_REPOSITORY_CI_ONLY",
+  "owned_paths_for_candidate": [
+    "tools/build_release_candidate.py",
+    ".github/workflows/trigger4-release-candidate-ci.yml",
+    "workpackages/deltas/F2-WP-1110/4-F2-WP-1110-POSTMERGE-DECLARED-RECEIPT-PATH-FALSIFIER-REPAIR-20260830-01.json"
+  ],
+  "invariants": [
+    "Do not modify active WP1107 generation-3 owned release_archive.py/test/workflow paths.",
+    "Preserve accepted WP1107 ZIP verification and WP1110 generation-2/3 artifact/receipt-content authorities.",
+    "Materialize the canonical external pre-handoff receipt bytes at exactly the canonical relative path declared by prehandoff_receipt_ref.",
+    "Reject absolute, traversal, non-ASCII, noncanonical, symlink-escape, artifact-alias and same-reference/different-bytes cases fail closed.",
+    "Bundle index declared_ref must equal materialized_ref and files[] must bind the declared relative path.",
+    "Repository CI success grants repository release-build evidence only and zero clean-machine/physical-host/VPS/provider/effect/completion/whole-system credit."
+  ],
+  "counterhypothesis": "The path mismatch is harmless because prehandoff_receipt_ref is only a textual identity. This is rejected by the accepted WP1110 generation-3 next gate, which explicitly requires materializing the exact canonical ArtifactBoundPreHandoffReceipt bytes at its declared reference before real clean-machine evidence is collected.",
+  "discriminator": "Build twice in GitHub-hosted CI from the exact Git tree; require byte-identical bundles, require the receipt to exist at release-receipts/frankenstein-2.0-prehandoff.json, require the old flat path to be absent, require declared_ref == materialized_ref in the bundle index, and require ../escape.json to fail closed.",
+  "runtime_execution_observed": false,
+  "clean_machine_execution_observed": false,
+  "physical_host_execution_observed": false,
+  "runtime_credit": 0,
+  "physical_host_credit": 0,
+  "vps_runtime_credit": 0,
+  "effect_credit": 0,
+  "completion_credit": 0,
+  "whole_system_acceptance": false,
+  "next_exact_action": "Run repair PR CI. If exact PR-head CI is green and main has not gained overlapping ownership, merge the bounded harness repair, verify merged-main CI, close REVIEW_ONLY donor PR #613 as absorbed, then materialize one exact final release bundle and only afterward proceed to real clean-machine observations."
+}

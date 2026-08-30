@@ -13,6 +13,8 @@ The payload source is the exact current Git tree, not the ambient checkout:
 
 Untracked files and checkout-local mutations cannot enter the payload. Git symlinks,
 gitlinks/submodules, non-regular modes, non-UTF-8 paths, and non-ASCII paths fail closed.
+The external pre-handoff receipt is materialized at the exact canonical relative path
+declared in the release manifest; declared-reference/path divergence fails closed.
 """
 from __future__ import annotations
 
@@ -82,6 +84,75 @@ def _canonical_path(raw: bytes) -> str:
     if path.as_posix() != value:
         raise ReleaseCandidateBuildError(f"release path is not canonical POSIX: {value!r}")
     return value
+
+
+def _canonical_output_ref(value: object, name: str) -> str:
+    if not isinstance(value, str) or not value or value != value.strip():
+        raise ReleaseCandidateBuildError(f"{name} must be a non-empty already-trimmed string")
+    if any(ord(ch) < 0x20 or ord(ch) == 0x7F for ch in value):
+        raise ReleaseCandidateBuildError(f"{name} contains control characters")
+    try:
+        value.encode("ascii")
+    except UnicodeEncodeError as exc:
+        raise ReleaseCandidateBuildError(f"{name} must be ASCII") from exc
+    if "\\" in value or "\x00" in value:
+        raise ReleaseCandidateBuildError(f"{name} is not canonical POSIX")
+    path = PurePosixPath(value)
+    if path.is_absolute() or not path.parts or any(part in {"", ".", ".."} for part in path.parts):
+        raise ReleaseCandidateBuildError(f"{name} is not a safe relative path")
+    if path.as_posix() != value:
+        raise ReleaseCandidateBuildError(f"{name} is not canonical POSIX")
+    return value
+
+
+def _is_within(path: Path, root: Path) -> bool:
+    try:
+        path.relative_to(root)
+    except ValueError:
+        return False
+    return True
+
+
+def _write_exact_declared_receipt(
+    output_dir: Path,
+    receipt_ref: str,
+    exact_bytes: bytes,
+) -> Path:
+    """Write exact receipt bytes only at the declared relative reference.
+
+    Parent symlink escapes and same-reference/different-bytes replacement fail closed.
+    Existing byte-identical content is accepted as an idempotent rebuild.
+    """
+
+    if type(exact_bytes) is not bytes or not exact_bytes:
+        raise ReleaseCandidateBuildError("external pre-handoff receipt bytes must be non-empty exact bytes")
+    output_root = output_dir.resolve(strict=True)
+    relative = PurePosixPath(receipt_ref)
+    target = output_root.joinpath(*relative.parts)
+    target.parent.mkdir(parents=True, exist_ok=True)
+    resolved_parent = target.parent.resolve(strict=True)
+    if not _is_within(resolved_parent, output_root):
+        raise ReleaseCandidateBuildError("pre-handoff receipt parent escapes output directory")
+    if target.is_symlink():
+        raise ReleaseCandidateBuildError("pre-handoff receipt path must not be a symlink")
+    if target.exists():
+        if not target.is_file():
+            raise ReleaseCandidateBuildError("pre-handoff receipt path exists but is not a regular file")
+        if target.read_bytes() != exact_bytes:
+            raise ReleaseCandidateBuildError(
+                "declared pre-handoff receipt already exists with different bytes"
+            )
+        return target
+    try:
+        with target.open("xb") as handle:
+            handle.write(exact_bytes)
+    except FileExistsError as exc:
+        raise ReleaseCandidateBuildError(
+            "pre-handoff receipt appeared concurrently; exact readback required"
+        ) from exc
+    if target.read_bytes() != exact_bytes:
+        raise ReleaseCandidateBuildError("pre-handoff receipt readback mismatch")
+    return target
 
 
 def _tree_entries() -> tuple[tuple[str, str, str, str], ...]:
@@ -190,12 +261,20 @@ def build_bundle(output_dir: Path, *, artifact_filename: str, prehandoff_receipt
 
     if Path(artifact_filename).name != artifact_filename or artifact_filename in {".", ".."}:
         raise ReleaseCandidateBuildError("artifact filename must be a simple basename")
+    prehandoff_receipt_ref = _canonical_output_ref(
+        prehandoff_receipt_ref, "prehandoff_receipt_ref"
+    )
+    if prehandoff_receipt_ref == artifact_filename:
+        raise ReleaseCandidateBuildError(
+            "pre-handoff receipt reference must not alias release artifact"
+        )
 
     entries = _tree_entries()
     release_id = f"frankenstein-2.0-{source_commit[:12]}"
     build_id = f"trigger4-release-{source_commit[:12]}"
 
     output_dir.mkdir(parents=True, exist_ok=True)
+    output_dir = output_dir.resolve(strict=True)
     with tempfile.TemporaryDirectory(prefix="f2-release-tree-") as temporary:
         staging = Path(temporary)
         executable_paths = _materialize_exact_tree(staging, entries)
@@ -236,13 +315,22 @@ def build_bundle(output_dir: Path, *, artifact_filename: str, prehandoff_receipt
         )
 
     external_prehandoff_bytes = artifact_bound.canonical_bytes()
-    external_prehandoff_path = output_dir / "frankenstein-2.0-prehandoff.json"
-    external_prehandoff_path.write_bytes(external_prehandoff_bytes)
+    external_prehandoff_path = _write_exact_declared_receipt(
+        output_dir,
+        prehandoff_receipt_ref,
+        external_prehandoff_bytes,
+    )
+    materialized_ref = external_prehandoff_path.relative_to(output_dir).as_posix()
+    if materialized_ref != prehandoff_receipt_ref:
+        raise ReleaseCandidateBuildError(
+            "materialized pre-handoff receipt path differs from declared reference"
+        )
+    external_prehandoff_readback = external_prehandoff_path.read_bytes()
 
     content_bound = bind_prehandoff_receipt_content(
         artifact_bound,
         prehandoff_receipt_ref=prehandoff_receipt_ref,
-        prehandoff_receipt_bytes=external_prehandoff_bytes,
+        prehandoff_receipt_bytes=external_prehandoff_readback,
     )
     if content_bound.status != READY_STATUS:
         raise ReleaseCandidateBuildError(f"receipt-content binding is not ready: {content_bound.status}")
@@ -281,9 +369,9 @@ def build_bundle(output_dir: Path, *, artifact_filename: str, prehandoff_receipt
         },
         "prehandoff_receipt": {
             "declared_ref": prehandoff_receipt_ref,
-            "filename": external_prehandoff_path.name,
-            "sha256": _sha256(external_prehandoff_bytes),
-            "size_bytes": len(external_prehandoff_bytes),
+            "materialized_ref": materialized_ref,
+            "sha256": _sha256(external_prehandoff_readback),
+            "size_bytes": len(external_prehandoff_readback),
             "content_subject_sha256": content_bound.receipt_content_subject.sha256(),
             "content_bound_sha256": content_bound.sha256(),
             "content_bound_status": content_bound.status,
@@ -291,7 +379,7 @@ def build_bundle(output_dir: Path, *, artifact_filename: str, prehandoff_receipt
         "files": {
             artifact_path.name: {"sha256": _sha256(artifact_path.read_bytes()), "size_bytes": artifact_path.stat().st_size},
             archive_receipt_path.name: {"sha256": _sha256(archive_receipt_path.read_bytes()), "size_bytes": archive_receipt_path.stat().st_size},
-            external_prehandoff_path.name: {"sha256": _sha256(external_prehandoff_path.read_bytes()), "size_bytes": external_prehandoff_path.stat().st_size},
+            materialized_ref: {"sha256": _sha256(external_prehandoff_readback), "size_bytes": external_prehandoff_path.stat().st_size},
             content_bound_path.name: {"sha256": _sha256(content_bound_path.read_bytes()), "size_bytes": content_bound_path.stat().st_size},
         },
         "credits": {
