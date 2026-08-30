@@ -1,0 +1,121 @@
+{
+  "schema": "T7_TO_T4_CANDIDATE_FALSIFIER_V1",
+  "created_at": "2026-08-31T04:21:00+07:00",
+  "trigger": "7",
+  "organ": "GPT-5.6-Sol",
+  "mode": "CANDIDATE_FALSIFIER__NO_RUNTIME_DISPATCH",
+  "research_id": "T7-FDBV3-GERMAN-TOOL-001",
+  "semantic_key": "efa6ce947e57106992c07f380a4a49df3fe990395d656e38cc04123fe83dc33a",
+  "implementation_mutation_authority": false,
+  "new_runtime_dispatch": false,
+  "duplicate_dispatch_allowed": false,
+  "source_audit": "research/local_voice/sources/2026-08-31_T7_FDBV3_GERMAN_TOOL_ROLLBACK_DONOR_AUDIT_GPT56SOL.json",
+  "donor": {
+    "repository": "DanielLin94144/Full-Duplex-Bench",
+    "revision": "3e799c45a045256f47d5f1c9cda90157e2d2ec9e",
+    "license": "CC-BY-NC-4.0",
+    "use_rule": "Research/spec donor only. Do not copy donor audio or scenario text into F2 fixtures."
+  },
+  "purpose": "Test whether German disfluency, semantic correction and multi-step tool use violate F2 causal/tool/interruption invariants in combinations not exercised by isolated component tests.",
+  "pilot_only": true,
+  "pilot_matrix": [
+    {
+      "id": "DE_TOOL_01_PRECALL_SELF_CORRECTION",
+      "axis": "SELF_CORRECTION_BEFORE_TOOL",
+      "oracle": "Only corrected arguments may reach the deterministic mock tool; superseded values must produce zero tool calls."
+    },
+    {
+      "id": "DE_TOOL_02_FALSE_START_NO_EFFECT",
+      "axis": "FALSE_START_WITH_EFFECT_LIKE_INTENT",
+      "oracle": "Abandoned intent must not create a tool/effect request; later explicit intent owns the turn."
+    },
+    {
+      "id": "DE_TOOL_03_TWO_STEP_DYNAMIC_REFERENCE",
+      "axis": "TWO_STEP_TOOL_CHAIN",
+      "oracle": "Second call consumes only the exact result identity of the first admitted call; no invented or stale dynamic reference."
+    },
+    {
+      "id": "DE_TOOL_04_POST_RESULT_CORRECTION",
+      "axis": "SELF_CORRECTION_AFTER_READ_ONLY_RESULT",
+      "oracle": "Correction creates a new causally bound query; prior result cannot silently satisfy the corrected request."
+    },
+    {
+      "id": "DE_TOOL_05_BARGE_IN_TOOL_PENDING",
+      "axis": "BARGE_IN_WHILE_TOOL_PENDING",
+      "oracle": "Interrupted response stops playback at measured boundary; late tool result may be retained only under explicit current-turn ownership and must not resurrect cancelled output."
+    },
+    {
+      "id": "DE_TOOL_06_LATE_OLD_TURN_RESULT",
+      "axis": "LATE_TOOL_RESULT_AFTER_NEW_TURN",
+      "oracle": "Old-turn result is traceable but cannot mutate newer-turn authoritative context/effect state without a valid causal handoff."
+    },
+    {
+      "id": "DE_TOOL_07_POST_DONE_PLAYOUT_LAG",
+      "axis": "RESPONSE_DONE_BEFORE_PLAYOUT_COMPLETE",
+      "oracle": "Apply T7_INTERRUPTED_CONTEXT_RETAIN_HEARD_PREFIX_EPHEMERALLY_ONLY_V1: retain only measured heard prefix ephemerally, exclude unheard tail, stop actual sink playback, keep durable writes at zero unless separately admitted."
+    },
+    {
+      "id": "DE_TOOL_08_DUPLICATE_RESULT_REPLAY",
+      "axis": "DUPLICATE_OR_REPLAYED_TOOL_RESULT",
+      "oracle": "Duplicate result cannot double-apply state or regain producer ownership; replay identity remains stable."
+    },
+    {
+      "id": "DE_TOOL_09_GERMAN_IDENTIFIERS_CODESWITCH",
+      "axis": "GERMAN_NUMBERS_DATES_IDENTIFIERS_AND_PROPER_NOUNS",
+      "oracle": "Tool arguments preserve exact intended identifiers despite German speech rhythm, spelling, hyphenation and code-switched names; uncertainty fails closed rather than guessing."
+    },
+    {
+      "id": "DE_TOOL_10_HESITATION_PREMATURE_CALL",
+      "axis": "HESITATION_BEFORE_ARGUMENT_COMPLETION",
+      "oracle": "No tool call before required arguments are semantically complete; latency optimization must not outrun intent certainty."
+    }
+  ],
+  "execution_contract": {
+    "reuse_existing_f2_voice_tool_causal_boundaries": true,
+    "reuse_existing_wp715_hf_runtime_subjects_where_semantically_applicable": true,
+    "do_not_reopen_wp715": true,
+    "do_not_duplicate_existing_hf02_hf10_dispatch": true,
+    "mock_tools_only_for_pilot": true,
+    "external_model_api_calls": 0,
+    "external_asr_api_calls": 0,
+    "external_tts_api_calls": 0,
+    "llm_judge_calls": 0,
+    "preferred_evaluator": "deterministic exact tool selection + typed argument oracle + causal identity/readback checks",
+    "preferred_execution_surface": "lowest safe faithful admitted VPS sandbox/controller route"
+  },
+  "pilot_stop_rule": "Run the smallest orthogonal subset first. Scale only if at least one new product-negative or evidence-validity class appears beyond current HF02-HF10/WP715 coverage; otherwise close as REDUNDANT_NO_NEW_INFORMATION.",
+  "must_record": [
+    "f2_exact_source_sha",
+    "pilot_case_id",
+    "turn_and_generation_identity",
+    "heard_boundary_or_not_applicable",
+    "expected_tool_sequence",
+    "actual_tool_sequence",
+    "expected_arguments",
+    "actual_arguments",
+    "tool_result_identity",
+    "late_or_duplicate_result_disposition",
+    "next_turn_effective_context_digest",
+    "durable_memory_write_count",
+    "effect_write_count",
+    "failure_class"
+  ],
+  "failure_classes": [
+    "PRODUCT_NEGATIVE",
+    "EVIDENCE_INVALID",
+    "INFRA_AUTH_TRANSPORT_QUOTA",
+    "CONCURRENCY_RETRY",
+    "UNKNOWN_NONTERMINAL",
+    "REDUNDANT_NO_NEW_INFORMATION"
+  ],
+  "credit_before_execution": {
+    "research_donor_credit": 1,
+    "pilot_runtime_credit": 0,
+    "german_e2e_voice": 0,
+    "tool_runtime_credit": 0,
+    "acoustic_credit": 0,
+    "trigger4_acceptance": 0,
+    "whole_product": 0
+  },
+  "next_exact_action": "Trigger4 reviews overlap against current HF/WP715 tests, selects the smallest genuinely orthogonal subset (prefer DE_TOOL_05, DE_TOOL_07 and one correction/rollback case), implements it with original German fixtures and deterministic mock tools, and executes through existing admitted VPS/controller authority. If overlap is complete, record REDUNDANT_NO_NEW_INFORMATION and do not build a second benchmark framework."
+}
