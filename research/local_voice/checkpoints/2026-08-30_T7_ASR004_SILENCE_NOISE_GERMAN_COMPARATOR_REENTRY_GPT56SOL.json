@@ -1,0 +1,70 @@
+{
+  "schema_version": 1,
+  "trigger": "7",
+  "research_id": "T7-ASR-004",
+  "semantic_key": "95bd53a469133dbfdf39da320f6daa049cec1361084e632dc915c4bc156e3715",
+  "date": "2026-08-30",
+  "status": "RESEARCH_DELTA_PERSISTED_TARGET_QUALITY_GATE_NEXT",
+  "f2_main_observed_before_checkpoint_write": "f524e9012401ee798a01dc2aabe09083048babed",
+  "authority": {
+    "target_surface": "clay-direct-dev",
+    "owner_vps_compute_allowed": true,
+    "free_only_interpretation": "paid/unknown-cost external provider tokens or external paid compute are forbidden; owner VPS/local-model execution remains allowed",
+    "claude_code_optional_inference_allowed": true,
+    "local_solo_floor_required": true
+  },
+  "prior_target_evidence": {
+    "artifact_hash_verified": true,
+    "model_load_observed": true,
+    "local_inference_observed": true,
+    "cpu_only": true,
+    "model_load_seconds": 20.79658886801917,
+    "silence_inference_seconds": 1.670928745996207,
+    "rss_after_inference_bytes": 4152406016,
+    "silence_output_language": "German",
+    "silence_output_text": "Ich.",
+    "german_asr_quality_credit": 0,
+    "streaming_asr_credit": 0,
+    "german_e2e_voice_credit": 0,
+    "trigger4_acceptance_credit": 0,
+    "whole_system_credit": 0
+  },
+  "this_cycle_writes": [
+    {
+      "path": "research/local_voice/frontier/2026-08-30_T7_ASR004_SILENCE_NOISE_GERMAN_COMPARATOR_GPT56SOL.md",
+      "commit": "15ed51879154d07d60926ed8a609088fbca01d41",
+      "scope": "matched raw-decoder/gated-pipeline Qwen-vs-faster-whisper non-speech and German quality discriminator"
+    },
+    {
+      "path": "trigger4/inbox/local_voice/T7_QWEN3_ASR_STREAMING_SCOPE_SUCCESSOR_2026-08-30_GPT56SOL.json",
+      "commit": "75280309e593c7769a7f4c77e6f132342721fbd4",
+      "scope": "reconciled handoff after real target smoke; historical queued Actions transport no longer treated as scientific blocker"
+    }
+  ],
+  "external_primary_source_delta": {
+    "qwen3_asr": "official source confirms streaming is vLLM-only, single-stream/no-batch, no timestamps; state accumulates PCM and decoded prefix and re-feeds accumulated audio",
+    "faster_whisper": "maintained baseline exposes Silero VAD filtering and configurable silence/no-speech handling",
+    "comparison_rule": "report raw decoder and gated pipeline separately; do not compare ungated Qwen with gated Whisper as if the difference were decoder quality"
+  },
+  "hypotheses": [
+    "H1 decoder-only false activation: the observed 'Ich.' is suppressed by a causal speech-presence/turn gate before ASR text enters VoiceIntent/GWT",
+    "H2 synthetic-silence artifact: exact-zero silence plus forced German is not representative of real room/noise behavior",
+    "H3 model-specific weakness: Qwen3-ASR remains materially worse than faster-whisper on matched non-speech false activation or German WER/CER"
+  ],
+  "next_exact_gate": [
+    "On clay-direct-dev, continue the same open T7-ASR-004 semantic objective with a pinned matched non-speech + German speech fixture suite.",
+    "Run both raw-decoder and gated-pipeline conditions for Qwen3-ASR and the admitted faster-whisper baseline; persist exact transcripts, false activation, WER/CER, latency and resource data.",
+    "Do not create a duplicate Qwen German benchmark claim or duplicate self-hosted Actions transport.",
+    "Keep official Qwen vLLM streaming as the already-routed distinct successor runtime gate after resource-fit verification."
+  ],
+  "credits_after_cycle": {
+    "target_execution": 1,
+    "target_model_load": 1,
+    "target_local_asr_inference": 1,
+    "german_asr_quality": 0,
+    "streaming_asr": 0,
+    "german_e2e_voice": 0,
+    "trigger4_acceptance": 0,
+    "whole_system": 0
+  }
+}
