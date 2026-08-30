@@ -1,11 +1,16 @@
 import copy
+import json
+import pathlib
+import tempfile
 import unittest
 from datetime import datetime, timezone
 
 from tools.coordination.architect_packet import (
     PacketError,
+    classify_and_make_ack,
     compute_payload_digest,
     compute_route_id,
+    main,
     make_ack,
     packet_disposition,
     target_matches,
@@ -81,22 +86,13 @@ class ArchitectWorkerPacketTests(unittest.TestCase):
         self.assertEqual(packet_disposition(packet, CONTEXT, now=NOW), "REJECT_STALE")
 
     def test_duplicate_nonce_is_ack_only(self):
-        self.assertEqual(
-            packet_disposition(BASE_PACKET, CONTEXT, now=NOW, seen_nonces={"nonce-0001"}),
-            "ACK_ONLY_DUPLICATE",
-        )
+        self.assertEqual(packet_disposition(BASE_PACKET, CONTEXT, now=NOW, seen_nonces={"nonce-0001"}), "ACK_ONLY_DUPLICATE")
 
     def test_superseded_packet_fails_closed(self):
-        self.assertEqual(
-            packet_disposition(BASE_PACKET, CONTEXT, now=NOW, superseded_packet_ids={"AWP-TEST-0001"}),
-            "REJECT_SUPERSEDED",
-        )
+        self.assertEqual(packet_disposition(BASE_PACKET, CONTEXT, now=NOW, superseded_packet_ids={"AWP-TEST-0001"}), "REJECT_SUPERSEDED")
 
     def test_authority_conflict_defeats_packet(self):
-        self.assertEqual(
-            packet_disposition(BASE_PACKET, CONTEXT, now=NOW, authority_conflict=True),
-            "REJECT_AUTHORITY_CONFLICT",
-        )
+        self.assertEqual(packet_disposition(BASE_PACKET, CONTEXT, now=NOW, authority_conflict=True), "REJECT_AUTHORITY_CONFLICT")
 
     def test_packet_cannot_claim_any_authority(self):
         for field in ("credit_authority", "mutation_authority", "runtime_dispatch_authority", "effect_authority"):
@@ -117,12 +113,8 @@ class ArchitectWorkerPacketTests(unittest.TestCase):
 
     def test_ack_is_non_authoritative_and_binds_route(self):
         ack = make_ack(
-            BASE_PACKET,
-            CONTEXT,
-            "APPLIED",
-            reason="matched exact worker and claim context",
-            authority_head="deadbeef",
-            observed_at=NOW,
+            BASE_PACKET, CONTEXT, "APPLIED", reason="matched exact worker and claim context",
+            authority_head="deadbeef", observed_at=NOW,
             event_head_ref="workpackages/state_events/F2-WP-715/000001.json",
             active_pointer_ref="workpackages/active/F2-WP-715.json",
         )
@@ -134,6 +126,54 @@ class ArchitectWorkerPacketTests(unittest.TestCase):
         self.assertEqual(ack["route_id"], BASE_PACKET["route_id"])
         self.assertEqual(ack["payload_digest"], BASE_PACKET["payload_digest"])
         self.assertEqual(ack["worker_id"], CONTEXT["worker_id"])
+
+    def test_make_ack_cannot_force_applied_for_payload_tamper(self):
+        packet = copy.deepcopy(BASE_PACKET)
+        packet["objective"] = "tampered after sealing"
+        with self.assertRaises(PacketError):
+            make_ack(packet, CONTEXT, "APPLIED", reason="must fail", authority_head="deadbeef", observed_at=NOW)
+
+    def test_make_ack_cannot_force_applied_for_route_tamper(self):
+        packet = copy.deepcopy(BASE_PACKET)
+        packet["route_id"] = "0" * 64
+        with self.assertRaises(PacketError):
+            make_ack(packet, CONTEXT, "APPLIED", reason="must fail", authority_head="deadbeef", observed_at=NOW)
+
+    def test_ack_derives_stale_disposition(self):
+        packet = sealed_packet(expires_at="2026-08-31T00:30:00Z")
+        ack = classify_and_make_ack(packet, CONTEXT, reason="classified", authority_head="deadbeef", now=NOW)
+        self.assertEqual(ack["disposition"], "REJECT_STALE")
+        self.assertEqual(ack["context_bytes_injected"], 0)
+
+    def test_ack_derives_misaddressed_disposition(self):
+        ack = classify_and_make_ack(BASE_PACKET, dict(CONTEXT, worker_id="worker-B"), reason="classified", authority_head="deadbeef", now=NOW)
+        self.assertEqual(ack["disposition"], "REJECT_MISADDRESSED")
+
+    def test_ack_derives_duplicate_nonce_disposition(self):
+        ack = classify_and_make_ack(BASE_PACKET, CONTEXT, reason="classified", authority_head="deadbeef", now=NOW, seen_nonces={"nonce-0001"})
+        self.assertEqual(ack["disposition"], "ACK_ONLY_DUPLICATE")
+
+    def test_ack_derives_authority_conflict_disposition(self):
+        ack = classify_and_make_ack(BASE_PACKET, CONTEXT, reason="classified", authority_head="deadbeef", now=NOW, authority_conflict=True)
+        self.assertEqual(ack["disposition"], "REJECT_AUTHORITY_CONFLICT")
+
+    def test_cli_ack_rejects_caller_disposition_bypass(self):
+        packet = copy.deepcopy(BASE_PACKET)
+        packet["objective"] = "tampered after sealing"
+        with tempfile.TemporaryDirectory() as td:
+            root = pathlib.Path(td)
+            packet_path = root / "packet.json"
+            context_path = root / "context.json"
+            output_path = root / "ack.json"
+            packet_path.write_text(json.dumps(packet), encoding="utf-8")
+            context_path.write_text(json.dumps(CONTEXT), encoding="utf-8")
+            rc = main([
+                "ack", str(packet_path), str(context_path), str(output_path),
+                "--disposition", "APPLIED", "--reason", "attempt bypass",
+                "--authority-head", "deadbeef", "--now", "2026-08-31T01:00:00Z",
+            ])
+            self.assertEqual(rc, 2)
+            self.assertFalse(output_path.exists())
 
 
 if __name__ == "__main__":
