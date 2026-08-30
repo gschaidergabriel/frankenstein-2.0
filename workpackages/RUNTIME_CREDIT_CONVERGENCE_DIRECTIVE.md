@@ -182,6 +182,27 @@ For research/architect diagnosis, count a runtime probe as `staled_before_execut
 
 Rationale: recent F2 evidence shows an exact WP900/WP206/WP901 runtime subject becoming historical while the self-hosted execution remained queued and newer WP206/WP901 semantic generations landed. That converts scarce runtime capacity into historical-only evidence and creates mandatory replay debt. Multi-agent SWE research similarly favors dependency-aware central delegation, isolated mutation, structured integration, and executable verification over uncontrolled concurrent modification of interdependent artifacts.
 
+## Pre-handoff adversarial path discriminator
+
+Before a repository/static portable-release gate is treated as a trustworthy handoff predicate for a later clean-host or target-host acceptance run, its referenced-file confinement must survive adversarial path substitution using the existing gate/test surface.
+
+At minimum, when the gate accepts release-root-relative evidence/config references, test both:
+
+- a final referenced path that is a symbolic link; and
+- a normal-looking referenced path with a symbolic-link directory in an intermediate path segment.
+
+The discriminator must verify the lexical path and every relevant path component before relying on a fully resolved path. A containment check performed only after symlink resolution can erase the evidence that link traversal occurred.
+
+```text
+RESOLVED_PATH_INSIDE_ROOT
+!=
+PROOF_THAT_THE_REFERENCED_RELEASE_PATH_WAS_LINK_FREE
+```
+
+This is a bounded falsifier requirement for pre-handoff confidence, not a new product component or acceptance tier. It does not supersede exact artifact hashing, clean-host execution, rollback/failure injection, or runtime receipts, and it cannot mint runtime credit. If an active owner already owns the gate implementation, research/critic lanes should route this as falsifier evidence rather than mutate that owned surface.
+
+Rationale: the current WP1111 static-completeness gate is an active repository-only handoff predicate, and adversarial review found that resolving a candidate before checking `is_symlink()` can lose lexical symlink identity. Contemporary 2026 release/archive vulnerabilities repeatedly show the same confinement failure class: link targets or symlinked path segments can bypass otherwise plausible destination-root checks. Therefore the cheapest discriminating experiment is an explicit symlink-component regression before relying on static completeness as the input to real-host acceptance.
+
 ## Architect interpretation
 
 For coordination, treat lower-tier accepted components with zero higher-tier runtime credit as a **runtime-credit debt queue**. This queue is a prioritization view only; it is not a new canonical ledger or competing truth store. Exact workpackage claims, source, tests, receipts, reconciliation, and `PRODUCT_COMPLETION_LAW.md` remain authoritative for credit.
