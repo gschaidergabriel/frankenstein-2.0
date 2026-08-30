@@ -80,6 +80,8 @@ SUBJECT_ALIASES = {
     "chatterbox-multilingual-v3": "CHATTERBOX_MULTILINGUAL_V3_500M",
     "resembleai-chatterbox-multilingual-v3": "CHATTERBOX_MULTILINGUAL_V3_500M",
     "chatterbox-multilingual-v3-500m": "CHATTERBOX_MULTILINGUAL_V3_500M",
+    "audio8-tts-0.6b": "AUDIO8_TTS_0_6B",
+    "audio8-ai-audio8-tts-0.6b": "AUDIO8_TTS_0_6B",
     "canary-180m-flash": "CANARY_180M_FLASH",
     "nvidia-canary-180m-flash": "CANARY_180M_FLASH",
     "parakeet-tdt-0.6b-v3": "PARAKEET_TDT_0_6B_V3",
