@@ -1,0 +1,61 @@
+{
+  "schema": "T7_TO_TRIGGER4_EXECUTED_NEGATIVE/v1",
+  "trigger": "7",
+  "date": "2026-08-31",
+  "organ": "GPT-5.6-Sol",
+  "workpackage": "F2-WP-715",
+  "mutation_authority_claimed": false,
+  "classification": "PRODUCT_NEGATIVE",
+  "exact_scope": "WP715 packet-cortex SESSION_CLOSE atomicity and active-tool terminalization only",
+  "execution": {
+    "workflow_run_id": 33334621717,
+    "job_id": 99319184496,
+    "workflow": "WP715 Voice Packet Cortex CI",
+    "runner": "GitHub-hosted Ubuntu 24.04 / Python 3.12.14",
+    "source_sha": "d208f9fc0111fd0b625ac2a0e1980f4be056cf6c",
+    "source_sha256_voice_packet_cortex": "a37f58faf289397d45de3de0d3fa4a8c297b875fadd382d599c60711dfe8d8f4",
+    "test_sha256_voice_packet_cortex": "9689cddd71f71f49fc1e98ade1731864be42197ce77e7b8d707cc522724768cb",
+    "tests_run": 20,
+    "failures": 2,
+    "infra_failure": false
+  },
+  "reproduced_negatives": [
+    {
+      "test": "test_rejected_session_close_is_checkpoint_atomic",
+      "finding": "A rejected SESSION_CLOSE changes the exported recoverable checkpoint; commit-eligible output receives a voiceoutcome_ref before the later SESSION_CLOSE event validation rejects the close.",
+      "root_cause": "close_session creates VoiceOutcome and mutates commit-eligible outputs before _event validates/constructs the SESSION_CLOSE event. A late validation error therefore leaves partial mutation behind.",
+      "credit": "PRODUCT_NEGATIVE_AT_EXACT_CONTROLLER_ATOMICITY_SCOPE"
+    },
+    {
+      "test": "test_session_close_cannot_silently_erase_active_tool_ownership",
+      "finding": "A successful SESSION_CLOSE removes an active tool from ownership without preserving a cancelled/stale tombstone and without a causal terminalization event.",
+      "root_cause": "close_session ends with _active_tools.clear() and does not transfer active tool refs into _cancelled_tools or emit an explicit tool-fence/cancellation event.",
+      "credit": "PRODUCT_NEGATIVE_AT_EXACT_TOOL_OWNERSHIP_SCOPE"
+    }
+  ],
+  "repair_contract": [
+    "Prevalidate the complete close transaction before mutating outputs, tool ownership, event sequence, or closed state; any rejected close must be checkpoint-identical to pre-call state.",
+    "For active tools at successful close, either fail closed without mutation or terminalize every owned tool explicitly with durable stale/cancelled fencing and causal event evidence before closure.",
+    "Reserve/validate all event capacity and event fields needed by the close transaction before the first mutation.",
+    "Keep the two landed regression tests; add no broader voice architecture while closing this defect."
+  ],
+  "runtime_subject_fence": {
+    "existing_vps_run_id": 33328707636,
+    "existing_vps_source_sha": "db01bfbcc2deebc45524b56407a681b226de7b78",
+    "last_observed_state": "queued_zero_step",
+    "classification_after_executed_negative": "RUNTIME_PROBE_INVALIDATED_BY_REQUIRED_REPAIR_FOR_THIS_SEMANTIC_BOUNDARY",
+    "instruction": "Do not derive current repaired runtime credit from the old queued subject. Repair under the existing WP715 Trigger4 owner, rerun exact-source repository CI, then bind one new exact repaired subject to VPS only after the repair is green."
+  },
+  "zero_credit": {
+    "vps_runtime": 0,
+    "acoustic": 0,
+    "asr": 0,
+    "tts": 0,
+    "german_e2e_voice": 0,
+    "gwt_jspace": 0,
+    "effects": 0,
+    "whole_voice_system": 0,
+    "whole_product": 0
+  },
+  "next_exact_action": "Existing F2-WP-715 Trigger4 mutation owner applies one coherent SESSION_CLOSE transaction repair for both reproduced defects, reruns the exact two regressions plus the full WP715 packet/recovery suite, classifies any remaining failures, and only then rebinds an exact repaired VPS discriminator. Trigger7 consumes that outcome before opening ASR/TTS breadth."
+}
