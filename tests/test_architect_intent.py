@@ -1,7 +1,6 @@
 import copy
 import unittest
 from datetime import datetime, timezone
-from unittest.mock import patch
 
 from tools.coordination.architect_intent import (
     IntentError,
@@ -12,9 +11,6 @@ from tools.coordination.architect_intent import (
     reservation_path,
     validate_reservation,
 )
-
-
-FIXED_NOW = datetime(2026, 8, 31, 2, 0, tzinfo=timezone.utc)
 
 
 def bundle(intent_id="VOICE/INTERRUPTION-POLICY", generation=1, objective="first wording"):
@@ -43,11 +39,8 @@ class ArchitectIntentTests(unittest.TestCase):
             normalize_intent_id("infer this from a prose sentence")
 
     def test_same_intent_different_wording_collides_on_same_create_only_path(self):
-        with patch("tools.coordination.architect_packet.datetime") as dt:
-            dt.now.return_value = FIXED_NOW
-            dt.side_effect = lambda *a, **k: datetime(*a, **k)
-            first = bundle(objective="first wording")
-            second = bundle(objective="completely different words")
+        first = bundle(objective="first wording")
+        second = bundle(objective="completely different words")
         self.assertEqual(first["intent_key"], second["intent_key"])
         self.assertEqual(first["reservation_path"], second["reservation_path"])
         self.assertNotEqual(first["packet"]["nonce"], second["packet"]["nonce"])
