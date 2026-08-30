@@ -1,0 +1,87 @@
+{
+  "schema": "T7_RESEARCH_DELTA/v1",
+  "trigger": "7",
+  "date": "2026-08-31",
+  "organ": "GPT-5.6-Sol",
+  "research_id": "T7-FD-RTCOMPAT-001",
+  "classification": "REVIEW_ONLY_SEMANTIC_CORRECTION",
+  "implementation_mutation_authority": false,
+  "new_runtime_dispatch": false,
+  "new_semantic_claim": false,
+  "finding_id": "T7-HEARD-CONTEXT-VS-COMMIT-ELIGIBILITY",
+  "source_facts": [
+    {
+      "class": "CURRENT_F2_SOURCE",
+      "path": "src/frankenstein2/voice_contract.py",
+      "finding": "The voice contract declares identity/provenance evidence only and explicitly does not create UnifiedDB write, effect, completion or runtime authority. It does not define next-turn conversational retention semantics for a partially heard interrupted assistant response."
+    },
+    {
+      "class": "CURRENT_F2_SOURCE",
+      "path": "src/frankenstein2/voice_packet_cortex.py",
+      "finding": "VoiceOutputPacket is commit_eligible only when playback_state is completed and heard_fraction is exactly 1.0. Interrupted output is non-commit-eligible, while heard_fraction is monotone and retained on the interrupted packet."
+    },
+    {
+      "class": "CURRENT_F2_SOURCE",
+      "path": "src/frankenstein2/voice_packet_cortex.py",
+      "finding": "advance_output currently accepts heard_fraction from its caller. The packet cortex validates monotonicity but this source alone does not bind that value to a distinct physical/sink playout receipt."
+    },
+    {
+      "class": "PINNED_UPSTREAM_SOURCE_PLUS_UNIT_TESTS",
+      "repository": "huggingface/speech-to-speech",
+      "revision": "3986f453012a131632eee4731995474046846794",
+      "finding": "Cancelled/failed/incomplete responses roll back provisional response items and tombstone the cancelled generation so late provisional writes are rejected. conversation.item.truncate is accepted but deliberately no-ops after cancellation."
+    }
+  ],
+  "external_primary_context": [
+    {
+      "source": "https://platform.openai.com/docs/api-reference/realtime-client-events",
+      "finding": "conversation.item.truncate synchronizes server understanding with client playback at audio_end_ms and removes server-side transcript beyond what the user heard."
+    },
+    {
+      "source": "https://docs.livekit.io/agents/logic/turns/",
+      "finding": "On interruption, LiveKit truncates conversation history to the portion of agent speech actually heard."
+    },
+    {
+      "source": "https://docs.livekit.io/reference/agents-js/interfaces/agents.voice.PlaybackFinishedEvent.html",
+      "finding": "PlaybackFinishedEvent exposes interrupted state, playbackPosition and optionally a playback-synchronized partial transcript."
+    }
+  ],
+  "semantic_correction": {
+    "incorrect_equivalence_to_avoid": "interrupted_output_not_commit_eligible == interrupted_output_should_not_exist_in_next_turn_context",
+    "reason": "Commit eligibility and next-turn conversational context are separate semantic planes. Current F2 source establishes the former but does not establish the latter. Therefore whole-response rollback cannot be declared semantically compatible solely because an interrupted output is non-commit-eligible.",
+    "required_distinction": {
+      "ephemeral_dialogue_context": "What the user demonstrably heard and what the next local model turn may need for coherent continuation.",
+      "durable_canonical_memory": "What may be admitted to persistent state/UnifiedDB under independent evidence and memory policy."
+    }
+  },
+  "hypothesis": {
+    "preferred": "RETAIN_HEARD_PREFIX_EPHEMERALLY_ONLY",
+    "statement": "For natural full-duplex dialogue, the exactly heard prefix of an interrupted assistant response should remain available to the next-turn effective model context, while the unheard tail is excluded and durable memory/effect credit remains unchanged unless independently admitted.",
+    "counterhypothesis": "DROP_WHOLE_INTERRUPTED_RESPONSE may be an intentional F2 policy. If selected, it must be explicit and its dialogue-coherence consequences must be measured rather than inferred from commit_eligible=false."
+  },
+  "impact_on_existing_hf09": {
+    "existing_falsifier": "research/local_voice/falsifiers/2026-08-31_HF_S2S_HEARD_PREFIX_RETENTION_DELTA_GPT56SOL.json",
+    "do_not_duplicate": true,
+    "oracle_correction": "HF09 can classify raw HF prefix amnesia versus tail leakage immediately, but PRODUCT_NEGATIVE for prefix amnesia requires an explicit F2 next-turn context policy. Until that policy is pinned, report PREFIX_RETENTION_POLICY_UNRESOLVED rather than silently equating non-commit eligibility with context deletion.",
+    "required_receipt_additions": [
+      "interrupted_context_policy_id",
+      "playout_receipt_or_measurement_identity",
+      "heard_boundary_ms",
+      "heard_prefix_digest",
+      "unheard_tail_digest",
+      "next_turn_effective_context_digest",
+      "durable_memory_write_count"
+    ]
+  },
+  "credit_boundary": {
+    "research_semantic_correction": 1,
+    "repository_component_runtime": 0,
+    "local_speech_to_speech_runtime": 0,
+    "acoustic_credit": 0,
+    "durable_memory_credit": 0,
+    "german_e2e_voice": 0,
+    "trigger4_acceptance": 0,
+    "whole_product": 0
+  },
+  "next_exact_action": "Do not open a duplicate runtime lane. Keep the existing WP715/HF runtime subjects unchanged. Before interpreting HF09 prefix deletion as pass or failure, pin the F2 interrupted-response next-turn context policy explicitly. Recommended research default is RETAIN_HEARD_PREFIX_EPHEMERALLY_ONLY with durable memory still separately gated. Then execute HF09 through the existing Trigger4/VPS authority and classify exact runtime behavior against that policy."
+}
