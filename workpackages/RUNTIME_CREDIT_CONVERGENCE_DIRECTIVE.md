@@ -108,6 +108,41 @@ Idle parallel capacity is not evidence that architectural breadth is the current
 
 A new component remains appropriate when it is demonstrably the smallest missing dependency on a named high-priority integration/runtime path.
 
+## Executable promotion-pressure rule
+
+When an exact higher-tier discriminator is already executable on an authorized surface, source-only breadth must not consume the same decision slot merely because it is easier to merge.
+
+Before selecting `INTEGRATION_BLOCKER`, `EVIDENCE_RECONCILIATION`, or `NEW_COMPONENT`, ask:
+
+```text
+IS THERE AN UNOWNED, EXECUTABLE, HIGHER-TIER PROBE
+FOR AN ALREADY-INTEGRATED CRITICAL-PATH SUBJECT?
+```
+
+If **yes**, prefer that probe unless the candidate task is the demonstrably smallest missing dependency needed to make the probe valid. A worker blocked from invoking one execution surface may retarget to another independent named gate, but it must not reinterpret invocation inconvenience as evidence that more architecture is needed.
+
+Examples of higher-information probes include:
+
+- exact-source fresh-process persist -> terminate/crash -> reopen/readback;
+- release artifact -> clean-host install -> semantic lifecycle/state readback;
+- accepted component chain -> real target invocation -> trace-bound result;
+- failure injection that can invalidate a claimed restart/recovery or whole-loop invariant.
+
+This is a **work-selection throttle**, not a new acceptance mechanism. It never changes evidence tiers, claim authority, or receipt semantics.
+
+For Architect/research review, evaluate recent activity by conversion rather than volume. Useful noncanonical diagnostic ratios include:
+
+```text
+higher_tier_promotions / material_merges
+integration_or_falsifier_closures / material_merges
+repository_only_closures / material_merges
+blocked_executable_probes / executable_probes_attempted
+```
+
+These ratios are temporary observations for scheduling and retrospection only. They MUST NOT become a second progress ledger or mint credit.
+
+Research rationale: current F2 history shows repeated repository-only closures while already-integrated restart/recovery and target-host subjects remain at zero higher-tier credit. Recent multi-agent software-engineering research likewise reports that coordination/specification gaps can dominate coding capability, and that adding agents without explicit shared interfaces or executable verification can reduce integration success. Treat stronger task specification and executable discriminators as scarce coordination resources.
+
 ## Architect interpretation
 
 For coordination, treat lower-tier accepted components with zero higher-tier runtime credit as a **runtime-credit debt queue**. This queue is a prioritization view only; it is not a new canonical ledger or competing truth store. Exact workpackage claims, source, tests, receipts, reconciliation, and `PRODUCT_COMPLETION_LAW.md` remain authoritative for credit.
