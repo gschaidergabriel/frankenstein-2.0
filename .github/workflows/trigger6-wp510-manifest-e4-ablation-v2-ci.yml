@@ -1,0 +1,50 @@
+name: Trigger6 WP510 manifest E4 ablation v2 identity repair
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'research/tool_intelligence/experiments/wp510_recursive_manifest_v2.py'
+      - 'research/tool_intelligence/experiments/wp510_manifest_mutation_ablation.py'
+      - '.github/workflows/trigger6-wp510-manifest-e4-ablation-v2-ci.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  e4-repaired-instrument-ablation:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Run frozen-copy ablation through repaired v2 manifest
+        run: >-
+          python research/tool_intelligence/experiments/wp510_manifest_mutation_ablation.py
+          --repo-root .
+          --manifest-tool research/tool_intelligence/experiments/wp510_recursive_manifest_v2.py
+          --output /tmp/wp510_e4_ablation_v2.json
+      - name: Assert E4 remains falsifier-sensitive
+        run: |
+          python - <<'PY'
+          import json, pathlib
+          data=json.loads(pathlib.Path('/tmp/wp510_e4_ablation_v2.json').read_text())
+          assert data['passed'] is True
+          assert data['credit']=={'architecture_credit':0,'runtime_credit':0,'whole_system_credit':0}
+          cases={row['case']:row for row in data['cases']}
+          assert len(cases)==8 and all(row['passed'] for row in cases.values())
+          assert cases['DYNAMIC_IMPORT_RUNTIME_EXTRA']['runtime_extra_local_modules']==['frankenstein2.r6_dynamic_extra']
+          assert 'DYNAMIC_IMPORT_OR_RUNTIME_SURFACE' in cases['DYNAMIC_IMPORT_RUNTIME_EXTRA']['blockers']
+          assert 'RUNTIME_STATIC_CLOSURE_MISMATCH' in cases['DYNAMIC_IMPORT_RUNTIME_EXTRA']['blockers']
+          for name in ['SYS_PATH_MUTATION','ENTRY_POINT_DISCOVERY','ENVIRONMENT_DEPENDENCY','NATIVE_LIBRARY_LOAD']:
+            assert 'DYNAMIC_IMPORT_OR_RUNTIME_SURFACE' in cases[name]['blockers']
+          print(json.dumps({
+            'passed':data['passed'],
+            'baseline':data['baseline'],
+            'case_count':len(cases),
+            'dynamic_case':cases['DYNAMIC_IMPORT_RUNTIME_EXTRA'],
+          },sort_keys=True))
+          PY
