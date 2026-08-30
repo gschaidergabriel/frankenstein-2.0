@@ -1,0 +1,104 @@
+{
+  "schema": "T7_RESEARCH_DELTA/v1",
+  "trigger": "7",
+  "date": "2026-08-31",
+  "created_at": "2026-08-31T04:17:30+07:00",
+  "organ": "GPT-5.6-Sol",
+  "research_id": "T7-FD-RTCOMPAT-001",
+  "classification": "OWNER_AUTHORITY_INTERPRETATION__SEMANTIC_POLICY_RESOLUTION",
+  "implementation_mutation_authority": false,
+  "new_runtime_dispatch": false,
+  "new_semantic_claim": false,
+  "supersedes_policy_gap_only": [
+    "research/local_voice/deltas/2026-08-31_T7_COMMIT_ELIGIBILITY_CONTEXT_SEPARATION_GPT56SOL.json#PREFIX_RETENTION_POLICY_UNRESOLVED",
+    "research/local_voice/falsifiers/2026-08-31_HF_S2S_HEARD_PREFIX_RETENTION_DELTA_GPT56SOL.json#PREFIX_RETENTION_POLICY_UNRESOLVED"
+  ],
+  "owner_authority": {
+    "path": "research/local_voice/authority/2026-08-31_TRIGGER7_TEXT_PACKET_COMPLETION_AUTHORITY.md",
+    "status": "ACTIVE",
+    "operative_clauses": [
+      "Trigger 7 must finish assigned local-voice/cortex work under best engineering judgment as far as possible inside the current tool/runtime envelope.",
+      "VoiceOutputPacket carries playback state including heard/interrupted, heard_fraction or equivalent heard/unheard accounting, interruption timestamp and commit eligibility.",
+      "The surrogate path must exercise barge-in/cancellation and unheard-output rollback/non-commit rather than bypass those semantics.",
+      "Simulated heard-state is valid cortex implementation evidence but cannot mint real-speaker/acoustic credit."
+    ]
+  },
+  "resolved_policy": {
+    "policy_id": "T7_INTERRUPTED_CONTEXT_RETAIN_HEARD_PREFIX_EPHEMERALLY_ONLY_V1",
+    "short_name": "RETAIN_HEARD_PREFIX_EPHEMERALLY_ONLY",
+    "status": "RESOLVED_FOR_TRIGGER7_RESEARCH_AND_T4_INTEGRATION_ORACLE",
+    "semantics": [
+      "On interruption, retain exactly the demonstrably heard assistant prefix in ephemeral next-turn dialogue context.",
+      "Exclude the demonstrably unheard tail from next-turn effective model context.",
+      "An interrupted output packet remains non-commit-eligible for durable VoiceOutcome/canonical-memory admission unless a separate current authority independently admits something else.",
+      "Heard-prefix retention alone cannot create UnifiedDB memory credit, effect authority, completion credit, acoustic credit, physical-device credit or whole-product credit.",
+      "The heard boundary must come from an explicit playout/sink measurement or deterministic packet-I/O surrogate receipt; generated length alone is not authoritative heard-state.",
+      "If upstream/server history cannot represent the measured heard prefix after cancellation or response.done/planned-playout races, F2 must derive the authoritative ephemeral next-turn context from measured F2 heard-state rather than broadening upstream history authority.",
+      "Late writes, late tool results and cancelled-generation data remain fenced by their existing causal authority rules and may not regain authority merely because a heard prefix is retained."
+    ],
+    "interpretation_basis": "The active owner authority explicitly requires unheard-output rollback/non-commit while preserving heard/unheard accounting and directs Trigger 7 to finish cortex semantics under best engineering judgment. Reading 'unheard-output rollback' as deletion of both heard and unheard semantics would erase the authority's heard/unheard distinction and would make heard_fraction semantically inert at the next-turn boundary. The narrow consistent interpretation is rollback of the unheard tail while retaining only the measured heard prefix ephemerally; durable commit remains separately gated."
+  },
+  "current_primary_reference_alignment": [
+    {
+      "source": "https://openai.github.io/openai-agents-python/realtime/guide/",
+      "observed_2026_08_31": "Current RealtimeSession interruption handling updates history so the server-side conversation stays aligned with what the user actually heard; delayed playback should use RealtimePlaybackTracker so truncation follows actual playback position."
+    },
+    {
+      "source": "https://openai.github.io/openai-agents-js/guides/voice-agents/build/",
+      "observed_2026_08_31": "Current WebSocket voice interruption handling truncates assistant audio to what the user actually heard and updates local history from the corresponding truncation/conversation events."
+    }
+  ],
+  "oracle_update": {
+    "existing_oracle": "HF09_EXACT_HEARD_PREFIX_RETENTION",
+    "duplicate_oracle_created": false,
+    "classification_now_allowed": [
+      {
+        "condition": "measured heard prefix present in next-turn effective context AND unheard tail absent",
+        "result": "SEMANTIC_MATCH_CANDIDATE"
+      },
+      {
+        "condition": "measured heard prefix absent AND unheard tail absent",
+        "result": "PREFIX_AMNESIA_PRODUCT_NEGATIVE"
+      },
+      {
+        "condition": "any demonstrably unheard tail present in next-turn effective context",
+        "result": "TAIL_LEAK_PRODUCT_NEGATIVE"
+      },
+      {
+        "condition": "late cancelled response/tool data regains causal authority",
+        "result": "CAUSAL_FENCING_PRODUCT_NEGATIVE"
+      }
+    ],
+    "required_receipt_fields": [
+      "interrupted_context_policy_id",
+      "playout_receipt_or_measurement_identity",
+      "heard_boundary_ms",
+      "heard_prefix_digest",
+      "unheard_tail_digest",
+      "raw_server_post_cancel_chat_digest",
+      "f2_authoritative_ephemeral_context_digest",
+      "next_turn_effective_model_context_digest",
+      "durable_memory_write_count"
+    ]
+  },
+  "coordination_fences": {
+    "existing_hf09_hf10_hf02_hf05_lane_reused": true,
+    "new_runtime_dispatch_allowed": false,
+    "new_competing_voice_authority_allowed": false,
+    "trigger7_may_self_mint_trigger4_acceptance": false,
+    "wp715_runtime_acceptance_scope_unchanged": true
+  },
+  "credit_boundary": {
+    "policy_resolution_research_credit": 1,
+    "wp715_packet_component_runtime_credit": 1,
+    "hf_protocol_runtime_credit": 0,
+    "german_e2e_voice": 0,
+    "acoustic_quality": 0,
+    "durable_memory": 0,
+    "effect": 0,
+    "trigger4_acceptance": 0,
+    "whole_voice_system": 0,
+    "whole_product": 0
+  },
+  "next_exact_action": "Trigger4 should bind policy id T7_INTERRUPTED_CONTEXT_RETAIN_HEARD_PREFIX_EPHEMERALLY_ONLY_V1 into the existing F2 ephemeral voice/context integration boundary and existing HF09/HF10/HF02-HF05 falsifier lane without creating a second memory/effect authority or duplicate runtime dispatch. Then execute the existing lane on the admitted VPS/controller route and classify only measured/read-back context behavior."
+}
