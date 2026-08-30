@@ -270,6 +270,10 @@ class VoicePacketCortex:
         self._outputs: dict[str, VoiceOutputPacket] = {}
         self._last_output_sequence: dict[str, int] = {}
         self._events: list[CortexEventPacket] = []
+        self._active_tools: dict[str, str] = {}
+        self._cancelled_tools: set[str] = set()
+        self._closed_outcome: "VoiceOutcome | None" = None
+        self._closed_signature: tuple[Any, ...] | None = None
         self._event(
             turn_id=session.intent.causal_identity.turn_id,
             monotonic_ms=opened_monotonic_ms,
@@ -450,6 +454,7 @@ class VoicePacketCortex:
         if any(monotonic_ms < current.monotonic_ms for _, current in candidates):
             raise VoicePacketCortexError("barge-in monotonic_ms precedes output state it would cancel")
         changed: list[str] = []
+        cancelled_turns: set[str] = set()
         for packet_id, current in candidates:
             state = "cancelled" if current.playback_state == "queued" else "interrupted"
             self._outputs[packet_id] = replace(
@@ -460,10 +465,15 @@ class VoicePacketCortex:
                 commit_eligible=False,
             )
             changed.append(packet_id)
+            cancelled_turns.add(current.turn_id)
+        for tool_ref, owner_turn in tuple(self._active_tools.items()):
+            if owner_turn in cancelled_turns:
+                self._active_tools.pop(tool_ref, None)
+                self._cancelled_tools.add(tool_ref)
         changed_tuple = tuple(sorted(changed))
         self._event(
             turn_id=turn_id, monotonic_ms=monotonic_ms, kind="BARGE_IN_CANCEL_PROPAGATED",
-            packet_refs=changed_tuple, detail="unheard/full-segment commit revoked",
+            packet_refs=changed_tuple, detail="unheard/full-segment commit and stale tool ownership revoked",
         )
         return changed_tuple
 
@@ -473,29 +483,52 @@ class VoicePacketCortex:
                           detail: str = "") -> CortexEventPacket:
         if event_kind not in _SYSTEM_EVENTS:
             raise VoicePacketCortexError("system event kind is not admitted")
-        return self._event(
+        if event_kind == "TOOL_RESULT":
+            if tool_ref is None or tool_ref in self._cancelled_tools or self._active_tools.get(tool_ref) != turn_id:
+                raise VoicePacketCortexError("late, cancelled, unknown, or cross-turn tool result rejected")
+        event = self._event(
             turn_id=turn_id, monotonic_ms=monotonic_ms, kind=event_kind,
             packet_refs=packet_refs, gwt_ref=gwt_ref, memory_refs=memory_refs,
             tool_ref=tool_ref, detail=detail,
         )
+        if event_kind == "TOOL_RESULT" and tool_ref is not None:
+            self._active_tools.pop(tool_ref, None)
+        return event
 
     def emit_intent(self, *, turn_id: str, monotonic_ms: int, voice_intent: str,
                     gwt_ref: str | None = None, memory_refs: tuple[str, ...] = (),
                     tool_ref: str | None = None, detail: str = "") -> CortexEventPacket:
-        return self._event(
+        if voice_intent == "TOOL_USE":
+            if tool_ref is None:
+                raise VoicePacketCortexError("TOOL_USE requires tool_ref")
+            if tool_ref in self._active_tools or tool_ref in self._cancelled_tools:
+                raise VoicePacketCortexError("tool_ref already used or cancelled")
+        event = self._event(
             turn_id=turn_id, monotonic_ms=monotonic_ms, kind="VOICE_INTENT",
             intent=voice_intent, gwt_ref=gwt_ref, memory_refs=memory_refs,
             tool_ref=tool_ref, detail=detail,
         )
+        if voice_intent == "TOOL_USE" and tool_ref is not None:
+            self._active_tools[tool_ref] = turn_id
+        return event
 
     def close_session(self, *, turn_id: str, monotonic_ms: int, outcome_causal_identity: "CausalIdentity",
                       outcome_kind: str, result_ref: str | None = None,
                       result_sha256: str | None = None,
                       provenance_refs: tuple[str, ...] = ("trigger7:packet-cortex",)) -> "VoiceOutcome":
+        signature = (
+            turn_id, monotonic_ms, outcome_causal_identity, outcome_kind,
+            result_ref, result_sha256, provenance_refs,
+        )
         if not self.is_open:
-            raise VoicePacketCortexError("session is already closed")
+            if self._closed_outcome is not None and signature == self._closed_signature:
+                return self._closed_outcome
+            raise VoicePacketCortexError("session is already closed with different close identity")
         if any(packet.playback_state not in ("completed", "cancelled", "interrupted") for packet in self._outputs.values()):
             raise VoicePacketCortexError("cannot close session with nonterminal output")
+        commit_eligible = [packet for packet in self._outputs.values() if packet.commit_eligible]
+        if (result_ref is not None or result_sha256 is not None) and not commit_eligible:
+            raise VoicePacketCortexError("result reference requires fully heard commit-eligible output")
         from .voice_contract import VoiceOutcome
         outcome = VoiceOutcome.create(
             session=self.session,
@@ -506,10 +539,15 @@ class VoicePacketCortex:
             provenance_refs=provenance_refs,
         )
         for packet_id, packet in tuple(self._outputs.items()):
-            self._outputs[packet_id] = replace(packet, voiceoutcome_ref=outcome.outcome_id)
+            if packet.commit_eligible:
+                self._outputs[packet_id] = replace(packet, voiceoutcome_ref=outcome.outcome_id)
         self._event(
             turn_id=turn_id, monotonic_ms=monotonic_ms, kind="SESSION_CLOSE", intent="CLOSE",
-            detail=f"voiceoutcome={outcome.outcome_id}",
+            packet_refs=tuple(sorted(packet.packet_id for packet in commit_eligible)),
+            detail=f"voiceoutcome={outcome.outcome_id};commit_eligible_outputs={len(commit_eligible)}",
         )
         self.is_open = False
+        self._active_tools.clear()
+        self._closed_outcome = outcome
+        self._closed_signature = signature
         return outcome
