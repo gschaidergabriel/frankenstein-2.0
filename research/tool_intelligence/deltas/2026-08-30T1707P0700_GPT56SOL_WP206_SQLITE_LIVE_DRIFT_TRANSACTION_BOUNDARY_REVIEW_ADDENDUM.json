@@ -1,0 +1,74 @@
+{
+  "schema": "FRANKENSTEIN2_TRIGGER6_ARCHITECTURE_DELTA_ADDENDUM/v1",
+  "parent_delta": "research/tool_intelligence/deltas/2026-08-30T1704P0700_GPT56SOL_ARCHITECTURE_DELTA_FUSION_WP206_SQLITE_LIVE_DRIFT_REVIEW.json",
+  "research_id": "R6-WP206-SQLITE-LIVE-DRIFT-001",
+  "claim_target": "E2_REVIEW_AFTER_E3_SQLITE_DATA_VERSION",
+  "recorded_at_local": "2026-08-30T17:07:00+07:00",
+  "status": "INTEGRATION_SURFACE_NARROWED_AFTER_CURRENT_SOURCE_AND_WP901_G4_REENTRY",
+  "reentry": {
+    "f2_main": "0fd7b7042b0a1959723555ac1257beeaccb87466",
+    "new_material_change": "WP901 G4 persisted-row snapshot binding is now accepted at repository-hosted component-CI scope",
+    "wp901_receipt": "workpackages/receipts/F2-WP-901_G4_PERSISTED_ROW_LOAD_ATTESTATION.json",
+    "wp901_run": 33305454362,
+    "wp901_job": 99241099205
+  },
+  "source_observations": [
+    {
+      "surface": "CanonicalPersistentAgencyStore.write_checkpoint",
+      "finding": "After file-identity check and deterministic checkpoint serialization, the method executes BEGIN IMMEDIATE before existing-row and lineage reads and keeps validation/insert inside that write transaction.",
+      "consequence": "Do not insert data_version as a correctness authority into this path without a separately reproduced gap; SQLite write serialization is the stronger concurrency primitive."
+    },
+    {
+      "surface": "recover_legacy_g1_checkpoint_authority",
+      "source_blob": "20eaee5570875568784e6f9234343b6027fdc3ee",
+      "finding": "The G4 recovery path rejects caller-owned transactions, checks stable file identity, starts BEGIN IMMEDIATE, re-reads checkpoint/recovery rows, validates digest/typed replay, and applies compare-and-swap before commit.",
+      "consequence": "An external revision hint is not a substitute for this transaction/CAS boundary and is likely redundant for recovery correctness unless a concrete pre-BEGIN stale-use defect is shown."
+    },
+    {
+      "surface": "CanonicalPersistentAgencyStore.load_checkpoint",
+      "finding": "The method performs a fresh SELECT after file-identity checking and validates stored path/device/inode/authority receipt, JSON digest and typed replay. It does not establish a durable latest-state lease after returning the object.",
+      "consequence": "The only plausible product value for data_version is detecting that a previously observed load/use context became stale between bounded stages; it cannot make that boundary race-free by itself."
+    },
+    {
+      "surface": "F2-WP-901 generation 4 accepted mechanism",
+      "finding": "WP901 now opens one SQLite read transaction, invokes WP206 load_checkpoint, re-reads the exact checkpoint row in the same snapshot, validates row/store bindings and mints deterministic row_evidence_sha256 before G3/G2 continuation planning.",
+      "consequence": "The principal restart/recovery source-authentication consumer now already has a stronger transaction-bound snapshot mechanism. EXTERNAL_SQLITE_REVISION_FENCE must not duplicate this path. Same-inode live-drift remains explicitly unclaimed, but its remaining product surface is narrower than before this Trigger-6 run."
+    }
+  ],
+  "sqlite_primary_source_interpretation": [
+    "Separate connections see only complete committed transactions under normal isolation.",
+    "WAL read transactions are snapshot-isolated; later writer commits remain invisible until the reader starts a new read transaction.",
+    "BEGIN IMMEDIATE establishes a write transaction and serializes competing writers.",
+    "data_version reports other-connection commits on one observer connection but does not create a lock, lease, snapshot identity or race-free latest-state guarantee."
+  ],
+  "architecture_refinement": {
+    "write_checkpoint": "NO_DATA_VERSION_BY_DEFAULT",
+    "legacy_recovery": "NO_DATA_VERSION_BY_DEFAULT",
+    "wp901_restart_ingress": "NO_DUPLICATE_REVISION_FENCE_BY_DEFAULT; ACCEPTED_G4_SAME_SNAPSHOT_ROW_ATTESTATION_OUTRANKS_GENERIC_HINT",
+    "generic_load_to_use_freshness": "ONLY_REMAINING_CANDIDATE_SURFACE_PENDING_E4",
+    "authority_law": "TRANSACTION_ROW_DIGEST_GENERATION_CAS_OUTRANK_EPHEMERAL_DATA_VERSION_HINT"
+  },
+  "candidate_disposition": {
+    "external_sqlite_revision_fence_v1": "HOLD_FOR_NARROW_E4_NOT_REJECTED_NOT_PROMOTED_FURTHER",
+    "reason": "Existing evidence proves same-inode drift observability, but current write/recovery paths already use strong SQLite transactions and WP901 G4 now has same-snapshot exact-row attestation. A broad WP206 data_version fence risks redundant checks and false revalidation under unrelated UnifiedDB churn.",
+    "retire_if": "Exact-current E4 shows every authority-sensitive consumer either acts inside the existing write/recovery transaction or consumes a snapshot-bound row attestation/generation fence that already detects relevant staleness.",
+    "promote_if": "Exact-current E4 reproduces a remaining generic load-to-use stale continuation outside those protected paths and the bounded revision-hint plus targeted revalidation closes that exact case without false rejection under unrelated writes."
+  },
+  "recommended_e4_matrix": [
+    "WRITE path: external commit before BEGIN IMMEDIATE -> baseline must see current state inside the transaction; candidate should add no value.",
+    "RECOVERY path: external commit before BEGIN IMMEDIATE -> baseline must re-read current row/CAS; candidate should add no value.",
+    "WP901 G4 path: external commit before its read transaction -> new snapshot should see it; external commit during the snapshot -> row evidence remains internally snapshot-consistent and must not be misrepresented as latest-state lease.",
+    "GENERIC LOAD-USE race outside WP901: external protected mutation after load return but before an authority-sensitive downstream action -> determine whether another generation/attestation/effect gate catches staleness.",
+    "UNRELATED LOAD-USE control: external unrelated write after load -> no global rejection after exact protected evidence revalidation.",
+    "SAME-CONNECTION control: data_version blind spot remains explicit."
+  ],
+  "credits": {
+    "source_transaction_review": 1,
+    "wp901_g4_reentry_consumed": 1,
+    "new_e4": 0,
+    "new_e5": 0,
+    "runtime": 0,
+    "whole_system": 0
+  },
+  "next_exact_action": "Trigger4 must first enumerate authority-sensitive consumers of raw CanonicalPersistentAgencyStore.load_checkpoint outside the now-accepted WP901 G4 snapshot-attested ingress. Run the data_version ablation only on a real remaining load-to-use boundary; do not add the hint to write_checkpoint, G4 legacy recovery or WP901 G4 by default."
+}
