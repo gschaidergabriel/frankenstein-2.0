@@ -1,0 +1,75 @@
+{
+  "schema": "FRANKENSTEIN2_TRIGGER6_RESEARCH_EVIDENCE/v1",
+  "research_id": "R6-20260830-CONTENT-ADDRESSED-RUNTIME-SUBJECT-GPT56SOL-01",
+  "stage": "E1_SOURCE_READ",
+  "status": "COMPLETE_AT_E1_ONLY",
+  "created_at": "2026-08-30T19:14:00+07:00",
+  "worker": "ChatGPT GPT-5.6 Sol / Trigger-6 organ",
+  "claim": "research/tool_intelligence/claims/R6-20260830-CONTENT-ADDRESSED-RUNTIME-SUBJECT-GPT56SOL-01/E1_SOURCE_READ.json",
+  "architecture_snapshot": {
+    "f2_sha_before_claim": "be0359f8c8bad330f1320adc9d5e2f3fd1d6ea5e",
+    "research_entity_sha": "5933ed34cc03328f6300a83b2be972bc05cf0a66",
+    "focus": "workpackages/RUNTIME_CREDIT_CONVERGENCE_DIRECTIVE.md runtime-subject churn throttle"
+  },
+  "source_pins": [
+    {
+      "source": "opencontainers/image-spec",
+      "repo_sha": "af26a05fba5ee648512f4ea3c9fda1fcc1b6d6dc",
+      "surface": "descriptor.md / manifest.md",
+      "finding": "OCI descriptors use collision-resistant digests as content identifiers; consumers can verify retrieved bytes against digest. OCI image manifests are designed for content-addressable images."
+    },
+    {
+      "source": "in-toto/attestation",
+      "repo_sha": "2dcd055e9f72e746687c306e35f4e59720ff45be",
+      "surface": "spec/v1/statement.md",
+      "finding": "Statement subjects bind attestations to software artifacts by digest; subjects are assumed immutable and matched by digest."
+    },
+    {
+      "source": "slsa-framework/slsa",
+      "repo_sha": "54b88b009fd45acb331c7e6578a526e0f36e0430",
+      "surface": "SLSA v1.2 Build Provenance",
+      "finding": "Build provenance records verifiable information describing where, when and how artifacts were produced and is intended to let consumers verify expected build origin/process."
+    },
+    {
+      "source": "GitHub Artifact Attestations documentation",
+      "retrieved_date": "2026-08-30",
+      "finding": "Artifact attestations cryptographically sign build provenance including repository/workflow/commit context and support digest-bound container subjects. Private-repository attestations use GitHub's Sigstore instance and do not use the public transparency log."
+    },
+    {
+      "source": "Nix 2.31 reference manual + official NixOS CA-derivations documentation",
+      "version": "Nix 2.31 / CA derivations documented 2026-06-15",
+      "finding": "Serialized derivations are content-addressed and a closure can be content-addressed when transitive inputs follow the common content-addressed case; CA derivations remain opt-in/experimental on the documented surface."
+    }
+  ],
+  "findings": [
+    "A digest-bound OCI artifact can prevent a queued runtime probe from silently executing different bytes under the same mutable name/tag.",
+    "in-toto/SLSA can bind that artifact to build/source provenance and materials, reducing the gap between Git source identity and runtime artifact identity.",
+    "GitHub Artifact Attestations are a low-friction candidate for signing/verifying provenance when the build already runs in GitHub Actions.",
+    "Nix-style content-addressed closure is stronger as a hermetic/reproducible build model but is a heavier architectural dependency than F2 currently needs for this specific churn problem.",
+    "None of these mechanisms proves that an older runtime subject remains semantically representative after a newer F2 generation changes the same integration boundary. Content identity solves WHAT EXECUTED; it does not solve WHETHER THAT SUBJECT IS STILL CURRENT.",
+    "Therefore digest/provenance evidence must never mint RUNTIME_SUBJECT_INVARIANT or current-generation runtime credit by itself."
+  ],
+  "counterhypotheses": [
+    "Git commit SHA alone may be sufficient if every runtime probe executes directly from a clean checkout with fully pinned dependencies and config; artifact attestation would then add complexity without changing correctness.",
+    "A full Nix/Guix-style hermetic build could reduce provenance ambiguity further, but its dependency/operational weight may exceed the value of a thin F2-native subject envelope.",
+    "Attestation infrastructure can authenticate a builder's claim without proving runtime execution; treating it as execution evidence would recreate the exact evidence inflation F2 forbids."
+  ],
+  "e1_conclusion": {
+    "verdict": "ADAPT_THIN_STRUCTURAL_PATTERN_NOT_WHOLESALE_TOOL_IMPORT",
+    "preferred_stack": [
+      "OCI-style SHA-256 content identity for executable artifact when containerized",
+      "thin in-toto/SLSA-like provenance fields for source/build/material binding",
+      "optional GitHub Artifact Attestation verification where already available"
+    ],
+    "do_not_promote": [
+      "Nix/CA-derivations as mandatory F2 runtime dependency",
+      "artifact attestation as target-runtime execution evidence",
+      "digest equality as semantic-equivalence proof across F2 generations"
+    ]
+  },
+  "research_credit": "E1_ONLY",
+  "runtime_credit": 0,
+  "integration_credit": 0,
+  "whole_system_credit": 0,
+  "next_exact_action": "Acquire E2_ARCHITECTURE_MAPPED claim and map a minimal RuntimeSubjectAttestation envelope onto the existing F2 runtime-credit/receipt path without introducing a second ledger or acceptance authority."
+}
