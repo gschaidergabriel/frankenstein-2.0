@@ -8,7 +8,7 @@ import unittest
 from unittest.mock import patch
 
 from frankenstein2.whole_persistent_loop import WholePersistentLoopSeal
-from frankenstein2.whole_system_characterization import DEFAULT_METRIC_SCHEMA
+from frankenstein2.whole_system_characterization import DEFAULT_METRIC_SCHEMA, characterize_measurements
 from frankenstein2.whole_system_measurement import (
     HostEnvironmentEvidence,
     WholeSystemMeasurementError,
@@ -129,6 +129,65 @@ class WholeSystemMeasurementTests(unittest.TestCase):
             self.assertEqual(sample.quality_micros, 900_000)
             self.assertTrue(any(ref.startswith("wp902:source-bundle:") for ref in sample.provenance_refs))
             self.assertTrue(any(ref.startswith("wp902:quality-scorer:") for ref in sample.provenance_refs))
+
+    def test_producer_samples_traverse_existing_characterization_admission(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            subject = _load_subject(root)
+            environment = _environment()
+            seal = _seal()
+            samples = []
+            for trial_index, (started_ns, finished_ns, rss_after) in enumerate(
+                ((100, 200, 2048), (300, 550, 3072), (700, 1100, 4096))
+            ):
+                with (
+                    patch(
+                        "frankenstein2.whole_system_measurement.observe_host_environment",
+                        side_effect=[environment, environment],
+                    ),
+                    patch(
+                        "frankenstein2.whole_system_measurement._peak_rss_bytes",
+                        side_effect=[1024, rss_after],
+                    ),
+                    patch(
+                        "frankenstein2.whole_system_measurement.time.perf_counter_ns",
+                        side_effect=[started_ns, finished_ns],
+                    ),
+                ):
+                    samples.append(
+                        measure_characterization_sample(
+                            run_id="g3-to-g2-integration",
+                            trial_index=trial_index,
+                            repo_root=root,
+                            source_paths=("bench_subject.py",),
+                            whole_loop_seal=seal,
+                            operation=subject.measured_operation,
+                            quality_scorer=subject.quality_scorer,
+                            provenance_refs=("integration:wp902:g3-to-g2",),
+                        )
+                    )
+
+            first = samples[0]
+            report = characterize_measurements(
+                samples,
+                expected_source_bundle_sha256=first.source_bundle_sha256,
+                expected_whole_loop_seal_sha256=first.whole_loop_seal_sha256,
+                expected_environment_fingerprint_sha256=first.environment_fingerprint_sha256,
+                expected_metric_schema_id=first.metric_schema_id,
+            )
+
+            self.assertEqual(report.sample_count, 3)
+            self.assertEqual(report.source_bundle_sha256, first.source_bundle_sha256)
+            self.assertEqual(report.whole_loop_seal_sha256, seal.sha256())
+            self.assertEqual(report.environment_fingerprint_sha256, environment.sha256())
+            self.assertEqual(report.latency_ns_min, 100)
+            self.assertEqual(report.latency_ns_max, 400)
+            self.assertEqual(report.peak_rss_bytes_min, 2048)
+            self.assertEqual(report.peak_rss_bytes_max, 4096)
+            self.assertEqual(report.quality_micros_min, 900_000)
+            self.assertEqual(report.quality_micros_max, 900_000)
+            self.assertEqual(report.as_dict()["runtime_authority"], "NONE")
+            self.assertFalse(report.as_dict()["whole_system_acceptance"])
 
     def test_operation_and_quality_scorer_source_must_be_inside_bound_bundle(self) -> None:
         with tempfile.TemporaryDirectory() as temp:
