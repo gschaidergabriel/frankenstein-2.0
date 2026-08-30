@@ -1,0 +1,48 @@
+{
+  "schema": "FRANKENSTEIN2_WORKPACKAGE_DELTA/v1",
+  "workpackage_id": "F2-WP-901",
+  "generation": 5,
+  "claim_id": "F2-WP-901-G5-GPT56SOL-STORE-AUTHORITY-REF-BINDING-20260830",
+  "trigger": "4",
+  "base_commit": "7ad92d32ca5492d039713411089bde9ba1667657",
+  "classification": "IMPLEMENTATION_DELTA_CANDIDATE_UNTIL_EXECUTED_CI",
+  "counterevidence": {
+    "review_pr": 739,
+    "run_id": 33308590332,
+    "job_id": 99249432956,
+    "result": "COUNTEREXAMPLE_REPRODUCED"
+  },
+  "hypothesis": "The G4/G3 boundary remains safe if the caller authority reference is admitted as a typed object.",
+  "counterhypothesis": "Type validity is insufficient because any caller-selected receipt_ref/canonical_source pair can be injected alongside a valid store-bound persisted-row attestation.",
+  "observed": "Exact-current review reproduced the counterhypothesis while inherited G4 regressions stayed green.",
+  "repair": [
+    "add exact canonical F2-WP-100 component authority reference constants at the WP901 G4/G5 ingress",
+    "require receipt_ref, canonical_source and fingerprint_schema to match the admitted F2-WP-100 identity before G3 planning",
+    "keep the component reference distinct from the concrete store authority_receipt_sha256",
+    "update inherited G4 fixture to use the real canonical F2-WP-100 reference",
+    "invert foreign receipt/source witnesses into fail-closed G5 regressions"
+  ],
+  "explicit_non_scope": [
+    "rollback/non-rollbackable freshness",
+    "same-inode live data/schema drift",
+    "target-host/VPS restart readback",
+    "physical GRID10",
+    "GWT/J-Space runtime",
+    "provider/model execution",
+    "effects/completion",
+    "training",
+    "whole-system acceptance"
+  ],
+  "credits": {
+    "runtime": 0,
+    "vps_runtime": 0,
+    "physical_grid10": 0,
+    "gwt_jspace": 0,
+    "provider_model": 0,
+    "training": 0,
+    "effects": 0,
+    "completion": 0,
+    "whole_system": false
+  },
+  "next_exact_action": "Run the dedicated G5 workflow plus inherited G2/G3/G4 regressions on the implementation PR; merge only if green, then re-run on main and terminalize generation 5 at repository-component scope only."
+}

@@ -1,17 +1,24 @@
 """Persisted-row load attestation for WP901 restart/recovery planning.
 
-F2-WP-901 generation 4 repository-component scope only.
+F2-WP-901 generation 4 repository-component scope, with generation-5 authority-reference
+binding layered at the canonical G4 ingress.
 
 Accepted WP901 G3 authenticates concrete typed checkpoint / WP900 / outcome source objects,
 but explicitly does not prove that the restart checkpoint came from an actual persisted
-WP206 row.  This module closes only that boundary.  The canonical ingress receives a
-Concrete ``CanonicalPersistentAgencyStore`` plus checkpoint id, opens one SQLite read
-transaction, calls the already-accepted WP206 ``load_checkpoint`` path, and re-reads the
-same checkpoint row inside the same transaction snapshot to produce deterministic evidence
-for the exact persisted columns consumed by that loader boundary.
+WP206 row. This module closes that boundary. The canonical ingress receives a concrete
+``CanonicalPersistentAgencyStore`` plus checkpoint id, opens one SQLite read transaction,
+calls the already-accepted WP206 ``load_checkpoint`` path, and re-reads the same checkpoint
+row inside the same transaction snapshot to produce deterministic evidence for the exact
+persisted columns consumed by that loader boundary.
 
-The resulting receipt is evidence only.  It is not a second persistence authority, does not
-schedule work or execute effects, and does not prove target-host execution.  It also does
+Generation 5 additionally closes one post-acceptance cross-store provenance gap: the
+caller-supplied ``UnifiedDBAuthorityRef`` passed onward to G3 must identify the currently
+admitted canonical F2-WP-100 UnifiedDB component. That component reference is intentionally
+kept distinct from the concrete store's ``authority_receipt_sha256``; they are different
+identity layers and are not string-compared.
+
+The resulting receipt is evidence only. It is not a second persistence authority, does not
+schedule work or execute effects, and does not prove target-host execution. It also does
 NOT close rollback/freshness or same-inode live-drift questions; those remain separate
 falsifiers.
 """
@@ -47,9 +54,17 @@ LOAD_ATTESTATION_CLASSIFICATION = (
     "PERSISTED_ROW_TRANSACTION_SNAPSHOT_LOAD_EVIDENCE_NOT_TRUTH_RUNTIME_OR_EFFECT_AUTHORITY"
 )
 
+CANONICAL_UNIFIEDDB_AUTHORITY_RECEIPT_REF = (
+    "workpackages/receipts/F2-WP-100_G1_SOURCE_CI_ACCEPTANCE.json"
+)
+CANONICAL_UNIFIEDDB_AUTHORITY_SOURCE = "src/state/unifieddb_identity.py"
+CANONICAL_UNIFIEDDB_AUTHORITY_FINGERPRINT_SCHEMA = (
+    "FRANKENSTEIN2_UNIFIEDDB_FINGERPRINT/v2"
+)
+
 
 class PersistedRowLoadAttestationError(RestartSourceAuthenticationError):
-    """Fail-closed G4 persisted-row/load binding error."""
+    """Fail-closed G4/G5 persisted-row/load binding error."""
 
 
 def _canonical_json(value: Any) -> str:
@@ -75,6 +90,35 @@ def _same_real_path(left: str, right: str) -> bool:
     return os.path.normcase(os.path.realpath(left)) == os.path.normcase(
         os.path.realpath(right)
     )
+
+
+def _require_canonical_unifieddb_authority_ref(
+    authority: UnifiedDBAuthorityRef,
+) -> None:
+    """Bind the G3 authority reference to the admitted F2-WP-100 component identity.
+
+    ``UnifiedDBAuthorityRef`` identifies the accepted component/provenance surface. The
+    concrete store identity is independently attested by ``authority_receipt_sha256``.
+    Generation 5 deliberately validates both layers without conflating them.
+    """
+    if type(authority) is not UnifiedDBAuthorityRef:
+        raise PersistedRowLoadAttestationError(
+            "PERSISTED_ROW_CANONICAL_UNIFIEDDB_AUTHORITY_REF_REQUIRED"
+        )
+    observed = (
+        authority.receipt_ref,
+        authority.canonical_source,
+        authority.fingerprint_schema,
+    )
+    expected = (
+        CANONICAL_UNIFIEDDB_AUTHORITY_RECEIPT_REF,
+        CANONICAL_UNIFIEDDB_AUTHORITY_SOURCE,
+        CANONICAL_UNIFIEDDB_AUTHORITY_FINGERPRINT_SCHEMA,
+    )
+    if observed != expected:
+        raise PersistedRowLoadAttestationError(
+            "PERSISTED_ROW_UNIFIEDDB_AUTHORITY_REF_MISMATCH"
+        )
 
 
 @dataclass(frozen=True, slots=True, kw_only=True)
@@ -127,7 +171,7 @@ class PersistedCheckpointLoadAttestation:
 
 @dataclass(frozen=True, slots=True, kw_only=True)
 class PersistedRowRestartPlanResult:
-    """G4 output: accepted G2/G3 plan plus bounded load evidence."""
+    """G4/G5 output: accepted G2/G3 plan plus bounded load evidence."""
 
     plan: RestartContinuationPlan
     load_attestation: PersistedCheckpointLoadAttestation
@@ -152,8 +196,8 @@ def attest_persisted_checkpoint_load(
     """Load one checkpoint and bind the exact persisted-row snapshot used by WP206.
 
     Both the accepted ``load_checkpoint`` call and the row-evidence read occur inside one
-    SQLite read transaction.  This prevents an intervening committed writer from turning
-    the second query into evidence for a different database snapshot.  Existing WP206
+    SQLite read transaction. This prevents an intervening committed writer from turning
+    the second query into evidence for a different database snapshot. Existing WP206
     digest/path/device/inode/authority checks remain the source of checkpoint admission.
     """
     if type(store) is not CanonicalPersistentAgencyStore:
@@ -264,11 +308,12 @@ def plan_restart_continuation_from_persisted_row(
     whole_loop_seal: WholePersistentLoopSeal,
     outcome: LoopOutcomeEvidence,
 ) -> PersistedRowRestartPlanResult:
-    """Canonical G4 ingress: persisted WP206 row -> accepted G3 -> accepted G2 plan."""
+    """Canonical G4/G5 ingress: persisted WP206 row -> accepted G3 -> accepted G2 plan."""
     checkpoint, attestation = attest_persisted_checkpoint_load(
         store,
         checkpoint_id=checkpoint_id,
     )
+    _require_canonical_unifieddb_authority_ref(unifieddb_authority)
     plan = plan_restart_continuation_from_sources(
         evidence,
         plan_id=plan_id,
@@ -294,6 +339,9 @@ def plan_restart_continuation_from_persisted_row(
 
 
 __all__ = [
+    "CANONICAL_UNIFIEDDB_AUTHORITY_FINGERPRINT_SCHEMA",
+    "CANONICAL_UNIFIEDDB_AUTHORITY_RECEIPT_REF",
+    "CANONICAL_UNIFIEDDB_AUTHORITY_SOURCE",
     "LOAD_ATTESTATION_CLASSIFICATION",
     "LOAD_ATTESTATION_SCHEMA",
     "PersistedCheckpointLoadAttestation",
