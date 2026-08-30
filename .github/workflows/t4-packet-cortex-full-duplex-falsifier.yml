@@ -5,8 +5,11 @@ on:
     branches: [main]
     paths:
       - 'src/frankenstein2/voice_packet_cortex.py'
+      - 'src/frankenstein2/voice_packet_cortex_recovery.py'
       - 'tests/test_voice_packet_cortex.py'
+      - 'tests/test_voice_packet_cortex_recovery.py'
       - 'research/local_voice/tools/falsify_voice_packet_cortex.py'
+      - 'research/local_voice/tools/falsify_voice_packet_cortex_recovery_bounds.py'
       - '.github/workflows/t4-packet-cortex-full-duplex-falsifier.yml'
   workflow_dispatch:
 
@@ -39,27 +42,47 @@ jobs:
           test "${RUNNER_NAME:-}" = "vps-clay-host"
           test "${RUNNER_OS:-}" = "Linux"
 
+      - name: Record exact packet recovery subject
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          git rev-parse HEAD
+          sha256sum \
+            src/frankenstein2/voice_packet_cortex.py \
+            src/frankenstein2/voice_packet_cortex_recovery.py \
+            tests/test_voice_packet_cortex.py \
+            tests/test_voice_packet_cortex_recovery.py \
+            research/local_voice/tools/falsify_voice_packet_cortex.py \
+            research/local_voice/tools/falsify_voice_packet_cortex_recovery_bounds.py
+
       - name: Host-health and isolation preflight
         shell: bash
         run: bash tools/vps_sandbox/preflight.sh | tee /tmp/t4-fd-preflight.txt
 
-      - name: Execute exact-source falsifier in lowest safe faithful Ubuntu sandbox
+      - name: Execute packet recovery subject in lowest safe faithful Ubuntu sandbox
         shell: bash
         run: |
           set -Eeuo pipefail
           bash tools/vps_sandbox/run_ubuntu_sandbox.sh --backend auto --network off -- \
             /bin/bash -lc '
-              set -Eeuo pipefail
-              set +e
-              PYTHONPATH=src python3 research/local_voice/tools/falsify_voice_packet_cortex.py > /tmp/t4-fd-probe.json
-              probe_status=$?
-              set -e
+              set -u
+              PYTHONPATH=src python3 -m unittest discover -s tests -p "test_voice_packet_cortex.py" -v > /tmp/t4-fd-packet-tests.log 2>&1
+              packet_tests_status=$?
+              PYTHONPATH=src python3 -m unittest discover -s tests -p "test_voice_packet_cortex_recovery.py" -v > /tmp/t4-fd-recovery-tests.log 2>&1
+              recovery_tests_status=$?
+              PYTHONPATH=src python3 research/local_voice/tools/falsify_voice_packet_cortex.py > /tmp/t4-fd-probe.json 2>&1
+              packet_probe_status=$?
+              PYTHONPATH=src python3 research/local_voice/tools/falsify_voice_packet_cortex_recovery_bounds.py > /tmp/t4-fd-recovery-bounds.json 2>&1
+              recovery_bounds_status=$?
+              cat /tmp/t4-fd-packet-tests.log
+              cat /tmp/t4-fd-recovery-tests.log
               cat /tmp/t4-fd-probe.json
-              printf "PROBE_EXIT=%s\n" "$probe_status"
-              case "$probe_status" in
-                0|2) exit 0 ;;
-                *) exit "$probe_status" ;;
-              esac
+              cat /tmp/t4-fd-recovery-bounds.json
+              printf "PACKET_TESTS_EXIT=%s\n" "$packet_tests_status"
+              printf "RECOVERY_TESTS_EXIT=%s\n" "$recovery_tests_status"
+              printf "PACKET_PROBE_EXIT=%s\n" "$packet_probe_status"
+              printf "RECOVERY_BOUNDS_EXIT=%s\n" "$recovery_bounds_status"
+              exit 0
             ' | tee /tmp/t4-fd-sandbox.txt
 
       - name: Emit bounded execution receipt
@@ -68,30 +91,58 @@ jobs:
         run: |
           set -Eeuo pipefail
           python3 - <<'PY'
-          import json, os, pathlib
+          import json, os, pathlib, re
+
           sandbox = pathlib.Path('/tmp/t4-fd-sandbox.txt').read_text(errors='replace') if pathlib.Path('/tmp/t4-fd-sandbox.txt').exists() else ''
           preflight = pathlib.Path('/tmp/t4-fd-preflight.txt').read_text(errors='replace') if pathlib.Path('/tmp/t4-fd-preflight.txt').exists() else ''
-          probe = None
-          for line in sandbox.splitlines():
-              if line.startswith('{') and 'F2_PACKET_CORTEX_FULL_DUPLEX_FALSIFIER/v1' in line:
-                  try:
-                      probe = json.loads(line)
-                  except json.JSONDecodeError:
-                      pass
-          if probe is None:
+
+          def parse_probe(schema):
+              for line in sandbox.splitlines():
+                  if line.startswith('{') and schema in line:
+                      try:
+                          return json.loads(line)
+                      except json.JSONDecodeError:
+                          return None
+              return None
+
+          def parse_status(name):
+              match = re.search(rf'^{re.escape(name)}=(\d+)$', sandbox, re.MULTILINE)
+              return int(match.group(1)) if match else None
+
+          packet_probe = parse_probe('F2_PACKET_CORTEX_FULL_DUPLEX_FALSIFIER/v1')
+          recovery_bounds_probe = parse_probe('F2_PACKET_CORTEX_RECOVERY_BOUNDS_FALSIFIER/v1')
+          statuses = {
+              'packet_tests': parse_status('PACKET_TESTS_EXIT'),
+              'recovery_tests': parse_status('RECOVERY_TESTS_EXIT'),
+              'packet_probe': parse_status('PACKET_PROBE_EXIT'),
+              'recovery_bounds': parse_status('RECOVERY_BOUNDS_EXIT'),
+          }
+          sandbox_executed = 'F2_SANDBOX_RESULT=PASS' in sandbox
+          complete = sandbox_executed and packet_probe is not None and recovery_bounds_probe is not None and all(value is not None for value in statuses.values())
+
+          if not complete:
+              result = 'EVIDENCE_INVALID'
+              failure_class = 'EVIDENCE_INVALID'
+          elif any(value not in (0, 1, 2) for value in statuses.values()):
               result = 'INFRA_AUTH_TRANSPORT_QUOTA'
               failure_class = 'INFRA_AUTH_TRANSPORT_QUOTA'
-          elif probe.get('result') == 'PRODUCT_NEGATIVE':
+          elif (
+              statuses['packet_tests'] != 0
+              or statuses['recovery_tests'] != 0
+              or packet_probe.get('result') == 'PRODUCT_NEGATIVE'
+              or recovery_bounds_probe.get('result') == 'PRODUCT_NEGATIVE'
+          ):
               result = 'EXECUTED_PRODUCT_NEGATIVE'
               failure_class = 'PRODUCT_NEGATIVE'
-          elif probe.get('result') == 'PASS':
+          elif packet_probe.get('result') == 'PASS' and recovery_bounds_probe.get('result') == 'PASS':
               result = 'EXECUTED_NO_COUNTEREXAMPLE'
               failure_class = None
           else:
               result = 'EVIDENCE_INVALID'
               failure_class = 'EVIDENCE_INVALID'
+
           receipt = {
-              'schema': 'F2_T4_PACKET_CORTEX_FULL_DUPLEX_FALSIFIER_RECEIPT/v1',
+              'schema': 'F2_T4_PACKET_CORTEX_FULL_DUPLEX_FALSIFIER_RECEIPT/v2',
               'result': result,
               'failure_class': failure_class,
               'source_sha': os.environ.get('GITHUB_SHA'),
@@ -104,19 +155,33 @@ jobs:
               'sandbox_tier': 'S1_OR_S2_AUTO',
               'network_mode': 'OFF',
               'semantic_key': 'af4da01da7ced3fa0bee3839adf7f4798e73399408fd29735c8a529a2ed2d9d9',
-              'probe': probe,
+              'executed_scope': [
+                  'voice_packet_cortex',
+                  'voice_packet_cortex_recovery',
+                  'packet_repository_suite',
+                  'recovery_repository_suite',
+                  'PN9_RESTART_CONTINUATION',
+                  'PN10_SOURCE_BOUND_CAPS',
+              ],
+              'step_statuses': statuses,
+              'packet_probe': packet_probe,
+              'recovery_bounds_probe': recovery_bounds_probe,
               'preflight_log': preflight,
               'sandbox_log': sandbox,
               'outbound_model_asr_tts_calls': 0,
+              'vps_sandbox_component_execution_observed': result in ('EXECUTED_NO_COUNTEREXAMPLE', 'EXECUTED_PRODUCT_NEGATIVE'),
               'acoustic_credit': 0,
               'target_runtime_credit': 0,
               'physical_device_credit': 0,
+              'gwt_jspace_credit': 0,
+              'effect_credit': 0,
+              'training_credit': 0,
               'whole_voice_e2e_credit': 0,
               'whole_product_credit': 0,
           }
           pathlib.Path('/tmp/t4-fd-receipt.json').write_text(json.dumps(receipt, indent=2, sort_keys=True) + '\n')
           print(json.dumps(receipt, sort_keys=True))
-          if probe is None:
+          if not complete:
               raise SystemExit(3)
           PY
 
@@ -133,4 +198,7 @@ jobs:
         run: |
           set -Eeuo pipefail
           grep -q '^F2_SANDBOX_RESULT=PASS$' /tmp/t4-fd-sandbox.txt
-          grep -Eq '^PROBE_EXIT=(0|2)$' /tmp/t4-fd-sandbox.txt
+          grep -q '^PACKET_TESTS_EXIT=' /tmp/t4-fd-sandbox.txt
+          grep -q '^RECOVERY_TESTS_EXIT=' /tmp/t4-fd-sandbox.txt
+          grep -q '^PACKET_PROBE_EXIT=' /tmp/t4-fd-sandbox.txt
+          grep -q '^RECOVERY_BOUNDS_EXIT=' /tmp/t4-fd-sandbox.txt
