@@ -1,0 +1,34 @@
+name: REVIEW WP901 G3 previous-checkpoint lineage falsifier
+
+on:
+  pull_request:
+    paths:
+      - 'src/frankenstein2/restart_recovery_source_authentication.py'
+      - 'tests/test_restart_recovery_source_authentication.py'
+      - 'tests/review_wp901_g3_previous_checkpoint_lineage_falsifier.py'
+      - '.github/workflows/review-wp901-g3-previous-checkpoint-lineage-ci.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  reproduce-accepted-g3-lineage-counterexample:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout exact review ref
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - name: Compile accepted G3 and review falsifier
+        run: >-
+          python -m py_compile
+          src/frankenstein2/restart_recovery_source_authentication.py
+          tests/test_restart_recovery_source_authentication.py
+          tests/review_wp901_g3_previous_checkpoint_lineage_falsifier.py
+      - name: Run accepted G3 baseline and exact predecessor-lineage counterexample
+        env:
+          PYTHONPATH: src
+        run: >-
+          python -m unittest -v
+          tests.test_restart_recovery_source_authentication
+          tests.review_wp901_g3_previous_checkpoint_lineage_falsifier
