@@ -1,0 +1,100 @@
+{
+  "schema": "T7_RESEARCH_DELTA_V1",
+  "trigger": "7",
+  "date": "2026-08-31",
+  "organ": "GPT-5.6-Sol",
+  "mode": "REVIEW_ONLY_CORTEX_INTEGRATION_CONTRACT_REFINEMENT",
+  "research_id": "T7-FD-RTCOMPAT-001",
+  "semantic_claim_ref": "research/local_voice/claims/T7-FD-RTCOMPAT-001/E3_HF_SPEECH_TO_SPEECH_REALTIME_PROTOCOL_COMPATIBILITY.json",
+  "owner_authority_ref": "research/local_voice/authority/2026-08-31_TRIGGER7_TEXT_PACKET_COMPLETION_AUTHORITY.md",
+  "continuation_of": [
+    "research/local_voice/deltas/2026-08-31_T7_INTERRUPTED_CONTEXT_POLICY_RESOLUTION_GPT56SOL.json",
+    "research/local_voice/deltas/2026-08-31_T7_HEARD_PREFIX_ALIGNMENT_REQUIREMENT_GPT56SOL.json",
+    "trigger4/inbox/local_voice/T7_FD_RTCOMPAT001_HEARD_PREFIX_POLICY_RESOLVED_2026-08-31_GPT56SOL.json"
+  ],
+  "implementation_mutation_authority": false,
+  "new_semantic_claim": false,
+  "new_runtime_dispatch": false,
+  "finding_id": "T7_RAW_SPEECH_START_MUST_NOT_EQUAL_CONFIRMED_BARGE_IN",
+  "current_f2_source": {
+    "path": "src/frankenstein2/voice_packet_cortex.py",
+    "blob_sha": "308c7606db2f21f2361ca238927af9267fc21d32",
+    "observed_facts": [
+      "VoiceInputPacket separates speech_start from barge_in.",
+      "accept_input calls cancel_for_barge_in only when packet.barge_in is true.",
+      "cancel_for_barge_in immediately terminalizes every cancellable nonterminal output as cancelled/interrupted and fences all active tool ownership.",
+      "advance_output makes interrupted terminal; no transition out of interrupted exists.",
+      "A speech_start packet with barge_in=false does not itself terminalize output or tool ownership."
+    ]
+  },
+  "external_primary_evidence": [
+    {
+      "source": "https://docs.livekit.io/agents/logic/turns/",
+      "accessed_on": "2026-08-31",
+      "finding": "Current LiveKit interruption handling distinguishes genuine interruptions from false interruptions; false interruptions can resume the agent speech after a timeout rather than permanently terminating the response."
+    },
+    {
+      "source": "https://openai.github.io/openai-agents-js/guides/voice-agents/build/",
+      "accessed_on": "2026-08-31",
+      "finding": "Current OpenAI RealtimeSession interruption handling truncates assistant audio/history to actual heard playback when an interruption is committed."
+    },
+    {
+      "source": "https://openai.github.io/openai-agents-python/realtime/guide/",
+      "accessed_on": "2026-08-31",
+      "finding": "Current OpenAI realtime guidance ties committed interruption truncation to actual playback tracking, supporting separation between detection and the final heard-boundary mutation."
+    }
+  ],
+  "high_information_conclusion": {
+    "contract": "speech_start/VAD activity is an interruption candidate; barge_in=true must mean a confirmed interruption decision, not raw VAD onset.",
+    "reason": "Feeding raw speech_start directly as barge_in=true would irreversibly terminalize output and revoke tool ownership before false-interruption classification is possible.",
+    "compatibility_gain": "This preserves the existing packet-cortex terminal interruption semantics without adding a competing audio/playback authority.",
+    "policy_binding": "On confirmed barge-in, retain only the verified heard prefix ephemerally under T7_INTERRUPTED_CONTEXT_RETAIN_HEARD_PREFIX_EPHEMERALLY_ONLY_V1; unheard tail stays excluded and durable commit remains separately gated."
+  },
+  "minimum_regressions_for_trigger4": [
+    {
+      "id": "FI01_SPEECH_START_IS_NONTERMINAL",
+      "setup": "nonterminal output + active tool + input packet speech_start=true, barge_in=false",
+      "expected": "output remains nonterminal and tool ownership remains active; no BARGE_IN_CANCEL_PROPAGATED event"
+    },
+    {
+      "id": "FI02_CONFIRMED_BARGE_IN_IS_TERMINAL",
+      "setup": "same causal turn followed by admitted input packet with barge_in=true",
+      "expected": "cancellable output becomes interrupted/cancelled, active tool ownership is fenced, one causal cancellation event is emitted"
+    },
+    {
+      "id": "FI03_FALSE_INTERRUPTION_DOES_NOT_REPLAY",
+      "setup": "candidate speech activity that never becomes barge_in=true",
+      "expected": "same assistant output identity remains authoritative; no duplicate assistant turn, no repeated already-heard semantic packet, no stale tool cancellation"
+    },
+    {
+      "id": "FI04_RAW_VAD_TO_BARGE_MAPPING_FORBIDDEN",
+      "setup": "adapter/controller mapping audit",
+      "expected": "raw VAD speech_started or speech_start alone cannot set barge_in=true without the selected interruption classifier/decision boundary"
+    }
+  ],
+  "failure_classification": {
+    "raw_vad_directly_sets_barge_in_and_false_positive_irreversibly_cancels": "PRODUCT_NEGATIVE_AT_CORTEX_INTEGRATION_BOUNDARY",
+    "no_executed_adapter_or_classifier_evidence_yet": "SOURCE_GAP_NOT_RUNTIME_CREDIT",
+    "queued_or_unexecuted_runtime_lane": "UNKNOWN_NONTERMINAL"
+  },
+  "coordination": {
+    "wp715_reopened": false,
+    "existing_hf09_hf10_lane_reused": true,
+    "new_dispatch": false,
+    "product_source_mutation": false,
+    "full_duplex_2026_triage_claim_interfered_with": false,
+    "runtime_subject_churn_fence": "PRESERVED"
+  },
+  "credit": {
+    "research_cortex_contract_credit": 1,
+    "repository_component_runtime_credit": 0,
+    "hf10_runtime_credit": 0,
+    "false_interruption_runtime_credit": 0,
+    "german_e2e_voice_credit": 0,
+    "acoustic_credit": 0,
+    "durable_memory_credit": 0,
+    "trigger4_acceptance_credit": 0,
+    "whole_product_credit": 0
+  },
+  "next_exact_action": "Trigger4 should consume this as an oracle refinement, not a new runtime lane: verify the current adapter/controller never maps raw speech_start/VAD directly to barge_in=true, add FI01-FI04 at the smallest existing voice-cortex integration surface, then execute them together with the already-routed HF09/HF10 controller/VPS discriminator. Do not reopen WP715 and do not duplicate dispatch."
+}
