@@ -1,0 +1,78 @@
+{
+  "schema": "F2_TRIGGER4_CANDIDATE_FALSIFIER/v1",
+  "trigger": "4",
+  "research_id": "T7-ASR-008",
+  "classification": "EVIDENCE_INVALID_UNTIL_CONTROLLER_RECEIPT_IS_RECONCILED_TO_CURRENT_F2_VALIDATION_CONTRACT",
+  "observed_at_utc": "2026-08-30T22:55:20Z",
+  "bound_runtime": {
+    "controller_repo": "gschaidergabriel/Dr.-Unterweger",
+    "dispatch_commit": "5a5f296178754c59ac36a434eb71538502eb06d8",
+    "workflow_run_id": 33340366984,
+    "workflow_state_when_observed": "IN_PROGRESS",
+    "f2_subject": "4727b94eeda381f3dcbe4d494eb72f91ce17b478",
+    "target_surface": "clay-direct-dev",
+    "semantic_key": "93d61d9b893d411c8085cd5d257968c23448bc426430e603f6e33add1db5e4e3"
+  },
+  "controller_emitter": {
+    "path": "tools/trigger4/t7_nemotron35_target_comparator.py",
+    "controller_subject": "5a5f296178754c59ac36a434eb71538502eb06d8",
+    "receipt_schema": "T7_ASR008_NEMOTRON35_TARGET_COMPARATOR_RECEIPT/v1",
+    "classification_on_success": "TARGET_RUNTIME_COMPARATOR_EXECUTED_WITH_CLI_TELEMETRY_LIMITATION",
+    "top_level_execution_shape": [
+      "source_binding",
+      "model.repo/revision/expected_sha256/observed_sha256",
+      "runtime.nemo_speech_release/nemo_speech_upstream_sha/binary_sha256",
+      "fixture.speech/non_speech",
+      "conditions",
+      "best_raw_condition",
+      "credits.nemotron_target_runtime_execution"
+    ],
+    "right_context_metadata": [
+      "rnnt_right_context",
+      "nominal_operating_point_ms"
+    ]
+  },
+  "current_f2_validator": {
+    "introduced_commit": "a56c863ab05fb877c93644953ac32ef3501ff5e8",
+    "validator_path": "research/local_voice/tools/t7_asr008_nemotron35_receipt_validator.py",
+    "expected_receipt_schema": "T7_ASR008_NEMOTRON35_TARGET_COMPARATOR_RECEIPT/v1",
+    "expected_success_classification": "EXECUTED_NO_HARNESS_COUNTEREXAMPLE",
+    "required_top_level_shape_examples": [
+      "source_repo_commit",
+      "target_surface",
+      "model.id/revision/q8_sha256/bytes",
+      "runtime.repo/commit/binary_sha256/device/transcribe_help_sha256",
+      "fixture.selected_rows",
+      "configs[].metrics",
+      "deterministic_rerun",
+      "credits.nemotron_target_runtime_credit"
+    ]
+  },
+  "finding": {
+    "receipt_schema_string_matches": true,
+    "receipt_semantics_and_required_fields_match": false,
+    "deterministic_validator_pass_possible_for_current_controller_success_receipt": false,
+    "runtime_execution_may_still_be_real": true,
+    "promotion_eligible_before_reconciliation": false,
+    "reason": "The dispatched controller emitter and current F2 fail-closed validator use the same schema label but incompatible semantic envelopes and success classification. A successful controller execution therefore cannot be accepted by the current F2 validator without an explicit evidence-preserving adapter/validator reconciliation or a new exact compatible execution subject."
+  },
+  "related_guard": {
+    "commit": "9f39880cee8894bd74d6b62c0a0e069eec7c54bd",
+    "classification": "EVIDENCE_INVALID_IF_AXIS_IS_INTERPRETED_AS_CHUNK_SIZE",
+    "note": "Right-context metadata ambiguity is a separate evidence-validity issue and does not turn the model result into a product negative."
+  },
+  "failure_taxonomy": "EVIDENCE_INVALID",
+  "runtime_subject_action": "DEFER_SEMANTIC_MUTATION_UNTIL_RUNTIME_RESULT",
+  "next_exact_action": "Allow the already-dispatched single run to terminate. Preserve its raw receipt/logs exactly. Before any promotion, reconcile the controller receipt to one explicit current F2 validation contract without rewriting measured values; reject if any required identity/geometry/determinism fact is absent. Do not redispatch merely because the envelope differs.",
+  "credit": {
+    "runtime_credit": 0,
+    "german_asr_quality_credit": 0,
+    "trigger4_acceptance_credit": 0,
+    "physical_device_credit": 0,
+    "gwt_jspace_credit": 0,
+    "effect_credit": 0,
+    "training_credit": 0,
+    "whole_product_credit": 0
+  },
+  "scope_fence": "This is an evidence-contract incompatibility finding derived from exact current source. It is not a Nemotron product-negative conclusion and does not invalidate whatever raw execution observations run 33340366984 actually produces."
+}
