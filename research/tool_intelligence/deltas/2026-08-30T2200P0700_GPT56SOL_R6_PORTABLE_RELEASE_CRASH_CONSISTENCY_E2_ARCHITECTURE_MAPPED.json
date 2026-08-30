@@ -1,0 +1,168 @@
+{
+  "schema": "FRANKENSTEIN2_TRIGGER6_ARCHITECTURE_DELTA_E2/v1",
+  "trigger": "6",
+  "research_id": "R6-20260830-PORTABLE-RELEASE-CRASH-CONSISTENCY-GPT56SOL-01",
+  "claim_target": "E2_ARCHITECTURE_MAPPED",
+  "status": "E2_ARCHITECTURE_MAPPED_COMPLETE_NO_BUILD_PROMOTION",
+  "completed_at": "2026-08-30T22:00:13+07:00",
+  "worker": "GPT-5.6 Sol / ChatGPT Trigger-6 organ",
+  "claim_refs": {
+    "audit_only_malformed_filename_preserved": "research/tool_intelligence/claims/R6-20260830-PORTABLE-RELEASE-CRASH-CONSISTENCY-GPT56SOL-01/CLAIM.json@e25552302dc4e72f4ffae97f51589615ef4ef8d9",
+    "canonical_e2_claim": "research/tool_intelligence/claims/R6-20260830-PORTABLE-RELEASE-CRASH-CONSISTENCY-GPT56SOL-01/E2_ARCHITECTURE_MAPPED.json@8d540fb5878957935eb21550ac7aa434fbf7abbc"
+  },
+  "source_lock": {
+    "f2_main_observed_before_mapping": "a4559291e6d41e578b3bce32f96cc0a7be6c74ac",
+    "trigger6_protocol_sha": "08571526d33f9a0c06577e2f119bdaf4297ef1c8",
+    "portable_release_transaction": {
+      "path": "src/frankenstein2/portable_release_transaction.py",
+      "blob_sha": "a248d6ded9fd90f34f7e6763fe30948fc58af6e6"
+    },
+    "portable_release_readback": {
+      "path": "src/frankenstein2/portable_release_readback.py",
+      "blob_sha": "ead4aae25cf64bd999ddd286d1198fe99c612dc7"
+    },
+    "wp1207_claim_commit": "2d237bd7cf49efc5559bdd8acb43f777bcdc051f",
+    "wp1207_implementation_commit": "66eda480fe506be0aa57146b9044c329de910ccf"
+  },
+  "current_f2_findings": [
+    "portable_release_transaction.py is explicitly a deterministic non-executing preparatory transaction/state-lineage primitive; it does not install a release or mutate a host.",
+    "Its plan/receipt states validate lineage and observed generation/state but do not perform or attest a filesystem durability barrier.",
+    "portable_release_readback.py adds exact active-release identity readback after the preparatory receipt and remains explicitly non-mutating/preparatory-only.",
+    "The original F2-WP-1207 scope explicitly forbids production installer execution, release ZIP installation, host mutation and target-runtime credit, and leaves exact hostile-twin ZIP exercise open.",
+    "Therefore the researched gap is not transaction planning or readback identity; it is the physical activation/commit implementation and crash-recovery evidence between them."
+  ],
+  "external_primary_sources": [
+    {
+      "source": "Python 3.14 os documentation",
+      "url": "https://docs.python.org/3/library/os.html#os.replace",
+      "finding": "os.replace/rename can be atomic on success but may fail across filesystems; namespace atomicity alone is not a crash-durability contract."
+    },
+    {
+      "source": "Linux man-pages fsync(2)",
+      "url": "https://man7.org/linux/man-pages/man2/fsync.2.html",
+      "finding": "fsync(file) does not necessarily persist the containing directory entry; an explicit fsync on the directory is needed for that namespace entry."
+    },
+    {
+      "source": "POSIX fsync(3p)",
+      "url": "https://man7.org/linux/man-pages/man3/fsync.3p.html",
+      "finding": "fsync is the synchronization primitive intended for transaction-like persistence, while exact nonvolatile behavior remains implementation/configuration dependent."
+    },
+    {
+      "source": "Microsoft FlushFileBuffers",
+      "url": "https://learn.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-flushfilebuffers",
+      "finding": "Windows exposes an explicit buffered-data flush primitive; persistence behavior and performance are platform/storage specific."
+    },
+    {
+      "source": "Microsoft MoveFileEx",
+      "url": "https://learn.microsoft.com/en-us/windows/win32/api/winbase/nf-winbase-movefileexa",
+      "finding": "MOVEFILE_WRITE_THROUGH documents write-through for a move performed as copy-and-delete, not a portable universal atomic-durable-directory-switch abstraction."
+    },
+    {
+      "source": "Microsoft ReplaceFile",
+      "url": "https://learn.microsoft.com/en-us/windows/win32/api/winbase/nf-winbase-replacefilea",
+      "finding": "REPLACEFILE_WRITE_THROUGH is documented as unsupported, so F2 must not model it as a portable durability flag."
+    },
+    {
+      "source": "Pillai et al., OSDI 2014, All File Systems Are Not Created Equal",
+      "url": "https://www.usenix.org/conference/osdi14/technical-sessions/presentation/pillai",
+      "finding": "Application crash-consistency protocols depend on subtle filesystem persistence properties that vary across filesystems; atomicity and persistence ordering must be treated separately."
+    }
+  ],
+  "hypothesis": {
+    "statement": "F2 needs an explicit host-adapter-owned crash-consistent release activation contract between preparatory transaction/readback evidence and physical target activation; otherwise a future installer can satisfy lineage/readback shapes while leaving crash/power-loss persistence semantics unspecified.",
+    "confidence": 0.94
+  },
+  "counterhypotheses": [
+    {
+      "id": "C1_BUILDER_SHOULD_OWN_DURABILITY",
+      "statement": "The portable-release builder itself should perform durable activation.",
+      "result": "REJECTED_AT_E2",
+      "reason": "Current F2 source deliberately keeps release transaction/readback preparatory and non-mutating; host/filesystem semantics belong at the host activation boundary, not artifact construction."
+    },
+    {
+      "id": "C2_ATOMIC_RENAME_IS_ENOUGH",
+      "statement": "An atomic rename/replace alone provides the required crash consistency.",
+      "result": "REJECTED_AT_E2",
+      "reason": "Primary documentation distinguishes namespace atomicity from data/directory persistence; Linux requires an explicit directory fsync for the directory entry, and Windows exposes different primitives/limits."
+    },
+    {
+      "id": "C3_ONE_PORTABLE_DURABLE_RENAME_API",
+      "statement": "F2 can expose one cross-platform atomic-durable-rename primitive with identical guarantees.",
+      "result": "REJECTED_AT_E2",
+      "reason": "POSIX/Linux and Windows documented contracts differ materially. A single uniform guarantee would overclaim unless implemented as a stricter platform adapter with per-platform evidence."
+    }
+  ],
+  "architecture_delta": {
+    "id": "F2_PORTABLE_RELEASE_ACTIVATION_TX_V1_CANDIDATE",
+    "decision": "ADD_EXPLICIT_HOST_ACTIVATION_BOUNDARY_NOT_BUILD_CANDIDATE_YET",
+    "affected_surfaces": [
+      "src/frankenstein2/portable_release_transaction.py",
+      "src/frankenstein2/portable_release_readback.py",
+      "host activation/installer adapter selected by the hostile-twin and later target-host path",
+      "F2-WP-1207 continuation / target-host reality-twin acceptance path"
+    ],
+    "ownership": "HOST_ADAPTER_OR_INSTALLER_EXECUTION_LAYER",
+    "nonownership": [
+      "portable artifact builder",
+      "UnifiedDB canonical truth authority",
+      "EffectGate completion authority",
+      "preparatory transaction planner"
+    ],
+    "proposed_states": [
+      "PREPARED",
+      "CONTENT_VERIFIED",
+      "DURABLE_STAGED",
+      "COMMIT_ATTEMPTED",
+      "ACTIVE_READBACK_VERIFIED",
+      "RECOVERY_REQUIRED",
+      "UNKNOWN_COMMIT_OUTCOME"
+    ],
+    "proposed_invariants": [
+      "Stage the candidate release on the same filesystem as the activation target whenever rename/replace atomicity is claimed; cross-filesystem fallback must not inherit atomic-rename credit.",
+      "Verify release/manifest identity before activation.",
+      "Use platform-specific durability barriers before and after namespace activation rather than a fictional universal atomic-durable-rename flag.",
+      "On Linux/POSIX-like paths, data/metadata flushing and containing-directory synchronization must be explicit at the contract/evidence level where the platform supports them.",
+      "On Windows, bind the exact documented file/move/flush primitives used and do not claim unsupported REPLACEFILE_WRITE_THROUGH semantics.",
+      "A crash/transport interruption after commit submission but before trustworthy readback yields UNKNOWN_COMMIT_OUTCOME, never synthetic success or blind replay.",
+      "Successful activation credit requires post-restart/readback verification of exact active release digest and state lineage at the declared target scope.",
+      "Durability receipts must bind platform, filesystem/volume identity when observable, source/staging/target identities, release digest, durability operations, activation result and readback result.",
+      "Preparatory WP1207 receipts remain noncanonical test evidence and must not be silently upgraded by this delta."
+    ],
+    "resource_effect": "Expected runtime overhead is bounded filesystem synchronization and one readback per install/update/rollback transaction; no model tokens or LLM calls are required. Exact latency/I/O cost is UNKNOWN until E4/Trigger-4 measurement.",
+    "token_effect": "No steady-state model-token cost expected; contract is deterministic host I/O/control logic.",
+    "security_interaction": "Keep separate from concurrent archive-extraction/symlink-confinement research. Activation must consume only a previously admitted confined release tree; this delta neither weakens nor duplicates those path-security gates."
+  },
+  "falsifier": {
+    "next_stage": "E3_OR_E4_ONLY_AFTER_NEW_CREATE_ONLY_CLAIM_AND_AUTHORIZED_EXECUTION_SURFACE",
+    "test_design": [
+      "Implement no production mutation in Trigger 6. Build a deterministic host-adapter fixture with failpoints around stage flush, namespace switch, parent-directory durability barrier and readback.",
+      "For each failpoint, restart the fixture and classify active release as OLD, NEW, or UNKNOWN; no mixed/partial state may be accepted as success.",
+      "Test same-filesystem and forced cross-filesystem paths separately; the latter must fail closed or use a non-atomic copy+verify protocol without atomic credit.",
+      "Test Linux/POSIX and Windows adapters independently; never infer one platform's persistence contract from the other.",
+      "Promote only after the exact hostile-twin installer path executes an exact release artifact and demonstrates restart/readback behavior with bounded evidence."
+    ]
+  },
+  "adoption_decision": {
+    "architecture_delta": "WARRANTED",
+    "implementation_now": "DEFER_TO_TRIGGER4_AFTER_E3/E4_OR_DIRECT_CURRENT_BUILD_DEPENDENCY_REVIEW",
+    "external_library_import": "NONE_REQUIRED",
+    "structural_distillation": "YES_PLATFORM_SPECIFIC_DURABILITY_CONTRACT",
+    "trigger4_build_candidate": false
+  },
+  "evidence_ceiling": {
+    "level": "E2_ARCHITECTURE_MAPPED",
+    "current_f2_source_read": true,
+    "external_primary_sources_read": true,
+    "architecture_mapping": true,
+    "runtime_executed": false,
+    "crash_injection_executed": false,
+    "host_mutation_executed": false,
+    "architecture_credit": 0,
+    "runtime_credit": 0,
+    "physical_target_credit": 0,
+    "whole_system_credit": 0,
+    "training_credit": 0
+  },
+  "pending_research_sqlite_sync": "NOT_PERFORMED_CONNECTOR_BINARY_UPDATE_UNAVAILABLE_DO_NOT_INFER_DB_SYNC",
+  "next_exact_action": "Trigger 4/next authorized research stage should decide the exact host activation adapter surface, then acquire a new create-only E3/E4 claim before implementing fault-injection/restart tests; preserve WP1207 preparatory ABI and portable_release_readback semantics unless new evidence requires a versioned successor."
+}
