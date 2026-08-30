@@ -32,6 +32,7 @@ _SYSTEM_EVENTS = frozenset((
     "MEMORY_BIND", "ERROR", "FALLBACK", "RECOVERY", "TRANSPORT_FAILURE", "RESTART_REENTRY",
 ))
 _TERMINAL_PLAYBACK = frozenset(("interrupted", "cancelled", "completed"))
+_MAX_TEXT_CHARS = 32768
 
 
 class VoicePacketCortexError(ValueError):
@@ -110,6 +111,8 @@ class VoiceInputPacket:
             raise VoicePacketCortexError("source_modality is not admitted")
         if type(self.text) is not str:
             raise VoicePacketCortexError("text must be a string")
+        if len(self.text) > _MAX_TEXT_CHARS:
+            raise VoicePacketCortexError("text exceeds bounded packet payload")
         if any(type(v) is not bool for v in (self.is_final, self.speech_start, self.speech_end, self.barge_in)):
             raise VoicePacketCortexError("input boolean fields must be exact bool")
         _fraction("confidence", self.confidence)
@@ -170,6 +173,8 @@ class VoiceOutputPacket:
             _nonnegative(name, getattr(self, name))
         if type(self.text_segment) is not str:
             raise VoicePacketCortexError("text_segment must be a string")
+        if len(self.text_segment) > _MAX_TEXT_CHARS:
+            raise VoicePacketCortexError("text_segment exceeds bounded packet payload")
         if self.speech_act not in _INTENTS or self.playback_state not in _PLAYBACK:
             raise VoicePacketCortexError("output state/intent is not admitted")
         if type(self.cancellable) is not bool or type(self.commit_eligible) is not bool:
@@ -256,10 +261,11 @@ class VoicePacketCortex:
     A caller approaching a cap must close/roll to a new causally bound VoiceSessionCapsule.
     """
 
-    MAX_EVENTS = 4096
-    MAX_INPUT_PACKETS = 2048
-    MAX_OUTPUT_PACKETS = 1024
-    MAX_TOOL_REFS = 1024
+    MAX_EVENTS = 512
+    MAX_INPUT_PACKETS = 256
+    MAX_OUTPUT_PACKETS = 256
+    MAX_TOOL_REFS = 128
+    MAX_TEXT_CHARS = _MAX_TEXT_CHARS
 
     def __init__(self, session: "VoiceSessionCapsule", *, presence_state: str = "PRESENT_INTERRUPTIBLE",
                  opened_monotonic_ms: int = 0) -> None:
