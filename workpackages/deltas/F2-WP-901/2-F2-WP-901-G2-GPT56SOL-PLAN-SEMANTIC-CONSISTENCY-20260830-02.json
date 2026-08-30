@@ -1,0 +1,49 @@
+{
+  "schema": "FRANKENSTEIN2_WORKPACKAGE_DELTA/v1",
+  "workpackage_id": "F2-WP-901",
+  "generation": 2,
+  "claim_id": "F2-WP-901-G2-GPT56SOL-PLAN-SEMANTIC-CONSISTENCY-20260830",
+  "worker_id": "GPT-5.6-Sol-TRIGGER4-REVIEW",
+  "base_commit": "c51d6989a73735dbdad7425415636458963466ad",
+  "observed_main_commit": "c51d6989a73735dbdad7425415636458963466ad",
+  "owned_paths": [
+    "workpackages/deltas/F2-WP-901/2-F2-WP-901-G2-GPT56SOL-PLAN-SEMANTIC-CONSISTENCY-20260830-02.json"
+  ],
+  "result_class": "REVIEW_ONLY",
+  "source_commits": [],
+  "receipts": [],
+  "falsifiers": [
+    {
+      "class": "CANDIDATE_FALSIFIER",
+      "name": "DIRECT_PLAN_REASON_CODE_SEMANTIC_MISMATCH",
+      "observed_source": "src/frankenstein2/restart_recovery_continuation.py",
+      "observed_source_blob_sha": "07bf10056923851685707601b59f76c285b8e08a",
+      "observation": "RestartContinuationPlan.__post_init__ validates reason_code only as non-empty text while plan_restart_continuation deterministically maps each disposition to one canonical reason code. Direct construction can therefore serialize a semantically contradictory disposition/reason pair even after disposition/reference/effect-flag invariants are repaired.",
+      "required_regressions": [
+        "NO_UNFINISHED_WORK accepts only NO_EXPLICIT_UNFINISHED_WORK",
+        "CONTINUE_UNFINISHED_AS_CANDIDATE accepts only EXPLICIT_UNFINISHED_EVIDENCE",
+        "HOLD_FOR_EFFECT_VERIFICATION accepts only UNRESOLVED_EFFECT_OUTCOME_REQUIRES_VERIFICATION",
+        "CONTINUE_NON_EFFECT_WITH_EFFECT_REAUTH_HOLD accepts only VERIFIED_NOT_APPLIED_EFFECT_REQUIRES_EXPLICIT_REAUTHORIZATION",
+        "cross-paired disposition/reason codes fail closed under direct RestartContinuationPlan construction"
+      ]
+    }
+  ],
+  "contradictions": [
+    "The G2 required invariants bind disposition/reference/effect-flag combinations but do not yet explicitly bind reason_code to disposition, while the planner itself treats that mapping as deterministic semantics."
+  ],
+  "proposed_state_change": "NO_STATE_CHANGE_REVIEW_INPUT_ONLY",
+  "completion_deficit": "Before G2 terminalization, independently test disposition-to-reason semantic binding so exported direct construction cannot create contradictory deterministic recovery receipts.",
+  "credit_boundaries": {
+    "runtime_execution_observed": false,
+    "runtime_credit": 0,
+    "physical_grid10_credit": 0,
+    "gwt_runtime_credit": 0,
+    "jspace_runtime_credit": 0,
+    "effect_credit": 0,
+    "completion_credit": 0,
+    "training_credit": 0,
+    "whole_system_acceptance": false
+  },
+  "next_exact_action": "Canonical WP901 G2 mutation owner should either add reason-code/disposition constructor invariants and regressions in the existing G2 scope, or reject this candidate with an explicit semantic contract reason before terminal reconciliation.",
+  "created_at_utc": "2026-08-30T08:29:00Z"
+}
