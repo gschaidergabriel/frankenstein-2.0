@@ -1,0 +1,67 @@
+{
+  "schema": "T7_TRIGGER4_CANDIDATE_FALSIFIER/v1",
+  "trigger": "7",
+  "date": "2026-08-31",
+  "organ": "GPT-5.6-Sol",
+  "work_class": "CANDIDATE_FALSIFIER",
+  "research_lane": "GERMAN_FIRST_LOCAL_SOLO_RESEARCH__CORTEX_FIRST",
+  "target_workpackage": "F2-WP-715",
+  "mutation_authority_requested": false,
+  "runtime_dispatch_requested": false,
+  "duplicate_runtime_dispatch_created": false,
+  "candidate_id": "T7-WP715-REJECTED-SESSION-CLOSE-ATOMICITY",
+  "observed_f2_head_before_write": "17035fb2bfed761dc735bbfbd64ad7f24f4e00dd",
+  "source_identity": {
+    "packet_source": "src/frankenstein2/voice_packet_cortex.py",
+    "packet_source_blob": "46bd01d3701ff6e6119f5d0522486f5d5cc5bd93",
+    "recovery_source": "src/frankenstein2/voice_packet_cortex_recovery.py",
+    "recovery_source_blob": "7854afca22599b235c289020673ffa9a7c9b7d43"
+  },
+  "observation": {
+    "summary": "close_session() creates a VoiceOutcome and writes voiceoutcome_ref into every commit-eligible output before constructing the SESSION_CLOSE CortexEventPacket. turn_id and monotonic_ms are validated only by that later event construction. A rejected close with a late-invalid event field can therefore plausibly mutate output state before raising.",
+    "candidate_risk": "A failed SESSION_CLOSE may leave an otherwise-open cortex with completed output carrying a voiceoutcome_ref for an outcome that was never committed to _closed_outcome and has no SESSION_CLOSE event. export_packet_cortex_checkpoint() serializes output voiceoutcome_ref, so the partial mutation may survive restart as a dangling causal reference.",
+    "scope": "packet-cortex rejected-operation/session-close atomicity and restart persistence only",
+    "status": "STATIC_CANDIDATE_NOT_EXECUTED"
+  },
+  "high_information_discriminator": {
+    "precondition": [
+      "Create an open VoicePacketCortex with one output advanced queued -> started -> completed at heard_fraction=1.0 so it is commit_eligible.",
+      "Snapshot output.as_dict()/sha, event count/event_seq, is_open, _closed_outcome, and an exported checkpoint."
+    ],
+    "action": "Call close_session() with otherwise-valid outcome identity/result data but an invalid late-validated event field, preferably turn_id='' (and separately negative monotonic_ms if useful). Catch VoicePacketCortexError. Then compare all pre/post state and export a second checkpoint.",
+    "candidate_failure_condition": "The close call raises VoicePacketCortexError but any durable/recoverable controller state changes, especially output.voiceoutcome_ref becoming non-null while is_open remains true, _closed_outcome remains null, and no SESSION_CLOSE event exists; or the post-reject checkpoint differs in semantic state from the pre-reject checkpoint.",
+    "required_negative_control": "A rejected close must be observationally atomic: output packet state, event sequence/list, tool ownership, open/closed fields, outcome fields, and checkpoint payload must remain semantically identical except for no externally persisted diagnostic side effect.",
+    "acceptable_repair_shapes": [
+      "pre-validate all close event fields before VoiceOutcome/output mutation",
+      "stage outcome, output replacements, and SESSION_CLOSE event fully, then commit controller state atomically only after every validation succeeds"
+    ],
+    "required_regression": "Rejected SESSION_CLOSE cannot mint or persist a dangling voiceoutcome_ref and remains restart/checkpoint-identical at packet-controller scope."
+  },
+  "coordination": {
+    "existing_wp715_trigger4_owner_reused": true,
+    "existing_vps_run_id": 33328707636,
+    "existing_vps_state_last_observed": "QUEUED_ZERO_STEPS",
+    "existing_vps_classification": "UNKNOWN_NONTERMINAL",
+    "parallel_falsifier_already_present": "T7-WP715-SESSION-CLOSE-ACTIVE-TOOL-OWNERSHIP",
+    "nonduplicate_reason": "That sibling tests successful close with active tool ownership. This candidate tests rollback/atomicity when close itself is rejected after late event-field validation, including dangling VoiceOutcome reference persistence.",
+    "runtime_subject_churn_rule": "Do not mutate product source or redispatch VPS from this static candidate. Execute repository discriminator first. Only exact reproduced PRODUCT_NEGATIVE justifies repair/reconciliation of the queued VPS subject."
+  },
+  "external_primary_context": {
+    "livekit_turn_semantics": "Current official LiveKit turn documentation still treats interruption as a state transition that truncates conversation history to what was actually heard.",
+    "livekit_tool_semantics": "Current official LiveKit tool documentation explicitly distinguishes interrupted speech from tool lifecycle/cancellation; this supports explicit causal ownership but grants no F2 credit."
+  },
+  "credit": {
+    "review_falsifier_delta": 1,
+    "candidate_product_negative_executed": 0,
+    "repository_runtime_credit": 0,
+    "vps_packet_runtime_credit": 0,
+    "acoustic_credit": 0,
+    "asr_credit": 0,
+    "tts_credit": 0,
+    "gwt_runtime_credit": 0,
+    "effect_credit": 0,
+    "whole_voice_credit": 0,
+    "whole_product_credit": 0
+  },
+  "next_exact_action": "F2-WP-715 Trigger-4 owner executes the rejected-close atomicity discriminator in the existing repository regression lane without creating a new VPS dispatch. If reproduced, classify PRODUCT_NEGATIVE only at rejected SESSION_CLOSE/controller atomicity scope, repair with all-or-nothing close mutation, add checkpoint/restart regression, and then reconcile the already queued VPS subject under runtime-subject-churn law. If not reproduced, close this falsifier with exact negative evidence and leave the queued VPS subject unchanged."
+}
