@@ -1,0 +1,84 @@
+{
+  "schema": "T7_RESEARCH_DELTA/v1",
+  "trigger": "7",
+  "date": "2026-08-31",
+  "organ": "GPT-5.6-Sol",
+  "research_id": "T7-ARCH-COORD-DUPLICATE-002",
+  "classification": "REVIEW_ONLY_COORDINATION_CONCURRENCY_GAP_NOT_PRODUCT_NEGATIVE",
+  "implementation_mutation_authority": false,
+  "new_workpackage": false,
+  "new_generation": false,
+  "new_runtime_dispatch": false,
+  "new_effect_authority": false,
+  "credit_delta": 0,
+  "finding_id": "PARALLEL_ARCHITECT_ORGANS_CAN_EMIT_SEMANTICALLY_DUPLICATE_PACKETS_WITH_DISTINCT_NONCES",
+  "finding": {
+    "observed_window_utc": "2026-08-30T22:37:34Z/2026-08-30T22:38:08Z",
+    "observation": "Four append-only Architect packets were committed within 34 seconds, all targeting trigger 4 and all requesting the same ACK-classification-bypass repair, but each used a distinct packet_id/nonce/route identity and therefore was not protected by packet nonce idempotency.",
+    "why_it_matters": "The current packet protocol correctly prevents one packet from being applied twice, but multiple Architect organs can independently generate different packets for the same semantic coordination boundary. A Trigger-4 consumer can therefore observe multiple individually valid APPLIED candidates for one repair objective, increasing duplicate mutation/fan-out risk unless normal build authority catches the duplication later.",
+    "primary_project_failure_class": "CONCURRENCY_RETRY",
+    "coordination_failure_label": "SEMANTIC_DUPLICATE_PACKET_ROUTING",
+    "product_negative": false
+  },
+  "live_evidence": [
+    {
+      "commit": "938e6046ab9a778087cff2b24dcb0f285e18db32",
+      "packet_id": "AWP-20260830T223600Z-T4ACKFIX01",
+      "target": {"trigger": "4"},
+      "semantic_boundary": "Architect ACK validation/classification coupling repair"
+    },
+    {
+      "commit": "477b0ff01a6cb831c0ce3af18fb8c1b314f6bba2",
+      "packet_id": "AWP-20260830T223600Z-T7ACKFIX01",
+      "target": {"trigger": "4"},
+      "semantic_boundary": "Architect ACK validation/classification coupling repair"
+    },
+    {
+      "commit": "2508a2589c97dd6afe16e422408dbbb6bace844b",
+      "packet_id": "AWP-20260830T223630Z-T7ACKFIX01",
+      "target": {"trigger": "4"},
+      "semantic_boundary": "Architect ACK validation/classification coupling repair"
+    },
+    {
+      "commit": "e6d7f37e62d32e7e0816d0c508ac5ce79a322547",
+      "packet_id": "AWP-20260830T223600Z-1e8516ff5687",
+      "target": {"trigger": "4"},
+      "semantic_boundary": "Architect ACK validation/classification coupling repair"
+    }
+  ],
+  "existing_mechanism_reuse": {
+    "ref": "research/local_voice/tools/t7_semantic_claim.py",
+    "observation": "Trigger 7 already has a deterministic create-only semantic objective compiler for research claims. It demonstrates the needed pattern: admitted enum-like semantic identity, stable key, create-only path, and loser routing to a nonduplicate objective. It is not currently integrated into Architect packet emission and its present aliases are mostly voice/research specific.",
+    "do_not_do": "Do not deduplicate by fuzzy free-text similarity and do not invent a second delivery state machine. Reuse current Clay delivery atomicity/CAS and explicit semantic identities."
+  },
+  "recommended_repair": {
+    "scope": "ARCHITECT_COORDINATION_EMISSION_ONLY_NO_PRODUCT_SEMANTICS",
+    "invariant": "ONE_SEMANTIC_COORDINATION_BOUNDARY -> AT_MOST_ONE_LIVE_PACKET_ROUTE_PER_OWNER_INTENT_EPOCH",
+    "preferred_shape": [
+      "Introduce an explicit coordination_objective identity compiled from admitted non-free-text fields such as project, target selector, coordination family, subject/boundary, evidence scope, and owner-intent epoch.",
+      "Before packet creation, perform a create-only/CAS semantic claim using the existing Clay atomicity pattern. The winner may emit the packet; losers must attach to/review the winner instead of creating a new packet.",
+      "Keep packet_id/nonce/route_id for delivery idempotency; semantic objective identity is a separate scheduling/deduplication fence, not a truth or delivery authority.",
+      "If an equivalent packet is already live, return REVIEW_ONLY/ACK_ONLY evidence with the existing packet/result refs rather than fan-out."
+    ],
+    "minimum_regressions": [
+      "two parallel organs with the same admitted coordination objective produce one live packet route",
+      "same semantic boundary with paraphrased free text but identical admitted identity still converges to one key",
+      "different target or evidence scope does not falsely deduplicate",
+      "expired/terminal objective may be superseded only by an explicit next generation/owner epoch",
+      "semantic claim loser creates no mutation authority and no runtime dispatch"
+    ]
+  },
+  "preserved_boundaries": {
+    "product_semantics_changed": false,
+    "runtime_dispatch_created": false,
+    "effect_authority_created": false,
+    "provider_authority_created": false,
+    "product_credit": 0,
+    "runtime_credit": 0,
+    "gwt_jspace_credit": 0,
+    "effect_credit": 0,
+    "training_credit": 0,
+    "whole_product_credit": 0
+  },
+  "next_exact_action": "Do not emit another duplicate ACK-repair packet. Let normal Trigger-4 authority converge the already-routed repair once. In the Trigger-7 coordination lane, add a semantic singleton fence to packet emission using the existing deterministic semantic-claim/create-only pattern, then rerun the same parallel-injection experiment and require exactly one live packet route."
+}
