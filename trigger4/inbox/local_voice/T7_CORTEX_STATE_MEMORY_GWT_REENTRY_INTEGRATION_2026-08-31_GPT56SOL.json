@@ -1,0 +1,130 @@
+{
+  "schema": "T7_TO_T4_INTEGRATION_BLOCKER_V1",
+  "created_at": "2026-08-31T04:22:00+07:00",
+  "trigger": "7",
+  "organ": "GPT-5.6-Sol",
+  "classification": "INTEGRATION_BLOCKER__FUSE_EXISTING_ACCEPTED_COMPONENTS_FIRST",
+  "owner_authority_ref": "research/local_voice/authority/2026-08-31_TRIGGER7_TEXT_PACKET_COMPLETION_AUTHORITY.md",
+  "owner_target_condition": "STATE_MEMORY_VOICEOUTCOME_REENTRY_TESTED == TRUE with final physical audio binding left minimal",
+  "wp715_status": "TERMINAL_ACCEPTED_AT_PACKET_COMPONENT_RUNTIME_SCOPE__DO_NOT_REOPEN",
+  "duplicate_semantic_owner_observed": false,
+  "source_observation": {
+    "voice_packet_cortex": "src/frankenstein2/voice_packet_cortex.py",
+    "packet_boundary": "VoicePacketCortex carries gwt_ref, memory_refs, tool_ref and emits MEMORY_BIND/TOOL_RESULT-style packet events, but the current packet component intentionally creates no UnifiedDB write, effect authority, GWT runtime credit or whole-product credit.",
+    "current_import_boundary": "voice_packet_cortex imports VoiceSessionCapsule/VoiceOutcome only at runtime/type-checking scope; it does not directly bind TypedMemoryRecord, MemoryLifecycleState, ContextView, GWT re-entry/uptake evidence or effect execution authority.",
+    "repo_search_observation": "No indexed VoicePacketCortex-to-TypedMemory/GWT integration surface was found in the current repository search before this handoff. This is a search/source observation, not a claim that no other project file can satisfy the boundary."
+  },
+  "existing_components_to_reuse": [
+    {
+      "path": "src/frankenstein2/memory_lifecycle.py",
+      "role": "exact memory id/generation/payload/provenance lifecycle fences; explicitly not UnifiedDB persistence or truth/effect authority"
+    },
+    {
+      "path": "src/frankenstein2/typed_memory.py",
+      "role": "caller-declared typed memory bound to exact MemoryLifecycleState; explicitly not UnifiedDB write, truth, retrieval or effect authority"
+    },
+    {
+      "path": "src/frankenstein2/context_compiler.py",
+      "role": "bounded reference-only next-turn context compilation; explicitly not payload reading, truth or effect authority"
+    },
+    {
+      "path": "src/frankenstein2/gwt_reentry_uptake_binding.py",
+      "role": "exact existing WP508 re-entry witness <-> WP507 uptake receipt binding; preserves uptake state and mints no new GWT runtime evidence"
+    },
+    {
+      "path": "src/frankenstein2/realtime_reentry.py",
+      "role": "deterministic BARGE_IN/BILATERAL_SILENCE/TOOL_RETURN re-entry evidence over exact VoiceSessionCapsule; no model/tool/effect/canonical state mutation"
+    },
+    {
+      "path": "src/frankenstein2/voice_contract.py",
+      "role": "VoiceIntent/VoiceSessionCapsule/VoiceOutcome identity/provenance only; no implicit memory/effect/GWT authority"
+    }
+  ],
+  "resolved_interruption_policy": {
+    "policy_id": "T7_INTERRUPTED_CONTEXT_RETAIN_HEARD_PREFIX_EPHEMERALLY_ONLY_V1",
+    "scope": "EPHEMERAL_NEXT_TURN_DIALOGUE_CONTEXT_ONLY",
+    "rule": "For 0 < heard_fraction < 1, retain exactly measured heard prefix in F2 authoritative ephemeral next-turn dialogue context and exclude unheard tail; interrupted output remains non-commit-eligible for durable VoiceOutcome result_ref, memory or effect authority."
+  },
+  "requested_trigger4_delta": {
+    "work_class": "INTEGRATION_BLOCKER",
+    "strategy": "Do not create a second state/memory/GWT/effect authority. Add or select the smallest deterministic adapter/harness that binds the existing accepted voice packet evidence to the existing exact F2 memory/GWT/context authority surfaces while preserving all zero-credit boundaries.",
+    "preferred_location": "outside accepted WP715 packet-core semantics unless an existing admitted extension point already exists",
+    "must_not": [
+      "reopen F2-WP-715 generation 1",
+      "write UnifiedDB merely because a memory_refs string exists",
+      "mint GWT uptake from a gwt_ref string",
+      "execute a tool/effect merely because tool_ref exists",
+      "promote interrupted/unheard output to durable memory or VoiceOutcome result authority",
+      "create a duplicate context compiler, memory lifecycle, GWT or effect gate"
+    ]
+  },
+  "packet_surrogate_discriminators": [
+    {
+      "id": "VSR01_COMPLETED_HEARD_OUTPUT_REENTRY",
+      "setup": "completed output, heard_fraction=1.0, commit_eligible=true, exact VoiceOutcome/session lineage",
+      "require": "adapter can bind the output/outcome to explicitly supplied existing memory/context references without bypassing their exact lifecycle/digest/provenance validation",
+      "credit_limit": "component integration only; no physical audio/GWT runtime/effect/whole-product credit"
+    },
+    {
+      "id": "VSR02_INTERRUPTED_HEARD_PREFIX_EPHEMERAL_ONLY",
+      "setup": "interrupted output with 0 < heard_fraction < 1 under resolved heard-prefix policy",
+      "require": "next-turn F2 context contains exact measured heard-prefix reference/digest and excludes unheard-tail reference/digest; no durable memory admission, VoiceOutcome result_ref mint or effect admission follows solely from this output",
+      "product_negative_if": ["PREFIX_AMNESIA", "UNHEARD_TAIL_LEAK", "DURABLE_COMMIT_FROM_INTERRUPTED_OUTPUT"]
+    },
+    {
+      "id": "VSR03_GWT_REFERENCE_EXACTNESS",
+      "setup": "CortexEventPacket carries gwt_ref",
+      "require": "gwt_ref must resolve to an exact supplied current GWT broadcast/re-entry/uptake evidence identity; stale/wrong/unbound ref fails closed and cannot mint uptake or causal influence",
+      "product_negative_if": ["OPAQUE_GWT_REF_ACCEPTED_AS_UPTAKE", "STALE_GWT_REF_REBOUND"]
+    },
+    {
+      "id": "VSR04_MEMORY_REFERENCE_EXACTNESS",
+      "setup": "CortexEventPacket carries memory_refs",
+      "require": "each admitted memory ref is bound to exact caller-supplied lifecycle/typed-memory identity and digest; wrong generation/state/payload/provenance fails closed",
+      "product_negative_if": ["OPAQUE_MEMORY_REF_ACCEPTED_AS_CANONICAL_WRITE", "WRONG_GENERATION_MEMORY_REBOUND"]
+    },
+    {
+      "id": "VSR05_CANCELLED_LATE_TOOL_FENCE",
+      "setup": "turn cancelled/barge-in, late TOOL_RESULT arrives with old tool_ref",
+      "require": "existing packet causal fence remains authoritative; late result cannot enter new-turn context, memory or effect ownership without an explicit admitted causal bridge",
+      "product_negative_if": ["LATE_TOOL_REGAINS_CONTEXT", "LATE_TOOL_REGAINS_EFFECT_AUTHORITY"]
+    },
+    {
+      "id": "VSR06_RESTART_REPLAY_IDEMPOTENCE",
+      "setup": "serialize/recover accepted packet component and replay exact integration receipt inputs",
+      "require": "same exact outcome/memory/context/GWT bindings reproduce one identity; duplicate replay does not create duplicate durable memory/effect/outcome authority",
+      "product_negative_if": ["DUPLICATE_MEMORY_ADMISSION", "DUPLICATE_OUTCOME_AUTHORITY", "REPLAY_REBINDS_STALE_GWT"]
+    }
+  ],
+  "required_receipt": [
+    "exact_f2_source_sha",
+    "voice_session_capsule_sha256",
+    "voice_output_packet_sha256",
+    "voiceoutcome_sha256_if_any",
+    "heard_boundary_measurement_identity_if_interrupted",
+    "heard_prefix_digest_and_unheard_tail_digest_if_interrupted",
+    "context_view_sha256_and_selected_source_refs",
+    "memory_lifecycle_state_sha256_and_typed_memory_sha256_for_each_bound_memory_ref",
+    "gwt_broadcast_reentry_uptake_identity_or_explicit_absence",
+    "tool_ref_causal_disposition",
+    "restart_replay_identity",
+    "outbound_model_asr_tts_inference_calls",
+    "explicit_zero_credit_fields"
+  ],
+  "runtime_route": {
+    "preferred": "controller -> vps-clay-host -> clay-direct-dev/resource-bounded Ubuntu",
+    "reason": "already proven by F2-WP-715 G1 packet-component runtime acceptance",
+    "direct_f2_self_hosted_queue": "do not duplicate while repository runner mapping remains unresolved"
+  },
+  "credits_before_execution": {
+    "wp715_packet_component_runtime": 1,
+    "state_memory_voiceoutcome_reentry_integration": 0,
+    "gwt_runtime": 0,
+    "effect_runtime": 0,
+    "hf10_runtime": 0,
+    "physical_audio": 0,
+    "whole_voice": 0,
+    "whole_product": 0
+  },
+  "next_exact_action": "Trigger4 refreshes for overlap, selects an existing admitted integration workpackage or creates only the minimal named integration owner if none exists, fuses the existing voice packet/context/memory/GWT/reentry primitives, executes VSR01-VSR06 on the proven VPS controller route, and returns one exact-scope receipt. Trigger7 then consumes the result; no duplicate HF10 dispatch is requested by this packet."
+}
