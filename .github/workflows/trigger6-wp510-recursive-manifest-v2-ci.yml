@@ -1,0 +1,57 @@
+name: Trigger6 WP510 recursive manifest v2 identity repair
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'research/tool_intelligence/experiments/wp510_recursive_manifest_v2.py'
+      - '.github/workflows/trigger6-wp510-recursive-manifest-v2-ci.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  e3-repaired-instrument:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Preserve v1 adversarial self-test
+        run: python research/tool_intelligence/experiments/wp510_recursive_manifest_v2.py --self-test
+      - name: Extract repaired WP510 manifest
+        run: >-
+          python research/tool_intelligence/experiments/wp510_recursive_manifest_v2.py
+          --repo-root .
+          --root-source src/frankenstein2/gwt_causal_path.py
+          --runtime-observe
+          --output /tmp/wp510_recursive_manifest_v2.json
+      - name: Assert actual executable-byte identity and zero product credit
+        run: |
+          python - <<'PY'
+          import hashlib, json, pathlib, sys
+          data=json.loads(pathlib.Path('/tmp/wp510_recursive_manifest_v2.json').read_text())
+          exe=pathlib.Path(sys.executable).resolve()
+          expected=hashlib.sha256(exe.read_bytes()).hexdigest()
+          assert data['schema']=='FRANKENSTEIN2_TRIGGER6_RECURSIVE_PYTHON_MANIFEST/v2'
+          assert data['interpreter']['executable_file_read_status']=='OK'
+          assert data['interpreter']['executable_file_sha256']==expected
+          assert data['interpreter']['executable_file_size']==exe.stat().st_size
+          assert data['interpreter']['executable_path_sha256'] != data['interpreter']['executable_file_sha256']
+          assert data['credit']=={'architecture_credit':0,'runtime_credit':0,'whole_system_credit':0}
+          print(json.dumps({
+            'schema':data['schema'],
+            'completeness_class':data['completeness_class'],
+            'blockers':data['blockers'],
+            'local_files':len(data['closure']['files']),
+            'local_closure_sha256':data['closure']['local_closure_sha256'],
+            'runtime_extra_local_modules':data['runtime_extra_local_modules'],
+            'executable_file_sha256':data['interpreter']['executable_file_sha256'],
+            'executable_file_size':data['interpreter']['executable_file_size'],
+            'executable_path_sha256':data['interpreter']['executable_path_sha256'],
+            'manifest_sha256':data['manifest_sha256'],
+          },sort_keys=True))
+          PY
