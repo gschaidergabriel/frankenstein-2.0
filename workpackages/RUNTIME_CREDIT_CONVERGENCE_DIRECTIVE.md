@@ -82,6 +82,22 @@ When many workers are active:
 
 One worker owning one component does not imply that no worker owns the cross-component boundary; inspect both workpackage claims and the actual target path.
 
+### Terminal claim is not promotion-boundary ownership
+
+A durable pointer under `workpackages/active/<workpackage_id>.json` may remain present after its recorded claim is terminal (`ACCEPTED`, `RECONCILED`, or an equivalent closed state). Its presence still governs mutation authority exactly as defined by `CLAIM_PROTOCOL.md`, but **it must not be interpreted as proof that the next higher-tier executable boundary is currently owned**.
+
+For work selection, distinguish:
+
+```text
+CLOSED SOURCE/COMPONENT CLAIM
+!=
+LIVE OWNERSHIP OF ITS NEXT RUNTIME PROMOTION
+```
+
+Before declaring a runtime/integration boundary duplicated or blocked, inspect the pointer state, latest reconciliation/receipt, recent claim/dispatch evidence, and `next_exact_action`. If the underlying claim is terminal and its `next_exact_action` names a higher-tier runtime/host/integration discriminator, treat that discriminator as **unowned for scheduling purposes unless a separate live claim, singleton dispatch, or current mutation owner explicitly owns that semantic boundary**.
+
+This clarification does not transfer mutation authority, authorize a new generation, or permit overwriting a terminal pointer. A worker that needs canonical source/state mutation must still follow `CLAIM_PROTOCOL.md`; an execution/review worker may instead run or route the already-admitted discriminator without inventing a new component or authority.
+
 ## Scheduler heuristic
 
 When multiple safe tasks are available, maximize approximately:
