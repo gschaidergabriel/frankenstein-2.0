@@ -1,0 +1,55 @@
+{
+  "schema": "F2_TRIGGER7_PACKET_CORTEX_FALSIFIER_DELTA/v1",
+  "trigger": "7",
+  "recorded_date": "2026-08-31",
+  "organ": "GPT-5.6-Sol",
+  "classification": "CANDIDATE_FALSIFIER_REVIEW_ONLY",
+  "mutation_authority": false,
+  "base_review": {
+    "path": "trigger4/inbox/local_voice/T7_PACKET_CORTEX_FALSIFIER_REVIEW_2026-08-31_GPT56SOL.json",
+    "blob_sha_observed": "dbe8c023f9bdf1b25a1b382d849cfb0f22d783f1",
+    "existing_candidates": ["PN1", "PN2", "PN3", "PN4", "PN5"]
+  },
+  "reviewed_subject": {
+    "path": "src/frankenstein2/voice_packet_cortex.py",
+    "source_blob_sha": "eece45f615fcfcb0a4b078ae534e9389e5bd77b6",
+    "main_observed": "3db127b0f7a7169c148212db35f600f6ef0e54e0",
+    "implementation_commit": "33356bea5c6c6c8a7a77ff2cc4ab21382625fc9f"
+  },
+  "new_source_review_product_negative_candidates": [
+    {
+      "id": "PN6_MONOTONIC_CLOCK_ROLLBACK_NOT_FENCED",
+      "observation": "VoicePacketCortex accepts packet/event/output monotonic_ms values without enforcing nondecreasing chronology against prior admitted state. advance_output() checks heard_fraction monotonicity but not time monotonicity; accept_input() checks sequence but not clock rollback.",
+      "risk": "A trace can commit an event or output transition at a monotonic timestamp earlier than already admitted causal state, allowing negative derived durations/latencies or chronology claims unless an external caller supplies an unproven fence.",
+      "falsifier_alignment": "T7-ARCH-003 F12_MONOTONIC_TIME_ROLLBACK",
+      "required_discriminator": "monotonic_time_rollback_fails_closed_without_state_mutation"
+    },
+    {
+      "id": "PN7_DUPLICATE_CLOSE_NOT_IDEMPOTENT",
+      "observation": "close_session() raises VoicePacketCortexError('session is already closed') on a repeated close call and does not retain/return the previously admitted VoiceOutcome as an idempotent replay result.",
+      "risk": "A duplicated/retried close packet cannot be distinguished from a conflicting close and violates the existing F10 close-determinism requirement that duplicate close be idempotent.",
+      "falsifier_alignment": "base review F10_CLOSE_DETERMINISM",
+      "required_discriminator": "duplicate_close_same_causal_identity_returns_same_outcome_without_second_commit"
+    }
+  ],
+  "execution_requirement": {
+    "preferred_surface": "current Trigger4 exact-source packet-cortex test harness on LOCAL_SOLO or lowest safe faithful VPS sandbox",
+    "failure_classification_before_execution": "SOURCE_REVIEW_PRODUCT_NEGATIVE_CANDIDATES_REQUIRE_EXECUTABLE_CONFIRMATION_OR_REPAIR",
+    "no_parallel_voice_fsm": true,
+    "no_trigger7_source_mutation": true,
+    "outbound_model_asr_tts_calls_required": 0
+  },
+  "credit": {
+    "source_review_delta": 1,
+    "executed_packet_component": 0,
+    "packet_component_runtime": 0,
+    "asr_runtime": 0,
+    "tts_runtime": 0,
+    "acoustic": 0,
+    "physical_audio": 0,
+    "trigger4_acceptance": 0,
+    "whole_voice": 0,
+    "whole_product": 0
+  },
+  "next_exact_action": "Trigger4 owner should add PN6 and PN7 to the existing exact-source negative suite together with PN1-PN5, repair only reproduced validity defects, and emit one bound packet-cortex execution receipt. T7 must not duplicate the implementation or promote V3/component runtime before executed evidence exists."
+}
