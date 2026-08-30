@@ -1,0 +1,50 @@
+name: WP900 WP206 two-process restart discriminator CI
+
+on:
+  pull_request:
+    paths:
+      - 'tests/test_wp900_wp206_two_process_restart.py'
+      - 'src/frankenstein2/whole_loop_persistence_integration.py'
+      - 'tests/test_whole_loop_persistence_integration.py'
+      - 'src/frankenstein2/persistent_agency_kernel.py'
+      - 'src/frankenstein2/restart_recovery_persisted_row_attestation.py'
+      - 'tests/test_restart_recovery_persisted_row_attestation.py'
+      - '.github/workflows/wp900-wp206-two-process-restart-ci.yml'
+  push:
+    branches:
+      - main
+    paths:
+      - 'tests/test_wp900_wp206_two_process_restart.py'
+      - 'src/frankenstein2/whole_loop_persistence_integration.py'
+      - 'tests/test_whole_loop_persistence_integration.py'
+      - 'src/frankenstein2/persistent_agency_kernel.py'
+      - 'src/frankenstein2/restart_recovery_persisted_row_attestation.py'
+      - 'tests/test_restart_recovery_persisted_row_attestation.py'
+      - '.github/workflows/wp900-wp206-two-process-restart-ci.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  fresh-process-and-post-commit-crash-window:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - name: Checkout exact workflow ref
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - name: Compile exact restart discriminator surfaces
+        run: >-
+          python -m py_compile
+          tests/test_wp900_wp206_two_process_restart.py
+          src/frankenstein2/whole_loop_persistence_integration.py
+          src/frankenstein2/persistent_agency_kernel.py
+          src/frankenstein2/restart_recovery_persisted_row_attestation.py
+      - name: Run two-process discriminator and accepted adjacent regressions
+        env:
+          PYTHONPATH: src
+        run: >-
+          python -m unittest -v
+          tests.test_wp900_wp206_two_process_restart
+          tests.test_whole_loop_persistence_integration
+          tests.test_restart_recovery_persisted_row_attestation
