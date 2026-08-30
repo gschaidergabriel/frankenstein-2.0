@@ -1,0 +1,62 @@
+{
+  "schema": "FRANKENSTEIN2_WORKPACKAGE_DELTA/v1",
+  "workpackage_id": "F2-WP-901",
+  "generation": 1,
+  "claim_id": "F2-WP-901-G1-GPT56SOL-RESTART-RECOVERY-CONTINUATION-20260830",
+  "worker_id": "GPT-5.6-Sol-TRIGGER4",
+  "trigger": "4",
+  "authority_epoch": "8.78",
+  "base_main_sha": "5c0e35ebc6bdea862fb77d04a0ce0225b45b821d",
+  "branch": "trigger4/wp901-restart-recovery-continuation-20260830",
+  "status": "IMPLEMENTED_AWAITING_REPOSITORY_CI",
+  "scope": "RESTART_RECOVERY_CONTINUATION_REPOSITORY_COMPONENT_ONLY",
+  "files": [
+    "src/frankenstein2/restart_recovery_continuation.py",
+    "tests/test_restart_recovery_continuation.py",
+    ".github/workflows/wp901-restart-recovery-ci.yml"
+  ],
+  "implemented_invariants": [
+    "recovery consumes exact concrete WP206 PersistentAgencyCheckpoint values and one exact WP900 WholePersistentLoopSeal plus matching LoopOutcomeEvidence",
+    "persisted checkpoint must be an exact direct successor with matching parent identity and generation",
+    "WP900 current/next checkpoint identities and digests must match the supplied persisted evidence",
+    "WP900 outcome identity and digest must match exactly",
+    "persisted checkpoint must retain all exact WP900 re-entry references",
+    "unfinished work is derived only from explicitly persisted OpenLoop and DeferredIntent records; no goal or world fact is inferred",
+    "UNKNOWN external effect outcome forces OBSERVE and forbids replay",
+    "RESULT_OBSERVED without final verification forces OBSERVE and forbids replay",
+    "VERIFIED_APPLIED can never be replayed by recovery",
+    "VERIFIED_NOT_APPLIED can at most expose eligibility for a new separately authorized explicit request; recovery creates no request",
+    "no explicit unfinished work yields HOLD rather than fabricated activity",
+    "output is a deterministic continuation candidate with scheduler/truth/effect/completion authority NONE"
+  ],
+  "predeclared_regressions": [
+    "explicit unfinished work -> RESUME without effect authority",
+    "no explicit unfinished work -> HOLD",
+    "UNKNOWN external effect -> OBSERVE and replay forbidden",
+    "observed but unverified result -> OBSERVE and replay forbidden",
+    "outcome identity/digest mismatch -> fail closed",
+    "non-direct successor checkpoint -> fail closed",
+    "missing persisted WP900 re-entry evidence -> fail closed",
+    "same exact inputs -> deterministic candidate digest"
+  ],
+  "authority_boundaries": {
+    "canonical_state": "UNCHANGED_EXISTING_UNIFIEDDB_AUTHORITY",
+    "scheduler_authority": "NONE",
+    "truth_authority": "NONE",
+    "effect_authority": "NONE",
+    "completion_authority": "NONE"
+  },
+  "credits": {
+    "runtime": 0,
+    "vps_runtime": 0,
+    "physical_grid10": 0,
+    "gwt_runtime": 0,
+    "jspace_runtime": 0,
+    "provider_model": 0,
+    "training": 0,
+    "effect": 0,
+    "completion": 0,
+    "whole_system": 0
+  },
+  "next_exact_action": "Run the predeclared repository-hosted WP901 CI on the exact branch head. If green, review/merge without inflating scope, then observe merged-main CI before terminal reconciliation."
+}
