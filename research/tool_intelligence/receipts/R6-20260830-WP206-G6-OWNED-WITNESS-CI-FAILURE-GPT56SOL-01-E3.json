@@ -1,0 +1,65 @@
+{
+  "schema": "FRANKENSTEIN2_TRIGGER6_EXISTING_CI_FALSIFIER/v1",
+  "research_id": "R6-20260830-WP206-G6-OWNED-WITNESS-CI-FAILURE-GPT56SOL-01",
+  "stage": "E3_CLAIM_REPRODUCED",
+  "status": "REPRODUCED_AND_CLASSIFIED",
+  "recorded_at": "2026-08-30T19:31:00+07:00",
+  "worker": "ChatGPT GPT-5.6 Sol / Trigger-6 organ",
+  "claim": "research/tool_intelligence/claims/R6-20260830-WP206-G6-OWNED-WITNESS-CI-FAILURE-GPT56SOL-01/E3_CLAIM_REPRODUCED_RUN33311465780.json",
+  "subject": {
+    "pull_request": 742,
+    "head_sha": "0bd6f347ffb9eaa8897839f4e0acc58b76fe233f",
+    "workflow_run_id": 33311465780,
+    "job_id": 99257177186,
+    "workflow": "WP206 G6 owned-surface witness repair",
+    "artifact_id": 9732103621,
+    "artifact_name": "wp206-g6-owned-witness-diagnostics",
+    "artifact_digest": "sha256:0ee64a3328f1ea6f0e96907db134f373747e7da8975ca2356a333fcb70cfda85"
+  },
+  "observed_steps": {
+    "apply_repair": "SUCCESS",
+    "compile_repaired_surface": "SUCCESS",
+    "g6_owned_surface_acceptance_matrix": "SUCCESS",
+    "g6_external_owned_drift_discriminator": "SUCCESS",
+    "predecessor_execution_wrapper": "SUCCESS",
+    "predecessor_aggregate_gate": "FAILURE"
+  },
+  "exact_predecessor_results": {
+    "g5": "PASS 4/4",
+    "g4": "PASS 2/2",
+    "kernel": "PASS 5/5",
+    "g3": "FAIL 1/5",
+    "g3_failed_test": "test_exact_repeat_is_idempotent_while_post_migration_drift_fails_closed",
+    "observed_error": "CHECKPOINT_DB_AUTHORITY_RECEIPT_MISMATCH",
+    "test_expected_error_at_live_connection_step": "UNIFIEDDB_EXTERNAL_SQLITE_REVISION_DRIFT"
+  },
+  "diagnosis": {
+    "classification": "REAL_G6_MONITOR_LIFECYCLE_COVERAGE_GAP_PLUS_STALE_ERROR_EXPECTATION",
+    "not_product_witness_core_failure": "The new selective witness passes its explicit unrelated-WP103 and external-WP206-schema tests.",
+    "gap_1_open_existing_schema": "The repair initializes _wp206_owned_surface_witness_sha256 to None and _assert_current_file_identity returns while it is None. CanonicalPersistentAgencyStore.open() returns the constructed store but does not call initialize_schema(). Existing-database recovery/load paths can therefore run with the G6 selective witness inactive.",
+    "gap_2_authorized_same_connection_recovery": "Legacy recovery mutates WP206 checkpoint authority state through store.connection outside write_checkpoint. Because SQLite data_version does not advance for same-connection commits, the owned-surface witness must be refreshed after successful authorized recovery commits or a later unrelated external write can compare against a stale pre-recovery witness and false-fail.",
+    "gap_3_test_matrix": "The current G6 owned-surface tests exercise unrelated WP103 activity and external WP206 schema mutation, but not external checkpoint-row mutation nor open-existing-schema without initialize_schema nor recovery-then-unrelated-write rebaseline behavior.",
+    "oracle_update": "After the monitor lifecycle gap is repaired, the G3 live-connection assertion should expect the new selective error UNIFIEDDB_WP206_OWNED_SURFACE_DRIFT rather than the retired database-wide UNIFIEDDB_EXTERNAL_SQLITE_REVISION_DRIFT. Reopen must still independently produce CHECKPOINT_DB_AUTHORITY_RECEIPT_MISMATCH for row-level G3 authority enforcement."
+  },
+  "counterhypothesis": "The predecessor failure could be dismissed as only a stale error-string expectation. That is insufficient because the observed row-level CHECKPOINT_DB_AUTHORITY_RECEIPT_MISMATCH proves the live selective fence did not fire first on this existing-schema path, while the repaired guard explicitly returns when its witness is None.",
+  "smallest_repair_direction_for_trigger4": [
+    "On opening an already-materialized WP206 checkpoint schema, establish a race-stable owned-surface monitor state before reads/recovery are admitted; leave None only when the owned schema truly does not exist yet.",
+    "After every successful same-connection authorized mutation of the witnessed WP206 surface, including legacy authority recovery, refresh the data_version+owned-witness baseline only after commit.",
+    "Add a direct external CHECKPOINT_TABLE row-mutation discriminator in DELETE and WAL modes.",
+    "Add open-existing-schema-without-initialize_schema regression.",
+    "Add authorized recovery followed by unrelated WP103 external commit regression to prove no stale-baseline false positive.",
+    "Then update the predecessor live-connection expected error to UNIFIEDDB_WP206_OWNED_SURFACE_DRIFT while retaining the reopen row-level authority mismatch assertion."
+  ],
+  "explicit_noncoverage": [
+    "No source mutation is authorized by this Trigger-6 receipt.",
+    "Whether the separate legacy recovery table should join the owned-surface witness is not decided by this receipt and remains an explicit follow-up architecture question.",
+    "Raw filesystem/WAL tamper and mutate-restore between observations remain outside this E3 scope."
+  ],
+  "evidence_ceiling": "E3_EXISTING_REPOSITORY_CI_REPRODUCTION_AND_STATIC_CAUSAL_MAPPING_ONLY",
+  "research_credit": "E3_ONLY",
+  "runtime_credit": 0,
+  "effect_credit": 0,
+  "completion_credit": 0,
+  "whole_system_credit": 0,
+  "next_exact_action": "Trigger-4 PR742 owner should repair monitor activation/rebaseline lifecycle and expand the G6 acceptance matrix; rerun exact repository CI and reconcile only if G6 plus all predecessors are green."
+}
