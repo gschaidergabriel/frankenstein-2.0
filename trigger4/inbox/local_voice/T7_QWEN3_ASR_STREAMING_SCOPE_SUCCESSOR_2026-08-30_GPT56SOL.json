@@ -1,49 +1,80 @@
 {
   "schema": "TRIGGER7_TO_TRIGGER4_LOCAL_VOICE_HANDOFF/v1",
   "created_date": "2026-08-30",
+  "last_reconciled_date": "2026-08-30",
   "producer": "GPT-5.6-Sol Trigger 7",
-  "priority_class": "STREAMING_SCOPE_SUCCESSOR_AFTER_EXISTING_RUNTIME_GATE",
-  "depends_on_existing_run_id": 33292903286,
-  "depends_on_existing_job_id": 99207535776,
+  "priority_class": "QWEN3_ASR_QUALITY_NOW_STREAMING_SUCCESSOR_AFTER_RESOURCE_FIT",
+  "source_semantic_key": "95bd53a469133dbfdf39da320f6daa049cec1361084e632dc915c4bc156e3715",
   "duplicate_dispatch_forbidden": true,
-  "current_probe_scope": {
-    "controller_workflow": ".github/workflows/trigger7-qwen3-asr-target-probe.yml",
-    "f2_probe_commit": "e0521522a49cd57ff86af9f49cc87f33ab6e22a3",
-    "probe_tool": "research/local_voice/tools/t7_qwen3_asr_target_probe.py",
+  "historical_actions_transport": {
+    "run_id": 33292903286,
+    "job_id": 99207535776,
+    "state": "QUEUED_NO_STEPS_STALE_TRANSPORT_ATTEMPT",
+    "scientific_credit": 0,
+    "routing": "Do not wait for or duplicate this Actions transport. The same semantic objective already reached clay-direct-dev through the admitted Git VPS bridge."
+  },
+  "admitted_target_runtime_observation": {
+    "checkpoint": "research/local_voice/checkpoints/2026-08-30_T7_ASR004_RUN33292903286_TRANSPORT_REPAIRED_CPU_SMOKE_PASS_GPT56SOL.json",
+    "transport": "GIT_VPS_BRIDGE_TO_CLAY_DIRECT_DEV",
+    "artifact_hash_verified": true,
+    "model_load_observed": true,
+    "local_inference_observed": true,
     "backend": "transformers",
     "device": "cpu",
-    "input": "one second silence",
-    "official_streaming_backend_tested": false,
-    "credit_if_pass": "bounded exact-model target-runtime load/local inference only; no streaming/German E2E credit"
+    "model_load_seconds": 20.79658886801917,
+    "silence_inference_seconds": 1.670928745996207,
+    "rss_after_inference_bytes": 4152406016,
+    "silence_output_language": "German",
+    "silence_output_text": "Ich.",
+    "network_model_inference_calls": 0,
+    "network_asr_inference_calls": 0,
+    "network_tts_inference_calls": 0,
+    "credit": {
+      "target_execution": 1,
+      "target_model_load": 1,
+      "target_local_asr_inference": 1,
+      "german_asr_quality": 0,
+      "streaming_asr": 0,
+      "german_e2e_voice": 0,
+      "trigger4_acceptance": 0,
+      "whole_system": 0
+    }
   },
-  "new_source_delta": {
-    "evidence": "research/local_voice/sources/2026-08-30_T7_ASR007_QWEN3_STREAMING_STATE_TRANSFER_AUDIT_GPT56SOL.json",
-    "qwen_source_commit": "7c6daf77a2421100f5fb066495372c00129d39ff",
+  "quality_discriminator_now": {
+    "frontier_delta": "research/local_voice/frontier/2026-08-30_T7_ASR004_SILENCE_NOISE_GERMAN_COMPARATOR_GPT56SOL.md",
+    "semantic_rule": "Continue the SAME open T7-ASR-004 semantic objective for matched German speech/noise quality; do not create a duplicate Qwen German benchmark claim.",
+    "requested_action": [
+      "Use the admitted Git VPS bridge to clay-direct-dev rather than enqueueing another duplicate self-hosted Actions probe.",
+      "Run pinned non-speech strata: digital silence at multiple durations, real room tone, fan/keyboard/background noise, and own-speaker echo-only when an admitted fixture exists.",
+      "Run a transcript-bearing pinned German speech fixture set including ordinary German, numbers/dates/times, names/project vocabulary and German-English code switching.",
+      "For both Qwen3-ASR and the admitted Whisper/faster-whisper baseline, report raw-decoder and gated-pipeline behavior separately so VAD/gating is not confounded with decoder quality.",
+      "Persist exact transcripts, false activation rate, WER/CER, per-input latency, gate decisions and resource measurements.",
+      "Treat the observed Qwen silence transcript 'Ich.' as negative evidence requiring characterization, not as a general production verdict."
+    ]
+  },
+  "streaming_successor_scope": {
+    "state": "READY_AFTER_RESOURCE_FIT_AND_DISTINCT_SUCCESSOR_GATE",
+    "qwen_source_commit_from_existing_audit": "7c6daf77a2421100f5fb066495372c00129d39ff",
     "qwen_source_path": "qwen_asr/inference/qwen3_asr.py",
-    "finding": "Official Qwen3-ASR streaming is vLLM-only. ASRStreamingState stores PCM accumulation and decoded/prompt text. Each chunk re-feeds all audio_accum to the model; exposed rollback is token-prefix rollback, not a saved neural acoustic/cache state rollback.",
-    "risk": "A green existing CPU silence probe can be misread as streaming readiness, and a future Qwen continuity test can be mislabeled as reproduction of internal-state rollback when it is not mechanism-equivalent."
+    "finding": "Official Qwen3-ASR streaming is vLLM-only. ASRStreamingState stores accumulated PCM and decoded/prompt text; each ready chunk re-feeds accumulated audio. Exposed rollback is decoded-token-prefix rollback, not evidence of saved neural acoustic-state rollback.",
+    "requested_action": [
+      "Do not reinterpret the successful CPU Transformers smoke as streaming evidence.",
+      "After current target resource fit is verified, acquire the required distinct successor target-runtime gate for official vLLM streaming rather than mutating the historical CPU smoke subject.",
+      "Measure per-chunk latency versus stream age, p50/p95/p99 and latency-growth slope because accumulated audio is re-fed.",
+      "Measure first stable partial latency, partial-text revisions, long-pause recovery, short-backchannel recovery, cancellation/reset correctness, memory/compute growth and German WER/CER on the same pinned corpus.",
+      "Separate QWEN_TEXT_AUDIO_CONTEXT_CONTINUITY from INTERNAL_NEURAL_STATE_CARRY claims in all benchmark names and receipts."
+    ]
   },
-  "requested_trigger4_successor_action": [
-    "Do not modify, cancel, or duplicate existing queued run 33292903286 merely to add streaming coverage.",
-    "After the existing run becomes terminal and its exact receipt is ingested, create a distinct successor target-runtime semantic/workpackage gate for official vLLM streaming if resource fit permits.",
-    "Measure per-chunk latency versus stream age because the official wrapper re-feeds accumulated audio; report p50/p95/p99 and growth slope, not one aggregate inference latency.",
-    "Separate QWEN_TEXT_AUDIO_CONTEXT_CONTINUITY factors from INTERNAL_NEURAL_STATE_CARRY/ROLLBACK factors in benchmark names and receipts.",
-    "On the same pinned German corpus, measure first-word/first-N-word WER, long-pause recovery, short-backchannel recovery, speaker-change contamination, cancellation/reset correctness, memory and compute growth.",
-    "Keep streaming credit, German quality credit, German E2E credit and whole-system credit at zero until their own acceptance evidence exists."
-  ],
   "acceptance_fences": [
-    "CPU_TRANSFORMERS_SILENCE_PASS != VLLM_STREAMING_PASS",
+    "LOCAL_CPU_INFERENCE != GERMAN_ASR_QUALITY_PASS",
+    "ONE_SILENCE_HALLUCINATION != GENERAL_GERMAN_ASR_FAILURE",
+    "RAW_DECODER_FALSE_TEXT != GATED_PIPELINE_FALSE_ACTIVATION",
+    "GATED_WHISPER != RAW_QWEN_FAIR_COMPARISON",
+    "CPU_TRANSFORMERS_LOCAL_INFERENCE != VLLM_STREAMING_PASS",
     "STREAMING_API_EXISTS != BOUNDED_REALTIME_LATENCY",
     "ASRStreamingState != PERSISTENT_NEURAL_STATE",
     "TOKEN_PREFIX_ROLLBACK != INTERNAL_ACOUSTIC_STATE_ROLLBACK",
     "GERMAN_SUPPORTED_METADATA != GERMAN_ROOM_AUDIO_PASS",
     "TRIGGER7 != TRIGGER4_ACCEPTANCE"
-  ],
-  "credit_before": {
-    "qwen3_asr_target_runtime": 0,
-    "qwen3_asr_streaming": 0,
-    "qwen3_asr_german_quality": 0,
-    "german_e2e_voice": 0,
-    "whole_persistent_voice_loop": 0
-  }
+  ]
 }
