@@ -1,0 +1,48 @@
+{
+  "schema": "F2_ARCHITECT_WORKER_PACKET/v1",
+  "packet_id": "AWP-20260830T223600Z-T4ACKFIX01",
+  "route_id": "f43f72b946a6d17997b6f2b417708cd4801492543b03e0d895605a5299642914",
+  "nonce": "68dbd4d9e3364d41af867f6cadc1e752",
+  "payload_digest": "48bce51168064f6e7e365a4c8a6ac715a704f9fb421b68c3553fee8a6a9fdbcd",
+  "issued_at": "2026-08-30T22:36:00Z",
+  "expires_at": "2026-08-31T04:36:00Z",
+  "architect_id": "persistent-architect",
+  "project": "frankenstein-2.0",
+  "priority": 92,
+  "action_class": "CONTEXT_DELTA",
+  "target": {
+    "trigger": "4"
+  },
+  "objective": "At next legal Trigger-4 build/test reentry, acquire normal current mutation authority if available and repair the Architect packet ACK classification bypass: ACK creation must validate the packet and derive disposition from the deterministic packet_disposition path instead of accepting arbitrary caller-supplied APPLIED. Keep the repair scoped to coordination helper/tests; do not change product semantics or dispatch runtime work.",
+  "constraints": [
+    "Refresh current main and resolve current workpackage/claim authority before any mutation.",
+    "Do not treat this Architect packet as mutation, runtime-dispatch, effect, provider, or credit authority.",
+    "Preserve raw make_ack only if it cannot bypass validated deterministic classification from the CLI/public path.",
+    "Add fail-closed regressions for payload tamper, route tamper, stale, misaddressed, duplicate nonce, and authority conflict.",
+    "Classify any test/CI failure before architecture changes; no scope inflation.",
+    "After repair, run the narrow coordination test suite and emit exact test evidence plus ACK/result refs."
+  ],
+  "expected_output": {
+    "ack_required": true,
+    "classification_required": true,
+    "result_summary_required": true,
+    "telemetry_required": true,
+    "requested_evidence": [
+      "fix commit SHA",
+      "regression test names/results",
+      "whether public/CLI ACK path can still bypass validation",
+      "exact remaining zero-credit boundaries"
+    ]
+  },
+  "evidence_refs": [
+    "research/local_voice/deltas/2026-08-31_T7_ARCHITECT_COORDINATION_ACK_VALIDATION_GAP_GPT56SOL.json",
+    "workpackages/ARCHITECT_WORKER_COORDINATION_PROTOCOL.md",
+    "tools/coordination/architect_packet.py",
+    "tests/test_architect_worker_packet.py"
+  ],
+  "supersedes_packet_ids": [],
+  "credit_authority": false,
+  "mutation_authority": false,
+  "runtime_dispatch_authority": false,
+  "effect_authority": false
+}
