@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
-"""Repository-hosted acceptance tests for F2-WP-901 generation 1."""
+"""Repository-hosted acceptance tests for F2-WP-901 generation 2."""
 from __future__ import annotations
 
+from dataclasses import fields
 import hashlib
 import unittest
 
@@ -11,6 +12,7 @@ from frankenstein2.restart_recovery_continuation import (
     HOLD_EFFECT_VERIFICATION,
     NO_CONTINUATION,
     PersistedRestartEvidence,
+    RestartContinuationPlan,
     RestartRecoveryError,
     plan_restart_continuation,
 )
@@ -31,6 +33,7 @@ class RestartRecoveryContinuationTests(unittest.TestCase):
     def evidence(self, **overrides) -> PersistedRestartEvidence:
         values = {
             "evidence_id": "recovery-evidence-1",
+            "causal_lineage_id": "episode-9",
             "source_checkpoint_id": "checkpoint-9",
             "source_checkpoint_generation": 9,
             "source_checkpoint_sha256": sha("checkpoint-9"),
@@ -46,7 +49,15 @@ class RestartRecoveryContinuationTests(unittest.TestCase):
         values.update(overrides)
         return PersistedRestartEvidence(**values)
 
-    def plan(self, evidence: PersistedRestartEvidence):
+    def plan(
+        self,
+        evidence: PersistedRestartEvidence,
+        *,
+        checkpoint_lineage: str | None = None,
+        whole_loop_lineage: str | None = None,
+    ) -> RestartContinuationPlan:
+        checkpoint_lineage = checkpoint_lineage or evidence.causal_lineage_id
+        whole_loop_lineage = whole_loop_lineage or evidence.causal_lineage_id
         return plan_restart_continuation(
             evidence,
             plan_id="recovery-plan-10",
@@ -54,9 +65,17 @@ class RestartRecoveryContinuationTests(unittest.TestCase):
             expected_checkpoint_id=evidence.source_checkpoint_id,
             expected_checkpoint_generation=evidence.source_checkpoint_generation,
             expected_checkpoint_sha256=evidence.source_checkpoint_sha256,
+            expected_checkpoint_causal_lineage_id=checkpoint_lineage,
             expected_whole_loop_seal_id=evidence.whole_loop_seal_id,
             expected_whole_loop_seal_sha256=evidence.whole_loop_seal_sha256,
+            expected_whole_loop_causal_lineage_id=whole_loop_lineage,
         )
+
+    def test_contract_explicitly_carries_causal_lineage_field(self) -> None:
+        evidence_fields = {f.name for f in fields(PersistedRestartEvidence)}
+        plan_fields = {f.name for f in fields(RestartContinuationPlan)}
+        self.assertIn("causal_lineage_id", evidence_fields)
+        self.assertIn("causal_lineage_id", plan_fields)
 
     def test_no_effect_continues_only_explicit_unfinished_refs(self) -> None:
         evidence = self.evidence()
@@ -66,8 +85,29 @@ class RestartRecoveryContinuationTests(unittest.TestCase):
         self.assertEqual(plan.held_refs, ())
         self.assertNotIn("work:done", plan.continuation_refs)
         self.assertEqual(plan.candidate_generation, 10)
+        self.assertEqual(plan.causal_lineage_id, "episode-9")
         self.assertFalse(plan.requires_effect_verification)
         self.assertFalse(plan.requires_effect_reauthorization)
+
+    def test_mixed_checkpoint_and_whole_loop_lineages_fail_closed(self) -> None:
+        evidence = self.evidence(causal_lineage_id="episode-A")
+        with self.assertRaisesRegex(RestartRecoveryError, "RECOVERY_CAUSAL_LINEAGE_MISMATCH"):
+            self.plan(
+                evidence,
+                checkpoint_lineage="episode-A",
+                whole_loop_lineage="episode-B",
+            )
+
+    def test_persisted_lineage_must_match_independent_witnesses(self) -> None:
+        evidence = self.evidence(causal_lineage_id="episode-A")
+        with self.assertRaisesRegex(
+            RestartRecoveryError, "RECOVERY_EVIDENCE_CAUSAL_LINEAGE_MISMATCH"
+        ):
+            self.plan(
+                evidence,
+                checkpoint_lineage="episode-B",
+                whole_loop_lineage="episode-B",
+            )
 
     def test_unknown_effect_holds_entire_unfinished_set_and_never_replays(self) -> None:
         evidence = self.evidence(
@@ -161,8 +201,10 @@ class RestartRecoveryContinuationTests(unittest.TestCase):
                 expected_checkpoint_id="checkpoint-stale",
                 expected_checkpoint_generation=evidence.source_checkpoint_generation,
                 expected_checkpoint_sha256=evidence.source_checkpoint_sha256,
+                expected_checkpoint_causal_lineage_id=evidence.causal_lineage_id,
                 expected_whole_loop_seal_id=evidence.whole_loop_seal_id,
                 expected_whole_loop_seal_sha256=evidence.whole_loop_seal_sha256,
+                expected_whole_loop_causal_lineage_id=evidence.causal_lineage_id,
             )
 
     def test_generation_mismatch_fails_closed(self) -> None:
@@ -177,8 +219,10 @@ class RestartRecoveryContinuationTests(unittest.TestCase):
                 expected_checkpoint_id=evidence.source_checkpoint_id,
                 expected_checkpoint_generation=evidence.source_checkpoint_generation + 1,
                 expected_checkpoint_sha256=evidence.source_checkpoint_sha256,
+                expected_checkpoint_causal_lineage_id=evidence.causal_lineage_id,
                 expected_whole_loop_seal_id=evidence.whole_loop_seal_id,
                 expected_whole_loop_seal_sha256=evidence.whole_loop_seal_sha256,
+                expected_whole_loop_causal_lineage_id=evidence.causal_lineage_id,
             )
 
     def test_evidence_digest_mismatch_fails_closed(self) -> None:
@@ -191,8 +235,10 @@ class RestartRecoveryContinuationTests(unittest.TestCase):
                 expected_checkpoint_id=evidence.source_checkpoint_id,
                 expected_checkpoint_generation=evidence.source_checkpoint_generation,
                 expected_checkpoint_sha256=evidence.source_checkpoint_sha256,
+                expected_checkpoint_causal_lineage_id=evidence.causal_lineage_id,
                 expected_whole_loop_seal_id=evidence.whole_loop_seal_id,
                 expected_whole_loop_seal_sha256=evidence.whole_loop_seal_sha256,
+                expected_whole_loop_causal_lineage_id=evidence.causal_lineage_id,
             )
 
     def test_whole_loop_seal_digest_mismatch_fails_closed(self) -> None:
@@ -207,8 +253,10 @@ class RestartRecoveryContinuationTests(unittest.TestCase):
                 expected_checkpoint_id=evidence.source_checkpoint_id,
                 expected_checkpoint_generation=evidence.source_checkpoint_generation,
                 expected_checkpoint_sha256=evidence.source_checkpoint_sha256,
+                expected_checkpoint_causal_lineage_id=evidence.causal_lineage_id,
                 expected_whole_loop_seal_id=evidence.whole_loop_seal_id,
                 expected_whole_loop_seal_sha256=sha("wrong-loop-seal"),
+                expected_whole_loop_causal_lineage_id=evidence.causal_lineage_id,
             )
 
     def test_reference_order_canonicalizes_to_same_evidence_and_plan_digest(self) -> None:
@@ -226,6 +274,7 @@ class RestartRecoveryContinuationTests(unittest.TestCase):
     def test_plan_explicitly_carries_zero_authority(self) -> None:
         plan = self.plan(self.evidence())
         raw = plan.as_dict()
+        self.assertEqual(raw["causal_lineage_id"], "episode-9")
         self.assertEqual(raw["scheduler_authority"], "NONE")
         self.assertEqual(raw["truth_authority"], "NONE")
         self.assertEqual(raw["effect_authority"], "NONE")
