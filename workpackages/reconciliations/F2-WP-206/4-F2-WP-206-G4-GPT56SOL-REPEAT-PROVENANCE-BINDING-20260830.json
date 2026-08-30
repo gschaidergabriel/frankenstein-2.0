@@ -1,0 +1,51 @@
+{
+  "schema": "FRANKENSTEIN2_WORKPACKAGE_RECONCILIATION/v1",
+  "workpackage_id": "F2-WP-206",
+  "generation": 4,
+  "claim_id": "F2-WP-206-G4-GPT56SOL-REPEAT-PROVENANCE-BINDING-20260830",
+  "worker_id": "GPT-5.6-Sol-TRIGGER4",
+  "authority_epoch": "9.13",
+  "state": "ACCEPTED",
+  "accepted_scope": "PERSISTENT_AGENCY_REPEAT_PROVENANCE_BINDING_REPOSITORY_HOSTED_COMPONENT_CI_ONLY",
+  "whole_system_acceptance": false,
+  "runtime_credit": 0,
+  "physical_grid10_credit": 0,
+  "gwt_runtime_credit": 0,
+  "jspace_runtime_credit": 0,
+  "training_credit": 0,
+  "effect_credit": 0,
+  "completion_credit": 0,
+  "counterevidence": {
+    "review_pr": 689,
+    "run_id": 33301895834,
+    "job_id": 99231495615,
+    "observed": "After a successful G3 recovery with caller provenance A, a second call with the same checkpoint and historical receipt but conflicting provenance B returned ALREADY_RECOVERED and the stored provenance A."
+  },
+  "semantic_disposition": "Treat recovery_provenance_ref as authoritative external input on every recovery call. An exact idempotent repeat requires the same recorded provenance. Conflicting repeat provenance is a different recovery assertion and must fail closed.",
+  "implementation": {
+    "pull_request": 699,
+    "merged_main_sha": "5548d5a99b97a08d76af9ca1173d8562ad4309bf",
+    "module": "src/frankenstein2/wp206_legacy_authority_recovery.py",
+    "test": "tests/test_wp206_g4_repeat_provenance_binding.py",
+    "workflow": ".github/workflows/wp206-g4-repeat-provenance-binding-ci.yml"
+  },
+  "executable_evidence": {
+    "pr_head_run_id": 33302140430,
+    "pr_head_job_id": 99232150548,
+    "main_run_id": 33302181195,
+    "main_job_id": 99232256989,
+    "main_head_sha": "5548d5a99b97a08d76af9ca1173d8562ad4309bf",
+    "conclusion": "success",
+    "executed_steps": [
+      "Compile exact WP206 G4 surface",
+      "Execute G4 repeat-provenance binding regressions",
+      "Preserve complete accepted G3 recovery regressions",
+      "Preserve bounded credit fence"
+    ]
+  },
+  "mechanistic_resolution": "The already-recovered branch now compares recorded_provenance to the caller recovery_provenance_ref before returning ALREADY_RECOVERED. Mismatch raises LEGACY_RECOVERY_PROVENANCE_CONFLICT. The new regression proves the failed conflicting repeat leaves the original recovery record intact, while same-provenance repeat remains idempotent. All accepted G3 recovery/tamper tests also remain green.",
+  "decision": "Accept generation 4 at repository-hosted component-CI scope only. Preserve PR689 as post-G3 executable counterevidence and generation 3 as historical accepted scope. G4 is the current strict repeat-provenance contract.",
+  "acceptance_receipt": "workpackages/receipts/F2-WP-206_G4_REPEAT_PROVENANCE_BINDING.json",
+  "latest_accepted_generation": 4,
+  "next_exact_action": "Keep WP206 generation 4 closed absent new executable post-G4 counterevidence. Same-inode live data/schema drift remains a separate discriminator. Re-enter current main and continue nonduplicate Stage-9 recovery/stress work without promoting target-runtime or whole-system credit."
+}
