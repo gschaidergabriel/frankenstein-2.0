@@ -1,0 +1,90 @@
+{
+  "schema": "F2_TRIGGER6_RESEARCH_RESULT/v1",
+  "research_id": "R6-20260830-WP206-PROVENANCE-ATTESTATION-MINIMALITY-GPT56SOL-01",
+  "evidence_stage": "E2_ARCHITECTURE_MAPPED",
+  "status": "COMPLETE_AT_SCOPE",
+  "recorded_at": "2026-08-30T16:54:00+07:00",
+  "worker": "GPT-5.6-Sol/ChatGPT-organ",
+  "claim_ref": "research/tool_intelligence/claims/R6-20260830-WP206-PROVENANCE-ATTESTATION-MINIMALITY-GPT56SOL-01/E2_ARCHITECTURE_MAPPED.json",
+  "prior_e1_ref": "research/tool_intelligence/results/R6-20260830-WP206-PROVENANCE-ATTESTATION-MINIMALITY-GPT56SOL-01_E1_SOURCE_READ.json",
+  "architecture_gap": {
+    "name": "WP206_LEGACY_RECOVERY_EVIDENCE_SUBJECT_UNAUTHENTICATED",
+    "scope": "WP206_EXPLICIT_LEGACY_AUTHORITY_RECOVERY_PROVENANCE_BOUNDARY",
+    "description": "WP206 G4 binds repeat recovery to the same opaque recovery_provenance_ref string, but the canonical recovery boundary does not derive that identity from or verify a concrete immutable evidence subject. Therefore string equality proves reference equality, not evidence-content identity. This is an evidence-authentication gap only; existing one-time/CAS state-transition controls remain valid at their accepted scope."
+  },
+  "live_fusion": {
+    "parallel_wp206_sqlite_live_drift": "DISTINCT_OBJECTIVE_NOT_DUPLICATED",
+    "wp901_g3_source_authentication": "REUSABLE_DESIGN_PATTERN_OBSERVED",
+    "release_artifact_subject_e2": "ANALOGOUS_SUBJECT_DIGEST_PATTERN_OBSERVED_NOT_SAME_OBJECTIVE"
+  },
+  "reuse_analysis": {
+    "reuse_direct_wp901_bind_restart_sources": "REJECTED_AS_TOO_DOMAIN_SPECIFIC",
+    "reason": "bind_restart_sources requires CausalIdentity plus concrete PersistentAgencyCheckpoint, WholePersistentLoopSeal, LoopOutcomeEvidence and PersistedRestartEvidence; WP206 legacy migration provenance may denote a different historical evidence object.",
+    "reuse_wp901_pattern": "ADOPT",
+    "pattern": "Require a concrete typed source/evidence object and derive canonical principal IDs/digests from it before invoking the already-accepted deterministic recovery transition; never accept a second caller-controlled identity set as equivalent evidence."
+  },
+  "smallest_reusable_mechanism": {
+    "name": "LegacyRecoveryEvidenceSubject/v1",
+    "role": "NON_AUTHORITATIVE_TYPED_EVIDENCE_SUBJECT_BINDING",
+    "placement": "thin adapter immediately before recover_legacy_g1_checkpoint_authority; preserve the existing recovery transaction/CAS as the deterministic inner transition",
+    "minimum_fields": [
+      "schema",
+      "evidence_kind",
+      "checkpoint_id",
+      "checkpoint_sha256",
+      "legacy_authority_receipt_sha256",
+      "evidence_sha256",
+      "evidence_source_ref"
+    ],
+    "derivation_law": "evidence_sha256 must be computed from canonical bytes/a concrete typed evidence object by the adapter; it must not be accepted as an unauthenticated caller assertion at the canonical ingress",
+    "binding_law": "persist evidence_sha256 with the existing same-UnifiedDB recovery record and include it in recovery_id; exact repeat must preserve checkpoint, legacy receipt, rebound authority and evidence subject digest",
+    "source_ref_law": "evidence_source_ref is provenance/navigation metadata; it cannot substitute for evidence_sha256",
+    "authority_law": "the subject object has no truth/effect/completion authority and creates no second state store"
+  },
+  "integration_shape": [
+    "typed legacy evidence object or immutable evidence bytes",
+    "-> validate schema + checkpoint/legacy-receipt claims against concrete WP206 source checkpoint",
+    "-> derive evidence_sha256 and normalized evidence_source_ref",
+    "-> LegacyRecoveryEvidenceBinding",
+    "-> existing recover_legacy_g1_checkpoint_authority inner transition",
+    "-> same canonical UnifiedDB recovery row with evidence subject digest",
+    "-> existing compare-and-swap + one-per-checkpoint semantics"
+  ],
+  "authentication_threat_model": {
+    "trusted_local_migration_caller": "typed content-addressed subject is sufficient for the observed mutable/opaque-reference gap",
+    "untrusted_or_adversarial_evidence_producer": "content digest alone proves integrity/identity, not producer authority; require a separately admitted signer/verifier/trust root only if this threat model becomes explicit",
+    "sigstore_default_adoption": "REJECTED_NO_CURRENT_JUSTIFICATION",
+    "tuf_default_adoption": "REJECTED_NO_CURRENT_JUSTIFICATION"
+  },
+  "rollback_analysis": "WP206 already has a unique checkpoint recovery row, BEGIN IMMEDIATE transaction and compare-and-swap authority replacement. TUF-like monotone metadata adds little unless multiple legitimate recovery-evidence revisions are introduced. Do not add revision machinery preemptively.",
+  "negative_tests_required": [
+    "same evidence_source_ref with changed evidence bytes/evidence_sha256 must fail closed",
+    "evidence subject checkpoint_id or checkpoint_sha256 mismatch must fail closed",
+    "evidence subject legacy_authority_receipt_sha256 mismatch must fail closed",
+    "caller-supplied expected evidence hash that disagrees with digest derived from concrete evidence must fail closed",
+    "post-first-recovery evidence subject digest drift must fail closed",
+    "existing conflicting repeat provenance test remains fail closed",
+    "existing G3 legacy recovery and G4 repeat provenance suites remain green"
+  ],
+  "alias_policy": {
+    "recommended": "bind both canonical normalized source ref and evidence digest for exact-repeat audit stability; evidence digest is the content identity and ref remains provenance metadata",
+    "reason": "accepting arbitrary alias changes after first recovery reduces audit reproducibility even if content is identical"
+  },
+  "efficiency": {
+    "model_calls_added": 0,
+    "network_calls_added": 0,
+    "new_service": false,
+    "new_database": false,
+    "runtime_shape": "one canonicalization/hash plus constant-size row fields on an exceptional legacy-migration path",
+    "expected_overhead": "negligible relative to SQLite transaction and checkpoint validation"
+  },
+  "architecture_decision": "PROMOTE_TO_E5_BUILD_CANDIDATE_IF_CURRENT_F2_REENTRY_SHOWS_NO_EQUIVALENT WP206 EVIDENCE-SUBJECT BINDING",
+  "falsifier": "If exact-current WP206 source already derives recovery provenance from an immutable typed evidence object and persists/verifies its digest, retire this delta as redundant.",
+  "research_credit": "E2_ARCHITECTURE_MAPPED_ONLY",
+  "runtime_credit": 0,
+  "physical_host_credit": 0,
+  "effect_credit": 0,
+  "completion_credit": 0,
+  "training_credit": 0,
+  "whole_system_credit": 0
+}
