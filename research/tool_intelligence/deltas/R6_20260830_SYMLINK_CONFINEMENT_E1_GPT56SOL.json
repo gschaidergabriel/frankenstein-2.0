@@ -1,0 +1,113 @@
+{
+  "schema": "TRIGGER6_RESEARCH_EVIDENCE/v1",
+  "research_id": "R6-20260830-SYMLINK-CONFINEMENT-GPT56SOL-01",
+  "stage": "E1_SOURCE_READ",
+  "status": "COMPLETE_AT_E1",
+  "worker": "GPT-5.6 Sol / ChatGPT organ",
+  "created_at": "2026-08-30T21:52:00+07:00",
+  "claim": "research/tool_intelligence/claims/R6-20260830-SYMLINK-CONFINEMENT-GPT56SOL-01/E1_SOURCE_READ.json@f4f83f1f7adf4b33962564011ce7b317c8ad1cdf",
+  "architecture_snapshot": {
+    "initial_f2_main": "0f73b3285f747d4ecab1aa92fabcb16c23a19504",
+    "reentered_f2_main": "8b176639958d28b0b3a3a6745e6406f29fe05a6a",
+    "research_entity_main": "7ea077dc8cedb345d191a22adb9b273c05791cc1"
+  },
+  "source_observations": [
+    {
+      "ref": "src/frankenstein2/portable_release_static_completeness.py@025c40c1835d3780d941e69f23604954cc3be067",
+      "classification": "CURRENT_SOURCE_AT_INITIAL_SNAPSHOT",
+      "finding": "The original _safe_file formed (root/raw).resolve() before candidate.is_symlink(). As an isolated helper this loses lexical symlink identity when a link resolves to an in-root regular file."
+    },
+    {
+      "ref": "src/frankenstein2/pre_handoff_release.py@8b176639958d28b0b3a3a6745e6406f29fe05a6a",
+      "classification": "CURRENT_SOURCE",
+      "finding": "evaluate_portable_release_static_completeness composes evaluate_pre_handoff_release first; that path calls load_and_verify_release_manifest before the WP1111 metadata reference checks."
+    },
+    {
+      "ref": "src/frankenstein2/release_integrity.py@8b176639958d28b0b3a3a6745e6406f29fe05a6a",
+      "classification": "CURRENT_SOURCE",
+      "finding": "Release-manifest construction/verification walks the entire payload with followlinks=false and fail-closes on any symlink directory or symlink file before exact payload comparison. Therefore an ordinary symlink substitution in the package is rejected upstream of WP1111 _safe_file."
+    },
+    {
+      "ref": "tests/test_release_integrity.py@8b176639958d28b0b3a3a6745e6406f29fe05a6a",
+      "classification": "CURRENT_TEST_SOURCE",
+      "finding": "Existing release-integrity tests already assert that a symlink file is rejected by the canonical manifest builder. Source also rejects symlink directories, although this exact directory case is not separately asserted in that test file."
+    },
+    {
+      "ref": "e92b3bb594505015bba9b9d0bd6894aff41796d8",
+      "classification": "PARALLEL_TRIGGER4_SOURCE_DELTA",
+      "finding": "Trigger-4 added lexical component walking and symlink rejection to WP1111 as defense-in-depth after this E1 claim was acquired."
+    },
+    {
+      "ref": "8b176639958d28b0b3a3a6745e6406f29fe05a6a",
+      "classification": "PARALLEL_TRIGGER4_TEST_DELTA",
+      "finding": "Trigger-4 added final-file and intermediate-directory symlink regressions to the WP1111 full evaluator."
+    },
+    {
+      "ref": "GitHub Actions run 33317884561 / job 99274550893",
+      "classification": "REPOSITORY_CI_NEGATIVE_RESULT",
+      "finding": "The new WP1111 adversarial-symlink regression run completed FAILURE in the fail-closed component suite. This is negative evidence; no acceptance credit is granted."
+    }
+  ],
+  "external_primary_sources": [
+    {
+      "url": "https://docs.python.org/3.14/library/pathlib.html",
+      "publisher": "Python Software Foundation",
+      "finding": "Path.resolve() makes a path absolute while resolving symlinks; is_symlink() answers whether the path being queried is itself a symbolic link. This supports the isolated-helper critique that resolve-before-link-inspection can erase lexical link identity."
+    },
+    {
+      "url": "https://docs.python.org/3.14/library/tarfile.html",
+      "publisher": "Python Software Foundation",
+      "finding": "Python 3.14 defaults tar extraction to the data filter, documents symlink-driven later-member hazards, and explicitly recommends disallowing symbolic links when not needed. It also warns that filters do not protect against live destination mutation."
+    },
+    {
+      "url": "https://www.man7.org/linux/man-pages/man2/openat2.2.html",
+      "publisher": "Linux man-pages project",
+      "finding": "openat2 provides path-resolution constraints including RESOLVE_NO_SYMLINKS and RESOLVE_BENEATH/RESOLVE_IN_ROOT for kernel-enforced traversal boundaries. This is relevant only if F2 later needs live untrusted filesystem access; it is not required to prove a frozen static release manifest."
+    },
+    {
+      "url": "https://go.dev/blog/osroot",
+      "publisher": "Go project",
+      "finding": "The Go os.Root design explicitly notes that resolve-then-validate schemes can be TOCTOU-racy and uses root-relative traversal-resistant operations on supported systems. This supports keeping static lexical validation distinct from runtime filesystem confinement."
+    }
+  ],
+  "contemporary_security_corroboration": [
+    {
+      "url": "https://github.com/advisories/GHSA-83g3-92jg-28cx",
+      "subject": "CVE-2026-26960 node-tar",
+      "use": "Corroborates that multi-link path confusion can defeat superficially plausible archive confinement. This is external vulnerability evidence, not F2 exploit evidence."
+    },
+    {
+      "url": "https://github.com/advisories/GHSA-mp2f-45pm-3cg9",
+      "subject": "CVE-2026-53486 decompress",
+      "use": "Corroborates that symlink/hardlink targets and weak containment checks can yield outside-root access. This is external vulnerability evidence, not F2 exploit evidence."
+    }
+  ],
+  "hypotheses": [
+    {
+      "id": "H1",
+      "statement": "The original WP1111 resolve-before-is_symlink order creates a reachable release-root confinement bypass in the composed static completeness evaluator.",
+      "status": "NOT_SUPPORTED_AT_CURRENT_COMPOSED_SCOPE",
+      "reason": "The canonical release-integrity layer verifies the whole payload first and rejects symlink files/directories before WP1111 metadata reference validation."
+    },
+    {
+      "id": "H2",
+      "statement": "The original _safe_file ordering is locally unsound but redundant/unreachable for ordinary symlink substitution under the current composed evaluator; remaining risk is helper reuse outside the manifest gate or a live mutation race between validation and later use.",
+      "status": "BEST_SUPPORTED_AT_E1",
+      "confidence": 0.9
+    }
+  ],
+  "evidence_boundary": {
+    "research_credit": 1,
+    "architecture_credit": 0,
+    "runtime_credit": 0,
+    "physical_host_credit": 0,
+    "whole_system_credit": 0,
+    "note": "E1 source reading plus CI observation only. No E2/E3/E4/E5/E6 promotion is minted here."
+  },
+  "next_discriminators": [
+    "Map the exact WP1111 vs release_integrity authority layering after the Trigger-4 hardening and classify whether duplicate lexical validation should remain defense-in-depth or be simplified.",
+    "Explain the failing 33317884561 regression as an expected upstream ReleaseIntegrityError versus an unintended new defect; do not claim the exact traceback without log evidence.",
+    "Add/route one full-pipeline adversarial assertion that accepts rejection at the canonical release-integrity boundary, plus a release-integrity symlink-directory regression if missing.",
+    "Do not import openat2 wrappers or a new filesystem framework for the static gate; reserve descriptor-relative traversal-resistant access for a future live/mutable filesystem boundary if one exists."
+  ]
+}
