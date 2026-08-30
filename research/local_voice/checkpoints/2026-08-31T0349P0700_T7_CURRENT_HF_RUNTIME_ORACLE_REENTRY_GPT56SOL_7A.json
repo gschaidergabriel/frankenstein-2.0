@@ -8,7 +8,8 @@
   "research_id": "T7-FD-RTCOMPAT-001",
   "resumed_not_restarted": true,
   "observed_authority": {
-    "f2_head_before_write": "cab8fa998b4f98c7ac79776e2c693e90fd8c62ec",
+    "f2_head_initially_observed": "cab8fa998b4f98c7ac79776e2c693e90fd8c62ec",
+    "concurrent_higher_information_parent_detected_after_write": "eea7ba557cf2cd07a1bf52c0c040c586137075ec",
     "clay_research_head_observed": "910cc0be76c23688b33b8a7480f85b93db3e835c",
     "owner_authority": "research/local_voice/authority/2026-08-31_TRIGGER7_TEXT_PACKET_COMPLETION_AUTHORITY.md",
     "semantic_claim_key": "8c53f25ed47c458bb727dd4dc82f788241cee699e428c4d97401a965a4eb375e",
@@ -22,7 +23,7 @@
   },
   "primary_protocol_verification": {
     "openai_current_client_semantics": "conversation.item.truncate synchronizes server understanding with client playback and removes server-side transcript beyond the heard boundary",
-    "hf_pinned_semantics": "conversation.item.truncate is parsed but deliberately no-ops after cancellation; cancelled/failed/incomplete response handling instead rolls back provisional generation",
+    "hf_pinned_semantics": "conversation.item.truncate is parsed but deliberately no-ops after cancellation; cancelled/failed/incomplete response handling rolls back provisional generation",
     "classification": "PROTOCOL_SURFACE_DIFFERENCE__RUNTIME_COMPATIBILITY_OPEN"
   },
   "f2_oracle_reentry": {
@@ -34,6 +35,14 @@
       "duplicate, stale or out-of-range cancellation/truncate corrupts a newer turn"
     ],
     "must_not_fail_merely_if": "raw HF server drops the entire provisional interrupted response while F2 keeps that response non-commit-eligible and no newer F2 contract requires partial-prefix context persistence"
+  },
+  "hf10_post_done_playout_race": {
+    "source_evidence_commit": "eea7ba557cf2cd07a1bf52c0c040c586137075ec",
+    "status": "SOURCE_PROVEN_CONTROL_FLOW__RUNTIME_IMPACT_UNEXECUTED",
+    "finding": "If HF server response completion/finalization occurs before client playout completion, the full assistant turn can already be finalized in server-local Chat while the client still has an unheard buffered tail. A later response.cancel cannot roll that finalized generation back and conversation.item.truncate remains a no-op.",
+    "highest_information_discriminator": "HF10_POST_DONE_PLAYOUT_LAG_CONTEXT_EXACTNESS",
+    "required_ordering": "force response.done before client playout completion, then barge in and inspect raw server Chat plus exact next-turn effective F2 model context",
+    "architecture_fence": "raw HF server conversation history cannot outrank F2 non-commit/heard-state authority; if the gap executes, contain it behind F2-owned context reconstruction or an exact executable truncation/finalization repair"
   },
   "execution_state": {
     "wp715_workflow_run_id": 33328707636,
@@ -49,6 +58,7 @@
   "credit_boundary": {
     "source_protocol_evidence": 1,
     "source_reconciliation_evidence": 1,
+    "hf10_source_control_flow_evidence": 1,
     "executed_hf_protocol_runtime": 0,
     "wp715_vps_runtime_from_queued_run": 0,
     "german_e2e_voice": 0,
@@ -57,5 +67,5 @@
     "whole_voice_system": 0,
     "whole_product": 0
   },
-  "next_exact_action": "Keep the existing T7-FD-RTCOMPAT-001 semantic claim and Trigger4 packet. Do not duplicate WP715 run 33328707636 and do not narratively reuse it as HF protocol evidence. Through the existing Trigger4/VPS authority, execute the pinned HF cancellation/heard-boundary packet and prove no cancelled assistant/tool producer regains next-turn authority, playback stops at the measured boundary, and late/stale/duplicate events cannot corrupt a newer turn. Use packetized surrogate I/O wherever physical audio is not intrinsically required; reserve acoustic credit for final physical tests. Promote only executed scope."
+  "next_exact_action": "Keep the existing T7-FD-RTCOMPAT-001 semantic claim and existing Trigger4 packet; do not create a duplicate semantic/runtime lane and do not narratively reuse queued WP715 run 33328707636 as HF protocol evidence. Highest-information next discriminator is HF10: through the existing Trigger4/VPS authority force response.done to precede client playout completion, then barge in and measure server Chat after done/cancel/truncate plus the exact next-turn effective F2 model context. Fail if any non-commit-eligible unheard/cancelled assistant or tool semantics regain authority, playback continues beyond the measured boundary, or stale/duplicate events corrupt a newer turn. Use packetized surrogate I/O wherever physical audio is not intrinsically required; reserve acoustic credit for final physical tests. Promote only executed scope."
 }
