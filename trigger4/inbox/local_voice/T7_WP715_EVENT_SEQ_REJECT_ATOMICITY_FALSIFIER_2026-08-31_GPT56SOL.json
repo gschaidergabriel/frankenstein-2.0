@@ -1,0 +1,62 @@
+{
+  "schema": "F2_TRIGGER7_WP715_EVENT_SEQ_REJECT_ATOMICITY_FALSIFIER/v1",
+  "trigger": "7",
+  "recorded_date": "2026-08-31",
+  "organ": "GPT-5.6-Sol",
+  "classification": "CANDIDATE_FALSIFIER_REVIEW_ONLY",
+  "mutation_authority": false,
+  "workpackage_id": "F2-WP-715",
+  "owner_authority": "research/local_voice/authority/2026-08-31_TRIGGER7_TEXT_PACKET_COMPLETION_AUTHORITY.md",
+  "semantic_claim_requirement": "NOT_A_NEW_MATERIAL_EXECUTION_CLAIM_OR_WORKFLOW; REVIEW_ROUTING_ONLY. Any execution/repair remains inside the existing WP715 Trigger-4 mutation authority.",
+  "observed_subject": {
+    "f2_head": "9832ecc10888b94f26953e7b3379b14dcca2e318",
+    "source": "src/frankenstein2/voice_packet_cortex.py",
+    "source_blob_sha": "1c17f28b6b2fd4b176486b1d2cb32109b2010529",
+    "recovery_source": "src/frankenstein2/voice_packet_cortex_recovery.py",
+    "scope": "packet cortex event identity / rejected-operation atomicity / restart checkpoint validity"
+  },
+  "candidate_id": "EVENTSEQ_REJECT_PREINCREMENT_CAN_POISON_RESTART_CHECKPOINT",
+  "observation": {
+    "event_builder_order": "VoicePacketCortex._event() checks capacity, increments self._event_seq, then constructs CortexEventPacket, and appends only after construction succeeds.",
+    "reachable_rejected_event": "Public event APIs pass caller-controlled event fields into _event(). A validation failure during CortexEventPacket construction can therefore occur after _event_seq has already advanced while no event was appended.",
+    "checkpoint_binding": "export_packet_cortex_checkpoint() persists both event_seq and the events list. resume_packet_cortex() explicitly rejects a checkpoint when len(_events) != _event_seq.",
+    "risk": "A rejected event operation can mutate only the sequence counter, leaving the live controller superficially usable but making a later exact checkpoint fail restart validation. This violates fail-closed rejected-operation atomicity and can turn input validation failure into delayed recovery failure."
+  },
+  "minimal_discriminator": {
+    "precondition": "Create an open VoicePacketCortex and snapshot _event_seq, events, outputs, active/cancelled tools and exported checkpoint digest.",
+    "action": "Call a public event path with otherwise admissible identifiers but an event field that CortexEventPacket rejects after _event() begins construction, e.g. emit_system_event(..., event_kind='ERROR', detail=1). Expect VoicePacketCortexError.",
+    "expected_fail_closed_property": "After the rejected call, _event_seq and all controller state are byte/structurally identical to the pre-call snapshot; a checkpoint exported after rejection must resume successfully.",
+    "candidate_product_negative": "If _event_seq increments while len(events) does not, and a subsequent exported checkpoint is rejected by resume_packet_cortex() with event sequence/count mismatch, classify PRODUCT_NEGATIVE at packet-controller rejected-operation/recovery atomicity scope.",
+    "control": "Repeat with detail='valid'; exactly one event and one sequence increment should occur and checkpoint resume should remain valid."
+  },
+  "repair_options_for_wp715_owner": [
+    "Construct/validate CortexEventPacket against the prospective sequence number before mutating self._event_seq, then commit sequence+append together.",
+    "Or stage the event and increment only after all constructor validation succeeds.",
+    "Add a regression proving every rejected public event operation leaves event_seq/events/checkpoint state unchanged and restartable."
+  ],
+  "coordination": {
+    "current_pn10_limit_repair_head": "9832ecc10888b94f26953e7b3379b14dcca2e318",
+    "existing_wp715_mutation_owner": "F2-WP-715-G1-GPT56SOL-PACKET-CORTEX-CONVERGENCE-20260831",
+    "duplicate_runtime_dispatch": false,
+    "duplicate_source_mutation": false,
+    "priority": "Execute inside the next coherent WP715 regression pass before broad packet/recovery VPS promotion; do not create a second workflow."
+  },
+  "failure_class_until_executed": "CANDIDATE_PRODUCT_NEGATIVE_REQUIRES_EXECUTION",
+  "credit": {
+    "review_delta": 1,
+    "repository_ci_credit": 0,
+    "vps_packet_runtime_credit": 0,
+    "target_runtime_credit": 0,
+    "acoustic_credit": 0,
+    "whole_voice_credit": 0,
+    "whole_product_credit": 0
+  },
+  "zero_credit_fences": [
+    "No physical microphone/speaker/AEC evidence.",
+    "No ASR/TTS/model inference executed.",
+    "No external provider/model call.",
+    "No UnifiedDB/effect/GWT/J-Space/whole-loop promotion.",
+    "This packet is review/falsifier routing only; Trigger 4 retains canonical WP715 mutation/execution/acceptance authority."
+  ],
+  "next_exact_action": "WP715 owner executes the rejected-event atomicity discriminator against the then-current exact subject in the existing repository test lane; if reproduced, repair event construction to commit _event_seq only after successful validation, bind checkpoint-resume regression, then include the repaired exact subject in the existing VPS packet+recovery discriminator."
+}
