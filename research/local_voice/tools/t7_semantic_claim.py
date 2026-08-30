@@ -109,6 +109,8 @@ SUBJECT_ALIASES = {
     "namo-turn-detector-v1-multilingual": "NAMO_TURN_DETECTOR_V1_MULTILINGUAL",
     "namo-v1-multilingual": "NAMO_TURN_DETECTOR_V1_MULTILINGUAL",
     "videosdk-live-namo-turn-detector-v1-multilingual": "NAMO_TURN_DETECTOR_V1_MULTILINGUAL",
+    "huggingface-speech-to-speech": "HUGGINGFACE_SPEECH_TO_SPEECH_REALTIME",
+    "hf-speech-to-speech": "HUGGINGFACE_SPEECH_TO_SPEECH_REALTIME",
 }
 
 EVIDENCE_SCOPE_ALIASES = {
