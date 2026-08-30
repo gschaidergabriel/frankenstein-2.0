@@ -265,8 +265,10 @@ class VoicePacketCortex:
         self._event_seq = 0
         self._input_seen: dict[str, str] = {}
         self._last_input_sequence: dict[str, int] = {}
+        self._last_input_monotonic_ms: dict[str, int] = {}
         self._final_turns: set[str] = set()
         self._outputs: dict[str, VoiceOutputPacket] = {}
+        self._last_output_sequence: dict[str, int] = {}
         self._events: list[CortexEventPacket] = []
         self._event(
             turn_id=session.intent.causal_identity.turn_id,
@@ -281,7 +283,7 @@ class VoicePacketCortex:
 
     @property
     def outputs(self) -> tuple[VoiceOutputPacket, ...]:
-        return tuple(self._outputs[key] for key in sorted(self._outputs))
+        return tuple(sorted(self._outputs.values(), key=lambda packet: (packet.turn_id, packet.sequence, packet.packet_id)))
 
     def _event(self, *, turn_id: str, monotonic_ms: int, kind: str, intent: str = "WAIT",
                packet_refs: tuple[str, ...] = (), gwt_ref: str | None = None,
@@ -324,7 +326,6 @@ class VoicePacketCortex:
                 turn_id=packet.turn_id, monotonic_ms=packet.monotonic_ms,
                 kind="INPUT_DUPLICATE_WITHOUT_ORIGINAL_REJECTED", packet_refs=(packet.packet_id,),
             )
-        self._input_seen[packet.packet_id] = digest
         if "corrupt" in packet.fault_flags:
             raise VoicePacketCortexError("explicitly corrupt packet rejected")
         if "drop" in packet.fault_flags:
@@ -341,9 +342,16 @@ class VoicePacketCortex:
                     detail=f"expected={expected};observed={packet.sequence}",
                 )
             raise VoicePacketCortexError(f"input sequence gap/reorder: expected {expected}, got {packet.sequence}")
+        previous_ms = self._last_input_monotonic_ms.get(packet.turn_id)
+        if previous_ms is not None and packet.monotonic_ms < previous_ms:
+            raise VoicePacketCortexError(
+                f"input monotonic_ms regressed: previous {previous_ms}, got {packet.monotonic_ms}"
+            )
         if packet.turn_id in self._final_turns:
             raise VoicePacketCortexError("input arrived after final turn packet")
+        self._input_seen[packet.packet_id] = digest
         self._last_input_sequence[packet.turn_id] = packet.sequence
+        self._last_input_monotonic_ms[packet.turn_id] = packet.monotonic_ms
         if packet.barge_in:
             self.cancel_for_barge_in(turn_id=packet.turn_id, monotonic_ms=packet.monotonic_ms)
         if packet.is_final:
@@ -364,6 +372,9 @@ class VoicePacketCortex:
                      sequence: int, cancellable: bool = True) -> VoiceOutputPacket:
         if not self.is_open or packet_id in self._outputs:
             raise VoicePacketCortexError("closed session or duplicate output packet_id")
+        expected = self._last_output_sequence.get(turn_id, -1) + 1
+        if sequence != expected:
+            raise VoicePacketCortexError(f"output sequence gap/reorder: expected {expected}, got {sequence}")
         packet = VoiceOutputPacket(
             session_id=self.session_id,
             turn_id=turn_id,
@@ -382,6 +393,7 @@ class VoicePacketCortex:
             commit_eligible=False,
         )
         self._outputs[packet_id] = packet
+        self._last_output_sequence[turn_id] = sequence
         self._event(
             turn_id=turn_id, monotonic_ms=monotonic_ms, kind="OUTPUT_QUEUED",
             intent=speech_act, packet_refs=(packet_id,),
@@ -403,6 +415,10 @@ class VoicePacketCortex:
         }
         if playback_state not in allowed[current.playback_state]:
             raise VoicePacketCortexError(f"illegal playback transition {current.playback_state}->{playback_state}")
+        if monotonic_ms < current.monotonic_ms:
+            raise VoicePacketCortexError(
+                f"output monotonic_ms regressed: previous {current.monotonic_ms}, got {monotonic_ms}"
+            )
         heard = _fraction("heard_fraction", heard_fraction)
         if heard < float(current.heard_fraction):
             raise VoicePacketCortexError("heard_fraction cannot decrease")
@@ -426,10 +442,15 @@ class VoicePacketCortex:
         return updated
 
     def cancel_for_barge_in(self, *, turn_id: str, monotonic_ms: int) -> tuple[str, ...]:
+        candidates = tuple(
+            (packet_id, current)
+            for packet_id, current in self._outputs.items()
+            if current.playback_state not in ("completed", "cancelled", "interrupted") and current.cancellable
+        )
+        if any(monotonic_ms < current.monotonic_ms for _, current in candidates):
+            raise VoicePacketCortexError("barge-in monotonic_ms precedes output state it would cancel")
         changed: list[str] = []
-        for packet_id, current in tuple(self._outputs.items()):
-            if current.playback_state in ("completed", "cancelled", "interrupted") or not current.cancellable:
-                continue
+        for packet_id, current in candidates:
             state = "cancelled" if current.playback_state == "queued" else "interrupted"
             self._outputs[packet_id] = replace(
                 current,
