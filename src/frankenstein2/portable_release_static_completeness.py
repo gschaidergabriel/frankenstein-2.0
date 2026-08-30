@@ -31,26 +31,55 @@ class PortableReleaseStaticCompletenessError(ValueError):
     pass
 
 
+def _link_free_regular_file(root: Path, raw: str, label: str, violations: list[str]) -> Path | None:
+    """Return a root-confined regular file only when the lexical path is symlink-free.
+
+    Resolving first is insufficient because a symlink that points back inside ``root`` loses
+    its link identity after ``resolve()``. Walk the release-root-relative path lexically first,
+    rejecting any symlink component, then resolve strictly and re-check confinement/type.
+    """
+    rel_path = Path(raw)
+    if rel_path.is_absolute() or any(part in {".", ".."} for part in rel_path.parts):
+        violations.append(f"{label}:unsafe_ref")
+        return None
+
+    lexical = root
+    for part in rel_path.parts:
+        lexical = lexical / part
+        if lexical.is_symlink():
+            violations.append(f"{label}:symlink_component")
+            return None
+
+    try:
+        resolved = lexical.resolve(strict=True)
+    except (OSError, RuntimeError):
+        violations.append(f"{label}:missing_or_nonregular")
+        return None
+
+    try:
+        resolved.relative_to(root)
+    except ValueError:
+        violations.append(f"{label}:escapes_release_root")
+        return None
+    if not resolved.is_file():
+        violations.append(f"{label}:missing_or_nonregular")
+        return None
+    return resolved
+
+
 def _safe_file(root: Path, raw: Any, label: str, violations: list[str]) -> str | None:
     if not isinstance(raw, str) or not raw or raw != raw.strip():
         violations.append(f"{label}:invalid_ref")
         return None
-    candidate = (root / raw).resolve()
-    try:
-        rel = candidate.relative_to(root)
-    except ValueError:
-        violations.append(f"{label}:escapes_release_root")
+    candidate = _link_free_regular_file(root, raw, label, violations)
+    if candidate is None:
         return None
-    if candidate.is_symlink() or not candidate.is_file():
-        violations.append(f"{label}:missing_or_nonregular")
-        return None
-    return rel.as_posix()
+    return candidate.relative_to(root).as_posix()
 
 
 def _load_json_file(root: Path, rel: str, label: str, violations: list[str]) -> dict[str, Any] | None:
-    path = root / rel
-    if path.is_symlink() or not path.is_file():
-        violations.append(f"{label}:missing_or_nonregular")
+    path = _link_free_regular_file(root, rel, label, violations)
+    if path is None:
         return None
     try:
         value = json.loads(path.read_text(encoding="utf-8"))
