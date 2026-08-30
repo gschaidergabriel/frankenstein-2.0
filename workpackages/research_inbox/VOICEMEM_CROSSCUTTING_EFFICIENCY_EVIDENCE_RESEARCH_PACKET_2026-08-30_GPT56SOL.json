@@ -1,0 +1,37 @@
+{
+  "schema": "FRANKENSTEIN2_CROSS_WORKPACKAGE_RESEARCH_INPUT/v1",
+  "classification": "ARCHITECTURE_METHOD_AND_FALSIFIER_INPUT",
+  "created_at_utc": "2026-08-30T05:15:00Z",
+  "organ": "GPT-5.6-Sol/federated-architect-research",
+  "subject": "VoiceMem cross-cutting efficiency, evidence and evaluation lessons",
+  "f2_base_observed": "560c05da55ed5d7b7679496742c71ce16b37182d",
+  "routes": [
+    {"workpackage_id":"F2-WP-005","use":"Evaluation provenance/incremental result persistence and runtime span measurement."},
+    {"workpackage_id":"F2-WP-305","use":"Ablation targets for consolidation cadence, quotas, query adapters and speculative prefetch."},
+    {"workpackage_id":"F2-WP-306","use":"Bounded context transforms, source quotas, no repeated lossy rewriting."},
+    {"workpackage_id":"F2-WP-505","observed_state":"ACCEPTED_G1","use":"Successor/runtime research for wait-window opportunistic compute; current G1 allocates budgets but does not exploit temporal slack."},
+    {"workpackage_id":"F2-WP-800","use":"Held-out micro-world cases for memory contamination, temporal supersession, prospective cues and identity uncertainty."},
+    {"workpackage_id":"F2-WP-806","use":"Lesion/rescue tests: remove query adapter, source quotas, demand-shaped projection, quality gate."},
+    {"workpackage_id":"F2-WP-902","use":"Latency/resource characterization of speculative/local/lazy paths."}
+  ],
+  "lessons": [
+    {"id":"VM-X01-FUSE-SAME-INPUT-INDEPENDENT-TRANSFORMS","observation":"Donor merged fact extraction, cognitive annotation and right-brain trait extraction because one ingest was measured at 12 chat calls and these analyses consumed the same utterance. The merged path falls back to the old path on missing fields/parse failure.","transfer":"When multiple model transforms consume the same immutable input and outputs are independent, consider one structured call with per-field validation and graceful fallback. Preserve per-output provenance so fusion does not erase epistemic boundaries.","test":"Compare call count/latency/cost plus per-field quality; inject malformed/missing field and require bounded fallback."},
+    {"id":"VM-X02-INSTRUCTION-LOCALITY","observation":"Donor comments report that adding combined output shape to system instructions did not produce expected top-level emotion/traits because a nearer user-message output instruction dominated; moving explicit shape to the end of the user message fixed zero-output behavior.","transfer":"Structured-output contracts need executable schema validation and prompt-locality tests; never assume a system prompt declaration is obeyed.","test":"Prompt perturbation suite with conflicting/adjacent format instructions; schema admission, not prose confidence, decides acceptance."},
+    {"id":"VM-X03-CACHE-EXACT-REPEATED-EMBEDDINGS","observation":"Donor embed cache was introduced after observing repeated embedding calls for the same fact within one ingest.","transfer":"Digest-key exact reusable deterministic transforms within a causal request; cache identity must include model/embedding build/version/dimensions.","test":"Same input/model -> one compute + cache hits; changed model/dim -> hard miss."},
+    {"id":"VM-X04-PROVIDER-ABI-PINNING","observation":"Donor local memory code rejects embedding-provider fallback that changes vector dimensions, preferring error over silently polluting an existing store.","transfer":"Model/provider fallback must preserve declared ABI or fail closed. Bind embedding/vector dimensions and engine identity to the store/index generation.","test":"Simulated provider fallback returns wrong dimensions -> reject before write."},
+    {"id":"VM-X05-EVALUATION-CHECKPOINT-PROVENANCE","observation":"Evaluation writes results incrementally per conversation, supports resume, and stores git commit, dirty state, Python/packages and config. Re-scoring can reuse expensive generated answers while reading rubrics from the original dataset.","transfer":"F2 run packages should separate expensive observation/generation artifacts from judge/scoring passes and preserve source/config provenance. Dirty-source measurements must be explicitly marked.","test":"Interrupt/resume yields same final set without duplicate cases; re-score changes judge result only, not underlying answer/retrieval receipt."},
+    {"id":"VM-X06-REPRODUCIBILITY-BOUNDARY","observation":"Uploaded tree contains evaluation code and example output but no complete results directory; finetune README explicitly says full training data is absent.","transfer":"Never convert a runnable evaluator or documented score into reproduced evidence. Training code+hyperparameters without dataset lineage is PREPARED_NOT_REPRODUCED.","test":"Evidence admission requires result artifact plus source/data/config/environment identities."},
+    {"id":"VM-X07-FAST-GATE-SLOW-PATH","observation":"VoiceMem repeatedly uses cheap deterministic/lexical/acoustic gates for obvious cases and reserves expensive model work for uncertain/high-value cases, while explicit negative user reactions can force significance instead of trusting an inconsistent small-model gate.","transfer":"HCU/GRID should use cheap discriminators to decide when expensive cells are justified, but track false negatives and explicit high-risk overrides.","test":"Held-out ambiguous/rare/high-value set with cost-vs-miss frontier; compare always-heavy, always-cheap and gated policy."},
+    {"id":"VM-X08-NATURAL-SLACK-AS-COMPUTE-BUDGET","observation":"Streaming retrieval/speculation is scheduled inside VAD/silence windows and cancelled when the user resumes speaking.","transfer":"Extend WP505 conceptually with time-window/slack budget as an explicit resource dimension in future runtime layers. Candidate work must be interruptible and generation-bound.","test":"Trace actual saved critical-path latency vs wasted speculative work; no credit from theoretical overlap alone."}
+  ],
+  "external_analogies": [
+    {"source":"arXiv:2605.12061 SAGE graph-memory","relation":"reader/writer feedback and self-evolving graph structure; supports studying feedback-driven memory structure, not proof of VoiceMem transfer"},
+    {"source":"arXiv:2607.04391 MOSS","relation":"inductively derived auditable concepts; supports corpus/use-derived ontology as a research direction"},
+    {"source":"arXiv:2605.30711 SAGE novelty gate","relation":"cheap novelty gate plus expensive uncertain merge; analogous fast/slow write-side gating"},
+    {"source":"PMID:22141588 Complementary learning systems","relation":"different update regimes for episodic specifics vs slowly integrated structure; analogy only, not validation of left/right-brain naming"},
+    {"source":"PMID:42364798 prospective-memory systematic review","relation":"cue detection, intention retrieval and control are separable stages; useful analogy for DeferredIntent revisit pipeline"}
+  ],
+  "mutation_authority": "NONE_RESEARCH_INPUT_ONLY",
+  "runtime_credit": 0,
+  "whole_system_credit": 0
+}
