@@ -1,0 +1,91 @@
+{
+  "schema": "T7_TO_TRIGGER4_LOCAL_VOICE_CANDIDATE/v1",
+  "date": "2026-08-31",
+  "trigger7_worker": "GPT-5.6-Sol",
+  "research_id": "T7-TTS-KOKORO-001",
+  "objective": "E3_THORSTEN_KOKORO_82M_VS_PIPER_GERMAN_CPU_FILE_OUTPUT",
+  "semantic_key": "c711af918362a9ec2bbe6f4e2df2f7e41861c59b553576ee9beac602b29ef9e3",
+  "semantic_claim_path": "research/local_voice/semantic_claims/c711af918362a9ec2bbe6f4e2df2f7e41861c59b553576ee9beac602b29ef9e3.json",
+  "human_claim_path": "research/local_voice/claims/T7-TTS-KOKORO-001/E3_THORSTEN_KOKORO_82M_VS_PIPER_GERMAN_CPU_FILE_OUTPUT.json",
+  "source_result": "research/local_voice/sources/2026-08-31_T7_TTS_KOKORO001_THORSTEN_KOKORO_82M_GERMAN_CPU_SOURCE_PIN_GPT56SOL.json",
+  "target_surface": "clay-direct-dev",
+  "runtime_mode_required": "LOCAL_SOLO",
+  "benchmark_scope": "CPU_FILE_OUTPUT_COMPONENT_ONLY",
+  "requires_audio_output_device": false,
+  "candidate": {
+    "model_id": "Thorsten-Voice/Kokoro",
+    "model_repository_revision": "734e593d320a3d876bede7020f773dfd481a0cc7",
+    "model_file": "model.pth",
+    "model_sha256": "36dde15c4a800cfd1ab540ccb4476dbab604fe03ff7c937d976ebbf3b49e59ce",
+    "voice_file": "voices/thorsten.pt",
+    "voice_sha256": "9d98b775ebce1cfc369e8f9a3ee8ee260cd612dffb477cba85749112362306d7",
+    "misaki_revision": "6d252a2e02f3b030f22f56686f1a73786c16ffc8",
+    "kokoro_runtime_observed_main_revision": "b96fef95e6a746495f92443fac7c688f90fc57fc",
+    "kokoro_runtime_pin_status": "MUST_BE_EXPLICITLY_PINNED_AND_COMPATIBILITY_TESTED_BEFORE_EXECUTION",
+    "system_dependency": "espeak-ng"
+  },
+  "baseline": {
+    "model_id": "Thorsten-Voice/Piper",
+    "artifact": "de_DE-thorsten-medium.onnx",
+    "artifact_sha256": "7e64762d8e5118bb578f2eea6207e1a35a8e0c30595010b666f983fc87bb7819"
+  },
+  "fixed_text_classes": [
+    "short conversational German",
+    "umlauts and eszett plus short-ue word Brücke",
+    "ich-ach phoneme contrasts",
+    "numbers and dates",
+    "technical vocabulary: API JSON EntityOS HCU Frankenstein",
+    "hyphenated German compounds",
+    "long sentence requiring deterministic sentence segmentation"
+  ],
+  "measure": [
+    "cold_load_seconds",
+    "warm_load_seconds",
+    "peak_rss_bytes",
+    "synthesis_wall_seconds_per_fixture",
+    "generated_audio_seconds_per_fixture",
+    "realtime_factor_per_fixture",
+    "time_to_first_generated_audio_chunk_ms_if_observable",
+    "output_sample_rate",
+    "output_file_bytes",
+    "failure_or_truncation_class",
+    "phoneme_or_g2p_warning_class",
+    "outbound_model_api_calls",
+    "outbound_asr_api_calls",
+    "outbound_tts_api_calls"
+  ],
+  "required_network_counters": {
+    "outbound_model_api_calls": 0,
+    "outbound_asr_api_calls": 0,
+    "outbound_tts_api_calls": 0
+  },
+  "pre_execution_fences": [
+    "Verify all candidate and baseline artifact hashes before load.",
+    "Pin semidark/misaki exactly to 6d252a2e02f3b030f22f56686f1a73786c16ffc8.",
+    "Do not execute an unpinned semidark/kokoro dependency. Pin an exact audited revision and test compatibility with the pinned Thorsten model before measurement.",
+    "Execute in an admitted disposable VPS sandbox/research environment; no production effect authority.",
+    "Preserve the upstream documented short-ue, hyphen and long-sentence cases as explicit falsifiers rather than silently normalizing them away."
+  ],
+  "hard_fail": [
+    "ANY_EXTERNAL_MODEL_ASR_TTS_INFERENCE_CALL",
+    "SOURCE_OR_ARTIFACT_HASH_MISMATCH",
+    "UNPINNED_EXECUTABLE_RUNTIME_DEPENDENCY",
+    "NO_LOCAL_AUDIO_FILE_GENERATED_FOR_VALID_FIXTURE",
+    "OOM_OR_UNCLASSIFIED_TIMEOUT",
+    "SILENT_TRUNCATION_OR_DROPPED_TEXT_WITHOUT_FAILURE_CLASSIFICATION"
+  ],
+  "explicit_zero_credit": [
+    "audible_playback",
+    "first_audio_played_latency",
+    "cancellation_to_silence",
+    "heard_output_commit_correctness",
+    "blind_listening_quality_parity",
+    "stable_male_identity_runtime_quality",
+    "german_e2e_voice",
+    "trigger4_f2_acceptance",
+    "whole_system"
+  ],
+  "execution_law": "This is a component/file-output discriminator that is faithfully representable on clay-direct-dev without an audio device. Trigger 4 must not widen it into audible-playback or physical-host credit. If the runtime dependency cannot be pinned/validated or the target route cannot execute the exact subject, persist a bounded blocker/invalid-evidence receipt rather than fabricating runtime evidence.",
+  "acceptance_boundary": "Trigger 7 owns research interpretation only. Trigger 4 owns target execution/integration acceptance. A generated WAV and RTF measurement may promote only the exact CPU/file-output component scope actually executed.",
+  "status": "ROUTED_TO_TRIGGER4_FOR_TARGET_EXECUTION_OR_BOUNDED_BLOCKER_RECEIPT"
+}
