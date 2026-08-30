@@ -223,17 +223,42 @@ def packet_disposition(
 def make_ack(
     packet: dict[str, Any],
     worker_context: dict[str, Any],
-    disposition: str,
+    disposition: str | None = None,
     *,
     reason: str,
     authority_head: str,
     observed_at: datetime | None = None,
     event_head_ref: str | None = None,
     active_pointer_ref: str | None = None,
+    now: datetime | None = None,
+    seen_nonces: Iterable[str] = (),
+    superseded_packet_ids: Iterable[str] = (),
+    authority_conflict: bool = False,
 ) -> dict[str, Any]:
-    if disposition not in DISPOSITIONS:
-        raise PacketError("invalid disposition")
-    observed = (observed_at or datetime.now(timezone.utc)).astimezone(timezone.utc)
+    """Create ACK evidence from the deterministic packet classifier.
+
+    ``disposition`` is retained only as a backwards-compatible expected-value
+    assertion. It never selects the emitted ACK disposition. If supplied and it
+    disagrees with deterministic classification, ACK creation fails closed.
+    """
+    classification_time = (now or observed_at or datetime.now(timezone.utc)).astimezone(timezone.utc)
+    derived_disposition = packet_disposition(
+        packet,
+        worker_context,
+        now=classification_time,
+        seen_nonces=seen_nonces,
+        superseded_packet_ids=superseded_packet_ids,
+        authority_conflict=authority_conflict,
+    )
+    if disposition is not None:
+        if disposition not in DISPOSITIONS:
+            raise PacketError("invalid expected disposition")
+        if disposition != derived_disposition:
+            raise PacketError(
+                f"expected disposition {disposition} does not match deterministic disposition {derived_disposition}"
+            )
+
+    observed = (observed_at or classification_time).astimezone(timezone.utc)
     packet_bytes = len(_dump(packet).encode("utf-8"))
     stable = "|".join(
         str(x or "")
@@ -241,7 +266,7 @@ def make_ack(
             packet.get("route_id"),
             worker_context.get("worker_id"),
             worker_context.get("claim_id"),
-            disposition,
+            derived_disposition,
             observed.isoformat(),
         )
     )
@@ -259,13 +284,13 @@ def make_ack(
         "generation": worker_context.get("generation"),
         "claim_id": worker_context.get("claim_id"),
         "observed_at": observed.isoformat().replace("+00:00", "Z"),
-        "disposition": disposition,
+        "disposition": derived_disposition,
         "authority_head": authority_head,
         "event_head_ref": event_head_ref,
         "active_pointer_ref": active_pointer_ref,
         "reason": reason,
-        "context_bytes_injected": packet_bytes if disposition == "APPLIED" else 0,
-        "estimated_context_tokens_injected": (packet_bytes + 3) // 4 if disposition == "APPLIED" else 0,
+        "context_bytes_injected": packet_bytes if derived_disposition == "APPLIED" else 0,
+        "estimated_context_tokens_injected": (packet_bytes + 3) // 4 if derived_disposition == "APPLIED" else 0,
         "new_mutation_authority": False,
         "new_runtime_dispatch": False,
         "new_effect_authority": False,
@@ -362,15 +387,24 @@ def cmd_match(args: argparse.Namespace) -> int:
 def cmd_ack(args: argparse.Namespace) -> int:
     packet = _load(args.packet)
     context = _load(args.context)
-    ack = make_ack(
-        packet,
-        context,
-        args.disposition,
-        reason=args.reason,
-        authority_head=args.authority_head,
-        event_head_ref=args.event_head_ref,
-        active_pointer_ref=args.active_pointer_ref,
-    )
+    now = _parse_time(args.now) if args.now else None
+    try:
+        ack = make_ack(
+            packet,
+            context,
+            args.disposition,
+            reason=args.reason,
+            authority_head=args.authority_head,
+            event_head_ref=args.event_head_ref,
+            active_pointer_ref=args.active_pointer_ref,
+            now=now,
+            seen_nonces=_read_string_set(args.seen_nonces),
+            superseded_packet_ids=_read_string_set(args.superseded_packet_ids),
+            authority_conflict=args.authority_conflict,
+        )
+    except PacketError as exc:
+        print(f"ACK_REJECTED: {exc}", file=sys.stderr)
+        return 2
     pathlib.Path(args.output).parent.mkdir(parents=True, exist_ok=True)
     pathlib.Path(args.output).write_text(_dump(ack), encoding="utf-8")
     print(args.output)
@@ -421,11 +455,19 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("packet")
     p.add_argument("context")
     p.add_argument("output")
-    p.add_argument("--disposition", choices=sorted(DISPOSITIONS), required=True)
+    p.add_argument(
+        "--disposition",
+        choices=sorted(DISPOSITIONS),
+        help="optional expected disposition assertion; emitted disposition is always derived deterministically",
+    )
     p.add_argument("--reason", required=True)
     p.add_argument("--authority-head", required=True)
     p.add_argument("--event-head-ref")
     p.add_argument("--active-pointer-ref")
+    p.add_argument("--now")
+    p.add_argument("--seen-nonces")
+    p.add_argument("--superseded-packet-ids")
+    p.add_argument("--authority-conflict", action="store_true")
     p.set_defaults(func=cmd_ack)
 
     p = sub.add_parser("new")
