@@ -1,0 +1,54 @@
+name: REVIEW ONLY WP901 store-bound authority candidate
+
+on:
+  pull_request:
+    paths:
+      - 'src/frankenstein2/restart_recovery_store_bound_authority.py'
+      - 'src/frankenstein2/restart_recovery_persisted_row_attestation.py'
+      - 'src/frankenstein2/restart_recovery_source_authentication.py'
+      - 'src/frankenstein2/causal_authority_binding.py'
+      - 'src/frankenstein2/persistent_agency_kernel.py'
+      - 'tests/test_restart_recovery_store_bound_authority.py'
+      - 'tests/test_restart_recovery_persisted_row_attestation.py'
+      - '.github/workflows/review-wp901-store-bound-authority-candidate-ci.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  review-only-store-bound-authority:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: Checkout exact PR ref
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - name: Compile candidate surface
+        run: >-
+          python -m py_compile
+          src/frankenstein2/restart_recovery_store_bound_authority.py
+          src/frankenstein2/restart_recovery_persisted_row_attestation.py
+          src/frankenstein2/restart_recovery_source_authentication.py
+          tests/test_restart_recovery_store_bound_authority.py
+      - name: Execute store-bound authority candidate regressions
+        env:
+          PYTHONPATH: src
+        run: python -m unittest -v tests.test_restart_recovery_store_bound_authority
+      - name: Re-run accepted G4 row/load regression surface
+        env:
+          PYTHONPATH: src
+        run: python -m unittest -v tests.test_restart_recovery_persisted_row_attestation
+      - name: Preserve zero-credit fence
+        if: always()
+        run: |
+          echo 'CLASSIFICATION=REVIEW_ONLY_SUCCESSOR_CANDIDATE_NOT_CANONICAL_WP901_MUTATION'
+          echo 'WP901_ACTIVE_POINTER_MUTATION=NONE'
+          echo 'TARGET_RUNTIME_CREDIT=0'
+          echo 'VPS_RUNTIME_CREDIT=0'
+          echo 'PHYSICAL_GRID10_CREDIT=0'
+          echo 'GWT_RUNTIME_CREDIT=0'
+          echo 'JSPACE_RUNTIME_CREDIT=0'
+          echo 'EFFECT_CREDIT=0'
+          echo 'COMPLETION_CREDIT=0'
+          echo 'TRAINING_CREDIT=0'
+          echo 'WHOLE_SYSTEM_ACCEPTANCE=false'
