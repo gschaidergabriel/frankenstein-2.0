@@ -10,6 +10,7 @@ on:
       - 'tests/test_voice_packet_cortex_recovery.py'
       - 'research/local_voice/tools/falsify_voice_packet_cortex.py'
       - 'research/local_voice/tools/falsify_voice_packet_cortex_recovery_bounds.py'
+      - 'research/local_voice/tools/falsify_voice_packet_cortex_atomicity.py'
       - '.github/workflows/t4-packet-cortex-full-duplex-falsifier.yml'
   workflow_dispatch:
 
@@ -53,7 +54,8 @@ jobs:
             tests/test_voice_packet_cortex.py \
             tests/test_voice_packet_cortex_recovery.py \
             research/local_voice/tools/falsify_voice_packet_cortex.py \
-            research/local_voice/tools/falsify_voice_packet_cortex_recovery_bounds.py
+            research/local_voice/tools/falsify_voice_packet_cortex_recovery_bounds.py \
+            research/local_voice/tools/falsify_voice_packet_cortex_atomicity.py
 
       - name: Host-health and isolation preflight
         shell: bash
@@ -74,14 +76,18 @@ jobs:
               packet_probe_status=$?
               PYTHONPATH=src python3 research/local_voice/tools/falsify_voice_packet_cortex_recovery_bounds.py > /tmp/t4-fd-recovery-bounds.json 2>&1
               recovery_bounds_status=$?
+              PYTHONPATH=src python3 research/local_voice/tools/falsify_voice_packet_cortex_atomicity.py > /tmp/t4-fd-atomicity.json 2>&1
+              atomicity_status=$?
               cat /tmp/t4-fd-packet-tests.log
               cat /tmp/t4-fd-recovery-tests.log
               cat /tmp/t4-fd-probe.json
               cat /tmp/t4-fd-recovery-bounds.json
+              cat /tmp/t4-fd-atomicity.json
               printf "PACKET_TESTS_EXIT=%s\n" "$packet_tests_status"
               printf "RECOVERY_TESTS_EXIT=%s\n" "$recovery_tests_status"
               printf "PACKET_PROBE_EXIT=%s\n" "$packet_probe_status"
               printf "RECOVERY_BOUNDS_EXIT=%s\n" "$recovery_bounds_status"
+              printf "ATOMICITY_EXIT=%s\n" "$atomicity_status"
               exit 0
             ' | tee /tmp/t4-fd-sandbox.txt
 
@@ -111,14 +117,22 @@ jobs:
 
           packet_probe = parse_probe('F2_PACKET_CORTEX_FULL_DUPLEX_FALSIFIER/v1')
           recovery_bounds_probe = parse_probe('F2_PACKET_CORTEX_RECOVERY_BOUNDS_FALSIFIER/v1')
+          atomicity_probe = parse_probe('F2_PACKET_CORTEX_ATOMICITY_FALSIFIER/v1')
           statuses = {
               'packet_tests': parse_status('PACKET_TESTS_EXIT'),
               'recovery_tests': parse_status('RECOVERY_TESTS_EXIT'),
               'packet_probe': parse_status('PACKET_PROBE_EXIT'),
               'recovery_bounds': parse_status('RECOVERY_BOUNDS_EXIT'),
+              'atomicity': parse_status('ATOMICITY_EXIT'),
           }
           sandbox_executed = 'F2_SANDBOX_RESULT=PASS' in sandbox
-          complete = sandbox_executed and packet_probe is not None and recovery_bounds_probe is not None and all(value is not None for value in statuses.values())
+          complete = (
+              sandbox_executed
+              and packet_probe is not None
+              and recovery_bounds_probe is not None
+              and atomicity_probe is not None
+              and all(value is not None for value in statuses.values())
+          )
 
           if not complete:
               result = 'EVIDENCE_INVALID'
@@ -131,10 +145,15 @@ jobs:
               or statuses['recovery_tests'] != 0
               or packet_probe.get('result') == 'PRODUCT_NEGATIVE'
               or recovery_bounds_probe.get('result') == 'PRODUCT_NEGATIVE'
+              or atomicity_probe.get('result') == 'PRODUCT_NEGATIVE'
           ):
               result = 'EXECUTED_PRODUCT_NEGATIVE'
               failure_class = 'PRODUCT_NEGATIVE'
-          elif packet_probe.get('result') == 'PASS' and recovery_bounds_probe.get('result') == 'PASS':
+          elif (
+              packet_probe.get('result') == 'PASS'
+              and recovery_bounds_probe.get('result') == 'PASS'
+              and atomicity_probe.get('result') == 'PASS'
+          ):
               result = 'EXECUTED_NO_COUNTEREXAMPLE'
               failure_class = None
           else:
@@ -142,7 +161,7 @@ jobs:
               failure_class = 'EVIDENCE_INVALID'
 
           receipt = {
-              'schema': 'F2_T4_PACKET_CORTEX_FULL_DUPLEX_FALSIFIER_RECEIPT/v2',
+              'schema': 'F2_T4_PACKET_CORTEX_FULL_DUPLEX_FALSIFIER_RECEIPT/v3',
               'result': result,
               'failure_class': failure_class,
               'source_sha': os.environ.get('GITHUB_SHA'),
@@ -162,10 +181,14 @@ jobs:
                   'recovery_repository_suite',
                   'PN9_RESTART_CONTINUATION',
                   'PN10_SOURCE_BOUND_CAPS',
+                  'PN14_TOOL_ONLY_BARGE_OWNERSHIP',
+                  'PN15_REJECTED_NEAR_CAP_BARGE_ATOMICITY',
+                  'EVENTSEQ_REJECT_ATOMICITY',
               ],
               'step_statuses': statuses,
               'packet_probe': packet_probe,
               'recovery_bounds_probe': recovery_bounds_probe,
+              'atomicity_probe': atomicity_probe,
               'preflight_log': preflight,
               'sandbox_log': sandbox,
               'outbound_model_asr_tts_calls': 0,
@@ -202,3 +225,4 @@ jobs:
           grep -q '^RECOVERY_TESTS_EXIT=' /tmp/t4-fd-sandbox.txt
           grep -q '^PACKET_PROBE_EXIT=' /tmp/t4-fd-sandbox.txt
           grep -q '^RECOVERY_BOUNDS_EXIT=' /tmp/t4-fd-sandbox.txt
+          grep -q '^ATOMICITY_EXIT=' /tmp/t4-fd-sandbox.txt
