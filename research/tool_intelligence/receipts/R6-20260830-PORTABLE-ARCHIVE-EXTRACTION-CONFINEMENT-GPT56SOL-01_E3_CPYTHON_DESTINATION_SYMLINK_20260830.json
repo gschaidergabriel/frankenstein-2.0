@@ -1,0 +1,48 @@
+{
+  "schema": "TRIGGER6_REPRODUCTION_RECEIPT/v1",
+  "trigger": "6",
+  "research_id": "R6-20260830-PORTABLE-ARCHIVE-EXTRACTION-CONFINEMENT-GPT56SOL-01",
+  "stage": "E3_CLAIM_REPRODUCED",
+  "status": "REPRODUCED_AT_LOCAL_STDLIB_SEMANTICS_SCOPE",
+  "claim_ref": "research/tool_intelligence/claims/R6-20260830-PORTABLE-ARCHIVE-EXTRACTION-CONFINEMENT-GPT56SOL-01/E3_CLAIM_REPRODUCED_CPYTHON_DESTINATION_SYMLINK_FOLLOW.json@ae6ec40e9bb2ba5395352ba1ada6c553b63b9a5a",
+  "e2_ref": "research/tool_intelligence/deltas/R6_20260830_PORTABLE_ARCHIVE_EXTRACTION_CONFINEMENT_E2_GPT56SOL.json@46878cf96bf36b7acd48b5b501330cbb7d38872f",
+  "experiment_class": "DISPOSABLE_LOCAL_STDLIB_FILESYSTEM_SEMANTICS_NOT_F2_TARGET_RUNTIME",
+  "environment": {
+    "python": "3.13.5",
+    "platform": "Linux 6.18.35 x86_64",
+    "external_provider_calls": 0,
+    "model_calls": 0
+  },
+  "fixture": {
+    "archive_member": "link/owned.txt",
+    "payload": "TRIGGER6_E3",
+    "deterministic_zip_sha256": "c03208aa1c6ce405db487013c8352216e56805d99c7c5e4d46719f8134217e2f",
+    "hostile_destination_setup": "destination/link is a pre-existing directory symlink to a sibling outside directory"
+  },
+  "controls": {
+    "fresh_empty_destination": {
+      "inside_exists": true,
+      "inside_resolved_under_destination": true
+    },
+    "preexisting_symlink_destination": {
+      "link_is_symlink": true,
+      "outside_exists": true,
+      "lexical_member_resolves_outside_destination": true,
+      "outside_payload": "TRIGGER6_E3"
+    }
+  },
+  "source_mechanism_match": {
+    "cpython_source": "python/cpython@b3ddde433e69166ecdf40095349f69e08997e9cb:Lib/zipfile/__init__.py::_extract_member",
+    "observed_source_sequence": "lexical member normalization -> join/normpath -> os.path.exists/os.makedirs for upperdirs -> open(targetpath, 'wb')",
+    "interpretation": "The experiment reproduces the source-level consequence that lexical member sanitization does not by itself prevent traversal through a pre-existing destination symlink component."
+  },
+  "f2_boundary": {
+    "finding": "This does not show a current F2 exploit. F2 release_integrity verifies an already-materialized tree and rejects symlink entries. The result only validates why the one-handoff ZIP should be materialized into a fresh/private staging directory and verified before installer use.",
+    "runtime_credit": 0,
+    "target_host_credit": 0,
+    "integration_credit": 0,
+    "whole_system_credit": 0
+  },
+  "counterfactual": "The clean empty-destination control stayed inside the staging root. Therefore the reproduced failure requires a hostile/pre-existing destination path component in this experiment; it is not evidence that CPython extractall escapes an empty private staging root for this member name.",
+  "next_exact_action": "If no overlapping claim exists, run one E4 F2 component ablation using the exact release_integrity module: compare direct/pre-existing extraction versus fresh private staging plus post-extraction manifest verification and establish which adversarial cases are already rejected by existing F2 gates versus which require archive preflight/contract wiring."
+}
