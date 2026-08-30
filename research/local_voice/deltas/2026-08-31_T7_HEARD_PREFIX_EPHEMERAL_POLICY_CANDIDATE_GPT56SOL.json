@@ -1,19 +1,27 @@
 {
-  "schema": "T7_INTERRUPTED_CONTEXT_POLICY_CANDIDATE/v1",
+  "schema": "T7_INTERRUPTED_CONTEXT_POLICY_PRECISION_DELTA/v1",
   "trigger": "7",
   "date": "2026-08-31",
   "organ": "GPT-5.6-Sol",
   "research_id": "T7-FD-RTCOMPAT-001",
-  "classification": "REVIEW_ONLY_POLICY_CANDIDATE_NOT_CANONICAL_PRODUCT_AUTHORITY",
+  "classification": "REVIEW_ONLY_SUCCESSOR_PRECISION_NOT_CANONICAL_PRODUCT_AUTHORITY",
   "implementation_mutation_authority": false,
   "new_runtime_dispatch": false,
   "new_semantic_claim": false,
-  "policy_candidate": {
-    "policy_id": "F2_VOICE_INTERRUPTED_CONTEXT_RETAIN_HEARD_PREFIX_EPHEMERALLY_ONLY_V1",
-    "status": "CANDIDATE_FOR_TRIGGER4_PRODUCT_POLICY_PIN",
-    "core_rule": "For an interrupted assistant output, the next-turn ephemeral dialogue context may retain only the demonstrably heard, playback-synchronized text prefix. The unheard tail is excluded. Durable memory, effect, VoiceOutcome and completion authority remain independently gated and receive no credit from ephemeral retention.",
-    "commit_eligibility_unchanged": "VoiceOutputPacket remains commit-eligible only for completed playback with heard_fraction exactly 1.0.",
-    "unknown_rule": "If actual playout position is known but a playback-synchronized textual prefix is not available, the text boundary is UNKNOWN. Do not synthesize a prefix by multiplying heard_fraction by character, token or word count.",
+  "concurrency_reconciliation": {
+    "predecessor_resolution_commit": "208b3cf96c1f1e9cf2311d256fd100d7cef0d91a",
+    "predecessor_handoff_commit": "18338a2e63f73a872eec8b9fbfae558d8a5098e2",
+    "predecessor_resolution_delta": "research/local_voice/deltas/2026-08-31_T7_INTERRUPTED_CONTEXT_POLICY_RESOLUTION_GPT56SOL.json",
+    "predecessor_trigger4_packet": "trigger4/inbox/local_voice/T7_FD_RTCOMPAT001_HEARD_PREFIX_POLICY_RESOLVED_2026-08-31_GPT56SOL.json",
+    "resolved_research_policy_id": "T7_INTERRUPTED_CONTEXT_RETAIN_HEARD_PREFIX_EPHEMERALLY_ONLY_V1",
+    "policy_choice_reopened": false,
+    "reason": "The research policy and Trigger4 handoff landed immediately before this delta. This successor therefore refines the measurement/text-boundary semantics only and must not appear as a competing unresolved policy choice."
+  },
+  "precision_delta": {
+    "status": "TRIGGER4_BINDING_PENDING_WITH_ADDITIONAL_TEXT_BOUNDARY_REQUIREMENT",
+    "core_rule_preserved": "For interrupted assistant output, retain exactly the demonstrably heard prefix ephemerally and exclude the unheard tail; durable memory/effect/completion authority remains independently gated.",
+    "new_requirement": "A measured audio progress fraction or playout position is not by itself authority for the exact textual prefix. Retained next-turn text must come from a playback-synchronized transcript/alignment surface bound to the same playout receipt.",
+    "unknown_rule": "If actual playout position is known but no playback-synchronized textual prefix is available, the exact text boundary is UNKNOWN. Do not synthesize a prefix by multiplying heard_fraction by character, token or word count.",
     "heard_fraction_role": "Progress/monotonicity measurement only; not sufficient text-boundary authority.",
     "required_playout_binding": [
       "causal session/turn/output generation identity",
@@ -23,8 +31,8 @@
       "playback-synchronized transcript prefix when available",
       "digest of full generated text/audio subject",
       "digest of retained heard prefix",
-      "digest or explicit exclusion identity for unheard tail",
-      "policy_id bound into next-turn effective-context receipt"
+      "explicit exclusion identity or digest for unheard tail",
+      "resolved policy_id bound into next-turn effective-context receipt"
     ],
     "causal_fencing": "Late writes, tool results or callbacks from a cancelled/interrupted generation must not regain authority merely because its heard prefix is retained ephemerally.",
     "durability_fence": "Ephemeral heard-prefix retention MUST NOT create UnifiedDB/memory writes, effect authority, completion credit, training credit or whole-product credit."
@@ -53,10 +61,10 @@
       "finding": "PlaybackFinishedEvent carries playbackPosition and optional synchronizedTranscript; the transcript may be partial when interrupted and, when undefined, is explicitly not synchronized with playback."
     }
   ],
-  "minimal_trigger4_adoption_shape": {
+  "minimal_trigger4_binding_refinement": {
     "do_not_rewrite_packet_cortex_as_audio_owner": true,
-    "preferred_boundary": "Add or reuse a sink/playout receipt boundary outside the packet-only cortex; let the cortex/context assembler reference that receipt rather than inventing acoustic truth.",
-    "candidate_fields_or_refs": [
+    "preferred_boundary": "Add or reuse a sink/playout receipt boundary outside the packet-only cortex; let the context assembler reference that receipt rather than inventing acoustic truth.",
+    "additional_fields_or_refs": [
       "interrupted_context_policy_id",
       "playout_receipt_ref",
       "heard_boundary_ms",
@@ -65,7 +73,7 @@
     ],
     "synchronized_text_rule": "Retained text must come from an explicitly playback-synchronized transcript/alignment surface. If none exists, preserve UNKNOWN rather than guessing from heard_fraction."
   },
-  "hf09_oracle_after_policy_pin": [
+  "hf09_oracle_refinement": [
     {
       "condition": "heard playback-synchronized prefix present in next-turn ephemeral context AND unheard tail absent",
       "classification": "SEMANTIC_MATCH_CANDIDATE"
@@ -88,8 +96,9 @@
     }
   ],
   "credits": {
-    "research_policy_candidate": 1,
-    "product_policy_pin": 0,
+    "research_policy_precision_delta": 1,
+    "new_policy_resolution_credit": 0,
+    "product_policy_binding_credit": 0,
     "repository_component_runtime": 0,
     "local_speech_to_speech_runtime": 0,
     "acoustic_credit": 0,
@@ -98,6 +107,6 @@
     "training_credit": 0,
     "whole_product": 0
   },
-  "decision": "ADVANCE_RESEARCH_FRONTIER_WITH_EXACT_POLICY_CANDIDATE_WITHOUT_STEALING_TRIGGER4_MUTATION_AUTHORITY",
-  "next_exact_action": "Trigger4/product authority should pin or explicitly reject F2_VOICE_INTERRUPTED_CONTEXT_RETAIN_HEARD_PREFIX_EPHEMERALLY_ONLY_V1. If pinned, bind an actual sink/playout receipt plus playback-synchronized transcript boundary into the next-turn context assembler and execute existing HF09/HF02-HF05 without creating a duplicate runtime lane. If rejected in favor of DROP_WHOLE_INTERRUPTED_RESPONSE, record that policy explicitly and measure dialogue-coherence consequences."
+  "decision": "DO_NOT_REOPEN_RESOLVED_RESEARCH_POLICY; ADD_PLAYBACK_SYNCHRONIZED_TEXT_BOUNDARY_REQUIREMENT_TO_EXISTING_TRIGGER4_HANDOFF",
+  "next_exact_action": "Trigger4 should consume the existing resolved-policy handoff plus this precision delta, bind T7_INTERRUPTED_CONTEXT_RETAIN_HEARD_PREFIX_EPHEMERALLY_ONLY_V1 into the existing ephemeral context boundary, and require a real playout receipt plus playback-synchronized transcript/alignment before claiming an exact heard textual prefix. Then execute the existing HF09/HF10/HF02-HF05 lane without duplicate dispatch or wider credit."
 }
