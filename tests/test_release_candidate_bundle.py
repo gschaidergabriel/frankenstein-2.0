@@ -137,6 +137,66 @@ class ReleaseCandidateBundleTests(unittest.TestCase):
                     prehandoff_receipt_bytes=exact + b" ",
                 )
 
+    def test_preexisting_receipt_parent_symlink_escape_fails_closed(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            repo = _make_repo(root)
+            output = root / "out"
+            outside = root / "outside"
+            output.mkdir()
+            outside.mkdir()
+            link = output / "external-receipts"
+            try:
+                link.symlink_to(outside, target_is_directory=True)
+            except (OSError, NotImplementedError):
+                self.skipTest("symlink creation unavailable")
+
+            with self.assertRaisesRegex(
+                ReleaseCandidateBundleError,
+                "symlink|output",
+            ):
+                build_release_candidate_bundle(repo, output)
+
+            self.assertEqual(list(outside.iterdir()), [])
+
+    def test_preexisting_declared_receipt_different_bytes_is_preserved(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            repo = _make_repo(root)
+            output = root / "out"
+            short = _git(repo, "rev-parse", "HEAD")[:12]
+            receipt = (
+                output
+                / "external-receipts"
+                / f"frankenstein-2.0-{short}.zip.artifact-bound-prehandoff.json"
+            )
+            receipt.parent.mkdir(parents=True)
+            sentinel = b"hostile-preexisting-receipt\n"
+            receipt.write_bytes(sentinel)
+
+            with self.assertRaisesRegex(
+                ReleaseCandidateBundleError,
+                "exists with different bytes",
+            ):
+                build_release_candidate_bundle(repo, output)
+
+            self.assertEqual(receipt.read_bytes(), sentinel)
+
+    def test_repeated_same_output_is_idempotent(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            repo = _make_repo(root)
+            output = root / "out"
+
+            first = build_release_candidate_bundle(repo, output)
+            second = build_release_candidate_bundle(repo, output)
+
+            self.assertEqual(first.bundle_index, second.bundle_index)
+            self.assertEqual(
+                first.artifact_path.read_bytes(),
+                second.artifact_path.read_bytes(),
+            )
+
     def test_tracked_symlink_fails_closed(self) -> None:
         with tempfile.TemporaryDirectory() as td:
             root = Path(td)
