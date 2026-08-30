@@ -1,0 +1,35 @@
+name: WP206 G5 one-shot source patch
+
+on:
+  push:
+    branches:
+      - 'chatgpt/trigger4-wp206-g5-external-sqlite-revision-fence-20260830'
+    paths:
+      - '.github/workflows/_wp206-g5-one-shot-source-patch.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  apply-exact-source-patch:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: 'chatgpt/trigger4-wp206-g5-external-sqlite-revision-fence-20260830'
+          fetch-depth: 0
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
+        with:
+          python-version: '3.12'
+      - name: Apply exact bounded patch
+        run: python tools/_apply_wp206_g5_external_sqlite_revision_fence.py
+      - name: Commit patch only if exact source changed
+        run: |
+          git diff --check
+          git add src/frankenstein2/persistent_agency_kernel.py
+          git diff --cached --exit-code && { echo 'NO_SOURCE_DELTA'; exit 1; } || true
+          git config user.name 'GPT-5.6-Sol Trigger4'
+          git config user.email 'actions@users.noreply.github.com'
+          git commit -m 'trigger4: implement WP206 G5 external SQLite revision fence'
+          git push origin HEAD:chatgpt/trigger4-wp206-g5-external-sqlite-revision-fence-20260830
