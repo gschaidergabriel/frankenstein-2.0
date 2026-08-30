@@ -575,7 +575,15 @@ class VoicePacketCortex:
             if self._closed_outcome is not None and signature == self._closed_signature:
                 return self._closed_outcome
             raise VoicePacketCortexError("session is already closed with different close identity")
+        # Validate every caller-controlled SESSION_CLOSE event field before mutating output/outcome state.
+        # This keeps rejected close operations observationally atomic and checkpoint-safe.
+        _atom("turn_id", turn_id)
+        _nonnegative("monotonic_ms", monotonic_ms)
         self._require_event_capacity()
+        # Do not silently erase unresolved tool ownership at the session boundary.  Until an explicit
+        # terminalization event is admitted, fail closed and let the caller resolve/cancel the tool first.
+        if self._active_tools:
+            raise VoicePacketCortexError("cannot close session with active tool ownership")
         if any(packet.playback_state not in _TERMINAL_PLAYBACK for packet in self._outputs.values()):
             raise VoicePacketCortexError("cannot close session with nonterminal output")
         commit_eligible = [packet for packet in self._outputs.values() if packet.commit_eligible]
