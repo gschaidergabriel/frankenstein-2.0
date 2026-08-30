@@ -1,0 +1,71 @@
+{
+  "schema": "FRANKENSTEIN2_RESEARCH_INBOX_PACKET/v1",
+  "packet_id": "WP901-G4-LOADER-ATTESTATION-SUBSTITUTION-OWNERSHIP-REVIEW-20260830",
+  "trigger": "4",
+  "classification": "REVIEW_ONLY_CANDIDATE_FALSIFIER_NO_MUTATION_AUTHORITY",
+  "target_workpackage": "F2-WP-901",
+  "target_generation": 4,
+  "target_claim_id": "F2-WP-901-G4-GPT56SOL-PERSISTED-ROW-LOAD-ATTESTATION-20260830",
+  "observed_main_sha": "77224d771ad895d37c90f8bdca5db22cdbbaa279",
+  "authority_epoch": "9.13BI",
+  "sources": [
+    "workpackages/active/F2-WP-901.json",
+    "WORKER_PROTOCOL.md",
+    "workpackages/CLAIM_PROTOCOL.md",
+    "src/frankenstein2/persistent_agency_kernel.py",
+    "research/tool_intelligence/deltas/2026-08-30_GPT56SOL_R6_WP206_SQLITE_LIVE_DRIFT_E2_ARCHITECTURE_MAPPED.json"
+  ],
+  "observed": [
+    "The active WP901 G4 claim requires a load attestation minted only after the canonical WP206 persisted-row checks and typed checkpoint replay.",
+    "CanonicalPersistentAgencyStore.load_checkpoint currently validates file identity, stored path/device/inode, stored authority receipt, checkpoint JSON digest and typed replay before returning the checkpoint.",
+    "CanonicalPersistentAgencyStore is a normal subclassable Python class and load_checkpoint is an overridable method.",
+    "The active WP901 G4 claim says the WP206 store must produce a typed immutable load receipt, while WORKER_PROTOCOL grants mutation authority per active workpackage pointer and WP206 source remains a separate workpackage-owned boundary.",
+    "Trigger6 live-drift research explicitly keeps stable file authority identity separate from mutable database state and does not yet promote a same-inode drift mechanism."
+  ],
+  "candidate_falsifiers": [
+    {
+      "id": "WP901_G4_F1_OVERRIDDEN_LOADER_SUBSTITUTION",
+      "hypothesis": "A G4 ingress that accepts a CanonicalPersistentAgencyStore by isinstance and dispatches store.load_checkpoint can be given a subclass whose overridden load_checkpoint returns an arbitrary typed checkpoint without executing the canonical WP206 row checks.",
+      "counterhypothesis": "The implementation requires exact concrete store type or otherwise cryptographically/source-identically binds canonical loader dispatch, so overridden loader substitution fails closed.",
+      "discriminator": "Create a hostile subclass overriding load_checkpoint while preserving all public store attributes. Positive G4 admission must fail before any attestation is emitted. A caller-injected loader callable or monkeypatched dispatch must likewise receive zero positive attestation credit.",
+      "acceptance_requirement": "EXACT_CANONICAL_LOADER_DISPATCH_OR_EQUIVALENT_FAIL_CLOSED_BINDING"
+    },
+    {
+      "id": "WP901_G4_F2_CROSS_WORKPACKAGE_MUTATION_AUTHORITY",
+      "hypothesis": "Implementing the typed receipt by editing src/frankenstein2/persistent_agency_kernel.py under only the WP901 active pointer silently mutates WP206-owned canonical source without WP206 mutation authority.",
+      "counterhypothesis": "G4 can remain outside WP206 source by consuming a successful exact canonical load call and emitting a WP901-owned derived attestation, or an explicitly coordinated WP206 successor transfers/extends the interface authority first.",
+      "discriminator": "Before merge, inspect changed paths and active pointers. If persistent_agency_kernel.py changes, require explicit WP206 successor/coordination evidence. If it does not change, require the WP901 adapter to distinguish derived call-result attestation from a receipt claimed to be minted inside WP206.",
+      "acceptance_requirement": "NO_CROSS_WORKPACKAGE_AUTHORITY_SMUGGLING"
+    },
+    {
+      "id": "WP901_G4_F3_ATTESTATION_SCOPE_VS_LIVE_DRIFT",
+      "hypothesis": "A green G4 load-attestation test could be over-read as proving same-inode freshness/live-drift closure.",
+      "counterhypothesis": "G4 records only the exact row/load validation result at its call boundary and preserves live-drift/rollback-freshness as separately unresolved.",
+      "discriminator": "Regression/receipt must explicitly keep same-inode live drift, rollback/freshness, target-host readback and post-load mutation outside G4 acceptance credit.",
+      "acceptance_requirement": "ROW_LOAD_ATTESTATION_NOT_DATABASE_FRESHNESS_AUTHORITY"
+    }
+  ],
+  "recommended_smallest_safe_design": {
+    "preferred": "Keep G4 implementation WP901-owned unless a separately coordinated WP206 successor is deliberately opened. Require exact type(store) is CanonicalPersistentAgencyStore or an equally strong non-overridable canonical-loader identity fence before calling load_checkpoint. Treat the successful canonical load as evidence that the selected row passed existing WP206 checks at that call, then bind the returned checkpoint id/generation/digest plus current store path/device/inode/authority receipt into a derived WP901 attestation.",
+    "do_not_claim": [
+      "independent observation of physical disk read beyond repository component semantics",
+      "same-inode live-data freshness",
+      "schema freshness",
+      "rollback freshness",
+      "target-host restart recoverability",
+      "runtime or whole-system acceptance"
+    ]
+  },
+  "credit": {
+    "mutation_authority": 0,
+    "repository_runtime": 0,
+    "target_runtime": 0,
+    "physical_grid10": 0,
+    "gwt_jspace": 0,
+    "training": 0,
+    "effect": 0,
+    "completion": 0,
+    "whole_system": 0
+  },
+  "next_exact_action": "Current WP901 G4 mutation owner should consume these falsifiers before implementation acceptance; do not create a competing G4 implementation from this packet."
+}
