@@ -1,0 +1,60 @@
+name: F2 WP1207 G5 Hostile Twin Executor CI
+
+on:
+  push:
+    paths:
+      - 'src/frankenstein2/hostile_twin_release_executor.py'
+      - 'src/frankenstein2/release_archive.py'
+      - 'src/frankenstein2/portable_release_transaction.py'
+      - 'src/frankenstein2/portable_release_readback.py'
+      - 'tests/test_hostile_twin_release_executor.py'
+      - 'tests/test_release_archive.py'
+      - 'tests/test_release_archive_metadata_perimeter.py'
+      - 'tests/test_portable_release_transaction.py'
+      - 'tests/test_portable_release_readback.py'
+      - 'tests/test_release_candidate_bundle.py'
+      - 'tools/run_wp1207_hostile_twin_gate.py'
+      - '.github/workflows/wp1207-g5-hostile-twin-executor-ci.yml'
+  pull_request:
+    paths:
+      - 'src/frankenstein2/hostile_twin_release_executor.py'
+      - 'src/frankenstein2/release_archive.py'
+      - 'src/frankenstein2/portable_release_transaction.py'
+      - 'src/frankenstein2/portable_release_readback.py'
+      - 'tests/test_hostile_twin_release_executor.py'
+      - 'tests/test_release_archive.py'
+      - 'tests/test_release_archive_metadata_perimeter.py'
+      - 'tests/test_portable_release_transaction.py'
+      - 'tests/test_portable_release_readback.py'
+      - 'tests/test_release_candidate_bundle.py'
+      - 'tools/run_wp1207_hostile_twin_gate.py'
+      - '.github/workflows/wp1207-g5-hostile-twin-executor-ci.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  deterministic:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Compile exact source
+        run: |
+          python -m py_compile \
+            src/frankenstein2/hostile_twin_release_executor.py \
+            src/frankenstein2/release_archive.py \
+            src/frankenstein2/portable_release_transaction.py \
+            src/frankenstein2/portable_release_readback.py \
+            tools/run_wp1207_hostile_twin_gate.py
+      - name: Run composed release regressions
+        env:
+          PYTHONPATH: src:.
+        run: |
+          set -euo pipefail
+          python tests/test_release_archive.py
+          python tests/test_release_archive_metadata_perimeter.py
+          python tests/test_portable_release_transaction.py
+          python tests/test_portable_release_readback.py
+          python tests/test_release_candidate_bundle.py
+          python tests/test_hostile_twin_release_executor.py
