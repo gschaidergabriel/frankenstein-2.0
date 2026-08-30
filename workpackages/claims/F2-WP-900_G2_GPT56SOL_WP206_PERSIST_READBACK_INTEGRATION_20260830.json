@@ -1,0 +1,45 @@
+{
+  "schema": "FRANKENSTEIN2_WORKPACKAGE_CLAIM/v1",
+  "workpackage_id": "F2-WP-900",
+  "generation": 2,
+  "claim_id": "F2-WP-900-G2-GPT56SOL-WP206-PERSIST-READBACK-INTEGRATION-20260830",
+  "worker_id": "GPT-5.6-Sol-INTEGRATION-CLOSER",
+  "trigger": "automation-integration-closer",
+  "base_commit": "d08981c432cec3ba66fe76ee73cb04a139267983",
+  "work_class": "INTEGRATION_BLOCKER",
+  "target_completion_tier": "REPOSITORY_COMPONENT_CI",
+  "integration_boundary": "accepted WP900 whole-loop direct-successor seal -> existing WP206 CanonicalPersistentAgencyStore write -> existing WP206 typed readback",
+  "existing_components": [
+    "src/frankenstein2/whole_persistent_loop.py@WP900-G1",
+    "src/frankenstein2/persistent_agency_kernel.py@WP206 accepted store/loader",
+    "tests/test_whole_persistent_loop.py",
+    "tests/test_persistent_agency_kernel.py"
+  ],
+  "blocking_deficit": "WP900 validates the exact direct successor but does not itself cross the canonical persistence boundary; WP206 can write/read checkpoints but has no WP900-seal-bound integration ingress. The missing step is a thin adapter that validates seal-to-parent/successor identity, delegates persistence to WP206, and performs exact typed readback.",
+  "runtime_evidence_expected": "For this generation only: repository-hosted executable regression proving canonical write plus typed readback with exact seal/parent/successor digests. This does not satisfy target-host runtime credit. Broader promotion still requires exact-source admitted-runtime execution.",
+  "duplicate_owner_check": {
+    "F2-WP-900": "generation 1 ACCEPTED and closed; no active generation-2 mutation observed at selection time",
+    "F2-WP-901": "generation 4 ACCEPTED; owns persisted-row restart ingress, not WP900 successor persistence",
+    "F2-WP-206": "generation 5 active on evidence-subject binding; does not own WP900 -> canonical-store persistence boundary",
+    "F2-WP-902": "generation 2 ACCEPTED; characterization ABI only"
+  },
+  "new_component_necessity": "No new authority or subsystem is introduced. A minimal integration adapter is necessary because the existing accepted APIs terminate on opposite sides of the boundary: WP900 emits a validated successor seal while WP206 owns the only canonical checkpoint writer/loader.",
+  "owned_paths": [
+    "src/frankenstein2/whole_loop_persistence_integration.py",
+    "tests/test_whole_loop_persistence_integration.py",
+    ".github/workflows/wp900-wp206-persistence-integration-ci.yml",
+    "workpackages/claims/F2-WP-900_G2_GPT56SOL_WP206_PERSIST_READBACK_INTEGRATION_20260830.json"
+  ],
+  "forbidden": [
+    "new state database or persistence authority",
+    "new scheduler",
+    "new effect authority",
+    "target-host/runtime promotion from repository CI",
+    "whole-system acceptance from this integration test",
+    "mutation of active WP206 generation-5 owned paths"
+  ],
+  "runtime_credit": 0,
+  "completion_credit": 0,
+  "whole_system_acceptance": false,
+  "created_at_utc": "2026-08-30T10:14:00Z"
+}

@@ -1,0 +1,37 @@
+name: WP900 WP206 persistence integration CI
+
+on:
+  pull_request:
+    paths:
+      - 'src/frankenstein2/whole_loop_persistence_integration.py'
+      - 'tests/test_whole_loop_persistence_integration.py'
+      - 'src/frankenstein2/whole_persistent_loop.py'
+      - 'src/frankenstein2/persistent_agency_kernel.py'
+      - '.github/workflows/wp900-wp206-persistence-integration-ci.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  sealed-successor-persist-readback:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - name: Checkout exact PR ref
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - name: Compile integration boundary and accepted dependencies
+        run: >-
+          python -m py_compile
+          src/frankenstein2/whole_loop_persistence_integration.py
+          src/frankenstein2/whole_persistent_loop.py
+          src/frankenstein2/persistent_agency_kernel.py
+          tests/test_whole_loop_persistence_integration.py
+      - name: Run new boundary plus accepted WP900 and WP206 regressions
+        env:
+          PYTHONPATH: src
+        run: >-
+          python -m unittest -v
+          tests.test_whole_loop_persistence_integration
+          tests.test_whole_persistent_loop
+          tests.test_persistent_agency_kernel
