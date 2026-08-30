@@ -1,0 +1,48 @@
+{
+  "schema": "FRANKENSTEIN_TRIGGER7_RECONCILIATION/v1",
+  "trigger": "7",
+  "organ": "GPT-5.6-Sol",
+  "research_id": "T7-ASR-007",
+  "semantic_key": "831a0648586591689423d110d6cbc2ac0566b9f5d2e9557cffeb45a8bd6705f3",
+  "reconciles": "research/local_voice/sources/2026-08-30_T7_ASR007_PARAKEET_TDT_06B_V3_SOURCE_PIN_GPT56SOL.json",
+  "f2_main_observed_before_write": "a046062ecfa825923ebf4a8b16d886f31da89666",
+  "reason": "Newer/current NVIDIA NeMo-Speech.cpp primary documentation narrows the local Q8 runtime interpretation for Parakeet TDT 0.6B v3 and is material to Frankenstein realtime turn-taking.",
+  "source_observations": [
+    {
+      "epistemic_type": "EXTERNAL_PRIMARY",
+      "source": "https://github.com/NVIDIA/NeMo-Speech.cpp/blob/main/docs/asr/customization.md",
+      "observation": "The current feature matrix marks Parakeet TDT 0.6B v3 as supporting 25 languages but not word boosting, VAD masking, endpointing, or language metadata in NeMo-Speech.cpp."
+    },
+    {
+      "epistemic_type": "EXTERNAL_PRIMARY",
+      "source": "https://github.com/NVIDIA/NeMo-Speech.cpp/blob/main/docs/asr/configuration.md",
+      "observation": "The endpointing section states that endpointing works with buffered CTC and cache-aware RNNT and explicitly describes Parakeet TDT as offline-only for streaming endpointing."
+    },
+    {
+      "epistemic_type": "EXTERNAL_PRIMARY",
+      "source": "https://huggingface.co/nvidia/parakeet-tdt-0.6b-v3/commit/bb0964b98adc4b962566f3df9f5f1844011871a3",
+      "observation": "The official model card added a NeMo Python chunked-streaming example using 2 s chunks, 2 s right context and 10 s left context. This is a separate runtime path and does not establish NeMo-Speech.cpp Q8 incremental endpointing."
+    },
+    {
+      "epistemic_type": "EXTERNAL_PRIMARY",
+      "source": "https://huggingface.co/nvidia/parakeet-tdt-0.6b-v3/blob/541d1f99c6b0c3cd0b11a95167540bb8edefd82b/parakeet-tdt-0.6b-v3.q8_0.gguf",
+      "observation": "The official Q8_0 GGUF remains a valid pinned local artifact at 713975456 bytes with SHA-256 e3880d0aaaaf2c308ea2c35016b2b895c423eb3fda924c1b463d1c19b7f4d32e."
+    }
+  ],
+  "reconciliation": {
+    "previous_source_result_was_overclaiming": false,
+    "previous_boundary_preserved": "The original result already said the NeMo-Speech.cpp Q8 path was not proven incremental/streaming.",
+    "new_stronger_boundary": "Current official NeMo-Speech.cpp evidence now positively establishes that Parakeet TDT lacks its built-in streaming endpointing path there. Therefore the Q8 route must not be promoted as the direct realtime/EOU ASR organ for Frankenstein on source evidence alone.",
+    "remaining_valid_credit": "Parakeet TDT remains source-eligible as a German accuracy/compactness/final-transcript challenger and as a possible externally endpointed pipeline component.",
+    "architecture_implication": "INFERENCE: a Frankenstein pipeline could still use an external VAD/turn controller to close an utterance and then invoke Parakeet TDT, but that is not model-native streaming endpointing and must be benchmarked for end-to-end latency, partial transcript behavior and barge-in semantics.",
+    "priority_delta": "For the native continuously streaming local-ASR frontier, prefer cache-aware RNNT/Nemotron-class candidates over Parakeet TDT until target evidence overturns this source-level limitation. Keep Parakeet as an accuracy/resource Pareto baseline rather than discard it."
+  },
+  "counterhypothesis": "The lack of NeMo-Speech.cpp endpointing may not matter if an external turn controller plus fast Parakeet final decoding produces equal or better German conversational latency/accuracy on the actual hardware.",
+  "falsifier": "On clay-direct-dev, compare the exact pinned Parakeet Q8 path behind the same external VAD/turn controller against the admitted cache-aware streaming ASR candidates on identical German room audio; measure endpoint-to-final latency, partial/final stability where available, WER/CER, resource use and cancellation semantics.",
+  "runtime_credit": 0,
+  "german_e2e_voice_credit": 0,
+  "trigger4_acceptance_credit": 0,
+  "whole_system_credit": 0,
+  "execution_note": "Do not create another target-runtime dispatch while the shared self-hosted runner assignment/availability gate has unresolved queued jobs. Consume existing target jobs after runner lifecycle recovery.",
+  "status": "RECONCILED_SOURCE_BOUNDARY_NO_RUNTIME_PROMOTION"
+}
