@@ -1,0 +1,53 @@
+{
+  "schema": "T7_REENTRY_CHECKPOINT/v1",
+  "trigger": "7",
+  "date": "2026-08-30",
+  "worker": "GPT-5.6-Sol-TRIGGER7",
+  "existing_claim": "T7-TTS-001/E2_SOURCE_AUDIT_REALTIME_TTS_FRONTIER",
+  "scope": "SOURCE_LEVEL_STREAMING_AND_CANCELLATION_SEMANTICS_DISCRIMINATOR_ONLY",
+  "f2_main_observed_before_write": "8389da69d9d2732e9174c036f29f5bd72a475aa2",
+  "runtime_frontier": {
+    "hardware_roundtrip_run_id": 33266856557,
+    "observed_status": "pending",
+    "hardware_receipt_observed": false,
+    "runtime_credit": 0
+  },
+  "source_findings": [
+    {
+      "subject": "Qwen3-TTS voice-clone wrapper",
+      "source": "https://github.com/QwenLM/Qwen3-TTS/blob/main/qwen_tts/inference/qwen3_tts_model.py",
+      "finding": "generate_voice_clone(non_streaming_mode=false) currently documents simulated streaming text input rather than true streaming input/generation for this wrapper path.",
+      "implication": "Do not equate model-family streaming claims with the exact Frankenstein voice-clone serving path; TTFA and cancellation must be measured on the exact wrapper/server path selected for F2."
+    },
+    {
+      "subject": "NeMo-Speech.cpp MagpieTTS codec streaming",
+      "source": "https://github.com/NVIDIA/NeMo-Speech.cpp/blob/main/docs/tts/configuration.md",
+      "finding": "The native runtime exposes explicit codec streaming controls including chunk frames, queue depth, history/future frames, overlap window and partial-chunk flush.",
+      "implication": "Magpie v2602/native C++ has a concrete low-level chunking surface suitable for TTFA/jitter/backpressure experiments, but source capability alone grants no Frankenstein runtime credit."
+    },
+    {
+      "subject": "NeMo-Speech.cpp server transport",
+      "source": "https://github.com/NVIDIA/NeMo-Speech.cpp/blob/main/docs/server.md",
+      "finding": "The documented realtime WebSocket endpoint is live PCM16 transcription; TTS is documented through /v1/audio/speech and Riva-compatible gRPC while the same process may keep ASR/TTS engines resident.",
+      "implication": "A Frankenstein-grade barge-in test must verify the exact TTS request-abort/audio-drain path and prove unheard speech is stopped and not committed; a generic realtime-server label is insufficient."
+    },
+    {
+      "subject": "Piper/Thorsten deterministic floor",
+      "source": "https://huggingface.co/Thorsten-Voice/Piper",
+      "finding": "German Thorsten ONNX artifacts remain small fixed local baselines, including low/medium/high and an emotional-medium variant.",
+      "implication": "Retain Piper/Thorsten as the latency/resource/cancellation floor even if expressive neural challengers win quality."
+    }
+  ],
+  "hypothesis": "For Frankenstein's German LOCAL_SOLO voice organ, Magpie/NeMo-Speech.cpp may offer a cleaner native chunk-streaming and co-residency substrate than the current Qwen3-TTS voice-clone wrapper, but Qwen3-TTS may still win German naturalness/identity. The decisive comparison is exact-path TTFA + cancellation/audio-drain correctness + resident footprint, not README-level streaming labels.",
+  "counterhypothesis": "Qwen3-TTS can be served through a lower-level or alternate true-streaming path that removes the wrapper limitation and outperforms Magpie on both latency and voice quality; therefore the wrapper finding must not be generalized to the whole Qwen3-TTS family.",
+  "next_exact_action": "Do not dispatch another hardware inventory while run 33266856557 remains pending. After the first valid clay-direct-dev hardware receipt, benchmark (A) the exact Qwen3-TTS serving path chosen for F2 and (B) pinned Magpie v2602/NeMo-Speech.cpp under identical German text, same output-device path and receipt harness. Measure speech-end-to-first-audio, steady chunk jitter, RTF, RSS/VRAM, request-cancel-to-last-audible-sample, queued/unheard audio drain, duplicate/replay after cancellation, and network-blocked operation. Keep Piper/Thorsten as the resource/latency floor. Do not grant V3/V4/V5 credit from this source delta.",
+  "credits": {
+    "source_delta": 1,
+    "target_hardware": 0,
+    "model_runtime": 0,
+    "german_tts_component": 0,
+    "german_e2e": 0,
+    "trigger4_acceptance": 0,
+    "whole_system": 0
+  }
+}
