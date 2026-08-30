@@ -1,0 +1,102 @@
+name: WP206 G2 one-shot replay authority receipt repair
+
+on:
+  push:
+    branches:
+      - chatgpt/trigger4-wp206-g2-db-authority-receipt-repair-20260830
+
+permissions:
+  contents: write
+
+jobs:
+  apply-test-and-self-delete:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: chatgpt/trigger4-wp206-g2-db-authority-receipt-repair-20260830
+          fetch-depth: 1
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Apply exact replay authority-receipt fence
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          path = Path('src/frankenstein2/persistent_agency_kernel.py')
+          text = path.read_text(encoding='utf-8')
+
+          replacements = [
+              (
+                  '                       db_device, db_inode\n',
+                  '                       db_device, db_inode, unifieddb_authority_receipt_sha256\n',
+                  'SELECT authority-receipt column',
+              ),
+              (
+                  '        expected_sha, raw_json, stored_path, stored_device, stored_inode = row\n',
+                  '        (\n'
+                  '            expected_sha,\n'
+                  '            raw_json,\n'
+                  '            stored_path,\n'
+                  '            stored_device,\n'
+                  '            stored_inode,\n'
+                  '            stored_authority_receipt_sha256,\n'
+                  '        ) = row\n',
+                  'row unpack',
+              ),
+              (
+                  '        if (stored_device, stored_inode) != (self.db_device, self.db_inode):\n'
+                  '            raise PersistentAgencyError("CHECKPOINT_DB_FILE_IDENTITY_DRIFT")\n',
+                  '        if (stored_device, stored_inode) != (self.db_device, self.db_inode):\n'
+                  '            raise PersistentAgencyError("CHECKPOINT_DB_FILE_IDENTITY_DRIFT")\n'
+                  '        if stored_authority_receipt_sha256 != self.authority_receipt_sha256:\n'
+                  '            raise PersistentAgencyError(\n'
+                  '                "CHECKPOINT_DB_AUTHORITY_RECEIPT_MISMATCH"\n'
+                  '            )\n',
+                  'authority receipt equality fence',
+              ),
+          ]
+
+          for old, new, label in replacements:
+              count = text.count(old)
+              if count != 1:
+                  raise SystemExit(f'{label}: expected exactly one anchor, found {count}')
+              text = text.replace(old, new, 1)
+
+          old_header = 'F2-WP-206 generation 1.'
+          if text.count(old_header) == 1:
+              text = text.replace(
+                  old_header,
+                  'F2-WP-206 generation 2 successor repair.',
+                  1,
+              )
+
+          path.write_text(text, encoding='utf-8')
+          PY
+
+      - name: Keep exact executed falsifier regression
+        shell: bash
+        run: |
+          grep -q 'test_checkpoint_db_authority_receipt_tamper_fails_closed' tests/test_persistent_agency_kernel.py
+
+      - name: Prove compile and full WP206 regression suite
+        env:
+          PYTHONPATH: src
+        run: |
+          python -m py_compile src/frankenstein2/persistent_agency_kernel.py tests/test_persistent_agency_kernel.py tests/wp206_restart_probe.py
+          python tests/test_persistent_agency_kernel.py -v
+
+      - name: Commit only durable repair and regression
+        shell: bash
+        run: |
+          rm .github/workflows/wp206-g2-one-shot-repair.yml
+          git config user.name 'GPT-5.6-Sol Trigger4'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add src/frankenstein2/persistent_agency_kernel.py tests/test_persistent_agency_kernel.py .github/workflows/wp206-g2-one-shot-repair.yml
+          git diff --cached --check
+          git commit -m 'trigger4: repair WP206 replay authority receipt fence'
+          git push origin HEAD:chatgpt/trigger4-wp206-g2-db-authority-receipt-repair-20260830
