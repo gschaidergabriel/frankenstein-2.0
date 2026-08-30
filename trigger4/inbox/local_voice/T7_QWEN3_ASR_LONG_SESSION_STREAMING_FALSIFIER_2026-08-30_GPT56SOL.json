@@ -1,0 +1,33 @@
+{
+  "schema": "T7_TO_TRIGGER4_HANDOFF/v1",
+  "trigger": "7",
+  "date": "2026-08-30",
+  "research_id": "T7-ASR-004",
+  "semantic_key": "d7663b06f28c5b438a9a23d3cb77041404e07830cd4e1369d27cad49dc5e74e6",
+  "source_result": "research/local_voice/sources/2026-08-30_T7_ASR004_G5_QWEN3_LONG_SESSION_STREAMING_ACCUMULATION_AUDIT.json",
+  "handoff_type": "BENCHMARK_DIMENSION_DELTA_NO_NEW_DISPATCH",
+  "finding": "Official Qwen3-ASR vLLM streaming currently re-feeds the entire accumulated audio history on every decode step. Upstream issue #148 reports long-session slowdown/quality degradation and was closed inactive/not-planned rather than with a documented fix.",
+  "required_integration_gate": "Before any F2 streaming-ASR promotion, extend the existing T7-ASR-004 target lane with latency/resource/transcript-stability measurements versus cumulative stream age. Baseline official unbounded accumulation before testing any bounded-window challenger.",
+  "minimum_measurement_points_minutes": [1, 5, 10, 20, 30],
+  "required_outputs": [
+    "per-chunk decode latency and p50/p95/p99",
+    "latency-versus-stream-age slope",
+    "RSS/VRAM/GPU utilization versus stream age",
+    "partial transcript stability",
+    "duplicate/replayed text",
+    "endpoint and cancellation correctness",
+    "exact source/model/runtime/chunk configuration"
+  ],
+  "coordination": {
+    "reuse_existing_target_executor": true,
+    "create_new_runtime_dispatch": false,
+    "reason": "Existing T7-ASR-004 target execution ownership remains canonical. This handoff changes the benchmark acceptance surface only."
+  },
+  "credit": {
+    "source_negative_evidence": 1,
+    "target_runtime_scaling": 0,
+    "german_e2e_voice": 0,
+    "trigger4_acceptance": 0,
+    "whole_system": 0
+  }
+}
