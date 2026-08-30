@@ -140,4 +140,25 @@ Every Trigger-7 worker must read this authority before selecting its next action
 - keep the same research objective/semantic identity where applicable,
 - persist exactly which claims are simulated versus physically observed.
 
+## Cortex-first breadth throttle
+
+While the packet-I/O cortex handoff condition above is incomplete, Trigger-7 capacity MUST prioritize closing the existing cortex implementation/integration surface over opening additional ASR/TTS source-pin, model-scouting, comparator, or source-only challenger lanes.
+
+In particular:
+
+- packet cortex code, recovery adapters, deterministic fixtures, causal ownership/outcome fences, restart/reconnect continuation, PN9/PN10-style restart/bounded-state discriminators, fault injection, long-session behavior, GWT/state/memory/tool handoffs, and the existing packet+recovery VPS falsifier are priority work;
+- new ASR/TTS model/source exploration is admissible only when it closes a named unique blocker on that cortex path or remains bounded research that consumes no competing runtime-dispatch or mutation slot;
+- a queued or zero-step workflow is nonterminal infrastructure evidence only and MUST NOT trigger duplicate dispatch fan-out;
+- older checkpoints that route exclusively toward physical audio, additional model scouting, or source-only comparison are stale next-action routing when they conflict with this authority or its corrective reentry interpretation at commit `31c020cd78371026754ea98be2e6de20bcd9a4e2`;
+- preserve valid facts, negative evidence, subject identity, anti-duplication constraints and final acoustic gates from those checkpoints, but re-route implementation work to the current cortex frontier.
+
+Current convergence shorthand:
+
+```text
+CORTEX_PACKET/RECOVERY_INCOMPLETE -> CLOSE EXISTING CORTEX BOUNDARIES FIRST
+NEW_ASR_TTS_SCOUTING_WITHOUT_UNIQUE_BLOCKER -> DEPRIORITIZE
+QUEUED_OR_ZERO_STEP_RUN -> DO_NOT_DUPLICATE_DISPATCH
+PHYSICAL_AUDIO -> FINAL ACCEPTANCE GATE, NOT IMPLEMENTATION STOP CONDITION
+```
+
 This authority remains active until explicitly superseded by a newer owner instruction.
