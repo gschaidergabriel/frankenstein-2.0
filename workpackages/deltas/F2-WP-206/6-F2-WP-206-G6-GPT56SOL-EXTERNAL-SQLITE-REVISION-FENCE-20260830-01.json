@@ -1,0 +1,70 @@
+{
+  "schema": "FRANKENSTEIN2_WORKPACKAGE_DELTA/v1",
+  "workpackage_id": "F2-WP-206",
+  "generation": 6,
+  "claim_id": "F2-WP-206-G6-GPT56SOL-EXTERNAL-SQLITE-REVISION-FENCE-20260830",
+  "worker_id": "GPT-5.6-Sol-TRIGGER4-REVIEW-ORGAN",
+  "base_commit": "7ad92d32ca5492d039713411089bde9ba1667657",
+  "observed_main_commit": "026ec3e2324b22367492145b5d8e61531fb0132a",
+  "owned_paths": [],
+  "result_class": "REVIEW_ONLY",
+  "source_commits": [
+    "026ec3e2324b22367492145b5d8e61531fb0132a",
+    "PR728 candidate head f7ee7c3125ef9a85c999d9c00802ed36618816de",
+    "PR728 current review head 976478719654bdc63f832844e752714e2c17596a"
+  ],
+  "receipts": [
+    "workpackages/receipts/F2-WP-206_G5_EVIDENCE_SUBJECT_BINDING.json",
+    "workpackages/reconciliations/F2-WP-206/5-F2-WP-206-G5-GPT56SOL-EVIDENCE-SUBJECT-BINDING-20260830.json"
+  ],
+  "falsifiers": [
+    {
+      "classification": "LOCAL_SQLITE_MECHANISM_ONLY_NOT_F2_RUNTIME_EVIDENCE",
+      "sqlite_version": "3.46.1",
+      "setup": "one long-lived observer connection; one same-connection commit; then a second connection commits first to an unrelated table and then to a WP206-labeled table in the same SQLite file",
+      "observed_data_version_sequence": [
+        1,
+        1,
+        2,
+        3
+      ],
+      "interpretation": "PRAGMA main.data_version does not distinguish relevant WP206 drift from any other committed write by a different connection. A strict baseline-equality guard therefore rejects both classes."
+    },
+    {
+      "classification": "SOURCE_SEMANTIC_COUNTERHYPOTHESIS",
+      "candidate_source": "PR728 src/frankenstein2/persistent_agency_kernel.py",
+      "candidate_predicate": "fail closed whenever current PRAGMA main.data_version != connection-open baseline",
+      "counterhypothesis": "If the canonical UnifiedDB admits legitimate concurrent writers on unrelated tables, the candidate fence becomes an over-broad liveness/availability veto rather than a WP206-specific integrity fence."
+    }
+  ],
+  "contradictions": [
+    {
+      "lhs": "G6 goal: detect harmful external same-inode SQLite logical revision before continued WP206 use",
+      "rhs": "PRAGMA main.data_version advances for every commit by another connection, independent of table or semantic ownership",
+      "status": "UNRESOLVED_CONTRACT_BOUNDARY",
+      "importance": "HIGH"
+    },
+    {
+      "lhs": "F2-WP-100 UnifiedDB fingerprint explicitly classifies itself as identity evidence, not a full SQLite state snapshot",
+      "rhs": "G6 candidate would effectively treat any cross-connection logical revision as invalidating the long-lived WP206 store",
+      "status": "NEEDS_EXPLICIT_SHARED_WRITER_POLICY"
+    }
+  ],
+  "proposed_state_change": "NONE. Do not alter or retire the active G6 mutation authority from this review delta.",
+  "completion_deficit": "Before accepting the PR728 mechanism as G6 source, resolve whether an authority-admitted external writer to an unrelated canonical UnifiedDB table is permitted while CanonicalPersistentAgencyStore remains open. The current candidate cannot distinguish that case from harmful WP206 data/schema drift.",
+  "next_exact_action": "Mutation-authority worker should add one discriminating regression before canonical source write: keep a WP206 store open, perform an explicitly authority-admitted second-connection commit to an unrelated table, and assert the intended contract (continue if shared writers are allowed; fail closed only if the architecture explicitly forbids every external connection write). In parallel preserve the existing DELETE/WAL harmful-drift falsifier. If shared writers are allowed, replace the global data_version equality veto with a narrower WP206-owned state/schema revision witness or a deliberate revalidation/reopen protocol.",
+  "credit_boundary": {
+    "runtime_execution_observed": false,
+    "runtime_credit": 0,
+    "physical_host_credit": 0,
+    "vps_runtime_credit": 0,
+    "physical_grid10_credit": 0,
+    "gwt_runtime_credit": 0,
+    "jspace_runtime_credit": 0,
+    "effect_credit": 0,
+    "completion_credit": 0,
+    "training_credit": 0,
+    "whole_system_acceptance": false
+  },
+  "created_at_utc": "2026-08-30T11:26:06Z"
+}
