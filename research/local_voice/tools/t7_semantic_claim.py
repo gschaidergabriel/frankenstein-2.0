@@ -43,6 +43,8 @@ FAMILY_ALIASES = {
     "german-tts-benchmark": "GERMAN_TTS_BENCHMARK",
     "german-turn-controller-benchmark": "GERMAN_TURN_CONTROLLER_BENCHMARK",
     "full-duplex-german-falsifier": "FULL_DUPLEX_GERMAN_FALSIFIER",
+    "full-duplex-2026-german-triage": "FULL_DUPLEX_2026_GERMAN_TRIAGE",
+    "fdbv3-german-tool-rollback-donor-audit": "FDBV3_GERMAN_TOOL_ROLLBACK_DONOR_AUDIT",
 }
 
 TARGET_ALIASES = {
@@ -51,6 +53,7 @@ TARGET_ALIASES = {
     "f2-repository": "frankenstein-2.0-repository",
     "frankenstein-2.0-repository": "frankenstein-2.0-repository",
     "source-only": "source-only",
+    "external-primary-research": "EXTERNAL_PRIMARY_RESEARCH",
 }
 
 SUBJECT_ALIASES = {
@@ -111,6 +114,8 @@ SUBJECT_ALIASES = {
     "videosdk-live-namo-turn-detector-v1-multilingual": "NAMO_TURN_DETECTOR_V1_MULTILINGUAL",
     "huggingface-speech-to-speech": "HUGGINGFACE_SPEECH_TO_SPEECH_REALTIME",
     "hf-speech-to-speech": "HUGGINGFACE_SPEECH_TO_SPEECH_REALTIME",
+    "soulx-duplug-lychee-fd-bayling-duplex": "SOULX_DUPLUG__LYCHEE_FD__BAYLING_DUPLEX",
+    "full-duplex-bench-v3-3e799c45a045256f47d5f1c9cda90157e2d2ec9e": "FULL_DUPLEX_BENCH_V3_3E799C45A045256F47D5F1C9CDA90157E2D2EC9E",
 }
 
 EVIDENCE_SCOPE_ALIASES = {
@@ -122,6 +127,8 @@ EVIDENCE_SCOPE_ALIASES = {
     "target-runtime-model-benchmark": "TARGET_RUNTIME_MODEL_BENCHMARK",
     "german-e2e-voice-benchmark": "GERMAN_E2E_VOICE_BENCHMARK",
     "component-benchmark": "COMPONENT_BENCHMARK",
+    "source-pinned-triage": "SOURCE_PINNED_TRIAGE",
+    "source-pinned-benchmark-donor": "SOURCE_PINNED_BENCHMARK_DONOR",
 }
 
 
