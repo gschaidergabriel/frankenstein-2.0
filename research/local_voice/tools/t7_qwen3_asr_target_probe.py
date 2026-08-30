@@ -206,7 +206,7 @@ def bootstrap_and_reexec() -> int:
             receipt.update(
                 classification="BLOCKED_VENV_CREATION",
                 bootstrap_exception=type(exc).__name__ + ": " + str(exc)[:1000],
-                pass=False,
+                **{"pass": False},
             )
             emit(receipt)
             return 0
@@ -234,7 +234,7 @@ def bootstrap_and_reexec() -> int:
                 classification="DEPENDENCY_INSTALL_FAILED",
                 pip_returncode=install.returncode,
                 pip_stderr_tail=install.stderr[-4000:],
-                pass=False,
+                **{"pass": False},
             )
             emit(receipt)
             return 0
@@ -255,7 +255,7 @@ def bootstrap_and_reexec() -> int:
             classification="CHILD_PROBE_FAILED_BEFORE_JSON_RECEIPT",
             child_returncode=child.returncode,
             child_stderr_tail=child.stderr[-4000:],
-            pass=False,
+            **{"pass": False},
         )
         emit(receipt)
         return 0
