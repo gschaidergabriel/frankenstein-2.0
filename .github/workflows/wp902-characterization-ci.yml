@@ -5,6 +5,7 @@ on:
     paths:
       - 'src/frankenstein2/whole_system_characterization.py'
       - 'tests/test_whole_system_characterization.py'
+      - 'tests/falsifier_wp902_direct_report_forgery.py'
       - '.github/workflows/wp902-characterization-ci.yml'
       - 'workpackages/active/F2-WP-902.json'
   push:
@@ -13,6 +14,7 @@ on:
     paths:
       - 'src/frankenstein2/whole_system_characterization.py'
       - 'tests/test_whole_system_characterization.py'
+      - 'tests/falsifier_wp902_direct_report_forgery.py'
       - '.github/workflows/wp902-characterization-ci.yml'
       - 'workpackages/active/F2-WP-902.json'
       - 'workpackages/reconciliations/F2-WP-902/**'
@@ -29,12 +31,17 @@ jobs:
     steps:
       - name: Checkout exact workflow ref
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
-      - name: Compile WP902 source and regressions
+      - name: Compile WP902 source, regressions and former falsifier
         run: >-
           python -m py_compile
           src/frankenstein2/whole_system_characterization.py
           tests/test_whole_system_characterization.py
+          tests/falsifier_wp902_direct_report_forgery.py
       - name: Run WP902 fail-closed suite
         env:
           PYTHONPATH: src
         run: python -m unittest -v tests.test_whole_system_characterization
+      - name: Require former direct-report forgery falsifier to stay closed
+        env:
+          PYTHONPATH: src
+        run: python -m unittest -v tests.falsifier_wp902_direct_report_forgery

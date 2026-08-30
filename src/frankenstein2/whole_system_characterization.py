@@ -4,6 +4,10 @@ Repository-component scope only. This module does not perform target-host benchm
 call models/providers/tools, execute effects, or mint runtime/whole-system acceptance.
 It admits already-measured samples only when exact source, whole-loop seal, environment,
 metric-schema and provenance identities agree, then produces an order-independent summary.
+
+Generation-2 hardening: CharacterizationReport is a factory-produced validated-summary
+projection. Direct construction is rejected so caller-invented sample-set digests and
+monotonic summary numbers cannot masquerade as output from characterize_measurements().
 """
 from __future__ import annotations
 
@@ -27,6 +31,13 @@ _QUALITY_MAX = 1_000_000
 
 class WholeSystemCharacterizationError(ValueError):
     """Reject malformed, stale, mixed-lineage or authority-inflating characterization data."""
+
+
+# Module-private capability used only by characterize_measurements after the concrete
+# measurement family has been validated and the report fields have been recomputed.
+# This is not runtime/effect authority; it is an API misuse fence preventing ordinary
+# direct construction from being confused with validated factory output.
+_REPORT_FACTORY_TOKEN = object()
 
 
 def _text(name: str, value: Any) -> str:
@@ -123,8 +134,10 @@ class CharacterizationSample:
         return _digest(self.as_dict())
 
 
-@dataclass(frozen=True, slots=True, kw_only=True)
+@dataclass(frozen=True, slots=True, kw_only=True, init=False)
 class CharacterizationReport:
+    """Validated summary projection produced only from an admitted concrete sample family."""
+
     source_bundle_sha256: str
     whole_loop_seal_sha256: str
     environment_fingerprint_sha256: str
@@ -145,6 +158,59 @@ class CharacterizationReport:
     quality_micros_max: int
     schema: str = REPORT_SCHEMA
     classification: str = REPORT_CLASSIFICATION
+
+    def __init__(
+        self,
+        *,
+        source_bundle_sha256: str,
+        whole_loop_seal_sha256: str,
+        environment_fingerprint_sha256: str,
+        metric_schema_id: str,
+        sample_count: int,
+        sample_set_sha256: str,
+        latency_ns_min: int,
+        latency_ns_p50: int,
+        latency_ns_p95: int,
+        latency_ns_max: int,
+        peak_rss_bytes_min: int,
+        peak_rss_bytes_p50: int,
+        peak_rss_bytes_p95: int,
+        peak_rss_bytes_max: int,
+        quality_micros_min: int,
+        quality_micros_p50: int,
+        quality_micros_p95: int,
+        quality_micros_max: int,
+        _factory_token: object | None = None,
+    ) -> None:
+        if _factory_token is not _REPORT_FACTORY_TOKEN:
+            raise WholeSystemCharacterizationError(
+                "CharacterizationReport cannot be constructed directly; use characterize_measurements"
+            )
+        values = {
+            "source_bundle_sha256": source_bundle_sha256,
+            "whole_loop_seal_sha256": whole_loop_seal_sha256,
+            "environment_fingerprint_sha256": environment_fingerprint_sha256,
+            "metric_schema_id": metric_schema_id,
+            "sample_count": sample_count,
+            "sample_set_sha256": sample_set_sha256,
+            "latency_ns_min": latency_ns_min,
+            "latency_ns_p50": latency_ns_p50,
+            "latency_ns_p95": latency_ns_p95,
+            "latency_ns_max": latency_ns_max,
+            "peak_rss_bytes_min": peak_rss_bytes_min,
+            "peak_rss_bytes_p50": peak_rss_bytes_p50,
+            "peak_rss_bytes_p95": peak_rss_bytes_p95,
+            "peak_rss_bytes_max": peak_rss_bytes_max,
+            "quality_micros_min": quality_micros_min,
+            "quality_micros_p50": quality_micros_p50,
+            "quality_micros_p95": quality_micros_p95,
+            "quality_micros_max": quality_micros_max,
+        }
+        for name, value in values.items():
+            object.__setattr__(self, name, value)
+        object.__setattr__(self, "schema", REPORT_SCHEMA)
+        object.__setattr__(self, "classification", REPORT_CLASSIFICATION)
+        self.__post_init__()
 
     def __post_init__(self) -> None:
         if self.schema != REPORT_SCHEMA or self.classification != REPORT_CLASSIFICATION:
@@ -194,7 +260,7 @@ def characterize_measurements(
     expected_environment_fingerprint_sha256: str,
     expected_metric_schema_id: str = DEFAULT_METRIC_SCHEMA,
 ) -> CharacterizationReport:
-    """Admit one homogeneous measurement family and summarize it deterministically."""
+    """Admit one homogeneous measurement family and produce one validated summary."""
     expected_source_bundle_sha256 = _sha("expected_source_bundle_sha256", expected_source_bundle_sha256)
     expected_whole_loop_seal_sha256 = _sha("expected_whole_loop_seal_sha256", expected_whole_loop_seal_sha256)
     expected_environment_fingerprint_sha256 = _sha(
@@ -256,4 +322,5 @@ def characterize_measurements(
         quality_micros_p50=_nearest_rank(quality, 50),
         quality_micros_p95=_nearest_rank(quality, 95),
         quality_micros_max=max(quality),
+        _factory_token=_REPORT_FACTORY_TOKEN,
     )
