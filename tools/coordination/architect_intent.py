@@ -8,6 +8,11 @@ in one repository CAS commit. Competing creators for the same intent generation
 therefore contend for the same create-only path; only one packet may become
 active for that intent generation.
 
+Generation is deliberately not caller-selectable. With no observed reservation
+only generation 1 can be compiled. A successor generation can only be derived
+from a validated previous reservation after that reservation is terminal or
+expired. An active reservation is reused rather than bypassed with generation+1.
+
 Packet nonce/route identity remains independent and is still handled by
 ``architect_packet.py`` plus the existing Clay delivery atomicity primitive.
 """
@@ -16,6 +21,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import pathlib
 import re
 import unicodedata
 from datetime import datetime, timezone
@@ -116,9 +122,7 @@ def validate_reservation(reservation: dict[str, Any]) -> None:
     expected_key = hashlib.sha256(_canonical_json(expected_intent)).hexdigest()
     if reservation.get("intent_key") != expected_key:
         raise IntentError("intent_key mismatch")
-    expected_path = (
-        f"{INTENT_ROOT}/{expected_key}/{generation:06d}.json"
-    )
+    expected_path = f"{INTENT_ROOT}/{expected_key}/{generation:06d}.json"
     if reservation.get("reservation_path") != expected_path:
         raise IntentError("reservation_path mismatch")
     packet_id = reservation.get("packet_id")
@@ -144,9 +148,50 @@ def validate_reservation(reservation: dict[str, Any]) -> None:
         raise IntentError("packet_expires_at must be non-empty")
 
 
-def compile_intent_bundle(
+def reservation_decision(
+    existing: dict[str, Any],
     *,
-    intent_id: str,
+    now: datetime | None = None,
+    terminal_packet_ids: Iterable[str] = (),
+) -> str:
+    """Classify an already-created reservation without mutating it."""
+    validate_reservation(existing)
+    if existing["packet_id"] in set(terminal_packet_ids):
+        return "NEXT_GENERATION_REQUIRED"
+    text = existing["packet_expires_at"].replace("Z", "+00:00")
+    try:
+        expires = datetime.fromisoformat(text)
+    except ValueError as exc:
+        raise IntentError("invalid packet_expires_at") from exc
+    if expires.tzinfo is None:
+        raise IntentError("packet_expires_at must include timezone")
+    current = (now or datetime.now(timezone.utc)).astimezone(timezone.utc)
+    if current >= expires.astimezone(timezone.utc):
+        return "NEXT_GENERATION_REQUIRED"
+    return "REUSE_EXISTING_PACKET"
+
+
+def _reuse_result(existing: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "decision": "REUSE_EXISTING_PACKET",
+        "intent_key": existing["intent_key"],
+        "reservation_path": existing["reservation_path"],
+        "packet_path": existing["packet_path"],
+        "reservation": existing,
+        "packet": None,
+        "atomic_repository_contract": {
+            "required": False,
+            "write_mode": "NO_WRITE_REUSE_EXISTING_PACKET",
+            "same_intent_generation_collision": "REUSE_EXISTING_PACKET",
+            "force_push_forbidden": True,
+            "packet_created_without_reservation_credit": 0,
+        },
+    }
+
+
+def _compile_generation_bundle(
+    *,
+    intent: dict[str, Any],
     generation: int,
     target: dict[str, Any],
     objective: str,
@@ -158,13 +203,8 @@ def compile_intent_bundle(
     constraints: list[str],
     evidence_refs: list[str],
 ) -> dict[str, Any]:
-    """Compile one candidate bundle; repository CAS decides the active owner."""
-    intent = canonical_intent(
-        project=project, architect_id=architect_id, intent_id=intent_id
-    )
+    """Internal generation compiler; generation selection belongs to public state logic."""
     key = hashlib.sha256(_canonical_json(intent)).hexdigest()
-    if not isinstance(generation, int) or generation < 1:
-        raise IntentError("generation must be an integer >= 1")
     claim_path = f"{INTENT_ROOT}/{key}/{generation:06d}.json"
     claim_ref = f"coordination_intent_reservation:{claim_path}"
     packet_refs = list(evidence_refs)
@@ -222,37 +262,87 @@ def compile_intent_bundle(
     }
 
 
-def reservation_decision(
-    existing: dict[str, Any],
+def compile_intent_bundle(
     *,
+    intent_id: str,
+    target: dict[str, Any],
+    objective: str,
+    action_class: str,
+    ttl_minutes: int,
+    priority: int,
+    architect_id: str,
+    project: str,
+    constraints: list[str],
+    evidence_refs: list[str],
+    existing_reservation: dict[str, Any] | None = None,
     now: datetime | None = None,
     terminal_packet_ids: Iterable[str] = (),
-) -> str:
-    """Classify an already-created reservation without mutating it."""
-    validate_reservation(existing)
-    if existing["packet_id"] in set(terminal_packet_ids):
-        return "NEXT_GENERATION_REQUIRED"
-    text = existing["packet_expires_at"].replace("Z", "+00:00")
-    try:
-        expires = datetime.fromisoformat(text)
-    except ValueError as exc:
-        raise IntentError("invalid packet_expires_at") from exc
-    if expires.tzinfo is None:
-        raise IntentError("packet_expires_at must include timezone")
-    current = (now or datetime.now(timezone.utc)).astimezone(timezone.utc)
-    if current >= expires.astimezone(timezone.utc):
-        return "NEXT_GENERATION_REQUIRED"
-    return "REUSE_EXISTING_PACKET"
+) -> dict[str, Any]:
+    """Compile only the legally next candidate generation, or reuse the active one.
+
+    There is intentionally no caller-selectable ``generation`` argument. If the
+    caller has no observed reservation, only generation 1 can be proposed; an
+    already-existing generation 1 will therefore collide at repository CAS. To
+    reach generation N+1, the caller must provide the validated observed
+    generation N and that reservation must be terminal or expired.
+    """
+    intent = canonical_intent(
+        project=project, architect_id=architect_id, intent_id=intent_id
+    )
+    generation = 1
+    if existing_reservation is not None:
+        validate_reservation(existing_reservation)
+        if existing_reservation["intent"] != intent:
+            raise IntentError("existing reservation belongs to a different coordination intent")
+        decision = reservation_decision(
+            existing_reservation,
+            now=now,
+            terminal_packet_ids=terminal_packet_ids,
+        )
+        if decision == "REUSE_EXISTING_PACKET":
+            return _reuse_result(existing_reservation)
+        if decision != "NEXT_GENERATION_REQUIRED":
+            raise IntentError(f"unsupported reservation decision: {decision}")
+        generation = existing_reservation["generation"] + 1
+
+    return _compile_generation_bundle(
+        intent=intent,
+        generation=generation,
+        target=target,
+        objective=objective,
+        action_class=action_class,
+        ttl_minutes=ttl_minutes,
+        priority=priority,
+        architect_id=architect_id,
+        project=project,
+        constraints=constraints,
+        evidence_refs=evidence_refs,
+    )
 
 
 def _dump(value: Any) -> str:
     return json.dumps(value, indent=2, sort_keys=True, ensure_ascii=False) + "\n"
 
 
+def _parse_time(value: str | None) -> datetime | None:
+    if value is None:
+        return None
+    text = value.replace("Z", "+00:00")
+    try:
+        parsed = datetime.fromisoformat(text)
+    except ValueError as exc:
+        raise IntentError("invalid --now RFC3339 timestamp") from exc
+    if parsed.tzinfo is None:
+        raise IntentError("--now must include timezone")
+    return parsed.astimezone(timezone.utc)
+
+
 def _build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument("--intent-id", required=True)
-    p.add_argument("--generation", type=int, default=1)
+    p.add_argument("--existing-reservation")
+    p.add_argument("--terminal-packet-id", action="append")
+    p.add_argument("--now")
     p.add_argument("--target-json", required=True)
     p.add_argument("--objective", required=True)
     p.add_argument("--action-class", default="COORDINATION_ONLY")
@@ -270,21 +360,32 @@ def main(argv: list[str] | None = None) -> int:
     if args.ttl_minutes <= 0:
         raise SystemExit("--ttl-minutes must be > 0")
     target = json.loads(args.target_json)
-    bundle = compile_intent_bundle(
-        intent_id=args.intent_id,
-        generation=args.generation,
-        target=target,
-        objective=args.objective,
-        action_class=args.action_class,
-        ttl_minutes=args.ttl_minutes,
-        priority=args.priority,
-        architect_id=args.architect_id,
-        project=args.project,
-        constraints=args.constraint or [],
-        evidence_refs=args.evidence_ref or [],
-    )
+    existing = None
+    if args.existing_reservation:
+        existing = json.loads(
+            pathlib.Path(args.existing_reservation).read_text(encoding="utf-8")
+        )
+    try:
+        bundle = compile_intent_bundle(
+            intent_id=args.intent_id,
+            target=target,
+            objective=args.objective,
+            action_class=args.action_class,
+            ttl_minutes=args.ttl_minutes,
+            priority=args.priority,
+            architect_id=args.architect_id,
+            project=args.project,
+            constraints=args.constraint or [],
+            evidence_refs=args.evidence_ref or [],
+            existing_reservation=existing,
+            now=_parse_time(args.now),
+            terminal_packet_ids=args.terminal_packet_id or [],
+        )
+    except IntentError as exc:
+        print(f"INTENT_REJECTED: {exc}")
+        return 2
     print(_dump(bundle), end="")
-    return 0
+    return 0 if bundle["decision"] == "CREATE_CANDIDATE" else 3
 
 
 if __name__ == "__main__":
