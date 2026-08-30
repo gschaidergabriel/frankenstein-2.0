@@ -1,0 +1,67 @@
+name: WP901 G4 persisted-row load attestation CI
+
+on:
+  pull_request:
+    paths:
+      - 'src/frankenstein2/restart_recovery_persisted_row_attestation.py'
+      - 'tests/test_restart_recovery_persisted_row_attestation.py'
+      - 'src/frankenstein2/restart_recovery_source_authentication.py'
+      - 'tests/test_restart_recovery_source_authentication.py'
+      - 'src/frankenstein2/restart_recovery_continuation.py'
+      - 'tests/test_restart_recovery_continuation.py'
+      - 'src/frankenstein2/persistent_agency_kernel.py'
+      - 'tests/test_persistent_agency_kernel.py'
+      - '.github/workflows/wp901-g4-persisted-row-load-attestation-ci.yml'
+      - 'workpackages/active/F2-WP-901.json'
+  push:
+    branches:
+      - main
+    paths:
+      - 'src/frankenstein2/restart_recovery_persisted_row_attestation.py'
+      - 'tests/test_restart_recovery_persisted_row_attestation.py'
+      - 'src/frankenstein2/restart_recovery_source_authentication.py'
+      - 'tests/test_restart_recovery_source_authentication.py'
+      - 'src/frankenstein2/restart_recovery_continuation.py'
+      - 'tests/test_restart_recovery_continuation.py'
+      - 'src/frankenstein2/persistent_agency_kernel.py'
+      - 'tests/test_persistent_agency_kernel.py'
+      - '.github/workflows/wp901-g4-persisted-row-load-attestation-ci.yml'
+      - 'workpackages/active/F2-WP-901.json'
+      - 'workpackages/reconciliations/F2-WP-901/**'
+      - 'workpackages/receipts/F2-WP-901*'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  persisted-row-load-attestation-and-regressions:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - name: Checkout exact workflow ref
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - name: Compile G2 G3 G4 and WP206 loader surfaces
+        run: >-
+          python -m py_compile
+          src/frankenstein2/restart_recovery_continuation.py
+          src/frankenstein2/restart_recovery_source_authentication.py
+          src/frankenstein2/restart_recovery_persisted_row_attestation.py
+          src/frankenstein2/persistent_agency_kernel.py
+          tests/test_restart_recovery_continuation.py
+          tests/falsifier_wp901_plan_semantic_consistency.py
+          tests/falsifier_wp901_reason_code_consistency.py
+          tests/test_restart_recovery_source_authentication.py
+          tests/test_restart_recovery_persisted_row_attestation.py
+          tests/test_persistent_agency_kernel.py
+      - name: Run accepted G2 G3 WP206 and G4 hostile regressions
+        env:
+          PYTHONPATH: src
+        run: >-
+          python -m unittest -v
+          tests.test_restart_recovery_continuation
+          tests.falsifier_wp901_plan_semantic_consistency
+          tests.falsifier_wp901_reason_code_consistency
+          tests.test_restart_recovery_source_authentication
+          tests.test_persistent_agency_kernel
+          tests.test_restart_recovery_persisted_row_attestation
