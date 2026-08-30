@@ -1,6 +1,6 @@
 """Fail-closed restart/recovery continuation contract for Frankenstein 2.0.
 
-F2-WP-901 generation 1 repository-component scope only.
+F2-WP-901 generation 2 repository-component scope only.
 
 This module deliberately does not persist a second recovery ledger, schedule work, call
 models/providers/tools, execute effects, or mint completion.  It consumes one explicit
@@ -15,6 +15,10 @@ The key restart safety rule is intentionally conservative:
   remains held for explicit re-authorization rather than blind replay;
 * VERIFIED_APPLIED requires the attempted-effect refs to be explicitly completed;
 * NO_EFFECT cannot carry effect-attempt refs.
+
+Generation 2 additionally makes the exported RestartContinuationPlan object boundary
+fail closed: direct construction must obey the same disposition/ref/effect-flag semantics
+that the canonical planner emits.
 
 Canonical durable state remains UnifiedDB.  This object is a typed recovery/control
 projection only and cannot become a competing truth/effect/completion authority.
@@ -355,6 +359,46 @@ class RestartContinuationPlan:
             raise RestartRecoveryError(
                 "candidate_generation must be direct successor of source checkpoint generation"
             )
+
+        if self.disposition == NO_CONTINUATION:
+            if (
+                self.continuation_refs
+                or self.held_refs
+                or self.requires_effect_verification
+                or self.requires_effect_reauthorization
+            ):
+                raise RestartRecoveryError(
+                    "NO_UNFINISHED_WORK requires empty refs and no effect flags"
+                )
+        elif self.disposition == CONTINUE_UNFINISHED:
+            if (
+                not self.continuation_refs
+                or self.held_refs
+                or self.requires_effect_verification
+                or self.requires_effect_reauthorization
+            ):
+                raise RestartRecoveryError(
+                    "CONTINUE_UNFINISHED requires nonempty continuation, empty held refs and no effect flags"
+                )
+        elif self.disposition == HOLD_EFFECT_VERIFICATION:
+            if (
+                self.continuation_refs
+                or not self.held_refs
+                or not self.requires_effect_verification
+                or self.requires_effect_reauthorization
+            ):
+                raise RestartRecoveryError(
+                    "HOLD_EFFECT_VERIFICATION requires held refs and verification flag only"
+                )
+        elif self.disposition == CONTINUE_WITH_EFFECT_REAUTH_HOLD:
+            if (
+                not self.held_refs
+                or self.requires_effect_verification
+                or not self.requires_effect_reauthorization
+            ):
+                raise RestartRecoveryError(
+                    "CONTINUE_WITH_EFFECT_REAUTH_HOLD requires held refs and reauthorization flag only"
+                )
 
     def as_dict(self) -> dict[str, Any]:
         return {
