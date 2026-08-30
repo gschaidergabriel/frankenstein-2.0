@@ -23,6 +23,10 @@ from frankenstein2.release_archive import (
 SOURCE_COMMIT = "c" * 40
 SOURCE_TREE = "t" * 40
 EPOCH = 1_700_000_000
+EOCD_SIGNATURE = b"PK\x05\x06"
+CENTRAL_DIRECTORY_SIGNATURE = b"PK\x01\x02"
+EOCD_SIZE = 22
+CENTRAL_DIRECTORY_FIXED_SIZE = 46
 
 
 def populate(root: Path, *, reverse: bool, mtime: int, bin_mode: int, data_mode: int) -> None:
@@ -62,6 +66,38 @@ def rewrite_member(archive_bytes: bytes, member: str, replacement: bytes) -> byt
             data = replacement if info.filename == member else source.read(info.filename)
             target.writestr(info, data)
     return output.getvalue()
+
+
+def prepend_prefix_and_rebase_absolute_offsets(archive_bytes: bytes, prefix: bytes) -> bytes:
+    """Construct a valid self-extracting-style ZIP with an unbound leading prefix."""
+    if not prefix:
+        raise AssertionError("prefix must be non-empty")
+    eocd_offset = len(archive_bytes) - EOCD_SIZE
+    if archive_bytes[eocd_offset:eocd_offset + 4] != EOCD_SIGNATURE:
+        raise AssertionError("fixture is not canonical no-comment classic ZIP")
+
+    central_directory_size = int.from_bytes(archive_bytes[eocd_offset + 12:eocd_offset + 16], "little")
+    central_directory_offset = int.from_bytes(archive_bytes[eocd_offset + 16:eocd_offset + 20], "little")
+    delta = len(prefix)
+    mutated = bytearray(prefix + archive_bytes)
+    new_eocd_offset = eocd_offset + delta
+    new_central_directory_offset = central_directory_offset + delta
+    mutated[new_eocd_offset + 16:new_eocd_offset + 20] = new_central_directory_offset.to_bytes(4, "little")
+
+    cursor = new_central_directory_offset
+    end = new_central_directory_offset + central_directory_size
+    while cursor < end:
+        if mutated[cursor:cursor + 4] != CENTRAL_DIRECTORY_SIGNATURE:
+            raise AssertionError("unexpected central-directory layout in deterministic fixture")
+        local_header_offset = int.from_bytes(mutated[cursor + 42:cursor + 46], "little")
+        mutated[cursor + 42:cursor + 46] = (local_header_offset + delta).to_bytes(4, "little")
+        filename_length = int.from_bytes(mutated[cursor + 28:cursor + 30], "little")
+        extra_length = int.from_bytes(mutated[cursor + 30:cursor + 32], "little")
+        comment_length = int.from_bytes(mutated[cursor + 32:cursor + 34], "little")
+        cursor += CENTRAL_DIRECTORY_FIXED_SIZE + filename_length + extra_length + comment_length
+    if cursor != end:
+        raise AssertionError("central-directory traversal did not close exactly")
+    return bytes(mutated)
 
 
 class ReleaseArchiveTests(unittest.TestCase):
@@ -155,7 +191,7 @@ class ReleaseArchiveTests(unittest.TestCase):
             populate(root, reverse=False, mtime=0, bin_mode=0o755, data_mode=0o644)
             result = build(root, self.policy())
             mutated = result.archive_bytes + b"UNBOUND_TRAILING_DATA"
-            with self.assertRaisesRegex(ReleaseArchiveError, "trailing/unbound"):
+            with self.assertRaisesRegex(ReleaseArchiveError, "canonical deterministic encoding"):
                 verify_release_archive(mutated, policy=self.policy())
 
     def test_forged_terminal_eocd_cannot_hide_unbound_trailer(self) -> None:
@@ -165,7 +201,26 @@ class ReleaseArchiveTests(unittest.TestCase):
             result = build(root, self.policy())
             fake_eocd = b"PK\x05\x06" + b"\x00" * 18
             mutated = result.archive_bytes + b"UNBOUND" + fake_eocd
-            with self.assertRaisesRegex(ReleaseArchiveError, "central directory"):
+            with self.assertRaises(ReleaseArchiveError):
+                verify_release_archive(mutated, policy=self.policy())
+
+    def test_unbound_leading_bytes_fail_closed_without_expected_receipt(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            populate(root, reverse=False, mtime=0, bin_mode=0o755, data_mode=0o644)
+            result = build(root, self.policy())
+            mutated = b"UNBOUND_LEADING_DATA" + result.archive_bytes
+            with self.assertRaisesRegex(ReleaseArchiveError, "canonical deterministic encoding"):
+                verify_release_archive(mutated, policy=self.policy())
+
+    def test_rebased_unbound_prefix_fails_closed_without_expected_receipt(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            populate(root, reverse=False, mtime=0, bin_mode=0o755, data_mode=0o644)
+            result = build(root, self.policy())
+            mutated = prepend_prefix_and_rebase_absolute_offsets(result.archive_bytes, b"UNBOUND_SELF_EXTRACTING_PREFIX")
+            self.assertNotEqual(mutated, result.archive_bytes)
+            with self.assertRaisesRegex(ReleaseArchiveError, "canonical deterministic encoding"):
                 verify_release_archive(mutated, policy=self.policy())
 
     def test_wrong_expected_receipt_fails_closed(self) -> None:
