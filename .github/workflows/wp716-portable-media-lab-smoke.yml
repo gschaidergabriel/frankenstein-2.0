@@ -13,7 +13,7 @@ permissions:
 jobs:
   linux-smoke:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 25
     env:
       PYTHONPATH: src
       F2_MEDIA_LAB_ROOT: /tmp/f2-media-lab-hosted
@@ -23,35 +23,41 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Install media tools
+      - name: Run actual VPS bootstrap on clean Ubuntu
         shell: bash
         run: |
           set -Eeuo pipefail
-          sudo apt-get update
-          sudo apt-get install -y ffmpeg sox espeak-ng python3-pip
-          python3 -m pip install --user pytest yt-dlp
+          bash scripts/bootstrap_vps_multimodal_lab.sh | tee /tmp/wp716-bootstrap.txt
           echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+          test -x "$HOME/.local/bin/f2-media"
+          test -f "$HOME/.local/share/frankenstein2/media_lab/media_lab_store.py"
+          grep -q "$HOME/.local/share/frankenstein2/media_lab/media_lab_store.py" "$HOME/.local/bin/f2-media"
+          if grep -q "$GITHUB_WORKSPACE/src/frankenstein2/media_lab_store.py" "$HOME/.local/bin/f2-media"; then
+            echo 'REFUSE: wrapper still depends on Actions checkout path' >&2
+            exit 22
+          fi
 
       - name: Run store tests
         shell: bash
         run: |
           set -Eeuo pipefail
+          python3 -m pip install --user pytest
           python3 -m pytest -q tests/test_media_lab_store.py | tee /tmp/wp716-hosted-pytest.txt
 
-      - name: Generate and download all media classes
+      - name: Generate and download all media classes through installed CLI
         shell: bash
         run: |
           set -Eeuo pipefail
-          python3 -m frankenstein2.media_lab_store tone --frequency 997 --seconds 1 | tee /tmp/tone.json
-          python3 -m frankenstein2.media_lab_store generate image --size 1280x720 | tee /tmp/image.json
-          python3 -m frankenstein2.media_lab_store generate video --seconds 3 --size 1280x720 --fps 24 | tee /tmp/video.json
-          python3 -m frankenstein2.media_lab_store speech 'Frankenstein, teste Wahrnehmung und Sprache.' --voice de | tee /tmp/speech.json
-          python3 -m frankenstein2.media_lab_store fetch 'https://raw.githubusercontent.com/github/explore/main/topics/python/python.png' | tee /tmp/fetch.json
-          python3 -m frankenstein2.media_lab_store status | tee /tmp/status.json
-          python3 -m frankenstein2.media_lab_store gc --aggressive | tee /tmp/gc.json
-          python3 -m frankenstein2.media_lab_store status | tee /tmp/final.json
+          f2-media tone --frequency 997 --seconds 1 | tee /tmp/tone.json
+          f2-media generate image --size 1280x720 | tee /tmp/image.json
+          f2-media generate video --seconds 3 --size 1280x720 --fps 24 | tee /tmp/video.json
+          f2-media speech 'Frankenstein, teste Wahrnehmung und Sprache.' --voice de | tee /tmp/speech.json
+          f2-media fetch 'https://raw.githubusercontent.com/github/explore/main/topics/python/python.png' | tee /tmp/fetch.json
+          f2-media status | tee /tmp/status.json
+          f2-media gc --aggressive | tee /tmp/gc.json
+          f2-media status | tee /tmp/final.json
 
-      - name: Verify output and hard cap
+      - name: Verify output stable install and hard cap
         shell: bash
         run: |
           set -Eeuo pipefail
@@ -64,7 +70,9 @@ jobs:
           s=json.loads(Path('/tmp/final.json').read_text())
           assert s['max_bytes'] == 10 * 1024**3, s
           assert s['usage_bytes'] <= s['max_bytes'], s
-          print('WP716_PORTABLE_MEDIA_LAB_SMOKE=PASS')
+          installed=Path.home()/'.local/share/frankenstein2/media_lab/media_lab_store.py'
+          assert installed.is_file()
+          print('WP716_PORTABLE_BOOTSTRAP_SMOKE=PASS')
           PY
 
       - name: Write receipt
@@ -72,7 +80,7 @@ jobs:
         shell: bash
         run: |
           python3 - <<'PY'
-          import json, os, pathlib, shutil, subprocess
+          import json, os, pathlib, shutil
           def read(p):
               q=pathlib.Path(p); return q.read_text(errors='replace') if q.exists() else ''
           def j(p):
@@ -83,10 +91,13 @@ jobs:
               path=shutil.which(t)
               tools[t]={'available':bool(path),'path':path}
           final=j('/tmp/final.json') or {}
+          installed=pathlib.Path.home()/'.local/share/frankenstein2/media_lab/media_lab_store.py'
           receipt={
-            'schema':'F2_WP716_PORTABLE_MEDIA_LAB_SMOKE/v1',
+            'schema':'F2_WP716_PORTABLE_BOOTSTRAP_SMOKE/v1',
             'source_sha':os.environ.get('GITHUB_SHA'),
             'runner':'ubuntu-latest',
+            'bootstrap_ran':bool(read('/tmp/wp716-bootstrap.txt')),
+            'stable_install_exists':installed.is_file(),
             'pytest_pass':'4 passed' in read('/tmp/wp716-hosted-pytest.txt'),
             'tone':bool(j('/tmp/tone.json')),
             'image':bool(j('/tmp/image.json')),
@@ -108,9 +119,10 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: wp716-portable-media-lab-${{ github.run_id }}
+          name: wp716-portable-bootstrap-${{ github.run_id }}
           path: |
             /tmp/wp716-portable-receipt.json
+            /tmp/wp716-bootstrap.txt
             /tmp/wp716-hosted-pytest.txt
             /tmp/final.json
           if-no-files-found: warn
