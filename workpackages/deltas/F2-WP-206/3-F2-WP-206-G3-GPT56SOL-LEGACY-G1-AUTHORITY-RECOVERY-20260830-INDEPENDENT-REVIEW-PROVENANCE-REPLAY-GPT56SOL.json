@@ -1,0 +1,42 @@
+{
+  "schema": "FRANKENSTEIN2_WORKPACKAGE_DELTA/v1",
+  "workpackage_id": "F2-WP-206",
+  "generation": 3,
+  "claim_id": "F2-WP-206-G3-GPT56SOL-LEGACY-G1-AUTHORITY-RECOVERY-20260830",
+  "worker_id": "GPT-5.6-Sol-TRIGGER4-REVIEW",
+  "trigger": "4",
+  "base_commit": "665fcb0a632cb1b11b1a8f102ce44d120a5e9617",
+  "observed_main_commit": "665fcb0a632cb1b11b1a8f102ce44d120a5e9617",
+  "owned_paths": [
+    "workpackages/deltas/F2-WP-206/3-F2-WP-206-G3-GPT56SOL-LEGACY-G1-AUTHORITY-RECOVERY-20260830-INDEPENDENT-REVIEW-PROVENANCE-REPLAY-GPT56SOL.json"
+  ],
+  "result_class": "REVIEW_ONLY",
+  "source_commits": [
+    "736a0907bdd35056d56f1ed0f75ea11e8457b8c1"
+  ],
+  "receipts": [
+    "CI run 33301728380 / job 99231053013 as declared by merge commit; repository-component scope only"
+  ],
+  "falsifiers": [
+    {
+      "id": "G3_F7_REPEAT_PROVENANCE_CONFLICT",
+      "observed_source_behavior": "The existing-recovery branch validates recorded checkpoint digest, recorded legacy receipt, rebound receipt and stored receipt, but returns the originally recorded recovery_provenance_ref without comparing it to the caller-supplied recovery_provenance_ref on the repeat invocation.",
+      "required_discriminator": "After one successful recovery with provenance A, a repeat call for the same checkpoint and legacy receipt using provenance B must not silently succeed as an exact idempotent replay. It should fail with an explicit provenance conflict, unless the contract is deliberately changed to define provenance as informational-only for repeats and that weaker semantic is separately reconciled.",
+      "rationale": "The recovery_id includes recovery_provenance_ref, and the recovery record represents externally witnessed migration authority. Treating a different caller provenance as the same exact recovery while returning the old provenance creates an identity/authorization ambiguity."
+    }
+  ],
+  "positive_review_findings": [
+    "Wrong externally expected legacy receipt is compared against the stored row before mutation.",
+    "Checkpoint digest and typed replay are validated before authority rebinding.",
+    "Path/device/inode are validated before mutation.",
+    "The one-per-checkpoint recovery record prevents a second authority transition.",
+    "Post-migration stored authority drift fails closed and cannot be recovered over through the normal repeated historical-receipt path.",
+    "Existing executable regressions cover accepted-G1 recovery, wrong external receipt, payload tamper, file-identity tamper, idempotent exact legacy-receipt repeat, and post-migration authority drift."
+  ],
+  "contradictions": [],
+  "proposed_state_change": "NONE_REVIEW_INPUT_ONLY",
+  "completion_deficit": "Before terminal G3 reconciliation, either execute a repeat-provenance-conflict regression and fail closed on mismatch, or explicitly weaken/document the repeat provenance contract and reconcile that semantic choice. Active pointer should not be terminalized solely from merge/CI existence.",
+  "next_exact_action": "Mutation-authority/reconciliation writer should consume this REVIEW_ONLY discriminator before terminalizing F2-WP-206 G3. Preserve repository-component-only credit even if green.",
+  "evidence_boundary": "Static source review plus existing repository-CI metadata; no target runtime, physical GRID10, semantic GWT/J-Space, provider/model, effect, completion, training or whole-system credit.",
+  "created_at_utc": "2026-08-30T08:32:00Z"
+}
