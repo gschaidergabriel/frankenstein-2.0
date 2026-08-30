@@ -1,0 +1,77 @@
+{
+  "schema": "T7_SOURCE_AUDIT/v1",
+  "trigger": "7",
+  "research_id": "T7-TURN-006",
+  "objective": "E1_NAMO_MULTILINGUAL_GERMAN_SOURCE_ELIGIBILITY",
+  "semantic_key": "ef624c13104dfa4990918906f59104fd558197c8842f60ace298f23567237c6f",
+  "worker": "GPT-5.6-Sol-TRIGGER7",
+  "observed_date": "2026-08-30",
+  "subject": "NAMO_TURN_DETECTOR_V1_MULTILINGUAL",
+  "classification": "SOURCE_PINNED_GERMAN_SEMANTIC_EOU_CANDIDATE",
+  "source_pins": {
+    "upstream_code_repo": {
+      "repository": "videosdk-live/NAMO-Turn-Detector-v1",
+      "main_sha_observed": "75ddd0e858ef3fc28a65dbc48bb74d7e9b462f3c",
+      "research_doc": "RESEARCH.md",
+      "license_claim": "Apache-2.0"
+    },
+    "model_repo": {
+      "repository": "videosdk-live/Namo-Turn-Detector-v1-Multilingual",
+      "revision_observed": "59245aac1f0a0f170277ebecc32ddaea418083b4",
+      "artifact": "model_quant.onnx",
+      "artifact_sha256": "67be31dac7c49abd43a277a105222c9031a0e22ac37f0e22dab395f68b318fc9",
+      "artifact_size_bytes": 308985714,
+      "license": "apache-2.0"
+    }
+  },
+  "source_claims_not_reproduced": {
+    "multilingual_latency_ms": "<29",
+    "multilingual_average_accuracy": 0.9025,
+    "german_accuracy": 0.9425,
+    "german_precision": 0.9135,
+    "german_recall": 0.9772,
+    "german_f1": 0.9443,
+    "german_samples": 1322,
+    "languages": 23,
+    "encoder": "mmBERT",
+    "runtime": "ONNX Runtime / quantized model"
+  },
+  "architectural_interpretation": {
+    "input_dependency": "ASR text stream X_1:t",
+    "appropriate_role": "semantic end-of-utterance/turn-transfer gate after or alongside streaming ASR",
+    "not_proven_role": "standalone acoustic speech-presence VAD replacement",
+    "recommended_f2_composition": "acoustic VAD + streaming ASR + NAMO semantic EOU + local brain + cancellable TTS",
+    "reason": "The upstream formulation computes P(EOU|ASR text prefix); acoustic wake/presence/barge-in still require an audio-side signal."
+  },
+  "hypothesis": "Adding a semantic EOU gate to the German local-solo pipeline can reduce fixed-silence response delay and false turn cuts without adding material compute latency.",
+  "counterhypothesis": "ASR partial instability, colloquial German, fillers, punctuation artifacts, or transcript lag can erase the upstream accuracy/latency advantage and make a tuned acoustic endpoint policy better end-to-end.",
+  "required_next_discriminator": {
+    "scope": "TARGET_RUNTIME_COMPONENT_BENCHMARK",
+    "target": "clay-direct-dev",
+    "dataset": "German conversational prefixes including hesitations, enumerations, self-corrections, conjunction tails, and true turn endings",
+    "compare": [
+      "current silence/VAD endpoint policy",
+      "VAD + NAMO multilingual semantic EOU"
+    ],
+    "measure": [
+      "false_cut_rate",
+      "late_turn_rate",
+      "endpoint_decision_latency_ms",
+      "ASR-final-to-response-start_ms",
+      "CPU/RAM",
+      "German failure classes"
+    ],
+    "dispatch_now": false,
+    "dispatch_blocker": "Existing self-hosted runner admission/liveness discriminator is still the active infrastructure gate; do not add duplicate queued runtime work."
+  },
+  "evidence_credit": 1,
+  "runtime_credit": 0,
+  "integration_credit": 0,
+  "acceptance_credit": 0,
+  "trigger4_acceptance_credit": 0,
+  "notes": [
+    "Upstream metrics are source claims, not F2 measurements.",
+    "The source pin is useful even while runtime execution is blocked because it defines an exact artifact and a falsifiable integration role.",
+    "No paid provider/API route is required for this candidate."
+  ]
+}
