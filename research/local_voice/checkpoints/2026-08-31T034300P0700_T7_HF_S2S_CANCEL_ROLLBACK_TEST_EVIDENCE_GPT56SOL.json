@@ -1,0 +1,75 @@
+{
+  "schema": "T7_CONTINUATION_CHECKPOINT_V1",
+  "trigger": "7",
+  "created_at": "2026-08-31T03:43:00+07:00",
+  "organ": "GPT-5.6-Sol",
+  "mode": "REVIEW_ONLY_CANDIDATE_FALSIFIER",
+  "canonical_scope": "Frankenstein 2.0 local realtime voice research",
+  "research_id": "T7-FD-RTCOMPAT-001",
+  "semantic_key": "8c53f25ed47c458bb727dd4dc82f788241cee699e428c4d97401a965a4eb375e",
+  "f2_head_observed_before_checkpoint": "3caccb669701f981f37cc62dd2743a1bf9157b47",
+  "pinned_upstream": {
+    "repository": "huggingface/speech-to-speech",
+    "revision": "3986f453012a131632eee4731995474046846794"
+  },
+  "new_nonduplicate_evidence": [
+    {
+      "id": "UT1_CANCELLED_RESPONSE_REJECTS_LATE_PROVISIONAL_ITEMS_ATOMICALLY",
+      "class": "PINNED_UPSTREAM_UNIT_TEST",
+      "finding": "The pinned Chat test suite explicitly rolls back a response key before late assistant/tool provisional items arrive and asserts the late write is rejected atomically and the chat remains empty."
+    },
+    {
+      "id": "UT2_ROLLBACK_REMOVES_EAGER_TEXT_AND_TOOL_ITEMS",
+      "class": "PINNED_UPSTREAM_UNIT_TEST",
+      "finding": "The pinned Chat test suite adds eager assistant text plus a function call, rolls the response back, and asserts the chat buffer and provisional-generation map are empty."
+    },
+    {
+      "id": "UT3_ROLLBACK_PRESERVES_PRIOR_COMMITTED_USER_HISTORY",
+      "class": "PINNED_UPSTREAM_UNIT_TEST",
+      "finding": "A pinned test keeps a previously committed user item while removing provisional unseen assistant/tool items and pending tool ownership for the cancelled response."
+    },
+    {
+      "id": "UT4_CANCELLED_CONTENT_EXCLUDED_FROM_COMPACTION",
+      "class": "PINNED_UPSTREAM_UNIT_TEST",
+      "finding": "A pinned compaction test rolls back a provisional cancelled answer before compaction and asserts that cancelled content is absent both from compactor input and serialized chat."
+    },
+    {
+      "id": "SRC1_CANCEL_PATH_CALLS_ROLLBACK",
+      "class": "PINNED_UPSTREAM_SOURCE",
+      "finding": "ResponseHandler.finish_response calls chat.rollback_provisional_generation for cancelled, failed and incomplete responses before deferred client items are flushed; Chat tombstones cancelled response keys so later provisional writes are rejected."
+    }
+  ],
+  "reconciled_hypothesis": {
+    "previous_risk": "A no-op conversation.item.truncate may allow unheard assistant semantics to remain in local server conversation history and influence the next turn.",
+    "narrowed_risk": "At the pinned revision, source plus unit tests show an explicit whole-response rollback path that removes provisional assistant/tool history and rejects late writes. Because F2 marks every interrupted response non-commit-eligible, whole-response rollback is semantically compatible in principle. The remaining uncertainty is runtime ordering across real WebSocket/WebRTC playback, TTS queues, tool results and reconnect/cancellation races.",
+    "status": "SOURCE_AND_UNIT_TEST_SUPPORTED_RUNTIME_HYPOTHESIS",
+    "architecture_rewrite_required": false
+  },
+  "runtime_falsifier_delta": {
+    "hf02_refinement": "After partial playback and response.cancel, assert that the entire interrupted assistant response and its provisional tool calls are absent from the next-turn local Chat/model context, not merely the unheard suffix. This matches F2 non-commit policy for interrupted output.",
+    "hf03_refinement": "Treat conversation.item.truncate as protocol-surface compatibility only. Its no-op is acceptable for current F2 semantics only while response.cancel rollback remains authoritative and the next-turn model context proves no interrupted response survives. If F2 later adopts partial-heard-prefix persistence, this assumption must be reopened.",
+    "must_exercise": [
+      "partial audible response followed by response.cancel",
+      "late assistant provisional write after cancellation",
+      "late old-turn tool call/result after cancellation",
+      "duplicate and stale truncate after cancellation",
+      "next-turn exact chat/model-context capture",
+      "WebSocket and WebRTC separately because playback clear ownership differs"
+    ]
+  },
+  "credit_boundary": {
+    "source_review_credit": 1,
+    "upstream_unit_test_evidence_credit": 1,
+    "executed_local_protocol_credit": 0,
+    "german_e2e_voice_credit": 0,
+    "trigger4_acceptance_credit": 0,
+    "whole_voice_system_credit": 0
+  },
+  "coordination": {
+    "duplicate_semantic_lane_created": false,
+    "new_runtime_dispatch_created": false,
+    "trigger4_mutation_authority_claimed": false,
+    "existing_falsifier": "research/local_voice/falsifiers/2026-08-31_HF_S2S_REALTIME_HEARD_BOUNDARY_PROTOCOL_FALSIFIER_GPT56SOL.json"
+  },
+  "next_exact_action": "Do not open another Trigger-7 architecture lane. Route the existing T7-FD-RTCOMPAT-001 HF01-HF05 runtime packet through the admitted Trigger4/VPS execution authority, with HF02/HF03 interpreted using whole-response rollback semantics. Promote only executed scope; source and unit tests are not runtime acceptance."
+}
