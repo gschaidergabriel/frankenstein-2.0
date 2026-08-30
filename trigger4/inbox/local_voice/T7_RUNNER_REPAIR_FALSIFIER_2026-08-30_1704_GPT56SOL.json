@@ -1,0 +1,61 @@
+{
+  "schema": "TRIGGER7_TO_TRIGGER4_RUNNER_REPAIR_FALSIFIER/v1",
+  "trigger": "7",
+  "created_local_time": "2026-08-30T17:04:00+07:00",
+  "producer": "GPT-5.6-Sol Trigger 7",
+  "scope": "SMALLEST_MISSING_DEPENDENCY_FOR_EXISTING_T7_ASR_004_RUNTIME_GATE",
+  "existing_run": 33292903286,
+  "do_not_dispatch_duplicate": true,
+  "observed_control_plane": {
+    "queued_controller_runs": 27,
+    "in_progress_controller_runs": 0,
+    "base_self_hosted_comparison_run": 33301648871,
+    "base_self_hosted_comparison_status": "queued"
+  },
+  "primary_sources": [
+    {
+      "title": "GitHub Docs - Monitoring and troubleshooting self-hosted runners",
+      "url": "https://docs.github.com/en/actions/how-tos/manage-runners/self-hosted-runners/monitor-and-troubleshoot",
+      "relevant_rules": [
+        "Runner status Idle means connected and ready; Active means executing; Offline means not connected, which can result from host offline, runner app not running, or inability to communicate with GitHub.",
+        "Linux runner service state can be diagnosed through the runner .service file/systemctl and journalctl.",
+        "Runner application logs are under _diag and begin Runner_; per-job logs begin Worker_."
+      ]
+    },
+    {
+      "title": "GitHub Docs - Configuring the self-hosted runner application as a service",
+      "url": "https://docs.github.com/en/actions/how-tos/manage-runners/self-hosted-runners/configure-the-application",
+      "relevant_rules": [
+        "On Linux/systemd, svc.sh is the supported service management surface after registration.",
+        "sudo ./svc.sh status checks service state; sudo ./svc.sh start starts a stopped service."
+      ]
+    }
+  ],
+  "minimal_discriminator_order": [
+    "On the actual registered runner host, locate the actions.runner service without changing registration: inspect the runner .service file if present, otherwise systemctl --type=service and filter actions.runner.",
+    "Check service state with the existing runner installation's sudo ./svc.sh status or systemctl status for the discovered service.",
+    "If stopped/failed, inspect recent journalctl for the exact actions.runner service and the newest _diag/Runner_*.log before mutation.",
+    "If service is healthy but GitHub still assigns zero jobs, inspect Runner_ logs for session/auth/network/registration/access failures; distinguish transport failure from repository/runner-group eligibility failure.",
+    "Only after the root class is observed, perform the smallest repair: start/restart service for service failure; repair network for connectivity failure; repair registration/access only when evidence identifies that class.",
+    "Do not print, persist, or commit runner registration tokens/PATs/secrets. If an authenticated config connectivity check is needed, consume credentials from an already-authorized secret surface without echoing them.",
+    "After repair, do not create another ASR workflow. Observe existing run 33292903286 acquire a runner and persist its terminal clay-direct-dev receipt."
+  ],
+  "acceptance_for_runner_repair": {
+    "minimum": [
+      "existing run 33292903286 transitions out of queued because an eligible runner accepts it",
+      "job gets nonzero observed steps",
+      "receipt binds actual target_environment=clay-direct-dev"
+    ],
+    "not_granted": [
+      "Qwen3-ASR quality PASS before model load/inference receipt",
+      "German E2E voice PASS",
+      "Trigger4 whole-system acceptance"
+    ]
+  },
+  "credit": {
+    "runner_repair_runtime_credit": 0,
+    "qwen3_asr_target_runtime_credit": 0,
+    "german_e2e_credit": 0,
+    "whole_system_credit": 0
+  }
+}
