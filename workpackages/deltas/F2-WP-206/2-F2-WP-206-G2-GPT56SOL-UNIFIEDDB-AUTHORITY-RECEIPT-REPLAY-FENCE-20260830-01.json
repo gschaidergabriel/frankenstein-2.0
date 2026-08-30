@@ -1,0 +1,64 @@
+{
+  "schema": "FRANKENSTEIN2_WORKPACKAGE_DELTA/v1",
+  "workpackage_id": "F2-WP-206",
+  "generation": 2,
+  "claim_id": "F2-WP-206-G2-GPT56SOL-UNIFIEDDB-AUTHORITY-RECEIPT-REPLAY-FENCE-20260830",
+  "authority_epoch": "9.13",
+  "status": "CANDIDATE_PENDING_CANONICAL_PR_CI",
+  "problem": {
+    "retained_counterevidence_pr": 638,
+    "retained_counterevidence_run": 33295280134,
+    "demonstrated_gap": "persisted unifieddb_authority_receipt_sha256 was not enforced on checkpoint replay"
+  },
+  "counterhypothesis_result": {
+    "hypothesis": "the complete UnifiedDBFingerprint.receipt_sha256 can serve as a restart-stable authority identity",
+    "result": "FALSIFIED",
+    "canonical_pr_failed_run": 33295596984,
+    "failed_invariants": [
+      "legitimate subprocess restart replay",
+      "checkpoint payload tamper reaches checkpoint digest fence",
+      "wrong-parent transactional rejection can first replay current checkpoint"
+    ],
+    "reason": "UnifiedDBFingerprint intentionally includes mutable DB observation fields such as file digest, size/timestamps, schema identity and page-count-related state; legitimate writes can change that evidence without changing canonical database authority."
+  },
+  "bounded_repair": {
+    "authority_binding_schema": "FRANKENSTEIN2_UNIFIEDDB_AUTHORITY_BINDING/v1",
+    "stable_inputs": [
+      "resolution.schema",
+      "fingerprint.schema",
+      "canonical real database path",
+      "database device identity",
+      "database inode identity"
+    ],
+    "excluded_mutable_observation_fields": [
+      "database content sha256",
+      "size",
+      "mtime_ns",
+      "ctime_ns",
+      "sqlite schema digest/version",
+      "page count",
+      "WAL/SHM presence"
+    ],
+    "invariant": "UNIFIEDDB_AUTHORITY_IDENTITY != MUTABLE_UNIFIEDDB_CONTENT_OBSERVATION != AGENCY_CHECKPOINT_STATE_IDENTITY"
+  },
+  "pre_pr_ci_verification": {
+    "workflow_run_id": 33295815299,
+    "result": "PASS",
+    "scope": "canonical branch patch application plus existing WP206 restart suite plus exact G2 authority-receipt falsifier suite",
+    "durable_source_commit": "f13e64688a99c450cb023bdcdafd21e90be413c4"
+  },
+  "credit_ceiling": {
+    "repository_source_test_ci_only": true,
+    "runtime_execution_observed": false,
+    "target_vps_credit": 0,
+    "physical_grid10_credit": 0,
+    "gwt_runtime_credit": 0,
+    "jspace_runtime_credit": 0,
+    "provider_model_credit": 0,
+    "effect_credit": 0,
+    "completion_credit": 0,
+    "training_credit": 0,
+    "whole_system_acceptance": false
+  },
+  "next_exact_action": "Run the ordinary pull-request-triggered WP206 CI at the exact post-delta branch head against current main; only if all prior and G2 regressions pass may generation 2 be terminally reconciled at repository-hosted CI scope."
+}
