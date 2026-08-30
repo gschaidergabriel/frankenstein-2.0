@@ -1,0 +1,81 @@
+{
+  "schema": "FRANKENSTEIN2_TRIGGER6_EXPERIMENT_RESULT/v1",
+  "trigger": "6",
+  "research_id": "R6-20260830-WP901-SAME-INODE-LIVE-DRIFT-SQLITE-SNAPSHOT-GPT56SOL-01",
+  "claim_target": "E3_CLAIM_REPRODUCED_WP901_WAL_SNAPSHOT_INTERLEAVE",
+  "status": "E3_CLAIM_REPRODUCED_LOCAL_MECHANISM_ONLY",
+  "executed_at": "2026-08-30T19:29:00+07:00",
+  "claim": {
+    "path": "research/tool_intelligence/claims/R6-20260830-WP901-SAME-INODE-LIVE-DRIFT-SQLITE-SNAPSHOT-GPT56SOL-01/E3_CLAIM_REPRODUCED_WP901_WAL_SNAPSHOT_INTERLEAVE.json",
+    "claim_commit": "fe7f2848052993c0c0af67fa47ef2990411f0986"
+  },
+  "source": {
+    "path": "research/tool_intelligence/experiments/R6_WP901_WAL_SNAPSHOT_INTERLEAVE_E3.py",
+    "commit": "c5c814c3a967aeae13153e085a67eceb1f861605",
+    "github_blob_sha1": "9c3832a8ed44d43917d54b452b83f1cf8b358498",
+    "executed_copy_sha256": "d0e724694d725e16c69ae83c2f2aab1b2f925a3f52ac39352b44f915a641433b"
+  },
+  "environment": {
+    "surface": "ChatGPT isolated local container",
+    "python_version": "3.13.5",
+    "sqlite_version": "3.46.1",
+    "journal_mode": "wal",
+    "classification": "LOCAL_SQLITE_MECHANISM_REPRODUCTION_NOT_F2_TARGET_RUNTIME"
+  },
+  "method": {
+    "runs": 20,
+    "reader": "Connection A begins a read transaction and reads row t[1]=v1",
+    "writer": "Connection B begins IMMEDIATE, updates t[1] to v2 and commits while A remains in its read transaction",
+    "reader_recheck": "A reads PRAGMA main.data_version and row t[1] again before committing, then commits and reads both again",
+    "acceptance": "Inside A's read transaction both row reads remain v1 and data_version remains unchanged; after A ends the transaction data_version advances and the row read becomes v2"
+  },
+  "result": {
+    "runs": 20,
+    "matching_expected": 20,
+    "all_match": true,
+    "unique_observation": {
+      "first_read": "v1",
+      "second_read_same_tx": "v1",
+      "read_after_tx": "v2",
+      "data_version_before_writer": 2,
+      "data_version_after_writer_inside_reader_tx": 2,
+      "data_version_after_reader_tx": 3
+    },
+    "captured_output_sha256": "8592c943a9c9eae176a150c1200096e5182ea9090db81500710fcff2a24353c7"
+  },
+  "interpretation": [
+    {
+      "classification": "MEASURED_LOCAL_MECHANISM",
+      "claim": "A compliant SQLite WAL writer can commit a newer row value while an already-open reader transaction continues to observe the old row snapshot until that reader transaction ends."
+    },
+    {
+      "classification": "MEASURED_LOCAL_MECHANISM",
+      "claim": "On this SQLite 3.46.1 / Python 3.13.5 environment, the reader connection's PRAGMA main.data_version also remained unchanged while the reader transaction was open and reflected the external commit only after the transaction ended."
+    },
+    {
+      "classification": "F2_ARCHITECTURE_INFERENCE",
+      "claim": "WP901 G4's same-transaction load-plus-row-reread is compatible with concurrent compliant WAL commits without mixing snapshots. A data_version witness should be treated at the CanonicalPersistentAgencyStore observation boundary, not inserted as a second mid-snapshot WP901 authority."
+    }
+  ],
+  "counterevidence_and_limits": [
+    "This does not prove F2 code executed on target host or VPS.",
+    "This does not prove rollback/freshness or newest-checkpoint authority.",
+    "This does not cover raw database/WAL tamper or broken filesystem/VFS locking.",
+    "The measured data_version timing is environment-specific mechanism evidence and should remain bounded until reproduced on the admitted target runtime/build if that exact timing becomes an acceptance dependency.",
+    "Repository CI counterevidence for WP206 G6 separately proves that database-wide data_version hard failure creates cross-subsystem false positives; this local E3 does not replace that stronger F2-specific evidence."
+  ],
+  "evidence_ceiling": {
+    "level": "E3_CLAIM_REPRODUCED",
+    "research_credit": 1,
+    "local_mechanism_reproduction_credit": 1,
+    "architecture_mapping_credit": 1,
+    "f2_repository_component_runtime_credit": 0,
+    "target_host_runtime_credit": 0,
+    "physical_grid10_credit": 0,
+    "gwt_jspace_credit": 0,
+    "effect_credit": 0,
+    "completion_credit": 0,
+    "whole_system_credit": 0
+  },
+  "next_exact_action": "Do not duplicate WP206 G6 repair. After the existing G6 owner resolves the shared-UnifiedDB false positive and reconciles exact repository CI, re-enter current main. Only then decide whether WP901 needs a repository integration regression that injects a compliant WAL commit between its real load_checkpoint and row-evidence reread; if the store dependency plus this mechanism reproduction already make the invariant unambiguous, retain the current G4 snapshot binding and pursue the separate freshness/rollback falsifier instead."
+}
