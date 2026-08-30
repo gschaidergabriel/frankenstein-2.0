@@ -1,0 +1,109 @@
+{
+  "schema": "T7_REENTRY_CHECKPOINT/v1",
+  "trigger": "7",
+  "date": "2026-08-31",
+  "organ": "GPT-5.6-Sol",
+  "mode": "GERMAN_FIRST_LOCAL_SOLO_RESEARCH__CORTEX_FIRST_POSTREPAIR_PENDING_RUNTIME",
+  "resumed_not_restarted": true,
+  "research_id": "T7-WP715-ZERO-STEP-VPS-REENTRY",
+  "semantic_key": null,
+  "semantic_generation": null,
+  "semantic_claim_note": "No new material execution objective, duplicate workflow dispatch, source mutation, or adjacent ASR/TTS lane was opened. This invocation remains REVIEW_ONLY/CANDIDATE_FALSIFIER research while the existing WP715 Trigger-4 runtime discriminator is nonterminal.",
+  "state": "WP715_REPOSITORY_REPAIR_GREEN__CURRENT_VPS_DISCRIMINATOR_QUEUED_ZERO_STEP__ADJACENT_BREADTH_DEFERRED",
+  "authority": {
+    "trigger7_protocol": "research/local_voice/TRIGGERWORD_7_PROTOCOL.md",
+    "cortex_first_authority": "research/local_voice/authority/2026-08-31_TRIGGER7_TEXT_PACKET_COMPLETION_AUTHORITY.md",
+    "wp715_mutation_authority": "F2-WP-715-G1-GPT56SOL-PACKET-CORTEX-CONVERGENCE-20260831",
+    "trigger7_mutation_authority": false
+  },
+  "observed_heads": {
+    "f2_main_before_this_checkpoint": "5872481c46b362d0ead3436ce899687d3142a249",
+    "clay_research_main": "ce8dd54a50cfbbd0c5e5be6843d1e7244a79a0c4"
+  },
+  "wp715_runtime_gate": {
+    "repository_repair_subject": "da1c92f1d4e448e23842c74a456e0edd9d228b5c",
+    "binding_commit": "2377fa7c4abf98a912cf1341024675adc3bb0e7f",
+    "workflow": ".github/workflows/t4-packet-cortex-full-duplex-falsifier.yml",
+    "workflow_run_id": 33328707636,
+    "job_id": 99303303728,
+    "job_name": "exact-source-falsifier",
+    "job_labels": ["clay-host"],
+    "status": "queued",
+    "conclusion": null,
+    "runner_id": 0,
+    "runner_name": "",
+    "executed_steps_observed": 0,
+    "classification": "UNKNOWN_NONTERMINAL",
+    "vps_packet_execution_observed": false,
+    "packet_component_runtime_credit": 0,
+    "instruction": "Do not duplicate dispatch and do not mutate the product boundary merely because the runner has not started. Resolve this exact run or a terminal infrastructure classification first."
+  },
+  "postrepair_source_reconciliation": {
+    "voice_packet_cortex_current_blob": "46bd01d3701ff6e6119f5d0522486f5d5cc5bd93",
+    "voice_packet_cortex_recovery_current_blob": "7854afca22599b235c289020673ffa9a7c9b7d43",
+    "event_sequence_atomicity": "Current _event constructs and validates CortexEventPacket before assigning _event_seq and appending the event; the earlier pre-increment poisoning candidate is repaired in current source.",
+    "restart_fence": "Recovery still requires len(events) == event_seq and terminalizes queued/started/heard output on restart without granting acoustic credit.",
+    "evidence_scope": "CURRENT_SOURCE_RECONCILIATION_ONLY; repository/runtime credit remains whatever existing Trigger-4 evidence grants."
+  },
+  "external_primary_research": [
+    {
+      "source": "https://docs.livekit.io/agents/logic/turns/",
+      "fact": "LiveKit stops agent speech on interruption and truncates conversation history to the portion actually heard.",
+      "use": "Supports keeping heard/unheard accounting causally coupled to interruption rather than committing planned output."
+    },
+    {
+      "source": "https://docs.livekit.io/reference/agents-js/interfaces/agents.voice.PlaybackFinishedEvent.html",
+      "fact": "PlaybackFinishedEvent exposes interrupted plus playbackPosition and optionally a synchronized partial transcript.",
+      "use": "Supports explicit playout receipt semantics instead of deriving heard state only from controller intent."
+    },
+    {
+      "source": "https://docs.livekit.io/reference/agents-js/interfaces/agents.voice.QueueAudioOutputClearEvent.html",
+      "fact": "QueueAudioOutput clear events expose synchronous wasCapturing state specifically to prevent playback-segment accounting mismatch/deadlock around interruption races.",
+      "use": "Strong external falsifier analogy for exactly-once playback accounting and interruption/clear races."
+    },
+    {
+      "source": "https://github.com/pipecat-ai/pipecat/blob/main/src/pipecat/processors/frame_processor.py",
+      "fact": "Pipecat interruption handling cancels/resets interruptible processing and broadcasts paired upstream/downstream interruption frames with sibling identity.",
+      "use": "Supports testing duplicate/reordered interruption identity and queue-reset convergence rather than treating every interrupt signal as an unrelated state mutation."
+    },
+    {
+      "source": "https://arxiv.org/abs/2604.21406",
+      "fact": "HumDial-FDBench explicitly evaluates full-duplex interruptions, overlap and dynamic turn negotiation using dual-channel human dialogue data.",
+      "use": "Future acoustic/e2e benchmark reference only; no F2 runtime or German-quality credit from this research note."
+    }
+  ],
+  "deferred_candidate_after_current_runtime_gate": {
+    "candidate_id": "WP715-PLAYOUT-ACK-EXACTLY-ONCE",
+    "status": "DEFER_UNTIL_CURRENT_WP715_RUNTIME_RESULT",
+    "hypothesis": "The packet cortex models heard_fraction and terminal playback state but does not currently expose a distinct idempotent playout-receipt identity/ack ledger. Duplicate, reordered, delayed, or post-restart sink acknowledgements could therefore become a future integration ambiguity unless the adapter contract fences them.",
+    "counterhypothesis": "Existing output packet identity, monotonic transition checks, terminal-state rejection and physical adapter semantics may already make a separate playout-ack identity unnecessary.",
+    "proposed_packet_only_discriminator": [
+      "duplicate playback progress acknowledgement does not double-advance heard state or event/accounting state",
+      "reordered stale playback acknowledgement cannot decrease heard_fraction or resurrect terminal output",
+      "barge-in plus delayed playback acknowledgement cannot mark unheard tail commit-eligible",
+      "restart plus delayed pre-restart playback acknowledgement cannot resurrect or complete a terminalized output",
+      "duplicate interruption/clear boundary converges without unbounded event or ownership churn",
+      "playout receipt identity remains distinct from planned output identity while preserving causal linkage"
+    ],
+    "credit_if_executed_later": "PACKET_SIMULATION_ONLY; never acoustic, physical-device, German ASR/TTS, whole-voice or whole-product credit."
+  },
+  "coordination": {
+    "duplicate_runtime_dispatch_created": false,
+    "duplicate_source_mutation_created": false,
+    "new_semantic_execution_claim_created": false,
+    "new_asr_tts_scouting_opened": false,
+    "cortex_first_breadth_throttle_respected": true
+  },
+  "credit_state": {
+    "research_reentry_delta": 1,
+    "new_repository_component_credit": 0,
+    "new_vps_packet_runtime_credit": 0,
+    "new_acoustic_credit": 0,
+    "new_german_asr_quality_credit": 0,
+    "new_german_tts_quality_credit": 0,
+    "new_german_e2e_voice_credit": 0,
+    "new_whole_voice_credit": 0,
+    "new_whole_product_credit": 0
+  },
+  "next_exact_action": "Consume workflow run 33328707636 first. If it executes, classify its exact v3 receipt and promote only measured S1/S2 packet/recovery scope or repair only reproduced PRODUCT_NEGATIVE scope. If it terminally fails before product execution, classify INFRA_AUTH_TRANSPORT_QUOTA/EVIDENCE_INVALID and route infrastructure repair without product churn. Only after that current WP715 runtime result is consumed may Trigger 7 consider opening the deferred WP715-PLAYOUT-ACK-EXACTLY-ONCE packet falsifier."
+}
