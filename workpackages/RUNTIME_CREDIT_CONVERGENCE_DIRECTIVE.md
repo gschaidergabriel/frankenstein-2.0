@@ -27,6 +27,53 @@ SOURCE_OR_CI_PASS != TARGET_RUNTIME_CREDIT
 TARGET_RUNTIME_CREDIT != WHOLE_PERSISTENT_LOOP_CREDIT
 ```
 
+## VPS sandbox-first execution overlay — owner directive 2026-08-30
+
+For every executable discriminator that does not require irreducible evidence from the owner's physical workstation, the default execution surface is the owner-provisioned Ubuntu VPS sandbox / `clay-direct-dev` lane governed by `workpackages/VPS_SANDBOX_EXECUTION_AUTHORITY.md`.
+
+A worker MUST NOT defer a representable test merely because the final product eventually installs on a local machine.
+
+Before writing `needs local-machine test`, classify the missing invariant:
+
+```text
+VPS_SANDBOX_REPRESENTABLE -> execute on VPS now
+PHYSICAL_LOCAL_ONLY       -> defer only the exact irreducible physical scope
+UNKNOWN_FIDELITY          -> improve/measure the VPS sandbox first
+```
+
+Use `tools/vps_sandbox/SANDBOX_TIERS.md` to choose the lowest safe faithful isolation tier:
+
+```text
+S1 disposable Ubuntu OCI userspace
+S2 disposable Ubuntu systemd-nspawn userspace
+S3 disposable VM / separate kernel
+S4 actual physical local workstation
+```
+
+Inside a positively identified disposable S1/S2/S3 sandbox, destructive sandbox-local mutation is authorized when bounded by host-survival/resource guards. Workers may wipe/recreate sandbox-local state, install/remove packages, crash/restart processes, corrupt sandbox-local databases/files, fuzz, stress and run adversarial failure scenarios. They must not intentionally destroy the owner host, canonical repositories, credentials, SSH/control access or unrelated persistent state.
+
+Promotion law remains exact:
+
+```text
+VPS_SANDBOX_PASS != PHYSICAL_LOCAL_PASS
+S1/S2_PASS != SEPARATE_KERNEL_REBOOT_PASS
+S3_PASS != REAL_PHYSICAL_DEVICE_PASS
+```
+
+The practical default flow is now:
+
+```text
+accepted exact source/artifact
+-> disposable target-like Ubuntu VPS sandbox
+-> install/run/falsify
+-> crash/restart/readback where relevant
+-> exact receipt
+-> exact scoped promotion
+-> next dependency-correct boundary
+```
+
+Local workstation use before the final physical gates requires an explicit `PHYSICAL_LOCAL_ONLY` reason naming the property the VPS sandbox cannot reproduce.
+
 ## Mandatory pre-claim classification
 
 Before claiming material implementation work, classify it as one of the four classes above and record, in the claim or first durable claim-scoped delta:
@@ -167,7 +214,7 @@ This does not freeze the repository globally and does not grant the runtime prob
 
 ```text
 BOUND RUNTIME SUBJECT + SEMANTIC SUCCESSOR BEFORE EXECUTION
-= LIKELY HISTORICAL-ONLY PROMOTION + REPLAY DEBT
+= LIKELY HISTORICAL-ONLY PROMOTION + REPLAY_DEBT
 ```
 
 Before opening a successor generation on a boundary with a pending runtime probe, record one of:
