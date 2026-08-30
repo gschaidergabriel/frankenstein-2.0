@@ -4,56 +4,72 @@
   "date": "2026-08-31",
   "organ": "GPT-5.6-Sol",
   "research_id": "T7-FD-RTCOMPAT-001",
-  "classification": "REVIEW_ONLY_CORRECTION",
+  "classification": "REVIEW_ONLY_SEMANTIC_RECONCILIATION",
   "implementation_mutation_authority": false,
   "new_claim_or_generation": false,
-  "correction_status": "PRIOR_PREFIX_AMNESIA_HYPOTHESIS_REJECTED_FOR_CURRENT_F2_POLICY",
-  "supersedes_own_prior_content": true,
-  "basis": {
-    "f2_policy": [
-      "started/heard output interrupted by barge-in remains non-commit-eligible",
-      "only fully heard completed output may become commit-eligible",
-      "VoiceOutcome result reference requires fully heard commit-eligible output"
-    ],
-    "pinned_upstream_revision": "3986f453012a131632eee4731995474046846794",
-    "pinned_source_findings": [
-      "conversation.item.truncate is parsed but intentionally no-ops after cancellation",
-      "cancelled/failed/incomplete response termination calls Chat.rollback_provisional_generation",
-      "rollback tombstones the response key and removes tracked provisional assistant/tool items"
-    ],
-    "newer_checkpoint": "research/local_voice/checkpoints/2026-08-31T034300P0700_T7_HF_S2S_CANCEL_ROLLBACK_TEST_EVIDENCE_GPT56SOL.json"
-  },
+  "status": "PREFIX_RETENTION_POLICY_UNRESOLVED",
+  "supersedes_own_prior_interpretations": true,
+  "current_authority_delta": "research/local_voice/deltas/2026-08-31_T7_COMMIT_ELIGIBILITY_CONTEXT_SEPARATION_GPT56SOL.json",
   "reconciliation": {
-    "incorrect_hypothesis": "Current F2 requires preservation of the partially heard assistant prefix after barge-in, so whole-response rollback would cause prefix amnesia.",
-    "why_incorrect": "Current F2 explicitly treats the entire interrupted response as non-commit-eligible even if part was heard. Therefore whole-response rollback is compatible with current F2 semantics in principle.",
-    "remaining_protocol_difference": "OpenAI-style truncate can preserve conversation state up to audio_end_ms, whereas the pinned HF server relies on cancel plus whole provisional-response rollback. This remains a protocol-surface difference, not a current F2 product failure by itself.",
-    "remaining_runtime_hypothesis": "Source and unit tests cannot prove real ordering across playback, TTS, late tool results, late assistant writes, reconnects and WebSocket/WebRTC transport races."
+    "confirmed_f2_fact": "Interrupted output is non-commit-eligible unless playback completed with heard_fraction exactly 1.0.",
+    "confirmed_scope_limit": "Commit eligibility governs durable/accepted spoken outcome; current cited F2 source does not by itself define whether a partially heard interrupted assistant prefix should remain in the ephemeral next-turn model context.",
+    "confirmed_hf_fact": "At pinned huggingface/speech-to-speech revision 3986f453012a131632eee4731995474046846794, conversation.item.truncate is a deliberate no-op after cancellation and cancelled/failed/incomplete responses roll back tracked provisional assistant/tool history.",
+    "incorrect_equivalence_to_avoid": "commit_eligible=false == delete all interrupted assistant semantics from next-turn dialogue context",
+    "current_hypothesis": "RETAIN_HEARD_PREFIX_EPHEMERALLY_ONLY is the preferred research default for natural full-duplex dialogue, while durable memory/effect/VoiceOutcome admission remains separately gated.",
+    "counterhypothesis": "DROP_WHOLE_INTERRUPTED_RESPONSE may be an intentional F2 policy, but must be explicitly selected and measured for dialogue coherence rather than inferred from commit eligibility."
   },
-  "revised_discriminator": {
+  "runtime_oracle": {
+    "id": "HF09_EXACT_HEARD_PREFIX_RETENTION",
     "owner": "TRIGGER4_RUNTIME_FALSIFIER",
-    "reuse_existing_packet": true,
-    "ids": [
-      "HF02_CANCEL_GENERATION_VS_HEARD_HISTORY",
-      "HF03_TRUNCATE_NOOP_SEMANTIC_EXACTNESS",
-      "HF04_TOOL_RESULT_AFTER_BARGE_IN",
-      "HF05_DOUBLE_CANCEL_AND_LATE_CHUNK"
+    "do_not_duplicate": true,
+    "precondition": "Pin an explicit F2 interrupted-response next-turn context policy before classifying prefix deletion as product PASS or PRODUCT_NEGATIVE.",
+    "measure": [
+      "playout_receipt_or_measurement_identity",
+      "heard_boundary_ms",
+      "heard_prefix_digest",
+      "unheard_tail_digest",
+      "raw_server_post_cancel_chat_digest",
+      "f2_authoritative_ephemeral_context_digest",
+      "next_turn_effective_model_context_digest",
+      "durable_memory_write_count",
+      "late_cancelled_generation_write_disposition",
+      "late_old_turn_tool_result_disposition"
     ],
-    "must_hold": [
-      "after partial audible output and response.cancel, the entire interrupted assistant response is absent from the next-turn effective local Chat/model context under current F2 policy",
-      "late cancelled-generation assistant/audio/tool writes cannot re-enter current-turn authority",
-      "duplicate/stale/out-of-range truncate cannot corrupt newer causal state",
-      "WebSocket and WebRTC are exercised separately",
-      "network-blocked locality remains a separate required gate"
-    ],
-    "reopen_prefix_retention_only_if": "F2 authority later changes to persist a partially heard prefix from interrupted responses."
+    "classification_after_policy_pin": [
+      {
+        "condition": "heard prefix present and unheard tail absent",
+        "result_if_policy_RETAIN_HEARD_PREFIX_EPHEMERALLY_ONLY": "SEMANTIC_MATCH_CANDIDATE"
+      },
+      {
+        "condition": "heard prefix absent and unheard tail absent",
+        "result_if_policy_RETAIN_HEARD_PREFIX_EPHEMERALLY_ONLY": "PREFIX_AMNESIA_PRODUCT_NEGATIVE"
+      },
+      {
+        "condition": "any unheard tail present",
+        "result": "TAIL_LEAK_PRODUCT_NEGATIVE"
+      },
+      {
+        "condition": "late cancelled response or tool data regains authority",
+        "result": "CAUSAL_FENCING_PRODUCT_NEGATIVE"
+      }
+    ]
+  },
+  "architecture_boundary": {
+    "preferred_if_retain_prefix_policy_selected": "Keep HF speech server as transport/inference organ; derive next-turn ephemeral context from F2 measured heard-state when raw HF rollback cannot represent the exact heard prefix.",
+    "durable_memory": "unchanged and independently gated",
+    "effect_authority": "unchanged",
+    "persona_or_identity": "no second persona or entity",
+    "runtime_claim": "no new dispatch; existing Trigger4 semantic claim only"
   },
   "credit": {
-    "source_review": 1,
-    "upstream_unit_test_evidence": 1,
+    "research_semantic_reconciliation": 1,
+    "upstream_source_and_unit_test_evidence": 1,
     "executed_local_protocol": 0,
     "german_e2e_voice": 0,
+    "acoustic_quality": 0,
+    "durable_memory": 0,
     "trigger4_acceptance": 0,
     "whole_product": 0
   },
-  "next_exact_action": "Do not execute a new HF09 prefix-retention lane. Route the existing HF01-HF05 packet through the existing Trigger4/VPS execution authority using whole-response rollback semantics; inspect exact next-turn context and late producer fencing, then promote only executed scope."
+  "next_exact_action": "Do not open another runtime lane. Pin the F2 interrupted-response next-turn context policy explicitly; recommended research default is RETAIN_HEARD_PREFIX_EPHEMERALLY_ONLY with durable state still separately gated. Then execute HF09 plus existing HF02-HF05 through the existing Trigger4/VPS authority and classify the exact measured context behavior against that pinned policy."
 }
