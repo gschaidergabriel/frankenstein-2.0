@@ -1,0 +1,131 @@
+{
+  "schema": "FRANKENSTEIN2_TRIGGER6_BUILD_CANDIDATE/v1",
+  "candidate_id": "R6-CANDIDATE-RUNTIME-SUBJECT-BOUNDARY-FINGERPRINT-V1",
+  "hypothesis_id": "H-RUNTIME-SUBJECT-BOUNDARY-CLOSURE-001",
+  "architecture_snapshot_id": "F2@b4c9328d75ddcef3c07a14b427727d7eed0410bd+R6E2@66bf2a63dee8e93ff201922a76dcf91cbf41481b+R6E3@cc04071615c24e3c9503d4490add75f224a368cf+R6E4@480ff8163037f2c2a66ce847dedf7fc2aa535e56",
+  "research_entity_source_sha": "5933ed34cc03328f6300a83b2be972bc05cf0a66",
+  "frankenstein_2_source_sha": "b4c9328d75ddcef3c07a14b427727d7eed0410bd",
+  "external_repo": "bazelbuild/bazel",
+  "external_repo_commit_sha": "bf49a0edc2c5aa879511846ef5285f709cd27e76",
+  "external_repo_tree_sha": "4bfde2929c761c662cd49526ac091f24103ecbfd",
+  "license": "Apache-2.0",
+  "integration_class": "CONCEPT_DISTILL",
+  "f2_target_workpackages": [
+    "RUNTIME_CREDIT_CONVERGENCE",
+    "F2-WP-900",
+    "F2-WP-206",
+    "F2-WP-901"
+  ],
+  "f2_target_modules": [
+    "workpackages/RUNTIME_CREDIT_CONVERGENCE_DIRECTIVE.md",
+    "src/frankenstein2/persistent_agency_kernel.py",
+    "src/frankenstein2/wp206_legacy_authority_recovery.py",
+    "src/state/unifieddb_identity.py",
+    "future runtime-probe dispatch/receipt integration surface"
+  ],
+  "problem_or_gap": "Queued exact-source runtime probes become promotion-stale when later semantic generations land. Whole-repository SHA equality is conservative but over-invalidates unrelated churn. Reusing CI path filters is unsafe: E3 reproduced that the WP206 G5 workflow omits five direct production imports of persistent_agency_kernel.py. F2 needs a narrower currentness proof that is content-bound and explicitly fails closed when dependency-closure completeness is unknown.",
+  "proposed_delta": {
+    "name": "RuntimeSubjectBoundaryFingerprint",
+    "implementation_shape": "small deterministic F2-native Python helper; no Bazel/Nix/OpenTelemetry runtime dependency",
+    "states": [
+      "VERIFIED_COMPLETE",
+      "UNKNOWN_INCOMPLETE"
+    ],
+    "envelope_fields": [
+      "probe_id",
+      "subject_commit_sha",
+      "artifact_digest_or_source_execution_identity",
+      "boundary_id",
+      "boundary_manifest_schema",
+      "sorted local dependency path+sha256 entries",
+      "explicit config/schema/material path+sha256 entries",
+      "probe harness/command digest",
+      "runtime/toolchain identity where behavior depends on it",
+      "closure_state",
+      "runtime_subject_boundary_sha256"
+    ],
+    "initial_closure_strategy": "For the bounded Python F2 target, recursively parse local import statements from declared entry modules under src/frankenstein2 and src/state, resolve only repository-local modules, add explicit non-code materials/config/harness inputs, and return UNKNOWN_INCOMPLETE on unresolved local import, dynamic import/load indicator, missing file, path escape, ambiguous module, or unsupported dependency mechanism. Do not claim general Python dependency completeness beyond the supported subset.",
+    "promotion_rule": "Only VERIFIED_COMPLETE + equal recomputed boundary digest may support a narrow RUNTIME_SUBJECT_INVARIANT receipt across an unrelated newer repository commit. UNKNOWN_INCOMPLETE falls back to historical-only/no current-generation promotion. Equality never raises the observed runtime tier and never mints whole-system acceptance.",
+    "provenance_rule": "Keep exact subject commit/artifact/runtime identity permanently even when a narrower closure comparison establishes invariance relative to a newer generation."
+  },
+  "counterhypotheses": [
+    "Whole-repository SHA-only invalidation is operationally simpler and may be preferable if actual unrelated-churn replay debt is negligible.",
+    "A static Python import walker can miss dynamic/config/generated dependencies; therefore any unsupported dependency mechanism must produce UNKNOWN rather than VERIFIED_COMPLETE.",
+    "The runtime probe scheduler may gain little if queue latency is reduced enough that promotion staleness rarely occurs; measure before broadening rollout.",
+    "A full hermetic build/action graph system could provide stronger closure guarantees, but importing that machinery would likely exceed the marginal value of this narrow F2 feature."
+  ],
+  "evidence_refs": [
+    "research/tool_intelligence/deltas/R6-20260830-CONTENT-ADDRESSED-RUNTIME-SUBJECT-GPT56SOL-01-E1.json",
+    "research/tool_intelligence/deltas/2026-08-30T1921P0700_GPT56SOL_R6_RUNTIME_SUBJECT_BOUNDARY_FINGERPRINT_E2.json",
+    "research/tool_intelligence/receipts/R6-20260830-RUNTIME-SUBJECT-BOUNDARY-FINGERPRINT-GPT56SOL-01_E3_WP206_DIRECT_IMPORT_OMISSION_20260830T1923P0700.json",
+    "research/tool_intelligence/experiments/R6-20260830-RUNTIME-SUBJECT-BOUNDARY-FINGERPRINT-GPT56SOL-01_E4_INVALIDATION_ABLATION_20260830T1925P0700.json",
+    "workpackages/RUNTIME_CREDIT_CONVERGENCE_DIRECTIVE.md",
+    ".github/workflows/wp206-g5-evidence-subject-binding-ci.yml",
+    "src/frankenstein2/persistent_agency_kernel.py",
+    "src/frankenstein2/wp206_legacy_authority_recovery.py",
+    "Bazel official Remote Caching and Hermeticity documentation: declared action inputs and hermetic source/tool identity pattern",
+    "SLSA v1.2 Build Provenance: build definition, resolved dependencies and artifact subject separation",
+    "OpenTelemetry resource semantic conventions: service.version as exact observed artifact/version identity only"
+  ],
+  "upstream_claims_reproduced": [
+    "WP206 dedicated workflow path list is not a complete semantic dependency closure: five direct persistent_agency_kernel.py local production imports are omitted",
+    "Content/provenance identity answers WHAT EXECUTED but not WHETHER AN OLDER SUBJECT REMAINS CURRENT after successor changes",
+    "Verified dependency-closure equality can remove unrelated-churn false staleness in the bounded synthetic ablation without accepting omitted relevant changes"
+  ],
+  "upstream_claims_not_reproduced": [
+    "No claim that F2 currently has a complete transitive dependency closure",
+    "No claim that RuntimeSubjectBoundaryFingerprint reduces real target-runtime latency yet",
+    "No claim that equal closure fingerprint proves behavioral equivalence beyond the declared supported boundary",
+    "No runtime, GRID10, GWT, J-Space, effect, completion, training or whole-system acceptance claim"
+  ],
+  "baseline_definition": "Current conservative runtime-subject promotion law in workpackages/RUNTIME_CREDIT_CONVERGENCE_DIRECTIVE.md: historical runtime plus newer repository CI cannot be composed into current-generation runtime credit without explicit semantic invariance; current implementation has no machine-bound verified closure proof for that invariance branch.",
+  "required_tests": [
+    "Canonical serialization/digest determinism across path ordering.",
+    "Exact subject_commit_sha remains in receipt even when boundary equality is established against a newer commit.",
+    "Recursive direct+transitive supported local imports are included.",
+    "WP206 regression: closure must include agency_state.py, goal_lifecycle.py, persistent_pulse.py, state_fingerprint.py, wake_hold.py and unifieddb_identity.py when persistent_agency_kernel.py is an entry module.",
+    "Unrelated repository file mutation leaves verified boundary digest unchanged.",
+    "Any bound direct or transitive dependency mutation changes digest.",
+    "Bound config/schema/material mutation changes digest.",
+    "Probe harness/command mutation changes digest.",
+    "Missing/unresolved/ambiguous local dependency returns UNKNOWN_INCOMPLETE.",
+    "Dynamic import/load indicator returns UNKNOWN_INCOMPLETE unless dependency is explicitly materialized and the supported verifier can prove closure.",
+    "Path escape/symlink ambiguity fails closed.",
+    "Equal digest never increments runtime tier or whole-system acceptance."
+  ],
+  "required_ablations": [
+    "Repeat E4 cases against the actual implemented helper: unchanged, unrelated change, listed relevant change, previously omitted dependency change.",
+    "Disable recursive import discovery and confirm the previously omitted WP206 dependency mutation becomes a caught negative control, demonstrating why naive path lists are insufficient.",
+    "Inject one dynamic import indicator and verify UNKNOWN_INCOMPLETE fallback.",
+    "Compare conservative whole-repo mode versus verified-closure mode on the same queued-probe fixture; currentness decisions must differ only for changes proven outside the closure."
+  ],
+  "required_measurements": [
+    "fingerprint construction wall time and bytes hashed on the repository-component fixture",
+    "number of closure members and unresolved dependency indicators",
+    "false-stale and false-current counts on deterministic fixture",
+    "queue replay avoided count only after a real queued runtime-probe workflow exists; do not synthesize production benefit",
+    "target runtime credit remains zero until an actually executed higher-tier probe is observed at its exact subject"
+  ],
+  "expected_token_delta": "approximately zero at runtime; deterministic metadata only",
+  "expected_latency_delta": "small fingerprinting overhead at bind/reentry; potential reduction in replay/staleness latency is hypothesis until measured",
+  "expected_resource_delta": "O(verified closure bytes) hashing plus static dependency walk; no model/provider calls",
+  "quality_success_metric": "Zero false-current decisions in all required negative controls; zero false-stale decisions for explicitly unrelated fixture changes when closure is VERIFIED_COMPLETE; UNKNOWN fallback for unsupported closure cases; no evidence-credit inflation.",
+  "rollback_or_reject_rule": "Reject or keep whole-repository conservative fallback if the verifier can mark VERIFIED_COMPLETE while a behavior-relevant supported local/config/harness dependency remains outside the digest, if dynamic/unresolved dependencies do not fail closed, if repository-component overhead is disproportionate, or if measured queued-probe replay debt is too small to justify the added complexity.",
+  "known_failure_modes": [
+    "dynamic imports or plugin discovery",
+    "generated files not represented in manifest",
+    "environment/toolchain drift omitted from envelope",
+    "config or schema files read indirectly",
+    "symlink/path alias ambiguity",
+    "network-loaded resources",
+    "native extension behavior outside supported Python closure",
+    "mistaking service.version/artifact provenance for successor semantic equivalence",
+    "mistaking closure equality for higher runtime-tier acceptance"
+  ],
+  "source_archive_ref": "bazelbuild/bazel@bf49a0edc2c5aa879511846ef5285f709cd27e76 tree 4bfde2929c761c662cd49526ac091f24103ecbfd; structural donor only, no code vendoring",
+  "research_db_row_ids": [],
+  "research_db_sync": "NOT_ATTEMPTED_CONNECTOR_HAS_NO_PENDING_RESEARCH_SQLITE_WRITE_SURFACE",
+  "research_credit": "E5_BUILD_CANDIDATE_ONLY",
+  "runtime_credit": 0,
+  "whole_system_credit": 0
+}
