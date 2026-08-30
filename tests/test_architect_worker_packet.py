@@ -1,4 +1,7 @@
 import copy
+import json
+import pathlib
+import tempfile
 import unittest
 from datetime import datetime, timezone
 
@@ -6,6 +9,7 @@ from tools.coordination.architect_packet import (
     PacketError,
     compute_payload_digest,
     compute_route_id,
+    main,
     make_ack,
     packet_disposition,
     target_matches,
@@ -131,9 +135,153 @@ class ArchitectWorkerPacketTests(unittest.TestCase):
         self.assertFalse(ack["new_effect_authority"])
         self.assertEqual(ack["credit_delta"], 0)
         self.assertGreater(ack["context_bytes_injected"], 0)
+        self.assertEqual(ack["disposition"], "APPLIED")
         self.assertEqual(ack["route_id"], BASE_PACKET["route_id"])
         self.assertEqual(ack["payload_digest"], BASE_PACKET["payload_digest"])
         self.assertEqual(ack["worker_id"], CONTEXT["worker_id"])
+
+    def test_ack_derives_fail_closed_dispositions(self):
+        payload_tamper = copy.deepcopy(BASE_PACKET)
+        payload_tamper["objective"] = "tampered after sealing"
+
+        route_tamper = copy.deepcopy(BASE_PACKET)
+        route_tamper["route_id"] = "0" * 64
+
+        cases = [
+            (
+                "payload tamper",
+                payload_tamper,
+                CONTEXT,
+                {},
+                "REJECT_SCHEMA_INVALID",
+            ),
+            (
+                "route tamper",
+                route_tamper,
+                CONTEXT,
+                {},
+                "REJECT_SCHEMA_INVALID",
+            ),
+            (
+                "stale",
+                sealed_packet(expires_at="2026-08-31T00:30:00Z"),
+                CONTEXT,
+                {},
+                "REJECT_STALE",
+            ),
+            (
+                "misaddressed",
+                BASE_PACKET,
+                dict(CONTEXT, worker_id="worker-B"),
+                {},
+                "REJECT_MISADDRESSED",
+            ),
+            (
+                "duplicate nonce",
+                BASE_PACKET,
+                CONTEXT,
+                {"seen_nonces": {"nonce-0001"}},
+                "ACK_ONLY_DUPLICATE",
+            ),
+            (
+                "authority conflict",
+                BASE_PACKET,
+                CONTEXT,
+                {"authority_conflict": True},
+                "REJECT_AUTHORITY_CONFLICT",
+            ),
+        ]
+
+        for name, packet, context, kwargs, expected in cases:
+            with self.subTest(name=name):
+                ack = make_ack(
+                    packet,
+                    context,
+                    reason=f"classification regression: {name}",
+                    authority_head="deadbeef",
+                    now=NOW,
+                    **kwargs,
+                )
+                self.assertEqual(ack["disposition"], expected)
+                self.assertEqual(ack["context_bytes_injected"], 0)
+                self.assertEqual(ack["estimated_context_tokens_injected"], 0)
+                self.assertFalse(ack["new_mutation_authority"])
+                self.assertFalse(ack["new_runtime_dispatch"])
+                self.assertFalse(ack["new_effect_authority"])
+                self.assertEqual(ack["credit_delta"], 0)
+
+    def test_caller_supplied_applied_cannot_override_rejection(self):
+        stale = sealed_packet(expires_at="2026-08-31T00:30:00Z")
+        with self.assertRaisesRegex(PacketError, "does not match deterministic disposition REJECT_STALE"):
+            make_ack(
+                stale,
+                CONTEXT,
+                "APPLIED",
+                reason="caller attempted to force apply",
+                authority_head="deadbeef",
+                now=NOW,
+            )
+
+    def test_cli_ack_cannot_force_applied_for_tampered_packet(self):
+        packet = copy.deepcopy(BASE_PACKET)
+        packet["objective"] = "tampered after sealing"
+
+        with tempfile.TemporaryDirectory() as tmp:
+            root = pathlib.Path(tmp)
+            packet_path = root / "packet.json"
+            context_path = root / "context.json"
+            output_path = root / "ack.json"
+            packet_path.write_text(json.dumps(packet), encoding="utf-8")
+            context_path.write_text(json.dumps(CONTEXT), encoding="utf-8")
+
+            rc = main(
+                [
+                    "ack",
+                    str(packet_path),
+                    str(context_path),
+                    str(output_path),
+                    "--disposition",
+                    "APPLIED",
+                    "--reason",
+                    "attempted forced disposition",
+                    "--authority-head",
+                    "deadbeef",
+                    "--now",
+                    "2026-08-31T01:00:00Z",
+                ]
+            )
+            self.assertEqual(rc, 2)
+            self.assertFalse(output_path.exists())
+
+    def test_cli_ack_derives_rejection_without_disposition_argument(self):
+        stale = sealed_packet(expires_at="2026-08-31T00:30:00Z")
+
+        with tempfile.TemporaryDirectory() as tmp:
+            root = pathlib.Path(tmp)
+            packet_path = root / "packet.json"
+            context_path = root / "context.json"
+            output_path = root / "ack.json"
+            packet_path.write_text(json.dumps(stale), encoding="utf-8")
+            context_path.write_text(json.dumps(CONTEXT), encoding="utf-8")
+
+            rc = main(
+                [
+                    "ack",
+                    str(packet_path),
+                    str(context_path),
+                    str(output_path),
+                    "--reason",
+                    "deterministic stale classification",
+                    "--authority-head",
+                    "deadbeef",
+                    "--now",
+                    "2026-08-31T01:00:00Z",
+                ]
+            )
+            self.assertEqual(rc, 0)
+            ack = json.loads(output_path.read_text(encoding="utf-8"))
+            self.assertEqual(ack["disposition"], "REJECT_STALE")
+            self.assertEqual(ack["context_bytes_injected"], 0)
 
 
 if __name__ == "__main__":
