@@ -1,0 +1,67 @@
+{
+  "schema": "T7_SOURCE_RESULT/v1",
+  "trigger": "7",
+  "research_id": "T7-TTS-011",
+  "objective": "V1_MOSS_TTS_REALTIME_1_7B_GERMAN_STREAMING_SOURCE_PIN",
+  "semantic_key": "de76077688dd33096d1c275a7a0f9af1667939b44a54d5bd27ba3f8f5873e4cd",
+  "evidence_scope": "SOURCE_PIN",
+  "observed_at": "2026-08-31",
+  "primary_sources": {
+    "upstream_repository": {
+      "repository": "OpenMOSS/MOSS-TTS",
+      "observed_main_commit": "c0880299e8b8d0f7119efab17e4e776fffe7b8fa",
+      "realtime_model_card_path": "docs/moss_tts_realtime_model_card.md",
+      "realtime_model_card_blob_sha": "dc115cbdcc4039d306835f6b38a4f8013430043e",
+      "license_path": "LICENSE",
+      "license_blob_sha": "0652054b20b554fa1cb6208a1f8dbc2ceab35233",
+      "license": "Apache-2.0"
+    },
+    "model_repository": {
+      "model_id": "OpenMOSS-Team/MOSS-TTS-Realtime",
+      "observed_model_size_metadata": "2B params / BF16 on Hugging Face surface; upstream model card evaluation table identifies MOSS-TTS-Realtime as 1.7B",
+      "exact_model_revision": "UNRESOLVED_NOT_DOWNLOADED",
+      "artifact_hashes": "UNRESOLVED_NOT_DOWNLOADED",
+      "runtime_execution": false
+    }
+  },
+  "source_direct_findings": [
+    "The official model card defines MOSS-TTS-Realtime as a context-aware multi-turn streaming TTS model for real-time voice agents, conditioning on both textual and acoustic history and producing incremental audio.",
+    "The official language table includes German (de) in a 20-language set.",
+    "The official model card reports 180 ms warm TTFB and RTF 0.51, measured with SDPA plus torch.compile on a single NVIDIA L20 GPU. These are upstream measurements only.",
+    "The official family/model surfaces identify the realtime model as approximately 1.7B/2B-class and BF16.",
+    "The official quickstart uses CUDA 12.8-oriented PyTorch installation and loads OpenMOSS-Team/MOSS-Audio-Tokenizer with trust_remote_code=True. This creates an explicit quarantine/source-inspection gate before execution in Frankenstein infrastructure.",
+    "The official repository license observed at the pinned source commit is Apache-2.0."
+  ],
+  "project_inferences_not_runtime_facts": [
+    "Multi-turn text+acoustic context is unusually aligned with Frankenstein's long-running conversational voice goal and could reduce chunk-to-chunk or turn-to-turn acoustic identity drift compared with isolated-utterance TTS.",
+    "The upstream L20 latency result cannot be transferred to the current clay-direct-dev target, which has no GPU and no observable audio output path in the current Trigger-4 hardware receipt.",
+    "Because the current TTS001 physical audible-output boundary is already blocked and owned by an existing semantic key, opening a second target-runtime dispatch for MOSS now would add blocked breadth rather than evidence depth."
+  ],
+  "security_and_execution_gates": [
+    "Do not execute the remote audio tokenizer code outside an admitted disposable sandbox before source/dependency inspection.",
+    "Do not treat the Hugging Face model identifier as an exact artifact pin until an exact revision and artifact hashes are captured by the quarantine downloader or equivalent admitted mechanism.",
+    "Do not infer CPU realtime capability, German listening quality, male-voice stability, cancellation correctness, or resource coexistence from upstream source claims."
+  ],
+  "counterhypotheses": [
+    "The model's multi-turn context may increase memory/KV cost enough to make it less suitable than lighter stateless TTS under Frankenstein's whole-system resource envelope.",
+    "Upstream German language support may not deliver acceptable German pronunciation, names/numbers/technical vocabulary, or stable male identity on the exact Frankenstein fixtures.",
+    "A lighter Qwen3-TTS 0.6B or other candidate may win the end-to-end quality/latency frontier despite MOSS-TTS-Realtime's stronger context architecture."
+  ],
+  "credit": {
+    "source_pin": 1,
+    "german_support_metadata": 1,
+    "incremental_streaming_source_evidence": 1,
+    "multi_turn_context_source_evidence": 1,
+    "upstream_latency_measurement_identified": 1,
+    "exact_model_artifact_pin": 0,
+    "target_runtime": 0,
+    "frankenstein_german_tts_quality": 0,
+    "frankenstein_first_audible_latency": 0,
+    "frankenstein_cancellation_correctness": 0,
+    "whole_product_resource_fit": 0,
+    "trigger4_acceptance": 0,
+    "whole_voice_system": 0
+  },
+  "decision": "SOURCE_ADMISSIBLE_CONTEXT_AWARE_QUALITY_CHALLENGER_DEFER_TARGET_DISPATCH",
+  "next_exact_action": "Keep T7-TTS-011 source-pinned and non-dispatched. First close the existing T7-TTS-001 audible physical-target gate with the same semantic key on an admitted host exposing real audio output. Separately, when a target with sufficient accelerator/resource envelope is admitted, quarantine-download and hash an exact MOSS-TTS-Realtime revision before any bounded comparison."
+}
