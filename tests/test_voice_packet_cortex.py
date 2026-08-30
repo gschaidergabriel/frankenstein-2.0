@@ -139,6 +139,82 @@ class VoicePacketCortexTests(unittest.TestCase):
         with self.assertRaises(VoicePacketCortexError):
             cortex.accept_input(corrupt)
 
+    def test_input_monotonic_timestamp_cannot_regress_with_advancing_sequence(self) -> None:
+        cortex = VoicePacketCortex(self.session(), opened_monotonic_ms=50)
+        cortex.accept_input(self.input_packet(cortex, monotonic_ms=100, sequence=0))
+        with self.assertRaises(VoicePacketCortexError):
+            cortex.accept_input(self.input_packet(
+                cortex,
+                packet_id="input-1",
+                monotonic_ms=99,
+                speech_start=False,
+                sequence=1,
+            ))
+
+    def test_output_playback_timestamp_cannot_regress_across_state_transition(self) -> None:
+        cortex = VoicePacketCortex(self.session())
+        cortex.queue_output(
+            turn_id="turn-0", packet_id="output-clock", monotonic_ms=100,
+            text_segment="Zeitfolge", expression_intent="neutral", speech_act="ANSWER",
+            planned_audio_duration_ms=200, sequence=0,
+        )
+        cortex.advance_output("output-clock", playback_state="started", monotonic_ms=110, heard_fraction=0.0)
+        with self.assertRaises(VoicePacketCortexError):
+            cortex.advance_output("output-clock", playback_state="heard", monotonic_ms=109, heard_fraction=0.1)
+
+    def test_barge_in_timestamp_cannot_precede_output_state_it_cancels(self) -> None:
+        cortex = VoicePacketCortex(self.session())
+        cortex.queue_output(
+            turn_id="turn-0", packet_id="output-cancel-clock", monotonic_ms=100,
+            text_segment="Unterbrechbar", expression_intent="neutral", speech_act="ANSWER",
+            planned_audio_duration_ms=200, sequence=0,
+        )
+        cortex.advance_output("output-cancel-clock", playback_state="started", monotonic_ms=110, heard_fraction=0.0)
+        with self.assertRaises(VoicePacketCortexError):
+            cortex.cancel_for_barge_in(turn_id="turn-1", monotonic_ms=109)
+
+    def test_duplicate_output_sequence_same_turn_fails_closed(self) -> None:
+        cortex = VoicePacketCortex(self.session())
+        cortex.queue_output(
+            turn_id="turn-0", packet_id="output-z", monotonic_ms=100,
+            text_segment="A", expression_intent="neutral", speech_act="ANSWER",
+            planned_audio_duration_ms=100, sequence=0,
+        )
+        with self.assertRaises(VoicePacketCortexError):
+            cortex.queue_output(
+                turn_id="turn-0", packet_id="output-a", monotonic_ms=101,
+                text_segment="B", expression_intent="neutral", speech_act="ANSWER",
+                planned_audio_duration_ms=100, sequence=0,
+            )
+
+    def test_output_chunks_are_exposed_in_declared_sequence_order(self) -> None:
+        cortex = VoicePacketCortex(self.session())
+        cortex.queue_output(
+            turn_id="turn-0", packet_id="output-z", monotonic_ms=100,
+            text_segment="A", expression_intent="neutral", speech_act="ANSWER",
+            planned_audio_duration_ms=100, sequence=0,
+        )
+        cortex.queue_output(
+            turn_id="turn-0", packet_id="output-a", monotonic_ms=101,
+            text_segment="B", expression_intent="neutral", speech_act="ANSWER",
+            planned_audio_duration_ms=100, sequence=1,
+        )
+        self.assertEqual([packet.sequence for packet in cortex.outputs], [0, 1])
+
+    def test_output_sequence_gap_is_rejected_explicitly(self) -> None:
+        cortex = VoicePacketCortex(self.session())
+        cortex.queue_output(
+            turn_id="turn-0", packet_id="output-0", monotonic_ms=100,
+            text_segment="A", expression_intent="neutral", speech_act="ANSWER",
+            planned_audio_duration_ms=100, sequence=0,
+        )
+        with self.assertRaises(VoicePacketCortexError):
+            cortex.queue_output(
+                turn_id="turn-0", packet_id="output-2", monotonic_ms=102,
+                text_segment="C", expression_intent="neutral", speech_act="ANSWER",
+                planned_audio_duration_ms=100, sequence=2,
+            )
+
     def test_wait_backchannel_tool_gwt_and_memory_refs_share_one_event_fabric(self) -> None:
         cortex = VoicePacketCortex(self.session())
         wait = cortex.emit_intent(
