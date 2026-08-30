@@ -1,0 +1,35 @@
+name: REVIEW ONLY WP206 same-inode live drift
+
+on:
+  pull_request:
+    paths:
+      - 'tests/test_wp206_same_inode_live_drift_review.py'
+      - 'src/frankenstein2/persistent_agency_kernel.py'
+      - 'src/state/unifieddb_identity.py'
+      - 'tests/wp206_restart_probe.py'
+      - '.github/workflows/wp206-same-inode-live-drift-review-ci.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  same-inode-live-drift-falsifier:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - name: Checkout exact review ref
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - name: Compile exact discriminator surfaces
+        run: >-
+          python -m py_compile
+          tests/test_wp206_same_inode_live_drift_review.py
+          tests/wp206_restart_probe.py
+          src/frankenstein2/persistent_agency_kernel.py
+          src/state/unifieddb_identity.py
+      - name: Run same-inode live-drift falsifier
+        env:
+          PYTHONPATH: src
+        run: >-
+          python -m unittest -v
+          tests.test_wp206_same_inode_live_drift_review
