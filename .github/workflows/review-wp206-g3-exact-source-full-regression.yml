@@ -1,0 +1,47 @@
+name: REVIEW ONLY - WP206 G3 Exact Source Full Regression
+
+on:
+  push:
+    branches:
+      - review/trigger4-wp206-g3-exact-source-full-regression-20260830
+    paths:
+      - '.github/workflows/review-wp206-g3-exact-source-full-regression.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  exact-source-full-regression:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Compile exact WP206 G3 plus accepted kernel surface
+        run: >-
+          python -m py_compile
+          src/frankenstein2/persistent_agency_kernel.py
+          src/frankenstein2/wp206_legacy_authority_recovery.py
+          src/state/unifieddb_identity.py
+          tests/wp206_restart_probe.py
+          tests/test_wp206_legacy_authority_recovery.py
+          tests/test_persistent_agency_kernel.py
+      - name: Execute G3 legacy recovery falsifiers
+        env:
+          PYTHONPATH: src
+        run: python tests/test_wp206_legacy_authority_recovery.py -v
+      - name: Execute complete accepted WP206 restart regression
+        env:
+          PYTHONPATH: src
+        run: python tests/test_persistent_agency_kernel.py -v
+      - name: Evidence scope fence
+        if: always()
+        run: |
+          echo 'CLASSIFICATION=REVIEW_ONLY_EXACT_G3_SOURCE_PLUS_WORKFLOW_ONLY'
+          echo 'SOURCE_BASE=7cc2dc2a5c9362f6e967d3df05a15604542582eb'
+          echo 'TARGET_RUNTIME_CREDIT=0'
+          echo 'PHYSICAL_GRID10_CREDIT=0'
+          echo 'WHOLE_SYSTEM_ACCEPTANCE=false'
