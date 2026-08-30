@@ -1,0 +1,59 @@
+{
+  "schema": "F2_TRIGGER7_WP715_TOOL_ONLY_BARGE_OWNERSHIP_FALSIFIER/v1",
+  "trigger": "7",
+  "recorded_date": "2026-08-31",
+  "organ": "GPT-5.6-Sol",
+  "classification": "CANDIDATE_FALSIFIER_REVIEW_ONLY",
+  "mutation_authority": false,
+  "workpackage_id": "F2-WP-715",
+  "observed_subject": {
+    "f2_head_at_review": "9657eece9c951988a59eb65ec454032bd7f8efca",
+    "source": "src/frankenstein2/voice_packet_cortex.py",
+    "source_blob_sha": "98b93f85b446c66db78b553f12631aa0acebbc71",
+    "active_owner": "F2-WP-715-G1-GPT56SOL-PACKET-CORTEX-CONVERGENCE-20260831"
+  },
+  "candidate_id": "PN14_TOOL_ONLY_BARGE_IN_CAN_LEAVE_STALE_TOOL_OWNERSHIP_ACTIVE",
+  "evidence_class": "CURRENT_SOURCE_INSPECTION",
+  "observation": {
+    "barge_in_logic": "cancel_for_barge_in() derives cancelled_turns only from nonterminal cancellable output packets. Active tool refs are cancelled only when their owner_turn is in that output-derived cancelled_turns set.",
+    "tool_only_case": "A turn can emit TOOL_USE before any output packet exists. If user barge-in then occurs while that tool is still active, candidates may be empty, cancelled_turns stays empty, and the tool_ref remains in _active_tools.",
+    "late_result_path": "emit_system_event(... TOOL_RESULT ...) accepts a tool result whenever _active_tools[tool_ref] still equals the originating turn_id. Therefore the late completion from the interrupted tool-only turn can still be admitted after barge-in.",
+    "existing_test_gap": "test_cancelled_turn_rejects_late_tool_result covers only a turn that already has a started output, so cancelled_turns contains that turn and does not exercise the tool-only ownership case."
+  },
+  "risk": "Barge-in/cancellation is intended to revoke stale turn ownership, but the current implementation couples tool cancellation to presence of an output packet. A tool-running pre-output turn can survive user interruption and later inject a result into the session under stale ownership.",
+  "minimal_discriminator": {
+    "setup": [
+      "Create one open VoicePacketCortex session.",
+      "Emit TOOL_USE for turn-old with tool_ref tool:slow and no output packet for turn-old.",
+      "Submit a valid barge_in VoiceInputPacket for turn-new."
+    ],
+    "action": "After barge-in, call emit_system_event(turn_id='turn-old', event_kind='TOOL_RESULT', tool_ref='tool:slow').",
+    "expected_fail_closed_property": "The late tool result must be rejected because barge-in superseded/revoked the prior tool ownership epoch even though no output packet existed.",
+    "candidate_product_negative": "If the TOOL_RESULT is accepted, classify PRODUCT_NEGATIVE at packet-controller causal ownership scope."
+  },
+  "repair_direction_if_reproduced": [
+    "Do not infer cancelled tool turns solely from output candidates.",
+    "Bind barge-in to an explicit superseded/interrupted turn ownership set or generation/epoch and revoke all active tool refs owned by the superseded turn(s).",
+    "Keep cross-turn rejection in emit_system_event and add a regression for tool-only pre-output interruption.",
+    "Avoid creating a second tool/cancellation authority; repair only the existing WP715 controller."
+  ],
+  "coordination": {
+    "current_known_product_negative": "Restart reentry currently has an executed repository PRODUCT_NEGATIVE on source subject 9203d515dbcfb8a049971e60174a281609865a33.",
+    "priority": "DEFER_EXECUTION_UNTIL_CURRENT_RESTART_PRODUCT_NEGATIVE_IS_REPAIRED_OR_IN_SAME_OWNER_COHERENT_REGRESSION_PASS",
+    "duplicate_source_mutation": false,
+    "duplicate_runtime_dispatch": false,
+    "asr004_redispatch": false
+  },
+  "credit": {
+    "review_delta": 1,
+    "product_negative_credit": 0,
+    "repository_ci_credit": 0,
+    "vps_packet_runtime_credit": 0,
+    "asr_runtime_credit": 0,
+    "tts_runtime_credit": 0,
+    "acoustic_credit": 0,
+    "whole_voice_credit": 0,
+    "whole_product_credit": 0
+  },
+  "next_exact_action": "Preserve the current restart-reentry PRODUCT_NEGATIVE as the immediate WP715 closure. When the Trigger-4 owner performs that coherent regression pass, add PN14 tool-only barge-in ownership as one bounded negative test; repair only if reproduced, then rerun the existing WP715 discriminator. Do not create a second workflow or source owner."
+}
