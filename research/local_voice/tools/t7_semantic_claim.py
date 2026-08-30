@@ -84,6 +84,9 @@ SUBJECT_ALIASES = {
     "x2-turn-4b": "X2_TURN_4B_0812",
     "x2-turn-4b-0812": "X2_TURN_4B_0812",
     "x-square-robot-x2-turn-4b-0812": "X2_TURN_4B_0812",
+    "duplex-minnima": "DUPLEX_MINNIMA_CPP",
+    "eddiegulay-duplex-minnima": "DUPLEX_MINNIMA_CPP",
+    "turn-taker": "DUPLEX_MINNIMA_CPP",
 }
 
 EVIDENCE_SCOPE_ALIASES = {
