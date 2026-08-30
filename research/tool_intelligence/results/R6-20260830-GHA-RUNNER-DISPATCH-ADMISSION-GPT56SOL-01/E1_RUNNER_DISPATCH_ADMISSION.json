@@ -1,0 +1,113 @@
+{
+  "schema": "TRIGGER6_RESEARCH_RESULT/v1",
+  "trigger": "6",
+  "research_id": "R6-20260830-GHA-RUNNER-DISPATCH-ADMISSION-GPT56SOL-01",
+  "stage": "E1_SOURCE_READ",
+  "status": "COMPLETE_AT_E1",
+  "recorded_at": "2026-08-30T19:24:00+07:00",
+  "worker": "GPT-5.6-Sol-TRIGGER6",
+  "subject": "GitHub Actions self-hosted runner dispatch admission for the WP1207 clay-direct-dev target gate",
+  "source_lock": {
+    "f2_claim_preclaim_main": "f84b6334dbfcba1e0fe8907848e730b8349dde1a",
+    "research_entity_main_observed": "5933ed34cc03328f6300a83b2be972bc05cf0a66",
+    "controller_main_observed_preclaim": "8e6abc2cf807c8cf2c5a97b20eb930d754a77a64",
+    "wp1207_workflow_source_sha": "612edec9e5361e6bcdbbc6fc6b0f005f68eb2a2b",
+    "wp1207_workflow_path": ".github/workflows/trigger4-wp1207-target-gate.yml",
+    "wp1207_runtime_run_id": 33308615022,
+    "wp1207_runtime_job_id": 99249501627,
+    "wp1207_runtime_observed_status": "queued",
+    "wp1207_runtime_observed_steps": 0
+  },
+  "external_primary": [
+    {
+      "source": "GitHub Docs — Self-hosted runners reference",
+      "url": "https://docs.github.com/en/actions/reference/runners/self-hosted-runners",
+      "classification": "EXTERNAL_PRIMARY",
+      "relevance": "GitHub routes a self-hosted job only to an online and idle runner matching the job's runs-on labels/groups; an assigned runner that does not pick up within 60 seconds causes requeue; without an eligible online/idle runner the job remains queued and ultimately fails after 24 hours."
+    },
+    {
+      "source": "GitHub Docs — REST API endpoints for self-hosted runners",
+      "url": "https://docs.github.com/en/rest/actions/self-hosted-runners",
+      "classification": "EXTERNAL_PRIMARY",
+      "relevance": "The repository runner-roster API exposes runner id, name, OS, status, busy state, ephemeral state, version and labels when the caller has the required administration read permission."
+    },
+    {
+      "source": "GitHub Docs — Using labels with self-hosted runners",
+      "url": "https://docs.github.com/en/actions/how-tos/manage-runners/self-hosted-runners/apply-labels",
+      "classification": "EXTERNAL_PRIMARY",
+      "relevance": "Custom labels are supported for routing jobs to runner types/capabilities; runner groups are another routing surface."
+    }
+  ],
+  "source_observations": [
+    {
+      "id": "RDA-E1-01",
+      "classification": "CURRENT_SOURCE",
+      "observation": "The exact WP1207 target-gate workflow at controller source 612edec9e5361e6bcdbbc6fc6b0f005f68eb2a2b declares runs-on: self-hosted with no additional capability label or runner group."
+    },
+    {
+      "id": "RDA-E1-02",
+      "classification": "CURRENT_SOURCE",
+      "observation": "The workflow then searches its assigned runner for docker, podman, incus or lxc access to a target named clay-direct-dev; if that capability is absent it writes BLOCKED_SANDBOX_NOT_DISCOVERED and exits without target runtime credit."
+    },
+    {
+      "id": "RDA-E1-03",
+      "classification": "PROJECT_MEASUREMENT",
+      "observation": "At this research read, canonical WP1207 run 33308615022/job 99249501627 remained queued with no executed steps. This is control-plane/transport evidence only."
+    },
+    {
+      "id": "RDA-E1-04",
+      "classification": "TOOL_CAPABILITY_NEGATIVE",
+      "observation": "The installed GitHub connector rejects GET /repos/gschaidergabriel/Dr.-Unterweger/actions/runners as an unsupported endpoint family. Therefore this organ cannot observe the registered runner roster/status/labels and must keep OFFLINE/BUSY/LABEL_MISMATCH/GROUP_MISMATCH unresolved."
+    }
+  ],
+  "hypothesis": {
+    "statement": "The current broad runs-on:self-hosted contract admits a placement-ambiguity class: if multiple self-hosted runners are ever eligible, GitHub may assign a runner that lacks the clay-direct-dev bridge. A target-capability routing label or runner-group constraint can reduce that ambiguity before workflow execution.",
+    "confidence": 0.93,
+    "classification": "INFERENCE_FROM_CURRENT_WORKFLOW_PLUS_EXTERNAL_ROUTING_SPEC"
+  },
+  "counterhypothesis": {
+    "statement": "The repository may have exactly one eligible self-hosted runner, or policy/group configuration may already constrain it externally; in that case adding another label provides little current routing benefit and could itself strand jobs if the label is not maintained.",
+    "confidence": 0.78,
+    "cheapest_discriminator": "Through an already-authorized runner-admin surface, read the current repository/organization runner roster plus labels/groups and compare them with the WP1207 runs-on contract. If exactly one eligible runner exists and it is the intended clay-direct-dev bridge host, do not add a redundant label solely for aesthetics."
+  },
+  "architecture_candidate": {
+    "name": "RUNNER_ELIGIBILITY_ADMISSION_FENCE",
+    "classification": "BUILD_CANDIDATE_FOR_E2_MAPPING_NOT_IMPLEMENTED",
+    "minimal_delta": [
+      "Represent target-host transport eligibility separately from runtime success.",
+      "If roster evidence shows multiple or ambiguous self-hosted runners, constrain WP1207 routing with a dedicated capability label such as clay-direct-dev-bridge and/or the already-authoritative runner group; do not invent a new scheduler.",
+      "Treat any routing label/group as candidate eligibility metadata only. It must never attest that clay-direct-dev actually exists, that the exact artifact ran, or that runtime credit is earned.",
+      "Retain the workflow's first-step runtime/container discovery as the direct capability measurement and bind the observed runner identity plus exact controller/F2/artifact identities into the external receipt.",
+      "Where an already-authorized runner-roster read is available, require an eligible online/idle observation before dispatch or classify RUNNER_STATUS_UNKNOWN/UNAVAILABLE and avoid queue-amplifying redispatch. If the roster surface is unavailable, do not infer OFFLINE.",
+      "A queued zero-step job remains transport/control-plane evidence, never WP1207 semantic failure."
+    ],
+    "reject_condition": "Reject a new label/group requirement if exact roster/group inspection proves a single unambiguous intended runner and the added metadata would only duplicate existing routing authority without reducing a real failure class.",
+    "trigger4_handoff": "Consume the parallel runner-roster result first. At E2, map the existing WP1207 execution-surface resolution to explicit states RUNNER_STATUS_UNKNOWN -> ELIGIBLE_CANDIDATE -> ASSIGNED -> STEP_EXECUTION_OBSERVED -> CLAY_DIRECT_DEV_CAPABILITY_OBSERVED -> EXACT_TARGET_RECEIPT. Only the last evidence-bearing stages can support bounded runtime promotion."
+  },
+  "risk_register": [
+    "CUSTOM_LABEL_MISREAD_AS_ATTESTATION",
+    "STALE_LABEL_STRANDS_JOB",
+    "BROAD_SELF_HOSTED_ROUTE_SELECTS_WRONG_CAPABILITY_HOST",
+    "RUNNER_API_UNAVAILABLE_MISREAD_AS_RUNNER_OFFLINE",
+    "QUEUED_ZERO_STEP_MISREAD_AS_PRODUCT_FAILURE",
+    "REDISPATCH_AMPLIFIES_QUEUE_WITHOUT_INFORMATION_GAIN"
+  ],
+  "coordination": {
+    "parallel_e1_runner_roster_result": "research/tool_intelligence/results/R6-20260830-RUNNER-ROSTER-STATUS-API-GPT56SOL-01/E1_RUNNER_ROSTER_STATUS_API.json@67e8709be95ebc555fe3e114d2d63e6a5a844641",
+    "parallel_e2_runner_evidence_claim": "research/tool_intelligence/claims/R6-20260830-RUNNER-EVIDENCE-STAGE-MODEL-GPT56SOL-01/E2_ARCHITECTURE_MAPPED.json@d85271e8f4ac86ed63e5a7296553cfba38ff165e",
+    "duplicate_policy": "This E1 closes only the narrower dispatch-admission/source-mapping claim and delegates architecture fusion to the already-active E2 lanes. No competing E2 claim is created."
+  },
+  "evidence_ceiling": {
+    "level": "E1_SOURCE_READ_PLUS_CURRENT_CONTROL_PLANE_OBSERVATION",
+    "research_credit": 1,
+    "architecture_credit": 0,
+    "runtime_credit": 0,
+    "physical_grid10_credit": 0,
+    "gwt_credit": 0,
+    "jspace_credit": 0,
+    "effect_credit": 0,
+    "training_credit": 0,
+    "whole_system_credit": 0
+  },
+  "next_exact_action": "Do not create another runner E2 lane. Let the already-claimed runner-evidence/diagnostic E2 workers map this candidate together with the runner-roster result, then Trigger 4 should use the resulting nonduplicate transport discriminator before any WP1207 redispatch or runtime-credit decision."
+}
