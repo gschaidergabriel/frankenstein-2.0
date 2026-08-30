@@ -1,11 +1,19 @@
-name: F2 WP206 G2 Canonical Authority Receipt Repair CI
+name: F2 WP206 Persistent Agency Integration CI
 
 on:
   push:
     branches:
+      - main
+      - chatgpt/trigger4-wp206-g1-persistent-agency-integration-20260829
       - chatgpt/trigger4-wp206-g2-authority-receipt-repair-20260830
     paths:
       - 'src/frankenstein2/persistent_agency_kernel.py'
+      - 'src/frankenstein2/agency_state.py'
+      - 'src/frankenstein2/goal_lifecycle.py'
+      - 'src/frankenstein2/persistent_pulse.py'
+      - 'src/frankenstein2/state_fingerprint.py'
+      - 'src/frankenstein2/wake_hold.py'
+      - 'src/state/unifieddb_identity.py'
       - 'tests/test_persistent_agency_kernel.py'
       - 'tests/test_wp206_unifieddb_authority_receipt_replay_falsifier.py'
       - 'tests/wp206_restart_probe.py'
@@ -13,6 +21,12 @@ on:
   pull_request:
     paths:
       - 'src/frankenstein2/persistent_agency_kernel.py'
+      - 'src/frankenstein2/agency_state.py'
+      - 'src/frankenstein2/goal_lifecycle.py'
+      - 'src/frankenstein2/persistent_pulse.py'
+      - 'src/frankenstein2/state_fingerprint.py'
+      - 'src/frankenstein2/wake_hold.py'
+      - 'src/state/unifieddb_identity.py'
       - 'tests/test_persistent_agency_kernel.py'
       - 'tests/test_wp206_unifieddb_authority_receipt_replay_falsifier.py'
       - 'tests/wp206_restart_probe.py'
@@ -20,37 +34,17 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
-  deterministic-authority-receipt-repair:
+  deterministic-subprocess-restart:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
       - uses: actions/checkout@v4
-        with:
-          ref: chatgpt/trigger4-wp206-g2-authority-receipt-repair-20260830
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-      - name: Absorb reviewed minimal repair into canonical G2 branch source
-        shell: bash
-        run: |
-          python - <<'PY'
-          from pathlib import Path
-          p = Path('src/frankenstein2/persistent_agency_kernel.py')
-          s = p.read_text(encoding='utf-8')
-          old_authority = '        self.authority_receipt_sha256 = fingerprint.receipt_sha256()\n'
-          new_authority = '''        self.authority_receipt_sha256 = _sha256(\n            {\n                "schema": "FRANKENSTEIN2_UNIFIEDDB_BOUND_FILE_AUTHORITY/v1",\n                "canonical_db_path": self.canonical_db_path,\n                "db_device": self.db_device,\n                "db_inode": self.db_inode,\n            }\n        )\n'''
-          old_load = '''        row = self.connection.execute(\n            f"""SELECT checkpoint_sha256, checkpoint_json, canonical_db_path,\n                       db_device, db_inode\n                FROM {CHECKPOINT_TABLE} WHERE checkpoint_id=?""",\n            (checkpoint_id,),\n        ).fetchone()\n        if row is None:\n            raise PersistentAgencyError("CHECKPOINT_NOT_FOUND")\n        expected_sha, raw_json, stored_path, stored_device, stored_inode = row\n        if not _same_real_path(stored_path, self.canonical_db_path):\n            raise PersistentAgencyError("CHECKPOINT_DB_PATH_AUTHORITY_MISMATCH")\n        if (stored_device, stored_inode) != (self.db_device, self.db_inode):\n            raise PersistentAgencyError("CHECKPOINT_DB_FILE_IDENTITY_DRIFT")\n'''
-          new_load = '''        row = self.connection.execute(\n            f"""SELECT checkpoint_sha256, checkpoint_json, canonical_db_path,\n                       db_device, db_inode, unifieddb_authority_receipt_sha256\n                FROM {CHECKPOINT_TABLE} WHERE checkpoint_id=?""",\n            (checkpoint_id,),\n        ).fetchone()\n        if row is None:\n            raise PersistentAgencyError("CHECKPOINT_NOT_FOUND")\n        (\n            expected_sha, raw_json, stored_path, stored_device, stored_inode,\n            stored_authority_receipt_sha256,\n        ) = row\n        if not _same_real_path(stored_path, self.canonical_db_path):\n            raise PersistentAgencyError("CHECKPOINT_DB_PATH_AUTHORITY_MISMATCH")\n        if (stored_device, stored_inode) != (self.db_device, self.db_inode):\n            raise PersistentAgencyError("CHECKPOINT_DB_FILE_IDENTITY_DRIFT")\n        if stored_authority_receipt_sha256 != self.authority_receipt_sha256:\n            raise PersistentAgencyError("CHECKPOINT_DB_AUTHORITY_RECEIPT_MISMATCH")\n'''
-          already = 'stored_authority_receipt_sha256 != self.authority_receipt_sha256' in s
-          if not already:
-              if old_authority not in s or old_load not in s:
-                  raise SystemExit('exact G1 source anchors missing; fail closed')
-              s = s.replace(old_authority, new_authority, 1).replace(old_load, new_load, 1)
-              p.write_text(s, encoding='utf-8')
-          PY
       - name: Compile exact WP206 G2 surface
         run: >-
           python -m py_compile
@@ -58,23 +52,11 @@ jobs:
           tests/test_persistent_agency_kernel.py
           tests/test_wp206_unifieddb_authority_receipt_replay_falsifier.py
           tests/wp206_restart_probe.py
-      - name: Existing WP206 regression suite remains green
+      - name: Persistent Agency fresh-process regression suite
         env:
           PYTHONPATH: src
         run: python tests/test_persistent_agency_kernel.py -v
-      - name: Authority receipt tamper discriminator
+      - name: UnifiedDB authority receipt replay-fence regression
         env:
           PYTHONPATH: src
         run: python tests/test_wp206_unifieddb_authority_receipt_replay_falsifier.py -v
-      - name: Persist canonical source delta on the mutation-owner branch
-        shell: bash
-        run: |
-          if git diff --quiet -- src/frankenstein2/persistent_agency_kernel.py; then
-            echo 'source already contains G2 repair'
-            exit 0
-          fi
-          git config user.name 'GPT-5.6-Sol-TRIGGER4'
-          git config user.email 'actions@users.noreply.github.com'
-          git add src/frankenstein2/persistent_agency_kernel.py
-          git commit -m 'trigger4(WP206 G2): enforce UnifiedDB authority receipt on replay'
-          git push origin HEAD:chatgpt/trigger4-wp206-g2-authority-receipt-repair-20260830
