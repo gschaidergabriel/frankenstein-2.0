@@ -1,0 +1,99 @@
+{
+  "schema": "T7_SOURCE_TRANSFER_AUDIT/v1",
+  "trigger": "7",
+  "organ": "GPT-5.6-Sol",
+  "observed_date": "2026-08-30",
+  "research_id": "T7-ASR-007",
+  "objective": "E1B_QWEN3_ASR_STATEFUL_STREAMING_TRANSFER_AUDIT",
+  "status": "SOURCE_TRANSFER_AUDIT_TERMINAL_AT_SCOPE",
+  "evidence_scope": "UPSTREAM_PRIMARY_SOURCE_CODE_ONLY",
+  "f2_main_before_write": "65b4503bf7c88a3ad8068d9c18e87b153aba49e4",
+  "runtime_credit": 0,
+  "german_runtime_credit": 0,
+  "frankenstein_acceptance_credit": 0,
+  "inputs": {
+    "stateful_asr_method_signal": "research/local_voice/sources/2026-08-30_T7_ASR007_STATEFUL_STREAMING_ASR_SOURCE_SIGNAL_GPT56SOL.json",
+    "stateful_asr_paper": "arXiv:2608.22101v1",
+    "qwen3_asr_repo": "QwenLM/Qwen3-ASR",
+    "qwen3_asr_source_commit": "7c6daf77a2421100f5fb066495372c00129d39ff",
+    "qwen3_asr_source_path": "qwen_asr/inference/qwen3_asr.py",
+    "qwen3_asr_source_blob": "d99b91512a5bbc1c15897d97752cfd86ea68d46e"
+  },
+  "observations": {
+    "official_streaming_backend": "vLLM only",
+    "official_state_type": "ASRStreamingState",
+    "state_fields_material_to_transfer": [
+      "chunk_id",
+      "buffer",
+      "audio_accum",
+      "prompt_raw",
+      "context",
+      "force_language",
+      "language",
+      "text",
+      "_raw_decoded",
+      "unfixed_chunk_num",
+      "unfixed_token_num"
+    ],
+    "official_streaming_execution_semantics": "For every completed chunk, Qwen3-ASR appends PCM into audio_accum and re-feeds all audio accumulated from the beginning of the current stream to the model. Previous decoded text is used as a prompt prefix with token rollback after the configured unfixed period.",
+    "persistent_neural_acoustic_cache_exposed_by_this_wrapper": false,
+    "cross_utterance_internal_model_state_carry_api_observed": false,
+    "existing_rollback_semantics": "token-prefix rollback within one stream, not rollback of an internal acoustic/model cache across conversational turns",
+    "german_supported_by_qwen3_asr_model_metadata": true,
+    "source_runtime_observed": false
+  },
+  "transfer_result": {
+    "classification": "PARTIAL_METHOD_TRANSFER_NOT_MECHANISM_EQUIVALENCE",
+    "directly_testable_on_official_qwen_wrapper": [
+      "fresh stream per confirmed turn",
+      "bounded cross-turn text/context carry-over",
+      "bounded PCM/audio-history carry-over by explicit wrapper policy",
+      "token-prefix rollback policy",
+      "reset after long pause/backchannel/speaker-change fences"
+    ],
+    "not_directly_equivalent_on_official_qwen_wrapper": [
+      "carry-over of the paper's internal streaming acoustic/model state",
+      "rollback to a previously saved neural streaming state"
+    ],
+    "consequence": "Do not label a future Qwen3-ASR experiment as a reproduction of State Carry-over/State Rollback from arXiv:2608.22101 unless the runtime exposes and manipulates equivalent internal streaming model state. Treat official-wrapper experiments as QWEN_TEXT_AUDIO_CONTEXT_CONTINUITY variants instead.",
+    "higher_fidelity_route": "Use a streaming ASR implementation with explicit persistent neural/cache state and snapshot/rollback semantics, or extend/replace the Qwen streaming path with a causal/cache-bearing implementation whose state identity can be captured and restored."
+  },
+  "hypothesis": "Qwen3-ASR can benefit from bounded cross-turn continuity, but the official vLLM streaming wrapper's audio/text accumulation is not mechanism-equivalent to internal-state rollback studied in stateful streaming transducer ASR.",
+  "counterhypotheses": [
+    "The vLLM/model layer may maintain hidden reusable caches not surfaced by qwen_asr.py; source inspection of the public wrapper alone does not prove absence below the wrapper boundary.",
+    "Text/audio-history continuity may recover most practical onset gains even without internal neural-state rollback.",
+    "A causal Qwen3-ASR streaming variant may expose the missing state and make a higher-fidelity transfer possible."
+  ],
+  "future_same_corpus_design_after_runner_recovery": {
+    "qwen_official_wrapper_factors": [
+      "FRESH_STREAM",
+      "TEXT_CONTEXT_CARRY",
+      "BOUNDED_AUDIO_HISTORY_PLUS_TEXT_CARRY",
+      "TOKEN_PREFIX_ROLLBACK"
+    ],
+    "stateful_model_factors_if_cache_state_becomes_available": [
+      "FRESH_STATE",
+      "INTERNAL_STATE_CARRY",
+      "INTERNAL_STATE_ROLLBACK"
+    ],
+    "required_metrics": [
+      "overall WER",
+      "first-word and first-N-word WER",
+      "WER after long pause",
+      "WER after short backchannel",
+      "latency p50/p95/p99",
+      "recompute cost as audio_accum grows",
+      "memory overhead",
+      "speaker-change contamination",
+      "reset/rollback correctness"
+    ]
+  },
+  "evidence_law": [
+    "API_OBJECT_NAMED_STREAMING_STATE != PERSISTENT_NEURAL_STATE",
+    "TEXT_TOKEN_ROLLBACK != ACOUSTIC_MODEL_STATE_ROLLBACK",
+    "REFEED_ALL_ACCUMULATED_AUDIO != CACHE_STATE_CARRY_OVER",
+    "SOURCE_TRANSFER_PLAUSIBILITY != TARGET_RUNTIME_CREDIT",
+    "GERMAN_SUPPORTED_METADATA != F2_GERMAN_BENCHMARK_PASS"
+  ],
+  "next_exact_action": "Do not create another Qwen3-ASR target-runtime dispatch while run 33292903286 remains queued. After the authorized self-hosted/bridge route is restored and the existing Qwen runtime receipt lands, benchmark only the mechanism-accurate Qwen continuity factors above on the same German room-audio corpus. In parallel, source-audit any causal/cache-bearing Qwen3-ASR streaming implementation before assigning internal-state rollback semantics to it."
+}
