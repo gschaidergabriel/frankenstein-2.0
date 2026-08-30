@@ -3,14 +3,16 @@ set -euo pipefail
 
 # Frankenstein 2 VPS multimodal empirical-lab bootstrap.
 # Core media-store works with Python stdlib only. Optional tools increase generation/decoding reach.
+# The installed CLI/GC uses a stable user-local code copy so Actions checkout churn cannot break it.
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 STORE_ROOT="${F2_MEDIA_LAB_ROOT:-$HOME/.cache/frankenstein2/media_lab}"
 BIN_DIR="$HOME/.local/bin"
+INSTALL_DIR="$HOME/.local/share/frankenstein2/media_lab"
 SYSTEMD_USER_DIR="$HOME/.config/systemd/user"
 
-mkdir -p "$STORE_ROOT" "$BIN_DIR" "$SYSTEMD_USER_DIR"
-chmod 700 "$STORE_ROOT" || true
+mkdir -p "$STORE_ROOT" "$BIN_DIR" "$INSTALL_DIR" "$SYSTEMD_USER_DIR"
+chmod 700 "$STORE_ROOT" "$INSTALL_DIR" || true
 
 export F2_MEDIA_LAB_ROOT="$STORE_ROOT"
 export F2_MEDIA_LAB_MAX_BYTES="${F2_MEDIA_LAB_MAX_BYTES:-10737418240}"
@@ -54,15 +56,19 @@ install_ytdlp() {
 install_apt_tools || true
 install_ytdlp || true
 
+# Stable install: do not let a later actions/checkout clean make the janitor executable disappear.
+install -m 0644 "$REPO_ROOT/src/frankenstein2/media_lab_store.py" "$INSTALL_DIR/media_lab_store.py"
+printf '%s\n' "$REPO_ROOT" > "$INSTALL_DIR/source_repo_root.txt"
+printf '%s\n' "$(git -C "$REPO_ROOT" rev-parse HEAD 2>/dev/null || echo UNKNOWN)" > "$INSTALL_DIR/source_commit.txt"
+
 cat > "$BIN_DIR/f2-media" <<EOF
 #!/usr/bin/env bash
 set -euo pipefail
-export PYTHONPATH="$REPO_ROOT/src\${PYTHONPATH:+:\$PYTHONPATH}"
 export F2_MEDIA_LAB_ROOT="\${F2_MEDIA_LAB_ROOT:-$STORE_ROOT}"
 export F2_MEDIA_LAB_MAX_BYTES="\${F2_MEDIA_LAB_MAX_BYTES:-10737418240}"
 export F2_MEDIA_LAB_LOW_WATER_BYTES="\${F2_MEDIA_LAB_LOW_WATER_BYTES:-8589934592}"
 export F2_MEDIA_LAB_MAX_AGE_HOURS="\${F2_MEDIA_LAB_MAX_AGE_HOURS:-72}"
-exec python3 "$REPO_ROOT/src/frankenstein2/media_lab_store.py" "\$@"
+exec python3 "$INSTALL_DIR/media_lab_store.py" "\$@"
 EOF
 chmod 755 "$BIN_DIR/f2-media"
 
@@ -93,11 +99,16 @@ Persistent=true
 WantedBy=timers.target
 EOF
 
+TIMER_STATE="UNAVAILABLE"
 if command -v systemctl >/dev/null 2>&1; then
-  systemctl --user daemon-reload || true
-  systemctl --user enable --now frankenstein2-media-lab-gc.timer || true
+  systemctl --user daemon-reload >/dev/null 2>&1 || true
+  systemctl --user enable --now frankenstein2-media-lab-gc.timer >/dev/null 2>&1 || true
+  TIMER_STATE="$(systemctl --user is-enabled frankenstein2-media-lab-gc.timer 2>/dev/null || true)"
+  [[ -n "$TIMER_STATE" ]] || TIMER_STATE="UNAVAILABLE"
 fi
 
+# Always run one real GC now. Even without a persistent user-systemd session,
+# every store acquisition/ingest also enforces capacity and invokes GC, so 10 GiB remains a hard ceiling.
 "$BIN_DIR/f2-media" gc --aggressive
 "$BIN_DIR/f2-media" status
 
@@ -105,11 +116,13 @@ cat <<EOF
 
 F2 VPS multimodal lab ready.
 CLI: $BIN_DIR/f2-media
+Installed code: $INSTALL_DIR/media_lab_store.py
+Source commit: $(cat "$INSTALL_DIR/source_commit.txt")
 Store: $STORE_ROOT
 Hard cap: 10 GiB
 Low-water target: 8 GiB
 Default age GC: 72 h
-Janitor: every 15 min when user systemd is available
+Janitor timer: $TIMER_STATE (15 min when user systemd is available)
 
 Examples:
   f2-media fetch 'https://host/path/test.webm'
