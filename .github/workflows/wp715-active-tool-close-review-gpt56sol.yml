@@ -7,15 +7,13 @@ on:
     paths:
       - '.github/workflows/wp715-active-tool-close-review-gpt56sol.yml'
       - 'src/frankenstein2/voice_packet_cortex.py'
-      - 'src/frankenstein2/voice_contract.py'
-      - 'src/frankenstein2/causal_identity.py'
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
-  active-tool-close-falsifier:
+  active-tool-close-repair:
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     steps:
@@ -27,8 +25,30 @@ jobs:
         run: |
           set -euo pipefail
           git rev-parse HEAD
-          git rev-parse HEAD^ || true
           sha256sum src/frankenstein2/voice_packet_cortex.py src/frankenstein2/voice_contract.py src/frankenstein2/causal_identity.py
+      - name: Apply minimal unresolved-tool close guard
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+
+          path = Path('src/frankenstein2/voice_packet_cortex.py')
+          text = path.read_text(encoding='utf-8')
+          guard = '        if self._active_tools:\n            raise VoicePacketCortexError("cannot close session with unresolved active tool ownership")\n'
+          if guard not in text:
+              needle = '        self._require_event_capacity()\n        if any(packet.playback_state not in _TERMINAL_PLAYBACK for packet in self._outputs.values()):\n'
+              replacement = '        self._require_event_capacity()\n' + guard + '        if any(packet.playback_state not in _TERMINAL_PLAYBACK for packet in self._outputs.values()):\n'
+              if text.count(needle) != 1:
+                  raise SystemExit('repair anchor is not unique; fail closed')
+              text = text.replace(needle, replacement, 1)
+              path.write_text(text, encoding='utf-8')
+          PY
+      - name: Run existing WP715 packet-cortex regressions
+        env:
+          PYTHONPATH: src
+        run: |
+          set -euo pipefail
+          python -m unittest discover -s tests -p 'test_voice_packet_cortex.py' -v
       - name: Execute unresolved active-tool session-close discriminator
         env:
           PYTHONPATH: src
@@ -40,46 +60,32 @@ jobs:
           from frankenstein2.voice_packet_cortex import VoicePacketCortex, VoicePacketCortexError
 
           root = CausalIdentity(
-              session_id='session-wp715-active-tool-close',
-              agent_id='frankenstein-2',
-              task_id='wp715-active-tool-close-review',
-              turn_id='turn-input',
-              causal_id='causal-input-wp715-active-tool-close',
-              generation=3,
+              session_id='session-wp715-active-tool-close', agent_id='frankenstein-2',
+              task_id='wp715-active-tool-close-review', turn_id='turn-input',
+              causal_id='causal-input-wp715-active-tool-close', generation=3,
           )
           intent = VoiceIntent.create(
-              causal_identity=root,
-              input_ref='review:wp715-active-tool-close',
+              causal_identity=root, input_ref='review:wp715-active-tool-close',
               input_sha256='d' * 64,
               provenance_refs=('trigger4:wp715-active-tool-close-review',),
           )
           session = VoiceSessionCapsule.create(
               intent=intent,
               session_causal_identity=root.derive(
-                  causal_id='causal-session-wp715-active-tool-close',
-                  generation=4,
-                  turn_id='turn-session',
+                  causal_id='causal-session-wp715-active-tool-close', generation=4, turn_id='turn-session'
               ),
               provenance_refs=('trigger4:wp715-active-tool-close-review:session',),
           )
           cortex = VoicePacketCortex(session)
           cortex.emit_intent(
-              turn_id='turn-tool',
-              monotonic_ms=10,
-              voice_intent='TOOL_USE',
-              tool_ref='tool:pending',
+              turn_id='turn-tool', monotonic_ms=10, voice_intent='TOOL_USE', tool_ref='tool:pending'
           )
-          assert cortex.is_open
-          assert cortex._active_tools.get('tool:pending') == 'turn-tool'
-
+          before_events = cortex.events
           try:
               cortex.close_session(
-                  turn_id='turn-close',
-                  monotonic_ms=20,
+                  turn_id='turn-close', monotonic_ms=20,
                   outcome_causal_identity=session.session_causal_identity.derive(
-                      causal_id='causal-outcome-wp715-active-tool-close',
-                      generation=5,
-                      turn_id='turn-close',
+                      causal_id='causal-outcome-wp715-active-tool-close', generation=5, turn_id='turn-close'
                   ),
                   outcome_kind=OUTCOME_RETURNED,
                   provenance_refs=('trigger4:wp715-active-tool-close-review:outcome',),
@@ -87,9 +93,20 @@ jobs:
           except VoicePacketCortexError:
               assert cortex.is_open, 'rejected close must leave session open'
               assert cortex._active_tools.get('tool:pending') == 'turn-tool', 'rejected close must preserve ownership'
-              print('FALSIFIER_PASS: close rejected while unresolved TOOL_USE ownership remained active')
+              assert cortex.events == before_events, 'rejected close must not append terminal event'
+              print('REPAIR_PASS: unresolved TOOL_USE ownership blocks close atomically')
           else:
-              raise AssertionError(
-                  'PRODUCT_NEGATIVE: close_session admitted terminal SESSION_CLOSE with unresolved active TOOL_USE ownership'
-              )
+              raise AssertionError('PRODUCT_NEGATIVE persists after repair')
           PY
+      - name: Commit verified repair to review branch
+        run: |
+          set -euo pipefail
+          git add src/frankenstein2/voice_packet_cortex.py
+          if git diff --cached --quiet; then
+            echo 'No source delta to commit.'
+            exit 0
+          fi
+          git config user.name 'GPT-5.6-Sol Trigger4 Review'
+          git config user.email 'noreply@users.noreply.github.com'
+          git commit -m 'trigger4: reject session close with unresolved tool ownership'
+          git push origin HEAD:${GITHUB_REF_NAME}
