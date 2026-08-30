@@ -1,0 +1,30 @@
+name: WP901 restart recovery continuation CI
+
+on:
+  pull_request:
+    paths:
+      - 'src/frankenstein2/restart_recovery_continuation.py'
+      - 'tests/test_restart_recovery_continuation.py'
+      - '.github/workflows/wp901-restart-recovery-ci.yml'
+      - 'workpackages/active/F2-WP-901.json'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  deterministic-recovery-contract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout exact PR merge ref
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - name: Compile WP901 source and regressions
+        run: >-
+          python -m py_compile
+          src/frankenstein2/restart_recovery_continuation.py
+          tests/test_restart_recovery_continuation.py
+      - name: Run WP901 fail-closed suite
+        env:
+          PYTHONPATH: src
+        run: python -m unittest -v tests.test_restart_recovery_continuation
