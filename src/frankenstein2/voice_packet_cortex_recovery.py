@@ -6,6 +6,7 @@ acoustic/runtime/acceptance credit.
 """
 from __future__ import annotations
 
+from dataclasses import replace
 import hashlib
 import json
 from typing import Any, Mapping
@@ -152,11 +153,33 @@ def resume_packet_cortex(
             outcome.provenance_refs,
         )
     if cortex.is_open:
+        restart_terminalized: list[str] = []
+        for packet_id, packet in tuple(cortex._outputs.items()):
+            if packet.playback_state not in ("queued", "started", "heard"):
+                continue
+            if monotonic_ms < packet.monotonic_ms:
+                raise VoicePacketCortexError(
+                    "restart monotonic_ms precedes restored nonterminal output state"
+                )
+            terminal_state = "cancelled" if packet.playback_state == "queued" else "interrupted"
+            cortex._outputs[packet_id] = replace(
+                packet,
+                monotonic_ms=monotonic_ms,
+                playback_state=terminal_state,
+                interruption_ms=monotonic_ms,
+                commit_eligible=False,
+                voiceoutcome_ref=None,
+            )
+            restart_terminalized.append(packet_id)
         cortex.emit_system_event(
             turn_id=session.intent.causal_identity.turn_id,
             monotonic_ms=monotonic_ms,
             event_kind="RESTART_REENTRY",
-            detail="checkpoint restored into same VoiceSessionCapsule; active tool ownership fenced stale",
+            packet_refs=tuple(sorted(restart_terminalized)),
+            detail=(
+                "checkpoint restored into same VoiceSessionCapsule; active tool ownership fenced stale; "
+                f"nonterminal playback terminalized={len(restart_terminalized)}"
+            ),
         )
     return cortex
 
