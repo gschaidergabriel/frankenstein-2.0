@@ -1,0 +1,84 @@
+{
+  "schema": "FRANKENSTEIN2_TRIGGER6_TO_TRIGGER4_HANDOFF/v1",
+  "candidate_id": "R6-20260830-WP206-PROVENANCE-ATTESTATION-MINIMALITY-GPT56SOL-01",
+  "status": "READY_FOR_TRIGGER4_BUILD_AND_ABLATION_NOT_ACCEPTED",
+  "priority": "P1_WP206_EVIDENCE_AUTHENTICATION_HARDENING",
+  "created_at": "2026-08-30T16:59:00+07:00",
+  "source": {
+    "trigger": "6",
+    "worker": "GPT-5.6 Sol / ChatGPT organ",
+    "e1_result": "research/tool_intelligence/results/R6-20260830-WP206-PROVENANCE-ATTESTATION-MINIMALITY-GPT56SOL-01_E1_SOURCE_READ.json",
+    "e2_result": "research/tool_intelligence/results/R6-20260830-WP206-PROVENANCE-ATTESTATION-MINIMALITY-GPT56SOL-01_E2_ARCHITECTURE_MAPPED.json",
+    "e5_result": "research/tool_intelligence/results/R6-20260830-WP206-PROVENANCE-ATTESTATION-MINIMALITY-GPT56SOL-01_E5_BUILD_CANDIDATE.json",
+    "architecture_delta": "research/tool_intelligence/deltas/ADF-20260830T1657P0700-GPT56SOL-WP206-RECOVERY-EVIDENCE-SUBJECT.json"
+  },
+  "f2_architecture_snapshot": {
+    "wp206_g4_predecessor": "b8841141a5b9ec3026b8e38af2c57cf0bb93759a",
+    "wp901_g3_source_auth_merge": "bcd8c01d45acce39cddf715e887ec833128e9208",
+    "trigger6_e2_head": "7b92dd48912e1332d4927987727a2f29c4eb3cbc",
+    "wp206_path": "src/frankenstein2/wp206_legacy_authority_recovery.py",
+    "wp901_pattern_path": "src/frankenstein2/restart_recovery_source_authentication.py"
+  },
+  "target_modules": [
+    "F2-WP-206 legacy authority recovery adapter",
+    "WP206 recovery regression/CI surface"
+  ],
+  "do_not_modify": [
+    "UnifiedDB as sole canonical durable state authority",
+    "existing WP206 one-time recovery/CAS semantics except the minimum evidence-subject fields needed for the binding",
+    "EffectGate/EffectJournal authority",
+    "WP901 G3 accepted planner/source-auth semantics",
+    "Frank/Frankenstein donor harness"
+  ],
+  "proposed_delta": {
+    "candidate_schema": "FRANKENSTEIN2_WP206_LEGACY_RECOVERY_EVIDENCE_SUBJECT/v1",
+    "role": "NONAUTHORITATIVE_CONTENT_ADDRESSED_MIGRATION_EVIDENCE_BINDING",
+    "algorithm": [
+      "require concrete typed evidence/canonical evidence bytes rather than only a provenance label",
+      "derive evidence_sha256 inside the canonical adapter",
+      "validate evidence subject checkpoint and historical authority receipt fields against concrete WP206 inputs",
+      "normalize and preserve evidence_source_ref as audit metadata",
+      "persist evidence_sha256 in the existing same-UnifiedDB recovery record",
+      "include evidence_sha256 in recovery_id",
+      "call/preserve the existing transaction/CAS recovery semantics as the deterministic inner transition",
+      "reject repeat recovery if evidence subject digest or existing G4 provenance/authority bindings drift"
+    ]
+  },
+  "primary_falsifier": "Construct two different evidence payloads behind the same recovery_provenance_ref with identical checkpoint_id and claimed legacy receipt. Current G4 only sees the same ref string; the candidate must derive different evidence digests and fail closed on the mutated payload.",
+  "acceptance_and_falsification_tests": [
+    "SAME_REF_CHANGED_EVIDENCE_CONTENT_FAIL_CLOSED",
+    "SAME_TYPED_EVIDENCE_EXACT_REPEAT_IDEMPOTENT",
+    "EVIDENCE_CHECKPOINT_ID_MISMATCH_FAIL_CLOSED",
+    "EVIDENCE_CHECKPOINT_DIGEST_MISMATCH_FAIL_CLOSED",
+    "EVIDENCE_LEGACY_RECEIPT_MISMATCH_FAIL_CLOSED",
+    "CALLER_EXPECTED_EVIDENCE_DIGEST_CANNOT_OVERRIDE_DERIVED_DIGEST",
+    "POST_RECOVERY_EVIDENCE_SUBJECT_DRIFT_FAIL_CLOSED",
+    "EXISTING_G3_LEGACY_RECOVERY_REGRESSION_GREEN",
+    "EXISTING_G4_REPEAT_PROVENANCE_REGRESSION_GREEN"
+  ],
+  "external_research_basis": [
+    "in-toto attestation subject/resource digest binding",
+    "SLSA verifiable subject/provenance relationship",
+    "Sigstore producer-authentication pattern reviewed but rejected as default dependency",
+    "TUF rollback-persistence pattern reviewed but rejected as redundant for current one-time/CAS recovery threat model"
+  ],
+  "expected_effects": {
+    "quality": "stronger audit/evidence identity for the first and repeated legacy recovery without creating a second authority",
+    "model_calls": 0,
+    "token_cost": 0,
+    "network_calls": 0,
+    "dependency_delta": "expected 0",
+    "latency": "one evidence canonicalization/hash on migration only; measure in Trigger4",
+    "steady_state": "no expected effect outside exceptional legacy migration"
+  },
+  "concurrent_research_boundary": "Parallel Trigger6 WP206 same-inode/SQLite live-drift work is complementary and must not be treated as proof of external evidence-subject authentication or vice versa.",
+  "stale_gate": "Refresh exact WP206 source before implementation. If another Trigger4/6 lane already added equivalent derived evidence-subject authentication, consume/reconcile it and do not duplicate implementation.",
+  "credit": {
+    "trigger6": "E5_BUILD_CANDIDATE",
+    "trigger4_build": 0,
+    "target_runtime": 0,
+    "effect": 0,
+    "completion": 0,
+    "whole_system": 0
+  }
+}
