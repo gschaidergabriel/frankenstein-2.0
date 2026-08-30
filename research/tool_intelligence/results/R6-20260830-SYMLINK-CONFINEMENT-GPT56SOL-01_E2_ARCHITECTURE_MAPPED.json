@@ -1,0 +1,67 @@
+{
+  "schema": "FRANKENSTEIN2_TRIGGER6_E2_ARCHITECTURE_MAPPED/v1",
+  "trigger": "6",
+  "research_id": "R6-20260830-SYMLINK-CONFINEMENT-GPT56SOL-01",
+  "status": "E2_ARCHITECTURE_MAPPED_COMPLETE_NO_BUILD_PROMOTION",
+  "claim_ref": "research/tool_intelligence/claims/R6-20260830-SYMLINK-CONFINEMENT-GPT56SOL-01/E2_ARCHITECTURE_MAPPED.json@9f46cf191f54462dc2226068dd61e25f2e2e8314",
+  "parent_e1": "research/tool_intelligence/deltas/R6_20260830_SYMLINK_CONFINEMENT_E1_GPT56SOL.json@379bbe0474369bb76329b0acd511d64d7e6ec1b4",
+  "mapped_at": "2026-08-30T21:55:00+07:00",
+  "architecture_layers": [
+    {
+      "layer": "release_integrity",
+      "source": "src/frankenstein2/release_integrity.py",
+      "role": "CANONICAL_STATIC_PAYLOAD_INTEGRITY_AUTHORITY",
+      "finding": "load_and_verify_release_manifest verifies the full release payload before pre-handoff route evaluation. _iter_regular_files rejects symlink directories, symlink files and non-regular entries and re-hashes all admitted regular-file bytes. Ordinary package symlink substitution is therefore rejected upstream of WP1110/WP1111 consumer-specific path checks."
+    },
+    {
+      "layer": "pre_handoff_release",
+      "source": "src/frankenstein2/pre_handoff_release.py",
+      "role": "ROUTE_GRAPH_CONSUMER_AFTER_MANIFEST_AUTHORITY",
+      "finding": "evaluate_pre_handoff_release delegates payload integrity to load_and_verify_release_manifest first. Its _resolve_declared_route still resolves before checking is_symlink at the observed snapshot, which is locally semantically weak but is not a second canonical payload-integrity authority. Separate R6-20260830-WP1110-ROUTE-SYMLINK-CONFINEMENT-GPT56SOL-01 owns that local route question."
+    },
+    {
+      "layer": "portable_release_static_completeness",
+      "source": "src/frankenstein2/portable_release_static_completeness.py",
+      "role": "CONSUMER_LOCAL_DEFENSE_IN_DEPTH",
+      "finding": "WP1111 now walks every lexical path component and rejects symlinks before strict resolve and root/type checks. Because evaluate_portable_release_static_completeness first calls evaluate_pre_handoff_release, this protection is defense-in-depth for WP1111 metadata-reference semantics, not independent whole-release symlink authority."
+    }
+  ],
+  "negative_to_positive_reconciliation": {
+    "failed_source": "8b176639958d28b0b3a3a6745e6406f29fe05a6a",
+    "failed_ci_run": 33317884561,
+    "failure_class": "TEST_LAYER_COUPLING_NOT_PRODUCT_ACCEPTANCE",
+    "reason": "The first adversarial tests inserted symlinks into a fully manifested package and expected WP1111 BLOCKED receipts, but canonical release_integrity intercepted the invalid payload earlier. That test shape conflated upstream manifest authority with the consumer-local helper invariant.",
+    "repair_source": "943d10275d76558e1d657270989a99e4c2009111",
+    "repair": "Trigger4 isolated the lexical-link falsifier as direct _safe_file/_load_json_file tests while preserving the full evaluator composition.",
+    "accepted_ci_run": 33317948080,
+    "accepted_scope": "PORTABLE_RELEASE_STATIC_CONTRACT_COMPLETENESS_REPOSITORY_HOSTED_COMPONENT_CI_ONLY",
+    "runtime_credit": 0,
+    "whole_system_credit": 0
+  },
+  "architecture_decision": {
+    "canonical_symlink_payload_authority": "release_integrity manifest verification",
+    "wp1111_lexical_check": "KEEP_AS_CHEAP_DEFENSE_IN_DEPTH_AND_LOCAL_CONTRACT_ENFORCEMENT",
+    "test_law": "Consumer-local path invariants should be unit-falsified at their own layer; composed full-release tests may assert fail-closed rejection at or before the consumer but must not require a lower layer to own an error already rejected by canonical upstream integrity.",
+    "do_not_do": [
+      "do not make WP1111 a second whole-release integrity authority",
+      "do not weaken release_integrity merely to force a WP1111-specific error code",
+      "do not import openat2 or another filesystem framework for this frozen static gate",
+      "do not promote repository CI to clean-machine/runtime/completion credit"
+    ]
+  },
+  "counterhypothesis": "The WP1111 lexical check is redundant and should be deleted because release_integrity already rejects symlinks.",
+  "counterhypothesis_resolution": "NOT_ADOPTED_AT_E2: the local check is low-cost, directly expresses the metadata-reference contract, protects helper reuse/isolated validation, and preserves a fail-closed invariant without creating a competing authority. Its tests must remain layer-scoped.",
+  "external_mechanism_boundary": "Descriptor-relative/no-follow mechanisms such as Linux openat2 are relevant only to a separately claimed live mutable-filesystem/TOCTOU boundary. Static link-free-at-check-time evidence must not be inflated into atomic runtime file-identity guarantees.",
+  "integration_delta": "NO_NEW_TRIGGER4_BUILD_REQUIRED_FROM_THIS_E2. Preserve the accepted WP1111 hardening and its layer-isolated regressions; route any WP1110 resolver issue and TOCTOU/file-identity issue to their separately claimed Trigger6 lanes.",
+  "evidence_ceiling": {
+    "level": "E2_ARCHITECTURE_MAPPED",
+    "research_credit": 1,
+    "architecture_credit": 0,
+    "runtime_credit": 0,
+    "physical_host_credit": 0,
+    "effect_credit": 0,
+    "completion_credit": 0,
+    "whole_system_credit": 0
+  },
+  "next_exact_action": "Re-enter current main and consume the separately owned WP1110 route-symlink and WP1111 TOCTOU results. Only emit a Trigger4 build candidate if either produces evidence that survives the upstream release_integrity authority boundary."
+}
