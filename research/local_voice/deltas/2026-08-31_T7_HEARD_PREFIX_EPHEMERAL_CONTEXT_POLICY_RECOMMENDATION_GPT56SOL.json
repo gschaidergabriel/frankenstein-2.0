@@ -1,0 +1,109 @@
+{
+  "schema": "T7_RESEARCH_DELTA/v1",
+  "trigger": "7",
+  "date": "2026-08-31",
+  "organ": "GPT-5.6-Sol",
+  "research_id": "T7-FD-RTCOMPAT-001",
+  "classification": "REVIEW_ONLY_POLICY_RECOMMENDATION_NO_PRODUCT_AUTHORITY",
+  "implementation_mutation_authority": false,
+  "new_runtime_dispatch": false,
+  "new_semantic_claim": false,
+  "finding_id": "T7-HEARD-PREFIX-EPHEMERAL-CONTEXT-POLICY-RECOMMENDATION",
+  "observed_f2_main_before_write": "be92b0adc62bd7e9d166739305690e8ba669b92c",
+  "current_f2_source": [
+    {
+      "path": "src/frankenstein2/voice_packet_cortex.py",
+      "finding": "VoiceOutputPacket permits interrupted playback with a retained heard_fraction but only fully heard completed output may be commit_eligible. This establishes durable/accepted spoken-outcome gating, not next-turn dialogue-context deletion semantics."
+    },
+    {
+      "path": "src/frankenstein2/voice_contract.py",
+      "finding": "Voice contracts are identity/provenance evidence only and explicitly do not mint UnifiedDB write, effect, completion, target-runtime, GRID, GWT or J-Space authority. No explicit interrupted-response next-turn context policy is defined here."
+    }
+  ],
+  "external_primary_evidence": [
+    {
+      "source": "https://openai.github.io/openai-agents-python/realtime/guide/",
+      "retrieved": "2026-08-31",
+      "finding": "RealtimeSession interruption handling updates history so the server-side conversation stays aligned with what the user actually heard; delayed/remote playback should use playback tracking so truncation reflects actual playback position."
+    },
+    {
+      "source": "https://openai.github.io/openai-agents-js/guides/voice-agents/build/",
+      "retrieved": "2026-08-31",
+      "finding": "On WebSocket interruption the SDK truncates assistant audio/history to what the user actually heard; local history updates from the corresponding truncation/conversation events."
+    },
+    {
+      "source": "https://docs.livekit.io/agents/logic/turns/",
+      "retrieved": "2026-08-31",
+      "finding": "On interruption LiveKit stops speech and automatically truncates conversation history to include only the portion of agent speech heard before interruption."
+    },
+    {
+      "source": "https://docs.livekit.io/agents/multimodality/text/",
+      "retrieved": "2026-08-31",
+      "finding": "Playback-synchronized agent transcription is truncated to match spoken output when interrupted, reinforcing playout-grounded heard-prefix semantics."
+    }
+  ],
+  "research_conclusion": {
+    "preferred_policy_id": "F2_VOICE_INTERRUPTED_CONTEXT_RETAIN_HEARD_PREFIX_EPHEMERALLY_ONLY_V1",
+    "status": "RESEARCH_RECOMMENDATION_READY_FOR_TRIGGER4_POLICY_PIN",
+    "rule": "After an interruption, retain exactly the demonstrably heard assistant prefix in ephemeral next-turn dialogue context, exclude the unheard tail, and do not thereby admit any durable memory, effect, completion or whole-product credit.",
+    "heard_boundary_authority": "The boundary must be derived from an actual playout/sink receipt or equivalent measured playback position, not from generation completion or caller-supplied belief alone.",
+    "ephemeral_scope": "The retained prefix may influence the next effective model turn for conversational coherence only.",
+    "durable_scope": "Durable memory and VoiceOutcome/effect admission remain governed by their existing independent authority gates.",
+    "causal_scope": "Late writes from the cancelled generation and old-turn tool data must remain fenced and may not regain authority merely because a heard prefix is retained."
+  },
+  "why_this_is_now_high_confidence": [
+    "Current F2 source already separates heard_fraction from commit_eligible state.",
+    "Multiple independent current realtime frameworks converge on history aligned to what was actually heard rather than generation-complete text.",
+    "The rule avoids both prefix amnesia and unheard-tail leakage while preserving F2 canonical memory/effect boundaries."
+  ],
+  "required_trigger4_oracle_fields": [
+    "interrupted_context_policy_id",
+    "playout_receipt_or_measurement_identity",
+    "heard_boundary_ms",
+    "heard_prefix_digest",
+    "unheard_tail_digest",
+    "raw_server_post_cancel_chat_digest",
+    "f2_authoritative_ephemeral_context_digest",
+    "next_turn_effective_model_context_digest",
+    "durable_memory_write_count",
+    "late_cancelled_generation_write_disposition",
+    "late_old_turn_tool_result_disposition"
+  ],
+  "classification_after_policy_pin": [
+    {
+      "condition": "heard prefix present in next-turn effective context and unheard tail absent",
+      "result": "SEMANTIC_MATCH_CANDIDATE"
+    },
+    {
+      "condition": "heard prefix absent and unheard tail absent",
+      "result": "PREFIX_AMNESIA_PRODUCT_NEGATIVE"
+    },
+    {
+      "condition": "any unheard tail present",
+      "result": "TAIL_LEAK_PRODUCT_NEGATIVE"
+    },
+    {
+      "condition": "late cancelled response/tool data regains authority",
+      "result": "CAUSAL_FENCING_PRODUCT_NEGATIVE"
+    }
+  ],
+  "coordination": {
+    "reuse_existing_falsifier_lane": ["HF09", "HF10", "HF02", "HF03", "HF04", "HF05"],
+    "duplicate_runtime_dispatch_forbidden": true,
+    "wp715_reopen_forbidden_without_new_counterevidence": true,
+    "wp716_interference": false,
+    "runner_route": "Use the already proven controller VPS path for repository-bound jobs that cannot schedule directly; do not classify direct-repo scheduling failure as a product failure."
+  },
+  "credit": {
+    "research_policy_recommendation": 1,
+    "product_policy_authority": 0,
+    "hf_protocol_runtime_credit": 0,
+    "german_e2e_voice": 0,
+    "acoustic_quality": 0,
+    "durable_memory": 0,
+    "effect": 0,
+    "training": 0,
+    "whole_product": 0
+  },
+  "next_exact_action": "Route this recommendation to Trigger4 as a policy-pin plus existing-lane falsifier request. Trigger4 should pin the explicit F2 policy without creating a second voice state authority, then execute the existing HF09/HF10/HF02-HF05 oracle through the proven controller/VPS route and measure next-turn context against actual playout evidence."
+}
