@@ -1,0 +1,70 @@
+{
+  "schema": "F2_TRIGGER4_LOCAL_VOICE_FALSIFIER_RESULT/v1",
+  "trigger": "4",
+  "research_id": "T4-FD-FALSIFIER-001",
+  "objective": "E3_GERMAN_FULL_DUPLEX_TRACE_FALSIFIER",
+  "semantic_key": "af4da01da7ced3fa0bee3839adf7f4798e73399408fd29735c8a529a2ed2d9d9",
+  "classification": "EXECUTED_REPOSITORY_CI_PRODUCT_NEGATIVE",
+  "failure_class": "PRODUCT_NEGATIVE",
+  "mutation_authority": false,
+  "exact_subject": {
+    "source_commit": "f8b31914d7975b3ba2ad03cb47987d9ea86eb4af",
+    "implementation_path": "src/frankenstein2/voice_packet_cortex.py",
+    "implementation_sha256": "3e0f186692048328958573aa45b5089dc6019f38acb0ba4500aa8a9594d1703d",
+    "test_path": "tests/test_voice_packet_cortex.py",
+    "test_sha256": "19488c867fa6ae810862772d7a47b331145373df45e798f5974c03143ed17890"
+  },
+  "execution": {
+    "workflow": "WP715 Voice Packet Cortex CI",
+    "workflow_run_id": 33326372699,
+    "job_id": 99297112952,
+    "runner_class": "GITHUB_HOSTED_UBUNTU_24_04",
+    "python": "3.12.14",
+    "command": "PYTHONPATH=src python -m unittest discover -s tests -p 'test_voice_packet_cortex.py' -v",
+    "tests_run": 15,
+    "tests_passed": 9,
+    "tests_failed": 6,
+    "exit_code": 1
+  },
+  "reproduced_product_negatives": [
+    "test_input_monotonic_timestamp_cannot_regress_with_advancing_sequence",
+    "test_output_playback_timestamp_cannot_regress_across_state_transition",
+    "test_barge_in_timestamp_cannot_precede_output_state_it_cancels",
+    "test_duplicate_output_sequence_same_turn_fails_closed",
+    "test_output_chunks_are_exposed_in_declared_sequence_order",
+    "test_output_sequence_gap_is_rejected_explicitly"
+  ],
+  "observed_detail": {
+    "output_sequence_order_observed": [1, 0],
+    "output_sequence_order_expected": [0, 1],
+    "missing_expected_exceptions": 5,
+    "interpretation": "The exact checked-out product subject executed and falsified six deterministic clock/order invariants. This is PRODUCT_NEGATIVE at repository-CI component scope, not an infrastructure or evidence-validity failure."
+  },
+  "relationship_to_wp715": {
+    "wp715_owner_exists": true,
+    "source_mutation_deferred_to_owner": true,
+    "duplicate_implementation_created": false,
+    "required_owner_action": "Repair only the six reproduced clock/output-sequence validity defects, rerun the exact discriminator, then execute the repaired exact subject in the admitted VPS sandbox before any target-like promotion."
+  },
+  "credit_boundary": {
+    "executed_repository_ci_counterexample_credit": 1,
+    "packet_component_acceptance_credit": 0,
+    "vps_sandbox_runtime_credit": 0,
+    "target_runtime_credit": 0,
+    "acoustic_credit": 0,
+    "asr_tts_runtime_credit": 0,
+    "physical_device_credit": 0,
+    "gwt_jspace_credit": 0,
+    "effect_credit": 0,
+    "training_credit": 0,
+    "whole_voice_e2e_credit": 0,
+    "whole_product_credit": 0
+  },
+  "independent_vps_falsifier_run": {
+    "workflow_run_id": 33326348539,
+    "state_at_recording": "QUEUED",
+    "credit": 0,
+    "rule": "QUEUED != EXECUTED"
+  },
+  "next_exact_action": "Observe the WP715 mutation owner repair; verify the six exact regressions on the repaired subject. Do not duplicate source mutation. After repository discriminator passes, require an exact-source S1/S2 owner-VPS sandbox execution receipt before any higher runtime claim."
+}
