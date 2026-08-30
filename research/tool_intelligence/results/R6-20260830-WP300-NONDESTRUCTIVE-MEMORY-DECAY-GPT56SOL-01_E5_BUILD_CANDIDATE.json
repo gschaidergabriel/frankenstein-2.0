@@ -1,0 +1,148 @@
+{
+  "schema": "F2_TRIGGER6_RESEARCH_RESULT/v1",
+  "research_id": "R6-20260830-WP300-NONDESTRUCTIVE-MEMORY-DECAY-GPT56SOL-01",
+  "evidence_stage": "E5_BUILD_CANDIDATE",
+  "status": "READY_FOR_TRIGGER4_BUILD_NOT_ACCEPTED",
+  "recorded_at": "2026-08-30T17:13:00+07:00",
+  "worker": "GPT-5.6-Sol/ChatGPT-organ",
+  "claim_ref": "research/tool_intelligence/claims/R6-20260830-WP300-NONDESTRUCTIVE-MEMORY-DECAY-GPT56SOL-01/E5_BUILD_CANDIDATE.json",
+  "candidate_id": "R6-WP300-EVIDENCE-BOUND-MEMORY-SALIENCE-G2-20260830",
+  "architecture_snapshot": {
+    "f2_main_at_e5_claim": "5c55bdc19e4f05a8103f6fccc5ef1a416908fbff",
+    "wp300_memory_lifecycle_path": "src/frankenstein2/memory_lifecycle.py",
+    "wp300_memory_lifecycle_blob": "001be880bc76ead38c48a6ba8a577e46bfb4ed60",
+    "wp301_retrieval_path": "src/frankenstein2/emergent_retrieval.py",
+    "wp301_retrieval_blob": "8ca0c51bf88a79701ad188b9ccb0d7859feea944",
+    "wp302_binding_path": "src/frankenstein2/familiarity_prediction_binding.py",
+    "wp302_binding_blob": "9519438f1587d7a9314ded1efbd0b87ed3d12152",
+    "wp303_typed_memory_path": "src/frankenstein2/typed_memory.py",
+    "wp303_typed_memory_blob": "6bb5be7e93d300c6e2d8ae348530323f3bb6b9eb"
+  },
+  "evidence_chain": {
+    "e1": "research/tool_intelligence/results/R6-20260830-WP300-NONDESTRUCTIVE-MEMORY-DECAY-GPT56SOL-01_E1_SOURCE_READ.json@a38116bbda43f4508af8fba2389d16f0a774ae93",
+    "e2": "research/tool_intelligence/results/R6-20260830-WP300-NONDESTRUCTIVE-MEMORY-DECAY-GPT56SOL-01_E2_ARCHITECTURE_MAPPED.json@72bf3698b18ec24e839f4a4038c7b593f35ae228",
+    "e4": "research/tool_intelligence/results/R6-20260830-WP300-NONDESTRUCTIVE-MEMORY-DECAY-GPT56SOL-01_E4_ABLATION.json@990441613b459ff0f783ecedbec2a3a39e71d969"
+  },
+  "external_source_pins": [
+    {
+      "name": "MemoryBank-SiliconFriend",
+      "repo": "zhongwanjun/MemoryBank-SiliconFriend",
+      "commit": "cf61c4196e4cfdb0f2b7a0316249fa40312dc3a9",
+      "use": "negative donor for destructive forgetting and formula-review discipline"
+    },
+    {
+      "name": "Generative Agents",
+      "repo": "joonspk-research/generative_agents",
+      "commit": "fe05a71d3e4ed7d10bf68aa4eda6dd995ec070f4",
+      "use": "positive donor for complete-record retention separated from retrieval salience"
+    },
+    {
+      "name": "A-MEM",
+      "repo": "WujiangXu/A-mem",
+      "commit": "0c8039f28fdcc08189a23c07a3437d9d2482f9c2",
+      "use": "negative/partial donor: memory evolution is useful, but historical semantic mutation must be versioned/provenanced in F2"
+    },
+    {
+      "name": "SQLite FTS5 external-content/rebuild pattern",
+      "source": "https://www.sqlite.org/fts5.html",
+      "use": "systems pattern for rebuildable retrieval projection over canonical content rather than second truth store"
+    }
+  ],
+  "proposed_delta": {
+    "name": "MemorySalienceProjection",
+    "role": "DETERMINISTIC_REBUILDABLE_RETRIEVAL_SIGNAL_PROJECTION_NOT_MEMORY_OR_TRUTH_AUTHORITY",
+    "placement": "WP300-derived helper feeding WP301 AXIS_TEMPORAL and AXIS_STATE RetrievalSignal values; WP302 remains unchanged downstream",
+    "new_persistence_authority": false,
+    "new_effect_authority": false,
+    "model_calls": 0,
+    "provider_calls": 0,
+    "implicit_wall_clock_reads": 0,
+    "input_contract": [
+      "exact MemoryLifecycleState or equivalent exact memory_id + generation + state SHA-256 fence",
+      "explicit non-negative integer reference_tick",
+      "explicit non-negative integer anchor_tick with anchor_tick <= reference_tick",
+      "anchor_kind such as CREATION_EVIDENCE or VERIFIED_USE_EVIDENCE",
+      "non-empty anchor_evidence_refs; authenticity/admission remains upstream authority",
+      "content-addressed/versioned MemorySaliencePolicy identity"
+    ],
+    "policy_contract": {
+      "integer_only": true,
+      "temporal_formula_candidate": "max(min_temporal_bp, 10000 - decay_bp_per_tick * (reference_tick - anchor_tick))",
+      "active_state_score_candidate": 10000,
+      "degraded_state_score": "policy.degraded_state_bp in [0,10000]",
+      "superseded_behavior": "no normal salience selection path; preserve existing WP301 redirect-only behavior",
+      "parameter_authority": "UNSET_BY_TRIGGER6; Trigger4 must choose/test bounded parameters or keep them explicit caller policy inputs",
+      "classification": "CANDIDATE_CONTRACT_NOT_ACCEPTED_PRODUCT_POLICY"
+    },
+    "output_contract": [
+      "one WP301-compatible AXIS_TEMPORAL RetrievalSignal with basis-point score and evidence refs",
+      "one WP301-compatible AXIS_STATE RetrievalSignal with basis-point score and evidence refs",
+      "projection SHA-256 binding memory state identity, policy identity and all salience evidence",
+      "no payload/provenance mutation"
+    ],
+    "verified_use_rule": "Mere retrieval, selection, familiarity, model mention, or retrieval-count increment MUST NOT advance anchor_tick by default. A VERIFIED_USE_EVIDENCE anchor requires a separately typed downstream outcome/use evidence reference; this contract binds the reference but does not mint its authenticity."
+  },
+  "baseline": {
+    "current_wp300": "explicit lifecycle state only; DEGRADED preserves payload/provenance and has no automatic rank penalty",
+    "current_wp301": "deterministic caller-supplied evidence-bound multi-axis ranking including TEMPORAL and STATE axes",
+    "current_wp302": "consumes/validates WP301 derived scores as familiarity input; no decay policy",
+    "e4_control_result": "with neutral temporal/state scores, old DEGRADED example rank 47000 > recent ACTIVE 44000",
+    "e4_decay_strawman_result": "with explicit temporal/state decay signals, recent ACTIVE 43000 > old DEGRADED 32000",
+    "e4_feedback_strawman_result": "20 naive retrieval-count boosts restore old DEGRADED rank to 47000 > recent ACTIVE 43000"
+  },
+  "acceptance_tests_for_trigger4": [
+    "IDENTICAL_INPUTS_POLICY_AND_EVIDENCE_PRODUCE_IDENTICAL_SIGNALS_AND_PROJECTION_DIGEST",
+    "STALE_MEMORY_GENERATION_FAIL_CLOSED",
+    "STALE_MEMORY_STATE_DIGEST_FAIL_CLOSED",
+    "REFERENCE_TICK_BEFORE_ANCHOR_FAIL_CLOSED",
+    "MISSING_ANCHOR_EVIDENCE_FAIL_CLOSED",
+    "FLOAT_OR_NEGATIVE_TICK_FAIL_CLOSED",
+    "IMPLICIT_WALL_CLOCK_NOT_USED",
+    "ACTIVE_AND_DEGRADED_STATE_SIGNALS_FOLLOW_EXACT_POLICY_WITH_INTEGER_ARITHMETIC",
+    "SUPERSEDED_MEMORY_PRESERVES_REDIRECT_ONLY_WP301_BEHAVIOR",
+    "PAYLOAD_REF_PAYLOAD_SHA_AND_SOURCE_PROVENANCE_UNCHANGED",
+    "TEMPORAL_AND_STATE_SIGNALS_ENTER_NORMAL_WP301_DERIVATION_WITHOUT_POST_PLAN_SCORE_MUTATION",
+    "BARE_RETRIEVAL_COUNT_DOES_NOT_ADVANCE_ANCHOR",
+    "BARE_WP301_PLAN_OR_WP302_FAMILIARITY_SIGNAL_DOES_NOT_MINT_VERIFIED_USE",
+    "EXISTING_WP300_WP301_WP302_WP303_REGRESSIONS_REMAIN_GREEN"
+  ],
+  "measurement_plan_for_trigger4": [
+    "reproduce E4 three-policy ranking ablation using the actual candidate implementation",
+    "measure deterministic equality across repeated runs",
+    "measure per-candidate projection CPU time and allocation overhead against current WP301 candidate construction",
+    "stress large integer tick delta for overflow/bounds behavior",
+    "run feedback-loop adversarial test where repeated retrieval occurs without verified-use evidence and prove salience does not increase",
+    "run positive verified-use test with independently typed evidence input and prove only the explicit evidence anchor changes the temporal score"
+  ],
+  "counterhypotheses": [
+    "Caller-defined TEMPORAL/STATE scores are sufficient and a shared projection adds unnecessary policy surface.",
+    "Lifecycle DEGRADED should remain purely descriptive and never influence retrieval automatically.",
+    "Retrieval frequency is a useful implicit reinforcement signal and strict verified-use evidence will make adaptive recall too conservative."
+  ],
+  "falsifiers": [
+    "If a thin projection cannot improve stale-vs-recent prioritization without materially increasing complexity or coupling, reject it.",
+    "If degraded status proves intentionally orthogonal to retrieval under current owner/architecture authority, do not wire a default state penalty; retain only explicit temporal evidence support.",
+    "If verified-use evidence cannot be distinguished at an upstream typed boundary, do not implement automatic anchor refresh."
+  ],
+  "expected_effects": {
+    "quality": "bounded non-destructive forgetting semantics using already-supported WP301 axes",
+    "storage": "no canonical payload deletion; projection may remain ephemeral/rebuildable",
+    "dependencies": "expected zero external dependency",
+    "network_calls": 0,
+    "model_calls": 0,
+    "token_cost": 0,
+    "latency": "integer arithmetic plus hashing per projection; measure in Trigger4",
+    "whole_system_effect": "unknown until Trigger4 implementation/integration evidence"
+  },
+  "credit": {
+    "trigger6": "E5_BUILD_CANDIDATE",
+    "trigger4_build": 0,
+    "repository_ci": 0,
+    "target_runtime": 0,
+    "physical_host": 0,
+    "effect": 0,
+    "completion": 0,
+    "training": 0,
+    "whole_system": 0
+  }
+}
