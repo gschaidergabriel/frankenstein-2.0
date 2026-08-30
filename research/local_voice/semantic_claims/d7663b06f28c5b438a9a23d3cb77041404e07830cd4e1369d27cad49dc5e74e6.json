@@ -15,8 +15,11 @@
   "objective": "E5_QWEN3_ASR_LONG_SESSION_STREAMING_ACCUMULATION_FALSIFIER",
   "description": "Post-pin source audit of the official Qwen3-ASR streaming implementation for long-session reprocessing behavior. Generation 5 is distinct from the initial official source pin, CrispASR alternate runtime audit, audio.cpp streaming/timestamp reconciliation, and 1.7B sibling audit. Source evidence only; no target-runtime, German-quality, streaming-performance or Trigger-4 acceptance credit.",
   "generation_reason": "The earlier Qwen3-ASR source generations did not bind the current upstream implementation's explicit all-audio re-feed behavior or the upstream long-session degradation report. Frankenstein requires long conversations, so this is a new source-level falsifier rather than a repeat of model-family discovery.",
-  "state": "CLAIMED_CREATE_ONLY",
-  "evidence_credit": 0,
+  "state": "SOURCE_AUDIT_TERMINAL_AT_SCOPE",
+  "result_path": "research/local_voice/sources/2026-08-30_T7_ASR004_G5_QWEN3_LONG_SESSION_STREAMING_ACCUMULATION_AUDIT.json",
+  "evidence_credit": 1,
   "runtime_credit": 0,
-  "acceptance_credit": 0
+  "acceptance_credit": 0,
+  "terminal_finding": "Current official Qwen3-ASR streaming source explicitly appends each chunk to an ever-growing audio_accum buffer and re-feeds all audio seen so far at each decode step. Upstream issue #148 reports increasing long-session processing time and degraded quality from this mechanism and was closed inactive/not-planned rather than with a documented fix. Frankenstein must therefore measure latency/resource/transcript-stability versus stream age before streaming promotion.",
+  "next_discriminator": "Reuse the existing T7-ASR-004 target executor after the pinned German comparator/non-speech gate. Baseline official unbounded streaming at cumulative stream ages up to at least 30 minutes and record per-chunk latency/resource slopes plus transcript stability; only then compare a separately labelled bounded-window challenger. No duplicate runtime dispatch."
 }
