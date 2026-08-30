@@ -1,0 +1,44 @@
+{
+  "schema": "FRANKENSTEIN_TRIGGER7_SOURCE_RESULT/v1",
+  "trigger": "7",
+  "research_id": "T7-ASR-008",
+  "objective": "E3_NEMOTRON_35_ASR_TARGET_RUNTIME_BENCHMARK",
+  "semantic_key": "93d61d9b893d411c8085cd5d257968c23448bc426430e603f6e33add1db5e4e3",
+  "source_scope": "EXTERNAL_PRIMARY_BENCHMARK_DESIGN_DELTA_ONLY",
+  "primary_source": {
+    "title": "Data Scale, Not Latency, Shapes Cross-Lingual Encoder Transfer in Streaming ASR",
+    "arxiv": "2606.24169",
+    "date": "2026-06-23",
+    "url": "https://arxiv.org/abs/2606.24169"
+  },
+  "observations": {
+    "model_family": "0.6B cache-aware FastConformer RNN-T streaming ASR trained/evaluated with NeMo",
+    "languages_include_german": true,
+    "streaming_tiers_ms": [160, 560, 1120],
+    "int4_encoder_quantization": {
+      "condition": "4-bit weight-only encoder quantization at matched 560 ms tier",
+      "reported_encoder_footprint_change": "about 3x reduction",
+      "reported_average_fleurs_wer_change_pp": "about +0.5"
+    },
+    "nemotron_relationship": "The study uses the English Nemotron streaming encoder as one initialization and separately compares a 5000h Spanish continuation with contemporaneous Nemotron-3.5-ASR-Streaming-0.6B; it is not a benchmark of the exact released German Nemotron 3.5 checkpoint used by Frankenstein."
+  },
+  "bounded_inference": "Quantization and latency should be measured as separate benchmark axes for the target Nemotron candidate. The proxy result is strong enough to justify an optional exact-identity INT4 challenger after the official source-pinned Q8 baseline, but it cannot predict the released checkpoint's German WER, latency or memory result.",
+  "benchmark_delta": [
+    "Keep official source-pinned Q8 as the first target-runtime baseline.",
+    "Measure right-context tiers independently of quantization instead of collapsing both into one deployment variant.",
+    "If an INT4 artifact can be deterministically derived, record converter/runtime/build identity and exact output hash before load.",
+    "Compare Q8 vs INT4 on identical German audio and report quality, partial stability, latency and resident memory separately.",
+    "Do not promote proxy-paper numbers as Nemotron runtime credit."
+  ],
+  "current_execution_gate": {
+    "existing_qwen3_asr_run_id": 33292903286,
+    "observed_state": "queued_zero_steps_runner_unassigned",
+    "runtime_dispatch_created_for_t7_asr_008": false,
+    "reason": "Avoid queue fan-out while the established self-hosted runner/control-plane admission gate remains unresolved."
+  },
+  "evidence_credit": 1,
+  "target_runtime_credit": 0,
+  "german_quality_credit": 0,
+  "trigger4_acceptance_credit": 0,
+  "whole_system_credit": 0
+}
