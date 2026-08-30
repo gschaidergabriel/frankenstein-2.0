@@ -1,0 +1,96 @@
+{
+  "schema": "TRIGGER6_BUILD_CANDIDATE/v1",
+  "trigger": "6",
+  "research_id": "R6-20260830-PORTABLE-ARCHIVE-EXTRACTION-CONFINEMENT-GPT56SOL-01",
+  "stage": "E5_BUILD_CANDIDATE",
+  "status": "READY_FOR_TRIGGER4_REVIEW_NOT_IMPLEMENTED",
+  "claim_ref": "research/tool_intelligence/claims/R6-20260830-PORTABLE-ARCHIVE-EXTRACTION-CONFINEMENT-GPT56SOL-01/E5_BUILD_CANDIDATE.json@754dbb0c985eee307fd4d889346fe8f250f58f1c",
+  "evidence_chain": [
+    "E1 c0b1ae2ce0562ff9d063ac0f8c33d72fe05533da",
+    "E2 46878cf96bf36b7acd48b5b501330cbb7d38872f",
+    "E3 773b53fa591cbee3983e7202263a316f951b27e8",
+    "E4 ad23ed07639970f1686cf6788a98d4f612205d6b"
+  ],
+  "candidate": {
+    "name": "F2_VERIFIED_PRIVATE_RELEASE_STAGING_V1",
+    "owner_lane": "TRIGGER4_BUILD_TEST_REPAIR",
+    "purpose": "Close the currently unspecified ZIP->materialized package-root boundary without replacing release_integrity or creating a second installer/state/effect authority.",
+    "suggested_source": "src/frankenstein2/release_staging.py",
+    "suggested_tests": "tests/test_release_staging.py",
+    "suggested_contract_wiring": [
+      "architecture/PORTABLE_HOST_HARNESS_AND_DISTRIBUTION_CONTRACT.md",
+      "AI_START_HERE_DO_NOT_SCAN_REPO/02_RELEASE_CONTRACT.json",
+      "AI_START_HERE_DO_NOT_SCAN_REPO/03_VERIFY_INSTALL.md"
+    ]
+  },
+  "required_semantics": [
+    "The staging API owns creation of a fresh empty private temporary directory; callers do not supply an arbitrary extraction destination for the admitted one-handoff path.",
+    "Hash the received archive bytes and bind the digest plus declared release/build/pre-handoff identity before member extraction.",
+    "Enumerate every ZIP member before writing. Reject empty/noncanonical names, NUL, backslash ambiguity, absolute/drive/UNC roots, dot/dotdot components, exact duplicate names, unsupported special/link-like member metadata, and target-profile path collisions.",
+    "Use one F2 canonical member-name parser rather than relying on host ZipFile.extract normalization to define authority semantics.",
+    "Materialize regular files/directories only inside the fresh staging root. Do not execute Python imports, scripts, host hooks, installers or payload binaries during extraction/preflight.",
+    "After extraction, call the existing load_and_verify_release_manifest and portable static-completeness gates against the staged root. Those existing gates remain authoritative for file-set/hash/no-link scope.",
+    "Only after all post-extraction gates pass may the staged root be exposed to host-route selection/install logic.",
+    "On any failure, return BLOCKED/REJECTED, delete disposable staging where safe, and mint zero install/runtime/completion credit.",
+    "Receipt must bind archive SHA-256, extractor schema/runtime version, target path-profile identifier, staged verification result and exact F2 source/build identity. Do not persist secrets or user state in the release artifact."
+  ],
+  "target_profile_collision_minimum": {
+    "portable_common": [
+      "exact canonical path duplicates",
+      "absolute/root/parent escape",
+      "backslash separator ambiguity",
+      "special/link-like entries"
+    ],
+    "windows_profile": [
+      "drive/UNC path semantics",
+      "case-insensitive aliases where the selected filesystem profile is case-insensitive",
+      "illegal/trailing-dot-or-space normalization aliases where applicable",
+      "junction/reparse-point checks after materialization remain in the WP1111 path-hardening lane"
+    ],
+    "note": "Do not invent universal Windows/macOS filesystem behavior. Bind the path-profile used by the acceptance case and fail closed on unknown collision semantics."
+  },
+  "minimum_adversarial_tests": [
+    "clean deterministic ZIP -> fresh staging -> release_integrity PASS",
+    "archive member ../escape -> preflight REJECT before writes",
+    "absolute/drive/UNC member -> preflight REJECT",
+    "duplicate member name -> preflight REJECT",
+    "case/normalization collision under an explicit target profile -> preflight REJECT",
+    "special or link-like member metadata -> preflight REJECT",
+    "caller attempts to force extraction into a pre-existing arbitrary tree -> API unavailable or fail closed",
+    "post-extraction inserted symlink/junction/non-regular entry -> existing F2 verifier REJECT",
+    "payload hash mutation -> existing F2 manifest verifier REJECT",
+    "no installer/import/hook execution occurs before verification",
+    "failed staging cleans disposable files without touching canonical user state"
+  ],
+  "non_goals": [
+    "Do not replace WP1110/WP1111 route/junction hardening.",
+    "Do not import libpathrs/filepath-securejoin or another framework for the portable baseline.",
+    "Do not claim race-proof hostile-filesystem containment from pathlib/zipfile lexical checks.",
+    "Do not grant target-host, installer, effect, runtime or whole-system credit from repository tests.",
+    "Do not make VPS/HCU a prerequisite for local one-handoff install."
+  ],
+  "optional_future_hardening": {
+    "condition": "Only if the accepted threat model includes concurrent hostile mutation of the staging filesystem or a target-host falsifier defeats fresh-private staging.",
+    "candidate": "platform-specific handle/dirfd confinement such as Linux openat2 RESOLVE_BENEATH/RESOLVE_NO_SYMLINKS or an equivalently evidenced primitive",
+    "status": "NOT_REQUIRED_BY_CURRENT_EVIDENCE"
+  },
+  "why_this_is_minimal": [
+    "It reuses the existing F2 release manifest and verifier instead of duplicating integrity authority.",
+    "It adds no model calls and no mandatory external dependency.",
+    "It converts the required ZIP handoff from an unspecified materialization step into an explicit testable gate.",
+    "It structurally removes the E3 pre-existing-destination condition for the normal admitted path by owning fresh staging creation.",
+    "It preserves portability while leaving stronger OS-specific containment available only when evidence requires it."
+  ],
+  "evidence_boundary": {
+    "research_e1": "COMPLETE",
+    "architecture_e2": "COMPLETE",
+    "reproduction_e3": "COMPLETE_AT_LOCAL_STDLIB_SCOPE",
+    "ablation_e4": "COMPLETE_AT_BOUNDED_LOGICAL_COMPONENT_SCOPE",
+    "build_candidate_e5": "READY_FOR_TRIGGER4_REVIEW",
+    "trigger4_e6": "NOT_RUN",
+    "runtime_credit": 0,
+    "target_host_credit": 0,
+    "whole_system_credit": 0
+  },
+  "next_exact_action": "Trigger4 should refresh current main, route around WP1110/WP1111 overlap, implement the smallest stdlib-only F2_VERIFIED_PRIVATE_RELEASE_STAGING_V1 candidate, run repository tests/adversarial fixtures, and only then decide whether a real target-host acceptance probe is admitted. Trigger6 must not mint E6."
+}
