@@ -1,0 +1,46 @@
+name: REVIEW ONLY - F2 WP206 Authority Receipt Migration Donor
+
+on:
+  push:
+    branches:
+      - chatgpt/trigger4-wp206-g1-stable-receipt-migration-review-20260830
+    paths:
+      - 'src/frankenstein2/wp206_authority_receipt_migration.py'
+      - 'src/frankenstein2/persistent_agency_kernel.py'
+      - 'tests/test_wp206_authority_receipt_migration.py'
+      - 'tests/wp206_restart_probe.py'
+      - '.github/workflows/wp206-authority-receipt-migration-review-ci.yml'
+  pull_request:
+    paths:
+      - 'src/frankenstein2/wp206_authority_receipt_migration.py'
+      - 'src/frankenstein2/persistent_agency_kernel.py'
+      - 'tests/test_wp206_authority_receipt_migration.py'
+      - 'tests/wp206_restart_probe.py'
+      - '.github/workflows/wp206-authority-receipt-migration-review-ci.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  review-only-migration-falsifier:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Compile exact review donor
+        run: >-
+          python -m py_compile
+          src/frankenstein2/wp206_authority_receipt_migration.py
+          tests/test_wp206_authority_receipt_migration.py
+          tests/wp206_restart_probe.py
+      - name: Run accepted-G1 to stable-receipt migration falsifier
+        env:
+          PYTHONPATH: src
+        run: python tests/test_wp206_authority_receipt_migration.py -v
+      - name: Re-run canonical WP206 restart regression
+        env:
+          PYTHONPATH: src
+        run: python tests/test_persistent_agency_kernel.py -v
