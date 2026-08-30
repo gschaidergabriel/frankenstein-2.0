@@ -1,0 +1,63 @@
+{
+  "schema": "FRANKENSTEIN2_TRIGGER6_E1_SOURCE_READ/v1",
+  "trigger": "6",
+  "research_id": "R6-20260830-WP1111-LEXICAL-SYMLINK-CONFINEMENT-GPT56SOL-01",
+  "claim_ref": "research/tool_intelligence/claims/R6-20260830-WP1111-LEXICAL-SYMLINK-CONFINEMENT-GPT56SOL-01/E1_SOURCE_READ.json",
+  "status": "E1_SOURCE_READ_COMPLETE_COMPLEMENTARY_NOT_INDEPENDENT_REPLICATION",
+  "architecture_snapshot": {
+    "f2_pre_research_head": "0f73b3285f747d4ecab1aa92fabcb16c23a19504",
+    "f2_reentered_head": "9cd4063e0d4f4deee1bcc3d21edb5e11ccd24036",
+    "research_entity_head": "7ea077dc8cedb345d191a22adb9b273c05791cc1"
+  },
+  "coordination": {
+    "semantic_duplicate_detected": true,
+    "earlier_claim": "research/tool_intelligence/claims/R6-20260830-SYMLINK-CONFINEMENT-GPT56SOL-01/E1_SOURCE_READ.json@f4f83f1f7adf4b33962564011ce7b317c8ad1cdf",
+    "classification": "SAME_E1_SEMANTIC_OBJECTIVE_COMPLEMENTARY_RECEIPT_ONLY",
+    "independent_replication_credit": 0,
+    "reason": "The earlier claim landed seconds before this claim under a different research_id. Preserve both claims but do not count them as independent replication."
+  },
+  "primary_sources": [
+    {
+      "source": "Python 3.13 pathlib documentation",
+      "url": "https://docs.python.org/3.13/library/pathlib.html",
+      "observed": "Path.resolve() makes a path absolute while resolving symlinks; Path.lstat() inspects a symbolic link rather than its target; Path.is_junction() exists on Windows; Path.is_file(follow_symlinks=False) excludes symlinks in Python 3.13."
+    },
+    {
+      "source": "Python os documentation",
+      "url": "https://docs.python.org/3/library/os.html",
+      "observed": "os.lstat() and os.stat(..., follow_symlinks=False) do not follow the final symbolic link; on Windows follow_symlinks=False disables name-surrogate reparse points including symlinks and directory junctions."
+    },
+    {
+      "source": "Linux openat2(2) manual",
+      "url": "https://man7.org/linux/man-pages/man2/openat2.2.html",
+      "observed": "RESOLVE_NO_SYMLINKS rejects symbolic links in all path components; this is stronger than O_NOFOLLOW, which only affects the final component. RESOLVE_BENEATH/IN_ROOT provide kernel-enforced confinement for hostile path resolution."
+    },
+    {
+      "source": "Linux path_resolution(7) manual",
+      "url": "https://man7.org/linux/man-pages/man7/path_resolution.7.html",
+      "observed": "Normal pathname resolution follows symbolic links in intermediate components; openat2 RESOLVE_NO_SYMLINKS can block that resolution."
+    }
+  ],
+  "f2_source_audit": {
+    "original_source": "src/frankenstein2/portable_release_static_completeness.py@025c40c1835d3780d941e69f23604954cc3be067",
+    "original_finding": "FALSIFIED_AS_LINK_FREE_WITNESS: _safe_file() resolved root/raw before candidate.is_symlink(), so an in-root symlink became its target before the link check and could pass as a regular file.",
+    "concurrent_trigger4_repair": "src/frankenstein2/portable_release_static_completeness.py@e92b3bb594505015bba9b9d0bd6894aff41796d8",
+    "repair_assessment": "The new lexical component walk rejects Path.is_symlink() before strict resolution and therefore directly addresses both final-component and intermediate-component symlink substitution in a stable static release tree.",
+    "concurrent_regressions": "tests/test_portable_release_static_completeness.py@8b176639958d28b0b3a3a6745e6406f29fe05a6a adds final-link and intermediate-link fail-closed cases.",
+    "remaining_boundary": [
+      "Windows junction/name-surrogate reparse points are not shown rejected by the current lexical Path.is_symlink()-only walk; Path.is_junction()/platform-specific no-follow semantics should be evaluated before claiming cross-platform link-free confinement.",
+      "The lexical check followed by later resolve/read is not a race-free hostile-directory primitive. If concurrent attacker mutation is in scope, descriptor-based/kernel-enforced resolution such as Linux openat2 RESOLVE_NO_SYMLINKS plus RESOLVE_BENEATH/IN_ROOT is the stronger model. For a frozen/static CI release tree this may be outside the declared threat model, but that boundary must be explicit.",
+      "No target-host/runtime/effect/completion credit follows from this source audit or from repository tests alone."
+    ]
+  },
+  "decision": "OLD_WP1111_IMPLEMENTATION_FALSIFIED_CURRENT_TRIGGER4_PATCH_DIRECTION_SUPPORTED_WITH_PORTABILITY_AND_RACE_SCOPE_GAPS",
+  "evidence_ceiling": {
+    "level": "E1_SOURCE_READ",
+    "architecture_credit": 0,
+    "runtime_credit": 0,
+    "physical_host_credit": 0,
+    "whole_system_credit": 0
+  },
+  "next_exact_action": "Trigger4 may re-enter against this durable E1 result and current repaired source/tests. Before terminalizing a cross-platform portable-release predicate, add or explicitly scope out a Windows junction/reparse-point discriminator; keep hostile concurrent-mutation race resistance outside WP1111 unless its threat model requires it.",
+  "completed_at": "2026-08-30T14:51:00Z"
+}
