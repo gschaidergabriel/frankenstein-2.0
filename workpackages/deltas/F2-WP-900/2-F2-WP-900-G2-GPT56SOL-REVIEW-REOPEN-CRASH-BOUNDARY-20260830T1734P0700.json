@@ -1,0 +1,62 @@
+{
+  "schema": "FRANKENSTEIN2_WORKPACKAGE_DELTA/v1",
+  "workpackage_id": "F2-WP-900",
+  "generation": 2,
+  "claim_id": "F2-WP-900-G2-GPT56SOL-WP206-PERSIST-READBACK-INTEGRATION-20260830",
+  "worker_id": "GPT-5.6-Sol-ADVERSARIAL-GATE-REVIEW",
+  "trigger": "automation-adversarial-gate",
+  "work_class": "REVIEW_ONLY_CANDIDATE_FALSIFIER",
+  "mutation_authority": false,
+  "recorded_at_utc": "2026-08-30T10:34:00Z",
+  "observed_main": "56fd542611b5a6bf30b3f24bb0305cd5179a56b2",
+  "challenged_boundary": "WP900 sealed successor -> WP206 canonical write/readback -> claimed restart/recovery promotion",
+  "scope_preserved": {
+    "repository_component_integration": "VALID_AT_CURRENT_SCOPE",
+    "same_process_write_observed": true,
+    "same_process_typed_readback_observed": true,
+    "runtime_credit": 0,
+    "whole_system_credit": 0
+  },
+  "source_observation": {
+    "integration_commit": "613f1f836f85dc738c4857de3fbefe5cbf3feb25",
+    "adapter": "src/frankenstein2/whole_loop_persistence_integration.py",
+    "regression": "tests/test_whole_loop_persistence_integration.py",
+    "same_store_fact": "persist_sealed_successor_and_readback writes and reloads through the same CanonicalPersistentAgencyStore instance and therefore the same live SQLite connection.",
+    "same_process_replay_fact": "test_replay_is_idempotent_for_exact_same_successor_bytes invokes the adapter twice without closing/reopening the store or terminating the process.",
+    "credit_fence": "The adapter correctly emits target_host_execution=NOT_OBSERVED, runtime_credit=0 and whole_system_acceptance=false."
+  },
+  "candidate_falsifier": {
+    "id": "FRESH_PROCESS_REOPEN_AND_CRASH_WINDOW",
+    "hypothesis": "Repository same-connection write/readback can pass while fresh-process restart/recovery fails due to commit durability, path/fingerprint drift, schema initialization ordering, stale authority metadata, WAL/journal handling, or WP901 ingress differences.",
+    "required_discriminator": [
+      "Process A opens the exact canonical DB through the admitted resolver/fingerprint path, persists a WP900-sealed successor via the existing WP206 adapter, records exact source/tree SHA, canonical path, device/inode, authority receipt hash, checkpoint ids/digests and exits completely.",
+      "Do not reuse Process A Python objects, sqlite3 connection, CanonicalPersistentAgencyStore instance, in-memory seal object or fixture state.",
+      "Process B starts fresh, resolves/fingerprints the same DB independently, verifies path plus device/inode continuity or explicitly classified replacement semantics, then loads the persisted successor through the accepted WP901/WP206 recovery/readback ingress.",
+      "Require exact successor checkpoint id, digest and previous_checkpoint_id to match the Process A sealed subject before granting restart/recovery credit.",
+      "Add a crash-window variant where Process A terminates immediately after the canonical write commit and before the integration adapter's same-process readback; Process B must either recover the committed successor exactly or fail closed without inventing a success receipt.",
+      "A successful same-process adapter test must never satisfy this discriminator."
+    ],
+    "falsifying_outcomes": [
+      "fresh process cannot resolve/load the successor that same-process readback observed",
+      "fresh process resolves a different canonical DB authority without an explicit replacement contract",
+      "checkpoint bytes/digest/parent lineage differ after reopen",
+      "WP901 reports recovery success from metadata/cache without loading the exact persisted row",
+      "crash after commit but before same-process readback yields ambiguous or duplicated successor authority"
+    ]
+  },
+  "counterhypothesis": {
+    "statement": "If SQLite commit durability, canonical path/fingerprint identity and the WP901/WP206 fresh-open ingress are already equivalent to the same live-store readback, the two-process discriminator will pass without product code changes.",
+    "value": "That result would legitimately advance evidence from repository-component integration toward restart/runtime evidence while preserving one canonical state authority."
+  },
+  "do_not_promote": [
+    "target_runtime",
+    "restart_recovery",
+    "whole_persistent_loop_runtime",
+    "effect",
+    "completion",
+    "whole_system"
+  ],
+  "duplicate_authority_check": "No second store, scheduler, recovery authority or active mutation claim introduced; review only.",
+  "review_result": "CURRENT_WP900_WP206_INTEGRATION_IS_VALID_BUT_NOT_A_RESTART_DISCRIMINATOR",
+  "single_most_important_correction": "Before any WP900/WP206/WP901 runtime promotion, require an exact-source two-process persist -> terminate/crash -> fresh-open WP901/WP206 readback test that cannot reuse the original SQLite connection or in-memory objects."
+}
