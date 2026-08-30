@@ -1,14 +1,13 @@
 """Persisted-row load attestation for WP901 restart/recovery planning.
 
-F2-WP-901 generation 4 repository-component scope only.
+F2-WP-901 generation 5 repository-component scope only.
 
 Accepted WP901 G3 authenticates concrete typed checkpoint / WP900 / outcome source objects,
-but explicitly does not prove that the restart checkpoint came from an actual persisted
-WP206 row.  This module closes only that boundary.  The canonical ingress receives a
-Concrete ``CanonicalPersistentAgencyStore`` plus checkpoint id, opens one SQLite read
-transaction, calls the already-accepted WP206 ``load_checkpoint`` path, and re-reads the
-same checkpoint row inside the same transaction snapshot to produce deterministic evidence
-for the exact persisted columns consumed by that loader boundary.
+and accepted G4 proves that the restart checkpoint came from an actual persisted WP206 row.
+G5 closes one remaining cross-store authority-reference gap: the caller-supplied
+``UnifiedDBAuthorityRef`` forwarded into G3 must name the separately admitted canonical
+F2-WP-100 UnifiedDB identity component receipt.  That component authority reference remains
+distinct from the concrete store ``authority_receipt_sha256`` already attested by G4.
 
 The resulting receipt is evidence only.  It is not a second persistence authority, does not
 schedule work or execute effects, and does not prove target-host execution.  It also does
@@ -46,10 +45,15 @@ LOAD_ATTESTATION_SCHEMA = "FRANKENSTEIN2_PERSISTED_CHECKPOINT_LOAD_ATTESTATION/v
 LOAD_ATTESTATION_CLASSIFICATION = (
     "PERSISTED_ROW_TRANSACTION_SNAPSHOT_LOAD_EVIDENCE_NOT_TRUTH_RUNTIME_OR_EFFECT_AUTHORITY"
 )
+CANONICAL_UNIFIEDDB_COMPONENT_RECEIPT_REF = (
+    "workpackages/receipts/F2-WP-100_G1_SOURCE_CI_ACCEPTANCE.json"
+)
+CANONICAL_UNIFIEDDB_COMPONENT_SOURCE = "src/state/unifieddb_identity.py"
+CANONICAL_UNIFIEDDB_FINGERPRINT_SCHEMA = "FRANKENSTEIN2_UNIFIEDDB_FINGERPRINT/v2"
 
 
 class PersistedRowLoadAttestationError(RestartSourceAuthenticationError):
-    """Fail-closed G4 persisted-row/load binding error."""
+    """Fail-closed persisted-row/load and G5 authority-reference binding error."""
 
 
 def _canonical_json(value: Any) -> str:
@@ -74,6 +78,19 @@ def _digest(value: Any) -> str:
 def _same_real_path(left: str, right: str) -> bool:
     return os.path.normcase(os.path.realpath(left)) == os.path.normcase(
         os.path.realpath(right)
+    )
+
+
+def canonical_unifieddb_component_authority_ref() -> UnifiedDBAuthorityRef:
+    """Return the exact admitted F2-WP-100 component authority reference for G3.
+
+    This intentionally does not incorporate a concrete store's authority receipt digest.
+    The component receipt reference and the G4 store receipt are separate identity layers.
+    """
+    return UnifiedDBAuthorityRef(
+        receipt_ref=CANONICAL_UNIFIEDDB_COMPONENT_RECEIPT_REF,
+        canonical_source=CANONICAL_UNIFIEDDB_COMPONENT_SOURCE,
+        fingerprint_schema=CANONICAL_UNIFIEDDB_FINGERPRINT_SCHEMA,
     )
 
 
@@ -127,7 +144,7 @@ class PersistedCheckpointLoadAttestation:
 
 @dataclass(frozen=True, slots=True, kw_only=True)
 class PersistedRowRestartPlanResult:
-    """G4 output: accepted G2/G3 plan plus bounded load evidence."""
+    """G4/G5 output: accepted G2/G3 plan plus bounded load evidence."""
 
     plan: RestartContinuationPlan
     load_attestation: PersistedCheckpointLoadAttestation
@@ -264,17 +281,28 @@ def plan_restart_continuation_from_persisted_row(
     whole_loop_seal: WholePersistentLoopSeal,
     outcome: LoopOutcomeEvidence,
 ) -> PersistedRowRestartPlanResult:
-    """Canonical G4 ingress: persisted WP206 row -> accepted G3 -> accepted G2 plan."""
+    """Canonical G5 ingress: G4 persisted row + exact F2-WP-100 ref -> G3 -> G2."""
     checkpoint, attestation = attest_persisted_checkpoint_load(
         store,
         checkpoint_id=checkpoint_id,
     )
+
+    if type(unifieddb_authority) is not UnifiedDBAuthorityRef:
+        raise PersistedRowLoadAttestationError(
+            "PERSISTED_ROW_G3_UNIFIEDDB_AUTHORITY_REF_REQUIRED"
+        )
+    expected_authority = canonical_unifieddb_component_authority_ref()
+    if unifieddb_authority != expected_authority:
+        raise PersistedRowLoadAttestationError(
+            "PERSISTED_ROW_G3_UNIFIEDDB_AUTHORITY_REF_MISMATCH"
+        )
+
     plan = plan_restart_continuation_from_sources(
         evidence,
         plan_id=plan_id,
         expected_evidence_sha256=expected_evidence_sha256,
         causal_identity=causal_identity,
-        unifieddb_authority=unifieddb_authority,
+        unifieddb_authority=expected_authority,
         source_checkpoint=checkpoint,
         whole_loop_seal=whole_loop_seal,
         outcome=outcome,
@@ -294,11 +322,15 @@ def plan_restart_continuation_from_persisted_row(
 
 
 __all__ = [
+    "CANONICAL_UNIFIEDDB_COMPONENT_RECEIPT_REF",
+    "CANONICAL_UNIFIEDDB_COMPONENT_SOURCE",
+    "CANONICAL_UNIFIEDDB_FINGERPRINT_SCHEMA",
     "LOAD_ATTESTATION_CLASSIFICATION",
     "LOAD_ATTESTATION_SCHEMA",
     "PersistedCheckpointLoadAttestation",
     "PersistedRowLoadAttestationError",
     "PersistedRowRestartPlanResult",
     "attest_persisted_checkpoint_load",
+    "canonical_unifieddb_component_authority_ref",
     "plan_restart_continuation_from_persisted_row",
 ]
