@@ -1,0 +1,78 @@
+{
+  "schema_version": 1,
+  "trigger": "7",
+  "research_id": "T7-ASR-004",
+  "objective": "RUN33292903286_CONTROL_PLANE_REENTRY",
+  "worker": "GPT-5.6-Sol-TRIGGER7",
+  "date": "2026-08-30",
+  "status": "CONTROL_PLANE_BLOCKED_NO_RUNTIME_CREDIT",
+  "f2_main_observed_before_write": "7f18a3c48de7cbd784112bd460f242ccab1e3de2",
+  "controller_main_observed": "6c77751435d980bf50f5e3b362e8d1fcffca87c1",
+  "semantic_claim": {
+    "key": "95bd53a469133dbfdf39da320f6daa049cec1361084e632dc915c4bc156e3715",
+    "path": "research/local_voice/semantic_claims/95bd53a469133dbfdf39da320f6daa049cec1361084e632dc915c4bc156e3715.json",
+    "state_observed": "CLAIMED_CREATE_ONLY",
+    "duplicate_dispatch_created": false
+  },
+  "qwen3_asr_target_probe": {
+    "run_id": 33292903286,
+    "job_id": 99207535776,
+    "controller_head_sha": "a1fa3222cec7081c4ce2af153b4831138041814a",
+    "status_observed": "queued",
+    "conclusion_observed": null,
+    "runner_id_observed": 0,
+    "runner_name_observed": "",
+    "labels_observed": ["self-hosted", "Linux", "X64"],
+    "steps_observed": [],
+    "execution_observed": false
+  },
+  "hardware_roundtrip": {
+    "run_id": 33266856557,
+    "job_id": 99138324275,
+    "status_observed": "queued_or_pending",
+    "conclusion_observed": null,
+    "hardware_receipt_promoted": false
+  },
+  "broader_controller_observation": {
+    "newer_run_id": 33297476318,
+    "workflow": "Bootstrap and Mirror Frankenstein 2.0 Repository",
+    "controller_head_sha": "6c77751435d980bf50f5e3b362e8d1fcffca87c1",
+    "status_observed": "pending",
+    "interpretation": "Consistent with a broader self-hosted execution/control-plane queue condition, but does not by itself prove runner offline state."
+  },
+  "authority_reconciliation": {
+    "clay_direct_dev_authorized": true,
+    "self_hosted_runner_transport_authorized": true,
+    "free_only_blocks_owner_vps_compute": false,
+    "queued_runner_is_transport_scoped_negative": true,
+    "no_executor_claim_minted": false
+  },
+  "finding": {
+    "epistemic_type": "OBSERVED_PLUS_BOUNDED_INFERENCE",
+    "statement": "The active Qwen3-ASR target-runtime claim remains blocked before execution because its self-hosted job is still queued with no assigned runner, while the hardware-roundtrip job is also nonterminal. This is a runner/bridge control-plane blocker, not Qwen3-ASR runtime or quality evidence. Direct current runner-registration/online status was not observable through the available GitHub connector surface, so RUNNER_OFFLINE is not asserted."
+  },
+  "credits": {
+    "target_artifact_runtime_verification": 0,
+    "target_model_load": 0,
+    "target_local_asr_inference": 0,
+    "german_asr_quality": 0,
+    "streaming_asr": 0,
+    "german_e2e_voice": 0,
+    "trigger4_acceptance": 0,
+    "whole_system_acceptance": 0
+  },
+  "negative_evidence": [
+    "QUEUE_STATE != EXECUTION_EVIDENCE",
+    "RUNNER_ID_0_WITH_EMPTY_NAME != PROOF_RUNNER_OFFLINE",
+    "TRANSPORT_CONTROL_PLANE_FAILURE != MODEL_FAILURE",
+    "NO_DIRECT_RUNNER_STATUS_ENDPOINT_IN_CURRENT_CONNECTOR != NO_SELF_HOSTED_RUNNER"
+  ],
+  "next_exact_gate": [
+    "Re-read run 33292903286/job 99207535776 before any dispatch or retry.",
+    "Re-read hardware run 33266856557/job 99138324275 and accept only an exact clay-direct-dev hardware receipt.",
+    "If the existing job obtains a runner and completes, inspect its exact receipt and promote only declared component scope.",
+    "If jobs remain unassigned, repair or re-enter the established self-hosted runner/Clay bridge control plane through an execution surface that can observe/administer runner health; do not create another model experiment.",
+    "If the Qwen run terminates by timeout/no receipt, repair the outer/inner timeout and fail-closed receipt envelope before retrying.",
+    "Only after actual target load/inference evidence proceed to identical German audio quality/streaming comparison."
+  ]
+}
