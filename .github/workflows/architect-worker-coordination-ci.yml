@@ -4,11 +4,8 @@ on:
   pull_request:
     paths:
       - 'workpackages/ARCHITECT_WORKER_COORDINATION_PROTOCOL.md'
-      - 'workpackages/ARCHITECT_COORDINATION_INTENT_DEDUP_PROTOCOL.md'
       - 'tools/coordination/architect_packet.py'
-      - 'tools/coordination/architect_intent.py'
       - 'tests/test_architect_worker_packet.py'
-      - 'tests/test_architect_intent.py'
       - '.github/workflows/architect-worker-coordination-ci.yml'
   workflow_dispatch:
 
@@ -21,7 +18,7 @@ jobs:
     timeout-minutes: 5
     steps:
       - uses: actions/checkout@v4
-      - name: Run architect coordination adversarial tests
-        run: python3 -m unittest tests.test_architect_worker_packet tests.test_architect_intent -v
-      - name: Compile coordination helpers
-        run: python3 -m py_compile tools/coordination/architect_packet.py tools/coordination/architect_intent.py
+      - name: Run architect packet adversarial tests
+        run: python3 -m unittest tests.test_architect_worker_packet -v
+      - name: Compile helper
+        run: python3 -m py_compile tools/coordination/architect_packet.py
