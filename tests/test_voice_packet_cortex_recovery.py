@@ -73,9 +73,24 @@ class VoicePacketCortexRecoveryTests(unittest.TestCase):
         checkpoint = export_packet_cortex_checkpoint(cortex)
         resumed = resume_packet_cortex(session, checkpoint, monotonic_ms=200)
         self.assertEqual(resumed.session_id, cortex.session_id)
-        self.assertEqual(resumed.outputs[0].playback_state, "started")
+        self.assertEqual(resumed.outputs[0].playback_state, "interrupted")
+        self.assertFalse(resumed.outputs[0].commit_eligible)
+        self.assertEqual(resumed.outputs[0].interruption_ms, 200)
         self.assertEqual(resumed.events[-1].event_kind, "RESTART_REENTRY")
         self.assertEqual(len(resumed.events), len(cortex.events) + 1)
+
+    def test_restart_does_not_resurrect_active_tool_ownership(self) -> None:
+        session = self.session()
+        cortex = VoicePacketCortex(session)
+        cortex.emit_intent(
+            turn_id="turn-tool", monotonic_ms=100, voice_intent="TOOL_USE", tool_ref="tool:pre-restart"
+        )
+        checkpoint = export_packet_cortex_checkpoint(cortex)
+        resumed = resume_packet_cortex(session, checkpoint, monotonic_ms=200)
+        with self.assertRaises(VoicePacketCortexError):
+            resumed.emit_system_event(
+                turn_id="turn-tool", monotonic_ms=210, event_kind="TOOL_RESULT", tool_ref="tool:pre-restart"
+            )
 
     def test_checkpoint_digest_and_session_binding_fail_closed(self) -> None:
         session = self.session()
@@ -127,7 +142,32 @@ class VoicePacketCortexRecoveryTests(unittest.TestCase):
             event = cortex.accept_input(self.final_input(cortex, turn, packet, 1000 + index * 10))
             self.assertIn("ASR_FINAL", event.event_kind)
             cortex.emit_intent(turn_id=turn, monotonic_ms=1001 + index * 10, voice_intent="WAIT")
-        self.assertGreaterEqual(len(cortex.events), 201)
+        self.assertEqual(len(cortex._last_input_sequence), 100)
+
+    def test_transient_state_has_explicit_fail_closed_capacity(self) -> None:
+        limits = {
+            "MAX_EVENTS": getattr(VoicePacketCortex, "MAX_EVENTS", None),
+            "MAX_INPUT_PACKETS": getattr(VoicePacketCortex, "MAX_INPUT_PACKETS", None),
+            "MAX_OUTPUT_PACKETS": getattr(VoicePacketCortex, "MAX_OUTPUT_PACKETS", None),
+            "MAX_TOOL_REFS": getattr(VoicePacketCortex, "MAX_TOOL_REFS", None),
+        }
+        for name, value in limits.items():
+            self.assertIs(type(value), int, name)
+            self.assertGreater(value, 0, name)
+
+        cortex = VoicePacketCortex(self.session())
+        for index in range(VoicePacketCortex.MAX_EVENTS - 1):
+            cortex.emit_intent(
+                turn_id="turn-capacity", monotonic_ms=index + 1, voice_intent="WAIT",
+                detail=f"capacity-probe-{index}",
+            )
+        self.assertEqual(len(cortex.events), VoicePacketCortex.MAX_EVENTS)
+        with self.assertRaises(VoicePacketCortexError):
+            cortex.emit_intent(
+                turn_id="turn-capacity", monotonic_ms=VoicePacketCortex.MAX_EVENTS + 1,
+                voice_intent="WAIT", detail="must-fail-closed",
+            )
+        self.assertEqual(len(cortex.events), VoicePacketCortex.MAX_EVENTS)
 
     def test_transport_fault_is_preserved_and_retry_uses_new_causal_packet_id(self) -> None:
         cortex = VoicePacketCortex(self.session())
