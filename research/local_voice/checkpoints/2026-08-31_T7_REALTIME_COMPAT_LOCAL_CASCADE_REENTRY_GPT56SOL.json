@@ -1,0 +1,42 @@
+{
+  "schema": "T7_CONTINUATION_CHECKPOINT_V1",
+  "trigger": "7",
+  "created_at": "2026-08-31T03:21:00+07:00",
+  "organ": "GPT-5.6-Sol",
+  "mode": "REVIEW_ONLY_CANDIDATE_FALSIFIER",
+  "f2_head_observed_before_checkpoint": "b1b8517664b2dfcb404509d5651377056609e75f",
+  "canonical_scope": "Frankenstein 2.0 local realtime voice research",
+  "finding": {
+    "candidate": "huggingface/speech-to-speech local Realtime-compatible cascade",
+    "why_high_information": "It exposes an OpenAI-Realtime-compatible /v1/realtime WebSocket while permitting local STT, local LLM backends (including vLLM/llama.cpp-compatible paths), and local Qwen3-TTS. This may preserve the existing Frankenstein realtime-client boundary while replacing the hosted OpenAI inference dependency beneath it.",
+    "evidence_class": "EXTERNAL_PRIMARY_SOURCE_REVIEW_ONLY",
+    "promotion_credit": 0,
+    "runtime_credit": 0,
+    "trigger4_acceptance_credit": 0
+  },
+  "supporting_upstream_facts": [
+    "Qwen3-ASR-0.6B officially lists German and offline/streaming modes.",
+    "Qwen3-ASR official streaming currently uses the vLLM backend and does not return timestamps in streaming mode.",
+    "huggingface/speech-to-speech exposes a local OpenAI-Realtime-compatible /v1/realtime WebSocket and supports local LLM backends plus Qwen3-TTS.",
+    "The same project documents Silero VAD, modular STT/LLM/TTS handlers and realtime turn-taking as a cascaded local stack."
+  ],
+  "hypothesis": "A protocol-compatible local cascade can minimize Frankenstein integration churn by preserving the existing realtime transport/session boundary while swapping hosted inference for local organs.",
+  "counterhypotheses": [
+    "Protocol compatibility is incomplete at the exact events/function-call/barge-in semantics Frankenstein requires.",
+    "The generic cascade adds enough buffering/queueing that user-end-to-first-audio and barge-in cancellation regress versus the donor realtime path.",
+    "Qwen3-ASR streaming's vLLM requirement is too heavy or mismatched for the target local hardware.",
+    "Qwen3-TTS streaming/cancellation semantics may duplicate chunks or preserve unheard speech state after interruption.",
+    "The generic server may accidentally become a second conversation/session authority unless Frankenstein keeps VoiceIntent, VoiceSessionCapsule, UnifiedDB, tool and effect authority outside it."
+  ],
+  "duplicate_work_check": "Repository code search found no existing explicit huggingface/speech-to-speech or /v1/realtime local-cascade research record. No new semantic claim was minted in this turn because the semantic-key compiler/atomic mutex was not executed; therefore this checkpoint records review-only evidence and MUST NOT authorize material implementation.",
+  "next_exact_action": "Compile/acquire a new semantic claim for a bounded protocol-compatibility falsifier: existing Frankenstein realtime client -> pinned local speech-to-speech server -> network-blocked local STT/LLM/TTS; measure required session events, function/tool bridge behavior, barge-in actual audio stop, user-end-to-first-audio p50/p95, and verify zero external inference calls. If compatible, route implementation/acceptance to Trigger 4; otherwise preserve the incompatibility as a negative result.",
+  "zero_credit_boundaries": [
+    "no local runtime execution in this turn",
+    "no German E2E benchmark",
+    "no latency benchmark",
+    "no barge-in benchmark",
+    "no network-blocked acceptance",
+    "no V5 build-candidate credit",
+    "no V6 Trigger4 acceptance"
+  ]
+}
