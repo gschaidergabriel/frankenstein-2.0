@@ -6,10 +6,10 @@ turn probability, confidence, Brier score or log loss into world truth, effect
 authority, completion authority, runtime credit or whole-system acceptance.
 
 A public policy may attach a bounded probability-of-correctness claim to an exact
-non-abstaining ``PredictionCandidate``. The evaluator may score that claim only after
-an exact hard ``PredictionEvaluation`` exists and only when the evaluator supplies the
-same externally pinned, predeclared ``BenchmarkRunAdmission`` digest that protects the
-accepted generation-2 path.
+non-abstaining ``PredictionCandidate``. The outer evaluator/run harness must retain
+both the already-predeclared ``BenchmarkRunAdmission`` digest and the exact probability
+claim digest before revealing the next observation. The integrated evaluator verifies
+both identities before the accepted generation-2 hard evaluator advances the world.
 
 Classification: CANDIDATE_FALSIFIER / successor-scope input only. Merge/adoption
 requires an explicit successor workpackage claim/reconciliation; this file itself does
@@ -24,6 +24,13 @@ import math
 import re
 from typing import Any
 
+from .cognitive_microworld import (
+    EpisodeState,
+    EvaluatorStep,
+    MicroWorldFixture,
+    ObservationView,
+    RunDescriptor,
+)
 from .cognitive_world_model_prediction_benchmark import (
     ABSTAIN,
     ABSTAINED,
@@ -32,7 +39,10 @@ from .cognitive_world_model_prediction_benchmark import (
     PredictionCandidate,
     PredictionEvaluation,
 )
-from .cognitive_world_model_run_admission import BenchmarkRunAdmission
+from .cognitive_world_model_run_admission import (
+    BenchmarkRunAdmission,
+    evaluate_admitted_next_observation_prediction,
+)
 
 PROBABILITY_CLAIM_SCHEMA = "FRANKENSTEIN2_WORLD_MODEL_PROBABILITY_CORRECT_CLAIM/v1"
 PROBABILITY_EVALUATION_SCHEMA = "FRANKENSTEIN2_WORLD_MODEL_PROBABILITY_EVALUATION/v1"
@@ -70,7 +80,7 @@ def _generation(name: str, value: Any) -> int:
 
 
 def _probability_ppm(value: Any) -> int:
-    # Keep log loss finite and fail closed instead of clipping an asserted certainty.
+    # Keep log loss finite and fail closed instead of clipping asserted certainty.
     if type(value) is not int or not 1 <= value < PROBABILITY_DENOMINATOR:
         raise WorldModelProbabilityEvaluationError("probability_correct_ppm must be an integer in [1, 999999]")
     return value
@@ -147,7 +157,7 @@ class ProbabilityCorrectClaim:
 
 @dataclass(frozen=True, slots=True)
 class ProbabilityScoreEvaluation:
-    """Evaluator-only proper score for one already hard-evaluated prediction."""
+    """Evaluator-only proper score for one admitted pre-outcome probability claim."""
 
     schema: str
     probability_claim_id: str
@@ -206,11 +216,11 @@ class ProbabilityScoreEvaluation:
 
 
 def proper_binary_scores(probability_correct_ppm: int, target_correct: int) -> tuple[float, float]:
-    """Return Brier score and log loss for a predeclared binary probability.
+    """Return Brier score and log loss for a binary probability.
 
     This helper is evaluator math only. It does not establish that the probability was
-    causally available before the outcome; that provenance is enforced by
-    ``evaluate_probability_quality``.
+    causally available before the outcome; provenance is enforced by the bound evaluator
+    functions below.
     """
     ppm = _probability_ppm(probability_correct_ppm)
     if type(target_correct) is not int or target_correct not in (0, 1):
@@ -221,25 +231,28 @@ def proper_binary_scores(probability_correct_ppm: int, target_correct: int) -> t
     return float(brier), float(-math.log(likelihood))
 
 
-def _assert_cross_binding(
+def _assert_preoutcome_binding(
     claim: ProbabilityCorrectClaim,
     prediction: PredictionCandidate,
-    hard_evaluation: PredictionEvaluation,
     run_admission: BenchmarkRunAdmission,
     expected_run_admission_sha256: str,
-) -> str:
+    expected_probability_claim_sha256: str,
+) -> tuple[str, str]:
+    """Verify all candidate-side identities before the world outcome is revealed."""
     if type(claim) is not ProbabilityCorrectClaim:
         raise WorldModelProbabilityEvaluationError("claim must be exact concrete ProbabilityCorrectClaim")
     if type(prediction) is not PredictionCandidate:
         raise WorldModelProbabilityEvaluationError("prediction must be exact concrete PredictionCandidate")
-    if type(hard_evaluation) is not PredictionEvaluation:
-        raise WorldModelProbabilityEvaluationError("hard_evaluation must be exact concrete PredictionEvaluation")
     if type(run_admission) is not BenchmarkRunAdmission:
         raise WorldModelProbabilityEvaluationError("run_admission must be exact concrete BenchmarkRunAdmission")
+
     expected_admission = _sha("expected_run_admission_sha256", expected_run_admission_sha256)
     if run_admission.sha256() != expected_admission:
         raise WorldModelProbabilityEvaluationError("run admission digest does not match predeclared expected digest")
-    if prediction.prediction_kind == ABSTAIN or hard_evaluation.outcome == ABSTAINED:
+    expected_claim = _sha("expected_probability_claim_sha256", expected_probability_claim_sha256)
+    if claim.sha256() != expected_claim:
+        raise WorldModelProbabilityEvaluationError("probability claim digest does not match pre-outcome expected digest")
+    if prediction.prediction_kind == ABSTAIN:
         raise WorldModelProbabilityEvaluationError("ABSTAIN is not admitted to probability scoring")
 
     claim_prediction = (
@@ -261,6 +274,35 @@ def _assert_cross_binding(
     if claim_prediction != actual_prediction:
         raise WorldModelProbabilityEvaluationError("probability claim/prediction provenance mismatch")
 
+    if (
+        run_admission.run_id != prediction.benchmark_run_id
+        or run_admission.benchmark_generation != prediction.benchmark_generation
+        or run_admission.system_under_test_ref != prediction.policy_id
+    ):
+        raise WorldModelProbabilityEvaluationError("prediction/run admission provenance mismatch")
+    return expected_admission, expected_claim
+
+
+def _assert_cross_binding(
+    claim: ProbabilityCorrectClaim,
+    prediction: PredictionCandidate,
+    hard_evaluation: PredictionEvaluation,
+    run_admission: BenchmarkRunAdmission,
+    expected_run_admission_sha256: str,
+    expected_probability_claim_sha256: str,
+) -> tuple[str, str]:
+    if type(hard_evaluation) is not PredictionEvaluation:
+        raise WorldModelProbabilityEvaluationError("hard_evaluation must be exact concrete PredictionEvaluation")
+    expected_admission, expected_claim = _assert_preoutcome_binding(
+        claim,
+        prediction,
+        run_admission,
+        expected_run_admission_sha256,
+        expected_probability_claim_sha256,
+    )
+    if hard_evaluation.outcome == ABSTAINED:
+        raise WorldModelProbabilityEvaluationError("ABSTAIN is not admitted to probability scoring")
+
     hard_prediction = (
         hard_evaluation.prediction_id,
         hard_evaluation.prediction_sha256,
@@ -276,12 +318,6 @@ def _assert_cross_binding(
     if hard_prediction != expected_hard_prediction:
         raise WorldModelProbabilityEvaluationError("hard evaluation/prediction provenance mismatch")
 
-    if (
-        run_admission.run_id != prediction.benchmark_run_id
-        or run_admission.benchmark_generation != prediction.benchmark_generation
-        or run_admission.system_under_test_ref != prediction.policy_id
-    ):
-        raise WorldModelProbabilityEvaluationError("prediction/run admission provenance mismatch")
     if run_admission.run_descriptor_sha256 != hard_evaluation.run_descriptor_sha256:
         raise WorldModelProbabilityEvaluationError("hard evaluation/run descriptor admission mismatch")
     expected_fixture = (
@@ -296,7 +332,7 @@ def _assert_cross_binding(
     )
     if actual_fixture != expected_fixture:
         raise WorldModelProbabilityEvaluationError("hard evaluation/fixture admission mismatch")
-    return expected_admission
+    return expected_admission, expected_claim
 
 
 def evaluate_probability_quality(
@@ -306,26 +342,29 @@ def evaluate_probability_quality(
     hard_evaluation: PredictionEvaluation,
     run_admission: BenchmarkRunAdmission,
     expected_run_admission_sha256: str,
+    expected_probability_claim_sha256: str,
 ) -> ProbabilityScoreEvaluation:
-    """Proper-score one public probability against one admitted hard evaluation.
+    """Proper-score one probability against one admitted hard evaluation.
 
-    The caller must retain the expected predeclared run-admission digest outside the
-    candidate path. A freshly co-forged admission after observing the outcome therefore
-    cannot silently replace the expected identity.
+    This post-step helper requires both externally retained expected digests. It can
+    validate a stored evaluation transcript, but the integrated evaluator below is the
+    stronger causal path because it checks the probability-claim digest before the world
+    step that reveals the outcome.
     """
-    expected_admission = _assert_cross_binding(
+    expected_admission, expected_claim = _assert_cross_binding(
         claim,
         prediction,
         hard_evaluation,
         run_admission,
         expected_run_admission_sha256,
+        expected_probability_claim_sha256,
     )
     target = 1 if hard_evaluation.outcome == CORRECT else 0
     brier, log_loss = proper_binary_scores(claim.probability_correct_ppm, target)
     return ProbabilityScoreEvaluation(
         PROBABILITY_EVALUATION_SCHEMA,
         claim.probability_claim_id,
-        claim.sha256(),
+        expected_claim,
         prediction.prediction_id,
         prediction.sha256(),
         hard_evaluation.sha256(),
@@ -339,3 +378,59 @@ def evaluate_probability_quality(
         log_loss,
         _origin=_EVALUATION_ORIGIN,
     )
+
+
+def evaluate_admitted_probabilistic_next_observation_prediction(
+    fixture: MicroWorldFixture,
+    *,
+    state: EpisodeState,
+    action_id: str,
+    prediction: PredictionCandidate,
+    probability_claim: ProbabilityCorrectClaim,
+    run_descriptor: RunDescriptor,
+    run_admission: BenchmarkRunAdmission,
+    expected_run_admission_sha256: str,
+    expected_probability_claim_sha256: str,
+) -> tuple[
+    EpisodeState,
+    ObservationView,
+    EvaluatorStep,
+    PredictionEvaluation,
+    ProbabilityScoreEvaluation,
+]:
+    """Verify probability provenance before stepping, then reuse the accepted G2 path.
+
+    The two ``expected_*`` digests are deliberately supplied independently of the
+    candidate objects. A run harness can persist/pin the run admission before candidate
+    emission and the probability claim after candidate emission but before the world
+    step. Both are verified before ``evaluate_admitted_next_observation_prediction`` can
+    reveal the next observation. A post-outcome replacement claim therefore cannot pass
+    against the retained pre-outcome claim digest.
+    """
+    _assert_preoutcome_binding(
+        probability_claim,
+        prediction,
+        run_admission,
+        expected_run_admission_sha256,
+        expected_probability_claim_sha256,
+    )
+    next_state, next_observation, evaluator_step, hard_evaluation = (
+        evaluate_admitted_next_observation_prediction(
+            fixture,
+            state=state,
+            action_id=action_id,
+            prediction=prediction,
+            run_descriptor=run_descriptor,
+            run_admission=run_admission,
+            expected_run_admission_sha256=expected_run_admission_sha256,
+        )
+    )
+    probability_evaluation = evaluate_probability_quality(
+        probability_claim,
+        prediction=prediction,
+        hard_evaluation=hard_evaluation,
+        run_admission=run_admission,
+        expected_run_admission_sha256=expected_run_admission_sha256,
+        expected_probability_claim_sha256=expected_probability_claim_sha256,
+    )
+    return next_state, next_observation, evaluator_step, hard_evaluation, probability_evaluation
