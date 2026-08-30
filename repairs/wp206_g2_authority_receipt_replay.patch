@@ -1,7 +1,23 @@
 diff --git a/src/frankenstein2/persistent_agency_kernel.py b/src/frankenstein2/persistent_agency_kernel.py
 --- a/src/frankenstein2/persistent_agency_kernel.py
 +++ b/src/frankenstein2/persistent_agency_kernel.py
-@@ -1088,17 +1088,22 @@ class CanonicalPersistentAgencyStore:
+@@ -949,7 +949,14 @@ class CanonicalPersistentAgencyStore:
+         self.canonical_db_path = os.path.realpath(fingerprint.real_path)
+         self.db_device = int(fingerprint.device)
+         self.db_inode = int(fingerprint.inode)
+-        self.authority_receipt_sha256 = fingerprint.receipt_sha256()
++        self.authority_receipt_sha256 = _sha256(
++            {
++                "schema": "FRANKENSTEIN2_UNIFIEDDB_BOUND_FILE_AUTHORITY/v1",
++                "canonical_db_path": self.canonical_db_path,
++                "db_device": self.db_device,
++                "db_inode": self.db_inode,
++            }
++        )
+         self.connection.execute("PRAGMA foreign_keys=ON")
+ 
+     @classmethod
+@@ -1088,17 +1095,22 @@ class CanonicalPersistentAgencyStore:
          self._assert_current_file_identity()
          row = self.connection.execute(
              f"""SELECT checkpoint_sha256, checkpoint_json, canonical_db_path,
