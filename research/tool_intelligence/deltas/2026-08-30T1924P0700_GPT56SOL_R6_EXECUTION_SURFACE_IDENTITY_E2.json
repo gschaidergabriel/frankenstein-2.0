@@ -1,0 +1,112 @@
+{
+  "schema": "FRANKENSTEIN2_TRIGGER6_ARCHITECTURE_DELTA/v1",
+  "research_id": "R6-20260830-EXECUTION-SURFACE-IDENTITY-GPT56SOL-01",
+  "stage": "E2_ARCHITECTURE_MAPPED",
+  "status": "COMPLETE_AT_E2_ONLY",
+  "created_at": "2026-08-30T19:24:00+07:00",
+  "worker": "GPT-5.6-Sol-TRIGGER6",
+  "claim": "research/tool_intelligence/claims/R6-20260830-EXECUTION-SURFACE-IDENTITY-GPT56SOL-01/E2_ARCHITECTURE_MAPPED.json",
+  "e1_result": "research/tool_intelligence/results/R6-20260830-EXECUTION-SURFACE-IDENTITY-GPT56SOL-01/E1_EXECUTION_SURFACE_IDENTITY.json",
+  "architecture_snapshot": {
+    "owner_authority": "gschaidergabriel/clay-global-research-entity:main/CLAY_EXECUTION_AUTHORITY.md@71e646a569a288ec9f55ec8ed4a999d683bf8b6c",
+    "resolution_protocol": "governance/EXECUTION_SURFACE_RESOLUTION_PROTOCOL_V1.md@57e9491336a9f798289b459a57dad0ac83b901f7",
+    "wp1207_hosted_run": 33311147892,
+    "wp1207_hosted_job": 99256303130,
+    "wp1207_hosted_head_sha": "fc550a0edb7032c1a7592e32e9aaa802f46a7133",
+    "parallel_runtime_subject_delta": "research/tool_intelligence/deltas/2026-08-30T1921P0700_GPT56SOL_R6_RUNTIME_SUBJECT_BOUNDARY_FINGERPRINT_E2.json"
+  },
+  "problem": "Current runtime evidence needs two independent identities: WHAT exact code/artifact/harness executed and WHERE/THROUGH WHICH authorized execution surface it actually executed. A content/boundary fingerprint cannot prove target-host execution, while a runner/route observation cannot prove exact subject bytes. Collapsing either axis allows cross-surface or cross-subject credit substitution.",
+  "observations": [
+    "The exact WP1207 component-CI workflow declares runs-on: ubuntu-latest, and run 33311147892/job 99256303130 executed successfully on GitHub Actions runner 1000051152 with GitHub Actions group identity.",
+    "Current owner authority identifies clay-direct-dev as the intended Frankenstein-2.0 build/test/runtime sandbox and the self-hosted runner/VPS bridge as an authorized transport.",
+    "The current execution-surface resolver already separates route reachability, authority, target health and evidence admission; its routing receipt explicitly cannot mint runtime credit.",
+    "The parallel RUNTIME_SUBJECT_BOUNDARY_FINGERPRINT E2 addresses exact subject/input/harness currentness but not target-surface identity.",
+    "GitHub's workflow syntax makes runs-on an intended eligibility/destination contract; GitHub's workflow-jobs API exposes observed runner identity, runner group, labels, run attempt, source SHA and step execution. These are complementary rather than interchangeable."
+  ],
+  "selected_architecture_delta": {
+    "name": "RUNTIME_EXECUTION_SURFACE_BINDING",
+    "integration_class": "CONCEPT_DISTILL_AND_RECEIPT_SCHEMA_EXTENSION",
+    "role": "FAIL_CLOSED_RUNTIME_EVIDENCE_ADMISSION",
+    "two_axis_subject_model": {
+      "what_axis": "RUNTIME_SUBJECT_BOUNDARY_FINGERPRINT or equivalent exact source/artifact/harness identity",
+      "where_axis": "RUNTIME_EXECUTION_SURFACE_BINDING: intended target/route contract plus observed host/runner/route identity",
+      "promotion_rule": "WHAT_MATCH && WHERE_MATCH && AUTHORITY_CURRENT && EXECUTION_OBSERVED"
+    },
+    "minimum_surface_contract": [
+      "authority_identity_or_generation",
+      "target_surface_id (for example clay-direct-dev)",
+      "route_id_or_route_class",
+      "executor/workflow identity and digest/path when applicable",
+      "normalized intended runner group/labels or bridge target contract",
+      "required host identity strength",
+      "observation TTL/revalidation requirement"
+    ],
+    "minimum_surface_observation": [
+      "execution_id/workflow_run_id",
+      "run_attempt",
+      "job_id/gate_id",
+      "observed runner/host id and name",
+      "observed runner group/route identity",
+      "observed labels/surface class",
+      "host identity digest/readback when a generic self-hosted pool could contain multiple hosts",
+      "execution started/completed timestamps",
+      "executed_steps_or_gate_execution_observed",
+      "result"
+    ],
+    "admission_rules": [
+      "GitHub-hosted ubuntu-latest success is component-CI evidence only when the required target is clay-direct-dev.",
+      "A queued self-hosted job with no observed runner/steps is route/control-plane evidence only.",
+      "A self-hosted runner label or group proves eligibility class, not necessarily a unique physical target host; target-host credit requires an observed runner identity mapped to the intended surface or an in-run host readback/equivalent receipt.",
+      "A bridge roundtrip proves route reachability only until the bound command/artifact actually executes and a target result receipt is captured.",
+      "Surface mismatch preserves the narrower evidence instead of converting it into product failure or success.",
+      "Authority or route observation staleness forces re-resolution before promotion-bearing execution."
+    ]
+  },
+  "counterhypotheses": [
+    {
+      "claim": "Exact source/artifact provenance alone is enough for target-runtime credit.",
+      "assessment": "REJECTED",
+      "reason": "The same bytes can execute on GitHub-hosted CI or clay-direct-dev; provenance does not identify the execution surface."
+    },
+    {
+      "claim": "Observed runner labels alone are enough to prove the target host.",
+      "assessment": "REJECTED_AS_GENERAL_RULE",
+      "reason": "Labels/groups define eligibility and may match multiple runners. A unique target needs an observed runner-to-target binding or target-local readback."
+    },
+    {
+      "claim": "The existing ubuntu-latest WP1207 workflow should be changed to self-hosted so one workflow provides all evidence.",
+      "assessment": "NOT_REQUIRED_AND_POTENTIALLY_HARMFUL",
+      "reason": "Current hosted CI is valid cheap component evidence. The target-host gate is a distinct evidence scope and may use the authorized bridge/self-hosted route without sacrificing hosted CI."
+    },
+    {
+      "claim": "Execution-surface resolution already solves this completely.",
+      "assessment": "PARTIALLY_FALSE",
+      "reason": "The resolver selects/classifies routes and explicitly grants routing evidence only. Runtime admission still needs the selected contract bound to the observed execution result."
+    }
+  ],
+  "required_falsifiers_before_E5": [
+    "HOSTED_SUBSTITUTION: prove a GitHub-hosted success with exact source cannot satisfy a clay-direct-dev target contract.",
+    "QUEUED_NO_EXECUTION: prove a self-hosted queued job with no runner/steps yields zero target-runtime credit.",
+    "POOL_AMBIGUITY: show a generic self-hosted label/group can address more than one runner or otherwise fail unique-host identity, forcing target readback/mapping when unique host matters.",
+    "ROUTE_STALENESS: change/expire route observation or authority generation and prove prior resolution cannot authorize promotion-bearing admission without revalidation.",
+    "WHAT_WHERE_ORTHOGONALITY: keep surface identity fixed while mutating bound subject bytes, and keep subject bytes fixed while changing execution surface; each change independently invalidates target promotion.",
+    "NO_CREDIT_INFLATION: passing WHAT+WHERE at one component scope must not mint physical GRID10 or whole-system acceptance."
+  ],
+  "trigger4_handoff": {
+    "wp1207": "Keep run 33311147892/job 99256303130 as REPOSITORY_HOSTED_COMPONENT_CI_ONLY. For the bound WP1207 G5 hostile-twin artifacts, execute through a freshly resolved authorized clay-direct-dev route and capture both exact artifact/source identity and observed target-surface identity in the external receipt.",
+    "schema_request": "When the next target runtime receipt is emitted, include intended target_surface_id/route contract and observed runner/host/route identity alongside the existing exact source/artifact fields. If runner/group/labels do not uniquely establish clay-direct-dev, add a deterministic target-local host identity/readback field.",
+    "do_not": "Do not mutate or rerun hosted component CI merely to manufacture target-runtime evidence; do not equate routing reachability with target execution."
+  },
+  "resource_implication": {
+    "runtime_model_calls": 0,
+    "token_cost": "metadata-only; no runtime LLM requirement",
+    "compute_cost": "negligible deterministic receipt validation",
+    "dependency_policy": "no new external framework required"
+  },
+  "evidence_scope": "E2_ARCHITECTURE_MAPPING_PLUS_CURRENT_SOURCE_AND_API_OBSERVATION_ONLY",
+  "research_credit": "E2_ONLY",
+  "runtime_credit": 0,
+  "integration_credit": 0,
+  "whole_system_credit": 0,
+  "next_exact_action": "Acquire a distinct E3 claim and compare one current queued self-hosted WP1207 job against hosted run 33311147892 at the workflow-jobs evidence layer, verifying intended labels/route versus observed runner/step execution without dispatching a new job."
+}
