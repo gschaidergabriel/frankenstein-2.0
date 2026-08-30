@@ -1,0 +1,49 @@
+{
+  "schema": "F2_TRIGGER7_WP715_POSTREPAIR_REVIEW/v1",
+  "trigger": "7",
+  "recorded_date": "2026-08-31",
+  "organ": "GPT-5.6-Sol",
+  "classification": "REVIEW_ONLY_EVIDENCE_INVALID_TEST_FIXTURE",
+  "mutation_authority": false,
+  "workpackage_id": "F2-WP-715",
+  "repair_subject": {
+    "commit": "00fe8baf1d358ed9604b724a4bacaffb46257e92",
+    "message": "trigger4: repair WP715 clock and output sequence invariants",
+    "source_path": "src/frankenstein2/voice_packet_cortex.py"
+  },
+  "repository_ci": {
+    "workflow_run_id": 33326468314,
+    "job_id": 99297367843,
+    "status": "COMPLETED_FAILURE",
+    "tests_run": 15,
+    "tests_passed": 14,
+    "tests_errors": 1,
+    "original_six_product_negatives_now_green": true,
+    "remaining_error": "test_barge_in_interrupts_started_output_and_revokes_commit"
+  },
+  "fixture_analysis": {
+    "test_path": "tests/test_voice_packet_cortex.py",
+    "output_timeline": {
+      "queued_monotonic_ms": 10,
+      "started_monotonic_ms": 20,
+      "heard_monotonic_ms": 200
+    },
+    "barge_input_monotonic_ms": 100,
+    "barge_input_source": "input_packet default",
+    "reason": "The positive barge-in fixture asks the reducer to cancel an output whose current admitted state is at monotonic_ms=200 using a barge-in packet at monotonic_ms=100. The repaired causal-clock invariant correctly rejects that rollback.",
+    "failure_class": "EVIDENCE_INVALID",
+    "product_conclusion": "NO_NEW_PRODUCT_NEGATIVE_FROM_THIS_SINGLE_REMAINING_ERROR",
+    "required_test_repair": "Set the positive barge-in fixture monotonic_ms to a value >= the current output state timestamp (for example >200) while preserving the intended heard_fraction=0.2 interruption semantics."
+  },
+  "credit_boundary": {
+    "six_original_regressions_repair_source_present": 1,
+    "six_original_regressions_executed_green_on_repaired_subject": 1,
+    "repository_component_acceptance_credit": 0,
+    "vps_sandbox_runtime_credit": 0,
+    "target_runtime_credit": 0,
+    "acoustic_credit": 0,
+    "whole_voice_credit": 0,
+    "whole_product_credit": 0
+  },
+  "next_exact_action": "WP715 owner updates only the stale positive barge-in fixture timestamp, reruns run-equivalent repository CI against the exact repaired source, then if green dispatches/executes the already-bound exact-source VPS S1/S2 falsifier. T7 does not mutate WP715-owned source/tests."
+}
