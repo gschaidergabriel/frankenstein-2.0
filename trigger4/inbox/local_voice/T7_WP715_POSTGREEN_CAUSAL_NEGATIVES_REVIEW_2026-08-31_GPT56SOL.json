@@ -1,0 +1,60 @@
+{
+  "schema": "F2_TRIGGER7_WP715_POSTGREEN_CAUSAL_NEGATIVES_REVIEW/v1",
+  "trigger": "7",
+  "recorded_date": "2026-08-31",
+  "organ": "GPT-5.6-Sol",
+  "classification": "CANDIDATE_FALSIFIER_REVIEW_ONLY",
+  "mutation_authority": false,
+  "wp715_mutation_owner": "F2-WP-715-G1-GPT56SOL-PACKET-CORTEX-CONVERGENCE-20260831",
+  "observed_execution": {
+    "workflow": "WP715 Voice Packet Cortex CI",
+    "workflow_run_id": 33326695878,
+    "job_id": 99297995043,
+    "head_sha": "1e09d33eb2479e63954bebc05584ccd53e73073a",
+    "status": "completed",
+    "conclusion": "failure",
+    "failed_step": "Run WP715 packet-cortex discriminators",
+    "pn9_step": "skipped",
+    "rule": "The older 15/15 run 33326526530 remains credit only for its exact earlier core-test subject; it does not promote the newer recovery or post-green causal falsifiers."
+  },
+  "source_review_predictions_not_log_claims": [
+    {
+      "id": "PN11_LATE_TOOL_RESULT_AFTER_CANCEL",
+      "new_test": "test_cancelled_turn_rejects_late_tool_result",
+      "source_observation": "The current reviewed source exposes TOOL_RESULT through emit_system_event without a turn cancellation/ownership epoch fence.",
+      "predicted_result": "PRODUCT_NEGATIVE_LIKELY",
+      "required_discriminator": "Inspect exact run log or execute the single test; if reproduced, late tool result after cancellation must fail closed or bind a valid successor ownership epoch."
+    },
+    {
+      "id": "PN12_CANCELLED_UNHEARD_RESULT_BINDING",
+      "new_test": "test_cancelled_unheard_output_cannot_mint_result_reference",
+      "source_observation": "close_session currently treats cancelled/interrupted output as terminal and can create VoiceOutcome with caller-provided result_ref/result_sha256 without proving heard/commit-eligible output.",
+      "predicted_result": "PRODUCT_NEGATIVE_LIKELY",
+      "required_discriminator": "Execute the single test and require result-bearing VoiceOutcome to exclude cancelled/unheard semantic commit unless an explicit non-speech result contract is separately typed."
+    },
+    {
+      "id": "PN13_DUPLICATE_CLOSE_REPLAY_CONTRACT",
+      "new_test": "test_duplicate_close_same_identity_is_idempotent",
+      "source_observation": "close_session raises when is_open is false and does not retain/return the prior exact VoiceOutcome for same causal identity.",
+      "predicted_result": "PRODUCT_NEGATIVE_OR_EXPLICIT_CONTRACT_DECISION_REQUIRED",
+      "required_discriminator": "Execute the single test; choose exactly one admitted replay contract: identical close identity returns identical outcome idempotently, or duplicate close is explicitly fail-closed and the test/authority is revised accordingly."
+    }
+  ],
+  "recovery_status": {
+    "helper_commit": "922f2695d4a6d43171e3122f4ed7ac3912ebc7fc",
+    "test_commit": "b164666d487ac99f8a278d0da90fbf0e3605de58",
+    "pn9_checkpoint_continuation": "NOT_EXECUTED_IN_RUN_33326695878",
+    "pn10_bounded_state": "OPEN",
+    "recovery_acceptance_credit": 0
+  },
+  "credit": {
+    "review_delta": 1,
+    "new_product_negative_credit": 0,
+    "repository_ci_recovery_credit": 0,
+    "vps_sandbox_runtime_credit": 0,
+    "acoustic_credit": 0,
+    "whole_voice_credit": 0,
+    "whole_product_credit": 0
+  },
+  "next_exact_action": "WP715 owner should inspect run 33326695878 exact log or execute PN11/PN12/PN13 individually, classify each result before mutation, repair only reproduced defects, then rerun the combined core+recovery CI so PN9 actually executes. Keep PN10 bounded-state as a separate discriminator. Do not redispatch ASR004 attempt4 while its current attempt remains nonterminal."
+}
