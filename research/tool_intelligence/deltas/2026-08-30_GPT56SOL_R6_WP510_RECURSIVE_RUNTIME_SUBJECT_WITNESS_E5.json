@@ -1,0 +1,149 @@
+{
+  "schema": "FRANKENSTEIN2_TRIGGER6_ARCHITECTURE_DELTA/v1",
+  "delta_id": "R6-20260830-WP510-RECURSIVE-RUNTIME-SUBJECT-WITNESS-E5-GPT56SOL-01",
+  "research_id": "R6-20260830-WP510-RECURSIVE-MANIFEST-GPT56SOL-01",
+  "stage": "E5_BUILD_CANDIDATE",
+  "created_at": "2026-08-30T22:10:10+07:00",
+  "claim": "research/tool_intelligence/claims/R6-20260830-WP510-RECURSIVE-MANIFEST-GPT56SOL-01/E5_BUILD_CANDIDATE.json@19415e665011307e211d0eb9fad9924e4803955b",
+  "snapshot": {
+    "f2_main_at_claim": "00c4b031eeb720084811427841ede42a2c211950",
+    "repaired_e3_e4_result": "research/tool_intelligence/results/R6-20260830-WP510-RECURSIVE-MANIFEST-GPT56SOL-01_E3_E4_INSTRUMENT_REPAIR_REPRODUCED.json@00c4b031eeb720084811427841ede42a2c211950",
+    "parallel_python_execution_identity_candidate": "trigger4/inbox/tool_research/R6-20260830-PYTHON-BYTECODE-SUBJECT-ATTESTATION-GPT56SOL-01.json@f5e2dc1ce6b5509f64e6a80bee08fa0825f60a51"
+  },
+  "affected_workpackages": ["F2-WP-510@G3", "WP900_REUSE_CANDIDATE_ONLY"],
+  "affected_runtime_boundary": "Python execution/import boundary feeding WP510 GWT causal-path subject freshness",
+  "do_not_merge_authorities": {
+    "artifact_bound_static_completeness": "Keep as release-artifact -> static-delivery composition only. Its own evidence scope excludes target runtime.",
+    "wp510_runtime_subject_witness": "Separate deterministic runtime-subject/freshness witness that may consume upstream release identity but cannot mint release/static/effect/completion authority."
+  },
+  "best_supported_design_delta": {
+    "name": "WP510_RECURSIVE_RUNTIME_SUBJECT_WITNESS/v1",
+    "purpose": "Permit bounded reuse of an already-measured WP510 semantic/runtime probe only when the exact relevant execution subject remains demonstrably unchanged; otherwise fail closed to REPROBE_REQUIRED.",
+    "layers": [
+      {
+        "layer": "SOURCE_SUBJECT",
+        "required": [
+          "root source path + SHA-256",
+          "sorted recursive local F2 dependency paths + per-file SHA-256",
+          "recursive local-closure SHA-256",
+          "exact source/release generation identity when available"
+        ]
+      },
+      {
+        "layer": "INTERPRETER_IMPORT_ENVIRONMENT",
+        "required": [
+          "actual interpreter executable file SHA-256 + byte size",
+          "implementation/version/cache_tag/SOABI/platform",
+          "ordered sys.path identity",
+          "bounded interpreter-affecting environment identity",
+          "declared dynamic import/path-hook/entry-point/environment/native hazard classification"
+        ]
+      },
+      {
+        "layer": "EXECUTED_ARTIFACT_SUBJECT",
+        "required": [
+          "executed loader class",
+          "module origin",
+          "cached/bytecode artifact locator when applicable",
+          "digest of actually consumed Python executable artifact when technically observable",
+          "explicit policy evidence excluding divergent cached/sourceless bytecode if consumed-byte attestation is unavailable"
+        ],
+        "law": "SOURCE_CLOSURE_MATCH + INTERPRETER_MATCH != EXECUTED_ARTIFACT_MATCH"
+      },
+      {
+        "layer": "RUNTIME_LOCAL_MODULE_OBSERVATION",
+        "required": [
+          "sorted locally loaded module identities/paths at the measured boundary",
+          "runtime-vs-static closure mismatch flag",
+          "probe/result identity whose reuse is being requested"
+        ]
+      }
+    ],
+    "decision_states": {
+      "REUSE_ELIGIBLE_RESEARCH_HYPOTHESIS": "All required identities match, no dynamic hazard is unresolved, executed-artifact identity is bound or excluded by tested policy, and runtime-local module set remains within the sealed closure.",
+      "REPROBE_REQUIRED_SOURCE_CHANGE": "Root or any transitive local dependency identity changed.",
+      "REPROBE_REQUIRED_ENVIRONMENT_CHANGE": "Interpreter/import environment identity changed.",
+      "REPROBE_REQUIRED_DYNAMIC_SURFACE": "Dynamic import, sys.path/meta/path-hook mutation, entry-point discovery, environment-dependent import behavior or native-loader surface is present without an admitted stronger witness.",
+      "REPROBE_REQUIRED_RUNTIME_MISMATCH": "Runtime local-module observation contains material not in the sealed static closure.",
+      "REPROBE_REQUIRED_EXECUTED_ARTIFACT_UNPROVEN": "Source/interpreter may match but actually consumed cached/sourceless bytecode or loader artifact is not proved equal/excluded.",
+      "BLOCKED_PROVENANCE_AMBIGUOUS": "Generation, release, source, probe, or witness subject cannot be bound exactly."
+    }
+  },
+  "why_now": [
+    "E3-v2 reproduced a seven-file WP510 local closure on exact source with no detected dynamic/external local closure gap and no runtime-extra local modules.",
+    "E4-v2 showed closure digest invalidation under transitive byte mutation and static dependency addition, and fail-closed behavior for dynamic import/sys.path/entry-point/environment/native hazards.",
+    "The repaired instrument proved interpreter executable byte identity separately from path identity.",
+    "Parallel Trigger-6 evidence shows .py source identity can diverge from executed .pyc identity, so an E5 candidate omitting consumed execution-artifact identity would overclaim freshness."
+  ],
+  "external_primary_support": [
+    {
+      "ref": "https://docs.python.org/3.12/reference/import.html",
+      "claim": "Python supports timestamp- and hash-based cached bytecode; unchecked hash pycs can be assumed valid by the import system subject to interpreter policy."
+    },
+    {
+      "ref": "https://peps.python.org/pep-0552/",
+      "claim": "PEP 552 defines CHECKED_HASH/UNCHECKED_HASH behavior and --check-hash-based-pycs policy, establishing a concrete source-vs-cached-bytecode identity divergence surface."
+    },
+    {
+      "ref": "https://docs.python.org/3.12/library/importlib.html",
+      "claim": "Python exposes source, sourceless-bytecode, extension loaders, path finders/hooks and cached bytecode machinery; source-file path alone is not a complete execution-subject witness."
+    },
+    {
+      "ref": "https://docs.python.org/3.12/library/importlib.metadata.html",
+      "claim": "Distribution/entry-point discovery depends on import search machinery including sys.path/meta-path context, supporting fail-closed treatment of plugin discovery."
+    }
+  ],
+  "efficiency_design": {
+    "model_calls": 0,
+    "runtime_tokens": 0,
+    "steady_state": "Do not recursively parse/hash source on every model request. Capture/seal at artifact/generation activation or first accepted measurement, cache the canonical witness digest, and compare bounded generation/subject identity on reuse attempts.",
+    "recompute_triggers": [
+      "release/source generation changes",
+      "interpreter executable/build changes",
+      "import environment changes",
+      "dynamic hazard appears",
+      "runtime module-set mismatch",
+      "executed artifact identity becomes unresolved"
+    ],
+    "expected_dependency_weight": "stdlib-only implementation candidate; no external framework required",
+    "expected_steady_state_overhead": "near-O(1) digest/state comparison after sealed capture; must be measured by Trigger-4",
+    "capture_cost": "O(bytes of bounded recursive source closure + interpreter executable + observed execution artifacts); must be measured and cached"
+  },
+  "required_trigger4_tests": [
+    "clean exact WP510 subject -> candidate witness can be captured but grants no E6 by itself",
+    "unrelated repository file mutation -> sealed WP510 closure identity remains stable",
+    "transitive WP510 source byte mutation with unchanged root -> REPROBE_REQUIRED_SOURCE_CHANGE",
+    "new static local dependency -> REPROBE_REQUIRED_SOURCE_CHANGE",
+    "dynamic import to an extra local module -> REPROBE_REQUIRED_DYNAMIC_SURFACE and/or RUNTIME_MISMATCH",
+    "sys.path/meta/path-hook mutation -> REPROBE_REQUIRED_DYNAMIC_SURFACE",
+    "entry-point/plugin discovery -> REPROBE_REQUIRED_DYNAMIC_SURFACE unless stronger admitted plugin inventory witness exists",
+    "interpreter executable byte change -> REPROBE_REQUIRED_ENVIRONMENT_CHANGE",
+    "unchecked-hash stale pyc fixture -> source equality must not produce REUSE unless consumed pyc identity is bound or policy forces source validation",
+    "sourceless pyc fixture -> fail closed or bind exact consumed bytecode subject",
+    "runtime local-module set outside static closure -> REPROBE_REQUIRED_RUNTIME_MISMATCH",
+    "ambiguous generation/probe identity -> BLOCKED_PROVENANCE_AMBIGUOUS"
+  ],
+  "required_measurements": [
+    "capture latency p50/p95/p99",
+    "steady-state compare latency p50/p95/p99",
+    "bytes hashed and files opened per capture/recompute",
+    "CPU time and RSS delta",
+    "zero model-call/token delta",
+    "false-reuse count across adversarial fixtures (must be zero)",
+    "false-invalidation rate across unrelated-churn controls",
+    "executed loader/artifact attestation coverage"
+  ],
+  "counterhypotheses": [
+    "WP510 bounded probe replay is so cheap that witness capture/maintenance has worse total cost than simply reprobe.",
+    "Exact F2 execution launcher already excludes divergent pyc/plugin/import-environment behavior and receipts that invariant, making part of this witness redundant.",
+    "Python execution subject is too dynamic for a safe closed witness; in that case retain REPROBE_REQUIRED rather than weakening the gate."
+  ],
+  "rollback_or_reject": "Reject or reduce the witness if Trigger-4 shows no measurable saved probe cost, unacceptable false invalidation, any false reuse, or overlap with an already stronger admitted execution-subject authority.",
+  "evidence_scope": "E5_BUILD_CANDIDATE_ONLY_NOT_INTEGRATED_NOT_RUNTIME_ACCEPTED",
+  "credit": {
+    "architecture_credit": 0,
+    "runtime_credit": 0,
+    "target_host_credit": 0,
+    "whole_system_credit": 0
+  }
+}
