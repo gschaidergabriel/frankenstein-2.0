@@ -1,0 +1,54 @@
+{
+  "schema": "FRANKENSTEIN2_WORKPACKAGE_DELTA/v1",
+  "workpackage_id": "F2-WP-206",
+  "generation": 5,
+  "claim_id": "F2-WP-206-G5-GPT56SOL-EXTERNAL-SQLITE-REVISION-FENCE-20260830",
+  "worker_id": "GPT-5.6-Sol-TRIGGER4",
+  "base_commit": "a79fd967cdb0a03d7f83d3c94c27553589f4dcd7",
+  "observed_main_commit": "e62a97ab497fa7ad553475d8b74a7684d4f425f9",
+  "owned_paths": [
+    "src/frankenstein2/persistent_agency_kernel.py",
+    "tests/falsifier_wp206_g5_external_sqlite_revision_drift.py",
+    "tests/wp206_restart_probe.py",
+    ".github/workflows/wp206-g5-external-sqlite-revision-fence-ci.yml"
+  ],
+  "result_class": "REVIEW_ONLY",
+  "coordination_status": "CANDIDATE_FALSIFIER_NO_CANONICAL_MUTATION_AUTHORITY",
+  "source_commits": [
+    "f7ee7c3125ef9a85c999d9c00802ed36618816de"
+  ],
+  "receipts": [
+    "PR#728",
+    "github_actions_run:33306943200",
+    "github_actions_job:99245043942"
+  ],
+  "falsifiers": [
+    "independent SQLite connection commits DML/DDL while canonical database device+inode stay unchanged",
+    "rollback-journal external commit advances observer PRAGMA main.data_version",
+    "WAL external commit advances observer PRAGMA main.data_version",
+    "candidate connection-lifetime data_version fence fails closed with UNIFIEDDB_EXTERNAL_SQLITE_REVISION_DRIFT"
+  ],
+  "contradictions": [
+    "The original candidate test changed DELETE->WAL after the monitored store opened; that same-connection bootstrap transition can advance the observed data_version and was not an external-commit discriminator.",
+    "Canonical main already had an earlier generation-5 WP206 mutation authority for EVIDENCE_SUBJECT_BINDING, so this later same-generation branch cannot be canonical or mergeable as WP206 authority."
+  ],
+  "validation": {
+    "candidate_head": "f7ee7c3125ef9a85c999d9c00802ed36618816de",
+    "compile": "PASS",
+    "external_same_inode_delete_wal_fence": "PASS",
+    "wp206_g4_repeat_provenance_tests": "2/2 PASS",
+    "persistent_agency_kernel_tests": "5/5 PASS",
+    "journal_mode_established_before_monitored_connection": true,
+    "target_runtime_credit": 0,
+    "physical_grid10_credit": 0,
+    "gwt_jspace_runtime_credit": 0,
+    "effect_credit": 0,
+    "completion_credit": 0,
+    "training_credit": 0,
+    "whole_system_acceptance": false
+  },
+  "proposed_state_change": "NONE_WHILE_CANONICAL_G5_ACTIVE; preserve as successor input only",
+  "completion_deficit": "Canonical F2-WP-206 generation 5 EVIDENCE_SUBJECT_BINDING remains ACTIVE. This candidate must not overwrite it. After terminal reconciliation, re-enter current main and claim a proper successor generation only if the same-inode discriminator remains open.",
+  "next_exact_action": "After canonical G5 reaches ACCEPTED/FAILED_TERMINAL/RETIRED_STALE/SUPERSEDED with reconciliation, refresh main and re-evaluate this green candidate against the accepted source; if still open, claim the next legal WP206 generation and port only the minimal data_version fence plus corrected regression harness.",
+  "created_at_utc": "2026-08-30T10:40:51Z"
+}
