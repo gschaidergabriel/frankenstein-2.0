@@ -1,0 +1,78 @@
+{
+  "schema": "T7_SOURCE_AUDIT_V1",
+  "trigger": "7",
+  "date": "2026-08-31",
+  "organ": "GPT-5.6-Sol",
+  "research_id": "T7-FDBV3-GERMAN-TOOL-001",
+  "semantic_key": "efa6ce947e57106992c07f380a4a49df3fe990395d656e38cc04123fe83dc33a",
+  "scope": "SOURCE_PINNED_BENCHMARK_DONOR_ONLY",
+  "implementation_mutation_authority": false,
+  "new_runtime_dispatch": false,
+  "new_product_semantic_claim": false,
+  "claim_commit": "134be4a0dababc859e94ca029f2989131f25db2a",
+  "upstream": {
+    "repository": "DanielLin94144/Full-Duplex-Bench",
+    "revision": "3e799c45a045256f47d5f1c9cda90157e2d2ec9e",
+    "v3_readme_sha": "e56fc40e0e701e6de9a4565c8052d50e3d9559af",
+    "benchmark_data_sha": "source file v3/benchmark_data_v2.json at pinned revision",
+    "pass_rate_evaluator_sha": "a07c7a57e14203971b0321d5f943d6cdbb2fcd88",
+    "license": "CC-BY-NC-4.0",
+    "paper": "Full-Duplex-Bench-v3: Benchmarking Tool Use for Full-Duplex Voice Agents Under Real-World Disfluency, arXiv:2604.04847"
+  },
+  "primary_source_findings": {
+    "benchmark_shape": {
+      "released_audio_examples": 100,
+      "unique_scenarios_reported_in_readme": 79,
+      "benchmark_json_total_scenarios": 100,
+      "domains": ["travel_identity", "finance_billing", "housing_location", "ecommerce_support"],
+      "difficulty_levels": ["easy_1_tool", "medium_2_tools", "hard_3_tools"],
+      "disfluency_features": ["FILLER", "PAUSE", "HESITATION", "FALSE_START", "SELF_CORRECTION"],
+      "state_rollback_scenarios": 21,
+      "multilingual_scenarios": 0,
+      "average_tool_calls_per_scenario": 1.54
+    },
+    "strict_tool_oracle": "The released pass-rate evaluator requires all expected tools, no unexpected tools, and all arguments correct. Without --use-llm it falls back to deterministic exact/normalized argument matching, so the tool-selection/argument core can be evaluated without an external judge.",
+    "external_runtime_dependency": "The released inference path is LiveKit/provider oriented and documents cloud/provider keys for GPT Realtime, Gemini, Grok, Ultravox or an OpenAI cascaded agent. This is NOT an admissible F2 local-acceptance runtime as-is.",
+    "external_judge_dependency": "The optional --use-llm evaluation path invokes gpt-4o for semantic argument/response judging. F2 local acceptance must not use that path.",
+    "language_gap": "The released benchmark statistics explicitly report multilingual_scenarios=0; therefore it supplies no German acceptance evidence.",
+    "license_gap": "CC-BY-NC-4.0 is suitable for bounded research use under its terms but should not be silently copied into a potentially distributable/commercial F2 product benchmark corpus. Preserve source attribution and keep donor material quarantined from product fixtures unless license authority explicitly admits it."
+  },
+  "f2_relevance": {
+    "highest_value_transfer": "The benchmark's disfluency + multi-step tool + rollback decomposition is a strong donor for a new original German F2 falsifier family, especially because F2 already has interruption, tool-ordering, stale-result and heard-prefix causal fences.",
+    "do_not_transfer": [
+      "Do not copy the benchmark audio or scenario text into F2 product fixtures.",
+      "Do not adopt LiveKit Cloud or provider APIs into local acceptance.",
+      "Do not use gpt-4o judging for local acceptance.",
+      "Do not infer German quality from English benchmark behavior."
+    ],
+    "recommended_original_f2_axes": [
+      "German fillers, pauses, hesitations, false starts and self-corrections",
+      "1/2/3-step deterministic mock-tool chains",
+      "pre-tool correction and post-tool correction/rollback",
+      "barge-in while a tool is pending",
+      "late old-turn tool result after cancellation",
+      "response.done-before-playout-complete race with heard-prefix policy",
+      "duplicate/replayed tool result idempotency",
+      "German numbers, dates, identifiers and code-switched proper nouns",
+      "premature-effect suppression while intent is unresolved",
+      "strict no-extra-tool oracle and exact causal result ownership"
+    ]
+  },
+  "hypothesis": {
+    "id": "T7-FDBV3-GERMAN-NATIVE-FALSIFIER",
+    "statement": "An original German deterministic benchmark that combines FDB-v3-style disfluency/rollback axes with F2's existing causal identity, heard-prefix and tool-result fencing will expose integration failures that isolated ASR/TTS or ordinary tool tests miss, without introducing external model APIs or benchmark-license contamination.",
+    "counterhypothesis": "Existing HF02-HF10 and WP715 tests already cover these interactions sufficiently; the proposed German matrix would add bookkeeping but no new product-negative discriminators.",
+    "discriminator": "Trigger4 should implement only a small orthogonal pilot and compare whether it produces any new failure class beyond existing HF/WP715 receipts before scaling the matrix."
+  },
+  "credit_boundary": {
+    "source_pinned_research": 1,
+    "benchmark_runtime": 0,
+    "german_e2e_voice": 0,
+    "tool_runtime_credit": 0,
+    "acoustic_credit": 0,
+    "trigger4_acceptance": 0,
+    "whole_product": 0
+  },
+  "decision": "ADMIT_AS_RESEARCH_AND_FALSIFIER_DONOR_ONLY__DO_NOT_IMPORT_DATA_OR_EXTERNAL_RUNTIME",
+  "next_exact_action": "Route a small original German deterministic tool/disfluency/rollback pilot to Trigger4 as CANDIDATE_FALSIFIER, reusing existing F2 voice/tool/causal boundaries and existing VPS/controller authority. No new external model runtime, no copied FDB-v3 scenarios, no duplicate HF runtime dispatch."
+}
