@@ -148,6 +148,10 @@ class HostRouteEvidence:
     capability_evidence_ref: str
     lifecycle_firing_evidence_ref: str | None
     state_readback_evidence_ref: str | None
+    state_readback_lineage_id: str | None = None
+    state_readback_generation: int | None = None
+    state_readback_state_sha256: str | None = None
+    state_readback_binding_sha256: str | None = None
 
     def __post_init__(self) -> None:
         if self.schema != HOST_ROUTE_SCHEMA:
@@ -161,18 +165,93 @@ class HostRouteEvidence:
             value = getattr(self, field_name)
             if value is not None:
                 object.__setattr__(self, field_name, _text(field_name, value))
+        typed_state_fields = (
+            self.state_readback_lineage_id,
+            self.state_readback_generation,
+            self.state_readback_state_sha256,
+            self.state_readback_binding_sha256,
+        )
+        if any(value is not None for value in typed_state_fields):
+            if any(value is None for value in typed_state_fields):
+                raise HostTransitionError("state readback identity must be complete")
+            object.__setattr__(
+                self,
+                "state_readback_lineage_id",
+                _text("state_readback_lineage_id", self.state_readback_lineage_id),
+            )
+            object.__setattr__(
+                self,
+                "state_readback_generation",
+                _generation("state_readback_generation", self.state_readback_generation),
+            )
+            object.__setattr__(
+                self,
+                "state_readback_state_sha256",
+                _sha256("state_readback_state_sha256", self.state_readback_state_sha256),
+            )
+            object.__setattr__(
+                self,
+                "state_readback_binding_sha256",
+                _sha256("state_readback_binding_sha256", self.state_readback_binding_sha256),
+            )
 
     @classmethod
-    def create(cls, *, host_id: str, route_id: str, route_status: str, capability_evidence_ref: str, lifecycle_firing_evidence_ref: str | None = None, state_readback_evidence_ref: str | None = None) -> "HostRouteEvidence":
-        return cls(schema=HOST_ROUTE_SCHEMA, host_id=host_id, route_id=route_id, route_status=route_status, capability_evidence_ref=capability_evidence_ref, lifecycle_firing_evidence_ref=lifecycle_firing_evidence_ref, state_readback_evidence_ref=state_readback_evidence_ref)
+    def create(
+        cls,
+        *,
+        host_id: str,
+        route_id: str,
+        route_status: str,
+        capability_evidence_ref: str,
+        lifecycle_firing_evidence_ref: str | None = None,
+        state_readback_evidence_ref: str | None = None,
+        state_readback_lineage_id: str | None = None,
+        state_readback_generation: int | None = None,
+        state_readback_state_sha256: str | None = None,
+        state_readback_binding_sha256: str | None = None,
+    ) -> "HostRouteEvidence":
+        return cls(
+            schema=HOST_ROUTE_SCHEMA,
+            host_id=host_id,
+            route_id=route_id,
+            route_status=route_status,
+            capability_evidence_ref=capability_evidence_ref,
+            lifecycle_firing_evidence_ref=lifecycle_firing_evidence_ref,
+            state_readback_evidence_ref=state_readback_evidence_ref,
+            state_readback_lineage_id=state_readback_lineage_id,
+            state_readback_generation=state_readback_generation,
+            state_readback_state_sha256=state_readback_state_sha256,
+            state_readback_binding_sha256=state_readback_binding_sha256,
+        )
 
-    def assert_ready(self, *, role: str) -> None:
+    def assert_ready(self, *, role: str, state: CanonicalStateBinding) -> None:
         if self.route_status not in _SWITCHABLE_ROUTE_STATUSES:
             raise HostTransitionError(f"{role} route must be NATIVE or ADAPTED")
         if self.lifecycle_firing_evidence_ref is None:
             raise HostTransitionError(f"{role} route lacks lifecycle firing evidence")
         if self.state_readback_evidence_ref is None:
             raise HostTransitionError(f"{role} route lacks durable state readback evidence")
+        if type(state) is not CanonicalStateBinding:
+            raise HostTransitionError(f"{role} state must be exact CanonicalStateBinding")
+        state = CanonicalStateBinding(**state.as_dict())
+        if any(
+            value is None
+            for value in (
+                self.state_readback_lineage_id,
+                self.state_readback_generation,
+                self.state_readback_state_sha256,
+                self.state_readback_binding_sha256,
+            )
+        ):
+            raise HostTransitionError(f"{role} route lacks typed durable state readback identity")
+        if self.state_readback_lineage_id != state.lineage_id:
+            raise HostTransitionError(f"{role} state readback lineage mismatch")
+        if self.state_readback_generation != state.generation:
+            raise HostTransitionError(f"{role} state readback generation mismatch")
+        if self.state_readback_state_sha256 != state.state_sha256:
+            raise HostTransitionError(f"{role} state readback state digest mismatch")
+        if self.state_readback_binding_sha256 != state.sha256():
+            raise HostTransitionError(f"{role} state readback binding digest mismatch")
 
     def as_dict(self) -> dict[str, Any]:
         return asdict(self)
@@ -233,7 +312,7 @@ class HostTransitionRequest:
                 raise HostTransitionError("SWITCH_HOST requires successor_route")
             if successor.host_id == self.source_host_id:
                 raise HostTransitionError("successor host must differ from source host")
-            successor.assert_ready(role="successor")
+            successor.assert_ready(role="successor", state=state)
         elif successor is not None:
             raise HostTransitionError("successor_route is only valid for SWITCH_HOST")
 
@@ -246,7 +325,7 @@ class HostTransitionRequest:
         if self.operation == OP_REENABLE:
             if rollback is None:
                 raise HostTransitionError("REENABLE_ADAPTER requires rollback_route evidence")
-            rollback.assert_ready(role="rollback")
+            rollback.assert_ready(role="rollback", state=state)
         if rollback is not None:
             if rollback.host_id != self.source_host_id:
                 raise HostTransitionError("rollback route must bind the source host identity")
