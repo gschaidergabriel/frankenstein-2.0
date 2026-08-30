@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - chatgpt/trigger4-wp206-g1-persistent-agency-integration-20260829
+      - chatgpt/trigger4-wp206-g2-authority-receipt-fence-impl-20260830
     paths:
       - 'src/frankenstein2/persistent_agency_kernel.py'
       - 'src/frankenstein2/agency_state.py'
@@ -13,6 +14,7 @@ on:
       - 'src/frankenstein2/wake_hold.py'
       - 'src/state/unifieddb_identity.py'
       - 'tests/test_persistent_agency_kernel.py'
+      - 'tests/test_wp206_unifieddb_authority_receipt_replay_falsifier.py'
       - 'tests/wp206_restart_probe.py'
       - '.github/workflows/wp206-persistent-agency-ci.yml'
   pull_request:
@@ -25,6 +27,7 @@ on:
       - 'src/frankenstein2/wake_hold.py'
       - 'src/state/unifieddb_identity.py'
       - 'tests/test_persistent_agency_kernel.py'
+      - 'tests/test_wp206_unifieddb_authority_receipt_replay_falsifier.py'
       - 'tests/wp206_restart_probe.py'
       - '.github/workflows/wp206-persistent-agency-ci.yml'
   workflow_dispatch:
@@ -46,8 +49,13 @@ jobs:
           python -m py_compile
           src/frankenstein2/persistent_agency_kernel.py
           tests/test_persistent_agency_kernel.py
+          tests/test_wp206_unifieddb_authority_receipt_replay_falsifier.py
           tests/wp206_restart_probe.py
-      - name: Persistent Agency fresh-process falsifier suite
+      - name: Persistent Agency fresh-process regression suite
         env:
           PYTHONPATH: src
         run: python tests/test_persistent_agency_kernel.py -v
+      - name: UnifiedDB authority-receipt replay fence regressions
+        env:
+          PYTHONPATH: src
+        run: python tests/test_wp206_unifieddb_authority_receipt_replay_falsifier.py -v
