@@ -1,0 +1,74 @@
+name: WP206 G5 Evidence Subject Binding CI
+
+on:
+  push:
+    branches:
+      - main
+      - chatgpt/trigger4-wp206-g5-evidence-subject-binding-20260830
+    paths:
+      - 'src/frankenstein2/wp206_legacy_authority_recovery.py'
+      - 'src/frankenstein2/persistent_agency_kernel.py'
+      - 'src/state/unifieddb_identity.py'
+      - 'tests/wp206_restart_probe.py'
+      - 'tests/test_wp206_legacy_authority_recovery.py'
+      - 'tests/test_wp206_g4_repeat_provenance_binding.py'
+      - 'tests/test_wp206_g5_evidence_subject_binding.py'
+      - '.github/workflows/wp206-g5-evidence-subject-binding-ci.yml'
+  pull_request:
+    paths:
+      - 'src/frankenstein2/wp206_legacy_authority_recovery.py'
+      - 'src/frankenstein2/persistent_agency_kernel.py'
+      - 'src/state/unifieddb_identity.py'
+      - 'tests/wp206_restart_probe.py'
+      - 'tests/test_wp206_legacy_authority_recovery.py'
+      - 'tests/test_wp206_g4_repeat_provenance_binding.py'
+      - 'tests/test_wp206_g5_evidence_subject_binding.py'
+      - '.github/workflows/wp206-g5-evidence-subject-binding-ci.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  evidence-subject-binding:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Compile exact WP206 G5 surface
+        run: >-
+          python -m py_compile
+          src/frankenstein2/persistent_agency_kernel.py
+          src/frankenstein2/wp206_legacy_authority_recovery.py
+          src/state/unifieddb_identity.py
+          tests/wp206_restart_probe.py
+          tests/test_wp206_legacy_authority_recovery.py
+          tests/test_wp206_g4_repeat_provenance_binding.py
+          tests/test_wp206_g5_evidence_subject_binding.py
+      - name: Execute G5 evidence-subject binding and migration regressions
+        env:
+          PYTHONPATH: src
+        run: python tests/test_wp206_g5_evidence_subject_binding.py -v
+      - name: Preserve complete G4 provenance regression
+        env:
+          PYTHONPATH: src
+        run: python tests/test_wp206_g4_repeat_provenance_binding.py -v
+      - name: Preserve complete G3 recovery regression
+        env:
+          PYTHONPATH: src
+        run: python tests/test_wp206_legacy_authority_recovery.py -v
+      - name: Preserve bounded credit fence
+        if: always()
+        run: |
+          echo 'SCOPE=WP206_G5_EVIDENCE_SUBJECT_CONTENT_BINDING_REPOSITORY_COMPONENT_ONLY'
+          echo 'TARGET_RUNTIME_CREDIT=0'
+          echo 'PHYSICAL_GRID10_CREDIT=0'
+          echo 'GWT_RUNTIME_CREDIT=0'
+          echo 'JSPACE_RUNTIME_CREDIT=0'
+          echo 'EFFECT_CREDIT=0'
+          echo 'COMPLETION_CREDIT=0'
+          echo 'TRAINING_CREDIT=0'
+          echo 'WHOLE_SYSTEM_ACCEPTANCE=false'
