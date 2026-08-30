@@ -1,0 +1,51 @@
+{
+  "schema": "FRANKENSTEIN_TRIGGER7_CLAIM/v1",
+  "trigger": "7",
+  "research_id": "T7-ASR-008",
+  "objective": "E3_NEMOTRON_35_ASR_TARGET_RUNTIME_BENCHMARK",
+  "semantic_key": "93d61d9b893d411c8085cd5d257968c23448bc426430e603f6e33add1db5e4e3",
+  "semantic_claim_path": "research/local_voice/semantic_claims/93d61d9b893d411c8085cd5d257968c23448bc426430e603f6e33add1db5e4e3.json",
+  "target": "NVIDIA Nemotron 3.5 ASR Streaming 0.6B on clay-direct-dev",
+  "evidence_scope": "TARGET_RUNTIME_MODEL_BENCHMARK",
+  "state": "CLAIMED_BLOCKED_ON_RUNNER_ASSIGNMENT",
+  "source_scope_precondition": {
+    "research_id": "T7-ASR-006",
+    "state": "SOURCE_PINNED_TERMINAL_AT_SCOPE",
+    "official_q8_sha256": "a5c435f294eea8f88ce68dd27b8c3bfea7f777cb2fbba04fcd30eaa555f429ae"
+  },
+  "question": "On the actual clay-direct-dev resource envelope and identical German room audio, does the source-pinned Nemotron 3.5 ASR Streaming 0.6B improve the quality/latency/resource frontier enough to challenge Qwen3-ASR and the admitted Whisper baseline?",
+  "benchmark_dimensions": [
+    "exact model artifact hash and runtime/build identity",
+    "German WER on identical room-audio corpus",
+    "partial-hypothesis stability",
+    "first-partial and final-transcript latency p50/p95",
+    "real-time factor",
+    "80/160/320/560/1120 ms right-context operating points where supported by the exact runtime",
+    "CPU/GPU/RAM and resident-footprint interaction with the whole Frankenstein budget",
+    "language-conditioning mode separated from auto-language mode",
+    "Q8 baseline kept separate from any later INT4-derived condition"
+  ],
+  "quantization_control": {
+    "status": "BENCHMARK_DESIGN_DELTA_ONLY",
+    "reason": "A June 2026 controlled 0.6B cache-aware FastConformer streaming-ASR study reports that 4-bit weight-only encoder quantization at a matched 560 ms tier reduced encoder footprint about 3x with about +0.5 percentage-point average FLEURS WER. That study is architecture-family proxy evidence, not execution evidence for the released Nemotron 3.5 checkpoint.",
+    "law": "DO_NOT_INFER_NEMOTRON_INT4_RESULT_FROM_PROXY_STUDY; ADD_INT4_ONLY_IF_EXACT_DERIVATION_RUNTIME_AND_LOAD_IDENTITY_CAN_BE RECEIPTED"
+  },
+  "coordination_gate": {
+    "existing_qwen3_asr_run_id": 33292903286,
+    "observed_state": "QUEUED_ZERO_STEPS_RUNNER_UNASSIGNED",
+    "new_runtime_dispatch": false,
+    "next_gate": "re-enter the established self-hosted runner/bridge and allow the already queued Qwen3-ASR job to acquire an eligible runner before scheduling this distinct Nemotron runtime benchmark"
+  },
+  "evidence_credit": 0,
+  "runtime_credit": 0,
+  "german_e2e_voice_credit": 0,
+  "trigger4_acceptance_credit": 0,
+  "whole_system_credit": 0,
+  "falsifiers": [
+    "The exact target artifact cannot be downloaded/hash-verified/loaded on clay-direct-dev.",
+    "The Q8 runtime exceeds the resident resource envelope of the whole Frankenstein installation.",
+    "Matched German-room WER or partial stability is worse than smaller/current baselines at comparable latency.",
+    "Streaming latency or right-context tradeoffs do not beat the existing Qwen3-ASR/Whisper frontier.",
+    "A proposed INT4 condition cannot be bound to exact derived bytes and runtime identity."
+  ]
+}
