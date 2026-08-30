@@ -1,4 +1,4 @@
-name: WP206 G2 one-shot replay authority receipt repair
+name: WP206 G2 one-shot stable authority binding repair
 
 on:
   push:
@@ -9,7 +9,7 @@ permissions:
   contents: write
 
 jobs:
-  verify-and-self-delete:
+  apply-verify-and-self-delete:
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     steps:
@@ -22,12 +22,81 @@ jobs:
         with:
           python-version: '3.12'
 
-      - name: Verify exact replay authority-receipt fence is already fused
+      - name: Replace mutable full-fingerprint receipt with stable authority binding
         shell: bash
         run: |
-          grep -q 'db_inode, unifieddb_authority_receipt_sha256' src/frankenstein2/persistent_agency_kernel.py
+          python - <<'PY'
+          from pathlib import Path
+
+          path = Path('src/frankenstein2/persistent_agency_kernel.py')
+          text = path.read_text(encoding='utf-8')
+
+          helper_name = '_unifieddb_authority_binding_sha256'
+          if f'def {helper_name}(' not in text:
+              anchor = '''def _same_real_path(left: str, right: str) -> bool:
+              return os.path.normcase(os.path.realpath(left)) == os.path.normcase(
+                  os.path.realpath(right)
+              )
+
+
+          def _decode_goal_record_candidate(raw: Any) -> GoalRecord:
+          '''
+              replacement = '''def _same_real_path(left: str, right: str) -> bool:
+              return os.path.normcase(os.path.realpath(left)) == os.path.normcase(
+                  os.path.realpath(right)
+              )
+
+
+          def _unifieddb_authority_binding_sha256(
+              *,
+              resolution: UnifiedDBResolution,
+              fingerprint: UnifiedDBFingerprint,
+          ) -> str:
+              """Stable authority identity; deliberately excludes mutable DB content metadata."""
+              if fingerprint.device is None or fingerprint.inode is None:
+                  raise PersistentAgencyError("UNIFIEDDB_FINGERPRINT_FILE_IDENTITY_MISSING")
+              return _sha256(
+                  {
+                      "schema": "FRANKENSTEIN2_UNIFIEDDB_AUTHORITY_BINDING/v1",
+                      "resolution_schema": resolution.schema,
+                      "fingerprint_schema": fingerprint.schema,
+                      "canonical_db_path": os.path.realpath(fingerprint.real_path),
+                      "db_device": int(fingerprint.device),
+                      "db_inode": int(fingerprint.inode),
+                  }
+              )
+
+
+          def _decode_goal_record_candidate(raw: Any) -> GoalRecord:
+          '''
+              if text.count(anchor) != 1:
+                  raise SystemExit(
+                      f'stable helper insertion: expected one anchor, found {text.count(anchor)}'
+                  )
+              text = text.replace(anchor, replacement, 1)
+
+          old_assignment = '        self.authority_receipt_sha256 = fingerprint.receipt_sha256()\n'
+          new_assignment = '''        self.authority_receipt_sha256 = _unifieddb_authority_binding_sha256(
+              resolution=resolution,
+              fingerprint=fingerprint,
+          )
+          '''
+          if old_assignment in text:
+              if text.count(old_assignment) != 1:
+                  raise SystemExit('mutable authority receipt assignment is not unique')
+              text = text.replace(old_assignment, new_assignment, 1)
+          elif '_unifieddb_authority_binding_sha256(' not in text.split('class CanonicalPersistentAgencyStore:', 1)[1]:
+              raise SystemExit('neither mutable nor stable store authority receipt assignment found')
+
+          path.write_text(text, encoding='utf-8')
+          PY
+
+      - name: Verify exact replay fence and stable binding are present
+        shell: bash
+        run: |
+          grep -q 'def _unifieddb_authority_binding_sha256' src/frankenstein2/persistent_agency_kernel.py
+          grep -q 'FRANKENSTEIN2_UNIFIEDDB_AUTHORITY_BINDING/v1' src/frankenstein2/persistent_agency_kernel.py
           grep -q 'stored_authority_receipt_sha256 != self.authority_receipt_sha256' src/frankenstein2/persistent_agency_kernel.py
-          grep -q 'CHECKPOINT_DB_AUTHORITY_RECEIPT_MISMATCH' src/frankenstein2/persistent_agency_kernel.py
           grep -q 'test_checkpoint_db_authority_receipt_tamper_fails_closed' tests/test_persistent_agency_kernel.py
 
       - name: Prove compile and full WP206 regression suite
@@ -44,7 +113,7 @@ jobs:
           rm .github/workflows/wp206-g2-one-shot-repair.yml
           git config user.name 'GPT-5.6-Sol Trigger4'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add .github/workflows/wp206-g2-one-shot-repair.yml
+          git add src/frankenstein2/persistent_agency_kernel.py .github/workflows/wp206-g2-one-shot-repair.yml
           git diff --cached --check
-          git commit -m 'trigger4: retire WP206 G2 one-shot verifier after green regression'
+          git commit -m 'trigger4: make WP206 authority binding restart-stable'
           git push origin HEAD:chatgpt/trigger4-wp206-g2-db-authority-receipt-repair-20260830
