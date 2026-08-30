@@ -1,0 +1,47 @@
+{
+  "schema": "F2_WORKPACKAGE_RECONCILIATION/v1",
+  "workpackage_id": "F2-WP-1112",
+  "generation": 2,
+  "claim_id": "F2-WP-1112-G2-GPT56SOL-ARTIFACT-TOCTOU-CLOSURE-20260830",
+  "worker_id": "chatgpt-trigger4-organ-gpt56sol",
+  "trigger": "4",
+  "terminal_state": "ACCEPTED",
+  "terminal_scope": "ARTIFACT_LOCATOR_POST_EVALUATION_TOCTOU_CLOSURE_REPOSITORY_HOSTED_COMPONENT_CI_ONLY",
+  "authority_epoch": "8.78",
+  "parent_generation": 1,
+  "parent_reconciliation_ref": "workpackages/reconciliations/F2-WP-1112/1-F2-WP-1112-G1-GPT56SOL-ARTIFACT-BOUND-STATIC-COMPLETENESS-20260830.json",
+  "coordination_repair": {
+    "counterevidence_after_parent_acceptance": "Generation 1 returned a receipt after reading/verifying artifact bytes but did not re-read/re-resolve the handoff artifact locator after WP1111 evaluation. A concurrent mutation during that window could therefore leave the path pointing at bytes different from the receipt subject.",
+    "preclaim_source_mutation": "The repair commits c4e48a3ab0150b07632aadd2214dbad1288e4070 and 96ac91d3aabedc552762caa5fb392f24f50915f5 were applied while re-entering the already-closed G1 active projection. G2 records those exact already-executed bytes rather than pretending a pre-intervention claim existed."
+  },
+  "accepted_source_sha": "96ac91d3aabedc552762caa5fb392f24f50915f5",
+  "canonical_source": "src/frankenstein2/artifact_bound_static_completeness.py",
+  "canonical_source_blob_sha": "583849ca2c581faa3845755e46a9698efd84d6ec",
+  "canonical_test": "tests/test_artifact_bound_static_completeness.py",
+  "canonical_test_blob_sha": "f0fdaff4d304e85e784f70e750e35420959d5b8b",
+  "canonical_ci": ".github/workflows/wp1112-artifact-bound-static-completeness-ci.yml",
+  "canonical_ci_blob_sha": "b20df813d8a9b3bdbc75e6523d4dea5d5be7f3fb",
+  "acceptance_receipt": "workpackages/receipts/F2-WP-1112_G2_ARTIFACT_TOCTOU_MAIN_CI_33318600330.json",
+  "repository_ci": {
+    "run_id": 33318600330,
+    "ubuntu_job_id": 99276458979,
+    "windows_job_id": 99276459094,
+    "conclusion": "success"
+  },
+  "finding_closed": "WP1112_POST_VERIFY_PRE_RETURN_ARTIFACT_TOCTOU_GAP",
+  "closure": "The composer now preserves the original artifact locator, verifies the exact archive bytes, executes WP1111 only on the verified materialization, then re-resolves the original locator and requires the same resolved file and byte-for-byte identity before returning any artifact-bound receipt. The adversarial suite mutates the artifact during WP1111 evaluation and observes fail-closed rejection on both Ubuntu and Windows CI.",
+  "negative_evidence_preserved": [
+    "Generation 1 acceptance predates this counterexample; it remains historical component evidence and is superseded for current artifact-mutation closure by generation 2.",
+    "No real deterministic production release artifact has been emitted/admitted by this repository CI test.",
+    "No real clean-machine host lifecycle, installer runtime, optional VPS attach/detach, effect completion or whole-system acceptance was observed."
+  ],
+  "runtime_execution_observed": false,
+  "physical_host_execution_observed": false,
+  "clean_machine_execution_observed": false,
+  "runtime_credit": 0,
+  "physical_host_credit": 0,
+  "effect_credit": 0,
+  "completion_credit": 0,
+  "whole_system_acceptance": false,
+  "next_exact_action": "Build one deterministic release candidate from an exact reviewed current F2 main, bind that same artifact through WP1107 plus WP1112-G2, then carry the identical artifact subject into real clean-machine host observations."
+}
