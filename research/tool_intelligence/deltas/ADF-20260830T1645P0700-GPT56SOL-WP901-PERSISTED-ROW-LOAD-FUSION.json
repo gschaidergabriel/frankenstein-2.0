@@ -1,0 +1,98 @@
+{
+  "schema": "F2_ARCHITECTURE_DELTA_FUSION/v1",
+  "fusion_id": "ADF-20260830T1645P0700-GPT56SOL-WP901-PERSISTED-ROW-LOAD-FUSION",
+  "trigger": "6",
+  "recorded_at": "2026-08-30T17:01:00+07:00",
+  "worker": "GPT-5.6-Sol",
+  "research_id": "R6-20260830-SQLITE-ROW-LOAD-ATTESTATION-GPT56SOL-01",
+  "evidence_stage": "E2_ARCHITECTURE_MAPPED",
+  "f2_main_sha_at_mapping_claim": "948c5a553c716925a953baea5b2534e3f8facfd2",
+  "e1_result_commit": "9a481af1ed112a6e59408ec6c31663a2ba2b75a6",
+  "e2_claim_commit": "f0a0eec31aa473b3a4e7f30768f74098d27053e8",
+  "observed_current_boundary": {
+    "source": "src/frankenstein2/restart_recovery_source_authentication.py",
+    "classification": "TYPED_SOURCE_OBJECT_AND_AUTHORITY_REFERENCE_BINDING_NOT_PERSISTED_ROW_ATTESTATION",
+    "persisted_row_attestation": "NOT_OBSERVED",
+    "planner_behavior": "G3 derives G2 planner identities/digests from concrete typed objects only after source-binding succeeds",
+    "runtime_credit": 0
+  },
+  "adjacent_authority_boundary": {
+    "source": "src/frankenstein2/causal_authority_binding.py",
+    "observation": "UnifiedDBAuthorityRef references accepted UnifiedDB identity evidence; causal_authority_binding is explicitly non-mutating and does not open SQLite",
+    "architectural_consequence": "do not overload authority-reference validation with persistence consumption semantics"
+  },
+  "external_mechanism_fusion": {
+    "sqlite_snapshot_isolation": "useful for stable read-state semantics, but not semantic row-to-object consumption proof",
+    "sqlite_snapshot_api": "optional stronger read-state identity when actually compiled/available; do not make it a mandatory dependency yet",
+    "pragma_data_version": "concurrent-change guard only; never row identity or durable global revision",
+    "trace_authorizer_session_preupdate": "adjacent observability/mutation mechanisms; insufficient individually for consumed-row attestation",
+    "cryptographically_verified_store": "strong adversarial pattern but architecturally excessive and risks a second truth substrate"
+  },
+  "architecture_delta": {
+    "name": "UNIFIEDDB_PERSISTED_ROW_LOAD_ATTESTATION_G4",
+    "strategy": "THIN_F2_NATIVE_RECEIPT_PLUS_FAIL_CLOSED_BINDING",
+    "do_not": [
+      "replace UnifiedDB or SQLite",
+      "create a second canonical datastore or recovery ledger",
+      "change accepted G2 planner semantics",
+      "grant runtime/physical/whole-system credit from repository source",
+      "treat PRAGMA data_version as row identity",
+      "require SQLITE_ENABLE_SNAPSHOT until a real integration discriminator justifies it"
+    ],
+    "proposed_components": [
+      {
+        "component": "PersistedRowLoadAttestation",
+        "role": "immutable non-authoritative evidence object produced only after a canonical persistence adapter successfully fetches a row and materializes the typed object",
+        "minimum_bindings": [
+          "UnifiedDB authority reference/fingerprint",
+          "table or canonical record family",
+          "primary key or canonical record id",
+          "schema version",
+          "row/object generation",
+          "causal identity",
+          "canonical materialized-object digest",
+          "read transaction identity",
+          "optional SQLite snapshot identity when available",
+          "loader adapter identity",
+          "typed object type/id/digest",
+          "consumer invocation identity"
+        ]
+      },
+      {
+        "component": "restart_recovery_persisted_load_binding",
+        "role": "G4 fail-closed bridge that requires the typed checkpoint/seal/outcome/restart evidence to match their persisted-row load attestations before invoking existing G3/G2 logic",
+        "invariant": "every principal object identity/digest admitted to restart planning must be derivable from a matching successful load receipt rather than caller-supplied receipt metadata alone"
+      }
+    ],
+    "constructor_boundary": "receipt construction should live inside the admitted persistence read adapter; higher layers receive validated immutable receipts but must not be able to self-mint arbitrary loader evidence",
+    "consumer_binding": "receipt must bind to the exact restart source-binding/planner invocation so a valid receipt from a different consumer or episode cannot be replayed as equivalent",
+    "concurrent_change_guard": "capture data_version or equivalent before/after only as a fail-closed warning/guard where useful; snapshot/transaction semantics remain distinct from row/object identity"
+  },
+  "required_trigger4_tests": [
+    "happy path persisted row -> typed object -> load attestation -> G4 binding -> existing G3/G2 plan",
+    "forged/self-minted receipt rejected",
+    "wrong UnifiedDB authority rejected",
+    "wrong record family/table rejected",
+    "wrong primary key/record id rejected",
+    "typed-object digest mismatch rejected",
+    "generation mismatch rejected",
+    "causal identity mismatch rejected",
+    "consumer invocation mismatch/replay rejected",
+    "receipt for different object type rejected",
+    "concurrent mutation/snapshot ambiguity fails closed at the claimed scope",
+    "existing G2/G3 reason-code and disposition regressions remain green"
+  ],
+  "counterhypothesis_and_falsifier": {
+    "counterhypothesis": "An application-level load receipt only moves self-attestation down one layer and therefore adds no evidence.",
+    "resolution": "PARTIALLY_VALID_THREAT_MODEL_CONSTRAINT",
+    "falsifier": "Trigger4 must demonstrate that arbitrary callers cannot construct/admit a receipt and that receipt fields are derived from actual adapter-returned row/object values; if privileged-process forgery remains in the required threat model, this delta is insufficient and a stronger lower-level/cryptographic mechanism is required."
+  },
+  "handoff_to_trigger4": {
+    "priority": "DEPENDENCY_CORRECT_NEXT_INTEGRATION_GATE_FOR_WP901_SOURCE_AUTHENTICATION",
+    "next_exact_action": "implement the smallest persistence-read-attestation adapter and G4 binding around the actual admitted UnifiedDB read path, then run repository integration tests before any runtime claim",
+    "acceptance_ceiling_before_trigger4": "E2_ARCHITECTURE_MAPPED_ONLY",
+    "runtime_credit": 0,
+    "physical_host_credit": 0,
+    "whole_system_credit": 0
+  }
+}
