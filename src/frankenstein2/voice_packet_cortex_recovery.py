@@ -1,7 +1,8 @@
 """Restart/reconnect codec and event-derived latency accounting for VoicePacketCortex.
 
-This is a deterministic Trigger-7 packet-simulation helper. It restores only packet-cortex
-state bound to the exact VoiceSessionCapsule. It creates no acoustic/runtime/acceptance credit.
+This is a deterministic packet-simulation helper under the WP715 Trigger-4 convergence scope.
+It restores only packet-cortex state bound to the exact VoiceSessionCapsule and creates no
+acoustic/runtime/acceptance credit.
 """
 from __future__ import annotations
 
@@ -9,7 +10,7 @@ import hashlib
 import json
 from typing import Any, Mapping
 
-from .voice_contract import VoiceSessionCapsule
+from .voice_contract import VoiceOutcome, VoiceSessionCapsule
 from .voice_packet_cortex import (
     CortexEventPacket,
     PACKET_CLASSIFICATION,
@@ -18,7 +19,7 @@ from .voice_packet_cortex import (
     VoicePacketCortexError,
 )
 
-CHECKPOINT_SCHEMA = "FRANKENSTEIN2_VOICE_PACKET_CORTEX_CHECKPOINT/v1"
+CHECKPOINT_SCHEMA = "FRANKENSTEIN2_VOICE_PACKET_CORTEX_CHECKPOINT/v2"
 
 
 def _digest(value: Mapping[str, Any]) -> str:
@@ -39,9 +40,18 @@ def export_packet_cortex_checkpoint(cortex: VoicePacketCortex) -> dict[str, Any]
         "event_seq": cortex._event_seq,
         "input_seen": [[key, cortex._input_seen[key]] for key in sorted(cortex._input_seen)],
         "last_input_sequence": [[key, cortex._last_input_sequence[key]] for key in sorted(cortex._last_input_sequence)],
+        "last_input_monotonic_ms": [
+            [key, cortex._last_input_monotonic_ms[key]] for key in sorted(cortex._last_input_monotonic_ms)
+        ],
+        "last_output_sequence": [
+            [key, cortex._last_output_sequence[key]] for key in sorted(cortex._last_output_sequence)
+        ],
         "final_turns": sorted(cortex._final_turns),
         "outputs": [packet.as_dict() for packet in cortex.outputs],
         "events": [event.as_dict() for event in cortex.events],
+        "active_tools": [[key, cortex._active_tools[key]] for key in sorted(cortex._active_tools)],
+        "cancelled_tools": sorted(cortex._cancelled_tools),
+        "closed_outcome": cortex._closed_outcome.as_dict() if cortex._closed_outcome is not None else None,
     }
     return {"payload": payload, "payload_sha256": _digest(payload)}
 
@@ -63,7 +73,9 @@ def resume_packet_cortex(
         raise VoicePacketCortexError("checkpoint digest mismatch")
     required = {
         "schema", "classification", "session_id", "session_sha256", "presence_state", "is_open",
-        "event_seq", "input_seen", "last_input_sequence", "final_turns", "outputs", "events",
+        "event_seq", "input_seen", "last_input_sequence", "last_input_monotonic_ms",
+        "last_output_sequence", "final_turns", "outputs", "events", "active_tools",
+        "cancelled_tools", "closed_outcome",
     }
     if set(payload) != required:
         raise VoicePacketCortexError("checkpoint payload fields mismatch")
@@ -84,6 +96,12 @@ def resume_packet_cortex(
     try:
         cortex._input_seen = {str(key): str(value) for key, value in payload["input_seen"]}
         cortex._last_input_sequence = {str(key): int(value) for key, value in payload["last_input_sequence"]}
+        cortex._last_input_monotonic_ms = {
+            str(key): int(value) for key, value in payload["last_input_monotonic_ms"]
+        }
+        cortex._last_output_sequence = {
+            str(key): int(value) for key, value in payload["last_output_sequence"]
+        }
         cortex._final_turns = {str(value) for value in payload["final_turns"]}
         cortex._outputs = {}
         for raw in payload["outputs"]:
@@ -102,18 +120,43 @@ def resume_packet_cortex(
             if event.session_id != session.voice_session_id:
                 raise VoicePacketCortexError("checkpoint event session mismatch")
             cortex._events.append(event)
+        active_tools = {str(key): str(value) for key, value in payload["active_tools"]}
+        cortex._active_tools = {}
+        cortex._cancelled_tools = {str(value) for value in payload["cancelled_tools"]} | set(active_tools)
+        raw_outcome = payload["closed_outcome"]
+        cortex._closed_outcome = VoiceOutcome.from_mapping(raw_outcome) if raw_outcome is not None else None
+        cortex._closed_signature = None
     except (TypeError, ValueError, KeyError) as exc:
         if isinstance(exc, VoicePacketCortexError):
             raise
         raise VoicePacketCortexError(f"invalid checkpoint content: {exc}") from exc
     if len(cortex._events) != cortex._event_seq:
         raise VoicePacketCortexError("checkpoint event sequence does not match event count")
+    if cortex.is_open and cortex._closed_outcome is not None:
+        raise VoicePacketCortexError("open checkpoint cannot contain terminal outcome")
+    if not cortex.is_open:
+        if cortex._closed_outcome is None:
+            raise VoicePacketCortexError("closed checkpoint requires terminal outcome")
+        close_events = [event for event in cortex._events if event.event_kind == "SESSION_CLOSE"]
+        if not close_events:
+            raise VoicePacketCortexError("closed checkpoint requires SESSION_CLOSE event")
+        close_event = close_events[-1]
+        outcome = cortex._closed_outcome
+        cortex._closed_signature = (
+            close_event.turn_id,
+            close_event.monotonic_ms,
+            outcome.outcome_causal_identity,
+            outcome.outcome_kind,
+            outcome.result_ref,
+            outcome.result_sha256,
+            outcome.provenance_refs,
+        )
     if cortex.is_open:
         cortex.emit_system_event(
             turn_id=session.intent.causal_identity.turn_id,
             monotonic_ms=monotonic_ms,
             event_kind="RESTART_REENTRY",
-            detail="checkpoint restored into same VoiceSessionCapsule",
+            detail="checkpoint restored into same VoiceSessionCapsule; active tool ownership fenced stale",
         )
     return cortex
 
