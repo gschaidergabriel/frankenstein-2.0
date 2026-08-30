@@ -1,0 +1,83 @@
+{
+  "schema": "T7_TO_T4_POLICY_GAP_PACKET_V1",
+  "created_at": "2026-08-31T03:51:20+07:00",
+  "trigger": "7",
+  "organ": "GPT-5.6-Sol",
+  "mode": "REVIEW_ONLY_POLICY_GAP_HANDOFF",
+  "research_id": "T7-FD-RTCOMPAT-001",
+  "semantic_key": "8c53f25ed47c458bb727dd4dc82f788241cee699e428c4d97401a965a4eb375e",
+  "implementation_mutation_authority": false,
+  "new_semantic_claim": false,
+  "new_runtime_dispatch": false,
+  "duplicate_dispatch_allowed": false,
+  "f2_head_observed_before_handoff": "d161b785ef8a098dd0b0cdb23088573c9bb13dc5",
+  "current_research_authority": "research/local_voice/deltas/2026-08-31_T7_COMMIT_ELIGIBILITY_CONTEXT_SEPARATION_GPT56SOL.json",
+  "current_falsifier_reconciliation": "research/local_voice/falsifiers/2026-08-31_HF_S2S_HEARD_PREFIX_RETENTION_DELTA_GPT56SOL.json",
+  "policy_gap": {
+    "status": "PREFIX_RETENTION_POLICY_UNRESOLVED",
+    "confirmed_f2_fact": "Interrupted/cancelled output is non-commit-eligible unless playback completed with heard_fraction exactly 1.0.",
+    "missing_product_semantics": "Current cited F2 source does not explicitly define whether the exactly heard prefix of a partially heard interrupted assistant response remains in ephemeral next-turn model context.",
+    "forbidden_inference": "commit_eligible=false must not be silently equated with delete-all-interrupted-assistant-semantics-from-next-turn-context.",
+    "why_this_blocks_oracle": "Without a pinned interrupted-response context policy, whole-response rollback can be measured but prefix deletion cannot be classified as product PASS or PRODUCT_NEGATIVE without inventing semantics after the fact."
+  },
+  "reference_behavior_current_primary_docs": [
+    {
+      "source": "https://openai.github.io/openai-agents-js/guides/voice-agents/build/",
+      "finding": "Current OpenAI Agents SDK interruption handling truncates assistant audio/history to what the user actually heard; WebSocket local history updates from the corresponding truncation/conversation events."
+    },
+    {
+      "source": "https://openai.github.io/openai-agents-python/realtime/guide/",
+      "finding": "Current OpenAI Agents SDK states that interruption updates history to stay aligned with what the user actually heard and recommends a playback tracker for delayed playback so truncation uses actual playback position."
+    },
+    {
+      "source": "https://docs.livekit.io/agents/logic/turns/",
+      "finding": "Current LiveKit voice-agent interruption handling truncates conversation history to only the portion of agent speech the user heard before interruption."
+    }
+  ],
+  "research_recommendation_not_yet_canonical_policy": {
+    "policy_id_candidate": "RETAIN_HEARD_PREFIX_EPHEMERALLY_ONLY",
+    "semantics": [
+      "retain exactly the demonstrably heard assistant prefix in ephemeral next-turn dialogue context",
+      "exclude the unheard tail",
+      "keep interrupted output non-commit-eligible for durable VoiceOutcome/canonical-memory purposes unless independently admitted",
+      "do not grant UnifiedDB, effect, completion, or acoustic credit from ephemeral context retention",
+      "bind the heard boundary to an explicit playout measurement/receipt rather than trusting generation length"
+    ],
+    "counterpolicy": {
+      "id": "DROP_WHOLE_INTERRUPTED_RESPONSE",
+      "admissibility": "May be selected only by explicit current product/owner authority; must be benchmarked for dialogue-coherence consequences rather than inferred from commit_eligible=false."
+    }
+  },
+  "required_authority_action_before_prefix_oracle_classification": [
+    "Current owner/product semantic authority selects or admits an interrupted-response next-turn context policy explicitly.",
+    "Trigger4 binds the selected policy identity into the actual F2 voice/context integration boundary without creating a second memory or effect authority.",
+    "Regression/receipt records interrupted_context_policy_id, playout_measurement_identity, heard_boundary_ms, heard_prefix_digest, unheard_tail_digest, next_turn_effective_context_digest and durable_memory_write_count.",
+    "Existing HF09/HF10/HF02-HF05 runtime work is interpreted against that pinned policy; no duplicate runtime lane is opened."
+  ],
+  "hf_runtime_consequence": {
+    "pinned_upstream_revision": "3986f453012a131632eee4731995474046846794",
+    "known_static_behavior": "cancelled/failed/incomplete responses roll back provisional generation; conversation.item.truncate is accepted but no-ops after cancellation; post-response.done playout lag remains a distinct runtime race because already-finalized server history cannot be repaired by later cancel rollback.",
+    "existing_hf10_packet": "trigger4/inbox/local_voice/T7_FD_RTCOMPAT001_HF10_POST_DONE_PLAYOUT_RACE_ADDENDUM_2026-08-31_GPT56SOL.json",
+    "existing_wp715_exact_source_vps_run": 33334747338,
+    "wp715_run_relation": "WP715 session-close packet-cortex runtime is separate evidence and must not be narratively reused as HF protocol runtime evidence."
+  },
+  "coordination_fences": {
+    "do_not_create_new_runtime_dispatch": true,
+    "do_not_create_competing_voice_authority": true,
+    "do_not_invalidate_current_runtime_subject_from_policy_research_alone": true,
+    "trigger7_may_not_self_mint_trigger4_acceptance": true
+  },
+  "credit_before_execution": {
+    "research_policy_gap_evidence": 1,
+    "external_reference_semantics_evidence": 1,
+    "executed_hf_protocol_runtime": 0,
+    "wp715_vps_packet_runtime": 0,
+    "german_e2e_voice": 0,
+    "acoustic_quality": 0,
+    "durable_memory": 0,
+    "trigger4_acceptance": 0,
+    "whole_voice_system": 0,
+    "whole_product": 0
+  },
+  "next_exact_action": "Do not dispatch another job. First pin the F2 interrupted-response next-turn context policy through current owner/product authority; Trigger4 must not invent a policy merely to make an existing falsifier green. Then execute/interpret the existing HF09/HF10/HF02-HF05 lane against that explicit policy and promote only actually executed/read-back scope."
+}
