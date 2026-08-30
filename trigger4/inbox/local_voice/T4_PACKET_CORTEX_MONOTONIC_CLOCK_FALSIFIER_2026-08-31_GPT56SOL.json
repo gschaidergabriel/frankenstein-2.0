@@ -1,0 +1,82 @@
+{
+  "schema": "T4_PACKET_CORTEX_REVIEW_FALSIFIER/v1",
+  "trigger": "4",
+  "review_id": "T4-PC-MONOTONIC-001",
+  "objective": "PACKET_CORTEX_MONOTONIC_CLOCK_ROLLBACK_FAIL_CLOSED",
+  "classification": "CANDIDATE_FALSIFIER",
+  "implementation_mutation_authority": false,
+  "work_class": "REVIEW_ONLY",
+  "target_completion_tier": "PACKET_SURROGATE_CORTEX_COMPONENT_INTEGRATION_REVIEW",
+  "integration_boundary": "deterministic VoiceInputPacket chronology -> existing VoicePacketCortex.accept_input event admission",
+  "execution_surface": "VPS_SANDBOX_REPRESENTABLE",
+  "reviewed_source": {
+    "repository": "gschaidergabriel/frankenstein-2.0",
+    "review_head": "3db127b0f7a7169c148212db35f600f6ef0e54e0",
+    "implementation_origin_commit": "33356bea5c6c8a7a77ff2cc4ab21382625fc9f",
+    "path": "src/frankenstein2/voice_packet_cortex.py",
+    "blob_sha": "eece45f615fcfcb0a4b078ae534e9389e5bd77b6"
+  },
+  "authority_and_overlap": {
+    "packet_completion_authority": "research/local_voice/authority/2026-08-31_TRIGGER7_TEXT_PACKET_COMPLETION_AUTHORITY.md",
+    "existing_source_review": "trigger4/inbox/local_voice/T7_PACKET_CORTEX_FALSIFIER_REVIEW_2026-08-31_GPT56SOL.json",
+    "existing_causal_falsifier": "T7-ARCH-003",
+    "duplicate_check": "Existing source-review negatives PN1-PN5 cover tool epoch fencing, VoiceOutcome commit binding, fault-id poisoning, restart/reconnect and long-session boundedness. No monotonic-clock rollback negative was observed in the reviewed current source-review packet or recent commit messages.",
+    "mutation_rule": "Do not mutate the packet-cortex implementation from this review lane. Route executable confirmation/repair to the current Trigger4 implementation owner under current claim authority."
+  },
+  "source_observation": {
+    "observed": "VoiceInputPacket validates monotonic_ms only as integer >= 0. VoicePacketCortex.accept_input enforces per-turn sequence order but stores no last admitted monotonic timestamp and performs no monotonic rollback comparison before emitting an admitted event.",
+    "inference": "A higher sequence number with a lower monotonic_ms appears source-admissible when all other packet constraints are valid. This can produce event chronology that moves backward while semantic sequence moves forward.",
+    "evidence_class": "SOURCE_REVIEW_ONLY_NOT_EXECUTED"
+  },
+  "discriminator": {
+    "id": "F_MONOTONIC_ROLLBACK_001",
+    "fixture": [
+      {
+        "type": "VoiceInputPacket",
+        "session_id": "S1",
+        "turn_id": "T_CLOCK",
+        "packet_id": "I_CLOCK_0",
+        "sequence": 0,
+        "monotonic_ms": 700,
+        "source_modality": "asr_partial",
+        "is_final": false,
+        "endpoint_decision": "HOLD"
+      },
+      {
+        "type": "VoiceInputPacket",
+        "session_id": "S1",
+        "turn_id": "T_CLOCK",
+        "packet_id": "I_CLOCK_1",
+        "sequence": 1,
+        "monotonic_ms": 699,
+        "source_modality": "asr_final",
+        "is_final": true,
+        "endpoint_decision": "END"
+      }
+    ],
+    "must_hold": [
+      "clock_rollback_policy_is_explicit",
+      "second_packet_does_not_silently_create_canonical_backward_time_event",
+      "negative_duration_or_negative_latency_cannot_be_derived_as_admitted_state",
+      "rejection_or_quarantine_is_deterministic_and_traceable"
+    ],
+    "falsifies_if": "The exact implementation subject admits sequence=1 at monotonic_ms=699 after sequence=0 at monotonic_ms=700 without explicit rollback handling."
+  },
+  "failure_classification": "SOURCE_REVIEW_PRODUCT_NEGATIVE_CANDIDATE_REQUIRES_EXECUTABLE_CONFIRMATION",
+  "required_next_action": "Current Trigger4 implementation owner should add this exact negative test to the existing deterministic packet-cortex suite and execute it on the exact source subject under LOCAL_SOLO / lowest safe faithful VPS sandbox. If it reproduces, classify PRODUCT_NEGATIVE, add the smallest chronology fence consistent with the existing controller, add regression coverage, rerun the causal/state suite, and bind an exact receipt. If an external caller already enforces the invariant, bind executable evidence of that same path rather than duplicating the fence.",
+  "credit": {
+    "source_review": 1,
+    "executed_packet_component": 0,
+    "packet_runtime": 0,
+    "asr_runtime": 0,
+    "tts_runtime": 0,
+    "acoustic": 0,
+    "physical_audio": 0,
+    "target_runtime": 0,
+    "gwt_jspace": 0,
+    "effect": 0,
+    "training": 0,
+    "whole_voice": 0,
+    "whole_product": 0
+  }
+}
