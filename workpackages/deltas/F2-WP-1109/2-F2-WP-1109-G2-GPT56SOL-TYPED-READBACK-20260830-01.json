@@ -1,0 +1,84 @@
+{
+  "schema": "FRANKENSTEIN2_WORKPACKAGE_DELTA/v1",
+  "workpackage_id": "F2-WP-1109",
+  "generation": 2,
+  "claim_id": "F2-WP-1109-G2-GPT56SOL-TYPED-READBACK-20260830T0503Z",
+  "worker_id": "GPT-5.6-Sol-TRIGGER4-WP1109-TYPED-READBACK",
+  "delta_kind": "POST_ACCEPTANCE_COUNTEREVIDENCE_REPAIR",
+  "status": "SOURCE_TESTS_CI_SUCCESS_STATE_CHAIN_RECHECK_PENDING",
+  "branch": "chatgpt/trigger4-wp1109-g2-typed-readback-20260830",
+  "pull_request": 634,
+  "base_commit_at_claim": "d048cf41afa5900fa5bd6cdd8d834ce81da1614f",
+  "later_observed_main": "f521491b3a3135c532208c630856b6bcb0927d85",
+  "base_drift_check": {
+    "status": "OWNED_PATHS_UNCHANGED_ACROSS_OBSERVED_MAIN_ADVANCE",
+    "ahead_by": 4,
+    "changed_paths": [
+      "research/local_voice/checkpoints/2026-08-30_T7_ASR004_RUN33292903286_QUEUED_REENTRY_1200_GPT56SOL.json",
+      "workpackages/active/F2-WP-1207.json",
+      "workpackages/receipts/F2-WP-1207_G4_HOSTILE_OUTPUT_BOUNDARY_MAIN_CI_33293472644.json",
+      "workpackages/reconciliations/F2-WP-1207/4-F2-WP-1207-G4-GPT56SOL-HOSTILE-OUTPUT-BOUNDARY-20260830.json"
+    ],
+    "wp1109_owned_path_drift": false
+  },
+  "counterevidence": {
+    "pr": 457,
+    "run_id": 33253753677,
+    "finding": "opaque state_readback_evidence_ref can satisfy SWITCH_HOST without proving exact CanonicalStateBinding lineage/generation/state identity"
+  },
+  "tested_repair_donor": {
+    "pr": 614,
+    "run_id": 33292609283,
+    "job_id": 99206768654,
+    "status": "SUCCESS_REVIEW_ONLY_NO_MUTATION_AUTHORITY"
+  },
+  "canonical_candidate": {
+    "source": "src/frankenstein2/host_transition.py",
+    "source_blob_sha": "3ce61a0c0c632f96e198027e7120fa6f71bb42d5",
+    "tests": "tests/test_host_transition.py",
+    "test_blob_sha": "0a547592aafcab068d03bf633600617d4491c746",
+    "active_pointer_blob_sha": "b0b3db357248edbd360fbff7ae3e443cfdb87333",
+    "state_event": "workpackages/state_events/F2-WP-1109/000002.json",
+    "state_event_blob_sha": "e0d0bcd432e0cdbc776913bd23026e04714f0c23"
+  },
+  "implemented_invariants": [
+    "successor SWITCH_HOST readback binds exact lineage_id",
+    "successor SWITCH_HOST readback binds exact generation",
+    "successor SWITCH_HOST readback binds exact state_sha256",
+    "successor SWITCH_HOST readback binds exact CanonicalStateBinding digest",
+    "rollback/REENABLE readback uses the same exact binding checks",
+    "untyped or partially typed readback identity fails closed",
+    "generation-1 no-state-deletion/no-authority-expansion/zero-credit boundaries preserved"
+  ],
+  "canonical_regressions_added": [
+    "untyped readback rejected",
+    "partial typed identity rejected",
+    "lineage mismatch rejected",
+    "generation mismatch rejected",
+    "state digest mismatch rejected",
+    "binding digest mismatch rejected",
+    "rollback binding mismatch rejected"
+  ],
+  "repository_ci": {
+    "workflow": "F2 WP1109 Host Transition CI",
+    "head_sha": "12384221fda4ccf7d4b7fff44182194b019c68b2",
+    "run_id": 33293948614,
+    "conclusion": "SUCCESS"
+  },
+  "negative_evidence": [
+    "Workpackage State Consistency CI run 33293948612 failed after the active pointer moved to G2 because the state-event head still described G1; this was a real coordination invariant failure, not a host-transition logic failure.",
+    "Workpackage state view v2 CI run 33293948611 failed for the same stale event-head/pointer binding class.",
+    "A G2 sequence-2 state event was appended to bind the exact active-pointer blob; state-view/state-consistency CI must re-run green before reconciliation or merge."
+  ],
+  "forbidden_credit": [
+    "LIVE_INSTALL_OR_UNINSTALL",
+    "PHYSICAL_HOST_SWITCH",
+    "PERMISSION_WITHDRAWAL_RUNTIME",
+    "VPS_RUNTIME",
+    "GRID10_GWT_JSPACE_RUNTIME",
+    "EFFECT",
+    "COMPLETION",
+    "WHOLE_SYSTEM"
+  ],
+  "next_exact_action": "Require Workpackage State Consistency CI and Workpackage state view v2 CI to pass against sequence-2 event + G2 active pointer; then create a G2 reconciliation and receipt bound to exact source/test/event/CI identities, append a terminal state event, and merge only if all required repository checks are green."
+}
