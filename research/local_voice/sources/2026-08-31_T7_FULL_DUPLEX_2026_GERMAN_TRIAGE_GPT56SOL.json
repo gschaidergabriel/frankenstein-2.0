@@ -1,0 +1,82 @@
+{
+  "schema": "T7_SOURCE_TRIAGE_V1",
+  "trigger": "7",
+  "research_id": "T7-FD-2026-TRIAGE-001",
+  "semantic_key": "6fcd22aed92beee2278dba80309ed1558898aafd170eaa8d353106845cb68849",
+  "scope": "SOURCE_PINNED_TRIAGE_ONLY",
+  "objective": "Identify whether newly released 2026 full-duplex families deserve German-first local VPS execution before downloading large weights or opening a Trigger4 integration lane.",
+  "claim_commit": "2de3e32c9d071e5f23dbec8e77542e2ae180bdee",
+  "observations": [
+    {
+      "family": "SoulX-Duplug",
+      "upstream_repo": "Soul-AILab/SoulX-Duplug",
+      "source_revision": "a0b9063843df69619b087b95b74597b2176910b8",
+      "model_id": "Soul-AILab/SoulX-Duplug-0.6B",
+      "license_observed": "Apache-2.0",
+      "model_scale": "0.6B",
+      "official_language_metadata": ["en", "zh"],
+      "architecture_value": "HIGH_AS_TURN_TAKING_DONOR",
+      "german_production_fit": "NOT_ADMITTED_NO_OFFICIAL_GERMAN_SUPPORT",
+      "runtime_fit": "PLAUSIBLE_COMPONENT_SCALE_BUT_NOT_EXECUTED",
+      "reason": "Plug-and-play streaming semantic state/VAD organ is attractive for low-latency turn taking and interruption control, but current official model/eval metadata is English/Chinese. Do not spend VPS model-download/runtime budget on a German production claim without new German evidence or a German adaptation experiment."
+    },
+    {
+      "family": "Lychee-FD",
+      "upstream_repo": "HITsz-TMG/Lychee-FD",
+      "source_revision": "7bb1068c59b578e1f8e65fb762cd26708c14cc6d",
+      "model_id": "HIT-TMG/Lychee-FD",
+      "license_observed": "Apache-2.0",
+      "official_language_metadata": ["en", "zh"],
+      "model_scale": "13B_BF16",
+      "observed_weight_footprint": "approximately 25.6 GB model repository before Token2Wav companion weights",
+      "runtime_requirements_observed": "CUDA/vLLM/FlashAttention; default deployment separates Token2Wav and backend across GPUs, single-GPU supported with reduced memory budget",
+      "architecture_value": "HIGH_AS_NATIVE_FULL_DUPLEX_DONOR",
+      "german_production_fit": "NOT_ADMITTED_NO_OFFICIAL_GERMAN_SUPPORT",
+      "current_vps_fit": "LOW_FOR_IMMEDIATE_EXECUTION",
+      "reason": "Strong architecture reference for native full-duplex speech, but German is not an official language target and the released 13B BF16 + vocoder GPU stack is not the highest-information use of the current VPS."
+    },
+    {
+      "family": "BayLing-Duplex",
+      "upstream_repo": "BayLing-Models/BayLing-Duplex",
+      "source_revision": "41669ac04bbcbfaf5b1be3a2cc563e4b3752d041",
+      "model_id": "BayLing-Models/BayLing-Duplex",
+      "speech_components": ["zai-org/glm-4-voice-tokenizer", "zai-org/glm-4-voice-decoder"],
+      "license_observed": "GLM-4-Voice-derived custom license; academic research free, commercial registration/conditions apply",
+      "official_german_support": "NOT_ESTABLISHED_IN_REVIEWED_PRIMARY_SOURCE",
+      "runtime_requirements_observed": "CPU smoke path exists; real-time full-duplex recommended on GPU",
+      "architecture_value": "HIGH_AS_SINGLE_AR_FULL_DUPLEX_DONOR",
+      "german_production_fit": "UNKNOWN_NOT_ADMITTED",
+      "current_vps_fit": "LOW_FOR_IMMEDIATE_REALTIME_EXECUTION",
+      "reason": "Native simultaneous listen/speak/interruption control is architecturally relevant, but no reviewed primary evidence establishes German quality and its real-time path is GPU-oriented. License is also less frictionless than Apache-2.0 candidates."
+    }
+  ],
+  "cross_family_result": {
+    "new_german_production_candidate": false,
+    "download_or_runtime_dispatch_justified_now": false,
+    "highest_value_donor": "SoulX-Duplug turn-taking/state-prediction architecture because it is only 0.6B and separable from the speech/LLM identity plane",
+    "native_full_duplex_architecture_donors": ["Lychee-FD", "BayLing-Duplex"],
+    "reason": "Trigger7 is German-first. None of the three reviewed families currently supplies source-level evidence sufficient to justify German production promotion, and two are materially GPU-heavy. Preserve them as architecture/research donors and re-open only on German evidence, smaller/runtime-compatible release, or a dedicated adaptation hypothesis."
+  },
+  "negative_evidence": [
+    "English/Chinese benchmark or model metadata does not imply German capability.",
+    "Native full-duplex architecture quality does not imply F2 state/tool/memory ABI compatibility.",
+    "CPU smoke-testability does not imply realtime CPU viability.",
+    "Upstream demos do not grant German E2E, acoustic, runtime, Trigger4 or whole-product credit."
+  ],
+  "coordination": {
+    "hf09_hf10_lane_touched": false,
+    "runtime_dispatch_created": false,
+    "model_weights_downloaded": false,
+    "product_source_mutated": false,
+    "trigger4_acceptance_minted": false
+  },
+  "credits": {
+    "source_pinned_research": 1,
+    "component_runtime": 0,
+    "german_e2e_voice": 0,
+    "acoustic_quality": 0,
+    "trigger4_acceptance": 0,
+    "whole_product": 0
+  },
+  "next_exact_action": "Keep the three families on a low-cost watch list rather than executing them now. Highest-value executable Trigger7 work remains the existing local modular/HF lanes once their current semantic authority gates permit classification; independently re-open SoulX-Duplug if a German checkpoint/eval or a bounded German adaptation experiment becomes available."
+}
