@@ -1,0 +1,107 @@
+{
+  "schema": "T7_SOURCE_RESULT/v1",
+  "trigger": "7",
+  "research_id": "T7-TTS-KOKORO-001",
+  "objective": "V1_THORSTEN_VOICE_KOKORO_82M_GERMAN_CPU_SOURCE_PIN",
+  "semantic_key": "e8d368f7a6a077917f833ff609ede97f1b18f1feccc61afc0431fa4223ad1869",
+  "evidence_scope": "SOURCE_PIN",
+  "observed_at": "2026-08-31",
+  "primary_sources": {
+    "model_repository": {
+      "model_id": "Thorsten-Voice/Kokoro",
+      "observed_main_revision": "734e593d320a3d876bede7020f773dfd481a0cc7",
+      "repository_size": "3.61 GB including alternate epochs and sample audio",
+      "default_checkpoint": "model.pth",
+      "default_checkpoint_size": "327 MB",
+      "default_checkpoint_sha256": "36dde15c4a800cfd1ab540ccb4476dbab604fe03ff7c937d976ebbf3b49e59ce",
+      "voicepack": "voices/thorsten.pt",
+      "voicepack_size": "523 kB",
+      "voicepack_sha256": "9d98b775ebce1cfc369e8f9a3ee8ee260cd612dffb477cba85749112362306d7",
+      "config": "config.json",
+      "license": "Apache-2.0"
+    },
+    "german_g2p_dependency": {
+      "repository": "semidark/misaki",
+      "upstream_model_card_pin": "6d252a2e02f3b030f22f56686f1a73786c16ffc8",
+      "license": "Apache-2.0"
+    },
+    "kokoro_runtime_dependency": {
+      "repository": "semidark/kokoro",
+      "upstream_model_card_pin": null,
+      "observed_main_commit": "b96fef95e6a746495f92443fac7c688f90fc57fc",
+      "license": "Apache-2.0",
+      "reproducibility_status": "UPSTREAM_INSTALL_EXAMPLE_UNPINNED_REQUIRE_EXPLICIT_PIN_AND_COMPATIBILITY_TEST_BEFORE_EXECUTION"
+    },
+    "system_dependency": "espeak-ng"
+  },
+  "source_direct_findings": [
+    "The primary model card identifies Thorsten-Voice/Kokoro as a German fine-tune of Kokoro-82M with approximately 82M parameters, a male Thorsten voice, local/offline use and an explicit CPU-friendly real-time-or-faster target claim.",
+    "The default checkpoint is epoch 5. The model card states that informal listening preferred epoch 5 over epoch 10 despite similar validation loss, so upstream scalar loss is not treated as Frankenstein listening-quality evidence.",
+    "The model card provides German edge-case samples covering umlauts, ich/ach sounds, eszett, numbers, prosody and technical terms such as API and JSON.",
+    "The German G2P path has a documented short-ue failure: misaki may emit U+028F (short ü), while the Kokoro vocabulary lacks that symbol; the provided inference path substitutes it with y.",
+    "Hyphenated German compounds may stumble at the hyphen boundary and very long sentences may be truncated; sentence splitting is recommended upstream.",
+    "The model repository uses .pth/.pt weight artifacts. The sample explicitly loads the voicepack with torch.load(..., weights_only=True); execution remains quarantined until exact runtime code/dependencies are pinned and inspected.",
+    "The model card pins semidark/misaki but leaves semidark/kokoro unpinned, creating a reproducibility/security gap that must be closed before any promotion-bearing runtime run."
+  ],
+  "project_inferences_not_runtime_facts": [
+    "An 82M German male TTS candidate is a high-information CPU latency challenger against Piper/Thorsten and a potentially better fit for clay-direct-dev than multi-billion-parameter TTS candidates.",
+    "The fixed Thorsten acoustic identity aligns with the stable-male-voice invariant, but no Frankenstein identity/naturalness/ExpressionVector parity credit exists until actual audio is evaluated.",
+    "File-output synthesis is representable on the current CPU VPS even though audible playback and cancellation-to-silence are not; these scopes must remain separate."
+  ],
+  "counterhypotheses": [
+    "CPU-friendly upstream claims may not reproduce under the exact 4-vCPU whole-Frankenstein resource envelope.",
+    "The G2P workaround may introduce pronunciation degradation or mask a more general vocabulary mismatch.",
+    "Piper/Thorsten may remain materially faster and more operationally deterministic despite lower subjective naturalness.",
+    "Kokoro may fail Frankenstein technical vocabulary, streamed chunk continuity or low-TTFA requirements even if complete WAV synthesis is fast."
+  ],
+  "execution_fences": [
+    "Pin Thorsten-Voice/Kokoro revision 734e593d320a3d876bede7020f773dfd481a0cc7 and verify model/voice hashes before execution.",
+    "Pin semidark/misaki exactly to 6d252a2e02f3b030f22f56686f1a73786c16ffc8.",
+    "Do not use the unpinned semidark/kokoro install form. Pin an audited exact commit; current observed main is b96fef95e6a746495f92443fac7c688f90fc57fc, but compatibility with the pinned HF model revision must be tested rather than assumed.",
+    "Run only in an admitted disposable VPS sandbox/research environment before any F2 integration.",
+    "No external TTS/model inference API calls are permitted.",
+    "Do not convert generated-file success into audible playback, cancellation, listening-quality, German E2E or Trigger-4 acceptance credit."
+  ],
+  "proposed_file_output_discriminator": {
+    "target": "clay-direct-dev CPU-only disposable research sandbox",
+    "baseline": "Thorsten-Voice/Piper de_DE-thorsten-medium.onnx SHA256 7e64762d8e5118bb578f2eea6207e1a35a8e0c30595010b666f983fc87bb7819",
+    "candidate": "Thorsten-Voice/Kokoro epoch-5 default",
+    "fixed_text_classes": [
+      "short conversational German",
+      "umlauts/ß and short-ü including Brücke",
+      "ich/ach contrasts",
+      "numbers/dates",
+      "technical vocabulary: API JSON EntityOS HCU Frankenstein",
+      "hyphenated compounds",
+      "long sentence requiring deterministic segmentation"
+    ],
+    "measure": [
+      "cold_load_seconds",
+      "warm_load_seconds",
+      "peak_rss_bytes",
+      "synthesis_wall_seconds",
+      "generated_audio_seconds",
+      "realtime_factor",
+      "time_to_first_generated_audio_chunk_ms_when_observable",
+      "output_sample_rate",
+      "output_file_bytes",
+      "failure_or_truncation_class",
+      "outbound_model_api_calls"
+    ]
+  },
+  "credit": {
+    "source_pin": 1,
+    "german_support_metadata": 1,
+    "male_voice_identity_metadata": 1,
+    "artifact_hashes_for_default_model_and_voice": 1,
+    "target_runtime": 0,
+    "frankenstein_german_tts_quality": 0,
+    "audible_playback": 0,
+    "cancellation_to_silence": 0,
+    "german_e2e_voice": 0,
+    "trigger4_acceptance": 0,
+    "whole_system": 0
+  },
+  "decision": "SOURCE_ADMISSIBLE_CPU_FILE_OUTPUT_CHALLENGER_WITH_DEPENDENCY_PIN_FENCE",
+  "next_exact_action": "Acquire a distinct create-only COMPONENT_BENCHMARK semantic claim for Thorsten-Voice/Kokoro on clay-direct-dev, route the pinned Kokoro-vs-Piper CPU/file-output discriminator to Trigger 4, and preserve audible-playback/cancellation/E2E credit at zero until a physical audio-capable target executes those boundaries."
+}
