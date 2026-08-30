@@ -1,0 +1,31 @@
+{
+  "schema": "FRANKENSTEIN2_TRIGGER6_TO_TRIGGER4_HANDOFF_ADDENDUM/v1",
+  "candidate_id": "R6-20260830-WP206-G5A-EXTERNAL-SQLITE-REVISION-FENCE-GPT56SOL",
+  "status": "NARROWED_AFTER_WP901_G4_ACCEPTANCE",
+  "created_at_local": "2026-08-30T17:08:00+07:00",
+  "parent_handoff": "trigger4/inbox/tool_research/R6-20260830-WP206-G5A-EXTERNAL-SQLITE-REVISION-FENCE-HANDOFF-GPT56SOL.json",
+  "parent_targeted_revalidation_addendum": "trigger4/inbox/tool_research/R6-20260830-WP206-G5A-EXTERNAL-SQLITE-REVISION-FENCE-TARGETED-REVALIDATION-ADDENDUM-GPT56SOL.json",
+  "research_delta": "research/tool_intelligence/deltas/2026-08-30T1707P0700_GPT56SOL_WP206_SQLITE_LIVE_DRIFT_TRANSACTION_BOUNDARY_REVIEW_ADDENDUM.json@9b8d988390743890a01333c2644fe686b854c9d4",
+  "reentry_change": {
+    "f2_main_observed": "0fd7b7042b0a1959723555ac1257beeaccb87466",
+    "wp901_g4": "ACCEPTED_REPOSITORY_HOSTED_COMPONENT_CI_ONLY",
+    "receipt": "workpackages/receipts/F2-WP-901_G4_PERSISTED_ROW_LOAD_ATTESTATION.json",
+    "accepted_mechanism": "one SQLite read transaction containing WP206 load_checkpoint plus exact-row re-read and deterministic row-evidence binding before G3/G2"
+  },
+  "do_not_build_by_default": [
+    "Do not add data_version to write_checkpoint; it already begins BEGIN IMMEDIATE before row/lineage validation.",
+    "Do not add data_version to legacy G4 recovery; it already uses BEGIN IMMEDIATE plus fresh row validation and CAS.",
+    "Do not duplicate WP901 G4 snapshot-bound exact-row attestation with a second generic freshness authority."
+  ],
+  "remaining_candidate_surface": "Only a concrete authority-sensitive load-to-use path outside the protected write/recovery/WP901-G4 boundaries may justify EXTERNAL_SQLITE_REVISION_FENCE/v1.",
+  "required_next_action": "Enumerate exact-current consumers of CanonicalPersistentAgencyStore.load_checkpoint. For any consumer outside an existing transaction/snapshot/generation/attestation fence, reproduce an external same-inode protected mutation between load and authority-sensitive use. Build the revision hint only if that stale continuation is executable and not already caught by downstream gates.",
+  "retirement_rule": "If no such unprotected load-to-use consumer exists, retire the candidate as useful diagnostics/research evidence but unnecessary product code.",
+  "credit_boundary": {
+    "handoff_refinement": 1,
+    "new_build_candidate": 0,
+    "trigger4_source_change": 0,
+    "repository_ci": 0,
+    "runtime": 0,
+    "whole_system": 0
+  }
+}
