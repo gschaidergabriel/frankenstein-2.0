@@ -1,0 +1,71 @@
+{
+  "schema": "T7_REENTRY_CHECKPOINT/v1",
+  "trigger": "7",
+  "date": "2026-08-30",
+  "organ": "GPT-5.6-Sol",
+  "research_id": "T7-ASR-004",
+  "semantic_key": "95bd53a469133dbfdf39da320f6daa049cec1361084e632dc915c4bc156e3715",
+  "state": "SOURCE_RESEARCH_DELTA_ONLY_EXISTING_SEMANTIC_CLAIM_REMAINS_OPEN",
+  "evidence_credit_delta": 0,
+  "runtime_credit_delta": 0,
+  "acceptance_credit_delta": 0,
+  "observed_project_evidence": {
+    "target_runtime_checkpoint": "research/local_voice/checkpoints/2026-08-30_T7_ASR004_RUN33292903286_TRANSPORT_REPAIRED_CPU_SMOKE_PASS_GPT56SOL.json",
+    "target_model_load_observed": true,
+    "target_local_inference_observed": true,
+    "cpu_only": true,
+    "one_second_digital_silence_output": "Ich.",
+    "german_quality_credit": 0,
+    "streaming_credit": 0
+  },
+  "source_research_delta": {
+    "qwen3_asr": {
+      "classification": "UPSTREAM_SOURCE_OBSERVATION",
+      "finding": "Current official Qwen3-ASR documentation/source exposes German-capable offline and streaming recognition and returns recognized language/text. In the inspected official streaming surface, no Whisper-style no-speech probability/threshold contract was identified. Absence from the inspected surface is not proof that no internal silence behavior exists."
+    },
+    "faster_whisper": {
+      "classification": "UPSTREAM_SOURCE_OBSERVATION",
+      "finding": "Current faster-whisper source exposes an explicit VAD filter path plus no_speech_threshold and hallucination_silence_threshold controls, providing an admitted comparison architecture for non-speech suppression."
+    }
+  },
+  "hypothesis": "Qwen3-ASR may remain a viable German ASR candidate if non-speech admission is owned by Frankenstein's deterministic acoustic/turn controller rather than delegated implicitly to ASR decoding.",
+  "counterhypothesis": "The observed 'Ich.' on digital silence may indicate model/runtime false-positive behavior severe enough that an external VAD gate either cannot suppress real room-noise hallucinations reliably or adds unacceptable missed-speech/latency cost, making the Whisper/faster-whisper baseline superior for the actual voice loop.",
+  "next_discriminator": {
+    "rule": "CONTINUE_EXISTING_SEMANTIC_OBJECTIVE_ONLY_NO_DUPLICATE_RUNTIME_LANE",
+    "target": "clay-direct-dev",
+    "same_conditions_required": true,
+    "fixture_matrix": [
+      "digital_silence_1s",
+      "digital_silence_2s",
+      "digital_silence_5s",
+      "low_level_stationary_noise",
+      "fan_keyboard_room_noise",
+      "speaker_echo_or_two_channel_render_reference_when_available",
+      "pinned_short_natural_german_speech",
+      "pinned_german_numbers_names_technical_terms"
+    ],
+    "arms": [
+      "QWEN3_ASR_DIRECT",
+      "QWEN3_ASR_WITH_DETERMINISTIC_VAD_TURN_ADMISSION",
+      "MATCHED_FASTER_WHISPER_BASELINE_WITH_ITS_ADMITTED_VAD_NO_SPEECH_CONTROLS"
+    ],
+    "metrics": [
+      "non_speech_false_transcript_rate",
+      "false_transcript_character_or_token_count",
+      "speech_miss_rate",
+      "WER",
+      "CER",
+      "ASR_finalization_latency",
+      "added_VAD_gate_latency",
+      "partial_transcript_stability_when_streaming",
+      "endpoint_latency",
+      "cancellation_correctness"
+    ],
+    "promotion_rule": "Do not grant German-quality or streaming credit until the same-target fixture comparison is observed. After non-speech and German quality are characterized, exercise the official Qwen3-ASR streaming path for partial stability, endpoint latency and cancellation."
+  },
+  "coordination": {
+    "new_semantic_claim_created": false,
+    "new_runtime_dispatch_created": false,
+    "reason": "The canonical Qwen3-ASR target-runtime semantic claim remains open and already owns this experiment family. This checkpoint narrows its next discriminator without creating parallel execution."
+  }
+}
