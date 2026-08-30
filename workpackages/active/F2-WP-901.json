@@ -2,45 +2,35 @@
   "schema": "FRANKENSTEIN2_ACTIVE_WORKPACKAGE_CLAIM/v1",
   "workpackage_id": "F2-WP-901",
   "generation": 4,
-  "claim_id": "F2-WP-901-G4-GPT56SOL-PERSISTED-ROW-ATTESTATION-20260830",
+  "claim_id": "F2-WP-901-G4-GPT56SOL-PERSISTED-ROW-LOAD-ATTESTATION-20260830",
   "worker_id": "GPT-5.6-Sol-TRIGGER4",
   "trigger": "4",
-  "base_commit": "04ff752bda7a89a46286156b6d472a9e7bd3ba27",
+  "base_commit": "a5b22155663242871d10e36096792a2d509c8c10",
   "parent_generation": 3,
   "parent_claim_id": "F2-WP-901-G3-GPT56SOL-SOURCE-AUTHENTICATION-20260830",
   "parent_reconciliation_ref": "workpackages/reconciliations/F2-WP-901/3-F2-WP-901-G3-GPT56SOL-SOURCE-AUTHENTICATION-20260830.json",
-  "authority_epoch": "8.78",
-  "authority_ref": "research_entity/continuity/BOOTSTRAP_MINIMAL.json -> research_entity/claycode/autonomous/SUPERVISOR_STEERING_8_78.json",
-  "observed_supervisor_snapshot": "9.13BI_NON_AUTHORITY",
+  "parent_acceptance_receipt": "workpackages/receipts/F2-WP-901_G3_SOURCE_AUTHENTICATION.json",
+  "authority_epoch": "9.13BI",
+  "authority_ref": "research_entity/claycode/autonomous/SUPERVISOR_INBOX.json",
   "stage": "STAGE9_WHOLE_SYSTEM_INTEGRATION",
   "state": "ACTIVE",
-  "claimed_scope": "Close only the persisted WP206 checkpoint-row/load-attestation gap explicitly left open by accepted WP901 G3. The canonical G4 ingress must take a concrete CanonicalPersistentAgencyStore, load the restart checkpoint by the evidence checkpoint id through store.load_checkpoint(), bind the exact loaded checkpoint id/generation/digest plus the store canonical path/device/inode/bound-file authority receipt into a non-authoritative attestation receipt, and only then invoke the accepted G3 source-authentication boundary using the loaded checkpoint. Caller-supplied checkpoint objects must not be accepted at this G4 ingress. Preserve G2/G3 causal/source/UNKNOWN-effect semantics. Repository source/tests/CI only; no target-host/VPS runtime, WP900 persisted-seal attestation, scheduler, provider/model/tool, effect, completion, physical GRID10, GWT/J-Space, training or whole-system credit.",
-  "dependencies": [
-    "F2-WP-901 generation 3 accepted source-authentication component",
-    "F2-WP-206 generation 4 accepted persistent-agency repository component",
-    "CanonicalPersistentAgencyStore.load_checkpoint exact path/device/inode/authority-receipt plus typed replay validation",
-    "UnifiedDB remains the sole canonical durable-state authority",
-    "workpackages/CLAIM_PROTOCOL.md",
-    "workpackages/CONVERGENCE_PROTOCOL.md"
+  "claimed_scope": "Add only a repository-component persisted-row/load attestation boundary for WP901 restart recovery. The canonical WP206 store must produce a typed immutable load receipt from the exact row it actually read, binding checkpoint id/generation/digest, canonical DB path, device/inode, store authority receipt, and a deterministic row-evidence digest derived from the returned persisted columns. WP901 G4 may consume that receipt together with the concrete checkpoint and accepted G3 typed-source objects before invoking G3/G2 planning. Preserve G3 causal/source-authentication invariants and all G2 continuation semantics. This generation does NOT close the separately active Trigger6 rollback/freshness question, does NOT claim live same-inode drift closure, and does NOT grant target-host/runtime/scheduler/effect/completion authority. No provider/model/tool execution; repository source/tests/CI only.",
+  "triggering_frontier": "WP901_G3_PERSISTED_ROW_ATTESTATION_NOT_OBSERVED",
+  "preserved_parallel_research": [
+    "R6-20260830-WP901-ROLLBACK-FRESHNESS-WITNESS-GPT56SOL-01",
+    "WP206_SAME_INODE_LIVE_DATA_SCHEMA_DRIFT_SEPARATE_DISCRIMINATOR"
   ],
   "required_invariants": [
-    "G4 canonical ingress loads the restart checkpoint from CanonicalPersistentAgencyStore instead of accepting a caller checkpoint object",
-    "loaded checkpoint id/generation/digest must exactly match PersistedRestartEvidence",
-    "the attestation binds canonical_db_path, db_device, db_inode and store authority_receipt_sha256 without becoming a second authority",
-    "accepted G3 causal lineage and concrete seal/outcome binding remains mandatory after row load",
-    "corrupt or authority-drifted persisted checkpoint rows fail closed through CanonicalPersistentAgencyStore.load_checkpoint",
-    "UNKNOWN/result-observed external effect outcomes remain held and are never blindly replayed",
-    "repository CI grants zero target-host, effect, completion, physical GRID10, GWT/J-Space, training or whole-system runtime credit"
+    "load attestation is minted only by the canonical WP206 store after exact persisted-row checks and typed checkpoint replay",
+    "attestation binds the exact loaded checkpoint id generation and digest",
+    "attestation binds canonical DB real path device inode and current store authority receipt",
+    "attestation binds deterministic evidence over the exact persisted columns consumed by the loader",
+    "WP901 rejects a receipt whose checkpoint identity digest or authority binding disagrees with the concrete checkpoint/source boundary",
+    "accepted G3 causal identity provenance and WP900 seal/outcome closure remain mandatory",
+    "accepted G2 disposition ref flag reason-code semantics remain unchanged",
+    "rollback/freshness and same-inode live-drift semantics remain explicitly unclaimed",
+    "no new truth scheduler effect completion or second persistence authority is introduced"
   ],
-  "owned_paths": [
-    "src/frankenstein2/restart_recovery_persisted_row_attestation.py",
-    "tests/test_restart_recovery_persisted_row_attestation.py",
-    ".github/workflows/wp901-g4-persisted-row-attestation-ci.yml",
-    "workpackages/deltas/F2-WP-901/4-F2-WP-901-G4-GPT56SOL-PERSISTED-ROW-ATTESTATION-20260830-01.json",
-    "workpackages/active/F2-WP-901.json"
-  ],
-  "persisted_row_attestation": "IN_PROGRESS",
-  "wp900_persisted_seal_attestation": "NOT_CLAIMED",
   "runtime_execution_observed": false,
   "runtime_credit": 0,
   "physical_grid10_credit": 0,
@@ -50,6 +40,6 @@
   "effect_credit": 0,
   "completion_credit": 0,
   "whole_system_acceptance": false,
-  "created_at_utc": "2026-08-30T09:54:00Z",
-  "next_exact_action": "Implement the store-loaded checkpoint attestation boundary and deterministic regressions, then run repository-hosted CI. Reconcile only this bounded row/load scope if green; target-host readback remains a later independent gate."
+  "created_at_utc": "2026-08-30T09:53:00Z",
+  "next_exact_action": "Implement typed persisted-row load receipt in an isolated branch, bind it into the WP901 G3 source-authenticated ingress, add fail-closed substitution/forgery/authority mismatch regressions plus all G2/G3 regression suites, run repository CI, and reconcile only at repository-component scope if green."
 }
