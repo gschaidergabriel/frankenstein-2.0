@@ -1,0 +1,57 @@
+name: WP206 G3 Legacy Authority Recovery CI
+
+on:
+  push:
+    branches:
+      - trigger4/wp206-g3-legacy-recovery-20260830
+    paths:
+      - 'src/frankenstein2/wp206_legacy_authority_recovery.py'
+      - 'src/frankenstein2/persistent_agency_kernel.py'
+      - 'src/state/unifieddb_identity.py'
+      - 'tests/wp206_restart_probe.py'
+      - 'tests/test_wp206_legacy_authority_recovery.py'
+      - '.github/workflows/wp206-g3-legacy-authority-recovery-ci.yml'
+  pull_request:
+    paths:
+      - 'src/frankenstein2/wp206_legacy_authority_recovery.py'
+      - 'src/frankenstein2/persistent_agency_kernel.py'
+      - 'src/state/unifieddb_identity.py'
+      - 'tests/wp206_restart_probe.py'
+      - 'tests/test_wp206_legacy_authority_recovery.py'
+      - '.github/workflows/wp206-g3-legacy-authority-recovery-ci.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  legacy-authority-recovery:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Compile exact WP206 G3 recovery surface
+        run: >-
+          python -m py_compile
+          src/frankenstein2/persistent_agency_kernel.py
+          src/frankenstein2/wp206_legacy_authority_recovery.py
+          src/state/unifieddb_identity.py
+          tests/wp206_restart_probe.py
+          tests/test_wp206_legacy_authority_recovery.py
+      - name: Execute accepted-G1 recovery and post-migration tamper regressions
+        env:
+          PYTHONPATH: src
+        run: python tests/test_wp206_legacy_authority_recovery.py -v
+      - name: Preserve bounded credit fence
+        if: always()
+        run: |
+          echo 'SCOPE=WP206_G3_EXPLICIT_LEGACY_AUTHORITY_RECOVERY_REPOSITORY_COMPONENT_ONLY'
+          echo 'TARGET_RUNTIME_CREDIT=0'
+          echo 'PHYSICAL_GRID10_CREDIT=0'
+          echo 'GWT_RUNTIME_CREDIT=0'
+          echo 'EFFECT_CREDIT=0'
+          echo 'COMPLETION_CREDIT=0'
+          echo 'WHOLE_SYSTEM_ACCEPTANCE=false'
