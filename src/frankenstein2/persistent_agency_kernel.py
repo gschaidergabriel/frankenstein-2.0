@@ -951,6 +951,21 @@ class CanonicalPersistentAgencyStore:
             }
         )
         self.connection.execute("PRAGMA foreign_keys=ON")
+        data_version_row = self.connection.execute(
+            "PRAGMA main.data_version"
+        ).fetchone()
+        if (
+            data_version_row is None
+            or len(data_version_row) != 1
+            or type(data_version_row[0]) is not int
+        ):
+            raise PersistentAgencyError("UNIFIEDDB_DATA_VERSION_UNAVAILABLE")
+        # Connection-local observation only.  SQLite advances data_version when a
+        # *different* connection commits.  Never persist or compare it across reopen.
+        self.sqlite_data_version_baseline = int(data_version_row[0])
+        # The external-revision monitor becomes authoritative only after
+        # the first canonical schema initialization boundary.
+        self._sqlite_revision_monitor_initialized = False
 
     @classmethod
     def open(
@@ -980,6 +995,22 @@ class CanonicalPersistentAgencyStore:
         """Create only WP-206-owned tables inside the selected canonical DB."""
         if self.connection.in_transaction:
             raise PersistentAgencyError("CALLER_TRANSACTION_ALREADY_OPEN")
+        if not self._sqlite_revision_monitor_initialized:
+            data_version_row = self.connection.execute(
+                "PRAGMA main.data_version"
+            ).fetchone()
+            if (
+                data_version_row is None
+                or len(data_version_row) != 1
+                or type(data_version_row[0]) is not int
+            ):
+                raise PersistentAgencyError("UNIFIEDDB_DATA_VERSION_UNAVAILABLE")
+            # One bounded re-baseline absorbs canonical connection setup
+            # (for example journal-mode establishment) before schema init.
+            # It cannot be repeated to launder later external commits.
+            self.sqlite_data_version_baseline = int(data_version_row[0])
+        else:
+            self._assert_current_file_identity()
         try:
             self.connection.execute("BEGIN IMMEDIATE")
             self.connection.execute(
@@ -1004,6 +1035,7 @@ class CanonicalPersistentAgencyStore:
                     ON {CHECKPOINT_TABLE}(kernel_state_id, generation)"""
             )
             self.connection.commit()
+            self._sqlite_revision_monitor_initialized = True
         except Exception:
             self.connection.rollback()
             raise
@@ -1015,6 +1047,17 @@ class CanonicalPersistentAgencyStore:
             raise PersistentAgencyError("UNIFIEDDB_FILE_MISSING_DURING_STORE_USE") from exc
         if (st.st_dev, st.st_ino) != (self.db_device, self.db_inode):
             raise PersistentAgencyError("UNIFIEDDB_FILE_IDENTITY_DRIFT")
+        data_version_row = self.connection.execute(
+            "PRAGMA main.data_version"
+        ).fetchone()
+        if (
+            data_version_row is None
+            or len(data_version_row) != 1
+            or type(data_version_row[0]) is not int
+        ):
+            raise PersistentAgencyError("UNIFIEDDB_DATA_VERSION_UNAVAILABLE")
+        if int(data_version_row[0]) != self.sqlite_data_version_baseline:
+            raise PersistentAgencyError("UNIFIEDDB_EXTERNAL_SQLITE_REVISION_DRIFT")
 
     def write_checkpoint(self, checkpoint: PersistentAgencyCheckpoint) -> str:
         if not isinstance(checkpoint, PersistentAgencyCheckpoint):
@@ -1110,7 +1153,6 @@ class CanonicalPersistentAgencyStore:
 
     def load_checkpoint(self, checkpoint_id: str) -> PersistentAgencyCheckpoint:
         checkpoint_id = _identifier("checkpoint_id", checkpoint_id)
-        self._assert_current_file_identity()
         row = self.connection.execute(
             f"""SELECT checkpoint_sha256, checkpoint_json, canonical_db_path,
                        db_device, db_inode, unifieddb_authority_receipt_sha256
@@ -1139,6 +1181,10 @@ class CanonicalPersistentAgencyStore:
         checkpoint = PersistentAgencyCheckpoint.from_dict(raw)
         if checkpoint.sha256() != expected_sha:
             raise PersistentAgencyError("CHECKPOINT_TYPED_REPLAY_DIGEST_MISMATCH")
+        # Preserve established row-specific corruption/authority errors first;
+        # unchanged rows still require the global external-revision fence
+        # immediately before the typed checkpoint is returned.
+        self._assert_current_file_identity()
         return checkpoint
 
     def latest_checkpoint(
