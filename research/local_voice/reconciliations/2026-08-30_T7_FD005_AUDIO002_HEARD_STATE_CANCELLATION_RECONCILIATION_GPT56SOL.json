@@ -1,0 +1,57 @@
+{
+  "schema": "T7_RECONCILIATION/v1",
+  "trigger": "7",
+  "date": "2026-08-30",
+  "organ": "GPT-5.6-Sol-TRIGGER7",
+  "lhs": {
+    "ref": "research/local_voice/frontier/2026-08-30_T7_AUDIO_002_CANCELLABLE_PIPEWIRE_ALSA_TRANSPORT_AUDIT.md",
+    "class": "F2_SOURCE_AUDIT_BUILD_FALSIFIER",
+    "runtime_credit": 0
+  },
+  "rhs": {
+    "ref": "research/local_voice/sources/2026-08-30_T7_FD005_VOLSCHIN_VOIP_AGENT_GERMAN_MODULAR_SOURCE_AUDIT_GPT56SOL.json",
+    "upstream": "volschin/voip-agent@dc397a77884b403291828aeb7fe5f35d86cce773",
+    "class": "PINNED_UPSTREAM_SOURCE_AND_SOURCE_TEST_PRECEDENT",
+    "runtime_credit": 0
+  },
+  "relationship": "MECHANISM_CONVERGENCE_WITH_NEW_CAUSAL_DETAILS__NOT_INDEPENDENT_RUNTIME_REPLICATION",
+  "shared_mechanisms": [
+    "advance a playback/response generation before accepting replacement output",
+    "reject or make stale all late old-generation output",
+    "clear queued/unheard playback on interruption",
+    "generated or queued output is not equivalent to heard/spoken output",
+    "bounded ahead-audio is required for prompt barge-in"
+  ],
+  "new_details_contributed_by_fd005": [
+    "await old producer cancellation/finalization before replacement generation begins emitting",
+    "do not append the partial assistant response to dialogue history when the stream is cancelled",
+    "inject one-shot next-turn context that the previous response was interrupted rather than treating it as completed",
+    "source tests explicitly exercise cancellation while the output queue is full and verify clean replacement playback"
+  ],
+  "boundaries": [
+    "T7-AUDIO-002 remains the F2 transport design authority candidate; the upstream donor does not replace F2 VoiceOutcome or memory/effect authority.",
+    "The donor is telephony-oriented and supplies no F2 open-speaker AEC evidence.",
+    "The donor's runtime Smart Turn download path is incompatible with zero-network target runtime unless pre-provisioned/fenced.",
+    "No recognized upstream license was observed; copy-paste code reuse is not admitted.",
+    "Neither source audit grants runtime, German E2E, AEC or Trigger-4 acceptance credit."
+  ],
+  "trigger4_delta": {
+    "recommendation": "EXTEND_EXISTING_AUDIO002_BUILD_FALSIFIER_WITH_CAUSAL_FINALIZATION_AND_HEARD_STATE_TESTS",
+    "tests": [
+      "old producer finalizer completes or loses output authority before any new-generation audio is emitted",
+      "cancelled assistant text is absent from committed spoken/history state",
+      "next turn receives exactly one interruption marker/context and then clears it",
+      "late old-generation chunks remain rejected even if cancellation races a full output queue",
+      "transport flush/drop plus physical/software loopback establishes last-audible old sample before spoken-history commit"
+    ],
+    "do_not": [
+      "create a second competing playback authority",
+      "copy unlicensed donor code",
+      "infer AEC success from SIP/PJSIP behavior",
+      "mint runtime credit from upstream tests or README measurements"
+    ]
+  },
+  "result": "AUDIO002_DIRECTION_STRENGTHENED_BY_PINNED_DONOR_PRECEDENT__ADD_FINALIZER_AND_HISTORY_COMMIT_FALSIFIERS",
+  "runtime_credit_delta": 0,
+  "acceptance_credit_delta": 0
+}
