@@ -1,0 +1,91 @@
+{
+  "schema": "T7_RESEARCH_DELTA/v1",
+  "trigger": "7",
+  "date": "2026-08-31",
+  "created_at": "2026-08-31T04:20:00+07:00",
+  "organ": "GPT-5.6-Sol",
+  "research_id": "T7-FD-RTCOMPAT-001",
+  "classification": "SOURCE_PINNED_RUNTIME_ORACLE_REFINEMENT__NO_PRODUCT_MUTATION_AUTHORITY",
+  "same_semantic_claim": true,
+  "claim_ref": "research/local_voice/claims/T7-FD-RTCOMPAT-001/E3_HF_SPEECH_TO_SPEECH_REALTIME_PROTOCOL_COMPATIBILITY.json",
+  "f2_head_observed_before_write": "5b0d60c7653304000aa06385702f680608e9fb24",
+  "pinned_upstream": {
+    "repository": "huggingface/speech-to-speech",
+    "revision": "3986f453012a131632eee4731995474046846794",
+    "cancel_scope_path": "src/speech_to_speech/pipeline/cancel_scope.py",
+    "cancel_scope_blob_sha": "d731ac1fc671fb445ce496b155ce903dd86438bf",
+    "router_path": "src/speech_to_speech/api/openai_realtime/websocket_router.py",
+    "router_blob_sha": "144596fda74651326d210b3d5e565ef29ca06f5f"
+  },
+  "exact_source_findings": [
+    "CancelScope.cancel() records the superseded generation, increments a 32-bit generation counter and enters a discard window.",
+    "Pipeline producers can reject stale work through is_stale(generation).",
+    "response_done(generation) ignores completion sentinels from unrelated older generations instead of blindly clearing the current discard guard.",
+    "The websocket router drops generation-tagged output that is stale and also drops non-current generations while the post-cancel discard window is active.",
+    "The router source explicitly documents the race where a superseded response may never emit AUDIO_RESPONSE_DONE; generation-aware filtering exists so a fresh response is not swallowed merely because the discard flag lingers.",
+    "Session release additionally flushes queues and holds a unit unavailable until SESSION_END drains; a non-draining unit is quarantined rather than reassigned, reducing cross-session stale-output leakage risk.",
+    "conversation.item.truncate remains a separate semantic boundary: the pinned router accepts it as a deliberate no-op after cancellation because client playback is treated as owner of the unheard tail. The generation fence therefore does not prove heard-prefix/next-turn-context exactness."
+  ],
+  "research_reconciliation": {
+    "superseded_question": "Does the pinned HF stack have any causal cancellation generation fence at all?",
+    "answer": "YES_AT_SOURCE_SCOPE",
+    "remaining_question": "Does the combined cancel/start/late-output/runtime path preserve the fence under adversarial ordering while also preserving the separately measured F2 heard-prefix context policy?",
+    "runtime_credit_delta": 0,
+    "trigger4_acceptance_credit_delta": 0
+  },
+  "oracle_refinement": {
+    "existing_falsifier_ids": ["HF05_DOUBLE_CANCEL_AND_LATE_CHUNK", "HF10_POST_DONE_PLAYOUT_LAG_CONTEXT_EXACTNESS"],
+    "new_duplicate_lane_created": false,
+    "race_sequence": [
+      "start response A and capture generation/response key A",
+      "buffer A output ahead of measured playback",
+      "cancel A and clear local playback at a measured heard boundary",
+      "start response B without waiting for every A completion sentinel",
+      "deliver or observe late A audio, assistant text, response-done sentinel and old-turn tool result in controlled permutations",
+      "verify B remains live while every stale A producer remains non-authoritative",
+      "verify a late A done sentinel cannot clear or corrupt a newer cancellation/discard epoch",
+      "verify heard_fraction and commit eligibility for A never increase after interruption",
+      "verify next-turn effective context contains the admitted measured heard prefix only and excludes A's unheard tail",
+      "repeat across disconnect/release with SESSION_END drain/quarantine observation"
+    ],
+    "product_negative_if": [
+      "late A audio/text is emitted or played after A is causally superseded",
+      "late A completion clears a newer discard/cancellation epoch",
+      "response B is incorrectly discarded because stale A bookkeeping remains active",
+      "old-turn tool output regains current-turn ownership without an explicit causal bridge",
+      "unheard A semantics appear in next-turn effective context",
+      "a released/quarantined pipeline unit leaks old-session output into a newly claimed session"
+    ],
+    "required_receipt_fields_addition": [
+      "cancel_generation_before_and_after_each_cancel",
+      "response_key_A_and_B",
+      "late_item_generation_and_response_key",
+      "discard_decision_per_late_item",
+      "response_done_generation",
+      "heard_boundary_measurement_identity",
+      "heard_prefix_digest",
+      "unheard_tail_digest",
+      "next_turn_effective_context_digest",
+      "session_end_drain_or_quarantine_state"
+    ]
+  },
+  "current_external_research_refresh": {
+    "huggingface_local_stack": "Current Hugging Face local speech-to-speech documentation continues to describe cooperative barge-in via a shared generation-aware CancelScope rather than a single transient cancel pulse.",
+    "recent_full_duplex_research": [
+      "DuplexSLA (arXiv:2605.20755) reinforces synchronized speech/action timing and explicit interruption/tool behavior as separately measurable capabilities.",
+      "VoiceChat-TTS (arXiv:2608.13831) introduces explicit mid-utterance interruption control without resetting KV cache, but German production suitability is not established by the source reviewed here and no runtime lane is opened from this delta."
+    ],
+    "credit": "EXTERNAL_RESEARCH_ONLY"
+  },
+  "coordination": {
+    "wp715_generation1_remains_terminal_accepted_at_packet_component_scope": true,
+    "hf10_existing_trigger4_lane_reused": true,
+    "new_runtime_dispatch": false,
+    "new_semantic_claim": false,
+    "asr_tts_breadth_opened": false,
+    "whole_voice_credit": 0,
+    "physical_audio_credit": 0,
+    "training_credit": 0
+  },
+  "next_exact_action": "Trigger4 extends or parameterizes the existing HF05/HF10 runtime falsifier lane with this exact generation/response-key race oracle, then executes it once through the already-proven controller -> vps-clay-host route. Trigger7 consumes that receipt; it must not open a duplicate dispatch or reinterpret source-level cancellation design as runtime compatibility."
+}
