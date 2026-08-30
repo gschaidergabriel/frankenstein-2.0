@@ -1,0 +1,38 @@
+{
+  "schema": "FRANKENSTEIN2_TRIGGER6_E1_SOURCE_READ/v1",
+  "research_id": "R6-20260830-WP306-CONTEXT-COMPRESSION-GPT56SOL-01",
+  "stage": "E1_SOURCE_READ",
+  "status": "COMPLETE_AT_E1_SCOPE",
+  "claim_ref": "research/tool_intelligence/claims/R6-20260830-WP306-CONTEXT-COMPRESSION-GPT56SOL-01/E1_SOURCE_READ.json",
+  "f2_architecture_snapshot": "401469c0e2ce276372c8c0d87e72e913144cc620",
+  "f2_workpackage_ref": "F2-WP-306 ContextCompiler / bounded ContextViews = NOT_STARTED in WORKPACKAGES.md blob 8de9711dd6f2f310d594b4c244b2639d1ebd37f6",
+  "candidate": {
+    "name": "Microsoft LLMLingua family / LLMLingua-2",
+    "repo": "microsoft/LLMLingua",
+    "source_commit": "e0e9d99beb94098bbd924aa53c2c112eac41c758",
+    "license": "MIT",
+    "implementation_dependencies": [
+      "transformers>=4.26.0",
+      "accelerate",
+      "torch",
+      "tiktoken",
+      "nltk",
+      "numpy"
+    ]
+  },
+  "primary_source_findings": [
+    "LLMLingua-2 formulates prompt compression as token classification and uses bidirectional Transformer encoders such as XLM-RoBERTa-large and mBERT; the ACL 2024 paper reports 2x-5x compression, 3x-6x speedup over earlier prompt-compression methods, and 1.6x-2.9x end-to-end latency acceleration on its evaluated workloads.",
+    "The LLMLingua implementation supports structured prompt segments that may be marked non-compressible or assigned different compression rates, which is relevant to protecting F2 authority/evidence sections.",
+    "The package is not a zero-dependency structural filter: its current setup requires torch/transformers/accelerate plus tokenizer/NLP dependencies and a compression model.",
+    "The produced artifact is compressed natural-language text. It is not itself a typed ContextView, provenance-preserving evidence slice, canonical-state query, or deterministic authority boundary."
+  ],
+  "hypothesis": "LLMLingua-2 could reduce downstream LLM input tokens for large non-authoritative prose payloads, but embedding it as the primary WP306 ContextCompiler would add model/runtime weight and create a lossy text-transformation layer across exact-evidence boundaries.",
+  "counterhypothesis": "Because LLMLingua supports non-compressible structured segments, F2 could preserve exact authority/evidence spans while compressing only expendable narrative context, making it useful as an optional final-stage adapter after deterministic ContextView compilation.",
+  "next_discriminator": "Acquire E2 and map the candidate behind, not inside, the deterministic ContextView boundary. Compare full-framework import versus a thin optional compression adapter whose input is already typed/selected and whose exact-evidence spans are excluded from compression.",
+  "evidence_ceiling": {
+    "level": "E1_SOURCE_READ",
+    "architecture_credit": 0,
+    "runtime_credit": 0,
+    "whole_system_credit": 0
+  }
+}
