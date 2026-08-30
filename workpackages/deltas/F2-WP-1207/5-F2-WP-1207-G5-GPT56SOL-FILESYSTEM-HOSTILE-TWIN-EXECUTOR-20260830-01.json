@@ -1,0 +1,75 @@
+{
+  "schema": "FRANKENSTEIN2_WORKPACKAGE_DELTA/v1",
+  "workpackage_id": "F2-WP-1207",
+  "generation": 5,
+  "claim_id": "F2-WP-1207-G5-GPT56SOL-FILESYSTEM-HOSTILE-TWIN-EXECUTOR-20260830",
+  "status": "SOURCE_AND_LOCAL_EXECUTION_READY_REPOSITORY_CI_REQUIRED",
+  "problem": "The accepted WP1107 archive verifier plus WP1207 transaction and release-readback components define deterministic release identity and transition/readback semantics, but they intentionally do not mutate an installation. The hostile-twin target gate therefore still lacked one bounded executable filesystem adapter able to install the exact release bundle, preserve one durable state lineage across update failure, execute update and explicit rollback, and survive process re-entry without creating a second release/state authority.",
+  "hypothesis": "A scratch-root executor can close this implementation gap by verifying the already-bound release-candidate evidence bundle, extracting immutable release payloads below one caller-supplied root, and atomically switching one canonical current-snapshot pointer whose lineage is produced from the existing WP1207 transaction authority.",
+  "counterhypothesis": "The adapter may accidentally become a second release/state authority, accept partial/stale filesystem state, mutate durable lineage on failed update, or pass only on synthetic bundles while failing the exact accepted G3/G4 release subjects.",
+  "implementation": [
+    "src/frankenstein2/hostile_twin_release_executor.py",
+    "tests/test_hostile_twin_release_executor.py",
+    "tools/run_wp1207_hostile_twin_gate.py",
+    ".github/workflows/wp1207-g5-hostile-twin-executor-ci.yml"
+  ],
+  "authority_reuse": [
+    "WP1107 verify_release_archive remains the release ZIP/container verifier",
+    "WP1207 build_transaction_plan remains transition/generation authority",
+    "WP1207 record_release_readback remains release readback authority",
+    "canonical application state bytes are caller supplied and never inferred by the executor",
+    "the twin activation point is one atomic current-snapshot pointer to immutable release/state snapshots"
+  ],
+  "local_component_tests": {
+    "surface": "CHAT_TRANSIENT_CONTAINER_SCRATCH_ONLY",
+    "hostile_twin_executor": "7_PASS",
+    "release_archive": "15_PASS",
+    "release_archive_metadata_perimeter": "5_PASS",
+    "portable_release_transaction": "12_PASS",
+    "portable_release_readback": "10_PASS",
+    "release_candidate_bundle": "6_PASS",
+    "total": "55_PASS",
+    "target_runtime_credit": 0
+  },
+  "exact_artifact_local_discriminator": {
+    "surface": "CHAT_TRANSIENT_CONTAINER_SCRATCH_ONLY",
+    "predecessor_actions_artifact_id": 9726495595,
+    "predecessor_outer_bundle_sha256": "ea544f37202acf69f5397602cd5cc4c40b72b6bd8105895b87fd2173e9047909",
+    "predecessor_release_archive_sha256": "e6a688673792a70a2deefac25d2241bacc8726f17d05eafac9adca5e2592a3da",
+    "predecessor_manifest_sha256": "82b9319ef310aeaed4b6aa77310b5a7efadaed8cbdb96787679a9966976d04f1",
+    "predecessor_release_digest": "7f86dae06fa0fdbb18a0e9e8a4124d3bee596c563933e41a2a06137eb511b6b5",
+    "candidate_actions_artifact_id": 9726674221,
+    "candidate_outer_bundle_sha256": "e5985de88e4cce762604bb7f6743e7c48a2c20e43516917953234a369b928348",
+    "candidate_release_archive_sha256": "297e7fbb274314fc3bc57077464ca804dfa16062fd00f7b57b247c34346f5c40",
+    "candidate_manifest_sha256": "00cbe0b86ad2208d6f990049d89ae70ce226ce302ee3033b1cf01e416ccc14ad",
+    "candidate_release_digest": "7addee06a6da1b6fa931a9127430627f2bf56e7b0e6f233ef3685cb9c168a8b0",
+    "operation_outcomes": ["SUCCEEDED", "ROLLED_BACK", "SUCCEEDED", "SUCCEEDED"],
+    "process_reentry_readback": "PASS",
+    "final_generation": 2,
+    "final_active_release_digest": "7f86dae06fa0fdbb18a0e9e8a4124d3bee596c563933e41a2a06137eb511b6b5",
+    "state_lineage_preserved": true,
+    "classification": "EXACT_ACCEPTED_ARTIFACT_BYTES_EXECUTED_IN_TRANSIENT_SCRATCH_ONLY_NOT_OWNER_VPS_TARGET_RUNTIME",
+    "target_runtime_credit": 0
+  },
+  "negative_and_route_evidence": [
+    "the existing Dr.-Unterweger WP510 self-hosted run 33265772059 remains queued/unassigned and must not be duplicate-dispatched while unresolved",
+    "the current transient chat container did not expose a directly usable configured SSH bridge; under the execution-surface protocol this is direct-surface absence only, not VPS capability absence",
+    "no G5 target runtime is claimed from local scratch execution or repository CI"
+  ],
+  "acceptance_boundary": {
+    "runtime_execution_observed": false,
+    "hostile_twin_runtime_credit": 0,
+    "target_runtime_credit": 0,
+    "vps_runtime_credit": 0,
+    "physical_host_credit": 0,
+    "grid10_runtime_credit": 0,
+    "gwt_runtime_credit": 0,
+    "jspace_runtime_credit": 0,
+    "provider_model_credit": 0,
+    "effect_credit": 0,
+    "completion_credit": 0,
+    "training_credit": 0,
+    "whole_system_acceptance": false
+  },
+  "next_exact_action": "Require repository-hosted G5 CI on the exact branch source. After green merge-ref/main evidence, freshly resolve an owner-authorized route to clay-direct-dev and execute tools/run_wp1207_hostile_twin_gate.py there using exactly Actions artifacts 9726495595 and 9726674221 plus an explicitly bound state subject. Capture host/sandbox/source/artifact/command/exit/readback evidence before granting any target-environment component runtime credit."
+}
