@@ -1,0 +1,65 @@
+{
+  "schema": "FRANKENSTEIN2_WORKPACKAGE_RECONCILIATION/v1",
+  "workpackage_id": "F2-WP-206",
+  "generation": 6,
+  "claim_id": "F2-WP-206-G6-GPT56SOL-EXTERNAL-SQLITE-REVISION-FENCE-20260830",
+  "worker_id": "GPT-5.6-Sol-TRIGGER4",
+  "authority_epoch": "9.13",
+  "state": "ACCEPTED",
+  "accepted_scope": "PERSISTENT_AGENCY_WP206_OWNED_SQLITE_SURFACE_REVISION_FENCE_REPOSITORY_HOSTED_COMPONENT_CI_ONLY",
+  "semantic_disposition": "Generation 6 narrows the originally proposed database-wide external-revision fence. PRAGMA main.data_version is only a connection-local dirty hint; bounded revalidation of the WP206-owned checkpoint schema and rows is the verdict, so unrelated typed UnifiedDB writers do not create false authority drift.",
+  "implementation": {
+    "pull_request": 754,
+    "head_sha": "c2646d09753dd791b93958f29d27398ebff53536",
+    "merged_main_sha": "2e1619183450b85eddddf87136e2cece9c8ebfed",
+    "module": "src/frankenstein2/persistent_agency_kernel.py",
+    "module_blob_sha_at_merge": "f4ba5a329c230f7fba9bcdba4e4e5ce9e9ece3cc",
+    "acceptance_test": "tests/test_wp206_g6_owned_surface_witness.py",
+    "acceptance_test_blob_sha": "28e26dfc9cdb8de4cb6dcacba06341caca214654",
+    "falsifier": "tests/falsifier_wp206_g6_external_sqlite_revision_drift.py"
+  },
+  "executable_evidence": {
+    "exact_source_one_shot_run_id": 33318343169,
+    "exact_source_one_shot_job_id": 99275781290,
+    "exact_source_one_shot_conclusion": "success",
+    "pr_head_integration_runs": [
+      33318380551,
+      33318380525,
+      33318380570,
+      33318380512,
+      33318380538,
+      33318380545,
+      33318380617,
+      33318380514,
+      33318380574,
+      33318380595,
+      33318380546
+    ],
+    "merged_main_integration_run_id": 33318429820,
+    "merged_main_integration_job_id": 99276009712,
+    "merged_main_integration_conclusion": "success"
+  },
+  "negative_evidence_and_review": {
+    "database_wide_data_version_verdict": "REJECTED",
+    "falsifier": "review-only PR746: valid WP103 typed commit advanced data_version without WP206 mutation",
+    "superseded_donors": [
+      742,
+      749
+    ]
+  },
+  "mechanistic_resolution": "Use data_version only to decide when bounded revalidation is necessary. Compare the resulting deterministic same-process WP206-owned-surface witness to the admitted baseline; refresh only the dirty hint after unrelated typed writes and fail closed when the owned witness changes.",
+  "decision": "Accept generation 6 at repository-hosted component-CI scope only. Preserve target runtime, physical GRID10, semantic GWT/J-Space, effects, completion, training and whole-system credits at zero.",
+  "acceptance_receipt": "workpackages/receipts/F2-WP-206_G6_OWNED_SQLITE_SURFACE_REVISION_FENCE.json",
+  "acceptance_receipt_blob_sha": "5ddf981d0ec5e4220b5428d00411db21d00d38b9",
+  "latest_accepted_generation": 6,
+  "runtime_credit": 0,
+  "physical_grid10_credit": 0,
+  "gwt_runtime_credit": 0,
+  "jspace_runtime_credit": 0,
+  "training_credit": 0,
+  "effect_credit": 0,
+  "completion_credit": 0,
+  "whole_system_acceptance": false,
+  "next_exact_action": "Hold WP206 generation 6 closed absent new executable post-G6 counterevidence. Continue the separate target-host restart/recovery and WP510 runner-lifecycle gates without promoting repository CI to runtime credit.",
+  "created_at_utc": "2026-08-30T15:03:00Z"
+}
