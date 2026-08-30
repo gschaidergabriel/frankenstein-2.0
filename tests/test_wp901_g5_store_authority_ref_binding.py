@@ -54,14 +54,15 @@ class WP901G5StoreAuthorityRefBindingTests(PersistedRowLoadAttestationTests):
         self.assertNotIn(self.store.authority_receipt_sha256, authority.receipt_ref)
 
     def test_canonical_component_ref_preserves_g4_g3_g2_continuation(self) -> None:
-        result = self._plan_with(canonical_unifieddb_component_authority_ref())
+        authority = canonical_unifieddb_component_authority_ref()
+        result = self._plan_with(authority)
         self.assertEqual(result.plan.disposition, CONTINUE_UNFINISHED)
         self.assertEqual(
             result.load_attestation.unifieddb_authority_receipt_sha256,
             self.store.authority_receipt_sha256,
         )
         self.assertNotEqual(
-            result.plan.source_binding.unifieddb_authority.receipt_ref,
+            authority.receipt_ref,
             result.load_attestation.unifieddb_authority_receipt_sha256,
         )
 
