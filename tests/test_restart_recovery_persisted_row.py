@@ -79,15 +79,10 @@ class RestartRecoveryPersistedRowTests(unittest.TestCase):
         finally:
             connection.close()
 
-        env = os.environ.copy()
-        env["HOME"] = str(self.home)
-        env["FRANKENSTEIN2_DB"] = str(self.db)
-        resolution = resolve_unifieddb_path(env=env, home=self.home)
-        fingerprint = fingerprint_unifieddb(resolution.path)
-        self.store = CanonicalPersistentAgencyStore.open(
-            resolution=resolution,
-            fingerprint=fingerprint,
-        )
+        self.env = os.environ.copy()
+        self.env["HOME"] = str(self.home)
+        self.env["FRANKENSTEIN2_DB"] = str(self.db)
+        self.store = self._open_store()
         self.store.initialize_schema()
 
         (
@@ -166,6 +161,18 @@ class RestartRecoveryPersistedRowTests(unittest.TestCase):
         self.store.close()
         self._tmp.cleanup()
 
+    def _open_store(self) -> CanonicalPersistentAgencyStore:
+        resolution = resolve_unifieddb_path(env=self.env, home=self.home)
+        fingerprint = fingerprint_unifieddb(resolution.path)
+        return CanonicalPersistentAgencyStore.open(
+            resolution=resolution,
+            fingerprint=fingerprint,
+        )
+
+    def reopen_store(self) -> None:
+        self.store.close()
+        self.store = self._open_store()
+
     def plan(self):
         return plan_restart_continuation_from_persisted_row(
             self.evidence,
@@ -181,7 +188,7 @@ class RestartRecoveryPersistedRowTests(unittest.TestCase):
             outcome=self.outcome,
         )
 
-    def test_canonical_store_row_load_feeds_g3_and_preserves_g2_semantics(self) -> None:
+    def test_canonical_store_snapshot_row_feeds_g3_and_preserves_g2_semantics(self) -> None:
         result = self.plan()
         self.assertEqual(result.plan.disposition, CONTINUE_UNFINISHED)
         self.assertEqual(result.plan.reason_code, "EXPLICIT_UNFINISHED_EVIDENCE")
@@ -193,16 +200,34 @@ class RestartRecoveryPersistedRowTests(unittest.TestCase):
             self.store.authority_receipt_sha256,
         )
         self.assertEqual(result.attestation.classification, ROW_ATTESTATION_CLASSIFICATION)
+        self.assertRegex(result.attestation.checkpoint_json_sha256, r"^[0-9a-f]{64}$")
+        self.assertRegex(result.attestation.row_evidence_sha256, r"^[0-9a-f]{64}$")
         payload = result.attestation.as_dict()
         self.assertEqual(
             payload["persisted_row_attestation"],
-            "OBSERVED_BY_CANONICAL_STORE_LOAD",
+            "OBSERVED_BY_CANONICAL_STORE_LOAD_AND_SAME_SNAPSHOT_ROW_BINDING",
+        )
+        self.assertTrue(payload["sqlite_snapshot_bound"])
+        self.assertEqual(
+            payload["receipt_minter"],
+            "WP901_SNAPSHOT_ADAPTER_AROUND_CONCRETE_WP206_STORE",
         )
         self.assertEqual(payload["same_inode_global_db_drift_closure"], "NOT_CLAIMED")
         self.assertEqual(payload["truth_authority"], "NONE")
         self.assertEqual(payload["persistence_authority"], "NONE")
         self.assertEqual(payload["runtime_credit"], 0)
         self.assertFalse(payload["whole_system_acceptance"])
+
+    def test_fresh_connection_reopen_consumes_same_persisted_checkpoint(self) -> None:
+        writer_receipt = self.store.authority_receipt_sha256
+        writer_inode = self.store.db_inode
+        self.reopen_store()
+        self.assertEqual(self.store.authority_receipt_sha256, writer_receipt)
+        self.assertEqual(self.store.db_inode, writer_inode)
+        result = self.plan()
+        self.assertEqual(result.attestation.checkpoint_id, self.checkpoint.checkpoint_id)
+        self.assertEqual(result.attestation.checkpoint_sha256, self.checkpoint.sha256())
+        self.assertEqual(result.plan.disposition, CONTINUE_UNFINISHED)
 
     def test_expected_checkpoint_digest_mismatch_fails_after_real_load(self) -> None:
         with self.assertRaisesRegex(
@@ -251,6 +276,18 @@ class RestartRecoveryPersistedRowTests(unittest.TestCase):
         ):
             self.plan()
 
+    def test_tampered_row_store_authority_is_rejected_by_wp206_loader(self) -> None:
+        self.store.connection.execute(
+            "UPDATE f2_persistent_agency_checkpoints SET unifieddb_authority_receipt_sha256=? WHERE checkpoint_id=?",
+            ("0" * 64, self.checkpoint.checkpoint_id),
+        )
+        self.store.connection.commit()
+        with self.assertRaisesRegex(
+            RestartPersistedRowError,
+            "PERSISTED_ROW_LOAD_REJECTED:CHECKPOINT_DB_AUTHORITY_RECEIPT_MISMATCH",
+        ):
+            self.plan()
+
     def test_forged_recovery_evidence_cannot_substitute_for_loaded_checkpoint(self) -> None:
         forged = replace(
             self.evidence,
@@ -274,6 +311,38 @@ class RestartRecoveryPersistedRowTests(unittest.TestCase):
                 whole_loop_seal=self.seal,
                 outcome=self.outcome,
             )
+
+    def test_hostile_store_subclass_cannot_override_loader_and_mint_attestation(self) -> None:
+        class HostileStore(CanonicalPersistentAgencyStore):
+            def load_checkpoint(self, checkpoint_id):  # pragma: no cover - must never run
+                return self.checkpoint
+
+        hostile = object.__new__(HostileStore)
+        with self.assertRaisesRegex(
+            RestartPersistedRowError,
+            "store must be concrete CanonicalPersistentAgencyStore",
+        ):
+            load_checkpoint_with_row_attestation(
+                hostile,
+                checkpoint_id=self.checkpoint.checkpoint_id,
+                expected_checkpoint_sha256=self.checkpoint.sha256(),
+                expected_store_authority_receipt_sha256=self.store.authority_receipt_sha256,
+            )
+
+    def test_existing_caller_transaction_fails_without_committing_it(self) -> None:
+        self.store.connection.execute("BEGIN")
+        with self.assertRaisesRegex(
+            RestartPersistedRowError,
+            "PERSISTED_ROW_CALLER_TRANSACTION_ALREADY_OPEN",
+        ):
+            load_checkpoint_with_row_attestation(
+                self.store,
+                checkpoint_id=self.checkpoint.checkpoint_id,
+                expected_checkpoint_sha256=self.checkpoint.sha256(),
+                expected_store_authority_receipt_sha256=self.store.authority_receipt_sha256,
+            )
+        self.assertTrue(self.store.connection.in_transaction)
+        self.store.connection.rollback()
 
     def test_unrelated_same_inode_db_mutation_does_not_overclaim_global_drift_closure(self) -> None:
         self.store.connection.execute(
