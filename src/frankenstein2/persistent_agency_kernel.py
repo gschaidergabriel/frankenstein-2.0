@@ -1,6 +1,6 @@
 """Persistent Agency Kernel integration for Frankenstein 2.0.
 
-F2-WP-206 generation 1.
+F2-WP-206 generation 2.
 
 This module is a deterministic integration boundary over already-bounded components. It
 stores WP-206-owned checkpoint rows inside the *existing* canonical UnifiedDB selected by
@@ -1106,17 +1106,26 @@ class CanonicalPersistentAgencyStore:
         self._assert_current_file_identity()
         row = self.connection.execute(
             f"""SELECT checkpoint_sha256, checkpoint_json, canonical_db_path,
-                       db_device, db_inode
+                       db_device, db_inode, unifieddb_authority_receipt_sha256
                 FROM {CHECKPOINT_TABLE} WHERE checkpoint_id=?""",
             (checkpoint_id,),
         ).fetchone()
         if row is None:
             raise PersistentAgencyError("CHECKPOINT_NOT_FOUND")
-        expected_sha, raw_json, stored_path, stored_device, stored_inode = row
+        (
+            expected_sha,
+            raw_json,
+            stored_path,
+            stored_device,
+            stored_inode,
+            stored_authority_receipt_sha256,
+        ) = row
         if not _same_real_path(stored_path, self.canonical_db_path):
             raise PersistentAgencyError("CHECKPOINT_DB_PATH_AUTHORITY_MISMATCH")
         if (stored_device, stored_inode) != (self.db_device, self.db_inode):
             raise PersistentAgencyError("CHECKPOINT_DB_FILE_IDENTITY_DRIFT")
+        if stored_authority_receipt_sha256 != self.authority_receipt_sha256:
+            raise PersistentAgencyError("CHECKPOINT_DB_AUTHORITY_RECEIPT_MISMATCH")
         try:
             raw = json.loads(raw_json)
         except json.JSONDecodeError as exc:
