@@ -1,0 +1,30 @@
+name: REVIEW WP306 D14 Memory Authority Falsifier
+
+on:
+  push:
+    branches:
+      - review/trigger4-wp306-d14-memory-authority-falsifier-20260830
+    paths:
+      - 'src/frankenstein2/context_compiler.py'
+      - 'tests/test_wp306_d14_memory_authority_falsifier.py'
+      - '.github/workflows/review-wp306-d14-memory-authority-falsifier.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  falsifier:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Compile falsifier
+        run: python -m py_compile tests/test_wp306_d14_memory_authority_falsifier.py
+      - name: Run D14 candidate falsifier
+        env:
+          PYTHONPATH: src
+        run: python tests/test_wp306_d14_memory_authority_falsifier.py -v
