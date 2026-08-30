@@ -83,6 +83,7 @@ class PersistedCheckpointLoadAttestation:
 
     checkpoint_id: str
     checkpoint_generation: int
+    checkpoint_previous_checkpoint_id: str | None
     checkpoint_sha256: str
     canonical_db_path: str
     db_device: int
@@ -99,6 +100,7 @@ class PersistedCheckpointLoadAttestation:
             "classification": self.classification,
             "checkpoint_id": self.checkpoint_id,
             "checkpoint_generation": self.checkpoint_generation,
+            "checkpoint_previous_checkpoint_id": self.checkpoint_previous_checkpoint_id,
             "checkpoint_sha256": self.checkpoint_sha256,
             "canonical_db_path": self.canonical_db_path,
             "db_device": self.db_device,
@@ -172,7 +174,8 @@ def attest_persisted_checkpoint_load(
         connection.execute("BEGIN")
         checkpoint = store.load_checkpoint(checkpoint_id)
         row = connection.execute(
-            f"""SELECT generation, checkpoint_sha256, checkpoint_json,
+            f"""SELECT generation, previous_checkpoint_id,
+                       checkpoint_sha256, checkpoint_json,
                        canonical_db_path, db_device, db_inode,
                        unifieddb_authority_receipt_sha256
                 FROM {CHECKPOINT_TABLE} WHERE checkpoint_id=?""",
@@ -184,6 +187,7 @@ def attest_persisted_checkpoint_load(
             )
         (
             stored_generation,
+            stored_previous_checkpoint_id,
             stored_checkpoint_sha,
             stored_checkpoint_json,
             stored_path,
@@ -195,6 +199,10 @@ def attest_persisted_checkpoint_load(
         if stored_generation != checkpoint.generation:
             raise PersistedRowLoadAttestationError(
                 "PERSISTED_ROW_CHECKPOINT_GENERATION_MISMATCH"
+            )
+        if stored_previous_checkpoint_id != checkpoint.previous_checkpoint_id:
+            raise PersistedRowLoadAttestationError(
+                "PERSISTED_ROW_PREVIOUS_CHECKPOINT_ID_MISMATCH"
             )
         if stored_checkpoint_sha != checkpoint.sha256():
             raise PersistedRowLoadAttestationError(
@@ -217,6 +225,7 @@ def attest_persisted_checkpoint_load(
             "schema": "FRANKENSTEIN2_PERSISTED_CHECKPOINT_ROW_EVIDENCE/v1",
             "checkpoint_id": checkpoint_id,
             "generation": stored_generation,
+            "previous_checkpoint_id": stored_previous_checkpoint_id,
             "checkpoint_sha256": stored_checkpoint_sha,
             "checkpoint_json": stored_checkpoint_json,
             "canonical_db_path": stored_path,
@@ -227,6 +236,7 @@ def attest_persisted_checkpoint_load(
         attestation = PersistedCheckpointLoadAttestation(
             checkpoint_id=checkpoint.checkpoint_id,
             checkpoint_generation=checkpoint.generation,
+            checkpoint_previous_checkpoint_id=checkpoint.previous_checkpoint_id,
             checkpoint_sha256=checkpoint.sha256(),
             canonical_db_path=store.canonical_db_path,
             db_device=store.db_device,
