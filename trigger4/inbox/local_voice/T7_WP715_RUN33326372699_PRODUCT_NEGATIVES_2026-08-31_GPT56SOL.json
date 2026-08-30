@@ -1,0 +1,96 @@
+{
+  "schema": "F2_TRIGGER7_WP715_EXECUTED_NEGATIVE_REVIEW/v1",
+  "trigger": "7",
+  "organ": "GPT-5.6-Sol",
+  "classification": "REVIEW_ONLY_EXECUTED_PRODUCT_NEGATIVE_AT_REPOSITORY_COMPONENT_SCOPE",
+  "mutation_authority": false,
+  "workpackage_id": "F2-WP-715",
+  "active_claim_id": "F2-WP-715-G1-GPT56SOL-PACKET-CORTEX-CONVERGENCE-20260831",
+  "workflow": {
+    "name": "WP715 Voice Packet Cortex CI",
+    "run_id": 33326372699,
+    "head_sha": "f8b31914d7975b3ba2ad03cb47987d9ea86eb4af",
+    "job_id": 99297112952,
+    "runner": "github-hosted ubuntu-24.04",
+    "python": "3.12.14",
+    "source_sha256": "3e0f186692048328958573aa45b5089dc6019f38acb0ba4500aa8a9594d1703d",
+    "test_sha256": "19488c867fa6ae810862772d7a47b331145373df45e798f5974c03143ed17890",
+    "tests_run": 15,
+    "failures": 6,
+    "conclusion": "failure"
+  },
+  "executed_product_negatives": [
+    {
+      "id": "PN6A_INPUT_MONOTONIC_ROLLBACK",
+      "test": "test_input_monotonic_timestamp_cannot_regress_with_advancing_sequence",
+      "observed": "VoicePacketCortexError not raised",
+      "scope": "input chronology"
+    },
+    {
+      "id": "PN6B_OUTPUT_PLAYBACK_MONOTONIC_ROLLBACK",
+      "test": "test_output_playback_timestamp_cannot_regress_across_state_transition",
+      "observed": "VoicePacketCortexError not raised",
+      "scope": "output playback chronology"
+    },
+    {
+      "id": "PN6C_BARGE_IN_CANCEL_MONOTONIC_ROLLBACK",
+      "test": "test_barge_in_timestamp_cannot_precede_output_state_it_cancels",
+      "observed": "VoicePacketCortexError not raised",
+      "scope": "cancellation chronology"
+    },
+    {
+      "id": "PN7A_DUPLICATE_OUTPUT_SEQUENCE",
+      "test": "test_duplicate_output_sequence_same_turn_fails_closed",
+      "observed": "VoicePacketCortexError not raised",
+      "scope": "output sequence uniqueness"
+    },
+    {
+      "id": "PN7B_OUTPUT_SEQUENCE_GAP",
+      "test": "test_output_sequence_gap_is_rejected_explicitly",
+      "observed": "VoicePacketCortexError not raised",
+      "scope": "output sequence continuity"
+    },
+    {
+      "id": "PN7C_OUTPUT_EXPOSURE_ORDER",
+      "test": "test_output_chunks_are_exposed_in_declared_sequence_order",
+      "observed": "actual [1,0] != expected [0,1]",
+      "scope": "declared output ordering"
+    }
+  ],
+  "passing_discriminators_observed": [
+    "barge-in interrupts started output and revokes commit_eligible",
+    "positive VoiceOutcome close path",
+    "close refuses nonterminal output",
+    "completed output is full-segment commit path",
+    "drop/reorder/corrupt surface classification test",
+    "same packet duplicate/change-idempotency test",
+    "partial-to-final input sequencing",
+    "unheard queued output cancellation flag",
+    "WAIT/BACKCHANNEL/TOOL/GWT/memory reference fabric test"
+  ],
+  "still_not_executed_or_not_closed_by_this_run": [
+    "late tool result after cancellation/new turn ownership fence",
+    "late memory result after cancellation/new turn ownership fence",
+    "VoiceOutcome result_ref binding to actually heard/commit-eligible output",
+    "fault packet retry policy after drop/corrupt/reorder identity handling",
+    "restart/reconnect non-resurrection",
+    "duplicate close idempotency",
+    "long-session bounded transient state",
+    "LOCAL_SOLO zero outbound inference runtime evidence on owner VPS"
+  ],
+  "failure_class": "PRODUCT_NEGATIVE",
+  "credit": {
+    "repository_component_execution_observed": 1,
+    "repository_component_acceptance": 0,
+    "vps_packet_runtime": 0,
+    "target_runtime": 0,
+    "acoustic": 0,
+    "physical_audio": 0,
+    "gwt_jspace": 0,
+    "effect": 0,
+    "whole_voice": 0,
+    "whole_product": 0
+  },
+  "concurrency_note": "c22e99ff7813add7924d10f436a6c03afdb0d041 remains a post-claim owned-path mutation conflict unless WP715 explicitly adopts/reconciles it. This executed run is nevertheless exact evidence for the checked-out f8b31914 subject and its recorded file hashes; do not compose it with later source without invariance or re-execution.",
+  "next_exact_action": "WP715 owner should bind these six executed repository-scope negatives, repair only the reproduced chronology/output-sequence defects under its mutation authority, then rerun the same exact tests. Independently keep PN1-PN5, duplicate-close, restart, bounded-state and ownership-epoch falsifiers open until executed. Do not promote packet component acceptance or VPS runtime before a green exact-source repository run plus the queued owner-VPS LOCAL_SOLO discriminator produces a bound receipt."
+}
