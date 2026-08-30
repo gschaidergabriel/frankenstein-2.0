@@ -1,9 +1,11 @@
 """Deterministic release-candidate ZIP construction and verification.
 
-F2-WP-1107 generation 2. Ambient filesystem metadata is excluded from archive identity:
-member order, timestamp, POSIX mode, ZIP version, compression, comments and extra fields are
-explicit policy. V1 forbids ZIP64 and non-ASCII member names so the builder cannot emit a
-container that its verifier rejects or whose filename flags depend on runtime encoding paths.
+F2-WP-1107 generation 3 preserves the generation-2 deterministic archive contract and
+closes the exact archive-byte perimeter around the classic ZIP end-of-central-directory
+(EOCD). Ambient filesystem metadata is excluded from archive identity: member order,
+timestamp, POSIX mode, ZIP version, compression, comments and extra fields are explicit
+policy. V1 forbids ZIP64 and non-ASCII member names so the builder cannot emit a container
+that its verifier rejects or whose filename flags depend on runtime encoding paths.
 The embedded accepted WP1107 manifest remains the payload-integrity authority.
 
 REPRODUCIBLE_ARCHIVE_COMPONENT != INSTALLATION != TARGET_RUNTIME != COMPLETION
@@ -31,6 +33,8 @@ _MAX_ZIP_EPOCH = 4354819198
 _REGULAR_TYPE = stat.S_IFREG
 _ZIP20 = 20
 _MAX_CLASSIC_ZIP_MEMBERS = 65535
+_EOCD_SIGNATURE = b"PK\x05\x06"
+_EOCD_FIXED_SIZE = 22
 
 
 class ReleaseArchiveError(ValueError):
@@ -245,9 +249,43 @@ def _expected_attr(path: str, policy: ReleaseArchivePolicy) -> int:
     return ((_REGULAR_TYPE | _mode(path, policy)) & 0xFFFF) << 16
 
 
+def _require_exact_classic_eocd_tail(archive_bytes: bytes) -> None:
+    """Reject bytes outside the canonical classic-ZIP EOCD perimeter.
+
+    Generation 2 already forbids archive comments, ZIP64 and multi-disk archives. Under that
+    policy the EOCD is exactly the final 22 bytes, and the central directory must terminate
+    immediately before it. Python's ``zipfile`` intentionally tolerates concatenated/trailing
+    bytes, so this boundary must be checked explicitly before ordinary ZIP parsing.
+    """
+    if len(archive_bytes) < _EOCD_FIXED_SIZE:
+        raise ReleaseArchiveError("invalid release ZIP: missing canonical EOCD")
+    eocd_offset = len(archive_bytes) - _EOCD_FIXED_SIZE
+    eocd = archive_bytes[eocd_offset:]
+    if eocd[:4] != _EOCD_SIGNATURE:
+        raise ReleaseArchiveError("invalid release ZIP: trailing/unbound bytes after canonical EOCD")
+
+    disk_number = int.from_bytes(eocd[4:6], "little")
+    central_directory_disk = int.from_bytes(eocd[6:8], "little")
+    entries_on_disk = int.from_bytes(eocd[8:10], "little")
+    entries_total = int.from_bytes(eocd[10:12], "little")
+    central_directory_size = int.from_bytes(eocd[12:16], "little")
+    central_directory_offset = int.from_bytes(eocd[16:20], "little")
+    comment_length = int.from_bytes(eocd[20:22], "little")
+
+    if comment_length != 0:
+        raise ReleaseArchiveError("archive comment must be empty")
+    if disk_number != 0 or central_directory_disk != 0 or entries_on_disk != entries_total:
+        raise ReleaseArchiveError("multi-disk release ZIP is forbidden")
+    if entries_total > _MAX_CLASSIC_ZIP_MEMBERS:
+        raise ReleaseArchiveError("archive member count requires forbidden ZIP64")
+    if central_directory_offset + central_directory_size != eocd_offset:
+        raise ReleaseArchiveError("invalid release ZIP: central directory does not terminate at canonical EOCD")
+
+
 def verify_release_archive(archive_bytes: bytes, *, policy: ReleaseArchivePolicy, expected_receipt: ReleaseArchiveReceipt | None = None, manifest_path: str = DEFAULT_MANIFEST_PATH) -> ReleaseArchiveReceipt:
     if not isinstance(archive_bytes, bytes) or not archive_bytes:
         raise ReleaseArchiveError("archive_bytes must be non-empty bytes")
+    _require_exact_classic_eocd_tail(archive_bytes)
     manifest_path = _relpath(manifest_path)
     try:
         archive = zipfile.ZipFile(io.BytesIO(archive_bytes), "r", allowZip64=False)
