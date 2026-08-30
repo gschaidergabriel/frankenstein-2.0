@@ -86,7 +86,7 @@ class VoicePacketCortexTests(unittest.TestCase):
         cortex.advance_output("output-0", playback_state="started", monotonic_ms=20, heard_fraction=0.0)
         cortex.advance_output("output-0", playback_state="heard", monotonic_ms=200, heard_fraction=0.2)
         event = cortex.accept_input(
-            self.input_packet(cortex, barge_in=True, overlap_state="USER_OVER_OUTPUT")
+            self.input_packet(cortex, monotonic_ms=201, barge_in=True, overlap_state="USER_OVER_OUTPUT")
         )
         self.assertEqual(event.event_kind, "SPEECH_START_ASR_PARTIAL")
         output = cortex.outputs[0]
