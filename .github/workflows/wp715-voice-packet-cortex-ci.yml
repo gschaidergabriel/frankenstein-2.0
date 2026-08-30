@@ -119,7 +119,7 @@ jobs:
           MAX_OUTPUT_PACKETS = VoicePacketCortex.MAX_OUTPUT_PACKETS
           MAX_TOOL_REFS = VoicePacketCortex.MAX_TOOL_REFS
           MAX_EVENTS = VoicePacketCortex.MAX_EVENTS
-          MAX_TEXT_CHARS = 32768
+          MAX_TEXT_CHARS = VoicePacketCortex.MAX_TEXT_CHARS
 
           def make_session(suffix: str) -> VoiceSessionCapsule:
               root = CausalIdentity(
@@ -157,11 +157,11 @@ jobs:
               except VoicePacketCortexError:
                   rejected_at = index
                   break
-          assert rejected_at is not None and rejected_at <= MAX_INPUT_PACKETS
-          assert len(cortex._input_seen) <= MAX_INPUT_PACKETS
-          assert len(cortex._last_input_sequence) <= MAX_INPUT_PACKETS
-          assert len(cortex._last_input_monotonic_ms) <= MAX_INPUT_PACKETS
-          assert len(cortex._final_turns) <= MAX_INPUT_PACKETS
+          assert rejected_at == MAX_INPUT_PACKETS
+          assert len(cortex._input_seen) == MAX_INPUT_PACKETS
+          assert len(cortex._last_input_sequence) == MAX_INPUT_PACKETS
+          assert len(cortex._last_input_monotonic_ms) == MAX_INPUT_PACKETS
+          assert len(cortex._final_turns) == MAX_INPUT_PACKETS
 
           cortex = VoicePacketCortex(make_session('outputs'))
           rejected_at = None
@@ -175,8 +175,8 @@ jobs:
               except VoicePacketCortexError:
                   rejected_at = index
                   break
-          assert rejected_at is not None and rejected_at <= MAX_OUTPUT_PACKETS
-          assert len(cortex._outputs) <= MAX_OUTPUT_PACKETS
+          assert rejected_at == MAX_OUTPUT_PACKETS
+          assert len(cortex._outputs) == MAX_OUTPUT_PACKETS
 
           cortex = VoicePacketCortex(make_session('tools'))
           rejected_at = None
@@ -189,32 +189,156 @@ jobs:
               except VoicePacketCortexError:
                   rejected_at = index
                   break
-          assert rejected_at is not None and rejected_at <= MAX_TOOL_REFS
-          assert len(cortex._active_tools) + len(cortex._cancelled_tools) <= MAX_TOOL_REFS
+          assert rejected_at == MAX_TOOL_REFS
+          assert len(cortex._active_tools) + len(cortex._cancelled_tools) == MAX_TOOL_REFS
 
           cortex = VoicePacketCortex(make_session('events'))
           rejected_at = None
-          for index in range(MAX_EVENTS + 2):
+          for index in range(MAX_EVENTS + 1):
               try:
                   cortex.emit_intent(turn_id='turn-events', monotonic_ms=1000 + index, voice_intent='WAIT')
               except VoicePacketCortexError:
                   rejected_at = index
                   break
-          assert rejected_at is not None and len(cortex.events) <= MAX_EVENTS
+          # SESSION_OPEN already consumes one event slot.
+          assert rejected_at == MAX_EVENTS - 1
+          assert len(cortex.events) == MAX_EVENTS
 
+          one = VoiceInputPacket(
+              session_id=cortex.session_id, turn_id='turn-text', packet_id='input-text-at-cap',
+              monotonic_ms=9999, source_modality='asr_final', text='x' * MAX_TEXT_CHARS,
+              language='de-DE', is_final=True, confidence=0.99, speech_start=True,
+              speech_end=True, vad_state='SPEECH', endpoint_decision='END', overlap_state='NONE',
+              barge_in=False, source_duration_ms=1, sequence=0, fault_flags=(),
+          )
+          assert len(one.text) == MAX_TEXT_CHARS
           try:
-              one = VoiceInputPacket(
-                  session_id=cortex.session_id, turn_id='turn-text', packet_id='input-text',
-                  monotonic_ms=9999, source_modality='asr_final', text='x' * (MAX_TEXT_CHARS + 1),
+              VoiceInputPacket(
+                  session_id=cortex.session_id, turn_id='turn-text', packet_id='input-text-over-cap',
+                  monotonic_ms=10000, source_modality='asr_final', text='x' * (MAX_TEXT_CHARS + 1),
                   language='de-DE', is_final=True, confidence=0.99, speech_start=True,
                   speech_end=True, vad_state='SPEECH', endpoint_decision='END', overlap_state='NONE',
                   barge_in=False, source_duration_ms=1, sequence=0, fault_flags=(),
               )
           except VoicePacketCortexError:
-              one = None
-          assert one is None
+              pass
+          else:
+              raise AssertionError('MAX_TEXT_CHARS+1 must fail closed')
 
           checkpoint = export_packet_cortex_checkpoint(VoicePacketCortex(make_session('checkpoint')))
           assert len(checkpoint['payload']['events']) <= MAX_EVENTS
-          print('PN10_PASS: packet/replay/event/tool/text/checkpoint state has explicit hard bounds')
+          print('PN10_PASS: source-declared packet/replay/event/tool/text/checkpoint caps hold exactly')
+          PY
+      - name: PN14 PN15 and rejected-event atomicity falsifiers
+        env:
+          PYTHONPATH: src
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from frankenstein2.causal_identity import CausalIdentity
+          from frankenstein2.voice_contract import VoiceIntent, VoiceSessionCapsule
+          from frankenstein2.voice_packet_cortex import VoiceInputPacket, VoicePacketCortex, VoicePacketCortexError
+          from frankenstein2.voice_packet_cortex_recovery import export_packet_cortex_checkpoint, resume_packet_cortex
+
+          def make_cortex(suffix: str) -> VoicePacketCortex:
+              root = CausalIdentity(
+                  session_id=f'session-wp715-{suffix}', agent_id='frankenstein-2',
+                  task_id=f'wp715-{suffix}', turn_id='turn-root',
+                  causal_id=f'causal-root-wp715-{suffix}', generation=1,
+              )
+              intent = VoiceIntent.create(
+                  causal_identity=root, input_ref=f'wp715:{suffix}', input_sha256='b' * 64,
+                  provenance_refs=(f'trigger4:wp715:{suffix}',),
+              )
+              session = VoiceSessionCapsule.create(
+                  intent=intent,
+                  session_causal_identity=root.derive(
+                      causal_id=f'causal-session-wp715-{suffix}', generation=2, turn_id='turn-session'
+                  ),
+                  provenance_refs=(f'trigger4:wp715:{suffix}:session',),
+              )
+              return VoicePacketCortex(session)
+
+          def barge_packet(cortex: VoicePacketCortex, *, packet_id: str, at: int) -> VoiceInputPacket:
+              return VoiceInputPacket(
+                  session_id=cortex.session_id, turn_id='turn-new', packet_id=packet_id,
+                  monotonic_ms=at, source_modality='asr_partial', text='Stopp', language='de-DE',
+                  is_final=False, confidence=0.99, speech_start=True, speech_end=False,
+                  vad_state='SPEECH', endpoint_decision='HOLD', overlap_state='USER_OVER_OUTPUT',
+                  barge_in=True, source_duration_ms=10, sequence=0, fault_flags=(),
+              )
+
+          failures = []
+
+          # PN14: a tool-only pre-output turn must lose ownership on barge-in.
+          cortex = make_cortex('pn14')
+          cortex.emit_intent(turn_id='turn-old', monotonic_ms=100, voice_intent='TOOL_USE', tool_ref='tool:slow')
+          cortex.accept_input(barge_packet(cortex, packet_id='barge-pn14', at=200))
+          try:
+              cortex.emit_system_event(
+                  turn_id='turn-old', monotonic_ms=210, event_kind='TOOL_RESULT', tool_ref='tool:slow'
+              )
+          except VoicePacketCortexError:
+              pass
+          else:
+              failures.append('PN14_PRODUCT_NEGATIVE: tool-only stale ownership survived barge-in')
+
+          # PN15: rejected near-cap barge-in must leave every relevant state surface unchanged.
+          cortex = make_cortex('pn15')
+          cortex.queue_output(
+              turn_id='turn-old', packet_id='output-old', monotonic_ms=100,
+              text_segment='Antwort', expression_intent='neutral', speech_act='ANSWER',
+              planned_audio_duration_ms=100, sequence=0,
+          )
+          cortex.advance_output('output-old', playback_state='started', monotonic_ms=110, heard_fraction=0.0)
+          cortex.emit_intent(turn_id='turn-old', monotonic_ms=120, voice_intent='TOOL_USE', tool_ref='tool:old')
+          while len(cortex.events) < VoicePacketCortex.MAX_EVENTS - 1:
+              cortex.emit_intent(turn_id='turn-fill', monotonic_ms=1000 + len(cortex.events), voice_intent='WAIT')
+          before = (
+              dict(cortex._input_seen), dict(cortex._last_input_sequence),
+              dict(cortex._last_input_monotonic_ms), set(cortex._final_turns),
+              dict(cortex._outputs), dict(cortex._active_tools), set(cortex._cancelled_tools),
+              cortex._event_seq, tuple(cortex.events),
+          )
+          try:
+              cortex.accept_input(barge_packet(cortex, packet_id='barge-pn15', at=10000))
+          except VoicePacketCortexError:
+              pass
+          else:
+              failures.append('PN15_SETUP_ERROR: near-cap barge-in unexpectedly completed')
+          after = (
+              dict(cortex._input_seen), dict(cortex._last_input_sequence),
+              dict(cortex._last_input_monotonic_ms), set(cortex._final_turns),
+              dict(cortex._outputs), dict(cortex._active_tools), set(cortex._cancelled_tools),
+              cortex._event_seq, tuple(cortex.events),
+          )
+          if after != before:
+              failures.append('PN15_PRODUCT_NEGATIVE: rejected near-cap barge-in partially mutated controller state')
+
+          # EVENTSEQ: rejected event construction must not increment sequence or poison checkpoint restart.
+          cortex = make_cortex('eventseq')
+          checkpoint_before = export_packet_cortex_checkpoint(cortex)
+          seq_before = cortex._event_seq
+          events_before = cortex.events
+          try:
+              cortex.emit_system_event(
+                  turn_id='turn-eventseq', monotonic_ms=100, event_kind='ERROR', detail=1
+              )
+          except VoicePacketCortexError:
+              pass
+          else:
+              failures.append('EVENTSEQ_SETUP_ERROR: invalid detail unexpectedly admitted')
+          if cortex._event_seq != seq_before or cortex.events != events_before:
+              failures.append('EVENTSEQ_PRODUCT_NEGATIVE: rejected event mutated event sequence/state')
+          checkpoint_after = export_packet_cortex_checkpoint(cortex)
+          if checkpoint_after['payload_sha256'] != checkpoint_before['payload_sha256']:
+              failures.append('EVENTSEQ_PRODUCT_NEGATIVE: rejected event changed checkpoint digest')
+          try:
+              resume_packet_cortex(cortex.session, checkpoint_after, monotonic_ms=200)
+          except VoicePacketCortexError:
+              failures.append('EVENTSEQ_PRODUCT_NEGATIVE: rejected event poisoned restart checkpoint')
+
+          if failures:
+              raise AssertionError('; '.join(failures))
+          print('PN14_PN15_EVENTSEQ_PASS: ownership fencing and rejected-operation atomicity hold')
           PY
