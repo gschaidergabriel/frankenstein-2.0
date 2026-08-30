@@ -3,8 +3,9 @@
 
 Delivery ownership/CAS/UNKNOWN_DELIVERY semantics remain with Clay's existing
 `research_entity/coordination/live_reentry_delivery_atomicity.py` primitive.
-This F2 helper only validates packet identity, matches a resolved worker context,
-and emits non-authoritative ACK evidence.
+This F2 helper validates packet identity, matches a resolved worker context,
+emits non-authoritative ACK evidence, and generates create-only packet identities
+for explicit coordination intents.
 """
 from __future__ import annotations
 
@@ -103,8 +104,32 @@ def _dump(data: Any) -> str:
     return json.dumps(data, indent=2, sort_keys=True, ensure_ascii=False) + "\n"
 
 
+def _normalize_coordination_intent_id(value: str) -> str:
+    if not isinstance(value, str) or not value.strip():
+        raise PacketError("coordination_intent_id must be a non-empty explicit stable identifier")
+    normalized = value.strip()
+    if normalized != value:
+        raise PacketError("coordination_intent_id must not contain leading or trailing whitespace")
+    if len(normalized.encode("utf-8")) > 512:
+        raise PacketError("coordination_intent_id must be <= 512 UTF-8 bytes")
+    return normalized
+
+
+def coordination_intent_key(coordination_intent_id: str) -> str:
+    """Return a deterministic repository-safe identity for one explicit coordination intent."""
+    normalized = _normalize_coordination_intent_id(coordination_intent_id)
+    return hashlib.sha256(normalized.encode("utf-8")).hexdigest()
+
+
+def coordination_intent_packet_id(coordination_intent_id: str, generation: int) -> str:
+    """Return the create-only packet id/path identity for one intent generation."""
+    if isinstance(generation, bool) or not isinstance(generation, int) or generation <= 0:
+        raise PacketError("coordination_intent_generation must be a positive integer")
+    return f"AWP-I{coordination_intent_key(coordination_intent_id)}-G{generation:06d}"
+
+
 def payload_identity(packet: Mapping[str, Any]) -> dict[str, Any]:
-    return {
+    identity = {
         "objective": packet.get("objective"),
         "constraints": packet.get("constraints"),
         "expected_output": packet.get("expected_output"),
@@ -113,6 +138,12 @@ def payload_identity(packet: Mapping[str, Any]) -> dict[str, Any]:
         "runtime_subject_fence": packet.get("runtime_subject_fence"),
         "owner_intent_epoch": packet.get("owner_intent_epoch"),
     }
+    # Legacy v1 packets remain valid. New intent-bound packets bind the explicit
+    # creation-dedup identity into the sealed semantic payload.
+    if "coordination_intent_id" in packet or "coordination_intent_generation" in packet:
+        identity["coordination_intent_id"] = packet.get("coordination_intent_id")
+        identity["coordination_intent_generation"] = packet.get("coordination_intent_generation")
+    return identity
 
 
 def compute_payload_digest(packet: Mapping[str, Any]) -> str:
@@ -144,6 +175,23 @@ def validate_packet(packet: dict[str, Any]) -> None:
     for field in ("packet_id", "route_id", "nonce", "payload_digest", "architect_id", "project", "objective"):
         if not isinstance(packet.get(field), str) or not packet[field].strip():
             raise PacketError(f"{field} must be a non-empty string")
+
+    has_intent_id = "coordination_intent_id" in packet
+    has_intent_generation = "coordination_intent_generation" in packet
+    if has_intent_id != has_intent_generation:
+        raise PacketError(
+            "coordination_intent_id and coordination_intent_generation must either both be present or both be absent"
+        )
+    if has_intent_id:
+        intent_id = _normalize_coordination_intent_id(packet["coordination_intent_id"])
+        intent_generation = packet["coordination_intent_generation"]
+        expected_packet_id = coordination_intent_packet_id(intent_id, intent_generation)
+        if packet["packet_id"] != expected_packet_id:
+            raise PacketError("packet_id does not match coordination intent identity/generation")
+        supersedes = packet.get("supersedes_packet_ids")
+        if intent_generation > 1 and (not isinstance(supersedes, list) or not supersedes):
+            raise PacketError("coordination intent generations >1 must explicitly supersede predecessor packet id(s)")
+
     if packet.get("action_class") not in ACTION_CLASSES:
         raise PacketError("unsupported action_class")
     if not isinstance(packet.get("priority"), int) or not 0 <= packet["priority"] <= 100:
@@ -309,12 +357,24 @@ def new_packet(
     project: str,
     constraints: list[str],
     evidence_refs: list[str],
+    coordination_intent_id: str,
+    coordination_intent_generation: int = 1,
+    supersedes_packet_ids: Iterable[str] = (),
 ) -> dict[str, Any]:
+    """Create a new intent-bound packet.
+
+    The packet id is deterministic for one explicit intent generation. Therefore
+    concurrent creators for the same intent/generation target the same immutable
+    pending/<packet_id>.json repository path. The nonce remains unique and is
+    still used for delivery idempotency after one creator wins repository CAS.
+    """
     issued = datetime.now(timezone.utc)
     packet_uuid = uuid.uuid4().hex
+    intent_id = _normalize_coordination_intent_id(coordination_intent_id)
+    supersedes = [str(x) for x in supersedes_packet_ids]
     packet: dict[str, Any] = {
         "schema": PACKET_SCHEMA,
-        "packet_id": f"AWP-{issued.strftime('%Y%m%dT%H%M%SZ')}-{packet_uuid[:12]}",
+        "packet_id": coordination_intent_packet_id(intent_id, coordination_intent_generation),
         "route_id": "PENDING",
         "nonce": packet_uuid,
         "payload_digest": "PENDING",
@@ -334,7 +394,9 @@ def new_packet(
             "telemetry_required": True,
         },
         "evidence_refs": evidence_refs,
-        "supersedes_packet_ids": [],
+        "supersedes_packet_ids": supersedes,
+        "coordination_intent_id": intent_id,
+        "coordination_intent_generation": coordination_intent_generation,
         "credit_authority": False,
         "mutation_authority": False,
         "runtime_dispatch_authority": False,
@@ -413,21 +475,45 @@ def cmd_ack(args: argparse.Namespace) -> int:
 
 def cmd_new(args: argparse.Namespace) -> int:
     target = json.loads(args.target_json)
-    packet = new_packet(
-        target=target,
-        objective=args.objective,
-        action_class=args.action_class,
-        ttl_minutes=args.ttl_minutes,
-        priority=args.priority,
-        architect_id=args.architect_id,
-        project=args.project,
-        constraints=args.constraint or [],
-        evidence_refs=args.evidence_ref or [],
-    )
+    try:
+        packet = new_packet(
+            target=target,
+            objective=args.objective,
+            action_class=args.action_class,
+            ttl_minutes=args.ttl_minutes,
+            priority=args.priority,
+            architect_id=args.architect_id,
+            project=args.project,
+            constraints=args.constraint or [],
+            evidence_refs=args.evidence_ref or [],
+            coordination_intent_id=args.intent_id,
+            coordination_intent_generation=args.intent_generation,
+            supersedes_packet_ids=args.supersedes_packet_id or [],
+        )
+    except PacketError as exc:
+        print(f"CREATE_REJECTED: {exc}", file=sys.stderr)
+        return 2
+
     text = _dump(packet)
     if args.output:
-        pathlib.Path(args.output).parent.mkdir(parents=True, exist_ok=True)
-        pathlib.Path(args.output).write_text(text, encoding="utf-8")
+        output = pathlib.Path(args.output)
+        expected_name = f"{packet['packet_id']}.json"
+        if output.name != expected_name:
+            print(
+                f"CREATE_REJECTED: output filename must be deterministic create-only path {expected_name}",
+                file=sys.stderr,
+            )
+            return 2
+        output.parent.mkdir(parents=True, exist_ok=True)
+        try:
+            with output.open("x", encoding="utf-8") as handle:
+                handle.write(text)
+        except FileExistsError:
+            print(
+                f"INTENT_ALREADY_RESERVED: {output}; refresh repository and reuse/defer the existing intent generation",
+                file=sys.stderr,
+            )
+            return 4
         print(args.output)
     else:
         print(text, end="")
@@ -478,6 +564,13 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--priority", type=int, default=50)
     p.add_argument("--architect-id", default="persistent-architect")
     p.add_argument("--project", default="frankenstein-2.0")
+    p.add_argument(
+        "--intent-id",
+        required=True,
+        help="explicit stable semantic-boundary identity; never derived from free-text similarity",
+    )
+    p.add_argument("--intent-generation", type=int, default=1)
+    p.add_argument("--supersedes-packet-id", action="append")
     p.add_argument("--constraint", action="append")
     p.add_argument("--evidence-ref", action="append")
     p.add_argument("--output")
