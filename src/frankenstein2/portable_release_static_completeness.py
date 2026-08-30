@@ -32,11 +32,12 @@ class PortableReleaseStaticCompletenessError(ValueError):
 
 
 def _link_free_regular_file(root: Path, raw: str, label: str, violations: list[str]) -> Path | None:
-    """Return a root-confined regular file only when the lexical path is symlink-free.
+    """Return a root-confined regular file only when the lexical path is link-free.
 
-    Resolving first is insufficient because a symlink that points back inside ``root`` loses
-    its link identity after ``resolve()``. Walk the release-root-relative path lexically first,
-    rejecting any symlink component, then resolve strictly and re-check confinement/type.
+    Resolving first is insufficient because a symlink or Windows junction that points back
+    inside ``root`` loses its link identity after ``resolve()``. Walk the release-root-relative
+    path lexically first, rejecting any symlink/junction component, then resolve strictly and
+    re-check confinement/type.
     """
     rel_path = Path(raw)
     if rel_path.is_absolute() or any(part in {".", ".."} for part in rel_path.parts):
@@ -46,7 +47,7 @@ def _link_free_regular_file(root: Path, raw: str, label: str, violations: list[s
     lexical = root
     for part in rel_path.parts:
         lexical = lexical / part
-        if lexical.is_symlink():
+        if lexical.is_symlink() or lexical.is_junction():
             violations.append(f"{label}:symlink_component")
             return None
 
