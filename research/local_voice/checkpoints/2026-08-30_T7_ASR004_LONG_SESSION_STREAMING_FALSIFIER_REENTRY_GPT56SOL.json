@@ -1,0 +1,53 @@
+{
+  "schema": "T7_REENTRY_CHECKPOINT/v1",
+  "trigger": "7",
+  "date": "2026-08-30",
+  "organ": "GPT-5.6-Sol",
+  "mode": "GERMAN_FIRST_LOCAL_SOLO_RESEARCH__SOURCE_FALSIFIER_TO_RUNTIME_GATE",
+  "resumed_not_restarted": true,
+  "research_id": "T7-ASR-004",
+  "semantic_key": "d7663b06f28c5b438a9a23d3cb77041404e07830cd4e1369d27cad49dc5e74e6",
+  "semantic_generation": 5,
+  "state": "SOURCE_AUDIT_TERMINAL_AT_SCOPE__TARGET_LONG_SESSION_SCALING_UNOBSERVED",
+  "reconciled_prior_state": {
+    "qwen3_asr_target_artifact_hash_verified": true,
+    "qwen3_asr_target_model_load_observed": true,
+    "qwen3_asr_target_local_inference_observed": true,
+    "cpu_silence_probe_output": "Ich.",
+    "german_asr_quality_credit": 0,
+    "streaming_asr_performance_credit": 0,
+    "trigger4_acceptance_credit": 0,
+    "whole_system_credit": 0
+  },
+  "this_cycle_finding": "The official Qwen3-ASR vLLM streaming implementation retains an ever-growing audio_accum buffer and explicitly re-feeds all audio seen so far on each streaming decode. Upstream issue #148 reports long-session slowdown/unresponsiveness and quality degradation from the same mechanism; closure was inactive/not-planned, not a documented fix.",
+  "source_identity": {
+    "upstream_repo": "QwenLM/Qwen3-ASR",
+    "observed_upstream_main": "7c6daf77a2421100f5fb066495372c00129d39ff",
+    "streaming_source_blob": "d99b91512a5bbc1c15897d97752cfd86ea68d46e",
+    "last_streaming_source_commit": "c17a131fe028b2e428b6e80a33d30bb4fa57b8df",
+    "upstream_issue": 148
+  },
+  "writes": [
+    "research/local_voice/semantic_claims/d7663b06f28c5b438a9a23d3cb77041404e07830cd4e1369d27cad49dc5e74e6.json",
+    "research/local_voice/claims/T7-ASR-004/E5_QWEN3_ASR_LONG_SESSION_STREAMING_ACCUMULATION_FALSIFIER.json",
+    "research/local_voice/sources/2026-08-30_T7_ASR004_G5_QWEN3_LONG_SESSION_STREAMING_ACCUMULATION_AUDIT.json",
+    "trigger4/inbox/local_voice/T7_QWEN3_ASR_LONG_SESSION_STREAMING_FALSIFIER_2026-08-30_GPT56SOL.json"
+  ],
+  "coordination": {
+    "duplicate_runtime_dispatch_created": false,
+    "existing_target_executor_reused": true,
+    "parallel_fleurs_scoring_integrity_delta_observed": true,
+    "parallel_delta_relation": "COMPLEMENTARY_NOT_DUPLICATE"
+  },
+  "next_exact_action": "Existing Trigger4/current authorized target executor first completes the pinned FLEURS de_de plus non-speech comparator with the newly pinned scoring-integrity contract. Then, without restarting the model lane, extend official Qwen3-ASR streaming into a cumulative stream-age test at 1/5/10/20/30 minutes and persist per-chunk decode latency p50/p95/p99, latency slope, RSS/VRAM/GPU utilization slope, partial transcript stability, duplicate/replayed text, endpoint and cancellation correctness. Only after the official unbounded baseline may a bounded-window challenger be tested.",
+  "credit_state": {
+    "source_negative_evidence": 1,
+    "target_runtime_model_load": 1,
+    "target_local_asr_smoke": 1,
+    "german_asr_quality": 0,
+    "streaming_asr_long_session": 0,
+    "german_e2e_voice": 0,
+    "trigger4_f2_acceptance": 0,
+    "whole_persistent_voice_loop": 0
+  }
+}
