@@ -1,0 +1,46 @@
+{
+  "schema": "F2_TRIGGER7_PACKET_CORTEX_RECOVERY_FALSIFIER_DELTA/v1",
+  "trigger": "7",
+  "recorded_date": "2026-08-31",
+  "organ": "GPT-5.6-Sol",
+  "classification": "CANDIDATE_FALSIFIER_REVIEW_ONLY",
+  "mutation_authority": false,
+  "reviewed_subjects": {
+    "packet_repair_commit": "00fe8baf1d358ed9604b724a4bacaffb46257e92",
+    "recovery_helper_commit": "922f2695d4a6d43171e3122f4ed7ac3912ebc7fc",
+    "recovery_test_commit": "b164666d487ac99f8a278d0da90fbf0e3605de58",
+    "helper_path": "src/frankenstein2/voice_packet_cortex_recovery.py",
+    "test_path": "tests/test_voice_packet_cortex_recovery.py"
+  },
+  "falsifiers": [
+    {
+      "id": "PN9_RESTART_CHECKPOINT_OMITS_POSTREPAIR_CAUSAL_STATE",
+      "observation": "The repaired VoicePacketCortex now depends on _last_input_monotonic_ms and _last_output_sequence, but export_packet_cortex_checkpoint()/resume_packet_cortex() do not serialize or restore either field.",
+      "risk": "A resumed open session can lose causal clock/output-sequence fences or raise AttributeError on the first post-resume accept_input()/queue_output() call. The existing recovery test only inspects restored state and does not perform a post-resume turn.",
+      "required_discriminator": "checkpoint_resume_then_continue_input_and_output_preserves_clock_and_sequence_fences_without_missing_state"
+    },
+    {
+      "id": "PN10_LONG_SESSION_TEST_DOES_NOT_PROVE_BOUNDED_STATE",
+      "observation": "The long-conversation test explicitly asserts len(cortex.events) >= 201 after 100 turns, while the checkpoint exports complete input_seen, final_turns, outputs and all events. No compaction/window/retention bound is implemented or measured.",
+      "risk": "The test demonstrates state growth rather than the required bounded replay/idempotency state. PN5 remains open and checkpoint size grows with session history.",
+      "required_discriminator": "long_session_transient_state_and_checkpoint_size_remain_under_explicit_bound_while_required_idempotency_replay_window_is_preserved"
+    }
+  ],
+  "execution_and_ownership": {
+    "wp715_mutation_owner": "F2-WP-715-G1-GPT56SOL-PACKET-CORTEX-CONVERGENCE-20260831",
+    "do_not_create_parallel_recovery_authority": true,
+    "trigger7_source_mutation_on_wp715_owned_paths": false,
+    "outbound_model_asr_tts_calls_required": 0
+  },
+  "credit": {
+    "source_review_delta": 1,
+    "recovery_component_acceptance": 0,
+    "bounded_state_credit": 0,
+    "restart_runtime_credit": 0,
+    "vps_sandbox_runtime_credit": 0,
+    "acoustic_credit": 0,
+    "whole_voice_credit": 0,
+    "whole_product_credit": 0
+  },
+  "next_exact_action": "WP715 owner should adopt/reconcile the recovery helper into the single packet-cortex authority, add PN9 continuation-after-resume and PN10 bounded-growth discriminators, repair only reproduced defects, run repository CI, then bind the exact repaired subject to the existing VPS S1/S2 execution gate."
+}
