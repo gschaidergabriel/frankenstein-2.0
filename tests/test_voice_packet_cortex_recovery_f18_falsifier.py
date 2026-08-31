@@ -26,7 +26,7 @@ def _payload_digest(value: object) -> str:
 
 
 class F18ClosedCheckpointCausalFalsifier(unittest.TestCase):
-    """T7-ARCH-003 F18: checksum-valid closed checkpoint must preserve causal close relation."""
+    """T7-ARCH-003 F18: checksum-valid closed checkpoint must preserve producer close invariants."""
 
     def session(self) -> VoiceSessionCapsule:
         root = CausalIdentity(
@@ -53,7 +53,7 @@ class F18ClosedCheckpointCausalFalsifier(unittest.TestCase):
             provenance_refs=("trigger7:t7-arch-003:f18-session",),
         )
 
-    def test_f18_checksum_valid_causally_mismatched_closed_checkpoint_is_rejected(self) -> None:
+    def test_f18_checksum_valid_impossible_close_packet_refs_are_rejected(self) -> None:
         session = self.session()
         cortex = VoicePacketCortex(session)
         outcome_causal_identity = session.session_causal_identity.derive(
@@ -81,9 +81,13 @@ class F18ClosedCheckpointCausalFalsifier(unittest.TestCase):
         ]
         self.assertEqual(len(close_events), 1)
 
-        # Keep the checkpoint structurally valid and recompute its envelope digest, but sever
-        # the causal relation between the serialized SESSION_CLOSE event and VoiceOutcome.
-        close_events[0]["turn_id"] = "turn-forged-close"
+        # Canonical close_session() emits packet_refs exactly from commit-eligible outputs.
+        # This fixture has no outputs, so the producer-enforced value is exactly [].
+        self.assertEqual(close_events[0]["packet_refs"], [])
+
+        # Keep schema/session/outcome/envelope digest valid while creating a checkpoint state
+        # canonical close_session() cannot produce for the restored output set.
+        close_events[0]["packet_refs"] = ["output-forged-not-restored"]
         tampered["payload_sha256"] = _payload_digest(tampered["payload"])
 
         with self.assertRaises(VoicePacketCortexError):
