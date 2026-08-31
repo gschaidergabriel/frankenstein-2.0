@@ -278,7 +278,12 @@ class VoiceHeardResultReentryTests(unittest.TestCase):
             voice_intent="WAIT",
             memory_refs=(state.memory_id,),
         )
-        evidence = validate_memory_event_bindings(event=event, bindings=((state, record),))
+        evidence = validate_memory_event_bindings(
+            event=event,
+            bindings=((state, record),),
+            heard_result_ref=state.payload_ref,
+            heard_result_sha256=state.payload_sha256,
+        )
         self.assertEqual(evidence[0].lifecycle_state_sha256, state.sha256())
         self.assertEqual(evidence[0].typed_memory_sha256, record.sha256())
 
@@ -289,9 +294,14 @@ class VoiceHeardResultReentryTests(unittest.TestCase):
             provenance_refs=("test:memory-source",),
         )
         with self.assertRaises(VoiceHeardResultReentryError):
-            validate_memory_event_bindings(event=event, bindings=((changed, record),))
+            validate_memory_event_bindings(
+                event=event,
+                bindings=((changed, record),),
+                heard_result_ref=state.payload_ref,
+                heard_result_sha256=state.payload_sha256,
+            )
 
-    def test_vsr03_gwt_ref_must_equal_exact_supplied_binding_identity(self) -> None:
+    def test_vsr03_gwt_ref_and_factory_lineage_both_fail_closed(self) -> None:
         session = self.session()
         cortex = VoicePacketCortex(session)
         binding = GwtReentryUptakeBinding(
@@ -314,11 +324,12 @@ class VoiceHeardResultReentryTests(unittest.TestCase):
         exact = cortex.emit_intent(
             turn_id="turn-gwt", monotonic_ms=100, voice_intent="WAIT", gwt_ref=binding.binding_id
         )
-        validate_gwt_event_binding(event=exact, binding=binding)
+        with self.assertRaisesRegex(VoiceHeardResultReentryError, "factory|lineage"):
+            validate_gwt_event_binding(event=exact, binding=binding)
         opaque = cortex.emit_intent(
             turn_id="turn-gwt", monotonic_ms=101, voice_intent="WAIT", gwt_ref="gwt:opaque-broadcast"
         )
-        with self.assertRaises(VoiceHeardResultReentryError):
+        with self.assertRaisesRegex(VoiceHeardResultReentryError, "opaque|stale|wrong"):
             validate_gwt_event_binding(event=opaque, binding=binding)
 
     def test_vsr05_cancelled_late_tool_result_never_reenters_adapter_surface(self) -> None:
