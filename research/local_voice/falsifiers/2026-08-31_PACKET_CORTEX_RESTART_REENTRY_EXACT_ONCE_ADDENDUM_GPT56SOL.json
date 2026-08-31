@@ -1,0 +1,130 @@
+{
+  "schema": "T7_PACKET_CORTEX_FALSIFIER_ADDENDUM/v1",
+  "trigger": "7",
+  "research_id": "T7-ARCH-003",
+  "objective": "F1_PACKET_CORTEX_CAUSAL_TURN_IDENTITY_FALSIFIER",
+  "claim_semantic_key": "af2f204dcf3ec952b1da5e7d3d8f26b047df84cfefe6f158c09e36fc10235abc",
+  "classification": "REVIEW_ONLY_CANDIDATE_FALSIFIER",
+  "implementation_mutation_authority": false,
+  "observed_base_head": "1d7c5e41f09cdcbfa793181de27a0d944ee96a3f",
+  "observed_sources": {
+    "src/frankenstein2/voice_packet_cortex_recovery.py_blob_sha": "7854afca22599b235c289020673ffa9a7c9b7d43",
+    "src/frankenstein2/voice_heard_result_reentry.py_blob_sha": "20b5596e6311a34598530ec7cbfd7a2e7e9cf4ea",
+    "tests/test_voice_packet_cortex_recovery.py_blob_sha": "849ad0f4fb014dd73edae6f12e9622225f568ec3"
+  },
+  "gap": "Existing recovery coverage proves stale-tool fencing, checkpoint/session integrity, atomic rejection, capacity handling, transport retry, and restart terminalization of nonterminal playback. Existing T7-ARCH-003 F08 proves cancelled/unheard output must not resurrect. The dual causal boundary is not explicitly exercised: a fully-heard completed output plus exact VoiceOutcome/reentry receipt must survive checkpoint/restart without duplicate semantic admission, duplicate memory/context authority, changed causal identity, or loss of its legitimate completed state; interrupted/partial output must remain permanently ineligible for durable heard-result promotion after restart.",
+  "oracle_law_addendum": [
+    "Restart is not a new semantic cause: exact completed/heard output, VoiceOutcome and reentry identities must remain stable across rehydration.",
+    "A legitimate completed/heard result may be resumed, but replay must be idempotent: supplying the pre-restart reentry receipt as existing authority must return the same receipt and may not create a second semantic admission or memory/context binding.",
+    "A restart must not upgrade queued/started/heard/interrupted/partial output into fully-heard durable eligibility.",
+    "Closed-session checkpoint recovery must preserve the exact terminal VoiceOutcome and SESSION_CLOSE/output inventory relation; a structurally valid but causally inconsistent restored closed state must fail closed before downstream promotion.",
+    "Checkpoint digest integrity is not a substitute for causal relation validation among session, outputs, close event, VoiceOutcome and downstream reentry receipt."
+  ],
+  "falsifiers": [
+    {
+      "id": "F15_COMPLETED_HEARD_CLOSED_RESTART_REENTRY_EXACT_ONCE",
+      "setup": [
+        "Create one VoiceSessionCapsule S1 and VoicePacketCortex.",
+        "Queue O15, advance to started, then completed with heard_fraction=1.0 and commit_eligible=true.",
+        "Build exact heard-result H15, exact memory/context evidence using existing authorities, close S1 with VoiceOutcome V15 bound to H15, and build reentry receipt R15.",
+        "Export packet-cortex checkpoint after close and resume with the exact same VoiceSessionCapsule.",
+        "Re-run bind_completed_reentry over restored output/outcome/close evidence with existing=R15."
+      ],
+      "must_hold": [
+        "restored_closed_outcome.outcome_id==V15.outcome_id",
+        "restored_closed_outcome.sha256()==V15.sha256()",
+        "restored_completed_output_packet_identity_unchanged",
+        "SESSION_OPEN_count_unchanged",
+        "SESSION_CLOSE_count==1",
+        "rebind_returns_exact_existing_R15",
+        "reentry_receipt_identity_unchanged",
+        "semantic_admission_delta_after_restart==0",
+        "canonical_memory_write_credit_delta_after_restart==0",
+        "gwt_runtime_credit_delta_after_restart==0"
+      ],
+      "falsifies_if": "restart mints a second semantic/reentry identity, changes the terminal causal subject, duplicates memory/context authority, or rejects a valid exact replay that supplies the original receipt"
+    },
+    {
+      "id": "F16_COMPLETED_HEARD_OPEN_RESTART_THEN_CLOSE_ONCE",
+      "setup": [
+        "Create S1 and a completed fully-heard O16 while session remains open and before VoiceOutcome exists.",
+        "Export checkpoint, resume exact S1, then close exactly once using a VoiceOutcome bound to the restored completed output."
+      ],
+      "must_hold": [
+        "O16_remains_completed_and_commit_eligible_after_restart",
+        "O16_not_requeued_and_not_replayed",
+        "RESTART_REENTRY_does_not_change_O16_identity",
+        "exactly_one_terminal_VoiceOutcome_can_be_bound",
+        "heard_result_after_close_binds_same_pre_restart_completed_output_material"
+      ],
+      "falsifies_if": "restart either loses legitimate fully-heard completion, replays it, changes its identity, or permits more than one terminal outcome"
+    },
+    {
+      "id": "F17_PARTIAL_OR_INTERRUPTED_RESTART_CAN_NEVER_PROMOTE_TO_DURABLE_HEARD_RESULT",
+      "setup": [
+        "Create O17 in started/heard state with 0<heard_fraction<1 and no durable outcome authority.",
+        "Checkpoint while open and resume so recovery terminalizes it as interrupted.",
+        "Attempt build_heard_result / bind_completed_reentry using restored O17."
+      ],
+      "must_hold": [
+        "restored_O17.playback_state=='interrupted'",
+        "restored_O17.commit_eligible==false",
+        "restored_O17.voiceoutcome_ref==null",
+        "durable_heard_result_build_fails_closed",
+        "durable_memory_context_reentry_count==0"
+      ],
+      "falsifies_if": "partial or restart-interrupted output can later enter the completed heard-result durable path"
+    },
+    {
+      "id": "F18_CAUSALLY_INCONSISTENT_CLOSED_CHECKPOINT_MUST_NOT_RESTORE_AS_VALID",
+      "setup": [
+        "Start from a valid closed checkpoint with completed output O18, SESSION_CLOSE C18 and VoiceOutcome V18.",
+        "Create an internally well-formed checkpoint variant whose envelope digest is recomputed but one causal relation is wrong: output.voiceoutcome_ref != V18.outcome_id, or C18.packet_refs != restored completed-output inventory, or V18 result_ref/result_sha256 no longer binds the exact heard-result subject.",
+        "Attempt resume and downstream completed reentry."
+      ],
+      "must_hold": [
+        "causal_mismatch_never_receives_durable_reentry_credit",
+        "mismatch_is_rejected_at_resume_or_before_any_downstream_promotion",
+        "no_memory_or_gwt_authority_is_created_from_mismatched_checkpoint"
+      ],
+      "falsifies_if": "a checksum-valid but causally inconsistent closed checkpoint is treated as a valid terminal semantic state and reaches durable reentry"
+    }
+  ],
+  "execution_contract": {
+    "preferred_owner": "current Trigger4 packet/reentry integration owner or independent CANDIDATE_FALSIFIER lane without implementation mutation",
+    "preferred_surface": "existing deterministic tests around voice_packet_cortex_recovery.py + voice_heard_result_reentry.py; do not create a second FSM or state authority",
+    "run_order": [
+      "Refresh current main and WP717 active/event/reconciliation state.",
+      "Do not mutate WP717-owned source while its current owner remains active; candidate-falsifier test-only work may be routed to that owner.",
+      "Translate F15-F18 into adversarial tests against the exact current implementation.",
+      "Run existing recovery and WP717 reentry suites plus the addendum tests.",
+      "Classify an executed invariant failure as PRODUCT_NEGATIVE; missing execution or stale subject remains EVIDENCE_INVALID/UNKNOWN_NONTERMINAL as appropriate."
+    ],
+    "required_receipt_fields": [
+      "exact_source_sha",
+      "recovery_blob_sha",
+      "reentry_blob_sha",
+      "test_ids_F15_F18",
+      "command",
+      "executed_steps",
+      "per_falsifier_result",
+      "negative_evidence",
+      "explicit_zero_credit_fields"
+    ]
+  },
+  "credit_boundary": {
+    "research_falsifier_spec_credit": 1,
+    "executed_packet_component_credit": 0,
+    "canonical_memory_write_credit": 0,
+    "gwt_runtime_credit": 0,
+    "jspace_runtime_credit": 0,
+    "effect_credit": 0,
+    "asr_runtime_credit": 0,
+    "tts_runtime_credit": 0,
+    "physical_audio_credit": 0,
+    "trigger4_acceptance_credit": 0,
+    "whole_voice_e2e_credit": 0,
+    "whole_product_credit": 0
+  },
+  "next_exact_action": "Route F15-F18 to the existing WP717/recovery owner as test-only adversarial discriminators. Do not open a new implementation authority. The highest-information first probe is F18 because current recovery source validates checkpoint digest/session/terminal presence but the observed source does not visibly re-run the completed heard-result causal relation validator during closed-state restore."
+}
