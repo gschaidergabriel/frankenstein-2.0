@@ -13,6 +13,7 @@ on:
       - 'tests/test_typed_memory_persistence.py'
       - 'tests/test_typed_memory.py'
       - 'tests/test_persistent_agency_kernel.py'
+      - 'workpackages/active/F2-WP-307.json'
       - '.github/workflows/wp307-typed-memory-persistence-ci.yml'
   pull_request:
     paths:
@@ -60,3 +61,287 @@ jobs:
         env:
           PYTHONPATH: src
         run: python tests/test_persistent_agency_kernel.py -v
+
+  g3-vps-fresh-process-multirecord-readback:
+    if: github.event_name == 'push' && github.event.head_commit.message == 'trigger4: dispatch WP307 G3 bound VPS fresh-process readback'
+    runs-on: clay-host
+    timeout-minutes: 30
+    concurrency:
+      group: wp307-g3-vps-fresh-process-multirecord-readback
+      cancel-in-progress: false
+    env:
+      WP307_RUNTIME_SUBJECT_SHA: e511a7379292dfac1f8898dfd1ffc6c3fc56d80b
+      WP307_SOURCE_BLOB_SHA: 489ae206540f4859c339cd4faec7ad0b6907f1e4
+      WP307_TEST_BLOB_SHA: 637b6a0d7f393ce72988776952e2cbcceb61232f
+      F2_SANDBOX_ROOT: /var/tmp/frankenstein2-sandboxes
+      F2_NSPAWN_BASE_ROOT: /var/lib/frankenstein2-sandbox-images/ubuntu-24.04-base
+      F2_SANDBOX_MIN_FREE_KIB: '5242880'
+      F2_SANDBOX_MIN_MEM_KIB: '1048576'
+    steps:
+      - name: Checkout exact frozen accepted WP307 G2 runtime subject
+        uses: actions/checkout@v4
+        with:
+          ref: e511a7379292dfac1f8898dfd1ffc6c3fc56d80b
+          fetch-depth: 0
+
+      - name: Verify exact VPS runner and frozen product source identity
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          test "${RUNNER_NAME:-}" = "vps-clay-host"
+          test "${RUNNER_OS:-}" = "Linux"
+          test "$(git rev-parse HEAD)" = "$WP307_RUNTIME_SUBJECT_SHA"
+          test "$(git hash-object src/frankenstein2/typed_memory_persistence.py)" = "$WP307_SOURCE_BLOB_SHA"
+          test "$(git hash-object tests/test_typed_memory_persistence.py)" = "$WP307_TEST_BLOB_SHA"
+          git diff --exit-code -- src/frankenstein2/typed_memory_persistence.py tests/test_typed_memory_persistence.py
+          printf '%s\n' \
+            "WP307_RUNTIME_SUBJECT_SHA=$WP307_RUNTIME_SUBJECT_SHA" \
+            "DISPATCH_SHA=$GITHUB_SHA" \
+            "RUN_ID=$GITHUB_RUN_ID" \
+            "RUN_ATTEMPT=$GITHUB_RUN_ATTEMPT" \
+            "RUNNER_NAME=$RUNNER_NAME" \
+            "RUNNER_OS=$RUNNER_OS" \
+            "RUNNER_ARCH=$RUNNER_ARCH" | tee /tmp/wp307-g3-runtime-identity.txt
+          sha256sum \
+            src/frankenstein2/typed_memory_persistence.py \
+            src/frankenstein2/typed_memory.py \
+            src/frankenstein2/memory_lifecycle.py \
+            src/frankenstein2/persistent_agency_kernel.py \
+            src/state/unifieddb_identity.py \
+            > /tmp/wp307-g3-source-hashes.txt
+          cat /tmp/wp307-g3-source-hashes.txt
+
+      - name: Materialize untracked two-process runtime harness
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          mkdir -p .wp307-runtime-harness
+          cat > .wp307-runtime-harness/write_process.py <<'PY'
+          from pathlib import Path
+          import json
+          import sqlite3
+          from frankenstein2.memory_lifecycle import create_memory
+          from frankenstein2.persistent_agency_kernel import CanonicalPersistentAgencyStore
+          from frankenstein2.typed_memory import KIND_EPISODE, KIND_PROCESS, create_typed_memory
+          from frankenstein2.typed_memory_persistence import TYPED_MEMORY_TABLE, TypedMemoryUnifiedDBStore
+          from state.unifieddb_identity import fingerprint_unifieddb, resolve_unifieddb_path
+
+          root = Path('/work/f2/.wp307-runtime-state')
+          root.mkdir(parents=True, exist_ok=True)
+          db = root / 'unified.db'
+          conn = sqlite3.connect(db)
+          try:
+              conn.execute('CREATE TABLE f2_runtime_bootstrap(id INTEGER PRIMARY KEY)')
+              conn.commit()
+          finally:
+              conn.close()
+          home = root / 'home'
+          home.mkdir(exist_ok=True)
+          resolution = resolve_unifieddb_path(env={'FRANKENSTEIN2_DB': str(db)}, home=home)
+          fingerprint = fingerprint_unifieddb(resolution.path)
+          agency = CanonicalPersistentAgencyStore.open(resolution=resolution, fingerprint=fingerprint)
+          try:
+              typed = TypedMemoryUnifiedDBStore(agency)
+              typed.initialize_schema()
+              state = create_memory(
+                  memory_id='wp307-g3-memory',
+                  payload_ref='runtime/payload.json',
+                  payload_sha256='1' * 64,
+                  provenance_refs=('runtime:wp307-g3', 'source:e511a737'),
+              )
+              episode = create_typed_memory(
+                  state=state,
+                  memory_kind=KIND_EPISODE,
+                  refs={'event': ('event:wp307-g3',), 'causal': ('causal:wp307-g3',)},
+              )
+              process = create_typed_memory(
+                  state=state,
+                  memory_kind=KIND_PROCESS,
+                  refs={
+                      'process': ('process:wp307-g3',),
+                      'checkpoint': ('checkpoint:wp307-g3',),
+                      'next_action': ('action:readback',),
+                  },
+              )
+              assert episode.sha256() != process.sha256()
+              typed.write_record(episode)
+              typed.write_record(process)
+              count = agency.connection.execute(
+                  f'SELECT COUNT(*) FROM main.{TYPED_MEMORY_TABLE} WHERE memory_id=? AND lifecycle_generation=?',
+                  (state.memory_id, state.generation),
+              ).fetchone()[0]
+              assert count == 2, count
+              payload = {
+                  'db': str(db),
+                  'memory_id': state.memory_id,
+                  'generation': state.generation,
+                  'episode_sha256': episode.sha256(),
+                  'episode_json': episode.canonical_json(),
+                  'process_sha256': process.sha256(),
+                  'process_json': process.canonical_json(),
+                  'db_device': agency.db_device,
+                  'db_inode': agency.db_inode,
+                  'authority_receipt_sha256': agency.authority_receipt_sha256,
+              }
+              (root / 'expected.json').write_text(json.dumps(payload, sort_keys=True) + '\n')
+              print('WP307_G3_WRITE_PROCESS=PASS')
+              print('WP307_G3_MULTI_RECORD_COUNT=2')
+          finally:
+              agency.close()
+          PY
+          cat > .wp307-runtime-harness/read_process.py <<'PY'
+          from pathlib import Path
+          import json
+          from frankenstein2.persistent_agency_kernel import CanonicalPersistentAgencyStore
+          from frankenstein2.typed_memory_persistence import TYPED_MEMORY_TABLE, TypedMemoryUnifiedDBStore
+          from state.unifieddb_identity import fingerprint_unifieddb, resolve_unifieddb_path
+
+          root = Path('/work/f2/.wp307-runtime-state')
+          expected = json.loads((root / 'expected.json').read_text())
+          db = Path(expected['db'])
+          home = root / 'home'
+          resolution = resolve_unifieddb_path(env={'FRANKENSTEIN2_DB': str(db)}, home=home)
+          fingerprint = fingerprint_unifieddb(resolution.path)
+          agency = CanonicalPersistentAgencyStore.open(resolution=resolution, fingerprint=fingerprint)
+          try:
+              assert agency.db_device == expected['db_device']
+              assert agency.db_inode == expected['db_inode']
+              assert agency.authority_receipt_sha256 == expected['authority_receipt_sha256']
+              typed = TypedMemoryUnifiedDBStore(agency)
+              episode = typed.load_record(
+                  expected['memory_id'],
+                  expected['generation'],
+                  expected_record_sha256=expected['episode_sha256'],
+              )
+              process = typed.load_record(
+                  expected['memory_id'],
+                  expected['generation'],
+                  expected_record_sha256=expected['process_sha256'],
+              )
+              assert episode.record_json == expected['episode_json']
+              assert process.record_json == expected['process_json']
+              rows = agency.connection.execute(
+                  f'SELECT record_sha256 FROM main.{TYPED_MEMORY_TABLE} WHERE memory_id=? AND lifecycle_generation=? ORDER BY record_sha256',
+                  (expected['memory_id'], expected['generation']),
+              ).fetchall()
+              assert [row[0] for row in rows] == sorted([
+                  expected['episode_sha256'], expected['process_sha256']
+              ])
+              database_list = agency.connection.execute('PRAGMA database_list').fetchall()
+              persistent = [row for row in database_list if len(row) >= 3 and row[2]]
+              assert len(persistent) == 1 and persistent[0][1] == 'main', persistent
+              print('WP307_G3_READ_PROCESS=PASS')
+              print('WP307_G3_FRESH_PROCESS_EXACT_DIGESTS=PASS')
+              print('WP307_G3_NO_SECOND_DB=PASS')
+          finally:
+              agency.close()
+          PY
+          git diff --exit-code -- src/frankenstein2/typed_memory_persistence.py tests/test_typed_memory_persistence.py
+          sha256sum .wp307-runtime-harness/write_process.py .wp307-runtime-harness/read_process.py | tee /tmp/wp307-g3-harness-hashes.txt
+
+      - name: Prepare admitted Ubuntu 24.04 S2 sandbox
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          bash tools/vps_sandbox/host_prepare_ubuntu_nspawn.sh
+          bash tools/vps_sandbox/preflight.sh | tee /tmp/wp307-g3-preflight.txt
+
+      - name: Execute fresh-process same-UnifiedDB multi-record discriminator in S2
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          bash tools/vps_sandbox/run_ubuntu_sandbox.sh --backend nspawn --network off -- \
+            /bin/bash -lc '
+              set -Eeuo pipefail
+              test "$(git rev-parse HEAD)" = "e511a7379292dfac1f8898dfd1ffc6c3fc56d80b"
+              test "$(git hash-object src/frankenstein2/typed_memory_persistence.py)" = "489ae206540f4859c339cd4faec7ad0b6907f1e4"
+              . /etc/os-release
+              test "$ID" = ubuntu
+              test "$VERSION_ID" = 24.04
+              export PYTHONPATH=src
+              python3 .wp307-runtime-harness/write_process.py
+              python3 .wp307-runtime-harness/read_process.py
+            ' 2>&1 | tee /tmp/wp307-g3-vps-discriminator.txt
+          grep -q '^F2_SANDBOX_RESULT=PASS$' /tmp/wp307-g3-vps-discriminator.txt
+          grep -q 'WP307_G3_WRITE_PROCESS=PASS' /tmp/wp307-g3-vps-discriminator.txt
+          grep -q 'WP307_G3_MULTI_RECORD_COUNT=2' /tmp/wp307-g3-vps-discriminator.txt
+          grep -q 'WP307_G3_READ_PROCESS=PASS' /tmp/wp307-g3-vps-discriminator.txt
+          grep -q 'WP307_G3_FRESH_PROCESS_EXACT_DIGESTS=PASS' /tmp/wp307-g3-vps-discriminator.txt
+          grep -q 'WP307_G3_NO_SECOND_DB=PASS' /tmp/wp307-g3-vps-discriminator.txt
+
+      - name: Emit exact bounded WP307 G3 runtime receipt
+        if: always()
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          python3 - <<'PY'
+          import json, os, pathlib
+          def read(path):
+              p = pathlib.Path(path)
+              return p.read_text(errors='replace') if p.exists() else ''
+          log = read('/tmp/wp307-g3-vps-discriminator.txt')
+          passed = all(marker in log for marker in (
+              'F2_SANDBOX_RESULT=PASS',
+              'WP307_G3_WRITE_PROCESS=PASS',
+              'WP307_G3_MULTI_RECORD_COUNT=2',
+              'WP307_G3_READ_PROCESS=PASS',
+              'WP307_G3_FRESH_PROCESS_EXACT_DIGESTS=PASS',
+              'WP307_G3_NO_SECOND_DB=PASS',
+          ))
+          receipt = {
+              'schema': 'F2_WP307_G3_VPS_FRESH_PROCESS_MULTIRECORD_READBACK/v1',
+              'workpackage_id': 'F2-WP-307',
+              'generation': 3,
+              'claim_id': 'F2-WP-307-G3-GPT56SOL-VPS-FRESH-PROCESS-MULTIRECORD-READBACK-20260831',
+              'result': 'PASS' if passed else 'FAIL',
+              'runtime_subject_sha': os.environ['WP307_RUNTIME_SUBJECT_SHA'],
+              'runtime_source_blob_sha': os.environ['WP307_SOURCE_BLOB_SHA'],
+              'runtime_test_blob_sha': os.environ['WP307_TEST_BLOB_SHA'],
+              'dispatch_sha': os.environ.get('GITHUB_SHA'),
+              'workflow_run_id': int(os.environ.get('GITHUB_RUN_ID', '0')),
+              'workflow_run_attempt': int(os.environ.get('GITHUB_RUN_ATTEMPT', '0')),
+              'runner_name': os.environ.get('RUNNER_NAME', 'UNKNOWN'),
+              'runner_os': os.environ.get('RUNNER_OS', 'UNKNOWN'),
+              'runner_arch': os.environ.get('RUNNER_ARCH', 'UNKNOWN'),
+              'target_userspace': 'Ubuntu 24.04 noble',
+              'sandbox_tier': 'S2_NSPAWN',
+              'network_mode': 'PRIVATE_OFFLINE',
+              'source_mount': 'READ_ONLY_TO_SANDBOX_COPY',
+              'fresh_python_process_readback_observed': passed,
+              'same_unifieddb_multi_record_readback_observed': passed,
+              'target_environment_component_runtime_credit_candidate': 1 if passed else 0,
+              'physical_credit': 0,
+              'gwt_runtime_credit': 0,
+              'jspace_runtime_credit': 0,
+              'effect_credit': 0,
+              'training_credit': 0,
+              'completion_credit': 0,
+              'whole_system_acceptance': False,
+              'identity_log': read('/tmp/wp307-g3-runtime-identity.txt'),
+              'source_hashes': read('/tmp/wp307-g3-source-hashes.txt'),
+              'harness_hashes': read('/tmp/wp307-g3-harness-hashes.txt'),
+              'preflight_log': read('/tmp/wp307-g3-preflight.txt'),
+              'discriminator_log': log,
+          }
+          out = pathlib.Path('/tmp/F2-WP-307_G3_VPS_FRESH_PROCESS_MULTIRECORD_READBACK.json')
+          out.write_text(json.dumps(receipt, indent=2, sort_keys=True) + '\n')
+          print(json.dumps(receipt, sort_keys=True))
+          PY
+
+      - name: Upload bounded runtime receipt
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: wp307-g3-vps-fresh-process-readback-${{ github.run_id }}
+          path: /tmp/F2-WP-307_G3_VPS_FRESH_PROCESS_MULTIRECORD_READBACK.json
+          if-no-files-found: error
+
+      - name: Enforce exact bounded runtime success
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          grep -q '^F2_SANDBOX_RESULT=PASS$' /tmp/wp307-g3-vps-discriminator.txt
+          grep -q 'WP307_G3_WRITE_PROCESS=PASS' /tmp/wp307-g3-vps-discriminator.txt
+          grep -q 'WP307_G3_READ_PROCESS=PASS' /tmp/wp307-g3-vps-discriminator.txt
+          grep -q 'WP307_G3_FRESH_PROCESS_EXACT_DIGESTS=PASS' /tmp/wp307-g3-vps-discriminator.txt
+          grep -q 'WP307_G3_NO_SECOND_DB=PASS' /tmp/wp307-g3-vps-discriminator.txt
