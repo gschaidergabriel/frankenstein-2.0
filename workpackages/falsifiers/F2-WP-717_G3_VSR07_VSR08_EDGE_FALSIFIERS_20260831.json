@@ -1,0 +1,59 @@
+{
+  "schema": "FRANKENSTEIN2_CANDIDATE_FALSIFIER/v1",
+  "workpackage_id": "F2-WP-717",
+  "generation": 3,
+  "claim_id_observed": "F2-WP-717-G3-GPT56SOL-MEMORY-GWT-LINEAGE-FENCES-20260831",
+  "worker_id": "GPT-5.6-Sol-Trigger4-Independent-Falsifier",
+  "result_class": "CANDIDATE_FALSIFIER",
+  "mutation_authority": false,
+  "base_observation": "WP717 G3 owns the consumer-side VSR07/VSR08 repair. This packet does not modify any G3-owned source/test/workflow path.",
+  "authority_refs": [
+    "workpackages/RUNTIME_CREDIT_CONVERGENCE_DIRECTIVE.md",
+    "workpackages/CLAIM_PROTOCOL.md",
+    "trigger4/inbox/local_voice/T7_CORTEX_MEMORY_PAYLOAD_GWT_LINEAGE_FENCE_ADDENDUM_2026-08-31_GPT56SOL.json",
+    "workpackages/active/F2-WP-717.json"
+  ],
+  "falsifiers": [
+    {
+      "id": "VSR07A_VALID_UNRELATED_MEMORY_PAYLOAD",
+      "setup": "Build an exact completed heard result. Build a fully valid MemoryLifecycleState plus TypedMemoryRecord referenced by memory_event, but set the lifecycle payload_ref and payload_sha256 to a different internally valid payload.",
+      "required_result_for_exact_heard_memory_semantics": "FAIL_CLOSED_BEFORE_RECEIPT",
+      "failure_signature": "A VoiceHeardResultReentryReceipt contains memory_evidence for the unrelated lifecycle state without an explicit unrelated-reference-only classification.",
+      "why_high_information": "Separates memory-id/type validity from the missing causal payload relation identified by MEM01."
+    },
+    {
+      "id": "VSR07B_TYPED_EVIDENCE_REF_MATCHES_BUT_LIFECYCLE_PAYLOAD_DIFFERS",
+      "setup": "Use an unrelated valid MemoryLifecycleState payload, but create a TypedMemoryRecord whose evidence refs include the heard-result payload_ref. memory_event still references the valid memory_id.",
+      "required_result_for_exact_heard_memory_semantics": "FAIL_CLOSED_BEFORE_RECEIPT",
+      "failure_signature": "The consumer treats a typed-record evidence reference as proof that the lifecycle payload itself equals the heard result.",
+      "why_high_information": "Prevents a superficial repair that checks only typed-memory refs/provenance instead of exact lifecycle payload_ref plus payload_sha256."
+    },
+    {
+      "id": "VSR08A_FACTORY_BINDING_SEAL_STRIPPED",
+      "setup": "Create a valid binding through bind_reentry_to_uptake(), then clone/replace it with the factory-origin marker removed while preserving the same public binding identity/status/downstream fields; bind an event whose gwt_ref matches the binding_id.",
+      "required_result_for_exact_gwt_semantics": "REJECT_EXACT_GWT_LINEAGE_OR_EXPLICIT_REFERENCE_ONLY",
+      "failure_signature": "The consumer awards exact GWT reentry/uptake semantics merely because public binding fields and binding_id look valid.",
+      "why_high_information": "Distinguishes actual existing-authority factory admission from a structurally identical reconstructed object."
+    },
+    {
+      "id": "VSR08B_DIRECT_UPTAKEN_BINDING_WITH_SYNTHETIC_DOWNSTREAM",
+      "setup": "Directly construct a structurally valid GwtReentryUptakeBinding with uptake_status=UPTAKEN, plausible downstream_ref/downstream_sha256 and matching event.gwt_ref, but without admitted WP507/WP508 source objects or validation lineage.",
+      "required_result_for_exact_gwt_semantics": "REJECT_EXACT_GWT_LINEAGE_OR_ADMIT_REFERENCE_ONLY_WITH_GWT_RUNTIME_CREDIT_0",
+      "failure_signature": "Direct construction becomes evidence of actual uptake, causal influence, J-Space runtime, or completion.",
+      "why_high_information": "Protects against Goodharting on receipt shape and positive-looking status fields."
+    }
+  ],
+  "scope_guards": {
+    "wp717_g1_runtime_credit": "PRESERVE",
+    "wp717_g2_memory_context_runtime_credit": "PRESERVE_AT_EXACT_SCOPE",
+    "canonical_memory_write_credit": 0,
+    "gwt_runtime_credit": 0,
+    "jspace_runtime_credit": 0,
+    "effect_credit": 0,
+    "physical_audio_credit": 0,
+    "training_credit": 0,
+    "whole_system_acceptance": false
+  },
+  "acceptance_guidance": "A robust G3 fix should make VSR07A/VSR07B fail closed for exact heard-result memory semantics and should make VSR08A/VSR08B either fail closed for exact GWT semantics or remain explicitly reference-only with all GWT/J-Space/causal promotion fields zero. Do not weaken an existing WP507/WP508 validator or invent a second GWT authority.",
+  "next_exact_action": "G3 mutation owner consumes these as adversarial regressions after refreshing main. Run repository CI first. Dispatch VPS only for the exact materially changed accepted subject after these fences pass."
+}
