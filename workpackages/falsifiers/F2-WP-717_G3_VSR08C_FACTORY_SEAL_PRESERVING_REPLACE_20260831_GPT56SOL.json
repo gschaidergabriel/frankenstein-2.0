@@ -1,0 +1,39 @@
+{
+  "schema": "FRANKENSTEIN2_CANDIDATE_FALSIFIER/v1",
+  "workpackage_id": "F2-WP-717",
+  "generation": 3,
+  "claim_id_observed": "F2-WP-717-G3-GPT56SOL-MEMORY-GWT-LINEAGE-FENCES-20260831",
+  "worker_id": "GPT-5.6-Sol-Trigger4-Independent-Falsifier",
+  "result_class": "CANDIDATE_FALSIFIER",
+  "mutation_authority": false,
+  "falsifier_id": "VSR08C_FACTORY_SEAL_PRESERVING_REPLACE",
+  "base_observation": "G3 owns the WP717 consumer repair. Existing VSR08 tests reject a direct non-factory binding and the independent VSR08A case strips the factory marker. Neither proves that a factory-origin marker alone is sufficient against post-factory structural replacement.",
+  "source_observation": {
+    "binding_type": "GwtReentryUptakeBinding",
+    "factory_field": "_factory_seal is a normal dataclass init field with default None",
+    "deep_validator": "validate_reentry_uptake_binding rebuilds the binding from the exact witness, uptake receipt, plan, selection, broadcast and cell_input and compares the rebuilt payload",
+    "risk": "Python dataclasses.replace preserves unspecified init-field values, so replacing a public lineage field on a valid factory-produced binding can preserve the private factory seal while changing lineage-bearing content."
+  },
+  "setup": [
+    "Create one valid binding with bind_reentry_to_uptake() from exact admitted WP507/WP508 source objects.",
+    "Use dataclasses.replace(valid_binding, broadcast_sha256=<different valid lowercase 64-hex digest>) without changing _factory_seal.",
+    "Bind a CortexEventPacket whose gwt_ref still equals the replaced binding.binding_id.",
+    "Exercise the WP717 G3 consumer validator intended to establish exact GWT reentry/uptake semantics."
+  ],
+  "required_result_for_exact_gwt_semantics": "REJECT_LINEAGE_MISMATCH_BEFORE_EXACT_GWT_RECEIPT",
+  "failure_signature": "A consumer check based only on binding type, binding_id, sha256 syntax and/or presence of the factory seal accepts the replaced binding as exact GWT lineage.",
+  "why_high_information": "This distinguishes factory-origin identity from current exact source-lineage validity. It prevents a superficial VSR08 repair that only checks the private seal while retaining a mutation path that the existing deep validator was specifically designed to detect.",
+  "repair_guidance": "For exact GWT semantics, reuse validate_reentry_uptake_binding with the exact source-lineage objects or an already-admitted immutable proof that is cryptographically bound to those exact objects and to the binding digest. Do not create a second GWT authority. If WP717 intentionally carries reference-only GWT metadata instead, preserve explicit reference-only classification and gwt_runtime_credit=0.",
+  "scope_guards": {
+    "wp717_g1_runtime_credit": "PRESERVE",
+    "wp717_g2_memory_context_runtime_credit": "PRESERVE_AT_CORRECTED_EXACT_SCOPE",
+    "canonical_memory_write_credit": 0,
+    "gwt_runtime_credit": 0,
+    "jspace_runtime_credit": 0,
+    "effect_credit": 0,
+    "physical_audio_credit": 0,
+    "training_credit": 0,
+    "whole_system_acceptance": false
+  },
+  "next_exact_action": "G3 mutation owner adds VSR08C after the direct-constructor falsifier, verifies the pre-fix consumer is vulnerable if applicable, and ensures the minimal repair rejects seal-preserving lineage mutation before repository acceptance. Run repository CI before any new VPS promotion subject is bound."
+}
