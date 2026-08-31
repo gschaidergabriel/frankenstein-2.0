@@ -1,0 +1,36 @@
+{
+  "schema": "FRANKENSTEIN2_CANDIDATE_FALSIFIER/v1",
+  "workpackage_id": "F2-WP-717",
+  "generation": 3,
+  "claim_id_observed": "F2-WP-717-G3-GPT56SOL-MEMORY-GWT-LINEAGE-FENCES-20260831",
+  "worker_id": "GPT-5.6-Sol-Trigger4-Independent-Reviewer",
+  "result_class": "CANDIDATE_FALSIFIER",
+  "mutation_authority": false,
+  "tested_source_commit": "1d7c5e41f09cdcbfa793181de27a0d944ee96a3f",
+  "tested_source_path": "src/frankenstein2/gwt_reentry_uptake_binding.py",
+  "tested_source_blob_sha": "8f0620469123beff45d281d06e03798cc720e882",
+  "discriminator_id": "VSR08C_FACTORY_SEAL_PRESERVING_REPLACE",
+  "observation": "The newly exported assert_reentry_uptake_binding_factory_origin() checks only that binding._factory_seal is the module-private _BINDING_SEAL. GwtReentryUptakeBinding declares _factory_seal with dataclasses.field(default=None, ...) and does not set init=False, so the field participates in dataclass __init__. Python dataclasses.replace() copies unchanged init fields from the source object. A valid factory-produced binding can therefore be replaced with changed lineage-bearing public fields while retaining the exact private seal object. __post_init__ validates the changed field shape but does not revalidate WP506/WP507/WP508 source-evidence lineage. A consumer that uses only the new helper can therefore accept a post-factory replacement object as factory-origin lineage evidence.",
+  "language_semantics_reproducer": {
+    "shape": "@dataclass(frozen=True, slots=True, kw_only=True) with _factory_seal=field(default=None, repr=False, compare=False, hash=False)",
+    "observed": [
+      "Binding.__dataclass_fields__['_factory_seal'].init == true",
+      "dataclasses.replace(factory_binding, public_field=forged_value) preserves _factory_seal identity",
+      "the public field changes while the seal identity remains true"
+    ]
+  },
+  "repository_level_reproducer": "Create one valid factory-produced GwtReentryUptakeBinding via bind_reentry_to_uptake(). Use dataclasses.replace(binding, broadcast_sha256=<different valid lowercase 64-hex digest>) without overriding _factory_seal. Call assert_reentry_uptake_binding_factory_origin(forged). Required safe result is FAIL_CLOSED; current helper shape is expected to return successfully because the seal is preserved.",
+  "failure_signature": "assert_reentry_uptake_binding_factory_origin accepts a dataclasses.replace-derived binding whose lineage-bearing public field differs from the exact factory-produced source-evidence binding.",
+  "scope": "This candidate falsifier does not invalidate validate_reentry_uptake_binding(), which rebuilds from exact witness/uptake/plan/selection/broadcast/cell_input evidence and compares canonical public content. It invalidates only any WP717 VSR08 repair that treats the seal-only helper as sufficient factory-lineage proof.",
+  "required_result_before_g3_terminal_acceptance": "VSR08C must execute against the final G3 consumer semantics and fail closed before receipt creation. The accepted consumer path must either invoke an existing-authority deep validator bound to exact WP507/WP508 source objects, or harden the existing factory-origin object so dataclasses.replace/direct reconstruction cannot preserve admissible origin after lineage-bearing public-field mutation. Do not create a parallel GWT authority.",
+  "preserve_zero_credit": {
+    "gwt_runtime_credit": 0,
+    "jspace_runtime_credit": 0,
+    "effect_credit": 0,
+    "physical_audio_credit": 0,
+    "training_credit": 0,
+    "completion_credit": 0,
+    "whole_system_acceptance": false
+  },
+  "next_exact_action": "WP717 G3 mutation owner should add VSR08C as an executable regression before relying on assert_reentry_uptake_binding_factory_origin(); then implement the smallest existing-authority repair and rerun full repository CI before any exact-source VPS dispatch."
+}
