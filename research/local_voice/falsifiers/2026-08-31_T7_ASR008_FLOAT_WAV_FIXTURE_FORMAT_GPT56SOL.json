@@ -1,0 +1,55 @@
+{
+  "schema": "F2_TRIGGER4_CANDIDATE_FALSIFIER/v1",
+  "trigger": "4",
+  "research_id": "T7-ASR-008",
+  "classification": "RUNTIME_PROBE_INVALIDATED_BY_REQUIRED_REPAIR",
+  "observed_at_utc": "2026-08-31T00:00:00Z",
+  "bound_runtime": {
+    "controller_repo": "gschaidergabriel/Dr.-Unterweger",
+    "workflow_run_id": 33340567051,
+    "controller_receipt_commit": "1bb96639a519abc8b5e373ffcdaaefa58d15fe17",
+    "f2_subject": "4727b94eeda381f3dcbe4d494eb72f91ce17b478",
+    "target_surface": "clay-direct-dev",
+    "semantic_key": "93d61d9b893d411c8085cd5d257968c23448bc426430e603f6e33add1db5e4e3"
+  },
+  "result": {
+    "workflow_status": "completed",
+    "workflow_conclusion": "failure",
+    "execution_observed": false,
+    "receipt_classification": "EVIDENCE_INVALID",
+    "receipt_reason": "BOUND_COMPARATOR_DID_NOT_PRODUCE_VERIFIABLE_RECEIPT",
+    "failure_stage": "EXACT_COMPARATOR",
+    "bridge_exit_code": 1,
+    "runtime_credit_delta": 0
+  },
+  "root_cause_evidence": {
+    "exception": "wave.Error: unknown format: 3",
+    "location": "tools/trigger4/t7_nemotron35_target_comparator.py prepare_fixtures -> validate_wav",
+    "meaning": "The repaired run passed the prior missing-soundfile dependency, downloaded and hash-verified the pinned NeMo runtime and pinned Nemotron model, then failed while validating a FLEURS WAV encoded as WAVE_FORMAT_IEEE_FLOAT (format tag 3) with Python's stdlib wave reader. The comparator did not reach ASR measurement.",
+    "product_negative": false,
+    "infrastructure_failure": false,
+    "evidence_validity_failure": true
+  },
+  "repair_boundary": {
+    "allowed": true,
+    "required_change": "Normalize the pinned FLEURS fixture bytes deterministically to mono 16 kHz PCM16, or validate/decode IEEE-float WAV through the already installed soundfile path before the existing gate/transcribe stages. Preserve source-byte SHA256 and record normalized-fixture SHA256/format so the measurement remains reproducible.",
+    "forbidden": [
+      "changing the F2 subject merely to obtain a green result",
+      "changing the model/runtime pin",
+      "weakening the validator",
+      "minting target-runtime or German-ASR-quality credit from this failure",
+      "treating the failure as Nemotron model quality evidence"
+    ],
+    "runtime_subject_action": "RUNTIME_PROBE_INVALIDATED_BY_REQUIRED_REPAIR"
+  },
+  "credit": {
+    "runtime_credit": 0,
+    "german_asr_quality_credit": 0,
+    "physical_device_credit": 0,
+    "gwt_jspace_credit": 0,
+    "effect_credit": 0,
+    "training_credit": 0,
+    "whole_product_credit": 0
+  },
+  "next_exact_action": "Repair only fixture decoding/normalization on the controller path, preserve the same pinned F2/model/runtime semantic subject, then perform one fresh comparator execution. If a receipt is produced, reconcile its envelope against the current F2 validator before any promotion."
+}
