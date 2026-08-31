@@ -1,0 +1,60 @@
+{
+  "schema": "F2_TRIGGER4_CANDIDATE_FALSIFIER/v1",
+  "trigger": "4",
+  "workpackage_id": "F2-WP-717",
+  "generation": 1,
+  "organ": "GPT-5.6-Sol",
+  "work_class": "CANDIDATE_FALSIFIER",
+  "classification": "WP717_GWT_AND_MEMORY_REFERENCE_EXACTNESS_NOT_YET_PROVEN",
+  "authority": {
+    "new_mutation_authority": false,
+    "owned_path_mutation": false,
+    "runtime_dispatch": false,
+    "credit_delta": 0
+  },
+  "reviewed_source_commit": "29027f61f9b789852fe5e266d9edb1a4f374dba8",
+  "reviewed_test_commit": "e7e5d430a4dde17ec5610d77eef3d1f382e4bfb9",
+  "findings": [
+    {
+      "id": "WP717-F06-FORGED-GWT-BINDING",
+      "severity": "BLOCKS_VSR03_ACCEPTANCE",
+      "observation": "validate_gwt_event_binding() accepts an exact GwtReentryUptakeBinding instance when event.gwt_ref equals binding.binding_id and binding.sha256() is syntactically valid. It does not invoke validate_reentry_uptake_binding() and therefore does not require the WP508 factory seal or rebuild against exact GwtReentryProvenanceWitness, CellUptakeReceipt, Grid10Plan, WorkspaceSelection, BroadcastEnvelope and CellInput evidence.",
+      "test_counterevidence": "The current VSR03 repository test directly constructs GwtReentryUptakeBinding(...) and expects validate_gwt_event_binding() to accept it. This demonstrates that type+id+object-hash is currently treated as sufficient even though WP508's own validator reserves exact source-evidence validation to factory-produced/rebuilt bindings.",
+      "required_fix_or_fence": "Require exact existing WP507/WP508 source evidence and call validate_reentry_uptake_binding(), or consume a separately admitted immutable validation receipt that cryptographically binds that exact evidence. Direct dataclass construction without WP508 source-lineage validation must fail closed.",
+      "credit_fence": "gwt_reference_exactness=0; gwt_runtime_credit=0"
+    },
+    {
+      "id": "WP717-F07-MEMORY-GENERATION-REBIND",
+      "severity": "BLOCKS_VSR04_ACCEPTANCE",
+      "observation": "validate_memory_event_bindings() requires event.memory_refs[i] == MemoryLifecycleState.memory_id and verifies TypedMemoryRecord against the supplied state. The event reference itself carries no lifecycle generation/state digest/typed-record digest, so the same opaque memory_id can be paired later with a different internally valid lifecycle generation and still satisfy those checks.",
+      "test_gap": "The current VSR04 regression changes payload while keeping a typed record bound to the old state, which correctly fails typed-memory validation. It does not test an internally valid successor lifecycle state plus matching successor typed record sharing the same memory_id.",
+      "required_fix_or_fence": "Define and validate an exact memory reference identity at the WP717 boundary that binds memory_id + lifecycle_generation + lifecycle_state_sha256 + typed_memory_sha256 (or an admitted digest/ref binding all four). Opaque memory_id alone remains evidence-only and cannot prove generation-specific reentry.",
+      "credit_fence": "memory_reference_exactness=0; canonical_memory_write_credit=0"
+    }
+  ],
+  "candidate_discriminators": [
+    {
+      "id": "VSR03B_DIRECTLY_CONSTRUCTED_GWT_BINDING_REJECTED",
+      "expect": "A directly constructed GwtReentryUptakeBinding with matching binding_id but without valid WP507/WP508 source lineage/factory validation is rejected before a WP717 reentry receipt is minted."
+    },
+    {
+      "id": "VSR04B_SAME_MEMORY_ID_DIFFERENT_GENERATION_REJECTED",
+      "expect": "Rebinding the same opaque memory_ref to a different internally valid lifecycle generation/state and matching typed-record digest is rejected unless exact admitted reference evidence explicitly bound that generation and digests."
+    }
+  ],
+  "failure_classification": "PRODUCT_NEGATIVE_AT_REPOSITORY_DISCRIMINATOR_DESIGN_SCOPE",
+  "credits": {
+    "review_falsifier": 1,
+    "repository_component_ci": 0,
+    "voice_heard_result_reentry_component": 0,
+    "vps_runtime": 0,
+    "canonical_memory_write": 0,
+    "gwt_reference_exactness": 0,
+    "gwt_runtime": 0,
+    "effect_runtime": 0,
+    "physical_audio": 0,
+    "training": 0,
+    "whole_product": 0
+  },
+  "next_exact_action": "Active WP717 owner should add VSR03B and VSR04B and repair the consumer-side exact-reference contract before repository acceptance. Do not dispatch WP717 VPS runtime while these two adversarial cases remain unclosed."
+}
