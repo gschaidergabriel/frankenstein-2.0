@@ -1,0 +1,61 @@
+{
+  "schema": "F2_TRIGGER4_CANDIDATE_FALSIFIER/v1",
+  "trigger": "4",
+  "research_id": "T7-ASR-008",
+  "observed_at_utc": "2026-08-31T00:36:00Z",
+  "classification": "EVIDENCE_INVALID_FIXTURE_NORMALIZATION_REQUIRED",
+  "f2_main_parent_observed": "9741bc9a6d94f096437e23b728d536339ed11a82",
+  "controller_repo": "gschaidergabriel/Dr.-Unterweger",
+  "controller_run_id": 33340567051,
+  "controller_subject": "823920bd770c16ca9855610d56d64a669a8063b0",
+  "bound_f2_subject": "4727b94eeda381f3dcbe4d494eb72f91ce17b478",
+  "target_surface": "clay-direct-dev",
+  "run_state": "COMPLETED_FAILURE",
+  "execution_observed": false,
+  "failure_stage": "EXACT_COMPARATOR",
+  "bridge_exit_code": 1,
+  "root_cause": {
+    "type": "FIXTURE_CONTAINER_FORMAT_INCOMPATIBILITY",
+    "detail": "FLEURS German fixture bytes are accepted far enough to reach validate_wav(), but Python wave rejects at least one source WAV with format tag 3 (IEEE float). The comparator assumes PCM16 before it performs an explicit canonical conversion, so the bound comparator exits before producing a verifiable measurement receipt.",
+    "exception": "wave.Error: unknown format: 3",
+    "product_negative": false,
+    "infra_failure": false,
+    "evidence_validity_defect": true
+  },
+  "prior_repair": {
+    "controller_commit": "40aa40e31c15a8421326b63a258eff0657dd5d53",
+    "closed_defect": "missing soundfile runtime dependency",
+    "status": "CLOSED_FOR_RUN2"
+  },
+  "required_repair": {
+    "scope": "fixture preparation only",
+    "method": "Decode each source fixture with the already pinned soundfile dependency and write a deterministic mono 16 kHz PCM16 WAV before validate_wav(), gating, hashing of the execution fixture, and Nemotron transcription. Preserve the immutable source fixture identity/hash separately from the normalized execution-fixture hash.",
+    "must_preserve": [
+      "FLEURS repository/config/revision and row identities",
+      "raw source-byte SHA256",
+      "normalized execution-fixture SHA256",
+      "sample-rate/channel/sample-width metadata",
+      "existing ASR comparator measurement semantics",
+      "all zero-credit boundaries until a valid receipt exists"
+    ],
+    "must_not_do": [
+      "reinterpret the failure as a Nemotron product negative",
+      "mint runtime or German-ASR quality credit",
+      "rewrite measured values",
+      "change the bound F2 semantic subject merely to bypass fixture validation"
+    ]
+  },
+  "runtime_subject_action": "RUNTIME_PROBE_INVALIDATED_BY_REQUIRED_REPAIR",
+  "redispatch_policy": "A successor dispatch is justified only after the exact fixture-normalization validity defect is repaired and source/normalized fixture identities are bound in the receipt; this is not a blind retry.",
+  "credit": {
+    "runtime_credit": 0,
+    "german_asr_quality_credit": 0,
+    "trigger4_acceptance_credit": 0,
+    "physical_device_credit": 0,
+    "gwt_jspace_credit": 0,
+    "effect_credit": 0,
+    "training_credit": 0,
+    "whole_product_credit": 0
+  },
+  "next_exact_action": "Repair only the controller fixture-normalization boundary, then issue one exact successor dispatch against the same F2 semantic subject. Before any F2 promotion, reconcile the resulting raw receipt to the current fail-closed F2 validator contract and reject promotion if required identity, geometry, determinism, or execution facts remain absent."
+}
