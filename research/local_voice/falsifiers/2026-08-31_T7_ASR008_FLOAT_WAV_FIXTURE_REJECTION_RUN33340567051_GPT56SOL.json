@@ -1,0 +1,52 @@
+{
+  "schema": "F2_TRIGGER4_CANDIDATE_FALSIFIER/v1",
+  "trigger": "4",
+  "research_id": "T7-ASR-008",
+  "classification": "EVIDENCE_INVALID_FIXTURE_FORMAT_REJECTION",
+  "observed_at_utc": "2026-08-31T00:36:00Z",
+  "bound_runtime": {
+    "controller_repo": "gschaidergabriel/Dr.-Unterweger",
+    "workflow_run_id": 33340567051,
+    "workflow_conclusion": "failure",
+    "target_surface": "clay-direct-dev",
+    "f2_subject": "4727b94eeda381f3dcbe4d494eb72f91ce17b478",
+    "semantic_key": "93d61d9b893d411c8085cd5d257968c23448bc426430e603f6e33add1db5e4e3"
+  },
+  "observed_evidence": {
+    "prior_run": 33340366984,
+    "prior_root_cause": "missing soundfile runtime dependency while materializing FLEURS audio",
+    "prior_repair_present": true,
+    "current_failure_stage": "EXACT_COMPARATOR",
+    "current_exception": "wave.Error: unknown format: 3",
+    "wav_format_tag": 3,
+    "wav_format_meaning": "IEEE_FLOAT",
+    "source_and_model_hash_gates_passed_before_failure": true,
+    "nemotron_transcription_execution_observed": false,
+    "verifiable_comparator_receipt_produced": false
+  },
+  "failure_taxonomy": "EVIDENCE_INVALID",
+  "product_negative": false,
+  "root_cause": "The current FLEURS de_de fixture bytes can be IEEE-float WAV (format tag 3), while the comparator's validate_wav/gate path uses Python stdlib wave as if every fixture were PCM16. The evidence harness therefore rejects a valid dataset audio encoding before Nemotron executes.",
+  "required_repair_class": "RUNTIME_PROBE_INVALIDATED_BY_REQUIRED_REPAIR",
+  "repair_constraints": [
+    "Preserve exact FLEURS repository/config/revision and row identities.",
+    "Do not reinterpret RNNT right-context as chunk size.",
+    "Preserve original fixture-byte SHA256 in evidence.",
+    "If a PCM16 view is required for WebRTC-VAD, make conversion explicit and deterministic and record the derived-byte SHA256/format; do not silently rewrite provenance.",
+    "Do not mint target-runtime or German-ASR-quality credit until the comparator actually transcribes and emits a receipt accepted by one explicit current validation contract.",
+    "Do not redispatch the unmodified failing subject."
+  ],
+  "next_exact_action": "Repair the existing ASR008 comparator's fixture reader so IEEE-float FLEURS WAV is handled without provenance loss (prefer preserving original bytes for model input and a deterministic PCM16 view for the existing VAD gate), add a regression for format-tag-3 input, then dispatch exactly one repaired subject on clay-direct-dev and reconcile its raw receipt to the current F2 validator contract.",
+  "credit": {
+    "runtime_credit": 0,
+    "nemotron_target_runtime_execution": 0,
+    "german_asr_quality_credit": 0,
+    "trigger4_acceptance_credit": 0,
+    "physical_device_credit": 0,
+    "gwt_jspace_credit": 0,
+    "effect_credit": 0,
+    "training_credit": 0,
+    "whole_product_credit": 0
+  },
+  "scope_fence": "This receipt reconciles an evidence-harness fixture-format failure only. It is not evidence for or against Nemotron ASR quality because model transcription did not execute."
+}
