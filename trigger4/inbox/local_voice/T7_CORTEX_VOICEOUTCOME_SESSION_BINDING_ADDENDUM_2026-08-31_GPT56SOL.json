@@ -1,0 +1,82 @@
+{
+  "schema": "T7_TO_T4_INTEGRATION_ADDENDUM_V1",
+  "created_at": "2026-08-31T07:45:00+07:00",
+  "trigger": "7",
+  "organ": "GPT-5.6-Sol",
+  "classification": "INTEGRATION_CONTRACT_DELTA__VOICEOUTCOME_EXACT_SESSION_BIND_REQUIRED",
+  "authority_ref": "research/local_voice/authority/2026-08-31_TRIGGER7_TEXT_PACKET_COMPLETION_AUTHORITY.md",
+  "extends": "trigger4/inbox/local_voice/T7_CORTEX_STATE_MEMORY_GWT_REENTRY_INTEGRATION_2026-08-31_GPT56SOL.json",
+  "authority": {
+    "new_f2_mutation_authority": false,
+    "new_runtime_dispatch": false,
+    "new_effect_authority": false,
+    "credit_delta": 0
+  },
+  "source_binding": {
+    "path": "src/frankenstein2/voice_contract.py",
+    "observed_blob_sha": "ad639b02ea69771014a2cad5b38103036b35bdfb",
+    "observation": [
+      "VoiceOutcome.create() validates lineage against the concrete VoiceSessionCapsule before construction.",
+      "VoiceOutcome.from_mapping() reconstructs and validates a self-consistent VoiceOutcome but cannot by itself prove that the embedded voice_session_id/voice_session_sha256 and outcome causal lineage correspond to the concrete session currently being consumed.",
+      "bind_voice_outcome(session=..., candidate=...) is the existing exact consumer-boundary validator: it checks exact session id/digest, causal lineage and divergent terminal-outcome replay.",
+      "The generic VoiceOutcome schema does not prohibit result_ref/result_sha256 solely because outcome_kind is INTERRUPTED; the stricter Trigger7 heard-prefix policy therefore must be enforced by the cortex integration adapter rather than assumed from the generic voice contract."
+    ]
+  },
+  "required_delta": {
+    "VSR01_COMPLETED_HEARD_OUTPUT_REENTRY": {
+      "require": "Before any VoiceOutcome contributes to next-turn context, memory binding or replay identity, consume it through bind_voice_outcome() against the exact VoiceSessionCapsule. VoiceOutcome.from_mapping() or an outcome digest alone is insufficient consumer evidence."
+    },
+    "VSR02_INTERRUPTED_HEARD_PREFIX_EPHEMERAL_ONLY": {
+      "require": "Even if a syntactically valid INTERRUPTED VoiceOutcome carries result_ref/result_sha256, the cortex adapter must reject that result as durable output/memory authority under the resolved Trigger7 interruption policy. Only the separately measured heard-prefix payload may enter ephemeral next-turn dialogue context, with the unheard tail excluded."
+    },
+    "VSR06_RESTART_REPLAY_IDEMPOTENCE": {
+      "require": "Replay must call bind_voice_outcome() with the recovered exact session and previously bound outcome. Exact identical replay is idempotent; a different terminal outcome for the same session or an outcome from a different session must fail closed."
+    }
+  },
+  "new_negative_discriminators": [
+    {
+      "id": "VSR07_FOREIGN_SESSION_OUTCOME_REBIND",
+      "setup": "Construct/recover a self-consistent VoiceOutcome whose embedded session identity is not the exact active VoiceSessionCapsule, then present it to the cortex integration boundary.",
+      "require": "Fail closed through bind_voice_outcome(); no context, memory, GWT, tool/effect or replay admission follows.",
+      "product_negative_if": "SELF_CONSISTENT_OUTCOME_ACCEPTED_WITHOUT_EXACT_SESSION_BIND"
+    },
+    {
+      "id": "VSR08_DIVERGENT_TERMINAL_OUTCOME_REPLAY",
+      "setup": "For one exact VoiceSessionCapsule, persist/recover one accepted terminal VoiceOutcome, then present a different terminal candidate for the same session.",
+      "require": "Fail closed; exact identical replay alone is idempotent.",
+      "product_negative_if": "SECOND_DIFFERENT_TERMINAL_OUTCOME_ACCEPTED"
+    },
+    {
+      "id": "VSR09_INTERRUPTED_RESULTREF_POLICY_BYPASS",
+      "setup": "Create a schema-valid OUTCOME_INTERRUPTED carrying result_ref/result_sha256 and pair it with an interrupted packet whose heard_fraction is between 0 and 1.",
+      "require": "The cortex integration policy rejects the result_ref/result_sha256 as durable VoiceOutcome/memory authority; only an independently measured exact heard-prefix payload may be admitted ephemerally.",
+      "product_negative_if": "GENERIC_VOICE_CONTRACT_BYPASSES_TRIGGER7_INTERRUPTION_POLICY"
+    }
+  ],
+  "whole_loop_boundary_note": {
+    "existing_surface": "src/frankenstein2/whole_loop_persistence_integration.py",
+    "rule": "Do not route around the voice/session binding by treating VoiceOutcome references as generic whole-loop reentry refs. Existing WP900/WP206 persistence integration binds its own sealed checkpoint identities and is not a substitute for exact VoiceOutcome-to-VoiceSession validation. Reuse it only after the voice-specific adapter has produced admitted typed evidence at its proper boundary."
+  },
+  "receipt_additions": [
+    "voice_session_id_and_sha256_used_for_bind_voice_outcome",
+    "voiceoutcome_id_and_sha256_after_exact_session_bind",
+    "voiceoutcome_replay_disposition_exact_idempotent_or_rejected_divergent",
+    "interrupted_resultref_policy_disposition"
+  ],
+  "dedup_fence": {
+    "wp715": "DO_NOT_REOPEN_TERMINAL_PACKET_COMPONENT",
+    "asr008": "SEPARATE_NONTERMINAL_RUNTIME_SUBJECT__DO_NOT_REDISPATCH",
+    "whole_loop": "REUSE_EXISTING_WP900_WP206_AUTHORITY__NO_SECOND_PERSISTENCE_AUTHORITY"
+  },
+  "next_exact_action": "Trigger4 consumes this addendum with the existing VSR01-VSR06 and ContextCostWitness addendum, implements only the smallest existing-boundary adapter/harness, and includes VSR07-VSR09 in the same single VPS integration discriminator run rather than opening a new voice component or runtime dispatch.",
+  "credits": {
+    "research_contract_delta": 1,
+    "state_memory_voiceoutcome_reentry_integration": 0,
+    "gwt_runtime": 0,
+    "effect_runtime": 0,
+    "physical_audio": 0,
+    "whole_voice": 0,
+    "whole_product": 0,
+    "training": 0
+  }
+}
