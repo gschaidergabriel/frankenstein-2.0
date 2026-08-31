@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from dataclasses import replace
 import unittest
 
 from frankenstein2.causal_identity import CausalIdentity
@@ -24,7 +25,11 @@ from frankenstein2.gwt_workspace import (
 from frankenstein2.memory_lifecycle import create_memory
 from frankenstein2.typed_memory import KIND_FACT, create_typed_memory
 from frankenstein2.voice_contract import OUTCOME_RETURNED, VoiceIntent, VoiceSessionCapsule
-from frankenstein2.voice_heard_result_reentry import bind_completed_reentry, build_heard_result
+from frankenstein2.voice_heard_result_reentry import (
+    VoiceHeardResultReentryError,
+    bind_completed_reentry,
+    build_heard_result,
+)
 from frankenstein2.voice_packet_cortex import VoicePacketCortex
 
 
@@ -332,6 +337,52 @@ class WP717HeardMemoryContextCompositionTests(unittest.TestCase):
             existing=receipt,
         )
         self.assertIs(replay, receipt)
+
+        with self.subTest("VSR07_HEARD_MEMORY_PAYLOAD_MISMATCH"):
+            unrelated_memory_state = create_memory(
+                memory_id=memory_state.memory_id,
+                payload_ref="fixture:unrelated-memory-payload",
+                payload_sha256="2" * 64,
+                provenance_refs=("test:wp717-vsr07-unrelated-memory",),
+            )
+            unrelated_typed_memory = create_typed_memory(
+                state=unrelated_memory_state,
+                memory_kind=KIND_FACT,
+                refs={"evidence": ("fixture:unrelated-memory-payload",)},
+            )
+            with self.assertRaises(VoiceHeardResultReentryError):
+                bind_completed_reentry(
+                    session=session,
+                    outcome=outcome,
+                    output_packets=cortex.outputs,
+                    close_event=close_event,
+                    context_item=context_item,
+                    cost_witness=cost_witness,
+                    context_view=context_view,
+                    memory_event=memory_event,
+                    memory_bindings=((unrelated_memory_state, unrelated_typed_memory),),
+                    gwt_event=gwt_event,
+                    gwt_binding=gwt_binding,
+                    provenance_refs=("test:wp717-vsr07",),
+                )
+
+        with self.subTest("VSR08_DIRECT_GWT_BINDING_WITHOUT_LINEAGE"):
+            direct_unsealed_binding = replace(gwt_binding, _factory_seal=None)
+            with self.assertRaises(VoiceHeardResultReentryError):
+                bind_completed_reentry(
+                    session=session,
+                    outcome=outcome,
+                    output_packets=cortex.outputs,
+                    close_event=close_event,
+                    context_item=context_item,
+                    cost_witness=cost_witness,
+                    context_view=context_view,
+                    memory_event=memory_event,
+                    memory_bindings=((memory_state, typed_memory),),
+                    gwt_event=gwt_event,
+                    gwt_binding=direct_unsealed_binding,
+                    provenance_refs=("test:wp717-vsr08",),
+                )
 
 
 if __name__ == "__main__":
