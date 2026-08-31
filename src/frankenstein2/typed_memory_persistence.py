@@ -4,13 +4,15 @@ F2-WP-307 generation 1.
 
 This module closes only the persistence boundary between the accepted F2-WP-303
 ``TypedMemoryRecord`` contract and the already-authoritative F2-WP-206
-``CanonicalPersistentAgencyStore`` connection.  It never creates or opens a second
+``CanonicalPersistentAgencyStore`` connection. It never creates or opens a second
 SQLite database, never infers world truth or memory semantics, never performs retrieval,
 never invokes a model/provider/tool, and never authorizes effects or completion.
 
 The adapter persists the exact canonical JSON bytes and SHA-256 identity emitted by
-``TypedMemoryRecord``.  Readback validates database file identity, authority receipt,
-canonical encoding and digest before returning an immutable readback envelope.
+``TypedMemoryRecord``. Every WP307 table read/write is schema-qualified to ``main`` so a
+same-name TEMP table cannot shadow canonical durable UnifiedDB state. Readback validates
+file identity, authority receipt, canonical encoding and digest before returning an
+immutable envelope.
 """
 from __future__ import annotations
 
@@ -22,7 +24,10 @@ from pathlib import Path
 import sqlite3
 from typing import Any
 
-from frankenstein2.persistent_agency_kernel import CanonicalPersistentAgencyStore
+from frankenstein2.persistent_agency_kernel import (
+    CanonicalPersistentAgencyStore,
+    PersistentAgencyError,
+)
 from frankenstein2.typed_memory import TypedMemoryRecord
 
 PERSISTENCE_SCHEMA = "FRANKENSTEIN2_TYPED_MEMORY_UNIFIEDDB_PERSISTENCE/v1"
@@ -106,15 +111,21 @@ class TypedMemoryReadback:
             or len(self.record_sha256) != 64
             or any(ch not in "0123456789abcdef" for ch in self.record_sha256)
         ):
-            raise TypedMemoryPersistenceError("record_sha256 must be lowercase 64-hex SHA-256")
+            raise TypedMemoryPersistenceError(
+                "record_sha256 must be lowercase 64-hex SHA-256"
+            )
         if not isinstance(self.record_json, str) or not self.record_json:
-            raise TypedMemoryPersistenceError("record_json must be non-empty canonical JSON")
+            raise TypedMemoryPersistenceError(
+                "record_json must be non-empty canonical JSON"
+            )
         try:
             decoded = json.loads(self.record_json)
         except json.JSONDecodeError as exc:
             raise TypedMemoryPersistenceError("CORRUPT_TYPED_MEMORY_JSON") from exc
         if not isinstance(decoded, dict):
-            raise TypedMemoryPersistenceError("typed-memory JSON must decode to an object")
+            raise TypedMemoryPersistenceError(
+                "typed-memory JSON must decode to an object"
+            )
         if _canonical_json(decoded) != self.record_json:
             raise TypedMemoryPersistenceError("TYPED_MEMORY_JSON_NOT_CANONICAL")
         if _sha256_bytes(self.record_json) != self.record_sha256:
@@ -122,12 +133,18 @@ class TypedMemoryReadback:
         if decoded.get("memory_id") != self.memory_id:
             raise TypedMemoryPersistenceError("TYPED_MEMORY_ID_METADATA_MISMATCH")
         if decoded.get("lifecycle_generation") != self.lifecycle_generation:
-            raise TypedMemoryPersistenceError("TYPED_MEMORY_GENERATION_METADATA_MISMATCH")
+            raise TypedMemoryPersistenceError(
+                "TYPED_MEMORY_GENERATION_METADATA_MISMATCH"
+            )
         _identifier("canonical_db_path", self.canonical_db_path)
         if type(self.db_device) is not int or type(self.db_inode) is not int:
-            raise TypedMemoryPersistenceError("database device/inode identity must be integers")
+            raise TypedMemoryPersistenceError(
+                "database device/inode identity must be integers"
+            )
         if self.db_device < 0 or self.db_inode < 0:
-            raise TypedMemoryPersistenceError("database device/inode identity must be non-negative")
+            raise TypedMemoryPersistenceError(
+                "database device/inode identity must be non-negative"
+            )
         if (
             not isinstance(self.unifieddb_authority_receipt_sha256, str)
             or len(self.unifieddb_authority_receipt_sha256) != 64
@@ -143,7 +160,9 @@ class TypedMemoryReadback:
             self.classification
             != "EXACT_TYPED_MEMORY_BYTES_READBACK_NOT_WORLD_TRUTH_RETRIEVAL_EFFECT_OR_COMPLETION_AUTHORITY"
         ):
-            raise TypedMemoryPersistenceError("typed-memory readback classification mismatch")
+            raise TypedMemoryPersistenceError(
+                "typed-memory readback classification mismatch"
+            )
 
     def as_dict(self) -> dict[str, Any]:
         return {
@@ -155,14 +174,18 @@ class TypedMemoryReadback:
             "canonical_db_path": self.canonical_db_path,
             "db_device": self.db_device,
             "db_inode": self.db_inode,
-            "unifieddb_authority_receipt_sha256": self.unifieddb_authority_receipt_sha256,
+            "unifieddb_authority_receipt_sha256": (
+                self.unifieddb_authority_receipt_sha256
+            ),
             "classification": self.classification,
         }
 
     def record_dict(self) -> dict[str, Any]:
         value = json.loads(self.record_json)
         if not isinstance(value, dict):
-            raise TypedMemoryPersistenceError("typed-memory JSON must decode to an object")
+            raise TypedMemoryPersistenceError(
+                "typed-memory JSON must decode to an object"
+            )
         return value
 
     def verify_exact_record(self, record: TypedMemoryRecord) -> None:
@@ -205,10 +228,14 @@ class TypedMemoryUnifiedDBStore:
         try:
             rows = self.connection.execute("PRAGMA database_list").fetchall()
         except sqlite3.Error as exc:
-            raise TypedMemoryPersistenceError("SQLITE_DATABASE_LIST_UNAVAILABLE") from exc
+            raise TypedMemoryPersistenceError(
+                "SQLITE_DATABASE_LIST_UNAVAILABLE"
+            ) from exc
         main_rows = [row for row in rows if len(row) >= 3 and row[1] == "main"]
         if len(main_rows) != 1 or not main_rows[0][2]:
-            raise TypedMemoryPersistenceError("SQLITE_MAIN_DATABASE_PATH_UNAVAILABLE")
+            raise TypedMemoryPersistenceError(
+                "SQLITE_MAIN_DATABASE_PATH_UNAVAILABLE"
+            )
         if not _same_real_path(main_rows[0][2], self.canonical_db_path):
             raise TypedMemoryPersistenceError(
                 "SQLITE_CONNECTION_NOT_BOUND_TO_CANONICAL_UNIFIEDDB"
@@ -216,9 +243,7 @@ class TypedMemoryUnifiedDBStore:
         attached_persistent = [
             row
             for row in rows
-            if len(row) >= 3
-            and row[1] != "main"
-            and bool(row[2])
+            if len(row) >= 3 and row[1] != "main" and bool(row[2])
         ]
         if attached_persistent:
             raise TypedMemoryPersistenceError(
@@ -226,6 +251,12 @@ class TypedMemoryUnifiedDBStore:
             )
 
     def _assert_current_unifieddb_identity(self) -> None:
+        try:
+            self.agency_store._assert_current_file_identity()
+        except PersistentAgencyError as exc:
+            raise TypedMemoryPersistenceError(
+                "UNIFIEDDB_AGENCY_AUTHORITY_REVALIDATION_FAILED"
+            ) from exc
         try:
             stat = Path(self.canonical_db_path).stat()
         except OSError as exc:
@@ -241,14 +272,14 @@ class TypedMemoryUnifiedDBStore:
             raise TypedMemoryPersistenceError("CALLER_TRANSACTION_ALREADY_OPEN")
 
     def initialize_schema(self) -> None:
-        """Create only the WP307-owned table on the existing main UnifiedDB connection."""
+        """Create only the WP307-owned durable table in canonical ``main``."""
         self._assert_no_caller_transaction()
         self._assert_current_unifieddb_identity()
         try:
             self.connection.execute("BEGIN IMMEDIATE")
             self._assert_current_unifieddb_identity()
             self.connection.execute(
-                f"""CREATE TABLE IF NOT EXISTS {TYPED_MEMORY_TABLE}(
+                f"""CREATE TABLE IF NOT EXISTS main.{TYPED_MEMORY_TABLE}(
                     memory_id TEXT NOT NULL,
                     lifecycle_generation INTEGER NOT NULL CHECK(lifecycle_generation >= 0),
                     memory_kind TEXT NOT NULL,
@@ -264,10 +295,6 @@ class TypedMemoryUnifiedDBStore:
                     PRIMARY KEY(memory_id, lifecycle_generation)
                 )"""
             )
-            self.connection.execute(
-                f"""CREATE UNIQUE INDEX IF NOT EXISTS idx_f2_typed_memory_record_sha
-                    ON {TYPED_MEMORY_TABLE}(record_sha256)"""
-            )
             self.connection.commit()
         except Exception:
             self.connection.rollback()
@@ -282,13 +309,15 @@ class TypedMemoryUnifiedDBStore:
         record_json = record.canonical_json()
         record_sha256 = record.sha256()
         if _sha256_bytes(record_json) != record_sha256:
-            raise TypedMemoryPersistenceError("TYPED_MEMORY_SOURCE_DIGEST_MISMATCH")
+            raise TypedMemoryPersistenceError(
+                "TYPED_MEMORY_SOURCE_DIGEST_MISMATCH"
+            )
         try:
             self.connection.execute("BEGIN IMMEDIATE")
             self._assert_current_unifieddb_identity()
             existing = self.connection.execute(
                 f"""SELECT record_sha256, record_json
-                    FROM {TYPED_MEMORY_TABLE}
+                    FROM main.{TYPED_MEMORY_TABLE}
                     WHERE memory_id=? AND lifecycle_generation=?""",
                 (record.memory_id, record.lifecycle_generation),
             ).fetchone()
@@ -300,7 +329,7 @@ class TypedMemoryUnifiedDBStore:
                     "MEMORY_GENERATION_ALREADY_BOUND_TO_DIFFERENT_BYTES"
                 )
             self.connection.execute(
-                f"""INSERT INTO {TYPED_MEMORY_TABLE}(
+                f"""INSERT INTO main.{TYPED_MEMORY_TABLE}(
                     memory_id, lifecycle_generation, memory_kind,
                     lifecycle_state_sha256, payload_ref, payload_sha256,
                     record_sha256, record_json,
@@ -322,6 +351,16 @@ class TypedMemoryUnifiedDBStore:
                     self.unifieddb_authority_receipt_sha256,
                 ),
             )
+            stored = self.connection.execute(
+                f"""SELECT record_sha256, record_json
+                    FROM main.{TYPED_MEMORY_TABLE}
+                    WHERE memory_id=? AND lifecycle_generation=?""",
+                (record.memory_id, record.lifecycle_generation),
+            ).fetchone()
+            if stored != (record_sha256, record_json):
+                raise TypedMemoryPersistenceError(
+                    "POST_WRITE_CANONICAL_MAIN_READBACK_MISMATCH"
+                )
             self.connection.commit()
             return record_sha256
         except Exception:
@@ -331,9 +370,10 @@ class TypedMemoryUnifiedDBStore:
     def load_record(
         self, memory_id: str, lifecycle_generation: int
     ) -> TypedMemoryReadback:
-        """Read and verify exact persisted bytes under the same UnifiedDB authority identity."""
+        """Read and verify exact persisted bytes from canonical ``main`` only."""
         memory_id = _identifier("memory_id", memory_id)
         lifecycle_generation = _generation(lifecycle_generation)
+        self._assert_no_caller_transaction()
         self._assert_current_unifieddb_identity()
         try:
             row = self.connection.execute(
@@ -341,7 +381,7 @@ class TypedMemoryUnifiedDBStore:
                            payload_sha256, record_sha256, record_json,
                            canonical_db_path, db_device, db_inode,
                            unifieddb_authority_receipt_sha256
-                    FROM {TYPED_MEMORY_TABLE}
+                    FROM main.{TYPED_MEMORY_TABLE}
                     WHERE memory_id=? AND lifecycle_generation=?""",
                 (memory_id, lifecycle_generation),
             ).fetchone()
@@ -361,26 +401,35 @@ class TypedMemoryUnifiedDBStore:
             stored_inode,
             stored_authority_sha,
         ) = row
-        if not _same_real_path(stored_path, self.canonical_db_path):
-            raise TypedMemoryPersistenceError("TYPED_MEMORY_DB_PATH_AUTHORITY_MISMATCH")
+        if not isinstance(stored_path, str) or not _same_real_path(
+            stored_path, self.canonical_db_path
+        ):
+            raise TypedMemoryPersistenceError(
+                "TYPED_MEMORY_DB_PATH_AUTHORITY_MISMATCH"
+            )
         if (stored_device, stored_inode) != (self.db_device, self.db_inode):
-            raise TypedMemoryPersistenceError("TYPED_MEMORY_DB_FILE_IDENTITY_DRIFT")
+            raise TypedMemoryPersistenceError(
+                "TYPED_MEMORY_DB_FILE_IDENTITY_DRIFT"
+            )
         if stored_authority_sha != self.unifieddb_authority_receipt_sha256:
             raise TypedMemoryPersistenceError(
                 "TYPED_MEMORY_DB_AUTHORITY_RECEIPT_MISMATCH"
             )
-        if not isinstance(record_json, str) or not record_json:
-            raise TypedMemoryPersistenceError("CORRUPT_TYPED_MEMORY_JSON")
-        try:
-            decoded = json.loads(record_json)
-        except json.JSONDecodeError as exc:
-            raise TypedMemoryPersistenceError("CORRUPT_TYPED_MEMORY_JSON") from exc
-        if not isinstance(decoded, dict):
-            raise TypedMemoryPersistenceError("typed-memory JSON must decode to an object")
-        if _canonical_json(decoded) != record_json:
-            raise TypedMemoryPersistenceError("TYPED_MEMORY_JSON_NOT_CANONICAL")
-        if not isinstance(record_sha256, str) or _sha256_bytes(record_json) != record_sha256:
-            raise TypedMemoryPersistenceError("TYPED_MEMORY_DIGEST_MISMATCH")
+
+        readback = TypedMemoryReadback(
+            schema=READBACK_SCHEMA,
+            memory_id=memory_id,
+            lifecycle_generation=lifecycle_generation,
+            record_sha256=record_sha256,
+            record_json=record_json,
+            canonical_db_path=self.canonical_db_path,
+            db_device=self.db_device,
+            db_inode=self.db_inode,
+            unifieddb_authority_receipt_sha256=(
+                self.unifieddb_authority_receipt_sha256
+            ),
+        )
+        decoded = readback.record_dict()
         metadata_checks = {
             "memory_kind": (stored_kind, decoded.get("memory_kind")),
             "lifecycle_state_sha256": (
@@ -391,23 +440,15 @@ class TypedMemoryUnifiedDBStore:
             "payload_sha256": (stored_payload_sha, decoded.get("payload_sha256")),
         }
         mismatches = [
-            name for name, (stored, encoded) in metadata_checks.items() if stored != encoded
+            name
+            for name, (stored, encoded) in metadata_checks.items()
+            if stored != encoded
         ]
         if mismatches:
             raise TypedMemoryPersistenceError(
                 f"typed-memory indexed metadata mismatch: {mismatches!r}"
             )
-        return TypedMemoryReadback(
-            schema=READBACK_SCHEMA,
-            memory_id=memory_id,
-            lifecycle_generation=lifecycle_generation,
-            record_sha256=record_sha256,
-            record_json=record_json,
-            canonical_db_path=self.canonical_db_path,
-            db_device=self.db_device,
-            db_inode=self.db_inode,
-            unifieddb_authority_receipt_sha256=self.unifieddb_authority_receipt_sha256,
-        )
+        return readback
 
 
 __all__ = [
