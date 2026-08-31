@@ -1,0 +1,45 @@
+{
+  "schema": "FRANKENSTEIN2_CANDIDATE_FALSIFIER/v1",
+  "workpackage_id": "F2-WP-717",
+  "generation": 3,
+  "claim_id_observed": "F2-WP-717-G3-GPT56SOL-MEMORY-GWT-LINEAGE-FENCES-20260831",
+  "worker_id": "GPT-5.6-Sol-Trigger4-Independent-Falsifier",
+  "result_class": "CANDIDATE_FALSIFIER",
+  "mutation_authority": false,
+  "falsifier_id": "VSR08D_FACTORY_SEAL_AND_PAYLOAD_RESEAL",
+  "tested_shape": {
+    "gwt_binding_source_blob": "b0c9a80b799249d853ac69a3ae73433e270a5c86",
+    "voice_consumer_source_blob": "5abf1cb2c8dbf7525ba558a55926b5d1703dea08",
+    "factory_check": "assert_reentry_uptake_binding_factory_origin requires _factory_seal identity and _factory_payload_sha256 == digest(as_dict())",
+    "dataclass_fields": "_factory_seal and _factory_payload_sha256 are ordinary dataclass init fields; neither is init=False"
+  },
+  "observation": "The new payload-digest fence defeats a plain dataclasses.replace(public_field=...) because the preserved old _factory_payload_sha256 no longer matches. It still does not establish unforgeable factory origin inside the Python object model: dataclasses.replace can preserve the exact private seal object automatically and the caller can also provide a recomputed _factory_payload_sha256 for the modified public as_dict payload. No secret is required because the seal is carried by the source object and the digest algorithm is deterministic/publicly reproducible.",
+  "setup": [
+    "Create one valid binding with bind_reentry_to_uptake() so it carries the exact module-private _factory_seal and factory payload digest.",
+    "Choose a different but syntactically valid lineage-bearing public field, e.g. broadcast_sha256.",
+    "Compute the canonical digest that the modified binding.as_dict() will have. This is deterministic JSON/SHA-256 and does not require the private seal value.",
+    "Use dataclasses.replace(valid_binding, broadcast_sha256=<forged>, _factory_payload_sha256=<recomputed modified payload digest>). Do not override _factory_seal; replace copies that init field from the valid source object.",
+    "Call assert_reentry_uptake_binding_factory_origin() and then the WP717 validate_gwt_event_binding consumer with matching gwt_ref."
+  ],
+  "required_result_for_exact_gwt_semantics": "FAIL_CLOSED_BEFORE_RECEIPT",
+  "failure_signature": "A post-factory structurally replaced binding with recomputed _factory_payload_sha256 passes factory-origin validation while its lineage-bearing public content no longer equals the exact factory-validated WP507/WP508 evidence.",
+  "why_high_information": "This tests the repaired helper itself rather than the pre-fix seal-only shape. It distinguishes tamper-evident cached payload identity from actual factory/source-lineage authority.",
+  "repair_guidance": [
+    "Preferred small object-level hardening: make _factory_seal and any factory-cache field init=False so dataclasses.replace/direct constructor cannot preserve or supply them; set them only with object.__setattr__ inside the admitted factory after validation.",
+    "For strongest exact GWT semantics, continue to use validate_reentry_uptake_binding with exact witness/uptake/plan/selection/broadcast/cell_input source objects at the promotion boundary, or bind an immutable admitted proof to those exact objects.",
+    "Do not create a second GWT authority and do not promote GWT/J-Space runtime merely because an object passes reference-lineage validation."
+  ],
+  "scope_guards": {
+    "wp717_g1_runtime_credit": "PRESERVE",
+    "wp717_g2_memory_context_runtime_credit": "PRESERVE_AT_EXACT_SCOPE",
+    "memory_payload_relation_fix": "NOT_INVALIDATED_BY_THIS_FALSIFIER",
+    "gwt_runtime_credit": 0,
+    "jspace_runtime_credit": 0,
+    "effect_credit": 0,
+    "physical_audio_credit": 0,
+    "training_credit": 0,
+    "completion_credit": 0,
+    "whole_system_acceptance": false
+  },
+  "next_exact_action": "WP717 G3 mutation owner should execute VSR08D against the current helper before terminal repository acceptance. If reproduced, harden the existing factory fields or consume the existing deep validator; rerun all VSR07/VSR08 regressions before binding any VPS subject."
+}
