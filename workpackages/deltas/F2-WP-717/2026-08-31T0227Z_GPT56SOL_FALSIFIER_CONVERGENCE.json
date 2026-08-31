@@ -1,0 +1,52 @@
+{
+  "schema": "F2_WP717_CLAIM_SCOPED_DELTA/v1",
+  "workpackage_id": "F2-WP-717",
+  "generation": 1,
+  "claim_id": "F2-WP-717-G1-GPT56SOL-VOICE-HEARD-RESULT-REENTRY-20260831",
+  "organ": "GPT-5.6-Sol-Trigger4",
+  "work_class": "INTEGRATION_BLOCKER",
+  "observed_f2_head_before_write": "8d2d98c350ee0f2059bb8d80b0a6964c704e66ec",
+  "evidence_scope": "REPOSITORY_FALSIFIER_CONVERGENCE_ONLY",
+  "credit_delta": 0,
+  "repository_component_ci_credit": 0,
+  "vps_runtime_credit": 0,
+  "canonical_memory_write_credit": 0,
+  "gwt_runtime_credit": 0,
+  "effect_credit": 0,
+  "physical_audio_credit": 0,
+  "training_credit": 0,
+  "whole_product_credit": 0,
+  "observations": {
+    "baseline_ci": {
+      "run_id": 33350577453,
+      "subject_sha": "267a11d9c5d5beb96cbdb3a75d04e01fdfedfc03",
+      "conclusion": "success",
+      "promotion_allowed": false,
+      "reason": "Three newer independent WP717 falsifiers were not represented by the passing VSR01-VSR06 suite."
+    },
+    "falsifiers": [
+      {
+        "commit": "4cb6980ec739476093234b48be9402a97927cbf6",
+        "class": "SINGLE_PASS_ITERABLE_BACKLINK_BYPASS",
+        "required_discriminator": "Pass an iterator containing a fully-heard packet whose voiceoutcome_ref is absent/wrong; direct validate_completed_heard_result must reject exactly as tuple input rejects.",
+        "repair_if_reproduced": "Materialize output_packets once at the outer validator boundary and reuse that exact tuple for digest construction, backlink checks and close inventory validation."
+      },
+      {
+        "commit": "062f7c38d2ca7d2543f9debbc11cf61121aa826f",
+        "class": "WP715_CLOSE_TURN_INTEGRATION_MISMATCH",
+        "required_discriminator": "Complete heard output on one turn, close the same accepted WP715 session on a distinct close-transition turn, and require exact session/outcome/result/inventory binding to remain valid.",
+        "repair_if_reproduced": "Do not equate close_event.turn_id with heard-result output turn; bind SESSION_CLOSE through exact session identity plus exact packet inventory."
+      },
+      {
+        "commit": "49311212bf588499ceecc1d66015a9a545766241",
+        "class": "PRE_CLOSE_FULL_PACKET_IDENTITY_COLLAPSE",
+        "required_discriminator": "Mutate one canonical pre-close VoiceOutputPacket field outside voiceoutcome_ref, such as planned_audio_duration_ms or first_output_ms; exact packet identity changes must not collapse to the same heard-result identity.",
+        "repair_if_reproduced": "Use a versioned pre-close full-packet identity projection that normalizes/excludes only voiceoutcome_ref while retaining all other canonical packet identity fields, or explicitly narrow the contract and stop claiming exact full-packet binding."
+      }
+    ]
+  },
+  "failure_taxonomy": "PRODUCT_NEGATIVE_IF_EXECUTABLE_REGRESSIONS_REPRODUCE",
+  "concurrency_decision": "Do not mutate WP717 source from this review lane while the active G1 mutation owner is concurrently producing claim-related commits. Preserve one semantic source owner and feed the falsifier set into that owner instead of creating a competing repair generation.",
+  "asr008_fence": "Run 33345363593 is independently executing and remains frozen; no ASR008 dispatch or semantic mutation is authorized from WP717.",
+  "next_exact_action": "Active WP717 mutation owner: materialize all three falsifiers as executable regressions before repository acceptance; reproduce each failure, repair only the reproduced invariants, rerun the original VSR01-VSR06 plus the new regressions, then bind the exact repaired source to the lowest safe faithful VPS sandbox execution. Until then repository_component_ci_credit and runtime credit remain zero."
+}
