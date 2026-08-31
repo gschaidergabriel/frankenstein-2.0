@@ -1,0 +1,53 @@
+{
+  "schema": "F2_TRIGGER4_CANDIDATE_FALSIFIER/v1",
+  "trigger": "4",
+  "research_id": "T7-ASR-008",
+  "observed_at_utc": "2026-08-30T23:55:00Z",
+  "classification": "EVIDENCE_INVALID_UNTIL_FLEURS_FLOAT_WAV_IS_NORMALIZED_OR_THE_HARNESS_ADMITS_IEEE_FLOAT_EXPLICITLY",
+  "bound_runtime": {
+    "controller_repo": "gschaidergabriel/Dr.-Unterweger",
+    "repair_commit": "40aa40e31c15a8421326b63a258eff0657dd5d53",
+    "redispatch_commit": "823920bd770c16ca9855610d56d64a669a8063b0",
+    "workflow_run_id": 33340567051,
+    "persisted_evidence_commit": "1bb96639a519abc8b5e373ffcdaaefa58d15fe17",
+    "f2_subject": "4727b94eeda381f3dcbe4d494eb72f91ce17b478",
+    "target_surface": "clay-direct-dev",
+    "semantic_key": "93d61d9b893d411c8085cd5d257968c23448bc426430e603f6e33add1db5e4e3"
+  },
+  "observed_receipt": {
+    "schema": "T7_ASR008_NEMOTRON35_EXECUTION_FAILURE/v1",
+    "execution_observed": false,
+    "classification": "EVIDENCE_INVALID",
+    "reason": "BOUND_COMPARATOR_DID_NOT_PRODUCE_VERIFIABLE_RECEIPT",
+    "failure_stage": "EXACT_COMPARATOR",
+    "bridge_exit_code": 1,
+    "runtime_credit_delta": 0
+  },
+  "root_cause": {
+    "type": "HARNESS_FIXTURE_ABI",
+    "exception": "wave.Error: unknown format: 3",
+    "meaning": "The selected FLEURS fixture bytes are an IEEE-float WAV (WAVE format tag 3). The current comparator validates and gates speech fixtures through Python wave as if the admitted input ABI were PCM16, so execution stops before Nemotron inference and before a verifiable comparator receipt exists.",
+    "product_negative": false,
+    "infra_failure": false,
+    "quality_measurement_observed": false
+  },
+  "required_repair": {
+    "preferred": "Normalize each selected FLEURS speech fixture deterministically to mono 16 kHz PCM16 before validate_wav/gate/Nemotron consumption, while preserving both source-byte SHA256 and normalized-fixture SHA256 in the receipt.",
+    "alternative": "Explicitly widen the harness audio ABI to IEEE-float WAV only if gate and runtime consumers are proven to interpret it identically; do not silently reinterpret float frames as PCM16.",
+    "regression": "Add a fixture-level regression that exercises one format-tag-3 source and proves the admitted normalized output is mono, 16000 Hz, 16-bit PCM with stable digest and preserved source provenance."
+  },
+  "failure_taxonomy": "EVIDENCE_INVALID",
+  "runtime_subject_action": "RUNTIME_PROBE_INVALIDATED_BY_REQUIRED_REPAIR",
+  "next_exact_action": "Repair only the fixture-format boundary, bind the repaired comparator source exactly, rerun one target comparator on clay-direct-dev, preserve raw logs/receipt, then reconcile against one explicit current F2 receipt contract before any promotion.",
+  "credit": {
+    "runtime_credit": 0,
+    "german_asr_quality_credit": 0,
+    "trigger4_acceptance_credit": 0,
+    "physical_device_credit": 0,
+    "gwt_jspace_credit": 0,
+    "effect_credit": 0,
+    "training_credit": 0,
+    "whole_product_credit": 0
+  },
+  "scope_fence": "This finding closes only the classification of run 33340567051 and identifies the smallest validity repair. It does not establish Nemotron quality, target-runtime success, receipt-contract compatibility, or whole-product progress."
+}
