@@ -2,6 +2,8 @@
 """Deterministic repository falsifiers for F2-WP-307 typed-memory persistence."""
 from __future__ import annotations
 
+import hashlib
+import json
 from pathlib import Path
 import sqlite3
 import tempfile
@@ -131,6 +133,54 @@ class TypedMemoryPersistenceTests(unittest.TestCase):
             "TYPED_MEMORY_DIGEST_MISMATCH",
         ):
             self.store.load_record(record.memory_id, record.lifecycle_generation)
+
+    def test_coherent_row_rewrite_requires_external_expected_record_for_exact_identity(self) -> None:
+        """TMU02: self-consistent mutable bytes are not the originally admitted identity."""
+        self.store.initialize_schema()
+        record = self._record(evidence_ref="evidence:original")
+        self.store.write_record(record)
+
+        rewritten = record.as_dict()
+        rewritten["typed_refs"] = [
+            {
+                "schema": "FRANKENSTEIN2_TYPED_MEMORY_REFSET/v1",
+                "tag": "evidence",
+                "refs": ["evidence:coherent-rewrite"],
+            }
+        ]
+        rewritten_json = json.dumps(
+            rewritten,
+            ensure_ascii=False,
+            sort_keys=True,
+            separators=(",", ":"),
+            allow_nan=False,
+        )
+        rewritten_sha = hashlib.sha256(rewritten_json.encode("utf-8")).hexdigest()
+
+        connection = self.agency_store.connection
+        connection.execute(
+            f"""UPDATE main.{TYPED_MEMORY_TABLE}
+                SET record_json=?, record_sha256=?
+                WHERE memory_id=? AND lifecycle_generation=?""",
+            (
+                rewritten_json,
+                rewritten_sha,
+                record.memory_id,
+                record.lifecycle_generation,
+            ),
+        )
+        connection.commit()
+
+        # load_record establishes row/DB self-consistency only. Exact identity against the
+        # originally admitted TypedMemoryRecord requires the independent expected record.
+        readback = self.store.load_record(record.memory_id, record.lifecycle_generation)
+        self.assertEqual(readback.record_sha256, rewritten_sha)
+        self.assertNotEqual(readback.record_sha256, record.sha256())
+        with self.assertRaisesRegex(
+            TypedMemoryPersistenceError,
+            "typed-memory exact readback mismatch",
+        ):
+            readback.verify_exact_record(record)
 
     def test_indexed_metadata_tamper_is_rejected_before_semantic_use(self) -> None:
         self.store.initialize_schema()
