@@ -1,0 +1,79 @@
+{
+  "schema": "T7_TO_T4_INTEGRATION_ADDENDUM_V1",
+  "created_at": "2026-08-31T07:42:00+07:00",
+  "trigger": "7",
+  "organ": "GPT-5.6-Sol",
+  "classification": "INTEGRATION_CONTRACT_DELTA__CONTEXT_COST_WITNESS_REQUIRED",
+  "authority_ref": "research/local_voice/authority/2026-08-31_TRIGGER7_TEXT_PACKET_COMPLETION_AUTHORITY.md",
+  "extends": "trigger4/inbox/local_voice/T7_CORTEX_STATE_MEMORY_GWT_REENTRY_INTEGRATION_2026-08-31_GPT56SOL.json",
+  "research_checkpoint": "clay-global-research-entity@371ca4c819ff545aa8df79ac2d699cbf335a6b60",
+  "authority": {
+    "new_f2_mutation_authority": false,
+    "new_runtime_dispatch": false,
+    "new_effect_authority": false,
+    "credit_delta": 0
+  },
+  "source_binding": {
+    "path": "src/frankenstein2/context_compiler.py",
+    "observed_blob_sha": "a8cf88735e0ba6d01cdd3a1e9440a860f8e3eeea",
+    "schema": "FRANKENSTEIN2_CONTEXT_COST_WITNESS/v1",
+    "invariant": "Every selectable ContextItem requires an exact ContextCostWitness whose payload_sha256 matches the item payload and whose measured_cost_units matches the item's declared cost_units before budget admission. The witness is measurement/admission evidence only, not truth/effect authority."
+  },
+  "required_delta": {
+    "VSR01_COMPLETED_HEARD_OUTPUT_REENTRY": {
+      "require": "Any completed-output ContextItem admitted into the next-turn ContextView must carry an exact ContextCostWitness bound to the same payload_sha256 and measured cost. Digest/reference presence alone is insufficient.",
+      "fail_closed_if": [
+        "MISSING_CONTEXT_COST_WITNESS",
+        "WITNESS_PAYLOAD_DIGEST_MISMATCH",
+        "WITNESS_COST_UNITS_MISMATCH",
+        "WITNESS_RENDERER_OR_TOKENIZER_IDENTITY_UNBOUND"
+      ]
+    },
+    "VSR02_INTERRUPTED_HEARD_PREFIX_EPHEMERAL_ONLY": {
+      "require": "The exact measured heard-prefix, when retained as ephemeral next-turn dialogue context, must be represented as its own payload identity and must have a ContextCostWitness for that heard-prefix payload. The unheard tail must remain excluded. A witness for the full pre-interruption output cannot authorize the shorter heard-prefix ContextItem unless payload identity is exactly equal.",
+      "fail_closed_if": [
+        "HEARD_PREFIX_CONTEXT_WITHOUT_COST_WITNESS",
+        "FULL_OUTPUT_WITNESS_REUSED_FOR_DIFFERENT_PREFIX_DIGEST",
+        "UNHEARD_TAIL_LEAK",
+        "INTERRUPTED_OUTPUT_DURABLE_COMMIT"
+      ]
+    }
+  },
+  "receipt_additions": [
+    "context_cost_witness_sha256_for_each_selected_voice_context_item",
+    "context_cost_witness_payload_sha256",
+    "context_cost_witness_measured_cost_units",
+    "context_cost_witness_renderer_id_and_version",
+    "context_cost_witness_tokenizer_id_and_version",
+    "context_cost_witness_generation",
+    "context_cost_witness_measurement_ref",
+    "context_cost_witness_provenance_refs"
+  ],
+  "negative_tests": [
+    "VSR01 rejects a selectable completed-output context item with no cost witness",
+    "VSR01 rejects equal-looking reference metadata when witness payload_sha256 differs by one bit",
+    "VSR01 rejects witness measured_cost_units != ContextItem.cost_units",
+    "VSR02 rejects reuse of the full-output witness when heard-prefix payload_sha256 differs",
+    "VSR02 admits the heard-prefix only when its own exact witness is supplied and confirms the unheard-tail digest is absent from selected context refs"
+  ],
+  "dedup_fence": {
+    "wp715": "DO_NOT_REOPEN_TERMINAL_PACKET_COMPONENT",
+    "asr008": "SEPARATE_TRIGGER4_RUNTIME_SUBJECT__DO_NOT_REDISPATCH_FROM_TRIGGER7",
+    "gwt": "OPAQUE_GWT_REF_MUST_NOT_MINT_UPTAKE",
+    "memory": "OPAQUE_MEMORY_REF_MUST_NOT_MINT_CANONICAL_WRITE",
+    "effects": "TOOL_REF_MUST_NOT_MINT_EFFECT_AUTHORITY"
+  },
+  "next_exact_action": "Trigger4 consumes this as an addendum to the existing VSR01-VSR06 integration handoff: refresh overlap, reuse the existing ContextCompiler/TypedMemory/GWT/reentry authorities, implement only the smallest adapter/harness delta, execute the VSR set on the proven VPS route, and require exact ContextCostWitness binding for VSR01/VSR02 before component-integration promotion.",
+  "credits": {
+    "research_contract_delta": 1,
+    "state_memory_voiceoutcome_reentry_integration": 0,
+    "gwt_runtime": 0,
+    "effect_runtime": 0,
+    "asr008_runtime": 0,
+    "german_e2e_voice": 0,
+    "physical_audio": 0,
+    "whole_voice": 0,
+    "whole_product": 0,
+    "training": 0
+  }
+}
