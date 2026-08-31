@@ -1,0 +1,74 @@
+{
+  "schema": "F2_TRIGGER4_CANDIDATE_FALSIFIER/v1",
+  "trigger": "4",
+  "research_id": "T7-ASR-008",
+  "observed_at_utc": "2026-08-31T00:35:00Z",
+  "classification": "EVIDENCE_INVALID_BEFORE_ASR_DISCRIMINATOR_DUE_TO_FLOAT_WAV_FIXTURE_DECODER",
+  "f2_reentry_head_before_write": "9741bc9a6d94f096437e23b728d536339ed11a82",
+  "controller_repository": "gschaidergabriel/Dr.-Unterweger",
+  "runs": [
+    {
+      "run_id": 33340366984,
+      "controller_subject": "5a5f296178754c59ac36a434eb71538502eb06d8",
+      "status": "completed",
+      "conclusion": "failure",
+      "runner": "vps-clay-host",
+      "target_surface": "clay-direct-dev",
+      "exact_comparator_step_executed": true,
+      "persisted_evidence_commit": "236caff40241b91f2ddbed55d0339f37b66e632e"
+    },
+    {
+      "run_id": 33340567051,
+      "controller_subject": "823920bd770c16ca9855610d56d64a669a8063b0",
+      "status": "completed",
+      "conclusion": "failure",
+      "target_surface": "clay-direct-dev",
+      "exact_comparator_step_executed": true,
+      "persisted_evidence_commit": "1bb96639a519abc8b5e373ffcdaaefa58d15fe17",
+      "failure_stage": "EXACT_COMPARATOR",
+      "exception": "wave.Error: unknown format: 3"
+    }
+  ],
+  "root_cause_evidence": {
+    "controller_path": "tools/trigger4/t7_nemotron35_target_comparator.py",
+    "fixture_path": "prepare_fixtures -> path.write_bytes(data) -> validate_wav(path)",
+    "decoder_path": "validate_wav -> Python stdlib wave.open",
+    "observed_wav_format_tag": 3,
+    "meaning": "IEEE-float WAV is outside the stdlib wave decoder's supported PCM path in this runtime",
+    "workflow_runtime_dependency_present": "soundfile==0.13.1",
+    "why_not_product_negative": "The comparator aborts while preparing/validating FLEURS fixtures, before any Nemotron transcription condition or ASR quality assertion is executed."
+  },
+  "failure_taxonomy": "EVIDENCE_INVALID",
+  "product_negative": false,
+  "runtime_subject_action": "RUNTIME_PROBE_INVALIDATED_BY_REQUIRED_REPAIR",
+  "smallest_coherent_repair": {
+    "scope": "controller fixture ingestion only",
+    "method": "Decode the FLEURS source audio with soundfile and deterministically rewrite a mono 16-kHz PCM16 WAV fixture before stdlib-wave validation/gating/transcription. Preserve source-audio hash separately from normalized fixture hash.",
+    "must_not_change": [
+      "FLEURS repository/config/revision/rows",
+      "Nemotron model repository/revision/hash",
+      "NeMo-Speech runtime version/hash",
+      "right-context conditions",
+      "German/auto language conditions",
+      "F2 probe subject",
+      "credit boundaries"
+    ]
+  },
+  "acceptance_discriminator_after_repair": [
+    "all 32 bound FLEURS rows normalize to mono 16000 Hz PCM16",
+    "source and normalized fixture hashes are both recorded",
+    "comparator reaches at least one real nemo-speech transcribe invocation",
+    "receipt is preserved even on downstream failure",
+    "current F2 receipt validator contract is reconciled explicitly before any promotion"
+  ],
+  "credits": {
+    "runtime_credit_delta": 0,
+    "german_asr_quality_credit": 0,
+    "physical_device_credit": 0,
+    "gwt_jspace_credit": 0,
+    "effect_credit": 0,
+    "training_credit": 0,
+    "whole_product_credit": 0
+  },
+  "next_exact_action": "Repair only controller fixture normalization using the already-installed soundfile dependency, then dispatch one exact-source rerun. Do not interpret either failed run as Nemotron ASR quality evidence. Reconcile the emitted receipt envelope to the current F2 validator without inventing missing measured fields before any credit is considered."
+}
