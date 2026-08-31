@@ -1,0 +1,48 @@
+{
+  "schema": "T7_STATIC_NEGATIVE_RESULT/v1",
+  "trigger": "7",
+  "research_id": "T7-ARCH-003",
+  "semantic_key": "af2f204dcf3ec952b1da5e7d3d8f26b047df84cfefe6f158c09e36fc10235abc",
+  "classification": "STATIC_SOURCE_GAP_CANDIDATE_NOT_EXECUTED_PRODUCT_NEGATIVE",
+  "subject": "closed VoicePacketCortex checkpoint restore causal relation validation",
+  "observed_source_head_before_artifact": "4d1675f74d42faa740221186bc578b2cb69792c6",
+  "source_observations": [
+    {
+      "path": "src/frankenstein2/voice_packet_cortex_recovery.py",
+      "blob_sha": "7854afca22599b235c289020673ffa9a7c9b7d43",
+      "observation": "resume_packet_cortex validates checkpoint envelope digest, checkpoint session_id/session_sha256, reconstructs VoiceOutcome via VoiceOutcome.from_mapping, and for closed checkpoints requires a terminal outcome plus at least one SESSION_CLOSE event. In the observed source it does not call bind_voice_outcome(session=..., candidate=...) and does not visibly validate SESSION_CLOSE.packet_refs against the restored completed-output inventory before returning the closed cortex."
+    },
+    {
+      "path": "src/frankenstein2/voice_contract.py",
+      "blob_sha": "ad639b02ea69771014a2cad5b38103036b35bdfb",
+      "observation": "VoiceOutcome.from_mapping reconstructs and internally validates the outcome object, while bind_voice_outcome is the separate relation validator that requires candidate.voice_session_id/session_sha256 to match the exact VoiceSessionCapsule and enforces outcome causal lineage from the session."
+    },
+    {
+      "path": "src/frankenstein2/voice_heard_result_reentry.py",
+      "blob_sha": "20b5596e6311a34598530ec7cbfd7a2e7e9cf4ea",
+      "observation": "validate_completed_heard_result explicitly calls bind_voice_outcome, binds result_ref/result_sha256 to the exact reconstructed fully-heard payload, requires output.voiceoutcome_ref backlinks, and checks SESSION_CLOSE packet inventory. These stronger relations are downstream and are not visibly invoked by the observed closed-state recovery path itself."
+    }
+  ],
+  "hypothesis": "A checksum-valid checkpoint whose payload has been coherently rewritten and re-digested could potentially restore as a closed packet-cortex state even when its embedded VoiceOutcome or SESSION_CLOSE/output relation is not causally bound to the exact restored session/output subject. Downstream bind_completed_reentry should still fail closed if invoked, but callers that treat successful closed-cortex restore itself as sufficient terminal semantic validity could over-trust the recovered state.",
+  "counterhypotheses": [
+    "The checkpoint is intentionally an integrity-only internal serialization boundary, and all consumers are contractually required to call the stronger downstream reentry validator before any durable promotion; if this is globally enforced, resume-level relation validation may be redundant defense-in-depth rather than a correctness requirement.",
+    "VoicePacketCortex.close_session may guarantee a closed checkpoint can only be produced from valid live state, and no admitted caller can rewrite/re-digest checkpoint payloads. This reduces the operational exploitability but does not by itself prove recovery relation closure under corruption/fuzz fixtures required by the Trigger7 completion authority."
+  ],
+  "discriminator": "Execute F18 from research/local_voice/falsifiers/2026-08-31_PACKET_CORTEX_RESTART_REENTRY_EXACT_ONCE_ADDENDUM_GPT56SOL.json against the exact current source. Recompute the checkpoint envelope digest after introducing one causal relation mismatch at a time. Observe whether resume itself rejects, and regardless, verify bind_completed_reentry rejects before any durable memory/context/GWT promotion.",
+  "failure_classification_rule": {
+    "resume_accepts_but_downstream_reentry_rejects": "DEFENSE_IN_DEPTH_GAP_OR_ACCEPTABLE_LAYERING__NO_DURABLE_PROMOTION_FAILURE",
+    "mismatch_reaches_durable_reentry_or_memory_context_authority": "PRODUCT_NEGATIVE",
+    "resume_rejects_each_mismatch": "F18_PASS",
+    "not_executed": "STATIC_SOURCE_GAP_ONLY"
+  },
+  "evidence_credit": {
+    "static_source_gap_credit": 1,
+    "executed_component_credit": 0,
+    "runtime_credit": 0,
+    "canonical_memory_write_credit": 0,
+    "gwt_runtime_credit": 0,
+    "physical_audio_credit": 0,
+    "whole_product_credit": 0
+  },
+  "next_exact_action": "Current Trigger4/WP717 owner should run F18 before broadening recovery architecture. If downstream reentry already contains the mismatch, prefer a narrow defense-in-depth decision rather than a second state authority; if durable promotion is possible, repair the smallest existing recovery/reentry relation boundary and add the regression."
+}
