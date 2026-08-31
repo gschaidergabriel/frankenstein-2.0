@@ -108,6 +108,19 @@ class WholeSystemCharacterizationTests(unittest.TestCase):
         with self.assertRaisesRegex(WholeSystemCharacterizationError, "identity mismatch"):
             characterize_measurements(family, expected_source_bundle_sha256=SOURCE, expected_whole_loop_seal_sha256=LOOP, expected_environment_fingerprint_sha256=ENV)
 
+    def test_disjoint_provenance_family_fails_closed(self) -> None:
+        family = (
+            replace(_family()[0], provenance_refs=("campaign/a", "run/a", "observer/a")),
+            replace(_family()[1], provenance_refs=("campaign/b", "run/b", "observer/b")),
+        )
+        with self.assertRaisesRegex(WholeSystemCharacterizationError, "provenance identity mismatch"):
+            characterize_measurements(
+                family,
+                expected_source_bundle_sha256=SOURCE,
+                expected_whole_loop_seal_sha256=LOOP,
+                expected_environment_fingerprint_sha256=ENV,
+            )
+
     def test_duplicate_sample_identity_fails_closed(self) -> None:
         family = (_family()[0], replace(_family()[1], sample_id="s1"))
         with self.assertRaisesRegex(WholeSystemCharacterizationError, "duplicate sample_id"):
