@@ -69,145 +69,37 @@ jobs:
           fi
           echo 'WP717_ZERO_PROVIDER_SURFACE_PASS'
 
-  g3-vps-memory-payload-fence:
-    # One-shot runtime dispatch: only the exact Trigger4 retry commit can enter this job.
-    if: "${{ github.event_name == 'push' && github.event.head_commit.message == 'trigger4: retry WP717 G3 VPS dispatch after workflow-parse fix' }}"
+  g3-convergence-duplicate-guard:
+    # Same singleton group as the superseded queued VPS job. This replaces pending duplicate work
+    # with a cheap accepted-state verification after another worker closed the exact boundary.
+    if: "${{ github.event_name == 'push' && github.event.head_commit.message == 'trigger4: supersede duplicate WP717 G3 VPS dispatch after convergence' }}"
     runs-on: clay-host
-    timeout-minutes: 30
+    timeout-minutes: 5
     concurrency:
       group: wp717-g3-vps-memory-payload-fence-runtime
       cancel-in-progress: false
-    env:
-      WP717_RUNTIME_SUBJECT_SHA: 1f264753ff54a5b1165da6890568da5b66792f47
-      F2_SANDBOX_ROOT: /var/tmp/frankenstein2-sandboxes
-      F2_NSPAWN_BASE_ROOT: /var/lib/frankenstein2-sandbox-images/ubuntu-24.04-base
-      F2_SANDBOX_MIN_FREE_KIB: '5242880'
-      F2_SANDBOX_MIN_MEM_KIB: '1048576'
     steps:
-      - name: Checkout exact frozen WP717 G3 runtime subject
-        uses: actions/checkout@v4
-        with:
-          ref: 1f264753ff54a5b1165da6890568da5b66792f47
-          fetch-depth: 0
-
-      - name: Verify exact VPS runner and frozen source identity
+      - uses: actions/checkout@v4
+      - name: Verify converged WP717 G3 state; do not redispatch runtime
         shell: bash
         run: |
           set -Eeuo pipefail
           test "${RUNNER_NAME:-}" = "vps-clay-host"
-          test "${RUNNER_OS:-}" = "Linux"
-          test "$(git rev-parse HEAD)" = "$WP717_RUNTIME_SUBJECT_SHA"
-          printf '%s\n' \
-            "WP717_RUNTIME_SUBJECT_SHA=$WP717_RUNTIME_SUBJECT_SHA" \
-            "DISPATCH_SHA=$GITHUB_SHA" \
-            "RUN_ID=$GITHUB_RUN_ID" \
-            "RUN_ATTEMPT=$GITHUB_RUN_ATTEMPT" \
-            "RUNNER_NAME=$RUNNER_NAME" \
-            "RUNNER_OS=$RUNNER_OS" \
-            "RUNNER_ARCH=$RUNNER_ARCH" | tee /tmp/wp717-g3-runtime-identity.txt
-          sha256sum \
-            src/frankenstein2/voice_heard_result_reentry.py \
-            tests/test_voice_heard_result_reentry_memory_context_composition.py \
-            src/frankenstein2/memory_lifecycle.py \
-            src/frankenstein2/typed_memory.py \
-            > /tmp/wp717-g3-runtime-hashes.txt
-          cat /tmp/wp717-g3-runtime-hashes.txt
-
-      - name: Prepare admitted Ubuntu 24.04 S2 sandbox
-        shell: bash
-        run: |
-          set -Eeuo pipefail
-          bash tools/vps_sandbox/host_prepare_ubuntu_nspawn.sh
-          bash tools/vps_sandbox/preflight.sh | tee /tmp/wp717-g3-preflight.txt
-
-      - name: Execute VSR07 memory payload-relation discriminator in disposable S2
-        shell: bash
-        run: |
-          set -Eeuo pipefail
-          bash tools/vps_sandbox/run_ubuntu_sandbox.sh --backend nspawn --network off -- \
-            /bin/bash -lc '
-              set -Eeuo pipefail
-              test "$(git rev-parse HEAD)" = "1f264753ff54a5b1165da6890568da5b66792f47"
-              . /etc/os-release
-              test "$ID" = ubuntu
-              test "$VERSION_ID" = 24.04
-              export PYTHONPATH=src
-              python3 --version
-              python3 -m unittest \
-                tests.test_voice_heard_result_reentry_memory_context_composition.WP717HeardMemoryContextCompositionTests.test_completed_heard_result_composes_exact_memory_context_and_gwt_evidence \
-                -v
-              printf "WP717_G3_VSR07_MEMORY_PAYLOAD_FENCE=PASS\\n"
-              printf "WP717_G3_GWT_SCOPE=REFERENCE_ONLY_ZERO_RUNTIME_CREDIT\\n"
-            ' 2>&1 | tee /tmp/wp717-g3-vps-discriminator.txt
-          grep -q '^F2_SANDBOX_RESULT=PASS$' /tmp/wp717-g3-vps-discriminator.txt
-          grep -q 'WP717_G3_VSR07_MEMORY_PAYLOAD_FENCE=PASS' /tmp/wp717-g3-vps-discriminator.txt
-          grep -q 'WP717_G3_GWT_SCOPE=REFERENCE_ONLY_ZERO_RUNTIME_CREDIT' /tmp/wp717-g3-vps-discriminator.txt
-
-      - name: Emit exact bounded WP717 G3 runtime receipt
-        if: always()
-        shell: bash
-        run: |
-          set -Eeuo pipefail
           python3 - <<'PY'
-          import json, os, pathlib
-          def read(path):
-              p = pathlib.Path(path)
-              return p.read_text(errors='replace') if p.exists() else ''
-          log = read('/tmp/wp717-g3-vps-discriminator.txt')
-          passed = (
-              'F2_SANDBOX_RESULT=PASS' in log
-              and 'WP717_G3_VSR07_MEMORY_PAYLOAD_FENCE=PASS' in log
-              and 'WP717_G3_GWT_SCOPE=REFERENCE_ONLY_ZERO_RUNTIME_CREDIT' in log
-          )
-          receipt = {
-              'schema': 'F2_WP717_G3_MEMORY_PAYLOAD_FENCE_VPS_RUNTIME/v1',
-              'workpackage_id': 'F2-WP-717',
-              'generation': 3,
-              'claim_id': 'F2-WP-717-G3-GPT56SOL-MEMORY-GWT-LINEAGE-FENCES-20260831',
-              'result': 'PASS' if passed else 'FAIL',
-              'runtime_subject_sha': os.environ['WP717_RUNTIME_SUBJECT_SHA'],
-              'dispatch_sha': os.environ.get('GITHUB_SHA'),
-              'workflow_run_id': int(os.environ.get('GITHUB_RUN_ID', '0')),
-              'workflow_run_attempt': int(os.environ.get('GITHUB_RUN_ATTEMPT', '0')),
-              'runner_name': os.environ.get('RUNNER_NAME', 'UNKNOWN'),
-              'runner_os': os.environ.get('RUNNER_OS', 'UNKNOWN'),
-              'runner_arch': os.environ.get('RUNNER_ARCH', 'UNKNOWN'),
-              'target_userspace': 'Ubuntu 24.04 noble',
-              'sandbox_tier': 'S2_NSPAWN',
-              'network_mode': 'PRIVATE_OFFLINE',
-              'source_mount': 'READ_ONLY_TO_SANDBOX_COPY',
-              'runtime_execution_observed': passed,
-              'memory_payload_relation_fence_runtime_credit_candidate': 1 if passed else 0,
-              'canonical_memory_write_credit': 0,
-              'gwt_reference_metadata_observed': passed,
-              'gwt_runtime_credit': 0,
-              'jspace_runtime_credit': 0,
-              'effect_credit': 0,
-              'physical_audio_credit': 0,
-              'training_credit': 0,
-              'completion_credit': 0,
-              'whole_system_acceptance': False,
-              'identity_log': read('/tmp/wp717-g3-runtime-identity.txt'),
-              'source_hashes': read('/tmp/wp717-g3-runtime-hashes.txt'),
-              'preflight_log': read('/tmp/wp717-g3-preflight.txt'),
-              'discriminator_log': log,
-          }
-          out = pathlib.Path('/tmp/F2-WP-717_G3_MEMORY_PAYLOAD_FENCE_VPS_RUNTIME.json')
-          out.write_text(json.dumps(receipt, indent=2, sort_keys=True) + '\n')
-          print(json.dumps(receipt, sort_keys=True))
+          import json
+          from pathlib import Path
+          p = json.loads(Path('workpackages/active/F2-WP-717.json').read_text())
+          assert p['generation'] == 3
+          assert p['state'] == 'ACCEPTED'
+          assert p['runtime_execution_observed'] is True
+          assert p['runtime_run_id'] == 33369190762
+          assert p['memory_payload_relation_fence_credit'] == 1
+          assert p['gwt_runtime_credit'] == 0
+          assert p['jspace_runtime_credit'] == 0
+          assert p['effect_credit'] == 0
+          assert p['physical_audio_credit'] == 0
+          assert p['training_credit'] == 0
+          assert p['completion_credit'] == 0
+          assert p['whole_system_acceptance'] is False
+          print('WP717_G3_DUPLICATE_RUNTIME_AVOIDED=PASS')
           PY
-
-      - name: Upload bounded runtime receipt
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: wp717-g3-memory-payload-fence-runtime-${{ github.run_id }}
-          path: /tmp/F2-WP-717_G3_MEMORY_PAYLOAD_FENCE_VPS_RUNTIME.json
-          if-no-files-found: error
-
-      - name: Enforce exact bounded runtime success
-        shell: bash
-        run: |
-          set -Eeuo pipefail
-          grep -q '^F2_SANDBOX_RESULT=PASS$' /tmp/wp717-g3-vps-discriminator.txt
-          grep -q 'WP717_G3_VSR07_MEMORY_PAYLOAD_FENCE=PASS' /tmp/wp717-g3-vps-discriminator.txt
