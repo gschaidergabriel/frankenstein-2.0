@@ -1,0 +1,91 @@
+name: WP718 State Memory VoiceOutcome GWT Reentry CI
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'tests/test_state_memory_voiceoutcome_gwt_reentry_integration.py'
+      - 'src/frankenstein2/voice_heard_result_reentry.py'
+      - 'src/frankenstein2/voice_packet_cortex.py'
+      - 'src/frankenstein2/voice_contract.py'
+      - 'src/frankenstein2/causal_identity.py'
+      - 'src/frankenstein2/memory_lifecycle.py'
+      - 'src/frankenstein2/typed_memory.py'
+      - 'src/frankenstein2/context_compiler.py'
+      - 'src/frankenstein2/grid10_interface.py'
+      - 'src/frankenstein2/gwt_reentry_provenance.py'
+      - 'src/frankenstein2/gwt_reentry_uptake_binding.py'
+      - 'src/frankenstein2/gwt_uptake.py'
+      - 'src/frankenstein2/gwt_workspace.py'
+      - '.github/workflows/wp718-state-memory-voiceoutcome-gwt-reentry-ci.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: wp718-state-memory-gwt-reentry-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  wp718-integration:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Record exact subject
+        run: |
+          set -euo pipefail
+          git rev-parse HEAD
+          git rev-parse HEAD^{tree}
+          git status --porcelain --untracked-files=all
+          git ls-tree HEAD \
+            tests/test_state_memory_voiceoutcome_gwt_reentry_integration.py \
+            src/frankenstein2/voice_heard_result_reentry.py \
+            src/frankenstein2/memory_lifecycle.py \
+            src/frankenstein2/typed_memory.py \
+            src/frankenstein2/context_compiler.py \
+            src/frankenstein2/gwt_reentry_uptake_binding.py \
+            src/frankenstein2/gwt_reentry_provenance.py \
+            src/frankenstein2/gwt_uptake.py \
+            src/frankenstein2/gwt_workspace.py \
+            src/frankenstein2/grid10_interface.py
+
+      - name: Compile exact integration surface
+        run: |
+          set -euo pipefail
+          python -m py_compile \
+            tests/test_state_memory_voiceoutcome_gwt_reentry_integration.py \
+            src/frankenstein2/voice_heard_result_reentry.py \
+            src/frankenstein2/voice_packet_cortex.py \
+            src/frankenstein2/voice_contract.py \
+            src/frankenstein2/causal_identity.py \
+            src/frankenstein2/memory_lifecycle.py \
+            src/frankenstein2/typed_memory.py \
+            src/frankenstein2/context_compiler.py \
+            src/frankenstein2/grid10_interface.py \
+            src/frankenstein2/gwt_reentry_provenance.py \
+            src/frankenstein2/gwt_reentry_uptake_binding.py \
+            src/frankenstein2/gwt_uptake.py \
+            src/frankenstein2/gwt_workspace.py
+
+      - name: Run VSR regressions and WP718 whole composition
+        env:
+          PYTHONPATH: src
+        run: |
+          set -euo pipefail
+          python -m unittest discover -s tests -p 'test_voice_heard_result_reentry.py' -v
+          python -m unittest discover -s tests -p 'test_voice_heard_result_reentry_falsifiers.py' -v
+          python -m unittest discover -s tests -p 'test_state_memory_voiceoutcome_gwt_reentry_integration.py' -v
+
+      - name: Assert zero provider/process surface in WP717 adapter
+        run: |
+          set -euo pipefail
+          if grep -E -n 'requests\.|httpx\.|urllib\.|openai|anthropic|zai|glm|together|subprocess\.|socket\.' src/frankenstein2/voice_heard_result_reentry.py; then
+            echo 'unexpected provider/network/process surface in deterministic WP717 adapter' >&2
+            exit 31
+          fi
