@@ -1,0 +1,62 @@
+name: F2 WP307 Typed Memory Persistence CI
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'src/frankenstein2/typed_memory_persistence.py'
+      - 'src/frankenstein2/typed_memory.py'
+      - 'src/frankenstein2/memory_lifecycle.py'
+      - 'src/frankenstein2/persistent_agency_kernel.py'
+      - 'state/unifieddb_identity.py'
+      - 'tests/test_typed_memory_persistence.py'
+      - 'tests/test_typed_memory.py'
+      - 'tests/test_persistent_agency_kernel.py'
+      - '.github/workflows/wp307-typed-memory-persistence-ci.yml'
+  pull_request:
+    paths:
+      - 'src/frankenstein2/typed_memory_persistence.py'
+      - 'src/frankenstein2/typed_memory.py'
+      - 'src/frankenstein2/memory_lifecycle.py'
+      - 'src/frankenstein2/persistent_agency_kernel.py'
+      - 'state/unifieddb_identity.py'
+      - 'tests/test_typed_memory_persistence.py'
+      - 'tests/test_typed_memory.py'
+      - 'tests/test_persistent_agency_kernel.py'
+      - '.github/workflows/wp307-typed-memory-persistence-ci.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  deterministic:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Compile WP307 and dependencies
+        run: >-
+          python -m py_compile
+          src/frankenstein2/typed_memory_persistence.py
+          src/frankenstein2/typed_memory.py
+          src/frankenstein2/memory_lifecycle.py
+          src/frankenstein2/persistent_agency_kernel.py
+          state/unifieddb_identity.py
+          tests/test_typed_memory_persistence.py
+      - name: WP307 persistence falsification suite
+        env:
+          PYTHONPATH: src
+        run: python tests/test_typed_memory_persistence.py -v
+      - name: WP303 typed-memory regression suite
+        env:
+          PYTHONPATH: src
+        run: python tests/test_typed_memory.py -v
+      - name: WP206 persistent-agency regression suite
+        env:
+          PYTHONPATH: src
+        run: python tests/test_persistent_agency_kernel.py -v
