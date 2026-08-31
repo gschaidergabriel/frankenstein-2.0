@@ -1,0 +1,67 @@
+{
+  "schema": "TRIGGER7_RUNTIME_ROUTING_RECONCILIATION/v1",
+  "trigger": "7",
+  "worker": "GPT-5.6 Sol",
+  "local_date": "2026-09-01",
+  "status": "REVIEW_ONLY_INFRA_DIAGNOSTIC_ROUTING",
+  "authority": "research/local_voice/authority/2026-08-31_TRIGGER7_TEXT_PACKET_COMPLETION_AUTHORITY.md",
+  "protocol": "research/local_voice/TRIGGERWORD_7_PROTOCOL.md",
+  "observed_main_before_write": "32d1f2243de152078e5321422c86678afe615e52",
+  "generic_claim_reconciliation": {
+    "claim": "research/local_voice/claims/2026-09-01_trigger7_gpt56sol_cortex_frontier_claim.json",
+    "semantic_mutation_authority": false,
+    "reason": "Current granular evidence resolves WP715 G2 as the sole bound F18 runtime subject and forbids duplicate dispatch or semantic churn while its exact controller run is nonterminal. This worker's generic cortex-frontier claim is therefore narrowed to review/reconciliation and independent infrastructure diagnosis only."
+  },
+  "wp715_g2": {
+    "runtime_subject_sha": "71ddd9e5aa3791e5dcb1be37e276d5c3194f0adf",
+    "workflow": "T4 Packet Cortex Full Duplex Falsifier",
+    "run_id": 33369867309,
+    "job_id": 99418257873,
+    "required_runner_label": "clay-host",
+    "run_status_observed": "queued",
+    "job_status_observed": "queued",
+    "job_steps_observed": [],
+    "runner_id_observed": 0,
+    "runner_name_observed": "",
+    "runtime_execution_observed": false,
+    "classification": "UNKNOWN_NONTERMINAL_CONTROL_PLANE_ONLY",
+    "product_negative": false,
+    "evidence_invalid": false,
+    "duplicate_dispatch_allowed": false,
+    "semantic_mutation_allowed": false
+  },
+  "external_primary_source_refresh": {
+    "source": "GitHub Docs - Self-hosted runners reference",
+    "url": "https://docs.github.com/en/actions/reference/runners/self-hosted-runners",
+    "relevant_rule": "A self-hosted job remains queued when no online and idle runner matches its labels/groups; an assigned runner that does not pick up within 60 seconds is re-queued; a queued job fails after more than 24 hours.",
+    "inference_scope": "The observed zero-step, runner_id=0 clay-host job is consistent with no currently assignable matching runner. This is not proof of the exact root cause because runner registration/service state was not directly observable from the available repository API."
+  },
+  "highest_value_nonduplicate_action": {
+    "class": "INFRA_CONTROL_PLANE_DIAGNOSTIC",
+    "goal": "Restore or verify one matching online idle clay-host runner so the already-bound exact-subject run can execute without redispatch.",
+    "must_not": [
+      "do not create a second WP715 G2 workflow dispatch",
+      "do not mutate subject 71ddd9e5aa3791e5dcb1be37e276d5c3194f0adf",
+      "do not modify packet-cortex semantics while run 33369867309 is nonterminal",
+      "do not claim target runtime from queue state"
+    ],
+    "diagnostic_checks": [
+      "verify the owner-provisioned runner process/service is alive on the intended VPS execution surface",
+      "verify the runner is registered to this repository/allowed runner group and advertises the clay-host label",
+      "verify GitHub connectivity/authentication and runner listener health without exposing secrets",
+      "verify no stale/busy runner state prevents job pickup",
+      "after runner recovery, consume the same run 33369867309 if GitHub assigns it; do not manually create a duplicate run"
+    ]
+  },
+  "credit_vector": {
+    "new_repository_component_credit": 0,
+    "new_target_runtime_credit": 0,
+    "new_acoustic_credit": 0,
+    "new_physical_audio_credit": 0,
+    "new_gwt_jspace_credit": 0,
+    "new_effect_credit": 0,
+    "new_training_credit": 0,
+    "whole_product_acceptance": false
+  },
+  "next_exact_gate": "Run 33369867309/job 99418257873 must acquire an eligible clay-host runner and execute the exact subject. Only its executed bounded receipt may classify F18 target-component runtime."
+}
