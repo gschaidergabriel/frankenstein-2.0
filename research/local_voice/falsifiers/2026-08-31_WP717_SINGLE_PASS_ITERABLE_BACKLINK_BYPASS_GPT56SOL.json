@@ -1,0 +1,43 @@
+{
+  "schema": "F2_TRIGGER4_CANDIDATE_FALSIFIER/v1",
+  "trigger": "4",
+  "workpackage_id": "F2-WP-717",
+  "research_id": "WP717-SINGLE-PASS-ITERABLE-BACKLINK-BYPASS",
+  "organ": "GPT-5.6-Sol",
+  "work_class": "CANDIDATE_FALSIFIER",
+  "classification": "VALIDATOR_RECONSUMES_ITERABLE_AND_CAN_SKIP_VOICEOUTCOME_BACKLINK_CHECK",
+  "authority_snapshot": {
+    "f2_main_observed": "0fba92bf710c843749b2d591f3e0cbec4ec49d92",
+    "implementation_commit_observed": "29027f61f9b789852fe5e266d9edb1a4f374dba8",
+    "active_claim": "F2-WP-717-G1-GPT56SOL-VOICE-HEARD-RESULT-REENTRY-20260831",
+    "new_mutation_authority": false,
+    "owned_source_mutated": false,
+    "credit_delta": 0
+  },
+  "source_observation": {
+    "validator_contract": "output_packets: Iterable[VoiceOutputPacket]",
+    "first_consumption": "build_heard_result(session=session, output_packets=output_packets) -> _ordered_completed_packets -> tuple(output_packets)",
+    "second_consumption": "packets = tuple(output_packets)",
+    "later_guard": "for packet in packets: require packet.voiceoutcome_ref == outcome.outcome_id",
+    "risk": "A single-pass iterator/generator is exhausted during heard-result construction. The subsequent tuple is empty, so the per-packet VoiceOutcome backlink guard is skipped while the digest can still validate against the packets consumed on the first pass."
+  },
+  "candidate_counterexample": {
+    "precondition": "Create otherwise-valid completed commit-eligible output packet(s) whose voiceoutcome_ref is absent or mismatched, and a VoiceOutcome whose result_ref/result_sha256 matches the deterministic heard-result payload.",
+    "input_shape": "Pass iter(valid_packets) or a generator expression as output_packets to validate_completed_heard_result.",
+    "expected_fail_closed": "Reject because every fully-heard output packet must bind back to the exact VoiceOutcome.",
+    "suspected_current_behavior": "First pass consumes generator and builds matching payload; second pass sees zero packets and therefore performs zero backlink checks."
+  },
+  "required_discriminator": "Add a regression that calls validate_completed_heard_result with a single-pass iterator containing a packet whose voiceoutcome_ref is missing/wrong. It MUST fail exactly as the equivalent tuple input fails. Materialize the iterable exactly once at the validator boundary, or narrow the API to an immutable concrete tuple and validate that exact materialization throughout.",
+  "failure_taxonomy_before_execution": "CANDIDATE_PRODUCT_NEGATIVE_STATIC_SOURCE_FINDING",
+  "scope_fence": {
+    "wp717_source_change_authorized_here": false,
+    "asr008_dispatch_allowed": false,
+    "runtime_credit_allowed": false,
+    "memory_write_credit_allowed": false,
+    "gwt_credit_allowed": false,
+    "effect_credit_allowed": false,
+    "training_credit_allowed": false,
+    "whole_product_credit_allowed": false
+  },
+  "next_exact_action": "WP717 mutation owner should execute this iterator-vs-tuple discriminator before repository acceptance. If reproduced, repair by one-time materialization at the outer validator boundary and reuse the same tuple for digest construction, backlink checks and close-event inventory validation; then add regression evidence."
+}
