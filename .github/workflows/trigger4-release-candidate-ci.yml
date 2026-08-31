@@ -85,6 +85,52 @@ jobs:
           python tools/build_release_candidate.py --output-dir dist/release-a > dist-a.json
           python tools/build_release_candidate.py --output-dir dist/release-b > dist-b.json
 
+      - name: Prove shipped Frankenstein package import closure from exact archive
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf dist/import-closure
+          mkdir -p dist/import-closure
+          python - <<'PY'
+          import compileall
+          import os
+          from pathlib import Path
+          import subprocess
+          import sys
+          import zipfile
+
+          archive = Path('dist/release-a/frankenstein-2.0.zip')
+          root = Path('dist/import-closure')
+          with zipfile.ZipFile(archive) as zf:
+              zf.extractall(root)
+
+          source_root = root / 'src'
+          package_root = source_root / 'frankenstein2'
+          assert package_root.is_dir(), package_root
+          assert compileall.compile_dir(str(package_root), quiet=1, force=True)
+
+          modules = []
+          for path in sorted(package_root.rglob('*.py')):
+              rel = path.relative_to(source_root).with_suffix('')
+              parts = list(rel.parts)
+              if parts[-1] == '__init__':
+                  parts = parts[:-1]
+              module = '.'.join(parts)
+              if module and module not in modules:
+                  modules.append(module)
+
+          env = dict(os.environ)
+          env['PYTHONPATH'] = str(source_root)
+          env['PYTHONDONTWRITEBYTECODE'] = '1'
+          for module in modules:
+              subprocess.run(
+                  [sys.executable, '-I', '-c', f'import sys; sys.path.insert(0, {str(source_root)!r}); __import__({module!r})'],
+                  check=True,
+                  env=env,
+              )
+          print(f'compiled_and_imported_modules={len(modules)}')
+          PY
+
       - name: Prove byte-for-byte reproducibility and bounded credit
         shell: bash
         run: |
