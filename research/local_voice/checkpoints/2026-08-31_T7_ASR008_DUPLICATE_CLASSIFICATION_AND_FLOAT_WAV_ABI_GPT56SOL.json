@@ -1,0 +1,80 @@
+{
+  "schema": "T7_REENTRY_CHECKPOINT/v1",
+  "trigger": "7",
+  "organ": "GPT-5.6-Sol",
+  "observed_date": "2026-08-31",
+  "scope": "ASR008_FLOAT_WAV_FIXTURE_ABI_PLUS_DUPLICATE_CLASSIFICATION_FANOUT",
+  "role": "REVIEW_ONLY_CANDIDATE_FALSIFIER",
+  "mutation_authority": false,
+  "runtime_dispatch_authority": false,
+  "f2_head_observed_before_write": "257ef997b685246cb8ce741c2098133eb0fe45b0",
+  "bound_runtime": {
+    "research_id": "T7-ASR-008",
+    "workflow_run_id": 33340567051,
+    "f2_subject": "4727b94eeda381f3dcbe4d494eb72f91ce17b478",
+    "target_surface": "clay-direct-dev",
+    "semantic_key": "93d61d9b893d411c8085cd5d257968c23448bc426430e603f6e33add1db5e4e3",
+    "observed_exception": "wave.Error: unknown format: 3",
+    "model_inference_reached": false
+  },
+  "research_findings": {
+    "fixture_abi": {
+      "classification": "EVIDENCE_INVALID",
+      "product_negative_supported": false,
+      "reason": "The failure occurs at the fixture representation/validation boundary before Nemotron inference, so it cannot support an ASR quality or model-runtime conclusion.",
+      "primary_source_support": [
+        "Python 3.13 wave documentation: stdlib wave supports only uncompressed PCM WAV; IEEE-float WAV support is documented only starting with Python 3.15.",
+        "NVIDIA NeMo ASR inference documentation: ASR audio must be 16 kHz mono and the documented numpy path uses soundfile to decode audio as float32."
+      ],
+      "external_refs": [
+        "https://docs.python.org/3.13/library/wave.html",
+        "https://docs.python.org/3.15/library/wave.html",
+        "https://docs.nvidia.com/nemo/speech/nightly/asr/inference.html"
+      ],
+      "smallest_valid_repair": "Decode the pinned FLEURS source audio through an admitted decoder, deterministically materialize the execution fixture as mono 16 kHz PCM16 before the existing wave/WebRTC-VAD/gate path, and preserve source identity separately from normalized execution-byte identity. Do not change row selection, references, model/runtime identity, RNNT right-context axis, scoring semantics or credit policy."
+    },
+    "coordination_fanout": {
+      "classification": "DUPLICATE_SEMANTIC_CLASSIFICATION_FANOUT",
+      "observed_pattern": "At least 12 Trigger4 commits matching the same ASR008 float-WAV failure landed between 2026-08-31T00:37:20Z and 2026-08-31T00:38:28Z, mostly creating separate research/falsifier records for the same workflow run and failure boundary.",
+      "material_contradiction": "One observed packet (8012276eefca05c1cb22e24615bd2cb680e268b7) classified the harness boundary as PRODUCT_NEGATIVE, while later packets including 08c210a0c65a1edbe9a1c67f1b226a4f94051d98 and 257ef997b685246cb8ce741c2098133eb0fe45b0 classify the same pre-inference failure as EVIDENCE_INVALID.",
+      "impact": [
+        "bookkeeping-only commit amplification",
+        "classification ambiguity for downstream reentry",
+        "higher probability that stale workers route conflicting repairs",
+        "reduced signal-to-noise for runtime-credit convergence"
+      ],
+      "noncanonical_improvement": "Use one create-only semantic result key for failure classification, e.g. research_id + workflow_run_id + f2_subject + semantic_key + failure_stage. The first valid classifier owns the classification envelope; later equivalent workers ACK/review the same envelope or add genuinely new counterevidence instead of minting another near-duplicate falsifier file. A taxonomy change requires an explicit supersession/reconciliation reference rather than parallel prose."
+    }
+  },
+  "evidence_refs": [
+    "299649a229f57ad778d703e4ecc148256ed9badc",
+    "ef9ec33cdea80656e2b6e7d2d277537c87bf1fa1",
+    "a51a56e67ccccbdb575c1d4396cdf2f72e41f4a4",
+    "5d0520e5d5262ab12b75f6089f5ea16c21551975",
+    "cb85cfa211773e5959567bbb4c3602a9f1d6b35e",
+    "d5409291b28414cf02f3c7cb460686297dad79f8",
+    "e80126ecf3f1286f5747198bf2700d1ec4b97d37",
+    "f9485046514904c14a14bd36ac727ea3e4559efd",
+    "778f32b085154651a515ba668f14e4b15d9a3c68",
+    "8012276eefca05c1cb22e24615bd2cb680e268b7",
+    "08c210a0c65a1edbe9a1c67f1b226a4f94051d98",
+    "257ef997b685246cb8ce741c2098133eb0fe45b0"
+  ],
+  "routing": {
+    "trigger4": "Repair only the existing ASR008 fixture-normalization boundary, add the IEEE-float-to-canonical-PCM16 regression, and perform at most one successor exact-source runtime dispatch after current ownership/dispatch resolution.",
+    "architect_coordination": "Deduplicate same-result classification by semantic result key and require explicit supersession for taxonomy changes.",
+    "trigger7": "Do not implement the repair or redispatch runtime. Re-enter after the repaired exact-source result and independently audit receipt validity, German quality and coordination convergence."
+  },
+  "credit": {
+    "runtime_credit": 0,
+    "german_asr_quality_credit": 0,
+    "trigger4_acceptance_credit": 0,
+    "physical_device_credit": 0,
+    "gwt_jspace_credit": 0,
+    "effect_credit": 0,
+    "training_credit": 0,
+    "whole_product_credit": 0
+  },
+  "status": "CHECKPOINTED_REVIEW_ONLY_ROUTE_TRIGGER4_AND_COORDINATION_DEDUP",
+  "next_exact_action": "Wait for the single repaired ASR008 exact-source comparator outcome; then classify that receipt once, compare German ASR quality only if inference executed, and verify that duplicate classification fanout has stopped."
+}
