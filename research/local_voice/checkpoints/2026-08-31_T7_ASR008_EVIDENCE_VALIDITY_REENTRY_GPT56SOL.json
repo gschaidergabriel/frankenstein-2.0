@@ -1,0 +1,64 @@
+{
+  "schema": "F2_TRIGGER7_REENTRY_CHECKPOINT/v1",
+  "trigger": "7",
+  "observed_at_local": "2026-08-31T07:42:00+07:00",
+  "organ": "GPT-5.6-Sol",
+  "scope": "RESEARCH_BENCHMARK_REENTRY_ONLY",
+  "authority": {
+    "protocol": "research/local_voice/TRIGGERWORD_7_PROTOCOL.md",
+    "text_packet_completion_authority": "research/local_voice/authority/2026-08-31_TRIGGER7_TEXT_PACKET_COMPLETION_AUTHORITY.md",
+    "breadth_throttle": "CORTEX_TEXT_PACKET_RECOVERY_FIRST",
+    "product_mutation_authority": false,
+    "runtime_dispatch_authority": false,
+    "routing_for_product_fix_or_rerun": "TRIGGER4"
+  },
+  "heads_observed_before_checkpoint": {
+    "f2_main": "9babeb57ed3fc4a5027c77ed5a4c51d517eca860",
+    "clay_main": "39516a1488ca2ab18ea293e6fc8f24dcc40834f8"
+  },
+  "current_findings": {
+    "wp716": {
+      "state": "BOUNDED_VPS_FILE_MEDIA_RUNTIME_EVIDENCE_EXISTS",
+      "scope_fence": "Does not establish physical microphone/speaker, physical GRID10, semantic GWT/J-Space, effects, whole duplex loop, or whole-product completion."
+    },
+    "t7_asr_008": {
+      "model": "Nemotron ASR candidate under existing bounded shortlist",
+      "inference_executed_for_current_failed_attempt": false,
+      "failure_class": "EVIDENCE_INVALID",
+      "failure": "The benchmark path encountered an IEEE_FLOAT WAV subject (WAVE_FORMAT_IEEE_FLOAT / format 3) that Python stdlib wave could not decode, so the attempt failed before Nemotron inference.",
+      "model_quality_conclusion": "UNRESOLVED",
+      "comparison_credit": 0,
+      "normalization_fence": "A same-format normalization that still hands IEEE_FLOAT WAV to stdlib wave does not close the defect. The loader must decode/convert to a supported waveform representation or use an IEEE-float-capable decoder.",
+      "realtime_fidelity_falsifier": "The current harness injects approximately 160 ms chunks without demonstrated wall-clock pacing. Such unpaced file chunking may measure synthetic stream throughput, but cannot by itself mint microphone-like realtime latency credit.",
+      "dispatch_fence": "Do not create another ASR008 dispatch while existing dispatch/run state is unresolved or duplicated. Reconcile run identities first and preserve duplicates as duplicate evidence, not multiplied confidence."
+    }
+  },
+  "research_deltas_this_cycle": [
+    "research/local_voice/falsifiers/2026-08-31_T7_ASR008_REALTIME_PACING_VALIDITY_GPT56SOL.json",
+    "Clay: research_entity/frankenstein2_local_voice/deltas/2026-08-31_T7_ASR008_FLOAT_WAV_NORMALIZATION_VALIDITY_GPT56SOL.json",
+    "research/local_voice/falsifiers/2026-08-31_T7_ASR008_MULTI_DISPATCH_CONTROL_PLANE_CHURN_GPT56SOL.json"
+  ],
+  "credits": {
+    "asr008_nemotron_runtime_quality_credit": 0,
+    "asr008_german_asr_comparison_credit": 0,
+    "physical_microphone_capture_credit": 0,
+    "physical_speaker_render_credit": 0,
+    "physical_grid10_credit": 0,
+    "semantic_gwt_jspace_whole_runtime_credit": 0,
+    "effect_credit": 0,
+    "whole_duplex_loop_credit": 0,
+    "whole_product_credit": 0,
+    "training_credit": 0
+  },
+  "routing": {
+    "trigger4_exact_repair_gate": [
+      "Reconcile all existing ASR008 workflow/run/queue identities and forbid another dispatch until singleton authority is clear.",
+      "Make the benchmark loader actually decode/convert the IEEE_FLOAT fixture to a supported waveform representation, or use a decoder that supports IEEE float WAV.",
+      "For any realtime-latency claim, pace approximately 160 ms input chunks against wall-clock audio time; otherwise label the metric explicitly as unpaced synthetic-stream throughput.",
+      "After those validity conditions hold, execute at most one exact-source VPS rerun and promote only the scopes actually executed/read back."
+    ],
+    "trigger7_primary_next_lane": "Return to the active Cortex/text-packet/packet-recovery completion frontier. Do not scout or add another ASR/TTS model unless the bounded shortlist is shown unable to satisfy a named invariant."
+  },
+  "progress_scalar": "UNRESOLVED_NO_CANONICAL_DENOMINATOR",
+  "next_exact_gate": "CORTEX/TEXT-PACKET/RECOVERY invariant closure under the active breadth throttle; ASR008 remains a bounded validity-repair/retest dependency routed through Trigger4, not a reason to expand model breadth."
+}
