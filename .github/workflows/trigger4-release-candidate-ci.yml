@@ -19,6 +19,8 @@ on:
       - 'src/frankenstein2/restart_recovery_persisted_row_attestation.py'
       - 'tests/test_restart_recovery_persisted_row_attestation.py'
       - 'tests/test_wp900_wp206_two_process_restart.py'
+      - 'src/frankenstein2/whole_system_measurement.py'
+      - 'tests/test_whole_system_measurement.py'
       - 'AI_START_HERE_DO_NOT_SCAN_REPO/**'
       - 'artifacts/backfill/**'
       - 'PRODUCT_COMPLETION_LAW.md'
@@ -44,6 +46,8 @@ on:
       - 'src/frankenstein2/restart_recovery_persisted_row_attestation.py'
       - 'tests/test_restart_recovery_persisted_row_attestation.py'
       - 'tests/test_wp900_wp206_two_process_restart.py'
+      - 'src/frankenstein2/whole_system_measurement.py'
+      - 'tests/test_whole_system_measurement.py'
       - 'AI_START_HERE_DO_NOT_SCAN_REPO/**'
       - 'artifacts/backfill/**'
       - 'PRODUCT_COMPLETION_LAW.md'
@@ -92,14 +96,15 @@ jobs:
           python -m unittest discover -s tests -p 'test_portable_release_static_completeness.py' -v
           python -m unittest discover -s tests -p 'test_artifact_bound_static_completeness.py' -v
 
-      - name: Exercise accepted WP900-WP206 fresh-process persistence chain
+      - name: Exercise accepted WP900-WP206 persistence chain and WP902 measurement producer
         shell: bash
         run: |
           set -euo pipefail
           python -m unittest -v \
             tests.test_wp900_wp206_two_process_restart \
             tests.test_whole_loop_persistence_integration \
-            tests.test_restart_recovery_persisted_row_attestation
+            tests.test_restart_recovery_persisted_row_attestation \
+            tests.test_whole_system_measurement
 
       - name: Build candidate twice from exact Git tree through WP1112
         shell: bash
