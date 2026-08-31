@@ -1,0 +1,34 @@
+{
+  "schema": "FRANKENSTEIN2_CANDIDATE_FALSIFIER/v1",
+  "workpackage_id": "F2-WP-307",
+  "generation": 1,
+  "claim_id_observed": "F2-WP-307-G1-GPT56SOL-TYPED-MEMORY-UNIFIEDDB-READBACK-20260831",
+  "worker_id": "GPT-5.6-Sol-Trigger4-Owner-Falsifier",
+  "result_class": "PRODUCT_NEGATIVE",
+  "mutation_authority": true,
+  "falsifier_id": "TMU03_WP303_MULTI_TYPED_RECORD_CARDINALITY",
+  "source_subject": {
+    "typed_memory_persistence_blob_sha": "ed9f1d2fdbe046d7e59d76597522468650456240",
+    "typed_memory_blob_sha": "6bb5be7e93d300c6e2d8ae348530323f3bb6b9eb",
+    "typed_memory_test_blob_sha": "204c4b193060a401f88d2f07d0a109ed8cad5f08"
+  },
+  "accepted_upstream_counterexample": "WP303 accepted test test_episode_and_process_require_distinct_minimum_lineage creates both an EPISODE TypedMemoryRecord and a PROCESS TypedMemoryRecord from the exact same MemoryLifecycleState. Therefore WP303 admits more than one valid TypedMemoryRecord identity for one (memory_id, lifecycle_generation).",
+  "product_negative": "WP307 schema PRIMARY KEY(memory_id, lifecycle_generation) and write_record lookup by only that pair reject the second valid upstream record as MEMORY_GENERATION_ALREADY_BOUND_TO_DIFFERENT_BYTES. WP307 therefore narrows the accepted WP303 cardinality and invents a first-writer-wins typing authority not present in WP303.",
+  "required_discriminator": "Create one lifecycle state; derive the accepted EPISODE and PROCESS records from that same state; persist both. Both exact record_sha256 identities must survive in the same canonical UnifiedDB and be independently readable/verified without one record replacing or vetoing the other.",
+  "failure_signature": "Second valid WP303 record for the same memory_id/lifecycle_generation raises MEMORY_GENERATION_ALREADY_BOUND_TO_DIFFERENT_BYTES or cannot be independently read back by exact digest.",
+  "repair_constraint": "Use exact TypedMemoryRecord identity (record_sha256) as the durable row identity. Lifecycle identity may be indexed but must not silently impose uniqueness. Any lifecycle-only read API must fail closed on ambiguity or require an exact expected digest; it must not choose one row arbitrarily. Preserve same-UnifiedDB, exact-byte, authority-receipt, main-schema, no-second-DB and inode-drift fences.",
+  "failure_class": "PRODUCT_NEGATIVE",
+  "scope_guards": {
+    "repository_component_ci_regression_credit": 0,
+    "target_environment_component_runtime_credit": 0,
+    "canonical_memory_write_credit": 0,
+    "gwt_runtime_credit": 0,
+    "jspace_runtime_credit": 0,
+    "effect_credit": 0,
+    "physical_credit": 0,
+    "training_credit": 0,
+    "completion_credit": 0,
+    "whole_system_acceptance": false
+  },
+  "next_exact_action": "Repair WP307 durable identity from lifecycle-pair uniqueness to exact record_sha256 identity, add the upstream EPISODE+PROCESS same-state regression, rerun WP307+WP303+WP206 repository CI, and only after an accepted exact-source result consider VPS fresh-process readback."
+}
