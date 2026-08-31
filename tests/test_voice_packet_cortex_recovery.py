@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 from copy import deepcopy
+import hashlib
+import json
 import unittest
 
 from frankenstein2.causal_identity import CausalIdentity
@@ -135,6 +137,38 @@ class VoicePacketCortexRecoveryTests(unittest.TestCase):
         self.assertEqual(after_checkpoint, before_checkpoint)
         resumed = resume_packet_cortex(session, after_checkpoint, monotonic_ms=20)
         self.assertEqual(resumed.events[-1].event_kind, "RESTART_REENTRY")
+
+    def test_closed_checkpoint_revalidates_session_close_packet_refs(self) -> None:
+        session = self.session()
+        cortex = VoicePacketCortex(session)
+        outcome_causal_identity = session.session_causal_identity.derive(
+            causal_id="causal-outcome-f18-recovery", generation=10, turn_id="turn-close"
+        )
+        cortex.close_session(
+            turn_id="turn-close",
+            monotonic_ms=200,
+            outcome_causal_identity=outcome_causal_identity,
+            outcome_kind="ENDED",
+            provenance_refs=("trigger7:t7-arch-003:f18-close",),
+        )
+        checkpoint = export_packet_cortex_checkpoint(cortex)
+        control = resume_packet_cortex(session, checkpoint, monotonic_ms=250)
+        self.assertFalse(control.is_open)
+
+        tampered = deepcopy(checkpoint)
+        close_events = [
+            event for event in tampered["payload"]["events"] if event["event_kind"] == "SESSION_CLOSE"
+        ]
+        self.assertEqual(len(close_events), 1)
+        self.assertEqual(close_events[0]["packet_refs"], [])
+        close_events[0]["packet_refs"] = ["output-forged-not-restored"]
+        canonical = json.dumps(
+            tampered["payload"], ensure_ascii=False, sort_keys=True,
+            separators=(",", ":"), allow_nan=False,
+        )
+        tampered["payload_sha256"] = hashlib.sha256(canonical.encode("utf-8")).hexdigest()
+        with self.assertRaises(VoicePacketCortexError):
+            resume_packet_cortex(session, tampered, monotonic_ms=250)
 
     def test_event_derived_latency_accounting_is_explicit(self) -> None:
         cortex = VoicePacketCortex(self.session())
