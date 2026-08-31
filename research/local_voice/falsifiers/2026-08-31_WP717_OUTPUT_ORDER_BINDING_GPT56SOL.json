@@ -1,0 +1,52 @@
+{
+  "schema": "F2_TRIGGER4_CANDIDATE_FALSIFIER/v1",
+  "trigger": "4",
+  "workpackage_id": "F2-WP-717",
+  "research_id": "WP717-OUTPUT-ORDER-BINDING",
+  "organ": "GPT-5.6-Sol",
+  "work_class": "CANDIDATE_FALSIFIER",
+  "classification": "VOICE_HEARD_RESULT_MUST_BIND_SEMANTIC_OUTPUT_ORDER_NOT_LEXICAL_PACKET_REF_ORDER",
+  "authority_snapshot": {
+    "f2_main_observed": "cfa8d8a3a0f4919c429bab60d2d4459cbe4625e6",
+    "active_claim": "F2-WP-717-G1-GPT56SOL-VOICE-HEARD-RESULT-REENTRY-20260831",
+    "new_mutation_authority": false,
+    "owned_source_mutated": false,
+    "credit_delta": 0
+  },
+  "source_observation": {
+    "voice_cortex_outputs_order": "(turn_id, sequence, packet_id)",
+    "session_close_packet_refs_order": "lexical packet_id sort",
+    "risk": "An adapter that derives its ordered heard-result aggregate from SESSION_CLOSE.packet_refs can bind a deterministic but semantically reordered payload when packet_id lexical order differs from output sequence order."
+  },
+  "counterexample": {
+    "turn_id": "turn-1",
+    "first_output": {
+      "sequence": 0,
+      "packet_id": "z-first",
+      "playback_state": "completed",
+      "heard_fraction": 1.0,
+      "commit_eligible": true
+    },
+    "second_output": {
+      "sequence": 1,
+      "packet_id": "a-second",
+      "playback_state": "completed",
+      "heard_fraction": 1.0,
+      "commit_eligible": true
+    },
+    "semantic_order": ["z-first", "a-second"],
+    "lexical_ref_order": ["a-second", "z-first"]
+  },
+  "required_discriminator": "Add a WP717 regression in which packet_id lexical order intentionally opposes sequence order. The admitted heard-result digest must bind the canonical full VoiceOutputPacket payloads in the declared semantic output order; reversed, omitted, duplicated, or packet-ref-only aggregates must fail closed. The adapter must not infer semantic order from SESSION_CLOSE.packet_refs alone.",
+  "scope_fence": {
+    "wp717_source_change_authorized_here": false,
+    "asr008_dispatch_allowed": false,
+    "runtime_credit_allowed": false,
+    "memory_write_credit_allowed": false,
+    "gwt_credit_allowed": false,
+    "effect_credit_allowed": false,
+    "training_credit_allowed": false,
+    "whole_product_credit_allowed": false
+  },
+  "next_exact_action": "WP717 mutation owner should absorb this discriminator into VSR multi-segment order testing before repository acceptance. If implementation already canonicalizes directly from ordered VoiceOutputPacket values independent of SESSION_CLOSE.packet_refs, retain this as a regression proving that invariant."
+}
