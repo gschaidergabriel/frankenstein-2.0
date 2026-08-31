@@ -1,13 +1,15 @@
 """Deterministic prior-reentry -> fresh voice-turn successor projection.
 
 F2-WP-719 generation 1. This is integration glue only. It consumes an already
-validated ``VoiceHeardResultReentryReceipt`` and an exact predecessor
-``VoiceSessionCapsule`` and creates a distinct fresh ``VoiceIntent`` /
+validated ``VoiceHeardResultReentryReceipt``, an exact predecessor
+``VoiceSessionCapsule``, and an explicit exact restart-prerequisite receipt
+reference before creating a distinct fresh ``VoiceIntent`` /
 ``VoiceSessionCapsule`` with explicit predecessor linkage.
 
 The projector does not write canonical memory, execute tools/effects, perform
 GWT/J-Space uptake, call providers, touch audio devices, or mint completion.
-GWT and memory evidence are carried only as exact reference digests.
+GWT, memory and restart-prerequisite evidence are carried only as exact
+reference/digest bindings.
 """
 from __future__ import annotations
 
@@ -130,6 +132,21 @@ def _validate_fresh_intent_causal(
         raise FreshTurnSuccessorError("fresh intent turn_id must be distinct from predecessor turn")
 
 
+def _validate_restart_prerequisite(
+    *,
+    prerequisite_restart_receipt_ref: str | None,
+    prerequisite_restart_receipt_sha256: str | None,
+) -> tuple[str, str]:
+    if (prerequisite_restart_receipt_ref is None) != (prerequisite_restart_receipt_sha256 is None):
+        raise FreshTurnSuccessorError("restart prerequisite ref/digest must both be present")
+    if prerequisite_restart_receipt_ref is None:
+        raise FreshTurnSuccessorError("exact restart prerequisite receipt ref/digest is required")
+    return (
+        _text("prerequisite_restart_receipt_ref", prerequisite_restart_receipt_ref),
+        _sha256("prerequisite_restart_receipt_sha256", prerequisite_restart_receipt_sha256),
+    )
+
+
 @dataclass(frozen=True, slots=True)
 class FreshTurnSuccessorProjection:
     projection_id: str
@@ -145,6 +162,8 @@ class FreshTurnSuccessorProjection:
     gwt_binding_id: str | None
     gwt_binding_sha256: str | None
     memory_evidence_sha256: str
+    prerequisite_restart_receipt_ref: str
+    prerequisite_restart_receipt_sha256: str
     tool_ref_disposition: str
     provenance_refs: tuple[str, ...]
     schema: str = FRESH_TURN_SUCCESSOR_SCHEMA
@@ -165,6 +184,8 @@ class FreshTurnSuccessorProjection:
             "gwt_binding_id": self.gwt_binding_id,
             "gwt_binding_sha256": self.gwt_binding_sha256,
             "memory_evidence_sha256": self.memory_evidence_sha256,
+            "prerequisite_restart_receipt_ref": self.prerequisite_restart_receipt_ref,
+            "prerequisite_restart_receipt_sha256": self.prerequisite_restart_receipt_sha256,
             "tool_ref_disposition": self.tool_ref_disposition,
             "provenance_refs": list(self.provenance_refs),
             "classification": self.classification,
@@ -201,6 +222,8 @@ class FreshTurnSuccessorProjection:
             _text("gwt_binding_id", self.gwt_binding_id)
             _sha256("gwt_binding_sha256", self.gwt_binding_sha256)
         _sha256("memory_evidence_sha256", self.memory_evidence_sha256)
+        _text("prerequisite_restart_receipt_ref", self.prerequisite_restart_receipt_ref)
+        _sha256("prerequisite_restart_receipt_sha256", self.prerequisite_restart_receipt_sha256)
         _text("tool_ref_disposition", self.tool_ref_disposition)
         if _refs(self.provenance_refs) != self.provenance_refs:
             raise FreshTurnSuccessorError("projection provenance_refs must be unique canonical lexical order")
@@ -226,6 +249,8 @@ def project_fresh_turn(
     expected_gwt_binding_id: str | None,
     expected_gwt_binding_sha256: str | None,
     expected_memory_evidence_sha256: str,
+    prerequisite_restart_receipt_ref: str | None = None,
+    prerequisite_restart_receipt_sha256: str | None = None,
     provenance_refs: Iterable[str] = ("trigger4:F2-WP-719",),
     existing: FreshTurnSuccessorProjection | None = None,
 ) -> tuple[VoiceIntent, VoiceSessionCapsule, FreshTurnSuccessorProjection]:
@@ -234,6 +259,10 @@ def project_fresh_turn(
     Repeating the same exact request produces the same projection id. Passing an
     ``existing`` projection turns this into an explicit idempotence check: an
     exact replay is accepted, while any semantic drift fails closed.
+
+    The caller must provide an exact restart-prerequisite receipt ref/digest.
+    This function binds that evidence; it does not independently mint or verify
+    external runtime authority beyond the supplied exact reference identity.
     """
     _validate_predecessor(
         session=predecessor_session,
@@ -244,12 +273,17 @@ def project_fresh_turn(
         expected_memory_evidence_sha256=expected_memory_evidence_sha256,
     )
     _validate_fresh_intent_causal(predecessor_session, fresh_intent_causal_identity)
+    restart_ref, restart_sha256 = _validate_restart_prerequisite(
+        prerequisite_restart_receipt_ref=prerequisite_restart_receipt_ref,
+        prerequisite_restart_receipt_sha256=prerequisite_restart_receipt_sha256,
+    )
     _sha256("input_sha256", input_sha256)
     _text("input_ref", input_ref)
 
     refs = _refs(tuple(provenance_refs) + (
         "predecessor-reentry:" + predecessor_reentry.receipt_id,
         "predecessor-session:" + predecessor_session.voice_session_id,
+        "restart-prerequisite:" + restart_ref,
     ))
     intent = VoiceIntent.create(
         causal_identity=fresh_intent_causal_identity,
@@ -279,6 +313,8 @@ def project_fresh_turn(
         "gwt_binding_id": predecessor_reentry.gwt_binding_id,
         "gwt_binding_sha256": predecessor_reentry.gwt_binding_sha256,
         "memory_evidence_sha256": memory_evidence_sha256(predecessor_reentry),
+        "prerequisite_restart_receipt_ref": restart_ref,
+        "prerequisite_restart_receipt_sha256": restart_sha256,
         "tool_ref_disposition": predecessor_reentry.tool_ref_disposition,
         "provenance_refs": list(refs),
         "classification": FRESH_TURN_SUCCESSOR_CLASSIFICATION,
@@ -307,6 +343,8 @@ def project_fresh_turn(
         gwt_binding_id=predecessor_reentry.gwt_binding_id,
         gwt_binding_sha256=predecessor_reentry.gwt_binding_sha256,
         memory_evidence_sha256=memory_evidence_sha256(predecessor_reentry),
+        prerequisite_restart_receipt_ref=restart_ref,
+        prerequisite_restart_receipt_sha256=restart_sha256,
         tool_ref_disposition=predecessor_reentry.tool_ref_disposition,
         provenance_refs=refs,
     )
