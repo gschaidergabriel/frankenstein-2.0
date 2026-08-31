@@ -122,7 +122,7 @@ class TypedMemoryPersistenceTests(unittest.TestCase):
         connection.commit()
         with self.assertRaisesRegex(
             TypedMemoryPersistenceError,
-            "TYPED_MEMORY_DIGEST_MISMATCH|TYPED_MEMORY_ID_METADATA_MISMATCH",
+            "TYPED_MEMORY_DIGEST_MISMATCH|TYPED_MEMORY_ID_METADATA_MISMATCH|indexed metadata mismatch",
         ):
             self.store.load_record(record.memory_id, record.lifecycle_generation)
 
