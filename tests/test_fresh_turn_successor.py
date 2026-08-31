@@ -12,6 +12,8 @@ from frankenstein2.voice_contract import OUTCOME_RETURNED, VoiceIntent, VoiceSes
 from frankenstein2.voice_heard_result_reentry import bind_completed_reentry, build_heard_result
 from frankenstein2.voice_packet_cortex import VoicePacketCortex
 
+# PR-only execution marker: semantics intentionally identical to main.
+
 
 class FreshTurnSuccessorTests(unittest.TestCase):
     def predecessor(self, suffix: str = "a"):
