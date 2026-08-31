@@ -1,0 +1,36 @@
+{
+  "schema": "FRANKENSTEIN2_CANDIDATE_FALSIFIER/v1",
+  "workpackage_id": "F2-WP-717",
+  "generation": 3,
+  "claim_id_observed": "F2-WP-717-G3-GPT56SOL-MEMORY-GWT-LINEAGE-FENCES-20260831",
+  "worker_id": "GPT-5.6-Sol-Trigger4-Independent-Reviewer",
+  "result_class": "CANDIDATE_FALSIFIER",
+  "mutation_authority": false,
+  "discriminator_id": "VSR08D_ADAPTIVE_FACTORY_DIGEST_REPLACE",
+  "tested_main_sha": "16a53723eab55f6b3a5b290a27e233bdc5bb97d4",
+  "tested_source_path": "src/frankenstein2/gwt_reentry_uptake_binding.py",
+  "tested_source_blob_sha": "b0c9a80b799249d853ac69a3ae73433e270a5c86",
+  "consumer_path": "src/frankenstein2/voice_heard_result_reentry.py::validate_gwt_event_binding",
+  "observation": "The current hardening adds _factory_payload_sha256 and verifies it equals the digest of binding.as_dict(), but both _factory_seal and _factory_payload_sha256 remain normal dataclass init fields. dataclasses.replace() therefore preserves the exact seal identity and permits replacement of _factory_payload_sha256. Because as_dict() excludes both private origin fields, a caller can first replace a lineage-bearing public field, compute the new public digest, then replace _factory_payload_sha256 with that digest. The final object retains the exact factory seal and carries a matching factory-payload digest even though its public lineage no longer equals the factory-produced payload. validate_gwt_event_binding currently calls only assert_reentry_uptake_binding_factory_origin(), so this adaptive replacement can satisfy the consumer-side VSR08 gate without deep source-object revalidation.",
+  "reproducer": [
+    "Start from one valid binding returned by bind_reentry_to_uptake().",
+    "forged1 = dataclasses.replace(binding, broadcast_sha256=<different valid lowercase 64-hex>)",
+    "new_digest = sha256(canonical_json(forged1.as_dict()))",
+    "forged2 = dataclasses.replace(forged1, _factory_payload_sha256=new_digest)",
+    "Assert forged2._factory_seal is binding._factory_seal and forged2.broadcast_sha256 != binding.broadcast_sha256.",
+    "Call assert_reentry_uptake_binding_factory_origin(forged2). Required safe result: FAIL_CLOSED. Current structural semantics predict ACCEPT because seal identity and recomputed payload digest both match."
+  ],
+  "failure_signature": "A post-factory dataclasses.replace object with changed public lineage and adaptively recomputed _factory_payload_sha256 passes assert_reentry_uptake_binding_factory_origin and therefore validate_gwt_event_binding when gwt_ref still matches binding_id.",
+  "scope": "This does not invalidate validate_reentry_uptake_binding(), which rebuilds from exact WP506/WP507/WP508 source objects and compares canonical public content. It invalidates only seal+digest metadata as standalone proof of non-replaceable factory origin.",
+  "required_result_before_g3_terminal_acceptance": "Execute VSR08D against final G3 semantics and fail closed. Prefer reuse of validate_reentry_uptake_binding with exact source evidence at the consumer when those source objects are available. If a lightweight origin token remains necessary, make replacement unable to carry origin metadata through normal dataclass construction/replacement (for example origin fields not participating in __init__/replace and set only by the existing factory) and retain a regression proving adaptive public-field replacement cannot preserve admissible origin. Do not create a second GWT authority.",
+  "preserve_zero_credit": {
+    "gwt_runtime_credit": 0,
+    "jspace_runtime_credit": 0,
+    "effect_credit": 0,
+    "physical_audio_credit": 0,
+    "training_credit": 0,
+    "completion_credit": 0,
+    "whole_system_acceptance": false
+  },
+  "next_exact_action": "WP717 G3 owner should absorb VSR08D before terminal repository acceptance; no VPS dispatch should promote this changed G3 subject until the final repository discriminator suite is green."
+}
