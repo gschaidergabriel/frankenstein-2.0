@@ -237,6 +237,14 @@ class GwtReentryUptakeBinding:
         return _digest(self.as_dict())
 
 
+def assert_reentry_uptake_binding_factory_origin(binding: GwtReentryUptakeBinding) -> None:
+    """Require the existing WP508 factory seal without minting new uptake/runtime evidence."""
+    if type(binding) is not GwtReentryUptakeBinding or binding._factory_seal is not _BINDING_SEAL:
+        raise GwtReentryUptakeBindingError(
+            "binding lacks deterministic WP507/WP508 factory lineage"
+        )
+
+
 def bind_reentry_to_uptake(
     *,
     binding_id: str,
@@ -316,8 +324,7 @@ def validate_reentry_uptake_binding(
     cell_input: CellInput,
     known_lineage_refs: Iterable[str] = (),
 ) -> None:
-    if type(binding) is not GwtReentryUptakeBinding or binding._factory_seal is not _BINDING_SEAL:
-        raise GwtReentryUptakeBindingError("binding was not produced by deterministic binding factory")
+    assert_reentry_uptake_binding_factory_origin(binding)
     rebuilt = bind_reentry_to_uptake(
         binding_id=binding.binding_id,
         witness=witness,
@@ -337,6 +344,7 @@ __all__ = [
     "GWT_REENTRY_UPTAKE_BINDING_SCHEMA",
     "GwtReentryUptakeBinding",
     "GwtReentryUptakeBindingError",
+    "assert_reentry_uptake_binding_factory_origin",
     "bind_reentry_to_uptake",
     "validate_reentry_uptake_binding",
 ]
