@@ -1,0 +1,41 @@
+{
+  "schema": "FRANKENSTEIN2_CANDIDATE_FALSIFIER/v1",
+  "workpackage_id": "F2-WP-900",
+  "generation": 2,
+  "claim_id_observed": "F2-WP-900-G2-GPT56SOL-LIVE-GWT-RUNTIME-WITNESS-20260831",
+  "worker_id": "GPT-5.6-Sol-Trigger4-Independent-Falsifier",
+  "result_class": "CANDIDATE_FALSIFIER",
+  "mutation_authority": false,
+  "falsifier_id": "GWTRW01_ADAPTIVE_FACTORY_ORIGIN_METADATA_REPLACEMENT",
+  "observed_head_before_write": "2512bf8c9acac97b8caf893547b91283726973e5",
+  "active_claim_ref": "workpackages/active/F2-WP-900.json",
+  "source_subject": {
+    "path": "src/frankenstein2/gwt_reentry_uptake_binding.py",
+    "blob_sha": "b0c9a80b799249d853ac69a3ae73433e270a5c86"
+  },
+  "claim_requirement": "WP900 G2 explicitly requires rejection of fabricated/direct-instantiated observations and exact factory-origin validation before a later externally executed runtime witness may promote any runtime scope.",
+  "source_observation": "Current GwtReentryUptakeBinding factory-origin metadata fields _factory_seal and _factory_payload_sha256 are normal dataclass init fields. The lightweight assert_reentry_uptake_binding_factory_origin() accepts when the exact private seal identity is present and _factory_payload_sha256 equals the digest of current public as_dict() bytes. Because dataclasses.replace copies init fields and permits overriding them, a caller holding a valid factory binding can change lineage-bearing public fields, recompute the public digest, and carry both origin metadata values into the replacement. The existing deep validate_reentry_uptake_binding() is stronger because it rebuilds from exact witness/uptake/plan/selection/broadcast/cell_input evidence and compares canonical public content.",
+  "setup": [
+    "Create one valid GwtReentryUptakeBinding through bind_reentry_to_uptake() from exact accepted WP506/WP507/WP508 source objects.",
+    "Create forged1 = dataclasses.replace(binding, broadcast_sha256=<different valid lowercase 64-hex>) while leaving _factory_seal unchanged.",
+    "Compute forged_digest = SHA256(canonical JSON of forged1.as_dict()).",
+    "Create forged2 = dataclasses.replace(forged1, _factory_payload_sha256=forged_digest).",
+    "Verify forged2 retains the exact original _factory_seal identity while its public broadcast lineage differs from the factory-produced binding.",
+    "Feed forged2 into the proposed WP900 G2 binder along any path that treats assert_reentry_uptake_binding_factory_origin() or equivalent seal+digest metadata as sufficient origin proof."
+  ],
+  "required_result": "FAIL_CLOSED_BEFORE_RUNTIME_WITNESS_RECEIPT. WP900 must not admit the replacement object as exact WP507/WP508 lineage. For promotion-bearing observation binding, consume the existing deep source-evidence validator or otherwise prove equivalent non-replaceable origin tied to exact accepted source objects; do not create a parallel GWT authority.",
+  "failure_signature": "A WP900 G2 runtime-witness receipt can be constructed from a dataclasses.replace-derived GwtReentryUptakeBinding whose public lineage differs from its factory-produced ancestor while seal+adaptive digest metadata still pass the lightweight origin assertion.",
+  "scope_guard": "This falsifier does not claim current runtime failure because gwt_runtime_witness.py is not yet present at the observed head. It is a pre-implementation discriminator against a concrete currently available dependency weakness. It does not invalidate validate_reentry_uptake_binding(), which performs deep exact-source reconstruction.",
+  "credits": {
+    "repository_component_ci_credit": 0,
+    "runtime_credit": 0,
+    "physical_grid10_credit": 0,
+    "gwt_runtime_credit": 0,
+    "jspace_runtime_credit": 0,
+    "effect_credit": 0,
+    "training_credit": 0,
+    "completion_credit": 0,
+    "whole_system_acceptance": false
+  },
+  "next_exact_action": "WP900 G2 mutation owner absorbs GWTRW01 into repository regressions before repository acceptance. After exact-head CI is green, only the identical accepted binder/source may be dispatched to the admitted VPS/target runtime for real observation evidence."
+}
