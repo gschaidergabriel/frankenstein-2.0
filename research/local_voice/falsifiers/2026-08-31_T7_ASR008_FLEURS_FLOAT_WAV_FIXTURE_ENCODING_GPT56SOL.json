@@ -1,0 +1,50 @@
+{
+  "schema": "F2_TRIGGER4_CANDIDATE_FALSIFIER/v1",
+  "trigger": "4",
+  "research_id": "T7-ASR-008",
+  "classification": "EVIDENCE_INVALID_FIXTURE_ENCODING_INCOMPATIBILITY",
+  "observed_at_utc": "2026-08-31T00:00:00Z",
+  "bound_runtime": {
+    "controller_repo": "gschaidergabriel/Dr.-Unterweger",
+    "workflow_run_id": 33340567051,
+    "controller_repair_commit": "40aa40e31c15a8421326b63a258eff0657dd5d53",
+    "redispatch_commit": "823920bd770c16ca9855610d56d64a669a8063b0",
+    "target_surface": "clay-direct-dev",
+    "f2_subject": "4727b94eeda381f3dcbe4d494eb72f91ce17b478"
+  },
+  "finding": {
+    "first_dependency_failure_repaired": true,
+    "first_dependency_failure": "missing Python soundfile dependency during FLEURS dataset generation",
+    "second_run_terminal": true,
+    "second_run_conclusion": "failure",
+    "second_run_execution_observed": false,
+    "second_run_failure_stage": "EXACT_COMPARATOR",
+    "second_run_primary_error": "wave.Error: unknown format: 3",
+    "interpretation": "The FLEURS fixture written by the comparator is IEEE-float WAV (format tag 3), while the comparator validates it with Python wave and requires 16-bit PCM. The run therefore fails during fixture validation before Nemotron ASR measurement. This is probe-validity/evidence failure, not a Nemotron product negative.",
+    "product_negative_supported": false,
+    "runtime_credit_supported": false
+  },
+  "failure_taxonomy": "EVIDENCE_INVALID",
+  "runtime_subject_action": "RUNTIME_PROBE_INVALIDATED_BY_REQUIRED_REPAIR",
+  "repair_boundary": {
+    "scope": "fixture canonicalization/validation only",
+    "required_behavior": "Decode the exact selected FLEURS audio through soundfile (already installed by the first repair), preserve source-row/source-byte provenance, canonicalize the comparator input deterministically to mono 16 kHz PCM16 WAV when the source encoding is IEEE float, hash both source and executed fixture identities, then rerun the existing comparator without changing the ASR model, F2 subject, row selection, scoring semantics, or credit rules.",
+    "do_not": [
+      "do not label the current result as ASR model failure",
+      "do not mint target runtime or German ASR quality credit",
+      "do not open a new architecture/component lane",
+      "do not weaken fixture identity or model/source binding"
+    ]
+  },
+  "next_exact_action": "Patch only the ASR008 fixture decode/canonicalization path so FLEURS IEEE-float WAV becomes deterministic PCM16 input with dual source/executed-fixture hashes; add a regression covering WAV format tag 3; then dispatch exactly one repaired comparator run and reconcile its raw receipt against the current F2 validator contract.",
+  "credit": {
+    "runtime_credit": 0,
+    "german_asr_quality_credit": 0,
+    "trigger4_acceptance_credit": 0,
+    "physical_device_credit": 0,
+    "gwt_jspace_credit": 0,
+    "effect_credit": 0,
+    "training_credit": 0,
+    "whole_product_credit": 0
+  }
+}
