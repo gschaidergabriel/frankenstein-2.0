@@ -1,0 +1,79 @@
+{
+  "schema": "F2_TRIGGER4_CANDIDATE_FALSIFIER/v1",
+  "trigger": "4",
+  "research_id": "T7-ASR-008",
+  "classification": "EVIDENCE_INVALID_FIXTURE_MATERIALIZATION_CHAIN",
+  "observed_at_utc": "2026-08-31T00:36:00Z",
+  "f2_reentry_head_before_write": "9741bc9a6d94f096437e23b728d536339ed11a82",
+  "failure_taxonomy": "EVIDENCE_INVALID",
+  "product_negative": false,
+  "runtime_credit_delta": 0,
+  "german_asr_quality_credit_delta": 0,
+  "whole_product_credit_delta": 0,
+  "attempts": [
+    {
+      "controller_run_id": 33340366984,
+      "controller_subject": "5a5f296178754c59ac36a434eb71538502eb06d8",
+      "f2_subject": "4727b94eeda381f3dcbe4d494eb72f91ce17b478",
+      "target_surface": "clay-direct-dev",
+      "runner": "vps-clay-host",
+      "workflow_conclusion": "failure",
+      "exact_failed_step": "Run exact bound Nemotron 3.5 comparator in clay-direct-dev",
+      "evidence_commit": "236caff40241b91f2ddbed55d0339f37b66e632e",
+      "failure_stage": "EXACT_COMPARATOR",
+      "root_cause": "datasets Audio feature encoding required the Python soundfile package, but the comparator venv did not contain it",
+      "exception": "ModuleNotFoundError: No module named 'soundfile'",
+      "classification": "EVIDENCE_INVALID_RUNTIME_DEPENDENCY_MISSING",
+      "execution_observed": false,
+      "model_comparator_executed": false
+    },
+    {
+      "controller_run_id": 33340567051,
+      "controller_subject": "823920bd770c16ca9855610d56d64a669a8063b0",
+      "f2_subject": "4727b94eeda381f3dcbe4d494eb72f91ce17b478",
+      "target_surface": "clay-direct-dev",
+      "workflow_conclusion": "failure",
+      "evidence_commit": "1bb96639a519abc8b5e373ffcdaaefa58d15fe17",
+      "preceding_dependency_repair_commit": "40aa40e31c15a8421326b63a258eff0657dd5d53",
+      "failure_stage": "EXACT_COMPARATOR",
+      "root_cause": "FLEURS fixture bytes materialized as WAV format tag 3 (IEEE float), while validate_wav and gate_wav use Python stdlib wave, which only accepts PCM-style formats required by the downstream WebRTC VAD contract",
+      "exception": "wave.Error: unknown format: 3",
+      "classification": "EVIDENCE_INVALID_FIXTURE_ENCODING_INCOMPATIBLE_WITH_VALIDATOR_GATE",
+      "execution_observed": false,
+      "model_comparator_executed": false
+    }
+  ],
+  "causal_chain": [
+    "The first run reached the exact comparator but failed during FLEURS fixture preparation before any Nemotron transcription.",
+    "The soundfile dependency repair was a validity repair, not a semantic model change.",
+    "The second run reached fixture validation and exposed the next deterministic incompatibility: float WAV input versus stdlib-wave/PCM16 gate assumptions.",
+    "Neither run exercised the Nemotron transcription condition matrix, so neither supports a Nemotron quality or runtime-product conclusion."
+  ],
+  "existing_source_observation": {
+    "controller_comparator_path": "tools/trigger4/t7_nemotron35_target_comparator.py",
+    "controller_comparator_blob_sha_at_1bb96639": "31e873f00c9f4b8d9faa6fb9d7a4594b08c1fc67",
+    "prepare_fixtures_behavior": "writes Hugging Face audio bytes directly to .wav and immediately calls validate_wav",
+    "validate_wav_behavior": "uses wave.open and requires mono/16kHz/2-byte samples",
+    "gate_wav_behavior": "uses wave.open and feeds 16-bit PCM frames to webrtcvad",
+    "soundfile_dependency_present_after_repair": true
+  },
+  "required_repair": {
+    "class": "RUNTIME_PROBE_INVALIDATED_BY_REQUIRED_REPAIR",
+    "smallest_semantic_delta": "Canonicalize each selected FLEURS speech fixture to mono 16 kHz PCM16 WAV before validate_wav/gate_wav while retaining exact source-audio identity and adding canonicalized-fixture identity.",
+    "identity_requirements": [
+      "preserve FLEURS repo/config/revision/row identity",
+      "preserve hash of original retrieved audio bytes",
+      "record hash of canonical PCM16 WAV bytes",
+      "do not change transcript/reference text",
+      "do not change right-context operating points",
+      "do not change model/runtime hashes",
+      "do not claim runtime credit until the exact comparator reaches and completes the transcription condition matrix"
+    ],
+    "preferred_implementation": "Decode with the already pinned soundfile==0.13.1 and write subtype PCM_16 at 16000 Hz mono, fail closed if the decoded source is not 16 kHz mono unless an explicitly admitted deterministic resample/downmix rule is added.",
+    "regression": "A fixture-level test must prove that a format-tag-3/float WAV input is canonicalized into wave-readable mono 16 kHz sample-width-2 PCM before WebRTC VAD and Nemotron invocation."
+  },
+  "runtime_subject_action": "REPAIR_REQUIRED_BEFORE_ONE_NEW_BOUND_RETRY",
+  "redispatch_policy": "Exactly one successor dispatch is justified only after the fixture canonicalization repair is source-bound and regression-tested. Do not redispatch unchanged source.",
+  "receipt_contract_note": "The previously recorded controller-receipt-envelope mismatch remains a separate acceptance concern. Even a successful successor runtime receipt must still be reconciled to the current F2 fail-closed validator contract without rewriting measured values.",
+  "scope_fence": "This finding promotes only failure understanding. Runtime, German ASR quality, physical-device, GWT/J-Space, effect, training and whole-product credits remain zero for T7-ASR-008."
+}
