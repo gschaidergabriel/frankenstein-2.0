@@ -13,6 +13,12 @@ on:
       - 'src/frankenstein2/portable_release_static_completeness.py'
       - 'src/frankenstein2/artifact_bound_static_completeness.py'
       - 'tests/test_artifact_bound_static_completeness.py'
+      - 'src/frankenstein2/whole_loop_persistence_integration.py'
+      - 'tests/test_whole_loop_persistence_integration.py'
+      - 'src/frankenstein2/persistent_agency_kernel.py'
+      - 'src/frankenstein2/restart_recovery_persisted_row_attestation.py'
+      - 'tests/test_restart_recovery_persisted_row_attestation.py'
+      - 'tests/test_wp900_wp206_two_process_restart.py'
       - 'AI_START_HERE_DO_NOT_SCAN_REPO/**'
       - 'artifacts/backfill/**'
       - 'PRODUCT_COMPLETION_LAW.md'
@@ -32,6 +38,12 @@ on:
       - 'src/frankenstein2/portable_release_static_completeness.py'
       - 'src/frankenstein2/artifact_bound_static_completeness.py'
       - 'tests/test_artifact_bound_static_completeness.py'
+      - 'src/frankenstein2/whole_loop_persistence_integration.py'
+      - 'tests/test_whole_loop_persistence_integration.py'
+      - 'src/frankenstein2/persistent_agency_kernel.py'
+      - 'src/frankenstein2/restart_recovery_persisted_row_attestation.py'
+      - 'tests/test_restart_recovery_persisted_row_attestation.py'
+      - 'tests/test_wp900_wp206_two_process_restart.py'
       - 'AI_START_HERE_DO_NOT_SCAN_REPO/**'
       - 'artifacts/backfill/**'
       - 'PRODUCT_COMPLETION_LAW.md'
@@ -79,6 +91,15 @@ jobs:
           python -m unittest discover -s tests -p 'test_receipt_content_binding.py' -v
           python -m unittest discover -s tests -p 'test_portable_release_static_completeness.py' -v
           python -m unittest discover -s tests -p 'test_artifact_bound_static_completeness.py' -v
+
+      - name: Exercise accepted WP900-WP206 fresh-process persistence chain
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m unittest -v \
+            tests.test_wp900_wp206_two_process_restart \
+            tests.test_whole_loop_persistence_integration \
+            tests.test_restart_recovery_persisted_row_attestation
 
       - name: Build candidate twice from exact Git tree through WP1112
         shell: bash
