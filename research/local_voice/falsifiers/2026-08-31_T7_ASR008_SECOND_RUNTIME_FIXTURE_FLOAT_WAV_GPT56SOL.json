@@ -1,0 +1,60 @@
+{
+  "schema": "F2_TRIGGER4_CANDIDATE_FALSIFIER/v1",
+  "trigger": "4",
+  "research_id": "T7-ASR-008",
+  "classification": "EVIDENCE_INVALID_FLOAT_WAV_FIXTURE_NOT_NORMALIZED_TO_ADMITTED_PCM16_INPUT",
+  "observed_at_utc": "2026-08-31T00:35:00Z",
+  "bound_runtime": {
+    "controller_repo": "gschaidergabriel/Dr.-Unterweger",
+    "workflow_run_id": 33340567051,
+    "target_surface": "clay-direct-dev",
+    "semantic_key": "93d61d9b893d411c8085cd5d257968c23448bc426430e603f6e33add1db5e4e3",
+    "runtime_receipt_path": "runtime/trigger4_nemotron35_asr008/runs/33340567051/receipt.json",
+    "controller_receipt_commit": "1bb96639a519abc8b5e373ffcdaaefa58d15fe17"
+  },
+  "observed_receipt": {
+    "schema": "T7_ASR008_NEMOTRON35_EXECUTION_FAILURE/v1",
+    "execution_observed": false,
+    "classification": "EVIDENCE_INVALID",
+    "reason": "BOUND_COMPARATOR_DID_NOT_PRODUCE_VERIFIABLE_RECEIPT",
+    "failure_stage": "EXACT_COMPARATOR",
+    "bridge_exit_code": 1,
+    "runtime_credit_delta": 0
+  },
+  "root_cause_evidence": {
+    "stderr_path": "runtime/trigger4_nemotron35_asr008/runs/33340567051/comparator.stderr.log",
+    "exception": "wave.Error: unknown format: 3",
+    "interpretation": "The dependency repair admitted soundfile and advanced fixture generation past the prior missing-module failure. The FLEURS fixture materialized as IEEE-float WAV (WAVE format tag 3), while the comparator validate_wav/gate path uses Python wave and requires mono 16 kHz 16-bit PCM. The comparator therefore failed before any Nemotron ASR condition could be measured.",
+    "product_negative": false,
+    "asr_quality_observed": false
+  },
+  "failure_taxonomy": "EVIDENCE_INVALID",
+  "runtime_subject_action": "RUNTIME_PROBE_INVALIDATED_BY_REQUIRED_REPAIR",
+  "smallest_required_repair": {
+    "scope": "controller fixture preparation only",
+    "action": "Normalize each pinned FLEURS speech fixture deterministically to mono 16 kHz PCM_16 WAV before validate_wav/gating/transcription, record both source-audio digest and normalized-fixture digest, then redispatch the same semantic comparator exactly once.",
+    "do_not": [
+      "change ASR model bytes or revision",
+      "change admitted FLEURS rows",
+      "change gate thresholds",
+      "change RNNT right-context axis",
+      "mint ASR quality/runtime credit from this failure",
+      "reinterpret the failure as a Nemotron product negative"
+    ]
+  },
+  "separate_open_blocker": {
+    "classification": "EVIDENCE_CONTRACT_RECONCILIATION_REQUIRED",
+    "note": "Even after executable fixture repair, the controller success envelope must still be reconciled to the current F2 fail-closed validator contract before promotion. Measured values must not be rewritten to satisfy the validator."
+  },
+  "credit": {
+    "runtime_credit": 0,
+    "german_asr_quality_credit": 0,
+    "trigger4_acceptance_credit": 0,
+    "physical_device_credit": 0,
+    "gwt_jspace_credit": 0,
+    "effect_credit": 0,
+    "training_credit": 0,
+    "whole_product_credit": 0
+  },
+  "next_exact_action": "Repair only deterministic FLEURS fixture normalization to PCM_16 with source+normalized digest provenance, preserve all comparator/model/corpus/gate axes, redispatch once, then validate the raw terminal receipt against one explicit F2 contract before any promotion."
+}
