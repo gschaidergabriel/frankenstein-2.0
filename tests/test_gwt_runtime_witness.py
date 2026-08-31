@@ -1,10 +1,15 @@
 from dataclasses import replace
+import hashlib
+import json
 
 import pytest
 
 from frankenstein2.grid10_interface import CellBudget, CellInput, CellOutput, Grid10Plan
 from frankenstein2.gwt_reentry_provenance import build_reentry_witness
-from frankenstein2.gwt_reentry_uptake_binding import bind_reentry_to_uptake
+from frankenstein2.gwt_reentry_uptake_binding import (
+    assert_reentry_uptake_binding_factory_origin,
+    bind_reentry_to_uptake,
+)
 from frankenstein2.gwt_runtime_witness import (
     GwtRuntimeWitnessError,
     GwtRuntimeWitnessRecorder,
@@ -26,6 +31,17 @@ A = "a" * 64
 B = "b" * 64
 C = "c" * 64
 D = "d" * 64
+
+
+def canonical_digest(value):
+    encoded = json.dumps(
+        value,
+        sort_keys=True,
+        separators=(",", ":"),
+        ensure_ascii=False,
+        allow_nan=False,
+    ).encode("utf-8")
+    return hashlib.sha256(encoded).hexdigest()
 
 
 def make_plan():
@@ -286,6 +302,32 @@ def test_direct_constructed_wp508_binding_cannot_cross_runtime_boundary():
     recorder.observe_delivery(broadcast)
     recorder.observe_uptake(receipt)
     with pytest.raises(GwtRuntimeWitnessError, match="factory lineage"):
+        recorder.observe_reentry(
+            witness=witness,
+            binding=forged,
+            plan=plan,
+            selection=selection,
+            cell_input=cell_input,
+        )
+
+
+def test_adaptive_factory_metadata_replacement_is_rejected_by_deep_lineage_validator():
+    plan, selection, broadcast, cell_input, witness, receipt, binding = make_fixture()
+    forged_lineage = replace(binding, broadcast_sha256="e" * 64)
+    forged = replace(
+        forged_lineage,
+        _factory_payload_sha256=canonical_digest(forged_lineage.as_dict()),
+    )
+
+    # GWTRW01 demonstrates that lightweight seal+digest metadata alone can be
+    # adaptively copied.  The runtime boundary must therefore depend on the deep
+    # WP508 source-evidence rebuild, not this lightweight check alone.
+    assert_reentry_uptake_binding_factory_origin(forged)
+
+    recorder = GwtRuntimeWitnessRecorder(identity=identity(), monotonic_ns=clock(10, 20, 30))
+    recorder.observe_delivery(broadcast)
+    recorder.observe_uptake(receipt)
+    with pytest.raises(GwtRuntimeWitnessError, match="source-evidence lineage mismatch"):
         recorder.observe_reentry(
             witness=witness,
             binding=forged,
