@@ -1,0 +1,56 @@
+{
+  "schema": "F2_TRIGGER4_CANDIDATE_FALSIFIER/v1",
+  "trigger": "4",
+  "workpackage_id": "F2-WP-717",
+  "generation": 1,
+  "research_id": "WP717-PRE-CLOSE-FULL-PACKET-IDENTITY",
+  "organ": "GPT-5.6-Sol",
+  "work_class": "CANDIDATE_FALSIFIER",
+  "classification": "HEARD_RESULT_PARTIAL_PACKET_PROJECTION_CAN_COLLAPSE_DISTINCT_CANONICAL_OUTPUT_PACKET_IDENTITIES",
+  "authority_snapshot": {
+    "f2_main_observed_before_write": "062f7c38d2ca7d2543f9debbc11cf61121aa826f",
+    "active_claim": "F2-WP-717-G1-GPT56SOL-VOICE-HEARD-RESULT-REENTRY-20260831",
+    "active_owner": "GPT-5.6-Sol-Trigger4",
+    "new_mutation_authority": false,
+    "owned_source_mutated": false,
+    "runtime_dispatch": false,
+    "credit_delta": 0
+  },
+  "source_observation": {
+    "voice_output_packet_canonical_identity": "VoiceOutputPacket.sha256() hashes the full as_dict() representation, including schema/classification and monotonic_ms, planned_audio_duration_ms, first_output_ms, cancellable, interruption_ms and voiceoutcome_ref.",
+    "wp717_heard_material_projection": "_heard_material() intentionally excludes voiceoutcome_ref to avoid the VoiceOutcome/result digest cycle, but it also excludes monotonic_ms, planned_audio_duration_ms, first_output_ms, cancellable, interruption_ms, schema and classification.",
+    "current_heard_result_identity": "HeardResultPayload binds packet_id plus SHA256(_heard_material(packet)), not the canonical pre-close VoiceOutputPacket identity.",
+    "risk": "Two distinct valid canonical VoiceOutputPacket values can differ in an omitted non-voiceoutcome_ref field while producing the same WP717 heard-material digest and therefore the same heard-result payload identity. This is narrower than a text-boundary/order collision: it is an identity-collapse between distinct accepted packet payloads."
+  },
+  "candidate_counterexample": {
+    "setup": "Construct two otherwise-identical fully-heard commit-eligible VoiceOutputPacket values with the same session_id, turn_id, packet_id, sequence, text_segment, expression_intent and speech_act, but change exactly one omitted field such as planned_audio_duration_ms or first_output_ms while voiceoutcome_ref remains pre-close/unbound.",
+    "expected_canonical_fact": "VoiceOutputPacket.sha256() differs because the canonical packet payload differs.",
+    "suspected_wp717_behavior": "build_heard_result() produces the same ordered_output_material_sha256 and the same heard-result payload_sha256 for both packet variants because the changed field is outside _heard_material().",
+    "promotion_risk": "A stale or substituted packet payload could satisfy the same heard-result identity even though it is not the exact canonical packet payload whose identity the integration boundary claims to bind."
+  },
+  "required_discriminator": "Add a regression that mutates each canonical pre-close VoiceOutputPacket field not semantically derived from VoiceOutcome one at a time. For every field that is declared part of exact packet identity, the admitted heard-result identity MUST change or the substitute MUST fail closed. In particular, planned_audio_duration_ms/first_output_ms mutation must not remain identity-equivalent if the contract claims exact full VoiceOutputPacket payload binding.",
+  "required_resolution_options": [
+    "Preferred if exact packet identity is intended: define an explicit versioned PRE_CLOSE_OUTPUT_PACKET_IDENTITY projection equal to the canonical VoiceOutputPacket payload with voiceoutcome_ref normalized/excluded solely to break the result/outcome cycle, while retaining every other canonical packet field plus schema/classification; hash and bind that projection.",
+    "If only semantic heard-content identity is intended: explicitly narrow the WP717 contract/receipt language to a versioned semantic heard-content projection and stop claiming exact/full VoiceOutputPacket payload identity; separately preserve canonical packet SHA/phase evidence where exact packet provenance is required."
+  ],
+  "relationship_to_existing_falsifiers": {
+    "not_duplicate_of_digest_cycle": "The existing pre/post-close digest-cycle falsifier concerns voiceoutcome_ref phase recursion. This finding accepts excluding/normalizing voiceoutcome_ref but questions the additional omission of unrelated canonical packet fields.",
+    "not_duplicate_of_output_order": "The existing output-order falsifier concerns semantic sequence versus lexical packet-ref order. This finding reproduces with one packet and therefore survives perfect ordering.",
+    "not_duplicate_of_iterable_backlink": "The existing iterable falsifier concerns a second-pass backlink check bypass. This finding reproduces with an immutable tuple and a valid backlink once the outcome is closed."
+  },
+  "failure_taxonomy_before_execution": "CANDIDATE_PRODUCT_NEGATIVE_STATIC_SOURCE_FINDING",
+  "scope_fence": {
+    "wp717_source_change_authorized_here": false,
+    "wp717_test_change_authorized_here": false,
+    "asr008_dispatch_allowed": false,
+    "runtime_credit_allowed": false,
+    "repository_component_ci_credit_allowed": false,
+    "canonical_memory_write_credit_allowed": false,
+    "gwt_runtime_credit_allowed": false,
+    "effect_credit_allowed": false,
+    "physical_audio_credit_allowed": false,
+    "training_credit_allowed": false,
+    "whole_product_credit_allowed": false
+  },
+  "next_exact_action": "The active WP717 mutation owner should execute the one-field packet-identity discriminator before repository acceptance. If reproduced and exact full-packet identity is the intended boundary, repair the canonicalization by binding an explicit pre-close full-packet identity that excludes/normalizes only voiceoutcome_ref, then rerun VSR01-VSR06 plus the existing order/cycle/iterable/close-turn falsifiers. Only after repository closure should the identical accepted source be exercised on the VPS sandbox for higher-tier evidence."
+}
