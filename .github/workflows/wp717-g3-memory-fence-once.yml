@@ -1,0 +1,77 @@
+name: WP717 G3 Memory Fence One Shot
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/wp717-g3-memory-fence-once.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  apply-bounded-repair:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Refresh main, verify G3 ownership, and apply exact bounded patch
+        env:
+          CLAIM_ID: F2-WP-717-G3-GPT56SOL-MEMORY-GWT-LINEAGE-FENCES-20260831
+        run: |
+          set -euo pipefail
+          git fetch origin main
+          git reset --hard origin/main
+          python - <<'PY'
+          from pathlib import Path
+          import json
+          import os
+
+          claim = json.loads(Path('workpackages/active/F2-WP-717.json').read_text())
+          assert claim['generation'] == 3, claim
+          assert claim['claim_id'] == os.environ['CLAIM_ID'], claim
+          assert claim['state'] == 'ACTIVE', claim
+
+          source_path = Path('src/frankenstein2/voice_heard_result_reentry.py')
+          source = source_path.read_text()
+          old_memory = '''    else:\n        memory_evidence = validate_memory_event_bindings(event=memory_event, bindings=memory_pairs)\n\n    if (gwt_event is None) != (gwt_binding is None):\n'''
+          new_memory = '''    else:\n        memory_evidence = validate_memory_event_bindings(event=memory_event, bindings=memory_pairs)\n        for state, _record in memory_pairs:\n            if state.payload_ref != heard.payload_ref or state.payload_sha256 != heard.payload_sha256:\n                raise VoiceHeardResultReentryError(\n                    "heard-result memory payload must bind exact heard-result payload ref and digest"\n                )\n\n    if (gwt_event is None) != (gwt_binding is None):\n'''
+          assert source.count(old_memory) == 1, 'WP717 memory patch anchor drifted'
+          source_path.write_text(source.replace(old_memory, new_memory, 1))
+
+          test_path = Path('tests/test_voice_heard_result_reentry_memory_context_composition.py')
+          test = test_path.read_text()
+          old_gwt = '''        with self.subTest("VSR08_DIRECT_GWT_BINDING_WITHOUT_LINEAGE"):\n            direct_unsealed_binding = replace(gwt_binding, _factory_seal=None)\n            with self.assertRaises(VoiceHeardResultReentryError):\n                bind_completed_reentry(\n                    session=session,\n                    outcome=outcome,\n                    output_packets=cortex.outputs,\n                    close_event=close_event,\n                    context_item=context_item,\n                    cost_witness=cost_witness,\n                    context_view=context_view,\n                    memory_event=memory_event,\n                    memory_bindings=((memory_state, typed_memory),),\n                    gwt_event=gwt_event,\n                    gwt_binding=direct_unsealed_binding,\n                    provenance_refs=("test:wp717-vsr08",),\n                )\n'''
+          new_gwt = '''        with self.subTest("VSR08_DIRECT_GWT_BINDING_IS_REFERENCE_ONLY_ZERO_CREDIT"):\n            direct_unsealed_binding = replace(gwt_binding, _factory_seal=None)\n            reference_only = bind_completed_reentry(\n                session=session,\n                outcome=outcome,\n                output_packets=cortex.outputs,\n                close_event=close_event,\n                context_item=context_item,\n                cost_witness=cost_witness,\n                context_view=context_view,\n                memory_event=memory_event,\n                memory_bindings=((memory_state, typed_memory),),\n                gwt_event=gwt_event,\n                gwt_binding=direct_unsealed_binding,\n                provenance_refs=("test:wp717-vsr08-reference-only",),\n            )\n            scoped = reference_only.as_dict()\n            self.assertIn("EXACT_REFERENCE_BINDING_ONLY", scoped["classification"])\n            self.assertEqual(scoped["gwt_runtime_credit"], 0)\n            self.assertEqual(scoped["effect_credit"], 0)\n            self.assertFalse(scoped["whole_system_acceptance"])\n'''
+          assert test.count(old_gwt) == 1, 'WP717 VSR08 patch anchor drifted'
+          test_path.write_text(test.replace(old_gwt, new_gwt, 1))
+          PY
+      - name: Run full WP717 repository discriminator set before commit
+        env:
+          PYTHONPATH: src
+        run: |
+          set -euo pipefail
+          python -m py_compile \
+            src/frankenstein2/voice_heard_result_reentry.py \
+            tests/test_voice_heard_result_reentry.py \
+            tests/test_voice_heard_result_reentry_falsifiers.py \
+            tests/test_voice_heard_result_reentry_memory_context_composition.py \
+            tests/test_voice_heard_result_reentry_g3_falsifiers.py
+          python -m unittest discover -s tests -p 'test_voice_heard_result_reentry*.py' -v
+      - name: Commit bounded repair and remove one-shot workflow
+        run: |
+          set -euo pipefail
+          git config user.name 'GPT-5.6-Sol Trigger4'
+          git config user.email 'trigger4@users.noreply.github.com'
+          git rm .github/workflows/wp717-g3-memory-fence-once.yml
+          git add \
+            src/frankenstein2/voice_heard_result_reentry.py \
+            tests/test_voice_heard_result_reentry_memory_context_composition.py
+          git commit -m 'trigger4: fence WP717 heard-memory payload relation'
+          git pull --rebase origin main
+          git push origin HEAD:main
