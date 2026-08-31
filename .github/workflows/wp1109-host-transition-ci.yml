@@ -33,3 +33,93 @@ jobs:
         env:
           PYTHONPATH: src
         run: python tests/test_host_transition.py -v
+
+  g3-vps-contract-execution:
+    # Deliberately manual and main-only: do not turn PR pushes into VPS fan-out.
+    # This executes the already accepted plan-only contract on the admitted target-like
+    # S2 surface. It does NOT perform or claim a physical host transition/readback.
+    if: "github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main'"
+    runs-on: clay-host
+    timeout-minutes: 20
+    concurrency:
+      group: wp1109-g3-vps-contract-execution
+      cancel-in-progress: false
+    env:
+      WP1109_RUNTIME_SUBJECT_SHA: c926426aff760a94bb40c34496c0beeae07081d4
+      F2_SANDBOX_ROOT: /var/tmp/frankenstein2-sandboxes
+      F2_NSPAWN_BASE_ROOT: /var/lib/frankenstein2-sandbox-images/ubuntu-24.04-base
+      F2_SANDBOX_MIN_FREE_KIB: '5242880'
+      F2_SANDBOX_MIN_MEM_KIB: '1048576'
+    steps:
+      - name: Checkout exact frozen WP1109 source subject
+        uses: actions/checkout@v4
+        with:
+          ref: c926426aff760a94bb40c34496c0beeae07081d4
+          fetch-depth: 0
+
+      - name: Verify runner and exact source identity
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          test "${RUNNER_NAME:-}" = "vps-clay-host"
+          test "${RUNNER_OS:-}" = "Linux"
+          test "$(git rev-parse HEAD)" = "$WP1109_RUNTIME_SUBJECT_SHA"
+          git diff --exit-code -- src/frankenstein2/host_transition.py tests/test_host_transition.py
+          printf '%s\n' \
+            "WP1109_RUNTIME_SUBJECT_SHA=$WP1109_RUNTIME_SUBJECT_SHA" \
+            "DISPATCH_SHA=$GITHUB_SHA" \
+            "RUN_ID=$GITHUB_RUN_ID" \
+            "RUN_ATTEMPT=$GITHUB_RUN_ATTEMPT" \
+            "RUNNER_NAME=$RUNNER_NAME" \
+            "RUNNER_OS=$RUNNER_OS" \
+            "RUNNER_ARCH=$RUNNER_ARCH" | tee /tmp/wp1109-g3-runtime-identity.txt
+          git hash-object src/frankenstein2/host_transition.py tests/test_host_transition.py \
+            | tee /tmp/wp1109-g3-source-blobs.txt
+          sha256sum src/frankenstein2/host_transition.py tests/test_host_transition.py \
+            | tee /tmp/wp1109-g3-source-sha256.txt
+
+      - name: Prepare admitted Ubuntu 24.04 S2 sandbox
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          bash tools/vps_sandbox/host_prepare_ubuntu_nspawn.sh
+          bash tools/vps_sandbox/preflight.sh | tee /tmp/wp1109-g3-preflight.txt
+
+      - name: Execute existing WP1109 contract suite in S2
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          bash tools/vps_sandbox/run_ubuntu_sandbox.sh --backend nspawn --network off -- \
+            /bin/bash -lc '
+              set -Eeuo pipefail
+              test "$(git rev-parse HEAD)" = "c926426aff760a94bb40c34496c0beeae07081d4"
+              . /etc/os-release
+              test "$ID" = ubuntu
+              test "$VERSION_ID" = 24.04
+              export PYTHONPATH=src
+              python3 tests/test_host_transition.py -v
+              printf "%s\n" "WP1109_G3_TARGET_COMPONENT_CONTRACT=PASS"
+            ' 2>&1 | tee /tmp/wp1109-g3-vps-discriminator.txt
+          grep -q '^F2_SANDBOX_RESULT=PASS$' /tmp/wp1109-g3-vps-discriminator.txt
+          grep -q 'WP1109_G3_TARGET_COMPONENT_CONTRACT=PASS' /tmp/wp1109-g3-vps-discriminator.txt
+
+      - name: Emit bounded evidence summary
+        if: always()
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          {
+            cat /tmp/wp1109-g3-runtime-identity.txt 2>/dev/null || true
+            cat /tmp/wp1109-g3-source-blobs.txt 2>/dev/null || true
+            cat /tmp/wp1109-g3-source-sha256.txt 2>/dev/null || true
+            cat /tmp/wp1109-g3-preflight.txt 2>/dev/null || true
+            cat /tmp/wp1109-g3-vps-discriminator.txt 2>/dev/null || true
+            printf '%s\n' \
+              'WP1109_G3_EVIDENCE_CEILING=TARGET_COMPONENT_CONTRACT_ONLY' \
+              'WP1109_ACTUAL_HOST_TRANSITION_OBSERVED=false' \
+              'WP1109_PERSISTED_STATE_READBACK_OBSERVED=false' \
+              'WP1109_RUNTIME_CREDIT=0' \
+              'WP1109_PHYSICAL_HOST_CREDIT=0' \
+              'WP1109_COMPLETION_CREDIT=0' \
+              'WP1109_WHOLE_SYSTEM_ACCEPTANCE=false'
+          } | tee /tmp/wp1109-g3-bounded-evidence.txt
