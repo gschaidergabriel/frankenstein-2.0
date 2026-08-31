@@ -1,0 +1,38 @@
+name: WP719 Fresh Turn Successor CI
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'src/frankenstein2/fresh_turn_successor.py'
+      - 'tests/test_fresh_turn_successor.py'
+      - 'research/local_voice/tools/falsify_fresh_turn_successor.py'
+      - '.github/workflows/wp719-fresh-turn-successor-ci.yml'
+  pull_request:
+    paths:
+      - 'src/frankenstein2/fresh_turn_successor.py'
+      - 'tests/test_fresh_turn_successor.py'
+      - 'research/local_voice/tools/falsify_fresh_turn_successor.py'
+      - '.github/workflows/wp719-fresh-turn-successor-ci.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  fresh-turn-successor:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: FRESH1-FRESH10 unit integration suite
+        env:
+          PYTHONPATH: src
+        run: python -m unittest discover -s tests -p 'test_fresh_turn_successor.py' -v
+      - name: Bounded WP719 falsifier
+        env:
+          PYTHONPATH: src
+        run: python research/local_voice/tools/falsify_fresh_turn_successor.py
