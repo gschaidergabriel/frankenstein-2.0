@@ -1,0 +1,98 @@
+{
+  "schema": "T7_TO_TRIGGER4_RESEARCH_HANDOFF/v1",
+  "trigger": "7",
+  "date": "2026-08-31",
+  "organ": "GPT-5.6-Sol",
+  "research_id": "T7-ASR-008",
+  "status": "NON_DUPLICATE_RUNTIME_ABI_FENCE__FIXTURE_CANONICALIZATION_REQUIRED",
+  "work_class": "CANDIDATE_FALSIFIER",
+  "authority": {
+    "new_mutation_authority": false,
+    "new_runtime_dispatch": false,
+    "new_effect_authority": false,
+    "credit_delta": 0
+  },
+  "observed_current_failure": {
+    "controller_run_id": 33340567051,
+    "controller_subject": "823920bd770c16ca9855610d56d64a669a8063b0",
+    "f2_subject": "4727b94eeda381f3dcbe4d494eb72f91ce17b478",
+    "target_surface": "clay-direct-dev",
+    "failure_stage": "EXACT_COMPARATOR",
+    "exception": "wave.Error: unknown format: 3",
+    "classification": "EVIDENCE_INVALID_FIXTURE_ENCODING_INCOMPATIBLE_WITH_VALIDATOR_GATE",
+    "runtime_credit_delta": 0
+  },
+  "source_divergence": {
+    "controller_path": "gschaidergabriel/Dr.-Unterweger@823920bd770c16ca9855610d56d64a669a8063b0:tools/trigger4/t7_nemotron35_target_comparator.py",
+    "controller_prepare_fixtures_behavior": "Writes retrieved FLEURS audio bytes directly to a .wav path, then validates with Python stdlib wave before gate/model execution.",
+    "f2_comparator_reference": "frankenstein-2.0 commit 0403d78d68653fe23b728d536339ed11a82",
+    "f2_comparator_observed_behavior": "Contains an explicit soundfile decode plus sf.write(format='WAV', subtype='PCM_16') canonicalization path before wave-based validation.",
+    "interpretation": "The failing controller comparator and the F2 comparator are not behaviorally identical at the fixture materialization boundary. Repair must target the actually executed controller comparator or bind the controller to the canonical comparator artifact; patching an unrelated copy cannot close the runtime defect."
+  },
+  "external_primary_research": [
+    {
+      "source": "https://docs.python.org/3.13/library/wave.html",
+      "finding": "Python 3.13 stdlib wave supports only uncompressed PCM WAV; IEEE-float format tag 3 is not accepted."
+    },
+    {
+      "source": "https://docs.python.org/3.15/library/wave.html",
+      "finding": "Python 3.15 adds WAVE_FORMAT_IEEE_FLOAT support, making float-WAV acceptance Python-version-dependent."
+    },
+    {
+      "source": "https://python-soundfile.readthedocs.io/en/latest/index.html",
+      "finding": "soundfile supports explicit WAV subtype selection; WAV default subtype is PCM_16 and explicit subtype='PCM_16' is valid."
+    },
+    {
+      "source": "https://huggingface.co/docs/datasets/about_dataset_features",
+      "finding": "Hugging Face Audio may expose decoded audio or original bytes/path; decode=False preserves source bytes/path rather than guaranteeing a PCM16 WAV ABI."
+    },
+    {
+      "source": "https://github.com/NVIDIA/NeMo-Speech.cpp/blob/main/README.md",
+      "finding": "NeMo-Speech.cpp documents common mono/stereo PCM WAV handling for local ASR; a stable PCM fixture boundary is aligned with the downstream runtime contract."
+    }
+  ],
+  "counterhypotheses": [
+    {
+      "hypothesis": "Upgrade Python so wave accepts IEEE-float WAV directly.",
+      "verdict": "REJECT_AS_PRIMARY_REPAIR",
+      "reason": "This would make fixture validity depend on Python minor version and still does not satisfy the WebRTC-VAD PCM16 contract. It also changes the runtime dependency surface instead of repairing the explicit fixture ABI."
+    },
+    {
+      "hypothesis": "Treat format tag 3 as a Nemotron product failure.",
+      "verdict": "REJECT",
+      "reason": "The failure occurs before model transcription; no Nemotron inference result exists."
+    },
+    {
+      "hypothesis": "Patch only the F2 comparator copy.",
+      "verdict": "REJECT_UNLESS_EXECUTION_BINDING_CHANGES",
+      "reason": "The observed failing run executes the controller-repository comparator bytes. A repair not bound to the actually executed comparator cannot close the evidence-validity defect."
+    }
+  ],
+  "required_runtime_abi": {
+    "source_identity": "hash exact retrieved FLEURS source bytes plus dataset repo/config/revision/row identity",
+    "decode": "decode source through pinned soundfile==0.13.1",
+    "channel_rule": "fail closed unless mono, or separately admit and test an exact deterministic downmix rule",
+    "sample_rate_rule": "fail closed unless 16000 Hz, or separately admit and test an exact deterministic resampling rule",
+    "materialization": "write WAV with format='WAV', subtype='PCM_16'",
+    "executed_fixture_identity": "hash the canonical PCM16 WAV bytes separately from source bytes",
+    "validator": "assert mono, 16000 Hz, sample_width_bytes=2 before WebRTC VAD and Nemotron invocation",
+    "runtime_version_evidence": "record Python major/minor, soundfile version and datasets version in receipt"
+  },
+  "required_regressions": [
+    "format-tag-3 IEEE-float WAV input canonicalizes to wave-readable PCM16 mono 16 kHz",
+    "source-byte hash remains stable and distinct from normalized-fixture hash",
+    "running the same source twice produces byte-identical normalized fixture hash",
+    "validator/gate rejects any non-PCM16 materialized fixture before model invocation",
+    "receipt records the exact executed comparator SHA256 and Python/soundfile/datasets versions"
+  ],
+  "next_exact_action": "Trigger4: repair the actually executed controller comparator fixture materialization boundary (or bind execution to the canonical comparator artifact), add the format-tag-3 deterministic regression and dual source/normalized hashes, then dispatch exactly one bound successor run. Do not redispatch unchanged comparator bytes and do not grant runtime/quality credit until the transcription matrix executes and the receipt passes the current fail-closed validator contract.",
+  "scope_fence": {
+    "runtime_credit": 0,
+    "german_asr_quality_credit": 0,
+    "physical_device_credit": 0,
+    "gwt_jspace_credit": 0,
+    "effect_credit": 0,
+    "training_credit": 0,
+    "whole_product_credit": 0
+  }
+}
