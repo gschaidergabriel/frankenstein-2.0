@@ -1,0 +1,57 @@
+{
+  "schema": "FRANKENSTEIN2_CANDIDATE_FALSIFIER/v1",
+  "workpackage_id": "F2-WP-717",
+  "generation": 3,
+  "claim_id_observed": "F2-WP-717-G3-GPT56SOL-MEMORY-GWT-LINEAGE-FENCES-20260831",
+  "worker_id": "GPT-5.6-Sol-Trigger4-Independent-Falsifier",
+  "result_class": "CANDIDATE_FALSIFIER",
+  "mutation_authority": false,
+  "base_observation": "Current bind_completed_reentry passes memory_event only to validate_memory_event_bindings. That validator checks exact CortexEventPacket type, memory_refs cardinality/order, memory_id equality and TypedMemoryRecord<->MemoryLifecycleState validity, but it does not bind the memory event's session_id, turn_id or event_kind to the exact completed heard-result session/turn. The receipt also records lifecycle/typed-memory evidence but no memory_event identity. This packet does not modify any WP717-G3-owned source/test/workflow path.",
+  "authority_refs": [
+    "workpackages/RUNTIME_CREDIT_CONVERGENCE_DIRECTIVE.md",
+    "workpackages/CLAIM_PROTOCOL.md",
+    "workpackages/active/F2-WP-717.json",
+    "src/frankenstein2/voice_heard_result_reentry.py",
+    "src/frankenstein2/voice_packet_cortex.py",
+    "workpackages/falsifiers/F2-WP-717_G3_VSR07_VSR08_EDGE_FALSIFIERS_20260831.json",
+    "workpackages/falsifiers/F2-WP-717_G3_VSR07C_VSR07D_SPLIT_PAYLOAD_IDENTITY_20260831_GPT56SOL.json"
+  ],
+  "falsifiers": [
+    {
+      "id": "VSR07E_CROSS_SESSION_MEMORY_EVENT_WITH_VALID_EXACT_MEMORY",
+      "setup": "Build an exact completed heard result for voice session A/turn A. Build a MemoryLifecycleState plus TypedMemoryRecord that satisfy the G3 exact heard-result payload relation and whose memory_id is referenced by a structurally valid CortexEventPacket from different voice session B (or different unrelated turn) while preserving the same memory_refs tuple. Pass that foreign event as memory_event.",
+      "required_result_for_exact_heard_memory_semantics": "FAIL_CLOSED_BEFORE_RECEIPT_OR_EXPLICIT_REFERENCE_ONLY_CLASSIFICATION",
+      "failure_signature": "The completed reentry receipt admits exact heard-result memory evidence even though the event carrying the memory reference belongs to a different session/turn causal context.",
+      "why_high_information": "Separates exact lifecycle-payload identity from exact event-level causal identity. A repair that only adds lifecycle.payload_ref/payload_sha256 equality can still pass this counterexample."
+    },
+    {
+      "id": "VSR07F_NON_MEMORY_EVENT_KIND_WITH_MEMORY_REFS",
+      "setup": "Build an exact completed heard result and an otherwise valid exact MemoryLifecycleState/TypedMemoryRecord pair. Construct a valid CortexEventPacket with matching session/turn and the correct memory_refs tuple but use a non-memory event_kind such as ERROR or TOOL_RESULT, then pass it as memory_event.",
+      "required_result_for_exact_heard_memory_semantics": "FAIL_CLOSED_BEFORE_RECEIPT_OR_EXPLICIT_REFERENCE_ONLY_CLASSIFICATION",
+      "failure_signature": "Any structurally valid CortexEventPacket carrying memory_refs is treated as the authoritative memory-binding event regardless of event_kind.",
+      "why_high_information": "Tests whether the consumer binds the semantic event class instead of Goodharting on the presence of memory_refs alone."
+    },
+    {
+      "id": "VSR07G_DISTINCT_MEMORY_EVENT_IDENTITY_COLLAPSES_TO_SAME_RECEIPT",
+      "setup": "Create two distinct valid MEMORY_BIND CortexEventPackets for the same session/turn and same exact memory_refs but with different event_id/monotonic_ms/detail. Invoke completed reentry separately with each while all other inputs are identical.",
+      "required_result_for_exact_heard_memory_semantics": "EITHER_EXPLICITLY_PROVE_MEMORY_EVENT_IDENTITY_IS_NON_AUTHORITY_OR_BIND_THE_ADMITTED_EVENT_IDENTITY_IN_THE_RECEIPT",
+      "failure_signature": "Two causally distinct admitted memory events collapse to the same VoiceHeardResultReentryReceipt because no memory_event id/digest participates in receipt identity, while surrounding claims describe exact event-level memory binding.",
+      "why_high_information": "Forces an explicit architectural choice: event wrapper is reference-only and must be documented/scoped as such, or exact event identity is causal and must survive into the receipt. It prevents unsupported exact-event claims without forcing a new memory authority."
+    }
+  ],
+  "scope_guards": {
+    "wp717_g1_runtime_credit": "PRESERVE",
+    "wp717_g2_memory_context_runtime_credit": "PRESERVE_AT_CORRECTED_EXACT_SCOPE",
+    "memory_payload_relation_fence_credit": 0,
+    "gwt_factory_lineage_fence_credit": 0,
+    "canonical_memory_write_credit": 0,
+    "gwt_runtime_credit": 0,
+    "jspace_runtime_credit": 0,
+    "effect_credit": 0,
+    "physical_audio_credit": 0,
+    "training_credit": 0,
+    "whole_system_acceptance": false
+  },
+  "acceptance_guidance": "The G3 mutation owner should consume VSR07E/VSR07F only if current product semantics require the memory_event itself to be causally bound to the completed heard-result session/turn and memory-binding event class. VSR07G is a scope discriminator: either preserve exact admitted memory-event identity in the receipt or explicitly classify the event wrapper as non-authoritative/reference-only and avoid stronger causal claims. Reuse existing CortexEventPacket/MemoryLifecycle/TypedMemory authorities; do not create a second state or memory authority.",
+  "next_exact_action": "G3 mutation owner refreshes main after VSR07A-D and VSR08 coverage, evaluates VSR07E/F against the repaired subject, and records whether memory_event identity is exact authority or reference-only. Add only the smallest regression/fence required by that decision before repository acceptance; do not dispatch VPS until the materially changed exact subject passes the complete WP717 discriminator set."
+}
