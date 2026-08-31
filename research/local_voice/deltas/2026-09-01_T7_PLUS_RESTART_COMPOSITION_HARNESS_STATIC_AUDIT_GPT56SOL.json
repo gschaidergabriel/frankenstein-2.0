@@ -1,0 +1,65 @@
+{
+  "schema": "F2_TRIGGER7_RESEARCH_DELTA/v1",
+  "trigger": "7+",
+  "delta_id": "T7PLUS-RESTART-COMPOSITION-HARNESS-STATIC-AUDIT-20260901-GPT56SOL",
+  "classification": "REVIEW_ONLY_STATIC_API_CONTRACT_AUDIT",
+  "status": "STATICALLY_ALIGNED_NOT_EXECUTED",
+  "claim_ref": "research/local_voice/claims/2026-09-01_trigger7_gpt56sol_cortex_frontier_claim.json",
+  "harness": {
+    "path": "research/local_voice/tools/falsify_restart_exact_once_reentry_composition.py",
+    "subject_commit": "6409cc2408a5faaccddd42a6e316ed5d2bfb9f74",
+    "checkpoint_ref": "research/local_voice/checkpoints/2026-09-01_T7_F15_F17_F16_HARNESS_PREPARED_6409CC2_GPT56SOL.json"
+  },
+  "audited_current_apis": [
+    "src/frankenstein2/voice_packet_cortex.py",
+    "src/frankenstein2/voice_packet_cortex_recovery.py",
+    "src/frankenstein2/voice_heard_result_reentry.py"
+  ],
+  "findings": {
+    "F15_COMPLETED_HEARD_CLOSED_RESTART_REENTRY_EXACT_ONCE": {
+      "static_alignment": "PASS",
+      "basis": [
+        "closed checkpoint restore requires exactly one SESSION_CLOSE and restores terminal VoiceOutcome binding",
+        "bind_completed_reentry(existing=first) returns existing only for exact equal receipt/digest and rejects rebinding",
+        "heard-result canonicalization intentionally normalizes only voiceoutcome_ref, so post-close restored packets retain stable heard-result identity"
+      ]
+    },
+    "F17_PARTIAL_OR_INTERRUPTED_RESTART_CAN_NEVER_PROMOTE_TO_DURABLE_HEARD_RESULT": {
+      "static_alignment": "PASS",
+      "basis": [
+        "open-checkpoint nonterminal queued/started/heard outputs are terminalized on resume",
+        "started/heard become interrupted, commit_eligible=false, voiceoutcome_ref=null",
+        "durable heard-result builder rejects outputs not fully heard/completed/commit-eligible",
+        "ephemeral heard-prefix builder explicitly requires interrupted partial output without durable authority"
+      ]
+    },
+    "F16_COMPLETED_HEARD_OPEN_RESTART_THEN_CLOSE_ONCE": {
+      "static_alignment": "PASS",
+      "basis": [
+        "completed commit-eligible output is not terminalized by open-checkpoint restart",
+        "exact duplicate close signature returns the same closed VoiceOutcome and does not append another SESSION_CLOSE",
+        "completed reentry binding requires exact close/output/outcome relation"
+      ]
+    }
+  },
+  "static_counterexample_found": false,
+  "architecture_change_justified": false,
+  "execution_gate": "Do not claim harness PASS until it executes. Prefer execution after WP715 G2 controller receipt 33421332204 is reconciled by Trigger4, preserving the current runtime-subject/authority boundary.",
+  "current_wp715_runtime_evidence_ref": "trigger4/inbox/local_voice/T7_PLUS_WP715_G2_CONTROLLER_RUNTIME_RESULT_2026-09-01_GPT56SOL.json",
+  "explicit_zero_credit": {
+    "harness_execution": 0,
+    "repository_ci": 0,
+    "target_component_runtime": 0,
+    "canonical_memory_write": 0,
+    "gwt_runtime": 0,
+    "jspace_runtime": 0,
+    "effect": 0,
+    "asr_runtime": 0,
+    "tts_runtime": 0,
+    "physical_audio": 0,
+    "whole_voice_e2e": 0,
+    "whole_product": 0,
+    "training": 0
+  },
+  "next_exact_action": "After Trigger4 reconciles the exact WP715 G2 controller runtime receipt, execute the already-prepared F15/F17/F16 harness without redesign. Classify any executable failure as a product negative at the exact composition invariant before mutation."
+}
