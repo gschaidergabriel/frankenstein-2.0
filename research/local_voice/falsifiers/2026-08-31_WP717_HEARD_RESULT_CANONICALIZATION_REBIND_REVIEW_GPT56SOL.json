@@ -1,0 +1,103 @@
+{
+  "schema": "F2_TRIGGER4_CANDIDATE_FALSIFIER/v1",
+  "trigger": "4",
+  "workpackage_id": "F2-WP-717",
+  "generation": 1,
+  "organ": "GPT-5.6-Sol",
+  "work_class": "CANDIDATE_FALSIFIER",
+  "classification": "WP717_HEARD_RESULT_CANONICALIZATION_AND_POST_CLOSE_REBIND_FENCE",
+  "authority_snapshot": {
+    "f2_main_observed_before_review": "cfa8d8a3a0f4919c429bab60d2d4459cbe4625e6",
+    "active_claim": "F2-WP-717-G1-GPT56SOL-VOICE-HEARD-RESULT-REENTRY-20260831",
+    "active_owner": "GPT-5.6-Sol-Trigger4",
+    "new_mutation_authority": false,
+    "owned_path_mutation": false,
+    "runtime_dispatch": false,
+    "credit_delta": 0
+  },
+  "source_observations": [
+    {
+      "path": "src/frankenstein2/voice_packet_cortex.py",
+      "finding": "VoiceOutputPacket.sha256() includes voiceoutcome_ref. VoicePacketCortex.close_session() first creates VoiceOutcome from caller-supplied result_ref/result_sha256 and only afterwards replaces each commit-eligible output with voiceoutcome_ref=outcome.outcome_id. Therefore the same logical heard output has a different packet SHA before and after SESSION_CLOSE."
+    },
+    {
+      "path": "src/frankenstein2/voice_contract.py",
+      "finding": "VoiceOutcome.outcome_id hashes an identity payload that includes result_ref/result_sha256. The outcome remains identity/provenance-only and does not prove that result bytes equal fully heard output content."
+    }
+  ],
+  "counterhypotheses": [
+    {
+      "id": "WP717-F01-PACKET-SHA-CYCLE-OR-REBIND",
+      "statement": "If the heard-result digest is defined from post-close VoiceOutputPacket SHA256 values, those hashes already contain voiceoutcome_ref, while voiceoutcome_ref identifies an outcome whose identity includes the heard-result digest. A naive implementation can create a circular construction or silently choose a pre-close/post-close hash convention that rebinds on replay.",
+      "required_fence": "Define heard-result canonicalization independently of voiceoutcome_ref. Preserve both explicit PRE_CLOSE_CONTENT_IDENTITY and POST_CLOSE_PACKET_IDENTITY when packet hashes are receipted, and require replay to reproduce the same declared phase. Do not recursively derive heard-result payload SHA from a packet SHA that includes the resulting VoiceOutcome id."
+    },
+    {
+      "id": "WP717-F02-SEGMENT-BOUNDARY-COLLISION",
+      "statement": "Plain text concatenation can map distinct ordered segments to the same aggregate, for example [\"ab\",\"c\"] and [\"a\",\"bc\"].",
+      "required_fence": "Canonicalize a versioned structured sequence with explicit segment boundaries and exact order, not unframed concatenation. The canonical payload must include enough stable identity to reject omission, duplication, reordering and boundary ambiguity."
+    },
+    {
+      "id": "WP717-F03-CROSS-TURN-CONTAMINATION",
+      "statement": "VoicePacketCortex.outputs is globally sorted by (turn_id, sequence, packet_id). An integration consumer that aggregates all commit-eligible outputs without an explicit outcome/turn selection rule can accidentally include fully heard output from another turn in the same session.",
+      "required_fence": "The adapter must bind an explicit ordered selected-output set to the exact VoiceOutcome causal turn/session and reject extra commit-eligible packets not admitted by that selection rule."
+    },
+    {
+      "id": "WP717-F04-RESULT-REF-DIGEST-SPLIT",
+      "statement": "Checking only result_sha256 is insufficient when result_ref can name a different payload identity carrying identical or stale bytes.",
+      "required_fence": "Require VoiceOutcome.result_ref AND result_sha256 to equal the exact heard-result payload identity pair consumed by the adapter; neither field alone can promote state/memory/context authority."
+    },
+    {
+      "id": "WP717-F05-CONTEXT-COST-WITNESS-REBOUND",
+      "statement": "A ContextView selected item contains a cost-witness digest and copied measurement metadata, but an adapter that only compares the selected payload digest without revalidating the supplied ContextCostWitness can accept a stale or wrong-payload witness.",
+      "required_fence": "For selected heard-result or interrupted-prefix context, bind the concrete supplied ContextCostWitness to the exact payload SHA256 and measured cost used by ContextCompiler; wrong payload, renderer/tokenizer identity, generation or measurement reference must fail closed."
+    }
+  ],
+  "candidate_discriminators": [
+    {
+      "id": "VSR01D_POST_CLOSE_PACKET_HASH_PHASE_FENCE",
+      "setup": "Create one fully heard commit-eligible output, capture its SHA before close, close with the exact heard-result pair, then capture the final output SHA after voiceoutcome_ref is attached.",
+      "expect": "pre-close SHA != post-close SHA is treated as expected source behavior; adapter canonicalization remains stable and explicitly declares which packet identity phase is receipted; replay cannot substitute the other phase."
+    },
+    {
+      "id": "VSR01E_SEGMENT_BOUNDARY_COLLISION_FENCE",
+      "setup": "Compare two ordered fully heard sequences whose raw concatenated text is identical: [\"ab\",\"c\"] versus [\"a\",\"bc\"].",
+      "expect": "heard-result canonical payload SHA256 values differ; no ambiguous unframed concatenation is admitted."
+    },
+    {
+      "id": "VSR01F_EXTRA_TURN_OUTPUT_REJECTED",
+      "setup": "Same session contains fully heard output from two turns; candidate VoiceOutcome/result selection names only one causal turn while adapter input also includes the other turn's commit-eligible packet.",
+      "expect": "adapter rejects cross-turn inclusion unless the explicit canonicalization contract deliberately and exactly binds both turns."
+    },
+    {
+      "id": "VSR01G_RESULT_REF_MISMATCH_REJECTED",
+      "setup": "Exact heard-result digest is supplied but VoiceOutcome.result_ref points at a different otherwise-valid payload reference.",
+      "expect": "UNBOUND_VOICEOUTCOME_RESULT; zero state/memory/context promotion."
+    },
+    {
+      "id": "VSR02B_PREFIX_COST_WITNESS_PAYLOAD_MISMATCH",
+      "setup": "Interrupted heard-prefix payload has a valid digest, but supplied ContextCostWitness binds the unheard/full-output payload digest or a stale prefix generation.",
+      "expect": "fail closed before ContextView promotion; no durable memory/outcome/effect authority."
+    }
+  ],
+  "acceptance_constraints": [
+    "Do not modify WP704 or WP715 semantics.",
+    "Do not mutate WP717 owned implementation/test/state paths from this review lane.",
+    "Do not write UnifiedDB or treat memory_refs as canonical writes.",
+    "Do not mint GWT uptake from gwt_ref or from a binding object without exact existing WP507/WP508 evidence validation.",
+    "Do not execute late/cancelled tool results or mint effect authority from tool_ref.",
+    "Do not promote physical audio, provider/model, GWT runtime, effect runtime, training or whole-product credit from repository/component integration tests."
+  ],
+  "credits": {
+    "review_falsifier": 1,
+    "repository_component_ci": 0,
+    "voice_heard_result_reentry_component": 0,
+    "vps_runtime": 0,
+    "canonical_memory_write": 0,
+    "gwt_runtime": 0,
+    "effect_runtime": 0,
+    "physical_audio": 0,
+    "training": 0,
+    "whole_product": 0
+  },
+  "next_exact_action": "Active WP717 owner should incorporate or explicitly falsify VSR01D/VSR01E first because they constrain the canonicalization ABI before implementation hardens. Then run VSR01A-G plus existing VSR02-VSR06 regressions, followed by one exact-source VPS sandbox execution. This review lane must not create a second WP717 mutation authority."
+}
