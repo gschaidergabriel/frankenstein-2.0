@@ -1,0 +1,146 @@
+{
+  "schema": "trigger7_fresh_turn_reentry_composition_falsifier_v2",
+  "created_at": "2026-09-01T00:46:18+07:00",
+  "reconciled_at": "2026-09-01T00:49:00+07:00",
+  "trigger": "7",
+  "worker": "GPT-5.6 Sol",
+  "status": "CANDIDATE_FALSIFIER_READY",
+  "source_head_observed": "6409cc2408a5faaccddd42a6e316ed5d2bfb9f74",
+  "claim_ref": "research/local_voice/claims/2026-09-01_trigger7_gpt56sol_cortex_frontier_claim.json",
+  "owner_authority_ref": "research/local_voice/authority/2026-08-31_TRIGGER7_TEXT_PACKET_COMPLETION_AUTHORITY.md",
+  "work_class": "CANDIDATE_FALSIFIER",
+  "boundary": "validated prior VoiceHeardResult/GWT/memory reentry -> fresh next VoiceSession/turn composition",
+  "parallel_reconciliation": {
+    "new_main_commit": "6409cc2408a5faaccddd42a6e316ed5d2bfb9f74",
+    "new_file": "research/local_voice/tools/falsify_restart_exact_once_reentry_composition.py",
+    "classification": "ADJACENT_UPSTREAM_FALSIFIER_NOT_DUPLICATE_SUCCESSOR",
+    "what_it_covers": [
+      "F15 completed-heard closed restart -> reentry receipt exact replay",
+      "F17 partial/interrupted restart -> no durable heard-result promotion",
+      "F16 completed-heard open restart -> one close -> one reentry"
+    ],
+    "what_it_does_not_cover": "It does not create a new subsequent VoiceSessionCapsule/turn and does not prove that validated prior heard/GWT/memory provenance is projected exactly once into fresh-turn state.",
+    "routing_effect": "Treat F15/F16/F17 execution as prerequisite evidence where relevant; do not duplicate their restart assertions inside the fresh-turn discriminator."
+  },
+  "why_now": {
+    "wp715": "Generation 2 is actively owned by Trigger4 and bound to an exact VPS runtime subject; semantic mutation is forbidden churn until that run resolves.",
+    "wp717": "Generation 3 is terminal/accepted at its bounded memory-payload relation-fence runtime scope; semantic GWT runtime remains explicitly zero.",
+    "wp507_wp508": "GWT candidate/workspace/broadcast/uptake/reentry primitives are repository-CI closed, but do not grant target runtime credit.",
+    "wp900": "Binder exists, but real delivery->uptake->re-entry target runtime observation remains a separate Trigger4 gate.",
+    "dedup": "Current F2 search/listing review found no existing explicit fresh-next-turn composition artifact; private code-search zero-results were incomplete and are not treated as proof."
+  },
+  "source_observations": [
+    {
+      "path": "src/frankenstein2/voice_packet_cortex.py",
+      "observation": "Packet surrogate models VAD/partial/final/endpoint, WAIT/backchannel, VoiceIntent, tool/memory refs, output phases, heard/unheard accounting, barge-in/cancel, checkpoint/restart semantics."
+    },
+    {
+      "path": "src/frankenstein2/voice_heard_result_reentry.py",
+      "observation": "Existing fail-closed bridge rejects stale/foreign/opaque GWT linkage: VoiceIntent gwt_ref must match GwtReentryUptakeBinding.binding_id, and memory relation evidence is checked before heard-result reentry persistence."
+    },
+    {
+      "path": "src/frankenstein2/voice_contract.py",
+      "observation": "VoiceSessionCapsule exposes bounded GWT focus/provenance refs and deterministic identity fields suitable for an explicit fresh-turn composition discriminator."
+    },
+    {
+      "path": "src/frankenstein2/realtime_reentry.py",
+      "observation": "Session/turn/checkpoint restart machinery exists; this pass did not find admitted evidence that a persisted heard-result reentry is projected exactly once into a newly created subsequent voice turn."
+    },
+    {
+      "path": "tests/test_voice_heard_result_reentry.py",
+      "observation": "Tests cover valid/invalid GWT and memory binding, duplicate reentry replay and persistence/reload; this pass did not find an explicit new-next-turn composition test."
+    }
+  ],
+  "important_nonfinding": {
+    "hypothesis": "voice_packet_cortex gwt_ref may be an unbound free string",
+    "result": "FALSIFIED_BY_EXISTING_SOURCE",
+    "reason": "voice_heard_result_reentry.py already validates exact binding_id/digest lineage and fails closed; do not duplicate or weaken it."
+  },
+  "primary_hypothesis": "After prior reentry becomes valid and persisted, the remaining integration risk is the successor boundary: the next fresh voice turn may fail to consume that causal state exactly once, may drop it, or may contaminate fresh history with prior unheard/cancelled output.",
+  "counterhypothesis": "Existing whole-loop/session orchestration already performs this successor composition under another name. If so, the correct outcome is NO_GAP with exact source/test evidence, not new architecture.",
+  "discriminator": "Under proper Trigger4 mutation authority, first locate/reuse any existing successor-composition path. Then construct a second/new VoiceSessionCapsule or turn from one exact prior reentry receipt and prove exact-once bounded provenance transfer without replaying prior speech, memory/tool actions or effects.",
+  "falsifier_matrix": [
+    {
+      "id": "FRESH1",
+      "case": "valid prior heard-result reentry + exact GWT binding + valid memory relation -> new fresh turn",
+      "required": "new turn carries only allowed prior provenance/state, has a distinct new turn identity, and does not re-commit prior speech/effects"
+    },
+    {
+      "id": "FRESH2",
+      "case": "fresh-turn construction presented with stale/foreign GWT lineage",
+      "required": "fail closed; no successor causal promotion"
+    },
+    {
+      "id": "FRESH3",
+      "case": "fresh-turn construction presented with mismatched memory relation",
+      "required": "fail closed; no silent substitution"
+    },
+    {
+      "id": "FRESH4",
+      "case": "same valid prior reentry offered twice to fresh-turn projector",
+      "required": "at most one causal projection; no duplicate semantic/memory/tool action"
+    },
+    {
+      "id": "FRESH5",
+      "case": "prior turn contains barge-in/cancel/unheard fragments already represented by valid upstream reentry semantics",
+      "required": "new turn may consume causally heard/committed state only; unheard generated output never becomes spoken history"
+    },
+    {
+      "id": "FRESH6",
+      "case": "prior turn is WAIT/backchannel-only",
+      "required": "successor preserves bounded causal context without inventing a full assistant utterance or false turn ownership"
+    },
+    {
+      "id": "FRESH7",
+      "case": "restart occurs after prior reentry is persisted but before the successor turn is created",
+      "required": "after upstream F15/F16/F17 restart invariants hold, successor projection still occurs exactly once"
+    },
+    {
+      "id": "FRESH8",
+      "case": "prior valid state includes tool/memory causal refs",
+      "required": "new turn carries only bound provenance/reference state; no tool/effect replay"
+    },
+    {
+      "id": "FRESH9",
+      "case": "network-blocked packet-surrogate successor composition",
+      "required": "semantic controller path remains executable with zero external model/ASR/TTS dependency for this packet-level discriminator"
+    },
+    {
+      "id": "FRESH10",
+      "case": "missing/corrupt prior receipt or missing prerequisite restart evidence",
+      "required": "explicit UNKNOWN/fail-closed result; no fabricated continuity"
+    }
+  ],
+  "research_signals": [
+    {
+      "source": "Towards Natural and Responsive Turn-Taking for Spoken Dialogue Systems (JAL-Turn)",
+      "status": "UPSTREAM_ONLY_UNREPRODUCED",
+      "relevance": "joint acoustic+linguistic HOLD/SHIFT behavior supports treating fresh-turn state as a dialogue-controller problem rather than ASR endpointing alone"
+    },
+    {
+      "source": "Full-Duplex-Bench v3, arXiv:2602.18613",
+      "status": "UPSTREAM_ONLY_UNREPRODUCED",
+      "relevance": "evaluates pauses, backchannels, interruptions/overlap and multi-turn tool use jointly; motivates FRESH5/FRESH6/FRESH8 but grants no F2 credit"
+    }
+  ],
+  "required_credit_fence": {
+    "packet_cortex_candidate": "may advance only after executable discriminator evidence",
+    "gwt_runtime": 0,
+    "jspace_runtime": 0,
+    "acoustic_acceptance": 0,
+    "physical_audio": 0,
+    "effect_runtime": 0,
+    "whole_product": 0,
+    "training": 0
+  },
+  "routing": {
+    "next_owner": "Trigger4 under current workpackage/claim authority",
+    "first_action": "Consume/execute the current F15/F16/F17 restart-composition falsifier as needed, then search for an existing admitted successor fresh-turn composition path before writing new source.",
+    "if_gap_confirmed": "Acquire/inherit the correct mutation authority, implement the smallest successor adapter/integration glue, and execute FRESH1-FRESH10.",
+    "if_no_gap": "Record NO_GAP with exact source/test evidence and avoid new architecture.",
+    "do_not_mutate": [
+      "F2-WP-715 while its bound runtime subject is nonterminal",
+      "terminal F2-WP-717 merely to obtain worker activity"
+    ]
+  }
+}
