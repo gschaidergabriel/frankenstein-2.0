@@ -5,8 +5,7 @@ on:
     branches: [main]
     paths:
       - 'src/frankenstein2/voice_heard_result_reentry.py'
-      - 'tests/test_voice_heard_result_reentry.py'
-      - 'tests/test_voice_heard_result_reentry_falsifiers.py'
+      - 'tests/test_voice_heard_result_reentry*.py'
       - 'src/frankenstein2/voice_packet_cortex.py'
       - 'src/frankenstein2/voice_contract.py'
       - 'src/frankenstein2/context_compiler.py'
@@ -37,6 +36,7 @@ jobs:
             src/frankenstein2/voice_heard_result_reentry.py \
             tests/test_voice_heard_result_reentry.py \
             tests/test_voice_heard_result_reentry_falsifiers.py \
+            tests/test_voice_heard_result_reentry_memory_context_composition.py \
             src/frankenstein2/voice_packet_cortex.py \
             src/frankenstein2/voice_contract.py \
             src/frankenstein2/context_compiler.py \
@@ -51,8 +51,9 @@ jobs:
           python -m py_compile \
             src/frankenstein2/voice_heard_result_reentry.py \
             tests/test_voice_heard_result_reentry.py \
-            tests/test_voice_heard_result_reentry_falsifiers.py
-      - name: Run VSR01-VSR06 and repair discriminators
+            tests/test_voice_heard_result_reentry_falsifiers.py \
+            tests/test_voice_heard_result_reentry_memory_context_composition.py
+      - name: Run VSR01-VSR06 and composition discriminator
         env:
           PYTHONPATH: src
         run: |
