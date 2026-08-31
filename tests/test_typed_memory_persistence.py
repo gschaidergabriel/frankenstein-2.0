@@ -104,6 +104,24 @@ class TypedMemoryPersistenceTests(unittest.TestCase):
         ).fetchone()[0]
         self.assertEqual(count, 1)
 
+    def test_idempotent_replay_revalidates_corrupted_existing_row(self) -> None:
+        """TMU03: identical replay must not acknowledge an invalid persisted row."""
+        self.store.initialize_schema()
+        record = self._record()
+        self.store.write_record(record)
+        connection = self.agency_store.connection
+        connection.execute(
+            f"UPDATE main.{TYPED_MEMORY_TABLE} SET payload_ref=? WHERE memory_id=? AND lifecycle_generation=?",
+            ("payloads/corrupted-on-disk.json", record.memory_id, record.lifecycle_generation),
+        )
+        connection.commit()
+
+        with self.assertRaisesRegex(
+            TypedMemoryPersistenceError,
+            "indexed metadata mismatch|TYPED_MEMORY_DB_AUTHORITY_RECEIPT_MISMATCH|MEMORY_GENERATION_ALREADY_BOUND_TO_DIFFERENT_BYTES",
+        ):
+            self.store.write_record(record)
+
     def test_same_memory_generation_cannot_be_rebound_to_different_bytes(self) -> None:
         self.store.initialize_schema()
         first = self._record(evidence_ref="evidence:first")
