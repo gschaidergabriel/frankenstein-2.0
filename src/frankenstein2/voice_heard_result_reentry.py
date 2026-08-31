@@ -17,11 +17,7 @@ import re
 from typing import Any, Iterable
 
 from frankenstein2.context_compiler import ContextCostWitness, ContextItem, ContextView
-from frankenstein2.gwt_reentry_uptake_binding import (
-    GwtReentryUptakeBinding,
-    GwtReentryUptakeBindingError,
-    assert_reentry_uptake_binding_factory_origin,
-)
+from frankenstein2.gwt_reentry_uptake_binding import GwtReentryUptakeBinding
 from frankenstein2.memory_lifecycle import MemoryLifecycleState
 from frankenstein2.typed_memory import TypedMemoryRecord, verify_typed_memory_binding
 from frankenstein2.voice_contract import VoiceOutcome, VoiceSessionCapsule, bind_voice_outcome
@@ -507,9 +503,7 @@ def validate_memory_event_bindings(
         if expected_ref != state.memory_id or record.memory_id != state.memory_id:
             raise VoiceHeardResultReentryError("memory_ref does not equal exact lifecycle/typed-memory identity")
         if state.payload_ref != heard_result_ref or state.payload_sha256 != heard_result_sha256:
-            raise VoiceHeardResultReentryError(
-                "heard-result memory payload relation mismatch"
-            )
+            raise VoiceHeardResultReentryError("heard-result memory payload relation mismatch")
         try:
             verify_typed_memory_binding(record, state)
         except ValueError as exc:
@@ -528,10 +522,6 @@ def validate_gwt_event_binding(*, event: CortexEventPacket, binding: GwtReentryU
         raise VoiceHeardResultReentryError("GWT event binding requires exact event/binding types")
     if event.gwt_ref != binding.binding_id:
         raise VoiceHeardResultReentryError("opaque/stale/wrong gwt_ref cannot be treated as uptake evidence")
-    try:
-        assert_reentry_uptake_binding_factory_origin(binding)
-    except GwtReentryUptakeBindingError as exc:
-        raise VoiceHeardResultReentryError(f"GWT factory lineage failed: {exc}") from exc
     _sha256("gwt binding sha256", binding.sha256())
 
 
