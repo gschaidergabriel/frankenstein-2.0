@@ -1,0 +1,82 @@
+{
+  "schema": "FRANKENSTEIN2_CANDIDATE_FALSIFIER/v1",
+  "workpackage_id": "F2-WP-307",
+  "generation": 1,
+  "claim_id_observed": "F2-WP-307-G1-GPT56SOL-TYPED-MEMORY-UNIFIEDDB-READBACK-20260831",
+  "worker_id": "GPT-5.6-Sol-Trigger4-Independent-Falsifier",
+  "result_class": "CANDIDATE_FALSIFIER",
+  "mutation_authority": false,
+  "base_observation": "WP307 owns the typed-memory persistence adapter. This packet modifies no WP307-owned source, test, workflow, receipt or reconciliation path.",
+  "authority_refs": [
+    "workpackages/active/F2-WP-307.json",
+    "src/frankenstein2/persistent_agency_kernel.py",
+    "src/frankenstein2/typed_memory.py",
+    "workpackages/RUNTIME_CREDIT_CONVERGENCE_DIRECTIVE.md",
+    "workpackages/CLAIM_PROTOCOL.md"
+  ],
+  "falsifiers": [
+    {
+      "id": "TMDB01_SECOND_SQLITE_TRUTH_ESCAPE",
+      "setup": "Provide a CanonicalPersistentAgencyStore already bound to canonical UnifiedDB A. Make a writable SQLite B available by path and/or ATTACH. Exercise the typed-memory adapter.",
+      "required_result": "All WP307 schema and row writes occur only in main on the exact already-bound UnifiedDB A; B remains byte/schema unchanged.",
+      "product_negative_if": "Adapter opens, creates or writes any second SQLite database or attached schema for typed memory.",
+      "why_high_information": "Directly tests the one-canonical-state-authority invariant rather than merely checking a configured pathname."
+    },
+    {
+      "id": "TMDB02_MAIN_FILE_IDENTITY_REPLACED_AFTER_BIND",
+      "setup": "After authority resolution/fingerprint but before a persistence operation, replace the canonical DB pathname with another valid SQLite file/inode while preserving the path string.",
+      "required_result": "Fail closed under the existing WP206/UnifiedDB identity fence; no canonical-memory-write credit and no silent write to replacement identity.",
+      "product_negative_if": "Path equality alone is treated as canonical identity after device/inode replacement.",
+      "why_high_information": "Prevents the thin adapter from weakening the exact file-identity guard already enforced by CanonicalPersistentAgencyStore."
+    },
+    {
+      "id": "TMDB03_IDEMPOTENT_EXACT_REPLAY",
+      "setup": "Persist the exact same TypedMemoryRecord twice with identical memory_id, lifecycle generation, canonical record JSON and record digest.",
+      "required_result": "One canonical row identity only; second exact replay is deterministic/idempotent and cannot create duplicate authority.",
+      "product_negative_if": "Duplicate rows, generation inflation, second admission identity or changed receipt digest arise from exact replay.",
+      "why_high_information": "Separates durable readback from duplicate-authority minting."
+    },
+    {
+      "id": "TMDB04_SAME_ID_CHANGED_CONTENT_COLLISION",
+      "setup": "After one accepted row, submit the same durable row identity/memory identity and lifecycle generation with a different TypedMemoryRecord canonical payload/digest.",
+      "required_result": "Fail closed as identity/content conflict; original row remains exactly readable and unchanged.",
+      "product_negative_if": "INSERT OR REPLACE/upsert semantics silently overwrite accepted memory identity.",
+      "why_high_information": "Blocks a common SQLite convenience pattern from converting replay into history rewrite."
+    },
+    {
+      "id": "TMDB05_POST_WRITE_ROW_TAMPER",
+      "setup": "Persist a record, mutate one stored canonical field or stored canonical JSON directly via a second connection, then use the adapter readback path.",
+      "required_result": "Digest/canonical-form verification rejects the row; canonical-memory readback credit is not retained for the tampered observation.",
+      "product_negative_if": "Readback validates only primary-key presence or trusts a stored digest without recomputing exact canonical record identity.",
+      "why_high_information": "Proves readback semantics, not merely successful INSERT."
+    },
+    {
+      "id": "TMDB06_ROLLBACK_NO_PARTIAL_AUTHORITY",
+      "setup": "Force a deterministic exception after schema/row work begins but before the adapter reports success, including a constraint/tamper path.",
+      "required_result": "Transaction rollback leaves no partially authoritative typed-memory row or acceptance receipt state.",
+      "product_negative_if": "A partial row survives a failed operation or adapter commits caller-owned unrelated transaction work.",
+      "why_high_information": "Checks atomicity and prevents success-shaped residue after failure."
+    },
+    {
+      "id": "TMDB07_FRESH_PROCESS_EXACT_READBACK_GATE",
+      "setup": "After repository acceptance, close all writer connections, start a fresh process, re-resolve/fingerprint the same canonical UnifiedDB file and read the exact TypedMemoryRecord.",
+      "required_result": "Only this external/fresh-process exact readback may promote target-environment persistence scope; repository same-process readback remains component evidence only.",
+      "product_negative_if": "Repository CI or same-connection SELECT is relabeled as target-runtime durable-memory persistence.",
+      "why_high_information": "Protects evidence depth and the planned VPS promotion boundary."
+    }
+  ],
+  "scope_guards": {
+    "repository_component_ci_credit_before_execution": 0,
+    "target_environment_component_runtime_credit": 0,
+    "canonical_memory_write_credit": 0,
+    "world_truth_credit": 0,
+    "retrieval_relevance_credit": 0,
+    "gwt_runtime_credit": 0,
+    "jspace_runtime_credit": 0,
+    "effect_credit": 0,
+    "training_credit": 0,
+    "whole_system_acceptance": false
+  },
+  "acceptance_guidance": "WP307 should reuse the already-bound CanonicalPersistentAgencyStore/main connection or an equivalently exact admitted UnifiedDB handle; it must not open a convenience database. Persist an immutable canonical TypedMemoryRecord representation plus recomputable digest, make exact replay idempotent, reject identity/content collision and tampered readback, and keep repository evidence distinct from fresh-process VPS evidence.",
+  "next_exact_action": "WP307 mutation owner consumes TMDB01-TMDB06 in repository regressions before repository acceptance. Only after exact-source CI passes should TMDB07 be exercised on the admitted VPS route with fresh-process readback and exact file identity."
+}
