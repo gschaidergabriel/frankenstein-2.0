@@ -1,0 +1,97 @@
+name: WP717 G3 Test Scope Reconciliation Once
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/wp717-g3-test-scope-reconcile-once.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  actions: read
+
+concurrency:
+  group: wp717-g3-test-scope-reconcile
+  cancel-in-progress: false
+
+jobs:
+  reconcile:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: true
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Refresh authority and reconcile stale GWT reference-only expectations
+        env:
+          CLAIM_ID: F2-WP-717-G3-GPT56SOL-MEMORY-GWT-LINEAGE-FENCES-20260831
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch origin main
+          git checkout main
+          git pull --ff-only origin main
+          python - <<'PY'
+          import json, os
+          from pathlib import Path
+
+          claim = json.loads(Path('workpackages/active/F2-WP-717.json').read_text())
+          assert claim['generation'] == 3, claim
+          assert claim['claim_id'] == os.environ['CLAIM_ID'], claim
+          assert claim['state'] == 'ACTIVE', claim
+          assert 'reference-only' in claim['claimed_scope'], claim['claimed_scope']
+
+          p = Path('tests/test_voice_heard_result_reentry.py')
+          s = p.read_text()
+          old_name = '    def test_vsr03_gwt_ref_and_factory_lineage_both_fail_closed(self) -> None:\n'
+          new_name = '    def test_vsr03_gwt_ref_is_exact_reference_only(self) -> None:\n'
+          if old_name in s:
+              assert s.count(old_name) == 1
+              s = s.replace(old_name, new_name, 1)
+          else:
+              assert new_name in s, 'VSR03 test name drifted'
+          old_expect = '''        with self.assertRaisesRegex(VoiceHeardResultReentryError, "factory|lineage"):\n            validate_gwt_event_binding(event=exact, binding=binding)\n'''
+          new_expect = '''        validate_gwt_event_binding(event=exact, binding=binding)\n'''
+          if old_expect in s:
+              assert s.count(old_expect) == 1
+              s = s.replace(old_expect, new_expect, 1)
+          else:
+              assert new_expect in s, 'VSR03 reference-only expectation drifted'
+          p.write_text(s)
+
+          p = Path('tests/test_voice_heard_result_reentry_memory_context_composition.py')
+          s = p.read_text()
+          old = '''        with self.subTest("VSR08_DIRECT_GWT_BINDING_WITHOUT_LINEAGE"):\n            direct_unsealed_binding = replace(gwt_binding, _factory_seal=None)\n            with self.assertRaises(VoiceHeardResultReentryError):\n                bind_completed_reentry(\n                    session=session,\n                    outcome=outcome,\n                    output_packets=cortex.outputs,\n                    close_event=close_event,\n                    context_item=context_item,\n                    cost_witness=cost_witness,\n                    context_view=context_view,\n                    memory_event=memory_event,\n                    memory_bindings=((memory_state, typed_memory),),\n                    gwt_event=gwt_event,\n                    gwt_binding=direct_unsealed_binding,\n                    provenance_refs=("test:wp717-vsr08",),\n                )\n'''
+          new = '''        with self.subTest("VSR08_DIRECT_GWT_BINDING_IS_REFERENCE_ONLY_ZERO_CREDIT"):\n            direct_unsealed_binding = replace(gwt_binding, _factory_seal=None)\n            reference_only = bind_completed_reentry(\n                session=session,\n                outcome=outcome,\n                output_packets=cortex.outputs,\n                close_event=close_event,\n                context_item=context_item,\n                cost_witness=cost_witness,\n                context_view=context_view,\n                memory_event=memory_event,\n                memory_bindings=((memory_state, typed_memory),),\n                gwt_event=gwt_event,\n                gwt_binding=direct_unsealed_binding,\n                provenance_refs=("test:wp717-vsr08-reference-only",),\n            )\n            scoped = reference_only.as_dict()\n            self.assertIn("EXACT_REFERENCE_BINDING_ONLY", scoped["classification"])\n            self.assertEqual(scoped.get("gwt_runtime_credit", 0), 0)\n            self.assertEqual(scoped.get("effect_credit", 0), 0)\n            self.assertFalse(scoped.get("whole_system_acceptance", False))\n'''
+          if old in s:
+              assert s.count(old) == 1
+              s = s.replace(old, new, 1)
+          else:
+              assert 'VSR08_DIRECT_GWT_BINDING_IS_REFERENCE_ONLY_ZERO_CREDIT' in s, 'composition VSR08 scope drifted'
+          p.write_text(s)
+          PY
+      - name: Run exact WP717 repository discriminator set
+        shell: bash
+        run: |
+          set -euo pipefail
+          PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=src python -m unittest discover -s tests -p 'test_voice_heard_result_reentry*.py' -v
+          ! grep -R -nE 'openai|anthropic|together|requests\.|httpx\.|urllib\.request' src/frankenstein2/voice_heard_result_reentry.py
+      - name: Commit reconciled tests and retire one-shot
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'GPT-5.6-Sol Trigger4'
+          git config user.email 'trigger4@users.noreply.github.com'
+          git rm .github/workflows/wp717-g3-test-scope-reconcile-once.yml
+          git add tests/test_voice_heard_result_reentry.py tests/test_voice_heard_result_reentry_memory_context_composition.py
+          if git diff --cached --quiet; then
+            exit 0
+          fi
+          git commit -m 'trigger4: align WP717 G3 tests with GWT reference-only scope'
+          git pull --rebase origin main
+          git push origin HEAD:main
