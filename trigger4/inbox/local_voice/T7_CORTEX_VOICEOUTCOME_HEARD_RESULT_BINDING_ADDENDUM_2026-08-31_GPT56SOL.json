@@ -1,0 +1,111 @@
+{
+  "schema": "T7_TO_T4_INTEGRATION_ADDENDUM_V1",
+  "created_at": "2026-08-31T07:44:00+07:00",
+  "trigger": "7",
+  "organ": "GPT-5.6-Sol",
+  "classification": "INTEGRATION_CONTRACT_DELTA__VOICEOUTCOME_RESULT_MUST_BIND_EXACT_HEARD_OUTPUT",
+  "authority_ref": "research/local_voice/authority/2026-08-31_TRIGGER7_TEXT_PACKET_COMPLETION_AUTHORITY.md",
+  "extends": [
+    "trigger4/inbox/local_voice/T7_CORTEX_STATE_MEMORY_GWT_REENTRY_INTEGRATION_2026-08-31_GPT56SOL.json",
+    "trigger4/inbox/local_voice/T7_CORTEX_REENTRY_CONTEXT_COST_WITNESS_ADDENDUM_2026-08-31_GPT56SOL.json"
+  ],
+  "authority": {
+    "new_f2_mutation_authority": false,
+    "new_runtime_dispatch": false,
+    "new_effect_authority": false,
+    "credit_delta": 0
+  },
+  "source_bindings": [
+    {
+      "path": "src/frankenstein2/voice_packet_cortex.py",
+      "observed_blob_sha": "308c7606db2f21f2361ca238927af9267fc21d32",
+      "finding": "close_session rejects result_ref/result_sha256 only when there is no commit-eligible output; once at least one fully heard completed output exists it constructs VoiceOutcome from the caller-supplied result pair and attaches the outcome id to all commit-eligible output packets without proving result_sha256 equals any output packet/text/aggregate digest."
+    },
+    {
+      "path": "src/frankenstein2/voice_contract.py",
+      "observed_blob_sha": "ad639b02ea69771014a2cad5b38103036b35bdfb",
+      "finding": "VoiceOutcome is explicitly identity/provenance-only. Its contract validates result_ref/result_sha256 pair presence, syntax and outcome identity, but does not and cannot prove that the result bytes are the fully heard voice output."
+    }
+  ],
+  "existing_test_observation": {
+    "path": "tests/test_voice_packet_cortex.py",
+    "finding": "Current tests intentionally demonstrate evidence-only semantics: after a completed/heard output, close_session is accepted with caller-selected result_ref values and synthetic fixed result_sha256 values such as repeated 'b' or 'd' hex. This is not a defect in WP704/WP715 scope; it is a required fail-closed boundary for the new integration consumer."
+  },
+  "risk": {
+    "id": "VSR01_UNBOUND_VOICEOUTCOME_RESULT_PROMOTION",
+    "statement": "If a State/Memory/Context integration adapter treats VoiceOutcome.result_ref/result_sha256 as proof of what the user actually heard, arbitrary caller-supplied result content can be promoted merely because some output in the session was commit-eligible.",
+    "scope": "INTEGRATION_CONSUMER_ONLY__DO_NOT_REOPEN_WP704_OR_WP715"
+  },
+  "required_delta": {
+    "VSR01_COMPLETED_HEARD_OUTPUT_REENTRY": {
+      "require": [
+        "Bind the exact VoiceSessionCapsule and VoiceOutcome identities.",
+        "Bind the exact ordered set of fully heard commit-eligible VoiceOutputPacket identities and packet SHA256 values used to construct the next-turn/durable result payload.",
+        "Construct or receive one explicit heard-result payload identity whose SHA256 is derived from the exact selected fully heard content/aggregate under a deterministic canonicalization rule.",
+        "If VoiceOutcome.result_ref/result_sha256 is consumed as the heard result, require it to match that exact heard-result payload identity; opaque/synthetic/unrelated result pairs remain evidence-only and are not memory/context/state authority.",
+        "For multiple completed output segments, bind deterministic sequence order and reject omission, duplication or reordering before deriving the aggregate heard-result digest.",
+        "Carry the existing ContextCostWitness requirement for any heard-result ContextItem selected into ContextView."
+      ]
+    },
+    "VSR02_INTERRUPTED_HEARD_PREFIX_EPHEMERAL_ONLY": {
+      "require": [
+        "Interrupted output remains non-commit-eligible and must not mint a durable VoiceOutcome result merely because a prefix was heard.",
+        "The measured heard-prefix stays a separate ephemeral payload identity with its own exact digest and ContextCostWitness; unheard tail remains excluded."
+      ]
+    }
+  },
+  "smallest_discriminators": [
+    {
+      "id": "VSR01A_EXACT_HEARD_RESULT_MATCH",
+      "setup": "One completed output, heard_fraction=1.0, exact packet/text payload aggregate and matching result_ref/result_sha256.",
+      "expect": "integration adapter admits the exact binding at component-integration scope only"
+    },
+    {
+      "id": "VSR01B_ARBITRARY_RESULT_DIGEST_REJECTED",
+      "setup": "Same fully heard output but VoiceOutcome carries a different otherwise-valid 64-hex result_sha256.",
+      "expect": "WP704/WP715 evidence object may remain structurally valid, but the state/memory/context integration adapter rejects promotion as UNBOUND_VOICEOUTCOME_RESULT"
+    },
+    {
+      "id": "VSR01C_MULTI_SEGMENT_ORDER_FENCE",
+      "setup": "Two fully heard completed output segments with exact sequence 0,1; candidate result aggregate swaps, omits or duplicates one segment.",
+      "expect": "integration adapter rejects before memory/context/state admission"
+    },
+    {
+      "id": "VSR02_NO_DURABLE_RESULT_FROM_INTERRUPTED_PREFIX",
+      "setup": "0 < heard_fraction < 1 with measured heard-prefix payload.",
+      "expect": "prefix may enter ephemeral next-turn context only with exact prefix digest + cost witness; no durable VoiceOutcome result/memory/effect authority"
+    }
+  ],
+  "receipt_additions": [
+    "ordered_commit_eligible_output_packet_ids",
+    "ordered_commit_eligible_output_packet_sha256s",
+    "heard_result_payload_ref",
+    "heard_result_payload_sha256",
+    "heard_result_canonicalization_id_and_version",
+    "voiceoutcome_result_matches_heard_result_boolean",
+    "voiceoutcome_sha256",
+    "context_cost_witness_sha256_for_selected_heard_result_context"
+  ],
+  "dedup_fence": {
+    "wp704": "DO_NOT_REOPEN__IDENTITY_PROVENANCE_ONLY_CONTRACT_IS_VALID_AT_ITS_SCOPE",
+    "wp715": "DO_NOT_REOPEN_TERMINAL_PACKET_COMPONENT",
+    "adapter": "EXTEND_EXISTING_T7_CORTEX_STATE_MEMORY_GWT_REENTRY_INTEGRATION_ONLY",
+    "asr008": "SEPARATE_FROZEN_RUNTIME_SUBJECT__NO_TRIGGER7_REDISPATCH",
+    "gwt": "OPAQUE_GWT_REF_MUST_NOT_MINT_UPTAKE",
+    "memory": "OPAQUE_MEMORY_REF_MUST_NOT_MINT_CANONICAL_WRITE",
+    "effect": "TOOL_REF_OR_VOICEOUTCOME_RESULT_MUST_NOT_MINT_EFFECT_AUTHORITY"
+  },
+  "next_exact_action": "Trigger4 consumes this addendum inside the existing VSR01-VSR06 integration boundary. Do not change accepted WP704/WP715 semantics merely to make the old evidence contracts stronger. In the smallest external adapter/harness, bind VoiceOutcome to the exact ordered fully heard output payload before any state/memory/context promotion, carry the ContextCostWitness for selected context, execute the positive and adversarial VSR01/VSR02 discriminators on the proven VPS route, and promote only the exact component-integration evidence measured.",
+  "credits": {
+    "research_contract_delta": 1,
+    "state_memory_voiceoutcome_reentry_integration": 0,
+    "gwt_runtime": 0,
+    "effect_runtime": 0,
+    "asr008_runtime": 0,
+    "german_e2e_voice": 0,
+    "physical_audio": 0,
+    "whole_voice": 0,
+    "whole_product": 0,
+    "training": 0
+  }
+}
