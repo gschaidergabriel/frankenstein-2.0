@@ -19,9 +19,10 @@ from frankenstein2.voice_packet_cortex import VoicePacketCortex
 class WP717G3MemoryGwtLineageFalsifiers(unittest.TestCase):
     """Adversarial discriminators from the Trigger7 VSR07/VSR08 addendum.
 
-    These tests intentionally describe the stronger higher-reentry semantics. They should fail
-    against the pre-G3 consumer because that consumer validates memory and GWT references without
-    proving the additional heard-payload/factory-lineage relations required for higher promotion.
+    G3 chooses exact heard-result payload binding for memory evidence. GWT metadata on this WP717
+    surface remains deliberately reference-only: it may bind an exact supplied object identity,
+    but it is not WP507/WP508 source-lineage validation and cannot mint GWT/J-Space runtime,
+    causal-influence, effect, completion or whole-system credit.
     """
 
     def _session(self, suffix: str) -> VoiceSessionCapsule:
@@ -117,7 +118,7 @@ class WP717G3MemoryGwtLineageFalsifiers(unittest.TestCase):
                 provenance_refs=("test:wp717-g3-vsr07-receipt",),
             )
 
-    def test_vsr08_direct_gwt_binding_without_factory_lineage_is_rejected(self) -> None:
+    def test_vsr08_direct_gwt_binding_remains_explicit_reference_only(self) -> None:
         session = self._session("vsr08")
         cortex = VoicePacketCortex(session)
         direct = GwtReentryUptakeBinding(
@@ -144,11 +145,15 @@ class WP717G3MemoryGwtLineageFalsifiers(unittest.TestCase):
             gwt_ref=direct.binding_id,
         )
 
-        with self.assertRaisesRegex(
-            VoiceHeardResultReentryError,
-            "factory|lineage",
-        ):
-            validate_gwt_event_binding(event=event, binding=direct)
+        # This validator is intentionally a reference-identity check, not the WP507/WP508 deep
+        # lineage authority. Accepting the supplied object here is safe only because its own
+        # contract and the enclosing WP717 receipt keep all broader GWT/J-Space credit at zero.
+        validate_gwt_event_binding(event=event, binding=direct)
+        evidence = direct.as_dict()
+        self.assertEqual(evidence["causal_influence_claim"], "NOT_ESTABLISHED_BY_BINDING")
+        self.assertEqual(evidence["gwt_runtime_credit"], 0)
+        self.assertEqual(evidence["jspace_runtime_credit"], 0)
+        self.assertFalse(evidence["whole_system_acceptance"])
 
 
 if __name__ == "__main__":
