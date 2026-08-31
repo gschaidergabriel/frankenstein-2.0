@@ -1,0 +1,56 @@
+{
+  "schema": "F2_TRIGGER4_CANDIDATE_FALSIFIER/v1",
+  "trigger": "4",
+  "research_id": "T7-ASR-008",
+  "observed_at_utc": "2026-08-31T00:36:00Z",
+  "classification": "EVIDENCE_INVALID_HARNESS_FIXTURE_DECODER_BLOCKER",
+  "failure_taxonomy": "EVIDENCE_INVALID",
+  "product_negative": false,
+  "bound_runtime": {
+    "controller_repo": "gschaidergabriel/Dr.-Unterweger",
+    "workflow_run_id": 33340567051,
+    "target_surface": "clay-direct-dev",
+    "f2_subject": "4727b94eeda381f3dcbe4d494eb72f91ce17b478",
+    "semantic_key": "93d61d9b893d411c8085cd5d257968c23448bc426430e603f6e33add1db5e4e3",
+    "receipt_path": "runtime/trigger4_nemotron35_asr008/runs/33340567051/receipt.json",
+    "stderr_path": "runtime/trigger4_nemotron35_asr008/runs/33340567051/comparator.stderr.log"
+  },
+  "observed_execution": {
+    "run_terminal": true,
+    "run_conclusion": "failure",
+    "exact_comparator_stage_reached": true,
+    "model_download_and_sha256_binding_completed_before_failure": true,
+    "nemo_runtime_download_and_sha256_binding_completed_before_failure": true,
+    "asr_inference_observed": false
+  },
+  "root_cause": {
+    "site": "tools/trigger4/t7_nemotron35_target_comparator.py::prepare_fixtures -> validate_wav",
+    "exception": "wave.Error: unknown format: 3",
+    "meaning": "The selected FLEURS fixture is encoded as IEEE-float WAV (WAVE format tag 3), while the harness validates it with Python stdlib wave and additionally expects 16-bit PCM. The comparator therefore terminates during fixture preparation before Nemotron inference.",
+    "prior_dependency_repair_effective": true,
+    "prior_missing_soundfile_blocker_cleared": true
+  },
+  "required_repair": {
+    "scope": "HARNESS_ONLY",
+    "action": "Decode the source fixture with soundfile/libsndfile, deterministically transcode it to mono 16 kHz PCM16 WAV for comparator input, and preserve both original source-byte SHA256 and derived PCM16 fixture SHA256 plus conversion parameters in the receipt. Add a regression covering WAVE_FORMAT_IEEE_FLOAT input.",
+    "must_not": [
+      "reinterpret the failure as a Nemotron quality negative",
+      "mint target runtime or German ASR quality credit",
+      "discard the original failed receipt/logs",
+      "change measured reference transcripts or benchmark rows",
+      "redispatch until the repaired executable subject is exact and regression-tested"
+    ]
+  },
+  "runtime_subject_action": "RUNTIME_PROBE_INVALIDATED_BY_REQUIRED_REPAIR",
+  "credit": {
+    "runtime_credit": 0,
+    "german_asr_quality_credit": 0,
+    "trigger4_acceptance_credit": 0,
+    "physical_device_credit": 0,
+    "gwt_jspace_credit": 0,
+    "effect_credit": 0,
+    "training_credit": 0,
+    "whole_product_credit": 0
+  },
+  "next_exact_action": "Land the deterministic float-WAV-to-PCM16 fixture conversion and regression in the controller comparator, bind the repaired comparator SHA, then perform exactly one replacement target run. Reconcile its raw receipt to the current F2 validator contract before any promotion."
+}
