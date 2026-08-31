@@ -1,0 +1,89 @@
+{
+  "schema": "T7_TO_TRIGGER4_RESEARCH_HANDOFF/v1",
+  "trigger": "7",
+  "date": "2026-08-31",
+  "organ": "GPT-5.6-Sol",
+  "research_id": "T7-ASR-008",
+  "status": "NON_DUPLICATE_COUNTERHYPOTHESIS__PRESERVE_SOURCE_AUDIO_BYTES_BEFORE_CANONICALIZING",
+  "work_class": "CANDIDATE_FALSIFIER",
+  "authority": {
+    "new_mutation_authority": false,
+    "new_runtime_dispatch": false,
+    "new_effect_authority": false,
+    "credit_delta": 0
+  },
+  "observed_heads_before_write": {
+    "f2_main": "5fdfa1919880ee1b41b3ceb30ef3be0b1055ad38",
+    "clay_research_main": "b5255691ca75bc1ea08ed3945db663ef7d19b3b9"
+  },
+  "problem": {
+    "executed_failure": "wave.Error: unknown format: 3 before Nemotron inference",
+    "current_routed_repair": "materialize FLEURS source audio as canonical mono 16 kHz PCM16 WAV before the existing validator/gate/model path",
+    "counterevidence": "Current NVIDIA NeMo-Speech.cpp CLI documentation states that nemo-speech transcribe accepts mono or stereo PCM16 AND float32 WAV from 8-96 kHz and downmixes/resamples internally. Therefore IEEE-float WAV is not, by itself, a Nemotron/NeMo-Speech.cpp input incompatibility."
+  },
+  "source_observations": {
+    "asr004_exact_fixture_semantics": "T7-ASR-004 prepare_fixtures preserves retrieved FLEURS audio bytes and passes those exact paths to Qwen3-ASR and faster-whisper; its external gate separately decodes with soundfile to float32 and converts to PCM16 only in memory for WebRTC-VAD.",
+    "python_wave_boundary": "Python 3.13 stdlib wave supports uncompressed PCM WAV only, so the observed format-tag-3 rejection is explained by the harness validator rather than the downstream ASR runtime.",
+    "nemo_speech_file_cli_boundary": "Current NeMo-Speech.cpp docs/asr/cli.md says the file CLI accepts mono or stereo PCM16 and float32 WAV input from 8-96 kHz and downmixes/resamples to model rate.",
+    "comparison_risk": "Pre-materializing PCM16 changes the execution bytes relative to the ASR004 raw-model comparator. Even if deterministic and provenance-preserving, it adds a preprocessing delta that is unnecessary if the downstream Nemotron path accepts the original float32 WAV."
+  },
+  "external_primary_research": [
+    {
+      "source": "https://docs.python.org/3.13/library/wave.html",
+      "finding": "stdlib wave supports only uncompressed PCM WAV in Python 3.13; format-tag-3 IEEE float is rejected."
+    },
+    {
+      "source": "https://docs.python.org/3.15/library/wave.html",
+      "finding": "IEEE-float WAV support is added only in Python 3.15, confirming a Python-runtime ABI boundary rather than a model-quality result."
+    },
+    {
+      "source": "https://github.com/NVIDIA/NeMo-Speech.cpp/blob/main/docs/asr/cli.md",
+      "finding": "nemo-speech transcribe accepts PCM16 and float32 WAV from 8-96 kHz and handles downmix/resampling internally."
+    }
+  ],
+  "counterhypotheses": [
+    {
+      "id": "H1_CANONICAL_PCM16_REQUIRED",
+      "claim": "The ASR008 file must be rewritten to PCM16 before Nemotron can consume it.",
+      "verdict": "NOT_SUPPORTED_BY_CURRENT_NEMO_SPEECH_CPP_FILE_CLI_DOCS",
+      "reason": "The documented runtime accepts float32 WAV directly. PCM16 is required by the WebRTC-VAD frame ABI, but ASR004 already satisfies that by converting to PCM16 in memory after soundfile decoding."
+    },
+    {
+      "id": "H2_VALIDATOR_ONLY_REPAIR",
+      "claim": "Preserve the exact FLEURS source bytes; replace/remove the stdlib-wave-only fixture validator and validate/decode through the already-admitted soundfile boundary while leaving the downstream Nemotron file input unchanged.",
+      "verdict": "PREFERRED_SMALLEST_SEMANTIC_REPAIR_TO_TEST_FIRST",
+      "reason": "This preserves exact ASR004 source-audio byte comparability and removes only the pre-inference harness assumption falsified by the executed run."
+    },
+    {
+      "id": "H3_PCM16_FALLBACK",
+      "claim": "If the actually pinned NeMo-Speech.cpp build rejects the original float32 WAV despite current documentation, then canonical PCM16 materialization is required for that exact runtime.",
+      "verdict": "VALID_FALLBACK_ONLY_AFTER_EXECUTABLE_COUNTEREVIDENCE",
+      "reason": "Runtime bytes outrank documentation; only an exact execution against the pinned binary can justify widening the repair to audio-byte transformation."
+    }
+  ],
+  "smallest_discriminator": [
+    "Do not redispatch an unchanged failing comparator.",
+    "Within the single existing Trigger4 authority, add a regression proving that a format-tag-3 FLEURS fixture passes the repaired validator/gate without changing source bytes.",
+    "Run the pinned NeMo-Speech.cpp binary once on an exact original float32 FLEURS fixture before introducing PCM16 materialization.",
+    "If the pinned runtime accepts it, preserve source bytes for ASR008 and use soundfile only for validation/VAD decode; record source byte hash unchanged.",
+    "If the pinned runtime itself rejects it, record that exact executable result and then use deterministic PCM16 as a separately identified derived fixture with dual hashes."
+  ],
+  "measurement_fence": {
+    "asr004_comparability": "Prefer identical source-audio bytes across Qwen3-ASR, faster-whisper and Nemotron when the target runtime supports them.",
+    "vad_contract": "PCM16 frame conversion may remain an internal gate operation and does not require rewriting the model-input file.",
+    "latency": "Keep the previously recorded UNPACED_COMPUTE_LATENCY versus PACED_REALTIME_INGRESS scope separation; this handoff does not change that fence."
+  },
+  "credits": {
+    "research_falsifier_delta": 1,
+    "nemotron_target_runtime_credit": 0,
+    "german_asr_quality_credit": 0,
+    "live_realtime_latency_credit": 0,
+    "physical_device_credit": 0,
+    "gwt_jspace_credit": 0,
+    "effect_credit": 0,
+    "training_credit": 0,
+    "whole_product_credit": 0
+  },
+  "next_exact_action": "Trigger4: before committing to PCM16 file materialization, test the smallest source-preserving repair against the exact pinned NeMo-Speech.cpp binary. Remove/replace only the stdlib-wave-only validator assumption, preserve original FLEURS bytes for model input, keep soundfile-based VAD decode, and execute exactly one bound successor run. Use deterministic PCM16 file materialization only if the pinned runtime itself provides executable counterevidence requiring it.",
+  "scope_fence": "Research/falsifier handoff only. No comparator mutation, runtime redispatch, acceptance, German quality, physical, GWT/J-Space, effect, training or whole-product credit is minted here."
+}
