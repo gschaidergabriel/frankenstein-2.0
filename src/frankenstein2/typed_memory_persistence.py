@@ -369,12 +369,18 @@ class TypedMemoryUnifiedDBStore:
             raise TypedMemoryPersistenceError(
                 "TYPED_MEMORY_DB_AUTHORITY_RECEIPT_MISMATCH"
             )
+        if not isinstance(record_json, str) or not record_json:
+            raise TypedMemoryPersistenceError("CORRUPT_TYPED_MEMORY_JSON")
         try:
             decoded = json.loads(record_json)
         except json.JSONDecodeError as exc:
             raise TypedMemoryPersistenceError("CORRUPT_TYPED_MEMORY_JSON") from exc
         if not isinstance(decoded, dict):
             raise TypedMemoryPersistenceError("typed-memory JSON must decode to an object")
+        if _canonical_json(decoded) != record_json:
+            raise TypedMemoryPersistenceError("TYPED_MEMORY_JSON_NOT_CANONICAL")
+        if not isinstance(record_sha256, str) or _sha256_bytes(record_json) != record_sha256:
+            raise TypedMemoryPersistenceError("TYPED_MEMORY_DIGEST_MISMATCH")
         metadata_checks = {
             "memory_kind": (stored_kind, decoded.get("memory_kind")),
             "lifecycle_state_sha256": (
