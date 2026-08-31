@@ -151,6 +151,7 @@ class GwtReentryUptakeBinding:
     binding_status: str
     provenance_refs: tuple[str, ...]
     _factory_seal: object | None = field(default=None, repr=False, compare=False, hash=False)
+    _factory_payload_sha256: str | None = field(default=None, repr=False, compare=False, hash=False)
 
     schema = GWT_REENTRY_UPTAKE_BINDING_SCHEMA
     classification = _CLASSIFICATION
@@ -238,10 +239,15 @@ class GwtReentryUptakeBinding:
 
 
 def assert_reentry_uptake_binding_factory_origin(binding: GwtReentryUptakeBinding) -> None:
-    """Require the existing WP508 factory seal without minting new uptake/runtime evidence."""
+    """Require exact factory origin and an unchanged post-validation payload."""
     if type(binding) is not GwtReentryUptakeBinding or binding._factory_seal is not _BINDING_SEAL:
         raise GwtReentryUptakeBindingError(
             "binding lacks deterministic WP507/WP508 factory lineage"
+        )
+    expected_payload_sha256 = _digest(binding.as_dict())
+    if binding._factory_payload_sha256 != expected_payload_sha256:
+        raise GwtReentryUptakeBindingError(
+            "binding factory lineage payload changed after validation"
         )
 
 
@@ -293,7 +299,7 @@ def bind_reentry_to_uptake(
     if uptake_receipt.broadcast_generation != witness.broadcast_generation:
         raise GwtReentryUptakeBindingError("uptake receipt broadcast generation does not match re-entry witness")
 
-    return GwtReentryUptakeBinding(
+    binding = GwtReentryUptakeBinding(
         binding_id=binding_id,
         canonical_reentry_key=witness.canonical_reentry_key(),
         reentry_witness_sha256=witness.sha256(),
@@ -311,6 +317,8 @@ def bind_reentry_to_uptake(
         provenance_refs=tuple(provenance_refs),
         _factory_seal=_BINDING_SEAL,
     )
+    object.__setattr__(binding, "_factory_payload_sha256", _digest(binding.as_dict()))
+    return binding
 
 
 def validate_reentry_uptake_binding(
