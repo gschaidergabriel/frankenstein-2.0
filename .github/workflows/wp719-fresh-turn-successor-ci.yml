@@ -38,28 +38,29 @@ jobs:
         run: python research/local_voice/tools/falsify_fresh_turn_successor.py
 
   g1-vps-fresh-turn-successor:
+    needs: fresh-turn-successor
     if: >-
       github.event_name == 'push' &&
-      github.event.head_commit.message == 'trigger4-repair-dispatch-WP719-G1-VPS'
+      github.event.head_commit.message == 'trigger4-corrected-dispatch-WP719-G1-VPS-64b7'
     runs-on: clay-host
     timeout-minutes: 30
     concurrency:
       group: wp719-g1-vps-fresh-turn-successor-runtime
       cancel-in-progress: false
     env:
-      WP719_RUNTIME_SUBJECT_SHA: 6208b2ce2846b97a5ee0d2386c659685100a6cee
+      WP719_RUNTIME_SUBJECT_SHA: 64b7fb92cca8ddc2e541d617f9af7ebd9bbeb9b8
       F2_SANDBOX_ROOT: /var/tmp/frankenstein2-sandboxes
       F2_NSPAWN_BASE_ROOT: /var/lib/frankenstein2-sandbox-images/ubuntu-24.04-base
       F2_SANDBOX_MIN_FREE_KIB: '5242880'
       F2_SANDBOX_MIN_MEM_KIB: '1048576'
     steps:
-      - name: Checkout exact frozen WP719 G1 subject
+      - name: Checkout exact frozen WP719 G1 repaired subject
         uses: actions/checkout@v4
         with:
-          ref: 6208b2ce2846b97a5ee0d2386c659685100a6cee
+          ref: 64b7fb92cca8ddc2e541d617f9af7ebd9bbeb9b8
           fetch-depth: 0
 
-      - name: Verify VPS runner and source identity
+      - name: Verify VPS runner and repaired source identity
         shell: bash
         run: |
           set -Eeuo pipefail
@@ -92,7 +93,7 @@ jobs:
         run: |
           set -Eeuo pipefail
           bash tools/vps_sandbox/run_ubuntu_sandbox.sh --backend nspawn --network off -- \
-            /bin/bash -lc 'set -Eeuo pipefail; test "$(git rev-parse HEAD)" = "6208b2ce2846b97a5ee0d2386c659685100a6cee"; export PYTHONPATH=src; python3 -m unittest discover -s tests -p "test_fresh_turn_successor.py" -v; python3 research/local_voice/tools/falsify_fresh_turn_successor.py; printf "WP719_G1_FRESH1_FRESH10=PASS\n"; printf "WP719_G1_PROVIDER_SURFACE=OFFLINE_ZERO\n"' \
+            /bin/bash -lc 'set -Eeuo pipefail; test "$(git rev-parse HEAD)" = "64b7fb92cca8ddc2e541d617f9af7ebd9bbeb9b8"; export PYTHONPATH=src; python3 -m unittest discover -s tests -p "test_fresh_turn_successor.py" -v; python3 research/local_voice/tools/falsify_fresh_turn_successor.py; printf "WP719_G1_FRESH1_FRESH10=PASS\n"; printf "WP719_G1_PROVIDER_SURFACE=OFFLINE_ZERO\n"' \
             2>&1 | tee /tmp/wp719-g1-vps-discriminator.txt
           grep -q '^F2_SANDBOX_RESULT=PASS$' /tmp/wp719-g1-vps-discriminator.txt
           grep -q 'WP719_G1_FRESH1_FRESH10=PASS' /tmp/wp719-g1-vps-discriminator.txt
