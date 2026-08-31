@@ -1,0 +1,58 @@
+{
+  "schema": "T7_TO_TRIGGER4_LOCAL_VOICE_FALSIFIER_HANDOFF/v1",
+  "trigger7_research_id": "T7-ARCH-003",
+  "semantic_key": "af2f204dcf3ec952b1da5e7d3d8f26b047df84cfefe6f158c09e36fc10235abc",
+  "classification": "CANDIDATE_FALSIFIER_HANDOFF",
+  "implementation_mutation_authority": false,
+  "source_artifact": "research/local_voice/falsifiers/2026-08-31_PACKET_CORTEX_RESTART_REENTRY_EXACT_ONCE_ADDENDUM_GPT56SOL.json",
+  "source_artifact_commit": "2b6e34907b9fdf855f9885e595d8c2474d97af7d",
+  "target_existing_owner": "F2-WP-717 active integration owner plus existing WP715 recovery surface",
+  "do_not_duplicate": [
+    "Do not open a second packet FSM, memory authority, GWT authority, recovery codec, or WP717 implementation owner.",
+    "Do not supersede the active WP717 generation merely to run these tests.",
+    "Treat this as test-only adversarial input while current mutation ownership remains active."
+  ],
+  "requested_discriminators": [
+    "F15_COMPLETED_HEARD_CLOSED_RESTART_REENTRY_EXACT_ONCE",
+    "F16_COMPLETED_HEARD_OPEN_RESTART_THEN_CLOSE_ONCE",
+    "F17_PARTIAL_OR_INTERRUPTED_RESTART_CAN_NEVER_PROMOTE_TO_DURABLE_HEARD_RESULT",
+    "F18_CAUSALLY_INCONSISTENT_CLOSED_CHECKPOINT_MUST_NOT_RESTORE_AS_VALID"
+  ],
+  "priority": "F18_FIRST_THEN_F15_F17_F16",
+  "why_f18_first": "Observed recovery source checks envelope digest, exact session binding, terminal outcome presence and SESSION_CLOSE presence, but does not visibly re-run the downstream completed-heard-result causal relation validator while restoring a closed checkpoint. A checksum-valid yet causally mismatched checkpoint is therefore the highest-information executable discriminator; this statement is a source-derived hypothesis, not a runtime failure claim.",
+  "minimum_test_surface": [
+    "tests/test_voice_packet_cortex_recovery.py",
+    "tests/test_voice_heard_result_reentry.py or the current WP717 successor suite",
+    "src/frankenstein2/voice_packet_cortex_recovery.py",
+    "src/frankenstein2/voice_heard_result_reentry.py"
+  ],
+  "acceptance_scope_if_all_pass": "Deterministic packet/recovery/reentry causal-fence evidence only for the exact executed subject.",
+  "failure_classification": {
+    "exact_executed_invariant_failure": "PRODUCT_NEGATIVE",
+    "stale_or_wrong_subject": "EVIDENCE_INVALID",
+    "not_executed_or_queued_only": "UNKNOWN_NONTERMINAL",
+    "git_claim_race": "CONCURRENCY_RETRY"
+  },
+  "explicit_zero_credit": [
+    "canonical_memory_write",
+    "gwt_runtime",
+    "jspace_runtime",
+    "effect",
+    "asr_runtime",
+    "tts_runtime",
+    "physical_audio",
+    "whole_voice_e2e",
+    "whole_product",
+    "training"
+  ],
+  "return_required": [
+    "exact source SHA",
+    "exact recovery/reentry blob SHAs",
+    "test IDs F15-F18",
+    "actual command",
+    "executed-step proof",
+    "per-falsifier result",
+    "negative evidence",
+    "bounded zero-credit fields"
+  ]
+}
