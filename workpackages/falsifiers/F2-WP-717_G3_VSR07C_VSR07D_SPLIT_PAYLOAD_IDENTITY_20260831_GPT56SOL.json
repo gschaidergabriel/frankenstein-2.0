@@ -1,0 +1,45 @@
+{
+  "schema": "FRANKENSTEIN2_CANDIDATE_FALSIFIER/v1",
+  "workpackage_id": "F2-WP-717",
+  "generation": 3,
+  "claim_id_observed": "F2-WP-717-G3-GPT56SOL-MEMORY-GWT-LINEAGE-FENCES-20260831",
+  "worker_id": "GPT-5.6-Sol-Trigger4-Independent-Falsifier",
+  "result_class": "CANDIDATE_FALSIFIER",
+  "mutation_authority": false,
+  "base_observation": "The admitted VSR07 pre-fix discriminator proves that a fully unrelated valid MemoryLifecycleState can be accepted. A superficial repair could still compare only payload_ref or only payload_sha256. Exact heard-result memory identity requires the pair to bind the same exact heard-result payload.",
+  "authority_refs": [
+    "workpackages/RUNTIME_CREDIT_CONVERGENCE_DIRECTIVE.md",
+    "workpackages/CLAIM_PROTOCOL.md",
+    "workpackages/active/F2-WP-717.json",
+    "workpackages/falsifiers/F2-WP-717_G3_VSR07_VSR08_EDGE_FALSIFIERS_20260831.json"
+  ],
+  "falsifiers": [
+    {
+      "id": "VSR07C_MATCHING_PAYLOAD_REF_WRONG_PAYLOAD_SHA256",
+      "setup": "Use a valid completed HeardResultPayload. Build a valid MemoryLifecycleState whose payload_ref equals the exact heard_result.payload_ref but whose payload_sha256 is a different valid lowercase 64-hex digest; bind a valid TypedMemoryRecord to that lifecycle state and reference its memory_id from memory_event.",
+      "required_result_for_exact_heard_memory_semantics": "FAIL_CLOSED_BEFORE_RECEIPT",
+      "failure_signature": "The consumer accepts memory evidence because payload_ref matches while lifecycle payload_sha256 does not equal the exact heard-result payload_sha256.",
+      "why_high_information": "Rejects a reference-only partial fix and proves that the digest half of payload identity remains causal/identity-bearing."
+    },
+    {
+      "id": "VSR07D_MATCHING_PAYLOAD_SHA256_WRONG_PAYLOAD_REF",
+      "setup": "Use a valid completed HeardResultPayload. Build a valid MemoryLifecycleState whose payload_sha256 equals the exact heard_result.payload_sha256 but whose payload_ref is a different valid non-empty reference; bind a valid TypedMemoryRecord to that lifecycle state and reference its memory_id from memory_event.",
+      "required_result_for_exact_heARD_MEMORY_SEMANTICS": "FAIL_CLOSED_BEFORE_RECEIPT",
+      "failure_signature": "The consumer accepts memory evidence because payload_sha256 matches while lifecycle payload_ref does not equal the exact heard-result payload_ref.",
+      "why_high_information": "Rejects a digest-only partial fix and proves that the canonical payload reference half of identity remains bound too."
+    }
+  ],
+  "acceptance_guidance": "The G3 consumer-side repair should require lifecycle.payload_ref == heard_result.payload_ref AND lifecycle.payload_sha256 == heard_result.payload_sha256 before exact heard-result memory evidence is admitted. Typed-memory validity remains necessary but cannot substitute for either relation. Preserve existing memory authority and do not introduce a second memory state or truth authority.",
+  "scope_guards": {
+    "wp717_g1_runtime_credit": "PRESERVE",
+    "wp717_g2_memory_context_runtime_credit": "PRESERVE_AT_CORRECTED_EXACT_SCOPE",
+    "canonical_memory_write_credit": 0,
+    "gwt_runtime_credit": 0,
+    "jspace_runtime_credit": 0,
+    "effect_credit": 0,
+    "physical_audio_credit": 0,
+    "training_credit": 0,
+    "whole_system_acceptance": false
+  },
+  "next_exact_action": "G3 mutation owner consumes VSR07C/VSR07D after refreshing main, adds them as adversarial regressions if not already covered, and rejects both one-field-only matches before repository acceptance. Do not dispatch VPS until the materially changed exact subject passes the full WP717 repository discriminator set."
+}
