@@ -1,0 +1,91 @@
+{
+  "schema": "FRANKENSTEIN_TRIGGER7_SOURCE_RESULT/v1",
+  "trigger": "7",
+  "research_id": "T7-ASR-009",
+  "objective": "E1_PORTABLE_QUANTIZED_NEMOTRON_SOURCE_AUDIT",
+  "semantic_key": "27ba00d794ccd9bebe352386f5819b59cadeb80a37cb9eac96f8d200e535838a",
+  "observed_f2_reentry_head_before_research": "9babeb57ed3fc4a5027c77ed5a4c51d517eca860",
+  "authority_fence": "T7-ASR-008 official Q8 comparator remains the current runtime subject. This result is source-only and creates no dispatch, mutation, runtime or acceptance authority.",
+  "official_baseline": {
+    "upstream": "nvidia/nemotron-3.5-asr-streaming-0.6b",
+    "revision_already_pinned_by_t7_asr006": "1c8deaecc64b91f034d73e08dd8b64625eb3395d",
+    "official_q8_sha256_already_pinned": "a5c435f294eea8f88ce68dd27b8c3bfea7f777cb2fbba04fcd30eaa555f429ae",
+    "german_locale": "de-DE",
+    "streaming_context_ms": [80, 160, 320, 560, 1120],
+    "scope": "official source baseline only; current ASR008 target/runtime evidence remains separate"
+  },
+  "source_watch": {
+    "huggingface_quantized_derivatives_observed": 44,
+    "interpretation": "candidate abundance is not evidence; only provenance-auditable derivatives that add a distinct LOCAL_SOLO resource/latency point deserve a later matched benchmark"
+  },
+  "candidates": [
+    {
+      "id": "smcleod/nemotron-3.5-asr-streaming-0.6b-int8",
+      "class": "COMMUNITY_DERIVATIVE_INT8_ONNX",
+      "source_url": "https://huggingface.co/smcleod/nemotron-3.5-asr-streaming-0.6b-int8",
+      "observed_verified_commit": "f1f26d22dab5c4eabe6d01b63c906889e7e817d3",
+      "license_observed": "OpenMDW-1.1",
+      "runtime": "parakeet-rs >= 0.3.6",
+      "artifact_summary": "INT8 ONNX encoder+decoder, packaged tar.gz about 432 MB; German prompt id de-DE/de present; cache tensors/config present",
+      "reproducibility": "conversion and quantization scripts are included; model card states FP32 ONNX export then dynamic QInt8 quantization",
+      "upstream_parity_evidence": "author reports encoder/NeMo pre-quantization parity for en-US/es-ES/ja-JP only; this is not German quantized transcript parity",
+      "source_scope_assessment": "PREFERRED_FIRST_PORTABLE_SUCCESSOR_FOR_EXACT_PIN_AUDIT",
+      "reason": "best observed combination of explicit derivative license, verified commit, reproducible conversion scripts and streaming cache configuration; still requires exact artifact hashes and German matched fidelity before any runtime promotion"
+    },
+    {
+      "id": "cstr/nemotron-3.5-asr-streaming-GGUF",
+      "class": "COMMUNITY_DERIVATIVE_Q4_K_GGUF",
+      "source_url": "https://huggingface.co/cstr/nemotron-3.5-asr-streaming-GGUF",
+      "exact_revision_status": "PIN_PENDING_BEFORE_ACQUISITION",
+      "license_observed": "OpenMDW-1.1",
+      "runtime": "CrispASR",
+      "artifact_summary": "Q4_K GGUF about 458 MB plus F16 about 1.3 GB; de-DE usage and cache-aware streaming knobs are documented",
+      "community_claims_not_promoted": [
+        "Q4_K identical text output on the model-card reference",
+        "approximately 2x faster on the model-card reference"
+      ],
+      "source_scope_assessment": "SECONDARY_PORTABLE_SUCCESSOR_AFTER_EXACT_REVISION_AND_CONVERSION_AUDIT",
+      "reason": "very attractive footprint and native streaming surface, but community one-sample parity/performance cannot establish German matched fidelity or F2 latency"
+    },
+    {
+      "id": "onnx-community/nemotron-3.5-asr-streaming-0.6b-onnx-int4",
+      "class": "COMMUNITY_DERIVATIVE_INT4_ONNX",
+      "source_url": "https://huggingface.co/onnx-community/nemotron-3.5-asr-streaming-0.6b-onnx-int4",
+      "observed_tree_revision": "ad805b70f4899a05d7d9979e2e7992be2fca3eb7",
+      "observed_encoder_pointer_sha256": "0b05217594ec0bda442e43a90a298ac2471a3bdcea9b169de34214e61a730e17",
+      "model_card_claim": "INT4 ONNX, 560 ms streaming optimization, multilingual prompt conditioning",
+      "license_status": "AUDIT_REQUIRED: model page metadata reports MIT while the NVIDIA base model is OpenMDW-1.1; do not acquire for product routing until derivative licensing/provenance is reconciled",
+      "source_scope_assessment": "REFERENCE_ONLY_NOT_PREFERRED_FOR_NEXT_RUNTIME"
+    }
+  ],
+  "hypothesis": "A provenance-clean portable quantized Nemotron runtime can reduce LOCAL_SOLO memory/disk/startup/compute enough to create a new ASR Pareto point without sacrificing German streaming quality.",
+  "counterhypothesis": "The official Q8 NeMo-Speech.cpp path already occupies the best practical CPU frontier; community quantization/runtime changes either degrade German accuracy/partial stability or trade auditability and semantic equivalence for a smaller artifact.",
+  "critical_confounds": [
+    "quantization precision",
+    "runtime implementation",
+    "decoder/search behavior",
+    "audio preprocessing",
+    "language-prompt conditioning",
+    "right-context preset semantics",
+    "paced versus unpaced ingress",
+    "fixture/gate identity"
+  ],
+  "acceptance_fences": [
+    "COMMUNITY_DERIVATIVE != OFFICIAL_MODEL_IDENTITY",
+    "COMMUNITY_MODEL_CARD_BENCHMARK != F2_GERMAN_QUALITY",
+    "SAME_BASE_MODEL != SAME_RUNTIME_CREDIT",
+    "SMALLER_ARTIFACT != LOWER_END_TO_END_LATENCY",
+    "Q4_REFERENCE_PARITY != MATCHED_FLEURS_PARITY",
+    "INT8_ENCODER_PARITY_NON_GERMAN != GERMAN_TRANSCRIPT_PARITY",
+    "UNPACED_COMPUTE_LATENCY != LIVE_REALTIME_LATENCY",
+    "T7_ASR009_SOURCE_AUDIT != T7_ASR008_REDISPATCH"
+  ],
+  "source_scope_result": "NEW_NONOVERLAPPING_PORTABLE_SUCCESSOR_DIRECTION_RETAINED",
+  "evidence_credit": 1,
+  "runtime_credit": 0,
+  "german_asr_quality_credit": 0,
+  "german_e2e_voice_credit": 0,
+  "trigger4_acceptance_credit": 0,
+  "whole_system_credit": 0,
+  "next_discriminator": "After T7-ASR-008 dispatch/receipt reconciliation, exact-pin ONE portable derivative first (prefer smcleod INT8 ONNX unless a stronger provenance-clean successor appears), hash every executable/model artifact, then run the identical pinned FLEURS de_de plus non-speech/gate corpus on the same target. Compare WER/CER, false activation, partial stability, paced first-partial/final latency, RTF, peak RSS, model size and startup against official Q8. Promote only a distinct measured Pareto point."
+}
