@@ -13,6 +13,8 @@ from pathlib import Path
 import subprocess
 import sys
 
+# FRESH10 execution marker only; no semantic change.
+
 
 def main() -> int:
     repo = Path(__file__).resolve().parents[3]
