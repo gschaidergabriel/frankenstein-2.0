@@ -1,0 +1,53 @@
+name: T7 F15 Candidate Restart Reentry CI
+
+on:
+  push:
+    branches:
+      - research/trigger7-f15-candidate-2026-09-01
+  pull_request:
+    branches:
+      - main
+    paths:
+      - tests/test_trigger7_f15_restart_reentry_candidate.py
+      - src/frankenstein2/voice_packet_cortex.py
+      - src/frankenstein2/voice_packet_cortex_recovery.py
+      - src/frankenstein2/voice_heard_result_reentry.py
+      - .github/workflows/t7-f15-candidate-ci.yml
+
+permissions:
+  contents: read
+
+jobs:
+  f15-candidate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout exact candidate subject
+        uses: actions/checkout@v4
+      - name: Record exact source identity
+        run: |
+          set -euo pipefail
+          git rev-parse HEAD
+          sha256sum \
+            src/frankenstein2/voice_packet_cortex.py \
+            src/frankenstein2/voice_packet_cortex_recovery.py \
+            src/frankenstein2/voice_heard_result_reentry.py \
+            tests/test_trigger7_f15_restart_reentry_candidate.py
+      - name: F15 closed restart exact-once candidate
+        env:
+          PYTHONPATH: src
+        run: |
+          set -euo pipefail
+          python3 -m unittest -v tests.test_trigger7_f15_restart_reentry_candidate
+      - name: Existing recovery regression suite
+        env:
+          PYTHONPATH: src
+        run: |
+          set -euo pipefail
+          python3 -m unittest -v tests.test_voice_packet_cortex_recovery
+      - name: Existing heard-result reentry regression suite
+        env:
+          PYTHONPATH: src
+        run: |
+          set -euo pipefail
+          python3 -m unittest -v tests.test_voice_heard_result_reentry
