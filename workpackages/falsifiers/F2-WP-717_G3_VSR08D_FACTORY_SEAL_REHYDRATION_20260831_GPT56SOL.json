@@ -1,0 +1,42 @@
+{
+  "schema": "FRANKENSTEIN2_CANDIDATE_FALSIFIER/v1",
+  "workpackage_id": "F2-WP-717",
+  "generation": 3,
+  "claim_id_observed": "F2-WP-717-G3-GPT56SOL-MEMORY-GWT-LINEAGE-FENCES-20260831",
+  "worker_id": "GPT-5.6-Sol-Trigger4-Independent-Falsifier",
+  "result_class": "CANDIDATE_FALSIFIER",
+  "mutation_authority": false,
+  "falsifier_id": "VSR08D_FACTORY_SEAL_REHYDRATION",
+  "basis": {
+    "binding_type": "GwtReentryUptakeBinding",
+    "factory_field": "_factory_seal is process-local object identity and is excluded from as_dict()/sha256()",
+    "deep_validator": "validate_reentry_uptake_binding rebuilds from exact witness, uptake receipt, plan, selection, broadcast and cell_input"
+  },
+  "risk": "A G3 repair that treats _factory_seal presence as exact GWT lineage authority creates process-local authority. A legitimate factory-produced binding serialized through its public canonical payload and rehydrated in another process/restart cannot reproduce the private object-identity seal, while a seal-preserving in-process dataclasses.replace mutation is separately covered by VSR08C.",
+  "setup": [
+    "Create one valid binding with bind_reentry_to_uptake() from exact admitted WP507/WP508 source objects.",
+    "Serialize only the binding's canonical public payload via as_dict() or an equivalent durable record that intentionally excludes process-local object identity.",
+    "Cross a process/restart boundary and reconstruct the public binding fields without inventing a private seal.",
+    "Exercise the proposed WP717 exact-GWT consumer path with the original exact source-lineage objects available for revalidation."
+  ],
+  "required_result": "Exact GWT semantics must be recoverable by revalidating the existing WP507/WP508 source-lineage authority after rehydration; the consumer must not require an unreconstructible process-local seal as the sole authority and must not promote a rehydrated binding without deep source-lineage validation.",
+  "failure_signatures": [
+    "LEGITIMATE_EXACT_LINEAGE_REJECTED_ONLY_BECAUSE_PROCESS_LOCAL_SEAL_WAS_NOT_SERIALIZED",
+    "REHYDRATED_BINDING_ACCEPTED_AS_EXACT_WITHOUT_VALIDATE_REENTRY_UPTAKE_BINDING_OR_EQUIVALENT_SOURCE_PROOF",
+    "PROCESS_LOCAL_FACTORY_MARKER_TREATED_AS_DURABLE_CANONICAL_GWT_AUTHORITY"
+  ],
+  "why_high_information": "Together with VSR08C this closes both sides of a superficial seal-based repair: VSR08C catches false acceptance after seal-preserving mutation; VSR08D catches false dependence on an ephemeral seal across persistence/restart. The existing deep validator already provides the reusable non-duplicate authority path.",
+  "repair_guidance": "Keep _factory_seal as an optional in-process fast-path marker only. For exact GWT lineage after any serialization/restart boundary, carry or resolve the exact existing witness/uptake/plan/selection/broadcast/cell_input identities and call validate_reentry_uptake_binding, or use an already-admitted immutable proof that is cryptographically bound to those exact identities and the binding digest. Do not create a second GWT authority.",
+  "scope_guards": {
+    "wp717_g1_runtime_credit": "PRESERVE",
+    "wp717_g2_memory_context_runtime_credit": "PRESERVE_AT_CORRECTED_EXACT_SCOPE",
+    "canonical_memory_write_credit": 0,
+    "gwt_runtime_credit": 0,
+    "jspace_runtime_credit": 0,
+    "effect_credit": 0,
+    "physical_audio_credit": 0,
+    "training_credit": 0,
+    "whole_system_acceptance": false
+  },
+  "next_exact_action": "G3 mutation owner incorporates VSR08D when choosing the smallest GWT lineage repair. Repository CI must pass VSR07/VSR08/VSR08C/VSR08D before any new exact-source VPS promotion subject is bound; real GWT runtime credit still requires measured uptake/re-entry rather than fixture construction."
+}
