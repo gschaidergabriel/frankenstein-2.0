@@ -1,0 +1,63 @@
+{
+  "schema": "F2_TRIGGER4_CANDIDATE_FALSIFIER/v1",
+  "trigger": "4",
+  "research_id": "T7-ASR-008",
+  "observed_at_local": "2026-08-31T09:27:00+07:00",
+  "organ": "GPT-5.6-Sol",
+  "work_class": "CANDIDATE_FALSIFIER",
+  "classification": "ASR008_STRICT_CONTRACT_WRAPPER_CALLS_REMOVED_PCM_API",
+  "failure_taxonomy": "EVIDENCE_INVALID",
+  "authority_snapshot": {
+    "controller_strict_workflow_commit": "04342febec5b2c979cafc7653d259cb3330f6abd",
+    "controller_failure_persistence_commit": "cd10be63c4760edcc11cca672eca94fe88f16f2a",
+    "contract_wrapper_blob_sha": "8cf7353de59920896f3360586f7803eaacdc5d38",
+    "pcm_wrapper_blob_sha": "2462caff86b9401890dc3161eae556ce60cd18a7",
+    "f2_acceptance_commit": "5fdfa1919880ee1b41b3ceb30ef3be0b1055ad38",
+    "f2_subject": "4727b94eeda381f3dcbe4d494eb72f91ce17b478",
+    "target_surface": "clay-direct-dev",
+    "new_mutation_authority": false,
+    "new_runtime_dispatch": false,
+    "credit_delta": 0
+  },
+  "static_discriminator": {
+    "caller_path": "tools/trigger4/t7_nemotron35_validator_contract_wrapper.py",
+    "caller_expression": "pcm.enrich_receipt(output, base, comparator)",
+    "callee_path": "tools/trigger4/t7_nemotron35_pcm16_wrapper.py",
+    "observed_callee_api": [
+      "install_pcm16_adapter",
+      "run_deterministic_replay",
+      "build_f2_receipt",
+      "self_check_contract",
+      "failure_receipt",
+      "main"
+    ],
+    "enrich_receipt_present": false,
+    "predicted_exception": "AttributeError: module 'asr008_pcm' has no attribute 'enrich_receipt'",
+    "failure_point": "after base.main() completes the expensive comparator matrix and before canonical validator-envelope construction",
+    "interpretation": "The newly bound validator-contract wrapper is statically incompatible with the current PCM wrapper API. A future run using the strict workflow can spend the full comparator runtime and then abort before validator admission. This is a validity defect in the future promotion path, not evidence against Nemotron ASR behavior."
+  },
+  "current_runtime_fence": {
+    "active_run_id": 33345363593,
+    "active_head_sha": "a636fc2f2e7c8f96561e62b768493933711ad282",
+    "active_state_at_latest_reconciliation": "IN_PROGRESS",
+    "active_run_must_not_be_redispatched": true,
+    "semantic_successor_dispatch_allowed_now": false,
+    "note": "This static finding does not mutate or replace the current singleton runtime subject. Repair source only; dispatch remains deferred until the active run is terminal and reconciled."
+  },
+  "required_repair": {
+    "smallest_change": "Remove the stale pcm.enrich_receipt(...) call from the validator-contract wrapper, or restore an exactly equivalent compatibility function with a regression proving the API contract before any new ASR008 dispatch.",
+    "preferred": "Remove the stale call because the contract wrapper already reconstructs fixtures and builds the validator receipt itself; do not create another adapter authority.",
+    "pre_dispatch_regression": "Import both current wrapper modules and assert that every cross-module callable referenced by the strict wrapper exists; then run a synthetic no-model contract-shape test before consuming target runtime."
+  },
+  "credits": {
+    "nemotron_target_runtime_credit": 0,
+    "german_asr_quality_credit": 0,
+    "trigger4_acceptance_credit": 0,
+    "physical_device_credit": 0,
+    "gwt_jspace_credit": 0,
+    "effect_credit": 0,
+    "training_credit": 0,
+    "whole_product_credit": 0
+  },
+  "next_exact_action": "Repair the stale cross-wrapper API reference without dispatching ASR008; add a cheap pre-dispatch import/API regression. Separately wait for run 33345363593 to become terminal and reconcile its exact receipt before deciding whether exactly one strict validator-bound rerun is still required."
+}
