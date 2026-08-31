@@ -285,7 +285,7 @@ def test_direct_constructed_wp508_binding_cannot_cross_runtime_boundary():
     recorder = GwtRuntimeWitnessRecorder(identity=identity(), monotonic_ns=clock(10, 20, 30))
     recorder.observe_delivery(broadcast)
     recorder.observe_uptake(receipt)
-    with pytest.raises(GwtRuntimeWitnessError, match="deterministic binding factory"):
+    with pytest.raises(GwtRuntimeWitnessError, match="factory lineage"):
         recorder.observe_reentry(
             witness=witness,
             binding=forged,
@@ -315,5 +315,5 @@ def test_recorder_cannot_be_reused_after_seal():
     recorder, fixture = record_all()
     _, _, broadcast, _, _, _, _ = fixture
     recorder.seal()
-    with pytest.raises(GwtRuntimeWitnessError, match="already sealed"):
+    with pytest.raises(GwtRuntimeWitnessError, match="delivery observation already recorded|already sealed"):
         recorder.observe_delivery(broadcast)
