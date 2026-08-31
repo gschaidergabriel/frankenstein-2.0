@@ -1,0 +1,83 @@
+{
+  "schema": "F2_TRIGGER4_CANDIDATE_FALSIFIER/v1",
+  "trigger": "4",
+  "research_id": "T7-ASR-008",
+  "observed_at_utc": "2026-08-31T00:36:00Z",
+  "classification": "EVIDENCE_INVALID_RUNTIME_HARNESS_FIXTURE_FORMAT_REJECTION",
+  "failure_taxonomy": "EVIDENCE_INVALID",
+  "canonical_f2_head_observed_before_write": "9741bc9a6d94f096437e23b728d536339ed11a82",
+  "bound_runtime": {
+    "controller_repo": "gschaidergabriel/Dr.-Unterweger",
+    "controller_dispatch_commit": "823920bd770c16ca9855610d56d64a669a8063b0",
+    "workflow_run_id": 33340567051,
+    "workflow_status": "completed",
+    "workflow_conclusion": "failure",
+    "target_surface": "clay-direct-dev",
+    "runner": "vps-clay-host",
+    "f2_probe_commit": "4727b94eeda381f3dcbe4d494eb72f91ce17b478",
+    "persisted_evidence_commit": "1bb96639a519abc8b5e373ffcdaaefa58d15fe17"
+  },
+  "executed_failure": {
+    "stage": "EXACT_COMPARATOR",
+    "exit_code": 1,
+    "exception": "wave.Error: unknown format: 3",
+    "call_path": [
+      "main",
+      "prepare_fixtures",
+      "validate_wav",
+      "wave.open"
+    ],
+    "source_location": "tools/trigger4/t7_nemotron35_target_comparator.py:validate_wav",
+    "meaning": "The comparator rejects a FLEURS WAV encoded as WAVE_FORMAT_IEEE_FLOAT (format tag 3) before Nemotron transcription starts. Python stdlib wave does not accept this input encoding."
+  },
+  "source_observation": {
+    "comparator_validate_wav_uses_python_wave": true,
+    "prepare_fixtures_writes_raw_FLEURS_audio_bytes_then_requires_mono_16k_sample_width_2": true,
+    "controller_workflow_already_installs_soundfile_0_13_1": true
+  },
+  "epistemic_scope": {
+    "nemotron_model_executed_on_bound_speech_fixture": false,
+    "german_asr_quality_measured": false,
+    "right_context_comparison_measured": false,
+    "latency_measured": false,
+    "product_negative": false,
+    "runtime_harness_validity_defect": true,
+    "runtime_credit": 0,
+    "german_asr_quality_credit": 0,
+    "physical_device_credit": 0,
+    "gwt_jspace_credit": 0,
+    "effect_credit": 0,
+    "training_credit": 0,
+    "whole_product_credit": 0
+  },
+  "root_cause": {
+    "status": "CONFIRMED",
+    "cause": "Fixture validation assumes stdlib-wave-readable PCM WAV while the pinned FLEURS source bytes can be IEEE-float WAV. The harness therefore fails before the claimed ASR discriminator is exercised.",
+    "not_caused_by": [
+      "Nemotron recognition quality",
+      "RNNT right-context behavior",
+      "target runner absence",
+      "queued/nonexecuted workflow"
+    ]
+  },
+  "existing_contract_conflict": {
+    "still_open": true,
+    "prior_falsifier_commit": "9a3e23a5a36d1ea0255f460eb08d293624a782ee",
+    "note": "Even a successful rerun remains non-promotable until the controller receipt envelope is reconciled with the current F2 fail-closed validator contract without rewriting measured facts."
+  },
+  "repair_constraint": {
+    "preferred": "Reuse the already-installed soundfile decoder to inspect/decode float WAV and produce an explicit deterministic mono 16 kHz PCM16 derived fixture only if this preserves the admitted ASR004 comparison semantics.",
+    "required_provenance": [
+      "preserve source FLEURS row/revision",
+      "preserve original source-byte sha256",
+      "record normalized fixture sha256 separately",
+      "record conversion method/version",
+      "fail closed if sample rate/channel assumptions differ",
+      "do not silently claim the normalized bytes are identical to ASR004 fixtures"
+    ],
+    "comparison_fence": "If ASR004 baselines were measured on materially different fixture bytes or preprocessing, baseline comparability must be re-established before quality conclusions."
+  },
+  "runtime_subject_action": "REPAIR_REQUIRED_BEFORE_VALID_DISCRIMINATOR",
+  "next_exact_action": "Repair only the fixture decode/normalization boundary with explicit dual source/derived hashes, preserve ASR004 comparison semantics, reconcile the receipt contract, then execute one nonduplicate bound comparator run on vps-clay-host. Classify the resulting execution independently; do not mint runtime or quality credit from this failure.",
+  "scope_fence": "This records exact executable counterevidence against the ASR008 harness validity only. It is not evidence that Nemotron itself failed, and it does not authorize broader product/runtime/training credit."
+}
