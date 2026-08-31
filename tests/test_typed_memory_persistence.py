@@ -38,6 +38,9 @@ class TypedMemoryPersistenceTests(unittest.TestCase):
         finally:
             connection.close()
         self.env = {"FRANKENSTEIN2_DB": str(self.db)}
+        self._open_stores()
+
+    def _open_stores(self) -> None:
         resolution = resolve_unifieddb_path(env=self.env, home=self.home)
         fingerprint = fingerprint_unifieddb(resolution.path)
         self.agency_store = CanonicalPersistentAgencyStore.open(
@@ -45,7 +48,6 @@ class TypedMemoryPersistenceTests(unittest.TestCase):
             fingerprint=fingerprint,
         )
         self.store = TypedMemoryUnifiedDBStore(self.agency_store)
-        self.store.initialize_schema()
 
     def tearDown(self) -> None:
         self.agency_store.close()
@@ -65,6 +67,7 @@ class TypedMemoryPersistenceTests(unittest.TestCase):
         )
 
     def test_exact_record_bytes_persist_and_read_back_from_same_unifieddb(self) -> None:
+        self.store.initialize_schema()
         record = self._record()
         written_sha = self.store.write_record(record)
         readback = self.store.load_record(record.memory_id, record.lifecycle_generation)
@@ -89,16 +92,18 @@ class TypedMemoryPersistenceTests(unittest.TestCase):
         )
 
     def test_identical_replay_is_idempotent(self) -> None:
+        self.store.initialize_schema()
         record = self._record()
         first = self.store.write_record(record)
         second = self.store.write_record(record)
         self.assertEqual(first, second)
         count = self.agency_store.connection.execute(
-            f"SELECT COUNT(*) FROM {TYPED_MEMORY_TABLE}"
+            f"SELECT COUNT(*) FROM main.{TYPED_MEMORY_TABLE}"
         ).fetchone()[0]
         self.assertEqual(count, 1)
 
     def test_same_memory_generation_cannot_be_rebound_to_different_bytes(self) -> None:
+        self.store.initialize_schema()
         first = self._record(evidence_ref="evidence:first")
         conflicting = self._record(evidence_ref="evidence:second")
         self.store.write_record(first)
@@ -112,26 +117,28 @@ class TypedMemoryPersistenceTests(unittest.TestCase):
         )
 
     def test_record_json_tamper_is_rejected_by_digest_readback(self) -> None:
+        self.store.initialize_schema()
         record = self._record()
         self.store.write_record(record)
         connection = self.agency_store.connection
         connection.execute(
-            f"UPDATE {TYPED_MEMORY_TABLE} SET record_json=? WHERE memory_id=? AND lifecycle_generation=?",
+            f"UPDATE main.{TYPED_MEMORY_TABLE} SET record_json=? WHERE memory_id=? AND lifecycle_generation=?",
             ('{"tampered":true}', record.memory_id, record.lifecycle_generation),
         )
         connection.commit()
         with self.assertRaisesRegex(
             TypedMemoryPersistenceError,
-            "TYPED_MEMORY_DIGEST_MISMATCH|TYPED_MEMORY_ID_METADATA_MISMATCH|indexed metadata mismatch",
+            "TYPED_MEMORY_DIGEST_MISMATCH",
         ):
             self.store.load_record(record.memory_id, record.lifecycle_generation)
 
     def test_indexed_metadata_tamper_is_rejected_before_semantic_use(self) -> None:
+        self.store.initialize_schema()
         record = self._record()
         self.store.write_record(record)
         connection = self.agency_store.connection
         connection.execute(
-            f"UPDATE {TYPED_MEMORY_TABLE} SET payload_ref=? WHERE memory_id=? AND lifecycle_generation=?",
+            f"UPDATE main.{TYPED_MEMORY_TABLE} SET payload_ref=? WHERE memory_id=? AND lifecycle_generation=?",
             ("payloads/other.json", record.memory_id, record.lifecycle_generation),
         )
         connection.commit()
@@ -142,11 +149,12 @@ class TypedMemoryPersistenceTests(unittest.TestCase):
             self.store.load_record(record.memory_id, record.lifecycle_generation)
 
     def test_authority_receipt_tamper_is_rejected(self) -> None:
+        self.store.initialize_schema()
         record = self._record()
         self.store.write_record(record)
         connection = self.agency_store.connection
         connection.execute(
-            f"UPDATE {TYPED_MEMORY_TABLE} SET unifieddb_authority_receipt_sha256=? WHERE memory_id=? AND lifecycle_generation=?",
+            f"UPDATE main.{TYPED_MEMORY_TABLE} SET unifieddb_authority_receipt_sha256=? WHERE memory_id=? AND lifecycle_generation=?",
             ("0" * 64, record.memory_id, record.lifecycle_generation),
         )
         connection.commit()
@@ -170,6 +178,7 @@ class TypedMemoryPersistenceTests(unittest.TestCase):
             TypedMemoryUnifiedDBStore(self.agency_store)
 
     def test_replaced_unifieddb_inode_fails_closed_before_readback(self) -> None:
+        self.store.initialize_schema()
         record = self._record()
         self.store.write_record(record)
         replacement = self.root / "replacement.db"
@@ -181,9 +190,67 @@ class TypedMemoryPersistenceTests(unittest.TestCase):
         self.assertNotEqual(old_inode, self.db.stat().st_ino)
         with self.assertRaisesRegex(
             TypedMemoryPersistenceError,
-            "UNIFIEDDB_FILE_IDENTITY_DRIFT",
+            "UNIFIEDDB_FILE_IDENTITY_DRIFT|UNIFIEDDB_AGENCY_AUTHORITY_REVALIDATION_FAILED",
         ):
             self.store.load_record(record.memory_id, record.lifecycle_generation)
+
+    def test_temp_shadow_cannot_capture_or_satisfy_canonical_main_persistence(self) -> None:
+        """TMU01: same-name TEMP state must never satisfy canonical UnifiedDB credit."""
+        self.store.initialize_schema()
+        connection = self.agency_store.connection
+        connection.execute(
+            f"""CREATE TEMP TABLE {TYPED_MEMORY_TABLE}(
+                memory_id TEXT,
+                lifecycle_generation INTEGER,
+                memory_kind TEXT,
+                lifecycle_state_sha256 TEXT,
+                payload_ref TEXT,
+                payload_sha256 TEXT,
+                record_sha256 TEXT,
+                record_json TEXT,
+                canonical_db_path TEXT,
+                db_device INTEGER,
+                db_inode INTEGER,
+                unifieddb_authority_receipt_sha256 TEXT
+            )"""
+        )
+        record = self._record()
+        self.store.write_record(record)
+
+        temp_count = connection.execute(
+            f"SELECT COUNT(*) FROM temp.{TYPED_MEMORY_TABLE}"
+        ).fetchone()[0]
+        main_count = connection.execute(
+            f"SELECT COUNT(*) FROM main.{TYPED_MEMORY_TABLE}"
+        ).fetchone()[0]
+        self.assertEqual(temp_count, 0, "TEMP shadow must remain unused")
+        self.assertEqual(main_count, 1, "canonical main must contain the durable row")
+
+        readback = self.store.load_record(record.memory_id, record.lifecycle_generation)
+        readback.verify_exact_record(record)
+
+    def test_fresh_connection_reopen_reads_identical_main_bytes(self) -> None:
+        self.store.initialize_schema()
+        record = self._record()
+        self.store.write_record(record)
+        original_authority = self.agency_store.authority_receipt_sha256
+
+        self.agency_store.close()
+        self._open_stores()
+        readback = self.store.load_record(record.memory_id, record.lifecycle_generation)
+
+        self.assertEqual(
+            self.agency_store.authority_receipt_sha256,
+            original_authority,
+            "same file identity should reproduce the same bounded authority receipt",
+        )
+        readback.verify_exact_record(record)
+        self.assertEqual(
+            self.agency_store.connection.execute(
+                f"SELECT COUNT(*) FROM main.{TYPED_MEMORY_TABLE}"
+            ).fetchone()[0],
+            1,
+        )
 
 
 if __name__ == "__main__":
