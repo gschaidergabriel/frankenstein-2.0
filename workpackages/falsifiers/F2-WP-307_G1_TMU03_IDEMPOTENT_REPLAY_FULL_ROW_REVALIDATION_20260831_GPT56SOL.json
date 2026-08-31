@@ -1,0 +1,40 @@
+{
+  "schema": "FRANKENSTEIN2_CANDIDATE_FALSIFIER/v1",
+  "workpackage_id": "F2-WP-307",
+  "generation": 1,
+  "claim_id_observed": "F2-WP-307-G1-GPT56SOL-TYPED-MEMORY-UNIFIEDDB-READBACK-20260831",
+  "worker_id": "GPT-5.6-Sol-Trigger4-Independent-Falsifier",
+  "result_class": "CANDIDATE_FALSIFIER",
+  "mutation_authority": false,
+  "falsifier_id": "TMU03_IDEMPOTENT_REPLAY_MUST_REVALIDATE_FULL_EXISTING_ROW",
+  "source_subject": {
+    "typed_memory_persistence_blob_sha": "ed9f1d2fdbe046d7e59d76597522468650456240"
+  },
+  "source_observation": "Current WP307 source has already repaired TMU01 by schema-qualifying writes/reads to main and adding immediate post-write canonical-main readback. The remaining existing-row replay branch still SELECTs only record_sha256 and record_json. If those two fields equal the caller's exact TypedMemoryRecord, it commits and returns success without revalidating stored indexed metadata or stored canonical_db_path/db_device/db_inode/unifieddb_authority_receipt_sha256. load_record() has stronger validation, but the replay success path does not call or duplicate those checks.",
+  "hypothesis": "A previously admitted row can be partially corrupted in an indexed or database-authority column while record_sha256 and record_json remain unchanged; an identical replay can then return success and be counted as idempotent even though the existing persisted row is invalid and a subsequent load_record() rejects it.",
+  "setup": [
+    "Create one canonical UnifiedDB and persist a valid TypedMemoryRecord through the public WP307 store.",
+    "Directly mutate one existing-row column that write_record() does not select on replay while preserving record_sha256 and record_json exactly. Use payload_ref for the indexed-metadata variant and unifieddb_authority_receipt_sha256 for the authority variant.",
+    "Commit the corruption in main.f2_typed_memory_records.",
+    "Call write_record() again with the original exact TypedMemoryRecord.",
+    "Record whether write_record() returns the original digest as successful idempotent replay.",
+    "Immediately call load_record() for the same key and record whether the stronger readback validator rejects the corrupted row."
+  ],
+  "required_result": "IDEMPOTENT_REPLAY_MUST_NOT_RETURN_SUCCESS_UNLESS_THE_EXISTING_PERSISTED_ROW_STILL_PASSES_THE_SAME_EXACT_ROW_AND_DATABASE_AUTHORITY_INVARIANTS_REQUIRED_FOR_READBACK",
+  "failure_signature": "write_record(original_record) returns the original record_sha256 after partial row corruption, while load_record(memory_id,generation) then fails with indexed-metadata or database-authority mismatch. Replay has therefore acknowledged an invalid persisted state as idempotent success.",
+  "why_high_information": "The active claim explicitly requires idempotent replay and fail-closed exact same-UnifiedDB readback. Existing tests prove clean replay and prove tamper rejection when load_record() is invoked. TMU03 tests the causal gap between those paths and is independent of TMU01 TEMP-table shadowing and TMU02 coherent full-row rewrite.",
+  "repair_guidance": "On the existing-row replay path, validate the complete persisted row under the same checks used by load_record() before returning idempotent success, or factor one shared exact-row validator used by both replay and readback. A corrupt existing row should fail closed; do not silently heal it, do not create a second database or state authority, and preserve the exact WP206 canonical UnifiedDB identity boundary.",
+  "scope_guards": {
+    "repository_component_ci_regression_credit": 0,
+    "target_environment_component_runtime_credit": 0,
+    "canonical_memory_write_credit": 0,
+    "gwt_runtime_credit": 0,
+    "jspace_runtime_credit": 0,
+    "effect_credit": 0,
+    "physical_credit": 0,
+    "training_credit": 0,
+    "completion_credit": 0,
+    "whole_system_acceptance": false
+  },
+  "next_exact_action": "WP307 mutation owner adds TMU03 as an executable repository discriminator. Require corrupt-existing-row replay to fail closed before repository acceptance; only after the full discriminator set is green should the identical accepted source become a VPS fresh-process readback subject."
+}
