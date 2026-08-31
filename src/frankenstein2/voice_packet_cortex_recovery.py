@@ -139,10 +139,24 @@ def resume_packet_cortex(
         if cortex._closed_outcome is None:
             raise VoicePacketCortexError("closed checkpoint requires terminal outcome")
         close_events = [event for event in cortex._events if event.event_kind == "SESSION_CLOSE"]
-        if not close_events:
-            raise VoicePacketCortexError("closed checkpoint requires SESSION_CLOSE event")
-        close_event = close_events[-1]
+        if len(close_events) != 1:
+            raise VoicePacketCortexError("closed checkpoint requires exactly one SESSION_CLOSE event")
+        close_event = close_events[0]
         outcome = cortex._closed_outcome
+        expected_close_packet_refs = tuple(sorted(
+            packet.packet_id for packet in cortex._outputs.values() if packet.commit_eligible
+        ))
+        if close_event.packet_refs != expected_close_packet_refs:
+            raise VoicePacketCortexError("closed checkpoint SESSION_CLOSE packet_refs mismatch restored commit-eligible outputs")
+        for packet in cortex._outputs.values():
+            expected_outcome_ref = outcome.outcome_id if packet.commit_eligible else None
+            if packet.voiceoutcome_ref != expected_outcome_ref:
+                raise VoicePacketCortexError("closed checkpoint output VoiceOutcome binding mismatch")
+        expected_close_detail = (
+            f"voiceoutcome={outcome.outcome_id};commit_eligible_outputs={len(expected_close_packet_refs)}"
+        )
+        if close_event.detail != expected_close_detail:
+            raise VoicePacketCortexError("closed checkpoint SESSION_CLOSE detail mismatch terminal outcome")
         cortex._closed_signature = (
             close_event.turn_id,
             close_event.monotonic_ms,
