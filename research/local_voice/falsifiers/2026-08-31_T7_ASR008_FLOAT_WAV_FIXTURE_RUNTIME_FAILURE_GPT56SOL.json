@@ -1,0 +1,52 @@
+{
+  "schema": "F2_TRIGGER4_CANDIDATE_FALSIFIER/v1",
+  "trigger": "4",
+  "research_id": "T7-ASR-008",
+  "observed_at_utc": "2026-08-31T00:16:00Z",
+  "classification": "EVIDENCE_INVALID_FIXTURE_FORMAT_COMPATIBILITY_DEFECT",
+  "bound_runtime": {
+    "controller_repo": "gschaidergabriel/Dr.-Unterweger",
+    "controller_subject": "823920bd770c16ca9855610d56d64a669a8063b0",
+    "workflow_run_id": 33340567051,
+    "workflow_job_id": 99335343526,
+    "runner": "vps-clay-host",
+    "target_surface": "clay-direct-dev",
+    "f2_probe_commit": "4727b94eeda381f3dcbe4d494eb72f91ce17b478",
+    "evidence_commit": "1bb96639a519abc8b5e373ffcdaaefa58d15fe17",
+    "execution_step": "Run exact bound Nemotron 3.5 comparator in clay-direct-dev",
+    "execution_step_conclusion": "failure",
+    "failure_stage": "EXACT_COMPARATOR"
+  },
+  "root_cause_evidence": {
+    "exception": "wave.Error: unknown format: 3",
+    "location": "tools/trigger4/t7_nemotron35_target_comparator.py::validate_wav",
+    "meaning": "Python stdlib wave rejected an IEEE-float WAV fixture before ASR transcription/model measurement.",
+    "runtime_execution_observed": true,
+    "model_quality_measurement_observed": false,
+    "product_negative": false
+  },
+  "failure_taxonomy": "EVIDENCE_INVALID",
+  "runtime_subject_action": "RUNTIME_PROBE_INVALIDATED_BY_REQUIRED_REPAIR",
+  "required_repair": {
+    "scope": "fixture preparation only",
+    "minimal_change": "Decode the exact FLEURS source fixture with the already-installed soundfile dependency and deterministically write mono 16 kHz PCM16 WAV before stdlib-wave/VAD/Nemotron consumption.",
+    "provenance_fence": "Preserve the immutable source bytes SHA-256 separately from the normalized PCM16 fixture SHA-256; do not relabel normalized bytes as source bytes.",
+    "format_fence": "Fail closed unless normalized output is mono, 16000 Hz, sample_width_bytes=2.",
+    "dispatch_fence": "After repair, dispatch exactly one new comparator run bound to the repaired controller commit/comparator hash. Do not compose this failed run into runtime or ASR-quality credit."
+  },
+  "separate_open_evidence_defect": {
+    "type": "CONTROLLER_RECEIPT_VS_F2_VALIDATOR_CONTRACT_MISMATCH",
+    "note": "Even after fixture repair, promotion remains blocked until the emitted receipt is reconciled to one explicit F2 validation contract without rewriting measured values or inventing missing identity/geometry/determinism facts."
+  },
+  "credit": {
+    "nemotron_target_runtime_credit": 0,
+    "german_asr_quality_credit": 0,
+    "trigger4_acceptance_credit": 0,
+    "physical_device_credit": 0,
+    "gwt_jspace_credit": 0,
+    "effect_credit": 0,
+    "training_credit": 0,
+    "whole_product_credit": 0
+  },
+  "next_exact_action": "Repair only fixture normalization/provenance in the controller comparator, then issue one exact bound rerun; if it reaches receipt emission, validate/reconcile the receipt envelope before any promotion."
+}
