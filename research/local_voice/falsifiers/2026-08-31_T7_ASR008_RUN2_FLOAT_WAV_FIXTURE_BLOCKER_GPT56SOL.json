@@ -1,0 +1,60 @@
+{
+  "schema": "F2_TRIGGER4_CANDIDATE_FALSIFIER/v1",
+  "trigger": "4",
+  "research_id": "T7-ASR-008",
+  "classification": "HARNESS_FIXTURE_PRODUCT_NEGATIVE_BEFORE_ASR_MEASUREMENT",
+  "observed_at_utc": "2026-08-31T00:36:00Z",
+  "bound_runtime": {
+    "controller_repo": "gschaidergabriel/Dr.-Unterweger",
+    "controller_subject": "823920bd770c16ca9855610d56d64a669a8063b0",
+    "workflow_run_id": 33340567051,
+    "workflow_conclusion": "failure",
+    "runner": "vps-clay-host",
+    "target_surface": "clay-direct-dev",
+    "f2_probe_commit": "4727b94eeda381f3dcbe4d494eb72f91ce17b478"
+  },
+  "exact_observation": {
+    "evidence_commit": "1bb96639a519abc8b5e373ffcdaaefa58d15fe17",
+    "exit_code": 1,
+    "failure_stage": "EXACT_COMPARATOR",
+    "exception": "wave.Error: unknown format: 3",
+    "failure_boundary": "prepare_fixtures -> validate_wav on FLEURS speech fixture",
+    "meaning": "Python stdlib wave rejected a WAV whose fmt wFormatTag is 3 (IEEE float) before any Nemotron transcription condition executed."
+  },
+  "failure_taxonomy": {
+    "class": "PRODUCT_NEGATIVE",
+    "scope": "ASR008 comparator fixture-normalization/validation harness only",
+    "not_a_conclusion_about": [
+      "Nemotron ASR quality",
+      "Nemotron model runtime correctness",
+      "German ASR quality",
+      "physical audio devices",
+      "whole voice loop"
+    ],
+    "reason": "The exact comparator executable ran on the admitted VPS target surface and deterministically failed its own fixture ingestion invariant. The measured model discriminator was never reached."
+  },
+  "counterhypothesis": "FLEURS decode=False preserves source audio encoding and does not guarantee PCM16 WAV even when the path suffix is .wav; validating with Python wave before canonical PCM conversion is therefore an invalid harness assumption.",
+  "smallest_repair": {
+    "goal": "Canonicalize each selected FLEURS speech fixture to mono 16 kHz signed PCM16 before validate_wav, hashing both source identity and canonical execution bytes.",
+    "requirements": [
+      "Do not silently relabel/overwrite source-byte identity as execution-byte identity.",
+      "Preserve FLEURS repo/config/revision/row identity.",
+      "Record source_audio_sha256 and canonical_pcm16_sha256 separately.",
+      "Canonical output must be mono, 16000 Hz, 16-bit PCM and then pass the existing gate/transcriber path.",
+      "Add a regression fixture or unit test proving IEEE-float WAV input is normalized rather than rejected.",
+      "Do not change ASR metrics, right-context semantics, baseline values or credit policy as part of this repair."
+    ]
+  },
+  "runtime_subject_action": "RUNTIME_PROBE_INVALIDATED_BY_REQUIRED_REPAIR",
+  "next_exact_action": "Repair only the controller fixture-normalization boundary, execute a deterministic local/repository regression for format-tag-3 input, then dispatch one new exact-source ASR008 target comparator. Preserve runs 33340366984 and 33340567051 as historical negative evidence; do not reinterpret either as model-quality evidence.",
+  "credit": {
+    "nemotron_target_runtime_credit": 0,
+    "german_asr_quality_credit": 0,
+    "trigger4_acceptance_credit": 0,
+    "physical_device_credit": 0,
+    "gwt_jspace_credit": 0,
+    "effect_credit": 0,
+    "training_credit": 0,
+    "whole_product_credit": 0
+  }
+}
