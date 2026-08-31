@@ -1,16 +1,12 @@
 """Fail-closed VoiceOutcome -> heard-result/context/memory/GWT reference integration.
 
-F2-WP-717 generation 1.
+F2-WP-717 generation 1. This adapter is outside the accepted WP704/WP715 contracts.
+It binds the exact ordered fully-heard output subject before state/memory/context promotion.
+The pre-close output identity is the full canonical VoiceOutputPacket payload with only
+``voiceoutcome_ref`` normalized to ``None`` to break the unavoidable result/outcome digest cycle.
 
-This module deliberately sits *outside* the accepted WP704/WP715 contracts.  WP704
-VoiceOutcome.result_ref/result_sha256 is provenance/identity evidence only, and WP715 may
-therefore close a session with any syntactically valid result pair once at least one output is
-commit-eligible.  This adapter adds the missing consumer-side fence: before a VoiceOutcome result
-can be used as the exact heard result for next-turn/state/memory/context integration, its result
-identity must equal a deterministic aggregate of the exact ordered fully-heard output payloads.
-
-No UnifiedDB write, model/provider call, GWT uptake observation, tool/effect execution, physical
-audio claim, completion claim, or whole-product credit is created here.
+No UnifiedDB write, model/provider call, GWT uptake observation, tool/effect execution,
+physical-audio claim, completion claim, or whole-product credit is created here.
 """
 from __future__ import annotations
 
@@ -30,11 +26,12 @@ from frankenstein2.voice_packet_cortex import CortexEventPacket, VoiceOutputPack
 HEARD_RESULT_SCHEMA = "FRANKENSTEIN2_VOICE_HEARD_RESULT/v1"
 HEARD_PREFIX_SCHEMA = "FRANKENSTEIN2_VOICE_HEARD_PREFIX/v1"
 REENTRY_RECEIPT_SCHEMA = "FRANKENSTEIN2_VOICE_HEARD_RESULT_REENTRY_RECEIPT/v1"
-HEARD_RESULT_CANONICALIZATION = "F2_VOICE_HEARD_RESULT_ORDERED_JSON_UTF8_V1"
+HEARD_RESULT_CANONICALIZATION = "F2_VOICE_HEARD_RESULT_PRE_CLOSE_FULL_PACKET_JSON_UTF8_V2"
 HEARD_PREFIX_CANONICALIZATION = "F2_VOICE_HEARD_PREFIX_JSON_UTF8_V1"
 RESULT_REF_PREFIX = "voice-heard-result:"
 PREFIX_REF_PREFIX = "voice-heard-prefix:"
 _CLASSIFICATION = "EXACT_REFERENCE_BINDING_ONLY_NOT_TRUTH_MEMORY_GWT_EFFECT_OR_COMPLETION_AUTHORITY"
+_PREFIX_CLASSIFICATION = "EPHEMERAL_NEXT_TURN_CONTEXT_ONLY_NOT_DURABLE_MEMORY_OUTCOME_OR_EFFECT_AUTHORITY"
 _SHA256_RE = re.compile(r"^[0-9a-f]{64}$")
 _MAX_TEXT = 32768
 _MAX_REFS = 4096
@@ -79,26 +76,22 @@ def _digest(value: Any) -> str:
     return hashlib.sha256(_canonical_json(value).encode("utf-8")).hexdigest()
 
 
-def _heard_material(packet: VoiceOutputPacket) -> dict[str, Any]:
+def _pre_close_output_material(packet: VoiceOutputPacket) -> dict[str, Any]:
+    """Return the full canonical packet payload with only outcome backlink normalized.
+
+    ``voiceoutcome_ref`` cannot participate in the heard-result digest because the resulting
+    digest is itself an input to VoiceOutcome.outcome_id. Every other canonical packet field,
+    including schema/classification and timing/cancellability metadata, remains identity-bearing.
+    """
     if type(packet) is not VoiceOutputPacket:
         raise VoiceHeardResultReentryError("output_packets must contain exact VoiceOutputPacket values")
     if packet.playback_state != "completed" or float(packet.heard_fraction) != 1.0 or not packet.commit_eligible:
-        raise VoiceHeardResultReentryError("durable heard result requires fully heard completed commit-eligible output")
-    # voiceoutcome_ref is intentionally excluded: the outcome id itself depends on result_sha256.
-    # Including it would create a digest cycle.  The post-close binder validates voiceoutcome_ref
-    # separately against the exact VoiceOutcome.
-    return {
-        "session_id": packet.session_id,
-        "turn_id": packet.turn_id,
-        "packet_id": packet.packet_id,
-        "sequence": packet.sequence,
-        "text_segment": packet.text_segment,
-        "expression_intent": packet.expression_intent,
-        "speech_act": packet.speech_act,
-        "playback_state": packet.playback_state,
-        "heard_fraction": float(packet.heard_fraction),
-        "commit_eligible": packet.commit_eligible,
-    }
+        raise VoiceHeardResultReentryError(
+            "durable heard result requires fully heard completed commit-eligible output"
+        )
+    material = dict(packet.as_dict())
+    material["voiceoutcome_ref"] = None
+    return material
 
 
 def _ordered_completed_packets(
@@ -113,11 +106,10 @@ def _ordered_completed_packets(
     if not packets:
         raise VoiceHeardResultReentryError("heard result requires at least one output packet")
     for packet in packets:
-        _heard_material(packet)
+        _pre_close_output_material(packet)
         if packet.session_id != session.voice_session_id:
             raise VoiceHeardResultReentryError("output packet is not bound to exact voice session")
-    turn_ids = {packet.turn_id for packet in packets}
-    if len(turn_ids) != 1:
+    if len({packet.turn_id for packet in packets}) != 1:
         raise VoiceHeardResultReentryError("one heard result may bind output segments from only one turn")
     expected_order = tuple(sorted(packets, key=lambda item: (item.sequence, item.packet_id)))
     if packets != expected_order:
@@ -170,8 +162,8 @@ class HeardResultPayload:
             raise VoiceHeardResultReentryError("heard-result packet identity vectors differ in length")
         if len(self.text_segments) != len(self.ordered_output_packet_ids):
             raise VoiceHeardResultReentryError("heard-result text segment vector differs in length")
-        for digest in self.ordered_output_material_sha256s:
-            _sha256("output material sha256", digest)
+        for value in self.ordered_output_material_sha256s:
+            _sha256("output material sha256", value)
         for segment in self.text_segments:
             if type(segment) is not str or len(segment) > _MAX_TEXT:
                 raise VoiceHeardResultReentryError("heard-result text segment is invalid or too large")
@@ -198,7 +190,7 @@ class EphemeralHeardPrefix:
     unheard_tail_text: str
     measurement_ref: str
     provenance_refs: tuple[str, ...]
-    classification: str = "EPHEMERAL_NEXT_TURN_CONTEXT_ONLY_NOT_DURABLE_MEMORY_OUTCOME_OR_EFFECT_AUTHORITY"
+    classification: str = _PREFIX_CLASSIFICATION
 
     def identity_payload(self) -> dict[str, Any]:
         return {
@@ -326,8 +318,7 @@ class VoiceHeardResultReentryReceipt:
             _sha256("gwt_binding_sha256", self.gwt_binding_sha256)
         _text("tool_ref_disposition", self.tool_ref_disposition)
         _refs("provenance_refs", self.provenance_refs)
-        expected = "voice-reentry-receipt:" + _digest(self.identity_payload())
-        if self.receipt_id != expected:
+        if self.receipt_id != "voice-reentry-receipt:" + _digest(self.identity_payload()):
             raise VoiceHeardResultReentryError("receipt_id does not bind exact reentry evidence")
 
     def as_dict(self) -> dict[str, Any]:
@@ -343,7 +334,7 @@ def build_heard_result(
     output_packets: Iterable[VoiceOutputPacket],
 ) -> HeardResultPayload:
     packets = _ordered_completed_packets(session, output_packets)
-    materials = tuple(_heard_material(packet) for packet in packets)
+    materials = tuple(_pre_close_output_material(packet) for packet in packets)
     payload = {
         "schema": HEARD_RESULT_SCHEMA,
         "canonicalization": HEARD_RESULT_CANONICALIZATION,
@@ -383,8 +374,13 @@ def validate_completed_heard_result(
         bind_voice_outcome(session=session, candidate=outcome)
     except ValueError as exc:
         raise VoiceHeardResultReentryError(f"VoiceOutcome session binding failed: {exc}") from exc
-    payload = build_heard_result(session=session, output_packets=output_packets)
+
+    # Materialize exactly once. A single-pass iterator must not bypass later backlink checks.
+    if isinstance(output_packets, (str, bytes)):
+        raise VoiceHeardResultReentryError("output_packets must be an iterable")
     packets = tuple(output_packets)
+    payload = build_heard_result(session=session, output_packets=packets)
+
     if outcome.result_ref != payload.payload_ref or outcome.result_sha256 != payload.payload_sha256:
         raise VoiceHeardResultReentryError("UNBOUND_VOICEOUTCOME_RESULT")
     for packet in packets:
@@ -392,8 +388,10 @@ def validate_completed_heard_result(
             raise VoiceHeardResultReentryError("fully heard output is not bound back to exact VoiceOutcome")
     if type(close_event) is not CortexEventPacket or close_event.event_kind != "SESSION_CLOSE":
         raise VoiceHeardResultReentryError("exact SESSION_CLOSE event is required")
-    if close_event.session_id != session.voice_session_id or close_event.turn_id != payload.turn_id:
-        raise VoiceHeardResultReentryError("SESSION_CLOSE event is not bound to heard-result session/turn")
+    if close_event.session_id != session.voice_session_id:
+        raise VoiceHeardResultReentryError("SESSION_CLOSE event is not bound to exact voice session")
+    # WP715 permits a dedicated close-transition turn_id (for example turn-close). Do not conflate
+    # it with the heard output turn; exact session + result + output inventory are the causal fences.
     if tuple(close_event.packet_refs) != tuple(sorted(payload.ordered_output_packet_ids)):
         raise VoiceHeardResultReentryError("SESSION_CLOSE packet inventory does not match heard-result outputs")
     return payload
@@ -430,7 +428,7 @@ def build_interrupted_heard_prefix(
         "unheard_tail_text": unheard,
         "measurement_ref": _text("measurement_ref", measurement_ref),
         "provenance_refs": list(refs),
-        "classification": "EPHEMERAL_NEXT_TURN_CONTEXT_ONLY_NOT_DURABLE_MEMORY_OUTCOME_OR_EFFECT_AUTHORITY",
+        "classification": _PREFIX_CLASSIFICATION,
     }
     digest = _digest(payload)
     return EphemeralHeardPrefix(
@@ -462,19 +460,12 @@ def validate_context_binding(
 ) -> None:
     if type(context_item) is not ContextItem or type(cost_witness) is not ContextCostWitness or type(context_view) is not ContextView:
         raise VoiceHeardResultReentryError("context binding requires exact ContextItem/CostWitness/ContextView")
-    expected = {
-        "payload_ref": payload_ref,
-        "payload_sha256": payload_sha256,
-        "source_ref": source_ref,
-        "source_sha256": source_sha256,
-    }
-    actual = {
-        "payload_ref": context_item.payload_ref,
-        "payload_sha256": context_item.payload_sha256,
-        "source_ref": context_item.source_ref,
-        "source_sha256": context_item.source_sha256,
-    }
-    if actual != expected:
+    if (
+        context_item.payload_ref != payload_ref
+        or context_item.payload_sha256 != payload_sha256
+        or context_item.source_ref != source_ref
+        or context_item.source_sha256 != source_sha256
+    ):
         raise VoiceHeardResultReentryError("context item does not bind exact voice payload/source")
     if cost_witness.payload_sha256 != payload_sha256 or cost_witness.measured_cost_units != context_item.cost_units:
         raise VoiceHeardResultReentryError("ContextCostWitness does not bind exact voice payload/cost")
@@ -525,8 +516,6 @@ def validate_gwt_event_binding(*, event: CortexEventPacket, binding: GwtReentryU
         raise VoiceHeardResultReentryError("GWT event binding requires exact event/binding types")
     if event.gwt_ref != binding.binding_id:
         raise VoiceHeardResultReentryError("opaque/stale/wrong gwt_ref cannot be treated as uptake evidence")
-    # This consumer only binds the exact supplied WP508/WP507 binding identity.  It deliberately
-    # does not re-mint or upgrade uptake; full source-evidence validation remains owned by WP508.
     _sha256("gwt binding sha256", binding.sha256())
 
 
@@ -551,7 +540,7 @@ def bind_completed_reentry(
     heard = validate_completed_heard_result(
         session=session, outcome=outcome, output_packets=packets, close_event=close_event
     )
-    context_fields: tuple[str | None, str | None, str | None]
+
     if any(value is not None for value in (context_item, cost_witness, context_view)):
         if context_item is None or cost_witness is None or context_view is None:
             raise VoiceHeardResultReentryError("partial context binding is forbidden")
