@@ -1,0 +1,53 @@
+{
+  "schema": "F2_TRIGGER4_CANDIDATE_FALSIFIER/v1",
+  "trigger": "4",
+  "research_id": "T7-ASR-008",
+  "classification": "EVIDENCE_INVALID_FIXTURE_NORMALIZATION_BLOCKER",
+  "observed_at_utc": "2026-08-31T00:36:00Z",
+  "bound_runtime": {
+    "controller_repo": "gschaidergabriel/Dr.-Unterweger",
+    "controller_subject": "823920bd770c16ca9855610d56d64a669a8063b0",
+    "workflow_run_id": 33340567051,
+    "workflow_state": "COMPLETED_FAILURE",
+    "f2_subject": "4727b94eeda381f3dcbe4d494eb72f91ce17b478",
+    "target_surface": "clay-direct-dev",
+    "semantic_key": "93d61d9b893d411c8085cd5d257968c23448bc426430e603f6e33add1db5e4e3"
+  },
+  "observed_execution": {
+    "first_runtime_dependency_repair": "soundfile==0.13.1 was added after run 33340366984 failed before fixture preparation",
+    "second_run_receipt_schema": "T7_ASR008_NEMOTRON35_EXECUTION_FAILURE/v1",
+    "second_run_failure_stage": "EXACT_COMPARATOR",
+    "second_run_bridge_exit_code": 1,
+    "second_run_execution_observed": false,
+    "second_run_runtime_credit_delta": 0,
+    "trace_root_cause": "Python wave.open rejected a FLEURS speech fixture with wave.Error: unknown format: 3",
+    "format_interpretation": "WAVE_FORMAT_IEEE_FLOAT input reached validate_wav while the comparator/gate contract requires mono 16 kHz 16-bit PCM WAV"
+  },
+  "failure_taxonomy": "EVIDENCE_INVALID",
+  "product_negative": false,
+  "reason": "The exact Nemotron comparator did not reach ASR inference. The failure is in fixture representation/normalization at the evidence harness boundary, so it cannot support a model-quality or product-negative conclusion.",
+  "required_repair": {
+    "scope": "controller comparator fixture preparation only",
+    "law": "Decode the pinned FLEURS source audio deterministically and materialize the actually executed fixture as mono 16 kHz PCM16 WAV before validate_wav/gate/transcribe. Preserve both source-audio identity and normalized-executed-fixture identity; do not rewrite measured ASR outputs.",
+    "required_receipt_fields": [
+      "source audio hash or source row identity",
+      "normalized executed WAV sha256",
+      "normalization codec/subtype/sample-rate/channel contract",
+      "exact comparator/controller/F2 source identities"
+    ],
+    "regression": "A fixture test must reproduce an IEEE-float WAV input and prove deterministic PCM16 normalization plus stable hash/readback before another target run."
+  },
+  "runtime_subject_action": "RUNTIME_PROBE_INVALIDATED_BY_REQUIRED_REPAIR",
+  "next_exact_action": "Repair the existing comparator's fixture normalization and add the float-WAV regression. Then dispatch one successor run bound to the repaired exact controller subject; do not interpret runs 33340366984 or 33340567051 as ASR product evidence.",
+  "credit": {
+    "runtime_credit": 0,
+    "german_asr_quality_credit": 0,
+    "trigger4_acceptance_credit": 0,
+    "physical_device_credit": 0,
+    "gwt_jspace_credit": 0,
+    "effect_credit": 0,
+    "training_credit": 0,
+    "whole_product_credit": 0
+  },
+  "scope_fence": "This packet classifies only the observed fixture-normalization blocker. It does not mint runtime, model-quality, physical-device, GWT/J-Space, effect, training or whole-product credit."
+}
