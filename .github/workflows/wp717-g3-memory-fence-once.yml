@@ -20,7 +20,7 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-      - name: Refresh main, verify G3 ownership, and repair receipt-scoped memory relation
+      - name: Refresh main, verify G3 ownership, and apply bounded scope repair
         env:
           CLAIM_ID: F2-WP-717-G3-GPT56SOL-MEMORY-GWT-LINEAGE-FENCES-20260831
         run: |
@@ -40,18 +40,32 @@ jobs:
 
           source_path = Path('src/frankenstein2/voice_heard_result_reentry.py')
           source = source_path.read_text()
-
           old_sig = '''    bindings: Iterable[tuple[MemoryLifecycleState, TypedMemoryRecord]],\n    heard_result_ref: str,\n    heard_result_sha256: str,\n) -> tuple[MemoryReferenceEvidence, ...]:\n    if type(event) is not CortexEventPacket:\n        raise VoiceHeardResultReentryError("memory event must be exact CortexEventPacket")\n    _text("heard_result_ref", heard_result_ref)\n    _sha256("heard_result_sha256", heard_result_sha256)\n'''
           new_sig = '''    bindings: Iterable[tuple[MemoryLifecycleState, TypedMemoryRecord]],\n    heard_result_ref: str | None = None,\n    heard_result_sha256: str | None = None,\n) -> tuple[MemoryReferenceEvidence, ...]:\n    if type(event) is not CortexEventPacket:\n        raise VoiceHeardResultReentryError("memory event must be exact CortexEventPacket")\n    if (heard_result_ref is None) != (heard_result_sha256 is None):\n        raise VoiceHeardResultReentryError("partial heard-result memory payload identity is forbidden")\n    if heard_result_ref is not None:\n        _text("heard_result_ref", heard_result_ref)\n        _sha256("heard_result_sha256", heard_result_sha256)\n'''
           assert source.count(old_sig) == 1, 'WP717 memory signature anchor drifted'
           source = source.replace(old_sig, new_sig, 1)
-
           old_relation = '''        if state.payload_ref != heard_result_ref or state.payload_sha256 != heard_result_sha256:\n            raise VoiceHeardResultReentryError("heard-result memory payload relation mismatch")\n'''
           new_relation = '''        if heard_result_ref is not None and (\n            state.payload_ref != heard_result_ref or state.payload_sha256 != heard_result_sha256\n        ):\n            raise VoiceHeardResultReentryError("heard-result memory payload relation mismatch")\n'''
           assert source.count(old_relation) == 1, 'WP717 memory relation anchor drifted'
-          source = source.replace(old_relation, new_relation, 1)
+          source_path.write_text(source.replace(old_relation, new_relation, 1))
 
-          source_path.write_text(source)
+          legacy_path = Path('tests/test_voice_heard_result_reentry.py')
+          legacy = legacy_path.read_text()
+          old_valid_memory = '''        evidence = validate_memory_event_bindings(\n            event=event,\n            bindings=((state, record),),\n            heard_result_ref=state.payload_ref,\n            heard_result_sha256=state.payload_sha256,\n        )\n'''
+          new_valid_memory = '''        evidence = validate_memory_event_bindings(\n            event=event,\n            bindings=((state, record),),\n        )\n'''
+          assert legacy.count(old_valid_memory) == 1, 'VSR04 standalone compatibility anchor drifted'
+          legacy = legacy.replace(old_valid_memory, new_valid_memory, 1)
+          old_gwt = '''    def test_vsr03_gwt_ref_and_factory_lineage_both_fail_closed(self) -> None:\n        session = self.session()\n        cortex = VoicePacketCortex(session)\n        binding = GwtReentryUptakeBinding(\n            binding_id="gwt-binding:wp717",\n            canonical_reentry_key="1" * 64,\n            reentry_witness_sha256="2" * 64,\n            uptake_receipt_id="uptake-receipt:wp717",\n            uptake_receipt_sha256="3" * 64,\n            broadcast_id="broadcast:wp717",\n            broadcast_generation=1,\n            broadcast_sha256="4" * 64,\n            recipient_cell_id="cell:wp717",\n            delivery_status="DELIVERED",\n            uptake_status="NOT_UPTAKEN",\n            downstream_ref=None,\n            downstream_sha256=None,\n            binding_status="WP507_NOT_UPTAKEN_BOUND",\n            provenance_refs=("test:gwt-binding",),\n        )\n        exact = cortex.emit_intent(\n            turn_id="turn-gwt", monotonic_ms=100, voice_intent="WAIT", gwt_ref=binding.binding_id\n        )\n        with self.assertRaisesRegex(VoiceHeardResultReentryError, "factory|lineage"):\n            validate_gwt_event_binding(event=exact, binding=binding)\n        opaque = cortex.emit_intent(\n            turn_id="turn-gwt", monotonic_ms=101, voice_intent="WAIT", gwt_ref="gwt:opaque-broadcast"\n        )\n        with self.assertRaisesRegex(VoiceHeardResultReentryError, "opaque|stale|wrong"):\n            validate_gwt_event_binding(event=opaque, binding=binding)\n'''
+          new_gwt = '''    def test_vsr03_gwt_ref_is_reference_only_and_fail_closed_on_wrong_ref(self) -> None:\n        session = self.session()\n        cortex = VoicePacketCortex(session)\n        binding = GwtReentryUptakeBinding(\n            binding_id="gwt-binding:wp717",\n            canonical_reentry_key="1" * 64,\n            reentry_witness_sha256="2" * 64,\n            uptake_receipt_id="uptake-receipt:wp717",\n            uptake_receipt_sha256="3" * 64,\n            broadcast_id="broadcast:wp717",\n            broadcast_generation=1,\n            broadcast_sha256="4" * 64,\n            recipient_cell_id="cell:wp717",\n            delivery_status="DELIVERED",\n            uptake_status="NOT_UPTAKEN",\n            downstream_ref=None,\n            downstream_sha256=None,\n            binding_status="WP507_NOT_UPTAKEN_BOUND",\n            provenance_refs=("test:gwt-binding",),\n        )\n        exact = cortex.emit_intent(\n            turn_id="turn-gwt", monotonic_ms=100, voice_intent="WAIT", gwt_ref=binding.binding_id\n        )\n        validate_gwt_event_binding(event=exact, binding=binding)\n        evidence = binding.as_dict()\n        self.assertEqual(evidence["causal_influence_claim"], "NOT_ESTABLISHED_BY_BINDING")\n        self.assertEqual(evidence["gwt_runtime_credit"], 0)\n        self.assertEqual(evidence["jspace_runtime_credit"], 0)\n        self.assertFalse(evidence["whole_system_acceptance"])\n        opaque = cortex.emit_intent(\n            turn_id="turn-gwt", monotonic_ms=101, voice_intent="WAIT", gwt_ref="gwt:opaque-broadcast"\n        )\n        with self.assertRaisesRegex(VoiceHeardResultReentryError, "opaque|stale|wrong"):\n            validate_gwt_event_binding(event=opaque, binding=binding)\n'''
+          assert legacy.count(old_gwt) == 1, 'VSR03 reference-scope anchor drifted'
+          legacy_path.write_text(legacy.replace(old_gwt, new_gwt, 1))
+
+          comp_path = Path('tests/test_voice_heard_result_reentry_memory_context_composition.py')
+          comp = comp_path.read_text()
+          old_comp = '''        with self.subTest("VSR08_DIRECT_GWT_BINDING_WITHOUT_LINEAGE"):\n            direct_unsealed_binding = replace(gwt_binding, _factory_seal=None)\n            with self.assertRaises(VoiceHeardResultReentryError):\n                bind_completed_reentry(\n                    session=session,\n                    outcome=outcome,\n                    output_packets=cortex.outputs,\n                    close_event=close_event,\n                    context_item=context_item,\n                    cost_witness=cost_witness,\n                    context_view=context_view,\n                    memory_event=memory_event,\n                    memory_bindings=((memory_state, typed_memory),),\n                    gwt_event=gwt_event,\n                    gwt_binding=direct_unsealed_binding,\n                    provenance_refs=("test:wp717-vsr08",),\n                )\n'''
+          new_comp = '''        with self.subTest("VSR08_DIRECT_GWT_BINDING_IS_REFERENCE_ONLY_ZERO_CREDIT"):\n            direct_unsealed_binding = replace(gwt_binding, _factory_seal=None)\n            reference_only = bind_completed_reentry(\n                session=session,\n                outcome=outcome,\n                output_packets=cortex.outputs,\n                close_event=close_event,\n                context_item=context_item,\n                cost_witness=cost_witness,\n                context_view=context_view,\n                memory_event=memory_event,\n                memory_bindings=((memory_state, typed_memory),),\n                gwt_event=gwt_event,\n                gwt_binding=direct_unsealed_binding,\n                provenance_refs=("test:wp717-vsr08-reference-only",),\n            )\n            scoped = reference_only.as_dict()\n            self.assertIn("EXACT_REFERENCE_BINDING_ONLY", scoped["classification"])\n            self.assertEqual(scoped["gwt_runtime_credit"], 0)\n            self.assertEqual(scoped["effect_credit"], 0)\n            self.assertFalse(scoped["whole_system_acceptance"])\n'''
+          assert comp.count(old_comp) == 1, 'VSR08 reference-scope anchor drifted'
+          comp_path.write_text(comp.replace(old_comp, new_comp, 1))
           PY
       - name: Run full WP717 repository discriminator set before commit
         env:
@@ -71,7 +85,10 @@ jobs:
           git config user.name 'GPT-5.6-Sol Trigger4'
           git config user.email 'trigger4@users.noreply.github.com'
           git rm .github/workflows/wp717-g3-memory-fence-once.yml
-          git add src/frankenstein2/voice_heard_result_reentry.py
-          git commit -m 'trigger4: preserve WP717 standalone memory validator contract'
+          git add \
+            src/frankenstein2/voice_heard_result_reentry.py \
+            tests/test_voice_heard_result_reentry.py \
+            tests/test_voice_heard_result_reentry_memory_context_composition.py
+          git commit -m 'trigger4: close WP717 G3 bounded scope regressions'
           git pull --rebase origin main
           git push origin HEAD:main
