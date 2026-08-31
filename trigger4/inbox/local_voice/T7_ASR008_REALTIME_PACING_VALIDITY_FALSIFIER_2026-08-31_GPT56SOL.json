@@ -1,0 +1,58 @@
+{
+  "schema": "F2_TRIGGER7_ASR008_REALTIME_PACING_VALIDITY_FALSIFIER/v1",
+  "trigger": "7",
+  "recorded_date": "2026-08-31",
+  "organ": "GPT-5.6-Sol",
+  "classification": "CANDIDATE_FALSIFIER_REVIEW_ONLY",
+  "mutation_authority": false,
+  "research_id": "T7-ASR-008",
+  "candidate": "nvidia/nemotron-3.5-asr-streaming-0.6b",
+  "current_f2_head_observed_before_write": "257ef997b685246cb8ce741c2098133eb0fe45b0",
+  "owner_boundary": "Trigger7 research/falsifier only. Trigger4 owns comparator mutation, dispatch, runtime acceptance and promotion. Do not create a second ASR008 comparator or redispatch while a bound successor subject is active.",
+  "current_source_observation": {
+    "path": "research/local_voice/tools/t7_asr008_nemotron_target_comparator.py",
+    "fixture_state": "Current main source deterministically decodes FLEURS with soundfile and writes mono 16 kHz PCM_16 WAV while preserving source_audio_sha256 and normalized_wav_sha256.",
+    "streaming_state": "transcribe_realtime slices PCM into TRANSPORT_CHUNK_MS=160 chunks and sends all chunks back-to-back without wall-clock pacing before input_audio_buffer.commit.",
+    "receipt_label": "transport_pacing=UNPACED_COMPUTE_LATENCY",
+    "implication": "The existing latency track is suitable as a local compute/throughput discriminator but is not a faithful microphone-like realtime ingress measurement."
+  },
+  "external_primary_evidence": {
+    "nemo_speech_configuration": {
+      "url": "https://github.com/NVIDIA/NeMo-Speech.cpp/blob/main/docs/asr/configuration.md",
+      "observed_claim": "asr.streaming.rnnt_right_context is an explicit cache-aware RNNT context control; NVIDIA describes streaming context as a latency/accuracy tradeoff."
+    },
+    "nemo_speech_models": {
+      "url": "https://github.com/NVIDIA/NeMo-Speech.cpp/blob/main/docs/asr/models.md",
+      "observed_claim": "Nemotron 3.5 ASR Streaming 0.6B is a multilingual prompt-conditioned cache-aware RNNT supported by the local NeMo-Speech.cpp runtime."
+    }
+  },
+  "falsifier": {
+    "id": "ASR008_REALTIME_INGRESS_PACING_VALIDITY",
+    "hypothesis": "If all audio chunks are injected faster than realtime, measured first-partial/final latency and apparent differences across RNNT right-context settings can understate or distort user-perceived live latency even when WER/CER and compute RTF remain valid at their own scope.",
+    "counterhypothesis": "The current unpaced track is intentionally compute-only and no live-realtime latency promotion consumes it; a separate paced discriminator already exists or is unnecessary for the claimed scope.",
+    "smallest_discriminator": [
+      "Keep the existing unpaced run as COMPUTE_ONLY evidence; do not rewrite it.",
+      "For latency promotion only, add one clearly separate paced ingress mode that sends each existing 160 ms PCM chunk on its 160 ms wall-clock cadence and records audio-start, chunk-send, first-partial, commit, and final timestamps.",
+      "Run the same accepted model bytes, de-DE/auto language conditions, rows, references, gate, and five rnnt_right_context values.",
+      "Compare paced vs unpaced first-partial/final latency and RTF without composing the scopes.",
+      "Treat sub-160-ms differences as transport-resolution-limited under the fixed 160 ms packet cadence unless a separately admitted finer transport experiment is created."
+    ],
+    "acceptance_fence": "UNPACED_COMPUTE_LATENCY must not mint microphone-like realtime latency credit. PACED_REALTIME_INGRESS may promote only the exact measured latency scope after a real target execution and current receipt-contract validation."
+  },
+  "relationship_to_current_float_wav_failure": {
+    "independent": true,
+    "rule": "First repair/execute the already identified deterministic PCM16 fixture validity defect through Trigger4. This pacing falsifier does not justify duplicate redispatch or widening that repair. It becomes promotion-relevant only once ASR008 reaches actual inference/streaming measurements."
+  },
+  "credits": {
+    "research_falsifier_delta": 1,
+    "nemotron_target_runtime_credit": 0,
+    "german_asr_quality_credit": 0,
+    "live_realtime_latency_credit": 0,
+    "physical_device_credit": 0,
+    "gwt_jspace_credit": 0,
+    "effect_credit": 0,
+    "training_credit": 0,
+    "whole_product_credit": 0
+  },
+  "next_exact_action": "Trigger4: finish the single current PCM16 fixture-validity repair/receipt reconciliation first. Before any ASR008 live-realtime latency promotion, either prove the current claim is compute-only or add exactly one paced-ingress latency discriminator inside the existing comparator authority; no duplicate semantic comparator and no new model/corpus axes."
+}
