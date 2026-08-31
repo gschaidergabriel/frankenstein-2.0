@@ -1,0 +1,32 @@
+{
+  "schema": "FRANKENSTEIN2_CANDIDATE_FALSIFIER/v1",
+  "workpackage_id": "F2-WP-717",
+  "generation": 3,
+  "worker_id": "GPT-5.6-Sol-Trigger4-Independent-Evidence-Reviewer",
+  "result_class": "CANDIDATE_FALSIFIER",
+  "mutation_authority": false,
+  "falsifier_id": "WP717_G3_RUN33368738870_MOVING_MAIN_EXECUTION_SUBJECT_UNBOUND",
+  "failure_class": "EVIDENCE_INVALID",
+  "run": {
+    "run_id": 33368738870,
+    "workflow": ".github/workflows/wp717-g3-memory-fence-once.yml",
+    "reported_head_sha": "b5762f6ea402a5b04172b4a41d5d9ad0e03e72fb",
+    "event": "push",
+    "conclusion": "failure"
+  },
+  "source_binding_observation": "The historical workflow checked out the triggering revision but then executed `git fetch origin main` followed by `git reset --hard origin/main` before applying the repair and running the discriminator. On a rapidly moving main branch, that makes the executed source subject dependent on the later origin/main ref rather than the run's reported head_sha. The workflow did not record an exact post-reset executed commit SHA before the discriminator.",
+  "classification": "The failed discriminator proves that steps executed, but it cannot support PRODUCT_NEGATIVE, current-generation runtime credit, or exact-source repository acceptance because the executed tree is not cryptographically bound to the run's reported head_sha. Treat this run as EVIDENCE_INVALID / EXECUTION_SUBJECT_UNBOUND for promotion-bearing conclusions.",
+  "scope_guard": "This review does not invalidate later source repairs or later exact-source tests. The one-shot workflow is absent from the current main observed during this review, so this artifact preserves historical negative/evidence context rather than reopening the removed workflow as an active mutation target.",
+  "credits": {
+    "repository_component_ci_credit": 0,
+    "runtime_credit": 0,
+    "physical_grid10_credit": 0,
+    "gwt_runtime_credit": 0,
+    "jspace_runtime_credit": 0,
+    "effect_credit": 0,
+    "training_credit": 0,
+    "completion_credit": 0,
+    "whole_system_acceptance": false
+  },
+  "next_exact_action": "Do not promote or classify run 33368738870 as a product-negative runtime discriminator. Any future promotion-bearing WP717 discriminator must execute an exact accepted SHA/artifact without resetting to a moving branch ref and must record the executed subject identity in the resulting receipt."
+}
