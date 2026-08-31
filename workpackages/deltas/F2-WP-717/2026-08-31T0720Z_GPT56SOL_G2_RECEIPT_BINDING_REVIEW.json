@@ -1,0 +1,63 @@
+{
+  "schema": "FRANKENSTEIN2_WORKER_DELTA/v1",
+  "workpackage_id": "F2-WP-717",
+  "generation": 2,
+  "claim_id": "F2-WP-717-G2-GPT56SOL-MEMORY-CONTEXT-VPS-20260831",
+  "worker_id": "GPT-5.6-Sol-Trigger4-Review",
+  "base_commit": "619445607f22da01b501c627737c2f6de5a0b313",
+  "observed_main_commit": "619445607f22da01b501c627737c2f6de5a0b313",
+  "owned_paths": [],
+  "result_class": "REVIEW_ONLY",
+  "source_commits": [
+    "f696b8cb1ff2fecc204b558788caa3c55d2d1e9e",
+    "d4669cbe363aab93e5c1a586401253ba692d8054",
+    "8af40eae7cddcd9e257eeb03f638e17145ecdbbe",
+    "e05965e9f30f1589da104eefdfc9513d530fc80d"
+  ],
+  "receipts": [
+    "workpackages/receipts/F2-WP-717_G2_MEMORY_CONTEXT_VPS_CONTROLLER_33367475869.json",
+    "gschaidergabriel/Dr.-Unterweger@660414580e9810919717ee91e95976b93bd60290:runtime/trigger4/wp717_memory_context/clay_direct_dev_33367475869_1.json",
+    "gschaidergabriel/Dr.-Unterweger@217ff0497eaff3c253f14ad231956ef8f5feca89:runtime/trigger4/wp717_memory_context_g2/clay_direct_dev_33367724009_1.json"
+  ],
+  "falsifiers": [
+    {
+      "class": "EVIDENCE_BINDING_MISMATCH",
+      "selected_run_id": 33367475869,
+      "selected_raw_receipt_generation": 1,
+      "selected_raw_receipt_workpackage_generation": 1,
+      "required_generation": 2,
+      "required_claim_id": "F2-WP-717-G2-GPT56SOL-MEMORY-CONTEXT-VPS-20260831",
+      "impact": "The selected raw controller receipt cannot by itself establish the required workpackage_id + generation + claim_id binding for G2. The product discriminator did execute on the exact 6d4e140 subject, so this is EVIDENCE_INVALID_FOR_G2_CLAIM_BINDING, not PRODUCT_NEGATIVE."
+    },
+    {
+      "class": "CORRECTED_VALID_RUNTIME_AVAILABLE",
+      "run_id": 33367724009,
+      "controller_sha": "024041a292ec6f384e3f5aefbcdf1a51d6d24847",
+      "receipt_commit": "217ff0497eaff3c253f14ad231956ef8f5feca89",
+      "generation": 2,
+      "claim_id": "F2-WP-717-G2-GPT56SOL-MEMORY-CONTEXT-VPS-20260831",
+      "accepted_source_sha": "6d4e140f0377a0135090d7a4762214b4c106c732",
+      "accepted_source_tree_sha": "2bcc8bb751d392856e8eeca7e7088e3934d53108",
+      "composition_test_blob_sha": "eb56a03c2afe82abe1638f491c36cca1aec5865f",
+      "status": "PASS",
+      "target_environment": "clay-direct-dev",
+      "runner_name": "vps-clay-host",
+      "heard_result_memory_context_reference_runtime_credit": 1,
+      "canonical_memory_write_credit": 0,
+      "gwt_runtime_credit": 0,
+      "effect_credit": 0,
+      "physical_audio_credit": 0,
+      "training_credit": 0,
+      "completion_credit": 0,
+      "whole_system_acceptance": false
+    }
+  ],
+  "contradictions": [
+    "Canonical reconciliation 8af40eae selects run 33367475869 as the G2 runtime receipt, but that run's raw gate/target receipt records generation/workpackage_generation 1.",
+    "Canonical active-pointer promotion e05965e9 therefore references a receipt whose raw claim-generation identity does not match G2, even though a later exact G2-bound PASS receipt now exists at run 33367724009."
+  ],
+  "proposed_state_change": "Reconciliation writer should preserve the 33367475869 receipt as historical negative evidence classified EVIDENCE_INVALID_FOR_G2_CLAIM_BINDING, append a new F2 receipt bound to Dr.-Unterweger run 33367724009, and issue a corrective reconciliation/active-pointer binding that selects the valid G2 receipt. Preserve the already-measured bounded memory/context reference-composition credit at 1; do not mint canonical durable-memory, GWT, effect, physical-audio, training, completion or whole-system credit.",
+  "completion_deficit": "Canonical WP717 G2 evidence selection still points at the wrong-generation raw controller receipt. A valid exact G2 runtime receipt exists and only needs evidence reconciliation; no product rerun or semantic mutation is required.",
+  "next_exact_action": "Single reconciliation writer: consume Dr.-Unterweger run 33367724009, append corrected G2 receipt, preserve run 33367475869 as EVIDENCE_INVALID_FOR_G2_CLAIM_BINDING, and rebind the WP717 G2 reconciliation/active pointer without changing credit scope.",
+  "created_at_utc": "2026-08-31T07:20:36Z"
+}
