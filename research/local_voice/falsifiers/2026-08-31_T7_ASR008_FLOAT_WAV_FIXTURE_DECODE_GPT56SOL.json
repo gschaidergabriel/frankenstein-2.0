@@ -1,0 +1,71 @@
+{
+  "schema": "F2_TRIGGER4_CANDIDATE_FALSIFIER/v1",
+  "trigger": "4",
+  "research_id": "T7-ASR-008",
+  "classification": "EVIDENCE_INVALID_FIXTURE_DECODE_BLOCKER_NOT_PRODUCT_NEGATIVE",
+  "observed_at_utc": "2026-08-31T00:36:00Z",
+  "bound_runtime": {
+    "controller_repo": "gschaidergabriel/Dr.-Unterweger",
+    "workflow_run_id": 33340567051,
+    "controller_evidence_commit": "1bb96639a519abc8b5e373ffcdaaefa58d15fe17",
+    "f2_subject": "4727b94eeda381f3dcbe4d494eb72f91ce17b478",
+    "target_surface": "clay-direct-dev",
+    "semantic_key": "93d61d9b893d411c8085cd5d257968c23448bc426430e603f6e33add1db5e4e3"
+  },
+  "prior_repair": {
+    "controller_commit": "40aa40e31c15a8421326b63a258eff0657dd5d53",
+    "change": "Added soundfile==0.13.1 to the disposable comparator Python environment after run 33340366984 failed because datasets audio encoding required soundfile.",
+    "redispatch_commit": "823920bd770c16ca9855610d56d64a669a8063b0"
+  },
+  "terminal_observation": {
+    "run_status": "completed",
+    "run_conclusion": "failure",
+    "receipt_schema": "T7_ASR008_NEMOTRON35_EXECUTION_FAILURE/v1",
+    "receipt_classification": "EVIDENCE_INVALID",
+    "receipt_reason": "BOUND_COMPARATOR_DID_NOT_PRODUCE_VERIFIABLE_RECEIPT",
+    "failure_stage": "EXACT_COMPARATOR",
+    "bridge_exit_code": 1,
+    "execution_observed": false
+  },
+  "root_cause": {
+    "component": "controller fixture preparation / WAV validation",
+    "exception": "wave.Error: unknown format: 3",
+    "meaning": "The selected FLEURS fixture bytes are WAV format tag 3 (IEEE float). The comparator writes those source bytes directly to .wav and validate_wav() opens them with Python wave, whose validation path expects PCM-compatible WAV. The comparator therefore exits during fixture preparation before Nemotron transcription executes.",
+    "product_negative": false,
+    "provider_negative": false,
+    "model_quality_observed": false
+  },
+  "failure_taxonomy": "EVIDENCE_INVALID",
+  "repair_requirement": {
+    "minimal_delta": "Make fixture preparation explicitly decode the exact bound FLEURS source audio and emit deterministic mono 16 kHz PCM16 WAV fixtures before validate_wav/gate/transcription, while retaining the original source-audio hash and separately hashing the normalized PCM fixture.",
+    "preserve": [
+      "FLEURS repository/config/revision/row identity",
+      "original source bytes hash",
+      "deterministic normalization parameters",
+      "normalized fixture hash",
+      "same Nemotron model/runtime hashes",
+      "same F2 probe subject unless an explicit new subject is admitted"
+    ],
+    "do_not": [
+      "interpret the failure as ASR quality evidence",
+      "mint runtime or product credit",
+      "hide the original failed runs",
+      "rewrite measured values to satisfy the current F2 validator"
+    ]
+  },
+  "receipt_contract_fence": {
+    "still_open": true,
+    "note": "Even after fixture decoding is repaired, the controller receipt envelope/classification still requires explicit reconciliation with the current F2 fail-closed validator before promotion. A successful raw comparator run alone does not resolve that separate contract mismatch."
+  },
+  "credit": {
+    "runtime_credit": 0,
+    "german_asr_quality_credit": 0,
+    "trigger4_acceptance_credit": 0,
+    "physical_device_credit": 0,
+    "gwt_jspace_credit": 0,
+    "effect_credit": 0,
+    "training_credit": 0,
+    "whole_product_credit": 0
+  },
+  "next_exact_action": "Repair only the controller fixture decoder/normalizer so exact bound FLEURS float WAV source material becomes deterministic PCM16 input with dual source/normalized hashes; then execute one new exact comparator subject and preserve raw evidence. After a real comparator receipt exists, reconcile its envelope against the F2 validator without scope inflation."
+}
