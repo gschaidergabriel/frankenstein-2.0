@@ -1,0 +1,62 @@
+{
+  "schema": "F2_TRIGGER4_CANDIDATE_FALSIFIER/v1",
+  "trigger": "4",
+  "research_id": "T7-ASR-008",
+  "classification": "EVIDENCE_INVALID_RUNTIME_HARNESS_FIXTURE_ENCODING",
+  "observed_at_utc": "2026-08-30T23:55:00Z",
+  "canonical_f2_head_before_write": "9741bc9a6d94f096437e23b728d536339ed11a82",
+  "bound_runtime": {
+    "controller_repo": "gschaidergabriel/Dr.-Unterweger",
+    "first_run_id": 33340366984,
+    "second_run_id": 33340567051,
+    "f2_subject": "4727b94eeda381f3dcbe4d494eb72f91ce17b478",
+    "target_surface": "clay-direct-dev",
+    "semantic_key": "93d61d9b893d411c8085cd5d257968c23448bc426430e603f6e33add1db5e4e3"
+  },
+  "evidence": {
+    "run_33340366984": {
+      "terminal": true,
+      "conclusion": "failure",
+      "failure_stage": "EXACT_COMPARATOR",
+      "root_cause": "missing Python soundfile dependency while datasets encoded FLEURS audio",
+      "classification": "EVIDENCE_INVALID",
+      "runtime_credit_delta": 0
+    },
+    "repair_commit": "40aa40e31c15a8421326b63a258eff0657dd5d53",
+    "redispatch_commit": "823920bd770c16ca9855610d56d64a669a8063b0",
+    "run_33340567051": {
+      "terminal": true,
+      "conclusion": "failure",
+      "failure_stage": "EXACT_COMPARATOR",
+      "exception": "wave.Error: unknown format: 3",
+      "observed_fixture_encoding": "IEEE_FLOAT_WAV_FORMAT_TAG_3",
+      "current_validator_expectation": "PCM16_MONO_16KHZ",
+      "classification": "EVIDENCE_INVALID",
+      "runtime_credit_delta": 0
+    }
+  },
+  "finding": {
+    "nemotron_product_negative_supported": false,
+    "asr_quality_conclusion_supported": false,
+    "runtime_execution_of_model_supported": false,
+    "fixture_pipeline_reached": true,
+    "exact_model_artifact_hash_verified_before_failure": true,
+    "exact_nemo_runtime_artifact_hash_verified_before_failure": true,
+    "repair_required": true,
+    "repair_scope": "Normalize decoded FLEURS fixture audio to deterministic PCM16 mono 16 kHz before wave/WebRTC-VAD/NeMo consumption while preserving original source-byte hash separately from normalized fixture hash. Do not change row selection, references, model/runtime identities, RNNT right-context axis, gate contract, or scoring semantics."
+  },
+  "failure_taxonomy": "EVIDENCE_INVALID",
+  "runtime_subject_action": "RUNTIME_PROBE_INVALIDATED_BY_REQUIRED_REPAIR",
+  "next_exact_action": "Repair only the fixture normalization boundary, add a regression that exercises IEEE-float WAV input and asserts deterministic PCM16 mono 16 kHz output plus source/normalized hashes, then dispatch one new exact-source run. Reconcile the resulting raw receipt to the current F2 validator contract before any promotion.",
+  "credit": {
+    "runtime_credit": 0,
+    "german_asr_quality_credit": 0,
+    "trigger4_acceptance_credit": 0,
+    "physical_device_credit": 0,
+    "gwt_jspace_credit": 0,
+    "effect_credit": 0,
+    "training_credit": 0,
+    "whole_product_credit": 0
+  },
+  "scope_fence": "This record classifies a harness fixture-encoding validity defect. It preserves both failed runs as negative evidence and does not authorize model, ASR-quality, physical, semantic, effect, training, or whole-product credit."
+}
