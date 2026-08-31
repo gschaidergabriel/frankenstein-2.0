@@ -70,8 +70,8 @@ jobs:
           echo 'WP717_ZERO_PROVIDER_SURFACE_PASS'
 
   g3-vps-memory-payload-fence:
-    # One-shot runtime dispatch: only the exact Trigger4 binding commit can enter this job.
-    if: github.event_name == 'push' && github.event.head_commit.message == 'trigger4: dispatch WP717 G3 bound VPS memory fence'
+    # One-shot runtime dispatch: only the exact Trigger4 retry commit can enter this job.
+    if: "${{ github.event_name == 'push' && github.event.head_commit.message == 'trigger4: retry WP717 G3 VPS dispatch after workflow-parse fix' }}"
     runs-on: clay-host
     timeout-minutes: 30
     concurrency:
