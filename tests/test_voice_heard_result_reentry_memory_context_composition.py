@@ -366,23 +366,27 @@ class WP717HeardMemoryContextCompositionTests(unittest.TestCase):
                     provenance_refs=("test:wp717-vsr07",),
                 )
 
-        with self.subTest("VSR08_DIRECT_GWT_BINDING_WITHOUT_LINEAGE"):
+        with self.subTest("VSR08_DIRECT_GWT_BINDING_IS_REFERENCE_ONLY_ZERO_CREDIT"):
             direct_unsealed_binding = replace(gwt_binding, _factory_seal=None)
-            with self.assertRaises(VoiceHeardResultReentryError):
-                bind_completed_reentry(
-                    session=session,
-                    outcome=outcome,
-                    output_packets=cortex.outputs,
-                    close_event=close_event,
-                    context_item=context_item,
-                    cost_witness=cost_witness,
-                    context_view=context_view,
-                    memory_event=memory_event,
-                    memory_bindings=((memory_state, typed_memory),),
-                    gwt_event=gwt_event,
-                    gwt_binding=direct_unsealed_binding,
-                    provenance_refs=("test:wp717-vsr08",),
-                )
+            reference_only = bind_completed_reentry(
+                session=session,
+                outcome=outcome,
+                output_packets=cortex.outputs,
+                close_event=close_event,
+                context_item=context_item,
+                cost_witness=cost_witness,
+                context_view=context_view,
+                memory_event=memory_event,
+                memory_bindings=((memory_state, typed_memory),),
+                gwt_event=gwt_event,
+                gwt_binding=direct_unsealed_binding,
+                provenance_refs=("test:wp717-vsr08-reference-only",),
+            )
+            scoped = reference_only.as_dict()
+            self.assertIn("EXACT_REFERENCE_BINDING_ONLY", scoped["classification"])
+            self.assertEqual(scoped["gwt_runtime_credit"], 0)
+            self.assertEqual(scoped["effect_credit"], 0)
+            self.assertFalse(scoped["whole_system_acceptance"])
 
 
 if __name__ == "__main__":

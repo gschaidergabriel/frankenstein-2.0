@@ -483,13 +483,16 @@ def validate_memory_event_bindings(
     *,
     event: CortexEventPacket,
     bindings: Iterable[tuple[MemoryLifecycleState, TypedMemoryRecord]],
-    heard_result_ref: str,
-    heard_result_sha256: str,
+    heard_result_ref: str | None = None,
+    heard_result_sha256: str | None = None,
 ) -> tuple[MemoryReferenceEvidence, ...]:
     if type(event) is not CortexEventPacket:
         raise VoiceHeardResultReentryError("memory event must be exact CortexEventPacket")
-    _text("heard_result_ref", heard_result_ref)
-    _sha256("heard_result_sha256", heard_result_sha256)
+    if (heard_result_ref is None) != (heard_result_sha256 is None):
+        raise VoiceHeardResultReentryError("partial heard-result memory payload identity is forbidden")
+    if heard_result_ref is not None:
+        _text("heard_result_ref", heard_result_ref)
+        _sha256("heard_result_sha256", heard_result_sha256)
     pairs = tuple(bindings)
     if len(pairs) != len(event.memory_refs):
         raise VoiceHeardResultReentryError("opaque or missing memory reference binding")
@@ -502,7 +505,9 @@ def validate_memory_event_bindings(
             raise VoiceHeardResultReentryError("memory binding types are invalid")
         if expected_ref != state.memory_id or record.memory_id != state.memory_id:
             raise VoiceHeardResultReentryError("memory_ref does not equal exact lifecycle/typed-memory identity")
-        if state.payload_ref != heard_result_ref or state.payload_sha256 != heard_result_sha256:
+        if heard_result_ref is not None and (
+            state.payload_ref != heard_result_ref or state.payload_sha256 != heard_result_sha256
+        ):
             raise VoiceHeardResultReentryError("heard-result memory payload relation mismatch")
         try:
             verify_typed_memory_binding(record, state)

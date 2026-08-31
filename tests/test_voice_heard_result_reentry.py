@@ -281,8 +281,6 @@ class VoiceHeardResultReentryTests(unittest.TestCase):
         evidence = validate_memory_event_bindings(
             event=event,
             bindings=((state, record),),
-            heard_result_ref=state.payload_ref,
-            heard_result_sha256=state.payload_sha256,
         )
         self.assertEqual(evidence[0].lifecycle_state_sha256, state.sha256())
         self.assertEqual(evidence[0].typed_memory_sha256, record.sha256())
@@ -301,7 +299,7 @@ class VoiceHeardResultReentryTests(unittest.TestCase):
                 heard_result_sha256=state.payload_sha256,
             )
 
-    def test_vsr03_gwt_ref_and_factory_lineage_both_fail_closed(self) -> None:
+    def test_vsr03_gwt_ref_is_reference_only_and_fail_closed_on_wrong_ref(self) -> None:
         session = self.session()
         cortex = VoicePacketCortex(session)
         binding = GwtReentryUptakeBinding(
@@ -324,8 +322,12 @@ class VoiceHeardResultReentryTests(unittest.TestCase):
         exact = cortex.emit_intent(
             turn_id="turn-gwt", monotonic_ms=100, voice_intent="WAIT", gwt_ref=binding.binding_id
         )
-        with self.assertRaisesRegex(VoiceHeardResultReentryError, "factory|lineage"):
-            validate_gwt_event_binding(event=exact, binding=binding)
+        validate_gwt_event_binding(event=exact, binding=binding)
+        evidence = binding.as_dict()
+        self.assertEqual(evidence["causal_influence_claim"], "NOT_ESTABLISHED_BY_BINDING")
+        self.assertEqual(evidence["gwt_runtime_credit"], 0)
+        self.assertEqual(evidence["jspace_runtime_credit"], 0)
+        self.assertFalse(evidence["whole_system_acceptance"])
         opaque = cortex.emit_intent(
             turn_id="turn-gwt", monotonic_ms=101, voice_intent="WAIT", gwt_ref="gwt:opaque-broadcast"
         )
