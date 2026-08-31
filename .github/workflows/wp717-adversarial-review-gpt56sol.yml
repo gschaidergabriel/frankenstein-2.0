@@ -19,7 +19,6 @@ jobs:
     timeout-minutes: 5
     steps:
       - uses: actions/checkout@v4
-
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
@@ -28,6 +27,7 @@ jobs:
         run: |
           set -euo pipefail
           git rev-parse HEAD
+          python --version
           sha256sum \
             src/frankenstein2/voice_heard_result_reentry.py \
             src/frankenstein2/voice_packet_cortex.py \
@@ -45,17 +45,11 @@ jobs:
 
           def session(tag: str) -> VoiceSessionCapsule:
               root = CausalIdentity(
-                  session_id=f"session-{tag}",
-                  agent_id="frankenstein-2",
-                  task_id=f"task-{tag}",
-                  turn_id="turn-input",
-                  causal_id=f"causal-input-{tag}",
-                  generation=3,
+                  session_id=f"session-{tag}", agent_id="frankenstein-2", task_id=f"task-{tag}",
+                  turn_id="turn-input", causal_id=f"causal-input-{tag}", generation=3,
               )
               intent = VoiceIntent.create(
-                  causal_identity=root,
-                  input_ref=f"fixture:{tag}",
-                  input_sha256="1" * 64,
+                  causal_identity=root, input_ref=f"fixture:{tag}", input_sha256="1" * 64,
                   provenance_refs=(f"review:{tag}",),
               )
               return VoiceSessionCapsule.create(
@@ -72,39 +66,26 @@ jobs:
               now = 10
               for sequence, packet_id in enumerate(packet_ids):
                   cortex.queue_output(
-                      turn_id=output_turn,
-                      packet_id=packet_id,
-                      monotonic_ms=now,
-                      text_segment=f"segment-{sequence}",
-                      expression_intent="neutral",
-                      speech_act="ANSWER",
-                      planned_audio_duration_ms=100,
-                      sequence=sequence,
+                      turn_id=output_turn, packet_id=packet_id, monotonic_ms=now,
+                      text_segment=f"segment-{sequence}", expression_intent="neutral",
+                      speech_act="ANSWER", planned_audio_duration_ms=100, sequence=sequence,
                   )
                   cortex.advance_output(
-                      packet_id,
-                      playback_state="started",
-                      monotonic_ms=now + 1,
-                      heard_fraction=0.0,
+                      packet_id, playback_state="started", monotonic_ms=now + 1, heard_fraction=0.0
                   )
                   cortex.advance_output(
-                      packet_id,
-                      playback_state="completed",
-                      monotonic_ms=now + 101,
-                      heard_fraction=1.0,
+                      packet_id, playback_state="completed", monotonic_ms=now + 101, heard_fraction=1.0
                   )
                   now += 120
               preclose = cortex.outputs
               heard = build_heard_result(session=s, output_packets=preclose)
               outcome = cortex.close_session(
-                  turn_id=close_turn or output_turn,
-                  monotonic_ms=now + 10,
+                  turn_id=close_turn or output_turn, monotonic_ms=now + 10,
                   outcome_causal_identity=s.session_causal_identity.derive(
                       causal_id=f"causal-outcome-{tag}", generation=5, turn_id="turn-outcome"
                   ),
                   outcome_kind=OUTCOME_RETURNED,
-                  result_ref=heard.payload_ref,
-                  result_sha256=heard.payload_sha256,
+                  result_ref=heard.payload_ref, result_sha256=heard.payload_sha256,
                   provenance_refs=(f"review:{tag}:outcome",),
               )
               return s, cortex, preclose, heard, outcome, cortex.events[-1]
@@ -118,36 +99,16 @@ jobs:
         run: |
           python - <<'PY'
           from wp717_review_fixture import completed_case
-          from frankenstein2.voice_heard_result_reentry import (
-              VoiceHeardResultReentryError,
-              validate_completed_heard_result,
-          )
-
-          s, cortex, preclose, _heard, outcome, close_event = completed_case(
-              "iterator", ("output-0",)
-          )
-
-          # Baseline: concrete tuple with pre-close packets must reject missing VoiceOutcome backlinks.
+          from frankenstein2.voice_heard_result_reentry import VoiceHeardResultReentryError, validate_completed_heard_result
+          s, cortex, preclose, _heard, outcome, close_event = completed_case("iterator", ("output-0",))
           try:
-              validate_completed_heard_result(
-                  session=s,
-                  outcome=outcome,
-                  output_packets=preclose,
-                  close_event=close_event,
-              )
+              validate_completed_heard_result(session=s, outcome=outcome, output_packets=preclose, close_event=close_event)
           except VoiceHeardResultReentryError:
               pass
           else:
               raise SystemExit("PRODUCT_NEGATIVE: tuple baseline accepted missing VoiceOutcome backlink")
-
-          # A single-pass iterator must fail exactly as closed as the tuple. Exhaustion must not bypass the guard.
           try:
-              validate_completed_heard_result(
-                  session=s,
-                  outcome=outcome,
-                  output_packets=iter(preclose),
-                  close_event=close_event,
-              )
+              validate_completed_heard_result(session=s, outcome=outcome, output_packets=iter(preclose), close_event=close_event)
           except VoiceHeardResultReentryError:
               print("ITERATOR_BACKLINK_FENCE_PASS")
           else:
@@ -163,18 +124,11 @@ jobs:
           python - <<'PY'
           from wp717_review_fixture import completed_case
           from frankenstein2.voice_heard_result_reentry import validate_completed_heard_result
-
           s, cortex, _preclose, _heard, outcome, close_event = completed_case(
-              "close-turn",
-              ("output-0",),
-              output_turn="turn-output",
-              close_turn="turn-close",
+              "close-turn", ("output-0",), output_turn="turn-output", close_turn="turn-close"
           )
           validated = validate_completed_heard_result(
-              session=s,
-              outcome=outcome,
-              output_packets=cortex.outputs,
-              close_event=close_event,
+              session=s, outcome=outcome, output_packets=cortex.outputs, close_event=close_event
           )
           assert validated.turn_id == "turn-output"
           assert close_event.turn_id == "turn-close"
@@ -190,19 +144,34 @@ jobs:
           python - <<'PY'
           from wp717_review_fixture import completed_case
           from frankenstein2.voice_heard_result_reentry import validate_completed_heard_result
-
-          s, cortex, _preclose, _heard, outcome, close_event = completed_case(
-              "order", ("z-first", "a-second")
-          )
+          s, cortex, _preclose, _heard, outcome, close_event = completed_case("order", ("z-first", "a-second"))
           validated = validate_completed_heard_result(
-              session=s,
-              outcome=outcome,
-              output_packets=cortex.outputs,
-              close_event=close_event,
+              session=s, outcome=outcome, output_packets=cortex.outputs, close_event=close_event
           )
           assert validated.ordered_output_packet_ids == ("z-first", "a-second")
           assert tuple(close_event.packet_refs) == ("a-second", "z-first")
           print("SEMANTIC_SEQUENCE_ORDER_FENCE_PASS")
+          PY
+
+      - name: FALSIFIER pre-close full packet identity must not collapse
+        id: packet_identity
+        continue-on-error: true
+        env:
+          PYTHONPATH: src:/tmp
+        run: |
+          python - <<'PY'
+          from dataclasses import replace
+          from wp717_review_fixture import completed_case
+          from frankenstein2.voice_heard_result_reentry import build_heard_result
+          s, _cortex, preclose, heard, _outcome, _close_event = completed_case("packet-identity", ("output-0",))
+          original = preclose[0]
+          changed = replace(original, planned_audio_duration_ms=original.planned_audio_duration_ms + 1)
+          if original.sha256() == changed.sha256():
+              raise SystemExit("EVIDENCE_INVALID: canonical VoiceOutputPacket identity did not change")
+          changed_heard = build_heard_result(session=s, output_packets=(changed,))
+          if heard.payload_sha256 == changed_heard.payload_sha256:
+              raise SystemExit("PRODUCT_NEGATIVE: distinct canonical pre-close packet identities collapsed to one heard-result identity")
+          print("PRE_CLOSE_PACKET_IDENTITY_FENCE_PASS")
           PY
 
       - name: Classify adversarial review
@@ -210,12 +179,17 @@ jobs:
           ITERATOR_OUTCOME: ${{ steps.iterator_backlink.outcome }}
           CLOSE_TURN_OUTCOME: ${{ steps.close_turn.outcome }}
           ORDER_OUTCOME: ${{ steps.semantic_order.outcome }}
+          PACKET_IDENTITY_OUTCOME: ${{ steps.packet_identity.outcome }}
         run: |
           set -euo pipefail
           printf 'iterator_backlink=%s\n' "$ITERATOR_OUTCOME"
           printf 'close_turn=%s\n' "$CLOSE_TURN_OUTCOME"
           printf 'semantic_order=%s\n' "$ORDER_OUTCOME"
-          if [ "$ITERATOR_OUTCOME" != success ] || [ "$CLOSE_TURN_OUTCOME" != success ] || [ "$ORDER_OUTCOME" != success ]; then
+          printf 'packet_identity=%s\n' "$PACKET_IDENTITY_OUTCOME"
+          if [ "$ITERATOR_OUTCOME" != success ] || \
+             [ "$CLOSE_TURN_OUTCOME" != success ] || \
+             [ "$ORDER_OUTCOME" != success ] || \
+             [ "$PACKET_IDENTITY_OUTCOME" != success ]; then
             echo 'WP717_ADVERSARIAL_REVIEW_PRODUCT_NEGATIVE_OR_INCOMPATIBILITY_REPRODUCED' >&2
             exit 1
           fi
