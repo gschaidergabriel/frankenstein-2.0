@@ -1,0 +1,54 @@
+{
+  "schema": "FRANKENSTEIN2_CANDIDATE_FALSIFIER/v1",
+  "workpackage_id": "F2-WP-717",
+  "generation": 3,
+  "claim_id_observed": "F2-WP-717-G3-GPT56SOL-MEMORY-GWT-LINEAGE-FENCES-20260831",
+  "worker_id": "GPT-5.6-Sol-Trigger4-Independent-Falsifier",
+  "result_class": "CANDIDATE_FALSIFIER",
+  "mutation_authority": false,
+  "observed_active_pointer_blob_sha": "d137e0cbff7a035a9117a2eaf5e58cc3aed79060",
+  "observed_reentry_source_blob_sha": "20b5596e6311a34598530ec7cbfd7a2e7e9cf4ea",
+  "executed_negative_evidence": {
+    "run_id": 33368250606,
+    "subject_sha": "1d7c5e41f09cdcbfa793181de27a0d944ee96a3f",
+    "classification": "PRODUCT_NEGATIVE_FOR_VSR07_PRE_FIX_SEMANTICS",
+    "observation": "WP717 CI compiled successfully and then failed because unrelated valid lifecycle/typed memory could enter the completed heard-result receipt."
+  },
+  "basis": "Current G3 claimed_scope requires every supplied MemoryLifecycleState payload_ref AND payload_sha256 to equal the exact completed heard-result payload. VSR07A/B prove the broad unrelated-payload case, but a weak repair could still compare only one half of the identity or require merely one matching item in a mixed event.",
+  "falsifiers": [
+    {
+      "id": "VSR07C_SAME_REF_WRONG_DIGEST",
+      "setup": "Build an exact completed heard result H. Create a valid MemoryLifecycleState whose payload_ref equals H.payload_ref but whose payload_sha256 is a different valid lowercase 64-hex digest. Create its matching TypedMemoryRecord and reference its memory_id from memory_event.",
+      "required_result": "FAIL_CLOSED_BEFORE_VOICE_HEARD_RESULT_REENTRY_RECEIPT",
+      "failure_signature": "Consumer compares payload_ref only and admits a lifecycle state whose content digest is not H.payload_sha256.",
+      "repair_guard": "Require the lifecycle payload relation as the ordered pair (payload_ref, payload_sha256), not either field independently."
+    },
+    {
+      "id": "VSR07D_WRONG_REF_SAME_DIGEST",
+      "setup": "Build exact heard result H. Create a valid MemoryLifecycleState whose payload_sha256 equals H.payload_sha256 but whose payload_ref is a different valid non-empty reference. Create matching TypedMemoryRecord and bind memory_event to that memory_id.",
+      "required_result": "FAIL_CLOSED_BEFORE_VOICE_HEARD_RESULT_REENTRY_RECEIPT",
+      "failure_signature": "Consumer compares digest only and silently accepts a different semantic reference namespace/subject.",
+      "repair_guard": "Require exact payload_ref and exact payload_sha256 together."
+    },
+    {
+      "id": "VSR07E_MIXED_MEMORY_SET_ONE_EXACT_ONE_UNRELATED",
+      "setup": "Create memory_event with two memory_refs in canonical order. First lifecycle/typed pair binds H.payload_ref and H.payload_sha256 exactly. Second pair is internally valid but binds an unrelated payload. Supply both pairs to bind_completed_reentry.",
+      "required_result": "FAIL_CLOSED_BEFORE_RECEIPT_UNLESS_UNRELATED_MEMORY_IS_EXCLUDED_FROM_THE_HEARD_RESULT_MEMORY_EVIDENCE_SURFACE",
+      "failure_signature": "Repair checks that at least one memory pair matches H and then emits memory_evidence containing an unrelated lifecycle state under the same completed heard-result receipt.",
+      "repair_guard": "Under current G3 claimed_scope, every supplied MemoryLifecycleState admitted into this receipt must bind the exact heard-result payload pair; do not convert a set-existence check into relation proof."
+    }
+  ],
+  "scope_guards": {
+    "wp717_g1_runtime_credit": "PRESERVE",
+    "wp717_g2_memory_context_runtime_credit": "PRESERVE_AT_CORRECTED_EXACT_SCOPE",
+    "canonical_memory_write_credit": 0,
+    "gwt_runtime_credit": 0,
+    "jspace_runtime_credit": 0,
+    "effect_credit": 0,
+    "physical_audio_credit": 0,
+    "training_credit": 0,
+    "whole_system_acceptance": false
+  },
+  "acceptance_guidance": "The G3 mutation owner should add split-identity and mixed-set regressions while implementing the already-authorized VSR07 lifecycle payload fence. This packet does not authorize source mutation and does not reopen the rescaled reference-only GWT decision.",
+  "next_exact_action": "G3 mutation owner refreshes main, applies the smallest existing-consumer VSR07 fence requiring every supplied lifecycle payload_ref+payload_sha256 pair to equal the exact heard result, runs the complete WP717 repository CI including VSR07A-E, then binds a new exact-source VPS subject only after green repository evidence."
+}
