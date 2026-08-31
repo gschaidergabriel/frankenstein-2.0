@@ -1,0 +1,51 @@
+{
+  "schema": "F2_TRIGGER4_CANDIDATE_FALSIFIER/v1",
+  "trigger": "4",
+  "research_id": "T7-ASR-008",
+  "observed_at_utc": "2026-08-31T00:20:00Z",
+  "classification": "HARNESS_FIXTURE_DECODER_FAILURE_BEFORE_ASR_MEASUREMENT",
+  "failure_taxonomy": "EVIDENCE_INVALID",
+  "product_negative": false,
+  "bound_runtime": {
+    "controller_repo": "gschaidergabriel/Dr.-Unterweger",
+    "workflow_run_id": 33340567051,
+    "controller_subject": "823920bd770c16ca9855610d56d64a669a8063b0",
+    "f2_subject": "4727b94eeda381f3dcbe4d494eb72f91ce17b478",
+    "target_surface": "clay-direct-dev",
+    "status": "completed",
+    "conclusion": "failure"
+  },
+  "evidence": {
+    "receipt_path": "gschaidergabriel/Dr.-Unterweger:runtime/trigger4_nemotron35_asr008/runs/33340567051/receipt.json",
+    "stderr_path": "gschaidergabriel/Dr.-Unterweger:runtime/trigger4_nemotron35_asr008/runs/33340567051/comparator.stderr.log",
+    "receipt_classification": "EVIDENCE_INVALID",
+    "receipt_reason": "BOUND_COMPARATOR_DID_NOT_PRODUCE_VERIFIABLE_RECEIPT",
+    "failure_stage": "EXACT_COMPARATOR",
+    "bridge_exit_code": 1,
+    "root_cause": "The repaired run progressed past dependency installation and exact model/runtime hashing, then prepare_fixtures failed when Python wave.open encountered FLEURS WAV format tag 3 (IEEE float): wave.Error: unknown format: 3.",
+    "measurement_reached": false
+  },
+  "interpretation": {
+    "model_quality_conclusion": "NONE",
+    "nemotron_runtime_negative": false,
+    "fixture_pipeline_negative": true,
+    "reason": "No ASR comparison was executed. The failure is in fixture decoding/normalization before the model discriminator, so it cannot support a Nemotron quality/runtime product-negative claim."
+  },
+  "required_repair": {
+    "scope": "controller comparator fixture normalization only",
+    "rule": "Decode source audio with a format-capable decoder (for example libsndfile/soundfile), normalize deterministically to mono 16 kHz PCM16 WAV before validate_wav/gate/transcribe, preserve original source-byte SHA256 separately from normalized fixture SHA256, and bind both in the receipt.",
+    "regression": "Include at least one IEEE-float WAVE_FORMAT_IEEE_FLOAT/tag-3 fixture and prove deterministic PCM16 normalization before redispatch.",
+    "runtime_subject_action": "RUNTIME_PROBE_INVALIDATED_BY_REQUIRED_REPAIR"
+  },
+  "credit": {
+    "runtime_credit": 0,
+    "german_asr_quality_credit": 0,
+    "trigger4_acceptance_credit": 0,
+    "physical_device_credit": 0,
+    "gwt_jspace_credit": 0,
+    "effect_credit": 0,
+    "training_credit": 0,
+    "whole_product_credit": 0
+  },
+  "next_exact_action": "Repair only the fixture decoder/normalizer plus regression, then dispatch one new exact-source ASR008 comparator subject. Do not reuse run 33340567051 as model evidence and do not promote any runtime/product credit from it."
+}
