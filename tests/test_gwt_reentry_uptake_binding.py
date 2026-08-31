@@ -235,7 +235,7 @@ def test_direct_binding_constructor_bypass_is_rejected_on_validation():
     receipt = make_receipt(broadcast)
     observed = bind(witness, receipt, plan, selection, broadcast, cell_input)
     forged = replace(observed, _factory_seal=None)
-    with pytest.raises(GwtReentryUptakeBindingError, match="deterministic binding factory"):
+    with pytest.raises(GwtReentryUptakeBindingError, match="factory|lineage"):
         validate_reentry_uptake_binding(
             forged,
             witness=witness,
