@@ -1,0 +1,66 @@
+{
+  "schema": "F2_TRIGGER4_EXECUTED_FALSIFIER_RESULT/v1",
+  "trigger": "4",
+  "workpackage_id": "F2-WP-717",
+  "generation": 1,
+  "claim_id": "F2-WP-717-G1-GPT56SOL-VOICE-HEARD-RESULT-REENTRY-20260831",
+  "organ": "GPT-5.6-Sol-Trigger4-Review",
+  "work_class": "EVIDENCE_RECONCILIATION",
+  "observed_at_local": "2026-08-31T09:28:00+07:00",
+  "workflow_run": {
+    "run_id": 33350734628,
+    "workflow": "WP717 Adversarial Review GPT56Sol",
+    "subject_sha": "1b859fee8420814d2ba75f659541038adb0beb50",
+    "job_id": 99363454256,
+    "status": "completed",
+    "conclusion": "failure",
+    "runner": "GitHub hosted ubuntu-24.04",
+    "python": "3.12.14"
+  },
+  "executed_discriminators": {
+    "iterator_backlink": {
+      "step": 6,
+      "step_outcome": "failure",
+      "observed_message": "PRODUCT_NEGATIVE: single-pass iterator bypassed VoiceOutcome backlink validation",
+      "classification": "PRODUCT_NEGATIVE",
+      "invariant": "Iterable input must fail closed exactly like concrete tuple input when VoiceOutputPacket.voiceoutcome_ref is missing or wrong."
+    },
+    "accepted_wp715_close_turn_compatibility": {
+      "step": 7,
+      "step_outcome": "failure",
+      "observed_exception": "VoiceHeardResultReentryError: SESSION_CLOSE event is not bound to heard-result session/turn",
+      "classification": "PRODUCT_NEGATIVE_INTEGRATION_INCOMPATIBILITY",
+      "invariant": "WP717 must not require SESSION_CLOSE.turn_id to equal the heard-output turn when accepted WP715 permits the close transition on a distinct turn; exact session identity and packet inventory remain the binding authority."
+    },
+    "semantic_output_order": {
+      "step": 8,
+      "step_outcome": "success",
+      "observed_message": "SEMANTIC_SEQUENCE_ORDER_FENCE_PASS",
+      "classification": "NO_COUNTEREXAMPLE",
+      "invariant": "Heard-result sequence order remains semantic output order and does not derive from lexicographically sorted SESSION_CLOSE.packet_refs."
+    }
+  },
+  "failure_taxonomy": "PRODUCT_NEGATIVE",
+  "repair_scope": {
+    "iterator": "Materialize output_packets exactly once at validate_completed_heard_result entry and reuse that tuple for heard-result construction, VoiceOutcome backlink checks, and close inventory validation.",
+    "close_turn": "Remove equality coupling between close_event.turn_id and heard-result output turn; bind SESSION_CLOSE through exact session identity plus exact packet inventory and outcome/result identity.",
+    "order": "Preserve current semantic sequence-order behavior as a regression."
+  },
+  "concurrency_fence": {
+    "new_wp717_mutation_authority": false,
+    "source_mutated_by_review_lane": false,
+    "active_g1_owner_retained": true,
+    "new_asr008_dispatch": false
+  },
+  "credits": {
+    "repository_component_ci_credit": 0,
+    "vps_runtime_credit": 0,
+    "canonical_memory_write_credit": 0,
+    "gwt_runtime_credit": 0,
+    "effect_credit": 0,
+    "physical_audio_credit": 0,
+    "training_credit": 0,
+    "whole_product_credit": 0
+  },
+  "next_exact_action": "Active WP717 G1 mutation owner repairs the two reproduced invariants, adds them to the canonical regression suite, reruns original VSR01-VSR06 plus all adversarial regressions, and only after repository acceptance binds the repaired exact source to the lowest safe faithful VPS sandbox."
+}
