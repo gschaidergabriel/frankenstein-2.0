@@ -1,0 +1,74 @@
+{
+  "schema": "F2_TRIGGER7_TO_TRIGGER4_FALSIFIER_HANDOFF/v1",
+  "trigger": "7+",
+  "handoff_id": "T7PLUS-F15-F17-F16-RESTART-COMPOSITION-EXECUTION-20260901-GPT56SOL",
+  "status": "READY_FOR_TRIGGER4_EXECUTION",
+  "implementation_mutation_authority": false,
+  "runtime_acceptance_authority": false,
+  "claim_ref": "research/local_voice/claims/2026-09-01_trigger7_gpt56sol_cortex_frontier_claim.json",
+  "binding_authority_ref": "research/local_voice/authority/2026-08-31_TRIGGER7_TEXT_PACKET_COMPLETION_AUTHORITY.md",
+  "prerequisite": {
+    "workpackage_id": "F2-WP-715",
+    "generation": 2,
+    "state": "ACCEPTED",
+    "runtime_subject_sha": "71ddd9e5aa3791e5dcb1be37e276d5c3194f0adf",
+    "controller_run_id": 33421332204,
+    "runtime_execution_observed": true,
+    "closed_checkpoint_causal_relation_credit": 1,
+    "target_environment_component_runtime_credit": 1
+  },
+  "candidate_falsifier": {
+    "path": "research/local_voice/tools/falsify_restart_exact_once_reentry_composition.py",
+    "origin_commit": "6409cc2408a5faaccddd42a6e316ed5d2bfb9f74",
+    "static_audit_ref": "research/local_voice/deltas/2026-09-01_T7_PLUS_RESTART_COMPOSITION_HARNESS_STATIC_AUDIT_GPT56SOL.json",
+    "static_audit_result": "PASS_NO_STATIC_COUNTEREXAMPLE",
+    "execution_status_before_handoff": "PREPARED_NOT_EXECUTED"
+  },
+  "tests": [
+    {
+      "id": "F15_COMPLETED_HEARD_CLOSED_RESTART_REENTRY_EXACT_ONCE",
+      "required": "closed checkpoint restores exactly one SESSION_CLOSE and exact completed-reentry replay returns the same receipt/digest"
+    },
+    {
+      "id": "F17_PARTIAL_OR_INTERRUPTED_RESTART_CAN_NEVER_PROMOTE_TO_DURABLE_HEARD_RESULT",
+      "required": "partial heard output resumes interrupted, remains non-commit-eligible/no VoiceOutcome ref, and cannot mint a durable heard-result"
+    },
+    {
+      "id": "F16_COMPLETED_HEARD_OPEN_RESTART_THEN_CLOSE_ONCE",
+      "required": "fully heard completed output survives open restart with stable heard-result identity; exact duplicate close mints only one SESSION_CLOSE and one VoiceOutcome identity"
+    }
+  ],
+  "execution_route": {
+    "preferred_surface": "VPS_SANDBOX_REPRESENTABLE",
+    "network_model_inference": "OFF/NOT_REQUIRED",
+    "minimum_action": "refresh main, verify candidate-falsifier blob identity or semantic invariance, execute the script against the current exact source tree in the lowest safe faithful VPS sandbox, preserve stdout/stderr/exit status and exact source identity",
+    "do_not_create_new_architecture_before_execution": true
+  },
+  "failure_routing": {
+    "PRODUCT_NEGATIVE": "bind exact failed invariant and route the smallest repair under the correct existing workpackage/mutation authority; add regression; do not redesign unrelated voice/GWT/memory layers",
+    "EVIDENCE_INVALID": "repair only source/runtime/provenance/readback binding",
+    "INFRA_AUTH_TRANSPORT_QUOTA": "repair execution surface; no product conclusion",
+    "CONCURRENCY_RETRY": "refresh ownership and reuse existing semantic boundary",
+    "UNKNOWN_NONTERMINAL": "do not duplicate dispatch"
+  },
+  "downstream_if_pass": {
+    "frontier_ref": "research/local_voice/frontier/2026-09-01_T7_PLUS_FRESH_TURN_FRONTIER_WP900_CORRECTION_GPT56SOL.json",
+    "next_candidate_boundary": "validated prior reentry -> distinct fresh VoiceIntent/VoiceSession/turn exact-once successor composition",
+    "instruction": "Before implementing any fresh-turn adapter, search for an existing admitted successor projector. If it exists, prove NO_GAP/reuse it. If absent, implement only the minimal composition glue needed for FRESH1-FRESH10. Do not create new GWT authority."
+  },
+  "explicit_zero_credit_before_execution": {
+    "f15_f17_f16_execution": 0,
+    "fresh_turn_execution": 0,
+    "canonical_memory_write": 0,
+    "global_semantic_gwt_runtime": 0,
+    "jspace_runtime": 0,
+    "effect": 0,
+    "asr_runtime": 0,
+    "tts_runtime": 0,
+    "physical_audio": 0,
+    "whole_voice_e2e": 0,
+    "whole_product": 0,
+    "training": 0
+  },
+  "next_exact_action": "Trigger4 executes the already-prepared F15/F17/F16 composition falsifier once on an admitted VPS sandbox against refreshed current source, classifies the exact result, and only then advances to the fresh-turn successor boundary."
+}
