@@ -1,0 +1,46 @@
+{
+  "schema": "FRANKENSTEIN2_CANDIDATE_FALSIFIER/v1",
+  "workpackage_id": "F2-WP-307",
+  "generation": 1,
+  "claim_id_observed": "F2-WP-307-G1-GPT56SOL-TYPED-MEMORY-UNIFIEDDB-READBACK-20260831",
+  "worker_id": "GPT-5.6-Sol-Trigger4-Independent-Falsifier",
+  "result_class": "CANDIDATE_FALSIFIER",
+  "mutation_authority": false,
+  "falsifier_id": "TMU02_COHERENT_ROW_REWRITE_RECOMPUTED_DIGEST",
+  "observed_main_before_write": "b865067621eb41ddf67056ed958c6421eb3cef41",
+  "source_subject": {
+    "typed_memory_persistence_blob_sha": "9585b74dd3744f9203beaa324ae7980da71fef16",
+    "typed_memory_test_blob_sha": "67d1b1445e8b0089af9e73983f8478e3f40cf2bc"
+  },
+  "source_observation": "Current load_record verifies that record_json is canonical and that stored record_sha256 matches the current stored bytes, and it cross-checks only selected indexed metadata. Current tests mutate record_json while leaving the stored digest stale, or mutate one indexed field separately. A coherent rewrite can instead replace record_json, recompute record_sha256, and update the checked indexed metadata together while preserving memory_id/lifecycle_generation and database-authority columns.",
+  "hypothesis": "If no independent expected record/digest is supplied at load time and no immutable digest anchor exists outside the mutable row, a coherently rewritten row may be returned as a valid TypedMemoryReadback because the row's digest is self-consistent rather than independently authenticated. This is a source-derived hypothesis, not a confirmed product failure.",
+  "setup": [
+    "Create and persist one valid TypedMemoryRecord through the public WP307 adapter.",
+    "Directly rewrite the stored row inside main.f2_typed_memory_records while keeping the same memory_id and lifecycle_generation.",
+    "Change at least one semantically relevant canonical field not independently anchored by the lookup key, for example provenance_refs or typed_refs; keep the JSON canonical.",
+    "Recompute record_sha256 over the rewritten canonical JSON and update every indexed metadata column that load_record cross-checks so the row is internally consistent.",
+    "Keep canonical_db_path, db_device, db_inode and unifieddb_authority_receipt_sha256 unchanged.",
+    "Call load_record(memory_id, lifecycle_generation) without the original in-memory TypedMemoryRecord and record whether the coherent rewrite is rejected or returned as valid readback."
+  ],
+  "required_discriminator": "COHERENT_MUTABLE_ROW_REWRITE_MUST_NOT_SILENTLY_BECOME_AN_AUTHENTICATED_EXACT_RECORD_IF_THE_CONTRACT_CLAIMS_TAMPER_REJECTION_WITHOUT_AN_EXTERNAL_EXPECTED_IDENTITY",
+  "failure_signature": "load_record returns a TypedMemoryReadback for the coherently rewritten bytes with no error even though those bytes differ from the originally admitted TypedMemoryRecord and only the mutable row's digest was updated to match them.",
+  "interpretation_guard": "If WP307 intentionally defines load_record as consistency-only and requires every caller to invoke verify_exact_record against an independently retained expected TypedMemoryRecord/digest, then this falsifier should be resolved as CONTRACT_CLARIFICATION_REQUIRED rather than PRODUCT_NEGATIVE. In that case the public persistence/readback contract and tests must make the external identity requirement explicit before canonical_memory_write_credit is promoted.",
+  "repair_options_if_product_negative": [
+    "Require an independently expected record_sha256 or exact TypedMemoryRecord identity at authenticated readback and fail closed on mismatch.",
+    "Or bind the admitted record digest to an existing immutable/canonical authority outside the mutable row and verify that anchor on load.",
+    "Do not create a second database, memory authority, truth authority or effect authority."
+  ],
+  "scope_guards": {
+    "repository_component_ci_regression_credit": 0,
+    "target_environment_component_runtime_credit": 0,
+    "canonical_memory_write_credit": 0,
+    "gwt_runtime_credit": 0,
+    "jspace_runtime_credit": 0,
+    "effect_credit": 0,
+    "physical_credit": 0,
+    "training_credit": 0,
+    "completion_credit": 0,
+    "whole_system_acceptance": false
+  },
+  "next_exact_action": "WP307 mutation owner adds TMU02 as an executable repository discriminator or explicitly narrows the contract to consistency-only readback with mandatory external expected-record verification. Do not mutate WP307 owned source from this independent falsifier lane."
+}
