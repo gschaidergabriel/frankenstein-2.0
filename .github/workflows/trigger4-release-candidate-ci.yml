@@ -19,6 +19,8 @@ on:
       - 'src/frankenstein2/restart_recovery_persisted_row_attestation.py'
       - 'tests/test_restart_recovery_persisted_row_attestation.py'
       - 'tests/test_wp900_wp206_two_process_restart.py'
+      - 'src/frankenstein2/host_transition.py'
+      - 'tests/test_host_transition.py'
       - 'AI_START_HERE_DO_NOT_SCAN_REPO/**'
       - 'artifacts/backfill/**'
       - 'PRODUCT_COMPLETION_LAW.md'
@@ -44,6 +46,8 @@ on:
       - 'src/frankenstein2/restart_recovery_persisted_row_attestation.py'
       - 'tests/test_restart_recovery_persisted_row_attestation.py'
       - 'tests/test_wp900_wp206_two_process_restart.py'
+      - 'src/frankenstein2/host_transition.py'
+      - 'tests/test_host_transition.py'
       - 'AI_START_HERE_DO_NOT_SCAN_REPO/**'
       - 'artifacts/backfill/**'
       - 'PRODUCT_COMPLETION_LAW.md'
@@ -82,7 +86,7 @@ jobs:
           git rev-parse HEAD
           git rev-parse HEAD^{tree}
 
-      - name: Run accepted release and receipt-binding regressions
+      - name: Run accepted release, receipt-binding, and host-transition regressions
         shell: bash
         run: |
           set -euo pipefail
@@ -91,6 +95,7 @@ jobs:
           python -m unittest discover -s tests -p 'test_receipt_content_binding.py' -v
           python -m unittest discover -s tests -p 'test_portable_release_static_completeness.py' -v
           python -m unittest discover -s tests -p 'test_artifact_bound_static_completeness.py' -v
+          python -m unittest discover -s tests -p 'test_host_transition.py' -v
 
       - name: Exercise accepted WP900-WP206 fresh-process persistence chain
         shell: bash
