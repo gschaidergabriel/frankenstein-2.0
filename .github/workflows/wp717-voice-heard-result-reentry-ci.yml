@@ -70,14 +70,14 @@ jobs:
           echo 'WP717_ZERO_PROVIDER_SURFACE_PASS'
 
   g3-convergence-duplicate-guard:
-    # Same singleton group as the superseded queued VPS job. This replaces pending duplicate work
-    # with a cheap accepted-state verification after another worker closed the exact boundary.
-    if: "${{ github.event_name == 'push' && github.event.head_commit.message == 'trigger4: supersede duplicate WP717 G3 VPS dispatch after convergence' }}"
+    # The prior G3 runtime boundary is already ACCEPTED. Reuse the same concurrency group with
+    # cancel-in-progress so any stale queued duplicate is cancelled rather than executed.
+    if: "${{ github.event_name == 'push' && github.event.head_commit.message == 'trigger4: cancel duplicate WP717 G3 runtime queue' }}"
     runs-on: clay-host
     timeout-minutes: 5
     concurrency:
       group: wp717-g3-vps-memory-payload-fence-runtime
-      cancel-in-progress: false
+      cancel-in-progress: true
     steps:
       - uses: actions/checkout@v4
       - name: Verify converged WP717 G3 state; do not redispatch runtime
