@@ -1,0 +1,40 @@
+{
+  "schema": "FRANKENSTEIN2_CANDIDATE_FALSIFIER/v1",
+  "workpackage_id": "F2-WP-307",
+  "generation": 1,
+  "claim_id_observed": "F2-WP-307-G1-GPT56SOL-TYPED-MEMORY-UNIFIEDDB-READBACK-20260831",
+  "worker_id": "GPT-5.6-Sol-Trigger4-Independent-Falsifier",
+  "result_class": "CANDIDATE_FALSIFIER",
+  "mutation_authority": false,
+  "falsifier_id": "TMU01_SQLITE_TEMP_TABLE_SHADOWS_CANONICAL_MAIN",
+  "base_observation": "G1 owns the TypedMemoryRecord persistence adapter. The accepted WP206 CanonicalPersistentAgencyStore proves that its sqlite3.Connection is bound to the fingerprinted canonical UnifiedDB main file, while WP307 requires typed-memory write/readback in that same canonical UnifiedDB and explicitly forbids a second state/database authority.",
+  "source_observation": {
+    "typed_memory_boundary": "TypedMemoryRecord has deterministic canonical_json()/sha256() and is explicitly persistence-agnostic; WP307 must persist its exact identity without changing WP303 semantics.",
+    "existing_unifieddb_boundary": "CanonicalPersistentAgencyStore binds sqlite main to the admitted UnifiedDB real path/device/inode and exposes one already-authorized connection.",
+    "sqlite_shadow_risk": "SQLite resolves an unqualified table reference to a same-named TEMP table before main. A WP307 adapter that uses unqualified INSERT/SELECT/DELETE statements can therefore appear to pass same-connection write/readback while storing the row only in TEMP rather than the canonical main UnifiedDB file."
+  },
+  "setup": [
+    "Create/open one canonical UnifiedDB and bind the existing CanonicalPersistentAgencyStore to it through the admitted resolution/fingerprint path.",
+    "Initialize the WP307 main typed-memory table if the implementation requires it.",
+    "Create a TEMP table on the same sqlite3.Connection with the identical table name and a schema sufficient for the adapter's unqualified statements.",
+    "Write one valid TypedMemoryRecord through the WP307 public adapter and perform its normal readback.",
+    "Query both temp.<typed_memory_table> and main.<typed_memory_table> explicitly, then close the connection and reopen the canonical UnifiedDB in a fresh process/connection."
+  ],
+  "required_result_for_canonical_unifieddb_credit": "WRITE_AND_READBACK_MUST_TARGET_MAIN_EXPLICITLY__TEMP_SHADOW_MUST_NOT_CAPTURE_OR_SATISFY_THE_OPERATION",
+  "failure_signature": "The adapter reports success and/or returns the expected record digest while the durable row exists only in temp.<table>, main.<table> lacks the row, or fresh-process reopen cannot read the record from main.",
+  "why_high_information": "This separates 'same sqlite connection' from 'same canonical persistent UnifiedDB'. It catches a false-positive persistence implementation without requiring another database file, provider, VPS run or architecture change, and it directly tests the claim's no-second-state/no-ephemeral-substitute invariant.",
+  "repair_guidance": "Schema-qualify every WP307 persistence statement against main (for example main.<owned_table>) and verify explicit main readback. Reuse the existing bound UnifiedDB connection/identity; do not create a second connection authority or a second database. Keep WP206/WP303 source untouched unless independent executable counterevidence requires otherwise.",
+  "scope_guards": {
+    "repository_component_ci_regression_credit": 0,
+    "target_environment_component_runtime_credit": 0,
+    "canonical_memory_write_credit": 0,
+    "gwt_runtime_credit": 0,
+    "jspace_runtime_credit": 0,
+    "effect_credit": 0,
+    "physical_credit": 0,
+    "training_credit": 0,
+    "completion_credit": 0,
+    "whole_system_acceptance": false
+  },
+  "next_exact_action": "G1 mutation owner adds TMU01 to the repository discriminator set before acceptance. The test must prove explicit main-table persistence plus fresh-connection readback while a same-name TEMP shadow is present; only then continue to the identical-source VPS fresh-process gate."
+}
