@@ -20,7 +20,7 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-      - name: Refresh main, verify G3 ownership, and reconcile exact current scope
+      - name: Refresh main, verify G3 ownership, and repair receipt-scoped memory relation
         env:
           CLAIM_ID: F2-WP-717-G3-GPT56SOL-MEMORY-GWT-LINEAGE-FENCES-20260831
         run: |
@@ -41,24 +41,15 @@ jobs:
           source_path = Path('src/frankenstein2/voice_heard_result_reentry.py')
           source = source_path.read_text()
 
-          old_import = '''from frankenstein2.gwt_reentry_uptake_binding import (\n    GwtReentryUptakeBinding,\n    GwtReentryUptakeBindingError,\n    assert_reentry_uptake_binding_factory_origin,\n)\n'''
-          new_import = 'from frankenstein2.gwt_reentry_uptake_binding import GwtReentryUptakeBinding\n'
-          assert source.count(old_import) == 1, 'WP717 GWT import anchor drifted'
-          source = source.replace(old_import, new_import, 1)
-
           old_sig = '''    bindings: Iterable[tuple[MemoryLifecycleState, TypedMemoryRecord]],\n    heard_result_ref: str,\n    heard_result_sha256: str,\n) -> tuple[MemoryReferenceEvidence, ...]:\n    if type(event) is not CortexEventPacket:\n        raise VoiceHeardResultReentryError("memory event must be exact CortexEventPacket")\n    _text("heard_result_ref", heard_result_ref)\n    _sha256("heard_result_sha256", heard_result_sha256)\n'''
           new_sig = '''    bindings: Iterable[tuple[MemoryLifecycleState, TypedMemoryRecord]],\n    heard_result_ref: str | None = None,\n    heard_result_sha256: str | None = None,\n) -> tuple[MemoryReferenceEvidence, ...]:\n    if type(event) is not CortexEventPacket:\n        raise VoiceHeardResultReentryError("memory event must be exact CortexEventPacket")\n    if (heard_result_ref is None) != (heard_result_sha256 is None):\n        raise VoiceHeardResultReentryError("partial heard-result memory payload identity is forbidden")\n    if heard_result_ref is not None:\n        _text("heard_result_ref", heard_result_ref)\n        _sha256("heard_result_sha256", heard_result_sha256)\n'''
           assert source.count(old_sig) == 1, 'WP717 memory signature anchor drifted'
           source = source.replace(old_sig, new_sig, 1)
 
-          old_relation = '''        if state.payload_ref != heard_result_ref or state.payload_sha256 != heard_result_sha256:\n            raise VoiceHeardResultReentryError(\n                "heard-result memory payload relation mismatch"\n            )\n'''
-          new_relation = '''        if heard_result_ref is not None and (\n            state.payload_ref != heard_result_ref or state.payload_sha256 != heard_result_sha256\n        ):\n            raise VoiceHeardResultReentryError(\n                "heard-result memory payload relation mismatch"\n            )\n'''
+          old_relation = '''        if state.payload_ref != heard_result_ref or state.payload_sha256 != heard_result_sha256:\n            raise VoiceHeardResultReentryError("heard-result memory payload relation mismatch")\n'''
+          new_relation = '''        if heard_result_ref is not None and (\n            state.payload_ref != heard_result_ref or state.payload_sha256 != heard_result_sha256\n        ):\n            raise VoiceHeardResultReentryError("heard-result memory payload relation mismatch")\n'''
           assert source.count(old_relation) == 1, 'WP717 memory relation anchor drifted'
           source = source.replace(old_relation, new_relation, 1)
-
-          old_gwt = '''    try:\n        assert_reentry_uptake_binding_factory_origin(binding)\n    except GwtReentryUptakeBindingError as exc:\n        raise VoiceHeardResultReentryError(f"GWT factory lineage failed: {exc}") from exc\n'''
-          assert source.count(old_gwt) == 1, 'WP717 reference-only GWT anchor drifted'
-          source = source.replace(old_gwt, '', 1)
 
           source_path.write_text(source)
           PY
@@ -81,6 +72,6 @@ jobs:
           git config user.email 'trigger4@users.noreply.github.com'
           git rm .github/workflows/wp717-g3-memory-fence-once.yml
           git add src/frankenstein2/voice_heard_result_reentry.py
-          git commit -m 'trigger4: reconcile WP717 receipt-scoped memory fence'
+          git commit -m 'trigger4: preserve WP717 standalone memory validator contract'
           git pull --rebase origin main
           git push origin HEAD:main
