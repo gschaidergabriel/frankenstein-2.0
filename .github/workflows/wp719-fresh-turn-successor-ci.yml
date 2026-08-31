@@ -1,0 +1,64 @@
+name: WP719 Fresh Turn Successor CI
+
+on:
+  push:
+    paths:
+      - "src/frankenstein2/fresh_turn_successor.py"
+      - "tests/test_fresh_turn_successor.py"
+      - "research/local_voice/tools/falsify_fresh_turn_successor.py"
+      - ".github/workflows/wp719-fresh-turn-successor-ci.yml"
+  pull_request:
+    paths:
+      - "src/frankenstein2/fresh_turn_successor.py"
+      - "tests/test_fresh_turn_successor.py"
+      - "research/local_voice/tools/falsify_fresh_turn_successor.py"
+      - ".github/workflows/wp719-fresh-turn-successor-ci.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  fresh-turn-successor:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Checkout exact subject
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Compile exact WP719 surfaces
+        env:
+          PYTHONPATH: src
+        run: |
+          python -m py_compile \
+            src/frankenstein2/fresh_turn_successor.py \
+            tests/test_fresh_turn_successor.py \
+            research/local_voice/tools/falsify_fresh_turn_successor.py
+
+      - name: Execute FRESH1-FRESH10 unit matrix
+        env:
+          PYTHONPATH: src
+        run: python tests/test_fresh_turn_successor.py -v
+
+      - name: Execute bounded machine-readable falsifier
+        env:
+          PYTHONPATH: src
+        run: |
+          mkdir -p artifacts
+          python research/local_voice/tools/falsify_fresh_turn_successor.py \
+            > artifacts/wp719_fresh_turn_successor_falsifier_receipt.json
+          python -m json.tool artifacts/wp719_fresh_turn_successor_falsifier_receipt.json
+
+      - name: Upload bounded falsifier receipt
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: wp719-fresh-turn-successor-falsifier-${{ github.sha }}
+          path: artifacts/wp719_fresh_turn_successor_falsifier_receipt.json
+          if-no-files-found: warn
+          retention-days: 14
