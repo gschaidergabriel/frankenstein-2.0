@@ -1,0 +1,77 @@
+{
+  "schema": "F2_TRIGGER7_CONTINUATION_CHECKPOINT/v1",
+  "trigger": "7+",
+  "checkpoint_id": "T7PLUS-20260901-WP715-CLOSED-RESTART-COMPOSITION-ROUTED-FRESH-TURN-NEXT-GPT56SOL",
+  "status": "CONTINUE",
+  "claim_ref": "research/local_voice/claims/2026-09-01_trigger7_gpt56sol_cortex_frontier_claim.json",
+  "binding_authority_ref": "research/local_voice/authority/2026-08-31_TRIGGER7_TEXT_PACKET_COMPLETION_AUTHORITY.md",
+  "observed_f2_head_before_checkpoint": "13b0a026eb716f3ce3cce3d3d3344f40916466fb",
+  "closed_this_cycle": {
+    "F2-WP-715_G2": {
+      "state": "ACCEPTED",
+      "runtime_subject_sha": "71ddd9e5aa3791e5dcb1be37e276d5c3194f0adf",
+      "controller_run_id": 33421332204,
+      "failure_class": "HISTORICAL_PRODUCT_NEGATIVE_F18_REPAIRED_AND_EXECUTABLY_CLOSED_AT_TARGET_COMPONENT_SCOPE",
+      "closed_checkpoint_causal_relation_credit": 1,
+      "packet_component_runtime_credit": 1,
+      "target_environment_component_runtime_credit": 1,
+      "acoustic_credit": 0,
+      "gwt_runtime_credit": 0,
+      "whole_voice_e2e_credit": 0,
+      "whole_system_acceptance": false
+    }
+  },
+  "additional_current_prerequisites": {
+    "F2-WP-717_G3": "ACCEPTED bounded VoiceHeardResult memory-payload fence target-component runtime; no canonical memory write or GWT runtime credit",
+    "F2-WP-900_G3": "ACCEPTED bounded target-like GWT DELIVERY->UPTAKE->REENTRY component runtime; global semantic GWT/J-Space remains zero"
+  },
+  "restart_composition": {
+    "harness": "research/local_voice/tools/falsify_restart_exact_once_reentry_composition.py",
+    "origin_commit": "6409cc2408a5faaccddd42a6e316ed5d2bfb9f74",
+    "static_audit_ref": "research/local_voice/deltas/2026-09-01_T7_PLUS_RESTART_COMPOSITION_HARNESS_STATIC_AUDIT_GPT56SOL.json",
+    "static_audit": "PASS_NO_STATIC_COUNTEREXAMPLE",
+    "trigger4_handoff_ref": "trigger4/inbox/local_voice/T7_PLUS_F15_F17_F16_RESTART_COMPOSITION_EXECUTION_HANDOFF_2026-09-01_GPT56SOL.json",
+    "execution_status_at_checkpoint": "ROUTED_NOT_YET_OBSERVED_EXECUTED",
+    "tests": [
+      "F15 completed-heard closed restart -> completed reentry exact-once",
+      "F17 partial/interrupted restart -> never durable heard-result",
+      "F16 completed-heard open restart -> close once -> reentry once"
+    ]
+  },
+  "fresh_turn_frontier": {
+    "base_frontier_ref": "research/local_voice/frontier/2026-09-01_T7_FRESH_TURN_REENTRY_COMPOSITION_FALSIFIER_GPT56SOL.json",
+    "correction_ref": "research/local_voice/frontier/2026-09-01_T7_PLUS_FRESH_TURN_FRONTIER_WP900_CORRECTION_GPT56SOL.json",
+    "existing_trigger4_handoff_ref": "trigger4/inbox/local_voice/T7_FRESH_TURN_REENTRY_COMPOSITION_HANDOFF_2026-09-01_GPT56SOL.json",
+    "boundary": "validated prior heard-result/memory/GWT reentry -> distinct fresh VoiceIntent/VoiceSession/turn exact-once successor composition",
+    "rule": "Do not create new GWT authority. Reuse accepted bounded WP717/WP900 evidence. Execute F15/F17/F16 first, then prove NO_GAP or implement only minimal successor projector under Trigger4 authority."
+  },
+  "negative_results_preserved": {
+    "local_container_prefilter": "BLOCKED_BY_DNS_BEFORE_PRODUCT_EXECUTION",
+    "classification": "INFRA_AUTH_TRANSPORT_QUOTA",
+    "ref": "research/local_voice/negative_results/2026-09-01_T7_PLUS_RESTART_COMPOSITION_NONCANONICAL_EXECUTION_BLOCKED_DNS_GPT56SOL.json",
+    "product_conclusion": "NONE"
+  },
+  "research_entity_mirror_commit": "edff1136200fb5cd2ba4c9aed750087007005c12",
+  "explicit_zero_credit": {
+    "restart_composition_execution": 0,
+    "fresh_turn_execution": 0,
+    "canonical_memory_write": 0,
+    "global_semantic_gwt_runtime": 0,
+    "jspace_runtime": 0,
+    "effect": 0,
+    "asr_runtime": 0,
+    "tts_runtime": 0,
+    "physical_audio": 0,
+    "whole_voice_e2e": 0,
+    "whole_product": 0,
+    "training": 0
+  },
+  "next_trigger7_reentry": [
+    "refresh F2 main and Trigger4 local-voice outcomes",
+    "consume the F15/F17/F16 execution result if landed; do not redispatch if nonterminal",
+    "if the restart-composition falsifier passes, consume the existing fresh-turn handoff and search for an existing successor projector before mutation",
+    "if a fresh-turn gap is reproduced, route only the smallest exact-once successor composition glue through Trigger4",
+    "preserve acoustic/physical tests for real hardware and never convert packet evidence into acoustic acceptance"
+  ],
+  "next_exact_action": "Trigger4 executes/classifies the already-routed F15/F17/F16 restart-composition falsifier. The next Trigger7 invocation resumes from that terminal result; on PASS, fresh-turn successor composition FRESH1-FRESH10 is the next dependency-correct boundary."
+}
