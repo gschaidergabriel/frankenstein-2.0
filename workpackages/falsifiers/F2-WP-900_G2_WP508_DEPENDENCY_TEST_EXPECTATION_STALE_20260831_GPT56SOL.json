@@ -1,0 +1,46 @@
+{
+  "schema": "FRANKENSTEIN2_CANDIDATE_FALSIFIER/v1",
+  "workpackage_id": "F2-WP-900",
+  "generation": 2,
+  "claim_id_observed": "F2-WP-900-G2-GPT56SOL-LIVE-GWT-RUNTIME-WITNESS-20260831",
+  "worker_id": "GPT-5.6-Sol-Trigger4-Independent-Reviewer",
+  "result_class": "CANDIDATE_FALSIFIER",
+  "mutation_authority": false,
+  "falsifier_id": "GWTRW02_CURRENT_WP508_DEPENDENCY_SUITE_NOT_GREEN_ON_ACCEPTED_WP900_SUBJECT",
+  "evidence": {
+    "failed_pr_run_id": 33369000946,
+    "failed_job_id": 99415626145,
+    "failed_subject_head": "1174516cc6d57483119dd968aa8587b6388244ea",
+    "failed_command": "python -m pytest -q tests/test_gwt_runtime_witness.py tests/test_gwt_reentry_uptake_binding.py",
+    "failed_summary": "21 passed, 1 failed",
+    "only_failure": "tests/test_gwt_reentry_uptake_binding.py::test_direct_binding_constructor_bypass_is_rejected_on_validation",
+    "expected_regex": "deterministic binding factory",
+    "actual_exception_message": "binding lacks deterministic WP507/WP508 factory lineage",
+    "semantic_observation": "The dependency still failed closed with GwtReentryUptakeBindingError; the assertion failed only because the expected error-message regex was stale.",
+    "ci_narrowing_commit": "807c75a4aed2f2f9cf9c449cbebbeab87a804829",
+    "ci_narrowing_change": "Removed tests/test_gwt_reentry_uptake_binding.py from WP900 G2 PR CI and retained only tests/test_gwt_runtime_witness.py.",
+    "narrowed_success_run_id": 33369023168,
+    "merge_commit": "50c6961517488f214e453a1352bc6efa2f199e8f"
+  },
+  "failure_classification": "DEPENDENCY_TEST_EXPECTATION_STALE__NOT_PRODUCT_NEGATIVE_AT_OBSERVED_ASSERTION",
+  "why_not_product_negative": "The exact failing test expected a GwtReentryUptakeBindingError and did receive that fail-closed exception; only the message regex differed. The log therefore does not falsify the WP508 direct-constructor rejection invariant.",
+  "remaining_evidence_gap": "The green WP900 merge run no longer proves the current WP508 dependency regression suite on the same source subject. Because WP900 G2 imports and calls validate_reentry_uptake_binding(), a later VPS/runtime promotion should not silently convert the narrowed component-CI success into dependency-complete evidence.",
+  "required_before_vps_promotion": [
+    "Resolve the stale WP508 test expectation without weakening the fail-closed invariant (prefer asserting stable exception class/invariant rather than obsolete wording).",
+    "Obtain a green exact-current-source WP508 dependency run or an equivalent dependency-correct discriminator bound to the exact WP900 runtime subject.",
+    "Keep WP900 repository merge credit separate from runtime/GWT/J-Space credit until an admitted external execution actually observes delivery, uptake and re-entry."
+  ],
+  "scope_guards": {
+    "wp900_repository_component_merge_observed": true,
+    "runtime_execution_observed": false,
+    "runtime_credit": 0,
+    "physical_grid10_credit": 0,
+    "gwt_runtime_credit": 0,
+    "jspace_runtime_credit": 0,
+    "effect_credit": 0,
+    "training_credit": 0,
+    "completion_credit": 0,
+    "whole_system_acceptance": false
+  },
+  "next_exact_action": "Current WP900 mutation owner should treat the narrowed WP900 CI as component-local acceptance only. Before binding an exact VPS runtime subject, refresh main and close the one stale WP508 dependency-test expectation on that exact dependency source; then bind the runtime subject and dispatch one admitted VPS observation run."
+}
