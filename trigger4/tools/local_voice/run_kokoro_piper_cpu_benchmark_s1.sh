@@ -33,10 +33,20 @@ python -m pip install -q \
   "huggingface_hub==0.34.4" \
   "transformers==4.55.4" \
   "loguru==0.7.3" \
+  "num2words==0.5.14" \
   "piper-tts==1.7.0"
 python -m pip install -q --extra-index-url https://download.pytorch.org/whl/cpu "torch==2.8.0+cpu"
 python -m pip install -q "misaki[de] @ git+https://github.com/semidark/misaki.git@${MISAKI_COMMIT}"
 python -m pip install -q --no-deps "git+https://github.com/semidark/kokoro.git@${KOKORO_RUNTIME_COMMIT}"
+
+stage="IMPORT_PREFLIGHT"
+python - <<'PY'
+from num2words import num2words
+from kokoro import KModel, KPipeline
+assert num2words(42, lang="de")
+assert KModel is not None and KPipeline is not None
+print("KOKORO_IMPORT_PREFLIGHT=PASS")
+PY
 
 stage="PACKAGE_MANIFEST"
 python -m pip freeze --all | LC_ALL=C sort > /tmp/t4-package-freeze.txt
