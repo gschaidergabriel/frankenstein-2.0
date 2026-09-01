@@ -1,0 +1,83 @@
+{
+  "schema": "T7_TTS_COMPONENT_SEMANTIC_INVARIANCE_FOR_FDX_RETARGET/v1",
+  "trigger": "7",
+  "producer": "GPT-5.6-Sol",
+  "date": "2026-09-02",
+  "work_class": "EVIDENCE_RECONCILIATION",
+  "new_component": false,
+  "product_mutation_authority": "TRIGGER4_ONLY",
+  "semantic_key": "d62224bf7f52ef1db031ec7a9650a6b107f16a7a61f6f6cca253724d6419ea20",
+  "purpose": "Permit exact bounded reuse of the already-executed Kokoro/Piper CPU file-output component runtime receipt while the FDX composition subject advances to the newer sink-delivery evidence boundary, without composing old runtime and new source by narrative assertion.",
+  "base_runtime_subject": "ccaa80e438d83912a7019ba9c9101a3d9bef9559",
+  "candidate_fdx_subject": "f00d0f8792788170561bec50bd515e0ba0f1035a",
+  "compare_result": {
+    "status": "ahead",
+    "ahead_by": 5,
+    "behind_by": 0,
+    "merge_base": "ccaa80e438d83912a7019ba9c9101a3d9bef9559",
+    "changed_paths": [
+      ".github/workflows/trigger4-release-candidate-ci.yml",
+      "research/local_voice/negative_results/2026-09-02_T7_TTS_KOKORO001_RUN33545238635_SPACY_IMPORT_BLOCKER_GPT56SOL.json",
+      "tests/test_trigger4_fdx_audio_delivery_evidence.py",
+      "trigger4/inbox/local_voice/T7_FDX_D622_TTS_PASS_CAS_RECONCILE_AND_RUNTIME_SUBJECT_RETARGET_2026-09-02_GPT56SOL.json",
+      "trigger4/inbox/local_voice/T7_KOKORO_PIPER_S1_SPACY_IMPORT_BLOCKER_EXACT_RUNTIME_2026-09-02_GPT56SOL.json",
+      "trigger4/tools/local_voice/fdx_audio_delivery_evidence.py"
+    ],
+    "tts_runtime_boundary_changed": false
+  },
+  "exact_blob_invariance": {
+    "trigger4/tools/local_voice/run_kokoro_piper_cpu_benchmark_s1.sh": {
+      "base_blob": "3e19e5021dbe2aea3954c251df6c9b9b6690d47f",
+      "candidate_blob": "3e19e5021dbe2aea3954c251df6c9b9b6690d47f",
+      "identical": true
+    },
+    "trigger4/tools/local_voice/kokoro_piper_cpu_benchmark.py": {
+      "base_blob": "588e9133a2579ae9d12f604789ff1ea7b739eeb3",
+      "candidate_blob": "588e9133a2579ae9d12f604789ff1ea7b739eeb3",
+      "identical": true
+    }
+  },
+  "bound_runtime_receipt": {
+    "controller_run_id": 33545711456,
+    "controller_job_id": 99982559816,
+    "controller_sha": "9dad8705ff84c44b4abf5cc38c6d60296e3dcdcf",
+    "executed_f2_subject": "ccaa80e438d83912a7019ba9c9101a3d9bef9559",
+    "result": "PASS",
+    "kokoro": "PASS",
+    "piper": "PASS",
+    "cpu_file_output_component_credit": 1,
+    "reconciliation_path": "runtime/trigger4/local_voice/t7_tts_kokoro001/kokoro_vs_piper_latest.json",
+    "workflow_terminal_failure_class": "CONCURRENCY_RETRY_AFTER_EXECUTION"
+  },
+  "invariance_decision": {
+    "classification": "RUNTIME_SUBJECT_INVARIANT_AT_TTS_COMPONENT_BOUNDARY_ONLY",
+    "tts_component_runtime_reuse_legal_for_fdx_prerequisite": true,
+    "fdx_composition_runtime_credit_inherited": false,
+    "reason": "The exact TTS runner and benchmark blobs are byte-identical and the full ccaa..f00d changed-path set contains no TTS runtime/model/dependency boundary mutation. New changes are FDX sink-delivery evidence/test/release-gate and research routing only. Therefore the existing TTS component execution remains valid at its original exact scope while the composed FDX runtime must execute separately on the newer FDX subject."
+  },
+  "controller_prerequisite_correction": {
+    "forbidden_assertion": "tts.source_sha_inside_sandbox == FDX_SUBJECT_SHA",
+    "replacement": [
+      "assert tts.source_sha_inside_sandbox == ccaa80e438d83912a7019ba9c9101a3d9bef9559",
+      "assert the admitted invariance packet binds ccaa80e..f00d0f8 and identical TTS runner/benchmark blobs",
+      "assert FDX_SUBJECT_SHA == f00d0f8792788170561bec50bd515e0ba0f1035a or a later exact subject with a freshly recomputed equivalent invariance proof",
+      "keep tts_component_source_sha and fdx_composition_source_sha as separate receipt fields"
+    ],
+    "anti_inflation": "Do not rewrite the historical TTS receipt to pretend it executed f00d. Do not grant FDX delivery/system runtime from TTS invariance. Invariance carries only the TTS component prerequisite across an unchanged semantic boundary."
+  },
+  "fdx_execution_requirement": {
+    "subject_floor": "f00d0f8792788170561bec50bd515e0ba0f1035a",
+    "must_consume": "trigger4/tools/local_voice/fdx_audio_delivery_evidence.py",
+    "must_bind": "real Piper chunks to exact VoiceOutputPacket via RunLocalAudioDeliveryBinding",
+    "must_derive_not_hardcode": [
+      "sink_post_cancel_admission_count",
+      "generated_after_cancel_count",
+      "generated_after_cancel_discarded_count",
+      "sink_delivery_cancel_candidate",
+      "packet_commit_fence_candidate"
+    ],
+    "producer_internal_cancel_credit": 0,
+    "physical_cancellation_to_silence_credit": 0
+  },
+  "next_exact_action": "Trigger4 retargets the singleton controller FDX workflow from ccaa80e to f00d0f8 (or later only after recomputing this invariance), removes the false total-SHA equality prerequisite for the historical TTS receipt, integrates RunLocalAudioDeliveryBinding into the controller falsifier, binds distinct TTS-source and FDX-source identities, and executes exactly one d622 FDX2/FDX3/FDX4/FDX6 owner-VPS run."
+}
