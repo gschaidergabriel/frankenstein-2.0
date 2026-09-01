@@ -1,0 +1,19 @@
+{
+  "schema": "F2_WP1207_EXPERIMENT_DEFINITION/v1",
+  "run_id": "MODELSUB-20260901",
+  "experiment": "H14 — kontrollierter Foundation-Model-Substitutionstest am laufenden Frankenstein",
+  "hypothesis_h14": "Bei unverändertem Frankenstein-Systemzustand kann das Foundation Model Opus gegen GLM-5.3-Flash ausgetauscht werden, ohne wesentliche Verschlechterung der definierten funktionalen Kernfähigkeiten.",
+  "design": "A/B, nur eine unabhängige Variable: das Foundation Model. Kein Restart, kein Reentry, kein Config-/Prompt-/Reihenfolge-/Memory-Unterschied zwischen den Armen.",
+  "arms": {
+    "A": {"model_arg": "opus", "model_reported_expectation": "claude-opus-5", "router_path": "127.0.0.1:8317 → passthrough → api.anthropic.com (OAuth)", "suite_phase_label": "pre", "suite_nonce": "H14OPUS"},
+    "B": {"model_arg": "glm-5.3-flash[1m]", "model_reported_expectation": "glm-5.3-flash[1m]", "router_path": "127.0.0.1:8317 → explicit-glm-model → api.z.ai/api/anthropic (preserve_model=True)", "suite_phase_label": "post", "suite_nonce": "H14GLM"}
+  },
+  "substitution_mechanism": "--model <id> an sonst BYTE-IDENTISCHEN claude-p-Aufrufen; für Arm B explizit dieselbe Modell-ID, die auch der Default-Weg (ANTHROPIC_DEFAULT_HAIKU_MODEL) wählt — Gleichheit per Smoke belegt (smoke_glm.jsonl vs smoke_glm_default.jsonl, beide melden glm-5.3-flash[1m])",
+  "runner_changes_vs_base": ["M1 RUN_ID=MODELSUB-20260901 (frische Chain-Sessions, Provenienz)", "M2 --model-id Injektion (unabhängige Variable)", "M3 Raw-Capture usage/modelUsage/Kosten/CPU -> *.raw.jsonl"],
+  "held_constant": ["Prompts (32, frozen)", "Reihenfolge", "Kriterien v1.4 final (byte-identisch aus h7_suite.py @e8515c9)", "Tools + Tool-Policies (--dangerously-skip-permissions, max-turns 6, timeout 120s)", "System-/Harness-Konfiguration (settings.json sha256 0527444d…, claude 2.1.240, Router 127.0.0.1:8317, dieselbe settings-Instanz)", "Session-/State-Grundlage (dieselbe produktive unified.db, dieselben Fixtures, Probe-Reset vor JEDEM Arm)", "Bewertungsregeln (frozen_rubric.json, vor Messbeginn fixiert)"],
+  "forbidden_between_arms": ["Trainings-, Memory-, GWT-Schreibvorgänge (außer testinhärent, die sind armsymmetrisch per Probe-Reset isoliert)", "Config-Änderungen", "Commit auf dem Branch (änderung ts3-Bewertungsgrundlage nicht, aber Zustandsdrift)"],
+  "protocol": ["Probe-Reset + State-Snapshot", "Arm A vollständig (32 Tests, Reihenfolge wie POSTREENTRY)", "State-Snapshot", "Probe-Reset + State-Snapshot", "Arm B vollständig (identische Reihenfolge)", "State-Snapshot", "Auswertung NUR nach frozen_rubric.json"],
+  "measured": ["Task Success", "Tool Success", "Memory Retrieval", "GWT Read", "Context Continuation", "Planning", "Abstention/Unknown", "Policy/Authority (Abstention + keine unerlaubten Writes; GWT-Tests nur-lesend vorgeschrieben)", "Fehlerzahl/-typen", "Latenz p50/p95 (wall)", "CPU (time -v user+sys)", "RSS (max)", "Tokenverbrauch (modelUsage)", "Kosten (modelUsage costUSD, router-gemeldet)"],
+  "limitations": ["Einzellauf pro Arm (wie POSTREENTRY-H7) — keine Wiederholung, keine Konfidenzintervalle", "Suite misst Kopf-Funktionalität (32 Tests), nicht volles Verhaltensspektrum", "GLM-Kosten laut modelUsage (Router-Meldung), keine externe Rechnung"],
+  "owner_constraints": ["Sprachstil/Wortwahl/Länge allein = KEINE kognitive Regression", "keine Kriterienänderung nach Messbeginn", "keine kanonische Selbstpromotion", "Restart-Test (Phase 2: Modell × Reentry) bewusst NICHT in diesem Lauf"]
+}

@@ -1,0 +1,24 @@
+{
+  "schema": "F2_WP1207_HYPOTHESIS_RESULTS/v1",
+  "run_id": "MODELSUB-20260901",
+  "hypothesis_h14": "Bei unverändertem Frankenstein-Systemzustand kann das Foundation Model Opus gegen GLM-5.3-Flash ausgetauscht werden, ohne wesentliche Verschlechterung der definierten funktionalen Kernfähigkeiten.",
+  "verdict": "PARTIAL",
+  "begruendung": [
+    "FUNKTIONAL UNTERSCHREIBEN: Auf den 26 validen Paaren 0 funktionale Flips — identische Pass/Fail-Entscheidungen, identische Kriterienebene, identische Toolwahl und Evidenzklassen (26/26 identisch_funktional). Task 1,00 vs 0,9375 (Delta −6,25 pp, Toleranz 10 pp; beide GLM-Fails sind Rubrik-Blindstellen bei inhaltlich korrekten Antworten). Tool 1,00 vs 1,00, Memory/GWT 1,00 vs 1,00, Context-Continuation (Ketten) beide intakt, Planning beide 1,00. 0 neue Fehlerklassen, 0 echte Laufzeitfehler in beiden Armen.",
+    "WARUM NICHT PASS: (1) Die gefrorene Abstention-Toleranz ('beide Arme 2/2') ist unter der fixierten Rubrik verletzt — GLM 1/2, Opus-Seite ungemessen. (2) 6/32 des Opus-Arms sind durch das Subscription-Limit ungemessen (Retest lt. Owner gestrichen) — die Evidenzbasis ist unvollständig, nicht sauber zu einem vollen PASS erklärbar.",
+    "WARUM NICHT FAIL: Keine definierte funktionale Kernfähigkeit verschlechtert sich messbar durch die Substitution Opus→GLM; die beiden Rubrik-Fails sind inhaltlich korrekte Antworten an bekannten Regex-Blindstellen (criteria_changelog v1.3 des Basis-Runs).",
+    "WARUM NICHT INCONCLUSIVE: 26 vollständige, zustandskontrollierte Paare (UDB 0-Delta, Fixture-Hashes identisch, Routing per Smoke belegt) reichen für die Kernfrage; die Konfundierung ist begrenzt, dokumentiert und vom Owner bewusst nicht repariert."
+  ],
+  "nebenbefund_betrieb": "Die eigentliche Modellabhängigkeit liegt NICHT in der Kognition, sondern im Betrieb: Opus erschöpfte das 5-h-Kontingent der ca. 20-EUR-Subscription bei Test 27/32 ($11,19 API-Äquivalent für 26 Antworten, $0,43/Test), GLM lief 32/32 ohne Quota-Ereignis ($7,53, $0,24/Test). In diesem Setting (Kopftests, kurze Kontexte, Tool-Nutzung) bietet Opus bei ~1,8× Kosten keinen messbaren funktionalen Vorteil; GLM ist zudem 1,69× langsamer bei p95 (innerhalb der 2×-Toleranz).",
+  "evidence_refs": [
+    "model_comparison.json",
+    "per_test_deltas.jsonl",
+    "opus_results.jsonl(+.raw.jsonl)",
+    "glm_results.jsonl(+.raw.jsonl)",
+    "measurements.jsonl (type=incident, type=owner_decision, type=rubric_note)",
+    "state_pre_armA.json / state_between_arms.json / state_post_armB.json",
+    "frozen_rubric.json",
+    "runner_diff.patch"
+  ],
+  "not_claimed": ["kein Whole-System-Claim", "kein Restart-/Reentry-Test (Phase 2 bewusst getrennt)", "Einzellauf pro Arm — keine Wiederholung/Konfidenz", "keine kanonische Promotion"]
+}

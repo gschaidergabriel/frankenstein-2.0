@@ -1,0 +1,94 @@
+--- post_reentry_validation/POSTREENTRY-20260901/h7_suite.py	2026-09-01 19:21:10.279153961 +0700
++++ model_substitution/MODELSUB-20260901/h14_suite.py	2026-09-01 20:31:14.835713650 +0700
+@@ -23,7 +23,7 @@
+ WORK = BASE / "work"
+ PROBE = BASE / "probe"
+ UDB = "/home/ai-core-node/.local/share/agentzero/unified.db"  # produktive DB (stern.DB_PATH)
+-RUN_ID = "POSTREENTRY-20260901"
++RUN_ID = "MODELSUB-20260901"  # H14: neue RUN_ID -> frische Chain-Sessions (M1)
+ CHAIN_BASE = "5f3c9a2e-77b1-4c8d-9a44-"
+ 
+ UNSURE = r"(weis[s]?\s*(es\s*)?nicht|nicht\s+(bekannt|ermittelbar|verfügbar)|keine\s+(angabe|information)|kann\s+ich\s+(dir\s+)?nicht|gebe\s+ich\s+nicht|nenne\s+ich\s+nicht|verrate[n]?\s+ich\s+nicht|unbekannt|unknown|nicht\s+ablesen|finde\s+keine)"
+@@ -160,11 +160,13 @@
+         return None
+ 
+ 
+-def run_test(t: dict, phase: str) -> dict:
++def run_test(t: dict, phase: str, model_id: str | None = None) -> dict:  # H14 (M2)
+     WORK.mkdir(parents=True, exist_ok=True)
+     prompt = t["prompt"]
+     cmd = ["claude", "-p", prompt, "--dangerously-skip-permissions",
+            "--output-format", "json", "--max-turns", "6"]
++    if model_id:  # H14 (M2): EINZIGE unabhaengige Variable = Foundation Model
++        cmd += ["--model", model_id]
+     if t.get("chain"):
+         nonce = os.environ.get("SUITE_NONCE", "")
+         sid_full = str(uuid.uuid5(uuid.NAMESPACE_OID, f"{RUN_ID}-{t['chain_id']}-{phase}{nonce}"))
+@@ -176,24 +178,28 @@
+         wall = round((time.monotonic() - t0) * 1000, 1)
+         m = re.search(r"Maximum resident set size \(kbytes\):\s*(\d+)", p.stderr)
+         rss = int(m.group(1)) if m else None
+-        answer, num_turns, err = "", None, None
++        answer, num_turns, err, raw_result = "", None, None, None
+         for line in p.stdout.splitlines():
+             try:
+                 d = json.loads(line)
+             except Exception:
+                 continue
+             if d.get("type") == "result":
++                raw_result = d  # H14 (M3): vollstaendiges Result-JSON fuer usage/modelUsage/Kosten
+                 answer = d.get("result") or ""
+                 num_turns = d.get("num_turns")
+                 if d.get("is_error"):
+                     err = f"is_error: {str(d.get('subtype'))[:80]}"
++        mu = re.search(r"User time \(seconds\):\s*([\d.]+)", p.stderr)
++        msys = re.search(r"System time \(seconds\):\s*([\d.]+)", p.stderr)
++        cpu_s = round(float(mu.group(1)) + float(msys.group(1)), 2) if mu and msys else None
+         if not answer and p.returncode != 0:
+             err = f"rc={p.returncode} {p.stderr[-160:]}"
+     except subprocess.TimeoutExpired:
+         return dict(test_id=t["id"], capability=t["cap"], pass_=False,
+                     criteria=[dict(name="timeout", pass_=False, detail="120s überschritten")],
+                     observed_excerpt="", latency_ms=120000.0, max_rss_kb=None,
+-                    num_turns=None, error="timeout",
++                    num_turns=None, error="timeout", cpu_s=None, raw=None,
+                     ts_utc=time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()))
+     crits = []
+     for name, fn in t["crit"]:
+@@ -205,7 +211,8 @@
+     return dict(test_id=t["id"], capability=t["cap"], pass_=all(c["pass_"] for c in crits),
+                 criteria=crits, observed_excerpt=answer[:300],
+                 latency_ms=wall, max_rss_kb=rss, num_turns=num_turns,
+-                error=err, ts_utc=time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()))
++                error=err, cpu_s=cpu_s, raw=raw_result,
++                ts_utc=time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()))
+ 
+ 
+ def main() -> None:
+@@ -213,8 +220,9 @@
+     ap.add_argument("--phase", choices=["pre", "post"], required=True)
+     ap.add_argument("--out", required=True)
+     ap.add_argument("--only", nargs="*", default=None)
++    ap.add_argument("--model-id", default=None)  # H14 (M2)
+     args = ap.parse_args()
+-    res = [run_test(t, args.phase) for t in tests()
++    res = [run_test(t, args.phase, args.model_id) for t in tests()
+            if not args.only or t["id"] in args.only]
+     with open(args.out, "w") as fh:
+         for r in res:
+@@ -232,6 +240,15 @@
+                 error_count=sum(1 for r in res if r["error"]),
+                 abstention_correct=sum(1 for r in res if r["capability"] == "abstention" and r["pass_"]),
+                 latencies_ms=sorted(r["latency_ms"] for r in res))
++    with open(args.out + ".raw.jsonl", "w") as fh:  # H14 (M3): Raw-Evidenz pro Lauf
++        for r in res:
++            fh.write(json.dumps(dict(run_id=RUN_ID, phase=args.phase,
++                                     model_id=args.model_id,
++                                     test_id=r["test_id"], capability=r["capability"],
++                                     pass_=r["pass_"], latency_ms=r["latency_ms"],
++                                     max_rss_kb=r["max_rss_kb"], cpu_s=r["cpu_s"],
++                                     error=r["error"], raw=r["raw"]),
++                                sort_keys=True, default=str) + "\n")
+     (Path(args.out).parent / (Path(args.out).stem + "_summary.json")).write_text(json.dumps(summ, indent=1))
+     print(json.dumps(summ, indent=1))
+ 

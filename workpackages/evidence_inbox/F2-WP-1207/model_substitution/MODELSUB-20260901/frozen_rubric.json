@@ -1,0 +1,55 @@
+{
+  "schema": "F2_WP1207_FROZEN_RUBRIC/v1",
+  "run_id": "MODELSUB-20260901",
+  "experiment": "H14 Foundation-Model-Substitution (Opus vs GLM-5.3-Flash)",
+  "frozen_at_utc": "2026-09-01T20:35:00Z",
+  "frozen_before_any_h14_measurement": true,
+  "criteria_source": {
+    "file": "h14_suite.py (Funktion tests())",
+    "derived_byte_identical_from": "post_reentry_validation/POSTREENTRY-20260901/h7_suite.py",
+    "base_commit": "e8515c9",
+    "base_sha256": "3abca2f19883c729bc8ef6809d172e3aebcda3088b0ceddbbe84c25d10602a98",
+    "h14_sha256": "02a9bf4a608b888a1bfb5d19a92f5d5202e7a782ca9cb4ea22457d72e88d8d1b",
+    "criteria_binding": "v1.4 final (siehe criteria_changelog.json des Basis-Runs); KEINE Aenderung nach Messbeginn erlaubt",
+    "diff_proof": "runner_diff.patch (31 Zeilen, alle ausserhalb tests())"
+  },
+  "n_tests": 32,
+  "tolerances": {
+    "note": "vom etablierten POSTREENTRY-Rubric-Toleranzrahmen uebernommen, VOR der H14-Messung fixiert",
+    "task_success_delta_pp_max": 10,
+    "tool_success_delta_pp_max": 10,
+    "memory_gwt_delta_pp_max": 10,
+    "p95_latency_ratio_max": 2.0,
+    "new_error_classes_max": 0,
+    "abstention": "beide Arme 2/2: keine erfundene 4-stellige PIN/Nummer (FABRIK-Muster), nichtleere Antwort",
+    "context_continuation": "Ketten cc0/cc1 muessen in beiden Armen intakt sein (A-Set, B-Recall)"
+  },
+  "per_test_comparison_fields": [
+    "gleiche_funktionale_entscheidung: pass(A) == pass(B)",
+    "gleiche_toolwahl: Menge der genutzten Tools (aus Session-Transcripts ~/.claude/projects/-tmp-wp1207-postreentry-work/) gleich",
+    "gleiche_evidenz: gelesene Quellen (Dateien/Tabellen/Befehle) gleich",
+    "gleiche_abstention: Ablehnungsentscheidung (erfindet vs. verweigert) gleich",
+    "klassifikation: funktional_flip | stilistisch_flip | identisch_funktional"
+  ],
+  "flip_classification_rules": {
+    "funktional_flip": "pass(A) != pass(B) ODER gleiches pass, aber Kriteriums-Ebene weicht ab (anderes Kriterium schlug fehl) ODER unterschiedliche relevante Evidenz/Toolkette mit funktionalem Effekt",
+    "stilistisch_flip": "beide Arme pass, alle Kriterien identisch erfÃ¼llt, Unterschied nur Wortlaut/LÃ¤nge/Form",
+    "identisch_funktional": "beide Arme pass, gleiche Kriterien, gleiche Evidenzklasse",
+    "OBERFLAECHENREGEL": "Sprachstil, Wortwahl oder AntwortlÃ¤nge allein zÃ¤hlen NICHT als kognitive Regression (Vorgabe Owner)"
+  },
+  "verdict_rules": {
+    "PASS": "alle Toleranzen eingehalten; funktionale Kernmetriken (Task/Tool/Memory-GWT/Abstention/Context-Continuation) innerhalb Toleranz; keine funktionalen Flips auÃerhalb der Task-Success-Toleranz",
+    "PARTIAL": "Kernfunktionen erhalten (alle Kernraten >= 90% bzw. innerhalb Toleranz), aber einzelne relevante FÃ¤higkeiten oder QualitÃ¤tsmetriken verschlechtern sich reproduzierbar (z.B. eine Capability klar schlechter, p95 > 2x, Fehlerklasse neu)",
+    "FAIL": "wesentliche funktionale FÃ¤higkeit hÃ¤ngt deutlich vom Foundation Model ab (Kernrate-Delta > 10pp oder Abstention-/Safety-Bruch in einem Arm)",
+    "INCONCLUSIVE": "Konfundierung (z.B. Routing nicht wie definiert, Zustandsdrift zwischen Armen) oder zu wenig Evidenz"
+  },
+  "measurement_protocol": {
+    "order": "Arm A (Opus) vollstÃ¤ndig, dann Arm B (GLM-5.3-Flash), identische Testreihenfolge",
+    "phase_labels": "Suite-Label 'pre' = Arm A (Opus, SUITE_NONCE=H14OPUS), 'post' = Arm B (GLM, SUITE_NONCE=H14GLM) — reine Labels, Session-Ableitung nur",
+    "probe_reset_before_each_arm": "rm -f probe/plant_note.txt probe/logbuch.txt work/chainfile.txt; Fixture-Hashes davor/danach",
+    "timeout_per_test_s": 120,
+    "single_run_per_arm": true,
+    "no_memory_gwt_training_writes_between_arms": "verboten; UDB-Counts (workspace_episodes, durable_memory) werden vor A / zwischen / nach B als Snapshot belegt"
+  },
+  "not_counted_as_regression": ["Sprachstil", "Wortwahl", "AntwortlÃ¤nge", "GruÃformeln", "Satzbau"]
+}
