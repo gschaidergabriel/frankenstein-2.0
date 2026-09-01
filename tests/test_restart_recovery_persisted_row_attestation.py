@@ -190,12 +190,15 @@ class PersistedRowLoadAttestationTests(unittest.TestCase):
         )
         self.assertEqual(len(attestation.row_evidence_sha256), 64)
 
-    def test_attestation_explicitly_denies_freshness_target_runtime_and_effect_credit(self) -> None:
+    def test_attestation_observes_wp206_head_but_denies_target_runtime_and_effect_credit(self) -> None:
         result, *_ = self.plan()
         raw = result.load_attestation.as_dict()
         self.assertEqual(raw["persisted_row_attestation"], "OBSERVED_AT_REPOSITORY_COMPONENT_SCOPE")
         self.assertEqual(raw["transaction_snapshot_binding"], "OBSERVED")
-        self.assertEqual(raw["freshness_attestation"], "NOT_OBSERVED")
+        self.assertEqual(
+            raw["freshness_attestation"],
+            "OBSERVED_WP206_LATEST_CHECKPOINT_IN_SNAPSHOT",
+        )
         self.assertEqual(raw["same_inode_live_drift_closure"], "NOT_OBSERVED")
         self.assertEqual(raw["target_host_execution"], "NOT_OBSERVED")
         self.assertEqual(raw["truth_authority"], "NONE")
@@ -203,6 +206,36 @@ class PersistedRowLoadAttestationTests(unittest.TestCase):
         self.assertEqual(raw["completion_authority"], "NONE")
         self.assertEqual(raw["runtime_credit"], 0)
         self.assertFalse(raw["whole_system_acceptance"])
+
+    def test_older_valid_wp206_checkpoint_is_rejected_when_newer_head_exists(self) -> None:
+        causal, stale_checkpoint, seal, outcome, evidence = self.sources()
+        newer_checkpoint = advance_checkpoint(
+            stale_checkpoint,
+            checkpoint_id="checkpoint-wp901-freshness-newer-head",
+            pulse_id="pulse-wp901-freshness-newer-head",
+            observation_id="observation-wp901-freshness-newer-head",
+            provenance_refs=stale_checkpoint.provenance_refs,
+        )
+        self.store.write_checkpoint(newer_checkpoint)
+        latest = self.store.latest_checkpoint(stale_checkpoint.kernel_state_id)
+        self.assertEqual(latest.checkpoint_id, newer_checkpoint.checkpoint_id)
+        self.assertGreater(latest.generation, stale_checkpoint.generation)
+
+        with self.assertRaisesRegex(
+            PersistedRowLoadAttestationError,
+            "PERSISTED_ROW_RESTART_STALE_CHECKPOINT",
+        ):
+            plan_restart_continuation_from_persisted_row(
+                self.store,
+                checkpoint_id=stale_checkpoint.checkpoint_id,
+                evidence=evidence,
+                plan_id="restart-plan-wp901-stale-ancestor-rejected",
+                expected_evidence_sha256=evidence.sha256(),
+                causal_identity=causal,
+                unifieddb_authority=self.authority(),
+                whole_loop_seal=seal,
+                outcome=outcome,
+            )
 
     def test_tampered_persisted_checkpoint_json_fails_in_existing_wp206_loader(self) -> None:
         _, checkpoint, _, _, _ = self.sources()
