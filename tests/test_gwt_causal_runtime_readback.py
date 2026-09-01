@@ -1,5 +1,3 @@
-from dataclasses import replace
-
 import pytest
 
 from frankenstein2.grid10_interface import CellBudget, CellInput, CellOutput, Grid10Plan
@@ -392,6 +390,6 @@ def test_sealed_receipt_detects_post_seal_tampering():
         result_id="result:wp900-g4",
         provenance_refs=("prov:runtime-causal-evaluation",),
     )
-    tampered = replace(receipt, control_output_sha256=E)
-    with pytest.raises(GwtCausalRuntimeReadbackError):
-        validate_gwt_causal_runtime_readback_receipt(tampered)
+    object.__setattr__(receipt, "control_output_sha256", E)
+    with pytest.raises(GwtCausalRuntimeReadbackError, match="changed after seal"):
+        validate_gwt_causal_runtime_readback_receipt(receipt)
