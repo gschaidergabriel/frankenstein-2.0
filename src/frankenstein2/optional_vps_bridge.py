@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Deterministic optional VPS/HCU bridge planning and validation.
 
-F2-WP-1106 generation 2.
+F2-WP-1106 generation 3.
 
 This module is deliberately non-executing. It receives caller-supplied evidence about
 one local runtime and (optionally) one remote bridge endpoint, then validates whether
@@ -23,6 +23,7 @@ from typing import Mapping, Sequence
 LOCAL_RUNTIME_SCHEMA = "FRANKENSTEIN2_LOCAL_RUNTIME_IDENTITY/v1"
 REMOTE_ENDPOINT_SCHEMA = "FRANKENSTEIN2_OPTIONAL_REMOTE_ENDPOINT/v1"
 BRIDGE_PLAN_SCHEMA = "FRANKENSTEIN2_OPTIONAL_VPS_BRIDGE_PLAN/v1"
+REMOTE_REQUEST_BINDING_SCHEMA = "FRANKENSTEIN2_OPTIONAL_REMOTE_REQUEST_BINDING/v1"
 SHA256_RE = re.compile(r"^[0-9a-f]{64}$")
 
 
@@ -232,6 +233,26 @@ class OptionalBridgePlan:
         return hashlib.sha256(self.canonical_json().encode("utf-8")).hexdigest()
 
 
+@dataclass(frozen=True)
+class RemoteRequestBinding:
+    schema: str
+    bridge_plan_digest: str
+    remote_endpoint_digest: str
+    state_lineage_id: str
+    request_digest: str
+    candidate_transport_only: bool = True
+    canonical_truth_credit: int = 0
+    effect_completion_credit: int = 0
+    target_runtime_credit: int = 0
+    whole_system_acceptance: bool = False
+
+    def to_dict(self) -> dict:
+        return asdict(self)
+
+    def binding_digest(self) -> str:
+        return _sha256_json(self.to_dict())
+
+
 def plan_optional_bridge(
     *,
     local: LocalRuntimeIdentity,
@@ -312,28 +333,92 @@ def plan_optional_bridge(
     )
 
 
+def bind_remote_request(
+    *,
+    plan: OptionalBridgePlan,
+    request_digest: str,
+) -> RemoteRequestBinding:
+    """Seal one candidate remote request to the exact admitted attach plan."""
+    if plan.disposition is not BridgeDisposition.ATTACHED:
+        raise BridgeValidationError("REMOTE_REQUEST_WITHOUT_ATTACHED_PLAN")
+    if plan.remote_endpoint_digest is None:
+        raise BridgeValidationError("ATTACHED_PLAN_WITHOUT_REMOTE_ENDPOINT_DIGEST")
+    if not plan.typed_request_result_transport:
+        raise BridgeValidationError("ATTACHED_PLAN_WITHOUT_TYPED_REQUEST_RESULT_TRANSPORT")
+    request_digest = _require_sha256(request_digest, "REQUEST_DIGEST")
+    return RemoteRequestBinding(
+        schema=REMOTE_REQUEST_BINDING_SCHEMA,
+        bridge_plan_digest=plan.plan_digest(),
+        remote_endpoint_digest=plan.remote_endpoint_digest,
+        state_lineage_id=plan.state_lineage_id,
+        request_digest=request_digest,
+        candidate_transport_only=True,
+        canonical_truth_credit=0,
+        effect_completion_credit=0,
+        target_runtime_credit=0,
+        whole_system_acceptance=False,
+    )
+
+
 def validate_remote_return(
     *,
     plan: OptionalBridgePlan,
     returned_state_lineage_id: str,
-    request_digest: str,
     result_digest: str,
+    request_binding: RemoteRequestBinding | None = None,
+    returned_remote_endpoint_digest: str | None = None,
+    returned_request_digest: str | None = None,
+    request_digest: str | None = None,
 ) -> dict:
-    """Validate identity binding of a remote return without minting world/effect truth."""
+    """Validate exact plan/request/endpoint/lineage identity without minting truth."""
     if plan.disposition is not BridgeDisposition.ATTACHED:
         raise BridgeValidationError("REMOTE_RETURN_WITHOUT_ATTACHED_PLAN")
+    if plan.remote_endpoint_digest is None:
+        raise BridgeValidationError("ATTACHED_PLAN_WITHOUT_REMOTE_ENDPOINT_DIGEST")
+    if request_binding is None:
+        raise BridgeValidationError("REMOTE_RETURN_REQUEST_BINDING_REQUIRED")
+    if request_digest is not None:
+        raise BridgeValidationError("LEGACY_UNBOUND_REQUEST_DIGEST_NOT_ADMITTED")
+
+    expected_plan_digest = plan.plan_digest()
+    if request_binding.bridge_plan_digest != expected_plan_digest:
+        raise BridgeValidationError("REMOTE_REQUEST_BINDING_PLAN_MISMATCH")
+    if request_binding.remote_endpoint_digest != plan.remote_endpoint_digest:
+        raise BridgeValidationError("REMOTE_REQUEST_BINDING_ENDPOINT_MISMATCH")
+    if request_binding.state_lineage_id != plan.state_lineage_id:
+        raise BridgeValidationError("REMOTE_REQUEST_BINDING_STATE_LINEAGE_MISMATCH")
+    _require_sha256(request_binding.request_digest, "BOUND_REQUEST_DIGEST")
+
+    if returned_remote_endpoint_digest is None:
+        raise BridgeValidationError("REMOTE_RETURN_ENDPOINT_IDENTITY_REQUIRED")
+    returned_remote_endpoint_digest = _require_sha256(
+        returned_remote_endpoint_digest, "RETURNED_REMOTE_ENDPOINT_DIGEST"
+    )
+    if returned_remote_endpoint_digest != plan.remote_endpoint_digest:
+        raise BridgeValidationError("REMOTE_RETURN_ENDPOINT_MISMATCH")
+
+    if returned_request_digest is None:
+        raise BridgeValidationError("REMOTE_RETURN_REQUEST_IDENTITY_REQUIRED")
+    returned_request_digest = _require_sha256(
+        returned_request_digest, "RETURNED_REQUEST_DIGEST"
+    )
+    if returned_request_digest != request_binding.request_digest:
+        raise BridgeValidationError("REMOTE_RETURN_REQUEST_MISMATCH")
+
     returned_state_lineage_id = _require_nonempty(
         returned_state_lineage_id, "RETURNED_STATE_LINEAGE_ID"
     )
     if returned_state_lineage_id != plan.state_lineage_id:
         raise BridgeValidationError("REMOTE_RETURN_STATE_LINEAGE_MISMATCH")
-    request_digest = _require_sha256(request_digest, "REQUEST_DIGEST")
+
     result_digest = _require_sha256(result_digest, "RESULT_DIGEST")
     return {
-        "schema": "FRANKENSTEIN2_OPTIONAL_REMOTE_RETURN_VALIDATION/v1",
-        "bridge_plan_digest": plan.plan_digest(),
+        "schema": "FRANKENSTEIN2_OPTIONAL_REMOTE_RETURN_VALIDATION/v2",
+        "bridge_plan_digest": expected_plan_digest,
+        "remote_request_binding_digest": request_binding.binding_digest(),
+        "remote_endpoint_digest": plan.remote_endpoint_digest,
         "state_lineage_id": plan.state_lineage_id,
-        "request_digest": request_digest,
+        "request_digest": request_binding.request_digest,
         "result_digest": result_digest,
         "identity_binding_valid": True,
         "candidate_or_projection_only": True,
