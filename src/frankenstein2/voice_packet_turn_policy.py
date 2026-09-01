@@ -2,9 +2,9 @@
 
 WP720 scope is intentionally narrow: this module does not create a second turn FSM,
 state store, output queue, cancellation authority, VoiceIntent authority, model route,
-or acoustic runtime.  It binds one immutable policy dimension to an input event that
-was already accepted by :class:`VoicePacketCortex`, then delegates the behavioral
-choice to the cortex's existing ``emit_intent`` event fabric.
+or acoustic runtime. It is a compatibility adapter over the existing
+``VoicePacketCortex`` event fabric and must fail closed if an accepted source event
+already carries an authoritative policy decision.
 """
 from __future__ import annotations
 
@@ -63,7 +63,7 @@ def _detail_field(detail: str, name: str) -> str | None:
 class PacketTurnPolicy:
     """One provenance-bound policy dimension for a non-final HOLD input.
 
-    ``hold_intent`` is deliberately restricted to WAIT/BACKCHANNEL.  Mandatory
+    ``hold_intent`` is deliberately restricted to WAIT/BACKCHANNEL. Mandatory
     user barge-in cancellation remains owned by ``VoicePacketCortex.accept_input``
     and cannot be disabled or weakened by this policy object.
     """
@@ -105,9 +105,10 @@ def apply_packet_turn_policy(
     """Emit one policy-selected intent for an exact accepted HOLD input event.
 
     The accepted event must be the *same in-memory event object* already present in
-    this cortex.  Equality with a reconstructed/foreign event is insufficient.  This
-    prevents policy metadata from being attached to a packet history that the target
-    cortex did not actually admit.
+    this cortex. Equality with a reconstructed/foreign event is insufficient. The
+    existing cortex event history is the replay/conflict fence: an exact replay is
+    idempotent and a conflicting second policy fails closed. No second persistent
+    state authority is introduced.
     """
 
     from .voice_packet_cortex import CortexEventPacket, VoicePacketCortex
@@ -138,6 +139,21 @@ def apply_packet_turn_policy(
         raise PacketTurnPolicyError("policy decision cannot precede its accepted input event")
 
     policy_sha = policy.sha256()
+    for event in cortex.events:
+        if event.event_kind != "VOICE_INTENT":
+            continue
+        if _detail_field(event.detail, "source_event_id") != accepted_input_event.event_id:
+            continue
+        prior_policy_sha = _detail_field(event.detail, "policy_sha256")
+        prior_policy_id = _detail_field(event.detail, "packet_turn_policy")
+        if (
+            prior_policy_sha == policy_sha
+            and prior_policy_id == policy.policy_id
+            and event.voice_intent == policy.hold_intent
+        ):
+            return event
+        raise PacketTurnPolicyError("accepted HOLD event already has a different authoritative policy decision")
+
     return cortex.emit_intent(
         turn_id=accepted_input_event.turn_id,
         monotonic_ms=decision_ms,
