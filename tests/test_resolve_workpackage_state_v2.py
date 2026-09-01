@@ -96,6 +96,51 @@ class ResolverV2Tests(unittest.TestCase):
         self.assertEqual(resolved["workpackages"]["F2-WP-707"]["status"], "ACCEPTED_AT_SCOPE")
         self.assertIn("F2-WP-707", resolved["migrated_event_heads"])
 
+    def test_active_repair_event_normalizes_to_in_progress(self):
+        active = {
+            "workpackage_id": "F2-WP-707",
+            "generation": 2,
+            "claim_id": "claim-2",
+            "state": "ACTIVE",
+        }
+        active_p = self.root / "workpackages/active/F2-WP-707.json"
+        active_p.write_text(json.dumps(active, sort_keys=True))
+        run(["git", "add", "."], self.root)
+        run(["git", "commit", "-m", "active-repair-base"], self.root)
+        active_blob = run(["git", "rev-parse", "HEAD:workpackages/active/F2-WP-707.json"], self.root)
+
+        event = {
+            "schema": "FRANKENSTEIN2_WORKPACKAGE_STATE_EVENT/v1",
+            "workpackage_id": "F2-WP-707",
+            "sequence": 1,
+            "parent_event": None,
+            "parent_event_sha256": None,
+            "observed_main_sha": run(["git", "rev-parse", "HEAD"], self.root),
+            "claim_generation": 2,
+            "claim_id": "claim-2",
+            "broad_status": "ACTIVE_REPAIR",
+            "phase": 7,
+            "title": "Repair active",
+            "evidence": ["counterexample.json"],
+            "active_pointer_state": "ACTIVE",
+            "active_pointer_blob_sha": active_blob,
+        }
+        (self.root / "workpackages/state_events/F2-WP-707/000001.json").write_text(
+            json.dumps(event, indent=2, sort_keys=True)
+        )
+
+        resolved = resolver.resolve_effective_state(self.root, check_active=True)
+        self.assertEqual(resolved["workpackages"]["F2-WP-707"]["status"], "IN_PROGRESS")
+
+    def test_unknown_broad_status_still_fails_closed(self):
+        active_blob, recon_blob = self._commit_bound_files()
+        path = self._write_event(active_blob=active_blob, recon_blob=recon_blob)
+        event = json.loads(path.read_text())
+        event["broad_status"] = "ACTIVE_MAGIC"
+        path.write_text(json.dumps(event, indent=2, sort_keys=True))
+        with self.assertRaises(resolver.ValidationError):
+            resolver.load_event_chain(self.root, "F2-WP-707")
+
     def test_stale_active_blob_fails_closed(self):
         active_blob, recon_blob = self._commit_bound_files()
         self._write_event(active_blob="0" * 40, recon_blob=recon_blob)
