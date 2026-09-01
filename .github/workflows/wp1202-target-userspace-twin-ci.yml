@@ -8,9 +8,11 @@ on:
       - 'src/frankenstein2/target_host_profile.py'
       - 'src/frankenstein2/target_userspace_twin.py'
       - 'src/frankenstein2/target_userspace_runtime_readback.py'
+      - 'tools/vps_sandbox/run_ubuntu_sandbox.sh'
       - 'tests/test_target_host_profile.py'
       - 'tests/test_target_userspace_twin.py'
       - 'tests/test_target_userspace_runtime_readback.py'
+      - 'tests/test_vps_sandbox_systemd_boot_contract.py'
       - '.github/workflows/wp1201-target-host-profile-ci.yml'
       - '.github/workflows/wp1202-target-userspace-twin-ci.yml'
       - 'workpackages/active/F2-WP-1201.json'
@@ -20,9 +22,11 @@ on:
       - 'src/frankenstein2/target_host_profile.py'
       - 'src/frankenstein2/target_userspace_twin.py'
       - 'src/frankenstein2/target_userspace_runtime_readback.py'
+      - 'tools/vps_sandbox/run_ubuntu_sandbox.sh'
       - 'tests/test_target_host_profile.py'
       - 'tests/test_target_userspace_twin.py'
       - 'tests/test_target_userspace_runtime_readback.py'
+      - 'tests/test_vps_sandbox_systemd_boot_contract.py'
       - '.github/workflows/wp1201-target-host-profile-ci.yml'
       - '.github/workflows/wp1202-target-userspace-twin-ci.yml'
       - 'workpackages/active/F2-WP-1201.json'
@@ -42,7 +46,15 @@ jobs:
         with:
           python-version: '3.12'
       - name: Compile exact WP1201 to WP1202 surface
-        run: python -m py_compile src/frankenstein2/target_host_profile.py src/frankenstein2/target_userspace_twin.py src/frankenstein2/target_userspace_runtime_readback.py tests/test_target_host_profile.py tests/test_target_userspace_twin.py tests/test_target_userspace_runtime_readback.py
+        run: >-
+          python -m py_compile
+          src/frankenstein2/target_host_profile.py
+          src/frankenstein2/target_userspace_twin.py
+          src/frankenstein2/target_userspace_runtime_readback.py
+          tests/test_target_host_profile.py
+          tests/test_target_userspace_twin.py
+          tests/test_target_userspace_runtime_readback.py
+          tests/test_vps_sandbox_systemd_boot_contract.py
       - name: Run WP1201 profile and WP1202 integration falsification suites
         env:
           PYTHONPATH: src
@@ -50,3 +62,4 @@ jobs:
           python tests/test_target_host_profile.py -v
           python tests/test_target_userspace_twin.py -v
           python tests/test_target_userspace_runtime_readback.py -v
+          python tests/test_vps_sandbox_systemd_boot_contract.py -v
