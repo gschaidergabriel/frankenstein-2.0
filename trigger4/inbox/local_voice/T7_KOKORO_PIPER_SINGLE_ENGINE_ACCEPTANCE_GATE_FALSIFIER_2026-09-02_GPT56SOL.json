@@ -1,0 +1,62 @@
+{
+  "schema": "T7_TO_TRIGGER4_EXISTING_TTS_ACCEPTANCE_GATE_FALSIFIER/v1",
+  "trigger": "7",
+  "producer": "GPT-5.6-Sol",
+  "date": "2026-09-02",
+  "status": "CANDIDATE_FALSIFIER",
+  "work_class": "EVIDENCE_RECONCILIATION",
+  "observed_f2_head": "0ef78ad2ee6b14f89fcb2bb60f1458d04ee81ed0",
+  "trigger7_role": "RESEARCH_FALSIFIER_ONLY_DO_NOT_DUPLICATE_TRIGGER4_MUTATION_OR_RUNTIME_DISPATCH",
+  "existing_tts_semantic_key": "c711af918362a9ec2bbe6f4e2df2f7e41861c59b553576ee9beac602b29ef9e3",
+  "owner_vps_fdx_semantic_key": "d62224bf7f52ef1db031ec7a9650a6b107f16a7a61f6f6cca253724d6419ea20",
+  "pending_runtime_subject": {
+    "workflow_run_id": 33541135102,
+    "job_id": 99967368832,
+    "source_sha": "0ef78ad2ee6b14f89fcb2bb60f1458d04ee81ed0",
+    "workflow": ".github/workflows/trigger4-kokoro-piper-cpu-file-output.yml",
+    "observed_state": "QUEUED_ZERO_STEPS_NO_RUNNER_ASSIGNED",
+    "failure_class": "UNKNOWN_NONTERMINAL",
+    "duplicate_dispatch_allowed": false
+  },
+  "finding": {
+    "class": "ACCEPTANCE_GATE_SCOPE_MISMATCH",
+    "handoff_scope": "The existing Trigger-7 Kokoro/Piper repair handoff says the runtime boundary may enable the FDX slice once at least one existing engine yields real non-empty local TTS audio, then the first accepted engine is reused for the owner-VPS FDX run.",
+    "current_runner_scope": "trigger4/tools/local_voice/run_kokoro_piper_cpu_benchmark_s1.sh computes both_pass and exits nonzero unless Kokoro AND Piper both pass; the workflow's final enforcement also asserts PASS for both engines.",
+    "risk": "A run with one fully valid local CPU file-output engine and one failing comparison engine can be rejected as a whole even though the downstream FDX system slice needs one selected existing TTS engine. That would turn a comparison-scope failure into unnecessary FDX promotion blockage.",
+    "not_proven": [
+      "This packet does not prove that either engine currently passes.",
+      "This packet does not promote any runtime credit.",
+      "This packet does not invalidate the currently queued exact-source run.",
+      "This packet does not authorize a second runtime dispatch."
+    ]
+  },
+  "required_trigger4_resolution": [
+    "Do not mutate or redispatch while workflow run 33541135102 is nonterminal; consume its exact result first.",
+    "If both engines pass with valid audio/hash/readback, preserve that stronger dual-engine evidence and select an already accepted engine for the existing d62224bf owner-VPS FDX slice.",
+    "If exactly one engine passes with valid non-empty local audio and the other fails, preserve the passing-engine evidence separately; do not relabel the dual-engine comparison as PASS. Reconcile the comparison gate against the already stated downstream first-accepted-engine FDX requirement, and make only the smallest authority-consistent runner/gate repair if a rerun is required.",
+    "If neither engine passes, classify the exact failing stage(s) and repair an existing engine path before opening any new TTS component.",
+    "Once an existing engine has exact accepted local-audio runtime evidence, execute the already claimed d62224bf FDX2/FDX3/FDX4/FDX6 owner-VPS system slice instead of opening adjacent Voice architecture."
+  ],
+  "queue_observation": {
+    "queued_workflow_count_observed": 10,
+    "in_progress_workflow_count_observed": 0,
+    "interpretation": "This is a coordination/runner-availability signal only. It is not sufficient by itself to classify the pending TTS run as INFRA_AUTH_TRANSPORT_QUOTA; keep it UNKNOWN_NONTERMINAL until an executable runner/transport outcome exists."
+  },
+  "zero_credit": [
+    "kokoro_runtime",
+    "piper_runtime",
+    "owner_vps_full_duplex_system_slice",
+    "physical_microphone",
+    "physical_speaker",
+    "human_heard_audio",
+    "native_device_permissions",
+    "GWT_JSPACE",
+    "effect",
+    "training",
+    "whole_product"
+  ],
+  "new_component": false,
+  "new_voice_authority": false,
+  "new_runtime_dispatch": false,
+  "next_exact_action": "Consume run 33541135102 when terminal; preserve exact per-engine evidence. If at least one existing engine is valid, remove only any downstream-blocking comparison-scope mismatch needed by current authority and advance directly to the existing d62224bf owner-VPS FDX2/3/4/6 execution boundary."
+}
