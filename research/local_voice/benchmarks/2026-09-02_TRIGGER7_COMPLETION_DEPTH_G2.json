@@ -1,157 +1,140 @@
 {
-  "schema": "F2_TRIGGER7_COMPLETION_DEPTH_G2/v1",
+  "schema": "F2_TRIGGER7_PIPEWIRE_MONITOR_CANCEL_G2/v1",
   "trigger": "7",
-  "research_id": "T7-20260902-COMPLETION-DEPTH-G2",
+  "research_id": "T7-20260902-PIPEWIRE-MONITOR-CANCEL-G2",
   "semantic_key": "0d83f7d13c1d8f91686cf94070f73d901a49018b40a9c058d1949af094655bff",
-  "purpose": "Close the highest-value remaining VPS-representable local Voice evidence before any S4 physical-microphone/speaker acceptance. Reuse existing Voice authorities and accepted model/runtime subjects; this artifact is a falsifier/benchmark design and grants zero runtime/product credit by itself.",
-  "predecessor_runtime_evidence": {
-    "trigger4_result": "trigger4/results/local_voice/TRIGGER4_T7_FDX_D622_OWNER_VPS_G2_RUNTIME_RECONCILIATION_33546874424_GPT56SOL.json",
-    "predecessor_semantic_key": "d62224bf7f52ef1db031ec7a9650a6b107f16a7a61f6f6cca253724d6419ea20",
-    "accepted_scope": ["FDX2", "FDX3_SINK_CANCEL_ONLY", "FDX4", "FDX6"],
-    "still_zero": ["TRUE_STREAMING_PARTIAL_ASR_LATENCY", "PRODUCER_GENERATION_CANCEL", "CANONICAL_DURABLE_STATE_REENTRY", "PHYSICAL_AUDIO", "WHOLE_VOICE_E2E"]
-  },
-  "nonduplicate_guard": {
-    "do_not_redispatch_predecessor_g2": true,
-    "do_not_duplicate_fdx7_fdx8_authority": true,
-    "known_fdx78_run_at_predecessor_reconciliation": 33549789287,
-    "scope_owned_here": ["TRUE_PARTIAL_STREAMING", "PRODUCER_PREEMPTION", "FDX9", "FDX10_BOUNDED", "FDX12_NETWORK_NONE"]
-  },
-  "reuse_subjects": {
-    "asr_preferred_existing_subject": {
-      "model": "nvidia/nemotron-3.5-asr-streaming-0.6b",
-      "runtime_path": "NeMo-Speech.cpp/local C++",
-      "q8_gguf_sha256": "a5c435f294eea8f88ce68dd27b8c3bfea7f777cb2fbba04fcd30eaa555f429ae",
-      "reason": "Already pinned and already used in current F2 owner-VPS Voice evidence; native cache-aware streaming makes it the highest-information way to close the remaining partial-streaming field without model churn."
+  "purpose": "Execute the exact Generation-2 evidence boundary required by terminal predecessor d62224bf: real locally generated TTS waveform bytes -> actual owner-VPS PipeWire virtual/null sink -> monitor capture/readback -> existing causal barge/cancel boundary. Measure and bound old-packet audio tail after cancel. No physical speaker or human-heard credit.",
+  "predecessor": {
+    "semantic_key": "d62224bf7f52ef1db031ec7a9650a6b107f16a7a61f6f6cca253724d6419ea20",
+    "state": "TERMINAL_ACCEPTED_AT_BOUNDED_OWNER_VPS_HEADLESS_FDX_SCOPE",
+    "accepted_fdx3": {
+      "sink_pre_cancel_admission_count": 1,
+      "generated_after_cancel_count": 1,
+      "generated_after_cancel_discarded_count": 1,
+      "sink_post_cancel_admission_count": 0
     },
-    "tts_existing_subject": {
-      "policy": "Reuse the exact currently accepted local TTS subject first (Piper/Kokoro-Piper path where current Trigger4 evidence binds it). Do not introduce a replacement merely to make cancellation easier.",
-      "fallback_research_only": "If the accepted producer is structurally one-shot and cannot expose preemption, record PRODUCT_LIMITATION or EXECUTION_INTERFACE_LIMITATION before evaluating an already-pinned streaming TTS candidate; no silent architecture swap."
-    }
+    "gap_advanced_here": "The prior sink was logical/headless. It did not prove what reached an actual audio graph/monitor after cancellation."
   },
-  "primary_source_refresh": [
+  "authority_and_duplication_fence": {
+    "product_mutation_authority": "NONE_TRIGGER7_RESEARCH_ONLY",
+    "reuse_existing_authorities": ["VOICE_OUTPUT_PACKET", "BARGE_IN_CANCELLATION", "HEARD_RESULT_OR_CURRENT_OUTPUT_OBSERVATION_BOUNDARY"],
+    "forbid_second_authorities": ["PLAYBACK_AUTHORITY", "TURN_AUTHORITY", "STATE_AUTHORITY", "RECOVERY_AUTHORITY", "EFFECT_AUTHORITY"],
+    "do_not_duplicate_fdx7_fdx8_run": 33549789287,
+    "later_unclaimed_after_g2": ["TRUE_STREAMING_PARTIAL_ASR", "FDX12_NETWORK_NONE", "FDX10_LONG_SESSION_STRESS", "PRODUCER_GENERATION_PREEMPTION_IF_NOT_CLOSED_BY_THIS_RUN"]
+  },
+  "external_primary_basis": [
     {
-      "source": "NVIDIA-NeMo/Speech",
-      "finding": "Nemotron-3.5-ASR-Streaming-0.6B supports controllable streaming latency in the 80 ms to 1 s range; MagpieTTS multilingual includes German."
+      "source": "PipeWire pipewire-pulse-modules documentation",
+      "finding": "PipeWire's PulseAudio emulation supports built-in module-null-sink and permits loading it through pactl with sink_name, format, rate and channels."
     },
     {
-      "source": "NVIDIA/NeMo-Speech.cpp",
-      "finding": "Local native C++ ASR/TTS runtime exists, so an offline/network-disabled VPS discriminator is representable without external inference."
+      "source": "PipeWire pw-record documentation",
+      "finding": "pw-record can bind capture to an explicit node target by object.serial or node.name, enabling identity-bound monitor capture."
     }
   ],
-  "experiments": [
+  "lowest_faithful_tier": "S2_OWNER_VPS",
+  "sandbox_reason": "PipeWire user/service/session and virtual audio-node fidelity are required, but no physical device is required. S4 is therefore premature.",
+  "required_preflight": [
+    "Positively identify disposable S2 sandbox and preserve host-survival fence.",
+    "Confirm pipewire, pipewire-pulse, pactl and pw-record/pw-play or equivalent admitted clients are installed in the sandbox only.",
+    "Bind exact current F2 source SHA, exact local TTS runtime/binary/model hashes, and exact generated German waveform SHA256 before playback.",
+    "Record PipeWire version, session-manager version, user/session identity, node list and clock/quantum/latency properties before execution.",
+    "Do not change owner-host default audio devices; create and destroy only sandbox-local virtual nodes."
+  ],
+  "virtual_graph": {
+    "preferred_creation": "pactl load-module module-null-sink sink_name=f2_voice_g2_sink",
+    "identity_rule": "Discover and record the resulting sink and monitor node names/object.serial values; do not assume a monitor identifier without enumeration.",
+    "capture_rule": "Bind pw-record (or an equivalent exact PipeWire capture client) to the enumerated monitor node by stable run-local identity.",
+    "playback_rule": "Route only the exact old-output packet waveform to the enumerated f2_voice_g2_sink; record playback stream/node identity and packet id.",
+    "cleanup_rule": "Unload the created null-sink module and terminate run-owned capture/playback clients; verify no run-owned node remains."
+  },
+  "two_run_discriminator": [
     {
-      "id": "G2A_TRUE_PARTIAL_STREAMING_ASR",
-      "maps_to": ["FDX1", "FDX2", "FDX5"],
-      "lowest_faithful_tier": "S1_OR_S2_VPS",
+      "id": "CONTROL_FULL_PLAYBACK_READBACK",
       "method": [
-        "Use the already-pinned Nemotron 3.5 ASR Q8 local subject and feed fixed German audio incrementally at 80 ms, 160 ms and 320 ms chunk settings where the runtime exposes them.",
-        "Reuse the exact known German HOLD and interrupt fixtures from the accepted owner-VPS run first; add only already-admitted pinned German corpus samples if present.",
-        "Timestamp every audio-chunk admission, every partial hypothesis/revision, endpoint decision and final hypothesis using one monotonic clock domain.",
-        "Inject partial/final state into the existing Voice input/turn-policy boundary without granting partial hypotheses durable tool or answer authority.",
-        "Repeat long-silence reentry and self-correction-before-tool scenarios with the same causal turn IDs."
+        "Generate or reuse the exact locally generated long German TTS waveform bound to one VoiceOutputPacket old-output lineage.",
+        "Start monitor recording before playback and capture the entire virtual-sink playback plus a short post-roll.",
+        "Record monotonic timestamps for capture-ready, playback-start and playback-end.",
+        "Hash source waveform and monitor capture; decode both to normalized PCM for alignment/correlation while preserving raw hashes."
       ],
-      "required_observables": [
-        "first_partial_latency_ms",
-        "partial_revision_sequence",
-        "final_latency_ms",
-        "partial_to_final_text_delta",
-        "endpoint_latency_ms",
-        "false_endpoint_count",
-        "stale_partial_tool_authority_count",
-        "turn_identity_before_after_silence",
-        "CPU_RSS_and_RTF"
-      ],
-      "pass_invariants": [
-        "At least one genuinely pre-final ASR hypothesis is observed from incrementally admitted audio; final-only transcription cannot mint true-streaming credit.",
-        "No superseded partial transcript gains durable answer/tool authority.",
-        "Long silence does not silently resurrect or overwrite stale turn identity.",
-        "Final transcript remains causally bound to the same input lineage and exact model/runtime subject."
-      ],
-      "credit_if_pass": "TRUE_STREAMING_PARTIAL_ASR_AT_EXACT_VPS_FIXTURE_SCOPE_ONLY"
+      "required_result": "Establish that the virtual graph actually carries the generated waveform and measure graph/sample-rate/latency transformation. If control readback cannot be identity/alignment-bound, cancellation evidence is invalid rather than negative."
     },
     {
-      "id": "G2B_PRODUCER_SIDE_TTS_PREEMPTION",
-      "maps_to": ["FDX3", "FDX9"],
-      "lowest_faithful_tier": "S1_OR_S2_VPS_WITH_HEADLESS_PCM_SINK",
+      "id": "CAUSAL_CANCEL_MONITOR_READBACK",
       "method": [
-        "Generate a deliberately long fixed German utterance through the exact accepted local TTS producer.",
-        "Trigger barge/cancel after the first producer-visible PCM segment or earliest measurable partial-production boundary.",
-        "Measure cancel-request, producer acknowledgement/termination, producer CPU stop, generated-chunk sequence, sink admissions and packet commit_eligible state separately.",
-        "If the current producer is an isolated one-shot process, process termination is admissible as a preemption mechanism only when exact process ownership and output packet identity are bound and cleanup is deterministic.",
-        "Do not count sink-only rejection as producer-cancellation evidence."
+        "Replay the identical source waveform through the identical virtual graph and output-packet lineage class.",
+        "At a deterministic measured boundary after playback has begun, invoke the existing admitted barge/cancel path for that exact output packet; do not merely stop the monitor recorder.",
+        "Keep monitor capture running through a post-cancel window substantially longer than the observed graph latency/quantum.",
+        "Record cancel-request timestamp, output-packet terminal-state timestamp, playback-client stop/terminal timestamp, monitor samples and all relevant PipeWire node/stream state.",
+        "Align cancel-run monitor PCM to the full-control monitor/source. Measure the last sample window still attributable to the old packet and compute cancel-to-last-old-sample tail duration."
       ],
-      "required_observables": [
-        "cancel_request_monotonic_ns",
-        "producer_terminal_monotonic_ns",
-        "producer_chunks_before_cancel",
-        "producer_chunks_after_cancel_request",
-        "sink_chunks_after_cancel_boundary",
-        "PCM_format_rate_channels_duration_hash",
-        "commit_eligible",
-        "resource_cleanup"
-      ],
-      "pass_invariants": [
-        "Interrupted packet remains non-commit-eligible.",
-        "No post-cancel producer output is admitted to the sink.",
-        "Producer execution becomes terminal/preempted through an observed mechanism rather than merely generating unseen audio indefinitely.",
-        "Exact model/process/output-packet identity is preserved in the receipt."
-      ],
-      "credit_if_pass": "PRODUCER_PREEMPTION_PLUS_FDX9_HEADLESS_PCM_AT_EXACT_VPS_SCOPE_ONLY"
-    },
-    {
-      "id": "G2C_FDX12_NETWORK_NONE_COMPOSED_INFERENCE",
-      "maps_to": ["FDX12"],
-      "lowest_faithful_tier": "S1_OR_S2_VPS_NETWORK_NONE",
-      "method": [
-        "Prestage all exact model/runtime artifacts, then execute the composed ASR plus TTS discriminator inside a positively identified disposable sandbox with external network disabled at the sandbox namespace/container layer (for example Podman --network=none or an equivalent admitted fence).",
-        "Verify the network fence independently before inference using a bounded expected-failure probe; do not rely only on a language-level socket monkeypatch.",
-        "Run local ASR and local TTS successfully and bind exact binary/model hashes plus the network-fence evidence."
-      ],
-      "pass_invariants": [
-        "External network is demonstrably unavailable during promotion-bearing inference.",
-        "Local ASR and TTS inference still execute successfully from prestaged artifacts.",
-        "No hidden remote model/API dependency is required."
-      ],
-      "credit_if_pass": "FDX12_OFFLINE_LOCAL_INFERENCE_AT_EXACT_VPS_SANDBOX_SCOPE_ONLY"
-    },
-    {
-      "id": "G2D_FDX10_BOUNDED_LONG_SESSION_RESOURCE_ROLLOVER",
-      "maps_to": ["FDX10"],
-      "lowest_faithful_tier": "S1_OR_S2_VPS",
-      "method": [
-        "Drive the existing Voice Packet Cortex through a bounded many-turn session approaching its configured input/output/event/tool caps; periodically include real local ASR/TTS samples so the test is not purely structural.",
-        "Record RSS/PSS, packet counts, tool counts, output counts, event counts and causal session/turn identifiers at fixed intervals.",
-        "At a configured capacity boundary require explicit fail-closed behavior or an already-authorized causally bound rollover; silent eviction is a failure.",
-        "This bounded stress is not a substitute for later 30-minute/multi-hour human conversation acceptance."
-      ],
-      "pass_invariants": [
-        "No silent causal-identity eviction or duplicate durable packet authority under capacity pressure.",
-        "Resource use remains bounded or terminates fail-closed with exact classification.",
-        "Restart/checkpoint semantics are not redefined by this experiment and existing FDX7/FDX8 runtime ownership is not duplicated."
-      ],
-      "credit_if_pass": "BOUNDED_FDX10_RESOURCE_SESSION_STRESS_ONLY"
+      "required_result": "Old-packet audio may exist only inside an explicitly measured bounded in-flight tail caused by already-buffered graph data. No source-correlated old-packet samples may continue after that measured tail bound, and the interrupted packet must remain non-commit-eligible."
     }
   ],
-  "execution_order": ["G2C_FDX12_NETWORK_NONE_COMPOSED_INFERENCE", "G2A_TRUE_PARTIAL_STREAMING_ASR", "G2B_PRODUCER_SIDE_TTS_PREEMPTION", "G2D_FDX10_BOUNDED_LONG_SESSION_RESOURCE_ROLLOVER"],
-  "ordering_reason": "FDX12 is cheap and can invalidate the whole fully-local premise quickly; true partial streaming then closes the largest current ASR evidence gap; producer preemption closes the explicit FDX3 limitation; bounded long-session stress follows after the realtime primitives are valid.",
-  "failure_taxonomy": ["PRODUCT_NEGATIVE", "EVIDENCE_INVALID", "INFRA_AUTH_TRANSPORT_QUOTA", "CONCURRENCY_RETRY", "UNKNOWN_NONTERMINAL"],
-  "route_to_trigger4": {
-    "required": true,
-    "instruction": "Refresh current main and legal mutation/runtime ownership. Execute the smallest nonduplicate experiment above on the owner VPS. Do not mutate product semantics before an exact PRODUCT_NEGATIVE requires repair. Persist exact receipts and preserve all zero-credit boundaries."
+  "required_observables": [
+    "f2_subject_sha",
+    "tts_runtime_binary_sha256",
+    "tts_model_sha256",
+    "source_waveform_sha256",
+    "voice_output_packet_id",
+    "pipewire_version",
+    "pipewire_sink_node_identity",
+    "pipewire_monitor_node_identity",
+    "playback_stream_identity",
+    "capture_stream_identity",
+    "source_sample_rate_channels_frames",
+    "monitor_sample_rate_channels_frames",
+    "pipewire_quantum_and_reported_latency",
+    "control_alignment_offset_ms",
+    "cancel_request_monotonic_ns",
+    "packet_terminal_monotonic_ns",
+    "playback_terminal_monotonic_ns",
+    "last_old_packet_correlated_sample_monotonic_or_sample_index",
+    "cancel_to_last_old_sample_ms",
+    "post_bound_old_packet_correlation_or_sample_count",
+    "commit_eligible_after_cancel",
+    "run_owned_node_cleanup"
+  ],
+  "acceptance_invariants": [
+    "CONTROL_VALID: full-playback monitor capture is demonstrably derived from the exact local TTS waveform and exact virtual-sink graph; otherwise return EVIDENCE_INVALID.",
+    "CAUSAL_CANCEL: the existing output packet's admitted cancel/barge boundary is what terminates playback authority; stopping capture alone cannot satisfy the test.",
+    "BOUNDED_TAIL: cancel-to-last-old-sample is measured, finite and explained by observed graph buffering/latency rather than guessed.",
+    "NO_POST_BOUND_OLD_AUDIO: after the measured bounded in-flight tail, monitor readback contains no continuing old-packet source-correlated audio.",
+    "PACKET_FENCE: interrupted output remains non-commit-eligible and cannot later become heard/commit-authoritative merely because buffered samples existed before cancellation.",
+    "CLEANUP: run-owned sink/capture/playback nodes terminate and are removed without mutating owner-host audio state."
+  ],
+  "failure_classification": {
+    "old_audio_continues_after_bound": "PRODUCT_NEGATIVE",
+    "control_monitor_cannot_bind_source": "EVIDENCE_INVALID",
+    "pipewire_or_session_cannot_start_on_authorized_sandbox": "INFRA_AUTH_TRANSPORT_QUOTA_OR_SANDBOX_FIDELITY_DEFICIT",
+    "claim_or_main_moved": "CONCURRENCY_RETRY",
+    "run_queued_or_nonterminal": "UNKNOWN_NONTERMINAL"
   },
-  "explicit_zero_credit": {
-    "runtime_from_design": 0,
+  "promotion_if_pass": {
+    "owner_vps_pipewire_virtual_sink_playback_readback": 1,
+    "bounded_cancellation_to_virtual_audio_monitor_silence": 1,
+    "physical_speaker": 0,
+    "human_heard_output": 0,
+    "physical_microphone": 0,
+    "physical_presence": 0,
+    "whole_voice_e2e": 0,
+    "whole_product": 0
+  },
+  "route_to_trigger4": "Trigger 4 owns execution/integration. Refresh main and current mutation/runtime ownership, then implement only the smallest adapter/harness needed to connect the existing output packet/cancel path to the sandbox-local PipeWire graph. New Voice authority is forbidden. Persist raw source/capture hashes, exact commands, node identities, timing, PCM analysis and negative evidence.",
+  "next_after_terminal_g2": "Only after this G2 is terminal should Trigger 7 re-evaluate and claim the next nonduplicate VPS depth (true realtime ASR partials, namespace-offline inference, producer preemption if still zero, bounded long-session stress) based on then-current granular state.",
+  "explicit_zero_credit_from_design": {
+    "runtime": 0,
     "physical_microphone": 0,
     "physical_speaker": 0,
     "human_heard_output": 0,
     "physical_presence": 0,
     "cancellation_to_physical_silence": 0,
+    "true_streaming_partial_asr": 0,
     "canonical_durable_state_reentry": 0,
     "gwt_jspace": 0,
     "effect": 0,
     "training": 0,
     "whole_voice_e2e": 0,
     "whole_product": 0
-  },
-  "next_exact_action": "Trigger 4 executes G2C first on the current exact F2 subject with a network-namespace-level fence; if valid, execute G2A true partial streaming next. Preserve physical S4 as the final irreducible audio gate rather than using it as a development sandbox."
+  }
 }
