@@ -252,13 +252,13 @@ def plan_optional_bridge(
     limitations: list[str] = []
 
     baseline_independent = local.baseline_boot_state is EvidenceState.VERIFIED
-    if not baseline_independent:
-        blockers.append("BASELINE_LOCAL_BOOT_NOT_VERIFIED_INDEPENDENTLY")
 
     remote_digest: str | None = None
     typed_transport = False
 
     if action is BridgeAction.ATTACH:
+        if not baseline_independent:
+            blockers.append("BASELINE_LOCAL_BOOT_NOT_VERIFIED_INDEPENDENTLY")
         if remote is None:
             blockers.append("REMOTE_ENDPOINT_EVIDENCE_MISSING")
         else:
