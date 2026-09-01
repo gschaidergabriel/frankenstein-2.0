@@ -18,6 +18,7 @@ requires:
 * the control run explicitly observed no GWT re-entry;
 * both arms bind the same exact source and boot;
 * both arms bind one hashed runner/engine/config/environment/dependency context;
+* the control readback is factory-bound from that concrete typed context;
 * WP507's matched causal evaluator reports a contract-scope influence.
 
 Repository construction or CI produces only an evidence candidate. Runtime,
@@ -53,6 +54,7 @@ PROBE_EXECUTION_CONTEXT_SCHEMA = "FRANKENSTEIN2_GWT_PROBE_EXECUTION_CONTEXT/v1"
 CAUSAL_RUNTIME_READBACK_OBSERVED = "CAUSAL_RUNTIME_READBACK_OBSERVED_AT_CONTRACT_SCOPE"
 _SHA256_RE = re.compile(r"^[0-9a-f]{64}$")
 _MAX_TEXT = 512
+_CONTROL_FACTORY = object()
 _BOUND = object()
 
 
@@ -117,8 +119,9 @@ class ProbeExecutionContext:
 
     This record closes the matched-control context confound at the binder ABI:
     runner/surface/runtime-engine/config/environment/dependencies cannot differ
-    silently between arms. External runtime admission must still prove that the
-    recorded values were actually observed on the executed subject.
+    silently between arms. Broadcast identity is deliberately absent because it
+    is the manipulated dimension. External runtime admission must still prove
+    that the recorded values were actually observed on the executed subject.
     """
 
     runner_identity: str
@@ -168,8 +171,10 @@ class ProbeExecutionContext:
 class ControlNoBroadcastReadback:
     """Explicit readback for the matched no-broadcast control arm.
 
-    This is an observation record, not proof that execution happened. External
-    admission must still bind the record to an actually executed target run.
+    A nominal instance can be parsed directly for compatibility, but the causal
+    binder only accepts instances produced by :meth:`observe`, which consumes
+    the concrete ProbeExecutionContext and seals the immutable payload. This
+    remains an observation record, not proof that execution happened.
     """
 
     runtime_instance_id: str
@@ -184,6 +189,8 @@ class ControlNoBroadcastReadback:
     observed_monotonic_ns: int
     reentry_observed: bool
     provenance_refs: tuple[str, ...]
+    _factory_seal: object | None = field(default=None, init=False, repr=False, compare=False, hash=False)
+    _factory_payload_sha256: str | None = field(default=None, init=False, repr=False, compare=False, hash=False)
 
     schema = CONTROL_NO_BROADCAST_READBACK_SCHEMA
     condition = "CONTROL_NO_BROADCAST"
@@ -206,6 +213,47 @@ class ControlNoBroadcastReadback:
             raise GwtCausalRuntimeReadbackError("no-broadcast control must not claim GWT re-entry")
         object.__setattr__(self, "provenance_refs", _refs(self.provenance_refs))
 
+    @classmethod
+    def observe(
+        cls,
+        *,
+        execution_context: ProbeExecutionContext,
+        runtime_instance_id: str,
+        process_identity: str,
+        boot_id_sha256: str,
+        exact_source_sha256: str,
+        probe_id: str,
+        nonbroadcast_input_sha256: str,
+        downstream_ref: str,
+        downstream_sha256: str,
+        observed_monotonic_ns: int,
+        reentry_observed: bool,
+        provenance_refs: Iterable[str],
+    ) -> "ControlNoBroadcastReadback":
+        if type(execution_context) is not ProbeExecutionContext:
+            raise GwtCausalRuntimeReadbackError("execution_context must be exact ProbeExecutionContext")
+        if exact_source_sha256 != execution_context.exact_source_sha256:
+            raise GwtCausalRuntimeReadbackError("control/context source identity mismatch")
+        if boot_id_sha256 != execution_context.boot_id_sha256:
+            raise GwtCausalRuntimeReadbackError("control/context boot identity mismatch")
+        value = cls(
+            runtime_instance_id=runtime_instance_id,
+            process_identity=process_identity,
+            boot_id_sha256=boot_id_sha256,
+            exact_source_sha256=exact_source_sha256,
+            execution_context_sha256=execution_context.sha256(),
+            probe_id=probe_id,
+            nonbroadcast_input_sha256=nonbroadcast_input_sha256,
+            downstream_ref=downstream_ref,
+            downstream_sha256=downstream_sha256,
+            observed_monotonic_ns=observed_monotonic_ns,
+            reentry_observed=reentry_observed,
+            provenance_refs=tuple(provenance_refs),
+        )
+        object.__setattr__(value, "_factory_seal", _CONTROL_FACTORY)
+        object.__setattr__(value, "_factory_payload_sha256", _digest(value.as_dict()))
+        return value
+
     def as_dict(self) -> dict[str, Any]:
         return {
             "schema": self.schema,
@@ -226,6 +274,15 @@ class ControlNoBroadcastReadback:
 
     def sha256(self) -> str:
         return _digest(self.as_dict())
+
+
+def validate_control_no_broadcast_readback(value: ControlNoBroadcastReadback) -> None:
+    """Require factory origin and immutable payload for causal use."""
+
+    if type(value) is not ControlNoBroadcastReadback or value._factory_seal is not _CONTROL_FACTORY:
+        raise GwtCausalRuntimeReadbackError("control readback lacks typed observation factory origin")
+    if value._factory_payload_sha256 != _digest(value.as_dict()):
+        raise GwtCausalRuntimeReadbackError("control readback payload changed after observation")
 
 
 @dataclass(frozen=True, slots=True, kw_only=True)
@@ -400,8 +457,7 @@ def bind_causal_runtime_readback(
     ):
         raise GwtCausalRuntimeReadbackError("uptake summary does not contain runtime-witness receipt")
 
-    if type(control_readback) is not ControlNoBroadcastReadback:
-        raise GwtCausalRuntimeReadbackError("control_readback must be exact ControlNoBroadcastReadback")
+    validate_control_no_broadcast_readback(control_readback)
     if control_readback.probe_id != probe_id:
         raise GwtCausalRuntimeReadbackError("control probe identity mismatch")
     if control_readback.nonbroadcast_input_sha256 != nonbroadcast_input_sha256:
@@ -492,4 +548,5 @@ __all__ = [
     "ProbeExecutionContext",
     "bind_causal_runtime_readback",
     "validate_causal_runtime_readback",
+    "validate_control_no_broadcast_readback",
 ]
