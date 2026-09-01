@@ -4,7 +4,7 @@
 This is a research/candidate-falsifier organ, not a new voice, memory, effect,
 or playback authority. It exercises the next VPS-representable boundary after
 the accepted headless FDX scope: output consumption, cancellation,
-stale-generation rejection and readback.
+stale-generation rejection and monitor readback.
 
 Modes:
   software   - deterministic repository-CI reference loopback only.
@@ -30,13 +30,19 @@ import tempfile
 import time
 from typing import Any
 
-SCHEMA = "F2_T4_VOICE_VIRTUAL_SINK_CANCEL_READBACK/v1"
+SCHEMA = "F2_T4_VOICE_VIRTUAL_SINK_CANCEL_READBACK/v2"
 CLASSIFICATION = "CANDIDATE_FALSIFIER_VIRTUAL_SINK_ONLY"
 SAMPLE_RATE = 16_000
 CHANNELS = 1
 SAMPLE_WIDTH = 2
 FRAME_MS = 10
 FRAMES_PER_CHUNK = SAMPLE_RATE * FRAME_MS // 1000
+PRE_VALUE = 2000
+OLD_INFLIGHT_VALUE = 12000
+LATE_OLD_VALUE = 9000
+NEW_VALUE = -12000
+INFLIGHT_OLD_CHUNKS = 3
+INFLIGHT_BOUND_MS = INFLIGHT_OLD_CHUNKS * FRAME_MS
 
 
 def _sha(data: bytes) -> str:
@@ -50,9 +56,10 @@ def _pcm_constant(value: int, chunks: int) -> bytes:
     return frame * FRAMES_PER_CHUNK * chunks
 
 
-PRE = _pcm_constant(2000, 6)
-OLD_SENTINEL = _pcm_constant(12000, 6)
-NEW_SENTINEL = _pcm_constant(-12000, 6)
+PRE = _pcm_constant(PRE_VALUE, 6)
+OLD_INFLIGHT = _pcm_constant(OLD_INFLIGHT_VALUE, INFLIGHT_OLD_CHUNKS)
+LATE_OLD = _pcm_constant(LATE_OLD_VALUE, 3)
+NEW_SENTINEL = _pcm_constant(NEW_VALUE, 6)
 
 
 @dataclass(frozen=True)
@@ -93,7 +100,8 @@ class SoftwareLoopback:
         self.played = bytearray()
         self.cancelled = False
 
-    def write(self, pcm: bytes) -> None:
+    def write(self, pcm: bytes, *, pace: bool = True) -> None:
+        del pace
         if self.cancelled:
             raise RuntimeError("write attempted after cancellation")
         self.played.extend(pcm)
@@ -111,10 +119,9 @@ class SoftwareLoopback:
 class PulseNullSink:
     """PipeWire-Pulse/PulseAudio null-sink probe for S1/S2 execution.
 
-    This deliberately uses the Pulse compatibility tools because they provide a
-    portable headless null sink + monitor on common PipeWire deployments. A
-    PASS is virtual-sink evidence, not native PipeWire-stream or physical audio
-    credit.
+    Pulse compatibility tools are used because they expose a portable headless
+    null sink + monitor on common PipeWire deployments. A PASS is virtual-sink
+    evidence only, not native PipeWire-stream or physical-audio credit.
     """
 
     backend_name = "PIPEWIRE_PULSE_NULL_SINK"
@@ -138,9 +145,7 @@ class PulseNullSink:
         self.capture_path = Path(self._tmp.name) / "monitor.raw"
         cp = subprocess.run(
             [
-                "pactl",
-                "load-module",
-                "module-null-sink",
+                "pactl", "load-module", "module-null-sink",
                 f"sink_name={self.sink_name}",
                 f"rate={SAMPLE_RATE}",
                 f"channels={CHANNELS}",
@@ -174,8 +179,7 @@ class PulseNullSink:
     def _new_player(self) -> subprocess.Popen[bytes]:
         return subprocess.Popen(
             [
-                "pacat",
-                "--playback",
+                "pacat", "--playback",
                 f"--device={self.sink_name}",
                 "--format=s16le",
                 f"--rate={SAMPLE_RATE}",
@@ -187,14 +191,15 @@ class PulseNullSink:
             stderr=subprocess.PIPE,
         )
 
-    def write(self, pcm: bytes) -> None:
+    def write(self, pcm: bytes, *, pace: bool = True) -> None:
         if self.player is None or self.player.poll() is not None:
             self.player = self._new_player()
         assert self.player.stdin is not None
         self.player.stdin.write(pcm)
         self.player.stdin.flush()
-        duration = len(pcm) / (SAMPLE_RATE * CHANNELS * SAMPLE_WIDTH)
-        time.sleep(min(duration, 0.12))
+        if pace:
+            duration = len(pcm) / (SAMPLE_RATE * CHANNELS * SAMPLE_WIDTH)
+            time.sleep(min(duration, 0.12))
 
     def cancel(self) -> None:
         if self.player is None:
@@ -249,10 +254,19 @@ class PulseNullSink:
                 self._tmp = None
 
 
-def _count_exact_chunk(blob: bytes, pattern: bytes) -> int:
-    if not pattern:
-        return 0
-    return blob.count(pattern)
+def _samples(blob: bytes) -> tuple[int, ...]:
+    if len(blob) % SAMPLE_WIDTH:
+        blob = blob[: len(blob) - (len(blob) % SAMPLE_WIDTH)]
+    if not blob:
+        return ()
+    return struct.unpack(f"<{len(blob) // SAMPLE_WIDTH}h", blob)
+
+
+def _first_index(values: tuple[int, ...], target: int) -> int | None:
+    try:
+        return values.index(target)
+    except ValueError:
+        return None
 
 
 def run(backend: str) -> dict[str, Any]:
@@ -272,27 +286,33 @@ def run(backend: str) -> dict[str, Any]:
     admitted: list[str] = []
     try:
         old_pre = Chunk(session_id, "output-a-0", 1, 0, PRE)
-        old_queued = Chunk(session_id, "output-a-0", 1, 1, OLD_SENTINEL)
-        if not fence.admit(old_pre):
-            raise AssertionError("current generation preamble rejected")
-        sink.write(old_pre.pcm)
-        admitted.append("old-pre")
+        old_inflight = Chunk(session_id, "output-a-0", 1, 1, OLD_INFLIGHT)
+        late_old = Chunk(session_id, "output-a-0", 1, 2, LATE_OLD)
+
+        for label, chunk, pace in (
+            ("old-pre", old_pre, True),
+            ("old-inflight", old_inflight, False),
+        ):
+            if not fence.admit(chunk):
+                raise AssertionError(f"current generation {label} rejected")
+            sink.write(chunk.pcm, pace=pace)
+            admitted.append(label)
 
         old_generation, new_generation = fence.cancel()
         cancel_called_ns = time.monotonic_ns()
         sink.cancel()
         cancel_finished_ns = time.monotonic_ns()
 
-        late_old_accepted = fence.admit(old_queued)
+        late_old_accepted = fence.admit(late_old)
         if late_old_accepted:
-            sink.write(old_queued.pcm)
-            admitted.append("late-old-sentinel")
+            sink.write(late_old.pcm, pace=False)
+            admitted.append("late-old")
 
         sink.reset()
         new_chunk = Chunk(session_id, "output-b-0", new_generation, 0, NEW_SENTINEL)
         if not fence.admit(new_chunk):
             raise AssertionError("new generation rejected after reset")
-        sink.write(new_chunk.pcm)
+        sink.write(new_chunk.pcm, pace=True)
         admitted.append("new-sentinel")
 
         readback = sink.readback()
@@ -300,26 +320,34 @@ def run(backend: str) -> dict[str, Any]:
         if isinstance(sink, PulseNullSink):
             sink.close()
 
-    old_sentinel_occurrences = _count_exact_chunk(readback, OLD_SENTINEL)
-    new_sentinel_occurrences = _count_exact_chunk(readback, NEW_SENTINEL)
-    software_pass = (
-        backend != "software"
-        or (
-            not late_old_accepted
-            and fence.rejected == 1
-            and old_sentinel_occurrences == 0
-            and new_sentinel_occurrences == 1
-        )
+    values = _samples(readback)
+    new_first = _first_index(values, NEW_VALUE)
+    split = len(values) if new_first is None else new_first
+    before_new = values[:split]
+    after_new = values[split:]
+    pre_samples_before_new = before_new.count(PRE_VALUE)
+    old_samples_before_new = before_new.count(OLD_INFLIGHT_VALUE)
+    old_samples_after_new = after_new.count(OLD_INFLIGHT_VALUE)
+    late_old_samples = values.count(LATE_OLD_VALUE)
+    new_samples = values.count(NEW_VALUE)
+    old_observed_ms_before_new = old_samples_before_new * 1000.0 / SAMPLE_RATE
+
+    common_pass = (
+        not late_old_accepted
+        and fence.rejected == 1
+        and new_first is not None
+        and pre_samples_before_new > 0
+        and old_samples_after_new == 0
+        and late_old_samples == 0
+        and old_observed_ms_before_new <= INFLIGHT_BOUND_MS
+        and new_samples > 0
     )
-    pulse_pass = (
-        backend != "pulse-null"
-        or (
-            not late_old_accepted
-            and fence.rejected == 1
-            and len(readback) > 0
-            and OLD_SENTINEL not in readback
-        )
+    software_pass = backend != "software" or (
+        common_pass
+        and old_samples_before_new == len(OLD_INFLIGHT) // SAMPLE_WIDTH
+        and new_samples == len(NEW_SENTINEL) // SAMPLE_WIDTH
     )
+    pulse_pass = backend != "pulse-null" or common_pass
     passed = software_pass and pulse_pass
 
     return {
@@ -336,12 +364,19 @@ def run(backend: str) -> dict[str, Any]:
         "cancel_call_duration_ms": (cancel_finished_ns - cancel_called_ns) / 1_000_000.0,
         "readback_bytes": len(readback),
         "readback_sha256": _sha(readback),
-        "old_sentinel_exact_occurrences": old_sentinel_occurrences,
-        "new_sentinel_exact_occurrences": new_sentinel_occurrences,
+        "new_generation_first_sample_index": new_first,
+        "pre_samples_before_new_generation": pre_samples_before_new,
+        "old_inflight_samples_before_new_generation": old_samples_before_new,
+        "old_inflight_samples_after_new_generation": old_samples_after_new,
+        "late_old_samples_observed": late_old_samples,
+        "new_generation_samples_observed": new_samples,
+        "declared_pre_cancel_inflight_bound_ms": INFLIGHT_BOUND_MS,
+        "observed_old_audio_before_new_generation_ms": old_observed_ms_before_new,
         "pass": passed,
         "failure_class": None if passed else "PRODUCT_NEGATIVE",
         "measured_credit": {
             "virtual_sink_output_consumption_control": int(passed),
+            "bounded_inflight_old_audio_monitor_readback": int(passed and backend == "pulse-null"),
             "stale_generation_rejection": int(not late_old_accepted and fence.rejected == 1),
             "physical_speaker": 0,
             "physical_microphone": 0,
@@ -356,7 +391,8 @@ def run(backend: str) -> dict[str, Any]:
         },
         "next_exact_action": (
             "If repository software mode passes, execute pulse-null on admitted S1/S2 VPS and bind exact source/runtime identity. "
-            "If pulse-null passes, compose its readback receipt into the existing accepted headless FDX chain without changing its semantics. "
+            "Require monitor readback to show no old-generation sentinel samples after the new-generation boundary and no late-old samples, "
+            f"with pre-cancel in-flight old audio bounded to <= {INFLIGHT_BOUND_MS} ms. "
             "Reserve physical speaker/microphone/human-heard cancellation-to-silence for S4."
         ),
     }
