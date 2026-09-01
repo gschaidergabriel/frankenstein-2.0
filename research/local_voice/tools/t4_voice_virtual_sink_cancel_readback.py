@@ -10,7 +10,9 @@ Modes:
   pulse-null - Linux PipeWire-Pulse/PulseAudio null-sink probe when pactl,
                pacat and parec are available on the target sandbox.
 
-A PASS may only earn the exact executed virtual-sink/output-control scope.
+A PASS may only earn the exact executed candidate-observation scope. This tool
+cannot mint admitted VPS runtime credit by itself because source/runner/sandbox
+identity is bound by the external execution receipt/reconciliation boundary.
 It never earns physical speaker, microphone, human-heard, acoustic, S4,
 whole-voice, whole-product, GWT/J-Space, effect, UnifiedDB or training credit.
 """
@@ -113,8 +115,8 @@ class PulseNullSink:
 
     This deliberately uses the Pulse compatibility tools because they provide a
     portable headless null sink + monitor on common PipeWire deployments.  A
-    PASS is virtual-sink evidence, not native PipeWire-stream or physical audio
-    credit.
+    PASS is virtual-sink candidate evidence, not admitted VPS/runtime, native
+    PipeWire-stream, or physical-audio credit.
     """
 
     backend_name = "PIPEWIRE_PULSE_NULL_SINK"
@@ -342,7 +344,9 @@ def run(backend: str) -> dict[str, Any]:
         "failure_class": None if passed else "PRODUCT_NEGATIVE",
         "measured_credit": {
             "repository_software_reference_credit": int(passed and backend == "software"),
-            "virtual_sink_output_consumption_control": int(passed and backend == "pulse-null"),
+            "candidate_pulse_null_output_consumption_observed": int(passed and backend == "pulse-null"),
+            "virtual_sink_output_consumption_control": 0,
+            "target_vps_virtual_sink_runtime_credit": 0,
             "stale_generation_rejection": int(not late_old_accepted and fence.rejected == 1),
             "physical_speaker": 0,
             "physical_microphone": 0,
@@ -357,7 +361,7 @@ def run(backend: str) -> dict[str, Any]:
         },
         "next_exact_action": (
             "If repository software mode passes, execute pulse-null on admitted S1/S2 VPS and bind exact source/runtime identity. "
-            "If pulse-null passes, compose its readback receipt into the existing G4 ASR->PacketCortex->TTS chain without changing G4 semantics. "
+            "A pulse-null PASS from this tool remains candidate observation only; promote virtual-sink runtime credit only in the external receipt/reconciliation after exact subject and admitted runtime identity are verified. "
             "Reserve physical speaker/microphone/human-heard cancellation-to-silence for S4."
         ),
     }
