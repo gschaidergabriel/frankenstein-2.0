@@ -1,0 +1,272 @@
+name: T4 FDX5 Final Tool Fence Repair
+
+on:
+  push:
+    branches:
+      - trigger4-fdx5-final-tool-fence-gpt56sol-20260902
+    paths:
+      - '.github/workflows/t4-fdx5-final-tool-fence-repair.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: t4-fdx5-final-tool-fence-repair
+  cancel-in-progress: false
+
+jobs:
+  repair-and-regress:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      EXPECTED_BASE_SHA: 5f6382cfa3d4be9ebdc472b02ca126aa6cde9a63
+      EXPECTED_VOICE_PACKET_CORTEX_BLOB: bdecfd082fc9a88876e8cbcca8988d20b866da29
+      EXPECTED_TEST_BLOB: 842a5eab6d6e43fc1045f3a5e7b54bfc4c17a313
+    steps:
+      - name: Checkout exact repair branch
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          fetch-depth: 2
+          clean: true
+          persist-credentials: true
+
+      - name: Verify repair preimage
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          test "$(git rev-parse HEAD^)" = "$EXPECTED_BASE_SHA"
+          test "$(git rev-parse HEAD:src/frankenstein2/voice_packet_cortex.py)" = "$EXPECTED_VOICE_PACKET_CORTEX_BLOB"
+          test "$(git rev-parse HEAD:tests/test_voice_packet_cortex.py)" = "$EXPECTED_TEST_BLOB"
+
+      - name: Apply minimal current-authority repair and regression
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+
+          source_path = Path('src/frankenstein2/voice_packet_cortex.py')
+          source = source_path.read_text()
+          old = '''        if voice_intent == "TOOL_USE":
+              if tool_ref is None:
+                  raise VoicePacketCortexError("TOOL_USE requires tool_ref")
+              if tool_ref in self._active_tools or tool_ref in self._cancelled_tools:
+                  raise VoicePacketCortexError("tool_ref already used or cancelled")
+              self._require_new_tool_capacity()
+          event = self._event(
+  '''.replace('          ', '        ', 1)
+          new = '''        if voice_intent == "TOOL_USE":
+              if tool_ref is None:
+                  raise VoicePacketCortexError("TOOL_USE requires tool_ref")
+              if turn_id not in self._final_turns:
+                  raise VoicePacketCortexError("TOOL_USE requires an admitted final input for the same turn")
+              final_input_ms = self._last_input_monotonic_ms.get(turn_id)
+              if final_input_ms is None:
+                  raise VoicePacketCortexError("TOOL_USE final-turn projection lacks input timing authority")
+              if monotonic_ms < final_input_ms:
+                  raise VoicePacketCortexError("TOOL_USE monotonic_ms precedes the admitted final input")
+              if tool_ref in self._active_tools or tool_ref in self._cancelled_tools:
+                  raise VoicePacketCortexError("tool_ref already used or cancelled")
+              self._require_new_tool_capacity()
+          event = self._event(
+  '''.replace('          ', '        ', 1)
+          if source.count(old) != 1:
+              raise SystemExit(f'VOICE_SOURCE_PREIMAGE_COUNT={source.count(old)}')
+          source_path.write_text(source.replace(old, new, 1))
+
+          test_path = Path('tests/test_voice_packet_cortex.py')
+          tests = test_path.read_text()
+
+          old = '''        backchannel = cortex.emit_intent(
+              turn_id="turn-1", monotonic_ms=120, voice_intent="BACKCHANNEL", detail="mhm",
+          )
+          tool = cortex.emit_intent(
+  '''.replace('          ', '        ', 1)
+          new = '''        backchannel = cortex.emit_intent(
+              turn_id="turn-1", monotonic_ms=120, voice_intent="BACKCHANNEL", detail="mhm",
+          )
+          cortex.accept_input(self.input_packet(
+              cortex,
+              packet_id="input-final-tool-fabric",
+              monotonic_ms=130,
+              source_modality="asr_final",
+              text="Guten Morgen",
+              is_final=True,
+              confidence=0.96,
+              speech_end=True,
+              vad_state="SILENCE",
+              endpoint_decision="END",
+              sequence=0,
+          ))
+          tool = cortex.emit_intent(
+  '''.replace('          ', '        ', 1)
+          if tests.count(old) != 1:
+              raise SystemExit(f'TEST_TOOL_FABRIC_PREIMAGE_COUNT={tests.count(old)}')
+          tests = tests.replace(old, new, 1)
+
+          old = '''        cortex.advance_output("output-tool", playback_state="started", monotonic_ms=110, heard_fraction=0.0)
+          cortex.emit_intent(
+              turn_id="turn-0", monotonic_ms=115, voice_intent="TOOL_USE", tool_ref="tool:late"
+          )
+  '''.replace('          ', '        ', 1)
+          new = '''        cortex.advance_output("output-tool", playback_state="started", monotonic_ms=110, heard_fraction=0.0)
+          cortex.accept_input(self.input_packet(
+              cortex,
+              turn_id="turn-0",
+              packet_id="input-final-tool-cancel",
+              monotonic_ms=114,
+              source_modality="asr_final",
+              text="Prüfe den Status",
+              is_final=True,
+              confidence=0.97,
+              speech_end=True,
+              vad_state="SILENCE",
+              endpoint_decision="END",
+              sequence=0,
+          ))
+          cortex.emit_intent(
+              turn_id="turn-0", monotonic_ms=115, voice_intent="TOOL_USE", tool_ref="tool:late"
+          )
+  '''.replace('          ', '        ', 1)
+          if tests.count(old) != 1:
+              raise SystemExit(f'TEST_TOOL_CANCEL_PREIMAGE_COUNT={tests.count(old)}')
+          tests = tests.replace(old, new, 1)
+
+          old = '''        cortex = VoicePacketCortex(session)
+          tool_ref = "tool:session-close-owned"
+          cortex.emit_intent(
+              turn_id="turn-tool", monotonic_ms=100, voice_intent="TOOL_USE", tool_ref=tool_ref
+          )
+  '''.replace('          ', '        ', 1)
+          new = '''        cortex = VoicePacketCortex(session)
+          tool_ref = "tool:session-close-owned"
+          cortex.accept_input(self.input_packet(
+              cortex,
+              turn_id="turn-tool",
+              packet_id="input-final-tool-close",
+              monotonic_ms=90,
+              source_modality="asr_final",
+              text="Führe das Werkzeug aus",
+              is_final=True,
+              confidence=0.98,
+              speech_end=True,
+              vad_state="SILENCE",
+              endpoint_decision="END",
+              sequence=0,
+          ))
+          cortex.emit_intent(
+              turn_id="turn-tool", monotonic_ms=100, voice_intent="TOOL_USE", tool_ref=tool_ref
+          )
+  '''.replace('          ', '        ', 1)
+          if tests.count(old) != 1:
+              raise SystemExit(f'TEST_TOOL_CLOSE_PREIMAGE_COUNT={tests.count(old)}')
+          tests = tests.replace(old, new, 1)
+
+          anchor = '''    def test_cancelled_turn_rejects_late_tool_result(self) -> None:
+  '''.replace('  ', '', 1)
+          regression = '''    def test_fdx5_tool_use_requires_final_same_turn_and_nonregressed_time(self) -> None:
+          cortex = VoicePacketCortex(self.session())
+          partial = self.input_packet(cortex)
+          cortex.accept_input(partial)
+          before = export_packet_cortex_checkpoint(cortex)
+          with self.assertRaisesRegex(VoicePacketCortexError, "admitted final input"):
+              cortex.emit_intent(
+                  turn_id="turn-1", monotonic_ms=110, voice_intent="TOOL_USE", tool_ref="tool:premature"
+              )
+          self.assertEqual(export_packet_cortex_checkpoint(cortex), before)
+          self.assertNotIn("tool:premature", cortex._active_tools)
+
+          final = self.input_packet(
+              cortex,
+              packet_id="input-1",
+              monotonic_ms=200,
+              source_modality="asr_final",
+              text="Öffne stattdessen die zweite Datei",
+              is_final=True,
+              confidence=0.97,
+              speech_start=False,
+              speech_end=True,
+              vad_state="SILENCE",
+              endpoint_decision="END",
+              sequence=1,
+          )
+          cortex.accept_input(final)
+          with self.assertRaisesRegex(VoicePacketCortexError, "precedes the admitted final input"):
+              cortex.emit_intent(
+                  turn_id="turn-1", monotonic_ms=199, voice_intent="TOOL_USE", tool_ref="tool:time-travel"
+              )
+          tool = cortex.emit_intent(
+              turn_id="turn-1", monotonic_ms=201, voice_intent="TOOL_USE", tool_ref="tool:corrected-final"
+          )
+          self.assertEqual(tool.tool_ref, "tool:corrected-final")
+          checkpoint = export_packet_cortex_checkpoint(cortex)
+          self.assertEqual(dict(checkpoint["payload"]["active_tools"]), {"tool:corrected-final": "turn-1"})
+          resumed = resume_packet_cortex(self.session(), checkpoint, monotonic_ms=300)
+          self.assertNotIn("tool:corrected-final", resumed._active_tools)
+          self.assertIn("tool:corrected-final", resumed._cancelled_tools)
+
+  '''.replace('          ', '        ')
+          if tests.count(anchor) != 1:
+              raise SystemExit(f'TEST_REGRESSION_ANCHOR_COUNT={tests.count(anchor)}')
+          tests = tests.replace(anchor, regression + anchor, 1)
+          test_path.write_text(tests)
+          PY
+          git diff --check
+
+      - name: Execute focused regression suite
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          export PYTHONPATH="$GITHUB_WORKSPACE/src"
+          python3 -m unittest -v \
+            tests.test_voice_packet_cortex \
+            tests.test_trigger4_fdx1_fdx5_convergence \
+            tests.test_trigger4_fdx3_barge_in_convergence
+          python3 -m compileall -q src tests/test_voice_packet_cortex.py
+
+      - name: Assert old FDX5 counterexample is closed by source repair
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          export PYTHONPATH="$GITHUB_WORKSPACE/src"
+          python3 - <<'PY'
+          from frankenstein2.causal_identity import CausalIdentity
+          from frankenstein2.voice_contract import VoiceIntent, VoiceSessionCapsule
+          from frankenstein2.voice_packet_cortex import VoiceInputPacket, VoicePacketCortex, VoicePacketCortexError
+
+          root = CausalIdentity(session_id='session-fdx5-regression', agent_id='frankenstein-2', task_id='task',
+                                turn_id='root', causal_id='causal-root', generation=1)
+          intent = VoiceIntent.create(causal_identity=root, input_ref='fdx5:regression', input_sha256='5'*64,
+                                      provenance_refs=('trigger4:fdx5-regression',))
+          session = VoiceSessionCapsule.create(intent=intent,
+              session_causal_identity=root.derive(causal_id='causal-session', generation=2, turn_id='session'),
+              provenance_refs=('trigger4:fdx5-regression',))
+          c = VoicePacketCortex(session)
+          p = VoiceInputPacket(session_id=c.session_id, turn_id='turn-1', packet_id='partial', monotonic_ms=100,
+              source_modality='asr_partial', text='Öffne die erste ... nein', language='de-DE', is_final=False,
+              confidence=0.9, speech_start=True, speech_end=False, vad_state='SPEECH', endpoint_decision='HOLD',
+              overlap_state='NONE', barge_in=False, source_duration_ms=160, sequence=0)
+          c.accept_input(p)
+          try:
+              c.emit_intent(turn_id='turn-1', monotonic_ms=110, voice_intent='TOOL_USE', tool_ref='tool:premature')
+          except VoicePacketCortexError as exc:
+              assert 'admitted final input' in str(exc), exc
+          else:
+              raise SystemExit('FDX5_COUNTEREXAMPLE_STILL_OPEN')
+          assert 'tool:premature' not in c._active_tools
+          print('FDX5_REPOSITORY_REGRESSION=CLOSED')
+          print('scope=REPOSITORY_COMPONENT_EXECUTION_ONLY')
+          print('target_vps_runtime_credit=0')
+          PY
+
+      - name: Commit repair to branch
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          git config user.name 'Trigger4 FDX5 Repair'
+          git config user.email 'trigger4-fdx5-repair@localhost'
+          git add src/frankenstein2/voice_packet_cortex.py tests/test_voice_packet_cortex.py
+          test -n "$(git status --porcelain)"
+          git commit -m 'trigger4: fence tool use to admitted final voice turn'
+          git push origin HEAD:trigger4-fdx5-final-tool-fence-gpt56sol-20260902
