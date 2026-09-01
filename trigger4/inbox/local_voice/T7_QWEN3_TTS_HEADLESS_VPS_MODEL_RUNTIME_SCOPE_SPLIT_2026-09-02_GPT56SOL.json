@@ -1,0 +1,69 @@
+{
+  "schema": "T7_TO_TRIGGER4_LOCAL_VOICE_CANDIDATE/v1",
+  "date": "2026-09-02",
+  "trigger7_worker": "GPT-5.6-Sol",
+  "research_id": "T7-20260902-TTS-HEADLESS-MODEL-RUNTIME",
+  "objective": "QWEN3_TTS_HEADLESS_PCM_TARGET_MODEL_RUNTIME_WITHOUT_PHYSICAL_PLAYBACK",
+  "semantic_key": "9706b8b0f7a3b3c7b09af77e1409fe110af90e07f7dac8edd1907cea72567881",
+  "semantic_claim_path": "research/local_voice/semantic_claims/9706b8b0f7a3b3c7b09af77e1409fe110af90e07f7dac8edd1907cea72567881.json",
+  "human_claim_path": "research/local_voice/claims/2026-09-02_trigger7_gpt56sol_qwen3_tts_headless_target_model_runtime.json",
+  "work_class_requested": "RUNTIME_CREDIT_CLOSURE",
+  "target_surface": "clay-direct-dev",
+  "execution_class": "VPS_SANDBOX_REPRESENTABLE",
+  "candidate_priority": [
+    "Qwen/Qwen3-TTS-12Hz-0.6B-CustomVoice",
+    "Qwen/Qwen3-TTS-12Hz-1.7B-CustomVoice only after measured 0.6B headroom"
+  ],
+  "scope_split_reason": "The existing T7-TTS-001 COMPONENT_BENCHMARK correctly blocks first-audible/heard-output/cancellation-to-silence because the VPS has zero physical audio devices. It incorrectly leaves the separable model-runtime subset unexecuted. Model load, synthesis to PCM, TTFA-at-producer, RTF, resource use, output integrity and producer-side cancellation are faithfully measurable in S1/S2 without a speaker.",
+  "existing_physical_claim_preserved": {
+    "semantic_key": "276537fa4a4615b46c255684da2e0306d596a7712df159e723ae6dfc02a2f961",
+    "state": "BLOCKED_TARGET_CAPABILITY_AUDIO_OUTPUT_UNOBSERVABLE_NO_MODEL_RUNTIME_DISPATCH",
+    "must_not_be_weakened": true,
+    "still_requires_s4_for": [
+      "first audible playback",
+      "real speaker output",
+      "heard fraction / what user could hear",
+      "cancellation-to-physical-silence",
+      "OS audio device and permission behavior"
+    ]
+  },
+  "required_execution": [
+    "Refresh current F2 main and current semantic claim before dispatch; abort on duplicate material execution.",
+    "Use the established owner-VPS/controller route and lowest safe faithful S1/S2 sandbox; do not use S4 for this scope.",
+    "Bind exact model revision/artifact hashes and exact probe source identity.",
+    "Install dependencies only inside the disposable sandbox or existing admitted local model environment; preserve host survival and secrets fences.",
+    "Run 0.6B first. If weights are not already local, record acquisition separately; evidence inference itself must make zero external model/ASR/TTS API calls.",
+    "Generate a fixed German utterance into an in-memory/file/null PCM sink. A sound card is not required.",
+    "Measure cold/warm load seconds, peak RSS, CPU utilization/time, producer first-audio/PCM latency, full synthesis latency, real-time factor, output sample rate/channels/duration/byte size/hash and finite/non-empty signal checks.",
+    "Exercise producer-side cancellation by stopping an in-flight generation/stream and fail if chunks generated after the cancellation boundary are accepted by the sink; record producer/sink stop latency.",
+    "Persist exact stdout/stderr hashes, environment identity, model artifact identity, command identity and a terminal bounded receipt."
+  ],
+  "hard_fail": [
+    "source/model identity mismatch",
+    "external inference API call",
+    "OOM/resource survival fence breach",
+    "empty or non-finite generated PCM",
+    "post-cancel chunks accepted after declared producer cancellation",
+    "receipt claims physical/audible/heard-output evidence from a headless sink"
+  ],
+  "credits_allowed_on_pass": [
+    "bounded qwen3_tts model-load runtime",
+    "bounded local generated-audio/PCM runtime",
+    "bounded resource/latency measurement",
+    "bounded producer-side cancellation evidence"
+  ],
+  "explicit_zero_credit": [
+    "first audible playback",
+    "physical speaker",
+    "heard output / heard fraction",
+    "acoustic intelligibility",
+    "physical microphone",
+    "physical barge-in",
+    "whole voice E2E",
+    "whole product",
+    "semantic GWT/J-Space",
+    "effect",
+    "training"
+  ],
+  "next_exact_action": "Trigger 4: consume semantic key 9706b8b0... and issue exactly one headless Qwen3-TTS 0.6B clay-direct-dev sandbox runtime. Do not touch or supersede the physical T7-TTS-001 claim."
+}
