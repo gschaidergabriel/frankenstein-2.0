@@ -38,6 +38,7 @@ LEAD_FRAMES = RATE // 10  # 100 ms capture lead-in
 SOURCE_FRAMES = RATE * 2
 CANCEL_MS = 600.0
 MAX_INFLIGHT_MS = 80.0
+REQUIRED_POSTROLL_MS = 500.0
 
 
 def _source_pcm() -> list[int]:
@@ -63,6 +64,23 @@ def _capture(source: list[int], *, retained_until_ms: float | None) -> list[int]
     return [0] * LEAD_FRAMES + body + [0] * (RATE // 5)
 
 
+def _args(source_path: Path, control_path: Path, cancel_path: Path, output_path: Path) -> list[str]:
+    return [
+        "--source", str(source_path),
+        "--control", str(control_path),
+        "--cancel", str(cancel_path),
+        "--output", str(output_path),
+        "--cancel-offset-ms", str(CANCEL_MS),
+        "--max-inflight-ms", str(MAX_INFLIGHT_MS),
+        "--required-postroll-ms", str(REQUIRED_POSTROLL_MS),
+        "--window-ms", "20",
+        "--correlation-threshold", "0.80",
+        "--capture-rms-ratio-floor", "0.10",
+        "--voice-output-packet-id", "output-old-g2",
+        "--f2-subject-sha", "a" * 40,
+    ]
+
+
 @unittest.skipIf(numpy is None, "numpy is required for the analyzer regression suite")
 class PipeWireMonitorCancelAnalyzerTests(unittest.TestCase):
     def _run_case(self, *, retained_until_ms: float, output_name: str) -> tuple[int, dict]:
@@ -76,21 +94,7 @@ class PipeWireMonitorCancelAnalyzerTests(unittest.TestCase):
             _write_wav(source_path, source)
             _write_wav(control_path, _capture(source, retained_until_ms=None))
             _write_wav(cancel_path, _capture(source, retained_until_ms=retained_until_ms))
-            rc = ANALYZER.main(
-                [
-                    "--source", str(source_path),
-                    "--control", str(control_path),
-                    "--cancel", str(cancel_path),
-                    "--output", str(output_path),
-                    "--cancel-offset-ms", str(CANCEL_MS),
-                    "--max-inflight-ms", str(MAX_INFLIGHT_MS),
-                    "--window-ms", "20",
-                    "--correlation-threshold", "0.80",
-                    "--capture-rms-ratio-floor", "0.10",
-                    "--voice-output-packet-id", "output-old-g2",
-                    "--f2-subject-sha", "a" * 40,
-                ]
-            )
+            rc = ANALYZER.main(_args(source_path, control_path, cancel_path, output_path))
             receipt = json.loads(output_path.read_text(encoding="utf-8"))
             return rc, receipt
 
@@ -103,8 +107,11 @@ class PipeWireMonitorCancelAnalyzerTests(unittest.TestCase):
         self.assertTrue(receipt["pass"])
         self.assertEqual(receipt["classification"], "NO_COUNTEREXAMPLE_AT_AUDIO_CORRELATION_SCOPE")
         self.assertTrue(receipt["invariants"]["CONTROL_VALID"])
+        self.assertTrue(receipt["invariants"]["CONTROL_FULL_PLAYBACK_READBACK"])
+        self.assertTrue(receipt["invariants"]["POST_BOUND_COVERAGE"])
         self.assertTrue(receipt["invariants"]["BOUNDED_TAIL"])
         self.assertTrue(receipt["invariants"]["NO_POST_BOUND_OLD_AUDIO"])
+        self.assertGreater(receipt["measurement"]["post_bound_observation_window_count"], 0)
         self.assertLessEqual(
             receipt["measurement"]["observed_cancel_to_last_old_audio_tail_ms"],
             MAX_INFLIGHT_MS + 20.0,
@@ -136,22 +143,58 @@ class PipeWireMonitorCancelAnalyzerTests(unittest.TestCase):
             _write_wav(source_path, source)
             _write_wav(control_path, [0] * (LEAD_FRAMES + SOURCE_FRAMES + RATE // 5))
             _write_wav(cancel_path, _capture(source, retained_until_ms=CANCEL_MS + 50.0))
-            rc = ANALYZER.main(
-                [
-                    "--source", str(source_path),
-                    "--control", str(control_path),
-                    "--cancel", str(cancel_path),
-                    "--output", str(output_path),
-                    "--cancel-offset-ms", str(CANCEL_MS),
-                    "--max-inflight-ms", str(MAX_INFLIGHT_MS),
-                ]
-            )
+            rc = ANALYZER.main(_args(source_path, control_path, cancel_path, output_path))
             receipt = json.loads(output_path.read_text(encoding="utf-8"))
             self.assertEqual(rc, 2, receipt)
             self.assertFalse(receipt["pass"])
             self.assertEqual(
                 receipt["classification"],
                 "EVIDENCE_INVALID_CONTROL_OR_PRECANCEL_ALIGNMENT",
+            )
+
+    def test_truncated_cancel_capture_cannot_false_green_absent_post_bound_windows(self) -> None:
+        source = _source_pcm()
+        with tempfile.TemporaryDirectory(prefix="t7-pipewire-analyzer-truncated-cancel-") as tmp:
+            root = Path(tmp)
+            source_path = root / "source.wav"
+            control_path = root / "control.wav"
+            cancel_path = root / "cancel.wav"
+            output_path = root / "truncated-cancel.json"
+            _write_wav(source_path, source)
+            _write_wav(control_path, _capture(source, retained_until_ms=None))
+            full_cancel = _capture(source, retained_until_ms=CANCEL_MS + 50.0)
+            # Preserve enough pre-cancel audio for alignment but deliberately end
+            # before cancel + max-inflight + required post-roll.
+            truncated_frames = LEAD_FRAMES + int((CANCEL_MS + MAX_INFLIGHT_MS + 100.0) * RATE / 1000.0)
+            _write_wav(cancel_path, full_cancel[:truncated_frames])
+            rc = ANALYZER.main(_args(source_path, control_path, cancel_path, output_path))
+            receipt = json.loads(output_path.read_text(encoding="utf-8"))
+            self.assertEqual(rc, 2, receipt)
+            self.assertFalse(receipt["pass"])
+            self.assertEqual(
+                receipt["classification"],
+                "EVIDENCE_INVALID_INSUFFICIENT_POST_BOUND_CAPTURE",
+            )
+
+    def test_truncated_control_capture_cannot_satisfy_full_playback_readback(self) -> None:
+        source = _source_pcm()
+        with tempfile.TemporaryDirectory(prefix="t7-pipewire-analyzer-truncated-control-") as tmp:
+            root = Path(tmp)
+            source_path = root / "source.wav"
+            control_path = root / "control.wav"
+            cancel_path = root / "cancel.wav"
+            output_path = root / "truncated-control.json"
+            _write_wav(source_path, source)
+            control = [0] * LEAD_FRAMES + source[: RATE]
+            _write_wav(control_path, control)
+            _write_wav(cancel_path, _capture(source, retained_until_ms=CANCEL_MS + 50.0))
+            rc = ANALYZER.main(_args(source_path, control_path, cancel_path, output_path))
+            receipt = json.loads(output_path.read_text(encoding="utf-8"))
+            self.assertEqual(rc, 2, receipt)
+            self.assertFalse(receipt["pass"])
+            self.assertEqual(
+                receipt["classification"],
+                "EVIDENCE_INVALID_INSUFFICIENT_CONTROL_CAPTURE",
             )
 
 
