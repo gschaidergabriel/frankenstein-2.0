@@ -5,7 +5,7 @@
   "research_id": "T7-20260902-RECOVERY-COMPOSITION-REVALIDATION",
   "semantic_key": "ec05977feabb70523bee9f6cf7cd99b0e83f80a4a34a6632f4ff8e2f9102f86f",
   "semantic_generation": 3,
-  "state": "ACTIVE_RESEARCH_ONLY",
+  "state": "TERMINAL_NO_COUNTEREXAMPLE_REPOSITORY_SCOPE",
   "authority_ref": "research/local_voice/authority/2026-08-31_TRIGGER7_TEXT_PACKET_COMPLETION_AUTHORITY.md",
   "protocol_ref": "research/local_voice/TRIGGERWORD_7_PROTOCOL.md",
   "objective": "Re-run the existing RCOMP1-RCOMP6 recovery composition falsifier against the current repaired packet-cortex recovery source and classify whether recovery semantics still block packetized Voice-Slice composition.",
@@ -13,12 +13,23 @@
     "src/frankenstein2/voice_packet_cortex.py": "bdecfd082fc9a88876e8cbcca8988d20b866da29",
     "src/frankenstein2/voice_packet_cortex_recovery.py": "5849a396ac7de00a905b39c3633e82d8def04b10"
   },
-  "precondition_observation": {
-    "rcomp1_repair_surface_present": "restored output commit_eligible is checked against completed+heard_fraction=1.0",
-    "rcomp2_repair_surface_present": "restored tool ownership is checked against retained TOOL_USE/TOOL_RESULT history",
-    "wp720": "existing singleton owner-VPS run nonterminal; do not redispatch or mutate semantics",
-    "wp715": "existing repository falsifier nonterminal and current-subject VPS execution pending; do not duplicate dispatch",
-    "wp903": "generation 1 accepted terminal at bounded exact-subject 60-case S1 soak scope; do not rerun"
+  "execution": {
+    "exact_source_sha": "5f2348a1243023a630c19437fced0bf04a63800c",
+    "workflow_run_id": 33538940303,
+    "workflow_job_id": 99960079950,
+    "workflow_conclusion": "success",
+    "tests_run": 50,
+    "revalidation_result": "NO_COUNTEREXAMPLE",
+    "revalidation_case_count": 6,
+    "failed_closed_probe_ids": []
+  },
+  "result": "The repaired current subject rejects all six probed contradictory/corrupt recovery-composition states fail-closed. Recovery composition is no longer a repository-executable research blocker for the planned packetized Voice-Slice on this exact subject.",
+  "evidence_ref": "research/local_voice/evidence/2026-09-02_TRIGGER7_GPT56SOL_RECOVERY_REVALIDATION_RUN_33538940303.json",
+  "frontier": {
+    "wp720": "existing singleton owner-VPS run 33537350533 remains nonterminal/queued at last refresh; do not redispatch or mutate semantics",
+    "wp715": "existing current-subject falsifier run 33534368852 remains nonterminal/queued at last refresh; repaired current subject still needs owner-VPS execution before runtime credit restoration",
+    "wp903": "generation 1 accepted terminal at bounded exact-subject 60-case S1 soak scope; do not rerun",
+    "voice_slice": "do not open another recovery micro-component; consume WP720/WP715 terminal outcomes, then shift to composed Voice-Slice falsification/integration"
   },
   "research_mutation_scope": [
     "research/local_voice/tests/**",
@@ -29,7 +40,8 @@
   ],
   "product_mutation_authority": false,
   "duplicate_dispatch_allowed": false,
-  "explicit_zero_credit": {
+  "credits": {
+    "repository_executable_research_evidence": 1,
     "product_repair": 0,
     "target_runtime": 0,
     "acoustic": 0,
