@@ -1,0 +1,120 @@
+{
+  "schema": "TRIGGER7_TO_TRIGGER4_CONVERGENCE_HANDOFF/v1",
+  "created_local_date": "2026-09-02",
+  "producer": "GPT-5.6 Sol / Trigger 7",
+  "consumer": "Trigger 4 / current legal F2 mutation + VPS execution owner",
+  "work_class": "RUNTIME_QUEUE_REENTRY_AND_SYSTEM_SLICE_TRANSITION",
+  "semantic_claim": "NOT_OPENED_REENTRY_ROUTING_ONLY",
+  "owner_hypothesis_under_test": "After WP720 + WP715 + WP903 are cleanly closed at their exact admitted scopes, stop opening small voice components and compose the existing ASR -> Packet Cortex -> Presence/Turn Policy -> Barge-in -> Output/TTS -> Recovery -> persistent state -> reentry path in VPS sandbox before S4 physical acceptance.",
+  "assessment": "DIRECTIONALLY_SUPPORTED_BUT_PRECONDITION_NOT_YET_MET",
+  "current_boundary_snapshot": {
+    "wp903": {
+      "state": "ACCEPTED_AT_BOUNDED_SCOPE",
+      "subject_sha": "731db925df96ab7e49c0e5b80cd7bc8f4d37a086",
+      "scope": "EXACT_SUBJECT_S1_RESTART_CRASH_SOAK_COMPONENT_EXECUTION_EVIDENCE_ONLY",
+      "iterations": 30,
+      "test_cases": 60,
+      "result": "EXECUTED_NO_COUNTEREXAMPLE",
+      "broad_runtime_credit": 0,
+      "whole_voice_e2e_credit": 0
+    },
+    "wp715_g3": {
+      "state": "REPOSITORY_ACCEPTED_TARGET_RUNTIME_PENDING",
+      "repaired_subject_sha": "68b1db374c86027be987c1fdc5e88ff13f11f7b4",
+      "repository_ci_run_id": 33534368751,
+      "repository_ci_result": "SUCCESS",
+      "trigger7_recovery_revalidation": "NO_COUNTEREXAMPLE_6_OF_6_FAIL_CLOSED",
+      "target_run_id": 33534368852,
+      "target_job_id_observed": 99944923633,
+      "target_run_status": "QUEUED_NONTERMINAL",
+      "executed_steps": 0,
+      "assigned_runner_id": 0,
+      "target_environment_component_runtime_credit": 0
+    },
+    "wp720_g1": {
+      "state": "ACTIVE_TARGET_RUNTIME_PENDING",
+      "repaired_subject_sha": "470f6c9509fb5ab32f706b2ee52896073b1180b6",
+      "repository_ci_run_id": 33537134599,
+      "repository_ci_result": "SUCCESS",
+      "repository_regressions": "PFD6_PASS_PFD7_PASS_AUTHORITATIVE_CORTEX_24_OF_24_PASS",
+      "target_run_id": 33537350533,
+      "target_job_id": 99954802244,
+      "target_run_status": "QUEUED_NONTERMINAL",
+      "executed_steps": 0,
+      "assigned_runner_id": 0,
+      "target_environment_component_runtime_credit": 0
+    }
+  },
+  "shared_execution_surface_observation": {
+    "queued_repo_runs_observed": 10,
+    "runner_label": "clay-host",
+    "runner_offline_claim": "NOT_SUPPORTED",
+    "positive_recent_control": {
+      "workpackage": "F2-WP-900 G5",
+      "run_id": 33537844682,
+      "job_id": 99956441562,
+      "runner_name": "vps-clay-host",
+      "target_environment": "clay-direct-dev",
+      "result": "PASS"
+    },
+    "classification": "UNKNOWN_NONTERMINAL_SHARED_QUEUE_OR_CAPACITY_PRESSURE",
+    "interpretation": "An eligible runner executed a later bounded F2 job, so the queued WP715/WP720 jobs are not evidence that the runner is generally offline. Preserve them and avoid duplicate dispatch; treat capacity/order/control-plane state as infrastructure evidence only."
+  },
+  "requested_trigger4_action": [
+    "Do not mutate WP715 G3 or WP720 G1 semantics while their exact repaired target runs remain nonterminal.",
+    "Do not redispatch either exact subject merely because the jobs are queued.",
+    "Re-enter runs 33534368852 and 33537350533; when each becomes terminal, bind exact executed steps, runner, subject and receipt before promotion or repair.",
+    "Classify any terminal failure as PRODUCT_NEGATIVE vs EVIDENCE_INVALID vs INFRA_AUTH_TRANSPORT_QUOTA; queued/unassigned remains UNKNOWN_NONTERMINAL.",
+    "If queue starvation persists despite demonstrated clay-host execution, diagnose capacity/ordering/listener availability through the existing runner-evidence lane; do not create a second runner scheduler/authority.",
+    "After WP715 G3 and WP720 G1 terminally close without a new required semantic repair, treat the small-component voice frontier as converged enough to open exactly one composition/runtime-credit boundary, not more adjacent voice components."
+  ],
+  "next_system_slice_gate": {
+    "authority": "architecture/LOCAL_VOICE_RUNTIME_CONTRACT.md",
+    "execution_policy": "VPS_SANDBOX_FIRST_LOWEST_SAFE_FAITHFUL_S1_S2_S3",
+    "composition": [
+      "ASR",
+      "VoicePacketCortex",
+      "Presence/Turn Policy",
+      "Barge-in/cancellation",
+      "Output/TTS",
+      "Recovery",
+      "persistent canonical state",
+      "causal reentry"
+    ],
+    "minimum_nonphysical_discriminators": [
+      "outbound network blocked before session start",
+      "no external model/API dependency contributes to the run",
+      "German input reaches the existing cognition/tool/state surface",
+      "tool result re-enters the same conversation lineage",
+      "barge-in cancels generation and unheard queued output without duplicate turn",
+      "end-intent plus bilateral-silence policy terminates correctly",
+      "process/service restart preserves the same durable state lineage",
+      "exact source/model/runtime identities and latency/resource measurements are recorded"
+    ],
+    "s4_deferred_only": [
+      "real microphone",
+      "real speaker",
+      "OS audio permissions",
+      "actual device enumeration",
+      "desktop/session permissions",
+      "install-upgrade-reboot persistence on the actual workstation",
+      "physical perception",
+      "final one-handoff installer acceptance"
+    ]
+  },
+  "research_source_watch": {
+    "decision": "NO_ARCHITECTURE_PIVOT",
+    "reason": "2026 full-duplex research strengthens the hypothesis that cascaded streaming ASR-LLM-TTS can gain natural turn-taking through micro-turn/control policies without replacing the existing Frankenstein cognition/tool/state authority. Native speech-to-speech remains a counterhypothesis/candidate, not a reason to churn the current accepted modular path before composition evidence."
+  },
+  "explicit_zero_credit": {
+    "wp715_target_runtime": 0,
+    "wp720_target_runtime": 0,
+    "whole_voice_e2e": 0,
+    "physical_audio": 0,
+    "semantic_gwt_jspace": 0,
+    "effect": 0,
+    "training": 0,
+    "whole_product": 0
+  },
+  "next_exact_action": "Preserve the two exact queued voice subjects, consume their first terminal results, then immediately compose the existing local voice path into one network-off VPS sandbox acceptance discriminator if both close without new executable counterevidence."
+}
