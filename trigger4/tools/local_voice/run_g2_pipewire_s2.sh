@@ -204,7 +204,7 @@ runuser -u f2audio -- env \
     observer_status=${observer_status:-0}
     observer_pid=""
 
-    grep -v '^T4_G2_PIPEWIRE_RECEIPT_B64=' "$G2_WORK/harness.stdout" || true
+    grep -v "^T4_G2_PIPEWIRE_RECEIPT_B64=" "$G2_WORK/harness.stdout" || true
     cat "$G2_WORK/harness.stderr" >&2 || true
     cat "$G2_WORK/pipewire-observer.stdout" || true
     cat "$G2_WORK/pipewire-observer.stderr" >&2 || true
