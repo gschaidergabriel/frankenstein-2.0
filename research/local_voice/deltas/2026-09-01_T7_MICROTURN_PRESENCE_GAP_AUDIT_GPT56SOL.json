@@ -1,0 +1,81 @@
+{
+  "schema": "T7_RESEARCH_DELTA/v1",
+  "date": "2026-09-01",
+  "trigger": "7",
+  "worker": "GPT-5.6 Sol",
+  "status": "CURRENT_SOURCE_AUDIT_PLUS_CANDIDATE_FALSIFIER_NO_ACCEPTANCE_CREDIT",
+  "authority_ref": "research/local_voice/authority/2026-08-31_TRIGGER7_TEXT_PACKET_COMPLETION_AUTHORITY.md",
+  "protocol_ref": "research/local_voice/TRIGGERWORD_7_PROTOCOL.md",
+  "canonical_main_observed": "7c68618c595c42a71c8b7f438ddb7011398be505",
+  "wp719_refresh": {
+    "status": "CLOSED_AT_BOUNDED_TARGET_COMPONENT_RUNTIME_SCOPE",
+    "accepted_runtime_run_id": 33497226280,
+    "runtime_subject_sha": "64b7fb92cca8ddc2e541d617f9af7ebd9bbeb9b8",
+    "acceptance_receipt": "workpackages/receipts/F2-WP-719_G1_BOUND_TARGET_RUNTIME_33497226280.json",
+    "reconciliation_ref": "workpackages/reconciliations/F2-WP-719/1-F2-WP-719-G1-GPT56SOL-FRESH-TURN-SUCCESSOR-COMPOSITION-20260901.json",
+    "historical_direct_dispatch_run_id": 33430782666,
+    "historical_direct_dispatch_interpretation": "CONTROL_PLANE_ONLY_DO_NOT_REDISPATCH"
+  },
+  "current_source_audit": {
+    "voice_packet_cortex_blob_sha": "308c7606db2f21f2361ca238927af9267fc21d32",
+    "voice_packet_cortex_test_blob_sha": "cd586a1dab40104d97025fea401ab833ed8e1d8b",
+    "already_covered": [
+      "partial/final input ordering and endpoint semantics",
+      "WAIT and BACKCHANNEL event fabric",
+      "barge-in output interruption and heard/unheard accounting",
+      "late tool-result rejection after cancellation",
+      "duplicate/drop/reorder/corrupt packet handling",
+      "monotonic input/output/barge-in clocks",
+      "bounded output sequence ordering",
+      "session-close atomicity and active-tool fencing"
+    ],
+    "candidate_gap": {
+      "id": "T7-GAP-PRESENCE-SEMANTICS-01",
+      "finding": "presence_state is validated and copied into CortexEventPacket, but the inspected VoicePacketCortex transition methods do not branch on presence_state; PRESENT_INTERRUPTIBLE versus PRESENT_BUSY is therefore a candidate metadata-only state at this boundary.",
+      "confidence": "HIGH_STATIC_SOURCE",
+      "not_claimed": "No desired policy is invented here; execution of the diagnostic must confirm the behavioral equivalence before any Trigger4 mutation."
+    }
+  },
+  "candidate_falsifier": {
+    "path": "research/local_voice/tools/falsify_voice_packet_microturn_presence.py",
+    "purpose": "Compose user continuation + WAIT + BACKCHANNEL + answer output + TOOL_USE + barge-in + late TOOL_RESULT under PRESENT_INTERRUPTIBLE and PRESENT_BUSY, then compare behavior.",
+    "local_syntax_check": "PASS_PY_COMPILE",
+    "runtime_execution": "NOT_EXECUTED_IN_THIS_CHAT_ENVIRONMENT"
+  },
+  "external_primary_refresh": [
+    {
+      "id": "DUPLEXCASCADE_2603_09180",
+      "finding": "Micro-turn decomposition and explicit conversational control signals remain directly relevant to packet-level turn timing.",
+      "credit": "EXTERNAL_PRIMARY_ONLY"
+    },
+    {
+      "id": "QWEN3_TTS_0_6B_CUSTOMVOICE_CURRENT",
+      "finding": "Current official model card still lists German and streaming generation for the 0.6B CustomVoice checkpoint.",
+      "credit": "SOURCE_WATCH_ONLY_CORTEX_THROTTLED"
+    },
+    {
+      "id": "QWEN3_ASR_0_6B_HF_CURRENT",
+      "finding": "Current official/HF material lists German and offline/streaming support; exact standalone runtime ABI remains a later model-lane concern, not a cortex blocker.",
+      "credit": "SOURCE_WATCH_ONLY_CORTEX_THROTTLED"
+    }
+  ],
+  "hypothesis": {
+    "id": "T7-HYP-PRESENCE-03",
+    "hypothesis": "Presence/Interruptibility should influence at least one controller admission or scheduling transition; otherwise it is only descriptive metadata and cannot satisfy the owner authority's required Presence/Interruptibility semantics.",
+    "counterhypothesis": "Presence is intentionally observational at this layer and an admitted downstream controller owns all behavioral gating.",
+    "discriminator": "Run the composed micro-turn presence diagnostic on exact current source. If behavior is equivalent, identify whether a downstream admitted controller consumes presence before changing source. If no consumer exists, route one narrowly scoped policy decision and regression to Trigger4."
+  },
+  "explicit_zero_credit": {
+    "new_model_runtime": 0,
+    "asr_runtime": 0,
+    "tts_runtime": 0,
+    "physical_audio": 0,
+    "global_semantic_gwt_runtime": 0,
+    "jspace_runtime": 0,
+    "effect": 0,
+    "whole_voice_e2e": 0,
+    "whole_product": 0,
+    "training": 0
+  },
+  "next_exact_action": "Execute research/local_voice/tools/falsify_voice_packet_microturn_presence.py against exact current F2 source in repository/VPS CI. If it confirms metadata-only presence, search for an admitted downstream Presence/Interruptibility consumer; only if none exists route a minimal semantic gate + regression to Trigger4. Do not reopen generic ASR/TTS scouting."
+}
