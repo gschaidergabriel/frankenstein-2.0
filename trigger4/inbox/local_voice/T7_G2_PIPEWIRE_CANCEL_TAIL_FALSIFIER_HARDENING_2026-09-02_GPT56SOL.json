@@ -1,0 +1,96 @@
+{
+  "schema": "T7_TO_TRIGGER4_FALSIFIER_VALIDITY_HARDENING/v1",
+  "trigger": "7",
+  "producer": "GPT-5.6-Sol",
+  "date": "2026-09-02",
+  "semantic_key": "0d83f7d13c1d8f91686cf94070f73d901a49018b40a9c058d1949af094655bff",
+  "work_class": "CANDIDATE_FALSIFIER",
+  "product_mutation_authority": false,
+  "target_existing_owner": "Trigger4 local-voice G2 PipeWire monitor/readback runtime closure",
+  "finding_class": "EVIDENCE_INVALID_IF_UNHARDENED",
+  "finding": "The current pulse-null candidate can pass OLD_SENTINEL-not-in-readback without measuring the actual pre-cancel old-packet audio tail. OLD_SENTINEL is placed in old_queued and evaluated only after GenerationFence.cancel(), so a correct generation fence rejects it before it can reach the audio sink. The pulse PASS predicate therefore mainly re-proves stale-generation admission rejection; it does not by itself establish when already-admitted/prebuffered old audio stops appearing on the real PipeWire monitor.",
+  "exact_source_observed": {
+    "main_at_audit": "c5fddbc375727586b50e016421ee4aaf0f0021a2",
+    "tool_path": "research/local_voice/tools/t4_voice_virtual_sink_cancel_readback.py",
+    "tool_blob_sha": "8574b9214e721fefa1bc307bdbba93f2f9b9eb5f",
+    "relevant_sequence": [
+      "old_pre with PRE is generation 1 and is sink.write()'d",
+      "fence.cancel() advances generation",
+      "sink.cancel() terminates the playback client",
+      "old_queued carrying OLD_SENTINEL is then offered to fence.admit()",
+      "a correct fence rejects old_queued, so OLD_SENTINEL is never sink.write()'d",
+      "pulse_pass accepts when readback is nonempty and OLD_SENTINEL is absent"
+    ]
+  },
+  "benchmark_authority": {
+    "semantic_claim_ref": "research/local_voice/semantic_claims/0d83f7d13c1d8f91686cf94070f73d901a49018b40a9c058d1949af094655bff.json",
+    "benchmark_ref": "research/local_voice/benchmarks/2026-09-02_TRIGGER7_COMPLETION_DEPTH_G2.json",
+    "current_required_boundary": "CONTROL_FULL_PLAYBACK_READBACK plus CAUSAL_CANCEL_MONITOR_READBACK with source/control/cancel PCM alignment and measured cancel-to-last-old-sample bounded tail",
+    "current_handoff_ref": "trigger4/inbox/local_voice/T7_FDX_G2_PIPEWIRE_S2_PLAYBACK_CANCEL_MONITOR_READBACK_2026-09-02_GPT56SOL.json"
+  },
+  "required_hardening_before_promotion_bearing_s2_run": [
+    "Run an uncancelled CONTROL_FULL_PLAYBACK_READBACK first and prove that the exact old-packet waveform is observable and alignable on the PipeWire monitor; a nonempty monitor file alone is insufficient.",
+    "Use a long deterministic old-generation waveform whose identifying structure is already admitted to the playback client before/during the cancel window. Do not rely on a sentinel introduced only after the logical generation fence has advanced.",
+    "Keep monitor capture running across the cancel and a post-cancel interval longer than the measured graph latency/quantum.",
+    "Record capture-ready, playback-start, cancel-request, output-packet-terminal and playback-client-terminal monotonic timestamps plus sample rate/format and exact raw hashes.",
+    "Align cancel-run monitor PCM to the full-control/source waveform and report the last sample/window still attributable to the old packet, with cancel-to-last-old-sample tail_ms and an explicit alignment confidence/error bound.",
+    "Separately report stale_generation_rejection, sink_delivery_cancel, producer/prebuffer tail and packet commit fence. Do not collapse them into one green boolean.",
+    "Require a clean new-generation playback/readback after cancellation to prove same-sink recovery without old-generation resurrection.",
+    "If control waveform-to-monitor identity/alignment cannot be established, classify EVIDENCE_INVALID rather than PRODUCT_NEGATIVE or PASS."
+  ],
+  "minimum_receipt_fields": [
+    "source_sha",
+    "tool_blob_sha",
+    "sandbox_identity",
+    "pipewire_version",
+    "pipewire_pulse_version",
+    "sink_node_identity",
+    "monitor_node_identity",
+    "old_packet_id",
+    "old_output_generation",
+    "source_pcm_sha256",
+    "control_monitor_pcm_sha256",
+    "cancel_monitor_pcm_sha256",
+    "capture_ready_monotonic_ns",
+    "playback_start_monotonic_ns",
+    "cancel_request_monotonic_ns",
+    "playback_terminal_monotonic_ns",
+    "last_old_sample_index_after_alignment",
+    "cancel_to_last_old_sample_tail_ms",
+    "alignment_method",
+    "alignment_error_bound_ms",
+    "old_generation_post_cancel_sink_admission_count",
+    "stale_generation_rejection_count",
+    "new_generation_monitor_readback_hash",
+    "external_inference_api_calls",
+    "failure_class"
+  ],
+  "acceptance_scope_after_hardening": {
+    "possible_if_executed": [
+      "bounded real PipeWire virtual-sink playback/readback",
+      "bounded measured old-packet cancel tail on the virtual audio graph",
+      "bounded stale-generation rejection",
+      "bounded clean next-generation same-sink recovery"
+    ],
+    "still_zero": [
+      "physical microphone",
+      "physical speaker",
+      "human-heard output",
+      "physical cancellation-to-silence",
+      "physical acoustic loopback",
+      "whole voice e2e",
+      "whole product",
+      "GWT/J-Space",
+      "effect",
+      "UnifiedDB write",
+      "training"
+    ]
+  },
+  "anti_churn": [
+    "Do not open Generation 3.",
+    "Do not create a second playback/packet/state/effect authority.",
+    "Do not reinterpret this test-validity defect as a product semantic failure.",
+    "Do not award PipeWire cancel-tail runtime credit from the current unhardened OLD_SENTINEL absence predicate."
+  ],
+  "next_exact_action": "Trigger4 should harden the existing research falsifier to implement the already-current two-run G2 benchmark, run repository tests, then execute exactly one admitted owner-VPS S2 PipeWire control+cancel monitor discriminator. If exact execution then reproduces an unbounded/incorrect old-audio tail or old packet regains authority, classify PRODUCT_NEGATIVE; otherwise promote only the measured virtual-sink/cancel-tail scope."
+}
