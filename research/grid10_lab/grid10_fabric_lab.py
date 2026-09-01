@@ -136,23 +136,27 @@ class Fabric:
         con.execute("UPDATE meta SET v=? WHERE k='epoch'", (str(epoch),))
         return epoch
 
+    @staticmethod
+    def _state_digest(con: sqlite3.Connection, epoch: int, generation: int) -> str:
+        tasks = [dict(r) for r in con.execute("SELECT * FROM tasks ORDER BY task_id")]
+        scopes = [dict(r) for r in con.execute("SELECT * FROM scopes ORDER BY scope")]
+        leases = [dict(r) for r in con.execute(
+            "SELECT lease_id,node_id,scope,generation,valid FROM leases ORDER BY lease_id"
+        )]
+        return digest({
+            "epoch": epoch,
+            "generation": generation,
+            "tasks": tasks,
+            "scopes": scopes,
+            "leases": leases,
+        })
+
     def snapshot(self) -> Snapshot:
         con = connect(self.path)
         try:
             epoch = self._meta_int(con, "epoch")
             generation = self._meta_int(con, "generation")
-            tasks = [dict(r) for r in con.execute("SELECT * FROM tasks ORDER BY task_id")]
-            scopes = [dict(r) for r in con.execute("SELECT * FROM scopes ORDER BY scope")]
-            leases = [dict(r) for r in con.execute(
-                "SELECT lease_id,node_id,scope,generation,valid FROM leases ORDER BY lease_id"
-            )]
-            return Snapshot(epoch, generation, digest({
-                "epoch": epoch,
-                "generation": generation,
-                "tasks": tasks,
-                "scopes": scopes,
-                "leases": leases,
-            }))
+            return Snapshot(epoch, generation, self._state_digest(con, epoch, generation))
         finally:
             con.close()
 
@@ -340,7 +344,15 @@ class Fabric:
         finally:
             con.close()
 
-    def coordinator_commit(self, *, lease: dict[str, Any], token: str, packet: dict[str, Any], expected_epoch: int) -> dict[str, Any]:
+    def coordinator_commit(
+        self,
+        *,
+        lease: dict[str, Any],
+        token: str,
+        packet: dict[str, Any],
+        expected_epoch: int,
+        expected_digest: str,
+    ) -> dict[str, Any]:
         con = connect(self.path)
         try:
             con.execute("BEGIN IMMEDIATE")
@@ -351,16 +363,27 @@ class Fabric:
                 raise FabricError("COORDINATOR_LEASE_BINDING_INVALID")
             if lrow["scope"] != packet.get("scope"):
                 raise FabricError("COORDINATOR_SCOPE_VIOLATION")
-            if time.time() - float(lrow["granted_ts"]) > LEASE_TTL_SECONDS:
-                raise FabricError("COORDINATOR_LEASE_EXPIRED")
             current_epoch = self._meta_int(con, "epoch")
             generation = self._meta_int(con, "generation")
+            if int(lrow["generation"]) != generation:
+                raise FabricError("COORDINATOR_LEASE_STALE_GENERATION")
+            if time.time() - float(lrow["granted_ts"]) > LEASE_TTL_SECONDS:
+                raise FabricError("COORDINATOR_LEASE_EXPIRED")
             if expected_epoch != current_epoch:
                 raise FabricError("S1_COMPARE_AND_SWAP_FAILED")
+            if expected_digest != self._state_digest(con, current_epoch, generation):
+                raise FabricError("S1_COMPARE_AND_SWAP_DIGEST_FAILED")
             if packet.get("generation") != generation:
                 raise FabricError("RESULT_STALE_GENERATION")
-            if packet.get("schema") not in (RESULT_SCHEMA, SUMMARY_SCHEMA):
+            if packet.get("state_epoch", -1) > current_epoch:
+                raise FabricError("RESULT_FUTURE_EPOCH")
+            schema = packet.get("schema")
+            if schema not in (RESULT_SCHEMA, SUMMARY_SCHEMA):
                 raise FabricError("PACKET_SCHEMA_INVALID")
+            if schema == RESULT_SCHEMA and packet.get("source_kind") != "ORDINARY_NODE":
+                raise FabricError("ORDINARY_RESULT_SOURCE_KIND_INVALID")
+            if schema == SUMMARY_SCHEMA and packet.get("source_kind") != "COORDINATOR":
+                raise FabricError("COORDINATOR_SUMMARY_SOURCE_KIND_INVALID")
             core = {k: packet[k] for k in packet if k not in ("packet_digest", "s1_write_intent")}
             if packet.get("packet_digest") != digest(core):
                 raise FabricError("PACKET_DIGEST_MISMATCH")
@@ -373,7 +396,7 @@ class Fabric:
             if row is None:
                 raise FabricError("UNKNOWN_SCOPE")
             new_epoch = current_epoch + 1
-            summary = {"previous": json.loads(row["summary_json"]), "latest": packet["payload"], "source_schema": packet["schema"]}
+            summary = {"previous": json.loads(row["summary_json"]), "latest": packet["payload"], "source_schema": schema}
             con.execute(
                 "UPDATE scopes SET summary_json=?,evidence_count=evidence_count+1,last_writer_lease_id=?,last_result_digest=?,state_epoch=? WHERE scope=?",
                 (canonical_json(summary), lease["lease_id"], packet["packet_digest"], new_epoch, scope),
