@@ -1,75 +1,99 @@
 {
   "schema": "T7_TO_TRIGGER4_LOCAL_VOICE_FALSIFIER_HANDOFF/v1",
-  "trigger7_research_id": "T7-20260901-FULL-DUPLEX-G2",
+  "trigger7_research_id": "T7-20260902-PIPEWIRE-MONITOR-CANCEL-G2",
   "semantic_key": "0d83f7d13c1d8f91686cf94070f73d901a49018b40a9c058d1949af094655bff",
-  "classification": "CANDIDATE_FALSIFIER_HANDOFF",
+  "classification": "CANDIDATE_FALSIFIER_HANDOFF_CORRECTED",
   "implementation_mutation_authority": false,
   "claim_path": "research/local_voice/semantic_claims/0d83f7d13c1d8f91686cf94070f73d901a49018b40a9c058d1949af094655bff.json",
-  "benchmark_path": "research/local_voice/benchmarks/2026-09-02_TRIGGER7_FULL_DUPLEX_COMPLETION_DEPTH_G2_GPT56SOL.json",
-  "target_existing_owner": "existing Triggerword-4 local-voice integration/runtime owner under the current G2 semantic claim; do not create a second voice output, packet, sink, release, state, or effect authority",
+  "human_claim_path": "research/local_voice/claims/2026-09-02_trigger7_gpt56sol_completion_depth_g2.json",
+  "benchmark_path": "research/local_voice/benchmarks/2026-09-02_TRIGGER7_COMPLETION_DEPTH_G2.json",
+  "target_existing_owner": "existing Triggerword-4 local-voice integration/runtime owner under the current G2 semantic claim; do not create a second voice output, packet, sink, release, state, recovery, or effect authority",
   "work_class": "RUNTIME_CREDIT_CLOSURE",
-  "target_completion_tier": "VPS_S2_SOFTWARE_PLAYBACK_CANCEL_MONITOR_READBACK",
-  "integration_boundary": "real local Piper PCM -> existing VoiceOutputPacket identity/output-generation fence -> sandbox-local PipeWire virtual/null sink -> deterministic playback cancel/flush -> sink-monitor capture/readback -> clean next output generation",
-  "blocking_deficit": "The accepted bounded owner-VPS G4 evidence causally binds real local ASR and real Piper TTS to packet delivery/cancel/restart/reentry, but it stops before an independently observed software playback sink/monitor boundary. Physical microphone, physical speaker, human-heard, acoustic-loop and whole-voice credit remain zero.",
+  "target_completion_tier": "OWNER_VPS_S2_PIPEWIRE_VIRTUAL_SINK_CANCEL_MONITOR_READBACK",
+  "integration_boundary": "exact locally generated TTS waveform -> existing VoiceOutputPacket/output-generation lineage -> owner-VPS S2 PipeWire virtual/null sink -> monitor capture/readback -> causal cancel -> measured bounded old-output in-flight tail -> clean next output generation",
+  "blocking_deficit": "Accepted owner-VPS G4/headless FDX evidence stops before an independently observed audio graph. The new repository helper reaches a software/Pulse null-sink candidate surface, but its current OLD_SENTINEL is offered only after the generation fence has already advanced and is therefore rejected before sink admission. That path can prove stale-generation gating but cannot by itself falsify buffered old audio already admitted before cancel.",
+  "current_repository_candidate": {
+    "source_path": "research/local_voice/tools/t4_voice_virtual_sink_cancel_readback.py",
+    "source_blob_observed": "8574b9214e721fefa1bc307bdbba93f2f9b9eb5f",
+    "source_commit": "cf7caf19e9b707bba4431b2dd1b6d80273cda49c",
+    "repository_ci_run": 33553419576,
+    "repository_ci_conclusion": "success",
+    "repository_ci_credit": "REPOSITORY_CANDIDATE_FALSIFIER_ONLY",
+    "evidence_gap_classification": "EVIDENCE_INVALID_FOR_BUFFERED_PLAYBACK_TAIL_IF_EXECUTED_UNCHANGED",
+    "why": [
+      "old_pre/PRE is written before cancel but is not the old-generation sentinel whose post-cancel persistence is later asserted",
+      "OLD_SENTINEL is represented by old_queued and is offered only after fence.cancel(), so GenerationFence rejects it before the sink",
+      "OLD_SENTINEL absence from monitor readback therefore cannot distinguish correct playback cancellation from a sink that continues already-buffered pre-cancel audio",
+      "the corrected current G2 benchmark requires control playback/readback plus a cancellation run that measures the last monitor sample still attributable to the already-admitted old packet"
+    ],
+    "product_conclusion": "NONE_FROM_THIS_GAP"
+  },
   "execution_surface_class": "VPS_SANDBOX_REPRESENTABLE",
   "preferred_surface": "clay-direct-dev S2 disposable Ubuntu/systemd-nspawn or the lowest equally faithful positively identified owner-VPS sandbox with a real PipeWire daemon/session and software monitor path",
-  "priority": "PIPEWIRE_SINK_MONITOR_READBACK_FIRST_WITHIN_EXISTING_G2_FDX9_CANCEL_SCOPE",
+  "priority": "CORRECT_BUFFERED_TAIL_DISCRIMINATOR_THEN_EXECUTE_ON_S2",
   "do_not_duplicate": [
     "Do not open Generation 3 while semantic key 0d83f7d13c1d8f91686cf94070f73d901a49018b40a9c058d1949af094655bff is the current G2 research owner.",
-    "Do not create a second VoiceOutputPacket, PacketCortex, audio outcome, release, state, or effect authority.",
+    "Do not create a second VoiceOutputPacket, PacketCortex, playback, recovery, release, state, or effect authority.",
     "Do not redispatch an already-bound nonterminal runtime subject; refresh its terminal state first.",
-    "Do not convert software sink/monitor evidence into physical speaker, human-heard, acoustic-loop, whole-voice or whole-product credit."
+    "Do not convert software sink/monitor evidence into physical speaker, human-heard, physical acoustic-loop, whole-voice or whole-product credit.",
+    "Do not require literal zero monitor samples immediately after cancel: a finite already-buffered in-flight tail is permitted only when it is measured, identity-bound, bounded, and cannot regain commit/heard authority."
   ],
-  "existing_reusable_components": [
-    "accepted real local Piper TTS runtime path from T7 composed voice slice G4",
-    "existing VoiceOutputPacket/output-generation identity and cancellation fence",
-    "existing run-local sink-delivery binding and post-cancel admission rejection helper",
-    "existing T7 PipeWire/ALSA cancellable transport source audit",
-    "current G2 full-duplex completion-depth benchmark FDX9/G2F cancel-integrity obligations"
-  ],
-  "requested_discriminators": [
-    "P1_REAL_PIPEWIRE_VIRTUAL_SINK_AND_MONITOR_CREATED_INSIDE_S2_ONLY",
-    "P2_EXACT_REAL_PIPER_PCM_BOUND_TO_EXISTING_PACKET_ID_AND_OUTPUT_GENERATION_REACHES_SINK_AND_MONITOR",
-    "P3_CANCEL_IS_ISSUED_AFTER_EARLY_OLD_GENERATION_AUDIO_AND_PLAYBACK_QUEUE_IS_DEACTIVATED_FLUSHED_OR_EQUIVALENTLY_CUT_OVER_WITHOUT_DRAINING_STALE_AUDIO",
-    "P4_MONITOR_READBACK_PROVES_ZERO_OLD_GENERATION_SENTINEL_OR_PCM_ADMISSION_AFTER_THE_MEASURED_CANCEL_CUTOVER_BOUNDARY",
-    "P5_EXISTING_PACKET_SINK_GATE_ALSO_REPORTS_ZERO_POST_CANCEL_OLD_GENERATION_ADMISSIONS",
-    "P6_NEW_OUTPUT_GENERATION_PLAYS_TO_THE_SAME_SOFTWARE_SINK_AND_MONITOR_WITH_CLEAN_IDENTITY_AND_NO_OLD_GENERATION_RESURRECTION",
-    "P7_EXTERNAL_INFERENCE_API_CALL_COUNT_REMAINS_ZERO_DURING_LOCAL_ASR_TTS_AUDIO_EXECUTION"
-  ],
-  "implementation_guidance_non_authoritative": [
-    "Prefer a sandbox-local PipeWire/PipeWire-Pulse null or virtual sink with monitor capture. Native PipeWire loopback/monitor routing is acceptable if it preserves exact observable identity.",
-    "For a native pw_stream cancellation implementation, the current official PipeWire stream API documents pw_stream_set_active(false) for deactivation and pw_stream_flush(stream, false) for flushing queues/converters without drain. An equivalent existing transport mechanism is acceptable if the executed trace proves the same no-stale-audio invariant.",
-    "Use generation-specific sentinel PCM or deterministic hashes so monitor capture can distinguish old output generation from the new generation rather than relying only on timestamps.",
-    "Mount/bind the canonical checkout or accepted release subject read-only into destructive S2 where possible and copy only the tested subject into the writable sandbox test root."
-  ],
-  "required_measurements": [
-    "exact source SHA and exact tested subject/artifact hashes",
-    "PipeWire and pipewire-pulse versions plus daemon/session identity",
-    "virtual sink node/name/id and monitor node/name/id",
-    "VoiceOutputPacket id and output_generation",
-    "Piper PCM hash, sample rate, channel count, total samples and per-chunk/sample sentinel identity",
-    "sink-admission timestamps and monitor-observation sample/time indices",
-    "cancel dispatch timestamp, cancel acknowledgement timestamp if available, and actual deactivate/flush/equivalent trace",
-    "last old-generation sample/sentinel observed before cutover",
-    "old-generation samples/sentinels observed after cutover",
-    "new-generation monitor capture hash/readback and packet identity",
-    "external inference network/API attempt count",
-    "commands, exit codes, logs and negative evidence"
+  "required_discriminator_shape": {
+    "control_run": [
+      "Use one deterministic long old-output waveform containing an identity-rich old-generation marker pattern throughout the portion that can be in flight, not only in a post-fence chunk.",
+      "Bind it to the exact old VoiceOutputPacket and output_generation.",
+      "Start PipeWire monitor capture before playback; play the entire waveform; preserve raw source and monitor hashes.",
+      "Align normalized monitor PCM to the source so graph latency/sample-rate transformation and marker detectability are measured before cancellation is interpreted."
+    ],
+    "cancel_run": [
+      "Replay the identical waveform through the identical virtual graph and output lineage class.",
+      "Issue existing causal barge/cancel only after monitor/control evidence proves playback has begun and while source material remains eligible to be buffered/in flight.",
+      "Keep monitor capture active for a post-cancel window longer than the measured graph quantum/latency.",
+      "Record cancel request, packet terminal transition, playback-client stop/deactivate/flush-or-equivalent transition and monitor sample timeline in one monotonic clock domain where possible.",
+      "Compute the last monitor sample/window still attributable to the old waveform and cancel-to-last-old-sample tail_ms."
+    ],
+    "new_generation_run": [
+      "After the old packet is terminal, play a distinct new-generation waveform through the same sink/monitor.",
+      "Prove clean new-generation identity and no re-admission/resurrection of the terminal old packet."
+    ]
+  },
+  "native_pipewire_guidance_non_authoritative": [
+    "If the implementation uses native pw_stream cancellation, current official PipeWire Stream API semantics provide pw_stream_set_active(false) for stream deactivation and pw_stream_flush(stream, false) for queue/converter flushing without drain; equivalent existing transport behavior is acceptable if the executed trace proves the required invariant.",
+    "PipeWire/PipeWire-Pulse null-sink monitor capture is valid S2 software-audio evidence when exact node identity and source/monitor alignment are bound; it remains nonphysical evidence."
   ],
   "acceptance": {
     "all_product_steps_actually_executed": true,
-    "exact_subject_identity_bound": true,
+    "exact_subject_and_packet_identity_bound": true,
+    "control_monitor_source_alignment_valid": true,
     "real_pipewire_software_sink_observed": true,
     "real_pipewire_monitor_readback_observed": true,
-    "old_generation_post_cancel_monitor_sentinel_count": 0,
-    "old_generation_post_cancel_sink_admission_count": 0,
+    "cancel_occurs_while_old_audio_is_in_flight": true,
+    "old_generation_post_cancel_new_sink_admission_count": 0,
+    "old_generation_monitor_tail_measured": true,
+    "old_generation_monitor_tail_is_finite_and_bounded": true,
+    "terminal_old_packet_regains_commit_or_heard_authority": false,
     "new_generation_monitor_readback_clean": true,
     "external_inference_api_calls": 0
   },
+  "required_measurements": [
+    "exact source SHA and exact tested subject/artifact hashes",
+    "PipeWire/pipewire-pulse/session-manager versions and runtime identity",
+    "virtual sink and monitor node names/object.serial or equivalent run-local identities",
+    "VoiceOutputPacket id, session/turn ids and output_generation",
+    "old and new source PCM hashes, sample rate/channels/sample counts and marker layout",
+    "control monitor raw hash plus source-to-monitor alignment/latency",
+    "cancel request timestamp and packet terminal timestamp",
+    "playback stop/deactivate/flush-or-equivalent timestamps/trace",
+    "last old-source-attributable monitor sample index/time and cancel_to_last_old_sample_tail_ms",
+    "post-cancel old-generation sink admission count",
+    "new-generation monitor hash/readback and identity",
+    "external inference network/API attempt count",
+    "commands, exit codes, logs and negative evidence"
+  ],
   "failure_classification": {
-    "exact_execution_reproduces_old_generation_audio_after_cancel": "PRODUCT_NEGATIVE",
-    "sink_or_monitor_exists_but_subject_packet_generation_or_readback_binding_is_insufficient": "EVIDENCE_INVALID",
-    "pipewire_or_sandbox_or_privilege_or_transport_prevents_execution": "INFRA_AUTH_TRANSPORT_QUOTA",
+    "exact_valid_execution_shows_unbounded_or_resurrecting_old_audio_or_authority_after_cancel": "PRODUCT_NEGATIVE",
+    "monitor_or_marker_or_alignment_or_subject_binding_cannot_support_tail_attribution": "EVIDENCE_INVALID",
+    "pipewire_sandbox_privilege_runner_auth_transport_or_dependency_prevents_product_discriminator_execution": "INFRA_AUTH_TRANSPORT_QUOTA",
     "claim_or_git_create_only_race": "CONCURRENCY_RETRY",
     "queued_pending_or_partial_without_executed_product_steps": "UNKNOWN_NONTERMINAL"
   },
@@ -84,6 +108,8 @@
     "semantic_GWT_runtime",
     "JSpace_runtime",
     "effect_authority",
+    "true_streaming_partial_ASR",
+    "producer_generation_cancel_beyond_exact_executed_mechanism",
     "training",
     "whole_voice_e2e",
     "whole_product"
@@ -93,14 +119,14 @@
     "runtime/sandbox identity",
     "PipeWire sink/monitor identity",
     "packet/output-generation identity",
-    "PCM/sentinel hashes and sample counts",
-    "cancel/deactivate/flush-or-equivalent trace",
-    "monitor readback before/after cutover",
-    "per-discriminator P1-P7 result",
+    "control and cancel monitor evidence",
+    "cancel_to_last_old_sample_tail_ms",
+    "post-cancel admission/authority observations",
+    "new-generation clean readback",
     "negative evidence and failure class",
     "explicit zero-credit fields",
     "next exact action"
   ],
-  "next_on_pass": "Preserve the bounded S2 software playback/cancel/monitor receipt under this same G2 claim. Then consume the current G2 completion-depth benchmark without reopening sink semantics: execute the remaining highest-information unclosed G2 discriminator, with true streaming ASR partial ingress/network fencing/soak ordered by current evidence at reentry.",
+  "next_on_pass": "Terminalize only the exact G2 PipeWire software-audio monitor/cancel scope, then refresh current evidence before opening the next still-unclaimed G2 successor field. Do not revive the stale broad completion-depth plan by checkpoint order alone.",
   "next_on_product_negative": "Repair only the measured playback/cancel/generation boundary under the existing G2 owner, add a regression reproducing the exact counterexample, and rerun the same discriminator before broad voice redesign."
 }
