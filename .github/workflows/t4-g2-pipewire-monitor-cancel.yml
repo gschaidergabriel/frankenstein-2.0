@@ -44,9 +44,20 @@ jobs:
           current_run_id = str(os.environ['GITHUB_RUN_ID'])
           workflow = 't4-g2-pipewire-monitor-cancel.yml'
           token = os.environ['GH_TOKEN']
-          owners = []
-          for status in ('queued', 'in_progress'):
-              url = f'https://api.github.com/repos/{repo}/actions/workflows/{workflow}/runs?status={status}&per_page=100'
+          invalidated_queued = {
+              '33554493024': {
+                  'head_sha': '6cf8ba3a6ae013083b1013e782d3fff2a373d75b',
+                  'event': 'push',
+                  'semantic_key': '0d83f7d13c1d8f91686cf94070f73d901a49018b40a9c058d1949af094655bff',
+              },
+              '33554578605': {
+                  'head_sha': 'eea45dbd94738adb92c4d439ea90534062044239',
+                  'event': 'push',
+                  'semantic_key': '0d83f7d13c1d8f91686cf94070f73d901a49018b40a9c058d1949af094655bff',
+              },
+          }
+
+          def api_json(url):
               req = urllib.request.Request(
                   url,
                   headers={
@@ -56,18 +67,53 @@ jobs:
                   },
               )
               with urllib.request.urlopen(req, timeout=20) as response:
-                  payload = json.load(response)
+                  return json.load(response)
+
+          owners = []
+          exempted = []
+          for status in ('queued', 'in_progress'):
+              url = f'https://api.github.com/repos/{repo}/actions/workflows/{workflow}/runs?status={status}&per_page=100'
+              payload = api_json(url)
               for run in payload.get('workflow_runs', []):
                   run_id = str(run.get('id'))
                   if run_id == current_run_id:
                       continue
-                  owners.append({
+                  owner = {
                       'id': run_id,
                       'status': run.get('status'),
                       'head_sha': run.get('head_sha'),
                       'event': run.get('event'),
-                  })
+                  }
+                  stale = invalidated_queued.get(run_id)
+                  exact_invalidated_subject = (
+                      status == 'queued'
+                      and stale is not None
+                      and run.get('head_sha') == stale['head_sha']
+                      and run.get('event') == stale['event']
+                  )
+                  if exact_invalidated_subject:
+                      jobs_payload = api_json(
+                          f'https://api.github.com/repos/{repo}/actions/runs/{run_id}/jobs?per_page=100'
+                      )
+                      jobs = jobs_payload.get('jobs', [])
+                      never_executed = bool(jobs) and all(
+                          job.get('status') == 'queued'
+                          and job.get('conclusion') is None
+                          and not job.get('steps')
+                          and not job.get('runner_id')
+                          and not job.get('runner_name')
+                          for job in jobs
+                      )
+                      if never_executed:
+                          exempted.append({
+                              **owner,
+                              'reason': 'EXACT_SEMANTICALLY_INVALIDATED_NEVER_EXECUTED_QUEUED_SUBJECT',
+                          })
+                          continue
+                  owners.append(owner)
 
+          if exempted:
+              print('T4_G2_STALE_INVALIDATED_QUEUED_EXEMPTION=' + json.dumps(exempted, sort_keys=True))
           if owners:
               print('T4_G2_DUPLICATE_NONTERMINAL_OWNER=' + json.dumps(owners, sort_keys=True))
               raise SystemExit(3)
