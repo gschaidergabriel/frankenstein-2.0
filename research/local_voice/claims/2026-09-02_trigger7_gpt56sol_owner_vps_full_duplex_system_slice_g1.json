@@ -20,11 +20,13 @@
     "VoiceInputPacket and existing VoicePacketCortex",
     "existing PresenceState / PacketTurnPolicy authority from WP720",
     "existing barge-in cancellation authority",
-    "headless local TTS runtime / PCM sink; consume TTS scope-split claim where applicable",
+    "headless local TTS runtime producing one real complete PCM/waveform plus existing output adapter / PCM sink",
     "existing WP715 VoicePacketCortexRecovery",
     "existing checkpoint/canonical state adapter",
     "existing restart/reentry, HeardResult, VoiceOutcome and tool ownership authorities"
   ],
+  "tts_streaming_scope_correction_ref": "trigger4/inbox/local_voice/T7_QWEN3_TTS_STREAMING_SCOPE_CORRECTION_2026-09-02_GPT56SOL.json",
+  "tts_scope_law": "Current public Qwen3TTSModel wrapper/source does not establish incremental PCM streaming or mid-generation producer cancellation. FDX3/FDX4 may use the real locally generated complete waveform as input to the existing output adapter, then prove chunk delivery/sink/commit cancellation while that real waveform is being delivered. Label this OUTPUT_DELIVERY_CANCELLATION_USING_REAL_TTS_WAVEFORM, not TTS_GENERATOR_STREAMING_CANCELLATION. True incremental TTS-generator credit remains zero unless a distinct actually incremental API is executed.",
   "scenarios": [
     {
       "id": "FDX2_BACKCHANNEL_HOLD",
@@ -33,13 +35,13 @@
     },
     {
       "id": "FDX3_BARGE_IN_PARTIAL_OUTPUT",
-      "required_input": "real local TTS generation to PCM sink, then causal barge-in/cancel while chunks are in flight",
-      "fail_closed": "interrupted output remains non-commit-eligible and no post-cancel producer chunk enters the sink"
+      "required_input": "real locally generated TTS PCM/waveform is chunked/delivered by the existing output adapter to the headless sink; causal barge-in/cancel occurs while adapter chunks are in flight",
+      "fail_closed": "interrupted output remains non-commit-eligible and no adapter/sink chunk after the declared cancellation boundary is admitted beyond one explicitly predeclared bounded in-flight buffer policy"
     },
     {
       "id": "FDX4_SIMULTANEOUS_USER_OVER_OUTPUT",
-      "required_input": "second prerecorded German user-audio stream enters real local ASR while real local TTS output is active",
-      "fail_closed": "new input lineage is accepted while old output loses commit/tool ownership and terminalizes exactly once"
+      "required_input": "second prerecorded German user-audio stream enters real local ASR while the existing output adapter is delivering a real locally generated TTS waveform",
+      "fail_closed": "new input lineage is accepted while old output loses commit/tool ownership and terminalizes exactly once; no claim of mid-generation TTS-model cancellation is minted unless actually observed"
     },
     {
       "id": "FDX6_LATE_TOOL_RESULT_AFTER_BARGE_AND_RESTART",
@@ -53,14 +55,17 @@
     "external model/ASR/TTS inference calls = 0",
     "host survival/resource headroom preserved",
     "no text surrogate may mint ASR runtime credit",
-    "no prebaked PCM may mint TTS runtime credit",
+    "no prebaked PCM may mint TTS model-runtime credit",
+    "complete real generated waveform plus output-adapter chunking may mint only the scopes actually observed",
     "PCM/null/virtual sink may not mint human-heard or physical speaker credit",
     "all packet/output/tool/checkpoint identities and monotonic timings recorded"
   ],
   "hypothesis": "The already-accepted Voice components compose on the owner VPS with real local ASR and headless local TTS without cross-boundary causal authority violations in the four highest-information full-duplex scenarios.",
-  "counterhypothesis": "Real local model timing/output reveals a cross-boundary race not visible in packet-only CI: HOLD closes a turn, post-cancel TTS chunks leak into output authority, simultaneous user speech leaves stale output/tool ownership, or restart resurrects a late tool result.",
-  "acceptance": "All four scenarios execute against one exact subject/runtime identity with no counterexample and explicit bounded observables. A PRODUCT_NEGATIVE may justify repair; infra/evidence failures must not trigger new architecture by default.",
+  "counterhypothesis": "Real local model timing/output reveals a cross-boundary race not visible in packet-only CI: HOLD closes a turn, post-cancel delivered audio frames leak into output authority, simultaneous user speech leaves stale output/tool ownership, or restart resurrects a late tool result.",
+  "acceptance": "All four scenarios execute against one exact subject/runtime identity with no counterexample and explicit bounded observables. FDX3/FDX4 cancellation credit is at the output-adapter/sink/commit boundary unless a genuinely incremental TTS-model API is independently observed. A PRODUCT_NEGATIVE may justify repair; infra/evidence failures must not trigger new architecture by default.",
   "explicit_zero_credit": {
+    "true_incremental_tts_generator_streaming_unless_separately_observed": 0,
+    "mid_generation_tts_model_cancel_unless_separately_observed": 0,
     "physical_microphone": 0,
     "physical_speaker": 0,
     "human_heard_output": 0,
@@ -72,5 +77,5 @@
     "whole_product": 0
   },
   "state": "CLAIMED",
-  "next_exact_action": "Route this unchanged semantic key to Trigger 4 for exactly one owner-VPS integration execution. Do not create new Voice components unless the exact executed discriminator yields PRODUCT_NEGATIVE that cannot be repaired by composition/wiring/configuration of existing authorities."
+  "next_exact_action": "Route this unchanged semantic key to Trigger 4 for exactly one owner-VPS integration execution. Use faster-whisper-large-v3 plus the deterministic external VAD gate as the conservative first ASR baseline unless current authority selects a newer executed comparator. Execute the already-claimed Qwen3-TTS complete-waveform CPU gate once, then reuse that real waveform in FDX3/FDX4 output-delivery cancellation. Do not create new Voice components unless the exact executed discriminator yields PRODUCT_NEGATIVE that cannot be repaired by composition/wiring/configuration of existing authorities."
 }
