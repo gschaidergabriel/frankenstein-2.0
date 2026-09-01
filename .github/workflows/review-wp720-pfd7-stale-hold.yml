@@ -17,6 +17,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
@@ -24,6 +25,7 @@ jobs:
         run: |
           set -euo pipefail
           git rev-parse HEAD
+          git cat-file -e 731db925df96ab7e49c0e5b80cd7bc8f4d37a086^{commit}
           git diff --exit-code 731db925df96ab7e49c0e5b80cd7bc8f4d37a086 -- \
             src/frankenstein2/voice_packet_turn_policy.py \
             src/frankenstein2/voice_packet_cortex.py \
