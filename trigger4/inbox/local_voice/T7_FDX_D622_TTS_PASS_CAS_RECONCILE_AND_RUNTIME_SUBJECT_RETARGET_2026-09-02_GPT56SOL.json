@@ -1,0 +1,81 @@
+{
+  "schema": "T7_TO_TRIGGER4_FDX_D622_TTS_PASS_CAS_RECONCILE_AND_SUBJECT_RETARGET/v1",
+  "trigger": "7",
+  "producer": "GPT-5.6-Sol",
+  "date": "2026-09-02",
+  "work_class": "EVIDENCE_RECONCILIATION_AND_CANDIDATE_FALSIFIER",
+  "new_component": false,
+  "new_voice_authority": false,
+  "product_mutation_authority": "TRIGGER4_ONLY",
+  "semantic_key": "d62224bf7f52ef1db031ec7a9650a6b107f16a7a61f6f6cca253724d6419ea20",
+  "runtime_evidence": {
+    "controller_repo": "gschaidergabriel/Dr.-Unterweger",
+    "run_id": 33545711456,
+    "job_id": 99982559816,
+    "runner_name": "vps-clay-host",
+    "target_surface": "clay-direct-dev",
+    "sandbox_tier": "S1_OCI",
+    "controller_sha": "9dad8705ff84c44b4abf5cc38c6d60296e3dcdcf",
+    "executed_f2_subject_sha": "ccaa80e438d83912a7019ba9c9101a3d9bef9559",
+    "execution_result": "PASS_AT_CPU_FILE_OUTPUT_COMPONENT_SCOPE",
+    "kokoro_result": "PASS",
+    "piper_result": "PASS",
+    "kokoro_import_preflight": "PASS",
+    "cpu_file_output_component_credit_candidate": 1,
+    "receipt_emitted_in_job_log": true,
+    "receipt_push_result": "FAST_FORWARD_REJECTED_AFTER_EXECUTION",
+    "workflow_conclusion": "failure",
+    "workflow_failure_interpretation": "CONCURRENCY_RETRY_NOT_PRODUCT_NEGATIVE",
+    "explicit_zero_credit": [
+      "audible playback",
+      "human-heard output correctness",
+      "physical speaker",
+      "cancellation-to-physical-silence",
+      "whole voice e2e",
+      "whole product"
+    ]
+  },
+  "evidence_reconciliation_law": {
+    "do_not_rerun_expensive_tts_by_default": true,
+    "reason": "The exact product discriminator executed and emitted a PASS receipt before the controller receipt commit lost a non-force fast-forward race. Re-executing inference would add cost and potentially change the runtime subject without adding information.",
+    "required_action": "Refresh controller main and reconcile the already-emitted exact run/job receipt through current CAS-safe evidence protocol. Preserve run_id/job_id/controller_sha/F2 subject and receipt digest/content. Do not relabel the red workflow conclusion as product failure."
+  },
+  "fdx_runtime_subject_fence": {
+    "prepared_controller_commit": "f3c5dbfbef7a65ba3f2cae5dfd052dbef4a2651d",
+    "prepared_fdx_f2_subject": "ccaa80e438d83912a7019ba9c9101a3d9bef9559",
+    "newer_material_f2_boundary_commit": "b743d01a36c5b28a0e1396ebc30bcb3d1c824b03",
+    "classification": "RUNTIME_PROBE_INVALIDATED_BY_REQUIRED_EVIDENCE_REPAIR_BEFORE_PROMOTION",
+    "reason": "b743d01 adds the run-local AudioDeliveryEvidence binding that validates generated chunks, sink admission, post-cancel discard, VoiceOutputPacket identity and packet commit fencing. The prepared controller falsifier predates that helper and locally assigns sink_post_cancel_accept_count=0 rather than obtaining that claim from the bound F2 evidence helper. Executing/promoting the older subject would not test the strongest current FDX3 delivery invariant.",
+    "required_subject_floor": "b743d01a36c5b28a0e1396ebc30bcb3d1c824b03",
+    "this_trigger7_packet_runtime_semantics": "RUNTIME_SUBJECT_INVARIANT_RESEARCH_ROUTING_ONLY"
+  },
+  "required_trigger4_delta": {
+    "reuse": [
+      "existing d622 semantic claim and evaluation matrix",
+      "existing accepted Nemotron target-runtime receipt",
+      "existing Piper exact model/runtime identity",
+      "successful TTS run 33545711456 evidence",
+      "existing VoicePacketCortex and recovery/reentry authorities",
+      "F2 RunLocalAudioDeliveryBinding from b743d01"
+    ],
+    "do_not_create": [
+      "second playback state",
+      "second packet authority",
+      "second sink authority",
+      "new voice microcomponent"
+    ],
+    "fdx3_requirement": "Feed the real Piper chunk bytes through RunLocalAudioDeliveryBinding bound to the exact interrupted VoiceOutputPacket. Admit pre-cancel chunk(s), call the sink cancellation boundary, record any post-cancel generated chunk with sink_admission_monotonic_ms=null, and derive sink_post_cancel_admission_count / discarded count / packet commit fence from the helper receipt rather than a constant.",
+    "producer_cancel_scope": "Keep producer_generation_cancel credit zero unless an internal producer stop/preemption boundary is actually executed and traced.",
+    "fdx4_requirement": "Barge-in must occur while output lineage is active; stale old-output/tool lineage must remain non-durable after the new user turn.",
+    "fdx6_requirement": "Restart/reentry must preserve the replacement lineage and reject late old-turn resurrection/duplicate durable output.",
+    "acceptance_scope": "OWNER_VPS_HEADLESS_FULL_DUPLEX_COMPOSITION_ONLY"
+  },
+  "failure_classification": {
+    "tts_receipt_git_push_reject": "CONCURRENCY_RETRY",
+    "post_cancel_old_packet_sink_admission": "PRODUCT_NEGATIVE",
+    "interrupted_packet_commit_eligible_true": "PRODUCT_NEGATIVE",
+    "hardcoded_zero_sink_count_without_executed_binding": "EVIDENCE_INVALID",
+    "older_ccaa_FDX_promotion_after_b743_material_boundary": "EVIDENCE_INVALID_STALE_RUNTIME_SUBJECT"
+  },
+  "next_exact_action": "Trigger4 refreshes controller/F2 heads, reconciles the already-executed PASS receipt from run 33545711456 without repeating TTS inference, retargets the singleton d622 owner-VPS FDX system-slice to an exact F2 subject at or after b743d01 that preserves the current FDX boundary, replaces the local constant sink assertion with the existing RunLocalAudioDeliveryBinding receipt, then executes one singleton FDX2/FDX3/FDX4/FDX6 discriminator on vps-clay-host/clay-direct-dev. Promote only the measured headless composition scope."
+}
