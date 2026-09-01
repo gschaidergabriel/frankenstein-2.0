@@ -1,0 +1,91 @@
+{
+  "schema": "T7_RESEARCH_DELTA/v1",
+  "date": "2026-09-01",
+  "trigger": "7",
+  "worker": "GPT-5.6 Sol",
+  "status": "SOURCE_RESEARCH_ONLY_CANDIDATE_FALSIFIER_NO_RUNTIME_OR_ACCEPTANCE_CREDIT",
+  "claim_ref": "research/local_voice/claims/2026-09-01_trigger7_gpt56sol_cortex_frontier_claim.json",
+  "protocol_ref": "research/local_voice/TRIGGERWORD_7_PROTOCOL.md",
+  "canonical_main_observed_before_write": "784ef36ea98c0ea1d7130aa412a04f022a68104e",
+  "consumed_current_state": {
+    "workpackage": "F2-WP-719",
+    "state": "ACCEPTED_AT_BOUNDED_TARGET_COMPONENT_RUNTIME_SCOPE",
+    "exact_repaired_subject": "64b7fb92cca8ddc2e541d617f9af7ebd9bbeb9b8",
+    "controller_run_id": 33497226280,
+    "target_environment_component_runtime_credit": 1,
+    "gwt_runtime_credit": 0,
+    "jspace_runtime_credit": 0,
+    "effect_credit": 0,
+    "asr_runtime_credit": 0,
+    "tts_runtime_credit": 0,
+    "physical_audio_credit": 0,
+    "whole_system_acceptance": false,
+    "routing": "WP719 is terminal at its bounded scope; do not reopen or redispatch it."
+  },
+  "external_primary_findings": [
+    {
+      "id": "ARXIV_2606_11386_STATE_INERTIA_ZERO_BUFFER",
+      "source": "https://arxiv.org/abs/2606.11386",
+      "date": "2026-06-09",
+      "title": "Overcoming State Inertia in Full-Duplex Spoken Language Models via Activation Steering",
+      "finding": "The paper identifies a transient generative-to-perceptive state lag during abrupt user interruption and introduces a Zero-Buffer Benchmark that measures immediate interruption comprehension with response correctness and initial-word occurrence rate.",
+      "f2_relevance": "The mechanism is model-specific, but the failure shape is architecture-independent enough to falsify at the Frankenstein voice boundary: an interruption must not lose the semantically critical beginning of newly admitted user input while cancellation/reentry occurs.",
+      "credit": "EXTERNAL_PRIMARY_ONLY_NOT_REPRODUCED_IN_F2"
+    },
+    {
+      "id": "FREEDOMINTELLIGENCE_LOOPSPEECH_SELF_LISTENING",
+      "source": "https://github.com/FreedomIntelligence/LoopSpeech",
+      "date": "2026",
+      "title": "What Did I Just Say? Self-Listening for Full-Duplex Speech Models",
+      "finding": "The project describes playback-grounded self-listening that distinguishes generated model content from speech actually delivered to the user after interruption.",
+      "f2_relevance": "This strongly corroborates the already-existing Frankenstein heard-prefix/playout-synchronization policy, but does not justify a duplicate handoff because Trigger7 has already routed heard-prefix conservation and playout-synced evidence requirements.",
+      "credit": "EXTERNAL_SOURCE_CORROBORATION_ONLY_NO_NEW_F2_BOUNDARY"
+    },
+    {
+      "id": "ARXIV_2606_11167_INTERACTIVITY_ALIGNMENT",
+      "source": "https://arxiv.org/abs/2606.11167",
+      "date": "2026-06-09",
+      "title": "Multi-Faceted Interactivity Alignment in Full-Duplex Speech Models",
+      "finding": "The paper separates interactive behavior into pause handling, turn-taking, backchanneling and user interruption and reports post-training improvements across those axes.",
+      "f2_relevance": "Use the four-axis decomposition only as a coverage audit against existing deterministic F2 fixtures; add tests only for transition classes not already represented.",
+      "credit": "EXTERNAL_PRIMARY_ONLY_NOT_REPRODUCED_IN_F2"
+    }
+  ],
+  "duplicate_audit": {
+    "heard_prefix_playout_grounding": "ALREADY_PRESENT; do not duplicate. Existing Trigger7 history contains heard-prefix retention/conservation, playout-synced evidence and VoiceOutcome binding work.",
+    "zero_buffer_initial_interrupt_onset": "NO_MATCHING_ZERO_BUFFER_OR_INITIAL_WORD_FALSIFIER_FOUND_IN_CURRENT_COMMIT_SEARCH; treat as candidate gap pending exact source/test mapping.",
+    "generic_asr_tts_scouting": "DEFER; current cortex completion authority prioritizes packet/recovery/interaction boundaries unless a unique blocker exists."
+  },
+  "candidate_falsifier": {
+    "id": "T7-HYP-ZEROBUFFER-03",
+    "class": "CANDIDATE_FALSIFIER",
+    "hypothesis": "During assistant playback and cancellation/reentry, the beginning of an overlapping user interruption can be dropped or semantically truncated even when cancellation correctness and later input handling appear valid.",
+    "counterhypothesis": "The current capture/admission/cancellation path already conserves the complete admitted interruption onset, so a dedicated zero-buffer discriminator adds no new failure evidence.",
+    "discriminator": "Map the current F2 voice/cortex ABI first. If an onset-conservation invariant is absent, construct deterministic overlapping-turn fixtures where the first lexical unit is meaning-changing (for example negation, correction or stop intent), bind exact segment/timestamp identities, trigger interruption during active assistant output, and verify that the complete admitted user onset survives cancellation into the next VoiceIntent/session lineage without stale unheard assistant output or duplicate durable commit.",
+    "required_observations": [
+      "exact input segment or packet identity across interruption boundary",
+      "whether the first semantic/lexical unit is present after admission",
+      "cancellation generation/epoch identity",
+      "VoiceIntent and VoiceSessionCapsule lineage",
+      "VoiceOutcome heard/unheard result binding",
+      "zero stale output commit after interruption",
+      "zero duplicate memory/effect commit from cancelled generation"
+    ],
+    "routing": "Trigger4 should first prove that no existing fixture already covers the same invariant. Only then add the smallest deterministic repository discriminator; runtime/audio escalation is separate and earns only its measured scope."
+  },
+  "explicit_zero_credit": {
+    "new_product_source": 0,
+    "new_model_runtime": 0,
+    "target_runtime": 0,
+    "asr_runtime": 0,
+    "tts_runtime": 0,
+    "physical_audio": 0,
+    "global_semantic_gwt_runtime": 0,
+    "jspace_runtime": 0,
+    "effect": 0,
+    "whole_voice_e2e": 0,
+    "whole_product": 0,
+    "training": 0
+  },
+  "next_exact_action": "Persist a continuation checkpoint that marks WP719 consumed and T7-HYP-ZEROBUFFER-03 as the next nonduplicate packet/recovery candidate. On the next build handoff, Trigger4 must map it against existing interruption/onset fixtures before any source mutation; do not reopen WP719 and do not duplicate the already-routed heard-prefix boundary."
+}
