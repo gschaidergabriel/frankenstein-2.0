@@ -1,0 +1,72 @@
+{
+  "schema": "F2_TRIGGER7_SOURCE_RESEARCH_DELTA/v1",
+  "trigger": "7",
+  "research_id": "T7-20260901-INSTRUCT-FD-POLICY",
+  "producer": "GPT-5.6-Sol",
+  "status": "SOURCE_PINNED_BENCHMARK_DONOR_NOT_PRODUCT_NEGATIVE",
+  "semantic_claim_ref": "research/local_voice/semantic_claims/92181d185c90100c97d79581ec8b1a3618fdcc6b97484c1004ca224c5f10e81a.json",
+  "human_claim_ref": "research/local_voice/claims/2026-09-01_trigger7_gpt56sol_instruct_fd_policy_benchmark.json",
+  "authority_ref": "research/local_voice/authority/2026-08-31_TRIGGER7_TEXT_PACKET_COMPLETION_AUTHORITY.md",
+  "external_primary": {
+    "title": "Instruct-FD: Can Your Full-Duplex Speech System Follow Turn-Taking Instructions?",
+    "arxiv_id": "2607.20460",
+    "source_class": "EXTERNAL_PRIMARY",
+    "admitted_takeaway": "Use explicit turn-management instructions as an independent experimental variable instead of scoring only generic duplex behavior. Compare the same conversational stimulus under different requested turn-taking behavior and measure whether the system changes its response appropriately."
+  },
+  "current_f2_static_observation": {
+    "voice_contract": "src/frankenstein2/voice_contract.py",
+    "packet_cortex": "src/frankenstein2/voice_packet_cortex.py",
+    "observed_packet_controls": [
+      "VoiceInputPacket carries overlap_state and barge_in",
+      "VoiceOutputPacket carries speech_act and playback/cancellation state",
+      "CortexEventPacket carries voice_intent and presence_state",
+      "accept_input invokes cancel_for_barge_in when barge_in is true"
+    ],
+    "observed_policy_binding_gap_candidate": "In the inspected packet schemas there is no explicit per-turn turn-policy identifier/reference. This is a static observation only; it does not prove that policy is absent system-wide because an upstream component may legitimately compile policy into barge_in/speech_act/provenance before packets reach this layer."
+  },
+  "hypothesis": "For a full-duplex system to claim instruction-conditioned turn management, an A/B trace should be able to prove which requested turn policy governed each tested turn and show a policy-sensitive behavioral difference without changing the underlying user stimulus or causal identity lineage.",
+  "counterhypothesis": "The packet cortex is intentionally policy-agnostic and a current upstream authority already binds the requested policy strongly enough that packet-level behavior can be audited without adding any new packet field. If that binding exists and the A/B trace passes, no product mutation is warranted.",
+  "benchmark_discriminator": {
+    "name": "PFD_POLICY_CONDITIONED_AB_V1",
+    "principle": "Hold session/turn stimulus, timing and packet content constant while changing only an explicitly identified turn-management directive at the admitted upstream policy surface.",
+    "cases": [
+      "PFD1 overlap-yield A/B: identical overlap stimulus under a directive that permits continuing versus one that requires yielding/acknowledging; record exact policy identity and resulting cancellation/output trace",
+      "PFD2 backchannel A/B: identical non-final listening stimulus under quiet-listen versus backchannel-permitted directive; record whether output/event behavior changes only with policy",
+      "PFD3 proactive-interruption A/B: identical semantic stimulus under no-proactive-interruption versus explicitly permitted proactive intervention; require exact causal/policy provenance",
+      "PFD4 determinism replay: same exact policy identity plus same packet stimulus must reproduce the same deterministic packet/event decision trace at this surrogate layer",
+      "PFD5 provenance falsifier: if a claimed policy-conditioned trace cannot bind an exact policy identity/reference to the tested turn, classify the claim as EVIDENCE_INVALID rather than inferring policy compliance"
+    ],
+    "success_condition": "Either identify an existing exact policy-binding surface and produce policy-conditioned A/B evidence, or demonstrate a bounded missing-binding condition that can be handed to Trigger4 without redesigning the voice stack.",
+    "failure_taxonomy": {
+      "behavior_wrong_after_exact_policy_binding": "PRODUCT_NEGATIVE_CANDIDATE_REQUIRES_EXECUTABLE_REPRODUCTION",
+      "policy_identity_not_bound": "EVIDENCE_INVALID_OR_STATIC_GAP_CANDIDATE",
+      "no_existing_policy_surface_found": "REVIEW_REQUIRED_BEFORE_ANY_MUTATION",
+      "concurrent_claim_overlap": "CONCURRENCY_RETRY_OR_REVIEW_ONLY"
+    }
+  },
+  "nonduplication_fences": [
+    "Do not mutate F2-WP-900 G4 or duplicate its current causal runtime intervention/readback work.",
+    "Do not duplicate the active recovery-checkpoint bounds falsifier.",
+    "Do not duplicate the microturn presence_state diagnostic/frontier.",
+    "Do not reopen generic ASR/TTS/model scouting.",
+    "Do not reuse the existing PACKET_CORTEX_CAUSAL_TURN_IDENTITY_FALSIFIER semantic claim as mutation authority."
+  ],
+  "routing": {
+    "trigger7_mutation_authority": "NONE_RESEARCH_ONLY",
+    "trigger4_handoff_condition": "Only after fresh ownership resolution and either an executable PFD failure with exact policy binding or proof that no admitted upstream policy identity can be bound for an intended instruction-conditioned path.",
+    "preferred_first_action": "Search current source/tests for an admitted turn-policy binding/consumer and execute PFD1-PFD5 against that existing surface before proposing code."
+  },
+  "credits": {
+    "source_research": 1,
+    "repository_component": 0,
+    "target_runtime": 0,
+    "physical_audio": 0,
+    "asr_runtime": 0,
+    "tts_runtime": 0,
+    "semantic_gwt_jspace": 0,
+    "effects": 0,
+    "whole_voice_e2e": 0,
+    "whole_product": 0,
+    "training": 0
+  }
+}
