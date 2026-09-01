@@ -7,6 +7,7 @@ from frankenstein2.gwt_causal_runtime_readback import (
     CAUSAL_RUNTIME_READBACK_OBSERVED,
     ControlNoBroadcastReadback,
     GwtCausalRuntimeReadbackError,
+    ProbeExecutionContext,
     bind_causal_runtime_readback,
     validate_causal_runtime_readback,
 )
@@ -28,6 +29,25 @@ C = "c" * 64
 D = "d" * 64
 E = "e" * 64
 F = "f" * 64
+G = "1" * 64
+H = "2" * 64
+I = "3" * 64
+
+
+def context(**overrides):
+    values = {
+        "runner_identity": "runner:vps-clay-host",
+        "execution_surface": "S1:ubuntu-24.04-oci",
+        "runtime_engine_identity": "python:cpython-3.11",
+        "runtime_engine_config_sha256": G,
+        "environment_sha256": H,
+        "dependency_set_sha256": I,
+        "boot_id_sha256": D,
+        "exact_source_sha256": E,
+        "provenance_refs": ("prov:shared-execution-context",),
+    }
+    values.update(overrides)
+    return ProbeExecutionContext(**values)
 
 
 def make_fixture():
@@ -187,6 +207,7 @@ def control(**overrides):
         "process_identity": "pid:4243:start:200",
         "boot_id_sha256": D,
         "exact_source_sha256": E,
+        "execution_context_sha256": context().sha256(),
         "probe_id": "probe:wp900-g4",
         "nonbroadcast_input_sha256": A,
         "downstream_ref": "readback:control",
@@ -199,16 +220,22 @@ def control(**overrides):
     return ControlNoBroadcastReadback(**values)
 
 
-def bind(*, control_readback=None, summary=None, witness=None, receipt=None):
+def bind(*, control_readback=None, summary=None, witness=None, receipt=None, execution_context=None):
     broadcast, runtime_witness, uptake_receipt, uptake_summary = make_fixture()
+    shared_context = context() if execution_context is None else execution_context
     return bind_causal_runtime_readback(
         probe_id="probe:wp900-g4",
         nonbroadcast_input_sha256=A,
+        execution_context=shared_context,
         broadcast=broadcast,
         runtime_witness=runtime_witness if witness is None else witness,
         uptake_receipt=uptake_receipt if receipt is None else receipt,
         uptake_summary=uptake_summary if summary is None else summary,
-        control_readback=control() if control_readback is None else control_readback,
+        control_readback=(
+            control(execution_context_sha256=shared_context.sha256())
+            if control_readback is None
+            else control_readback
+        ),
         provenance_refs=("prov:wp900-g4-binder",),
     )
 
@@ -223,6 +250,7 @@ def test_positive_matched_runtime_readback_binds_existing_evidence_but_mints_zer
     assert observed.control_downstream_sha256 == F
     assert observed.exact_source_sha256 == E
     assert observed.boot_id_sha256 == D
+    assert observed.execution_context_sha256 == context().sha256()
     assert observed.runtime_credit == 0
     assert observed.target_environment_component_runtime_credit == 0
     assert observed.gwt_contract_causal_runtime_candidate_credit == 0
@@ -250,6 +278,18 @@ def test_control_must_share_boot_with_positive_runtime():
         bind(control_readback=control(boot_id_sha256=F))
 
 
+def test_control_must_share_full_execution_context_with_positive_arm():
+    with pytest.raises(GwtCausalRuntimeReadbackError, match="execution-context identity mismatch"):
+        bind(control_readback=control(execution_context_sha256=B))
+
+
+def test_execution_context_must_bind_positive_source_and_boot():
+    with pytest.raises(GwtCausalRuntimeReadbackError, match="context/source identity mismatch"):
+        bind(execution_context=context(exact_source_sha256=F))
+    with pytest.raises(GwtCausalRuntimeReadbackError, match="context/boot identity mismatch"):
+        bind(execution_context=context(boot_id_sha256=F))
+
+
 def test_control_reentry_is_fail_closed_at_construction():
     with pytest.raises(GwtCausalRuntimeReadbackError, match="must not claim GWT re-entry"):
         control(reentry_observed=True)
@@ -267,6 +307,7 @@ def test_tampered_positive_runtime_witness_is_rejected():
         bind_causal_runtime_readback(
             probe_id="probe:wp900-g4",
             nonbroadcast_input_sha256=A,
+            execution_context=context(),
             broadcast=broadcast,
             runtime_witness=tampered,
             uptake_receipt=uptake_receipt,
@@ -298,6 +339,7 @@ def test_summary_must_contain_exact_runtime_witness_receipt():
         bind_causal_runtime_readback(
             probe_id="probe:wp900-g4",
             nonbroadcast_input_sha256=A,
+            execution_context=context(),
             broadcast=broadcast,
             runtime_witness=runtime_witness,
             uptake_receipt=uptake_receipt,
