@@ -75,17 +75,39 @@ class Trigger4G2PipeWireWorkflowPinTests(unittest.TestCase):
         self.assertNotIn("--source-root", text)
         self.assertIn("--backend nspawn --network on -- \\\n", text)
 
-    def test_runtime_acceptance_requires_zero_launcher_and_sandbox_exits(self) -> None:
+    def test_runtime_acceptance_requires_zero_exits_exact_subject_and_guarded_singleton_receipt(self) -> None:
         text = workflow_text()
         self.assertIn("call_exit = int(call_match.group(1)) if call_match else None", text)
         self.assertIn("launcher_exit = int(launcher_match.group(1)) if launcher_match else None", text)
         self.assertIn("exit_evidence_ok = call_exit == 0 and launcher_exit == 0", text)
-        self.assertIn(
-            "complete = bool(sandbox_pass and harness_pass and exact_subject and exit_evidence_ok)",
-            text,
+        self.assertIn("receipt_marker_singleton_ok = len(markers) == 1", text)
+        self.assertIn("canonical_required_observables_guard", text)
+        self.assertIn("guard_complete = bool(", text)
+        complete_line = next(
+            line.strip()
+            for line in text.splitlines()
+            if line.strip().startswith("complete = bool(")
         )
+        for required_term in (
+            "sandbox_pass",
+            "harness_pass",
+            "exact_subject",
+            "exit_evidence_ok",
+            "guard_complete",
+            "receipt_marker_singleton_ok",
+        ):
+            self.assertIn(required_term, complete_line)
         self.assertIn("'classification': classification", text)
         self.assertIn("'exit_evidence_ok': exit_evidence_ok", text)
+        self.assertIn("'receipt_marker_singleton_ok': receipt_marker_singleton_ok", text)
+        self.assertIn("'canonical_required_observables_guard_complete': guard_complete", text)
+
+    def test_exact_execution_subject_hashes_observer_and_required_guard(self) -> None:
+        text = workflow_text()
+        record_section = text.split("- name: Record exact execution subject", 1)[1]
+        record_section = record_section.split("- name: Host-health and isolation preflight", 1)[0]
+        self.assertIn("trigger4/tools/local_voice/g2_pipewire_observer.py", record_section)
+        self.assertIn("trigger4/tools/local_voice/g2_required_observables_guard.py", record_section)
 
 
 if __name__ == "__main__":
