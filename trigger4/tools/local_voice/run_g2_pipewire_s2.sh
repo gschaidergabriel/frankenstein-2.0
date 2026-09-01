@@ -2,7 +2,6 @@
 set -Eeuo pipefail
 
 : "${F2_SUBJECT_SHA:?F2_SUBJECT_SHA is required}"
-
 test "$(git rev-parse HEAD)" = "$F2_SUBJECT_SHA"
 
 WORK=/tmp/t4-g2-pipewire
@@ -24,7 +23,7 @@ apt-get install -y -qq \
   pipewire pipewire-bin pipewire-pulse pulseaudio-utils python3 python3-pip python3-venv \
   wireplumber >/tmp/t4-g2-apt.log 2>&1
 
-for x in pipewire pipewire-pulse wireplumber pactl parec paplay python3 curl; do
+for x in pipewire pipewire-pulse wireplumber pactl parec paplay pw-dump pw-metadata python3 curl; do
   command -v "$x" >/dev/null
   printf 'TOOL %s %s\n' "$x" "$(command -v "$x")"
 done
@@ -37,10 +36,22 @@ printf '%s  %s\n' "$PIPER_CONFIG_SHA256" "$ASSETS/piper.onnx.json" | sha256sum -
 python3 -m venv "$VENV"
 "$VENV/bin/python" -m pip install -q --disable-pip-version-check \
   'numpy==1.26.4' 'soundfile==0.13.1' 'piper-tts==1.7.0'
+PIPER_RUNTIME_VERSION="$($VENV/bin/python -c 'import importlib.metadata; print(importlib.metadata.version("piper-tts"))')"
+test "$PIPER_RUNTIME_VERSION" = '1.7.0'
+
+cat >"$WORK/source.txt" <<'TXT'
+Dies ist eine lange lokale deutsche Sprachausgabe fuer den kausalen PipeWire Abbruchtest. Sie muss lange genug laufen, damit ein echter Abbruch mitten in der Wiedergabe gemessen werden kann. Nach dem Abbruch darf die alte Ausgabe nur noch innerhalb des vorher festgelegten kurzen Pufferfensters erscheinen. Danach muss der virtuelle Monitor frei von fortgesetzter alter Sprachausgabe sein.
+TXT
+cat >"$WORK/replacement.txt" <<'TXT'
+Dies ist die eindeutig neue lokale deutsche Sprachausgabe nach dem Abbruch. Sie gehoert zu einer neuen Ausgabegeneration und muss nach der alten unterbrochenen Ausgabe positiv auf demselben virtuellen PipeWire Monitor nachgewiesen werden.
+TXT
 
 PIPER_MODEL="$ASSETS/piper.onnx" \
 PIPER_CONFIG="$ASSETS/piper.onnx.json" \
-SOURCE_WAV="$WORK/source.wav" \
+OLD_TEXT="$WORK/source.txt" \
+NEW_TEXT="$WORK/replacement.txt" \
+OLD_WAV="$WORK/source.wav" \
+NEW_WAV="$WORK/replacement.wav" \
 "$VENV/bin/python" - <<'PY'
 import os
 from pathlib import Path
@@ -50,32 +61,31 @@ from piper import PiperVoice
 
 model = Path(os.environ['PIPER_MODEL'])
 config = Path(os.environ['PIPER_CONFIG'])
-out = Path(os.environ['SOURCE_WAV'])
-text = (
-    'Dies ist eine lange lokale deutsche Sprachausgabe fuer den kausalen PipeWire Abbruchtest. '
-    'Sie muss lange genug laufen, damit ein echter Abbruch mitten in der Wiedergabe gemessen werden kann. '
-    'Nach dem Abbruch darf die alte Ausgabe nur noch innerhalb des vorher festgelegten kurzen Pufferfensters erscheinen. '
-    'Danach muss der virtuelle Monitor frei von fortgesetzter alter Sprachausgabe sein.'
-)
 voice = PiperVoice.load(str(model), config_path=str(config), use_cuda=False)
-parts = []
-rates = set()
-for chunk in voice.synthesize(text):
-    arr = np.asarray(chunk.audio_float_array, dtype=np.float32)
-    if arr.ndim != 1 or arr.size == 0 or not np.isfinite(arr).all():
-        raise RuntimeError('PIPER_INVALID_AUDIO_CHUNK')
-    parts.append(arr)
-    rates.add(int(chunk.sample_rate))
-if not parts or len(rates) != 1:
-    raise RuntimeError('PIPER_NO_UNIQUE_AUDIO_RATE')
-audio = np.concatenate(parts)
-rate = rates.pop()
-if audio.size / rate < 3.0:
-    raise RuntimeError('PIPER_SOURCE_TOO_SHORT')
-sf.write(out, audio, rate, subtype='PCM_16')
-print(f'PIPER_SOURCE_RATE={rate}')
-print(f'PIPER_SOURCE_SAMPLES={audio.size}')
-print(f'PIPER_SOURCE_DURATION={audio.size / rate:.6f}')
+
+def synth(text_path: str, wav_path: str, minimum_seconds: float) -> None:
+    text = Path(text_path).read_text(encoding='utf-8').strip()
+    parts = []
+    rates = set()
+    for chunk in voice.synthesize(text):
+        arr = np.asarray(chunk.audio_float_array, dtype=np.float32)
+        if arr.ndim != 1 or arr.size == 0 or not np.isfinite(arr).all():
+            raise RuntimeError('PIPER_INVALID_AUDIO_CHUNK')
+        parts.append(arr)
+        rates.add(int(chunk.sample_rate))
+    if not parts or len(rates) != 1:
+        raise RuntimeError('PIPER_NO_UNIQUE_AUDIO_RATE')
+    audio = np.concatenate(parts)
+    rate = rates.pop()
+    if audio.size / rate < minimum_seconds:
+        raise RuntimeError(f'PIPER_SOURCE_TOO_SHORT:{audio.size / rate:.3f}')
+    sf.write(wav_path, audio, rate, subtype='PCM_16')
+    print(f'PIPER_WAV={wav_path} RATE={rate} SAMPLES={audio.size} DURATION={audio.size / rate:.6f}')
+
+synth(os.environ['OLD_TEXT'], os.environ['OLD_WAV'], 3.0)
+synth(os.environ['NEW_TEXT'], os.environ['NEW_WAV'], 1.0)
+if Path(os.environ['OLD_WAV']).read_bytes() == Path(os.environ['NEW_WAV']).read_bytes():
+    raise RuntimeError('PIPER_REPLACEMENT_NOT_DISTINCT')
 PY
 
 if ! id -u f2audio >/dev/null 2>&1; then
@@ -89,24 +99,21 @@ export G2_WORK="$WORK"
 export G2_RUNTIME="$RUNTIME"
 export G2_VENV="$VENV"
 export G2_SOURCE="$WORK/source.wav"
+export G2_SOURCE_TEXT="$WORK/source.txt"
+export G2_REPLACEMENT="$WORK/replacement.wav"
+export G2_REPLACEMENT_TEXT="$WORK/replacement.txt"
 export G2_ANALYZER="$PWD/research/local_voice/tools/t7_pipewire_monitor_cancel_analyze.py"
 export G2_HARNESS="$PWD/trigger4/tools/local_voice/g2_pipewire_s2_runtime.py"
-export PIPER_MODEL_SHA256 PIPER_CONFIG_SHA256
+export PIPER_MODEL_SHA256 PIPER_CONFIG_SHA256 PIPER_RUNTIME_VERSION
 
 runuser -u f2audio -- env \
-  F2_ROOT="$F2_ROOT" \
-  F2_SUBJECT_SHA="$F2_SUBJECT_SHA" \
-  G2_WORK="$G2_WORK" \
-  G2_RUNTIME="$G2_RUNTIME" \
-  G2_VENV="$G2_VENV" \
-  G2_SOURCE="$G2_SOURCE" \
-  G2_ANALYZER="$G2_ANALYZER" \
-  G2_HARNESS="$G2_HARNESS" \
-  PIPER_MODEL_SHA256="$PIPER_MODEL_SHA256" \
-  PIPER_CONFIG_SHA256="$PIPER_CONFIG_SHA256" \
-  XDG_RUNTIME_DIR="$RUNTIME" \
-  HOME="$(getent passwd f2audio | cut -d: -f6)" \
-  PYTHONPATH="$PWD/src" \
+  F2_ROOT="$F2_ROOT" F2_SUBJECT_SHA="$F2_SUBJECT_SHA" G2_WORK="$G2_WORK" G2_RUNTIME="$G2_RUNTIME" \
+  G2_VENV="$G2_VENV" G2_SOURCE="$G2_SOURCE" G2_SOURCE_TEXT="$G2_SOURCE_TEXT" \
+  G2_REPLACEMENT="$G2_REPLACEMENT" G2_REPLACEMENT_TEXT="$G2_REPLACEMENT_TEXT" \
+  G2_ANALYZER="$G2_ANALYZER" G2_HARNESS="$G2_HARNESS" \
+  PIPER_MODEL_SHA256="$PIPER_MODEL_SHA256" PIPER_CONFIG_SHA256="$PIPER_CONFIG_SHA256" \
+  PIPER_RUNTIME_VERSION="$PIPER_RUNTIME_VERSION" \
+  XDG_RUNTIME_DIR="$RUNTIME" HOME="$(getent passwd f2audio | cut -d: -f6)" PYTHONPATH="$PWD/src" \
   dbus-run-session -- bash -lc '
     set -Eeuo pipefail
     pipewire >"$G2_WORK/pipewire.log" 2>&1 & pw_pid=$!
@@ -127,13 +134,16 @@ runuser -u f2audio -- env \
     set +e
     "$G2_VENV/bin/python" "$G2_HARNESS" \
       --source "$G2_SOURCE" \
+      --source-text-file "$G2_SOURCE_TEXT" \
+      --replacement-source "$G2_REPLACEMENT" \
+      --replacement-text-file "$G2_REPLACEMENT_TEXT" \
       --analyzer "$G2_ANALYZER" \
       --workdir "$G2_WORK/evidence" \
       --f2-subject-sha "$F2_SUBJECT_SHA" \
       --tts-model-sha256 "$PIPER_MODEL_SHA256" \
       --tts-config-sha256 "$PIPER_CONFIG_SHA256" \
-      --cancel-after-ms 1200 \
-      --max-inflight-ms 250
+      --tts-runtime-version "$PIPER_RUNTIME_VERSION" \
+      --cancel-after-ms 1200
     harness_status=$?
     set -e
     printf "G2_PIPEWIRE_HARNESS_EXIT=%s\n" "$harness_status"
