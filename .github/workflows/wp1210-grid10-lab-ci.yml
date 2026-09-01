@@ -1,0 +1,47 @@
+name: WP1210 GRID10 Lab CI
+
+on:
+  pull_request:
+    paths:
+      - 'labs/grid10/**'
+      - 'workpackages/active/F2-WP-1210.json'
+      - 'workpackages/state_events/F2-WP-1210/**'
+      - 'workpackages/receipts/F2-WP-1210_*'
+      - 'workpackages/reconciliations/F2-WP-1210/**'
+      - '.github/workflows/wp1210-grid10-lab-ci.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'labs/grid10/**'
+      - 'workpackages/active/F2-WP-1210.json'
+      - 'workpackages/state_events/F2-WP-1210/**'
+      - 'workpackages/receipts/F2-WP-1210_*'
+      - 'workpackages/reconciliations/F2-WP-1210/**'
+      - '.github/workflows/wp1210-grid10-lab-ci.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  grid10-lab:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Compile
+        working-directory: labs/grid10
+        run: python -m py_compile grid10_lab.py test_grid10_lab.py
+      - name: Execute bounded lab discriminator
+        working-directory: labs/grid10
+        run: python -m unittest -v
+      - name: Repeat discriminator 20 times
+        working-directory: labs/grid10
+        shell: bash
+        run: |
+          set -euo pipefail
+          for i in $(seq 1 20); do
+            python -m unittest -q
+          done
