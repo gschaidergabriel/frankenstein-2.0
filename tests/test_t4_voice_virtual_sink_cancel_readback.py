@@ -29,7 +29,8 @@ def test_software_loopback_rejects_late_old_generation_and_never_commits_sentine
     assert result["stale_chunks_rejected"] == 1
     assert result["old_sentinel_exact_occurrences"] == 0
     assert result["new_sentinel_exact_occurrences"] == 1
-    assert result["measured_credit"]["virtual_sink_output_consumption_control"] == 1
+    assert result["measured_credit"]["repository_software_reference_credit"] == 1
+    assert result["measured_credit"]["virtual_sink_output_consumption_control"] == 0
 
     for key in (
         "physical_speaker",
@@ -44,6 +45,43 @@ def test_software_loopback_rejects_late_old_generation_and_never_commits_sentine
         "whole_product",
     ):
         assert result["measured_credit"][key] == 0
+
+
+def test_pulse_null_credit_requires_pulse_execution_path(monkeypatch):
+    class FakePulseNullSink:
+        backend_name = "PIPEWIRE_PULSE_NULL_SINK"
+
+        def __init__(self):
+            self.played = bytearray()
+            self.cancelled = False
+
+        def start(self):
+            return None
+
+        def write(self, pcm):
+            if self.cancelled:
+                raise RuntimeError("write attempted after cancellation")
+            self.played.extend(pcm)
+
+        def cancel(self):
+            self.cancelled = True
+
+        def reset(self):
+            self.cancelled = False
+
+        def readback(self):
+            return bytes(self.played)
+
+        def close(self):
+            return None
+
+    monkeypatch.setattr(probe, "PulseNullSink", FakePulseNullSink)
+    result = probe.run("pulse-null")
+
+    assert result["pass"] is True
+    assert result["execution_scope"] == "VPS_VIRTUAL_SINK_IF_EXECUTED_ON_ADMITTED_TARGET"
+    assert result["measured_credit"]["repository_software_reference_credit"] == 0
+    assert result["measured_credit"]["virtual_sink_output_consumption_control"] == 1
 
 
 def test_generation_fence_is_session_bound_and_monotonic():
@@ -64,6 +102,8 @@ def test_pulse_mode_is_explicitly_virtual_not_physical_credit():
     source = MODULE.read_text(encoding="utf-8")
     assert "PIPEWIRE_PULSE_NULL_SINK" in source
     assert "module-null-sink" in source
+    assert '"repository_software_reference_credit"' in source
+    assert '"virtual_sink_output_consumption_control"' in source
     assert '"physical_speaker": 0' in source
     assert '"human_heard_output": 0' in source
     assert '"whole_product": 0' in source
