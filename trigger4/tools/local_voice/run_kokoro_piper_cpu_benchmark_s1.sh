@@ -36,7 +36,7 @@ python -m pip install -q \
   "num2words==0.5.14" \
   "piper-tts==1.7.0"
 python -m pip install -q --extra-index-url https://download.pytorch.org/whl/cpu "torch==2.8.0+cpu"
-python -m pip install -q "misaki[de] @ git+https://github.com/semidark/misaki.git@${MISAKI_COMMIT}"
+python -m pip install -q "misaki[en,de] @ git+https://github.com/semidark/misaki.git@${MISAKI_COMMIT}"
 python -m pip install -q --no-deps "git+https://github.com/semidark/kokoro.git@${KOKORO_RUNTIME_COMMIT}"
 
 stage="IMPORT_PREFLIGHT"
