@@ -11,6 +11,7 @@ import json
 from pathlib import Path
 import random
 import struct
+import sys
 import tempfile
 import unittest
 import wave
@@ -22,9 +23,14 @@ except Exception:  # pragma: no cover - stdlib-only repo jobs may omit numpy
 
 ROOT = Path(__file__).resolve().parents[1]
 TOOL = ROOT / "research" / "local_voice" / "tools" / "t7_pipewire_monitor_cancel_analyze.py"
-SPEC = importlib.util.spec_from_file_location("t7_pipewire_monitor_cancel_analyze", TOOL)
+MODULE_NAME = "t7_pipewire_monitor_cancel_analyze"
+SPEC = importlib.util.spec_from_file_location(MODULE_NAME, TOOL)
 assert SPEC and SPEC.loader
 ANALYZER = importlib.util.module_from_spec(SPEC)
+# Python 3.12 dataclasses resolves string/type metadata through sys.modules
+# while the module body executes. Register the dynamic test import exactly as
+# the normal import machinery would before exec_module().
+sys.modules[MODULE_NAME] = ANALYZER
 SPEC.loader.exec_module(ANALYZER)
 
 RATE = 16_000
