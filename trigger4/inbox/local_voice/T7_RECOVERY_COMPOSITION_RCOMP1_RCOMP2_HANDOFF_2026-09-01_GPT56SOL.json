@@ -1,0 +1,62 @@
+{
+  "schema": "F2_TRIGGER7_TO_TRIGGER4_HANDOFF/v1",
+  "trigger": "7",
+  "producer": "GPT-5.6-Sol",
+  "status": "ROUTED_EXECUTABLE_PRODUCT_NEGATIVE_CANDIDATES",
+  "scope": "VoicePacketCortex restart/recovery commit projection and historical tool-ownership projection only",
+  "authority_ref": "research/local_voice/authority/2026-08-31_TRIGGER7_TEXT_PACKET_COMPLETION_AUTHORITY.md",
+  "protocol_ref": "research/local_voice/TRIGGERWORD_7_PROTOCOL.md",
+  "semantic_claim_ref": "research/local_voice/semantic_claims/e92995a7fbe633335fa9d99b80dd9a31d7e60d63ddc6b06c564d58ee6c64ac20.json",
+  "evidence_ref": "research/local_voice/evidence/2026-09-01_TRIGGER7_GPT56SOL_RECOVERY_COMPOSITION_RUN_33533619386.json",
+  "executed_subject": {
+    "source_sha": "cbb1ea587f098637f3517ba8ba12dc61c8e1e8a8",
+    "workflow_run_id": 33533619386,
+    "job_id": 99942477305,
+    "voice_packet_cortex_blob_sha": "308c7606db2f21f2361ca238927af9267fc21d32",
+    "voice_packet_cortex_recovery_blob_sha": "07cac479f8b723645fa9ee92dc9bafd9775e3100",
+    "source_invariance_checked_against_current_main": true
+  },
+  "product_negative_candidates": [
+    {
+      "id": "RCOMP1_COMPLETED_HEARD_COMMIT_PROJECTION",
+      "observed": "resume admitted fully-heard completed output with commit_eligible=false",
+      "required_invariant": "A restored fully-heard completed output must preserve/rederive a semantically consistent commit eligibility projection, or the checkpoint must fail closed.",
+      "smallest_repair_question": "Can recovery derive/validate commit_eligible from the restored playback/heard state without creating a second commit authority?"
+    },
+    {
+      "id": "RCOMP2_TOOL_HISTORY_PROJECTION_DROP",
+      "observed": "historical TOOL_USE remained in restored events while removal of active/cancelled ownership projections allowed the same tool_ref to be re-issued",
+      "required_invariant": "Restored tool ownership/replay fencing must remain causally consistent with the retained event history; projection loss must not mint reuse authority.",
+      "smallest_repair_question": "Can recovery validate/rederive tool ownership history from the existing authoritative retained events/projections and fail closed on contradiction?"
+    }
+  ],
+  "controls_that_failed_closed": [
+    "RCOMP3_VALID_ACTIVE_TOOL_RESTART_FENCE",
+    "RCOMP4_OUTPUT_SEQUENCE_PROJECTION",
+    "RCOMP5_DUPLICATE_OUTPUT_PACKET_ID",
+    "RCOMP6_CORRUPT_QUEUED_HEARD_FRACTION"
+  ],
+  "route_to": "Trigger4/current legal VoicePacketCortex recovery mutation owner",
+  "implementation_contract": [
+    "Refresh current main and resolve the current legal product mutation owner before changing source.",
+    "Reproduce RCOMP1 and RCOMP2 against the current exact source; if source blobs changed, classify semantic invariance before granting current-scope defect status.",
+    "Repair only the smallest existing recovery/validation boundary; do not create a second cortex, checkpoint store, tool authority, commit authority or recovery state machine.",
+    "Preserve the four currently fail-closed RCOMP3-RCOMP6 controls as regressions.",
+    "Add explicit regression tests for RCOMP1 and RCOMP2 and bind any accepted repair to exact source/test evidence.",
+    "Do not infer acoustic, target-runtime, physical, whole-voice or whole-product credit from repository repair."
+  ],
+  "trigger7_product_mutation": false,
+  "explicit_zero_credit": {
+    "repository_product_acceptance": 0,
+    "target_runtime": 0,
+    "physical_audio": 0,
+    "asr_runtime": 0,
+    "tts_runtime": 0,
+    "semantic_gwt_jspace": 0,
+    "effect": 0,
+    "training": 0,
+    "whole_voice_e2e": 0,
+    "whole_product": 0
+  },
+  "next_exact_action": "Trigger4/current legal recovery owner reproduces RCOMP1 and RCOMP2 on current source, applies the smallest noncompeting recovery-validation repair if still negative, preserves RCOMP3-RCOMP6, and returns exact commit/test/CI evidence for Trigger7 reentry."
+}
