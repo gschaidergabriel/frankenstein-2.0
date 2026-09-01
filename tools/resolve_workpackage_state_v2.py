@@ -25,7 +25,17 @@ STATE_REL = Path("workpackages/STATE.json")
 EVENT_ROOT_REL = Path("workpackages/state_events")
 ACTIVE_ROOT_REL = Path("workpackages/active")
 TERMINAL_STATES = {"ACCEPTED", "FAILED_TERMINAL", "RETIRED_STALE", "SUPERSEDED"}
-BROAD_STATUSES = {"NOT_STARTED", "IN_PROGRESS", "HOLD", "BLOCKED", "ACCEPTED_AT_SCOPE"}
+# Event history is append-only. Keep the effective view on the compact canonical
+# broad-state vocabulary while admitting explicitly known historical/event-writer
+# spellings. Unknown spellings remain fail-closed.
+BROAD_STATUS_NORMALIZATION = {
+    "NOT_STARTED": "NOT_STARTED",
+    "IN_PROGRESS": "IN_PROGRESS",
+    "HOLD": "HOLD",
+    "BLOCKED": "BLOCKED",
+    "ACCEPTED_AT_SCOPE": "ACCEPTED_AT_SCOPE",
+    "ACTIVE_REPAIR": "IN_PROGRESS",
+}
 WP_RE = re.compile(r"^F2-WP-\d+$")
 SEQ_RE = re.compile(r"^(\d{6})\.json$")
 
@@ -88,6 +98,13 @@ def _require_int(obj: dict[str, Any], key: str, where: Path, *, minimum: int = 0
     return value
 
 
+def _normalize_broad_status(value: str, where: Path) -> str:
+    normalized = BROAD_STATUS_NORMALIZATION.get(value)
+    if normalized is None:
+        raise ValidationError(f"unsupported broad_status {value}: {where}")
+    return normalized
+
+
 def _load_contract(root: Path) -> dict[str, Any]:
     path = root / CONTRACT_REL
     data = _load_json(path)
@@ -144,8 +161,7 @@ def load_event_chain(root: Path, workpackage_id: str) -> list[EventHead]:
                 raise ValidationError(f"event parent digest mismatch: {path}")
 
         broad_status = _require_str(data, "broad_status", path)
-        if broad_status not in BROAD_STATUSES:
-            raise ValidationError(f"unsupported broad_status {broad_status}: {path}")
+        _normalize_broad_status(broad_status, path)
         _require_int(data, "claim_generation", path, minimum=1)
         _require_str(data, "claim_id", path)
         _require_int(data, "phase", path, minimum=0)
@@ -229,7 +245,7 @@ def resolve_effective_state(root: Path, *, check_active: bool = False) -> dict[s
                 _validate_head_bindings(root, head)
             data = head.data
             effective_rows[wp] = {
-                "status": data["broad_status"],
+                "status": _normalize_broad_status(data["broad_status"], head.path),
                 "phase": data["phase"],
                 "title": data["title"],
                 "evidence": list(data["evidence"]),
