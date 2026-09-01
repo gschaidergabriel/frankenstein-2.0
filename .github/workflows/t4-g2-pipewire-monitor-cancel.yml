@@ -1,0 +1,193 @@
+name: T4 G2 PipeWire Monitor Cancel S2
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'trigger4/tools/local_voice/g2_pipewire_s2_runtime.py'
+      - 'trigger4/tools/local_voice/run_g2_pipewire_s2.sh'
+      - 'research/local_voice/tools/t7_pipewire_monitor_cancel_analyze.py'
+      - 'research/local_voice/benchmarks/2026-09-02_TRIGGER7_COMPLETION_DEPTH_G2.json'
+      - '.github/workflows/t4-g2-pipewire-monitor-cancel.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  s2-pipewire-monitor-cancel:
+    runs-on: clay-host
+    timeout-minutes: 45
+    env:
+      F2_SANDBOX_ROOT: /var/tmp/frankenstein2-sandboxes
+      F2_SANDBOX_MIN_FREE_KIB: '5242880'
+      F2_SANDBOX_MIN_MEM_KIB: '1048576'
+      CLAY_HOST_ADMIN: /usr/local/sbin/clay-host-admin
+      CLAY_HOST_ADMIN_SHA256: 064b1b775840aa270a9c61b672db5814d83b403dbf2e26abb270ed3ab103c5f4
+      F2_NSPAWN_PREPARE_SHA256: d5dd0f2e9d7d476ae6537d8810b67b5930bab177cce999d364b64fb3bfafc472
+      F2_NSPAWN_RUNNER_SHA256: 50d275e0c96e3d7e318918c9e890ce5a5c3e2d32a74b9fe5d0fcd32a729cdf24
+    steps:
+      - name: Checkout exact workflow subject
+        uses: actions/checkout@v4
+
+      - name: Verify exact VPS runner and S2 ABI
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          printf '%s\n' \
+            "RUNNER_NAME=${RUNNER_NAME:-UNKNOWN}" \
+            "RUNNER_OS=${RUNNER_OS:-UNKNOWN}" \
+            "RUNNER_ARCH=${RUNNER_ARCH:-UNKNOWN}" \
+            "GITHUB_SHA=$GITHUB_SHA" \
+            "GITHUB_RUN_ID=$GITHUB_RUN_ID" \
+            "GITHUB_RUN_ATTEMPT=$GITHUB_RUN_ATTEMPT"
+          test "${RUNNER_NAME:-}" = "vps-clay-host"
+          test "${RUNNER_OS:-}" = "Linux"
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          test -x "$CLAY_HOST_ADMIN"
+          test "$(sha256sum "$CLAY_HOST_ADMIN" | awk '{print $1}')" = "$CLAY_HOST_ADMIN_SHA256"
+          test "$(sha256sum tools/vps_sandbox/host_prepare_ubuntu_nspawn.sh | awk '{print $1}')" = "$F2_NSPAWN_PREPARE_SHA256"
+          test "$(sha256sum tools/vps_sandbox/run_ubuntu_sandbox.sh | awk '{print $1}')" = "$F2_NSPAWN_RUNNER_SHA256"
+          sudo -n "$CLAY_HOST_ADMIN" sandbox prepare "$PWD/tools/vps_sandbox/host_prepare_ubuntu_nspawn.sh"
+
+      - name: Record exact execution subject
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          git rev-parse HEAD
+          sha256sum \
+            src/frankenstein2/voice_packet_cortex.py \
+            trigger4/tools/local_voice/g2_pipewire_s2_runtime.py \
+            trigger4/tools/local_voice/run_g2_pipewire_s2.sh \
+            research/local_voice/tools/t7_pipewire_monitor_cancel_analyze.py \
+            research/local_voice/benchmarks/2026-09-02_TRIGGER7_COMPLETION_DEPTH_G2.json
+
+      - name: Host-health and isolation preflight
+        shell: bash
+        run: bash tools/vps_sandbox/preflight.sh | tee /tmp/t4-g2-pipewire-preflight.txt
+
+      - name: Execute G2 PipeWire discriminator in admitted S2
+        id: execute
+        continue-on-error: true
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          set +e
+          sudo -n "$CLAY_HOST_ADMIN" sandbox run "$PWD/tools/vps_sandbox/run_ubuntu_sandbox.sh" \
+            --backend nspawn --network on --source-root "$PWD" -- \
+            /bin/bash -lc '
+              set -u
+              export F2_SUBJECT_SHA="$1"
+              bash trigger4/tools/local_voice/run_g2_pipewire_s2.sh
+              printf "G2_LAUNCHER_EXIT=%s\n" "$?"
+              exit 0
+            ' _ "$GITHUB_SHA" |& tee /tmp/t4-g2-pipewire-sandbox.txt
+          sandbox_call_exit=${PIPESTATUS[0]}
+          set -e
+          printf 'SANDBOX_CALL_EXIT=%s\n' "$sandbox_call_exit" | tee -a /tmp/t4-g2-pipewire-sandbox.txt
+          exit 0
+
+      - name: Emit exact bounded execution receipt
+        if: always()
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          python3 - <<'PY'
+          import base64, json, os, pathlib, re
+
+          sandbox_path = pathlib.Path('/tmp/t4-g2-pipewire-sandbox.txt')
+          preflight_path = pathlib.Path('/tmp/t4-g2-pipewire-preflight.txt')
+          sandbox = sandbox_path.read_text(errors='replace') if sandbox_path.exists() else ''
+          preflight = preflight_path.read_text(errors='replace') if preflight_path.exists() else ''
+
+          marker = re.search(r'^T4_G2_PIPEWIRE_RECEIPT_B64=([A-Za-z0-9+/=]+)$', sandbox, re.MULTILINE)
+          harness = None
+          if marker:
+              try:
+                  harness = json.loads(base64.b64decode(marker.group(1)).decode('utf-8'))
+              except Exception:
+                  harness = None
+          call_match = re.search(r'^SANDBOX_CALL_EXIT=(\d+)$', sandbox, re.MULTILINE)
+          launcher_match = re.search(r'^G2_LAUNCHER_EXIT=(\d+)$', sandbox, re.MULTILINE)
+          sandbox_pass = 'F2_SANDBOX_RESULT=PASS' in sandbox
+          harness_pass = isinstance(harness, dict) and harness.get('result') == 'NO_COUNTEREXAMPLE'
+          exact_subject = isinstance(harness, dict) and harness.get('f2_subject_sha') == os.environ.get('GITHUB_SHA')
+          complete = bool(sandbox_pass and harness_pass and exact_subject)
+
+          if complete:
+              failure_class = None
+              classification = 'ACCEPT_AT_BOUNDED_S2_OWNER_VPS_PIPEWIRE_VIRTUAL_MONITOR_SCOPE_ONLY'
+          elif isinstance(harness, dict):
+              failure_class = harness.get('failure_class') or 'UNKNOWN_NONTERMINAL'
+              classification = harness.get('classification') or 'HARNESS_NONPASS'
+          else:
+              failure_class = 'INFRA_AUTH_TRANSPORT_QUOTA'
+              classification = 'S2_EXECUTION_OR_RECEIPT_NOT_OBSERVED'
+
+          receipt = {
+              'schema': 'T4_G2_PIPEWIRE_S2_WORKFLOW_RECEIPT/v1',
+              'semantic_key': '0d83f7d13c1d8f91686cf94070f73d901a49018b40a9c058d1949af094655bff',
+              'trigger': '4',
+              'work_class': 'RUNTIME_CREDIT_CLOSURE',
+              'github': {
+                  'sha': os.environ.get('GITHUB_SHA'),
+                  'run_id': os.environ.get('GITHUB_RUN_ID'),
+                  'run_attempt': os.environ.get('GITHUB_RUN_ATTEMPT'),
+                  'runner_name': os.environ.get('RUNNER_NAME'),
+                  'runner_os': os.environ.get('RUNNER_OS'),
+              },
+              'sandbox': {
+                  'tier': 'S2',
+                  'backend': 'nspawn',
+                  'network_during_setup_and_local_runtime': 'on_separate_veth',
+                  'host_survival_observed': 'host_survival_sentinel=PASS' in sandbox,
+                  'runner_reported_pass': sandbox_pass,
+                  'sandbox_call_exit': int(call_match.group(1)) if call_match else None,
+                  'launcher_exit': int(launcher_match.group(1)) if launcher_match else None,
+              },
+              'harness_receipt': harness,
+              'result': 'NO_COUNTEREXAMPLE' if complete else 'NOT_ACCEPTED',
+              'failure_class': failure_class,
+              'classification': classification,
+              'measured_credit': {
+                  'owner_vps_pipewire_virtual_sink_playback_readback': 1 if complete else 0,
+                  'bounded_cancellation_to_virtual_audio_monitor_silence': 1 if complete else 0,
+              },
+              'explicit_zero_credit': {
+                  'physical_microphone': 0,
+                  'physical_speaker': 0,
+                  'human_heard_output': 0,
+                  'physical_presence': 0,
+                  'cancellation_to_physical_silence': 0,
+                  'true_streaming_partial_asr': 0,
+                  'canonical_durable_state_reentry': 0,
+                  'gwt_jspace': 0,
+                  'effect': 0,
+                  'training': 0,
+                  'whole_voice_e2e': 0,
+                  'whole_product': 0,
+              },
+              'preflight_sha256': __import__('hashlib').sha256(preflight.encode()).hexdigest(),
+              'sandbox_log_sha256': __import__('hashlib').sha256(sandbox.encode()).hexdigest(),
+          }
+          out = pathlib.Path('/tmp/t4-g2-pipewire-workflow-receipt.json')
+          out.write_text(json.dumps(receipt, indent=2, sort_keys=True) + '\n')
+          print('T4_G2_PIPEWIRE_WORKFLOW_RECEIPT_B64=' + base64.b64encode(json.dumps(receipt, sort_keys=True).encode()).decode())
+          print(json.dumps(receipt, indent=2, sort_keys=True))
+          PY
+
+      - name: Enforce bounded acceptance result
+        if: always()
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          python3 - <<'PY'
+          import json, pathlib, sys
+          path = pathlib.Path('/tmp/t4-g2-pipewire-workflow-receipt.json')
+          if not path.exists():
+              raise SystemExit(2)
+          receipt = json.loads(path.read_text())
+          if receipt.get('result') != 'NO_COUNTEREXAMPLE':
+              print(json.dumps(receipt, sort_keys=True))
+              raise SystemExit(2)
+          PY
