@@ -227,6 +227,19 @@ class OptionalVPSBridgeTests(unittest.TestCase):
                 result_digest=SHA_D,
             )
 
+    def test_remote_return_valid_sha_request_substitution_fails_closed(self) -> None:
+        plan = plan_optional_bridge(local=local(), action=BridgeAction.ATTACH, remote=remote())
+        binding = bind_remote_request(plan=plan, request_digest=SHA_C)
+        tampered = replace(binding, request_digest=SHA_E)
+        with self.assertRaises(BridgeValidationError):
+            validate_remote_return(
+                plan=plan,
+                request_binding=tampered,
+                returned_remote_endpoint_digest=plan.remote_endpoint_digest,
+                returned_state_lineage_id="state-lineage-1",
+                result_digest=SHA_D,
+            )
+
     def test_remote_return_wrong_lineage_fails_closed(self) -> None:
         plan = plan_optional_bridge(local=local(), action=BridgeAction.ATTACH, remote=remote())
         binding = bind_remote_request(plan=plan, request_digest=SHA_C)
