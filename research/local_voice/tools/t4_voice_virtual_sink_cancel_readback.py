@@ -341,7 +341,8 @@ def run(backend: str) -> dict[str, Any]:
         "pass": passed,
         "failure_class": None if passed else "PRODUCT_NEGATIVE",
         "measured_credit": {
-            "virtual_sink_output_consumption_control": int(passed),
+            "repository_software_reference_credit": int(passed and backend == "software"),
+            "virtual_sink_output_consumption_control": int(passed and backend == "pulse-null"),
             "stale_generation_rejection": int(not late_old_accepted and fence.rejected == 1),
             "physical_speaker": 0,
             "physical_microphone": 0,
