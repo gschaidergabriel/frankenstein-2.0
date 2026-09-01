@@ -1,0 +1,52 @@
+{
+  "schema": "FRANKENSTEIN2_WORKPACKAGE_DELTA/v1",
+  "workpackage_id": "F2-WP-1109",
+  "generation": 1,
+  "claim_id": "F2-WP-1109-G1-GPT56SOL-HOST-TRANSITION-20260829T1251Z",
+  "worker_id": "GPT-5.6-Sol-TRIGGER4-REVIEW-ONLY",
+  "authority_epoch": "8.78",
+  "result_class": "REVIEW_ONLY_CANDIDATE_PATCH_PREPARED",
+  "observed_main_commit": "98216bc7d3a6fa695239f8aca10839011e769c1e",
+  "reviewed_source": "src/frankenstein2/host_transition.py",
+  "reviewed_source_git_blob": "76bf1f93efd328205338370461c6c51e639b9f73",
+  "reviewed_test": "tests/test_host_transition.py",
+  "reviewed_test_git_blob": "9cc776b4c19c6c7bd3a46bffd38ffef9d60731af",
+  "counterevidence": {
+    "pull_request": 457,
+    "head": "d21f8d52a367decf78e5cda1b04982df200c1f9f",
+    "workflow_run": 33253753677,
+    "finding": "The accepted generation-1 HostRouteEvidence ABI admits SWITCH_HOST with a non-empty but opaque state_readback_evidence_ref and cannot prove that the successor or rollback readback binds the request CanonicalStateBinding."
+  },
+  "candidate": {
+    "transformer": "reviews/wp1109_state_readback_binding_candidate.py",
+    "discriminator": "tests/falsifiers/test_wp1109_state_readback_binding_candidate.py",
+    "workflow": ".github/workflows/wp1109-state-readback-binding-candidate.yml",
+    "proposed_fields": [
+      "state_readback_lineage_id",
+      "state_readback_generation",
+      "state_readback_state_sha256",
+      "state_readback_binding_sha256"
+    ],
+    "required_fail_closed_cases": [
+      "missing typed readback identity",
+      "lineage mismatch",
+      "generation mismatch",
+      "state digest mismatch",
+      "canonical binding digest mismatch",
+      "rollback/re-enable readback mismatch"
+    ],
+    "exact_blob_gate": true,
+    "canonical_existing_suite_must_remain_green": true
+  },
+  "mutation_authority": false,
+  "proposed_state_change": "NONE_REVIEW_ONLY",
+  "runtime_execution_observed": false,
+  "physical_host_credit": 0,
+  "vps_runtime_credit": 0,
+  "physical_grid10_credit": 0,
+  "gwt_runtime_credit": 0,
+  "jspace_runtime_credit": 0,
+  "training_credit": 0,
+  "whole_system_acceptance": false,
+  "next_exact_action": "Execute the exact-blob-bound review workflow. If both the pre-existing WP1109 suite and the adversarial typed-readback discriminator pass, the canonical WP1109 mutation owner or an explicitly admitted successor generation may absorb the repair and reconcile it with exact repository CI; this review branch must not overwrite the accepted pointer by itself."
+}
