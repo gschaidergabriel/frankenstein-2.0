@@ -11,6 +11,7 @@ from __future__ import annotations
 import argparse
 import base64
 import hashlib
+import importlib.util
 import json
 import os
 from pathlib import Path
@@ -37,6 +38,16 @@ def sha256_file(path: Path) -> str:
         for chunk in iter(lambda: fh.read(8 * 1024 * 1024), b""):
             h.update(chunk)
     return h.hexdigest()
+
+
+def load_evidence_helper(path: Path):
+    spec = importlib.util.spec_from_file_location("t4_g2_pipewire_evidence_runtime", path)
+    if spec is None or spec.loader is None:
+        raise RuntimeError("EVIDENCE_HELPER_IMPORT_SPEC_INVALID")
+    module = importlib.util.module_from_spec(spec)
+    sys.modules[spec.name] = module
+    spec.loader.exec_module(module)
+    return module
 
 
 def read_wav_meta(path: Path) -> dict[str, int]:
@@ -189,13 +200,15 @@ def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--source", type=Path, required=True)
     ap.add_argument("--analyzer", type=Path, required=True)
+    ap.add_argument("--evidence-helper", type=Path, required=True)
+    ap.add_argument("--bound-receipt", type=Path, required=True)
     ap.add_argument("--workdir", type=Path, required=True)
     ap.add_argument("--f2-subject-sha", required=True)
     ap.add_argument("--tts-model-sha256", required=True)
     ap.add_argument("--tts-config-sha256", required=True)
     ap.add_argument("--sink-name", default="f2_voice_g2_sink")
     ap.add_argument("--cancel-after-ms", type=float, default=1200.0)
-    ap.add_argument("--max-inflight-ms", type=float, default=250.0)
+    ap.add_argument("--max-inflight-ms", type=float, required=True)
     args = ap.parse_args()
 
     report: dict = {
@@ -237,6 +250,15 @@ def main() -> int:
     try:
         if not args.source.is_file() or not args.analyzer.is_file():
             raise RuntimeError("BOUND_INPUT_MISSING")
+        if not args.evidence_helper.is_file() or not args.bound_receipt.is_file():
+            stage = "EVIDENCE_BINDING"
+            raise RuntimeError("EVIDENCE_BINDING_INPUT_MISSING")
+        evidence = load_evidence_helper(args.evidence_helper)
+        bound_receipt = json.loads(args.bound_receipt.read_text(encoding="utf-8"))
+        if not isinstance(bound_receipt, dict):
+            stage = "EVIDENCE_BINDING"
+            raise RuntimeError("BOUND_PREFLIGHT_RECEIPT_NOT_OBJECT")
+
         source_meta = read_wav_meta(args.source)
         if source_meta["sample_width"] != 2 or source_meta["channels"] != 1:
             raise RuntimeError(f"SOURCE_MUST_BE_MONO_PCM16:{source_meta}")
@@ -266,6 +288,10 @@ def main() -> int:
         monitor_line = wait_named_line(["pactl", "list", "short", "sources"], monitor_name)
         pw_dump = run(["pw-dump"], check=False).stdout
         settings = run(["pw-metadata", "-n", "settings"], check=False).stdout
+
+        stage = "EVIDENCE_BINDING"
+        evidence.validate_bound_receipt(bound_receipt, settings, args.max_inflight_ms)
+        object_binding = evidence.resolve_pipewire_objects(pw_dump, args.sink_name, monitor_name)
 
         stage = "CONTROL"
         control_cap, control_fh = capture_start(
@@ -333,7 +359,10 @@ def main() -> int:
         time.sleep(0.2)
         sinks_after = run(["pactl", "list", "short", "sinks"], check=False).stdout
         sources_after = run(["pactl", "list", "short", "sources"], check=False).stdout
-        cleanup_ok = args.sink_name not in sinks_after and monitor_name not in sources_after
+        pw_dump_after = run(["pw-dump"], check=False).stdout
+        cleanup_name_ok = args.sink_name not in sinks_after and monitor_name not in sources_after
+        cleanup_identity_ok = evidence.identities_absent(pw_dump_after, object_binding)
+        cleanup_ok = cleanup_name_ok and cleanup_identity_ok
 
         report.update({
             "source": {
@@ -343,12 +372,14 @@ def main() -> int:
                 "tts_model_sha256": args.tts_model_sha256,
                 "tts_config_sha256": args.tts_config_sha256,
             },
+            "preexecution_bound": bound_receipt,
             "pipewire": {
                 "pactl_info": pactl_info,
                 "pipewire_version": pipewire_version,
                 "wireplumber_version": wireplumber_version,
                 "sink_line": sink_line,
                 "monitor_line": monitor_line,
+                "object_binding": object_binding,
                 "pw_dump_sha256": hashlib.sha256(pw_dump.encode()).hexdigest(),
                 "settings": settings[-4000:],
             },
@@ -374,8 +405,11 @@ def main() -> int:
             "analysis": analysis,
             "cleanup": {
                 "run_owned_sink_removed": cleanup_ok,
+                "name_absence_verified": cleanup_name_ok,
+                "exact_identity_absence_verified": cleanup_identity_ok,
                 "sink_present_after": args.sink_name in sinks_after,
                 "monitor_present_after": monitor_name in sources_after,
+                "pw_dump_after_sha256": hashlib.sha256(pw_dump_after.encode()).hexdigest(),
             },
             "external_inference_api_calls": 0,
         })
@@ -416,7 +450,9 @@ def main() -> int:
         report["stage"] = stage
         report["result"] = "BLOCKED"
         report["failure_class"] = (
-            "EVIDENCE_INVALID" if stage == "PCM_ANALYSIS" else "INFRA_AUTH_TRANSPORT_QUOTA"
+            "EVIDENCE_INVALID"
+            if stage in {"EVIDENCE_BINDING", "PCM_ANALYSIS"}
+            else "INFRA_AUTH_TRANSPORT_QUOTA"
         )
         report["classification"] = f"{type(exc).__name__}:{exc}"
     finally:
