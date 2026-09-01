@@ -1,0 +1,66 @@
+{
+  "schema": "TRIGGER7_SOURCE_DELTA/v1",
+  "trigger": "7",
+  "date": "2026-08-30",
+  "worker": "GPT-5.6-Sol-TRIGGER7",
+  "research_id": "T7-TTS-001",
+  "objective": "E2_SOURCE_AUDIT_REALTIME_TTS_FRONTIER",
+  "scope": "source-only runtime-substrate audit inside the existing realtime TTS frontier; no model download, target execution, German E2E, Trigger-4 or whole-system credit",
+  "f2_main_observed_before_write": "35855b24ae9909bbb94de1e51fdd47eff605f8a6",
+  "sources": [
+    {
+      "candidate": "pltobing/Qwen3-TTS-Streaming-ONNX",
+      "upstream_surface": "Hugging Face",
+      "observed_main_short_revision": "4e24bde",
+      "full_revision_status": "NOT_PINNED_IN_THIS_DELTA_REQUIRE_EXACT_FULL_REVISION_BEFORE_DOWNLOAD_OR_EXECUTION",
+      "base_model": "Qwen/Qwen3-TTS-12Hz-0.6B-Base",
+      "license_observed": "Apache-2.0",
+      "german_listed": true,
+      "runtime_claim": "pure ONNX Runtime streaming inference without PyTorch or Transformers runtime dependency",
+      "continuity_claim": "source reports multi-round continuous streaming and a standalone Qwen3TTSTextProcessor",
+      "classification": "SOURCE_ONLY_RUNTIME_SUBSTRATE_CHALLENGER",
+      "authority_boundary": "community conversion is not an official Qwen runtime artifact and grants zero F2 runtime or quality credit",
+      "source_url": "https://huggingface.co/pltobing/Qwen3-TTS-Streaming-ONNX"
+    },
+    {
+      "candidate": "pltobing/XTTSv2-Streaming-ONNX",
+      "upstream_surface": "Hugging Face",
+      "base_model": "coqui/XTTS-v2",
+      "license_observed": "CC-BY-NC-4.0",
+      "german_listed": true,
+      "runtime_claim": "CPU-friendly streaming ONNX Runtime plus NumPy without PyTorch inference dependency; optional INT8 GPT path and short-reference voice cloning",
+      "classification": "RESEARCH_REFERENCE_ONLY_LICENSE_CONSTRAINED",
+      "production_routing": "DO_NOT_PROMOTE_AS_DEFAULT_PRODUCTION_CANDIDATE_WITHOUT_EXPLICIT_LICENSE_COMPATIBILITY_DECISION",
+      "authority_boundary": "source capability and license metadata grant zero F2 runtime or acceptance credit",
+      "source_url": "https://huggingface.co/pltobing/XTTSv2-Streaming-ONNX"
+    }
+  ],
+  "hypothesis": "A provenance-pinned Qwen3-TTS ONNX streaming path may reduce Python-framework residency, startup coupling and jitter while preserving the German 12Hz 0.6B Base voice behavior well enough to improve the whole-Frankenstein resident-resource frontier.",
+  "counterhypothesis": "The ONNX conversion may increase static artifact residency, duplicate prefill/step graph costs, alter numerical behavior or degrade German voice identity/stream continuity enough that the official Qwen3-TTS runtime remains superior despite heavier framework dependencies.",
+  "cheapest_high_information_discriminator_after_hardware_gate": {
+    "precondition": "one valid clay-direct-dev target hardware/resource receipt and exact source/model pinning",
+    "conditions": [
+      "official Qwen3-TTS-12Hz-0.6B-Base runtime",
+      "pinned Qwen3-TTS-Streaming-ONNX conversion"
+    ],
+    "controls": "identical German prompts, identical fixed male reference audio, identical target host, blocked outbound model inference, identical warm/cold protocol",
+    "measure": [
+      "TTFA p50/p95",
+      "RTF",
+      "RSS/PSS and accelerator memory",
+      "startup/warmup",
+      "disk/model footprint",
+      "stream chunk continuity",
+      "barge-in cancellation latency and unheard-output correctness",
+      "German intelligibility/content error",
+      "male acoustic identity stability"
+    ]
+  },
+  "credit": {
+    "source_research": "OBSERVED",
+    "target_runtime": 0,
+    "german_e2e": 0,
+    "trigger4_acceptance": 0,
+    "whole_system": 0
+  }
+}
