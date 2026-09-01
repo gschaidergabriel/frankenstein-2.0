@@ -1,0 +1,60 @@
+{
+  "schema": "F2_TRIGGER4_REPAIR_VALIDATION_RESULT/v1",
+  "trigger": "4",
+  "organ": "GPT-5.6-Sol-TRIGGER4-REVIEW",
+  "workpackage_id": "F2-WP-720",
+  "generation": 1,
+  "lane": "REVIEW_ONLY_REPAIR_VALIDATION",
+  "mutation_authority": false,
+  "root_cause_witness": {
+    "falsified_subject_sha": "731db925df96ab7e49c0e5b80cd7bc8f4d37a086",
+    "falsifier_run_id": 33536451609,
+    "classification": "PRODUCT_NEGATIVE",
+    "defect": "one accepted HOLD source event could mint conflicting WAIT and BACKCHANNEL policy decisions"
+  },
+  "repair_subject": {
+    "f2_source_sha": "c0b1f8bba4178a8291a6a5cec73e296d29d962ac",
+    "implementation_commit": "ba5d80eb10fc6e6a8788e513f2bacac0d7954e8a",
+    "regression_commit": "c0b1f8bba4178a8291a6a5cec73e296d29d962ac",
+    "cortex_sha256": "91bb79f124a3f40751a0ed7a8d2778a4dfb4bb299b45033d29c56facbce04605",
+    "recovery_sha256": "ca15c37fa9a51c5c01f0045152b1b6a2aedf28d8f38c78d3821bddb274fbcb46",
+    "test_sha256": "6636a3322c0e0caa46fc261a5392512f55a975491069a0665178a90250ded678"
+  },
+  "execution": {
+    "workflow": ".github/workflows/t4-wp720-repair-candidate-review.yml",
+    "workflow_commit": "8adea483174cbd45ad1c4ea99d3847dd488a75dd",
+    "run_id": 33536881347,
+    "job_id": 99953255276,
+    "runner": "ubuntu-24.04",
+    "python": "3.12.14",
+    "exact_identity_step": "SUCCESS",
+    "packet_cortex_regressions": {
+      "tests_run": 24,
+      "failures": 0,
+      "errors": 0,
+      "result": "PASS"
+    },
+    "direct_pfd6": {
+      "conflicting_rebind": "REJECTED",
+      "same_policy_replay": "IDEMPOTENT_EXISTING_EVENT",
+      "authoritative_decision_count": 1,
+      "result": "PASS"
+    }
+  },
+  "repair_mechanism": "PacketTurnPolicy is immutable; VoicePacketCortex.apply_turn_policy derives the one-decision/replay fence from existing persisted event history. Exact same policy hash returns the existing TURN_POLICY_DECISION, while a conflicting policy for the same accepted packet raises VoicePacketCortexError. Checkpoint reentry preserves the event-history fence without a second persistent authority.",
+  "classification": "ROOT_CAUSE_REPAIR_CANDIDATE_EXECUTED_PASS_AT_REPOSITORY_SCOPE",
+  "scope": {
+    "repository_repair_validation_credit": 1,
+    "canonical_wp720_promotion": 0,
+    "target_environment_component_runtime_credit": 0,
+    "physical_audio_credit": 0,
+    "asr_runtime_credit": 0,
+    "tts_runtime_credit": 0,
+    "gwt_jspace_credit": 0,
+    "effect_credit": 0,
+    "training_credit": 0,
+    "whole_product_credit": 0
+  },
+  "runtime_subject_law": "The old singleton VPS subject 731db925 remains invalidated for current WP720 semantics. A later pass of that old subject is historical-only. The active mutation owner must reconcile/adopt the repaired successor, establish repository acceptance for one exact repaired subject, and bind a new singleton VPS dispatch only to that accepted repaired subject.",
+  "next_exact_action": "Refresh WP720 active/event/reconciliation state. If the current mutation owner canonically adopts the c0b1f8bb repair semantics, bind one exact accepted repaired subject and only then dispatch one new owner-VPS sandbox run. Do not compose old 731db925 runtime evidence into repaired-subject runtime credit."
+}
