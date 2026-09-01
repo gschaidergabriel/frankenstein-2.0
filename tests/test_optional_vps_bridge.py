@@ -156,6 +156,16 @@ class OptionalVPSBridgeTests(unittest.TestCase):
         self.assertEqual(result["target_runtime_credit"], 0)
         self.assertFalse(result["whole_system_acceptance"])
 
+    def test_remote_return_without_plan_bound_request_identity_fails_closed(self) -> None:
+        plan = plan_optional_bridge(local=local(), action=BridgeAction.ATTACH, remote=remote())
+        with self.assertRaisesRegex(BridgeValidationError, "REMOTE_RETURN_REQUEST_BINDING_REQUIRED"):
+            validate_remote_return(
+                plan=plan,
+                returned_state_lineage_id="state-lineage-1",
+                request_digest=SHA_C,
+                result_digest=SHA_D,
+            )
+
     def test_remote_return_wrong_lineage_fails_closed(self) -> None:
         plan = plan_optional_bridge(local=local(), action=BridgeAction.ATTACH, remote=remote())
         with self.assertRaisesRegex(BridgeValidationError, "STATE_LINEAGE_MISMATCH"):
