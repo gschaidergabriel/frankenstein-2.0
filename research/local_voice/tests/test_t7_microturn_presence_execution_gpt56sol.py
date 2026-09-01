@@ -26,6 +26,7 @@ class Trigger7MicroturnPresenceExecutionTest(unittest.TestCase):
         lines = [line for line in proc.stdout.splitlines() if line.strip()]
         self.assertTrue(lines, msg="diagnostic emitted no JSON report")
         report = json.loads(lines[-1])
+        print("T7_MICROTURN_PRESENCE_REPORT=" + json.dumps(report, sort_keys=True, separators=(",", ":")))
         self.assertEqual(report["schema"], "F2_T7_MICROTURN_PRESENCE_DIAGNOSTIC/v1")
         self.assertIn(
             report["result"],
