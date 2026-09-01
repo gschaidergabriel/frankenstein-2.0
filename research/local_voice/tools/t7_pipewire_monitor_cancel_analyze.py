@@ -9,8 +9,10 @@ or product credit. It compares:
 
 The caller must provide the causal cancellation offset from playback start and a
 predeclared maximum in-flight tail derived from the PipeWire graph/latency
-preflight. The tool aligns monitor captures to the source, scans fixed windows
-for source-correlated old-packet audio, and emits a JSON measurement receipt.
+preflight. The tool aligns monitor captures to the source, verifies that the
+control actually covers the source, requires an explicit post-bound observation
+window for the cancellation capture, scans fixed windows for source-correlated
+old-packet audio, and emits a JSON measurement receipt.
 """
 from __future__ import annotations
 
@@ -23,7 +25,9 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-SCHEMA = "T7_PIPEWIRE_MONITOR_CANCEL_ANALYSIS/v1"
+SCHEMA = "T7_PIPEWIRE_MONITOR_CANCEL_ANALYSIS/v2"
+DEFAULT_REQUIRED_POSTROLL_MS = 500.0
+DEFAULT_MIN_CONTROL_CORRELATED_WINDOW_RATIO = 0.90
 
 
 def sha256_file(path: Path) -> str:
@@ -196,6 +200,14 @@ def scan_correlated_windows(
     return rows
 
 
+def _write_terminal(receipt: dict[str, Any], output: Path, classification: str, reason: str) -> int:
+    receipt["pass"] = False
+    receipt["classification"] = classification
+    receipt["reason"] = reason
+    output.write_text(json.dumps(receipt, indent=2, sort_keys=True) + "\n")
+    return 2
+
+
 def main(argv: list[str] | None = None) -> int:
     p = argparse.ArgumentParser()
     p.add_argument("--source", type=Path, required=True)
@@ -213,6 +225,18 @@ def main(argv: list[str] | None = None) -> int:
         type=float,
         required=True,
         help="Predeclared maximum acceptable graph tail from PipeWire preflight.",
+    )
+    p.add_argument(
+        "--required-postroll-ms",
+        type=float,
+        default=DEFAULT_REQUIRED_POSTROLL_MS,
+        help="Predeclared observation window required after the in-flight bound.",
+    )
+    p.add_argument(
+        "--min-control-correlated-window-ratio",
+        type=float,
+        default=DEFAULT_MIN_CONTROL_CORRELATED_WINDOW_RATIO,
+        help="Minimum fraction of active full-control windows that must correlate to the source.",
     )
     p.add_argument("--alignment-probe-ms", type=float, default=400.0)
     p.add_argument("--window-ms", type=float, default=20.0)
@@ -240,6 +264,10 @@ def main(argv: list[str] | None = None) -> int:
             raise ValueError("--cancel-offset-ms must be > 0")
         if args.max_inflight_ms < 0:
             raise ValueError("--max-inflight-ms must be >= 0")
+        if args.required_postroll_ms <= 0:
+            raise ValueError("--required-postroll-ms must be > 0")
+        if not 0 < args.min_control_correlated_window_ratio <= 1:
+            raise ValueError("--min-control-correlated-window-ratio must be in (0,1]")
         if not 0 < args.correlation_threshold <= 1:
             raise ValueError("--correlation-threshold must be in (0,1]")
         if not 0 < args.capture_rms_ratio_floor:
@@ -291,10 +319,81 @@ def main(argv: list[str] | None = None) -> int:
         control_valid = control_corr >= args.correlation_threshold and cancel_corr >= args.correlation_threshold
         receipt["control_valid"] = control_valid
         if not control_valid:
-            receipt["classification"] = "EVIDENCE_INVALID_CONTROL_OR_PRECANCEL_ALIGNMENT"
-            receipt["reason"] = "source->control or source->cancel pre-cancel correlation did not meet the declared threshold"
-            args.output.write_text(json.dumps(receipt, indent=2, sort_keys=True) + "\n")
-            return 2
+            return _write_terminal(
+                receipt,
+                args.output,
+                "EVIDENCE_INVALID_CONTROL_OR_PRECANCEL_ALIGNMENT",
+                "source->control or source->cancel pre-cancel correlation did not meet the declared threshold",
+            )
+
+        required_source_end_ms = args.cancel_offset_ms + args.max_inflight_ms + args.required_postroll_ms
+        required_source_end_frame = int(math.ceil(required_source_end_ms * rate / 1000.0))
+        required_control_capture_end_frame = control_offset + source.frames
+        required_cancel_capture_end_frame = cancel_offset + required_source_end_frame
+        receipt["coverage"] = {
+            "required_postroll_ms_predeclared": args.required_postroll_ms,
+            "required_source_timeline_end_ms": required_source_end_ms,
+            "required_source_timeline_end_frame": required_source_end_frame,
+            "source_frames": source.frames,
+            "control_capture_frames": control.frames,
+            "required_control_capture_end_frame": required_control_capture_end_frame,
+            "cancel_capture_frames": cancel.frames,
+            "required_cancel_capture_end_frame": required_cancel_capture_end_frame,
+        }
+        if required_source_end_frame > source.frames:
+            return _write_terminal(
+                receipt,
+                args.output,
+                "EVIDENCE_INVALID_SOURCE_TOO_SHORT_FOR_POST_BOUND_OBSERVATION",
+                "source does not extend through cancel + max-inflight + predeclared post-roll",
+            )
+        if required_control_capture_end_frame > control.frames:
+            return _write_terminal(
+                receipt,
+                args.output,
+                "EVIDENCE_INVALID_INSUFFICIENT_CONTROL_CAPTURE",
+                "control capture does not cover the complete aligned source waveform",
+            )
+        if required_cancel_capture_end_frame > cancel.frames:
+            return _write_terminal(
+                receipt,
+                args.output,
+                "EVIDENCE_INVALID_INSUFFICIENT_POST_BOUND_CAPTURE",
+                "cancel capture does not cover cancel + max-inflight + predeclared post-roll",
+            )
+
+        control_windows = scan_correlated_windows(
+            source=source.mono,
+            capture=control.mono,
+            capture_offset=control_offset,
+            sample_rate=rate,
+            start_source_frame=0,
+            end_source_frame=source.frames,
+            window_ms=args.window_ms,
+            corr_threshold=args.correlation_threshold,
+            source_rms_floor=args.source_rms_floor,
+            capture_rms_ratio_floor=args.capture_rms_ratio_floor,
+        )
+        active_control_windows = [row for row in control_windows if row["source_active"]]
+        correlated_control_windows = [row for row in active_control_windows if row["old_audio_present"]]
+        control_window_ratio = (
+            len(correlated_control_windows) / len(active_control_windows)
+            if active_control_windows
+            else 0.0
+        )
+        receipt["control_full_readback"] = {
+            "active_source_window_count": len(active_control_windows),
+            "correlated_window_count": len(correlated_control_windows),
+            "correlated_window_ratio": control_window_ratio,
+            "minimum_correlated_window_ratio_predeclared": args.min_control_correlated_window_ratio,
+        }
+        if not active_control_windows or control_window_ratio < args.min_control_correlated_window_ratio:
+            return _write_terminal(
+                receipt,
+                args.output,
+                "EVIDENCE_INVALID_CONTROL_FULL_PLAYBACK_READBACK",
+                "full control monitor capture does not sufficiently correlate with the complete active source waveform",
+            )
 
         bound_end_ms = args.cancel_offset_ms + args.max_inflight_ms
         windows = scan_correlated_windows(
@@ -303,7 +402,7 @@ def main(argv: list[str] | None = None) -> int:
             capture_offset=cancel_offset,
             sample_rate=rate,
             start_source_frame=cancel_frame,
-            end_source_frame=source.frames,
+            end_source_frame=required_source_end_frame,
             window_ms=args.window_ms,
             corr_threshold=args.correlation_threshold,
             source_rms_floor=args.source_rms_floor,
@@ -312,34 +411,48 @@ def main(argv: list[str] | None = None) -> int:
         present = [row for row in windows if row["old_audio_present"]]
         last_old_end_ms = max((row["source_end_ms"] for row in present), default=args.cancel_offset_ms)
         observed_tail_ms = max(0.0, last_old_end_ms - args.cancel_offset_ms)
-        post_bound = [row for row in windows if row["source_start_ms"] >= bound_end_ms and row["old_audio_present"]]
+        post_bound_observed = [row for row in windows if row["source_start_ms"] >= bound_end_ms]
+        post_bound = [row for row in post_bound_observed if row["old_audio_present"]]
         max_post_bound_corr = max(
-            (row["correlation"] for row in windows if row["source_start_ms"] >= bound_end_ms and row["correlation"] is not None),
+            (row["correlation"] for row in post_bound_observed if row["correlation"] is not None),
             default=None,
         )
 
         receipt["parameters"] = {
             "cancel_offset_ms": args.cancel_offset_ms,
             "max_inflight_ms_predeclared": args.max_inflight_ms,
+            "required_postroll_ms_predeclared": args.required_postroll_ms,
             "window_ms": args.window_ms,
             "correlation_threshold_predeclared": args.correlation_threshold,
             "source_rms_floor_predeclared": args.source_rms_floor,
             "capture_rms_ratio_floor_predeclared": args.capture_rms_ratio_floor,
+            "min_control_correlated_window_ratio_predeclared": args.min_control_correlated_window_ratio,
         }
         receipt["measurement"] = {
             "correlated_windows_after_cancel": len(present),
             "last_old_audio_source_timeline_end_ms": last_old_end_ms,
             "observed_cancel_to_last_old_audio_tail_ms": observed_tail_ms,
             "declared_bound_end_ms": bound_end_ms,
+            "post_bound_observation_window_count": len(post_bound_observed),
             "post_bound_old_audio_window_count": len(post_bound),
             "max_post_bound_correlation": max_post_bound_corr,
         }
         receipt["window_scan"] = windows
 
+        if not post_bound_observed:
+            return _write_terminal(
+                receipt,
+                args.output,
+                "EVIDENCE_INVALID_NO_POST_BOUND_OBSERVATION_WINDOWS",
+                "no complete analyzable monitor window exists after the declared in-flight bound",
+            )
+
         pass_tail = observed_tail_ms <= args.max_inflight_ms + args.window_ms
         pass_post_bound = len(post_bound) == 0
         receipt["invariants"] = {
             "CONTROL_VALID": control_valid,
+            "CONTROL_FULL_PLAYBACK_READBACK": True,
+            "POST_BOUND_COVERAGE": True,
             "BOUNDED_TAIL": pass_tail,
             "NO_POST_BOUND_OLD_AUDIO": pass_post_bound,
             "PACKET_FENCE": "NOT_MEASURED_BY_AUDIO_ANALYZER__BIND_EXTERNAL_PACKET_RECEIPT",
