@@ -1,0 +1,28 @@
+name: REVIEW WP1203 Service Role Identity Falsifier
+
+on:
+  pull_request:
+    paths:
+      - 'src/frankenstein2/target_multimedia_twin.py'
+      - 'tests/test_wp1203_service_role_identity_falsifier.py'
+      - '.github/workflows/review-wp1203-service-role-identity-falsifier.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  falsifier:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Compile exact review surface
+        run: python -m py_compile src/frankenstein2/target_multimedia_twin.py tests/test_wp1203_service_role_identity_falsifier.py
+      - name: Execute REVIEW_ONLY discriminator
+        env:
+          PYTHONPATH: src
+        run: python tests/test_wp1203_service_role_identity_falsifier.py -v
