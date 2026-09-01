@@ -6,12 +6,12 @@
   "worker_id": "GPT-5.6-Sol-ARCHITECT",
   "trigger": "ARCHITECT",
   "base_commit": "a56fd73d6caa31382265ac6e4c2197dee8b9654b",
-  "authority_ref": "frankenstein-2.0 main@a56fd73d6caa31382265ac6e4c2197dee8b9654b + clay-global-research-entity main@8d8d7616aab21e0aceb46862f04df51db8d5f2dd",
+  "authority_ref": "frankenstein-2.0 claim-base@a56fd73d6caa31382265ac6e4c2197dee8b9654b; latest refreshed main@d9ddcad0dd6263706b7a71b52de6b75d961a5b60; clay-global-research-entity main@8d8d7616aab21e0aceb46862f04df51db8d5f2dd",
   "stage": "GRID10_LAB_PROTOTYPE_ADMISSION",
   "state": "CLAIMED",
   "work_class": "INTEGRATION_BLOCKER",
   "target_completion_tier": "REPOSITORY_LAB_COMPONENT",
-  "claimed_scope": "Create-only first isolated GRID10 laboratory prototype under labs/grid10 plus F2-WP-1210 evidence files. Preserve existing F2 product/runtime authorities. Local sandbox execution may establish lab discriminator evidence only and cannot mint owner-VPS, physical, product, GWT/J-Space, effect, completion, training or whole-system credit.",
+  "claimed_scope": "Create-only first isolated GRID10 laboratory prototype under labs/grid10, one dedicated repository CI discriminator, and F2-WP-1210 evidence files. Preserve existing F2 product/runtime authorities. Local sandbox or repository CI may establish lab-component evidence only and cannot mint owner-VPS, physical, product, GWT/J-Space, effect, completion, training or whole-system credit.",
   "integration_boundary": "isolated ten-process SQLite/WAL GRID10 lab fabric -> fail-closed claim/lease/result-channel/restart/SIGKILL-replacement discriminator -> persisted readback",
   "source_provenance": {
     "clay_head": "8d8d7616aab21e0aceb46862f04df51db8d5f2dd",
@@ -23,6 +23,7 @@
   },
   "owned_scope": [
     "labs/grid10/**",
+    ".github/workflows/wp1210-grid10-lab-ci.yml",
     "workpackages/active/F2-WP-1210.json",
     "workpackages/state_events/F2-WP-1210/**",
     "workpackages/receipts/F2-WP-1210_*",
@@ -30,9 +31,10 @@
   ],
   "required_invariants": [
     "all lab state remains in caller-selected sandbox SQLite files and never points at canonical EntityOS/Clay/F2 databases",
-    "ordinary nodes cannot directly create canonical committed_results; only a current scope/generation/token-bound coordinator lease can commit pending result-channel packets",
+    "ordinary nodes cannot directly create canonical committed results; only a current scope/generation/token-bound coordinator lease can commit pending result-channel packets",
     "task claim and coordinator commit paths fail closed on stale epochs",
     "one valid coordinator lease per scope; replacement lease revokes prior authority",
+    "ten independent OS processes can join the same SQLite/WAL fabric",
     "SIGKILL of a claimant cannot permanently strand work when there is no emitted result in flight; an independent replacement may reclaim and complete it",
     "restart generation invalidates pre-restart coordinator authority",
     "persisted readback must identify the actual replacement source node",
@@ -44,7 +46,7 @@
     "connect this prototype to production canonical databases or external effects",
     "provider/model invocation",
     "claim byte-equivalence to the uploaded ZIP without reading and hashing its bytes",
-    "mint owner-VPS, physical, GWT/J-Space, effect, completion, training or whole-system credit from local lab execution"
+    "mint owner-VPS, physical, GWT/J-Space, effect, completion, training or whole-system credit from local lab or CI execution"
   ],
   "runtime_execution_observed": true,
   "local_lab_execution_observed": true,
@@ -62,5 +64,5 @@
   "completion_credit": 0,
   "whole_system_acceptance": false,
   "created_at_utc": "2026-09-01T18:47:01Z",
-  "next_exact_action": "Materialize the already-executed isolated lab prototype and exact local receipt on this branch, then obtain repository-visible CI/PR evidence before any owner-VPS promotion attempt."
+  "next_exact_action": "Commit provenance, exact local receipt and the dedicated lab CI discriminator; open a PR and consume its repository-visible result before considering any owner-VPS promotion."
 }
