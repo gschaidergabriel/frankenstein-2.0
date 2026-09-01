@@ -1,0 +1,68 @@
+{
+  "schema": "F2_TRIGGER7_CANDIDATE_FALSIFIER/v1",
+  "trigger": "7",
+  "created_at_local": "2026-09-01T22:40:50+07:00",
+  "producer": "GPT-5.6-Sol",
+  "status": "CANDIDATE_FALSIFIER_STATIC_GAP_NOT_PRODUCT_NEGATIVE",
+  "authority": "research/local_voice/authority/2026-08-31_TRIGGER7_TEXT_PACKET_COMPLETION_AUTHORITY.md",
+  "claim_ref": "research/local_voice/claims/2026-09-01_trigger7_gpt56sol_cortex_frontier_claim.json",
+  "observed_main_before_write": "f1f7a8dd111ed8d09dff0d13dc634a09f872a285",
+  "scope": "packet-cortex restart/reconnect bounded-state admission only",
+  "source_observed": {
+    "recovery": "src/frankenstein2/voice_packet_cortex_recovery.py",
+    "cortex": "src/frankenstein2/voice_packet_cortex.py",
+    "tests": "tests/test_voice_packet_cortex_recovery.py"
+  },
+  "positive_evidence_preserved": [
+    "resume_packet_cortex verifies envelope shape, digest, schema/classification and exact VoiceSessionCapsule binding",
+    "open-session reentry terminalizes restored nonterminal playback and emits RESTART_REENTRY",
+    "active pre-restart tool ownership is fenced stale",
+    "closed checkpoints revalidate SESSION_CLOSE packet refs and VoiceOutcome bindings",
+    "live VoicePacketCortex mutation has explicit MAX_EVENTS/MAX_INPUT_PACKETS/MAX_OUTPUT_PACKETS/MAX_TOOL_REFS fail-closed limits"
+  ],
+  "gap_observed": [
+    "Current recovery tests exercise live transient event capacity but do not contain an executable regression that rehashes and imports over-capacity checkpoint collections.",
+    "The visible resume path reconstructs input/output/tool/index collections before any explicit imported-cardinality validation against VoicePacketCortex MAX_* limits.",
+    "Digest integrity alone is not a semantic-state validity proof when both payload and digest can be replaced together; imported state must revalidate its own bounded invariants."
+  ],
+  "hypothesis": "A syntactically valid, same-session checkpoint whose payload and payload_sha256 are recomputed may admit an over-capacity or internally inconsistent restored projection farther than intended. If reproduced, this is a bounded restart/recovery invariant defect, not acoustic or model evidence.",
+  "counterhypothesis": "Existing reconstruction constructors and the mandatory RESTART_REENTRY event may already reject every meaningful over-capacity/inconsistent case before the restored cortex becomes usable; if so the discriminator should close this candidate with no product mutation.",
+  "executable_discriminator": {
+    "basis": "Start only from export_packet_cortex_checkpoint() output for an exact valid VoiceSessionCapsule, mutate one invariant at a time, recompute payload_sha256 canonically, then call resume_packet_cortex().",
+    "cases": [
+      "RBOUND1: input_seen cardinality > MAX_INPUT_PACKETS -> resume must fail closed",
+      "RBOUND2: outputs cardinality > MAX_OUTPUT_PACKETS using individually valid unique VoiceOutputPackets -> resume must fail closed",
+      "RBOUND3: active_tools/cancelled_tools combined cardinality > MAX_TOOL_REFS -> resume must fail closed",
+      "RBOUND4: event list/event_seq cardinality > MAX_EVENTS -> resume must fail closed before returning a cortex",
+      "RBOUND5: last_output_sequence or last_input_sequence projection inconsistent with restored causal packet state -> either fail closed at resume or prove why the projection cannot mint replay/order authority"
+    ],
+    "atomicity_requirement": "Rejected resume must return no usable partially restored cortex and must not mutate the source VoiceSessionCapsule or canonical state.",
+    "classification_on_failure": "PRODUCT_NEGATIVE only after exact executable reproduction against current source; otherwise EVIDENCE_INVALID/NO_COUNTEREXAMPLE as appropriate."
+  },
+  "routing": {
+    "mutation_authority": "NONE_TRIGGER7_RESEARCH_ONLY",
+    "if_reproduced": "Route minimal invariant validation + regression to Trigger4; do not create a parallel recovery implementation.",
+    "if_not_reproduced": "Record NO_COUNTEREXAMPLE and continue to next cortex packet/recovery/long-session boundary.",
+    "wp900_fence": "Do not mutate or redispatch F2-WP-900 G4 while its current Trigger4 causal runtime intervention/readback work is active."
+  },
+  "wp719_reentry": {
+    "state": "CLOSED_AT_BOUNDED_TARGET_ENVIRONMENT_COMPONENT_RUNTIME_SCOPE",
+    "exact_subject": "64b7fb92cca8ddc2e541d617f9af7ebd9bbeb9b8",
+    "runtime_receipt_reconciliation_commit": "3f33980ab720c7cf52972d357d5e88e17786081c",
+    "target_environment_component_runtime_credit": 1,
+    "do_not_rerun": true
+  },
+  "zero_credit_preserved": {
+    "physical_audio": 0,
+    "asr_runtime": 0,
+    "tts_runtime": 0,
+    "canonical_memory_write": 0,
+    "global_semantic_gwt": 0,
+    "jspace": 0,
+    "effects": 0,
+    "whole_voice_e2e": 0,
+    "whole_product": 0,
+    "training": 0
+  },
+  "next_exact_gate": "Execute RBOUND1-RBOUND5 against current exact source on an authorized test surface; only a reproduced invariant violation may be routed as a Trigger4 repair."
+}
