@@ -28,6 +28,100 @@ def _digest(value: Mapping[str, Any]) -> str:
     return hashlib.sha256(raw.encode("utf-8")).hexdigest()
 
 
+def _pairs(name: str, value: Any) -> dict[str, Any]:
+    if type(value) is not list:
+        raise VoicePacketCortexError(f"checkpoint {name} must be a list")
+    result: dict[str, Any] = {}
+    for item in value:
+        if type(item) is not list or len(item) != 2:
+            raise VoicePacketCortexError(f"checkpoint {name} entries must be two-item lists")
+        key, item_value = item
+        if type(key) is not str or not key or key != key.strip():
+            raise VoicePacketCortexError(f"checkpoint {name} key is invalid")
+        if key in result:
+            raise VoicePacketCortexError(f"checkpoint {name} contains duplicate keys")
+        result[key] = item_value
+    return result
+
+
+def _string_set(name: str, value: Any) -> set[str]:
+    if type(value) is not list:
+        raise VoicePacketCortexError(f"checkpoint {name} must be a list")
+    if any(type(item) is not str or not item or item != item.strip() for item in value):
+        raise VoicePacketCortexError(f"checkpoint {name} contains an invalid identifier")
+    if len(set(value)) != len(value):
+        raise VoicePacketCortexError(f"checkpoint {name} contains duplicates")
+    return set(value)
+
+
+def _validate_imported_state(payload: Mapping[str, Any]) -> None:
+    """Validate imported projections before they can become live ordering/resource authority."""
+    input_seen = _pairs("input_seen", payload["input_seen"])
+    if len(input_seen) > VoicePacketCortex.MAX_INPUT_PACKETS:
+        raise VoicePacketCortexError("checkpoint input replay capacity exceeded")
+    for digest in input_seen.values():
+        if type(digest) is not str or len(digest) != 64 or any(ch not in "0123456789abcdef" for ch in digest):
+            raise VoicePacketCortexError("checkpoint input_seen digest is invalid")
+
+    last_input_sequence = _pairs("last_input_sequence", payload["last_input_sequence"])
+    last_input_monotonic_ms = _pairs("last_input_monotonic_ms", payload["last_input_monotonic_ms"])
+    for name, projection in (
+        ("last_input_sequence", last_input_sequence),
+        ("last_input_monotonic_ms", last_input_monotonic_ms),
+    ):
+        if any(type(value) is not int or value < 0 for value in projection.values()):
+            raise VoicePacketCortexError(f"checkpoint {name} contains an invalid value")
+    if set(last_input_sequence) != set(last_input_monotonic_ms):
+        raise VoicePacketCortexError("checkpoint input ordering/monotonic projections disagree")
+    # Accepted input sequences are contiguous from zero per turn and _input_seen never drops an
+    # accepted packet. Therefore this equality is a necessary causal backing invariant.
+    expected_input_count = sum(sequence + 1 for sequence in last_input_sequence.values())
+    if expected_input_count != len(input_seen):
+        raise VoicePacketCortexError("checkpoint input ordering projection is not backed by restored packets")
+    final_turns = _string_set("final_turns", payload["final_turns"])
+    if not final_turns.issubset(last_input_sequence):
+        raise VoicePacketCortexError("checkpoint final_turn projection is not backed by input ordering state")
+
+    if type(payload["outputs"]) is not list:
+        raise VoicePacketCortexError("checkpoint outputs must be a list")
+    if len(payload["outputs"]) > VoicePacketCortex.MAX_OUTPUT_PACKETS:
+        raise VoicePacketCortexError("checkpoint output packet capacity exceeded")
+    last_output_sequence = _pairs("last_output_sequence", payload["last_output_sequence"])
+    if any(type(value) is not int or value < 0 for value in last_output_sequence.values()):
+        raise VoicePacketCortexError("checkpoint last_output_sequence contains an invalid value")
+
+    if type(payload["events"]) is not list:
+        raise VoicePacketCortexError("checkpoint events must be a list")
+    if len(payload["events"]) > VoicePacketCortex.MAX_EVENTS:
+        raise VoicePacketCortexError("checkpoint event capacity exceeded")
+
+    active_tools = _pairs("active_tools", payload["active_tools"])
+    if any(type(turn_id) is not str or not turn_id or turn_id != turn_id.strip() for turn_id in active_tools.values()):
+        raise VoicePacketCortexError("checkpoint active_tools contains an invalid turn binding")
+    cancelled_tools = _string_set("cancelled_tools", payload["cancelled_tools"])
+    if set(active_tools) & cancelled_tools:
+        raise VoicePacketCortexError("checkpoint tool projections overlap active and cancelled state")
+    if len(active_tools) + len(cancelled_tools) > VoicePacketCortex.MAX_TOOL_REFS:
+        raise VoicePacketCortexError("checkpoint tool ownership capacity exceeded")
+
+
+def _validate_restored_output_projection(cortex: VoicePacketCortex) -> None:
+    sequences_by_turn: dict[str, set[int]] = {}
+    for packet in cortex._outputs.values():
+        sequences = sequences_by_turn.setdefault(packet.turn_id, set())
+        if packet.sequence in sequences:
+            raise VoicePacketCortexError("checkpoint output sequence projection contains duplicates")
+        sequences.add(packet.sequence)
+    expected_last: dict[str, int] = {}
+    for turn_id, sequences in sequences_by_turn.items():
+        highest = max(sequences)
+        if sequences != set(range(highest + 1)):
+            raise VoicePacketCortexError("checkpoint output sequence projection contains a gap")
+        expected_last[turn_id] = highest
+    if cortex._last_output_sequence != expected_last:
+        raise VoicePacketCortexError("checkpoint last_output_sequence is not backed by restored outputs")
+
+
 def export_packet_cortex_checkpoint(cortex: VoicePacketCortex) -> dict[str, Any]:
     if type(cortex) is not VoicePacketCortex:
         raise VoicePacketCortexError("cortex must be exact VoicePacketCortex")
@@ -86,6 +180,7 @@ def resume_packet_cortex(
         raise VoicePacketCortexError("checkpoint session binding mismatch")
     if type(payload["is_open"]) is not bool or type(payload["event_seq"]) is not int or payload["event_seq"] < 0:
         raise VoicePacketCortexError("checkpoint state fields are invalid")
+    _validate_imported_state(payload)
 
     # Construct without __init__: reentry must not mint a second SESSION_OPEN event.
     cortex = VoicePacketCortex.__new__(VoicePacketCortex)
@@ -110,6 +205,7 @@ def resume_packet_cortex(
             if packet.session_id != session.voice_session_id or packet.packet_id in cortex._outputs:
                 raise VoicePacketCortexError("checkpoint output binding/uniqueness mismatch")
             cortex._outputs[packet.packet_id] = packet
+        _validate_restored_output_projection(cortex)
         cortex._events = []
         for raw in payload["events"]:
             data = dict(raw)
