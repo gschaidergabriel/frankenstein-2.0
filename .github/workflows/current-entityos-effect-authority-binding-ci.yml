@@ -10,8 +10,13 @@ on:
       - 'src/frankenstein2/structured_execution_receipt.py'
       - 'src/frankenstein2/effect_executor_interlock.py'
       - 'src/frankenstein2/effect_invocation_correlation.py'
+      - 'src/frankenstein2/deferred_execution_verification.py'
+      - 'src/frankenstein2/whole_persistent_loop.py'
       - 'src/state/execution_completion.py'
       - 'tests/test_current_entityos_effect_authority_binding.py'
+      - 'tests/test_current_effect_authority_wp900_verified_integration.py'
+      - 'tests/test_deferred_execution_verification.py'
+      - 'tests/test_whole_persistent_loop.py'
       - '.github/workflows/current-entityos-effect-authority-binding-ci.yml'
   pull_request:
     paths:
@@ -21,8 +26,13 @@ on:
       - 'src/frankenstein2/structured_execution_receipt.py'
       - 'src/frankenstein2/effect_executor_interlock.py'
       - 'src/frankenstein2/effect_invocation_correlation.py'
+      - 'src/frankenstein2/deferred_execution_verification.py'
+      - 'src/frankenstein2/whole_persistent_loop.py'
       - 'src/state/execution_completion.py'
       - 'tests/test_current_entityos_effect_authority_binding.py'
+      - 'tests/test_current_effect_authority_wp900_verified_integration.py'
+      - 'tests/test_deferred_execution_verification.py'
+      - 'tests/test_whole_persistent_loop.py'
       - '.github/workflows/current-entityos-effect-authority-binding-ci.yml'
   workflow_dispatch:
 
@@ -47,8 +57,11 @@ jobs:
           src/frankenstein2/canonical_effect_authority_bridge.py
           src/frankenstein2/effect_request_identity.py
           src/frankenstein2/structured_execution_receipt.py
+          src/frankenstein2/deferred_execution_verification.py
+          src/frankenstein2/whole_persistent_loop.py
           src/state/execution_completion.py
           tests/test_current_entityos_effect_authority_binding.py
+          tests/test_current_effect_authority_wp900_verified_integration.py
       - name: Run current binding no-real-effect matrix
         run: python tests/test_current_entityos_effect_authority_binding.py
       - name: Run canonical bridge regressions
@@ -57,3 +70,5 @@ jobs:
         run: python tests/test_structured_execution_receipt.py
       - name: Run execution completion regressions
         run: python tests/test_execution_completion.py
+      - name: Run current-authority WP105-WP900 contract discriminator
+        run: python -m pytest -q tests/test_current_effect_authority_wp900_verified_integration.py
