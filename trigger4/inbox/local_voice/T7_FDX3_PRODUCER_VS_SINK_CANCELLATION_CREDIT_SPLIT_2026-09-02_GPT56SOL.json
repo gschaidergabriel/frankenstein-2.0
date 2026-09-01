@@ -1,0 +1,65 @@
+{
+  "schema": "T7_TO_TRIGGER4_FDX3_CANCELLATION_SCOPE_SPLIT/v1",
+  "trigger": "7",
+  "producer": "GPT-5.6-Sol",
+  "date": "2026-09-02",
+  "work_class": "EVIDENCE_RECONCILIATION_AND_CANDIDATE_FALSIFIER",
+  "new_component": false,
+  "new_voice_authority": false,
+  "product_mutation_requested": false,
+  "owner_vps_system_semantic_key": "d62224bf7f52ef1db031ec7a9650a6b107f16a7a61f6f6cca253724d6419ea20",
+  "matrix_ref": "research/local_voice/benchmarks/2026-09-02_TRIGGER7_FULL_DUPLEX_SYSTEM_EVAL_G1.json",
+  "binding_ref": "trigger4/inbox/local_voice/T7_OWNER_VPS_FDX_AUDIO_CHUNK_TO_PACKET_BINDING_ADDENDUM_2026-09-02_GPT56SOL.json",
+  "finding": "The older FDX3 matrix promotion label says 'bounded headless TTS producer cancellation + packet composition only', but the newer execution binding correctly distinguishes internal producer cancellation from fail-closed sink-delivery cancellation. The first owner-VPS system run may pass the packet/sink cancellation invariant even when the selected existing TTS producer cannot be interrupted internally. These are separate evidence scopes and must not be collapsed.",
+  "required_credit_split": {
+    "producer_generation_cancel_credit": {
+      "promote_only_if": "The exact engine/runtime exposes and executes an internal close/cancel/stop boundary and the trace proves no later producer chunks are generated or emitted after the admitted producer-cancel boundary, except explicitly characterized in-flight work.",
+      "otherwise": 0
+    },
+    "sink_delivery_cancel_credit": {
+      "promote_if": "After the admitted causal cancel boundary, zero new chunks/frames for the interrupted VoiceOutputPacket are accepted by the exact headless/virtual sink, with any preaccepted buffered frames separately measured.",
+      "independent_of_internal_producer_cancel": true
+    },
+    "packet_commit_fence_credit": {
+      "promote_if": "Interrupted VoiceOutputPacket terminalizes commit_eligible=false and cannot create durable heard/result/tool ownership, independent of whether discarded producer work continues transiently."
+    },
+    "physical_cancellation_to_silence_credit": 0
+  },
+  "minimum_trace_fields": [
+    "producer_cancel_capability",
+    "producer_cancel_requested_monotonic_ms",
+    "producer_last_generated_chunk_monotonic_ms",
+    "generated_after_cancel_count",
+    "generated_after_cancel_discarded_count",
+    "sink_cancel_boundary_monotonic_ms",
+    "sink_last_admission_monotonic_ms",
+    "sink_post_cancel_admission_count",
+    "preaccepted_buffer_samples_or_frames",
+    "preaccepted_buffer_duration_ms",
+    "voice_output_packet_id",
+    "commit_eligible",
+    "voiceoutcome_ref_or_rejection"
+  ],
+  "acceptance": {
+    "FDX3_MINIMUM_SYSTEM_PASS": "Real local TTS produces at least one chunk admitted to the sink for the old packet; barge-in is causally admitted; no later chunk is sink-admitted for that packet; old packet remains non-commit-eligible; replacement output completes. producer_cancel_capability may be false.",
+    "FDX3_PRODUCER_CANCEL_PASS": "FDX3_MINIMUM_SYSTEM_PASS plus exact internal producer cancellation is actually executed and observed.",
+    "FDX3_PHYSICAL_SILENCE_PASS": "Not representable by the headless/file/null sink alone and remains S4/physical unless a separately admitted physical target executes it."
+  },
+  "failure_classes": {
+    "post_cancel_sink_admission": "PRODUCT_NEGATIVE",
+    "interrupted_output_commit_eligible": "PRODUCT_NEGATIVE",
+    "producer_continues_but_all_chunks_discarded_and_packet_fenced": "NO_PRODUCT_NEGATIVE_AT_SINK_PACKET_SCOPE__PRODUCER_CANCEL_CREDIT_ZERO",
+    "producer_cancel_claim_without_internal_cancel_observation": "EVIDENCE_INVALID_SCOPE_INFLATION",
+    "buffered_pre_cancel_audio_not_measured": "EVIDENCE_INVALID_FOR_CANCELLATION_LATENCY",
+    "queued_or_unexecuted_runtime": "UNKNOWN_NONTERMINAL"
+  },
+  "explicit_zero_credit": [
+    "internal TTS producer cancellation unless actually executed",
+    "physical cancellation to silence",
+    "human-heard interruption latency",
+    "real speaker",
+    "whole voice system until the composed run passes",
+    "whole product"
+  ],
+  "next_exact_action": "Trigger 4 should keep the existing d62224bf... system claim and emit separate producer_cancel, sink_delivery_cancel and packet_commit_fence fields in the one execution receipt. A green sink/packet fence must not be blocked merely because an existing TTS engine cannot stop internal generation, but it also must not mint producer-cancel or physical-silence credit."
+}
