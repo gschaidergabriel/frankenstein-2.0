@@ -1,0 +1,86 @@
+{
+  "schema": "F2_TRIGGER7_EXECUTED_FALSIFIER_RESULT/v1",
+  "trigger": "7",
+  "producer": "GPT-5.6 Sol",
+  "date": "2026-09-01",
+  "status": "EXECUTED_PRODUCT_NEGATIVE_AT_REPOSITORY_SCOPE",
+  "scope": "VoicePacketCortex restart/reconnect commit-eligibility and tool-ownership cross-projection revalidation only",
+  "authority_ref": "research/local_voice/authority/2026-08-31_TRIGGER7_TEXT_PACKET_COMPLETION_AUTHORITY.md",
+  "protocol_ref": "research/local_voice/TRIGGERWORD_7_PROTOCOL.md",
+  "semantic_claim_ref": "research/local_voice/semantic_claims/e92995a7fbe633335fa9d99b80dd9a31d7e60d63ddc6b06c564d58ee6c64ac20.json",
+  "semantic_generation": 2,
+  "research_id": "T7-20260901-RECOVERY-COMMIT-CANCEL-COMPOSITION",
+  "diagnostic_tool": "research/local_voice/tools/falsify_voice_packet_cortex_recovery_commit_cancel_composition.py",
+  "ci_binding_test": "research/local_voice/tests/test_t7_recovery_commit_cancel_composition_gpt56sol.py",
+  "execution": {
+    "source_sha": "cbb1ea587f098637f3517ba8ba12dc61c8e1e8a8",
+    "workflow": "Trigger 7 Local Voice Research Tools CI",
+    "workflow_run_id": 33533619386,
+    "job_id": 99942477305,
+    "runner": "GitHub-hosted Ubuntu 24.04",
+    "job_conclusion": "success",
+    "suite_tests": 49,
+    "suite_result": "PASS",
+    "evidence_scope": "REPOSITORY_EXECUTABLE_DETERMINISTIC_ONLY"
+  },
+  "results": [
+    {
+      "probe_id": "RCOMP1_COMPLETED_HEARD_COMMIT_PROJECTION",
+      "expected": "A fully heard completed restored output cannot contradict the normal state machine by becoming commit_eligible=false.",
+      "observed": "resume admitted fully-heard completed output with commit_eligible=false; restored_state=completed; heard_fraction=1.0; commit_eligible=false",
+      "classification": "PRODUCT_NEGATIVE"
+    },
+    {
+      "probe_id": "RCOMP2_TOOL_HISTORY_PROJECTION_DROP",
+      "expected": "Historical TOOL_USE evidence remains causally fenced even if imported active/cancelled ownership projections are corrupt or missing.",
+      "observed": "historical TOOL_USE remained in restored events but removing both ownership projections allowed the same tool:shared ref to be issued again from a later turn",
+      "classification": "PRODUCT_NEGATIVE"
+    },
+    {
+      "probe_id": "RCOMP3_VALID_ACTIVE_TOOL_RESTART_FENCE",
+      "observed": "late TOOL_RESULT and reuse of the valid pre-restart active tool ref were both rejected",
+      "classification": "PASS_FAIL_CLOSED"
+    },
+    {
+      "probe_id": "RCOMP4_OUTPUT_SEQUENCE_PROJECTION",
+      "observed": "unbacked last_output_sequence rejected: checkpoint last_output_sequence is not backed by restored outputs",
+      "classification": "PASS_FAIL_CLOSED"
+    },
+    {
+      "probe_id": "RCOMP5_DUPLICATE_OUTPUT_PACKET_ID",
+      "observed": "duplicate restored output packet_id rejected with checkpoint output binding/uniqueness mismatch",
+      "classification": "PASS_FAIL_CLOSED"
+    },
+    {
+      "probe_id": "RCOMP6_CORRUPT_QUEUED_HEARD_FRACTION",
+      "observed": "queued output claiming heard_fraction=0.5 rejected because queued/cancelled output cannot claim heard audio",
+      "classification": "PASS_FAIL_CLOSED"
+    }
+  ],
+  "concurrent_repair_observation": {
+    "classification": "CURRENT_SOURCE_ADVANCED_DURING_TRIGGER7_EXECUTION",
+    "observed_on_same_source_sha": "cbb1ea587f098637f3517ba8ba12dc61c8e1e8a8",
+    "previous_rbound1_through_rbound5_result": "NO_COUNTEREXAMPLE",
+    "previous_rbound6_result": "NO_COUNTEREXAMPLE",
+    "meaning": "Current Trigger4 WP715 G3 repair made cardinality and input/output ordering import projections fail closed; these earlier scopes are not new negatives in this result."
+  },
+  "routing": {
+    "trigger7_mutates_product": false,
+    "route_to": "Trigger4/current legal WP715 mutation owner",
+    "github_issue": 880,
+    "recommended_repair_scope": "Cross-validate restored completed/heard/commit eligibility and restored tool event-history versus ownership/cancellation projections before returning a usable VoicePacketCortex.",
+    "preserve_passes": "Preserve current fail-closed RBOUND1-RBOUND6 and RCOMP3/5/6 behavior."
+  },
+  "explicit_zero_credit": {
+    "target_runtime": 0,
+    "physical_audio": 0,
+    "asr_runtime": 0,
+    "tts_runtime": 0,
+    "semantic_gwt_jspace": 0,
+    "effect": 0,
+    "training": 0,
+    "whole_voice_e2e": 0,
+    "whole_product": 0
+  },
+  "next_exact_action": "Trigger4/current legal WP715 owner should reproduce RCOMP1 and RCOMP2 against current exact adopted source, patch only those recovery cross-projection invariants, add regressions, and rerun the discriminator. Trigger7 should consume that outcome rather than duplicate mutation."
+}
