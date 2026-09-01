@@ -1,0 +1,76 @@
+{
+  "schema": "T7_RESEARCH_CLAIM/v1",
+  "research_id": "T7-20260902-OWNER-VPS-FULL-DUPLEX-SYSTEM-SLICE-G1",
+  "semantic_key": "d62224bf7f52ef1db031ec7a9650a6b107f16a7a61f6f6cca253724d6419ea20",
+  "semantic_claim_ref": "research/local_voice/semantic_claims/d62224bf7f52ef1db031ec7a9650a6b107f16a7a61f6f6cca253724d6419ea20.json",
+  "objective": "OWNER_VPS_REAL_LOCAL_ASR_HEADLESS_TTS_FDX2_FDX3_FDX4_FDX6",
+  "work_class": "CANDIDATE_FALSIFIER",
+  "product_mutation_authority": "NONE",
+  "target_surface": "clay-direct-dev",
+  "scope": "SYSTEM_LEVEL_HEADLESS_FULL_DUPLEX_INTEGRATION_FALSIFIER",
+  "prerequisites_observed": {
+    "wp715_generation_3": "ACCEPTED_AT_EXACT_SUBJECT_TARGET_COMPONENT_RUNTIME",
+    "wp720_generation_1": "ACCEPTED_AT_EXACT_SUBJECT_TARGET_COMPONENT_RUNTIME",
+    "wp903_generation_1": "BOUNDED_CLOSED_RESTART_CRASH_SOAK",
+    "packet_level_composed_slice": "NO_COUNTEREXAMPLE_51_TESTS_REPOSITORY_EXECUTABLE_ONLY",
+    "full_duplex_matrix": "TWELVE_CASE_SYSTEM_EVALUATION_MATRIX_READY"
+  },
+  "reuse_only": [
+    "admitted local ASR runtime and exact audio fixtures",
+    "VoiceInputPacket and existing VoicePacketCortex",
+    "existing PresenceState / PacketTurnPolicy authority from WP720",
+    "existing barge-in cancellation authority",
+    "headless local TTS runtime / PCM sink; consume TTS scope-split claim where applicable",
+    "existing WP715 VoicePacketCortexRecovery",
+    "existing checkpoint/canonical state adapter",
+    "existing restart/reentry, HeardResult, VoiceOutcome and tool ownership authorities"
+  ],
+  "scenarios": [
+    {
+      "id": "FDX2_BACKCHANNEL_HOLD",
+      "required_input": "real prerecorded German backchannel/filler audio fixture through admitted local ASR",
+      "fail_closed": "HOLD/backchannel must not close/steal user turn or create answer commit before admitted endpoint"
+    },
+    {
+      "id": "FDX3_BARGE_IN_PARTIAL_OUTPUT",
+      "required_input": "real local TTS generation to PCM sink, then causal barge-in/cancel while chunks are in flight",
+      "fail_closed": "interrupted output remains non-commit-eligible and no post-cancel producer chunk enters the sink"
+    },
+    {
+      "id": "FDX4_SIMULTANEOUS_USER_OVER_OUTPUT",
+      "required_input": "second prerecorded German user-audio stream enters real local ASR while real local TTS output is active",
+      "fail_closed": "new input lineage is accepted while old output loses commit/tool ownership and terminalizes exactly once"
+    },
+    {
+      "id": "FDX6_LATE_TOOL_RESULT_AFTER_BARGE_AND_RESTART",
+      "required_input": "tool result arrives after cancellation before restart and again after checkpoint/restart",
+      "fail_closed": "revoked tool ownership remains revoked and late result is rejected on both sides of restart"
+    }
+  ],
+  "shared_execution_fences": [
+    "exact F2 source/tree identity and exact model/artifact hashes",
+    "network-off during promotion-bearing local inference where artifacts are already present",
+    "external model/ASR/TTS inference calls = 0",
+    "host survival/resource headroom preserved",
+    "no text surrogate may mint ASR runtime credit",
+    "no prebaked PCM may mint TTS runtime credit",
+    "PCM/null/virtual sink may not mint human-heard or physical speaker credit",
+    "all packet/output/tool/checkpoint identities and monotonic timings recorded"
+  ],
+  "hypothesis": "The already-accepted Voice components compose on the owner VPS with real local ASR and headless local TTS without cross-boundary causal authority violations in the four highest-information full-duplex scenarios.",
+  "counterhypothesis": "Real local model timing/output reveals a cross-boundary race not visible in packet-only CI: HOLD closes a turn, post-cancel TTS chunks leak into output authority, simultaneous user speech leaves stale output/tool ownership, or restart resurrects a late tool result.",
+  "acceptance": "All four scenarios execute against one exact subject/runtime identity with no counterexample and explicit bounded observables. A PRODUCT_NEGATIVE may justify repair; infra/evidence failures must not trigger new architecture by default.",
+  "explicit_zero_credit": {
+    "physical_microphone": 0,
+    "physical_speaker": 0,
+    "human_heard_output": 0,
+    "native_owner_workstation_audio_permissions": 0,
+    "physical_presence": 0,
+    "semantic_gwt_jspace": 0,
+    "effect": 0,
+    "training": 0,
+    "whole_product": 0
+  },
+  "state": "CLAIMED",
+  "next_exact_action": "Route this unchanged semantic key to Trigger 4 for exactly one owner-VPS integration execution. Do not create new Voice components unless the exact executed discriminator yields PRODUCT_NEGATIVE that cannot be repaired by composition/wiring/configuration of existing authorities."
+}
