@@ -5,6 +5,7 @@ import unittest
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 MODULE_PATH = ROOT / "trigger4/tools/local_voice/g2_runtime_singleton_guard.py"
+WORKFLOW_PATH = ROOT / ".github/workflows/t4-g2-pipewire-monitor-cancel.yml"
 SPEC = importlib.util.spec_from_file_location("g2_runtime_singleton_guard", MODULE_PATH)
 assert SPEC is not None and SPEC.loader is not None
 GUARD = importlib.util.module_from_spec(SPEC)
@@ -19,6 +20,13 @@ class Trigger4G2RuntimeSingletonGuardTests(unittest.TestCase):
             "status": status,
             "event": event,
         }
+
+    def test_workflow_executes_singleton_guard(self):
+        workflow = WORKFLOW_PATH.read_text(encoding="utf-8")
+        self.assertIn(
+            "python3 trigger4/tools/local_voice/g2_runtime_singleton_guard.py",
+            workflow,
+        )
 
     def test_exact_invalidated_queued_predecessors_are_exempt(self):
         runs = [
