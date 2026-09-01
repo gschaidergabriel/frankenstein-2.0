@@ -61,6 +61,15 @@ class VoicePacketCortexRecoveryTests(unittest.TestCase):
             fault_flags=faults,
         )
 
+    def rehash(self, checkpoint: dict) -> dict:
+        mutated = deepcopy(checkpoint)
+        canonical = json.dumps(
+            mutated["payload"], ensure_ascii=False, sort_keys=True,
+            separators=(",", ":"), allow_nan=False,
+        )
+        mutated["payload_sha256"] = hashlib.sha256(canonical.encode("utf-8")).hexdigest()
+        return mutated
+
     def test_checkpoint_resume_preserves_exact_state_and_adds_reentry_event(self) -> None:
         session = self.session()
         cortex = VoicePacketCortex(session)
@@ -237,6 +246,71 @@ class VoicePacketCortexRecoveryTests(unittest.TestCase):
             packet_refs=("input-fault-retry",), detail="replacement packet accepted",
         )
         self.assertEqual((transport.event_kind, recovery.event_kind), ("TRANSPORT_FAILURE", "RECOVERY"))
+
+    def test_rbound1_imported_input_seen_over_cap_fails_closed(self) -> None:
+        session = self.session()
+        checkpoint = export_packet_cortex_checkpoint(VoicePacketCortex(session))
+        checkpoint["payload"]["input_seen"] = [
+            [f"input-{index}", f"{index:064x}"[-64:]]
+            for index in range(VoicePacketCortex.MAX_INPUT_PACKETS + 1)
+        ]
+        with self.assertRaises(VoicePacketCortexError):
+            resume_packet_cortex(session, self.rehash(checkpoint), monotonic_ms=1000)
+
+    def test_rbound2_imported_outputs_over_cap_fail_closed(self) -> None:
+        session = self.session()
+        cortex = VoicePacketCortex(session)
+        cortex.queue_output(
+            turn_id="turn-template", packet_id="output-template", monotonic_ms=10,
+            text_segment="x", expression_intent="neutral", speech_act="ANSWER",
+            planned_audio_duration_ms=1, sequence=0,
+        )
+        checkpoint = export_packet_cortex_checkpoint(cortex)
+        template = checkpoint["payload"]["outputs"][0]
+        outputs = []
+        for index in range(VoicePacketCortex.MAX_OUTPUT_PACKETS + 1):
+            raw = deepcopy(template)
+            raw["packet_id"] = f"output-{index}"
+            raw["turn_id"] = f"turn-{index}"
+            raw["sequence"] = 0
+            outputs.append(raw)
+        checkpoint["payload"]["outputs"] = outputs
+        with self.assertRaises(VoicePacketCortexError):
+            resume_packet_cortex(session, self.rehash(checkpoint), monotonic_ms=1000)
+
+    def test_rbound3_imported_tool_refs_over_cap_fail_closed(self) -> None:
+        session = self.session()
+        checkpoint = export_packet_cortex_checkpoint(VoicePacketCortex(session))
+        checkpoint["payload"]["active_tools"] = [
+            [f"tool:{index}", f"turn-{index}"]
+            for index in range(VoicePacketCortex.MAX_TOOL_REFS + 1)
+        ]
+        checkpoint["payload"]["cancelled_tools"] = []
+        with self.assertRaises(VoicePacketCortexError):
+            resume_packet_cortex(session, self.rehash(checkpoint), monotonic_ms=1000)
+
+    def test_rbound4_imported_events_over_cap_remain_fail_closed(self) -> None:
+        session = self.session()
+        checkpoint = export_packet_cortex_checkpoint(VoicePacketCortex(session))
+        template = checkpoint["payload"]["events"][0]
+        events = []
+        for index in range(VoicePacketCortex.MAX_EVENTS + 1):
+            raw = deepcopy(template)
+            raw["event_id"] = f"event-{index}"
+            raw["monotonic_ms"] = index
+            events.append(raw)
+        checkpoint["payload"]["events"] = events
+        checkpoint["payload"]["event_seq"] = VoicePacketCortex.MAX_EVENTS + 1
+        with self.assertRaises(VoicePacketCortexError):
+            resume_packet_cortex(session, self.rehash(checkpoint), monotonic_ms=1000)
+
+    def test_rbound5_unbacked_input_sequence_projection_fails_closed(self) -> None:
+        session = self.session()
+        checkpoint = export_packet_cortex_checkpoint(VoicePacketCortex(session))
+        checkpoint["payload"]["last_input_sequence"] = [["turn-ghost", 999]]
+        checkpoint["payload"]["last_input_monotonic_ms"] = [["turn-ghost", 900]]
+        with self.assertRaises(VoicePacketCortexError):
+            resume_packet_cortex(session, self.rehash(checkpoint), monotonic_ms=1000)
 
 
 if __name__ == "__main__":
