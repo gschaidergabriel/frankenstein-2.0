@@ -1,0 +1,54 @@
+{
+  "schema": "F2_TRIGGER7_CANDIDATE_FALSIFIER/v1",
+  "trigger": "7",
+  "producer": "GPT-5.6 Sol",
+  "date": "2026-09-01",
+  "status": "CANDIDATE_FALSIFIER_SOURCE_MAPPING_ONLY",
+  "scope": "pre-cortex turn/floor classification feeding VoiceInputPacket.barge_in",
+  "source_observed": {
+    "voice_packet_cortex_path": "src/frankenstein2/voice_packet_cortex.py",
+    "voice_packet_cortex_blob_sha": "308c7606db2f21f2361ca238927af9267fc21d32",
+    "test_path": "tests/test_voice_packet_cortex.py"
+  },
+  "observations": [
+    "VoiceInputPacket already carries vad_state, endpoint_decision, overlap_state and a boolean barge_in classification into VoicePacketCortex.",
+    "VoicePacketCortex.accept_input treats barge_in=true as an already-made interruption decision and immediately propagates cancellation before recording the input packet.",
+    "Existing packet-cortex tests prove cancellation, heard_fraction preservation, stale-tool rejection and explicit WAIT/BACKCHANNEL intent representation.",
+    "The mapped packet-cortex tests do not establish the upstream rule that distinguishes a short user backchannel from a real floor bid before barge_in is set.",
+    "The mapped packet-cortex surface likewise does not establish self-output/echo rejection before barge_in or mid-sentence pause continuation classification; these may intentionally belong to an upstream producer rather than this cortex class.",
+    "No dedicated turn/floor classifier was identified in the mapped src/frankenstein2 voice-file surface, but this source-only mapping is insufficient to claim global absence because a producer may live in another adapter/tool/runtime path."
+  ],
+  "counterhypothesis": "A current producer outside the mapped voice_packet_cortex source/test surface already classifies short backchannels, real floor bids, self-output/echo and pause continuation correctly before constructing VoiceInputPacket; if found with executable fixtures, this candidate is falsified and no new classifier component is needed.",
+  "discriminator": {
+    "name": "T7_BARGE_IN_INGRESS_CLASSIFICATION_MATRIX_V1",
+    "steps": [
+      "Locate every non-test producer/constructor/adaptor that creates VoiceInputPacket or sets the barge_in field in the current release/runtime path.",
+      "Bind the exact current producer subject before mutation.",
+      "Exercise short German backchannel while output is active and require retain-floor/barge_in=false unless explicit floor-bid evidence is present.",
+      "Exercise sustained German interruption/floor bid while output is active and require barge_in=true with one cancellation causal boundary.",
+      "Exercise self-output/echo-like ingress during agent speech and require rejection or barge_in=false; no recursive self-interruption.",
+      "Exercise mid-sentence pause followed by continuation and require HOLD/continue-listen rather than premature endpoint/VoiceOutcome.",
+      "Exercise overlap then user withdrawal and require recovery without duplicate output, stale tool ownership or duplicate state write."
+    ],
+    "classification_rule": "If an admitted producer passes all cases, close this candidate as FALSIFIED_NO_NEW_COMPONENT. If no producer owns the classification boundary, route the smallest integration blocker through Trigger4. If a producer executes and violates a case, classify PRODUCT_NEGATIVE at that exact producer scope before repair."
+  },
+  "authority_fence": {
+    "trigger7_mutates_product": false,
+    "wp719_reopen": false,
+    "duplicate_runtime_dispatch": false,
+    "product_mutation_route": "Trigger4/current legal workpackage mutation owner",
+    "model_prediction_is_turn_authority": false
+  },
+  "explicit_zero_credit": {
+    "runtime": 0,
+    "physical_audio": 0,
+    "asr": 0,
+    "tts": 0,
+    "gwt_jspace": 0,
+    "effect": 0,
+    "whole_voice_e2e": 0,
+    "whole_product": 0,
+    "training": 0
+  },
+  "next_exact_action": "Resolve the current RBOUND1-RBOUND5 recovery discriminator first where it is the active higher-priority executable frontier, then perform the non-mutating producer-location pass for T7_BARGE_IN_INGRESS_CLASSIFICATION_MATRIX_V1 and route only a demonstrated uncovered boundary to Trigger4."
+}
