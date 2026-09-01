@@ -1,0 +1,92 @@
+{
+  "schema": "T7_TO_TRIGGER4_TTS_ITERATOR_CANCELLATION_GRANULARITY/v1",
+  "trigger": "7",
+  "producer": "GPT-5.6-Sol",
+  "date": "2026-09-02",
+  "work_class": "CANDIDATE_FALSIFIER_AND_EXECUTION_GUIDANCE",
+  "new_component": false,
+  "new_voice_authority": false,
+  "product_mutation_requested": false,
+  "owner_vps_system_semantic_key": "d62224bf7f52ef1db031ec7a9650a6b107f16a7a61f6f6cca253724d6419ea20",
+  "existing_tts_semantic_key": "c711af918362a9ec2bbe6f4e2df2f7e41861c59b553576ee9beac602b29ef9e3",
+  "observed_f2_runtime_subject": "0ef78ad2ee6b14f89fcb2bb60f1458d04ee81ed0",
+  "finding": {
+    "summary": "FDX3 cancellation must distinguish stopping future iterator consumption from preempting an already-running TTS inference unit. The existing benchmark already drives both engines through iterator next() boundaries. Upstream/reference APIs are generator/iterable shaped, but that shape alone does not prove hard mid-inference cancellation. The first system discriminator should therefore make sink-delivery fencing and packet commit fencing authoritative, and promote producer-generation cancellation only when an explicit internal cancel/close boundary is actually executed and traced.",
+    "kokoro_exact_project_observation": "The exact F2 benchmark calls pipeline(segment, ...) and repeatedly next(iterator), recording generated audio only after each result is yielded. It does not invoke an engine-specific cancellation API.",
+    "piper_exact_project_observation": "The exact F2 benchmark calls iter(voice.synthesize(segment)) and repeatedly next(iterator), recording each returned audio chunk. It does not invoke an engine-specific cancellation API.",
+    "upstream_reference_observation": "Current upstream Kokoro examples expose KPipeline output as a Generator consumed result-by-result. Piper 1.7.0 provenance binds the project pin to OHF-Voice/piper1-gpl commit 7b8e8f7197a480047677715f00d3d78903b55a2a; Piper reference implementations synthesize/yield bounded audio units rather than establishing an external hard-preemption contract.",
+    "non_inference": "Generator/iterator structure is not evidence that the model call currently computing the next result can be forcibly cancelled. Do not mint producer_cancel credit from iterator close, loop break, task cancellation, or sink rejection unless the exact pinned runtime trace proves what computation stopped."
+  },
+  "primary_external_evidence": [
+    {
+      "source": "https://github.com/hexgrad/kokoro/blob/main/kokoro/__main__.py",
+      "scope": "UPSTREAM_REFERENCE_API_ONLY_NOT_EXACT_PINNED_FORK",
+      "observation": "generate_audio is a Generator and yield-from consumes KPipeline results; save path iterates result-by-result."
+    },
+    {
+      "source": "https://pypi.org/project/piper-tts/1.7.0/",
+      "scope": "EXACT_PIPER_RELEASE_PROVENANCE",
+      "observation": "piper-tts 1.7.0 is attested to OHF-Voice/piper1-gpl commit 7b8e8f7197a480047677715f00d3d78903b55a2a."
+    }
+  ],
+  "required_fdx3_trace_split": {
+    "request_clock": [
+      "output_request_admitted_monotonic_ms",
+      "producer_first_yield_monotonic_ms",
+      "sink_first_admission_monotonic_ms"
+    ],
+    "cancel_clock": [
+      "barge_in_admitted_monotonic_ms",
+      "producer_cancel_requested_monotonic_ms_or_null",
+      "producer_last_yield_monotonic_ms",
+      "sink_cancel_boundary_monotonic_ms",
+      "sink_last_admission_monotonic_ms"
+    ],
+    "counts": [
+      "generated_before_cancel_count",
+      "generated_after_cancel_count",
+      "generated_after_cancel_discarded_count",
+      "sink_post_cancel_admission_count"
+    ],
+    "identity": [
+      "voice_output_packet_id",
+      "session_id",
+      "turn_id",
+      "causal_parent_id",
+      "engine_runtime_identity",
+      "model_artifact_identity"
+    ]
+  },
+  "acceptance_split": {
+    "sink_delivery_cancel_credit": "May promote at bounded headless scope when zero interrupted-packet chunks are sink-admitted after the causal sink cancel boundary, with any preaccepted buffer separately measured.",
+    "packet_commit_fence_credit": "May promote when the interrupted VoiceOutputPacket is terminal and commit_eligible=false and cannot own durable heard/result/tool state.",
+    "producer_generation_cancel_credit": "Remains zero unless exact pinned runtime execution proves an internal producer stop/preemption boundary beyond merely ceasing iterator consumption.",
+    "physical_cancellation_to_silence_credit": 0
+  },
+  "latency_guidance": {
+    "do_not_collapse": [
+      "generator first-yield latency",
+      "request-to-first-yield latency",
+      "request-to-first-sink-admission latency",
+      "barge-in-to-sink-fence latency",
+      "physical cancellation-to-silence latency"
+    ],
+    "reason": "Each clock covers a different boundary and only the last requires physical output evidence."
+  },
+  "failure_classes": {
+    "post_cancel_sink_admission": "PRODUCT_NEGATIVE",
+    "interrupted_packet_commit_eligible": "PRODUCT_NEGATIVE",
+    "producer_continues_but_sink_rejects_and_packet_is_fenced": "NO_PRODUCT_NEGATIVE_AT_SINK_PACKET_SCOPE__PRODUCER_CANCEL_CREDIT_ZERO",
+    "iterator_close_relabelled_as_internal_model_preemption_without_trace": "EVIDENCE_INVALID_SCOPE_INFLATION",
+    "benchmark_generator_yield_relabelled_as_playout": "EVIDENCE_INVALID_SCOPE_INFLATION"
+  },
+  "explicit_zero_credit": [
+    "producer internal cancellation unless executed",
+    "physical cancellation to silence",
+    "human-heard interruption latency",
+    "physical speaker",
+    "whole voice system until composed d622 execution passes",
+    "whole product"
+  ],
+  "next_exact_action": "Let the already-running exact Kokoro/Piper S1 discriminator terminalize without duplicate dispatch. If at least one existing engine yields valid real local audio, reuse that exact accepted engine inside the existing d622 owner-VPS FDX2/FDX3/FDX4/FDX6 execution and emit separate producer, sink and packet-fence cancellation fields. Do not block a bounded sink/packet FDX3 pass solely because hard internal producer preemption is absent, and do not mint producer-cancel credit unless it is truly executed."
+}
