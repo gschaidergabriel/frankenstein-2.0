@@ -1,0 +1,117 @@
+{
+  "schema": "T7_TO_TRIGGER4_G2_PIPEWIRE_TERMINAL_REPAIR_SYNTHESIS/v1",
+  "trigger": "7",
+  "producer": "GPT-5.6-Sol",
+  "date": "2026-09-02",
+  "semantic_key": "0d83f7d13c1d8f91686cf94070f73d901a49018b40a9c058d1949af094655bff",
+  "research_id": "T7-20260902-PIPEWIRE-MONITOR-CANCEL-G2",
+  "issue": 912,
+  "work_class": "EVIDENCE_RECONCILIATION_AND_SINGLE_REPAIR_HANDOFF",
+  "product_mutation_authority": "TRIGGER4_ONLY",
+  "purpose": "Collapse the currently scattered Trigger7 G2 evidence-validity findings into one dependency-ordered closure packet so Trigger4 can make one repair descendant after current nonterminal S2 subjects resolve, without opening another semantic generation or redispatching stale FDX12.",
+  "current_runtime_subjects_observed": [
+    {
+      "run_id": 33554493024,
+      "head_sha": "6cf8ba3a6ae013083b1013e782d3fff2a373d75b",
+      "workflow": "T4 G2 PipeWire Monitor Cancel S2",
+      "status_at_packet_creation": "QUEUED",
+      "subject_class": "PRE_ANALYZER_V2__HISTORICAL_NARROW_SCOPE_ONLY",
+      "terminal_g2_allowed": false,
+      "reason": "Bound before required post-bound/full-control analyzer coverage repair. Preserve its result, but do not compose it with repaired analyzer source into terminal G2 credit."
+    },
+    {
+      "run_id": 33554578605,
+      "head_sha": "eea45dbd94738adb92c4d439ea90534062044239",
+      "workflow": "T4 G2 PipeWire Monitor Cancel S2",
+      "status_at_packet_creation": "QUEUED",
+      "subject_class": "ANALYZER_V2__STILL_TERMINAL_SCOPE_INCOMPLETE",
+      "terminal_g2_allowed": false,
+      "reason": "Includes analyzer-v2 H4 repair but current runtime harness still lacks full terminal H1/H2/H3/object-identity closure. A green result may promote only the exact bounded scope actually measured."
+    }
+  ],
+  "closed_repairs": [
+    {
+      "id": "H4_POST_BOUND_AND_FULL_CONTROL_COVERAGE",
+      "state": "SOURCE_AND_REGRESSION_CLOSED",
+      "analyzer_commit": "eea45dbd94738adb92c4d439ea90534062044239",
+      "test_commit": "b1e3b05729ccbffa1e00cd33cb1582a04728d7fb",
+      "ci_run": 33554631164,
+      "ci_result": "SUCCESS",
+      "scope": "repository measurement-analysis validity only; runtime credit remains zero"
+    }
+  ],
+  "open_terminal_repairs": [
+    {
+      "id": "H1_REPLACEMENT_GENERATION_POSITIVE_READBACK",
+      "priority": 1,
+      "deficit": "Current S2 harness has CONTROL + old-packet CAUSAL_CANCEL but no distinct replacement/new-output-generation playback/readback stage.",
+      "minimal_repair": "In the same S2 PipeWire session and same existing Voice authority, create a distinct new VoiceOutputPacket/output generation after old packet terminalization, bind it to a distinct exact locally generated TTS waveform, play it through the same run-owned sink, and positively observe/correlate it on the same monitor before cleanup.",
+      "acceptance": "new packet/output generation identity + exact replacement WAV/TTS lineage + positive monitor correlation/readback after old-generation cancellation",
+      "do_not_create": "second playback/turn/state/effect authority"
+    },
+    {
+      "id": "H2_PREFLIGHT_DERIVED_INFLIGHT_BOUND",
+      "priority": 2,
+      "deficit": "Runtime harness currently exposes a convenience --max-inflight-ms default; terminal promotion requires the bound to be fixed from pre-execution graph/latency evidence, not selected by default after seeing output.",
+      "minimal_repair": "Persist a pre-playback PipeWire graph/latency preflight receipt and require an explicit max-inflight-ms derived from that receipt. Promotion-bearing execution must fail closed if the controller does not supply the bound explicitly. Record bound value, derivation inputs and receipt hash before CONTROL starts.",
+      "acceptance": "pre-execution bound source is causally prior to observed cancel result and appears in final receipt"
+    },
+    {
+      "id": "H3_PACKET_AUDIO_TTS_CAUSAL_BINDING",
+      "priority": 3,
+      "deficit": "Current harness creates VoiceOutputPacket state and receives source WAV/model/config hashes in the same process, but terminal evidence needs an explicit packet->audio/TTS binding rather than co-presence.",
+      "minimal_repair": "Emit packet_audio_binding before playback: packet_id, output_generation, exact source WAV SHA256, exact source text/provenance or accepted TTS receipt ref, observed TTS runtime version, model/config SHA256, Python/runtime versions and exact F2 subject SHA. Verify identical source bytes are used by CONTROL/CANCEL and the intended packet lineage.",
+      "acceptance": "one explicit causal object binds packet lineage to the exact waveform bytes and observed local TTS runtime identity"
+    },
+    {
+      "id": "H5_PIPEWIRE_OBJECT_SERIAL_BINDING",
+      "priority": 4,
+      "deficit": "Whole pw-dump hash plus pactl short lines do not identify the exact sink/monitor objects that generated the capture.",
+      "minimal_repair": "Parse pw-dump JSON and uniquely bind run-owned sink and monitor using stable names/properties; persist object.id/id, object.serial, node.name, media.class and device.id where present. Fail closed before CONTROL on ambiguity/missing serial. After unload, prove those same identities are absent.",
+      "acceptance": "exact run-owned sink/monitor identities are queryable in the receipt and absent after cleanup"
+    }
+  ],
+  "scope_fence": {
+    "test_driver_cancel_translation": "The harness currently invokes VoicePacketCortex.cancel_for_barge_in() and then stop_playback() itself. A pass proves the explicitly test-driven packet-fence -> PipeWire transport cancellation boundary, not an autonomous production playback executor unless current product source independently binds that translation.",
+    "physical_credit": 0,
+    "human_heard_credit": 0,
+    "producer_tts_generation_cancel_credit": 0,
+    "whole_voice_credit": 0,
+    "whole_product_credit": 0
+  },
+  "execution_order": [
+    "1. Do not spawn a third S2 subject while runs 33554493024 or 33554578605 are queued/running unless an executable validity repair requires immediate invalidation.",
+    "2. Consume each terminal result at only the exact source/scope it executed; infra/evidence failures are not product negatives.",
+    "3. Refresh current main and semantic owner 0d83... after both nonterminal subjects settle or a current singleton makes one obsolete.",
+    "4. Fold H1 + H2 + H3 + H5 into one smallest existing-harness repair descendant; H4 is already closed and must not be reimplemented.",
+    "5. Add focused repository regressions for new binding/fail-closed paths; no second architecture.",
+    "6. Dispatch exactly one current repaired S2 subject and bind terminal receipt to semantic key 0d83....",
+    "7. Terminalize G2 only if control, old-generation cancel/tail, post-bound coverage, replacement-generation readback, packet/audio/TTS binding, exact PipeWire object identity, cleanup and exact subject identity all pass at the same admitted scope.",
+    "8. Only after terminal G2 may Trigger7 advance to later partial-ASR/producer-preemption/FDX12/long-session research according to refreshed authority."
+  ],
+  "failure_taxonomy": {
+    "old_audio_beyond_predeclared_bound_with_valid_control_and_coverage": "PRODUCT_NEGATIVE",
+    "missing_or_ambiguous_identity_or_insufficient_capture_or_unbound_waveform": "EVIDENCE_INVALID",
+    "S2_runner_pipewire_session_auth_transport_failure": "INFRA_AUTH_TRANSPORT_QUOTA_OR_SANDBOX_FIDELITY_DEFICIT",
+    "queued_running_partial": "UNKNOWN_NONTERMINAL",
+    "git_claim_singleton_race": "CONCURRENCY_RETRY"
+  },
+  "explicit_zero_credit": {
+    "runtime_from_this_packet": 0,
+    "terminal_g2_from_source_or_ci": 0,
+    "physical_microphone": 0,
+    "physical_speaker": 0,
+    "human_heard_output": 0,
+    "physical_presence": 0,
+    "cancellation_to_physical_silence": 0,
+    "true_partial_asr_streaming": 0,
+    "producer_tts_generation_cancel": 0,
+    "canonical_durable_state_reentry": 0,
+    "gwt_jspace": 0,
+    "effect": 0,
+    "training": 0,
+    "whole_voice_e2e": 0,
+    "whole_product": 0
+  },
+  "next_exact_action": "Do not create more G2 research breadth. Consume current S2 run results; then Trigger4 performs one existing-harness repair descendant closing H1/H2/H3/H5 and exactly one promotion-bearing S2 rerun under semantic key 0d83...."
+}
