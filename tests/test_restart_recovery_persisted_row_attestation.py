@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Repository-hosted regressions for F2-WP-901 generation 4 row/load attestation."""
+"""Repository regressions for WP901 G4 load, G5 authority ref and G6 rollback-head admission."""
 from __future__ import annotations
 
 from dataclasses import replace
@@ -203,6 +203,36 @@ class PersistedRowLoadAttestationTests(unittest.TestCase):
         self.assertEqual(raw["completion_authority"], "NONE")
         self.assertEqual(raw["runtime_credit"], 0)
         self.assertFalse(raw["whole_system_acceptance"])
+
+    def test_stale_ancestor_fails_closed_when_wp206_has_newer_lineage_head(self) -> None:
+        causal, stale_checkpoint, seal, outcome, evidence = self.sources()
+        newer_checkpoint = advance_checkpoint(
+            stale_checkpoint,
+            checkpoint_id="checkpoint-wp901-g6-newer-lineage-head",
+            pulse_id="pulse-wp901-g6-newer-lineage-head",
+            observation_id="observation-wp901-g6-newer-lineage-head",
+            provenance_refs=stale_checkpoint.provenance_refs,
+        )
+        self.store.write_checkpoint(newer_checkpoint)
+        latest = self.store.latest_checkpoint(stale_checkpoint.kernel_state_id)
+        self.assertEqual(latest.checkpoint_id, newer_checkpoint.checkpoint_id)
+        self.assertGreater(latest.generation, stale_checkpoint.generation)
+
+        with self.assertRaisesRegex(
+            PersistedRowLoadAttestationError,
+            "PERSISTED_ROW_ROLLBACK_ANCESTOR_NOT_LATEST_LINEAGE_HEAD",
+        ):
+            plan_restart_continuation_from_persisted_row(
+                self.store,
+                checkpoint_id=stale_checkpoint.checkpoint_id,
+                evidence=evidence,
+                plan_id="restart-plan-wp901-g6-stale-ancestor",
+                expected_evidence_sha256=evidence.sha256(),
+                causal_identity=causal,
+                unifieddb_authority=self.authority(),
+                whole_loop_seal=seal,
+                outcome=outcome,
+            )
 
     def test_tampered_persisted_checkpoint_json_fails_in_existing_wp206_loader(self) -> None:
         _, checkpoint, _, _, _ = self.sources()
