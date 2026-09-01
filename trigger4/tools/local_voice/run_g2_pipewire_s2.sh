@@ -115,7 +115,6 @@ export G2_REPLACEMENT_SOURCE="$WORK/replacement-source.wav"
 export G2_SOURCE_TEXT="$WORK/source.txt"
 export G2_REPLACEMENT_TEXT="$WORK/replacement-source.txt"
 export G2_ANALYZER="$PWD/research/local_voice/tools/t7_pipewire_g2_h4_guard_cli.py"
-export G2_HARNESS_ANALYZER="$PWD/research/local_voice/tools/t7_pipewire_g2_h4_guard.py"
 export G2_HARNESS="$PWD/trigger4/tools/local_voice/g2_pipewire_s2_runtime.py"
 export G2_EVIDENCE_HELPER="$PWD/trigger4/tools/local_voice/g2_pipewire_evidence.py"
 export PIPER_MODEL_SHA256 PIPER_CONFIG_SHA256
@@ -131,7 +130,6 @@ runuser -u f2audio -- env \
   G2_SOURCE_TEXT="$G2_SOURCE_TEXT" \
   G2_REPLACEMENT_TEXT="$G2_REPLACEMENT_TEXT" \
   G2_ANALYZER="$G2_ANALYZER" \
-  G2_HARNESS_ANALYZER="$G2_HARNESS_ANALYZER" \
   G2_HARNESS="$G2_HARNESS" \
   G2_EVIDENCE_HELPER="$G2_EVIDENCE_HELPER" \
   PIPER_MODEL_SHA256="$PIPER_MODEL_SHA256" \
@@ -171,7 +169,7 @@ runuser -u f2audio -- env \
       --replacement-source "$G2_REPLACEMENT_SOURCE" \
       --tts-text-file "$G2_SOURCE_TEXT" \
       --replacement-tts-text-file "$G2_REPLACEMENT_TEXT" \
-      --analyzer "$G2_HARNESS_ANALYZER" \
+      --analyzer "$G2_ANALYZER" \
       --workdir "$G2_WORK/evidence" \
       --f2-subject-sha "$F2_SUBJECT_SHA" \
       --tts-model-sha256 "$PIPER_MODEL_SHA256" \
