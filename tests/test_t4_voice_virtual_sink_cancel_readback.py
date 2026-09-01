@@ -30,7 +30,9 @@ def test_software_loopback_rejects_late_old_generation_and_never_commits_sentine
     assert result["old_sentinel_exact_occurrences"] == 0
     assert result["new_sentinel_exact_occurrences"] == 1
     assert result["measured_credit"]["repository_software_reference_credit"] == 1
+    assert result["measured_credit"]["candidate_pulse_null_output_consumption_observed"] == 0
     assert result["measured_credit"]["virtual_sink_output_consumption_control"] == 0
+    assert result["measured_credit"]["target_vps_virtual_sink_runtime_credit"] == 0
 
     for key in (
         "physical_speaker",
@@ -47,7 +49,7 @@ def test_software_loopback_rejects_late_old_generation_and_never_commits_sentine
         assert result["measured_credit"][key] == 0
 
 
-def test_pulse_null_credit_requires_pulse_execution_path(monkeypatch):
+def test_pulse_null_pass_is_candidate_observation_not_runtime_credit(monkeypatch):
     class FakePulseNullSink:
         backend_name = "PIPEWIRE_PULSE_NULL_SINK"
 
@@ -81,7 +83,9 @@ def test_pulse_null_credit_requires_pulse_execution_path(monkeypatch):
     assert result["pass"] is True
     assert result["execution_scope"] == "VPS_VIRTUAL_SINK_IF_EXECUTED_ON_ADMITTED_TARGET"
     assert result["measured_credit"]["repository_software_reference_credit"] == 0
-    assert result["measured_credit"]["virtual_sink_output_consumption_control"] == 1
+    assert result["measured_credit"]["candidate_pulse_null_output_consumption_observed"] == 1
+    assert result["measured_credit"]["virtual_sink_output_consumption_control"] == 0
+    assert result["measured_credit"]["target_vps_virtual_sink_runtime_credit"] == 0
 
 
 def test_generation_fence_is_session_bound_and_monotonic():
@@ -103,8 +107,9 @@ def test_pulse_mode_is_explicitly_virtual_not_physical_credit():
     assert "PIPEWIRE_PULSE_NULL_SINK" in source
     assert "module-null-sink" in source
     assert '"repository_software_reference_credit"' in source
-    assert '"virtual_sink_output_consumption_control"' in source
+    assert '"candidate_pulse_null_output_consumption_observed"' in source
+    assert '"target_vps_virtual_sink_runtime_credit": 0' in source
     assert '"physical_speaker": 0' in source
     assert '"human_heard_output": 0' in source
     assert '"whole_product": 0' in source
-    assert "Reserve physical speaker/microphone/human-heard cancellation-to-silence for S4" in source
+    assert "promote virtual-sink runtime credit only in the external receipt/reconciliation" in source
