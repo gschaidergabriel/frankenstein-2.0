@@ -1,0 +1,64 @@
+name: Trigger4 FDX1 FDX5 Repository Falsifier
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'tests/test_trigger4_fdx1_fdx5_convergence.py'
+      - '.github/workflows/trigger4-fdx15-repository-falsifier.yml'
+      - 'src/frankenstein2/voice_packet_cortex.py'
+      - 'src/frankenstein2/voice_contract.py'
+      - 'src/frankenstein2/causal_identity.py'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: trigger4-fdx15-repository-falsifier
+  cancel-in-progress: true
+
+jobs:
+  fdx15-repository-falsifier:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      PYTHONPATH: ${{ github.workspace }}/src
+      PYTHONDONTWRITEBYTECODE: '1'
+      EXPECTED_SOURCE_SHA: ${{ github.sha }}
+    steps:
+      - name: Checkout exact F2 subject
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          fetch-depth: 1
+          clean: true
+          persist-credentials: false
+
+      - name: Verify exact repository subject
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          test "$(git rev-parse HEAD)" = "$EXPECTED_SOURCE_SHA"
+          test -z "$(git status --porcelain --untracked-files=no)"
+
+      - name: Execute independent FDX1 FDX5 packet convergence falsifier
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          python -m unittest -v tests.test_trigger4_fdx1_fdx5_convergence
+
+      - name: Preserve evidence scope fence
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          printf '%s\n' \
+            'scope=REPOSITORY_PACKET_COMPOSITION_ONLY' \
+            'asr_runtime_credit=0' \
+            'tts_runtime_credit=0' \
+            'vps_runtime_credit=0' \
+            'physical_audio_credit=0' \
+            'gwt_jspace_credit=0' \
+            'effect_credit=0' \
+            'training_credit=0' \
+            'whole_voice_e2e_credit=0' \
+            'whole_product_credit=0'
