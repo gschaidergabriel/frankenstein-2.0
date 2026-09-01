@@ -1,0 +1,135 @@
+name: T4 WP720 PFD6 Duplicate Policy Falsifier
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/t4-wp720-pfd6-duplicate-policy-falsifier.yml'
+      - 'src/frankenstein2/voice_packet_turn_policy.py'
+      - 'src/frankenstein2/voice_packet_cortex.py'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  pfd6-duplicate-policy-decision:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: Checkout exact accepted WP720 PFD subject
+        uses: actions/checkout@v4
+        with:
+          ref: 731db925df96ab7e49c0e5b80cd7bc8f4d37a086
+          fetch-depth: 1
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Record exact source identity
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = '731db925df96ab7e49c0e5b80cd7bc8f4d37a086'
+          sha256sum \
+            src/frankenstein2/voice_packet_turn_policy.py \
+            src/frankenstein2/voice_packet_cortex.py
+
+      - name: PFD6 one accepted source event must not mint conflicting policy decisions
+        env:
+          PYTHONPATH: src
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from frankenstein2.causal_identity import CausalIdentity
+          from frankenstein2.voice_contract import VoiceIntent, VoiceSessionCapsule
+          from frankenstein2.voice_packet_cortex import VoiceInputPacket, VoicePacketCortex
+          from frankenstein2.voice_packet_turn_policy import PacketTurnPolicy, PacketTurnPolicyError, apply_packet_turn_policy
+
+          root = CausalIdentity(
+              session_id='session-wp720-pfd6',
+              agent_id='frankenstein-2',
+              task_id='task-wp720-pfd6',
+              turn_id='turn-root',
+              causal_id='causal-root-wp720-pfd6',
+              generation=1,
+          )
+          intent = VoiceIntent.create(
+              causal_identity=root,
+              input_ref='wp720:pfd6:duplicate-policy-decision',
+              input_sha256='9' * 64,
+              provenance_refs=('trigger4:wp720-pfd6-review',),
+          )
+          session = VoiceSessionCapsule.create(
+              intent=intent,
+              session_causal_identity=root.derive(
+                  causal_id='causal-session-wp720-pfd6', generation=2, turn_id='turn-session'
+              ),
+              provenance_refs=('trigger4:wp720-pfd6-review-session',),
+          )
+          cortex = VoicePacketCortex(session)
+          packet = VoiceInputPacket(
+              session_id=cortex.session_id,
+              turn_id='turn-1',
+              packet_id='input-hold-0',
+              monotonic_ms=100,
+              source_modality='asr_partial',
+              text='Ich spreche noch',
+              language='de-DE',
+              is_final=False,
+              confidence=0.97,
+              speech_start=True,
+              speech_end=False,
+              vad_state='SPEECH',
+              endpoint_decision='HOLD',
+              overlap_state='NONE',
+              barge_in=False,
+              source_duration_ms=160,
+              sequence=0,
+          )
+          accepted = cortex.accept_input(packet)
+          wait = PacketTurnPolicy(
+              policy_id='wp720-pfd6-wait',
+              hold_intent='WAIT',
+              provenance_refs=('trigger4:wp720-pfd6-review',),
+          )
+          backchannel = PacketTurnPolicy(
+              policy_id='wp720-pfd6-backchannel',
+              hold_intent='BACKCHANNEL',
+              provenance_refs=('trigger4:wp720-pfd6-review',),
+          )
+
+          first = apply_packet_turn_policy(cortex, accepted, wait, monotonic_ms=110)
+          try:
+              second = apply_packet_turn_policy(cortex, accepted, backchannel, monotonic_ms=111)
+          except PacketTurnPolicyError as exc:
+              print('PFD6_PASS_CONFLICT_REJECTED', str(exc))
+          else:
+              decisions = [
+                  event for event in cortex.events
+                  if event.event_kind == 'VOICE_INTENT'
+                  and f'source_event_id={accepted.event_id}' in event.detail
+              ]
+              print('PFD6_PRODUCT_NEGATIVE_REPRODUCED')
+              print('first_intent=', first.voice_intent)
+              print('second_intent=', second.voice_intent)
+              print('same_source_policy_decisions=', len(decisions))
+              for event in decisions:
+                  print(event.event_id, event.voice_intent, event.detail)
+              raise SystemExit(
+                  'PFD6_FAIL: one accepted HOLD source event minted conflicting WAIT and BACKCHANNEL decisions'
+              )
+          PY
+
+      - name: Scope marker
+        if: always()
+        run: |
+          printf '%s\n' \
+            'review_lane=CANDIDATE_FALSIFIER' \
+            'subject_sha=731db925df96ab7e49c0e5b80cd7bc8f4d37a086' \
+            'target_runtime_credit=0' \
+            'physical_audio_credit=0' \
+            'gwt_jspace_credit=0' \
+            'effect_credit=0' \
+            'training_credit=0' \
+            'whole_product_credit=0'
