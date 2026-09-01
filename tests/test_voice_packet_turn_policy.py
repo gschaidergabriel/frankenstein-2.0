@@ -209,6 +209,20 @@ class VoicePacketTurnPolicyTests(unittest.TestCase):
         with self.assertRaises(PacketTurnPolicyError):
             apply_packet_turn_policy(cortex, accepted, self.policy("WAIT"), monotonic_ms=99)
 
+    def test_same_accepted_event_cannot_emit_conflicting_policy_decisions(self) -> None:
+        cortex = VoicePacketCortex(self.session())
+        accepted = cortex.accept_input(self.hold_packet(cortex))
+        first = apply_packet_turn_policy(cortex, accepted, self.policy("WAIT"), monotonic_ms=110)
+        self.assertEqual(first.voice_intent, "WAIT")
+        with self.assertRaises(PacketTurnPolicyError):
+            apply_packet_turn_policy(cortex, accepted, self.policy("BACKCHANNEL"), monotonic_ms=111)
+        bound = [
+            event for event in cortex.events
+            if event.event_kind == "VOICE_INTENT" and f"source_event_id={accepted.event_id}" in event.detail
+        ]
+        self.assertEqual(len(bound), 1)
+        self.assertEqual(bound[0].voice_intent, "WAIT")
+
 
 if __name__ == "__main__":
     unittest.main()
