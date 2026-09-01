@@ -22,6 +22,8 @@
     "src/frankenstein2/gwt_causal_runtime_readback.py",
     "src/frankenstein2/gwt_semantic_runtime_readback.py",
     "tests/test_wp900_g6_semantic_runtime_readback.py",
+    "tests/test_wp900_g7_shared_outcome_readback.py",
+    ".github/workflows/trigger4-release-candidate-ci.yml",
     "workpackages/receipts/F2-WP-900_G6_SEMANTIC_CAUSAL_READBACK_TARGET_RUNTIME_33563614093.json"
   ],
   "blocking_deficit": "Executed G6 intervention raw outcome is FRANKENSTEIN2_GRID10_CELL_OUTPUT/v1 while control raw outcome is F2_WP900_G4_CONTROL_NO_BROADCAST_DOWNSTREAM/v1. They belong to the same matched task but cannot be compared under one explicit outcome ABI, so the G6 comparator correctly returns SEMANTIC_COMPARISON_UNKNOWN.",
@@ -45,13 +47,16 @@
     "raw-schema mismatch or forged lineage fails closed",
     "historical G6 raw-schema mismatch continues to return UNKNOWN when no shared-outcome receipt is supplied"
   ],
+  "repository_implementation_head": "2ee2062f536512f1c4353828b4a69e0f6b9d589e",
+  "repository_evidence_gap": "The only push workflow on 2ee2062f536512f1c4353828b4a69e0f6b9d589e executes the accepted G6 semantic-readback regression but does not execute tests/test_wp900_g7_shared_outcome_readback.py. A green release-candidate run at that source therefore cannot mint G7 repository-CI credit.",
   "runtime_subject": null,
   "runtime_subject_churn_class": "NO_G7_RUNTIME_SUBJECT_BOUND",
-  "duplicate_owner_check": "No WP900 G7 commit or open PR was observed before claim creation. G6 runtime dispatch 33563614093 is terminal and MUST NOT be redispatched.",
-  "claimed_scope": "Implement only the smallest shared matched-task outcome readback ABI and repository hard negatives needed to make the already accepted intervention/control producer outputs structurally comparable while retaining exact raw evidence lineage. Do not change G4/G5 accepted semantics, do not weaken the G6 comparator, and do not dispatch target runtime until repository evidence accepts G7.",
+  "duplicate_owner_check": "No competing WP900 G7 mutation owner observed. The missing G7 regression landed canonically at 2ee2062f536512f1c4353828b4a69e0f6b9d589e, so duplicate test implementation is stopped and the same claim continues only with CI evidence closure. G6 runtime dispatch 33563614093 is terminal and MUST NOT be redispatched.",
+  "claimed_scope": "Implement only the smallest shared matched-task outcome readback ABI and repository hard negatives needed to make the already accepted intervention/control producer outputs structurally comparable while retaining exact raw evidence lineage. Close repository evidence by explicitly executing the G7 regression in the existing release-candidate CI. Do not change G4/G5 accepted semantics, do not weaken the G6 comparator, and do not dispatch target runtime until repository evidence accepts G7.",
   "owned_paths": [
     "src/frankenstein2/gwt_semantic_runtime_readback.py",
     "tests/test_wp900_g7_shared_outcome_readback.py",
+    ".github/workflows/trigger4-release-candidate-ci.yml",
     "workpackages/active/F2-WP-900.json",
     "workpackages/deltas/F2-WP-900/*",
     "workpackages/receipts/F2-WP-900_G7_*",
@@ -75,5 +80,5 @@
   "training_credit": 0,
   "completion_credit": 0,
   "whole_system_acceptance": false,
-  "next_exact_action": "Add one factory-sealed matched-task outcome receipt to gwt_semantic_runtime_readback.py. Bind it to the exact raw downstream bytes and G4 source/boot/execution context, project only the predeclared reentry-observed outcome into SemanticArmReadback, and add G7 hard-negative/equivalence/difference regressions."
+  "next_exact_action": "Extend the existing trigger4 release-candidate workflow with an explicit G7 shared-outcome regression step, observe the exact-source CI result, and only on an executed PASS emit the bounded G7 repository-CI receipt/reconciliation. After repository acceptance, bind at most one exact-source VPS target-runtime subject."
 }
