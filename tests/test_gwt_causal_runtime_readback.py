@@ -4,17 +4,26 @@ import pytest
 
 from frankenstein2.grid10_interface import CellBudget, CellInput, CellOutput, Grid10Plan
 from frankenstein2.gwt_causal_runtime_readback import (
-    CAUSAL_RUNTIME_READBACK_OBSERVED,
-    ControlNoBroadcastReadback,
+    CAUSAL_RUNTIME_INTERVENTION_READBACK_CANDIDATE,
     GwtCausalRuntimeReadbackError,
-    ProbeExecutionContext,
-    bind_causal_runtime_readback,
-    validate_causal_runtime_readback,
+    INTERVENTION_ABSENT_OBSERVED,
+    INTERVENTION_ACTIVE_OBSERVED,
+    bind_gwt_causal_runtime_readback,
+    observe_causal_arm_runtime_readback,
+    validate_gwt_causal_runtime_readback,
 )
 from frankenstein2.gwt_reentry_provenance import build_reentry_witness
 from frankenstein2.gwt_reentry_uptake_binding import bind_reentry_to_uptake
-from frankenstein2.gwt_runtime_witness import GwtRuntimeWitnessRecorder, RuntimeObservationIdentity
-from frankenstein2.gwt_uptake import CellUptakeReceipt, summarize_uptake
+from frankenstein2.gwt_runtime_witness import (
+    GwtRuntimeWitnessRecorder,
+    RuntimeObservationIdentity,
+)
+from frankenstein2.gwt_uptake import (
+    CausalProbeArm,
+    CellUptakeReceipt,
+    evaluate_causal_influence,
+    summarize_uptake,
+)
 from frankenstein2.gwt_workspace import (
     CandidateProducerAdmission,
     SelectionPolicy,
@@ -29,36 +38,17 @@ C = "c" * 64
 D = "d" * 64
 E = "e" * 64
 F = "f" * 64
-G = "1" * 64
-H = "2" * 64
-I = "3" * 64
 
 
-def context(**overrides):
-    values = {
-        "runner_identity": "runner:vps-clay-host",
-        "execution_surface": "S1:ubuntu-24.04-oci",
-        "runtime_engine_identity": "python:cpython-3.11",
-        "runtime_engine_config_sha256": G,
-        "environment_sha256": H,
-        "dependency_set_sha256": I,
-        "boot_id_sha256": D,
-        "exact_source_sha256": E,
-        "provenance_refs": ("prov:shared-execution-context",),
-    }
-    values.update(overrides)
-    return ProbeExecutionContext(**values)
-
-
-def make_fixture():
-    plan = Grid10Plan.create(
-        plan_id="grid-plan-wp900-g4",
-        cycle_id="cycle-wp900-g4",
-        generation=4,
-        frame_id="frame-wp900-g4",
-        frame_generation=5,
+def make_plan():
+    return Grid10Plan.create(
+        plan_id="plan:wp900-g4",
+        cycle_id="cycle:wp900-g4",
+        generation=1,
+        frame_id="frame:wp900-g4",
+        frame_generation=1,
         frame_sha256=A,
-        policy_id="grid-policy-wp900-g4",
+        policy_id="grid-policy:wp900-g4",
         policy_generation=1,
         policy_sha256=B,
         cells=tuple(
@@ -75,6 +65,9 @@ def make_fixture():
         max_total_work_units=80,
         provenance_refs=("prov:grid-plan-wp900-g4",),
     )
+
+
+def make_selection(plan):
     producer_input = CellInput.for_plan(
         plan,
         cell_id="G1",
@@ -108,7 +101,7 @@ def make_fixture():
         ),
     )
     policy = SelectionPolicy(
-        policy_id="gwt-policy-wp900-g4",
+        policy_id="gwt-policy:wp900-g4",
         generation=1,
         max_selected_candidates=1,
         max_total_cost_units=4,
@@ -118,10 +111,10 @@ def make_fixture():
         information_gain_weight=1,
         cost_weight=1,
     )
-    selection = build_workspace_selection(
+    return build_workspace_selection(
         selection_id="selection:wp900-g4",
         cycle_id=plan.cycle_id,
-        generation=8,
+        generation=1,
         frame_id=plan.frame_id,
         frame_generation=plan.frame_generation,
         frame_sha256=plan.frame_sha256,
@@ -131,9 +124,23 @@ def make_fixture():
         policy=policy,
         candidates=(candidate,),
     )
+
+
+def runtime_identity(*, runtime_instance_id="runtime:wp900-g4"):
+    return RuntimeObservationIdentity(
+        runtime_instance_id=runtime_instance_id,
+        process_identity="pid:900:start:4",
+        boot_id_sha256=D,
+        exact_source_sha256=E,
+    )
+
+
+def make_fixture():
+    plan = make_plan()
+    selection = make_selection(plan)
     broadcast = create_broadcast(
         broadcast_id="broadcast:wp900-g4",
-        generation=4,
+        generation=1,
         selection=selection,
         expected_selection_sha256=selection.sha256(),
         recipient_cell_ids=("G1",),
@@ -146,7 +153,7 @@ def make_fixture():
         input_refs=("payload:candidate",),
         provenance_refs=("prov:reentry-input",),
     )
-    witness = build_reentry_witness(
+    reentry_witness = build_reentry_witness(
         plan=plan,
         selection=selection,
         broadcast=broadcast,
@@ -158,199 +165,295 @@ def make_fixture():
         cell_id="G1",
         delivery_status="DELIVERED",
         uptake_status="UPTAKEN",
-        downstream_ref="readback:intervention",
+        downstream_ref="downstream:intervention",
         downstream_sha256=C,
-        provenance_refs=("prov:wp507-runtime-receipt",),
+        provenance_refs=("prov:wp507-runtime-uptake",),
     )
     binding = bind_reentry_to_uptake(
         binding_id="binding:wp900-g4",
-        witness=witness,
+        witness=reentry_witness,
         uptake_receipt=uptake_receipt,
         plan=plan,
         selection=selection,
         broadcast=broadcast,
         cell_input=cell_input,
-        provenance_refs=("prov:wp508-runtime-binding",),
+        provenance_refs=("prov:wp508-binding",),
     )
-    ticks = iter((10, 20, 30))
+    identity = runtime_identity()
+    times = iter((10, 20, 30))
     recorder = GwtRuntimeWitnessRecorder(
-        identity=RuntimeObservationIdentity(
-            runtime_instance_id="runtime:wp900-g4:intervention",
-            process_identity="pid:4242:start:100",
-            boot_id_sha256=D,
-            exact_source_sha256=E,
-        ),
-        monotonic_ns=lambda: next(ticks),
+        identity=identity,
+        monotonic_ns=lambda: next(times),
     )
     recorder.observe_delivery(broadcast)
     recorder.observe_uptake(uptake_receipt)
     recorder.observe_reentry(
-        witness=witness,
+        witness=reentry_witness,
         binding=binding,
         plan=plan,
         selection=selection,
         cell_input=cell_input,
     )
     runtime_witness = recorder.seal()
+
     uptake_summary = summarize_uptake(
         summary_id="summary:wp900-g4",
         broadcast=broadcast,
         receipts=(uptake_receipt,),
-        provenance_refs=("prov:wp900-g4-summary",),
+        provenance_refs=("prov:wp507-summary",),
     )
-    return broadcast, runtime_witness, uptake_receipt, uptake_summary
-
-
-def control(**overrides):
-    values = {
-        "runtime_instance_id": "runtime:wp900-g4:control",
-        "process_identity": "pid:4243:start:200",
-        "boot_id_sha256": D,
-        "exact_source_sha256": E,
-        "execution_context_sha256": context().sha256(),
-        "probe_id": "probe:wp900-g4",
-        "nonbroadcast_input_sha256": A,
-        "downstream_ref": "readback:control",
-        "downstream_sha256": F,
-        "observed_monotonic_ns": 40,
-        "reentry_observed": False,
-        "provenance_refs": ("prov:control-runtime-readback",),
-    }
-    values.update(overrides)
-    return ControlNoBroadcastReadback(**values)
-
-
-def bind(*, control_readback=None, summary=None, witness=None, receipt=None, execution_context=None):
-    broadcast, runtime_witness, uptake_receipt, uptake_summary = make_fixture()
-    shared_context = context() if execution_context is None else execution_context
-    return bind_causal_runtime_readback(
+    intervention = CausalProbeArm.intervention(
+        arm_id="arm:intervention:wp900-g4",
+        probe_id="probe:wp900-g4",
+        broadcast=broadcast,
+        nonbroadcast_input_sha256=A,
+        downstream_output_sha256=C,
+        provenance_refs=("prov:intervention",),
+    )
+    control = CausalProbeArm.control(
+        arm_id="arm:control:wp900-g4",
         probe_id="probe:wp900-g4",
         nonbroadcast_input_sha256=A,
-        execution_context=shared_context,
+        downstream_output_sha256=B,
+        provenance_refs=("prov:control",),
+    )
+    causal_result = evaluate_causal_influence(
+        result_id="causal:wp900-g4",
         broadcast=broadcast,
-        runtime_witness=runtime_witness if witness is None else witness,
-        uptake_receipt=uptake_receipt if receipt is None else receipt,
-        uptake_summary=uptake_summary if summary is None else summary,
-        control_readback=(
-            control(execution_context_sha256=shared_context.sha256())
-            if control_readback is None
-            else control_readback
-        ),
-        provenance_refs=("prov:wp900-g4-binder",),
+        uptake_summary=uptake_summary,
+        intervention=intervention,
+        control=control,
+        provenance_refs=("prov:causal-result",),
+    )
+    intervention_readback = observe_causal_arm_runtime_readback(
+        identity=identity,
+        arm=intervention,
+        observed_downstream_output_sha256=C,
+        observed_monotonic_ns=40,
+        intervention_activation=INTERVENTION_ACTIVE_OBSERVED,
+    )
+    control_readback = observe_causal_arm_runtime_readback(
+        identity=identity,
+        arm=control,
+        observed_downstream_output_sha256=B,
+        observed_monotonic_ns=50,
+        intervention_activation=INTERVENTION_ABSENT_OBSERVED,
+    )
+    return {
+        "plan": plan,
+        "selection": selection,
+        "broadcast": broadcast,
+        "cell_input": cell_input,
+        "reentry_witness": reentry_witness,
+        "uptake_receipt": uptake_receipt,
+        "binding": binding,
+        "runtime_witness": runtime_witness,
+        "uptake_summary": uptake_summary,
+        "intervention": intervention,
+        "control": control,
+        "causal_result": causal_result,
+        "intervention_readback": intervention_readback,
+        "control_readback": control_readback,
+    }
+
+
+def bind(fx, **overrides):
+    values = dict(fx)
+    values.update(overrides)
+    return bind_gwt_causal_runtime_readback(
+        readback_id="readback:wp900-g4",
+        provenance_refs=("prov:wp900-g4-readback",),
+        **values,
     )
 
 
-def test_positive_matched_runtime_readback_binds_existing_evidence_but_mints_zero_credit():
-    observed = bind()
-    validate_causal_runtime_readback(observed)
-
-    assert observed.classification == CAUSAL_RUNTIME_READBACK_OBSERVED
-    assert observed.causal_result_status == "CAUSAL_INFLUENCE_OBSERVED_AT_CONTRACT_SCOPE"
-    assert observed.intervention_downstream_sha256 == C
-    assert observed.control_downstream_sha256 == F
-    assert observed.exact_source_sha256 == E
-    assert observed.boot_id_sha256 == D
-    assert observed.execution_context_sha256 == context().sha256()
-    assert observed.runtime_credit == 0
-    assert observed.target_environment_component_runtime_credit == 0
-    assert observed.gwt_contract_causal_runtime_candidate_credit == 0
-    assert observed.gwt_runtime_credit == 0
-    assert observed.jspace_runtime_credit == 0
-    assert observed.physical_grid10_credit == 0
-    assert observed.effect_credit == 0
-    assert observed.training_credit == 0
-    assert observed.completion_credit == 0
-    assert observed.whole_system_acceptance is False
+def test_positive_matched_runtime_readback_binds_all_existing_lineage_and_mints_zero_credit():
+    observed = bind(make_fixture())
+    validate_gwt_causal_runtime_readback(observed)
+    payload = observed.as_dict()
+    assert observed.classification == CAUSAL_RUNTIME_INTERVENTION_READBACK_CANDIDATE
+    assert observed.causal_status == "CAUSAL_INFLUENCE_OBSERVED_AT_CONTRACT_SCOPE"
+    assert payload["runtime_credit"] == 0
+    assert payload["target_environment_component_runtime_credit"] == 0
+    assert payload["gwt_contract_causal_runtime_candidate_credit"] == 0
+    assert payload["gwt_runtime_credit"] == 0
+    assert payload["jspace_runtime_credit"] == 0
+    assert payload["physical_grid10_credit"] == 0
+    assert payload["effect_credit"] == 0
+    assert payload["training_credit"] == 0
+    assert payload["completion_credit"] == 0
+    assert payload["whole_system_acceptance"] is False
 
 
-def test_same_downstream_readback_fails_causal_discriminator():
-    with pytest.raises(GwtCausalRuntimeReadbackError, match="NO_CAUSAL_INFLUENCE_OBSERVED"):
-        bind(control_readback=control(downstream_sha256=C))
+def test_directly_modified_causal_result_is_rebuilt_and_rejected():
+    fx = make_fixture()
+    forged = replace(fx["causal_result"], status="NO_CAUSAL_INFLUENCE_OBSERVED")
+    with pytest.raises(GwtCausalRuntimeReadbackError, match="deterministic WP507 rebuild"):
+        bind(fx, causal_result=forged)
 
 
-def test_control_must_share_exact_source_with_positive_runtime():
-    with pytest.raises(GwtCausalRuntimeReadbackError, match="exact-source identity mismatch"):
-        bind(control_readback=control(exact_source_sha256=F))
-
-
-def test_control_must_share_boot_with_positive_runtime():
-    with pytest.raises(GwtCausalRuntimeReadbackError, match="boot identity mismatch"):
-        bind(control_readback=control(boot_id_sha256=F))
-
-
-def test_control_must_share_full_execution_context_with_positive_arm():
-    with pytest.raises(GwtCausalRuntimeReadbackError, match="execution-context identity mismatch"):
-        bind(control_readback=control(execution_context_sha256=B))
-
-
-def test_execution_context_must_bind_positive_source_and_boot():
-    with pytest.raises(GwtCausalRuntimeReadbackError, match="context/source identity mismatch"):
-        bind(execution_context=context(exact_source_sha256=F))
-    with pytest.raises(GwtCausalRuntimeReadbackError, match="context/boot identity mismatch"):
-        bind(execution_context=context(boot_id_sha256=F))
-
-
-def test_control_reentry_is_fail_closed_at_construction():
-    with pytest.raises(GwtCausalRuntimeReadbackError, match="must not claim GWT re-entry"):
-        control(reentry_observed=True)
-
-
-def test_control_input_must_be_matched():
-    with pytest.raises(GwtCausalRuntimeReadbackError, match="input is not matched"):
-        bind(control_readback=control(nonbroadcast_input_sha256=B))
-
-
-def test_tampered_positive_runtime_witness_is_rejected():
-    broadcast, runtime_witness, uptake_receipt, uptake_summary = make_fixture()
-    tampered = replace(runtime_witness, broadcast_sha256=F)
-    with pytest.raises(GwtCausalRuntimeReadbackError, match="invalid runtime witness"):
-        bind_causal_runtime_readback(
-            probe_id="probe:wp900-g4",
-            nonbroadcast_input_sha256=A,
-            execution_context=context(),
-            broadcast=broadcast,
-            runtime_witness=tampered,
-            uptake_receipt=uptake_receipt,
-            uptake_summary=uptake_summary,
-            control_readback=control(),
-            provenance_refs=("prov:wp900-g4-binder",),
-        )
-
-
-def test_summary_must_contain_exact_runtime_witness_receipt():
-    broadcast, runtime_witness, uptake_receipt, _ = make_fixture()
+def test_runtime_uptake_must_be_exact_member_of_causal_summary():
+    fx = make_fixture()
     other = CellUptakeReceipt.observe(
-        receipt_id="receipt:other",
-        broadcast=broadcast,
+        receipt_id="receipt:other:G1",
+        broadcast=fx["broadcast"],
         cell_id="G1",
         delivery_status="DELIVERED",
         uptake_status="UPTAKEN",
-        downstream_ref="readback:other",
-        downstream_sha256=B,
+        downstream_ref="downstream:intervention",
+        downstream_sha256=C,
         provenance_refs=("prov:other",),
     )
     other_summary = summarize_uptake(
         summary_id="summary:other",
-        broadcast=broadcast,
+        broadcast=fx["broadcast"],
         receipts=(other,),
         provenance_refs=("prov:other-summary",),
     )
-    with pytest.raises(GwtCausalRuntimeReadbackError, match="does not contain runtime-witness receipt"):
-        bind_causal_runtime_readback(
-            probe_id="probe:wp900-g4",
-            nonbroadcast_input_sha256=A,
-            execution_context=context(),
-            broadcast=broadcast,
-            runtime_witness=runtime_witness,
-            uptake_receipt=uptake_receipt,
-            uptake_summary=other_summary,
-            control_readback=control(),
-            provenance_refs=("prov:wp900-g4-binder",),
+    other_result = evaluate_causal_influence(
+        result_id="causal:other",
+        broadcast=fx["broadcast"],
+        uptake_summary=other_summary,
+        intervention=fx["intervention"],
+        control=fx["control"],
+        provenance_refs=("prov:other-causal",),
+    )
+    with pytest.raises(GwtCausalRuntimeReadbackError, match="runtime uptake receipt is not uniquely present"):
+        bind(fx, uptake_summary=other_summary, causal_result=other_result)
+
+
+def test_wp508_factory_bypass_is_rejected_by_deep_source_lineage_validation():
+    fx = make_fixture()
+    forged_binding = replace(fx["binding"], _factory_seal=None)
+    with pytest.raises(GwtCausalRuntimeReadbackError, match="WP507/WP508 source lineage"):
+        bind(fx, binding=forged_binding)
+
+
+def test_matched_probe_nonbroadcast_input_mismatch_is_not_positive_causal_evidence():
+    fx = make_fixture()
+    mismatched_control = CausalProbeArm.control(
+        arm_id="arm:control:mismatch",
+        probe_id=fx["intervention"].probe_id,
+        nonbroadcast_input_sha256=F,
+        downstream_output_sha256=B,
+        provenance_refs=("prov:mismatched-control",),
+    )
+    mismatched_result = evaluate_causal_influence(
+        result_id="causal:mismatch",
+        broadcast=fx["broadcast"],
+        uptake_summary=fx["uptake_summary"],
+        intervention=fx["intervention"],
+        control=mismatched_control,
+        provenance_refs=("prov:mismatched-result",),
+    )
+    mismatched_readback = observe_causal_arm_runtime_readback(
+        identity=fx["runtime_witness"].identity,
+        arm=mismatched_control,
+        observed_downstream_output_sha256=B,
+        observed_monotonic_ns=50,
+        intervention_activation=INTERVENTION_ABSENT_OBSERVED,
+    )
+    with pytest.raises(GwtCausalRuntimeReadbackError, match="causal influence was not observed"):
+        bind(
+            fx,
+            control=mismatched_control,
+            causal_result=mismatched_result,
+            control_readback=mismatched_readback,
         )
 
 
-def test_bound_candidate_tamper_is_rejected():
-    observed = bind()
-    forged = replace(observed, control_downstream_sha256=B)
-    with pytest.raises(GwtCausalRuntimeReadbackError, match="payload changed after bind"):
-        validate_causal_runtime_readback(forged)
+def test_intervention_arm_requires_observed_activation():
+    fx = make_fixture()
+    with pytest.raises(GwtCausalRuntimeReadbackError, match="intervention arm lacks observed activation"):
+        observe_causal_arm_runtime_readback(
+            identity=fx["runtime_witness"].identity,
+            arm=fx["intervention"],
+            observed_downstream_output_sha256=C,
+            observed_monotonic_ns=40,
+            intervention_activation=INTERVENTION_ABSENT_OBSERVED,
+        )
+
+
+def test_control_arm_requires_observed_broadcast_absence():
+    fx = make_fixture()
+    with pytest.raises(GwtCausalRuntimeReadbackError, match="control arm did not observe broadcast absence"):
+        observe_causal_arm_runtime_readback(
+            identity=fx["runtime_witness"].identity,
+            arm=fx["control"],
+            observed_downstream_output_sha256=B,
+            observed_monotonic_ns=50,
+            intervention_activation=INTERVENTION_ACTIVE_OBSERVED,
+        )
+
+
+def test_arm_readback_must_bind_actually_observed_downstream_digest():
+    fx = make_fixture()
+    with pytest.raises(GwtCausalRuntimeReadbackError, match="observed downstream digest"):
+        observe_causal_arm_runtime_readback(
+            identity=fx["runtime_witness"].identity,
+            arm=fx["control"],
+            observed_downstream_output_sha256=F,
+            observed_monotonic_ns=50,
+            intervention_activation=INTERVENTION_ABSENT_OBSERVED,
+        )
+
+
+def test_control_readback_cannot_come_from_different_runtime_identity():
+    fx = make_fixture()
+    foreign_control_readback = observe_causal_arm_runtime_readback(
+        identity=runtime_identity(runtime_instance_id="runtime:foreign"),
+        arm=fx["control"],
+        observed_downstream_output_sha256=B,
+        observed_monotonic_ns=50,
+        intervention_activation=INTERVENTION_ABSENT_OBSERVED,
+    )
+    with pytest.raises(GwtCausalRuntimeReadbackError, match="control readback runtime identity mismatch"):
+        bind(fx, control_readback=foreign_control_readback)
+
+
+def test_intervention_output_must_close_to_live_runtime_uptake_downstream_digest():
+    fx = make_fixture()
+    other_intervention = CausalProbeArm.intervention(
+        arm_id="arm:intervention:other-output",
+        probe_id=fx["control"].probe_id,
+        broadcast=fx["broadcast"],
+        nonbroadcast_input_sha256=A,
+        downstream_output_sha256=F,
+        provenance_refs=("prov:other-intervention",),
+    )
+    other_result = evaluate_causal_influence(
+        result_id="causal:other-output",
+        broadcast=fx["broadcast"],
+        uptake_summary=fx["uptake_summary"],
+        intervention=other_intervention,
+        control=fx["control"],
+        provenance_refs=("prov:other-output-result",),
+    )
+    other_readback = observe_causal_arm_runtime_readback(
+        identity=fx["runtime_witness"].identity,
+        arm=other_intervention,
+        observed_downstream_output_sha256=F,
+        observed_monotonic_ns=40,
+        intervention_activation=INTERVENTION_ACTIVE_OBSERVED,
+    )
+    with pytest.raises(GwtCausalRuntimeReadbackError, match="intervention output does not match live uptake"):
+        bind(
+            fx,
+            intervention=other_intervention,
+            causal_result=other_result,
+            intervention_readback=other_readback,
+        )
+
+
+def test_directly_constructed_arm_readback_cannot_cross_binder_boundary():
+    fx = make_fixture()
+    forged = replace(fx["control_readback"], _factory_seal=None)
+    with pytest.raises(GwtCausalRuntimeReadbackError, match="lacks factory origin"):
+        bind(fx, control_readback=forged)
+
+
+def test_tampered_bound_readback_is_rejected_after_seal():
+    observed = bind(make_fixture())
+    forged = replace(observed, broadcast_sha256=F)
+    with pytest.raises(GwtCausalRuntimeReadbackError, match="payload changed after seal"):
+        validate_gwt_causal_runtime_readback(forged)
