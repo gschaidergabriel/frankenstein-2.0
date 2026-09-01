@@ -1,0 +1,54 @@
+{
+  "schema": "T7_TO_TRIGGER4_EXACT_RUNTIME_BLOCKER/v1",
+  "trigger": "7",
+  "producer": "GPT-5.6-Sol",
+  "date": "2026-09-02",
+  "research_id": "T7-TTS-KOKORO-001",
+  "semantic_key": "c711af918362a9ec2bbe6f4e2df2f7e41861c59b553576ee9beac602b29ef9e3",
+  "work_class": "RUNTIME_BLOCKER_CLASSIFICATION_AND_MINIMAL_REPAIR_HANDOFF",
+  "new_component": false,
+  "new_voice_authority": false,
+  "product_mutation_authority": "TRIGGER4_ONLY",
+  "controller_runtime": {
+    "repository": "gschaidergabriel/Dr.-Unterweger",
+    "run_id": 33545238635,
+    "job_id": 99980986468,
+    "runner_name": "vps-clay-host",
+    "target_surface": "clay-direct-dev",
+    "sandbox_tier": "S1_OCI",
+    "f2_subject_sha": "0ef78ad2ee6b14f89fcb2bb60f1458d04ee81ed0",
+    "result": "BLOCKED",
+    "failure_class": "INFRA_AUTH_TRANSPORT_QUOTA_OR_SETUP",
+    "stage": "IMPORT_PREFLIGHT",
+    "exit_code": 1,
+    "observed_exception": "ModuleNotFoundError: No module named 'spacy'"
+  },
+  "root_cause": {
+    "classification": "PINNED_DEPENDENCY_EXTRA_MISMATCH",
+    "kokoro_runtime_commit": "b96fef95e6a746495f92443fac7c688f90fc57fc",
+    "misaki_commit": "6d252a2e02f3b030f22f56686f1a73786c16ffc8",
+    "exact_project_observation": "The F2 S1 runner installs misaki[de] at the pinned Misaki commit, then imports KModel and KPipeline during IMPORT_PREFLIGHT.",
+    "exact_upstream_observation": "Pinned Kokoro pipeline.py imports `from misaki import en, espeak` at module import time before selecting the German DEG2P path.",
+    "exact_misaki_observation": "Pinned Misaki pyproject declares spacy<4 under optional extra [en] but not under [de]; pinned misaki/en.py imports spacy at module import time.",
+    "conclusion": "misaki[de] alone is insufficient for importing the pinned Kokoro KPipeline even when only German synthesis is intended. The failure occurs before model/artifact execution and therefore is not a Kokoro/Piper product-quality negative."
+  },
+  "minimal_trigger4_repair_guidance": {
+    "preferred_delta": "Keep the exact Kokoro/Misaki/model pins and add an explicit compatible spaCy pin to PYTHON_RUNTIME_PINS before the existing misaki[de] install. Current verified PyPI release at research time: spacy==3.8.16, satisfying Misaki's spacy<4 declaration and Python 3.12 support.",
+    "alternative_delta": "Install the exact pinned Misaki commit with both extras, misaki[de,en], only if Trigger4 accepts the larger dependency surface. This is less minimal because [en] also introduces dependencies not needed for the German runtime path.",
+    "required_regression": "The existing IMPORT_PREFLIGHT must import num2words, KModel and KPipeline successfully inside the same disposable Ubuntu 24.04 S1 before artifact acquisition; preserve exact package freeze in the eventual receipt.",
+    "rerun_rule": "Rerun the identical Kokoro/Piper CPU file-output discriminator on a new exact F2 subject containing only the required dependency repair plus evidence metadata. Do not compose run 33545238635 with newer source into runtime credit."
+  },
+  "credit": {
+    "cpu_file_output_component": 0,
+    "audible_playback": 0,
+    "trigger4_f2_acceptance": 0,
+    "whole_voice_system": 0,
+    "whole_product": 0
+  },
+  "fdx_churn_fence": {
+    "owner_vps_system_semantic_key": "d62224bf7f52ef1db031ec7a9650a6b107f16a7a61f6f6cca253724d6419ea20",
+    "system_architecture_mutation_required": false,
+    "reason": "The discriminator failed before TTS inference at dependency import preflight; no executable evidence falsified FDX2/FDX3/FDX4/FDX6 semantics."
+  },
+  "next_exact_action": "Trigger4 applies the smallest dependency repair, preserves the existing engine/model/runtime pins and benchmark semantics, executes the repaired exact subject on vps-clay-host S1, and emits per-engine runtime evidence. Trigger7 consumes that result and, if at least one existing engine yields valid local audio, proceeds directly to the already-claimed d622 owner-VPS composed FDX execution without opening a new voice component."
+}
