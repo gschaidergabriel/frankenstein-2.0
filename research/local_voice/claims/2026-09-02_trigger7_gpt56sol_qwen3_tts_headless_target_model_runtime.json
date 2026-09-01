@@ -13,16 +13,22 @@
     "Qwen/Qwen3-TTS-12Hz-1.7B-CustomVoice only if 0.6B leaves measured safe headroom"
   ],
   "fixed_language": "de",
-  "hypothesis": "The 0.6B Qwen3-TTS candidate can execute fully locally on the CPU-only clay-direct-dev target and produce valid German audio/PCM within the measured resource envelope. Physical speaker absence blocks heard-output acceptance but does not block model-runtime, generated-audio, resource, or producer-side cancellation evidence.",
-  "counterhypothesis": "The candidate cannot load or synthesize within available CPU/RAM/time limits, requires unavailable runtime dependencies, or its producer-side stream/cancellation behavior cannot be bounded without physical output hardware.",
+  "hypothesis": "The 0.6B Qwen3-TTS candidate can execute fully locally on the CPU-only clay-direct-dev target and produce valid complete German PCM/waveform within the measured resource envelope. Physical speaker absence blocks heard-output acceptance but does not block model-load, local synthesis, complete generated-audio, resource or output-identity evidence.",
+  "counterhypothesis": "The candidate cannot load or synthesize within available CPU/RAM/time limits, requires unavailable runtime dependencies, or does not produce a valid exactly bound waveform on this CPU target.",
+  "current_api_scope": {
+    "source": "QwenLM/Qwen3-TTS main qwen_tts/inference/qwen3_tts_model.py + qwen_tts/core/models/modeling_qwen3_tts.py observed 2026-09-02",
+    "observation": "The public Qwen3TTSModel methods return completed List[np.ndarray] waveforms after model.generate returns completed talker-code lists. Their non_streaming_mode=false documentation says it currently simulates streaming text input rather than enabling true streaming input or streaming generation. No streamer/yield surface was observed in the current lower-level model source.",
+    "scope_law": "Do not mint true incremental first-PCM TTFA, true streaming chunk generation or mid-generation TTS-producer cancellation from this API path."
+  },
   "discriminator": [
     "Bind exact model revision/file hashes and exact F2 probe source before execution.",
     "Install/build only sandbox-local dependencies; preserve owner-host survival fence.",
     "Run 0.6B first with external inference API counters at zero.",
     "After required public artifact acquisition, execute evidence phase network-off where practical and record the boundary explicitly.",
     "Synthesize a fixed German prompt to an in-memory or file/null audio sink; no physical audio device is required.",
-    "Record cold/warm load time, peak RSS, CPU time, first generated audio/PCM availability, complete synthesis latency, realtime factor, output sample rate/channels/duration/hash and non-empty finite audio checks.",
-    "Exercise producer-side cancellation/close: after cancellation, no additional generated chunks may be admitted to the sink; record stop latency at the producer/sink boundary.",
+    "Record cold/warm load time, peak RSS, CPU time, complete synthesis latency, realtime factor, output sample rate/channels/duration/hash and non-empty finite audio checks.",
+    "If a distinct actually incremental lower-level interface is discovered, treat it as a separate observed capability within this same semantic objective only after exact source/runtime binding; otherwise leave incremental TTFA/producer-cancel credit at zero.",
+    "For FDX3/FDX4, the existing output adapter may chunk/deliver the real complete waveform and prove delivery/sink/commit cancellation; label that OUTPUT_DELIVERY_CANCELLATION_USING_REAL_TTS_WAVEFORM, not TTS_GENERATOR_STREAMING_CANCELLATION.",
     "Do not claim first audible playback, heard fraction, speaker silence, acoustic intelligibility or physical barge-in from this run."
   ],
   "required_fail_closed_conditions": [
@@ -31,7 +37,8 @@
     "external model/ASR/TTS inference call",
     "OOM or host-survival headroom violation",
     "non-finite/empty generated audio",
-    "post-cancel producer chunks accepted after the declared cancellation boundary",
+    "attempt to reinterpret complete-waveform generation as true incremental streaming",
+    "attempt to reinterpret output-adapter cancellation as in-flight TTS model-generation cancellation",
     "attempt to reinterpret headless generated PCM as heard-output evidence"
   ],
   "relationship_to_existing_t7_tts_001": {
@@ -40,7 +47,11 @@
     "existing_state": "BLOCKED_TARGET_CAPABILITY_AUDIO_OUTPUT_UNOBSERVABLE_NO_MODEL_RUNTIME_DISPATCH",
     "scope_split": "This claim does not supersede or weaken that physical observation boundary. It closes only the VPS-representable model-runtime subset that was previously left unexecuted."
   },
+  "streaming_scope_correction_ref": "trigger4/inbox/local_voice/T7_QWEN3_TTS_STREAMING_SCOPE_CORRECTION_2026-09-02_GPT56SOL.json",
   "explicit_zero_credit": {
+    "true_incremental_first_pcm_ttfa": 0,
+    "true_streaming_tts_chunk_generation": 0,
+    "mid_generation_tts_producer_cancellation": 0,
     "first_audible_playback": 0,
     "heard_output": 0,
     "acoustic_intelligibility": 0,
@@ -54,5 +65,5 @@
     "training": 0
   },
   "state": "CLAIMED",
-  "next_exact_action": "Route this exact semantic key to Trigger 4 for one bounded sandbox-first clay-direct-dev model-runtime execution. Keep T7-TTS-001 unchanged for later S4 audible/heard-output acceptance."
+  "next_exact_action": "Trigger 4 should consume this exact semantic key once for one bounded CPU-only clay-direct-dev complete-waveform model-runtime execution, then use the generated waveform in the already-claimed owner-VPS system slice for output-adapter/sink cancellation. Keep T7-TTS-001 unchanged for later S4 audible/heard-output acceptance."
 }
