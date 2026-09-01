@@ -1,0 +1,71 @@
+{
+  "schema": "T7_SOURCE_PINNED_TRIAGE/v1",
+  "research_id": "T7-20260901-JOYAI-TALKER-GERMAN-TRIAGE",
+  "semantic_key": "aed6fa8704df1a177ce727a459efe23833427855a9356f48a2777bdf9b1ffc03",
+  "subject": "JOYAI_TALKER_2608_01119",
+  "classification": "SOURCE_PINNED_TRIAGE_ONLY",
+  "observed_at_utc": "2026-09-01T16:34:00Z",
+  "primary_sources": [
+    {
+      "kind": "ARXIV_PRIMARY",
+      "url": "https://arxiv.org/abs/2608.01119",
+      "title": "JoyAI-Talker: Full-Duplex Speech Interactive Large Model Built for Empathetic Voice Agents",
+      "submitted": "2026-08-02",
+      "version_observed": "v1"
+    },
+    {
+      "kind": "OFFICIAL_PROJECT_PAGE",
+      "url": "https://research.joyai.com/joyai-talker",
+      "owner": "JD/JoyAI Research"
+    },
+    {
+      "kind": "OFFICIAL_MODEL_ORG_SEARCH",
+      "url": "https://huggingface.co/models?other=joyai",
+      "observation": "Current search did not surface an official JoyAI-Talker model/weights entry. This is a search observation, not proof that no release exists anywhere."
+    }
+  ],
+  "source_supported_facts": {
+    "architecture": "Decoupled Duplex-Thinker-Talker with a state-driven plug-and-play Joy-Duplex interaction layer.",
+    "thinker_backbone": "JoyAI-LLM Flash sparse MoE, 48.9B total parameters, approximately 3.28B activated per input token.",
+    "duplex_controller": "1.7B decoder-only Joy-Duplex model consuming streaming audio embeddings and emitting interleaved text/state tokens.",
+    "streaming_chunk_ms": 160,
+    "state_interface": ["partial", "complete", "backchannel", "accept", "reject"],
+    "paper_full_duplex_claim": "Response rate 0.88 under user interruptions with low false-trigger behavior on Full-Duplex-Bench v1.5 as reported by the authors.",
+    "tool_agent_claim": "Paper and official project page describe multi-turn reasoning/tool-use voice-agent capability.",
+    "talker_training_language_scope": "Paper describes a multilingual Talker corpus but does not provide a German-specific acceptance result in the text searched."
+  },
+  "falsification_results": {
+    "GERMAN_FIRST_ACCEPTANCE": {
+      "result": "NOT_ESTABLISHED",
+      "reason": "No German-specific benchmark/result was found in the primary paper text; a multilingual training statement is insufficient for Frankenstein German-first acceptance."
+    },
+    "LOCAL_SELF_HOSTED_RUNNABLE": {
+      "result": "NOT_ESTABLISHED",
+      "reason": "This triage did not locate an official JoyAI-Talker/Joy-Duplex code-and-weights release that can be pinned, downloaded, audited and run locally."
+    },
+    "TARGET_HARDWARE_FIT": {
+      "result": "UNKNOWN",
+      "reason": "Sparse active-parameter count does not establish resident-memory/runtime fit; no target hardware execution was performed."
+    },
+    "F2_ABI_FIT": {
+      "result": "ARCHITECTURALLY_PROMISING_NOT_EXECUTED",
+      "reason": "State-driven duplex gating, explicit accept/reject/backchannel semantics and decoupled speech/cognition boundaries map well to the existing VoiceIntent/presence/cancellation philosophy, but no executable F2 integration was attempted."
+    }
+  },
+  "high_value_inference": "Treat Joy-Duplex primarily as an architecture/turn-control donor until a reproducible release exists. Its 1.7B interaction layer is more directly relevant to Frankenstein's low-latency presence/interruptibility boundary than the full 48.9B Thinker replacement.",
+  "next_executable_falsifier": {
+    "precondition": "Obtain an official or author-linked Joy-Duplex/JoyAI-Talker code+weights revision with license and artifact hashes.",
+    "experiment": "Run a network-blocked German full-duplex triage against pinned interruption/background/backchannel fixtures and measure response/false-trigger behavior plus resource envelope before any Trigger4 promotion.",
+    "route_if_release_absent": "Keep as VOICE_ARCHITECTURE_DONOR/SOURCE_PINNED_TRIAGE only; do not spend VPS integration capacity."
+  },
+  "credits": {
+    "V1_source_pinned": 1,
+    "V2_local_runnable_component": 0,
+    "V3_component_benchmarked": 0,
+    "V4_german_e2e_voice_benchmarked": 0,
+    "V5_f2_build_candidate": 0,
+    "V6_trigger4_f2_accepted": 0,
+    "target_runtime": 0,
+    "whole_product": 0
+  }
+}
