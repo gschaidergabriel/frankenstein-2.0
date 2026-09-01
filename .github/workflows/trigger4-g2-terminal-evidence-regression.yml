@@ -3,22 +3,28 @@ name: Trigger4 G2 Terminal Evidence Regression
 on:
   push:
     paths:
+      - "src/frankenstein2/voice_playback_adapter.py"
       - "trigger4/tools/local_voice/g2_pipewire_evidence.py"
       - "trigger4/tools/local_voice/g2_pipewire_s2_runtime.py"
       - "trigger4/tools/local_voice/run_g2_pipewire_s2.sh"
       - "research/local_voice/tools/t7_pipewire_g2_h4_guard.py"
+      - "research/local_voice/tools/t7_pipewire_g2_h4_guard_cli.py"
       - "research/local_voice/tools/t7_pipewire_monitor_cancel_analyze.py"
       - "tests/test_t4_g2_pipewire_terminal_evidence.py"
+      - "tests/test_t4_g2_product_cancel_runtime_binding.py"
       - ".github/workflows/t4-g2-pipewire-monitor-cancel.yml"
       - ".github/workflows/trigger4-g2-terminal-evidence-regression.yml"
   pull_request:
     paths:
+      - "src/frankenstein2/voice_playback_adapter.py"
       - "trigger4/tools/local_voice/g2_pipewire_evidence.py"
       - "trigger4/tools/local_voice/g2_pipewire_s2_runtime.py"
       - "trigger4/tools/local_voice/run_g2_pipewire_s2.sh"
       - "research/local_voice/tools/t7_pipewire_g2_h4_guard.py"
+      - "research/local_voice/tools/t7_pipewire_g2_h4_guard_cli.py"
       - "research/local_voice/tools/t7_pipewire_monitor_cancel_analyze.py"
       - "tests/test_t4_g2_pipewire_terminal_evidence.py"
+      - "tests/test_t4_g2_product_cancel_runtime_binding.py"
       - ".github/workflows/t4-g2-pipewire-monitor-cancel.yml"
       - ".github/workflows/trigger4-g2-terminal-evidence-regression.yml"
 
@@ -31,13 +37,17 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Run fail-closed G2 evidence regressions
-        run: python tests/test_t4_g2_pipewire_terminal_evidence.py
+        run: |
+          python tests/test_t4_g2_pipewire_terminal_evidence.py
+          PYTHONPATH=src python tests/test_t4_g2_product_cancel_runtime_binding.py
       - name: Compile G2 Python surfaces
         run: |
           python -m py_compile \
+            src/frankenstein2/voice_playback_adapter.py \
             trigger4/tools/local_voice/g2_pipewire_evidence.py \
             trigger4/tools/local_voice/g2_pipewire_s2_runtime.py \
             research/local_voice/tools/t7_pipewire_g2_h4_guard.py \
+            research/local_voice/tools/t7_pipewire_g2_h4_guard_cli.py \
             research/local_voice/tools/t7_pipewire_monitor_cancel_analyze.py
       - name: Parse G2 launcher
         run: bash -n trigger4/tools/local_voice/run_g2_pipewire_s2.sh
