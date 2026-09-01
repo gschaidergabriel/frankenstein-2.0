@@ -1,0 +1,66 @@
+{
+  "schema": "F2_TRIGGER4_CANDIDATE_FALSIFIER/v1",
+  "trigger": "4",
+  "producer": "GPT-5.6-Sol",
+  "work_class": "REVIEW_ONLY_CANDIDATE_FALSIFIER",
+  "candidate_workpackage": "F2-WP-720",
+  "candidate_id": "WP720_POST_DISPATCH_RUNTIME_SUBJECT_CHURN_20260902_GPT56SOL",
+  "mutation_authority": false,
+  "canonical_state_mutation": false,
+  "runtime_redispatch_created": false,
+  "observed_active_claim": {
+    "path": "workpackages/active/F2-WP-720.json",
+    "generation": 1,
+    "claim_id": "F2-WP-720-G1-GPT56SOL-PFD-TURN-POLICY-BINDING-20260902",
+    "repository_ci_subject_sha": "731db925df96ab7e49c0e5b80cd7bc8f4d37a086",
+    "runtime_run_id": 33536413324,
+    "runtime_job_id": 99951716440,
+    "runtime_status_observed": "QUEUED_NONTERMINAL",
+    "runtime_subject_churn_class": "DEFER_UNTIL_RUNTIME_RESULT",
+    "target_environment_component_runtime_credit": 0,
+    "next_action_fence": "Do not mutate WP720 semantics and do not redispatch while the singleton runtime run is nonterminal."
+  },
+  "post_subject_semantic_deltas": [
+    {
+      "commit": "ba5d80eb10fc6e6a8788e513f2bacac0d7954e8a",
+      "message": "trigger4(WP720 G1): bind immutable packet turn policy",
+      "path": "src/frankenstein2/voice_packet_cortex.py",
+      "classification": "SEMANTIC_RUNTIME_BOUNDARY_MUTATION_AFTER_ACCEPTED_SUBJECT",
+      "observed_change": "Adds PacketTurnPolicy and VoicePacketCortex.apply_turn_policy, including TURN_POLICY_DECISION behavior and policy conflict/idempotence semantics."
+    },
+    {
+      "commit": "c0b1f8bba4178a8291a6a5cec73e296d29d962ac",
+      "message": "trigger4(WP720 G1): regress matched-history turn policy binding",
+      "path": "tests/test_voice_packet_cortex.py",
+      "classification": "RUNTIME_DISCRIMINATOR_SURFACE_MUTATION_AFTER_ACCEPTED_SUBJECT",
+      "observed_change": "Adds matched-history policy divergence, exact-current-HOLD, barge-in, and checkpoint-reentry regressions against the new Cortex-integrated policy behavior."
+    }
+  ],
+  "ownership_check": {
+    "voice_packet_cortex_is_existing_component": true,
+    "voice_packet_cortex_is_in_active_claim_owned_paths": false,
+    "test_voice_packet_cortex_is_existing_component": true,
+    "test_voice_packet_cortex_is_in_active_claim_owned_paths": false,
+    "active_owned_source_path": "src/frankenstein2/voice_packet_turn_policy.py",
+    "interpretation": "The post-subject commits touch the semantic/runtime discriminator boundary but are outside the currently recorded WP720 owned paths. This is an ownership/churn review finding, not authorization to revert or mutate those paths."
+  },
+  "failure_class": "CONCURRENCY_RETRY",
+  "product_negative": false,
+  "runtime_credit_effect": {
+    "bound_subject_runtime_remains_valid_for_exact_historical_subject": true,
+    "automatic_composition_into_changed_current_boundary_allowed": false,
+    "current_subject_runtime_credit_minted": false,
+    "target_environment_component_runtime_credit": 0,
+    "physical_audio_credit": 0,
+    "asr_runtime_credit": 0,
+    "tts_runtime_credit": 0,
+    "gwt_runtime_credit": 0,
+    "jspace_runtime_credit": 0,
+    "effect_credit": 0,
+    "training_credit": 0,
+    "whole_system_acceptance": false
+  },
+  "required_resolution": "When run 33536413324 becomes terminal, do not promote it directly as current WP720 runtime credit. First refresh the event/claim head and classify the post-subject deltas: either prove the new Cortex-integrated behavior semantically invariant to the exact 731db925 runtime discriminator scope, classify/revert the competing deltas through their legitimate owner as non-current, or mark the old runtime subject historical/stale and bind one legal successor subject only after the nonterminal singleton is resolved. No duplicate dispatch while it remains nonterminal.",
+  "anti_goodhart": "A green runtime result for 731db925 would prove only that exact subject. Repository success of later source cannot be composed with older runtime into current-subject credit without explicit invariance evidence.",
+  "next_exact_action": "Preserve this as candidate review evidence. Do not mutate WP720 or redispatch. Resolve terminal run 33536413324 first; then require event-first owner reconciliation of the subject-churn/ownership mismatch before any current-subject runtime promotion."
+}
