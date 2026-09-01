@@ -9,12 +9,14 @@ on:
       - 'src/frankenstein2/presence_kernel.py'
       - 'src/frankenstein2/epistemic_perception.py'
       - 'tests/test_presence_kernel.py'
+      - 'tests/test_presence_kernel_worker_alias_falsifier.py'
       - '.github/workflows/wp703-presence-kernel-ci.yml'
   pull_request:
     paths:
       - 'src/frankenstein2/presence_kernel.py'
       - 'src/frankenstein2/epistemic_perception.py'
       - 'tests/test_presence_kernel.py'
+      - 'tests/test_presence_kernel_worker_alias_falsifier.py'
       - '.github/workflows/wp703-presence-kernel-ci.yml'
   workflow_dispatch:
 
@@ -31,8 +33,14 @@ jobs:
         with:
           python-version: '3.12'
       - name: Compile
-        run: python -m py_compile src/frankenstein2/presence_kernel.py tests/test_presence_kernel.py
+        run: >-
+          python -m py_compile
+          src/frankenstein2/presence_kernel.py
+          tests/test_presence_kernel.py
+          tests/test_presence_kernel_worker_alias_falsifier.py
       - name: Presence freshness and multi-source conflict falsification suite
         env:
           PYTHONPATH: src
-        run: python tests/test_presence_kernel.py -v
+        run: |
+          python tests/test_presence_kernel.py -v
+          python tests/test_presence_kernel_worker_alias_falsifier.py -v
