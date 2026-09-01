@@ -1,6 +1,6 @@
 """REVIEW_ONLY discriminator for WP900 G5 runtime identity -> WP206 persistence.
 
-This deliberately adds no adapter or persistence authority.  It runs the accepted G5
+This deliberately adds no adapter or persistence authority. It runs the accepted G5
 binder and the existing WP900->WP206 persistence adapter over the same deterministic
 whole-loop seal, then asks whether canonical persistence distinguishes two otherwise
 valid G5 candidates whose only changed authority-bearing field is exact source identity.
@@ -37,7 +37,7 @@ def _open_store(tmp_path):
 
 def test_wp206_persistence_does_not_yet_bind_wp900_g5_runtime_source_identity(tmp_path):
     # Both G5 candidates are valid and intentionally share the exact deterministic
-    # WholePersistentLoopSeal.  Only the admitted exact source/runtime subject differs.
+    # WholePersistentLoopSeal. Only the admitted exact source/runtime subject differs.
     _, _, _, whole_a, _, candidate_a = _bind(exact_source_sha256=SOURCE_A)
     _, _, _, whole_b, _, candidate_b = _bind(exact_source_sha256=SOURCE_B)
     validate_runtime_bound_whole_loop(candidate_a)
@@ -48,8 +48,8 @@ def test_wp206_persistence_does_not_yet_bind_wp900_g5_runtime_source_identity(tm
     assert candidate_a.exact_source_sha256 != candidate_b.exact_source_sha256
     assert candidate_a.sha256() != candidate_b.sha256()
 
-    # Reuse the canonical deterministic fixture and existing WP206 authority.  No second
-    # writer/receipt schema is introduced.  The persistence adapter consumes only the
+    # Reuse the canonical deterministic fixture and existing WP206 authority. No second
+    # writer/receipt schema is introduced. The persistence adapter consumes only the
     # whole-loop seal, so its evidence cannot distinguish the two valid G5 subjects.
     current, _, _, _, _, _, _, _, successor = fixture_components()
     store = _open_store(tmp_path)
@@ -63,9 +63,10 @@ def test_wp206_persistence_does_not_yet_bind_wp900_g5_runtime_source_identity(tm
     finally:
         store.close()
 
+    persisted_payload = persisted.as_dict()
     assert persisted.whole_loop_seal_sha256 == candidate_a.whole_loop_seal_sha256
     assert persisted.whole_loop_seal_sha256 == candidate_b.whole_loop_seal_sha256
-    assert "exact_source_sha256" not in persisted.as_dict()
-    assert "causal_runtime_readback_sha256" not in persisted.as_dict()
-    assert persisted.runtime_credit == 0 if hasattr(persisted, "runtime_credit") else persisted.as_dict()["runtime_credit"] == 0
-    assert persisted.as_dict()["whole_system_acceptance"] is False
+    assert "exact_source_sha256" not in persisted_payload
+    assert "causal_runtime_readback_sha256" not in persisted_payload
+    assert persisted_payload["runtime_credit"] == 0
+    assert persisted_payload["whole_system_acceptance"] is False
