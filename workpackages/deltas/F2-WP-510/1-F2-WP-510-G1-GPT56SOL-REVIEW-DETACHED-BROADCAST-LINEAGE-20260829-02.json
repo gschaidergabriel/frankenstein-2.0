@@ -1,0 +1,45 @@
+{
+  "schema": "FRANKENSTEIN2_WORKPACKAGE_DELTA/v1",
+  "workpackage_id": "F2-WP-510",
+  "generation": 1,
+  "claim_id": "F2-WP-510-G1-GPT56SOL-GWT-CAUSAL-PATH-SEAL-20260829",
+  "worker_id": "GPT-5.6-Sol-REVIEW",
+  "base_commit": "3a2ff5e941510c39cd4833fa1fb0a508b35cc787",
+  "observed_main_commit": "3a2ff5e941510c39cd4833fa1fb0a508b35cc787",
+  "owned_paths": [],
+  "result_class": "FALSIFIER",
+  "source_commits": [
+    "fdc8c854c5302565ad1a4e5b98e34b0330b9e32f"
+  ],
+  "receipts": [
+    "draft_pr:306",
+    "github_actions_run:33246060445",
+    "github_actions_job:99083602121"
+  ],
+  "falsifiers": [
+    "tests/test_wp507_selection_lineage_falsifier.py@fdc8c854c5302565ad1a4e5b98e34b0330b9e32f"
+  ],
+  "contradictions": [
+    "WP506 generation 4 now requires exact SelectedCandidate constructor/builder lineage, but the tested WP507 causal-evaluation surface can still be presented with a directly constructed structurally valid BroadcastEnvelope that carries no independently revalidated WP506 WorkspaceSelection builder lineage at the WP507 boundary.",
+    "WP508 already revalidates selection/broadcast builder lineage before re-entry binding, so accepting an unsealed detached broadcast earlier in a causal-positive path would create an inconsistent trust boundary across the same Stage-5 chain."
+  ],
+  "observations": [
+    "The dedicated REVIEW_ONLY workflow compiled the current WP506/WP507 surface successfully and failed only at the detached-selection causal-lineage falsifier step.",
+    "Run 33246060445 / job 99083602121 reproduced the failure after rebasing the review branch onto the then-current corrected WP506 G4 evidence lineage. This is repository-hosted negative evidence only, not target-runtime evidence.",
+    "The active WP510 G1 claim already owns the correct integration boundary: rederive the broadcast from canonical WP506 builders, rebuild WP507 summary/evaluation from concrete evidence, validate WP508 bindings, and preserve UNKNOWN/NO_CAUSAL states. Therefore this defect must be absorbed by WP510 rather than opening a competing WP507 mutation authority."
+  ],
+  "hypothesis": "Without an integration-level WP506 builder-lineage revalidation, a detached BroadcastEnvelope can participate in the WP507 causal-evidence pipeline strongly enough that the fail-closed rejection test does not pass.",
+  "counterhypothesis": "The failure could be caused by an unrelated test-harness expectation rather than an actual positive causal status; the WP510 implementation must settle this by rederiving the exact broadcast from a concrete WorkspaceSelection and proving that the detached direct-constructor fixture is rejected or cannot influence the sealed result.",
+  "proposed_state_change": "NO_CANONICAL_STATE_CHANGE_REVIEW_ONLY; REQUIRE_WP510_G1_TO_ABSORB_DETACHED_BROADCAST_LINEAGE_REGRESSION_BEFORE_ACCEPTANCE",
+  "completion_deficit": "WP510 has no canonical source on main at this observation point and therefore has not yet demonstrated end-to-end selection->broadcast->uptake->causal-result->reentry lineage sealing.",
+  "runtime_execution_observed": false,
+  "runtime_credit": 0,
+  "physical_grid10_credit": 0,
+  "gwt_runtime_credit": 0,
+  "jspace_runtime_credit": 0,
+  "training_credit": 0,
+  "effect_credit": 0,
+  "completion_credit": 0,
+  "whole_system_acceptance": false,
+  "next_exact_action": "The existing WP510 mutation-authority branch must add this detached BroadcastEnvelope fixture to tests/test_gwt_causal_path.py and prove the causal-path seal rebuilds/validates exact WP506 selection+broadcast lineage before any causal-positive result can survive. Do not modify WP507 unless that integration test proves the WP507 contract itself cannot be safely composed."
+}
