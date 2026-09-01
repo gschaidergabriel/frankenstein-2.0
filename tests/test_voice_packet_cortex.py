@@ -1,12 +1,19 @@
 from __future__ import annotations
 
 from dataclasses import replace
+import hashlib
+import json
 import unittest
 
 from frankenstein2.causal_identity import CausalIdentity
 from frankenstein2.voice_contract import OUTCOME_RETURNED, VoiceIntent, VoiceSessionCapsule
-from frankenstein2.voice_packet_cortex import VoiceInputPacket, VoicePacketCortex, VoicePacketCortexError
-from frankenstein2.voice_packet_cortex_recovery import export_packet_cortex_checkpoint
+from frankenstein2.voice_packet_cortex import (
+    PacketTurnPolicy,
+    VoiceInputPacket,
+    VoicePacketCortex,
+    VoicePacketCortexError,
+)
+from frankenstein2.voice_packet_cortex_recovery import export_packet_cortex_checkpoint, resume_packet_cortex
 
 
 class VoicePacketCortexTests(unittest.TestCase):
@@ -394,6 +401,136 @@ class VoicePacketCortexTests(unittest.TestCase):
             before,
             "rejected SESSION_CLOSE must not mutate durable/recoverable packet-cortex state",
         )
+
+    def test_pfd0_pfd5_matched_history_policy_only_intervention_is_deterministic(self) -> None:
+        session = self.session()
+
+        def trajectory_sha(cortex: VoicePacketCortex) -> str:
+            raw = json.dumps(
+                [event.as_dict() for event in cortex.events],
+                ensure_ascii=False,
+                sort_keys=True,
+                separators=(",", ":"),
+                allow_nan=False,
+            )
+            return hashlib.sha256(raw.encode("utf-8")).hexdigest()
+
+        def run(hold_intent: str):
+            cortex = VoicePacketCortex(session)
+            packet = self.input_packet(cortex)
+            cortex.accept_input(packet)
+            pre_events = [event.as_dict() for event in cortex.events]
+            pre_sha = trajectory_sha(cortex)
+            policy = PacketTurnPolicy(
+                policy_id="packet-policy:pfd-hold-response",
+                hold_intent=hold_intent,
+                provenance_refs=("trigger7:pfd-matched-history-fixture",),
+            )
+            decision = cortex.apply_turn_policy(packet, policy)
+            return cortex, packet, policy, decision, pre_events, pre_sha, trajectory_sha(cortex)
+
+        wait_a = run("WAIT")
+        backchannel = run("BACKCHANNEL")
+        wait_b = run("WAIT")
+
+        self.assertEqual(wait_a[4], backchannel[4], "PFD1: pre-intervention event history must match")
+        self.assertEqual(wait_a[5], backchannel[5], "PFD1: pre-intervention history hash must match")
+        self.assertEqual(wait_a[1].sha256(), backchannel[1].sha256(), "PFD3: exact input packet must match")
+        self.assertEqual(wait_a[2].policy_id, backchannel[2].policy_id)
+        self.assertEqual(wait_a[2].provenance_refs, backchannel[2].provenance_refs)
+        self.assertNotEqual(wait_a[2].hold_intent, backchannel[2].hold_intent, "PFD2: vary one policy dimension")
+        self.assertEqual(wait_a[3].event_kind, "TURN_POLICY_DECISION")
+        self.assertEqual(backchannel[3].event_kind, "TURN_POLICY_DECISION")
+        self.assertEqual(wait_a[3].voice_intent, "WAIT")
+        self.assertEqual(backchannel[3].voice_intent, "BACKCHANNEL")
+
+        wait_events = [event.as_dict() for event in wait_a[0].events]
+        back_events = [event.as_dict() for event in backchannel[0].events]
+        first_divergence = next(
+            index for index, (left, right) in enumerate(zip(wait_events, back_events)) if left != right
+        )
+        self.assertEqual(first_divergence, len(wait_a[4]), "PFD4: first divergence must be policy decision")
+        self.assertNotEqual(wait_a[6], backchannel[6], "PFD4: policy must change trajectory hash")
+        self.assertEqual(wait_a[6], wait_b[6], "PFD5: repeated same-policy control must be stable")
+
+        detail = json.loads(wait_a[3].detail)
+        self.assertEqual(detail["input_packet_sha256"], wait_a[1].sha256())
+        self.assertEqual(detail["policy_sha256"], wait_a[2].sha256())
+        self.assertEqual(detail["policy_id"], wait_a[2].policy_id)
+        self.assertEqual(detail["policy_provenance_refs"], list(wait_a[2].provenance_refs))
+
+    def test_turn_policy_requires_exact_current_accepted_hold_and_conflicting_rebind_fails(self) -> None:
+        cortex = VoicePacketCortex(self.session())
+        packet = self.input_packet(cortex)
+        wait = PacketTurnPolicy(
+            policy_id="packet-policy:pfd-hold-response",
+            hold_intent="WAIT",
+            provenance_refs=("trigger7:pfd-matched-history-fixture",),
+        )
+        backchannel = replace(wait, hold_intent="BACKCHANNEL")
+        with self.assertRaises(VoicePacketCortexError):
+            cortex.apply_turn_policy(packet, wait)
+        cortex.accept_input(packet)
+        first = cortex.apply_turn_policy(packet, wait)
+        self.assertIs(cortex.apply_turn_policy(packet, wait), first)
+        with self.assertRaises(VoicePacketCortexError):
+            cortex.apply_turn_policy(packet, backchannel)
+
+        newer = self.input_packet(
+            cortex,
+            packet_id="input-1",
+            monotonic_ms=120,
+            speech_start=False,
+            sequence=1,
+        )
+        cortex.accept_input(newer)
+        with self.assertRaises(VoicePacketCortexError):
+            cortex.apply_turn_policy(packet, wait)
+
+    def test_turn_policy_cannot_override_mandatory_barge_in_cancellation(self) -> None:
+        cortex = VoicePacketCortex(self.session())
+        cortex.queue_output(
+            turn_id="turn-0", packet_id="output-policy-barge", monotonic_ms=10,
+            text_segment="Unterbrechbar", expression_intent="neutral", speech_act="ANSWER",
+            planned_audio_duration_ms=1000, sequence=0,
+        )
+        cortex.advance_output("output-policy-barge", playback_state="started", monotonic_ms=20, heard_fraction=0.0)
+        packet = self.input_packet(
+            cortex,
+            monotonic_ms=30,
+            barge_in=True,
+            overlap_state="USER_OVER_OUTPUT",
+        )
+        cortex.accept_input(packet)
+        self.assertEqual(cortex.outputs[0].playback_state, "interrupted")
+        policy = PacketTurnPolicy(
+            policy_id="packet-policy:malicious-barge-override",
+            hold_intent="BACKCHANNEL",
+            provenance_refs=("trigger4:wp720-barge-in-fence",),
+        )
+        with self.assertRaises(VoicePacketCortexError):
+            cortex.apply_turn_policy(packet, policy)
+        self.assertEqual(cortex.outputs[0].playback_state, "interrupted")
+        self.assertIn("BARGE_IN_CANCEL_PROPAGATED", [event.event_kind for event in cortex.events])
+
+    def test_turn_policy_binding_survives_checkpoint_reentry_without_second_authority(self) -> None:
+        session = self.session()
+        cortex = VoicePacketCortex(session)
+        packet = self.input_packet(cortex)
+        cortex.accept_input(packet)
+        wait = PacketTurnPolicy(
+            policy_id="packet-policy:pfd-reentry",
+            hold_intent="WAIT",
+            provenance_refs=("trigger4:wp720-reentry",),
+        )
+        decision = cortex.apply_turn_policy(packet, wait)
+        checkpoint = export_packet_cortex_checkpoint(cortex)
+        resumed = resume_packet_cortex(session, checkpoint, monotonic_ms=200)
+        replay = resumed.apply_turn_policy(packet, wait)
+        self.assertEqual(replay.event_id, decision.event_id)
+        self.assertEqual(replay.detail, decision.detail)
+        with self.assertRaises(VoicePacketCortexError):
+            resumed.apply_turn_policy(packet, replace(wait, hold_intent="BACKCHANNEL"))
 
 
 if __name__ == "__main__":
