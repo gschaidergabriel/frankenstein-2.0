@@ -89,7 +89,7 @@ export G2_WORK="$WORK"
 export G2_RUNTIME="$RUNTIME"
 export G2_VENV="$VENV"
 export G2_SOURCE="$WORK/source.wav"
-export G2_ANALYZER="$PWD/research/local_voice/tools/t7_pipewire_monitor_cancel_analyze.py"
+export G2_ANALYZER="$PWD/research/local_voice/tools/t7_pipewire_g2_h4_guard_cli.py"
 export G2_HARNESS="$PWD/trigger4/tools/local_voice/g2_pipewire_s2_runtime.py"
 export PIPER_MODEL_SHA256 PIPER_CONFIG_SHA256
 
