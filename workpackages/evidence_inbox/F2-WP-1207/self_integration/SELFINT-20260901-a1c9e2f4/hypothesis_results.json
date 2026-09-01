@@ -26,18 +26,24 @@
       "evidence_refs": [
         "measurements.jsonl",
         "logs/gate_summary.json#p6_injected_failure",
-        "rollback_evidence.json"
+        "rollback_evidence.json",
+        "tests/test_self_update_transaction.py#test_unknown_injected_failure_stage_rejected_before_mutation",
+        "tests/test_self_update_transaction.py#test_uppercase_post_mutation_alias_is_normalized_and_handled",
+        "tests/test_self_update_transaction.py#test_forced_post_mutation_exception_restores_source_state_before_raise",
+        "blockers.json#found_and_fixed_1"
       ],
-      "reason": "P6 injected a post-mutation failure on an UPDATE. Receipt outcome ROLLED_BACK; observed_state_sha256 after recovery, the fresh on-disk digest after recovery, and the expected predecessor digest are all identical (68513b5bcff37c9d120033d8084e7855fafd98c69590df25011f8a917c840a61); generation stayed at 1 (no phantom advance). The store remained loadable/usable immediately after (re-entry within the same process succeeded for later gates)."
+      "reason": "DISCLOSURE: this PASS originally (pre-2026-09-01-fix) rested only on the single happy-path injected_failure_stage='post_mutation' string. An independent coordinator review found that any OTHER truthy injected_failure_stage value fell through apply_transaction's two known branches, still reached the real mutating write, then raised on record_attempt's synthetic-SUCCEEDED guard -- and the bare `except PortableReleaseTransactionError: raise` re-raised WITHOUT restoring, leaving disk mutated while lineage still claimed the old generation (torn state). Classified PRODUCT_NEGATIVE, see blockers.json. FIX (same-day): (1) a case-insensitive whitelist (KNOWN_INJECTED_FAILURE_STAGES={'pre_mutation','post_mutation'}) now rejects any unrecognized injected_failure_stage before any plan is built or mutation attempted; (2) the post-mutation recovery path now restores the exact predecessor snapshot and verifies the restored digest equals plan.source_state_sha256 before re-raising, for both apply_transaction and the previously-unguarded apply_rollback. Post-fix: P6's happy-path digest chain is unchanged and re-verified in this same re-run (predecessor/observed/fresh-on-disk all identical, 68513b5bcff37c9d120033d8084e7855fafd98c69590df25011f8a917c840a61, generation still 1). Three new regression tests prove the hardened path directly: an unknown stage string is rejected pre-mutation with disk/lineage byte-for-byte unchanged; the coordinator's exact repro string 'POST_MUTATION' is shown to normalize to the known 'post_mutation' alias and complete a clean ROLLED_BACK receipt (no exception, no torn state -- stronger than raise-then-recover); and a genuinely-unknown stage forced past the whitelist is shown to restore disk to plan.source_state_sha256 before the exception propagates. All three were confirmed to genuinely FAIL against the pre-fix code (via git stash of only the fix, keeping the new tests) and genuinely PASS against the fixed code."
     },
     {
       "id": "H4",
       "status": "PASS",
       "evidence_refs": [
         "logs/gate_summary.json#p7_process_restart_readback",
-        "tests/test_self_update_transaction.py#test_explicit_rollback_mints_new_generation_with_predecessor_bytes"
+        "tests/test_self_update_transaction.py#test_explicit_rollback_mints_new_generation_with_predecessor_bytes",
+        "tests/test_self_update_transaction.py#test_forced_post_mutation_exception_restores_source_state_before_raise",
+        "blockers.json#found_and_fixed_1"
       ],
-      "reason": "For the success path, P7 re-entered from a genuinely fresh python3 subprocess (not in-process) after the P5 UPDATE and its independent_readback matched the persisted lineage exactly (generation 1, same state digest). For the explicit-ROLLBACK path, predecessor-byte restoration and new-generation minting are proven only in-process by the unit test, not yet by a fresh cross-process readback in this run -- that asymmetry is a known gap, not a silent overclaim. No duplicate irreversible effects were possible or observed: managed_dir is pure local filesystem state with no network/external calls in the wrapped seam (see H12)."
+      "reason": "For the success path, P7 re-entered from a genuinely fresh python3 subprocess (not in-process) after the P5 UPDATE and its independent_readback matched the persisted lineage exactly (generation 1, same state digest). For the explicit-ROLLBACK path, predecessor-byte restoration and new-generation minting are proven only in-process by the unit test, not yet by a fresh cross-process readback in this run -- that asymmetry is a known gap, not a silent overclaim. DISCLOSURE: the earlier PASS additionally rested on an unstated assumption that every raised-and-recovered path leaves disk consistent with lineage before a later reader (in-process or cross-process, e.g. P7's independent_readback) can observe it. The coordinator's PRODUCT_NEGATIVE finding (see H3, blockers.json) showed this was false for any injected_failure_stage string outside the one tested happy path: disk could be left mutated while lineage still claimed the old generation, which a subsequent readback (in-process or cross-process) would then either read as silently torn or fail to reconcile. The same-day fix (case-insensitive stage whitelist rejected before mutation; post-mutation recovery-then-verify-then-reraise for both apply_transaction and apply_rollback) closes this for every reader, not just the one gate that happened to be exercised. No duplicate irreversible effects were possible or observed: managed_dir is pure local filesystem state with no network/external calls in the wrapped seam (see H12)."
     },
     {
       "id": "H5",
@@ -54,7 +60,7 @@
       "evidence_refs": [
         "measurements.jsonl"
       ],
-      "reason": "Every in-process gate (P5 install/update, P6 rollback, P8, P9, P10) recorded real, non-fabricated wall-time, resource.getrusage CPU, RSS and /proc/self/io disk deltas in measurements.jsonl. All are bounded, sub-second, and on the order of tens of milliseconds for the recovery path (rollback_duration_ms=25.6894439808093, failure_detection_ms=62.00227601220831). Caveat: measured against the 62M curated sandbox, not the full ~5G real ~/.claude tree; no extrapolation to full size was performed (would be invented, not measured)."
+      "reason": "Every in-process gate (P5 install/update, P6 rollback, P8, P9, P10) recorded real, non-fabricated wall-time, resource.getrusage CPU, RSS and /proc/self/io disk deltas in measurements.jsonl. All are bounded, sub-second, and on the order of tens of milliseconds for the recovery path (freshly re-measured 2026-09-01 against the fixed code: rollback_duration_ms=27.3516190063674, failure_detection_ms=66.5779149858281). Numbers moved slightly from the pre-fix run's 25.6894439808093/62.00227601220831 because the recovery path now does additional restore-and-verify work (see H3); still tens of milliseconds, same order of magnitude. Caveat: measured against the 62M curated sandbox, not the full ~5G real ~/.claude tree; no extrapolation to full size was performed (would be invented, not measured)."
     },
     {
       "id": "H7",
@@ -96,7 +102,7 @@
         "logs/gate_summary.json#p6_injected_failure",
         "logs/gate_summary.json#p7_process_restart_readback"
       ],
-      "reason": "Only 2 of the 5 named phases have a directly measured, non-fabricated timing in this run: failure_detection_ms=62.00227601220831 and rollback_duration_ms=25.6894439808093, both from the P6 gate. 'process re-entry' and 'healthy readback' are demonstrated qualitatively and cross-process by P7, but P7 was run after the P5 success path, not chained immediately after the P6 rollback recovery as a single continuously-timed sequence. A single run that times all five phases detection->rollback begin->rollback end->re-entry->readback back-to-back has not been produced; reporting a full decomposition would require inventing missing timings, which is disallowed."
+      "reason": "Only 2 of the 5 named phases have a directly measured, non-fabricated timing in this run: failure_detection_ms=66.5779149858281 and rollback_duration_ms=27.3516190063674, both from the P6 gate, freshly re-measured 2026-09-01 against the fixed (harder-working, restore-and-verify) recovery path -- moved slightly from the pre-fix run's 62.00227601220831/25.6894439808093 for that reason, still the same order of magnitude. 'process re-entry' and 'healthy readback' are demonstrated qualitatively and cross-process by P7, but P7 was run after the P5 success path, not chained immediately after the P6 rollback recovery as a single continuously-timed sequence. A single run that times all five phases detection->rollback begin->rollback end->re-entry->readback back-to-back has not been produced; reporting a full decomposition would require inventing missing timings, which is disallowed."
     },
     {
       "id": "H12",

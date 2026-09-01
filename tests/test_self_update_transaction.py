@@ -240,6 +240,91 @@ class SelfUpdateTransactionTests(unittest.TestCase):
         self.assertEqual(compute_state_digest(store.managed_dir), gen1_state)
         self.assertEqual(store.load_lineage().generation, 1)
 
+    # ---- P6b (defect fix, coordinator report 2026-09-01): unknown
+    #      injected_failure_stage must be refused fail-closed, BEFORE any
+    #      mutation -- never fall through to _write_payload. Case policy is
+    #      case-INSENSITIVE normalize-then-match (documented in
+    #      _normalize_injected_failure_stage): "POST_MUTATION" is therefore a
+    #      *recognized* alias of "post_mutation", not an unknown stage -- it is
+    #      covered separately below. Only genuinely unrecognized strings (a
+    #      typo like "bogus") must raise. ---------------------------------
+    def test_unknown_injected_failure_stage_rejected_before_mutation(self) -> None:
+        store = _store(self.base)
+        apply_transaction(
+            store, operation="INSTALL", payload=PAYLOAD_V1,
+            release_id="r1", version="1", attempt_id="install-1",
+        )
+        before_digest = compute_state_digest(store.managed_dir)
+        before_lineage = store.load_lineage()
+        for bogus_stage in ("bogus", "PRE-MUTATION-TYPO"):
+            with self.assertRaises(SelfUpdateTransactionError):
+                apply_transaction(
+                    store, operation="UPDATE", payload=PAYLOAD_V2,
+                    release_id="r2", version="2",
+                    attempt_id=f"update-bogus-{bogus_stage}",
+                    injected_failure_stage=bogus_stage,
+                )
+            after_digest = compute_state_digest(store.managed_dir)
+            after_lineage = store.load_lineage()
+            self.assertEqual(
+                before_digest, after_digest,
+                f"disk mutated for unknown stage {bogus_stage!r}",
+            )
+            self.assertEqual(before_lineage.generation, after_lineage.generation)
+            self.assertEqual(before_lineage.state_sha256, after_lineage.state_sha256)
+
+    # ---- documents the case-insensitive normalization decision: the exact
+    #      string from the coordinator's repro ("POST_MUTATION") must now be
+    #      *recognized* as an alias of "post_mutation" and handled via the
+    #      normal, already-proven injected-post-mutation-failure path (exact
+    #      rollback), not silently ignored and not raising a stage error. -----
+    def test_uppercase_post_mutation_alias_is_normalized_and_handled(self) -> None:
+        store = _store(self.base)
+        apply_transaction(
+            store, operation="INSTALL", payload=PAYLOAD_V1,
+            release_id="r1", version="1", attempt_id="install-1",
+        )
+        before = compute_state_digest(store.managed_dir)
+        result = apply_transaction(
+            store, operation="UPDATE", payload=PAYLOAD_V2,
+            release_id="r2", version="2", attempt_id="update-fail-post-upper",
+            injected_failure_stage="POST_MUTATION",
+        )
+        self.assertEqual(result.receipt.outcome, "ROLLED_BACK")
+        self.assertEqual(result.receipt.observed_state_sha256, before)
+        self.assertEqual(compute_state_digest(store.managed_dir), before)
+        self.assertEqual(store.load_lineage().generation, 0)
+
+    # ---- P6c (defect fix): if a mutation DOES happen and something after it
+    #      raises (any PortableReleaseTransactionError/SelfUpdateTransactionError,
+    #      not just the two known injected stages), disk must be restored to
+    #      plan.source_state_sha256 before the exception propagates -- never
+    #      leave disk != lineage. -------------------------------------------
+    def test_forced_post_mutation_exception_restores_source_state_before_raise(self) -> None:
+        store = _store(self.base)
+        apply_transaction(
+            store, operation="INSTALL", payload=PAYLOAD_V1,
+            release_id="r1", version="1", attempt_id="install-1",
+        )
+        source_state_sha256 = store.load_lineage().state_sha256
+        self.assertEqual(source_state_sha256, compute_state_digest(store.managed_dir))
+
+        with self.assertRaises((SelfUpdateTransactionError, PortableReleaseTransactionError)):
+            apply_transaction(
+                store, operation="UPDATE", payload=PAYLOAD_V2,
+                release_id="r2", version="2", attempt_id="update-bogus-post",
+                injected_failure_stage="bogus",
+            )
+
+        after_digest = compute_state_digest(store.managed_dir)
+        after_lineage = store.load_lineage()
+        self.assertEqual(
+            after_digest, source_state_sha256,
+            "torn state: disk digest does not match plan.source_state_sha256 after raise",
+        )
+        self.assertEqual(after_lineage.generation, 0)
+        self.assertEqual(after_lineage.state_sha256, source_state_sha256)
+
     # ---- control_dir/managed_dir nesting guard ------------------------------
     def test_control_dir_nested_inside_managed_dir_is_rejected(self) -> None:
         with self.assertRaisesRegex(

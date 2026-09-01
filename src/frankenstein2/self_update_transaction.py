@@ -77,9 +77,85 @@ from frankenstein2.portable_release_transaction import (
 
 SELF_UPDATE_SCHEMA = "FRANKENSTEIN2_SELF_UPDATE_TRANSACTION/v1"
 
+# Whitelist of stage names this wrapper knows how to inject a failure at. Any other
+# value (None excluded) is a caller programming error and MUST be refused before any
+# mutation -- never silently fall through to the mutate/verify path. Case policy:
+# accepted case-insensitively and normalized to this canonical lowercase form (the
+# alternative -- demanding exact-case -- was rejected because the canonical
+# portable_release_transaction module itself uses UPPERCASE stage-adjacent names
+# elsewhere (e.g. outcomes), making an uppercase caller typo entirely plausible and
+# worth tolerating rather than silently mis-routing).
+KNOWN_INJECTED_FAILURE_STAGES = frozenset({"pre_mutation", "post_mutation"})
+
 
 class SelfUpdateTransactionError(ValueError):
     """Fail-closed self-update wrapper error (distinct from the wrapped primitive's error)."""
+
+
+def _normalize_injected_failure_stage(injected_failure_stage: str | None) -> str | None:
+    """Fail-closed whitelist for ``injected_failure_stage``.
+
+    ``None`` passes through unchanged (no failure injection requested). Any other value
+    is stripped and lowercased, then checked against ``KNOWN_INJECTED_FAILURE_STAGES``.
+    An unrecognized value (typo, wrong case treated as a *different* string, a caller
+    using the canonical module's own uppercase style, garbage) raises immediately --
+    BEFORE the caller has built a plan or written a single byte to disk. This closes a
+    defect where an unrecognized stage string used to fall through both the
+    ``pre_mutation`` and ``post_mutation`` branches, reach ``_write_payload`` (a real
+    mutation), and only then be rejected by the wrapped primitive's own
+    ``record_attempt`` (which refuses to mint a SUCCEEDED receipt whenever
+    ``injected_failure_stage`` is non-``None``, regardless of its exact text) -- by
+    which point the directory was already mutated and torn state resulted.
+    """
+
+    if injected_failure_stage is None:
+        return None
+    normalized = injected_failure_stage.strip().lower()
+    if normalized not in KNOWN_INJECTED_FAILURE_STAGES:
+        raise SelfUpdateTransactionError(
+            "unknown injected_failure_stage "
+            f"{injected_failure_stage!r}; must be None or one of "
+            f"{sorted(KNOWN_INJECTED_FAILURE_STAGES)} (case-insensitive) -- refused "
+            "before any mutation"
+        )
+    return normalized
+
+
+def _recover_from_unexpected_post_mutation_failure(
+    store: "SelfUpdateStore",
+    *,
+    restore_generation: int | None,
+    expected_state_sha256: str | None,
+) -> None:
+    """Last-resort fail-closed recovery for an exception raised AFTER a real mutation
+    already happened, that was not already handled by one of the explicit
+    injected-failure / verification-mismatch recovery branches (for example:
+    ``record_attempt`` itself rejecting the outcome for a reason not anticipated by the
+    caller). Restores the exact pre-attempt bytes for ``restore_generation`` (``None``
+    means "no predecessor snapshot exists -- restore to an empty/absent directory", the
+    correct predecessor for a failed first INSTALL) and verifies the restored digest
+    equals ``expected_state_sha256`` before letting the triggering exception propagate.
+
+    Disk must never be left disagreeing with the still-unchanged lineage record. If the
+    restore itself cannot reproduce the expected digest, this raises a distinct hard
+    error naming both digests instead of silently letting the original exception mask a
+    still-torn managed_dir.
+    """
+
+    if restore_generation is None:
+        if store.managed_dir.exists():
+            shutil.rmtree(store.managed_dir)
+        restored_state = None
+    else:
+        store._restore_snapshot(restore_generation)
+        restored_state = compute_state_digest(store.managed_dir)
+    if restored_state != expected_state_sha256:
+        raise SelfUpdateTransactionError(
+            "RECOVERY FAILED after an unexpected post-mutation error: managed_dir was "
+            "restored but does not match the expected predecessor state -- disk and "
+            f"lineage may now disagree. expected_state_sha256={expected_state_sha256!r} "
+            f"restored_state_sha256={restored_state!r}"
+        )
 
 
 def _canonical_json(value: Any) -> str:
@@ -344,6 +420,9 @@ def apply_transaction(
     t0 = time.monotonic()
     if operation not in ("INSTALL", "UPDATE"):
         raise SelfUpdateTransactionError("apply_transaction only handles INSTALL/UPDATE")
+    # Whitelist BEFORE any plan is built or any byte is written -- see
+    # _normalize_injected_failure_stage docstring for the defect this closes.
+    injected_failure_stage = _normalize_injected_failure_stage(injected_failure_stage)
 
     current_lineage = store.load_lineage()
     if operation == "INSTALL" and current_lineage is not None:
@@ -386,6 +465,7 @@ def apply_transaction(
     rollback_start: float | None = None
     rollback_ms: float | None = None
     failure_ms: float | None = None
+    mutated = False
 
     try:
         if injected_failure_stage == "pre_mutation":
@@ -404,6 +484,7 @@ def apply_transaction(
 
         # --- mutate ---------------------------------------------------------
         _write_payload(store.managed_dir, payload)
+        mutated = True
 
         if injected_failure_stage == "post_mutation":
             detection_start = time.monotonic()
@@ -481,6 +562,20 @@ def apply_transaction(
         store._snapshot_current(plan.next_generation)
         return SelfUpdateResult(plan, receipt, (time.monotonic() - t0) * 1000.0, None, None)
     except PortableReleaseTransactionError:
+        # A real mutation already happened (mutated=True) but the attempt could not be
+        # committed for a reason not already handled by one of the explicit recovery
+        # branches above (pre_mutation / post_mutation / verify-mismatch all restore
+        # and return before this point). Restore exact pre-attempt bytes before letting
+        # the triggering exception propagate -- disk must never be left disagreeing
+        # with the still-unchanged lineage record. This is the general fail-closed net;
+        # _normalize_injected_failure_stage above already closes the specific known
+        # vector (an unrecognized injected_failure_stage reaching the SUCCEEDED path).
+        if mutated:
+            _recover_from_unexpected_post_mutation_failure(
+                store,
+                restore_generation=plan.source_generation,
+                expected_state_sha256=plan.source_state_sha256,
+            )
         raise
 
 
@@ -495,6 +590,9 @@ def apply_rollback(
     semantics (SUCCEEDED outcome bound to plan.rollback_target_state_sha256)."""
 
     t0 = time.monotonic()
+    # Same whitelist as apply_transaction, same reason: refuse an unrecognized stage
+    # before anything is built or mutated rather than let it fall through.
+    injected_failure_stage = _normalize_injected_failure_stage(injected_failure_stage)
     current_lineage = store.load_lineage()
     if current_lineage is None:
         raise SelfUpdateTransactionError("ROLLBACK requires an existing lineage")
@@ -527,33 +625,49 @@ def apply_rollback(
         )
         return SelfUpdateResult(plan, receipt, (time.monotonic() - t0) * 1000.0, None, None)
 
-    store._restore_snapshot(current_lineage.predecessor_generation)
-    observed_state = compute_state_digest(store.managed_dir)
-    if observed_state != plan.rollback_target_state_sha256:
-        raise SelfUpdateTransactionError(
-            "restored predecessor snapshot does not match plan.rollback_target_state_sha256 "
-            f"(observed={observed_state}, expected={plan.rollback_target_state_sha256})"
-        )
+    mutated = False
+    try:
+        store._restore_snapshot(current_lineage.predecessor_generation)
+        mutated = True
+        observed_state = compute_state_digest(store.managed_dir)
+        if observed_state != plan.rollback_target_state_sha256:
+            raise SelfUpdateTransactionError(
+                "restored predecessor snapshot does not match plan.rollback_target_state_sha256 "
+                f"(observed={observed_state}, expected={plan.rollback_target_state_sha256})"
+            )
 
-    receipt = record_attempt(
-        plan,
-        outcome="SUCCEEDED",
-        observed_generation=plan.next_generation,
-        observed_state_sha256=observed_state,
-    )
-    new_lineage = StateLineage(
-        schema=LINEAGE_SCHEMA,
-        generation=plan.next_generation,
-        state_sha256=observed_state,
-        active_release_digest=rollback_release.digest(),
-        predecessor_generation=current_lineage.generation,
-        predecessor_state_sha256=current_lineage.state_sha256,
-        predecessor_release_digest=current_lineage.active_release_digest,
-    )
-    store._save_lineage(new_lineage)
-    store._append_history(plan.next_generation, rollback_release, observed_state)
-    store._snapshot_current(plan.next_generation)
-    return SelfUpdateResult(plan, receipt, (time.monotonic() - t0) * 1000.0, None, None)
+        receipt = record_attempt(
+            plan,
+            outcome="SUCCEEDED",
+            observed_generation=plan.next_generation,
+            observed_state_sha256=observed_state,
+        )
+        new_lineage = StateLineage(
+            schema=LINEAGE_SCHEMA,
+            generation=plan.next_generation,
+            state_sha256=observed_state,
+            active_release_digest=rollback_release.digest(),
+            predecessor_generation=current_lineage.generation,
+            predecessor_state_sha256=current_lineage.state_sha256,
+            predecessor_release_digest=current_lineage.active_release_digest,
+        )
+        store._save_lineage(new_lineage)
+        store._append_history(plan.next_generation, rollback_release, observed_state)
+        store._snapshot_current(plan.next_generation)
+        return SelfUpdateResult(plan, receipt, (time.monotonic() - t0) * 1000.0, None, None)
+    except (PortableReleaseTransactionError, SelfUpdateTransactionError):
+        # Same fail-closed net as apply_transaction: the managed_dir was already
+        # mutated to the ROLLBACK target's bytes (mutated=True) but the attempt could
+        # not be committed. Restore it to the generation that was actually active
+        # before this rollback attempt started (current_lineage, not the rollback
+        # target) before letting the triggering exception propagate.
+        if mutated:
+            _recover_from_unexpected_post_mutation_failure(
+                store,
+                restore_generation=current_lineage.generation,
+                expected_state_sha256=current_lineage.state_sha256,
+            )
+        raise
 
 
 # --------------------------------------------------------------------------- readback

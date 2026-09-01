@@ -8,6 +8,17 @@ Writes one JSON-lines measurement record per gate to
 measurements.jsonl (in this script's directory) and prints a single JSON
 summary object to stdout for the caller to build the remaining evidence
 artifacts from. Never touches ~/.claude.
+
+RE-RUN 2026-09-01 (coordinator defect report, PRODUCT_NEGATIVE): re-executed
+against the fixed src/frankenstein2/self_update_transaction.py (fail-closed
+injected_failure_stage whitelist + post-mutation recovery-then-reraise).
+Also closes an EVIDENCE_INVALID gap the coordinator flagged: each measurement
+record is now identity-bound (repo_head_sha, repo_dirty, operation,
+parent/current/planned/expected-rollback/observed state sha256, failure
+classification) instead of timing/resource fields only. Every identity value
+below is read from the actual store/lineage/receipt of that gate's own call --
+never fabricated; null + explicit reason where a field genuinely does not
+apply to that gate (e.g. no rollback target for a plain successful UPDATE).
 """
 from __future__ import annotations
 
@@ -29,13 +40,26 @@ from frankenstein2.self_update_transaction import (  # noqa: E402
     apply_transaction,
     compute_state_digest,
     release_identity_for_payload,
+    _write_payload,
 )
+import tempfile
 
 RUN_ID = "SELFINT-20260901-a1c9e2f4"
 RUN_DIR = Path("/tmp/selfint-SELFINT-20260901-a1c9e2f4")
 MANAGED_DIR = RUN_DIR / "sandbox-claude"
 CONTROL_DIR = RUN_DIR / "control-claude"
 MEASUREMENTS_PATH = RUN_DIR / "measurements.jsonl"
+REPO_DIR = Path("/home/ai-core-node/frankenstein-2.0")
+
+
+def _git(*args: str) -> str:
+    return subprocess.run(
+        ["git", *args], cwd=REPO_DIR, capture_output=True, text=True, timeout=30,
+    ).stdout.strip()
+
+
+REPO_HEAD_SHA = _git("rev-parse", "HEAD")
+REPO_DIRTY = bool(_git("status", "--porcelain"))
 
 if CONTROL_DIR.exists():
     import shutil
@@ -69,7 +93,50 @@ def _io_snapshot() -> dict | None:
     return out
 
 
-def _measure(gate_id: str, hypothesis: str, fn):
+def _planned_digest_for_payload(payload: "Mapping[str, bytes]") -> str:
+    """Genuinely compute the state digest a payload WOULD produce if applied, by
+    materializing it into a throwaway scratch directory (never MANAGED_DIR, never
+    touches lineage/CAS) and hashing that with the same compute_state_digest used
+    for every observed digest elsewhere in this run. Real, not fabricated -- just
+    computed off to the side instead of from the live managed dir."""
+    with tempfile.TemporaryDirectory(prefix="selfint-planned-digest-") as scratch:
+        scratch_path = Path(scratch)
+        _write_payload(scratch_path, payload)
+        return compute_state_digest(scratch_path)
+
+
+def _classify_failure(gate_id: str, outcome: str, error: str | None) -> str | None:
+    """Map an observed (outcome, error) pair to the failure taxonomy already used
+    elsewhere in this evidence run (rollback_evidence.json, hypothesis_results.json).
+    Returns None for a genuinely successful gate (no failure occurred)."""
+    if outcome == "OK":
+        return None
+    err = error or ""
+    if "hostile-twin" in err:
+        return "HOSTILE_TWIN_REJECTED_PRE_MUTATION"
+    if "must differ" in err:
+        return "REPLAY_REJECTED_NO_DOUBLE_APPLY"
+    if "generation" in err and "current lineage" in err:
+        return "STALE_CAS_REJECTED"
+    if "INJECTED_POST_MUTATION" in err or gate_id.startswith("P6"):
+        return "INJECTED_POST_MUTATION_ROLLED_BACK"
+    if "injected_failure_stage" in err:
+        return "UNKNOWN_INJECTED_STAGE_REJECTED_PRE_MUTATION"
+    return "UNCLASSIFIED_RAISE"
+
+
+def _measure(
+    gate_id: str,
+    hypothesis: str,
+    fn,
+    *,
+    operation: str,
+    parent_state_sha256: str | None,
+    planned_target_state_sha256: str | None = None,
+    planned_target_reason: str | None = None,
+    expected_rollback_target_state_sha256: str | None = None,
+    expected_rollback_target_reason: str | None = None,
+):
     rusage_before = resource.getrusage(resource.RUSAGE_SELF)
     io_before = _io_snapshot()
     t0 = time.monotonic()
@@ -94,11 +161,33 @@ def _measure(gate_id: str, hypothesis: str, fn):
         disk_write_bytes_delta = None
         disk_note = "unmeasurable: /proc/self/io not readable in this environment"
 
+    current_state_sha256 = compute_state_digest(MANAGED_DIR)
+    lineage_after = store.load_lineage()
+
     record = {
-        "schema": "F2_WP1207_SELF_INTEGRATION_MEASUREMENT/v1",
+        "schema": "F2_WP1207_SELF_INTEGRATION_MEASUREMENT/v2",
         "run_id": RUN_ID,
         "gate_id": gate_id,
         "hypothesis": hypothesis,
+        "repo_head_sha": REPO_HEAD_SHA,
+        "repo_dirty": REPO_DIRTY,
+        "operation": operation,
+        "outcome": outcome,
+        "failure_classification_or_null": _classify_failure(gate_id, outcome, error),
+        "parent_state_sha256_or_null": parent_state_sha256,
+        "planned_target_state_sha256_or_null": planned_target_state_sha256,
+        "planned_target_reason_or_null": (
+            None if planned_target_state_sha256 is not None else
+            (planned_target_reason or "not applicable to this gate")
+        ),
+        "expected_rollback_target_state_sha256_or_null": expected_rollback_target_state_sha256,
+        "expected_rollback_target_reason_or_null": (
+            None if expected_rollback_target_state_sha256 is not None else
+            (expected_rollback_target_reason or "not applicable: this gate does not involve rollback")
+        ),
+        "observed_state_sha256": current_state_sha256,
+        "observed_lineage_generation": lineage_after.generation if lineage_after else None,
+        "observed_lineage_state_sha256_or_null": lineage_after.state_sha256 if lineage_after else None,
         "wall_time_ms": round((t1 - t0) * 1000.0, 3),
         "cpu_user_ms": round((rusage_after.ru_utime - rusage_before.ru_utime) * 1000.0, 3),
         "cpu_sys_ms": round((rusage_after.ru_stime - rusage_before.ru_stime) * 1000.0, 3),
@@ -108,7 +197,6 @@ def _measure(gate_id: str, hypothesis: str, fn):
         "disk_read_bytes_delta": disk_read_bytes_delta,
         "disk_write_bytes_delta": disk_write_bytes_delta,
         "disk_note_or_null": disk_note,
-        "outcome": outcome,
         "error_or_null": error,
     }
     measurement_records.append(record)
@@ -127,7 +215,14 @@ def _p5_install():
     )
 
 
-r_install, outcome, err = _measure("P5-install", "H1,H2,H3", _p5_install)
+r_install, outcome, err = _measure(
+    "P5-install", "H1,H2,H3", _p5_install,
+    operation="INSTALL",
+    parent_state_sha256=None,
+    planned_target_reason="INSTALL has no predecessor generation; nothing to compare a parent digest against",
+    planned_target_state_sha256=_planned_digest_for_payload(payload_v0),
+    expected_rollback_target_reason="not applicable: no injected failure on this gate, no rollback expected",
+)
 results["p5_install"] = {
     "outcome": outcome, "error": err,
     "receipt_outcome": r_install.receipt.outcome if r_install else None,
@@ -149,7 +244,14 @@ def _p5_update():
     )
 
 
-r_update, outcome, err = _measure("P5-update", "H1,H2,H3", _p5_update)
+gen0_state = r_install.receipt.observed_state_sha256 if r_install else compute_state_digest(MANAGED_DIR)
+r_update, outcome, err = _measure(
+    "P5-update", "H1,H2,H3", _p5_update,
+    operation="UPDATE",
+    parent_state_sha256=gen0_state,
+    planned_target_state_sha256=_planned_digest_for_payload(payload_v1),
+    expected_rollback_target_reason="not applicable: no injected failure on this gate, no rollback expected",
+)
 gen1_state = compute_state_digest(MANAGED_DIR)
 results["p5_update"] = {
     "outcome": outcome, "error": err,
@@ -175,7 +277,13 @@ def _p6_injected_failure():
     )
 
 
-r_p6, outcome, err = _measure("P6-injected-failure-rollback", "H3,H4,H12", _p6_injected_failure)
+r_p6, outcome, err = _measure(
+    "P6-injected-failure-rollback", "H3,H4,H12", _p6_injected_failure,
+    operation="UPDATE",
+    parent_state_sha256=gen1_state,
+    planned_target_state_sha256=_planned_digest_for_payload(payload_v2),
+    expected_rollback_target_state_sha256=gen1_state,
+)
 post_rollback_state = compute_state_digest(MANAGED_DIR)
 results["p6_injected_failure"] = {
     "outcome": outcome, "error": err,
@@ -219,14 +327,34 @@ results["p7_process_restart_readback"] = {
     ),
     "note": "invoked in a genuinely fresh python3 subprocess, not in-process, per P7 requirement",
 }
+_p7_lineage_gen = (
+    readback_payload.get("lineage", {}).get("generation")
+    if readback_payload and readback_payload.get("lineage") else None
+)
+_p7_lineage_state = (
+    readback_payload.get("lineage", {}).get("state_sha256")
+    if readback_payload and readback_payload.get("lineage") else None
+)
 measurement_records.append({
-    "schema": "F2_WP1207_SELF_INTEGRATION_MEASUREMENT/v1",
+    "schema": "F2_WP1207_SELF_INTEGRATION_MEASUREMENT/v2",
     "run_id": RUN_ID, "gate_id": "P7-process-restart-readback", "hypothesis": "H4,H10,H11",
+    "repo_head_sha": REPO_HEAD_SHA,
+    "repo_dirty": REPO_DIRTY,
+    "operation": "READBACK",
+    "outcome": "OK" if readback_ok else "SUBPROCESS_FAILED",
+    "failure_classification_or_null": None if readback_ok else "UNCLASSIFIED_RAISE",
+    "parent_state_sha256_or_null": gen1_state,
+    "planned_target_state_sha256_or_null": None,
+    "planned_target_reason_or_null": "not applicable: READBACK does not mutate state, no planned target digest",
+    "expected_rollback_target_state_sha256_or_null": None,
+    "expected_rollback_target_reason_or_null": "not applicable: this gate does not involve rollback",
+    "observed_state_sha256": compute_state_digest(MANAGED_DIR),
+    "observed_lineage_generation": _p7_lineage_gen,
+    "observed_lineage_state_sha256_or_null": _p7_lineage_state,
     "wall_time_ms": None, "cpu_user_ms": None, "cpu_sys_ms": None,
     "rss_kb_before": None, "rss_kb_after": None, "rss_kb_delta_or_null": None,
     "disk_read_bytes_delta": None, "disk_write_bytes_delta": None,
     "disk_note_or_null": "not measured: cross-process gate, timing captured separately if needed",
-    "outcome": "OK" if readback_ok else "SUBPROCESS_FAILED",
     "error_or_null": None if readback_ok else proc.stderr[-500:],
 })
 
@@ -247,7 +375,16 @@ def _p8_hostile_twin():
     )
 
 
-r_p8, outcome, err = _measure("P8-hostile-twin", "H5", _p8_hostile_twin)
+r_p8, outcome, err = _measure(
+    "P8-hostile-twin", "H5", _p8_hostile_twin,
+    operation="UPDATE",
+    parent_state_sha256=before_p8,
+    planned_target_reason=(
+        "hostile-twin declares a forged identity intentionally mismatched against "
+        "payload_v2; rejected before any target digest materializes"
+    ),
+    expected_rollback_target_reason="not applicable: rejected pre-mutation, no rollback needed",
+)
 after_p8 = compute_state_digest(MANAGED_DIR)
 results["p8_hostile_twin"] = {
     "outcome": outcome, "error": err,
@@ -266,7 +403,13 @@ def _p9_replay_already_active_release():
 
 
 before_p9 = compute_state_digest(MANAGED_DIR)
-r_p9, outcome, err = _measure("P9-replay-idempotency", "H8", _p9_replay_already_active_release)
+r_p9, outcome, err = _measure(
+    "P9-replay-idempotency", "H8", _p9_replay_already_active_release,
+    operation="UPDATE",
+    parent_state_sha256=before_p9,
+    planned_target_state_sha256=_planned_digest_for_payload(payload_v1),
+    expected_rollback_target_reason="not applicable: rejected pre-mutation (target == active release), no rollback needed",
+)
 after_p9 = compute_state_digest(MANAGED_DIR)
 results["p9_replay_idempotency"] = {
     "outcome": outcome, "error": err,
@@ -289,7 +432,14 @@ def _p10_caller_b():
     )
 
 
-r_callerb, outcome_b, err_b = _measure("P10-caller-b-advance", "H9", _p10_caller_b)
+before_p10b = compute_state_digest(MANAGED_DIR)
+r_callerb, outcome_b, err_b = _measure(
+    "P10-caller-b-advance", "H9", _p10_caller_b,
+    operation="UPDATE",
+    parent_state_sha256=before_p10b,
+    planned_target_state_sha256=_planned_digest_for_payload(payload_v3),
+    expected_rollback_target_reason="not applicable: no injected failure on this gate, no rollback expected",
+)
 gen2_state = compute_state_digest(MANAGED_DIR)
 payload_v4_stale = dict(payload_v1)
 payload_v4_stale["SELFINT_MARKER.txt"] = f"caller-A stale attempt {RUN_ID}".encode("utf-8")
@@ -305,7 +455,13 @@ def _p10_caller_a_stale():
     )
 
 
-r_callera, outcome_a, err_a = _measure("P10-caller-a-stale-reject", "H9", _p10_caller_a_stale)
+r_callera, outcome_a, err_a = _measure(
+    "P10-caller-a-stale-reject", "H9", _p10_caller_a_stale,
+    operation="UPDATE",
+    parent_state_sha256=gen2_state,
+    planned_target_state_sha256=_planned_digest_for_payload(payload_v4_stale),
+    expected_rollback_target_reason="not applicable: rejected pre-mutation via CAS, no rollback needed",
+)
 after_p10 = compute_state_digest(MANAGED_DIR)
 results["p10_concurrent_stale_cas"] = {
     "caller_b_outcome": outcome_b, "caller_b_error": err_b,
