@@ -1,0 +1,69 @@
+{
+  "schema": "FRANKENSTEIN2_WORKPACKAGE_DELTA/v1",
+  "workpackage_id": "F2-WP-702",
+  "classification": "CANDIDATE_FALSIFIER",
+  "review_id": "F2-WP-702-REVIEW-RESULT-PRODUCER-LINEAGE-20260829",
+  "review_worker": "GPT-5.6-Sol",
+  "authority_epoch": "8.78",
+  "authority_ref": "research_entity/continuity/BOOTSTRAP_MINIMAL.json -> research_entity/claycode/autonomous/SUPERVISOR_STEERING_8_78.json",
+  "canonical_mutation_authority": "UNCHANGED_REVIEW_ONLY_EVIDENCE",
+  "active_claim_observed": {
+    "generation": 2,
+    "claim_id": "F2-WP-702-G2-GPT56SOL-UPSTREAM-PERSISTENCE-TAINT-20260829",
+    "scope_relation": "SEPARATE_EXECUTABLE_CONTRADICTION_NOT_A_SECOND_MUTATION_AUTHORITY"
+  },
+  "tested_source": {
+    "base_main_sha": "296d479e2df473ea00885cec9a785a206728b4fd",
+    "path": "src/frankenstein2/perception_control.py",
+    "blob_sha": "c9147c4bd197cf94dbd8fefa061b3cc259edeefc"
+  },
+  "finding": "PerceptionControlResult is directly constructible without evaluator-origin proof. A caller can create a real COMPUTE_OFF PerceptionHeadPolicy and real PerceptionPolicyRegistry, observe evaluate_perception_head return NOT_COMPUTED without executing compute, then directly construct an OK PerceptionControlResult carrying the exact same real registry and policy digests while asserting computed, egress, memory-match and persistence authority. The result constructor validates local flag consistency and digest syntax but does not prove traversal of evaluate_perception_head or revalidate the referenced policy semantics.",
+  "counterhypothesis": "Exact registry_sha256 and policy_sha256 fields plus local PerceptionControlResult flag validation might be sufficient to make downstream readouts trustworthy without explicit evaluator producer lineage.",
+  "discriminator": "Use the exact real COMPUTE_OFF registry/policy digests from a canonical evaluation, then require direct construction of a contradictory OK persistent readout to raise PerceptionControlError.",
+  "falsifier": {
+    "pull_request": 366,
+    "branch": "review/wp702-result-producer-lineage-falsifier-20260829",
+    "test": "tests/test_wp702_result_producer_lineage_falsifier.py",
+    "workflow": ".github/workflows/review-wp702-result-producer-lineage-falsifier.yml",
+    "head_sha": "c7cb6fe336b7f8cbb53029a486e7100e009d95eb",
+    "run_id": 33248421121,
+    "job_id": 99089790476,
+    "compile_step": "PASS",
+    "semantic_step": "FAIL",
+    "conclusion": "FAIL_AS_EXPECTED_FOR_VULNERABLE_SOURCE",
+    "interpretation": "PerceptionControlError was not raised by the direct constructor; executable repository-hosted counterevidence invalidates evaluator-origin/producer-lineage trust for this exact result path. It does not establish camera, perception-runtime, VPS, physical GRID10, GWT/J-Space, effect, training or whole-system failure."
+  },
+  "repair_probe": {
+    "method": "Ephemerally add a private evaluator-origin sentinel using dataclasses.InitVar, reject PerceptionControlResult construction unless the sentinel is supplied, and pass the sentinel only from all six evaluate_perception_head result-construction paths.",
+    "workflow": ".github/workflows/review-wp702-result-producer-lineage-repair-probe.yml",
+    "head_sha": "0b3e22cbb87e36a9f6bcce99a9c1f9ed5fc9a732",
+    "run_id": 33248477487,
+    "job_id": 99089933975,
+    "apply_ephemeral_guard": "PASS",
+    "compile": "PASS",
+    "same_falsifier_after_repair": "PASS",
+    "conclusion": "SUFFICIENT_FOR_THIS_SPECIFIC_EXPLOIT_ONLY",
+    "interpretation": "Evaluator-origin fencing closes this demonstrated direct-constructor laundering path. It is not proof that all WP702 information-flow, dependency-taint or result-admission boundaries are correct."
+  },
+  "negative_evidence": {
+    "repair_probe_attempt_1_run_id": 33248450945,
+    "repair_probe_attempt_1_job_id": 99089867130,
+    "classification": "REVIEW_HARNESS_ERROR_NOT_PRODUCT_EVIDENCE",
+    "cause": "The ephemeral patch script expected five evaluator result-construction sites; exact source contains six. The script failed before compile/falsifier execution and was corrected without modifying production source."
+  },
+  "recommended_owner_action": "Do not steal or overwrite the active WP702 generation-2 mutation authority. The canonical owner should preserve its current upstream persistence-taint repair scope and reconcile this independent producer-lineage contradiction explicitly. Absorb the regression plus an evaluator-origin or equivalently strong admission proof in a deliberate successor or scope expansion allowed by CLAIM_PROTOCOL, then rerun exact canonical source tests and repository-hosted CI before restoring bounded result-provenance credit.",
+  "credit": {
+    "wp702_result_producer_lineage_closed": false,
+    "repository_review_counterevidence": true,
+    "repair_class_discriminator": true,
+    "perception_runtime_credit": 0,
+    "runtime_credit": 0,
+    "physical_grid10_credit": 0,
+    "gwt_runtime_credit": 0,
+    "jspace_runtime_credit": 0,
+    "training_credit": 0,
+    "effect_credit": 0,
+    "completion_credit": 0,
+    "whole_system_acceptance": false
+  }
+}
