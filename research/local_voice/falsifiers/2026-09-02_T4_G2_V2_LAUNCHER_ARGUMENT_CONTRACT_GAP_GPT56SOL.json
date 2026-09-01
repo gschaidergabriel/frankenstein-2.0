@@ -1,0 +1,57 @@
+{
+  "schema": "F2_TRIGGER4_CANDIDATE_FALSIFIER/v1",
+  "trigger": "4",
+  "research_id": "T4-G2-V2-LAUNCHER-ARGUMENT-CONTRACT-GAP-2026-09-02",
+  "work_class": "INTEGRATION_BLOCKER",
+  "boundary": "G2 current S2 launcher -> g2_pipewire_s2_runtime.py v2 argument/evidence contract -> executable owner-VPS S2 PipeWire discriminator",
+  "current_f2_head_observed_before_write": "e9778d42710d3efd8b4ac1a39f6c0b5f582f2b8a",
+  "semantic_key": "0d83f7d13c1d8f91686cf94070f73d901a49018b40a9c058d1949af094655bff",
+  "source_observation": {
+    "runtime_path": "trigger4/tools/local_voice/g2_pipewire_s2_runtime.py",
+    "runtime_schema": "T4_G2_PIPEWIRE_S2_PLAYBACK_CANCEL_MONITOR/v2",
+    "runtime_blob_sha": "966af68b6a75d2ed1768573d126b0505811d4a23",
+    "launcher_path": "trigger4/tools/local_voice/run_g2_pipewire_s2.sh",
+    "launcher_blob_sha": "d6947b0abd49b017a9855f24385c8dc1c45ea0d6",
+    "required_runtime_arguments_not_supplied_by_launcher": [
+      "--replacement-source",
+      "--tts-text-file",
+      "--replacement-tts-text-file",
+      "--bound-preflight-receipt"
+    ],
+    "launcher_still_supplies_literal_max_inflight_ms": 250,
+    "v2_runtime_validates_max_inflight_against_bound_preflight_receipt": true,
+    "launcher_generates_bound_preflight_receipt": false,
+    "launcher_generates_distinct_replacement_source_and_text_provenance": false
+  },
+  "discriminator": {
+    "static_result": "FAIL",
+    "reason": "The launcher invocation omits argparse-required v2 inputs. A current-head S2 run through this launcher cannot reach the PipeWire discriminator; argparse must terminate before target evidence is measured.",
+    "runtime_execution_observed_for_current_head": false
+  },
+  "failure_taxonomy_if_dispatched_unchanged": "EVIDENCE_INVALID",
+  "runtime_subject_action": "RUNTIME_PROBE_INVALIDATED_BY_REQUIRED_REPAIR",
+  "repair_requirement": {
+    "smallest_missing_step": "Wire the existing v2 evidence machinery into the existing launcher: create two distinct deterministic TTS sources plus their exact text provenance, observe PipeWire settings before cancellation, derive and persist the pre-execution bound receipt with g2_pipewire_evidence.py, pass its derived_max_inflight_ms and all required v2 paths into the current harness, then keep the existing singleton/manual S2 dispatch law.",
+    "must_preserve": [
+      "one existing G2 runtime authority; do not create a second launcher or playback authority",
+      "exact F2 subject SHA",
+      "Piper model/config hashes and deterministic text/source provenance",
+      "pre-execution PipeWire clock/quantum binding",
+      "exact sink/monitor object identity and cleanup evidence",
+      "manual singleton dispatch and duplicate-nonterminal-owner guard",
+      "all physical/GWT/effect/training/whole-product zero-credit boundaries"
+    ],
+    "regression_needed": "Add a hosted integration regression proving the launcher supplies every argparse-required v2 evidence input, derives max-inflight from the bound receipt rather than a literal post-hoc value, and remains bash-parseable. This regression cannot mint S2 runtime credit."
+  },
+  "credit": {
+    "repository_integration_credit": 0,
+    "owner_vps_pipewire_virtual_sink_playback_readback": 0,
+    "bounded_cancellation_to_virtual_audio_monitor_silence": 0,
+    "physical_device_credit": 0,
+    "gwt_jspace_credit": 0,
+    "effect_credit": 0,
+    "training_credit": 0,
+    "whole_product_credit": 0
+  },
+  "next_exact_action": "Do not dispatch the current G2 S2 workflow unchanged. Let the live G2 mutation owner repair only this launcher-to-v2-harness contract and add the hosted regression; after that, refresh main and nonterminal G2 runs, then dispatch at most one exact-current-head S2 discriminator and classify its emitted receipt."
+}
