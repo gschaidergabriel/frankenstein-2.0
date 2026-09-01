@@ -1,0 +1,54 @@
+{
+  "schema": "T7_TO_TRIGGER4_G2_PIPEWIRE_SCOPE_SPLIT/v1",
+  "trigger": "7",
+  "producer": "GPT-5.6-Sol",
+  "date": "2026-09-02",
+  "t7_semantic_key": "0d83f7d13c1d8f91686cf94070f73d901a49018b40a9c058d1949af094655bff",
+  "t4_claim_ref": "research/local_voice/claims/2026-09-02_trigger4_gpt56sol_owner_vps_pipewire_monitor_fdx_g2.json",
+  "work_class": "EVIDENCE_SCOPE_RECONCILIATION",
+  "finding": "The Trigger4 synthetic 523.25 Hz -> cancel -> 880 Hz replacement-tone PipeWire claim is a strong transport/cancel-tail discriminator, but it deliberately uses deterministic probe PCM and explicitly grants TTS model runtime = 0. The current Trigger7 Generation-2 semantic objective requires real locally generated TTS waveform bytes to traverse the actual PipeWire virtual/null sink and monitor. Therefore a synthetic-tone PASS cannot terminalize the full T7 G2 semantic claim by itself.",
+  "credit_split": {
+    "synthetic_tone_pass_may_promote": [
+      "actual PipeWire/PipeWire-Pulse virtual-sink presence at exact runtime subject",
+      "monitor capture/readback mechanics",
+      "bounded transport drain/tail characterization",
+      "causal playback-client cancellation at transport scope",
+      "replacement-stream same-sink recovery",
+      "test/falsifier validity for the transport layer"
+    ],
+    "synthetic_tone_pass_must_keep_zero": [
+      "real local TTS waveform through PipeWire",
+      "TTS model/runtime in this run",
+      "T7 G2 terminal acceptance",
+      "producer-side TTS generation cancellation",
+      "physical speaker",
+      "human-heard output",
+      "physical cancellation-to-silence",
+      "whole voice e2e",
+      "whole product"
+    ],
+    "full_t7_g2_pipewire_boundary_requires_after_transport_validation": [
+      "reuse an exact already-accepted locally generated Piper/TTS waveform with bound model/runtime/artifact identity",
+      "bind that waveform to an exact existing VoiceOutputPacket/output-generation identity",
+      "execute the same control-full-playback monitor-readback run through the validated PipeWire graph",
+      "execute the same causal-cancel monitor-readback run with cancellation while old TTS audio is active",
+      "measure old-waveform tail with the same predeclared bounded-tail method or a stronger identity/alignment method",
+      "observe a clean new-generation real local TTS waveform on the same monitor",
+      "preserve producer-generation-cancel credit at zero unless the producer itself is separately preempted and observed"
+    ]
+  },
+  "failure_taxonomy": {
+    "synthetic_transport_old_tone_residual_above_predeclared_threshold": "PRODUCT_NEGATIVE_AT_PIPEWIRE_TRANSPORT_CANCEL_SCOPE",
+    "synthetic_transport_setup_or_identity_failure": "EVIDENCE_INVALID_OR_INFRA_AUTH_TRANSPORT_QUOTA",
+    "synthetic_transport_pass_but_real_tts_waveform_not_executed": "TRANSPORT_PREREQUISITE_PASS__T7_G2_NONTERMINAL",
+    "real_tts_waveform_executed_but_model_or_packet_identity_unbound": "EVIDENCE_INVALID",
+    "real_tts_waveform_old_audio_exceeds_admitted_tail_or_regains_output_authority": "PRODUCT_NEGATIVE_AT_EXECUTED_T7_G2_SCOPE"
+  },
+  "anti_churn": [
+    "Do not create a new TTS component or model merely for this closure.",
+    "Reuse the already-accepted local Piper/TTS subject first.",
+    "Do not open Trigger7 Generation 3 until Generation 2 is terminal at its exact semantic scope.",
+    "Do not treat the synthetic probe as physical or human-heard evidence."
+  ],
+  "next_exact_action": "Trigger4 may execute the already-claimed synthetic PipeWire tone discriminator once as a transport-validity prerequisite. If it passes, immediately reuse that exact validated PipeWire graph/test method with the already-accepted real local TTS waveform and exact VoiceOutputPacket/output-generation identity before terminalizing Trigger7 G2. Reconcile the two receipts separately so synthetic transport evidence cannot silently mint real-TTS G2 credit."
+}
