@@ -7,6 +7,7 @@ import unittest
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 WORKFLOW = ROOT / ".github/workflows/t4-g2-pipewire-monitor-cancel.yml"
 RUNNER = ROOT / "tools/vps_sandbox/run_ubuntu_sandbox.sh"
+OWNER_GUARD = ROOT / "trigger4/tools/local_voice/g2_runtime_owner_guard.py"
 PIN_NAME = "F2_NSPAWN_RUNNER_SHA256"
 CONCURRENCY_GROUP = "t4-g2-pipewire-monitor-cancel-s2"
 
@@ -46,17 +47,27 @@ class Trigger4G2PipeWireWorkflowPinTests(unittest.TestCase):
             text,
         )
 
-    def test_runtime_workflow_has_duplicate_nonterminal_owner_guard(self) -> None:
+    def test_runtime_workflow_routes_duplicate_guard_through_exact_helper(self) -> None:
         text = workflow_text()
+        helper = "trigger4/tools/local_voice/g2_runtime_owner_guard.py"
+        self.assertTrue(OWNER_GUARD.is_file())
         self.assertIn("Fail closed on duplicate nonterminal G2 runtime owner", text)
-        self.assertIn("for status in ('queued', 'in_progress'):", text)
-        self.assertIn("T4_G2_SINGLETON_OWNER=PASS", text)
-        self.assertIn("raise SystemExit(3)", text)
+        self.assertIn(f"python3 {helper}", text)
+        self.assertIn(helper + " \\\n", text)
+        self.assertNotIn("for status in ('queued', 'in_progress'):", text)
 
     def test_runtime_workflow_uses_supported_sandbox_runner_cli(self) -> None:
         text = workflow_text()
         self.assertNotIn("--source-root", text)
         self.assertIn("--backend nspawn --network on -- \\\n", text)
+
+    def test_receipt_preserves_exact_harness_scope(self) -> None:
+        text = workflow_text()
+        self.assertIn("T4_G2_PIPEWIRE_S2_WORKFLOW_RECEIPT/v2", text)
+        self.assertIn("measured_credit = dict(harness.get('measured_credit') or {})", text)
+        self.assertIn("'autonomous_production_playback_executor': 0", text)
+        self.assertIn("'producer_tts_generation_cancel': 0", text)
+        self.assertNotIn("'bounded_cancellation_to_virtual_audio_monitor_silence': 1 if complete else 0", text)
 
 
 if __name__ == "__main__":
