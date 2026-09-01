@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 from __future__ import annotations
 
+import inspect
 import unittest
 
 from frankenstein2.optional_vps_bridge import (
@@ -19,6 +20,7 @@ SHA_A = "a" * 64
 SHA_B = "b" * 64
 SHA_C = "c" * 64
 SHA_D = "d" * 64
+SHA_E = "e" * 64
 
 
 def local(*, boot_state: EvidenceState = EvidenceState.VERIFIED) -> LocalRuntimeIdentity:
@@ -155,6 +157,31 @@ class OptionalVPSBridgeTests(unittest.TestCase):
         self.assertEqual(result["effect_completion_credit"], 0)
         self.assertEqual(result["target_runtime_credit"], 0)
         self.assertFalse(result["whole_system_acceptance"])
+
+    def test_falsifier_remote_return_rejects_unsealed_request_identity(self) -> None:
+        plan = plan_optional_bridge(local=local(), action=BridgeAction.ATTACH, remote=remote())
+        issued_request_digest = SHA_C
+        returned_request_digest = SHA_E
+        self.assertNotEqual(issued_request_digest, returned_request_digest)
+
+        result = validate_remote_return(
+            plan=plan,
+            returned_state_lineage_id="state-lineage-1",
+            request_digest=returned_request_digest,
+            result_digest=SHA_D,
+        )
+        self.assertFalse(
+            result["identity_binding_valid"],
+            "remote return accepted a request digest that was never sealed to the attached plan",
+        )
+
+    def test_falsifier_remote_return_requires_returned_endpoint_identity(self) -> None:
+        parameters = inspect.signature(validate_remote_return).parameters
+        self.assertIn(
+            "returned_remote_endpoint_digest",
+            parameters,
+            "remote return validator has no input surface for proving which endpoint returned the result",
+        )
 
     def test_remote_return_wrong_lineage_fails_closed(self) -> None:
         plan = plan_optional_bridge(local=local(), action=BridgeAction.ATTACH, remote=remote())
