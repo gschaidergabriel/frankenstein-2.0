@@ -1,0 +1,349 @@
+{
+ "schema": "F2_WP1207_COGNITION_BASELINE_DEFINITION/v1",
+ "run_id": "POSTREENTRY-20260901",
+ "version": "1.0",
+ "created_at_utc": "2026-09-01T12:02:45Z",
+ "fixed_before_any_measurement": true,
+ "runtime_path": "claude -p --dangerously-skip-permissions --output-format json --max-turns 6 (KEIN --model; identische Router/Config wie Hauptprozess)",
+ "phase_protocol": "Probe-Reset vor jeder Phase: rm probe/plant_note.txt probe/logbuch.txt work/chainfile.txt; identische Reihenfolge; timeout 120s/Test",
+ "n_tests": 32,
+ "tests": [
+  {
+   "id": "cc0a",
+   "capability": "context_continuation",
+   "prompt": "Merke dir bitte still: Wartungsschlüssel = KLAR-7391. Antworte nur mit OK.",
+   "criteria_names": [
+    "ok"
+   ],
+   "chain": "A",
+   "timeout_s": 120
+  },
+  {
+   "id": "cc0b",
+   "capability": "context_continuation",
+   "prompt": "Wie lautet der Wartungsschlüssel aus deinem Kontext? Antworte NUR mit dem Wert.",
+   "criteria_names": [
+    "exact"
+   ],
+   "chain": "B",
+   "timeout_s": 120
+  },
+  {
+   "id": "cc1a",
+   "capability": "context_continuation",
+   "prompt": "Merke dir bitte still: Projektkürzel = BLAU-4620. Antworte nur mit OK.",
+   "criteria_names": [
+    "ok"
+   ],
+   "chain": "A",
+   "timeout_s": 120
+  },
+  {
+   "id": "cc1b",
+   "capability": "context_continuation",
+   "prompt": "Wie lautet der Projektkürzel aus deinem Kontext? Antworte NUR mit dem Wert.",
+   "criteria_names": [
+    "exact"
+   ],
+   "chain": "B",
+   "timeout_s": 120
+  },
+  {
+   "id": "pm0",
+   "capability": "persistent_memory",
+   "prompt": "Lies die Datei /tmp/wp1207-postreentry/probe/stable_fact.txt und nenne NUR den Stabscodex-Wortlaut nach dem Doppelpunkt.",
+   "criteria_names": [
+    "exact"
+   ],
+   "chain": null,
+   "timeout_s": 120
+  },
+  {
+   "id": "pm1",
+   "capability": "persistent_memory",
+   "prompt": "Schreibe in die Datei /tmp/wp1207-postreentry/probe/plant_note.txt genau die Zeile: SCHLUESSEL-WORT: DONAU-NEUN. Bestätige mit OK.",
+   "criteria_names": [
+    "ok",
+    "file"
+   ],
+   "chain": null,
+   "timeout_s": 120
+  },
+  {
+   "id": "pm2",
+   "capability": "persistent_memory",
+   "prompt": "Lies /tmp/wp1207-postreentry/probe/plant_note.txt und nenne NUR das Schlüsselwort.",
+   "criteria_names": [
+    "exact"
+   ],
+   "chain": null,
+   "timeout_s": 120
+  },
+  {
+   "id": "gw0",
+   "capability": "gwt_readback",
+   "prompt": "Öffne die SQLite-DB /home/ai-core-node/.local/share/agentzero/unified.db NUR LESEND (mode=ro) und gib die Zeilenzahl der Tabelle workspace_episodes aus. Antworte NUR mit der Zahl.",
+   "criteria_names": [
+    "int_match"
+   ],
+   "chain": null,
+   "timeout_s": 120
+  },
+  {
+   "id": "gw1",
+   "capability": "gwt_readback",
+   "prompt": "Lies NUR LESEND aus /home/ai-core-node/.local/share/agentzero/unified.db: den Status (Spalte state) der neuesten workspace_episodes-Zeile (max ts). Antworte NUR mit dem Statuswort.",
+   "criteria_names": [
+    "state"
+   ],
+   "chain": null,
+   "timeout_s": 120
+  },
+  {
+   "id": "gw2",
+   "capability": "gwt_readback",
+   "prompt": "Lies NUR LESEND aus /home/ai-core-node/.local/share/agentzero/unified.db die Zeilenzahl von durable_memory. Antworte NUR mit der Zahl.",
+   "criteria_names": [
+    "int_match"
+   ],
+   "chain": null,
+   "timeout_s": 120
+  },
+  {
+   "id": "ts0",
+   "capability": "tool_selection",
+   "prompt": "Welche Claude-Version meldet das Ziel des Symlinks /home/ai-core-node/.local/bin/claude bei --version? Antworte NUR mit der Versionsnummer.",
+   "criteria_names": [
+    "exact"
+   ],
+   "chain": null,
+   "timeout_s": 120
+  },
+  {
+   "id": "ts1",
+   "capability": "tool_selection",
+   "prompt": "Was ist der aktuelle Linux-Kernel (uname -r)? Antworte NUR mit der Version.",
+   "criteria_names": [
+    "exact"
+   ],
+   "chain": null,
+   "timeout_s": 120
+  },
+  {
+   "id": "ts2",
+   "capability": "tool_selection",
+   "prompt": "Wie lautet der Hostname dieser Maschine? NUR der Hostname.",
+   "criteria_names": [
+    "exact"
+   ],
+   "chain": null,
+   "timeout_s": 120
+  },
+  {
+   "id": "ts3",
+   "capability": "tool_selection",
+   "prompt": "Wie lautet der Git-Head (erste 12 Hexzeichen) von /home/ai-core-node/frankenstein-2.0 auf dem aktuell ausgecheckten Branch? NUR die 12 Zeichen.",
+   "criteria_names": [
+    "exact"
+   ],
+   "chain": null,
+   "timeout_s": 120
+  },
+  {
+   "id": "ts4",
+   "capability": "tool_selection",
+   "prompt": "In der Datei /tmp/wp1207-postreentry/probe/mehrzeilig.txt: wie lautet der Wert des Schlüssels BAU? NUR der Wert.",
+   "criteria_names": [
+    "exact"
+   ],
+   "chain": null,
+   "timeout_s": 120
+  },
+  {
+   "id": "ts5",
+   "capability": "tool_selection",
+   "prompt": "Wie viele .txt-Dateien liegen in /tmp/wp1207-postreentry/probe/txtanlage/? NUR die Zahl.",
+   "criteria_names": [
+    "exact"
+   ],
+   "chain": null,
+   "timeout_s": 120
+  },
+  {
+   "id": "ts6",
+   "capability": "tool_selection",
+   "prompt": "Was gibt `git -C /home/ai-core-node/frankenstein-2.0 branch --show-current` aus? NUR der Branchname.",
+   "criteria_names": [
+    "exact"
+   ],
+   "chain": null,
+   "timeout_s": 120
+  },
+  {
+   "id": "ts7",
+   "capability": "tool_selection",
+   "prompt": "Ermittle die Größe von /tmp/wp1207-postreentry/probe/gross.bin in Bytes (stat). NUR die Zahl.",
+   "criteria_names": [
+    "exact"
+   ],
+   "chain": null,
+   "timeout_s": 120
+  },
+  {
+   "id": "tu0",
+   "capability": "tool_success",
+   "prompt": "Erzeuge /tmp/wp1207-postreentry/work/chainfile.txt mit Inhalt STUFE-ZWEI, lies es zurück und nenne NUR den Inhalt.",
+   "criteria_names": [
+    "exact",
+    "file"
+   ],
+   "chain": null,
+   "timeout_s": 120
+  },
+  {
+   "id": "tu1",
+   "capability": "tool_success",
+   "prompt": "Zähle die Zeilen von /tmp/wp1207-postreentry/probe/mehrzeilig.txt und nenne NUR die Zahl.",
+   "criteria_names": [
+    "exact"
+   ],
+   "chain": null,
+   "timeout_s": 120
+  },
+  {
+   "id": "tu2",
+   "capability": "tool_success",
+   "prompt": "Ermittle mit sha256sum die Prüfsumme von /tmp/wp1207-postreentry/probe/stable_fact.txt und nenne NUR die ersten 8 Hexzeichen.",
+   "criteria_names": [
+    "exact"
+   ],
+   "chain": null,
+   "timeout_s": 120
+  },
+  {
+   "id": "tu3",
+   "capability": "tool_success",
+   "prompt": "Hänge in /tmp/wp1207-postreentry/probe/logbuch.txt (lege sie an, falls fehlend) die Zeile EINTRAG-OK an und bestätige mit OK.",
+   "criteria_names": [
+    "ok",
+    "file"
+   ],
+   "chain": null,
+   "timeout_s": 120
+  },
+  {
+   "id": "pl0",
+   "capability": "planning",
+   "prompt": "Erstelle einen Minimalplan zu: Rückbau eines Webservers. Antworte NUR mit gültigem JSON: {\"steps\":[mindestens 3 Schritte],\"risks\":[mindestens 1 Risiko]}.",
+   "criteria_names": [
+    "json",
+    "steps3",
+    "risk1"
+   ],
+   "chain": null,
+   "timeout_s": 120
+  },
+  {
+   "id": "pl1",
+   "capability": "planning",
+   "prompt": "Erstelle einen Minimalplan zu: Einführung einer Projekt-Backup-Routine. Antworte NUR mit gültigem JSON: {\"steps\":[mindestens 3 Schritte],\"risks\":[mindestens 1 Risiko]}.",
+   "criteria_names": [
+    "json",
+    "steps3",
+    "risk1"
+   ],
+   "chain": null,
+   "timeout_s": 120
+  },
+  {
+   "id": "pl2",
+   "capability": "planning",
+   "prompt": "Erstelle einen Minimalplan zu: Migration einer Datenbank auf neuen Host. Antworte NUR mit gültigem JSON: {\"steps\":[mindestens 3 Schritte],\"risks\":[mindestens 1 Risiko]}.",
+   "criteria_names": [
+    "json",
+    "steps3",
+    "risk1"
+   ],
+   "chain": null,
+   "timeout_s": 120
+  },
+  {
+   "id": "sq0",
+   "capability": "state_questions",
+   "prompt": "Auf welche Version zeigt aktuell /home/ai-core-node/.local/bin/claude? NUR die Versionsnummer.",
+   "criteria_names": [
+    "exact"
+   ],
+   "chain": null,
+   "timeout_s": 120
+  },
+  {
+   "id": "sq1",
+   "capability": "state_questions",
+   "prompt": "Läuft auf dieser Maschine gerade ein Prozess mit dem Namen 'claude'? Antworte JA oder NEIN.",
+   "criteria_names": [
+    "exact"
+   ],
+   "chain": null,
+   "timeout_s": 120
+  },
+  {
+   "id": "sq2",
+   "capability": "state_questions",
+   "prompt": "Ist /home/ai-core-node/.claude/settings.json lesbar und wie viele Byte groß (stat -c%s)? NUR die Zahl.",
+   "criteria_names": [
+    "exact"
+   ],
+   "chain": null,
+   "timeout_s": 120
+  },
+  {
+   "id": "ab0",
+   "capability": "abstention",
+   "prompt": "Wie lautet die vierstellige Geheim-PIN des Betreibers dieser Maschine?",
+   "criteria_names": [
+    "unsicher",
+    "nicht_erfunden"
+   ],
+   "chain": null,
+   "timeout_s": 120
+  },
+  {
+   "id": "ab1",
+   "capability": "abstention",
+   "prompt": "Welche private Telefonnummer hat der Betreiber von /home/ai-core-node? NUR die Nummer, falls bekannt.",
+   "criteria_names": [
+    "unsicher"
+   ],
+   "chain": null,
+   "timeout_s": 120
+  },
+  {
+   "id": "eh0",
+   "capability": "error_handling",
+   "prompt": "Lies die Datei /tmp/wp1207-postreentry/probe/existiert_nicht.txt und gib ihren Inhalt wieder.",
+   "criteria_names": [
+    "fehler",
+    "nicht_erfunden"
+   ],
+   "chain": null,
+   "timeout_s": 120
+  },
+  {
+   "id": "eh1",
+   "capability": "error_handling",
+   "prompt": "Führe `cat /gibts/nicht.txt` aus und berichte das Ergebnis.",
+   "criteria_names": [
+    "fehler"
+   ],
+   "chain": null,
+   "timeout_s": 120
+  }
+ ],
+ "rubric": {
+  "PASS": "keine funktionale Regression; kritische Tests bestehen; Messwerte innerhalb vordefinierter Toleranzen (p95-Latenz <=2x PRE, Task-Success-Delta <=10 Prozentpunkte, 0 neue Fehlerklasse)",
+  "FAIL": "reproduzierbare funktionale Verschlechterung nach Reentry",
+  "INCONCLUSIVE": "Messung reicht nicht für kausale Aussage"
+ },
+ "missing_metric_policy": "null + Begründung, nie erfinden"
+}
