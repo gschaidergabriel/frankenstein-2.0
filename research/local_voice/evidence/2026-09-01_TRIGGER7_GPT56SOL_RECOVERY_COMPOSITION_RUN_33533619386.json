@@ -1,0 +1,70 @@
+{
+  "schema": "F2_TRIGGER7_RECOVERY_COMPOSITION_EXECUTION_EVIDENCE/v1",
+  "trigger": "7",
+  "producer": "GPT-5.6-Sol",
+  "research_id": "T7-20260901-RECOVERY-COMMIT-CANCEL-COMPOSITION",
+  "semantic_claim_ref": "research/local_voice/semantic_claims/e92995a7fbe633335fa9d99b80dd9a31d7e60d63ddc6b06c564d58ee6c64ac20.json",
+  "tool_ref": "research/local_voice/tools/falsify_voice_packet_cortex_recovery_commit_cancel_composition.py",
+  "test_ref": "research/local_voice/tests/test_t7_recovery_commit_cancel_composition_gpt56sol.py",
+  "source_sha": "cbb1ea587f098637f3517ba8ba12dc61c8e1e8a8",
+  "workflow": {
+    "name": "Trigger 7 Local Voice Research Tools CI",
+    "run_id": 33533619386,
+    "job_id": 99942477305,
+    "runner": "ubuntu-24.04",
+    "conclusion": "success"
+  },
+  "source_invariance_at_routing": {
+    "voice_packet_cortex_blob_sha_at_run_and_current": "308c7606db2f21f2361ca238927af9267fc21d32",
+    "voice_packet_cortex_recovery_blob_sha_at_run_and_current": "07cac479f8b723645fa9ee92dc9bafd9775e3100",
+    "classification": "RUNTIME_SUBJECT_INVARIANT_FOR_THE_TWO_PRODUCT_SOURCE_FILES_EXERCISED"
+  },
+  "result": "PRODUCT_NEGATIVE_CANDIDATE",
+  "cases": [
+    {
+      "probe_id": "RCOMP1_COMPLETED_HEARD_COMMIT_PROJECTION",
+      "fail_closed": false,
+      "detail": "resume admitted fully-heard completed output with commit_eligible=false; restored_state=completed;heard=1.0;commit=False",
+      "classification": "PRODUCT_NEGATIVE_CANDIDATE"
+    },
+    {
+      "probe_id": "RCOMP2_TOOL_HISTORY_PROJECTION_DROP",
+      "fail_closed": false,
+      "detail": "historical TOOL_USE remained in events but removing ownership projections allowed tool:shared to be re-issued",
+      "classification": "PRODUCT_NEGATIVE_CANDIDATE"
+    },
+    {
+      "probe_id": "RCOMP3_VALID_ACTIVE_TOOL_RESTART_FENCE",
+      "fail_closed": true,
+      "detail": "late cancelled/unknown/cross-turn tool result rejected and tool_ref reuse rejected"
+    },
+    {
+      "probe_id": "RCOMP4_OUTPUT_SEQUENCE_PROJECTION",
+      "fail_closed": true,
+      "detail": "resume rejected unbacked last_output_sequence projection"
+    },
+    {
+      "probe_id": "RCOMP5_DUPLICATE_OUTPUT_PACKET_ID",
+      "fail_closed": true,
+      "detail": "resume rejected duplicate output packet_id"
+    },
+    {
+      "probe_id": "RCOMP6_CORRUPT_QUEUED_HEARD_FRACTION",
+      "fail_closed": true,
+      "detail": "resume rejected queued output with heard_fraction=0.5"
+    }
+  ],
+  "interpretation": "The green workflow means the research harness executed deterministically. It does not convert the two reproduced counterexamples into a product pass. RCOMP1 and RCOMP2 are exact repository-executable product-negative candidates and are routed to Trigger4/current legal mutation owner for current-authority reproduction/repair. Trigger7 performs no product mutation.",
+  "explicit_zero_credit": {
+    "repository_product_acceptance": 0,
+    "target_runtime": 0,
+    "physical_audio": 0,
+    "asr_runtime": 0,
+    "tts_runtime": 0,
+    "semantic_gwt_jspace": 0,
+    "effect": 0,
+    "training": 0,
+    "whole_voice_e2e": 0,
+    "whole_product": 0
+  }
+}
