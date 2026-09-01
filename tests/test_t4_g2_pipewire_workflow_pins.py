@@ -75,6 +75,18 @@ class Trigger4G2PipeWireWorkflowPinTests(unittest.TestCase):
         self.assertNotIn("--source-root", text)
         self.assertIn("--backend nspawn --network on -- \\\n", text)
 
+    def test_runtime_acceptance_requires_zero_launcher_and_sandbox_exits(self) -> None:
+        text = workflow_text()
+        self.assertIn("call_exit = int(call_match.group(1)) if call_match else None", text)
+        self.assertIn("launcher_exit = int(launcher_match.group(1)) if launcher_match else None", text)
+        self.assertIn("exit_evidence_ok = call_exit == 0 and launcher_exit == 0", text)
+        self.assertIn(
+            "complete = bool(sandbox_pass and harness_pass and exact_subject and exit_evidence_ok)",
+            text,
+        )
+        self.assertIn("'classification': classification", text)
+        self.assertIn("'exit_evidence_ok': exit_evidence_ok", text)
+
 
 if __name__ == "__main__":
     unittest.main()

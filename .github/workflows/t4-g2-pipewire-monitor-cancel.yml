@@ -203,6 +203,9 @@ jobs:
                   harness = None
           call_match = re.search(r'^SANDBOX_CALL_EXIT=(\d+)$', sandbox, re.MULTILINE)
           launcher_match = re.search(r'^G2_LAUNCHER_EXIT=(\d+)$', sandbox, re.MULTILINE)
+          call_exit = int(call_match.group(1)) if call_match else None
+          launcher_exit = int(launcher_match.group(1)) if launcher_match else None
+          exit_evidence_ok = call_exit == 0 and launcher_exit == 0
           sandbox_pass = 'F2_SANDBOX_RESULT=PASS' in sandbox
           harness_shape = (
               isinstance(harness, dict)
@@ -211,12 +214,16 @@ jobs:
           )
           harness_pass = harness_shape and harness.get('result') == 'NO_COUNTEREXAMPLE'
           exact_subject = harness_shape and harness.get('f2_subject_sha') == os.environ.get('GITHUB_SHA')
-          complete = bool(sandbox_pass and harness_pass and exact_subject)
+          complete = bool(sandbox_pass and harness_pass and exact_subject and exit_evidence_ok)
 
           if complete:
               failure_class = None
               classification = harness.get('classification')
               measured_credit = dict(harness.get('measured_credit') or {})
+          elif harness_shape and harness_pass and exact_subject and not exit_evidence_ok:
+              failure_class = 'EVIDENCE_INVALID'
+              classification = 'EXECUTION_EXIT_EVIDENCE_NONZERO_OR_MISSING'
+              measured_credit = {key: 0 for key in (harness.get('measured_credit') or {})}
           elif isinstance(harness, dict):
               failure_class = harness.get('failure_class') or 'UNKNOWN_NONTERMINAL'
               classification = harness.get('classification') or 'HARNESS_NONPASS'
@@ -271,8 +278,9 @@ jobs:
                   'network_during_setup_and_local_runtime': 'on_separate_veth',
                   'host_survival_observed': 'host_survival_sentinel=PASS' in sandbox,
                   'runner_reported_pass': sandbox_pass,
-                  'sandbox_call_exit': int(call_match.group(1)) if call_match else None,
-                  'launcher_exit': int(launcher_match.group(1)) if launcher_match else None,
+                  'sandbox_call_exit': call_exit,
+                  'launcher_exit': launcher_exit,
+                  'exit_evidence_ok': exit_evidence_ok,
               },
               'harness_receipt': harness,
               'result': 'NO_COUNTEREXAMPLE' if complete else 'NOT_ACCEPTED',
