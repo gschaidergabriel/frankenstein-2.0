@@ -1,0 +1,30 @@
+{
+  "schema": "FRANKENSTEIN2_WORKPACKAGE_FALSIFIER/v1",
+  "classification": "REVIEW_ONLY_CANDIDATE_FALSIFIER",
+  "workpackage_id": "F2-WP-1202",
+  "generation_reviewed": 1,
+  "review_worker": "GPT-5.6-Sol-TRIGGER4",
+  "review_branch": "review/wp1202-profile-digest-binding-20260829",
+  "review_pull_request": 421,
+  "review_head_sha": "22c113ec3c7b6996448fe358ed42a41baa0c92e1",
+  "canonical_source_path": "src/frankenstein2/target_userspace_twin.py",
+  "canonical_test_path": "tests/test_target_userspace_twin.py",
+  "source_observation": "TargetProfileProjection.from_mapping uses raw.get('schema', PROFILE_SCHEMA), so an absent target-profile schema is silently promoted to the canonical schema value.",
+  "hypothesis": "Exact target-profile identity requires explicit schema evidence; absent schema must fail closed rather than mint an identity default.",
+  "counterhypothesis": "Schema omission is intentionally backward-compatible and does not affect target identity because generation and digest are sufficient.",
+  "discriminator": "Delete schema from an otherwise valid profile and require build_t1_userspace_plan to raise TargetUserspaceTwinError while all pre-existing tests remain unchanged.",
+  "workflow_run_id": 33252972294,
+  "workflow_job_id": 99101730061,
+  "workflow_result": "FAILURE_AS_EXPECTED",
+  "test_result": {
+    "existing_tests": "6 PASS",
+    "candidate_falsifier": "1 FAIL",
+    "failure": "AssertionError: TargetUserspaceTwinError not raised"
+  },
+  "evidence_scope": "REPOSITORY_HOSTED_REVIEW_FALSIFIER_ONLY",
+  "runtime_credit": 0,
+  "physical_host_credit": 0,
+  "whole_system_credit": 0,
+  "recommended_repair": "Canonical WP1202 owner should require raw.get('schema') == PROFILE_SCHEMA without a default and add this regression to the owned suite. Separately review whether profile_sha256 is cryptographically bound to the exact consumed profile projection before granting stronger target-identity claims.",
+  "authority_boundary": "This record does not mutate WP1202 canonical source or active claim and does not grant completion, physical-host, GRID/GWT/J-Space, effect or training credit."
+}
