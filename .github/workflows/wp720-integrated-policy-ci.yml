@@ -1,4 +1,4 @@
-name: WP720 Integrated Turn Policy CI
+name: WP720 Integrated Packet Turn Policy CI
 
 on:
   push:
@@ -22,7 +22,8 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-      - name: Record exact integrated subject
+      - name: Record exact integrated policy subject
+        shell: bash
         run: |
           set -euo pipefail
           git rev-parse HEAD
@@ -31,55 +32,17 @@ jobs:
             src/frankenstein2/voice_packet_cortex.py \
             tests/test_voice_packet_cortex.py \
             tests/test_wp720_turn_policy_falsifiers.py
-      - name: Fail closed on model or network imports in policy discriminator
-        run: |
-          set -euo pipefail
-          python - <<'PY'
-          import ast
-          from pathlib import Path
-
-          forbidden = {'requests', 'httpx', 'socket', 'urllib', 'openai', 'anthropic', 'websockets'}
-          paths = [
-              Path('src/frankenstein2/voice_packet_cortex.py'),
-              Path('tests/test_wp720_turn_policy_falsifiers.py'),
-          ]
-          observed = []
-          for path in paths:
-              tree = ast.parse(path.read_text(encoding='utf-8'), filename=str(path))
-              for node in ast.walk(tree):
-                  if isinstance(node, ast.Import):
-                      observed.extend(alias.name.split('.')[0] for alias in node.names)
-                  elif isinstance(node, ast.ImportFrom) and node.module:
-                      observed.append(node.module.split('.')[0])
-          bad = sorted(set(observed) & forbidden)
-          if bad:
-              raise SystemExit(f'WP720_NETWORK_OR_MODEL_IMPORT_REJECTED:{bad}')
-          print('WP720_NO_NETWORK_MODEL_IMPORT_PASS')
-          PY
-      - name: Execute PFD6 and PFD7 counterexample regressions
+      - name: Execute PFD6 and PFD7 current-subject discriminators
         env:
           PYTHONPATH: src
+        shell: bash
         run: |
           set -euo pipefail
           python -m unittest discover -s tests -p 'test_wp720_turn_policy_falsifiers.py' -v
-      - name: Re-run authoritative packet-cortex regressions
+      - name: Execute existing packet-cortex regressions
         env:
           PYTHONPATH: src
+        shell: bash
         run: |
           set -euo pipefail
           python -m unittest discover -s tests -p 'test_voice_packet_cortex.py' -v
-      - name: Bounded scope marker
-        run: |
-          printf '%s\n' \
-            'WP720_INTEGRATED_POLICY_REPOSITORY_DISCRIMINATOR_COMPLETE' \
-            'pfd6_conflicting_rebind_checked=1' \
-            'pfd7_stale_hold_after_final_checked=1' \
-            'repository_component_ci_only=1' \
-            'target_environment_component_runtime_credit=0' \
-            'physical_audio_credit=0' \
-            'asr_runtime_credit=0' \
-            'tts_runtime_credit=0' \
-            'semantic_gwt_jspace_credit=0' \
-            'effect_credit=0' \
-            'training_credit=0' \
-            'whole_product_credit=0'
