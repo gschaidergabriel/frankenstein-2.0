@@ -1,0 +1,169 @@
+{
+  "schema": "F2_TRIGGER7_FULL_DUPLEX_SYSTEM_EVAL_MATRIX/v1",
+  "research_id": "T7-20260902-FULL-DUPLEX-SYSTEM-EVAL-G1",
+  "semantic_key": "47fbda9348f75b462ef172fce955b3a49f5635965864f24bd9cddb080a7274f7",
+  "purpose": "Adversarial evaluation matrix for the existing Frankenstein 2.0 Voice-Slice. This is test design only: it creates no new Voice authority and mints no runtime or product credit.",
+  "existing_system_chain": [
+    "LOCAL_ASR_RUNTIME_OR_AUDIO_FIXTURE",
+    "VOICE_INPUT_PACKET",
+    "VOICE_PACKET_CORTEX",
+    "PRESENCE_STATE_AND_PACKET_TURN_POLICY",
+    "BARGE_IN_CANCELLATION",
+    "LOCAL_TTS_RUNTIME_OR_PCM_SINK",
+    "VOICE_PACKET_CORTEX_RECOVERY",
+    "PERSISTED_CHECKPOINT_OR_CANONICAL_STATE_ADAPTER",
+    "RESTART_REENTRY",
+    "HEARD_RESULT_AND_VOICE_OUTCOME_REENTRY"
+  ],
+  "research_basis": [
+    {
+      "ref": "arXiv:2608.22101",
+      "finding_used": "Streaming ASR conversational state management materially affects utterance-onset errors around long silence/backchannels; use these as explicit reentry stressors rather than resetting every turn."
+    },
+    {
+      "ref": "arXiv:2503.04721",
+      "finding_used": "Full-duplex evaluation must separately exercise pause handling, backchanneling, turn-taking and interruption management."
+    },
+    {
+      "ref": "arXiv:2604.04847",
+      "finding_used": "Natural disfluency, self-correction and multi-step tool use remain discriminative full-duplex failure modes; include them without importing an external orchestrator."
+    }
+  ],
+  "already_proven_repository_subset": {
+    "evidence_ref": "research/local_voice/evidence/2026-09-02_TRIGGER7_GPT56SOL_COMPOSED_VOICE_SLICE_G4_RUN_33539437622.json",
+    "result": "NO_COUNTEREXAMPLE",
+    "scope": "DETERMINISTIC_TEXT_INFORMATION_PACKET_COMPOSITION_ONLY",
+    "must_not_be_relabelled_as_acoustic_or_vps_runtime": true
+  },
+  "cases": [
+    {
+      "id": "FDX1_LONG_SILENCE_REENTRY_ONSET",
+      "stress": "User speaks, long silence occurs, then conversation resumes with a new utterance onset.",
+      "existing_surfaces": ["LOCAL_ASR_RUNTIME", "VOICE_INPUT_PACKET", "VOICE_PACKET_CORTEX", "RESTART_REENTRY_OR_SESSION_REENTRY"],
+      "lowest_faithful_tier": "S1_OR_S2_VPS",
+      "observable": ["ASR partial/final timing", "utterance-onset transcript error", "session/turn causal identity", "endpoint decision"],
+      "fail_closed_invariant": "Long silence must not silently reset causal conversation identity or cause stale prior-turn packets to become current; any ASR state reset must be explicit and measurable.",
+      "promotion_scope_if_pass": "bounded headless ASR + packet/reentry composition only"
+    },
+    {
+      "id": "FDX2_BACKCHANNEL_HOLD",
+      "stress": "Short backchannel/filler appears while the user retains the floor.",
+      "existing_surfaces": ["LOCAL_ASR_RUNTIME", "PACKET_TURN_POLICY", "PRESENCE_STATE", "VOICE_PACKET_CORTEX"],
+      "lowest_faithful_tier": "S1_OR_S2_VPS",
+      "observable": ["partial/final transcript", "HOLD/END decision", "WAIT/BACKCHANNEL intent", "turn id"],
+      "fail_closed_invariant": "A backchannel/HOLD observation must not close or steal the active user turn and must not produce an ANSWER commit before an admitted endpoint.",
+      "promotion_scope_if_pass": "bounded ASR/turn-policy integration only"
+    },
+    {
+      "id": "FDX3_BARGE_IN_PARTIAL_OUTPUT",
+      "stress": "User interrupts while locally synthesized output is partially produced/consumed.",
+      "existing_surfaces": ["LOCAL_TTS_RUNTIME", "VOICE_OUTPUT_PACKET", "BARGE_IN_CANCELLATION", "HEARD_RESULT"],
+      "lowest_faithful_tier": "S1_OR_S2_VPS_WITH_PCM_SINK",
+      "observable": ["producer chunk timestamps", "sink acceptance boundary", "heard/consumed surrogate fraction", "commit_eligible", "cancellation latency"],
+      "fail_closed_invariant": "Interrupted output must terminalize without commit authority; no producer chunk after the declared cancellation boundary may be accepted by the sink.",
+      "promotion_scope_if_pass": "bounded headless TTS producer cancellation + packet composition only"
+    },
+    {
+      "id": "FDX4_SIMULTANEOUS_USER_OVER_OUTPUT",
+      "stress": "New user speech starts while output is active and ASR continues concurrently.",
+      "existing_surfaces": ["LOCAL_ASR_RUNTIME", "LOCAL_TTS_RUNTIME", "VOICE_PACKET_CORTEX", "BARGE_IN_CANCELLATION"],
+      "lowest_faithful_tier": "S1_OR_S2_VPS_WITH_DUAL_FIXTURE_STREAMS",
+      "observable": ["input onset timestamp", "output cancellation timestamp", "new turn id", "old output terminal state"],
+      "fail_closed_invariant": "The new input lineage must be accepted without allowing the interrupted output lineage to remain commit-eligible or own subsequent tool/result state.",
+      "promotion_scope_if_pass": "bounded headless full-duplex overlap composition only"
+    },
+    {
+      "id": "FDX5_SELF_CORRECTION_BEFORE_TOOL_USE",
+      "stress": "User begins a tool request, self-corrects before final endpoint, then gives the corrected final request.",
+      "existing_surfaces": ["LOCAL_ASR_RUNTIME", "VOICE_INPUT_PACKET", "VOICE_PACKET_CORTEX", "TOOL_OWNERSHIP"],
+      "lowest_faithful_tier": "S1_OR_S2_VPS",
+      "observable": ["partial transcript revisions", "final transcript", "tool ownership event", "turn id"],
+      "fail_closed_invariant": "Superseded partial/self-corrected content must not gain durable tool authority; only the admitted final causal turn may own the tool request.",
+      "promotion_scope_if_pass": "bounded disfluency/tool-boundary composition only"
+    },
+    {
+      "id": "FDX6_LATE_TOOL_RESULT_AFTER_BARGE_AND_RESTART",
+      "stress": "A tool owned by an interrupted turn returns late, both before and after checkpoint/restart.",
+      "existing_surfaces": ["BARGE_IN_CANCELLATION", "TOOL_OWNERSHIP", "VOICE_PACKET_CORTEX_RECOVERY", "RESTART_REENTRY"],
+      "lowest_faithful_tier": "S1_OR_S2_VPS",
+      "observable": ["tool owner before barge", "cancellation event", "late result rejection", "restart event", "post-restart late result rejection"],
+      "fail_closed_invariant": "Cancelled/stale tool ownership must remain revoked across restart and cannot be resurrected by a late result.",
+      "promotion_scope_if_pass": "bounded recovery/tool fencing composition only"
+    },
+    {
+      "id": "FDX7_RESTART_MID_OPEN_TURN",
+      "stress": "Checkpoint/restart occurs after an admitted final input but before the next output is completed.",
+      "existing_surfaces": ["VOICE_PACKET_CORTEX_RECOVERY", "PERSISTENT_STATE_ADAPTER", "RESTART_REENTRY", "VOICE_OUTPUT_PACKET"],
+      "lowest_faithful_tier": "S2_VPS",
+      "observable": ["checkpoint hash", "restored turn id", "restart event count", "output sequence", "duplicate output detection"],
+      "fail_closed_invariant": "Restart must preserve the exact active turn lineage without duplicating an already admitted packet/output sequence or inventing a second answer authority.",
+      "promotion_scope_if_pass": "bounded service/filesystem restart persistence only"
+    },
+    {
+      "id": "FDX8_CLOSED_RESTART_IDEMPOTENCE",
+      "stress": "A fully heard output and VoiceOutcome are persisted, then the process is restarted and the close/reentry is replayed.",
+      "existing_surfaces": ["HEARD_RESULT", "VOICE_OUTCOME", "PERSISTENT_STATE_ADAPTER", "RESTART_REENTRY"],
+      "lowest_faithful_tier": "S2_VPS",
+      "observable": ["outcome hash", "heard-result hash", "reentry receipt hash", "closed/open state"],
+      "fail_closed_invariant": "A closed session must remain closed; replay must be byte/identity-idempotent and cannot duplicate durable result authority.",
+      "promotion_scope_if_pass": "bounded restart/readback identity only"
+    },
+    {
+      "id": "FDX9_TTS_HEADLESS_PCM_INTEGRITY_AND_CANCEL",
+      "stress": "Local TTS generates a fixed German utterance into a headless PCM/file sink and is cancelled in a second run.",
+      "existing_surfaces": ["LOCAL_TTS_RUNTIME", "VOICE_OUTPUT_PACKET", "BARGE_IN_CANCELLATION"],
+      "lowest_faithful_tier": "S1_OR_S2_VPS",
+      "observable": ["model revision/hash", "TTFA producer latency", "RTF", "PCM rate/channels/duration/hash", "peak RSS", "post-cancel chunk count"],
+      "fail_closed_invariant": "Generated PCM must be finite/non-empty and exactly bound to the model/runtime subject; cancellation must prevent later chunks from entering the sink.",
+      "promotion_scope_if_pass": "bounded local TTS model/PCM runtime only; no audible/heard credit"
+    },
+    {
+      "id": "FDX10_LONG_RUNNING_RESOURCE_AND_SESSION_ROLLOVER",
+      "stress": "Many turns approach packet/event/tool resource caps while ASR/TTS fixtures continue.",
+      "existing_surfaces": ["VOICE_PACKET_CORTEX", "VOICE_PACKET_CORTEX_RECOVERY", "LOCAL_ASR_RUNTIME", "LOCAL_TTS_RUNTIME"],
+      "lowest_faithful_tier": "S1_OR_S2_VPS",
+      "observable": ["RSS", "event/input/output/tool counts", "cap boundary", "rollover identity", "lost/duplicate packet count"],
+      "fail_closed_invariant": "Capacity pressure must not silently evict replay/causal identity; the system must fail closed or perform an explicitly causally bound session rollover.",
+      "promotion_scope_if_pass": "bounded stress/resource behavior only"
+    },
+    {
+      "id": "FDX11_DUPLICATE_REORDER_CORRUPT_PACKET_RECOVERY",
+      "stress": "Inject duplicate, reordered and corrupt input/output/checkpoint records into the composed slice.",
+      "existing_surfaces": ["VOICE_PACKET_CORTEX", "VOICE_PACKET_CORTEX_RECOVERY"],
+      "lowest_faithful_tier": "S1_VPS",
+      "observable": ["rejection class", "state before/after reject", "sequence projections", "checkpoint validation"],
+      "fail_closed_invariant": "Invalid packet/checkpoint input must be rejected atomically without advancing durable causal projections or resurrecting stale state.",
+      "promotion_scope_if_pass": "bounded fault-injection recovery only"
+    },
+    {
+      "id": "FDX12_OFFLINE_LOCAL_INFERENCE_FENCE",
+      "stress": "Execute the composed ASR/TTS model path with external inference/network disabled during evidence execution.",
+      "existing_surfaces": ["LOCAL_ASR_RUNTIME", "LOCAL_TTS_RUNTIME", "VOICE_PACKET_CORTEX"],
+      "lowest_faithful_tier": "S1_OR_S2_VPS_NETWORK_OFF",
+      "observable": ["network mode", "loaded model/artifact identities", "successful local inference", "external-call count"],
+      "fail_closed_invariant": "Promotion-bearing inference must remain local and exactly bound; any external ASR/TTS/model inference call invalidates the local-runtime claim.",
+      "promotion_scope_if_pass": "bounded offline local model composition only"
+    }
+  ],
+  "tier_policy": {
+    "S1": "Default for model execution, packet fault injection, PCM sinks and resource tests.",
+    "S2": "Use where service/user/filesystem/restart fidelity is required.",
+    "S3": "Use for actual kernel reboot or separate-kernel persistence semantics before S4; do not send these tests to the owner workstation merely because reboot is involved.",
+    "S4": "Reserve for real microphone/speaker, native device enumeration, OS audio/session/desktop permissions, physical perception and final physical one-handoff acceptance."
+  },
+  "explicit_zero_credit": {
+    "repository_runtime_from_this_design": 0,
+    "target_runtime": 0,
+    "vps_runtime": 0,
+    "acoustic_asr": 0,
+    "tts_synthesis": 0,
+    "physical_audio": 0,
+    "physical_presence": 0,
+    "gwt_jspace": 0,
+    "effect": 0,
+    "training": 0,
+    "whole_voice_e2e": 0,
+    "whole_product": 0
+  },
+  "next_exact_action": "Trigger 4/system integration owner should select the smallest high-information subset that exercises real admitted local ASR + headless local TTS inside the same VPS sandbox while reusing the already-closed G4 packet/presence/barge/recovery/reentry authorities. Start with FDX2+FDX3+FDX4+FDX6, then FDX1/FDX5/FDX7/FDX8; do not create new Voice micro-components unless an executed PRODUCT_NEGATIVE proves one is necessary."
+}
