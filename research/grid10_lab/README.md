@@ -20,10 +20,15 @@ fabric into a small, standard-library-only SQLite/WAL laboratory fabric:
 - lease revocation;
 - stale ordinary-task claim recovery;
 - duplicate-result rejection;
+- coordinator lease generation binding;
+- epoch + state-digest compare-and-swap fencing;
+- future-result epoch rejection;
+- result-schema/source-kind binding;
 - sandbox-local state with explicit `canonical_truth=false` and `effect_authority=false`.
 
-The smoke test exercises the authority fence, result admission, duplicate rejection and
-post-revocation write denial.
+The regression suite exercises authority fencing, result admission, duplicate rejection,
+post-revocation write denial, stale lease/result generation rejection, future-epoch rejection,
+source-kind/schema rejection and digest-CAS mismatch rejection.
 
 ## Provenance
 
@@ -43,6 +48,16 @@ The user also supplied `GRID10_Fabric_2026-08-27.zip` as the intended package re
 The attachment bytes were not mounted/readable in this execution, so this import does **not**
 claim byte-equivalence to that ZIP. The implementation is instead provenance-bound to the
 independently retrievable canonical Clay donor above. `PROVENANCE.json` records this fence.
+
+## Verification observed on this branch
+
+- original local smoke: `1 passed`;
+- authority-gap review against the exact canonical donor found four omitted commit-time fences;
+- those fences were restored without widening product scope;
+- focused local authority verification after the repair: `4/4 PASS`;
+- PR release-candidate workflow on merge subject completed successfully after the repair.
+
+These are repository/laboratory checks only. They do not mint owner-VPS or physical runtime credit.
 
 ## Credit fence
 
