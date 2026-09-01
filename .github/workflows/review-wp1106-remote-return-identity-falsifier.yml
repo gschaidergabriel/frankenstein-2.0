@@ -1,0 +1,27 @@
+name: REVIEW_ONLY WP1106 Remote Return Identity Falsifier
+
+on:
+  pull_request:
+    paths:
+      - 'src/frankenstein2/optional_vps_bridge.py'
+      - 'tests/test_wp1106_remote_return_identity_falsifier.py'
+      - '.github/workflows/review-wp1106-remote-return-identity-falsifier.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  issue-503-falsifier:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Compile exact current source and falsifier
+        run: python -m py_compile src/frankenstein2/optional_vps_bridge.py tests/test_wp1106_remote_return_identity_falsifier.py
+      - name: Execute issue-503 endpoint/request identity discriminator
+        env:
+          PYTHONPATH: src
+        run: python tests/test_wp1106_remote_return_identity_falsifier.py -v
