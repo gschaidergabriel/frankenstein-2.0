@@ -26,6 +26,10 @@ jobs:
       F2_SANDBOX_ROOT: /var/tmp/frankenstein2-sandboxes
       F2_SANDBOX_MIN_FREE_KIB: '5242880'
       F2_SANDBOX_MIN_MEM_KIB: '1048576'
+      CLAY_HOST_ADMIN: /usr/local/sbin/clay-host-admin
+      CLAY_HOST_ADMIN_SHA256: 064b1b775840aa270a9c61b672db5814d83b403dbf2e26abb270ed3ab103c5f4
+      F2_NSPAWN_PREPARE_SHA256: d5dd0f2e9d7d476ae6537d8810b67b5930bab177cce999d364b64fb3bfafc472
+      F2_NSPAWN_RUNNER_SHA256: 50d275e0c96e3d7e318918c9e890ce5a5c3e2d32a74b9fe5d0fcd32a729cdf24
     steps:
       - name: Checkout exact workflow subject
         uses: actions/checkout@v4
@@ -44,6 +48,16 @@ jobs:
           test "${RUNNER_NAME:-}" = "vps-clay-host"
           test "${RUNNER_OS:-}" = "Linux"
           test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+
+      - name: Verify admitted host-admin S2 ABI
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          test -x "$CLAY_HOST_ADMIN"
+          test "$(sha256sum "$CLAY_HOST_ADMIN" | awk '{print $1}')" = "$CLAY_HOST_ADMIN_SHA256"
+          test "$(sha256sum tools/vps_sandbox/host_prepare_ubuntu_nspawn.sh | awk '{print $1}')" = "$F2_NSPAWN_PREPARE_SHA256"
+          test "$(sha256sum tools/vps_sandbox/run_ubuntu_sandbox.sh | awk '{print $1}')" = "$F2_NSPAWN_RUNNER_SHA256"
+          sudo -n "$CLAY_HOST_ADMIN" sandbox prepare "$PWD/tools/vps_sandbox/host_prepare_ubuntu_nspawn.sh"
 
       - name: Record exact packet recovery subject
         shell: bash
@@ -64,11 +78,12 @@ jobs:
         shell: bash
         run: bash tools/vps_sandbox/preflight.sh | tee /tmp/t4-fd-preflight.txt
 
-      - name: Execute packet recovery subject in lowest safe faithful Ubuntu sandbox
+      - name: Execute packet recovery subject in admitted S2 Ubuntu sandbox
         shell: bash
         run: |
           set -Eeuo pipefail
-          bash tools/vps_sandbox/run_ubuntu_sandbox.sh --backend auto --network off -- \
+          sudo -n "$CLAY_HOST_ADMIN" sandbox run "$PWD/tools/vps_sandbox/run_ubuntu_sandbox.sh" \
+            --backend nspawn --network off --source-root "$PWD" -- \
             /bin/bash -lc '
               set -u
               PYTHONPATH=src python3 -m unittest discover -s tests -p "test_voice_packet_cortex.py" -v > /tmp/t4-fd-packet-tests.log 2>&1
@@ -98,7 +113,8 @@ jobs:
         shell: bash
         run: |
           set -Eeuo pipefail
-          bash tools/vps_sandbox/run_ubuntu_sandbox.sh --backend nspawn --network off -- \
+          sudo -n "$CLAY_HOST_ADMIN" sandbox run "$PWD/tools/vps_sandbox/run_ubuntu_sandbox.sh" \
+            --backend nspawn --network off --source-root "$PWD" -- \
             /bin/bash -lc '
               set -u
               export F2_SUBJECT_SHA="$1"
@@ -202,7 +218,7 @@ jobs:
               failure_class = 'EVIDENCE_INVALID'
 
           receipt = {
-              'schema': 'F2_T4_PACKET_CORTEX_FULL_DUPLEX_FALSIFIER_RECEIPT/v4',
+              'schema': 'F2_T4_PACKET_CORTEX_FULL_DUPLEX_FALSIFIER_RECEIPT/v5',
               'result': result,
               'failure_class': failure_class,
               'source_sha': os.environ.get('GITHUB_SHA'),
@@ -212,7 +228,7 @@ jobs:
               'runner_os': os.environ.get('RUNNER_OS', 'UNKNOWN'),
               'runner_arch': os.environ.get('RUNNER_ARCH', 'UNKNOWN'),
               'execution_surface': 'VPS_SANDBOX_REPRESENTABLE',
-              'sandbox_tier': 'S1_OR_S2_AUTO_PLUS_REQUIRED_S2_FDX7_FDX8',
+              'sandbox_tier': 'S2_NSPAWN_VIA_ADMITTED_CLAY_HOST_ADMIN_ABI',
               'network_mode': 'OFF',
               'semantic_key': 'af4da01da7ced3fa0bee3839adf7f4798e73399408fd29735c8a529a2ed2d9d9',
               'executed_scope': [
