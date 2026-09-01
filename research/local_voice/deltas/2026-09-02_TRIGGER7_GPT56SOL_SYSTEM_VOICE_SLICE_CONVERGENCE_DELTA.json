@@ -1,0 +1,109 @@
+{
+  "schema": "TRIGGER7_RESEARCH_DELTA/v1",
+  "trigger": "7",
+  "producer": "GPT-5.6-Sol",
+  "created_date": "2026-09-02",
+  "scope": "SYSTEM_VOICE_SLICE_CONVERGENCE_AFTER_PACKET_RUNTIME_CLOSURES",
+  "research_role": "RESEARCH_AND_FALSIFIER_DESIGN_ONLY",
+  "product_mutation_authority": false,
+  "new_product_component_requested": false,
+  "new_state_authority_requested": false,
+  "current_f2_snapshot_observed_before_write": "19c9bfcfc0005138bbcb74f1e0b5728c9a86d95f",
+  "runtime_findings": {
+    "F2-WP-903": {
+      "state": "BOUNDED_CLOSED",
+      "exact_subject": "731db925df96ab7e49c0e5b80cd7bc8f4d37a086",
+      "evidence": "30 iterations / 60 cases S1 restart-crash soak; EXECUTED_NO_COUNTEREXAMPLE",
+      "rerun_requested": false
+    },
+    "F2-WP-715": {
+      "current_repaired_subject": "68b1db374c86027be987c1fdc5e88ff13f11f7b4",
+      "controller_repository": "gschaidergabriel/Dr.-Unterweger",
+      "controller_commit": "a5a66365efb3f1faec5b0588241d99c53e74fcdc",
+      "controller_run": 33534630240,
+      "controller_evidence_commit": "8dee611ac2883945923233586353247a53b86794",
+      "result": "EXECUTED_NO_COUNTEREXAMPLE",
+      "target_surface": "vps-clay-host / resource-bounded Ubuntu 24.04 OCI",
+      "network_model_calls": 0,
+      "observation": "Current F2 active projection still describes target execution as pending even though the exact repaired subject has a later successful controller execution. Reconciliation is product-build work and remains Trigger-4 authority."
+    },
+    "F2-WP-720": {
+      "current_repaired_subject": "470f6c9509fb5ab32f706b2ee52896073b1180b6",
+      "controller_repository": "gschaidergabriel/Dr.-Unterweger",
+      "controller_commit": "e7d770a9cec4cc4dd957275d26f25e928555a3c3",
+      "controller_run": 33537472310,
+      "controller_evidence_commit": "35d6a09d45690e34a98d4579990a3eafb3c95b55",
+      "result": "EXECUTED_NO_COUNTEREXAMPLE",
+      "target_environment_component_runtime_credit_in_controller_receipt": 1,
+      "tests": "PFD6/PFD7 2/2 + authoritative VoicePacketCortex 24/24",
+      "network_mode": "OFF_DURING_EVIDENCE_EXECUTION",
+      "observation": "The same-subject F2 Actions run remains queued/zero-step, but the admitted alternate controller already executed the exact subject. Treat the queued attempt as stale transport/control-plane evidence, not as the runtime truth."
+    }
+  },
+  "system_convergence_hypothesis": {
+    "status": "SUPPORTED_DIRECTIONALLY_BY_CURRENT_EVIDENCE",
+    "proposal": "After exact reconciliation of WP715 and WP720 runtime receipts, stop opening small voice components and move one level upward to a composed Voice-Slice discriminator on VPS sandbox.",
+    "composition": [
+      "ASR",
+      "Packet Cortex",
+      "Presence/Turn Policy",
+      "Barge-in",
+      "Output/TTS",
+      "Recovery",
+      "persistent state",
+      "Reentry"
+    ],
+    "authority_constraint": "Compose existing accepted authorities. Do not add a second turn FSM, second recovery store, second durable state lineage, second effect authority, or second whole-loop framework.",
+    "execution_constraint": "Use lowest safe faithful VPS tier S1/S2/S3. S4 remains reserved for irreducibly physical microphone/speaker/device/OS-session/local-host acceptance."
+  },
+  "current_primary_source_watch": [
+    {
+      "id": "ARXIV_2608_22101_STATEFUL_STREAMING_ASR",
+      "title": "Beyond Fresh Starts: Stateful Inference for Streaming ASR in Conversational Voice Agents",
+      "date": "2026-08-22",
+      "source": "https://arxiv.org/abs/2608.22101",
+      "finding": "Cross-utterance state management reduced utterance-onset WER by about 15-21% relative in reported experiments; long silences and backchannels are specifically implicated.",
+      "project_use": "Add a composed-slice falsifier for ASR state continuity across backchannel/long-silence/reentry boundaries. This is a test-design input, not automatic ASR component promotion."
+    },
+    {
+      "id": "ARXIV_2604_21406_HUMDIAL_FDBENCH",
+      "title": "Full-Duplex Interaction in Spoken Dialogue Systems: A Comprehensive Study from the ICASSP 2026 HumDial Challenge",
+      "date": "2026-04-23",
+      "source": "https://arxiv.org/abs/2604.21406",
+      "finding": "Real dual-channel dialogue benchmark covers interruption, overlap, feedback and dynamic turn negotiation.",
+      "project_use": "Use scenario classes as system-level falsifier donors for Packet Cortex + Presence + barge-in composition; do not import a new dialogue authority."
+    },
+    {
+      "id": "ARXIV_2604_04847_FULL_DUPLEX_BENCH_V3",
+      "title": "Full-Duplex-Bench-v3: Benchmarking Tool Use for Full-Duplex Voice Agents Under Real-World Disfluency",
+      "date": "2026-04-06",
+      "source": "https://arxiv.org/abs/2604.04847",
+      "finding": "Evaluates real human disfluency, interruption avoidance, latency and chained tool use; self-correction and hard multi-step cases remain common failure modes.",
+      "project_use": "Add tool-roundtrip plus self-correction cases to the composed voice-slice matrix."
+    },
+    {
+      "id": "GITHUB_NVIDIA_NEMO_LABS_VOICE_AGENT",
+      "source": "https://github.com/NVIDIA-NeMo/labs-Voice-Agent",
+      "observed_update": "2026-08-06 project separation/update reported upstream",
+      "finding": "Open local voice-agent framework includes streaming ASR, TTS, turn-taking/backchannel handling, tool calling and an evaluation harness.",
+      "project_use": "Benchmark/evaluation donor only. Frankenstein already has canonical Packet Cortex/state/tool authorities, so importing its orchestrator would create duplicate authority unless a measured missing capability is isolated."
+    },
+    {
+      "id": "GITHUB_X2_TURN",
+      "source": "https://github.com/X-Square-Robot/X2-Turn",
+      "finding": "Frame-synchronous streaming ASR plus turn-state prediction reports states including idle, speaking, turn_end, backchannel and uncertain.",
+      "project_use": "Potential future research comparator for semantic endpoint/turn prediction. Not a reason to displace the currently repaired WP720 policy before composed-slice measurement."
+    }
+  ],
+  "high_information_composed_falsifiers": [
+    "ASR continuity: long silence -> backchannel -> resumed utterance must preserve or deliberately reset only the admitted ASR state, with onset accuracy measured.",
+    "Turn conflict: one accepted HOLD/backchannel source event must not mint conflicting WAIT/BACKCHANNEL decisions across Packet Cortex and Presence policy.",
+    "Barge-in: user speech onset while TTS is active must cancel generation/unheard audio before any false spoken-output commit is durable.",
+    "Self-correction: partial ASR hypothesis replaced by later final must not leave stale tool/output/turn-policy commitments.",
+    "Tool roundtrip: tool ownership/result must survive interruption/recovery/reentry exactly once without duplicate effect or stale replay.",
+    "Restart: checkpoint during an interrupted output, restart, reentry, and continued conversation must preserve causal packet identity and heard/unheard output truth.",
+    "Network-off: after local artifacts exist, the composed discriminator must execute with external model/ASR/TTS inference calls at zero."
+  ],
+  "promotion_rule": "No source-watch item mints product/runtime/quality credit. Promotion requires exact F2 integration plus executable evidence on the admitted sandbox/target surface.",
+  "next_exact_action": "Trigger 4 should first reconcile the already-executed exact WP715/WP720 controller receipts into current event/reconciliation state without rerunning them, then open exactly one nonduplicate system-level Voice-Slice integration/runtime boundary that composes existing accepted ASR -> Packet Cortex -> Presence/Turn Policy -> Barge-in -> Output/TTS -> Recovery -> persistent state -> Reentry machinery."
+}
