@@ -1,0 +1,29 @@
+name: Voice FDX9 G2 Cancel Readback CI
+
+on:
+  push:
+    paths:
+      - "research/local_voice/tools/t4_voice_virtual_sink_cancel_readback_g2.py"
+      - "tests/test_t4_voice_virtual_sink_cancel_readback_g2.py"
+      - ".github/workflows/voice-fdx9-g2-cancel-readback-ci.yml"
+  pull_request:
+    paths:
+      - "research/local_voice/tools/t4_voice_virtual_sink_cancel_readback_g2.py"
+      - "tests/test_t4_voice_virtual_sink_cancel_readback_g2.py"
+      - ".github/workflows/voice-fdx9-g2-cancel-readback-ci.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  repository-reference:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Run bounded FDX9 G2 reference tests
+        run: python tests/test_t4_voice_virtual_sink_cancel_readback_g2.py
+      - name: Emit bounded reference receipt
+        run: python research/local_voice/tools/t4_voice_virtual_sink_cancel_readback_g2.py --backend software --out /tmp/fdx9-g2-reference.json
