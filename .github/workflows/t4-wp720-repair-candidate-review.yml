@@ -1,0 +1,130 @@
+name: T4 WP720 Repair Candidate Review
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/t4-wp720-repair-candidate-review.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  repair-candidate:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: Checkout exact repair candidate
+        uses: actions/checkout@v4
+        with:
+          ref: c0b1f8bba4178a8291a6a5cec73e296d29d962ac
+          fetch-depth: 1
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Record exact candidate identity
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = 'c0b1f8bba4178a8291a6a5cec73e296d29d962ac'
+          sha256sum \
+            src/frankenstein2/voice_packet_cortex.py \
+            src/frankenstein2/voice_packet_cortex_recovery.py \
+            tests/test_voice_packet_cortex.py
+
+      - name: Run exact packet-cortex regression suite including repair fence
+        env:
+          PYTHONPATH: src
+        run: |
+          set -euo pipefail
+          python -m unittest discover -s tests -p 'test_voice_packet_cortex.py' -v
+
+      - name: Direct PFD6 repaired-subject discriminator
+        env:
+          PYTHONPATH: src
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from dataclasses import replace
+          from frankenstein2.causal_identity import CausalIdentity
+          from frankenstein2.voice_contract import VoiceIntent, VoiceSessionCapsule
+          from frankenstein2.voice_packet_cortex import PacketTurnPolicy, VoiceInputPacket, VoicePacketCortex, VoicePacketCortexError
+
+          root = CausalIdentity(
+              session_id='session-wp720-repair-review',
+              agent_id='frankenstein-2',
+              task_id='task-wp720-repair-review',
+              turn_id='turn-root',
+              causal_id='causal-root-wp720-repair-review',
+              generation=1,
+          )
+          intent = VoiceIntent.create(
+              causal_identity=root,
+              input_ref='wp720:repair-review',
+              input_sha256='8' * 64,
+              provenance_refs=('trigger4:wp720-repair-review',),
+          )
+          session = VoiceSessionCapsule.create(
+              intent=intent,
+              session_causal_identity=root.derive(
+                  causal_id='causal-session-wp720-repair-review', generation=2, turn_id='turn-session'
+              ),
+              provenance_refs=('trigger4:wp720-repair-review-session',),
+          )
+          cortex = VoicePacketCortex(session)
+          packet = VoiceInputPacket(
+              session_id=cortex.session_id,
+              turn_id='turn-1',
+              packet_id='input-hold-0',
+              monotonic_ms=100,
+              source_modality='asr_partial',
+              text='Ich spreche noch',
+              language='de-DE',
+              is_final=False,
+              confidence=0.97,
+              speech_start=True,
+              speech_end=False,
+              vad_state='SPEECH',
+              endpoint_decision='HOLD',
+              overlap_state='NONE',
+              barge_in=False,
+              source_duration_ms=160,
+              sequence=0,
+          )
+          cortex.accept_input(packet)
+          wait = PacketTurnPolicy(
+              policy_id='wp720-repair-review',
+              hold_intent='WAIT',
+              provenance_refs=('trigger4:wp720-repair-review',),
+          )
+          first = cortex.apply_turn_policy(packet, wait)
+          replay = cortex.apply_turn_policy(packet, wait)
+          if replay is not first:
+              raise SystemExit('PFD6_REPAIR_FAIL: exact replay minted a second decision')
+          try:
+              cortex.apply_turn_policy(packet, replace(wait, hold_intent='BACKCHANNEL'))
+          except VoicePacketCortexError:
+              print('PFD6_REPAIR_PASS_CONFLICT_REJECTED')
+          else:
+              raise SystemExit('PFD6_REPAIR_FAIL: conflicting rebind was accepted')
+          decisions = [e for e in cortex.events if e.event_kind == 'TURN_POLICY_DECISION' and e.packet_refs == (packet.packet_id,)]
+          if len(decisions) != 1:
+              raise SystemExit(f'PFD6_REPAIR_FAIL: decision_count={len(decisions)}')
+          print('PFD6_REPAIR_PASS_SINGLE_AUTHORITATIVE_DECISION')
+          PY
+
+      - name: Scope marker
+        if: always()
+        run: |
+          printf '%s\n' \
+            'review_lane=CANDIDATE_REPAIR_VALIDATION' \
+            'subject_sha=c0b1f8bba4178a8291a6a5cec73e296d29d962ac' \
+            'repository_repair_acceptance_only=1' \
+            'target_runtime_credit=0' \
+            'physical_audio_credit=0' \
+            'gwt_jspace_credit=0' \
+            'effect_credit=0' \
+            'training_credit=0' \
+            'whole_product_credit=0'
