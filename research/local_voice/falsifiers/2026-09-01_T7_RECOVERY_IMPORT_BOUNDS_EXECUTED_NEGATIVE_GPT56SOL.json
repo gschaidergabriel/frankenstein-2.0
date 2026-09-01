@@ -1,0 +1,75 @@
+{
+  "schema": "F2_TRIGGER7_EXECUTED_FALSIFIER_RESULT/v1",
+  "trigger": "7",
+  "producer": "GPT-5.6 Sol",
+  "date": "2026-09-01",
+  "status": "EXECUTED_PRODUCT_NEGATIVE_AT_REPOSITORY_SCOPE",
+  "scope": "VoicePacketCortex restart/reconnect checkpoint import bound revalidation only",
+  "authority_ref": "research/local_voice/authority/2026-08-31_TRIGGER7_TEXT_PACKET_COMPLETION_AUTHORITY.md",
+  "candidate_ref": "research/local_voice/falsifiers/2026-09-01_T7_RECOVERY_CHECKPOINT_BOUNDS_REENTRY_GPT56SOL.json",
+  "diagnostic_tool": "research/local_voice/tools/falsify_voice_packet_cortex_import_bounds.py",
+  "diagnostic_tool_commit": "1159686f93fd7a26c62f0491bb958e861849a393",
+  "ci_binding_test": "research/local_voice/tests/test_t7_recovery_import_bounds_diagnostic_gpt56sol.py",
+  "execution": {
+    "source_sha": "63db98bee1282c26f29cdf49b792dbe8c644789f",
+    "workflow": "Trigger 7 Local Voice Research Tools CI",
+    "workflow_run_id": 33528443231,
+    "job_id": 99925147014,
+    "runner": "GitHub-hosted Ubuntu 24.04",
+    "job_conclusion": "success",
+    "suite_tests": 46,
+    "suite_result": "PASS",
+    "evidence_scope": "REPOSITORY_EXECUTABLE_DETERMINISTIC_ONLY"
+  },
+  "results": [
+    {
+      "probe_id": "RBOUND1_INPUT_SEEN_IMPORT_CAP",
+      "expected": "input_seen cardinality > MAX_INPUT_PACKETS fails closed at resume",
+      "observed": "257 imported entries with cap 256; resume returned a usable cortex",
+      "classification": "PRODUCT_NEGATIVE"
+    },
+    {
+      "probe_id": "RBOUND2_OUTPUT_IMPORT_CAP",
+      "expected": "outputs cardinality > MAX_OUTPUT_PACKETS fails closed at resume",
+      "observed": "257 imported outputs with cap 256; resume returned a usable cortex",
+      "classification": "PRODUCT_NEGATIVE"
+    },
+    {
+      "probe_id": "RBOUND3_TOOL_IMPORT_CAP",
+      "expected": "active/cancelled tool cardinality > MAX_TOOL_REFS fails closed at resume",
+      "observed": "129 active tool refs with cap 128; resume returned a usable cortex",
+      "classification": "PRODUCT_NEGATIVE"
+    },
+    {
+      "probe_id": "RBOUND4_EVENT_IMPORT_CAP",
+      "expected": "events cardinality > MAX_EVENTS fails closed before returning a cortex",
+      "observed": "513 imported events with cap 512 rejected with VoicePacketCortexError: event capacity exhausted",
+      "classification": "PASS_FAIL_CLOSED"
+    },
+    {
+      "probe_id": "RBOUND5_SEQUENCE_PROJECTION_CONSISTENCY",
+      "expected": "unbacked ordering projection fails closed or cannot mint ordering authority",
+      "observed": "resume admitted last_input_sequence=999 without backing packet state; subsequent fresh sequence=0 was rejected as expected=1000",
+      "classification": "PRODUCT_NEGATIVE"
+    }
+  ],
+  "root_cause_candidate": "resume_packet_cortex reconstructs imported input/output/tool/order projections before explicit cross-projection/cardinality revalidation; event capacity is incidentally revalidated by mandatory RESTART_REENTRY emission, but the other imported limits/projections are not equivalently fenced.",
+  "routing": {
+    "trigger7_mutates_product": false,
+    "route_to": "Trigger4/current legal workpackage mutation owner",
+    "recommended_repair_scope": "Add explicit imported cardinality and projection-consistency validation before returning a restored VoicePacketCortex; preserve one recovery implementation and add regressions for RBOUND1/RBOUND2/RBOUND3/RBOUND5.",
+    "do_not_inflate": "This result does not invalidate previously accepted unrelated WP715 behavior; it invalidates only the reproduced checkpoint-import-bound scope."
+  },
+  "explicit_zero_credit": {
+    "target_runtime": 0,
+    "physical_audio": 0,
+    "asr_runtime": 0,
+    "tts_runtime": 0,
+    "semantic_gwt_jspace": 0,
+    "effect": 0,
+    "training": 0,
+    "whole_voice_e2e": 0,
+    "whole_product": 0
+  },
+  "next_exact_action": "Trigger4/current legal mutation owner should reproduce against its exact adopted source, patch only the import-bound validation defect, add deterministic regressions for RBOUND1/RBOUND2/RBOUND3/RBOUND5, and rerun the discriminator before any scoped repair acceptance."
+}
