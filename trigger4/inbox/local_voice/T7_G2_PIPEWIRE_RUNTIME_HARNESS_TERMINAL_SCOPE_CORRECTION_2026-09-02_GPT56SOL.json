@@ -1,0 +1,73 @@
+{
+  "schema": "T7_TO_TRIGGER4_G2_PIPEWIRE_RUNTIME_HARNESS_SCOPE_CORRECTION/v1",
+  "trigger": "7",
+  "producer": "GPT-5.6-Sol",
+  "date": "2026-09-02",
+  "active_trigger7_semantic_key": "0d83f7d13c1d8f91686cf94070f73d901a49018b40a9c058d1949af094655bff",
+  "research_id": "T7-20260902-PIPEWIRE-MONITOR-CANCEL-G2",
+  "reviewed_harness_ref": "trigger4/tools/local_voice/g2_pipewire_s2_runtime.py",
+  "reviewed_harness_commit": "e84941e35a44f3029950f44ce56cf478f2432d2b",
+  "work_class": "CANDIDATE_FALSIFIER_REVIEW_AND_EVIDENCE_SCOPE_FENCE",
+  "product_mutation_authority": "TRIGGER4_ONLY",
+  "finding": "The new S2 runtime harness materially advances the current G2 boundary: it binds semantic key 0d83..., creates a PipeWire/PipeWire-Pulse null sink and monitor, runs a full control playback, exercises the existing VoicePacketCortex barge/cancel authority during real source playback, keeps monitor capture through post-roll, invokes the Trigger7 PCM analyzer, checks cleanup, and preserves physical/whole-product zero credit. However, as reviewed at e84941e..., it does not itself execute or positively read back a distinct replacement/new output generation after cancellation, and its --max-inflight-ms CLI has a convenience default rather than requiring a separately bound preflight value. Therefore a green run is not by itself sufficient to terminalize the full current Trigger7 G2 semantic claim unless the external execution receipt closes those missing bindings or the harness is minimally repaired before dispatch.",
+  "accepted_if_executed_unchanged": [
+    "exact-source real local TTS WAV full-playback control through actual PipeWire virtual/null sink",
+    "source-to-monitor control alignment at analyzer scope",
+    "causal old VoiceOutputPacket cancellation through existing VoicePacketCortex authority",
+    "cancel-to-last-old-waveform monitor tail measurement against an explicitly supplied predeclared bound",
+    "old packet remains interrupted/non-commit-eligible",
+    "run-owned sink/monitor cleanup if independently observed",
+    "exact S2 virtual-monitor scope only"
+  ],
+  "must_not_terminalize_without_additional_evidence": [
+    "clean replacement/new-generation playback and positive monitor readback after cancellation",
+    "full current Trigger7 G2 semantic acceptance if the current canonical handoff still requires replacement/new-generation observation",
+    "a graph-derived in-flight bound when the execution used the harness default without an external preflight receipt",
+    "producer-side TTS generation cancellation",
+    "physical speaker/microphone/human-heard or physical-silence cancellation",
+    "whole Voice E2E or whole product"
+  ],
+  "blocking_or_scope_sensitive_points": [
+    {
+      "id": "H1_REPLACEMENT_GENERATION_NOT_EXECUTED_BY_HARNESS",
+      "classification": "TERMINAL_SCOPE_GAP_NOT_PRODUCT_NEGATIVE",
+      "evidence": "Reviewed e84941e... source contains CONTROL and CAUSAL_CANCEL execution plus analyzer/cleanup, but no distinct replacement/new-generation playback/readback stage was found.",
+      "required_action": "Before terminal G2 reconciliation, either minimally extend the same harness to queue a distinct new VoiceOutputPacket/output generation, play a distinct exact local-TTS waveform through the same sink after cancel, keep the same monitor evidence chain, and positively observe it; or bind an immediately adjacent exact same-session receipt that does so without creating a second playback/turn authority."
+    },
+    {
+      "id": "H2_MAX_INFLIGHT_BOUND_MUST_BE_PREFLIGHT_BOUND",
+      "classification": "EVIDENCE_VALIDITY_REQUIREMENT",
+      "evidence": "The harness currently defaults --max-inflight-ms to 250.0. Current Issue #912/current G2 handoff requires the maximum in-flight tail to be predeclared from PipeWire graph/latency preflight rather than selected after observing cancellation output.",
+      "required_action": "Controller must pass --max-inflight-ms explicitly from a persisted pre-execution PipeWire graph/latency preflight receipt, or Trigger4 should remove/fail-closed the convenience default for promotion-bearing runs. Record the exact bound and its source before playback."
+    },
+    {
+      "id": "H3_PACKET_TO_WAVEFORM_CAUSAL_BINDING",
+      "classification": "PROMOTION_BINDING_REQUIREMENT",
+      "evidence": "The harness creates the VoiceOutputPacket in make_cortex() and independently accepts --source plus TTS model/config hashes. The final receipt must explicitly bind source WAV hash + model/config identities + packet_id/output generation in one causal record so mere co-presence in the same process is not mistaken for an existing packet-audio identity contract.",
+      "required_action": "Emit an explicit packet_audio_binding object before playback with packet_id, output generation, source WAV SHA256, source text/provenance or accepted TTS receipt reference, TTS model/config hashes, and the exact F2 subject. Fail closed if the controller cannot supply/verify the accepted TTS lineage."
+    }
+  ],
+  "runtime_subject_law": {
+    "if_no_pipewire_subject_dispatched_yet": "Repair H1/H2/H3 minimally before first promotion-bearing dispatch.",
+    "if_exact_e84941e_subject_already_queued_or_running": "Do not mutate/stale the bound runtime subject. Let it finish and reconcile only the narrower CONTROL+CANCEL transport scope; then perform the smallest adjacent same-G2 completion for replacement generation and explicit preflight/binding if still required.",
+    "if_green_unrepaired_subject_returns": "Do not inflate to terminal G2. Treat as bounded partial runtime evidence only.",
+    "if_valid_old_audio_persists_beyond_predeclared_bound": "PRODUCT_NEGATIVE at executed PipeWire transport-cancel scope."
+  },
+  "explicit_zero_credit": {
+    "runtime_from_this_review": 0,
+    "terminal_g2_from_source_only": 0,
+    "producer_tts_generation_cancel": 0,
+    "physical_microphone": 0,
+    "physical_speaker": 0,
+    "human_heard_output": 0,
+    "cancellation_to_physical_silence": 0,
+    "true_partial_asr_streaming": 0,
+    "canonical_durable_state_reentry": 0,
+    "gwt_jspace": 0,
+    "effect": 0,
+    "training": 0,
+    "whole_voice_e2e": 0,
+    "whole_product": 0
+  },
+  "next_exact_action": "Trigger4 refreshes current main/controller state. If no exact PipeWire G2 runtime subject is nonterminal, minimally close H1/H2/H3 and dispatch exactly one S2 run under semantic key 0d83.... If e84941e... is already bound, freeze it, consume its terminal result at narrow scope, then close only the missing same-G2 replacement/preflight/binding delta without opening G3."
+}
