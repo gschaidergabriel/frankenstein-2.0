@@ -11,6 +11,7 @@ on:
       - 'research/local_voice/tools/falsify_voice_packet_cortex.py'
       - 'research/local_voice/tools/falsify_voice_packet_cortex_recovery_bounds.py'
       - 'research/local_voice/tools/falsify_voice_packet_cortex_atomicity.py'
+      - 'trigger4/tools/local_voice/fdx_s2_persistence_restart.py'
       - '.github/workflows/t4-packet-cortex-full-duplex-falsifier.yml'
   workflow_dispatch:
 
@@ -20,7 +21,7 @@ permissions:
 jobs:
   exact-source-falsifier:
     runs-on: clay-host
-    timeout-minutes: 20
+    timeout-minutes: 30
     env:
       F2_SANDBOX_ROOT: /var/tmp/frankenstein2-sandboxes
       F2_SANDBOX_MIN_FREE_KIB: '5242880'
@@ -55,7 +56,8 @@ jobs:
             tests/test_voice_packet_cortex_recovery.py \
             research/local_voice/tools/falsify_voice_packet_cortex.py \
             research/local_voice/tools/falsify_voice_packet_cortex_recovery_bounds.py \
-            research/local_voice/tools/falsify_voice_packet_cortex_atomicity.py
+            research/local_voice/tools/falsify_voice_packet_cortex_atomicity.py \
+            trigger4/tools/local_voice/fdx_s2_persistence_restart.py
 
       - name: Host-health and isolation preflight
         shell: bash
@@ -91,15 +93,28 @@ jobs:
               exit 0
             ' | tee /tmp/t4-fd-sandbox.txt
 
+      - name: Execute existing FDX7 and FDX8 persistence-restart discriminator in S2
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          bash tools/vps_sandbox/run_ubuntu_sandbox.sh --backend nspawn --network off -- \
+            /bin/bash -lc '
+              set -u
+              PYTHONPATH=src python3 trigger4/tools/local_voice/fdx_s2_persistence_restart.py
+              printf "FDX78_EXIT=%s\n" "$?"
+              exit 0
+            ' | tee /tmp/t4-fdx78-s2-sandbox.txt
+
       - name: Emit bounded execution receipt
         if: always()
         shell: bash
         run: |
           set -Eeuo pipefail
           python3 - <<'PY'
-          import json, os, pathlib, re
+          import base64, json, os, pathlib, re
 
           sandbox = pathlib.Path('/tmp/t4-fd-sandbox.txt').read_text(errors='replace') if pathlib.Path('/tmp/t4-fd-sandbox.txt').exists() else ''
+          fdx78_sandbox = pathlib.Path('/tmp/t4-fdx78-s2-sandbox.txt').read_text(errors='replace') if pathlib.Path('/tmp/t4-fdx78-s2-sandbox.txt').exists() else ''
           preflight = pathlib.Path('/tmp/t4-fd-preflight.txt').read_text(errors='replace') if pathlib.Path('/tmp/t4-fd-preflight.txt').exists() else ''
 
           def parse_probe(schema):
@@ -111,26 +126,40 @@ jobs:
                           return None
               return None
 
-          def parse_status(name):
-              match = re.search(rf'^{re.escape(name)}=(\d+)$', sandbox, re.MULTILINE)
+          def parse_status(name, text=sandbox):
+              match = re.search(rf'^{re.escape(name)}=(\d+)$', text, re.MULTILINE)
               return int(match.group(1)) if match else None
+
+          def parse_fdx78_receipt():
+              match = re.search(r'^T4_FDX_S2_RECEIPT_B64=([A-Za-z0-9+/=]+)$', fdx78_sandbox, re.MULTILINE)
+              if not match:
+                  return None
+              try:
+                  return json.loads(base64.b64decode(match.group(1)).decode('utf-8'))
+              except Exception:
+                  return None
 
           packet_probe = parse_probe('F2_PACKET_CORTEX_FULL_DUPLEX_FALSIFIER/v1')
           recovery_bounds_probe = parse_probe('F2_PACKET_CORTEX_RECOVERY_BOUNDS_FALSIFIER/v1')
           atomicity_probe = parse_probe('F2_PACKET_CORTEX_ATOMICITY_FALSIFIER/v1')
+          fdx78_receipt = parse_fdx78_receipt()
           statuses = {
               'packet_tests': parse_status('PACKET_TESTS_EXIT'),
               'recovery_tests': parse_status('RECOVERY_TESTS_EXIT'),
               'packet_probe': parse_status('PACKET_PROBE_EXIT'),
               'recovery_bounds': parse_status('RECOVERY_BOUNDS_EXIT'),
               'atomicity': parse_status('ATOMICITY_EXIT'),
+              'fdx78_s2': parse_status('FDX78_EXIT', fdx78_sandbox),
           }
           sandbox_executed = 'F2_SANDBOX_RESULT=PASS' in sandbox
+          fdx78_s2_executed = 'F2_SANDBOX_RESULT=PASS' in fdx78_sandbox
           complete = (
               sandbox_executed
+              and fdx78_s2_executed
               and packet_probe is not None
               and recovery_bounds_probe is not None
               and atomicity_probe is not None
+              and fdx78_receipt is not None
               and all(value is not None for value in statuses.values())
           )
 
@@ -146,6 +175,8 @@ jobs:
               or packet_probe.get('result') == 'PRODUCT_NEGATIVE'
               or recovery_bounds_probe.get('result') == 'PRODUCT_NEGATIVE'
               or atomicity_probe.get('result') == 'PRODUCT_NEGATIVE'
+              or statuses['fdx78_s2'] != 0
+              or fdx78_receipt.get('result') not in ('PASS', 'EXECUTED_NO_COUNTEREXAMPLE')
           ):
               result = 'EXECUTED_PRODUCT_NEGATIVE'
               failure_class = 'PRODUCT_NEGATIVE'
@@ -161,7 +192,7 @@ jobs:
               failure_class = 'EVIDENCE_INVALID'
 
           receipt = {
-              'schema': 'F2_T4_PACKET_CORTEX_FULL_DUPLEX_FALSIFIER_RECEIPT/v3',
+              'schema': 'F2_T4_PACKET_CORTEX_FULL_DUPLEX_FALSIFIER_RECEIPT/v4',
               'result': result,
               'failure_class': failure_class,
               'source_sha': os.environ.get('GITHUB_SHA'),
@@ -171,7 +202,7 @@ jobs:
               'runner_os': os.environ.get('RUNNER_OS', 'UNKNOWN'),
               'runner_arch': os.environ.get('RUNNER_ARCH', 'UNKNOWN'),
               'execution_surface': 'VPS_SANDBOX_REPRESENTABLE',
-              'sandbox_tier': 'S1_OR_S2_AUTO',
+              'sandbox_tier': 'S1_OR_S2_AUTO_PLUS_REQUIRED_S2_FDX7_FDX8',
               'network_mode': 'OFF',
               'semantic_key': 'af4da01da7ced3fa0bee3839adf7f4798e73399408fd29735c8a529a2ed2d9d9',
               'executed_scope': [
@@ -184,13 +215,17 @@ jobs:
                   'PN14_TOOL_ONLY_BARGE_OWNERSHIP',
                   'PN15_REJECTED_NEAR_CAP_BARGE_ATOMICITY',
                   'EVENTSEQ_REJECT_ATOMICITY',
+                  'FDX7_S2_PERSISTENCE_RESTART_IDENTITY',
+                  'FDX8_S2_CLOSED_SESSION_RESTART_EXACT_ONCE',
               ],
               'step_statuses': statuses,
               'packet_probe': packet_probe,
               'recovery_bounds_probe': recovery_bounds_probe,
               'atomicity_probe': atomicity_probe,
+              'fdx78_s2_receipt': fdx78_receipt,
               'preflight_log': preflight,
               'sandbox_log': sandbox,
+              'fdx78_s2_sandbox_log': fdx78_sandbox,
               'outbound_model_asr_tts_calls': 0,
               'vps_sandbox_component_execution_observed': result in ('EXECUTED_NO_COUNTEREXAMPLE', 'EXECUTED_PRODUCT_NEGATIVE'),
               'acoustic_credit': 0,
@@ -226,3 +261,6 @@ jobs:
           grep -q '^PACKET_PROBE_EXIT=' /tmp/t4-fd-sandbox.txt
           grep -q '^RECOVERY_BOUNDS_EXIT=' /tmp/t4-fd-sandbox.txt
           grep -q '^ATOMICITY_EXIT=' /tmp/t4-fd-sandbox.txt
+          grep -q '^F2_SANDBOX_RESULT=PASS$' /tmp/t4-fdx78-s2-sandbox.txt
+          grep -q '^FDX78_EXIT=0$' /tmp/t4-fdx78-s2-sandbox.txt
+          grep -q '^T4_FDX_S2_RECEIPT_B64=' /tmp/t4-fdx78-s2-sandbox.txt
