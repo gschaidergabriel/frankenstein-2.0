@@ -1,7 +1,7 @@
 """Persisted-row load attestation for WP901 restart/recovery planning.
 
 F2-WP-901 generation 4 repository-component scope, with generation-5 authority-reference
-binding layered at the canonical G4 ingress.
+binding and generation-6 rollback-lineage-head admission layered at the canonical G4 ingress.
 
 Accepted WP901 G3 authenticates concrete typed checkpoint / WP900 / outcome source objects,
 but explicitly does not prove that the restart checkpoint came from an actual persisted
@@ -17,10 +17,16 @@ admitted canonical F2-WP-100 UnifiedDB component. That component reference is in
 kept distinct from the concrete store's ``authority_receipt_sha256``; they are different
 identity layers and are not string-compared.
 
+Generation 6 closes only stale-ancestor rollback admission. Inside the same SQLite read
+transaction used for row attestation, the requested checkpoint must equal WP206's existing
+``latest_checkpoint(kernel_state_id)`` lineage head by checkpoint id, generation and digest
+before any G3/G2 restart plan may be minted. This reuses WP206 authority and does not create
+a second freshness ledger or scheduler.
+
 The resulting receipt is evidence only. It is not a second persistence authority, does not
-schedule work or execute effects, and does not prove target-host execution. It also does
-NOT close rollback/freshness or same-inode live-drift questions; those remain separate
-falsifiers.
+schedule work or execute effects, and does not prove target-host execution. The bounded G6
+head check does NOT mint broad temporal/world freshness authority, so ``freshness_attestation``
+remains ``NOT_OBSERVED``. Same-inode live-drift remains a separate evidence boundary.
 """
 from __future__ import annotations
 
@@ -64,7 +70,7 @@ CANONICAL_UNIFIEDDB_AUTHORITY_FINGERPRINT_SCHEMA = (
 
 
 class PersistedRowLoadAttestationError(RestartSourceAuthenticationError):
-    """Fail-closed G4/G5 persisted-row/load binding error."""
+    """Fail-closed G4/G5/G6 persisted-row/load binding error."""
 
 
 def _canonical_json(value: Any) -> str:
@@ -171,7 +177,7 @@ class PersistedCheckpointLoadAttestation:
 
 @dataclass(frozen=True, slots=True, kw_only=True)
 class PersistedRowRestartPlanResult:
-    """G4/G5 output: accepted G2/G3 plan plus bounded load evidence."""
+    """G4/G5/G6 output: accepted G2/G3 plan plus bounded load evidence."""
 
     plan: RestartContinuationPlan
     load_attestation: PersistedCheckpointLoadAttestation
@@ -195,10 +201,11 @@ def attest_persisted_checkpoint_load(
 ) -> tuple[PersistentAgencyCheckpoint, PersistedCheckpointLoadAttestation]:
     """Load one checkpoint and bind the exact persisted-row snapshot used by WP206.
 
-    Both the accepted ``load_checkpoint`` call and the row-evidence read occur inside one
-    SQLite read transaction. This prevents an intervening committed writer from turning
-    the second query into evidence for a different database snapshot. Existing WP206
-    digest/path/device/inode/authority checks remain the source of checkpoint admission.
+    The accepted ``load_checkpoint`` call, generation-6 lineage-head comparison and row-evidence
+    read all occur inside one SQLite read transaction. This prevents an intervening committed
+    writer from turning any of those reads into evidence for a different database snapshot.
+    Existing WP206 digest/path/device/inode/authority checks remain the source of checkpoint
+    admission, while ``latest_checkpoint`` remains the sole lineage-head authority.
     """
     if type(store) is not CanonicalPersistentAgencyStore:
         raise PersistedRowLoadAttestationError(
@@ -217,6 +224,15 @@ def attest_persisted_checkpoint_load(
     try:
         connection.execute("BEGIN")
         checkpoint = store.load_checkpoint(checkpoint_id)
+        lineage_head = store.latest_checkpoint(checkpoint.kernel_state_id)
+        if (
+            lineage_head.checkpoint_id != checkpoint.checkpoint_id
+            or lineage_head.generation != checkpoint.generation
+            or lineage_head.sha256() != checkpoint.sha256()
+        ):
+            raise PersistedRowLoadAttestationError(
+                "PERSISTED_ROW_ROLLBACK_ANCESTOR_NOT_LATEST_LINEAGE_HEAD"
+            )
         row = connection.execute(
             f"""SELECT generation, previous_checkpoint_id,
                        checkpoint_sha256, checkpoint_json,
@@ -308,7 +324,7 @@ def plan_restart_continuation_from_persisted_row(
     whole_loop_seal: WholePersistentLoopSeal,
     outcome: LoopOutcomeEvidence,
 ) -> PersistedRowRestartPlanResult:
-    """Canonical G4/G5 ingress: persisted WP206 row -> accepted G3 -> accepted G2 plan."""
+    """Canonical G4/G5/G6 ingress: persisted WP206 row -> accepted G3 -> accepted G2 plan."""
     checkpoint, attestation = attest_persisted_checkpoint_load(
         store,
         checkpoint_id=checkpoint_id,
