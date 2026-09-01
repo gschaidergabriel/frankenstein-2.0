@@ -38,6 +38,7 @@ LEAD_FRAMES = RATE // 10  # 100 ms capture lead-in
 SOURCE_FRAMES = RATE * 2
 CANCEL_MS = 600.0
 MAX_INFLIGHT_MS = 80.0
+REQUIRED_POSTROLL_MS = 200.0
 
 
 def _source_pcm() -> list[int]:
@@ -65,7 +66,13 @@ def _capture(source: list[int], *, retained_until_ms: float | None) -> list[int]
 
 @unittest.skipIf(numpy is None, "numpy is required for the analyzer regression suite")
 class PipeWireMonitorCancelAnalyzerTests(unittest.TestCase):
-    def _run_case(self, *, retained_until_ms: float, output_name: str) -> tuple[int, dict]:
+    def _run_case(
+        self,
+        *,
+        retained_until_ms: float,
+        output_name: str,
+        truncate_cancel_source_timeline_ms: float | None = None,
+    ) -> tuple[int, dict]:
         source = _source_pcm()
         with tempfile.TemporaryDirectory(prefix="t7-pipewire-analyzer-test-") as tmp:
             root = Path(tmp)
@@ -75,7 +82,11 @@ class PipeWireMonitorCancelAnalyzerTests(unittest.TestCase):
             output_path = root / output_name
             _write_wav(source_path, source)
             _write_wav(control_path, _capture(source, retained_until_ms=None))
-            _write_wav(cancel_path, _capture(source, retained_until_ms=retained_until_ms))
+            cancel_samples = _capture(source, retained_until_ms=retained_until_ms)
+            if truncate_cancel_source_timeline_ms is not None:
+                stop = LEAD_FRAMES + int(round(truncate_cancel_source_timeline_ms * RATE / 1000.0))
+                cancel_samples = cancel_samples[:stop]
+            _write_wav(cancel_path, cancel_samples)
             rc = ANALYZER.main(
                 [
                     "--source", str(source_path),
@@ -84,6 +95,7 @@ class PipeWireMonitorCancelAnalyzerTests(unittest.TestCase):
                     "--output", str(output_path),
                     "--cancel-offset-ms", str(CANCEL_MS),
                     "--max-inflight-ms", str(MAX_INFLIGHT_MS),
+                    "--required-postroll-ms", str(REQUIRED_POSTROLL_MS),
                     "--window-ms", "20",
                     "--correlation-threshold", "0.80",
                     "--capture-rms-ratio-floor", "0.10",
@@ -102,9 +114,12 @@ class PipeWireMonitorCancelAnalyzerTests(unittest.TestCase):
         self.assertEqual(rc, 0, receipt)
         self.assertTrue(receipt["pass"])
         self.assertEqual(receipt["classification"], "NO_COUNTEREXAMPLE_AT_AUDIO_CORRELATION_SCOPE")
+        self.assertTrue(receipt["coverage"]["pass"])
         self.assertTrue(receipt["invariants"]["CONTROL_VALID"])
+        self.assertTrue(receipt["invariants"]["POST_BOUND_CAPTURE_COVERAGE"])
         self.assertTrue(receipt["invariants"]["BOUNDED_TAIL"])
         self.assertTrue(receipt["invariants"]["NO_POST_BOUND_OLD_AUDIO"])
+        self.assertGreater(receipt["measurement"]["post_bound_analyzable_window_count"], 0)
         self.assertLessEqual(
             receipt["measurement"]["observed_cancel_to_last_old_audio_tail_ms"],
             MAX_INFLIGHT_MS + 20.0,
@@ -123,7 +138,30 @@ class PipeWireMonitorCancelAnalyzerTests(unittest.TestCase):
             receipt["classification"],
             "PRODUCT_NEGATIVE_OLD_PACKET_AUDIO_PERSISTS_BEYOND_DECLARED_BOUND",
         )
+        self.assertTrue(receipt["coverage"]["pass"])
         self.assertGreater(receipt["measurement"]["post_bound_old_audio_window_count"], 0)
+
+    def test_truncated_cancel_capture_is_evidence_invalid_not_false_green(self) -> None:
+        # Bound end is 680 ms and required observation end is 880 ms. Deliberately
+        # truncate at 850 ms: old audio is already gone, but proof coverage is not.
+        rc, receipt = self._run_case(
+            retained_until_ms=CANCEL_MS + 50.0,
+            output_name="truncated.json",
+            truncate_cancel_source_timeline_ms=850.0,
+        )
+        self.assertEqual(rc, 2, receipt)
+        self.assertFalse(receipt["pass"])
+        self.assertEqual(
+            receipt["classification"],
+            "EVIDENCE_INVALID_INSUFFICIENT_POST_BOUND_CAPTURE",
+        )
+        self.assertFalse(receipt["coverage"]["pass"])
+        self.assertFalse(receipt["coverage"]["cancel_covers_required_observation"])
+        self.assertEqual(receipt["invariants"]["POST_BOUND_CAPTURE_COVERAGE"], False)
+        self.assertEqual(
+            receipt["invariants"]["NO_POST_BOUND_OLD_AUDIO"],
+            "NOT_EVALUATED_WITH_INSUFFICIENT_COVERAGE",
+        )
 
     def test_unalignable_control_is_evidence_invalid_not_product_negative(self) -> None:
         source = _source_pcm()
@@ -144,6 +182,7 @@ class PipeWireMonitorCancelAnalyzerTests(unittest.TestCase):
                     "--output", str(output_path),
                     "--cancel-offset-ms", str(CANCEL_MS),
                     "--max-inflight-ms", str(MAX_INFLIGHT_MS),
+                    "--required-postroll-ms", str(REQUIRED_POSTROLL_MS),
                 ]
             )
             receipt = json.loads(output_path.read_text(encoding="utf-8"))
