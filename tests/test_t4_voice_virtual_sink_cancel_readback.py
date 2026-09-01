@@ -1,13 +1,11 @@
 import importlib.util
 from pathlib import Path
 import sys
-
+import unittest
 
 MODULE = (
     Path(__file__).parents[1]
-    / "research"
-    / "local_voice"
-    / "tools"
+    / "research" / "local_voice" / "tools"
     / "t4_voice_virtual_sink_cancel_readback.py"
 )
 spec = importlib.util.spec_from_file_location("t4_voice_virtual_sink_cancel_readback", MODULE)
@@ -17,54 +15,81 @@ sys.modules[spec.name] = probe
 spec.loader.exec_module(probe)
 
 
-def test_software_loopback_rejects_late_old_generation_and_never_commits_sentinel():
-    result = probe.run("software")
+class PipeWireMonitorCancelG2Tests(unittest.TestCase):
+    def test_old_sentinel_reaches_sink_before_cancel_then_is_bounded(self):
+        result = probe.run("software")
+        self.assertTrue(result["pass"])
+        self.assertEqual(result["research_id"], "T7-20260902-PIPEWIRE-MONITOR-CANCEL-G2")
+        self.assertEqual(result["execution_scope"], "REPOSITORY_REFERENCE_ONLY")
+        self.assertTrue(result["old_sentinel_queued_before_cancel"])
+        self.assertTrue(result["generation_advanced_before_sink_cancel"])
+        self.assertFalse(result["late_old_generation_accepted"])
+        self.assertEqual(result["stale_chunks_rejected"], 1)
+        self.assertGreater(result["old_sentinel_samples"], 0)
+        self.assertEqual(result["old_sentinel_samples"], result["expected_old_samples_before_cancel"])
+        self.assertLess(result["old_sentinel_samples"], result["expected_old_sentinel_samples_without_cancel"])
+        self.assertEqual(result["residual_old_samples_after_cancel_bound_model"], 0)
+        self.assertEqual(result["new_sentinel_samples"], result["expected_new_sentinel_samples"])
+        self.assertGreater(result["software_discarded_pending_bytes"], 0)
 
-    assert result["pass"] is True
-    assert result["classification"] == "CANDIDATE_FALSIFIER_VIRTUAL_SINK_ONLY"
-    assert result["execution_scope"] == "REPOSITORY_SIMULATION_ONLY"
-    assert result["old_generation"] == 1
-    assert result["new_generation"] == 2
-    assert result["late_old_generation_accepted"] is False
-    assert result["stale_chunks_rejected"] == 1
-    assert result["old_sentinel_exact_occurrences"] == 0
-    assert result["new_sentinel_exact_occurrences"] == 1
-    assert result["measured_credit"]["virtual_sink_output_consumption_control"] == 1
+    def test_broken_cancel_that_retains_pending_old_audio_is_product_negative(self):
+        result = probe.run("software", software_cancel_discards_pending=False)
+        self.assertFalse(result["pass"])
+        self.assertEqual(result["failure_class"], "PRODUCT_NEGATIVE")
+        self.assertTrue(result["old_sentinel_queued_before_cancel"])
+        self.assertEqual(
+            result["old_sentinel_samples"],
+            result["expected_old_sentinel_samples_without_cancel"],
+        )
+        self.assertGreater(
+            result["residual_old_samples_after_cancel_bound_model"],
+            result["max_residual_old_samples"],
+        )
 
-    for key in (
-        "physical_speaker",
-        "physical_microphone",
-        "human_heard_output",
-        "acoustic_playback_readback",
-        "whole_voice_e2e",
-        "gwt_jspace",
-        "effect",
-        "unifieddb_write",
-        "training",
-        "whole_product",
-    ):
-        assert result["measured_credit"][key] == 0
+    def test_generation_fence_is_session_bound_and_monotonic(self):
+        fence = probe.GenerationFence("session-a")
+        current = probe.Chunk("session-a", "p1", 1, 0, b"a")
+        wrong_session = probe.Chunk("session-b", "p2", 1, 0, b"b")
+        self.assertTrue(fence.admit(current))
+        self.assertFalse(fence.admit(wrong_session))
+        old, new, advanced_ns = fence.cancel_generation()
+        self.assertEqual((old, new), (1, 2))
+        self.assertGreater(advanced_ns, 0)
+        self.assertFalse(fence.admit(current))
+        self.assertTrue(fence.admit(probe.Chunk("session-a", "p3", 2, 0, b"c")))
+        self.assertEqual(fence.rejected, 2)
+
+    def test_repository_reference_cannot_mint_runtime_or_adjacent_voice_credit(self):
+        result = probe.run("software")
+        self.assertEqual(result["evidence"]["repository_reference_pass"], 1)
+        self.assertEqual(result["evidence"]["pipewire_monitor_promotion_candidate"], 0)
+        for key in (
+            "target_runtime_credit_from_probe_alone",
+            "pipewire_runtime_credit_from_probe_alone",
+            "producer_generation_cancel",
+            "true_streaming_partial_asr",
+            "physical_speaker",
+            "physical_microphone",
+            "human_heard_output",
+            "acoustic_playback_readback",
+            "whole_voice_e2e",
+            "gwt_jspace",
+            "effect",
+            "unifieddb_write",
+            "training",
+            "whole_product",
+        ):
+            self.assertEqual(result["evidence"][key], 0, key)
+
+    def test_pulse_path_is_monitor_only_and_avoids_drain_semantics(self):
+        source = MODULE.read_text(encoding="utf-8")
+        self.assertIn("PIPEWIRE_PULSE_NULL_SINK", source)
+        self.assertIn("module-null-sink", source)
+        self.assertIn("SIGTERM closes", source)
+        self.assertNotIn("snd_pcm_drain", source)
+        self.assertIn("producer-side TTS cancellation", source)
+        self.assertIn("physical speaker/mic/human-heard for S4", source)
 
 
-def test_generation_fence_is_session_bound_and_monotonic():
-    fence = probe.GenerationFence("session-a")
-    current = probe.Chunk("session-a", "p1", 1, 0, b"a")
-    wrong_session = probe.Chunk("session-b", "p2", 1, 0, b"b")
-
-    assert fence.admit(current) is True
-    assert fence.admit(wrong_session) is False
-    old, new = fence.cancel()
-    assert (old, new) == (1, 2)
-    assert fence.admit(current) is False
-    assert fence.admit(probe.Chunk("session-a", "p3", 2, 0, b"c")) is True
-    assert fence.rejected == 2
-
-
-def test_pulse_mode_is_explicitly_virtual_not_physical_credit():
-    source = MODULE.read_text(encoding="utf-8")
-    assert "PIPEWIRE_PULSE_NULL_SINK" in source
-    assert "module-null-sink" in source
-    assert '"physical_speaker": 0' in source
-    assert '"human_heard_output": 0' in source
-    assert '"whole_product": 0' in source
-    assert "Reserve physical speaker/microphone/human-heard cancellation-to-silence for S4" in source
+if __name__ == "__main__":
+    unittest.main()
