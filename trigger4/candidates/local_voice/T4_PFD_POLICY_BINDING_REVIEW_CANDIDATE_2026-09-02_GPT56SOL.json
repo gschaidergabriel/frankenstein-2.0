@@ -1,0 +1,65 @@
+{
+  "schema": "F2_TRIGGER4_REVIEW_CANDIDATE/v1",
+  "trigger": "4",
+  "worker": "GPT-5.6-Sol",
+  "status": "REVIEW_ONLY_CANDIDATE_PATCH_NOT_CANONICAL",
+  "created_at_local": "2026-09-02T00:00:00+07:00",
+  "repository": "gschaidergabriel/frankenstein-2.0",
+  "base_main_sha": "c2b1e6affa31bf889b7846466ad881ed4a501064",
+  "candidate_branch": "trigger4/review-pfd-policy-candidate-20260902",
+  "primary_live_fence": {
+    "workpackage_id": "F2-WP-715",
+    "generation": 3,
+    "claim_id": "F2-WP-715-G3-GPT56SOL-RECOVERY-IMPORT-BOUNDS-20260901",
+    "pointer_state": "ACCEPTED",
+    "current_runtime_subject_sha": "68b1db374c86027be987c1fdc5e88ff13f11f7b4",
+    "repository_falsifier_run_id": 33534368852,
+    "observed_run_state": "QUEUED_NONTERMINAL",
+    "classification": "DEFER_UNTIL_RUNTIME_RESULT_FOR_G3_RECOVERY_BOUNDARY",
+    "canonical_mutation_performed": false
+  },
+  "independent_candidate_boundary": {
+    "work_class": "INTEGRATION_BLOCKER_CANDIDATE",
+    "scope": "Instruction/policy-conditioned deterministic turn management at existing VoicePacketCortex boundary",
+    "handoff_ref": "trigger4/inbox/local_voice/T7_PFD_POLICY_BINDING_PRECONDITION_HANDOFF_2026-09-01_GPT56SOL.json",
+    "source_ref": "src/frankenstein2/voice_packet_cortex.py@c2b1e6affa31bf889b7846466ad881ed4a501064",
+    "test_ref": "tests/test_voice_packet_cortex.py@c2b1e6affa31bf889b7846466ad881ed4a501064",
+    "source_finding": "VoicePacketCortex exposes deterministic WAIT/BACKCHANNEL/ANSWER primitives and mandatory barge-in cancellation but no explicit immutable turn-policy input or PacketTurnPolicy type.",
+    "duplicate_check": "No PFD branch or PFD pull request observed before candidate branch creation.",
+    "execution_surface_class": "VPS_SANDBOX_REPRESENTABLE",
+    "network_required": false
+  },
+  "candidate_design": {
+    "new_authority": false,
+    "second_fsm": false,
+    "second_state_store": false,
+    "policy_type": "PacketTurnPolicy",
+    "policy_dimension": "backchannel_mode: NEVER | ON_NONFINAL_HOLD",
+    "binding_method": "VoicePacketCortex.emit_turn_policy_intent",
+    "mandatory_barge_in_cancellation_remains_nonconfigurable": true,
+    "provenance_binding": "policy_id + policy sha256 embedded in emitted deterministic VOICE_INTENT event detail",
+    "matched_history_discriminator": "identical session/input/history with one policy dimension changed must first diverge WAIT vs BACKCHANNEL at the policy VOICE_INTENT event"
+  },
+  "acceptance_discriminator": {
+    "PFD0": "explicit immutable policy binding exists at existing VoicePacketCortex boundary",
+    "PFD1": "pre-intervention event histories are identical",
+    "PFD2": "exactly one policy dimension differs",
+    "PFD3": "subsequent input packet and timing are identical",
+    "PFD4": "first behavioral divergence is WAIT vs BACKCHANNEL at named VOICE_INTENT event",
+    "PFD5": "same-policy repeated controls are byte/field stable, policy provenance is bound, network calls remain zero"
+  },
+  "candidate_patch_ref": "trigger4/candidates/local_voice/T4_PFD_POLICY_BINDING_REVIEW_CANDIDATE_2026-09-02_GPT56SOL.patch",
+  "promotion_rule": "Do not apply to canonical main or replace the WP715 pointer from this candidate. Re-enter current heads after run 33534368852 becomes terminal; resolve legal semantic/mutation ownership and runtime-subject invariance before any product-source mutation.",
+  "explicit_zero_credit": {
+    "repository_product_acceptance": 0,
+    "target_runtime": 0,
+    "physical_audio": 0,
+    "asr_runtime": 0,
+    "tts_runtime": 0,
+    "semantic_gwt_jspace": 0,
+    "effect": 0,
+    "training": 0,
+    "whole_voice_e2e": 0,
+    "whole_product": 0
+  }
+}
