@@ -28,7 +28,7 @@ def make_session(label: str) -> VoiceSessionCapsule:
         causal_identity=root,
         input_ref=f"fdx15:{label}:input",
         input_sha256=("a" if label == "silence" else "b") * 64,
-        provenance_refs=(f"trigger4:fdx15:{label}", CLASSIFICATION),
+        provenance_refs=(CLASSIFICATION, f"trigger4:fdx15:{label}"),
     )
     return VoiceSessionCapsule.create(
         intent=intent,
@@ -37,7 +37,7 @@ def make_session(label: str) -> VoiceSessionCapsule:
             generation=2,
             turn_id=f"turn-session-{label}",
         ),
-        provenance_refs=(f"trigger4:fdx15:{label}:session", CLASSIFICATION),
+        provenance_refs=(CLASSIFICATION, f"trigger4:fdx15:{label}:session"),
     )
 
 
@@ -104,7 +104,7 @@ class Trigger4FDX1FDX5ConvergenceTests(unittest.TestCase):
         old_policy = PacketTurnPolicy(
             policy_id="policy-before-silence",
             hold_intent="WAIT",
-            provenance_refs=("trigger4:fdx1:long-silence", CLASSIFICATION),
+            provenance_refs=(CLASSIFICATION, "trigger4:fdx1:long-silence"),
         )
         old_policy_event = cortex.apply_turn_policy(old_partial, old_policy)
 
@@ -166,7 +166,7 @@ class Trigger4FDX1FDX5ConvergenceTests(unittest.TestCase):
         wait_policy = PacketTurnPolicy(
             policy_id="policy-self-correction-wait",
             hold_intent="WAIT",
-            provenance_refs=("trigger4:fdx5:self-correction", CLASSIFICATION),
+            provenance_refs=(CLASSIFICATION, "trigger4:fdx5:self-correction"),
         )
         policy_event = cortex.apply_turn_policy(partial, wait_policy)
         self.assertEqual(policy_event.voice_intent, "WAIT")
@@ -195,7 +195,7 @@ class Trigger4FDX1FDX5ConvergenceTests(unittest.TestCase):
                 PacketTurnPolicy(
                     policy_id="policy-stale-conflict",
                     hold_intent="BACKCHANNEL",
-                    provenance_refs=("trigger4:fdx5:stale-partial-falsifier", CLASSIFICATION),
+                    provenance_refs=(CLASSIFICATION, "trigger4:fdx5:stale-partial-falsifier"),
                 ),
             )
 
