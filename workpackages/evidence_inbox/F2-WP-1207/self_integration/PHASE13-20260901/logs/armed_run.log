@@ -1,0 +1,126 @@
+== 1 PRE / preflight ==
+{
+ "ok": true,
+ "problems": [],
+ "symlink_target": "/home/ai-core-node/.local/share/claude/versions/2.1.240",
+ "live_version": "2.1.240",
+ "db_surface": {
+  "durable_memory": 14556,
+  "workspace_episodes": 462,
+  "entityos_arbeitspaket": 83,
+  "max_episode_ts": 1787777245.484424
+ }
+}
+
+== 2 INSTALL (gen0 = 2.1.240) ==
+{
+ "outcome": "SUCCEEDED",
+ "generation": 0,
+ "state_sha256": "be0ceedf78c1a3f6398193ca4c022e9e742f1262e0586fabc71ce895c9cb7d59",
+ "ms": 170.596
+}
+
+== 3 UPDATE -> 2.1.239 (echter Zeigerwechsel) ==
+{
+ "outcome": "SUCCEEDED",
+ "generation": 1,
+ "state_sha256": "5bc96cbec9e06d6bc10da6a0a898985a78ece5c86adb50da52d9a71d4967ba58",
+ "effect": {
+  "expected_version": "2.1.239",
+  "symlink_target": "/home/ai-core-node/.local/share/claude/versions/2.1.239",
+  "live_version_reported": "2.1.239",
+  "effect_verified": true,
+  "verify_ms": 92.449
+ },
+ "ms": 267.79
+}
+
+== 4 UPDATE mit injiziertem Fehler -> muss exakt auf 5bc96cbec9e06d6b zurueck ==
+{
+ "outcome": "ROLLED_BACK",
+ "failure_code": "INJECTED_POST_MUTATION",
+ "expected_rollback_target": "5bc96cbec9e06d6bc10da6a0a898985a78ece5c86adb50da52d9a71d4967ba58",
+ "observed_state_sha256": "5bc96cbec9e06d6bc10da6a0a898985a78ece5c86adb50da52d9a71d4967ba58",
+ "digest_match": true,
+ "effect": {
+  "expected_version": "2.1.239",
+  "symlink_target": "/home/ai-core-node/.local/share/claude/versions/2.1.239",
+  "live_version_reported": "2.1.239",
+  "effect_verified": true,
+  "verify_ms": 103.601
+ },
+ "failure_detection_ms": 0.31854002736508846,
+ "rollback_ms": 0.1911100116558373,
+ "ms": 272.296
+}
+
+== 4b expliziter ROLLBACK -> 2.1.240 ==
+{
+ "outcome": "SUCCEEDED",
+ "rollback_target_state_sha256": "be0ceedf78c1a3f6398193ca4c022e9e742f1262e0586fabc71ce895c9cb7d59",
+ "observed_state_sha256": "be0ceedf78c1a3f6398193ca4c022e9e742f1262e0586fabc71ce895c9cb7d59",
+ "digest_match": true,
+ "effect": {
+  "expected_version": "2.1.240",
+  "symlink_target": "/home/ai-core-node/.local/share/claude/versions/2.1.240",
+  "live_version_reported": "2.1.240",
+  "effect_verified": true,
+  "verify_ms": 470.578
+ },
+ "ms": 471.787
+}
+
+== 6 READBACK aus frischem Prozess ==
+{
+ "cross_process": {
+  "lineage": {
+   "schema": "FRANKENSTEIN2_DURABLE_STATE_LINEAGE/v1",
+   "generation": 2,
+   "state_sha256": "be0ceedf78c1a3f6398193ca4c022e9e742f1262e0586fabc71ce895c9cb7d59",
+   "active_release_digest": "568de0847d36b57fc73b67a726f407035e90c98e75d7f43ce3c74d28ae782f0f",
+   "predecessor_generation": 1,
+   "predecessor_state_sha256": "5bc96cbec9e06d6bc10da6a0a898985a78ece5c86adb50da52d9a71d4967ba58",
+   "predecessor_release_digest": "fee66ff2a749f08033df7adc7a6e1ad3dc30a09a8a02c48409696529e0e9302a"
+  },
+  "observed_state_sha256": "be0ceedf78c1a3f6398193ca4c022e9e742f1262e0586fabc71ce895c9cb7d59",
+  "lineage_matches_observed": true
+ },
+ "db_pre": {
+  "durable_memory": 14556,
+  "workspace_episodes": 462,
+  "entityos_arbeitspaket": 83
+ },
+ "db_post": {
+  "durable_memory": 14556,
+  "workspace_episodes": 462,
+  "entityos_arbeitspaket": 83,
+  "max_episode_ts": 1787777245.484424
+ },
+ "drift": {
+  "durable_memory": [
+   14556,
+   14556
+  ],
+  "workspace_episodes": [
+   462,
+   462
+  ],
+  "entityos_arbeitspaket": [
+   83,
+   83
+  ]
+ },
+ "drift_attribution": "durable_memory/arbeitspaket-Zuwachs stammt aus dem eigenen PostToolUse-Hook (stern.py raum-puls-global) der laufenden Instanz, nicht aus dieser Transaktion -- der Zeuge schreibt unified.db nie."
+}
+
+== 7 POST ==
+{
+ "symlink_target": "/home/ai-core-node/.local/share/claude/versions/2.1.240",
+ "live_version": "2.1.240",
+ "symlink_matches_baseline": true,
+ "bin_2.1.240_sha256": "1cddc5e03fd3867d3c107c534be887161a2904bdfe614149c258695a35665148",
+ "bin_2.1.239_sha256": "7de1b1576e2e0be73ce91c2b4dedf16a41058ea633b957a36fdc6044ddfc0f3c",
+ "settings_sha256": "98d6297359c4f21a7bc5ea2d440cb06126f8c8b7a48d0a00cde3474b71e29ab4",
+ "settings_unchanged": true,
+ "clean_exit_path": true
+}
