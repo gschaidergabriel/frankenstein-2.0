@@ -1,0 +1,45 @@
+diff --git a/src/frankenstein2/gwt_workspace.py b/src/frankenstein2/gwt_workspace.py
+--- a/src/frankenstein2/gwt_workspace.py
++++ b/src/frankenstein2/gwt_workspace.py
+@@
+-from dataclasses import dataclass
++from dataclasses import dataclass, field
+@@
+ _MAX_MICROS = 1_000_000
+ _MAX_COST = 2**31 - 1
++_BROADCAST_FACTORY_SEAL = object()
+@@
+ class BroadcastEnvelope:
+@@
+     recipient_cell_ids: tuple[str, ...]
+     candidate_ids: tuple[str, ...]
+     candidate_payload_refs: tuple[str, ...]
++    _factory_seal: object | None = field(default=None, repr=False, compare=False, hash=False)
+@@
+-    def as_dict(self) -> dict[str, Any]:
++    def assert_builder_lineage(self) -> None:
++        if self._factory_seal is not _BROADCAST_FACTORY_SEAL:
++            raise GwtWorkspaceError("broadcast builder lineage is not verified")
++
++    def as_dict(self) -> dict[str, Any]:
+@@
+         recipient_cell_ids=recipient_cell_ids,
+         candidate_ids=candidate_ids,
+         candidate_payload_refs=payload_refs,
++        _factory_seal=_BROADCAST_FACTORY_SEAL,
+     )
+diff --git a/src/frankenstein2/gwt_uptake.py b/src/frankenstein2/gwt_uptake.py
+--- a/src/frankenstein2/gwt_uptake.py
++++ b/src/frankenstein2/gwt_uptake.py
+@@
+-from frankenstein2.gwt_workspace import BroadcastEnvelope
++from frankenstein2.gwt_workspace import BroadcastEnvelope, GwtWorkspaceError
+@@
+     elif intervention.downstream_output_sha256 == control.downstream_output_sha256:
+         status = "NO_CAUSAL_INFLUENCE_OBSERVED"
+     else:
++        try:
++            broadcast.assert_builder_lineage()
++        except GwtWorkspaceError as exc:
++            raise GWTUptakeError("broadcast builder lineage is not verified") from exc
+         status = "CAUSAL_INFLUENCE_OBSERVED_AT_CONTRACT_SCOPE"
