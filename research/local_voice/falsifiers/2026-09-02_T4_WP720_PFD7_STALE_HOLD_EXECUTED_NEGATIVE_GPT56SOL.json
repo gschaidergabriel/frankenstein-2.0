@@ -1,0 +1,58 @@
+{
+  "schema": "F2_TRIGGER4_EXECUTED_FALSIFIER/v1",
+  "trigger": "4",
+  "organ": "GPT-5.6-Sol-TRIGGER4-REVIEW",
+  "executed_at_local": "2026-09-02T00:16:49+07:00",
+  "workpackage_id": "F2-WP-720",
+  "generation": 1,
+  "active_claim_id": "F2-WP-720-G1-GPT56SOL-PFD-TURN-POLICY-BINDING-20260902",
+  "lane": "CANDIDATE_FALSIFIER_REVIEW_ONLY",
+  "mutation_authority": false,
+  "counterexample_id": "PFD7_STALE_HOLD_POLICY_AFTER_FINAL_ENDPOINT",
+  "exact_product_subject": "731db925df96ab7e49c0e5b80cd7bc8f4d37a086",
+  "exact_product_blobs": {
+    "src/frankenstein2/voice_packet_turn_policy.py": "31067d9869c50d840594017390c5dbfc54d7c841e45991c158ee595e00968206",
+    "src/frankenstein2/voice_packet_cortex.py": "eaca762b470dfbf6c19caeee603fc905d664baea4809e8d719212b9b44451bca"
+  },
+  "execution": {
+    "review_pr": 889,
+    "review_branch_head": "89fb8ea9417fb678bad52f799f862cbc5aa47ae5",
+    "initial_invalid_run": {
+      "run_id": 33536626207,
+      "classification": "EVIDENCE_INVALID",
+      "reason": "checkout fetch-depth=1 omitted exact product subject; discriminator was skipped"
+    },
+    "valid_run": {
+      "run_id": 33536812720,
+      "job_id": 99953027595,
+      "identity_guard": "SUCCESS",
+      "product_blobs_unchanged": true,
+      "discriminator": "FAILURE_REPRODUCED",
+      "exact_failure": "AssertionError: PacketTurnPolicyError not raised",
+      "test": "test_stale_hold_event_cannot_emit_policy_intent_after_later_final_endpoint"
+    }
+  },
+  "failure_taxonomy": "PRODUCT_NEGATIVE",
+  "reproduced_behavior": "After accepting same-turn ASR_PARTIAL/HOLD sequence 0 and later ASR_FINAL/END sequence 1, the exact accepted 731db925 adapter still allows policy application to the retained stale HOLD event instead of failing closed.",
+  "runtime_subject_effect": {
+    "bound_vps_run_id": 33536413324,
+    "bound_vps_job_id": 99951716440,
+    "observed_state": "QUEUED_NONTERMINAL_ZERO_STEPS",
+    "required_churn_classification": "RUNTIME_PROBE_INVALIDATED_BY_REQUIRED_REPAIR",
+    "credit_rule": "Any later execution of exact subject 731db925 is historical-only for the repaired policy boundary and cannot mint current WP720 target-runtime credit."
+  },
+  "parallel_main_observation": "Current main also contains a later PacketTurnPolicy/apply_turn_policy implementation inside voice_packet_cortex.py with current-sequence/current-monotonic checks. That may be a repair candidate, but it coexists with the vulnerable adapter and is not the bound 731db925 subject. No repair credit is minted until one authoritative policy surface is selected and the exact repaired subject passes PFD6, PFD7 and repository regressions.",
+  "credit": {
+    "repository_negative_evidence": 1,
+    "repository_component_promotion": 0,
+    "target_environment_component_runtime": 0,
+    "physical_audio": 0,
+    "asr_runtime": 0,
+    "tts_runtime": 0,
+    "gwt_jspace": 0,
+    "effect": 0,
+    "training": 0,
+    "whole_product": 0
+  },
+  "next_exact_action": "WP720 mutation owner must refresh event/claim state, invalidate the queued 731db925 runtime subject by required repair, avoid redispatch, reconcile the competing policy surfaces to one authority, execute PFD6+PFD7 plus existing cortex/policy regressions on one exact repaired subject, and only then bind a singleton VPS promotion run."
+}
