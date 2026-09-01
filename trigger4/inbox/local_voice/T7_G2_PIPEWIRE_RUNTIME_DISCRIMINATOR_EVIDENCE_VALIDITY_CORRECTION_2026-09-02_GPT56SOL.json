@@ -1,0 +1,111 @@
+{
+  "schema": "T7_TO_TRIGGER4_G2_PIPEWIRE_EVIDENCE_VALIDITY_CORRECTION/v1",
+  "trigger": "7",
+  "producer": "GPT-5.6-Sol",
+  "date": "2026-09-02",
+  "semantic_key": "0d83f7d13c1d8f91686cf94070f73d901a49018b40a9c058d1949af094655bff",
+  "research_id": "T7-20260902-PIPEWIRE-MONITOR-CANCEL-G2",
+  "work_class": "CANDIDATE_FALSIFIER_REVIEW",
+  "product_mutation_authority": "NONE",
+  "classification": "EVIDENCE_VALIDITY_DEFECT_BEFORE_TARGET_RUNTIME_DISPATCH",
+  "current_claim_ref": "research/local_voice/semantic_claims/0d83f7d13c1d8f91686cf94070f73d901a49018b40a9c058d1949af094655bff.json",
+  "current_handoff_ref": "trigger4/inbox/local_voice/T7_FDX_G2_PIPEWIRE_S2_PLAYBACK_CANCEL_MONITOR_READBACK_2026-09-02_GPT56SOL.json",
+  "reviewed_probe": {
+    "path": "research/local_voice/tools/t4_voice_virtual_sink_cancel_readback.py",
+    "blob_sha": "8574b9214e721fefa1bc307bdbba93f2f9b9eb5f",
+    "build_commit": "cf7caf19e9b707bba4431b2dd1b6d80273cda49c",
+    "test_path": "tests/test_t4_voice_virtual_sink_cancel_readback.py",
+    "test_blob_sha": "1eba1ed237181369cad80c7bf048330fbd445ae5"
+  },
+  "finding": "The current repository candidate cannot validly close the G2 PipeWire cancel/monitor-readback claim if executed unchanged. It can prove generation-fence rejection and that some null-sink monitor bytes exist, but its pulse-null PASS predicate does not exercise or require the core buffered-playback cancellation/readback invariants requested by the G2 handoff.",
+  "defects": [
+    {
+      "id": "D1_OLD_SENTINEL_NEVER_PREBUFFERED",
+      "severity": "BLOCKING_FOR_G2_CANCEL_READBACK_CREDIT",
+      "evidence": "run() writes PRE to the sink, then advances GenerationFence and calls sink.cancel(), and only afterwards calls fence.admit(old_queued). The OLD_SENTINEL is therefore rejected before any sink write in the intended passing path.",
+      "consequence": "A PASS cannot prove that already-admitted or already-buffered old-generation audio is removed/quiesced by the playback cancellation mechanism. It proves only stale-generation rejection upstream of the sink.",
+      "required_repair": "Before cancel, admit and queue a deterministic old-generation tail/sentinel far enough ahead to create measurable sink/graph buffering; then cancel at a declared cutover and use monitor readback to quantify any old-generation residual beyond the explicitly predeclared in-flight bound. Separately attempt one late old-generation chunk after generation advance and require upstream rejection."
+    },
+    {
+      "id": "D2_PULSE_PASS_DOES_NOT_REQUIRE_NEW_GENERATION_READBACK",
+      "severity": "BLOCKING_FOR_P6_AND_CLEAN_RESTART_CREDIT",
+      "evidence": "pulse_pass requires not late_old_accepted, fence.rejected == 1, len(readback) > 0 and OLD_SENTINEL absent, but does not require NEW_SENTINEL to be observed.",
+      "consequence": "A capture containing only PRE bytes can satisfy pulse_pass even if the new generation never reaches the monitor. This violates the handoff P6 requirement that the new output generation plays through the same software sink/monitor with clean identity.",
+      "required_repair": "Require an exact generation-specific new sentinel or robustly detected deterministic new-generation waveform segment in monitor readback after cutover; fail closed if absent."
+    },
+    {
+      "id": "D3_NO_MEASURED_CANCEL_TAIL_WINDOW",
+      "severity": "BLOCKING_FOR_BOUNDED_IN_FLIGHT_CREDIT",
+      "evidence": "The result records cancel call duration and whole-capture hash/counts but no monitor cutover sample index, no last-old-sample index, no preaccepted-buffer frames, no residual duration and no declared admissible in-flight tail.",
+      "consequence": "The claim requires proving old-packet audio absent after an explicitly measured bounded in-flight tail; current output cannot establish that scope.",
+      "required_repair": "Bind one monotonic cancel timestamp to monitor sample-domain indices, report preaccepted_buffer_samples_or_frames, last_old_generation_sample_index, residual_old_generation_samples_after_cutover and residual_duration_ms, with an acceptance threshold declared before execution."
+    },
+    {
+      "id": "D4_SYNTHETIC_PCM_NOT_REAL_ACCEPTED_TTS_SUBJECT",
+      "severity": "BLOCKING_FOR_P2_COMPOSED_REAL_TTS_CREDIT",
+      "evidence": "The probe generates constant synthetic PRE/OLD_SENTINEL/NEW_SENTINEL PCM inside Python. It does not consume the exact accepted real Piper/Kokoro-Piper waveform or bind its model/runtime hash to VoiceOutputPacket identity.",
+      "consequence": "A pulse-null PASS may earn a bounded transport-only probe scope, but not the current G2 P2 integration claim real local Piper PCM -> existing packet/output generation -> sink/monitor.",
+      "required_repair": "Support an input PCM/WAV path produced by the exact accepted local TTS runtime, bind input hash/sample format/model/runtime receipt and packet/output-generation identity. Test sentinels may be appended/embedded only with explicit lineage and must not replace real-TTS composition evidence."
+    },
+    {
+      "id": "D5_RUNTIME_IDENTITY_AND_NETWORK_FIELDS_MISSING",
+      "severity": "EVIDENCE_SCOPE_DEFECT",
+      "evidence": "Current result lacks PipeWire/pipewire-pulse version and daemon identity, concrete sink/monitor node identity, exact F2 subject SHA, exact packet_id field in returned receipt, and external inference API-call observation count required by the handoff.",
+      "consequence": "Even a real S2 run would be under-bound for promotion-bearing evidence.",
+      "required_repair": "Emit exact F2/source/tool blob identity, sandbox/session/daemon identity, sink and monitor node names/ids, packet_id/output_generation, Piper artifact hashes and explicit external inference API calls observed."
+    },
+    {
+      "id": "D6_TEST_SUITE_DOES_NOT_EXECUTE_PULSE_PATH",
+      "severity": "REPOSITORY_TEST_COVERAGE_GAP",
+      "evidence": "The current tests execute software loopback and generation-fence behavior; the pulse test only searches source text for module-null-sink and zero-credit strings.",
+      "consequence": "Repository greenness cannot falsify pulse-null lifecycle/capture/cancel logic before VPS runtime.",
+      "required_repair": "Add a hermetic mocked lifecycle regression for pulse command/result/error handling plus target-runtime pulse-null execution. Do not convert mocked pulse behavior into runtime credit."
+    }
+  ],
+  "primary_source_support": [
+    {
+      "source": "PipeWire Stream API",
+      "ref": "https://docs.pipewire.org/group__pw__stream.html",
+      "relevant_fact": "pw_stream_set_active() activates/deactivates a stream; pw_stream_flush(stream, false) is documented as useful after PAUSED to flush remaining queue/converter data without draining."
+    },
+    {
+      "source": "PipeWire Pulse module-null-sink",
+      "ref": "https://pipewire.pages.freedesktop.org/pipewire/page_pulse_module_null_sink.html",
+      "relevant_fact": "module-null-sink is an admitted software sink primitive with configurable name/rate/channels."
+    },
+    {
+      "source": "WirePlumber monitor ports and pw-cat testing",
+      "ref": "https://pipewire.pages.freedesktop.org/wireplumber/resources/testing.html",
+      "relevant_fact": "pw-record/pw-play can target concrete node ids; monitor ports expose audio sent to sink nodes, supporting exact node-bound readback."
+    }
+  ],
+  "classification_law": {
+    "executing_current_probe_and_getting_green": "EVIDENCE_INVALID_FOR_G2_PIPEWIRE_CANCEL_MONITOR_PROMOTION_UNLESS_REPAIRED",
+    "defects_found_by_source_review": "EVIDENCE_VALIDITY_DEFECT_NOT_PRODUCT_NEGATIVE",
+    "future_exact_repaired_runtime_reproduces_post_cancel_old_audio_beyond_declared_bound": "PRODUCT_NEGATIVE",
+    "pipewire_session_or_sandbox_unavailable": "INFRA_AUTH_TRANSPORT_QUOTA_OR_UNKNOWN_FIDELITY_AFTER_TRACE"
+  },
+  "minimal_repair_acceptance": [
+    "old-generation sentinel/tail is actually sink-admitted before cancel and measurable as buffered/monitor-visible",
+    "late old-generation chunk after generation advance is independently rejected upstream",
+    "cancel cutover and monitor sample-domain boundary are bound",
+    "post-cutover old-generation residual is measured against a predeclared bounded tail",
+    "new-generation sentinel/real waveform is positively observed after cutover",
+    "exact real accepted TTS waveform and packet/output-generation identities are bound for P2 composition credit",
+    "sink/monitor/PipeWire/runtime/F2 identities and external API-call count are in the receipt"
+  ],
+  "explicit_zero_credit": {
+    "runtime_from_review": 0,
+    "g2_pipewire_monitor_cancel": 0,
+    "physical_microphone": 0,
+    "physical_speaker": 0,
+    "human_heard_output": 0,
+    "physical_acoustic_loopback": 0,
+    "gwt_jspace": 0,
+    "effect": 0,
+    "training": 0,
+    "whole_voice_e2e": 0,
+    "whole_product": 0
+  },
+  "next_exact_action": "Trigger 4 should repair only this candidate-falsifier evidence path under the existing G2 semantic owner, add regressions for D1/D2/D3, then execute exactly one S2 PipeWire virtual-sink/monitor run. Do not dispatch the current unchanged probe for promotion-bearing G2 credit and do not open Generation 3."
+}
