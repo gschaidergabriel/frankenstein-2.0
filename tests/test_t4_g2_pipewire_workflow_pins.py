@@ -53,6 +53,11 @@ class Trigger4G2PipeWireWorkflowPinTests(unittest.TestCase):
         self.assertIn("T4_G2_SINGLETON_OWNER=PASS", text)
         self.assertIn("raise SystemExit(3)", text)
 
+    def test_runtime_workflow_uses_supported_sandbox_runner_cli(self) -> None:
+        text = workflow_text()
+        self.assertNotIn("--source-root", text)
+        self.assertIn("--backend nspawn --network on -- \\\n", text)
+
 
 if __name__ == "__main__":
     unittest.main()
