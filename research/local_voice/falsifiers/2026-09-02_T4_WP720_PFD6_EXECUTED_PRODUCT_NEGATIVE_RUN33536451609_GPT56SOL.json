@@ -1,0 +1,62 @@
+{
+  "schema": "F2_TRIGGER4_EXECUTED_FALSIFIER_RESULT/v1",
+  "trigger": "4",
+  "organ": "GPT-5.6-Sol-TRIGGER4-REVIEW",
+  "workpackage_id": "F2-WP-720",
+  "generation": 1,
+  "lane": "CANDIDATE_FALSIFIER_REVIEW_ONLY",
+  "mutation_authority": false,
+  "falsifier_id": "PFD6_DUPLICATE_SOURCE_EVENT_POLICY_DECISION",
+  "exact_subject": {
+    "f2_source_sha": "731db925df96ab7e49c0e5b80cd7bc8f4d37a086",
+    "policy_module_sha256": "31067d9869c50d840594017390c5dbfc54d7c841e45991c158ee595e00968206",
+    "cortex_module_sha256": "eaca762b470dfbf6c19caeee603fc905d664baea4809e8d719212b9b44451bca"
+  },
+  "execution": {
+    "workflow": ".github/workflows/t4-wp720-pfd6-duplicate-policy-falsifier.yml",
+    "workflow_commit": "471a1f87e6278b4505aa0a46eca4083b6201e44f",
+    "run_id": 33536451609,
+    "job_id": 99951826631,
+    "runner": "ubuntu-24.04",
+    "python": "3.12.14",
+    "checkout_identity_step": "SUCCESS",
+    "discriminator_step": "FAILURE_BY_EXPECTED_COUNTEREXAMPLE",
+    "workflow_conclusion": "failure"
+  },
+  "observed_counterexample": {
+    "first_intent": "WAIT",
+    "second_intent": "BACKCHANNEL",
+    "same_source_policy_decisions": 2,
+    "source_event_id": "cortex-event:voice-session:a2805c243feb90bd7e564914d268a7c1238e806cfadf241b49b6c62333b4592c:00000002",
+    "first_decision_event_id": "cortex-event:voice-session:a2805c243feb90bd7e564914d268a7c1238e806cfadf241b49b6c62333b4592c:00000003",
+    "second_decision_event_id": "cortex-event:voice-session:a2805c243feb90bd7e564914d268a7c1238e806cfadf241b49b6c62333b4592c:00000004"
+  },
+  "classification": "PRODUCT_NEGATIVE",
+  "product_negative_scope": "WP720 exact accepted subject 731db925 permits conflicting policy decisions for one already-accepted HOLD source event. Repository acceptance PFD0-PFD5 remains historical evidence but is insufficient for the missing one-decision causal invariant.",
+  "runtime_subject_effect": {
+    "prior_runtime_subject_sha": "731db925df96ab7e49c0e5b80cd7bc8f4d37a086",
+    "prior_vps_run_id": 33536413324,
+    "prior_vps_state_at_review": "QUEUED_NONTERMINAL",
+    "new_churn_class": "RUNTIME_PROBE_INVALIDATED_BY_REQUIRED_REPAIR",
+    "target_environment_component_runtime_credit": 0,
+    "instruction": "Any later pass of the old 731db925 runtime subject is historical-only for WP720 current semantics and must not be composed with a repaired successor into current runtime credit without an explicit admitted invariance proof, which is not available for this reproduced defect."
+  },
+  "observed_successor_repair_candidate": {
+    "commit": "ba5d80eb10fc6e6a8788e513f2bacac0d7954e8a",
+    "followup_test_commit": "c0b1f8bba4178a8291a6a5cec73e296d29d962ac",
+    "description": "A parallel successor integrated PacketTurnPolicy into VoicePacketCortex and derives idempotence/conflict rejection from persisted event history. The follow-up regression explicitly requires exact same-policy replay to return the existing event, conflicting rebind to fail, stale packet reuse to fail, barge-in to remain mandatory, and checkpoint reentry to preserve the fence.",
+    "status": "REPAIR_CANDIDATE_REPOSITORY_EXECUTION_PENDING_AT_REVIEW",
+    "canonical_promotion": 0
+  },
+  "zero_credit": {
+    "target_environment_component_runtime": 0,
+    "physical_audio": 0,
+    "asr_runtime": 0,
+    "tts_runtime": 0,
+    "gwt_jspace": 0,
+    "effect": 0,
+    "training": 0,
+    "whole_product": 0
+  },
+  "next_exact_action": "Do not promote or redispatch old subject 731db925. Resolve WP720 mutation authority against the current successor, execute the repaired event-history one-decision fence and checkpoint-reentry regressions on one exact successor subject, then bind a new singleton VPS subject only after repository acceptance. Preserve run 33536451609 as the root-cause regression witness."
+}
