@@ -8,9 +8,18 @@ import sys
 import unittest
 
 
+SEMANTIC_KEY = "e92995a7fbe633335fa9d99b80dd9a31d7e60d63ddc6b06c564d58ee6c64ac20"
+
+
 class Trigger7RecoveryCommitCancelCompositionTest(unittest.TestCase):
     def test_recovery_composition_diagnostic_executes_complete_matrix(self) -> None:
         root = Path(__file__).resolve().parents[3]
+        claim_path = root / "research/local_voice/semantic_claims" / f"{SEMANTIC_KEY}.json"
+        claim = json.loads(claim_path.read_text(encoding="utf-8"))
+        self.assertEqual(claim["semantic_key"], SEMANTIC_KEY)
+        self.assertEqual(claim["semantic_objective"]["generation"], 2)
+        self.assertEqual(claim["semantic_objective"]["evidence_scope"], "CANDIDATE_FALSIFIER")
+
         tool = root / "research/local_voice/tools/falsify_voice_packet_cortex_recovery_commit_cancel_composition.py"
         env = dict(os.environ)
         src = str(root / "src")
