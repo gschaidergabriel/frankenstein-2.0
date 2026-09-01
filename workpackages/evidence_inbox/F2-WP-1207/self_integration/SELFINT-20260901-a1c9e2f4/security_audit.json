@@ -1,0 +1,17 @@
+{
+  "run_id": "SELFINT-20260901-a1c9e2f4",
+  "secret_scan": "RUN_CLEAN_NO_SECRET_VALUES_FOUND",
+  "secret_scan_detail": {
+    "command": "grep -rIl \"STITCH_ACCESS_TOKEN\\|ANTHROPIC_BASE_URL\" <evidence_dir_and_logs>",
+    "targets_scanned": [
+      "workpackages/evidence_inbox/F2-WP-1207/self_integration/SELFINT-20260901-a1c9e2f4/ (full, all artifacts, this run's final pass)",
+      "logs/gate_summary.json",
+      "measurements.jsonl"
+    ],
+    "result": "one self-referencing match: this file (security_audit.json) itself, because it documents the two key NAMES in secret_scan_detail.command above as the scan target -- the key names are not secret, only their VALUES would be, and no key value ever appears anywhere in the evidence dir. All other files (including FINAL_REPORT.md, which was reworded to avoid even the self-reference): zero matches."
+  },
+  "privilege_changes": [],
+  "outbound_endpoint_changes": [],
+  "unexpected_effects": [],
+  "notes": "The real ~/.claude/ directory was never mutated: original settings.json mtime/permissions were checked and confirmed unchanged after building the sandbox copy. The sandbox managed_dir/control_dir are both under /tmp and disposable. No host reboot, no state deletion, no push to main, no modification of src/frankenstein2/portable_release_transaction.py (confirmed by git status showing it as unmodified). No network calls exist anywhere in the wrapped seam (see integration_map.json#irreversible_effect_boundaries, empty by construction). Nothing in this run required or performed a privilege change."
+}

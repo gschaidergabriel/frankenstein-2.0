@@ -1,0 +1,60 @@
+{
+  "run_id": "SELFINT-20260901-a1c9e2f4",
+  "timestamp_utc": "2026-09-01T10:06:27Z",
+  "repo": {
+    "head_sha": "2f7437b12423688533e35301e947ac0e282e6362",
+    "dirty": true,
+    "branch": "self-integration/wp1207-SELFINT-20260901-a1c9e2f4"
+  },
+  "runtime": {
+    "services": [],
+    "containers": [],
+    "process_tree": [
+      "run_gates.py (host python3, pid captured only in process, not persisted): drives P5/P6/P8/P9/P10 in-process against the sandbox store",
+      "P7 gate spawned a genuinely fresh child python3 subprocess via subprocess.run([sys.executable, '-c', ...]) to call independent_readback() outside the parent process, satisfying the cross-process re-entry requirement"
+    ],
+    "entrypoints": [
+      "src/frankenstein2/self_update_transaction.py:apply_transaction",
+      "src/frankenstein2/self_update_transaction.py:apply_rollback",
+      "src/frankenstein2/self_update_transaction.py:independent_readback"
+    ],
+    "restart_mechanisms": [
+      "none exercised at the service/systemd level in this run: this is a disposable sandbox exercise, not a live-service integration (that is Phase 13, out of scope). Only process-level re-entry (fresh python3 subprocess for P7) was exercised."
+    ]
+  },
+  "persistence": [
+    {
+      "kind": "managed_dir",
+      "path": "/tmp/selfint-SELFINT-20260901-a1c9e2f4/sandbox-claude",
+      "role": "disposable sandbox stand-in for ~/.claude; see integration_map.json for exact curated contents"
+    },
+    {
+      "kind": "control_dir",
+      "path": "/tmp/selfint-SELFINT-20260901-a1c9e2f4/control-claude",
+      "role": "SelfUpdateStore control state: lineage.json, history.json, snapshots/gen_<N>/"
+    },
+    {
+      "kind": "measurements",
+      "path": "measurements.jsonl (this evidence dir)",
+      "role": "one F2_WP1207_SELF_INTEGRATION_MEASUREMENT/v1 record per gate"
+    }
+  ],
+  "health": {
+    "probes": [
+      "test_portable_release_transaction.py (canonical baseline, 12/12 passed after all changes -- confirms no regression to the accepted G10 module)",
+      "test_self_update_transaction.py (new wrapper suite, 11/11 passed)",
+      "run_gates.py end-to-end sandbox run (all 7 gates P5-P11 behaved as required; exit 0, empty stderr)"
+    ],
+    "baseline": "PYTHONPATH=src python3 -m pytest tests/test_portable_release_transaction.py -q -> 12 passed in 0.05s, exit 0"
+  },
+  "release_update_boundary": {
+    "current_hooks": [
+      "none: ~/.claude has no existing wrapped release/update transaction mechanism prior to this run (this run only produces candidate evidence for one, entirely in a disposable sandbox)"
+    ],
+    "candidate_hooks": [
+      "src/frankenstein2/self_update_transaction.py:apply_transaction (INSTALL/UPDATE) over managed_dir=~/.claude-equivalent, control_dir=sibling control directory",
+      "src/frankenstein2/self_update_transaction.py:apply_rollback (explicit ROLLBACK, mints new forward generation with predecessor bytes)"
+    ]
+  },
+  "secrets_redacted": true
+}

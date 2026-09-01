@@ -1,0 +1,69 @@
+{
+  "run_id": "SELFINT-20260901-a1c9e2f4",
+  "candidate_seams": [
+    {
+      "seam": "config/state release-and-update handoff over ~/.claude",
+      "description": "Treat ~/.claude (settings.json, star/unified.db, commands/, watchdog/, tasks/, star/architekt/, star/settings.json) as the managed_dir of a portable release transaction; wrap install/update/rollback of that directory with the G10 primitives.",
+      "selected": true
+    },
+    {
+      "seam": "cognition/agent-loop reload boundary",
+      "description": "Wrap whatever process would reload GWT/J-Space/model semantics on update.",
+      "selected": false,
+      "rejected_reason": "explicitly out of scope (hard constraint: never touch cognition/GWT/J-Space/model semantics); also has no clean atomic filesystem boundary comparable to config/state"
+    },
+    {
+      "seam": "full ~/.claude byte-identical mirror as managed_dir",
+      "description": "Snapshot the entire ~5G ~/.claude tree (including venvs, archival snapshots, historical db backups, skill packs, conversation history) as the managed_dir.",
+      "selected": false,
+      "rejected_reason": "not rejected on principle, but not used for this run: ~4.9G of the 5G total is reproducible/derived or archival (see fidelity_limitation below) and irrelevant to the release/update transaction boundary; a full mirror would make every gate snapshot prohibitively expensive without adding evidentiary value for H1-H12"
+    }
+  ],
+  "selected_seam": {
+    "seam": "config/state release-and-update handoff over ~/.claude",
+    "managed_dir_sandbox": "/tmp/selfint-SELFINT-20260901-a1c9e2f4/sandbox-claude",
+    "control_dir_sandbox": "/tmp/selfint-SELFINT-20260901-a1c9e2f4/control-claude",
+    "wrapper_module": "src/frankenstein2/self_update_transaction.py",
+    "wrapped_canonical_module": "src/frankenstein2/portable_release_transaction.py (untouched, re-verified via tests/test_portable_release_transaction.py: 12 passed)",
+    "included_in_sandbox": [
+      "settings.json (1943 bytes, byte-identical to real ~/.claude/settings.json at copy time)",
+      "settings.local.json",
+      "commands/ (full)",
+      "watchdog/ (full)",
+      "tasks/ (full)",
+      "star/unified.db (61M, sha256 3c8059a0fc1d4711d670aa9449130c7a1ca0cc4fe4473e00a43198ec807a4d3a on both real and copy -- confirmed byte-identical)",
+      "star/settings.json (if present)",
+      "star/architekt/ (if present)"
+    ],
+    "sandbox_totals": "54 files, 62M"
+  },
+  "irreversible_effect_boundaries": [],
+  "rationale": "The install/update/rollback handoff over ~/.claude's config+durable-state files (settings, unified.db, commands, watchdog, tasks, star/architekt) is the narrowest seam that (a) has a well-defined atomic filesystem boundary, (b) can be wrapped by the accepted G10 transaction primitives without modification, and (c) never requires touching cognition/agent-loop/model-semantics code, satisfying H1/H2 and the hard safety constraints of this run in one selection. The sandbox is a curated, bounded, faithful representative subset of the real ~/.claude tree rather than a full byte-identical mirror; this is an explicit fidelity limitation, not an oversight -- see fidelity_limitation below. No external/irreversible effect exists anywhere inside the selected seam (pure local filesystem), so irreversible_effect_boundaries is empty by construction for this run.",
+  "fidelity_limitation": {
+    "disclosure": "The sandbox managed_dir is NOT a full byte-identical mirror of ~/.claude. It is a curated, bounded, faithful representative subset covering exactly the files judged relevant to the release/update transaction boundary under test. This is reported here as a fidelity limitation per the run's explicit allowance for 'a truncated faithful stand-in... say so in the receipt as a fidelity limitation'.",
+    "excluded_from_sandbox": [
+      {"path": "star/harness-venv", "approx_size": "666M", "reason": "reproducible python venv, not state"},
+      {"path": "star/schnappschuesse", "approx_size": "201M", "reason": "archival snapshots, not live state"},
+      {"path": "star/daten", "approx_size": "149M", "reason": "bulk data, not part of the release/update identity boundary"},
+      {"path": "star/unified.db.bak-*", "approx_size": "40-61M each, dozens of copies", "reason": "historical backup copies, not live state"},
+      {"path": "skills/", "approx_size": "1.5G", "reason": "large, mostly static skill packs unrelated to this transaction boundary"},
+      {"path": "skills-uiux/", "approx_size": "12M", "reason": "same as above"},
+      {"path": "projects/", "approx_size": "1.1G", "reason": "conversation history, not config/state identity"},
+      {"path": "file-history/", "approx_size": "112M", "reason": "editor undo history, not config/state identity"},
+      {"path": "shell-snapshots/", "approx_size": "3.5M", "reason": "transient shell state"},
+      {"path": "paste-cache/", "approx_size": "1.2M", "reason": "transient cache"},
+      {"path": "cache/", "approx_size": "540K", "reason": "transient cache"},
+      {"path": "session-env/", "approx_size": "948K", "reason": "transient per-session state"},
+      {"path": "plugins/", "approx_size": "15M", "reason": "plugin payloads, treated as out of scope for this boundary"}
+    ],
+    "verification_performed": "sha256sum of star/unified.db confirmed byte-identical between real ~/.claude and the sandbox copy at copy time; real ~/.claude/settings.json mtime/permissions confirmed unchanged after the copy (original untouched, as required)",
+    "impact_on_hypothesis_scope": "H6 overhead measurements are only valid at the ~62M curated-subset scale; no extrapolation to the full ~5G tree was performed. All other hypotheses (H1-H5, H7-H13) are not size-sensitive and are unaffected by this limitation."
+  },
+  "files_functions_lines": [
+    "src/frankenstein2/self_update_transaction.py: compute_manifest, compute_state_digest, release_identity_for_payload, SelfUpdateStore, apply_transaction, apply_rollback, independent_readback",
+    "src/frankenstein2/portable_release_transaction.py: build_transaction_plan, record_attempt, ReleaseIdentity, StateLineage, TransactionPlan, AttemptReceipt (imported, unmodified)"
+  ],
+  "alternatives_rejected": [
+    "portable_release_readback.record_release_readback was NOT wired into independent_readback for this run. Considered as a second wrap target for P7, but self_update_transaction.independent_readback already provides a sufficient, independently-checkable readback (fresh SelfUpdateStore + recomputed on-disk digest vs persisted lineage) and adding a second wrapped primitive mid-run would have widened the seam beyond what H1/H2 call for. This is an open design point for a future iteration, not a defect in this run's evidence: record_release_readback could add a second, differently-derived readback path for stronger cross-checking, but was out of scope here."
+  ]
+}

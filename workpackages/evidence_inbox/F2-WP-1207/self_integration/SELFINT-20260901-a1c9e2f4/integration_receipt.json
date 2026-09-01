@@ -1,0 +1,46 @@
+{
+  "run_id": "SELFINT-20260901-a1c9e2f4",
+  "scope": "CANDIDATE_SELF_INTEGRATION_NON_CANONICAL",
+  "subject_identity": {
+    "wrapper_module": "src/frankenstein2/self_update_transaction.py",
+    "wrapped_canonical_module": "src/frankenstein2/portable_release_transaction.py",
+    "schema": "FRANKENSTEIN2_SELF_UPDATE_TRANSACTION/v1"
+  },
+  "environment_identity": {
+    "sandbox_managed_dir": "/tmp/selfint-SELFINT-20260901-a1c9e2f4/sandbox-claude",
+    "sandbox_control_dir": "/tmp/selfint-SELFINT-20260901-a1c9e2f4/control-claude",
+    "fidelity": "curated bounded faithful representative subset of ~/.claude (54 files, 62M); NOT a full byte-identical mirror; see integration_map.json#fidelity_limitation",
+    "real_claude_dir_untouched": true
+  },
+  "baseline": {
+    "canonical_regression_test": "PYTHONPATH=src python3 -m pytest tests/test_portable_release_transaction.py -q",
+    "canonical_regression_result": "12 passed in 0.05s, exit 0",
+    "wrapper_test": "PYTHONPATH=src python3 -m pytest tests/test_self_update_transaction.py -q",
+    "wrapper_test_result": "11 passed in 0.08s, exit 0"
+  },
+  "iterations": [
+    {"gate": "P5", "description": "INSTALL then UPDATE", "outcome": "SUCCEEDED/SUCCEEDED", "ref": "logs/gate_summary.json#p5_install,#p5_update"},
+    {"gate": "P6", "description": "injected post-mutation failure -> rollback", "outcome": "ROLLED_BACK, exact_match=true", "ref": "logs/gate_summary.json#p6_injected_failure"},
+    {"gate": "P7", "description": "fresh cross-process independent readback", "outcome": "lineage_matches_observed=true", "ref": "logs/gate_summary.json#p7_process_restart_readback"},
+    {"gate": "P8", "description": "hostile-twin declared release", "outcome": "RAISED before mutation, state unchanged", "ref": "logs/gate_summary.json#p8_hostile_twin"},
+    {"gate": "P9", "description": "replay/idempotency", "outcome": "RAISED, no double-apply", "ref": "logs/gate_summary.json#p9_replay_idempotency"},
+    {"gate": "P10", "description": "concurrent/stale-state CAS", "outcome": "caller_b SUCCEEDED, caller_a RAISED fail-closed, no split-brain", "ref": "logs/gate_summary.json#p10_concurrent_stale_cas"}
+  ],
+  "outcome": "CANDIDATE_EVIDENCE_PRODUCED_ALL_GATES_BEHAVED_AS_REQUIRED",
+  "non_claims": [
+    "whole_system_acceptance",
+    "physical_host_credit",
+    "effect_credit",
+    "training_credit"
+  ],
+  "evidence_refs": [
+    "measurements.jsonl",
+    "logs/gate_summary.json",
+    "logs/run_gates.py",
+    "hypothesis_results.json",
+    "rollback_evidence.json",
+    "integration_map.json",
+    "runtime_topology.json",
+    "canonicalization_proposal.json"
+  ]
+}

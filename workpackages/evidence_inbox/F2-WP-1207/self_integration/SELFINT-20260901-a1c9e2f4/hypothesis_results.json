@@ -1,0 +1,117 @@
+{
+  "run_id": "SELFINT-20260901-a1c9e2f4",
+  "hypotheses": [
+    {
+      "id": "H1",
+      "status": "PASS",
+      "evidence_refs": [
+        "src/frankenstein2/self_update_transaction.py",
+        "logs/gate_summary.json#p5_install",
+        "logs/gate_summary.json#p5_update"
+      ],
+      "reason": "self_update_transaction.py wraps (imports/calls only, never forks or edits) the accepted portable_release_transaction.py primitives around a single INSTALL/UPDATE/ROLLBACK boundary over a curated managed_dir (settings.json, commands/, watchdog/, tasks/, star/unified.db and siblings). P5 install+update both SUCCEEDED against this boundary. No cognition/GWT/J-Space files were included in managed_dir and no such file was touched."
+    },
+    {
+      "id": "H2",
+      "status": "PASS",
+      "evidence_refs": [
+        "integration_map.json#selected_seam",
+        "logs/gate_summary.json#p5_install"
+      ],
+      "reason": "The selected seam is exactly the config/state release-and-update handoff (settings.json, unified.db, commands/, watchdog/, tasks/, star/). Cognition, agent-loop and model-semantics files are outside managed_dir entirely (excluded by construction), so nothing about the seam required rewriting cognition logic."
+    },
+    {
+      "id": "H3",
+      "status": "PASS",
+      "evidence_refs": [
+        "measurements.jsonl",
+        "logs/gate_summary.json#p6_injected_failure",
+        "rollback_evidence.json"
+      ],
+      "reason": "P6 injected a post-mutation failure on an UPDATE. Receipt outcome ROLLED_BACK; observed_state_sha256 after recovery, the fresh on-disk digest after recovery, and the expected predecessor digest are all identical (68513b5bcff37c9d120033d8084e7855fafd98c69590df25011f8a917c840a61); generation stayed at 1 (no phantom advance). The store remained loadable/usable immediately after (re-entry within the same process succeeded for later gates)."
+    },
+    {
+      "id": "H4",
+      "status": "PASS",
+      "evidence_refs": [
+        "logs/gate_summary.json#p7_process_restart_readback",
+        "tests/test_self_update_transaction.py#test_explicit_rollback_mints_new_generation_with_predecessor_bytes"
+      ],
+      "reason": "For the success path, P7 re-entered from a genuinely fresh python3 subprocess (not in-process) after the P5 UPDATE and its independent_readback matched the persisted lineage exactly (generation 1, same state digest). For the explicit-ROLLBACK path, predecessor-byte restoration and new-generation minting are proven only in-process by the unit test, not yet by a fresh cross-process readback in this run -- that asymmetry is a known gap, not a silent overclaim. No duplicate irreversible effects were possible or observed: managed_dir is pure local filesystem state with no network/external calls in the wrapped seam (see H12)."
+    },
+    {
+      "id": "H5",
+      "status": "PASS",
+      "evidence_refs": [
+        "logs/gate_summary.json#p8_hostile_twin",
+        "tests/test_self_update_transaction.py#test_hostile_twin_declared_release_rejected_before_mutation"
+      ],
+      "reason": "P8 declared a forged target_release digest that did not match the actual payload bytes. apply_transaction raised SelfUpdateTransactionError('hostile-twin rejected before mutation: ...') before any filesystem write; on-disk digest before/after the attempt was identical and generation stayed at 1."
+    },
+    {
+      "id": "H6",
+      "status": "PASS",
+      "evidence_refs": [
+        "measurements.jsonl"
+      ],
+      "reason": "Every in-process gate (P5 install/update, P6 rollback, P8, P9, P10) recorded real, non-fabricated wall-time, resource.getrusage CPU, RSS and /proc/self/io disk deltas in measurements.jsonl. All are bounded, sub-second, and on the order of tens of milliseconds for the recovery path (rollback_duration_ms=25.6894439808093, failure_detection_ms=62.00227601220831). Caveat: measured against the 62M curated sandbox, not the full ~5G real ~/.claude tree; no extrapolation to full size was performed (would be invented, not measured)."
+    },
+    {
+      "id": "H7",
+      "status": "INCONCLUSIVE",
+      "evidence_refs": [],
+      "reason": "This run never touches the real, running Claude Code instance or its actual cognition/agent-loop behavior -- that is Phase 13 and explicitly out of scope for SELFINT-20260901-a1c9e2f4. No pre/post-integration behavioral baseline of the live primary Frankenstein was captured, and none should be captured from a sandboxed self-integration run. Requires a live-integration run (Phase 13) under independent review before this can be assessed."
+    },
+    {
+      "id": "H8",
+      "status": "PASS",
+      "evidence_refs": [
+        "logs/gate_summary.json#p9_replay_idempotency",
+        "tests/test_self_update_transaction.py#test_replaying_same_attempt_id_after_success_is_rejected_not_double_applied"
+      ],
+      "reason": "P9 replayed an UPDATE whose target equals the already-active release; rejected with 'UPDATE target must differ from active release', state and generation unchanged (rejected_no_double_apply=true). The unit test additionally covers the CAS-stale-replay variant (same payload, stale expected_generation) and gets the analogous fail-closed rejection. Neither path double-applies or diverges state."
+    },
+    {
+      "id": "H9",
+      "status": "PASS",
+      "evidence_refs": [
+        "logs/gate_summary.json#p10_concurrent_stale_cas",
+        "tests/test_self_update_transaction.py#test_stale_caller_expected_generation_is_rejected_fail_closed"
+      ],
+      "reason": "P10: caller B advanced the lineage to generation 2 successfully; caller A, holding a stale expected_generation/expected_state_sha256 belief, was rejected fail-closed ('expected generation does not match current lineage'). Final state is exactly caller B's; no_split_brain=true."
+    },
+    {
+      "id": "H10",
+      "status": "PASS",
+      "evidence_refs": [
+        "canonicalization_proposal.json",
+        "workpackages/evidence_inbox/F2-WP-1207/self_integration/SELFINT-20260901-a1c9e2f4/"
+      ],
+      "reason": "This is a process/governance claim, not a runtime-gate claim: all evidence produced by this run was written exclusively to the non-canonical evidence_inbox path, no canonical workpackages/ file was mutated, and canonicalization_proposal.json explicitly marks status PROPOSAL_ONLY_ZERO_ACCEPTANCE_CREDIT with requested_independent_review=true. No artifact in this run asserts its own acceptance."
+    },
+    {
+      "id": "H11",
+      "status": "INCONCLUSIVE",
+      "evidence_refs": [
+        "logs/gate_summary.json#p6_injected_failure",
+        "logs/gate_summary.json#p7_process_restart_readback"
+      ],
+      "reason": "Only 2 of the 5 named phases have a directly measured, non-fabricated timing in this run: failure_detection_ms=62.00227601220831 and rollback_duration_ms=25.6894439808093, both from the P6 gate. 'process re-entry' and 'healthy readback' are demonstrated qualitatively and cross-process by P7, but P7 was run after the P5 success path, not chained immediately after the P6 rollback recovery as a single continuously-timed sequence. A single run that times all five phases detection->rollback begin->rollback end->re-entry->readback back-to-back has not been produced; reporting a full decomposition would require inventing missing timings, which is disallowed."
+    },
+    {
+      "id": "H12",
+      "status": "PASS",
+      "evidence_refs": [
+        "src/frankenstein2/self_update_transaction.py",
+        "integration_map.json#irreversible_effect_boundaries"
+      ],
+      "reason": "The wrapped seam (self_update_transaction.py) performs only local filesystem reads/writes/snapshots under managed_dir/control_dir; it makes no network calls and fires no external side effects. All injected failures (pre_mutation, post_mutation) are local-filesystem-only. No artifact in this run claims or implies that local rollback constitutes rollback of any external/irreversible effect; integration_map.json's irreversible_effect_boundaries list is empty for this run's actual selected seam."
+    },
+    {
+      "id": "H13",
+      "status": "INCONCLUSIVE",
+      "evidence_refs": [],
+      "reason": "Whether repaired G10 portable transaction source requires wholly fresh runtime-integration evidence versus inheriting G9 acceptance credit is a canonicalization/governance decision for independent reviewers, not something the P5-P11 gates executed in this sandboxed run can adjudicate. This run supplies fresh candidate evidence (per H10) but does not itself decide the credit-inheritance question."
+    }
+  ]
+}

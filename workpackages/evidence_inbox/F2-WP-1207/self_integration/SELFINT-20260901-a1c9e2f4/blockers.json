@@ -1,0 +1,23 @@
+{
+  "run_id": "SELFINT-20260901-a1c9e2f4",
+  "blockers": [
+    {
+      "failure_class": "UNKNOWN_NONTERMINAL",
+      "summary": "H4/H11 gap: explicit-ROLLBACK re-entry has only in-process proof (unit test), not a fresh cross-process readback in the same run as the P6 rollback recovery; H11's five-phase latency decomposition (detection->rollback begin->rollback end->re-entry->readback) has real numbers for only 2 of 5 phases.",
+      "evidence_refs": ["hypothesis_results.json#H4", "hypothesis_results.json#H11", "rollback_evidence.json#reentry_readback"],
+      "next_discriminator": "run a gate that: (1) performs the injected-post-mutation-failure UPDATE, (2) performs the explicit apply_rollback() SUCCEEDED, (3) spawns a fresh python3 subprocess to call independent_readback() immediately after, all timed as one continuous sequence, and record all 5 phase timings from real clock reads."
+    },
+    {
+      "failure_class": "PRODUCT_NEGATIVE",
+      "summary": "H7 (primary Frankenstein behavioral non-degradation) cannot be assessed from this run: no live/primary Frankenstein baseline exists to compare against, because touching the live runtime is explicitly Phase 13 and out of scope for SELFINT-20260901-a1c9e2f4.",
+      "evidence_refs": ["hypothesis_results.json#H7"],
+      "next_discriminator": "requires Phase 13 (live integration on the real runtime) under independent review; not resolvable inside a sandboxed self-integration run."
+    },
+    {
+      "failure_class": "UNKNOWN_NONTERMINAL",
+      "summary": "H13 (whether repaired G10 source inherits G9 acceptance credit or needs wholly fresh runtime evidence) is a governance/canonicalization question, not something the P5-P11 gates can adjudicate.",
+      "evidence_refs": ["hypothesis_results.json#H13"],
+      "next_discriminator": "requires an independent reviewer decision on canonicalization_proposal.json, referencing the G6/G9/G10 workpackage acceptance chain."
+    }
+  ]
+}

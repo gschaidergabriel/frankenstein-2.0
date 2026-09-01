@@ -1,0 +1,29 @@
+{
+  "run_id": "SELFINT-20260901-a1c9e2f4",
+  "iteration_id": "SELFINT-20260901-a1c9e2f4-p6-update-fail-1",
+  "predecessor_state_sha256": "68513b5bcff37c9d120033d8084e7855fafd98c69590df25011f8a917c840a61",
+  "planned_rollback_target_state_sha256": "68513b5bcff37c9d120033d8084e7855fafd98c69590df25011f8a917c840a61",
+  "observed_post_rollback_state_sha256": "68513b5bcff37c9d120033d8084e7855fafd98c69590df25011f8a917c840a61",
+  "digest_match": true,
+  "restart_result": "not applicable to this iteration: recovery was verified in-process immediately after the injected post-mutation failure (same store object, then a fresh compute_state_digest() call against the on-disk bytes); cross-process re-entry after a rollback specifically has not been captured in this run (see hypothesis_results.json#H4, H11 for the exact gap)",
+  "reentry_readback": {
+    "note": "the fresh cross-process readback captured in this run (P7) was taken after the P5 SUCCEEDED update, not after this P6 rollback -- reported honestly as not directly chained to this rollback iteration",
+    "cross_process_readback_available": false,
+    "in_process_readback_available": true,
+    "in_process_result": "compute_state_digest(managed_dir) recomputed fresh from on-disk bytes after recovery equalled both the observed_state_sha256 on the receipt and the pre-attempt predecessor digest"
+  },
+  "health_after": "store remained loadable and usable: subsequent gates (P7 fresh-subprocess readback, P8, P9, P10) ran successfully against the same managed_dir/control_dir immediately afterward with no errors attributable to the P6 recovery",
+  "timings_ms": {
+    "failure_detection_ms": 62.00227601220831,
+    "rollback_duration_ms": 25.6894439808093,
+    "source": "measured with resource.getrusage(resource.RUSAGE_SELF) and /proc/self/io deltas inside run_gates.py; not fabricated",
+    "measurements_record_ref": "measurements.jsonl (P6 record, schema F2_WP1207_SELF_INTEGRATION_MEASUREMENT/v1)"
+  },
+  "duplicate_irreversible_effects": "none possible: the injected failure and recovery are both purely local-filesystem operations (snapshot restore) under a disposable /tmp sandbox; no external/irreversible call exists anywhere in the wrapped seam (see integration_map.json#irreversible_effect_boundaries and hypothesis_results.json#H12)",
+  "evidence_refs": [
+    "measurements.jsonl",
+    "logs/gate_summary.json#p6_injected_failure",
+    "logs/run_gates.py",
+    "src/frankenstein2/self_update_transaction.py"
+  ]
+}
