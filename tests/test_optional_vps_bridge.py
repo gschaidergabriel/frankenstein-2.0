@@ -10,6 +10,7 @@ from frankenstein2.optional_vps_bridge import (
     EvidenceState,
     LocalRuntimeIdentity,
     RemoteEndpointEvidence,
+    bind_remote_request,
     plan_optional_bridge,
     validate_remote_return,
 )
@@ -34,14 +35,16 @@ def local(*, boot_state: EvidenceState = EvidenceState.VERIFIED) -> LocalRuntime
 
 def remote(
     *,
+    endpoint_id: str = "clay-direct-dev",
+    environment_digest: str = SHA_B,
     availability: EvidenceState = EvidenceState.VERIFIED,
     lineage: str = "state-lineage-1",
     typed: bool = True,
 ) -> RemoteEndpointEvidence:
     return RemoteEndpointEvidence.create(
-        endpoint_id="clay-direct-dev",
+        endpoint_id=endpoint_id,
         transport="TYPED_BRIDGE/v1",
-        environment_digest=SHA_B,
+        environment_digest=environment_digest,
         capability_report_digest=SHA_C,
         bound_local_state_lineage_id=lineage,
         availability_state=availability,
@@ -141,15 +144,20 @@ class OptionalVPSBridgeTests(unittest.TestCase):
                 truth_authority=True,
             )
 
-    def test_remote_return_is_identity_bound_but_never_truth_or_effect_credit(self) -> None:
+    def test_remote_return_is_exactly_identity_bound_but_never_truth_or_effect_credit(self) -> None:
         plan = plan_optional_bridge(local=local(), action=BridgeAction.ATTACH, remote=remote())
+        binding = bind_remote_request(plan=plan, request_digest=SHA_C)
         result = validate_remote_return(
             plan=plan,
+            request_binding=binding,
+            returned_remote_endpoint_digest=plan.remote_endpoint_digest,
             returned_state_lineage_id="state-lineage-1",
-            request_digest=SHA_C,
+            returned_request_digest=SHA_C,
             result_digest=SHA_D,
         )
         self.assertTrue(result["identity_binding_valid"])
+        self.assertEqual(result["remote_endpoint_digest"], plan.remote_endpoint_digest)
+        self.assertEqual(result["request_digest"], SHA_C)
         self.assertTrue(result["candidate_or_projection_only"])
         self.assertEqual(result["canonical_truth_credit"], 0)
         self.assertEqual(result["effect_completion_credit"], 0)
@@ -166,13 +174,65 @@ class OptionalVPSBridgeTests(unittest.TestCase):
                 result_digest=SHA_D,
             )
 
+    def test_remote_return_wrong_endpoint_fails_closed(self) -> None:
+        plan = plan_optional_bridge(local=local(), action=BridgeAction.ATTACH, remote=remote())
+        other_plan = plan_optional_bridge(
+            local=local(),
+            action=BridgeAction.ATTACH,
+            remote=remote(endpoint_id="other-endpoint", environment_digest=SHA_D),
+        )
+        binding = bind_remote_request(plan=plan, request_digest=SHA_C)
+        with self.assertRaisesRegex(BridgeValidationError, "REMOTE_RETURN_ENDPOINT_MISMATCH"):
+            validate_remote_return(
+                plan=plan,
+                request_binding=binding,
+                returned_remote_endpoint_digest=other_plan.remote_endpoint_digest,
+                returned_state_lineage_id="state-lineage-1",
+                returned_request_digest=SHA_C,
+                result_digest=SHA_D,
+            )
+
+    def test_remote_return_wrong_request_fails_closed(self) -> None:
+        plan = plan_optional_bridge(local=local(), action=BridgeAction.ATTACH, remote=remote())
+        binding = bind_remote_request(plan=plan, request_digest=SHA_C)
+        with self.assertRaisesRegex(BridgeValidationError, "REMOTE_RETURN_REQUEST_MISMATCH"):
+            validate_remote_return(
+                plan=plan,
+                request_binding=binding,
+                returned_remote_endpoint_digest=plan.remote_endpoint_digest,
+                returned_state_lineage_id="state-lineage-1",
+                returned_request_digest=SHA_D,
+                result_digest=SHA_D,
+            )
+
+    def test_remote_return_binding_from_other_plan_fails_closed(self) -> None:
+        plan = plan_optional_bridge(local=local(), action=BridgeAction.ATTACH, remote=remote())
+        other_plan = plan_optional_bridge(
+            local=local(),
+            action=BridgeAction.ATTACH,
+            remote=remote(endpoint_id="other-endpoint", environment_digest=SHA_D),
+        )
+        other_binding = bind_remote_request(plan=other_plan, request_digest=SHA_C)
+        with self.assertRaisesRegex(BridgeValidationError, "REMOTE_REQUEST_BINDING_PLAN_MISMATCH"):
+            validate_remote_return(
+                plan=plan,
+                request_binding=other_binding,
+                returned_remote_endpoint_digest=plan.remote_endpoint_digest,
+                returned_state_lineage_id="state-lineage-1",
+                returned_request_digest=SHA_C,
+                result_digest=SHA_D,
+            )
+
     def test_remote_return_wrong_lineage_fails_closed(self) -> None:
         plan = plan_optional_bridge(local=local(), action=BridgeAction.ATTACH, remote=remote())
+        binding = bind_remote_request(plan=plan, request_digest=SHA_C)
         with self.assertRaisesRegex(BridgeValidationError, "STATE_LINEAGE_MISMATCH"):
             validate_remote_return(
                 plan=plan,
+                request_binding=binding,
+                returned_remote_endpoint_digest=plan.remote_endpoint_digest,
                 returned_state_lineage_id="other-lineage",
-                request_digest=SHA_C,
+                returned_request_digest=SHA_C,
                 result_digest=SHA_D,
             )
 
