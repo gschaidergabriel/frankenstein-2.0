@@ -24,6 +24,7 @@ import wave
 from frankenstein2.causal_identity import CausalIdentity
 from frankenstein2.voice_contract import VoiceIntent, VoiceSessionCapsule
 from frankenstein2.voice_packet_cortex import VoicePacketCortex
+from g2_causal_playback_delivery import propagate_barge_in_cancel_to_bound_playback
 from g2_pipewire_evidence import (
     identities_absent,
     resolve_pipewire_objects,
@@ -202,7 +203,7 @@ def play_start(sink: str, source: Path) -> tuple[subprocess.Popen, int]:
 
 
 def stop_playback(proc: subprocess.Popen) -> int:
-    """Subordinate test-driver translation only; not autonomous product playback authority."""
+    """Non-credit-bearing safety cleanup only; never the promotion-bearing cancel path."""
     if proc.poll() is None:
         proc.terminate()
         try:
@@ -328,6 +329,7 @@ def evidence_failure_class(stage: str, exc: Exception) -> str:
         "IDENTITY_",
         "ANALYZER_",
         "TTS_",
+        "CAUSAL_DELIVERY_",
     )
     if stage in {"PCM_ANALYSIS", "REPLACEMENT_READBACK", "PACKET_BINDING"}:
         return "EVIDENCE_INVALID"
@@ -361,7 +363,7 @@ def main() -> int:
         "target_surface": "clay-direct-dev",
         "sandbox_tier": "S2_OWNER_VPS",
         "f2_subject_sha": args.f2_subject_sha,
-        "cancel_translation_scope": "TEST_DRIVER_SUBORDINATE_TRANSLATION_NOT_AUTONOMOUS_PRODUCT_PLAYBACK_EXECUTOR",
+        "cancel_translation_scope": "EXACT_CORTEX_CANCEL_EVENT_BOUND_TEST_DRIVER_DELIVERY_NOT_AUTONOMOUS_PLAYBACK_AUTHORITY",
         "result": "BLOCKED",
         "failure_class": "UNKNOWN_NONTERMINAL",
         "explicit_zero_credit": {
@@ -393,6 +395,7 @@ def main() -> int:
     analysis_json = args.workdir / "analysis.json"
     control_cap = cancel_cap = replacement_cap = None
     control_fh = cancel_fh = replacement_fh = None
+    control_play = cancel_play = replacement_play = None
 
     try:
         for path in (
@@ -507,14 +510,20 @@ def main() -> int:
         cancel_request_ns = time.monotonic_ns()
         cancel_offset_ms = (cancel_request_ns - cancel_play_start_ns) / 1_000_000.0
         packet_cancel_ms = max(21, int(round(cancel_offset_ms)) + 20)
-        changed = cortex.cancel_for_barge_in(turn_id="turn-b", monotonic_ms=packet_cancel_ms)
-        packet_terminal_ns = time.monotonic_ns()
+        changed, causal_delivery = propagate_barge_in_cancel_to_bound_playback(
+            cortex,
+            packet_id=packet_id,
+            turn_id="turn-b",
+            monotonic_ms=packet_cancel_ms,
+            playback_proc=cancel_play,
+        )
+        packet_terminal_ns = int(causal_delivery["authority_observed_ns"])
+        playback_terminal_ns = int(causal_delivery["playback_terminal_ns"])
         if packet_id not in changed:
             raise AssertionError("PACKET_CANCEL_DID_NOT_TOUCH_BOUND_OUTPUT")
         interrupted = next(p for p in cortex.outputs if p.packet_id == packet_id)
         if interrupted.playback_state != "interrupted" or interrupted.commit_eligible:
             raise AssertionError("PACKET_FENCE_FAILED_AFTER_CANCEL")
-        playback_terminal_ns = stop_playback(cancel_play)
         post_roll_s = args.max_inflight_ms / 1000.0 + 0.8
         time.sleep(post_roll_s)
         capture_stop(cancel_cap, cancel_fh)
@@ -639,7 +648,8 @@ def main() -> int:
                 "commit_eligible": interrupted.commit_eligible,
                 "capture_wav_sha256": sha256_file(cancel_wav),
                 "max_inflight_ms_predeclared": args.max_inflight_ms,
-                "translation_scope": "TEST_DRIVER_SUBORDINATE_TRANSLATION",
+                "translation_scope": "EXACT_CORTEX_CANCEL_EVENT_BOUND_TEST_DRIVER_DELIVERY",
+                "causal_delivery": causal_delivery,
             },
             "analysis": analysis,
             "replacement": {
@@ -668,10 +678,20 @@ def main() -> int:
             and replacement_binding["source_wav_sha256"] == sha256_file(args.replacement_source)
             and old_binding["source_wav_sha256"] != replacement_binding["source_wav_sha256"]
         )
-        complete = packet_fence_ok and replacement_ok and binding_ok and cleanup_ok
+        causal_delivery_ok = (
+            bool(causal_delivery.get("pass"))
+            and causal_delivery.get("authority_event_kind") == "BARGE_IN_CANCEL_PROPAGATED"
+            and packet_id in causal_delivery.get("authority_packet_refs", [])
+            and causal_delivery.get("bound_packet_id") == packet_id
+            and causal_delivery.get("bound_playback_pid") == cancel_play.pid
+            and not causal_delivery.get("independent_test_kill_before_terminalization")
+            and int(causal_delivery.get("playback_terminal_ns", 0)) >= int(causal_delivery.get("authority_observed_ns", 0))
+        )
+        complete = packet_fence_ok and replacement_ok and binding_ok and causal_delivery_ok and cleanup_ok
         report["measured_credit"] = {
             "owner_vps_pipewire_virtual_sink_playback_readback": 1 if complete else 0,
             "bounded_test_driver_cancel_translation_to_virtual_audio_monitor_silence": 1 if complete else 0,
+            "product_causal_cortex_cancel_to_bound_virtual_playback_terminalization": 1 if complete else 0,
             "replacement_generation_positive_virtual_monitor_readback": 1 if complete else 0,
             "exact_packet_audio_tts_binding": 1 if complete else 0,
             "exact_pipewire_object_identity_and_cleanup": 1 if complete else 0,
@@ -679,7 +699,7 @@ def main() -> int:
         if complete:
             report["result"] = "NO_COUNTEREXAMPLE"
             report["failure_class"] = None
-            report["classification"] = "ACCEPT_AT_BOUNDED_S2_OWNER_VPS_PIPEWIRE_TEST_DRIVER_TRANSLATION_SCOPE_ONLY"
+            report["classification"] = "ACCEPT_AT_BOUNDED_S2_OWNER_VPS_PRODUCT_CAUSAL_CORTEX_CANCEL_TO_BOUND_PLAYBACK_SCOPE_ONLY"
         elif not cleanup_ok:
             report["result"] = "COUNTEREXAMPLE"
             report["failure_class"] = "PRODUCT_NEGATIVE"
@@ -700,6 +720,9 @@ def main() -> int:
         report["failure_class"] = evidence_failure_class(stage, exc)
         report["classification"] = f"{type(exc).__name__}:{exc}"
     finally:
+        for play_proc in (control_play, cancel_play, replacement_play):
+            if play_proc is not None and play_proc.poll() is None:
+                stop_playback(play_proc)
         if control_cap is not None and control_fh is not None:
             capture_stop(control_cap, control_fh)
         if cancel_cap is not None and cancel_fh is not None:
