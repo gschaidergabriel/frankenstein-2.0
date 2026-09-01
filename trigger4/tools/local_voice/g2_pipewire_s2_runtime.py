@@ -196,6 +196,12 @@ def main() -> int:
     ap.add_argument("--sink-name", default="f2_voice_g2_sink")
     ap.add_argument("--cancel-after-ms", type=float, default=1200.0)
     ap.add_argument("--max-inflight-ms", type=float, default=250.0)
+    ap.add_argument(
+        "--required-postroll-ms",
+        type=float,
+        default=800.0,
+        help="Predeclared monitor observation required after max-inflight bound.",
+    )
     args = ap.parse_args()
 
     report: dict = {
@@ -237,12 +243,14 @@ def main() -> int:
     try:
         if not args.source.is_file() or not args.analyzer.is_file():
             raise RuntimeError("BOUND_INPUT_MISSING")
+        if args.required_postroll_ms <= 0:
+            raise RuntimeError("REQUIRED_POSTROLL_MUST_BE_POSITIVE")
         source_meta = read_wav_meta(args.source)
         if source_meta["sample_width"] != 2 or source_meta["channels"] != 1:
             raise RuntimeError(f"SOURCE_MUST_BE_MONO_PCM16:{source_meta}")
         duration_ms = source_meta["frames"] * 1000.0 / source_meta["rate"]
-        if duration_ms < args.cancel_after_ms + args.max_inflight_ms + 500:
-            raise RuntimeError("SOURCE_TOO_SHORT_FOR_DECLARED_CANCEL_BOUND")
+        if duration_ms < args.cancel_after_ms + args.max_inflight_ms + args.required_postroll_ms:
+            raise RuntimeError("SOURCE_TOO_SHORT_FOR_DECLARED_CANCEL_BOUND_AND_POSTROLL")
         wait_pulse()
 
         stage = "PIPEWIRE_GRAPH"
@@ -301,7 +309,7 @@ def main() -> int:
         if interrupted.playback_state != "interrupted" or interrupted.commit_eligible:
             raise AssertionError("PACKET_FENCE_FAILED_AFTER_CANCEL")
         playback_terminal_ns = stop_playback(cancel_play)
-        post_roll_s = args.max_inflight_ms / 1000.0 + 0.8
+        post_roll_s = (args.max_inflight_ms + args.required_postroll_ms) / 1000.0
         time.sleep(post_roll_s)
         capture_stop(cancel_cap, cancel_fh)
         cancel_cap = cancel_fh = None
@@ -316,6 +324,7 @@ def main() -> int:
             "--output", str(analysis_json),
             "--cancel-offset-ms", f"{cancel_offset_ms:.6f}",
             "--max-inflight-ms", f"{args.max_inflight_ms:.6f}",
+            "--required-postroll-ms", f"{args.required_postroll_ms:.6f}",
             "--voice-output-packet-id", packet_id,
             "--f2-subject-sha", args.f2_subject_sha,
         ]
@@ -370,6 +379,7 @@ def main() -> int:
                 "commit_eligible": interrupted.commit_eligible,
                 "capture_wav_sha256": sha256_file(cancel_wav),
                 "max_inflight_ms_predeclared": args.max_inflight_ms,
+                "required_postroll_ms_predeclared": args.required_postroll_ms,
             },
             "analysis": analysis,
             "cleanup": {
