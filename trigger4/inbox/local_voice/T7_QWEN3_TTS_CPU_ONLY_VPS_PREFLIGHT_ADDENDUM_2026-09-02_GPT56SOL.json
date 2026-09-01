@@ -1,0 +1,59 @@
+{
+  "schema": "TRIGGER7_TO_TRIGGER4_TTS_RUNTIME_PREFLIGHT_ADDENDUM/v1",
+  "trigger": "7",
+  "producer": "GPT-5.6-Sol",
+  "created_date": "2026-09-02",
+  "applies_to_semantic_key": "9706b8b0f7a3b3c7b09af77e1409fe110af90e07f7dac8edd1907cea72567881",
+  "applies_to_system_semantic_key": "d62224bf7f52ef1db031ec7a9650a6b107f16a7a61f6f6cca253724d6419ea20",
+  "target": "clay-direct-dev CPU-only owner-VPS sandbox",
+  "external_primary_sources": [
+    {
+      "source": "https://github.com/QwenLM/Qwen3-TTS/blob/main/qwen_tts/cli/demo.py",
+      "finding": "Official CLI exposes --device with examples including cpu; default is cuda:0. It exposes dtype choices and FlashAttention enable/disable, with FlashAttention enabled by default."
+    },
+    {
+      "source": "https://github.com/QwenLM/Qwen3-TTS/blob/main/qwen_tts/inference/qwen3_tts_model.py",
+      "finding": "Official Qwen3TTSModel.from_pretrained forwards model-loading kwargs and can resolve a CPU device when the loaded model is on CPU."
+    },
+    {
+      "source": "https://huggingface.co/Qwen/Qwen3-TTS-12Hz-0.6B-CustomVoice",
+      "finding": "Official model card lists German among supported languages and describes streaming generation; example configuration is CUDA-oriented and upstream low-latency claims are not CPU-VPS measurements."
+    },
+    {
+      "source": "https://huggingface.co/Qwen/Qwen3-TTS-12Hz-0.6B-CustomVoice/blob/main/model.safetensors",
+      "finding": "Current model.safetensors is approximately 1.81 GB with SHA256 bc3c7e785eb961179c25450d1acff03f839e0002f2f3a5aeb67b5735c0fa2adb at source observation time. Runtime must independently bind exact acquired artifact identity rather than trusting this research note."
+    }
+  ],
+  "preflight_rules": [
+    "Do not execute the official/example default unchanged on clay-direct-dev: it defaults to cuda:0 while the current target hardware inventory has no NVIDIA/ROCm GPU.",
+    "Select CPU explicitly (equivalent to the official CLI --device cpu or exact API device_map CPU binding).",
+    "Do not require FlashAttention-2 on CPU; select a CPU-compatible attention path and record it in the receipt.",
+    "Choose dtype from actual CPU/PyTorch capability and measure RSS. Do not assume upstream BF16/GPU behavior is valid on this VPS.",
+    "Run 0.6B first; do not download/run 1.7B unless the measured 0.6B path leaves sufficient resource headroom and there remains a named information gain.",
+    "Separate artifact acquisition from promotion-bearing inference. Record model/revision/file hashes after acquisition; prefer network-off inference thereafter.",
+    "Treat dependency/device/dtype/attention incompatibility as INFRA_AUTH_TRANSPORT_QUOTA or EVIDENCE_INVALID until the model itself actually executes; do not create product architecture from an environment setup failure.",
+    "Do not use upstream ~97 ms latency as an acceptance target for this CPU-only VPS. Record target-local TTFA/RTF distributions and compare only after exact execution."
+  ],
+  "minimal_fixed_german_prompt": "Guten Morgen. Dies ist ein lokaler Sprachtest mit Zahlen vier, sieben und zweiundvierzig.",
+  "required_output_validation": [
+    "non-empty finite PCM/waveform",
+    "sample rate/channels/duration",
+    "byte/sample count",
+    "content hash",
+    "cold/warm synthesis time",
+    "producer first-PCM time where the runtime exposes a real streaming boundary",
+    "RTF",
+    "peak RSS/CPU",
+    "zero external inference API calls during evidence phase"
+  ],
+  "streaming_fence": "If the selected official API returns only a completed waveform rather than incremental PCM chunks, record NONSTREAMING_MODEL_RUNTIME and do not fabricate TTFA/chunk cancellation evidence. FDX3/FDX4 producer-stream cancellation then remains open or must use a separately verified real streaming API path.",
+  "explicit_zero_credit": [
+    "physical speaker",
+    "human-heard output",
+    "acoustic quality from waveform existence alone",
+    "streaming cancellation if the executed API is nonstreaming",
+    "whole voice E2E",
+    "whole product"
+  ],
+  "next_exact_action": "Trigger 4 should consume this as execution preflight for the existing headless TTS claim/system slice. First prove exact CPU model load + German PCM generation. Only promote streaming/cancellation if actual incremental producer chunks are observed, never from marketing/source claims."
+}
