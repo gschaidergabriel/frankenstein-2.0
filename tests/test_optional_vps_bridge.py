@@ -102,6 +102,31 @@ class OptionalVPSBridgeTests(unittest.TestCase):
         self.assertIsNone(plan.remote_endpoint_digest)
         self.assertEqual(plan.target_runtime_credit, 0)
 
+    def test_detach_remains_admissible_when_baseline_boot_is_unverified(self) -> None:
+        for boot_state in (
+            EvidenceState.DECLARED_ONLY,
+            EvidenceState.UNKNOWN,
+            EvidenceState.CONFLICT,
+        ):
+            with self.subTest(boot_state=boot_state.value):
+                plan = plan_optional_bridge(
+                    local=local(boot_state=boot_state),
+                    action=BridgeAction.DETACH,
+                )
+                self.assertEqual(plan.disposition, BridgeDisposition.DETACHED)
+                self.assertEqual(plan.state_lineage_id, "state-lineage-1")
+                self.assertFalse(plan.baseline_local_boot_independent)
+                self.assertNotIn(
+                    "BASELINE_LOCAL_BOOT_NOT_VERIFIED_INDEPENDENTLY",
+                    plan.blockers,
+                )
+                self.assertIn(
+                    "BASELINE_LOCAL_BOOT_NOT_VERIFIED_INDEPENDENTLY",
+                    plan.limitations,
+                )
+                self.assertEqual(plan.target_runtime_credit, 0)
+                self.assertFalse(plan.whole_system_acceptance)
+
     def test_remote_endpoint_cannot_claim_second_authority(self) -> None:
         with self.assertRaisesRegex(BridgeValidationError, "SECOND_AUTHORITY"):
             RemoteEndpointEvidence.create(
