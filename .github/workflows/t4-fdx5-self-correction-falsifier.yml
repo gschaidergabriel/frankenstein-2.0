@@ -1,0 +1,143 @@
+name: T4 FDX5 Self Correction Tool Authority Falsifier
+
+on:
+  push:
+    branches:
+      - trigger4-fdx5-falsifier-gpt56sol-20260902
+    paths:
+      - 'research/local_voice/tools/falsify_fdx5_self_correction_tool_authority.py'
+      - '.github/workflows/t4-fdx5-self-correction-falsifier.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: t4-fdx5-self-correction-falsifier
+  cancel-in-progress: false
+
+jobs:
+  fdx5-candidate-falsifier:
+    runs-on: clay-host
+    timeout-minutes: 20
+    env:
+      F2_SANDBOX_ROOT: /var/tmp/frankenstein2-sandboxes
+      F2_SANDBOX_MIN_FREE_KIB: '5242880'
+      F2_SANDBOX_MIN_MEM_KIB: '1048576'
+    steps:
+      - name: Checkout exact branch subject
+        uses: actions/checkout@v4
+
+      - name: Verify exact owner VPS runner and source
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          printf '%s\n' \
+            "RUNNER_NAME=${RUNNER_NAME:-UNKNOWN}" \
+            "RUNNER_OS=${RUNNER_OS:-UNKNOWN}" \
+            "GITHUB_SHA=$GITHUB_SHA" \
+            "GITHUB_RUN_ID=$GITHUB_RUN_ID" \
+            "GITHUB_RUN_ATTEMPT=$GITHUB_RUN_ATTEMPT"
+          test "${RUNNER_NAME:-}" = "vps-clay-host"
+          test "${RUNNER_OS:-}" = "Linux"
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          sha256sum \
+            src/frankenstein2/voice_packet_cortex.py \
+            src/frankenstein2/voice_packet_cortex_recovery.py \
+            research/local_voice/tools/falsify_fdx5_self_correction_tool_authority.py
+
+      - name: Host-health and isolation preflight
+        shell: bash
+        run: bash tools/vps_sandbox/preflight.sh | tee /tmp/t4-fdx5-preflight.txt
+
+      - name: Execute FDX5 candidate falsifier network-off
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          bash tools/vps_sandbox/run_ubuntu_sandbox.sh --backend auto --network off -- \
+            /bin/bash -lc '
+              set -Eeuo pipefail
+              export F2_SUBJECT_SHA="$1"
+              PYTHONPATH=src python3 research/local_voice/tools/falsify_fdx5_self_correction_tool_authority.py
+            ' _ "$GITHUB_SHA" | tee /tmp/t4-fdx5-sandbox.txt
+
+      - name: Bind bounded falsifier receipt
+        if: always()
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          python3 - <<'PY'
+          import json, os, pathlib
+
+          log = pathlib.Path('/tmp/t4-fdx5-sandbox.txt').read_text(errors='replace') if pathlib.Path('/tmp/t4-fdx5-sandbox.txt').exists() else ''
+          probe = None
+          for line in log.splitlines():
+              if line.startswith('{') and 'T4_FDX5_SELF_CORRECTION_TOOL_AUTHORITY_FALSIFIER/v1' in line:
+                  try:
+                      probe = json.loads(line)
+                  except json.JSONDecodeError:
+                      pass
+          sandbox_executed = 'F2_SANDBOX_RESULT=PASS' in log
+          exact_subject = isinstance(probe, dict) and probe.get('source', {}).get('f2_subject_sha') == os.environ.get('GITHUB_SHA')
+          if not sandbox_executed or not exact_subject or probe is None:
+              result = 'EVIDENCE_INVALID'
+              failure_class = 'EVIDENCE_INVALID'
+          elif probe.get('result') == 'PRODUCT_NEGATIVE':
+              result = 'EXECUTED_PRODUCT_NEGATIVE'
+              failure_class = 'PRODUCT_NEGATIVE'
+          elif probe.get('result') == 'NO_COUNTEREXAMPLE':
+              result = 'EXECUTED_NO_COUNTEREXAMPLE'
+              failure_class = None
+          else:
+              result = 'EVIDENCE_INVALID'
+              failure_class = 'EVIDENCE_INVALID'
+
+          receipt = {
+              'schema': 'T4_FDX5_OWNER_VPS_FALSIFIER_RECEIPT/v1',
+              'result': result,
+              'failure_class': failure_class,
+              'source_sha': os.environ.get('GITHUB_SHA'),
+              'workflow_run_id': int(os.environ.get('GITHUB_RUN_ID', '0')),
+              'workflow_run_attempt': int(os.environ.get('GITHUB_RUN_ATTEMPT', '0')),
+              'runner_name': os.environ.get('RUNNER_NAME', 'UNKNOWN'),
+              'runner_os': os.environ.get('RUNNER_OS', 'UNKNOWN'),
+              'execution_surface': 'VPS_SANDBOX_REPRESENTABLE',
+              'sandbox_tier': 'S1_OR_S2_AUTO',
+              'network_mode': 'OFF',
+              'case': 'FDX5_SELF_CORRECTION_BEFORE_TOOL_USE',
+              'probe': probe,
+              'physical_credit': 0,
+              'gwt_jspace_credit': 0,
+              'effect_credit': 0,
+              'training_credit': 0,
+              'whole_voice_e2e_credit': 0,
+              'whole_product_credit': 0,
+          }
+          pathlib.Path('/tmp/t4-fdx5-receipt.json').write_text(json.dumps(receipt, indent=2, sort_keys=True) + '\n')
+          print(json.dumps(receipt, sort_keys=True))
+          PY
+
+      - name: Upload exact FDX5 receipt
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: t4-fdx5-self-correction-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            /tmp/t4-fdx5-receipt.json
+            /tmp/t4-fdx5-sandbox.txt
+            /tmp/t4-fdx5-preflight.txt
+          if-no-files-found: error
+
+      - name: Enforce evidence validity and expose product negative
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          python3 - <<'PY'
+          import json, pathlib
+          receipt = json.loads(pathlib.Path('/tmp/t4-fdx5-receipt.json').read_text())
+          result = receipt['result']
+          if result == 'EXECUTED_PRODUCT_NEGATIVE':
+              raise SystemExit(2)
+          if result != 'EXECUTED_NO_COUNTEREXAMPLE':
+              raise SystemExit(3)
+          PY
