@@ -202,12 +202,7 @@ def make_fixture():
 
 
 def control(*, execution_context=None, **overrides):
-    context_overrides = {}
-    if "boot_id_sha256" in overrides:
-        context_overrides["boot_id_sha256"] = overrides["boot_id_sha256"]
-    if "exact_source_sha256" in overrides:
-        context_overrides["exact_source_sha256"] = overrides["exact_source_sha256"]
-    shared_context = execution_context or context(**context_overrides)
+    shared_context = context() if execution_context is None else execution_context
     values = {
         "runtime_instance_id": "runtime:wp900-g4:control",
         "process_identity": "pid:4243:start:200",
@@ -273,20 +268,20 @@ def test_same_downstream_readback_fails_causal_discriminator():
         bind(control_readback=control(downstream_sha256=C))
 
 
-def test_control_must_share_exact_source_with_positive_runtime():
-    with pytest.raises(GwtCausalRuntimeReadbackError, match="exact-source identity mismatch"):
-        bind(control_readback=control(exact_source_sha256=F))
+def test_control_factory_must_share_exact_source_with_context():
+    with pytest.raises(GwtCausalRuntimeReadbackError, match="control/context source identity mismatch"):
+        control(execution_context=context(), exact_source_sha256=F)
 
 
-def test_control_must_share_boot_with_positive_runtime():
-    with pytest.raises(GwtCausalRuntimeReadbackError, match="boot identity mismatch"):
-        bind(control_readback=control(boot_id_sha256=F))
+def test_control_factory_must_share_boot_with_context():
+    with pytest.raises(GwtCausalRuntimeReadbackError, match="control/context boot identity mismatch"):
+        control(execution_context=context(), boot_id_sha256=F)
 
 
 def test_control_must_share_full_execution_context_with_positive_arm():
-    mismatched_context = context(runtime_engine_config_sha256=B)
+    other_context = context(environment_sha256=B)
     with pytest.raises(GwtCausalRuntimeReadbackError, match="execution-context identity mismatch"):
-        bind(control_readback=control(execution_context=mismatched_context))
+        bind(control_readback=control(execution_context=other_context))
 
 
 def test_execution_context_must_bind_positive_source_and_boot():
@@ -306,24 +301,31 @@ def test_control_input_must_be_matched():
         bind(control_readback=control(nonbroadcast_input_sha256=B))
 
 
-def test_direct_control_constructor_is_rejected_by_causal_binder():
+def test_direct_nominal_control_with_matching_digest_is_rejected_without_factory_origin():
     shared_context = context()
-    direct = ControlNoBroadcastReadback(
-        runtime_instance_id="runtime:wp900-g4:control",
-        process_identity="pid:4243:start:200",
-        boot_id_sha256=D,
-        exact_source_sha256=E,
+    nominal = ControlNoBroadcastReadback(
+        runtime_instance_id="runtime:nominal-control",
+        process_identity="pid:nominal:start:1",
+        boot_id_sha256=shared_context.boot_id_sha256,
+        exact_source_sha256=shared_context.exact_source_sha256,
         execution_context_sha256=shared_context.sha256(),
         probe_id="probe:wp900-g4",
         nonbroadcast_input_sha256=A,
-        downstream_ref="readback:control",
+        downstream_ref="readback:nominal-control",
         downstream_sha256=F,
         observed_monotonic_ns=40,
         reentry_observed=False,
-        provenance_refs=("prov:direct-control-must-not-admit",),
+        provenance_refs=("prov:nominal-control",),
     )
     with pytest.raises(GwtCausalRuntimeReadbackError, match="factory origin"):
-        bind(control_readback=direct, execution_context=shared_context)
+        bind(control_readback=nominal, execution_context=shared_context)
+
+
+def test_tampered_factory_control_loses_origin_and_is_rejected():
+    sealed = control()
+    forged = replace(sealed, downstream_sha256=B)
+    with pytest.raises(GwtCausalRuntimeReadbackError, match="factory origin"):
+        bind(control_readback=forged)
 
 
 def test_tampered_positive_runtime_witness_is_rejected():
