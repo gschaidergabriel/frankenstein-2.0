@@ -1,0 +1,68 @@
+{
+  "schema": "T7_TO_TRIGGER4_TTS_BENCHMARK_SCOPE_FALSIFIER/v1",
+  "trigger": "7",
+  "producer": "GPT-5.6-Sol",
+  "date": "2026-09-02",
+  "work_class": "CANDIDATE_FALSIFIER_AND_EVIDENCE_RECONCILIATION",
+  "new_component": false,
+  "new_voice_authority": false,
+  "product_mutation_requested": false,
+  "source_head_observed": "0ef78ad2ee6b14f89fcb2bb60f1458d04ee81ed0",
+  "existing_tts_semantic_key": "c711af918362a9ec2bbe6f4e2df2f7e41861c59b553576ee9beac602b29ef9e3",
+  "owner_vps_system_semantic_key": "d62224bf7f52ef1db031ec7a9650a6b107f16a7a61f6f6cca253724d6419ea20",
+  "observed_runtime_dispatch": {
+    "run_id": 33541135102,
+    "state_at_observation": "QUEUED",
+    "executed_steps_observed": 0,
+    "runner_assignment_observed": false,
+    "classification": "UNKNOWN_NONTERMINAL_CONTROL_PLANE_ONLY",
+    "redispatch_recommended": false
+  },
+  "finding": {
+    "summary": "The repaired Kokoro/Piper discriminator is correctly bounded to CPU_FILE_OUTPUT_COMPONENT_ONLY, but its generated WAV bytes are ephemeral benchmark-local data and its first-chunk timing is not a whole FDX request-to-sink latency measurement. A later system-slice run must not compose either field into packet-delivery, heard-output, cancellation-to-silence, or output-start latency credit without a new exact execution binding.",
+    "ephemeral_audio": "kokoro_piper_cpu_benchmark.py creates each WAV below tempfile.TemporaryDirectory and stores only metadata/hash/sample counts in the JSON receipt. The temporary directory is removed before the receipt is finalized. Therefore a benchmark output_sha256 proves that bytes existed at file-output scope during that execution, but it is not a retained audio artifact that can later be presented as the exact bytes admitted by the FDX packet/sink path.",
+    "first_chunk_clock_scope": "For both engines, time_to_first_generated_audio_chunk_ms is measured around next(iterator). It is useful as a bounded generator-yield measurement, but it is not by itself a request-admission -> model preprocessing -> first generated sample -> sink admission -> playout-start latency. In particular iterator/synthesize construction and downstream sink timing can sit outside that measured interval.",
+    "cancellation_scope": "The benchmark drains the producer iterator into audio_parts and then writes a complete WAV. It does not execute FDX3/FDX4 cancellation, post-cancel sink rejection, or packet commit-eligibility. Those invariants remain for the composed owner-VPS system slice."
+  },
+  "source_evidence": {
+    "benchmark": "trigger4/tools/local_voice/kokoro_piper_cpu_benchmark.py",
+    "runner": "trigger4/tools/local_voice/run_kokoro_piper_cpu_benchmark_s1.sh",
+    "existing_audio_binding_addendum": "trigger4/inbox/local_voice/T7_OWNER_VPS_FDX_AUDIO_CHUNK_TO_PACKET_BINDING_ADDENDUM_2026-09-02_GPT56SOL.json",
+    "existing_system_slice": "trigger4/inbox/local_voice/T7_OWNER_VPS_FULL_DUPLEX_SYSTEM_SLICE_FDX2_FDX3_FDX4_FDX6_2026-09-02_GPT56SOL.json"
+  },
+  "anti_composition_rules": [
+    "BENCHMARK_OUTPUT_SHA256 != FDX_SINK_ADMITTED_CHUNK_SHA256 unless the exact bytes are retained and the system execution binds that retained artifact to the existing VoiceOutputPacket lineage.",
+    "BENCHMARK_FIRST_GENERATOR_YIELD_MS != FIRST_AUDIO_PLAYED_LATENCY and != REQUEST_TO_SINK_FIRST_CHUNK_MS.",
+    "BENCHMARK_PASS != FDX3_OR_FDX4_PASS.",
+    "QUEUED_RUN != EXECUTION and must not be duplicated merely to get a faster answer."
+  ],
+  "next_execution_contract": [
+    "Let the existing c711af... runtime dispatch terminalize; classify its exact receipt without scope widening.",
+    "If at least one existing engine yields valid real local chunks, instantiate that same pinned engine inside the already-claimed d62224bf... system-slice execution rather than treating the benchmark WAV metadata as the system input artifact.",
+    "Start one monotonic request clock at output request admission and separately record model/generator first-yield, first sink-admission and, where representable, virtual-sink consumption timestamps. Preserve each latency as a distinct metric.",
+    "Hash each exact generated chunk representation and separately hash/sequence only sink-admitted chunks. Generated-but-discarded post-cancel bytes must stay distinguishable from delivered bytes.",
+    "Bind those run-local chunk/sink records to the existing VoiceOutputPacket.packet_id, session/turn/causal lineage and VoiceOutcome. Do not create a second playback state machine or durable voice truth store.",
+    "If exact audio bytes need later replay as evidence, persist them only through an already-admitted evidence-artifact mechanism with content hash and retention scope; otherwise preserve hashes/metadata and rerun the pinned producer inside the exact system-slice subject."
+  ],
+  "failure_discriminators": {
+    "benchmark_pass_but_no_system_chunk_binding": "EVIDENCE_INVALID_FOR_FDX_ONLY",
+    "first_generator_yield_relabelled_as_first_audio_played": "EVIDENCE_SCOPE_INFLATION",
+    "post_cancel_chunk_sink_admitted": "PRODUCT_NEGATIVE",
+    "interrupted_packet_becomes_commit_eligible": "PRODUCT_NEGATIVE",
+    "queued_or_zero_step_dispatch": "UNKNOWN_NONTERMINAL",
+    "runner_or_setup_failure_before_synthesis": "INFRA_AUTH_TRANSPORT_QUOTA_OR_EVIDENCE_INVALID"
+  },
+  "explicit_zero_credit": [
+    "FDX packet delivery",
+    "first audio played latency",
+    "cancellation to silence",
+    "heard output correctness",
+    "physical microphone",
+    "physical speaker",
+    "human-heard output",
+    "native workstation audio permissions",
+    "whole voice system",
+    "whole product"
+  ],
+  "next_exact_action": "Do not redispatch the queued benchmark. On its terminal receipt, consume only CPU file-output scope. Then execute the existing d62224bf... owner-VPS system slice with fresh run-local chunk-to-packet-to-sink binding and distinct request/generator/sink clocks; only that execution may promote FDX3/FDX4 delivery/cancellation evidence."
+}
