@@ -1,0 +1,91 @@
+{
+  "schema": "FRANKENSTEIN2_CLAIM_DELTA/v1",
+  "workpackage_id": "F2-WP-720",
+  "generation": 1,
+  "claim_id": "F2-WP-720-G1-GPT56SOL-PFD-TURN-POLICY-BINDING-20260902",
+  "worker_id": "GPT-5.6-Sol-TRIGGER4",
+  "base_commit": "c2b1e6affa31bf889b7846466ad881ed4a501064",
+  "observed_main_commit": "15775c386fcd6e64713d5a3246da5f0615e4a352",
+  "owned_paths": [
+    "tests/test_wp720_turn_policy_falsifiers.py",
+    ".github/workflows/wp720-integrated-policy-ci.yml",
+    ".github/workflows/wp720-integrated-policy-vps.yml",
+    "workpackages/active/F2-WP-720.json",
+    "workpackages/deltas/F2-WP-720/*",
+    "workpackages/receipts/F2-WP-720_G1_*",
+    "workpackages/reconciliations/F2-WP-720/*",
+    "workpackages/state_events/F2-WP-720/*"
+  ],
+  "result_class": "RUNTIME_CREDIT_CLOSURE_NONTERMINAL",
+  "source_commits": [
+    "df101862a9e4a99c36a974e1ce04a0f60370cc4c",
+    "cfd9776b2e27f8f10407a429651c8eb93a041fce",
+    "731db925df96ab7e49c0e5b80cd7bc8f4d37a086",
+    "471a1f87e6278b4505aa0a46eca4083b6201e44f",
+    "ba5d80eb10fc6e6a8788e513f2bacac0d7954e8a",
+    "c0b1f8bba4178a8291a6a5cec73e296d29d962ac",
+    "4bd297908c84bd914687e65ed1fbd9e0b9baf380",
+    "b3000f8a3f3150a6896f53a5974f5e297af88814",
+    "470f6c9509fb5ab32f706b2ee52896073b1180b6",
+    "f93ef63bfbf2a22a39ac72c5f97e43f793960c16",
+    "a9bb9023292b1adf3c757af602ffaacc9afec1d4"
+  ],
+  "receipts": [
+    "actions/runs/33536164254/jobs/99950875033",
+    "actions/runs/33536451609/jobs/99951826631",
+    "actions/runs/33537134599/jobs/99954086126",
+    "actions/runs/33537350533/jobs/99954802244"
+  ],
+  "falsifiers": [
+    "PFD6_ONE_ACCEPTED_HOLD_CANNOT_MINT_CONFLICTING_POLICY_DECISIONS",
+    "PFD7_STALE_HOLD_POLICY_AFTER_LATER_FINAL_ENDPOINT"
+  ],
+  "contradictions": [
+    "The original exact subject 731db925df96ab7e49c0e5b80cd7bc8f4d37a086 passed the initial bounded PFD0-PFD5 repository discriminator but did not cover conflicting policy rebind. Executable PFD6 run 33536451609/job 99951826631 reproduced two conflicting policy decisions for one accepted HOLD source event and therefore invalidated promotion of that semantic subject.",
+    "A parallel same-claim repair converged policy binding into the pre-existing VoicePacketCortex authority while the original claim had temporarily narrowed mutation ownership to a standalone adapter. The useful repair was retained because it closed the executable defect without introducing a second Cortex/state authority, but the ownership race remains coordination debt and is not evidence that the claim protocol was followed cleanly.",
+    "For part of the repair window both a standalone PacketTurnPolicy adapter and an integrated VoicePacketCortex policy implementation existed. The standalone module, standalone tests, standalone repository CI and stale-subject VPS workflow were retired so current source has one policy authority; historical commits and negative evidence remain preserved.",
+    "The old owner-VPS dispatch 33536413324/job 99951716440 targeted pre-repair subject 731db925df96ab7e49c0e5b80cd7bc8f4d37a086. Required semantic repair proves that subject is not invariant with the repaired boundary, so any later execution of that old dispatch is historical-only and cannot be composed with newer repository CI into current runtime credit.",
+    "The repaired integrated subject 470f6c9509fb5ab32f706b2ee52896073b1180b6 has successful bounded repository evidence for PFD6, PFD7 and the existing Cortex regressions, but successor owner-VPS run 33537350533/job 99954802244 is still nonterminal. Repository CI is not target runtime."
+  ],
+  "proposed_state_change": {
+    "historical_invalidated_subject": {
+      "subject_sha": "731db925df96ab7e49c0e5b80cd7bc8f4d37a086",
+      "pfd6_run_id": 33536451609,
+      "pfd6_job_id": 99951826631,
+      "failure_class": "PRODUCT_NEGATIVE",
+      "current_target_environment_component_runtime_credit": 0,
+      "promotion_eligible": false
+    },
+    "current_repaired_subject": {
+      "subject_sha": "470f6c9509fb5ab32f706b2ee52896073b1180b6",
+      "repository_ci_run_id": 33537134599,
+      "repository_ci_job_id": 99954086126,
+      "repository_ci_result": "SUCCESS",
+      "repository_component_ci_credit": 1,
+      "pfd6_result": "PASS",
+      "pfd7_result": "PASS",
+      "authoritative_cortex_regressions": "24_OF_24_PASS",
+      "target_environment_component_runtime_credit": 0,
+      "runtime_dispatch_run_id": 33537350533,
+      "runtime_dispatch_job_id": 99954802244,
+      "runtime_dispatch_state": "QUEUED_NONTERMINAL",
+      "runtime_execution_observed": false
+    }
+  },
+  "zero_credit_boundaries": {
+    "physical_audio_credit": 0,
+    "asr_runtime_credit": 0,
+    "tts_runtime_credit": 0,
+    "gwt_runtime_credit": 0,
+    "semantic_gwt_runtime_credit": 0,
+    "jspace_runtime_credit": 0,
+    "effect_credit": 0,
+    "training_credit": 0,
+    "completion_credit": 0,
+    "whole_voice_e2e_credit": 0,
+    "whole_system_acceptance": false
+  },
+  "completion_deficit": "The repaired single-authority packet turn-policy subject has bounded repository acceptance but no executed target/VPS sandbox result or readback yet.",
+  "next_exact_action": "Do not mutate WP720 policy semantics and do not redispatch while run 33537350533/job 99954802244 is nonterminal. When terminal, refresh exact subject identity, executed steps and receipt; classify PRODUCT_NEGATIVE vs EVIDENCE_INVALID vs INFRA_AUTH_TRANSPORT_QUOTA vs EXECUTED_NO_COUNTEREXAMPLE. Promote only the exact bounded target-component policy runtime scope if the repaired subject actually executed and passed.",
+  "created_at_utc": "2026-09-01T17:24:00Z"
+}
