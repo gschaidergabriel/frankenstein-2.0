@@ -1,0 +1,102 @@
+{
+  "schema": "T7_RESEARCH_DELTA/v1",
+  "date": "2026-09-01",
+  "trigger": "7",
+  "worker": "GPT-5.6 Sol",
+  "status": "SOURCE_RESEARCH_ONLY_NO_RUNTIME_OR_ACCEPTANCE_CREDIT",
+  "claim_ref": "research/local_voice/claims/2026-09-01_trigger7_gpt56sol_cortex_frontier_claim.json",
+  "authority_ref": "research/local_voice/authority/2026-08-31_TRIGGER7_TEXT_PACKET_COMPLETION_AUTHORITY.md",
+  "protocol_ref": "research/local_voice/TRIGGERWORD_7_PROTOCOL.md",
+  "canonical_main_observed_before_write": "784ef36ea98c0ea1d7130aa412a04f022a68104e",
+  "active_boundary": {
+    "workpackage": "F2-WP-719",
+    "repaired_subject_sha": "64b7fb92cca8ddc2e541d617f9af7ebd9bbeb9b8",
+    "runtime_probe_run_id": 33430782666,
+    "runtime_probe_job_id": 99615371746,
+    "observed_state": "QUEUED_ZERO_STEPS_UNKNOWN_NONTERMINAL",
+    "rule": "Do not duplicate the bound WP719 runtime discriminator and do not mutate WP719-owned product paths while that exact-subject probe is nonterminal."
+  },
+  "new_external_findings": [
+    {
+      "id": "ARXIV_2607_20460_INSTRUCT_FD",
+      "kind": "TURN_POLICY_CONTROL_SIGNAL",
+      "source": "Instruct-FD: Can Your Full-Duplex Speech System Follow Turn-Taking Instructions?",
+      "source_date": "2026-05-15",
+      "finding": "Across six evaluated full-duplex systems, the reported best instruction-conditioned turn-management adherence is 64.4 percent; proactive backchanneling and interruption remain especially difficult.",
+      "f2_relevance": "Do not delegate Frankenstein turn authority to an unconstrained speech model. Keep WAIT/backchannel/interruption/cancellation as explicit measurable policy with packet-level acceptance tests even when a native full-duplex model is later used as a signal producer.",
+      "credit": "EXTERNAL_PRIMARY_ONLY_NOT_REPRODUCED_IN_F2"
+    },
+    {
+      "id": "ARXIV_2606_11167_MULTI_FACETED_INTERACTIVITY_ALIGNMENT",
+      "kind": "INTERACTIVITY_AXIS_SIGNAL",
+      "source": "Multi-Faceted Interactivity Alignment in Full-Duplex Speech Models",
+      "source_date": "2026-06-09",
+      "finding": "The work separates interaction behavior into pause handling, turn-taking, backchanneling and user interruption, and reports that explicit axis-specific optimization improves these behaviors on tested full-duplex models.",
+      "f2_relevance": "Use the four axes as orthogonal deterministic packet-cortex fixture classes rather than one opaque conversational score. This aligns with the existing HumDial/micro-turn research while preserving causal attribution.",
+      "credit": "EXTERNAL_PRIMARY_ONLY_NOT_REPRODUCED_IN_F2"
+    },
+    {
+      "id": "GITHUB_EDDIEGULAY_DUPLEX_MINNIMA_2026_09_01",
+      "kind": "LOCAL_TURN_SIGNAL_DONOR",
+      "source": "eddiegulay/duplex-minnima",
+      "license": "MIT",
+      "finding": "The current C++17 implementation uses no ASR, LLM or neural VAD in its turn loop; it separates observed voice activity from floor ownership, uses prosodic cues plus an explicit decision policy, models speaker-to-microphone echo evidence, treats short backchannels differently from floor bids, and records how much agent output was actually heard after interruption.",
+      "f2_relevance": "High-value bounded donor for pause-vs-gap, backchannel, echo-evidence and heard-prefix semantics. It must not become a second dialogue/effect authority, and its upstream live behavior is not F2 runtime evidence.",
+      "credit": "SOURCE_WATCH_ONLY_NOT_REPRODUCED_IN_F2"
+    },
+    {
+      "id": "ARXIV_2606_14528_BAYLING_DUPLEX",
+      "kind": "NATIVE_FULL_DUPLEX_ARCHITECTURE_WATCH",
+      "source": "BayLing-Duplex: Native Full-Duplex Speech Dialogue with a Single Autoregressive LLM",
+      "source_date": "2026-06-12",
+      "finding": "BayLing-Duplex represents user speech, assistant text and assistant speech in one interleaved autoregressive path and reports 92 percent turn-taking success and 100 percent interruption success on InstructS2S-Eval. The released inference stack depends on BayLing weights plus GLM-4-Voice tokenizer/decoder components and custom Python model code; real-time use is stated as GPU-oriented.",
+      "f2_relevance": "Architecture watch only. German conversational quality, whole-Frankenstein resource fit, local security/runtime audit and authority-boundary integration remain unverified. Do not dispatch while cortex-first throttle is active absent a unique blocker.",
+      "credit": "EXTERNAL_PRIMARY_ONLY_NOT_REPRODUCED_IN_F2"
+    }
+  ],
+  "derived_cortex_design_constraints": [
+    "OBSERVED_SPEECH_ACTIVITY != FLOOR_OWNERSHIP",
+    "SHORT_BACKCHANNEL != USER_FLOOR_BID",
+    "MID_SENTENCE_PAUSE != END_OF_TURN_BY_SILENCE_THRESHOLD_ALONE",
+    "MODEL_TURN_PREDICTION != TURN_AUTHORITY",
+    "OWN_OUTPUT_OR_ECHO_EVIDENCE != USER_INTERRUPT_WITHOUT_CAUSAL_REJECTION",
+    "BARGE_IN_ACCEPTED -> CANCEL_UNHEARD_OUTPUT_AND_PRESERVE_EXACT_HEARD_PREFIX",
+    "PAUSE_HANDLING_TURN_TAKING_BACKCHANNEL_INTERRUPTION_MUST_BE_SEPARATELY_FALSIFIABLE"
+  ],
+  "bounded_next_discriminator": {
+    "name": "T7_PACKET_MICROTURN_FLOOR_POLICY_MATRIX_V1",
+    "execution_gate": "AFTER_WP719_BOUND_RUNTIME_PROBE_TERMINAL_OR_ON_NONOVERLAPPING_TEST_ONLY_PATH",
+    "fixtures": [
+      "mid_sentence_pause_then_same_user_continues -> WAIT/continue-listen; no premature VoiceOutcome commit",
+      "short user backchannel while Frankenstein speaks -> retain floor unless explicit bid evidence crosses policy",
+      "sustained user interruption while Frankenstein speaks -> cancel generation/playout; exact heard/unheard accounting; one causal VoiceOutcome",
+      "self-output/echo-like input during Frankenstein speech -> reject as user turn; no recursive self-interruption",
+      "overlap followed by user withdrawal -> recover agent floor without duplicate output or duplicate state write",
+      "restart/reentry after cancellation -> no stale packet replay and no second VoiceOutcome for the same causal turn"
+    ],
+    "measure": [
+      "policy_decision",
+      "decision_latency_from_packet_timestamps",
+      "cancel_propagation",
+      "heard_fraction_or_prefix",
+      "commit_eligibility",
+      "VoiceOutcome_count",
+      "duplicate_state_write_count",
+      "causal_turn_identity"
+    ]
+  },
+  "explicit_zero_credit": {
+    "new_model_runtime": 0,
+    "asr_runtime": 0,
+    "tts_runtime": 0,
+    "physical_audio": 0,
+    "target_environment_wp719_runtime": 0,
+    "global_semantic_gwt_runtime": 0,
+    "jspace_runtime": 0,
+    "effect": 0,
+    "whole_voice_e2e": 0,
+    "whole_product": 0,
+    "training": 0
+  },
+  "next_exact_action": "Consume the terminal outcome of WP719 run 33430782666 without redispatch. Then map only uncovered transitions from T7_PACKET_MICROTURN_FLOOR_POLICY_MATRIX_V1 into the existing packet-cortex test surface; preserve current controller authority and route product mutation through the legal Trigger4/workpackage owner."
+}
