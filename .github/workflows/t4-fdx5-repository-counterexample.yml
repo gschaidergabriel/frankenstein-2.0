@@ -1,0 +1,80 @@
+name: T4 FDX5 Repository Counterexample
+
+on:
+  push:
+    branches:
+      - trigger4-fdx5-falsifier-gpt56sol-20260902
+    paths:
+      - '.github/workflows/t4-fdx5-repository-counterexample.yml'
+      - 'research/local_voice/tools/falsify_fdx5_self_correction_tool_authority.py'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: t4-fdx5-repository-counterexample
+  cancel-in-progress: true
+
+jobs:
+  fdx5-current-blob-counterexample:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      EXPECTED_VOICE_PACKET_CORTEX_BLOB: bdecfd082fc9a88876e8cbcca8988d20b866da29
+      EXPECTED_RECOVERY_BLOB: 5849a396ac7de00a905b39c3633e82d8def04b10
+    steps:
+      - name: Checkout exact branch subject
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          fetch-depth: 1
+          clean: true
+          persist-credentials: false
+
+      - name: Prove component blobs equal current F2 main authority
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          test "$(git rev-parse HEAD:src/frankenstein2/voice_packet_cortex.py)" = "$EXPECTED_VOICE_PACKET_CORTEX_BLOB"
+          test "$(git rev-parse HEAD:src/frankenstein2/voice_packet_cortex_recovery.py)" = "$EXPECTED_RECOVERY_BLOB"
+          printf '%s\n' \
+            "branch_subject=$GITHUB_SHA" \
+            "voice_packet_cortex_blob=$EXPECTED_VOICE_PACKET_CORTEX_BLOB" \
+            "recovery_blob=$EXPECTED_RECOVERY_BLOB"
+
+      - name: Execute isolated FDX5 candidate against current component blobs
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          export PYTHONPATH="$GITHUB_WORKSPACE/src"
+          python3 research/local_voice/tools/falsify_fdx5_self_correction_tool_authority.py | tee /tmp/fdx5.jsonl
+
+      - name: Require executable repository counterexample and preserve scope
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          python3 - <<'PY'
+          import json, pathlib
+          rows=[]
+          for line in pathlib.Path('/tmp/fdx5.jsonl').read_text().splitlines():
+              if line.startswith('{'):
+                  rows.append(json.loads(line))
+          assert len(rows) == 1, rows
+          r=rows[0]
+          assert r['schema'] == 'T4_FDX5_SELF_CORRECTION_TOOL_AUTHORITY_FALSIFIER/v1', r
+          assert r['result'] == 'PRODUCT_NEGATIVE', r
+          v=set(r['violations'])
+          assert 'TOOL_USE_ACCEPTED_BEFORE_FINAL_ENDPOINT' in v, r
+          assert 'PREMATURE_TOOL_OWNERSHIP_PERSISTED_IN_CHECKPOINT' in v, r
+          assert r['observed']['premature_tool_result_accepted_after_restart'] is False, r
+          assert r['observed']['premature_tool_result_error'], r
+          print('failure_class=PRODUCT_NEGATIVE')
+          print('scope=REPOSITORY_COMPONENT_EXECUTION_CURRENT_BLOB_INVARIANCE')
+          print('target_vps_runtime_credit=0')
+          print('physical_audio_credit=0')
+          print('gwt_jspace_credit=0')
+          print('effect_credit=0')
+          print('training_credit=0')
+          print('whole_voice_e2e_credit=0')
+          print('whole_product_credit=0')
+          PY
