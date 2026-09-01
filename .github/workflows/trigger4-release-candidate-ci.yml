@@ -19,6 +19,10 @@ on:
       - 'src/frankenstein2/restart_recovery_persisted_row_attestation.py'
       - 'tests/test_restart_recovery_persisted_row_attestation.py'
       - 'tests/test_wp900_wp206_two_process_restart.py'
+      - 'src/frankenstein2/canonical_effect_authority_bridge.py'
+      - 'src/frankenstein2/effect_invocation_correlation.py'
+      - 'src/frankenstein2/effect_executor_interlock.py'
+      - 'tests/test_canonical_effect_authority_bridge.py'
       - 'AI_START_HERE_DO_NOT_SCAN_REPO/**'
       - 'artifacts/backfill/**'
       - 'PRODUCT_COMPLETION_LAW.md'
@@ -44,6 +48,10 @@ on:
       - 'src/frankenstein2/restart_recovery_persisted_row_attestation.py'
       - 'tests/test_restart_recovery_persisted_row_attestation.py'
       - 'tests/test_wp900_wp206_two_process_restart.py'
+      - 'src/frankenstein2/canonical_effect_authority_bridge.py'
+      - 'src/frankenstein2/effect_invocation_correlation.py'
+      - 'src/frankenstein2/effect_executor_interlock.py'
+      - 'tests/test_canonical_effect_authority_bridge.py'
       - 'AI_START_HERE_DO_NOT_SCAN_REPO/**'
       - 'artifacts/backfill/**'
       - 'PRODUCT_COMPLETION_LAW.md'
@@ -91,6 +99,12 @@ jobs:
           python -m unittest discover -s tests -p 'test_receipt_content_binding.py' -v
           python -m unittest discover -s tests -p 'test_portable_release_static_completeness.py' -v
           python -m unittest discover -s tests -p 'test_artifact_bound_static_completeness.py' -v
+
+      - name: Exercise canonical effect-authority bridge before release construction
+        shell: bash
+        run: |
+          set -euo pipefail
+          python tests/test_canonical_effect_authority_bridge.py
 
       - name: Exercise accepted WP900-WP206 fresh-process persistence chain
         shell: bash
