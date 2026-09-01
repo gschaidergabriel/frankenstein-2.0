@@ -138,6 +138,8 @@ runuser -u f2audio -- env \
     "$G2_VENV/bin/python" "$G2_HARNESS" \
       --source "$G2_SOURCE" \
       --analyzer "$G2_ANALYZER" \
+      --evidence-helper "$G2_EVIDENCE_HELPER" \
+      --bound-receipt "$G2_WORK/preexec-bound.json" \
       --workdir "$G2_WORK/evidence" \
       --f2-subject-sha "$F2_SUBJECT_SHA" \
       --tts-model-sha256 "$PIPER_MODEL_SHA256" \
