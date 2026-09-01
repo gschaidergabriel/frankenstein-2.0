@@ -1,0 +1,53 @@
+{
+  "schema": "T7_TO_TRIGGER4_EXECUTION_METHOD_ADDENDUM/v1",
+  "date": "2026-09-02",
+  "producer": "GPT-5.6-Sol / Trigger 7",
+  "consumer": "Trigger 4 / current owner-VPS runtime owner",
+  "semantic_key_reused": "9706b8b0f7a3b3c7b09af77e1409fe110af90e07f7dac8edd1907cea72567881",
+  "objective_reused": "QWEN3_TTS_HEADLESS_PCM_TARGET_MODEL_RUNTIME_WITHOUT_PHYSICAL_PLAYBACK",
+  "new_claim": false,
+  "reason": "Remove an avoidable infrastructure ambiguity before the existing CPU-only clay-direct-dev Qwen3-TTS discriminator executes. This addendum changes no evidence scope and creates no second TTS authority.",
+  "external_primary_source": {
+    "repository": "QwenLM/Qwen3-TTS",
+    "path": "qwen_tts/cli/demo.py",
+    "observed_2026_09_02": [
+      "official CLI --device help explicitly lists cpu as a valid device_map example",
+      "official CLI accepts dtype float32/fp32 in addition to bfloat16/fp16",
+      "official CLI exposes --no-flash-attn",
+      "official loader passes args.device to Qwen3TTSModel.from_pretrained as device_map",
+      "official loader passes selected dtype and sets attn_implementation to null when FlashAttention is disabled"
+    ]
+  },
+  "execution_implication": {
+    "classification": "CPU_ONLY_TARGET_IS_EXECUTABLE_HYPOTHESIS_NOT_PREDECLARED_CAPABILITY_BLOCKER",
+    "preferred_first_probe": [
+      "pin exact Qwen/Qwen3-TTS-12Hz-0.6B-CustomVoice revision and all model/tokenizer artifact hashes",
+      "pin qwen-tts package/source revision and exact F2 probe source",
+      "use CPU device explicitly",
+      "start with float32/fp32 when target CPU BF16 support is not already proven",
+      "disable FlashAttention for the CPU discriminator",
+      "use the existing fixed German prompt and file/in-memory/null PCM sink",
+      "measure cold/warm load, peak RSS, first PCM, synthesis latency, RTF, PCM format/hash/finite-nonempty checks and producer-side cancellation",
+      "after required artifacts are present, record network boundary and keep model/ASR/TTS inference outbound calls at zero"
+    ],
+    "reference_cli_shape_only_not_a_promotion_command": "qwen-tts-demo <pinned-local-checkpoint> --device cpu --dtype float32 --no-flash-attn",
+    "important": "The actual promotion-bearing probe may call Qwen3TTSModel directly rather than Gradio. The CLI source is evidence that the upstream loader admits this CPU configuration; it is not evidence that CPU performance or synthesis quality passes on clay-direct-dev."
+  },
+  "failure_interpretation": {
+    "load_or_inference_executes_but_invariant_fails": "PRODUCT_NEGATIVE only for the exact exercised invariant",
+    "dependency_or_runtime_cannot_execute_discriminator": "INFRA_AUTH_TRANSPORT_QUOTA or EVIDENCE_INVALID as appropriate; do not invent a new Voice component",
+    "OOM_or_host_headroom_violation": "bounded target runtime negative/resource result; preserve host survival and do not silently move to S4",
+    "slow_RTF": "measurement result, not physical-device blocker; compare against the system latency budget before architecture mutation"
+  },
+  "explicit_zero_credit": [
+    "TTS runtime until execution receipt exists",
+    "first audible playback",
+    "human-heard output",
+    "physical speaker",
+    "physical microphone",
+    "physical barge-in",
+    "whole Voice-Slice runtime",
+    "whole product"
+  ],
+  "next_exact_action": "Trigger 4 should consume the already-claimed TTS semantic key exactly once, use the official CPU-compatible loading shape as the first low-risk configuration, and either close that bounded model-runtime gate or coherently execute it as the TTS prerequisite inside the single owner-VPS full-duplex system claim d62224bf7f52ef1db031ec7a9650a6b107f16a7a61f6f6cca253724d6419ea20. Do not dispatch both if that would duplicate the same model execution."
+}
