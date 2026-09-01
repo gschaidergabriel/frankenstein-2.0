@@ -1,0 +1,119 @@
+{
+  "schema": "F2_TRIGGER7_CONTINUATION_CHECKPOINT/v1",
+  "trigger": "7",
+  "producer": "GPT-5.6-Sol",
+  "date": "2026-09-02",
+  "state": "G2C_ROUTED_NO_DUPLICATE_DISPATCH_SOURCEWATCH_RECONCILED",
+  "protocol_ref": "research/local_voice/TRIGGERWORD_7_PROTOCOL.md",
+  "owner_authority_ref": "research/local_voice/authority/2026-08-31_TRIGGER7_TEXT_PACKET_COMPLETION_AUTHORITY.md",
+  "observed_f2_head_before_checkpoint": "2cc6c717fdcb387cf97d58c38336dfbfbe40fa26",
+  "current_claim": {
+    "research_id": "T7-20260902-COMPLETION-DEPTH-G2",
+    "semantic_key": "0d83f7d13c1d8f91686cf94070f73d901a49018b40a9c058d1949af094655bff",
+    "human_claim_ref": "research/local_voice/claims/2026-09-02_trigger7_gpt56sol_completion_depth_g2.json",
+    "benchmark_ref": "research/local_voice/benchmarks/2026-09-02_TRIGGER7_COMPLETION_DEPTH_G2.json",
+    "state_observed": "CLAIMED"
+  },
+  "accepted_runtime_predecessors": {
+    "g4_real_asr_tts_causal_reentry": {
+      "result_ref": "trigger4/results/local_voice/TRIGGER4_T7_G4_REAL_ASR_TTS_CAUSAL_REENTRY_VPS_PASS_2026-09-02_GPT56SOL.json",
+      "executed_subject": "a4991269b313a414d099405ccb51d2da1a57f4a1",
+      "accepted_scope": [
+        "owner-VPS real local ASR output causally injected into existing packet chain",
+        "owner-VPS real local Piper TTS generation bound to exact VoiceOutputPacket identities",
+        "packet barge/restart/stale-tool-outcome/reentry chain"
+      ],
+      "still_zero": [
+        "true streaming partial ASR latency/stability",
+        "physical microphone",
+        "physical speaker",
+        "human-heard output",
+        "acoustic playback/readback",
+        "UnifiedDB write",
+        "GWT/J-Space",
+        "effect",
+        "training",
+        "whole voice E2E",
+        "whole product"
+      ]
+    },
+    "d622_g2_headless_full_duplex": {
+      "result_ref": "trigger4/results/local_voice/TRIGGER4_T7_FDX_D622_OWNER_VPS_G2_RUNTIME_RECONCILIATION_33546874424_GPT56SOL.json",
+      "run_id": 33546874424,
+      "result": "NO_COUNTEREXAMPLE",
+      "accepted_scope": ["FDX2", "FDX3_SINK_CANCEL_ONLY", "FDX4", "FDX6"],
+      "do_not_redispatch": true
+    }
+  },
+  "current_execution_frontier": {
+    "g2c": {
+      "id": "G2C_FDX12_NETWORK_NONE_COMPOSED_INFERENCE",
+      "handoff_ref": "trigger4/inbox/local_voice/T7_COMPLETION_DEPTH_G2C_FDX12_NETWORK_NONE_HANDOFF_2026-09-02_GPT56SOL.json",
+      "state": "ROUTED_TO_TRIGGER4",
+      "purpose": "prove existing accepted local ASR plus TTS execute from prestaged exact artifacts with independent sandbox-level external network unavailability",
+      "promotion_if_pass": "FDX12_OFFLINE_LOCAL_INFERENCE_AT_EXACT_VPS_SANDBOX_SCOPE_ONLY",
+      "new_component": false,
+      "duplicate_dispatch": "FORBIDDEN"
+    },
+    "fdx7_fdx8": {
+      "workflow_run_id": 33549789287,
+      "job_id": 99996131734,
+      "workflow": "T4 Packet Cortex Full Duplex Falsifier",
+      "head_sha": "d08968fd2e860d00ae4d929c3fdc3e68e1378dbe",
+      "labels": ["clay-host"],
+      "status_observed": "queued",
+      "runner_id_observed": 0,
+      "runner_name_observed": "",
+      "executed_steps_observed": 0,
+      "classification": "UNKNOWN_NONTERMINAL_CONTROL_PLANE_ONLY",
+      "product_conclusion": "NONE",
+      "runtime_credit": 0,
+      "duplicate_dispatch": "FORBIDDEN"
+    }
+  },
+  "source_watch": [
+    {
+      "source": "Qwen/Qwen3-ASR-1.7B primary model card and current Transformers documentation",
+      "finding": "German remains supported and official streaming inference remains available; current model card says streaming is exposed through the vLLM backend. This is challenger/source context only and does not displace the already accepted Nemotron subject under the cortex-first breadth throttle.",
+      "credit": "SOURCE_RESEARCH_ONLY"
+    },
+    {
+      "source": "arXiv:2608.22101 Beyond Fresh Starts: Stateful Inference for Streaming ASR in Conversational Voice Agents",
+      "finding": "Cross-utterance ASR state is directly relevant to the already-defined G2A long-silence/backchannel/reentry discriminator; reported onset WER reductions motivate testing state preservation versus reset without creating a new Voice authority.",
+      "credit": "SOURCE_RESEARCH_ONLY"
+    },
+    {
+      "source": "arXiv:2604.21406 HumDial-FDBench",
+      "finding": "Dual-channel interruption/overlap/feedback scenarios remain suitable donor cases for composed full-duplex falsification; already present in current Trigger-7 source-watch history, so no duplicate source claim was opened.",
+      "credit": "NO_NEW_CREDIT_DUPLICATE_SOURCE_CONTEXT"
+    }
+  ],
+  "nonduplication_decisions": [
+    "Do not redispatch FDX7/FDX8 while run 33549789287 remains nonterminal.",
+    "Do not create a second G2C semantic claim or second G2C Trigger4 handoff.",
+    "Do not reopen generic ASR/TTS model scouting while cortex/completion-depth work remains open.",
+    "Do not compose old runtime receipts into current-main runtime credit without exact invariance evidence.",
+    "Do not mutate product semantics from an infrastructure/queue condition."
+  ],
+  "execution_order_preserved": [
+    "G2C_FDX12_NETWORK_NONE_COMPOSED_INFERENCE",
+    "G2A_TRUE_PARTIAL_STREAMING_ASR",
+    "G2B_PRODUCER_SIDE_TTS_PREEMPTION",
+    "G2D_FDX10_BOUNDED_LONG_SESSION_RESOURCE_ROLLOVER"
+  ],
+  "next_exact_action": "Refresh current main and consume the first terminal result among G2C and the already-bound FDX7/FDX8 run. If G2C passes at exact scope, advance the existing G2 claim depth-first to G2A using the already-pinned Nemotron Q8 subject and one monotonic-clock partial/final trace; do not open a new ASR architecture lane. If G2C yields PRODUCT_NEGATIVE, route only the exact reproduced locality defect to Trigger4. If the run is still queued or otherwise nonterminal, preserve zero runtime credit and continue only noncompeting packet/cortex research or source-watch work.",
+  "credits": {
+    "new_source_research": 1,
+    "repository_component": 0,
+    "target_runtime": 0,
+    "physical_audio": 0,
+    "true_streaming_partial_asr": 0,
+    "producer_generation_cancel": 0,
+    "canonical_durable_state_reentry": 0,
+    "gwt_jspace": 0,
+    "effect": 0,
+    "training": 0,
+    "whole_voice_e2e": 0,
+    "whole_product": 0
+  }
+}
