@@ -3,22 +3,24 @@
 F2-WP-900 generation 4.
 
 WP900 G3 established one bounded target-component observation of the positive
-DELIVERY -> UPTAKE -> REENTRY path.  WP507 supplies a matched intervention /
-no-broadcast causal-probe ABI.  This module composes those accepted boundaries
+DELIVERY -> UPTAKE -> REENTRY path. WP507 supplies a matched intervention /
+no-broadcast causal-probe ABI. This module composes those accepted boundaries
 without creating a second GWT, J-Space, state, effect or runtime authority.
 
 The binder accepts an already sealed positive runtime witness, the exact uptake
-receipt that witness observed, a complete uptake summary, and an explicit
-no-broadcast control readback from the same boot and exact source.  It requires:
+receipt that witness observed, a complete uptake summary, an explicit shared
+probe execution context, and an explicit no-broadcast control readback. It
+requires:
 
 * the positive arm really observed DELIVERY, UPTAKE and REENTRY;
 * the uptake receipt is exactly the one bound by the runtime witness;
 * intervention and control use the same non-broadcast input identity;
 * the control run explicitly observed no GWT re-entry;
-* both arms execute the same exact source on the same boot;
+* both arms bind the same exact source and boot;
+* both arms bind one hashed runner/engine/config/environment/dependency context;
 * WP507's matched causal evaluator reports a contract-scope influence.
 
-Repository construction or CI produces only an evidence candidate.  Runtime,
+Repository construction or CI produces only an evidence candidate. Runtime,
 semantic GWT/J-Space, physical GRID10, effect, completion and training credit
 remain zero until an external admitted execution/reconciliation promotes the
 exact measured scope.
@@ -47,6 +49,7 @@ from frankenstein2.gwt_workspace import BroadcastEnvelope
 
 GWT_CAUSAL_RUNTIME_READBACK_SCHEMA = "FRANKENSTEIN2_GWT_CAUSAL_RUNTIME_READBACK/v1"
 CONTROL_NO_BROADCAST_READBACK_SCHEMA = "FRANKENSTEIN2_GWT_CONTROL_NO_BROADCAST_READBACK/v1"
+PROBE_EXECUTION_CONTEXT_SCHEMA = "FRANKENSTEIN2_GWT_PROBE_EXECUTION_CONTEXT/v1"
 CAUSAL_RUNTIME_READBACK_OBSERVED = "CAUSAL_RUNTIME_READBACK_OBSERVED_AT_CONTRACT_SCOPE"
 _SHA256_RE = re.compile(r"^[0-9a-f]{64}$")
 _MAX_TEXT = 512
@@ -109,10 +112,63 @@ def _digest(value: Any) -> str:
 
 
 @dataclass(frozen=True, slots=True, kw_only=True)
+class ProbeExecutionContext:
+    """Concrete shared execution context for intervention and control arms.
+
+    This record closes the matched-control context confound at the binder ABI:
+    runner/surface/runtime-engine/config/environment/dependencies cannot differ
+    silently between arms. External runtime admission must still prove that the
+    recorded values were actually observed on the executed subject.
+    """
+
+    runner_identity: str
+    execution_surface: str
+    runtime_engine_identity: str
+    runtime_engine_config_sha256: str
+    environment_sha256: str
+    dependency_set_sha256: str
+    boot_id_sha256: str
+    exact_source_sha256: str
+    provenance_refs: tuple[str, ...]
+
+    schema = PROBE_EXECUTION_CONTEXT_SCHEMA
+
+    def __post_init__(self) -> None:
+        for name in ("runner_identity", "execution_surface", "runtime_engine_identity"):
+            object.__setattr__(self, name, _text(name, getattr(self, name)))
+        for name in (
+            "runtime_engine_config_sha256",
+            "environment_sha256",
+            "dependency_set_sha256",
+            "boot_id_sha256",
+            "exact_source_sha256",
+        ):
+            object.__setattr__(self, name, _sha256(name, getattr(self, name)))
+        object.__setattr__(self, "provenance_refs", _refs(self.provenance_refs))
+
+    def as_dict(self) -> dict[str, Any]:
+        return {
+            "schema": self.schema,
+            "runner_identity": self.runner_identity,
+            "execution_surface": self.execution_surface,
+            "runtime_engine_identity": self.runtime_engine_identity,
+            "runtime_engine_config_sha256": self.runtime_engine_config_sha256,
+            "environment_sha256": self.environment_sha256,
+            "dependency_set_sha256": self.dependency_set_sha256,
+            "boot_id_sha256": self.boot_id_sha256,
+            "exact_source_sha256": self.exact_source_sha256,
+            "provenance_refs": list(self.provenance_refs),
+        }
+
+    def sha256(self) -> str:
+        return _digest(self.as_dict())
+
+
+@dataclass(frozen=True, slots=True, kw_only=True)
 class ControlNoBroadcastReadback:
     """Explicit readback for the matched no-broadcast control arm.
 
-    This is an observation record, not proof that execution happened.  External
+    This is an observation record, not proof that execution happened. External
     admission must still bind the record to an actually executed target run.
     """
 
@@ -120,6 +176,7 @@ class ControlNoBroadcastReadback:
     process_identity: str
     boot_id_sha256: str
     exact_source_sha256: str
+    execution_context_sha256: str
     probe_id: str
     nonbroadcast_input_sha256: str
     downstream_ref: str
@@ -134,7 +191,13 @@ class ControlNoBroadcastReadback:
     def __post_init__(self) -> None:
         for name in ("runtime_instance_id", "process_identity", "probe_id", "downstream_ref"):
             object.__setattr__(self, name, _text(name, getattr(self, name)))
-        for name in ("boot_id_sha256", "exact_source_sha256", "nonbroadcast_input_sha256", "downstream_sha256"):
+        for name in (
+            "boot_id_sha256",
+            "exact_source_sha256",
+            "execution_context_sha256",
+            "nonbroadcast_input_sha256",
+            "downstream_sha256",
+        ):
             object.__setattr__(self, name, _sha256(name, getattr(self, name)))
         _positive_int("observed_monotonic_ns", self.observed_monotonic_ns)
         if type(self.reentry_observed) is not bool:
@@ -151,6 +214,7 @@ class ControlNoBroadcastReadback:
             "process_identity": self.process_identity,
             "boot_id_sha256": self.boot_id_sha256,
             "exact_source_sha256": self.exact_source_sha256,
+            "execution_context_sha256": self.execution_context_sha256,
             "probe_id": self.probe_id,
             "nonbroadcast_input_sha256": self.nonbroadcast_input_sha256,
             "downstream_ref": self.downstream_ref,
@@ -170,6 +234,7 @@ class GwtCausalRuntimeReadbackCandidate:
     probe_id: str
     exact_source_sha256: str
     boot_id_sha256: str
+    execution_context_sha256: str
     broadcast_id: str
     broadcast_sha256: str
     recipient_cell_id: str
@@ -217,6 +282,7 @@ class GwtCausalRuntimeReadbackCandidate:
         for name in (
             "exact_source_sha256",
             "boot_id_sha256",
+            "execution_context_sha256",
             "broadcast_sha256",
             "nonbroadcast_input_sha256",
             "intervention_downstream_sha256",
@@ -240,6 +306,7 @@ class GwtCausalRuntimeReadbackCandidate:
             "probe_id": self.probe_id,
             "exact_source_sha256": self.exact_source_sha256,
             "boot_id_sha256": self.boot_id_sha256,
+            "execution_context_sha256": self.execution_context_sha256,
             "broadcast_id": self.broadcast_id,
             "broadcast_sha256": self.broadcast_sha256,
             "recipient_cell_id": self.recipient_cell_id,
@@ -277,6 +344,7 @@ def bind_causal_runtime_readback(
     *,
     probe_id: str,
     nonbroadcast_input_sha256: str,
+    execution_context: ProbeExecutionContext,
     broadcast: BroadcastEnvelope,
     runtime_witness: GwtRuntimeWitnessReceipt,
     uptake_receipt: CellUptakeReceipt,
@@ -287,12 +355,15 @@ def bind_causal_runtime_readback(
     """Bind one positive live GWT path to one matched no-broadcast readback.
 
     The function deliberately consumes observations rather than executing a model
-    or external effect.  A target harness must supply observations from actual
+    or external effect. A target harness must supply observations from actual
     execution; external reconciliation then decides the exact credit scope.
     """
 
     probe_id = _text("probe_id", probe_id)
     nonbroadcast_input_sha256 = _sha256("nonbroadcast_input_sha256", nonbroadcast_input_sha256)
+    if type(execution_context) is not ProbeExecutionContext:
+        raise GwtCausalRuntimeReadbackError("execution_context must be exact ProbeExecutionContext")
+    execution_context_sha256 = execution_context.sha256()
     if type(broadcast) is not BroadcastEnvelope:
         raise GwtCausalRuntimeReadbackError("broadcast must be exact BroadcastEnvelope")
     if type(runtime_witness) is not GwtRuntimeWitnessReceipt:
@@ -305,6 +376,10 @@ def bind_causal_runtime_readback(
         raise GwtCausalRuntimeReadbackError("positive arm must be LIVE_GWT_PATH_OBSERVED")
     if runtime_witness.broadcast_id != broadcast.broadcast_id or runtime_witness.broadcast_sha256 != broadcast.sha256():
         raise GwtCausalRuntimeReadbackError("runtime witness/broadcast identity mismatch")
+    if execution_context.exact_source_sha256 != runtime_witness.identity.exact_source_sha256:
+        raise GwtCausalRuntimeReadbackError("execution context/source identity mismatch")
+    if execution_context.boot_id_sha256 != runtime_witness.identity.boot_id_sha256:
+        raise GwtCausalRuntimeReadbackError("execution context/boot identity mismatch")
 
     if type(uptake_receipt) is not CellUptakeReceipt:
         raise GwtCausalRuntimeReadbackError("uptake_receipt must be exact CellUptakeReceipt")
@@ -335,6 +410,8 @@ def bind_causal_runtime_readback(
         raise GwtCausalRuntimeReadbackError("control exact-source identity mismatch")
     if control_readback.boot_id_sha256 != runtime_witness.identity.boot_id_sha256:
         raise GwtCausalRuntimeReadbackError("control boot identity mismatch")
+    if control_readback.execution_context_sha256 != execution_context_sha256:
+        raise GwtCausalRuntimeReadbackError("control execution-context identity mismatch")
     if control_readback.reentry_observed:
         raise GwtCausalRuntimeReadbackError("control arm unexpectedly observed GWT re-entry")
 
@@ -344,14 +421,14 @@ def bind_causal_runtime_readback(
         broadcast=broadcast,
         nonbroadcast_input_sha256=nonbroadcast_input_sha256,
         downstream_output_sha256=uptake_receipt.downstream_sha256,
-        provenance_refs=("wp900:g4:runtime-positive", runtime_witness.sha256()),
+        provenance_refs=("wp900:g4:runtime-positive", runtime_witness.sha256(), execution_context_sha256),
     )
     control = CausalProbeArm.control(
         arm_id=f"{probe_id}:control",
         probe_id=probe_id,
         nonbroadcast_input_sha256=control_readback.nonbroadcast_input_sha256,
         downstream_output_sha256=control_readback.downstream_sha256,
-        provenance_refs=("wp900:g4:runtime-control", control_readback.sha256()),
+        provenance_refs=("wp900:g4:runtime-control", control_readback.sha256(), execution_context_sha256),
     )
     try:
         causal_result: CausalInfluenceResult = evaluate_causal_influence(
@@ -360,7 +437,7 @@ def bind_causal_runtime_readback(
             uptake_summary=uptake_summary,
             intervention=intervention,
             control=control,
-            provenance_refs=("wp900:g4:matched-runtime-readback",),
+            provenance_refs=("wp900:g4:matched-runtime-readback", execution_context_sha256),
         )
     except ValueError as exc:
         raise GwtCausalRuntimeReadbackError(f"causal evaluator rejected observations: {exc}") from exc
@@ -372,6 +449,7 @@ def bind_causal_runtime_readback(
         probe_id=probe_id,
         exact_source_sha256=runtime_witness.identity.exact_source_sha256,
         boot_id_sha256=runtime_witness.identity.boot_id_sha256,
+        execution_context_sha256=execution_context_sha256,
         broadcast_id=broadcast.broadcast_id,
         broadcast_sha256=broadcast.sha256(),
         recipient_cell_id=runtime_witness.recipient_cell_id,
@@ -407,9 +485,11 @@ __all__ = [
     "CAUSAL_RUNTIME_READBACK_OBSERVED",
     "CONTROL_NO_BROADCAST_READBACK_SCHEMA",
     "GWT_CAUSAL_RUNTIME_READBACK_SCHEMA",
+    "PROBE_EXECUTION_CONTEXT_SCHEMA",
     "ControlNoBroadcastReadback",
     "GwtCausalRuntimeReadbackCandidate",
     "GwtCausalRuntimeReadbackError",
+    "ProbeExecutionContext",
     "bind_causal_runtime_readback",
     "validate_causal_runtime_readback",
 ]
