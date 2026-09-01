@@ -1,0 +1,98 @@
+{
+  "schema": "T7_TO_TRIGGER4_S2_PIPEWIRE_HEADLESS_PREFLIGHT/v1",
+  "trigger": "7",
+  "producer": "GPT-5.6-Sol",
+  "date": "2026-09-02",
+  "semantic_key": "0d83f7d13c1d8f91686cf94070f73d901a49018b40a9c058d1949af094655bff",
+  "work_class": "RUNTIME_CREDIT_CLOSURE_PREFLIGHT",
+  "product_mutation_authority": false,
+  "new_component": false,
+  "target_runtime_owner": "Trigger4 current singleton for issue 912",
+  "finding": "The canonical S2 nspawn base is debootstrap --variant=minbase and currently includes systemd/dbus/python/curl/git/etc but not PipeWire, pipewire-pulse, WirePlumber, pactl/pw-record tooling. run_ubuntu_sandbox.sh executes nspawn with a direct bash payload rather than --boot, so it must not assume a pre-existing desktop/systemd user audio session. Current PipeWire G2 can still be faithfully represented headlessly, but session/package identity must be established explicitly before the promotion-bearing discriminator.",
+  "canonical_source_observed": {
+    "nspawn_base_prepare_ref": "tools/vps_sandbox/host_prepare_ubuntu_nspawn.sh",
+    "nspawn_base_prepare_blob": "22751eeec154a5c4eae538482e119047dd298333",
+    "sandbox_runner_ref": "tools/vps_sandbox/run_ubuntu_sandbox.sh",
+    "sandbox_runner_blob": "cbb1671ccd239427486f8d520c37e8ee56c5869b"
+  },
+  "external_primary_research": [
+    {
+      "source": "PipeWire daemon documentation",
+      "finding": "PipeWire clients connect to the daemon through the native socket, by default $XDG_RUNTIME_DIR/pipewire-0; session manager is a separate client."
+    },
+    {
+      "source": "pipewire-pulse documentation",
+      "finding": "pipewire-pulse is the PulseAudio-compatible daemon integrated with PipeWire and uses XDG_RUNTIME_DIR/PULSE_RUNTIME_PATH for the Pulse socket."
+    },
+    {
+      "source": "WirePlumber running documentation",
+      "finding": "WirePlumber is normally a systemd user service but can be run independently/by hand after PipeWire; a desktop user manager is not intrinsically required for a bounded headless sandbox process topology."
+    },
+    {
+      "source": "Ubuntu Noble package index",
+      "finding": "Ubuntu 24.04 Noble provides pipewire-bin, pipewire-pulse and wireplumber packages; package versions must be captured from the actual sandbox install rather than inferred from this packet."
+    }
+  ],
+  "preflight_law": {
+    "must_run_inside_disposable_s2": true,
+    "must_not_mutate_owner_host_audio_session": true,
+    "must_precede_promotion_bearing_control_cancel": true,
+    "preflight_pass_is_runtime_credit": false,
+    "package_network_note": "Current PipeWire G2 is not the deferred FDX12 network-none experiment. If packages are absent from the disposable S2 root, Trigger4 may use the admitted sandbox network solely to install the reviewed Ubuntu packages, recording package versions and network state. Do not claim network-none/offline credit from this run. If current authority requires network-off during measurement, install first, then explicitly isolate/verify the measurement phase or use a preprovisioned package-complete S2 image."
+  },
+  "minimum_headless_session_preflight": [
+    "Verify backend=nspawn and the disposable root/base marker; reject OCI fallback for S2 credit unless an explicit current fidelity decision downgrades target scope.",
+    "Inside S2, record /etc/os-release, kernel-visible environment, uid/gid, package versions and exact executable hashes/paths for pipewire, pipewire-pulse, wireplumber, pactl, pw-cli/pw-dump and chosen recorder/player.",
+    "If packages are absent, install only inside the disposable S2 root from reviewed Ubuntu Noble repositories; record apt source identities and installed package versions. No owner-host package mutation.",
+    "Create a sandbox-local non-host runtime directory owned by the sandbox audio test user, mode 0700; bind XDG_RUNTIME_DIR to it. Do not bind or reuse the owner host's /run/user/* audio sockets.",
+    "Start an isolated session bus with dbus-run-session or an equivalent sandbox-local bus if the installed WirePlumber version needs/benefits from D-Bus. Never point DBUS_SESSION_BUS_ADDRESS to the owner host session bus.",
+    "Start pipewire manually in the sandbox; prove its native socket is created under the sandbox-local XDG_RUNTIME_DIR and bind daemon pid/version/config identity.",
+    "Start pipewire-pulse manually against that same sandbox-local PipeWire instance; prove pactl connects to the sandbox-local Pulse socket and bind `pactl info` server identity as PipeWire-backed. Do not accept mere pactl binary presence.",
+    "Start the installed WirePlumber/session manager manually only after PipeWire. Do not assume `systemctl --user` is available in the direct-bash nspawn payload. If WirePlumber cannot run, classify the exact reason before changing sandbox topology.",
+    "Enumerate the PipeWire graph before creating the test sink; record pw-cli/pw-dump/wpctl output or equivalent exact node/object.serial identities.",
+    "Create exactly one sandbox-local virtual/null sink using the current admitted mechanism, enumerate its exact sink and monitor source/node identities, and prove both belong to the sandbox-local PipeWire instance.",
+    "Perform a tiny non-promotion smoke write/readback through that sink/monitor and clean it up. This proves execution plumbing only; do not use the smoke bytes for G2 acceptance.",
+    "Terminate run-owned player/recorder/session-manager/pipewire-pulse/pipewire processes and unload/remove run-owned sink; prove process/socket/node cleanup before leaving S2."
+  ],
+  "fail_closed_classification": {
+    "nspawn_base_or_passwordless_sudo_unavailable": "INFRA_AUTH_TRANSPORT_QUOTA",
+    "required_packages_unavailable_without_currently_admitted_install_path": "INFRA_AUTH_TRANSPORT_QUOTA",
+    "pipewire_socket_or_pulse_server_identity_not_bindable": "EVIDENCE_INVALID",
+    "pactl_connects_to_wrong_or_host_server": "EVIDENCE_INVALID_AND_HOST_BOUNDARY_VIOLATION_STOP",
+    "null_sink_or_monitor_cannot_be_created_in_otherwise_valid_headless_pipewire_session": "SANDBOX_FIDELITY_DEFICIT_OR_INFRA_AUTH_TRANSPORT_QUOTA__NO_PRODUCT_CONCLUSION",
+    "smoke_readback_absent_or_unattributable": "EVIDENCE_INVALID__NO_PRODUCT_CONCLUSION",
+    "preflight_pass": "S2_PIPEWIRE_SESSION_EXECUTION_READY_ONLY__ZERO_G2_RUNTIME_CREDIT"
+  },
+  "required_preflight_receipt": [
+    "f2_subject_sha",
+    "sandbox_backend",
+    "sandbox_root_identity",
+    "ubuntu_release",
+    "network_mode_during_package_install",
+    "network_mode_during_measurement_preflight",
+    "apt_source_identity",
+    "package_versions",
+    "executable_paths_and_hashes",
+    "audio_test_uid_gid",
+    "xdg_runtime_dir",
+    "dbus_session_bus_scope_if_used",
+    "pipewire_pid_version_socket",
+    "pipewire_pulse_pid_version_socket",
+    "wireplumber_pid_version_or_explicit_not_required_reason",
+    "pactl_server_identity",
+    "sink_node_identity_object_serial",
+    "monitor_node_identity_object_serial",
+    "smoke_source_hash",
+    "smoke_monitor_hash_or_alignment",
+    "cleanup_process_socket_node_status",
+    "failure_class"
+  ],
+  "anti_scope_inflation": [
+    "Preflight PASS does not mint PipeWire cancel-tail G2 credit.",
+    "Preflight PASS does not mint real-TTS-through-PipeWire credit.",
+    "Preflight PASS does not mint physical microphone/speaker/human-heard/physical-silence credit.",
+    "Network-on package provisioning does not mint FDX12 network-none credit.",
+    "Do not modify the owner host audio session or reuse host audio sockets for convenience."
+  ],
+  "next_exact_action": "The current Trigger4 singleton for issue 912 should fold this preflight into the repaired-subject S2 execution. Once the isolated PipeWire/PipeWire-Pulse graph and null-sink monitor are positively identified, immediately run the already-defined promotion-bearing CONTROL and CAUSAL_CANCEL pair; do not open another workpackage or semantic generation."
+}
