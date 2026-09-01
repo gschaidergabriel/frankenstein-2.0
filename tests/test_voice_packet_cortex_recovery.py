@@ -312,6 +312,40 @@ class VoicePacketCortexRecoveryTests(unittest.TestCase):
         with self.assertRaises(VoicePacketCortexError):
             resume_packet_cortex(session, self.rehash(checkpoint), monotonic_ms=1000)
 
+    def test_rbound6_unbacked_output_sequence_projection_fails_closed(self) -> None:
+        session = self.session()
+        checkpoint = export_packet_cortex_checkpoint(VoicePacketCortex(session))
+        checkpoint["payload"]["last_output_sequence"] = [["turn-ghost", 999]]
+        with self.assertRaises(VoicePacketCortexError):
+            resume_packet_cortex(session, self.rehash(checkpoint), monotonic_ms=1000)
+
+    def test_rcomp1_completed_heard_commit_projection_fails_closed(self) -> None:
+        session = self.session()
+        cortex = VoicePacketCortex(session)
+        cortex.queue_output(
+            turn_id="turn-output", packet_id="output-0", monotonic_ms=100,
+            text_segment="vollstaendig gehoert", expression_intent="neutral", speech_act="ANSWER",
+            planned_audio_duration_ms=200, sequence=0,
+        )
+        cortex.advance_output("output-0", playback_state="started", monotonic_ms=110, heard_fraction=0.0)
+        cortex.advance_output("output-0", playback_state="completed", monotonic_ms=310, heard_fraction=1.0)
+        checkpoint = export_packet_cortex_checkpoint(cortex)
+        checkpoint["payload"]["outputs"][0]["commit_eligible"] = False
+        with self.assertRaisesRegex(VoicePacketCortexError, "commit eligibility contradicts"):
+            resume_packet_cortex(session, self.rehash(checkpoint), monotonic_ms=400)
+
+    def test_rcomp2_tool_history_projection_drop_fails_closed(self) -> None:
+        session = self.session()
+        cortex = VoicePacketCortex(session)
+        cortex.emit_intent(
+            turn_id="turn-tool-a", monotonic_ms=100, voice_intent="TOOL_USE", tool_ref="tool:shared"
+        )
+        checkpoint = export_packet_cortex_checkpoint(cortex)
+        checkpoint["payload"]["active_tools"] = []
+        checkpoint["payload"]["cancelled_tools"] = []
+        with self.assertRaisesRegex(VoicePacketCortexError, "tool ownership projection is not backed"):
+            resume_packet_cortex(session, self.rehash(checkpoint), monotonic_ms=200)
+
 
 if __name__ == "__main__":
     unittest.main()
