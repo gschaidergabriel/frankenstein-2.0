@@ -1,0 +1,77 @@
+{
+  "schema": "ARCHITECTURE_DELTA_FUSION/v1",
+  "architecture_delta_id": "ADF-20260829T2216P0700-GPT56SOL-WP804-EIG-BINDING",
+  "trigger": "6",
+  "research_id": "R6-20260829-GOAL-INFERENCE-IDENTIFIABILITY-GPT56SOL-01",
+  "created_at": "2026-08-29T22:16:00+07:00",
+  "inputs": {
+    "f2_ablation_base_sha": "aee8caa8b136a67a783b55c63b099b596bdd7172",
+    "f2_ablation_tested_sha": "6a75346c6f78066a67ac59b793dc2e1972b14438",
+    "research_entity_observed_sha": "bf6d49b19701808a770f8ae9909cc229aee022a4",
+    "previous_architecture_fusion": "ADF-20260829T2023P0700-GPT56SOL-GOAL-AMBIGUITY@99dbd8aa5ec2029522bcda6424667888e5924d69",
+    "trigger6_protocol_blob_sha": "9e08571526d33f9a0c06577e2f119bdaf4297ef1c8",
+    "e4_receipt": "research/tool_intelligence/results/R6-20260829-GOAL-INFERENCE-IDENTIFIABILITY-GPT56SOL-01_E4_MATCHED_GOAL_PROBE_ABLATION.json"
+  },
+  "supersedes": {
+    "claim": "PUBLIC_COMPATIBLE_GOAL_SET_ALONE_IS_SUFFICIENT_INPUT_TO_EXISTING_EAS",
+    "replacement": "PUBLIC_COMPATIBLE_GOAL_SET_PLUS_BOUND_PROBE_OUTCOME_OR_LIKELIHOOD_MODEL_PLUS_EXPLICIT_SCORING_POLICY_IS_REQUIRED_BEFORE_EXISTING_EAS"
+  },
+  "observed_architecture": {
+    "wp804": "Correctly emits ABSTAIN when public evidence does not uniquely identify a goal and preserves content-bound public signal provenance.",
+    "hyperposition": "Correctly preserves unresolved alternatives without truth, selection or effect authority.",
+    "epistemic_action_selection": "Correctly ranks already-bound DiscriminatorCandidate values but consumes caller-supplied expected_information_gain_micros; it does not derive that value from compatible goals or an observation model."
+  },
+  "new_minimal_interface_candidate": {
+    "working_name": "EPISTEMIC_DISCRIMINATOR_SCORING_BINDING/v0",
+    "classification": "RESEARCH_ARCHITECTURE_CANDIDATE_NOT_IMPLEMENTED_AUTHORITY",
+    "purpose": "Provide the missing auditable bridge from unresolved goal alternatives and legal probes to the numeric expected-information-gain field already consumed by the existing selector.",
+    "must_bind": [
+      "hyperposition_id + generation + sha256",
+      "exact target alternative ids",
+      "legal probe/action ids and their authorization-neutral candidate identity",
+      "probe-outcome or observation-likelihood model ref + generation + sha256",
+      "explicit prior policy ref + generation + sha256; uniform-compatible-set is an assumption, not inferred truth",
+      "scoring algorithm ref/version",
+      "derived expected_information_gain_micros",
+      "provenance refs"
+    ],
+    "fail_closed_on": [
+      "missing or extra compatible alternatives",
+      "stale Hyperposition generation/digest",
+      "missing outcome/likelihood model",
+      "stale or mismatched model digest",
+      "missing prior/scoring policy identity",
+      "caller hand-score without reproducible derivation",
+      "probe not present in the bounded legal candidate set"
+    ],
+    "authority_boundary": "OUTPUT_IS_DISCRIMINATOR_SCORE_BINDING_ONLY; NO_WORLD_TRUTH_GOAL_ADOPTION_ACTION_EXECUTION_EFFECT_COMPLETION_OR_GRID_RUNTIME_AUTHORITY"
+  },
+  "why_not_new_ambiguity_subsystem": "The E4 result shows that the existing Hyperposition representation and deterministic epistemic selector are sufficient once a defensible score is supplied. The missing mechanism is the typed causal derivation of that score, not another persistent ambiguity store or another action selector.",
+  "external_mechanism_alignment": [
+    "IRL identifiability work establishes that multiple reward functions can remain compatible with observed behavior, so collapsing ambiguity to one inferred goal is generally unjustified.",
+    "CIRL formalizes unknown human reward parameters as partial information and admits active-learning/information-gathering behavior, implying that useful epistemic action requires a belief/observation model rather than a bare ambiguity flag."
+  ],
+  "acceptance_gates_before_e5": [
+    "typed immutable binding with exact digest/generation checks",
+    "deterministic derivation test: same bound inputs -> same score digest",
+    "permutation invariance for alternative and probe ordering",
+    "matched probe-switch ablation retained from E4",
+    "negative tests for missing/stale/mutated outcome model and scoring policy",
+    "explicit no-prior mode must not silently masquerade as calibrated expected information gain",
+    "no model/provider call required for deterministic synthetic path",
+    "measure CPU/latency/allocation overhead and prove it is negligible relative to current EAS path",
+    "no new canonical state or effect path"
+  ],
+  "resource_implication": "Expected low runtime cost: one compact deterministic score computation per legal probe over the unresolved alternative set; no additional model call is justified by this E4 result. Exact cost remains UNMEASURED until the typed binding is implemented and benchmarked.",
+  "counterhypothesis": "A simpler non-probabilistic discriminator heuristic may outperform Shannon-style information gain under sparse or uncalibrated alternatives; therefore the scoring ABI must bind the scoring policy instead of hardcoding one metric as truth.",
+  "falsifier": "If an implementation with exact model/prior/scoring bindings cannot outperform or meaningfully differentiate the binary-ABSTAIN baseline on matched ambiguity fixtures without hand-authored case-specific scores, retire the adapter hypothesis and keep WP804 ABSTAIN terminal at that boundary.",
+  "evidence_scope": "E4_REPOSITORY_ABLATION_ARCHITECTURE_DELTA_ONLY",
+  "credits": {
+    "e4_f2_ablation": "SUPPORTED_WITH_REVISED_MECHANISM",
+    "e5_build_candidate": 0,
+    "target_runtime": 0,
+    "physical_grid10": 0,
+    "whole_f2": 0,
+    "training": 0
+  }
+}
