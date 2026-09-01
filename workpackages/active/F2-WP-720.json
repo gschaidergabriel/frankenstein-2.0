@@ -12,9 +12,9 @@
   "work_class": "INTEGRATION_BLOCKER",
   "target_completion_tier": "SINGLE_AUTHORITATIVE_PACKET_TURN_POLICY_REPOSITORY_INTEGRATION",
   "execution_surface_class": "RUNTIME_PROBE_INVALIDATED_BY_REQUIRED_REPAIR",
-  "integration_boundary": "converge duplicate standalone WP720 policy adapter into the current integrated VoicePacketCortex policy authority, preserve PFD6/PFD7 fail-closed behavior, then establish a new exact repository subject before any VPS promotion",
-  "blocking_deficit": "Exact subject 731db925df96ab7e49c0e5b80cd7bc8f4d37a086 reproduced PRODUCT_NEGATIVE PFD6 in run 33536451609/job 99951826631: one accepted HOLD source event minted both WAIT and BACKCHANNEL. A parallel same-boundary repair at ba5d80eb10fc6e6a8788e513f2bacac0d7954e8a integrated immutable policy binding into VoicePacketCortex and c0b1f8bba4178a8291a6a5cec73e296d29d962ac added matched-history/current-packet/rebind/reentry regressions. The older standalone module/test/workflows still exist and its current discriminator fails PFD6, creating duplicate policy semantics that must be removed.",
-  "failure_class": "PRODUCT_NEGATIVE",
+  "integration_boundary": "current integrated VoicePacketCortex PacketTurnPolicy/apply_turn_policy -> executable PFD6 conflicting-rebind and PFD7 stale-HOLD-after-final falsifiers -> bounded repository acceptance -> new exact VPS subject",
+  "blocking_deficit": "The duplicate standalone policy module, its test file, its repository CI and its stale-subject VPS workflow were retired after PFD6 exposed the original subject. The remaining integrated VoicePacketCortex repair has successful packet-cortex and release-candidate CI, but WP720 still needs one explicit current-subject discriminator that executes PFD6 and PFD7 after duplicate-authority convergence before a new runtime subject can be bound.",
+  "failure_class": "PRODUCT_NEGATIVE_REPAIRED_CANDIDATE_REQUIRES_CURRENT_EXACT_DISCRIMINATOR",
   "product_negative_evidence": {
     "subject_sha": "731db925df96ab7e49c0e5b80cd7bc8f4d37a086",
     "run_id": 33536451609,
@@ -24,26 +24,36 @@
   "repair_candidate": {
     "implementation_commit": "ba5d80eb10fc6e6a8788e513f2bacac0d7954e8a",
     "regression_commit": "c0b1f8bba4178a8291a6a5cec73e296d29d962ac",
-    "authority_shape": "VoicePacketCortex.apply_turn_policy derives idempotence/conflict/currentness from the existing cortex packet/event state rather than a second FSM/state authority",
+    "single_authority": "src/frankenstein2/voice_packet_cortex.py::PacketTurnPolicy + VoicePacketCortex.apply_turn_policy",
+    "authority_shape": "idempotence, conflicting-rebind rejection and current-packet binding are derived from existing VoicePacketCortex input/event state; no second FSM/state/policy authority",
     "packet_cortex_ci": "SUCCESS",
-    "release_candidate_ci": "SUCCESS",
-    "standalone_adapter_ci": "FAILURE_PFD6_AND_TO_BE_REMOVED"
+    "release_candidate_ci": "SUCCESS"
   },
+  "convergence_cleanup": {
+    "stale_vps_workflow_deleted_commit": "a2645a62a76358355c5369c77c6fed551390602c",
+    "standalone_ci_deleted_commit": "c24932654feb32b5058818ffed15ece25e35a5a7",
+    "standalone_test_deleted_commit": "1b40f7fab5fbcfadd887393af733cf862054183a",
+    "standalone_module_deleted_commit": "4bd297908c84bd914687e65ed1fbd9e0b9baf380",
+    "historical_evidence_preserved": true
+  },
+  "coordination_observation": "A parallel same-claim worker mutated voice_packet_cortex.py after this claim had previously narrowed owned_paths to a standalone adapter. Current source is retained because it converges onto the pre-existing Cortex authority and closes the executable PFD6 defect, but the ownership race is preserved as a coordination defect rather than treated as proof of protocol correctness.",
   "runtime_subject_churn_class": "RUNTIME_PROBE_INVALIDATED_BY_REQUIRED_REPAIR",
   "invalidated_runtime_dispatch": {
     "old_subject_sha": "731db925df96ab7e49c0e5b80cd7bc8f4d37a086",
     "controller_commit": "2228c441cbfb40081d7ad4832c7f52e8990f3482",
     "run_id": 33536413324,
     "job_id": 99951716440,
-    "last_observed_status": "QUEUED_NONTERMINAL",
     "promotion_eligible": false,
     "reason": "required same-boundary semantic repair landed after executable PFD6 counterevidence"
   },
+  "existing_components": [
+    "src/frankenstein2/voice_packet_cortex.py",
+    "tests/test_voice_packet_cortex.py"
+  ],
   "owned_paths": [
-    "src/frankenstein2/voice_packet_turn_policy.py",
-    "tests/test_voice_packet_turn_policy.py",
-    ".github/workflows/wp720-turn-policy-ci.yml",
-    ".github/workflows/wp720-turn-policy-vps.yml",
+    "tests/test_wp720_turn_policy_falsifiers.py",
+    ".github/workflows/wp720-integrated-policy-ci.yml",
+    ".github/workflows/wp720-integrated-policy-vps.yml",
     "workpackages/active/F2-WP-720.json",
     "workpackages/deltas/F2-WP-720/*",
     "workpackages/receipts/F2-WP-720_G1_*",
@@ -65,5 +75,5 @@
   "whole_voice_e2e_credit": 0,
   "whole_system_acceptance": false,
   "created_at_utc": "2026-09-01T17:01:00Z",
-  "next_exact_action": "Remove the owned standalone policy module/test/repository-CI/VPS workflow so VoicePacketCortex remains the single policy authority. Then execute PFD6 plus the stale-HOLD-after-later-input/final discriminator against one new exact integrated source subject; only after green repository evidence may one deduplicated successor VPS runtime probe be bound."
+  "next_exact_action": "Create and execute one bounded integrated-policy repository discriminator containing PFD6 conflicting rebind plus PFD7 stale HOLD after later final endpoint against the current single Cortex policy authority. If green and current, bind exactly that source to at most one new owner-VPS sandbox run; never promote the invalidated 731db925 subject."
 }
