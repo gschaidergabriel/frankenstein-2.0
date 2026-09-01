@@ -1,0 +1,63 @@
+{
+  "schema": "F2_TRIGGER7_TO_TRIGGER4_HANDOFF/v1",
+  "trigger": "7",
+  "producer": "GPT-5.6 Sol",
+  "created_at_local": "2026-09-01T23:34:00+07:00",
+  "status": "ROUTED_PRODUCT_NEGATIVE_REPAIR_REQUIRED",
+  "scope": "VoicePacketCortex restart/reconnect checkpoint imported-bound and ordering-projection revalidation only",
+  "authority_ref": "research/local_voice/authority/2026-08-31_TRIGGER7_TEXT_PACKET_COMPLETION_AUTHORITY.md",
+  "protocol_ref": "research/local_voice/TRIGGERWORD_7_PROTOCOL.md",
+  "claim_ref": "research/local_voice/claims/2026-09-01_trigger7_gpt56sol_cortex_frontier_claim.json",
+  "executed_negative_ref": "research/local_voice/falsifiers/2026-09-01_T7_RECOVERY_IMPORT_BOUNDS_EXECUTED_NEGATIVE_GPT56SOL.json",
+  "executed_negative_commit": "5e25a735fae570ad6419352550c5a9260f0dc5ac",
+  "executed_ci": {
+    "source_sha": "63db98bee1282c26f29cdf49b792dbe8c644789f",
+    "workflow": "Trigger 7 Local Voice Research Tools CI",
+    "workflow_run_id": 33528443231,
+    "job_id": 99925147014,
+    "runner": "GitHub-hosted Ubuntu 24.04",
+    "suite_tests": 46,
+    "suite_result": "PASS",
+    "evidence_scope": "REPOSITORY_EXECUTABLE_DETERMINISTIC_ONLY"
+  },
+  "reproduced_results": {
+    "RBOUND1_INPUT_SEEN_IMPORT_CAP": "PRODUCT_NEGATIVE: 257 imported input_seen entries with cap 256 returned a usable cortex",
+    "RBOUND2_OUTPUT_IMPORT_CAP": "PRODUCT_NEGATIVE: 257 imported outputs with cap 256 returned a usable cortex",
+    "RBOUND3_TOOL_IMPORT_CAP": "PRODUCT_NEGATIVE: 129 active tool refs with cap 128 returned a usable cortex",
+    "RBOUND4_EVENT_IMPORT_CAP": "PASS_FAIL_CLOSED: 513 imported events with cap 512 were rejected",
+    "RBOUND5_SEQUENCE_PROJECTION_CONSISTENCY": "PRODUCT_NEGATIVE: unbacked last_input_sequence=999 was admitted and minted subsequent ordering authority"
+  },
+  "current_source_reentry": {
+    "observed_file": "src/frankenstein2/voice_packet_cortex_recovery.py",
+    "observation": "Current main still reconstructs imported input/output/tool/order projections before explicit imported cardinality and cross-projection consistency validation; the reproduced repair boundary therefore remains live at this reentry.",
+    "root_cause_candidate": "resume_packet_cortex restores imported projections directly; event capacity is incidentally revalidated through mandatory RESTART_REENTRY emission, while input/output/tool cardinality and unbacked sequence projection are not equivalently fenced before a usable cortex can be returned."
+  },
+  "trigger7_mutation_authority": "NONE_PRODUCT_SOURCE_RESEARCH_ONLY",
+  "route_to": "Trigger4/current legal workpackage mutation owner",
+  "repair_contract": [
+    "Refresh current main and resolve the current legal mutation owner before changing product source.",
+    "Reproduce RBOUND1/RBOUND2/RBOUND3/RBOUND5 against the exact adopted source; preserve RBOUND4 as a passing fail-closed regression.",
+    "Add explicit imported cardinality validation for input/output/tool state before returning a restored VoicePacketCortex.",
+    "Reject sequence/order projections that are not causally backed by restored packet state, or encode and prove an equivalent fail-closed invariant.",
+    "Add deterministic regressions for RBOUND1-RBOUND5 and rerun the discriminator after the minimal repair.",
+    "Do not create a parallel recovery implementation and do not widen the accepted evidence scope."
+  ],
+  "anti_duplication": {
+    "new_recovery_authority": false,
+    "new_runtime_dispatch": false,
+    "product_source_mutated_by_trigger7": false,
+    "reason": "Trigger 7 produced bounded executable counterevidence; canonical repair/acceptance belongs to Trigger 4."
+  },
+  "explicit_zero_credit": {
+    "target_runtime": 0,
+    "physical_audio": 0,
+    "asr_runtime": 0,
+    "tts_runtime": 0,
+    "semantic_gwt_jspace": 0,
+    "effect": 0,
+    "training": 0,
+    "whole_voice_e2e": 0,
+    "whole_product": 0
+  },
+  "next_exact_action": "Trigger4/current legal mutation owner reproduces, minimally repairs, regression-tests and reruns RBOUND1-RBOUND5; Trigger7 then consumes that exact outcome before reopening this semantic boundary."
+}
