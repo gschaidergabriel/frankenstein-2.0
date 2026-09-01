@@ -149,6 +149,8 @@ jobs:
             src/frankenstein2/voice_packet_cortex.py \
             trigger4/tools/local_voice/g2_pipewire_evidence.py \
             trigger4/tools/local_voice/g2_pipewire_s2_runtime.py \
+            trigger4/tools/local_voice/g2_pipewire_observer.py \
+            trigger4/tools/local_voice/g2_required_observables_guard.py \
             trigger4/tools/local_voice/run_g2_pipewire_s2.sh \
             research/local_voice/tools/t7_pipewire_g2_h4_guard.py \
             research/local_voice/tools/t7_pipewire_g2_h4_guard_cli.py \
@@ -194,11 +196,12 @@ jobs:
           sandbox = sandbox_path.read_text(errors='replace') if sandbox_path.exists() else ''
           preflight = preflight_path.read_text(errors='replace') if preflight_path.exists() else ''
 
-          marker = re.search(r'^T4_G2_PIPEWIRE_RECEIPT_B64=([A-Za-z0-9+/=]+)$', sandbox, re.MULTILINE)
+          markers = re.findall(r'^T4_G2_PIPEWIRE_RECEIPT_B64=([A-Za-z0-9+/=]+)$', sandbox, re.MULTILINE)
+          receipt_marker_singleton_ok = len(markers) == 1
           harness = None
-          if marker:
+          if markers:
               try:
-                  harness = json.loads(base64.b64decode(marker.group(1)).decode('utf-8'))
+                  harness = json.loads(base64.b64decode(markers[-1]).decode('utf-8'))
               except Exception:
                   harness = None
           call_match = re.search(r'^SANDBOX_CALL_EXIT=(\d+)$', sandbox, re.MULTILINE)
@@ -212,15 +215,32 @@ jobs:
               and harness.get('schema') == 'T4_G2_PIPEWIRE_S2_PLAYBACK_CANCEL_MONITOR/v2'
               and harness.get('semantic_key') == semantic_key
           )
-          harness_pass = harness_shape and harness.get('result') == 'NO_COUNTEREXAMPLE'
+          guard = harness.get('canonical_required_observables_guard') if harness_shape else None
+          guard_complete = bool(
+              isinstance(guard, dict)
+              and guard.get('complete') is True
+              and guard.get('missing') == []
+              and isinstance(harness.get('required_observables'), dict)
+              and bool(harness.get('required_observables'))
+          )
+          harness_result_pass = harness_shape and harness.get('result') == 'NO_COUNTEREXAMPLE'
+          harness_pass = bool(harness_result_pass and guard_complete and receipt_marker_singleton_ok)
           exact_subject = harness_shape and harness.get('f2_subject_sha') == os.environ.get('GITHUB_SHA')
-          complete = bool(sandbox_pass and harness_pass and exact_subject and exit_evidence_ok)
+          complete = bool(sandbox_pass and harness_pass and exact_subject and exit_evidence_ok and guard_complete and receipt_marker_singleton_ok)
 
           if complete:
               failure_class = None
               classification = harness.get('classification')
               measured_credit = dict(harness.get('measured_credit') or {})
-          elif harness_shape and harness_pass and exact_subject and not exit_evidence_ok:
+          elif not receipt_marker_singleton_ok:
+              failure_class = 'EVIDENCE_INVALID'
+              classification = f'RECEIPT_MARKER_COUNT_NOT_SINGLETON:{len(markers)}'
+              measured_credit = {key: 0 for key in (harness.get('measured_credit') or {})} if isinstance(harness, dict) else {}
+          elif harness_result_pass and exact_subject and not guard_complete:
+              failure_class = 'EVIDENCE_INVALID'
+              classification = 'EVIDENCE_INVALID_CANONICAL_REQUIRED_OBSERVABLE_GUARD_INCOMPLETE'
+              measured_credit = {key: 0 for key in (harness.get('measured_credit') or {})}
+          elif harness_result_pass and exact_subject and not exit_evidence_ok:
               failure_class = 'EVIDENCE_INVALID'
               classification = 'EXECUTION_EXIT_EVIDENCE_NONZERO_OR_MISSING'
               measured_credit = {key: 0 for key in (harness.get('measured_credit') or {})}
@@ -282,6 +302,11 @@ jobs:
                   'launcher_exit': launcher_exit,
                   'exit_evidence_ok': exit_evidence_ok,
               },
+              'terminal_receipt_evidence': {
+                  'receipt_marker_count': len(markers),
+                  'receipt_marker_singleton_ok': receipt_marker_singleton_ok,
+                  'canonical_required_observables_guard_complete': guard_complete,
+              },
               'harness_receipt': harness,
               'result': 'NO_COUNTEREXAMPLE' if complete else 'NOT_ACCEPTED',
               'failure_class': failure_class,
@@ -308,7 +333,12 @@ jobs:
           if not path.exists():
               raise SystemExit(2)
           receipt = json.loads(path.read_text())
-          if receipt.get('result') != 'NO_COUNTEREXAMPLE':
+          terminal = receipt.get('terminal_receipt_evidence') or {}
+          if (
+              receipt.get('result') != 'NO_COUNTEREXAMPLE'
+              or terminal.get('receipt_marker_singleton_ok') is not True
+              or terminal.get('canonical_required_observables_guard_complete') is not True
+          ):
               print(json.dumps(receipt, sort_keys=True))
               raise SystemExit(2)
           PY

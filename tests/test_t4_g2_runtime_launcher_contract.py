@@ -6,6 +6,7 @@ import unittest
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 LAUNCHER = ROOT / "trigger4/tools/local_voice/run_g2_pipewire_s2.sh"
 HARNESS = ROOT / "trigger4/tools/local_voice/g2_pipewire_s2_runtime.py"
+WORKFLOW = ROOT / ".github/workflows/t4-g2-pipewire-monitor-cancel.yml"
 
 
 class Trigger4G2RuntimeLauncherContractTests(unittest.TestCase):
@@ -44,6 +45,28 @@ class Trigger4G2RuntimeLauncherContractTests(unittest.TestCase):
         self.assertIn('exit "$guard_status"', launcher)
         tail = launcher.split(marker, 1)[1]
         self.assertNotIn("exit 0", tail)
+
+    def test_promotion_workflow_hashes_observer_and_required_guard(self) -> None:
+        workflow = WORKFLOW.read_text(encoding="utf-8")
+        self.assertIn("trigger4/tools/local_voice/g2_pipewire_observer.py", workflow)
+        self.assertIn("trigger4/tools/local_voice/g2_required_observables_guard.py", workflow)
+        record_section = workflow.split("- name: Record exact execution subject", 1)[1]
+        record_section = record_section.split("- name: Host-health and isolation preflight", 1)[0]
+        self.assertIn("trigger4/tools/local_voice/g2_pipewire_observer.py", record_section)
+        self.assertIn("trigger4/tools/local_voice/g2_required_observables_guard.py", record_section)
+
+    def test_promotion_workflow_requires_single_guarded_receipt(self) -> None:
+        workflow = WORKFLOW.read_text(encoding="utf-8")
+        self.assertIn("markers = re.findall", workflow)
+        self.assertIn("receipt_marker_singleton_ok = len(markers) == 1", workflow)
+        self.assertIn("canonical_required_observables_guard", workflow)
+        self.assertIn("guard_complete", workflow)
+        complete_line = next(
+            line for line in workflow.splitlines()
+            if line.strip().startswith("complete = bool(")
+        )
+        self.assertIn("guard_complete", complete_line)
+        self.assertIn("receipt_marker_singleton_ok", complete_line)
 
 
 if __name__ == "__main__":
