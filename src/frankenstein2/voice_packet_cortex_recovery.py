@@ -108,6 +108,11 @@ def _validate_imported_state(payload: Mapping[str, Any]) -> None:
 def _validate_restored_output_projection(cortex: VoicePacketCortex) -> None:
     sequences_by_turn: dict[str, set[int]] = {}
     for packet in cortex._outputs.values():
+        expected_commit_eligible = packet.playback_state == "completed" and float(packet.heard_fraction) == 1.0
+        if packet.commit_eligible is not expected_commit_eligible:
+            raise VoicePacketCortexError(
+                "checkpoint output commit eligibility contradicts restored playback/heard state"
+            )
         sequences = sequences_by_turn.setdefault(packet.turn_id, set())
         if packet.sequence in sequences:
             raise VoicePacketCortexError("checkpoint output sequence projection contains duplicates")
@@ -120,6 +125,32 @@ def _validate_restored_output_projection(cortex: VoicePacketCortex) -> None:
         expected_last[turn_id] = highest
     if cortex._last_output_sequence != expected_last:
         raise VoicePacketCortexError("checkpoint last_output_sequence is not backed by restored outputs")
+
+
+def _validate_restored_tool_projection(
+    cortex: VoicePacketCortex,
+    active_tools: Mapping[str, str],
+    cancelled_tools: set[str],
+) -> None:
+    unresolved: dict[str, str] = {}
+    for event in cortex._events:
+        if event.event_kind == "VOICE_INTENT" and event.voice_intent == "TOOL_USE":
+            if event.tool_ref is None:
+                raise VoicePacketCortexError("checkpoint TOOL_USE event lacks tool_ref")
+            if event.tool_ref in unresolved:
+                raise VoicePacketCortexError("checkpoint TOOL_USE reuses unresolved tool_ref")
+            unresolved[event.tool_ref] = event.turn_id
+        elif event.event_kind == "TOOL_RESULT":
+            if event.tool_ref is None or event.tool_ref not in unresolved:
+                raise VoicePacketCortexError("checkpoint TOOL_RESULT is not backed by unresolved TOOL_USE")
+            unresolved.pop(event.tool_ref)
+
+    projected = set(active_tools) | cancelled_tools
+    if projected != set(unresolved):
+        raise VoicePacketCortexError("checkpoint tool ownership projection is not backed by restored event history")
+    for tool_ref, turn_id in active_tools.items():
+        if unresolved.get(tool_ref) != turn_id:
+            raise VoicePacketCortexError("checkpoint active tool turn binding contradicts restored TOOL_USE history")
 
 
 def export_packet_cortex_checkpoint(cortex: VoicePacketCortex) -> dict[str, Any]:
@@ -218,8 +249,10 @@ def resume_packet_cortex(
                 raise VoicePacketCortexError("checkpoint event session mismatch")
             cortex._events.append(event)
         active_tools = {str(key): str(value) for key, value in payload["active_tools"]}
+        cancelled_tools = {str(value) for value in payload["cancelled_tools"]}
+        _validate_restored_tool_projection(cortex, active_tools, cancelled_tools)
         cortex._active_tools = {}
-        cortex._cancelled_tools = {str(value) for value in payload["cancelled_tools"]} | set(active_tools)
+        cortex._cancelled_tools = cancelled_tools | set(active_tools)
         raw_outcome = payload["closed_outcome"]
         cortex._closed_outcome = VoiceOutcome.from_mapping(raw_outcome) if raw_outcome is not None else None
         cortex._closed_signature = None
