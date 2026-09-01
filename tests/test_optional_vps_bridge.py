@@ -156,6 +156,40 @@ class OptionalVPSBridgeTests(unittest.TestCase):
         self.assertEqual(result["target_runtime_credit"], 0)
         self.assertFalse(result["whole_system_acceptance"])
 
+    def test_remote_return_from_different_endpoint_cannot_be_identity_valid(self) -> None:
+        attached_remote = remote()
+        plan = plan_optional_bridge(
+            local=local(),
+            action=BridgeAction.ATTACH,
+            remote=attached_remote,
+        )
+        returning_remote = RemoteEndpointEvidence.create(
+            endpoint_id="different-remote",
+            transport="TYPED_BRIDGE/v1",
+            environment_digest=SHA_D,
+            capability_report_digest=SHA_C,
+            bound_local_state_lineage_id="state-lineage-1",
+            availability_state=EvidenceState.VERIFIED,
+            availability_evidence_ref="receipt:different-bridge-health",
+            typed_request_result_transport=True,
+        )
+        self.assertNotEqual(
+            attached_remote.identity_digest(),
+            returning_remote.identity_digest(),
+        )
+
+        result = validate_remote_return(
+            plan=plan,
+            returned_state_lineage_id="state-lineage-1",
+            request_digest=SHA_C,
+            result_digest=SHA_D,
+        )
+
+        self.assertFalse(
+            result["identity_binding_valid"],
+            "A return whose actual endpoint differs from the attached endpoint must not be accepted as identity-bound when no returning-endpoint identity is supplied or checked.",
+        )
+
     def test_remote_return_wrong_lineage_fails_closed(self) -> None:
         plan = plan_optional_bridge(local=local(), action=BridgeAction.ATTACH, remote=remote())
         with self.assertRaisesRegex(BridgeValidationError, "STATE_LINEAGE_MISMATCH"):
