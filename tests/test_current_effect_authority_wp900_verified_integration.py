@@ -10,8 +10,7 @@ from __future__ import annotations
 
 from pathlib import Path
 import sys
-
-import pytest
+import unittest
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
@@ -50,67 +49,77 @@ class ExactResultExecutor:
         )
 
 
-def test_valid_wp105_target_cannot_enter_wp900_as_verified_applied():
-    returned = make_return(suffix="WP900", task_id="task-wp900-effect", turn_id="turn-wp900-effect")
-    child = returned.binding.child
-    request = EffectRequestIdentity(
-        user_id="user-wp900-effect",
-        session_id=child.session_id,
-        capability="entityos.exec",
-        target="target-wp900-effect",
-        argv=("run", "payload-wp900-effect"),
-        expected_generation=child.generation,
-    )
-    intent = EffectCallIntent(
-        return_id=returned.return_id,
-        binding_id=returned.binding.binding_id(),
-        invocation_id=returned.binding.invocation_id,
-        tool_use_id=returned.binding.tool_use_id,
-        delegation_id=returned.binding.delegation_id,
-        child_identity_sha256=child.sha256(),
-        request=request,
-    )
+class CurrentEffectAuthorityWp900VerifiedIntegrationTests(unittest.TestCase):
+    def test_valid_wp105_target_cannot_enter_wp900_as_verified_applied(self) -> None:
+        returned = make_return(
+            suffix="WP900",
+            task_id="task-wp900-effect",
+            turn_id="turn-wp900-effect",
+        )
+        child = returned.binding.child
+        request = EffectRequestIdentity(
+            user_id="user-wp900-effect",
+            session_id=child.session_id,
+            capability="entityos.exec",
+            target="target-wp900-effect",
+            argv=("run", "payload-wp900-effect"),
+            expected_generation=child.generation,
+        )
+        intent = EffectCallIntent(
+            return_id=returned.return_id,
+            binding_id=returned.binding.binding_id(),
+            invocation_id=returned.binding.invocation_id,
+            tool_use_id=returned.binding.tool_use_id,
+            delegation_id=returned.binding.delegation_id,
+            child_identity_sha256=child.sha256(),
+            request=request,
+        )
 
-    binding = load_binding()
-    dispatched = dispatch_with_current_entityos_authority(
-        intent,
-        binding=binding,
-        authorize=lambda item: evidence_for(
-            item,
-            binding,
-            ExternalGateDecision.ALLOW,
-            effect_id="canonical-effect-wp900-verified",
-        ),
-        executor=ExactResultExecutor(
-            result_id=returned.binding.result_id,
-            result_sha256=returned.binding.result_sha256,
-        ),
-    )
-    assert dispatched.dispatched
-    assert dispatched.interlock is not None
-    observed = dispatched.interlock.observed
-    assert observed is not None
-    assert observed.binding_id == returned.binding.binding_id()
-    assert observed.result_id == returned.binding.result_id
-    assert observed.result_sha256 == returned.binding.result_sha256
-
-    target = DeferredExecutionVerificationTarget(
-        returned=returned,
-        lineage=execution_record(returned),
-    )
-    assert target.lineage.stage is ExecutionStage.EXECUTION_RECORDED
-
-    with pytest.raises(
-        WholePersistentLoopError,
-        match="verified outcome status does not match WP-105 lineage stage",
-    ):
-        LoopOutcomeEvidence(
-            outcome_id="outcome-wp900-effect-verified",
-            status=EFFECT_VERIFIED_APPLIED,
-            effect_call=observed,
-            verification_target=target,
-            provenance_refs=(
-                binding.current_epoch_attestation_path,
-                "review:current-effect-authority-wp105-wp900",
+        binding = load_binding()
+        dispatched = dispatch_with_current_entityos_authority(
+            intent,
+            binding=binding,
+            authorize=lambda item: evidence_for(
+                item,
+                binding,
+                ExternalGateDecision.ALLOW,
+                effect_id="canonical-effect-wp900-verified",
+            ),
+            executor=ExactResultExecutor(
+                result_id=returned.binding.result_id,
+                result_sha256=returned.binding.result_sha256,
             ),
         )
+        self.assertTrue(dispatched.dispatched)
+        self.assertIsNotNone(dispatched.interlock)
+        observed = dispatched.interlock.observed
+        self.assertIsNotNone(observed)
+        assert observed is not None
+        self.assertEqual(observed.binding_id, returned.binding.binding_id())
+        self.assertEqual(observed.result_id, returned.binding.result_id)
+        self.assertEqual(observed.result_sha256, returned.binding.result_sha256)
+
+        target = DeferredExecutionVerificationTarget(
+            returned=returned,
+            lineage=execution_record(returned),
+        )
+        self.assertIs(target.lineage.stage, ExecutionStage.EXECUTION_RECORDED)
+
+        with self.assertRaisesRegex(
+            WholePersistentLoopError,
+            "verified outcome status does not match WP-105 lineage stage",
+        ):
+            LoopOutcomeEvidence(
+                outcome_id="outcome-wp900-effect-verified",
+                status=EFFECT_VERIFIED_APPLIED,
+                effect_call=observed,
+                verification_target=target,
+                provenance_refs=(
+                    binding.current_epoch_attestation_path,
+                    "review:current-effect-authority-wp105-wp900",
+                ),
+            )
+
+
+if __name__ == "__main__":
+    unittest.main(verbosity=2)
