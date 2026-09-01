@@ -1,0 +1,58 @@
+{
+  "schema": "T7_RESEARCH_CLAIM/v1",
+  "research_id": "T7-20260902-TTS-HEADLESS-MODEL-RUNTIME",
+  "semantic_key": "9706b8b0f7a3b3c7b09af77e1409fe110af90e07f7dac8edd1907cea72567881",
+  "semantic_claim_ref": "research/local_voice/semantic_claims/9706b8b0f7a3b3c7b09af77e1409fe110af90e07f7dac8edd1907cea72567881.json",
+  "objective": "QWEN3_TTS_HEADLESS_PCM_TARGET_MODEL_RUNTIME_WITHOUT_PHYSICAL_PLAYBACK",
+  "work_class": "CANDIDATE_FALSIFIER",
+  "product_mutation_authority": "NONE",
+  "target_surface": "clay-direct-dev",
+  "scope": "TARGET_RUNTIME_MODEL_BENCHMARK_HEADLESS_AUDIO_SINK",
+  "candidate_order": [
+    "Qwen/Qwen3-TTS-12Hz-0.6B-CustomVoice",
+    "Qwen/Qwen3-TTS-12Hz-1.7B-CustomVoice only if 0.6B leaves measured safe headroom"
+  ],
+  "fixed_language": "de",
+  "hypothesis": "The 0.6B Qwen3-TTS candidate can execute fully locally on the CPU-only clay-direct-dev target and produce valid German audio/PCM within the measured resource envelope. Physical speaker absence blocks heard-output acceptance but does not block model-runtime, generated-audio, resource, or producer-side cancellation evidence.",
+  "counterhypothesis": "The candidate cannot load or synthesize within available CPU/RAM/time limits, requires unavailable runtime dependencies, or its producer-side stream/cancellation behavior cannot be bounded without physical output hardware.",
+  "discriminator": [
+    "Bind exact model revision/file hashes and exact F2 probe source before execution.",
+    "Install/build only sandbox-local dependencies; preserve owner-host survival fence.",
+    "Run 0.6B first with external inference API counters at zero.",
+    "After required public artifact acquisition, execute evidence phase network-off where practical and record the boundary explicitly.",
+    "Synthesize a fixed German prompt to an in-memory or file/null audio sink; no physical audio device is required.",
+    "Record cold/warm load time, peak RSS, CPU time, first generated audio/PCM availability, complete synthesis latency, realtime factor, output sample rate/channels/duration/hash and non-empty finite audio checks.",
+    "Exercise producer-side cancellation/close: after cancellation, no additional generated chunks may be admitted to the sink; record stop latency at the producer/sink boundary.",
+    "Do not claim first audible playback, heard fraction, speaker silence, acoustic intelligibility or physical barge-in from this run."
+  ],
+  "required_fail_closed_conditions": [
+    "model identity mismatch",
+    "source/probe identity mismatch",
+    "external model/ASR/TTS inference call",
+    "OOM or host-survival headroom violation",
+    "non-finite/empty generated audio",
+    "post-cancel producer chunks accepted after the declared cancellation boundary",
+    "attempt to reinterpret headless generated PCM as heard-output evidence"
+  ],
+  "relationship_to_existing_t7_tts_001": {
+    "existing_semantic_key": "276537fa4a4615b46c255684da2e0306d596a7712df159e723ae6dfc02a2f961",
+    "existing_scope": "COMPONENT_BENCHMARK requiring first-audible/heard-output/cancellation-to-silence",
+    "existing_state": "BLOCKED_TARGET_CAPABILITY_AUDIO_OUTPUT_UNOBSERVABLE_NO_MODEL_RUNTIME_DISPATCH",
+    "scope_split": "This claim does not supersede or weaken that physical observation boundary. It closes only the VPS-representable model-runtime subset that was previously left unexecuted."
+  },
+  "explicit_zero_credit": {
+    "first_audible_playback": 0,
+    "heard_output": 0,
+    "acoustic_intelligibility": 0,
+    "physical_speaker": 0,
+    "physical_microphone": 0,
+    "physical_barge_in": 0,
+    "whole_voice_e2e": 0,
+    "whole_product": 0,
+    "semantic_gwt_jspace": 0,
+    "effect": 0,
+    "training": 0
+  },
+  "state": "CLAIMED",
+  "next_exact_action": "Route this exact semantic key to Trigger 4 for one bounded sandbox-first clay-direct-dev model-runtime execution. Keep T7-TTS-001 unchanged for later S4 audible/heard-output acceptance."
+}
