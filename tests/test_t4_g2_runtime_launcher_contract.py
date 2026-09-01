@@ -35,11 +35,13 @@ class Trigger4G2RuntimeLauncherContractTests(unittest.TestCase):
         self.assertIn('--analyzer "$G2_ANALYZER"', launcher)
         self.assertNotIn("G2_HARNESS_ANALYZER", launcher)
 
-    def test_harness_exit_is_not_erased_by_launcher(self) -> None:
+    def test_terminal_exit_is_owned_by_required_observables_guard(self) -> None:
         launcher = LAUNCHER.read_text(encoding="utf-8")
-        marker = 'printf "G2_PIPEWIRE_HARNESS_EXIT=%s\\n" "$harness_status"'
+        self.assertIn('printf "G2_PIPEWIRE_HARNESS_EXIT=%s\\n" "$harness_status"', launcher)
+        self.assertIn('printf "G2_PIPEWIRE_OBSERVER_EXIT=%s\\n" "$observer_status"', launcher)
+        marker = 'printf "G2_REQUIRED_OBSERVABLES_GUARD_EXIT=%s\\n" "$guard_status"'
         self.assertIn(marker, launcher)
-        self.assertIn('exit "$harness_status"', launcher)
+        self.assertIn('exit "$guard_status"', launcher)
         tail = launcher.split(marker, 1)[1]
         self.assertNotIn("exit 0", tail)
 
