@@ -17,12 +17,14 @@ if TYPE_CHECKING:
 INPUT_SCHEMA = "FRANKENSTEIN2_VOICE_INPUT_PACKET/v1"
 OUTPUT_SCHEMA = "FRANKENSTEIN2_VOICE_OUTPUT_PACKET/v1"
 EVENT_SCHEMA = "FRANKENSTEIN2_CORTEX_EVENT_PACKET/v1"
+TURN_POLICY_SCHEMA = "FRANKENSTEIN2_PACKET_TURN_POLICY/v1"
 PACKET_CLASSIFICATION = "PACKET_SIMULATION_ONLY_NOT_ACOUSTIC_RUNTIME_OR_ACCEPTANCE_CREDIT"
 
 _INPUT_MODALITIES = frozenset(("simulated_audio_text", "transcript_fixture", "asr_partial", "asr_final"))
 _ENDPOINTS = frozenset(("HOLD", "END", "UNKNOWN"))
 _PLAYBACK = frozenset(("queued", "started", "heard", "interrupted", "cancelled", "completed"))
 _INTENTS = frozenset(("WAIT", "BACKCHANNEL", "ANSWER", "TOOL_USE", "CLOSE"))
+_HOLD_POLICY_INTENTS = frozenset(("WAIT", "BACKCHANNEL"))
 _VAD = frozenset(("SILENCE", "SPEECH", "UNKNOWN"))
 _OVERLAP = frozenset(("NONE", "USER_OVER_OUTPUT", "OUTPUT_OVER_USER", "UNKNOWN"))
 _PRESENCE = frozenset(("PRESENT_INTERRUPTIBLE", "PRESENT_BUSY", "ABSENT", "UNKNOWN"))
@@ -75,6 +77,39 @@ def _refs(name: str, value: Any) -> tuple[str, ...]:
 def _digest(value: Mapping[str, Any]) -> str:
     raw = json.dumps(value, ensure_ascii=False, sort_keys=True, separators=(",", ":"), allow_nan=False)
     return hashlib.sha256(raw.encode("utf-8")).hexdigest()
+
+
+@dataclass(frozen=True, slots=True)
+class PacketTurnPolicy:
+    """Immutable policy input for one accepted HOLD packet on the existing cortex event fabric."""
+
+    policy_id: str
+    hold_intent: str
+    provenance_refs: tuple[str, ...]
+    schema: str = TURN_POLICY_SCHEMA
+    classification: str = PACKET_CLASSIFICATION
+
+    def __post_init__(self) -> None:
+        if self.schema != TURN_POLICY_SCHEMA or self.classification != PACKET_CLASSIFICATION:
+            raise VoicePacketCortexError("turn policy schema/classification mismatch")
+        _atom("policy_id", self.policy_id)
+        if self.hold_intent not in _HOLD_POLICY_INTENTS:
+            raise VoicePacketCortexError("turn policy HOLD intent must be WAIT or BACKCHANNEL")
+        _refs("provenance_refs", self.provenance_refs)
+        if not self.provenance_refs:
+            raise VoicePacketCortexError("turn policy requires provenance_refs")
+
+    def as_dict(self) -> dict[str, Any]:
+        return {
+            "schema": self.schema,
+            "policy_id": self.policy_id,
+            "hold_intent": self.hold_intent,
+            "provenance_refs": list(self.provenance_refs),
+            "classification": self.classification,
+        }
+
+    def sha256(self) -> str:
+        return _digest(self.as_dict())
 
 
 @dataclass(frozen=True, slots=True)
@@ -412,6 +447,62 @@ class VoicePacketCortex:
             turn_id=packet.turn_id, monotonic_ms=packet.monotonic_ms, kind=kind,
             packet_refs=(packet.packet_id,),
             detail=f"vad={packet.vad_state};endpoint={packet.endpoint_decision};confidence={packet.confidence:.3f}",
+        )
+
+    def apply_turn_policy(self, packet: VoiceInputPacket, policy: PacketTurnPolicy) -> CortexEventPacket:
+        """Bind one policy-only HOLD decision after the exact packet has been accepted.
+
+        The decision is written into the existing event fabric.  No second turn FSM or mutable
+        policy authority is introduced; idempotence/conflict detection is derived from event history,
+        which is already carried by the WP715 checkpoint codec.
+        """
+        if not self.is_open or packet.session_id != self.session_id:
+            raise VoicePacketCortexError("closed session or turn-policy packet session mismatch")
+        if type(policy) is not PacketTurnPolicy:
+            raise VoicePacketCortexError("policy must be exact PacketTurnPolicy")
+        if packet.endpoint_decision != "HOLD" or packet.is_final:
+            raise VoicePacketCortexError("turn policy applies only to nonfinal HOLD input")
+        if packet.barge_in:
+            raise VoicePacketCortexError("barge-in cancellation is mandatory and cannot be policy overridden")
+        packet_digest = packet.sha256()
+        if self._input_seen.get(packet.packet_id) != packet_digest:
+            raise VoicePacketCortexError("turn policy requires the exact already-accepted input packet")
+        if self._last_input_sequence.get(packet.turn_id) != packet.sequence:
+            raise VoicePacketCortexError("turn policy packet is not the current accepted turn packet")
+        if self._last_input_monotonic_ms.get(packet.turn_id) != packet.monotonic_ms:
+            raise VoicePacketCortexError("turn policy packet monotonic binding is stale")
+
+        policy_digest = policy.sha256()
+        for event in self._events:
+            if event.event_kind != "TURN_POLICY_DECISION" or event.packet_refs != (packet.packet_id,):
+                continue
+            try:
+                prior = json.loads(event.detail)
+            except json.JSONDecodeError as exc:
+                raise VoicePacketCortexError("stored turn-policy event detail is invalid") from exc
+            if prior.get("policy_sha256") == policy_digest and event.voice_intent == policy.hold_intent:
+                return event
+            raise VoicePacketCortexError("accepted HOLD packet already has a different authoritative turn policy")
+
+        detail = json.dumps(
+            {
+                "input_packet_sha256": packet_digest,
+                "policy_id": policy.policy_id,
+                "policy_sha256": policy_digest,
+                "policy_provenance_refs": list(policy.provenance_refs),
+            },
+            ensure_ascii=False,
+            sort_keys=True,
+            separators=(",", ":"),
+            allow_nan=False,
+        )
+        return self._event(
+            turn_id=packet.turn_id,
+            monotonic_ms=packet.monotonic_ms,
+            kind="TURN_POLICY_DECISION",
+            intent=policy.hold_intent,
+            packet_refs=(packet.packet_id,),
+            detail=detail,
         )
 
     def queue_output(self, *, turn_id: str, packet_id: str, monotonic_ms: int, text_segment: str,
