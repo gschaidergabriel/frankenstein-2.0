@@ -1,0 +1,39 @@
+name: REVIEW WP206 G2 Authority Receipt Repair Donor
+
+on:
+  pull_request:
+    paths:
+      - 'repairs/wp206_g2_authority_receipt_replay.patch'
+      - 'tests/test_wp206_g2_authority_receipt_repair.py'
+      - '.github/workflows/wp206-g2-authority-receipt-repair-donor.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  repair-donor:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Apply minimal repair donor to exact branch source
+        run: git apply --check repairs/wp206_g2_authority_receipt_replay.patch && git apply repairs/wp206_g2_authority_receipt_replay.patch
+      - name: Compile patched WP206 surface
+        run: >-
+          python -m py_compile
+          src/frankenstein2/persistent_agency_kernel.py
+          tests/wp206_restart_probe.py
+          tests/test_persistent_agency_kernel.py
+          tests/test_wp206_g2_authority_receipt_repair.py
+      - name: Existing WP206 regression suite remains green
+        env:
+          PYTHONPATH: src
+        run: python tests/test_persistent_agency_kernel.py -v
+      - name: Authority-receipt repair acceptance regression
+        env:
+          PYTHONPATH: src
+        run: python tests/test_wp206_g2_authority_receipt_repair.py -v
