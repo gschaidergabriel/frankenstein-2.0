@@ -1,4 +1,4 @@
-name: WP901 G5 store authority-ref binding CI
+name: WP901 G5/G6 restart admission CI
 
 on:
   pull_request:
@@ -28,19 +28,20 @@ on:
       - 'workpackages/active/F2-WP-901.json'
       - 'workpackages/reconciliations/F2-WP-901/**'
       - 'workpackages/receipts/F2-WP-901*'
+      - 'workpackages/state_events/F2-WP-901/**'
   workflow_dispatch:
 
 permissions:
   contents: read
 
 jobs:
-  canonical-authority-ref-and-inherited-regressions:
+  canonical-authority-ref-rollback-head-and-inherited-regressions:
     runs-on: ubuntu-latest
     timeout-minutes: 8
     steps:
       - name: Checkout exact workflow ref
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
-      - name: Compile G2 G3 G4 G5 and authority surfaces
+      - name: Compile G2 G3 G4 G5 G6 and authority surfaces
         run: >-
           python -m py_compile
           src/frankenstein2/restart_recovery_continuation.py
@@ -56,7 +57,7 @@ jobs:
           tests/test_restart_recovery_persisted_row_attestation.py
           tests/test_wp901_g5_store_authority_ref_binding.py
           tests/test_persistent_agency_kernel.py
-      - name: Run accepted G2 G3 G4 plus G5 fail-closed regressions
+      - name: Run accepted G2 G3 G4 G5 plus G6 rollback-head regressions
         env:
           PYTHONPATH: src
         run: >-
@@ -71,9 +72,13 @@ jobs:
           tests.test_wp901_g5_store_authority_ref_binding
       - name: Evidence scope fence
         run: |
-          echo 'SCOPE=WP901_G5_STORE_AUTHORITY_REF_BINDING_REPOSITORY_COMPONENT_CI_ONLY'
+          echo 'SCOPE=WP901_G6_ROLLBACK_LINEAGE_HEAD_ADMISSION_REPOSITORY_COMPONENT_CI_ONLY'
+          echo 'ROLLBACK_STALE_ANCESTOR_ADMISSION_CLOSED_IF_GREEN=1'
+          echo 'BROAD_FRESHNESS_ATTESTATION_CREDIT=0'
           echo 'TARGET_RUNTIME_CREDIT=0'
           echo 'VPS_RUNTIME_CREDIT=0'
           echo 'PHYSICAL_GRID10_CREDIT=0'
           echo 'GWT_JSPACE_CREDIT=0'
+          echo 'EFFECT_CREDIT=0'
+          echo 'TRAINING_CREDIT=0'
           echo 'WHOLE_SYSTEM_ACCEPTANCE=false'
