@@ -3,16 +3,20 @@
   "trigger": "7",
   "producer": "GPT-5.6-Sol",
   "date": "2026-09-02",
-  "state": "G2C_ROUTED_NO_DUPLICATE_DISPATCH_SOURCEWATCH_RECONCILED",
+  "state": "SELF_CORRECTED_CURRENT_G2_PIPEWIRE_MONITOR_FRONTIER",
   "protocol_ref": "research/local_voice/TRIGGERWORD_7_PROTOCOL.md",
   "owner_authority_ref": "research/local_voice/authority/2026-08-31_TRIGGER7_TEXT_PACKET_COMPLETION_AUTHORITY.md",
-  "observed_f2_head_before_checkpoint": "2cc6c717fdcb387cf97d58c38336dfbfbe40fa26",
+  "initial_observation_head": "2cc6c717fdcb387cf97d58c38336dfbfbe40fa26",
+  "correction_reason": "Concurrent commits already present on current main narrowed the same semantic G2 owner to the exact PipeWire virtual-sink/monitor cancel-readback successor required by the terminal predecessor. The earlier broad G2C-first routing in this checkpoint is therefore stale and is superseded here rather than left as an attractive stale projection.",
   "current_claim": {
-    "research_id": "T7-20260902-COMPLETION-DEPTH-G2",
+    "research_id": "T7-20260902-PIPEWIRE-MONITOR-CANCEL-G2",
     "semantic_key": "0d83f7d13c1d8f91686cf94070f73d901a49018b40a9c058d1949af094655bff",
     "human_claim_ref": "research/local_voice/claims/2026-09-02_trigger7_gpt56sol_completion_depth_g2.json",
     "benchmark_ref": "research/local_voice/benchmarks/2026-09-02_TRIGGER7_COMPLETION_DEPTH_G2.json",
-    "state_observed": "CLAIMED"
+    "benchmark_schema_observed": "F2_TRIGGER7_PIPEWIRE_MONITOR_CANCEL_G2/v1",
+    "objective": "OWNER_VPS_PIPEWIRE_VIRTUAL_SINK_CANCEL_MONITOR_READBACK",
+    "state_observed": "CLAIMED",
+    "product_mutation_authority": "NONE_TRIGGER7_RESEARCH_ONLY"
   },
   "accepted_runtime_predecessors": {
     "g4_real_asr_tts_causal_reentry": {
@@ -22,19 +26,6 @@
         "owner-VPS real local ASR output causally injected into existing packet chain",
         "owner-VPS real local Piper TTS generation bound to exact VoiceOutputPacket identities",
         "packet barge/restart/stale-tool-outcome/reentry chain"
-      ],
-      "still_zero": [
-        "true streaming partial ASR latency/stability",
-        "physical microphone",
-        "physical speaker",
-        "human-heard output",
-        "acoustic playback/readback",
-        "UnifiedDB write",
-        "GWT/J-Space",
-        "effect",
-        "training",
-        "whole voice E2E",
-        "whole product"
       ]
     },
     "d622_g2_headless_full_duplex": {
@@ -42,17 +33,19 @@
       "run_id": 33546874424,
       "result": "NO_COUNTEREXAMPLE",
       "accepted_scope": ["FDX2", "FDX3_SINK_CANCEL_ONLY", "FDX4", "FDX6"],
+      "specific_successor_gap": "prior sink was logical/headless and did not prove what reached an actual audio graph/monitor after cancellation",
       "do_not_redispatch": true
     }
   },
   "current_execution_frontier": {
-    "g2c": {
-      "id": "G2C_FDX12_NETWORK_NONE_COMPOSED_INFERENCE",
-      "handoff_ref": "trigger4/inbox/local_voice/T7_COMPLETION_DEPTH_G2C_FDX12_NETWORK_NONE_HANDOFF_2026-09-02_GPT56SOL.json",
+    "pipewire_g2": {
+      "handoff_ref": "trigger4/inbox/local_voice/T7_FDX_G2_PIPEWIRE_S2_PLAYBACK_CANCEL_MONITOR_READBACK_2026-09-02_GPT56SOL.json",
       "state": "ROUTED_TO_TRIGGER4",
-      "purpose": "prove existing accepted local ASR plus TTS execute from prestaged exact artifacts with independent sandbox-level external network unavailability",
-      "promotion_if_pass": "FDX12_OFFLINE_LOCAL_INFERENCE_AT_EXACT_VPS_SANDBOX_SCOPE_ONLY",
-      "new_component": false,
+      "target_completion_tier": "VPS_S2_SOFTWARE_PLAYBACK_CANCEL_MONITOR_READBACK",
+      "boundary": "real local Piper PCM -> existing VoiceOutputPacket/output-generation fence -> sandbox-local PipeWire virtual/null sink -> deterministic cancel/flush -> sink-monitor readback -> clean new output generation",
+      "required_core_result": "old_generation_post_cancel_monitor_sentinel_count == 0 and old_generation_post_cancel_sink_admission_count == 0 with clean new-generation monitor readback",
+      "physical_audio_credit_if_pass": 0,
+      "whole_voice_credit_if_pass": 0,
       "duplicate_dispatch": "FORBIDDEN"
     },
     "fdx7_fdx8": {
@@ -71,41 +64,51 @@
       "duplicate_dispatch": "FORBIDDEN"
     }
   },
+  "superseded_or_deferred_routes": {
+    "g2c_network_none": {
+      "historical_handoff_ref": "trigger4/inbox/local_voice/T7_COMPLETION_DEPTH_G2C_FDX12_NETWORK_NONE_HANDOFF_2026-09-02_GPT56SOL.json",
+      "status_for_current_routing": "DEFERRED_UNCLAIMED_AFTER_CURRENT_PIPEWIRE_G2",
+      "reason": "Granular predecessor authority narrowed the active same-key G2 generation to PipeWire monitor readback first. FDX12 network-none remains a valid later completion-depth idea but must be freshly re-entered/reclaimed after current G2 termination rather than executed as a competing same-generation boundary."
+    },
+    "later_unclaimed_after_g2": [
+      "TRUE_STREAMING_PARTIAL_ASR",
+      "FDX12_NETWORK_NONE",
+      "FDX10_LONG_SESSION_STRESS",
+      "PRODUCER_GENERATION_PREEMPTION_IF_NOT_CLOSED_BY_CURRENT_RUN"
+    ]
+  },
   "source_watch": [
     {
       "source": "Qwen/Qwen3-ASR-1.7B primary model card and current Transformers documentation",
-      "finding": "German remains supported and official streaming inference remains available; current model card says streaming is exposed through the vLLM backend. This is challenger/source context only and does not displace the already accepted Nemotron subject under the cortex-first breadth throttle.",
+      "finding": "German remains supported and official streaming inference remains available; challenger context only. Cortex-first breadth throttle means no new ASR architecture lane is opened from this observation.",
       "credit": "SOURCE_RESEARCH_ONLY"
     },
     {
       "source": "arXiv:2608.22101 Beyond Fresh Starts: Stateful Inference for Streaming ASR in Conversational Voice Agents",
-      "finding": "Cross-utterance ASR state is directly relevant to the already-defined G2A long-silence/backchannel/reentry discriminator; reported onset WER reductions motivate testing state preservation versus reset without creating a new Voice authority.",
+      "finding": "Cross-utterance ASR state remains directly relevant to a later true-partial-streaming long-silence/backchannel/reentry discriminator, but that later field is deliberately unclaimed until current PipeWire G2 terminates.",
       "credit": "SOURCE_RESEARCH_ONLY"
     },
     {
       "source": "arXiv:2604.21406 HumDial-FDBench",
-      "finding": "Dual-channel interruption/overlap/feedback scenarios remain suitable donor cases for composed full-duplex falsification; already present in current Trigger-7 source-watch history, so no duplicate source claim was opened.",
+      "finding": "Dual-channel interruption/overlap/feedback remains a scenario donor already present in Trigger-7 source-watch history; no duplicate source claim opened.",
       "credit": "NO_NEW_CREDIT_DUPLICATE_SOURCE_CONTEXT"
     }
   ],
   "nonduplication_decisions": [
     "Do not redispatch FDX7/FDX8 while run 33549789287 remains nonterminal.",
-    "Do not create a second G2C semantic claim or second G2C Trigger4 handoff.",
+    "Do not execute the stale broad G2C route as a competing current semantic boundary.",
+    "Do not open Generation 3 while semantic key 0d83f7d13c1d8f91686cf94070f73d901a49018b40a9c058d1949af094655bff remains current G2 owner.",
+    "Do not create second playback, VoiceOutputPacket, PacketCortex, state, recovery, release or effect authorities.",
     "Do not reopen generic ASR/TTS model scouting while cortex/completion-depth work remains open.",
     "Do not compose old runtime receipts into current-main runtime credit without exact invariance evidence.",
-    "Do not mutate product semantics from an infrastructure/queue condition."
+    "Do not mutate product semantics from queued/infra state."
   ],
-  "execution_order_preserved": [
-    "G2C_FDX12_NETWORK_NONE_COMPOSED_INFERENCE",
-    "G2A_TRUE_PARTIAL_STREAMING_ASR",
-    "G2B_PRODUCER_SIDE_TTS_PREEMPTION",
-    "G2D_FDX10_BOUNDED_LONG_SESSION_RESOURCE_ROLLOVER"
-  ],
-  "next_exact_action": "Refresh current main and consume the first terminal result among G2C and the already-bound FDX7/FDX8 run. If G2C passes at exact scope, advance the existing G2 claim depth-first to G2A using the already-pinned Nemotron Q8 subject and one monotonic-clock partial/final trace; do not open a new ASR architecture lane. If G2C yields PRODUCT_NEGATIVE, route only the exact reproduced locality defect to Trigger4. If the run is still queued or otherwise nonterminal, preserve zero runtime credit and continue only noncompeting packet/cortex research or source-watch work.",
+  "next_exact_action": "Refresh current main and consume the current PipeWire G2 Trigger4 execution/result first. If exact execution reproduces old-generation monitor audio after cancel, classify PRODUCT_NEGATIVE and route only that measured playback/cancel/generation defect to Trigger4 under the same G2 owner. If it passes, terminalize/reconcile G2 only at software PipeWire monitor scope, then freshly resolve and claim the highest-information remaining unclosed field from TRUE_STREAMING_PARTIAL_ASR, FDX12_NETWORK_NONE, producer preemption, or bounded long-session stress. Independently consume FDX7/FDX8 only when run 33549789287 becomes terminal; never duplicate it.",
   "credits": {
-    "new_source_research": 1,
+    "source_research": 1,
     "repository_component": 0,
     "target_runtime": 0,
+    "pipewire_monitor_readback": 0,
     "physical_audio": 0,
     "true_streaming_partial_asr": 0,
     "producer_generation_cancel": 0,
