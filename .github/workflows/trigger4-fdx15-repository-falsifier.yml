@@ -1,10 +1,11 @@
-name: Trigger4 FDX1 FDX5 Repository Falsifier
+name: Trigger4 FDX Packet Repository Falsifier
 
 on:
   push:
     branches: [main]
     paths:
       - 'tests/test_trigger4_fdx1_fdx5_convergence.py'
+      - 'tests/test_trigger4_fdx3_barge_in_convergence.py'
       - '.github/workflows/trigger4-fdx15-repository-falsifier.yml'
       - 'src/frankenstein2/voice_packet_cortex.py'
       - 'src/frankenstein2/voice_contract.py'
@@ -15,11 +16,11 @@ permissions:
   contents: read
 
 concurrency:
-  group: trigger4-fdx15-repository-falsifier
+  group: trigger4-fdx-packet-repository-falsifier
   cancel-in-progress: true
 
 jobs:
-  fdx15-repository-falsifier:
+  fdx-packet-repository-falsifier:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     env:
@@ -41,11 +42,17 @@ jobs:
           test "$(git rev-parse HEAD)" = "$EXPECTED_SOURCE_SHA"
           test -z "$(git status --porcelain --untracked-files=no)"
 
-      - name: Execute independent FDX1 FDX5 packet convergence falsifier
+      - name: Execute FDX1 FDX5 packet convergence falsifiers
         shell: bash
         run: |
           set -Eeuo pipefail
           python -m unittest -v tests.test_trigger4_fdx1_fdx5_convergence
+
+      - name: Execute FDX3 barge-in packet convergence falsifier
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          python -m unittest -v tests.test_trigger4_fdx3_barge_in_convergence
 
       - name: Preserve evidence scope fence
         shell: bash
