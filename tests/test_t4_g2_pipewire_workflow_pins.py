@@ -53,6 +53,23 @@ class Trigger4G2PipeWireWorkflowPinTests(unittest.TestCase):
         self.assertIn("T4_G2_SINGLETON_OWNER=PASS", text)
         self.assertIn("raise SystemExit(3)", text)
 
+    def test_stale_queue_exemption_is_exact_and_never_executed_only(self) -> None:
+        text = workflow_text()
+        self.assertIn("'33554493024': {", text)
+        self.assertIn("'6cf8ba3a6ae013083b1013e782d3fff2a373d75b'", text)
+        self.assertIn("'33554578605': {", text)
+        self.assertIn("'eea45dbd94738adb92c4d439ea90534062044239'", text)
+        self.assertIn("status == 'queued'", text)
+        self.assertIn("run.get('head_sha') == stale['head_sha']", text)
+        self.assertIn("run.get('event') == stale['event']", text)
+        self.assertIn("/actions/runs/{run_id}/jobs?per_page=100", text)
+        self.assertIn("job.get('status') == 'queued'", text)
+        self.assertIn("not job.get('steps')", text)
+        self.assertIn("not job.get('runner_id')", text)
+        self.assertIn("not job.get('runner_name')", text)
+        self.assertIn("T4_G2_STALE_INVALIDATED_QUEUED_EXEMPTION", text)
+        self.assertNotIn("run.get('head_sha') !=", text)
+
     def test_runtime_workflow_uses_supported_sandbox_runner_cli(self) -> None:
         text = workflow_text()
         self.assertNotIn("--source-root", text)
