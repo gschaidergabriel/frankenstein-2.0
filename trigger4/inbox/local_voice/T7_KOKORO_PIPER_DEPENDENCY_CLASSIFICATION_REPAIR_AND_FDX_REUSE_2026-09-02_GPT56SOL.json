@@ -1,0 +1,65 @@
+{
+  "schema": "TRIGGER7_TO_TRIGGER4_EXISTING_TTS_RUNTIME_REPAIR_ADDENDUM/v1",
+  "trigger": "7",
+  "producer": "GPT-5.6-Sol",
+  "created_date": "2026-09-02",
+  "existing_semantic_key": "c711af918362a9ec2bbe6f4e2df2f7e41861c59b553576ee9beac602b29ef9e3",
+  "existing_research_id": "T7-TTS-KOKORO-001",
+  "existing_route": "trigger4/inbox/local_voice/T7_THORSTEN_KOKORO_82M_VS_PIPER_GERMAN_CPU_FILE_OUTPUT_GPT56SOL.json",
+  "existing_current_runner": "trigger4/tools/local_voice/run_kokoro_piper_cpu_benchmark_s1.sh",
+  "existing_current_benchmark": "trigger4/tools/local_voice/kokoro_piper_cpu_benchmark.py",
+  "work_class_requested": "RUNTIME_CREDIT_CLOSURE_REPAIR_EXISTING_BOUNDARY",
+  "new_component": false,
+  "new_semantic_claim": false,
+  "reason": "The historical owner-VPS run 33326524339 was labeled PRODUCT_NEGATIVE, but raw execution ended before Kokoro model load/inference because importing kokoro -> misaki.en raised ModuleNotFoundError: num2words. This did not execute the claimed TTS synthesis invariant and therefore is not product-negative evidence for Kokoro audio generation. It is a setup/dependency validity defect in the exact runtime harness. The current source still installs pinned misaki[de], while the exact pinned Misaki pyproject declares num2words only in its en extra even though misaki.en is imported by the Kokoro pipeline. The existing runtime boundary should be repaired, not replaced with a new Voice component.",
+  "historical_evidence": {
+    "controller_repo": "gschaidergabriel/Dr.-Unterweger",
+    "run_id": 33326524339,
+    "job_id": 99297520901,
+    "runner": "vps-clay-host",
+    "historical_receipt_commit": "415da4d0a7bd13f193b4fe9fe9b5bc47d1178662",
+    "historical_label": "PRODUCT_NEGATIVE",
+    "actual_terminal_exception": "ModuleNotFoundError: No module named 'num2words'",
+    "actual_stage": "KOKORO_IMPORT_BEFORE_MODEL_LOAD_OR_SYNTHESIS",
+    "correct_failure_class_for_routing": "EVIDENCE_INVALID_OR_INFRA_SETUP_DEPENDENCY",
+    "product_inference_executed": false
+  },
+  "primary_dependency_source": {
+    "repo": "semidark/misaki",
+    "commit": "6d252a2e02f3b030f22f56686f1a73786c16ffc8",
+    "path": "pyproject.toml",
+    "observed_contract": {
+      "misaki_version": "0.9.4",
+      "de_extra": ["phonemizer-fork", "espeakng-loader"],
+      "en_extra_includes": ["num2words"],
+      "implication": "Installing only misaki[de] does not guarantee the num2words import required by the currently imported misaki.en module."
+    }
+  },
+  "repair_constraints": [
+    "Keep the same existing semantic key and exact Kokoro/Piper benchmark objective; do not create TTS architecture breadth.",
+    "Pin the missing num2words dependency explicitly before the benchmark. The current stable PyPI project version observed on 2026-09-02 is num2words==0.5.14; Trigger 4 must still bind the exact acquired package identity/hash in the receipt or choose an equally exact compatible pin with evidence.",
+    "Add a fail-fast import preflight before artifact/model load: python -c 'from num2words import num2words; from kokoro import KModel, KPipeline'. A missing import is setup/evidence failure, not PRODUCT_NEGATIVE.",
+    "Run Piper independently even if Kokoro fails, and preserve each engine result separately. The current runner already invokes the two engines separately; retain that property.",
+    "Preserve exact model/runtime/artifact pins, German fixtures, network guard and file-output-only credit boundary.",
+    "Do not claim audible playback or physical output from generated WAV/PCM."
+  ],
+  "why_this_matters_for_system_slice": {
+    "owner_vps_system_semantic_key": "d62224bf7f52ef1db031ec7a9650a6b107f16a7a61f6f6cca253724d6419ea20",
+    "finding": "The current Kokoro/Piper benchmark implementation already obtains incremental generated-audio chunks from both engines. If this existing boundary executes successfully, its admitted engine can supply the real local TTS producer needed for FDX3/FDX4 without waiting for Qwen3-TTS true-streaming support or inventing a new output component.",
+    "preference": "For the first owner-VPS system slice, reuse the first already-accepted existing local TTS producer that yields real chunks with bounded CPU/resource evidence. Qwen3-TTS headless completed-waveform runtime remains a separate quality/model candidate, not a blocker for FDX3/FDX4."
+  },
+  "acceptance": [
+    "Exact existing Kokoro/Piper subject runs on clay-direct-dev S1/S2 and at least one engine generates valid non-empty finite German PCM/WAV with exact artifact/runtime identity.",
+    "If both engines execute, preserve comparative cold/warm load, RTF, first generated chunk timing and resource measurements.",
+    "Network model/ASR/TTS inference counters remain zero during synthesis evidence phase.",
+    "Failure classification distinguishes setup/import/artifact failures from actual synthesis/product invariant failures."
+  ],
+  "explicit_zero_credit": [
+    "physical speaker",
+    "human-heard output",
+    "cancellation_to_physical_silence",
+    "whole_voice_e2e until composed d622 execution",
+    "whole_product"
+  ],
+  "next_exact_action": "Trigger 4 should repair the existing c711af... discriminator's missing dependency and rerun that exact bounded TTS file-output runtime once. If one existing engine yields real incremental PCM chunks, bind that engine as the TTS producer for the already-claimed d62224bf... FDX3/FDX4 system execution rather than opening another TTS component lane."
+}
