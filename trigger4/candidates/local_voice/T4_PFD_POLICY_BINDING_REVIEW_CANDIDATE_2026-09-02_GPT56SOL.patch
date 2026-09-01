@@ -1,0 +1,214 @@
+diff --git a/src/frankenstein2/voice_packet_cortex.py b/src/frankenstein2/voice_packet_cortex.py
+--- a/src/frankenstein2/voice_packet_cortex.py
++++ b/src/frankenstein2/voice_packet_cortex.py
+@@
+ INPUT_SCHEMA = "FRANKENSTEIN2_VOICE_INPUT_PACKET/v1"
+ OUTPUT_SCHEMA = "FRANKENSTEIN2_VOICE_OUTPUT_PACKET/v1"
+ EVENT_SCHEMA = "FRANKENSTEIN2_CORTEX_EVENT_PACKET/v1"
++POLICY_SCHEMA = "FRANKENSTEIN2_PACKET_TURN_POLICY/v1"
+ PACKET_CLASSIFICATION = "PACKET_SIMULATION_ONLY_NOT_ACOUSTIC_RUNTIME_OR_ACCEPTANCE_CREDIT"
+@@
+ _PRESENCE = frozenset(("PRESENT_INTERRUPTIBLE", "PRESENT_BUSY", "ABSENT", "UNKNOWN"))
+ _FAULTS = frozenset(("drop", "duplicate", "reorder", "corrupt"))
++_BACKCHANNEL_MODES = frozenset(("NEVER", "ON_NONFINAL_HOLD"))
+ _SYSTEM_EVENTS = frozenset((
+@@
+ def _digest(value: Mapping[str, Any]) -> str:
+     raw = json.dumps(value, ensure_ascii=False, sort_keys=True, separators=(",", ":"), allow_nan=False)
+     return hashlib.sha256(raw.encode("utf-8")).hexdigest()
+ 
+ 
++@dataclass(frozen=True, slots=True)
++class PacketTurnPolicy:
++    """Immutable deterministic turn-policy input for matched-history packet tests.
++
++    This is a policy binding at the existing VoicePacketCortex boundary, not a second
++    turn FSM or output authority.  User barge-in cancellation remains mandatory and is
++    deliberately not represented as a configurable policy field.
++    """
++
++    policy_id: str
++    backchannel_mode: str = "NEVER"
++    schema: str = POLICY_SCHEMA
++    classification: str = PACKET_CLASSIFICATION
++
++    def __post_init__(self) -> None:
++        if self.schema != POLICY_SCHEMA or self.classification != PACKET_CLASSIFICATION:
++            raise VoicePacketCortexError("turn policy schema/classification mismatch")
++        _atom("policy_id", self.policy_id)
++        if self.backchannel_mode not in _BACKCHANNEL_MODES:
++            raise VoicePacketCortexError("backchannel_mode is not admitted")
++
++    def as_dict(self) -> dict[str, Any]:
++        return {
++            "schema": self.schema,
++            "policy_id": self.policy_id,
++            "backchannel_mode": self.backchannel_mode,
++            "classification": self.classification,
++        }
++
++    def sha256(self) -> str:
++        return _digest(self.as_dict())
++
++
+ @dataclass(frozen=True, slots=True)
+ class VoiceInputPacket:
+@@
+-    def __init__(self, session: "VoiceSessionCapsule", *, presence_state: str = "PRESENT_INTERRUPTIBLE",
+-                 opened_monotonic_ms: int = 0) -> None:
++    def __init__(self, session: "VoiceSessionCapsule", *, presence_state: str = "PRESENT_INTERRUPTIBLE",
++                 opened_monotonic_ms: int = 0, turn_policy: PacketTurnPolicy | None = None) -> None:
+         from .voice_contract import VoiceSessionCapsule
+         if type(session) is not VoiceSessionCapsule:
+             raise VoicePacketCortexError("session must be exact VoiceSessionCapsule")
+         if presence_state not in _PRESENCE:
+             raise VoicePacketCortexError("presence_state is not admitted")
+         _nonnegative("opened_monotonic_ms", opened_monotonic_ms)
++        if turn_policy is None:
++            turn_policy = PacketTurnPolicy(policy_id="packet-turn-policy:default", backchannel_mode="NEVER")
++        if type(turn_policy) is not PacketTurnPolicy:
++            raise VoicePacketCortexError("turn_policy must be exact PacketTurnPolicy")
+         self.session = session
+         self.session_id = session.voice_session_id
+         self.presence_state = presence_state
++        self.turn_policy = turn_policy
+         self.is_open = True
+@@
+     def emit_intent(self, *, turn_id: str, monotonic_ms: int, voice_intent: str,
+                     gwt_ref: str | None = None, memory_refs: tuple[str, ...] = (),
+                     tool_ref: str | None = None, detail: str = "") -> CortexEventPacket:
+@@
+         if voice_intent == "TOOL_USE" and tool_ref is not None:
+             self._active_tools[tool_ref] = turn_id
+         return event
++
++    def emit_turn_policy_intent(self, *, packet: VoiceInputPacket,
++                                monotonic_ms: int) -> CortexEventPacket:
++        """Emit one deterministic policy-conditioned intent for an already admitted input.
++
++        The packet content/timing is held fixed between policy arms.  Only the immutable
++        PacketTurnPolicy may change.  This method does not perform model or network I/O.
++        """
++        if not self.is_open or type(packet) is not VoiceInputPacket or packet.session_id != self.session_id:
++            raise VoicePacketCortexError("closed session or policy packet session/type mismatch")
++        _nonnegative("monotonic_ms", monotonic_ms)
++        if monotonic_ms < packet.monotonic_ms:
++            raise VoicePacketCortexError("policy decision cannot precede admitted input packet")
++        admitted_digest = self._input_seen.get(packet.packet_id)
++        if admitted_digest is None or admitted_digest != packet.sha256():
++            raise VoicePacketCortexError("policy decision requires the exact already admitted input packet")
++
++        backchannel = (
++            self.turn_policy.backchannel_mode == "ON_NONFINAL_HOLD"
++            and not packet.is_final
++            and packet.endpoint_decision == "HOLD"
++            and packet.vad_state == "SPEECH"
++            and packet.overlap_state == "NONE"
++        )
++        voice_intent = "BACKCHANNEL" if backchannel else "WAIT"
++        return self._event(
++            turn_id=packet.turn_id,
++            monotonic_ms=monotonic_ms,
++            kind="VOICE_INTENT",
++            intent=voice_intent,
++            packet_refs=(packet.packet_id,),
++            detail=(
++                f"turn_policy_id={self.turn_policy.policy_id};"
++                f"turn_policy_sha256={self.turn_policy.sha256()};"
++                f"backchannel_mode={self.turn_policy.backchannel_mode}"
++            ),
++        )
+ 
+     def close_session(self, *, turn_id: str, monotonic_ms: int, outcome_causal_identity: "CausalIdentity",
+
+diff --git a/tests/test_voice_packet_cortex.py b/tests/test_voice_packet_cortex.py
+--- a/tests/test_voice_packet_cortex.py
++++ b/tests/test_voice_packet_cortex.py
+@@
+-from frankenstein2.voice_packet_cortex import VoiceInputPacket, VoicePacketCortex, VoicePacketCortexError
++from frankenstein2.voice_packet_cortex import (
++    PacketTurnPolicy,
++    VoiceInputPacket,
++    VoicePacketCortex,
++    VoicePacketCortexError,
++)
+@@
+     def test_wait_backchannel_tool_gwt_and_memory_refs_share_one_event_fabric(self) -> None:
+         cortex = VoicePacketCortex(self.session())
+@@
+         self.assertEqual((wait.voice_intent, backchannel.voice_intent, tool.voice_intent),
+                          ("WAIT", "BACKCHANNEL", "TOOL_USE"))
+         self.assertEqual(tool.tool_ref, "tool:status-read")
++
++    def test_policy_only_matched_history_diverges_wait_vs_backchannel(self) -> None:
++        never = PacketTurnPolicy(policy_id="policy:pfd-never", backchannel_mode="NEVER")
++        on_hold = PacketTurnPolicy(policy_id="policy:pfd-on-hold", backchannel_mode="ON_NONFINAL_HOLD")
++
++        left = VoicePacketCortex(self.session(), turn_policy=never)
++        right = VoicePacketCortex(self.session(), turn_policy=on_hold)
++        left_packet = self.input_packet(left)
++        right_packet = self.input_packet(right)
++
++        left.accept_input(left_packet)
++        right.accept_input(right_packet)
++        left_pre = tuple(event.as_dict() for event in left.events)
++        right_pre = tuple(event.as_dict() for event in right.events)
++        self.assertEqual(left_pre, right_pre)
++        self.assertEqual(left_packet.as_dict(), right_packet.as_dict())
++
++        left_event = left.emit_turn_policy_intent(packet=left_packet, monotonic_ms=101)
++        right_event = right.emit_turn_policy_intent(packet=right_packet, monotonic_ms=101)
++        self.assertEqual(left_event.event_kind, "VOICE_INTENT")
++        self.assertEqual(right_event.event_kind, "VOICE_INTENT")
++        self.assertEqual(left_event.packet_refs, right_event.packet_refs)
++        self.assertEqual(left_event.monotonic_ms, right_event.monotonic_ms)
++        self.assertEqual(left_event.voice_intent, "WAIT")
++        self.assertEqual(right_event.voice_intent, "BACKCHANNEL")
++        self.assertIn(never.sha256(), left_event.detail)
++        self.assertIn(on_hold.sha256(), right_event.detail)
++
++    def test_same_policy_repeated_control_is_deterministic(self) -> None:
++        policy = PacketTurnPolicy(policy_id="policy:pfd-repeat", backchannel_mode="ON_NONFINAL_HOLD")
++
++        def trajectory() -> tuple[dict, ...]:
++            cortex = VoicePacketCortex(self.session(), turn_policy=policy)
++            packet = self.input_packet(cortex)
++            cortex.accept_input(packet)
++            cortex.emit_turn_policy_intent(packet=packet, monotonic_ms=101)
++            return tuple(event.as_dict() for event in cortex.events)
++
++        self.assertEqual(trajectory(), trajectory())
++
++    def test_policy_cannot_disable_mandatory_barge_in_cancellation(self) -> None:
++        policy = PacketTurnPolicy(policy_id="policy:pfd-barge", backchannel_mode="ON_NONFINAL_HOLD")
++        cortex = VoicePacketCortex(self.session(), turn_policy=policy)
++        cortex.queue_output(
++            turn_id="turn-0", packet_id="output-policy-barge", monotonic_ms=10,
++            text_segment="Unterbrechbar", expression_intent="neutral", speech_act="ANSWER",
++            planned_audio_duration_ms=1000, sequence=0,
++        )
++        cortex.advance_output(
++            "output-policy-barge", playback_state="started", monotonic_ms=20, heard_fraction=0.0
++        )
++        cortex.accept_input(self.input_packet(
++            cortex,
++            monotonic_ms=21,
++            barge_in=True,
++            overlap_state="USER_OVER_OUTPUT",
++        ))
++        self.assertEqual(cortex.outputs[0].playback_state, "interrupted")
++        self.assertFalse(cortex.outputs[0].commit_eligible)
++
++    def test_turn_policy_rejects_unadmitted_mode_and_unadmitted_packet(self) -> None:
++        with self.assertRaises(VoicePacketCortexError):
++            PacketTurnPolicy(policy_id="policy:pfd-invalid", backchannel_mode="ALWAYS")
++
++        cortex = VoicePacketCortex(
++            self.session(),
++            turn_policy=PacketTurnPolicy(policy_id="policy:pfd-bound", backchannel_mode="NEVER"),
++        )
++        packet = self.input_packet(cortex)
++        with self.assertRaises(VoicePacketCortexError):
++            cortex.emit_turn_policy_intent(packet=packet, monotonic_ms=101)
+ 
+     def test_cancelled_turn_rejects_late_tool_result(self) -> None:
