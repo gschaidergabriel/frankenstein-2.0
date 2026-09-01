@@ -24,7 +24,7 @@ apt-get install -y -qq \
   pipewire pipewire-bin pipewire-pulse pulseaudio-utils python3 python3-pip python3-venv \
   wireplumber >/tmp/t4-g2-apt.log 2>&1
 
-for x in pipewire pipewire-pulse wireplumber pactl parec paplay python3 curl; do
+for x in pipewire pipewire-pulse wireplumber pw-metadata pactl parec paplay python3 curl; do
   command -v "$x" >/dev/null
   printf 'TOOL %s %s\n' "$x" "$(command -v "$x")"
 done
@@ -91,6 +91,7 @@ export G2_VENV="$VENV"
 export G2_SOURCE="$WORK/source.wav"
 export G2_ANALYZER="$PWD/research/local_voice/tools/t7_pipewire_monitor_cancel_analyze.py"
 export G2_HARNESS="$PWD/trigger4/tools/local_voice/g2_pipewire_s2_runtime.py"
+export G2_EVIDENCE_HELPER="$PWD/trigger4/tools/local_voice/g2_pipewire_evidence.py"
 export PIPER_MODEL_SHA256 PIPER_CONFIG_SHA256
 
 runuser -u f2audio -- env \
@@ -102,6 +103,7 @@ runuser -u f2audio -- env \
   G2_SOURCE="$G2_SOURCE" \
   G2_ANALYZER="$G2_ANALYZER" \
   G2_HARNESS="$G2_HARNESS" \
+  G2_EVIDENCE_HELPER="$G2_EVIDENCE_HELPER" \
   PIPER_MODEL_SHA256="$PIPER_MODEL_SHA256" \
   PIPER_CONFIG_SHA256="$PIPER_CONFIG_SHA256" \
   XDG_RUNTIME_DIR="$RUNTIME" \
@@ -124,6 +126,14 @@ runuser -u f2audio -- env \
     pactl info
     pipewire --version
     wireplumber --version || true
+
+    pw-metadata -n settings >"$G2_WORK/preexec-pipewire-settings.txt"
+    "$G2_VENV/bin/python" "$G2_EVIDENCE_HELPER" derive-bound \
+      --settings "$G2_WORK/preexec-pipewire-settings.txt" \
+      --output "$G2_WORK/preexec-bound.json"
+    max_inflight_ms=$("$G2_VENV/bin/python" -c "import json,sys; print(json.load(open(sys.argv[1], encoding=\"utf-8\"))[\"derived_max_inflight_ms\"])" "$G2_WORK/preexec-bound.json")
+    printf "G2_PREEXEC_MAX_INFLIGHT_MS=%s\n" "$max_inflight_ms"
+
     set +e
     "$G2_VENV/bin/python" "$G2_HARNESS" \
       --source "$G2_SOURCE" \
@@ -133,7 +143,7 @@ runuser -u f2audio -- env \
       --tts-model-sha256 "$PIPER_MODEL_SHA256" \
       --tts-config-sha256 "$PIPER_CONFIG_SHA256" \
       --cancel-after-ms 1200 \
-      --max-inflight-ms 250
+      --max-inflight-ms "$max_inflight_ms"
     harness_status=$?
     set -e
     printf "G2_PIPEWIRE_HARNESS_EXIT=%s\n" "$harness_status"
