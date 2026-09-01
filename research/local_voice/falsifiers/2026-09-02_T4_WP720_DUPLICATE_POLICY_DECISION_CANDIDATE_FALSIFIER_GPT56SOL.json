@@ -1,0 +1,56 @@
+{
+  "schema": "F2_TRIGGER4_CANDIDATE_FALSIFIER/v1",
+  "trigger": "4",
+  "organ": "GPT-5.6-Sol-TRIGGER4-REVIEW",
+  "created_at_local": "2026-09-02T00:10:00+07:00",
+  "workpackage_id": "F2-WP-720",
+  "generation": 1,
+  "active_claim_id": "F2-WP-720-G1-GPT56SOL-PFD-TURN-POLICY-BINDING-20260902",
+  "lane": "CANDIDATE_FALSIFIER_REVIEW_ONLY",
+  "mutation_authority": false,
+  "observed_exact_source": {
+    "policy_binding_commit": "df101862a9e4a99c36a974e1ce04a0f60370cc4c",
+    "matched_history_test_commit": "cfd9776b2e27f8f10407a429651c8eb93a041fce",
+    "repository_discriminator_commit": "731db925df96ab7e49c0e5b80cd7bc8f4d37a086",
+    "policy_module": "src/frankenstein2/voice_packet_turn_policy.py",
+    "policy_tests": "tests/test_voice_packet_turn_policy.py"
+  },
+  "candidate_counterexample": {
+    "id": "PFD6_DUPLICATE_SOURCE_EVENT_POLICY_DECISION",
+    "claim": "One already-accepted HOLD input event can currently be passed to apply_packet_turn_policy more than once. The function verifies in-memory admission and HOLD semantics but does not consume/fence the source event or reject an existing policy decision for the same source_event_id.",
+    "minimal_sequence": [
+      "create one VoicePacketCortex and accept one non-final endpoint=HOLD input",
+      "apply PacketTurnPolicy(hold_intent=WAIT) to that exact accepted event",
+      "apply PacketTurnPolicy(hold_intent=BACKCHANNEL) again to the same exact accepted event",
+      "inspect cortex.events for two VOICE_INTENT events that both bind the same source_event_id but carry conflicting policy trajectories"
+    ],
+    "why_material": "The WP720 boundary is a deterministic authoritative policy selection on the existing event fabric. Two conflicting policy decisions for one admitted source event would violate one-decision causal identity even though each individual call is locally valid and the PFD0-PFD5 matched-arm tests remain green.",
+    "existing_test_gap": "Current PFD0-PFD5 tests cover matched history, one changed policy dimension across separate arms, stable same-policy reruns across fresh cortex instances, metadata-only changes, foreign-event rejection, barge-in preservation and monotonic ordering, but not repeated policy application to the same accepted event in one cortex."
+  },
+  "execution_status": {
+    "repository_or_vps_counterexample_executed": false,
+    "local_review_execution_attempted": true,
+    "local_review_execution_result": "INFRA_AUTH_TRANSPORT_QUOTA",
+    "local_review_execution_detail": "Isolated review container could not resolve github.com, so no exact-repository executable product conclusion is claimed.",
+    "product_negative": false
+  },
+  "proposed_discriminator": {
+    "test_name": "test_same_accepted_event_cannot_emit_conflicting_policy_decisions",
+    "required_result": "Second application with a different policy must fail closed; an exact same-policy replay may either return the already-existing decision idempotently or fail closed consistently, but must not mint a second authoritative VOICE_INTENT.",
+    "preferred_minimal_repair_if_reproduced": "Use the already-persisted cortex event history as the replay/consumption fence: before emitting, locate any prior policy decision carrying the same source_event_id. Exact same policy hash may resolve idempotently to the existing event; a different policy hash/intent must raise PacketTurnPolicyError. Do not introduce a second persistent state authority or mutate WP715 recovery state merely to track this fence.",
+    "recovery_property": "An event-history-derived fence survives existing checkpoint/reentry because CortexEventPacket history is already serialized by the single WP715 recovery authority."
+  },
+  "failure_taxonomy": "CANDIDATE_FALSIFIER_NOT_YET_EXECUTED",
+  "credit": {
+    "repository_component": 0,
+    "target_environment_component_runtime": 0,
+    "physical_audio": 0,
+    "asr_runtime": 0,
+    "tts_runtime": 0,
+    "gwt_jspace": 0,
+    "effect": 0,
+    "training": 0,
+    "whole_product": 0
+  },
+  "next_exact_action": "WP720 mutation owner should add the PFD6 same-source-event replay/conflict regression to the existing repository discriminator. Only if executable evidence reproduces the counterexample should the owner repair the policy binding, then rerun PFD0-PFD6 plus existing VoicePacketCortex regressions before any VPS promotion."
+}
