@@ -1,0 +1,27 @@
+name: review-wp703-parallel-worker-independence
+
+on:
+  push:
+    branches:
+      - review/wp703-parallel-worker-independence-20260829-gpt56sol
+  pull_request:
+    paths:
+      - tests/review_wp703_parallel_worker_independence_falsifier.py
+      - src/frankenstein2/presence_kernel.py
+      - src/frankenstein2/epistemic_perception.py
+      - .github/workflows/review-wp703-parallel-worker-independence.yml
+
+jobs:
+  falsifier:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Compile review falsifier
+        run: python -m py_compile tests/review_wp703_parallel_worker_independence_falsifier.py
+      - name: Execute WP703 parallel-worker independence falsifier
+        env:
+          PYTHONPATH: src
+        run: python tests/review_wp703_parallel_worker_independence_falsifier.py -v
