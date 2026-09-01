@@ -7,6 +7,8 @@ import unittest
 
 ROOT = Path(__file__).resolve().parents[1]
 MODULE_PATH = ROOT / "trigger4/tools/local_voice/g2_pipewire_evidence.py"
+LAUNCHER_PATH = ROOT / "trigger4/tools/local_voice/run_g2_pipewire_s2.sh"
+RUNTIME_PATH = ROOT / "trigger4/tools/local_voice/g2_pipewire_s2_runtime.py"
 spec = importlib.util.spec_from_file_location("g2_pipewire_evidence_test", MODULE_PATH)
 assert spec and spec.loader
 mod = importlib.util.module_from_spec(spec)
@@ -75,6 +77,28 @@ class Trigger4G2TerminalEvidenceTests(unittest.TestCase):
         ])
         with self.assertRaisesRegex(ValueError, "SERIAL_MISSING"):
             mod.resolve_pipewire_objects(missing_serial, "f2_voice_g2_sink", "f2_voice_g2_sink.monitor")
+
+    def test_launcher_derives_bound_before_harness_and_passes_receipt(self):
+        text = LAUNCHER_PATH.read_text(encoding="utf-8")
+        derive_at = text.index('"$G2_EVIDENCE_HELPER" derive-bound')
+        harness_at = text.index('"$G2_VENV/bin/python" "$G2_HARNESS"')
+        self.assertLess(derive_at, harness_at)
+        self.assertIn('pw-metadata -n settings >"$G2_WORK/preexec-pipewire-settings.txt"', text)
+        self.assertIn('--output "$G2_WORK/preexec-bound.json"', text)
+        self.assertIn('--evidence-helper "$G2_EVIDENCE_HELPER"', text)
+        self.assertIn('--bound-receipt "$G2_WORK/preexec-bound.json"', text)
+        self.assertIn('--max-inflight-ms "$max_inflight_ms"', text)
+        self.assertNotIn('--max-inflight-ms 250', text)
+
+    def test_runtime_revalidates_bound_and_exact_object_cleanup_before_credit(self):
+        text = RUNTIME_PATH.read_text(encoding="utf-8")
+        self.assertIn('ap.add_argument("--evidence-helper", type=Path, required=True)', text)
+        self.assertIn('ap.add_argument("--bound-receipt", type=Path, required=True)', text)
+        self.assertIn('evidence.validate_bound_receipt(bound_receipt, settings, args.max_inflight_ms)', text)
+        self.assertIn('object_binding = evidence.resolve_pipewire_objects(pw_dump, args.sink_name, monitor_name)', text)
+        self.assertIn('cleanup_identity_ok = evidence.identities_absent(pw_dump_after, object_binding)', text)
+        self.assertIn('complete = audio_pass and packet_fence_ok and cleanup_ok and analyzer_proc.returncode == 0', text)
+        self.assertIn('if stage in {"EVIDENCE_BINDING", "PCM_ANALYSIS"}', text)
 
 
 if __name__ == "__main__":
