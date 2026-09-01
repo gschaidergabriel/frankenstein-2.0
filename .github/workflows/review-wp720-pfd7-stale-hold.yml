@@ -1,0 +1,48 @@
+name: Review WP720 PFD7 stale HOLD falsifier
+
+on:
+  pull_request:
+    paths:
+      - 'tests/test_voice_packet_turn_policy_pfd7_falsifier.py'
+      - '.github/workflows/review-wp720-pfd7-stale-hold.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  pfd7-stale-hold-falsifier:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Verify accepted WP720 product blobs are unchanged
+        run: |
+          set -euo pipefail
+          git rev-parse HEAD
+          git diff --exit-code 731db925df96ab7e49c0e5b80cd7bc8f4d37a086 -- \
+            src/frankenstein2/voice_packet_turn_policy.py \
+            src/frankenstein2/voice_packet_cortex.py \
+            tests/test_voice_packet_turn_policy.py \
+            tests/test_voice_packet_cortex.py
+          sha256sum \
+            src/frankenstein2/voice_packet_turn_policy.py \
+            src/frankenstein2/voice_packet_cortex.py
+      - name: Execute PFD7 stale-HOLD-after-final discriminator
+        env:
+          PYTHONPATH: src
+        run: |
+          set -euo pipefail
+          python -m unittest discover -s tests -p 'test_voice_packet_turn_policy_pfd7_falsifier.py' -v
+      - name: Scope marker
+        run: |
+          printf '%s\n' \
+            'PFD7_REVIEW_DISCRIMINATOR_COMPLETE' \
+            'product_source_subject=731db925df96ab7e49c0e5b80cd7bc8f4d37a086' \
+            'candidate_falsifier_only=1' \
+            'target_runtime_credit=0' \
+            'whole_product_credit=0'
