@@ -17,10 +17,13 @@ admitted canonical F2-WP-100 UnifiedDB component. That component reference is in
 kept distinct from the concrete store's ``authority_receipt_sha256``; they are different
 identity layers and are not string-compared.
 
+Restart admission also reuses WP206's existing ``latest_checkpoint`` selector inside the
+same SQLite read snapshot. A caller-selected older row is rejected before G3/G2 planning
+when a different canonical lineage head already exists for that kernel state.
+
 The resulting receipt is evidence only. It is not a second persistence authority, does not
-schedule work or execute effects, and does not prove target-host execution. It also does
-NOT close rollback/freshness or same-inode live-drift questions; those remain separate
-falsifiers.
+schedule work or execute effects, and does not prove target-host execution. Same-inode
+live-drift remains a separate falsifier handled by WP206's existing store guard.
 """
 from __future__ import annotations
 
@@ -153,7 +156,7 @@ class PersistedCheckpointLoadAttestation:
             "row_evidence_sha256": self.row_evidence_sha256,
             "persisted_row_attestation": "OBSERVED_AT_REPOSITORY_COMPONENT_SCOPE",
             "transaction_snapshot_binding": "OBSERVED",
-            "freshness_attestation": "NOT_OBSERVED",
+            "freshness_attestation": "OBSERVED_WP206_LATEST_CHECKPOINT_IN_SNAPSHOT",
             "same_inode_live_drift_closure": "NOT_OBSERVED",
             "target_host_execution": "NOT_OBSERVED",
             "truth_authority": "NONE",
@@ -195,10 +198,11 @@ def attest_persisted_checkpoint_load(
 ) -> tuple[PersistentAgencyCheckpoint, PersistedCheckpointLoadAttestation]:
     """Load one checkpoint and bind the exact persisted-row snapshot used by WP206.
 
-    Both the accepted ``load_checkpoint`` call and the row-evidence read occur inside one
-    SQLite read transaction. This prevents an intervening committed writer from turning
-    the second query into evidence for a different database snapshot. Existing WP206
-    digest/path/device/inode/authority checks remain the source of checkpoint admission.
+    The accepted ``load_checkpoint`` call, WP206 ``latest_checkpoint`` selection, and the
+    row-evidence read all occur inside one SQLite read transaction. This prevents an
+    intervening committed writer from turning freshness or row evidence into observations
+    from a different database snapshot. Existing WP206 digest/path/device/inode/authority
+    checks remain the source of checkpoint admission and lineage-head selection.
     """
     if type(store) is not CanonicalPersistentAgencyStore:
         raise PersistedRowLoadAttestationError(
@@ -217,6 +221,11 @@ def attest_persisted_checkpoint_load(
     try:
         connection.execute("BEGIN")
         checkpoint = store.load_checkpoint(checkpoint_id)
+        latest_checkpoint = store.latest_checkpoint(checkpoint.kernel_state_id)
+        if latest_checkpoint.checkpoint_id != checkpoint.checkpoint_id:
+            raise PersistedRowLoadAttestationError(
+                "PERSISTED_ROW_RESTART_STALE_CHECKPOINT"
+            )
         row = connection.execute(
             f"""SELECT generation, previous_checkpoint_id,
                        checkpoint_sha256, checkpoint_json,
