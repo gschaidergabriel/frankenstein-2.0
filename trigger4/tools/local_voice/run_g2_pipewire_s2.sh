@@ -185,5 +185,5 @@ runuser -u f2audio -- env \
     cat "$G2_WORK/pipewire.log" >&2 || true
     cat "$G2_WORK/pipewire-pulse.log" >&2 || true
     cat "$G2_WORK/wireplumber.log" >&2 || true
-    exit 0
+    exit "$harness_status"
   '
