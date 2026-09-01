@@ -277,6 +277,8 @@ class FreshPresenceSnapshot:
             raise PresenceKernelError("source_evidence must already be canonical source_id order")
         if len({item.source_id for item in ordered}) != len(ordered):
             raise PresenceKernelError("source_evidence source_id must be unique")
+        if len({item.worker_id for item in ordered}) != len(ordered):
+            raise PresenceKernelError("source_evidence worker_id must be unique")
         if len({item.claim_sha256 for item in ordered}) != len(ordered):
             raise PresenceKernelError("the same observation claim cannot occupy multiple source slots")
 
@@ -375,6 +377,7 @@ def build_fresh_presence_snapshot(
         raise PresenceKernelError("source count exceeds admitted policy/hard source-slot ceiling")
 
     seen_source_ids: set[str] = set()
+    seen_worker_ids: set[str] = set()
     seen_claim_ids: set[str] = set()
     seen_claim_digests: set[str] = set()
     evidence_rows: list[PresenceSourceEvidence] = []
@@ -390,6 +393,9 @@ def build_fresh_presence_snapshot(
         if binding.source_id in seen_source_ids:
             raise PresenceKernelError("source_id must be unique within one snapshot")
         seen_source_ids.add(binding.source_id)
+        if binding.worker_id in seen_worker_ids:
+            raise PresenceKernelError("worker_id must be unique within one snapshot")
+        seen_worker_ids.add(binding.worker_id)
 
         claim = binding.claim
         claim_digest = binding.expected_claim_sha256
