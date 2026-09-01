@@ -363,7 +363,7 @@ def test_factory_bypass_of_wp508_binding_is_rejected():
     bundle = fx["reentry_bundles"][0]
     forged_binding = replace(bundle.binding, _factory_seal=None)
     forged_bundle = replace(bundle, binding=forged_binding)
-    with pytest.raises(ValueError, match="deterministic binding factory"):
+    with pytest.raises(ValueError, match="deterministic WP507/WP508 factory lineage"):
         seal(fx, reentry_bundles=(forged_bundle,))
 
 
