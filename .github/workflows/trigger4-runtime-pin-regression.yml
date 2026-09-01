@@ -1,0 +1,26 @@
+name: Trigger4 Runtime Pin Regression
+
+on:
+  push:
+    paths:
+      - ".github/workflows/t4-g2-pipewire-monitor-cancel.yml"
+      - ".github/workflows/trigger4-runtime-pin-regression.yml"
+      - "tools/vps_sandbox/run_ubuntu_sandbox.sh"
+      - "tests/test_t4_g2_pipewire_workflow_pins.py"
+  pull_request:
+    paths:
+      - ".github/workflows/t4-g2-pipewire-monitor-cancel.yml"
+      - ".github/workflows/trigger4-runtime-pin-regression.yml"
+      - "tools/vps_sandbox/run_ubuntu_sandbox.sh"
+      - "tests/test_t4_g2_pipewire_workflow_pins.py"
+
+permissions:
+  contents: read
+
+jobs:
+  pins:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify promotion-bearing Trigger4 runner pin before VPS dispatch
+        run: python tests/test_t4_g2_pipewire_workflow_pins.py
