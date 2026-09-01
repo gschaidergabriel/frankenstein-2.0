@@ -12,7 +12,7 @@
   "state": "ACTIVE",
   "work_class": "RUNTIME_CREDIT_CLOSURE",
   "target_completion_tier": "POLICY_CONDITIONED_PACKET_TURN_CONTROL_TARGET_COMPONENT_RUNTIME",
-  "execution_surface_class": "VPS_SANDBOX_REPRESENTABLE_DISPATCH_PREPARATION",
+  "execution_surface_class": "OWNER_VPS_SANDBOX_DISPATCH_QUEUED_NONTERMINAL",
   "integration_boundary": "repository-accepted exact WP720 PFD subject -> owner VPS clay-host -> network-off disposable Ubuntu sandbox -> repeated PFD0-PFD5 and existing VoicePacketCortex regressions -> exact bounded readback receipt",
   "existing_components": [
     "src/frankenstein2/voice_packet_cortex.py",
@@ -20,17 +20,27 @@
     "tests/test_voice_packet_cortex.py",
     "tests/test_voice_packet_turn_policy.py",
     ".github/workflows/wp720-turn-policy-ci.yml",
+    ".github/workflows/wp720-turn-policy-vps.yml",
     "tools/vps_sandbox/preflight.sh",
     "tools/vps_sandbox/run_ubuntu_sandbox.sh"
   ],
-  "blocking_deficit": "Repository PFD is accepted for exact subject 731db925df96ab7e49c0e5b80cd7bc8f4d37a086, but that exact policy-binding subject has not yet executed on the owner-VPS target-component sandbox route.",
+  "blocking_deficit": "Exact accepted subject 731db925df96ab7e49c0e5b80cd7bc8f4d37a086 is green in repository CI, and singleton owner-VPS run 33536413324/job 99951716440 is queued with zero executed steps. Target-component policy-binding runtime credit therefore remains zero until terminal executed evidence exists.",
   "runtime_evidence_expected": "Exact subject 731db925df96ab7e49c0e5b80cd7bc8f4d37a086 on runner vps-clay-host, disposable Ubuntu S1/S2 network-off execution, PFD policy suite + existing cortex suite exit 0, exact source hashes and receipt readback; promote target_environment_component_runtime_credit only for this bounded policy-binding scope.",
-  "duplicate_owner_check": "WP715 G3 recovery runtime probe is a distinct semantic boundary and remains nonterminal; WP719 is terminal; WP900 G4 is terminal. No existing WP720 runtime dispatch existed before this update.",
-  "runtime_subject_churn_class": "RUNTIME_SUBJECT_INVARIANT_FIXED_ACCEPTED_SUBJECT_731DB925",
+  "duplicate_owner_check": "WP715 G3 recovery runtime probe is a distinct semantic boundary and remains nonterminal; WP719 is terminal; WP900 G4 is terminal. WP720 now has exactly one singleton runtime dispatch: run 33536413324/job 99951716440.",
+  "runtime_subject_churn_class": "DEFER_UNTIL_RUNTIME_RESULT",
   "repository_ci_subject_sha": "731db925df96ab7e49c0e5b80cd7bc8f4d37a086",
   "repository_ci_run_id": 33536164254,
   "repository_ci_job_id": 99950875033,
   "repository_ci_result": "SUCCESS",
+  "runtime_dispatch": {
+    "controller_commit": "2228c441cbfb40081d7ad4832c7f52e8990f3482",
+    "workflow": ".github/workflows/wp720-turn-policy-vps.yml",
+    "run_id": 33536413324,
+    "job_id": 99951716440,
+    "status": "QUEUED_NONTERMINAL",
+    "runtime_execution_observed": false,
+    "duplicate_dispatch_allowed": false
+  },
   "claimed_scope": "Smallest immutable/serializable policy adapter into the existing VoicePacketCortex turn-control boundary; policy may select WAIT or BACKCHANNEL only for an exact already-accepted HOLD input event. VPS promotion, if executed, remains target-component policy-binding scope only; mandatory barge-in cancellation, Cortex FSM/state authority, VoiceIntent authority, output queue, tool ownership, memory/GWT authority, audio/provider/effect/training and whole-product semantics remain unchanged and zero-credit.",
   "owned_paths": [
     "src/frankenstein2/voice_packet_turn_policy.py",
@@ -45,6 +55,7 @@
   ],
   "repository_component_ci_credit": 1,
   "target_environment_component_runtime_credit": 0,
+  "runtime_execution_observed": false,
   "physical_audio_credit": 0,
   "asr_runtime_credit": 0,
   "tts_runtime_credit": 0,
@@ -57,5 +68,5 @@
   "whole_voice_e2e_credit": 0,
   "whole_system_acceptance": false,
   "created_at_utc": "2026-09-01T17:01:00Z",
-  "next_exact_action": "Create one exact-subject singleton VPS sandbox workflow for 731db925df96ab7e49c0e5b80cd7bc8f4d37a086. If it queues, record zero runtime credit and do not duplicate-dispatch; if it executes, classify exact result before any further mutation."
+  "next_exact_action": "Do not mutate WP720 semantics and do not redispatch while run 33536413324/job 99951716440 is nonterminal. On terminal result, refresh main and exact run steps; classify PRODUCT_NEGATIVE vs EVIDENCE_INVALID vs INFRA_AUTH_TRANSPORT_QUOTA vs executed pass before any credit or repair."
 }
