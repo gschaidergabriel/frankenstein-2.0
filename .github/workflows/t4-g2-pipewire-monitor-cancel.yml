@@ -101,8 +101,11 @@ jobs:
           git rev-parse HEAD
           sha256sum \
             src/frankenstein2/voice_packet_cortex.py \
+            trigger4/tools/local_voice/g2_pipewire_evidence.py \
             trigger4/tools/local_voice/g2_pipewire_s2_runtime.py \
             trigger4/tools/local_voice/run_g2_pipewire_s2.sh \
+            research/local_voice/tools/t7_pipewire_g2_h4_guard.py \
+            research/local_voice/tools/t7_pipewire_g2_h4_guard_cli.py \
             research/local_voice/tools/t7_pipewire_monitor_cancel_analyze.py \
             research/local_voice/benchmarks/2026-09-02_TRIGGER7_COMPLETION_DEPTH_G2.json
 
@@ -139,6 +142,7 @@ jobs:
           python3 - <<'PY'
           import base64, json, os, pathlib, re
 
+          semantic_key = '0d83f7d13c1d8f91686cf94070f73d901a49018b40a9c058d1949af094655bff'
           sandbox_path = pathlib.Path('/tmp/t4-g2-pipewire-sandbox.txt')
           preflight_path = pathlib.Path('/tmp/t4-g2-pipewire-preflight.txt')
           sandbox = sandbox_path.read_text(errors='replace') if sandbox_path.exists() else ''
@@ -154,23 +158,58 @@ jobs:
           call_match = re.search(r'^SANDBOX_CALL_EXIT=(\d+)$', sandbox, re.MULTILINE)
           launcher_match = re.search(r'^G2_LAUNCHER_EXIT=(\d+)$', sandbox, re.MULTILINE)
           sandbox_pass = 'F2_SANDBOX_RESULT=PASS' in sandbox
-          harness_pass = isinstance(harness, dict) and harness.get('result') == 'NO_COUNTEREXAMPLE'
-          exact_subject = isinstance(harness, dict) and harness.get('f2_subject_sha') == os.environ.get('GITHUB_SHA')
+          harness_shape = (
+              isinstance(harness, dict)
+              and harness.get('schema') == 'T4_G2_PIPEWIRE_S2_PLAYBACK_CANCEL_MONITOR/v2'
+              and harness.get('semantic_key') == semantic_key
+          )
+          harness_pass = harness_shape and harness.get('result') == 'NO_COUNTEREXAMPLE'
+          exact_subject = harness_shape and harness.get('f2_subject_sha') == os.environ.get('GITHUB_SHA')
           complete = bool(sandbox_pass and harness_pass and exact_subject)
 
           if complete:
               failure_class = None
-              classification = 'ACCEPT_AT_BOUNDED_S2_OWNER_VPS_PIPEWIRE_VIRTUAL_MONITOR_SCOPE_ONLY'
+              classification = harness.get('classification')
+              measured_credit = dict(harness.get('measured_credit') or {})
           elif isinstance(harness, dict):
               failure_class = harness.get('failure_class') or 'UNKNOWN_NONTERMINAL'
               classification = harness.get('classification') or 'HARNESS_NONPASS'
+              measured_credit = {key: 0 for key in (harness.get('measured_credit') or {})}
           else:
               failure_class = 'INFRA_AUTH_TRANSPORT_QUOTA'
               classification = 'S2_EXECUTION_OR_RECEIPT_NOT_OBSERVED'
+              measured_credit = {
+                  'owner_vps_pipewire_virtual_sink_playback_readback': 0,
+                  'bounded_test_driver_cancel_translation_to_virtual_audio_monitor_silence': 0,
+                  'replacement_generation_positive_virtual_monitor_readback': 0,
+                  'exact_packet_audio_tts_binding': 0,
+                  'exact_pipewire_object_identity_and_cleanup': 0,
+              }
+
+          explicit_zero = {
+              'physical_microphone': 0,
+              'physical_speaker': 0,
+              'human_heard_output': 0,
+              'physical_presence': 0,
+              'cancellation_to_physical_silence': 0,
+              'autonomous_production_playback_executor': 0,
+              'producer_tts_generation_cancel': 0,
+              'true_streaming_partial_asr': 0,
+              'canonical_durable_state_reentry': 0,
+              'gwt_jspace': 0,
+              'effect': 0,
+              'training': 0,
+              'whole_voice_e2e': 0,
+              'whole_product': 0,
+          }
+          if isinstance(harness, dict):
+              for key, value in (harness.get('explicit_zero_credit') or {}).items():
+                  if value == 0:
+                      explicit_zero[key] = 0
 
           receipt = {
-              'schema': 'T4_G2_PIPEWIRE_S2_WORKFLOW_RECEIPT/v1',
-              'semantic_key': '0d83f7d13c1d8f91686cf94070f73d901a49018b40a9c058d1949af094655bff',
+              'schema': 'T4_G2_PIPEWIRE_S2_WORKFLOW_RECEIPT/v2',
+              'semantic_key': semantic_key,
               'trigger': '4',
               'work_class': 'RUNTIME_CREDIT_CLOSURE',
               'github': {
@@ -193,24 +232,8 @@ jobs:
               'result': 'NO_COUNTEREXAMPLE' if complete else 'NOT_ACCEPTED',
               'failure_class': failure_class,
               'classification': classification,
-              'measured_credit': {
-                  'owner_vps_pipewire_virtual_sink_playback_readback': 1 if complete else 0,
-                  'bounded_cancellation_to_virtual_audio_monitor_silence': 1 if complete else 0,
-              },
-              'explicit_zero_credit': {
-                  'physical_microphone': 0,
-                  'physical_speaker': 0,
-                  'human_heard_output': 0,
-                  'physical_presence': 0,
-                  'cancellation_to_physical_silence': 0,
-                  'true_streaming_partial_asr': 0,
-                  'canonical_durable_state_reentry': 0,
-                  'gwt_jspace': 0,
-                  'effect': 0,
-                  'training': 0,
-                  'whole_voice_e2e': 0,
-                  'whole_product': 0,
-              },
+              'measured_credit': measured_credit,
+              'explicit_zero_credit': explicit_zero,
               'preflight_sha256': __import__('hashlib').sha256(preflight.encode()).hexdigest(),
               'sandbox_log_sha256': __import__('hashlib').sha256(sandbox.encode()).hexdigest(),
           }
