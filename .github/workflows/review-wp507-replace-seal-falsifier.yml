@@ -1,0 +1,34 @@
+name: REVIEW ONLY WP507 replace-preserved receipt seal falsifier
+
+on:
+  push:
+    branches:
+      - review/wp507-replace-seal-falsifier-20260829
+    paths:
+      - 'tests/review_only/test_wp507_replace_preserved_receipt_seal.py'
+      - '.github/workflows/review-wp507-replace-seal-falsifier.yml'
+  pull_request:
+    paths:
+      - 'tests/review_only/test_wp507_replace_preserved_receipt_seal.py'
+      - '.github/workflows/review-wp507-replace-seal-falsifier.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  falsifier:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install test dependency
+        run: python -m pip install pytest
+      - name: Compile review test and accepted WP507 source
+        run: python -m py_compile src/frankenstein2/gwt_uptake.py tests/review_only/test_wp507_replace_preserved_receipt_seal.py
+      - name: Run REVIEW_ONLY expected falsifier
+        env:
+          PYTHONPATH: src
+        run: python -m pytest -q tests/review_only/test_wp507_replace_preserved_receipt_seal.py
