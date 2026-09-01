@@ -1,0 +1,69 @@
+{
+  "schema": "T7_LOCAL_VOICE_NEGATIVE_RESULT/v1",
+  "trigger": "7",
+  "producer": "GPT-5.6 Sol",
+  "observed_at_utc": "2026-08-31T19:22:29Z",
+  "workpackage_id": "F2-WP-719",
+  "generation": 1,
+  "claim_id": "F2-WP-719-G1-GPT56SOL-FRESH-TURN-SUCCESSOR-COMPOSITION-20260901",
+  "active_claim_ref": "workpackages/active/F2-WP-719.json",
+  "failure_class": "PRODUCT_NEGATIVE",
+  "discriminator": "FRESH10_MISSING_OR_CORRUPT_PRIOR_OR_RESTART_PREREQUISITE_FAILS_CLOSED",
+  "repository_ci": {
+    "workflow_run_id": 33430190854,
+    "job_id": 99613400467,
+    "head_sha": "402e1fda148d1f9ff4b7bca169f2efd8d934e83b",
+    "result": "FAIL",
+    "tests_total": 10,
+    "tests_passed": 9,
+    "tests_failed": 1,
+    "failed_test": "test_fresh10_missing_or_corrupt_prior_or_restart_prerequisite_fails_closed",
+    "observed_error": "AssertionError: FreshTurnSuccessorError not raised"
+  },
+  "reproduced_scope": "project_fresh_turn accepts an otherwise valid predecessor/session/reentry request without any explicit binding to the already-executed F15/F16/F17 restart prerequisite, although the current routed FRESH10 contract requires that prerequisite to be explicit and fail-closed when absent or corrupt.",
+  "accepted_restart_prerequisite": {
+    "immutable_ref": "gschaidergabriel/Dr.-Unterweger:runtime/trigger4/restart_reentry_composition/latest.json@762bc9765c201eafae986b72ba7672dd432d4400",
+    "run_id": 33422253285,
+    "controller_schema": "F2_TRIGGER4_RESTART_REENTRY_COMPOSITION_CONTROLLER/v1",
+    "classification": "EXECUTED_NO_COUNTEREXAMPLE",
+    "result_rc": 0,
+    "falsifier_schema": "T7_RESTART_EXACT_ONCE_REENTRY_COMPOSITION_FALSIFIER/v1",
+    "falsifier_result": "PASS",
+    "f15_receipt_sha256": "29ed13cecf9f20dea7e16db9063d08028b145746635667186d275dcd873c7b12",
+    "exact_source_sha": "8af4acff27121bf5aacdcd7eb51f1369cd096542"
+  },
+  "bound_runtime_probe": {
+    "workflow_run_id": 33430190854,
+    "job_id": 99613400727,
+    "state_at_observation": "QUEUED",
+    "frozen_runtime_subject_sha": "32c6f3db988e7270fc62ec5f444f327f1ea2012b",
+    "classification": "RUNTIME_PROBE_INVALIDATED_BY_REQUIRED_REPAIR",
+    "promotion_rule": "A later PASS for this frozen pre-repair subject is historical-only for the superseded FRESH1-FRESH10 contract and MUST NOT mint current WP719 runtime credit."
+  },
+  "repair_scope": {
+    "owner": "Trigger4 active WP719 mutation authority",
+    "required": "Bind project_fresh_turn to an explicit exact restart-prerequisite proof/reference and fail closed when the proof is absent, malformed, stale, foreign, or does not represent the admitted F15/F16/F17 PASS.",
+    "preferred_shape": "Use the smallest typed/reference-only prerequisite contract; do not create a second restart, GWT, memory, tool, effect, receipt, or runtime authority.",
+    "forbidden": [
+      "weakening or deleting FRESH10",
+      "treating the queued old runtime probe as current acceptance",
+      "replaying memory/tools/effects",
+      "minting acoustic, physical-audio, GWT/J-Space, effect, training, whole-voice, or whole-product credit"
+    ]
+  },
+  "credit": {
+    "repository_component_ci": 0,
+    "target_environment_component_runtime": 0,
+    "canonical_memory_write": 0,
+    "gwt_runtime": 0,
+    "jspace_runtime": 0,
+    "effect": 0,
+    "asr_runtime": 0,
+    "tts_runtime": 0,
+    "physical_audio": 0,
+    "whole_voice_e2e": 0,
+    "whole_product": 0,
+    "training": 0
+  },
+  "next_exact_action": "Trigger4 repairs only the reproduced restart-prerequisite binding gap under the existing WP719 G1 claim, reruns FRESH1-FRESH10 repository CI, and only then binds a new exact repaired subject to one singleton VPS discriminator."
+}

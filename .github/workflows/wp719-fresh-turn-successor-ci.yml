@@ -1,0 +1,112 @@
+name: WP719 Fresh Turn Successor CI
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'src/frankenstein2/fresh_turn_successor.py'
+      - 'tests/test_fresh_turn_successor.py'
+      - 'research/local_voice/tools/falsify_fresh_turn_successor.py'
+      - '.github/workflows/wp719-fresh-turn-successor-ci.yml'
+  pull_request:
+    paths:
+      - 'src/frankenstein2/fresh_turn_successor.py'
+      - 'tests/test_fresh_turn_successor.py'
+      - 'research/local_voice/tools/falsify_fresh_turn_successor.py'
+      - '.github/workflows/wp719-fresh-turn-successor-ci.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  fresh-turn-successor:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: FRESH1-FRESH10 unit integration suite
+        env:
+          PYTHONPATH: src
+        run: python -m unittest discover -s tests -p 'test_fresh_turn_successor.py' -v
+      - name: Bounded WP719 falsifier
+        env:
+          PYTHONPATH: src
+        run: python research/local_voice/tools/falsify_fresh_turn_successor.py
+
+  g1-vps-fresh-turn-successor:
+    needs: fresh-turn-successor
+    if: >-
+      github.event_name == 'push' &&
+      github.event.head_commit.message == 'trigger4-preempt-stale-WP719-G1-VPS-64b7'
+    runs-on: clay-host
+    timeout-minutes: 30
+    concurrency:
+      group: wp719-g1-vps-fresh-turn-successor-runtime
+      cancel-in-progress: true
+    env:
+      WP719_RUNTIME_SUBJECT_SHA: 64b7fb92cca8ddc2e541d617f9af7ebd9bbeb9b8
+      F2_SANDBOX_ROOT: /var/tmp/frankenstein2-sandboxes
+      F2_NSPAWN_BASE_ROOT: /var/lib/frankenstein2-sandbox-images/ubuntu-24.04-base
+      F2_SANDBOX_MIN_FREE_KIB: '5242880'
+      F2_SANDBOX_MIN_MEM_KIB: '1048576'
+    steps:
+      - name: Checkout exact frozen WP719 G1 repaired subject
+        uses: actions/checkout@v4
+        with:
+          ref: 64b7fb92cca8ddc2e541d617f9af7ebd9bbeb9b8
+          fetch-depth: 0
+
+      - name: Verify VPS runner and repaired source identity
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          test "${RUNNER_NAME:-}" = "vps-clay-host"
+          test "${RUNNER_OS:-}" = "Linux"
+          test "$(git rev-parse HEAD)" = "$WP719_RUNTIME_SUBJECT_SHA"
+          printf '%s\n' \
+            "WP719_RUNTIME_SUBJECT_SHA=$WP719_RUNTIME_SUBJECT_SHA" \
+            "DISPATCH_SHA=$GITHUB_SHA" \
+            "RUN_ID=$GITHUB_RUN_ID" \
+            "RUN_ATTEMPT=$GITHUB_RUN_ATTEMPT" \
+            "RUNNER_NAME=$RUNNER_NAME" \
+            "RUNNER_OS=$RUNNER_OS" \
+            "RUNNER_ARCH=$RUNNER_ARCH" | tee /tmp/wp719-g1-runtime-identity.txt
+          sha256sum \
+            src/frankenstein2/fresh_turn_successor.py \
+            tests/test_fresh_turn_successor.py \
+            research/local_voice/tools/falsify_fresh_turn_successor.py \
+            | tee /tmp/wp719-g1-runtime-hashes.txt
+
+      - name: Prepare admitted Ubuntu 24.04 S2 sandbox
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          bash tools/vps_sandbox/host_prepare_ubuntu_nspawn.sh
+          bash tools/vps_sandbox/preflight.sh | tee /tmp/wp719-g1-preflight.txt
+
+      - name: Execute FRESH1-FRESH10 offline in S2
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          bash tools/vps_sandbox/run_ubuntu_sandbox.sh --backend nspawn --network off -- \
+            /bin/bash -lc 'set -Eeuo pipefail; test "$(git rev-parse HEAD)" = "64b7fb92cca8ddc2e541d617f9af7ebd9bbeb9b8"; export PYTHONPATH=src; python3 -m unittest discover -s tests -p "test_fresh_turn_successor.py" -v; python3 research/local_voice/tools/falsify_fresh_turn_successor.py; printf "WP719_G1_FRESH1_FRESH10=PASS\n"; printf "WP719_G1_PROVIDER_SURFACE=OFFLINE_ZERO\n"' \
+            2>&1 | tee /tmp/wp719-g1-vps-discriminator.txt
+          grep -q '^F2_SANDBOX_RESULT=PASS$' /tmp/wp719-g1-vps-discriminator.txt
+          grep -q 'WP719_G1_FRESH1_FRESH10=PASS' /tmp/wp719-g1-vps-discriminator.txt
+          grep -q 'WP719_G1_PROVIDER_SURFACE=OFFLINE_ZERO' /tmp/wp719-g1-vps-discriminator.txt
+
+      - name: Upload bounded discriminator evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: wp719-g1-fresh-turn-successor-${{ github.run_id }}
+          path: |
+            /tmp/wp719-g1-runtime-identity.txt
+            /tmp/wp719-g1-runtime-hashes.txt
+            /tmp/wp719-g1-preflight.txt
+            /tmp/wp719-g1-vps-discriminator.txt
+          if-no-files-found: warn

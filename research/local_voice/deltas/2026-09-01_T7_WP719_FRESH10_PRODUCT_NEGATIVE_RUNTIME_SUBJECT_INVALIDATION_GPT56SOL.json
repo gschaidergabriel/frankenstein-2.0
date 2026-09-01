@@ -1,0 +1,77 @@
+{
+  "schema": "F2_TRIGGER7_LOCAL_VOICE_RESEARCH_DELTA/v1",
+  "created_at": "2026-09-01T02:22:00+07:00",
+  "producer": "Trigger7 / GPT-5.6 Sol",
+  "status": "ACTIONABLE_PRODUCT_NEGATIVE",
+  "authority_ref": "research/local_voice/authority/2026-08-31_TRIGGER7_TEXT_PACKET_COMPLETION_AUTHORITY.md",
+  "observed_f2_head": "402e1fda148d1f9ff4b7bca169f2efd8d934e83b",
+  "workpackage_id": "F2-WP-719",
+  "generation": 1,
+  "claim_id": "F2-WP-719-G1-GPT56SOL-FRESH-TURN-SUCCESSOR-COMPOSITION-20260901",
+  "active_mutation_owner": "GPT-5.6-Sol-TRIGGER4",
+  "research_boundary": "accepted F15/F16/F17 restart-reentry prerequisite -> deterministic fresh-turn successor projection",
+  "evidence": {
+    "restart_prerequisite_receipt": "gschaidergabriel/Dr.-Unterweger:runtime/trigger4/restart_reentry_composition/latest.json@762bc9765c201eafae986b72ba7672dd432d4400",
+    "restart_prerequisite_run_id": 33422253285,
+    "restart_prerequisite_result": "PASS_EXECUTED_NO_COUNTEREXAMPLE",
+    "restart_tests": [
+      "F15_COMPLETED_HEARD_CLOSED_RESTART_REENTRY_EXACT_ONCE",
+      "F17_PARTIAL_OR_INTERRUPTED_RESTART_CAN_NEVER_PROMOTE_TO_DURABLE_HEARD_RESULT",
+      "F16_COMPLETED_HEARD_OPEN_RESTART_THEN_CLOSE_ONCE"
+    ],
+    "aligned_test_commit": "6208b2ce2846b97a5ee0d2386c659685100a6cee",
+    "aligned_test_contract": "FRESH10 requires explicit binding to the already-executed restart prerequisite; a projector that succeeds without that prerequisite is a product-negative gap.",
+    "current_source_observation": "src/frankenstein2/fresh_turn_successor.py at 6208b2ce... has no prerequisite_restart_receipt_ref/prerequisite_restart_receipt_sha256 parameters and therefore no explicit restart-prerequisite identity binding.",
+    "repository_run_id": 33430190854,
+    "repository_job_id": 99613400467,
+    "repository_job_result": "FAILURE_AT_FRESH1_FRESH10_UNIT_INTEGRATION_SUITE",
+    "queued_vps_job_id": 99613400727,
+    "queued_vps_status": "QUEUED",
+    "queued_vps_runtime_subject_sha": "32c6f3db988e7270fc62ec5f444f327f1ea2012b"
+  },
+  "classification": {
+    "primary": "PRODUCT_NEGATIVE",
+    "reproduced_scope": "FRESH_TURN_SUCCESSOR_REPOSITORY_INTEGRATION_CONTRACT",
+    "static_root_cause": "missing explicit binding of the fresh-turn projection to the accepted restart-reentry prerequisite receipt/reference digest",
+    "confidence": "HIGH_STATIC_CAUSAL_MATCH_WITH_EXECUTED_SUITE_FAILURE",
+    "exact_failing_test_log_visible": false,
+    "note": "Connector exposes the failing FRESH1-FRESH10 job step but not its log body. The source/test contract mismatch is directly observable and independently sufficient to identify a required repair before promotion."
+  },
+  "runtime_subject_churn": {
+    "class": "RUNTIME_PROBE_INVALIDATED_BY_REQUIRED_REPAIR",
+    "reason": "The currently queued VPS job is pinned to 32c6f3db..., which predates the aligned FRESH10 prerequisite contract at 6208b2ce.... A PASS on the older frozen subject cannot be composed into current-generation runtime credit after a required semantic repair is known.",
+    "instruction": "Do not redispatch while the queued job remains nonterminal. Preserve its eventual result as historical evidence only. After repair and green repository evidence, bind a new exact accepted subject to one new runtime discriminator under Trigger4 authority."
+  },
+  "minimal_repair_hypothesis": {
+    "owner": "Trigger4",
+    "source_target": "src/frankenstein2/fresh_turn_successor.py",
+    "required_change": [
+      "add explicit prerequisite_restart_receipt_ref and prerequisite_restart_receipt_sha256 inputs or an equivalent typed exact-identity binding",
+      "require both fields together and fail closed when absent/malformed",
+      "bind both values into FreshTurnSuccessorProjection identity/as_dict/digest so exact-once replay cannot silently swap restart evidence",
+      "preserve zero replay authority: the prerequisite is reference evidence only, not memory/GWT/tool/effect authority",
+      "keep caller-supplied fresh causal/input identity and existing predecessor receipt/session validation unchanged",
+      "rerun the aligned FRESH1-FRESH10 matrix before any new VPS promotion dispatch"
+    ],
+    "anti_scope_creep": "Do not add a second restart authority, GWT authority, memory writer, tool/effect replay path, ASR/TTS behavior, or physical audio dependency."
+  },
+  "external_research_note": {
+    "workflow_parser_incident": "The earlier zero-job run was caused by an unquoted YAML plain scalar containing colon-space inside the jobs.<job>.if value; Trigger4 repaired it by quoting the whole expression in commit 402e1fda.... GitHub documentation permits if expressions and YAML syntax requires quoting scalars containing colon-space.",
+    "status": "REPAIRED_NOT_CURRENT_BLOCKER"
+  },
+  "explicit_zero_credit": {
+    "wp719_repository_acceptance": 0,
+    "wp719_target_environment_component_runtime": 0,
+    "canonical_memory_write": 0,
+    "global_semantic_gwt_runtime": 0,
+    "jspace_runtime": 0,
+    "effect": 0,
+    "asr_runtime": 0,
+    "tts_runtime": 0,
+    "physical_audio": 0,
+    "whole_voice_e2e": 0,
+    "whole_product": 0,
+    "training": 0
+  },
+  "next_exact_action": "Trigger4 repairs only the restart-prerequisite identity binding in WP719, reruns aligned FRESH1-FRESH10 to green, then rebinds a new exact accepted subject to a single VPS S2 discriminator."
+}

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Deterministic optional VPS/HCU bridge planning and validation.
 
-F2-WP-1106 generation 1.
+F2-WP-1106 generation 2.
 
 This module is deliberately non-executing. It receives caller-supplied evidence about
 one local runtime and (optionally) one remote bridge endpoint, then validates whether
@@ -242,9 +242,9 @@ def plan_optional_bridge(
 
     ATTACH requires verified baseline-local boot *without* the remote bridge, verified
     endpoint availability, typed request/result transport, and exact local-state-lineage
-    binding. DETACH never requires remote availability and always preserves the local
-    state lineage; it therefore remains admissible even when a previously known remote
-    endpoint is unavailable or absent.
+    binding. DETACH never requires remote availability or verified baseline-boot evidence
+    and always preserves the local state lineage; it therefore remains admissible when
+    the optional remote organ is unavailable or local boot evidence is unresolved.
     """
 
     local_digest = local.identity_digest()
@@ -252,13 +252,13 @@ def plan_optional_bridge(
     limitations: list[str] = []
 
     baseline_independent = local.baseline_boot_state is EvidenceState.VERIFIED
-    if not baseline_independent:
-        blockers.append("BASELINE_LOCAL_BOOT_NOT_VERIFIED_INDEPENDENTLY")
 
     remote_digest: str | None = None
     typed_transport = False
 
     if action is BridgeAction.ATTACH:
+        if not baseline_independent:
+            blockers.append("BASELINE_LOCAL_BOOT_NOT_VERIFIED_INDEPENDENTLY")
         if remote is None:
             blockers.append("REMOTE_ENDPOINT_EVIDENCE_MISSING")
         else:
@@ -277,7 +277,9 @@ def plan_optional_bridge(
             typed_transport = remote.typed_request_result_transport
             if remote.bound_local_state_lineage_id != local.state_lineage_id:
                 limitations.append("DETACH_IGNORES_MISMATCHED_REMOTE_LINEAGE_AND_PRESERVES_LOCAL")
-        disposition = BridgeDisposition.BLOCKED if blockers else BridgeDisposition.DETACHED
+        if not baseline_independent:
+            limitations.append("BASELINE_LOCAL_BOOT_NOT_VERIFIED_INDEPENDENTLY")
+        disposition = BridgeDisposition.DETACHED
     else:  # defensive for non-enum callers
         raise BridgeValidationError("UNKNOWN_BRIDGE_ACTION")
 

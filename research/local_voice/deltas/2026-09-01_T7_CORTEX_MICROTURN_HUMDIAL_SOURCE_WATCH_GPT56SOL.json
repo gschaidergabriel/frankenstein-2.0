@@ -1,0 +1,92 @@
+{
+  "schema": "T7_RESEARCH_DELTA/v1",
+  "date": "2026-09-01",
+  "trigger": "7",
+  "worker": "GPT-5.6 Sol",
+  "status": "SOURCE_RESEARCH_ONLY_NO_RUNTIME_OR_ACCEPTANCE_CREDIT",
+  "claim_ref": "research/local_voice/claims/2026-09-01_trigger7_gpt56sol_cortex_frontier_claim.json",
+  "authority_ref": "research/local_voice/authority/2026-08-31_TRIGGER7_TEXT_PACKET_COMPLETION_AUTHORITY.md",
+  "protocol_ref": "research/local_voice/TRIGGERWORD_7_PROTOCOL.md",
+  "canonical_main_observed_before_write": "34e39d64fe9596af0f5c6b5ed7108db6e1587596",
+  "active_boundary": {
+    "workpackage": "F2-WP-719",
+    "state": "REPAIRED_REPOSITORY_CI_GREEN_CORRECTED_VPS_SUBJECT_PENDING",
+    "repaired_subject_sha": "64b7fb92cca8ddc2e541d617f9af7ebd9bbeb9b8",
+    "corrected_dispatch_commit": "34e39d64fe9596af0f5c6b5ed7108db6e1587596",
+    "rule": "Do not duplicate the pending clay-host runtime discriminator and do not mutate WP719-owned product paths from Trigger7."
+  },
+  "external_primary_findings": [
+    {
+      "id": "ARXIV_2603_09180_DUPLEXCASCADE",
+      "kind": "ARCHITECTURE_AND_EVALUATION_SIGNAL",
+      "source": "DuplexCascade: Full-Duplex Speech-to-Speech Dialogue with VAD-Free Cascaded ASR-LLM-TTS Pipeline and Micro-Turn Optimization",
+      "source_date": "2026-03-10",
+      "finding": "The paper proposes a VAD-free cascaded streaming ASR-LLM-TTS system that decomposes interaction into chunk-wise micro-turns and uses conversational control tokens to coordinate response timing/turn-taking while retaining a text-LLM cognition layer.",
+      "f2_relevance": "High architectural fit with the current packetized Frankenstein cortex because micro-turn/control-token ideas can be tested at VoiceInputPacket/CortexEventPacket/VoiceOutputPacket level without requiring acoustic runtime.",
+      "credit": "EXTERNAL_PRIMARY_ONLY_NOT_REPRODUCED_IN_F2"
+    },
+    {
+      "id": "ARXIV_2604_21406_HUMDIAL_FDBENCH",
+      "kind": "BENCHMARK_SIGNAL",
+      "source": "Full-Duplex Interaction in Spoken Dialogue Systems: A Comprehensive Study from the ICASSP 2026 HumDial Challenge",
+      "source_date": "2026-04-23",
+      "finding": "HumDial-FDBench evaluates interruption, overlap, feedback and dynamic turn negotiation using dual-channel human dialogue data.",
+      "f2_relevance": "Useful source for defining packet-only interruption/overlap/backchannel fixture classes and evaluation dimensions; no dataset or benchmark score is imported as Frankenstein evidence by this delta.",
+      "credit": "EXTERNAL_PRIMARY_ONLY_NOT_REPRODUCED_IN_F2"
+    },
+    {
+      "id": "ARXIV_2605_20356_MOSHI_SYNCHRONIZATION",
+      "kind": "HYPOTHESIS_SIGNAL",
+      "source": "Synchronization and Turn-Taking in Full-Duplex Speech Dialogue Models",
+      "source_date": "2026-05-19",
+      "finding": "Controlled Moshi self-dialogue experiments report representational synchronization and anticipatory turn-taking information in internal states under their tested conditions.",
+      "f2_relevance": "Supports keeping anticipatory turn-state as an empirical optional signal rather than replacing deterministic VoiceIntent/cancellation/effect authority.",
+      "credit": "EXTERNAL_PRIMARY_ONLY_NOT_REPRODUCED_IN_F2"
+    }
+  ],
+  "bounded_model_watch": [
+    {
+      "id": "NVIDIA_PARAKEET_TDT_0_6B_V3_Q8",
+      "role": "ASR_WATCHLIST_ONLY",
+      "finding": "The official NVIDIA Hugging Face model now exposes a 714 MB Q8_0 GGUF for local NeMo-Speech.cpp use; model metadata declares 25 languages and the model card includes German. The official Q8 artifact reports SHA-256 e3880d0aaaaf2c308ea2c35016b2b895c423eb3fda924c1b463d1c19b7f4d32e.",
+      "why_not_dispatched": "Current owner authority throttles new ASR/TTS scouting until packet/recovery cortex convergence. No unique WP719 blocker requires this candidate.",
+      "future_gate": "Only after cortex priority permits: same-corpus German comparator versus already-admitted Qwen3-ASR/Nemotron/Whisper paths, including WER, RTF, endpoint-relative finalization, CPU/RSS and network-blocked execution.",
+      "credit": "SOURCE_WATCH_ONLY"
+    },
+    {
+      "id": "RESEMBLE_CHATTERBOX_MULTILINGUAL_V3",
+      "role": "TTS_WATCHLIST_ONLY",
+      "finding": "Current official source contains a multilingual V3 checkpoint selector and explicitly lists German among supported languages; source examples retain audio-prompt voice conditioning.",
+      "why_not_dispatched": "No source evidence consumed here establishes the incremental first-audio/cancellation behavior required by Frankenstein, and the cortex-first throttle makes a new TTS runtime lane non-priority.",
+      "future_gate": "Source/security/license audit plus streaming/cancellation microbenchmark before any Trigger4 handoff.",
+      "credit": "SOURCE_WATCH_ONLY"
+    }
+  ],
+  "cortex_test_hypotheses_after_wp719_terminal": [
+    {
+      "id": "T7-HYP-MICROTURN-01",
+      "hypothesis": "Explicit packet-level micro-turn states can improve backchannel/WAIT/interruption timing without creating a second dialogue or effect authority.",
+      "counterhypothesis": "Micro-turn state adds scheduling complexity and duplicate/early commits without measurable controller benefit.",
+      "discriminator": "Deterministic overlapping VoiceInputPacket sequence with user continuation, backchannel candidate, WAIT, cancellation and exact heard/unheard accounting; compare current controller against a bounded micro-turn policy under identical fixtures."
+    },
+    {
+      "id": "T7-HYP-HUMDIAL-02",
+      "hypothesis": "HumDial-style interruption/overlap categories expose missing packet-cortex failure modes not covered by ordinary sequential turns.",
+      "counterhypothesis": "Existing FRESH/recovery/fault fixtures already cover the relevant state transitions and a new taxonomy adds no information gain.",
+      "discriminator": "Map benchmark categories to existing packet transitions first; add only category-to-transition gaps as new deterministic fixtures."
+    }
+  ],
+  "explicit_zero_credit": {
+    "new_model_runtime": 0,
+    "asr_runtime": 0,
+    "tts_runtime": 0,
+    "physical_audio": 0,
+    "global_semantic_gwt_runtime": 0,
+    "jspace_runtime": 0,
+    "effect": 0,
+    "whole_voice_e2e": 0,
+    "whole_product": 0,
+    "training": 0
+  },
+  "next_exact_action": "Consume the single corrected WP719 VPS-S2 terminal result for exact repaired subject 64b7fb92. If accepted at scope, refresh event/active/reconciliation state and select the next missing packet/recovery/long-session cortex boundary. Apply the micro-turn/HumDial findings only as bounded discriminators where they reveal a concrete uncovered transition; do not reopen generic ASR/TTS scouting while the cortex completion authority remains active."
+}
