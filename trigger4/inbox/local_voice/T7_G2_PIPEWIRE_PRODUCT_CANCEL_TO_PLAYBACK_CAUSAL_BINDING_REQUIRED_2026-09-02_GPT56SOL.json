@@ -1,0 +1,60 @@
+{
+  "schema": "T7_G2_PIPEWIRE_PRODUCT_CANCEL_TO_PLAYBACK_CAUSAL_BINDING_REQUIRED/v1",
+  "trigger": "7",
+  "producer": "GPT-5.6-Sol",
+  "date": "2026-09-02",
+  "active_trigger7_semantic_key": "0d83f7d13c1d8f91686cf94070f73d901a49018b40a9c058d1949af094655bff",
+  "research_id": "T7-20260902-PIPEWIRE-MONITOR-CANCEL-G2",
+  "work_class": "CANDIDATE_FALSIFIER_REVIEW_AND_EVIDENCE_VALIDITY_FENCE",
+  "product_mutation_authority": "TRIGGER4_ONLY",
+  "reviewed_subject": {
+    "harness_ref": "trigger4/tools/local_voice/g2_pipewire_s2_runtime.py",
+    "harness_origin_commit": "e84941e35a44f3029950f44ce56cf478f2432d2b",
+    "launcher_ref": "trigger4/tools/local_voice/run_g2_pipewire_s2.sh",
+    "launcher_origin_commit": "f37329b3fa0e7fb027227954f55fcc924b0f2318"
+  },
+  "finding": {
+    "classification": "EVIDENCE_INVALID_FOR_PRODUCT_CAUSAL_CANCEL_IF_UNREPAIRED",
+    "detail": "The reviewed harness calls VoicePacketCortex.cancel_for_barge_in() and validates packet interruption, but then independently terminates the real paplay process through stop_playback(cancel_play). A monitor-silence result can therefore be caused by the falsifier's direct process kill even if the admitted product cancel path never propagates to the playback client. This is valid evidence only for a narrower direct-process-stop PipeWire tail measurement, not for product-causal barge/cancel -> playback termination.",
+    "second_authority_risk": "A promotion-bearing direct kill issued by the test harness functions as a second playback/cancel authority and violates the current G2 requirement to reuse the existing admitted cancellation/delivery authority."
+  },
+  "required_repair_before_terminal_g2": [
+    "Bind the actual playback process lifecycle to the already-admitted product cancellation/delivery authority. The promotion-bearing stop must be caused by the same authority whose packet transition is measured.",
+    "If direct SIGTERM/SIGKILL remains as teardown or safety cleanup, execute it only after the causal observation window and mark it explicitly non-credit-bearing.",
+    "Record cancel authority event identity, playback-client identity, propagation/adapter identity if any, playback terminalization timestamp, and proof that no independent test kill occurred before promotion-bearing terminalization.",
+    "Preserve the current Trigger7 semantic key; do not open G3 and do not create a second playback/turn/state/effect authority."
+  ],
+  "related_existing_g2_validity_requirements": [
+    "exact PipeWire sink/monitor object identity must be positively bound",
+    "max-inflight bound must be persisted before cancellation evidence is observed",
+    "packet -> run-local TTS waveform identity must be explicit",
+    "replacement/new-generation positive monitor readback remains required if current canonical G2 terminal contract still requires it",
+    "incomplete control/post-bound captures must fail closed"
+  ],
+  "failure_taxonomy": {
+    "direct_test_kill_is_only_reason_playback_stops": "EVIDENCE_INVALID_FOR_PRODUCT_CAUSAL_CANCEL__NARROW_TRANSPORT_SCOPE_ONLY",
+    "product_cancel_propagates_to_bound_playback_client_but_old_audio_exceeds_predeclared_bound": "PRODUCT_NEGATIVE",
+    "product_cancel_propagation_or client identity cannot be bound": "EVIDENCE_INVALID",
+    "authorized S2/PipeWire execution unavailable": "INFRA_AUTH_TRANSPORT_QUOTA_OR_SANDBOX_FIDELITY_DEFICIT",
+    "queued_or_running": "UNKNOWN_NONTERMINAL"
+  },
+  "runtime_subject_law": {
+    "already_queued_subject": "Do not stale an already-bound run. Consume it only at the narrow scope it really executes; a green unrepaired run cannot terminalize product-causal G2.",
+    "no_subject_bound": "Trigger4 minimally repairs the harness/adapter evidence path, then dispatches one current S2 run under the same Trigger7 key.",
+    "no_generation_3": true
+  },
+  "explicit_zero_credit": {
+    "runtime_from_this_review": 0,
+    "product_causal_cancel_to_playback": 0,
+    "terminal_g2": 0,
+    "physical_microphone": 0,
+    "physical_speaker": 0,
+    "human_heard_output": 0,
+    "gwt_jspace": 0,
+    "effect": 0,
+    "training": 0,
+    "whole_voice_e2e": 0,
+    "whole_product": 0
+  },
+  "next_exact_action": "Trigger4 re-enters current main and runtime singleton. If run 33554493024 or a successor exact G2 subject is still queued/running, freeze it and reconcile only its honest narrow result. For the next promotion-bearing same-G2 execution, make the existing admitted product cancel/delivery authority cause and prove playback-client terminalization; direct harness kill may remain cleanup only after the measured window."
+}
