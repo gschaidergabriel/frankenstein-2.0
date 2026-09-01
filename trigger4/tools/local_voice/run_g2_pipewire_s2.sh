@@ -117,6 +117,8 @@ export G2_REPLACEMENT_TEXT="$WORK/replacement-source.txt"
 export G2_ANALYZER="$PWD/research/local_voice/tools/t7_pipewire_g2_h4_guard_cli.py"
 export G2_HARNESS="$PWD/trigger4/tools/local_voice/g2_pipewire_s2_runtime.py"
 export G2_EVIDENCE_HELPER="$PWD/trigger4/tools/local_voice/g2_pipewire_evidence.py"
+export G2_OBSERVER="$PWD/trigger4/tools/local_voice/g2_pipewire_observer.py"
+export G2_REQUIRED_GUARD="$PWD/trigger4/tools/local_voice/g2_required_observables_guard.py"
 export PIPER_MODEL_SHA256 PIPER_CONFIG_SHA256
 
 runuser -u f2audio -- env \
@@ -132,6 +134,8 @@ runuser -u f2audio -- env \
   G2_ANALYZER="$G2_ANALYZER" \
   G2_HARNESS="$G2_HARNESS" \
   G2_EVIDENCE_HELPER="$G2_EVIDENCE_HELPER" \
+  G2_OBSERVER="$G2_OBSERVER" \
+  G2_REQUIRED_GUARD="$G2_REQUIRED_GUARD" \
   PIPER_MODEL_SHA256="$PIPER_MODEL_SHA256" \
   PIPER_CONFIG_SHA256="$PIPER_CONFIG_SHA256" \
   XDG_RUNTIME_DIR="$RUNTIME" \
@@ -139,10 +143,15 @@ runuser -u f2audio -- env \
   PYTHONPATH="$PWD/src" \
   dbus-run-session -- bash -lc '
     set -Eeuo pipefail
+    observer_pid=""
     pipewire >"$G2_WORK/pipewire.log" 2>&1 & pw_pid=$!
     pipewire-pulse >"$G2_WORK/pipewire-pulse.log" 2>&1 & pulse_pid=$!
     wireplumber >"$G2_WORK/wireplumber.log" 2>&1 & wp_pid=$!
     cleanup_session() {
+      if [[ -n "${observer_pid:-}" ]]; then
+        kill -TERM "$observer_pid" 2>/dev/null || true
+        wait "$observer_pid" 2>/dev/null || true
+      fi
       kill "$wp_pid" "$pulse_pid" "$pw_pid" 2>/dev/null || true
       wait "$wp_pid" "$pulse_pid" "$pw_pid" 2>/dev/null || true
     }
@@ -163,6 +172,15 @@ runuser -u f2audio -- env \
       "import json; print(json.load(open(\"$G2_WORK/pipewire-bound-preflight.json\"))[\"derived_max_inflight_ms\"])")
     printf "G2_MAX_INFLIGHT_MS_PREDECLARED=%s\n" "$G2_MAX_INFLIGHT_MS"
 
+    "$G2_VENV/bin/python" "$G2_OBSERVER" \
+      --output "$G2_WORK/pipewire-observer.json" \
+      --sink-name f2_voice_g2_sink \
+      --monitor-name f2_voice_g2_sink.monitor \
+      --interval-ms 100 \
+      >"$G2_WORK/pipewire-observer.stdout" 2>"$G2_WORK/pipewire-observer.stderr" &
+    observer_pid=$!
+    sleep 0.2
+
     set +e
     "$G2_VENV/bin/python" "$G2_HARNESS" \
       --source "$G2_SOURCE" \
@@ -176,12 +194,35 @@ runuser -u f2audio -- env \
       --tts-config-sha256 "$PIPER_CONFIG_SHA256" \
       --bound-preflight-receipt "$G2_WORK/pipewire-bound-preflight.json" \
       --cancel-after-ms 1200 \
-      --max-inflight-ms "$G2_MAX_INFLIGHT_MS"
+      --max-inflight-ms "$G2_MAX_INFLIGHT_MS" \
+      >"$G2_WORK/harness.stdout" 2>"$G2_WORK/harness.stderr"
     harness_status=$?
     set -e
+
+    kill -TERM "$observer_pid" 2>/dev/null || true
+    wait "$observer_pid" || observer_status=$?
+    observer_status=${observer_status:-0}
+    observer_pid=""
+
+    grep -v '^T4_G2_PIPEWIRE_RECEIPT_B64=' "$G2_WORK/harness.stdout" || true
+    cat "$G2_WORK/harness.stderr" >&2 || true
+    cat "$G2_WORK/pipewire-observer.stdout" || true
+    cat "$G2_WORK/pipewire-observer.stderr" >&2 || true
+
+    set +e
+    "$G2_VENV/bin/python" "$G2_REQUIRED_GUARD" \
+      --harness-stdout "$G2_WORK/harness.stdout" \
+      --observer "$G2_WORK/pipewire-observer.json" \
+      --bound-preflight "$G2_WORK/pipewire-bound-preflight.json" \
+      --output "$G2_WORK/g2-terminal-required-observables.json"
+    guard_status=$?
+    set -e
+
     printf "G2_PIPEWIRE_HARNESS_EXIT=%s\n" "$harness_status"
+    printf "G2_PIPEWIRE_OBSERVER_EXIT=%s\n" "$observer_status"
+    printf "G2_REQUIRED_OBSERVABLES_GUARD_EXIT=%s\n" "$guard_status"
     cat "$G2_WORK/pipewire.log" >&2 || true
     cat "$G2_WORK/pipewire-pulse.log" >&2 || true
     cat "$G2_WORK/wireplumber.log" >&2 || true
-    exit "$harness_status"
+    exit "$guard_status"
   '
