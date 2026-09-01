@@ -21,6 +21,7 @@ def test_software_loopback_rejects_late_old_generation_and_never_commits_sentine
     result = probe.run("software")
 
     assert result["pass"] is True
+    assert result["classification"] == "CANDIDATE_FALSIFIER_VIRTUAL_SINK_ONLY"
     assert result["execution_scope"] == "REPOSITORY_SIMULATION_ONLY"
     assert result["old_generation"] == 1
     assert result["new_generation"] == 2
