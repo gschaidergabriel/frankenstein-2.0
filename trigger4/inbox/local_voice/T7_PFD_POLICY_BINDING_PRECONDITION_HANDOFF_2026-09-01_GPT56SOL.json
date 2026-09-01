@@ -1,0 +1,90 @@
+{
+  "schema": "F2_TRIGGER7_TO_TRIGGER4_HANDOFF/v1",
+  "trigger": "7",
+  "producer": "GPT-5.6-Sol",
+  "created_at_local": "2026-09-01T23:34:00+07:00",
+  "status": "ROUTED_RESEARCH_PRECONDITION_INTEGRATION_BLOCKER_CANDIDATE",
+  "scope": "Instruction/policy-conditioned full-duplex turn-management binding for the existing deterministic VoicePacketCortex only",
+  "authority_ref": "research/local_voice/authority/2026-08-31_TRIGGER7_TEXT_PACKET_COMPLETION_AUTHORITY.md",
+  "protocol_ref": "research/local_voice/TRIGGERWORD_7_PROTOCOL.md",
+  "claim_ref": "research/local_voice/claims/2026-09-01_trigger7_gpt56sol_instruct_fd_policy_benchmark.json",
+  "research_delta_ref": "research/local_voice/frontier/2026-09-01_trigger7_gpt56sol_pfd_policy_precondition_delta.md",
+  "observed_source_head": "a21c5a64d88288c449088f28397bb32411e20f98",
+  "current_source_observation": {
+    "cortex": "src/frankenstein2/voice_packet_cortex.py",
+    "tests": "tests/test_voice_packet_cortex.py",
+    "finding": "The current packet cortex has deterministic endpoint/overlap/barge-in and WAIT/BACKCHANNEL/ANSWER event primitives, but no explicit turn-policy object/config input and no current PacketTurnPolicy type. Existing tests prove primitive trajectories, not a same-history policy-only intervention.",
+    "classification": "RESEARCH_PRECONDITION_ABSENT_NOT_PRODUCT_NEGATIVE"
+  },
+  "external_primary_donors": [
+    {
+      "title": "Instruct-FD: Can Your Full-Duplex Speech System Follow Turn-Taking Instructions?",
+      "arxiv_id": "2607.20460",
+      "use": "instruction/policy-conditioned matched-scenario evaluation structure only"
+    },
+    {
+      "title": "Full-Duplex-Bench: A Benchmark to Evaluate Full-duplex Spoken Dialogue Models on Turn-taking Capabilities",
+      "arxiv_id": "2503.04721",
+      "use": "separate pause/backchannel/turn/interruption behavioral axes"
+    },
+    {
+      "title": "Synchronization and Turn-Taking in Full-Duplex Speech Dialogue Models",
+      "arxiv_id": "2605.20356",
+      "use": "controlled intervention/readback principle only"
+    }
+  ],
+  "trigger7_mutation_authority": "NONE_PRODUCT_SOURCE_RESEARCH_ONLY",
+  "route_to": "Trigger4/current legal local-voice turn-control mutation owner",
+  "prior_fence_refresh": {
+    "wp900_g4_observed_state": "TERMINAL_ACCEPTED_AT_BOUNDED_CAUSAL_RUNTIME_SCOPE",
+    "wp900_g4_terminal_commit": "a21c5a64d88288c449088f28397bb32411e20f98",
+    "meaning": "The old research-claim instruction not to mutate/redispatch WP900 while its runtime work was active is no longer the live blocker at this observed head. It does not grant product mutation authority for this voice-policy boundary."
+  },
+  "implementation_contract": [
+    "Refresh current main and resolve the current legal semantic/mutation owner before changing product source.",
+    "First search for an already-existing authoritative turn-policy/config surface upstream of VoicePacketCortex. If one exists, bind and test it instead of creating a duplicate abstraction.",
+    "If no explicit policy input exists and the mutation slot is free, add only the smallest immutable/serializable policy binding at the existing authoritative turn-control boundary. Do not create a second turn FSM, cortex, state store, output queue, cancellation authority or VoiceIntent authority.",
+    "Preserve immediate user barge-in cancellation as a mandatory invariant; it must not become an optional policy knob.",
+    "Build a deterministic matched-history PFD test: same VoiceSessionCapsule semantics, same pre-intervention state hash, same subsequent VoiceInputPacket sequence/timing; vary exactly one policy dimension.",
+    "Require a behaviorally meaningful expected trajectory delta such as WAIT versus BACKCHANNEL at the admitted controller boundary, with exact first-divergence and event/output trajectory hashes.",
+    "Require same-policy repeated controls to produce stable hashes and require the policy value to be provenance-bound so metadata-only no-op policy changes cannot pass.",
+    "No external model API/network call is permitted for this packet discriminator.",
+    "If an existing source boundary cannot support a true policy-only intervention without broad redesign, stop and return REVIEW_ONLY with the exact missing dependency instead of opening architecture breadth."
+  ],
+  "acceptance_discriminator": {
+    "PFD0": "explicit authoritative policy binding resolved",
+    "PFD1": "matched history/state before intervention",
+    "PFD2": "exactly one policy dimension changed",
+    "PFD3": "identical subsequent sensory/input packets and timing",
+    "PFD4": "expected event/output trajectory changes at a named causal divergence point",
+    "PFD5": "repeat controls stable; policy provenance bound; network calls zero"
+  },
+  "falsifiers": [
+    "Input packets/history/timing differ between arms before the claimed policy effect.",
+    "Policy metadata changes but the required behavior trajectory does not.",
+    "A second turn/cancellation/state authority is introduced.",
+    "Mandatory user-barge-in cancellation can be disabled by policy.",
+    "External model/API access is required to make the deterministic discriminator pass.",
+    "Same-policy repeated controls are nondeterministic without an admitted source."
+  ],
+  "anti_duplication": {
+    "new_model_scout_lane": false,
+    "new_asr_tts_lane": false,
+    "new_voice_entity": false,
+    "new_product_state_authority": false,
+    "product_source_mutated_by_trigger7": false
+  },
+  "explicit_zero_credit": {
+    "repository_product_acceptance": 0,
+    "target_runtime": 0,
+    "physical_audio": 0,
+    "asr_runtime": 0,
+    "tts_runtime": 0,
+    "semantic_gwt_jspace": 0,
+    "effect": 0,
+    "training": 0,
+    "whole_voice_e2e": 0,
+    "whole_product": 0
+  },
+  "next_exact_action": "Trigger4 resolves the current single turn-control owner and either binds an existing explicit policy surface or implements the smallest noncompeting immutable policy input plus deterministic PFD0-PFD5 regression. Trigger7 then consumes the exact source/test outcome."
+}
