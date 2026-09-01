@@ -7,10 +7,13 @@ or product credit. It compares:
   2. a full-playback PipeWire monitor capture (control), and
   3. a cancellation PipeWire monitor capture.
 
-The caller must provide the causal cancellation offset from playback start and a
+The caller must provide the causal cancellation offset from playback start, a
 predeclared maximum in-flight tail derived from the PipeWire graph/latency
-preflight. The tool aligns monitor captures to the source, scans fixed windows
-for source-correlated old-packet audio, and emits a JSON measurement receipt.
+preflight, and a predeclared required post-bound observation interval. The tool
+aligns monitor captures to the source, proves that the cancellation capture
+actually covers the declared post-bound observation interval, scans fixed
+windows for source-correlated old-packet audio, and emits a JSON measurement
+receipt.
 """
 from __future__ import annotations
 
@@ -214,6 +217,15 @@ def main(argv: list[str] | None = None) -> int:
         required=True,
         help="Predeclared maximum acceptable graph tail from PipeWire preflight.",
     )
+    p.add_argument(
+        "--required-postroll-ms",
+        type=float,
+        required=True,
+        help=(
+            "Predeclared observation duration required after the in-flight bound. "
+            "Insufficient aligned capture coverage is evidence-invalid, never a pass."
+        ),
+    )
     p.add_argument("--alignment-probe-ms", type=float, default=400.0)
     p.add_argument("--window-ms", type=float, default=20.0)
     p.add_argument("--correlation-threshold", type=float, default=0.80)
@@ -240,6 +252,10 @@ def main(argv: list[str] | None = None) -> int:
             raise ValueError("--cancel-offset-ms must be > 0")
         if args.max_inflight_ms < 0:
             raise ValueError("--max-inflight-ms must be >= 0")
+        if args.required_postroll_ms <= 0:
+            raise ValueError("--required-postroll-ms must be > 0")
+        if args.window_ms <= 0:
+            raise ValueError("--window-ms must be > 0")
         if not 0 < args.correlation_threshold <= 1:
             raise ValueError("--correlation-threshold must be in (0,1]")
         if not 0 < args.capture_rms_ratio_floor:
@@ -297,6 +313,71 @@ def main(argv: list[str] | None = None) -> int:
             return 2
 
         bound_end_ms = args.cancel_offset_ms + args.max_inflight_ms
+        required_observation_end_ms = bound_end_ms + args.required_postroll_ms
+        required_observation_end_source_frame = int(math.ceil(required_observation_end_ms * rate / 1000.0))
+        window_frames = max(64, int(round(rate * args.window_ms / 1000.0)))
+        first_post_bound_start_source_frame = int(math.ceil(bound_end_ms * rate / 1000.0))
+        first_post_bound_end_source_frame = first_post_bound_start_source_frame + window_frames
+        required_cancel_capture_end_frame = cancel_offset + required_observation_end_source_frame
+        first_post_bound_capture_end_frame = cancel_offset + first_post_bound_end_source_frame
+        source_covers_required_observation = source.frames >= required_observation_end_source_frame
+        cancel_covers_required_observation = cancel.frames >= required_cancel_capture_end_frame
+        cancel_covers_complete_post_bound_window = cancel.frames >= first_post_bound_capture_end_frame
+        coverage_ok = bool(
+            source_covers_required_observation
+            and cancel_covers_required_observation
+            and cancel_covers_complete_post_bound_window
+        )
+        receipt["parameters"] = {
+            "cancel_offset_ms": args.cancel_offset_ms,
+            "max_inflight_ms_predeclared": args.max_inflight_ms,
+            "required_postroll_ms_predeclared": args.required_postroll_ms,
+            "window_ms": args.window_ms,
+            "correlation_threshold_predeclared": args.correlation_threshold,
+            "source_rms_floor_predeclared": args.source_rms_floor,
+            "capture_rms_ratio_floor_predeclared": args.capture_rms_ratio_floor,
+        }
+        receipt["coverage"] = {
+            "bound_end_ms": bound_end_ms,
+            "required_observation_end_ms": required_observation_end_ms,
+            "required_observation_end_source_frame": required_observation_end_source_frame,
+            "required_cancel_capture_end_frame": required_cancel_capture_end_frame,
+            "first_post_bound_window_end_source_frame": first_post_bound_end_source_frame,
+            "first_post_bound_capture_end_frame": first_post_bound_capture_end_frame,
+            "source_frames_available": source.frames,
+            "cancel_capture_frames_available": cancel.frames,
+            "source_covers_required_observation": source_covers_required_observation,
+            "cancel_covers_required_observation": cancel_covers_required_observation,
+            "cancel_covers_complete_post_bound_window": cancel_covers_complete_post_bound_window,
+            "pass": coverage_ok,
+        }
+        if not coverage_ok:
+            receipt["classification"] = "EVIDENCE_INVALID_INSUFFICIENT_POST_BOUND_CAPTURE"
+            receipt["reason"] = (
+                "aligned source/cancel evidence does not cover the predeclared in-flight bound "
+                "+ required post-roll and at least one complete post-bound analysis window"
+            )
+            receipt["invariants"] = {
+                "CONTROL_VALID": control_valid,
+                "POST_BOUND_CAPTURE_COVERAGE": False,
+                "BOUNDED_TAIL": "NOT_EVALUATED_WITH_INSUFFICIENT_COVERAGE",
+                "NO_POST_BOUND_OLD_AUDIO": "NOT_EVALUATED_WITH_INSUFFICIENT_COVERAGE",
+                "PACKET_FENCE": "NOT_MEASURED_BY_AUDIO_ANALYZER__BIND_EXTERNAL_PACKET_RECEIPT",
+                "CLEANUP": "NOT_MEASURED_BY_AUDIO_ANALYZER__BIND_EXTERNAL_PIPEWIRE_RECEIPT",
+            }
+            receipt["explicit_zero_credit"] = {
+                "runtime_credit_from_analyzer": 0,
+                "packet_fence_credit_without_external_receipt": 0,
+                "cleanup_credit_without_external_receipt": 0,
+                "physical_speaker": 0,
+                "human_heard_output": 0,
+                "physical_microphone": 0,
+                "whole_voice_e2e": 0,
+                "whole_product": 0,
+            }
+            args.output.write_text(json.dumps(receipt, indent=2, sort_keys=True) + "\n")
+            return 2
+
         windows = scan_correlated_windows(
             source=source.mono,
             capture=cancel.mono,
@@ -312,40 +393,35 @@ def main(argv: list[str] | None = None) -> int:
         present = [row for row in windows if row["old_audio_present"]]
         last_old_end_ms = max((row["source_end_ms"] for row in present), default=args.cancel_offset_ms)
         observed_tail_ms = max(0.0, last_old_end_ms - args.cancel_offset_ms)
-        post_bound = [row for row in windows if row["source_start_ms"] >= bound_end_ms and row["old_audio_present"]]
+        post_bound_windows = [row for row in windows if row["source_start_ms"] >= bound_end_ms]
+        post_bound = [row for row in post_bound_windows if row["old_audio_present"]]
         max_post_bound_corr = max(
-            (row["correlation"] for row in windows if row["source_start_ms"] >= bound_end_ms and row["correlation"] is not None),
+            (row["correlation"] for row in post_bound_windows if row["correlation"] is not None),
             default=None,
         )
 
-        receipt["parameters"] = {
-            "cancel_offset_ms": args.cancel_offset_ms,
-            "max_inflight_ms_predeclared": args.max_inflight_ms,
-            "window_ms": args.window_ms,
-            "correlation_threshold_predeclared": args.correlation_threshold,
-            "source_rms_floor_predeclared": args.source_rms_floor,
-            "capture_rms_ratio_floor_predeclared": args.capture_rms_ratio_floor,
-        }
         receipt["measurement"] = {
             "correlated_windows_after_cancel": len(present),
             "last_old_audio_source_timeline_end_ms": last_old_end_ms,
             "observed_cancel_to_last_old_audio_tail_ms": observed_tail_ms,
             "declared_bound_end_ms": bound_end_ms,
+            "post_bound_analyzable_window_count": len(post_bound_windows),
             "post_bound_old_audio_window_count": len(post_bound),
             "max_post_bound_correlation": max_post_bound_corr,
         }
         receipt["window_scan"] = windows
 
         pass_tail = observed_tail_ms <= args.max_inflight_ms + args.window_ms
-        pass_post_bound = len(post_bound) == 0
+        pass_post_bound = len(post_bound_windows) > 0 and len(post_bound) == 0
         receipt["invariants"] = {
             "CONTROL_VALID": control_valid,
+            "POST_BOUND_CAPTURE_COVERAGE": coverage_ok,
             "BOUNDED_TAIL": pass_tail,
             "NO_POST_BOUND_OLD_AUDIO": pass_post_bound,
             "PACKET_FENCE": "NOT_MEASURED_BY_AUDIO_ANALYZER__BIND_EXTERNAL_PACKET_RECEIPT",
             "CLEANUP": "NOT_MEASURED_BY_AUDIO_ANALYZER__BIND_EXTERNAL_PIPEWIRE_RECEIPT",
         }
-        receipt["pass"] = bool(control_valid and pass_tail and pass_post_bound)
+        receipt["pass"] = bool(control_valid and coverage_ok and pass_tail and pass_post_bound)
         receipt["classification"] = (
             "NO_COUNTEREXAMPLE_AT_AUDIO_CORRELATION_SCOPE"
             if receipt["pass"]
