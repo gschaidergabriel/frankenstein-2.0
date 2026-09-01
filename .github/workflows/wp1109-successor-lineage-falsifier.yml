@@ -1,0 +1,35 @@
+name: WP1109 Successor State Lineage Falsifier
+
+on:
+  push:
+    branches:
+      - chatgpt/trigger4-wp1109-lineage-falsifier-20260829
+    paths:
+      - 'tests/falsifiers/test_wp1109_successor_state_lineage_binding.py'
+      - '.github/workflows/wp1109-successor-lineage-falsifier.yml'
+      - 'workpackages/deltas/F2-WP-1109/**'
+  pull_request:
+    paths:
+      - 'tests/falsifiers/test_wp1109_successor_state_lineage_binding.py'
+      - '.github/workflows/wp1109-successor-lineage-falsifier.yml'
+      - 'workpackages/deltas/F2-WP-1109/**'
+      - 'src/frankenstein2/host_transition.py'
+
+permissions:
+  contents: read
+
+jobs:
+  reproduce-lineage-binding-gap:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Compile falsifier against current component
+        run: python -m py_compile src/frankenstein2/host_transition.py tests/falsifiers/test_wp1109_successor_state_lineage_binding.py
+      - name: Reproduce missing typed successor-state binding
+        env:
+          PYTHONPATH: src
+        run: python tests/falsifiers/test_wp1109_successor_state_lineage_binding.py
