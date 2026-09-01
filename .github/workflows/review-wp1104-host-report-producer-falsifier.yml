@@ -1,0 +1,27 @@
+name: REVIEW WP1104 host-report producer-lineage falsifier
+
+on:
+  pull_request:
+    paths:
+      - 'tests/test_wp1104_host_report_producer_lineage_falsifier.py'
+      - 'src/frankenstein2/generic_agent_route.py'
+      - 'src/frankenstein2/host_adapter_abi.py'
+      - '.github/workflows/review-wp1104-host-report-producer-falsifier.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  reproduce:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Reproduce direct-constructor bypass
+        env:
+          PYTHONPATH: src
+        run: python -m unittest -v tests.test_wp1104_host_report_producer_lineage_falsifier
