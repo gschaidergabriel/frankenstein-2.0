@@ -1,0 +1,52 @@
+{
+  "schema": "FRANKENSTEIN2_CANDIDATE_FALSIFIER/v1",
+  "workpackage_id": "F2-WP-900",
+  "generation": 8,
+  "claim_id": "F2-WP-900-G8-GPT56SOL-INDEPENDENT-REENTRY-EVIDENCE-20260902",
+  "worker_lane": "CANDIDATE_FALSIFIER",
+  "created_date": "2026-09-02",
+  "status": "OPEN_VALID_FALSIFIER",
+  "title": "Trace completeness is still caller-asserted rather than independently event-source-bound",
+  "current_subject": {
+    "source_path": "src/frankenstein2/gwt_reentry_observation_window.py",
+    "test_path": "tests/test_wp900_g8_reentry_observation_window.py",
+    "observed_source_commit_lower_bound": "1a0becea745c3af56543dc281d618b4a849cc7ba",
+    "active_pointer_blob_sha256_not_claimed": "b51a646aaa6c6f90bb4d4464767cf947834803ff"
+  },
+  "falsifier": "G8 v2 correctly refuses NO_REENTRY when its supplied trace metadata reports gaps/drops/overflow or an unfinalized interval, but close_with_trace still accepts source_sequence_*, captured_sequence_*, gap/drop/overflow counters, raw_trace_sha256, filter identity, clock identity and finalized directly from its caller. The recorder then factory-seals those caller assertions itself. Likewise observe_reentry still accepts a caller-selected reentry_ref/reentry_sha256. A condition-aware harness can therefore omit a real reentry callback and simultaneously provide apparently complete zero-loss counters, causing a false NO_REENTRY_OBSERVED_IN_COMPLETE_TRACE without an independently authoritative event-source range proving the absence. The new factory seal protects post-construction integrity, not origin independence.",
+  "executable_counterexample_shape": {
+    "setup": "Use the same valid ReentryObservationIdentity and complete-window timing as the current negative test helper.",
+    "intervention": "A condition-aware caller receives or knows that a matching runtime reentry occurred but does not call observe_reentry; it calls close_with_trace with source_sequence_start==captured_sequence_start, source_sequence_end==captured_sequence_end, zero gaps/drops/overflow, finalized=true and an arbitrary syntactically valid raw_trace_sha256.",
+    "current_expected_behavior": "Receipt can classify NO_REENTRY_OBSERVED_IN_COMPLETE_TRACE because no REENTRY event is present and caller-supplied TraceCompletenessEvidence.complete is true.",
+    "required_behavior": "UNKNOWN or rejection unless the complete source interval and the presence/absence of matching reentry are derived from an independently factory-validated runtime event-source snapshot/receipt rather than caller booleans/counters/callback omission."
+  },
+  "evidence": [
+    "Current tests construct the negative arm by never calling observe_reentry and then directly supplying all completeness counters through close_with_trace.",
+    "Current source constructs TraceCompletenessEvidence inside close_with_trace from those caller-provided values and seals it with the recorder-local factory token.",
+    "The prior caller-injected-reentry falsifier already established that condition-blind parameter names do not prove condition-blind event origin.",
+    "Existing gwt_runtime_witness.py provides factory-validated runtime witness semantics that may be reusable for positive event origin, but a trustworthy negative still needs an independently complete event-source range or equivalent closed-source attestation."
+  ],
+  "required_closure": [
+    "Do not accept arbitrary observe_reentry(reentry_ref, reentry_sha256) as independent positive evidence; bind a validated runtime-origin object or independently captured raw event record.",
+    "Do not mint NO_REENTRY_OBSERVED merely from caller-provided sequence/gap/drop/overflow/finalized fields. Consume an independently factory-validated complete event-source window/range whose raw bytes/digest and sequence interval are bound to trace_source_sha256/filter/clock identities.",
+    "If no independent complete-range authority exists yet, fail closed: no reentry callback plus caller metadata must remain UNKNOWN, not negative evidence.",
+    "Add a regression that simulates omission of an actually available positive event while supplying perfect caller counters and proves it cannot false-green as NO_REENTRY.",
+    "Keep G8 mechanism scoped. This falsifier does not authorize semantic GWT/J-Space/runtime-wide/effect/training/completion/whole-system credit."
+  ],
+  "failure_class": "PRODUCT_NEGATIVE_CANDIDATE_PENDING_EXACT_TEST",
+  "mutation_required_if_reproduced": true,
+  "credit": {
+    "repository_ci_credit": 0,
+    "target_environment_component_runtime_credit": 0,
+    "runtime_credit": 0,
+    "gwt_runtime_credit": 0,
+    "semantic_gwt_runtime_credit": 0,
+    "jspace_runtime_credit": 0,
+    "physical_grid10_credit": 0,
+    "effect_credit": 0,
+    "training_credit": 0,
+    "completion_credit": 0,
+    "whole_system_acceptance": false
+  },
+  "next_exact_action": "Active G8 mutation owner should absorb this falsifier, replace caller-certified completeness/event callbacks with independently source-bound range consumption or downgrade unproven absence to UNKNOWN, add the omission counterexample regression, then rerun exact deterministic release CI before any repository reconciliation or target dispatch."
+}
