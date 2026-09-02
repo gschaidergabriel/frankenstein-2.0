@@ -30,8 +30,12 @@ def test_behavior_capable_state_exposes_only_canonical_semantic_json():
         wire=mediator.to_wire(),
     )
 
-    public_dataclass_fields = {item.name for item in fields(state) if not item.name.startswith("_")}
+    all_dataclass_fields = {item.name for item in fields(state)}
+    public_dataclass_fields = {name for name in all_dataclass_fields if not name.startswith("_")}
+    assert all_dataclass_fields == {"canonical_semantic_json", "_factory_seal"}
     assert public_dataclass_fields == {"canonical_semantic_json"}
+    assert not hasattr(state, "_factory_sha256")
+    assert not hasattr(state, "sha256")
     assert set(state.as_dict()) == {"schema", "canonical_semantic_json"}
     assert FORBIDDEN_PRE_CHILD_STATE_FIELDS.isdisjoint(public_dataclass_fields)
     for name in FORBIDDEN_PRE_CHILD_STATE_FIELDS:
@@ -48,6 +52,10 @@ def test_abba_position_is_not_recoverable_from_nonsemantic_state_metadata():
                 wire=mediator.to_wire(),
             )
         )
+
+    assert len({id(state._factory_seal) for state in states}) == 1
+    assert all(not hasattr(state, "_factory_sha256") for state in states)
+    assert all(not hasattr(state, "sha256") for state in states)
 
     nonsemantic_views = []
     for state in states:

@@ -406,7 +406,6 @@ class MediatedSemanticState:
 
     canonical_semantic_json: str
     _factory_seal: object | None = field(default=None, init=False, repr=False, compare=False)
-    _factory_sha256: str | None = field(default=None, init=False, repr=False, compare=False)
 
     schema = MEDIATED_SEMANTIC_STATE_SCHEMA
     repository_ci_credit = 0
@@ -426,9 +425,6 @@ class MediatedSemanticState:
             "schema": self.schema,
             "canonical_semantic_json": self.canonical_semantic_json,
         }
-
-    def sha256(self) -> str:
-        return _digest(self.as_dict())
 
 
 def admit_mediated_semantic_state(
@@ -452,11 +448,13 @@ def admit_mediated_semantic_state(
     if canonical != mediator.canonical_semantic_json:
         raise G10MediatorError("trial wire semantic state differs from source mediator")
     state = MediatedSemanticState(canonical_semantic_json=canonical)
-    return _seal(state, _STATE_FACTORY)
+    object.__setattr__(state, "_factory_seal", _STATE_FACTORY)
+    return state
 
 
 def validate_mediated_semantic_state(value: MediatedSemanticState) -> None:
-    _validate_seal(value, MediatedSemanticState, _STATE_FACTORY, "mediated semantic state")
+    if type(value) is not MediatedSemanticState or value._factory_seal is not _STATE_FACTORY:
+        raise G10MediatorError("mediated semantic state lacks valid factory origin")
 
 
 @dataclass(frozen=True, slots=True, kw_only=True)
@@ -554,7 +552,7 @@ def execute_mediated_reentry_only(
         raise G10MediatorError("invalid semantic output")
     decision = _text("decision", semantic_output["decision"])
     receipt = MediatedExecutionReceipt(
-        state_sha256=semantic_state.sha256(),
+        state_sha256=_digest(semantic_state.as_dict()),
         executor_plan_sha256=executor_plan.sha256(),
         executor_input_sha256=hashlib.sha256(raw).hexdigest(),
         worker_source_sha256=hashlib.sha256(_WORKER_SOURCE.encode("utf-8")).hexdigest(),
@@ -726,7 +724,7 @@ def bind_independent_semantic_mediator_crossover(
             raise G10MediatorError("mediated state semantic bytes differ from source authority")
         if hashlib.sha256(state.canonical_semantic_json.encode("utf-8")).hexdigest() != mediator.semantic_sha256:
             raise G10MediatorError("mediated state semantic digest differs from source authority")
-        if receipt.state_sha256 != state.sha256():
+        if receipt.state_sha256 != _digest(state.as_dict()):
             raise G10MediatorError("execution receipt does not bind corresponding mediated state")
         if receipt.executor_plan_sha256 != execution_receipts[0].executor_plan_sha256:
             raise G10MediatorError("executor plan changed across crossover")
