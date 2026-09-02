@@ -1,0 +1,63 @@
+{
+  "schema": "FRANKENSTEIN2_RESEARCH_INBOX/v1",
+  "status": "CANDIDATE_FALSIFIER",
+  "work_class": "CANDIDATE_FALSIFIER",
+  "mutation_authority": false,
+  "trigger": "4",
+  "producer": "GPT-5.6-Sol-TRIGGER4-REVIEW",
+  "date": "2026-09-02",
+  "title": "WP900 G8 v2 trace completeness does not authenticate re-entry event origin",
+  "target": "F2-WP-900 generation 8 condition-blind trace-complete reentry observation",
+  "active_claim_id_observed": "F2-WP-900-G8-GPT56SOL-INDEPENDENT-REENTRY-EVIDENCE-20260902",
+  "observed_main_head_before_packet": "3907e3830880a02788b29086c0edf5858f88492b",
+  "observed_g8_source_commit": "1a0becea745c3af56543dc281d618b4a849cc7ba",
+  "evidence_class": "POST_TRACE_COMPLETENESS_EVENT_ORIGIN_AUDIT",
+  "evidence_refs": [
+    "src/frankenstein2/gwt_reentry_observation_window.py@1a0becea745c3af56543dc281d618b4a849cc7ba",
+    "tests/test_wp900_g8_reentry_observation_window.py@1a0becea745c3af56543dc281d618b4a849cc7ba",
+    "workpackages/research_inbox/CANDIDATE_FALSIFIER_WP900_G8_CALLER_INJECTED_REENTRY_EVENT_ORIGIN_2026-09-02.json",
+    "baa2a090e82cdae3e9390478bb3dc0027234bbed",
+    "1a0becea745c3af56543dc281d618b4a849cc7ba"
+  ],
+  "finding": {
+    "trace_improvement": "G8 v2 correctly strengthens negative absence: no-reentry is admitted only when the declared trace window is finalized, covers the source sequence without gaps/drops/overflow, and binds filter/clock identities. Incomplete traces become UNKNOWN.",
+    "remaining_positive_origin_gap": "ReentryObservationWindowRecorder.observe_reentry still accepts caller-supplied reentry_ref and reentry_sha256 and appends a REENTRY event directly. It does not consume a factory-origin runtime event or prove membership in the bound trace source.",
+    "remaining_trace_origin_gap": "close_with_trace accepts source/captured sequence bounds, gap/drop/overflow counters, raw_trace_sha256, filter identity, clock identity and finalized as caller arguments, then factory-seals those values locally. The current binder does not receive the canonical raw trace bytes, recompute raw_trace_sha256 from those bytes, derive the counters from the trace, or derive REENTRY membership from that same trace.",
+    "causal_consequence": "A condition-aware caller can still manufacture a self-consistent repository candidate by invoking observe_reentry only for the intervention arm and supplying syntactically valid zero-loss trace metadata for both arms. Trace completeness hardens absence accounting but does not by itself make positive event origin independent of the orchestrator."
+  },
+  "counterexample": {
+    "setup": "Use two otherwise matched identities and observation windows. Supply equal valid-looking trace-source/filter/clock identities and zero gap/drop/overflow counts. Without an independently observed downstream re-entry event, call observe_reentry with an arbitrary valid-looking ref/digest only in the intervention arm, then finalize both traces with self-consistent caller-supplied sequence metadata.",
+    "current_false_green_shape": "The intervention receipt can become REENTRY_OBSERVED, the control receipt NO_REENTRY_OBSERVED_IN_COMPLETE_TRACE, and bind_matched_reentry_mechanism can produce MECHANISM_REENTRY_DIFFERENCE_CANDIDATE even though the distinguishing event was injected by the condition-aware caller.",
+    "failure_class_if_promoted": "EVIDENCE_INVALID",
+    "product_negative": false
+  },
+  "required_closure": {
+    "architecture_rule": "Do not add a second truth/event authority. Reuse an existing typed/runtime event source or a single canonical raw trace as the observation authority.",
+    "minimum_requirements": [
+      "The re-entry observation must consume a source-authenticated event object or canonical raw trace entry; a public caller-supplied ref/digest pair alone must be insufficient.",
+      "raw_trace_sha256 must be recomputed from the exact persisted trace bytes used for classification, not accepted as an unattached digest assertion.",
+      "sequence bounds, gap/drop/overflow status and REENTRY membership should be derived or verified from that same bound trace/source receipt rather than independently supplied as mutually trusting fields.",
+      "event/source identity must bind exact source, boot, execution context, task, runtime/process, opportunity/window and clock/filter identities.",
+      "A re-entry from another task/runtime/window/source must fail closed even if its digest is syntactically valid.",
+      "A condition-aware direct call without authenticated source membership must fail closed or remain UNKNOWN.",
+      "An unexpected genuine control-side re-entry from the authenticated source must remain REENTRY_OBSERVED and prevent false absence.",
+      "Persist the full canonical fresh trace/event payloads plus hashes on the eventual owner-VPS run; do not repeat the historical G4 digest-only availability defect."
+    ]
+  },
+  "scope_fence": "This packet does not invalidate accepted G4/G7 bounded runtime evidence and does not reject G8 v2 as a useful repository recorder. It blocks calling the current v2 result independent/non-circular mechanism evidence for promotion until event-source/raw-trace origin is authenticated. Repository CI may prove implementation behavior only; target runtime, GWT, semantic GWT/J-Space, physical GRID10, effects, training, completion and whole-system credits remain zero.",
+  "credits": {
+    "repository_ci_credit_from_this_packet": 0,
+    "runtime_execution_observed": false,
+    "target_environment_component_runtime_credit": 0,
+    "gwt_runtime_credit": 0,
+    "semantic_gwt_runtime_credit": 0,
+    "jspace_runtime_credit": 0,
+    "physical_grid10_credit": 0,
+    "effect_credit": 0,
+    "training_credit": 0,
+    "completion_credit": 0,
+    "whole_system_acceptance": false
+  },
+  "anti_duplication": "REVIEW_ONLY/CANDIDATE_FALSIFIER. No WP900 owned source, tests, workflow, active pointer, receipt, reconciliation or generation is mutated by this packet.",
+  "next_exact_action": "Active WP900 G8 owner should either bind v2 to an existing source-authenticated event/trace path and add the caller-injection/raw-trace hard negatives, or keep G8 explicitly below independent re-entry evidence. Do not dispatch a promotion-bearing G8 VPS subject while event origin remains caller-asserted."
+}
