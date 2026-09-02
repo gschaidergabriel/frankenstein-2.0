@@ -2,6 +2,8 @@
 
 The same observer ABI is used for every arm. It never accepts an arm label,
 broadcast-present flag, expected re-entry boolean, or expected semantic result.
+Positive re-entry can enter only through an existing factory-sealed GWT runtime
+witness whose source/boot/runtime/process/reentry/binding/recipient identities match.
 Negative absence is admitted only when a bounded raw event trace proves observer
 liveness, no loss/overflow/gaps, fixed filter/clock identities, and finalization
 past the window end. Incomplete evidence is UNKNOWN.
@@ -16,6 +18,12 @@ import hashlib
 import json
 import re
 from typing import Any, Callable, Iterable
+
+from frankenstein2.gwt_runtime_witness import (
+    GwtRuntimeWitnessError,
+    GwtRuntimeWitnessReceipt,
+    validate_gwt_runtime_witness_receipt,
+)
 
 REENTRY_OBSERVATION_WINDOW_SCHEMA = "FRANKENSTEIN2_GWT_REENTRY_OBSERVATION_WINDOW/v2"
 TRACE_COMPLETENESS_SCHEMA = "FRANKENSTEIN2_GWT_TRACE_COMPLETENESS/v1"
@@ -101,6 +109,9 @@ class ReentryObservationIdentity:
     pre_state_sha256: str
     task_executor_sha256: str
     observation_protocol_sha256: str
+    expected_reentry_key_sha256: str
+    expected_reentry_binding_sha256: str
+    expected_recipient_cell_id: str
     trace_source_sha256: str
     filter_schema_sha256: str
     clock_domain: str
@@ -119,6 +130,8 @@ class ReentryObservationIdentity:
             "pre_state_sha256",
             "task_executor_sha256",
             "observation_protocol_sha256",
+            "expected_reentry_key_sha256",
+            "expected_reentry_binding_sha256",
             "trace_source_sha256",
             "filter_schema_sha256",
             "clock_mapping_sha256",
@@ -126,6 +139,7 @@ class ReentryObservationIdentity:
             object.__setattr__(self, name, _sha256(name, getattr(self, name)))
         for name in (
             "task_id",
+            "expected_recipient_cell_id",
             "clock_domain",
             "observer_identity",
             "runtime_instance_id",
@@ -144,6 +158,9 @@ class ReentryObservationIdentity:
             "pre_state_sha256": self.pre_state_sha256,
             "task_executor_sha256": self.task_executor_sha256,
             "observation_protocol_sha256": self.observation_protocol_sha256,
+            "expected_reentry_key_sha256": self.expected_reentry_key_sha256,
+            "expected_reentry_binding_sha256": self.expected_reentry_binding_sha256,
+            "expected_recipient_cell_id": self.expected_recipient_cell_id,
             "trace_source_sha256": self.trace_source_sha256,
             "filter_schema_sha256": self.filter_schema_sha256,
             "clock_domain": self.clock_domain,
@@ -440,8 +457,34 @@ class ReentryObservationWindowRecorder:
             raise ReentryObservationError("runtime clock did not advance monotonically")
         self._events.append(event)
 
-    def observe_reentry(self, *, reentry_ref: str, reentry_sha256: str) -> None:
-        self._append("REENTRY", reentry_ref, reentry_sha256)
+    def observe_runtime_witness(self, runtime_witness: GwtRuntimeWitnessReceipt) -> None:
+        """Consume one existing recorder-origin GWT witness; arbitrary refs/digests are not accepted."""
+        if type(runtime_witness) is not GwtRuntimeWitnessReceipt:
+            raise ReentryObservationError("runtime_witness must be exact GwtRuntimeWitnessReceipt")
+        try:
+            validate_gwt_runtime_witness_receipt(runtime_witness)
+        except GwtRuntimeWitnessError as exc:
+            raise ReentryObservationError(f"invalid runtime witness origin: {exc}") from exc
+        witness_identity = runtime_witness.identity
+        if witness_identity.exact_source_sha256 != self._identity.exact_source_sha256:
+            raise ReentryObservationError("runtime witness exact source mismatch")
+        if witness_identity.boot_id_sha256 != self._identity.boot_id_sha256:
+            raise ReentryObservationError("runtime witness boot mismatch")
+        if witness_identity.runtime_instance_id != self._identity.runtime_instance_id:
+            raise ReentryObservationError("runtime witness runtime instance mismatch")
+        if witness_identity.process_identity != self._identity.process_identity:
+            raise ReentryObservationError("runtime witness process mismatch")
+        if runtime_witness.canonical_reentry_key != self._identity.expected_reentry_key_sha256:
+            raise ReentryObservationError("runtime witness reentry key/task filter mismatch")
+        if runtime_witness.binding_sha256 != self._identity.expected_reentry_binding_sha256:
+            raise ReentryObservationError("runtime witness opportunity binding mismatch")
+        if runtime_witness.recipient_cell_id != self._identity.expected_recipient_cell_id:
+            raise ReentryObservationError("runtime witness recipient/downstream mismatch")
+        self._append(
+            "REENTRY",
+            f"gwt-runtime-witness:{runtime_witness.canonical_reentry_key}",
+            runtime_witness.sha256(),
+        )
 
     def close_with_trace(
         self,
