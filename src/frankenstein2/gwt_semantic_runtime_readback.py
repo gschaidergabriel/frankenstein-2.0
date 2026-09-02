@@ -1,7 +1,7 @@
 """Fail-closed semantic readback above accepted WP900 G4/G5 evidence.
 
 F2-WP-900 generation 6 comparator plus the generation 7 shared-outcome
-integration used to resolve the executed G6 schema-comparability blocker.
+integration and generation 8 independent-observation binder.
 
 G4 deliberately proves only a matched intervention/control causal effect at a
 contract/hash boundary. Executed REVIEW_ONLY counterevidence in PR #884 shows
@@ -29,6 +29,16 @@ candidate into one shared semantic outcome schema. A caller cannot obtain this
 projection merely by relabeling arbitrary raw bytes or forging source/boot/
 execution-context identities.
 
+G8 closes the remaining circularity in G7. It does not accept a caller-selected
+arm condition as semantic evidence. Instead it accepts only the exact
+factory-sealed G4 runtime-witness and no-broadcast-control observation objects
+whose hashes are already bound by the accepted G4 causal candidate. The positive
+predicate is derived from the validated DELIVERY -> UPTAKE -> REENTRY event
+sequence; the negative predicate is derived from the validated no-broadcast
+control readback. Exact source, boot, execution context, probe, broadcast,
+recipient, input and observation hashes are re-bound before the existing
+semantic comparator is invoked.
+
 All objects remain evidence candidates. They never mint semantic GWT/J-Space,
 target-runtime, effect, training, completion or whole-system credit by
 construction. Exact admitted execution and separate reconciliation remain
@@ -43,8 +53,15 @@ import re
 from typing import Any, Iterable
 
 from frankenstein2.gwt_causal_runtime_readback import (
+    ControlNoBroadcastReadback,
     GwtCausalRuntimeReadbackCandidate,
     validate_causal_runtime_readback,
+    validate_control_no_broadcast_readback,
+)
+from frankenstein2.gwt_runtime_witness import (
+    GwtRuntimeWitnessReceipt,
+    LIVE_GWT_PATH_OBSERVED,
+    validate_gwt_runtime_witness_receipt,
 )
 
 SEMANTIC_ARM_READBACK_SCHEMA = "FRANKENSTEIN2_GWT_SEMANTIC_ARM_READBACK/v1"
@@ -685,6 +702,182 @@ def bind_semantic_causal_readback(
     return value
 
 
+def _derived_reentry_semantic_arm(
+    *,
+    contract_candidate: GwtCausalRuntimeReadbackCandidate,
+    condition: str,
+    task_id: str,
+    observed: bool,
+    producer_identity: str,
+    runtime_instance_id: str,
+    observed_monotonic_ns: int,
+    observation_ref: str,
+    provenance_refs: tuple[str, ...],
+) -> SemanticArmReadback:
+    """Create one semantic arm only after G8 independently validates observation evidence."""
+
+    if condition == "INTERVENTION_BROADCAST":
+        downstream_ref = contract_candidate.intervention_downstream_ref
+        downstream_sha256 = contract_candidate.intervention_downstream_sha256
+    elif condition == "CONTROL_NO_BROADCAST":
+        downstream_ref = contract_candidate.control_downstream_ref
+        downstream_sha256 = contract_candidate.control_downstream_sha256
+    else:
+        raise GwtSemanticRuntimeReadbackError("independent observation condition is invalid")
+
+    canonical = _canonical_json({
+        "predicate": MATCHED_TASK_OUTCOME_PREDICATE,
+        "observed": observed,
+    })
+    arm = SemanticArmReadback(
+        condition=condition,
+        task_id=task_id,
+        task_schema=WP900_MATCHED_TASK_SCHEMA,
+        outcome_schema=MATCHED_TASK_OUTCOME_SCHEMA,
+        downstream_ref=downstream_ref,
+        downstream_sha256=downstream_sha256,
+        semantic_canonical_json=canonical,
+        semantic_sha256=hashlib.sha256(canonical.encode("utf-8")).hexdigest(),
+        exact_source_sha256=contract_candidate.exact_source_sha256,
+        boot_id_sha256=contract_candidate.boot_id_sha256,
+        execution_context_sha256=contract_candidate.execution_context_sha256,
+        producer_identity=producer_identity,
+        runtime_instance_id=runtime_instance_id,
+        observed_monotonic_ns=observed_monotonic_ns,
+        provenance_refs=_refs((*provenance_refs, observation_ref)),
+    )
+    object.__setattr__(arm, "_factory_seal", _ARM_FACTORY)
+    object.__setattr__(arm, "_factory_payload_sha256", _digest_json(arm.as_dict()))
+    return arm
+
+
+def bind_independent_reentry_evidence(
+    *,
+    contract_candidate: GwtCausalRuntimeReadbackCandidate,
+    intervention_runtime_witness: GwtRuntimeWitnessReceipt,
+    control_readback: ControlNoBroadcastReadback,
+    task_id: str,
+    provenance_refs: Iterable[str],
+) -> SemanticCausalReadbackCandidate:
+    """Bind non-circular G8 re-entry semantics from G4-bound observation objects.
+
+    The caller supplies no semantic arm labels and no re-entry booleans. The
+    positive value is derived from the recorder-origin runtime witness only
+    after its exact hash and DELIVERY -> UPTAKE -> REENTRY lineage are checked.
+    The negative value is derived from the factory-origin no-broadcast control
+    readback only after its exact G4-bound hash and context identities are
+    checked. The result remains a zero-credit semantic candidate.
+    """
+
+    if type(contract_candidate) is not GwtCausalRuntimeReadbackCandidate:
+        raise GwtSemanticRuntimeReadbackError("contract_candidate must be exact GwtCausalRuntimeReadbackCandidate")
+    try:
+        validate_causal_runtime_readback(contract_candidate)
+    except ValueError as exc:
+        raise GwtSemanticRuntimeReadbackError(f"invalid G4 contract candidate: {exc}") from exc
+
+    if type(intervention_runtime_witness) is not GwtRuntimeWitnessReceipt:
+        raise GwtSemanticRuntimeReadbackError("intervention evidence must be exact GwtRuntimeWitnessReceipt")
+    try:
+        validate_gwt_runtime_witness_receipt(intervention_runtime_witness)
+    except ValueError as exc:
+        raise GwtSemanticRuntimeReadbackError(f"invalid intervention runtime witness: {exc}") from exc
+
+    if type(control_readback) is not ControlNoBroadcastReadback:
+        raise GwtSemanticRuntimeReadbackError("control evidence must be exact ControlNoBroadcastReadback")
+    try:
+        validate_control_no_broadcast_readback(control_readback)
+    except ValueError as exc:
+        raise GwtSemanticRuntimeReadbackError(f"invalid control readback: {exc}") from exc
+
+    witness_sha256 = intervention_runtime_witness.sha256()
+    control_sha256 = control_readback.sha256()
+    if witness_sha256 != contract_candidate.runtime_witness_sha256:
+        raise GwtSemanticRuntimeReadbackError("intervention runtime witness does not bind G4 runtime_witness_sha256")
+    if control_sha256 != contract_candidate.control_readback_sha256:
+        raise GwtSemanticRuntimeReadbackError("control readback does not bind G4 control_readback_sha256")
+
+    witness_identity = intervention_runtime_witness.identity
+    if witness_identity.exact_source_sha256 != contract_candidate.exact_source_sha256:
+        raise GwtSemanticRuntimeReadbackError("intervention exact-source identity mismatch")
+    if witness_identity.boot_id_sha256 != contract_candidate.boot_id_sha256:
+        raise GwtSemanticRuntimeReadbackError("intervention boot identity mismatch")
+    if intervention_runtime_witness.broadcast_id != contract_candidate.broadcast_id:
+        raise GwtSemanticRuntimeReadbackError("intervention broadcast id does not bind G4 candidate")
+    if intervention_runtime_witness.broadcast_sha256 != contract_candidate.broadcast_sha256:
+        raise GwtSemanticRuntimeReadbackError("intervention broadcast SHA does not bind G4 candidate")
+    if intervention_runtime_witness.recipient_cell_id != contract_candidate.recipient_cell_id:
+        raise GwtSemanticRuntimeReadbackError("intervention recipient does not bind G4 candidate")
+    if intervention_runtime_witness.uptake_receipt_sha256 != contract_candidate.uptake_receipt_sha256:
+        raise GwtSemanticRuntimeReadbackError("intervention uptake receipt does not bind G4 candidate")
+
+    if control_readback.exact_source_sha256 != contract_candidate.exact_source_sha256:
+        raise GwtSemanticRuntimeReadbackError("control exact-source identity mismatch")
+    if control_readback.boot_id_sha256 != contract_candidate.boot_id_sha256:
+        raise GwtSemanticRuntimeReadbackError("control boot identity mismatch")
+    if control_readback.execution_context_sha256 != contract_candidate.execution_context_sha256:
+        raise GwtSemanticRuntimeReadbackError("control execution-context identity mismatch")
+    if control_readback.probe_id != contract_candidate.probe_id:
+        raise GwtSemanticRuntimeReadbackError("control probe id does not bind G4 candidate")
+    if control_readback.nonbroadcast_input_sha256 != contract_candidate.nonbroadcast_input_sha256:
+        raise GwtSemanticRuntimeReadbackError("control input does not bind G4 candidate")
+    if control_readback.downstream_ref != contract_candidate.control_downstream_ref:
+        raise GwtSemanticRuntimeReadbackError("control downstream ref does not bind G4 candidate")
+    if control_readback.downstream_sha256 != contract_candidate.control_downstream_sha256:
+        raise GwtSemanticRuntimeReadbackError("control downstream SHA does not bind G4 candidate")
+
+    if intervention_runtime_witness.classification != LIVE_GWT_PATH_OBSERVED:
+        raise GwtSemanticRuntimeReadbackError("intervention runtime witness did not observe live GWT path")
+    delivery, uptake, reentry = intervention_runtime_witness.events
+    if tuple(event.phase for event in intervention_runtime_witness.events) != ("DELIVERY", "UPTAKE", "REENTRY"):
+        raise GwtSemanticRuntimeReadbackError("intervention event order is not DELIVERY -> UPTAKE -> REENTRY")
+    if not (delivery.observed_monotonic_ns < uptake.observed_monotonic_ns < reentry.observed_monotonic_ns):
+        raise GwtSemanticRuntimeReadbackError("intervention event order is not strictly monotonic")
+    if delivery.object_id != intervention_runtime_witness.broadcast_id or delivery.object_sha256 != intervention_runtime_witness.broadcast_sha256:
+        raise GwtSemanticRuntimeReadbackError("delivery event does not bind intervention broadcast")
+    if uptake.object_id != intervention_runtime_witness.uptake_receipt_id or uptake.object_sha256 != intervention_runtime_witness.uptake_receipt_sha256:
+        raise GwtSemanticRuntimeReadbackError("uptake event does not bind intervention uptake receipt")
+    if reentry.object_id != intervention_runtime_witness.canonical_reentry_key or reentry.object_sha256 != intervention_runtime_witness.reentry_witness_sha256:
+        raise GwtSemanticRuntimeReadbackError("re-entry event does not bind intervention re-entry witness")
+    if control_readback.reentry_observed is not False:
+        raise GwtSemanticRuntimeReadbackError("control observation did not preserve no-reentry result")
+
+    task_id = _text("task_id", task_id)
+    base_refs = _refs(provenance_refs)
+    witness_ref = f"g4-runtime-witness-sha256:{witness_sha256}"
+    control_ref = f"g4-control-readback-sha256:{control_sha256}"
+
+    intervention_arm = _derived_reentry_semantic_arm(
+        contract_candidate=contract_candidate,
+        condition="INTERVENTION_BROADCAST",
+        task_id=task_id,
+        observed=True,
+        producer_identity=witness_identity.process_identity,
+        runtime_instance_id=witness_identity.runtime_instance_id,
+        observed_monotonic_ns=reentry.observed_monotonic_ns,
+        observation_ref=witness_ref,
+        provenance_refs=base_refs,
+    )
+    control_arm = _derived_reentry_semantic_arm(
+        contract_candidate=contract_candidate,
+        condition="CONTROL_NO_BROADCAST",
+        task_id=task_id,
+        observed=False,
+        producer_identity=control_readback.process_identity,
+        runtime_instance_id=control_readback.runtime_instance_id,
+        observed_monotonic_ns=control_readback.observed_monotonic_ns,
+        observation_ref=control_ref,
+        provenance_refs=base_refs,
+    )
+
+    return bind_semantic_causal_readback(
+        contract_candidate=contract_candidate,
+        intervention=intervention_arm,
+        control=control_arm,
+        provenance_refs=_refs((*base_refs, witness_ref, control_ref)),
+    )
+
+
 def validate_semantic_causal_readback(value: SemanticCausalReadbackCandidate) -> None:
     if type(value) is not SemanticCausalReadbackCandidate or value._factory_seal is not _BOUND_FACTORY:
         raise GwtSemanticRuntimeReadbackError("semantic causal candidate lacks binder-factory origin")
@@ -711,6 +904,7 @@ __all__ = [
     "WP900_CONTROL_RAW_OUTCOME_SCHEMA",
     "WP900_INTERVENTION_RAW_OUTCOME_SCHEMA",
     "WP900_MATCHED_TASK_SCHEMA",
+    "bind_independent_reentry_evidence",
     "bind_semantic_causal_readback",
     "validate_matched_task_outcome_readback",
     "validate_semantic_arm_readback",
