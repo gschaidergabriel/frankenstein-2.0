@@ -1,9 +1,12 @@
-"""Condition-blind bounded re-entry observation for F2-WP-900 generation 8.
+"""Condition-blind, completeness-bound re-entry observation for F2-WP-900 G8.
 
 This module closes one mechanism-evidence defect only: both experimental arms use the
 same observer ABI, and the observer never receives an arm label, expected boolean,
 broadcast-present flag, or expected result. A completed observation opportunity with
-no matching re-entry is distinguishable from an aborted/incomplete window.
+no matching re-entry is admissible as negative evidence only when a factory-sealed
+trace-completeness witness proves that the observer covered the whole admitted window
+without drops, overflow, sequence gaps, filter drift, clock drift, late start, early
+stop, or premature finalization.
 
 Objects produced here are evidence candidates. They mint no runtime, semantic GWT,
 J-Space, effect, training, completion, or whole-system credit by construction.
@@ -16,7 +19,8 @@ import json
 import re
 from typing import Any, Callable, Iterable
 
-REENTRY_OBSERVATION_WINDOW_SCHEMA = "FRANKENSTEIN2_GWT_REENTRY_OBSERVATION_WINDOW/v1"
+REENTRY_OBSERVATION_WINDOW_SCHEMA = "FRANKENSTEIN2_GWT_REENTRY_OBSERVATION_WINDOW/v2"
+TRACE_COMPLETENESS_SCHEMA = "FRANKENSTEIN2_GWT_REENTRY_TRACE_COMPLETENESS/v1"
 MATCHED_REENTRY_MECHANISM_SCHEMA = "FRANKENSTEIN2_GWT_MATCHED_REENTRY_MECHANISM/v1"
 
 REENTRY_OBSERVED = "REENTRY_OBSERVED"
@@ -30,6 +34,7 @@ MECHANISM_COMPARISON_UNKNOWN = "MECHANISM_REENTRY_COMPARISON_UNKNOWN"
 _SHA256_RE = re.compile(r"^[0-9a-f]{64}$")
 _MAX_TEXT = 512
 _RECEIPT_FACTORY = object()
+_TRACE_FACTORY = object()
 _PAIR_FACTORY = object()
 
 
@@ -57,6 +62,12 @@ def _sha256(name: str, value: Any) -> str:
 def _positive_int(name: str, value: Any) -> int:
     if type(value) is not int or value < 1:
         raise ReentryObservationError(f"{name} must be a positive integer")
+    return value
+
+
+def _nonnegative_int(name: str, value: Any) -> int:
+    if type(value) is not int or value < 0:
+        raise ReentryObservationError(f"{name} must be a non-negative integer")
     return value
 
 
@@ -92,6 +103,8 @@ class ReentryObservationIdentity:
     pre_state_sha256: str
     task_executor_sha256: str
     observation_protocol_sha256: str
+    trace_filter_sha256: str
+    clock_domain_sha256: str
     observer_identity: str
     runtime_instance_id: str
     process_identity: str
@@ -106,6 +119,8 @@ class ReentryObservationIdentity:
             "pre_state_sha256",
             "task_executor_sha256",
             "observation_protocol_sha256",
+            "trace_filter_sha256",
+            "clock_domain_sha256",
         ):
             object.__setattr__(self, name, _sha256(name, getattr(self, name)))
         for name in ("task_id", "observer_identity", "runtime_instance_id", "process_identity"):
@@ -122,6 +137,8 @@ class ReentryObservationIdentity:
             "pre_state_sha256": self.pre_state_sha256,
             "task_executor_sha256": self.task_executor_sha256,
             "observation_protocol_sha256": self.observation_protocol_sha256,
+            "trace_filter_sha256": self.trace_filter_sha256,
+            "clock_domain_sha256": self.clock_domain_sha256,
             "observer_identity": self.observer_identity,
         }
 
@@ -143,6 +160,11 @@ class ReentryObservationEvent:
     observed_monotonic_ns: int
     evidence_ref: str
     evidence_sha256: str
+    source_sequence: int | None = None
+    task_id: str | None = None
+    task_input_sha256: str | None = None
+    pre_state_sha256: str | None = None
+    task_executor_sha256: str | None = None
 
     def __post_init__(self) -> None:
         if self.phase not in {"WINDOW_OPEN", "REENTRY", "WINDOW_TERMINAL", "WINDOW_ABORT"}:
@@ -150,6 +172,30 @@ class ReentryObservationEvent:
         _positive_int("observed_monotonic_ns", self.observed_monotonic_ns)
         object.__setattr__(self, "evidence_ref", _text("evidence_ref", self.evidence_ref))
         object.__setattr__(self, "evidence_sha256", _sha256("evidence_sha256", self.evidence_sha256))
+        if self.phase == "REENTRY":
+            if self.source_sequence is None:
+                raise ReentryObservationError("reentry event requires source_sequence")
+            _positive_int("source_sequence", self.source_sequence)
+            if self.task_id is None:
+                raise ReentryObservationError("reentry event requires task_id")
+            object.__setattr__(self, "task_id", _text("task_id", self.task_id))
+            for name in ("task_input_sha256", "pre_state_sha256", "task_executor_sha256"):
+                value = getattr(self, name)
+                if value is None:
+                    raise ReentryObservationError(f"reentry event requires {name}")
+                object.__setattr__(self, name, _sha256(name, value))
+        else:
+            if any(
+                value is not None
+                for value in (
+                    self.source_sequence,
+                    self.task_id,
+                    self.task_input_sha256,
+                    self.pre_state_sha256,
+                    self.task_executor_sha256,
+                )
+            ):
+                raise ReentryObservationError("only REENTRY events may carry source/task binding")
 
     def as_dict(self) -> dict[str, Any]:
         return {
@@ -157,7 +203,166 @@ class ReentryObservationEvent:
             "observed_monotonic_ns": self.observed_monotonic_ns,
             "evidence_ref": self.evidence_ref,
             "evidence_sha256": self.evidence_sha256,
+            "source_sequence": self.source_sequence,
+            "task_id": self.task_id,
+            "task_input_sha256": self.task_input_sha256,
+            "pre_state_sha256": self.pre_state_sha256,
+            "task_executor_sha256": self.task_executor_sha256,
         }
+
+
+@dataclass(frozen=True, slots=True, kw_only=True)
+class TraceCompletenessEvidence:
+    observer_started_monotonic_ns: int
+    observer_live_through_monotonic_ns: int
+    trace_finalized_monotonic_ns: int
+    source_first_sequence: int
+    source_last_sequence: int
+    source_event_count: int
+    captured_first_sequence: int
+    captured_last_sequence: int
+    captured_event_count: int
+    dropped_event_count: int
+    overflow_event_count: int
+    raw_trace_sha256: str
+    filter_sha256: str
+    clock_domain_sha256: str
+    finalization_ref: str
+    provenance_refs: tuple[str, ...]
+    _factory_seal: object | None = field(default=None, repr=False, compare=False, hash=False)
+    _factory_payload_sha256: str | None = field(default=None, repr=False, compare=False, hash=False)
+
+    schema = TRACE_COMPLETENESS_SCHEMA
+
+    def __post_init__(self) -> None:
+        for name in (
+            "observer_started_monotonic_ns",
+            "observer_live_through_monotonic_ns",
+            "trace_finalized_monotonic_ns",
+            "source_first_sequence",
+            "source_last_sequence",
+            "source_event_count",
+            "captured_first_sequence",
+            "captured_last_sequence",
+            "captured_event_count",
+        ):
+            _positive_int(name, getattr(self, name))
+        for name in ("dropped_event_count", "overflow_event_count"):
+            _nonnegative_int(name, getattr(self, name))
+        for name in ("raw_trace_sha256", "filter_sha256", "clock_domain_sha256"):
+            object.__setattr__(self, name, _sha256(name, getattr(self, name)))
+        object.__setattr__(self, "finalization_ref", _text("finalization_ref", self.finalization_ref))
+        object.__setattr__(self, "provenance_refs", _refs(self.provenance_refs))
+
+    @classmethod
+    def record(
+        cls,
+        *,
+        observer_started_monotonic_ns: int,
+        observer_live_through_monotonic_ns: int,
+        trace_finalized_monotonic_ns: int,
+        source_first_sequence: int,
+        source_last_sequence: int,
+        source_event_count: int,
+        captured_first_sequence: int,
+        captured_last_sequence: int,
+        captured_event_count: int,
+        dropped_event_count: int,
+        overflow_event_count: int,
+        raw_trace_sha256: str,
+        filter_sha256: str,
+        clock_domain_sha256: str,
+        finalization_ref: str,
+        provenance_refs: Iterable[str],
+    ) -> "TraceCompletenessEvidence":
+        value = cls(
+            observer_started_monotonic_ns=observer_started_monotonic_ns,
+            observer_live_through_monotonic_ns=observer_live_through_monotonic_ns,
+            trace_finalized_monotonic_ns=trace_finalized_monotonic_ns,
+            source_first_sequence=source_first_sequence,
+            source_last_sequence=source_last_sequence,
+            source_event_count=source_event_count,
+            captured_first_sequence=captured_first_sequence,
+            captured_last_sequence=captured_last_sequence,
+            captured_event_count=captured_event_count,
+            dropped_event_count=dropped_event_count,
+            overflow_event_count=overflow_event_count,
+            raw_trace_sha256=raw_trace_sha256,
+            filter_sha256=filter_sha256,
+            clock_domain_sha256=clock_domain_sha256,
+            finalization_ref=finalization_ref,
+            provenance_refs=tuple(provenance_refs),
+        )
+        object.__setattr__(value, "_factory_seal", _TRACE_FACTORY)
+        object.__setattr__(value, "_factory_payload_sha256", _digest(value.as_dict()))
+        return value
+
+    def as_dict(self) -> dict[str, Any]:
+        return {
+            "schema": self.schema,
+            "observer_started_monotonic_ns": self.observer_started_monotonic_ns,
+            "observer_live_through_monotonic_ns": self.observer_live_through_monotonic_ns,
+            "trace_finalized_monotonic_ns": self.trace_finalized_monotonic_ns,
+            "source_first_sequence": self.source_first_sequence,
+            "source_last_sequence": self.source_last_sequence,
+            "source_event_count": self.source_event_count,
+            "captured_first_sequence": self.captured_first_sequence,
+            "captured_last_sequence": self.captured_last_sequence,
+            "captured_event_count": self.captured_event_count,
+            "dropped_event_count": self.dropped_event_count,
+            "overflow_event_count": self.overflow_event_count,
+            "raw_trace_sha256": self.raw_trace_sha256,
+            "filter_sha256": self.filter_sha256,
+            "clock_domain_sha256": self.clock_domain_sha256,
+            "finalization_ref": self.finalization_ref,
+            "provenance_refs": list(self.provenance_refs),
+        }
+
+    def sha256(self) -> str:
+        return _digest(self.as_dict())
+
+
+def validate_trace_completeness(value: TraceCompletenessEvidence) -> None:
+    if type(value) is not TraceCompletenessEvidence or value._factory_seal is not _TRACE_FACTORY:
+        raise ReentryObservationError("trace completeness lacks recorder origin")
+    if value._factory_payload_sha256 != _digest(value.as_dict()):
+        raise ReentryObservationError("trace completeness changed after record")
+
+
+def _trace_incompleteness_reasons(
+    *,
+    trace: TraceCompletenessEvidence,
+    identity: ReentryObservationIdentity,
+    window_open_ns: int,
+    window_terminal_ns: int,
+) -> tuple[str, ...]:
+    validate_trace_completeness(trace)
+    reasons: list[str] = []
+    if trace.observer_started_monotonic_ns > window_open_ns:
+        reasons.append("OBSERVER_STARTED_AFTER_WINDOW_OPEN")
+    if trace.observer_live_through_monotonic_ns < window_terminal_ns:
+        reasons.append("OBSERVER_NOT_LIVE_THROUGH_WINDOW_TERMINAL")
+    if trace.trace_finalized_monotonic_ns < window_terminal_ns:
+        reasons.append("TRACE_FINALIZED_BEFORE_WINDOW_TERMINAL")
+    if trace.filter_sha256 != identity.trace_filter_sha256:
+        reasons.append("TRACE_FILTER_IDENTITY_MISMATCH")
+    if trace.clock_domain_sha256 != identity.clock_domain_sha256:
+        reasons.append("TRACE_CLOCK_DOMAIN_MISMATCH")
+    if trace.dropped_event_count != 0:
+        reasons.append("DROPPED_EVENTS_NONZERO")
+    if trace.overflow_event_count != 0:
+        reasons.append("OVERFLOW_EVENTS_NONZERO")
+    source_expected_count = trace.source_last_sequence - trace.source_first_sequence + 1
+    if source_expected_count != trace.source_event_count:
+        reasons.append("SOURCE_SEQUENCE_RANGE_NOT_CONTIGUOUS")
+    if (
+        trace.captured_first_sequence != trace.source_first_sequence
+        or trace.captured_last_sequence != trace.source_last_sequence
+    ):
+        reasons.append("CAPTURED_SEQUENCE_RANGE_MISMATCH")
+    if trace.captured_event_count != trace.source_event_count:
+        reasons.append("CAPTURED_EVENT_COUNT_MISMATCH")
+    return tuple(reasons)
 
 
 @dataclass(frozen=True, slots=True, kw_only=True)
@@ -167,6 +372,9 @@ class ReentryObservationWindowReceipt:
     opportunity_sha256: str
     terminal_evidence_sha256: str | None
     post_state_sha256: str | None
+    trace_completeness: TraceCompletenessEvidence | None
+    trace_complete: bool
+    trace_incompleteness_reasons: tuple[str, ...]
     events: tuple[ReentryObservationEvent, ...]
     status: str
     provenance_refs: tuple[str, ...]
@@ -174,7 +382,7 @@ class ReentryObservationWindowReceipt:
     _factory_payload_sha256: str | None = field(default=None, repr=False, compare=False, hash=False)
 
     schema = REENTRY_OBSERVATION_WINDOW_SCHEMA
-    evidence_scope = "CONDITION_BLIND_BOUNDED_MECHANISM_REENTRY_OBSERVATION_CANDIDATE"
+    evidence_scope = "CONDITION_BLIND_COMPLETENESS_BOUND_MECHANISM_REENTRY_OBSERVATION_CANDIDATE"
     repository_ci_credit = 0
     target_environment_component_runtime_credit = 0
     runtime_credit = 0
@@ -210,15 +418,51 @@ class ReentryObservationWindowReceipt:
         terminal_phases = [event.phase for event in self.events if event.phase in {"WINDOW_TERMINAL", "WINDOW_ABORT"}]
         if len(terminal_phases) != 1 or self.events[-1].phase != terminal_phases[0]:
             raise ReentryObservationError("window must end in exactly one terminal or abort event")
-        reentry_count = sum(event.phase == "REENTRY" for event in self.events)
+        if type(self.trace_complete) is not bool:
+            raise ReentryObservationError("trace_complete must be boolean")
+        if type(self.trace_incompleteness_reasons) is not tuple or any(
+            type(reason) is not str or not reason for reason in self.trace_incompleteness_reasons
+        ):
+            raise ReentryObservationError("trace_incompleteness_reasons must be a tuple of strings")
+        reentry_events = tuple(event for event in self.events if event.phase == "REENTRY")
         if terminal_phases[0] == "WINDOW_ABORT":
+            if self.trace_completeness is not None:
+                raise ReentryObservationError("aborted window cannot claim trace completeness")
+            if self.trace_complete:
+                raise ReentryObservationError("aborted window cannot claim complete trace")
+            if self.trace_incompleteness_reasons != ("WINDOW_ABORTED",):
+                raise ReentryObservationError("aborted window must record WINDOW_ABORTED")
             expected = REENTRY_OBSERVATION_UNKNOWN
             if self.terminal_evidence_sha256 is not None or self.post_state_sha256 is not None:
                 raise ReentryObservationError("aborted window cannot claim terminal/post-state evidence")
         else:
             if self.terminal_evidence_sha256 is None or self.post_state_sha256 is None:
-                raise ReentryObservationError("complete window requires terminal and post-state evidence")
-            expected = REENTRY_OBSERVED if reentry_count else NO_REENTRY_OBSERVED
+                raise ReentryObservationError("terminal window requires terminal and post-state evidence")
+            if type(self.trace_completeness) is not TraceCompletenessEvidence:
+                raise ReentryObservationError("terminal window requires trace completeness evidence")
+            reasons = _trace_incompleteness_reasons(
+                trace=self.trace_completeness,
+                identity=self.identity,
+                window_open_ns=self.events[0].observed_monotonic_ns,
+                window_terminal_ns=self.events[-1].observed_monotonic_ns,
+            )
+            if self.trace_complete != (not reasons):
+                raise ReentryObservationError("trace_complete does not match completeness evidence")
+            if self.trace_incompleteness_reasons != reasons:
+                raise ReentryObservationError("trace incompleteness reasons do not match evidence")
+            for event in reentry_events:
+                if not (
+                    self.trace_completeness.captured_first_sequence
+                    <= event.source_sequence
+                    <= self.trace_completeness.captured_last_sequence
+                ):
+                    raise ReentryObservationError("reentry source sequence lies outside captured trace range")
+            if reentry_events:
+                expected = REENTRY_OBSERVED
+            elif reasons:
+                expected = REENTRY_OBSERVATION_UNKNOWN
+            else:
+                expected = NO_REENTRY_OBSERVED
         if self.status != expected:
             raise ReentryObservationError("receipt status does not match observed event window")
         object.__setattr__(self, "provenance_refs", _refs(self.provenance_refs))
@@ -232,6 +476,9 @@ class ReentryObservationWindowReceipt:
             "opportunity_sha256": self.opportunity_sha256,
             "terminal_evidence_sha256": self.terminal_evidence_sha256,
             "post_state_sha256": self.post_state_sha256,
+            "trace_completeness": self.trace_completeness.as_dict() if self.trace_completeness is not None else None,
+            "trace_complete": self.trace_complete,
+            "trace_incompleteness_reasons": list(self.trace_incompleteness_reasons),
             "events": [event.as_dict() for event in self.events],
             "status": self.status,
             "provenance_refs": list(self.provenance_refs),
@@ -258,7 +505,9 @@ MonotonicNs = Callable[[], int]
 class ReentryObservationWindowRecorder:
     """One condition-blind observation window.
 
-    The API intentionally has no condition/arm/expected-result argument.
+    The API intentionally has no condition/arm/expected-result argument. Re-entry
+    observations must carry task and pre-state bindings so a caller cannot inject a
+    foreign event into an otherwise matched window.
     """
 
     def __init__(
@@ -285,7 +534,18 @@ class ReentryObservationWindowRecorder:
         self._sealed = False
         self._append("WINDOW_OPEN", self._opportunity_ref, self._opportunity_sha256)
 
-    def _append(self, phase: str, evidence_ref: str, evidence_sha256: str) -> None:
+    def _append(
+        self,
+        phase: str,
+        evidence_ref: str,
+        evidence_sha256: str,
+        *,
+        source_sequence: int | None = None,
+        task_id: str | None = None,
+        task_input_sha256: str | None = None,
+        pre_state_sha256: str | None = None,
+        task_executor_sha256: str | None = None,
+    ) -> None:
         if self._sealed:
             raise ReentryObservationError("observation window already sealed")
         event = ReentryObservationEvent(
@@ -293,13 +553,49 @@ class ReentryObservationWindowRecorder:
             observed_monotonic_ns=_positive_int("monotonic_ns", self._clock()),
             evidence_ref=evidence_ref,
             evidence_sha256=evidence_sha256,
+            source_sequence=source_sequence,
+            task_id=task_id,
+            task_input_sha256=task_input_sha256,
+            pre_state_sha256=pre_state_sha256,
+            task_executor_sha256=task_executor_sha256,
         )
         if self._events and event.observed_monotonic_ns <= self._events[-1].observed_monotonic_ns:
             raise ReentryObservationError("runtime clock did not advance monotonically")
         self._events.append(event)
 
-    def observe_reentry(self, *, reentry_ref: str, reentry_sha256: str) -> None:
-        self._append("REENTRY", reentry_ref, reentry_sha256)
+    def observe_reentry(
+        self,
+        *,
+        reentry_ref: str,
+        reentry_sha256: str,
+        source_sequence: int,
+        task_id: str,
+        task_input_sha256: str,
+        pre_state_sha256: str,
+        task_executor_sha256: str,
+    ) -> None:
+        task_id = _text("task_id", task_id)
+        task_input_sha256 = _sha256("task_input_sha256", task_input_sha256)
+        pre_state_sha256 = _sha256("pre_state_sha256", pre_state_sha256)
+        task_executor_sha256 = _sha256("task_executor_sha256", task_executor_sha256)
+        if task_id != self._identity.task_id:
+            raise ReentryObservationError("reentry task_id mismatch")
+        if task_input_sha256 != self._identity.task_input_sha256:
+            raise ReentryObservationError("reentry task_input_sha256 mismatch")
+        if pre_state_sha256 != self._identity.pre_state_sha256:
+            raise ReentryObservationError("reentry pre_state_sha256 mismatch")
+        if task_executor_sha256 != self._identity.task_executor_sha256:
+            raise ReentryObservationError("reentry task_executor_sha256 mismatch")
+        self._append(
+            "REENTRY",
+            reentry_ref,
+            reentry_sha256,
+            source_sequence=source_sequence,
+            task_id=task_id,
+            task_input_sha256=task_input_sha256,
+            pre_state_sha256=pre_state_sha256,
+            task_executor_sha256=task_executor_sha256,
+        )
 
     def close_complete(
         self,
@@ -307,21 +603,40 @@ class ReentryObservationWindowRecorder:
         terminal_ref: str,
         terminal_evidence_sha256: str,
         post_state_sha256: str,
+        trace_completeness: TraceCompletenessEvidence,
         provenance_refs: Iterable[str] = (),
     ) -> ReentryObservationWindowReceipt:
         terminal_evidence_sha256 = _sha256("terminal_evidence_sha256", terminal_evidence_sha256)
         post_state_sha256 = _sha256("post_state_sha256", post_state_sha256)
+        validate_trace_completeness(trace_completeness)
         self._append("WINDOW_TERMINAL", terminal_ref, terminal_evidence_sha256)
         self._sealed = True
         refs = self._provenance_refs + tuple(_text("provenance_ref", ref) for ref in provenance_refs)
+        reasons = _trace_incompleteness_reasons(
+            trace=trace_completeness,
+            identity=self._identity,
+            window_open_ns=self._events[0].observed_monotonic_ns,
+            window_terminal_ns=self._events[-1].observed_monotonic_ns,
+        )
+        has_reentry = any(event.phase == "REENTRY" for event in self._events)
+        status = (
+            REENTRY_OBSERVED
+            if has_reentry
+            else REENTRY_OBSERVATION_UNKNOWN
+            if reasons
+            else NO_REENTRY_OBSERVED
+        )
         receipt = ReentryObservationWindowReceipt(
             window_id=self._window_id,
             identity=self._identity,
             opportunity_sha256=self._opportunity_sha256,
             terminal_evidence_sha256=terminal_evidence_sha256,
             post_state_sha256=post_state_sha256,
+            trace_completeness=trace_completeness,
+            trace_complete=not reasons,
+            trace_incompleteness_reasons=reasons,
             events=tuple(self._events),
-            status=REENTRY_OBSERVED if any(event.phase == "REENTRY" for event in self._events) else NO_REENTRY_OBSERVED,
+            status=status,
             provenance_refs=refs,
             _factory_seal=_RECEIPT_FACTORY,
         )
@@ -344,6 +659,9 @@ class ReentryObservationWindowRecorder:
             opportunity_sha256=self._opportunity_sha256,
             terminal_evidence_sha256=None,
             post_state_sha256=None,
+            trace_completeness=None,
+            trace_complete=False,
+            trace_incompleteness_reasons=("WINDOW_ABORTED",),
             events=tuple(self._events),
             status=REENTRY_OBSERVATION_UNKNOWN,
             provenance_refs=refs,
@@ -373,7 +691,7 @@ class MatchedReentryMechanismCandidate:
     _factory_payload_sha256: str | None = field(default=None, repr=False, compare=False, hash=False)
 
     schema = MATCHED_REENTRY_MECHANISM_SCHEMA
-    evidence_scope = "MATCHED_CONDITION_BLIND_MECHANISM_REENTRY_COMPARISON_CANDIDATE"
+    evidence_scope = "MATCHED_CONDITION_BLIND_COMPLETENESS_BOUND_MECHANISM_REENTRY_COMPARISON_CANDIDATE"
     repository_ci_credit = 0
     target_environment_component_runtime_credit = 0
     runtime_credit = 0
@@ -480,13 +798,16 @@ __all__ = [
     "REENTRY_OBSERVATION_UNKNOWN",
     "REENTRY_OBSERVATION_WINDOW_SCHEMA",
     "REENTRY_OBSERVED",
+    "TRACE_COMPLETENESS_SCHEMA",
     "MatchedReentryMechanismCandidate",
     "ReentryObservationError",
     "ReentryObservationEvent",
     "ReentryObservationIdentity",
     "ReentryObservationWindowReceipt",
     "ReentryObservationWindowRecorder",
+    "TraceCompletenessEvidence",
     "bind_matched_reentry_mechanism",
     "validate_matched_reentry_mechanism",
     "validate_reentry_observation_window",
+    "validate_trace_completeness",
 ]
