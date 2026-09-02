@@ -1,0 +1,68 @@
+{
+  "schema": "FRANKENSTEIN2_WORKPACKAGE_DELTA/v1",
+  "workpackage_id": "F2-WP-900",
+  "generation": 10,
+  "claim_id": "F2-WP-900-G10-GPT56SOL-INDEPENDENT-SEMANTIC-MEDIATOR-AUTHORITY-20260902",
+  "worker_id": "GPT-5.6-Sol-TRIGGER4-ABI-REVIEW",
+  "trigger": "4",
+  "work_class": "REVIEW_ONLY_CANDIDATE_FALSIFIER",
+  "mutation_authority": false,
+  "recorded_at_utc": "2026-09-02T11:30:00Z",
+  "observed_main": "8e558f95c8b8cb1b686b820cba628dd10e6d2fd5",
+  "challenged_boundary": "G10 source-owned semantic bytes -> canonical mediator wire -> distinct trial process -> treatment-blind behavioral child",
+  "scope_preserved": {
+    "g9_terminal_target_component_candidate": "VALID_AT_CORRECTED_BOUNDED_SCOPE",
+    "g10_source_and_tests_present": true,
+    "g10_repository_ci_credit": 0,
+    "g10_target_environment_component_runtime_credit": 0,
+    "semantic_gwt_runtime_credit": 0,
+    "jspace_runtime_credit": 0,
+    "whole_system_acceptance": false
+  },
+  "source_observation": {
+    "candidate_commit": "5aace808e6f88e9b496aa1c2fc5c10d638ce8630",
+    "module": "src/frankenstein2/gwt_independent_semantic_mediator.py",
+    "regression": "tests/test_wp900_g10_independent_semantic_mediator.py",
+    "wire_fact": "IndependentSemanticMediatorReceipt.to_wire serializes the complete receipt body, including trial_position, raw_payload_sha256, semantic_class, source_range_sha256, source_event_sequence, source_process_identity and runtime_witness_sha256.",
+    "trial_fact": "MediatedSemanticState.from_wire receives the complete mediator wire and the full PostSelectionSemanticSlotPlan. The wire itself therefore exposes class/hash/position metadata to the trial process even though these are absent from the Python function signature as separate parameters.",
+    "test_gap": "The current no-sidechannel regression inspects from_wire parameter names and behavioral_input_keys only; it does not assert that trial-visible wire bytes and trial-visible plan are condition-blind.",
+    "credit_fence": "The G10 classes correctly self-report zero repository/runtime/semantic-GWT/J-Space/whole-system credit; no promotion is being revoked because none has been admitted."
+  },
+  "candidate_falsifier": {
+    "id": "TRIAL_VISIBLE_WIRE_METADATA_SIDECHANNEL",
+    "hypothesis": "A distinct trial process can infer the preregistered semantic treatment before behavioral execution from mediator wire metadata or plan metadata, so the current G10 ABI does not yet prove independent semantic mediation/no-bypass authority.",
+    "required_discriminator": [
+      "Define the exact byte surface permitted to cross from semantic source authority into the trial/executor boundary.",
+      "Require the trial-visible transport to exclude semantic_class, raw_payload_sha256, trial_position, arm/condition, source identities, source-range/witness digests and any plan field that deterministically reveals semantic treatment.",
+      "Keep attestation/provenance metadata on an independent verifier/readback path rather than co-resident in the behavior-capable trial input.",
+      "Add a regression that parses every trial-visible byte object and proves forbidden metadata is absent, rather than checking only function parameter names.",
+      "Add an adversarial trial-wrapper test that attempts to recover treatment from all permitted trial inputs before invoking the behavioral child and must fail to distinguish class beyond the canonical mediated semantic state itself.",
+      "Only after repository ABI passes this discriminator may an exact G10 VPS subject be frozen and dispatched."
+    ],
+    "falsifying_outcomes": [
+      "semantic_class is directly present in any trial-visible transport object",
+      "raw payload digest or trial position is trial-visible and deterministically maps to treatment",
+      "the full semantic slot plan exposes trial_semantic_order to the trial process",
+      "attestation metadata can select, skip, reorder or otherwise influence behavior-capable execution",
+      "a regression proves the behavioral child is clean while leaving the behavior-capable trial wrapper condition-aware"
+    ]
+  },
+  "failure_classification": "EVIDENCE_INVALID",
+  "product_mutation_required": true,
+  "counterhypothesis": {
+    "statement": "If the trial process is formally non-behavioral and cannot select, suppress, reorder or alter the executor invocation, metadata visibility may be harmless instrumentation rather than a causal bypass.",
+    "required_proof": "That stronger trust boundary is not encoded by the current G10 API/tests. It would need executable enforcement and an adversarial regression before it can substitute for condition-blind trial transport."
+  },
+  "do_not_promote": [
+    "g10_repository_acceptance",
+    "target_environment_component_runtime",
+    "semantic_gwt_runtime",
+    "jspace_runtime",
+    "training",
+    "completion",
+    "whole_system"
+  ],
+  "duplicate_authority_check": "No successor generation, second mediator authority or runtime dispatch created. G10 remains the single active mutation claim; this delta only blocks premature promotion and specifies the smallest repair.",
+  "review_result": "G10_REPOSITORY_ABI_REVIEW_BLOCKED_BY_TRIAL_VISIBLE_METADATA_SIDECHANNEL",
+  "single_most_important_correction": "Split behavior-capable semantic transport from attestation transport: the trial/executor boundary must receive only the minimal mediated semantic state needed for behavior, while class/hash/position/source/witness metadata remains on an independent verifier/readback path."
+}
