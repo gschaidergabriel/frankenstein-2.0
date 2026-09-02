@@ -1,0 +1,57 @@
+{
+  "schema": "F2_TRIGGER4_CANDIDATE_FALSIFIER/v1",
+  "trigger": "4",
+  "producer": "GPT-5.6-Sol",
+  "date": "2026-09-02",
+  "research_id": "T4-WP900-G8-CONTROL-ABSENCE-OBSERVATION-FENCE-2026-09-02",
+  "work_class": "CANDIDATE_FALSIFIER",
+  "boundary": "accepted WP900 G4/G7 evidence -> live WP900 G8 independent reentry evidence binder -> mechanism-level semantic admission",
+  "mutation_authority": "WP900 G8 IS OWNED BY ANOTHER ACTIVE WORKER; THIS PACKET DOES NOT MUTATE OWNED SOURCE, TESTS, WORKPACKAGE STATE, RECEIPTS OR RECONCILIATIONS",
+  "finding": {
+    "class": "CONTROL_ABSENCE_IS_DECLARED_NOT_SYMMETRICALLY_OBSERVED",
+    "source_fact": "ControlNoBroadcastReadback.observe accepts reentry_observed as a caller-supplied boolean. ControlNoBroadcastReadback.__post_init__ rejects true, so every valid control object necessarily carries false by construction.",
+    "executed_g7_fact": "The accepted G7 target workflow's control subprocess explicitly emits reentry_observed=false and then passes that value into ControlNoBroadcastReadback.observe. It does not monitor a re-entry-capable control path over an explicit observation opportunity/window and derive absence from recorded events.",
+    "g8_consequence": "Binding G8 to the exact G4-bound ControlNoBroadcastReadback hash removes arm-label substitution but does not by itself make control-side non-reentry an independently observed negative fact. Factory origin proves construction/lineage, not absence detection.",
+    "asymmetry": "The intervention side can be backed by GwtRuntimeWitnessRecorder DELIVERY->UPTAKE->REENTRY events, while the current control side can only present a constructor-admitted false boolean. Treating those as symmetric causal observations would overstate evidence."
+  },
+  "counterexample": {
+    "setup": "Run the current no-broadcast control subprocess in an environment where an unrelated or stale re-entry event occurs after control task start. Leave the subprocess implementation unchanged so it still emits reentry_observed=false.",
+    "expected_current_behavior": "A structurally valid ControlNoBroadcastReadback can still be built because the boolean is declared by the subprocess and the class only verifies that it is false; no observer detects the injected re-entry event.",
+    "correct_behavior": "A genuine control absence observer must detect the re-entry event or fail closed because the observation opportunity was incomplete; it must not emit NO_REENTRY solely because the caller supplied false.",
+    "failure_class_if_false_green": "EVIDENCE_INVALID_CONTROL_ABSENCE_NOT_OBSERVED"
+  },
+  "required_g8_or_successor_regressions": [
+    "Do not use ControlNoBroadcastReadback.reentry_observed=false alone as independent negative observation authority for semantic promotion.",
+    "Introduce or reuse a recorder that can observe both possible outcomes on the control path: REENTRY event present or no REENTRY before an explicit terminal/opportunity boundary.",
+    "Bind observation start, terminal/opportunity boundary, monotonic ordering, exact source, boot, execution context, task/input identity and process/runtime identity.",
+    "Inject a control-side re-entry event and prove the observer records/rejects it rather than allowing a caller to declare false.",
+    "Inject incomplete/aborted control observation and require UNKNOWN rather than NO_REENTRY.",
+    "Require exact observer receipt SHA to match the G8/G4-bound control evidence before mechanism comparison.",
+    "Keep mechanism-level re-entry evidence distinct from task-level semantic outcome evidence; even a valid re-entry difference must not mint semantic GWT/J-Space content credit by itself."
+  ],
+  "scope_fence": {
+    "valid_g8_progress_if_fixed": "NONCIRCULAR_MECHANISM_REENTRY_INTERVENTION_CONTROL_EVIDENCE_CANDIDATE",
+    "still_not_established": [
+      "task-level semantic content influence",
+      "semantic GWT runtime authority",
+      "J-Space runtime authority",
+      "physical GRID10",
+      "effect authority",
+      "training admission",
+      "completion",
+      "whole-system acceptance"
+    ]
+  },
+  "explicit_zero_credit": {
+    "repository_component_from_this_packet": 0,
+    "target_environment_component_runtime": 0,
+    "semantic_gwt_runtime": 0,
+    "jspace_runtime": 0,
+    "physical_grid10": 0,
+    "effect": 0,
+    "training": 0,
+    "completion": 0,
+    "whole_system": 0
+  },
+  "next_exact_action": "The active WP900 G8 owner should harden the control side into a symmetric bounded absence observer or explicitly scope G8 below independent control-absence evidence. Add injected-reentry and incomplete-window hard negatives before repository acceptance. Do not dispatch a G8 target subject whose control negative is still only caller-declared false."
+}
