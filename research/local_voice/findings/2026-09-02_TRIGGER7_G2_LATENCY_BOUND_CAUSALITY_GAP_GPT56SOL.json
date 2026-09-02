@@ -1,0 +1,80 @@
+{
+  "schema": "F2_TRIGGER7_RESEARCH_FINDING/v1",
+  "trigger": "7",
+  "producer": "GPT-5.6-Sol",
+  "date": "2026-09-02",
+  "research_id": "T7-20260902-G2-LATENCY-BOUND-CAUSALITY-GAP",
+  "semantic_key": "0d83f7d13c1d8f91686cf94070f73d901a49018b40a9c058d1949af094655bff",
+  "work_class": "EVIDENCE_VALIDITY_REVIEW_ONLY",
+  "product_mutation_authority": "TRIGGER4_ONLY",
+  "observed_current_files": {
+    "bound_helper": "trigger4/tools/local_voice/g2_pipewire_evidence.py",
+    "bound_helper_blob_sha": "25f8653e90cd1c4ae6c236e7ac8e96150b4be248",
+    "required_guard": "trigger4/tools/local_voice/g2_required_observables_guard.py",
+    "required_guard_blob_sha": "1ba16c85869bed5d7caef46c73a8bffe7a3905c6",
+    "benchmark": "research/local_voice/benchmarks/2026-09-02_TRIGGER7_COMPLETION_DEPTH_G2.json",
+    "benchmark_blob_sha": "ec8a6a96c9a30b17748214ef1ccd6cae4f7d74ca"
+  },
+  "finding": {
+    "class": "EVIDENCE_INVALID_FALSE_PRODUCT_NEGATIVE_RISK",
+    "severity": "HIGH_FOR_TERMINAL_G2_DISCRIMINATOR",
+    "current_bound": "derive_bound_receipt freezes derived_max_inflight_ms as fixed 16 * observed clock.quantum / clock.rate from PipeWire settings.",
+    "current_observer_order": "run_g2_pipewire_s2.sh derives and freezes this bound before starting the read-only observer. Reported node/stream latency is collected later and copied into required_observables only after execution.",
+    "current_validation_gap": "validate_required requires clock rate, quantum and derived bound to be nonzero and requires some reported latency evidence to exist, but it never proves that the predeclared bound covers the larger observed/reported graph, node, stream or sink latency and never fails closed when it does not.",
+    "causal_problem": "The benchmark requires the tail bound to be explained by observed graph buffering/latency rather than guessed. A post-execution latency observation that is not causally incorporated into the pre-cancel bound cannot justify classifying audio beyond the smaller quantum-only threshold as PRODUCT_NEGATIVE.",
+    "risk": "A valid graph with legitimate reported latency larger than the 16-quantum formula could be falsely labelled PRODUCT_NEGATIVE instead of EVIDENCE_INVALID / bound-insufficient. This could cause unnecessary product mutation and discard a valid runtime subject.",
+    "current_credit": 0
+  },
+  "external_primary_refresh": [
+    {
+      "source": "https://docs.pipewire.org/page_man_pipewire-props_7.html",
+      "observed": "PipeWire documents node.latency as a suggestion and explicitly notes that the graph can be forced to a higher latency."
+    },
+    {
+      "source": "https://docs.pipewire.org/devel/page_latency.html",
+      "observed": "PipeWire latency objects carry min/max latency and aggregate latency through linked ports; process latency also contributes to graph latency."
+    },
+    {
+      "source": "https://docs.pipewire.org/page_man_pipewire_1.html",
+      "observed": "clock.quantum is the graph buffer size setting, not by itself a complete bound on all downstream/upstream stream and processing latency."
+    }
+  ],
+  "counterhypothesis": {
+    "statement": "A fixed 16-quantum policy is deliberately conservative enough, so reported latency does not need to participate in the bound.",
+    "result": "NOT_PROVEN_AND_NOT_ACCEPTABLE_FOR_TERMINAL_CREDIT",
+    "reason": "Current source does not prove 16 quanta upper-bounds all reported graph/stream/sink latency, while current PipeWire primary documentation permits higher effective/requested latency. The terminal discriminator must fail closed when the measured/reported latency exceeds what the predeclared policy covers."
+  },
+  "minimal_trigger4_repair": {
+    "goal": "Preserve a causally prior predeclared cancellation bound while ensuring it covers the actually reported graph/stream latency or fails closed before cancellation.",
+    "preferred_shape": [
+      "Move a minimal read-only latency/stream preflight before cancel and before the bound is frozen, or derive the bound from a pre-cancel observer snapshot rather than only clock.rate/clock.quantum.",
+      "Normalize all admitted latency terms to milliseconds using their documented rate/units and compute a conservative bound from max(fixed-quantum-policy, observed/reported relevant graph/stream/sink latency + explicitly fixed safety policy).",
+      "If any relevant reported latency cannot be parsed/bounded, fail closed before the promotion-bearing CANCEL phase rather than choosing a post-hoc threshold.",
+      "Persist the exact pre-cancel inputs and formula in the bound receipt; later observer samples may verify stability/drift but may not retroactively change the threshold.",
+      "If later runtime observation exceeds the predeclared bound inputs, classify EVIDENCE_INVALID_BOUND_ASSUMPTION rather than PRODUCT_NEGATIVE unless product semantics explicitly require handling that exact latency condition."
+    ],
+    "required_regressions": [
+      "Reported node/stream latency greater than 16-quantum bound must fail closed or increase the pre-cancel bound before CANCEL; it must not reach terminal PRODUCT_NEGATIVE classification using the smaller threshold.",
+      "Missing/unparseable relevant pre-cancel latency must prevent terminal guard completeness.",
+      "Post-cancel larger latency observation must invalidate the bound assumption, not retroactively rewrite the predeclared threshold.",
+      "A stable graph whose reported latency is below the fixed policy must preserve the existing bound and all zero-credit fences."
+    ]
+  },
+  "execution_fence": {
+    "do_not_dispatch_promotion_run_until_reconciled": true,
+    "do_not_open_g3": true,
+    "do_not_create_second_observer_or_acceptance_authority": true,
+    "next_action": "Trigger4 should fold this into the existing G2 helper/guard path, run focused regressions, then dispatch one exact current S2 subject if singleton ownership is clear."
+  },
+  "explicit_zero_credit": {
+    "g2_runtime": 0,
+    "physical_microphone": 0,
+    "physical_speaker": 0,
+    "human_heard_output": 0,
+    "whole_voice_e2e": 0,
+    "gwt_jspace": 0,
+    "effect": 0,
+    "training": 0,
+    "whole_product": 0
+  }
+}
