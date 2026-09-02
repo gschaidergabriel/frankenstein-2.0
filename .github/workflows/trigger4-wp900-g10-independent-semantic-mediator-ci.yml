@@ -6,12 +6,14 @@ on:
     paths:
       - 'src/frankenstein2/gwt_independent_semantic_mediator.py'
       - 'tests/test_wp900_g10_independent_semantic_mediator.py'
+      - 'tests/test_wp900_g10_trial_state_surface.py'
       - '.github/workflows/trigger4-wp900-g10-independent-semantic-mediator-ci.yml'
       - 'workpackages/active/F2-WP-900.json'
   pull_request:
     paths:
       - 'src/frankenstein2/gwt_independent_semantic_mediator.py'
       - 'tests/test_wp900_g10_independent_semantic_mediator.py'
+      - 'tests/test_wp900_g10_trial_state_surface.py'
       - '.github/workflows/trigger4-wp900-g10-independent-semantic-mediator-ci.yml'
   workflow_dispatch:
 
@@ -51,6 +53,7 @@ jobs:
           set -euo pipefail
           python -m py_compile src/frankenstein2/gwt_independent_semantic_mediator.py
           python - <<'PY'
+          import dataclasses
           import inspect
           import frankenstein2.gwt_independent_semantic_mediator as g10
           params = inspect.signature(g10.admit_mediated_semantic_state).parameters
@@ -63,6 +66,8 @@ jobs:
               "runtime_witness",
           ):
               assert forbidden not in params
+          state_fields = {field.name for field in dataclasses.fields(g10.MediatedSemanticState) if not field.name.startswith("_")}
+          assert state_fields == {"canonical_semantic_json"}
           assert g10.behavioral_input_keys().isdisjoint(g10.FORBIDDEN_BEHAVIORAL_INPUT_KEYS)
           assert "canonical_semantic_json" not in g10.FORBIDDEN_TRIAL_WIRE_KEYS
           print(g10.MEDIATOR_AUTHORITY_CANDIDATE)
@@ -77,7 +82,8 @@ jobs:
             tests/test_wp900_g8_causal_admission_fence.py \
             tests/test_wp900_g9_semantic_content_causality.py \
             tests/test_wp900_g9_reentry_only_execution.py \
-            tests/test_wp900_g10_independent_semantic_mediator.py
+            tests/test_wp900_g10_independent_semantic_mediator.py \
+            tests/test_wp900_g10_trial_state_surface.py
 
       - name: Preserve zero-credit repository boundary
         shell: bash
