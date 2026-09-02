@@ -1,0 +1,104 @@
+name: Trigger4 WP900 G10 Trial-State Sidechannel Repair
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/trigger4-wp900-g10-trial-state-sidechannel-repair.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: trigger4-wp900-g10-trial-state-sidechannel-repair
+  cancel-in-progress: false
+
+jobs:
+  repair-g10-in-place:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      PYTHONPATH: ${{ github.workspace }}/src:${{ github.workspace }}/tests
+      PYTHONDONTWRITEBYTECODE: '1'
+      EXPECTED_BASE_SHA: ${{ github.sha }}
+    steps:
+      - name: Checkout exact mutation base
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+          ref: ${{ github.sha }}
+
+      - name: Verify current G10 mutation authority
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$EXPECTED_BASE_SHA"
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          p = json.loads(Path('workpackages/active/F2-WP-900.json').read_text())
+          assert p['generation'] == 10
+          assert p['claim_id'] == 'F2-WP-900-G10-GPT56SOL-INDEPENDENT-SEMANTIC-MEDIATOR-AUTHORITY-20260902'
+          assert p['state'] == 'CLAIMED'
+          assert p['target_environment_component_runtime_credit'] == 0
+          assert p['semantic_gwt_runtime_credit'] == 0
+          assert p['jspace_runtime_credit'] == 0
+          PY
+
+      - name: Apply deterministic in-place G10 repair
+        shell: bash
+        run: |
+          set -euo pipefail
+          python tools/trigger4_wp900_g10_repair_trial_state_sidechannel.py
+          python -m py_compile src/frankenstein2/gwt_independent_semantic_mediator.py
+          git diff --check
+
+      - name: Execute adversarial and predecessor repository gates before mutation
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pip install --disable-pip-version-check pytest
+          python -m pytest -q \
+            tests/test_wp900_g8_causal_admission_fence.py \
+            tests/test_wp900_g9_semantic_content_causality.py \
+            tests/test_wp900_g9_reentry_only_execution.py \
+            tests/test_wp900_g10_independent_semantic_mediator.py
+
+      - name: Verify treatment-blind public state ABI and zero-credit fence
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import inspect
+          import frankenstein2.gwt_independent_semantic_mediator as g10
+          params = inspect.signature(g10.admit_mediated_semantic_state).parameters
+          assert 'trial_process_identity' not in params
+          fields = {name for name in g10.MediatedSemanticState.__dataclass_fields__ if not name.startswith('_')}
+          assert fields == {'canonical_semantic_json'}
+          for cls in (
+              g10.IndependentSemanticMediatorReceipt,
+              g10.MediatedSemanticState,
+              g10.MediatedExecutionReceipt,
+              g10.IndependentSemanticMediatorCrossoverCandidate,
+          ):
+              assert cls.target_environment_component_runtime_credit == 0
+              assert cls.semantic_gwt_runtime_credit == 0
+              assert cls.jspace_runtime_credit == 0
+              assert cls.whole_system_acceptance is False
+          PY
+
+      - name: Commit only if main still accepts this exact parent
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'GPT-5.6-Sol Trigger4'
+          git config user.email 'trigger4@users.noreply.github.com'
+          git add \
+            src/frankenstein2/gwt_independent_semantic_mediator.py \
+            tests/test_wp900_g10_independent_semantic_mediator.py \
+            .github/workflows/trigger4-wp900-g10-independent-semantic-mediator-ci.yml \
+            workpackages/active/F2-WP-900.json
+          git diff --cached --exit-code && { echo 'repair produced no delta'; exit 31; } || true
+          git commit -m 'trigger4(WP900 G10): remove behavior-state treatment sidechannel'
+          git push origin HEAD:main
