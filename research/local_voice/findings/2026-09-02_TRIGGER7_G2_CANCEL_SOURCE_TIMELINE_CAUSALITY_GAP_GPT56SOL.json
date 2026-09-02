@@ -1,0 +1,81 @@
+{
+  "schema": "F2_TRIGGER7_RESEARCH_FINDING/v1",
+  "trigger": "7",
+  "producer": "GPT-5.6-Sol",
+  "date": "2026-09-02",
+  "research_id": "T7-20260902-G2-CANCEL-SOURCE-TIMELINE-CAUSALITY-GAP",
+  "semantic_key": "0d83f7d13c1d8f91686cf94070f73d901a49018b40a9c058d1949af094655bff",
+  "work_class": "EVIDENCE_VALIDITY_REVIEW_ONLY",
+  "product_mutation_authority": "TRIGGER4_ONLY",
+  "observed_main_before_write": "09e3ddfc1ed93d268d64d93be674f149148a7f89",
+  "observed_current_files": {
+    "runtime": "trigger4/tools/local_voice/g2_pipewire_s2_runtime.py",
+    "runtime_blob_sha": "40000da65652cf238d84b7c0cff11f7290e4311b",
+    "analyzer": "research/local_voice/tools/t7_pipewire_monitor_cancel_analyze.py",
+    "analyzer_blob_sha": "4b887ea4373a3d06802d47225b9c1d0d1e4b7dc0",
+    "h4_guard": "research/local_voice/tools/t7_pipewire_g2_h4_guard.py",
+    "h4_guard_blob_sha": "e6f0a9f578c286aed3524027e7432e6693846e65"
+  },
+  "finding": {
+    "class": "EVIDENCE_INVALID_CANCEL_SOURCE_TIMELINE_UNBOUND",
+    "severity": "HIGH_FOR_TERMINAL_G2_AUDIO_TAIL_CAUSALITY",
+    "current_runtime_behavior": "play_start() records started_ns immediately after Popen(paplay). The cancel offset is later computed as cancel_request_ns - that process-spawn timestamp.",
+    "current_analyzer_behavior": "The analyzer converts cancel_offset_ms directly to cancel_frame on the source waveform and subtracts the same value from the last source-correlated source-timeline frame to report cancel-to-last-old-audio tail.",
+    "existing_alignment_is_insufficient": "Source-to-control and source-to-cancel monitor FFT alignment proves waveform identity/offset inside captured PCM, but it does not bind the monotonic Popen timestamp to source frame 0 or to the first sample actually queued/processed/presented by the playback stream.",
+    "causal_problem": "Client startup, Pulse/PipeWire queuing, conversion and graph delay can shift source-frame timeline relative to process-spawn monotonic time. The current arithmetic can therefore classify the wrong source windows as post-cancel or mismeasure cancel-to-last-old-audio tail.",
+    "current_credit": 0
+  },
+  "external_primary_refresh": [
+    {
+      "source": "https://docs.pipewire.org/structpw__time.html",
+      "observed": "PipeWire exposes pw_stream_get_time_n() with graph ticks, delay, queued and buffered data; total playback delay includes application queued data, resampler buffering and graph/device delay."
+    },
+    {
+      "source": "https://docs.pipewire.org/devel/page_module_protocol_pulse.html",
+      "observed": "PipeWire Pulse emulation has independent playback buffering controls including request and target-length defaults, so client process start is not an audio-position identity."
+    },
+    {
+      "source": "https://docs.pipewire.org/page_man_pw-cat_1.html",
+      "observed": "PipeWire documents stream latency as time for a sample to travel from application to playback target, reinforcing that process launch and target presentation are distinct boundaries."
+    }
+  ],
+  "counterhypothesis": {
+    "statement": "The fixed 150 ms startup wait makes Popen time close enough to source frame 0 for this test.",
+    "result": "REJECTED_FOR_TERMINAL_CAUSAL_CREDIT",
+    "reason": "A sleep can reduce startup races but provides no measured mapping from monotonic cancel time to source-frame position. PipeWire exposes explicit stream timing precisely because queue/buffer/graph delay are separate quantities."
+  },
+  "minimal_trigger4_repair": {
+    "goal": "Bind the promotion-bearing cancel instant to an observed playback/source timeline rather than process-spawn time while preserving the existing VoicePacketCortex cancellation authority.",
+    "preferred_shape": [
+      "Do not interpret paplay Popen timestamp as source-frame-0 identity for terminal tail measurement.",
+      "Use an existing or minimal read-only/native PipeWire playback timing surface that can report stream ticks/source position plus queued/buffered/delay at or immediately before the causal cancel; pw_stream_get_time_n() is the primary documented timing primitive.",
+      "Persist the exact mapping from cancel monotonic timestamp to source-frame/source-timeline position and its stream/node identity in the evidence receipt.",
+      "If a causal mapping cannot be observed on the selected client surface, fail closed as EVIDENCE_INVALID_CANCEL_SOURCE_TIMELINE_UNBOUND; do not infer PRODUCT_NEGATIVE from source-frame windows derived from Popen time.",
+      "Keep source/control/cancel PCM alignment as an independent waveform/readback validity check; do not replace it with timing self-report alone."
+    ],
+    "required_regressions": [
+      "Inject or simulate different playback-client startup delays with identical stream/sample progression: measured cancel source position must remain bound to stream/sample timing rather than shift with Popen delay.",
+      "Missing stream/source-position timing with otherwise green PCM correlation must prevent terminal G2 completeness.",
+      "Cancel source-frame mapping must identify the same exact playback stream/object lineage used by the G2 PipeWire evidence.",
+      "Existing H4, Piper-runtime identity, predeclared latency-bound, replacement readback, packet fence, cleanup-evidence and zero-credit fences remain intact."
+    ]
+  },
+  "execution_fence": {
+    "do_not_open_g3": true,
+    "do_not_dispatch_promotion_run_until_reconciled": true,
+    "do_not_create_second_playback_or_voice_authority": true,
+    "do_not_compose_old_runtime_with_new_source": true,
+    "next_action": "Trigger4 folds this source-timeline binding into the same current G2 validity repair descendant, proves focused regressions, then one fresh exact repaired S2 subject may run if singleton ownership is clear."
+  },
+  "explicit_zero_credit": {
+    "g2_runtime": 0,
+    "physical_microphone": 0,
+    "physical_speaker": 0,
+    "human_heard_output": 0,
+    "whole_voice_e2e": 0,
+    "gwt_jspace": 0,
+    "effect": 0,
+    "training": 0,
+    "whole_product": 0
+  }
+}
