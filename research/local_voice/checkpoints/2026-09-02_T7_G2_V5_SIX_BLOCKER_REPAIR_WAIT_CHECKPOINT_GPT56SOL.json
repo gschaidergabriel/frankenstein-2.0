@@ -1,14 +1,14 @@
 {
-  "schema": "T7_CONTINUATION_CHECKPOINT/v2",
+  "schema": "T7_CONTINUATION_CHECKPOINT/v3",
   "trigger": "7",
   "producer": "GPT-5.6-Sol",
   "date": "2026-09-02",
-  "observed_main_before_checkpoint_refresh": "f5ca9303a6ad8c189453629bc0abad608652a8f6",
+  "observed_main_before_checkpoint_refresh": "3463b36f36e8dd791f71b7d8ad1031eed8e54dc5",
   "semantic_key": "0d83f7d13c1d8f91686cf94070f73d901a49018b40a9c058d1949af094655bff",
   "objective": "OWNER_VPS_PIPEWIRE_VIRTUAL_SINK_CANCEL_MONITOR_READBACK",
   "current_generation": 2,
   "current_semantic_claim": "research/local_voice/semantic_claims/0d83f7d13c1d8f91686cf94070f73d901a49018b40a9c058d1949af094655bff.json",
-  "current_claim_state": "CLAIMED_ROUTED_TO_TRIGGER4_AWAITING_SIX_TERMINAL_VALIDITY_REPAIRS_STALE_OWNER_RECONCILIATION_THEN_FRESH_PIPEWIRE_RUNTIME",
+  "current_claim_state": "CLAIMED_ROUTED_TO_TRIGGER4_AWAITING_SIX_TERMINAL_VALIDITY_REPAIRS_PRECISION_REFINEMENTS_STALE_OWNER_RECONCILIATION_THEN_FRESH_PIPEWIRE_RUNTIME",
   "canonical_validity_coordination": {
     "path": "trigger4/inbox/local_voice/T7_G2_TERMINAL_VALIDITY_CONSOLIDATION_V5_2026-09-02_GPT56SOL.json",
     "commit": "0b64bc3b061c97ee413ff3e1e5656a8d9895b10b"
@@ -17,7 +17,7 @@
     "path": "trigger4/inbox/local_voice/T7_G2_SIX_BLOCKER_IMPLEMENTATION_BLUEPRINT_2026-09-02_GPT56SOL.json",
     "commit": "f5ca9303a6ad8c189453629bc0abad608652a8f6",
     "authority": "NONAUTHORITATIVE_IMPLEMENTATION_AID_TRIGGER4_MUTATION_ONLY",
-    "regression_matrix": "R1-R12",
+    "regression_matrix": "R1-R12_OR_STRICTER",
     "supersedes_for_implementation_detail": "trigger4/inbox/local_voice/T7_G2_V5_IMPLEMENTATION_READY_REPAIR_MAP_2026-09-02_GPT56SOL.json",
     "does_not_supersede_v5_coordination": true
   },
@@ -29,12 +29,28 @@
     {"id":"CANCEL_SOURCE_TIMELINE_CAUSALITY","finding_commit":"8eb92bd8d8db1f226c7bfa7d28b6d0c41033754c","status":"OPEN_FOR_TRIGGER4_REPAIR"},
     {"id":"CANCEL_ACTIVE_AUDIO_PROOF","finding_commit":"dfdcf337224e67abd53f0d35a4502b107a2ffaf9","status":"OPEN_FOR_TRIGGER4_REPAIR"}
   ],
+  "precision_refinements_not_new_blockers": [
+    {
+      "id": "PIPEWIRE_TIMING_UNIT_NORMALIZATION",
+      "path": "research/local_voice/findings/2026-09-02_TRIGGER7_G2_PIPEWIRE_TIMING_UNIT_NORMALIZATION_GPT56SOL.json",
+      "commit": "0222d2b3e4518eabac9bbdec5a57602c0124d4de",
+      "applies_to": ["PREDECLARED_LATENCY_BOUND_CAUSALITY","CANCEL_SOURCE_TIMELINE_CAUSALITY"],
+      "rule": "Normalize queued/app-rate + buffered/stream-samplerate + graph-delay/graph-rate in time before converting to source frames; ambiguous units fail closed."
+    },
+    {
+      "id": "PIPER_TRANSITIVE_ONNX_RUNTIME_IDENTITY",
+      "path": "research/local_voice/findings/2026-09-02_TRIGGER7_G2_PIPER_TRANSITIVE_RUNTIME_IDENTITY_GPT56SOL.json",
+      "commit": "3463b36f36e8dd791f71b7d8ad1031eed8e54dc5",
+      "applies_to": ["TTS_RUNTIME_IDENTITY"],
+      "rule": "Bind exact Piper distribution plus separately installed ONNX Runtime distribution/native identity and observed execution provider; interpreter identity remains auxiliary. Prefer explicit ONNX Runtime pin plus observed byte identity."
+    }
+  ],
   "repair_convergence": {
     "timing_blockers_share_one_primitive": ["PREDECLARED_LATENCY_BOUND_CAUSALITY","CANCEL_SOURCE_TIMELINE_CAUSALITY","CANCEL_ACTIVE_AUDIO_PROOF"],
     "preferred_if_no_existing_equivalent": "One minimal G2-test-only owned PipeWire pw_stream timing/playback actuator, subordinate to existing VoicePacketCortex cancellation authority, with exact pw_time/source-frame/stream-identity evidence plus independent monitor PCM readback.",
     "implementation_blueprint_details": [
-      "actual Piper distribution/native runtime identity separate from Python interpreter",
-      "causally-prior queued+buffered+graph/device timing bound",
+      "actual Piper distribution + transitive ONNX Runtime/provider identity separate from Python interpreter",
+      "causally-prior queued+buffered+graph/device timing bound with explicit rate/unit normalization",
       "exact monotonic cancel to source-frame mapping from the owned stream epoch",
       "immediate pre-cancel old-source active/correlated proof",
       "exact sample-space post-bound scan without +window semantic slack",
@@ -42,7 +58,14 @@
       "preserve H1-H5, causal Cortex delivery, replacement readback, object identity, packet non-commit and zero-credit fences"
     ]
   },
-  "trigger4_issue": {"number":912,"latest_trigger7_handoff_comment_id":5502999356,"handoff_status":"POSTED"},
+  "source_mutation_observation": {
+    "runtime_path": "trigger4/tools/local_voice/g2_pipewire_s2_runtime.py",
+    "latest_observed_runtime_file_commit": "822035e38f7c2f3111963cba026e180a0105ebcc",
+    "latest_runtime_commit_message": "trigger4: bind G2 Cortex cancel causally to playback",
+    "six_blocker_trigger4_repair_observed": false,
+    "interpretation": "V5 remains implementation debt; no claim that the six blockers are already source-closed."
+  },
+  "trigger4_issue": {"number":912,"latest_trigger7_handoff_comment_id":5502999356,"handoff_status":"POSTED_UPDATED_WITH_PRECISION_REFINEMENTS"},
   "stale_runtime_subjects": {
     "run_ids": [33554493024,33554578605,33563825582],
     "latest_direct_refresh": {"run_id":33563825582,"job_id":100042324179,"status":"queued","conclusion":null,"steps":null},
@@ -55,20 +78,20 @@
   },
   "do_not_do": [
     "Do not open G3 before G2 terminalizes.",
-    "Do not dispatch a fresh G2 S2 subject before all six repairs and R1-R12 or stricter equivalent focused regressions are closed and singleton ownership is refreshed.",
+    "Do not dispatch a fresh G2 S2 subject before all six repairs, precision refinements and R1-R12 or stricter equivalent focused regressions are closed and singleton ownership is refreshed.",
     "Do not compose stale queued/never-executed runtime subjects with repaired source.",
     "Do not create a second Voice/playback/cancel/analyzer/observer/state/effect/acceptance authority.",
     "Do not continue adjacent model/ASR/TTS breadth while this exact terminal G2 validity boundary is the highest-value blocker."
   ],
   "reentry_order": [
     "Refresh current frankenstein-2.0 main.",
-    "Consume Trigger4 changes touching the G2 analyzer/helper/guard/runtime/launcher/workflow after f5ca9303a6ad8c189453629bc0abad608652a8f6.",
-    "Audit any Trigger4 repair against all six V5 predicates and R1-R12 plus preservation fences.",
+    "Consume Trigger4 changes touching the G2 analyzer/helper/guard/runtime/launcher/workflow after this checkpoint.",
+    "Audit any Trigger4 repair against all six V5 predicates, both precision refinements, R1-R12-or-stricter and preservation fences.",
     "Confirm focused repository regressions are exact-source green; repository pass still grants zero S2 runtime credit.",
     "Refresh stale workflow singleton ownership and exact current repaired runtime subject.",
     "Only if all six are closed and singleton ownership is clear: allow exactly one fresh exact-source S2 G2 discriminator through Trigger4.",
     "Consume exact guarded terminal receipt and promote only measured virtual-sink/monitor/cancel scope."
   ],
-  "next_exact_gate": "Trigger4 implements the concrete six-blocker blueprint, proves R1-R12 or stricter equivalent focused regressions, reconciles stale runtime ownership, then executes exactly one fresh exact-source S2 PipeWire G2 run/readback if singleton ownership is clear.",
-  "why_trigger7_stops_at_this_boundary": "Trigger7 has completed current high-value research/falsification, primary-source timing verification, evidence-validity consolidation, implementation blueprint, handoff and continuation state. Actual F2 source mutation and promotion-bearing S2 execution are Trigger4 authority. More adjacent research now would increase breadth rather than shorten the path to terminal G2."
+  "next_exact_gate": "Trigger4 implements one coherent six-blocker repair including explicit timing-unit normalization and Piper+ONNX runtime identity, proves R1-R12 or stricter focused regressions, reconciles stale runtime ownership, then executes exactly one fresh exact-source S2 PipeWire G2 run/readback if singleton ownership is clear.",
+  "why_trigger7_stops_at_this_boundary": "Trigger7 has completed current high-value research/falsification, primary-source timing/runtime verification, evidence-validity consolidation, implementation blueprint, precision refinements, handoff and continuation state. Actual F2 source mutation and promotion-bearing S2 execution are Trigger4 authority. More adjacent research now would increase breadth rather than shorten the path to terminal G2."
 }
