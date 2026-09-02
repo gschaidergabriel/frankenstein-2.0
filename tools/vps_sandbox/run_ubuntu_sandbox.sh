@@ -5,7 +5,11 @@ set -Eeuo pipefail
 # the owner host, checkout and unrelated persistent state outside the writable boundary.
 # Auto mode prefers resource-bounded Podman/Docker. Use --backend nspawn when
 # closer systemd/userspace fidelity is required and the nspawn base is provisioned.
-
+#
+# --boot-systemd is an opt-in S2 mode. It boots the disposable nspawn clone with
+# systemd as PID 1, registers the machine only for the lifetime of the probe, and
+# executes the requested command through that live system manager. It never changes
+# the reusable base or the canonical checkout and is deliberately unavailable to OCI.
 backend="${F2_SANDBOX_BACKEND:-auto}"
 network="${F2_SANDBOX_NETWORK:-off}"
 cpus="${F2_SANDBOX_CPUS:-2}"
@@ -15,15 +19,17 @@ sandbox_root="$(readlink -m -- "${F2_SANDBOX_ROOT:-/var/tmp/frankenstein2-sandbo
 nspawn_base="$(readlink -m -- "${F2_NSPAWN_BASE_ROOT:-/var/lib/frankenstein2-sandbox-images/ubuntu-24.04-base}")"
 workspace="$(readlink -m -- "${F2_SANDBOX_SOURCE_ROOT:-${GITHUB_WORKSPACE:-$PWD}}")"
 name="f2-${GITHUB_RUN_ID:-manual}-${GITHUB_RUN_ATTEMPT:-1}-$$"
+boot_systemd=0
 
 usage() {
-  echo "usage: $0 [--backend auto|nspawn|podman|docker] [--network off|on] [--] command [args...]" >&2
+  echo "usage: $0 [--backend auto|nspawn|podman|docker] [--network off|on] [--boot-systemd] [--] command [args...]" >&2
 }
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --backend) backend="$2"; shift 2 ;;
     --network) network="$2"; shift 2 ;;
+    --boot-systemd) boot_systemd=1; shift ;;
     --) shift; break ;;
     -h|--help) usage; exit 0 ;;
     *) break ;;
@@ -48,7 +54,9 @@ case "$sandbox_root" in
 esac
 
 if [[ "$backend" == "auto" ]]; then
-  if command -v podman >/dev/null 2>&1; then
+  if [[ "$boot_systemd" == "1" ]] && command -v systemd-nspawn >/dev/null 2>&1 && [[ -d "$nspawn_base" ]]; then
+    backend="nspawn"
+  elif command -v podman >/dev/null 2>&1; then
     backend="podman"
   elif command -v docker >/dev/null 2>&1; then
     backend="docker"
@@ -61,6 +69,10 @@ if [[ "$backend" == "auto" ]]; then
 fi
 
 case "$backend" in nspawn|podman|docker) ;; *) echo "unsupported backend: $backend" >&2; exit 70 ;; esac
+if [[ "$boot_systemd" == "1" && "$backend" != "nspawn" ]]; then
+  echo "--boot-systemd requires --backend nspawn (S2)" >&2
+  exit 74
+fi
 
 mkdir -p -- "$sandbox_root"
 
@@ -120,12 +132,31 @@ run_nspawn() {
   local run_root="$sandbox_root/run-$name"
   local -a root_cmd=()
   [[ "$EUID" -eq 0 ]] || root_cmd=(sudo -n)
+  local nspawn_pid=""
+  local machine_registered=0
 
   "${root_cmd[@]}" mkdir -p -- "$run_root"
   # Copy-on-write where supported; otherwise a normal copy. The base image is never used as a writable test root.
   "${root_cmd[@]}" cp -a --reflink=auto "$nspawn_base/." "$run_root/"
 
-  cleanup_nspawn() { safe_remove_run_root "$run_root" || true; }
+  cleanup_nspawn() {
+    if [[ "$machine_registered" == "1" ]]; then
+      "${root_cmd[@]}" machinectl terminate "$name" >/dev/null 2>&1 || true
+      machine_registered=0
+    fi
+    if [[ -n "$nspawn_pid" ]]; then
+      for _ in $(seq 1 40); do
+        kill -0 "$nspawn_pid" >/dev/null 2>&1 || break
+        sleep 0.25
+      done
+      if kill -0 "$nspawn_pid" >/dev/null 2>&1; then
+        kill "$nspawn_pid" >/dev/null 2>&1 || true
+      fi
+      wait "$nspawn_pid" >/dev/null 2>&1 || true
+      nspawn_pid=""
+    fi
+    safe_remove_run_root "$run_root" || true
+  }
   trap 'cleanup_nspawn; cleanup_host_sentinel' EXIT
 
   local -a net_args=(--private-network)
@@ -135,20 +166,105 @@ run_nspawn() {
     net_args=(--network-veth)
   fi
 
-  "${root_cmd[@]}" systemd-nspawn \
-    --quiet \
-    --register=no \
-    --machine="$name" \
-    --directory="$run_root" \
-    "${net_args[@]}" \
-    --bind-ro="$workspace:/f2-src" \
-    /bin/bash -lc '
-      set -Eeuo pipefail
-      mkdir -p /work
-      cp -a /f2-src /work/f2
-      cd /work/f2
-      exec "$@"
-    ' bash "$@"
+  if [[ "$boot_systemd" == "0" ]]; then
+    "${root_cmd[@]}" systemd-nspawn \
+      --quiet \
+      --register=no \
+      --machine="$name" \
+      --directory="$run_root" \
+      "${net_args[@]}" \
+      --bind-ro="$workspace:/f2-src" \
+      /bin/bash -lc '
+        set -Eeuo pipefail
+        mkdir -p /work
+        cp -a /f2-src /work/f2
+        cd /work/f2
+        exec "$@"
+      ' bash "$@"
+  else
+    command -v machinectl >/dev/null 2>&1 || { echo "machinectl missing for --boot-systemd" >&2; exit 75; }
+    command -v systemd-run >/dev/null 2>&1 || { echo "systemd-run missing for --boot-systemd" >&2; exit 76; }
+
+    # Give each disposable clone its own machine identity. The reusable base must
+    # never accumulate a boot-derived identity that all future clones would share.
+    "${root_cmd[@]}" rm -f -- "$run_root/var/lib/dbus/machine-id"
+    "${root_cmd[@]}" sh -c ": > '$run_root/etc/machine-id'"
+
+    # Store the caller's argv as shell-escaped data in the disposable clone.
+    # This avoids re-parsing untrusted argv through an extra interpolation layer.
+    {
+      printf '%s\n' '#!/usr/bin/env bash' 'set -Eeuo pipefail' \
+        'mkdir -p /work' \
+        'rm -rf /work/f2' \
+        'cp -a /f2-src /work/f2' \
+        'cd /work/f2'
+      printf 'exec'
+      printf ' %q' "$@"
+      printf '\n'
+    } | "${root_cmd[@]}" tee "$run_root/root/f2-sandbox-entrypoint.sh" >/dev/null
+    "${root_cmd[@]}" chmod 0700 "$run_root/root/f2-sandbox-entrypoint.sh"
+
+    # Boot a real systemd PID 1 and register only this ephemeral machine so the
+    # host can execute the bounded command through the container's manager.
+    "${root_cmd[@]}" systemd-nspawn \
+      --quiet \
+      --boot \
+      --register=yes \
+      --machine="$name" \
+      --directory="$run_root" \
+      "${net_args[@]}" \
+      --bind-ro="$workspace:/f2-src" &
+    nspawn_pid=$!
+
+    local ready=0
+    local state=""
+    for _ in $(seq 1 120); do
+      if ! kill -0 "$nspawn_pid" >/dev/null 2>&1; then
+        wait "$nspawn_pid" || true
+        echo "booted nspawn exited before machine became ready" >&2
+        exit 77
+      fi
+      state="$("${root_cmd[@]}" machinectl show "$name" --property=State --value 2>/dev/null || true)"
+      if [[ "$state" == "running" ]]; then
+        ready=1
+        machine_registered=1
+        break
+      fi
+      sleep 0.25
+    done
+    [[ "$ready" == "1" ]] || { echo "booted nspawn did not reach running state" >&2; exit 78; }
+
+    local command_rc=0
+    set +e
+    "${root_cmd[@]}" systemd-run \
+      --quiet \
+      --machine="$name" \
+      --wait \
+      --pipe \
+      --collect \
+      /bin/bash /root/f2-sandbox-entrypoint.sh
+    command_rc=$?
+    set -e
+
+    # Request a clean shutdown first. cleanup_nspawn remains the fail-safe if it
+    # does not complete promptly.
+    "${root_cmd[@]}" machinectl poweroff "$name" >/dev/null 2>&1 || true
+    for _ in $(seq 1 40); do
+      kill -0 "$nspawn_pid" >/dev/null 2>&1 || break
+      sleep 0.25
+    done
+    if kill -0 "$nspawn_pid" >/dev/null 2>&1; then
+      "${root_cmd[@]}" machinectl terminate "$name" >/dev/null 2>&1 || true
+    fi
+    machine_registered=0
+    wait "$nspawn_pid" >/dev/null 2>&1 || true
+    nspawn_pid=""
+
+    if [[ "$command_rc" -ne 0 ]]; then
+      echo "booted nspawn command failed: rc=$command_rc" >&2
+      return "$command_rc"
+    fi
+  fi
 
   cleanup_nspawn
   trap cleanup_host_sentinel EXIT
@@ -170,6 +286,7 @@ printf '%s\n' \
   "backend=$backend" \
   "ubuntu_target=24.04" \
   "network=$network" \
+  "systemd_boot=$([[ "$boot_systemd" == "1" ]] && echo LIVE_PID1_MODE || echo DIRECT_COMMAND_MODE)" \
   "source_mount=READ_ONLY" \
   "sandbox_local_mutation=ALLOWED" \
   "host_survival_sentinel=PASS" \

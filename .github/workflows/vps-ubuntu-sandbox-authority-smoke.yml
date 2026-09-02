@@ -84,6 +84,32 @@ jobs:
               printf "SANDBOX_DESTRUCTIVE_MUTATION=PASS\\n"
             ' | tee /tmp/f2-sandbox-run.txt
 
+      - name: Boot real systemd PID1 in disposable S2 clone
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          bash tools/vps_sandbox/run_ubuntu_sandbox.sh --backend nspawn --network off --boot-systemd -- \
+            /bin/bash -lc '
+              set -Eeuo pipefail
+              . /etc/os-release
+              test "$ID" = ubuntu
+              test "$VERSION_ID" = 24.04
+              test "$(cat /proc/1/comm)" = systemd
+              state="$(systemctl is-system-running 2>/dev/null || true)"
+              case "$state" in
+                running|degraded|starting|maintenance) ;;
+                *) printf "unexpected-systemd-state=%s\\n" "$state" >&2; exit 81 ;;
+              esac
+              systemctl list-units --no-pager --no-legend >/dev/null
+              test -d /work/f2
+              test -d /f2-src
+              test ! -w /f2-src
+              printf "SANDBOX_SYSTEMD_PID1=PASS state=%s\\n" "$state"
+            ' | tee /tmp/f2-sandbox-systemd-run.txt
+          grep -q '^F2_SANDBOX_RESULT=PASS$' /tmp/f2-sandbox-systemd-run.txt
+          grep -q '^systemd_boot=LIVE_PID1_MODE$' /tmp/f2-sandbox-systemd-run.txt
+          grep -q 'SANDBOX_SYSTEMD_PID1=PASS' /tmp/f2-sandbox-systemd-run.txt
+
       - name: Emit bounded smoke receipt
         if: always()
         shell: bash
@@ -94,9 +120,17 @@ jobs:
           def read(path):
               p = pathlib.Path(path)
               return p.read_text(errors='replace') if p.exists() else ''
-          result = 'PASS' if 'F2_SANDBOX_RESULT=PASS' in read('/tmp/f2-sandbox-run.txt') else 'FAIL'
+          direct_log = read('/tmp/f2-sandbox-run.txt')
+          systemd_log = read('/tmp/f2-sandbox-systemd-run.txt')
+          direct_pass = 'F2_SANDBOX_RESULT=PASS' in direct_log
+          systemd_pass = (
+              'F2_SANDBOX_RESULT=PASS' in systemd_log
+              and 'systemd_boot=LIVE_PID1_MODE' in systemd_log
+              and 'SANDBOX_SYSTEMD_PID1=PASS' in systemd_log
+          )
+          result = 'PASS' if direct_pass and systemd_pass else 'FAIL'
           receipt = {
-              'schema': 'F2_VPS_UBUNTU_SANDBOX_SMOKE/v1',
+              'schema': 'F2_VPS_UBUNTU_SANDBOX_SMOKE/v2',
               'result': result,
               'source_sha': os.environ.get('GITHUB_SHA'),
               'workflow_run_id': int(os.environ.get('GITHUB_RUN_ID', '0')),
@@ -107,13 +141,17 @@ jobs:
               'target_userspace': 'Ubuntu 24.04 noble',
               'sandbox_tier': 'S2_NSPAWN',
               'checkout_mount': 'READ_ONLY',
-              'sandbox_local_destructive_mutation': result == 'PASS',
-              'host_survival_fence_observed': result == 'PASS',
+              'sandbox_local_destructive_mutation': direct_pass,
+              'systemd_pid1_boot_observed': systemd_pass,
+              'host_survival_fence_observed': direct_pass and systemd_pass,
               'network_mode': 'PRIVATE_OFFLINE',
               'physical_local_credit': 0,
+              'wp1202_target_twin_runtime_credit': 0,
               'whole_system_acceptance': False,
               'preflight_log': read('/tmp/f2-sandbox-preflight.txt'),
-              'sandbox_log': read('/tmp/f2-sandbox-run.txt'),
+              'sandbox_log': direct_log,
+              'systemd_sandbox_log': systemd_log,
+              'evidence_boundary': 'S2 sandbox authority/systemd-PID1 prerequisite only; no WP1202 target-twin, physical-host, completion or whole-system promotion',
           }
           pathlib.Path('/tmp/f2-vps-ubuntu-sandbox-smoke.json').write_text(json.dumps(receipt, indent=2, sort_keys=True) + '\n')
           print(json.dumps(receipt, sort_keys=True))
@@ -129,4 +167,8 @@ jobs:
 
       - name: Enforce smoke success
         shell: bash
-        run: grep -q '^F2_SANDBOX_RESULT=PASS$' /tmp/f2-sandbox-run.txt
+        run: |
+          set -Eeuo pipefail
+          grep -q '^F2_SANDBOX_RESULT=PASS$' /tmp/f2-sandbox-run.txt
+          grep -q '^F2_SANDBOX_RESULT=PASS$' /tmp/f2-sandbox-systemd-run.txt
+          grep -q 'SANDBOX_SYSTEMD_PID1=PASS' /tmp/f2-sandbox-systemd-run.txt

@@ -1,0 +1,49 @@
+{
+  "schema": "FRANKENSTEIN2_WORKPACKAGE_DELTA/v1",
+  "workpackage_id": "F2-WP-1202",
+  "generation": 5,
+  "claim_id": "F2-WP-1202-G5-GPT56SOL-S2-SYSTEMD-FIDELITY-20260901T1710Z",
+  "worker_id": "GPT-5.6-Sol-TRIGGER4",
+  "work_class": "INTEGRATION_BLOCKER",
+  "base_commit": "b73b8aebc0b83ea2882f6f0689a13077abb58e94",
+  "observed_parent_event": "workpackages/state_events/F2-WP-1202/000006.json",
+  "parent_runtime_scope": "BOUNDED_TARGET_ENVIRONMENT_COMPONENT_RUNTIME_WITH_7_EXPLICIT_FIDELITY_GAPS",
+  "blocking_deficit": "The admitted S2 helper executed an arbitrary command directly under systemd-nspawn without booting systemd as PID 1. Therefore the WP1202 systemd-system-manager/user-manager/session-DBus fidelity checks cannot be promoted from that surface without a higher-fidelity booted S2 discriminator.",
+  "implemented_delta": [
+    "extend the existing tools/vps_sandbox/run_ubuntu_sandbox.sh authority with opt-in --boot-systemd for nspawn only",
+    "reset machine identity only in each disposable run root",
+    "boot/register one ephemeral nspawn machine and execute the caller command through systemd-run",
+    "power off/terminate and remove the disposable machine/root before returning",
+    "preserve read-only canonical source mount and host-survival sentinel",
+    "add repository contract tests that reject --boot-systemd on OCI backends and lock cleanup/isolation invariants",
+    "add a real S2 systemd-PID1 smoke to the existing VPS sandbox authority workflow; it will execute only after canonical main receives the patch or a deliberate manual dispatch"
+  ],
+  "repository_validation_performed_before_push": [
+    "bash -n on the candidate run_ubuntu_sandbox.sh: PASS",
+    "--help exposes --boot-systemd: PASS",
+    "explicit docker + --boot-systemd rejects with rc=74 before execution: PASS"
+  ],
+  "runtime_execution_observed": false,
+  "runtime_subject_status": "NOT_DISPATCHED",
+  "failure_class": null,
+  "credit": {
+    "repository_component": 0,
+    "target_environment_component_runtime": 0,
+    "target_twin_runtime": 0,
+    "vps_runtime": 0,
+    "physical_target": 0,
+    "grid10": 0,
+    "gwt_jspace": 0,
+    "effect": 0,
+    "training": 0,
+    "completion": 0,
+    "whole_system_acceptance": false
+  },
+  "explicit_nonclaims": [
+    "no WP1202 fidelity gap is closed by this source delta alone",
+    "no self-hosted runtime was dispatched from the claim branch",
+    "no physical/local workstation execution occurred",
+    "no full target-twin, VPS-wide, physical, GRID10, GWT/J-Space, effect, training, completion or whole-system credit"
+  ],
+  "next_exact_action": "Run repository PR CI. If the branch is still dependency-correct and the existing self-hosted Trigger-4 runtime queue is clear, merge the prerequisite, let the existing VPS sandbox authority smoke execute exactly one booted S2 systemd discriminator, classify its result, and only then decide whether a separate WP1202 target-readback run can close the systemd-system-manager fidelity gap."
+}
