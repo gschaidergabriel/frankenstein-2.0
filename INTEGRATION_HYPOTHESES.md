@@ -206,7 +206,7 @@ round with its own owner sign-off naming the specific target instance.
 | H13 | governance | **offen** | Does repaired G10 portable-transaction source inherit G9's acceptance credit, or does it need wholly fresh runtime-integration evidence? | independent reviewer / Gabriel decision on `canonicalization_proposal.json`, referencing the G6/G9/G10 chain. |
 | `host_identity_sha256` real scheme | design | **offen, unverändert seit F-ITER1** | Every run to date uses `/etc/machine-id` as an explicitly test-scoped stand-in. No real scheme has ever been proposed by any agent — correctly left as an owner decision, not invented ad hoc. | Gabriel/coordinator decision needed before any `StateLineage` work can start. |
 | `StateLineage`/migration plan | design | **nicht begonnen, blockiert** | Constructing `StateLineage`/`StateMigrationRequest`/`StateMigrationPlan` requires a real `lineage_id`/`generation`/`state_sha256` scheme for `unified.db` and a real `target_root` — every round through F-ITER3 has explicitly declined to invent this without authorization. | same as above — owner decision on the identity/lineage scheme is the blocking prerequisite. |
-| GRID10 / `StateRootIdentity` wiring into v1 | design | **nicht begonnen** | F-ITER1–3 prove GRID10 and `StateRootIdentity` are structurally safe/portable to *look at* against real v1 state — nothing calls either from v1 `stern.py`, and no round has proposed which v1 concept (if any) should map onto GRID10's ten logical cells. | coordinator/owner design decision on whether/how v1 should adopt either module. |
+| GRID10 / `StateRootIdentity` wiring into v1 | design | **Vorschlag existiert, ungetestet gegen Live-System, wartet auf Owner-Review vor jedem echten Deployment (2026-09-03)** | Package `paket-1788388214637-d765a9` built an opt-in, default-OFF `f2wp1207-wiring-diagnose` subcommand in a **fresh clone** of `gschaidergabriel/frankenstein` (never `~/frankenstein-repo`, the live checkout every running session's `CLAUDE_PLUGIN_ROOT` resolves to) — activation only via `STERN_F2WP1207_WIRING=1` env var (deliberately not a `unified.db` config key, unlike the existing `kognition.aktiv`-style kill-switch pattern), no-op otherwise. When active it reuses the exact F-ITER2 (`StateRootIdentity`, read-only against the real v1 DB path) and F-ITER3 (GRID10, synthetic ten-cell exercise) logic directly inside `stern.py`. 0-delta proven via `--help` diff (150→151 subcommands, only the new line differs) and before/after `db-pfad-zeigen` output. No v1 concept mapped to any GRID10 cell — still an open design question. | coordinator/owner design decision on whether/how v1 should adopt either module, PLUS an explicit owner sign-off before ever setting `STERN_F2WP1207_WIRING=1` against the real running `~/frankenstein-repo`/`unified.db`. Branch `self-integration/wp1207-v1-wiring-proposal-20260903T053400Z` (commit `917cb9e`) in `gschaidergabriel/frankenstein`, pushed, not merged. Details: `gschaidergabriel/self-integration` `log/2026-09-03-012-v1-wiring-proposal.md`. |
 
 ---
 
@@ -226,9 +226,15 @@ made about itself plus the open items above — not a new invention:
 3. **A real `lineage_id`/`generation`/`state_sha256` scheme for `unified.db` and a
    real `target_root`** — without these, no `StateLineage`/migration-plan work can
    start; every round has correctly declined to invent one.
-4. **No wiring of any v2 self-integration primitive into v1's actual `stern.py`.**
-   `StateRootIdentity` and GRID10 are both proven structurally safe to *approach*
-   read-only against real v1 state (F-ITER1–3) — neither is called from v1 anywhere.
+4. **No wiring of any v2 self-integration primitive into v1's actual `stern.py`
+   has been activated against a live system.** `StateRootIdentity` and GRID10 are
+   both proven structurally safe to *approach* read-only against real v1 state
+   (F-ITER1–3). **2026-09-03 update:** a default-OFF wiring *proposal* now exists
+   (`f2wp1207-wiring-diagnose` subcommand, gated on `STERN_F2WP1207_WIRING=1`,
+   built and pushed on a branch of a fresh clone — never touching the live
+   `~/frankenstein-repo` checkout or `main`) — see the Part 4 table row above.
+   It has never been activated against a real running v1 instance; that remains
+   entirely an owner decision.
 5. **v1's local harness (`~/.claude/star/`) has no real release/update boundary at
    all** (H1v1/H2v1 = FAIL) — before any transaction layer could wrap it, one would
    first need to be built (a genuine pull/deploy path with version pinning; today
