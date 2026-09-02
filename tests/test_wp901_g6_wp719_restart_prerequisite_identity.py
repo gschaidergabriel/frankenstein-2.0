@@ -102,21 +102,7 @@ def _predecessor_and_reentry() -> tuple[VoiceSessionCapsule, VoiceHeardResultRee
     return session, receipt
 
 
-def test_accepted_wp901_g6_receipt_identity_is_preserved_by_wp719_prerequisite_binding() -> None:
-    receipt_path = Path(__file__).resolve().parents[1] / WP901_G6_RECEIPT_REF
-    receipt_bytes = receipt_path.read_bytes()
-    restart_receipt = json.loads(receipt_bytes)
-    restart_sha256 = hashlib.sha256(receipt_bytes).hexdigest()
-
-    assert restart_receipt["workpackage_id"] == "F2-WP-901"
-    assert restart_receipt["workpackage_generation"] == 6
-    assert restart_receipt["workflow_run_id"] == 33539469356
-    assert restart_receipt["workflow_job_id"] == 99961834959
-    assert restart_receipt["execution_observed"] is True
-    assert restart_receipt["source_identity_verified"] is True
-    assert restart_receipt["g6_rollback_lineage_head_target_runtime_credit"] == 1
-    assert restart_receipt["whole_system_acceptance"] is False
-
+def _project_with_restart_identity(restart_ref: str, restart_sha256: str):
     predecessor, reentry = _predecessor_and_reentry()
     fresh_intent = predecessor.session_causal_identity.derive(
         causal_id="causal-fresh-intent-wp901-wp719",
@@ -128,8 +114,7 @@ def test_accepted_wp901_g6_receipt_identity_is_preserved_by_wp719_prerequisite_b
         generation=fresh_intent.generation + 1,
         turn_id="turn-fresh-session-wp901-wp719",
     )
-
-    _intent, _session, projection = project_fresh_turn(
+    return project_fresh_turn(
         predecessor_session=predecessor,
         predecessor_reentry=reentry,
         predecessor_reentry_sha256=reentry.sha256(),
@@ -140,11 +125,33 @@ def test_accepted_wp901_g6_receipt_identity_is_preserved_by_wp719_prerequisite_b
         expected_gwt_binding_id=None,
         expected_gwt_binding_sha256=None,
         expected_memory_evidence_sha256=memory_evidence_sha256(reentry),
-        prerequisite_restart_receipt_ref=WP901_G6_RECEIPT_REF,
+        prerequisite_restart_receipt_ref=restart_ref,
         prerequisite_restart_receipt_sha256=restart_sha256,
         provenance_refs=("test:F2-WP-901->F2-WP-719",),
     )
 
+
+def test_accepted_wp901_g6_receipt_identity_is_preserved_as_opaque_wp719_binding() -> None:
+    receipt_path = Path(__file__).resolve().parents[1] / WP901_G6_RECEIPT_REF
+    receipt_bytes = receipt_path.read_bytes()
+    restart_receipt = json.loads(receipt_bytes)
+    restart_sha256 = hashlib.sha256(receipt_bytes).hexdigest()
+
+    # These semantic/runtime checks happen outside WP719. They establish which
+    # exact receipt this test supplies; WP719 itself binds only ref + digest.
+    assert restart_receipt["workpackage_id"] == "F2-WP-901"
+    assert restart_receipt["workpackage_generation"] == 6
+    assert restart_receipt["workflow_run_id"] == 33539469356
+    assert restart_receipt["workflow_job_id"] == 99961834959
+    assert restart_receipt["execution_observed"] is True
+    assert restart_receipt["source_identity_verified"] is True
+    assert restart_receipt["g6_rollback_lineage_head_target_runtime_credit"] == 1
+    assert restart_receipt["whole_system_acceptance"] is False
+
+    _intent, _session, projection = _project_with_restart_identity(
+        WP901_G6_RECEIPT_REF,
+        restart_sha256,
+    )
     assert projection.prerequisite_restart_receipt_ref == WP901_G6_RECEIPT_REF
     assert projection.prerequisite_restart_receipt_sha256 == restart_sha256
     projected = projection.as_dict()
@@ -153,3 +160,21 @@ def test_accepted_wp901_g6_receipt_identity_is_preserved_by_wp719_prerequisite_b
     assert projected["jspace_runtime_credit"] == 0
     assert projected["effect_credit"] == 0
     assert projected["whole_system_acceptance"] is False
+
+
+def test_wp719_prerequisite_boundary_does_not_semantically_validate_wp901_receipt() -> None:
+    # Adversarial discriminator: the current admitted WP719 contract explicitly
+    # validates/binds only an opaque non-empty ref and a lowercase 64-hex digest.
+    # A non-WP901 identity therefore projects successfully. This is a bounded
+    # characterization, not a request to invent a second receipt authority.
+    arbitrary_ref = "review-falsifier:not-a-wp901-receipt"
+    arbitrary_sha256 = "a" * 64
+
+    _intent, _session, projection = _project_with_restart_identity(
+        arbitrary_ref,
+        arbitrary_sha256,
+    )
+
+    assert projection.prerequisite_restart_receipt_ref == arbitrary_ref
+    assert projection.prerequisite_restart_receipt_sha256 == arbitrary_sha256
+    assert projection.as_dict()["whole_system_acceptance"] is False
