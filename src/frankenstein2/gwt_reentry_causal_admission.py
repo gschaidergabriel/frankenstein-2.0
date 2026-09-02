@@ -6,10 +6,14 @@ bound. A separately sealed event-source range can contradict a caller-negative
 candidate, but repository construction of that range does *not* prove that its
 recorder was operationally independent from the condition-aware caller.
 
-Therefore this repository module never mints causal-negative credit from a
-range receipt alone. A future target-runtime promotion must bind the exact range
-recorder to an independently controlled upstream event source through external
-runtime evidence/reconciliation. FACTORY_ORIGIN != INDEPENDENT_SOURCE_PROVENANCE.
+GWT event classification inside the single range authority is derived only from
+a factory-valid ``GwtRuntimeWitnessReceipt``. Callers cannot provide event-kind,
+reentry-key, binding or recipient metadata directly. They can still omit a real
+witness from a public recorder, so range absence remains UNKNOWN/zero-credit
+until target-runtime evidence binds this recorder to an independently controlled
+upstream source and reads the range back.
+
+FACTORY_ORIGIN != INDEPENDENT_SOURCE_PROVENANCE.
 """
 from __future__ import annotations
 
@@ -25,6 +29,11 @@ from frankenstein2.gwt_reentry_observation_window import (
     REENTRY_OBSERVED,
     ReentryObservationWindowReceipt,
     validate_reentry_observation_window,
+)
+from frankenstein2.gwt_runtime_witness import (
+    GwtRuntimeWitnessError,
+    GwtRuntimeWitnessReceipt,
+    validate_gwt_runtime_witness_receipt,
 )
 
 CAUSAL_REENTRY_ADMISSION_SCHEMA = "FRANKENSTEIN2_GWT_CAUSAL_REENTRY_ADMISSION/v3"
@@ -49,7 +58,7 @@ _SOURCE_RANGE_FACTORY = object()
 
 
 class IndependentRangeError(ValueError):
-    """Fail-closed independent source-range validation error."""
+    """Fail-closed source-range validation error."""
 
 
 def _text(name: str, value: Any) -> str:
@@ -101,34 +110,33 @@ def _digest(value: Any) -> str:
 class IndependentEventSourceEvent:
     source_sequence: int
     observed_monotonic_ns: int
-    event_kind: str
     payload_sha256: str
-    canonical_reentry_key_sha256: str | None = None
-    binding_sha256: str | None = None
-    recipient_cell_id: str | None = None
+    runtime_witness: GwtRuntimeWitnessReceipt | None = None
     _factory_seal: object | None = field(default=None, repr=False, compare=False, hash=False)
+    _factory_payload_sha256: str | None = field(default=None, repr=False, compare=False, hash=False)
 
     def __post_init__(self) -> None:
         _positive_int("source_sequence", self.source_sequence)
         _positive_int("observed_monotonic_ns", self.observed_monotonic_ns)
-        if self.event_kind not in {SOURCE_EVENT_OTHER, SOURCE_EVENT_GWT_REENTRY}:
-            raise IndependentRangeError("unsupported independent source event kind")
         object.__setattr__(self, "payload_sha256", _sha256("payload_sha256", self.payload_sha256))
-        if self.event_kind == SOURCE_EVENT_GWT_REENTRY:
-            if self.canonical_reentry_key_sha256 is None or self.binding_sha256 is None or self.recipient_cell_id is None:
-                raise IndependentRangeError("GWT_REENTRY event requires key, binding and recipient")
-            object.__setattr__(
-                self,
-                "canonical_reentry_key_sha256",
-                _sha256("canonical_reentry_key_sha256", self.canonical_reentry_key_sha256),
-            )
-            object.__setattr__(self, "binding_sha256", _sha256("binding_sha256", self.binding_sha256))
-            object.__setattr__(self, "recipient_cell_id", _text("recipient_cell_id", self.recipient_cell_id))
-        elif any(
-            value is not None
-            for value in (self.canonical_reentry_key_sha256, self.binding_sha256, self.recipient_cell_id)
-        ):
-            raise IndependentRangeError("OTHER event cannot carry reentry identity fields")
+        if self.runtime_witness is not None and type(self.runtime_witness) is not GwtRuntimeWitnessReceipt:
+            raise IndependentRangeError("runtime_witness must be exact GwtRuntimeWitnessReceipt or None")
+
+    @property
+    def event_kind(self) -> str:
+        return SOURCE_EVENT_GWT_REENTRY if self.runtime_witness is not None else SOURCE_EVENT_OTHER
+
+    @property
+    def canonical_reentry_key_sha256(self) -> str | None:
+        return None if self.runtime_witness is None else self.runtime_witness.canonical_reentry_key
+
+    @property
+    def binding_sha256(self) -> str | None:
+        return None if self.runtime_witness is None else self.runtime_witness.binding_sha256
+
+    @property
+    def recipient_cell_id(self) -> str | None:
+        return None if self.runtime_witness is None else self.runtime_witness.recipient_cell_id
 
     def as_dict(self) -> dict[str, Any]:
         return {
@@ -136,6 +144,7 @@ class IndependentEventSourceEvent:
             "observed_monotonic_ns": self.observed_monotonic_ns,
             "event_kind": self.event_kind,
             "payload_sha256": self.payload_sha256,
+            "runtime_witness_sha256": None if self.runtime_witness is None else self.runtime_witness.sha256(),
             "canonical_reentry_key_sha256": self.canonical_reentry_key_sha256,
             "binding_sha256": self.binding_sha256,
             "recipient_cell_id": self.recipient_cell_id,
@@ -262,9 +271,9 @@ class IndependentEventSourceRangeReceipt:
 class IndependentEventSourceRangeRecorder:
     """Append-only structural range recorder.
 
-    Important: possession of this public recorder is *not* proof of operational
-    independence. Its receipts are candidate evidence only until target-runtime
-    wiring proves the recorder is upstream of condition-aware logic.
+    Possession of this public recorder is not proof of operational independence.
+    Its receipts are candidate evidence until target-runtime wiring proves the
+    recorder is upstream of condition-aware logic.
     """
 
     def __init__(
@@ -299,24 +308,25 @@ class IndependentEventSourceRangeRecorder:
         *,
         source_sequence: int,
         observed_monotonic_ns: int,
-        event_kind: str,
         payload_sha256: str,
-        canonical_reentry_key_sha256: str | None = None,
-        binding_sha256: str | None = None,
-        recipient_cell_id: str | None = None,
+        runtime_witness: GwtRuntimeWitnessReceipt | None = None,
     ) -> None:
+        """Record a typed source event; GWT classification is witness-derived only."""
         if self._sealed:
             raise IndependentRangeError("source range recorder is sealed")
+        if runtime_witness is not None:
+            try:
+                validate_gwt_runtime_witness_receipt(runtime_witness)
+            except GwtRuntimeWitnessError as exc:
+                raise IndependentRangeError(f"invalid runtime witness origin: {exc}") from exc
         event = IndependentEventSourceEvent(
             source_sequence=source_sequence,
             observed_monotonic_ns=observed_monotonic_ns,
-            event_kind=event_kind,
             payload_sha256=payload_sha256,
-            canonical_reentry_key_sha256=canonical_reentry_key_sha256,
-            binding_sha256=binding_sha256,
-            recipient_cell_id=recipient_cell_id,
+            runtime_witness=runtime_witness,
             _factory_seal=_SOURCE_EVENT_FACTORY,
         )
+        object.__setattr__(event, "_factory_payload_sha256", _digest(event.as_dict()))
         if event.observed_monotonic_ns < self._window_start_monotonic_ns:
             raise IndependentRangeError("source event predates observation window")
         if self._events:
@@ -384,6 +394,16 @@ def validate_independent_event_source_range(value: IndependentEventSourceRangeRe
         raise IndependentRangeError("independent source range lacks recorder origin")
     if value._factory_payload_sha256 != _digest(value.as_dict()):
         raise IndependentRangeError("independent source range changed after seal")
+    for event in value.events:
+        if event._factory_seal is not _SOURCE_EVENT_FACTORY:
+            raise IndependentRangeError("source event lacks recorder origin")
+        if event._factory_payload_sha256 != _digest(event.as_dict()):
+            raise IndependentRangeError("source event changed after record")
+        if event.runtime_witness is not None:
+            try:
+                validate_gwt_runtime_witness_receipt(event.runtime_witness)
+            except GwtRuntimeWitnessError as exc:
+                raise IndependentRangeError(f"invalid embedded runtime witness: {exc}") from exc
 
 
 @dataclass(frozen=True, slots=True, kw_only=True)
@@ -507,28 +527,30 @@ def _range_contains_expected_reentry(
     observation: ReentryObservationWindowReceipt,
     source_range: IndependentEventSourceRangeReceipt,
 ) -> bool:
-    identity = observation.identity
-    return any(
-        event.event_kind == SOURCE_EVENT_GWT_REENTRY
-        and event.canonical_reentry_key_sha256 == identity.expected_reentry_key_sha256
-        and event.binding_sha256 == identity.expected_reentry_binding_sha256
-        and event.recipient_cell_id == identity.expected_recipient_cell_id
-        for event in source_range.events
-    )
+    expected = observation.identity
+    for event in source_range.events:
+        witness = event.runtime_witness
+        if witness is None:
+            continue
+        identity = witness.identity
+        if (
+            identity.exact_source_sha256 == expected.exact_source_sha256
+            and identity.boot_id_sha256 == expected.boot_id_sha256
+            and identity.runtime_instance_id == expected.runtime_instance_id
+            and identity.process_identity == expected.process_identity
+            and witness.canonical_reentry_key == expected.expected_reentry_key_sha256
+            and witness.binding_sha256 == expected.expected_reentry_binding_sha256
+            and witness.recipient_cell_id == expected.expected_recipient_cell_id
+        ):
+            return True
+    return False
 
 
 def admit_reentry_observation_with_independent_range(
     observation: ReentryObservationWindowReceipt,
     source_range: IndependentEventSourceRangeReceipt,
 ) -> CausalReentryAdmission:
-    """Cross-check a candidate range without treating its factory seal as independence.
-
-    A matching re-entry can conservatively contradict a negative claim. Absence
-    in this repository-constructible range remains unproven and earns zero
-    causal-negative credit until exact target runtime evidence establishes that
-    the recorder was source-owned/upstream and unavailable to condition-aware
-    caller self-certification.
-    """
+    """Cross-check a candidate range without treating its factory seal as independence."""
     validate_reentry_observation_window(observation)
     validate_independent_event_source_range(source_range)
 
