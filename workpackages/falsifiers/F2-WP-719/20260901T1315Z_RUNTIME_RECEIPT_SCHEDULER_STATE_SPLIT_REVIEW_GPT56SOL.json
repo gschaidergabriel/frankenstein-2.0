@@ -1,0 +1,63 @@
+{
+  "schema": "FRANKENSTEIN2_REVIEW_FALSIFIER/v1",
+  "workpackage_id": "F2-WP-719",
+  "classification": "REVIEW_ONLY_EXECUTABLE_CONTROL_PLANE_COUNTEREVIDENCE",
+  "review_worker": "GPT-5.6-Sol-INTEGRATION-CLOSER",
+  "observed_main_commit": "3f33980ab720c7cf52972d357d5e88e17786081c",
+  "selected_boundary": "already-executed repaired-subject WP719 controller receipt -> canonical WP719 active-pointer/scheduler admission",
+  "canonical_mutation_owner_preserved": true,
+  "active_pointer": {
+    "path": "workpackages/active/F2-WP-719.json",
+    "blob_sha": "f2b61793a1ddd2d74240f14dd926555765eab18c",
+    "state": "ACTIVE",
+    "target_environment_component_runtime_credit": 0,
+    "selected_direct_run_id": 33430782666,
+    "selected_direct_job_id": 99615371746,
+    "selected_direct_status": "PENDING"
+  },
+  "executed_controller_evidence": {
+    "controller_repository": "gschaidergabriel/Dr.-Unterweger",
+    "controller_commit": "fe21c92e837967a0392b8a399c316f72535e39d8",
+    "workflow_run_id": 33497226280,
+    "job_id": 99822096718,
+    "evidence_commit": "e92c8dd133d33d90e363ce2e4326ab58e64425c0",
+    "exact_f2_subject": "64b7fb92cca8ddc2e541d617f9af7ebd9bbeb9b8",
+    "result": "EXECUTED_NO_COUNTEREXAMPLE",
+    "bounded_runtime_credit_available": 1
+  },
+  "current_direct_scheduler_observation": {
+    "workflow_run_id": 33430782666,
+    "job_id": 99615371746,
+    "status": "queued",
+    "conclusion": null,
+    "runner_id": 0,
+    "runner_name": "",
+    "executed_steps": 0,
+    "observed_at_main_refresh": "2026-09-01T13:15:00Z"
+  },
+  "counterevidence": {
+    "split_state": true,
+    "description": "Main contains an append-only WP719 delta proposing target_environment_component_runtime_credit=1 from the terminal controller receipt, while the canonical active pointer remains ACTIVE with credit=0 and still treats a separate queued direct-F2 job as the selected singleton. The queued job has runner_id=0 and zero executed steps.",
+    "unsafe_promotion_condition": "Do not treat the controller receipt as canonically promoted while the active pointer still declares the direct queued singleton authoritative unless the canonical owner explicitly supersedes/cancels that scheduler lane or waits for it to terminalize.",
+    "product_negative": false
+  },
+  "required_canonical_discriminator": {
+    "option_a": "Canonical owner explicitly retires/supersedes the queued direct singleton and atomically reconciles active pointer + reconciliation/state event to the already-executed controller receipt.",
+    "option_b": "Keep canonical target runtime credit at 0 until the original direct singleton terminalizes, then reconcile exactly one authoritative receipt.",
+    "forbidden": [
+      "new runtime dispatch",
+      "second scheduler",
+      "product-semantic mutation to compensate for scheduler state",
+      "broad runtime/completion promotion"
+    ]
+  },
+  "credit": {
+    "new_runtime_credit": 0,
+    "new_target_environment_credit": 0,
+    "gwt_runtime_credit": 0,
+    "jspace_runtime_credit": 0,
+    "effect_credit": 0,
+    "completion_credit": 0,
+    "whole_system_acceptance": false
+  }
+}
