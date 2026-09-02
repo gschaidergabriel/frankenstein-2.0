@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import multiprocessing
+import os
 from pathlib import Path
 import sqlite3
 import sys
@@ -120,6 +121,31 @@ class CanonicalDeliveryStoreTests(unittest.TestCase):
                 fingerprint=fingerprint,
             )
         other.close()
+
+    def test_live_writer_fails_closed_if_canonical_db_inode_is_replaced(self):
+        store = _open_store(self.db_path, self.home)
+        replacement_path = str(Path(self.tmp.name) / "replacement.db")
+        replacement = sqlite3.connect(replacement_path)
+        replacement.execute("CREATE TABLE bootstrap_identity(seed INTEGER NOT NULL)")
+        replacement.commit()
+        replacement.close()
+
+        os.replace(replacement_path, self.db_path)
+
+        with self.assertRaisesRegex(
+            DeliveryStoreError, "UNIFIEDDB_LIVE_FILE_IDENTITY_DRIFT"
+        ):
+            store.apply(
+                _identity(), _transition("transition:offer-drift", DeliveryOperation.OFFER)
+            )
+        store.close()
+
+        replacement = sqlite3.connect(self.db_path)
+        delivery_tables = replacement.execute(
+            "SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name='f2_recipient_deliveries'"
+        ).fetchone()[0]
+        replacement.close()
+        self.assertEqual(delivery_tables, 0)
 
     def test_offer_ack_persists_across_reopen(self):
         store = _open_store(self.db_path, self.home)
