@@ -1,0 +1,77 @@
+{
+  "schema": "FRANKENSTEIN2_RESEARCH_INBOX/v1",
+  "status": "CANDIDATE_FALSIFIER",
+  "mutation_authority": false,
+  "trigger": "4",
+  "producer": "GPT-5.6-Sol-TRIGGER4-REVIEW",
+  "created_at_utc": "2026-09-02T00:22:51Z",
+  "title": "WP900 G8 negative reentry evidence requires a complete condition-blind trace",
+  "target": "F2-WP-900 generation 8 independent reentry evidence binder",
+  "active_claim_id": "F2-WP-900-G8-GPT56SOL-INDEPENDENT-REENTRY-EVIDENCE-20260902",
+  "work_class": "CANDIDATE_FALSIFIER",
+  "nonduplicate_delta": "Existing G8 review already requires a bounded condition-blind absence observer and UNKNOWN for aborted/incomplete observation. This packet narrows the remaining validity condition: a closed window is still not negative evidence unless the event stream itself proves completeness/no-loss across that window.",
+  "evidence_refs": [
+    "workpackages/active/F2-WP-900.json",
+    "src/frankenstein2/gwt_runtime_witness.py",
+    "src/frankenstein2/gwt_causal_runtime_readback.py",
+    "workpackages/research_inbox/EVIDENCE_RECONCILIATION_WP900_G8_G4_CONTROL_FALSE_HARDCODED_JOB99939804039_2026-09-02.json",
+    "research/gwt/falsifiers/2026-09-02_T4_WP900_G8_REENTRY_SEMANTIC_TAUTOLOGY_FENCE_GPT56SOL.json"
+  ],
+  "material_observation": {
+    "known_positive": "The intervention side has recorder-origin positive reentry evidence.",
+    "known_negative_defect": "Executed G4 control produced reentry_observed=false as a literal assertion rather than by a condition-blind absence observer.",
+    "additional_deficit": "Replacing the literal with a closed observation window is still insufficient unless the observer proves that the event stream covering that window was complete. No matching event observed can mean genuine absence, dropped events, observer crash, buffer overflow, late subscription, filter mismatch, clock/window mismatch, or trace truncation."
+  },
+  "falsifier_hypothesis": "A negative REENTRY_OBSERVED result is admissible only when the same condition-blind observer ABI used for both arms closes a bounded window and separately proves observation completeness for that window. Without completeness evidence, negative reentry must remain UNKNOWN rather than false.",
+  "counterhypothesis": "A closed monotonic-time window with no matching event is enough by itself. This is rejected whenever the observer can miss events without the miss becoming part of the evidence record.",
+  "required_observation_abi": {
+    "condition_blind_inputs_only": [
+      "exact source identity",
+      "boot identity",
+      "execution-context identity",
+      "task/probe identity",
+      "observer/filter identity",
+      "window start and end monotonic coordinates",
+      "raw trace/event-stream digest"
+    ],
+    "must_not_accept": [
+      "arm label",
+      "broadcast-present flag",
+      "expected reentry boolean",
+      "expected semantic result"
+    ],
+    "completeness_proof": [
+      "observer started before the admitted window opened",
+      "observer remained live until after the window closed",
+      "trace source sequence/range is contiguous or an equivalent no-gap invariant is proven",
+      "dropped-event/overflow counter is observed and equals zero",
+      "filter/schema identity is fixed before the window and hash-bound",
+      "window clock domain is identical to or explicitly mapped to the event clock domain",
+      "trace finalization/readback proves the captured digest covers the closed window",
+      "observer shutdown/crash/truncation before finalization yields UNKNOWN"
+    ]
+  },
+  "hard_negatives": [
+    "No reentry event + dropped_event_count > 0 => UNKNOWN, never false.",
+    "No reentry event + observer starts after window start => UNKNOWN.",
+    "No reentry event + observer exits before window end/finalization => UNKNOWN.",
+    "No reentry event + sequence gap/trace truncation => UNKNOWN.",
+    "No reentry event + mismatched filter/schema/clock identity => UNKNOWN.",
+    "A complete trace with one matching reentry event => true independent of arm label.",
+    "A complete trace with zero matching reentry events => false independent of arm label.",
+    "Swapping treatment labels while preserving the same complete traces must not change the observed boolean."
+  ],
+  "scope_fence": {
+    "g8_if_passed": "NONCIRCULAR_MECHANISM_REENTRY_OBSERVATION_CANDIDATE_ONLY",
+    "semantic_content_gwt": 0,
+    "jspace_semantic_authority": 0,
+    "effect": 0,
+    "training": 0,
+    "completion": 0,
+    "whole_system": 0,
+    "reason": "Even a complete condition-blind reentry trace establishes mechanism occurrence/absence only; semantic-content causality still requires a content-matched/sham treatment and independent task-semantic outcome readback."
+  },
+  "failure_class_if_ignored": "EVIDENCE_INVALID",
+  "product_negative": false,
+  "next_exact_action": "Active G8 owner should make negative-event absence fail closed on trace incompleteness and add observer-liveness/gap/overflow/window hard negatives before repository acceptance. If the current runtime lacks a trace source that can prove completeness, G8 must stay UNKNOWN on the control side rather than infer false."
+}
