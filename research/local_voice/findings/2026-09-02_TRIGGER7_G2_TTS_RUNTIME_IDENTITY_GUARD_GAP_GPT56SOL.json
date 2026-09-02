@@ -1,0 +1,74 @@
+{
+  "schema": "F2_TRIGGER7_RESEARCH_FINDING/v1",
+  "trigger": "7",
+  "producer": "GPT-5.6-Sol",
+  "date": "2026-09-02",
+  "research_id": "T7-20260902-G2-TTS-RUNTIME-IDENTITY-GUARD-GAP",
+  "semantic_key": "0d83f7d13c1d8f91686cf94070f73d901a49018b40a9c058d1949af094655bff",
+  "work_class": "EVIDENCE_VALIDITY_REVIEW_ONLY",
+  "product_mutation_authority": "TRIGGER4_ONLY",
+  "observed_main_before_write": "cab86e02e80d374469cfd8e8780e72bbbfe0761b",
+  "observed_current_files": {
+    "benchmark": "research/local_voice/benchmarks/2026-09-02_TRIGGER7_COMPLETION_DEPTH_G2.json",
+    "benchmark_blob_sha": "ec8a6a96c9a30b17748214ef1ccd6cae4f7d74ca",
+    "guard": "trigger4/tools/local_voice/g2_required_observables_guard.py",
+    "guard_blob_sha": "1ba16c85869bed5d7caef46c73a8bffe7a3905c6"
+  },
+  "finding": {
+    "class": "EVIDENCE_INVALID_FALSE_GREEN_RISK",
+    "severity": "HIGH_FOR_TERMINAL_G2_ACCEPTANCE",
+    "benchmark_requirement": "The canonical G2 benchmark requires tts_runtime_binary_sha256 and its preflight says to bind the exact local TTS runtime/binary/model hashes before playback.",
+    "current_guard_behavior": "build_required_observables resolves sys.executable and assigns sha256(sys.executable) to tts_runtime_binary_sha256. It separately computes distribution_manifest_sha256('piper-tts') into tts_runtime_package_manifest_sha256, but that package-manifest field is not in REQUIRED_NAMES and validate_required does not require or semantically bind it.",
+    "why_this_is_not_equivalent": "The Python interpreter artifact is only the host interpreter. It does not identify the installed Piper TTS distribution/code loaded to generate the exact waveform. Multiple Piper builds/distributions can execute under an identical interpreter binary.",
+    "promotion_risk": "A receipt may satisfy canonical_required_observables_guard.complete with a present interpreter hash while the actual Piper runtime package identity is absent or changed, violating the benchmark's exact-runtime identity requirement.",
+    "current_credit": 0
+  },
+  "external_primary_refresh": [
+    {
+      "source": "https://github.com/OHF-Voice/piper1-gpl",
+      "observed": "Official Piper repository documents installation as pip install piper-tts and exposes Python/CLI APIs; the package/runtime is therefore a distinct installed artifact from the Python interpreter."
+    },
+    {
+      "source": "https://pypi.org/project/piper-tts/",
+      "observed": "piper-tts is an independently versioned Python distribution; current PyPI metadata on 2026-09-02 shows a recent release, reinforcing that interpreter identity cannot substitute for distribution identity."
+    }
+  ],
+  "counterhypothesis": {
+    "statement": "Perhaps tts_runtime_binary_sha256 was intentionally defined as interpreter identity while tts_runtime_package_manifest_sha256 supplies the actual Piper identity.",
+    "result": "REJECTED_AT_CURRENT_CONTRACT",
+    "reason": "The canonical required-observable list contains tts_runtime_binary_sha256 but not tts_runtime_package_manifest_sha256, and current validate_required checks presence rather than enforcing a package/runtime mapping. Thus the package identity is not required for terminal completeness."
+  },
+  "minimal_trigger4_repair": {
+    "goal": "Make terminal G2 completeness require the exact runtime artifact that PiperVoice/Piper synthesis actually loads, without creating a second evidence authority.",
+    "preferred_shape": [
+      "Do not hash sys.executable into a field named tts_runtime_binary_sha256 unless the benchmark is explicitly revised to mean interpreter identity.",
+      "Bind the installed piper-tts distribution manifest digest (or the exact native/shared-library/runtime artifact digest actually used by the installed build) as the canonical TTS runtime identity.",
+      "Record interpreter SHA256 separately as interpreter_sha256 if useful.",
+      "Fail closed if the runtime/distribution artifact used to synthesize the bound source waveform cannot be deterministically resolved.",
+      "Require the canonical runtime identity in validate_required and bind it to the source-waveform/TTS lineage before playback."
+    ],
+    "required_regressions": [
+      "Same Python interpreter + two different synthetic piper distribution manifests must not both pass as identical tts_runtime_binary_sha256 identity.",
+      "Missing piper runtime/distribution manifest with present Python interpreter hash must produce canonical_required_observables_guard.complete=false.",
+      "Changed piper runtime package with unchanged model and interpreter must change the canonical TTS runtime identity.",
+      "A correctly bound runtime identity must retain all existing G2 zero-credit fences."
+    ]
+  },
+  "execution_fence": {
+    "do_not_open_g3": true,
+    "do_not_duplicate_runtime_dispatch": true,
+    "do_not_mutate_voice_authority_from_trigger7": true,
+    "next_runtime_action_after_repair": "Dispatch exactly one current workflow_dispatch of T4 G2 PipeWire Monitor Cancel S2 against the repaired exact subject if singleton ownership is clear."
+  },
+  "explicit_zero_credit": {
+    "g2_runtime": 0,
+    "physical_microphone": 0,
+    "physical_speaker": 0,
+    "human_heard_output": 0,
+    "whole_voice_e2e": 0,
+    "gwt_jspace": 0,
+    "effect": 0,
+    "training": 0,
+    "whole_product": 0
+  }
+}
