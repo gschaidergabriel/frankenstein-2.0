@@ -300,11 +300,14 @@ class CanonicalDeliveryStore:
     def get_delivery(
         self, *, causal_event_id: str, recipient_id: str
     ) -> RecipientDelivery | None:
+        self._assert_live_unifieddb_identity()
         delivery_id = derive_delivery_id(causal_event_id, recipient_id)
         row = self._select_delivery(delivery_id)
+        self._assert_live_unifieddb_identity()
         return None if row is None else self._record_from_row(row)
 
     def transition_count(self, delivery_id: str) -> int:
+        self._assert_live_unifieddb_identity()
         try:
             row = self.connection.execute(
                 f"SELECT COUNT(*) FROM {TRANSITION_TABLE} WHERE delivery_id=?",
@@ -314,6 +317,7 @@ class CanonicalDeliveryStore:
             if "no such table" in str(exc).lower():
                 raise DeliveryStoreError("DELIVERY_STORE_SCHEMA_NOT_INITIALIZED") from exc
             raise
+        self._assert_live_unifieddb_identity()
         return int(row[0])
 
     def apply(
