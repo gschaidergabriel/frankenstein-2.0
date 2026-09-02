@@ -1,6 +1,6 @@
 """CANDIDATE_PATCH regression for WP900 G5 -> WP206 runtime identity persistence.
 
-This does not claim canonical WP206 generation-7 mutation authority.  It exercises the
+This does not claim canonical WP206 generation-7 mutation authority. It exercises the
 smallest repair after REVIEW_ONLY PR #894 showed that the historical seal-only adapter
 cannot distinguish valid G5 runtime subjects that share one deterministic whole-loop
 seal.
@@ -53,30 +53,27 @@ def test_runtime_bound_persistence_preserves_distinct_valid_g5_subjects(tmp_path
     assert candidate_a.sha256() != candidate_b.sha256()
 
     current, _, _, _, _, _, _, _, successor = fixture_components()
-    store_a = _open_store(tmp_path / "a")
-    store_b = _open_store(tmp_path / "b")
+    store = _open_store(tmp_path / "canonical-authority")
     try:
-        store_a.write_checkpoint(current)
-        store_b.write_checkpoint(current)
+        store.write_checkpoint(current)
         evidence_a = persist_runtime_bound_successor_and_readback(
-            store_a,
+            store,
             seal=whole_a,
             runtime_binding=candidate_a,
             next_checkpoint=successor,
         )
+        # Exact same deterministic successor bytes are an admitted idempotent replay in the
+        # same WP206 authority. The second valid G5 subject therefore shares deterministic
+        # persisted-readback evidence while retaining its distinct runtime/source identity.
         evidence_b = persist_runtime_bound_successor_and_readback(
-            store_b,
+            store,
             seal=whole_b,
             runtime_binding=candidate_b,
             next_checkpoint=successor,
         )
     finally:
-        store_a.close()
-        store_b.close()
+        store.close()
 
-    # The deterministic persistence operation is intentionally the same, while the
-    # evidence envelope now preserves the two valid runtime subjects instead of
-    # collapsing them to the seal-only boundary reproduced by PR #894.
     assert evidence_a.persisted_readback_sha256 == evidence_b.persisted_readback_sha256
     assert evidence_a.whole_loop_seal_sha256 == evidence_b.whole_loop_seal_sha256
     assert evidence_a.exact_source_sha256 == SOURCE_A
