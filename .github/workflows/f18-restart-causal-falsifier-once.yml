@@ -1,0 +1,39 @@
+name: F18 Restart Causal Falsifier Once
+
+on:
+  push:
+    branches:
+      - trigger4/f18-restart-causal-falsifier-20260831
+    paths:
+      - 'tests/test_voice_packet_cortex_recovery_f18_falsifier.py'
+      - '.github/workflows/f18-restart-causal-falsifier-once.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  f18-causal-closed-checkpoint:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Record exact F18 subject
+        run: |
+          set -euo pipefail
+          git rev-parse HEAD
+          python --version
+          sha256sum \
+            src/frankenstein2/voice_packet_cortex_recovery.py \
+            src/frankenstein2/voice_packet_cortex.py \
+            src/frankenstein2/voice_contract.py \
+            tests/test_voice_packet_cortex_recovery_f18_falsifier.py
+      - name: Run F18 causal mismatch discriminator
+        env:
+          PYTHONPATH: src
+        run: |
+          set -euo pipefail
+          python -m unittest tests.test_voice_packet_cortex_recovery_f18_falsifier -v
