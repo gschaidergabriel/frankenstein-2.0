@@ -1,0 +1,49 @@
+name: REVIEW WP206 G1 Upgrade Compatibility Falsifier
+
+on:
+  push:
+    branches:
+      - review/wp206-stable-authority-upgrade-compat-falsifier-20260830
+    paths:
+      - 'tests/review_test_wp206_g1_to_stable_authority_upgrade_compat.py'
+      - '.github/workflows/review-wp206-g1-upgrade-compat-falsifier.yml'
+  pull_request:
+    paths:
+      - 'src/frankenstein2/persistent_agency_kernel.py'
+      - 'src/state/unifieddb_identity.py'
+      - 'tests/wp206_restart_probe.py'
+      - 'tests/review_test_wp206_g1_to_stable_authority_upgrade_compat.py'
+      - '.github/workflows/review-wp206-g1-upgrade-compat-falsifier.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  g1-upgrade-compatibility:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Compile exact review surface
+        run: >-
+          python -m py_compile
+          src/frankenstein2/persistent_agency_kernel.py
+          src/state/unifieddb_identity.py
+          tests/wp206_restart_probe.py
+          tests/review_test_wp206_g1_to_stable_authority_upgrade_compat.py
+      - name: Execute accepted-G1 to stable-authority compatibility discriminator
+        env:
+          PYTHONPATH: src
+        run: python tests/review_test_wp206_g1_to_stable_authority_upgrade_compat.py -v
+      - name: Preserve review-only credit fence
+        if: always()
+        run: |
+          echo 'CLASSIFICATION=REVIEW_ONLY_EXECUTABLE_MIGRATION_DISCRIMINATOR'
+          echo 'RUNTIME_CREDIT=0'
+          echo 'EFFECT_CREDIT=0'
+          echo 'COMPLETION_CREDIT=0'
+          echo 'WHOLE_SYSTEM_ACCEPTANCE=false'
