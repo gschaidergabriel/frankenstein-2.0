@@ -45,7 +45,7 @@ jobs:
           git rev-parse HEAD
           git rev-parse HEAD^{tree}
 
-      - name: Compile and inspect independent semantic mediator ABI
+      - name: Compile and inspect repaired split-channel ABI
         shell: bash
         run: |
           set -euo pipefail
@@ -53,14 +53,24 @@ jobs:
           python - <<'PY'
           import inspect
           import frankenstein2.gwt_independent_semantic_mediator as g10
+
           params = inspect.signature(g10.MediatedSemanticState.from_wire).parameters
-          assert "semantic_payload" not in params
+          assert set(params) == {"mediator", "wire"}
+          assert "plan" not in params
+          assert "trial_position" not in params
           assert "semantic_class" not in params
+          assert "raw_payload_sha256" not in params
+
+          assert g10.TRIAL_WIRE_ALLOWED_KEYS == frozenset({
+              "schema",
+              "canonical_semantic_json",
+          })
+          assert g10.TRIAL_WIRE_ALLOWED_KEYS.isdisjoint(g10.FORBIDDEN_TRIAL_WIRE_KEYS)
           assert g10.behavioral_input_keys().isdisjoint(g10.FORBIDDEN_BEHAVIORAL_INPUT_KEYS)
           print(g10.MEDIATOR_AUTHORITY_CANDIDATE)
           PY
 
-      - name: Execute predecessor fences plus G10 mediator regressions
+      - name: Execute predecessor fences plus repaired G10 regressions
         shell: bash
         run: |
           set -euo pipefail
