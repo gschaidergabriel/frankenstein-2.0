@@ -1,0 +1,58 @@
+{
+  "schema": "T7_TO_TRIGGER4_G2_TTS_RUNTIME_IDENTITY_GUARD_REPAIR/v1",
+  "trigger": "7",
+  "producer": "GPT-5.6-Sol",
+  "date": "2026-09-02",
+  "semantic_key": "0d83f7d13c1d8f91686cf94070f73d901a49018b40a9c058d1949af094655bff",
+  "work_class": "EVIDENCE_VALIDITY_REPAIR_HANDOFF",
+  "product_mutation_authority": "TRIGGER4_ONLY",
+  "observed_f2_main_before_handoff": "a4f80029e53a9abf46de1d19fe8f04b3ebbeaafb",
+  "source_finding": "research/local_voice/findings/2026-09-02_TRIGGER7_G2_TTS_RUNTIME_IDENTITY_GUARD_GAP_GPT56SOL.json",
+  "canonical_benchmark": "research/local_voice/benchmarks/2026-09-02_TRIGGER7_COMPLETION_DEPTH_G2.json",
+  "affected_guard": "trigger4/tools/local_voice/g2_required_observables_guard.py",
+  "defect": {
+    "class": "EVIDENCE_INVALID_FALSE_GREEN_RISK",
+    "summary": "The canonical required field tts_runtime_binary_sha256 is currently populated with sha256(sys.executable), while the independently computed piper-tts distribution manifest digest is not required by REQUIRED_NAMES/validate_required. The Python interpreter does not uniquely identify the Piper runtime that generated the bound waveform.",
+    "runtime_credit_before_repair": 0
+  },
+  "minimal_repair": [
+    "Bind the canonical TTS runtime identity to the exact Piper runtime/distribution artifact actually used for synthesis; do not substitute Python interpreter identity.",
+    "Require that Piper runtime identity in canonical terminal validation and bind it causally to the exact source waveform/TTS lineage before playback.",
+    "Record Python interpreter SHA256 separately only as auxiliary interpreter identity if useful.",
+    "Fail closed when the Piper runtime/distribution artifact cannot be deterministically resolved.",
+    "Preserve existing model/config/waveform hashes, packet lineage, PipeWire identities, H4 coverage guard, cancellation delivery, cleanup and all zero-credit fences."
+  ],
+  "required_regressions": [
+    "Same Python interpreter with two different Piper distribution manifests must produce distinct canonical TTS runtime identity.",
+    "Missing Piper runtime/distribution identity with present interpreter hash must make canonical_required_observables_guard.complete false.",
+    "Changed Piper runtime with unchanged interpreter/model must change canonical TTS runtime identity.",
+    "A correctly bound Piper runtime identity must retain all current G2 zero-credit fences."
+  ],
+  "execution_order": [
+    "Refresh main and current semantic/runtime singleton ownership before mutation.",
+    "Apply only the smallest existing-guard repair; do not create a second evidence or Voice authority.",
+    "Run focused repository regressions for the repaired runtime identity contract.",
+    "Only after source/regression closure and clear singleton ownership, dispatch exactly one fresh current S2 G2 subject against the repaired exact SHA.",
+    "Do not compose older S2 runtime evidence with repaired source into current terminal credit.",
+    "Do not open G3, FDX12, partial-ASR or long-session breadth until G2 is terminal."
+  ],
+  "failure_taxonomy": {
+    "missing_or_ambiguous_piper_runtime_identity": "EVIDENCE_INVALID",
+    "repository_regression_failure": "PRODUCT_OR_EVIDENCE_NEGATIVE_AS_EXACT_TEST_DETERMINES",
+    "runner_auth_transport_or_sandbox_failure": "INFRA_AUTH_TRANSPORT_QUOTA_OR_SANDBOX_FIDELITY_DEFICIT",
+    "nonterminal_runtime": "UNKNOWN_NONTERMINAL",
+    "claim_or_main_race": "CONCURRENCY_RETRY"
+  },
+  "explicit_zero_credit": {
+    "g2_runtime": 0,
+    "physical_microphone": 0,
+    "physical_speaker": 0,
+    "human_heard_output": 0,
+    "whole_voice_e2e": 0,
+    "gwt_jspace": 0,
+    "effect": 0,
+    "training": 0,
+    "whole_product": 0
+  },
+  "next_exact_gate": "Trigger4 repairs and regression-proves canonical Piper runtime identity, then exactly one fresh repaired-subject S2 PipeWire G2 execution/readback may be dispatched if singleton ownership is clear."
+}
