@@ -15,6 +15,7 @@
     "research/local_voice/findings/2026-09-02_TRIGGER7_G2_LATENCY_BOUND_CAUSALITY_GAP_GPT56SOL.json",
     "research/local_voice/findings/2026-09-02_TRIGGER7_G2_HARNESS_CLEANUP_FAILURE_TAXONOMY_GPT56SOL.json",
     "research/local_voice/findings/2026-09-02_TRIGGER7_G2_POST_BOUND_WINDOW_STRADDLE_GPT56SOL.json",
+    "research/local_voice/findings/2026-09-02_TRIGGER7_G2_CANCEL_SOURCE_TIMELINE_CAUSALITY_GAP_GPT56SOL.json",
     "trigger4/inbox/local_voice/T7_G2_PIPEWIRE_TERMINAL_REPAIR_SYNTHESIS_2026-09-02_GPT56SOL.json"
   ],
   "terminal_blockers": [
@@ -45,6 +46,13 @@
       "class": "EVIDENCE_INVALID_FALSE_GREEN_RISK",
       "problem": "The analyzer accepts observed_tail_ms <= max_inflight_ms + window_ms and selects post-bound rows only when source_start_ms >= bound_end_ms, so a correlated window straddling the frozen bound can evade post-bound rejection and silently extend the semantic bound by one analysis window.",
       "repair": "Start a dedicated post-bound-only scan exactly at ceil((cancel_offset_ms + max_inflight_ms) * sample_rate / 1000), require zero old-packet correlation there, and represent unresolved boundary resolution as EVIDENCE_INVALID rather than implicit +window_ms slack."
+    },
+    {
+      "id": "CANCEL_SOURCE_TIMELINE_CAUSALITY",
+      "finding_commit": "8eb92bd8d8db1f226c7bfa7d28b6d0c41033754c",
+      "class": "EVIDENCE_INVALID_CANCEL_SOURCE_TIMELINE_UNBOUND",
+      "problem": "The current harness records playback start immediately after Popen(paplay), computes cancel_offset_ms from that process timestamp, and the analyzer interprets it directly as a source-waveform frame/time. Existing PCM alignment does not bind Popen time to source frame 0, while queue/buffer/graph delay can shift those timelines.",
+      "repair": "Bind the promotion-bearing cancel instant to an observed exact playback-stream/source position and persist the monotonic-to-source-frame mapping. Prefer a documented stream timing primitive such as pw_stream_get_time_n or an equivalent exact read-only timing surface; fail closed if the selected client cannot expose a causal mapping."
     }
   ],
   "not_current_blocker": [
@@ -64,7 +72,7 @@
     "canonical_required_observables_guard outer acceptance fence",
     "current runtime-pin regression green at 7d0f36c0d8c596ebf45b29b0a2a213bc6d7bd629"
   ],
-  "single_repair_rule": "Close all four blockers in one smallest coherent Trigger4 descendant of the existing G2 analyzer/helper/guard/runtime/launcher path. Do not create a second observer, analyzer, acceptance authority, playback authority, Voice authority, state authority, cleanup authority, or semantic generation.",
+  "single_repair_rule": "Close all five blockers in one smallest coherent Trigger4 descendant of the existing G2 analyzer/helper/guard/runtime/launcher path. Do not create a second observer, analyzer, acceptance authority, playback authority, Voice authority, state authority, cleanup authority, or semantic generation.",
   "required_regressions": [
     "Same Python interpreter plus different Piper distribution/runtime manifests produce different canonical TTS runtime identities.",
     "Missing canonical Piper runtime identity with present interpreter hash blocks terminal completeness.",
@@ -74,10 +82,13 @@
     "Synthetic run-owned null-sink cleanup failure yields terminal NOT_ACCEPTED and zero credit without PRODUCT_NEGATIVE absent a product-owned cleanup invariant.",
     "Old-packet correlation only in the post-bound suffix of a window straddling the frozen bound must not pass.",
     "Changing analysis window size must not change the semantic cancellation bound by granting +window_ms slack.",
+    "Injected playback-client startup delay with unchanged stream/sample progression must not shift the measured cancel source-frame position.",
+    "Missing exact playback stream/source-position timing with otherwise green PCM correlation blocks terminal completeness.",
+    "The monotonic cancel-to-source-frame mapping binds the same exact playback stream/object lineage as the G2 receipt.",
     "Existing replacement readback, H4 coverage, causal cancel delivery, object identity, packet non-commit fence, cleanup observation and zero-credit fences remain green."
   ],
   "runtime_fence": {
-    "dispatch_before_all_four_repairs_and_regressions": false,
+    "dispatch_before_all_five_repairs_and_regressions": false,
     "dispatch_count_after_repairs_if_singleton_clear": 1,
     "must_use_fresh_exact_repaired_subject": true,
     "compose_old_runtime_with_new_source": false,
@@ -94,5 +105,5 @@
     "training": 0,
     "whole_product": 0
   },
-  "next_exact_gate": "Trigger4 closes all four terminal-validity blockers with focused repository regressions in the existing G2 path. Only then, if singleton ownership is clear, execute exactly one fresh exact-source T4 G2 PipeWire Monitor Cancel S2 workflow_dispatch and consume its exact guarded receipt."
+  "next_exact_gate": "Trigger4 closes all five terminal-validity blockers with focused repository regressions in the existing G2 path and reconciles stale never-executed runtime ownership. Only then, if singleton ownership is clear, execute exactly one fresh exact-source T4 G2 PipeWire Monitor Cancel S2 workflow_dispatch and consume its exact guarded receipt."
 }
