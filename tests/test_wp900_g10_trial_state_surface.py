@@ -28,7 +28,6 @@ def test_behavior_capable_state_exposes_only_canonical_semantic_json():
     state = admit_mediated_semantic_state(
         mediator=mediator,
         wire=mediator.to_wire(),
-        trial_process_identity="trial-process:g10:1",
     )
 
     public_dataclass_fields = {item.name for item in fields(state) if not item.name.startswith("_")}
@@ -47,7 +46,6 @@ def test_abba_position_is_not_recoverable_from_nonsemantic_state_metadata():
             admit_mediated_semantic_state(
                 mediator=mediator,
                 wire=mediator.to_wire(),
-                trial_process_identity=f"trial-process:g10:{position}",
             )
         )
 
