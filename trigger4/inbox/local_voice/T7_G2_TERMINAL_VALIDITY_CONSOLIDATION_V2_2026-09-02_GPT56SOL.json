@@ -14,6 +14,7 @@
     "research/local_voice/findings/2026-09-02_TRIGGER7_G2_TTS_RUNTIME_IDENTITY_GUARD_GAP_GPT56SOL.json",
     "research/local_voice/findings/2026-09-02_TRIGGER7_G2_LATENCY_BOUND_CAUSALITY_GAP_GPT56SOL.json",
     "research/local_voice/findings/2026-09-02_TRIGGER7_G2_HARNESS_CLEANUP_FAILURE_TAXONOMY_GPT56SOL.json",
+    "research/local_voice/findings/2026-09-02_TRIGGER7_G2_POST_BOUND_WINDOW_STRADDLE_GPT56SOL.json",
     "trigger4/inbox/local_voice/T7_G2_PIPEWIRE_TERMINAL_REPAIR_SYNTHESIS_2026-09-02_GPT56SOL.json"
   ],
   "terminal_blockers": [
@@ -21,8 +22,8 @@
       "id": "TTS_RUNTIME_IDENTITY",
       "finding_commit": "a4f80029e53a9abf46de1d19fe8f04b3ebbeaafb",
       "class": "EVIDENCE_INVALID_FALSE_GREEN_RISK",
-      "problem": "tts_runtime_binary_sha256 currently identifies sys.executable while the installed Piper runtime/distribution identity is only auxiliary and non-required.",
-      "repair": "Require deterministic identity of the actual piper-tts distribution/native runtime artifact used for synthesis; keep interpreter identity separate; fail closed if unresolved; bind the runtime identity to exact waveform lineage."
+      "problem": "tts_runtime_binary_sha256 currently identifies sys.executable while the installed Piper runtime/distribution identity is auxiliary and non-required.",
+      "repair": "Require deterministic identity of the actual piper-tts distribution/native runtime artifact used for synthesis; keep interpreter identity separate; fail closed if unresolved; bind runtime identity to exact waveform lineage."
     },
     {
       "id": "PREDECLARED_LATENCY_BOUND_CAUSALITY",
@@ -35,14 +36,21 @@
       "id": "HARNESS_CLEANUP_FAILURE_TAXONOMY",
       "finding_commit": "b4499a6b89e9c1ff961988b9c4ba08a2fbadda10",
       "class": "FAILURE_CLASSIFICATION_SCOPE_MISMATCH",
-      "problem": "Failure to remove the synthetic G2 test-harness PipeWire null sink/monitor is currently classified PRODUCT_NEGATIVE even though the current G2 scope explicitly does not establish a production playback executor or production ownership of that graph object.",
-      "repair": "Keep terminal acceptance fail-closed and all promotion credit zero, but classify synthetic-harness cleanup failure as EVIDENCE_INVALID_HARNESS_CLEANUP or infrastructure according to the observed failure. Reserve PRODUCT_NEGATIVE for an actually executed product-owned cleanup invariant."
+      "problem": "Failure to remove the synthetic G2 test-harness PipeWire null sink/monitor is currently classified PRODUCT_NEGATIVE although current G2 does not establish production ownership of that graph object.",
+      "repair": "Keep acceptance fail-closed and promotion credit zero, but classify synthetic-harness cleanup failure as EVIDENCE_INVALID_HARNESS_CLEANUP or infrastructure. Reserve PRODUCT_NEGATIVE for an executed product-owned cleanup invariant."
+    },
+    {
+      "id": "POST_BOUND_WINDOW_STRADDLE",
+      "finding_commit": "38b2714d209cfd1022c60baee2df294fb01fdd42",
+      "class": "EVIDENCE_INVALID_FALSE_GREEN_RISK",
+      "problem": "The analyzer accepts observed_tail_ms <= max_inflight_ms + window_ms and selects post-bound rows only when source_start_ms >= bound_end_ms, so a correlated window straddling the frozen bound can evade post-bound rejection and silently extend the semantic bound by one analysis window.",
+      "repair": "Start a dedicated post-bound-only scan exactly at ceil((cancel_offset_ms + max_inflight_ms) * sample_rate / 1000), require zero old-packet correlation there, and represent unresolved boundary resolution as EVIDENCE_INVALID rather than implicit +window_ms slack."
     }
   ],
   "not_current_blocker": [
     {
       "id": "RUNTIME_PIN_REGRESSION_AT_B355",
-      "reason": "Historical transient CI mismatch was superseded by 7d0f36c0d8c596ebf45b29b0a2a213bc6d7bd629; pins and release-candidate checks both passed there. Do not route as a current blocker."
+      "reason": "Historical transient CI mismatch was superseded by 7d0f36c0d8c596ebf45b29b0a2a213bc6d7bd629; pins and release-candidate checks passed there."
     }
   ],
   "preserve_closed_repairs": [
@@ -56,18 +64,20 @@
     "canonical_required_observables_guard outer acceptance fence",
     "current runtime-pin regression green at 7d0f36c0d8c596ebf45b29b0a2a213bc6d7bd629"
   ],
-  "single_repair_rule": "Close all three blockers in one smallest coherent Trigger4 descendant of the existing G2 helper/guard/runtime/launcher path. Do not create a second observer, acceptance authority, playback authority, Voice authority, state authority, cleanup authority, or semantic generation.",
+  "single_repair_rule": "Close all four blockers in one smallest coherent Trigger4 descendant of the existing G2 analyzer/helper/guard/runtime/launcher path. Do not create a second observer, analyzer, acceptance authority, playback authority, Voice authority, state authority, cleanup authority, or semantic generation.",
   "required_regressions": [
-    "Same Python interpreter plus different Piper distribution/runtime manifests must produce different canonical TTS runtime identities.",
-    "Missing canonical Piper runtime identity with present interpreter hash must block terminal completeness.",
-    "Relevant causally-prior reported latency above the old quantum-only threshold must enlarge the frozen bound or block before CANCEL.",
-    "Missing/unparseable causally-prior latency must block terminal completeness.",
-    "Later latency observation exceeding frozen assumptions must classify EVIDENCE_INVALID_BOUND_ASSUMPTION rather than retroactively moving the threshold or asserting PRODUCT_NEGATIVE.",
-    "Synthetic run-owned null-sink cleanup failure must produce terminal NOT_ACCEPTED and zero measured credit without PRODUCT_NEGATIVE unless an explicit product-owned cleanup invariant is under test.",
+    "Same Python interpreter plus different Piper distribution/runtime manifests produce different canonical TTS runtime identities.",
+    "Missing canonical Piper runtime identity with present interpreter hash blocks terminal completeness.",
+    "Relevant causally-prior reported latency above the old quantum-only threshold enlarges the frozen bound or blocks before CANCEL.",
+    "Missing/unparseable causally-prior latency blocks terminal completeness.",
+    "Later latency observation exceeding frozen assumptions classifies EVIDENCE_INVALID_BOUND_ASSUMPTION rather than moving the threshold or asserting PRODUCT_NEGATIVE.",
+    "Synthetic run-owned null-sink cleanup failure yields terminal NOT_ACCEPTED and zero credit without PRODUCT_NEGATIVE absent a product-owned cleanup invariant.",
+    "Old-packet correlation only in the post-bound suffix of a window straddling the frozen bound must not pass.",
+    "Changing analysis window size must not change the semantic cancellation bound by granting +window_ms slack.",
     "Existing replacement readback, H4 coverage, causal cancel delivery, object identity, packet non-commit fence, cleanup observation and zero-credit fences remain green."
   ],
   "runtime_fence": {
-    "dispatch_before_all_three_repairs_and_regressions": false,
+    "dispatch_before_all_four_repairs_and_regressions": false,
     "dispatch_count_after_repairs_if_singleton_clear": 1,
     "must_use_fresh_exact_repaired_subject": true,
     "compose_old_runtime_with_new_source": false,
@@ -84,5 +94,5 @@
     "training": 0,
     "whole_product": 0
   },
-  "next_exact_gate": "Trigger4 closes the three terminal-validity blockers with focused repository regressions in the existing G2 path. Only then, if singleton ownership is clear, execute exactly one fresh exact-source T4 G2 PipeWire Monitor Cancel S2 workflow_dispatch and consume its exact guarded receipt."
+  "next_exact_gate": "Trigger4 closes all four terminal-validity blockers with focused repository regressions in the existing G2 path. Only then, if singleton ownership is clear, execute exactly one fresh exact-source T4 G2 PipeWire Monitor Cancel S2 workflow_dispatch and consume its exact guarded receipt."
 }
