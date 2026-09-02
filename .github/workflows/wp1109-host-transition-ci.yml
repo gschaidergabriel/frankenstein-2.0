@@ -6,12 +6,16 @@ on:
       - main
     paths:
       - 'src/frankenstein2/host_transition.py'
+      - 'src/frankenstein2/state_migration.py'
       - 'tests/test_host_transition.py'
+      - 'tests/test_wp1105_wp1109_state_lineage_integration.py'
       - '.github/workflows/wp1109-host-transition-ci.yml'
   pull_request:
     paths:
       - 'src/frankenstein2/host_transition.py'
+      - 'src/frankenstein2/state_migration.py'
       - 'tests/test_host_transition.py'
+      - 'tests/test_wp1105_wp1109_state_lineage_integration.py'
       - '.github/workflows/wp1109-host-transition-ci.yml'
   workflow_dispatch:
 
@@ -28,8 +32,16 @@ jobs:
         with:
           python-version: '3.12'
       - name: Compile
-        run: python -m py_compile src/frankenstein2/host_transition.py tests/test_host_transition.py
-      - name: Host transition falsification suite
+        run: >-
+          python -m py_compile
+          src/frankenstein2/host_transition.py
+          src/frankenstein2/state_migration.py
+          tests/test_host_transition.py
+          tests/test_wp1105_wp1109_state_lineage_integration.py
+      - name: Host transition and canonical-state handoff falsification suite
         env:
           PYTHONPATH: src
-        run: python tests/test_host_transition.py -v
+        run: >-
+          python -m unittest -v
+          tests.test_host_transition
+          tests.test_wp1105_wp1109_state_lineage_integration
