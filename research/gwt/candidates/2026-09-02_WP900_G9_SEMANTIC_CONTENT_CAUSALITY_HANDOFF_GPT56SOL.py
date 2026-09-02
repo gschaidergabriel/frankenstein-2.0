@@ -82,6 +82,7 @@ class TrialSpec:
     expected_outcome_id: str
     order_position: int
     reset_epoch: str
+    counterbalance_block: str
     is_sham: bool = False
 
     def __post_init__(self) -> None:
@@ -91,6 +92,7 @@ class TrialSpec:
             "representation_id",
             "expected_outcome_id",
             "reset_epoch",
+            "counterbalance_block",
         ):
             _text(name, getattr(self, name))
         _sha("payload_sha256", self.payload_sha256)
@@ -139,6 +141,7 @@ class Evaluation:
     semantic_selectivity: bool
     sham_exclusion: bool
     carryover_exclusion: bool
+    order_counterbalance: bool
     observer_blinding: bool
     oracle_identity_bound: bool
 
@@ -198,6 +201,7 @@ def evaluate(
             "expected_outcome_id": t.expected_outcome_id,
             "order_position": t.order_position,
             "reset_epoch": t.reset_epoch,
+            "counterbalance_block": t.counterbalance_block,
             "is_sham": t.is_sham,
         }
         for t in trials
@@ -234,8 +238,38 @@ def evaluate(
     if not carryover_exclusion:
         reasons.append("same reset_epoch produced different pre-state hashes")
 
-    # 4) 'Semantic' requires >=2 byte-distinct representations per non-sham semantic class.
+    # 4) Counterbalance must vary semantic-class order across otherwise matched blocks.
     non_sham_classes = sorted({t.semantic_class for t in trials if not t.is_sham})
+    block_orders: dict[str, tuple[str, ...]] = {}
+    for block in sorted({t.counterbalance_block for t in trials if not t.is_sham}):
+        members = sorted(
+            (t for t in trials if not t.is_sham and t.counterbalance_block == block),
+            key=lambda t: t.order_position,
+        )
+        block_orders[block] = tuple(t.semantic_class for t in members)
+    expected_class_set = set(non_sham_classes)
+    blocks_cover_once = bool(block_orders) and all(
+        len(order) == len(expected_class_set) and set(order) == expected_class_set
+        for order in block_orders.values()
+    )
+    positions_by_class: dict[str, set[int]] = {
+        semantic_class: set() for semantic_class in non_sham_classes
+    }
+    for order in block_orders.values():
+        for position, semantic_class in enumerate(order, start=1):
+            positions_by_class.setdefault(semantic_class, set()).add(position)
+    order_counterbalance = (
+        len(block_orders) >= 2
+        and blocks_cover_once
+        and len(set(block_orders.values())) >= 2
+        and all(len(positions) >= 2 for positions in positions_by_class.values())
+    )
+    if not order_counterbalance:
+        reasons.append(
+            "counterbalance blocks must contain each non-sham class once and vary every class position"
+        )
+
+    # 5) 'Semantic' requires >=2 byte-distinct representations per non-sham semantic class.
     if len(non_sham_classes) < 2:
         reasons.append("need at least two non-sham semantic classes")
     representation_invariance = bool(non_sham_classes)
@@ -253,7 +287,7 @@ def evaluate(
             representation_invariance = False
             reasons.append(f"{semantic_class}: observed outcome is representation-sensitive")
 
-    # 5) Distinct semantic classes must produce distinct stable outcomes and match oracle.
+    # 6) Distinct semantic classes must produce distinct stable outcomes and match oracle.
     semantic_selectivity = (
         len(non_sham_classes) >= 2
         and representation_invariance
@@ -269,7 +303,7 @@ def evaluate(
     if not outcome_matches_oracle:
         reasons.append("one or more observed outcomes disagree with external oracle")
 
-    # 6) At least two byte-distinct sham representations must converge on one no-effect outcome.
+    # 7) At least two byte-distinct sham representations must converge on one no-effect outcome.
     sham = [t for t in trials if t.is_sham]
     sham_exclusion = False
     if sham:
@@ -296,6 +330,7 @@ def evaluate(
         observer_blinding,
         runtime_subject_sha256 is not None,
         carryover_exclusion,
+        order_counterbalance,
         representation_invariance,
         semantic_selectivity,
         outcome_matches_oracle,
@@ -320,6 +355,7 @@ def evaluate(
         semantic_selectivity=semantic_selectivity,
         sham_exclusion=sham_exclusion,
         carryover_exclusion=carryover_exclusion,
+        order_counterbalance=order_counterbalance,
         observer_blinding=observer_blinding,
         oracle_identity_bound=oracle_identity_bound,
     )
