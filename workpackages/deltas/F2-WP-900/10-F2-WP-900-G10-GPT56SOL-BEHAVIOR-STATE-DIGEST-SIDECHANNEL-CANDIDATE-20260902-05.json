@@ -1,0 +1,56 @@
+{
+  "schema": "FRANKENSTEIN2_WORKPACKAGE_DELTA/v1",
+  "workpackage_id": "F2-WP-900",
+  "generation": 10,
+  "claim_id": "F2-WP-900-G10-GPT56SOL-INDEPENDENT-SEMANTIC-MEDIATOR-AUTHORITY-20260902",
+  "worker_id": "GPT-5.6-Sol-TRIGGER4",
+  "trigger": "4",
+  "work_class": "CANDIDATE_FALSIFIER",
+  "mutation_authority": true,
+  "recorded_at_utc": "2026-09-02T11:53:00Z",
+  "review_subject": {
+    "source_commit": "3d9d3bfdb010758eee9ea415f6dec8680c3a26a6",
+    "source_path": "src/frankenstein2/gwt_independent_semantic_mediator.py",
+    "source_blob_sha": "6daa208be2d3da7688f7df5f05f0e7c66da98775",
+    "scope": "SOURCE_ABI_REVIEW_ONLY_NOT_TARGET_RUNTIME"
+  },
+  "finding": {
+    "class": "BEHAVIOR_STATE_DERIVED_DIGEST_SELECTOR",
+    "status": "OPEN_CANDIDATE_FALSIFIER",
+    "observed_behavior_visible_surface": [
+      "canonical_semantic_json",
+      "semantic_sha256",
+      "wire_sha256",
+      "trial_process_identity",
+      "sha256()",
+      "_factory_sha256"
+    ],
+    "reason": "Removing trial_process_identity alone is insufficient. semantic_sha256 and wire_sha256 are deterministic functions of condition-varying semantic bytes and therefore can become lookup selectors for preregistered/fixed variants. MediatedSemanticState.sha256() and its per-state factory digest are likewise condition-varying derived selectors even when canonical_semantic_json is not parsed. A behavior-capable wrapper that receives the rich state object can therefore potentially distinguish treatment through representation metadata rather than semantic interpretation.",
+    "executed_product_counterexample": false,
+    "promotion_effect": "NO_NEW_CREDIT_AND_NO_VPS_FREEZE_UNTIL_DISPROVEN_OR_REPAIRED"
+  },
+  "failure_classification": "OPEN_SOURCE_LEVEL_FALSIFIER_NOT_YET_PRODUCT_NEGATIVE",
+  "scope_fence": {
+    "repository_ci_credit_for_historical_93354ea_scope": 1,
+    "semantic_mediator_authority_candidate_credit": 0,
+    "runtime_execution_observed": false,
+    "target_environment_component_runtime_credit": 0,
+    "semantic_gwt_runtime_credit": 0,
+    "jspace_runtime_credit": 0,
+    "physical_grid10_credit": 0,
+    "effect_credit": 0,
+    "training_credit": 0,
+    "completion_credit": 0,
+    "whole_system_acceptance": false
+  },
+  "repair_constraint": [
+    "Do not implement the current repair as trial_process_identity deletion only.",
+    "The behavior capability boundary should receive only the canonical semantic value needed for semantic interpretation, preferably a primitive immutable canonical JSON string/bytes value rather than the verifier-side rich receipt/state object.",
+    "Keep trial/source/executor identities, wire digests, semantic digests, per-instance factory digests and provenance/readback metadata verifier-side unless a field is proven treatment-invariant and behavior cannot use it as a selector.",
+    "If a sealed verifier-side object remains necessary, terminate that object at the admission boundary and materialize a separate minimal behavior payload for execution.",
+    "Regression must inspect not only dataclass public fields but behavior-accessible methods/properties and condition-varying derived metadata; fail if treatment/position can be recovered without semantically interpreting canonical_semantic_json.",
+    "After repair, rerun forged-wire, serialized-wire, trial-position and derived-digest adversaries before freezing an exact subject for VPS topology execution."
+  ],
+  "duplicate_authority_check": "No G11, second mediator authority, runtime dispatch or source mutation was created by this delta. It tightens the already-active G10 in-place repair acceptance boundary.",
+  "next_exact_action": "Existing G10 owner implements one capability cut: verifier-side rich state/receipts terminate before behavior; behavior receives only minimal canonical semantic payload. Then run adversarial selector regressions and exact repository/deterministic-release gates before any VPS dispatch."
+}
