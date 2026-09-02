@@ -1,0 +1,76 @@
+{
+  "schema": "FRANKENSTEIN2_RESEARCH_INBOX/v1",
+  "status": "CANDIDATE_FALSIFIER",
+  "mutation_authority": false,
+  "trigger": "4",
+  "producer": "GPT-5.6-Sol",
+  "title": "WP900 G9 semantic-content crossover must exclude inter-trial carryover and hidden-state hysteresis",
+  "created_at_utc": "2026-09-02T10:22:30Z",
+  "target": "F2-WP-900 generation 9 semantic content causality crossover",
+  "observed_current_main_before_packet": "1b78cbf46f2d3e0a82a85a5afadce7c1dd136069",
+  "active_claim_id": "F2-WP-900-G9-GPT56SOL-SEMANTIC-CONTENT-CAUSALITY-20260902",
+  "work_class": "CANDIDATE_FALSIFIER",
+  "evidence_refs": [
+    "workpackages/active/F2-WP-900.json",
+    "workpackages/reconciliations/F2-WP-900/8-F2-WP-900-G8-GPT56SOL-INDEPENDENT-SOURCE-TARGET-RUNTIME-RECONCILIATION-20260902.json",
+    "workpackages/research_inbox/CANDIDATE_FALSIFIER_WP900_G9_SEMANTIC_VS_SURFACE_CONTENT_CONFOUND_2026-09-02.json"
+  ],
+  "material_observation": {
+    "g9_strength": "The active G9 claim correctly requires same-mechanism content crossover, condition-blind downstream semantic observation, counterbalanced order and repeated-content stability.",
+    "remaining_confound": "Counterbalancing and repeated-content stability do not by themselves exclude stateful carryover. If recipient, executor, cache, recurrent workspace, hidden model/session state, memoized payload lookup or any other mutable runtime state survives from trial n into trial n+1, the later outcome can depend on the previous payload while still appearing stably associated with the current payload under a deterministic four-trial schedule.",
+    "scope_risk": "A stable A/B crossover under shared mutable runtime state supports a history-conditioned treatment effect candidate, not an isolated current-broadcast semantic-content causal effect."
+  },
+  "falsifier_hypothesis": "G9 is causally underidentified unless every admitted trial either starts from an independently verified equivalent runtime pre-state or explicitly models and falsifies previous-trial influence. A canonical pre_state_sha256 that omits hidden/process/cache/workspace state is insufficient.",
+  "counterhypothesis": "Counterbalanced order plus same-content repeats are enough to cancel carryover. This is false for deterministic hysteresis, asymmetric adaptation, caches or previous-payload dependent state machines where order effects can survive balancing or mimic content-specific stability.",
+  "executable_counterexample": {
+    "state_machine": "On receiving payload A, set hidden flag H=A; on payload B, set H=B. Emit current canonical outcome from previous H before updating H. With suitable initial state and a fixed ABBA/BAAB schedule, downstream outcomes can look repeatable and treatment-associated while being caused by prior-trial state rather than the current broadcast semantics.",
+    "required_classification_if_reproduced": "INTERTRIAL_CARRYOVER_CONFOUND_SEMANTIC_CONTENT_CAUSALITY_UNPROVEN",
+    "product_negative": false
+  },
+  "minimum_discriminator_extension": {
+    "trial_isolation": [
+      "For each trial, prove a fresh recipient/executor process or a cryptographically bound reset/restore from the same admitted runtime snapshot before broadcast delivery.",
+      "Bind actual runtime pre-state, not only canonical database/task state: include recipient process/session identity, mutable cache/workspace identity, model/session state identity where applicable, and reset/restore receipt.",
+      "Fail closed if any treatment-relevant mutable state survives across trials without an explicit measured carryover model."
+    ],
+    "history_controls": [
+      "Execute current-payload A after prior A and after prior B from otherwise equivalent reset checkpoints; require the same canonical semantic outcome.",
+      "Execute current-payload B after prior A and after prior B from otherwise equivalent reset checkpoints; require the same canonical semantic outcome.",
+      "Include a no-payload or neutral predecessor where the mechanism permits it, without changing the current-trial delivery/uptake/reentry path.",
+      "Randomize or counterbalance across multiple independently reset blocks; do not rely on one four-trial sequence."
+    ],
+    "blindness_and_lineage": [
+      "The downstream outcome observer must receive neither current treatment label nor previous-treatment label nor expected outcome.",
+      "Bind current payload lineage, previous-trial lineage, reset/snapshot identity, DELIVERY->UPTAKE->REENTRY witness, task input, pre-state, recipient/executor identity and canonical outcome per trial.",
+      "If previous-treatment history changes the current outcome, classify history-conditioned/carryover causality rather than isolated semantic-content causality."
+    ]
+  },
+  "hard_negatives": [
+    "same current payload + different previous payload yields different canonical outcome -> CARRYOVER_PRESENT",
+    "same nominal pre_state_sha256 but different recipient/session/cache identity -> PRESTATE_SCOPE_INCOMPLETE",
+    "reset command succeeds without independent post-reset readback -> RESET_EVIDENCE_INVALID",
+    "trial process is reused and hidden mutable state is not measured -> UNKNOWN_NOT_SEMANTIC_CAUSAL",
+    "order-balanced aggregate passes while per-history strata disagree -> AGGREGATION_HIDES_HYSTERESIS"
+  ],
+  "promotion_rule": "G9 may earn only the narrowest content/history-conditioned candidate supported by its executed evidence. Isolated semantic-content causal promotion requires either per-trial independently verified equivalent runtime state or executed history-stratified invariance showing that previous treatment does not change the current-payload outcome.",
+  "failure_class_if_ignored_for_semantic_promotion": "EVIDENCE_INVALID_SCOPE_INFLATION",
+  "credits": {
+    "repository_ci_credit": 0,
+    "runtime_execution_observed": false,
+    "target_environment_component_runtime_credit": 0,
+    "semantic_content_causal_candidate_credit": 0,
+    "semantic_gwt_runtime_credit": 0,
+    "jspace_runtime_credit": 0,
+    "physical_grid10_credit": 0,
+    "effect_credit": 0,
+    "training_credit": 0,
+    "completion_credit": 0,
+    "whole_system_acceptance": false
+  },
+  "route_to": [
+    "F2-WP-900-G9-ACTIVE-OWNER",
+    "CANDIDATE_FALSIFIER",
+    "RUNTIME_ACCEPTANCE"
+  ],
+  "next_exact_action": "Do not duplicate or mutate G9 from this reviewer lane. The active G9 owner should either (a) add per-trial fresh/reset-bound runtime-state proof plus history-stratified hard negatives before semantic-content promotion, or (b) preserve G9 as a narrower payload/history-conditioned causal candidate and defer isolated semantic-content causal credit to a successor executable discriminator."
+}
