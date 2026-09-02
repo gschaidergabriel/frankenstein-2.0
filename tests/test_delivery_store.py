@@ -87,6 +87,16 @@ def _process_apply(db_path, home, barrier, queue, transition):
             store.close()
 
 
+def _process_apply_then_hard_exit(db_path, home, transition):
+    """Apply one committed transition and terminate without closing the SQLite handle."""
+    try:
+        store = _open_store(db_path, home)
+        store.apply(_identity(), transition)
+    except BaseException:
+        os._exit(91)
+    os._exit(0)
+
+
 class CanonicalDeliveryStoreTests(unittest.TestCase):
     def setUp(self):
         self.tmp = tempfile.TemporaryDirectory()
@@ -170,6 +180,47 @@ class CanonicalDeliveryStoreTests(unittest.TestCase):
             DeliveryStoreError, "UNIFIEDDB_LIVE_FILE_IDENTITY_DRIFT"
         ):
             store.transition_count(offered.delivery_id)
+        store.close()
+
+    def test_offer_and_ack_survive_hard_process_exit_without_store_close(self):
+        ctx = multiprocessing.get_context("spawn")
+
+        offer = _transition("transition:offer-crash", DeliveryOperation.OFFER)
+        offer_process = ctx.Process(
+            target=_process_apply_then_hard_exit,
+            args=(self.db_path, self.home, offer),
+        )
+        offer_process.start()
+        offer_process.join(15)
+        self.assertEqual(offer_process.exitcode, 0)
+
+        store = _open_store(self.db_path, self.home)
+        after_offer = store.get_delivery(
+            causal_event_id="causal:event-1", recipient_id="recipient:alpha"
+        )
+        self.assertIsNotNone(after_offer)
+        self.assertEqual(after_offer.state, DeliveryState.OFFERED)
+        self.assertEqual(after_offer.transport_attempt_ids, ("attempt:1",))
+        self.assertEqual(store.transition_count(after_offer.delivery_id), 1)
+        store.close()
+
+        ack = _transition("transition:ack-crash", DeliveryOperation.ACK)
+        ack_process = ctx.Process(
+            target=_process_apply_then_hard_exit,
+            args=(self.db_path, self.home, ack),
+        )
+        ack_process.start()
+        ack_process.join(15)
+        self.assertEqual(ack_process.exitcode, 0)
+
+        store = _open_store(self.db_path, self.home)
+        after_ack = store.get_delivery(
+            causal_event_id="causal:event-1", recipient_id="recipient:alpha"
+        )
+        self.assertIsNotNone(after_ack)
+        self.assertEqual(after_ack.state, DeliveryState.ACKED)
+        self.assertEqual(after_ack.acknowledged_attempt_id, "attempt:1")
+        self.assertEqual(store.transition_count(after_ack.delivery_id), 2)
         store.close()
 
     def test_offer_ack_persists_across_reopen(self):
