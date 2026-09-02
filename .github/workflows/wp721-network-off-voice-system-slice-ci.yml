@@ -74,7 +74,7 @@ jobs:
         shell: bash
         run: PYTHONPATH=src python3 -m unittest discover -s tests -p 'test_voice_packet_cortex_recovery.py' -v
 
-      - name: Preserve exact scope fence
+      - name: Preserve exact scope fence across repository and runtime phases
         shell: bash
         run: |
           set -Eeuo pipefail
@@ -83,12 +83,24 @@ jobs:
           from pathlib import Path
 
           claim = json.loads(Path('workpackages/active/F2-WP-721.json').read_text())
-          assert claim['state'] == 'CLAIMED'
+          assert claim['state'] in {'CLAIMED', 'ACCEPTED'}, claim['state']
           assert claim['new_component_necessity'] == 'NONE_COMPOSITION_ONLY'
           assert claim['repository_component_ci_credit'] == 1
           assert claim['repository_ci_subject_sha'] == '3907e3830880a02788b29086c0edf5858f88492b'
+
+          if claim['state'] == 'CLAIMED':
+              assert claim['target_environment_component_runtime_credit'] == 0
+              assert claim['runtime_execution_observed'] is False
+              print('WP721_REPOSITORY_ACCEPTED_TARGET_RUNTIME_STILL_ZERO')
+          else:
+              assert claim['target_environment_component_runtime_credit'] == 1
+              assert claim['runtime_execution_observed'] is True
+              assert claim['runtime_dispatch_state'] == 'EXECUTED_SUCCESS'
+              assert claim['acceptance_receipt']
+              assert claim['reconciliation_ref']
+              print('WP721_TARGET_COMPONENT_RUNTIME_ACCEPTED_AT_EXACT_SCOPE')
+
           for field in (
-              'target_environment_component_runtime_credit',
               'physical_audio_credit',
               'asr_runtime_credit',
               'tts_runtime_credit',
@@ -101,7 +113,5 @@ jobs:
               'whole_voice_e2e_credit',
           ):
               assert claim[field] == 0, (field, claim[field])
-          assert claim['runtime_execution_observed'] is False
           assert claim['whole_system_acceptance'] is False
-          print('WP721_REPOSITORY_ACCEPTED_TARGET_RUNTIME_STILL_ZERO')
           PY
