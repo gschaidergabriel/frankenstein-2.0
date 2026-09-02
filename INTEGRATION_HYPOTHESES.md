@@ -13,6 +13,13 @@ hypothesis/finding/gap that accumulated around WP1207 self-integration but was n
 folded into one place. **Canonical status stays what the underlying evidence already
 says — this file changes no verdicts, it only collects them.**
 
+**Update 2026-09-03 (WITNESSFIX-20260903):** the `POSTREENTRY B` blocker row (Part 4)
+and Part 5 item 9 were updated with a real fix + isolated-dummy-test verdict for the
+post-reentry auto-relaunch tool. This is new evidence, not a reinterpretation of old
+evidence — see `workpackages/evidence_inbox/F2-WP-1207/witness_detach_fix/
+WITNESSFIX-20260903/`. Nothing else in this file changed; no hypothesis verdict
+touched; no live subject was contacted; no pointer promotion.
+
 **Placement decision:** committed here (`frankenstein-2.0` repo root) because every
 `H*` ID and every evidence path below is meaningful only relative to this repo's
 `workpackages/evidence_inbox/F2-WP-1207/...` tree — this is target-system
@@ -191,7 +198,7 @@ future, separately-scoped round.
 | SELFINT `found_and_fixed_1` | PRODUCT_NEGATIVE | **FIXED** (same-day, 2026-09-01) | `apply_transaction` only recognized lowercase `pre_mutation`/`post_mutation`; any other truthy `injected_failure_stage` string fell through to a real mutating write, then re-raised without restoring → torn state (disk mutated, lineage still old generation). | closed — whitelist + normalize + restore-and-verify-before-reraise landed, 3 regression tests prove pre-fix-fails/post-fix-passes. |
 | SELFINT `found_and_fixed_2` | EVIDENCE_INVALID | **FIXED** | `measurements.jsonl` schema v1 had no identity binding (no repo head SHA, no state digests per record) — required by `MEASUREMENT_PLAN.md`. | closed — schema v2, `run_gates.py` rewritten, cross-checked against `rollback_evidence.json`. |
 | SELFINT (unnamed) | UNKNOWN_NONTERMINAL | **offen** | Explicit-ROLLBACK re-entry only proven in-process (unit test) inside the sandbox run, not as a fresh cross-process readback in the *same* run as the rollback. (Note: Phase 13 *does* prove this live, on the real subject — this specific sandbox-internal gap is narrower and still open.) | run install→inject-failure→rollback→fresh-subprocess-readback as one continuous timed sequence inside the sandbox. |
-| POSTREENTRY B (unnamed) | INFRA_AUTH_TRANSPORT_QUOTA | **offen** | The external witness/auto-relaunch tool died together with the subject process during the Phase-13-adjacent post-reentry run — auto-relaunch never happened, owner completed reentry manually. | build the restart tool genuinely outside the subject's process group (real `setsid`+`nohup`+detach *before* the kill), and prove it first against a dummy process before ever running it against the real subject again. |
+| POSTREENTRY B (unnamed) | INFRA_AUTH_TRANSPORT_QUOTA | **teilweise behoben (WITNESSFIX-20260903)** | Root cause confirmed: `witness_v2.py` never detached *itself* from the session/process-group that launched it (only its post-death relaunch child got `start_new_session=True`); if that launching session/group is torn down together with the subject, an undetached witness goes down with it before it can act — exactly what `reentry2_evidence.json` shows (cut off right after the first `flush()`, before `died`/`status`/`new_pid`). Fix (`witness_v3.py`, double-fork+setsid self-daemonize as the first thing in `main()`) built and proven 5/5 PASS against an isolated dummy subject (`test_detach_isolation.py`) — a single group-wide `SIGTERM` reliably kills a naive (non-daemonized) witness *before it can complete*, while the daemonized one survives and completes its relaunch every time. **Not yet re-run against a real live subject** — deliberately deferred, see below. | owner-authorized live test (Gabriel, Phase-13-style sign-off): arm `witness_v3.py --daemonize` against a real running instance he's prepared to have terminated+relaunched, confirm the fix holds outside the dummy sandbox. Evidence: `workpackages/evidence_inbox/F2-WP-1207/witness_detach_fix/WITNESSFIX-20260903/` (`NOTES.md`, `witness_v3.py`, `test_detach_isolation.py`, `manifest.json`, `run_1..5.json`). |
 | MODELSUB B1 | INFRA_AUTH_TRANSPORT_QUOTA | **offen — Owner hat Retest bewusst gestrichen** | Opus arm ran out of 5h subscription quota at test 27/32; 6/32 Opus responses (incl. both abstention-tolerance tests) permanently unmeasured for this run. | none planned — cost/benefit judged negative by owner. |
 | H13 | governance | **offen** | Does repaired G10 portable-transaction source inherit G9's acceptance credit, or does it need wholly fresh runtime-integration evidence? | independent reviewer / Gabriel decision on `canonicalization_proposal.json`, referencing the G6/G9/G10 chain. |
 | `host_identity_sha256` real scheme | design | **offen, unverändert seit F-ITER1** | Every run to date uses `/etc/machine-id` as an explicitly test-scoped stand-in. No real scheme has ever been proposed by any agent — correctly left as an owner decision, not invented ad hoc. | Gabriel/coordinator decision needed before any `StateLineage` work can start. |
@@ -234,9 +241,14 @@ made about itself plus the open items above — not a new invention:
    scope) inherits G9's (VPS clean-host) acceptance credit is explicitly flagged by
    the project's own frozen state doc as a distinction that must not be silently
    collapsed — no round has been authorized to decide this.
-9. **The post-reentry auto-relaunch tool is broken** (dies with its subject,
-   `INFRA_AUTH_TRANSPORT_QUOTA`, OPEN) — any future live reentry test needs a
-   genuinely detached restart mechanism, proven against a dummy first.
+9. **The post-reentry auto-relaunch tool's detach bug is fixed and dummy-tested,
+   not yet live-tested.** `witness_v3.py` (self-daemonizing, `WITNESSFIX-20260903`)
+   fixes the root cause (witness never detached itself from the launching
+   session/process-group) and passed 5/5 isolated dummy runs — but per the
+   flagged cyber-safety-filter-adjacent-vocabulary caution (process termination/
+   reentry against a live subject), it has deliberately **not** been run against
+   a real instance yet. Any future live reentry test should use it, but still
+   needs an owner-authorized live confirmation first (Phase-13-style sign-off).
 10. **The originally-requested broad sandbox test catalog (Phase 6 hostile-twin +
     fault-injection + reentry + transaction-wrapper, all against a live subject in
     one combined run) has never been executed** — it was correctly stopped by
