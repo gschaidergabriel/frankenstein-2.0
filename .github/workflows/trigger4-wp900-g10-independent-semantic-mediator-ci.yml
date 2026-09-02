@@ -1,0 +1,91 @@
+name: Trigger4 WP900 G10 Independent Semantic Mediator
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'src/frankenstein2/gwt_independent_semantic_mediator.py'
+      - 'tests/test_wp900_g10_independent_semantic_mediator.py'
+      - '.github/workflows/trigger4-wp900-g10-independent-semantic-mediator-ci.yml'
+      - 'workpackages/active/F2-WP-900.json'
+  pull_request:
+    paths:
+      - 'src/frankenstein2/gwt_independent_semantic_mediator.py'
+      - 'tests/test_wp900_g10_independent_semantic_mediator.py'
+      - '.github/workflows/trigger4-wp900-g10-independent-semantic-mediator-ci.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: trigger4-wp900-g10-independent-semantic-mediator-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  g10-independent-semantic-mediator:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      PYTHONPATH: ${{ github.workspace }}/src:${{ github.workspace }}/tests
+      PYTHONDONTWRITEBYTECODE: '1'
+      EXPECTED_SOURCE_SHA: ${{ github.sha }}
+    steps:
+      - name: Checkout exact G10 source
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Prove exact source and clean tracked tree
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$EXPECTED_SOURCE_SHA"
+          test -z "$(git status --porcelain --untracked-files=no)"
+          git rev-parse HEAD
+          git rev-parse HEAD^{tree}
+
+      - name: Compile and inspect independent semantic mediator ABI
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m py_compile src/frankenstein2/gwt_independent_semantic_mediator.py
+          python - <<'PY'
+          import inspect
+          import frankenstein2.gwt_independent_semantic_mediator as g10
+          params = inspect.signature(g10.MediatedSemanticState.from_wire).parameters
+          assert "semantic_payload" not in params
+          assert "semantic_class" not in params
+          assert g10.behavioral_input_keys().isdisjoint(g10.FORBIDDEN_BEHAVIORAL_INPUT_KEYS)
+          print(g10.MEDIATOR_AUTHORITY_CANDIDATE)
+          PY
+
+      - name: Execute predecessor fences plus G10 mediator regressions
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pip install --disable-pip-version-check pytest
+          python -m pytest -q \
+            tests/test_wp900_g8_causal_admission_fence.py \
+            tests/test_wp900_g9_semantic_content_causality.py \
+            tests/test_wp900_g9_reentry_only_execution.py \
+            tests/test_wp900_g10_independent_semantic_mediator.py
+
+      - name: Preserve zero-credit repository boundary
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import frankenstein2.gwt_independent_semantic_mediator as g10
+          for cls in (
+              g10.IndependentSemanticMediatorReceipt,
+              g10.MediatedSemanticState,
+              g10.MediatedExecutionReceipt,
+              g10.IndependentSemanticMediatorCrossoverCandidate,
+          ):
+              assert cls.repository_ci_credit == 0
+              assert cls.target_environment_component_runtime_credit == 0
+              assert cls.semantic_gwt_runtime_credit == 0
+              assert cls.jspace_runtime_credit == 0
+              assert cls.whole_system_acceptance is False
+          PY
