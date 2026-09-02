@@ -1,0 +1,198 @@
+# Trigger-4 WP103 G4: controller-only workflow; frozen semantic runtime subject is 27919512c51b3b403869c35b8ff1ce77ae5c16fc.
+name: WP103 Delivery Crash-Reopen Exact-Subject VPS
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/wp103-delivery-crash-reopen-vps.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  exact-delivery-crash-reopen-sandbox:
+    runs-on: clay-host
+    timeout-minutes: 20
+    env:
+      WP103_ACCEPTED_SUBJECT: 27919512c51b3b403869c35b8ff1ce77ae5c16fc
+      WP103_REPOSITORY_ACCEPTANCE_RUN: '33638075515'
+      F2_SANDBOX_ROOT: /var/tmp/frankenstein2-sandboxes
+      F2_SANDBOX_MIN_FREE_KIB: '5242880'
+      F2_SANDBOX_MIN_MEM_KIB: '1048576'
+    steps:
+      - name: Checkout exact accepted WP103 semantic subject
+        uses: actions/checkout@v4
+        with:
+          ref: 27919512c51b3b403869c35b8ff1ce77ae5c16fc
+          persist-credentials: false
+
+      - name: Verify runner and exact subject identity
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          printf '%s\n' \
+            "RUNNER_NAME=${RUNNER_NAME:-UNKNOWN}" \
+            "RUNNER_OS=${RUNNER_OS:-UNKNOWN}" \
+            "RUNNER_ARCH=${RUNNER_ARCH:-UNKNOWN}" \
+            "CONTROLLER_SHA=$GITHUB_SHA" \
+            "SOURCE_SHA=$(git rev-parse HEAD)" \
+            "GITHUB_RUN_ID=$GITHUB_RUN_ID" \
+            "GITHUB_RUN_ATTEMPT=$GITHUB_RUN_ATTEMPT"
+          test "${RUNNER_NAME:-}" = "vps-clay-host"
+          test "${RUNNER_OS:-}" = "Linux"
+          test "$(git rev-parse HEAD)" = "$WP103_ACCEPTED_SUBJECT"
+          test -f src/state/delivery_store.py
+          test -f tests/test_delivery_store.py
+          test -f tools/vps_sandbox/preflight.sh
+          test -f tools/vps_sandbox/run_ubuntu_sandbox.sh
+
+      - name: Host-health and isolation preflight
+        shell: bash
+        run: bash tools/vps_sandbox/preflight.sh | tee /tmp/wp103-preflight.txt
+
+      - name: Execute exact accepted WP103 delivery suite in network-off VPS sandbox
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          bash tools/vps_sandbox/run_ubuntu_sandbox.sh --backend auto --network off -- \
+            /bin/bash -lc '
+              set +e
+              PYTHONPATH=src python3 -m unittest discover -s tests -p "test_delivery_store.py" -v > /tmp/wp103-delivery.log 2>&1
+              delivery_status=$?
+              set -e
+              cat /tmp/wp103-delivery.log
+              printf "WP103_DELIVERY_EXIT=%s\n" "$delivery_status"
+              exit 0
+            ' | tee /tmp/wp103-sandbox.txt
+
+      - name: Emit exact bounded runtime receipt
+        if: always()
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          python3 - <<'PY'
+          import hashlib
+          import json
+          import os
+          import pathlib
+          import re
+          import subprocess
+
+          expected_subject = os.environ['WP103_ACCEPTED_SUBJECT']
+
+          def parse_status(text, name):
+              match = re.search(rf'^{re.escape(name)}=(\d+)$', text, re.MULTILINE)
+              return int(match.group(1)) if match else None
+
+          try:
+              source_sha = subprocess.check_output(['git', 'rev-parse', 'HEAD'], text=True).strip()
+          except Exception:
+              source_sha = None
+
+          sandbox_path = pathlib.Path('/tmp/wp103-sandbox.txt')
+          preflight_path = pathlib.Path('/tmp/wp103-preflight.txt')
+          sandbox = sandbox_path.read_text(errors='replace') if sandbox_path.exists() else ''
+          preflight = preflight_path.read_text(errors='replace') if preflight_path.exists() else ''
+          delivery_exit = parse_status(sandbox, 'WP103_DELIVERY_EXIT')
+
+          subject_paths = [
+              'src/state/delivery_store.py',
+              'tests/test_delivery_store.py',
+              'tools/vps_sandbox/preflight.sh',
+              'tools/vps_sandbox/run_ubuntu_sandbox.sh',
+          ]
+          subject_file_sha256 = {}
+          for rel in subject_paths:
+              p = pathlib.Path(rel)
+              subject_file_sha256[rel] = hashlib.sha256(p.read_bytes()).hexdigest() if p.exists() else None
+
+          runner_valid = os.environ.get('RUNNER_NAME') == 'vps-clay-host' and os.environ.get('RUNNER_OS') == 'Linux'
+          sandbox_executed = 'F2_SANDBOX_RESULT=PASS' in sandbox
+          subject_valid = source_sha == expected_subject and all(subject_file_sha256.values())
+          crash_reopen_observed = 'test_offer_and_ack_survive_hard_process_exit_without_store_close' in sandbox
+
+          if not runner_valid:
+              result = 'INFRA_AUTH_TRANSPORT_QUOTA'
+              failure_class = 'INFRA_AUTH_TRANSPORT_QUOTA'
+          elif not subject_valid:
+              result = 'EVIDENCE_INVALID'
+              failure_class = 'EVIDENCE_INVALID'
+          elif not sandbox_executed or delivery_exit is None:
+              result = 'INFRA_AUTH_TRANSPORT_QUOTA'
+              failure_class = 'INFRA_AUTH_TRANSPORT_QUOTA'
+          elif delivery_exit != 0 or not crash_reopen_observed:
+              result = 'EXECUTED_PRODUCT_NEGATIVE'
+              failure_class = 'PRODUCT_NEGATIVE'
+          else:
+              result = 'EXECUTED_NO_COUNTEREXAMPLE'
+              failure_class = None
+
+          promoted = int(result == 'EXECUTED_NO_COUNTEREXAMPLE')
+          receipt = {
+              'schema': 'F2_WP103_DELIVERY_CRASH_REOPEN_VPS_RECEIPT/v1',
+              'workpackage_id': 'F2-WP-103',
+              'generation': 4,
+              'claim_id': 'F2-WP-103-G4-GPT56SOL-DELIVERY-TARGET-RUNTIME-20260902',
+              'result': result,
+              'failure_class': failure_class,
+              'repository_subject_sha': expected_subject,
+              'repository_acceptance_run_id': int(os.environ['WP103_REPOSITORY_ACCEPTANCE_RUN']),
+              'source_sha': source_sha,
+              'subject_file_sha256': subject_file_sha256,
+              'controller_sha': os.environ.get('GITHUB_SHA'),
+              'workflow_run_id': int(os.environ.get('GITHUB_RUN_ID', '0')),
+              'workflow_run_attempt': int(os.environ.get('GITHUB_RUN_ATTEMPT', '0')),
+              'runner_name': os.environ.get('RUNNER_NAME', 'UNKNOWN'),
+              'runner_os': os.environ.get('RUNNER_OS', 'UNKNOWN'),
+              'runner_arch': os.environ.get('RUNNER_ARCH', 'UNKNOWN'),
+              'execution_surface': 'OWNER_VPS_DISPOSABLE_UBUNTU_SANDBOX',
+              'sandbox_tier': 'S1_OR_S2_AUTO',
+              'network_mode': 'OFF',
+              'delivery_suite_exit': delivery_exit,
+              'crash_reopen_test_observed': crash_reopen_observed,
+              'preflight_log': preflight,
+              'sandbox_log': sandbox,
+              'runtime_execution_observed': bool(sandbox_executed and delivery_exit is not None),
+              'repository_component_ci_credit': 1,
+              'target_environment_component_runtime_credit': promoted,
+              'host_reboot_credit': 0,
+              'power_loss_credit': 0,
+              'storage_controller_credit': 0,
+              'physical_grid10_credit': 0,
+              'gwt_runtime_credit': 0,
+              'jspace_runtime_credit': 0,
+              'effect_credit': 0,
+              'training_credit': 0,
+              'completion_credit': 0,
+              'whole_system_acceptance': False,
+          }
+          pathlib.Path('/tmp/wp103-runtime-receipt.json').write_text(json.dumps(receipt, indent=2, sort_keys=True) + '\n')
+          print(json.dumps(receipt, sort_keys=True))
+          PY
+
+      - name: Upload bounded runtime receipt
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: wp103-delivery-crash-reopen-vps-${{ github.run_id }}
+          path: /tmp/wp103-runtime-receipt.json
+          if-no-files-found: error
+
+      - name: Enforce bounded runtime discriminator result
+        if: always()
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          path = Path('/tmp/wp103-runtime-receipt.json')
+          if not path.exists():
+              raise SystemExit('WP103_RUNTIME_RECEIPT_MISSING')
+          receipt = json.loads(path.read_text())
+          if receipt.get('result') != 'EXECUTED_NO_COUNTEREXAMPLE':
+              raise SystemExit(f"WP103_RUNTIME_DISCRIMINATOR_NOT_PASS:{receipt.get('result')}:{receipt.get('failure_class')}")
+          print('WP103_BOUNDED_TARGET_COMPONENT_RUNTIME_PASS')
+          PY
