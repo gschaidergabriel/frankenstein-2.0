@@ -7,16 +7,20 @@ on:
       - 'src/frankenstein2/structured_execution_receipt.py'
       - 'src/frankenstein2/effect_invocation_correlation.py'
       - 'src/frankenstein2/effect_request_identity.py'
+      - 'src/frankenstein2/whole_persistent_loop.py'
       - 'src/state/execution_completion.py'
       - 'tests/test_structured_execution_receipt.py'
+      - 'tests/test_structured_receipt_whole_loop_ingress.py'
       - '.github/workflows/structured-execution-receipt-ci.yml'
   pull_request:
     paths:
       - 'src/frankenstein2/structured_execution_receipt.py'
       - 'src/frankenstein2/effect_invocation_correlation.py'
       - 'src/frankenstein2/effect_request_identity.py'
+      - 'src/frankenstein2/whole_persistent_loop.py'
       - 'src/state/execution_completion.py'
       - 'tests/test_structured_execution_receipt.py'
+      - 'tests/test_structured_receipt_whole_loop_ingress.py'
       - '.github/workflows/structured-execution-receipt-ci.yml'
   workflow_dispatch:
 
@@ -40,10 +44,14 @@ jobs:
           src/frankenstein2/structured_execution_receipt.py
           src/frankenstein2/effect_invocation_correlation.py
           src/frankenstein2/effect_request_identity.py
+          src/frankenstein2/whole_persistent_loop.py
           src/state/execution_completion.py
           tests/test_structured_execution_receipt.py
+          tests/test_structured_receipt_whole_loop_ingress.py
       - name: Run structured receipt and success-allowlist falsifiers
         run: python tests/test_structured_execution_receipt.py
+      - name: Run WP105 receipt to WP900 outcome-ingress integration falsifiers
+        run: python tests/test_structured_receipt_whole_loop_ingress.py
       - name: Run execution lineage regressions
         run: python tests/test_execution_completion.py
       - name: Run effect correlation regressions
