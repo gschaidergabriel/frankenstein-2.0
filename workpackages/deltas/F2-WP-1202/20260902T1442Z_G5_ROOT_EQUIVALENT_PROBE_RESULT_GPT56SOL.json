@@ -5,7 +5,7 @@
   "claim_id": "F2-WP-1202-G5-GPT56SOL-S2-SYSTEMD-FIDELITY-20260901T1710Z",
   "worker_id": "GPT-5.6-Sol-TRIGGER4",
   "trigger": "4",
-  "delta_class": "INFRA_ROOT_EQUIVALENT_AUTHORIZATION_PROBE_RESULT",
+  "delta_class": "INFRA_GENERIC_ROOT_LAUNCHER_PROBE_RESULT",
   "work_class": "INTEGRATION_BLOCKER",
   "observed_f2_main_sha_before_delta": "297786af09000ab385261cfe73b5a66f6e7e6315",
   "repository_g5_subject_sha": "a0fab5dc2fe2968fd1cbe90f323d03ac37fa3faf",
@@ -25,7 +25,7 @@
     "systemd_run_system_root_equivalent": "FAIL:INTERACTIVE_AUTHENTICATION_REQUIRED",
     "unprivileged_user_namespace": "PASS"
   },
-  "result": "ROOT_EQUIVALENT_AUTHORIZATION_UNAVAILABLE",
+  "result": "GENERIC_ROOT_EQUIVALENT_LAUNCHERS_UNAVAILABLE",
   "failure_class": "INFRA_AUTH_TRANSPORT_QUOTA",
   "product_negative": false,
   "runtime_execution_observed_for_wp1202_g5": false,
@@ -46,6 +46,8 @@
   "mutation_authority_changed": false,
   "product_mutation_required": false,
   "discriminator_spent": false,
-  "scope_fence": "This probe tested only whether an already-existing noninteractive root-equivalent launcher was available on the owner VPS. sudo -n failed and systemd-run --system required interactive authentication. Unprivileged user namespaces are available but do not satisfy the accepted G5 helper's root-equivalent nspawn requirement. No WP1202 product discriminator executed and no product/runtime/physical/GWT/J-Space/effect/training/completion credit is minted.",
-  "next_exact_action": "Repair only the owner-VPS host authorization boundary outside WP1202 product code by admitting a least-privilege noninteractive root-equivalent launcher for the existing guarded S2 nspawn authority. Re-run the capability preflight. Only after it passes may exactly one canonical-main G5 booted-systemd S2 discriminator execute. Do not mutate WP1202 product code and do not move the test to S4."
+  "superseding_event_ref": "workpackages/state_events/F2-WP-1202/000009.json",
+  "superseding_event_interpretation": "A separate restricted /usr/local/sbin/clay-host-admin route is proven to exist. Event 000009 establishes that this restricted route, not generic sudo/systemd-run, is the canonical next infrastructure boundary and that its sandbox-run ABI is stale for the exact G5 booted-systemd subject.",
+  "scope_fence": "This probe tested only generic noninteractive elevation mechanisms visible to claylab: sudo -n and systemd-run --system. Both failed; unprivileged user namespaces passed. It did NOT test or disprove the separately admitted restricted clay-host-admin route. Therefore it must not be read as evidence that no noninteractive restricted admin route exists. No WP1202 product discriminator executed and no product/runtime/physical/GWT/J-Space/effect/training/completion credit is minted.",
+  "next_exact_action": "Follow state event 000009: update only the owner-VPS restricted clay-host-admin sandbox-run ABI so it accepts the exact G5 sandbox-runner sha256 94fb4e1899ffbe17e02ad2df042e0e6379f128757b57af7b7ed1176b5df6565a and permits --boot-systemd only with --backend nspawn while preserving source-root validation, runner hash binding and host-survival fences. Re-verify the helper hash/ABI, then execute exactly one canonical G5 booted-systemd S2 discriminator. Do not broaden sudo, mutate WP1202 product code, or move to S4."
 }
