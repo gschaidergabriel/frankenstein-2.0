@@ -33,10 +33,6 @@ class WholeSystemCharacterizationError(ValueError):
     """Reject malformed, stale, mixed-lineage or authority-inflating characterization data."""
 
 
-# Module-private capability used only by characterize_measurements after the concrete
-# measurement family has been validated and the report fields have been recomputed.
-# This is not runtime/effect authority; it is an API misuse fence preventing ordinary
-# direct construction from being confused with validated factory output.
 _REPORT_FACTORY_TOKEN = object()
 
 
@@ -295,6 +291,14 @@ def characterize_measurements(
             raise WholeSystemCharacterizationError(
                 "measurement sample source/loop/environment/metric-schema identity mismatch"
             )
+
+    common_provenance = set(family[0].provenance_refs)
+    for sample in family[1:]:
+        common_provenance.intersection_update(sample.provenance_refs)
+    if not common_provenance:
+        raise WholeSystemCharacterizationError(
+            "measurement family provenance identity mismatch"
+        )
 
     canonical_samples = tuple(sorted(family, key=lambda sample: sample.sample_id))
     sample_set_sha256 = _digest(
