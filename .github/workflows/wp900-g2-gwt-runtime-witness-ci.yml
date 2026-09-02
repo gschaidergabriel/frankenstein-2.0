@@ -7,6 +7,9 @@ on:
     paths:
       - "src/frankenstein2/gwt_runtime_witness.py"
       - "tests/test_gwt_runtime_witness.py"
+      - "tests/test_wp900_runtime_witness_whole_loop_review.py"
+      - "src/frankenstein2/whole_persistent_loop.py"
+      - "tests/test_whole_persistent_loop.py"
       - "src/frankenstein2/gwt_workspace.py"
       - "src/frankenstein2/gwt_uptake.py"
       - "src/frankenstein2/gwt_reentry_provenance.py"
@@ -16,6 +19,9 @@ on:
     paths:
       - "src/frankenstein2/gwt_runtime_witness.py"
       - "tests/test_gwt_runtime_witness.py"
+      - "tests/test_wp900_runtime_witness_whole_loop_review.py"
+      - "src/frankenstein2/whole_persistent_loop.py"
+      - "tests/test_whole_persistent_loop.py"
       - "src/frankenstein2/gwt_workspace.py"
       - "src/frankenstein2/gwt_uptake.py"
       - "src/frankenstein2/gwt_reentry_provenance.py"
@@ -37,9 +43,16 @@ jobs:
           python-version: "3.11"
       - name: Install test dependency
         run: python -m pip install --disable-pip-version-check pytest
-      - name: Compile witness boundary
-        run: python -m py_compile src/frankenstein2/gwt_runtime_witness.py
+      - name: Compile witness and whole-loop boundary
+        run: |
+          python -m py_compile src/frankenstein2/gwt_runtime_witness.py
+          python -m py_compile src/frankenstein2/whole_persistent_loop.py
+          python -m py_compile tests/test_wp900_runtime_witness_whole_loop_review.py
       - name: Run WP900 G2 owned runtime witness regressions
         env:
           PYTHONPATH: src
         run: python -m pytest -q tests/test_gwt_runtime_witness.py
+      - name: Run WP900 runtime-witness whole-loop REVIEW_ONLY discriminator
+        env:
+          PYTHONPATH: src
+        run: python -m pytest -q tests/test_wp900_runtime_witness_whole_loop_review.py
