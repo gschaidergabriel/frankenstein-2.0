@@ -8,6 +8,7 @@ import pytest
 from frankenstein2.grid10_interface import CellInput
 from frankenstein2.gwt_independent_semantic_mediator import (
     FORBIDDEN_BEHAVIORAL_INPUT_KEYS,
+    FORBIDDEN_BEHAVIORAL_STATE_KEYS,
     FORBIDDEN_TRIAL_WIRE_KEYS,
     G10MediatorError,
     MEDIATOR_AUTHORITY_CANDIDATE,
@@ -15,6 +16,7 @@ from frankenstein2.gwt_independent_semantic_mediator import (
     MediatedSemanticState,
     admit_mediated_semantic_state,
     behavioral_input_keys,
+    behavioral_state_keys,
     bind_independent_semantic_mediator_crossover,
     execute_mediated_reentry_only,
     trial_wire_keys,
@@ -142,9 +144,8 @@ def all_mediators_states_and_receipts():
         admit_mediated_semantic_state(
             mediator=mediator,
             wire=mediator.to_wire(),
-            trial_process_identity=f"trial-process:g10:{position}",
         )
-        for position, mediator in enumerate(mediators, 1)
+        for mediator in mediators
     )
     plan = executor_plan()
     receipts = tuple(
@@ -160,7 +161,7 @@ def test_independent_semantic_mediator_crossover_is_candidate_only():
         mediators=mediators,
         states=states,
         execution_receipts=receipts,
-        provenance_refs=("prov:g10:repository-crossover-v2",),
+        provenance_refs=("prov:g10:repository-crossover-v3",),
     )
     validate_independent_semantic_mediator_crossover(candidate)
     assert candidate.semantic_order == ("allow", "deny", "deny", "allow")
@@ -170,6 +171,7 @@ def test_independent_semantic_mediator_crossover_is_candidate_only():
     assert len(set(candidate.source_process_identities)) == 4
     assert len(set(candidate.trial_process_identities)) == 4
     assert set(candidate.source_process_identities).isdisjoint(candidate.trial_process_identities)
+    assert all(identity.startswith("executor-child-pid:") for identity in candidate.trial_process_identities)
     assert len(set(candidate.child_pids)) == 4
     assert candidate.observed_mapping == (("allow", "allow"), ("deny", "deny"))
     assert candidate.classification == MEDIATOR_AUTHORITY_CANDIDATE
@@ -191,9 +193,33 @@ def test_trial_visible_wire_is_minimal_and_has_no_attestation_or_plan_sidechanne
     assert "semantic_payload" not in params
     assert "semantic_class" not in params
     assert "trial_position" not in params
+    assert "trial_process_identity" not in params
     assert "source_range" not in params
     assert "runtime_witness" not in params
     assert behavioral_input_keys().isdisjoint(FORBIDDEN_BEHAVIORAL_INPUT_KEYS)
+
+
+def test_behavior_capable_state_has_no_trial_or_topology_selector():
+    mediator = source_mediator(position=1, payload=PAYLOADS[0])
+    wire = mediator.to_wire()
+    state = admit_mediated_semantic_state(mediator=mediator, wire=wire)
+    visible = state.as_dict()
+    assert set(visible) == behavioral_state_keys()
+    assert behavioral_state_keys().isdisjoint(FORBIDDEN_BEHAVIORAL_STATE_KEYS)
+    assert "trial_process_identity" not in visible
+    assert not hasattr(state, "trial_process_identity")
+    assert state.semantic_sha256 == hashlib.sha256(state.canonical_semantic_json.encode()).hexdigest()
+    assert state.wire_sha256 == hashlib.sha256(wire).hexdigest()
+    reconstructed_wire = json.dumps(
+        {
+            "schema": json.loads(wire)["schema"],
+            "canonical_semantic_json": state.canonical_semantic_json,
+        },
+        sort_keys=True,
+        separators=(",", ":"),
+    ).encode()
+    assert reconstructed_wire == wire
+    assert hashlib.sha256(reconstructed_wire).hexdigest() == state.wire_sha256
 
 
 def test_mediator_requires_gwt_source_event_bound_to_exact_semantic_bytes():
@@ -298,30 +324,26 @@ def test_self_consistent_forged_wire_is_rejected_before_behavioral_execution():
         admit_mediated_semantic_state(
             mediator=mediator,
             wire=forged,
-            trial_process_identity="trial-process:g10:forged",
         )
 
 
 def test_direct_state_construction_cannot_reach_behavioral_execution():
     canonical = '{"meaning":"allow","surface":"approve"}'
+    wire = json.dumps(
+        {
+            "schema": "FRANKENSTEIN2_G10_TREATMENT_BLIND_SEMANTIC_WIRE/v2",
+            "canonical_semantic_json": canonical,
+        },
+        sort_keys=True,
+        separators=(",", ":"),
+    ).encode()
     forged = MediatedSemanticState(
         canonical_semantic_json=canonical,
         semantic_sha256=hashlib.sha256(canonical.encode()).hexdigest(),
-        wire_sha256="f" * 64,
-        trial_process_identity="trial-process:g10:direct-forge",
+        wire_sha256=hashlib.sha256(wire).hexdigest(),
     )
     with pytest.raises(G10MediatorError, match="lacks valid factory origin"):
         execute_mediated_reentry_only(executor_plan=executor_plan(), semantic_state=forged)
-
-
-def test_source_and_trial_process_identity_must_differ():
-    mediator = source_mediator(position=1, payload=PAYLOADS[0])
-    with pytest.raises(G10MediatorError, match="must differ"):
-        admit_mediated_semantic_state(
-            mediator=mediator,
-            wire=mediator.to_wire(),
-            trial_process_identity=mediator.source_process_identity,
-        )
 
 
 def test_external_payload_or_arm_hints_cannot_change_mediated_behavior(monkeypatch):
@@ -329,7 +351,6 @@ def test_external_payload_or_arm_hints_cannot_change_mediated_behavior(monkeypat
     state = admit_mediated_semantic_state(
         mediator=mediator,
         wire=mediator.to_wire(),
-        trial_process_identity="trial-process:g10:hints",
     )
     monkeypatch.setenv("WP900_G10_DIRECT_PAYLOAD_CLASS", "deny")
     monkeypatch.setenv("WP900_G10_ARM", "deny")
@@ -358,7 +379,7 @@ def test_repository_objects_cannot_self_mint_runtime_or_semantic_credit():
         mediators=mediators,
         states=states,
         execution_receipts=receipts,
-        provenance_refs=("prov:g10:credit-v2",),
+        provenance_refs=("prov:g10:credit-v3",),
     )
     for value in (*mediators, *states, *receipts, candidate):
         assert value.repository_ci_credit == 0
