@@ -11,6 +11,7 @@ on:
       - 'tests/test_wp720_turn_policy_falsifiers.py'
       - 'tests/test_voice_packet_cortex_recovery.py'
       - '.github/workflows/wp721-network-off-voice-system-slice-ci.yml'
+      - '.github/workflows/wp721-network-off-voice-system-slice-vps.yml'
       - 'workpackages/active/F2-WP-721.json'
       - 'workpackages/state_events/F2-WP-721/**'
   push:
@@ -24,6 +25,7 @@ on:
       - 'tests/test_wp720_turn_policy_falsifiers.py'
       - 'tests/test_voice_packet_cortex_recovery.py'
       - '.github/workflows/wp721-network-off-voice-system-slice-ci.yml'
+      - '.github/workflows/wp721-network-off-voice-system-slice-vps.yml'
       - 'workpackages/active/F2-WP-721.json'
       - 'workpackages/state_events/F2-WP-721/**'
   workflow_dispatch:
@@ -83,8 +85,9 @@ jobs:
           claim = json.loads(Path('workpackages/active/F2-WP-721.json').read_text())
           assert claim['state'] == 'CLAIMED'
           assert claim['new_component_necessity'] == 'NONE_COMPOSITION_ONLY'
+          assert claim['repository_component_ci_credit'] == 1
+          assert claim['repository_ci_subject_sha'] == '3907e3830880a02788b29086c0edf5858f88492b'
           for field in (
-              'repository_component_ci_credit',
               'target_environment_component_runtime_credit',
               'physical_audio_credit',
               'asr_runtime_credit',
@@ -100,5 +103,5 @@ jobs:
               assert claim[field] == 0, (field, claim[field])
           assert claim['runtime_execution_observed'] is False
           assert claim['whole_system_acceptance'] is False
-          print('WP721_REPOSITORY_DISCRIMINATOR_PASS_NO_RUNTIME_OR_WHOLE_VOICE_CREDIT')
+          print('WP721_REPOSITORY_ACCEPTED_TARGET_RUNTIME_STILL_ZERO')
           PY
