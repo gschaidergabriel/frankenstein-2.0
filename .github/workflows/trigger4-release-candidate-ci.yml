@@ -36,6 +36,14 @@ jobs:
           git rev-parse HEAD
           git rev-parse HEAD^{tree}
 
+      - name: Validate canonical checkpoint continuity before release construction
+        shell: bash
+        run: |
+          set -euo pipefail
+          python tests/test_validate_current_checkpoint.py -v
+          python tests/test_validate_checkpoint.py -v
+          python tools/validate_checkpoint.py --repo-root . --json
+
       - name: Run accepted release, receipt-binding, evidence-ingest, and host-transition regressions
         shell: bash
         run: |
