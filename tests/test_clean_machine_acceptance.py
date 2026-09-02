@@ -150,6 +150,57 @@ class CleanMachineAcceptanceTests(unittest.TestCase):
             result.violations,
         )
 
+    def test_other_agent_degraded_may_truthfully_report_missing_lifecycle(self):
+        observations = self.base_matrix()
+        observations[2] = replace(
+            observations[2],
+            route_result="DEGRADED",
+            lifecycle_firing_observed=False,
+            limitations=("SESSION_START/USER_TURN lifecycle primitive unavailable",),
+        )
+        result = self.evaluate(observations)
+        self.assertEqual(result.status, "READY_FOR_ADMISSION_REVIEW")
+        self.assertNotIn(
+            "other_agent:lifecycle_firing_observed=false", result.violations
+        )
+
+    def test_other_agent_degraded_still_requires_verified_durable_local_core(self):
+        observations = self.base_matrix()
+        observations[2] = replace(
+            observations[2],
+            route_result="DEGRADED",
+            lifecycle_firing_observed=False,
+            durable_state_readback_observed=False,
+            limitations=("SESSION_START lifecycle primitive unavailable",),
+        )
+        result = self.evaluate(observations)
+        self.assertIn(
+            "other_agent:durable_state_readback_observed=false", result.violations
+        )
+
+    def test_other_agent_blocked_preserves_measured_missing_capabilities(self):
+        observations = self.base_matrix()
+        observations[2] = replace(
+            observations[2],
+            route_result="BLOCKED",
+            lifecycle_firing_observed=False,
+            durable_state_readback_observed=False,
+            restart_recovery_observed=False,
+            reinstall_update_persistence_observed=False,
+            uninstall_disable_observed=False,
+            baseline_local_boot_observed=False,
+            single_state_lineage_verified=False,
+            limitations=(
+                "durable writable state unavailable",
+                "lifecycle event surface unavailable",
+            ),
+        )
+        result = self.evaluate(observations)
+        self.assertEqual(result.status, "READY_FOR_ADMISSION_REVIEW")
+        self.assertFalse(
+            any(item.startswith("other_agent:") for item in result.violations)
+        )
+
     def test_no_vps_baseline_must_really_boot_without_vps(self):
         observations = self.base_matrix()
         observations[3] = replace(
