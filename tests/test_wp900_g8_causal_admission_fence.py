@@ -4,12 +4,10 @@ import inspect
 import pytest
 
 from frankenstein2.gwt_reentry_causal_admission import (
-    ADMITTED_NEGATIVE_REENTRY_ABSENCE,
     NEGATIVE_ABSENCE_CONTRADICTED,
     NEGATIVE_ABSENCE_UNPROVEN,
     SOURCE_EVENT_GWT_REENTRY,
     SOURCE_EVENT_OTHER,
-    IndependentEventSourceRangeReceipt,
     IndependentEventSourceRangeRecorder,
     IndependentRangeError,
     admit_reentry_observation,
@@ -101,7 +99,7 @@ def _caller_asserted_complete_negative(
     )
 
 
-def _independent_range(*, include_matching_reentry):
+def _range_candidate(*, include_matching_reentry):
     recorder = IndependentEventSourceRangeRecorder(
         trace_source_sha256=TRACE_SOURCE,
         filter_schema_sha256=FILTER,
@@ -110,7 +108,7 @@ def _independent_range(*, include_matching_reentry):
         observer_identity="source-tap:wp900:g8:test",
         observer_started_monotonic_ns=1,
         window_start_monotonic_ns=10,
-        provenance_refs=("prov:independent-source-tap",),
+        provenance_refs=("prov:source-range-candidate",),
     )
     for offset, sequence in enumerate(range(1000, 1011), start=1):
         if include_matching_reentry and sequence == 1005:
@@ -133,13 +131,12 @@ def _independent_range(*, include_matching_reentry):
     return recorder.seal(
         window_end_monotonic_ns=30,
         observer_finalized_monotonic_ns=40,
-        provenance_refs=("prov:independent-range-seal",),
+        provenance_refs=("prov:range-seal",),
     )
 
 
 def test_structurally_perfect_caller_trace_cannot_mint_causal_negative_absence():
     observation = _caller_asserted_complete_negative()
-
     assert observation.status == NO_REENTRY_OBSERVED
     assert observation.trace_complete is True
 
@@ -159,28 +156,29 @@ def test_no_boolean_or_metadata_escape_hatch_exists_on_legacy_admission_api():
     assert set(inspect.signature(admit_reentry_observation).parameters) == {"observation"}
 
 
-def test_independent_range_can_admit_genuine_complete_negative_absence():
-    source_range = _independent_range(include_matching_reentry=False)
+def test_public_self_minted_range_cannot_unlock_negative_causal_credit():
+    """Regression for the G8 FACTORY_ORIGIN != INDEPENDENCE falsifier."""
+    source_range = _range_candidate(include_matching_reentry=False)
     observation = _caller_asserted_complete_negative(raw_trace_sha256=source_range.raw_trace_sha256)
 
     admitted = admit_reentry_observation_with_independent_range(observation, source_range)
 
-    assert admitted.admission_status == ADMITTED_NEGATIVE_REENTRY_ABSENCE
+    assert admitted.admission_status == NEGATIVE_ABSENCE_UNPROVEN
     assert admitted.causal_positive_credit == 0
-    assert admitted.causal_negative_credit == 1
-    assert admitted.independent_negative_range_authority is True
+    assert admitted.causal_negative_credit == 0
+    assert admitted.independent_negative_range_authority is False
     assert admitted.independent_range_sha256 == source_range.sha256()
-    assert admitted.blocker is None
+    assert admitted.blocker == "TARGET_SOURCE_INDEPENDENCE_BINDING_NOT_PROVEN"
     assert admitted.semantic_gwt_runtime_credit == 0
     assert admitted.jspace_runtime_credit == 0
     assert admitted.whole_system_acceptance is False
 
 
-def test_caller_omission_cannot_hide_matching_reentry_present_in_independent_range():
-    source_range = _independent_range(include_matching_reentry=True)
+def test_caller_omission_is_conservatively_contradicted_when_range_candidate_contains_match():
+    source_range = _range_candidate(include_matching_reentry=True)
 
-    # The condition-aware caller copies every range/counter/digest field perfectly
-    # but omits the REENTRY event from its own observation candidate.
+    # The condition-aware caller copies the structural range digest but omits
+    # the matching event from its own lower-level observation candidate.
     observation = _caller_asserted_complete_negative(raw_trace_sha256=source_range.raw_trace_sha256)
     assert observation.status == NO_REENTRY_OBSERVED
     assert observation.trace_complete is True
@@ -190,12 +188,14 @@ def test_caller_omission_cannot_hide_matching_reentry_present_in_independent_ran
     assert admitted.admission_status == NEGATIVE_ABSENCE_CONTRADICTED
     assert admitted.causal_positive_credit == 0
     assert admitted.causal_negative_credit == 0
-    assert admitted.independent_negative_range_authority is True
-    assert admitted.blocker == "MATCHING_REENTRY_PRESENT_IN_INDEPENDENT_SOURCE_RANGE"
+    # The range can falsify the negative candidate conservatively, but its
+    # public factory origin still does not prove operational independence.
+    assert admitted.independent_negative_range_authority is False
+    assert admitted.blocker == "MATCHING_REENTRY_PRESENT_IN_SOURCE_RANGE_CANDIDATE"
 
 
-def test_unsealed_range_object_cannot_act_as_independent_authority():
-    source_range = _independent_range(include_matching_reentry=False)
+def test_unsealed_range_object_cannot_act_as_range_candidate():
+    source_range = _range_candidate(include_matching_reentry=False)
     forged = dataclasses.replace(source_range, _factory_seal=None, _factory_payload_sha256=None)
 
     with pytest.raises(IndependentRangeError, match="lacks recorder origin"):

@@ -2,15 +2,14 @@
 
 The lower-level G8 observation receipt intentionally preserves caller-supplied
 trace-completeness metadata as a candidate. Positive REENTRY is recorder-origin
-bound. Negative absence is causal evidence only when a separate, factory-sealed
-event-source range independently covers the same source/filter/clock/window and
-contains every source sequence in that interval.
+bound. A separately sealed event-source range can contradict a caller-negative
+candidate, but repository construction of that range does *not* prove that its
+recorder was operationally independent from the condition-aware caller.
 
-The legacy ``admit_reentry_observation(observation)`` API stays fail-closed and
-has no boolean/metadata escape hatch. A distinct typed API accepts an
-``IndependentEventSourceRangeReceipt`` and cross-checks it against the candidate.
-Repository construction of these objects still mints no runtime or semantic
-credit; target execution must bind the range recorder to the real source path.
+Therefore this repository module never mints causal-negative credit from a
+range receipt alone. A future target-runtime promotion must bind the exact range
+recorder to an independently controlled upstream event source through external
+runtime evidence/reconciliation. FACTORY_ORIGIN != INDEPENDENT_SOURCE_PROVENANCE.
 """
 from __future__ import annotations
 
@@ -28,10 +27,12 @@ from frankenstein2.gwt_reentry_observation_window import (
     validate_reentry_observation_window,
 )
 
-CAUSAL_REENTRY_ADMISSION_SCHEMA = "FRANKENSTEIN2_GWT_CAUSAL_REENTRY_ADMISSION/v2"
+CAUSAL_REENTRY_ADMISSION_SCHEMA = "FRANKENSTEIN2_GWT_CAUSAL_REENTRY_ADMISSION/v3"
 INDEPENDENT_EVENT_SOURCE_RANGE_SCHEMA = "FRANKENSTEIN2_GWT_INDEPENDENT_EVENT_SOURCE_RANGE/v1"
 
 ADMITTED_POSITIVE_REENTRY = "ADMITTED_POSITIVE_REENTRY"
+# Historical compatibility constant. Repository-only APIs intentionally do not
+# emit this status after the G8 self-minted-range falsifier.
 ADMITTED_NEGATIVE_REENTRY_ABSENCE = "ADMITTED_NEGATIVE_REENTRY_ABSENCE"
 NEGATIVE_ABSENCE_UNPROVEN = "NEGATIVE_ABSENCE_UNPROVEN_SOURCE_AUTHORITY_MISSING"
 NEGATIVE_ABSENCE_CONTRADICTED = "NEGATIVE_ABSENCE_CONTRADICTED_BY_SOURCE_RANGE"
@@ -123,11 +124,10 @@ class IndependentEventSourceEvent:
             )
             object.__setattr__(self, "binding_sha256", _sha256("binding_sha256", self.binding_sha256))
             object.__setattr__(self, "recipient_cell_id", _text("recipient_cell_id", self.recipient_cell_id))
-        elif any(value is not None for value in (
-            self.canonical_reentry_key_sha256,
-            self.binding_sha256,
-            self.recipient_cell_id,
-        )):
+        elif any(
+            value is not None
+            for value in (self.canonical_reentry_key_sha256, self.binding_sha256, self.recipient_cell_id)
+        ):
             raise IndependentRangeError("OTHER event cannot carry reentry identity fields")
 
     def as_dict(self) -> dict[str, Any]:
@@ -162,7 +162,7 @@ class IndependentEventSourceRangeReceipt:
     _factory_payload_sha256: str | None = field(default=None, repr=False, compare=False, hash=False)
 
     schema = INDEPENDENT_EVENT_SOURCE_RANGE_SCHEMA
-    evidence_scope = "INDEPENDENT_EVENT_SOURCE_RANGE_CANDIDATE_REQUIRES_REAL_SOURCE_WIRING"
+    evidence_scope = "EVENT_SOURCE_RANGE_CANDIDATE_REQUIRES_TARGET_INDEPENDENCE_BINDING"
     repository_ci_credit = 0
     target_environment_component_runtime_credit = 0
     runtime_credit = 0
@@ -194,14 +194,14 @@ class IndependentEventSourceRangeReceipt:
             type(event) is not IndependentEventSourceEvent or event._factory_seal is not _SOURCE_EVENT_FACTORY
             for event in self.events
         ):
-            raise IndependentRangeError("event lacks independent source-recorder origin")
+            raise IndependentRangeError("event lacks source-range recorder origin")
         expected_sequences = tuple(range(self.source_sequence_start, self.source_sequence_end + 1))
         actual_sequences = tuple(event.source_sequence for event in self.events)
         if actual_sequences != expected_sequences:
-            raise IndependentRangeError("independent source range must contain every source sequence exactly once")
+            raise IndependentRangeError("source range must contain every claimed sequence exactly once")
         times = tuple(event.observed_monotonic_ns for event in self.events)
         if any(later <= earlier for earlier, later in zip(times, times[1:])):
-            raise IndependentRangeError("independent source event times must be strictly increasing")
+            raise IndependentRangeError("source event times must be strictly increasing")
         if not (
             self.observer_started_monotonic_ns < self.window_start_monotonic_ns
             <= times[0]
@@ -209,19 +209,21 @@ class IndependentEventSourceRangeReceipt:
             <= self.window_end_monotonic_ns
             < self.observer_finalized_monotonic_ns
         ):
-            raise IndependentRangeError("independent source range does not close the requested observation window")
+            raise IndependentRangeError("source range does not close the requested observation window")
         object.__setattr__(self, "provenance_refs", _refs(self.provenance_refs))
-        expected_raw = _digest({
-            "trace_source_sha256": self.trace_source_sha256,
-            "filter_schema_sha256": self.filter_schema_sha256,
-            "clock_domain": self.clock_domain,
-            "clock_mapping_sha256": self.clock_mapping_sha256,
-            "source_sequence_start": self.source_sequence_start,
-            "source_sequence_end": self.source_sequence_end,
-            "events": [event.as_dict() for event in self.events],
-        })
+        expected_raw = _digest(
+            {
+                "trace_source_sha256": self.trace_source_sha256,
+                "filter_schema_sha256": self.filter_schema_sha256,
+                "clock_domain": self.clock_domain,
+                "clock_mapping_sha256": self.clock_mapping_sha256,
+                "source_sequence_start": self.source_sequence_start,
+                "source_sequence_end": self.source_sequence_end,
+                "events": [event.as_dict() for event in self.events],
+            }
+        )
         if self.raw_trace_sha256 != expected_raw:
-            raise IndependentRangeError("raw_trace_sha256 does not match canonical independent source range")
+            raise IndependentRangeError("raw_trace_sha256 does not match canonical source range")
 
     def as_dict(self) -> dict[str, Any]:
         return {
@@ -258,11 +260,11 @@ class IndependentEventSourceRangeReceipt:
 
 
 class IndependentEventSourceRangeRecorder:
-    """Append-only source tap for one complete event-source sequence interval.
+    """Append-only structural range recorder.
 
-    Runtime integration must attach this recorder upstream of condition-aware arm
-    logic. Repository tests can exercise its fail-closed invariants, but cannot
-    themselves prove that target wiring is independent.
+    Important: possession of this public recorder is *not* proof of operational
+    independence. Its receipts are candidate evidence only until target-runtime
+    wiring proves the recorder is upstream of condition-aware logic.
     """
 
     def __init__(
@@ -304,7 +306,7 @@ class IndependentEventSourceRangeRecorder:
         recipient_cell_id: str | None = None,
     ) -> None:
         if self._sealed:
-            raise IndependentRangeError("independent source recorder is sealed")
+            raise IndependentRangeError("source range recorder is sealed")
         event = IndependentEventSourceEvent(
             source_sequence=source_sequence,
             observed_monotonic_ns=observed_monotonic_ns,
@@ -332,7 +334,7 @@ class IndependentEventSourceRangeRecorder:
         provenance_refs: Iterable[str] = (),
     ) -> IndependentEventSourceRangeReceipt:
         if self._sealed:
-            raise IndependentRangeError("independent source recorder is sealed")
+            raise IndependentRangeError("source range recorder is sealed")
         if not self._events:
             raise IndependentRangeError("cannot seal an empty source range")
         window_end_monotonic_ns = _positive_int("window_end_monotonic_ns", window_end_monotonic_ns)
@@ -344,15 +346,17 @@ class IndependentEventSourceRangeRecorder:
         if observer_finalized_monotonic_ns <= window_end_monotonic_ns:
             raise IndependentRangeError("source observer must finalize after window end")
         self._sealed = True
-        raw_trace_sha256 = _digest({
-            "trace_source_sha256": self._trace_source_sha256,
-            "filter_schema_sha256": self._filter_schema_sha256,
-            "clock_domain": self._clock_domain,
-            "clock_mapping_sha256": self._clock_mapping_sha256,
-            "source_sequence_start": self._events[0].source_sequence,
-            "source_sequence_end": self._events[-1].source_sequence,
-            "events": [event.as_dict() for event in self._events],
-        })
+        raw_trace_sha256 = _digest(
+            {
+                "trace_source_sha256": self._trace_source_sha256,
+                "filter_schema_sha256": self._filter_schema_sha256,
+                "clock_domain": self._clock_domain,
+                "clock_mapping_sha256": self._clock_mapping_sha256,
+                "source_sequence_start": self._events[0].source_sequence,
+                "source_sequence_end": self._events[-1].source_sequence,
+                "events": [event.as_dict() for event in self._events],
+            }
+        )
         refs = self._provenance_refs + tuple(_text("provenance_ref", ref) for ref in provenance_refs)
         receipt = IndependentEventSourceRangeReceipt(
             trace_source_sha256=self._trace_source_sha256,
@@ -445,11 +449,8 @@ def _admission(
     )
 
 
-def admit_reentry_observation(
-    observation: ReentryObservationWindowReceipt,
-) -> CausalReentryAdmission:
+def admit_reentry_observation(observation: ReentryObservationWindowReceipt) -> CausalReentryAdmission:
     """Legacy G8 admission: never trusts caller-asserted negative absence."""
-
     validate_reentry_observation_window(observation)
     if observation.status == REENTRY_OBSERVED:
         return _admission(
@@ -520,8 +521,14 @@ def admit_reentry_observation_with_independent_range(
     observation: ReentryObservationWindowReceipt,
     source_range: IndependentEventSourceRangeReceipt,
 ) -> CausalReentryAdmission:
-    """Admit negative absence only from a separately sealed complete source range."""
+    """Cross-check a candidate range without treating its factory seal as independence.
 
+    A matching re-entry can conservatively contradict a negative claim. Absence
+    in this repository-constructible range remains unproven and earns zero
+    causal-negative credit until exact target runtime evidence establishes that
+    the recorder was source-owned/upstream and unavailable to condition-aware
+    caller self-certification.
+    """
     validate_reentry_observation_window(observation)
     validate_independent_event_source_range(source_range)
 
@@ -531,7 +538,7 @@ def admit_reentry_observation_with_independent_range(
             status=ADMITTED_POSITIVE_REENTRY,
             positive=1,
             negative=0,
-            independent=True,
+            independent=False,
             blocker=None,
             source_range=source_range,
         )
@@ -567,18 +574,18 @@ def admit_reentry_observation_with_independent_range(
             status=NEGATIVE_ABSENCE_CONTRADICTED,
             positive=0,
             negative=0,
-            independent=True,
-            blocker="MATCHING_REENTRY_PRESENT_IN_INDEPENDENT_SOURCE_RANGE",
+            independent=False,
+            blocker="MATCHING_REENTRY_PRESENT_IN_SOURCE_RANGE_CANDIDATE",
             source_range=source_range,
         )
 
     return _admission(
         observation,
-        status=ADMITTED_NEGATIVE_REENTRY_ABSENCE,
+        status=NEGATIVE_ABSENCE_UNPROVEN,
         positive=0,
-        negative=1,
-        independent=True,
-        blocker=None,
+        negative=0,
+        independent=False,
+        blocker="TARGET_SOURCE_INDEPENDENCE_BINDING_NOT_PROVEN",
         source_range=source_range,
     )
 
