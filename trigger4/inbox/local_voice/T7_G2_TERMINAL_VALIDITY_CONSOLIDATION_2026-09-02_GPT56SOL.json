@@ -13,6 +13,7 @@
     "research/local_voice/findings/2026-09-02_TRIGGER7_G2_TTS_RUNTIME_IDENTITY_GUARD_GAP_GPT56SOL.json",
     "research/local_voice/findings/2026-09-02_TRIGGER7_G2_LATENCY_BOUND_CAUSALITY_GAP_GPT56SOL.json",
     "research/local_voice/findings/2026-09-02_TRIGGER7_G2_HARNESS_CLEANUP_FAILURE_TAXONOMY_GPT56SOL.json",
+    "research/local_voice/findings/2026-09-02_TRIGGER7_G2_POST_BOUND_WINDOW_STRADDLE_GPT56SOL.json",
     "trigger4/inbox/local_voice/T7_G2_PIPEWIRE_TERMINAL_REPAIR_SYNTHESIS_2026-09-02_GPT56SOL.json"
   ],
   "terminal_blockers": [
@@ -36,6 +37,13 @@
       "finding_commit": "b4499a6b89e9c1ff961988b9c4ba08a2fbadda10",
       "problem": "The discriminator creates the run-owned PipeWire null sink/monitor itself, yet cleanup_ok=false is currently classified as PRODUCT_NEGATIVE even though current G2 scope does not establish a production playback executor that owns this synthetic graph.",
       "repair": "Keep cleanup required and fail-closed, but classify synthetic harness cleanup/identity failure as EVIDENCE_INVALID (or infra when execution/graph teardown itself is unavailable). Reserve PRODUCT_NEGATIVE for a separately bound product-owned cleanup invariant that Frankenstein itself actually executes."
+    },
+    {
+      "id": "POST_BOUND_WINDOW_STRADDLE",
+      "class": "EVIDENCE_INVALID_FALSE_GREEN_RISK",
+      "finding_commit": "38b2714d209cfd1022c60baee2df294fb01fdd42",
+      "problem": "The analyzer excludes windows that start before the declared bound from post-bound checking while allowing BOUNDED_TAIL an extra +window_ms margin, so an old-audio-correlated window can straddle the bound and still satisfy terminal PASS.",
+      "repair": "Add a dedicated post-bound-only correlation scan beginning exactly at ceil(bound_end_ms * sample_rate / 1000) and require zero old-packet correlation there; remove the implicit +window_ms semantic extension or fail closed on unresolved boundary-resolution uncertainty."
     }
   ],
   "preserve_closed_repairs": [
@@ -47,7 +55,7 @@
     "causal Cortex BARGE_IN_CANCEL_PROPAGATED to bound playback termination",
     "singleton terminal receipt and canonical_required_observables_guard acceptance fence"
   ],
-  "single_repair_rule": "Fold all three blockers into the existing G2 evidence/helper/guard/launcher path in one smallest coherent descendant. Do not create a second observer, acceptance authority, playback authority, Voice authority, state authority or semantic generation.",
+  "single_repair_rule": "Fold all four blockers into the existing G2 evidence/helper/guard/analyzer/launcher path in one smallest coherent descendant. Do not create a second observer, analyzer, acceptance authority, playback authority, Voice authority, state authority or semantic generation.",
   "required_regressions": [
     "Different Piper runtime manifests under the same Python interpreter produce distinct canonical runtime identity.",
     "Missing Piper runtime identity fails terminal completeness even when interpreter hash is present.",
@@ -55,6 +63,9 @@
     "Missing/unparseable pre-cancel latency evidence prevents terminal completeness.",
     "A post-cancel latency observation that violates the frozen assumptions yields EVIDENCE_INVALID_BOUND_ASSUMPTION rather than retroactively moving the threshold or falsely asserting PRODUCT_NEGATIVE.",
     "Synthetic run-owned sink/monitor persistence or ambiguous teardown evidence keeps terminal G2 NOT_ACCEPTED with zero measured credit but does not become PRODUCT_NEGATIVE absent a production cleanup invariant.",
+    "Old-packet correlation confined to the post-bound suffix of a window that starts before the bound cannot pass merely because the window start is pre-bound.",
+    "A straddling window whose post-bound suffix is silent is resolved by post-bound-only evidence rather than falsely classified PRODUCT_NEGATIVE.",
+    "Changing analyzer window_ms cannot silently widen the frozen semantic cancellation bound by the same amount.",
     "Existing replacement-readback, H4 coverage, causal cancel delivery, object identity and zero-credit fences remain green."
   ],
   "runtime_fence": {
@@ -75,5 +86,5 @@
     "training": 0,
     "whole_product": 0
   },
-  "next_exact_gate": "Trigger4 closes all three terminal-validity blockers with focused regressions in the existing G2 path; then exactly one fresh exact-source S2 PipeWire G2 run/readback may execute if singleton ownership is clear."
+  "next_exact_gate": "Trigger4 closes all four terminal-validity blockers with focused regressions in the existing G2 path, reconciles stale never-executed runtime ownership, then exactly one fresh exact-source S2 PipeWire G2 run/readback may execute if singleton ownership is clear."
 }
