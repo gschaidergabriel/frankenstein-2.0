@@ -1,0 +1,61 @@
+{
+  "schema": "F2_TRIGGER7_RESEARCH_FINDING/v1",
+  "trigger": "7",
+  "producer": "GPT-5.6-Sol",
+  "date": "2026-09-02",
+  "research_id": "T7-20260902-G2-HARNESS-CLEANUP-FAILURE-TAXONOMY",
+  "semantic_key": "0d83f7d13c1d8f91686cf94070f73d901a49018b40a9c058d1949af094655bff",
+  "work_class": "EVIDENCE_VALIDITY_REVIEW_ONLY",
+  "product_mutation_authority": "TRIGGER4_ONLY",
+  "observed_main_before_write": "23b0f2859862da58ef2edee55175e4d9a288af0e",
+  "observed_current_files": {
+    "runtime": "trigger4/tools/local_voice/g2_pipewire_s2_runtime.py",
+    "runtime_blob_sha": "40000da65652cf238d84b7c0cff11f7290e4311b",
+    "evidence_helper": "trigger4/tools/local_voice/g2_pipewire_evidence.py",
+    "evidence_helper_blob_sha": "25f8653e90cd1c4ae6c236e7ac8e96150b4be248"
+  },
+  "finding": {
+    "class": "FAILURE_CLASSIFICATION_SCOPE_MISMATCH",
+    "severity": "HIGH_FOR_REPAIR_ROUTING_NOT_FOR_EXISTING_PRODUCT_BEHAVIOR",
+    "current_behavior": "g2_pipewire_s2_runtime.py creates the run-owned PipeWire null sink inside the discriminator, unloads that harness-created module during CLEANUP, and sets failure_class=PRODUCT_NEGATIVE with classification=RUN_OWNED_PIPEWIRE_NODE_CLEANUP_FAILED when cleanup_ok is false.",
+    "scope_problem": "The null sink/monitor are test-harness infrastructure created solely to obtain S2 virtual-audio evidence. Current G2 scope explicitly does not establish a production playback executor or production ownership of this synthetic PipeWire graph. Failure to remove the harness-created node therefore does not by itself falsify Frankenstein voice-product semantics.",
+    "risk": "A stale PipeWire object, unload race, observer lag, sandbox/session defect, or harness cleanup bug can be misrouted as PRODUCT_NEGATIVE and incorrectly authorize same-boundary product mutation/architecture churn.",
+    "current_credit": 0
+  },
+  "counterhypothesis": {
+    "statement": "Run-owned node cleanup is listed among terminal required observables, therefore cleanup failure is a product negative.",
+    "result": "REJECTED_AT_CURRENT_SCOPE",
+    "reason": "Being required for evidence validity does not make the harness-created object a product-owned effect. The discriminator must prove cleanup/identity absence before accepting evidence, but a cleanup failure should remain fail-closed without attributing the defect to product semantics unless a separate production invariant binds Frankenstein itself to creation/removal of that exact graph object."
+  },
+  "minimal_trigger4_repair": {
+    "goal": "Keep G2 terminal acceptance fail-closed while preventing harness/sandbox cleanup defects from being mislabeled as product counterevidence.",
+    "preferred_shape": [
+      "If cleanup_ok is false for the harness-created null sink/monitor, keep all measured promotion credit at zero and classify EVIDENCE_INVALID_HARNESS_CLEANUP or INFRA_AUTH_TRANSPORT_QUOTA according to whether the harness executed and the graph state is observable.",
+      "Reserve PRODUCT_NEGATIVE for cleanup only if a current product contract and actual production executor create/own the exact PipeWire objects under test and that product cleanup invariant is executed.",
+      "Preserve the failed cleanup identities, pw-dump evidence and teardown observations in the receipt; do not silently erase them.",
+      "Keep the finally-block best-effort unload as safety cleanup only; it must not retroactively turn a failed terminal cleanup observation green."
+    ],
+    "required_regressions": [
+      "Synthetic run-owned sink persists after unload while packet/cancel semantics pass -> terminal G2 must be NOT_ACCEPTED with zero measured credit, but failure_class must not be PRODUCT_NEGATIVE absent a production cleanup invariant.",
+      "Ambiguous/lagging post-unload PipeWire identity evidence -> EVIDENCE_INVALID and zero credit.",
+      "A separately bound production playback-executor cleanup invariant may still classify PRODUCT_NEGATIVE when that exact product-owned behavior is executed and falsified."
+    ]
+  },
+  "execution_fence": {
+    "do_not_open_g3": true,
+    "do_not_dispatch_promotion_run_until_current_G2_validity_findings_are_reconciled": true,
+    "do_not_create_second_playback_or_cleanup_authority": true,
+    "next_action": "Trigger4 should fold this taxonomy correction into the existing G2 runtime/receipt path together with the current TTS-runtime-identity and latency-bound validity repairs, run focused regressions, then dispatch exactly one repaired S2 subject when singleton ownership is clear."
+  },
+  "explicit_zero_credit": {
+    "g2_runtime": 0,
+    "physical_microphone": 0,
+    "physical_speaker": 0,
+    "human_heard_output": 0,
+    "whole_voice_e2e": 0,
+    "gwt_jspace": 0,
+    "effect": 0,
+    "training": 0,
+    "whole_product": 0
+  }
+}
