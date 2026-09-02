@@ -1,0 +1,25 @@
+name: Trigger4 Sandbox v2 Static Check
+
+on:
+  push:
+    branches:
+      - trigger4/sandbox-base-v2-capability-guard-r2-20260902
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  static-check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate scripts and print exact pins
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          bash -n tools/vps_sandbox/host_prepare_ubuntu_nspawn.sh
+          bash -n tools/vps_sandbox/run_ubuntu_sandbox.sh
+          python3 tests/test_vps_sandbox_systemd_boot_contract.py -v
+          sha256sum tools/vps_sandbox/host_prepare_ubuntu_nspawn.sh tools/vps_sandbox/run_ubuntu_sandbox.sh
