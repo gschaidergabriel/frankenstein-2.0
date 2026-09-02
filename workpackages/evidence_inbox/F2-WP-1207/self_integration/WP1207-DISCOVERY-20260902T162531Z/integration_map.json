@@ -1,0 +1,24 @@
+{
+  "schema": "integration_map.schema.json",
+  "run_id": "WP1207-DISCOVERY-20260902T162531Z",
+  "candidate_seams": [
+    {
+      "seam": "existing release/update handoff (portable_release_transaction.py + current_release_bundle_adapter.py)",
+      "status": "observed_only",
+      "note": "Directive step 3 ('Find the narrowest seam') and steps 5-7 (shadow/dry-run, disposable integration incl. hostile-twin/rollback/process-kill, live self-integration) were explicitly OUT OF SCOPE for this run per the operator's task instructions. No seam evaluation, wiring, or wrapping was attempted."
+    },
+    {
+      "seam": "cognition / GWT / J-Space / model semantics",
+      "status": "not_examined",
+      "note": "Directive explicitly disfavors touching this seam unless evidence shows the release boundary can't be isolated; not relevant to this discovery-only run and not examined."
+    }
+  ],
+  "selected_seam": null,
+  "irreversible_effect_boundaries": [
+    "GitHub Actions CI workflow execution (.github/workflows/*.yml) - would consume CI minutes / VPS sandbox resources if triggered, not triggered by this run",
+    "workpackages/active/F2-WP-1207.json and workpackages/state_events/F2-WP-1207/* - canonical authority state, protected, not written by this run",
+    "workpackages/reconciliations/, workpackages/receipts/ - canonical, not written by this run",
+    "systemd unit start/stop for frankenstein-telegram.service / frankenstein-gespraechsmodus.service - not touched (already inactive/disabled; status only, no start/stop/restart issued)"
+  ],
+  "rationale": "This run is a deliberately narrowed discovery-and-baseline-only pass (operator-scoped subset of DIRECTIVE_FOR_RUNNING_FRANKENSTEIN.md sections 1, 2 and 4 only). No seam selection, dry-run, disposable-sandbox test, hostile-twin/rollback/process-kill test, or live mutation was performed or is claimed. selected_seam is null because seam selection (directive step 3) was out of scope for this run by explicit operator instruction; it is deferred to a separate, future, more narrowly-authorized workpackage. This file exists to satisfy the schema/writeback-map requirement to record candidate_seams/selected_seam/irreversible_effect_boundaries alongside runtime_topology.json, using only what was actually observed."
+}

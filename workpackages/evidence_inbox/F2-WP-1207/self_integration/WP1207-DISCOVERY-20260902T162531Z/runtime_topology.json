@@ -1,0 +1,122 @@
+{
+  "schema": "runtime_topology.schema.json",
+  "run_id": "WP1207-DISCOVERY-20260902T162531Z",
+  "timestamp_utc": "2026-09-02T16:25:31Z",
+  "note": "SCOPE-LIMITED discovery run. Read-only. No mutation, no process start/stop/restart, no fault injection, no hostile-twin/rollback tests were performed. Superset actions described in DIRECTIVE_FOR_RUNNING_FRANKENSTEIN.md sections 3, 5, 6, 7, 8, 9 were explicitly out of scope for this run and are deferred to a separate, future authorized workpackage.",
+  "repo": {
+    "path": "~/frankenstein-2.0",
+    "remote_origin": "https://github.com/gschaidergabriel/frankenstein-2.0.git",
+    "head_sha": "566ac6ea8e817b2e0d5ea391402ec64b58fb9858",
+    "checked_out_branch_at_run_start": "self-integration/wp1207-SELFINT-20260901-a1c9e2f4",
+    "discovery_branch": "self-integration/wp1207-discovery-20260902T162531Z",
+    "dirty": true,
+    "dirty_detail": ["src/frankenstein2/__pycache__/ (untracked, build artifact)", "tests/__pycache__/ (untracked, build artifact)"],
+    "last_5_commits": [
+      "566ac6e F2-WP-1207 H14: Modell-Substitution Opus vs GLM-5.3-Flash (MODELSUB-20260901) - 0 funktionale Flips auf 26 validen Paaren",
+      "e8515c9 F2-WP-1207 post-reentry: GWT active-write PASS + H7 PRE/POST PASS - candidate only",
+      "67a1e33 F2-WP-1207 post-reentry: GWT active-write evidence + H7 PRE baseline - candidate only",
+      "6fc859c F2-WP-1207 phase13: bounded-live cycle evidence (real pointer swap, injected failure rollback, real process death+reentry, cross-process readback) - candidate only, canonical chain untouched",
+      "ad47afc F2-WP-1207 self-integration: record fix commit sha, regen patch.diff + manifest.json"
+    ],
+    "active_workpackage_pointer": {
+      "path": "workpackages/active/F2-WP-1207.json",
+      "workpackage_id": "F2-WP-1207",
+      "generation": 10,
+      "claim_id": "F2-WP-1207-G10-GPT56SOL-ROLLBACK-STATE-BINDING-20260830",
+      "state": "ACCEPTED",
+      "whole_system_acceptance": false
+    },
+    "state_event_chain": {
+      "path": "workpackages/state_events/F2-WP-1207/",
+      "latest_sequence_file": "000015.json",
+      "latest_event_class": "POST_REPAIR_CLEAN_HOST_S1_RUNTIME_EVIDENCE_ADMISSION"
+    }
+  },
+  "runtime": {
+    "type": "no_persistent_daemon",
+    "description": "Frankenstein 2.0 is a repo-based, evidence-first build system, not a running always-on service. It is driven by discrete AI-worker sessions (Claude Code / Codex CLI / other agent hosts) operating against git state + GitHub Actions CI, per README.md's stated product law: 'VPS builds, local Claude Code/Opus accepts'. No local process implements the cognitive runtime itself at present.",
+    "unrelated_local_systemd_units_found": [
+      {
+        "unit": "frankenstein-telegram.service",
+        "description_from_unit_file": "FranKenstein Telegram-Bruecke (PHASE 33, Long-Polling)",
+        "exec_start": "/usr/bin/python3 /home/ai-core-node/.claude/star/stern.py telegram-listener",
+        "loaded": true,
+        "enabled": false,
+        "active_state": "inactive (dead)",
+        "relation_to_this_repo": "none observed - belongs to a separate local '.claude/star' assistant stack, not to gschaidergabriel/frankenstein-2.0"
+      },
+      {
+        "unit": "frankenstein-gespraechsmodus.service",
+        "description_from_unit_file": "FranKenstein Gespraechsmodus (PHASE 42, Wake-Word, kein Push-to-Talk)",
+        "exec_start": "/usr/bin/python3 /home/ai-core-node/.claude/star/gespraechsmodus.py listener",
+        "env_names_only": ["UDB_DB_PATH"],
+        "loaded": true,
+        "enabled": false,
+        "active_state": "inactive (dead)",
+        "relation_to_this_repo": "none observed - same separate local assistant stack"
+      }
+    ],
+    "process_scan": "ps aux grep for frank/entity/clay/wp1207 found no process belonging to this repo's src/frankenstein2 code; only unrelated background daemons (avahi, clay-local-bridge, inotifywait watchers for other local projects) were present.",
+    "ci_execution_surface": {
+      "workflow_count_observed": ">150",
+      "path": ".github/workflows/",
+      "examples": ["wp1207-portable-release-transaction-ci.yml", "wp1207-g5-hostile-twin-executor-ci.yml", "wp1207-release-readback-ci.yml", "vps-ubuntu-sandbox-authority-smoke.yml"],
+      "description": "Per-workpackage CI workflows are the actual execution surface for integration/hostile-twin/restart testing today; they run on GitHub Actions / VPS sandbox runners, not on this local host."
+    },
+    "entrypoints_found": {
+      "release_tools": ["tools/build_release_candidate.py", "tools/build_release_candidate_bundle.py"],
+      "state_validators": ["tools/validate_workpackage_state.py", "tools/validate_checkpoint.py", "tools/validate_current_checkpoint.py", "tools/validate_effective_workpackage_state.py", "tools/validate_wp_state_consistency_v1.py"],
+      "hostile_twin_gate_tool_present_not_run": "tools/run_wp1207_hostile_twin_gate.py",
+      "sandbox_scripts_present_not_run": ["tools/vps_sandbox/host_prepare_ubuntu_nspawn.sh", "tools/vps_sandbox/preflight.sh", "tools/vps_sandbox/run_ubuntu_sandbox.sh"]
+    },
+    "provider_tool_connections_without_secrets": {
+      "method": "grepped src/frankenstein2/*.py for provider name substrings (anthropic|openai|glm|z.ai|together|nvidia|groq|mistral|openrouter) and for os.environ/os.getenv() calls",
+      "result": "No provider/model API wiring or env-var-based secret consumption found in src/frankenstein2/. The 4 files matched were false positives (word 'together' used in English prose, not the Together API). No os.environ/os.getenv calls found in src/frankenstein2/*.py at all.",
+      "known_forbidden_provider_per_directive": "Together API is explicitly forbidden by DIRECTIVE_FOR_RUNNING_FRANKENSTEIN.md 'Forbidden shortcuts' - consistent with finding no Together wiring.",
+      "model_substitution_evidence_found": "Latest commit (566ac6e) documents an H14 hypothesis test comparing Opus vs GLM-5.3-Flash as substitute models, run externally (not a live local connection)."
+    },
+    "monitoring_metrics_surfaces": {
+      "telemetry_dir": "telemetry/ (docs only: EVIDENCE_SPINE.md, RUN_PACKAGE_CONTRACT.md, README.md - no local metrics daemon)",
+      "receipts_dir": "receipts/ (2 files at repo root; workpackage-scoped receipts live under workpackages/receipts/)",
+      "checkpoints_dir": "checkpoints/ (CURRENT.json + per-workpackage checkpoint JSON + checkpoints/history/)"
+    }
+  },
+  "persistence": [
+    {"path": "workpackages/active/", "purpose": "mutation-authority projection per workpackage (canonical, protected)"},
+    {"path": "workpackages/state_events/", "purpose": "append-only per-workpackage event chain (canonical, protected)"},
+    {"path": "workpackages/reconciliations/", "purpose": "reconciliation records per generation (canonical, protected)"},
+    {"path": "workpackages/receipts/", "purpose": "acceptance receipts (canonical, protected)"},
+    {"path": "workpackages/evidence_inbox/", "purpose": "non-authoritative candidate evidence inbox (this run writes here)"},
+    {"path": "workpackages/claims/", "purpose": "workpackage claim records"},
+    {"path": "workpackages/deltas/", "purpose": "delta records"},
+    {"path": "workpackages/falsifiers/", "purpose": "falsifier definitions/results"},
+    {"path": "workpackages/reviews/", "purpose": "review records"},
+    {"path": "checkpoints/", "purpose": "per-worker/per-session checkpoint snapshots"},
+    {"path": "artifacts/", "purpose": "dated build/audit artifacts"},
+    {"path": "provenance/", "purpose": "donor-source and research-entity provenance records"},
+    {"path": "src/state/", "purpose": "state-authority source code (delivery_lifecycle.py, delivery_store.py, execution_completion.py, unifieddb_identity.py) - identity scheme names only recorded, no content dumped"},
+    {"path": "/home/ai-core-node/.claude/star/unified.db", "purpose": "referenced by unrelated frankenstein-gespraechsmodus.service via UDB_DB_PATH env var name; not part of this repo's own persistence, path recorded because the unit name overlaps"}
+  ],
+  "health": {
+    "process_health": "not_applicable_no_running_process",
+    "git_repo_health": "clean except build-artifact __pycache__ dirs; HEAD reachable; remote origin reachable in principle (not fetched during this read-only run beyond local refs already present)",
+    "service_health": {
+      "frankenstein-telegram.service": "inactive/disabled (unrelated to this repo)",
+      "frankenstein-gespraechsmodus.service": "inactive/disabled (unrelated to this repo)"
+    },
+    "measurement_plan_commands_defined": false,
+    "measurement_plan_note": "MEASUREMENT_PLAN.md specifies required FIELDS for a measurement record (identity/context, behavior/safety, timing/resource, runtime-specific optional) but does not itself define concrete health/latency probe commands or a script to invoke. No local running instance exists to probe latency/resource metrics against. Per instructions, no metrics were invented; baseline reduces to the static/structural facts captured above (git state, process/service state, CI surface)."
+  },
+  "release_update_boundary": {
+    "description": "Portable release/transaction machinery under active integration at F2-WP-1207 (generation 10, ACCEPTED at repository-regression-repair scope; whole_system_acceptance still false).",
+    "key_modules_present_not_executed": [
+      "src/frankenstein2/portable_release_transaction.py",
+      "src/frankenstein2/current_release_bundle_adapter.py",
+      "src/frankenstein2/canonical_effect_authority_bridge.py",
+      "src/frankenstein2/clean_machine_acceptance.py",
+      "src/frankenstein2/effect_executor_interlock.py"
+    ],
+    "boundary_status_per_active_pointer": "ROLLBACK TransactionPlan exact predecessor state identity -> SUCCEEDED AttemptReceipt observed_state_sha256 (see workpackages/active/F2-WP-1207.json integration_boundary field)",
+    "install_hooks": ".github/workflows/*-ci.yml (CI-level, GitHub Actions runners / VPS sandbox), tools/build_release_candidate*.py (local build tooling, not executed by this run)"
+  }
+}
