@@ -1,0 +1,68 @@
+{
+  "schema": "FRANKENSTEIN2_WORKPACKAGE_DELTA/v1",
+  "workpackage_id": "F2-WP-900",
+  "generation": 10,
+  "claim_id": "F2-WP-900-G10-GPT56SOL-INDEPENDENT-SEMANTIC-MEDIATOR-AUTHORITY-20260902",
+  "worker_id": "GPT-5.6-Sol-TRIGGER4-WIRE-AUTHENTICITY-REVIEW",
+  "trigger": "4",
+  "work_class": "REVIEW_ONLY_CANDIDATE_FALSIFIER",
+  "mutation_authority": false,
+  "recorded_at_utc": "2026-09-02T11:36:00Z",
+  "observed_main": "a7bda7a12c618f7767fc24b68ddb6e264313416b",
+  "challenged_boundary": "factory-valid independent GWT source event -> source-owned mediator authority -> trial-consumable semantic transport",
+  "scope_preserved": {
+    "g9_terminal_target_component_candidate": "VALID_AT_CORRECTED_BOUNDED_SCOPE",
+    "g10_current_scope": "INDEPENDENT_PER_TRIAL_SEMANTIC_MEDIATOR_AUTHORITY_REPOSITORY_REPAIR_REQUIRED",
+    "g10_repository_ci_credit": 0,
+    "g10_target_environment_component_runtime_credit": 0,
+    "semantic_gwt_runtime_credit": 0,
+    "jspace_runtime_credit": 0,
+    "whole_system_acceptance": false
+  },
+  "source_observation": {
+    "candidate_source_commit": "5aace808e6f88e9b496aa1c2fc5c10d638ce8630",
+    "current_claim_fence_commit": "a7bda7a12c618f7767fc24b68ddb6e264313416b",
+    "module": "src/frankenstein2/gwt_independent_semantic_mediator.py",
+    "wire_construction_fact": "IndependentSemanticMediatorReceipt.to_wire emits a self-contained JSON envelope whose only transport integrity check is an unkeyed body_sha256 over caller-visible body fields.",
+    "wire_consumption_fact": "MediatedSemanticState.from_wire accepts raw bytes and validates envelope shape, unkeyed body digest, plan binding, canonical semantic JSON, frozen-oracle class and preregistered order, but it does not receive or validate a factory-sealed IndependentSemanticMediatorReceipt, IndependentEventSourceRangeReceipt, factory-valid runtime witness, authenticated source capability, signature, MAC verified outside the trial trust boundary, or other non-forgeable source authority proof.",
+    "provenance_fact": "source_range_sha256, source_event_sequence, source_process_identity, runtime_witness_sha256, exact_source_sha256 and boot_id_sha256 are copied from the wire after syntactic/hash checks; their underlying source objects are not revalidated by from_wire.",
+    "consequence": "A downstream producer that knows the frozen plan and admissible canonical semantic value can synthesize a structurally valid wire, choose plausible provenance digests/identities, recompute body_sha256, and obtain a factory-sealed MediatedSemanticState without any actual independent source-range/runtime-witness event participating in that parse path.",
+    "relation_to_existing_sidechannel_review": "This is distinct from TRIAL_VISIBLE_WIRE_METADATA_SIDECHANNEL. Removing forbidden metadata from trial-visible bytes does not by itself establish that the remaining semantic transport was minted by the independent semantic source authority."
+  },
+  "candidate_falsifier": {
+    "id": "UNAUTHENTICATED_MEDIATOR_WIRE_CAN_SELF_CLAIM_SOURCE_PROVENANCE",
+    "hypothesis": "The current G10 parser can mint a mediated semantic state from a counterfeit wire whose provenance fields were never factory-bound to an independent source event.",
+    "required_discriminator": [
+      "Build a counterfeit G10 transport without calling IndependentSemanticMediatorReceipt.observe, IndependentEventSourceRangeRecorder, GwtRuntimeWitnessRecorder or bind_reentry_to_uptake.",
+      "Use the frozen plan plus an admissible canonical semantic value, populate syntactically valid source/witness/provenance digests and identities, and recompute all unkeyed transport digests.",
+      "Attempt the canonical trial-side parse path. Current vulnerable behavior is acceptance; repaired behavior must fail closed before any behavior-capable semantic state is minted.",
+      "The repair must bind transport authenticity to an authority the behavior-capable trial cannot self-mint. A plain self-recomputed digest or caller-supplied provenance hash is insufficient.",
+      "Keep attestation/provenance verification on the independent verifier/readback path and keep the behavior-capable input condition-blind except for the canonical mediated semantic state required for the causal intervention.",
+      "Add regression coverage for both counterfeit-source provenance and the already-recorded trial-visible metadata sidechannel before freezing any VPS subject."
+    ],
+    "falsifying_outcomes": [
+      "raw trial-visible bytes can be parsed into MediatedSemanticState without a non-forgeable source-authority proof",
+      "source_range/runtime-witness identities are accepted solely because their digest strings are well formed",
+      "an unkeyed digest over attacker-constructible fields is treated as source authenticity",
+      "the repaired API hides metadata but still lets the trial self-mint an equivalent authorized semantic state"
+    ]
+  },
+  "failure_classification": "EVIDENCE_INVALID",
+  "product_mutation_required": true,
+  "counterhypothesis": {
+    "statement": "If an external process topology makes the raw parser unreachable to behavior-capable code and independently authenticates the source transport before calling it, the current parser could remain an internal decoder rather than an authority boundary.",
+    "required_proof": "That trust boundary is not encoded by the current G10 repository API/tests. The repaired repository contract must either enforce authenticated source authority itself or make the parser explicitly downstream of an executable, independently tested verifier that behavior-capable code cannot bypass."
+  },
+  "do_not_promote": [
+    "g10_repository_acceptance",
+    "target_environment_component_runtime",
+    "semantic_gwt_runtime",
+    "jspace_runtime",
+    "training",
+    "completion",
+    "whole_system"
+  ],
+  "duplicate_authority_check": "No successor generation, no second mediator authority and no runtime dispatch created. This delta supplements the existing G10 sidechannel review with an orthogonal source-authenticity falsifier and leaves the single active G10 mutation owner intact.",
+  "review_result": "G10_REPOSITORY_ABI_REPAIR_MUST_CLOSE_WIRE_AUTHENTICITY_AS_WELL_AS_TRIAL_VISIBILITY",
+  "single_most_important_correction": "Do not equate transport integrity with source authority: the trial-side path must be unable to self-mint a source-authorized semantic transport even if it can construct valid JSON and recompute every public digest."
+}
