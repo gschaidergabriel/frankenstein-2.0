@@ -8,6 +8,11 @@ remain verifier-side. A factory-valid mediator plus byte-for-byte wire equality
 is required before a MediatedSemanticState can be admitted, so self-consistent
 forged wire bytes cannot reach behavioral execution through the admitted API.
 
+The behavior-capable state surface carries canonical semantics plus only digests
+that are deterministic functions of those permitted semantic/wire bytes. Trial,
+source and topology identities remain verifier/readback-side and are never part
+of the pre-child state object.
+
 Repository construction cannot prove operational process independence. All
 runtime / semantic-GWT / J-Space credits remain zero until exact target
 execution binds source -> verifier admission -> trial -> child identities.
@@ -43,7 +48,7 @@ from frankenstein2.gwt_semantic_reentry_only_execution import (
 
 SEMANTIC_MEDIATOR_RECEIPT_SCHEMA = "FRANKENSTEIN2_G10_INDEPENDENT_SEMANTIC_MEDIATOR_RECEIPT/v2"
 SEMANTIC_MEDIATOR_WIRE_SCHEMA = "FRANKENSTEIN2_G10_TREATMENT_BLIND_SEMANTIC_WIRE/v2"
-MEDIATED_SEMANTIC_STATE_SCHEMA = "FRANKENSTEIN2_G10_MEDIATED_SEMANTIC_STATE/v2"
+MEDIATED_SEMANTIC_STATE_SCHEMA = "FRANKENSTEIN2_G10_MEDIATED_SEMANTIC_STATE/v3"
 MEDIATED_EXECUTION_RECEIPT_SCHEMA = "FRANKENSTEIN2_G10_MEDIATED_EXECUTION_RECEIPT/v2"
 
 MEDIATOR_AUTHORITY_CANDIDATE = (
@@ -377,6 +382,7 @@ FORBIDDEN_TRIAL_WIRE_KEYS = frozenset(
         "semantic_sha256",
         "raw_payload_sha256",
         "trial_position",
+        "trial_process_identity",
         "arm",
         "condition",
         "source_range_sha256",
@@ -400,7 +406,6 @@ class MediatedSemanticState:
     canonical_semantic_json: str
     semantic_sha256: str
     wire_sha256: str
-    trial_process_identity: str
     _factory_seal: object | None = field(default=None, init=False, repr=False, compare=False)
     _factory_sha256: str | None = field(default=None, init=False, repr=False, compare=False)
 
@@ -414,17 +419,17 @@ class MediatedSemanticState:
     def __post_init__(self) -> None:
         object.__setattr__(self, "semantic_sha256", _sha("semantic_sha256", self.semantic_sha256))
         object.__setattr__(self, "wire_sha256", _sha("wire_sha256", self.wire_sha256))
-        object.__setattr__(
-            self,
-            "trial_process_identity",
-            _text("trial_process_identity", self.trial_process_identity),
-        )
         semantic = _strict_json(self.canonical_semantic_json.encode("utf-8"))
         canonical = _canonical_json(semantic)
         if canonical != self.canonical_semantic_json:
             raise G10MediatorError("semantic JSON is not canonical")
         if hashlib.sha256(canonical.encode("utf-8")).hexdigest() != self.semantic_sha256:
             raise G10MediatorError("semantic_sha256 mismatch")
+        expected_wire = _canonical_json(
+            {"schema": SEMANTIC_MEDIATOR_WIRE_SCHEMA, "canonical_semantic_json": canonical}
+        ).encode("utf-8")
+        if hashlib.sha256(expected_wire).hexdigest() != self.wire_sha256:
+            raise G10MediatorError("wire_sha256 is not the deterministic digest of permitted semantic wire")
 
     def as_dict(self) -> dict[str, Any]:
         return {
@@ -432,20 +437,43 @@ class MediatedSemanticState:
             "canonical_semantic_json": self.canonical_semantic_json,
             "semantic_sha256": self.semantic_sha256,
             "wire_sha256": self.wire_sha256,
-            "trial_process_identity": self.trial_process_identity,
         }
 
     def sha256(self) -> str:
         return _digest(self.as_dict())
 
 
+def behavioral_state_keys() -> frozenset[str]:
+    return frozenset({"schema", "canonical_semantic_json", "semantic_sha256", "wire_sha256"})
+
+
+FORBIDDEN_BEHAVIORAL_STATE_KEYS = frozenset(
+    {
+        "trial_process_identity",
+        "trial_position",
+        "semantic_class",
+        "raw_payload_sha256",
+        "source_range_sha256",
+        "source_event_sequence",
+        "source_process_identity",
+        "runtime_witness_sha256",
+        "exact_source_sha256",
+        "boot_id_sha256",
+        "plan_sha256",
+        "semantic_slot_ref",
+        "arm",
+        "condition",
+        "expected_outcome",
+    }
+)
+
+
 def admit_mediated_semantic_state(
     *,
     mediator: IndependentSemanticMediatorReceipt,
     wire: bytes,
-    trial_process_identity: str,
 ) -> MediatedSemanticState:
-    """Verifier-side admission. No public plan or attestation metadata crosses into the trial state."""
+    """Verifier-side admission into a topology-label-free behavior-capable state."""
     validate_semantic_mediator_receipt(mediator)
     expected_wire = mediator.to_wire()
     if wire != expected_wire:
@@ -460,14 +488,10 @@ def admit_mediated_semantic_state(
         raise G10MediatorError("wire semantic JSON is not canonical")
     if canonical != mediator.canonical_semantic_json:
         raise G10MediatorError("trial wire semantic state differs from source mediator")
-    trial_identity = _text("trial_process_identity", trial_process_identity)
-    if trial_identity == mediator.source_process_identity:
-        raise G10MediatorError("source and trial process identities must differ")
     state = MediatedSemanticState(
         canonical_semantic_json=canonical,
         semantic_sha256=hashlib.sha256(canonical.encode("utf-8")).hexdigest(),
         wire_sha256=hashlib.sha256(wire).hexdigest(),
-        trial_process_identity=trial_identity,
     )
     return _seal(state, _STATE_FACTORY)
 
@@ -609,6 +633,7 @@ FORBIDDEN_BEHAVIORAL_INPUT_KEYS = frozenset(
         "raw_payload_sha256",
         "semantic_class",
         "trial_position",
+        "trial_process_identity",
         "arm",
         "condition",
         "source_range_sha256",
@@ -640,7 +665,7 @@ class IndependentSemanticMediatorCrossoverCandidate:
     _factory_seal: object | None = field(default=None, init=False, repr=False, compare=False)
     _factory_sha256: str | None = field(default=None, init=False, repr=False, compare=False)
 
-    schema = "FRANKENSTEIN2_G10_INDEPENDENT_SEMANTIC_MEDIATOR_CROSSOVER/v2"
+    schema = "FRANKENSTEIN2_G10_INDEPENDENT_SEMANTIC_MEDIATOR_CROSSOVER/v3"
     repository_ci_credit = 0
     target_environment_component_runtime_credit = 0
     semantic_gwt_runtime_credit = 0
@@ -661,7 +686,7 @@ class IndependentSemanticMediatorCrossoverCandidate:
                 raise G10MediatorError(f"{name} must contain four distinct identities")
             object.__setattr__(self, name, values)
         if set(self.source_process_identities) & set(self.trial_process_identities):
-            raise G10MediatorError("source and trial process identity sets must be disjoint")
+            raise G10MediatorError("source and post-execution trial identity sets must be disjoint")
         if len(self.child_pids) != 4 or any(type(pid) is not int or pid < 1 for pid in self.child_pids):
             raise G10MediatorError("four positive child PIDs required")
         if len(set(self.child_pids)) != 4:
@@ -747,8 +772,6 @@ def bind_independent_semantic_mediator_crossover(
             raise G10MediatorError("mediated state semantic bytes differ from source authority")
         if state.semantic_sha256 != mediator.semantic_sha256:
             raise G10MediatorError("mediated state semantic digest differs from source authority")
-        if state.trial_process_identity == mediator.source_process_identity:
-            raise G10MediatorError("source and trial process identities must differ")
         if receipt.state_sha256 != state.sha256():
             raise G10MediatorError("execution receipt does not bind corresponding mediated state")
         if receipt.executor_plan_sha256 != execution_receipts[0].executor_plan_sha256:
@@ -772,7 +795,9 @@ def bind_independent_semantic_mediator_crossover(
         raw_payload_sha256s=tuple(mediator.raw_payload_sha256 for mediator in mediators),  # type: ignore[arg-type]
         wire_sha256s=tuple(state.wire_sha256 for state in states),  # type: ignore[arg-type]
         source_process_identities=tuple(mediator.source_process_identity for mediator in mediators),  # type: ignore[arg-type]
-        trial_process_identities=tuple(state.trial_process_identity for state in states),  # type: ignore[arg-type]
+        trial_process_identities=tuple(
+            f"executor-child-pid:{receipt.child_pid}" for receipt in execution_receipts
+        ),  # type: ignore[arg-type]
         child_pids=tuple(receipt.child_pid for receipt in execution_receipts),  # type: ignore[arg-type]
         exact_source_sha256=next(iter(exact_sources)),
         boot_id_sha256=next(iter(boots)),
@@ -796,6 +821,7 @@ def validate_independent_semantic_mediator_crossover(
 
 __all__ = [
     "FORBIDDEN_BEHAVIORAL_INPUT_KEYS",
+    "FORBIDDEN_BEHAVIORAL_STATE_KEYS",
     "FORBIDDEN_TRIAL_WIRE_KEYS",
     "G10MediatorError",
     "IndependentSemanticMediatorCrossoverCandidate",
@@ -805,6 +831,7 @@ __all__ = [
     "MediatedSemanticState",
     "admit_mediated_semantic_state",
     "behavioral_input_keys",
+    "behavioral_state_keys",
     "bind_independent_semantic_mediator_crossover",
     "execute_mediated_reentry_only",
     "trial_wire_keys",
