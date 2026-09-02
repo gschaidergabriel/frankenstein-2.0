@@ -1,0 +1,51 @@
+{
+  "schema": "iteration1_discriminator_receipt.v1",
+  "run_id": "LOCAL-ITER0-20260902T163811Z",
+  "hypothesis": "The v2 StateRootIdentity layer (src/frankenstein2/state_migration.py, class StateRootIdentity, method assert_eligible_canonical_root) can recognize/validate the EXACT existing real path of the local v1 unified.db as a canonical state root, without changing the file and without creating a second DB.",
+  "classification": "READ_ONLY_IN_MEMORY_VALIDATION",
+  "module_source_review": {
+    "file": "src/frankenstein2/state_migration.py",
+    "finding": "Zero filesystem or OS I/O in the module: no open(), no os.* calls anywhere in the file. Only pathlib.PurePosixPath string manipulation, dataclasses, hashlib.sha256 over caller-supplied in-memory dict content, and re for format checks. Confirmed safe to import and call directly against the real db path with no risk of writing to it.",
+    "confirmed_safe_to_execute": true
+  },
+  "action_performed": {
+    "method": "python3 -c '...' importing StateRootIdentity from src/frankenstein2/state_migration.py, called from ~/frankenstein-2.0",
+    "inputs": {
+      "root_id": "v1-unified-db-real-path-discriminator-test",
+      "path": "/home/ai-core-node/.claude/star/unified.db",
+      "storage_class": "CANONICAL_DURABLE",
+      "host_identity_sha256": "sha256 of a fixed local literal string, computed inline, not a secret/env value",
+      "observed_root_fingerprint_sha256": "aeaf5304f70242bf385c7dd9af21c7c96b94735810daad172e7b7ce465c35308 (the db file's own pre-test SHA-256, passed in as a literal, not re-read from disk inside the module)"
+    },
+    "calls_made": ["StateRootIdentity.create(...)", "root.sha256()", "root.assert_eligible_canonical_root(role='v1_unified_db_test')"]
+  },
+  "measurement": {
+    "db_fingerprint_before": {
+      "size_bytes": 63401984,
+      "mtime_epoch": 1788365259,
+      "sha256": "aeaf5304f70242bf385c7dd9af21c7c96b94735810daad172e7b7ce465c35308"
+    },
+    "db_fingerprint_after": {
+      "size_bytes": 63401984,
+      "mtime_epoch": 1788365259,
+      "sha256": "aeaf5304f70242bf385c7dd9af21c7c96b94735810daad172e7b7ce465c35308"
+    },
+    "db_fingerprint_delta": "NONE — size, mtime and SHA-256 identical before and after; unified.db was not touched by this test."
+  },
+  "result": {
+    "verdict": "PASS",
+    "stdout_observed": [
+      "CREATE_OK root.sha256= ffb475db66f72bbf9a6d9113ba89b6eade94a6de1e270253bc9884c3e53f8ae3",
+      "ASSERT_ELIGIBLE_CANONICAL_ROOT: PASS"
+    ],
+    "no_exceptions_raised": true
+  },
+  "what_changed": "Nothing on disk. One Python process ran, imported a pure-validation module, constructed one in-memory dataclass instance, computed one SHA-256 digest of that in-memory dict, and returned.",
+  "what_did_not_change": "unified.db bytes, mtime, inode, table list, git state of ~/frankenstein-2.0 (aside from this run's own new files), git state of ~/frankenstein-repo, any systemd/process state, main branch anywhere.",
+  "scope_caveat_important": "PASS means the class ACCEPTS a caller-supplied claim that this path+storage_class combination is a canonical root, and that acceptance is a real, meaningful validation (it does reject transient-looking paths like /tmp, /var/tmp, /run, /dev/shm or anything with a .cache path segment, and it does reject storage_class values other than CANONICAL_DURABLE). It is NOT autonomous discovery: the module has no code that inspects the host filesystem, stat()s the path, or independently infers storage_class. The caller (this test, in future any real integration code) must supply path and storage_class as explicit claims. This is consistent with the module's own docstring: 'deliberately plan-only ... does not touch the filesystem, inspect a host, mutate UnifiedDB'.",
+  "counterhypotheses_considered": [
+    "Maybe assert_eligible_canonical_root() would accept ANY plausible-looking absolute path regardless of correctness, making this a weak test. Partially true: it only rejects the transient-path patterns hardcoded in _is_obviously_transient() (/tmp, /var/tmp, /run, /dev/shm, any '.cache' path segment) plus non-CANONICAL_DURABLE storage_class. A path like /home/foo/bar/nonexistent-file also passes structurally (no filesystem existence check at all). So this discriminator proves *structural compatibility of the real unified.db path with v2's canonical-root shape*, not that v2 has verified the file actually exists or is a valid SQLite DB.",
+    "Maybe host_identity_sha256 should be derived from a real, reproducible host-identity scheme rather than an arbitrary literal. This run used an arbitrary fixed string purely to satisfy the SHA-256 hex format requirement; no real host-identity derivation scheme was found or invented. A real integration would need the coordinator/architecture to define what host_identity_sha256 canonically means."
+  ],
+  "next_exact_action_if_authorized": "Do NOT proceed with StateLineage/StateMigrationRequest/StateMigrationPlan construction (that requires deciding a real lineage_id/generation/state_sha256 scheme for unified.db and a target_root, which starts to look like real migration planning, not just root-shape validation) without explicit coordinator authorization, since it edges toward defining a second root (target_root) even in plan-only form."
+}
