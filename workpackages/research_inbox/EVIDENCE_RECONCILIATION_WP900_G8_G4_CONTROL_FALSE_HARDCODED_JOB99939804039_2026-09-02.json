@@ -1,0 +1,68 @@
+{
+  "schema": "FRANKENSTEIN2_RESEARCH_INBOX/v1",
+  "status": "EVIDENCE_RECONCILIATION",
+  "work_class": "CANDIDATE_FALSIFIER",
+  "mutation_authority": false,
+  "trigger": "4",
+  "producer": "GPT-5.6-Sol-TRIGGER4-REVIEW",
+  "date": "2026-09-02",
+  "title": "WP900 G8: executed G4 control path hardcoded reentry_observed=false",
+  "target": "F2-WP-900 generation 8 independent reentry evidence binder",
+  "active_claim_id_observed": "F2-WP-900-G8-GPT56SOL-INDEPENDENT-REENTRY-EVIDENCE-20260902",
+  "evidence_class": "EXECUTED_HISTORICAL_RUNTIME_LOG_RECONCILIATION",
+  "evidence_refs": [
+    "gschaidergabriel/Dr.-Unterweger workflow run 33532799766 job 99939804039",
+    "gschaidergabriel/Dr.-Unterweger@3737cb4ed1719c24a0f0d89fc1d59e2aa4315089:runtime/trigger4/wp900_g4_causal_runtime_readback/91f97e9d1a681b4f7bb5b484afa30b776d4bd5a0.json",
+    "workpackages/receipts/F2-WP-900_G4_CAUSAL_RUNTIME_READBACK_33532799766.json",
+    "src/frankenstein2/gwt_causal_runtime_readback.py",
+    "src/frankenstein2/gwt_runtime_witness.py",
+    "workpackages/research_inbox/CANDIDATE_FALSIFIER_WP900_G8_CONTROL_ABSENCE_NOT_INDEPENDENTLY_OBSERVED_2026-09-02.json"
+  ],
+  "executed_log_finding": {
+    "controller_job": 99939804039,
+    "workflow_run": 33532799766,
+    "runner": "vps-clay-host",
+    "target_environment": "clay-direct-dev",
+    "subject_commit": "91f97e9d1a681b4f7bb5b484afa30b776d4bd5a0",
+    "finding": "The accepted G4 controller job created the no-broadcast control observation with an inline control_code program that emitted reentry_observed as the literal boolean False. The parent process then passed bool(control_observation[\"reentry_observed\"]) into ControlNoBroadcastReadback.observe. No symmetric condition-blind GWT/reentry monitor or closed observation window was used in that control process.",
+    "identity_binding": "The resulting ControlNoBroadcastReadback was factory-sealed and its hash was later bound by G4. That establishes exact identity/provenance of the recorded false value at G4 scope, but the executed log shows that the false value itself was asserted by the control harness rather than independently derived from observed absence of a matching reentry event."
+  },
+  "hypothesis_resolution": {
+    "prior_counterhypothesis": "Existing ControlNoBroadcastReadback may already be sufficient because target-runtime provenance plus exact source/boot/context binding makes false observationally trustworthy without a symmetric recorder.",
+    "resolution": "REJECTED_FOR_CONDITION_BLIND_ABSENCE_OBSERVATION",
+    "reason": "The actual admitted G4 job log exposes the value-construction path: false was a literal emitted by control_code. Provenance and hash binding preserve that assertion faithfully but do not convert it into measured negative-event absence.",
+    "failure_class_if_g8_treats_it_as_independent_absence": "EVIDENCE_INVALID"
+  },
+  "scope": {
+    "what_this_does_establish": [
+      "The G4 control receipt came from an actually executed target job.",
+      "The exact G4-bound control object contains reentry_observed=false.",
+      "That false value originated from an explicit constant in the executed control harness."
+    ],
+    "what_this_does_not_establish": [
+      "A condition-blind measured absence of reentry during a bounded observation window.",
+      "Task-level semantic causal influence.",
+      "Semantic GWT/J-Space authority.",
+      "Effect, training, completion, physical GRID10 or whole-system acceptance."
+    ]
+  },
+  "required_g8_action": [
+    "Do not use the existing G4 ControlNoBroadcastReadback false value alone as independent negative semantic observation.",
+    "If G8 needs a non-circular negative arm, add one condition-blind observation ABI for both arms and bind an explicit observation-window/trace identity that can detect matching reentry events without accepting the expected boolean or arm label as input.",
+    "Hard-negative test: with labels fixed, swap or forge underlying observation evidence; the result must invalidate or change based on evidence, never remain label/type determined.",
+    "Preserve G8 and all higher semantic credits at zero until the exact new discriminator is repository-tested, target-executed and separately reconciled."
+  ],
+  "credits": {
+    "repository_ci_credit": 0,
+    "runtime_execution_observed_from_this_packet": false,
+    "target_environment_component_runtime_credit": 0,
+    "semantic_gwt_runtime_credit": 0,
+    "jspace_runtime_credit": 0,
+    "physical_grid10_credit": 0,
+    "effect_credit": 0,
+    "training_credit": 0,
+    "completion_credit": 0,
+    "whole_system_acceptance": false
+  },
+  "next_exact_action": "Active WP900 G8 mutation owner should absorb this executed-log reconciliation before implementation acceptance. Either introduce a symmetric condition-blind observation window/trace for the control arm, or fail closed and keep G8 as mechanism/identity evidence only."
+}

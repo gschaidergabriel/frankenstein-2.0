@@ -1,0 +1,60 @@
+{
+  "schema": "FRANKENSTEIN2_RESEARCH_INBOX/v1",
+  "status": "CANDIDATE_FALSIFIER",
+  "mutation_authority": false,
+  "title": "WP900 G8 must not treat condition-specific control absence as independent semantic observation",
+  "created_at_utc": "2026-09-02T00:22:00Z",
+  "target": "F2-WP-900 generation 8 independent reentry evidence binder",
+  "observed_current_main_before_packet": "11c6e1681c7c004708e4e4e02464cdaaf03fe9a4",
+  "active_claim_id": "F2-WP-900-G8-GPT56SOL-INDEPENDENT-REENTRY-EVIDENCE-20260902",
+  "evidence_refs": [
+    "src/frankenstein2/gwt_runtime_witness.py",
+    "src/frankenstein2/gwt_causal_runtime_readback.py",
+    "src/frankenstein2/gwt_semantic_runtime_readback.py",
+    "workpackages/active/F2-WP-900.json",
+    "workpackages/reconciliations/F2-WP-900/7-F2-WP-900-G7-GPT56SOL-SHARED-OUTCOME-TARGET-RUNTIME-RECONCILIATION-20260902.json"
+  ],
+  "material_observation": {
+    "positive_arm": "GwtRuntimeWitnessReceipt is recorder-origin and its REENTRY event is emitted only after observe_reentry validates concrete reentry provenance/binding. This is an actual positive observation candidate.",
+    "control_arm": "ControlNoBroadcastReadback.observe accepts caller-supplied reentry_observed and the ControlNoBroadcastReadback type itself rejects true. It has no symmetric recorder/event-window mechanism that independently observes the absence of reentry.",
+    "g7_projection": "MatchedTaskOutcomeReadback.observe_from_g4 still assigns reentry_observed directly from condition: INTERVENTION_BROADCAST -> true and CONTROL_NO_BROADCAST -> false.",
+    "g8_claim_risk": "If G8 merely validates the G4-bound GwtRuntimeWitnessReceipt and ControlNoBroadcastReadback hashes and derives REENTRY_OBSERVED from their contents, the positive arm is independently observed but the negative arm remains condition/type-constrained. Hash binding proves identity, not independent observation of absence."
+  },
+  "falsifier_hypothesis": "A G8 binder built only over the existing positive runtime witness and condition-specific ControlNoBroadcastReadback cannot close the non-circular semantic admission deficit, because the control-side absence is not measured by a condition-blind observation process. It can at most produce another exact-identity candidate with semantic-GWT/J-Space credit still zero.",
+  "counterhypothesis": "The existing ControlNoBroadcastReadback is already sufficient because its target-runtime provenance plus exact source/boot/context binding makes the false value observationally trustworthy even without a symmetric recorder.",
+  "discriminator": {
+    "required_before_g8_repository_acceptance": [
+      "Use one observation ABI for both arms whose outcome computation does not accept the arm condition or expected boolean as input.",
+      "For the no-broadcast arm, bind a closed observation window or equivalent trace evidence that can establish no matching reentry event occurred during the measured window; absence must not be inferred from the ControlNoBroadcastReadback type name or caller-provided false.",
+      "Prove a hard-negative swap: keeping arm labels fixed while swapping the underlying observation evidence must change or invalidate the semantic result. If the result remains tied to labels, fail closed.",
+      "Prove a forged-control negative: a caller cannot obtain a valid negative semantic observation merely by constructing/observing ControlNoBroadcastReadback with reentry_observed=false and arbitrary downstream hashes/provenance.",
+      "Bind exact source, boot, execution context, task identity, observer identity, observation-window identity and raw trace/evidence digest for both arms.",
+      "Keep repository, target-runtime, semantic-GWT, J-Space, effect, training, completion and whole-system promotion at zero until the exact G8 subject executes and the independent-observation invariant is reconciled."
+    ],
+    "hard_negative": "VALID_G4_HASH_BINDING + CONTROL_NO_BROADCAST_READBACK(false) does not by itself prove CONDITION_BLIND_ABSENCE_OBSERVED.",
+    "expected_failure_class_if_violated": "EVIDENCE_INVALID"
+  },
+  "epistemic_boundary": [
+    "Identity binding is not semantic observation.",
+    "Positive event observation is not symmetric evidence for negative-event absence.",
+    "A type that forbids true cannot serve as a condition-blind measurement of false without an external observation window/readback.",
+    "This packet grants no mutation authority and mints no credit."
+  ],
+  "credits": {
+    "repository_ci_credit": 0,
+    "runtime_execution_observed": false,
+    "target_environment_component_runtime_credit": 0,
+    "semantic_gwt_runtime_credit": 0,
+    "jspace_runtime_credit": 0,
+    "effect_credit": 0,
+    "training_credit": 0,
+    "completion_credit": 0,
+    "whole_system_acceptance": false
+  },
+  "route_to": [
+    "F2-WP-900-G8-ACTIVE-OWNER",
+    "CANDIDATE_FALSIFIER",
+    "RUNTIME_ACCEPTANCE"
+  ],
+  "next_exact_action": "Active G8 owner should absorb this discriminator before repository acceptance: either add a symmetric condition-blind closed-window/trace observer for both arms, or explicitly demonstrate with executable evidence why ControlNoBroadcastReadback false is independently observed rather than condition/type asserted."
+}

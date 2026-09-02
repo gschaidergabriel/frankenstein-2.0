@@ -1,0 +1,45 @@
+name: Trigger4 G2 Required Observables Regression
+
+on:
+  push:
+    paths:
+      - "trigger4/tools/local_voice/g2_pipewire_observer.py"
+      - "trigger4/tools/local_voice/g2_required_observables_guard.py"
+      - "trigger4/tools/local_voice/run_g2_pipewire_s2.sh"
+      - "tests/test_t4_g2_required_observables_guard.py"
+      - "tests/test_t4_g2_h4_launcher_execution_binding.py"
+      - "tests/test_t4_g2_runtime_launcher_contract.py"
+      - ".github/workflows/t4-g2-pipewire-monitor-cancel.yml"
+      - ".github/workflows/trigger4-g2-required-observables-regression.yml"
+  pull_request:
+    paths:
+      - "trigger4/tools/local_voice/g2_pipewire_observer.py"
+      - "trigger4/tools/local_voice/g2_required_observables_guard.py"
+      - "trigger4/tools/local_voice/run_g2_pipewire_s2.sh"
+      - "tests/test_t4_g2_required_observables_guard.py"
+      - "tests/test_t4_g2_h4_launcher_execution_binding.py"
+      - "tests/test_t4_g2_runtime_launcher_contract.py"
+      - ".github/workflows/t4-g2-pipewire-monitor-cancel.yml"
+      - ".github/workflows/trigger4-g2-required-observables-regression.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  required-observables:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run canonical required-observables regressions
+        run: python tests/test_t4_g2_required_observables_guard.py
+      - name: Run H4 launcher binding regression
+        run: python tests/test_t4_g2_h4_launcher_execution_binding.py
+      - name: Run launcher/runtime contract regression
+        run: python tests/test_t4_g2_runtime_launcher_contract.py
+      - name: Compile evidence sidecar and guard
+        run: |
+          python -m py_compile \
+            trigger4/tools/local_voice/g2_pipewire_observer.py \
+            trigger4/tools/local_voice/g2_required_observables_guard.py
+      - name: Parse launcher
+        run: bash -n trigger4/tools/local_voice/run_g2_pipewire_s2.sh

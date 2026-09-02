@@ -1,0 +1,33 @@
+{
+  "schema": "FRANKENSTEIN2_CLAIM_SCOPED_DELTA/v1",
+  "workpackage_id": "F2-WP-900",
+  "generation": 8,
+  "claim_id": "F2-WP-900-G8-GPT56SOL-INDEPENDENT-REENTRY-EVIDENCE-20260902",
+  "worker_id": "GPT-5.6-Sol-TRIGGER4",
+  "trigger": "4",
+  "status": "FIX_CANDIDATE_PENDING_EXACT_CI",
+  "failure_class": "PRODUCT_NEGATIVE_REPOSITORY_CAUSAL_ADMISSION_BOUNDARY",
+  "source_head_before_fix": "3736633498578b35887df0faf94763f6c3d89bd4",
+  "absorbed_evidence_ref": "workpackages/research_inbox/CANDIDATE_FALSIFIER_WP900_G8_PUBLIC_RANGE_RECORDER_SELF_MINTS_NEGATIVE_AUTHORITY_2026-09-02.json",
+  "root_cause": "The public IndependentEventSourceRangeRecorder can be instantiated by the same condition-aware caller whose negative claim it is meant to independently constrain. Its factory seal proves implementation origin and immutability only; it does not prove upstream event-source ownership. The repository admission API therefore had a path where a caller-self-minted structurally complete range with no matching event could receive causal_negative_credit=1.",
+  "fix_candidate": [
+    "Preserve the structural source-range candidate and its sequence/digest/factory validation for conservative cross-checking.",
+    "Remove repository-only negative causal promotion from admit_reentry_observation_with_independent_range.",
+    "A structurally matching range with no matching reentry now returns NEGATIVE_ABSENCE_UNPROVEN, causal_negative_credit=0, independent_negative_range_authority=false, blocker TARGET_SOURCE_INDEPENDENCE_BINDING_NOT_PROVEN.",
+    "A candidate range containing the matching event may still conservatively contradict a caller-negative observation, but it also does not claim independent source authority.",
+    "Add an explicit public-self-minted-range regression requiring zero negative causal credit."
+  ],
+  "evidence_scope": "SOURCE_AND_REGRESSION_CANDIDATE_ONLY",
+  "repository_ci_credit": 0,
+  "target_environment_component_runtime_credit": 0,
+  "runtime_credit": 0,
+  "gwt_runtime_credit": 0,
+  "semantic_gwt_runtime_credit": 0,
+  "jspace_runtime_credit": 0,
+  "physical_grid10_credit": 0,
+  "effect_credit": 0,
+  "training_credit": 0,
+  "completion_credit": 0,
+  "whole_system_acceptance": false,
+  "next_exact_action": "Run exact deterministic release CI on this atomic source/test/pointer subject. If green, reconcile repository fail-closed scope only; target negative causal promotion remains blocked until exact owner-VPS runtime evidence independently binds the range recorder upstream of condition-aware logic."
+}

@@ -1,31 +1,38 @@
 """Fail-closed semantic readback above accepted WP900 G4/G5 evidence.
 
-F2-WP-900 generation 6.
+F2-WP-900 generation 6 comparator plus the generation 7 shared-outcome
+integration used to resolve the executed G6 schema-comparability blocker.
 
 G4 deliberately proves only a matched intervention/control causal effect at a
-contract/hash boundary.  Executed REVIEW_ONLY counterevidence in PR #884 shows
+contract/hash boundary. Executed REVIEW_ONLY counterevidence in PR #884 shows
 that byte-distinct JSON serializations of the same parsed value can still make
-that contract evaluator report downstream inequality.  That is not a defect in
+that contract evaluator report downstream inequality. That is not a defect in
 G4's accepted scope, but it blocks semantic GWT/J-Space promotion.
 
-This module adds the smallest successor ABI needed to remove that ambiguity:
+The G6 comparator therefore remains fail-closed:
 
-* every arm is observed from the exact raw downstream bytes;
+* every arm is observed from exact raw downstream bytes;
 * raw bytes must hash to the downstream SHA already bound by the accepted G4
   candidate;
 * both arms bind exact source, boot and execution-context identities;
 * both arms declare task and outcome schemas;
 * JSON is parsed fail-closed (duplicate keys and non-finite constants reject),
   then canonicalized for one explicit structural-semantic representation;
-* equal canonical semantic representations are classified as semantic
-  equivalence, never semantic causal difference;
-* incompatible task/outcome schemas return first-class UNKNOWN rather than a
-  positive semantic claim.
+* equal canonical semantic representations are semantic equivalence;
+* incompatible task/outcome schemas return first-class UNKNOWN.
 
-The object produced here is still only a repository/runtime evidence candidate.
-It never mints semantic GWT/J-Space, target-runtime, effect, training,
-completion or whole-system credit.  Exact admitted VPS execution and separate
-reconciliation remain required for any higher promotion.
+G7 does not weaken or replace that comparator. It adds one factory-sealed
+matched-task outcome receipt. The receipt preserves each arm's distinct raw
+schema and exact G4 downstream bytes, then projects only the predeclared
+REENTRY_OBSERVED predicate already established by the validated G4 causal
+candidate into one shared semantic outcome schema. A caller cannot obtain this
+projection merely by relabeling arbitrary raw bytes or forging source/boot/
+execution-context identities.
+
+All objects remain evidence candidates. They never mint semantic GWT/J-Space,
+target-runtime, effect, training, completion or whole-system credit by
+construction. Exact admitted execution and separate reconciliation remain
+required for higher promotion.
 """
 from __future__ import annotations
 
@@ -49,16 +56,24 @@ NO_SEMANTIC_CAUSAL_DIFFERENCE = "NO_SEMANTIC_CAUSAL_DIFFERENCE_OBSERVED"
 SEMANTIC_CAUSAL_DIFFERENCE_CANDIDATE = "SEMANTIC_CAUSAL_DIFFERENCE_CANDIDATE_REQUIRES_TARGET_EXECUTION_ADMISSION"
 SEMANTIC_UNKNOWN_FAIL_CLOSED = "SEMANTIC_COMPARISON_UNKNOWN_FAIL_CLOSED"
 
+MATCHED_TASK_OUTCOME_READBACK_SCHEMA = "FRANKENSTEIN2_GWT_MATCHED_TASK_OUTCOME_READBACK/v1"
+MATCHED_TASK_OUTCOME_SCHEMA = "FRANKENSTEIN2_GWT_MATCHED_REENTRY_OUTCOME/v1"
+MATCHED_TASK_OUTCOME_PREDICATE = "REENTRY_OBSERVED"
+WP900_MATCHED_TASK_SCHEMA = "F2_WP900_G4_MATCHED_CAUSAL_TASK/v1"
+WP900_INTERVENTION_RAW_OUTCOME_SCHEMA = "FRANKENSTEIN2_GRID10_CELL_OUTPUT/v1"
+WP900_CONTROL_RAW_OUTCOME_SCHEMA = "F2_WP900_G4_CONTROL_NO_BROADCAST_DOWNSTREAM/v1"
+
 _SHA256_RE = re.compile(r"^[0-9a-f]{64}$")
 _MAX_TEXT = 512
 _MAX_RAW_BYTES = 1_048_576
 _MAX_CANONICAL_JSON = 65_536
 _ARM_FACTORY = object()
 _BOUND_FACTORY = object()
+_MATCHED_OUTCOME_FACTORY = object()
 
 
 class GwtSemanticRuntimeReadbackError(ValueError):
-    """Fail-closed WP900 G6 semantic-readback error."""
+    """Fail-closed WP900 semantic-readback error."""
 
 
 def _text(name: str, value: Any) -> str:
@@ -286,6 +301,204 @@ def validate_semantic_arm_readback(value: SemanticArmReadback) -> None:
 
 
 @dataclass(frozen=True, slots=True, kw_only=True)
+class MatchedTaskOutcomeReadback:
+    """Factory-sealed G7 bridge from exact raw G4 bytes to one outcome predicate.
+
+    ``raw_outcome_schema`` records the original condition-specific schema and is
+    deliberately not rewritten to the shared semantic schema. The only value
+    projected into :class:`SemanticArmReadback` is the G4-predeclared
+    REENTRY_OBSERVED predicate. Exact source/boot/context and downstream
+    identities are copied from the already validated G4 candidate rather than
+    accepted from caller-controlled text.
+    """
+
+    condition: str
+    task_id: str
+    task_schema: str
+    raw_outcome_schema: str
+    downstream_ref: str
+    downstream_sha256: str
+    reentry_observed: bool
+    exact_source_sha256: str
+    boot_id_sha256: str
+    execution_context_sha256: str
+    producer_identity: str
+    runtime_instance_id: str
+    observed_monotonic_ns: int
+    provenance_refs: tuple[str, ...]
+    _factory_seal: object | None = field(default=None, init=False, repr=False, compare=False, hash=False)
+    _factory_payload_sha256: str | None = field(default=None, init=False, repr=False, compare=False, hash=False)
+
+    schema = MATCHED_TASK_OUTCOME_READBACK_SCHEMA
+    outcome_schema = MATCHED_TASK_OUTCOME_SCHEMA
+    predicate = MATCHED_TASK_OUTCOME_PREDICATE
+    repository_ci_credit = 0
+    target_environment_component_runtime_credit = 0
+    semantic_gwt_runtime_credit = 0
+    jspace_runtime_credit = 0
+    effect_credit = 0
+    training_credit = 0
+    completion_credit = 0
+    whole_system_acceptance = False
+
+    def __post_init__(self) -> None:
+        if self.condition not in {"INTERVENTION_BROADCAST", "CONTROL_NO_BROADCAST"}:
+            raise GwtSemanticRuntimeReadbackError("matched outcome condition is invalid")
+        for name in (
+            "task_id",
+            "task_schema",
+            "raw_outcome_schema",
+            "downstream_ref",
+            "producer_identity",
+            "runtime_instance_id",
+        ):
+            object.__setattr__(self, name, _text(name, getattr(self, name)))
+        for name in (
+            "downstream_sha256",
+            "exact_source_sha256",
+            "boot_id_sha256",
+            "execution_context_sha256",
+        ):
+            object.__setattr__(self, name, _sha256(name, getattr(self, name)))
+        if type(self.reentry_observed) is not bool:
+            raise GwtSemanticRuntimeReadbackError("reentry_observed must be boolean")
+        _positive_int("observed_monotonic_ns", self.observed_monotonic_ns)
+        object.__setattr__(self, "provenance_refs", _refs(self.provenance_refs))
+
+    @classmethod
+    def observe_from_g4(
+        cls,
+        *,
+        contract_candidate: GwtCausalRuntimeReadbackCandidate,
+        condition: str,
+        task_id: str,
+        task_schema: str,
+        raw_outcome_schema: str,
+        raw_payload: bytes,
+        producer_identity: str,
+        runtime_instance_id: str,
+        observed_monotonic_ns: int,
+        provenance_refs: Iterable[str],
+    ) -> "MatchedTaskOutcomeReadback":
+        if type(contract_candidate) is not GwtCausalRuntimeReadbackCandidate:
+            raise GwtSemanticRuntimeReadbackError("contract_candidate must be exact GwtCausalRuntimeReadbackCandidate")
+        try:
+            validate_causal_runtime_readback(contract_candidate)
+        except ValueError as exc:
+            raise GwtSemanticRuntimeReadbackError(f"invalid G4 contract candidate: {exc}") from exc
+        if condition == "INTERVENTION_BROADCAST":
+            downstream_ref = contract_candidate.intervention_downstream_ref
+            expected_sha256 = contract_candidate.intervention_downstream_sha256
+            expected_raw_schema = WP900_INTERVENTION_RAW_OUTCOME_SCHEMA
+            reentry_observed = True
+        elif condition == "CONTROL_NO_BROADCAST":
+            downstream_ref = contract_candidate.control_downstream_ref
+            expected_sha256 = contract_candidate.control_downstream_sha256
+            expected_raw_schema = WP900_CONTROL_RAW_OUTCOME_SCHEMA
+            reentry_observed = False
+        else:
+            raise GwtSemanticRuntimeReadbackError("matched outcome condition is invalid")
+        task_schema = _text("task_schema", task_schema)
+        if task_schema != WP900_MATCHED_TASK_SCHEMA:
+            raise GwtSemanticRuntimeReadbackError("matched task schema does not bind the admitted WP900 task")
+        raw_outcome_schema = _text("raw_outcome_schema", raw_outcome_schema)
+        if raw_outcome_schema != expected_raw_schema:
+            raise GwtSemanticRuntimeReadbackError("raw outcome schema does not match the admitted condition-specific schema")
+        _parse_json(raw_payload)
+        raw_sha256 = hashlib.sha256(raw_payload).hexdigest()
+        if raw_sha256 != expected_sha256:
+            raise GwtSemanticRuntimeReadbackError("raw payload does not match accepted G4 downstream SHA-256")
+        value = cls(
+            condition=condition,
+            task_id=task_id,
+            task_schema=task_schema,
+            raw_outcome_schema=raw_outcome_schema,
+            downstream_ref=downstream_ref,
+            downstream_sha256=raw_sha256,
+            reentry_observed=reentry_observed,
+            exact_source_sha256=contract_candidate.exact_source_sha256,
+            boot_id_sha256=contract_candidate.boot_id_sha256,
+            execution_context_sha256=contract_candidate.execution_context_sha256,
+            producer_identity=producer_identity,
+            runtime_instance_id=runtime_instance_id,
+            observed_monotonic_ns=observed_monotonic_ns,
+            provenance_refs=tuple(provenance_refs),
+        )
+        object.__setattr__(value, "_factory_seal", _MATCHED_OUTCOME_FACTORY)
+        object.__setattr__(value, "_factory_payload_sha256", _digest_json(value.as_dict()))
+        return value
+
+    def semantic_value(self) -> dict[str, Any]:
+        return {
+            "predicate": self.predicate,
+            "observed": self.reentry_observed,
+        }
+
+    def to_semantic_arm(self) -> SemanticArmReadback:
+        validate_matched_task_outcome_readback(self)
+        canonical = _canonical_json(self.semantic_value())
+        value = SemanticArmReadback(
+            condition=self.condition,
+            task_id=self.task_id,
+            task_schema=self.task_schema,
+            outcome_schema=self.outcome_schema,
+            downstream_ref=self.downstream_ref,
+            downstream_sha256=self.downstream_sha256,
+            semantic_canonical_json=canonical,
+            semantic_sha256=hashlib.sha256(canonical.encode("utf-8")).hexdigest(),
+            exact_source_sha256=self.exact_source_sha256,
+            boot_id_sha256=self.boot_id_sha256,
+            execution_context_sha256=self.execution_context_sha256,
+            producer_identity=self.producer_identity,
+            runtime_instance_id=self.runtime_instance_id,
+            observed_monotonic_ns=self.observed_monotonic_ns,
+            provenance_refs=self.provenance_refs,
+        )
+        object.__setattr__(value, "_factory_seal", _ARM_FACTORY)
+        object.__setattr__(value, "_factory_payload_sha256", _digest_json(value.as_dict()))
+        return value
+
+    def as_dict(self) -> dict[str, Any]:
+        return {
+            "schema": self.schema,
+            "condition": self.condition,
+            "task_id": self.task_id,
+            "task_schema": self.task_schema,
+            "raw_outcome_schema": self.raw_outcome_schema,
+            "shared_outcome_schema": self.outcome_schema,
+            "predicate": self.predicate,
+            "downstream_ref": self.downstream_ref,
+            "downstream_sha256": self.downstream_sha256,
+            "reentry_observed": self.reentry_observed,
+            "exact_source_sha256": self.exact_source_sha256,
+            "boot_id_sha256": self.boot_id_sha256,
+            "execution_context_sha256": self.execution_context_sha256,
+            "producer_identity": self.producer_identity,
+            "runtime_instance_id": self.runtime_instance_id,
+            "observed_monotonic_ns": self.observed_monotonic_ns,
+            "provenance_refs": list(self.provenance_refs),
+            "repository_ci_credit": self.repository_ci_credit,
+            "target_environment_component_runtime_credit": self.target_environment_component_runtime_credit,
+            "semantic_gwt_runtime_credit": self.semantic_gwt_runtime_credit,
+            "jspace_runtime_credit": self.jspace_runtime_credit,
+            "effect_credit": self.effect_credit,
+            "training_credit": self.training_credit,
+            "completion_credit": self.completion_credit,
+            "whole_system_acceptance": self.whole_system_acceptance,
+        }
+
+    def sha256(self) -> str:
+        return _digest_json(self.as_dict())
+
+
+def validate_matched_task_outcome_readback(value: MatchedTaskOutcomeReadback) -> None:
+    if type(value) is not MatchedTaskOutcomeReadback or value._factory_seal is not _MATCHED_OUTCOME_FACTORY:
+        raise GwtSemanticRuntimeReadbackError("matched outcome lacks observation-factory origin")
+    if value._factory_payload_sha256 != _digest_json(value.as_dict()):
+        raise GwtSemanticRuntimeReadbackError("matched outcome payload changed after observation")
+
+
+@dataclass(frozen=True, slots=True, kw_only=True)
 class SemanticCausalReadbackCandidate:
     """Semantic comparison candidate; never authority or promotion by construction."""
 
@@ -481,6 +694,10 @@ def validate_semantic_causal_readback(value: SemanticCausalReadbackCandidate) ->
 
 __all__ = [
     "GwtSemanticRuntimeReadbackError",
+    "MATCHED_TASK_OUTCOME_PREDICATE",
+    "MATCHED_TASK_OUTCOME_READBACK_SCHEMA",
+    "MATCHED_TASK_OUTCOME_SCHEMA",
+    "MatchedTaskOutcomeReadback",
     "NO_SEMANTIC_CAUSAL_DIFFERENCE",
     "SEMANTIC_ARM_READBACK_SCHEMA",
     "SEMANTIC_CAUSAL_DIFFERENCE_CANDIDATE",
@@ -491,7 +708,11 @@ __all__ = [
     "SEMANTIC_UNKNOWN_FAIL_CLOSED",
     "SemanticArmReadback",
     "SemanticCausalReadbackCandidate",
+    "WP900_CONTROL_RAW_OUTCOME_SCHEMA",
+    "WP900_INTERVENTION_RAW_OUTCOME_SCHEMA",
+    "WP900_MATCHED_TASK_SCHEMA",
     "bind_semantic_causal_readback",
+    "validate_matched_task_outcome_readback",
     "validate_semantic_arm_readback",
     "validate_semantic_causal_readback",
 ]

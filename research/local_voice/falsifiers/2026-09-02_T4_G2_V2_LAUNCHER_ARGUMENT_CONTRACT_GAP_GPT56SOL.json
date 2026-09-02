@@ -1,0 +1,61 @@
+{
+  "schema": "F2_TRIGGER4_CANDIDATE_FALSIFIER/v1",
+  "trigger": "4",
+  "research_id": "T4-G2-V2-LAUNCHER-ARGUMENT-CONTRACT-GAP-2026-09-02",
+  "work_class": "INTEGRATION_BLOCKER",
+  "boundary": "G2 S2 launcher -> g2_pipewire_s2_runtime.py v2 argument/evidence contract -> executable owner-VPS S2 PipeWire discriminator",
+  "semantic_key": "0d83f7d13c1d8f91686cf94070f73d901a49018b40a9c058d1949af094655bff",
+  "status": "RESOLVED_AT_SOURCE_SCOPE",
+  "historical_observation": {
+    "observed_f2_head": "e9778d42710d3efd8b4ac1a39f6c0b5f582f2b8a",
+    "runtime_path": "trigger4/tools/local_voice/g2_pipewire_s2_runtime.py",
+    "runtime_schema": "T4_G2_PIPEWIRE_S2_PLAYBACK_CANCEL_MONITOR/v2",
+    "runtime_blob_sha": "966af68b6a75d2ed1768573d126b0505811d4a23",
+    "launcher_path": "trigger4/tools/local_voice/run_g2_pipewire_s2.sh",
+    "launcher_blob_sha": "d6947b0abd49b017a9855f24385c8dc1c45ea0d6",
+    "missing_required_runtime_arguments": [
+      "--replacement-source",
+      "--tts-text-file",
+      "--replacement-tts-text-file",
+      "--bound-preflight-receipt"
+    ],
+    "literal_max_inflight_ms": 250,
+    "launcher_generated_bound_preflight_receipt": false,
+    "launcher_generated_distinct_replacement_source_and_text_provenance": false,
+    "static_result": "FAIL",
+    "runtime_execution_observed_for_historical_subject": false,
+    "classification_if_dispatched_unchanged": "EVIDENCE_INVALID"
+  },
+  "resolution": {
+    "source_repair_commit": "bfb39b1a38363547037ad952ff241738fe2795a9",
+    "followup_binding_commit": "e17612865a2cbe25ddf88c84fc64e595f0c8af60",
+    "observed_current_head_when_reconciled": "e17612865a2cbe25ddf88c84fc64e595f0c8af60",
+    "resolved_facts": [
+      "launcher now generates a distinct replacement TTS WAV",
+      "launcher now persists source and replacement text provenance",
+      "launcher now derives a pre-execution bound receipt from PipeWire settings",
+      "launcher now passes --replacement-source, --tts-text-file, --replacement-tts-text-file and --bound-preflight-receipt",
+      "launcher now passes the bound receipt derived_max_inflight_ms instead of the historical literal 250 ms",
+      "H4 CLI binding is preserved while the terminal harness receives the importable H4 analyzer"
+    ],
+    "scope": "SOURCE_INTEGRATION_ONLY",
+    "runtime_credit_minted": 0
+  },
+  "remaining_separate_blocker": {
+    "class": "CAUSAL_PRODUCT_BINDING",
+    "description": "Current g2_pipewire_s2_runtime.py still invokes VoicePacketCortex.cancel_for_barge_in(...) and then independently calls stop_playback(cancel_play). Therefore harness-driven paplay termination can produce monitor silence without proving that the admitted product cancellation authority itself terminates the playback client.",
+    "required_discriminator": "Disable or neutralize harness-side playback termination and require the existing product cancellation authority alone to cause playback-client terminalization plus bounded virtual-monitor silence. If no existing repo-native cancellation-to-playback binding can do this, classify BLOCKED_ON_MISSING_PRODUCT_CANCEL_TO_PLAYBACK_BINDING rather than adding a second authority.",
+    "runtime_subject_action": "RUNTIME_PROBE_INVALIDATED_BY_REQUIRED_REPAIR"
+  },
+  "credit": {
+    "repository_integration_credit_from_this_reconciliation": 0,
+    "owner_vps_pipewire_virtual_sink_playback_readback": 0,
+    "bounded_cancellation_to_virtual_audio_monitor_silence": 0,
+    "physical_device_credit": 0,
+    "gwt_jspace_credit": 0,
+    "effect_credit": 0,
+    "training_credit": 0,
+    "whole_product_credit": 0
+  },
+  "next_exact_action": "Treat the launcher argument-contract gap as closed at source scope. Do not dispatch/promote G2 until the separate causal cancel-to-playback binding gap is closed on one refreshed same-G2 subject and stale/nonterminal singleton ownership is reconciled; then execute at most one exact-current-head S2 discriminator and classify only its emitted receipt."
+}

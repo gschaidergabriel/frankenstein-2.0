@@ -1,0 +1,51 @@
+{
+  "schema": "FRANKENSTEIN2_CANDIDATE_FALSIFIER/v1",
+  "workpackage_id": "F2-WP-900",
+  "generation": 8,
+  "claim_id": "F2-WP-900-G8-GPT56SOL-INDEPENDENT-REENTRY-EVIDENCE-20260902",
+  "worker_lane": "CANDIDATE_FALSIFIER",
+  "created_date": "2026-09-02",
+  "status": "OPEN_VALID_FALSIFIER",
+  "title": "CAS-winner source range still trusts caller classification of GWT reentry content",
+  "current_subject": {
+    "source_path": "src/frankenstein2/gwt_reentry_causal_admission.py",
+    "observed_source_commit_lower_bound": "3736633498578b35887df0faf94763f6c3d89bd4",
+    "canonical_shape": "single CAS-winning IndependentEventSourceRangeRecorder embedded in causal admission; duplicate gwt_reentry_event_source_range.py was correctly removed"
+  },
+  "falsifier": "The CAS-winning independent range validates sequence continuity and seals its own events, but IndependentEventSourceRangeRecorder.observe still accepts event_kind, payload_sha256, canonical_reentry_key_sha256, binding_sha256 and recipient_cell_id directly from its caller. No GwtRuntimeWitnessReceipt or other factory-origin parsed source object is required for a GWT_REENTRY event. Conversely the caller may classify every opaque raw source item as OTHER. Because payload_sha256 is not independently decoded/bound to an event kind, a condition-aware or miswired adapter can omit an actually available matching reentry while still producing a contiguous, zero-gap, factory-sealed range. The factory seal protects the caller-supplied classification after construction; it does not establish independent content classification at origin.",
+  "executable_counterexample_shape": {
+    "setup": "Create a valid negative observation candidate and a contiguous IndependentEventSourceRangeRecorder interval whose source/filter/clock/window identities match the observation.",
+    "intervention": "Assume one source item corresponds to an already factory-valid GwtRuntimeWitnessReceipt matching expected_reentry_key/binding/recipient. Record that sequence through observe as SOURCE_EVENT_OTHER (or omit all GWT identity fields) while keeping every sequence contiguous and all timing/range fields valid.",
+    "current_expected_behavior": "The sealed source range contains no SOURCE_EVENT_GWT_REENTRY marker, validates as complete, _range_contains_expected_reentry returns false, and causal admission can admit ADMITTED_NEGATIVE_REENTRY_ABSENCE despite the available matching recorder-origin witness never being bound into source classification.",
+    "required_behavior": "A matching reentry source item must enter the range only through a factory-validated GwtRuntimeWitnessReceipt or equivalently source-authoritative parsed object. Caller-selected event_kind/key/binding/recipient metadata must not be sufficient to establish either presence or absence. If source classification cannot be independently proven, negative absence remains UNKNOWN."
+  },
+  "evidence": [
+    "Current IndependentEventSourceRangeRecorder.observe exposes event_kind and all GWT matching identity fields as public caller parameters.",
+    "Current IndependentEventSourceEvent factory seal is added after those caller values are accepted.",
+    "Current _range_contains_expected_reentry searches only the caller-populated SOURCE_EVENT_GWT_REENTRY metadata; it does not validate a recorder-origin GwtRuntimeWitnessReceipt.",
+    "The active G8 claim explicitly requires validating recorder-origin GwtRuntimeWitnessReceipt contents inside the independent source range and says a matching recorder-origin witness must defeat caller-attempted NO_REENTRY omission."
+  ],
+  "required_closure": [
+    "Preserve the single CAS-winning range authority; do not reintroduce a duplicate authority module.",
+    "For GWT reentry source events, accept an exact factory-validated GwtRuntimeWitnessReceipt (or equivalent admitted typed source object), validate its source/boot/runtime/process identity, and derive key/binding/recipient from that object rather than caller strings.",
+    "Remove or fail-close the generic API path that lets callers label opaque source events as GWT_REENTRY with arbitrary matching metadata.",
+    "Add a hard-negative proving that an available matching factory-valid runtime witness cannot be hidden by caller event-kind omission/classification while a complete range is claimed.",
+    "Keep repository, target-runtime, semantic GWT/J-Space, physical GRID10, effect, training, completion and whole-system credits at zero until their independent gates execute."
+  ],
+  "failure_class": "PRODUCT_NEGATIVE_CANDIDATE_PENDING_EXACT_TEST",
+  "mutation_required_if_reproduced": true,
+  "credit": {
+    "repository_ci_credit": 0,
+    "target_environment_component_runtime_credit": 0,
+    "runtime_credit": 0,
+    "gwt_runtime_credit": 0,
+    "semantic_gwt_runtime_credit": 0,
+    "jspace_runtime_credit": 0,
+    "physical_grid10_credit": 0,
+    "effect_credit": 0,
+    "training_credit": 0,
+    "completion_credit": 0,
+    "whole_system_acceptance": false
+  },
+  "next_exact_action": "Active G8 mutation owner should absorb this falsifier into the CAS-winning source-range authority, bind GWT source events to factory-valid runtime witnesses, add the omission/classification regression, rerun exact deterministic release CI, and only then consider repository-scope reconciliation or one frozen owner-VPS subject."
+}

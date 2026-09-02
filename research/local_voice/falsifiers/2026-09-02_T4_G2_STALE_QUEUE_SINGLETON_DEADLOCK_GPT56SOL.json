@@ -1,0 +1,80 @@
+{
+  "schema": "F2_TRIGGER4_CANDIDATE_FALSIFIER/v1",
+  "trigger": "4",
+  "producer": "GPT-5.6-Sol",
+  "date": "2026-09-02",
+  "research_id": "T4-G2-STALE-QUEUE-SINGLETON-DEADLOCK-2026-09-02",
+  "work_class": "CANDIDATE_FALSIFIER",
+  "boundary": "G2 current promotion-bearing manual S2 workflow -> duplicate-nonterminal-owner guard -> executable owner-VPS PipeWire discriminator",
+  "semantic_key": "0d83f7d13c1d8f91686cf94070f73d901a49018b40a9c058d1949af094655bff",
+  "current_f2_head_observed_before_write": "e17612865a2cbe25ddf88c84fc64e595f0c8af60",
+  "observed_nonterminal_runs": [
+    {
+      "run_id": 33554493024,
+      "head_sha": "6cf8ba3a6ae013083b1013e782d3fff2a373d75b",
+      "event": "push",
+      "status": "queued",
+      "job_status": "queued",
+      "executed_steps_observed": false,
+      "terminal_g2_allowed": false,
+      "reason": "Historical pre-required-repair subject; later G2 evidence-validity and launcher/runtime repairs invalidate it for terminal promotion."
+    },
+    {
+      "run_id": 33554578605,
+      "head_sha": "eea45dbd94738adb92c4d439ea90534062044239",
+      "event": "push",
+      "status": "queued",
+      "executed_steps_observed": false,
+      "terminal_g2_allowed": false,
+      "reason": "Historical analyzer-v2 subject still lacking later terminal H1/H2/H3/H5 and launcher/runtime contract repairs."
+    }
+  ],
+  "current_guard_observation": {
+    "introduced_at": "4d3f37f0bcd1b06a5ff90f24ffa5ccca2eb064bc",
+    "workflow": ".github/workflows/t4-g2-pipewire-monitor-cancel.yml",
+    "behavior": "The guard enumerates every queued and in_progress run of the same workflow and fails if any other run exists, without distinguishing semantically invalidated queued subjects from current/invariant owners.",
+    "risk": "A newly dispatched exact-current G2 subject can fail closed forever on old queued subjects that are already explicitly historical-only, even though required repairs have invalidated them for terminal promotion.",
+    "classification": "COORDINATION_INTEGRATION_BLOCKER_NOT_PRODUCT_NEGATIVE"
+  },
+  "evidence_refs": {
+    "historical_subject_1_run": 33554493024,
+    "historical_subject_2_run": 33554578605,
+    "terminal_repair_synthesis_commit": "f50b72a886cce3a9d54e0b712a2d11374cea4db1",
+    "terminal_h1_h2_h3_h5_repair_commit": "8a9e0c4bb8e8082731fadb16c5ed06dbbab3adb4",
+    "singleton_guard_commit": "4d3f37f0bcd1b06a5ff90f24ffa5ccca2eb064bc",
+    "sandbox_cli_repair_commit": "74df7caa7d3c056909f0046cec68c73d048b3b12",
+    "launcher_v2_contract_repair_commit": "bfb39b1a38363547037ad952ff241738fe2795a9",
+    "current_h4_binding_commit": "e17612865a2cbe25ddf88c84fc64e595f0c8af60"
+  },
+  "failure_taxonomy": {
+    "historical_queued_runs": "UNKNOWN_NONTERMINAL_WITH_RUNTIME_SUBJECT_INVALIDATED_BY_REQUIRED_REPAIR",
+    "guard_deadlock": "INTEGRATION_BLOCKER",
+    "product_negative": false
+  },
+  "preferred_resolution": [
+    "First choice: cancel the two explicitly obsolete queued GitHub Actions runs through the Actions control plane, preserving their historical metadata and zero runtime credit.",
+    "If control-plane cancellation is unavailable, do not weaken the singleton guard to ignore every older SHA. Add a bounded stale-queued exemption that requires explicit semantic invalidation evidence for a queued, never-started predecessor.",
+    "Always continue to block any in_progress predecessor and any queued predecessor whose semantic subject remains invariant/current.",
+    "Regression-test the stale-invalidated, invariant-queued, in-progress, and current-run-self cases before one promotion-bearing dispatch."
+  ],
+  "anti_shortcut": [
+    "different head_sha alone is not proof of semantic invalidation",
+    "queued does not equal executed",
+    "old runtime plus new source must not be composed into current runtime credit",
+    "do not create a second workflow/playback/state/effect authority"
+  ],
+  "explicit_zero_credit": {
+    "runtime_from_this_falsifier": 0,
+    "owner_vps_pipewire_virtual_sink_playback_readback": 0,
+    "bounded_cancellation_to_virtual_audio_monitor_silence": 0,
+    "physical_microphone": 0,
+    "physical_speaker": 0,
+    "human_heard_output": 0,
+    "gwt_jspace": 0,
+    "effect": 0,
+    "training": 0,
+    "whole_voice_e2e": 0,
+    "whole_product": 0
+  },
+  "next_exact_action": "Live G2 mutation owner refreshes main and current run states, cancels runs 33554493024 and 33554578605 if the control plane permits; otherwise implements only the evidence-bound stale-queued exception above. Then run hosted regressions and dispatch exactly one exact-current manual S2 G2 discriminator."
+}

@@ -1,11 +1,16 @@
 name: T4 G2 PipeWire Monitor Cancel S2
 
-# Promotion-bearing runtime is a singleton.  Dispatch only after refreshing the
+# Promotion-bearing runtime is a singleton. Dispatch only after refreshing the
 # current semantic owner and confirming no nonterminal run already owns it.
 on:
   workflow_dispatch:
 
+concurrency:
+  group: t4-g2-pipewire-monitor-cancel-s2
+  cancel-in-progress: false
+
 permissions:
+  actions: read
   contents: read
 
 jobs:
@@ -19,10 +24,101 @@ jobs:
       CLAY_HOST_ADMIN: /usr/local/sbin/clay-host-admin
       CLAY_HOST_ADMIN_SHA256: 064b1b775840aa270a9c61b672db5814d83b403dbf2e26abb270ed3ab103c5f4
       F2_NSPAWN_PREPARE_SHA256: d5dd0f2e9d7d476ae6537d8810b67b5930bab177cce999d364b64fb3bfafc472
-      F2_NSPAWN_RUNNER_SHA256: 50d275e0c96e3d7d476ae6537d8810b67b5930bab177cce999d364b64fb3bfafc472
+      F2_NSPAWN_RUNNER_SHA256: 50d275e0c96e3d7e318918c9e890ce5a5c3e2d32a74b9fe5d0fcd32a729cdf24
     steps:
       - name: Checkout exact workflow subject
         uses: actions/checkout@v4
+
+      - name: Fail closed on duplicate nonterminal G2 runtime owner
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          python3 - <<'PY'
+          import json
+          import os
+          import urllib.request
+
+          repo = os.environ['GITHUB_REPOSITORY']
+          current_run_id = str(os.environ['GITHUB_RUN_ID'])
+          workflow = 't4-g2-pipewire-monitor-cancel.yml'
+          token = os.environ['GH_TOKEN']
+          invalidated_queued = {
+              '33554493024': {
+                  'head_sha': '6cf8ba3a6ae013083b1013e782d3fff2a373d75b',
+                  'event': 'push',
+                  'semantic_key': '0d83f7d13c1d8f91686cf94070f73d901a49018b40a9c058d1949af094655bff',
+              },
+              '33554578605': {
+                  'head_sha': 'eea45dbd94738adb92c4d439ea90534062044239',
+                  'event': 'push',
+                  'semantic_key': '0d83f7d13c1d8f91686cf94070f73d901a49018b40a9c058d1949af094655bff',
+              },
+          }
+
+          def api_json(url):
+              req = urllib.request.Request(
+                  url,
+                  headers={
+                      'Accept': 'application/vnd.github+json',
+                      'Authorization': f'Bearer {token}',
+                      'X-GitHub-Api-Version': '2022-11-28',
+                  },
+              )
+              with urllib.request.urlopen(req, timeout=20) as response:
+                  return json.load(response)
+
+          owners = []
+          exempted = []
+          for status in ('queued', 'in_progress'):
+              url = f'https://api.github.com/repos/{repo}/actions/workflows/{workflow}/runs?status={status}&per_page=100'
+              payload = api_json(url)
+              for run in payload.get('workflow_runs', []):
+                  run_id = str(run.get('id'))
+                  if run_id == current_run_id:
+                      continue
+                  owner = {
+                      'id': run_id,
+                      'status': run.get('status'),
+                      'head_sha': run.get('head_sha'),
+                      'event': run.get('event'),
+                  }
+                  stale = invalidated_queued.get(run_id)
+                  exact_invalidated_subject = (
+                      status == 'queued'
+                      and stale is not None
+                      and run.get('head_sha') == stale['head_sha']
+                      and run.get('event') == stale['event']
+                  )
+                  if exact_invalidated_subject:
+                      jobs_payload = api_json(
+                          f'https://api.github.com/repos/{repo}/actions/runs/{run_id}/jobs?per_page=100'
+                      )
+                      jobs = jobs_payload.get('jobs', [])
+                      never_executed = bool(jobs) and all(
+                          job.get('status') == 'queued'
+                          and job.get('conclusion') is None
+                          and not job.get('steps')
+                          and not job.get('runner_id')
+                          and not job.get('runner_name')
+                          for job in jobs
+                      )
+                      if never_executed:
+                          exempted.append({
+                              **owner,
+                              'reason': 'EXACT_SEMANTICALLY_INVALIDATED_NEVER_EXECUTED_QUEUED_SUBJECT',
+                          })
+                          continue
+                  owners.append(owner)
+
+          if exempted:
+              print('T4_G2_STALE_INVALIDATED_QUEUED_EXEMPTION=' + json.dumps(exempted, sort_keys=True))
+          if owners:
+              print('T4_G2_DUPLICATE_NONTERMINAL_OWNER=' + json.dumps(owners, sort_keys=True))
+              raise SystemExit(3)
+          print('T4_G2_SINGLETON_OWNER=PASS')
+          PY
 
       - name: Verify exact VPS runner and S2 ABI
         shell: bash
@@ -51,8 +147,13 @@ jobs:
           git rev-parse HEAD
           sha256sum \
             src/frankenstein2/voice_packet_cortex.py \
+            trigger4/tools/local_voice/g2_pipewire_evidence.py \
             trigger4/tools/local_voice/g2_pipewire_s2_runtime.py \
+            trigger4/tools/local_voice/g2_pipewire_observer.py \
+            trigger4/tools/local_voice/g2_required_observables_guard.py \
             trigger4/tools/local_voice/run_g2_pipewire_s2.sh \
+            research/local_voice/tools/t7_pipewire_g2_h4_guard.py \
+            research/local_voice/tools/t7_pipewire_g2_h4_guard_cli.py \
             research/local_voice/tools/t7_pipewire_monitor_cancel_analyze.py \
             research/local_voice/benchmarks/2026-09-02_TRIGGER7_COMPLETION_DEPTH_G2.json
 
@@ -68,7 +169,7 @@ jobs:
           set -Eeuo pipefail
           set +e
           sudo -n "$CLAY_HOST_ADMIN" sandbox run "$PWD/tools/vps_sandbox/run_ubuntu_sandbox.sh" \
-            --backend nspawn --network on --source-root "$PWD" -- \
+            --backend nspawn --network on -- \
             /bin/bash -lc '
               set -u
               export F2_SUBJECT_SHA="$1"
@@ -89,38 +190,99 @@ jobs:
           python3 - <<'PY'
           import base64, json, os, pathlib, re
 
+          semantic_key = '0d83f7d13c1d8f91686cf94070f73d901a49018b40a9c058d1949af094655bff'
           sandbox_path = pathlib.Path('/tmp/t4-g2-pipewire-sandbox.txt')
           preflight_path = pathlib.Path('/tmp/t4-g2-pipewire-preflight.txt')
           sandbox = sandbox_path.read_text(errors='replace') if sandbox_path.exists() else ''
           preflight = preflight_path.read_text(errors='replace') if preflight_path.exists() else ''
 
-          marker = re.search(r'^T4_G2_PIPEWIRE_RECEIPT_B64=([A-Za-z0-9+/=]+)$', sandbox, re.MULTILINE)
+          markers = re.findall(r'^T4_G2_PIPEWIRE_RECEIPT_B64=([A-Za-z0-9+/=]+)$', sandbox, re.MULTILINE)
+          receipt_marker_singleton_ok = len(markers) == 1
           harness = None
-          if marker:
+          if markers:
               try:
-                  harness = json.loads(base64.b64decode(marker.group(1)).decode('utf-8'))
+                  harness = json.loads(base64.b64decode(markers[-1]).decode('utf-8'))
               except Exception:
                   harness = None
           call_match = re.search(r'^SANDBOX_CALL_EXIT=(\d+)$', sandbox, re.MULTILINE)
           launcher_match = re.search(r'^G2_LAUNCHER_EXIT=(\d+)$', sandbox, re.MULTILINE)
+          call_exit = int(call_match.group(1)) if call_match else None
+          launcher_exit = int(launcher_match.group(1)) if launcher_match else None
+          exit_evidence_ok = call_exit == 0 and launcher_exit == 0
           sandbox_pass = 'F2_SANDBOX_RESULT=PASS' in sandbox
-          harness_pass = isinstance(harness, dict) and harness.get('result') == 'NO_COUNTEREXAMPLE'
-          exact_subject = isinstance(harness, dict) and harness.get('f2_subject_sha') == os.environ.get('GITHUB_SHA')
-          complete = bool(sandbox_pass and harness_pass and exact_subject)
+          harness_shape = (
+              isinstance(harness, dict)
+              and harness.get('schema') == 'T4_G2_PIPEWIRE_S2_PLAYBACK_CANCEL_MONITOR/v2'
+              and harness.get('semantic_key') == semantic_key
+          )
+          guard = harness.get('canonical_required_observables_guard') if harness_shape else None
+          guard_complete = bool(
+              isinstance(guard, dict)
+              and guard.get('complete') is True
+              and guard.get('missing') == []
+              and isinstance(harness.get('required_observables'), dict)
+              and bool(harness.get('required_observables'))
+          )
+          harness_result_pass = harness_shape and harness.get('result') == 'NO_COUNTEREXAMPLE'
+          harness_pass = bool(harness_result_pass and guard_complete and receipt_marker_singleton_ok)
+          exact_subject = harness_shape and harness.get('f2_subject_sha') == os.environ.get('GITHUB_SHA')
+          complete = bool(sandbox_pass and harness_pass and exact_subject and exit_evidence_ok and guard_complete and receipt_marker_singleton_ok)
 
           if complete:
               failure_class = None
-              classification = 'ACCEPT_AT_BOUNDED_S2_OWNER_VPS_PIPEWIRE_VIRTUAL_MONITOR_SCOPE_ONLY'
+              classification = harness.get('classification')
+              measured_credit = dict(harness.get('measured_credit') or {})
+          elif not receipt_marker_singleton_ok:
+              failure_class = 'EVIDENCE_INVALID'
+              classification = f'RECEIPT_MARKER_COUNT_NOT_SINGLETON:{len(markers)}'
+              measured_credit = {key: 0 for key in (harness.get('measured_credit') or {})} if isinstance(harness, dict) else {}
+          elif harness_result_pass and exact_subject and not guard_complete:
+              failure_class = 'EVIDENCE_INVALID'
+              classification = 'EVIDENCE_INVALID_CANONICAL_REQUIRED_OBSERVABLE_GUARD_INCOMPLETE'
+              measured_credit = {key: 0 for key in (harness.get('measured_credit') or {})}
+          elif harness_result_pass and exact_subject and not exit_evidence_ok:
+              failure_class = 'EVIDENCE_INVALID'
+              classification = 'EXECUTION_EXIT_EVIDENCE_NONZERO_OR_MISSING'
+              measured_credit = {key: 0 for key in (harness.get('measured_credit') or {})}
           elif isinstance(harness, dict):
               failure_class = harness.get('failure_class') or 'UNKNOWN_NONTERMINAL'
               classification = harness.get('classification') or 'HARNESS_NONPASS'
+              measured_credit = {key: 0 for key in (harness.get('measured_credit') or {})}
           else:
               failure_class = 'INFRA_AUTH_TRANSPORT_QUOTA'
               classification = 'S2_EXECUTION_OR_RECEIPT_NOT_OBSERVED'
+              measured_credit = {
+                  'owner_vps_pipewire_virtual_sink_playback_readback': 0,
+                  'bounded_test_driver_cancel_translation_to_virtual_audio_monitor_silence': 0,
+                  'replacement_generation_positive_virtual_monitor_readback': 0,
+                  'exact_packet_audio_tts_binding': 0,
+                  'exact_pipewire_object_identity_and_cleanup': 0,
+              }
+
+          explicit_zero = {
+              'physical_microphone': 0,
+              'physical_speaker': 0,
+              'human_heard_output': 0,
+              'physical_presence': 0,
+              'cancellation_to_physical_silence': 0,
+              'autonomous_production_playback_executor': 0,
+              'producer_tts_generation_cancel': 0,
+              'true_streaming_partial_asr': 0,
+              'canonical_durable_state_reentry': 0,
+              'gwt_jspace': 0,
+              'effect': 0,
+              'training': 0,
+              'whole_voice_e2e': 0,
+              'whole_product': 0,
+          }
+          if isinstance(harness, dict):
+              for key, value in (harness.get('explicit_zero_credit') or {}).items():
+                  if value == 0:
+                      explicit_zero[key] = 0
 
           receipt = {
-              'schema': 'T4_G2_PIPEWIRE_S2_WORKFLOW_RECEIPT/v1',
-              'semantic_key': '0d83f7d13c1d8f91686cf94070f73d901a49018b40a9c058d1949af094655bff',
+              'schema': 'T4_G2_PIPEWIRE_S2_WORKFLOW_RECEIPT/v2',
+              'semantic_key': semantic_key,
               'trigger': '4',
               'work_class': 'RUNTIME_CREDIT_CLOSURE',
               'github': {
@@ -136,31 +298,21 @@ jobs:
                   'network_during_setup_and_local_runtime': 'on_separate_veth',
                   'host_survival_observed': 'host_survival_sentinel=PASS' in sandbox,
                   'runner_reported_pass': sandbox_pass,
-                  'sandbox_call_exit': int(call_match.group(1)) if call_match else None,
-                  'launcher_exit': int(launcher_match.group(1)) if launcher_match else None,
+                  'sandbox_call_exit': call_exit,
+                  'launcher_exit': launcher_exit,
+                  'exit_evidence_ok': exit_evidence_ok,
+              },
+              'terminal_receipt_evidence': {
+                  'receipt_marker_count': len(markers),
+                  'receipt_marker_singleton_ok': receipt_marker_singleton_ok,
+                  'canonical_required_observables_guard_complete': guard_complete,
               },
               'harness_receipt': harness,
               'result': 'NO_COUNTEREXAMPLE' if complete else 'NOT_ACCEPTED',
               'failure_class': failure_class,
               'classification': classification,
-              'measured_credit': {
-                  'owner_vps_pipewire_virtual_sink_playback_readback': 1 if complete else 0,
-                  'bounded_cancellation_to_virtual_audio_monitor_silence': 1 if complete else 0,
-              },
-              'explicit_zero_credit': {
-                  'physical_microphone': 0,
-                  'physical_speaker': 0,
-                  'human_heard_output': 0,
-                  'physical_presence': 0,
-                  'cancellation_to_physical_silence': 0,
-                  'true_streaming_partial_asr': 0,
-                  'canonical_durable_state_reentry': 0,
-                  'gwt_jspace': 0,
-                  'effect': 0,
-                  'training': 0,
-                  'whole_voice_e2e': 0,
-                  'whole_product': 0,
-              },
+              'measured_credit': measured_credit,
+              'explicit_zero_credit': explicit_zero,
               'preflight_sha256': __import__('hashlib').sha256(preflight.encode()).hexdigest(),
               'sandbox_log_sha256': __import__('hashlib').sha256(sandbox.encode()).hexdigest(),
           }
@@ -176,12 +328,17 @@ jobs:
         run: |
           set -Eeuo pipefail
           python3 - <<'PY'
-          import json, pathlib, sys
+          import json, pathlib
           path = pathlib.Path('/tmp/t4-g2-pipewire-workflow-receipt.json')
           if not path.exists():
               raise SystemExit(2)
           receipt = json.loads(path.read_text())
-          if receipt.get('result') != 'NO_COUNTEREXAMPLE':
+          terminal = receipt.get('terminal_receipt_evidence') or {}
+          if (
+              receipt.get('result') != 'NO_COUNTEREXAMPLE'
+              or terminal.get('receipt_marker_singleton_ok') is not True
+              or terminal.get('canonical_required_observables_guard_complete') is not True
+          ):
               print(json.dumps(receipt, sort_keys=True))
               raise SystemExit(2)
           PY

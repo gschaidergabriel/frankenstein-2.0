@@ -65,7 +65,7 @@ jobs:
             tests.test_whole_loop_persistence_integration \
             tests.test_restart_recovery_persisted_row_attestation
 
-      - name: Exercise accepted WP900 G4 causal-readback regressions
+      - name: Exercise accepted WP900 G4/G5 causal-readback and runtime-bound whole-loop regressions
         shell: bash
         run: |
           set -euo pipefail
@@ -75,7 +75,18 @@ jobs:
             tests/test_gwt_causal_runtime_readback_context_gate.py \
             tests/test_gwt_runtime_witness.py \
             tests/test_gwt_uptake.py \
-            tests/test_gwt_reentry_uptake_binding.py
+            tests/test_gwt_reentry_uptake_binding.py \
+            tests/test_wp900_g5_runtime_bound_whole_loop.py
+
+      - name: Exercise accepted WP900 G6/G7 and candidate G8 reentry-observation regressions
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pytest -q \
+            tests/test_wp900_g6_semantic_runtime_readback.py \
+            tests/test_wp900_g7_shared_outcome_readback.py \
+            tests/test_wp900_g8_reentry_observation_window.py \
+            tests/test_wp900_g8_causal_admission_fence.py
 
       - name: Build candidate twice from exact Git tree through WP1112
         shell: bash
