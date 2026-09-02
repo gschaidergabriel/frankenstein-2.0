@@ -214,6 +214,62 @@ print(json.dumps(payload, sort_keys=True))
 '''
 
 
+PROCESS_B_FRESH_WP901_REJECT_STALE_ANCESTOR = r'''
+import json
+import os
+from pathlib import Path
+import subprocess
+import sys
+
+from frankenstein2.persistent_agency_kernel import CanonicalPersistentAgencyStore
+from frankenstein2.restart_recovery_persisted_row_attestation import (
+    PersistedRowLoadAttestationError,
+    attest_persisted_checkpoint_load,
+)
+from state.unifieddb_identity import fingerprint_unifieddb, resolve_unifieddb_path
+
+
+db = Path(sys.argv[1])
+home = Path(sys.argv[2])
+expected = json.loads(sys.argv[3])
+resolution = resolve_unifieddb_path(env={"FRANKENSTEIN2_DB": str(db)}, home=home)
+fingerprint = fingerprint_unifieddb(resolution.path)
+store = CanonicalPersistentAgencyStore.open(resolution=resolution, fingerprint=fingerprint)
+current_head = subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip()
+assert current_head == expected["source_head"]
+assert os.path.realpath(expected["canonical_db_path"]) == store.canonical_db_path
+assert expected["db_device"] == store.db_device
+assert expected["db_inode"] == store.db_inode
+assert expected["authority_receipt_sha256"] == store.authority_receipt_sha256
+try:
+    attest_persisted_checkpoint_load(
+        store,
+        checkpoint_id=expected["current_checkpoint_id"],
+    )
+except PersistedRowLoadAttestationError as exc:
+    assert str(exc) == "PERSISTED_ROW_ROLLBACK_ANCESTOR_NOT_LATEST_LINEAGE_HEAD", str(exc)
+else:
+    raise AssertionError("WP901 G6 accepted stale ancestor after committed successor survived crash")
+
+successor = store.load_checkpoint(expected["next_checkpoint_id"])
+lineage_head = store.latest_checkpoint(successor.kernel_state_id)
+assert lineage_head.checkpoint_id == expected["next_checkpoint_id"]
+assert lineage_head.sha256() == expected["next_checkpoint_sha256"]
+payload = {
+    "source_head": current_head,
+    "stale_checkpoint_id": expected["current_checkpoint_id"],
+    "lineage_head_checkpoint_id": lineage_head.checkpoint_id,
+    "lineage_head_checkpoint_sha256": lineage_head.sha256(),
+    "classification": "STALE_ANCESTOR_REJECTED_AFTER_POST_COMMIT_PRE_READBACK_CRASH",
+    "target_host_execution": "NOT_OBSERVED",
+    "runtime_credit": 0,
+    "whole_system_acceptance": False,
+}
+store.close()
+print(json.dumps(payload, sort_keys=True))
+'''
+
+
 class WP900WP206TwoProcessRestartTests(unittest.TestCase):
     def setUp(self) -> None:
         self._tmp = tempfile.TemporaryDirectory()
@@ -306,6 +362,47 @@ class WP900WP206TwoProcessRestartTests(unittest.TestCase):
         self.assertEqual(observed["previous_checkpoint_id"], expected["current_checkpoint_id"])
         self.assertEqual(observed["runtime_credit"], 0)
         self.assertFalse(observed["whole_system_acceptance"])
+
+    def test_post_commit_crash_fresh_process_rejects_stale_ancestor_and_accepts_head(self) -> None:
+        metadata_path = self.root / "crash-stale-head-metadata.json"
+        self._run(
+            PROCESS_A_CRASH_AFTER_COMMIT,
+            self.db,
+            self.home,
+            metadata_path,
+            expected_returncode=23,
+        )
+        self.assertTrue(metadata_path.is_file())
+        expected = json.loads(metadata_path.read_text(encoding="utf-8"))
+
+        stale_consumer = self._run(
+            PROCESS_B_FRESH_WP901_REJECT_STALE_ANCESTOR,
+            self.db,
+            self.home,
+            json.dumps(expected, sort_keys=True),
+        )
+        stale = self._json_stdout(stale_consumer)
+        self.assertEqual(stale["stale_checkpoint_id"], expected["current_checkpoint_id"])
+        self.assertEqual(stale["lineage_head_checkpoint_id"], expected["next_checkpoint_id"])
+        self.assertEqual(stale["lineage_head_checkpoint_sha256"], expected["next_checkpoint_sha256"])
+        self.assertEqual(
+            stale["classification"],
+            "STALE_ANCESTOR_REJECTED_AFTER_POST_COMMIT_PRE_READBACK_CRASH",
+        )
+        self.assertEqual(stale["runtime_credit"], 0)
+        self.assertFalse(stale["whole_system_acceptance"])
+
+        head_consumer = self._run(
+            PROCESS_B_FRESH_WP901_LOAD,
+            self.db,
+            self.home,
+            json.dumps(expected, sort_keys=True),
+        )
+        head = self._json_stdout(head_consumer)
+        self.assertEqual(head["checkpoint_id"], expected["next_checkpoint_id"])
+        self.assertEqual(head["checkpoint_sha256"], expected["next_checkpoint_sha256"])
+        self.assertEqual(head["runtime_credit"], 0)
+        self.assertFalse(head["whole_system_acceptance"])
 
 
 if __name__ == "__main__":
