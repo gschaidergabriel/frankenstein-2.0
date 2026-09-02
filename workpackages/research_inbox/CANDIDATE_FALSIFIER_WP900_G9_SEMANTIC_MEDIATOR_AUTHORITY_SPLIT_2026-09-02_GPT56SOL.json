@@ -1,0 +1,39 @@
+{
+  "schema": "FRANKENSTEIN2_CANDIDATE_FALSIFIER/v1",
+  "workpackage_id": "F2-WP-900",
+  "generation": 9,
+  "claim_id": "F2-WP-900-G9-GPT56SOL-SEMANTIC-CONTENT-CAUSALITY-20260902",
+  "reviewer": "GPT-5.6-Sol-ARCHITECT",
+  "classification": "EVIDENCE_SCOPE_OVERPROMOTION",
+  "title": "G9 same-run source readback does not yet own the per-trial semantic payload transport",
+  "evidence": {
+    "controller_run_id": 33622364637,
+    "controller_job_id": 100222083233,
+    "controller_evidence_commit": "1ecfae47836e18419fc18f8b5fbb92992909d6e8",
+    "controller_receipt_path": "runtime/trigger4/wp900_g9_no_bypass_semantic/6ddd0c04c3d3dd8afe8f62b927db2858cb4ffb17.json",
+    "controller_receipt_sha256": "0a6f91d4fb615a907dae764e5f11fbfe6731a7d22281b36c7ba8bfb6a5478452",
+    "controller_credit_candidate": {
+      "target_environment_component_runtime_credit": 1,
+      "g9_no_bypass_semantic_target_runtime_candidate_credit": 1,
+      "current_subject_independent_source_readback_credit": 1,
+      "semantic_gwt_runtime_credit_candidate": 1,
+      "semantic_gwt_runtime_credit": 0
+    },
+    "overpromoting_f2_receipt": "workpackages/receipts/F2-WP-900_G9_NO_BYPASS_SEMANTIC_TARGET_RUNTIME_33622364637.json",
+    "overpromoting_f2_reconciliation": "workpackages/reconciliations/F2-WP-900/9-F2-WP-900-G9-GPT56SOL-NO-BYPASS-SEMANTIC-TARGET-RUNTIME-RECONCILIATION-20260902.json",
+    "overpromoting_f2_delta": "workpackages/deltas/F2-WP-900/9-F2-WP-900-G9-GPT56SOL-NO-BYPASS-SEMANTIC-TARGET-RUNTIME-CLOSURE-20260902.json"
+  },
+  "counterexample": "In the target probe, each semantic trial process receives the raw semantic payload bytes, constructs the CellUptakeReceipt with downstream_sha256=sha256(payload), constructs/seals its runtime witness, and then calls ReentryDerivedSemanticState.observe with semantic_payload=payload. The separate current-subject independent source/readback discriminator runs afterward in distinct source/observer processes, but it does not carry or independently attest the exact per-trial semantic payload bytes consumed by those four semantic trials. Co-execution in one workflow therefore does not establish that the independent source authority mediated the semantic treatment.",
+  "scope_consequence": "Run 33622364637 is real target execution and supports target-environment component runtime, the no-bypass semantic target-runtime candidate, and same-subject independent source-readback credit. It does not yet support semantic_gwt_runtime_credit=1. The raw controller receipt itself correctly records semantic_gwt_runtime_credit_candidate=1 and semantic_gwt_runtime_credit=0.",
+  "repair_class": "EVIDENCE_RECONCILIATION_ONLY_NO_G9_SEMANTIC_MUTATION",
+  "required_next_discriminator": "Independently own/source and read back the exact per-trial semantic slot bytes through the GWT/reentry transport. The trial/behavioral process must not receive raw semantic payload, payload digest, arm/class/trial label, or caller-built uptake metadata; it may consume only independently recovered reentry semantic state. Include sham/bypass hard negatives and fresh process isolation.",
+  "higher_credit_fence": {
+    "semantic_gwt_runtime_credit": 0,
+    "jspace_runtime_credit": 0,
+    "physical_grid10_credit": 0,
+    "effect_credit": 0,
+    "training_credit": 0,
+    "completion_credit": 0,
+    "whole_system_acceptance": false
+  }
+}
