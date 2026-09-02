@@ -50,6 +50,16 @@ jobs:
           python -m unittest discover -s tests -p 'test_host_transition.py' -v
           python -m unittest discover -s tests -p 'test_trigger4_fdx_audio_delivery_evidence.py' -v
 
+      - name: Exercise canonical WP101-WP105 causal and structured receipt spine
+        shell: bash
+        run: |
+          set -euo pipefail
+          python tests/test_causal_identity.py
+          python tests/test_causal_authority_binding.py
+          python tests/test_structured_execution_receipt.py
+          python tests/test_execution_completion.py
+          python tests/test_effect_invocation_correlation.py
+
       - name: Exercise canonical effect-authority bridge before release construction
         shell: bash
         run: |
