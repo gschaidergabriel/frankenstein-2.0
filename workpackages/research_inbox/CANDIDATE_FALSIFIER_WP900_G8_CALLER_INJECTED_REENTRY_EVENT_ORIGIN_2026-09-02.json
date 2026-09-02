@@ -1,0 +1,61 @@
+{
+  "schema": "FRANKENSTEIN2_RESEARCH_INBOX/v1",
+  "status": "CANDIDATE_FALSIFIER",
+  "mutation_authority": false,
+  "trigger": "4",
+  "created_at_utc": "2026-09-02T00:27:30Z",
+  "title": "WP900 G8 condition-blind observer still permits caller-injected reentry tautology",
+  "observed_current_main_before_packet": "70b40bcb2ae5e671d7f3c4ae6daaf8d4dd1306c0",
+  "active_claim": "F2-WP-900-G8-GPT56SOL-INDEPENDENT-REENTRY-EVIDENCE-20260902",
+  "work_class": "CANDIDATE_FALSIFIER",
+  "target_boundary": "fresh symmetric condition-blind reentry observation ABI -> matched mechanism comparison -> later exact target execution",
+  "evidence_refs": [
+    "src/frankenstein2/gwt_reentry_observation_window.py@70b40bcb2ae5e671d7f3c4ae6daaf8d4dd1306c0",
+    "tests/test_wp900_g8_reentry_observation_window.py@70b40bcb2ae5e671d7f3c4ae6daaf8d4dd1306c0",
+    "research/gwt/falsifiers/2026-09-02_T4_WP900_G8_REENTRY_SEMANTIC_TAUTOLOGY_FENCE_GPT56SOL.json"
+  ],
+  "finding": {
+    "source_behavior": "ReentryObservationWindowRecorder.observe_reentry accepts only caller-supplied reentry_ref and reentry_sha256 and unconditionally appends a REENTRY event. The recorder does not verify event-factory origin, producer identity, membership in an independently observed event stream, causal parent/opportunity binding, or a task/runtime event identity before setting the eventual receipt status to REENTRY_OBSERVED.",
+    "test_behavior": "test_g8_injected_reentry_cannot_false_green_as_control_absence proves that an injected call changes the receipt to REENTRY_OBSERVED, but it does not prevent a caller from making that call conditionally for only one experimental arm. The public observer ABI is condition-blind, while the caller can still remain condition-aware.",
+    "scope": "This does not falsify the repository implementation as a generic event recorder. It falsifies using the current recorder output alone as independent/non-circular reentry evidence unless the event source that invokes observe_reentry is itself independently bound and condition-blind."
+  },
+  "counterexample": {
+    "setup": "Run two otherwise matched windows with identical source/input/pre-state/executor/opportunity identities. Let orchestration know the arm condition. In the intervention arm only, call observe_reentry(reentry_ref='reentry:observed', reentry_sha256=<valid-looking digest>) without any independently observed downstream reentry event. Close both windows normally.",
+    "observed_current_result": "The intervention receipt becomes REENTRY_OBSERVED and the control receipt becomes NO_REENTRY_OBSERVED_IN_COMPLETE_WINDOW. bind_matched_reentry_mechanism therefore returns MECHANISM_REENTRY_DIFFERENCE_CANDIDATE even though the difference was supplied by the condition-aware caller rather than independently observed from runtime behavior.",
+    "false_green_class": "CALLER_INJECTED_MECHANISM_DIFFERENCE",
+    "failure_class_if_promoted": "EVIDENCE_INVALID"
+  },
+  "required_closure": {
+    "preferred_architecture": "Do not create a second truth or event authority. Bind G8 to an existing typed/runtime event source or existing GwtRuntimeWitness-style recorder/factory whose event origin is independently validated. The condition-blind observation component should consume or validate an event object/source membership; a condition-aware caller must not be able to mint a valid matching reentry merely by invoking observe_reentry with arbitrary strings.",
+    "minimum_event_binding": [
+      "factory/recorder origin or equivalent non-forgeable-in-protocol provenance",
+      "exact source/runtime/boot/execution-context identity",
+      "producer/process identity",
+      "task/downstream identity",
+      "observation-window/opportunity causal binding",
+      "event digest over canonical payload rather than an arbitrary caller-provided digest",
+      "evidence that the event was received from the bound event source inside the open window"
+    ],
+    "required_regressions": [
+      "A condition-aware caller that directly invokes the public reentry-recording method for only one arm must not be sufficient to produce an admissible matched mechanism difference.",
+      "A syntactically valid reentry_ref/reentry_sha256 pair with no valid event-factory/source membership must fail closed.",
+      "A reentry event from a different task, producer, runtime instance, opportunity or observation window must fail closed even if its digest is valid.",
+      "An unexpected genuine control-side reentry from the same independently bound source must remain REENTRY_OBSERVED and prevent a false control-absence claim.",
+      "Incomplete event-source/readback evidence must classify UNKNOWN/EVIDENCE_INVALID rather than NO_REENTRY_OBSERVED."
+    ]
+  },
+  "anti_duplication": "This packet is REVIEW_ONLY/CANDIDATE_FALSIFIER. It does not mutate WP900 G8 owned source, tests, workflow, active pointer, receipts or reconciliation. Current G8 mutation owner should absorb or reject it against executable evidence.",
+  "credit_policy": {
+    "repository_credit_from_this_packet": 0,
+    "target_runtime_credit": 0,
+    "gwt_runtime_credit": 0,
+    "semantic_gwt_runtime_credit": 0,
+    "jspace_runtime_credit": 0,
+    "physical_grid10_credit": 0,
+    "effect_credit": 0,
+    "training_credit": 0,
+    "completion_credit": 0,
+    "whole_system_acceptance": false
+  },
+  "next_exact_action": "WP900 G8 mutation owner should add an independently bound event-source/origin fence and the caller-injection hard negative before repository acceptance. If the current design already binds observe_reentry to such a source outside this module, cite and regress that exact path instead of adding new authority. After repository closure, bind at most one exact G8 owner-VPS runtime subject."
+}
