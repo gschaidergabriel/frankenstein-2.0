@@ -185,6 +185,22 @@ class CanonicalDeliveryStore:
     def close(self) -> None:
         self.connection.close()
 
+    def _assert_live_unifieddb_identity(self) -> None:
+        """Fail closed if the authorized path no longer resolves to the opened DB inode."""
+        if not _same_real_path(self.resolution.path, self.fingerprint.real_path):
+            raise DeliveryStoreError("UNIFIEDDB_LIVE_RESOLUTION_PATH_DRIFT")
+        try:
+            current_stat = Path(self.canonical_db_path).stat()
+        except OSError as exc:
+            raise DeliveryStoreError("UNIFIEDDB_LIVE_FILE_MISSING") from exc
+        if self.fingerprint.device is None or self.fingerprint.inode is None:
+            raise DeliveryStoreError("UNIFIEDDB_FINGERPRINT_FILE_IDENTITY_MISSING")
+        if (current_stat.st_dev, current_stat.st_ino) != (
+            self.fingerprint.device,
+            self.fingerprint.inode,
+        ):
+            raise DeliveryStoreError("UNIFIEDDB_LIVE_FILE_IDENTITY_DRIFT")
+
     def initialize_schema(self) -> None:
         """Create WP-103 tables only inside the selected canonical UnifiedDB."""
         if self.connection.in_transaction:
@@ -222,10 +238,14 @@ class CanonicalDeliveryStore:
                   ON {TRANSITION_TABLE}(delivery_id)""",
         )
         try:
+            self._assert_live_unifieddb_identity()
             self.connection.execute("BEGIN IMMEDIATE")
+            self._assert_live_unifieddb_identity()
             for statement in statements:
                 self.connection.execute(statement)
+            self._assert_live_unifieddb_identity()
             self.connection.commit()
+            self._assert_live_unifieddb_identity()
         except Exception:
             self.connection.rollback()
             raise
@@ -306,7 +326,9 @@ class CanonicalDeliveryStore:
             raise DeliveryStoreError("CALLER_TRANSACTION_ALREADY_OPEN")
 
         try:
+            self._assert_live_unifieddb_identity()
             self.connection.execute("BEGIN IMMEDIATE")
+            self._assert_live_unifieddb_identity()
             row = self._select_delivery(transition.delivery_id)
             if row is None:
                 expected_delivery_id = derive_delivery_id(
@@ -369,7 +391,9 @@ class CanonicalDeliveryStore:
                     raise DeliveryStoreError(
                         "TRANSITION_ID_REUSED_WITH_CHANGED_CAUSAL_IDENTITY"
                     )
+                self._assert_live_unifieddb_identity()
                 self.connection.commit()
+                self._assert_live_unifieddb_identity()
                 current = self._select_delivery(transition.delivery_id)
                 if current is None:
                     raise DeliveryStoreError("TRANSITION_EXISTS_WITHOUT_DELIVERY")
@@ -414,7 +438,9 @@ class CanonicalDeliveryStore:
                     next_revision,
                 ),
             )
+            self._assert_live_unifieddb_identity()
             self.connection.commit()
+            self._assert_live_unifieddb_identity()
             return updated
         except Exception:
             self.connection.rollback()
