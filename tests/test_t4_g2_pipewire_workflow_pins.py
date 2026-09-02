@@ -6,8 +6,10 @@ import unittest
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 WORKFLOW = ROOT / ".github/workflows/t4-g2-pipewire-monitor-cancel.yml"
-RUNNER = ROOT / "tools/vps_sandbox/run_ubuntu_sandbox.sh"
-PIN_NAME = "F2_NSPAWN_RUNNER_SHA256"
+PREPARE = ROOT / "tools" / "vps_sandbox" / "host_prepare_ubuntu_nspawn.sh"
+RUNNER = ROOT / "tools" / "vps_sandbox" / "run_ubuntu_sandbox.sh"
+PREPARE_PIN_NAME = "F2_NSPAWN_PREPARE_SHA256"
+RUNNER_PIN_NAME = "F2_NSPAWN_RUNNER_SHA256"
 CONCURRENCY_GROUP = "t4-g2-pipewire-monitor-cancel-s2"
 
 
@@ -15,22 +17,27 @@ def workflow_text() -> str:
     return WORKFLOW.read_text(encoding="utf-8")
 
 
-def workflow_pin() -> str:
+def workflow_pin(name: str) -> str:
     text = workflow_text()
-    match = re.search(rf"^\s*{PIN_NAME}:\s*([0-9a-f]+)\s*$", text, re.MULTILINE)
+    match = re.search(rf"^\s*{name}:\s*([0-9a-f]+)\s*$", text, re.MULTILINE)
     if not match:
-        raise AssertionError(f"missing {PIN_NAME} in {WORKFLOW}")
+        raise AssertionError(f"missing {name} in {WORKFLOW}")
     return match.group(1)
 
 
 class Trigger4G2PipeWireWorkflowPinTests(unittest.TestCase):
-    def test_runner_pin_is_sha256_hex(self) -> None:
-        pin = workflow_pin()
-        self.assertRegex(pin, r"^[0-9a-f]{64}$")
+    def test_sandbox_pins_are_sha256_hex(self) -> None:
+        for name in (PREPARE_PIN_NAME, RUNNER_PIN_NAME):
+            with self.subTest(name=name):
+                self.assertRegex(workflow_pin(name), r"^[0-9a-f]{64}$")
+
+    def test_prepare_pin_matches_current_repository_bytes(self) -> None:
+        expected = hashlib.sha256(PREPARE.read_bytes()).hexdigest()
+        self.assertEqual(workflow_pin(PREPARE_PIN_NAME), expected)
 
     def test_runner_pin_matches_current_repository_bytes(self) -> None:
         expected = hashlib.sha256(RUNNER.read_bytes()).hexdigest()
-        self.assertEqual(workflow_pin(), expected)
+        self.assertEqual(workflow_pin(RUNNER_PIN_NAME), expected)
 
     def test_runtime_workflow_is_manual_only(self) -> None:
         text = workflow_text()
