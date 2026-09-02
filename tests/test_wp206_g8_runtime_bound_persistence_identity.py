@@ -4,6 +4,7 @@ This canonical successor closes the repository-integration gap reproduced by REV
 PR #894/#940: the historical seal-only adapter cannot distinguish valid G5 runtime
 subjects that share one deterministic whole-loop seal. Repository execution here mints
 no target-runtime, semantic GWT/J-Space, effect, training, completion, or whole-system credit.
+This file is also the fresh-main PR synchronization discriminator for the exact G8 port.
 """
 from __future__ import annotations
 
