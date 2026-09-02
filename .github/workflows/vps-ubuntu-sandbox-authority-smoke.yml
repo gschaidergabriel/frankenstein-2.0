@@ -20,7 +20,7 @@ jobs:
     timeout-minutes: 35
     env:
       F2_SANDBOX_ROOT: /var/tmp/frankenstein2-sandboxes
-      F2_NSPAWN_BASE_ROOT: /var/lib/frankenstein2-sandbox-images/ubuntu-24.04-base
+      F2_NSPAWN_BASE_ROOT: /var/lib/frankenstein2-sandbox-images/ubuntu-24.04-base-v2
       F2_SANDBOX_MIN_FREE_KIB: '5242880'
       F2_SANDBOX_MIN_MEM_KIB: '1048576'
     steps:
@@ -48,14 +48,24 @@ jobs:
           bash -n tools/vps_sandbox/preflight.sh
           bash -n tools/vps_sandbox/host_prepare_ubuntu_nspawn.sh
           bash -n tools/vps_sandbox/run_ubuntu_sandbox.sh
+          grep -q 'F2_VPS_SANDBOX_BASE/v2' tools/vps_sandbox/host_prepare_ubuntu_nspawn.sh
+          grep -q 'python3' tools/vps_sandbox/host_prepare_ubuntu_nspawn.sh
+          grep -q 'git' tools/vps_sandbox/host_prepare_ubuntu_nspawn.sh
+          grep -q -- '--boot-systemd' tools/vps_sandbox/run_ubuntu_sandbox.sh
           grep -q 'VPS SANDBOX FIRST' WORKER_PROTOCOL.md
           grep -q 'PHYSICAL_LOCAL_ONLY' workpackages/VPS_SANDBOX_EXECUTION_AUTHORITY.md
 
-      - name: Prepare reusable Ubuntu 24.04 nspawn base
+      - name: Prepare capability-bound Ubuntu 24.04 nspawn base v2
         shell: bash
         run: |
           set -Eeuo pipefail
-          bash tools/vps_sandbox/host_prepare_ubuntu_nspawn.sh
+          bash tools/vps_sandbox/host_prepare_ubuntu_nspawn.sh | tee /tmp/f2-nspawn-prepare.txt
+          test -f "$F2_NSPAWN_BASE_ROOT/.f2-sandbox-base.json"
+          grep -q '"schema":"F2_VPS_SANDBOX_BASE/v2"' "$F2_NSPAWN_BASE_ROOT/.f2-sandbox-base.json"
+          grep -q '"suite":"noble"' "$F2_NSPAWN_BASE_ROOT/.f2-sandbox-base.json"
+          test -x "$F2_NSPAWN_BASE_ROOT/usr/bin/python3"
+          test -x "$F2_NSPAWN_BASE_ROOT/usr/bin/git"
+          test -x "$F2_NSPAWN_BASE_ROOT/usr/bin/curl"
 
       - name: Host-health and isolation preflight
         shell: bash
@@ -63,7 +73,7 @@ jobs:
           set -Eeuo pipefail
           bash tools/vps_sandbox/preflight.sh | tee /tmp/f2-sandbox-preflight.txt
 
-      - name: Destructive-in-sandbox Ubuntu smoke
+      - name: Destructive-in-sandbox Ubuntu capability smoke
         shell: bash
         run: |
           set -Eeuo pipefail
@@ -76,11 +86,17 @@ jobs:
               test -d /work/f2
               test -d /f2-src
               test ! -w /f2-src
+              command -v python3
+              command -v git
+              command -v curl
+              python3 --version
+              git --version
               mkdir -p /var/tmp/f2-destructive-smoke/a/b/c
               printf destructive-test > /var/tmp/f2-destructive-smoke/a/b/c/payload
               chmod 000 /var/tmp/f2-destructive-smoke/a/b/c/payload
               rm -rf /var/tmp/f2-destructive-smoke
               test ! -e /var/tmp/f2-destructive-smoke
+              printf "SANDBOX_REQUIRED_CAPABILITIES=PASS\\n"
               printf "SANDBOX_DESTRUCTIVE_MUTATION=PASS\\n"
             ' | tee /tmp/f2-sandbox-run.txt
 
@@ -95,6 +111,8 @@ jobs:
               test "$ID" = ubuntu
               test "$VERSION_ID" = 24.04
               test "$(cat /proc/1/comm)" = systemd
+              command -v python3
+              command -v git
               state="$(systemctl is-system-running 2>/dev/null || true)"
               case "$state" in
                 running|degraded|starting|maintenance) ;;
@@ -122,7 +140,8 @@ jobs:
               return p.read_text(errors='replace') if p.exists() else ''
           direct_log = read('/tmp/f2-sandbox-run.txt')
           systemd_log = read('/tmp/f2-sandbox-systemd-run.txt')
-          direct_pass = 'F2_SANDBOX_RESULT=PASS' in direct_log
+          capability_pass = 'SANDBOX_REQUIRED_CAPABILITIES=PASS' in direct_log
+          direct_pass = 'F2_SANDBOX_RESULT=PASS' in direct_log and capability_pass
           systemd_pass = (
               'F2_SANDBOX_RESULT=PASS' in systemd_log
               and 'systemd_boot=LIVE_PID1_MODE' in systemd_log
@@ -130,7 +149,7 @@ jobs:
           )
           result = 'PASS' if direct_pass and systemd_pass else 'FAIL'
           receipt = {
-              'schema': 'F2_VPS_UBUNTU_SANDBOX_SMOKE/v2',
+              'schema': 'F2_VPS_UBUNTU_SANDBOX_SMOKE/v3',
               'result': result,
               'source_sha': os.environ.get('GITHUB_SHA'),
               'workflow_run_id': int(os.environ.get('GITHUB_RUN_ID', '0')),
@@ -140,18 +159,23 @@ jobs:
               'runner_arch': os.environ.get('RUNNER_ARCH', 'UNKNOWN'),
               'target_userspace': 'Ubuntu 24.04 noble',
               'sandbox_tier': 'S2_NSPAWN',
+              'nspawn_base_root': os.environ.get('F2_NSPAWN_BASE_ROOT'),
+              'nspawn_base_schema': 'F2_VPS_SANDBOX_BASE/v2',
+              'required_capabilities': ['python3', 'git', 'curl', 'bash'],
+              'required_capabilities_observed': capability_pass,
               'checkout_mount': 'READ_ONLY',
-              'sandbox_local_destructive_mutation': direct_pass,
+              'sandbox_local_destructive_mutation': 'SANDBOX_DESTRUCTIVE_MUTATION=PASS' in direct_log,
               'systemd_pid1_boot_observed': systemd_pass,
               'host_survival_fence_observed': direct_pass and systemd_pass,
               'network_mode': 'PRIVATE_OFFLINE',
               'physical_local_credit': 0,
               'wp1202_target_twin_runtime_credit': 0,
               'whole_system_acceptance': False,
+              'prepare_log': read('/tmp/f2-nspawn-prepare.txt'),
               'preflight_log': read('/tmp/f2-sandbox-preflight.txt'),
               'sandbox_log': direct_log,
               'systemd_sandbox_log': systemd_log,
-              'evidence_boundary': 'S2 sandbox authority/systemd-PID1 prerequisite only; no WP1202 target-twin, physical-host, completion or whole-system promotion',
+              'evidence_boundary': 'S2 sandbox capability/systemd-PID1 prerequisite only; no WP103/WP1202 target-runtime, physical-host, completion or whole-system promotion',
           }
           pathlib.Path('/tmp/f2-vps-ubuntu-sandbox-smoke.json').write_text(json.dumps(receipt, indent=2, sort_keys=True) + '\n')
           print(json.dumps(receipt, sort_keys=True))
@@ -169,6 +193,7 @@ jobs:
         shell: bash
         run: |
           set -Eeuo pipefail
+          grep -q '^SANDBOX_REQUIRED_CAPABILITIES=PASS$' /tmp/f2-sandbox-run.txt
           grep -q '^F2_SANDBOX_RESULT=PASS$' /tmp/f2-sandbox-run.txt
           grep -q '^F2_SANDBOX_RESULT=PASS$' /tmp/f2-sandbox-systemd-run.txt
           grep -q 'SANDBOX_SYSTEMD_PID1=PASS' /tmp/f2-sandbox-systemd-run.txt

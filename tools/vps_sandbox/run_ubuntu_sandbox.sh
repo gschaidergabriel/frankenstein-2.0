@@ -16,7 +16,7 @@ cpus="${F2_SANDBOX_CPUS:-2}"
 memory="${F2_SANDBOX_MEMORY:-4g}"
 pids="${F2_SANDBOX_PIDS:-1024}"
 sandbox_root="$(readlink -m -- "${F2_SANDBOX_ROOT:-/var/tmp/frankenstein2-sandboxes}")"
-nspawn_base="$(readlink -m -- "${F2_NSPAWN_BASE_ROOT:-/var/lib/frankenstein2-sandbox-images/ubuntu-24.04-base}")"
+nspawn_base="$(readlink -m -- "${F2_NSPAWN_BASE_ROOT:-/var/lib/frankenstein2-sandbox-images/ubuntu-24.04-base-v2}")"
 workspace="$(readlink -m -- "${F2_SANDBOX_SOURCE_ROOT:-${GITHUB_WORKSPACE:-$PWD}}")"
 name="f2-${GITHUB_RUN_ID:-manual}-${GITHUB_RUN_ATTEMPT:-1}-$$"
 boot_systemd=0
@@ -124,8 +124,22 @@ safe_remove_run_root() {
   fi
 }
 
+validate_nspawn_base() {
+  local marker="$nspawn_base/.f2-sandbox-base.json"
+  [[ -d "$nspawn_base" ]] || { echo "nspawn base not provisioned: $nspawn_base" >&2; return 1; }
+  [[ -f "$marker" ]] || { echo "nspawn base marker missing: $marker" >&2; return 1; }
+  grep -q '"schema":"F2_VPS_SANDBOX_BASE/v2"' "$marker" || {
+    echo "nspawn base marker is not v2-capability-bound: $marker" >&2; return 1;
+  }
+  grep -q '"suite":"noble"' "$marker" || { echo "nspawn base suite mismatch" >&2; return 1; }
+  [[ -x "$nspawn_base/usr/bin/python3" ]] || { echo "nspawn base missing python3 capability" >&2; return 1; }
+  [[ -x "$nspawn_base/usr/bin/git" ]] || { echo "nspawn base missing git capability" >&2; return 1; }
+  [[ -x "$nspawn_base/usr/bin/curl" ]] || { echo "nspawn base missing curl capability" >&2; return 1; }
+  [[ -x "$nspawn_base/bin/bash" || -x "$nspawn_base/usr/bin/bash" ]] || { echo "nspawn base missing bash capability" >&2; return 1; }
+}
+
 run_nspawn() {
-  [[ -d "$nspawn_base" ]] || { echo "nspawn base not provisioned: $nspawn_base" >&2; exit 71; }
+  validate_nspawn_base || exit 71
   command -v systemd-nspawn >/dev/null 2>&1 || { echo "systemd-nspawn missing" >&2; exit 72; }
   if [[ "$EUID" -ne 0 ]]; then sudo -n true >/dev/null 2>&1 || { echo "nspawn requires root/passwordless sudo" >&2; exit 73; }; fi
 
