@@ -28,6 +28,10 @@ H = "2" * 64
 I = "3" * 64
 J = "4" * 64
 K = "5" * 64
+L = "6" * 64
+M = "7" * 64
+N = "8" * 64
+O = "9" * 64
 
 
 def identity(*, runtime="runtime:a", process="pid:1", pre_state=D, executor=E):
@@ -40,6 +44,10 @@ def identity(*, runtime="runtime:a", process="pid:1", pre_state=D, executor=E):
         pre_state_sha256=pre_state,
         task_executor_sha256=executor,
         observation_protocol_sha256=G,
+        trace_source_sha256=L,
+        filter_schema_sha256=M,
+        clock_domain="CLOCK_MONOTONIC_RAW",
+        clock_mapping_sha256=N,
         observer_identity="observer:wp900:g8:condition-blind",
         runtime_instance_id=runtime,
         process_identity=process,
@@ -59,31 +67,52 @@ def recorder(*, runtime="runtime:a", process="pid:1", pre_state=D, executor=E, t
     )
 
 
-def positive(*, runtime="runtime:a", process="pid:1", pre_state=D, executor=E):
-    value = recorder(runtime=runtime, process=process, pre_state=pre_state, executor=executor)
-    value.observe_reentry(reentry_ref="reentry:observed", reentry_sha256=I)
-    return value.close_complete(
+def trace_kwargs(**overrides):
+    values = {
+        "observer_started_monotonic_ns": 1,
+        "observer_finalized_monotonic_ns": 40,
+        "source_sequence_start": 100,
+        "source_sequence_end": 110,
+        "captured_sequence_start": 100,
+        "captured_sequence_end": 110,
+        "sequence_gap_count": 0,
+        "dropped_event_count": 0,
+        "overflow_count": 0,
+        "raw_trace_sha256": O,
+        "filter_schema_sha256": M,
+        "clock_domain": "CLOCK_MONOTONIC_RAW",
+        "clock_mapping_sha256": N,
+        "finalized": True,
+    }
+    values.update(overrides)
+    return values
+
+
+def close(value, **trace_overrides):
+    return value.close_with_trace(
         terminal_ref="terminal:task-complete",
         terminal_evidence_sha256=J,
         post_state_sha256=K,
         provenance_refs=("prov:complete",),
+        **trace_kwargs(**trace_overrides),
     )
 
 
-def negative(*, runtime="runtime:b", process="pid:2", pre_state=D, executor=E):
+def positive(*, runtime="runtime:a", process="pid:1", pre_state=D, executor=E, **trace_overrides):
+    value = recorder(runtime=runtime, process=process, pre_state=pre_state, executor=executor)
+    value.observe_reentry(reentry_ref="reentry:observed", reentry_sha256=I)
+    return close(value, **trace_overrides)
+
+
+def negative(*, runtime="runtime:b", process="pid:2", pre_state=D, executor=E, **trace_overrides):
     value = recorder(runtime=runtime, process=process, pre_state=pre_state, executor=executor, ticks=(11, 31))
-    return value.close_complete(
-        terminal_ref="terminal:task-complete",
-        terminal_evidence_sha256=J,
-        post_state_sha256=K,
-        provenance_refs=("prov:complete-negative",),
-    )
+    return close(value, **trace_overrides)
 
 
 def test_g8_observer_api_is_condition_blind_and_has_no_expected_boolean():
     init_params = set(inspect.signature(ReentryObservationWindowRecorder.__init__).parameters)
     observe_params = set(inspect.signature(ReentryObservationWindowRecorder.observe_reentry).parameters)
-    close_params = set(inspect.signature(ReentryObservationWindowRecorder.close_complete).parameters)
+    close_params = set(inspect.signature(ReentryObservationWindowRecorder.close_with_trace).parameters)
     forbidden = {
         "condition",
         "arm",
@@ -96,7 +125,7 @@ def test_g8_observer_api_is_condition_blind_and_has_no_expected_boolean():
     assert forbidden.isdisjoint(init_params | observe_params | close_params)
 
 
-def test_g8_positive_and_complete_negative_are_derived_from_events_not_labels():
+def test_g8_positive_and_trace_complete_negative_derive_from_evidence_not_labels():
     observed = positive()
     absent = negative()
 
@@ -104,6 +133,9 @@ def test_g8_positive_and_complete_negative_are_derived_from_events_not_labels():
     validate_reentry_observation_window(absent)
     assert observed.status == REENTRY_OBSERVED
     assert absent.status == NO_REENTRY_OBSERVED
+    assert observed.trace_complete is True
+    assert absent.trace_complete is True
+    assert absent.trace_completeness.raw_trace_sha256 == O
 
     candidate = bind_matched_reentry_mechanism(
         arm_a=observed,
@@ -122,32 +154,48 @@ def test_g8_injected_reentry_cannot_false_green_as_control_absence():
         reentry_ref="reentry:unexpected-control-event",
         reentry_sha256=I,
     )
-    receipt = would_be_control.close_complete(
-        terminal_ref="terminal:task-complete",
-        terminal_evidence_sha256=J,
-        post_state_sha256=K,
-    )
+    receipt = close(would_be_control)
     assert receipt.status == REENTRY_OBSERVED
     assert any(event.evidence_ref == "reentry:unexpected-control-event" for event in receipt.events)
 
 
-def test_g8_incomplete_window_is_unknown_not_no_reentry():
-    value = recorder(runtime="runtime:aborted", process="pid:aborted", ticks=(10, 20))
-    receipt = value.abort(reason_ref="abort:runner-stop", reason_sha256=J)
+@pytest.mark.parametrize(
+    "trace_overrides",
+    [
+        {"dropped_event_count": 1},
+        {"overflow_count": 1},
+        {"sequence_gap_count": 1},
+        {"captured_sequence_end": 109},
+        {"observer_started_monotonic_ns": 11},
+        {"observer_finalized_monotonic_ns": 31},
+        {"finalized": False},
+    ],
+)
+def test_g8_negative_absence_is_unknown_if_trace_completeness_is_not_proven(trace_overrides):
+    receipt = negative(**trace_overrides)
     validate_reentry_observation_window(receipt)
     assert receipt.status == REENTRY_OBSERVATION_UNKNOWN
+    assert receipt.trace_complete is False
 
     candidate = bind_matched_reentry_mechanism(
         arm_a=positive(),
         arm_b=receipt,
-        provenance_refs=("prov:unknown-pair",),
+        provenance_refs=("prov:incomplete-pair",),
     )
     assert candidate.classification == MECHANISM_COMPARISON_UNKNOWN
 
 
+def test_g8_aborted_window_is_unknown_not_no_reentry():
+    value = recorder(runtime="runtime:aborted", process="pid:aborted", ticks=(10, 20))
+    receipt = value.abort(reason_ref="abort:runner-stop", reason_sha256=J)
+    validate_reentry_observation_window(receipt)
+    assert receipt.status == REENTRY_OBSERVATION_UNKNOWN
+    assert receipt.trace_complete is False
+
+
 def test_g8_pair_fails_closed_on_pre_state_or_executor_mismatch():
     observed = positive()
-    wrong_state = negative(pre_state="6" * 64)
+    wrong_state = negative(pre_state="0" * 64)
     with pytest.raises(ReentryObservationError, match="pre_state_sha256"):
         bind_matched_reentry_mechanism(
             arm_a=observed,
@@ -155,13 +203,23 @@ def test_g8_pair_fails_closed_on_pre_state_or_executor_mismatch():
             provenance_refs=("prov:bad-state",),
         )
 
-    wrong_executor = negative(executor="7" * 64)
+    wrong_executor = negative(executor="b" * 64)
     with pytest.raises(ReentryObservationError, match="task_executor_sha256"):
         bind_matched_reentry_mechanism(
             arm_a=observed,
             arm_b=wrong_executor,
             provenance_refs=("prov:bad-executor",),
         )
+
+
+def test_g8_close_fails_closed_on_filter_or_clock_identity_mismatch():
+    value = recorder(runtime="runtime:filter", process="pid:filter", ticks=(10, 30))
+    with pytest.raises(ReentryObservationError, match="filter schema"):
+        close(value, filter_schema_sha256="c" * 64)
+
+    value = recorder(runtime="runtime:clock", process="pid:clock", ticks=(10, 30))
+    with pytest.raises(ReentryObservationError, match="clock domain"):
+        close(value, clock_domain="CLOCK_BOOTTIME")
 
 
 def test_g8_equal_independent_observations_do_not_claim_mechanism_difference():
@@ -184,6 +242,7 @@ def test_g8_direct_receipt_construction_lacks_observer_origin():
         opportunity_sha256=valid.opportunity_sha256,
         terminal_evidence_sha256=valid.terminal_evidence_sha256,
         post_state_sha256=valid.post_state_sha256,
+        trace_completeness=valid.trace_completeness,
         events=valid.events,
         status=valid.status,
         provenance_refs=valid.provenance_refs,
