@@ -190,6 +190,36 @@ class PersistedRowLoadAttestationTests(unittest.TestCase):
         )
         self.assertEqual(len(attestation.row_evidence_sha256), 64)
 
+    def test_foreign_caller_authority_ref_is_accepted_despite_store_attestation(self) -> None:
+        """REVIEW_ONLY falsifier: G4 does not bind the G3 authority ref to the loaded store."""
+        causal, checkpoint, seal, outcome, evidence = self.sources()
+        foreign_authority = UnifiedDBAuthorityRef(
+            receipt_ref="receipt:unifieddb:foreign-component",
+            canonical_source="foreign/not-the-loaded-unifieddb-authority.py",
+            fingerprint_schema="FRANKENSTEIN2_UNIFIEDDB_FINGERPRINT/v2",
+        )
+        self.assertNotEqual(foreign_authority.receipt_ref, self.authority().receipt_ref)
+        self.assertNotEqual(foreign_authority.canonical_source, self.authority().canonical_source)
+
+        result = plan_restart_continuation_from_persisted_row(
+            self.store,
+            checkpoint_id=checkpoint.checkpoint_id,
+            evidence=evidence,
+            plan_id="restart-plan-wp901-g4-foreign-authority",
+            expected_evidence_sha256=evidence.sha256(),
+            causal_identity=causal,
+            unifieddb_authority=foreign_authority,
+            whole_loop_seal=seal,
+            outcome=outcome,
+        )
+
+        self.assertEqual(result.plan.disposition, CONTINUE_UNFINISHED)
+        self.assertEqual(result.plan.source_checkpoint_id, checkpoint.checkpoint_id)
+        self.assertEqual(
+            result.load_attestation.unifieddb_authority_receipt_sha256,
+            self.store.authority_receipt_sha256,
+        )
+
     def test_attestation_explicitly_denies_freshness_target_runtime_and_effect_credit(self) -> None:
         result, *_ = self.plan()
         raw = result.load_attestation.as_dict()
