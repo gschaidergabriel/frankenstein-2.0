@@ -1,0 +1,62 @@
+{
+  "continuous_single_run": true,
+  "correctness_checks": {
+    "child_stderr_tail_or_empty": "",
+    "child_subprocess_ok": true,
+    "child_subprocess_returncode": 0,
+    "healthy_readback_confirmed": true,
+    "lineage_matches_observed_in_fresh_process": true,
+    "lineage_unchanged_at_healthy_generation_after_rollback": true,
+    "readback_generation_matches_healthy": true,
+    "readback_state_matches_healthy": true,
+    "receipt_outcome": "ROLLED_BACK",
+    "restore_matches_healthy_state": true
+  },
+  "disclosed_but_not_one_of_the_5_named_phases": {
+    "reason": "record_attempt's ROLLED_BACK receipt mint is real accepted-primitive work, but H11 names exactly 5 phases (detection, rollback begin, rollback end, re-entry, readback) and receipt-minting is not one of them; the OLD combined failure_detection_ms silently absorbed an equivalent cost into 'detection' -- this run keeps it visible and separate instead of hiding it inside phase 1.",
+    "receipt_mint_ms": 0.0557
+  },
+  "note": "All 5 phases below were measured back-to-back inside one Python process execution of this script (plus one fresh child process for phases 4/5), never against a live v1 harness or real Claude Code process -- purely inside the disposable self_update_transaction.py sandbox, per INTEGRATION_HYPOTHESES.md's own proposed safe next step.",
+  "phases": {
+    "1_detection_ms": 0.3491,
+    "2_3_rollback_begin_to_rollback_end_ms": 1.1645,
+    "4_process_reentry_ms": 10.166,
+    "5_healthy_readback_ms": 0.5675
+  },
+  "raw_timeline_monotonic": [
+    {
+      "label": "detection_start",
+      "monotonic": 44212.711447632
+    },
+    {
+      "label": "detection_end",
+      "monotonic": 44212.71179669
+    },
+    {
+      "label": "rollback_begin",
+      "monotonic": 44212.711798824
+    },
+    {
+      "label": "rollback_end",
+      "monotonic": 44212.71296329
+    },
+    {
+      "label": "reentry_spawn",
+      "monotonic": 44212.713563923
+    },
+    {
+      "label": "reentry_alive",
+      "monotonic": 44212.723729958
+    }
+  ],
+  "repo_dirty": true,
+  "repo_head_sha": "149982582a4a77f6b59439ed1aa99d67f70ee3a2",
+  "run_id": "H11FIVEPHASE-20260903-08d23eba",
+  "schema": "F2_WP1207_H11_FIVE_PHASE_MEASUREMENT/v1",
+  "setup": {
+    "healthy_generation": 1,
+    "healthy_state_sha256": "a668f9611e1167267f5886622a3555211277e5fb122a4e9d455145836375e2cb",
+    "mismatch_genuinely_detected": true,
+    "mutation_ms_not_a_named_phase": 0.573
+  }
+}
