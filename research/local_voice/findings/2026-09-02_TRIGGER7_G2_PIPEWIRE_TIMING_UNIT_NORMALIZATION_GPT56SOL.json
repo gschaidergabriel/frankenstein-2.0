@@ -1,0 +1,57 @@
+{
+  "schema": "F2_TRIGGER7_RESEARCH_FINDING/v1",
+  "trigger": "7",
+  "producer": "GPT-5.6-Sol",
+  "date": "2026-09-02",
+  "research_id": "T7-20260902-G2-PIPEWIRE-TIMING-UNIT-NORMALIZATION",
+  "semantic_key": "0d83f7d13c1d8f91686cf94070f73d901a49018b40a9c058d1949af094655bff",
+  "work_class": "REPAIR_PRECISION_RESEARCH_ONLY",
+  "product_mutation_authority": "TRIGGER4_ONLY",
+  "observed_main_before_write": "3ab4c43a49f059b8d0d0ff3f25d75028a54f906a",
+  "implementation_blueprint": "trigger4/inbox/local_voice/T7_G2_SIX_BLOCKER_IMPLEMENTATION_BLUEPRINT_2026-09-02_GPT56SOL.json",
+  "finding": {
+    "class": "TIMING_UNIT_NORMALIZATION_REQUIRED_BEFORE_EXACT_BOUND_MATH",
+    "problem": "The six-blocker blueprint correctly requires exact queued+buffered+graph/device timing, but these pw_time terms are not natively one interchangeable frame unit. Raw addition of queued, buffered and delay would be wrong whenever application/source rate, stream samplerate and graph rate differ.",
+    "terminal_risk": "A superficially exact timed-stream helper could still mint a false bound or wrong cancel_source_frame under resampling if it sums frame/tick counts without first converting each term through its documented time domain."
+  },
+  "official_pipewire_formula": {
+    "source": "https://docs.pipewire.org/structpw__time.html",
+    "elapsed_graph_ticks": "elapsed = (pw_time.rate.denom * (pw_stream_get_nsec(stream) - pw_time.now)) / (pw_time.rate.num * 1e9)",
+    "queued_ms": "pw_time.queued * 1000 / app_rate, only when the helper deliberately sets pw_buffer.size in audio frames; PipeWire documents pw_time.queued as the sum of application-chosen pw_buffer.size units.",
+    "buffered_ms": "pw_time.buffered * 1000 / stream_samplerate for audio/raw; buffered is resampler/converter frames.",
+    "graph_delay_ms": "max(0, pw_time.delay - elapsed) * 1000 * pw_time.rate.num / pw_time.rate.denom; negative effective graph delay may be clamped to zero per PipeWire timing semantics.",
+    "total_playback_delay_ms": "queued_ms + buffered_ms + graph_delay_ms",
+    "graph_edge_time_ms": "(pw_time.ticks + elapsed) * 1000 * pw_time.rate.num / pw_time.rate.denom"
+  },
+  "required_helper_contract_precision": [
+    "Set pw_buffer.size to the exact number of application/source audio frames queued in each buffer. Persist this unit choice explicitly in every timing receipt.",
+    "Persist app_rate/source_rate, negotiated stream_samplerate and pw_time.rate.num/denom independently; never assume they are equal merely because the input WAV is fixed-rate.",
+    "Persist pw_time.now, ticks, delay, queued, buffered, queued_buffers, size, pw_stream_get_nsec and the helper monotonic snapshot timestamp from the same exact running stream epoch.",
+    "Normalize queued, buffered and graph delay to time (prefer integer/rational nanoseconds or microseconds internally) before combining them. Convert to source frames only after the time-domain sum is fixed.",
+    "Do not use pw_time.ticks alone as source-frame position. Graph ticks are the graph driver's timeline, not automatically the application/source sample index.",
+    "If the helper uses source_frames_submitted to derive a presentation-relative source position, the only admissible derived form is based on exact source-frame accounting minus normalized not-yet-presented duration converted back at source_rate; mark this mapping DERIVED and independently validate it against monitor PCM alignment.",
+    "If any app-rate/stream-rate/graph-rate relationship or buffering unit is ambiguous, classify EVIDENCE_INVALID_TIMING_UNIT_AMBIGUITY and stop before promotion-bearing cancel/PRODUCT_NEGATIVE reasoning."
+  ],
+  "derived_source_position_rule": {
+    "status": "DERIVED_REQUIRES_REGRESSION_AND_PCM_CROSSCHECK_NOT_PRIMARY_API_FACT",
+    "precondition": "source_frames_submitted is exact and monotonic; pw_buffer.size is source/application frames; all timing terms belong to the same exact stream snapshot/epoch.",
+    "unpresented_source_frames": "ceil(total_playback_delay_ms * source_rate / 1000)",
+    "presentation_relative_source_frame_candidate": "max(0, source_frames_submitted - unpresented_source_frames)",
+    "important_fence": "This candidate must not become terminal authority until Trigger4 proves startup-delay invariance, rate-conversion correctness and agreement with independent monitor PCM alignment. If it cannot be uniquely validated, fail closed rather than guessing."
+  },
+  "focused_regressions": [
+    "Same queued/buffered/delay wall-clock durations represented at different app/stream/graph rates must yield the same total_playback_delay_ms within declared integer rounding policy.",
+    "Raw numerical equality of frame counts at 22050 Hz and 48000 Hz must NOT be treated as equal duration.",
+    "Changing only graph rate representation while preserving physical duration must not change the frozen bound.",
+    "Changing only helper process startup delay while preserving exact stream/source progression must not move derived cancel_source_frame.",
+    "Ambiguous pw_buffer.size units or missing stream_samplerate must fail closed as EVIDENCE_INVALID_TIMING_UNIT_AMBIGUITY.",
+    "Derived source position must agree with independent monitor PCM source alignment inside a predeclared tolerance; disagreement is evidence-invalid, not product-negative."
+  ],
+  "scope_fence": {
+    "no_new_playback_authority": true,
+    "no_new_acceptance_authority": true,
+    "no_g2_runtime_credit": true,
+    "no_g3": true
+  },
+  "next_action": "Trigger4 folds this unit-normalization rule into the existing six-blocker timed-stream repair and R1-R12-or-stricter regression set before one fresh exact S2 dispatch."
+}
