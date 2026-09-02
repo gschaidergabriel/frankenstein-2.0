@@ -1,3 +1,4 @@
+import dataclasses
 import hashlib
 import inspect
 import json
@@ -101,9 +102,9 @@ def source_mediator(*, position, payload):
 
     recorder = IndependentEventSourceRangeRecorder(
         trace_source_sha256=hashlib.sha256(f"trace:g10:{position}".encode()).hexdigest(),
-        filter_schema_sha256=hashlib.sha256(b"filter:g10:semantic-slot:v2").hexdigest(),
+        filter_schema_sha256=hashlib.sha256(b"filter:g10:semantic-slot:v3").hexdigest(),
         clock_domain="CLOCK_MONOTONIC_RAW",
-        clock_mapping_sha256=hashlib.sha256(b"clock:g10:identity:v2").hexdigest(),
+        clock_mapping_sha256=hashlib.sha256(b"clock:g10:identity:v3").hexdigest(),
         observer_identity=source_identity,
         observer_started_monotonic_ns=position * 1000 + 1,
         window_start_monotonic_ns=position * 1000 + 2,
@@ -142,9 +143,8 @@ def all_mediators_states_and_receipts():
         admit_mediated_semantic_state(
             mediator=mediator,
             wire=mediator.to_wire(),
-            trial_process_identity=f"trial-process:g10:{position}",
         )
-        for position, mediator in enumerate(mediators, 1)
+        for mediator in mediators
     )
     plan = executor_plan()
     receipts = tuple(
@@ -160,7 +160,7 @@ def test_independent_semantic_mediator_crossover_is_candidate_only():
         mediators=mediators,
         states=states,
         execution_receipts=receipts,
-        provenance_refs=("prov:g10:repository-crossover-v2",),
+        provenance_refs=("prov:g10:repository-crossover-v3",),
     )
     validate_independent_semantic_mediator_crossover(candidate)
     assert candidate.semantic_order == ("allow", "deny", "deny", "allow")
@@ -168,8 +168,6 @@ def test_independent_semantic_mediator_crossover_is_candidate_only():
     assert len(set(candidate.raw_payload_sha256s)) == 4
     assert len(set(candidate.wire_sha256s)) == 4
     assert len(set(candidate.source_process_identities)) == 4
-    assert len(set(candidate.trial_process_identities)) == 4
-    assert set(candidate.source_process_identities).isdisjoint(candidate.trial_process_identities)
     assert len(set(candidate.child_pids)) == 4
     assert candidate.observed_mapping == (("allow", "allow"), ("deny", "deny"))
     assert candidate.classification == MEDIATOR_AUTHORITY_CANDIDATE
@@ -187,13 +185,43 @@ def test_trial_visible_wire_is_minimal_and_has_no_attestation_or_plan_sidechanne
     assert set(parsed) == {"schema", "canonical_semantic_json"}
     assert trial_wire_keys(wire).isdisjoint(FORBIDDEN_TRIAL_WIRE_KEYS)
     params = inspect.signature(admit_mediated_semantic_state).parameters
-    assert "plan" not in params
-    assert "semantic_payload" not in params
-    assert "semantic_class" not in params
-    assert "trial_position" not in params
-    assert "source_range" not in params
-    assert "runtime_witness" not in params
+    for forbidden in (
+        "plan",
+        "semantic_payload",
+        "semantic_class",
+        "trial_position",
+        "trial_process_identity",
+        "source_range",
+        "runtime_witness",
+    ):
+        assert forbidden not in params
     assert behavioral_input_keys().isdisjoint(FORBIDDEN_BEHAVIORAL_INPUT_KEYS)
+
+
+def test_behavior_capable_pre_child_state_is_semantic_only():
+    states = tuple(
+        admit_mediated_semantic_state(
+            mediator=mediator,
+            wire=mediator.to_wire(),
+        )
+        for mediator in (
+            source_mediator(position=position, payload=payload)
+            for position, payload in enumerate(PAYLOADS, 1)
+        )
+    )
+    public_dataclass_fields = {
+        field.name for field in dataclasses.fields(MediatedSemanticState) if not field.name.startswith("_")
+    }
+    assert public_dataclass_fields == {"canonical_semantic_json"}
+    for state in states:
+        assert set(state.as_dict()) == {"schema", "canonical_semantic_json"}
+        public_slots = {name for name in state.__slots__ if not name.startswith("_")}
+        assert public_slots == {"canonical_semantic_json"}
+        assert not hasattr(state, "trial_process_identity")
+        assert not hasattr(state, "trial_position")
+        assert not hasattr(state, "semantic_sha256")
+        assert not hasattr(state, "wire_sha256")
+        assert not hasattr(state, "source_process_identity")
 
 
 def test_mediator_requires_gwt_source_event_bound_to_exact_semantic_bytes():
@@ -295,42 +323,18 @@ def test_self_consistent_forged_wire_is_rejected_before_behavioral_execution():
         separators=(",", ":"),
     ).encode()
     with pytest.raises(G10MediatorError, match="not emitted by the factory-valid semantic mediator"):
-        admit_mediated_semantic_state(
-            mediator=mediator,
-            wire=forged,
-            trial_process_identity="trial-process:g10:forged",
-        )
+        admit_mediated_semantic_state(mediator=mediator, wire=forged)
 
 
 def test_direct_state_construction_cannot_reach_behavioral_execution():
-    canonical = '{"meaning":"allow","surface":"approve"}'
-    forged = MediatedSemanticState(
-        canonical_semantic_json=canonical,
-        semantic_sha256=hashlib.sha256(canonical.encode()).hexdigest(),
-        wire_sha256="f" * 64,
-        trial_process_identity="trial-process:g10:direct-forge",
-    )
+    forged = MediatedSemanticState(canonical_semantic_json='{"meaning":"allow","surface":"approve"}')
     with pytest.raises(G10MediatorError, match="lacks valid factory origin"):
         execute_mediated_reentry_only(executor_plan=executor_plan(), semantic_state=forged)
 
 
-def test_source_and_trial_process_identity_must_differ():
-    mediator = source_mediator(position=1, payload=PAYLOADS[0])
-    with pytest.raises(G10MediatorError, match="must differ"):
-        admit_mediated_semantic_state(
-            mediator=mediator,
-            wire=mediator.to_wire(),
-            trial_process_identity=mediator.source_process_identity,
-        )
-
-
 def test_external_payload_or_arm_hints_cannot_change_mediated_behavior(monkeypatch):
     mediator = source_mediator(position=1, payload=PAYLOADS[0])
-    state = admit_mediated_semantic_state(
-        mediator=mediator,
-        wire=mediator.to_wire(),
-        trial_process_identity="trial-process:g10:hints",
-    )
+    state = admit_mediated_semantic_state(mediator=mediator, wire=mediator.to_wire())
     monkeypatch.setenv("WP900_G10_DIRECT_PAYLOAD_CLASS", "deny")
     monkeypatch.setenv("WP900_G10_ARM", "deny")
     monkeypatch.setenv("WP900_G10_PAYLOAD_SHA256", "f" * 64)
@@ -358,7 +362,7 @@ def test_repository_objects_cannot_self_mint_runtime_or_semantic_credit():
         mediators=mediators,
         states=states,
         execution_receipts=receipts,
-        provenance_refs=("prov:g10:credit-v2",),
+        provenance_refs=("prov:g10:credit-v3",),
     )
     for value in (*mediators, *states, *receipts, candidate):
         assert value.repository_ci_credit == 0
