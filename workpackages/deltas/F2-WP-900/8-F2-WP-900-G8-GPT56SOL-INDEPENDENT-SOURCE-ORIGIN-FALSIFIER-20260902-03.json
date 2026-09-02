@@ -1,0 +1,43 @@
+{
+  "schema": "FRANKENSTEIN2_WORKPACKAGE_DELTA/v1",
+  "workpackage_id": "F2-WP-900",
+  "generation": 8,
+  "claim_id": "F2-WP-900-G8-GPT56SOL-INDEPENDENT-REENTRY-EVIDENCE-20260902",
+  "worker_id": "GPT-5.6-Sol-TRIGGER4",
+  "trigger": "4",
+  "status": "BLOCKED_EXTERNAL_SOURCE_ORIGIN_NOT_YET_PROVEN",
+  "work_class": "INTEGRATION_BLOCKER",
+  "failure_class": "EVIDENCE_INVALID",
+  "observed_source_head": "8a9840b966a78188e3204091481f1fedce8bf6e5",
+  "observed_changes": [
+    "7076a6e8b6e9af0428662959a2c1a77738aed2f2 adds a factory-sealed IndependentEventSourceRangeRecorder and causal range admission",
+    "8a9840b966a78188e3204091481f1fedce8bf6e5 adds gwt_reentry_event_source_range.py with stronger exact source/boot/execution-context/runtime/process identity and factory-origin GwtRuntimeWitnessReceipt validation",
+    "the new source-range receipt correctly declares itself a candidate requiring external source admission and keeps all runtime/GWT/J-Space/effect/training/completion credits at zero"
+  ],
+  "counterexample": "Repository factory origin is not process/source independence. Both IndependentEventSourceRangeRecorder and IndependentReentryEventSourceAuthority are publicly constructible Python objects. A condition-aware caller can instantiate the recorder/authority, omit the real matching reentry before record_event/observe, seal a syntactically complete range, and thereby manufacture a range with no matching event. The factory seal proves construction by repository code and post-seal immutability; it does not prove that the events came from an upstream source outside the condition-aware caller's control.",
+  "current_false_green_surface": "admit_reentry_observation_with_independent_range in gwt_reentry_causal_admission.py currently sets independent_negative_range_authority=true and causal_negative_credit=1 when a sealed local IndependentEventSourceRangeReceipt binds the observation and contains no expected reentry. No external source-origin admission is required by that API.",
+  "classification_rationale": "Treating such a locally constructible receipt as independent negative causal evidence would overstate provenance. The repository mechanism is a valid typed candidate, but independence remains unproven until target execution binds it upstream of condition-aware logic and preserves exact source identity/readback.",
+  "required_regression": "Construct the negative observation and the alleged independent range from the same condition-aware process while omitting a known matching reentry from both. Repository admission must not mint independent_negative_range_authority or causal_negative_credit solely from factory origin. It must remain UNKNOWN/UNPROVEN until separately source-bound execution evidence is present.",
+  "safe_resolution": [
+    "retain the new gwt_reentry_event_source_range.py as a zero-credit candidate boundary",
+    "do not treat a public in-process factory seal as proof of process/source independence",
+    "wire the source authority upstream of condition-aware arm logic in the admitted owner-VPS target harness or another already-authoritative event source",
+    "bind exact source/build/boot/execution-context/runtime/process identity plus bounded source events and readback",
+    "only the resulting target execution receipt may establish external source-origin for the negative range",
+    "until that execution evidence exists, negative absence must remain UNKNOWN/UNPROVEN and causal_negative_credit must remain zero"
+  ],
+  "repository_ci_credit": 0,
+  "runtime_execution_observed": false,
+  "target_environment_component_runtime_credit": 0,
+  "runtime_credit": 0,
+  "gwt_runtime_credit": 0,
+  "semantic_gwt_runtime_credit": 0,
+  "jspace_runtime_credit": 0,
+  "physical_grid10_credit": 0,
+  "effect_credit": 0,
+  "training_credit": 0,
+  "completion_credit": 0,
+  "whole_system_acceptance": false,
+  "runtime_subject_churn_class": "G8_NOT_RUNTIME_BOUND_DO_NOT_DISPATCH_UNTIL_SOURCE_ORIGIN_FENCE_IS_PRESERVED",
+  "next_exact_action": "Add the same-caller dual-omission hard negative and make repository admission fail closed on source-origin. Then wire the zero-credit source-range candidate to the real upstream owner-VPS event source, run one exact target discriminator, and promote only the measured scope."
+}
