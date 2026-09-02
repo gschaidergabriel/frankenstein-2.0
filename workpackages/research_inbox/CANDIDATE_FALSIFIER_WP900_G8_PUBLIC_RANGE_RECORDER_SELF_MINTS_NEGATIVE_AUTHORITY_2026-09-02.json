@@ -6,37 +6,40 @@
   "worker_lane": "CANDIDATE_FALSIFIER",
   "created_date": "2026-09-02",
   "status": "OPEN_VALID_FALSIFIER",
-  "title": "Public range recorder proves factory origin but not independence from the condition-aware caller",
+  "title": "Factory-origin source-range objects still do not prove independence from the condition-aware caller",
   "current_subject": {
-    "source_commit": "7076a6e8b6e9af0428662959a2c1a77738aed2f2",
-    "source_path": "src/frankenstein2/gwt_reentry_causal_admission.py",
-    "test_path": "tests/test_wp900_g8_causal_admission_fence.py",
-    "release_ci_run": 33576778352,
-    "release_ci_conclusion": "SUCCESS"
+    "baseline_causal_admission_commit": "7076a6e8b6e9af0428662959a2c1a77738aed2f2",
+    "newer_source_range_commit": "8a9840b966a78188e3204091481f1fedce8bf6e5",
+    "causal_admission_path": "src/frankenstein2/gwt_reentry_causal_admission.py",
+    "source_range_path": "src/frankenstein2/gwt_reentry_event_source_range.py",
+    "causal_test_path": "tests/test_wp900_g8_causal_admission_fence.py",
+    "release_ci_run_for_7076": 33576778352,
+    "release_ci_conclusion_for_7076": "SUCCESS"
   },
-  "falsifier": "The new IndependentEventSourceRangeRecorder is a public constructor. Any condition-aware observation caller able to call admit_reentry_observation_with_independent_range can also instantiate that recorder, choose a contiguous synthetic interval containing only OTHER events, seal it with the module factory tokens through the recorder's public observe/seal methods, copy its raw_trace_sha256 into the caller-supplied negative observation, and receive ADMITTED_NEGATIVE_REENTRY_ABSENCE with causal_negative_credit=1. validate_independent_event_source_range proves that the object was produced by this recorder implementation and was not mutated after sealing; it does not prove that the recorder was attached upstream of, or operationally independent from, the condition-aware caller. Therefore FACTORY_ORIGIN != INDEPENDENT_SOURCE_PROVENANCE.",
+  "falsifier": "The G8 source-range types now have stronger identity and runtime-witness checks, but the authority object remains publicly constructible from caller-supplied identity values. A condition-aware observation caller can instantiate IndependentEventSourceRangeRecorder in the 7076 causal-admission path or IndependentReentryEventSourceAuthority in the newer 8a9840b source-range path, emit a structurally contiguous range that omits a true matching reentry, and obtain factory-sealed objects because observe/record_event and seal/seal_range apply the private module seals on behalf of the caller-owned instance. Factory origin and post-seal integrity therefore do not establish that the range was captured upstream of, or independently from, the condition-aware caller. FACTORY_ORIGIN != INDEPENDENT_SOURCE_PROVENANCE.",
   "source_audit_evidence": [
-    "IndependentEventSourceRangeRecorder.__init__ is public and requires only caller-supplied identity/timing/provenance values.",
-    "IndependentEventSourceRangeRecorder.observe creates IndependentEventSourceEvent with the private _SOURCE_EVENT_FACTORY seal on behalf of whoever owns the recorder instance.",
-    "IndependentEventSourceRangeRecorder.seal creates IndependentEventSourceRangeReceipt with _SOURCE_RANGE_FACTORY and a self-consistency digest; no separate source capability or runtime wiring receipt is required.",
-    "validate_independent_event_source_range checks only recorder-origin seal plus payload digest integrity.",
-    "admit_reentry_observation_with_independent_range returns ADMITTED_NEGATIVE_REENTRY_ABSENCE and causal_negative_credit=1 when the caller observation binds the same range and no expected reentry is present.",
-    "The existing repository test helper _independent_range itself directly instantiates IndependentEventSourceRangeRecorder and test_independent_range_can_admit_genuine_complete_negative_absence demonstrates that such a locally constructed range receives causal_negative_credit=1.",
-    "The module docstring correctly states that repository construction mints no runtime/semantic credit and that target execution must bind the range recorder to the real source path; this falsifier targets the missing enforceable distinction between a source-bound target recorder and a caller-self-minted recorder."
+    "7076: IndependentEventSourceRangeRecorder.__init__ is public and requires only supplied identity/timing/provenance values; observe/seal mint _SOURCE_EVENT_FACTORY/_SOURCE_RANGE_FACTORY seals.",
+    "7076: validate_independent_event_source_range checks recorder-origin seal plus payload digest integrity, and admit_reentry_observation_with_independent_range can return causal_negative_credit=1 for a structurally matching range with no expected reentry.",
+    "7076 test: _independent_range directly instantiates IndependentEventSourceRangeRecorder and test_independent_range_can_admit_genuine_complete_negative_absence receives causal_negative_credit=1 from that locally constructed range.",
+    "8a9840b: IndependentReentrySourceIdentity is directly constructible and all authority identity fields, including authority_id and authority_build_sha256, are data supplied at construction time.",
+    "8a9840b: IndependentReentryEventSourceAuthority.__init__ is public; record_event applies _EVENT_FACTORY and seal_range applies _RANGE_FACTORY to objects created by whichever code owns the authority instance.",
+    "8a9840b: an event with runtime_witness=None is valid. This is necessary for non-reentry events, but it also means an all-negative synthetic range can be constructed without any external runtime witness proving source attachment.",
+    "8a9840b: validate_independent_reentry_source_range verifies factory seals, digest integrity, event ordering/gap accounting and embedded witness validity when witnesses exist; it does not verify an external source capability or composition-root wiring receipt.",
+    "Both modules correctly state that repository construction does not mint target/runtime/semantic credit and that real target wiring remains an external obligation. The falsifier preserves that distinction and prevents repository factory seals from being promoted into proof of runtime independence."
   ],
   "executable_counterexample_shape": {
-    "setup": "Use one valid G8 negative observation identity and assume a real matching reentry exists in the true runtime event source.",
-    "intervention": "The condition-aware caller omits the true matching reentry, constructs IndependentEventSourceRangeRecorder itself, emits a contiguous sequence of OTHER events only, seals it, and passes that range plus a negative observation carrying the same raw_trace_sha256 into admit_reentry_observation_with_independent_range.",
-    "current_code_path": "All structural seals/digests can validate because the public recorder itself mints them; _range_contains_expected_reentry sees no matching event and the admission function can return causal_negative_credit=1.",
-    "required_behavior": "A caller-self-minted range must remain UNKNOWN/zero causal-negative credit. Only a receipt whose source authority is independently bound to the real upstream event source for the exact runtime subject may support negative causal evidence."
+    "setup": "Use one valid G8 observation identity and assume a matching reentry exists in the true runtime event source during the bounded window.",
+    "intervention": "Condition-aware code omits that true event, constructs the public source authority/recorder itself with matching identity fields, records only non-reentry events over a contiguous range, seals it, and presents the resulting range as the negative authority.",
+    "current_structural_result": "All module-local seal/digest/order checks can succeed because the public authority methods themselves mint the required seals. No independent source attachment is established merely by those checks.",
+    "required_behavior": "The result must remain UNKNOWN/zero target causal-negative credit until an exact runtime receipt proves that the range authority was bound to the real upstream event source independently of the condition-aware observation caller."
   },
-  "counterhypothesis": "If the G8 threat model intentionally treats possession of an IndependentEventSourceRangeRecorder instance as an already-established trusted source capability, the public construction is acceptable at repository scope. In that case the target-runtime integration must produce independent evidence that the recorder instance was created/bound by the trusted source composition root upstream of condition-aware logic, and no repository-only factory seal may be cited as that proof.",
+  "counterhypothesis": "If the threat model explicitly defines possession of IndependentReentryEventSourceAuthority as a trusted capability granted only by the runtime composition root, the public Python constructor is acceptable as repository scaffolding. That interpretation still requires target evidence proving who instantiated/bound the authority and which upstream source it consumed; names, authority_id strings and module-local seals alone cannot be that proof.",
   "required_closure": [
-    "Do not interpret the current factory seal as proof of operational independence.",
-    "Before any target-runtime negative promotion, bind the range authority to an exact upstream source/runtime instance through a source-owned capability or independently verifiable runtime-wiring receipt that the condition-aware observation caller cannot self-certify.",
-    "Add the caller-self-mints-range hard-negative. It must remain UNKNOWN/zero causal-negative credit unless the independent source binding is present.",
-    "If source topology cannot be enforced inside this Python boundary, keep repository mechanism acceptance separate from target causal-negative acceptance and make the target receipt carry the missing independence proof explicitly.",
-    "Preserve all semantic GWT/J-Space/effect/training/completion/whole-system credits at zero."
+    "Keep repository mechanism acceptance separate from target causal-negative acceptance.",
+    "Before target negative promotion, bind the source-range authority to an exact upstream runtime source instance through independently verifiable composition/wiring evidence or a source-owned capability/receipt that the condition-aware caller cannot self-certify.",
+    "Add a caller-self-mints-authority hard-negative. Repository construction may demonstrate the structural risk; target acceptance must show that the production path cannot satisfy the independence gate using a caller-owned authority instance.",
+    "If this boundary cannot enforce topology in-process, make the target receipt carry explicit source attachment identity and independent readback, and leave causal-negative target credit at zero without it.",
+    "Preserve semantic GWT/J-Space/effect/training/completion/whole-system credits at zero."
   ],
   "failure_class": "PRODUCT_NEGATIVE_CANDIDATE_PENDING_TARGET_INDEPENDENCE_DISCRIMINATOR",
   "mutation_required_if_reproduced": true,
@@ -53,5 +56,5 @@
     "completion_credit": 0,
     "whole_system_acceptance": false
   },
-  "next_exact_action": "Active G8 mutation owner should absorb this as a runtime-independence gate before reconciliation can authorize target negative promotion: either enforce a source-owned runtime binding/capability or explicitly preserve zero negative causal credit until an exact target receipt proves the range recorder is upstream and independent; then add the self-minted-range hard-negative and rerun exact deterministic release CI."
+  "next_exact_action": "Active G8 mutation owner should absorb this as the target-independence gate before any negative causal runtime promotion: integrate the newer source-range authority with causal admission, add the caller-self-mints-authority hard-negative, then require an exact target/VPS receipt proving upstream independent source attachment before causal-negative target credit can become nonzero."
 }
