@@ -1,0 +1,220 @@
+name: WP721 Existing-Parts Voice System Slice Exact-Subject VPS
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/wp721-network-off-voice-system-slice-vps.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  exact-network-off-voice-slice-sandbox:
+    runs-on: clay-host
+    timeout-minutes: 20
+    env:
+      WP721_ACCEPTED_SUBJECT: 3907e3830880a02788b29086c0edf5858f88492b
+      WP721_REPOSITORY_CI_RUN: '33575619527'
+      WP721_REPOSITORY_CI_JOB: '100078826055'
+      F2_SANDBOX_ROOT: /var/tmp/frankenstein2-sandboxes
+      F2_SANDBOX_MIN_FREE_KIB: '5242880'
+      F2_SANDBOX_MIN_MEM_KIB: '1048576'
+    steps:
+      - name: Checkout exact accepted WP721 repository subject
+        uses: actions/checkout@v4
+        with:
+          ref: 3907e3830880a02788b29086c0edf5858f88492b
+          persist-credentials: false
+
+      - name: Verify runner and exact subject identity
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          printf '%s\n' \
+            "RUNNER_NAME=${RUNNER_NAME:-UNKNOWN}" \
+            "RUNNER_OS=${RUNNER_OS:-UNKNOWN}" \
+            "RUNNER_ARCH=${RUNNER_ARCH:-UNKNOWN}" \
+            "CONTROLLER_SHA=$GITHUB_SHA" \
+            "SOURCE_SHA=$(git rev-parse HEAD)" \
+            "GITHUB_RUN_ID=$GITHUB_RUN_ID" \
+            "GITHUB_RUN_ATTEMPT=$GITHUB_RUN_ATTEMPT"
+          test "${RUNNER_NAME:-}" = "vps-clay-host"
+          test "${RUNNER_OS:-}" = "Linux"
+          test "$(git rev-parse HEAD)" = "$WP721_ACCEPTED_SUBJECT"
+          test -f tests/test_wp721_network_off_voice_system_slice.py
+          test -f tests/test_fresh_turn_successor.py
+          test -f tests/test_wp720_turn_policy_falsifiers.py
+          test -f tests/test_voice_packet_cortex_recovery.py
+          test -f src/frankenstein2/fresh_turn_successor.py
+          test -f src/frankenstein2/voice_packet_cortex.py
+          test -f src/frankenstein2/voice_packet_cortex_recovery.py
+
+      - name: Host-health and isolation preflight
+        shell: bash
+        run: bash tools/vps_sandbox/preflight.sh | tee /tmp/wp721-preflight.txt
+
+      - name: Execute exact accepted system slice in network-off VPS sandbox
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          bash tools/vps_sandbox/run_ubuntu_sandbox.sh --backend auto --network off -- \
+            /bin/bash -lc '
+              set +e
+              PYTHONPATH=src python3 -m unittest discover -s tests -p "test_wp721_network_off_voice_system_slice.py" -v > /tmp/wp721-slice.log 2>&1
+              slice_status=$?
+              PYTHONPATH=src python3 -m unittest discover -s tests -p "test_fresh_turn_successor.py" -v > /tmp/wp721-wp719.log 2>&1
+              wp719_status=$?
+              PYTHONPATH=src python3 -m unittest discover -s tests -p "test_wp720_turn_policy_falsifiers.py" -v > /tmp/wp721-wp720.log 2>&1
+              wp720_status=$?
+              PYTHONPATH=src python3 -m unittest discover -s tests -p "test_voice_packet_cortex_recovery.py" -v > /tmp/wp721-wp715.log 2>&1
+              wp715_status=$?
+              set -e
+              cat /tmp/wp721-slice.log
+              cat /tmp/wp721-wp719.log
+              cat /tmp/wp721-wp720.log
+              cat /tmp/wp721-wp715.log
+              printf "WP721_SLICE_EXIT=%s\n" "$slice_status"
+              printf "WP719_PARENT_EXIT=%s\n" "$wp719_status"
+              printf "WP720_PARENT_EXIT=%s\n" "$wp720_status"
+              printf "WP715_PARENT_EXIT=%s\n" "$wp715_status"
+              exit 0
+            ' | tee /tmp/wp721-sandbox.txt
+
+      - name: Emit exact bounded runtime receipt
+        if: always()
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          python3 - <<'PY'
+          import hashlib
+          import json
+          import os
+          import pathlib
+          import re
+          import subprocess
+
+          expected_subject = os.environ['WP721_ACCEPTED_SUBJECT']
+
+          def parse_status(text, name):
+              match = re.search(rf'^{re.escape(name)}=(\d+)$', text, re.MULTILINE)
+              return int(match.group(1)) if match else None
+
+          try:
+              source_sha = subprocess.check_output(['git', 'rev-parse', 'HEAD'], text=True).strip()
+          except Exception:
+              source_sha = None
+
+          sandbox_path = pathlib.Path('/tmp/wp721-sandbox.txt')
+          preflight_path = pathlib.Path('/tmp/wp721-preflight.txt')
+          sandbox = sandbox_path.read_text(errors='replace') if sandbox_path.exists() else ''
+          preflight = preflight_path.read_text(errors='replace') if preflight_path.exists() else ''
+          statuses = {
+              'wp721_system_slice': parse_status(sandbox, 'WP721_SLICE_EXIT'),
+              'wp719_fresh_turn_parent': parse_status(sandbox, 'WP719_PARENT_EXIT'),
+              'wp720_turn_policy_parent': parse_status(sandbox, 'WP720_PARENT_EXIT'),
+              'wp715_recovery_parent': parse_status(sandbox, 'WP715_PARENT_EXIT'),
+          }
+          subject_paths = [
+              'src/frankenstein2/fresh_turn_successor.py',
+              'src/frankenstein2/voice_packet_cortex.py',
+              'src/frankenstein2/voice_packet_cortex_recovery.py',
+              'tests/test_wp721_network_off_voice_system_slice.py',
+              'tests/test_fresh_turn_successor.py',
+              'tests/test_wp720_turn_policy_falsifiers.py',
+              'tests/test_voice_packet_cortex_recovery.py',
+          ]
+          subject_file_sha256 = {}
+          for rel in subject_paths:
+              p = pathlib.Path(rel)
+              subject_file_sha256[rel] = hashlib.sha256(p.read_bytes()).hexdigest() if p.exists() else None
+
+          runner_valid = os.environ.get('RUNNER_NAME') == 'vps-clay-host' and os.environ.get('RUNNER_OS') == 'Linux'
+          sandbox_executed = 'F2_SANDBOX_RESULT=PASS' in sandbox
+          subject_valid = source_sha == expected_subject and all(subject_file_sha256.values())
+
+          if not runner_valid:
+              result = 'INFRA_AUTH_TRANSPORT_QUOTA'
+              failure_class = 'INFRA_AUTH_TRANSPORT_QUOTA'
+          elif not subject_valid:
+              result = 'EVIDENCE_INVALID'
+              failure_class = 'EVIDENCE_INVALID'
+          elif not sandbox_executed or any(value is None for value in statuses.values()):
+              result = 'INFRA_AUTH_TRANSPORT_QUOTA'
+              failure_class = 'INFRA_AUTH_TRANSPORT_QUOTA'
+          elif any(value != 0 for value in statuses.values()):
+              result = 'EXECUTED_PRODUCT_NEGATIVE'
+              failure_class = 'PRODUCT_NEGATIVE'
+          else:
+              result = 'EXECUTED_NO_COUNTEREXAMPLE'
+              failure_class = None
+
+          promoted = int(result == 'EXECUTED_NO_COUNTEREXAMPLE')
+          receipt = {
+              'schema': 'F2_WP721_NETWORK_OFF_VOICE_SYSTEM_SLICE_VPS_RECEIPT/v1',
+              'workpackage_id': 'F2-WP-721',
+              'generation': 1,
+              'claim_id': 'F2-WP-721-G1-GPT56SOL-NETWORK-OFF-VOICE-SYSTEM-SLICE-20260902',
+              'result': result,
+              'failure_class': failure_class,
+              'repository_ci_subject_sha': expected_subject,
+              'repository_ci_run_id': int(os.environ['WP721_REPOSITORY_CI_RUN']),
+              'repository_ci_job_id': int(os.environ['WP721_REPOSITORY_CI_JOB']),
+              'source_sha': source_sha,
+              'subject_file_sha256': subject_file_sha256,
+              'controller_sha': os.environ.get('GITHUB_SHA'),
+              'workflow_run_id': int(os.environ.get('GITHUB_RUN_ID', '0')),
+              'workflow_run_attempt': int(os.environ.get('GITHUB_RUN_ATTEMPT', '0')),
+              'runner_name': os.environ.get('RUNNER_NAME', 'UNKNOWN'),
+              'runner_os': os.environ.get('RUNNER_OS', 'UNKNOWN'),
+              'runner_arch': os.environ.get('RUNNER_ARCH', 'UNKNOWN'),
+              'execution_surface': 'OWNER_VPS_DISPOSABLE_UBUNTU_SANDBOX',
+              'sandbox_tier': 'S1_OR_S2_AUTO',
+              'network_mode': 'OFF',
+              'step_statuses': statuses,
+              'preflight_log': preflight,
+              'sandbox_log': sandbox,
+              'runtime_execution_observed': bool(sandbox_executed and all(value is not None for value in statuses.values())),
+              'repository_component_ci_credit': 1,
+              'target_environment_component_runtime_credit': promoted,
+              'physical_audio_credit': 0,
+              'asr_runtime_credit': 0,
+              'tts_runtime_credit': 0,
+              'gwt_runtime_credit': 0,
+              'semantic_gwt_runtime_credit': 0,
+              'jspace_runtime_credit': 0,
+              'effect_credit': 0,
+              'training_credit': 0,
+              'completion_credit': 0,
+              'whole_voice_e2e_credit': 0,
+              'whole_system_acceptance': False,
+          }
+          pathlib.Path('/tmp/wp721-runtime-receipt.json').write_text(json.dumps(receipt, indent=2, sort_keys=True) + '\n')
+          print(json.dumps(receipt, sort_keys=True))
+          PY
+
+      - name: Upload bounded runtime receipt
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: wp721-network-off-voice-system-slice-vps-${{ github.run_id }}
+          path: /tmp/wp721-runtime-receipt.json
+          if-no-files-found: error
+
+      - name: Enforce bounded runtime discriminator result
+        if: always()
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          path = Path('/tmp/wp721-runtime-receipt.json')
+          if not path.exists():
+              raise SystemExit('WP721_RUNTIME_RECEIPT_MISSING')
+          receipt = json.loads(path.read_text())
+          if receipt.get('result') != 'EXECUTED_NO_COUNTEREXAMPLE':
+              raise SystemExit(f"WP721_RUNTIME_DISCRIMINATOR_NOT_PASS:{receipt.get('result')}:{receipt.get('failure_class')}")
+          print('WP721_BOUNDED_TARGET_COMPONENT_RUNTIME_PASS')
+          PY
