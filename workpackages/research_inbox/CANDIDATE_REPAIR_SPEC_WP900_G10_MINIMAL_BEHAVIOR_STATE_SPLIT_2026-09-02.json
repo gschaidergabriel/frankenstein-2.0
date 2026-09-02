@@ -1,0 +1,71 @@
+{
+  "schema": "FRANKENSTEIN2_RESEARCH_INBOX/v1",
+  "status": "CANDIDATE_REPAIR_SPEC",
+  "mutation_authority": false,
+  "title": "WP900 G10 minimal behavior-state split after executed trial identity sidechannel",
+  "created_at_utc": "2026-09-02T11:52:00Z",
+  "target": "F2-WP-900 generation 10 existing semantic mediator authority",
+  "active_claim_id": "F2-WP-900-G10-GPT56SOL-INDEPENDENT-SEMANTIC-MEDIATOR-AUTHORITY-20260902",
+  "observed_main": "3d9d3bfdb010758eee9ea415f6dec8680c3a26a6",
+  "work_class": "REVIEW_ONLY",
+  "failure_classification": "PRODUCT_NEGATIVE_ALREADY_RECORDED",
+  "evidence_refs": [
+    "workpackages/deltas/F2-WP-900/10-F2-WP-900-G10-GPT56SOL-EXECUTED-TRIAL-STATE-SIDECHANNEL-PRODUCT-NEGATIVE-20260902-04.json",
+    "src/frankenstein2/gwt_independent_semantic_mediator.py",
+    "tests/test_wp900_g10_independent_semantic_mediator.py",
+    "workpackages/active/F2-WP-900.json"
+  ],
+  "current_dataflow_observation": {
+    "behavior_state_fields": [
+      "canonical_semantic_json",
+      "semantic_sha256",
+      "wire_sha256",
+      "trial_process_identity"
+    ],
+    "executor_consumes_for_behavior": [
+      "canonical_semantic_json"
+    ],
+    "verifier_only_fields_currently_leaking_into_behavior_state": [
+      "trial_process_identity"
+    ],
+    "binding_dependency": "bind_independent_semantic_mediator_crossover currently reads state.trial_process_identity to build verifier-side crossover evidence even though execute_mediated_reentry_only does not need it."
+  },
+  "minimal_repair_shape": [
+    "Keep generation G10 and the existing mediator authority; do not create G11 or a second state/mediator authority.",
+    "Remove trial_process_identity from MediatedSemanticState and from MediatedSemanticState.as_dict()/sha256. The behavior-capable state should not carry source/trial/executor topology labels.",
+    "Keep source/trial identity comparison and topology evidence on the verifier/readback side. If admit_mediated_semantic_state still accepts a trial identity for verifier validation, do not persist it into the returned behavior state.",
+    "Change bind_independent_semantic_mediator_crossover so verifier-observed trial process identities arrive through a verifier-only argument/evidence surface rather than through MediatedSemanticState. Do not let that verifier-only surface enter execute_mediated_reentry_only or the child request.",
+    "Prefer canonical_semantic_json as the only public behavior-bearing state value. semantic_sha256/wire_sha256 may remain only if an executable test demonstrates they are deterministic functions of canonical_semantic_json and cannot encode trial/source/topology selectors; otherwise keep those digests verifier-side too.",
+    "Preserve factory-origin sealing, exact mediator.to_wire equality, source-event/runtime-witness binding, and direct-construction rejection."
+  ],
+  "required_adversarial_regressions": [
+    "Enumerate every public field/key available on an admitted MediatedSemanticState before child launch; excluding canonical_semantic_json, no value may recover trial position, semantic class, arm/condition, source identity or treatment.",
+    "Assert trial_process_identity is absent from the behavior state and absent from behavioral executor input keys.",
+    "Construct position-coded verifier trial identities for ABBA and prove the returned behavior states are indistinguishable with respect to those identities except for the permitted canonical semantic value.",
+    "Preserve forged-wire rejection: a self-consistent caller-made canonical wire that differs from mediator.to_wire must still fail before behavior execution.",
+    "Preserve direct MediatedSemanticState construction rejection through factory origin sealing.",
+    "Preserve external payload/arm environment-hint resistance and fresh child execution.",
+    "Re-run targeted G8+G9+G10 CI plus deterministic release CI on one exact repaired head, then repeat independent ABI review before any VPS freeze."
+  ],
+  "runtime_gate_after_repair": {
+    "execution_surface": "VPS_SANDBOX_REPRESENTABLE",
+    "route": "existing owner-VPS/clay-direct-dev authority only",
+    "required_topology": "independently observed source -> verifier/trial -> executor process instances with anti-PID-reuse identity",
+    "required_binding": "exact repaired source SHA + boot/process topology + exact trial wire digest + semantic result/readback + ABBA crossover",
+    "forbidden_shortcut": "logical process labels or process-local factory seals alone do not establish target process independence"
+  },
+  "credit_fence": {
+    "historical_repository_ci_credit_for_93354ea": 1,
+    "93354ea_valid_as_next_target_subject": false,
+    "target_environment_component_runtime_credit": 0,
+    "semantic_gwt_runtime_credit": 0,
+    "jspace_runtime_credit": 0,
+    "physical_grid10_credit": 0,
+    "effect_credit": 0,
+    "training_credit": 0,
+    "completion_credit": 0,
+    "whole_system_acceptance": false
+  },
+  "duplicate_authority_check": "Review-only repair specification. No source/test/workflow/active-pointer mutation, no G11, no runtime dispatch and no second authority created.",
+  "next_exact_action": "Existing G10 mutation owner implements the minimal behavior-state split, lands adversarial wrapper regressions, re-greens repository gates on one exact repaired head, then and only then freezes that new head for the existing VPS process-topology discriminator."
+}
