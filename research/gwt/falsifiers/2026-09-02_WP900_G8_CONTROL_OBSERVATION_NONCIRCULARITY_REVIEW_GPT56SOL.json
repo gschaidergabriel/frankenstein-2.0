@@ -1,0 +1,86 @@
+{
+  "schema": "F2_TRIGGER4_CANDIDATE_FALSIFIER/v1",
+  "trigger": "4",
+  "workpackage_id": "F2-WP-900",
+  "generation": 8,
+  "organ": "GPT-5.6-Sol",
+  "work_class": "CANDIDATE_FALSIFIER",
+  "classification": "WP900_G8_CONTROL_REENTRY_VALUE_NOT_YET_INDEPENDENTLY_OBSERVED",
+  "authority": {
+    "new_mutation_authority": false,
+    "owned_path_mutation": false,
+    "runtime_dispatch": false,
+    "credit_delta": 0
+  },
+  "reviewed_head": "11c6e1681c7c004708e4e4e02464cdaaf03fe9a4",
+  "reviewed_claim_id": "F2-WP-900-G8-GPT56SOL-INDEPENDENT-REENTRY-EVIDENCE-20260902",
+  "reviewed_boundary": "accepted G4 matched causal runtime contract + target-executed G7 shared-outcome candidate -> proposed G8 independent reentry evidence binder -> semantic GWT/J-Space admission discriminator",
+  "finding": {
+    "id": "WP900-G8-F01-CONTROL-OBSERVATION-CIRCULARITY",
+    "severity": "BLOCKS_NONCIRCULAR_SEMANTIC_ADMISSION",
+    "observation": "The proposed G8 claim says the shared REENTRY_OBSERVED predicate should be derived from canonical observation payloads whose hashes equal the G4-bound runtime_witness_sha256/control_readback_sha256. However the current G4 ControlNoBroadcastReadback.observe(...) API receives reentry_observed as a caller-supplied argument, and ControlNoBroadcastReadback.__post_init__ rejects any true value. Therefore the serialized control readback contains reentry_observed=false by construction of the no-broadcast arm, not because an independent downstream observer derived absence of re-entry from raw behavior. Re-reading and hash-binding that value in G8 would preserve provenance but would not remove the semantic circularity.",
+    "supporting_source": [
+      "src/frankenstein2/gwt_causal_runtime_readback.py: ControlNoBroadcastReadback.observe accepts reentry_observed as input",
+      "src/frankenstein2/gwt_causal_runtime_readback.py: ControlNoBroadcastReadback.__post_init__ rejects reentry_observed=true",
+      "src/frankenstein2/gwt_semantic_runtime_readback.py: G7 MatchedTaskOutcomeReadback.observe_from_g4 assigns intervention=true/control=false from condition"
+    ],
+    "why_hash_binding_is_insufficient": "Exact SHA-256 binding can prove that G8 consumed the same G4 control readback, but it cannot transform a condition-constrained assertion inside that readback into an independently observed semantic outcome. Identity/provenance exactness and observational independence are separate requirements.",
+    "failure_classification_if_g8_accepts_on_only_these_inputs": "EVIDENCE_INVALID_NONINDEPENDENT_CONTROL_OBSERVATION",
+    "product_negative": false
+  },
+  "required_discriminator": {
+    "name": "CONDITION_BLIND_DOWNSTREAM_REENTRY_OBSERVER",
+    "rule": "The semantic outcome must be derived from raw downstream observation records by code that does not receive the arm condition as an outcome input. Intervention/control labels may be bound only after the observer has emitted and hashed its result.",
+    "minimum_observables": [
+      "exact observer source identity",
+      "exact boot/execution-context identity",
+      "exact observation-window start/end",
+      "raw downstream event/readback bytes or immutable event-record digests",
+      "condition-blind derived predicate result",
+      "explicit UNKNOWN when the observation window or event coverage is insufficient"
+    ],
+    "acceptable_shape": "For example, hash the raw downstream event stream first, then let one arm-agnostic observer derive REENTRY_OBSERVED from presence/absence of a concrete re-entry event within a bounded observation window. Only afterward bind that already-derived result to INTERVENTION_BROADCAST or CONTROL_NO_BROADCAST.",
+    "forbidden_shape": "Do not derive true/false from condition, from a class invariant that forbids one value for one arm, or from a payload field whose value was itself supplied by the arm constructor rather than independently observed."
+  },
+  "candidate_regressions": [
+    {
+      "id": "G8-F01-SAME-RAW-BYTES-LABEL-SWAP",
+      "expect": "The same raw observer record yields the same derived semantic result regardless of whether the caller later labels it intervention or control; condition labels cannot change observer output."
+    },
+    {
+      "id": "G8-F02-CONTROL-FALSE-WITHOUT-OBSERVATION-WINDOW",
+      "expect": "A control receipt containing reentry_observed=false but lacking independently bound raw event/window evidence is rejected or classified UNKNOWN, not accepted as semantic absence."
+    },
+    {
+      "id": "G8-F03-INTERVENTION-LABEL-WITH-NO-REENTRY-EVENT",
+      "expect": "An intervention-labelled arm whose raw observer trace contains no qualifying re-entry event derives false/UNKNOWN according to the predeclared observer contract; the label alone cannot force true."
+    },
+    {
+      "id": "G8-F04-CONTROL-LABEL-WITH-QUALIFYING-REENTRY-EVENT",
+      "expect": "A control-labelled arm whose raw observer trace contains a qualifying re-entry event must derive true and thereby falsify the assumed no-broadcast control invariant rather than being rejected merely because the class forbids true."
+    },
+    {
+      "id": "G8-F05-MISSING-TAIL-COVERAGE",
+      "expect": "If the bounded observer cannot prove it watched the full declared post-input/re-entry window, absence of a re-entry event remains UNKNOWN rather than false."
+    }
+  ],
+  "credit_fence": {
+    "repository_component_ci": 0,
+    "target_environment_component_runtime": 0,
+    "semantic_gwt_runtime": 0,
+    "jspace_runtime": 0,
+    "physical_grid10": 0,
+    "effect": 0,
+    "training": 0,
+    "completion": 0,
+    "whole_system": 0
+  },
+  "coordination": {
+    "g8_mutation_owner_exists": true,
+    "g8_claim_commit": "11c6e1681c7c004708e4e4e02464cdaaf03fe9a4",
+    "review_only": true,
+    "do_not_overwrite_active_pointer": true,
+    "do_not_duplicate_runtime_dispatch": true
+  },
+  "next_exact_action": "Active WP900 G8 owner should make the G8 binder condition-blind at the observation boundary and add the five adversarial regressions above before repository acceptance. If the existing G4 control payload cannot supply independent raw observation/window evidence, introduce only the smallest observer/readback needed to obtain it; do not relabel G4/G7 evidence as semantic GWT/J-Space credit."
+}
