@@ -1,0 +1,82 @@
+{
+  "schema": "F2_TRIGGER4_CANDIDATE_FALSIFIER/v1",
+  "trigger": "4",
+  "producer": "GPT-5.6-Sol",
+  "date": "2026-09-02",
+  "research_id": "T4-WP900-G9-PAYLOAD-IDENTITY-SIDECHANNEL-FENCE-2026-09-02",
+  "workpackage_id": "F2-WP-900",
+  "generation_under_review": 9,
+  "claim_under_review": "F2-WP-900-G9-GPT56SOL-SEMANTIC-CONTENT-CAUSALITY-20260902",
+  "work_class": "CANDIDATE_FALSIFIER",
+  "status": "REVIEW_ONLY_NON_MUTATION_AUTHORITY",
+  "boundary": "active WP900 G9 same-mechanism semantic-content crossover -> future semantic GWT/J-Space content-causality admission",
+  "mutation_authority": "NONE. WP900 G9 is actively owned by F2-WP-900-G9-GPT56SOL-SEMANTIC-CONTENT-CAUSALITY-20260902. This packet does not mutate G9-owned source/state, dispatch runtime, or request a competing generation.",
+  "evidence_refs": [
+    "workpackages/active/F2-WP-900.json",
+    "research/gwt/falsifiers/2026-09-02_T4_WP900_SEMANTIC_CONTENT_SHAM_CONTROL_FENCE_GPT56SOL.json",
+    "src/frankenstein2/gwt_workspace.py",
+    "src/frankenstein2/gwt_runtime_witness.py",
+    "src/frankenstein2/gwt_semantic_runtime_readback.py"
+  ],
+  "finding": {
+    "class": "SEMANTIC_CONTENT_CAUSALITY_SIDECHANNEL_RISK",
+    "summary": "A condition-blind outcome observer is necessary but not sufficient for semantic-content causality. G9 can still appear to show A-vs-B semantic influence if payload_ref, candidate identity, arm identity, expected-result metadata, or other treatment-correlated identifiers reach the recipient/executor/task context through a path other than the validated broadcast payload itself.",
+    "why_distinct_from_existing_sham_fence": "The existing sham-control fence correctly requires matched mechanism and a treatment-blind evaluator. This additional fence targets leakage upstream of the evaluator: recipient/executor behavior can be conditioned on an opaque payload or arm identity and then produce a clean-looking downstream semantic difference even though the semantic bytes were not the causal variable.",
+    "risk": "Without an identifier-independence test, a four-trial counterbalanced crossover can establish correlation with treatment assignment while still failing to isolate semantic content as the operative cause."
+  },
+  "counterexample": {
+    "setup": "Both arms use the same delivery/uptake/reentry machinery and the outcome scorer receives no treatment label. The executor nevertheless receives payload_ref=A or payload_ref=B through task configuration, process arguments, environment, workspace key, filename, plan metadata, recipient routing metadata, or another side channel.",
+    "bad_behavior": "The executor maps opaque identifier A to semantic outcome X and opaque identifier B to semantic outcome Y without consulting the delivered semantic payload bytes.",
+    "false_positive": "All visible G9 crossover checks may look satisfied: matched mechanism, successful reentry, stable same-arm repeats, different A/B outcomes, and a condition-blind scorer. Yet the causal variable is the leaked identifier, not GWT semantic content."
+  },
+  "required_fences": [
+    "Recipient/executor/task-context inputs must be treatment-invariant except for the validated broadcast semantic payload itself and unavoidable causal transport state required to deliver that payload.",
+    "Do not expose treatment arm, expected result, payload_ref, candidate_id, payload label, semantic digest, or equivalent treatment-correlated identity to behavioral computation through process arguments, environment, filenames, workspace keys, plan metadata, routing metadata, task input, pre-state, or recipient configuration.",
+    "Exact payload lineage may be recorded for evidence, but identity joining should occur post hoc in the evidence binder after the downstream behavior is observed rather than being supplied as a behavioral feature.",
+    "The outcome observer/scorer must remain blind to treatment/mechanism labels as already required by the sham-control fence.",
+    "Counterbalancing must preserve task input, pre-state, source, boot/context identity, executor plan, recipient mechanics, timing budget, and scoring path across arms so only semantic payload content is intentionally varied."
+  ],
+  "hard_negatives": [
+    {
+      "id": "OPAQUE_REF_RELABELLING",
+      "test": "Deliver identical semantic payload bytes twice while changing only opaque payload_ref/candidate labels in the evidence layer.",
+      "required_result": "Downstream semantic behavior must remain invariant. Any behavioral difference indicates identifier leakage or an unmodelled confound and blocks semantic-content causal admission."
+    },
+    {
+      "id": "REF_SWAP_FIXED_CONTENT",
+      "test": "Swap A/B opaque identifiers while keeping the actually delivered semantic bytes fixed and keeping recipient/executor inputs otherwise identical.",
+      "required_result": "Outcome must follow delivered semantic content, not the swapped identifier."
+    },
+    {
+      "id": "CONTENT_SWAP_FIXED_CONTEXT",
+      "test": "Hold all non-content recipient/executor/task inputs fixed while swapping only the validated semantic payload content across counterbalanced positions.",
+      "required_result": "A candidate content-causal effect requires the downstream semantic outcome to track the delivered content across the swap while same-content repeats remain stable."
+    },
+    {
+      "id": "RECIPIENT_INPUT_AUDIT",
+      "test": "Materialize or hash the recipient/executor behavioral input surface for every arm and compare it field-by-field before outcome generation.",
+      "required_result": "No treatment-correlated field may differ except the admitted semantic content channel and transport fields proven necessary for that delivery."
+    },
+    {
+      "id": "POST_HOC_LINEAGE_JOIN",
+      "test": "Run behavioral computation without payload_ref/arm identity available, then join the exact payload lineage only after the outcome has been produced.",
+      "required_result": "The discriminator must remain evaluable and preserve the same content-following result. If identity is required before behavior, semantic-content causality remains unisolated."
+    }
+  ],
+  "failure_class_if_violated": "EVIDENCE_INVALID_SEMANTIC_CONTENT_SIDECHANNEL",
+  "product_negative": false,
+  "promotion_rule": "A downstream difference correlated with payload_ref, arm identity, candidate identity, expected-result metadata, or another treatment side channel is not evidence of semantic GWT content causality. Semantic-content candidate credit must remain zero unless behavior follows the actually delivered semantic content under matched mechanism/context and treatment identity is unavailable to behavioral computation except through that validated content path.",
+  "explicit_zero_credit": {
+    "repository_component_credit_from_this_packet": 0,
+    "target_environment_component_runtime_credit": 0,
+    "semantic_content_causal_candidate_credit": 0,
+    "gwt_runtime_credit": 0,
+    "semantic_gwt_runtime_credit": 0,
+    "jspace_runtime_credit": 0,
+    "effect_credit": 0,
+    "training_credit": 0,
+    "completion_credit": 0,
+    "whole_system_acceptance": false
+  },
+  "next_exact_action": "The active G9 owner should absorb this packet as hard-negative regression guidance without creating a competing generation: make treatment-correlated identifiers unavailable to recipient/executor/task behavioral computation, add identifier relabelling/ref-swap/content-swap negatives, keep lineage joining post hoc, then run the existing G9 repository discriminator. Only after exact repository CI is green should one exact source be frozen for owner-VPS target execution."
+}
