@@ -1,0 +1,158 @@
+{
+  "schema": "T7_TO_TRIGGER4_G2_IMPLEMENTATION_BLUEPRINT/v1",
+  "trigger": "7",
+  "producer": "GPT-5.6-Sol",
+  "date": "2026-09-02",
+  "semantic_key": "0d83f7d13c1d8f91686cf94070f73d901a49018b40a9c058d1949af094655bff",
+  "coordination_packet": "trigger4/inbox/local_voice/T7_G2_TERMINAL_VALIDITY_CONSOLIDATION_V5_2026-09-02_GPT56SOL.json",
+  "product_mutation_authority": "TRIGGER4_ONLY",
+  "goal": "Close the six current terminal G2 validity blockers with the smallest coherent descendant of the existing G2 path and one shared exact PipeWire stream-timing surface. Do not create a second Voice, turn, packet, state, effect, playback-product, analyzer or acceptance authority.",
+  "current_source_observation": {
+    "runtime": "trigger4/tools/local_voice/g2_pipewire_s2_runtime.py",
+    "runtime_behavior": "Promotion-bearing playback currently uses paplay; play_start records time.monotonic_ns immediately after Popen and the cancel source offset is derived from that process-spawn timestamp.",
+    "runtime_identity": "runtime_identity currently records piper-tts version plus Python executable identity only.",
+    "guard": "trigger4/tools/local_voice/g2_required_observables_guard.py",
+    "guard_behavior": "Required tts_runtime_binary_sha256 is currently sha256(sys.executable); piper-tts distribution manifest is computed separately but not the canonical required runtime identity.",
+    "analyzer": "research/local_voice/tools/t7_pipewire_monitor_cancel_analyze.py",
+    "analyzer_behavior": "Terminal audio-tail math currently consumes cancel-offset-ms on the source timeline and uses fixed window scans.",
+    "repository_search": "No existing current helper using pw_stream_get_time_n/pw_stream_get_nsec was found by the Trigger7 repository search before this packet. Refresh before implementation."
+  },
+  "primary_external_semantics": {
+    "source": "official PipeWire API documentation",
+    "pw_stream_get_time_n": "While a stream is running, returns a pw_time snapshot including now, graph ticks/rate, graph/device delay, stream queued data and resampler buffered data; playback total delay is represented by queued + buffered + graph/device delay in the documented timing model.",
+    "pw_stream_get_nsec": "Provides a stream time value comparable to pw_time.now.",
+    "pw_buffer_size": "For audio, use frame units for buffer size so queued stream data can be interpreted in frames.",
+    "design_consequence": "Process launch time is not sufficient source-frame identity. Terminal G2 timing should bind the exact playback stream to its own timing/queued/buffered/delay state."
+  },
+  "minimal_architecture": {
+    "component": "G2_TEST_ONLY_NATIVE_PIPEWIRE_PLAYBACK_TIMING_HELPER",
+    "scope": "TEST_DRIVER_ONLY_NOT_PRODUCTION_PLAYBACK_AUTHORITY",
+    "implementation_preference": "Small auditable C/C++ helper using libpipewire-0.3, or an equally exact already-admitted native binding if Trigger4 finds one on refreshed main.",
+    "reuse": [
+      "existing VoicePacketCortex",
+      "existing BARGE_IN_CANCEL_PROPAGATED causal event",
+      "existing g2_causal_playback_delivery translation",
+      "existing PipeWire sink/monitor object identity and observer",
+      "existing H4 guard and canonical required-observables outer guard",
+      "existing source/control/cancel correlation analyzer"
+    ],
+    "do_not_create": [
+      "second Voice state machine",
+      "second packet fence",
+      "second cancel authority",
+      "second production playback executor",
+      "second acceptance guard",
+      "second monitor observer"
+    ]
+  },
+  "helper_contract": {
+    "input": [
+      "exact PCM16 mono WAV path + SHA256",
+      "exact already-enumerated PipeWire sink target identity",
+      "sample rate/channels/frames",
+      "control commands over a local pipe/socket only inside the disposable G2 sandbox"
+    ],
+    "must_expose": [
+      "exact helper binary SHA256/build identity",
+      "exact pw_stream/node identity and object.serial once observed",
+      "source frames submitted/queued monotonically",
+      "pw_stream_get_time_n snapshot(s): now/rate/ticks/delay/queued/buffered/size/queued_buffers",
+      "pw_stream_get_nsec value from the same stream timing epoch",
+      "monotonic timestamp for every timing snapshot",
+      "terminal playback state/return code"
+    ],
+    "buffer_unit_rule": "Set/report pw_buffer.size in audio frames where the current PipeWire API supports it; otherwise record exact unit conversion and fail closed if queued data cannot be expressed in source-frame units.",
+    "cancel_interface": "The helper itself does not decide semantic cancellation. Python/Trigger4 observes the exact newly emitted BARGE_IN_CANCEL_PROPAGATED event for the bound packet, first takes the causally-prior timing snapshot, then sends one terminate/cancel command to this exact helper stream and records the delivery/terminal timestamps.",
+    "scope_fence": "The helper is an instrumented G2 playback test driver. Its existence does not mint autonomous production playback executor credit."
+  },
+  "shared_timing_solution": {
+    "purpose": "Close PREDECLARED_LATENCY_BOUND_CAUSALITY + CANCEL_SOURCE_TIMELINE_CAUSALITY + CANCEL_ACTIVE_AUDIO_PROOF with one exact stream timing surface.",
+    "stream_epoch": [
+      "Bind exact source frame 0 to the helper's first submitted source frame and persist the exact stream epoch used for all later snapshots.",
+      "Do not equate PipeWire graph ticks directly with source-frame index unless the helper explicitly records the mapping/epoch and sample-rate conversion.",
+      "At each timing snapshot persist total source frames submitted plus pw_time queued/buffered/delay fields so current consumed/presentation-relative position can be derived under a documented fixed formula or fail closed if the relationship is ambiguous."
+    ],
+    "pre_cancel_bound": [
+      "Before causal cancel, while the exact playback stream is running, capture a read-only timing snapshot from that exact stream.",
+      "Convert relevant queued + buffered + graph/device delay to milliseconds using the exact stream/sample rate and documented units.",
+      "Freeze max_inflight_ms from the observed relevant delay plus a fixed predeclared deterministic safety policy; do not derive it solely from clock.quantum/rate.",
+      "Record every term and the formula in the receipt. Missing/unparseable/ambiguous units -> EVIDENCE_INVALID_BOUND_ASSUMPTION before product-negative reasoning."
+    ],
+    "cancel_source_position": [
+      "At/immediately before the exact causal cancel delivery, capture the exact stream timing snapshot and map the monotonic cancel instant to a source-frame/source-timeline position from the persisted stream epoch.",
+      "Persist mapping inputs and derived cancel_source_frame; keep old process-spawn cancel_offset_ms only as diagnostic legacy data, never terminal timing authority."
+    ],
+    "active_at_cancel": [
+      "Predeclare a short immediate pre-cancel interval in source-frame space (for example 60 ms; Trigger4 may choose another fixed value before inspecting cancel outcome).",
+      "Require source-active samples in that interval and require the cancel-run monitor to correlate to the exact old source over that same mapped interval with the existing declared RMS/correlation floors.",
+      "If the mapped cancel interval is a speech pause/silence, classify EVIDENCE_INVALID_CANCEL_NOT_PROVEN_DURING_ACTIVE_OLD_AUDIO; do not move the cancel point after observing the cancel result.",
+      "For repeatability, Trigger4 may deterministically preselect a sustained-active target source region from the already-bound run-local source/control evidence before the cancel run and instruct the helper to signal when the stream reaches that mapped target."
+    ]
+  },
+  "analyzer_repair": {
+    "preferred_contract_change": [
+      "Add/use terminal cancel_source_frame (or exact cancel source timeline value) from the native stream timing receipt instead of interpreting paplay Popen-relative milliseconds as source position.",
+      "Keep capture alignment as independent waveform/readback identity evidence.",
+      "Compute bound_start_frame = ceil(cancel_source_frame + max_inflight_frames) exactly in sample space.",
+      "Run a dedicated post-bound-only correlation scan starting at bound_start_frame; require zero old-packet correlation in every source-active analyzable post-bound interval.",
+      "Remove observed_tail <= max_inflight + window_ms as a semantic acceptance extension. Window granularity may be reported as measurement uncertainty but cannot enlarge the frozen bound.",
+      "Add the immediate-pre-cancel active/correlated predicate using the exact mapped cancel_source_frame."
+    ],
+    "classification_rule": "Unresolved source/cancel timing or boundary resolution -> EVIDENCE_INVALID. PRODUCT_NEGATIVE_OLD_PACKET_AUDIO_PERSISTS_BEYOND_DECLARED_BOUND only when exact post-bound-only evidence observes old-packet correlation after the frozen bound."
+  },
+  "tts_runtime_identity_repair": {
+    "minimum_required_identity": [
+      "piper-tts distribution version",
+      "deterministic piper-tts distribution manifest SHA256 over exact installed files",
+      "resolved actual invoked Piper console-script/module path and SHA256 when it is a file",
+      "Python executable/path/hash as auxiliary interpreter identity",
+      "exact TTS model SHA256",
+      "exact TTS config SHA256",
+      "exact generated source WAV SHA256 and source text SHA256"
+    ],
+    "dependency_note": "If the actual Piper inference path loads a separate native runtime package/library whose identity is not covered by the piper-tts manifest, record that exact resolved runtime artifact/manifest too rather than falsely calling the interpreter the TTS binary.",
+    "required_guard_change": "Terminal required observables must require the canonical Piper runtime/distribution identity and verify it matches the packet_audio_binding/source lineage."
+  },
+  "cleanup_taxonomy_repair": {
+    "acceptance": "run_owned_node_cleanup must remain required and fail closed.",
+    "classification": "Synthetic test-harness node persistence/ambiguous teardown -> EVIDENCE_INVALID_HARNESS_CLEANUP (or INFRA when teardown/observation surface did not execute). Reserve PRODUCT_NEGATIVE for a separately bound product-owned cleanup invariant."
+  },
+  "focused_regression_matrix": [
+    "R1 same Python interpreter + different synthetic Piper manifest => canonical runtime identity differs",
+    "R2 missing Piper runtime/distribution identity => terminal guard rejects",
+    "R3 higher causally-prior stream queued/buffered/delay => frozen bound reflects it before cancel",
+    "R4 missing/ambiguous timing units or later timing invalidation => EVIDENCE_INVALID_BOUND_ASSUMPTION, not product-negative",
+    "R5 injected playback-process/helper startup delay with identical stream frame progression => cancel_source_frame unchanged",
+    "R6 missing exact stream/source mapping with otherwise green PCM => terminal reject",
+    "R7 fixed cancel lands in source silence but earlier alignment is green => terminal reject ACTIVE_AT_CANCEL",
+    "R8 sustained exact old-source correlation immediately before mapped cancel => ACTIVE_AT_CANCEL predicate passes",
+    "R9 old correlation only in post-bound suffix of a formerly straddling window => terminal reject",
+    "R10 changing analyzer window_ms cannot move the semantic bound",
+    "R11 synthetic harness null-sink cleanup failure => NOT_ACCEPTED + zero credit without unsupported PRODUCT_NEGATIVE",
+    "R12 all existing H1-H5, causal delivery, replacement readback, object identity, packet non-commit fence and explicit zero-credit fields remain green"
+  ],
+  "execution_sequence_after_repository_repairs": [
+    "Refresh current main and ensure no newer semantic G2 owner/repair supersedes this packet.",
+    "Run only focused repository regressions for all six blockers plus preserved H1-H5 fences.",
+    "Freeze the exact repaired F2 subject SHA and exact helper/runtime identities.",
+    "Reconcile stale never-executed queued G2 subjects as historical/control-plane evidence only.",
+    "If singleton runtime ownership is clear, dispatch exactly one fresh S2 owner-VPS PipeWire G2 run.",
+    "Consume only the exact guarded receipt; no old-runtime + new-source composition.",
+    "If all six repaired predicates and prior required observables pass, promote only bounded G2 virtual-sink/monitor/cancel scope and terminalize G2. Otherwise classify the exact failure and keep G2 runtime credit zero."
+  ],
+  "explicit_zero_credit_before_fresh_guarded_runtime": {
+    "g2_runtime": 0,
+    "physical_microphone": 0,
+    "physical_speaker": 0,
+    "human_heard_output": 0,
+    "physical_presence": 0,
+    "cancellation_to_physical_silence": 0,
+    "autonomous_production_playback_executor": 0,
+    "whole_voice_e2e": 0,
+    "gwt_jspace": 0,
+    "effect": 0,
+    "training": 0,
+    "whole_product": 0
+  },
+  "next_exact_gate": "Trigger4 implements this as one existing-G2-path repair, proves R1-R12 or stricter equivalent focused regressions, then executes exactly one fresh S2 subject if singleton ownership is clear."
+}
