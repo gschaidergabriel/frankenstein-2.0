@@ -1,0 +1,54 @@
+name: REVIEW ONLY - WP206 G3 Recovery Audit Falsifier
+
+on:
+  push:
+    branches:
+      - review/trigger4-wp206-g3-recovery-audit-tamper-falsifier-20260830
+    paths:
+      - 'tests/test_wp206_g3_recovery_audit_falsifier.py'
+      - 'tests/wp206_g3_recovery_audit_counterexample_witness.py'
+      - '.github/workflows/wp206-g3-recovery-audit-falsifier-review-ci.yml'
+  pull_request:
+    paths:
+      - 'tests/test_wp206_g3_recovery_audit_falsifier.py'
+      - 'tests/wp206_g3_recovery_audit_counterexample_witness.py'
+      - '.github/workflows/wp206-g3-recovery-audit-falsifier-review-ci.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  recovery-audit-falsifier:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: Checkout exact review subject
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - name: Compile falsifier, witness and current merged recovery surface
+        run: >-
+          python -m py_compile
+          src/frankenstein2/wp206_legacy_authority_recovery.py
+          tests/test_wp206_legacy_authority_recovery.py
+          tests/wp206_g3_recovery_audit_counterexample_witness.py
+          tests/test_wp206_g3_recovery_audit_falsifier.py
+      - name: Execute positive counterexample witness
+        env:
+          PYTHONPATH: src:.
+        run: python tests/wp206_g3_recovery_audit_counterexample_witness.py
+      - name: Execute recovery-audit fail-closed falsifier
+        env:
+          PYTHONPATH: src:.
+        run: python tests/test_wp206_g3_recovery_audit_falsifier.py
+      - name: Preserve review-only credit fence
+        if: always()
+        run: |
+          echo 'CLASSIFICATION=REVIEW_ONLY_POST_MERGE_COUNTEREVIDENCE'
+          echo 'WP206_MUTATION_AUTHORITY=false'
+          echo 'TARGET_RUNTIME_CREDIT=0'
+          echo 'PHYSICAL_GRID10_CREDIT=0'
+          echo 'GWT_RUNTIME_CREDIT=0'
+          echo 'JSPACE_RUNTIME_CREDIT=0'
+          echo 'EFFECT_CREDIT=0'
+          echo 'COMPLETION_CREDIT=0'
+          echo 'WHOLE_SYSTEM_ACCEPTANCE=false'
