@@ -234,22 +234,34 @@ def _require_observed(
         violations.append(f"{observation.case_id}:{attribute}=false")
 
 
-def _evaluate_host_route(
+def _require_host_core_observations(
     observation: AcceptanceObservation,
     violations: list[str],
+    *,
+    require_lifecycle: bool,
 ) -> None:
-    for attribute in (
-        "lifecycle_firing_observed",
+    attributes = [
         "durable_state_readback_observed",
         "restart_recovery_observed",
         "reinstall_update_persistence_observed",
         "uninstall_disable_observed",
         "baseline_local_boot_observed",
         "single_state_lineage_verified",
-    ):
+    ]
+    if require_lifecycle:
+        attributes.insert(0, "lifecycle_firing_observed")
+    for attribute in attributes:
         _require_observed(observation, attribute, violations)
 
+
+def _evaluate_host_route(
+    observation: AcceptanceObservation,
+    violations: list[str],
+) -> None:
     if observation.case_id == "claude_code":
+        _require_host_core_observations(
+            observation, violations, require_lifecycle=True
+        )
         if observation.route_result not in {"NATIVE", "ADAPTED"}:
             violations.append(
                 "claude_code:route_result must be NATIVE or evidenced ADAPTED"
@@ -260,6 +272,9 @@ def _evaluate_host_route(
         ):
             violations.append("claude_code:ADAPTED requires adapted_route_evidence_ref")
     elif observation.case_id == "codex_cli":
+        _require_host_core_observations(
+            observation, violations, require_lifecycle=True
+        )
         if observation.route_result not in {"NATIVE", "ADAPTED"}:
             violations.append("codex_cli:route_result must be NATIVE or ADAPTED")
         if (
@@ -272,8 +287,24 @@ def _evaluate_host_route(
             violations.append(
                 "other_agent:route_result must be ADAPTED, DEGRADED or BLOCKED"
             )
+            return
         if observation.route_result in {"DEGRADED", "BLOCKED"} and not observation.limitations:
             violations.append("other_agent:DEGRADED/BLOCKED requires precise limitations")
+
+        # The portable-host contract explicitly allows an other-agent route to
+        # report a measured missing capability instead of fabricating support.
+        # ADAPTED must therefore prove the full host-core surface, while
+        # DEGRADED may truthfully lack lifecycle firing if the durable local
+        # core remains verified. BLOCKED is itself a negative observation and
+        # must not be forced to mark the unavailable capability as observed.
+        if observation.route_result == "ADAPTED":
+            _require_host_core_observations(
+                observation, violations, require_lifecycle=True
+            )
+        elif observation.route_result == "DEGRADED":
+            _require_host_core_observations(
+                observation, violations, require_lifecycle=False
+            )
 
 
 def _evaluate_case(
