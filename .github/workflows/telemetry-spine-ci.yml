@@ -6,8 +6,12 @@ on:
     paths:
       - 'tools/init_telemetry_dbs.py'
       - 'tools/telemetry_runtime.py'
+      - 'src/frankenstein2/causal_identity.py'
+      - 'src/frankenstein2/causal_authority_binding.py'
       - 'tests/test_init_telemetry_dbs.py'
       - 'tests/test_telemetry_runtime.py'
+      - 'tests/test_causal_authority_binding.py'
+      - 'tests/test_telemetry_causal_authority_integration.py'
       - 'telemetry/**'
       - 'schemas/**'
       - '.github/workflows/telemetry-spine-ci.yml'
@@ -15,8 +19,12 @@ on:
     paths:
       - 'tools/init_telemetry_dbs.py'
       - 'tools/telemetry_runtime.py'
+      - 'src/frankenstein2/causal_identity.py'
+      - 'src/frankenstein2/causal_authority_binding.py'
       - 'tests/test_init_telemetry_dbs.py'
       - 'tests/test_telemetry_runtime.py'
+      - 'tests/test_causal_authority_binding.py'
+      - 'tests/test_telemetry_causal_authority_integration.py'
       - 'telemetry/**'
       - 'schemas/**'
       - '.github/workflows/telemetry-spine-ci.yml'
@@ -30,20 +38,28 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     env:
-      PYTHONPATH: .
+      PYTHONPATH: .:src
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-      - name: Compile telemetry source and regressions
+      - name: Compile telemetry and causal-authority surfaces
         run: >-
           python -m py_compile
           tools/init_telemetry_dbs.py
           tools/telemetry_runtime.py
+          src/frankenstein2/causal_identity.py
+          src/frankenstein2/causal_authority_binding.py
           tests/test_init_telemetry_dbs.py
           tests/test_telemetry_runtime.py
+          tests/test_causal_authority_binding.py
+          tests/test_telemetry_causal_authority_integration.py
       - name: Run telemetry initializer regression
         run: python tests/test_init_telemetry_dbs.py
       - name: Run telemetry runtime/finalizer regression
         run: python tests/test_telemetry_runtime.py
+      - name: Run causal authority binding regression
+        run: python tests/test_causal_authority_binding.py
+      - name: Run emitted-event causal authority integration discriminator
+        run: python tests/test_telemetry_causal_authority_integration.py
