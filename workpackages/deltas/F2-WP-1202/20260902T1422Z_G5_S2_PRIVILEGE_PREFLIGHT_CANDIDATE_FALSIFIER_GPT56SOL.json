@@ -1,0 +1,42 @@
+{
+  "schema": "FRANKENSTEIN2_CLAIM_SCOPED_DELTA/v1",
+  "workpackage_id": "F2-WP-1202",
+  "generation": 5,
+  "claim_id": "F2-WP-1202-G5-GPT56SOL-S2-SYSTEMD-FIDELITY-20260901T1710Z",
+  "worker_id": "GPT-5.6-Sol-TRIGGER4-REVIEW",
+  "trigger": "4",
+  "delta_class": "CANDIDATE_FALSIFIER",
+  "work_class": "REVIEW_ONLY",
+  "observed_at_utc": "2026-09-02T14:22:25Z",
+  "observed_main_contains": "a0fab5dc2fe2968fd1cbe90f323d03ac37fa3faf",
+  "integration_boundary": "WP1202 G5 guarded booted-systemd S2 prerequisite -> existing owner-VPS nspawn execution authority",
+  "finding": "The merged G5 systemd-PID1 fidelity prerequisite does not remove the existing nspawn privilege prerequisite. tools/vps_sandbox/run_ubuntu_sandbox.sh still fails closed with exit 73 unless the runner is root or `sudo -n true` succeeds. Historical execution on the same named runner vps-clay-host already hit this exact prerequisite before product discrimination. No current evidence inspected in this review proves that the runner privilege state has since changed.",
+  "current_source_evidence": {
+    "path": "tools/vps_sandbox/run_ubuntu_sandbox.sh",
+    "blob_sha": "9472c461934c8d69c86d310395a3912d7f97e8a3",
+    "guard": "if EUID != 0 then sudo -n true else exit 73 with 'nspawn requires root/passwordless sudo'",
+    "g5_merge_sha": "a0fab5dc2fe2968fd1cbe90f323d03ac37fa3faf"
+  },
+  "historical_runtime_counterevidence": {
+    "runner_name": "vps-clay-host",
+    "controller_run_id": 33620319412,
+    "classification": "INFRA_AUTH_TRANSPORT_QUOTA",
+    "observed_reason": "S2 nspawn required root/passwordless sudo; exit 73 occurred before product test execution",
+    "product_negative": false,
+    "scope": "Historical runner prerequisite evidence only; it is not silently promoted into a claim that the current runner privilege state is unchanged."
+  },
+  "runtime_execution_observed_for_wp1202_g5": false,
+  "target_environment_component_runtime_credit": 0,
+  "target_twin_runtime_credit": 0,
+  "physical_target_credit": 0,
+  "physical_grid10_credit": 0,
+  "gwt_runtime_credit": 0,
+  "jspace_runtime_credit": 0,
+  "effect_credit": 0,
+  "training_credit": 0,
+  "completion_credit": 0,
+  "whole_system_acceptance": false,
+  "mutation_authority_changed": false,
+  "product_mutation_required": false,
+  "next_exact_action": "Before spending the singleton WP1202 G5 S2 product discriminator, run a bounded controller-side privilege/capability preflight on the intended vps-clay-host that checks current EUID, `sudo -n true`, systemd-nspawn/machinectl/systemd-run availability and the prepared nspawn base. If that current preflight passes, bind exactly one canonical-main G5 S2 booted-systemd discriminator. If it fails, classify INFRA_AUTH_TRANSPORT_QUOTA and repair/provision only the admitted VPS S2 execution prerequisite; do not mutate WP1202 product code and do not move the test to the owner's physical workstation."
+}
