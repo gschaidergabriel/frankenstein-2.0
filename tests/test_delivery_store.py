@@ -147,6 +147,31 @@ class CanonicalDeliveryStoreTests(unittest.TestCase):
         replacement.close()
         self.assertEqual(delivery_tables, 0)
 
+    def test_live_reader_fails_closed_if_canonical_db_inode_is_replaced(self):
+        store = _open_store(self.db_path, self.home)
+        offered = store.apply(
+            _identity(), _transition("transition:offer-1", DeliveryOperation.OFFER)
+        )
+
+        replacement_path = str(Path(self.tmp.name) / "replacement-read.db")
+        replacement = sqlite3.connect(replacement_path)
+        replacement.execute("CREATE TABLE bootstrap_identity(seed INTEGER NOT NULL)")
+        replacement.commit()
+        replacement.close()
+        os.replace(replacement_path, self.db_path)
+
+        with self.assertRaisesRegex(
+            DeliveryStoreError, "UNIFIEDDB_LIVE_FILE_IDENTITY_DRIFT"
+        ):
+            store.get_delivery(
+                causal_event_id="causal:event-1", recipient_id="recipient:alpha"
+            )
+        with self.assertRaisesRegex(
+            DeliveryStoreError, "UNIFIEDDB_LIVE_FILE_IDENTITY_DRIFT"
+        ):
+            store.transition_count(offered.delivery_id)
+        store.close()
+
     def test_offer_ack_persists_across_reopen(self):
         store = _open_store(self.db_path, self.home)
         offered = store.apply(
