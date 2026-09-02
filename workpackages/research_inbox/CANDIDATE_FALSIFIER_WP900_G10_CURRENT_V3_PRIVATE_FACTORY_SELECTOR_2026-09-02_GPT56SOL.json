@@ -4,6 +4,7 @@
   "mutation_authority": false,
   "title": "WP900 G10 current v3 green repository head still exposes a treatment-correlated private factory digest to the behavior-capable wrapper object",
   "created_at_utc": "2026-09-02T11:58:00Z",
+  "updated_at_utc": "2026-09-02T12:01:00Z",
   "workpackage_id": "F2-WP-900",
   "generation": 10,
   "active_claim_id": "F2-WP-900-G10-GPT56SOL-INDEPENDENT-SEMANTIC-MEDIATOR-AUTHORITY-20260902",
@@ -21,11 +22,23 @@
   "material_observation": {
     "minimal_public_state_repair": "The v3 MediatedSemanticState now has canonical_semantic_json as its only public instance field, and trial_process_identity was removed from admission. This closes the earlier public metadata selector at repository ABI scope.",
     "remaining_private_selector": "MediatedSemanticState still has _factory_sha256 in __slots__. _seal assigns _factory_sha256 = _digest(value.as_dict()), and MediatedSemanticState.as_dict() contains canonical_semantic_json. Therefore the private factory digest is a deterministic function of the treatment-varying semantic content and remains readable by Python code holding the state object despite underscore naming.",
+    "exact_v3_source_level_reproduction": {
+      "method": "Apply the exact current _canonical_json/_digest rule to MediatedSemanticState.as_dict() for the four fixed G9/G10 ABBA semantic payloads under MEDIATED_SEMANTIC_STATE_SCHEMA v3.",
+      "trial_digests": [
+        {"trial": 1, "semantic_class": "allow", "factory_sha256": "0239f40721864071bfa7d4fff9b854f7595cac1d9362165414a39c3d0b169465"},
+        {"trial": 2, "semantic_class": "deny", "factory_sha256": "57e6422ae2c2d92d129bf437e357dcc1391464badeb6889b9c3420e4d6753d98"},
+        {"trial": 3, "semantic_class": "deny", "factory_sha256": "97c6d2063142ec14e3d18f0da7118607d86487c15339dd0e305ab2c4e701fb0a"},
+        {"trial": 4, "semantic_class": "allow", "factory_sha256": "f1b6df7dc9ee11b4cf4cc11cd7a51b7e4e4047522da6e865c6b803d2ec84cff0"}
+      ],
+      "uniqueness": "4/4 distinct",
+      "counterexample": "A preregistered lookup over the four wrapper-readable _factory_sha256 values distinguishes all four fixed trials without parsing canonical_semantic_json. This is deterministic source-level reproduction, not target-runtime execution."
+    },
     "why_current_green_ci_is_insufficient": "The current adversarial test enumerates only non-underscore/public attributes. The targeted G10 CI and deterministic release CI can therefore both pass while this wrapper-readable private selector remains structurally present.",
     "same_wrapper_limit": "Even after all per-object metadata selectors are removed, a persistent wrapper executing a fixed ABBA sequence can retain invocation count. Per-trial fresh process isolation remains a target-topology requirement rather than repository-CI credit."
   },
   "failure_classification": "EVIDENCE_INVALID_IF_950F2B0_IS_FROZEN_AS_TREATMENT_BLIND_TARGET_SUBJECT",
   "executed_product_counterexample": false,
+  "source_level_counterexample_reproduced": true,
   "promotion_effect": {
     "repository_ci_execution_fact": "PRESERVED_AT_EXACT_SCOPE",
     "freeze_950f2b0_for_target_promotion": false,
