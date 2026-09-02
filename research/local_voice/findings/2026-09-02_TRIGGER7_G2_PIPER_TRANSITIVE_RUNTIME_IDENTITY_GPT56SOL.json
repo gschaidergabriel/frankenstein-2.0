@@ -1,0 +1,57 @@
+{
+  "schema": "F2_TRIGGER7_RESEARCH_FINDING/v1",
+  "trigger": "7",
+  "producer": "GPT-5.6-Sol",
+  "date": "2026-09-02",
+  "research_id": "T7-20260902-G2-PIPER-TRANSITIVE-RUNTIME-IDENTITY",
+  "semantic_key": "0d83f7d13c1d8f91686cf94070f73d901a49018b40a9c058d1949af094655bff",
+  "work_class": "TTS_RUNTIME_IDENTITY_REFINEMENT_ONLY",
+  "product_mutation_authority": "TRIGGER4_ONLY",
+  "parent_blocker": "TTS_RUNTIME_IDENTITY",
+  "observed_launcher": "trigger4/tools/local_voice/run_g2_pipewire_s2.sh",
+  "observed_launcher_behavior": "The G2 launcher explicitly pins piper-tts==1.7.0, numpy==1.26.4 and soundfile==0.13.1 but does not explicitly pin onnxruntime in the pip command.",
+  "external_primary_evidence": [
+    {
+      "source": "https://github.com/OHF-Voice/piper1-gpl/blob/main/setup.py",
+      "observation": "Current official Piper Python packaging declares onnxruntime>=1,<2 as an install dependency and packages an embedded espeak bridge/data inside the Piper distribution."
+    },
+    {
+      "source": "https://github.com/OHF-Voice/piper1-gpl/blob/main/docs/API_PYTHON.md",
+      "observation": "PiperVoice.load/synthesize uses the Python inference path; CUDA mode explicitly swaps to onnxruntime-gpu, demonstrating that the ONNX Runtime provider/runtime is a material inference dependency rather than interpreter identity."
+    },
+    {
+      "source": "https://pypi.org/project/piper-tts/1.7.0/",
+      "observation": "piper-tts 1.7.0 is the exact package version requested by the current G2 launcher."
+    }
+  ],
+  "finding": {
+    "class": "TTS_RUNTIME_IDENTITY_INCOMPLETE_IF_ONNXRUNTIME_UNBOUND",
+    "reason": "A deterministic manifest of only the piper-tts distribution does not cover the separately installed onnxruntime distribution/native shared libraries/execution provider used for ONNX inference. The same Piper package/model/interpreter can execute through a different allowed ONNX Runtime 1.x build or provider.",
+    "false_green_risk": "Terminal TTS runtime identity could remain unchanged while the inference engine that generated the bound WAV changed, weakening exact waveform-runtime lineage.",
+    "scope": "Refinement of existing TTS_RUNTIME_IDENTITY blocker; do not create a seventh independent terminal blocker."
+  },
+  "minimal_trigger4_repair_precision": [
+    "Record deterministic piper-tts distribution manifest SHA256 including its embedded espeak bridge/data used by the installed wheel.",
+    "Record exact installed onnxruntime distribution version and deterministic distribution manifest SHA256.",
+    "Resolve and hash the actual loaded ONNX Runtime native shared library/libraries where deterministically available; record the active execution provider list from the exact Piper session. For current use_cuda=False the expected provider should be CPU, but verify observed provider rather than infer it.",
+    "Keep Python executable hash as auxiliary interpreter identity, not canonical TTS runtime identity.",
+    "Bind piper manifest + ONNX Runtime manifest/native identity + provider + model/config hashes + source text + generated WAV hash into the same packet_audio_binding/source lineage.",
+    "If a material native inference dependency cannot be deterministically resolved, terminal guard must fail closed as EVIDENCE_INVALID_TTS_RUNTIME_IDENTITY rather than silently falling back to interpreter identity."
+  ],
+  "reproducibility_preference": {
+    "preferred": "Pin the exact ONNX Runtime version used by the G2 S2 launcher in addition to recording its exact installed manifest/native identity, so future fresh S2 subjects do not silently resolve a different allowed 1.x dependency.",
+    "why_record_even_when_pinned": "Version pins are selection policy, not proof of installed bytes; terminal evidence still needs observed runtime identity."
+  },
+  "focused_regressions": [
+    "Same piper-tts manifest/model/interpreter with two synthetic onnxruntime manifests must produce different canonical TTS runtime identities.",
+    "Missing onnxruntime identity/provider with otherwise complete Piper/model hashes must make terminal required-observables incomplete.",
+    "Changing only Python interpreter path/hash while keeping exact Piper+ONNX native runtime unchanged must not masquerade as a TTS engine change; interpreter remains separately observable.",
+    "Observed provider/runtime identity must be bound to both old and replacement waveform generation lineage or an explicitly shared generation-session identity."
+  ],
+  "explicit_zero_credit": {
+    "g2_runtime": 0,
+    "whole_voice_e2e": 0,
+    "whole_product": 0
+  },
+  "next_action": "Trigger4 folds this into the existing TTS_RUNTIME_IDENTITY repair inside the one six-blocker descendant; no separate generation or authority."
+}
