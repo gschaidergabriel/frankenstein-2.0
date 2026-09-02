@@ -1,0 +1,56 @@
+{
+  "schema": "FRANKENSTEIN2_RESEARCH_INBOX/v1",
+  "status": "CANDIDATE_FALSIFIER",
+  "mutation_authority": false,
+  "title": "WP900 G10 behavior-capable trial state still carries condition-correlated nonsemantic metadata",
+  "created_at_utc": "2026-09-02T11:49:00Z",
+  "target": "F2-WP-900 generation 10 split-channel semantic mediator repository candidate",
+  "active_claim_id": "F2-WP-900-G10-GPT56SOL-INDEPENDENT-SEMANTIC-MEDIATOR-AUTHORITY-20260902",
+  "work_class": "CANDIDATE_FALSIFIER",
+  "observed_main": "9d8b88505b1135f14cb9919757c83cb3afac4527",
+  "accepted_subject_under_review": "93354ea60fd70f6715ddffa3d86a33dab37ddf91",
+  "evidence_refs": [
+    "src/frankenstein2/gwt_independent_semantic_mediator.py",
+    "tests/test_wp900_g10_independent_semantic_mediator.py",
+    ".github/workflows/trigger4-wp900-g10-independent-semantic-mediator-ci.yml",
+    "workpackages/receipts/F2-WP-900_G10_SPLIT_CHANNEL_MEDIATOR_REPOSITORY_CI_33625863834.json",
+    "workpackages/research_inbox/CANDIDATE_FALSIFIER_WP900_G10_PROCESS_TOPOLOGY_FACTORY_SEAL_2026-09-02.json"
+  ],
+  "preserved_positive_evidence": {
+    "trial_wire_split": "IndependentSemanticMediatorReceipt.to_wire now emits only schema plus canonical_semantic_json; the former class/raw-payload/position/source/witness metadata is no longer in the serialized source-to-trial wire.",
+    "origin_gate": "admit_mediated_semantic_state requires a factory-valid IndependentSemanticMediatorReceipt and byte-for-byte equality with mediator.to_wire, so a caller-recomputed self-consistent wire alone cannot mint an admitted state.",
+    "repository_checks": "Targeted G10 CI run 33625863834 and deterministic release run 33625863865 both succeeded for tested head 93354ea60fd70f6715ddffa3d86a33dab37ddf91."
+  },
+  "material_observation": {
+    "state_surface": "After verifier admission, MediatedSemanticState still contains semantic_sha256, wire_sha256 and trial_process_identity in addition to canonical_semantic_json, and execute_mediated_reentry_only receives that whole object in the behavior-capable wrapper process.",
+    "deterministic_position_leak_in_current_regression": "The current G10 regression constructs trial_process_identity as trial-process:g10:<position>. A wrapper can therefore read semantic_state.trial_process_identity and recover physical ABBA trial position before invoking the behavioral child, without consulting canonical_semantic_json.",
+    "test_gap": "The new trial-surface regression parses only mediator.to_wire and inspects admit_mediated_semantic_state parameter names. It does not adversarially enumerate every field available to the behavior-capable wrapper through the admitted MediatedSemanticState before child invocation.",
+    "hash_note": "semantic_sha256 and wire_sha256 are deterministic functions of the permitted canonical semantic state and therefore may add no information-theoretic entropy, but they are still unnecessary behavior-visible metadata. trial_process_identity is stronger because the current repository harness explicitly encodes trial position in it."
+  },
+  "constructive_counterexample": {
+    "setup": "Use the currently admitted repository helper pattern for positions 1..4, where trial_process_identity is trial-process:g10:<position>. After admit_mediated_semantic_state returns but before execute_mediated_reentry_only launches the child, inspect semantic_state.trial_process_identity.",
+    "recovery": "Map suffix 1/4 to allow and 2/3 to deny under the preregistered ABBA schedule. This distinguishes treatment from a nonsemantic trial-visible field before the child runs.",
+    "expected_current_result": "The wrapper can recover the treatment class from trial_process_identity even though mediator.to_wire itself is clean.",
+    "required_result": "No behavior-capable pre-child object or argument may expose trial position, treatment-correlated caller labels, class, arm/condition, source/witness metadata or other nonsemantic treatment selectors. Verifier-only topology/readback metadata must remain outside the behavior-capable state surface."
+  },
+  "required_discriminator_before_vps_freeze": [
+    "Add an adversarial trial-wrapper regression that enumerates all public/admitted pre-child state fields and attempts treatment recovery without reading canonical_semantic_json.",
+    "Move trial_process_identity and verifier/readback-only topology metadata out of MediatedSemanticState or prove executable isolation that prevents behavior-capable code from observing it before child invocation.",
+    "Prefer the minimal state surface: canonical_semantic_json plus only treatment-invariant opaque capability state that cannot encode position/class; keep source/trial/executor identities in verifier/readback receipts.",
+    "Re-run G8+G9+G10 targeted CI and deterministic release CI, then repeat independent ABI review before freezing the exact VPS subject."
+  ],
+  "failure_classification": "EVIDENCE_INVALID",
+  "product_negative": false,
+  "credit_fence": {
+    "repository_ci_execution_fact": "PRESERVED",
+    "semantic_mediator_authority_candidate_credit": "CHALLENGED_PENDING_ADVERSARIAL_WRAPPER_DISCRIMINATOR",
+    "target_environment_component_runtime_credit": 0,
+    "semantic_gwt_runtime_credit": 0,
+    "jspace_runtime_credit": 0,
+    "training_credit": 0,
+    "completion_credit": 0,
+    "whole_system_acceptance": false
+  },
+  "duplicate_authority_check": "No G11, no duplicate mediator implementation and no runtime dispatch created. This is REVIEW_ONLY evidence against freezing the current G10 VPS subject until the wrapper-surface discriminator is closed.",
+  "next_exact_action": "Active G10 owner should run the adversarial wrapper discriminator against the admitted state surface. If treatment is recoverable from trial_process_identity as constructed today, repair G10 in place by moving verifier-only identity/topology metadata out of the behavior-capable state, then rerun repository gates before any VPS freeze."
+}
