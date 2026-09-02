@@ -1,0 +1,63 @@
+{
+  "schema": "F2_TRIGGER7_RESEARCH_FINDING/v1",
+  "trigger": "7",
+  "producer": "GPT-5.6-Sol",
+  "date": "2026-09-02",
+  "research_id": "T7-20260902-G2-POST-BOUND-WINDOW-STRADDLE",
+  "semantic_key": "0d83f7d13c1d8f91686cf94070f73d901a49018b40a9c058d1949af094655bff",
+  "work_class": "EVIDENCE_VALIDITY_REVIEW_ONLY",
+  "product_mutation_authority": "TRIGGER4_ONLY",
+  "finding": {
+    "class": "EVIDENCE_INVALID_FALSE_GREEN_RISK",
+    "severity": "HIGH_FOR_TERMINAL_G2_DISCRIMINATOR",
+    "benchmark_invariant": "NO_POST_BOUND_OLD_AUDIO: after the measured bounded in-flight tail, monitor readback contains no continuing old-packet source-correlated audio.",
+    "observed_analyzer": "research/local_voice/tools/t7_pipewire_monitor_cancel_analyze.py",
+    "defect": "The analyzer computes post_bound_observed only from correlation windows whose source_start_ms is >= bound_end_ms, while BOUNDED_TAIL accepts observed_tail_ms <= max_inflight_ms + window_ms. A correlation window that starts just before the declared bound and ends after it is therefore excluded from the post-bound set and may extend old-audio attribution by up to one analysis window beyond the declared bound while the terminal predicate still passes.",
+    "why_not_product_negative_yet": "The current windowed measurement cannot distinguish whether a straddling correlated window contains old audio only before the bound or also after it. That boundary ambiguity is an evidence-resolution problem. It must not be silently accepted, and it must not be converted directly into PRODUCT_NEGATIVE without a post-bound-only measurement.",
+    "runtime_credit": 0
+  },
+  "source_evidence": {
+    "pass_tail_expression": "observed_tail_ms <= args.max_inflight_ms + args.window_ms",
+    "post_bound_selection": "row[source_start_ms] >= bound_end_ms",
+    "default_window_ms": 20.0,
+    "h4_guard_note": "The H4 guard proves that the post-bound source/control interval is discriminative, but it delegates the actual cancel-run terminal classification to the same analyzer and does not remove the bound-straddling cancel window ambiguity."
+  },
+  "counterhypothesis": {
+    "statement": "The +window_ms tolerance is merely harmless temporal-resolution slack.",
+    "result": "REJECTED_FOR_TERMINAL_CREDIT",
+    "reason": "Temporal-resolution slack is acceptable only if represented as uncertainty or resolved by a post-bound-only measurement. The canonical benchmark's terminal invariant is no continuing old-packet correlated audio after the declared measured bound; silently widening that bound after execution by one window violates the predeclared-bound contract."
+  },
+  "minimal_trigger4_repair": {
+    "goal": "Make the no-post-bound-old-audio test start exactly at the frozen bound in sample space and keep any unresolved boundary overlap fail-closed.",
+    "preferred_shape": [
+      "Compute bound_start_frame = ceil((cancel_offset_ms + max_inflight_ms) * sample_rate / 1000) from the already frozen predeclared bound.",
+      "Run a dedicated post-bound correlation scan whose first source frame is bound_start_frame, so every analyzed sample/window belongs entirely to the post-bound interval; do not reuse only windows aligned from cancel_frame.",
+      "Require zero old_audio_present in this dedicated post-bound-only scan and preserve the existing H4 requirement that enough source-active/control-correlated material exists there.",
+      "Do not use +window_ms as an implicit extension of the declared cancellation bound. If the last-old-audio estimate remains coarser than the bound, report bounded measurement uncertainty or EVIDENCE_INVALID_BOUNDARY_RESOLUTION rather than silently promoting.",
+      "Preserve PRODUCT_NEGATIVE only when a post-bound-only window/sample measurement actually observes old-packet correlation after the frozen bound."
+    ],
+    "required_regressions": [
+      "Synthetic cancel capture with old-packet correlation present only in the post-bound suffix of a window that starts before the bound must NOT pass.",
+      "A straddling analysis window whose post-bound suffix is silent must not be falsely classified PRODUCT_NEGATIVE; dedicated post-bound-only evidence should allow it if all other invariants pass.",
+      "Changing --window-ms must not change the semantic bound by granting an extra +window_ms acceptance margin.",
+      "Existing H4 discriminative coverage, replacement readback, packet fence, causal delivery, object identity, cleanup scope fences and zero-credit fields remain unchanged."
+    ]
+  },
+  "execution_fence": {
+    "do_not_dispatch_promotion_run_until_reconciled": true,
+    "do_not_open_g3": true,
+    "do_not_create_second_analyzer_or_acceptance_authority": true,
+    "next_action": "Trigger4 folds the boundary-aware post-bound scan into the existing analyzer/guard path together with the already consolidated G2 validity repairs, runs focused regressions, then dispatches one fresh exact repaired S2 subject only if singleton ownership is clear."
+  },
+  "explicit_zero_credit": {
+    "g2_runtime": 0,
+    "physical_microphone": 0,
+    "physical_speaker": 0,
+    "human_heard_output": 0,
+    "whole_voice_e2e": 0,
+    "gwt_jspace": 0,
+    "effect": 0,
+    "training": 0,
+    "whole_product": 0
+  }
+}
