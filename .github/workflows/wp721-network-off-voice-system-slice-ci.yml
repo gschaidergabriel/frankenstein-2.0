@@ -1,0 +1,104 @@
+name: WP721 Existing-Parts Voice System Slice CI
+
+on:
+  pull_request:
+    paths:
+      - 'src/frankenstein2/fresh_turn_successor.py'
+      - 'src/frankenstein2/voice_packet_cortex.py'
+      - 'src/frankenstein2/voice_packet_cortex_recovery.py'
+      - 'tests/test_wp721_network_off_voice_system_slice.py'
+      - 'tests/test_fresh_turn_successor.py'
+      - 'tests/test_wp720_turn_policy_falsifiers.py'
+      - 'tests/test_voice_packet_cortex_recovery.py'
+      - '.github/workflows/wp721-network-off-voice-system-slice-ci.yml'
+      - 'workpackages/active/F2-WP-721.json'
+      - 'workpackages/state_events/F2-WP-721/**'
+  push:
+    branches: [main]
+    paths:
+      - 'src/frankenstein2/fresh_turn_successor.py'
+      - 'src/frankenstein2/voice_packet_cortex.py'
+      - 'src/frankenstein2/voice_packet_cortex_recovery.py'
+      - 'tests/test_wp721_network_off_voice_system_slice.py'
+      - 'tests/test_fresh_turn_successor.py'
+      - 'tests/test_wp720_turn_policy_falsifiers.py'
+      - 'tests/test_voice_packet_cortex_recovery.py'
+      - '.github/workflows/wp721-network-off-voice-system-slice-ci.yml'
+      - 'workpackages/active/F2-WP-721.json'
+      - 'workpackages/state_events/F2-WP-721/**'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  existing-parts-system-slice:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - name: Checkout exact workflow subject
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Verify composition-only owned surface
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          test -f src/frankenstein2/fresh_turn_successor.py
+          test -f src/frankenstein2/voice_packet_cortex.py
+          test -f src/frankenstein2/voice_packet_cortex_recovery.py
+          test -f tests/test_wp721_network_off_voice_system_slice.py
+          test -f workpackages/active/F2-WP-721.json
+          printf 'WP721_SOURCE_SHA=%s\n' "$(git rev-parse HEAD)"
+
+      - name: Compile WP721 discriminator
+        shell: bash
+        run: python3 -m py_compile tests/test_wp721_network_off_voice_system_slice.py
+
+      - name: Execute WP721 existing-parts system slice
+        shell: bash
+        run: PYTHONPATH=src python3 -m unittest discover -s tests -p 'test_wp721_network_off_voice_system_slice.py' -v
+
+      - name: Re-run accepted WP719 fresh-turn regressions
+        shell: bash
+        run: PYTHONPATH=src python3 -m unittest discover -s tests -p 'test_fresh_turn_successor.py' -v
+
+      - name: Re-run accepted WP720 turn-policy falsifiers
+        shell: bash
+        run: PYTHONPATH=src python3 -m unittest discover -s tests -p 'test_wp720_turn_policy_falsifiers.py' -v
+
+      - name: Re-run accepted WP715 recovery regressions
+        shell: bash
+        run: PYTHONPATH=src python3 -m unittest discover -s tests -p 'test_voice_packet_cortex_recovery.py' -v
+
+      - name: Preserve exact scope fence
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+
+          claim = json.loads(Path('workpackages/active/F2-WP-721.json').read_text())
+          assert claim['state'] == 'CLAIMED'
+          assert claim['new_component_necessity'] == 'NONE_COMPOSITION_ONLY'
+          for field in (
+              'repository_component_ci_credit',
+              'target_environment_component_runtime_credit',
+              'physical_audio_credit',
+              'asr_runtime_credit',
+              'tts_runtime_credit',
+              'gwt_runtime_credit',
+              'semantic_gwt_runtime_credit',
+              'jspace_runtime_credit',
+              'effect_credit',
+              'training_credit',
+              'completion_credit',
+              'whole_voice_e2e_credit',
+          ):
+              assert claim[field] == 0, (field, claim[field])
+          assert claim['runtime_execution_observed'] is False
+          assert claim['whole_system_acceptance'] is False
+          print('WP721_REPOSITORY_DISCRIMINATOR_PASS_NO_RUNTIME_OR_WHOLE_VOICE_CREDIT')
+          PY
