@@ -1,0 +1,27 @@
+name: REVIEW WP900 Semantic Equivalence Falsifier
+
+on:
+  pull_request:
+    paths:
+      - "tests/test_wp900_semantic_equivalence_falsifier.py"
+      - "src/frankenstein2/gwt_uptake.py"
+      - ".github/workflows/review-wp900-semantic-equivalence-falsifier.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  semantic-equivalence-falsifier:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Execute preregistered semantic promotion discriminator
+        env:
+          PYTHONPATH: src
+        run: |
+          python -m unittest -v tests.test_wp900_semantic_equivalence_falsifier
