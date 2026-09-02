@@ -1,0 +1,43 @@
+name: REVIEW WP901 cross-store authority revalidation
+
+on:
+  pull_request:
+    paths:
+      - 'tests/test_wp901_cross_store_authority_falsifier.py'
+      - 'tests/test_restart_recovery_persisted_row_attestation.py'
+      - 'src/frankenstein2/restart_recovery_persisted_row_attestation.py'
+      - 'src/frankenstein2/restart_recovery_source_authentication.py'
+      - 'src/frankenstein2/causal_authority_binding.py'
+      - '.github/workflows/review-wp901-cross-store-authority-revalidation.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  exact-current-cross-store-falsifier:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - name: Checkout exact review ref
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - name: Compile exact WP901 authority surfaces
+        run: >-
+          python -m py_compile
+          tests/test_wp901_cross_store_authority_falsifier.py
+          tests/test_restart_recovery_persisted_row_attestation.py
+          src/frankenstein2/restart_recovery_persisted_row_attestation.py
+          src/frankenstein2/restart_recovery_source_authentication.py
+          src/frankenstein2/causal_authority_binding.py
+      - name: Execute exact-current counterexample plus inherited G4 regressions
+        env:
+          PYTHONPATH: src
+        run: python -m unittest -v tests.test_wp901_cross_store_authority_falsifier
+      - name: Preserve review-only zero-credit fence
+        if: always()
+        run: |
+          echo 'CLASSIFICATION=REVIEW_ONLY_EXECUTABLE_COUNTEREVIDENCE'
+          echo 'CANONICAL_WP901_MUTATION=NONE'
+          echo 'TARGET_RUNTIME_CREDIT=0'
+          echo 'VPS_RUNTIME_CREDIT=0'
+          echo 'WHOLE_SYSTEM_ACCEPTANCE=false'
