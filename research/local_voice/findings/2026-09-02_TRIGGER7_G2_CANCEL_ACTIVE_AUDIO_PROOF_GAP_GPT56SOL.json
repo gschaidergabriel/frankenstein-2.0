@@ -1,0 +1,57 @@
+{
+  "schema": "F2_TRIGGER7_RESEARCH_FINDING/v1",
+  "trigger": "7",
+  "producer": "GPT-5.6-Sol",
+  "date": "2026-09-02",
+  "research_id": "T7-20260902-G2-CANCEL-ACTIVE-AUDIO-PROOF-GAP",
+  "semantic_key": "0d83f7d13c1d8f91686cf94070f73d901a49018b40a9c058d1949af094655bff",
+  "work_class": "EVIDENCE_VALIDITY_REVIEW_ONLY",
+  "product_mutation_authority": "TRIGGER4_ONLY",
+  "finding": {
+    "class": "EVIDENCE_INVALID_CANCEL_NOT_PROVEN_DURING_ACTIVE_OLD_AUDIO",
+    "severity": "HIGH_FOR_TERMINAL_BARGE_IN_LATENCY_CREDIT",
+    "contract": "Current G2 requires causal cancel while old TTS audio is demonstrably active, then measurement of the bounded tail to the last old-packet-correlated sample.",
+    "current_behavior": "g2_pipewire_s2_runtime.py starts the cancel monitor, launches paplay, sleeps until a fixed cancel_after_ms offset, and invokes causal cancel. The analyzer proves a pre-cancel source/cancel alignment using an earlier probe, but neither runtime nor analyzer requires source-active + old-source-correlated monitor evidence in an interval immediately preceding the actual causal cancel instant.",
+    "false_green": "A fixed cancel point can land in a natural TTS pause or another silent interval. Earlier pre-cancel correlation can still be green, and post-bound silence can still be green, even though the terminal discriminator never demonstrated stopping audio that was active at cancellation.",
+    "current_credit": 0
+  },
+  "relationship_to_existing_blockers": {
+    "CANCEL_SOURCE_TIMELINE_CAUSALITY": "This finding depends on the same repaired monotonic-to-stream/source-frame mapping. Once that mapping exists, active-at-cancel must be evaluated on the mapped source/monitor timeline rather than process-spawn time.",
+    "POST_BOUND_WINDOW_STRADDLE": "Independent: post-bound-only silence resolution does not prove pre-cancel activity.",
+    "H4": "Independent: H4 proves discriminative source/control activity after the bound; it does not prove old audio was active immediately before cancel in the cancel run."
+  },
+  "minimal_trigger4_repair": {
+    "goal": "Prove the causal cancel actually interrupts an active old-audio interval without introducing a second playback or acceptance authority.",
+    "preferred_shape": [
+      "After repairing exact stream/source-timeline binding, define a predeclared pre-cancel evidence interval immediately ending at the mapped cancel source position (for example a fixed 40-100 ms interval chosen before observing the cancel result).",
+      "Require the exact old source to be active in that interval and require the cancel-run monitor to be old-source-correlated with sufficient RMS/correlation there.",
+      "Prefer selecting the cancel target deterministically from a sustained-active region of the already bound run-local source/control evidence, then execute cancel when the exact playback stream reaches that mapped source position; do not move the cancel point after seeing the cancel result.",
+      "If active old audio cannot be established immediately pre-cancel, classify EVIDENCE_INVALID_CANCEL_NOT_PROVEN_DURING_ACTIVE_OLD_AUDIO and keep all G2 promotion credit zero.",
+      "Do not reinterpret earlier generic pre-cancel alignment as active-at-cancel proof."
+    ],
+    "required_regressions": [
+      "Fixture with valid earlier pre-cancel alignment but silence at the mapped cancel interval must NOT terminal-pass.",
+      "Fixture with sustained old-source-correlated monitor audio immediately before mapped cancel and no post-bound old audio may pass this predicate if all other predicates pass.",
+      "Changing playback-client startup delay must not change which source interval is considered immediately pre-cancel once stream/source timing is bound.",
+      "Existing H4, post-bound-only scan, Piper runtime identity, latency-bound, cleanup taxonomy, replacement readback, packet fence, exact object identity and zero-credit fences remain intact."
+    ]
+  },
+  "execution_fence": {
+    "do_not_dispatch_promotion_run_until_reconciled": true,
+    "do_not_open_g3": true,
+    "do_not_create_second_analyzer_or_playback_authority": true,
+    "do_not_compose_old_runtime_with_new_source": true,
+    "next_action": "Trigger4 folds active-at-cancel proof into the same G2 stream/source-timeline repair and focused regression set, then exactly one fresh repaired S2 subject may run if singleton ownership is clear."
+  },
+  "explicit_zero_credit": {
+    "g2_runtime": 0,
+    "physical_microphone": 0,
+    "physical_speaker": 0,
+    "human_heard_output": 0,
+    "whole_voice_e2e": 0,
+    "gwt_jspace": 0,
+    "effect": 0,
+    "training": 0,
+    "whole_product": 0
+  }
+}
