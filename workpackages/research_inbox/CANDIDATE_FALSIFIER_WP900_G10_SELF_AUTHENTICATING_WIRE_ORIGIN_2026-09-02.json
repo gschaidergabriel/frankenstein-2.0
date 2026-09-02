@@ -1,0 +1,57 @@
+{
+  "schema": "FRANKENSTEIN2_RESEARCH_INBOX/v1",
+  "status": "CANDIDATE_FALSIFIER",
+  "mutation_authority": false,
+  "title": "WP900 G10 trial wire must prove factory-valid source-mediator origin rather than only self-consistent JSON",
+  "created_at_utc": "2026-09-02T11:40:00Z",
+  "target": "F2-WP-900 generation 10 independent semantic mediator authority candidate",
+  "active_claim_id": "F2-WP-900-G10-GPT56SOL-INDEPENDENT-SEMANTIC-MEDIATOR-AUTHORITY-20260902",
+  "work_class": "CANDIDATE_FALSIFIER",
+  "evidence_refs": [
+    "workpackages/active/F2-WP-900.json",
+    "src/frankenstein2/gwt_independent_semantic_mediator.py",
+    "tests/test_wp900_g10_independent_semantic_mediator.py",
+    ".github/workflows/trigger4-wp900-g10-independent-semantic-mediator-ci.yml",
+    "github-actions:33623864305",
+    "github-actions:33623864348"
+  ],
+  "material_observation": {
+    "claim_strength": "IndependentSemanticMediatorReceipt.observe requires a factory-valid GWT uptake, independent source-range event and LIVE GWT runtime witness bound to the exact semantic payload bytes. G10 CI and deterministic release CI are green for source commit 5aace808e6f88e9b496aa1c2fc5c10d638ce8630.",
+    "remaining_origin_gap": "MediatedSemanticState.from_wire validates only the wire JSON shape, a body_sha256 recomputable by any caller, frozen plan/oracle consistency, and text/SHA formatting. It does not validate that the serialized body was emitted by a factory-valid IndependentSemanticMediatorReceipt or that source_range_sha256/runtime_witness_sha256/exact_source_sha256/boot_id_sha256 correspond to any real source receipt after serialization.",
+    "causal_consequence": "A caller with the frozen plan can construct a complete synthetic body for the preregistered semantic class, fill source/runtime identity fields with arbitrary syntactically valid values, recompute body_sha256, and obtain a factory-sealed MediatedSemanticState without executing IndependentSemanticMediatorReceipt.observe or any GWT source event. The current sham-wire regression deletes a required field, so it does not exercise this complete-origin forgery."
+  },
+  "constructive_counterexample": {
+    "setup": "Construct an envelope with schema FRANKENSTEIN2_G10_INDEPENDENT_SEMANTIC_MEDIATOR_WIRE/v1 and a complete body matching SEMANTIC_MEDIATOR_RECEIPT_SCHEMA. Set plan_sha256 and semantic_slot_ref from the frozen plan, choose a trial_position and canonical_semantic_json whose oracle class matches the preregistered trial order, use arbitrary lowercase 64-hex values for raw_payload/source-range/runtime-witness/exact-source/boot digests, use an arbitrary source_process_identity distinct from the supplied trial_process_identity, then recompute body_sha256 over the fabricated body.",
+    "expected_current_behavior": "MediatedSemanticState.from_wire accepts the forged packet because all checks are self-consistency checks over attacker-controlled serialized fields plus the public frozen plan/oracle.",
+    "required_behavior": "Reject unless wire origin is bound to a factory-valid source mediator authority artifact that cannot be recreated by the trial-side caller merely by recomputing public digests.",
+    "correct_classification_if_reproduced": "PRODUCT_NEGATIVE"
+  },
+  "required_discriminator_before_vps_binding": [
+    "Add a regression that fabricates a complete syntactically valid mediator body with recomputed body_sha256 but without calling IndependentSemanticMediatorReceipt.observe; it MUST be rejected before any behavioral execution.",
+    "Change the Wire -> MediatedSemanticState admission ABI so acceptance requires verifiable origin from the factory-valid source mediator authority, not only a self-hash. At repository scope, the minimal repair may require an exact factory-valid mediator receipt plus byte-for-byte equality to receipt.to_wire(); target process independence must remain zero-credit until a cross-process origin mechanism is executed and bound.",
+    "Do not treat caller-supplied source_process_identity strings as process-independence evidence. Target execution must bind actual source/trial/executor process identities or equivalent independently observed runtime identities.",
+    "Rerun G10 targeted CI and deterministic release CI after repair, then repeat independent ABI review before binding any VPS subject."
+  ],
+  "failure_class_if_reproduced": "PRODUCT_NEGATIVE",
+  "product_negative": false,
+  "scope_fence": "This candidate does not invalidate terminal G9 evidence and does not claim G10 runtime failure. It blocks only G10 repository acceptance and any target/VPS binding until origin authenticity is repaired and regression-tested. All G10 runtime/semantic/J-Space credits remain zero.",
+  "credits": {
+    "repository_ci_credit": 0,
+    "runtime_execution_observed": false,
+    "target_environment_component_runtime_credit": 0,
+    "semantic_mediator_authority_candidate_credit": 0,
+    "semantic_gwt_runtime_credit": 0,
+    "jspace_runtime_credit": 0,
+    "physical_grid10_credit": 0,
+    "effect_credit": 0,
+    "training_credit": 0,
+    "completion_credit": 0,
+    "whole_system_acceptance": false
+  },
+  "route_to": [
+    "F2-WP-900-G10-ACTIVE-OWNER",
+    "CANDIDATE_FALSIFIER",
+    "REPOSITORY_ABI_REVIEW"
+  ],
+  "next_exact_action": "G10 owner should add the complete-origin-forgery regression and repair Wire -> MediatedSemanticState admission so a trial-side caller cannot mint source-authority metadata by recomputing public hashes. Keep VPS subject unbound and all higher credits at zero until repaired CI and independent review pass."
+}
