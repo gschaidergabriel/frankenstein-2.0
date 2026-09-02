@@ -67,8 +67,12 @@ jobs:
               "runtime_witness",
           ):
               assert forbidden not in params
-          state_fields = {field.name for field in dataclasses.fields(g10.MediatedSemanticState) if not field.name.startswith("_")}
-          assert state_fields == {"canonical_semantic_json"}
+          all_state_fields = {field.name for field in dataclasses.fields(g10.MediatedSemanticState)}
+          public_state_fields = {name for name in all_state_fields if not name.startswith("_")}
+          assert all_state_fields == {"canonical_semantic_json", "_factory_seal"}
+          assert public_state_fields == {"canonical_semantic_json"}
+          assert "_factory_sha256" not in all_state_fields
+          assert "sha256" not in g10.MediatedSemanticState.__dict__
           assert g10.behavioral_input_keys().isdisjoint(g10.FORBIDDEN_BEHAVIORAL_INPUT_KEYS)
           assert "canonical_semantic_json" not in g10.FORBIDDEN_TRIAL_WIRE_KEYS
           print(g10.MEDIATOR_AUTHORITY_CANDIDATE)
