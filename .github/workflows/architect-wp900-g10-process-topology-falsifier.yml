@@ -1,0 +1,349 @@
+name: Architect WP900 G10 Cross-Process Origin Falsifier
+
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/architect-wp900-g10-process-topology-falsifier.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: architect-wp900-g10-cross-process-origin-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  exact-subject-process-topology-falsifier:
+    runs-on: clay-host
+    timeout-minutes: 15
+    env:
+      WP900_G10_ACCEPTED_SUBJECT: 950f2b0f37ec9957f5abedcd390642486fc1cc05
+      WP900_G10_REPOSITORY_CI_RUN: '33627228059'
+      WP900_G10_RELEASE_CI_RUN: '33627228037'
+      PYTHONDONTWRITEBYTECODE: '1'
+    steps:
+      - name: Checkout exact accepted G10 subject
+        uses: actions/checkout@v4
+        with:
+          ref: 950f2b0f37ec9957f5abedcd390642486fc1cc05
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Prove runner and exact subject
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          test "${RUNNER_NAME:-}" = "vps-clay-host"
+          test "${RUNNER_OS:-}" = "Linux"
+          test "$(git rev-parse HEAD)" = "$WP900_G10_ACCEPTED_SUBJECT"
+          test -z "$(git status --porcelain --untracked-files=no)"
+          test -r /proc/sys/kernel/random/boot_id
+          test -f src/frankenstein2/gwt_independent_semantic_mediator.py
+          test -f tests/test_wp900_g10_independent_semantic_mediator.py
+          printf 'RUNNER=%s SOURCE=%s CONTROLLER=%s RUN=%s\n' \
+            "$RUNNER_NAME" "$(git rev-parse HEAD)" "$GITHUB_SHA" "$GITHUB_RUN_ID"
+
+      - name: Host-health preflight
+        shell: bash
+        run: bash tools/vps_sandbox/preflight.sh | tee /tmp/wp900-g10-topology-preflight.txt
+
+      - name: Execute real source-to-trial process-boundary discriminator
+        shell: bash
+        env:
+          PYTHONPATH: ${{ github.workspace }}/src:${{ github.workspace }}/tests
+        run: |
+          set -Eeuo pipefail
+          python3 - <<'PY' | tee /tmp/wp900-g10-topology-console.txt
+          import base64
+          import hashlib
+          import inspect
+          import json
+          import os
+          from pathlib import Path
+          import subprocess
+          import sys
+          import textwrap
+
+          EXPECTED = os.environ['WP900_G10_ACCEPTED_SUBJECT']
+
+          def digest_text(value):
+              return hashlib.sha256(value.encode('utf-8')).hexdigest()
+
+          def proc_identity(pid):
+              stat_text = Path(f'/proc/{pid}/stat').read_text()
+              close = stat_text.rfind(')')
+              if close < 0:
+                  raise RuntimeError('PROC_STAT_PARSE_FAILED')
+              tail = stat_text[close + 2:].split()
+              if len(tail) < 20:
+                  raise RuntimeError('PROC_STAT_TOO_SHORT')
+              exe = os.readlink(f'/proc/{pid}/exe')
+              exe_stat = os.stat(f'/proc/{pid}/exe')
+              return {
+                  'pid': pid,
+                  'ppid': int(tail[1]),
+                  'proc_start_ticks': int(tail[19]),
+                  'pid_namespace_inode': os.stat(f'/proc/{pid}/ns/pid').st_ino,
+                  'boot_id_sha256': digest_text(Path('/proc/sys/kernel/random/boot_id').read_text().strip()),
+                  'exe_target': exe,
+                  'exe_device': exe_stat.st_dev,
+                  'exe_inode': exe_stat.st_ino,
+              }
+
+          def instance_key(identity):
+              return (
+                  identity['pid'],
+                  identity['proc_start_ticks'],
+                  identity['pid_namespace_inode'],
+                  identity['boot_id_sha256'],
+              )
+
+          pytest_stub = r'''
+          import sys, types
+          m = types.ModuleType("pytest")
+          class _Mark:
+              def __getattr__(self, name):
+                  def deco(*args, **kwargs):
+                      if len(args) == 1 and callable(args[0]) and not kwargs:
+                          return args[0]
+                      return lambda fn: fn
+                  return deco
+          class _Raises:
+              def __enter__(self): return self
+              def __exit__(self, *args): return False
+          m.mark = _Mark()
+          m.fixture = lambda *a, **k: (a[0] if len(a) == 1 and callable(a[0]) else (lambda fn: fn))
+          m.param = lambda *a, **k: a[0] if len(a) == 1 else a
+          m.raises = lambda *a, **k: _Raises()
+          sys.modules.setdefault("pytest", m)
+          '''
+
+          source_code = pytest_stub + r'''
+          import base64, hashlib, json, pickle, sys
+          from test_wp900_g10_independent_semantic_mediator import PAYLOADS, source_mediator
+          print("READY", flush=True)
+          if sys.stdin.readline().strip() != "GO":
+              raise SystemExit(71)
+          mediator = source_mediator(position=1, payload=PAYLOADS[0])
+          wire = mediator.to_wire()
+          payload = {
+              "wire_b64": base64.b64encode(wire).decode("ascii"),
+              "wire_sha256": hashlib.sha256(wire).hexdigest(),
+              "mediator_sha256": mediator.sha256(),
+              "pickle_ok": False,
+              "mediator_pickle_b64": None,
+              "pickle_error": None,
+          }
+          try:
+              payload["mediator_pickle_b64"] = base64.b64encode(pickle.dumps(mediator)).decode("ascii")
+              payload["pickle_ok"] = True
+          except Exception as exc:
+              payload["pickle_error"] = f"{type(exc).__name__}:{exc}"
+          print(json.dumps(payload, sort_keys=True), flush=True)
+          '''
+
+          trial_code = r'''
+          import base64, hashlib, inspect, json, pickle, sys
+          import frankenstein2.gwt_independent_semantic_mediator as g10
+          print("READY", flush=True)
+          raw = sys.stdin.readline()
+          payload = json.loads(raw)
+          wire = base64.b64decode(payload["wire_b64"])
+          keys = sorted(g10.trial_wire_keys(wire))
+          wire_minimal = keys == ["canonical_semantic_json", "schema"]
+          wire_sha_matches = hashlib.sha256(wire).hexdigest() == payload["wire_sha256"]
+          admission_params = inspect.signature(g10.admit_mediated_semantic_state).parameters
+          admission_requires_mediator = "mediator" in admission_params and "wire" in admission_params
+          parsed = json.loads(wire)
+          direct_state = g10.MediatedSemanticState(canonical_semantic_json=parsed["canonical_semantic_json"])
+          direct_state_factory_valid = True
+          direct_state_error = None
+          try:
+              g10.validate_mediated_semantic_state(direct_state)
+          except Exception as exc:
+              direct_state_factory_valid = False
+              direct_state_error = f"{type(exc).__name__}:{exc}"
+          transported_mediator_factory_valid = None
+          transported_mediator_error = None
+          if payload.get("pickle_ok"):
+              try:
+                  mediator = pickle.loads(base64.b64decode(payload["mediator_pickle_b64"]))
+                  g10.validate_semantic_mediator_receipt(mediator)
+                  transported_mediator_factory_valid = True
+              except Exception as exc:
+                  transported_mediator_factory_valid = False
+                  transported_mediator_error = f"{type(exc).__name__}:{exc}"
+          result = {
+              "wire_minimal": wire_minimal,
+              "wire_sha_matches": wire_sha_matches,
+              "admission_requires_mediator": admission_requires_mediator,
+              "direct_state_factory_valid": direct_state_factory_valid,
+              "direct_state_error": direct_state_error,
+              "transported_mediator_factory_valid": transported_mediator_factory_valid,
+              "transported_mediator_error": transported_mediator_error,
+              "trial_wire_keys": keys,
+          }
+          print(json.dumps(result, sort_keys=True), flush=True)
+          '''
+
+          env = dict(os.environ)
+          env['PYTHONPATH'] = os.environ['PYTHONPATH']
+          env['PYTHONDONTWRITEBYTECODE'] = '1'
+
+          source = subprocess.Popen(
+              [sys.executable, '-u', '-c', source_code],
+              stdin=subprocess.PIPE,
+              stdout=subprocess.PIPE,
+              stderr=subprocess.PIPE,
+              text=True,
+              env=env,
+          )
+          assert source.stdout and source.stdin and source.stderr
+          if source.stdout.readline().strip() != 'READY':
+              raise RuntimeError('SOURCE_PROCESS_DID_NOT_REACH_READY')
+          source_identity = proc_identity(source.pid)
+          source.stdin.write('GO\n')
+          source.stdin.flush()
+          source_payload_line = source.stdout.readline()
+          source_stderr = source.stderr.read()
+          source_rc = source.wait(timeout=30)
+          if source_rc != 0:
+              raise RuntimeError(f'SOURCE_PROCESS_FAILED:{source_rc}:{source_stderr[:1000]}')
+          source_payload = json.loads(source_payload_line)
+
+          trial = subprocess.Popen(
+              [sys.executable, '-u', '-c', trial_code],
+              stdin=subprocess.PIPE,
+              stdout=subprocess.PIPE,
+              stderr=subprocess.PIPE,
+              text=True,
+              env=env,
+          )
+          assert trial.stdout and trial.stdin and trial.stderr
+          if trial.stdout.readline().strip() != 'READY':
+              raise RuntimeError('TRIAL_PROCESS_DID_NOT_REACH_READY')
+          trial_identity = proc_identity(trial.pid)
+          trial.stdin.write(json.dumps(source_payload, sort_keys=True) + '\n')
+          trial.stdin.flush()
+          trial_result_line = trial.stdout.readline()
+          trial_stderr = trial.stderr.read()
+          trial_rc = trial.wait(timeout=30)
+          if trial_rc != 0:
+              raise RuntimeError(f'TRIAL_PROCESS_FAILED:{trial_rc}:{trial_stderr[:1000]}')
+          trial_result = json.loads(trial_result_line)
+
+          distinct_process_instances = instance_key(source_identity) != instance_key(trial_identity)
+          portable_origin_available = (
+              source_payload['pickle_ok']
+              and trial_result['transported_mediator_factory_valid'] is True
+          )
+          no_public_wire_only_origin_path = (
+              trial_result['admission_requires_mediator']
+              and trial_result['direct_state_factory_valid'] is False
+          )
+          discriminator_closed = (
+              distinct_process_instances
+              and trial_result['wire_minimal']
+              and trial_result['wire_sha_matches']
+              and no_public_wire_only_origin_path
+              and not portable_origin_available
+          )
+
+          if discriminator_closed:
+              result = 'EXECUTED_PRODUCT_NEGATIVE_CROSS_PROCESS_ORIGIN_GATE_NOT_PORTABLE'
+              failure_class = 'PRODUCT_NEGATIVE'
+          else:
+              result = 'DISCRIMINATOR_DID_NOT_PROVE_EXPECTED_BOUNDARY'
+              failure_class = 'EVIDENCE_INVALID'
+
+          receipt = {
+              'schema': 'F2_WP900_G10_CROSS_PROCESS_ORIGIN_FALSIFIER_RECEIPT/v1',
+              'workpackage_id': 'F2-WP-900',
+              'generation': 10,
+              'claim_id': 'F2-WP-900-G10-GPT56SOL-INDEPENDENT-SEMANTIC-MEDIATOR-AUTHORITY-20260902',
+              'accepted_repository_subject_sha': EXPECTED,
+              'repository_ci_run_id': int(os.environ['WP900_G10_REPOSITORY_CI_RUN']),
+              'deterministic_release_run_id': int(os.environ['WP900_G10_RELEASE_CI_RUN']),
+              'controller_sha': os.environ.get('GITHUB_SHA'),
+              'workflow_run_id': int(os.environ.get('GITHUB_RUN_ID', '0')),
+              'workflow_run_attempt': int(os.environ.get('GITHUB_RUN_ATTEMPT', '0')),
+              'runner_name': os.environ.get('RUNNER_NAME', 'UNKNOWN'),
+              'runner_os': os.environ.get('RUNNER_OS', 'UNKNOWN'),
+              'runner_arch': os.environ.get('RUNNER_ARCH', 'UNKNOWN'),
+              'execution_surface': 'OWNER_VPS_CLAY_DIRECT_DEV_NONDESTRUCTIVE_PROCESS_PROBE',
+              'source_process_instance': source_identity,
+              'trial_process_instance': trial_identity,
+              'distinct_source_trial_process_instances': distinct_process_instances,
+              'source_wire_sha256': source_payload['wire_sha256'],
+              'source_mediator_sha256': source_payload['mediator_sha256'],
+              'source_mediator_pickle_ok': source_payload['pickle_ok'],
+              'source_mediator_pickle_error': source_payload['pickle_error'],
+              'trial_observation': trial_result,
+              'result': result,
+              'failure_class': failure_class,
+              'runtime_execution_observed': True,
+              'repository_ci_credit_preserved': 1,
+              'target_environment_component_runtime_credit': 0,
+              'semantic_mediator_authority_candidate_credit': 0,
+              'gwt_runtime_credit': 0,
+              'semantic_gwt_runtime_credit': 0,
+              'jspace_runtime_credit': 0,
+              'physical_grid10_credit': 0,
+              'effect_credit': 0,
+              'training_credit': 0,
+              'completion_credit': 0,
+              'whole_system_acceptance': False,
+              'next_exact_action': (
+                  'Repair G10 in place with one external process-bound attestation/admission adapter that '
+                  'binds exact source wire bytes to independently observed source/trial process instances '
+                  'without exposing verifier/topology metadata to behavior-capable state; then rerun repository '
+                  'gates before freezing the repaired exact target subject.'
+              ),
+          }
+          Path('/tmp/wp900-g10-cross-process-origin-receipt.json').write_text(
+              json.dumps(receipt, indent=2, sort_keys=True) + '\n'
+          )
+          print(json.dumps(receipt, sort_keys=True))
+          if result != 'EXECUTED_PRODUCT_NEGATIVE_CROSS_PROCESS_ORIGIN_GATE_NOT_PORTABLE':
+              raise SystemExit(f'WP900_G10_TOPOLOGY_FALSIFIER_INCONCLUSIVE:{result}')
+          PY
+
+      - name: Upload bounded negative-evidence receipt
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: wp900-g10-cross-process-origin-${{ github.run_id }}
+          path: /tmp/wp900-g10-cross-process-origin-receipt.json
+          if-no-files-found: error
+
+      - name: Enforce zero promotion on executed negative
+        if: always()
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          path = Path('/tmp/wp900-g10-cross-process-origin-receipt.json')
+          if not path.exists():
+              raise SystemExit('WP900_G10_NEGATIVE_RECEIPT_MISSING')
+          receipt = json.loads(path.read_text())
+          assert receipt['result'] == 'EXECUTED_PRODUCT_NEGATIVE_CROSS_PROCESS_ORIGIN_GATE_NOT_PORTABLE'
+          assert receipt['failure_class'] == 'PRODUCT_NEGATIVE'
+          assert receipt['runtime_execution_observed'] is True
+          for field in (
+              'target_environment_component_runtime_credit',
+              'semantic_mediator_authority_candidate_credit',
+              'gwt_runtime_credit',
+              'semantic_gwt_runtime_credit',
+              'jspace_runtime_credit',
+              'physical_grid10_credit',
+              'effect_credit',
+              'training_credit',
+              'completion_credit',
+          ):
+              assert receipt[field] == 0
+          assert receipt['whole_system_acceptance'] is False
+          print('WP900_G10_EXECUTED_NEGATIVE_PRESERVED_WITH_ZERO_PROMOTION')
+          PY
