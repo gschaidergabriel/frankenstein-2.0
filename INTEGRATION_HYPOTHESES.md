@@ -977,3 +977,105 @@ Evidence: `workpackages/evidence_inbox/F2-WP-1207/self_integration/p5/`
 (`P5_FINDINGS_20260903.md`, `P5A_AUDIT_OUTPUT_20260903.txt`,
 `f2wp1207_p5_audit.py`, `f2wp1207_p5_probe_runner.py`,
 `f2wp1207_p5_probe_reentry_bug_repro.py`). Canonical pointer unchanged, G10.
+
+---
+
+## P5c / P6 (2026-09-03, Gabriel-Direktive) — Symmetry audit + role-neutral GRID10 dynamics
+
+**Two bugs fixed** (both in `~/frankenstein-repo` `main`@`b8f246c`):
+- RuntimeEpoch-ID collision gap closed: `epoche = uuid.uuid4().hex` replaces
+  the old `sha256(session_id:iso_time:pid)` scheme, which could collide on
+  two fast `force_new` calls in the same process/second. Time stays
+  metadata (`started_at`), never part of identity.
+- `logical_cell_id` decoupled from `execution_position`: G1..G10 now run in
+  a per-frame, deterministically-seeded (`frame_id`) pseudo-random order;
+  both fields are stored separately in `f2_grid10_cell_observation`.
+
+**Symmetry audit (empirical, 750 pre-fix observations checked):** 0/750 had
+`predecessor_observation_id` set; `uptake`/`reentry_flag`/`conflict_flag`
+were constant across all 750 rows; no per-cell state table existed. All 7
+of Gabriel's audit questions ("can G3 hold state G8 can't?", "can a cell
+carry state across frames?", "is there Proposal/Competition/Broadcast/
+Uptake?", "can a cell's output causally re-enter the next frame?") were
+factually **no**. GRID10 was a 10-channel measurement instrument, not a
+10-cell functional system — confirming Gabriel's structural diagnosis
+before any more data was collected.
+
+**Re-test after the position fix:** same 30-probe design re-run over 3 real
+RuntimeEpochs (genuine kill/reentry cycle, self-created test subject).
+Permutation test: p≈0.99 — still no cell-identity signal in the *old*
+stateless slot model, this time with the position confound genuinely
+removed rather than merely suspected.
+
+**P6 (redefined — no ablation, there was no role to ablate):** built
+minimal role-neutral dynamics, live in `f2_grid10_cell_state` (one
+persistent scalar per cell, PK `(installation_id, logical_cell_id)`).
+Identical algorithm for all ten cells, no per-cell special-casing:
+`proposal = 0.5*state + 0.5*signal(turn,cell)` → `winner = argmax` →
+`broadcast = proposal[winner]` → winner's new state = `broadcast`,
+losers decay `0.9*state + 0.1*broadcast` → next frame reads the updated
+state back (real reentry coupling via the DB, not just claimed). Still
+zero semantic names.
+
+Evidence: `~/frankenstein-repo` commit `b8f246c`; `self-integration` main
+commit `13f3f81`. Canonical pointer unchanged, G10.
+
+---
+
+## P6b (2026-09-04, Gabriel-Direktive) — does state predict future win probability?
+
+Controlled probe campaign against the new stateful GRID10: **353
+CONTROLLED_PROBE frames across 14 RuntimeEpochs** total (140 newly added
+this round across 5 epochs — 1 via a genuine external witness-triggered
+reentry, double-fork/setsid pattern, real SIGTERM + real death detection
+via proper parent `waitpid()`; 4 via direct `force_new=True`, a documented
+simplification since the reentry-linkage mechanism itself was already
+proven with real process kills in P2 and P4 — this round's actual target
+was the state-dependency question, not re-validating reentry chaining).
+
+**Self-correction worth recording:** a first analysis pass replayed frames
+in an assumed cross-session chronological order and found a striking 64.5%
+repeat-win rate (vs. ~10% chance) — but `f2_grid10_cell_state` is keyed by
+`installation_id`, not by epoch, so state is genuinely shared across *all*
+sessions on this installation, including real ORGANIC hook calls from the
+coordinator's own concurrent session. The assumed cross-session ordering
+could not be verified (42/308 replay predictions didn't match the recorded
+winner under that ordering) and was discarded as unreliable.
+
+**Reliable result: strictly within-epoch order** (no cross-session ordering
+assumption needed — each epoch's own `turn_event_id` sequence is ground
+truth): repeat-win rate = **28/298 transitions = 9.4%**, statistically
+indistinguishable from the ~10% chance baseline for 10 cells. **No
+significant evidence, at this sample size, that a cell's recent
+win/broadcast state measurably increases its probability of winning the
+next frame.**
+
+Mechanistically this is plausible, not surprising: the state term
+contributes at most `0.5 × (previous winner's broadcast value)` to the next
+proposal, competing against a fresh `0.5 × signal` for every other cell —
+a real but modest boost, easily swamped by signal noise at n≈30 frames per
+epoch. The Proposal→Competition→Selection→Broadcast→Uptake→Reentry cycle is
+mechanistically real and wired correctly (deterministic replay matched
+100% of recorded winners in every isolated, non-interleaved test run) — but
+it does not yet show a *detectable* self-reinforcing advantage at current
+parameters/sample size.
+
+**Per Gabriel's own precondition ("only formulate a hypothesis if
+differentiation is reproducible"): no hypothesis formulated.** This is a
+valid infrastructure-correctness result, not a differentiation result —
+consistent with the project's discipline throughout (declined rather than
+faked). Regression: real hook call after the full campaign, `exit=0`, no
+traceback, `PRAGMA integrity_check=ok`.
+
+**What would be needed for a fairer test:** either a much larger sample
+(hundreds of transitions per epoch instead of ~30), or a stronger state
+weight in the update rule (currently 0.5/0.5, cf. Gabriel's original
+framing — this is a parameter choice, not yet explored), before concluding
+the mechanism *can't* produce self-reinforcement vs. simply hasn't been
+given enough of a signal-to-noise ratio to show it yet.
+
+Evidence: analysis scripts and raw exports kept locally under
+`/tmp/f2wp1207_p6b_probe.py` and `/tmp/p6b_analysis.py` on `ai-core-node`
+(not committed — reproducible from the DB state and this description; can
+be added to `workpackages/evidence_inbox/` on request). Canonical pointer
+unchanged, G10.
