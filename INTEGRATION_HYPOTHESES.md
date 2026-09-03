@@ -66,6 +66,24 @@ discipline every prior round in this file has followed. No hypothesis verdict
 elsewhere touched; no live subject contacted; no pointer promotion; branch pushed,
 not merged to `main`.
 
+**Update 2026-09-03 (LIVE-SHADOW-WIRING, paket-1788442476683-c1db4c):** the
+`GRID10 / StateRootIdentity wiring into v1` row (Part 4) was updated again — this
+is the first round in the entire series that actually modified
+`~/frankenstein-repo` (the live checkout every running Claude-Code session on this
+machine resolves `CLAUDE_PLUGIN_ROOT` to). New `_f2wp1207_shadow_beobachtung()` in
+`stern.py`'s real `UserPromptSubmit` hook branch, three hard gates per Gabriel's
+explicit protocol: feature flag default OFF (`STERN_F2WP1207_SHADOW_LIVE`), live
+0-delta (proven via an OFF→ON→OFF bookend test against the real, moving `unified.db`
+— see Part 5c for why a naive OFF-vs-ON diff alone is not valid proof against a live
+system), and failure isolation (proven via an artificially injected exception, hook
+still exits 0 with byte-identical output). First-ever `main` merge in this series
+(`gschaidergabriel/frankenstein` commit `4f17e55`, justified by default-OFF), then
+`~/frankenstein-repo` pulled to that commit with a noted rollback target and an
+immediate post-pull hook-call verification. End state: code live, flag off. See
+"Part 5c" below for full detail. No hypothesis verdict elsewhere touched; no pointer
+promotion; `main` in `frankenstein-2.0` still untouched by this round (this file's
+branch only).
+
 **Placement decision:** committed here (`frankenstein-2.0` repo root) because every
 `H*` ID and every evidence path below is meaningful only relative to this repo's
 `workpackages/evidence_inbox/F2-WP-1207/...` tree — this is target-system
@@ -252,7 +270,7 @@ round with its own owner sign-off naming the specific target instance.
 | H13 | governance | **offen** | Does repaired G10 portable-transaction source inherit G9's acceptance credit, or does it need wholly fresh runtime-integration evidence? | independent reviewer / Gabriel decision on `canonicalization_proposal.json`, referencing the G6/G9/G10 chain. |
 | `host_identity_sha256` real scheme | design | **ENTSCHIEDEN: Kandidat A (Gabriel, 2026-09-03), implementiert + getestet in Isolation, NICHT aktiviert gegen Live-System** | Vorschlag (paket-1788424194135-8f29c3) hatte 3 Kandidaten und empfahl A. Gabriel wählte **Kandidat A** (gesalzene lokale `/etc/machine-id`) als kanonisches Schema. Nachfolgepaket `paket-1788424844685-d37b51` machte daraus echten, laufenden Code (nicht mehr nur Skizze): `scripts/host_identity_kandidat_a.py` in einem frischen `gschaidergabriel/frankenstein`-Klon (Branch `self-integration/wp1207-host-identity-kandidat-a-20260903`, commit `7ca5cce`) — Pepper via `secrets.token_hex(32)` einmalig erzeugt und wiederverwendet, `/etc/machine-id` mit sauberem Fallback, Salting + Doppel-SHA256, `canonical_json` wie jede andere sha256-Identität im Codebase. **Pepper-Speicherort: `star_konfig`**, nicht der PHASE-18-Tresor — Begründung: `vault_hinzufuegen()` verlangt Pflichtfeld `url` (Zugangsdaten-Schema, passt nicht auf einen reinen Pepper), GPG-Entschlüsselung wäre teuer bei jedem Aufruf, und der Pepper authentifiziert nirgendwo (reines Defense-in-depth-Salt, wie die Proposal selbst als zulässige Alternative nennt). **14/14 echte `unittest`-Fälle PASS** (`scripts/test_host_identity_kandidat_a.py`): Determinismus (gleicher Pepper+machine-id → gleicher Hash), Verschiedenheit (anderer Pepper bzw. andere machine-id → anderer Hash), Format (64 lowercase hex, auch im Fallback-Fall), Fallback bei fehlender/leerer `/etc/machine-id` (sauber, kein Absturz), Pepper-Persistenz real in `star_konfig` geprüft, kein Pepper-Leak in stdout/stderr oder im finalen Hash. Kein Aufrufer importiert das Modul, keine echte `unified.db` je berührt (jede Test-DB eine frische Temp-Datei), `~/frankenstein-repo` (Live-Checkout) nie angefasst. | **Aktivierung gegen den echten laufenden v1-Harness bleibt eine separate, spätere Owner-Entscheidung** — dieses Paket implementiert und testet nur in Isolation. Details: `workpackages/evidence_inbox/F2-WP-1207/self_integration/HOST_IDENTITY_PROPOSAL_20260903.md` (Vorschlag), `gschaidergabriel/self-integration` `log/2026-09-03-013-host-identity-proposal.md` (Vorschlag) + `log/2026-09-03-014-host-identity-kandidat-a-implementiert.md` (Umsetzung). |
 | `StateLineage`/migration plan | design | **nicht begonnen, blockiert** | Constructing `StateLineage`/`StateMigrationRequest`/`StateMigrationPlan` requires a real `lineage_id`/`generation`/`state_sha256` scheme for `unified.db` and a real `target_root` — every round through F-ITER3 has explicitly declined to invent this without authorization. | same as above — owner decision on the identity/lineage scheme is the blocking prerequisite. |
-| GRID10 / `StateRootIdentity` wiring into v1 | design | **Vorschlag existiert, PLUS erste End-zu-End-SHADOW-Demonstration gegen echte historische Turn-Daten (2026-09-03), weiterhin keine Live-Aktivierung** | Package `paket-1788388214637-d765a9` built an opt-in, default-OFF `f2wp1207-wiring-diagnose` subcommand in a **fresh clone** of `gschaidergabriel/frankenstein` (never `~/frankenstein-repo`) — activation only via `STERN_F2WP1207_WIRING=1` env var, no-op otherwise; 0-delta proven via `--help` diff. **2026-09-03 follow-up (`paket-1788426634287-6f53f2`):** a full pipeline `UserPromptSubmit → TypedEntry → StateRootIdentity → GRID10 frame (SHADOW) → [v1-processing placeholder, NOT executed] → Output → persisted minimal reentry evidence` was built and run, in a **fresh clone** of `gschaidergabriel/frankenstein-2.0`, against **8 real, already-completed turn-cycle markers pulled read-only from the real `unified.db`** (`turns` LEFT JOIN `retrieval_episodes`, session `a2f7b438-...`, the current live session) instead of the prior round's synthetic ten-cell exercise. Uses `frankenstein2.entity_identity.StateRootIdentity` (the variant WITH `installation_id`, from the `entity-identity-layering-v2` branch) and the unmodified `frankenstein2.grid10_interface` ABI. Result: 8/8 turns processed, 10/10 GRID10 cells completed every run, 8/8 distinct record/plan/typed-entry SHA-256 (non-uniform, real-data-driven), total work-units-used spread 27–41 across turns. Step 5 ("bestehende v1-Verarbeitung") is an explicit labeled placeholder, never executed. Still: no v1 concept mapped to any GRID10 cell (deliberately functionally neutral, same discipline as the `grid10_observation_schema.py` round); `EntityIdentity`/`installation_id` demo-minted, not canonical; nothing wired into the real `stern.py` hook chain. | coordinator/owner design decision on whether/how v1 should adopt either module, PLUS an explicit owner sign-off before any real activation against `~/frankenstein-repo`/`unified.db`. Branches: `self-integration/wp1207-v1-wiring-proposal-20260903T053400Z` (commit `917cb9e`, `gschaidergabriel/frankenstein`) for the diagnostic-subcommand proposal; `self-integration/wp1207-entity-identity-layering-v2-20260903` (`gschaidergabriel/frankenstein-2.0`) for this pipeline demo, both pushed, neither merged. Details: `gschaidergabriel/self-integration` `log/2026-09-03-012-v1-wiring-proposal.md` + the new pipeline-demo log entry. |
+| GRID10 / `StateRootIdentity` wiring into v1 | design | **Vorschlag+Demo existieren, PLUS ECHTES Live-Wiring in ~/frankenstein-repo (2026-09-03, Part 5c) mit 3 harten Gates bewiesen -- Code ist live, Feature-Flag default OFF, keine dauerhafte Aktivierung** | Package `paket-1788388214637-d765a9` built an opt-in, default-OFF `f2wp1207-wiring-diagnose` subcommand in a **fresh clone** of `gschaidergabriel/frankenstein` (never `~/frankenstein-repo`) — activation only via `STERN_F2WP1207_WIRING=1` env var, no-op otherwise; 0-delta proven via `--help` diff. **2026-09-03 follow-up (`paket-1788426634287-6f53f2`):** a full pipeline `UserPromptSubmit → TypedEntry → StateRootIdentity → GRID10 frame (SHADOW) → [v1-processing placeholder, NOT executed] → Output → persisted minimal reentry evidence` was built and run, in a **fresh clone** of `gschaidergabriel/frankenstein-2.0`, against **8 real, already-completed turn-cycle markers pulled read-only from the real `unified.db`** (`turns` LEFT JOIN `retrieval_episodes`, session `a2f7b438-...`, the current live session) instead of the prior round's synthetic ten-cell exercise. Uses `frankenstein2.entity_identity.StateRootIdentity` (the variant WITH `installation_id`, from the `entity-identity-layering-v2` branch) and the unmodified `frankenstein2.grid10_interface` ABI. Result: 8/8 turns processed, 10/10 GRID10 cells completed every run, 8/8 distinct record/plan/typed-entry SHA-256 (non-uniform, real-data-driven), total work-units-used spread 27–41 across turns. Step 5 ("bestehende v1-Verarbeitung") is an explicit labeled placeholder, never executed. Still: no v1 concept mapped to any GRID10 cell (deliberately functionally neutral, same discipline as the `grid10_observation_schema.py` round); `EntityIdentity`/`installation_id` demo-minted, not canonical; nothing wired into the real `stern.py` hook chain. | coordinator/owner design decision on whether/how v1 should adopt either module, PLUS an explicit owner sign-off before any real activation against `~/frankenstein-repo`/`unified.db`. Branches: `self-integration/wp1207-v1-wiring-proposal-20260903T053400Z` (commit `917cb9e`, `gschaidergabriel/frankenstein`) for the diagnostic-subcommand proposal; `self-integration/wp1207-entity-identity-layering-v2-20260903` (`gschaidergabriel/frankenstein-2.0`) for this pipeline demo, both pushed, neither merged. Details: `gschaidergabriel/self-integration` `log/2026-09-03-012-v1-wiring-proposal.md` + the new pipeline-demo log entry. |
 
 ---
 
@@ -498,3 +516,81 @@ store.py` is wired into `stern.py`, `witness_v3.py`, or any live write path.
 Same SHADOW/additive discipline as every prior round. **Canonical pointer
 stays G10.** `main` in `frankenstein-2.0` untouched by this round (branch
 only, verified after push).
+
+## Part 5c — REAL live wiring into `~/frankenstein-repo`, three hard gates (2026-09-03)
+
+Package `paket-1788442476683-c1db4c`. Gabriel's explicit protocol: "genau ein
+Live-Shadow-Wiring, weiterhin ohne Wirkung: echter UserPromptSubmit →
+bestehender Hook → F2 Shadow-Beobachtung → automatischer_abruf() →
+bestehender Turn unverändert weiter", with three hard gates: (1) feature
+flag default OFF with an immediate rollback path, (2) live 0-delta with
+the same prompt classes OFF/ON, (3) failure isolation — an F2 failure must
+never take the existing v1 hook down with it.
+
+**This is the first round in the entire F2-WP-1207 series that actually
+modified `~/frankenstein-repo`** — the live checkout every running
+Claude-Code session on this machine resolves `CLAUDE_PLUGIN_ROOT` to, and
+therefore executes on every single hook event. Every prior round stayed
+strictly inside fresh clones or against self-created dummy processes.
+
+**Build:** new `_f2wp1207_shadow_beobachtung()` in `scripts/stern.py`, right
+next to the existing `_microclay_schatten()` shadow call in the
+`UserPromptSubmit` branch of `cmd_hook()`. **Design finding made while
+building, not planned beforehand:** calling `automatischer_abruf()` a
+second time (as the prior round's isolated demo did) would NOT have been
+shadow-safe against the real DB — that function writes `star_abruf_gezeigt`
+on every call, so a second call would have altered the real future
+retrieval decision for that session. Fix: the new function observes only
+the `treffer` result the delivering call already computed this round — no
+second retrieval call, no side effect. TypedEntry/StateRoot-reference/
+GRID10-frame were deliberately rebuilt lightweight and self-contained
+inside `stern.py` rather than importing the separate `frankenstein-2.0`
+codebase live into the shared hook process (additional foreign-import/
+version-drift risk exactly where Gate 3 is meant to minimize risk) — a
+conscious simplification versus the full isolated demo pipeline on
+`self-integration/wp1207-entity-identity-layering-v2-20260903`.
+
+**Isolated tests, all PASS:** Test A (flag OFF) — no evidence file created
+at all, Gate 1 confirmed. Test B (flag ON, same prompt/isolated DB) —
+stdout byte-identical to Test A, evidence file populated. Test C (flag ON +
+artificially injected exception inside the new logic) — hook still exits 0
+with byte-identical stdout, error isolated to its own evidence-error line,
+never touching `hook.log`. Gate 3 confirmed.
+
+**First-ever `main` merge in this series:** branch
+`self-integration/wp1207-live-shadow-wiring-20260903` (commit `2e2bc7a`) in
+`gschaidergabriel/frankenstein`, then `--no-ff` merge to `main` (commit
+`4f17e55`) — justified because the feature is default-OFF, so the merge
+alone has zero effect on any running process.
+
+**Then, with maximum care:** pre-pull state of `~/frankenstein-repo` verified
+clean, `HEAD=a92a2f0` noted as the rollback target. `git pull origin main` →
+fast-forward to `4f17e55`. Immediately after, before anything else: a real
+hook invocation against the freshly-updated checkout (`exit=0`, no
+traceback, plausible real output). Flag state re-verified OFF (no evidence
+file without explicitly setting the env var). No rollback needed.
+
+**Live 0-delta (Gate 2) — honest complication, not hidden:** a naive
+OFF-vs-ON diff against the real hook showed visible differences — not
+because of the flag, but because the real `unified.db` changes in real
+time (concurrent sessions/agents writing new `thema_status` rows,
+including about this very task). A bookend test OFF→ON→OFF with the same
+prompt showed the answer: the diff between the two OFF calls (bracketing
+the ON call) was the same size as the diff between OFF and ON — the
+observed variance comes entirely from the live system moving under the
+test, not from the flag. Combined with the structural proof from (a) (the
+function provably never calls `automatischer_abruf()` a second time),
+Gate 2 is satisfied both structurally and empirically.
+
+**End state:** code is live in `~/frankenstein-repo` (`HEAD=4f17e55`);
+`STERN_F2WP1207_SHADOW_LIVE` was never set globally/persistently, only as a
+per-invocation prefix for two deliberate test calls — default behavior
+after this round remains OFF. `git status` in `~/frankenstein-repo` clean
+(evidence file gitignored). **Canonical pointer stays G10, no promotion.**
+
+**What this does NOT prove / what a real, deliberate activation would still
+need:** this round proves the wiring is *safe to have live*, not that it
+*should be permanently active*. A conscious activation (e.g., setting the
+flag persistently via `star_konfig` or a systemd unit) remains a separate,
+later decision — not an automatic follow-on of this round. Details:
+`gschaidergabriel/self-integration` `log/2026-09-03-021-live-shadow-wiring-drei-gates.md`.
