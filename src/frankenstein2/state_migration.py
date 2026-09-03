@@ -138,12 +138,47 @@ def _is_obviously_transient(path: str) -> bool:
 
 @dataclass(frozen=True, slots=True)
 class StateRootIdentity:
+    """`installation_id` (added 2026-09-03, F2-WP-1207 persistence/rebind/
+    reentry round, additive-only) -- Gabriel's directive, point 6 verbatim:
+    "StateRootIdentity braucht ein installation_id-Feld -- der wichtigste
+    naechste Schema-Fix." Optional with default `None` so every existing
+    caller/test that constructs a root without it keeps working unchanged
+    (this module's own `StateMigrationRequest.__post_init__` still enforces
+    ONLY the pre-existing `host_identity_sha256` equality check in this
+    round -- see `state_rebind.py` for the new installation-aware relaxation,
+    kept parallel/additive rather than mutating this live check). Analysis of
+    which fields are core law vs. host-coupling (F2-WP-1207 Schritt 1):
+
+        root_id                          -- KEEPS: row identity, not host-coupled.
+        path                             -- KEEPS: physical location, migration
+                                             mechanics need it regardless of host.
+        storage_class (+ eligibility check) -- KEEPS: the ONE_CANONICAL_STATE_LINEAGE /
+                                             DISPOSABLE_CACHE != CANONICAL_STATE_ROOT
+                                             law. Foundational, not host-coupling.
+        observed_root_fingerprint_sha256 -- KEEPS: on-disk verification evidence.
+        host_identity_sha256             -- KEEPS AS A FIELD (legitimate audit
+                                             evidence: which host produced this
+                                             root) but the STRICT EQUALITY CHECK
+                                             against it in
+                                             StateMigrationRequest.__post_init__
+                                             is the host-coupling that Schritt 2
+                                             relaxes -- via a new, separate,
+                                             additive check path, not by editing
+                                             this field or that existing check.
+        installation_id (NEW)            -- the field this round adds: lets a
+                                             root be recognized as belonging to
+                                             the SAME INSTALLATION across a host
+                                             swap, which is what Schritt 2's
+                                             relaxed rebind logic keys off.
+    """
+
     schema: str
     root_id: str
     path: str
     storage_class: str
     host_identity_sha256: str
     observed_root_fingerprint_sha256: str
+    installation_id: str | None = None
 
     def __post_init__(self) -> None:
         if self.schema != ROOT_SCHEMA:
@@ -165,6 +200,10 @@ class StateRootIdentity:
                 self.observed_root_fingerprint_sha256,
             ),
         )
+        if self.installation_id is not None:
+            object.__setattr__(
+                self, "installation_id", _identifier("installation_id", self.installation_id)
+            )
 
     @classmethod
     def create(
@@ -175,6 +214,7 @@ class StateRootIdentity:
         storage_class: str,
         host_identity_sha256: str,
         observed_root_fingerprint_sha256: str,
+        installation_id: str | None = None,
     ) -> "StateRootIdentity":
         return cls(
             schema=ROOT_SCHEMA,
@@ -183,6 +223,7 @@ class StateRootIdentity:
             storage_class=storage_class,
             host_identity_sha256=host_identity_sha256,
             observed_root_fingerprint_sha256=observed_root_fingerprint_sha256,
+            installation_id=installation_id,
         )
 
     def as_dict(self) -> dict[str, Any]:
@@ -212,6 +253,7 @@ def _revalidate_root(value: Any, *, role: str) -> StateRootIdentity:
         storage_class=value.storage_class,
         host_identity_sha256=value.host_identity_sha256,
         observed_root_fingerprint_sha256=value.observed_root_fingerprint_sha256,
+        installation_id=value.installation_id,
     )
 
 

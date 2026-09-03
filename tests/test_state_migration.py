@@ -278,5 +278,78 @@ class StateMigrationTests(unittest.TestCase):
         )
 
 
+class StateRootIdentityInstallationIdTests(unittest.TestCase):
+    """F2-WP-1207 Schritt 1: installation_id is additive-only on the LIVE
+    StateRootIdentity -- optional, defaults to None, does not disturb any
+    existing caller. These tests are new; no pre-existing test above this
+    class was modified to make the suite pass."""
+
+    HOST = "1" * 64
+    FP = "2" * 64
+
+    def test_omitted_installation_id_defaults_none_backward_compatible(self) -> None:
+        root = StateRootIdentity.create(
+            root_id="r1",
+            path="/srv/frankenstein2/state",
+            storage_class=STORAGE_CANONICAL_DURABLE,
+            host_identity_sha256=self.HOST,
+            observed_root_fingerprint_sha256=self.FP,
+        )
+        self.assertIsNone(root.installation_id)
+
+    def test_installation_id_round_trips_through_create_and_digest(self) -> None:
+        root = StateRootIdentity.create(
+            root_id="r1",
+            path="/srv/frankenstein2/state",
+            storage_class=STORAGE_CANONICAL_DURABLE,
+            host_identity_sha256=self.HOST,
+            observed_root_fingerprint_sha256=self.FP,
+            installation_id="i1-ai-core-node",
+        )
+        self.assertEqual(root.installation_id, "i1-ai-core-node")
+        self.assertIn("i1-ai-core-node", root.as_dict().values())
+
+    def test_installation_id_survives_revalidation_in_a_full_request(self) -> None:
+        """Proves _revalidate_root() (invoked inside StateMigrationRequest)
+        does not silently drop installation_id -- would previously have been
+        lost since _revalidate_root() rebuilt the dataclass field-by-field."""
+        source_root = StateRootIdentity.create(
+            root_id="old",
+            path="/home/user/.local/share/frankenstein2/state",
+            storage_class=STORAGE_CANONICAL_DURABLE,
+            host_identity_sha256=self.HOST,
+            observed_root_fingerprint_sha256=self.FP,
+            installation_id="i1",
+        )
+        source = StateLineage.create(
+            lineage_id="lineage-1",
+            generation=1,
+            state_sha256="3" * 64,
+            root=source_root,
+        )
+        target_root = StateRootIdentity.create(
+            root_id="new",
+            path="/srv/frankenstein2/state",
+            storage_class=STORAGE_CANONICAL_DURABLE,
+            host_identity_sha256=self.HOST,
+            observed_root_fingerprint_sha256="4" * 64,
+            installation_id="i1",
+        )
+        request = StateMigrationRequest.create(
+            migration_id="m-installation-id",
+            source_lineage=source,
+            target_root=target_root,
+            target_observation=TargetRootObservation(
+                status=TARGET_EMPTY_VERIFIED, evidence_ref="probe:empty"
+            ),
+            rollback_root=source_root,
+        )
+        self.assertEqual(request.source_lineage.root.installation_id, "i1")
+        self.assertEqual(request.target_root.installation_id, "i1")
+        # digest fences still hold with the new field present
+        plan = build_state_migration_plan(request)
+        self.assertEqual(plan.lineage_id, "lineage-1")
+
+
 if __name__ == "__main__":
     unittest.main()
