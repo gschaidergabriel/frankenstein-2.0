@@ -406,3 +406,95 @@ it did not weaken the existing one.
 
 **Canonical pointer stays G10.** Nothing in this document proposes, implies, or
 performs a promotion away from it.
+
+---
+
+## Part 5b — Closing the two Schritt-5 gaps (2026-09-03, continuation)
+
+Schritt 5's own "What this does NOT prove" listed two explicit gaps. Both closed
+in this round, on the same branch, no promotion.
+
+### Gap 1 closed: real `unified.db` schema abgleich
+
+The sandbox schema was held against the actual production `unified.db`,
+read-only, via `sqlite3 "file:<path>?mode=ro" -readonly`. Path resolved via
+`stern.py db-pfad-zeigen` from a **fresh** `gschaidergabriel/frankenstein`
+clone (`~/frankenstein-repo` never touched). Full method, raw evidence
+(schema dump + SHA256, object list, targeted searches, the additive migration
+proposal) in
+`workpackages/evidence_inbox/F2-WP-1207/self_integration/UNIFIED_DB_SCHEMA_ABGLEICH_20260903/`.
+
+**Finding:** none of the sandbox tables (`entity_identity`,
+`installation_identity`, `host_binding`, `state_root_identity`,
+`runtime_epoch`) or any `GRID10` concept exist anywhere in the real schema —
+a valid result in itself, not a gap in the search. `entityos_wirte` is the
+closest real analog to `HostBinding` (host sightings via heartbeat) but has
+no status enum, no `installation_id`, no supersede/rebind concept, and no
+cross-instance invariant. The proposed migration (`f2_`-prefixed tables,
+`CREATE TABLE IF NOT EXISTS` / `CREATE INDEX IF NOT EXISTS` only, zero FKs
+into or out of existing tables, zero collision with any of the 260+ existing
+objects) is a **document only** — not applied against `unified.db`, in this
+round or any prior one.
+
+### Gap 2 closed: cross-instance invariant enforced by the engine, not by Python
+
+New module `src/frankenstein2/entity_identity_store.py` — a sandbox sqlite
+persistence layer (still `tempfile`-scoped in its own tests, never
+`unified.db`) that adds
+
+```sql
+CREATE UNIQUE INDEX ux_host_binding_one_active_per_installation
+    ON host_binding (installation_id) WHERE status = 'ACTIVE';
+```
+
+a SQLite partial UNIQUE index (3.8.0+), so "at most one ACTIVE `HostBinding`
+per `installation_id`" is now a real engine-level constraint, not caller
+discipline. `tests/test_entity_identity_store.py` (18 tests, all green)
+proves this is atomic and unbypassable:
+
+- a **hand-written raw `INSERT`** that never calls any wrapper function is
+  rejected with `sqlite3.IntegrityError: UNIQUE constraint failed` —
+  the directive's core demand
+  (`test_naive_raw_sql_insert_bypassing_all_wrappers_still_rejected`)
+- a raw `UPDATE` flipping a dormant row to `ACTIVE` is equally rejected
+  (`test_naive_raw_sql_update_flip_to_active_still_rejected`)
+- a **second sqlite3 connection** (what a second process opening the same
+  file would get) issuing the same raw SQL, both in autocommit and inside
+  its own explicit transaction, is rejected the same way
+  (`test_second_connection_raw_sql_still_rejected_in_and_out_of_tx`)
+- causality (not correlation) is shown directly: the identical raw `INSERT`
+  is rejected while the index exists, succeeds the moment the index is
+  dropped, and is rejected again the moment the index is restored
+  (`test_rejection_is_caused_by_the_partial_index_not_something_else`)
+- the legitimate handover path, `bind_active_host()`, does the supersede +
+  insert as one `BEGIN IMMEDIATE` transaction, so no other connection ever
+  observes a zero- or two-ACTIVE intermediate state
+  (`test_no_other_connection_ever_observes_zero_or_two_active_rows`)
+- the exact Schritt-5 Gold-Test host-swap sequence still works unmodified
+  under the new index (`test_step5_gold_rebind_flow_still_works_under_the_index`)
+- the invariant is per-`installation_id`, not global — a second installation
+  legitimately keeps its own ACTIVE binding
+  (`test_two_installations_each_keep_their_own_active_binding`)
+- an older Schritt-5-style sandbox db (no index) can be retro-fitted via
+  `ensure_host_binding_atomicity()`, which itself refuses to create the index
+  over already-violating data rather than silently hiding the violation
+  (`test_ensure_host_binding_atomicity_refuses_index_over_violating_data`)
+
+Bonus hardening that came with the same module: a `CHECK` constraint on
+`host_binding.status` (engine-level backstop behind the dataclass's own
+validation) and `PRAGMA foreign_keys = ON` actually enforced per-connection
+(both proven rejecting raw-SQL bypass attempts, same file).
+
+**Regression:** all 64 tests from Schritt 0-5 plus the 18 new store tests —
+**82/82 green** (`tests/test_entity_identity.py`, `test_state_migration.py`,
+`test_state_rebind.py`, `test_step3_sandbox_persistence.py`,
+`test_step4_runtime_epoch_reentry.py`, `test_step5_gold_host_rebind.py`,
+`test_entity_identity_store.py`).
+
+**What this still does NOT prove:** the `f2_`-prefixed migration is a
+proposal, not an applied schema change — the real `unified.db` today still
+has zero rows and zero tables for any of this. Nothing in `entity_identity_
+store.py` is wired into `stern.py`, `witness_v3.py`, or any live write path.
+Same SHADOW/additive discipline as every prior round. **Canonical pointer
+stays G10.** `main` in `frankenstein-2.0` untouched by this round (branch
+only, verified after push).

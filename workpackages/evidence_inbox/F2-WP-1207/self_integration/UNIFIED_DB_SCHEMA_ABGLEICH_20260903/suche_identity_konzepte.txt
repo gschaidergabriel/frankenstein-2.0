@@ -1,0 +1,66 @@
+# Suchläufe gegen die ECHTE unified.db (alle nur lesend, sqlite3 -readonly, 2026-09-03)
+
+## 1) Tabellen, deren DDL identity/host/epoch/installation/grid/sandbox/active/status erwaehnt
+active_turns
+biometric_identity
+familiarity_prototype
+graph_kante
+graph_knoten
+pool_nutzung
+retrieval_episodes
+retrieval_policy_state
+sicht_evidenz
+sicht_weltobjekt_stand
+star_quota_zustand
+vp_alias
+vp_paket_log
+vp_plan_cache
+vp_snapshot
+wa_snapshot
+
+## 2) GRID10 im Schema
+(leer = kein Treffer)
+
+## 3) Spalten-Suche
+### $pat = root_id
+### $pat = entity_id
+familiarity_prototype
+visual_entity
+visual_entity_label_history
+### $pat = state_digest
+### $pat = binding_id
+### $pat = runtime_epoch
+### $pat = installation
+
+## 4) DDL der namensaehnlichsten Kandidaten
+### biometric_identity
+CREATE TABLE biometric_identity (
+    id TEXT PRIMARY KEY,
+    label TEXT NOT NULL,
+    embedding_blob BLOB NOT NULL,
+    model_id TEXT NOT NULL,
+    consent_version TEXT NOT NULL,
+    created_at REAL NOT NULL,
+    revoked_at REAL,
+    notes TEXT
+)
+### visual_entity
+CREATE TABLE visual_entity(visual_entity_id TEXT PRIMARY KEY, created_at REAL NOT NULL, last_seen_at REAL NOT NULL, current_label TEXT NOT NULL, provenance TEXT NOT NULL)
+### entityos_wirte
+CREATE TABLE entityos_wirte(
+  wirt TEXT PRIMARY KEY,
+  gehoert_zu TEXT,
+  erste_sichtung REAL NOT NULL,
+  zuletzt_gesehen REAL NOT NULL,
+  generation INTEGER,
+  gesund INTEGER NOT NULL DEFAULT 0,
+  boot_id TEXT,
+  module TEXT NOT NULL DEFAULT '{}',
+  quelle TEXT NOT NULL DEFAULT 'herzschlag'
+)
+### heim_belege
+CREATE TABLE heim_belege(beleg_id TEXT PRIMARY KEY, ts REAL NOT NULL, effect_id TEXT, causal_id TEXT,user_id TEXT NOT NULL, wirt TEXT NOT NULL, aktion TEXT NOT NULL,nutzlast_sha256 TEXT NOT NULL, urteil TEXT NOT NULL)
+### system_bestand
+CREATE TABLE system_bestand(id TEXT PRIMARY KEY, lauf_id TEXT, ts REAL, kategorie TEXT, name TEXT, version TEXT, quelle TEXT)
+### meta
+CREATE TABLE meta(key TEXT PRIMARY KEY, value TEXT NOT NULL)
