@@ -741,3 +741,77 @@ come after):** no production `f2_*` UnifiedDB tables; no permanent
 production witness monitoring a real session (only a self-created test
 subject); `EntityIdentity` itself remains sandbox-only.
 **Canonical pointer stays G10.**
+
+## Part 5g — P3: additive Identity-Migration in the REAL UnifiedDB (2026-09-03)
+
+Direct continuation after P2. Gabriel: "Mach direkt mit P3 weiter. Keine
+Pause." — full 14-step protocol given verbatim, plus a coordinator-added
+requirement: full rehearsal against a copy of the real DB before touching
+the original.
+
+**Pre-condition found and fixed:** the first P3 attempt correctly halted at
+the baseline check — `PRAGMA integrity_check` on the real `unified.db`
+returned `malformed inverted index for FTS5 table main.vp_alias_fts`, a
+pre-existing corruption of a voice-mode speaker-alias search index,
+unrelated to F2-WP-1207. The safety net worked exactly as designed: nothing
+was written before this was caught. `vp_alias_fts` is an external-content
+FTS5 table over `vp_alias` (`content='vp_alias', content_rowid='alias_id'`).
+Repaired via `INSERT INTO vp_alias_fts(vp_alias_fts) VALUES('rebuild')` —
+the FTS5-native rebuild path, which does not touch the content table.
+Post-repair: `integrity_check=ok`, FTS5's own `integrity-check` pragma
+passes, `vp_alias` row count/content-hash identical before/after (1162 rows,
+`3d365dee...`), sample searches return plausible results.
+
+**Migration:** fresh baseline after repair (new backup + SHA256 + schema
+dump + row counts of all 197 pre-existing tables). Full rehearsal against a
+plain file copy first (100% clean: `commit=ok`, `integrity_check=ok`, bypass
+test — a raw second `ACTIVE` `f2_host_binding` insert for the same
+`installation_id`, bypassing every Python wrapper — rejected by SQLite's own
+partial unique index, not just application code; full readback chain proven
+over a fresh connection). Only then the identical migration against the real
+file: one transaction, `CREATE TABLE IF NOT EXISTS`/`CREATE INDEX IF NOT
+EXISTS` only for `f2_entity_identity`, `f2_installation_identity`,
+`f2_host_binding`, `f2_state_root_identity`, `f2_runtime_epoch` plus the
+already-tested partial-unique cross-instance index — no existing object
+altered.
+
+**Genesis identity, for real:** one `EntityIdentity` (`secrets.token_hex(32)`,
+never derived from host/session/prompt). One `InstallationIdentity` — reuses
+the proxy value already live since P1 (`sha256(DB_PATH + checkout path)`,
+`fb068ee8...`), not invented fresh, so the already-running shadow pipeline
+was structurally aligned with this genesis from the start. One `HostBinding`
+(`ACTIVE`) — Candidate A (salted local `/etc/machine-id`) instantiated for
+real for the first time (a pepper was freshly generated; none existed live
+before). One `StateRootIdentity` — reuses the P1/P2 live proxy
+(`sha256("F2WP1207_STATE_ROOT_REF/v1:" + DB_PATH)`, `da592ade...`). One
+`RuntimeEpoch` — the currently active epoch of this very coordinating
+session's shadow chain, `predecessor=None`.
+
+**Post-commit verification on the real file:** `integrity_check=ok`; all 197
+pre-existing tables' row counts compared against baseline — five
+(`causal_episodes`, `durable_memory`, `effects`, `gw_herkunft`, `leases`)
+show higher counts, which is normal concurrent write activity from the live
+system during the minutes this careful procedure took (the migration script
+structurally only ever writes to `f2_*` tables) — `vp_alias`, the one
+specifically fragile table, stayed byte-identical. Bypass test re-confirmed
+on the real file. New tables each hold exactly one genesis row, otherwise
+empty. 203 tables total (198+5). Fresh-connection readback chain
+Entity→Installation→StateRoot→ActiveHostBinding→RuntimeEpoch proven, not
+asserted. Regression: real `stern.py hook` call afterward, `exit=0`, no
+traceback, plausible output; the shadow-evidence entry for that call already
+carries the identical `installation_id`/`state_root_id` as the new genesis
+rows — no code change to `stern.py` was needed this round, because P1's
+derivation formula matched the genesis scheme by construction.
+
+`~/frankenstein-repo` untouched this round (`HEAD` stayed `a65e728`, no new
+commit needed). Details:
+`gschaidergabriel/self-integration`
+`log/2026-09-03-025-p3-unified-db-identity-migration.md`.
+**Canonical pointer stays G10.**
+
+**Deliberately still open:** only one `RuntimeEpoch` exists in the real DB so
+far (this session's) — no predecessor chain there yet (the P2 reentry proof
+ran against a self-created test subject, not this coordinating runtime). The
+live shadow pipeline still writes only to the JSONL evidence file, not
+directly into `f2_runtime_epoch` — syncing new live epochs into the table is
+a separate future step. GRID10 cells remain functionally neutral.
