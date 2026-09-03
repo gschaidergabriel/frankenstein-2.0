@@ -1,0 +1,764 @@
+{
+  "check": "F2-WP-1207-grid10-observation-schema",
+  "conflict_observations": [
+    {
+      "conclusion": "ABI actively detects and hard-rejects two CellOutputs for the same logical_cell_id within a single account_outputs() call.",
+      "probe": "same_cell_twice_in_one_account_outputs_call",
+      "result": {
+        "detected": true,
+        "error": "duplicate output for logical cell"
+      },
+      "target_cell": "G5"
+    },
+    {
+      "conclusion": "Confirmed by code reading and by this probe: grid10_interface.py has no module-level mutable state (no registry/lock/counter) shared across Grid10Plan instances. Two independent frames claiming the same logical_cell_id is therefore structurally UNDETECTABLE by this module -- not because it is proven safe, but because the module has no notion of 'another plan' to conflict with. Any real cross-frame conflict guard would have to live in whatever orchestrator constructs/dispatches Grid10Plan instances, not in this ABI itself.",
+      "probe": "same_cell_across_two_independent_plans",
+      "result": {
+        "both_accounted_independently": true
+      },
+      "target_cell": "G8"
+    }
+  ],
+  "distinguishability_check": {
+    "at_least_one_cell_never_touched_or_always_touched": false,
+    "touch_rate_max": 0.8333333333333334,
+    "touch_rate_min": 0.3333333333333333,
+    "touch_rate_spread_nonzero": true,
+    "wall_time_ns_mean_max": 230993.44444444444,
+    "wall_time_ns_mean_min": 189406.0
+  },
+  "n_scenarios": 24,
+  "per_cell": {
+    "G1": {
+      "inputs": {
+        "input_ref_count_total": 8,
+        "work_units_requested_total": 48
+      },
+      "logical_cell_id": "G1",
+      "outputs": {
+        "output_ref_count_total": 8,
+        "status_distribution": {
+          "NOT_COMPUTED": 3,
+          "PARTIAL": 4,
+          "UNKNOWN": 1
+        },
+        "work_units_used_total": 21
+      },
+      "reentry": {
+        "max_reentry_depth_seen": 3,
+        "reentry_gt0_count": 6,
+        "values_observed": [
+          1,
+          3,
+          2,
+          3,
+          2,
+          0,
+          3,
+          0
+        ]
+      },
+      "resource": {
+        "wall_time_ns_count": 8,
+        "wall_time_ns_max": 251764,
+        "wall_time_ns_mean": 196980.75,
+        "wall_time_ns_min": 185729,
+        "wall_time_ns_p50": 189126.0,
+        "wall_time_ns_p95": 231096.14999999997,
+        "wall_time_ns_total": 1575846
+      },
+      "uptake": {
+        "scenarios_total": 24,
+        "touch_rate": 0.3333333333333333,
+        "touches": 8
+      }
+    },
+    "G10": {
+      "inputs": {
+        "input_ref_count_total": 60,
+        "work_units_requested_total": 123
+      },
+      "logical_cell_id": "G10",
+      "outputs": {
+        "output_ref_count_total": 0,
+        "status_distribution": {
+          "ABSTAIN": 5,
+          "COMPLETE": 5,
+          "NOT_COMPUTED": 4,
+          "PARTIAL": 3,
+          "UNKNOWN": 3
+        },
+        "work_units_used_total": 50
+      },
+      "reentry": {
+        "max_reentry_depth_seen": 3,
+        "reentry_gt0_count": 14,
+        "values_observed": [
+          2,
+          3,
+          0,
+          2,
+          3,
+          0,
+          1,
+          3,
+          0,
+          1,
+          2,
+          3,
+          0,
+          1,
+          3,
+          0,
+          1,
+          2,
+          0,
+          1
+        ]
+      },
+      "resource": {
+        "wall_time_ns_count": 20,
+        "wall_time_ns_max": 220395,
+        "wall_time_ns_mean": 189536.8,
+        "wall_time_ns_min": 183706,
+        "wall_time_ns_p50": 186591.0,
+        "wall_time_ns_p95": 198770.15000000002,
+        "wall_time_ns_total": 3790736
+      },
+      "uptake": {
+        "scenarios_total": 24,
+        "touch_rate": 0.8333333333333334,
+        "touches": 20
+      }
+    },
+    "G2": {
+      "inputs": {
+        "input_ref_count_total": 18,
+        "work_units_requested_total": 45
+      },
+      "logical_cell_id": "G2",
+      "outputs": {
+        "output_ref_count_total": 18,
+        "status_distribution": {
+          "ABSTAIN": 4,
+          "COMPLETE": 3,
+          "NOT_COMPUTED": 2
+        },
+        "work_units_used_total": 21
+      },
+      "reentry": {
+        "max_reentry_depth_seen": 3,
+        "reentry_gt0_count": 6,
+        "values_observed": [
+          2,
+          0,
+          3,
+          1,
+          0,
+          3,
+          1,
+          0,
+          1
+        ]
+      },
+      "resource": {
+        "wall_time_ns_count": 9,
+        "wall_time_ns_max": 539906,
+        "wall_time_ns_mean": 230993.44444444444,
+        "wall_time_ns_min": 185469,
+        "wall_time_ns_p50": 191610.0,
+        "wall_time_ns_p95": 405152.3999999999,
+        "wall_time_ns_total": 2078941
+      },
+      "uptake": {
+        "scenarios_total": 24,
+        "touch_rate": 0.375,
+        "touches": 9
+      }
+    },
+    "G3": {
+      "inputs": {
+        "input_ref_count_total": 30,
+        "work_units_requested_total": 40
+      },
+      "logical_cell_id": "G3",
+      "outputs": {
+        "output_ref_count_total": 30,
+        "status_distribution": {
+          "COMPLETE": 2,
+          "PARTIAL": 3,
+          "UNKNOWN": 5
+        },
+        "work_units_used_total": 18
+      },
+      "reentry": {
+        "max_reentry_depth_seen": 3,
+        "reentry_gt0_count": 8,
+        "values_observed": [
+          3,
+          1,
+          0,
+          2,
+          1,
+          0,
+          2,
+          1,
+          3,
+          2
+        ]
+      },
+      "resource": {
+        "wall_time_ns_count": 10,
+        "wall_time_ns_max": 230715,
+        "wall_time_ns_mean": 195986.1,
+        "wall_time_ns_min": 186201,
+        "wall_time_ns_p50": 192913.5,
+        "wall_time_ns_p95": 217861.19999999998,
+        "wall_time_ns_total": 1959861
+      },
+      "uptake": {
+        "scenarios_total": 24,
+        "touch_rate": 0.4166666666666667,
+        "touches": 10
+      }
+    },
+    "G4": {
+      "inputs": {
+        "input_ref_count_total": 44,
+        "work_units_requested_total": 69
+      },
+      "logical_cell_id": "G4",
+      "outputs": {
+        "output_ref_count_total": 44,
+        "status_distribution": {
+          "ABSTAIN": 3,
+          "NOT_COMPUTED": 5,
+          "PARTIAL": 3
+        },
+        "work_units_used_total": 44
+      },
+      "reentry": {
+        "max_reentry_depth_seen": 3,
+        "reentry_gt0_count": 8,
+        "values_observed": [
+          0,
+          2,
+          1,
+          3,
+          2,
+          0,
+          1,
+          3,
+          2,
+          0,
+          3
+        ]
+      },
+      "resource": {
+        "wall_time_ns_count": 11,
+        "wall_time_ns_max": 198043,
+        "wall_time_ns_mean": 191591.54545454544,
+        "wall_time_ns_min": 187243,
+        "wall_time_ns_p50": 191470.0,
+        "wall_time_ns_p95": 196159.5,
+        "wall_time_ns_total": 2107507
+      },
+      "uptake": {
+        "scenarios_total": 24,
+        "touch_rate": 0.4583333333333333,
+        "touches": 11
+      }
+    },
+    "G5": {
+      "inputs": {
+        "input_ref_count_total": 65,
+        "work_units_requested_total": 68
+      },
+      "logical_cell_id": "G5",
+      "outputs": {
+        "output_ref_count_total": 0,
+        "status_distribution": {
+          "ABSTAIN": 4,
+          "COMPLETE": 5,
+          "NOT_COMPUTED": 1,
+          "UNKNOWN": 3
+        },
+        "work_units_used_total": 34
+      },
+      "reentry": {
+        "max_reentry_depth_seen": 3,
+        "reentry_gt0_count": 10,
+        "values_observed": [
+          1,
+          3,
+          1,
+          2,
+          0,
+          3,
+          1,
+          2,
+          0,
+          2,
+          3,
+          1,
+          0
+        ]
+      },
+      "resource": {
+        "wall_time_ns_count": 13,
+        "wall_time_ns_max": 207862,
+        "wall_time_ns_mean": 190765.38461538462,
+        "wall_time_ns_min": 185299,
+        "wall_time_ns_p50": 188976.0,
+        "wall_time_ns_p95": 200298.99999999997,
+        "wall_time_ns_total": 2479950
+      },
+      "uptake": {
+        "scenarios_total": 24,
+        "touch_rate": 0.5416666666666666,
+        "touches": 13
+      }
+    },
+    "G6": {
+      "inputs": {
+        "input_ref_count_total": 84,
+        "work_units_requested_total": 53
+      },
+      "logical_cell_id": "G6",
+      "outputs": {
+        "output_ref_count_total": 14,
+        "status_distribution": {
+          "COMPLETE": 2,
+          "NOT_COMPUTED": 3,
+          "PARTIAL": 5,
+          "UNKNOWN": 4
+        },
+        "work_units_used_total": 22
+      },
+      "reentry": {
+        "max_reentry_depth_seen": 3,
+        "reentry_gt0_count": 11,
+        "values_observed": [
+          2,
+          0,
+          2,
+          3,
+          1,
+          3,
+          0,
+          2,
+          3,
+          1,
+          3,
+          0,
+          2,
+          1
+        ]
+      },
+      "resource": {
+        "wall_time_ns_count": 14,
+        "wall_time_ns_max": 206919,
+        "wall_time_ns_mean": 192243.35714285713,
+        "wall_time_ns_min": 186802,
+        "wall_time_ns_p50": 191786.0,
+        "wall_time_ns_p95": 199990.0,
+        "wall_time_ns_total": 2691407
+      },
+      "uptake": {
+        "scenarios_total": 24,
+        "touch_rate": 0.5833333333333334,
+        "touches": 14
+      }
+    },
+    "G7": {
+      "inputs": {
+        "input_ref_count_total": 0,
+        "work_units_requested_total": 99
+      },
+      "logical_cell_id": "G7",
+      "outputs": {
+        "output_ref_count_total": 32,
+        "status_distribution": {
+          "ABSTAIN": 5,
+          "COMPLETE": 3,
+          "NOT_COMPUTED": 5,
+          "PARTIAL": 2,
+          "UNKNOWN": 1
+        },
+        "work_units_used_total": 47
+      },
+      "reentry": {
+        "max_reentry_depth_seen": 3,
+        "reentry_gt0_count": 11,
+        "values_observed": [
+          3,
+          0,
+          1,
+          3,
+          0,
+          2,
+          0,
+          1,
+          3,
+          0,
+          2,
+          0,
+          1,
+          3,
+          1,
+          2
+        ]
+      },
+      "resource": {
+        "wall_time_ns_count": 16,
+        "wall_time_ns_max": 211188,
+        "wall_time_ns_mean": 189406.0,
+        "wall_time_ns_min": 182153,
+        "wall_time_ns_p50": 186641.5,
+        "wall_time_ns_p95": 201374.25,
+        "wall_time_ns_total": 3030496
+      },
+      "uptake": {
+        "scenarios_total": 24,
+        "touch_rate": 0.6666666666666666,
+        "touches": 16
+      }
+    },
+    "G8": {
+      "inputs": {
+        "input_ref_count_total": 17,
+        "work_units_requested_total": 82
+      },
+      "logical_cell_id": "G8",
+      "outputs": {
+        "output_ref_count_total": 51,
+        "status_distribution": {
+          "ABSTAIN": 3,
+          "COMPLETE": 5,
+          "NOT_COMPUTED": 1,
+          "PARTIAL": 3,
+          "UNKNOWN": 5
+        },
+        "work_units_used_total": 46
+      },
+      "reentry": {
+        "max_reentry_depth_seen": 3,
+        "reentry_gt0_count": 13,
+        "values_observed": [
+          0,
+          1,
+          2,
+          0,
+          1,
+          3,
+          1,
+          2,
+          0,
+          1,
+          2,
+          3,
+          1,
+          2,
+          0,
+          2,
+          3
+        ]
+      },
+      "resource": {
+        "wall_time_ns_count": 17,
+        "wall_time_ns_max": 217900,
+        "wall_time_ns_mean": 191766.23529411765,
+        "wall_time_ns_min": 183585,
+        "wall_time_ns_p50": 190649.0,
+        "wall_time_ns_p95": 200963.99999999997,
+        "wall_time_ns_total": 3260026
+      },
+      "uptake": {
+        "scenarios_total": 24,
+        "touch_rate": 0.7083333333333334,
+        "touches": 17
+      }
+    },
+    "G9": {
+      "inputs": {
+        "input_ref_count_total": 38,
+        "work_units_requested_total": 76
+      },
+      "logical_cell_id": "G9",
+      "outputs": {
+        "output_ref_count_total": 76,
+        "status_distribution": {
+          "ABSTAIN": 3,
+          "COMPLETE": 2,
+          "NOT_COMPUTED": 5,
+          "PARTIAL": 5,
+          "UNKNOWN": 4
+        },
+        "work_units_used_total": 41
+      },
+      "reentry": {
+        "max_reentry_depth_seen": 3,
+        "reentry_gt0_count": 15,
+        "values_observed": [
+          1,
+          2,
+          3,
+          1,
+          2,
+          3,
+          0,
+          2,
+          3,
+          1,
+          2,
+          3,
+          0,
+          2,
+          3,
+          0,
+          1,
+          3,
+          0
+        ]
+      },
+      "resource": {
+        "wall_time_ns_count": 19,
+        "wall_time_ns_max": 206469,
+        "wall_time_ns_mean": 190413.26315789475,
+        "wall_time_ns_min": 184337,
+        "wall_time_ns_p50": 189226.0,
+        "wall_time_ns_p95": 195423.3,
+        "wall_time_ns_total": 3617852
+      },
+      "uptake": {
+        "scenarios_total": 24,
+        "touch_rate": 0.7916666666666666,
+        "touches": 19
+      }
+    }
+  },
+  "python_version": "3.12.3 (main, Jun 19 2026, 12:46:00) [GCC 13.3.0]",
+  "raw_event_count": 137,
+  "resource_summary": {
+    "note": "getrusage granularity is coarse (whole-process, whole-run); per-touch cost is measured separately via time.perf_counter_ns on each event ('wall_time_ns'). Both are real measurements, not estimates.",
+    "ru_maxrss_after_kb": 19572,
+    "ru_maxrss_before_kb": 19060,
+    "ru_maxrss_delta_kb": 512,
+    "ru_stime_delta_seconds": 0.0,
+    "ru_utime_delta_seconds": 0.040648000000000004,
+    "wall_clock_seconds_total": 0.040650484996149316
+  },
+  "schema": "FRANKENSTEIN2_GRID10_OBSERVATION_REPORT/v1",
+  "semantic_neutrality": {
+    "denylist_size": 29,
+    "policy": "No logical_cell_id (G1..G10) is assigned a name, role, or functional interpretation anywhere in this report. Every record was scanned against a denylist of interpretive tokens before being emitted (see _assert_no_semantic_leakage in the source); this run passed that guard for all 137 events + 10 per-cell aggregates + the temporal-correlation block."
+  },
+  "temporal_correlation": {
+    "cell_touch_counts": {
+      "G1": 8,
+      "G10": 20,
+      "G2": 9,
+      "G3": 10,
+      "G4": 11,
+      "G5": 13,
+      "G6": 14,
+      "G7": 16,
+      "G8": 17,
+      "G9": 19
+    },
+    "immediate_sequence_adjacency": {
+      "G1->G2": 8,
+      "G2->G3": 9,
+      "G3->G4": 10,
+      "G4->G5": 11,
+      "G5->G6": 13,
+      "G6->G7": 14,
+      "G7->G8": 16,
+      "G8->G9": 17,
+      "G9->G10": 19
+    },
+    "note": "Raw co-occurrence + immediate-sequence-adjacency counts across 24 synthetic scenario-cycles. Purely observational -- no semantic or causal interpretation. Because this run's drive pattern is an independent per-cell touch-probability formula (no cross-cell coupling was coded), any correlation seen here should be close to what independent-probability chance predicts; a REAL production run against actual GRID10 traffic through this same schema would be the one where non-chance correlation is actually meaningful to look for.",
+    "pairwise_co_occurrence": {
+      "G10|G2": {
+        "co_occurrences": 9,
+        "jaccard": 0.45
+      },
+      "G10|G3": {
+        "co_occurrences": 10,
+        "jaccard": 0.5
+      },
+      "G10|G4": {
+        "co_occurrences": 11,
+        "jaccard": 0.55
+      },
+      "G10|G5": {
+        "co_occurrences": 13,
+        "jaccard": 0.65
+      },
+      "G10|G6": {
+        "co_occurrences": 14,
+        "jaccard": 0.7
+      },
+      "G10|G7": {
+        "co_occurrences": 16,
+        "jaccard": 0.8
+      },
+      "G10|G8": {
+        "co_occurrences": 17,
+        "jaccard": 0.85
+      },
+      "G10|G9": {
+        "co_occurrences": 19,
+        "jaccard": 0.95
+      },
+      "G1|G10": {
+        "co_occurrences": 8,
+        "jaccard": 0.4
+      },
+      "G1|G2": {
+        "co_occurrences": 8,
+        "jaccard": 0.8888888888888888
+      },
+      "G1|G3": {
+        "co_occurrences": 8,
+        "jaccard": 0.8
+      },
+      "G1|G4": {
+        "co_occurrences": 8,
+        "jaccard": 0.7272727272727273
+      },
+      "G1|G5": {
+        "co_occurrences": 8,
+        "jaccard": 0.6153846153846154
+      },
+      "G1|G6": {
+        "co_occurrences": 8,
+        "jaccard": 0.5714285714285714
+      },
+      "G1|G7": {
+        "co_occurrences": 8,
+        "jaccard": 0.5
+      },
+      "G1|G8": {
+        "co_occurrences": 8,
+        "jaccard": 0.47058823529411764
+      },
+      "G1|G9": {
+        "co_occurrences": 8,
+        "jaccard": 0.42105263157894735
+      },
+      "G2|G3": {
+        "co_occurrences": 9,
+        "jaccard": 0.9
+      },
+      "G2|G4": {
+        "co_occurrences": 9,
+        "jaccard": 0.8181818181818182
+      },
+      "G2|G5": {
+        "co_occurrences": 9,
+        "jaccard": 0.6923076923076923
+      },
+      "G2|G6": {
+        "co_occurrences": 9,
+        "jaccard": 0.6428571428571429
+      },
+      "G2|G7": {
+        "co_occurrences": 9,
+        "jaccard": 0.5625
+      },
+      "G2|G8": {
+        "co_occurrences": 9,
+        "jaccard": 0.5294117647058824
+      },
+      "G2|G9": {
+        "co_occurrences": 9,
+        "jaccard": 0.47368421052631576
+      },
+      "G3|G4": {
+        "co_occurrences": 10,
+        "jaccard": 0.9090909090909091
+      },
+      "G3|G5": {
+        "co_occurrences": 10,
+        "jaccard": 0.7692307692307693
+      },
+      "G3|G6": {
+        "co_occurrences": 10,
+        "jaccard": 0.7142857142857143
+      },
+      "G3|G7": {
+        "co_occurrences": 10,
+        "jaccard": 0.625
+      },
+      "G3|G8": {
+        "co_occurrences": 10,
+        "jaccard": 0.5882352941176471
+      },
+      "G3|G9": {
+        "co_occurrences": 10,
+        "jaccard": 0.5263157894736842
+      },
+      "G4|G5": {
+        "co_occurrences": 11,
+        "jaccard": 0.8461538461538461
+      },
+      "G4|G6": {
+        "co_occurrences": 11,
+        "jaccard": 0.7857142857142857
+      },
+      "G4|G7": {
+        "co_occurrences": 11,
+        "jaccard": 0.6875
+      },
+      "G4|G8": {
+        "co_occurrences": 11,
+        "jaccard": 0.6470588235294118
+      },
+      "G4|G9": {
+        "co_occurrences": 11,
+        "jaccard": 0.5789473684210527
+      },
+      "G5|G6": {
+        "co_occurrences": 13,
+        "jaccard": 0.9285714285714286
+      },
+      "G5|G7": {
+        "co_occurrences": 13,
+        "jaccard": 0.8125
+      },
+      "G5|G8": {
+        "co_occurrences": 13,
+        "jaccard": 0.7647058823529411
+      },
+      "G5|G9": {
+        "co_occurrences": 13,
+        "jaccard": 0.6842105263157895
+      },
+      "G6|G7": {
+        "co_occurrences": 14,
+        "jaccard": 0.875
+      },
+      "G6|G8": {
+        "co_occurrences": 14,
+        "jaccard": 0.8235294117647058
+      },
+      "G6|G9": {
+        "co_occurrences": 14,
+        "jaccard": 0.7368421052631579
+      },
+      "G7|G8": {
+        "co_occurrences": 16,
+        "jaccard": 0.9411764705882353
+      },
+      "G7|G9": {
+        "co_occurrences": 16,
+        "jaccard": 0.8421052631578947
+      },
+      "G8|G9": {
+        "co_occurrences": 17,
+        "jaccard": 0.8947368421052632
+      }
+    }
+  }
+}
