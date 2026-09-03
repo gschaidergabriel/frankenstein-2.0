@@ -689,3 +689,55 @@ rollback needed.
 no binding to `EntityIdentity` itself, only the three fields Gabriel named.
 **Canonical pointer stays G10.** Details: `gschaidergabriel/self-integration`
 `log/2026-09-03-023-p1-identity-binding.md`.
+
+### P2 — automatic reentry trigger, live Gold Test (2026-09-03, closes the P1 gap)
+
+The exact gap P1 left open: `force_new` had to be set manually, no signal
+existed for "this call follows a real process restart". P2 adds
+`F2WP1207_REENTRY_MARKERS`, a small separate JSON file that `_f2wp1207_
+runtime_epoch()` checks at the top of its existing try/except: if a marker
+exists for the current `session_id`, `force_new` is set automatically and
+the marker is consumed (single-use). The marker is written ONLY by a
+dedicated witness process (`witness_v3` pattern: double-fork+setsid
+self-daemonization) — never by the hook dispatch itself. For every real live
+session without an involved witness, no marker ever exists — 0-delta holds
+structurally, not just empirically.
+
+**Gold Test run LIVE, not simulated:** a self-created test subject in its
+own isolated session (`setsid`), PID-baseline checked (only the subject in
+that group, no foreign session), a double-fork+setsid witness watching it,
+a real group-wide `kill -TERM` on ONLY the subject's group (reproducing real
+job-control/session teardown). R1: three real `python3 stern.py hook` calls
+for the same test `session_id` → identical `runtime_epoch_id`, `predecessor_
+epoch_id=null`. Witness confirms real death, writes the marker automatically.
+R2: three further real hook calls, same `session_id`, **no manual `force_new`
+this time** → new `runtime_epoch_id`, correctly chained via `predecessor_
+epoch_id` to the R1 epoch, `installation_id`/`state_root_id` unchanged.
+Marker file empty afterward (consumed once, no double-trigger).
+
+**All 5 Gold Test properties proven:** same `installation_id` across reentry,
+same `state_root_id`, new `runtime_epoch_id` with correct chaining, GRID10
+frames from R1/R2 separable via `runtime_epoch_id` AND groupable via
+`installation_id`/`state_root_id`. (Full `EntityIdentity` itself is still
+sandbox-only, not imported live — see the Live-Shadow-Wiring Gate-3
+simplification rationale; `installation_id`/`state_root_id` stability serves
+as the live-available proxy here.)
+
+Gate 2 (0-delta) and Gate 3 (failure isolation, corrupted marker file)
+re-verified real. No foreign running process ever touched — PID baseline
+checked before the signal, only the self-created test group was hit; the
+actual process serving this very coordinating session ran unaffected
+throughout.
+
+Branch `self-integration/wp1207-p2-reentry-gold-test-live-20260903` was
+never separately created for the code change — the change landed directly
+on `gschaidergabriel/frankenstein` `main` (commit `a65e728`, the **fourth**
+`main` merge in this series), verified with a real hook call before and
+after. Details: `gschaidergabriel/self-integration`
+`log/2026-09-03-024-p2-reentry-gold-test.md`.
+
+**Not done in this round (deliberately, per Gabriel's ordering P3/P4/P5
+come after):** no production `f2_*` UnifiedDB tables; no permanent
+production witness monitoring a real session (only a self-created test
+subject); `EntityIdentity` itself remains sandbox-only.
+**Canonical pointer stays G10.**
