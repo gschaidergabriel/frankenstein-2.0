@@ -31,6 +31,41 @@ No hypothesis verdict elsewhere touched; no live subject contacted; no pointer
 promotion; `~/frankenstein-repo` read-only (hook.log + `db-pfad-zeigen`), never
 written.
 
+**Update 2026-09-03 (PERSISTENCE-REBIND-REENTRY-20260903, paket-1788427516954-97461f):**
+following Gabriel's assessment after the entity-identity-layering-v2 round ("Identity-
+Schicht jetzt ca. 8/10 architektonische Reife, aber erst ~5/10 Runtime-Reife... Der
+naechste Wert entsteht durch Persistenz, Rebind und Reentry-Beweis -- nicht durch
+weitere Klassen"), this round did NOT add new dataclasses. It: (0) fixed
+`RuntimeEpoch.host_id` -> `host_binding_id` (references `HostBinding.binding_id`,
+prevents "runtime says H2, binding says H3" drift); (1) added `installation_id`
+additively to the LIVE `state_migration.py::StateRootIdentity` (backward-compat
+proven: 15 pre-existing tests + 3 new, zero edits to pre-existing tests); (2) built
+`state_rebind.py::RebindEligibleMigrationRequest`, additive/parallel to the live
+`StateMigrationRequest` (left completely unmodified, its hard host-equality check
+still fires exactly as before) -- implements "same installation + valid HostBinding
+transition -> Migration/Rebind erlaubt"; (3) proved real SQL INSERT/SELECT
+persistence of one EntityIdentity + one InstallationIdentity in an isolated sandbox
+sqlite db; (4) hung a `RuntimeEpoch` reentry chain off two genuinely different real
+OS subprocesses (crash -> witness-style restart -> relaunch), persisted + verified
+via SQL SELECT; (5) **GOLD TEST, passed**: `E1==E1, I1==I1, StateRootIdentity stays
+bound to I1` proven by SQL SELECT across a real host rebind (H1 SUPERSEDED, H2
+ACTIVE, same `installation_id`) *and* a real runtime change (two distinct real OS
+processes, R81 -> R82 chained) happening simultaneously. See dedicated section
+"Part 5a -- Schritt 5 Gold Test (2026-09-03)" below and
+`gschaidergabriel/frankenstein-2.0`, branch
+`self-integration/wp1207-persistence-rebind-reentry-20260903` (built off commit
+`8432d6ed`), files `src/frankenstein2/entity_identity.py`,
+`src/frankenstein2/state_migration.py`, `src/frankenstein2/state_rebind.py` (new),
+`tests/test_step3_sandbox_persistence.py` (new),
+`tests/test_step4_runtime_epoch_reentry.py` (new),
+`tests/test_step5_gold_host_rebind.py` (new, the Gold Test). 64/64 tests green
+across the whole round. Still: no UnifiedDB write path against the REAL
+`~/.local/share/agentzero/unified.db`, no wiring into `stern.py`/`witness_v3.py`,
+no live activation -- everything in this update is isolated/sandbox, per the same
+discipline every prior round in this file has followed. No hypothesis verdict
+elsewhere touched; no live subject contacted; no pointer promotion; branch pushed,
+not merged to `main`.
+
 **Placement decision:** committed here (`frankenstein-2.0` repo root) because every
 `H*` ID and every evidence path below is meaningful only relative to this repo's
 `workpackages/evidence_inbox/F2-WP-1207/...` tree — this is target-system
@@ -300,6 +335,74 @@ made about itself plus the open items above — not a new invention:
     its own branch, pushed but unmerged, by design (no coordinator authorization
     requested or given). Promoting any of this to canonical status is explicitly out
     of scope for every round to date, including this one.
+
+---
+
+## Part 5a — Schritt 5 Gold Test (2026-09-03)
+
+Gabriel's condition, verbatim: **"E1 bleibt E1, I1 bleibt I1, StateRoot bleibt
+derselben Installation zugeordnet, obwohl Host UND Runtime wechseln."**
+
+**Verdict: PASSED.** `tests/test_step5_gold_host_rebind.py::
+Step5GoldHostRebindTests::test_gold_e1_stays_e1_i1_stays_i1_stateroot_stays_installation_despite_host_and_runtime_change`
+
+What the test actually does (not a text claim — an executable, currently-green
+`unittest` test, isolated sandbox sqlite db, no `unified.db`, no
+`~/frankenstein-repo`):
+
+1. Mints `E1` (via `generate_entity_identity()`), `I1` (`InstallationIdentity`,
+   `installation_id="I1-gold"`), a first `HostBinding` `H1` (`ACTIVE`,
+   `host_id="host-old-gold"`), and a `StateRootIdentity` `S7` bound to `I1`.
+   All four rows are real `INSERT`s into the sandbox db.
+2. Runs `RuntimeEpoch` `R81`, bound to `H1` via `RuntimeEpoch.from_binding()`,
+   backed by an actual `subprocess.Popen` (real PID, real wall-clock
+   `started_at`, waited-for exit). Persisted via real `INSERT`.
+3. Checkpoints `S7.installation_id == I1.installation_id` via `SELECT`
+   *before* touching anything else.
+4. **The rebind:** `H1.superseded()` is applied via a real `UPDATE
+   host_binding SET status=? WHERE binding_id=?` (not a Python-only
+   transform); a new `HostBinding` `H2` (`ACTIVE`, `host_id="host-new-gold"`,
+   **same `installation_id`**) is `INSERT`ed.
+5. **Runtime changes too:** a second, genuinely different real OS subprocess
+   is spawned (different PID, asserted `!=` the first); `R82 =
+   r81.next_epoch(host_binding_id=h2.binding_id, ...)` chains it to `R81` via
+   `predecessor_epoch_id`. Persisted via real `INSERT`.
+6. **Every assertion below reads back via a fresh `sqlite3.connect()` +
+   `SELECT`, not the in-memory Python objects:**
+   - exactly one `entity_identity` row, still `E1`'s `entity_id`
+   - exactly one `installation_identity` row, still `I1`, still pointing at `E1`
+   - `S7`'s `installation_id` is `I1` both pre- and post-swap, unchanged
+   - `H1` is `SUPERSEDED`, `H2` is `ACTIVE`, both under `I1`, different `host_id`
+   - `R81` references `H1`/`pid1`, `R82` references `H2`/`pid2`/`predecessor=R81`,
+     both under the same `installation_id` and the same `state_root_id`
+   - one combined `assertTrue(...)` conjoining all of the above, labeled with
+     the gold condition text itself
+
+A second test in the same file
+(`test_bonus_rebind_eligible_under_new_path_still_rejected_under_old_path`)
+ties Schritt 2 into the same scenario: the identical source/target root pair
+(differing only in `host_identity_sha256`) is accepted by the new
+`RebindEligibleMigrationRequest` (same `installation_id` + `ACTIVE`
+`HostBinding` for the new host) and **still rejected** by the completely
+unmodified, live `StateMigrationRequest` — proving Schritt 2 added a path,
+it did not weaken the existing one.
+
+**What this does NOT prove (explicit DOUBTS, not overclaimed):**
+- No cross-instance registry enforces "only one ACTIVE `HostBinding` per
+  `installation_id`" — validated per-instance only, same caveat
+  `entity_identity.py`'s own module docstring already states for
+  `BINDING_STATUS_ACTIVE`.
+- The sandbox sqlite schema is this round's own design, modeled on the
+  dataclass fields — it was never diffed against the real production
+  `unified.db` schema (that schema was not inspected, per the safety
+  instruction to stay out of `~/frankenstein-repo`).
+- `RuntimeEpoch`'s "real process" is a trivial `python -c "pass"` subprocess,
+  not an actual Frankenstein/witness_v3 process — the reentry MECHANICS
+  (real PID, real wait, real nonzero-exit-triggers-restart, real chaining)
+  are proven; a live witness_v3 integration is not attempted here, by design.
+- Nothing here is wired into `stern.py`, `witness_v3.py`, or any live
+  UnifiedDB — activation against the real running system remains a fully
+  separate, later, owner-authorized decision, same as every prior round.
 
 **Canonical pointer stays G10.** Nothing in this document proposes, implies, or
 performs a promotion away from it.
