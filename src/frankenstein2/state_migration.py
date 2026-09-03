@@ -422,6 +422,45 @@ def _revalidate_target_observation(value: Any) -> TargetRootObservation:
     )
 
 
+def validate_target_prestate(
+    obs: "TargetRootObservation", source: "StateLineage"
+) -> None:
+    """Shared target-prestate check (F2-WP-1207 Schritt 2 extraction, pure
+    refactor -- byte-identical logic to what used to live inline as
+    `StateMigrationRequest._validate_target_prestate`, now a free function so
+    `state_rebind.py`'s new rebind-eligible request path can reuse it without
+    duplicating this logic. `StateMigrationRequest` below calls this exact
+    function; behavior is unchanged (proven by the full pre-existing
+    `tests/test_state_migration.py` suite staying green across this
+    extraction, zero test edits needed for the extraction itself)."""
+    if obs.status == TARGET_UNKNOWN:
+        raise StateMigrationError(
+            "target root prestate is UNKNOWN; refuse silent second-lineage creation"
+        )
+    if obs.status == TARGET_CONFLICTING_LINEAGE:
+        raise StateMigrationError(
+            "target root contains a conflicting lineage; explicit reconciliation required"
+        )
+    if obs.status == TARGET_SAME_LINEAGE_VERIFIED:
+        if obs.observed_lineage_id != source.lineage_id:
+            raise StateMigrationError(
+                "SAME_LINEAGE_VERIFIED observation lineage_id does not match source"
+            )
+        assert obs.observed_generation is not None
+        assert obs.observed_state_sha256 is not None
+        if obs.observed_generation > source.generation:
+            raise StateMigrationError(
+                "target contains a newer lineage generation; refuse overwrite"
+            )
+        if (
+            obs.observed_generation == source.generation
+            and obs.observed_state_sha256 != source.state_sha256
+        ):
+            raise StateMigrationError(
+                "same-generation target state digest conflicts with source"
+            )
+
+
 @dataclass(frozen=True, slots=True)
 class StateMigrationRequest:
     schema: str
@@ -498,38 +537,13 @@ class StateMigrationRequest:
             self, "expected_rollback_root_sha256", expected_rollback_root
         )
 
-        self._validate_target_prestate()
+        validate_target_prestate(self.target_observation, self.source_lineage)
 
     def _validate_target_prestate(self) -> None:
-        obs = self.target_observation
-        source = self.source_lineage
-
-        if obs.status == TARGET_UNKNOWN:
-            raise StateMigrationError(
-                "target root prestate is UNKNOWN; refuse silent second-lineage creation"
-            )
-        if obs.status == TARGET_CONFLICTING_LINEAGE:
-            raise StateMigrationError(
-                "target root contains a conflicting lineage; explicit reconciliation required"
-            )
-        if obs.status == TARGET_SAME_LINEAGE_VERIFIED:
-            if obs.observed_lineage_id != source.lineage_id:
-                raise StateMigrationError(
-                    "SAME_LINEAGE_VERIFIED observation lineage_id does not match source"
-                )
-            assert obs.observed_generation is not None
-            assert obs.observed_state_sha256 is not None
-            if obs.observed_generation > source.generation:
-                raise StateMigrationError(
-                    "target contains a newer lineage generation; refuse overwrite"
-                )
-            if (
-                obs.observed_generation == source.generation
-                and obs.observed_state_sha256 != source.state_sha256
-            ):
-                raise StateMigrationError(
-                    "same-generation target state digest conflicts with source"
-                )
+        # Kept as a thin back-compat shim (F2-WP-1207 Schritt 2 extraction) --
+        # any external caller that happened to call this private method
+        # directly still gets identical behavior via the shared function.
+        validate_target_prestate(self.target_observation, self.source_lineage)
 
     @classmethod
     def create(
