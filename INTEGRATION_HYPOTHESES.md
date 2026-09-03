@@ -1079,3 +1079,26 @@ Evidence: analysis scripts and raw exports kept locally under
 (not committed — reproducible from the DB state and this description; can
 be added to `workpackages/evidence_inbox/` on request). Canonical pointer
 unchanged, G10.
+
+---
+
+## P6c — State-Weight Dosis-Wirkungs-Sweep (2026-09-04, vorregistriert)
+
+Preregistration + Ergebnisse: `self-integration` Repo, `PREREG_P6C_20260904.md`
+(Commit `0770475`) + `log/2026-09-04-023-p6c-state-weight-sweep.md` (Commit
+`7ae3780`). Code: `workpackages/evidence_inbox/F2-WP-1207/p6c_state_weight_sweep/`
+(dieser Branch).
+
+**Ergebnis: uneindeutig nach eigener vorab festgelegter Regel.** Dosis-Wirkungs-
+Kurve bestätigt (state_weight 0.0→0.75, Effekt wächst monoton, CI schließt Null
+ab ~0.5 aus). Shuffle-Kontrolle bricht den Effekt (bestätigt: eigene Zellhistorie
+zählt). Frozen-State-Kontrolle bricht den Effekt NICHT (widerspricht der
+PASS-Bedingung, die beide Kontrollen verlangte). Mechanistische Einordnung: die
+additive Proposal-Formel (`state_weight*state + (1-state_weight)*signal`) macht
+den Dosis-Effekt mathematisch erwartbar -- kein Beweis fuer emergente rekurrente
+Dynamik im engeren Sinn, nur Beleg dass die Formel wie gebaut funktioniert und
+zellindividuelle Historie (nicht nur Zufallswerte) den Ausgang beeinflusst.
+
+Offen fuer eine praezisere Frozen-Kontrolle (P6d, falls gewuenscht): Divergenz
+ueber viele Frames zwischen "State darf sich anpassen" und "State bleibt fix"
+bei driftender Signalverteilung wurde in dieser Runde NICHT getestet.
