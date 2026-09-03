@@ -809,9 +809,98 @@ commit needed). Details:
 `log/2026-09-03-025-p3-unified-db-identity-migration.md`.
 **Canonical pointer stays G10.**
 
-**Deliberately still open:** only one `RuntimeEpoch` exists in the real DB so
-far (this session's) — no predecessor chain there yet (the P2 reentry proof
-ran against a self-created test subject, not this coordinating runtime). The
-live shadow pipeline still writes only to the JSONL evidence file, not
-directly into `f2_runtime_epoch` — syncing new live epochs into the table is
-a separate future step. GRID10 cells remain functionally neutral.
+**Deliberately still open (superseded by P4 below):** only one `RuntimeEpoch`
+existed in the real DB so far (this session's) — no predecessor chain there
+yet. The live shadow pipeline wrote only to the JSONL evidence file, not
+directly into `f2_runtime_epoch`. GRID10 cells remain functionally neutral.
+
+## Part 5g — P4: GRID10 as a full persistent runtime-bound measurement layer (2026-09-03)
+
+Gabriel's directive after P3 (verbatim, condensed): "GRID10 technisch
+vollständig in die reale Runtime/UnifiedDB integrieren. Keine Pause und kein
+Warten auf 100-1000 Turns." Explicitly NOT the goal: naming G1-G10
+semantically. The goal: a complete, persistent, identity-/runtime-bound
+observation layer. Package `paket-1788449933872-77f078`.
+
+**Closed the two gaps flagged open at the end of Part 5f:**
+
+1. **RuntimeEpoch autosync.** New `_f2wp1207_runtime_epoch_db_sync()`: every
+   call to `_f2wp1207_runtime_epoch()` (freshly minted OR already-known
+   epoch) now performs an idempotent `INSERT OR IGNORE` into
+   `f2_runtime_epoch`, resolving `host_binding_id` live from the `ACTIVE`
+   `f2_host_binding` row. Fail-closed, same discipline as everything else in
+   this pipeline.
+2. **GRID10 schema in UnifiedDB.** Two new additive tables:
+   `f2_grid10_frame` (frame-level: entity/installation/state-root/
+   runtime-epoch/session/turn-event IDs, open/closed timestamps, `status`,
+   `UNIQUE(runtime_epoch_id, turn_event_id)` as the replay/dedup guard) and
+   `f2_grid10_cell_observation` (one row per frame × cell, `G1`..`G10` only —
+   a `CHECK` constraint enforces this, no names possible even by accident —
+   input/output digests, uptake, reentry/conflict flags, timing, real
+   `resource.getrusage` numbers, `predecessor_observation_id`,
+   `UNIQUE(frame_id, logical_cell_id)`). Rehearsed against a copy of the real
+   DB first (schema apply + autosync simulation + two frames across two
+   epochs + dedup-rejection test + fresh-connection readback + integrity
+   check + full row-count diff against every other table — 100% clean), then
+   the identical DDL applied to the real file (fresh backup
+   `unified_db_backup_20260903T154057Z.db`, hash-verified, `integrity_check`
+   `ok` before and after).
+
+**Live frame wiring.** `_f2wp1207_shadow_beobachtung()` now calls
+`_f2wp1207_grid10_frame_persist()` once per real turn, writing all ten cells
+atomically in one short transaction. `entity_id` cannot be locally derived
+(P3 genesis, cryptographically random) — read read-only from
+`f2_entity_identity`. `installation_id`/`state_root_id` remain the P1 proxy
+values, verified bit-identical to the P3 genesis rows (no bridging code
+needed — they already matched by construction).
+
+Two real hook calls in the same session: same `runtime_epoch_id` reused,
+`turn_event_id` incremented, 10/10 cells per frame both times, second attempt
+at the same (epoch, turn) key rejected by the database itself, not just
+application code.
+
+**Gate 2/3 re-verified for real:** flag OFF → the new code path is never
+entered (unchanged). A deliberately invalid `entity_id` (FK violation, real
+`IntegrityError`) injected directly into `_f2wp1207_grid10_frame_persist()`:
+zero rows written, no exception propagated, `hook.log` still has zero
+`F2WP1207`/`GRID10` lines.
+
+**Real reentry test R1→R2.** A self-created test subject (`sleep 600`) and a
+dedicated witness process (double-fork+setsid, its own independent
+session/group) in an isolated process group — PID baseline checked before
+any signal (only the test group's own subject was present). Two real hook
+calls → R1 (`81c08346...`, `predecessor=NULL`, 2 frames × 10 cells). A real
+group-wide `kill -TERM` on the test group only (the witness, in its own
+separate group, was unaffected and kept polling). Witness detects the real
+death, writes the reentry marker. Two more real hook calls → R2
+(`edc78a70...`, `predecessor=81c08346...`, 2 more frames × 10 cells).
+
+**Proof, via SQL over a fresh connection, not asserted:** all four frames
+(R1: 2, R2: 2) share identical `entity_id`/`installation_id`/`state_root_id`
+(`7a1bd3f5.../fb068ee8.../da592ade...`), differ only in `runtime_epoch_id`,
+with the correct `predecessor_epoch_id` chain — exactly the property Gabriel
+asked for: GRID10 frames before/after a real reentry belong to the same
+Entity/Installation/StateRoot chain but to different RuntimeEpochs.
+
+**Honestly noted, not a bug:** `turn_event_id` counts per-epoch (resets to
+`:1` after each reentry) rather than being a single global counter across the
+whole session — this does not weaken the uniqueness/dedup guarantee (the
+composite key `runtime_epoch_id`+`turn_event_id` stays unique across the
+whole table), but is a design choice worth naming explicitly rather than
+leaving it to be assumed as a global monotonic counter.
+
+Commit `95c438c` in `gschaidergabriel/frankenstein`, pushed to `main` — the
+fifth `main` merge of the series. `~/frankenstein-repo` pulled to this commit
+and re-verified with a real hook call afterward (`exit=0`, unchanged output
+shape). `PRAGMA integrity_check=ok` after every step. **Canonical pointer
+stays G10.** Details:
+`gschaidergabriel/self-integration`
+`log/2026-09-03-023-p4-grid10-runtime-persistence.md`.
+
+**Deliberately still open:** no functional hypotheses about individual cells
+(explicitly P5, not this round — needs a real data volume, per Gabriel's own
+100-1000-turn guidance for *that* step specifically, not for infrastructure).
+`installation_id`/`state_root_id` remain proxy values, not an independent
+re-derivation scheme. Continuous collection now runs automatically — every
+real turn produces a persisted frame, no further action needed until P5 has
+enough data.
