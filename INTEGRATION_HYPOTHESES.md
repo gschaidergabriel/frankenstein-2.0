@@ -1102,3 +1102,38 @@ zellindividuelle Historie (nicht nur Zufallswerte) den Ausgang beeinflusst.
 Offen fuer eine praezisere Frozen-Kontrolle (P6d, falls gewuenscht): Divergenz
 ueber viele Frames zwischen "State darf sich anpassen" und "State bleibt fix"
 bei driftender Signalverteilung wurde in dieser Runde NICHT getestet.
+
+---
+
+## P6d — Recurrent cell-state dynamics with decay (2026-09-04)
+
+Follows P6c's ambiguous dose-response result (frozen-state control did NOT
+collapse the effect there, diagnosed as a static formula artifact, not real
+memory). Gabriel's redesigned dynamics: `state(t+1) = lambda*state(t) +
+alpha*uptake(t) + beta*broadcast(t) - gamma*conflict(t)`, `proposal_score(t+1)
+= signal(t+1) + kappa*tanh(state(t+1))`. Preregistered (`PREREG_P6D_20260904.md`
+in `self-integration`, committed before any run) six-criterion test: impulse,
+frozen, shuffle, reset, decay-sweep, counterfactual — all six required for a
+strict PASS.
+
+**Result: 4/6 criteria hold cleanly (counterfactual, frozen, shuffle,
+impulse-response). Reset partial (boundary breaks, structure re-forms fast).
+Decay-sweep monotonicity not shown at this sample size (single run/lambda,
+likely underpowered).** Not a strict PASS under the preregistered all-six
+rule, but qualitatively real evidence of a causally load-bearing recurrent
+mechanism — distinct from P6c's static-bias diagnosis. Two implementation
+bugs found and fixed en route (long-transaction lock starvation of
+`stern.py`'s own epoch-sync helper; a counterfactual stimulus key that
+accidentally embedded the condition name, invalidating the "identical
+stimulus" precondition until corrected). Full writeup:
+`self-integration` `log/2026-09-04-028-p6d-recurrent-dynamics-results.md`.
+
+Isolated state persisted in new table `f2_grid10_p6d_state` (additive
+migration to the real `unified.db`, backed up + generalprobed against a copy
+first, `PRAGMA integrity_check=ok` before/after). `~/frankenstein-repo` HEAD
+unchanged this round. No wiring into the live per-turn pipeline. No cell
+role or semantic name. Canonical pointer unchanged, G10.
+
+Open for a future round: decay-sweep needs multiple seeds/replicates per
+lambda; reset's fast-remixing behavior deserves its own characterization
+(a structure half-life measurement) rather than pass/fail framing.
