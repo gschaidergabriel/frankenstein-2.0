@@ -634,3 +634,58 @@ persistence-rebind-reentry-20260903`), not written to the real
 volume of real shadow turns has accumulated under P0. **Canonical pointer
 stays G10.** Details: `gschaidergabriel/self-integration`
 `log/2026-09-03-022-p0-shadow-persistent.md`.
+
+## Part 5e — P1: shadow evidence bound to live identity chain (2026-09-03)
+
+Gabriel corrected the sequencing right after Part 5d: the 100-1000-turn
+target belongs to the later *statistical* GRID10 role analysis (P4/P5), not
+to P1 — identity binding is a *structural* question, provable with a
+handful of real turns plus one controlled reentry. So P1 ran immediately,
+in parallel with P0's ongoing collection, not gated behind it.
+
+`~/frankenstein-repo/scripts/stern.py` gained two new, deliberately
+self-contained helpers (same no-cross-repo-import rationale as Part 5c):
+`_f2wp1207_installation_id()` (deterministic proxy: sha256 of `DB_PATH` +
+this file's checkout path) and `_f2wp1207_runtime_epoch(session_id,
+force_new=False)` (file-based epoch assignment per `session_id`, stored in
+newly-gitignored `f2wp1207_runtime_epochs.json`; `force_new=True` mints a
+new epoch with `predecessor_epoch_id` chained to the old one — the reentry
+mechanism). Every `F2WP1207_SHADOW_EVIDENCE` record now also carries
+`installation_id`, `state_root_id` (renamed alias of the existing
+`state_root_ref_sha256`), `runtime_epoch_id`, `predecessor_epoch_id`.
+
+**Honestly scoped:** this proves the chaining mechanism is *correct* when
+triggered — it does NOT implement automatic reentry detection. No hook-side
+signal for "this call follows a real process restart" exists yet;
+`force_new` must be set by a future, dedicated caller (a `witness_v3`
+integration — that's P2).
+
+**Proof, with real `python3 stern.py hook` calls (not simulated):**
+1. Three real calls, same test `session_id` → identical `installation_id`,
+   `state_root_id`, `runtime_epoch_id`, `predecessor_epoch_id=null`.
+2. Simulated reentry (direct function call with `force_new=True`, since no
+   automatic trigger exists): new epoch, `predecessor_epoch_id` points
+   exactly at the old epoch; `installation_id` unchanged.
+3. A further real hook call after the simulated reentry correctly picks up
+   the new epoch and continues using it.
+4. Gate 2 (0-delta) re-checked: a grep for `F2WP1207`/`installation_id`/
+   `runtime_epoch` in visible `additionalContext` across all test calls hit
+   once — verified to be a legitimate UnifiedDB memory-retrieval line *about*
+   F2-WP-1207 itself, not a mechanism leak.
+5. Gate 3 (failure isolation) re-checked: `f2wp1207_runtime_epochs.json`
+   deliberately corrupted with invalid content, then a real hook call —
+   still `exit=0`, plausible output; the internal fail-closed fallback in
+   `_f2wp1207_runtime_epoch` returned a non-persisted fallback epoch instead
+   of propagating.
+
+Branch `self-integration/wp1207-p1-identity-binding-20260903T145600Z`
+(commit `60b9bb2`) in `gschaidergabriel/frankenstein`, then merged to `main`
+(fast-forward `c97b4b7`→`60b9bb2`) — the **third** `main` merge in this
+series. Verified with a real hook call both before and after the merge; no
+rollback needed.
+
+**Not done in this round:** no automatic reentry trigger (P2, needs a real
+`witness_v3` lifecycle binding); no production `f2_*` UnifiedDB tables (P3);
+no binding to `EntityIdentity` itself, only the three fields Gabriel named.
+**Canonical pointer stays G10.** Details: `gschaidergabriel/self-integration`
+`log/2026-09-03-023-p1-identity-binding.md`.
