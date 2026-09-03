@@ -594,3 +594,43 @@ need:** this round proves the wiring is *safe to have live*, not that it
 flag persistently via `star_konfig` or a systemd unit) remains a separate,
 later decision — not an automatic follow-on of this round. Details:
 `gschaidergabriel/self-integration` `log/2026-09-03-021-live-shadow-wiring-drei-gates.md`.
+
+## Part 5d — P0: shadow observation activated persistently (2026-09-03)
+
+Package `paket-1788444680903-3dc2a1`. Gabriel gave a 7-item priority list
+(P0–P6) right after the wiring round above landed. **P0**, verbatim: "Shadow
+dauerhaft, aber weiterhin rein beobachtend aktivieren ... nicht sofort
+systemweit blind, sondern bewusst für eine begrenzte Beobachtungsphase" —
+target: 100–1000 real shadow turns, then re-evaluate P1 (binding the
+evidence to the real identity chain).
+
+The previous round's "what this does NOT prove" section named exactly this
+as the next, separate, later decision. This round is that decision.
+
+**Change:** `_f2wp1207_shadow_aktiv()` now checks the env-var override
+first (unchanged, `0`/`1` wins), then falls back to a persistent
+`star_konfig` key `f2wp1207.shadow_aktiv` (same pattern as
+`modell_aktiv.gewaehlt` elsewhere in `stern.py`) instead of a hardcoded
+`False`. That key was set to `"1"` via `_konfig_dyn_set()` for the
+observation phase — no env var involved, so it survives across process
+boundaries (every hook call is its own process).
+
+**Verification order:** real hook call before the flip (flag still
+effectively off) → `exit=0`, unchanged. Flip via `_konfig_dyn_set`. Real
+hook call after, no env var set → `exit=0`, visible `additionalContext`
+prefix byte-identical to the pre-flip call for the same prompt, evidence
+file +1 line with a real `TypedEntry`+`GRID10` frame. `hook.log` still free
+of `F2WP1207` lines (Gate 3 holds). Branch
+`self-integration/wp1207-p0-shadow-persistent-20260903T141805Z` (`c97b4b7`)
+in `gschaidergabriel/frankenstein`, then merged to `main`
+(`c97b4b73953b359a3051bbd392bd5126c20d9e61`) — the **second** `main` merge
+in this series. Final control call on the merged `main` state still clean.
+
+**Not done in this round (unchanged from Part 5c):** binding observation
+records to `EntityIdentity`/`InstallationIdentity`/`StateRootIdentity`/
+`RuntimeEpoch` — those remain sandbox-only (`self-integration/wp1207-
+persistence-rebind-reentry-20260903`), not written to the real
+`unified.db`. That is Gabriel's P1, explicitly deferred until a meaningful
+volume of real shadow turns has accumulated under P0. **Canonical pointer
+stays G10.** Details: `gschaidergabriel/self-integration`
+`log/2026-09-03-022-p0-shadow-persistent.md`.
