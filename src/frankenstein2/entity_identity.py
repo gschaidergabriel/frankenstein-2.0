@@ -59,12 +59,18 @@ Exact target schema (field names verbatim from the directive):
         bound_at
         attestation
         status
+        binding_id  -- added 2026-09-03 Schema-Fix: stable row id, so
+                       RuntimeEpoch can reference the BINDING, not restate
+                       a bare host_id (see RuntimeEpoch note below)
 
     RuntimeEpoch
         runtime_epoch_id
         state_root_id
         installation_id
-        host_id
+        host_id  -- REPLACED 2026-09-03 Schema-Fix by host_binding_id
+                    (references HostBinding.binding_id). Gabriel verbatim:
+                    "Das verhindert spaeter Inkonsistenzen wie 'Runtime
+                    sagt Host H2, aktives Binding sagt H3'."
         started_at
         predecessor_epoch_id
         termination_reason
@@ -447,7 +453,18 @@ class StateRootIdentity:
 
 @dataclass(frozen=True, slots=True)
 class HostBinding:
+    """`binding_id` (added alongside the Schema-Fix 2026-09-03) is this row's
+    own stable identifier -- what `RuntimeEpoch.host_binding_id` references.
+    Without it, a RuntimeEpoch could only point at a bare `host_id`, which is
+    exactly the "runtime says host H2, active binding says H3" drift the
+    fix exists to prevent: two ACTIVE-then-SUPERSEDED bindings for the same
+    host_id (re-attested, revoked-then-restored, ...) would be
+    indistinguishable to a referencing RuntimeEpoch. `binding_id` is caller
+    supplied, like every other id in this module (no hidden autogeneration).
+    """
+
     schema: str
+    binding_id: str
     installation_id: str
     host_id: str
     bound_at: str
@@ -457,6 +474,7 @@ class HostBinding:
     def __post_init__(self) -> None:
         if self.schema != HOST_BINDING_SCHEMA:
             raise EntityIdentityError("host binding schema mismatch")
+        object.__setattr__(self, "binding_id", _identifier("binding_id", self.binding_id))
         object.__setattr__(
             self, "installation_id", _identifier("installation_id", self.installation_id)
         )
@@ -470,6 +488,7 @@ class HostBinding:
     def create(
         cls,
         *,
+        binding_id: str,
         installation_id: str,
         host_id: str,
         bound_at: str,
@@ -478,6 +497,7 @@ class HostBinding:
     ) -> "HostBinding":
         return cls(
             schema=HOST_BINDING_SCHEMA,
+            binding_id=binding_id,
             installation_id=installation_id,
             host_id=host_id,
             bound_at=bound_at,
@@ -516,11 +536,21 @@ class HostBinding:
 
 @dataclass(frozen=True, slots=True)
 class RuntimeEpoch:
+    """`host_binding_id` (not a bare `host_id`) references the specific
+    `HostBinding` row active when this epoch started -- Schema-Fix 2026-09-03
+    (Gabriel, WP-1207 persistence/rebind/reentry round). Rationale verbatim:
+    "Das verhindert spaeter Inkonsistenzen wie 'Runtime sagt Host H2, aktives
+    Binding sagt H3'." A bare host_id string could silently drift from the
+    HostBinding table; a foreign-key-shaped reference to the binding's own id
+    cannot -- any consumer that wants the concrete host_id resolves it by
+    looking up the referenced HostBinding, one source of truth.
+    """
+
     schema: str
     runtime_epoch_id: str
     state_root_id: str
     installation_id: str
-    host_id: str
+    host_binding_id: str
     started_at: str
     predecessor_epoch_id: str | None
     termination_reason: str | None
@@ -535,7 +565,9 @@ class RuntimeEpoch:
         object.__setattr__(
             self, "installation_id", _identifier("installation_id", self.installation_id)
         )
-        object.__setattr__(self, "host_id", _identifier("host_id", self.host_id))
+        object.__setattr__(
+            self, "host_binding_id", _identifier("host_binding_id", self.host_binding_id)
+        )
         object.__setattr__(self, "started_at", _rfc3339_utc("started_at", self.started_at))
         object.__setattr__(
             self,
@@ -559,7 +591,7 @@ class RuntimeEpoch:
         runtime_epoch_id: str,
         state_root_id: str,
         installation_id: str,
-        host_id: str,
+        host_binding_id: str,
         started_at: str,
         predecessor_epoch_id: str | None = None,
         termination_reason: str | None = None,
@@ -569,7 +601,32 @@ class RuntimeEpoch:
             runtime_epoch_id=runtime_epoch_id,
             state_root_id=state_root_id,
             installation_id=installation_id,
-            host_id=host_id,
+            host_binding_id=host_binding_id,
+            started_at=started_at,
+            predecessor_epoch_id=predecessor_epoch_id,
+            termination_reason=termination_reason,
+        )
+
+    @classmethod
+    def from_binding(
+        cls,
+        *,
+        runtime_epoch_id: str,
+        state_root_id: str,
+        binding: "HostBinding",
+        started_at: str,
+        predecessor_epoch_id: str | None = None,
+        termination_reason: str | None = None,
+    ) -> "RuntimeEpoch":
+        """Convenience: derive `installation_id` + `host_binding_id` straight
+        from an active `HostBinding` row, so a caller never has to restate
+        the installation_id by hand (and risk it drifting from the binding's
+        own installation_id)."""
+        return cls.create(
+            runtime_epoch_id=runtime_epoch_id,
+            state_root_id=state_root_id,
+            installation_id=binding.installation_id,
+            host_binding_id=binding.binding_id,
             started_at=started_at,
             predecessor_epoch_id=predecessor_epoch_id,
             termination_reason=termination_reason,
@@ -597,13 +654,14 @@ class RuntimeEpoch:
         started_at: str,
         state_root_id: str | None = None,
         installation_id: str | None = None,
-        host_id: str | None = None,
+        host_binding_id: str | None = None,
     ) -> "RuntimeEpoch":
         """Convenience constructor for the successor epoch in a chain, per
-        directive point 4 -- carries state_root_id/installation_id/host_id
-        forward by default (the common "same everything, new execution
-        segment" case) but lets a caller override any of them (e.g. a
-        HostBinding rebind happened between epochs).
+        directive point 4 -- carries state_root_id/installation_id/
+        host_binding_id forward by default (the common "same everything, new
+        execution segment" case) but lets a caller override any of them (e.g.
+        a HostBinding rebind happened between epochs -- pass the NEW binding's
+        `binding_id` as `host_binding_id`).
         """
         return RuntimeEpoch.create(
             runtime_epoch_id=runtime_epoch_id,
@@ -611,7 +669,9 @@ class RuntimeEpoch:
             installation_id=(
                 installation_id if installation_id is not None else self.installation_id
             ),
-            host_id=host_id if host_id is not None else self.host_id,
+            host_binding_id=(
+                host_binding_id if host_binding_id is not None else self.host_binding_id
+            ),
             started_at=started_at,
             predecessor_epoch_id=self.runtime_epoch_id,
             termination_reason=None,

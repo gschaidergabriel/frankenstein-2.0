@@ -181,6 +181,7 @@ class HostBindingTests(unittest.TestCase):
 
     def test_default_status_active(self) -> None:
         binding = HostBinding.create(
+            binding_id="hb1",
             installation_id="i1",
             host_id="h1",
             bound_at="2026-01-01T00:00:00+00:00",
@@ -192,6 +193,7 @@ class HostBindingTests(unittest.TestCase):
     def test_rejects_unknown_status(self) -> None:
         with self.assertRaises(EntityIdentityError):
             HostBinding.create(
+                binding_id="hb1",
                 installation_id="i1",
                 host_id="h1",
                 bound_at="2026-01-01T00:00:00+00:00",
@@ -202,6 +204,7 @@ class HostBindingTests(unittest.TestCase):
     def test_rejects_naive_timestamp(self) -> None:
         with self.assertRaises(EntityIdentityError):
             HostBinding.create(
+                binding_id="hb1",
                 installation_id="i1",
                 host_id="h1",
                 bound_at="2026-01-01T00:00:00",  # no tz
@@ -213,6 +216,7 @@ class HostBindingTests(unittest.TestCase):
         modeled here as h1 becoming SUPERSEDED and a new ACTIVE h2 binding
         appearing, both referencing installation_id i1."""
         h1 = HostBinding.create(
+            binding_id="hb1",
             installation_id="i1",
             host_id="h1",
             bound_at="2026-08-01T00:00:00+00:00",
@@ -220,6 +224,7 @@ class HostBindingTests(unittest.TestCase):
         )
         h1_ended = h1.superseded()
         h2 = HostBinding.create(
+            binding_id="hb2",
             installation_id="i1",
             host_id="h2",
             bound_at="2026-09-10T00:00:00+00:00",
@@ -231,6 +236,7 @@ class HostBindingTests(unittest.TestCase):
         # on a mere host swap" invariant from directive point 3.
         self.assertEqual(h1_ended.installation_id, h2.installation_id)
         self.assertNotEqual(h1_ended.host_id, h2.host_id)
+        self.assertNotEqual(h1_ended.binding_id, h2.binding_id)
         # original h1 record is untouched (frozen); superseded() returned a copy
         self.assertEqual(h1.status, BINDING_STATUS_ACTIVE)
 
@@ -245,7 +251,7 @@ class RuntimeEpochTests(unittest.TestCase):
             runtime_epoch_id="r81",
             state_root_id="s7",
             installation_id="i1",
-            host_id="h2",
+            host_binding_id="hb2",
             started_at="2026-09-10T01:00:00+00:00",
         )
         self.assertEqual(epoch.schema, RUNTIME_EPOCH_SCHEMA)
@@ -258,7 +264,7 @@ class RuntimeEpochTests(unittest.TestCase):
                 runtime_epoch_id="r81",
                 state_root_id="s7",
                 installation_id="i1",
-                host_id="h2",
+                host_binding_id="hb2",
                 started_at="2026-09-10T01:00:00+00:00",
                 predecessor_epoch_id="r81",
             )
@@ -268,7 +274,7 @@ class RuntimeEpochTests(unittest.TestCase):
             runtime_epoch_id="r81",
             state_root_id="s7",
             installation_id="i1",
-            host_id="h2",
+            host_binding_id="hb2",
             started_at="2026-09-10T01:00:00+00:00",
         )
         r81_closed = r81.terminated(reason="crash: witness_v3 target died, group SIGTERM")
@@ -284,7 +290,7 @@ class RuntimeEpochTests(unittest.TestCase):
             runtime_epoch_id="r81",
             state_root_id="s7",
             installation_id="i1",
-            host_id="h2",
+            host_binding_id="hb2",
             started_at="2026-09-10T01:00:00+00:00",
         ).terminated(reason="witness_v3 detected target death, auto-relaunch")
         r82 = r81.next_epoch(runtime_epoch_id="r82", started_at="2026-09-10T01:00:05+00:00")
@@ -293,7 +299,7 @@ class RuntimeEpochTests(unittest.TestCase):
         # directive point 2: same state root / installation / host, new epoch
         self.assertEqual(r82.state_root_id, r81.state_root_id)
         self.assertEqual(r82.installation_id, r81.installation_id)
-        self.assertEqual(r82.host_id, r81.host_id)
+        self.assertEqual(r82.host_binding_id, r81.host_binding_id)
         self.assertIsNone(r82.termination_reason)  # r82 itself has not ended
 
     def test_three_epoch_chain_with_crash_reentry_stays_visible(self) -> None:
@@ -302,7 +308,7 @@ class RuntimeEpochTests(unittest.TestCase):
             runtime_epoch_id="r81",
             state_root_id="s7",
             installation_id="i1",
-            host_id="h2",
+            host_binding_id="hb2",
             started_at="2026-09-10T01:00:00+00:00",
         ).terminated(reason="crash/reentry")
         r82 = r81.next_epoch(runtime_epoch_id="r82", started_at="2026-09-10T01:00:05+00:00")
@@ -320,7 +326,7 @@ class RuntimeEpochTests(unittest.TestCase):
         for epoch in chain:
             self.assertEqual(epoch.state_root_id, "s7")
             self.assertEqual(epoch.installation_id, "i1")
-            self.assertEqual(epoch.host_id, "h2")
+            self.assertEqual(epoch.host_binding_id, "hb2")
 
 
 class GabrielExampleTreeTests(unittest.TestCase):
@@ -346,6 +352,7 @@ class GabrielExampleTreeTests(unittest.TestCase):
         i1 = InstallationIdentity.create(installation_id="i1", entity_id=e1.entity_id)
 
         h1 = HostBinding.create(
+            binding_id="hb1",
             installation_id=i1.installation_id,
             host_id="h1",
             bound_at="2026-01-01T00:00:00+00:00",
@@ -353,6 +360,7 @@ class GabrielExampleTreeTests(unittest.TestCase):
         )
         h1_superseded = h1.superseded()
         h2 = HostBinding.create(
+            binding_id="hb2",
             installation_id=i1.installation_id,
             host_id="h2",
             bound_at="2026-09-10T00:00:00+00:00",
@@ -365,11 +373,10 @@ class GabrielExampleTreeTests(unittest.TestCase):
             state_digest_sha256="d" * 64,
         )
 
-        r81 = RuntimeEpoch.create(
+        r81 = RuntimeEpoch.from_binding(
             runtime_epoch_id="r81",
             state_root_id=s7.state_root_id,
-            installation_id=i1.installation_id,
-            host_id=h2.host_id,
+            binding=h2,
             started_at="2026-09-10T01:00:00+00:00",
         ).terminated(reason="crash/reentry")
         r82 = r81.next_epoch(runtime_epoch_id="r82", started_at="2026-09-10T01:00:05+00:00")
@@ -402,10 +409,12 @@ class GabrielExampleTreeTests(unittest.TestCase):
         self.assertFalse(hasattr(s7, "host_id"))
 
         # runtime epochs sit under the state root and reference the CURRENT
-        # host (h2) -- consistent with them all being minted after the swap.
+        # host BINDING (h2, not a bare host_id) -- consistent with them all
+        # being minted after the swap, and immune to the "runtime says H2,
+        # active binding says H3" drift the Schema-Fix exists to prevent.
         for epoch in (r81, r82, r83):
             self.assertEqual(epoch.state_root_id, s7.state_root_id)
-            self.assertEqual(epoch.host_id, "h2")
+            self.assertEqual(epoch.host_binding_id, h2.binding_id)
 
         # crash/reentry stays visible, not smoothed into one continuous epoch
         self.assertEqual(r81.termination_reason, "crash/reentry")
