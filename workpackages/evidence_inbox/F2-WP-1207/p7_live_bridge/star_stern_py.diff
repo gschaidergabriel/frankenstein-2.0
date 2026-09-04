@@ -1,0 +1,97 @@
+--- stern.py.backup-pre-p7-bridge-20260904	2026-09-04 17:00:42.975262422 +0700
++++ stern.py	2026-09-04 17:08:38.283529826 +0700
+@@ -8871,6 +8871,78 @@
+         return None
+ 
+ 
++# ═══════════════════════════════════════════════════════════════════════
++# ABSCHNITT: F2WP1207 P7-BRUECKE (2026-09-04) -- Bau-Auftrag "P7 Live
++# Bridge", paket-1788515972573-d35ba2. star/stern.py ist die LIVE
++# registrierte Hook-Datei jeder laufenden Claude-Code-Sitzung auf dieser
++# Maschine -- ZWEI voneinander unabhaengige stern.py-Dateien gibt es hier
++# (diese und ~/frankenstein-repo/scripts/stern.py, gleicher Dateiname,
++# gemeinsam ist NUR die Zeigerdatei/das Env-Fallback fuer DB_PATH, siehe
++# _db_pfad_aufloesen() oben -- beide Dateien zeigen auf dieselbe echte
++# unified.db). Diese Bruecke importiert NICHTS aus der anderen Datei/aus
++# frankenstein-2.0 -- sie ruft ~/frankenstein-repo/scripts/stern.py als
++# ISOLIERTEN, ZEITLIMITIERTEN Subprozess, NUR wenn das Flag unten AN ist.
++# Default AUS, ein einziger Schalter genuegt zum sofortigen Rueckbau
++# (Kill-Switch).
++#
++# FAIL-CLOSED, dreifach abgesichert:
++#   1. Diese Funktion selbst: kompletter Koerper in try/except Exception,
++#      JEDE Ausnahme wird verschluckt+geloggt, NIE weitergereicht.
++#   2. subprocess.run() selbst mit knappem timeout (4s) -- ein haengender
++#      P7-Bruecken-Prozess blockiert den Hook nie laenger.
++#   3. Aufrufstelle im Stop-Zweig unten haengt NOCH ein eigenes try/except
++#      drum (Verteidigung in der Tiefe -- selbst ein Bug in DIESER Funktion
++#      hier darf den Hook nicht stoeren).
++#
++# Flag-Lesemuster identisch zu _github_sync_aktiv() oben (Env-Override
++# gewinnt, sonst persistenter star_konfig-Schluessel) -- UND identisch zum
++# Gate, das grid10_p7_coordination.p7_active() driben in der Bruecke selbst
++# benutzt (gleicher Env-Name/gleicher Schluessel, damit beide Seiten NIE
++# auseinanderlaufen koennen).
++# ═══════════════════════════════════════════════════════════════════════
++_F2WP1207_P7_ENV = "STERN_F2WP1207_P7_LIVE"
++_F2WP1207_P7_KONFIG_KEY = "f2wp1207.p7_active"
++
++
++def _f2wp1207_p7_bruecke_aktiv() -> bool:
++    override = os.environ.get(_F2WP1207_P7_ENV)
++    if override in ("0", "1"):
++        return override == "1"
++    try:
++        return _konfig_dyn_get(_F2WP1207_P7_KONFIG_KEY, "0") == "1"
++    except Exception:
++        return False
++
++
++def _f2wp1207_p7_bruecke_versuchen(session_id: str) -> None:
++    """Stop-Ereignis = ein Zug (siehe PHASE-17-Punkt-4-Kommentar bei
++    architekt_governance_zug() im Stop-Zweig) -- deshalb hier aufgerufen,
++    nicht bei UserPromptSubmit. Bei AUS: sofortiger Return, NICHTS
++    gelesen/geschrieben/aufgerufen (0 Verhaltensaenderung gegenueber
++    "diese Funktion existiert nicht"). Bei AN: EIN isolierter
++    Subprozessaufruf gegen frankenstein-repo/scripts/stern.py
++    p7-bridge-turn, Timeout 4s, stdout/stderr eingefangen (nicht
++    ausgewertet -- der Rueckgabewert dieser Funktion ist IMMER None,
++    unabhaengig vom Ergebnis der Bruecke). KEINE Ausnahme verlaesst diese
++    Funktion je."""
++    try:
++        if not _f2wp1207_p7_bruecke_aktiv():
++            return
++        bruecke = Path.home() / "frankenstein-repo" / "scripts" / "stern.py"
++        if not bruecke.is_file():
++            return
++        payload = json.dumps({"session_id": session_id}, ensure_ascii=False)
++        subprocess.run(
++            [sys.executable, str(bruecke), "p7-bridge-turn"],
++            input=payload, capture_output=True, text=True, timeout=4.0,
++        )
++    except Exception as e:
++        try:
++            _log(f"f2wp1207 p7-bruecke fehler (verschluckt, hook laeuft unveraendert weiter): {e}")
++        except Exception:
++            pass
++
++
+ def cmd_hook() -> int:
+     """Liest EIN hook-JSON von stdin, verzweigt nach hook_event_name,
+     schreibt hoechstens EIN JSON nach stdout. Genau die Kombination, die
+@@ -9139,6 +9211,15 @@
+             # Statuszeile: Runde fertig -> "waiting" (gruen), optional Ton
+             # (benachrichtigung.ton_bei_warten, Default aus).
+             _statuszeile_warten()
++            # F2WP1207 P7-Bruecke (2026-09-04, paket-1788515972573-d35ba2):
++            # hinter eigenem Flag, Default AUS (siehe Funktionskommentar
++            # oben). Aufrufstelle NOCHMAL in try/except, obwohl die Funktion
++            # selbst schon vollstaendig fail-closed ist -- Verteidigung in
++            # der Tiefe, ausdrueckliche Vorgabe des Bauauftrags.
++            try:
++                _f2wp1207_p7_bruecke_versuchen(session_id)
++            except Exception:
++                pass
+ 
+         elif event == "SessionEnd":
+             zyklus_schliessen(session_id)
