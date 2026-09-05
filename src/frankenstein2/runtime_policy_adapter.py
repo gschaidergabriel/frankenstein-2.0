@@ -32,7 +32,17 @@ from .perception_control import (
     evaluate_perception_head,
 )
 
-DEFAULT_UNIFIED_DB_PATH = os.path.expanduser("~/.claude/star/unified.db")
+# Coordinator fix, 2026-09-05: the original default pointed at
+# ~/.claude/star/unified.db -- a stale legacy copy (perception_head_status
+# had 7 rows there vs. 10 in the real production file at the time this was
+# caught), not the actual, currently-written database. This is the same
+# "two unified.db" trap documented elsewhere in this project's history
+# (~/.claude/star/stern.py's _db_pfad_aufloesen() resolves the real,
+# current path via a pointer file / XDG data dir, not this hardcoded
+# constant) -- callers who need the authoritative path should prefer that
+# resolution chain over this default where possible. Fixed here to at
+# least point at the real file, not the legacy one.
+DEFAULT_UNIFIED_DB_PATH = os.path.expanduser("~/.local/share/agentzero/unified.db")
 
 _VALID_TIERS = frozenset({"ON", "COMPUTE_OFF", "OUTPUT_OFF", "MEMORY_OFF"})
 
