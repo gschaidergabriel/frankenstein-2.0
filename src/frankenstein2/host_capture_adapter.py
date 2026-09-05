@@ -291,13 +291,26 @@ class HostCaptureAdapter:
     def __init__(self, *, broker: RetinaCaptureBroker, owner_id: str,
                  device: str = REAL_CAMERA_DEVICE, source_id: Optional[str] = None,
                  clock_domain: str = "host_capture_adapter_monotonic_ns",
-                 warmup_frames: int = 2, stale_history_len: int = 6) -> None:
+                 warmup_frames: int = 2, stale_history_len: int = 6,
+                 frame_size: Optional[tuple[int, int]] = None,
+                 prefer_v4l2: bool = False) -> None:
+        """`frame_size` / `prefer_v4l2` are CORTEX-P2 additions (2026-09-05), strictly
+        optional and behaviour-preserving: both default to the exact P1 behaviour
+        (no explicit CAP_V4L2 backend request, no CAP_PROP_* size negotiation, so
+        cv2 opens the device at whatever default the driver picks). P2's live
+        canary budget is the LIVE hook's own 4 s subprocess timeout; measured on
+        this host (2026-09-05) the driver default (1920x1080) costs ~2.6 s of
+        open() alone while an explicit 640x480 V4L2 open costs ~0.05-0.3 s, so
+        only the P2 capture path passes these. Nothing else in this module reads
+        them, and P1 callers that omit them are unaffected."""
         self._broker = broker
         self._device = device
         self._owner_id = owner_id
         self._source_id = source_id or f"camera:{device}"
         self._clock_domain = clock_domain
         self._warmup_frames = warmup_frames
+        self._frame_size = frame_size
+        self._prefer_v4l2 = prefer_v4l2
         self._source_generation = 1
         self._cap: Any = None
         self._lease = None
@@ -330,9 +343,20 @@ class HostCaptureAdapter:
                 )
             HostCaptureAdapter._active_devices[self._device] = self._owner_id
         try:
-            self._cap = cv2.VideoCapture(self._device)
+            self._cap = (
+                cv2.VideoCapture(self._device, cv2.CAP_V4L2)
+                if self._prefer_v4l2 else cv2.VideoCapture(self._device)
+            )
             if not self._cap.isOpened():
                 raise HostCaptureAdapterError(f"cv2.VideoCapture could not open {self._device}")
+            if self._frame_size is not None:
+                # Negotiated AFTER the device is open, BEFORE the warmup reads, so the
+                # warmup frames (and every frame this adapter publishes) already have
+                # the requested geometry. The driver is free to refuse; the real
+                # delivered shape is whatever cv2.read() returns and is published
+                # verbatim -- no assertion, no silent retry loop.
+                self._cap.set(cv2.CAP_PROP_FRAME_WIDTH, int(self._frame_size[0]))
+                self._cap.set(cv2.CAP_PROP_FRAME_HEIGHT, int(self._frame_size[1]))
             for _ in range(self._warmup_frames):
                 self._cap.read()
         except Exception:
